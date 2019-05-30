@@ -43,11 +43,11 @@ func CreateServerStreamConnection(context context.Context, prot types.Protocol, 
 	return nil
 }
 
-func SelectStreamFactoryProtocol(prot string, peek []byte) (types.Protocol, error) {
+func SelectStreamFactoryProtocol(ctx context.Context, prot string, peek []byte) (types.Protocol, error) {
 	var err error
 	var again bool
 	for p, factory := range streamFactories {
-		err = factory.ProtocolMatch(prot, peek)
+		err = factory.ProtocolMatch(ctx, prot, peek)
 		if err == nil {
 			return p, nil
 		} else if err == EAGAIN {

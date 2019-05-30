@@ -40,8 +40,8 @@ var (
 
 // InitDefaultMetricsZone used to initialize the default zone according to the configuration.
 // And the default zone will detach while process exiting
-func InitDefaultMetricsZone(name string, size int) {
-	zone := createMetricsZone(name, size)
+func InitDefaultMetricsZone(name string, size int, clear bool) {
+	zone := createMetricsZone(name, size, clear)
 
 	defaultZone = zone
 
@@ -54,7 +54,7 @@ func InitDefaultMetricsZone(name string, size int) {
 // InitMetricsZone used to initialize the default zone according to the configuration.
 // It's caller's responsibility to detach the zone.
 func InitMetricsZone(name string, size int) *zone {
-	defaultZone = createMetricsZone(name, size)
+	defaultZone = createMetricsZone(name, size, false)
 	return defaultZone
 }
 
@@ -64,7 +64,11 @@ func Reset() {
 
 // createMetricsZone used to create new shm-based metrics zone. It's caller's responsibility
 // to detach the zone.
-func createMetricsZone(name string, size int) *zone {
+func createMetricsZone(name string, size int, clear bool) *zone {
+	if clear {
+		shm.Clear(name)
+	}
+
 	zone, err := newSharedMetrics(name, size)
 	if err != nil {
 		log.Fatalln("open shared memory for metrics failed:", err)

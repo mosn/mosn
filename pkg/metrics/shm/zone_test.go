@@ -21,6 +21,7 @@ import (
 	"runtime"
 	"sync"
 	"testing"
+	"unsafe"
 )
 
 func TestNewSharedMetrics(t *testing.T) {
@@ -53,4 +54,63 @@ func TestNewSharedMetrics(t *testing.T) {
 	if expected != counter {
 		t.Error("metrics zone lock & unlock not work")
 	}
+}
+
+
+func TestClear(t *testing.T) {
+	defer Reset()
+
+	zone := InitMetricsZone("TestClear", 10*1024*1024)
+
+	// 1. modify and detach, but do not delete the file
+	entry, err := zone.alloc("TestGauge")
+	if err != nil {
+		t.Error(err)
+	}
+
+	gauge := ShmGauge(unsafe.Pointer(&entry.value))
+
+	// update
+	gauge.Update(5)
+
+	// value
+	if gauge.Value() != 5 {
+		t.Error("gauge ops failed")
+	}
+
+	defer zone.Detach()
+
+
+	// 2. attach without clear
+	zone2 := createMetricsZone("TestClear", 10*1024*1024, false)
+
+	entry, err = zone2.alloc("TestGauge")
+	if err != nil {
+		t.Error(err)
+	}
+
+	gauge = ShmGauge(unsafe.Pointer(&entry.value))
+
+	// value
+	if gauge.Value() != 5 {
+		t.Error("gauge ops failed")
+	}
+	defer zone2.Detach()
+
+	// 3. attach with clear
+
+	zone3 := createMetricsZone("TestClear", 10*1024*1024, true)
+
+	entry, err = zone3.alloc("TestGauge")
+	if err != nil {
+		t.Error(err)
+	}
+
+	gauge = ShmGauge(unsafe.Pointer(&entry.value))
+
+	// value
+	if gauge.Value() != 0 {
+		t.Error("gauge ops failed")
+	}
+	defer zone3.Detach()
 }

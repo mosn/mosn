@@ -55,7 +55,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	initializeDefaultPath(config.GetConfigPath())
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
-	initializeMetrics(c.Metrics)
 
 	//get inherit fds
 	inheritListeners, reconfigure, err := server.GetInheritListeners()
@@ -75,6 +74,8 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
 		}
 	}
+
+	initializeMetrics(c.Metrics)
 
 	m := &Mosn{
 		config: c,
@@ -296,7 +297,7 @@ func initializeTracing(config config.TracingConfig) {
 func initializeMetrics(config config.MetricsConfig) {
 	// init shm zone
 	if config.ShmZone != "" && config.ShmSize > 0 {
-		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize))
+		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), store.GetMosnState() != store.Active_Reconfiguring)
 	}
 
 	// set metrics package
