@@ -60,7 +60,7 @@ func setHijackFile(stdFile *os.File, newFilePath string) {
 		syscall.Dup2(int(fp.Fd()), int(stdFile.Fd()))
 	}
 	rotate := func(today string) {
-		if err := os.Rename(newFilePath, newFilePath+today); err != nil {
+		if err := os.Rename(newFilePath, newFilePath+"."+today); err != nil {
 			return
 		}
 		hijack()
