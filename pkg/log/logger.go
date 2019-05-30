@@ -143,6 +143,7 @@ func (l *Logger) start() error {
 			}
 		}
 	}
+	// TODO: recover?
 	go l.handler()
 	return nil
 }
@@ -151,6 +152,7 @@ func (l *Logger) handler() {
 	defer func() {
 		if p := recover(); p != nil {
 			debug.PrintStack()
+			// TODO: recover?
 			go l.handler()
 		}
 	}()
@@ -312,6 +314,7 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 					return 0, err
 				}
 				l.create = now
+				//TODO: recover?
 				go l.Reopen()
 			}
 		}

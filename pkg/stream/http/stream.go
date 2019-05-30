@@ -21,13 +21,14 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"io"
 	"net"
 	"net/http"
-	"runtime/debug"
 	"strconv"
 	"sync"
 	"sync/atomic"
 
+	"github.com/valyala/fasthttp"
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -36,8 +37,7 @@ import (
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/valyala/fasthttp"
-	"io"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 func init() {
@@ -194,17 +194,9 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.Proxy.Errorf(csc.context, "[stream] [http] client serve goroutine panic %v\n%s", p, string(debug.Stack()))
-
-				//csc.serve()
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		csc.serve()
-	}()
+	}, nil)
 
 	return csc
 }
@@ -330,17 +322,9 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 		return false
 	})
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.Proxy.Errorf(ssc.context, "[stream] [http] server serve goroutine panic %v\n%s", p, string(debug.Stack()))
-
-				//ssc.serve()
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		ssc.serve()
-	}()
+	}, nil)
 
 	return ssc
 }

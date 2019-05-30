@@ -23,12 +23,11 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime/debug"
-
 	"sync"
 
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 var lock = new(sync.Mutex)
@@ -125,19 +124,12 @@ func StartService(inheritListeners []net.Listener) error {
 			s.init()
 		}
 		s.start = true
-
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.DefaultLogger.Errorf("[admin store] [start service] service %s panic %v", s.name, r)
-				}
-			}()
-
+		utils.GoWithRecover(func() {
 			// set metrics
 			metrics.AddListenerAddr(s.Addr)
 			log.StartLogger.Infof("[admin store] [start service] start service %s on %s", s.name, ln.Addr().String())
 			s.Serve(ln)
-		}()
+		}, nil)
 	}
 	return nil
 }
@@ -148,16 +140,10 @@ func StopService() {
 		if s.exit != nil {
 			s.exit()
 		}
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.DefaultLogger.Errorf("[admin store] [stop service] panic %v\n%s", r, string(debug.Stack()))
-				}
-			}()
-
+		utils.GoWithRecover(func() {
 			s.Shutdown(context.Background())
 			log.DefaultLogger.Infof("[admin store] [stop service] %s", s.name)
-		}()
+		}, nil)
 	}
 	services = services[:0]
 	listeners = listeners[:0]

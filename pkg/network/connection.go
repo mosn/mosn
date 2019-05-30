@@ -31,13 +31,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/buffer"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/mtls"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
-
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // Network related const
@@ -214,29 +214,17 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 func (c *connection) startRWLoop(lctx context.Context) {
 	c.internalLoopStarted = true
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("[network] [read loop] panic %v\n%s", p, string(debug.Stack()))
-
-				c.Close(types.NoFlush, types.LocalClose)
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		c.startReadLoop()
-	}()
+	}, func(r interface{}) {
+		c.Close(types.NoFlush, types.LocalClose)
+	})
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("[network] [write loop] panic %v\n%s", p, string(debug.Stack()))
-
-				c.Close(types.NoFlush, types.LocalClose)
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		c.startWriteLoop()
-	}()
+	}, func(r interface{}) {
+		c.Close(types.NoFlush, types.LocalClose)
+	})
 }
 
 func (c *connection) scheduleWrite() {
@@ -601,14 +589,7 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		bytesSent, err = tlsConn.WriteTo(&buffers)
 	} else {
 		//todo: writev(runtime) has memroy leak.
-		//bytesSent, err = buffers.WriteTo(c.rawConnection)
-		for _, buf := range buffers {
-			var n int
-			if n, err = c.rawConnection.Write(buf); err != nil {
-				break
-			}
-			bytesSent += int64(n)
-		}
+		bytesSent, err = buffers.WriteTo(c.rawConnection)
 	}
 	if err != nil {
 		return bytesSent, err

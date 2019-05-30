@@ -19,18 +19,17 @@ package http
 
 import (
 	"context"
-	"runtime/debug"
 	"sync"
-
+	"sync/atomic"
 	"time"
 
+	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
-	"sync/atomic"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
@@ -207,20 +206,14 @@ func (p *connPool) createStreamClient(context context.Context, connData types.Cr
 
 func (p *connPool) report() {
 	// report
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		for {
 			p.clientMux.Lock()
 			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}
-	}()
+	}, nil)
 }
 
 // types.StreamEventListener

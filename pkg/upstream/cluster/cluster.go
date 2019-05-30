@@ -19,7 +19,6 @@ package cluster
 
 import (
 	"net"
-	"runtime/debug"
 	"sync"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
@@ -27,6 +26,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/mtls"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/upstream/healthcheck"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // Cluster
@@ -115,15 +115,9 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 				cluster.refreshHealthHosts(host)
 			}
 		})
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.DefaultLogger.Errorf("[upstream] [cluster] [health checker] panic %v\n%s", r, string(debug.Stack()))
-				}
-			}()
-
+		utils.GoWithRecover(func() {
 			cluster.healthChecker.Start()
-		}()
+		}, nil)
 	}
 
 	return cluster

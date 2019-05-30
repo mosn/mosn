@@ -36,6 +36,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
+	"sofastack.io/sofa-mosn/pkg/utils"
 	"sofastack.io/sofa-mosn/pkg/xds"
 )
 
@@ -198,7 +199,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		reconfigure.Close()
 
 		// transfer old mosn connections
-		go network.TransferServer(m.servers[0].Handler())
+		utils.GoWithRecover(func() {
+			network.TransferServer(m.servers[0].Handler())
+		}, nil)
 	} else {
 		// start other services
 		if err := store.StartService(nil); err != nil {
@@ -216,10 +219,14 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	}
 
 	// start dump config process
-	go config.DumpConfigHandler()
+	utils.GoWithRecover(func() {
+		config.DumpConfigHandler()
+	}, nil)
 
 	// start reconfigure domain socket
-	go server.ReconfigureHandler()
+	utils.GoWithRecover(func() {
+		server.ReconfigureHandler()
+	}, nil)
 
 	return m
 }
@@ -228,7 +235,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 func (m *Mosn) Start() {
 	// start mosn server
 	for _, srv := range m.servers {
-		go srv.Start()
+		utils.GoWithRecover(func() {
+			srv.Start()
+		}, nil)
 	}
 }
 

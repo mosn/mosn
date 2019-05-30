@@ -29,12 +29,13 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/mtls"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"golang.org/x/sys/unix"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 const (
@@ -73,12 +74,7 @@ func TransferServer(handler types.ConnectionHandler) {
 
 	var transferMap sync.Map
 
-	go func(handler types.ConnectionHandler) {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("[network] [transfer] [server] TransferServer panic %v", r)
-			}
-		}()
+	utils.GoWithRecover(func() {
 		for {
 			c, err := l.Accept()
 			if err != nil {
@@ -91,8 +87,9 @@ func TransferServer(handler types.ConnectionHandler) {
 			}
 			log.DefaultLogger.Infof("[network] [transfer] [server] transfer Accept")
 			go transferHandler(c, handler, &transferMap)
+
 		}
-	}(handler)
+	}, nil)
 
 	select {
 	case <-time.After(2*TransferTimeout + types.DefaultConnReadTimeout + 10*time.Second):
@@ -540,14 +537,9 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 
 	ch := make(chan types.Connection, 1)
 	// new connection
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("[network] [transfer] [new conn] panic %v\n%s", r, string(debug.Stack()))
-			}
-		}()
+	utils.GoWithRecover(func() {
 		listener.GetListenerCallbacks().OnAccept(conn, listener.HandOffRestoredDestinationConnections(), nil, ch, dataBuf)
-	}()
+	}, nil)
 
 	select {
 	// recv connection

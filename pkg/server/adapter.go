@@ -23,6 +23,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 var listenerAdapterInstance *ListenerAdapter
@@ -113,7 +114,9 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 	if al, ok := listener.(*activeListener); ok {
 		if !al.updatedLabel {
 			// start listener if this is new
-			go al.listener.Start(nil)
+			utils.GoWithRecover(func() {
+				al.listener.Start(nil)
+			}, nil)
 		}
 
 		return nil

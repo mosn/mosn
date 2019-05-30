@@ -26,6 +26,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 const (
@@ -139,7 +140,9 @@ func (hc *healthChecker) startCheck(host types.Host) {
 		}
 		c := newChecker(s, host, hc)
 		hc.checkers[addr] = c
-		go c.Start()
+		utils.GoWithRecover(func() {
+			c.Start()
+		}, nil)
 		atomic.AddInt64(&hc.localProcessHealthy, 1) // default host is healthy
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[upstream] [health check] create a health check session for %s", addr)
