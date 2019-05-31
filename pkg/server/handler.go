@@ -31,6 +31,7 @@ import (
 	"syscall"
 	"time"
 
+	"golang.org/x/sys/unix"
 	admin "sofastack.io/sofa-mosn/pkg/admin/store"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
@@ -41,7 +42,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/utils"
-	"golang.org/x/sys/unix"
 )
 
 // ConnectionHandler
@@ -412,7 +412,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	if handOffRestoredDestinationConnections {
 		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 		arc.handOffRestoredDestinationConnections = true
-		log.DefaultLogger.Debugf("[server] [listener] accept restored destination connection from %s, remote addr:%s, origin remote addr:%s", al.listener.Addr().String(), rawc.RemoteAddr().String(), oriRemoteAddr.String())
+		log.DefaultLogger.Debugf("[server] [listener] accept restored destination connection from %v, remote addr:%v, origin remote addr:%v", al.listener.Addr(), rawc.RemoteAddr(), oriRemoteAddr)
 	}
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)

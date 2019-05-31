@@ -1,6 +1,34 @@
 # Changelog
 
 
+## 0.5.0
+
+### New Features
+
+- Support hybrid config model of xDS and static
+- Support Admin APIs Extensible
+- Support StreamFilters’ dynamic update taking effect on all connections.
+
+### Refatcor
+
+- Refatcor import path
+  - change "github.com/alipay/sofa-mosn" to "sofastack.io/sofa-mosn"
+
+### Performance Optimize
+
+- Reorganized the output of the error log
+- Improved the implementation of marshal/unmarshal JSON config files
+- Optimize memory reuse for large buffer 
+- Optimize the processing of shared memory used by Metrics when mosn start
+
+### Bug Fix
+
+- Fix ProxyLogger cannot be updated by logger update APIs
+- Fix Read/Write loop panic
+- Fix deleting multiple clusters cannot take effect
+- Fix computing metrics error when active_requests are  concurrent
+- Fix connection panic when http reset stream and receive response are concurrent.
+
 ## 0.4.2
 
 ### New Features

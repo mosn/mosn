@@ -14,7 +14,7 @@ follow-up development and build an open source excellent project together.
 ## Download/Install
 
 + Use `go get -u sofastack.io/sofa-mosn`, or you can git clone the repository to `$GOPATH/src/sofastack.io/sofa-mosn`
-+ If you have downloaded the codes before this version, you should move yourt code path to `$GOPATH/src/sofastack.io/sofa-mosn`, and run the script `transfer_path.sh` to fix the import path.
++ If you need to use code before 0.5.0, you may needs to run the script `transfer_path.sh` to fix the import path.
   + If you are in Linux, you should modify the `SED_CMD` in `transfer_path.sh`, see the comment in the script file.
 
 ## Develop States

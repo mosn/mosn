@@ -1,0 +1,70 @@
+{
+	"servers": [
+		{
+			"listeners": [
+				{
+					"name": "from_iptables",
+					"address": "0.0.0.0:15001",
+					"bind_port": true,
+					"handoff_restoreddestination": true,
+					"filter_chains": [
+						{}
+					]
+				},
+				{
+					"name": "virtual_listener",
+					"address": "0.0.0.0:9080",
+					"bind_port":false,
+					"filter_chains": [
+						{
+							"filters": [
+								{
+									"type": "proxy",
+									"config": {
+										"downstream_protocol": "Http1",
+										"upstream_protocol": "Http1",
+										"router_config_name": "test_hijack"
+									}
+								},
+								{
+									 "type": "connection_manager",
+									  "config": {
+										  "router_config_name": "test_hijack",
+										  "virtual_hosts": [
+										  	{
+												"name": "virtual",
+												"domains": ["*"],
+												"routers": [
+													{
+														"match": {"prefix":"/"},
+														"route": {
+															"cluster_name": "test_server"
+														}
+													}
+												]
+											}
+										  ]
+									  }
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"cluster_manager": {
+		"clusters": [
+			{
+				"name": "test_server",
+				"type": "SIMPLE",
+				"lb_type": "LB_ROUNDROBIN",
+				"hosts": [
+					{
+						"address": "127.0.0.1:9080"
+					}
+				]
+			}
+		]
+	}
+}

@@ -1,0 +1,97 @@
+{
+	 "servers":[
+	 	{
+			"default_log_path": "/home/admin/mosn/logs/default.log",
+			"default_log_level": "DEBUG",
+			"listeners": [
+				{
+					"name": "xprotocol_dubbo",
+					"address": "0.0.0.0:12200",
+					"bind_port": true,
+					"filter_chains": [
+						{
+							"filters": [
+								{
+									 "type": "proxy",
+									 "config": {
+										  "downstream_protocol": "X",
+										  "name": "proxy_config",
+										  "upstream_protocol": "X",
+										  "router_config_name": "test_router",
+										  "extend_config": {
+											  "sub_protocol":"dubbo"
+										  }
+									 }
+								},
+								{
+									"type": "connection_manager",
+									"config": {
+										"router_config_name": "test_router",
+										"virtual_hosts": [
+											{
+												"name": "dubbo_server_1",
+												"domains": [
+													"192.168.100.100"
+												],
+												"routers": [
+													{
+														 "match": {
+															 "path":"/"
+														 },
+														 "route": {
+															 "cluster_name":"server_1"
+														 }
+													}
+												]
+											},
+											{
+												"name": "dubbo_server_2",
+												"domains": [
+													 "192.168.100.101"
+												],
+												"routers": [
+													{
+														"match": {
+															"path":"/"
+														},
+														"route": {
+															"cluster_name":"server_2"
+														}
+													}
+												]
+											}
+										]
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	 ],
+	 "cluster_manager":{
+		 "clusters": [
+		 	{
+				"name": "server_1",
+				"type": "SIMPLE",
+				"lb_type": "LB_ROUNDROBIN",
+				"hosts": [
+					{
+						"address": "192.168.100.100:12200"
+					}
+				]
+			},
+			{
+				"name": "server_2",
+				"type": "SIMPLE",
+				"lb_type": "LB_ROUNDROBIN",
+				"hosts": [
+					{
+						"address": "192.168.100.101:12200"
+					}
+				]
+			}
+		 ]
+	 }
+}

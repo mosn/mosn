@@ -13,7 +13,7 @@ MOSN 初始版本由蚂蚁金服和阿里大文娱UC事业部携手贡献，期�
 ### 下载
 
 + 可以通过`go get -u sofastack.io/sofa-mosn`，或者使用git下载到`$GOPATH/src/sofastack.io/sofa-mosn`目录下。
-+ 对于以前版本的代码，可以将目录修改到`$GOPATH/src/sofastack.io/sofa-mosn`以后，执行`bash transfer_path.sh`
++ 如果你需要使用0.5.0之前的代码，你可能需要执行`bash transfer_path.sh`进行路径的适配
   + 如果是在Linux下，需要修改一下`transfer_path.sh`中的`SED_CMD`，具体修改见脚本注释
 
 ## 研发状态
