@@ -5,10 +5,9 @@
 
 ### New Features
 
-- Support istio version: 1.1.x
-- Support xDS config mode and static config mode mixed
-- Support Admin APIs extension
-- Support update stream filters take effect on all connections
+- Support hybrid config model of xDS and static
+- Support Admin APIs Extensible
+- Support StreamFilters’ dynamic update taking effect on all connections.
 
 ### Refatcor
 
@@ -18,17 +17,17 @@
 ### Performance Optimize
 
 - Reorganized the output of the error log
-- Improved the implementation of marshal/unmarshal JSON configuration files
+- Improved the implementation of marshal/unmarshal JSON config files
 - Optimize memory reuse for large buffer 
-- Optimize the processing of Metrics shared memory on mosn start
+- Optimize the processing of shared memory used by Metrics when mosn start
 
 ### Bug Fix
 
-- Fix proxy logger cannot be updated by logger update APIs
-- Fix read/write loop panic
-- Fix delete multiple clusters cannot take effect
-- Fix metrics: active_request computes wrong in concurrency
-- Fix http reset stream makes connection panic in concurrency
+- Fix ProxyLogger cannot be updated by logger update APIs
+- Fix Read/Write loop panic
+- Fix deleting multiple clusters cannot take effect
+- Fix computing metrics error when active_requests are  concurrent
+- Fix connection panic when http reset stream and receive response are concurrent.
 
 ## 0.4.2
 

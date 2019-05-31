@@ -11,9 +11,9 @@
 	    "filter_chains": [{
 	       "tls_context":{
 		  "status": true,
-		  "ca_cert":"../certs/ca.pem",
-		  "cert_chain":"../certs/cert.pem",
-		  "private_key":"../certs/key.pem",
+		  "ca_cert":"./certs/ca.pem",
+		  "cert_chain":"./certs/cert.pem",
+		  "private_key":"./certs/key.pem",
                   "verify_client": true,
                   "ecdh_curves": "P256"
 	       },
