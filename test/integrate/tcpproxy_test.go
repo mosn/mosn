@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/mosn"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	testutil "github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/mosn"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/types"
+	testutil "sofastack.io/sofa-mosn/test/util"
 )
 
 type tcpExtendCase struct {

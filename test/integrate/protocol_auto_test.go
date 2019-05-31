@@ -4,18 +4,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/module/http2"
-	"github.com/alipay/sofa-mosn/pkg/mosn"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
-	"github.com/alipay/sofa-mosn/pkg/stream"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/module/http2"
+	"sofastack.io/sofa-mosn/pkg/mosn"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
+	"sofastack.io/sofa-mosn/pkg/stream"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http2"
+	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
+	_ "sofastack.io/sofa-mosn/pkg/stream/xprotocol"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/test/util"
 )
 
 func (c *TestCase) StartAuto(tls bool) {
@@ -86,18 +86,18 @@ func TestProtocolHttp2(t *testing.T) {
 	var err error
 
 	magic = http2.ClientPreface
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if prot != protocol.HTTP2 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	len := len(http2.ClientPreface)
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic)[0:len-1])
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic)[0:len-1])
 	if err != stream.EAGAIN {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte("helloworld"))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte("helloworld"))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
@@ -109,25 +109,25 @@ func TestProtocolHttp1(t *testing.T) {
 	var err error
 
 	magic = "GET"
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if prot != protocol.HTTP1 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	magic = "POST"
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if prot != protocol.HTTP1 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	magic = "POS"
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if err != stream.EAGAIN {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
 	magic = "PPPPPPP"
-	prot, err = stream.SelectStreamFactoryProtocol("", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}

@@ -21,23 +21,23 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"io"
 	"net"
 	"net/http"
-	"runtime/debug"
 	"strconv"
 	"sync"
 	"sync/atomic"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	mosnhttp "github.com/alipay/sofa-mosn/pkg/protocol/http"
-	str "github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/trace"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
-	"io"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
+	str "sofastack.io/sofa-mosn/pkg/stream"
+	"sofastack.io/sofa-mosn/pkg/trace"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 func init() {
@@ -87,7 +87,7 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 	return nil
 }
 
-func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
+func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	if len(magic) < minMethodLengh {
 		return str.EAGAIN
 	}
@@ -194,17 +194,9 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.Proxy.Errorf(csc.context,"[stream] [http] client serve goroutine panic %v\n%s", p, string(debug.Stack()))
-
-				csc.serve()
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		csc.serve()
-	}()
+	}, nil)
 
 	return csc
 }
@@ -330,17 +322,9 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 		return false
 	})
 
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.Proxy.Errorf(ssc.context, "[stream] [http] server serve goroutine panic %v\n%s", p, string(debug.Stack()))
-
-				ssc.serve()
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		ssc.serve()
-	}()
+	}, nil)
 
 	return ssc
 }

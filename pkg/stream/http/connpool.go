@@ -19,17 +19,17 @@ package http
 
 import (
 	"context"
-	"runtime/debug"
 	"sync"
-
+	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	str "github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/types"
 	"github.com/rcrowley/go-metrics"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/network"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	str "sofastack.io/sofa-mosn/pkg/stream"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
@@ -206,20 +206,14 @@ func (p *connPool) createStreamClient(context context.Context, connData types.Cr
 
 func (p *connPool) report() {
 	// report
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		for {
 			p.clientMux.Lock()
 			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}
-	}()
+	}, nil)
 }
 
 // types.StreamEventListener
@@ -230,6 +224,7 @@ type activeClient struct {
 	client             str.Client
 	host               types.CreateConnectionData
 	totalStream        uint64
+	pendingReset       uint32 // FIXME: temp fix for http concurrent problem, which is caused by downstream reset
 	closeWithActiveReq bool
 	closed             bool
 }
@@ -274,10 +269,15 @@ func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 
 // types.StreamEventListener
 func (ac *activeClient) OnDestroyStream() {
+	if atomic.LoadUint32(&ac.pendingReset) > 0 {
+		atomic.AddUint32(&ac.pendingReset, ^uint32(0))
+		return
+	}
 	ac.pool.onStreamDestroy(ac)
 }
 
 func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
+	atomic.AddUint32(&ac.pendingReset, 1)
 	ac.pool.onStreamReset(ac, reason)
 }
 

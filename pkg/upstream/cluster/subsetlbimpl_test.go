@@ -18,15 +18,15 @@
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sort"
 	"testing"
-	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/router"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/router"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // we test following cases form envoy's example
@@ -383,7 +383,7 @@ func TestFallbackWithDefaultSubset(t *testing.T) {
 			continue
 		}
 		if h.Hostname() != tc.expectedHost {
-			t.Errorf("#%d choose host is not expected, expected %s, got %s", tc.expectedHost, h.Hostname())
+			t.Errorf("#%d choose host is not expected, expected %s, got %s", i, tc.expectedHost, h.Hostname())
 		}
 	}
 
@@ -537,7 +537,7 @@ RUNCASE:
 				continue RUNCASE
 			}
 			if !strInSlice(h.Hostname(), tc.expectedHosts) {
-				t.Errorf("#%d choose host not expected, expected: %v, got: %s", tc.expectedHosts, h.Hostname())
+				t.Errorf("#%d choose host not expected, expected: %v, got: %s", i, tc.expectedHosts, h.Hostname())
 				continue RUNCASE
 			}
 		}

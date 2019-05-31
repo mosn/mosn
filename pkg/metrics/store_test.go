@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 	gometrics "github.com/rcrowley/go-metrics"
-	"github.com/alipay/sofa-mosn/pkg/metrics/shm"
+	"sofastack.io/sofa-mosn/pkg/metrics/shm"
 )
 
 func TestGetAll(t *testing.T) {

@@ -20,8 +20,8 @@ package router
 import (
 	"context"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // RouteHandlerChain returns first available handler's router
@@ -54,7 +54,7 @@ func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, types.Route
 	case types.HandlerStop:
 		return nil, nil
 	default:
-		log.DefaultLogger.Warnf(RouterLogFormat, "default handler chain", "unexpected status", status)
+		log.Proxy.Warnf(hc.ctx, RouterLogFormat, "default handler chain", "unexpected status", status)
 	}
 	return hc.DoNextHandler()
 }

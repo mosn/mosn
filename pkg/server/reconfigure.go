@@ -19,16 +19,17 @@ package server
 
 import (
 	"os"
+	"runtime/debug"
 	"syscall"
 	"time"
 
 	"net"
 
-	"github.com/alipay/sofa-mosn/pkg/admin/store"
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/server/keeper"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/server/keeper"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func init() {
@@ -49,11 +50,11 @@ func startNewMosn() error {
 	// Fork exec the new version of your server
 	fork, err := syscall.ForkExec(os.Args[0], os.Args, execSpec)
 	if err != nil {
-		log.DefaultLogger.Errorf("Fail to fork %v", err)
+		log.DefaultLogger.Errorf("[server] [reconfigure] Fail to fork %v", err)
 		return err
 	}
 
-	log.DefaultLogger.Infof("SIGHUP received: fork-exec to %d", fork)
+	log.DefaultLogger.Infof("[server] [reconfigure] SIGHUP received: fork-exec to %d", fork)
 	return nil
 }
 
@@ -86,7 +87,7 @@ func reconfigure(start bool) {
 	notify.SetReadDeadline(time.Now().Add(10 * time.Minute))
 	n, err = notify.Read(buf[:])
 	if n != 1 {
-		log.DefaultLogger.Errorf("new mosn start failed")
+		log.DefaultLogger.Errorf("[server] [reconfigure] new mosn start failed")
 		return
 	}
 
@@ -102,7 +103,7 @@ func reconfigure(start bool) {
 	// Wait for all connections to be finished
 	WaitConnectionsDone(GracefulTimeout)
 
-	log.DefaultLogger.Infof("process %d gracefully shutdown", os.Getpid())
+	log.DefaultLogger.Infof("[server] [reconfigure] process %d gracefully shutdown", os.Getpid())
 
 	keeper.ExecuteShutdownCallbacks("")
 
@@ -113,7 +114,7 @@ func reconfigure(start bool) {
 func ReconfigureHandler() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("transferServer panic %v", r)
+			log.DefaultLogger.Errorf("[server] [reconfigure] transferServer panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 	time.Sleep(time.Second)
@@ -122,25 +123,25 @@ func ReconfigureHandler() {
 
 	l, err := net.Listen("unix", types.ReconfigureDomainSocket)
 	if err != nil {
-		log.StartLogger.Errorf("reconfigureHandler net listen error: %v", err)
+		log.StartLogger.Errorf("[server] [reconfigure] reconfigureHandler net listen error: %v", err)
 		return
 	}
 	defer l.Close()
 
-	log.DefaultLogger.Infof("reconfigureHandler start")
+	log.DefaultLogger.Infof("[server] [reconfigure] reconfigureHandler start")
 
 	ul := l.(*net.UnixListener)
 	for {
 		uc, err := ul.AcceptUnix()
 		if err != nil {
-			log.DefaultLogger.Errorf("reconfigureHandler Accept error :%v", err)
+			log.DefaultLogger.Errorf("[server] [reconfigure] reconfigureHandler Accept error :%v", err)
 			return
 		}
-		log.DefaultLogger.Infof("reconfigureHandler Accept")
+		log.DefaultLogger.Infof("[server] [reconfigure] reconfigureHandler Accept")
 
 		_, err = uc.Write([]byte{0})
 		if err != nil {
-			log.DefaultLogger.Errorf("reconfigureHandler %v", err)
+			log.DefaultLogger.Errorf("[server] [reconfigure] reconfigureHandler %v", err)
 			continue
 		}
 		uc.Close()
@@ -158,7 +159,7 @@ func isReconfigure() bool {
 	var err error
 	unixConn, err = net.DialTimeout("unix", types.ReconfigureDomainSocket, 1*time.Second)
 	if err != nil {
-		log.DefaultLogger.Infof("not reconfigure: %v", err)
+		log.DefaultLogger.Infof("[server] [reconfigure] not reconfigure: %v", err)
 		return false
 	}
 	defer unixConn.Close()

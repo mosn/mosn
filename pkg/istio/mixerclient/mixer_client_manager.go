@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"istio.io/api/mixer/v1"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 const (
@@ -59,7 +60,9 @@ func newMixerClientManager() *mixerClientManager {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go mg.mainLoop(&wg)
+	utils.GoWithRecover(func() {
+		mg.mainLoop(&wg)
+	}, nil)
 	wg.Wait()
 
 	return mg

@@ -25,12 +25,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/network"
+	"sofastack.io/sofa-mosn/pkg/types"
 
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 )
 
 // ReadFilter
@@ -67,7 +67,9 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.Clu
 }
 
 func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
-	log.DefaultLogger.Tracef("Tcp Proxy :: read data , len = %v", buffer.Len())
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[tcpproxy] [ondata] read data , len = %v", buffer.Len())
+	}
 	bytesRecved := p.requestInfo.BytesReceived() + uint64(buffer.Len())
 	p.requestInfo.SetBytesReceived(bytesRecved)
 
@@ -77,7 +79,9 @@ func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
 }
 
 func (p *proxy) OnNewConnection() types.FilterStatus {
-	log.DefaultLogger.Tracef("Tcp Proxy :: accept new connection")
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[tcpproxy] [new conn] accept new connection")
+	}
 	return p.initializeUpstreamConnection()
 }
 

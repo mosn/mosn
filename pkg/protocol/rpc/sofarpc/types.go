@@ -21,9 +21,9 @@ import (
 	"errors"
 	"time"
 
-	apiv2 "github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	apiv2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // SofaRpcCmd  act as basic model for sofa protocols

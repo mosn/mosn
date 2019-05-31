@@ -4,16 +4,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/http/conv"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/http2/conv"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/http2"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/xprotocol"
-	"github.com/alipay/sofa-mosn/test/util"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/http/conv"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/http2/conv"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http"
+	_ "sofastack.io/sofa-mosn/pkg/stream/http2"
+	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
+	_ "sofastack.io/sofa-mosn/pkg/stream/xprotocol"
+	"sofastack.io/sofa-mosn/test/util"
 )
 
 // Notice can'T use APP(HTTPX) to MESH(SofaRPC),

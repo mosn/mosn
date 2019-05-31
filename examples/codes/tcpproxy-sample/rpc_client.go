@@ -7,15 +7,15 @@ import (
 	"net"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/network"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	"github.com/alipay/sofa-mosn/pkg/protocol/serialize"
-	"github.com/alipay/sofa-mosn/pkg/stream"
-	_ "github.com/alipay/sofa-mosn/pkg/stream/sofarpc"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/network"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
+	"sofastack.io/sofa-mosn/pkg/stream"
+	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type Client struct {

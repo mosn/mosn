@@ -18,8 +18,8 @@
 package types
 
 import (
-	"net"
 	"context"
+	"net"
 )
 
 // LoadBalancerType is the load balancer's type

@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/alipay/sofa-mosn/pkg/mtls/crypto/tls"
+	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 )
 
 type defaultConfigHooks struct{}

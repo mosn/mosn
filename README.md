@@ -8,6 +8,13 @@
 
 MOSN, the short name of Modular Observable Smart Network, is a powerful proxy acting as Service Mesh's data plane written in GoLang. MOSN integrates with SOFAMesh through XDS API. At the same time, MOSN can be used as a standalone loadbalancer on layer 4 and 7. In the future, MOSN will land in more cloud native scenarios and support the core forwarding functions of nginx.
 
+
+## Download/Install
+
++ Use `go get -u sofastack.io/sofa-mosn`, or you can git clone the repository to `$GOPATH/src/sofastack.io/sofa-mosn`
++ If you need to use code before 0.5.0, you may needs to run the script `transfer_path.sh` to fix the import path.
+  + If you are in Linux, you should modify the `SED_CMD` in `transfer_path.sh`, see the comment in the script file.
+
 ## Develop States
 
 After our efforts, MOSN’s 0.4.0 version has achieved a lot of improvement on performance and stability, we expect to release 0.5.0 version at the end of May 2019, which will be an stable version used in AntFin’s production environment.

@@ -27,8 +27,9 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 func init() {
@@ -77,12 +78,7 @@ func catchSignals() {
 }
 
 func catchSignalsCrossPlatform() {
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
-			}
-		}()
+	utils.GoWithRecover(func() {
 		sigchan := make(chan os.Signal, 1)
 		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP,
 			syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
@@ -124,7 +120,7 @@ func catchSignalsCrossPlatform() {
 			case syscall.SIGUSR2:
 			}
 		}
-	}()
+	}, nil)
 }
 
 func catchSignalsPosix() {

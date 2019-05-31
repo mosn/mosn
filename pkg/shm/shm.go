@@ -55,6 +55,10 @@ func Alloc(name string, size int) (*ShmSpan, error) {
 }
 
 func Free(span *ShmSpan) error {
-	os.Remove(path(span.name))
+	Clear(span.name)
 	return syscall.Munmap(span.origin)
+}
+
+func Clear(name string) error {
+	return os.Remove(path(name))
 }

@@ -19,8 +19,10 @@ package sync
 
 import (
 	"fmt"
-	"github.com/alipay/sofa-mosn/pkg/log"
 	"runtime/debug"
+
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 const (
@@ -82,25 +84,20 @@ func (pool *shardWorkerPool) Offer(job ShardJob, block bool) {
 		select {
 		case pool.shards[i].jobChan <- job:
 		default:
-			log.DefaultLogger.Errorf("jobChan over full")
+			log.DefaultLogger.Errorf("[syncpool] jobChan over full")
 		}
 	}
 }
 
 func (pool *shardWorkerPool) spawnWorker(shard *shard) {
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
-				//try respawn worker
-				if shard.respawnTimes < maxRespwanTimes {
-					shard.respawnTimes++
-					pool.spawnWorker(shard)
-				}
-			}
-		}()
+	utils.GoWithRecover(func() {
 		pool.workerFunc(shard.index, shard.jobChan)
-	}()
+	}, func(r interface{}) {
+		if shard.respawnTimes < maxRespwanTimes {
+			shard.respawnTimes++
+			pool.spawnWorker(shard)
+		}
+	})
 }
 
 type workerPool struct {
@@ -131,8 +128,10 @@ func (p *workerPool) ScheduleAlways(task func()) {
 		go p.spawnWorker(task)
 	default:
 		// new temp goroutine for task execution
-		log.DefaultLogger.Errorf("workerpool new goroutine")
-		go task()
+		log.DefaultLogger.Errorf("[syncpool] workerpool new goroutine")
+		utils.GoWithRecover(func() {
+			task()
+		}, nil)
 	}
 }
 
@@ -148,13 +147,20 @@ func (p *workerPool) ScheduleAuto(task func()) {
 		go p.spawnWorker(task)
 	default:
 		// new temp goroutine for task execution
-		log.DefaultLogger.Errorf("workerpool new goroutine")
-		go task()
+		log.DefaultLogger.Errorf("[syncpool] workerpool new goroutine")
+		utils.GoWithRecover(func() {
+			task()
+		}, nil)
 	}
 }
 
 func (p *workerPool) spawnWorker(task func()) {
-	defer func() { <-p.sem }()
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("[syncpool] panic %v\n%s", p, string(debug.Stack()))
+		}
+		<-p.sem
+	}()
 	for {
 		task()
 		task = <-p.work

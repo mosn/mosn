@@ -19,14 +19,14 @@ package cluster
 
 import (
 	"net"
-	"runtime/debug"
 	"sync"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/mtls"
-	"github.com/alipay/sofa-mosn/pkg/types"
-	"github.com/alipay/sofa-mosn/pkg/upstream/healthcheck"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/mtls"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/upstream/healthcheck"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // Cluster
@@ -102,12 +102,12 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 
 	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
 	if err != nil {
-		log.DefaultLogger.Errorf("create tls context manager failed, %v", err)
+		log.DefaultLogger.Errorf("[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
 	}
 	cluster.info.tlsMng = mgr
 	// add health check, should have a service name for stats
 	if clusterConfig.HealthCheck.ServiceName != "" {
-		log.DefaultLogger.Infof("cluster %s have health check", clusterConfig.Name)
+		log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
 		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck, cluster)
 		// add default call backs, for change host healthy status
 		cluster.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool, isHealthy bool) {
@@ -115,15 +115,9 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 				cluster.refreshHealthHosts(host)
 			}
 		})
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
-				}
-			}()
-
+		utils.GoWithRecover(func() {
 			cluster.healthChecker.Start()
-		}()
+		}, nil)
 	}
 
 	return cluster
@@ -162,10 +156,14 @@ func (c *cluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
 // update health-hostSet for only one hostSet, reduce update times
 func (c *cluster) refreshHealthHosts(host types.Host) {
 	if host.Health() {
-		log.DefaultLogger.Debugf("Add health host %s to cluster's healthHostSet by refreshHealthHosts", host.AddressString())
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [cluster] [refresh health] Add health host %s to cluster's healthHostSet by refreshHealthHosts", host.AddressString())
+		}
 		addHealthyHost(c.prioritySet.hostSets, host)
 	} else {
-		log.DefaultLogger.Debugf("Del host %s from cluster's healthHostSet by refreshHealthHosts", host.AddressString())
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [cluster] [refresh health] Del host %s from cluster's healthHostSet by refreshHealthHosts", host.AddressString())
+		}
 		delHealthHost(c.prioritySet.hostSets, host)
 	}
 }
@@ -351,7 +349,9 @@ func addHealthyHost(hostSets []types.HostSet, host types.Host) {
 
 		for _, h := range hostSet.Hosts() {
 			if h.AddressString() == host.AddressString() {
-				log.DefaultLogger.Debugf("add healthy host = %s, in priority = %d", host.AddressString(), i)
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [cluster] [health check] add healthy host = %s, in priority = %d", host.AddressString(), i)
+				}
 				found = true
 				break
 			}
@@ -374,7 +374,9 @@ func delHealthHost(hostSets []types.HostSet, host types.Host) {
 
 		for _, h := range hostSet.Hosts() {
 			if h.AddressString() == host.AddressString() {
-				log.DefaultLogger.Debugf("del healthy host = %s, in priority = %d", host.AddressString(), i)
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [cluster] [health check] del healthy host = %s, in priority = %d", host.AddressString(), i)
+				}
 				found = true
 				break
 			}

@@ -21,9 +21,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func init() {
@@ -89,6 +89,9 @@ func (h *simpleHandler) Route() types.Route {
 func DefaultMakeHandlerChain(ctx context.Context, headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	var handlers []types.RouteHandler
 	if r := routers.MatchRoute(headers, 1); r != nil {
+		if log.Proxy.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(ctx, RouterLogFormat, "DefaultHandklerChain", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
+		}
 		handlers = append(handlers, &simpleHandler{route: r})
 	}
 	return NewRouteHandlerChain(ctx, clusterManager, handlers)

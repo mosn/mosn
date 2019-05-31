@@ -24,14 +24,14 @@ import (
 	"sync"
 	"sync/atomic"
 
-	networkbuffer "github.com/alipay/sofa-mosn/pkg/buffer"
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol"
-	_ "github.com/alipay/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
-	str "github.com/alipay/sofa-mosn/pkg/stream"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	networkbuffer "sofastack.io/sofa-mosn/pkg/buffer"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
+	str "sofastack.io/sofa-mosn/pkg/stream"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var streamIDXprotocolCount uint64
@@ -71,7 +71,9 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 	return newStreamConnection(context, connection, clientCallbacks, serverCallbacks)
 }
 
-func (f *streamConnFactory) ProtocolMatch(prot string, magic []byte) error {
+func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
+	// set sub protocol
+	// mosnctx.WithValue(context, types.ContextSubProtocol, SubProtocol)
 	return str.FAILED
 }
 

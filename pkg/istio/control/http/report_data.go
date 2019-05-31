@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	//"github.com/alipay/sofa-mosn/pkg/istio/utils"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	//"sofastack.io/sofa-mosn/pkg/istio/utils"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // ReportInfo get additional report info.

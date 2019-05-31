@@ -20,9 +20,10 @@ package server
 import (
 	"fmt"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 var listenerAdapterInstance *ListenerAdapter
@@ -50,7 +51,22 @@ func initListenerAdapterInstance(name string, connHandler types.ConnectionHandle
 	}
 
 	listenerAdapterInstance.connHandlerMap[name] = connHandler
-	log.DefaultLogger.Debugf("add server conn handler, server name = %s", name)
+	log.DefaultLogger.Debugf("[server] [init] add server conn handler, server name = %s", name)
+}
+
+// FindListenerByName
+func (adapter *ListenerAdapter) FindListenerByName(serverName string, listenerName string) types.Listener {
+	var connHandler types.ConnectionHandler
+	if serverName == "" {
+		connHandler = adapter.defaultConnHandler
+	} else {
+		if ch, ok := adapter.connHandlerMap[serverName]; ok {
+			connHandler = ch
+		} else {
+			return nil
+		}
+	}
+	return connHandler.FindListenerByName(listenerName)
 }
 
 func GetListenerAdapterInstance() *ListenerAdapter {
@@ -59,7 +75,7 @@ func GetListenerAdapterInstance() *ListenerAdapter {
 
 // ResetAdapter only used in test/debug mode
 func ResetAdapter() {
-	log.DefaultLogger.Infof("adapter reset, only expected in test/debug mode")
+	log.DefaultLogger.Infof("[server] adapter reset, only expected in test/debug mode")
 	listenerAdapterInstance = nil
 }
 
@@ -98,7 +114,9 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 	if al, ok := listener.(*activeListener); ok {
 		if !al.updatedLabel {
 			// start listener if this is new
-			go al.listener.Start(nil)
+			utils.GoWithRecover(func() {
+				al.listener.Start(nil)
+			}, nil)
 		}
 
 		return nil

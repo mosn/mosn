@@ -21,8 +21,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type TCPDialSessionFactory struct{}
@@ -41,7 +41,7 @@ func (s *TCPDialSession) CheckHealth() bool {
 	// default dial timeout, maybe already timeout by checker
 	conn, err := net.DialTimeout("tcp", s.addr, 30*time.Second)
 	if err != nil {
-		log.DefaultLogger.Errorf("dial tcp for host %s error: %v", s.addr, err)
+		log.DefaultLogger.Errorf("[upstream] [health check] [tcpdial session] dial tcp for host %s error: %v", s.addr, err)
 		return false
 	}
 	conn.Close()

@@ -18,8 +18,8 @@
 package proxy
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
 )
 

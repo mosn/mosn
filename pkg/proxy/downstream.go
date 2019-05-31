@@ -27,20 +27,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/trace"
-	"github.com/alipay/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/trace"
+	"sofastack.io/sofa-mosn/pkg/utils"
 
 	"runtime/debug"
 
-	"github.com/alipay/sofa-mosn/pkg/buffer"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/protocol"
-	"github.com/alipay/sofa-mosn/pkg/protocol/http"
-	"github.com/alipay/sofa-mosn/pkg/router"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/http"
+	"sofastack.io/sofa-mosn/pkg/router"
+	"sofastack.io/sofa-mosn/pkg/types"
 
-	mosnctx "github.com/alipay/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 )
 
 // types.StreamEventListener
@@ -135,11 +135,11 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
 
-	if responseSender != nil {
+	if responseSender == nil || reflect.ValueOf(responseSender).IsNil() {
+		stream.oneway = true
+	} else {
 		stream.responseSender = responseSender
 		stream.responseSender.GetStream().AddEventListener(stream)
-	} else {
-		stream.oneway = true
 	}
 
 	proxy.stats.DownstreamRequestTotal.Inc(1)
@@ -540,7 +540,7 @@ func (s *downStream) matchRoute() {
 	handlerChain := router.CallMakeHandlerChain(s.context, headers, routers, s.proxy.clusterManager)
 	// handlerChain should never be nil
 	if handlerChain == nil {
-		log.DefaultLogger.Errorf("[proxy] [downstream] no route to make handler chain, headers = %v", headers)
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] no route to make handler chain, headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
@@ -1114,6 +1114,7 @@ func (s *downStream) doRetry() {
 	pool, err := s.initializeUpstreamConnectionPool(s)
 
 	if err != nil {
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] retry choose conn pool failed, error = %v", err)
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		s.cleanUp()
 		return

@@ -20,8 +20,8 @@ package http
 import (
 	"strings"
 
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // the query string looks like:  "field1=value1&field2=value2&field3=value3..."

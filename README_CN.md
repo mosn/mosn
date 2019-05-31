@@ -7,6 +7,12 @@
 
 MOSN(Modular Observable Smart Network), 是一款采用 GoLang 开发的 Service Mesh 数据平面代理，旨在为服务提供分布式、模块化、可观察、智能化的代理能力。 MOSN 通过 XDS API 与 SOFAMesh 集成，同时 MOSN 可以作为独立的4、7层负载均衡使用，未来 MOSN 将支持更多云原生场景，并支持 nginx 的核心转发功能。
 
+### 下载
+
++ 可以通过`go get -u sofastack.io/sofa-mosn`，或者使用git下载到`$GOPATH/src/sofastack.io/sofa-mosn`目录下。
++ 如果你需要使用0.5.0之前的代码，你可能需要执行`bash transfer_path.sh`进行路径的适配
+  + 如果是在Linux下，需要修改一下`transfer_path.sh`中的`SED_CMD`，具体修改见脚本注释
+
 ## 研发状态
 
 我们目前已经在0.4.0版本的基础之上，进行了较多性能与稳定性上的开发，初步预计将在2019年5月底发出0.5.0版本。0.5.0版本将是一个在蚂蚁内部验证过的可用版本。

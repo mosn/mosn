@@ -27,14 +27,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alipay/sofa-mosn/pkg/config"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/xds/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	v2 "sofastack.io/sofa-mosn/pkg/xds/v2"
 	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/types"
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -144,21 +144,6 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 				}
 				cluster["circuit_breakers"] = jsoniter.RawMessage(b)
 
-				if connectTimeoutRaw, ok := cluster["connect_timeout"]; ok {
-					connectTimeout := types.Duration{}
-					err = json.Unmarshal([]byte(connectTimeoutRaw), &connectTimeout)
-					if err != nil {
-						log.DefaultLogger.Errorf("fail to unmarshal connect_timeout: %v", err)
-						return nil, nil, err
-					}
-					d := duration2String(&connectTimeout)
-					b, err = json.Marshal(&d)
-					if err != nil {
-						log.DefaultLogger.Errorf("fail to marshal connect_timeout: %v", err)
-						return nil, nil, err
-					}
-					cluster["connect_timeout"] = jsoniter.RawMessage(b)
-				}
 				b, err = json.Marshal(&cluster)
 				if err != nil {
 					log.DefaultLogger.Errorf("fail to marshal cluster: %v", err)

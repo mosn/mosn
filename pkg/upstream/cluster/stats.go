@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/alipay/sofa-mosn/pkg/metrics"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func newHostStats(clustername string, addr string) types.HostStats {

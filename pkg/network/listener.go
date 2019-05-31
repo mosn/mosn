@@ -20,14 +20,14 @@ package network
 import (
 	"context"
 	"net"
+	"os"
 	"runtime/debug"
 	"time"
 
-	"os"
-
-	"github.com/alipay/sofa-mosn/pkg/api/v2"
-	"github.com/alipay/sofa-mosn/pkg/log"
-	"github.com/alipay/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // listener impl based on golang net package
@@ -81,7 +81,7 @@ func (l *listener) Addr() net.Addr {
 func (l *listener) Start(lctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("panic %v\n%s", r, string(debug.Stack()))
+			log.DefaultLogger.Errorf("[network] [listener start] panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 
@@ -90,7 +90,7 @@ func (l *listener) Start(lctx context.Context) {
 		if l.rawl == nil {
 			if err := l.listen(lctx); err != nil {
 				// TODO: notify listener callbacks
-				log.StartLogger.Fatalln(l.name, " listen failed, ", err)
+				log.StartLogger.Fatalf("network] [listener start] [listen] %s listen failed, %v", l.name, err)
 				return
 			}
 		}
@@ -98,7 +98,7 @@ func (l *listener) Start(lctx context.Context) {
 		for {
 			if err := l.accept(lctx); err != nil {
 				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-					log.DefaultLogger.Infof("listener %s stop accepting connections by deadline", l.name)
+					log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s stop accepting connections by deadline", l.name)
 					return
 				} else if ope, ok := err.(*net.OpError); ok {
 					// not timeout error and not temporary, which means the error is non-recoverable
@@ -106,14 +106,14 @@ func (l *listener) Start(lctx context.Context) {
 					if !(ope.Timeout() && ope.Temporary()) {
 						// accept error raised by sockets closing
 						if ope.Op == "accept" {
-							log.DefaultLogger.Infof("listener %s %s closed", l.name, l.Addr())
+							log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s %s closed", l.name, l.Addr())
 						} else {
-							log.DefaultLogger.Errorf("listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
+							log.DefaultLogger.Errorf("[network] [listener start] [accept] listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
 						}
 						return
 					}
 				} else {
-					log.DefaultLogger.Errorf("listener %s occurs unknown error while accepting:%s", l.name, err.Error())
+					log.DefaultLogger.Errorf("[network] [listener start] [accept] listener %s occurs unknown error while accepting:%s", l.name, err.Error())
 				}
 			}
 		}
@@ -186,15 +186,9 @@ func (l *listener) accept(lctx context.Context) error {
 	}
 
 	// TODO: use thread pool
-	go func() {
-		defer func() {
-			if p := recover(); p != nil {
-				log.DefaultLogger.Errorf("panic %v\n%s", p, string(debug.Stack()))
-			}
-		}()
-
+	utils.GoWithRecover(func() {
 		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil, nil, nil)
-	}()
+	}, nil)
 
 	return nil
 }
