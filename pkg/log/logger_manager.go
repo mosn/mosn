@@ -115,29 +115,35 @@ func ToggleLogger(p string, disable bool) bool {
 		return true
 	}
 	// find Logger
-	if lg, ok := loggers[p]; ok {
-		lg.Toggle(disable)
+	if lg, ok := loggers.Load(p); ok {
+		lg.(*Logger).Toggle(disable)
 		return true
 	}
 	return false
 }
 
 // Reopen all logger
-func Reopen() error {
-	for _, logger := range loggers {
-		if err := logger.Reopen(); err != nil {
-			return err
+func Reopen() (err error) {
+	loggers.Range(func(key, value interface{}) bool {
+		logger := value.(*Logger)
+		err = logger.Reopen()
+		if err != nil {
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return
 }
 
 // CloseAll logger
-func CloseAll() error {
-	for _, logger := range loggers {
-		if err := logger.Close(); err != nil {
-			return err
+func CloseAll() (err error) {
+	loggers.Range(func(key, value interface{}) bool {
+		logger := value.(*Logger)
+		err = logger.Close()
+		if err != nil {
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return
 }
