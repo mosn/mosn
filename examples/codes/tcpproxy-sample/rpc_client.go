@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
@@ -69,11 +70,12 @@ func buildBoltV1Request(requestID uint64) *sofarpc.BoltRequest {
 
 	headers := map[string]string{"service": "testSofa"} // used for sofa routing
 
-	if headerBytes, err := serialize.Instance.Serialize(headers); err != nil {
+	var headerBytes = &buffer.IoBuffer{}
+	if err := serialize.Instance.SerializeMap(headers, headerBytes); err != nil {
 		panic("serialize headers error")
 	} else {
-		request.HeaderMap = headerBytes
-		request.HeaderLen = int16(len(headerBytes))
+		request.HeaderMap = headerBytes.Bytes()
+		request.HeaderLen = int16(headerBytes.Len())
 	}
 
 	return request
