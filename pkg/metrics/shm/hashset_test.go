@@ -18,13 +18,17 @@
 package shm
 
 import (
+	"math/rand"
+	"os"
 	"strconv"
 	"testing"
 	"unsafe"
-	"math/rand"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func TestHashSet_Alloc(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := InitMetricsZone("TestNewSharedMetrics", 10*1024*1024)
 	defer func() {
 		zone.Detach()
@@ -50,9 +54,11 @@ func TestHashSet_Alloc(t *testing.T) {
 	if entry.value != 1 {
 		t.Error("testEntry0 value not correct")
 	}
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
 
 func TestHashSet_Free(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := InitMetricsZone("TestNewSharedMetrics", 10*1024*1024)
 	defer func() {
 		zone.Detach()
@@ -81,7 +87,7 @@ func TestHashSet_Free(t *testing.T) {
 	if entry != realloc {
 		t.Error("free and reuse not expected")
 	}
-
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
 
 func TestHashSet_EntrySize(t *testing.T) {
@@ -91,6 +97,7 @@ func TestHashSet_EntrySize(t *testing.T) {
 }
 
 func TestHashSet_AddWithLongName(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := InitMetricsZone("TestHashSet_AddWithLongName", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -106,9 +113,11 @@ func TestHashSet_AddWithLongName(t *testing.T) {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
 	defaultZone.alloc(string(b))
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
 
 func TestHashSet_AddWithMaxLengthName(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := InitMetricsZone("TestHashSet_AddWithMaxLengthName", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -124,9 +133,11 @@ func TestHashSet_AddWithMaxLengthName(t *testing.T) {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
 	defaultZone.alloc(string(b))
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
 
 func BenchmarkHashSet_Free(b *testing.B) {
+	types.MosnConfigPath = "/tmp"
 	zone := InitMetricsZone("TestNewSharedMetrics", 30*1024*1024)
 	defer func() {
 		zone.Detach()
@@ -151,4 +162,5 @@ func BenchmarkHashSet_Free(b *testing.B) {
 		defaultZone.free(e)
 	}
 	b.StopTimer()
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }

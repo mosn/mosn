@@ -18,13 +18,17 @@
 package metrics
 
 import (
-	"time"
+
+	"fmt"
+	"os"
 	"runtime"
 	"runtime/debug"
 	"testing"
-	"fmt"
+	"time"
+
 	gometrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/metrics/shm"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func gcPause() time.Duration {
@@ -39,6 +43,7 @@ const (
 )
 
 func TestGCPause(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	debug.SetGCPercent(10)
 	fmt.Println("Number of entries: ", entries)
 
@@ -77,4 +82,5 @@ func TestGCPause(t *testing.T) {
 
 	fmt.Println("GC pause for shm-based metrics: ", gcPause())
 	ResetAll()
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }

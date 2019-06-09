@@ -73,7 +73,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 	ctx := context.Background()
 	conn := host.CreateConnection(ctx)
 	if err := conn.Connection.Connect(true); err != nil {
-		t.Fatalf("create conenction failed", err)
+		t.Fatalf("create conenction failed %v", err)
 	}
 	codec := str.NewStreamClient(ctx, protocol.SofaRPC, conn.Connection, host)
 	if codec == nil {

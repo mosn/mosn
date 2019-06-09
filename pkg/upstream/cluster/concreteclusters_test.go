@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 type mockHost struct {
@@ -38,6 +39,12 @@ func (h *mockHost) Weight() uint32 {
 }
 
 func (h *mockHost) SetWeight(uint32) {
+}
+
+func (h *mockHost) ClusterInfo() types.ClusterInfo {
+	return &clusterInfo{
+		resourceManager:  NewResourceManager(v2.CircuitBreakers{}),
+	}
 }
 
 type ipPool struct {

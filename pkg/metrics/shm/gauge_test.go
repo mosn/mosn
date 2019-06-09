@@ -18,11 +18,15 @@
 package shm
 
 import (
+	"os"
 	"testing"
 	"unsafe"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func TestGauge(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := InitMetricsZone("TestGauge", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -48,4 +52,5 @@ func TestGauge(t *testing.T) {
 	if gauge.Value() != 123 {
 		t.Error("gauge ops failed")
 	}
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }

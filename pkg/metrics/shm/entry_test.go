@@ -19,14 +19,19 @@ package shm
 
 import (
 	"fmt"
+	"os"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
-	"strconv"
+
+	"sofastack.io/sofa-mosn/pkg/types"
+
 )
 
 func TestEntry(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := InitMetricsZone("TestEntry", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -62,7 +67,7 @@ func TestEntry(t *testing.T) {
 
 	fmt.Printf("entry1 %+v\n", entry1)
 	fmt.Printf("entry2 %+v\n", entry2)
-
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
 
 func BenchmarkMultiEntry(b *testing.B) {

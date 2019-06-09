@@ -82,7 +82,7 @@ func TestLDS(t *testing.T) {
 		&mockNetworkFilterFactory{},
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
-		t.Fatalf("add a new listener failed", err)
+		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
 	// verify
@@ -192,7 +192,7 @@ func TestUpdateTLS(t *testing.T) {
 		&mockNetworkFilterFactory{},
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
-		t.Fatalf("add a new listener failed", err)
+		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
 	tlsCfg := v2.TLSConfig{
@@ -210,7 +210,7 @@ func TestUpdateTLS(t *testing.T) {
 		conn.Close()
 	}
 	if err := GetListenerAdapterInstance().UpdateListenerTLS(testServerName, name, false, []v2.TLSConfig{tlsCfg}); err != nil {
-		t.Fatalf("update tls listener failed", err)
+		t.Fatalf("update tls listener failed %v", err)
 	}
 	handler := listenerAdapterInstance.defaultConnHandler.(*connHandler)
 	newLn := handler.FindListenerByName(name)

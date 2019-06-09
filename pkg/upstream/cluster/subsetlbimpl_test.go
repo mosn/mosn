@@ -42,7 +42,7 @@ import (
 | e6	| prod	| 1.1	  |	bigmem
 | e7	| dev	| 1.2-pre |	std
 */
-func ExampleHostConfigs() (hosts []v2.Host) {
+func exampleHostConfigs() (hosts []v2.Host) {
 	metaDatas := []map[string]string{
 		map[string]string{
 			"stage":   "prod",
@@ -120,7 +120,7 @@ func createPrioritySet(cfg []v2.Host) *prioritySet {
     ]
 */
 // mosn's config format is different from envoy
-func ExampleSubsetConfig() *v2.LBSubsetConfig {
+func exampleSubsetConfig() *v2.LBSubsetConfig {
 	return &v2.LBSubsetConfig{
 		SubsetSelectors: [][]string{
 			[]string{
@@ -221,8 +221,14 @@ func (r *subSetMapResult) RangeSubsetMap(prefix string, subsetMap types.LbSubset
 
 // create a subset as expected, see example
 func TestNewSubsetLoadBalancer(t *testing.T) {
-	ps := createPrioritySet(ExampleHostConfigs())
-	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetLoadBalancer"), NewLBSubsetInfo(ExampleSubsetConfig()))
+	ps := createPrioritySet(exampleHostConfigs())
+	clusterInfo := &clusterInfo{
+		name:   "test",
+		lbType: types.RoundRobin,
+		lbSubsetInfo: NewLBSubsetInfo(exampleSubsetConfig()),
+		stats: newClusterStats("TestNewSubsetLoadBalancer"),
+	}
+	lb := NewSubsetLoadBalancer(clusterInfo, ps, clusterInfo.stats, clusterInfo.lbSubsetInfo)
 	if lb == nil {
 		t.Fatal("create subset lb failed")
 	}
@@ -240,8 +246,14 @@ func TestNewSubsetLoadBalancer(t *testing.T) {
 // case1: stage:prod, version:1.0 shoud find e1,e2,e5
 // case2: stage:prod: should find nil
 func TestNewSubsetChooseHost(t *testing.T) {
-	ps := createPrioritySet(ExampleHostConfigs())
-	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetChooseHost"), NewLBSubsetInfo(ExampleSubsetConfig()))
+	ps := createPrioritySet(exampleHostConfigs())
+	clusterInfo := &clusterInfo{
+		name:   "test",
+		lbType: types.RoundRobin,
+		lbSubsetInfo: NewLBSubsetInfo(exampleSubsetConfig()),
+		stats: newClusterStats("TestNewSubsetChooseHost"),
+	}
+	lb := NewSubsetLoadBalancer(clusterInfo, ps, clusterInfo.stats, clusterInfo.lbSubsetInfo)
 	if lb == nil {
 		t.Fatal("create subset lb failed")
 	}
@@ -268,7 +280,7 @@ func TestNewSubsetChooseHost(t *testing.T) {
 
 // If selectors not configured the host label, the host will not be put in any subset
 func TestNoSubsetHost(t *testing.T) {
-	ps := createPrioritySet(ExampleHostConfigs())
+	ps := createPrioritySet(exampleHostConfigs())
 	cfg := &v2.LBSubsetConfig{
 		SubsetSelectors: [][]string{
 			[]string{
@@ -278,7 +290,13 @@ func TestNoSubsetHost(t *testing.T) {
 	}
 	// only one host will put in subset (e1)
 	// others cannot be found in subset even if version is matched
-	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNoSubsetHost"), NewLBSubsetInfo(cfg))
+	clusterInfo := &clusterInfo{
+		name:   "test",
+		lbType: types.RoundRobin,
+		lbSubsetInfo: NewLBSubsetInfo(cfg),
+		stats: newClusterStats("TestNoSubsetHost"),
+	}
+	lb := NewSubsetLoadBalancer(clusterInfo, ps, clusterInfo.stats, clusterInfo.lbSubsetInfo)
 	if lb == nil {
 		t.Fatal("create subset lb failed")
 	}
@@ -309,7 +327,7 @@ func TestNoSubsetHost(t *testing.T) {
 // TestFallbackWithDefaultSubset configure default subset as fallback
 // if a ctx is not matched the subset, use the fallback instead
 func TestFallbackWithDefaultSubset(t *testing.T) {
-	ps := createPrioritySet(ExampleHostConfigs())
+	ps := createPrioritySet(exampleHostConfigs())
 	// only create subset with version and xlarge
 	// if not matched, use default subset: stage:dev
 	cfg := &v2.LBSubsetConfig{
@@ -328,7 +346,13 @@ func TestFallbackWithDefaultSubset(t *testing.T) {
 	// ctx3: version:1.2, xlarge: true. not matched, find is fallabck, e7
 	// ctx4: stage: prod. not matched, find is fallback, e7
 	// ctx5~7: nil(mmc is nil/no value). not matched, find is fallback e7
-	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestFallbackWithDefaultSubset"), NewLBSubsetInfo(cfg))
+	clusterInfo := &clusterInfo{
+		name:   "test",
+		lbType: types.RoundRobin,
+		lbSubsetInfo: NewLBSubsetInfo(cfg),
+		stats: newClusterStats("TestFallbackWithDefaultSubset"),
+	}
+	lb := NewSubsetLoadBalancer(clusterInfo, ps, clusterInfo.stats, clusterInfo.lbSubsetInfo)
 	if lb == nil {
 		t.Fatal("create subset lb failed")
 	}
@@ -440,7 +464,13 @@ func TestFallbackWithAllHosts(t *testing.T) {
 		"room->room0->zone->zone0->": []string{"host1"},
 	}
 	// New
-	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestFallbackWithAllHosts"), NewLBSubsetInfo(cfg))
+	clusterInfo := &clusterInfo{
+		name:   "test",
+		lbType: types.RoundRobin,
+		lbSubsetInfo: NewLBSubsetInfo(cfg),
+		stats: newClusterStats("TestFallbackWithAllHosts"),
+	}
+	lb := NewSubsetLoadBalancer(clusterInfo, ps, clusterInfo.stats, clusterInfo.lbSubsetInfo)
 	if lb == nil {
 		t.Fatal("create subset lb failed")
 	}
@@ -699,8 +729,14 @@ func TestDynamicSubsetHost(t *testing.T) {
 }
 
 func TestSubsetGetHostsNumber(t *testing.T) {
-	ps := createPrioritySet(ExampleHostConfigs())
-	lb := NewSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestSubsetGetHostsNumber"), NewLBSubsetInfo(ExampleSubsetConfig()))
+	ps := createPrioritySet(exampleHostConfigs())
+	clusterInfo := &clusterInfo{
+		name:   "test",
+		lbType: types.RoundRobin,
+		lbSubsetInfo: NewLBSubsetInfo(exampleSubsetConfig()),
+		stats: newClusterStats("TestSubsetGetHostsNumber"),
+	}
+	lb := NewSubsetLoadBalancer(clusterInfo, ps, clusterInfo.stats, clusterInfo.lbSubsetInfo)
 	if lb == nil {
 		t.Fatal("create subset lb failed")
 	}

@@ -146,7 +146,7 @@ func TestUpdateStreamFilter(t *testing.T) {
 		}
 		ver := v.(string)
 		if ver != "2.0" {
-			t.Error("%s stream filter config update not expected", name)
+			t.Errorf("%s stream filter config update not expected", name)
 		}
 	}
 }

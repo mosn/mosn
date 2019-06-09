@@ -148,7 +148,7 @@ type mockMOSNConfig struct {
 
 func (m *mockMOSNConfig) GetAdmin() *v2.Admin {
 	return &v2.Admin{
-		Address: core.Address{
+		Address: &core.Address{
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Protocol: 0,

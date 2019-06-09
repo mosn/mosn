@@ -19,13 +19,18 @@ package metrics
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
+
 	gometrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/metrics/shm"
+	"sofastack.io/sofa-mosn/pkg/types"
+
 )
 
 func TestGetAll(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := shm.InitMetricsZone("TestGetAll", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -41,9 +46,11 @@ func TestGetAll(t *testing.T) {
 	if len(GetAll()) != 2 {
 		t.Errorf("get all lentgh error, expected 2, actual %d", len(GetAll()))
 	}
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
 
 func TestExclusionLabels(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := shm.InitMetricsZone("TestExclusionLabels", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -110,12 +117,14 @@ func TestExclusionLabels(t *testing.T) {
 		typ := fmt.Sprintf("test%d", i)
 		m, _ := NewMetrics(typ, tc.labels)
 		if _, ok := m.(*NilMetrics); !ok {
-			t.Errorf("#%d expected get nil metrics, but not")
+			t.Errorf("#%d expected get nil metrics, but not", i)
 		}
 	}
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
 
 func TestExclusionKeys(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := shm.InitMetricsZone("TestExclusionKeys", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -157,6 +166,7 @@ func TestExclusionKeys(t *testing.T) {
 		// nil/non-nil metrics works well
 		gauge.Update(1)
 	}
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
 
 func BenchmarkNewMetrics_SameLabels(b *testing.B) {

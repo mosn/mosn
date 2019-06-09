@@ -49,7 +49,7 @@ func TestClusterConfigParse(t *testing.T) {
 	}
 	// verify
 	if len(testConfig.ClusterManager.Clusters) != 2 {
-		t.Fatal("cluster parsed not enough, got : %v", testConfig.ClusterManager.Clusters)
+		t.Fatalf("cluster parsed not enough, got : %v", testConfig.ClusterManager.Clusters)
 	}
 }
 
@@ -87,7 +87,7 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 	}
 	// verify
 	if len(testConfig.ClusterManager.Clusters) != 2 {
-		t.Fatal("cluster parsed not enough, got : %v", testConfig.ClusterManager.Clusters)
+		t.Fatalf("cluster parsed not enough, got : %v", testConfig.ClusterManager.Clusters)
 	}
 	// add a new cluster
 	testConfig.ClusterManager.Clusters = append(testConfig.ClusterManager.Clusters, v2.Cluster{
@@ -239,16 +239,16 @@ func BenchmarkConfigMarshal(b *testing.B) {
 		os.MkdirAll(clusterPath, 0755)
 		for i := 0; i < b.N; i++ {
 			if _, err := _iterJson.Marshal(conf); err != nil {
-				b.Fatal("json-iterator marshal json error: %v", err)
+				b.Fatalf("json-iterator marshal json error: %v", err)
 			}
 		}
 		// verify
 		files, err := ioutil.ReadDir(clusterPath)
 		if err != nil {
-			b.Fatal("json-iterator verify cluster path failed: %v", err)
+			b.Fatalf("json-iterator verify cluster path failed: %v", err)
 		}
 		if len(files) != 5000 {
-			b.Fatal("json-iterator cluster count is not expected")
+			b.Fatalf("json-iterator cluster count is not expected")
 		}
 	}
 	stdBench := func(b *testing.B) {
@@ -257,16 +257,16 @@ func BenchmarkConfigMarshal(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
 			if _, err := json.Marshal(conf); err != nil {
-				b.Fatal("std json marshal json error: %v", err)
+				b.Fatalf("std json marshal json error: %v", err)
 			}
 		}
 		// verify
 		files, err := ioutil.ReadDir(clusterPath)
 		if err != nil {
-			b.Fatal("std json verify cluster path failed: %v", err)
+			b.Fatalf("std json verify cluster path failed: %v", err)
 		}
 		if len(files) != 5000 {
-			b.Fatal("std json cluster count is not expected")
+			b.Fatalf("std json cluster count is not expected")
 		}
 	}
 	b.Run("json-iterator testing", iterBench)

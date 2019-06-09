@@ -70,8 +70,14 @@ func TestRegisterNewLB(t *testing.T) {
 	RegisterLBType(headerKey, cfg.newLB)
 	// init hosts
 	// reuse subset test config
-	ps := createPrioritySet(ExampleHostConfigs())
-	lb := NewLoadBalancer(headerKey, ps)
+	ps := createPrioritySet(exampleHostConfigs())
+	clusterInfo := &clusterInfo{
+		name:   "test",
+		lbType: headerKey,
+		lbSubsetInfo: NewLBSubsetInfo(exampleSubsetConfig()),
+		stats: newClusterStats("test"),
+	}
+	lb := NewLoadBalancer(clusterInfo, ps)
 	// expected headerLB
 	if _, ok := lb.(*headerLB); !ok {
 		t.Fatal("load balancer created not expected")
@@ -100,8 +106,9 @@ func TestRegisterNewLB(t *testing.T) {
 
 	// subset is also valid
 	//  reuse subset test config
-	subsetInfo := NewLBSubsetInfo(ExampleSubsetConfig())
-	sublb := NewSubsetLoadBalancer(headerKey, ps, newClusterStats("test"), subsetInfo)
+	clusterInfo.stats = newClusterStats("test")
+	clusterInfo.lbSubsetInfo = NewLBSubsetInfo(exampleSubsetConfig())
+	sublb := NewSubsetLoadBalancer(clusterInfo, ps, clusterInfo.stats, clusterInfo.lbSubsetInfo)
 	// choose host is valid
 	// 1. ctx contains subset matched config
 	// 2. ctx contains header with key "hostname"

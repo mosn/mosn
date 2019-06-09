@@ -45,6 +45,8 @@ import (
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	google_protobuf1 "github.com/gogo/protobuf/types"
+	
+	_type "github.com/envoyproxy/go-control-plane/envoy/type"
 )
 
 func TestMain(m *testing.M) {
@@ -98,7 +100,7 @@ func Test_convertHeaders(t *testing.T) {
 				xdsHeaders: []*xdsroute.HeaderMatcher{
 					{
 						Name:  "end-user",
-						Value: "",
+						//Value: "",
 						HeaderMatchSpecifier: &xdsroute.HeaderMatcher_ExactMatch{
 							ExactMatch: "jason",
 						},
@@ -144,7 +146,9 @@ func Test_convertListenerConfig(t *testing.T) {
 
 	accessLogFilterConfig, _ := xdsutil.MessageToStruct(&xdsaccesslog.FileAccessLog{
 		Path:   "/dev/stdout",
-		Format: "",
+		AccessLogFormat: &xdsaccesslog.FileAccessLog_Format{
+			Format: "",
+		},
 	})
 
 	zeroSecond := new(time.Duration)
@@ -301,7 +305,7 @@ func Test_convertListenerConfig(t *testing.T) {
 					AccessLog: []*xdsfal.AccessLog{{
 						Name:   "envoy.file_access_log",
 						Filter: nil,
-						Config: accessLogFilterConfig,
+						ConfigType: &xdsfal.AccessLog_Config{Config: accessLogFilterConfig},
 					}},
 					UseRemoteAddress:                           NewBoolValue(false),
 					XffNumTrustedHops:                          0,
@@ -345,7 +349,7 @@ func Test_convertListenerConfig(t *testing.T) {
 						Filters: []xdslistener.Filter{
 							{
 								Name:         tt.args.filterName,
-								Config:       conf,
+								ConfigType:   &xdslistener.Filter_Config{Config: conf},
 								DeprecatedV1: nil,
 							},
 						},
@@ -522,20 +526,25 @@ func Test_convertHeadersToAdd(t *testing.T) {
 func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 	faultInjectConfig := &xdshttpfault.HTTPFault{
 		Delay: &xdsfault.FaultDelay{
-			Percent:            100,
 			FaultDelaySecifier: &xdsfault.FaultDelay_FixedDelay{},
+			Percentage: &_type.FractionalPercent{
+				Numerator:   uint32(100),
+				Denominator: _type.FractionalPercent_HUNDRED,
+			},
 		},
 		Abort: &xdshttpfault.FaultAbort{
-			Percent: 100,
 			ErrorType: &xdshttpfault.FaultAbort_HttpStatus{
 				HttpStatus: 500,
+			},
+			Percentage: &_type.FractionalPercent{
+				Numerator:   uint32(100),
+				Denominator: _type.FractionalPercent_HUNDRED,
 			},
 		},
 		UpstreamCluster: "testupstream",
 		Headers: []*xdsroute.HeaderMatcher{
 			{
 				Name:  "end-user",
-				Value: "",
 				HeaderMatchSpecifier: &xdsroute.HeaderMatcher_ExactMatch{
 					ExactMatch: "jason",
 				},
@@ -638,22 +647,27 @@ func Test_convertPerRouteConfig(t *testing.T) {
 	fixedDelay := time.Second
 	faultInjectConfig := &xdshttpfault.HTTPFault{
 		Delay: &xdsfault.FaultDelay{
-			Percent: 100,
 			FaultDelaySecifier: &xdsfault.FaultDelay_FixedDelay{
 				FixedDelay: &fixedDelay,
 			},
+			Percentage: &_type.FractionalPercent{
+				Numerator:   uint32(100),
+				Denominator: _type.FractionalPercent_HUNDRED,
+			},
 		},
 		Abort: &xdshttpfault.FaultAbort{
-			Percent: 100,
 			ErrorType: &xdshttpfault.FaultAbort_HttpStatus{
 				HttpStatus: 500,
+			},
+			Percentage: &_type.FractionalPercent{
+				Numerator:   uint32(100),
+				Denominator: _type.FractionalPercent_HUNDRED,
 			},
 		},
 		UpstreamCluster: "testupstream",
 		Headers: []*xdsroute.HeaderMatcher{
 			{
 				Name:  "end-user",
-				Value: "",
 				HeaderMatchSpecifier: &xdsroute.HeaderMatcher_ExactMatch{
 					ExactMatch: "jason",
 				},

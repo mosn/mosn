@@ -18,13 +18,18 @@
 package shm
 
 import (
+	"os"
 	"runtime"
 	"sync"
 	"testing"
 	"unsafe"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
+
 func TestNewSharedMetrics(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := InitMetricsZone("TestNewSharedMetrics", 10*1024*1024)
 	defer func() {
 		zone.Detach()
@@ -54,6 +59,7 @@ func TestNewSharedMetrics(t *testing.T) {
 	if expected != counter {
 		t.Error("metrics zone lock & unlock not work")
 	}
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
 
 

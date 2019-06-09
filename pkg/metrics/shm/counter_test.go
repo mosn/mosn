@@ -18,11 +18,15 @@
 package shm
 
 import (
+	"os"
 	"testing"
 	"unsafe"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func TestCounter(t *testing.T) {
+	types.MosnConfigPath = "/tmp"
 	zone := InitMetricsZone("TestCounter", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -52,4 +56,5 @@ func TestCounter(t *testing.T) {
 	if counter.Count() != 0 {
 		t.Error("count ops failed")
 	}
+	types.MosnConfigPath = types.MosnBasePath + string(os.PathSeparator) + "conf"
 }
