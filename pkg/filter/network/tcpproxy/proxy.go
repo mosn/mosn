@@ -427,6 +427,10 @@ func (c *LbContext) DownstreamConnection() net.Conn {
 	return c.conn.Connection().RawConn()
 }
 
+func (c *LbContext) GetRestoredRemoteAddress() net.Addr {
+	return c.conn.Connection().RemoteAddr()
+}
+
 // TCP Proxy have no header
 func (c *LbContext) DownstreamHeaders() types.HeaderMap {
 	return nil

@@ -23,7 +23,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+
 	"sofastack.io/sofa-mosn/pkg/types"
+
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 // NewLoadBalancer can be register self defined type
@@ -44,12 +48,16 @@ func RegisterLBType(lbType types.LoadBalancerType, f func(types.PrioritySet) typ
 // NewLoadBalancer
 // Note: Round Robin is the default lb
 // Round Robin is realized as Weighted Round Robin
-func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySet) types.LoadBalancer {
-	if f, ok := lbFactories[lbType]; ok {
+func NewLoadBalancer(clusterInfo types.ClusterInfo, prioritySet types.PrioritySet) types.LoadBalancer {
+	if f, ok := lbFactories[clusterInfo.LbType()]; ok {
 		return f(prioritySet)
 	}
-	// default use Robin
-	return newRoundRobinLoadBalancer(prioritySet)
+	switch clusterInfo.LbType() {
+	case types.OriginalDst:
+		return newOriginalDstLoadBalancer(clusterInfo, prioritySet)
+	default:
+		return newRandomLoadbalancer(prioritySet)
+	}
 }
 
 type loadbalancer struct {
@@ -278,4 +286,71 @@ func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCont
 
 	selectedHostWeighted.currentWeight -= totalWeight
 	return selectedHost
+}
+
+type originalDstLoadBalancer struct {
+	loadbalancer
+	clusterInfo types.ClusterInfo
+	hosts       map[string]types.Host
+	hostsMutex  sync.RWMutex
+}
+
+func newOriginalDstLoadBalancer(clusterInfo types.ClusterInfo, prioritySet types.PrioritySet) types.LoadBalancer {
+
+	lb := &originalDstLoadBalancer{
+		loadbalancer: loadbalancer{
+			prioritySet: prioritySet,
+		},
+		clusterInfo: clusterInfo,
+		hosts:       make(map[string]types.Host),
+	}
+
+	prioritySet.AddMemberUpdateCb(
+		func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
+			lb.hostsMutex.Lock()
+			defer lb.hostsMutex.Unlock()
+			for _, v := range hostsRemoved {
+				log.DefaultLogger.Tracef("delete host %s", v.Address().String())
+				delete(lb.hosts, v.Address().String())
+			}
+			for _, v := range hostsAdded {
+				log.DefaultLogger.Tracef("add host %s", v.Address().String())
+				lb.hosts[v.Address().String()] = v
+			}
+		},
+	)
+
+	return lb
+}
+
+func (l *originalDstLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	remoteAddr := context.GetRestoredRemoteAddress().String()
+	log.DefaultLogger.Tracef("originalDstLoadBalancer, remoteAddr: %s", remoteAddr)
+	l.hostsMutex.RLock()
+	if v, ok := l.hosts[remoteAddr]; ok {
+		log.DefaultLogger.Tracef("host with address %s existed", remoteAddr)
+		l.hostsMutex.RUnlock()
+		v.SetUsed(true)
+		return v
+	}
+	l.hostsMutex.RUnlock()
+	log.DefaultLogger.Tracef("host with address %s not existed", remoteAddr)
+
+	hostConfig := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: remoteAddr,
+		},
+	}
+
+	host := NewHost(hostConfig, l.clusterInfo)
+	l.addHost(host)
+	return host
+}
+
+func (l *originalDstLoadBalancer) addHost(host types.Host) {
+	hostSet := l.prioritySet.GetOrCreateHostSet(0)
+	newHost := make([]types.Host, 0, len(hostSet.Hosts()) + 1)
+	newHost = append(newHost, hostSet.Hosts()...)
+	newHost = append(newHost, host)
+	hostSet.UpdateHosts(newHost, newHost, []types.Host{host}, []types.Host{})
 }

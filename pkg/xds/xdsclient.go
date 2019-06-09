@@ -64,32 +64,8 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 			log.DefaultLogger.Errorf("fail to unmarshal dynamic_resources: %v", err)
 			return nil, nil, err
 		}
-		if adsConfigRaw, ok := resources["ads_config"]; ok {
+		if _, ok := resources["ads_config"]; ok {
 			var b []byte
-			adsConfig := map[string]jsoniter.RawMessage{}
-			err = json.Unmarshal([]byte(adsConfigRaw), &adsConfig)
-			if err != nil {
-				log.DefaultLogger.Errorf("fail to unmarshal ads_config: %v", err)
-				return nil, nil, err
-			}
-			if refreshDelayRaw, ok := adsConfig["refresh_delay"]; ok {
-				refreshDelay := types.Duration{}
-				err = json.Unmarshal([]byte(refreshDelayRaw), &refreshDelay)
-				if err != nil {
-					log.DefaultLogger.Errorf("fail to unmarshal refresh_delay: %v", err)
-					return nil, nil, err
-				}
-
-				d := duration2String(&refreshDelay)
-				b, err = json.Marshal(&d)
-				adsConfig["refresh_delay"] = jsoniter.RawMessage(b)
-			}
-			b, err = json.Marshal(&adsConfig)
-			if err != nil {
-				log.DefaultLogger.Errorf("fail to marshal refresh_delay: %v", err)
-				return nil, nil, err
-			}
-			resources["ads_config"] = jsoniter.RawMessage(b)
 			b, err = json.Marshal(&resources)
 			if err != nil {
 				log.DefaultLogger.Errorf("fail to marshal ads_config: %v", err)

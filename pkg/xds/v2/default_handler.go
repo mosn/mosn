@@ -18,6 +18,8 @@
 package v2
 
 import (
+	"time"
+
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/xds/conv"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -66,6 +68,8 @@ func HandleEnvoyCluster(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse)
 	if len(clusterNames) != 0 {
 		if err := client.V2Client.reqEndpoints(client.StreamClient, clusterNames); err != nil {
 			log.DefaultLogger.Warnf("send thread request eds fail!auto retry next period")
+			time.Sleep(time.Second)
+			client.sendRequest()
 		}
 	} else {
 		if err := client.V2Client.reqListeners(client.StreamClient); err != nil {

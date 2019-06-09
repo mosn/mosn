@@ -20,6 +20,7 @@ package cluster
 import (
 	"net"
 	"sort"
+	"time"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -124,4 +125,93 @@ func (sc *simpleInMemCluster) UpdateHosts(newHosts []types.Host) {
 			log.DefaultLogger.Infof("[upstream] [simple cluster] update host, final host total: %d", len(finalHosts))
 		}
 	}
+}
+
+type originalDstCluster struct {
+	dynamicClusterBase
+	hosts  []types.Host
+	stopCh chan int
+}
+
+func newOriginalDstCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool) *originalDstCluster {
+	cluster := newCluster(clusterConfig, sourceAddr, addedViaAPI, nil)
+
+	originalDstCluster := originalDstCluster{
+		dynamicClusterBase: dynamicClusterBase{
+			cluster: cluster,
+		},
+		stopCh: make(chan int, 1),
+	}
+
+	go func() {
+		interval := originalDstCluster.info.cleanupInterval
+		if interval < time.Second {
+			interval = time.Second
+		}
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				originalDstCluster.cleanup()
+			case <-originalDstCluster.stopCh:
+				return
+			}
+		}
+	}()
+
+	return &originalDstCluster
+}
+
+func (sc *originalDstCluster) UpdateHosts(newHosts []types.Host) {
+	sc.mux.Lock()
+	defer sc.mux.Unlock()
+
+	var curHosts = make([]types.Host, len(sc.hosts))
+
+	copy(curHosts, sc.hosts)
+	changed, finalHosts, hostsAdded, hostsRemoved := sc.updateDynamicHostList(newHosts, curHosts)
+
+	log.DefaultLogger.Debugf("update host changed %t", changed)
+
+	if changed {
+		sc.hosts = finalHosts
+		// todo: need to consider how to update healthyHost
+		// Note: currently, we only use priority 0
+		sc.prioritySet.GetOrCreateHostSet(0).UpdateHosts(sc.hosts,
+			sc.hosts, hostsAdded, hostsRemoved)
+
+		if sc.healthChecker != nil {
+			sc.healthChecker.OnClusterMemberUpdate(hostsAdded, hostsRemoved)
+		}
+
+	}
+
+	if len(sc.hosts) == 0 {
+		log.DefaultLogger.Debugf(" after update final host is []")
+	}
+
+	for i, f := range sc.hosts {
+		log.DefaultLogger.Debugf("after update final host index = %d, address = %s,", i, f.AddressString())
+	}
+}
+
+func (sc *originalDstCluster) cleanup() {
+	newHost := make([]types.Host, 0)
+	hostToRemove := make([]types.Host, 0)
+	hostSet := sc.prioritySet.GetOrCreateHostSet(0)
+	for _, host := range hostSet.Hosts() {
+		if host.Used() {
+			host.SetUsed(false)
+			newHost = append(newHost, host)
+		} else {
+			hostToRemove = append(hostToRemove, host)
+		}
+	}
+	hostSet.UpdateHosts(newHost, newHost, []types.Host{}, hostToRemove)
+}
+
+func (sc *originalDstCluster) stop() {
+	sc.stopCh <- 1
 }

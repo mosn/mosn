@@ -29,6 +29,7 @@ type LoadBalancerType string
 const (
 	RoundRobin LoadBalancerType = "LB_ROUNDROBIN"
 	Random     LoadBalancerType = "LB_RANDOM"
+	OriginalDst LoadBalancerType = "LB_ORIGINAL_DST"
 )
 
 // LoadBalancer is a upstream load balancer.
@@ -39,7 +40,7 @@ type LoadBalancer interface {
 }
 
 // LoadBalancerContext contains the information for choose a host
-type LoadBalancerContext interface {
+type  LoadBalancerContext interface {
 	// ComputeHashKey computes an optional hash key to use during load balancing
 	ComputeHashKey() HashedValue
 
@@ -54,6 +55,9 @@ type LoadBalancerContext interface {
 
 	// DownstreamContext returns the downstream context
 	DownstreamContext() context.Context
+
+	// GetResotredRestoreAddress returns the restored remote address
+	GetRestoredRemoteAddress() net.Addr
 }
 
 // SubSetLoadBalancer is a subset of LoadBalancer

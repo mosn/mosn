@@ -29,41 +29,26 @@ import (
 // receive goroutine handle response for both client request and server push
 func (adsClient *ADSClient) Start() {
 	adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
-	utils.GoWithRecover(func() {
-		adsClient.sendThread()
-	}, nil)
+	adsClient.sendRequest()
 	utils.GoWithRecover(func() {
 		adsClient.receiveThread()
 	}, nil)
 }
 
-func (adsClient *ADSClient) sendThread() {
-	log.DefaultLogger.Debugf("[xds] [ads client] send thread request cds")
-	err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
-	if err != nil {
-		log.DefaultLogger.Warnf("[xds] [ads client] send thread request cds fail!auto retry next period")
-		adsClient.reconnect()
-	}
-
-	refreshDelay := adsClient.AdsConfig.RefreshDelay
-	t1 := time.NewTimer(*refreshDelay)
+func (adsClient *ADSClient) sendRequest() {
 	for {
-		select {
-		case <-adsClient.SendControlChan:
-			log.DefaultLogger.Debugf("[xds] [ads client] send thread receive graceful shut down signal")
-			adsClient.AdsConfig.closeADSStreamClient()
-			adsClient.StopChan <- 1
-			return
-		case <-t1.C:
-			err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
-			if err != nil {
-				log.DefaultLogger.Warnf("[xds] [ads client] send thread request cds fail!auto retry next period")
-				adsClient.reconnect()
-			}
-			t1.Reset(*refreshDelay)
+		log.DefaultLogger.Tracef("request cds")
+		err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
+		if err != nil {
+			log.DefaultLogger.Warnf("request cds fail! retry after 1s")
+			time.Sleep(time.Second)
+			adsClient.reconnect()
+			continue
 		}
+		break
 	}
 }
+
 
 func (adsClient *ADSClient) receiveThread() {
 	for {
@@ -76,12 +61,14 @@ func (adsClient *ADSClient) receiveThread() {
 			if adsClient.StreamClient == nil {
 				log.DefaultLogger.Warnf("[xds] [ads client] stream client closed, sleep 1s and wait for reconnect")
 				time.Sleep(time.Second)
+				adsClient.sendRequest()
 				continue
 			}
 			resp, err := adsClient.StreamClient.Recv()
 			if err != nil {
 				log.DefaultLogger.Warnf("[xds] [ads client] get resp timeout: %v, retry after 1s", err)
 				time.Sleep(time.Second)
+				adsClient.sendRequest()
 				continue
 			}
 			typeURL := resp.TypeUrl

@@ -178,3 +178,48 @@ func getState(w http.ResponseWriter, r *http.Request) {
 	msg := fmt.Sprintf("pid=%d&state=%d\n", pid, state)
 	fmt.Fprint(w, msg)
 }
+
+func setLogLevel(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		msg := fmt.Sprintf(errMsgFmt, "read body error")
+		fmt.Fprint(w, msg)
+		return
+	}
+
+	body := string(bodyBytes)
+	if level, ok := levelMap[body]; ok {
+		log.DefaultLogger.SetLogLevel(level)
+		log.DefaultLogger.Infof("DefaultLogger level has been changed to %s", body)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, `{ error: "unknown log level" }`)
+	}
+}
+
+func getProbeStats(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	fmt.Fprint(w, store.Stats())
+}
+
+// Listeners return all listener name
+func getListeners(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	listeners := string(store.Listeners())
+	fmt.Fprint(w, listeners)
+}
+

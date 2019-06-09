@@ -76,6 +76,7 @@ type FaultInjectConfig struct {
 type DelayInjectConfig struct {
 	Percent             uint32         `json:"percentage,omitempty"`
 	DelayDurationConfig DurationConfig `json:"fixed_delay,omitempty"`
+	Denominator         uint32         `json:denominator,omitempty`
 }
 
 type RouterConfigurationConfig struct {

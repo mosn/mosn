@@ -41,7 +41,9 @@ import (
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
+
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
@@ -121,9 +123,13 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Hosts: convertClusterHosts(xdsCluster.GetHosts()),
-			Spec:  convertSpec(xdsCluster),
-			TLS:   convertTLS(xdsCluster.GetTlsContext()),
+			Hosts:                convertLoadAssignment(xdsCluster.GetLoadAssignment()),
+			Spec:                 convertSpec(xdsCluster),
+			TLS:                  convertTLS(xdsCluster.GetTlsContext()),
+		}
+		if xdsCluster.GetCleanupInterval() != nil {
+			cluster.CleanupInterval = *xdsCluster.GetCleanupInterval()
+			log.DefaultLogger.Tracef("cleanup interval of cluster %s is %s", cluster.Name, cluster.CleanupInterval.String())
 		}
 
 		clusters = append(clusters, cluster)
@@ -327,21 +333,41 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 	}
 
 	var fixed_delay time.Duration
-	if d := faultConfig.Delay.GetFixedDelay(); d != nil {
+	if d := faultConfig.GetDelay().GetFixedDelay(); d != nil {
 		fixed_delay = *d
+	}
+	var delayDenominator uint32
+	switch faultConfig.Delay.GetPercentage().GetDenominator() {
+	case xdstype.FractionalPercent_HUNDRED:
+		delayDenominator = 100
+	case xdstype.FractionalPercent_TEN_THOUSAND:
+		delayDenominator = 10000
+	case xdstype.FractionalPercent_MILLION:
+		delayDenominator = 1000000
+	}
+	var abortDenominator uint32
+	switch faultConfig.Abort.GetPercentage().GetDenominator() {
+	case xdstype.FractionalPercent_HUNDRED:
+		abortDenominator = 100
+	case xdstype.FractionalPercent_TEN_THOUSAND:
+		abortDenominator = 10000
+	case xdstype.FractionalPercent_MILLION:
+		abortDenominator = 1000000
 	}
 	streamFault := &v2.StreamFaultInject{
 		Delay: &v2.DelayInject{
 			DelayInjectConfig: v2.DelayInjectConfig{
-				Percent: faultConfig.Delay.GetPercent(),
+				Percent: faultConfig.GetDelay().GetPercentage().GetNumerator(),
 				DelayDurationConfig: v2.DurationConfig{
 					Duration: fixed_delay,
 				},
+				Denominator: delayDenominator,
 			},
 		},
 		Abort: &v2.AbortInject{
-			Percent: faultConfig.Abort.GetPercent(),
-			Status:  int(faultConfig.Abort.GetHttpStatus()),
+			Percent:     faultConfig.GetAbort().GetPercentage().GetNumerator(),
+			Status:      int(faultConfig.GetAbort().GetHttpStatus()),
+			Denominator: abortDenominator,
 		},
 		UpstreamCluster: faultConfig.UpstreamCluster,
 		Headers:         convertHeaders(faultConfig.GetHeaders()),
@@ -694,10 +720,16 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 	}
 	headerMatchers := make([]v2.HeaderMatcher, 0, len(xdsHeaders))
 	for _, xdsHeader := range xdsHeaders {
+		isRegex := false
+		value := xdsHeader.GetExactMatch()
+		if len(xdsHeader.GetRegexMatch()) > 0 {
+			isRegex = true
+			value = xdsHeader.GetRegexMatch()
+		}
 		headerMatcher := v2.HeaderMatcher{
 			Name:  xdsHeader.GetName(),
-			Value: xdsHeader.GetExactMatch(),
-			Regex: xdsHeader.GetRegex().GetValue(),
+			Value: value,
+			Regex: isRegex,
 		}
 
 		// as pseudo headers not support when Http1.x upgrade to Http2, change pseudo headers to normal headers
@@ -1018,6 +1050,30 @@ func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.Host {
 		}
 		hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
 	}
+	return hostsWithMetaData
+}
+
+func convertLoadAssignment(loadAssignment *xdsapi.ClusterLoadAssignment) []v2.Host {
+	if loadAssignment == nil {
+		return nil
+	}
+
+	hostsWithMetaData := make([]v2.Host, 0)
+	for _, enpoints := range loadAssignment.GetEndpoints() {
+		for _, enpoint := range enpoints.GetLbEndpoints() {
+			addr := convertAddress(enpoint.GetEndpoint().GetAddress())
+			if addr == nil {
+				continue
+			}
+			hostWithMetaData := v2.Host{
+				HostConfig: v2.HostConfig{
+					Address: addr.String(),
+				},
+			}
+			hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
+		}
+	}
+
 	return hostsWithMetaData
 }
 

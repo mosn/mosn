@@ -49,9 +49,21 @@ func NewResourceManager(circuitBreakers v2.CircuitBreakers) types.ResourceManage
 	// note: we don't support group cb by priority
 	if circuitBreakers.Thresholds != nil && len(circuitBreakers.Thresholds) > 0 {
 		maxConnections = uint64(circuitBreakers.Thresholds[0].MaxConnections)
+		if maxConnections <= 0 {
+			maxConnections = DefaultMaxConnections
+		}
 		maxPendingRequests = uint64(circuitBreakers.Thresholds[0].MaxPendingRequests)
+		if maxPendingRequests <= 0 {
+			maxPendingRequests = DefaultMaxPendingRequests
+		}
 		maxRequests = uint64(circuitBreakers.Thresholds[0].MaxRequests)
+		if maxRequests <= 0 {
+			maxRequests = DefaultMaxRequests
+		}
 		maxRetries = uint64(circuitBreakers.Thresholds[0].MaxRetries)
+		if maxRetries <= 0 {
+			maxRetries = DefaultMaxRetries
+		}
 	}
 
 	return &resourcemanager{

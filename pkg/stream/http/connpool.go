@@ -112,6 +112,7 @@ func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types
 			p.totalClientCount++
 			return newActiveClient(ctx, p)
 		} else {
+			log.DefaultLogger.Debugf("max connection %d overflow, totalClientCount is %d,create upstream connection fail", maxConns, p.totalClientCount)
 			p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 			p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 			return nil, types.Overflow

@@ -59,6 +59,7 @@ const (
 	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
 	DYNAMIC_CLUSTER ClusterType = "DYNAMIC"
 	EDS_CLUSTER     ClusterType = "EDS"
+	ORIGINAL_DST_CLUSTER ClusterType = "ORIGINAL_DST"
 )
 
 // LbType
@@ -93,6 +94,7 @@ type Cluster struct {
 	LBSubSetConfig       LBSubsetConfig  `json:"lb_subset_config,omitempty"`
 	TLS                  TLSConfig       `json:"tls_context,omitempty"`
 	Hosts                []Host          `json:"hosts,omitempty"`
+	CleanupInterval      time.Duration    `json:"cleanup_interval"`
 }
 
 // HealthCheck is a configuration of health check
@@ -236,6 +238,7 @@ func (d *DelayInject) UnmarshalJSON(b []byte) error {
 type AbortInject struct {
 	Status  int    `json:"status,omitempty"`
 	Percent uint32 `json:"percentage,omitempty"`
+	Denominator uint32 `json:denominator,omitempty`
 }
 
 type Mixer struct {

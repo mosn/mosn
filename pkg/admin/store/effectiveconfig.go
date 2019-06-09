@@ -18,10 +18,18 @@
 package store
 
 import (
+	"bytes"
+	"fmt"
+	"strings"
 	"sync"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	jsoniter "github.com/json-iterator/go"
+)
+
+const (
+	statCdsUpdates = "cluster_manager.cds.update_success"
+	statLdsUpdates = "listener_manager.lds.update_success"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -39,7 +47,6 @@ var conf effectiveConfig
 var mutex sync.RWMutex
 
 func init() {
-
 	conf = effectiveConfig{
 		Listener: make(map[string]v2.Listener),
 		Cluster:  make(map[string]v2.Cluster),
@@ -113,4 +120,32 @@ func Dump() ([]byte, error) {
 	mutex.RLock()
 	defer mutex.RUnlock()
 	return json.Marshal(conf)
+}
+
+// Listeners return all listener name
+func Listeners() []byte {
+	mutex.RLock()
+	defer mutex.RUnlock()
+	var buffer bytes.Buffer
+	buffer.WriteString("[")
+	firstItem := true
+	for name, _ := range conf.Listener {
+		if firstItem {
+			firstItem = false
+		} else {
+			buffer.WriteString(",")
+		}
+		item := fmt.Sprintf("\"%s\"", strings.Replace(name, "_", ":", 1))
+		buffer.WriteString(item)
+	}
+	buffer.WriteString("]")
+	return buffer.Bytes()
+}
+
+// Stats return stats message
+func Stats() string {
+	mutex.RLock()
+	defer mutex.RUnlock()
+	stats := fmt.Sprintf("%s: %d\n%s: %d\n", statCdsUpdates, len(conf.Cluster), statLdsUpdates, len(conf.Listener))
+	return stats
 }

@@ -20,6 +20,7 @@ package cluster
 import (
 	"net"
 	"sync"
+	"time"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -51,6 +52,8 @@ func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool)
 
 	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER, v2.EDS_CLUSTER:
 		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaAPI)
+	case v2.ORIGINAL_DST_CLUSTER:
+		newCluster = newOriginalDstCluster(clusterConfig, sourceAddr, addedViaAPI)
 	default:
 		return nil
 	}
@@ -70,6 +73,7 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 			stats:                newClusterStats(clusterConfig.Name),
 			lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
+			cleanupInterval:      clusterConfig.CleanupInterval,
 		},
 		initHelper: initHelper,
 	}
@@ -90,12 +94,11 @@ func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool,
 
 	if cluster.Info().LbSubsetInfo().IsEnabled() {
 		// use subset loadbalancer
-		lb = NewSubsetLoadBalancer(cluster.Info().LbType(), cluster.PrioritySet(), cluster.Info().Stats(),
+		lb = NewSubsetLoadBalancer(cluster.Info(), cluster.PrioritySet(), cluster.Info().Stats(),
 			cluster.Info().LbSubsetInfo())
-
 	} else {
 		// use common loadbalancer
-		lb = NewLoadBalancer(cluster.Info().LbType(), cluster.PrioritySet())
+		lb = NewLoadBalancer(cluster.Info(), cluster.PrioritySet())
 	}
 
 	cluster.info.lbInstance = lb
@@ -195,6 +198,7 @@ type clusterInfo struct {
 	healthCheckProtocol  string
 	tlsMng               types.TLSContextManager
 	lbSubsetInfo         types.LBSubsetInfo
+	cleanupInterval      time.Duration
 }
 
 func NewClusterInfo() types.ClusterInfo {
@@ -267,6 +271,10 @@ func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 
 func (ci *clusterInfo) LBInstance() types.LoadBalancer {
 	return ci.lbInstance
+}
+
+func (ci *clusterInfo) CleanupInterval() time.Duration {
+	return ci.cleanupInterval
 }
 
 type prioritySet struct {
