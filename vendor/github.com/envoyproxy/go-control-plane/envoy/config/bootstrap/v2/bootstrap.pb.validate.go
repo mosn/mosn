@@ -178,6 +178,16 @@ func (m *Bootstrap) Validate() error {
 		}
 	}
 
+	if v, ok := interface{}(m.GetOverloadManager()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return BootstrapValidationError{
+				Field:  "OverloadManager",
+				Reason: "embedded message failed validation",
+				Cause:  err,
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -219,12 +229,7 @@ func (m *Admin) Validate() error {
 		return nil
 	}
 
-	if len(m.GetAccessLogPath()) < 1 {
-		return AdminValidationError{
-			Field:  "AccessLogPath",
-			Reason: "value length must be at least 1 bytes",
-		}
-	}
+	// no validation rules for AccessLogPath
 
 	// no validation rules for ProfilePath
 
