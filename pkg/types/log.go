@@ -50,9 +50,7 @@ const (
 	ErrorKeyRouteMatch             = ErrorModuleMosn + ErrorSubModuleProxy + "route_match_failed"
 	ErrorKeyClusterGet             = ErrorModuleMosn + ErrorSubModuleProxy + "cluster_get_failed"
 	ErrorKeyUpstreamConn           = ErrorModuleMosn + ErrorSubModuleProxy + "upstream_conn_failed"
-	ErrorKeyStreamFilter           = ErrorModuleMosn + ErrorSubModuleProxy + "streamfilter_unexpected"
 	ErrorKeyCodec                  = ErrorModuleMosn + ErrorSubModuleProxy + "codec_error"
-	ErrorKeyLoadBalance            = ErrorModuleMosn + ErrorSubModuleProxy + "loadbalance_failed"
 	ErrorKeyHeartBeat              = ErrorModuleMosn + ErrorSubModuleProxy + "heartbeat_unknown"
 	// TODO: more keys
 )

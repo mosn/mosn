@@ -82,7 +82,7 @@ func (f *healthCheckFilter) handleIntercept() {
 	// todo: cal status based on cluster healthy host stats and f.clusterMinHealthyPercentages
 	hbAck := sofarpc.NewHeartbeatAck(f.protocol)
 	if hbAck == nil {
-		log.DefaultLogger.Errorf("[healthcheck][sofarpc] unknown protocol code: [%x] while intercept healthcheck.", f.protocol)
+		log.DefaultLogger.Alertf(types.ErrorKeyHeartBeat, "unknown protocol code: [%x] while intercept healthcheck.", f.protocol)
 		//TODO: set hijack reply - codec error, actually this would happen at codec stage which is before this
 	}
 	f.handler.AppendHeaders(hbAck, true)
