@@ -20,6 +20,8 @@ package log
 import (
 	"sync/atomic"
 	"time"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var (
@@ -88,6 +90,17 @@ func (l *errorLogger) Errorf(format string, args ...interface{}) {
 	if l.level >= ERROR {
 		s := l.formatter(ErrorPre, format)
 		l.Logger.Printf(s, args...)
+	}
+}
+
+func (l *errorLogger) Alertf(errkey types.ErrorKey, format string, args ...interface{}) {
+	if l.Logger.disable {
+		return
+	}
+	if l.level >= ERROR {
+		s := l.formatter(ErrorPre, "["+string(errkey)+"] "+format)
+		l.Logger.Printf(s, args...)
+
 	}
 }
 

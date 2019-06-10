@@ -87,6 +87,16 @@ func (l *proxyLogger) Errorf(ctx context.Context, format string, args ...interfa
 	}
 }
 
+func (l *proxyLogger) Alertf(ctx context.Context, errkey types.ErrorKey, format string, args ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level >= ERROR {
+		s := logTime() + " " + ErrorPre + " [" + string(errkey) + "] " + traceInfo(ctx) + " " + format
+		l.Printf(s, args...)
+	}
+}
+
 func (l *proxyLogger) Fatalf(ctx context.Context, format string, args ...interface{}) {
 	if l.disable {
 		return
