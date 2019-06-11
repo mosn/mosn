@@ -22,7 +22,7 @@ import (
 	"reflect"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 func mockInitConfig(t *testing.T, cfg []byte) {
@@ -146,7 +146,7 @@ func TestUpdateStreamFilter(t *testing.T) {
 		}
 		ver := v.(string)
 		if ver != "2.0" {
-			t.Error("%s stream filter config update not expected", name)
+			t.Errorf("%s stream filter config update not expected", name)
 		}
 	}
 }
