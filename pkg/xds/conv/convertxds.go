@@ -23,13 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/router"
-	xdsxproxy "sofastack.io/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
-	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
@@ -45,6 +38,13 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/router"
+	xdsxproxy "sofastack.io/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
+	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
 )
 
 // support network filter list
@@ -76,11 +76,11 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:       xdsListener.GetName(),
-			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
-			Inspector:  true,
-			HandOffRestoredDestinationConnections: xdsListener.GetUseOriginalDst().GetValue(),
-			AccessLogs:                            convertAccessLogs(xdsListener),
+			Name:           xdsListener.GetName(),
+			BindToPort:     convertBindToPort(xdsListener.GetDeprecatedV1()),
+			Inspector:      true,
+			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
+			AccessLogs:     convertAccessLogs(xdsListener),
 		},
 		Addr: convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),

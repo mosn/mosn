@@ -22,10 +22,11 @@ import (
 	"net"
 	"time"
 
+	"os"
+
+	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
-	"github.com/rcrowley/go-metrics"
-	"os"
 )
 
 //
@@ -112,11 +113,11 @@ type Listener interface {
 	// Set limit bytes per connection
 	SetPerConnBufferLimitBytes(limitBytes uint32)
 
-	// Set if listener should hand off restored destination connections
-	SetHandOffRestoredDestinationConnections(restoredDestation bool)
+	// Set if listener should use original dst
+	SetUseOriginalDst(use bool)
 
-	// Get if listener hand off restored destination connections
-	HandOffRestoredDestinationConnections() bool
+	// Get if listener should use original dst
+	UseOriginalDst() bool
 
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)
@@ -138,7 +139,7 @@ type TLSContextManager interface {
 // ListenerEventListener is a Callback invoked by a listener.
 type ListenerEventListener interface {
 	// OnAccept is called on new connection accepted
-	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan Connection, buf []byte)
+	OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, c chan Connection, buf []byte)
 
 	// OnNewConnection is called on new mosn connection created
 	OnNewConnection(ctx context.Context, conn Connection)
