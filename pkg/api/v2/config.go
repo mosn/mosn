@@ -83,7 +83,7 @@ type RouterConfigurationConfig struct {
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
-	RouterConfigPath        string               `json:"router_configs, omitempty"`
+	RouterConfigPath        string               `json:"router_configs,omitempty"`
 	StaticVirtualHosts      []*VirtualHost       `json:"virtual_hosts,omitempty"`
 }
 
