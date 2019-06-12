@@ -25,8 +25,8 @@ import (
 	"path"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/utils"
 	"istio.io/api/mixer/v1/config/client"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // Metadata field can be used to provide additional information about the route.
@@ -384,7 +384,7 @@ type TLSConfig struct {
 	MaxVersion   string                 `json:"max_version,omitempty"`
 	ALPN         string                 `json:"alpn,omitempty"`
 	Ticket       string                 `json:"ticket,omitempty"`
-	Fallback     bool                   `json:"fall_back, omitempty"`
+	Fallback     bool                   `json:"fall_back"`
 	ExtendVerify map[string]interface{} `json:"extend_verify,omitempty"`
 }
 
