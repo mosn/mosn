@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
 	gometrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/metrics/shm"
 )
@@ -110,7 +111,7 @@ func TestExclusionLabels(t *testing.T) {
 		typ := fmt.Sprintf("test%d", i)
 		m, _ := NewMetrics(typ, tc.labels)
 		if _, ok := m.(*NilMetrics); !ok {
-			t.Errorf("#%d expected get nil metrics, but not")
+			t.Error("expected get nil metrics, but it is not")
 		}
 	}
 }

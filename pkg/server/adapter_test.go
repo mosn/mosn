@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -67,7 +67,7 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 				},
 			}, //no stream filters parsed, but the config still exists for test
 		},
-		Addr: addr,
+		Addr:                    addr,
 		PerConnBufferLimitBytes: 1 << 15,
 	}
 }
@@ -82,7 +82,7 @@ func TestLDS(t *testing.T) {
 		&mockNetworkFilterFactory{},
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
-		t.Fatalf("add a new listener failed", err)
+		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
 	// verify
@@ -130,7 +130,7 @@ func TestLDS(t *testing.T) {
 			StreamFilters: []v2.Filter{}, // stream filter will not be updated
 			Inspector:     true,
 		},
-		Addr: listenerConfig.Addr, // addr should not be changed
+		Addr:                    listenerConfig.Addr, // addr should not be changed
 		PerConnBufferLimitBytes: 1 << 10,
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, newListenerConfig, nil, nil); err != nil {
@@ -192,7 +192,7 @@ func TestUpdateTLS(t *testing.T) {
 		&mockNetworkFilterFactory{},
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
-		t.Fatalf("add a new listener failed", err)
+		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
 	tlsCfg := v2.TLSConfig{
@@ -210,7 +210,7 @@ func TestUpdateTLS(t *testing.T) {
 		conn.Close()
 	}
 	if err := GetListenerAdapterInstance().UpdateListenerTLS(testServerName, name, false, []v2.TLSConfig{tlsCfg}); err != nil {
-		t.Fatalf("update tls listener failed", err)
+		t.Fatalf("update tls listener failed %v", err)
 	}
 	handler := listenerAdapterInstance.defaultConnHandler.(*connHandler)
 	newLn := handler.FindListenerByName(name)
