@@ -415,10 +415,6 @@ type LbContext struct {
 	conn types.ReadFilterCallbacks
 }
 
-func (c *LbContext) ComputeHashKey() types.HashedValue {
-	return ""
-}
-
 func (c *LbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	return nil
 }

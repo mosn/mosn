@@ -23,10 +23,10 @@ import (
 	"runtime/debug"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
 	"google.golang.org/grpc"
 	"istio.io/api/mixer/v1"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
 )
 
 const (
@@ -95,7 +95,7 @@ func (c *mixerClient) tryConnect(retry bool) error {
 	}
 	defer mngAdaper.PutClusterSnapshot(snapshot)
 
-	hosts := snapshot.PrioritySet().GetOrCreateHostSet(0).Hosts()
+	hosts := snapshot.HostSet().Hosts()
 	if len(hosts) == 0 {
 		return fmt.Errorf("no hosts for reportCluster %s", c.reportCluster)
 	}

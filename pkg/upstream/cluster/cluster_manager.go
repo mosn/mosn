@@ -188,8 +188,8 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 		if err := pc.UpdateCluster(newCluster); err != nil {
 			return err
 		}
-		store.SetClusterConfig(clusterName, cluster)
 	}
+	store.SetClusterConfig(clusterName, cluster)
 	log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
 	return nil
 }
