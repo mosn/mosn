@@ -253,7 +253,7 @@ func (m *Mosn) Close() {
 	for _, srv := range m.servers {
 		srv.Close()
 	}
-	m.clustermanager.Destory()
+	m.clustermanager.Destroy()
 }
 
 // Start mosn project

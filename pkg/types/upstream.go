@@ -22,8 +22,8 @@ import (
 	"net"
 	"sort"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
 	metrics "github.com/rcrowley/go-metrics"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -34,12 +34,10 @@ import (
 // ClusterManager manages connection pools and load balancing for upstream clusters.
 type ClusterManager interface {
 	// Add or update a cluster via API.
-	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
+	AddOrUpdatePrimaryCluster(cluster v2.Cluster) error
 
 	// Add Cluster health check callbacks
-	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) bool
-
-	SetInitializedCb(cb func())
+	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) error
 
 	// Get, use to get the snapshot of a cluster
 	GetClusterSnapshot(context context.Context, cluster string) ClusterSnapshot
@@ -49,10 +47,10 @@ type ClusterManager interface {
 
 	// UpdateClusterHosts used to update cluster's hosts
 	// temp interface todo: remove it
-	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
+	UpdateClusterHosts(cluster string, hosts []v2.Host) error
 
 	// AppendClusterHosts used to add cluster's hosts
-	AppendClusterHosts(clusterName string, priority uint32, hostConfigs []v2.Host) error
+	AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error
 
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
@@ -63,27 +61,19 @@ type ClusterManager interface {
 	// RemovePrimaryCluster used to remove cluster from set
 	RemovePrimaryCluster(clusters ...string) error
 
-	Shutdown() error
-
-	SourceAddress() net.Addr
-
-	VersionInfo() string
-
-	LocalClusterName() string
-
 	// ClusterExist, used to check whether 'clusterName' exist or not
 	ClusterExist(clusterName string) bool
 
-	// RemoveClusterHost, used to remove cluster's hosts
-	RemoveClusterHost(clusterName string, hostAddress string) error
+	// RemoveClusterHosts, remove the host by address string
+	RemoveClusterHosts(clusterName string, hosts []string) error
 
-	// Destory the cluster manager
-	Destory()
+	// Destroy the cluster manager
+	Destroy()
 }
 
 // ClusterSnapshot is a thread-safe cluster snapshot
 type ClusterSnapshot interface {
-	PrioritySet() PrioritySet
+	HostSet() HostSet
 
 	ClusterInfo() ClusterInfo
 
@@ -94,41 +84,22 @@ type ClusterSnapshot interface {
 
 // Cluster is a group of upstream hosts
 type Cluster interface {
-	Initialize(cb func())
-
 	Info() ClusterInfo
 
-	InitializePhase() InitializePhase
+	HostSet() HostSet
 
-	PrioritySet() PrioritySet
+	UpdateHosts([]Host)
+
+	RemoveHosts([]string)
+
+	LBInstance() LoadBalancer
 
 	// Add health check callbacks in health checker
 	AddHealthCheckCallbacks(cb HealthCheckCb)
 }
 
-// InitializePhase type
-type InitializePhase string
-
-// InitializePhase types
-const (
-	Primary   InitializePhase = "Primary"
-	Secondary InitializePhase = "Secondary"
-)
-
 // MemberUpdateCallback is called on create a priority set
-type MemberUpdateCallback func(priority uint32, hostsAdded []Host, hostsRemoved []Host)
-
-// PrioritySet is a hostSet grouped by priority for a given cluster, for ease of load balancing.
-type PrioritySet interface {
-	// GetOrCreateHostSet returns the hostSet for this priority level, creating it if not exist.
-	GetOrCreateHostSet(priority uint32) HostSet
-
-	AddMemberUpdateCb(cb MemberUpdateCallback)
-
-	HostSetsByPriority() []HostSet
-
-	GetHostsInfo(priority uint32) []HostInfo
-}
+type MemberUpdateCallback func(hostsAdded []Host, hostsRemoved []Host)
 
 type HostPredicate func(Host) bool
 
@@ -141,9 +112,11 @@ type HostSet interface {
 
 	HealthyHosts() []Host
 
-	UpdateHosts(hosts []Host, healthyHost []Host, hostsAdded []Host, hostsRemoved []Host)
+	UpdateHosts(hosts []Host)
 
-	Priority() uint32
+	RemoveHosts([]string)
+
+	AdddMemberUpdateCb(cb MemberUpdateCallback)
 }
 
 // HealthFlag type
@@ -169,27 +142,16 @@ type Host interface {
 
 	SetHealthFlag(flag HealthFlag)
 
+	HealthFlag() HealthFlag
+
 	Health() bool
-
-	Weight() uint32
-
-	SetWeight(weight uint32)
-
-	Used() bool
-
-	SetUsed(used bool)
 }
 
 // HostInfo defines a host's basic information
 type HostInfo interface {
 	Hostname() string
 
-	Canary() bool
-
-	Metadata() RouteMetaData
-
-	// OriginMetaData used to get origin metadata, currently in map[string]string
-	OriginMetaData() v2.Metadata
+	Metadata() v2.Metadata
 
 	ClusterInfo() ClusterInfo
 
@@ -198,6 +160,10 @@ type HostInfo interface {
 	AddressString() string
 
 	HostStats() HostStats
+
+	Weight() uint32
+
+	TLSDisable() bool
 
 	Config() v2.Host
 
@@ -234,21 +200,9 @@ type ClusterInfo interface {
 
 	LbType() LoadBalancerType
 
-	AddedViaAPI() bool
-
-	SourceAddress() net.Addr
-
 	ConnectTimeout() int
 
 	ConnBufferLimitBytes() uint32
-
-	Features() int
-
-	Metadata() v2.Metadata
-
-	DiscoverType() string
-
-	MaintenanceMode() bool
 
 	MaxRequestsPerConn() uint32
 
@@ -256,14 +210,9 @@ type ClusterInfo interface {
 
 	ResourceManager() ResourceManager
 
-	// protocol used for health checking for this cluster
-	HealthCheckProtocol() string
-
 	TLSMng() TLSContextManager
 
 	LbSubsetInfo() LBSubsetInfo
-
-	LBInstance() LoadBalancer
 }
 
 // ResourceManager manages different types of Resource
@@ -357,7 +306,7 @@ type LBSubsetInfo interface {
 
 	FallbackPolicy() FallBackPolicy
 
-	DefaultSubset() SortedMap
+	DefaultSubset() SubsetMetadata
 
 	SubsetKeys() []SortedStringSetType
 }
@@ -428,35 +377,6 @@ func (ss *SortedStringSetType) Less(i, j int) bool {
 // Swap swaps the elements with indexes i and j.
 func (ss *SortedStringSetType) Swap(i, j int) {
 	ss.keys[i], ss.keys[j] = ss.keys[j], ss.keys[i]
-}
-
-// SortedMap is a list of key-value pair
-type SortedMap []SortedPair
-
-// InitSortedMap sorts the input map, and returns it as a list of sorted key-value pair
-func InitSortedMap(input map[string]string) SortedMap {
-	var keyset []string
-	var sPair []SortedPair
-
-	for k := range input {
-		keyset = append(keyset, k)
-	}
-
-	sort.Strings(keyset)
-
-	for _, key := range keyset {
-		sPair = append(sPair, SortedPair{
-			key, input[key],
-		})
-	}
-
-	return sPair
-}
-
-// SortedPair is a key-value pair
-type SortedPair struct {
-	Key   string
-	Value string
 }
 
 func init() {

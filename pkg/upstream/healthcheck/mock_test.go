@@ -48,20 +48,11 @@ func (s *mockSession) OnTimeout() {}
 
 type mockCluster struct {
 	types.Cluster
-	ps *mockPrioritySet
-}
-
-func (c *mockCluster) PrioritySet() types.PrioritySet {
-	return c.ps
-}
-
-type mockPrioritySet struct {
-	types.PrioritySet
 	hs *mockHostSet
 }
 
-func (p *mockPrioritySet) HostSetsByPriority() []types.HostSet {
-	return []types.HostSet{p.hs}
+func (c *mockCluster) HostSet() types.HostSet {
+	return c.hs
 }
 
 type mockHostSet struct {

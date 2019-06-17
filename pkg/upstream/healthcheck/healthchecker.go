@@ -92,21 +92,17 @@ func newHealthChecker(cfg v2.HealthCheck, cluster types.Cluster, f types.HealthC
 }
 
 func (hc *healthChecker) Start() {
-	for _, hostSet := range hc.cluster.PrioritySet().HostSetsByPriority() {
-		hosts := hostSet.Hosts()
-		for _, h := range hosts {
-			hc.startCheck(h)
-		}
+	hosts := hc.cluster.HostSet().Hosts()
+	for _, h := range hosts {
+		hc.startCheck(h)
 	}
 	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
 }
 
 func (hc *healthChecker) Stop() {
-	for _, hostSet := range hc.cluster.PrioritySet().HostSetsByPriority() {
-		hosts := hostSet.Hosts()
-		for _, h := range hosts {
-			hc.stopCheck(h)
-		}
+	hosts := hc.cluster.HostSet().Hosts()
+	for _, h := range hosts {
+		hc.stopCheck(h)
 	}
 }
 

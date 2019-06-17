@@ -197,11 +197,9 @@ func TestHealthCheck(t *testing.T) {
 			Interval: interval,
 		}
 		cluster := &mockCluster{
-			ps: &mockPrioritySet{
-				hs: &mockHostSet{
-					hosts: []types.Host{
-						tc.host,
-					},
+			hs: &mockHostSet{
+				hosts: []types.Host{
+					tc.host,
 				},
 			},
 		}
