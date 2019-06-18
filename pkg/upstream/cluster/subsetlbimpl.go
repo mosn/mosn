@@ -134,7 +134,7 @@ func (sslb *subsetLoadBalancer) CreateFallbackSubset() {
 			children: nil, // no child
 		}
 		sslb.fallbackSubset.CreateLoadBalancer(sslb.lbType, sslb.hostSets)
-	case types.DefaultSubsetDefaultSubset:
+	case types.DefaultSubset:
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
 		}

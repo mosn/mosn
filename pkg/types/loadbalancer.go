@@ -77,7 +77,7 @@ type FallBackPolicy uint8
 const (
 	NoFallBack FallBackPolicy = iota
 	AnyEndPoint
-	DefaultSubsetDefaultSubset
+	DefaultSubset
 )
 
 // LbSubsetMap is a trie-like structure. Route Metadata requires lexically sorted

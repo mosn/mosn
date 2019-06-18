@@ -310,7 +310,7 @@ func TestFallbackWithDefaultSubset(t *testing.T) {
 	// only create subset with version and xlarge
 	// if not matched, use default subset: stage:dev
 	cfg := &v2.LBSubsetConfig{
-		FallBackPolicy: uint8(types.DefaultSubsetDefaultSubset),
+		FallBackPolicy: uint8(types.DefaultSubset),
 		DefaultSubset: map[string]string{
 			"stage": "dev", // only contain e7
 		},
