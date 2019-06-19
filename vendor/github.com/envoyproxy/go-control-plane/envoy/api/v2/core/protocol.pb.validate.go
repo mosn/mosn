@@ -235,6 +235,8 @@ func (m *Http2ProtocolOptions) Validate() error {
 
 	}
 
+	// no validation rules for AllowConnect
+
 	return nil
 }
 

@@ -250,9 +250,19 @@ func (m *HeaderValue) Validate() error {
 		return nil
 	}
 
-	// no validation rules for Key
+	if l := len(m.GetKey()); l < 1 || l > 16384 {
+		return HeaderValueValidationError{
+			Field:  "Key",
+			Reason: "value length must be between 1 and 16384 bytes, inclusive",
+		}
+	}
 
-	// no validation rules for Value
+	if len(m.GetValue()) > 16384 {
+		return HeaderValueValidationError{
+			Field:  "Value",
+			Reason: "value length must be at most 16384 bytes",
+		}
+	}
 
 	return nil
 }
@@ -294,6 +304,13 @@ var _ error = HeaderValueValidationError{}
 func (m *HeaderValueOption) Validate() error {
 	if m == nil {
 		return nil
+	}
+
+	if m.GetHeader() == nil {
+		return HeaderValueOptionValidationError{
+			Field:  "Header",
+			Reason: "value is required",
+		}
 	}
 
 	if v, ok := interface{}(m.GetHeader()).(interface{ Validate() error }); ok {
@@ -443,14 +460,32 @@ func (m *TransportSocket) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return TransportSocketValidationError{
-				Field:  "Config",
-				Reason: "embedded message failed validation",
-				Cause:  err,
+	switch m.ConfigType.(type) {
+
+	case *TransportSocket_Config:
+
+		if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return TransportSocketValidationError{
+					Field:  "Config",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
 			}
 		}
+
+	case *TransportSocket_TypedConfig:
+
+		if v, ok := interface{}(m.GetTypedConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return TransportSocketValidationError{
+					Field:  "TypedConfig",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
+			}
+		}
+
 	}
 
 	return nil
@@ -557,3 +592,64 @@ func (e SocketOptionValidationError) Error() string {
 }
 
 var _ error = SocketOptionValidationError{}
+
+// Validate checks the field values on RuntimeFractionalPercent with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *RuntimeFractionalPercent) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	if m.GetDefaultValue() == nil {
+		return RuntimeFractionalPercentValidationError{
+			Field:  "DefaultValue",
+			Reason: "value is required",
+		}
+	}
+
+	if v, ok := interface{}(m.GetDefaultValue()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return RuntimeFractionalPercentValidationError{
+				Field:  "DefaultValue",
+				Reason: "embedded message failed validation",
+				Cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for RuntimeKey
+
+	return nil
+}
+
+// RuntimeFractionalPercentValidationError is the validation error returned by
+// RuntimeFractionalPercent.Validate if the designated constraints aren't met.
+type RuntimeFractionalPercentValidationError struct {
+	Field  string
+	Reason string
+	Cause  error
+	Key    bool
+}
+
+// Error satisfies the builtin error interface
+func (e RuntimeFractionalPercentValidationError) Error() string {
+	cause := ""
+	if e.Cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.Cause)
+	}
+
+	key := ""
+	if e.Key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sRuntimeFractionalPercent.%s: %s%s",
+		key,
+		e.Field,
+		e.Reason,
+		cause)
+}
+
+var _ error = RuntimeFractionalPercentValidationError{}

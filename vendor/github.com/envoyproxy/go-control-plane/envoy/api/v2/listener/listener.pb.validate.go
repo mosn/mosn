@@ -48,16 +48,6 @@ func (m *Filter) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return FilterValidationError{
-				Field:  "Config",
-				Reason: "embedded message failed validation",
-				Cause:  err,
-			}
-		}
-	}
-
 	if v, ok := interface{}(m.GetDeprecatedV1()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return FilterValidationError{
@@ -66,6 +56,34 @@ func (m *Filter) Validate() error {
 				Cause:  err,
 			}
 		}
+	}
+
+	switch m.ConfigType.(type) {
+
+	case *Filter_Config:
+
+		if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return FilterValidationError{
+					Field:  "Config",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
+			}
+		}
+
+	case *Filter_TypedConfig:
+
+		if v, ok := interface{}(m.GetTypedConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return FilterValidationError{
+					Field:  "TypedConfig",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
+			}
+		}
+
 	}
 
 	return nil
@@ -108,6 +126,17 @@ var _ error = FilterValidationError{}
 func (m *FilterChainMatch) Validate() error {
 	if m == nil {
 		return nil
+	}
+
+	if wrapper := m.GetDestinationPort(); wrapper != nil {
+
+		if val := wrapper.GetValue(); val < 1 || val > 65535 {
+			return FilterChainMatchValidationError{
+				Field:  "DestinationPort",
+				Reason: "value must be inside range [1, 65535]",
+			}
+		}
+
 	}
 
 	for idx, item := range m.GetPrefixRanges() {
@@ -165,16 +194,6 @@ func (m *FilterChainMatch) Validate() error {
 			}
 		}
 
-	}
-
-	if v, ok := interface{}(m.GetDestinationPort()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return FilterChainMatchValidationError{
-				Field:  "DestinationPort",
-				Reason: "embedded message failed validation",
-				Cause:  err,
-			}
-		}
 	}
 
 	// no validation rules for TransportProtocol
@@ -335,14 +354,32 @@ func (m *ListenerFilter) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ListenerFilterValidationError{
-				Field:  "Config",
-				Reason: "embedded message failed validation",
-				Cause:  err,
+	switch m.ConfigType.(type) {
+
+	case *ListenerFilter_Config:
+
+		if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ListenerFilterValidationError{
+					Field:  "Config",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
 			}
 		}
+
+	case *ListenerFilter_TypedConfig:
+
+		if v, ok := interface{}(m.GetTypedConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ListenerFilterValidationError{
+					Field:  "TypedConfig",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
+			}
+		}
+
 	}
 
 	return nil

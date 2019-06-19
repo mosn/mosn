@@ -333,15 +333,15 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 	streamFault := &v2.StreamFaultInject{
 		Delay: &v2.DelayInject{
 			DelayInjectConfig: v2.DelayInjectConfig{
-				Percent: faultConfig.Delay.GetPercent(),
+				Percent: faultConfig.GetDelay().GetPercentage().GetNumerator(),
 				DelayDurationConfig: v2.DurationConfig{
 					Duration: fixed_delay,
 				},
 			},
 		},
 		Abort: &v2.AbortInject{
-			Percent: faultConfig.Abort.GetPercent(),
-			Status:  int(faultConfig.Abort.GetHttpStatus()),
+			Percent: faultConfig.GetAbort().GetPercentage().GetNumerator(),
+			Status:  int(faultConfig.GetAbort().GetHttpStatus()),
 		},
 		UpstreamCluster: faultConfig.UpstreamCluster,
 		Headers:         convertHeaders(faultConfig.GetHeaders()),
@@ -694,10 +694,16 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 	}
 	headerMatchers := make([]v2.HeaderMatcher, 0, len(xdsHeaders))
 	for _, xdsHeader := range xdsHeaders {
+		isRegex := false
+		value := xdsHeader.GetExactMatch()
+		if len(xdsHeader.GetRegexMatch()) > 0 {
+			isRegex = true
+			value = xdsHeader.GetRegexMatch()
+		}
 		headerMatcher := v2.HeaderMatcher{
 			Name:  xdsHeader.GetName(),
-			Value: xdsHeader.GetExactMatch(),
-			Regex: xdsHeader.GetRegex().GetValue(),
+			Value: value,
+			Regex: isRegex,
 		}
 
 		// as pseudo headers not support when Http1.x upgrade to Http2, change pseudo headers to normal headers
