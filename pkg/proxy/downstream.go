@@ -742,6 +742,8 @@ func (s *downStream) onUpstreamRequestSent() {
 			ID := s.ID
 			s.responseTimer = utils.NewTimer(s.timeout.GlobalTimeout,
 				func() {
+					atomic.StoreUint32(&s.reuseBuffer, 0)
+
 					if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 						return
 					}
@@ -758,7 +760,7 @@ func (s *downStream) onUpstreamRequestSent() {
 func (s *downStream) onResponseTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout() panic %v", r)
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout() panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 	s.responseTimer = nil
@@ -769,7 +771,6 @@ func (s *downStream) onResponseTimeout() {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		}
 
-		atomic.StoreUint32(&s.reuseBuffer, 0)
 		s.upstreamRequest.resetStream()
 		s.upstreamRequest.OnResetStream(types.UpstreamGlobalTimeout)
 	}
@@ -786,6 +787,8 @@ func (s *downStream) setupPerReqTimeout() {
 		ID := s.ID
 		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout,
 			func() {
+				atomic.StoreUint32(&s.reuseBuffer, 0)
+
 				if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 					return
 				}
@@ -801,7 +804,7 @@ func (s *downStream) setupPerReqTimeout() {
 func (s *downStream) onPerReqTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onPerReqTimeout() panic %v", r)
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] onPerReqTimeout() panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 
@@ -815,7 +818,6 @@ func (s *downStream) onPerReqTimeout() {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		}
 
-		atomic.StoreUint32(&s.reuseBuffer, 0)
 		s.upstreamRequest.resetStream()
 		s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
 		s.upstreamRequest.OnResetStream(types.UpstreamPerTryTimeout)
