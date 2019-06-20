@@ -225,14 +225,14 @@ func TestHostSetRemoveHosts(t *testing.T) {
 	}
 }
 
-func BenchmarkFastRemoved(b *testing.B) {
+func BenchmarkRemoveHosts(b *testing.B) {
 	pool := makePool(100)
 	totalHosts := pool.MakeHosts(100, nil)
 	removedAddrs := []string{}
 	for _, h := range totalHosts[:50] {
 		removedAddrs = append(removedAddrs, h.AddressString())
 	}
-	b.Run("FastRemove", func(b *testing.B) {
+	b.Run("RemoveHosts", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			hs := &hostSet{
 				allHosts: totalHosts,
@@ -240,4 +240,32 @@ func BenchmarkFastRemoved(b *testing.B) {
 			hs.RemoveHosts(removedAddrs)
 		}
 	})
+}
+
+func BenchmarkRefreshHost(b *testing.B) {
+	pool := makePool(100)
+	totalHosts := pool.MakeHosts(50, nil)
+	totalHosts = append(totalHosts, pool.MakeHosts(50, v2.Metadata{
+		"zone": "a",
+	})...)
+	hs := &hostSet{}
+	hs.UpdateHosts(totalHosts)
+	hs.createSubset(func(h types.Host) bool {
+		if h.Metadata() != nil && h.Metadata()["zone"] == "a" {
+			return true
+		}
+		return false
+	})
+	host := hs.Hosts()[55]
+	b.Run("RefreshHost", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			if i%2 == 0 {
+				host.SetHealthFlag(types.FAILED_ACTIVE_HC)
+			} else {
+				host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
+			}
+			hs.refreshHealthHosts(host)
+		}
+	})
+
 }

@@ -59,7 +59,6 @@ func TestClusterUnmarshal(t *testing.T) {
 		"lb_type": "LB_RANDOM",
 		"circuit_breakers":[
 			{
-				"priority":"HIGH",
 				"max_connections":10,
 				"max_retries":1
 			}
@@ -119,8 +118,7 @@ func TestClusterUnmarshal(t *testing.T) {
 	if len(breakers) != 1 {
 		t.Error("CirBreThresholds failed")
 	} else {
-		if !(breakers[0].Priority == HIGH &&
-			breakers[0].MaxConnections == 10 &&
+		if !(breakers[0].MaxConnections == 10 &&
 			breakers[0].MaxRetries == 1) {
 			t.Error("CirBreThresholds failed")
 		}

@@ -163,8 +163,6 @@ type HostInfo interface {
 
 	Weight() uint32
 
-	TLSDisable() bool
-
 	Config() v2.Host
 
 	// TODO: add deploy locality

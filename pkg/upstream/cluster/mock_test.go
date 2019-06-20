@@ -30,7 +30,7 @@ type mockHost struct {
 	name       string
 	addr       string
 	meta       v2.Metadata
-	healthFlag types.HealthFlag
+	healthFlag uint64
 	types.Host
 }
 
@@ -50,12 +50,16 @@ func (h *mockHost) Health() bool {
 	return h.healthFlag == 0
 }
 
+func (h *mockHost) ClearHealthFlag(flag types.HealthFlag) {
+	h.healthFlag &= ^uint64(flag)
+}
+
 func (h *mockHost) SetHealthFlag(flag types.HealthFlag) {
-	h.healthFlag = flag
+	h.healthFlag |= uint64(flag)
 }
 
 func (h *mockHost) HealthFlag() types.HealthFlag {
-	return h.healthFlag
+	return types.HealthFlag(h.healthFlag)
 }
 
 type ipPool struct {

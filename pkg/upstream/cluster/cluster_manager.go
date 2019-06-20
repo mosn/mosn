@@ -183,6 +183,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	pci, loaded := cm.primaryClusterMap.LoadOrStore(clusterName, newPrimaryCluster(newCluster))
 	if loaded { // update
 		pc := pci.(*primaryCluster)
+		//FIXME: cluster info in hosts should be updated too
 		hosts := pc.cluster.HostSet().Hosts()
 		newCluster.UpdateHosts(hosts)
 		if err := pc.UpdateCluster(newCluster); err != nil {

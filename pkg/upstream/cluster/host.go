@@ -1,9 +1,9 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
- * tshs work for additional information regarding copyright ownersshp.
- * The ASF licenses tshs file to You under the Apache License, Version 2.0
- * (the "License"); you may not use tshs file except in compliance with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
  * the License.  You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
@@ -82,12 +82,6 @@ func (sh *simpleHost) HostStats() types.HostStats {
 
 func (sh *simpleHost) Weight() uint32 {
 	return sh.weight
-}
-
-// if tls disbale is configured, tls is disbaled
-// if tlsmng is not enabled, tls is disabled
-func (sh *simpleHost) TLSDisable() bool {
-	return sh.tlsDisable || !sh.clusterInfo.TLSMng().Enabled()
 }
 
 func (sh *simpleHost) Config() v2.Host {
