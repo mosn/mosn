@@ -763,7 +763,6 @@ func (s *downStream) onResponseTimeout() {
 			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout() panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
-	s.responseTimer = nil
 	s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
 
 	if s.upstreamRequest != nil {
@@ -811,7 +810,6 @@ func (s *downStream) onPerReqTimeout() {
 	if !s.downstreamResponseStarted {
 		// handle timeout on response not
 
-		s.perRetryTimer = nil
 		s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
 
 		if s.upstreamRequest.host != nil {
