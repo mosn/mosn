@@ -23,13 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/router"
-	xdsxproxy "sofastack.io/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
-	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
@@ -45,6 +38,13 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/router"
+	xdsxproxy "sofastack.io/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
+	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
 )
 
 // support network filter list
@@ -957,7 +957,6 @@ func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.Ci
 			continue
 		}
 		threshold := v2.Thresholds{
-			Priority:           v2.RoutingPriority(xdsThreshold.GetPriority().String()),
 			MaxConnections:     xdsThreshold.GetMaxConnections().GetValue(),
 			MaxPendingRequests: xdsThreshold.GetMaxPendingRequests().GetValue(),
 			MaxRequests:        xdsThreshold.GetMaxRequests().GetValue(),
