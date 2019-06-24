@@ -113,3 +113,7 @@ func (ca *MngAdapter) PutClusterSnapshot(snapshot types.ClusterSnapshot) {
 func (ca *MngAdapter) AddClusterHealthCheckCallbacks(clusterName string, cb types.HealthCheckCb) bool {
 	return ca.clusterMng.AddClusterHealthCheckCallbacks(clusterName, cb)
 }
+
+func (ca *MngAdapter) ClusterExist(clusterName string) bool {
+	return ca.clusterMng.ClusterExist(clusterName)
+}
