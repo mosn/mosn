@@ -119,7 +119,7 @@ type downStream struct {
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
-	if span != nil && trace.IsTracingEnabled() {
+	if span != nil && trace.IsEnabled() {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyActiveSpan, span)
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 	}
@@ -1045,22 +1045,13 @@ func (s *downStream) onUpstreamData(endStream bool) {
 }
 
 func (s *downStream) finishTracing() {
-	if trace.IsTracingEnabled() {
+	if trace.IsEnabled() {
 		if s.context == nil {
 			return
 		}
 		span := trace.SpanFromContext(s.context)
 
 		if span != nil {
-			span.SetTag(trace.REQUEST_SIZE, strconv.FormatInt(int64(s.requestInfo.BytesSent()), 10))
-			span.SetTag(trace.RESPONSE_SIZE, strconv.FormatInt(int64(s.requestInfo.BytesReceived()), 10))
-			if s.requestInfo.UpstreamHost() != nil {
-				span.SetTag(trace.UPSTREAM_HOST_ADDRESS, s.requestInfo.UpstreamHost().AddressString())
-			}
-			if s.requestInfo.DownstreamLocalAddress() != nil {
-				span.SetTag(trace.DOWNSTEAM_HOST_ADDRESS, s.requestInfo.DownstreamRemoteAddress().String())
-			}
-			span.SetTag(trace.RESULT_STATUS, strconv.Itoa(s.requestInfo.ResponseCode()))
 			span.SetRequestInfo(s.requestInfo)
 			span.FinishSpan()
 

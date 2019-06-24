@@ -15,12 +15,17 @@
  * limitations under the License.
  */
 
-package trace
+package rpc
+
+import (
+	"context"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+)
 
 const (
 	//0-30 for  rpc
 
-	TRACE_ID = iota
+	TRACE_ID               = iota
 	SPAN_ID
 	PARENT_SPAN_ID
 	SERVICE_NAME
@@ -43,3 +48,5 @@ const (
 
 	TRACE_END = 60
 )
+
+type SubProtocolDelegate func(ctx context.Context, request sofarpc.SofaRpcCmd, span *SofaRPCSpan)

@@ -44,6 +44,11 @@ import (
 	_ "sofastack.io/sofa-mosn/pkg/stream/xprotocol"
 	_ "sofastack.io/sofa-mosn/pkg/upstream/healthcheck"
 	_ "sofastack.io/sofa-mosn/pkg/xds"
+
+	_ "sofastack.io/sofa-mosn/pkg/trace/sofa/http"
+	_ "sofastack.io/sofa-mosn/pkg/trace/sofa/rpc"
+	_ "sofastack.io/sofa-mosn/pkg/trace/sofa/rpc/ext"
+
 	"github.com/urfave/cli"
 )
 

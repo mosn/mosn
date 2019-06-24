@@ -15,46 +15,30 @@
  * limitations under the License.
  */
 
-package types
+package rpc
 
 import (
+	"testing"
 	"time"
 	"context"
+	"sofastack.io/sofa-mosn/pkg/trace"
+	"log"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
-// factory
-type TracerBuilder func(config map[string]interface{}) (Tracer, error)
+func TestSofaTracerStartFinish(t *testing.T) {
+	tracer, error := NewTracer(nil)
+	if error != nil {
+		log.Fatalln("create test tracer failed:", error)
+	}
 
-type Driver interface {
-	Init(config map[string]interface{}) error
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, types.ContextKeyListenerType, v2.EGRESS)
 
-	Register(proto Protocol, builder TracerBuilder)
-
-	Get(proto Protocol) Tracer
-}
-
-type Tracer interface {
-	Start(ctx context.Context, request interface{}, startTime time.Time) Span
-}
-
-type Span interface {
-	TraceId() string
-
-	SpanId() string
-
-	ParentSpanId() string
-
-	SetOperation(operation string)
-
-	SetTag(key uint64, value string)
-
-	SetRequestInfo(requestInfo RequestInfo)
-
-	Tag(key uint64) string
-
-	FinishSpan()
-
-	InjectContext(requestHeaders HeaderMap)
-
-	SpawnChild(operationName string, startTime time.Time) Span
+	span := tracer.Start(ctx, nil, time.Now())
+	span.SetTag(TRACE_ID, trace.IdGen().GenerateTraceId())
+	span.SetTag(SPAN_TYPE, string(v2.EGRESS))
+	span.SetTag(PROTOCOL, "bolt")
+	span.FinishSpan()
 }

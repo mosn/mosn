@@ -15,50 +15,10 @@
  * limitations under the License.
  */
 
-package trace
+package sofa
 
-import (
-	"context"
+import "sofastack.io/sofa-mosn/pkg/trace"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/types"
-)
-
-type contextKey struct{}
-
-type traceHolder struct {
-	enableTracing bool
-	tracer        types.Tracer
-}
-
-var holder = traceHolder{}
-
-func SpanFromContext(ctx context.Context) types.Span {
-	if val := mosnctx.Get(ctx, types.ContextKeyActiveSpan); val != nil {
-		if sp, ok := val.(types.Span); ok {
-			return sp
-		}
-	}
-
-	return nil
-}
-
-func SetTracer(tracer types.Tracer) {
-	holder.tracer = tracer
-}
-
-func Tracer() types.Tracer {
-	return holder.tracer
-}
-
-func EnableTracing() {
-	holder.enableTracing = true
-}
-
-func DisableTracing() {
-	holder.enableTracing = false
-}
-
-func IsTracingEnabled() bool {
-	return holder.enableTracing
+func init() {
+	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
 }

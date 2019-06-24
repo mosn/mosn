@@ -22,7 +22,7 @@ import (
 
 	admin "sofastack.io/sofa-mosn/pkg/admin/server"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/connectionmanager"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -277,20 +277,18 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 }
 
 func initializeTracing(config config.TracingConfig) {
-	if config.Enable && config.Tracer != "" {
-		tracer := trace.CreateTracer(config.Tracer)
-		if tracer != nil {
-			trace.SetTracer(tracer)
-		} else {
-			log.StartLogger.Errorf("[mosn] [init tracing] Unable to recognise tracing implementation %s, tracing functionality is turned off.", config.Tracer)
-			trace.DisableTracing()
+	if config.Enable && config.Driver != "" {
+		err := trace.Init(config.Driver, config.Config)
+		if err != nil {
+			log.StartLogger.Errorf("[mosn] [init tracing] init driver '%s' failed: %s, tracing functionality is turned off.", config.Driver, err)
+			trace.Disable()
 			return
 		}
 		log.StartLogger.Infof("[mosn] [init tracing] enable tracing")
-		trace.EnableTracing()
+		trace.Enable()
 	} else {
 		log.StartLogger.Infof("[mosn] [init tracing] disbale tracing")
-		trace.DisableTracing()
+		trace.Disable()
 	}
 }
 
