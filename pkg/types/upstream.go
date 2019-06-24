@@ -73,25 +73,35 @@ type ClusterManager interface {
 
 // ClusterSnapshot is a thread-safe cluster snapshot
 type ClusterSnapshot interface {
+	// HostSet returns the cluster snapshot's host set
 	HostSet() HostSet
 
+	// ClusterInfo returns the cluster snapshot's cluster info
 	ClusterInfo() ClusterInfo
 
+	// LoadBalancer returns the cluster snapshot's load balancer
 	LoadBalancer() LoadBalancer
 
+	// IsExistsHosts checks whether the metadata's subset contains host or not
+	// if metadata is nil, check the cluster snapshot contains host or not
 	IsExistsHosts(metadata MetadataMatchCriteria) bool
 }
 
 // Cluster is a group of upstream hosts
 type Cluster interface {
+	// Info returns the cluster info
 	Info() ClusterInfo
 
+	// HostSet returns the host set
 	HostSet() HostSet
 
+	// UpdateHosts updates the host set's hosts
 	UpdateHosts([]Host)
 
+	// RemoveHosts removes the host set's cluster by address string
 	RemoveHosts([]string)
 
+	// LBInstance returns the load balancer
 	LBInstance() LoadBalancer
 
 	// Add health check callbacks in health checker
@@ -101,21 +111,28 @@ type Cluster interface {
 // MemberUpdateCallback is called on create a priority set
 type MemberUpdateCallback func(hostsAdded []Host, hostsRemoved []Host)
 
+// HostPredicate checks wether the host is matched the metadata
 type HostPredicate func(Host) bool
 
 // HostSet is as set of hosts that contains all of the endpoints for a given
 // LocalityLbEndpoints priority level.
 type HostSet interface {
 
-	// all hosts that make up the set at the current time.
+	// Hosts returns all hosts that make up the set at the current time.
 	Hosts() []Host
 
+	// HealthyHosts returns all healthy hosts
 	HealthyHosts() []Host
 
+	// UpdateHosts updates all hosts
+	// if hosts is already exists, use new host instead of old one, but keeps the old healthy states
 	UpdateHosts(hosts []Host)
 
+	// RemoveHosts removes the hosts by address name
 	RemoveHosts([]string)
 
+	// AdddMemberUpdateCb adds a MemberUpdateCallback into host set
+	// a MemberUpdateCallback will be called when a new host is added, or an old host is removed
 	AdddMemberUpdateCb(cb MemberUpdateCallback)
 }
 
@@ -136,33 +153,46 @@ type Host interface {
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
+	// ClearHealthFlag clear the input flag
 	ClearHealthFlag(flag HealthFlag)
 
+	// ContainHealthFlag checks whether the heatlhy state contains the flag
 	ContainHealthFlag(flag HealthFlag) bool
 
+	// SetHealthFlag set the input flag
 	SetHealthFlag(flag HealthFlag)
 
+	// HealthFlag returns the current healthy flag
 	HealthFlag() HealthFlag
 
+	// Health checks whether the host is healthy or not
 	Health() bool
 }
 
 // HostInfo defines a host's basic information
 type HostInfo interface {
+	// Hostname returns the host's name
 	Hostname() string
 
+	// Metadata returns the host's meta data
 	Metadata() v2.Metadata
 
+	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
 
+	// Address returns the host's Addr structure
 	Address() net.Addr
 
+	// AddressString retuens the host's address string
 	AddressString() string
 
+	// HostStats returns the host stats metrics
 	HostStats() HostStats
 
+	// Weight returns the host weight
 	Weight() uint32
 
+	// Config creates a host config by the host attributes
 	Config() v2.Host
 
 	// TODO: add deploy locality
@@ -194,22 +224,28 @@ type HostStats struct {
 
 // ClusterInfo defines a cluster's information
 type ClusterInfo interface {
+	// Name returns the cluster name
 	Name() string
 
+	// LbType returns the cluster's load balancer type
 	LbType() LoadBalancerType
 
-	ConnectTimeout() int
-
+	// ConnBufferLimitBytes returns the connection buffer limits
 	ConnBufferLimitBytes() uint32
 
+	// MaxRequestsPerConn returns a connection's max request
 	MaxRequestsPerConn() uint32
 
+	// Stats returns the cluster's stats metrics
 	Stats() ClusterStats
 
+	// ResourceManager returns the ResourceManager
 	ResourceManager() ResourceManager
 
+	// TLSMng returns the tls manager
 	TLSMng() TLSContextManager
 
+	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo
 }
 
@@ -300,12 +336,17 @@ type RegisterUpstreamUpdateMethodCb interface {
 }
 
 type LBSubsetInfo interface {
+	// IsEnabled represents whether the subset load balancer is configured or not
 	IsEnabled() bool
 
+	// FallbackPolicy returns the fallback policy
 	FallbackPolicy() FallBackPolicy
 
+	// DefaultSubset returns the default subset's metadata configure
+	// it takes effects when the fallback policy is default subset
 	DefaultSubset() SubsetMetadata
 
+	// SubsetKeys returns the sorted subset keys
 	SubsetKeys() []SortedStringSetType
 }
 

@@ -119,7 +119,6 @@ type clusterInfo struct {
 	name                 string
 	clusterType          v2.ClusterType
 	lbType               types.LoadBalancerType // if use subset lb , lbType is used as inner LB algorithm for choosing subset's host
-	connectTimeout       int
 	connBufferLimitBytes uint32
 	maxRequestsPerConn   uint32
 	resourceManager      types.ResourceManager
@@ -138,10 +137,6 @@ func (ci *clusterInfo) ClusterType() v2.ClusterType {
 
 func (ci *clusterInfo) LbType() types.LoadBalancerType {
 	return ci.lbType
-}
-
-func (ci *clusterInfo) ConnectTimeout() int {
-	return ci.connectTimeout
 }
 
 func (ci *clusterInfo) ConnBufferLimitBytes() uint32 {
