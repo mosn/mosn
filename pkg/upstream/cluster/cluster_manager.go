@@ -431,7 +431,7 @@ func (snapshot *clusterSnapshot) IsExistsHosts(metadata types.MetadataMatchCrite
 	if sublb, ok := snapshot.cluster.LBInstance().(*subsetLoadBalancer); ok {
 		if metadata != nil {
 			matchCriteria := metadata.MetadataMatchCriteria()
-			entry := sublb.FindSubset(matchCriteria)
+			entry := sublb.findSubset(matchCriteria)
 			empty := (entry == nil || !entry.Active())
 			return !empty
 		}

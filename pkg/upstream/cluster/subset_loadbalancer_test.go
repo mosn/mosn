@@ -252,7 +252,7 @@ func TestNewSubsetChooseHost(t *testing.T) {
 	ctx2 := newMockLbContext(map[string]string{
 		"stage": "prod",
 	})
-	h, ok := lb.TryChooseHostFromContext(ctx1)
+	h, ok := lb.tryChooseHostFromContext(ctx1)
 	if !ok || h == nil {
 		t.Fatal("choose host failed, expected success")
 	}
@@ -261,7 +261,7 @@ func TestNewSubsetChooseHost(t *testing.T) {
 	default:
 		t.Fatal("host found, but not the expected subset", h.Hostname())
 	}
-	if h, ok := lb.TryChooseHostFromContext(ctx2); ok || h != nil {
+	if h, ok := lb.tryChooseHostFromContext(ctx2); ok || h != nil {
 		t.Fatalf("expected choose failed, but returns a host, host: %v, ok: %v", h, ok)
 	}
 }
@@ -288,11 +288,11 @@ func TestNoSubsetHost(t *testing.T) {
 		"version": "1.0",
 		"xlarge":  "true",
 	})
-	if h, ok := lb.TryChooseHostFromContext(ctx1); ok || h != nil {
+	if h, ok := lb.tryChooseHostFromContext(ctx1); ok || h != nil {
 		t.Fatalf("expected choose failed, but returns a host, host: %v, ok: %v", h, ok)
 	}
 	for i := 0; i < 10; i++ {
-		h, ok := lb.TryChooseHostFromContext(ctx2)
+		h, ok := lb.tryChooseHostFromContext(ctx2)
 		if !ok || h == nil {
 			t.Fatal("choose host failed, expected success")
 		}
@@ -608,7 +608,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 			"group": "a",
 		})
 		// no fallback choose
-		if h, ok := lb.TryChooseHostFromContext(ctx); !ok || h == nil || h.Hostname() != "A" {
+		if h, ok := lb.tryChooseHostFromContext(ctx); !ok || h == nil || h.Hostname() != "A" {
 			t.Fatal("choose host not expected")
 		}
 
@@ -669,7 +669,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 			"group": "a",
 		})
 		// no fallback, found nothing
-		if h, ok := lb.TryChooseHostFromContext(ctx); ok || h != nil {
+		if h, ok := lb.tryChooseHostFromContext(ctx); ok || h != nil {
 			t.Fatal("choost host not expected")
 		}
 		// with fallback, found host
@@ -681,7 +681,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 			"group": "b",
 		})
 		// no fallback, found host
-		if h, ok := lb.TryChooseHostFromContext(ctx2); !ok || h == nil || h.Hostname() != "B" {
+		if h, ok := lb.tryChooseHostFromContext(ctx2); !ok || h == nil || h.Hostname() != "B" {
 			t.Fatal("choose host not expected")
 		}
 	}

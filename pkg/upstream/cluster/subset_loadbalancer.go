@@ -50,7 +50,7 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, hosts *hostSet, stats 
 		defaultSubSetMetadata: subsets.DefaultSubset(),
 	}
 	// create fallback
-	subsetLB.CreateFallbackSubset()
+	subsetLB.createFallbackSubset()
 	// create subset
 	subsetLB.Update(hosts.Hosts(), nil)
 	hosts.AdddMemberUpdateCb(subsetLB.Update)
@@ -59,7 +59,7 @@ func NewSubsetLoadBalancer(lbType types.LoadBalancerType, hosts *hostSet, stats 
 
 func (sslb *subsetLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	if context != nil {
-		host, hostChoosen := sslb.TryChooseHostFromContext(context)
+		host, hostChoosen := sslb.tryChooseHostFromContext(context)
 		// if a subset's hosts are all deleted, it will return a nil host and a true flag
 		if hostChoosen && host != nil {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
@@ -77,7 +77,7 @@ func (sslb *subsetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 	return sslb.fallbackSubset.LoadBalancer().ChooseHost(context)
 }
 
-func (sslb *subsetLoadBalancer) TryChooseHostFromContext(context types.LoadBalancerContext) (types.Host, bool) {
+func (sslb *subsetLoadBalancer) tryChooseHostFromContext(context types.LoadBalancerContext) (types.Host, bool) {
 	metadata := context.MetadataMatchCriteria()
 	if metadata == nil || reflect.ValueOf(metadata).IsNil() {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
@@ -86,7 +86,7 @@ func (sslb *subsetLoadBalancer) TryChooseHostFromContext(context types.LoadBalan
 		return nil, false
 	}
 	matchCriteria := metadata.MetadataMatchCriteria()
-	entry := sslb.FindSubset(matchCriteria)
+	entry := sslb.findSubset(matchCriteria)
 	if entry == nil || !entry.Active() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: match entry failure")
@@ -105,7 +105,7 @@ func (sslb *subsetLoadBalancer) Update(hostAdded []types.Host, hostsRemoved []ty
 			// one keys will create one subset
 			kvs := ExtractSubsetMetadata(subSetKey.Keys(), host.Metadata())
 			if len(kvs) > 0 {
-				entry := sslb.FindOrCreateSubset(sslb.subSets, kvs, 0)
+				entry := sslb.findOrCreateSubset(sslb.subSets, kvs, 0)
 				if !entry.Initialized() {
 					// create new subset
 					subHostset := sslb.hostSets.createSubset(func(host types.Host) bool {
@@ -122,7 +122,7 @@ func (sslb *subsetLoadBalancer) Update(hostAdded []types.Host, hostsRemoved []ty
 	}
 }
 
-func (sslb *subsetLoadBalancer) CreateFallbackSubset() {
+func (sslb *subsetLoadBalancer) createFallbackSubset() {
 	switch sslb.fallBackPolicy {
 	case types.NoFallBack:
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
@@ -146,7 +146,7 @@ func (sslb *subsetLoadBalancer) CreateFallbackSubset() {
 
 }
 
-func (sslb *subsetLoadBalancer) FindSubset(matchCriteria []types.MetadataMatchCriterion) types.LBSubsetEntry {
+func (sslb *subsetLoadBalancer) findSubset(matchCriteria []types.MetadataMatchCriterion) types.LBSubsetEntry {
 	subSets := sslb.subSets
 	for i, mcCriterion := range matchCriteria {
 		vsMap, ok := subSets[mcCriterion.MetadataKeyName()]
@@ -165,7 +165,7 @@ func (sslb *subsetLoadBalancer) FindSubset(matchCriteria []types.MetadataMatchCr
 	return nil
 }
 
-func (sslb *subsetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap, kvs types.SubsetMetadata, idx uint32) types.LBSubsetEntry {
+func (sslb *subsetLoadBalancer) findOrCreateSubset(subsets types.LbSubsetMap, kvs types.SubsetMetadata, idx uint32) types.LBSubsetEntry {
 	name := kvs[idx].T1
 	value := kvs[idx].T2
 	var entry types.LBSubsetEntry
@@ -192,7 +192,7 @@ func (sslb *subsetLoadBalancer) FindOrCreateSubset(subsets types.LbSubsetMap, kv
 	if idx == uint32(len(kvs)) {
 		return entry
 	}
-	return sslb.FindOrCreateSubset(entry.Children(), kvs, idx)
+	return sslb.findOrCreateSubset(entry.Children(), kvs, idx)
 }
 
 // if subsetKeys are all contained in the host metadata
