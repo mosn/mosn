@@ -130,35 +130,3 @@ func TestClusterUpdateHost(t *testing.T) {
 		}
 	}
 }
-
-func BenchmarkUpdateHost(b *testing.B) {
-	cluster := _createTestCluster()
-	// assume cluster have 1000 hosts
-	pool := makePool(1010)
-	hosts := make([]types.Host, 0, 1000)
-	metas := []v2.Metadata{
-		v2.Metadata{"version": "1", "zone": "a"},
-		v2.Metadata{"version": "1", "zone": "b"},
-		v2.Metadata{"version": "2", "zone": "a"},
-	}
-	for _, meta := range metas {
-		hosts = append(hosts, pool.MakeHosts(300, meta)...)
-	}
-	hosts = append(hosts, pool.MakeHosts(100, nil)...)
-	cluster.UpdateHosts(hosts)
-	// hosts changes, some are removed, some are added
-	var newHosts []types.Host
-	for idx := range metas {
-		newHosts = append(newHosts, hosts[idx:idx*300+5]...)
-	}
-	newHosts = append(newHosts, pool.MakeHosts(10, v2.Metadata{
-		"version": "3",
-		"zone":    "b",
-	})...)
-	b.Run("UpdateClusterHost", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			cluster.UpdateHosts(newHosts)
-			cluster.UpdateHosts(hosts)
-		}
-	})
-}
