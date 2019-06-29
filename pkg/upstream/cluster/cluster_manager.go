@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sort"
 	"sync"
 	"time"
 
@@ -29,105 +30,31 @@ import (
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/rcu"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-// a cluster wrapper for cluster manager
-type primaryCluster struct {
-	cluster    types.Cluster
-	updateLock sync.Mutex
-	configLock *rcu.Value //FIXME: rcu value store typs.Cluster
-}
-
-func newPrimaryCluster(cluster types.Cluster) *primaryCluster {
-	cfg := true
-	return &primaryCluster{
-		cluster:    cluster,
-		configLock: rcu.NewValue(&cfg),
-	}
-}
-
 var errNilCluster = errors.New("cannot update nil cluster")
 
-func (pc *primaryCluster) UpdateCluster(cluster types.Cluster) error {
-	if cluster == nil || reflect.ValueOf(cluster).IsNil() {
-		return errNilCluster
-	}
-	pc.updateLock.Lock()
-	defer pc.updateLock.Unlock()
-	pc.cluster = cluster
-	cfg := true
-	if err := pc.configLock.Update(&cfg, 0); err == rcu.Block {
-		return err
-	}
-	log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update", pc.cluster.Info().Name())
-	return nil
-}
-
-func (pc *primaryCluster) refreshHostsConfig() {
-	// set Hosts Config
-	hosts := pc.cluster.HostSet().Hosts()
+// refreshHostsConfig refresh the stored config for admin api
+func refreshHostsConfig(name string, hosts []types.Host) {
 	hostsConfig := make([]v2.Host, 0, len(hosts))
 	for _, h := range hosts {
 		hostsConfig = append(hostsConfig, h.Config())
 	}
-	store.SetHosts(pc.cluster.Info().Name(), hostsConfig)
+	store.SetHosts(name, hostsConfig)
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
-		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", pc.cluster.Info().Name(), len(hosts))
+		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, len(hosts))
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", pc.cluster.Info().Name(), hosts)
+		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hosts)
 	}
-}
-
-func (pc *primaryCluster) UpdateHosts(hosts []types.Host) error {
-	pc.updateLock.Lock()
-	defer pc.updateLock.Unlock()
-	pc.cluster.UpdateHosts(hosts)
-	// rcu lock
-	cfg := true
-	if err := pc.configLock.Update(&cfg, 0); err == rcu.Block {
-		return err
-	}
-	pc.refreshHostsConfig()
-	return nil
-
-}
-
-func (pc *primaryCluster) AppendHost(hosts []types.Host) error {
-	pc.updateLock.Lock()
-	defer pc.updateLock.Unlock()
-	// Append Hosts
-	allHosts := pc.cluster.HostSet().Hosts()
-	hosts = append(hosts, allHosts...)
-	pc.cluster.UpdateHosts(hosts)
-	cfg := true
-	if err := pc.configLock.Update(&cfg, 0); err == rcu.Block {
-		return err
-	}
-	pc.refreshHostsConfig()
-	return nil
-}
-
-func (pc *primaryCluster) RemoveHosts(addrs []string) error {
-	pc.updateLock.Lock()
-	defer pc.updateLock.Unlock()
-	// Remove Hosts
-	pc.cluster.RemoveHosts(addrs)
-	cfg := true
-	if err := pc.configLock.Update(&cfg, 0); err == rcu.Block {
-		return err
-	}
-	pc.refreshHostsConfig()
-	return nil
 }
 
 // types.ClusterManager
 type clusterManager struct {
-	primaryClusterMap sync.Map // string: *primaryCluster
-	protocolConnPool  sync.Map
-	mux               sync.Mutex
+	clustersMap      sync.Map
+	protocolConnPool sync.Map
+	mux              sync.Mutex
 }
 
 type clusterManagerSingleton struct {
@@ -167,7 +94,6 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 		}
 	}
 	return clusterMangerInstance
-
 }
 
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
@@ -180,34 +106,36 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	}
 	// check update or new
 	clusterName := cluster.Name
-	pci, loaded := cm.primaryClusterMap.LoadOrStore(clusterName, newPrimaryCluster(newCluster))
-	if loaded { // update
-		pc := pci.(*primaryCluster)
-		//FIXME: cluster info in hosts should be updated too
-		hosts := pc.cluster.HostSet().Hosts()
-		newCluster.UpdateHosts(hosts)
-		if err := pc.UpdateCluster(newCluster); err != nil {
-			return err
-		}
-	}
+	// set config
 	store.SetClusterConfig(clusterName, cluster)
+	// add or update
+	ci, exists := cm.clustersMap.Load(clusterName)
+	if exists {
+		c := ci.(types.Cluster)
+		//FIXME: cluster info in hosts should be updated too
+		hosts := c.Snapshot().HostSet().Hosts()
+		// update hosts, refresh
+		newCluster.UpdateHosts(hosts)
+		refreshHostsConfig(clusterName, hosts)
+	}
+	cm.clustersMap.Store(clusterName, newCluster)
 	log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
 	return nil
 }
 
 // AddClusterHealthCheckCallbacks adds a health check callback function into cluster
 func (cm *clusterManager) AddClusterHealthCheckCallbacks(name string, cb types.HealthCheckCb) error {
-	pci, ok := cm.primaryClusterMap.Load(name)
+	ci, ok := cm.clustersMap.Load(name)
 	if ok {
-		pc := pci.(*primaryCluster)
-		pc.cluster.AddHealthCheckCallbacks(cb)
+		c := ci.(types.Cluster)
+		c.AddHealthCheckCallbacks(cb)
 		return nil
 	}
 	return fmt.Errorf("cluster %s is not exists", name)
 }
 
 func (cm *clusterManager) ClusterExist(clusterName string) bool {
-	_, ok := cm.primaryClusterMap.Load(clusterName)
+	_, ok := cm.clustersMap.Load(clusterName)
 	return ok
 }
 
@@ -216,14 +144,13 @@ func (cm *clusterManager) ClusterExist(clusterName string) bool {
 func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 	// check all clutsers in cluster manager
 	for _, clusterName := range clusterNames {
-		_, ok := cm.primaryClusterMap.Load(clusterName)
-		if !ok {
+		if _, ok := cm.clustersMap.Load(clusterName); !ok {
 			return fmt.Errorf("remove cluster failed, cluster %s is not exists", clusterName)
 		}
 	}
 	// delete all of them
 	for _, clusterName := range clusterNames {
-		cm.primaryClusterMap.Delete(clusterName)
+		cm.clustersMap.Delete(clusterName)
 		store.RemoveClusterConfig(clusterName)
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[upstream] [cluster manager] Remove Primary Cluster, Cluster Name = %s", clusterName)
@@ -234,76 +161,77 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 
 // UpdateClusterHosts update all hosts in the cluster
 func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v2.Host) error {
-	pci, ok := cm.primaryClusterMap.Load(clusterName)
+	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
 		return fmt.Errorf("cluster %s is not exists", clusterName)
 	}
-	pc := pci.(*primaryCluster)
+	c := ci.(types.Cluster)
+	snap := c.Snapshot()
 	var hosts []types.Host
 	for _, hc := range hostConfigs {
-		hosts = append(hosts, NewSimpleHost(hc, pc.cluster.Info()))
+		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
-	if err := pc.UpdateHosts(hosts); err != nil {
-		log.DefaultLogger.Errorf("[upstream] [cluster manager] update cluster %s hosts failed, error: %v", clusterName, err)
-		return err
-	}
+	c.UpdateHosts(hosts)
+	refreshHostsConfig(clusterName, hosts)
 	return nil
 }
 
-// AppendClusterHosts adds a new host into cluster
+// AppendClusterHosts adds new hosts into cluster
 func (cm *clusterManager) AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error {
-	pci, ok := cm.primaryClusterMap.Load(clusterName)
+	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
 		return fmt.Errorf("cluster %s is not exists", clusterName)
 	}
-	pc := pci.(*primaryCluster)
+	c := ci.(types.Cluster)
+	snap := c.Snapshot()
 	var hosts []types.Host
 	for _, hc := range hostConfigs {
-		hosts = append(hosts, NewSimpleHost(hc, pc.cluster.Info()))
+		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
-	if err := pc.AppendHost(hosts); err != nil {
-		log.DefaultLogger.Errorf("[upstream] [cluster manager] append hosts into cluster %s failed, error:%v", clusterName, err)
-		return err
-	}
+	hosts = append(hosts, snap.HostSet().Hosts()...)
+	c.UpdateHosts(hosts)
+	refreshHostsConfig(clusterName, hosts)
 	return nil
 }
 
-func (cm *clusterManager) RemoveClusterHosts(clusterName string, hosts []string) error {
-	pci, ok := cm.primaryClusterMap.Load(clusterName)
+// RemoveClusterHosts removes hosts from cluster by address string
+func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string) error {
+	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
 		return fmt.Errorf("cluster %s is not exists", clusterName)
 	}
-	pc := pci.(*primaryCluster)
-	if err := pc.RemoveHosts(hosts); err != nil {
-		log.DefaultLogger.Errorf("[upstream] [cluster manager] remove host %v from cluster %s failed, error: %v", hosts, clusterName, err)
-		return err
+	c := ci.(types.Cluster)
+	snap := c.Snapshot()
+	hosts := snap.HostSet().Hosts()
+	newHosts := make([]types.Host, len(hosts))
+	copy(newHosts, hosts)
+	sortedHosts := types.SortedHosts(newHosts)
+	sort.Sort(sortedHosts)
+	for _, addr := range addrs {
+		i := sort.Search(sortedHosts.Len(), func(i int) bool {
+			return sortedHosts[i].AddressString() >= addr
+		})
+		// found it, delete it
+		if i < sortedHosts.Len() && sortedHosts[i].AddressString() == addr {
+			sortedHosts = append(sortedHosts[:i], sortedHosts[i+1:]...)
+		}
 	}
+	c.UpdateHosts(sortedHosts)
+	refreshHostsConfig(clusterName, sortedHosts)
 	return nil
 }
 
-func (cm *clusterManager) GetClusterSnapshot(context context.Context, clusterName string) types.ClusterSnapshot {
-	pci, ok := cm.primaryClusterMap.Load(clusterName)
+// GetClusterSnapshot returns cluster snap
+// do not needs PutClusterSnapshot any more
+func (cm *clusterManager) GetClusterSnapshot(ctx context.Context, clusterName string) types.ClusterSnapshot {
+	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
 		return nil
 	}
-	pc := pci.(*primaryCluster)
-	return &clusterSnapshot{
-		cluster: pc.cluster,
-		value:   pc.configLock,
-		config:  pc.configLock.Load(),
-	}
+	return ci.(types.Cluster).Snapshot()
 }
 
-func (cm *clusterManager) PutClusterSnapshot(snapshot types.ClusterSnapshot) {
-	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
-		return
-	}
-	s, ok := snapshot.(*clusterSnapshot)
-	if !ok {
-		log.DefaultLogger.Errorf("[upstream] [cluster manager] snapshot is not clusterSnapshot, clustername=%s", snapshot.ClusterInfo().Name())
-		return
-	}
-	s.value.Put(s.config)
+func (cm *clusterManager) PutClusterSnapshot(snap types.ClusterSnapshot) {
 }
 
 func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
@@ -406,37 +334,4 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		waitTime *= 10
 	}
 	return nil, errNoHealthyHost
-}
-
-type clusterSnapshot struct {
-	cluster types.Cluster
-	// rcu for snapshot
-	value  *rcu.Value
-	config interface{}
-}
-
-func (snapshot *clusterSnapshot) HostSet() types.HostSet {
-	return snapshot.cluster.HostSet()
-}
-
-func (snapshot *clusterSnapshot) ClusterInfo() types.ClusterInfo {
-	return snapshot.cluster.Info()
-}
-
-func (snapshot *clusterSnapshot) LoadBalancer() types.LoadBalancer {
-	return snapshot.cluster.LBInstance()
-}
-
-func (snapshot *clusterSnapshot) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
-	if sublb, ok := snapshot.cluster.LBInstance().(*subsetLoadBalancer); ok {
-		if metadata != nil {
-			matchCriteria := metadata.MetadataMatchCriteria()
-			entry := sublb.findSubset(matchCriteria)
-			empty := (entry == nil || !entry.Active())
-			return !empty
-		}
-	}
-	hosts := snapshot.cluster.HostSet().Hosts()
-	return len(hosts) > 0
-
 }

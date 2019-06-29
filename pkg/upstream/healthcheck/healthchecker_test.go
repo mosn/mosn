@@ -203,8 +203,8 @@ func TestHealthCheck(t *testing.T) {
 				},
 			},
 		}
-		hc := CreateHealthCheck(cfg, cluster)
-		hc.Start()
+		hc := CreateHealthCheck(cfg)
+		hc.SetHealthCheckerHostSet(cluster.hs)
 		tc.running(tc.host)
 		time.Sleep(100 * time.Millisecond) // make sure checks finish
 		hc.Stop()

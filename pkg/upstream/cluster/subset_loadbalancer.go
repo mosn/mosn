@@ -27,39 +27,29 @@ import (
 )
 
 type subsetLoadBalancer struct {
-	lbType types.LoadBalancerType // inner LB algorithm for choosing subset's host
-	stats  types.ClusterStats
-	// subset loadbalancer
-	subSetKeys []types.SortedStringSetType // subset selectors
-	hostSets   *hostSet
-	subSets    types.LbSubsetMap // final trie-like structure used to stored easily searched subset
-	// fallback loadbalancer
-	fallBackPolicy        types.FallBackPolicy
-	defaultSubSetMetadata types.SubsetMetadata
-	fallbackSubset        *LBSubsetEntryImpl // subset entry generated according to fallback policy
+	lbType         types.LoadBalancerType
+	stats          types.ClusterStats
+	subSets        types.LbSubsetMap  // final trie-like structure used to stored easily searched subset
+	fallbackSubset *LBSubsetEntryImpl // subset entry generated according to fallback policy
 }
 
-func NewSubsetLoadBalancer(lbType types.LoadBalancerType, hosts *hostSet, stats types.ClusterStats, subsets types.LBSubsetInfo) types.LoadBalancer {
+func NewSubsetLoadBalancer(info *clusterInfo, hostSet *hostSet) types.LoadBalancer {
+	subsetInfo := info.lbSubsetInfo
 	subsetLB := &subsetLoadBalancer{
-		lbType:                lbType,
-		stats:                 stats,
-		subSetKeys:            subsets.SubsetKeys(),
-		hostSets:              hosts,
-		subSets:               make(map[string]types.ValueSubsetMap),
-		fallBackPolicy:        subsets.FallbackPolicy(),
-		defaultSubSetMetadata: subsets.DefaultSubset(),
+		lbType:  info.lbType,
+		stats:   info.stats,
+		subSets: make(map[string]types.ValueSubsetMap),
 	}
 	// create fallback
-	subsetLB.createFallbackSubset()
-	// create subset
-	subsetLB.Update(hosts.Hosts(), nil)
-	hosts.AdddMemberUpdateCb(subsetLB.Update)
+	subsetLB.createFallbackSubset(subsetInfo.FallbackPolicy(), subsetInfo.DefaultSubset(), hostSet)
+	// create subsets
+	subsetLB.createSubsets(subsetInfo.SubsetKeys(), hostSet)
 	return subsetLB
 }
 
-func (sslb *subsetLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	if context != nil {
-		host, hostChoosen := sslb.tryChooseHostFromContext(context)
+func (sslb *subsetLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Host {
+	if ctx != nil {
+		host, hostChoosen := sslb.tryChooseHostFromContext(ctx)
 		// if a subset's hosts are all deleted, it will return a nil host and a true flag
 		if hostChoosen && host != nil {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
@@ -74,11 +64,11 @@ func (sslb *subsetLoadBalancer) ChooseHost(context types.LoadBalancerContext) ty
 		return nil
 	}
 	sslb.stats.LBSubSetsFallBack.Inc(1)
-	return sslb.fallbackSubset.LoadBalancer().ChooseHost(context)
+	return sslb.fallbackSubset.LoadBalancer().ChooseHost(ctx)
 }
 
-func (sslb *subsetLoadBalancer) tryChooseHostFromContext(context types.LoadBalancerContext) (types.Host, bool) {
-	metadata := context.MetadataMatchCriteria()
+func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerContext) (types.Host, bool) {
+	metadata := ctx.MetadataMatchCriteria()
 	if metadata == nil || reflect.ValueOf(metadata).IsNil() {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[upstream] [subset lb] subset load balancer: context is nil")
@@ -93,37 +83,35 @@ func (sslb *subsetLoadBalancer) tryChooseHostFromContext(context types.LoadBalan
 		}
 		return nil, false
 	}
-	return entry.LoadBalancer().ChooseHost(context), true
+	return entry.LoadBalancer().ChooseHost(ctx), true
 }
 
-// Updates refresh the subSets if needed
-func (sslb *subsetLoadBalancer) Update(hostAdded []types.Host, hostsRemoved []types.Host) {
-	// hostsRemoved will not create new subset
-	for _, host := range hostAdded {
-		// selectors
-		for _, subSetKey := range sslb.subSetKeys {
+// createSubsets creates the sslb.subSets
+func (sslb *subsetLoadBalancer) createSubsets(subSetKeys []types.SortedStringSetType, hostSet *hostSet) {
+	hosts := hostSet.Hosts()
+	var subsSetCount int64 = 0
+	for _, host := range hosts {
+		for _, subSetKey := range subSetKeys {
 			// one keys will create one subset
 			kvs := ExtractSubsetMetadata(subSetKey.Keys(), host.Metadata())
 			if len(kvs) > 0 {
 				entry := sslb.findOrCreateSubset(sslb.subSets, kvs, 0)
 				if !entry.Initialized() {
-					// create new subset
-					subHostset := sslb.hostSets.createSubset(func(host types.Host) bool {
+					subHostset := hostSet.createSubset(func(host types.Host) bool {
 						return HostMatches(kvs, host)
 					})
-					sslb.stats.LBSubSetsActive.Inc(1)
-					sslb.stats.LBSubsetsCreated.Inc(1)
+					subsSetCount += 1
 					entry.CreateLoadBalancer(sslb.lbType, subHostset)
-					// TODO: callbacks for more stats
 				}
 			}
-
 		}
 	}
+	sslb.stats.LBSubsetsCreated.Update(subsSetCount)
 }
 
-func (sslb *subsetLoadBalancer) createFallbackSubset() {
-	switch sslb.fallBackPolicy {
+// createFallbackSubset creates a LBSubsetEntryImpl as fallbackSubset
+func (sslb *subsetLoadBalancer) createFallbackSubset(policy types.FallBackPolicy, meta types.SubsetMetadata, hostSet *hostSet) {
+	switch policy {
 	case types.NoFallBack:
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: fallback is disabled")
@@ -133,17 +121,16 @@ func (sslb *subsetLoadBalancer) createFallbackSubset() {
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
 		}
-		sslb.fallbackSubset.CreateLoadBalancer(sslb.lbType, sslb.hostSets)
+		sslb.fallbackSubset.CreateLoadBalancer(sslb.lbType, hostSet)
 	case types.DefaultSubset:
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
 		}
-		subHostset := sslb.hostSets.createSubset(func(host types.Host) bool {
-			return HostMatches(sslb.defaultSubSetMetadata, host)
+		subHostset := hostSet.createSubset(func(host types.Host) bool {
+			return HostMatches(meta, host)
 		})
 		sslb.fallbackSubset.CreateLoadBalancer(sslb.lbType, subHostset)
 	}
-
 }
 
 func (sslb *subsetLoadBalancer) findSubset(matchCriteria []types.MetadataMatchCriterion) types.LBSubsetEntry {

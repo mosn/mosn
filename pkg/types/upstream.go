@@ -42,8 +42,8 @@ type ClusterManager interface {
 	// Get, use to get the snapshot of a cluster
 	GetClusterSnapshot(context context.Context, cluster string) ClusterSnapshot
 
-	// PutClusterSnapshot release snapshot lock
-	PutClusterSnapshot(snapshot ClusterSnapshot)
+	// PutClusterSnapshot is a deprecated api, just keeps it for compatible
+	PutClusterSnapshot(ClusterSnapshot)
 
 	// UpdateClusterHosts used to update cluster's hosts
 	// temp interface todo: remove it
@@ -89,51 +89,26 @@ type ClusterSnapshot interface {
 
 // Cluster is a group of upstream hosts
 type Cluster interface {
-	// Info returns the cluster info
-	Info() ClusterInfo
-
-	// HostSet returns the host set
-	HostSet() HostSet
+	// Snapshot returns the cluster snapshot, which contains cluster info, hostset and load balancer
+	Snapshot() ClusterSnapshot
 
 	// UpdateHosts updates the host set's hosts
 	UpdateHosts([]Host)
-
-	// RemoveHosts removes the host set's cluster by address string
-	RemoveHosts([]string)
-
-	// LBInstance returns the load balancer
-	LBInstance() LoadBalancer
 
 	// Add health check callbacks in health checker
 	AddHealthCheckCallbacks(cb HealthCheckCb)
 }
 
-// MemberUpdateCallback is called on create a priority set
-type MemberUpdateCallback func(hostsAdded []Host, hostsRemoved []Host)
-
 // HostPredicate checks wether the host is matched the metadata
 type HostPredicate func(Host) bool
 
 // HostSet is as set of hosts that contains all of the endpoints for a given
-// LocalityLbEndpoints priority level.
 type HostSet interface {
-
 	// Hosts returns all hosts that make up the set at the current time.
 	Hosts() []Host
 
 	// HealthyHosts returns all healthy hosts
 	HealthyHosts() []Host
-
-	// UpdateHosts updates all hosts
-	// if hosts is already exists, use new host instead of old one, but keeps the old healthy states
-	UpdateHosts(hosts []Host)
-
-	// RemoveHosts removes the hosts by address name
-	RemoveHosts([]string)
-
-	// AdddMemberUpdateCb adds a MemberUpdateCallback into host set
-	// a MemberUpdateCallback will be called when a new host is added, or an old host is removed
-	AdddMemberUpdateCb(cb MemberUpdateCallback)
 }
 
 // HealthFlag type
@@ -300,9 +275,7 @@ type ClusterStats struct {
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
 	LBSubSetsFallBack                              metrics.Counter
-	LBSubSetsActive                                metrics.Counter
-	LBSubsetsCreated                               metrics.Counter
-	LBSubsetsRemoved                               metrics.Counter
+	LBSubsetsCreated                               metrics.Gauge
 }
 
 type CreateConnectionData struct {

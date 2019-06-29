@@ -78,8 +78,6 @@ func newClusterStats(clustername string) types.ClusterStats {
 		UpstreamResponseSuccess:                        s.Counter(metrics.UpstreamResponseSuccess),
 		UpstreamResponseFailed:                         s.Counter(metrics.UpstreamResponseFailed),
 		LBSubSetsFallBack:                              s.Counter(metrics.UpstreamLBSubSetsFallBack),
-		LBSubSetsActive:                                s.Counter(metrics.UpstreamLBSubSetsActive),
-		LBSubsetsCreated:                               s.Counter(metrics.UpstreamLBSubsetsCreated),
-		LBSubsetsRemoved:                               s.Counter(metrics.UpstreamLBSubsetsRemoved),
+		LBSubsetsCreated:                               s.Gauge(metrics.UpstreamLBSubsetsCreated),
 	}
 }

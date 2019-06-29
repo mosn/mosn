@@ -23,6 +23,7 @@ import (
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/network"
+	"sofastack.io/sofa-mosn/pkg/router"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -88,11 +89,11 @@ func (pool *ipPool) MakeHosts(size int, meta v2.Metadata) []types.Host {
 
 // makePool makes ${size} ips in a ipPool
 func makePool(size int) *ipPool {
-	var start int64 = 3221291264 // 192.1.1.0
+	var start int64 = 3221291264 // 192.1.1.0:80
 	ips := make([]string, size)
 	for i := 0; i < size; i++ {
 		ip := start + int64(i)
-		ips[i] = fmt.Sprintf("%d.%d.%d.%d", byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip))
+		ips[i] = fmt.Sprintf("%d.%d.%d.%d:80", byte(ip>>24), byte(ip>>16), byte(ip>>8), byte(ip))
 	}
 	return &ipPool{
 		ips: ips,
@@ -118,4 +119,37 @@ func init() {
 		return &mockConnPool{}
 	})
 	types.RegisterConnPoolFactory(mockProtocol, true)
+}
+
+type mockLbContext struct {
+	types.LoadBalancerContext
+	mmc    types.MetadataMatchCriteria
+	header types.HeaderMap
+}
+
+func newMockLbContext(m map[string]string) types.LoadBalancerContext {
+	mmc := router.NewMetadataMatchCriteriaImpl(m)
+	return &mockLbContext{
+		mmc: mmc,
+	}
+}
+
+func newMockLbContextWithHeader(m map[string]string, header types.HeaderMap) types.LoadBalancerContext {
+	mmc := router.NewMetadataMatchCriteriaImpl(m)
+	return &mockLbContext{
+		mmc:    mmc,
+		header: header,
+	}
+}
+
+func (ctx *mockLbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
+	return ctx.mmc
+}
+
+func (ctx *mockLbContext) DownstreamHeaders() types.HeaderMap {
+	return ctx.header
+}
+
+func (ctx *mockLbContext) DownstreamContext() context.Context {
+	return nil
 }

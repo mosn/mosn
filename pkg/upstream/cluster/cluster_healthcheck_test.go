@@ -106,7 +106,7 @@ func createHealthCheckCluster(servers []*healthCheckTestServer) types.Cluster {
 				"version": "1.0.0",
 			},
 		}
-		hosts = append(hosts, NewSimpleHost(hostConfig, cluster.Info()))
+		hosts = append(hosts, NewSimpleHost(hostConfig, cluster.Snapshot().ClusterInfo()))
 	}
 	cluster.UpdateHosts(hosts)
 	return cluster
@@ -126,7 +126,7 @@ func TestClusterHealthCheck(t *testing.T) {
 	cluster.AddHealthCheckCallbacks(cbTest.Record)
 	// choose fallback
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(nil)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
 		results[host.AddressString()] = results[host.AddressString()] + 1
 	}
 	// choose policy
@@ -134,7 +134,7 @@ func TestClusterHealthCheck(t *testing.T) {
 		"version": "1.0.0",
 	})
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(ctx)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
 		results[host.AddressString()] = results[host.AddressString()] + 1
 	}
 	// verify
@@ -149,14 +149,14 @@ func TestClusterHealthCheck(t *testing.T) {
 	// choose all hosts randomly, unhealthy server should not be choosed
 	// choose fallback
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(nil)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
 		if host.AddressString() == testServers[0].hostConfig.Address {
 			t.Fatal("choose a unhealthy host")
 		}
 	}
 	// choose policy
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(ctx)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
 		if host.AddressString() == testServers[0].hostConfig.Address {
 			t.Fatal("choose a unhealthy host")
 		}
@@ -169,11 +169,11 @@ func TestClusterHealthCheck(t *testing.T) {
 	defer srv.Close()
 	time.Sleep(2 * time.Second)
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(nil)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
 		results[host.AddressString()] = results[host.AddressString()] + 1
 	}
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(ctx)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
 		results[host.AddressString()] = results[host.AddressString()] + 1
 	}
 	// verify
@@ -206,7 +206,7 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		for i := 0; i < 100; i++ {
-			host := cluster.LBInstance().ChooseHost(nil)
+			host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
 			func() {
 				mux.Lock()
 				defer mux.Unlock()
@@ -222,7 +222,7 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		for i := 0; i < 100; i++ {
-			host := cluster.LBInstance().ChooseHost(ctx)
+			host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
 			func() {
 				mux.Lock()
 				defer mux.Unlock()
@@ -235,7 +235,7 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	snew := newHealthCheckTestServer()
 	go func() {
 		var hosts []types.Host
-		hosts = append(hosts, cluster.HostSet().Hosts()...)
+		hosts = append(hosts, cluster.Snapshot().HostSet().Hosts()...)
 		newConfig := v2.Host{
 			HostConfig: v2.HostConfig{
 				Address: snew.hostConfig.Address,
@@ -244,7 +244,7 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 				"version": "1.0.0",
 			},
 		}
-		hosts = append(hosts, NewSimpleHost(newConfig, cluster.Info()))
+		hosts = append(hosts, NewSimpleHost(newConfig, cluster.Snapshot().ClusterInfo()))
 		cluster.UpdateHosts(hosts)
 	}()
 	wg.Wait()
@@ -259,21 +259,21 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	snew.server.Close()
 	time.Sleep(2 * time.Second)
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(nil)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
 		if host.AddressString() == snew.hostConfig.Address {
 			t.Fatal("choose a unhealthy host")
 		}
 	}
 	// choose policy
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(ctx)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
 		if host.AddressString() == snew.hostConfig.Address {
 			t.Fatal("choose a unhealthy host")
 		}
 	}
 	var delHosts []types.Host // host after deleted
-	removed := cluster.HostSet().Hosts()[0]
-	delHosts = append(delHosts, cluster.HostSet().Hosts()[1:]...)
+	removed := cluster.Snapshot().HostSet().Hosts()[0]
+	delHosts = append(delHosts, cluster.Snapshot().HostSet().Hosts()[1:]...)
 	cluster.UpdateHosts(delHosts)
 	// clear results
 	for addr := range results {
@@ -281,12 +281,12 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	}
 	// choose fallback
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(nil)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
 		results[host.AddressString()] = results[host.AddressString()] + 1
 	}
 	// choose policy
 	for i := 0; i < 100; i++ {
-		host := cluster.LBInstance().ChooseHost(ctx)
+		host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
 		results[host.AddressString()] = results[host.AddressString()] + 1
 	}
 	// the removed one should not not be choosed

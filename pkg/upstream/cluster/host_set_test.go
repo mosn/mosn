@@ -39,19 +39,36 @@ type simpleMockHostConfig struct {
 	metaValue string
 }
 
-func TestHostSet(t *testing.T) {
+func TestHostSetDistinct(t *testing.T) {
+	hs := &hostSet{}
+	ip := "127.0.0.1"
+	var hosts []types.Host
+	for i := 0; i < 5; i++ {
+		host := &mockHost{
+			addr: ip,
+		}
+		hosts = append(hosts, host)
+	}
+	hs.setFinalHost(hosts)
+	if len(hs.Hosts()) != 1 {
+		t.Fatal("hostset distinct failed")
+	}
+}
+
+// Test Refresh healthy hosts
+func TestHostSetRefresh(t *testing.T) {
 	hs := &hostSet{}
 	configs := []simpleMockHostConfig{}
 	for i := 10000; i < 10010; i++ {
 		cfg := simpleMockHostConfig{
-			addr:      fmt.Sprintf("%d", i),
+			addr:      fmt.Sprintf("127.0.0.1:%d", i),
 			metaValue: "v1",
 		}
 		configs = append(configs, cfg)
 	}
 	for i := 11000; i < 11010; i++ {
 		cfg := simpleMockHostConfig{
-			addr:      fmt.Sprintf("%d", i),
+			addr:      fmt.Sprintf("127.0.0.1:%d", i),
 			metaValue: "v2",
 		}
 		configs = append(configs, cfg)
@@ -61,8 +78,7 @@ func TestHostSet(t *testing.T) {
 		h := newSimpleMockHost(cfg.addr, cfg.metaValue)
 		hosts = append(hosts, h)
 	}
-	hs.UpdateHosts(hosts)
-	// verify
+	hs.setFinalHost(hosts)
 	if !(len(hs.allHosts) == len(hs.healthyHosts) &&
 		len(hs.allHosts) == 20) {
 		t.Fatalf("update host set not expected, %v", hs)
@@ -90,85 +106,14 @@ func TestHostSet(t *testing.T) {
 			t.Fatal("sub host set v1 got unepxected host")
 		}
 	}
-	// update host, effect sub hostset
-	var newHosts []types.Host
-	newHosts = append(hosts[:5], hosts[10:]...)
-	addHost := newSimpleMockHost("192.168.1.1", "v1")
-	newHosts = append(newHosts, addHost)
-	hs.UpdateHosts(newHosts)
-	if !(len(hs.Hosts()) == len(hs.HealthyHosts()) &&
-		len(hs.Hosts()) == 16 &&
-		len(subV1.Hosts()) == len(subV1.HealthyHosts()) &&
-		len(subV1.Hosts()) == 6 &&
-		len(subV2.Hosts()) == len(subV2.HealthyHosts()) &&
-		len(subV2.Hosts()) == 10) {
-		t.Fatal("update hosts effected not expected")
-	}
-	// mock health check
-	addHost.SetHealthFlag(types.FAILED_ACTIVE_HC)
-	hs.refreshHealthHosts(addHost)
-	if !(len(hs.HealthyHosts()) == 15 &&
-		len(subV1.HealthyHosts()) == 5 &&
+	// mock health check set
+	allHosts := hs.Hosts()
+	host := allHosts[5] // mock one host healthy is changed
+	host.SetHealthFlag(types.FAILED_ACTIVE_HC)
+	hs.refreshHealthHost(host)
+	if !(len(hs.HealthyHosts()) == 19 &&
+		len(subV1.HealthyHosts()) == 9 &&
 		len(subV2.HealthyHosts()) == 10) {
 		t.Fatal("health check state changed not expected")
-	}
-}
-
-// Test Fast Remove
-func TestHostSetRemoveHosts(t *testing.T) {
-	// init hostset
-	hs := &hostSet{}
-	configs := []simpleMockHostConfig{}
-	for i := 10000; i < 10010; i++ {
-		cfg := simpleMockHostConfig{
-			addr:      fmt.Sprintf("%d", i),
-			metaValue: "v1",
-		}
-		configs = append(configs, cfg)
-	}
-	for i := 11000; i < 11010; i++ {
-		cfg := simpleMockHostConfig{
-			addr:      fmt.Sprintf("%d", i),
-			metaValue: "v2",
-		}
-		configs = append(configs, cfg)
-	}
-	var hosts []types.Host
-	for _, cfg := range configs {
-		h := newSimpleMockHost(cfg.addr, cfg.metaValue)
-		hosts = append(hosts, h)
-	}
-	hs.UpdateHosts(hosts)
-	// create subset
-	subV1 := hs.createSubset(func(host types.Host) bool {
-		if host.Metadata()["key"] == "v1" {
-			return true
-		}
-		return false
-	})
-	subV2 := hs.createSubset(func(host types.Host) bool {
-		if host.Metadata()["key"] == "v2" {
-			return true
-		}
-		return false
-	})
-
-	// remove host
-	removed := []string{}
-	for i := 10000; i < 10005; i++ {
-		removed = append(removed, fmt.Sprintf("%d", i))
-	}
-	for i := 11000; i < 11009; i++ {
-		removed = append(removed, fmt.Sprintf("%d", i))
-	}
-	hs.RemoveHosts(removed)
-	// verify
-	if !(len(hs.Hosts()) == len(hs.HealthyHosts()) &&
-		len(hs.Hosts()) == 6 &&
-		len(subV1.Hosts()) == len(subV1.HealthyHosts()) &&
-		len(subV1.Hosts()) == 5 &&
-		len(subV2.Hosts()) == len(subV2.HealthyHosts()) &&
-		len(subV2.Hosts()) == 1) {
-		t.Fatal("fast remove hosts not expected")
 	}
 }

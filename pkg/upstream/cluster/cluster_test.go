@@ -1,34 +1,11 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package cluster
 
 import (
 	"testing"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
-
-func TestMain(m *testing.M) {
-	log.DefaultLogger.SetLogLevel(log.ERROR)
-	m.Run()
-}
 
 func _createTestCluster() types.Cluster {
 	clusterConfig := v2.Cluster{
@@ -45,27 +22,24 @@ func _createTestCluster() types.Cluster {
 	return NewCluster(clusterConfig)
 }
 
-func TestClusterUpdateHost(t *testing.T) {
+func TestClusterUpdateHosts(t *testing.T) {
 	cluster := _createTestCluster()
-	// init host
+	// init hosts
 	pool := makePool(100)
 	var hosts []types.Host
-	// version 1 zone a
-	// version 1 zone b
-	// version 2 zone a
-	// no meta (in any point)
 	metas := []v2.Metadata{
 		v2.Metadata{"version": "1", "zone": "a"},
 		v2.Metadata{"version": "1", "zone": "b"},
 		v2.Metadata{"version": "2", "zone": "a"},
-		nil,
+		nil, // no meta (in any point)
 	}
 	for _, meta := range metas {
 		hosts = append(hosts, pool.MakeHosts(10, meta)...)
 	}
 	cluster.UpdateHosts(hosts)
 	// verify
-	subLb := cluster.LBInstance().(*subsetLoadBalancer)
+	snap := cluster.Snapshot()
+	subLb := snap.LoadBalancer().(*subsetLoadBalancer)
 	if len(subLb.fallbackSubset.hostSet.Hosts()) != 40 {
 		t.Fatal("default fallback should be all hosts")
 	}
@@ -103,14 +77,16 @@ func TestClusterUpdateHost(t *testing.T) {
 		"ignore":  "true",
 	})...)
 	cluster.UpdateHosts(newHosts)
+	newSnap := cluster.Snapshot()
+	newSubLb := newSnap.LoadBalancer().(*subsetLoadBalancer)
 	// verify
-	if len(subLb.fallbackSubset.hostSet.Hosts()) != 60 {
+	if len(newSubLb.fallbackSubset.hostSet.Hosts()) != 60 {
 		t.Fatal("default fallback should be all hosts")
 	}
 	newResult := &subSetMapResult{
 		result: map[string][]string{},
 	}
-	newResult.RangeSubsetMap("", subLb.subSets)
+	newResult.RangeSubsetMap("", newSubLb.subSets)
 	if len(newResult.result) != 7 {
 		t.Fatalf("expected 7 subsets, but got: %d", len(newResult.result))
 	}
@@ -124,6 +100,63 @@ func TestClusterUpdateHost(t *testing.T) {
 		"version->2->zone->b->": 10,
 	}
 	for p, count := range expectedResult {
+		sub, ok := newResult.result[p]
+		if !ok || len(sub) != count {
+			t.Fatalf("%s is not expected, exists: %v, count: %d", p, ok, len(sub))
+		}
+	}
+}
+
+func TestUpdateHostLabels(t *testing.T) {
+	cluster := _createTestCluster()
+	host := &mockHost{
+		addr: "127.0.0.1:8080",
+		meta: v2.Metadata{
+			"version": "1",
+		},
+	}
+	cluster.UpdateHosts([]types.Host{host})
+	snap := cluster.Snapshot()
+	subLb := snap.LoadBalancer().(*subsetLoadBalancer)
+	result := &subSetMapResult{
+		result: map[string][]string{},
+	}
+	result.RangeSubsetMap("", subLb.subSets)
+	expectedResult := map[string]int{
+		"version->1->": 1,
+	}
+	if len(result.result) != 1 {
+		t.Fatalf("expected 1 subsets, but got: %d", len(result.result))
+	}
+	for p, count := range expectedResult {
+		sub, ok := result.result[p]
+		if !ok || len(sub) != count {
+			t.Fatalf("%s is not expected, exists: %v, count: %d", p, ok, len(sub))
+		}
+	}
+	// update host label
+	newHost := &mockHost{
+		addr: "127.0.0.1:8080",
+		meta: v2.Metadata{
+			"zone":    "a",
+			"version": "2",
+		},
+	}
+	cluster.UpdateHosts([]types.Host{newHost})
+	newSnap := cluster.Snapshot()
+	newSubLb := newSnap.LoadBalancer().(*subsetLoadBalancer)
+	newResult := &subSetMapResult{
+		result: map[string][]string{},
+	}
+	newResult.RangeSubsetMap("", newSubLb.subSets)
+	newExpectedResult := map[string]int{
+		"version->2->":          1,
+		"version->2->zone->a->": 1,
+	}
+	if len(newResult.result) != 2 {
+		t.Fatalf("expected 2 subsets, but got: %d", len(newResult.result))
+	}
+	for p, count := range newExpectedResult {
 		sub, ok := newResult.result[p]
 		if !ok || len(sub) != count {
 			t.Fatalf("%s is not expected, exists: %v, count: %d", p, ok, len(sub))

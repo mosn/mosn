@@ -36,8 +36,13 @@ func RegisterLBType(lbType types.LoadBalancerType, f func(types.HostSet) types.L
 	lbFactories[lbType] = f
 }
 
+var rrFactory *roundRobinLoadBalancerFactory
+
 func init() {
-	RegisterLBType(types.RoundRobin, newRoundRobinLoadBalancer)
+	rrFactory = &roundRobinLoadBalancerFactory{
+		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
 }
 
@@ -45,7 +50,7 @@ func NewLoadBalancer(lbType types.LoadBalancerType, hosts types.HostSet) types.L
 	if f, ok := lbFactories[lbType]; ok {
 		return f(hosts)
 	}
-	return newRoundRobinLoadBalancer(hosts)
+	return rrFactory.newRoundRobinLoadBalancer(hosts)
 }
 
 // LoadBalancer Implementations
@@ -79,9 +84,22 @@ type roundRobinLoadBalancer struct {
 	rrIndex uint32
 }
 
-func newRoundRobinLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+type roundRobinLoadBalancerFactory struct {
+	mutex sync.Mutex
+	rand  *rand.Rand
+}
+
+func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+	var idx uint32
+	hostsList := hosts.Hosts()
+	if len(hostsList) != 0 {
+		idx = f.rand.Uint32() % uint32(len(hostsList))
+	}
 	return &roundRobinLoadBalancer{
-		hosts: hosts,
+		hosts:   hosts,
+		rrIndex: idx,
 	}
 }
 

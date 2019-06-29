@@ -101,7 +101,7 @@ func TestRegisterNewLB(t *testing.T) {
 	// subset is also valid
 	//  reuse subset test config
 	subsetInfo := NewLBSubsetInfo(ExampleSubsetConfig())
-	sublb := NewSubsetLoadBalancer(headerKey, hs, newClusterStats("test"), subsetInfo)
+	sublb := newSubsetLoadBalancer(headerKey, hs, newClusterStats("test"), subsetInfo)
 	// choose host is valid
 	// 1. ctx contains subset matched config
 	// 2. ctx contains header with key "hostname"
@@ -134,10 +134,10 @@ func TestNewLBCluster(t *testing.T) {
 		LbType:      v2.LbType(headerKey), // same as lb type
 	}
 	c := newSimpleCluster(cfg)
-	if c == nil || c.Info() == nil {
+	if c == nil || c.info == nil {
 		t.Fatal("create cluster failed")
 	}
-	if c.Info().LbType() != headerKey {
+	if c.info.lbType != headerKey {
 		t.Fatal("create cluster lb type not expected")
 	}
 }

@@ -18,6 +18,8 @@
 package cluster
 
 import (
+	"sync/atomic"
+
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/mtls"
@@ -37,6 +39,7 @@ type simpleCluster struct {
 	healthChecker types.HealthChecker
 	lbInstance    types.LoadBalancer // load balancer used for this cluster
 	hostSet       *hostSet
+	snapshot      atomic.Value
 }
 
 func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
@@ -50,15 +53,6 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 		lbType:               types.LoadBalancerType(clusterConfig.LbType),
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 	}
-	// host set
-	hostSet := &hostSet{}
-	// load balance
-	var lb types.LoadBalancer
-	if info.lbSubsetInfo.IsEnabled() {
-		lb = NewSubsetLoadBalancer(info.lbType, hostSet, info.stats, info.lbSubsetInfo)
-	} else {
-		lb = NewLoadBalancer(info.lbType, hostSet)
-	}
 	// tls mng
 	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS, info)
 	if err != nil {
@@ -66,47 +60,60 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 	}
 	info.tlsMng = mgr
 	cluster := &simpleCluster{
-		info:       info,
-		lbInstance: lb,
-		hostSet:    hostSet,
+		info: info,
 	}
-	// health check
+	// init a empty
+	hostSet := &hostSet{}
+	cluster.snapshot.Store(&clusterSnapshot{
+		info:    info,
+		hostSet: hostSet,
+		lb:      NewLoadBalancer(info.lbType, hostSet),
+	})
 	if clusterConfig.HealthCheck.ServiceName != "" {
 		log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
-		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck, cluster)
-		// add default call backs, for change host healthy status
+		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck)
 		cluster.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool, isHealthy bool) {
 			if changedState {
-				hostSet.refreshHealthHosts(host)
+				cluster.hostSet.refreshHealthHost(host)
 			}
 		})
-		hostSet.AdddMemberUpdateCb(cluster.healthChecker.OnClusterMemberUpdate)
-		utils.GoWithRecover(func() {
-			cluster.healthChecker.Start()
-		}, nil)
+
 	}
 	return cluster
-
 }
 
 func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
-	sc.hostSet.UpdateHosts(newHosts)
+	info := sc.info
+	hostSet := &hostSet{}
+	hostSet.setFinalHost(newHosts)
+	// load balance
+	var lb types.LoadBalancer
+	if info.lbSubsetInfo.IsEnabled() {
+		lb = NewSubsetLoadBalancer(info, hostSet)
+	} else {
+		lb = NewLoadBalancer(info.lbType, hostSet)
+	}
+	sc.lbInstance = lb
+	sc.hostSet = hostSet
+	sc.snapshot.Store(&clusterSnapshot{
+		lb:      lb,
+		hostSet: hostSet,
+		info:    info,
+	})
+	if sc.healthChecker != nil {
+		utils.GoWithRecover(func() {
+			sc.healthChecker.SetHealthCheckerHostSet(hostSet)
+		}, nil)
+	}
+
 }
 
-func (sc *simpleCluster) RemoveHosts(addrs []string) {
-	sc.hostSet.RemoveHosts(addrs)
-}
-
-func (sc *simpleCluster) Info() types.ClusterInfo {
-	return sc.info
-}
-
-func (sc *simpleCluster) HostSet() types.HostSet {
-	return sc.hostSet
-}
-
-func (sc *simpleCluster) LBInstance() types.LoadBalancer {
-	return sc.lbInstance
+func (sc *simpleCluster) Snapshot() types.ClusterSnapshot {
+	si := sc.snapshot.Load()
+	if snap, ok := si.(*clusterSnapshot); ok {
+		return snap
+	}
+	return nil
 }
 
 func (sc *simpleCluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
@@ -161,4 +168,36 @@ func (ci *clusterInfo) TLSMng() types.TLSContextManager {
 
 func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 	return ci.lbSubsetInfo
+}
+
+type clusterSnapshot struct {
+	info    types.ClusterInfo
+	hostSet types.HostSet
+	lb      types.LoadBalancer
+}
+
+func (snapshot *clusterSnapshot) HostSet() types.HostSet {
+	return snapshot.hostSet
+}
+
+func (snapshot *clusterSnapshot) ClusterInfo() types.ClusterInfo {
+	return snapshot.info
+}
+
+func (snapshot *clusterSnapshot) LoadBalancer() types.LoadBalancer {
+	return snapshot.lb
+}
+
+func (snapshot *clusterSnapshot) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+	if sublb, ok := snapshot.lb.(*subsetLoadBalancer); ok {
+		if metadata != nil {
+			matchCriteria := metadata.MetadataMatchCriteria()
+			entry := sublb.findSubset(matchCriteria)
+			empty := (entry == nil || !entry.Active())
+			return !empty
+		}
+	}
+	hosts := snapshot.hostSet.Hosts()
+	return len(hosts) > 0
+
 }

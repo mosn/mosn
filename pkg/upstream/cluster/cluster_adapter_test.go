@@ -68,10 +68,6 @@ func TestClusterManagerFromConfig(t *testing.T) {
 	_createClusterManager()
 	// use get for test
 	snap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
-	defer GetClusterMngAdapterInstance().PutClusterSnapshot(snap)
-	if snap == nil {
-		t.Fatal("can not get snapshot")
-	}
 	// check hosts exists
 	// check subset exists
 	mockLb1 := newMockLbContext(map[string]string{
@@ -104,13 +100,13 @@ func TestClusterManagerFromConfig(t *testing.T) {
 	}
 }
 
-func TestClusterManagerDynamic(t *testing.T) {
+func TestClusterManagerAddCluster(t *testing.T) {
 	_createClusterManager()
 	if GetClusterMngAdapterInstance().ClusterExist("test2") {
 		t.Fatal("exists unexpected cluster")
 	}
 	// Add cluster
-	if err := GetClusterMngAdapterInstance().AddOrUpdatePrimaryCluster(v2.Cluster{
+	if err := GetClusterMngAdapterInstance().TriggerClusterAddOrUpdate(v2.Cluster{
 		Name:   "test2",
 		LbType: v2.LB_RANDOM,
 	}); err != nil {
@@ -119,95 +115,126 @@ func TestClusterManagerDynamic(t *testing.T) {
 	if !(GetClusterMngAdapterInstance().ClusterExist("test1") && GetClusterMngAdapterInstance().ClusterExist("test2")) {
 		t.Fatal("cluster add failed")
 	}
-	// Add Host
-	if err := GetClusterMngAdapterInstance().UpdateClusterHosts("test2", []v2.Host{
+}
+
+func TestClusterManagerRemoveCluster(t *testing.T) {
+	_createClusterManager()
+	if err := GetClusterMngAdapterInstance().TriggerClusterDel("test1", "test2"); err == nil {
+		t.Fatal("can not remove cluster not exists")
+	}
+	if !GetClusterMngAdapterInstance().ClusterExist("test1") {
+		t.Fatal("cluster should still exists, but not")
+	}
+	GetClusterMngAdapterInstance().TriggerClusterDel("test1")
+	if GetClusterMngAdapterInstance().ClusterExist("test1") {
+		t.Fatal("cluster should be deleted, but not")
+	}
+}
+
+// TestClusterManagerUpdateClusterSelectors update cluster configs (selectors)
+// It makes a new subset clusters, keeps the hosts
+func TestClusterManagerUpdateClusterSelectors(t *testing.T) {
+	_createClusterManager()
+	// UpdateCluster
+	if err := GetClusterMngAdapterInstance().AddOrUpdatePrimaryCluster(v2.Cluster{
+		Name:   "test1",
+		LbType: v2.LB_RANDOM,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: 0, // No Fallback
+			SubsetSelectors: [][]string{
+				[]string{"version"},
+			},
+		},
+	}); err != nil {
+		t.Fatal("update cluster failed:", err)
+	}
+	snap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	if host := snap.LoadBalancer().ChooseHost(newMockLbContext((map[string]string{
+		"zone":    "a",
+		"version": "1.0.0",
+	}))); host != nil {
+		t.Fatal("expected host not found, but not")
+	}
+}
+
+// TestClusterUpdateHostsWithSnapshot updates a new hosts in cluster
+// the new snapshot will get the new hosts, but the old snapshot still keeps the old hosts
+func TestClusterUpdateHostsWithSnapshot(t *testing.T) {
+	_createClusterManager()
+	mockLb1 := newMockLbContext(map[string]string{
+		"version": "3.0.0",
+	})
+	mockLb2 := newMockLbContext(map[string]string{
+		"version": "1.0.0",
+		"zone":    "a",
+	})
+	mockLb3 := newMockLbContext(map[string]string{
+		"version": "1.0.0",
+		"zone":    "b",
+	})
+	oldSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	// Update Hosts
+	GetClusterMngAdapterInstance().TriggerClusterHostUpdate("test1", []v2.Host{
 		{
 			HostConfig: v2.HostConfig{
-				Address: "127.0.0.1:20000",
+				Address: "127.0.0.1:10000",
+			},
+			MetaData: v2.Metadata{
+				"version": "3.0.0",
+			},
+		},
+		{
+			HostConfig: v2.HostConfig{
+				Address: "127.0.0.1:10002",
 			},
 			MetaData: v2.Metadata{
 				"version": "1.0.0",
-			},
-		},
-	}); err != nil {
-		t.Fatal("update cluster hosts failed:", err)
-	}
-	// Update cluster
-	if err := GetClusterMngAdapterInstance().AddOrUpdatePrimaryCluster(v2.Cluster{
-		Name:   "test2",
-		LbType: v2.LB_RANDOM,
-		LBSubSetConfig: v2.LBSubsetConfig{
-			SubsetSelectors: [][]string{
-				[]string{"version"},
-				[]string{"version", "zone"},
-			},
-		},
-	}); err != nil {
-		t.Fatal("update cluster failed: ", err)
-	}
-	snap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test2")
-	defer GetClusterMngAdapterInstance().PutClusterSnapshot(snap)
-	if host := snap.LoadBalancer().ChooseHost(newMockLbContext((map[string]string{
-		"version": "1.0.0",
-	}))); host == nil {
-		t.Fatal("cluster updated, but lb result is not expected")
-	}
-	if host := snap.LoadBalancer().ChooseHost(newMockLbContext((map[string]string{
-		"version": "2.0.0",
-		"zone":    "b",
-	}))); host != nil {
-		t.Fatal("get a host, but expected not")
-	}
-	// Append Host
-	if err := GetClusterMngAdapterInstance().AppendClusterHosts("test2", []v2.Host{
-		{
-			HostConfig: v2.HostConfig{
-				Address: "127.0.0.1:20001",
-			},
-			MetaData: v2.Metadata{
-				"version": "2.0.0",
 				"zone":    "b",
 			},
 		},
-	}); err != nil {
-		t.Fatal("Append Host Failed", err)
-	}
-	if host := snap.LoadBalancer().ChooseHost(newMockLbContext(map[string]string{
-		"version": "2.0.0",
-		"zone":    "b",
-	})); host == nil {
-		t.Fatal("cluster updated, but lb result is not expected")
-	}
-	// RemoveHost
-	if err := GetClusterMngAdapterInstance().RemoveClusterHosts("test2", []string{"127.0.0.1:20001"}); err != nil {
-		t.Fatal("Remove Host Failed", err)
-	}
-	if host := snap.LoadBalancer().ChooseHost(newMockLbContext(map[string]string{
-		"version": "2.0.0",
-		"zone":    "b",
-	})); host != nil {
-		t.Fatal("host removed, but still can be found")
-	}
-	// RemoveCluster
-	if err := GetClusterMngAdapterInstance().RemovePrimaryCluster("test1", "test2"); err != nil {
-		t.Fatal("remove clusters failed:", err)
-	}
-	// expected delete all
-	count := 0
-	clusterMangerInstance.primaryClusterMap.Range(func(key, value interface{}) bool {
-		count++
-		return true
 	})
-	if count != 0 {
-		t.Fatal("cluster still have cluster, but expected to remove all of it")
+	newSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	if !(!oldSnap.IsExistsHosts(mockLb1.MetadataMatchCriteria()) &&
+		oldSnap.IsExistsHosts(mockLb2.MetadataMatchCriteria()) &&
+		!oldSnap.IsExistsHosts(mockLb3.MetadataMatchCriteria())) {
+		t.Fatal("old snapshot is changed")
 	}
+	if !(newSnap.IsExistsHosts(mockLb1.MetadataMatchCriteria()) &&
+		!newSnap.IsExistsHosts(mockLb2.MetadataMatchCriteria()) &&
+		newSnap.IsExistsHosts(mockLb3.MetadataMatchCriteria())) {
+		t.Fatal("new snapshot is not expected")
+	}
+}
 
+func TestClusterAppendHostWithSnapshot(t *testing.T) {
+	_createClusterManager()
+	oldSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	GetClusterMngAdapterInstance().TriggerHostAppend("test1", []v2.Host{
+		{
+			HostConfig: v2.HostConfig{
+				Address: "127.0.0.1:10002",
+			},
+		},
+	})
+	newSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	if !(len(oldSnap.HostSet().Hosts()) == 2 && len(newSnap.HostSet().Hosts()) == 3) {
+		t.Fatalf("append hosts snapshot check failed, old: %d, new: %d ", len(oldSnap.HostSet().Hosts()), len(newSnap.HostSet().Hosts()))
+	}
+}
+
+func TestClusterRemoveHostWithSnapshot(t *testing.T) {
+	_createClusterManager()
+	oldSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	GetClusterMngAdapterInstance().TriggerHostDel("test1", []string{"127.0.0.1:10001"})
+	newSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	if !(len(oldSnap.HostSet().Hosts()) == 2 && len(newSnap.HostSet().Hosts()) == 1) {
+		t.Fatal("remove hosts snapshot check failed")
+	}
 }
 
 func TestConnPoolForCluster(t *testing.T) {
 	_createClusterManager()
 	snap := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
-	defer GetClusterMngAdapterInstance().PutClusterSnapshot(snap)
 	connPool := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap, mockProtocol)
 	if connPool == nil {
 		t.Fatal("get conn pool failed")

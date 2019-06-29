@@ -18,14 +18,12 @@
 package cluster
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"sort"
 	"testing"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/router"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -33,14 +31,14 @@ import (
 // see https://github.com/envoyproxy/envoy/blob/master/source/docs/subset_load_balancer.md
 // Host List
 /*
-| host	| stage	| version |	type	 | xlarge
-| e1	| prod	| 1.0	  |	std	 | true
-| e2	| prod	| 1.0	  |	std
-| e3	| prod	| 1.1	  |	std
-| e4	| prod	| 1.1	  |	std
-| e5	| prod	| 1.0 	  |	bigmem
-| e6	| prod	| 1.1	  |	bigmem
-| e7	| dev	| 1.2-pre |	std
+| host  | stage | version |     type     | xlarge
+| e1    | prod  | 1.0     |     std      | true
+| e2    | prod  | 1.0     |     std
+| e3    | prod  | 1.1     |     std
+| e4    | prod  | 1.1     |     std
+| e5    | prod  | 1.0     |     bigmem
+| e6    | prod  | 1.1     |     bigmem
+| e7    | dev   | 1.2-pre |     std
 */
 func ExampleHostConfigs() (hosts []v2.Host) {
 	metaDatas := []map[string]string{
@@ -107,7 +105,7 @@ func createHostset(cfg []v2.Host) *hostSet {
 		hosts = append(hosts, host)
 	}
 	hs := &hostSet{}
-	hs.UpdateHosts(hosts)
+	hs.setFinalHost(hosts)
 	return hs
 }
 
@@ -179,11 +177,13 @@ func resultMapEqual(m1, m2 map[string][]string) bool {
 	}
 	return true
 }
+
 func strSliceEqual(s1, s2 []string) bool {
 	sort.Strings(s1)
 	sort.Strings(s2)
 	return reflect.DeepEqual(s1, s2)
 }
+
 func strInSlice(s string, list []string) bool {
 	for _, ls := range list {
 		if s == ls {
@@ -221,7 +221,12 @@ func (r *subSetMapResult) RangeSubsetMap(prefix string, subsetMap types.LbSubset
 }
 
 func newSubsetLoadBalancer(lbType types.LoadBalancerType, hosts *hostSet, stats types.ClusterStats, subsets types.LBSubsetInfo) *subsetLoadBalancer {
-	lb := NewSubsetLoadBalancer(lbType, hosts, stats, subsets)
+	info := &clusterInfo{
+		lbType:       lbType,
+		stats:        stats,
+		lbSubsetInfo: subsets,
+	}
+	lb := NewSubsetLoadBalancer(info, hosts)
 	return lb.(*subsetLoadBalancer)
 }
 
@@ -300,7 +305,6 @@ func TestNoSubsetHost(t *testing.T) {
 			t.Fatalf("host found not expected, got: %s", h.Hostname())
 		}
 	}
-
 }
 
 // TestFallbackWithDefaultSubset configure default subset as fallback
@@ -380,7 +384,6 @@ func TestFallbackWithDefaultSubset(t *testing.T) {
 			t.Errorf("#%d choose host is not expected, expected %s, got %s", i, tc.expectedHost, h.Hostname())
 		}
 	}
-
 }
 
 // TestFallbackWithAllHosts configure all hosts as fallback, without default subset
@@ -536,23 +539,18 @@ RUNCASE:
 }
 
 // TestDynamicSubsetHost with subset
-// If a subset's hosts are all deleted, the subset map still exixts, but will returns a nil host
 // If a new host with label is added, a new subset map will be created
+// If a exists host label is changed, the host should be moved into new subset(maybe needs create a new one)
 func TestDynamicSubsetHost(t *testing.T) {
 	// use cluster manager to register dynamic host changed
 	clusterName := "TestSubset"
-	hostA := v2.Host{
-		HostConfig: v2.HostConfig{
-			Address:  "127.0.0.1:8080",
-			Hostname: "A",
-		},
-		MetaData: v2.Metadata{
+	hostA := &mockHost{
+		addr: "127.0.0.1:8080",
+		name: "A",
+		meta: v2.Metadata{
 			"zone":  "zone0",
 			"group": "a",
 		},
-	}
-	hosts := []v2.Host{
-		hostA,
 	}
 	clusterConfig := v2.Cluster{
 		Name:                 clusterName,
@@ -571,26 +569,11 @@ func TestDynamicSubsetHost(t *testing.T) {
 				},
 			},
 		},
-		Hosts: hosts,
 	}
-	clusters := []v2.Cluster{
-		clusterConfig,
-	}
-	clusterMap := map[string][]v2.Host{
-		clusterName: hosts,
-	}
-	// makes a cluster manager, and get the subset
-	// reset clusrer manager
-	clusterMangerInstance.Destroy()
-	cmi := NewClusterManagerSingleton(clusters, clusterMap)
-	cm := cmi.(*clusterManagerSingleton)
-	v, _ := cm.primaryClusterMap.Load(clusterName)
-	pc := v.(*primaryCluster)
-	pcc := pc.cluster
-	lb := pcc.LBInstance().(*subsetLoadBalancer)
-	// test
+	cluster := newSimpleCluster(clusterConfig)
 	// create a subset
 	{
+		cluster.UpdateHosts([]types.Host{hostA})
 		expectedResult := map[string][]string{
 			"group->a->zone->zone0->": []string{"A"},
 			"zone->zone0->":           []string{"A"},
@@ -598,6 +581,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 		result := &subSetMapResult{
 			result: map[string][]string{},
 		}
+		lb := cluster.lbInstance.(*subsetLoadBalancer)
 		result.RangeSubsetMap("", lb.subSets)
 		if !resultMapEqual(result.result, expectedResult) {
 			t.Fatal("create subset is not expected", result.result)
@@ -611,21 +595,16 @@ func TestDynamicSubsetHost(t *testing.T) {
 		if h, ok := lb.tryChooseHostFromContext(ctx); !ok || h == nil || h.Hostname() != "A" {
 			t.Fatal("choose host not expected")
 		}
-
 	}
-	// remove a host the subset will be changed
+	// remove a host
 	{
-		cm.UpdateClusterHosts(clusterName, []v2.Host{})
-		// host removed, the tree still exists, but no more active
-		expectedResult := map[string][]string{
-			"group->a->zone->zone0->": []string{},
-			"zone->zone0->":           []string{},
-		}
+		cluster.UpdateHosts([]types.Host{})
 		result := &subSetMapResult{
 			result: map[string][]string{},
 		}
+		lb := cluster.lbInstance.(*subsetLoadBalancer)
 		result.RangeSubsetMap("", lb.subSets)
-		if !resultMapEqual(result.result, expectedResult) {
+		if len(result.result) != 0 {
 			t.Fatal("create subset is not expected", result.result)
 		}
 		// try to choose host, found nil
@@ -640,22 +619,20 @@ func TestDynamicSubsetHost(t *testing.T) {
 	}
 	// add a new host with new label, create a new subset
 	{
-		hostB := v2.Host{
-			HostConfig: v2.HostConfig{
-				Address:  "127.0.0.1:8080", // address is same as host A
-				Hostname: "B",
-			},
-			MetaData: v2.Metadata{
+		hostB := &mockHost{
+			addr: "127.0.0.1:8080",
+			name: "B",
+			meta: v2.Metadata{
 				"zone":  "zone0",
 				"group": "b",
 			},
 		}
-		cm.UpdateClusterHosts(clusterName, []v2.Host{hostB})
+		cluster.UpdateHosts([]types.Host{hostB})
 		expectedResult := map[string][]string{
-			"group->a->zone->zone0->": []string{},
 			"zone->zone0->":           []string{"B"},
 			"group->b->zone->zone0->": []string{"B"},
 		}
+		lb := cluster.lbInstance.(*subsetLoadBalancer)
 		result := &subSetMapResult{
 			result: map[string][]string{},
 		}
@@ -685,39 +662,29 @@ func TestDynamicSubsetHost(t *testing.T) {
 			t.Fatal("choose host not expected")
 		}
 	}
-
-}
-
-// utils for test
-type mockLbContext struct {
-	types.LoadBalancerContext
-	mmc    types.MetadataMatchCriteria
-	header types.HeaderMap
-}
-
-func newMockLbContext(m map[string]string) types.LoadBalancerContext {
-	mmc := router.NewMetadataMatchCriteriaImpl(m)
-	return &mockLbContext{
-		mmc: mmc,
+	// update label
+	{
+		hostB := &mockHost{
+			addr: "127.0.0.1:8080",
+			name: "B",
+			meta: v2.Metadata{
+				"zone":  "zone0",
+				"group": "a",
+			},
+		}
+		cluster.UpdateHosts([]types.Host{hostB})
+		expectedResult := map[string][]string{
+			"zone->zone0->":           []string{"B"},
+			"group->a->zone->zone0->": []string{"B"},
+		}
+		lb := cluster.lbInstance.(*subsetLoadBalancer)
+		result := &subSetMapResult{
+			result: map[string][]string{},
+		}
+		result.RangeSubsetMap("", lb.subSets)
+		if !resultMapEqual(result.result, expectedResult) {
+			t.Fatal("create subset is not expected", result.result)
+		}
 	}
-}
 
-func newMockLbContextWithHeader(m map[string]string, header types.HeaderMap) types.LoadBalancerContext {
-	mmc := router.NewMetadataMatchCriteriaImpl(m)
-	return &mockLbContext{
-		mmc:    mmc,
-		header: header,
-	}
-}
-
-func (ctx *mockLbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
-	return ctx.mmc
-}
-
-func (ctx *mockLbContext) DownstreamHeaders() types.HeaderMap {
-	return ctx.header
-}
-
-func (ctx *mockLbContext) DownstreamContext() context.Context {
-	return nil
 }
