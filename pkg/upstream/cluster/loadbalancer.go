@@ -105,8 +105,7 @@ func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(hosts types.Ho
 
 func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	targets := lb.hosts.HealthyHosts()
-	index := atomic.LoadUint32(&lb.rrIndex) % uint32(len(targets))
-	atomic.AddUint32(&lb.rrIndex, 1)
+	index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(len(targets))
 	return targets[index]
 }
 
