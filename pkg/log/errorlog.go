@@ -47,13 +47,13 @@ func CreateDefaultErrorLogger(output string, level Level) (ErrorLogger, error) {
 	}, nil
 }
 
-// default logger format:
+// default logger error level format:
 // {time} [{level}] [{error code}] {content}
 // default error code is normal
 const defaultErrorCode = "normal"
 
 func (l *errorLogger) formatter(lvPre string, format string) string {
-	return l.codeFormatter(lvPre, defaultErrorCode, format)
+	return logTime() + " " + lvPre + " " + format
 }
 
 func (l *errorLogger) codeFormatter(lvPre, errCode, format string) string {
@@ -95,7 +95,7 @@ func (l *errorLogger) Errorf(format string, args ...interface{}) {
 		return
 	}
 	if l.level >= ERROR {
-		s := l.formatter(ErrorPre, format)
+		s := l.codeFormatter(ErrorPre, defaultErrorCode, format)
 		l.Logger.Printf(s, args...)
 	}
 }

@@ -82,7 +82,7 @@ func (l *proxyLogger) Errorf(ctx context.Context, format string, args ...interfa
 		return
 	}
 	if l.level >= ERROR {
-		s := l.formatter(ctx, ErrorPre, format)
+		s := logTime() + " " + ErrorPre + " [" + defaultErrorCode + "] " + traceInfo(ctx) + " " + format
 		l.Printf(s, args...)
 	}
 }
