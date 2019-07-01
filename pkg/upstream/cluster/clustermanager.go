@@ -249,6 +249,7 @@ func (cm *clusterManager) updateCluster(clusterConf v2.Cluster, pcluster *primar
 		pcluster.UpdateCluster(cluster, &clusterConf, addedViaAPI)
 		return true
 	}
+	log.DefaultLogger.Alertf(types.ErrorKeyClusterUpdate, "update cluster %s failed", clusterConf.Name)
 
 	return false
 }
@@ -258,6 +259,7 @@ func (cm *clusterManager) loadCluster(clusterConfig v2.Cluster, addedViaAPI bool
 	cluster := NewCluster(clusterConfig, cm.sourceAddr, addedViaAPI)
 
 	if nil == cluster {
+		log.DefaultLogger.Alertf(types.ErrorKeyClusterAdd, "add cluster %s failed", clusterConfig.Name)
 		return false
 	}
 
@@ -314,6 +316,7 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 				log.DefaultLogger.Infof("[upstream] [cluster manager] Remove Primary Cluster, Cluster Name = %s", clusterName)
 			}
 		} else {
+			log.DefaultLogger.Alertf(types.ErrorKeyClusterDelete, "delete cluster %s not exists", clusterName)
 			return fmt.Errorf("Remove Primary Cluster failure, cluster name = %s doesn't exist", clusterName)
 		}
 	}
@@ -330,6 +333,7 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, priority uint32
 			hosts = append(hosts, NewHost(hc, pc.cluster.Info()))
 		}
 		if err := pc.UpdateHosts(hosts); err != nil {
+			log.DefaultLogger.Alertf(types.ErrorKeyHostsUpdate, "update cluster %s hosts error: %v", clusterName, err)
 			return fmt.Errorf("UpdateClusterHosts failed, cluster's hostset %s can't be update: %v", clusterName, err)
 		}
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
@@ -353,6 +357,7 @@ func (cm *clusterManager) AppendClusterHosts(clusterName string, priority uint32
 			hosts = append(hosts, NewHost(hc, pc.cluster.Info()))
 		}
 		if err := pc.UpdateHosts(hosts); err != nil {
+			log.DefaultLogger.Alertf(types.ErrorKeyHostsAppend, "append cluster %s hosts error: %v", clusterName, err)
 			return fmt.Errorf("AppendClusterHosts failed, cluster's hostset %s can't be update: %v", clusterName, err)
 		}
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
@@ -360,6 +365,7 @@ func (cm *clusterManager) AppendClusterHosts(clusterName string, priority uint32
 		}
 		return nil
 	}
+	log.DefaultLogger.Alertf(types.ErrorKeyHostsAppend, "cluster %s not found", clusterName)
 	return fmt.Errorf("AppendClusterHosts failed, cluster %s not found", clusterName)
 }
 
@@ -385,6 +391,7 @@ func (cm *clusterManager) RemoveClusterHost(clusterName string, hostAddress stri
 			}
 			if found == true {
 				if err := pc.UpdateHosts(ccHosts); err != nil {
+					log.DefaultLogger.Alertf(types.ErrorKeyHostsDelete, "delete cluster %s host: %s error: %v", clusterName, hostAddress, err)
 					return fmt.Errorf("remove host %s from cluster %s failed: %v", hostAddress, clusterName, err)
 				}
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
@@ -392,12 +399,15 @@ func (cm *clusterManager) RemoveClusterHost(clusterName string, hostAddress stri
 				}
 				return nil
 			}
+			log.DefaultLogger.Alertf(types.ErrorKeyHostsDelete, "delete cluster %s host: %s not exists", clusterName, hostAddress)
 			return fmt.Errorf("RemoveClusterHost failed, host address = %s doesn't exist", hostAddress)
 
 		}
 
 		return fmt.Errorf("RemoveClusterHost failed, cluster name = %s is not valid", clusterName)
 	}
+
+	log.DefaultLogger.Alertf(types.ErrorKeyHostsDelete, "cluster %s not exists", clusterName)
 
 	return fmt.Errorf("RemoveClusterHost failed, cluster name = %s doesn't exist", clusterName)
 }
