@@ -167,7 +167,7 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v
 	}
 	c := ci.(types.Cluster)
 	snap := c.Snapshot()
-	var hosts []types.Host
+	hosts := make([]types.Host, 0, len(hostConfigs))
 	for _, hc := range hostConfigs {
 		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
@@ -184,7 +184,7 @@ func (cm *clusterManager) AppendClusterHosts(clusterName string, hostConfigs []v
 	}
 	c := ci.(types.Cluster)
 	snap := c.Snapshot()
-	var hosts []types.Host
+	hosts := make([]types.Host, 0, len(hostConfigs))
 	for _, hc := range hostConfigs {
 		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
