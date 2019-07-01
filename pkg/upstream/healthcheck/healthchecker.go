@@ -91,13 +91,26 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 }
 
 func (hc *healthChecker) Start() {
+	hc.mutex.Lock()
+	defer hc.mutex.Unlock()
+	hc.start()
+}
+
+func (hc *healthChecker) start() {
 	for _, h := range hc.hosts {
 		hc.startCheck(h)
 	}
 	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
+
 }
 
 func (hc *healthChecker) Stop() {
+	hc.mutex.Lock()
+	defer hc.mutex.Unlock()
+	hc.stop()
+}
+
+func (hc *healthChecker) stop() {
 	for _, h := range hc.hosts {
 		hc.stopCheck(h)
 	}
@@ -109,9 +122,11 @@ func (hc *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 
 // SetHealthCheckerHostSet reset the healthchecker's hosts
 func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
-	hc.Stop()
+	hc.mutex.Lock()
+	defer hc.mutex.Unlock()
+	hc.stop()
 	hc.hosts = hostSet.Hosts()
-	hc.Start()
+	hc.start()
 }
 
 func (hc *healthChecker) OnClusterMemberUpdate(hostsAdd []types.Host, hostsDel []types.Host) {
@@ -126,8 +141,6 @@ func (hc *healthChecker) OnClusterMemberUpdate(hostsAdd []types.Host, hostsDel [
 
 func (hc *healthChecker) startCheck(host types.Host) {
 	addr := host.AddressString()
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
 	if _, ok := hc.checkers[addr]; !ok {
 		s := hc.sessionFactory.NewSession(hc.sessionConfig, host)
 		if s == nil {
@@ -148,8 +161,6 @@ func (hc *healthChecker) startCheck(host types.Host) {
 
 func (hc *healthChecker) stopCheck(host types.Host) {
 	addr := host.AddressString()
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
 	if c, ok := hc.checkers[addr]; ok {
 		c.Stop()
 		delete(hc.checkers, addr)
