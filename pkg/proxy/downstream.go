@@ -528,7 +528,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 func (s *downStream) matchRoute() {
 	headers := s.downstreamReqHeaders
 	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] routersWrapper or routers in routersWrapper is nil while trying to get router, headers= %v", headers)
+		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil while trying to get router, headers= %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
@@ -540,7 +540,7 @@ func (s *downStream) matchRoute() {
 	handlerChain := router.CallMakeHandlerChain(s.context, headers, routers, s.proxy.clusterManager)
 	// handlerChain should never be nil
 	if handlerChain == nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] no route to make handler chain, headers = %v", headers)
+		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "no route to make handler chain, headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
@@ -611,7 +611,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	}
 	if s.snapshot == nil || reflect.ValueOf(s.snapshot).IsNil() {
 		// no available cluster
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] cluster snapshot is nil, cluster name is: %s", s.route.RouteRule().ClusterName())
+		log.Proxy.Alertf(s.context, types.ErrorKeyClusterGet, " cluster snapshot is nil, cluster name is: %s", s.route.RouteRule().ClusterName())
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
@@ -632,7 +632,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 
 	pool, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] initialize Upstream Connection Pool error, request can't be proxyed, error = %v", err)
+		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "initialize Upstream Connection Pool error, request can't be proxyed, error = %v", err)
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
@@ -847,7 +847,7 @@ func (s *downStream) appendHeaders(endStream bool) {
 	headers := s.convertHeader(s.downstreamRespHeaders)
 	//Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] append headers error, %s", err)
+		log.Proxy.Alertf(s.context, types.ErrorKeyAppendHeader, "append headers error: %s", err)
 	}
 
 	if endStream {
@@ -1114,7 +1114,7 @@ func (s *downStream) doRetry() {
 	pool, err := s.initializeUpstreamConnectionPool(s)
 
 	if err != nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] retry choose conn pool failed, error = %v", err)
+		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "retry choose conn pool failed, error = %v", err)
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		s.cleanUp()
 		return

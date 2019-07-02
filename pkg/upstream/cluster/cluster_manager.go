@@ -102,6 +102,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	// new cluster
 	newCluster := NewCluster(cluster)
 	if newCluster == nil || reflect.ValueOf(newCluster).IsNil() {
+		log.DefaultLogger.Alertf(types.ErrorKeyClusterUpdate, "update cluster %s failed", cluster.Name)
 		return errNilCluster
 	}
 	// check update or new
@@ -145,6 +146,7 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 	// check all clutsers in cluster manager
 	for _, clusterName := range clusterNames {
 		if _, ok := cm.clustersMap.Load(clusterName); !ok {
+			log.DefaultLogger.Alertf(types.ErrorKeyClusterDelete, "delete cluster %s not exists", clusterName)
 			return fmt.Errorf("remove cluster failed, cluster %s is not exists", clusterName)
 		}
 	}
@@ -163,6 +165,7 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v2.Host) error {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
+		log.DefaultLogger.Alertf(types.ErrorKeyHostsUpdate, "cluster %s not found", clusterName)
 		return fmt.Errorf("cluster %s is not exists", clusterName)
 	}
 	c := ci.(types.Cluster)
@@ -180,6 +183,7 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v
 func (cm *clusterManager) AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
+		log.DefaultLogger.Alertf(types.ErrorKeyHostsAppend, "cluster %s not found", clusterName)
 		return fmt.Errorf("cluster %s is not exists", clusterName)
 	}
 	c := ci.(types.Cluster)
@@ -198,6 +202,7 @@ func (cm *clusterManager) AppendClusterHosts(clusterName string, hostConfigs []v
 func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string) error {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
+		log.DefaultLogger.Alertf(types.ErrorKeyHostsDelete, "cluster %s not found", clusterName)
 		return fmt.Errorf("cluster %s is not exists", clusterName)
 	}
 	c := ci.(types.Cluster)
