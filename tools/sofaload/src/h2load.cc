@@ -2186,7 +2186,6 @@ int main(int argc, char **argv) {
             break;
         case 'o':
             sofaRpcContent = optarg;
-            // std::cout << sofaRpcContent << std::endl;
             break;
         case 'k':
             sofaRpcTimeout = strtoul(optarg, nullptr, 10);
