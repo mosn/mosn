@@ -53,6 +53,8 @@
 #include "memchunk.h"
 #include "template.h"
 
+#include <mutex>
+
 using namespace nghttp2;
 
 namespace h2load {
@@ -65,6 +67,7 @@ struct Worker;
 struct Config {
     std::vector<std::vector<nghttp2_nv>> nva;
     std::vector<std::string> h1reqs;
+    std::vector<std::string> sofarpcreqs;
     std::vector<ev_tstamp> timings;
     nghttp2::Headers custom_headers;
     std::string scheme;
@@ -92,7 +95,7 @@ struct Config {
     ev_tstamp conn_active_timeout;
     // amount of time to wait after the last request is made on a connection
     ev_tstamp conn_inactivity_timeout;
-    enum { PROTO_HTTP2, PROTO_HTTP1_1 } no_tls_proto;
+    enum { PROTO_HTTP2, PROTO_HTTP1_1, PROTO_SOFARPC } no_tls_proto;
     uint32_t header_table_size;
     uint32_t encoder_header_table_size;
     // file descriptor for upload data
@@ -116,6 +119,9 @@ struct Config {
     Config();
     ~Config();
 
+    uint64_t qps;
+
+    bool is_qps_mode() const;
     bool is_rate_mode() const;
     bool is_timing_based_mode() const;
     bool has_base_uri() const;
@@ -211,6 +217,8 @@ struct Stats {
     // The number of each HTTP status category, status[i] is status code
     // in the range [i*100, (i+1)*100).
     std::array<size_t, 6> status;
+    // sofarpc response status
+    std::array<size_t, 19> sofarpcStatus;
     // The statistics per request
     std::vector<RequestStat> req_stats;
     // THe statistics per client
@@ -286,6 +294,18 @@ struct Worker {
     void stop_all_clients();
     // This function frees a client from the list of clients for this Worker.
     void free_client(Client *);
+
+    std::vector<uint64_t> rtts;
+    uint64_t rtt_min;
+    uint64_t rtt_max;
+    void record_rtt(uint64_t rtt_in_us);
+
+    size_t req_per_period;
+    std::mutex qpsLock;
+    uint64_t qpsLeft;
+    ev_periodic qpsUpdater;
+    std::vector<Client *> clientsBlockedDueToQps;
+    void set_req_per_period(size_t qps);
 };
 
 struct Stream {
@@ -385,6 +405,9 @@ struct Client {
     // |successfully, but it does not mean response carried successful
     // |HTTP status code.
     void on_stream_close(int32_t stream_id, bool success, bool final = false);
+
+    void on_sofarpc_status(int32_t stream_id, uint16_t status);
+
     // Returns RequestStat for |stream_id|.  This function must be
     // called after on_request(stream_id), and before
     // on_stream_close(stream_id, ...).  Otherwise, this will return

@@ -52,10 +52,13 @@
 
 #include "h2load_http1_session.h"
 #include "h2load_http2_session.h"
+#include "h2load_sofarpc_session.h"
 #include "http2.h"
 #include "template.h"
 #include "tls.h"
 #include "util.h"
+
+#include "sofarpc.h"
 
 #ifndef O_BINARY
 #define O_BINARY (0)
@@ -79,7 +82,7 @@ Config::Config()
       conn_inactivity_timeout(0.), no_tls_proto(PROTO_HTTP2),
       header_table_size(4_k), encoder_header_table_size(4_k), data_fd(-1),
       log_fd(-1), port(0), default_port(0), verbose(false),
-      timing_script(false), base_uri_unix(false), unix_addr{} {}
+      timing_script(false), base_uri_unix(false), unix_addr{}, qps(0) {}
 
 Config::~Config() {
     if (addrs) {
@@ -95,6 +98,7 @@ Config::~Config() {
     }
 }
 
+bool Config::is_qps_mode() const { return (this->qps != 0); }
 bool Config::is_rate_mode() const { return (this->rate != 0); }
 bool Config::is_timing_based_mode() const { return (this->duration > 0); }
 bool Config::has_base_uri() const { return (!this->base_uri.empty()); }
@@ -108,7 +112,7 @@ Stats::Stats(size_t req_todo, size_t nclients)
     : req_todo(req_todo), req_started(0), req_done(0), req_success(0),
       req_status_success(0), req_failed(0), req_error(0), req_timedout(0),
       bytes_total(0), bytes_head(0), bytes_head_decomp(0), bytes_body(0),
-      status() {}
+      status(), sofarpcStatus() {}
 
 Stream::Stream() : req_stat{}, status_success(-1) {}
 
@@ -219,6 +223,8 @@ void duration_timeout_cb(struct ev_loop *loop, ev_timer *w, int revents) {
 
     worker->current_phase = Phase::DURATION_OVER;
 
+    ev_periodic_stop(worker->loop, &worker->qpsUpdater);
+
     std::cout << "Main benchmark duration is over for thread #" << worker->id
               << ". Stopping all clients." << std::endl;
     worker->stop_all_clients();
@@ -255,6 +261,7 @@ void warmup_timeout_cb(struct ev_loop *loop, ev_timer *w, int revents) {
     worker->current_phase = Phase::MAIN_DURATION;
 
     ev_timer_start(worker->loop, &worker->duration_watcher);
+    ev_periodic_start(worker->loop, &worker->qpsUpdater);
 }
 } // namespace
 
@@ -394,6 +401,7 @@ int Client::make_socket(addrinfo *addr) {
     }
 
     auto rv = ::connect(fd, addr->ai_addr, addr->ai_addrlen);
+
     if (rv != 0 && errno != EINPROGRESS) {
         if (ssl) {
             SSL_free(ssl);
@@ -539,6 +547,17 @@ void Client::disconnect() {
 }
 
 int Client::submit_request() {
+    if (config.is_qps_mode())
+    {
+        std::lock_guard<std::mutex> guard(worker->qpsLock);
+        if (worker->qpsLeft == 0) {
+            worker->clientsBlockedDueToQps.push_back(this);
+            return 0;
+        } else {
+            --worker->qpsLeft;
+        }
+    }
+
     if (session->submit_request() != 0) {
         return -1;
     }
@@ -695,8 +714,7 @@ void Client::on_header(int32_t stream_id, const uint8_t *name, size_t namelen,
         return;
     }
 
-    if (stream.status_success == -1 && namelen == 7 &&
-        util::streq_l(":status", name, namelen)) {
+    if (stream.status_success == -1 && namelen == 7 && util::streq_l(":status", name, namelen)) {
         int status = 0;
         for (size_t i = 0; i < valuelen; ++i) {
             if ('0' <= value[i] && value[i] <= '9') {
@@ -754,6 +772,25 @@ void Client::on_status_code(int32_t stream_id, uint16_t status) {
     }
 }
 
+void Client::on_sofarpc_status(int32_t stream_id, uint16_t status) {
+    auto itr = streams.find(stream_id);
+    if (itr == std::end(streams)) {
+        return;
+    }
+    auto &stream = (*itr).second;
+
+    if (worker->current_phase != Phase::MAIN_DURATION) {
+        stream.status_success = 1;
+        return;
+    }
+
+    stream.req_stat.status = status;
+    stream.status_success = (status == RESPONSE_STATUS_SUCCESS);
+
+    ++worker->stats.sofarpcStatus[status];
+}
+
+
 void Client::on_stream_close(int32_t stream_id, bool success, bool final) {
     if (worker->current_phase == Phase::MAIN_DURATION) {
         if (req_inflight > 0) {
@@ -786,6 +823,11 @@ void Client::on_stream_close(int32_t stream_id, bool success, bool final) {
         }
         ++worker->stats.req_done;
         ++req_done;
+
+        uint64_t rtt = std::chrono::duration_cast<std::chrono::duration<double>>(
+                req_stat->stream_close_time - req_stat->request_time).count() * 1000000;
+        // std::cout << rtt << std::endl;
+        worker->record_rtt(rtt);
 
         if (worker->config->log_fd != -1) {
             auto start = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -865,6 +907,8 @@ int Client::connection_made() {
                 session = std::make_unique<Http2Session>(this);
             } else if (util::streq(NGHTTP2_H1_1, proto)) {
                 session = std::make_unique<Http1Session>(this);
+            } else if (util::streq(SOFARPC, proto)) {
+                session = std::make_unique<SofaRpcSession>(this);
             }
 
             // Just assign next_proto to selected_proto anyway to show the
@@ -910,6 +954,10 @@ int Client::connection_made() {
         case Config::PROTO_HTTP1_1:
             session = std::make_unique<Http1Session>(this);
             selected_proto = NGHTTP2_H1_1.str();
+            break;
+        case Config::PROTO_SOFARPC:
+            session = std::make_unique<SofaRpcSession>(this);
+            selected_proto = SOFARPC.str();
             break;
         default:
             // unreachable
@@ -1228,13 +1276,38 @@ int get_ev_loop_flags() {
 }
 } // namespace
 
+namespace {
+void update_worker_qpsLeft(struct ev_loop *loop, ev_periodic *w, int revents) {
+    auto worker = static_cast<Worker *>(w->data);
+    {
+        std::lock_guard<std::mutex> guard(worker->qpsLock);
+        worker->qpsLeft += worker->req_per_period;
+    }
+    while (worker->qpsLeft && !worker->clientsBlockedDueToQps.empty()) {
+        Client * c = worker->clientsBlockedDueToQps.back();
+        worker->clientsBlockedDueToQps.pop_back();
+        if (c->submit_request() != 0) {
+            c->process_request_failure();
+        }
+        c->signal_write();
+    }
+}
+} // namespace
+
+namespace {
+constexpr size_t qps_update_period_ms = 5;
+constexpr size_t qps_update_per_second = 1000 / qps_update_period_ms;
+} // namespace
+
 Worker::Worker(uint32_t id, SSL_CTX *ssl_ctx, size_t req_todo, size_t nclients,
                size_t rate, size_t max_samples, Config *config)
     : stats(req_todo, nclients), loop(ev_loop_new(get_ev_loop_flags())),
       ssl_ctx(ssl_ctx), config(config), id(id), tls_info_report_done(false),
       app_info_report_done(false), nconns_made(0), nclients(nclients),
       nreqs_per_client(req_todo / nclients), nreqs_rem(req_todo % nclients),
-      rate(rate), max_samples(max_samples), next_client_id(0) {
+      rate(rate), max_samples(max_samples), next_client_id(0), rtts(),
+      rtt_min(std::numeric_limits<uint64_t>::max()), rtt_max(std::numeric_limits<uint64_t>::min()),
+      qpsLock(), qpsLeft(1), req_per_period(0) {
     if (!config->is_rate_mode() && !config->is_timing_based_mode()) {
         progress_interval = std::max(static_cast<size_t>(1), req_todo / 10);
     } else {
@@ -1263,6 +1336,9 @@ Worker::Worker(uint32_t id, SSL_CTX *ssl_ctx, size_t req_todo, size_t nclients,
 
     ev_timer_init(&warmup_watcher, warmup_timeout_cb, config->warm_up_time, 0.);
     warmup_watcher.data = this;
+
+    ev_periodic_init(&qpsUpdater, update_worker_qpsLeft, 0., (double)qps_update_period_ms / 1000.0, 0);
+    qpsUpdater.data = this;
 
     if (config->is_timing_based_mode()) {
         current_phase = Phase::INITIAL_IDLE;
@@ -1369,6 +1445,16 @@ void Worker::report_rate_progress() {
 
     std::cout << "progress: " << nconns_made * 100 / nclients
               << "% of clients started" << std::endl;
+}
+
+void Worker::record_rtt(uint64_t rtt_in_us) {
+    rtts.push_back(rtt_in_us);
+    rtt_min = std::min(rtt_min, rtt_in_us);
+    rtt_max = std::max(rtt_max, rtt_in_us);
+}
+
+void Worker::set_req_per_period(size_t qp10ms) {
+    req_per_period = qp10ms;
 }
 
 namespace {
@@ -1774,177 +1860,177 @@ void print_help(std::ostream &out) {
 
     out << R"(
   <URI>       Specify URI to access.   Multiple URIs can be specified.
-              URIs are used  in this order for each  client.  All URIs
-              are used, then  first URI is used and then  2nd URI, and
-              so  on.  The  scheme, host  and port  in the  subsequent
-              URIs, if present,  are ignored.  Those in  the first URI
-              are used solely.  Definition of a base URI overrides all
-              scheme, host or port values.
+			  URIs are used  in this order for each  client.  All URIs
+			  are used, then  first URI is used and then  2nd URI, and
+			  so  on.  The  scheme, host  and port  in the  subsequent
+			  URIs, if present,  are ignored.  Those in  the first URI
+			  are used solely.  Definition of a base URI overrides all
+			  scheme, host or port values.
 Options:
   -n, --requests=<N>
-              Number of  requests across all  clients.  If it  is used
-              with --timing-script-file option,  this option specifies
-              the number of requests  each client performs rather than
-              the number of requests  across all clients.  This option
-              is ignored if timing-based  benchmarking is enabled (see
-              --duration option).
-              Default: )"
+			  Number of  requests across all  clients.  If it  is used
+			  with --timing-script-file option,  this option specifies
+			  the number of requests  each client performs rather than
+			  the number of requests  across all clients.  This option
+			  is ignored if timing-based  benchmarking is enabled (see
+			  --duration option).
+			  Default: )"
         << config.nreqs << R"(
   -c, --clients=<N>
-              Number  of concurrent  clients.   With  -r option,  this
-              specifies the maximum number of connections to be made.
-              Default: )"
+			  Number  of concurrent  clients.   With  -r option,  this
+			  specifies the maximum number of connections to be made.
+			  Default: )"
         << config.nclients << R"(
   -t, --threads=<N>
-              Number of native threads.
-              Default: )"
+			  Number of native threads.
+			  Default: )"
         << config.nthreads << R"(
   -i, --input-file=<PATH>
-              Path of a file with multiple URIs are separated by EOLs.
-              This option will disable URIs getting from command-line.
-              If '-' is given as <PATH>, URIs will be read from stdin.
-              URIs are used  in this order for each  client.  All URIs
-              are used, then  first URI is used and then  2nd URI, and
-              so  on.  The  scheme, host  and port  in the  subsequent
-              URIs, if present,  are ignored.  Those in  the first URI
-              are used solely.  Definition of a base URI overrides all
-              scheme, host or port values.
+			  Path of a file with multiple URIs are separated by EOLs.
+			  This option will disable URIs getting from command-line.
+			  If '-' is given as <PATH>, URIs will be read from stdin.
+			  URIs are used  in this order for each  client.  All URIs
+			  are used, then  first URI is used and then  2nd URI, and
+			  so  on.  The  scheme, host  and port  in the  subsequent
+			  URIs, if present,  are ignored.  Those in  the first URI
+			  are used solely.  Definition of a base URI overrides all
+			  scheme, host or port values.
   -m, --max-concurrent-streams=<N>
-              Max  concurrent  streams  to issue  per  session.   When
-              http/1.1  is used,  this  specifies the  number of  HTTP
-              pipelining requests in-flight.
-              Default: 1
+			  Max  concurrent  streams  to issue  per  session.   When
+			  http/1.1  is used,  this  specifies the  number of  HTTP
+			  pipelining requests in-flight.
+			  Default: 1
   -w, --window-bits=<N>
-              Sets the stream level initial window size to (2**<N>)-1.
-              Default: )"
+			  Sets the stream level initial window size to (2**<N>)-1.
+			  Default: )"
         << config.window_bits << R"(
   -W, --connection-window-bits=<N>
-              Sets  the  connection  level   initial  window  size  to
-              (2**<N>)-1.
-              Default: )"
+			  Sets  the  connection  level   initial  window  size  to
+			  (2**<N>)-1.
+			  Default: )"
         << config.connection_window_bits << R"(
   -H, --header=<HEADER>
-              Add/Override a header to the requests.
+			  Add/Override a header to the requests.
   --ciphers=<SUITE>
-              Set allowed  cipher list.  The  format of the  string is
-              described in OpenSSL ciphers(1).
-              Default: )"
+			  Set allowed  cipher list.  The  format of the  string is
+			  described in OpenSSL ciphers(1).
+			  Default: )"
         << config.ciphers << R"(
   -p, --no-tls-proto=<PROTOID>
-              Specify ALPN identifier of the  protocol to be used when
-              accessing http URI without SSL/TLS.
-              Available protocols: )"
+			  Specify ALPN identifier of the  protocol to be used when
+			  accessing http URI without SSL/TLS.
+			  Available protocols: )"
         << NGHTTP2_CLEARTEXT_PROTO_VERSION_ID << R"( and )" << NGHTTP2_H1_1
-        << R"(
-              Default: )"
+        << R"( and )" << SOFARPC << R"(
+			  Default: )"
         << NGHTTP2_CLEARTEXT_PROTO_VERSION_ID << R"(
   -d, --data=<PATH>
-              Post FILE to  server.  The request method  is changed to
-              POST.   For  http/1.1 connection,  if  -d  is used,  the
-              maximum number of in-flight pipelined requests is set to
-              1.
+			  Post FILE to  server.  The request method  is changed to
+			  POST.   For  http/1.1 connection,  if  -d  is used,  the
+			  maximum number of in-flight pipelined requests is set to
+			  1.
   -r, --rate=<N>
-              Specifies  the  fixed  rate  at  which  connections  are
-              created.   The   rate  must   be  a   positive  integer,
-              representing the  number of  connections to be  made per
-              rate period.   The maximum  number of connections  to be
-              made  is  given  in  -c   option.   This  rate  will  be
-              distributed among  threads as  evenly as  possible.  For
-              example,  with   -t2  and   -r4,  each  thread   gets  2
-              connections per period.  When the rate is 0, the program
-              will run  as it  normally does, creating  connections at
-              whatever variable rate it  wants.  The default value for
-              this option is 0.  -r and -D are mutually exclusive.
+			  Specifies  the  fixed  rate  at  which  connections  are
+			  created.   The   rate  must   be  a   positive  integer,
+			  representing the  number of  connections to be  made per
+			  rate period.   The maximum  number of connections  to be
+			  made  is  given  in  -c   option.   This  rate  will  be
+			  distributed among  threads as  evenly as  possible.  For
+			  example,  with   -t2  and   -r4,  each  thread   gets  2
+			  connections per period.  When the rate is 0, the program
+			  will run  as it  normally does, creating  connections at
+			  whatever variable rate it  wants.  The default value for
+			  this option is 0.  -r and -D are mutually exclusive.
   --rate-period=<DURATION>
-              Specifies the time  period between creating connections.
-              The period  must be a positive  number, representing the
-              length of the period in time.  This option is ignored if
-              the rate option is not used.  The default value for this
-              option is 1s.
+			  Specifies the time  period between creating connections.
+			  The period  must be a positive  number, representing the
+			  length of the period in time.  This option is ignored if
+			  the rate option is not used.  The default value for this
+			  option is 1s.
   -D, --duration=<N>
-              Specifies the main duration for the measurements in case
-              of timing-based  benchmarking.  -D  and -r  are mutually
-              exclusive.
+			  Specifies the main duration for the measurements in case
+			  of timing-based  benchmarking.  -D  and -r  are mutually
+			  exclusive.
   --warm-up-time=<DURATION>
-              Specifies the  time  period  before  starting the actual
-              measurements, in  case  of  timing-based benchmarking.
-              Needs to provided along with -D option.
+			  Specifies the  time  period  before  starting the actual
+			  measurements, in  case  of  timing-based benchmarking.
+			  Needs to provided along with -D option.
   -T, --connection-active-timeout=<DURATION>
-              Specifies  the maximum  time that  h2load is  willing to
-              keep a  connection open,  regardless of the  activity on
-              said connection.  <DURATION> must be a positive integer,
-              specifying the amount of time  to wait.  When no timeout
-              value is  set (either  active or inactive),  h2load will
-              keep  a  connection  open indefinitely,  waiting  for  a
-              response.
+			  Specifies  the maximum  time that  h2load is  willing to
+			  keep a  connection open,  regardless of the  activity on
+			  said connection.  <DURATION> must be a positive integer,
+			  specifying the amount of time  to wait.  When no timeout
+			  value is  set (either  active or inactive),  h2load will
+			  keep  a  connection  open indefinitely,  waiting  for  a
+			  response.
   -N, --connection-inactivity-timeout=<DURATION>
-              Specifies the amount  of time that h2load  is willing to
-              wait to see activity  on a given connection.  <DURATION>
-              must  be a  positive integer,  specifying the  amount of
-              time  to wait.   When no  timeout value  is set  (either
-              active or inactive), h2load  will keep a connection open
-              indefinitely, waiting for a response.
+			  Specifies the amount  of time that h2load  is willing to
+			  wait to see activity  on a given connection.  <DURATION>
+			  must  be a  positive integer,  specifying the  amount of
+			  time  to wait.   When no  timeout value  is set  (either
+			  active or inactive), h2load  will keep a connection open
+			  indefinitely, waiting for a response.
   --timing-script-file=<PATH>
-              Path of a file containing one or more lines separated by
-              EOLs.  Each script line is composed of two tab-separated
-              fields.  The first field represents the time offset from
-              the start of execution, expressed as a positive value of
-              milliseconds  with microsecond  resolution.  The  second
-              field represents the URI.  This option will disable URIs
-              getting from  command-line.  If '-' is  given as <PATH>,
-              script lines will be read  from stdin.  Script lines are
-              used in order for each client.   If -n is given, it must
-              be less  than or  equal to the  number of  script lines,
-              larger values are clamped to the number of script lines.
-              If -n is not given,  the number of requests will default
-              to the  number of  script lines.   The scheme,  host and
-              port defined in  the first URI are  used solely.  Values
-              contained  in  other  URIs,  if  present,  are  ignored.
-              Definition of a  base URI overrides all  scheme, host or
-              port values.
+			  Path of a file containing one or more lines separated by
+			  EOLs.  Each script line is composed of two tab-separated
+			  fields.  The first field represents the time offset from
+			  the start of execution, expressed as a positive value of
+			  milliseconds  with microsecond  resolution.  The  second
+			  field represents the URI.  This option will disable URIs
+			  getting from  command-line.  If '-' is  given as <PATH>,
+			  script lines will be read  from stdin.  Script lines are
+			  used in order for each client.   If -n is given, it must
+			  be less  than or  equal to the  number of  script lines,
+			  larger values are clamped to the number of script lines.
+			  If -n is not given,  the number of requests will default
+			  to the  number of  script lines.   The scheme,  host and
+			  port defined in  the first URI are  used solely.  Values
+			  contained  in  other  URIs,  if  present,  are  ignored.
+			  Definition of a  base URI overrides all  scheme, host or
+			  port values.
   -B, --base-uri=(<URI>|unix:<PATH>)
-              Specify URI from which the scheme, host and port will be
-              used  for  all requests.   The  base  URI overrides  all
-              values  defined either  at  the command  line or  inside
-              input files.  If argument  starts with "unix:", then the
-              rest  of the  argument will  be treated  as UNIX  domain
-              socket path.   The connection is made  through that path
-              instead of TCP.   In this case, scheme  is inferred from
-              the first  URI appeared  in the  command line  or inside
-              input files as usual.
+			  Specify URI from which the scheme, host and port will be
+			  used  for  all requests.   The  base  URI overrides  all
+			  values  defined either  at  the command  line or  inside
+			  input files.  If argument  starts with "unix:", then the
+			  rest  of the  argument will  be treated  as UNIX  domain
+			  socket path.   The connection is made  through that path
+			  instead of TCP.   In this case, scheme  is inferred from
+			  the first  URI appeared  in the  command line  or inside
+			  input files as usual.
   --npn-list=<LIST>
-              Comma delimited list of  ALPN protocol identifier sorted
-              in the  order of preference.  That  means most desirable
-              protocol comes  first.  This  is used  in both  ALPN and
-              NPN.  The parameter must be  delimited by a single comma
-              only  and any  white spaces  are  treated as  a part  of
-              protocol string.
-              Default: )"
+			  Comma delimited list of  ALPN protocol identifier sorted
+			  in the  order of preference.  That  means most desirable
+			  protocol comes  first.  This  is used  in both  ALPN and
+			  NPN.  The parameter must be  delimited by a single comma
+			  only  and any  white spaces  are  treated as  a part  of
+			  protocol string.
+			  Default: )"
         << DEFAULT_NPN_LIST << R"(
   --h1        Short        hand         for        --npn-list=http/1.1
-              --no-tls-proto=http/1.1,    which   effectively    force
-              http/1.1 for both http and https URI.
+			  --no-tls-proto=http/1.1,    which   effectively    force
+			  http/1.1 for both http and https URI.
   --header-table-size=<SIZE>
-              Specify decoder header table size.
-              Default: )"
+			  Specify decoder header table size.
+			  Default: )"
         << util::utos_unit(config.header_table_size) << R"(
   --encoder-header-table-size=<SIZE>
-              Specify encoder header table size.  The decoder (server)
-              specifies  the maximum  dynamic table  size it  accepts.
-              Then the negotiated dynamic table size is the minimum of
-              this option value and the value which server specified.
-              Default: )"
+			  Specify encoder header table size.  The decoder (server)
+			  specifies  the maximum  dynamic table  size it  accepts.
+			  Then the negotiated dynamic table size is the minimum of
+			  this option value and the value which server specified.
+			  Default: )"
         << util::utos_unit(config.encoder_header_table_size) << R"(
   --log-file=<PATH>
-              Write per-request information to a file as tab-separated
-              columns: start  time as  microseconds since  epoch; HTTP
-              status code;  microseconds until end of  response.  More
-              columns may be added later.  Rows are ordered by end-of-
-              response  time when  using  one worker  thread, but  may
-              appear slightly  out of order with  multiple threads due
-              to buffering.  Status code is -1 for failed streams.
+			  Write per-request information to a file as tab-separated
+			  columns: start  time as  microseconds since  epoch; HTTP
+			  status code;  microseconds until end of  response.  More
+			  columns may be added later.  Rows are ordered by end-of-
+			  response  time when  using  one worker  thread, but  may
+			  appear slightly  out of order with  multiple threads due
+			  to buffering.  Status code is -1 for failed streams.
   -v, --verbose
-              Output debug information.
+			  Output debug information.
   --version   Display version information and exit.
   -h, --help  Display this help and exit.
 
@@ -1961,7 +2047,9 @@ Options:
 }
 } // namespace
 
+
 int main(int argc, char **argv) {
+
     tls::libssl_init();
 
 #ifndef NOTHREADS
@@ -1970,10 +2058,20 @@ int main(int argc, char **argv) {
 
     std::string datafile;
     std::string logfile;
+
+    std::string sofaRpcClassname;
+    std::string sofaRpcHeaderArg;
+    std::string sofaRpcContent;
+    size_t sofaRpcTimeout;
+
     bool nreqs_set_manually = false;
     while (1) {
         static int flag = 0;
         constexpr static option long_options[] = {
+            {"sofaRpcClassName", required_argument, nullptr, 'e'},
+            {"sofaRpcHeader", required_argument, nullptr, 'a'},
+            {"sofaRpcContent", required_argument, nullptr, 'o'},
+            {"sofaRpcTimeout", required_argument, nullptr, 'k'},
             {"requests", required_argument, nullptr, 'n'},
             {"clients", required_argument, nullptr, 'c'},
             {"data", required_argument, nullptr, 'd'},
@@ -2001,11 +2099,12 @@ int main(int argc, char **argv) {
             {"encoder-header-table-size", required_argument, &flag, 8},
             {"warm-up-time", required_argument, &flag, 9},
             {"log-file", required_argument, &flag, 10},
+            {"qps", required_argument, &flag, 11},
             {nullptr, 0, nullptr, 0}};
         int option_index = 0;
-        auto c = getopt_long(argc, argv,
-                             "hvW:c:d:m:n:p:t:w:H:i:r:T:N:D:B:", long_options,
-                             &option_index);
+        auto c =
+            getopt_long(argc, argv, "hvW:c:d:m:n:p:t:w:H:i:r:T:N:D:B:e:a:o:k:",
+                        long_options, &option_index);
         if (c == -1) {
             break;
         }
@@ -2077,17 +2176,32 @@ int main(int argc, char **argv) {
             util::inp_strlower(config.custom_headers.back().name);
             break;
         }
+        case 'e':
+            sofaRpcClassname = optarg;
+            // std::cout << sofaRpcClassname << std::endl;
+            break;
+        case 'a':
+            sofaRpcHeaderArg = optarg;
+            // std::cout << sofaRpcHeaderArg << std::endl;
+            break;
+        case 'o':
+            sofaRpcContent = optarg;
+            break;
+        case 'k':
+            sofaRpcTimeout = strtoul(optarg, nullptr, 10);
+            // std::cout << sofaRpcTimeout << std::endl;
+            break;
         case 'i':
             config.ifile = optarg;
             break;
         case 'p': {
             auto proto = StringRef{optarg};
-            if (util::strieq(
-                    StringRef::from_lit(NGHTTP2_CLEARTEXT_PROTO_VERSION_ID),
-                    proto)) {
+            if (util::strieq(StringRef::from_lit(NGHTTP2_CLEARTEXT_PROTO_VERSION_ID), proto)) {
                 config.no_tls_proto = Config::PROTO_HTTP2;
             } else if (util::strieq(NGHTTP2_H1_1, proto)) {
                 config.no_tls_proto = Config::PROTO_HTTP1_1;
+            } else if (util::strieq(SOFARPC, proto)) {
+                config.no_tls_proto = Config::PROTO_SOFARPC;
             } else {
                 std::cerr << "-p: unsupported protocol " << proto << std::endl;
                 exit(EXIT_FAILURE);
@@ -2240,6 +2354,11 @@ int main(int argc, char **argv) {
                 // --log-file
                 logfile = optarg;
                 break;
+            case 11:
+                // --qps
+                config.qps = strtoul(optarg, nullptr, 10);
+                // std::cout << "qps: " << config.qps << std::endl;
+                break;
             }
             break;
         default:
@@ -2330,6 +2449,21 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
+    if (config.is_qps_mode() && config.is_rate_mode()) {
+        std::cerr << "-r, --qps: they are mutually exclusive." << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (config.is_qps_mode() && config.duration == 0) {
+        std::cerr << "duration(-D) must be positive in --qps mode" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (config.is_qps_mode() && config.qps / qps_update_per_second / config.max_concurrent_streams < config.nthreads) {
+        std::cerr << "qps mode too much thread" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
     if (config.is_timing_based_mode() && config.is_rate_mode()) {
         std::cerr << "-r, -D: they are mutually exclusive." << std::endl;
         exit(EXIT_FAILURE);
@@ -2371,7 +2505,7 @@ int main(int argc, char **argv) {
         exit(EXIT_FAILURE);
     }
 
-    if (config.nclients < config.nthreads) {
+    if (config.nclients < config.nthreads && !config.is_qps_mode()) {
         std::cerr
             << "-c, -t: the number of clients must be greater than or equal "
             << "to the number of threads." << std::endl;
@@ -2515,6 +2649,7 @@ int main(int argc, char **argv) {
 
     config.h1reqs.reserve(reqlines.size());
     config.nva.reserve(reqlines.size());
+    config.sofarpcreqs.reserve(reqlines.size());
 
     for (auto &req : reqlines) {
         // For HTTP/1.1
@@ -2564,6 +2699,32 @@ int main(int argc, char **argv) {
         }
 
         config.nva.push_back(std::move(nva));
+
+
+        // For sofarpc   hardcode :)
+
+        sofaRpcClassname = "com.alipay.sofa.rpc.core.request.SofaRequest";
+        sofaRpcHeaderArg = "service:com.alipay.test.TestService:1.0";
+        sofaRpcTimeout = 5000;
+
+        std::string sofaRpcHeader = util::convertMap(sofaRpcHeaderArg);
+        char bytes[22];
+        bytes[0] = PROTOCOL_CODE_V1;                    // proto
+        bytes[1] = REQUEST;                             // type
+        util::putBigEndianI16(&bytes[2], RPC_REQUEST);  // cmdcode
+        bytes[4] = 1;                                   // version
+        bytes[9] = 1;                                           // codec
+        util::putBigEndianI32(&bytes[10], sofaRpcTimeout);            // timeout
+        util::putBigEndianI16(&bytes[14], sofaRpcClassname.size()); // classLen
+        util::putBigEndianI16(&bytes[16], sofaRpcHeader.size());    // headerLen
+        util::putBigEndianI32(&bytes[18], 1314);     // contentLen
+        std::string sofaReq(22, 0);
+        std::memcpy(&sofaReq[0], bytes, 22);
+        unsigned char contentbytes[] = {0x4f, 0xbc, 0x63, 0x6f, 0x6d, 0x2e, 0x61, 0x6c, 0x69, 0x70, 0x61, 0x79, 0x2e, 0x73, 0x6f, 0x66, 0x61, 0x2e, 0x72, 0x70, 0x63, 0x2e, 0x63, 0x6f, 0x72, 0x65, 0x2e, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x2e, 0x53, 0x6f, 0x66, 0x61, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x95, 0x0d, 0x74, 0x61, 0x72, 0x67, 0x65, 0x74, 0x41, 0x70, 0x70, 0x4e, 0x61, 0x6d, 0x65, 0x0a, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x4e, 0x61, 0x6d, 0x65, 0x17, 0x74, 0x61, 0x72, 0x67, 0x65, 0x74, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x55, 0x6e, 0x69, 0x71, 0x75, 0x65, 0x4e, 0x61, 0x6d, 0x65, 0x0c, 0x72, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x50, 0x72, 0x6f, 0x70, 0x73, 0x0d, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x41, 0x72, 0x67, 0x53, 0x69, 0x67, 0x73, 0x6f, 0x90, 0x4e, 0x07, 0x65, 0x63, 0x68, 0x6f, 0x53, 0x74, 0x72, 0x1f, 0x63, 0x6f, 0x6d, 0x2e, 0x61, 0x6c, 0x69, 0x70, 0x61, 0x79, 0x2e, 0x74, 0x65, 0x73, 0x74, 0x2e, 0x54, 0x65, 0x73, 0x74, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x3a, 0x31, 0x2e, 0x30, 0x4d, 0x08, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x04, 0x62, 0x6f, 0x6c, 0x74, 0x7a, 0x56, 0x74, 0x00, 0x07, 0x5b, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x6e, 0x01, 0x10, 0x6a, 0x61, 0x76, 0x61, 0x2e, 0x6c, 0x61, 0x6e, 0x67, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x7a, 0x53, 0x04, 0x4a, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34};
+        std::string contentStr(1314, 0);
+        std::memcpy(&contentStr[0], contentbytes, 1314);
+        sofaReq += sofaRpcClassname + sofaRpcHeader + contentStr;
+        config.sofarpcreqs.push_back(sofaReq);
     }
 
     // Don't DOS our server!
@@ -2597,6 +2758,19 @@ int main(int argc, char **argv) {
 
     size_t max_samples_per_thread =
         std::max(static_cast<size_t>(256), MAX_SAMPLES / config.nthreads);
+
+
+    size_t req_per_period = 0;
+    size_t req_per_period_per_thread = 0;
+    ssize_t req_per_period_rem = 0;
+    if (config.is_qps_mode()) {
+        req_per_period = config.qps / qps_update_per_second;
+        req_per_period_per_thread = req_per_period / config.nthreads;
+        req_per_period_rem = req_per_period % config.nthreads;
+        nclients_per_thread = req_per_period_per_thread / config.max_concurrent_streams;
+        nclients_rem = req_per_period_per_thread % config.max_concurrent_streams;
+        // std::cout << req_per_period << " " << req_per_period_per_thread << " " << nclients_per_thread << " " << nclients_rem << std::endl;
+    }
 
     std::mutex mu;
     std::condition_variable cv;
@@ -2633,6 +2807,14 @@ int main(int argc, char **argv) {
         workers.push_back(create_worker(i, ssl_ctx, nreqs, nclients, rate,
                                         max_samples_per_thread));
         auto &worker = workers.back();
+        if (config.is_qps_mode()) {
+            auto nqps = req_per_period_per_thread;
+            if (req_per_period_rem > 0) {
+                ++nqps;
+                --req_per_period_rem;
+            }
+            worker->set_req_per_period(nqps);
+        }
         futures.push_back(
             std::async(std::launch::async, [&worker, &mu, &cv, &ready]() {
                 {
@@ -2693,6 +2875,9 @@ int main(int argc, char **argv) {
         for (size_t i = 0; i < stats.status.size(); ++i) {
             stats.status[i] += s.status[i];
         }
+        for (size_t i = 0; i < stats.sofarpcStatus.size(); ++i) {
+            stats.sofarpcStatus[i] += s.sofarpcStatus[i];
+        }
     }
 
     auto ts = process_time_stats(workers);
@@ -2738,10 +2923,31 @@ requests: )" << stats.req_todo
               << stats.req_done << " done, " << stats.req_status_success
               << " succeeded, " << stats.req_failed << " failed, "
               << stats.req_error << " errored, " << stats.req_timedout
-              << R"( timeout
+              << " timeout";
+
+    if (config.no_tls_proto == Config::PROTO_SOFARPC) {
+    std::cout << std::fixed << std::setprecision(2) << R"(
+sofaRPC status codes: )" << "\n\t"
+              << stats.sofarpcStatus[RESPONSE_STATUS_SUCCESS] << " success, "
+              << stats.sofarpcStatus[RESPONSE_STATUS_ERROR] << " error, "
+              << stats.sofarpcStatus[RESPONSE_STATUS_SERVER_EXCEPTION] << " server exception, "
+              << stats.sofarpcStatus[RESPONSE_STATUS_UNKNOWN] << " unknown\n\t"
+              << stats.sofarpcStatus[RESPONSE_STATUS_SERVER_THREADPOOL_BUSY] << " server threadpool busy, "
+              << stats.sofarpcStatus[RESPONSE_STATUS_ERROR_COMM] << " error comm, "
+              << stats.sofarpcStatus[RESPONSE_STATUS_NO_PROCESSOR] << " no processor, "
+              << stats.sofarpcStatus[RESPONSE_STATUS_TIMEOUT] << " timeout\n\t"
+              << stats.sofarpcStatus[RESPONSE_STATUS_CLIENT_SEND_ERROR] << " client send error, "
+              << stats.sofarpcStatus[RESPONSE_STATUS_CODEC_EXCEPTION] << " codec exception, "
+              << stats.sofarpcStatus[RESPONSE_STATUS_CONNECTION_CLOSED] << " connection closed, "
+              << stats.sofarpcStatus[RESPONSE_STATUS_SERVER_SERIAL_EXCEPTION] << " server serial exception\n\t"
+              << stats.sofarpcStatus[RESPONSE_STATUS_SERVER_DESERIAL_EXCEPTION] << " server deserial exception";
+    } else {
+    std::cout << std::fixed << std::setprecision(2) << R"(
 status codes: )"
               << stats.status[2] << " 2xx, " << stats.status[3] << " 3xx, "
-              << stats.status[4] << " 4xx, " << stats.status[5] << R"( 5xx
+              << stats.status[4] << " 4xx, " << stats.status[5] << " 5xx";
+    }
+    std::cout << std::fixed << std::setprecision(2) << R"(
 traffic: )" << util::utos_funit(stats.bytes_total)
               << "B (" << stats.bytes_total << ") total, "
               << util::utos_funit(stats.bytes_head) << "B (" << stats.bytes_head
@@ -2774,6 +2980,41 @@ time for request: )"
               << std::endl;
 
     SSL_CTX_free(ssl_ctx);
+
+    uint64_t rtt_min = std::numeric_limits<uint64_t>::max();
+    uint64_t rtt_max = std::numeric_limits<uint64_t>::min();
+    for (const auto & worker : workers) {
+        rtt_min = std::min(rtt_min, worker->rtt_min);
+        rtt_max = std::max(rtt_max, worker->rtt_max);
+    }
+    bool invalid = false;
+    if (rtt_min > rtt_max) {
+        rtt_min = rtt_max = 0;
+        invalid = true;
+    }
+    std::vector<uint64_t> rtts(rtt_max - rtt_min + 1, 0);
+    uint64_t rtt_counts = 0;
+    for (const auto & worker : workers) {
+        rtt_counts += worker->rtts.size();
+        for (auto i : worker->rtts)
+            ++rtts[i - rtt_min];
+    }
+    std::vector<double> percentiles{50.0, 75.0, 90.0, 99.0};
+    std::cout << "\n  Latency  Distribution" << std::endl;
+    for (int i = 0; i < percentiles.size(); i++) {
+        double percentile = percentiles[i];
+        uint64_t rank = std::round((percentile / 100.0) * rtt_counts + 0.5);
+        uint64_t total = 0;
+        uint64_t rtt = 0;
+        for (rtt = rtt_min; rtt <= rtt_max; ++rtt) {
+            total += rtts[rtt - rtt_min];
+            if (total >= rank) {
+                break;
+            }
+        }
+        std::cout << std::setw(5) << std::setprecision(0) << percentile << "%"
+                << std::setw(13) << (invalid ? "0us" : util::format_duration(double(rtt)/1000000.0)) << std::endl;
+    }
 
     if (config.log_fd != -1) {
         close(config.log_fd);

@@ -1590,6 +1590,100 @@ int daemonize(int nochdir, int noclose) {
 #endif // !defined(__APPLE__)
 }
 
+
+void putBigEndianI16(char *bytes, uint16_t s) {
+    bytes[0] = (char)((s >> 8) & 0xFF);
+    bytes[1] = (char)((s >> 0) & 0xFF);
+}
+
+void putBigEndianI32(char *bytes, int32_t i) {
+    bytes[0] = (char)((i >> 24) & 0xFF);
+    bytes[1] = (char)((i >> 16) & 0xFF);
+    bytes[2] = (char)((i >> 8) & 0xFF);
+    bytes[3] = (char)((i >> 0) & 0xFF);
+}
+
+uint16_t getBigEndianI16(char *bytes) {
+    int32_t res = 0;
+    res |= ((bytes[0] & 0xFF) << 8);
+    res |= (bytes[1] & 0xFF);
+    return res;
+}
+
+int32_t getBigEndianI32(char *bytes) {
+    int64_t res = 0;
+    res |= ((bytes[0] & 0xff) << 24);
+    res |= ((bytes[1] & 0xff) << 16);
+    res |= ((bytes[2] & 0xff) << 8);
+    res |= (bytes[3] & 0xff);
+    return res;
+}
+
+size_t serializeMap(const std::unordered_map<std::string, std::string> & m, char * b) {
+    size_t offset = 0;
+    for (auto it = m.begin(); it != m.end(); it++)
+    {
+        auto key = it->first;
+
+        putBigEndianI32(b + offset, key.size());
+        offset += 4;
+
+        std::memcpy(b + offset, key.c_str(), key.size());
+        offset += key.size();
+
+        auto value = it->second;
+
+        putBigEndianI32(b + offset, value.size());
+        offset += 4;
+
+        std::memcpy(b + offset, value.c_str(), value.size());
+        offset += value.size();
+    }
+    return offset;
+}
+
+void deserializeMap(char * b, size_t totalLen, std::unordered_map<std::string, std::string> & m) {
+    for (int index = 0; index < totalLen;) {
+        int length = getBigEndianI32(b + index);
+        index +=  4;
+        std::string key(b + index, length);
+        index += length;
+
+        length = getBigEndianI32(b + index);
+        index += 4;
+        std::string value(b + index, length);
+        index += length;
+
+        m[key] = value;
+    }
+}
+
+
+std::string convertMap(const std::string & argMap) {
+    size_t totalsize = 0;
+    std::unordered_map<std::string, std::string> m;
+    const char * cstr = argMap.c_str();
+    for (int i = 0; i < argMap.size();) {
+        int j = i;
+        while (argMap[j] != ';' && j < argMap.size()) ++j;
+        int k = i;
+        while (argMap[k] != ':' && k < j) ++k;
+        if (k == j)
+            return "";
+        std::string key(cstr + i, k - i);
+        std::string value(cstr + k + 1, j - k - 1);
+        m[key] = value;
+        // std::cout << "convertMap: " << key << " " << value << std::endl;
+        i = j + 1;
+        totalsize += 4 + key.size() + 4 + value.size();
+    }
+    char * b = new char[totalsize];
+    serializeMap(m, b);
+    std::string res(b, totalsize);
+    delete []b;
+    return res;
+}
+
 } // namespace util
 
 } // namespace nghttp2

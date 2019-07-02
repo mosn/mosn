@@ -46,6 +46,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "url-parser/url_parser.h"
 
@@ -69,6 +70,8 @@ constexpr auto NGHTTP2_H2_14 = StringRef::from_lit("h2-14");
 
 constexpr auto NGHTTP2_H1_1_ALPN = StringRef::from_lit("\x8http/1.1");
 constexpr auto NGHTTP2_H1_1 = StringRef::from_lit("http/1.1");
+
+constexpr auto SOFARPC = StringRef::from_lit("sofarpc");
 
 constexpr size_t NGHTTP2_MAX_UINT64_DIGITS = str_size("18446744073709551615");
 
@@ -777,6 +780,19 @@ std::mt19937 make_mt19937();
 // daemonize calls daemon(3).  If __APPLE__ is defined, it implements
 // daemon() using fork().
 int daemonize(int nochdir, int noclose);
+
+
+
+void putBigEndianI16(char *bytes, uint16_t s);
+void putBigEndianI32(char *bytes, int32_t s);
+
+uint16_t getBigEndianI16(char *bytes);
+int32_t getBigEndianI32(char *bytes);
+
+size_t serializeMap(const std::unordered_map<std::string, std::string> & m, char * b);
+void deserializeMap(char * b, size_t totalLen, std::unordered_map<std::string, std::string> & m);
+
+std::string convertMap(const std::string & argMap);
 
 } // namespace util
 
