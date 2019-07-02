@@ -83,7 +83,7 @@ func (ch *connHandler) UpdateClusterConfig(clusters []v2.Cluster) error {
 }
 
 // ClusterHostFactoryCb
-func (ch *connHandler) UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error {
+func (ch *connHandler) UpdateClusterHost(cluster string, hosts []v2.Host) error {
 	return ch.clusterManager.UpdateClusterHosts(cluster, hosts)
 }
 

@@ -1262,9 +1262,6 @@ func (s *downStream) DownstreamContext() context.Context {
 }
 
 func (s *downStream) giveStream() {
-	if s.snapshot != nil {
-		s.proxy.clusterManager.PutClusterSnapshot(s.snapshot)
-	}
 	if atomic.LoadUint32(&s.reuseBuffer) != 1 {
 		return
 	}

@@ -40,7 +40,7 @@ import (
 | e6    | prod  | 1.1     |     bigmem
 | e7    | dev   | 1.2-pre |     std
 */
-func ExampleHostConfigs() (hosts []v2.Host) {
+func exampleHostConfigs() (hosts []v2.Host) {
 	metaDatas := []map[string]string{
 		map[string]string{
 			"stage":   "prod",
@@ -119,7 +119,7 @@ func createHostset(cfg []v2.Host) *hostSet {
     ]
 */
 // mosn's config format is different from envoy
-func ExampleSubsetConfig() *v2.LBSubsetConfig {
+func exampleSubsetConfig() *v2.LBSubsetConfig {
 	return &v2.LBSubsetConfig{
 		SubsetSelectors: [][]string{
 			[]string{
@@ -149,7 +149,7 @@ func ExampleSubsetConfig() *v2.LBSubsetConfig {
 // version->1.0->xlarge->true->[e1]
 // version->1.1->[e3,e4,e6]
 // version->1.2-pre->[e7]
-var ExampleResult = map[string][]string{
+var exampleResult = map[string][]string{
 	"stage->dev->type->std->":        []string{"e7"},
 	"stage->dev->version->1.2-pre->": []string{"e7"},
 	"stage->prod->type->std->":       []string{"e1", "e2", "e3", "e4"},
@@ -232,14 +232,14 @@ func newSubsetLoadBalancer(lbType types.LoadBalancerType, hosts *hostSet, stats 
 
 // create a subset as expected, see example
 func TestNewSubsetLoadBalancer(t *testing.T) {
-	ps := createHostset(ExampleHostConfigs())
-	lb := newSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetLoadBalancer"), NewLBSubsetInfo(ExampleSubsetConfig()))
+	ps := createHostset(exampleHostConfigs())
+	lb := newSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetLoadBalancer"), NewLBSubsetInfo(exampleSubsetConfig()))
 	subSet := lb.subSets
 	result := &subSetMapResult{
 		result: map[string][]string{},
 	}
 	result.RangeSubsetMap("", subSet)
-	if !resultMapEqual(result.result, ExampleResult) {
+	if !resultMapEqual(result.result, exampleResult) {
 		t.Errorf("subset tree created is not expected, %v", result.result)
 	}
 }
@@ -248,8 +248,8 @@ func TestNewSubsetLoadBalancer(t *testing.T) {
 // case1: stage:prod, version:1.0 shoud find e1,e2,e5
 // case2: stage:prod: should find nil
 func TestNewSubsetChooseHost(t *testing.T) {
-	ps := createHostset(ExampleHostConfigs())
-	lb := newSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetChooseHost"), NewLBSubsetInfo(ExampleSubsetConfig()))
+	ps := createHostset(exampleHostConfigs())
+	lb := newSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetChooseHost"), NewLBSubsetInfo(exampleSubsetConfig()))
 	ctx1 := newMockLbContext(map[string]string{
 		"stage":   "prod",
 		"version": "1.0",
@@ -273,7 +273,7 @@ func TestNewSubsetChooseHost(t *testing.T) {
 
 // If selectors not configured the host label, the host will not be put in any subset
 func TestNoSubsetHost(t *testing.T) {
-	ps := createHostset(ExampleHostConfigs())
+	ps := createHostset(exampleHostConfigs())
 	cfg := &v2.LBSubsetConfig{
 		SubsetSelectors: [][]string{
 			[]string{
@@ -310,7 +310,7 @@ func TestNoSubsetHost(t *testing.T) {
 // TestFallbackWithDefaultSubset configure default subset as fallback
 // if a ctx is not matched the subset, use the fallback instead
 func TestFallbackWithDefaultSubset(t *testing.T) {
-	ps := createHostset(ExampleHostConfigs())
+	ps := createHostset(exampleHostConfigs())
 	// only create subset with version and xlarge
 	// if not matched, use default subset: stage:dev
 	cfg := &v2.LBSubsetConfig{

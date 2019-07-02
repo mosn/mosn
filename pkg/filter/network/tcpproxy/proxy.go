@@ -143,8 +143,6 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
 	p.requestInfo.SetUpstreamLocalAddress(upstreamConnection.LocalAddr())
-	// TODO: snapshot lifecycle
-	p.clusterManager.PutClusterSnapshot(clusterSnapshot)
 
 	// TODO: update upstream stats
 

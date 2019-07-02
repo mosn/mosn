@@ -129,16 +129,6 @@ func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
 	hc.start()
 }
 
-func (hc *healthChecker) OnClusterMemberUpdate(hostsAdd []types.Host, hostsDel []types.Host) {
-	for _, h := range hostsAdd {
-		hc.startCheck(h)
-	}
-	for _, h := range hostsDel {
-		hc.stopCheck(h)
-	}
-	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
-}
-
 func (hc *healthChecker) startCheck(host types.Host) {
 	addr := host.AddressString()
 	if _, ok := hc.checkers[addr]; !ok {

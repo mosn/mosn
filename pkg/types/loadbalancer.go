@@ -36,6 +36,9 @@ const (
 type LoadBalancer interface {
 	// ChooseHost chooses a host based on the load balancer context
 	ChooseHost(context LoadBalancerContext) Host
+	// IsExistsHosts checks the load balancer contains hosts or not
+	// It will not be effect the load balancer's index
+	IsExistsHosts(MetadataMatchCriteria) bool
 }
 
 // LoadBalancerContext contains the information for choose a host

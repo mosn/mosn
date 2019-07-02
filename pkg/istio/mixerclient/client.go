@@ -93,7 +93,6 @@ func (c *mixerClient) tryConnect(retry bool) error {
 		log.DefaultLogger.Errorf("%s", err.Error())
 		return err
 	}
-	defer mngAdaper.PutClusterSnapshot(snapshot)
 
 	hosts := snapshot.HostSet().Hosts()
 	if len(hosts) == 0 {

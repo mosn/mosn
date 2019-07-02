@@ -47,6 +47,10 @@ func (lb *headerLB) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	return lb.randLB.ChooseHost(ctx)
 }
 
+func (lb *headerLB) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+	return len(lb.hostSet.Hosts()) > 0
+}
+
 type headerLBCfg struct {
 	key string
 }
@@ -70,7 +74,7 @@ func TestRegisterNewLB(t *testing.T) {
 	RegisterLBType(headerKey, cfg.newLB)
 	// init hosts
 	// reuse subset test config
-	hs := createHostset(ExampleHostConfigs())
+	hs := createHostset(exampleHostConfigs())
 	lb := NewLoadBalancer(headerKey, hs)
 	// expected headerLB
 	if _, ok := lb.(*headerLB); !ok {
@@ -100,7 +104,7 @@ func TestRegisterNewLB(t *testing.T) {
 
 	// subset is also valid
 	//  reuse subset test config
-	subsetInfo := NewLBSubsetInfo(ExampleSubsetConfig())
+	subsetInfo := NewLBSubsetInfo(exampleSubsetConfig())
 	sublb := newSubsetLoadBalancer(headerKey, hs, newClusterStats("test"), subsetInfo)
 	// choose host is valid
 	// 1. ctx contains subset matched config

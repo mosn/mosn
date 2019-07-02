@@ -189,15 +189,5 @@ func (snapshot *clusterSnapshot) LoadBalancer() types.LoadBalancer {
 }
 
 func (snapshot *clusterSnapshot) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
-	if sublb, ok := snapshot.lb.(*subsetLoadBalancer); ok {
-		if metadata != nil {
-			matchCriteria := metadata.MetadataMatchCriteria()
-			entry := sublb.findSubset(matchCriteria)
-			empty := (entry == nil || !entry.Active())
-			return !empty
-		}
-	}
-	hosts := snapshot.hostSet.Hosts()
-	return len(hosts) > 0
-
+	return snapshot.lb.IsExistsHosts(metadata)
 }

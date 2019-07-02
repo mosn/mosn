@@ -28,8 +28,8 @@ import (
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
 //
-//           1              * | 1                1 | 1                *| 1          *
-//   clusterManager --------- cluster  --------- prioritySet --------- hostSet------hosts
+//           1              * | 1                          1 | 1          *
+//   clusterManager --------- cluster  --------- --------- hostSet------hosts
 
 // ClusterManager manages connection pools and load balancing for upstream clusters.
 type ClusterManager interface {
@@ -42,7 +42,7 @@ type ClusterManager interface {
 	// Get, use to get the snapshot of a cluster
 	GetClusterSnapshot(context context.Context, cluster string) ClusterSnapshot
 
-	// PutClusterSnapshot is a deprecated api, just keeps it for compatible
+	// Deprecated: PutClusterSnapshot exists for historical compatibility and should not be used.
 	PutClusterSnapshot(ClusterSnapshot)
 
 	// UpdateClusterHosts used to update cluster's hosts
@@ -293,9 +293,8 @@ type ClusterConfigFactoryCb interface {
 	UpdateClusterConfig(configs []v2.Cluster) error
 }
 
-// ClusterHostFactoryCb is a callback interface
 type ClusterHostFactoryCb interface {
-	UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error
+	UpdateClusterHost(cluster string, hosts []v2.Host) error
 }
 
 type ClusterManagerFilter interface {
