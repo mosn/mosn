@@ -1618,10 +1618,10 @@ int32_t getBigEndianI32(char *bytes) {
     return res;
 }
 
-size_t serializeMap(const std::unordered_map<std::string, std::string> &m,
-                    char *b) {
+size_t serializeMap(const std::unordered_map<std::string, std::string> & m, char * b) {
     size_t offset = 0;
-    for (auto it = m.begin(); it != m.end(); it++) {
+    for (auto it = m.begin(); it != m.end(); it++)
+    {
         auto key = it->first;
 
         putBigEndianI32(b + offset, key.size());
@@ -1641,11 +1641,10 @@ size_t serializeMap(const std::unordered_map<std::string, std::string> &m,
     return offset;
 }
 
-void deserializeMap(char *b, size_t totalLen,
-                    std::unordered_map<std::string, std::string> &m) {
+void deserializeMap(char * b, size_t totalLen, std::unordered_map<std::string, std::string> & m) {
     for (int index = 0; index < totalLen;) {
         int length = getBigEndianI32(b + index);
-        index += 4;
+        index +=  4;
         std::string key(b + index, length);
         index += length;
 
@@ -1658,17 +1657,16 @@ void deserializeMap(char *b, size_t totalLen,
     }
 }
 
-std::string convertMap(const std::string &argMap) {
+
+std::string convertMap(const std::string & argMap) {
     size_t totalsize = 0;
     std::unordered_map<std::string, std::string> m;
-    const char *cstr = argMap.c_str();
+    const char * cstr = argMap.c_str();
     for (int i = 0; i < argMap.size();) {
         int j = i;
-        while (argMap[j] != ';' && j < argMap.size())
-            ++j;
+        while (argMap[j] != ';' && j < argMap.size()) ++j;
         int k = i;
-        while (argMap[k] != ':' && k < j)
-            ++k;
+        while (argMap[k] != ':' && k < j) ++k;
         if (k == j)
             return "";
         std::string key(cstr + i, k - i);
@@ -1678,10 +1676,10 @@ std::string convertMap(const std::string &argMap) {
         i = j + 1;
         totalsize += 4 + key.size() + 4 + value.size();
     }
-    char *b = new char[totalsize];
+    char * b = new char[totalsize];
     serializeMap(m, b);
     std::string res(b, totalsize);
-    delete[] b;
+    delete []b;
     return res;
 }
 

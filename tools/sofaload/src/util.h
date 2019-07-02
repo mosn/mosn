@@ -45,8 +45,8 @@
 #include <random>
 #include <sstream>
 #include <string>
-#include <unordered_map>
 #include <vector>
+#include <unordered_map>
 
 #include "url-parser/url_parser.h"
 
@@ -781,18 +781,18 @@ std::mt19937 make_mt19937();
 // daemon() using fork().
 int daemonize(int nochdir, int noclose);
 
+
+
 void putBigEndianI16(char *bytes, uint16_t s);
 void putBigEndianI32(char *bytes, int32_t s);
 
 uint16_t getBigEndianI16(char *bytes);
 int32_t getBigEndianI32(char *bytes);
 
-size_t serializeMap(const std::unordered_map<std::string, std::string> &m,
-                    char *b);
-void deserializeMap(char *b, size_t totalLen,
-                    std::unordered_map<std::string, std::string> &m);
+size_t serializeMap(const std::unordered_map<std::string, std::string> & m, char * b);
+void deserializeMap(char * b, size_t totalLen, std::unordered_map<std::string, std::string> & m);
 
-std::string convertMap(const std::string &argMap);
+std::string convertMap(const std::string & argMap);
 
 } // namespace util
 
