@@ -84,6 +84,8 @@ type connection struct {
 	writeSchedChan chan bool // writable if not scheduled yet.
 
 	stats              *types.ConnectionStats
+	readCollector      metrics.Counter
+	writeCollector     metrics.Counter
 	lastBytesSizeRead  int64
 	lastWriteSizeWrite int64
 
@@ -116,6 +118,8 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 			WriteTotal:    metrics.NewCounter(),
 			WriteBuffered: metrics.NewGauge(),
 		},
+		readCollector:  metrics.NilCounter{},
+		writeCollector: metrics.NilCounter{},
 	}
 
 	// store fd
@@ -139,6 +143,9 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	conn.filterManager = newFilterManager(conn)
+	// add connection idle checker
+	checker := newIdleChecker(conn)
+	conn.AddConnectionEventListener(checker)
 
 	return conn
 }
@@ -394,6 +401,7 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 
 	if bytesRead > 0 {
 		c.stats.ReadTotal.Inc(bytesRead)
+		c.readCollector.Inc(bytesRead)
 	}
 
 	if bytesBufSize != c.lastBytesSizeRead {
@@ -616,6 +624,7 @@ func (c *connection) updateWriteBuffStats(bytesWrite int64, bytesBufSize int64) 
 
 	if bytesWrite > 0 {
 		c.stats.WriteTotal.Inc(bytesWrite)
+		c.writeCollector.Inc(bytesWrite)
 	}
 
 	if bytesBufSize != c.lastWriteSizeWrite {
@@ -769,8 +778,9 @@ func (c *connection) SetLocalAddress(localAddress net.Addr, restored bool) {
 	c.localAddressRestored = restored
 }
 
-func (c *connection) SetStats(stats *types.ConnectionStats) {
-	c.stats = stats
+func (c *connection) SetCollector(read, write metrics.Counter) {
+	c.readCollector = read
+	c.writeCollector = write
 }
 
 func (c *connection) LocalAddressRestored() bool {
@@ -825,7 +835,9 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 				WriteTotal:    metrics.NewCounter(),
 				WriteBuffered: metrics.NewGauge(),
 			},
-			tlsMng: tlsMng,
+			readCollector:  metrics.NilCounter{},
+			writeCollector: metrics.NilCounter{},
+			tlsMng:         tlsMng,
 		},
 	}
 

@@ -24,6 +24,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	jsoniter "github.com/json-iterator/go"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
@@ -34,8 +35,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/stream"
 	mosnsync "sofastack.io/sofa-mosn/pkg/sync"
 	"sofastack.io/sofa-mosn/pkg/types"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/rcrowley/go-metrics"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -189,13 +188,8 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 
-	// bytes total adds all connections data together, but buffered data not
-	cb.Connection().SetStats(&types.ConnectionStats{
-		ReadTotal:     p.stats.DownstreamBytesReadTotal,
-		ReadBuffered:  metrics.NewGauge(),
-		WriteTotal:    p.stats.DownstreamBytesWriteTotal,
-		WriteBuffered: metrics.NewGauge(),
-	})
+	// bytes total adds all connections data together
+	cb.Connection().SetCollector(p.stats.DownstreamBytesReadTotal, p.stats.DownstreamBytesWriteTotal)
 
 	p.stats.DownstreamConnectionTotal.Inc(1)
 	p.stats.DownstreamConnectionActive.Inc(1)

@@ -22,10 +22,11 @@ import (
 	"net"
 	"time"
 
+	"os"
+
+	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
-	"github.com/rcrowley/go-metrics"
-	"os"
 )
 
 //
@@ -274,9 +275,8 @@ type Connection interface {
 	// SetLocalAddress sets a local address
 	SetLocalAddress(localAddress net.Addr, restored bool)
 
-	// SetStats injects a connection stats
-	SetStats(stats *ConnectionStats)
-
+	// SetCollector set read/write mertics collectors
+	SetCollector(read, write metrics.Counter)
 	// LocalAddressRestored returns whether local address is restored
 	// TODO: unsupported now
 	LocalAddressRestored() bool
@@ -343,7 +343,7 @@ func (ce ConnectionEvent) ConnectFailure() bool {
 }
 
 // Default connection arguments
-const (
+var (
 	DefaultConnReadTimeout = 15 * time.Second
 )
 
