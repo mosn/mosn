@@ -39,11 +39,11 @@ const (
 type healthChecker struct {
 	//
 	sessionConfig       map[string]interface{}
-	cluster             types.Cluster
 	sessionFactory      types.HealthCheckSessionFactory
 	mutex               sync.Mutex
 	checkers            map[string]*sessionChecker
 	localProcessHealthy int64
+	hosts               []types.Host
 	stats               *healthCheckStats
 	// check config
 	timeout            time.Duration
@@ -55,7 +55,7 @@ type healthChecker struct {
 	hostCheckCallbacks []types.HealthCheckCb
 }
 
-func newHealthChecker(cfg v2.HealthCheck, cluster types.Cluster, f types.HealthCheckSessionFactory) types.HealthChecker {
+func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) types.HealthChecker {
 	timeout := DefaultTimeout
 	if cfg.Timeout != 0 {
 		timeout = cfg.Timeout
@@ -73,7 +73,6 @@ func newHealthChecker(cfg v2.HealthCheck, cluster types.Cluster, f types.HealthC
 		healthyThreshold:   cfg.HealthyThreshold,
 		unhealthyThreshold: cfg.UnhealthyThreshold,
 		//runtime and stats
-		cluster:            cluster,
 		rander:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		hostCheckCallbacks: []types.HealthCheckCb{},
 		sessionFactory:     f,
@@ -92,21 +91,28 @@ func newHealthChecker(cfg v2.HealthCheck, cluster types.Cluster, f types.HealthC
 }
 
 func (hc *healthChecker) Start() {
-	for _, hostSet := range hc.cluster.PrioritySet().HostSetsByPriority() {
-		hosts := hostSet.Hosts()
-		for _, h := range hosts {
-			hc.startCheck(h)
-		}
+	hc.mutex.Lock()
+	defer hc.mutex.Unlock()
+	hc.start()
+}
+
+func (hc *healthChecker) start() {
+	for _, h := range hc.hosts {
+		hc.startCheck(h)
 	}
 	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
+
 }
 
 func (hc *healthChecker) Stop() {
-	for _, hostSet := range hc.cluster.PrioritySet().HostSetsByPriority() {
-		hosts := hostSet.Hosts()
-		for _, h := range hosts {
-			hc.stopCheck(h)
-		}
+	hc.mutex.Lock()
+	defer hc.mutex.Unlock()
+	hc.stop()
+}
+
+func (hc *healthChecker) stop() {
+	for _, h := range hc.hosts {
+		hc.stopCheck(h)
 	}
 }
 
@@ -114,24 +120,17 @@ func (hc *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 	hc.hostCheckCallbacks = append(hc.hostCheckCallbacks, cb)
 }
 
-func (hc *healthChecker) OnClusterMemberUpdate(hostsAdd []types.Host, hostsDel []types.Host) {
-	for _, h := range hostsAdd {
-		hc.startCheck(h)
-	}
-	for _, h := range hostsDel {
-		hc.stopCheck(h)
-	}
-	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
-}
-
-func (hc *healthChecker) Add(host types.Host) {
-	hc.startCheck(host)
+// SetHealthCheckerHostSet reset the healthchecker's hosts
+func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
+	hc.mutex.Lock()
+	defer hc.mutex.Unlock()
+	hc.stop()
+	hc.hosts = hostSet.Hosts()
+	hc.start()
 }
 
 func (hc *healthChecker) startCheck(host types.Host) {
 	addr := host.AddressString()
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
 	if _, ok := hc.checkers[addr]; !ok {
 		s := hc.sessionFactory.NewSession(hc.sessionConfig, host)
 		if s == nil {
@@ -150,14 +149,8 @@ func (hc *healthChecker) startCheck(host types.Host) {
 	}
 }
 
-func (hc *healthChecker) Delete(host types.Host) {
-	hc.stopCheck(host)
-}
-
 func (hc *healthChecker) stopCheck(host types.Host) {
 	addr := host.AddressString()
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
 	if c, ok := hc.checkers[addr]; ok {
 		c.Stop()
 		delete(hc.checkers, addr)

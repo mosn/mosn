@@ -143,8 +143,6 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
 	p.requestInfo.SetUpstreamLocalAddress(upstreamConnection.LocalAddr())
-	// TODO: snapshot lifecycle
-	p.clusterManager.PutClusterSnapshot(clusterSnapshot)
 
 	// TODO: update upstream stats
 
@@ -413,10 +411,6 @@ func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 // LbContext is a types.LoadBalancerContext implementation
 type LbContext struct {
 	conn types.ReadFilterCallbacks
-}
-
-func (c *LbContext) ComputeHashKey() types.HashedValue {
-	return ""
 }
 
 func (c *LbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {

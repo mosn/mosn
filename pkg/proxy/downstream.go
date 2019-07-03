@@ -1240,11 +1240,6 @@ func (s *downStream) AddStreamAccessLog(accessLog types.AccessLog) {
 }
 
 // types.LoadBalancerContext
-// no use currently
-func (s *downStream) ComputeHashKey() types.HashedValue {
-	//return [16]byte{}
-	return ""
-}
 
 func (s *downStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	if nil != s.requestInfo.RouteEntry() {
@@ -1267,9 +1262,6 @@ func (s *downStream) DownstreamContext() context.Context {
 }
 
 func (s *downStream) giveStream() {
-	if s.snapshot != nil {
-		s.proxy.clusterManager.PutClusterSnapshot(s.snapshot)
-	}
 	if atomic.LoadUint32(&s.reuseBuffer) != 1 {
 		return
 	}
