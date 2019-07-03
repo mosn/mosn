@@ -343,7 +343,7 @@ func (ce ConnectionEvent) ConnectFailure() bool {
 }
 
 // Default connection arguments
-var (
+const (
 	DefaultConnReadTimeout = 15 * time.Second
 )
 

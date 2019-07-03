@@ -261,14 +261,14 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
 		if host.AddressString() == snew.hostConfig.Address {
-			t.Fatal("choose a unhealthy host")
+			t.Fatal("choose a unhealthy host:", host.Health())
 		}
 	}
 	// choose policy
 	for i := 0; i < 100; i++ {
 		host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
 		if host.AddressString() == snew.hostConfig.Address {
-			t.Fatal("choose a unhealthy host")
+			t.Fatal("choose a unhealthy host:", host.Health())
 		}
 	}
 	var delHosts []types.Host // host after deleted

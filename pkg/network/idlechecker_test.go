@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -47,6 +48,8 @@ func (h *mockHandler) OnNewConnection(ctx context.Context, conn types.Connection
 func (h *mockHandler) OnClose() {
 }
 
+const testAddress = "127.0.0.1:18080"
+
 func _createListener(address string) types.Listener {
 	addr, _ := net.ResolveTCPAddr("tcp", address)
 	lc := &v2.Listener{
@@ -60,7 +63,7 @@ func _createListener(address string) types.Listener {
 }
 
 func TestIdleChecker(t *testing.T) {
-	ln := _createListener("127.0.0.1:8080")
+	ln := _createListener(testAddress)
 	defer func() {
 		ln.Close(nil)
 		time.Sleep(time.Second) // wait listener really closed
@@ -72,16 +75,16 @@ func TestIdleChecker(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	// setup for test
 	defaultMaxIdleCount = 2
-	types.DefaultConnReadTimeout = time.Second
+	buffer.ConnReadTimeout = time.Second
 	// destroy for test
 	defer func() {
 		// reset
 		defaultMaxIdleCount = 6
-		types.DefaultConnReadTimeout = 15 * time.Second
+		buffer.ConnReadTimeout = 15 * time.Second
 	}()
 	// create a connection, send nothing, will be closed after a while
 	start := time.Now()
-	conn, err := net.Dial("tcp", "127.0.0.1:8080")
+	conn, err := net.Dial("tcp", testAddress)
 	if err != nil {
 		t.Fatalf("dial failed: %v", err)
 	}
@@ -97,8 +100,8 @@ func TestIdleChecker(t *testing.T) {
 			t.Fatal("expected a closed connection error, but got: ", err)
 		}
 		duration := time.Now().Sub(start)
-		if duration < time.Duration(defaultMaxIdleCount)*types.DefaultConnReadTimeout ||
-			duration > time.Duration(defaultMaxIdleCount+1)*types.DefaultConnReadTimeout {
+		if duration < time.Duration(defaultMaxIdleCount)*buffer.ConnReadTimeout ||
+			duration > time.Duration(defaultMaxIdleCount+1)*buffer.ConnReadTimeout {
 			t.Fatal("expected close connection when idle max, but close at %v", duration)
 		}
 	case <-time.After(5 * time.Second):
@@ -107,7 +110,7 @@ func TestIdleChecker(t *testing.T) {
 }
 
 func TestIdleCheckerWithData(t *testing.T) {
-	ln := _createListener("127.0.0.1:8080")
+	ln := _createListener(testAddress)
 	defer func() {
 		ln.Close(nil)
 		time.Sleep(time.Second) // wait listener really closed
@@ -120,14 +123,14 @@ func TestIdleCheckerWithData(t *testing.T) {
 	// setup for test
 	log.DefaultLogger.SetLogLevel(log.DEBUG)
 	defaultMaxIdleCount = 3
-	types.DefaultConnReadTimeout = time.Second
+	buffer.ConnReadTimeout = time.Second
 	// destroy for test
 	defer func() {
 		// reset
 		defaultMaxIdleCount = 6
-		types.DefaultConnReadTimeout = 15 * time.Second
+		buffer.ConnReadTimeout = 15 * time.Second
 	}()
-	conn, err := net.Dial("tcp", "127.0.0.1:8080")
+	conn, err := net.Dial("tcp", testAddress)
 	if err != nil {
 		t.Fatalf("dial failed: %v", err)
 	}
@@ -135,7 +138,7 @@ func TestIdleCheckerWithData(t *testing.T) {
 	// 2s send a data, clean the counter, never close the connection
 	// no data response, conn.Read never get data
 	go func() {
-		ticker := time.NewTicker(2 * types.DefaultConnReadTimeout)
+		ticker := time.NewTicker(2 * buffer.ConnReadTimeout)
 		for _ = range ticker.C {
 			conn.Write([]byte{0x01})
 		}
@@ -151,6 +154,7 @@ func TestIdleCheckerWithData(t *testing.T) {
 	case <-ch:
 		t.Fatal("connection read data or error, but expected not")
 	case <-time.After(10 * time.Second):
+		conn.Close()
 	}
 
 }
