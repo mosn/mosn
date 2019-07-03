@@ -56,7 +56,6 @@ func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, th
 		Threshold:    thres,
 		Callbacks:    []types.KeepAliveCallback{},
 		timeoutCount: 0,
-		idleFree:     newIdleFree(),
 		stop:         make(chan struct{}),
 		requests:     make(map[uint64]*keepAliveTimeout),
 		mutex:        sync.Mutex{},

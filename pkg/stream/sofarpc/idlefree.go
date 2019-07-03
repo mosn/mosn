@@ -40,6 +40,10 @@ func newIdleFree() *idleFree {
 }
 
 func (f *idleFree) CheckFree(id uint64) bool {
+	// empty idle free means never free
+	if f == nil {
+		return false
+	}
 	if atomic.LoadUint64(&f.lastStreamID)+1 == id {
 		if atomic.AddUint32(&f.idleCount, 1) >= f.maxIdleCount {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {

@@ -157,6 +157,7 @@ func TestKeepAliveIdleFree(t *testing.T) {
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
+	tc.KeepAlive.idleFree = newIdleFree()
 	var i uint32 = 0
 	for ; i < defaultMaxIdleCount; i++ {
 		tc.KeepAlive.SendKeepAlive()
@@ -182,6 +183,7 @@ func TestKeepAliveIdleFreeWithData(t *testing.T) {
 	}()
 	tc := newTestCase(t, 0, time.Second, 6)
 	defer tc.Server.Close()
+	tc.KeepAlive.idleFree = newIdleFree()
 	// 10ms a heartbeat, 400ms will send max count
 	go func() {
 		ticker := time.NewTicker(10 * time.Millisecond)
