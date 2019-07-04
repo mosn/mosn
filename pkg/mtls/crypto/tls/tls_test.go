@@ -357,6 +357,7 @@ func TestVerifyHostname(t *testing.T) {
 	}
 }
 
+/*
 func TestVerifyHostnameResumed(t *testing.T) {
 	testenv.MustHaveExternalNetwork(t)
 
@@ -381,6 +382,7 @@ func TestVerifyHostnameResumed(t *testing.T) {
 		c.Close()
 	}
 }
+*/
 
 func TestConnCloseBreakingWrite(t *testing.T) {
 	ln := newLocalListener(t)
