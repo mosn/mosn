@@ -364,7 +364,7 @@ func TestVerifyHostnameResumed(t *testing.T) {
 		ClientSessionCache: NewLRUClientSessionCache(32),
 	}
 	for i := 0; i < 2; i++ {
-		c, err := Dial("tcp", "www.google.com:https", config)
+		c, err := Dial("tcp", "mail.google.com:https", config)
 		if err != nil {
 			t.Fatalf("Dial #%d: %v", i, err)
 		}
@@ -375,8 +375,8 @@ func TestVerifyHostnameResumed(t *testing.T) {
 		if cs.VerifiedChains == nil {
 			t.Fatalf("Dial #%d: cs.VerifiedChains == nil", i)
 		}
-		if err := c.VerifyHostname("www.google.com"); err != nil {
-			t.Fatalf("verify www.google.com #%d: %v", i, err)
+		if err := c.VerifyHostname("mail.google.com"); err != nil {
+			t.Fatalf("verify mail.google.com #%d: %v", i, err)
 		}
 		c.Close()
 	}

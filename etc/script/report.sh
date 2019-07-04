@@ -3,7 +3,7 @@
 set -e
 echo "" > coverage.txt
 
-for d in $(go list ./pkg/... | grep -v mtls/crypto/tls); do
+for d in $(go list ./pkg/...); do
     echo "--------Run test package: $d"
     go test -v -coverprofile=profile.out -covermode=atomic $d
     echo "--------Finish test package: $d"
