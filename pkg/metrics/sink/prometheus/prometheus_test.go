@@ -36,7 +36,7 @@ import (
 type testAction int
 
 const (
-	countInc testAction = iota
+	countInc        testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate
@@ -57,6 +57,7 @@ func TestPrometheusMetrics(t *testing.T) {
 		actionValue int64
 	}{
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countInc, 1},
+		{"t1", map[string]string{"lbk1": "lbv1", "lbk2": "lbv2"}, "k1", countInc, 1},
 		{"t1", map[string]string{"lbk1": "lbv2"}, "k1", countInc, 1},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countDec, 1},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k2", countInc, 1},
@@ -125,20 +126,24 @@ func TestPrometheusMetrics(t *testing.T) {
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
-	if !bytes.Contains(body, []byte("lbk1_t1_k1{lbk1=\"lbv1\"} 0.0")) {
-		t.Error("lbk1_t1_k1{lbk1=\"lbv1\"} metric not correct")
+	if !bytes.Contains(body, []byte("t1_k1{lbk1=\"lbv1\"} 0.0")) {
+		t.Error("t1_k1{lbk1=\"lbv1\"} metric not correct")
 	}
 
-	if !bytes.Contains(body, []byte("lbk1_t1_k1{lbk1=\"lbv2\"} 1.0")) {
-		t.Error("lbk1_t1_k1{lbk1=\"lbv2\"} metric not correct")
+	if !bytes.Contains(body, []byte("t1_k1{lbk1=\"lbv1\",lbk2=\"lbv2\"} 1.0")) {
+		t.Error("t1_k1{lbk1=\"lbv1\",lbk2=\"lbv2\"} metric not correct")
 	}
 
-	if !bytes.Contains(body, []byte("lbk1_t1_k4_max{lbk1=\"lbv1\"} 4.0")) {
-		t.Error("lbk1_t1_k4_max{lbk1=\"lbv1\"} metric not correct")
+	if !bytes.Contains(body, []byte("t1_k1{lbk1=\"lbv2\"} 1.0")) {
+		t.Error("t1_k1{lbk1=\"lbv2\"} metric not correct")
 	}
 
-	if !bytes.Contains(body, []byte("lbk2_t1_k4_min{lbk2=\"lbv2\"} 2.0")) {
-		t.Error("lbk2_t1_k4_min{lbk2=\"lbv2\"} metric not correct")
+	if !bytes.Contains(body, []byte("t1_k4_max{lbk1=\"lbv1\"} 4.0")) {
+		t.Error("t1_k4_max{lbk1=\"lbv1\"} metric not correct")
+	}
+
+	if !bytes.Contains(body, []byte("t1_k4_min{lbk2=\"lbv2\"} 2.0")) {
+		t.Error("t1_k4_min{lbk2=\"lbv2\"} metric not correct")
 	}
 }
 
@@ -229,8 +234,8 @@ func TestPrometheusMetricsFilter(t *testing.T) {
 		t.Error("filter set key: k1 , but still flush")
 	}
 
-	if !bytes.Contains(body, []byte("lbk2_t1_k4_min{lbk2=\"lbv2\"} 2.0")) {
-		t.Error("lbk2_t1_k4_min{lbk2=\"lbv2\"} metric not correct")
+	if !bytes.Contains(body, []byte("t1_k4_min{lbk2=\"lbv2\"} 2.0")) {
+		t.Error("t1_k4_min{lbk2=\"lbv2\"} metric not correct")
 	}
 }
 
