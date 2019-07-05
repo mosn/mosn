@@ -156,7 +156,9 @@ func (c *connection) ID() uint64 {
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
-		c.AddConnectionEventListener(c.idleEventListener)
+		if c.idleEventListener != nil {
+			c.AddConnectionEventListener(c.idleEventListener)
+		}
 		if UseNetpollMode {
 			c.attachEventLoop(lctx)
 		} else {
