@@ -42,7 +42,7 @@ import (
 
 // Network related const
 const (
-	DefaultBufferReadCapacity = 1 << 0
+	DefaultBufferReadCapacity = 1 << 7
 )
 
 var idCounter uint64 = 1
@@ -313,7 +313,7 @@ func (c *connection) startReadLoop() {
 				err := c.doRead()
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
-						if c.readBuffer != nil && c.readBuffer.Len() == 0 {
+						if c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
 							c.readBuffer.Free()
 							c.readBuffer.Alloc(DefaultBufferReadCapacity)
 						}

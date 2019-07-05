@@ -92,7 +92,7 @@ func TransferServer(handler types.ConnectionHandler) {
 	}, nil)
 
 	select {
-	case <-time.After(2*TransferTimeout + types.DefaultConnReadTimeout + 10*time.Second):
+	case <-time.After(2*TransferTimeout + 2*types.DefaultConnReadTimeout + 10*time.Second):
 		log.DefaultLogger.Infof("[network] [transfer] [server] TransferServer exit")
 		return
 	}
