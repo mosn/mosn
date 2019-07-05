@@ -79,13 +79,14 @@ func TestKeepAlive(t *testing.T) {
 	// interval 15s, sleep to wait 2 heart beat
 	time.Sleep(2*types.DefaultConnReadTimeout + 3*time.Second)
 	// send request interval, to stop keep avlie
-	st := make(chan struct{})
+	st := make(chan bool)
 	go func() {
 		ticker := time.NewTicker(3 * time.Second)
 		for {
 			select {
 			case <-st:
 				ticker.Stop()
+				st <- true
 				return
 			case <-ticker.C:
 				client.SendRequest()
@@ -97,9 +98,10 @@ func TestKeepAlive(t *testing.T) {
 	if server.HeartBeatCount != 2 {
 		t.Errorf("server receive %d heart beats", server.HeartBeatCount)
 	}
+	// stop the ticker goroutine and then stop the case
+	st <- true
+	<-st
 	// stop the case
 	stop <- true
 	<-stop
-	// stop ticker goroutine
-	close(st)
 }
