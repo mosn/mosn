@@ -42,6 +42,7 @@ func (h *mockHandler) OnAccept(rawc net.Conn, handOffRestoredDestinationConnecti
 }
 
 func (h *mockHandler) OnNewConnection(ctx context.Context, conn types.Connection) {
+	conn.SetIdleTimeouts(3)
 	conn.Start(ctx)
 }
 
@@ -74,12 +75,10 @@ func TestIdleChecker(t *testing.T) {
 	go ln.Start(context.Background())
 	time.Sleep(2 * time.Second)
 	// setup for test
-	defaultMaxIdleCount = 2
 	buffer.ConnReadTimeout = time.Second
 	// destroy for test
 	defer func() {
 		// reset
-		defaultMaxIdleCount = 6
 		buffer.ConnReadTimeout = 15 * time.Second
 	}()
 	// create a connection, send nothing, will be closed after a while
@@ -100,8 +99,8 @@ func TestIdleChecker(t *testing.T) {
 			t.Fatal("expected a closed connection error, but got: ", err)
 		}
 		duration := time.Now().Sub(start)
-		if duration < time.Duration(defaultMaxIdleCount)*buffer.ConnReadTimeout ||
-			duration > time.Duration(defaultMaxIdleCount+1)*buffer.ConnReadTimeout {
+		if duration < time.Duration(3)*buffer.ConnReadTimeout ||
+			duration > time.Duration(4)*buffer.ConnReadTimeout {
 			t.Fatal("expected close connection when idle max, but close at %v", duration)
 		}
 	case <-time.After(5 * time.Second):
@@ -122,12 +121,10 @@ func TestIdleCheckerWithData(t *testing.T) {
 	time.Sleep(2 * time.Second)
 	// setup for test
 	log.DefaultLogger.SetLogLevel(log.DEBUG)
-	defaultMaxIdleCount = 3
 	buffer.ConnReadTimeout = time.Second
 	// destroy for test
 	defer func() {
 		// reset
-		defaultMaxIdleCount = 6
 		buffer.ConnReadTimeout = 15 * time.Second
 	}()
 	conn, err := net.Dial("tcp", testAddress)

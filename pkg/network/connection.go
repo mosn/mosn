@@ -68,6 +68,7 @@ type connection struct {
 	bytesSendCallbacks   []func(bytesSent uint64)
 	transferCallbacks    func() bool
 	filterManager        types.FilterManager
+	idleEventListener    types.ConnectionEventListener
 
 	stopChan           chan struct{}
 	curWriteBufferData []types.IoBuffer
@@ -143,9 +144,6 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	conn.filterManager = newFilterManager(conn)
-	// add connection idle checker
-	checker := newIdleChecker(conn)
-	conn.AddConnectionEventListener(checker)
 
 	return conn
 }
@@ -158,6 +156,7 @@ func (c *connection) ID() uint64 {
 
 func (c *connection) Start(lctx context.Context) {
 	c.startOnce.Do(func() {
+		c.AddConnectionEventListener(c.idleEventListener)
 		if UseNetpollMode {
 			c.attachEventLoop(lctx)
 		} else {
@@ -806,6 +805,19 @@ func (c *connection) RawConn() net.Conn {
 
 func (c *connection) SetTransferEventListener(listener func() bool) {
 	c.transferCallbacks = listener
+}
+
+// SetIdleTimeouts sets the connection idle
+// It works only before connection starts
+func (c *connection) SetIdleTimeouts(t int) {
+	maxIdleCount := DefaultMaxIdleCount
+	if t < 0 {
+		maxIdleCount = 0
+	}
+	if t > 0 {
+		maxIdleCount = uint32(t)
+	}
+	c.idleEventListener = newIdleChecker(c, maxIdleCount)
 }
 
 type clientConnection struct {

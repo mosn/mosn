@@ -24,9 +24,9 @@ import (
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-var (
+const (
 	// DefaultConnReadTimeout is 15s, default idle check is 90s
-	defaultMaxIdleCount uint32 = 6
+	DefaultMaxIdleCount uint32 = 6
 )
 
 // idleChecker checks whether a server side connection is idle
@@ -40,25 +40,34 @@ type idleChecker struct {
 	lastRead     int64
 }
 
-func newIdleChecker(conn *connection) types.ConnectionEventListener {
+func newIdleChecker(conn *connection, max uint32) types.ConnectionEventListener {
 	return &idleChecker{
 		conn:         conn,
-		maxIdleCount: defaultMaxIdleCount,
+		maxIdleCount: max,
 	}
 }
 
+func (c *idleChecker) closeConnection() {
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[network] [server idle checker] close the idle connection %d", c.conn.id)
+	}
+	c.conn.Close(types.NoFlush, types.LocalClose)
+}
+
 func (c *idleChecker) OnEvent(event types.ConnectionEvent) {
-	if event != types.OnReadTimeout {
+	if event != types.OnReadTimeout || c == nil || c.maxIdleCount == 0 {
+		return
+	}
+	// if maxIdleCount is 1, close the connection directly
+	if c.maxIdleCount == 1 {
+		c.closeConnection()
 		return
 	}
 	read := c.conn.stats.ReadTotal.Count()
 	write := c.conn.stats.WriteTotal.Count()
 	if atomic.LoadInt64(&c.lastWrite) == write && atomic.LoadInt64(&c.lastRead) == read {
 		if atomic.AddUint32(&c.idleCount, 1) >= c.maxIdleCount {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[network] [server idle checker] close the idle connection %d", c.conn.id)
-			}
-			c.conn.Close(types.NoFlush, types.LocalClose)
+			c.closeConnection()
 			return
 		}
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
