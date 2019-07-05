@@ -19,6 +19,7 @@ package log
 
 import (
 	"io"
+	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
@@ -90,6 +91,9 @@ func TestLogDefaultRollerTime(t *testing.T) {
 	os.Remove(rollerName)
 	// 2s
 	defaultRollerTime = 2
+	defer func() {
+		defaultRollerTime = 24 * 60 * 60
+	}()
 	logger, err := GetOrCreateLogger(logName)
 	if err != nil {
 		t.Fatal(err)
@@ -120,7 +124,44 @@ func TestLogDefaultRollerTime(t *testing.T) {
 	if n == 0 || string(b[0:n]) != "11111112222222" {
 		t.Errorf("TestLogDefaultRoller failed %v", string(b[0:n]))
 	}
-	defaultRollerTime = 24 * 60 * 60
+}
+
+func TestLogDefaultRollerAfterDelete(t *testing.T) {
+	logName := "/tmp/log_roller_delete.log"
+	rollerName := logName + "." + time.Now().Format("2006-01-02")
+	os.Remove(logName)
+	os.Remove(rollerName)
+	//
+	defaultRollerTime = 3
+	defer func() {
+		defaultRollerTime = 24 * 60 * 60
+	}()
+	logger, err := GetOrCreateLogger(logName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// remove the log file, the log is output to no where
+	os.Remove(logName)
+	logger.Print(buffer.NewIoBufferString("nowhere"), false)
+	// wait roller
+	time.Sleep(4 * time.Second)
+	// the first log trigger roller will be writed in the old file
+	logger.Print(buffer.NewIoBufferString("ignore"), false)
+	time.Sleep(100 * time.Millisecond) // wait write flush
+	logger.Print(buffer.NewIoBufferString("output"), false)
+	logger.Close() // force flush
+	b, err := ioutil.ReadFile(logName)
+	if err != nil {
+		t.Fatalf("read log file failed: %v", err)
+	}
+	if string(b) != "output" {
+		t.Errorf("read file data: %s", string(b))
+	}
+	// rollerName should not be exists
+	if _, err := os.Stat(rollerName); err == nil {
+		t.Errorf("roller file exists, but expected not: %v", err)
+	}
+
 }
 
 func TestLogReopen(t *testing.T) {
