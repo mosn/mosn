@@ -285,11 +285,7 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 	// TODO: support config
 	if subProtocol != defaultSubProtocol {
 		rpcKeepAlive := NewSofaRPCKeepAlive(codecClient, subProtocol, time.Second, 6)
-		// TODO: do not apply it
-		// set idle free
-		//if kp, ok := rpcKeepAlive.(*sofaRPCKeepAlive); ok {
-		//	kp.idleFree = newIdleFree()
-		//}
+		rpcKeepAlive.StartIdleTimeout()
 		ac.keepAlive = &keepAliveListener{
 			keepAlive: rpcKeepAlive,
 		}

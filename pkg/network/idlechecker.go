@@ -18,33 +18,41 @@
 package network
 
 import (
+	"math"
 	"sync/atomic"
+	"time"
 
+	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-const (
-	// DefaultConnReadTimeout is 15s, default idle check is 90s
-	DefaultMaxIdleCount uint32 = 6
+var (
+	maxIdleCount uint32
 )
+
+// SetIdleTimeout calculates the idle timeout as max idle count.
+func SetIdleTimeout(d time.Duration) {
+	fd := float64(d)
+	ft := float64(buffer.ConnReadTimeout)
+	maxIdleCount = uint32(math.Ceil(fd / ft))
+}
 
 // idleChecker checks whether a server side connection is idle
 // if the idleCount is greater than maxIdleCount, close the connection
 // idleChecker is an implementation of types.ConnectionEventListener
 type idleChecker struct {
-	conn         *connection
-	idleCount    uint32
-	maxIdleCount uint32
-	lastWrite    int64
-	lastRead     int64
+	conn      *connection
+	idleCount uint32
+	lastWrite int64
+	lastRead  int64
 }
 
-func newIdleChecker(conn *connection, max uint32) types.ConnectionEventListener {
-	return &idleChecker{
-		conn:         conn,
-		maxIdleCount: max,
+func (conn *connection) newIdleChecker() {
+	checker := &idleChecker{
+		conn: conn,
 	}
+	conn.AddConnectionEventListener(checker)
 }
 
 func (c *idleChecker) closeConnection() {
@@ -55,18 +63,18 @@ func (c *idleChecker) closeConnection() {
 }
 
 func (c *idleChecker) OnEvent(event types.ConnectionEvent) {
-	if event != types.OnReadTimeout || c == nil || c.maxIdleCount == 0 {
+	if event != types.OnReadTimeout || c == nil || maxIdleCount == 0 {
 		return
 	}
 	// if maxIdleCount is 1, close the connection directly
-	if c.maxIdleCount == 1 {
+	if maxIdleCount == 1 {
 		c.closeConnection()
 		return
 	}
 	read := c.conn.stats.ReadTotal.Count()
 	write := c.conn.stats.WriteTotal.Count()
 	if atomic.LoadInt64(&c.lastWrite) == write && atomic.LoadInt64(&c.lastRead) == read {
-		if atomic.AddUint32(&c.idleCount, 1) >= c.maxIdleCount {
+		if atomic.AddUint32(&c.idleCount, 1) >= maxIdleCount {
 			c.closeConnection()
 			return
 		}
@@ -83,7 +91,6 @@ func (c *idleChecker) OnEvent(event types.ConnectionEvent) {
 				write,
 			)
 		}
-		// maxIdleCount shoule be greater than 1
 	}
 	atomic.StoreInt64(&c.lastWrite, write)
 	atomic.StoreInt64(&c.lastRead, read)

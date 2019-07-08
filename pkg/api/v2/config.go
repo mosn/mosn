@@ -53,7 +53,6 @@ type ListenerConfig struct {
 	FilterChains                          []FilterChain `json:"filter_chains,omitempty"` // only one filterchains at this time
 	StreamFilters                         []Filter      `json:"stream_filters,omitempty"`
 	Inspector                             bool          `json:"inspector,omitempty"`
-	ConnectionIdleTimeouts                int           `json:"connection_idle_timeouts,omitempty"`
 }
 
 type TCPRouteConfig struct {

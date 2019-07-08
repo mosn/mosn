@@ -94,6 +94,10 @@ func (kp *sofaRPCKeepAlive) SendKeepAlive() {
 	}
 }
 
+func (kp *sofaRPCKeepAlive) StartIdleTimeout() {
+	kp.idleFree = newIdleFree()
+}
+
 // The function will be called when connection in the codec is idle
 func (kp *sofaRPCKeepAlive) sendKeepAlive() {
 	ctx := context.Background()

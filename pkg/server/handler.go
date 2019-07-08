@@ -157,7 +157,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		al.listener.SetHandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
 
 		al.listener.SetConfig(rawConfig)
-		al.idleTimeouts = lc.ConnectionIdleTimeouts
 
 		// set update label to true, do not start the listener again
 		al.updatedLabel = true
@@ -338,7 +337,6 @@ type activeListener struct {
 	stats                       *listenerStats
 	accessLogs                  []types.AccessLog
 	updatedLabel                bool
-	idleTimeouts                int
 	tlsMng                      types.TLSContextManager
 }
 
@@ -354,7 +352,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		stopChan:     stopChan,
 		accessLogs:   accessLoggers,
 		updatedLabel: false,
-		idleTimeouts: lc.ConnectionIdleTimeouts,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
@@ -485,7 +482,6 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
-	conn.SetIdleTimeouts(al.idleTimeouts)
 	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))

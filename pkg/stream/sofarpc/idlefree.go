@@ -18,34 +18,44 @@
 package sofarpc
 
 import (
+	"math"
 	"sync/atomic"
+	"time"
 
+	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/log"
 )
 
-// DefaultConnReadTimeout is 15s, default idle free is 600s
-var defaultMaxIdleCount uint32 = 40
+var maxIdleCount uint32 = 0
+
+// SetIdleTimeout calculates the idle timeout as max idle count.
+func SetIdleTimeout(d time.Duration) {
+	fd := float64(d)
+	ft := float64(buffer.ConnReadTimeout)
+	maxIdleCount = uint32(math.Ceil(fd / ft))
+}
 
 // If a connection is always send keep alive heartbeat, we will free the idle connection
 type idleFree struct {
-	maxIdleCount uint32
 	idleCount    uint32
 	lastStreamID uint64
 }
 
 func newIdleFree() *idleFree {
-	return &idleFree{
-		maxIdleCount: defaultMaxIdleCount,
-	}
+	return &idleFree{}
 }
 
 func (f *idleFree) CheckFree(id uint64) bool {
 	// empty idle free means never free
-	if f == nil {
+	if f == nil || maxIdleCount == 0 {
 		return false
 	}
+	// maxIdleCount is 1, free it directly
+	if maxIdleCount == 1 {
+		return true
+	}
 	if atomic.LoadUint64(&f.lastStreamID)+1 == id {
-		if atomic.AddUint32(&f.idleCount, 1) >= f.maxIdleCount {
+		if atomic.AddUint32(&f.idleCount, 1) >= maxIdleCount {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 				log.DefaultLogger.Debugf("[stream] [sofarpc] [keepalive] connections only have heartbeat for a while, close it")
 			}
@@ -56,7 +66,6 @@ func (f *idleFree) CheckFree(id uint64) bool {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [sofarpc] [keepalive] last stream id: %d, current id: %d", f.lastStreamID, id)
 		}
-		// maxIdleCount should be greater than 1
 	}
 	atomic.StoreUint64(&f.lastStreamID, id)
 	return false

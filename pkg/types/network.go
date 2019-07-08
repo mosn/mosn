@@ -297,15 +297,6 @@ type Connection interface {
 
 	// SetTransferEventListener set a method will be called when connection transfer occur
 	SetTransferEventListener(listener func() bool)
-
-	// TODO: support set connection read timeout
-
-	// SetIdleTimeouts sets how many times read timeout will set the connnection to idle.
-	// the defailt read timeout is 15s
-	// If a connection is setted as idle, mosn will close the connection.
-	// A zero value for t means default times.
-	// A negative number  means no idle connection
-	SetIdleTimeouts(t int)
 }
 
 // ConnectionStats is a group of connection metrics

@@ -26,7 +26,6 @@ import (
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -42,7 +41,6 @@ func (h *mockHandler) OnAccept(rawc net.Conn, handOffRestoredDestinationConnecti
 }
 
 func (h *mockHandler) OnNewConnection(ctx context.Context, conn types.Connection) {
-	conn.SetIdleTimeouts(3)
 	conn.Start(ctx)
 }
 
@@ -64,6 +62,14 @@ func _createListener(address string) types.Listener {
 }
 
 func TestIdleChecker(t *testing.T) {
+	// setup
+	maxIdleCount = 3
+	buffer.ConnReadTimeout = time.Second
+	// tear down
+	defer func() {
+		maxIdleCount = 0
+		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
+	}()
 	ln := _createListener(testAddress)
 	defer func() {
 		ln.Close(nil)
@@ -74,13 +80,6 @@ func TestIdleChecker(t *testing.T) {
 	})
 	go ln.Start(context.Background())
 	time.Sleep(2 * time.Second)
-	// setup for test
-	buffer.ConnReadTimeout = time.Second
-	// destroy for test
-	defer func() {
-		// reset
-		buffer.ConnReadTimeout = 15 * time.Second
-	}()
 	// create a connection, send nothing, will be closed after a while
 	start := time.Now()
 	conn, err := net.Dial("tcp", testAddress)
@@ -109,6 +108,15 @@ func TestIdleChecker(t *testing.T) {
 }
 
 func TestIdleCheckerWithData(t *testing.T) {
+	// setup
+	maxIdleCount = 3
+	buffer.ConnReadTimeout = time.Second
+	// tear down
+	defer func() {
+		maxIdleCount = 0
+		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
+	}()
+
 	ln := _createListener(testAddress)
 	defer func() {
 		ln.Close(nil)
@@ -119,14 +127,6 @@ func TestIdleCheckerWithData(t *testing.T) {
 	})
 	go ln.Start(context.Background())
 	time.Sleep(2 * time.Second)
-	// setup for test
-	log.DefaultLogger.SetLogLevel(log.DEBUG)
-	buffer.ConnReadTimeout = time.Second
-	// destroy for test
-	defer func() {
-		// reset
-		buffer.ConnReadTimeout = 15 * time.Second
-	}()
 	conn, err := net.Dial("tcp", testAddress)
 	if err != nil {
 		t.Fatalf("dial failed: %v", err)
@@ -154,4 +154,19 @@ func TestIdleCheckerWithData(t *testing.T) {
 		conn.Close()
 	}
 
+}
+
+func TestSetIdleTimeout(t *testing.T) {
+	// teardown
+	defer func() {
+		maxIdleCount = 0
+	}()
+	SetIdleTimeout(100 * time.Second)
+	if maxIdleCount != 7 {
+		t.Error("set idle timeout unexpected:", maxIdleCount)
+	}
+	SetIdleTimeout(90 * time.Second)
+	if maxIdleCount != 6 {
+		t.Error("set idle timeout unexpected:", maxIdleCount)
+	}
 }

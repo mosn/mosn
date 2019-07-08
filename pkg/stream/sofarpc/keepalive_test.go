@@ -19,6 +19,7 @@ package sofarpc
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -82,6 +83,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 	}
 	// start a keep alive
 	keepAlive := NewSofaRPCKeepAlive(codec, sofarpc.PROTOCOL_CODE_V1, keepTimeout, thres)
+	keepAlive.StartIdleTimeout()
 	return &testCase{
 		KeepAlive: keepAlive.(*sofaRPCKeepAlive),
 		Server:    srv,
@@ -149,17 +151,19 @@ func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
 func TestKeepAliveIdleFree(t *testing.T) {
 	// setup for test
 	log.DefaultLogger.SetLogLevel(log.ERROR)
+	maxIdleCount = 20
 	// teardown for test
 	defer func() {
+		maxIdleCount = 0
 		log.DefaultLogger.SetLogLevel(log.INFO)
 	}()
 	tc := newTestCase(t, 0, time.Second, 6)
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
-	tc.KeepAlive.idleFree = newIdleFree()
+
 	var i uint32 = 0
-	for ; i < defaultMaxIdleCount; i++ {
+	for ; i < maxIdleCount; i++ {
 		tc.KeepAlive.SendKeepAlive()
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -177,25 +181,44 @@ func TestKeepAliveIdleFree(t *testing.T) {
 func TestKeepAliveIdleFreeWithData(t *testing.T) {
 	// setup for test
 	log.DefaultLogger.SetLogLevel(log.ERROR)
+	maxIdleCount = 40
 	// teardown for test
 	defer func() {
+		maxIdleCount = 0
 		log.DefaultLogger.SetLogLevel(log.INFO)
 	}()
 	tc := newTestCase(t, 0, time.Second, 6)
 	defer tc.Server.Close()
-	tc.KeepAlive.idleFree = newIdleFree()
+	ch := make(chan struct{})
+	wg := sync.WaitGroup{}
 	// 10ms a heartbeat, 400ms will send max count
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		ticker := time.NewTicker(10 * time.Millisecond)
-		for _ = range ticker.C {
-			tc.KeepAlive.SendKeepAlive()
+		for {
+			select {
+			case <-ch:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				tc.KeepAlive.SendKeepAlive()
+			}
 		}
 	}()
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		ticker := time.NewTicker(15 * time.Millisecond)
-		for _ = range ticker.C {
-			// simulate a request stream
-			tc.KeepAlive.Codec.NewStream(context.Background(), nil)
+		for {
+			select {
+			case <-ch:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				// simulate a request stream
+				tc.KeepAlive.Codec.NewStream(context.Background(), nil)
+			}
 		}
 	}()
 	select {
@@ -203,4 +226,6 @@ func TestKeepAliveIdleFreeWithData(t *testing.T) {
 		t.Errorf("connection is closed")
 	case <-time.After(2 * time.Second):
 	}
+	close(ch)
+	wg.Wait()
 }
