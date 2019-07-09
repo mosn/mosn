@@ -23,13 +23,6 @@ import (
 	"strings"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/router"
-	xdsxproxy "sofastack.io/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
-	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
@@ -41,10 +34,18 @@ import (
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/router"
+	xdsxproxy "sofastack.io/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
+	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
 )
 
 // support network filter list
@@ -330,23 +331,40 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 	if d := faultConfig.Delay.GetFixedDelay(); d != nil {
 		fixed_delay = *d
 	}
+
+	// convert istio percentage to mosn percent
+	delayPercent := convertIstioPercentage(faultConfig.Delay.GetPercentage())
+	abortPercent := convertIstioPercentage(faultConfig.Abort.GetPercentage())
+
 	streamFault := &v2.StreamFaultInject{
 		Delay: &v2.DelayInject{
 			DelayInjectConfig: v2.DelayInjectConfig{
-				Percent: faultConfig.Delay.GetPercent(),
+				Percent: delayPercent,
 				DelayDurationConfig: v2.DurationConfig{
 					Duration: fixed_delay,
 				},
 			},
 		},
 		Abort: &v2.AbortInject{
-			Percent: faultConfig.Abort.GetPercent(),
+			Percent: abortPercent,
 			Status:  int(faultConfig.Abort.GetHttpStatus()),
 		},
 		UpstreamCluster: faultConfig.UpstreamCluster,
 		Headers:         convertHeaders(faultConfig.GetHeaders()),
 	}
 	return makeJsonMap(streamFault)
+}
+
+func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
+	switch percent.Denominator {
+	case xdstype.FractionalPercent_MILLION:
+		return percent.Numerator / 10000
+	case xdstype.FractionalPercent_TEN_THOUSAND:
+		return percent.Numerator / 100
+	case xdstype.FractionalPercent_HUNDRED:
+		return percent.Numerator
+	}
+	return percent.Numerator
 }
 
 func makeJsonMap(v interface{}) (map[string]interface{}, error) {
@@ -694,12 +712,16 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 	}
 	headerMatchers := make([]v2.HeaderMatcher, 0, len(xdsHeaders))
 	for _, xdsHeader := range xdsHeaders {
-		headerMatcher := v2.HeaderMatcher{
-			Name:  xdsHeader.GetName(),
-			Value: xdsHeader.GetExactMatch(),
-			Regex: xdsHeader.GetRegex().GetValue(),
+		headerMatcher := v2.HeaderMatcher{}
+		if xdsHeader.GetRegexMatch() != "" {
+			headerMatcher.Name = xdsHeader.GetName()
+			headerMatcher.Value = xdsHeader.GetRegexMatch()
+			headerMatcher.Regex = true
+		} else {
+			headerMatcher.Name = xdsHeader.GetName()
+			headerMatcher.Value = xdsHeader.GetExactMatch()
+			headerMatcher.Regex = false
 		}
-
 		// as pseudo headers not support when Http1.x upgrade to Http2, change pseudo headers to normal headers
 		// this would be fix soon
 		if strings.HasPrefix(headerMatcher.Name, ":") {
@@ -800,7 +822,7 @@ func convertWeightedCluster(xdsWeightedCluster *xdsroute.WeightedCluster_Cluster
 	}
 }
 
-func convertRetryPolicy(xdsRetryPolicy *xdsroute.RouteAction_RetryPolicy) *v2.RetryPolicy {
+func convertRetryPolicy(xdsRetryPolicy *xdsroute.RetryPolicy) *v2.RetryPolicy {
 	if xdsRetryPolicy == nil {
 		return &v2.RetryPolicy{}
 	}
@@ -1066,6 +1088,14 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 			}
 		}
 	}
+	//else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil {
+	//	// For istio SDS need to update go-control-plane vendor = 0.6.9
+	//	if validationContextType := common.GetValidationContextType(); validationContextType != nil {
+	//		//validationContextType.
+	//		//			tmp.GetSdsConfig().GetConfigSourceSpecifier().(*core.ConfigSource_ApiConfigSource)
+	//		//.ApiConfigSource.GetGrpcServices()[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_).GoogleGrpc.TargetUri
+	//	}
+	//}
 
 	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
 		config.CACert = common.GetValidationContext().GetTrustedCa().String()
