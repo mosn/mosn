@@ -163,7 +163,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	// Choose one event loop to register, the implement is platform-dependent(epoll for linux and kqueue for bsd)
 	c.eventLoop = attach()
 
-	// Register read only, write is supported now because it is more complex than read.
+	// Register read only, write is not supported now because it is more complex than read.
 	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
 	err := c.eventLoop.registerRead(c, &connEventHandler{
 		onRead: func() bool {

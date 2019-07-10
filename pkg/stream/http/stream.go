@@ -485,6 +485,8 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 
 func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	s.request.SetBody(data.Bytes())
+	// dec data's ref, so we can recycle it
+	buffer.PutIoBuffer(data)
 
 	if endStream {
 		s.endStream()
@@ -605,6 +607,8 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 
 func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	s.response.SetBody(data.Bytes())
+	// dec data's ref, so we can recycle it
+	buffer.PutIoBuffer(data)
 
 	if endStream {
 		s.endStream()
