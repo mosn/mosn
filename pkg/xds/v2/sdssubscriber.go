@@ -75,12 +75,13 @@ func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *core.ConfigSource) *
 	if apiConfig, ok := subscribe.sdsConfig.ConfigSourceSpecifier.(*core.ConfigSource_ApiConfigSource); ok {
 		if apiConfig.ApiConfigSource.GetApiType() == core.ApiConfigSource_GRPC {
 			grpcService := apiConfig.ApiConfigSource.GetGrpcServices()
-			if len(grpcService) == 1 {
+			if len(grpcService) != 1 {
 				log.DefaultLogger.Errorf("[xds] [sds subscriber] only support one grpc service,but get %v", len(grpcService))
-				if grpcConfig, ok := grpcService[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_); ok {
-					sdsStreamConfig.sdsUdsPath = grpcConfig.GoogleGrpc.TargetUri
-					sdsStreamConfig.statPrefix = grpcConfig.GoogleGrpc.StatPrefix
-				}
+				return nil
+			}
+			if grpcConfig, ok := grpcService[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_); ok {
+				sdsStreamConfig.sdsUdsPath = grpcConfig.GoogleGrpc.TargetUri
+				sdsStreamConfig.statPrefix = grpcConfig.GoogleGrpc.StatPrefix
 			}
 		}
 	}
@@ -160,8 +161,9 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 	if subscribe.sdsStreamClient != nil {
 		return subscribe.sdsStreamClient, nil
 	}
+	udsPath := "unix://" + sdsStreamConfig.sdsUdsPath
 	conn, err := grpc.Dial(
-		sdsStreamConfig.sdsUdsPath,
+		udsPath,
 		grpc.WithInsecure(),
 	)
 	if err != nil {
@@ -173,7 +175,7 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 		conn:            conn,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	subscribe.sdsStreamClient.cancel = cancel
+	sdsStreamClient.cancel = cancel
 	streamSecretsClient, err := sdsServiceClient.StreamSecrets(ctx)
 	if err != nil {
 		conn.Close()

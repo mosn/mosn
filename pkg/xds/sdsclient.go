@@ -24,7 +24,7 @@ var sdsClient *SdsClientImpl
 var sdsClientLock sync.Mutex
 
 // GetSdsClientImpl use by tls module , when get sds config from xds
-func GetSdsClient(config auth.SdsSecretConfig) v2.SdsClient {
+func GetSdsClient(config *auth.SdsSecretConfig) v2.SdsClient {
 	if sdsClient != nil {
 		return sdsClient
 	} else {
@@ -37,7 +37,12 @@ func GetSdsClient(config auth.SdsSecretConfig) v2.SdsClient {
 		// For Istio , sds config should be the same
 		// So we use first sds config to init sds subscriber
 		sdsClient.sdsSubscriber = v2.NewSdsSubscriber(sdsClient, config.SdsConfig, ServiceNode, ServiceCluster)
-		sdsClient.sdsSubscriber.Start()
+		err := sdsClient.sdsSubscriber.Start()
+		if err != nil {
+			log.DefaultLogger.Errorf("[sds] [sdsclient] sds subscriber start fail", err)
+			return nil
+		}
+		return sdsClient
 	}
 	return nil
 }
@@ -57,11 +62,13 @@ func (client *SdsClientImpl) AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, 
 	client.sdsSubscriber.SendSdsRequest(sdsConfig.Name)
 }
 
-func (client *SdsClientImpl) DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) {
+// DeleteUpdateCallback
+func (client *SdsClientImpl) DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error {
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
 	delete(client.SdsConfigMap, sdsConfig.Name)
 	delete(client.SdsCallbackMap, sdsConfig.Name)
+	return nil
 }
 
 // SetSecret invoked when sds subscriber get secret response
