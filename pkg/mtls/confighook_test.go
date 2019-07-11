@@ -28,6 +28,7 @@ import (
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/mtls/certtool"
+	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 )
 
 func pass(resp *http.Response, err error) bool {
@@ -52,41 +53,26 @@ func fail(resp *http.Response, err error) bool {
 type testConfigHooks struct {
 	defaultConfigHooks
 	Name           string
-	Root           *x509.CertPool
 	PassCommonName string
 }
 
 // over write
-func (hook *testConfigHooks) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	return hook.verifyPeerCertificate
-}
-
 func (hook *testConfigHooks) GetX509Pool(caIndex string) (*x509.CertPool, error) {
-	// usually, the certpool should be created with the caIndex
+	// usually the certpool should make by caIndex
 	root := certtool.GetRootCA()
 	pool := x509.NewCertPool()
 	pool.AppendCertsFromPEM([]byte(root.CertPem))
-	hook.Root = pool
-	return hook.Root, nil
+	return pool, nil
 }
 
-// verifiedChains is always nil
-func (hook *testConfigHooks) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	var certs []*x509.Certificate
-	for _, asn1Data := range rawCerts {
-		cert, err := x509.ParseCertificate(asn1Data)
-		if err != nil {
-			return err
-		}
-		certs = append(certs, cert)
-	}
-	intermediates := x509.NewCertPool()
-	for _, cert := range certs[1:] {
-		intermediates.AddCert(cert)
-	}
+func (hook *testConfigHooks) verifyPeerCertificate(roots *x509.CertPool, certs []*x509.Certificate, t time.Time) error {
 	opts := x509.VerifyOptions{
-		Roots:         hook.Root,
-		Intermediates: intermediates,
+		Roots:         roots,
+		CurrentTime:   t,
+		Intermediates: x509.NewCertPool(),
+	}
+	for _, cert := range certs[1:] {
+		opts.Intermediates.AddCert(cert)
 	}
 	leaf := certs[0]
 	_, err := leaf.Verify(opts)
@@ -97,6 +83,53 @@ func (hook *testConfigHooks) verifyPeerCertificate(rawCerts [][]byte, verifiedCh
 		return errors.New("common name miss match")
 	}
 	return nil
+}
+
+func (hook *testConfigHooks) ServerHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+		certs := make([]*x509.Certificate, 0, len(rawCerts))
+		for _, asn1Data := range rawCerts {
+			cert, err := x509.ParseCertificate(asn1Data)
+			if err != nil {
+				return err
+			}
+			certs = append(certs, cert)
+		}
+		// If cfg.ClientAuth is tls.RequireAndVerifyClientCert and len(certs) == 0
+		// it will return error before call the verifyPeerCertificate
+		if cfg.ClientAuth >= tls.VerifyClientCertIfGiven && len(certs) > 0 {
+			var t time.Time
+			if cfg.Time != nil {
+				t = cfg.Time()
+			} else {
+				t = time.Now()
+			}
+			return hook.verifyPeerCertificate(cfg.ClientCAs, certs, t)
+		}
+		return nil
+	}
+}
+
+func (hook *testConfigHooks) ClientHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	// if cfg.InsecureSkipVerify is true, the function should never be called
+	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+		certs := make([]*x509.Certificate, 0, len(rawCerts))
+		for _, asn1Data := range rawCerts {
+			cert, err := x509.ParseCertificate(asn1Data)
+			if err != nil {
+				return err
+			}
+			certs = append(certs, cert)
+		}
+		var t time.Time
+		if cfg.Time != nil {
+			t = cfg.Time()
+		} else {
+			t = time.Now()
+		}
+		return hook.verifyPeerCertificate(cfg.RootCAs, certs, t)
+
+	}
 }
 
 const testType = "test"

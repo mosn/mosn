@@ -66,7 +66,10 @@ func (hook *defaultConfigHooks) GetX509Pool(caIndex string) (*x509.CertPool, err
 	return pool, nil
 }
 
-// VerifyPeerCertificate returns a nil function, which means use standard tls verification
-func (hook *defaultConfigHooks) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+func (hook *defaultConfigHooks) ServerHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	return nil
+}
+
+func (hook *defaultConfigHooks) ClientHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return nil
 }

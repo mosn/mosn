@@ -74,7 +74,7 @@ func (ctx *tlsContext) buildMatch() {
 	ctx.matches = matches
 }
 
-func (ctx *tlsContext) setServerConfig(tmpl tls.Config, cfg *v2.TLSConfig) {
+func (ctx *tlsContext) setServerConfig(tmpl tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks) {
 	tlsConfig := &tmpl
 	// no certificate should be set no server tls config
 	if len(tlsConfig.Certificates) == 0 {
@@ -89,14 +89,16 @@ func (ctx *tlsContext) setServerConfig(tmpl tls.Config, cfg *v2.TLSConfig) {
 			tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven
 		}
 	}
+	tlsConfig.VerifyPeerCertificate = hooks.ServerHandshakeVerify(tlsConfig)
 	ctx.server = tlsConfig
 	// build matches
 	ctx.buildMatch()
 }
 
-func (ctx *tlsContext) setClientConfig(tmpl tls.Config, cfg *v2.TLSConfig) {
+func (ctx *tlsContext) setClientConfig(tmpl tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks) {
 	tlsConfig := &tmpl
 	tlsConfig.ServerName = cfg.ServerName
+	tlsConfig.VerifyPeerCertificate = hooks.ClientHandshakeVerify(tlsConfig)
 	if tlsConfig.VerifyPeerCertificate != nil {
 		// use self verify, skip normal verify
 		tlsConfig.InsecureSkipVerify = true
@@ -165,7 +167,6 @@ func newTLSContext(cfg *v2.TLSConfig, secret *secretInfo) (*tlsContext, error) {
 	}
 	tmpl.RootCAs = pool
 	tmpl.ClientCAs = pool
-	tmpl.VerifyPeerCertificate = hooks.VerifyPeerCertificate()
 	// set tls context
 	ctx := &tlsContext{
 		serverName: cfg.ServerName,
@@ -188,9 +189,9 @@ func newTLSContext(cfg *v2.TLSConfig, secret *secretInfo) (*tlsContext, error) {
 
 	// needs copy template config
 	if len(tmpl.Certificates) > 0 {
-		ctx.setServerConfig(*tmpl, cfg)
+		ctx.setServerConfig(*tmpl, cfg, hooks)
 	}
-	ctx.setClientConfig(*tmpl, cfg)
+	ctx.setClientConfig(*tmpl, cfg, hooks)
 	return ctx, nil
 
 }

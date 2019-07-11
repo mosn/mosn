@@ -138,6 +138,7 @@ func (p *sdsProvider) update() {
 		return
 	}
 	p.value.Store(ctx)
+	log.DefaultLogger.Infof("[mtls] [sds] update tls context success")
 	// notify certificates updates
 	for _, cb := range sdsCallbacks {
 		cb()

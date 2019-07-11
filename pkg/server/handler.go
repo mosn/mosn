@@ -401,7 +401,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 				rawf, _ = tc.File()
 			}
 		}
-		if al.tlsMng != nil && al.tlsMng.Enabled() {
+		if al.tlsMng != nil {
 			rawc = al.tlsMng.Conn(rawc)
 		}
 	}
