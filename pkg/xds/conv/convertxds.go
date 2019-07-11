@@ -1059,6 +1059,7 @@ func convertDuration(p *types.Duration) time.Duration {
 func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	var config v2.TLSConfig
 	var isDownstream bool
+	var isSdsMode bool
 	var common *xdsauth.CommonTlsContext
 
 	if xdsTLSContext == nil {
@@ -1087,15 +1088,13 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 				config.PrivateKey = cert.GetPrivateKey().GetFilename()
 			}
 		}
+	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
+		isSdsMode = true
+		if validationContext, ok := common.GetValidationContextType().(*xdsauth.CommonTlsContext_CombinedValidationContext); ok {
+			config.SDSConfig.CertificateConfig = tlsCertSdsConfig[0]
+			config.SDSConfig.ValidationConfig = validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()
+		}
 	}
-	//else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil {
-	//	// For istio SDS need to update go-control-plane vendor = 0.6.9
-	//	if validationContextType := common.GetValidationContextType(); validationContextType != nil {
-	//		//validationContextType.
-	//		//			tmp.GetSdsConfig().GetConfigSourceSpecifier().(*core.ConfigSource_ApiConfigSource)
-	//		//.ApiConfigSource.GetGrpcServices()[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_).GoogleGrpc.TargetUri
-	//	}
-	//}
 
 	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
 		config.CACert = common.GetValidationContext().GetTrustedCa().String()
@@ -1115,7 +1114,7 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 		config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
 	}
 
-	if isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
+	if !isSdsMode && isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
 		log.DefaultLogger.Errorf("tls_certificates are required in downstream tls_context")
 		config.Status = false
 		return config
