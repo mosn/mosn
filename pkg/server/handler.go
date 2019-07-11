@@ -141,7 +141,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		rawConfig.FilterChains[0].TLSConfig = lc.FilterChains[0].TLSConfig
 		rawConfig.FilterChains[0].TLSConfigs = lc.FilterChains[0].TLSConfigs
 		rawConfig.Inspector = lc.Inspector
-		mgr, err := mtls.NewTLSServerContextManager(rawConfig, al.listener, log.DefaultLogger)
+		mgr, err := mtls.NewTLSServerContextManager(rawConfig)
 		if err != nil {
 			log.DefaultLogger.Errorf("[server] [conn handler] [update listener] create tls context manager failed, %v", err)
 			return nil, err
@@ -368,7 +368,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	al.listenPort = listenPort
 	al.stats = newListenerStats(al.listener.Name())
 
-	mgr, err := mtls.NewTLSServerContextManager(lc, listener, log.DefaultLogger)
+	mgr, err := mtls.NewTLSServerContextManager(lc)
 	if err != nil {
 		log.DefaultLogger.Errorf("[server] [new listener] create tls context manager failed, %v", err)
 		return nil, err

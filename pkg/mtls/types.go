@@ -100,6 +100,8 @@ type ConfigHooks interface {
 	GetCertificate(certIndex, keyIndex string) (tls.Certificate, error)
 	// GetX509Pool returns the x509.CertPool, which is a set of certificates.
 	// By default the index is the ca certificate file path or certificate pem string
+	// Usually, If the VerifyPeerCertificate is not nil, GetX509Pool should set a root for verify
+	// or the CertPool should be setted when confighokk is created.
 	GetX509Pool(caIndex string) (*x509.CertPool, error)
 	// VerifyPeerCertificate returns a "VerifyPeerCertificate" defined in tls.Config.
 	// If it is returns nil, the normal certificate verification will be used.
@@ -116,6 +118,3 @@ type ConfigHooksFactory interface {
 
 // ErrorNoCertConfigure represents config has no certificate
 var ErrorNoCertConfigure = errors.New("no certificate config")
-
-// ErrorGetCertificateFailed represents get certificate from config failed
-var ErrorGetCertificateFailed = errors.New("get certificate failed")
