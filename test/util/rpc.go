@@ -67,7 +67,7 @@ func (c *RPCClient) connect(addr string, tlsMng types.TLSContextManager) error {
 }
 
 func (c *RPCClient) ConnectTLS(addr string, cfg *v2.TLSConfig) error {
-	tlsMng, err := mtls.NewTLSClientContextManager(cfg, nil)
+	tlsMng, err := mtls.NewTLSClientContextManager(cfg)
 	if err != nil {
 		return err
 	}
