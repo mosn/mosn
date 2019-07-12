@@ -27,14 +27,14 @@ import (
 	"strings"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
-	v2 "sofastack.io/sofa-mosn/pkg/xds/v2"
 	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/types"
 	jsoniter "github.com/json-iterator/go"
+	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/log"
+	v2 "sofastack.io/sofa-mosn/pkg/xds/v2"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
