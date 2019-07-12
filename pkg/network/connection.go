@@ -371,6 +371,9 @@ func (c *connection) doRead() (err error) {
 	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
 
 	if err != nil {
+		if atomic.LoadUint32(&c.closed) == 1 {
+			return nil
+		}
 		if te, ok := err.(net.Error); ok && te.Timeout() {
 			for _, cb := range c.connCallbacks {
 				cb.OnEvent(types.OnReadTimeout) // run read timeout callback, for keep alive if configured
@@ -579,6 +582,9 @@ func (c *connection) appendBuffer(iobuffers *[]types.IoBuffer) {
 
 func (c *connection) doWrite() (int64, error) {
 	bytesSent, err := c.doWriteIo()
+	if err != nil && atomic.LoadUint32(&c.closed) == 1 {
+		return 0, nil
+	}
 
 	c.updateWriteBuffStats(bytesSent, int64(c.writeBufLen()))
 

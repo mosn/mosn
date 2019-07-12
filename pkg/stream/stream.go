@@ -2,15 +2,22 @@ package stream
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"sofastack.io/sofa-mosn/pkg/types"
+)
+
+const (
+	streamStateReset uint32 = iota
+	streamStateDestroying
+	streamStateDestroyed
 )
 
 type BaseStream struct {
 	sync.Mutex
 	streamListeners []types.StreamEventListener
-	// TODO: this is a temporary fix for DestroyStream() concurrency
-	once sync.Once
+
+	state uint32
 }
 
 func (s *BaseStream) AddEventListener(streamCb types.StreamEventListener) {
@@ -37,6 +44,9 @@ func (s *BaseStream) RemoveEventListener(streamCb types.StreamEventListener) {
 }
 
 func (s *BaseStream) ResetStream(reason types.StreamResetReason) {
+	if atomic.LoadUint32(&s.state) != streamStateReset {
+		return
+	}
 	defer s.DestroyStream()
 	s.Lock()
 	defer s.Unlock()
@@ -47,11 +57,13 @@ func (s *BaseStream) ResetStream(reason types.StreamResetReason) {
 }
 
 func (s *BaseStream) DestroyStream() {
-	s.once.Do(func() {
-		s.Lock()
-		defer s.Unlock()
-		for _, listener := range s.streamListeners {
-			listener.OnDestroyStream()
-		}
-	})
+	if !atomic.CompareAndSwapUint32(&s.state, streamStateReset, streamStateDestroying) {
+		return
+	}
+	s.Lock()
+	defer s.Unlock()
+	for _, listener := range s.streamListeners {
+		listener.OnDestroyStream()
+	}
+	atomic.StoreUint32(&s.state, streamStateDestroyed)
 }
