@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 // Default parameters for route

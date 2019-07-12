@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"strings"
 
-	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/gogo/protobuf/jsonpb"
-	"istio.io/api/mixer/v1"
+	v1 "istio.io/api/mixer/v1"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 const (

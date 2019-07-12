@@ -23,10 +23,10 @@ import (
 	"runtime/debug"
 	"time"
 
+	"google.golang.org/grpc"
+	v1 "istio.io/api/mixer/v1"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
-	"google.golang.org/grpc"
-	"istio.io/api/mixer/v1"
 )
 
 const (

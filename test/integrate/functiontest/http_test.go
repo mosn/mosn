@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	_ "sofastack.io/sofa-mosn/pkg/protocol/http/conv"
 	_ "sofastack.io/sofa-mosn/pkg/protocol/http2/conv"
@@ -20,7 +21,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/test/integrate"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 // check request path is match method
