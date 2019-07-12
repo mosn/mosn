@@ -28,31 +28,29 @@ import (
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
 //
-//           1              * | 1                1 | 1                *| 1          *
-//   clusterManager --------- cluster  --------- prioritySet --------- hostSet------hosts
+//           1              * | 1                          1 | 1          *
+//   clusterManager --------- cluster  --------- --------- hostSet------hosts
 
 // ClusterManager manages connection pools and load balancing for upstream clusters.
 type ClusterManager interface {
 	// Add or update a cluster via API.
-	AddOrUpdatePrimaryCluster(cluster v2.Cluster) bool
+	AddOrUpdatePrimaryCluster(cluster v2.Cluster) error
 
 	// Add Cluster health check callbacks
-	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) bool
-
-	SetInitializedCb(cb func())
+	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) error
 
 	// Get, use to get the snapshot of a cluster
 	GetClusterSnapshot(context context.Context, cluster string) ClusterSnapshot
 
-	// PutClusterSnapshot release snapshot lock
-	PutClusterSnapshot(snapshot ClusterSnapshot)
+	// Deprecated: PutClusterSnapshot exists for historical compatibility and should not be used.
+	PutClusterSnapshot(ClusterSnapshot)
 
 	// UpdateClusterHosts used to update cluster's hosts
 	// temp interface todo: remove it
-	UpdateClusterHosts(cluster string, priority uint32, hosts []v2.Host) error
+	UpdateClusterHosts(cluster string, hosts []v2.Host) error
 
 	// AppendClusterHosts used to add cluster's hosts
-	AppendClusterHosts(clusterName string, priority uint32, hostConfigs []v2.Host) error
+	AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error
 
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
@@ -63,87 +61,54 @@ type ClusterManager interface {
 	// RemovePrimaryCluster used to remove cluster from set
 	RemovePrimaryCluster(clusters ...string) error
 
-	Shutdown() error
-
-	SourceAddress() net.Addr
-
-	VersionInfo() string
-
-	LocalClusterName() string
-
 	// ClusterExist, used to check whether 'clusterName' exist or not
 	ClusterExist(clusterName string) bool
 
-	// RemoveClusterHost, used to remove cluster's hosts
-	RemoveClusterHost(clusterName string, hostAddress string) error
+	// RemoveClusterHosts, remove the host by address string
+	RemoveClusterHosts(clusterName string, hosts []string) error
 
-	// Destory the cluster manager
-	Destory()
+	// Destroy the cluster manager
+	Destroy()
 }
 
 // ClusterSnapshot is a thread-safe cluster snapshot
 type ClusterSnapshot interface {
-	PrioritySet() PrioritySet
+	// HostSet returns the cluster snapshot's host set
+	HostSet() HostSet
 
+	// ClusterInfo returns the cluster snapshot's cluster info
 	ClusterInfo() ClusterInfo
 
+	// LoadBalancer returns the cluster snapshot's load balancer
 	LoadBalancer() LoadBalancer
 
+	// IsExistsHosts checks whether the metadata's subset contains host or not
+	// if metadata is nil, check the cluster snapshot contains host or not
 	IsExistsHosts(metadata MetadataMatchCriteria) bool
 }
 
 // Cluster is a group of upstream hosts
 type Cluster interface {
-	Initialize(cb func())
+	// Snapshot returns the cluster snapshot, which contains cluster info, hostset and load balancer
+	Snapshot() ClusterSnapshot
 
-	Info() ClusterInfo
-
-	InitializePhase() InitializePhase
-
-	PrioritySet() PrioritySet
+	// UpdateHosts updates the host set's hosts
+	UpdateHosts([]Host)
 
 	// Add health check callbacks in health checker
 	AddHealthCheckCallbacks(cb HealthCheckCb)
 }
 
-// InitializePhase type
-type InitializePhase string
-
-// InitializePhase types
-const (
-	Primary   InitializePhase = "Primary"
-	Secondary InitializePhase = "Secondary"
-)
-
-// MemberUpdateCallback is called on create a priority set
-type MemberUpdateCallback func(priority uint32, hostsAdded []Host, hostsRemoved []Host)
-
-// PrioritySet is a hostSet grouped by priority for a given cluster, for ease of load balancing.
-type PrioritySet interface {
-	// GetOrCreateHostSet returns the hostSet for this priority level, creating it if not exist.
-	GetOrCreateHostSet(priority uint32) HostSet
-
-	AddMemberUpdateCb(cb MemberUpdateCallback)
-
-	HostSetsByPriority() []HostSet
-
-	GetHostsInfo(priority uint32) []HostInfo
-}
-
+// HostPredicate checks wether the host is matched the metadata
 type HostPredicate func(Host) bool
 
 // HostSet is as set of hosts that contains all of the endpoints for a given
-// LocalityLbEndpoints priority level.
 type HostSet interface {
-
-	// all hosts that make up the set at the current time.
+	// Hosts returns all hosts that make up the set at the current time.
 	Hosts() []Host
 
+	// HealthyHosts returns all healthy hosts
 	HealthyHosts() []Host
-
-	UpdateHosts(hosts []Host, healthyHost []Host, hostsAdded []Host, hostsRemoved []Host)
-
-	Priority() uint32
 }
 
 // HealthFlag type
@@ -163,42 +128,46 @@ type Host interface {
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
+	// ClearHealthFlag clear the input flag
 	ClearHealthFlag(flag HealthFlag)
 
+	// ContainHealthFlag checks whether the heatlhy state contains the flag
 	ContainHealthFlag(flag HealthFlag) bool
 
+	// SetHealthFlag set the input flag
 	SetHealthFlag(flag HealthFlag)
 
+	// HealthFlag returns the current healthy flag
+	HealthFlag() HealthFlag
+
+	// Health checks whether the host is healthy or not
 	Health() bool
-
-	Weight() uint32
-
-	SetWeight(weight uint32)
-
-	Used() bool
-
-	SetUsed(used bool)
 }
 
 // HostInfo defines a host's basic information
 type HostInfo interface {
+	// Hostname returns the host's name
 	Hostname() string
 
-	Canary() bool
+	// Metadata returns the host's meta data
+	Metadata() v2.Metadata
 
-	Metadata() RouteMetaData
-
-	// OriginMetaData used to get origin metadata, currently in map[string]string
-	OriginMetaData() v2.Metadata
-
+	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
 
+	// Address returns the host's Addr structure
 	Address() net.Addr
 
+	// AddressString retuens the host's address string
 	AddressString() string
 
+	// HostStats returns the host stats metrics
 	HostStats() HostStats
 
+	// Weight returns the host weight
+	Weight() uint32
+
+	// Config creates a host config by the host attributes
 	Config() v2.Host
 
 	// TODO: add deploy locality
@@ -230,40 +199,29 @@ type HostStats struct {
 
 // ClusterInfo defines a cluster's information
 type ClusterInfo interface {
+	// Name returns the cluster name
 	Name() string
 
+	// LbType returns the cluster's load balancer type
 	LbType() LoadBalancerType
 
-	AddedViaAPI() bool
-
-	SourceAddress() net.Addr
-
-	ConnectTimeout() int
-
+	// ConnBufferLimitBytes returns the connection buffer limits
 	ConnBufferLimitBytes() uint32
 
-	Features() int
-
-	Metadata() v2.Metadata
-
-	DiscoverType() string
-
-	MaintenanceMode() bool
-
+	// MaxRequestsPerConn returns a connection's max request
 	MaxRequestsPerConn() uint32
 
+	// Stats returns the cluster's stats metrics
 	Stats() ClusterStats
 
+	// ResourceManager returns the ResourceManager
 	ResourceManager() ResourceManager
 
-	// protocol used for health checking for this cluster
-	HealthCheckProtocol() string
-
+	// TLSMng returns the tls manager
 	TLSMng() TLSContextManager
 
+	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo
-
-	LBInstance() LoadBalancer
 }
 
 // ResourceManager manages different types of Resource
@@ -317,9 +275,7 @@ type ClusterStats struct {
 	UpstreamResponseSuccess                        metrics.Counter
 	UpstreamResponseFailed                         metrics.Counter
 	LBSubSetsFallBack                              metrics.Counter
-	LBSubSetsActive                                metrics.Counter
-	LBSubsetsCreated                               metrics.Counter
-	LBSubsetsRemoved                               metrics.Counter
+	LBSubsetsCreated                               metrics.Gauge
 }
 
 type CreateConnectionData struct {
@@ -337,9 +293,8 @@ type ClusterConfigFactoryCb interface {
 	UpdateClusterConfig(configs []v2.Cluster) error
 }
 
-// ClusterHostFactoryCb is a callback interface
 type ClusterHostFactoryCb interface {
-	UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error
+	UpdateClusterHost(cluster string, hosts []v2.Host) error
 }
 
 type ClusterManagerFilter interface {
@@ -353,12 +308,17 @@ type RegisterUpstreamUpdateMethodCb interface {
 }
 
 type LBSubsetInfo interface {
+	// IsEnabled represents whether the subset load balancer is configured or not
 	IsEnabled() bool
 
+	// FallbackPolicy returns the fallback policy
 	FallbackPolicy() FallBackPolicy
 
-	DefaultSubset() SortedMap
+	// DefaultSubset returns the default subset's metadata configure
+	// it takes effects when the fallback policy is default subset
+	DefaultSubset() SubsetMetadata
 
+	// SubsetKeys returns the sorted subset keys
 	SubsetKeys() []SortedStringSetType
 }
 
@@ -428,35 +388,6 @@ func (ss *SortedStringSetType) Less(i, j int) bool {
 // Swap swaps the elements with indexes i and j.
 func (ss *SortedStringSetType) Swap(i, j int) {
 	ss.keys[i], ss.keys[j] = ss.keys[j], ss.keys[i]
-}
-
-// SortedMap is a list of key-value pair
-type SortedMap []SortedPair
-
-// InitSortedMap sorts the input map, and returns it as a list of sorted key-value pair
-func InitSortedMap(input map[string]string) SortedMap {
-	var keyset []string
-	var sPair []SortedPair
-
-	for k := range input {
-		keyset = append(keyset, k)
-	}
-
-	sort.Strings(keyset)
-
-	for _, key := range keyset {
-		sPair = append(sPair, SortedPair{
-			key, input[key],
-		})
-	}
-
-	return sPair
-}
-
-// SortedPair is a key-value pair
-type SortedPair struct {
-	Key   string
-	Value string
 }
 
 func init() {

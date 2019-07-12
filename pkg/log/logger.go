@@ -307,9 +307,8 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 		if !l.create.IsZero() {
 			now := time.Now()
 			if (l.create.Unix()+int64(localOffset))/defaultRollerTime != (now.Unix()+int64(localOffset))/defaultRollerTime {
-				if err = os.Rename(l.output, l.output+"."+l.create.Format("2006-01-02")); err != nil {
-					return 0, err
-				}
+				// ignore the rename error, in case the l.output is deleted
+				os.Rename(l.output, l.output+"."+l.create.Format("2006-01-02"))
 				l.create = now
 				//TODO: recover?
 				go l.Reopen()

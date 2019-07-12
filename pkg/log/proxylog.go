@@ -82,7 +82,17 @@ func (l *proxyLogger) Errorf(ctx context.Context, format string, args ...interfa
 		return
 	}
 	if l.level >= ERROR {
-		s := l.formatter(ctx, ErrorPre, format)
+		s := logTime() + " " + ErrorPre + " [" + defaultErrorCode + "] " + traceInfo(ctx) + " " + format
+		l.Printf(s, args...)
+	}
+}
+
+func (l *proxyLogger) Alertf(ctx context.Context, errkey types.ErrorKey, format string, args ...interface{}) {
+	if l.disable {
+		return
+	}
+	if l.level >= ERROR {
+		s := logTime() + " " + ErrorPre + " [" + string(errkey) + "] " + traceInfo(ctx) + " " + format
 		l.Printf(s, args...)
 	}
 }

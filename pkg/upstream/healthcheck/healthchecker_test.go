@@ -197,16 +197,14 @@ func TestHealthCheck(t *testing.T) {
 			Interval: interval,
 		}
 		cluster := &mockCluster{
-			ps: &mockPrioritySet{
-				hs: &mockHostSet{
-					hosts: []types.Host{
-						tc.host,
-					},
+			hs: &mockHostSet{
+				hosts: []types.Host{
+					tc.host,
 				},
 			},
 		}
-		hc := CreateHealthCheck(cfg, cluster)
-		hc.Start()
+		hc := CreateHealthCheck(cfg)
+		hc.SetHealthCheckerHostSet(cluster.hs)
 		tc.running(tc.host)
 		time.Sleep(100 * time.Millisecond) // make sure checks finish
 		hc.Stop()

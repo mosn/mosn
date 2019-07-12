@@ -72,15 +72,6 @@ const (
 	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
 )
 
-// RoutingPriority
-type RoutingPriority string
-
-// Group of routing priority
-const (
-	DEFAULT RoutingPriority = "DEFAULT"
-	HIGH    RoutingPriority = "HIGH"
-)
-
 // Cluster represents a cluster's information
 type Cluster struct {
 	Name                 string          `json:"name,omitempty"`
@@ -345,11 +336,10 @@ func (cb *CircuitBreakers) UnmarshalJSON(b []byte) (err error) {
 }
 
 type Thresholds struct {
-	Priority           RoutingPriority `json:"priority,omitempty"`
-	MaxConnections     uint32          `json:"max_connections,omitempty"`
-	MaxPendingRequests uint32          `json:"max_pending_requests,omitempty"`
-	MaxRequests        uint32          `json:"max_requests,omitempty"`
-	MaxRetries         uint32          `json:"max_retries,omitempty"`
+	MaxConnections     uint32 `json:"max_connections,omitempty"`
+	MaxPendingRequests uint32 `json:"max_pending_requests,omitempty"`
+	MaxRequests        uint32 `json:"max_requests,omitempty"`
+	MaxRetries         uint32 `json:"max_retries,omitempty"`
 }
 
 // ClusterSpecInfo is a configuration of subscribe

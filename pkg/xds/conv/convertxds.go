@@ -722,6 +722,7 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 			headerMatcher.Value = xdsHeader.GetExactMatch()
 			headerMatcher.Regex = false
 		}
+
 		// as pseudo headers not support when Http1.x upgrade to Http2, change pseudo headers to normal headers
 		// this would be fix soon
 		if strings.HasPrefix(headerMatcher.Name, ":") {
@@ -979,7 +980,6 @@ func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.Ci
 			continue
 		}
 		threshold := v2.Thresholds{
-			Priority:           v2.RoutingPriority(xdsThreshold.GetPriority().String()),
 			MaxConnections:     xdsThreshold.GetMaxConnections().GetValue(),
 			MaxPendingRequests: xdsThreshold.GetMaxPendingRequests().GetValue(),
 			MaxRequests:        xdsThreshold.GetMaxRequests().GetValue(),

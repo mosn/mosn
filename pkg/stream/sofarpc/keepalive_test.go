@@ -69,7 +69,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 			TLSDisable: true, // ignore tls, for mock is nil
 		},
 	}
-	host := cluster.NewHost(cfg, info)
+	host := cluster.NewSimpleHost(cfg, info)
 	ctx := context.Background()
 	conn := host.CreateConnection(ctx)
 	if err := conn.Connection.Connect(true); err != nil {

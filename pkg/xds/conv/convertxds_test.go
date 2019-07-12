@@ -24,8 +24,8 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
+	"github.com/gogo/protobuf/proto"
 	"github.com/gogo/protobuf/types"
-	"github.com/protobuf/proto"
 	v1 "istio.io/api/mixer/v1"
 	"istio.io/api/mixer/v1/config/client"
 
@@ -52,7 +52,7 @@ import (
 func TestMain(m *testing.M) {
 	// init
 	router.NewRouterManager()
-	cluster.NewClusterManager(nil, nil, nil, true, false)
+	cluster.NewClusterManagerSingleton(nil, nil)
 	m.Run()
 }
 

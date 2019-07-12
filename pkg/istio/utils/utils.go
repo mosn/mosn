@@ -24,7 +24,7 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	v1 "istio.io/api/mixer/v1"
-	"sofastack.io/sofa-mosn/pkg/types"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 const (
@@ -32,7 +32,7 @@ const (
 )
 
 // GetDestinationUID function
-func GetDestinationUID(metadata types.RouteMetaData) (uid string, err error) {
+func GetDestinationUID(metadata v2.Metadata) (uid string, err error) {
 	// TODO
 	return "", nil
 	/*

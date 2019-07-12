@@ -30,8 +30,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/gogo/protobuf/types"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -210,7 +208,6 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	loadXdsData2()
 
 	buf, err = admin.Dump()
-	log.DefaultLogger.Infof("conf:%v", string(buf))
 	if err != nil {
 		t.Fatal(err)
 	}
