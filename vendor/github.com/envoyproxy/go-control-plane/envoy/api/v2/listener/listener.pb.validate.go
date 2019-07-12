@@ -48,24 +48,32 @@ func (m *Filter) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return FilterValidationError{
-				Field:  "Config",
-				Reason: "embedded message failed validation",
-				Cause:  err,
-			}
-		}
-	}
+	switch m.ConfigType.(type) {
 
-	if v, ok := interface{}(m.GetDeprecatedV1()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return FilterValidationError{
-				Field:  "DeprecatedV1",
-				Reason: "embedded message failed validation",
-				Cause:  err,
+	case *Filter_Config:
+
+		if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return FilterValidationError{
+					Field:  "Config",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
 			}
 		}
+
+	case *Filter_TypedConfig:
+
+		if v, ok := interface{}(m.GetTypedConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return FilterValidationError{
+					Field:  "TypedConfig",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
+			}
+		}
+
 	}
 
 	return nil
@@ -110,6 +118,17 @@ func (m *FilterChainMatch) Validate() error {
 		return nil
 	}
 
+	if wrapper := m.GetDestinationPort(); wrapper != nil {
+
+		if val := wrapper.GetValue(); val < 1 || val > 65535 {
+			return FilterChainMatchValidationError{
+				Field:  "DestinationPort",
+				Reason: "value must be inside range [1, 65535]",
+			}
+		}
+
+	}
+
 	for idx, item := range m.GetPrefixRanges() {
 		_, _ = idx, item
 
@@ -134,6 +153,13 @@ func (m *FilterChainMatch) Validate() error {
 				Reason: "embedded message failed validation",
 				Cause:  err,
 			}
+		}
+	}
+
+	if _, ok := FilterChainMatch_ConnectionSourceType_name[int32(m.GetSourceType())]; !ok {
+		return FilterChainMatchValidationError{
+			Field:  "SourceType",
+			Reason: "value must be one of the defined enum values",
 		}
 	}
 
@@ -165,16 +191,6 @@ func (m *FilterChainMatch) Validate() error {
 			}
 		}
 
-	}
-
-	if v, ok := interface{}(m.GetDestinationPort()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return FilterChainMatchValidationError{
-				Field:  "DestinationPort",
-				Reason: "embedded message failed validation",
-				Cause:  err,
-			}
-		}
 	}
 
 	// no validation rules for TransportProtocol
@@ -335,14 +351,32 @@ func (m *ListenerFilter) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ListenerFilterValidationError{
-				Field:  "Config",
-				Reason: "embedded message failed validation",
-				Cause:  err,
+	switch m.ConfigType.(type) {
+
+	case *ListenerFilter_Config:
+
+		if v, ok := interface{}(m.GetConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ListenerFilterValidationError{
+					Field:  "Config",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
 			}
 		}
+
+	case *ListenerFilter_TypedConfig:
+
+		if v, ok := interface{}(m.GetTypedConfig()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ListenerFilterValidationError{
+					Field:  "TypedConfig",
+					Reason: "embedded message failed validation",
+					Cause:  err,
+				}
+			}
+		}
+
 	}
 
 	return nil
@@ -378,47 +412,3 @@ func (e ListenerFilterValidationError) Error() string {
 }
 
 var _ error = ListenerFilterValidationError{}
-
-// Validate checks the field values on Filter_DeprecatedV1 with the rules
-// defined in the proto definition for this message. If any rules are
-// violated, an error is returned.
-func (m *Filter_DeprecatedV1) Validate() error {
-	if m == nil {
-		return nil
-	}
-
-	// no validation rules for Type
-
-	return nil
-}
-
-// Filter_DeprecatedV1ValidationError is the validation error returned by
-// Filter_DeprecatedV1.Validate if the designated constraints aren't met.
-type Filter_DeprecatedV1ValidationError struct {
-	Field  string
-	Reason string
-	Cause  error
-	Key    bool
-}
-
-// Error satisfies the builtin error interface
-func (e Filter_DeprecatedV1ValidationError) Error() string {
-	cause := ""
-	if e.Cause != nil {
-		cause = fmt.Sprintf(" | caused by: %v", e.Cause)
-	}
-
-	key := ""
-	if e.Key {
-		key = "key for "
-	}
-
-	return fmt.Sprintf(
-		"invalid %sFilter_DeprecatedV1.%s: %s%s",
-		key,
-		e.Field,
-		e.Reason,
-		cause)
-}
-
-var _ error = Filter_DeprecatedV1ValidationError{}

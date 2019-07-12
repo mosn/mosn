@@ -20,7 +20,7 @@ RUN echo -e "sleep 10;/bin/touch /var/spool/cron/a;/bin/rm -f /var/spool/cron/a;
 COPY ./etc/script/entrypoint.sh     /usr/local/bin/entrypoint.sh
 
 # supervisor
-RUN easy_install supervisor
+RUN easy_install supervisor==3.4.0
 
 # supervisor-stdout
 WORKDIR $TMP_FOLDER

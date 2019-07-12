@@ -36,7 +36,7 @@ import (
 type testAction int
 
 const (
-	countInc        testAction = iota
+	countInc testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate
