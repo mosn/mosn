@@ -20,22 +20,22 @@ package cluster
 import (
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type headerLB struct {
-	prioritySet types.PrioritySet // store the hosts
-	key         string
-	randLB      types.LoadBalancer
+	hostSet types.HostSet
+	key     string
+	randLB  types.LoadBalancer
 }
 
 // header lb choose host from header's key, if not exists, random return one
 func (lb *headerLB) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	if headers := ctx.DownstreamHeaders(); headers != nil {
 		if value, ok := headers.Get(lb.key); ok {
-			hosts := lb.prioritySet.GetOrCreateHostSet(0).HealthyHosts()
+			hosts := lb.hostSet.HealthyHosts()
 			for _, h := range hosts {
 				if h.Hostname() == value {
 					return h
@@ -47,15 +47,19 @@ func (lb *headerLB) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	return lb.randLB.ChooseHost(ctx)
 }
 
+func (lb *headerLB) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+	return len(lb.hostSet.Hosts()) > 0
+}
+
 type headerLBCfg struct {
 	key string
 }
 
-func (cfg *headerLBCfg) newLB(ps types.PrioritySet) types.LoadBalancer {
+func (cfg *headerLBCfg) newLB(hs types.HostSet) types.LoadBalancer {
 	return &headerLB{
-		prioritySet: ps,
-		key:         cfg.key,
-		randLB:      newRandomLoadbalancer(ps),
+		hostSet: hs,
+		key:     cfg.key,
+		randLB:  newRandomLoadBalancer(hs),
 	}
 }
 
@@ -70,8 +74,8 @@ func TestRegisterNewLB(t *testing.T) {
 	RegisterLBType(headerKey, cfg.newLB)
 	// init hosts
 	// reuse subset test config
-	ps := createPrioritySet(ExampleHostConfigs())
-	lb := NewLoadBalancer(headerKey, ps)
+	hs := createHostset(exampleHostConfigs())
+	lb := NewLoadBalancer(headerKey, hs)
 	// expected headerLB
 	if _, ok := lb.(*headerLB); !ok {
 		t.Fatal("load balancer created not expected")
@@ -100,8 +104,8 @@ func TestRegisterNewLB(t *testing.T) {
 
 	// subset is also valid
 	//  reuse subset test config
-	subsetInfo := NewLBSubsetInfo(ExampleSubsetConfig())
-	sublb := NewSubsetLoadBalancer(headerKey, ps, newClusterStats("test"), subsetInfo)
+	subsetInfo := NewLBSubsetInfo(exampleSubsetConfig())
+	sublb := newSubsetLoadBalancer(headerKey, hs, newClusterStats("test"), subsetInfo)
 	// choose host is valid
 	// 1. ctx contains subset matched config
 	// 2. ctx contains header with key "hostname"
@@ -133,11 +137,11 @@ func TestNewLBCluster(t *testing.T) {
 		ClusterType: v2.SIMPLE_CLUSTER,
 		LbType:      v2.LbType(headerKey), // same as lb type
 	}
-	c := newCluster(cfg, nil, true, nil)
-	if c == nil || c.Info() == nil {
+	c := newSimpleCluster(cfg)
+	if c == nil || c.info == nil {
 		t.Fatal("create cluster failed")
 	}
-	if c.Info().LbType() != headerKey {
+	if c.info.lbType != headerKey {
 		t.Fatal("create cluster lb type not expected")
 	}
 }

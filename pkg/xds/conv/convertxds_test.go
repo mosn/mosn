@@ -52,7 +52,7 @@ import (
 func TestMain(m *testing.M) {
 	// init
 	router.NewRouterManager()
-	cluster.NewClusterManager(nil, nil, nil, true, false)
+	cluster.NewClusterManagerSingleton(nil, nil)
 	m.Run()
 }
 

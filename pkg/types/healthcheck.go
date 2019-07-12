@@ -38,14 +38,10 @@ type HealthChecker interface {
 	Start()
 	// Stop terminates health checker
 	Stop()
-	// Add adds a host's health check if the host is not start a health checker
-	Add(host Host)
-	// Delete deletes a host's health check if the host is running a health checker
-	Delete(host Host)
 	// AddHostCheckCompleteCb adds a new callback for health check
 	AddHostCheckCompleteCb(cb HealthCheckCb)
-	// OnClusterMemberUpdate is called when cluster's host is added or deleted
-	OnClusterMemberUpdate(hostsAdded []Host, hostDel []Host)
+	// SetHealthCheckerHostSet reset the health checker's hostset
+	SetHealthCheckerHostSet(HostSet)
 }
 
 // HealthCheckSession is an interface for health check logic

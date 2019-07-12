@@ -22,7 +22,7 @@ import (
 	"sort"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -53,15 +53,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: types.HashedValue("test"),
+						Value: "test",
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: types.HashedValue("green"),
+						Value: "green",
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.HashedValue("v1"),
+						Value: "v1",
 					},
 				},
 			},
@@ -77,15 +77,15 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
-						Value: types.HashedValue("test"),
+						Value: "test",
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "label",
-						Value: types.HashedValue("green"),
+						Value: "green",
 					},
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.HashedValue("v1"),
+						Value: "v1",
 					},
 				},
 			},
@@ -101,7 +101,7 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				MatchCriteriaArray: []types.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
-						Value: types.HashedValue("v1"),
+						Value: "v1",
 					},
 				},
 			},
@@ -202,7 +202,7 @@ func TestMetadataMatchCriteriaImplSort(t *testing.T) {
 	for i := range keys {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  keys[i],
-			Value: types.HashedValue(values[i]),
+			Value: values[i],
 		}
 		mciArray = append(mciArray, mmci)
 	}

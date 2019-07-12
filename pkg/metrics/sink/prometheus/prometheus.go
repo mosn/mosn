@@ -31,16 +31,16 @@ import (
 	"strconv"
 	"sync"
 
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/metrics/sink"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/gogo/protobuf/proto"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
 	gometrics "github.com/rcrowley/go-metrics"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/metrics"
+	"sofastack.io/sofa-mosn/pkg/metrics/sink"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var (
@@ -124,7 +124,7 @@ func (psink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 		}
 
 		// TODO cached in metrics struct, avoid calc for each flush
-		prefix := strings.Join(labelKeys, "_") + "_" + typ + "_"
+		prefix := typ + "_"
 		suffix := makeLabelStr(labelKeys, labelVals)
 
 		m.Each(func(name string, i interface{}) {
@@ -150,6 +150,7 @@ func (psink *promSink) flushHistogram(tracker map[string]bool, buf types.IoBuffe
 	psink.flushGauge(tracker, buf, name+"_min", labels, float64(snapshot.Min()))
 	// max
 	psink.flushGauge(tracker, buf, name+"_max", labels, float64(snapshot.Max()))
+	// TODO: flush P90 P95 P99 if configured
 }
 
 func (psink *promSink) flushGauge(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {

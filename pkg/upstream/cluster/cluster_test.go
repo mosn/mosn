@@ -1,51 +1,165 @@
 package cluster
 
 import (
-	"reflect"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-func TestPrioritySet_GetHostInfo(t *testing.T) {
-	ps := prioritySet{}
-	hs := ps.GetOrCreateHostSet(0)
-	hostscfg := []v2.Host{
-		{
-			HostConfig: v2.HostConfig{
-				Address: "127.0.0.1",
-			},
-			MetaData: v2.Metadata{
-				"zone": "test1",
-			},
-		},
-		{
-			HostConfig: v2.HostConfig{
-				Address: "127.0.0.1",
-			},
-			MetaData: v2.Metadata{
-				"zone": "test2",
+func _createTestCluster() types.Cluster {
+	clusterConfig := v2.Cluster{
+		Name:   "test_cluster",
+		LbType: v2.LB_RANDOM,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: 1, // AnyEndPoint
+			SubsetSelectors: [][]string{
+				[]string{"version"},
+				[]string{"version", "zone"},
 			},
 		},
 	}
-	info := &clusterInfo{
-		name: "test",
-	}
+	return NewCluster(clusterConfig)
+}
+
+func TestClusterUpdateHosts(t *testing.T) {
+	cluster := _createTestCluster()
+	// init hosts
+	pool := makePool(100)
 	var hosts []types.Host
-	for _, cfg := range hostscfg {
-		hosts = append(hosts, NewHost(cfg, info))
+	metas := []v2.Metadata{
+		v2.Metadata{"version": "1", "zone": "a"},
+		v2.Metadata{"version": "1", "zone": "b"},
+		v2.Metadata{"version": "2", "zone": "a"},
+		nil, // no meta (in any point)
 	}
-	hs.UpdateHosts(hosts, nil, nil, nil)
-	hostinfo := ps.GetHostsInfo(0)
-	if len(hostinfo) != len(hostscfg) {
-		t.Error("hostinfo length not expected")
+	for _, meta := range metas {
+		hosts = append(hosts, pool.MakeHosts(10, meta)...)
 	}
-	for i := range hostinfo {
-		cfgMeta := hostscfg[i].MetaData
-		getMeta := hostinfo[i].OriginMetaData()
-		if !reflect.DeepEqual(cfgMeta, getMeta) {
-			t.Errorf("hostconfig is %v, but got %v", cfgMeta, getMeta)
+	cluster.UpdateHosts(hosts)
+	// verify
+	snap := cluster.Snapshot()
+	subLb := snap.LoadBalancer().(*subsetLoadBalancer)
+	if len(subLb.fallbackSubset.hostSet.Hosts()) != 40 {
+		t.Fatal("default fallback should be all hosts")
+	}
+	result := &subSetMapResult{
+		result: map[string][]string{},
+	}
+	result.RangeSubsetMap("", subLb.subSets)
+	if len(result.result) != 5 {
+		t.Fatalf("expected 5 subsets, but got: %d", len(result.result))
+	}
+	for p, sub := range result.result {
+		if p == "version->1->" {
+			if len(sub) != 20 {
+				t.Fatalf("%s host only have %d, expected 20", p, len(sub))
+			}
+		} else {
+			if len(sub) != 10 {
+				t.Fatalf("%s host only have %d, expected 10", p, len(sub))
+			}
+		}
+	}
+	// create new subset
+	// update old subset
+	var newHosts []types.Host
+	newHosts = append(newHosts, hosts[:5]...)
+	newHosts = append(newHosts, hosts[10:15]...)
+	newHosts = append(newHosts, hosts[20:]...)
+	newHosts = append(newHosts, pool.MakeHosts(10, metas[2])...)
+	newHosts = append(newHosts, pool.MakeHosts(10, v2.Metadata{
+		"version": "2",
+		"zone":    "b",
+	})...)
+	newHosts = append(newHosts, pool.MakeHosts(10, v2.Metadata{
+		"version": "3",
+		"ignore":  "true",
+	})...)
+	cluster.UpdateHosts(newHosts)
+	newSnap := cluster.Snapshot()
+	newSubLb := newSnap.LoadBalancer().(*subsetLoadBalancer)
+	// verify
+	if len(newSubLb.fallbackSubset.hostSet.Hosts()) != 60 {
+		t.Fatal("default fallback should be all hosts")
+	}
+	newResult := &subSetMapResult{
+		result: map[string][]string{},
+	}
+	newResult.RangeSubsetMap("", newSubLb.subSets)
+	if len(newResult.result) != 7 {
+		t.Fatalf("expected 7 subsets, but got: %d", len(newResult.result))
+	}
+	expectedResult := map[string]int{
+		"version->1->":          10,
+		"version->2->":          30,
+		"version->3->":          10,
+		"version->1->zone->a->": 5,
+		"version->1->zone->b->": 5,
+		"version->2->zone->a->": 20,
+		"version->2->zone->b->": 10,
+	}
+	for p, count := range expectedResult {
+		sub, ok := newResult.result[p]
+		if !ok || len(sub) != count {
+			t.Fatalf("%s is not expected, exists: %v, count: %d", p, ok, len(sub))
+		}
+	}
+}
+
+func TestUpdateHostLabels(t *testing.T) {
+	cluster := _createTestCluster()
+	host := &mockHost{
+		addr: "127.0.0.1:8080",
+		meta: v2.Metadata{
+			"version": "1",
+		},
+	}
+	cluster.UpdateHosts([]types.Host{host})
+	snap := cluster.Snapshot()
+	subLb := snap.LoadBalancer().(*subsetLoadBalancer)
+	result := &subSetMapResult{
+		result: map[string][]string{},
+	}
+	result.RangeSubsetMap("", subLb.subSets)
+	expectedResult := map[string]int{
+		"version->1->": 1,
+	}
+	if len(result.result) != 1 {
+		t.Fatalf("expected 1 subsets, but got: %d", len(result.result))
+	}
+	for p, count := range expectedResult {
+		sub, ok := result.result[p]
+		if !ok || len(sub) != count {
+			t.Fatalf("%s is not expected, exists: %v, count: %d", p, ok, len(sub))
+		}
+	}
+	// update host label
+	newHost := &mockHost{
+		addr: "127.0.0.1:8080",
+		meta: v2.Metadata{
+			"zone":    "a",
+			"version": "2",
+		},
+	}
+	cluster.UpdateHosts([]types.Host{newHost})
+	newSnap := cluster.Snapshot()
+	newSubLb := newSnap.LoadBalancer().(*subsetLoadBalancer)
+	newResult := &subSetMapResult{
+		result: map[string][]string{},
+	}
+	newResult.RangeSubsetMap("", newSubLb.subSets)
+	newExpectedResult := map[string]int{
+		"version->2->":          1,
+		"version->2->zone->a->": 1,
+	}
+	if len(newResult.result) != 2 {
+		t.Fatalf("expected 2 subsets, but got: %d", len(newResult.result))
+	}
+	for p, count := range newExpectedResult {
+		sub, ok := newResult.result[p]
+		if !ok || len(sub) != count {
+			t.Fatalf("%s is not expected, exists: %v, count: %d", p, ok, len(sub))
 		}
 	}
 }

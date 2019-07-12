@@ -24,7 +24,7 @@ import (
 	"net"
 	"strings"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -227,7 +227,7 @@ func (mgr *contextManager) AddContext(c *v2.TLSConfig) error {
 	tlsConfig, err := mgr.newTLSConfig(c)
 	if err != nil {
 		if c.Fallback && err == ErrorGetCertificateFailed {
-			mgr.logger.Warnf("[mtls] something wrong with certificate/key, trigger fallback")
+			mgr.logger.Alertf(types.ErrorKeyTLSFallback, "something wrong with certificate/key, trigger fallback")
 			return nil
 		}
 		return err

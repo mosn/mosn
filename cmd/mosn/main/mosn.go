@@ -23,6 +23,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/urfave/cli"
 	_ "sofastack.io/sofa-mosn/pkg/buffer"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/tcpproxy"
@@ -45,7 +46,6 @@ import (
 	_ "sofastack.io/sofa-mosn/pkg/stream/xprotocol"
 	_ "sofastack.io/sofa-mosn/pkg/upstream/healthcheck"
 	_ "sofastack.io/sofa-mosn/pkg/xds"
-	"github.com/urfave/cli"
 )
 
 var Version = "0.4.0"
