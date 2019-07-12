@@ -1088,14 +1088,6 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 			}
 		}
 	}
-	//else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil {
-	//	// For istio SDS need to update go-control-plane vendor = 0.6.9
-	//	if validationContextType := common.GetValidationContextType(); validationContextType != nil {
-	//		//validationContextType.
-	//		//			tmp.GetSdsConfig().GetConfigSourceSpecifier().(*core.ConfigSource_ApiConfigSource)
-	//		//.ApiConfigSource.GetGrpcServices()[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_).GoogleGrpc.TargetUri
-	//	}
-	//}
 
 	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
 		config.CACert = common.GetValidationContext().GetTrustedCa().String()
