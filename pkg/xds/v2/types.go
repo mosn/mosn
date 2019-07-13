@@ -95,7 +95,7 @@ type SecretProvider interface {
 }
 
 type SdsClient interface {
-	AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, callback SdsUpdateCallbackFunc)
+	AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, callback SdsUpdateCallbackFunc) error
 	DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error
 	SetSecret(name string, secret *auth.Secret)
 }

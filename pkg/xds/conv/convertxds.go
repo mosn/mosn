@@ -39,7 +39,7 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"

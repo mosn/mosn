@@ -1,6 +1,7 @@
 package xds
 
 import (
+	"github.com/juju/errors"
 	"sync"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -25,11 +26,11 @@ var sdsClientLock sync.Mutex
 
 // GetSdsClientImpl use by tls module , when get sds config from xds
 func GetSdsClient(config *auth.SdsSecretConfig) v2.SdsClient {
+	sdsClientLock.Lock()
+	defer sdsClientLock.Unlock()
 	if sdsClient != nil {
 		return sdsClient
 	} else {
-		sdsClientLock.Lock()
-		defer sdsClientLock.Unlock()
 		sdsClient = &SdsClientImpl{
 			SdsConfigMap:   make(map[string]*auth.SdsSecretConfig),
 			SdsCallbackMap: make(map[string]v2.SdsUpdateCallbackFunc),
@@ -49,21 +50,32 @@ func GetSdsClient(config *auth.SdsSecretConfig) v2.SdsClient {
 
 // CloseSdsClientImpl used only mosn exit
 func CloseSdsClient() {
+	sdsClientLock.Lock()
+	defer sdsClientLock.Unlock()
 	if sdsClient != nil && sdsClient.sdsSubscriber != nil {
 		sdsClient.sdsSubscriber.Stop()
+		sdsClient.sdsSubscriber = nil
+		sdsClient = nil
 	}
 }
 
-func (client *SdsClientImpl) AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, callback v2.SdsUpdateCallbackFunc) {
+func (client *SdsClientImpl) AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, callback v2.SdsUpdateCallbackFunc) error {
+	if sdsClient == nil {
+		return errors.New(" sds client not init!")
+	}
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
 	client.SdsConfigMap[sdsConfig.Name] = sdsConfig
 	client.SdsCallbackMap[sdsConfig.Name] = callback
 	client.sdsSubscriber.SendSdsRequest(sdsConfig.Name)
+	return nil
 }
 
 // DeleteUpdateCallback
 func (client *SdsClientImpl) DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error {
+	if sdsClient == nil {
+		return errors.New(" sds client not init!")
+	}
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
 	delete(client.SdsConfigMap, sdsConfig.Name)
@@ -73,6 +85,8 @@ func (client *SdsClientImpl) DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfi
 
 // SetSecret invoked when sds subscriber get secret response
 func (client *SdsClientImpl) SetSecret(name string, secret *auth.Secret) {
+	client.updatedLock.Lock()
+	defer client.updatedLock.Unlock()
 	if fc, ok := client.SdsCallbackMap[name]; ok {
 		log.DefaultLogger.Debugf("[xds] [sds client],set secret = %v", name)
 		mosnSecret := &types.SDSSecret{

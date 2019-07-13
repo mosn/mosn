@@ -47,11 +47,6 @@ func Test_AddUpdateCallback(t *testing.T) {
 		t.Errorf("get sds client fail")
 	}
 	updatedChan := make(chan int)
-	timeoutChan := make(chan int)
-	go func() {
-		time.Sleep(time.Second * 2)
-		timeoutChan <- 1
-	}()
 	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SDSSecret) {
 		if name != "default" {
 			t.Errorf("name should same with config.name")
@@ -60,7 +55,7 @@ func Test_AddUpdateCallback(t *testing.T) {
 	})
 	select {
 	case <-updatedChan:
-	case <-timeoutChan:
+	case <-time.After(time.Second * 2):
 		t.Errorf("callback reponse timeout")
 	}
 }

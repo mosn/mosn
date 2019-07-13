@@ -1,7 +1,8 @@
 package v2
 
 import (
-	"runtime/debug"
+	"github.com/juju/errors"
+	"sofastack.io/sofa-mosn/pkg/utils"
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -50,50 +51,54 @@ func NewSdsSubscriber(provider SecretProvider, sdsConfig *core.ConfigSource, ser
 }
 
 func (subscribe *SdsSubscriber) Start() error {
-	sdsStreamConfig := subscribe.convertSdsConfig(subscribe.sdsConfig)
+	sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
+	if err != nil {
+		return err
+	}
 	streamClient, err := subscribe.getSdsStreamClient(sdsStreamConfig)
 	if err != nil {
 		return err
 	}
 	subscribe.sdsStreamClient = streamClient
-	go subscribe.sendRequestLoop(subscribe.sdsStreamClient)
-	go subscribe.receiveResponseLoop(subscribe.sdsStreamClient)
+	utils.GoWithRecover(func() {
+		subscribe.sendRequestLoop(subscribe.sdsStreamClient)
+	}, nil)
+	utils.GoWithRecover(func() {
+		subscribe.receiveResponseLoop(subscribe.sdsStreamClient)
+	}, nil)
 	return nil
 }
 
 func (subscribe *SdsSubscriber) Stop() {
-	subscribe.sendStopChannel <- 0
-	subscribe.receiveStopChannel <- 0
+	close(subscribe.sendStopChannel)
+	close(subscribe.receiveStopChannel)
 }
 
 func (subscribe *SdsSubscriber) SendSdsRequest(name string) {
 	subscribe.reqQueue <- name
 }
 
-func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *core.ConfigSource) *SdsStreamConfig {
+func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *core.ConfigSource) (*SdsStreamConfig, error) {
 	sdsStreamConfig := &SdsStreamConfig{}
 	if apiConfig, ok := subscribe.sdsConfig.ConfigSourceSpecifier.(*core.ConfigSource_ApiConfigSource); ok {
 		if apiConfig.ApiConfigSource.GetApiType() == core.ApiConfigSource_GRPC {
 			grpcService := apiConfig.ApiConfigSource.GetGrpcServices()
 			if len(grpcService) != 1 {
 				log.DefaultLogger.Errorf("[xds] [sds subscriber] only support one grpc service,but get %v", len(grpcService))
-				return nil
+				return nil, errors.New("unsupport sds config")
 			}
 			if grpcConfig, ok := grpcService[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_); ok {
 				sdsStreamConfig.sdsUdsPath = grpcConfig.GoogleGrpc.TargetUri
 				sdsStreamConfig.statPrefix = grpcConfig.GoogleGrpc.StatPrefix
+			} else {
+				return nil, errors.New("unsupport sds target specifier")
 			}
 		}
 	}
-	return sdsStreamConfig
+	return sdsStreamConfig, nil
 }
 
 func (subscribe *SdsSubscriber) sendRequestLoop(sdsStreamClient *SdsStreamClient) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("[xds] [sds subscriber] panic %v\n%s", r, string(debug.Stack()))
-		}
-	}()
 	for {
 		select {
 		case <-subscribe.sendStopChannel:
@@ -115,11 +120,6 @@ func (subscribe *SdsSubscriber) sendRequestLoop(sdsStreamClient *SdsStreamClient
 }
 
 func (subscribe *SdsSubscriber) receiveResponseLoop(sdsStreamClient *SdsStreamClient) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("[xds] [sds subscriber] panic %v\n%s", r, string(debug.Stack()))
-		}
-	}()
 	for {
 		select {
 		case <-subscribe.receiveStopChannel:
@@ -142,11 +142,7 @@ func (subscribe *SdsSubscriber) receiveResponseLoop(sdsStreamClient *SdsStreamCl
 }
 
 func (subscribe *SdsSubscriber) sendRequest(request *xdsapi.DiscoveryRequest) error {
-	err := subscribe.sdsStreamClient.streamSecretsClient.Send(request)
-	if err != nil {
-		return err
-	}
-	return nil
+	return subscribe.sdsStreamClient.streamSecretsClient.Send(request)
 }
 
 func (subscribe *SdsSubscriber) handleSecretResp(response *xdsapi.DiscoveryResponse) {
