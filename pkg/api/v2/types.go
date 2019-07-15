@@ -25,6 +25,8 @@ import (
 	"path"
 	"time"
 
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+
 	"istio.io/api/mixer/v1/config/client"
 	"sofastack.io/sofa-mosn/pkg/utils"
 )
@@ -376,6 +378,7 @@ type TLSConfig struct {
 	Ticket       string                 `json:"ticket,omitempty"`
 	Fallback     bool                   `json:"fall_back"`
 	ExtendVerify map[string]interface{} `json:"extend_verify,omitempty"`
+	SDSConfig
 }
 
 // AccessLog for making up access log
@@ -652,4 +655,9 @@ type ServerConfig struct {
 	Processor int `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
+}
+
+type SDSConfig struct {
+	CertificateConfig *auth.SdsSecretConfig
+	ValidationConfig  *auth.SdsSecretConfig
 }

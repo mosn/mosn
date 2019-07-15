@@ -45,6 +45,9 @@ type Client struct {
 	adsClient *v2.ADSClient
 }
 
+var ServiceNode = ""
+var ServiceCluster = ""
+
 func duration2String(duration *types.Duration) string {
 	d := time.Duration(duration.Seconds)*time.Second + time.Duration(duration.Nanos)*time.Nanosecond
 	x := fmt.Sprintf("%.9f", d.Seconds())
@@ -195,6 +198,8 @@ func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode st
 			log.DefaultLogger.Warnf("fail to init xds config, skip xds: %v", err)
 			return errors.New("fail to init xds config")
 		}
+		ServiceCluster = serviceCluster
+		ServiceNode = serviceNode
 		c.v2 = &v2.ClientV2{
 			ServiceCluster: serviceCluster,
 			ServiceNode:    serviceNode,

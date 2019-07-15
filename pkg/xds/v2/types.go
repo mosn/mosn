@@ -20,6 +20,10 @@ package v2
 import (
 	"time"
 
+	"sofastack.io/sofa-mosn/pkg/types"
+
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -82,3 +86,16 @@ type StreamClient struct {
 
 // TypeURLHandleFunc is a function that used to parse ads type url data
 type TypeURLHandleFunc func(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse)
+
+// SDS
+type SdsUpdateCallbackFunc func(name string, secret *types.SDSSecret)
+
+type SecretProvider interface {
+	SetSecret(name string, secret *auth.Secret)
+}
+
+type SdsClient interface {
+	AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, callback SdsUpdateCallbackFunc) error
+	DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error
+	SetSecret(name string, secret *auth.Secret)
+}

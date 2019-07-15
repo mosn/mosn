@@ -39,7 +39,7 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
@@ -1059,6 +1059,7 @@ func convertDuration(p *types.Duration) time.Duration {
 func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	var config v2.TLSConfig
 	var isDownstream bool
+	var isSdsMode bool
 	var common *xdsauth.CommonTlsContext
 
 	if xdsTLSContext == nil {
@@ -1087,6 +1088,12 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 				config.PrivateKey = cert.GetPrivateKey().GetFilename()
 			}
 		}
+	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
+		isSdsMode = true
+		if validationContext, ok := common.GetValidationContextType().(*xdsauth.CommonTlsContext_CombinedValidationContext); ok {
+			config.SDSConfig.CertificateConfig = tlsCertSdsConfig[0]
+			config.SDSConfig.ValidationConfig = validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()
+		}
 	}
 
 	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
@@ -1107,7 +1114,7 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 		config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
 	}
 
-	if isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
+	if !isSdsMode && isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
 		log.DefaultLogger.Errorf("tls_certificates are required in downstream tls_context")
 		config.Status = false
 		return config

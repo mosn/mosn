@@ -24,17 +24,18 @@ import (
 	"path/filepath"
 	"testing"
 
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/util"
+
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	"github.com/gogo/protobuf/types"
+
+	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	http_conn "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/util"
-	"github.com/gogo/protobuf/types"
-	jsoniter "github.com/json-iterator/go"
-
 	"github.com/gogo/protobuf/proto"
+	jsoniter "github.com/json-iterator/go"
 	admin "sofastack.io/sofa-mosn/pkg/admin/store"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
