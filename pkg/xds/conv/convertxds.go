@@ -34,6 +34,7 @@ import (
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
@@ -330,23 +331,40 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 	if d := faultConfig.Delay.GetFixedDelay(); d != nil {
 		fixed_delay = *d
 	}
+
+	// convert istio percentage to mosn percent
+	delayPercent := convertIstioPercentage(faultConfig.Delay.GetPercentage())
+	abortPercent := convertIstioPercentage(faultConfig.Abort.GetPercentage())
+
 	streamFault := &v2.StreamFaultInject{
 		Delay: &v2.DelayInject{
 			DelayInjectConfig: v2.DelayInjectConfig{
-				Percent: faultConfig.Delay.GetPercent(),
+				Percent: delayPercent,
 				DelayDurationConfig: v2.DurationConfig{
 					Duration: fixed_delay,
 				},
 			},
 		},
 		Abort: &v2.AbortInject{
-			Percent: faultConfig.Abort.GetPercent(),
+			Percent: abortPercent,
 			Status:  int(faultConfig.Abort.GetHttpStatus()),
 		},
 		UpstreamCluster: faultConfig.UpstreamCluster,
 		Headers:         convertHeaders(faultConfig.GetHeaders()),
 	}
 	return makeJsonMap(streamFault)
+}
+
+func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
+	switch percent.Denominator {
+	case xdstype.FractionalPercent_MILLION:
+		return percent.Numerator / 10000
+	case xdstype.FractionalPercent_TEN_THOUSAND:
+		return percent.Numerator / 100
+	case xdstype.FractionalPercent_HUNDRED:
+		return percent.Numerator
+	}
+	return percent.Numerator
 }
 
 func makeJsonMap(v interface{}) (map[string]interface{}, error) {
@@ -694,10 +712,15 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 	}
 	headerMatchers := make([]v2.HeaderMatcher, 0, len(xdsHeaders))
 	for _, xdsHeader := range xdsHeaders {
-		headerMatcher := v2.HeaderMatcher{
-			Name:  xdsHeader.GetName(),
-			Value: xdsHeader.GetExactMatch(),
-			Regex: xdsHeader.GetRegex().GetValue(),
+		headerMatcher := v2.HeaderMatcher{}
+		if xdsHeader.GetRegexMatch() != "" {
+			headerMatcher.Name = xdsHeader.GetName()
+			headerMatcher.Value = xdsHeader.GetRegexMatch()
+			headerMatcher.Regex = true
+		} else {
+			headerMatcher.Name = xdsHeader.GetName()
+			headerMatcher.Value = xdsHeader.GetExactMatch()
+			headerMatcher.Regex = false
 		}
 
 		// as pseudo headers not support when Http1.x upgrade to Http2, change pseudo headers to normal headers
@@ -800,7 +823,7 @@ func convertWeightedCluster(xdsWeightedCluster *xdsroute.WeightedCluster_Cluster
 	}
 }
 
-func convertRetryPolicy(xdsRetryPolicy *xdsroute.RouteAction_RetryPolicy) *v2.RetryPolicy {
+func convertRetryPolicy(xdsRetryPolicy *xdsroute.RetryPolicy) *v2.RetryPolicy {
 	if xdsRetryPolicy == nil {
 		return &v2.RetryPolicy{}
 	}
@@ -1036,6 +1059,7 @@ func convertDuration(p *types.Duration) time.Duration {
 func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	var config v2.TLSConfig
 	var isDownstream bool
+	var isSdsMode bool
 	var common *xdsauth.CommonTlsContext
 
 	if xdsTLSContext == nil {
@@ -1064,6 +1088,12 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 				config.PrivateKey = cert.GetPrivateKey().GetFilename()
 			}
 		}
+	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
+		isSdsMode = true
+		if validationContext, ok := common.GetValidationContextType().(*xdsauth.CommonTlsContext_CombinedValidationContext); ok {
+			config.SDSConfig.CertificateConfig = tlsCertSdsConfig[0]
+			config.SDSConfig.ValidationConfig = validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()
+		}
 	}
 
 	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
@@ -1084,7 +1114,7 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 		config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
 	}
 
-	if isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
+	if !isSdsMode && isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
 		log.DefaultLogger.Errorf("tls_certificates are required in downstream tls_context")
 		config.Status = false
 		return config
