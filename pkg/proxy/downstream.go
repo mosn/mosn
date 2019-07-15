@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/utils"
 
@@ -528,7 +528,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 func (s *downStream) matchRoute() {
 	headers := s.downstreamReqHeaders
 	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] routersWrapper or routers in routersWrapper is nil while trying to get router, headers= %v", headers)
+		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil while trying to get router, headers= %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
@@ -540,7 +540,7 @@ func (s *downStream) matchRoute() {
 	handlerChain := router.CallMakeHandlerChain(s.context, headers, routers, s.proxy.clusterManager)
 	// handlerChain should never be nil
 	if handlerChain == nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] no route to make handler chain, headers = %v", headers)
+		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "no route to make handler chain, headers = %v", headers)
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
@@ -611,7 +611,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	}
 	if s.snapshot == nil || reflect.ValueOf(s.snapshot).IsNil() {
 		// no available cluster
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] cluster snapshot is nil, cluster name is: %s", s.route.RouteRule().ClusterName())
+		log.Proxy.Alertf(s.context, types.ErrorKeyClusterGet, " cluster snapshot is nil, cluster name is: %s", s.route.RouteRule().ClusterName())
 		s.requestInfo.SetResponseFlag(types.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
@@ -632,7 +632,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 
 	pool, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] initialize Upstream Connection Pool error, request can't be proxyed, error = %v", err)
+		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "initialize Upstream Connection Pool error, request can't be proxyed, error = %v", err)
 		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
@@ -742,6 +742,8 @@ func (s *downStream) onUpstreamRequestSent() {
 			ID := s.ID
 			s.responseTimer = utils.NewTimer(s.timeout.GlobalTimeout,
 				func() {
+					atomic.StoreUint32(&s.reuseBuffer, 0)
+
 					if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 						return
 					}
@@ -758,10 +760,9 @@ func (s *downStream) onUpstreamRequestSent() {
 func (s *downStream) onResponseTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout() panic %v", r)
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout() panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
-	s.responseTimer = nil
 	s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
 
 	if s.upstreamRequest != nil {
@@ -769,7 +770,6 @@ func (s *downStream) onResponseTimeout() {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		}
 
-		atomic.StoreUint32(&s.reuseBuffer, 0)
 		s.upstreamRequest.resetStream()
 		s.upstreamRequest.OnResetStream(types.UpstreamGlobalTimeout)
 	}
@@ -786,6 +786,8 @@ func (s *downStream) setupPerReqTimeout() {
 		ID := s.ID
 		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout,
 			func() {
+				atomic.StoreUint32(&s.reuseBuffer, 0)
+
 				if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 					return
 				}
@@ -801,21 +803,19 @@ func (s *downStream) setupPerReqTimeout() {
 func (s *downStream) onPerReqTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onPerReqTimeout() panic %v", r)
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] onPerReqTimeout() panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 
 	if !s.downstreamResponseStarted {
 		// handle timeout on response not
 
-		s.perRetryTimer = nil
 		s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
 
 		if s.upstreamRequest.host != nil {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		}
 
-		atomic.StoreUint32(&s.reuseBuffer, 0)
 		s.upstreamRequest.resetStream()
 		s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
 		s.upstreamRequest.OnResetStream(types.UpstreamPerTryTimeout)
@@ -847,7 +847,7 @@ func (s *downStream) appendHeaders(endStream bool) {
 	headers := s.convertHeader(s.downstreamRespHeaders)
 	//Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] append headers error, %s", err)
+		log.Proxy.Alertf(s.context, types.ErrorKeyAppendHeader, "append headers error: %s", err)
 	}
 
 	if endStream {
@@ -1105,7 +1105,7 @@ func (s *downStream) doRetry() {
 	pool, err := s.initializeUpstreamConnectionPool(s)
 
 	if err != nil {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] retry choose conn pool failed, error = %v", err)
+		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "retry choose conn pool failed, error = %v", err)
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		s.cleanUp()
 		return
@@ -1231,11 +1231,6 @@ func (s *downStream) AddStreamAccessLog(accessLog types.AccessLog) {
 }
 
 // types.LoadBalancerContext
-// no use currently
-func (s *downStream) ComputeHashKey() types.HashedValue {
-	//return [16]byte{}
-	return ""
-}
 
 func (s *downStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	if nil != s.requestInfo.RouteEntry() {
@@ -1258,9 +1253,6 @@ func (s *downStream) DownstreamContext() context.Context {
 }
 
 func (s *downStream) giveStream() {
-	if s.snapshot != nil {
-		s.proxy.clusterManager.PutClusterSnapshot(s.snapshot)
-	}
 	if atomic.LoadUint32(&s.reuseBuffer) != 1 {
 		return
 	}

@@ -22,7 +22,7 @@ import (
 	"runtime"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
@@ -156,7 +156,7 @@ func WaitConnectionsDone(duration time.Duration) error {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
 	// DefaultConnReadTimeout wait for read timeout
-	timeout := time.NewTimer(2*duration + types.DefaultConnReadTimeout)
+	timeout := time.NewTimer(2*duration + 2*types.DefaultConnReadTimeout)
 	StopConnection()
 	log.DefaultLogger.Infof("[server] StopConnection")
 	select {

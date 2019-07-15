@@ -27,255 +27,98 @@ import (
 )
 
 // NewLoadBalancer can be register self defined type
-var lbFactories map[types.LoadBalancerType]func(types.PrioritySet) types.LoadBalancer
+var lbFactories map[types.LoadBalancerType]func(types.HostSet) types.LoadBalancer
 
-func init() {
-	RegisterLBType(types.RoundRobin, newRoundRobinLoadBalancer)
-	RegisterLBType(types.Random, newRandomLoadbalancer)
-}
-
-func RegisterLBType(lbType types.LoadBalancerType, f func(types.PrioritySet) types.LoadBalancer) {
+func RegisterLBType(lbType types.LoadBalancerType, f func(types.HostSet) types.LoadBalancer) {
 	if lbFactories == nil {
-		lbFactories = make(map[types.LoadBalancerType]func(types.PrioritySet) types.LoadBalancer)
+		lbFactories = make(map[types.LoadBalancerType]func(types.HostSet) types.LoadBalancer)
 	}
 	lbFactories[lbType] = f
 }
 
-// NewLoadBalancer
-// Note: Round Robin is the default lb
-// Round Robin is realized as Weighted Round Robin
-func NewLoadBalancer(lbType types.LoadBalancerType, prioritySet types.PrioritySet) types.LoadBalancer {
-	if f, ok := lbFactories[lbType]; ok {
-		return f(prioritySet)
+var rrFactory *roundRobinLoadBalancerFactory
+
+func init() {
+	rrFactory = &roundRobinLoadBalancerFactory{
+		rand: rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
-	// default use Robin
-	return newRoundRobinLoadBalancer(prioritySet)
+	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
+	RegisterLBType(types.Random, newRandomLoadBalancer)
 }
 
-type loadbalancer struct {
-	prioritySet types.PrioritySet
+func NewLoadBalancer(lbType types.LoadBalancerType, hosts types.HostSet) types.LoadBalancer {
+	if f, ok := lbFactories[lbType]; ok {
+		return f(hosts)
+	}
+	return rrFactory.newRoundRobinLoadBalancer(hosts)
 }
+
+// LoadBalancer Implementations
 
 type randomLoadBalancer struct {
-	loadbalancer
-	randInstance *rand.Rand
-	randMutex    sync.Mutex
+	mutex sync.Mutex
+	rand  *rand.Rand
+	hosts types.HostSet
 }
 
-func newRandomLoadbalancer(prioritySet types.PrioritySet) types.LoadBalancer {
+func newRandomLoadBalancer(hosts types.HostSet) types.LoadBalancer {
 	return &randomLoadBalancer{
-		loadbalancer: loadbalancer{
-			prioritySet: prioritySet,
-		},
-		randInstance: rand.New(rand.NewSource(time.Now().UnixNano())),
+		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		hosts: hosts,
 	}
 }
 
-func (l *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	hostSets := l.prioritySet.HostSetsByPriority()
-	if len(hostSets) == 0 {
+func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	targets := lb.hosts.HealthyHosts()
+	if len(targets) == 0 {
 		return nil
 	}
-
-	l.randMutex.Lock()
-	defer l.randMutex.Unlock()
-	idx := l.randInstance.Intn(len(hostSets))
-	hostset := hostSets[idx]
-	hosts := hostset.HealthyHosts()
-	//logger := log.ByContext(context)
-
-	if len(hosts) == 0 {
-		//	logger.Debugf("Choose host failed, no health host found")
-		return nil
-	}
-
-	hostIdx := l.randInstance.Intn(len(hosts))
-
-	return hosts[hostIdx]
+	lb.mutex.Lock()
+	defer lb.mutex.Unlock()
+	idx := lb.rand.Intn(len(targets))
+	return targets[idx]
 }
 
-// TODO: more loadbalancers@boqin
+func (lb *randomLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+	return len(lb.hosts.Hosts()) > 0
+}
+
 type roundRobinLoadBalancer struct {
-	loadbalancer
-	// rrIndex for hostSet select
-	rrIndexPriority uint32
-	// rrIndex for host select
+	hosts   types.HostSet
 	rrIndex uint32
-	lbMutex sync.RWMutex
 }
 
-func newRoundRobinLoadBalancer(prioritySet types.PrioritySet) types.LoadBalancer {
+type roundRobinLoadBalancerFactory struct {
+	mutex sync.Mutex
+	rand  *rand.Rand
+}
+
+func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+	var idx uint32
+	hostsList := hosts.Hosts()
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+	if len(hostsList) != 0 {
+		idx = f.rand.Uint32() % uint32(len(hostsList))
+	}
 	return &roundRobinLoadBalancer{
-		loadbalancer: loadbalancer{
-			prioritySet: prioritySet,
-		},
+		hosts:   hosts,
+		rrIndex: idx,
 	}
 }
 
-func (l *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	var selectedHostSet []types.Host
-
-	hostSets := l.prioritySet.HostSetsByPriority()
-	hostSetsNum := uint32(len(hostSets))
-	curHostSet := hostSets[l.rrIndexPriority%hostSetsNum].HealthyHosts()
-
-	if l.rrIndex >= uint32(len(curHostSet)) {
-		l.lbMutex.Lock()
-		l.rrIndexPriority = (l.rrIndexPriority + 1) % hostSetsNum
-		l.rrIndex = 0
-		l.lbMutex.Unlock()
-
-		selectedHostSet = hostSets[l.rrIndexPriority].HealthyHosts()
-	} else {
-		selectedHostSet = curHostSet
-	}
-
-	if len(selectedHostSet) == 0 {
-		//logger := log.ByContext(context)
-		//logger.Debugf("Choose host in RoundRobin failed, no health host found")
+func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	targets := lb.hosts.HealthyHosts()
+	if len(targets) == 0 {
 		return nil
 	}
-
-	selectedHost := selectedHostSet[l.rrIndex%uint32(len(selectedHostSet))]
-	atomic.AddUint32(&l.rrIndex, 1)
-
-	return selectedHost
+	index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(len(targets))
+	return targets[index]
 }
 
-/*
-SW (smoothWeightedRRLoadBalancer) is a struct that contains weighted items and provides methods to select a weighted item.
-It is used for the smooth weighted round-robin balancing algorithm. This algorithm is implemented in Nginx:
-https://github.com/phusion/nginx/commit/27e94984486058d73157038f7950a0a36ecc6e35.
-Algorithm is as follows: on each peer selection we increase current_weight
-of each eligible peer by its weight, select peer with greatest current_weight
-and reduce its current_weight by total number of weight points distributed
-among peers.
-In case of { 5, 1, 1 } weights this gives the following sequence of
-current_weight's:
-     a  b  c
-     0  0  0  (initial state)
-
-     5  1  1  (a selected)
-    -2  1  1
-
-     3  2  2  (a selected)
-    -4  2  2
-
-     1  3  3  (b selected)
-     1 -4  3
-
-     6 -3  4  (a selected)
-    -1 -3  4
-
-     4 -2  5  (c selected)
-     4 -2 -2
-
-     9 -1 -1  (a selected)
-     2 -1 -1
-
-     7  0  0  (a selected)
-     0  0  0
-*/
-
-type smoothWeightedRRLoadBalancer struct {
-	loadbalancer
-	hostsWeighted map[string]*hostSmoothWeighted
+func (lb *roundRobinLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+	return len(lb.hosts.Hosts()) > 0
 }
 
-type hostSmoothWeighted struct {
-	weight          int
-	currentWeight   int
-	effectiveWeight int
-}
-
-func newSmoothWeightedRRLoadBalancer(prioritySet types.PrioritySet) types.LoadBalancer {
-	smoothWRRLoadBalancer := &smoothWeightedRRLoadBalancer{
-		loadbalancer: loadbalancer{
-			prioritySet: prioritySet,
-		},
-		hostsWeighted: make(map[string]*hostSmoothWeighted),
-	}
-
-	smoothWRRLoadBalancer.prioritySet.AddMemberUpdateCb(
-		func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
-			smoothWRRLoadBalancer.UpdateHost(priority, hostsAdded, hostsRemoved)
-		},
-	)
-
-	hostSets := prioritySet.HostSetsByPriority()
-
-	// iterate over all hosts to init host with Weighted
-	for _, hostSet := range hostSets {
-		for _, host := range hostSet.HealthyHosts() {
-			smoothWRRLoadBalancer.hostsWeighted[host.AddressString()] = &hostSmoothWeighted{
-
-				weight:          int(host.Weight()),
-				effectiveWeight: int(host.Weight()),
-			}
-		}
-	}
-
-	return smoothWRRLoadBalancer
-}
-
-func (l *smoothWeightedRRLoadBalancer) UpdateHost(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
-	// add host to hostWeighted
-	for _, hostAdded := range hostsAdded {
-		if _, ok := l.hostsWeighted[hostAdded.AddressString()]; !ok {
-			// insert new health-host
-			l.hostsWeighted[hostAdded.AddressString()] = &hostSmoothWeighted{
-				weight:          int(hostAdded.Weight()),
-				effectiveWeight: int(hostAdded.Weight()),
-			}
-		}
-	}
-
-	// remove host from hostsWeighted
-
-	for _, hostRm := range hostsRemoved {
-		delete(l.hostsWeighted, hostRm.AddressString())
-	}
-}
-
-// smooth weighted round robin
-// O(n), traverse over all hosts
-// Insert new health host if not existed
-func (l *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	totalWeight := 0
-	var selectedHostWeighted *hostSmoothWeighted
-	var selectedHost types.Host
-
-	hostSets := l.prioritySet.HostSetsByPriority()
-	for _, hosts := range hostSets {
-		for _, host := range hosts.HealthyHosts() {
-
-			if _, ok := l.hostsWeighted[host.AddressString()]; !ok {
-				// insert new health-host in case UpdateHost not timely
-				l.hostsWeighted[host.AddressString()] = &hostSmoothWeighted{
-					weight:          int(host.Weight()),
-					effectiveWeight: int(host.Weight()),
-				}
-			}
-
-			hostW, _ := l.hostsWeighted[host.AddressString()]
-			hostW.currentWeight += hostW.effectiveWeight
-			totalWeight += hostW.effectiveWeight
-
-			if hostW.effectiveWeight < hostW.weight {
-				hostW.effectiveWeight++
-			}
-
-			if selectedHostWeighted == nil || hostW.currentWeight > selectedHostWeighted.currentWeight {
-				selectedHostWeighted = hostW
-				selectedHost = host
-			}
-		}
-	}
-
-	if selectedHostWeighted == nil {
-		return nil
-	}
-
-	selectedHostWeighted.currentWeight -= totalWeight
-	return selectedHost
-}
+// TODO:
+// WRR

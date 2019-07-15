@@ -20,6 +20,8 @@ package log
 import (
 	"sync/atomic"
 	"time"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var (
@@ -45,10 +47,17 @@ func CreateDefaultErrorLogger(output string, level Level) (ErrorLogger, error) {
 	}, nil
 }
 
-// default logger format:
-// {time} [{level}] {content}
+// default logger error level format:
+// {time} [{level}] [{error code}] {content}
+// default error code is normal
+const defaultErrorCode = "normal"
+
 func (l *errorLogger) formatter(lvPre string, format string) string {
 	return logTime() + " " + lvPre + " " + format
+}
+
+func (l *errorLogger) codeFormatter(lvPre, errCode, format string) string {
+	return logTime() + " " + lvPre + " [" + errCode + "] " + format
 }
 
 func (l *errorLogger) Infof(format string, args ...interface{}) {
@@ -86,8 +95,19 @@ func (l *errorLogger) Errorf(format string, args ...interface{}) {
 		return
 	}
 	if l.level >= ERROR {
-		s := l.formatter(ErrorPre, format)
+		s := l.codeFormatter(ErrorPre, defaultErrorCode, format)
 		l.Logger.Printf(s, args...)
+	}
+}
+
+func (l *errorLogger) Alertf(errkey types.ErrorKey, format string, args ...interface{}) {
+	if l.Logger.disable {
+		return
+	}
+	if l.level >= ERROR {
+		s := l.codeFormatter(ErrorPre, string(errkey), format)
+		l.Logger.Printf(s, args...)
+
 	}
 }
 

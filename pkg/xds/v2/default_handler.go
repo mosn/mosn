@@ -18,9 +18,9 @@
 package v2
 
 import (
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/xds/conv"
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
 
 // default type url mosn will handle
@@ -58,7 +58,7 @@ func HandleEnvoyCluster(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse)
 	clusterNames := make([]string, 0)
 
 	for _, cluster := range clusters {
-		if cluster.Type == envoy_api_v2.Cluster_EDS {
+		if cluster.GetType() == envoy_api_v2.Cluster_EDS {
 			clusterNames = append(clusterNames, cluster.Name)
 		}
 	}

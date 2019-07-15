@@ -25,8 +25,10 @@ import (
 	"path"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+
 	"istio.io/api/mixer/v1/config/client"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // Metadata field can be used to provide additional information about the route.
@@ -68,15 +70,6 @@ type LbType string
 const (
 	LB_RANDOM     LbType = "LB_RANDOM"
 	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
-)
-
-// RoutingPriority
-type RoutingPriority string
-
-// Group of routing priority
-const (
-	DEFAULT RoutingPriority = "DEFAULT"
-	HIGH    RoutingPriority = "HIGH"
 )
 
 // Cluster represents a cluster's information
@@ -343,11 +336,10 @@ func (cb *CircuitBreakers) UnmarshalJSON(b []byte) (err error) {
 }
 
 type Thresholds struct {
-	Priority           RoutingPriority `json:"priority,omitempty"`
-	MaxConnections     uint32          `json:"max_connections,omitempty"`
-	MaxPendingRequests uint32          `json:"max_pending_requests,omitempty"`
-	MaxRequests        uint32          `json:"max_requests,omitempty"`
-	MaxRetries         uint32          `json:"max_retries,omitempty"`
+	MaxConnections     uint32 `json:"max_connections,omitempty"`
+	MaxPendingRequests uint32 `json:"max_pending_requests,omitempty"`
+	MaxRequests        uint32 `json:"max_requests,omitempty"`
+	MaxRetries         uint32 `json:"max_retries,omitempty"`
 }
 
 // ClusterSpecInfo is a configuration of subscribe
@@ -384,8 +376,9 @@ type TLSConfig struct {
 	MaxVersion   string                 `json:"max_version,omitempty"`
 	ALPN         string                 `json:"alpn,omitempty"`
 	Ticket       string                 `json:"ticket,omitempty"`
-	Fallback     bool                   `json:"fall_back, omitempty"`
+	Fallback     bool                   `json:"fall_back"`
 	ExtendVerify map[string]interface{} `json:"extend_verify,omitempty"`
+	SDSConfig
 }
 
 // AccessLog for making up access log
@@ -662,4 +655,9 @@ type ServerConfig struct {
 	Processor int `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
+}
+
+type SDSConfig struct {
+	CertificateConfig *auth.SdsSecretConfig
+	ValidationConfig  *auth.SdsSecretConfig
 }

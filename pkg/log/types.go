@@ -17,7 +17,11 @@
 
 package log
 
-import "context"
+import (
+	"context"
+
+	"sofastack.io/sofa-mosn/pkg/types"
+)
 
 type Level uint8
 
@@ -46,6 +50,9 @@ type ErrorLogger interface {
 
 	Printf(format string, args ...interface{})
 
+	// Alertf is a wrapper of Errorf
+	Alertf(errkey types.ErrorKey, format string, args ...interface{})
+
 	Infof(format string, args ...interface{})
 
 	Debugf(format string, args ...interface{})
@@ -73,6 +80,9 @@ type ErrorLogger interface {
 
 // ProxyLogger generates lines of output to an io.Writer, works for data flow
 type ProxyLogger interface {
+	// Alertf is a wrapper of Errorf
+	Alertf(ctx context.Context, errkey types.ErrorKey, format string, args ...interface{})
+
 	Infof(ctx context.Context, format string, args ...interface{})
 
 	Debugf(ctx context.Context, format string, args ...interface{})

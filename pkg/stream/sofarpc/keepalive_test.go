@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "sofastack.io/sofa-mosn/pkg/stream"
@@ -69,11 +69,11 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 			TLSDisable: true, // ignore tls, for mock is nil
 		},
 	}
-	host := cluster.NewHost(cfg, info)
+	host := cluster.NewSimpleHost(cfg, info)
 	ctx := context.Background()
 	conn := host.CreateConnection(ctx)
 	if err := conn.Connection.Connect(true); err != nil {
-		t.Fatalf("create conenction failed", err)
+		t.Fatalf("create conenction failed %v", err)
 	}
 	codec := str.NewStreamClient(ctx, protocol.SofaRPC, conn.Connection, host)
 	if codec == nil {

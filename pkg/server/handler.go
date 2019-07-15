@@ -72,7 +72,7 @@ func NewHandler(clusterManagerFilter types.ClusterManagerFilter, clMng types.Clu
 func (ch *connHandler) UpdateClusterConfig(clusters []v2.Cluster) error {
 
 	for _, cluster := range clusters {
-		if !ch.clusterManager.AddOrUpdatePrimaryCluster(cluster) {
+		if err := ch.clusterManager.AddOrUpdatePrimaryCluster(cluster); err != nil {
 			return fmt.Errorf("UpdateClusterConfig: AddOrUpdatePrimaryCluster failure, cluster name = %s", cluster.Name)
 		}
 	}
@@ -83,8 +83,8 @@ func (ch *connHandler) UpdateClusterConfig(clusters []v2.Cluster) error {
 }
 
 // ClusterHostFactoryCb
-func (ch *connHandler) UpdateClusterHost(cluster string, priority uint32, hosts []v2.Host) error {
-	return ch.clusterManager.UpdateClusterHosts(cluster, priority, hosts)
+func (ch *connHandler) UpdateClusterHost(cluster string, hosts []v2.Host) error {
+	return ch.clusterManager.UpdateClusterHosts(cluster, hosts)
 }
 
 // ConnectionHandler

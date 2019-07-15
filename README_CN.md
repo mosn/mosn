@@ -5,10 +5,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/alipay/sofa-mosn)](https://goreportcard.com/report/github.com/alipay/sofa-mosn)
 ![license](https://img.shields.io/badge/license-Apache--2.0-green.svg)
 
-MOSN(Modular Observable Smart Network), 是一款采用 GoLang 开发的 Service Mesh 数据平面代理，
-功能和定位类似 [Envoy](https://www.envoyproxy.io/)，旨在提供分布式，模块化，可观察，智能化的代理能力。
-MOSN 支持 Envoy 和 [Istio](https://istio.io/) 的 API，可以和 Istio 集成，在 [SOFAMesh](https://github.com/alipay/sofa-mesh) 中，我们使用 MOSN 替代 Envoy。
-MOSN 初始版本由蚂蚁金服和阿里大文娱UC事业部携手贡献，期待社区一起来参与后续开发，共建一个开源精品项目。
+MOSN(Modular Observable Smart Network), 是一款采用 GoLang 开发的 Service Mesh 数据平面代理，旨在为服务提供分布式、模块化、可观察、智能化的代理能力。 MOSN 通过 XDS API 与 SOFAMesh 集成，同时 MOSN 可以作为独立的4、7层负载均衡使用，未来 MOSN 将支持更多云原生场景，并支持 nginx 的核心转发功能。
 
 ### 下载
 
@@ -25,40 +22,14 @@ MOSN 初始版本由蚂蚁金服和阿里大文娱UC事业部携手贡献，期�
 
 ## 核心能力
 
-+ Istio集成
-    + 集成 Istio 1.0 版本与 V4 API，可基于全动态资源配置运行
-+ 核心转发
-    + 自包含的网络服务器
-    + 支持 TCP 代理
-    + 支持 TProxy 模式
-+ 多协议
-    + 支持 HTTP/1.1，HTTP/2
-    + 支持 SOFARPC
-    + 支持 Dubbo 协议（基于XProtocol支持）
-+ 核心路由
-    + 支持 Virtual Host 路由
-    + 支持 Headers/URL/Prefix 路由
-    + 支持基于 Host Metadata 的 Subset 路由
-    + 支持重试
-+ 后端管理&负载均衡
-    + 支持连接池
-    + 支持熔断
-    + 支持后端主动健康检查
-    + 支持 Random/RR 等负载策略
-    + 支持基于 Host Metadata 的 Subset 负载策略
-+ 可观察性
-    + 观察网络数据
-    + 观察协议数据
-+ TLS
-    + 支持 HTTP/1.1 on TLS
-    + 支持 HTTP/2.0 on TLS
-    + 支持 SOFARPC on TLS
-+ 进程管理
-    + 支持平滑 reload
-    + 支持平滑升级
-+ 扩展能力
-    + 支持自定义私有协议
-    + 支持在 TCP IO 层，协议层面加入自定义扩展
++ 集成 SOFAMesh，通过XDS api对接支持全动态资源配置运行
++ 支持 TCP 代理、HTTP 协议、多种 RPC 代理能力
++ 支持丰富的路由特性
++ 支持可靠后端管理，负载均衡能力
++ 支持网络层、协议层的可观察性
++ 支持多种协议基于 TLS 运行，支持 mTLS
++ 支持丰富的扩展能力，提供高度自定义扩展能力
++ 支持无损平滑升级
     
 ## 快速开始
 * [参考这里](docs/quickstart/Setup.md) 

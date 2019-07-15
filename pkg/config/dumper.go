@@ -19,14 +19,14 @@ package config
 
 import (
 	"encoding/json"
-	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
@@ -124,19 +124,15 @@ func DumpConfig() {
 		}
 
 		if err != nil {
-			log.DefaultLogger.Errorf("[config] [dump] dump config failed, caused by: " + err.Error())
+			log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: "+err.Error())
 		}
 	}
 }
 
+// DumpConfigHandler should be called in a goroutine
+// we call it in mosn/starter with GoWithRecover, which can handle the panic information
 func DumpConfigHandler() {
 	once.Do(func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.DefaultLogger.Errorf("[config] [dump] panic %v\n%s", r, string(debug.Stack()))
-			}
-		}()
-
 		for {
 			time.Sleep(3 * time.Second)
 

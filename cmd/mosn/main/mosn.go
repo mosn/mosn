@@ -20,8 +20,10 @@ package main
 import (
 	_ "flag"
 	"os"
+	"strconv"
 	"time"
 
+	"github.com/urfave/cli"
 	_ "sofastack.io/sofa-mosn/pkg/buffer"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/tcpproxy"
@@ -48,8 +50,6 @@ import (
 	_ "sofastack.io/sofa-mosn/pkg/trace/sofa/http"
 	_ "sofastack.io/sofa-mosn/pkg/trace/sofa/rpc"
 	_ "sofastack.io/sofa-mosn/pkg/trace/sofa/rpc/ext"
-
-	"github.com/urfave/cli"
 )
 
 var Version = "0.4.0"
@@ -59,7 +59,7 @@ func main() {
 	app.Name = "mosn"
 	app.Version = Version
 	app.Compiled = time.Now()
-	app.Copyright = "(c) 2018 Ant Financial"
+	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Financial"
 	app.Usage = "MOSN is modular observable smart netstub."
 
 	//commands

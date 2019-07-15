@@ -379,7 +379,6 @@ func TestCircuitBreakersMarshal(t *testing.T) {
 	cb := &CircuitBreakers{
 		Thresholds: []Thresholds{
 			{
-				Priority:       DEFAULT,
 				MaxConnections: 1024,
 			},
 		},
@@ -393,7 +392,6 @@ func TestCircuitBreakersMarshal(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !(len(ncb.Thresholds) == 1 &&
-		ncb.Thresholds[0].Priority == DEFAULT &&
 		ncb.Thresholds[0].MaxConnections == 1024) {
 		t.Error("marshal and unmarshal not equal")
 	}
@@ -412,7 +410,6 @@ func TestCircuitBreakersUnmarshal(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !(len(cb.Thresholds) == 1 &&
-		cb.Thresholds[0].Priority == DEFAULT &&
 		cb.Thresholds[0].MaxConnections == 1024 &&
 		cb.Thresholds[0].MaxRequests == 1024) {
 		t.Errorf("unmarshal unexpected %v", cb)
@@ -431,7 +428,7 @@ func TestFilterChainMarshal(t *testing.T) {
 	if err != nil {
 		t.Fatal("marshal filter chain error: ", err)
 	}
-	expectedStr := `{"tls_context_set":[{"status":true,"fall_back":false}]}`
+	expectedStr := `{"tls_context_set":[{"status":true,"fall_back":false,"CertificateConfig":null,"ValidationConfig":null}]}`
 	if string(b) != expectedStr {
 		t.Error("marshal filter chain unexpected, got: ", string(b))
 	}
