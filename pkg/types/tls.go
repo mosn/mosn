@@ -20,6 +20,8 @@ package types
 import (
 	"net"
 
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 )
 
@@ -49,9 +51,38 @@ type TLSProvider interface {
 	Empty() bool
 }
 
-type SDSSecret struct {
+type SdsSecret struct {
 	Name           string
 	CertificatePEM string
 	PrivateKeyPEM  string
 	ValidationPEM  string
+}
+
+type SdsUpdateCallbackFunc func(name string, secret *SdsSecret)
+
+type SdsClient interface {
+	AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, callback SdsUpdateCallbackFunc) error
+	DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error
+	SetSecret(name string, secret *auth.Secret)
+}
+
+type SecretProvider interface {
+	SetSecret(name string, secret *auth.Secret)
+}
+
+func SecretConvert(raw *auth.Secret) *SdsSecret {
+	secret := &SdsSecret{
+		Name: raw.Name,
+	}
+	if validateSecret, ok := raw.Type.(*auth.Secret_ValidationContext); ok {
+		ds := validateSecret.ValidationContext.TrustedCa.Specifier.(*core.DataSource_InlineBytes)
+		secret.ValidationPEM = string(ds.InlineBytes)
+	}
+	if tlsCert, ok := raw.Type.(*auth.Secret_TlsCertificate); ok {
+		certSpec, _ := tlsCert.TlsCertificate.CertificateChain.Specifier.(*core.DataSource_InlineBytes)
+		priKey, _ := tlsCert.TlsCertificate.PrivateKey.Specifier.(*core.DataSource_InlineBytes)
+		secret.CertificatePEM = string(certSpec.InlineBytes)
+		secret.PrivateKeyPEM = string(priKey.InlineBytes)
+	}
+	return secret
 }

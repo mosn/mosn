@@ -31,25 +31,34 @@ import (
 )
 
 type mockSdsClient struct {
-	callback map[string]func(string, *types.SDSSecret)
+	callback map[string]types.SdsUpdateCallbackFunc
 }
 
-var mockSdsClientInstance SdsClient
+var mockSdsClientInstance *mockSdsClient
 
-func (c *mockSdsClient) AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, f func(string, *types.SDSSecret)) {
+func (c *mockSdsClient) AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, f types.SdsUpdateCallbackFunc) error {
 	c.callback[sdsConfig.Name] = f
+	return nil
 }
 
-func (c *mockSdsClient) SetSecret(name string, secret *types.SDSSecret) {
+func (c *mockSdsClient) SetSecret(name string, secret *auth.Secret) {
+	// nothing
+}
+
+func (c *mockSdsClient) setSecret(name string, secret *types.SdsSecret) {
 	if f, ok := c.callback[name]; ok {
 		f(name, secret)
 	}
 }
 
-func getMockSdsClient(cfg *auth.SdsSecretConfig) SdsClient {
+func (c *mockSdsClient) DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error {
+	return nil
+}
+
+func getMockSdsClient(cfg *auth.SdsSecretConfig) types.SdsClient {
 	if mockSdsClientInstance == nil {
 		mockSdsClientInstance = &mockSdsClient{
-			callback: make(map[string]func(string, *types.SDSSecret)),
+			callback: make(map[string]types.SdsUpdateCallbackFunc),
 		}
 	}
 	return mockSdsClientInstance

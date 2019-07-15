@@ -41,8 +41,8 @@ func NewProvider(cfg *v2.TLSConfig) (types.TLSProvider, error) {
 	if !cfg.Status {
 		return nil, nil
 	}
-	if cfg.SDSConfig != nil {
-		if !cfg.SDSConfig.Valid() {
+	if cfg.SdsConfig != nil {
+		if !cfg.SdsConfig.Valid() {
 			return nil, ErrorNoCertConfigure
 		}
 		return getOrCreateProvider(cfg), nil

@@ -34,7 +34,7 @@ var (
 	sdsCallbacks = []func(){}
 )
 
-func RegisterSDSCallback(f func()) {
+func RegisterSdsCallback(f func()) {
 	sdsCallbacks = append(sdsCallbacks, f)
 }
 
@@ -57,7 +57,7 @@ func getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
-	validationName := cfg.SDSConfig.ValidationConfig.Name
+	validationName := cfg.SdsConfig.ValidationConfig.Name
 	v, ok := mng.validations[validationName]
 	if !ok {
 		// add a validation
@@ -66,10 +66,10 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		}
 		mng.validations[validationName] = v
 		// set a validation callback
-		client := GetSdsClient(cfg.SDSConfig.ValidationConfig)
-		client.AddUpdateCallback(cfg.SDSConfig.ValidationConfig, mng.setValidation)
+		client := GetSdsClient(cfg.SdsConfig.ValidationConfig)
+		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig, mng.setValidation)
 	}
-	certName := cfg.SDSConfig.CertificateConfig.Name
+	certName := cfg.SdsConfig.CertificateConfig.Name
 	p, ok := v.certificates[certName]
 	if !ok {
 		// new a provider
@@ -81,15 +81,15 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		}
 		v.certificates[certName] = p
 		// set a certificate callback
-		client := GetSdsClient(cfg.SDSConfig.CertificateConfig)
-		client.AddUpdateCallback(cfg.SDSConfig.CertificateConfig, p.setCertificate)
+		client := GetSdsClient(cfg.SdsConfig.CertificateConfig)
+		client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig, p.setCertificate)
 	}
 
 	return p
 }
 
 // setValidation is called in sds client
-func (mng *secretManager) setValidation(name string, secret *types.SDSSecret) {
+func (mng *secretManager) setValidation(name string, secret *types.SdsSecret) {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
 	v, ok := mng.validations[name]
@@ -121,7 +121,7 @@ func (p *sdsProvider) setValidation(v string) {
 	}
 }
 
-func (p *sdsProvider) setCertificate(name string, secret *types.SDSSecret) {
+func (p *sdsProvider) setCertificate(name string, secret *types.SdsSecret) {
 	if secret.CertificatePEM != "" {
 		p.info.Certificate = secret.CertificatePEM
 		p.info.PrivateKey = secret.PrivateKeyPEM

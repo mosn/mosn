@@ -30,7 +30,7 @@ import (
 
 var testInit sync.Once
 
-func createSDSTLSConfig() *v2.TLSConfig {
+func createSdsTLSConfig() *v2.TLSConfig {
 	testInit.Do(func() {
 		getSdsClientFunc = getMockSdsClient
 	})
@@ -38,7 +38,7 @@ func createSDSTLSConfig() *v2.TLSConfig {
 		Status:            true,
 		RequireClientCert: true,
 		VerifyClient:      false,
-		SDSConfig: &v2.SDSConfig{
+		SdsConfig: &v2.SdsConfig{
 			CertificateConfig: &auth.SdsSecretConfig{
 				Name: "default",
 			},
@@ -55,7 +55,7 @@ func resetTest() {
 	}
 	sdsCallbacks = []func(){}
 	mockSdsClientInstance = &mockSdsClient{
-		callback: make(map[string]func(string, *types.SDSSecret)),
+		callback: make(map[string]types.SdsUpdateCallbackFunc),
 	}
 }
 
@@ -66,18 +66,19 @@ func mockSetSecret() *secretInfo {
 	}
 	secret, _ := info.CreateSecret()
 	//
-	sRoot := &types.SDSSecret{
+	sRoot := &types.SdsSecret{
 		Name:          "rootCA",
 		ValidationPEM: secret.Validation,
 	}
-	sDefault := &types.SDSSecret{
+	sDefault := &types.SdsSecret{
 		Name:           "default",
 		CertificatePEM: secret.Certificate,
 		PrivateKeyPEM:  secret.PrivateKey,
 	}
+
 	//
-	mockSdsClientInstance.SetSecret("rootCA", sRoot)
-	mockSdsClientInstance.SetSecret("default", sDefault)
+	mockSdsClientInstance.setSecret("rootCA", sRoot)
+	mockSdsClientInstance.setSecret("default", sDefault)
 	return secret
 }
 
@@ -85,9 +86,9 @@ func mockSetSecret() *secretInfo {
 // server listen a sds tls config
 // before the certificate is setted, cannot support tls request
 // after the certificate is setted, support tls request
-func TestSimpleSDSTLS(t *testing.T) {
+func TestSimpleSdsTLS(t *testing.T) {
 	resetTest()
-	cfg := createSDSTLSConfig()
+	cfg := createSdsTLSConfig()
 	filterChains := []v2.FilterChain{
 		{
 			TLSContexts: []v2.TLSConfig{
@@ -174,9 +175,9 @@ func TestSimpleSDSTLS(t *testing.T) {
 // If the client request non-tls. it is ok
 // If the client request tls without certificate. it is ok
 // If the client request tls with certificate, the server will verify the client's certificate
-func TestSDSWithExtension(t *testing.T) {
+func TestSdsWithExtension(t *testing.T) {
 	resetTest()
-	cfg := createSDSTLSConfig()
+	cfg := createSdsTLSConfig()
 	// Add extension
 	cfg.Type = testType
 	extendVerify := map[string]interface{}{

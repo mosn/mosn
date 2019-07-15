@@ -1,9 +1,11 @@
-package v2
+package sds
 
 import (
-	"github.com/juju/errors"
-	"sofastack.io/sofa-mosn/pkg/utils"
 	"time"
+
+	"github.com/juju/errors"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/utils"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -15,7 +17,7 @@ import (
 )
 
 type SdsSubscriber struct {
-	provider           SecretProvider
+	provider           types.SecretProvider
 	reqQueue           chan string
 	sdsConfig          *core.ConfigSource
 	sdsStreamClient    *SdsStreamClient
@@ -37,7 +39,7 @@ type SdsStreamConfig struct {
 	statPrefix string
 }
 
-func NewSdsSubscriber(provider SecretProvider, sdsConfig *core.ConfigSource, serviceNode string, serviceCluster string) *SdsSubscriber {
+func NewSdsSubscriber(provider types.SecretProvider, sdsConfig *core.ConfigSource, serviceNode string, serviceCluster string) *SdsSubscriber {
 	return &SdsSubscriber{
 		provider:           provider,
 		reqQueue:           make(chan string, 10240),

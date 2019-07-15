@@ -378,16 +378,16 @@ type TLSConfig struct {
 	Ticket            string                 `json:"ticket,omitempty"`
 	Fallback          bool                   `json:"fall_back,omitempty"`
 	ExtendVerify      map[string]interface{} `json:"extend_verify,omitempty"`
-	SDSConfig         *SDSConfig             `json:"sds_source,omitempty"`
+	SdsConfig         *SdsConfig             `json:"sds_source,omitempty"`
 }
 
-type SDSConfig struct {
+type SdsConfig struct {
 	CertificateConfig *auth.SdsSecretConfig
 	ValidationConfig  *auth.SdsSecretConfig
 }
 
 // Valid checks the whether the SDS Config is valid or not
-func (c *SDSConfig) Valid() bool {
+func (c *SdsConfig) Valid() bool {
 	return c != nil && c.CertificateConfig != nil && c.ValidationConfig != nil
 }
 

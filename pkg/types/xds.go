@@ -15,16 +15,10 @@
  * limitations under the License.
  */
 
-package mtls
+package types
 
-import (
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"sofastack.io/sofa-mosn/pkg/mtls/sds"
-	"sofastack.io/sofa-mosn/pkg/types"
+// The xds start parameters
+var (
+	ServiceCluster string
+	ServiceNode    string
 )
-
-var getSdsClientFunc func(cfg *auth.SdsSecretConfig) types.SdsClient = sds.NewSdsClientSingleton
-
-func GetSdsClient(cfg *auth.SdsSecretConfig) types.SdsClient {
-	return getSdsClientFunc(cfg)
-}
