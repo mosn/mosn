@@ -37,6 +37,7 @@ type mockHandler struct {
 func (h *mockHandler) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan types.Connection, buf []byte) {
 	ctx := context.Background()
 	conn := NewServerConnection(ctx, rawc, h.stopChan)
+	conn.SetIdleTimeout(3 * time.Second)
 	h.OnNewConnection(ctx, conn)
 }
 
@@ -63,11 +64,9 @@ func _createListener(address string) types.Listener {
 
 func TestIdleChecker(t *testing.T) {
 	// setup
-	maxIdleCount = 3
 	buffer.ConnReadTimeout = time.Second
 	// tear down
 	defer func() {
-		maxIdleCount = 0
 		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
 	}()
 	ln := _createListener(testAddress)
@@ -100,7 +99,7 @@ func TestIdleChecker(t *testing.T) {
 		duration := time.Now().Sub(start)
 		if duration < time.Duration(3)*buffer.ConnReadTimeout ||
 			duration > time.Duration(4)*buffer.ConnReadTimeout {
-			t.Fatal("expected close connection when idle max, but close at %v", duration)
+			t.Fatalf("expected close connection when idle max, but close at %v", duration)
 		}
 	case <-time.After(5 * time.Second):
 		t.Fatal("listener did not close the connection")
@@ -109,11 +108,9 @@ func TestIdleChecker(t *testing.T) {
 
 func TestIdleCheckerWithData(t *testing.T) {
 	// setup
-	maxIdleCount = 3
 	buffer.ConnReadTimeout = time.Second
 	// tear down
 	defer func() {
-		maxIdleCount = 0
 		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
 	}()
 
@@ -156,17 +153,15 @@ func TestIdleCheckerWithData(t *testing.T) {
 
 }
 
-func TestSetIdleTimeout(t *testing.T) {
+func TestGetIdleCount(t *testing.T) {
 	// teardown
-	defer func() {
-		maxIdleCount = 0
-	}()
-	SetIdleTimeout(100 * time.Second)
-	if maxIdleCount != 7 {
+	if maxIdleCount := getIdleCount(100 * time.Second); maxIdleCount != 7 {
 		t.Error("set idle timeout unexpected:", maxIdleCount)
 	}
-	SetIdleTimeout(90 * time.Second)
-	if maxIdleCount != 6 {
+	if maxIdleCount := getIdleCount(90 * time.Second); maxIdleCount != 6 {
+		t.Error("set idle timeout unexpected:", maxIdleCount)
+	}
+	if maxIdleCount := getIdleCount(0); maxIdleCount != 0 {
 		t.Error("set idle timeout unexpected:", maxIdleCount)
 	}
 }

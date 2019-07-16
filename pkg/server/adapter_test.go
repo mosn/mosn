@@ -1,13 +1,18 @@
 package server
 
 import (
+	"context"
 	"crypto/tls"
+	"io"
 	"net"
 	"reflect"
 	"testing"
 	"time"
 
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -18,9 +23,16 @@ func setup() {
 	initListenerAdapterInstance(testServerName, handler)
 }
 
+func tearDown() {
+	for _, handler := range listenerAdapterInstance.connHandlerMap {
+		handler.StopListeners(context.Background(), true)
+	}
+}
+
 func TestMain(m *testing.M) {
 	setup()
 	m.Run()
+	tearDown()
 }
 
 func baseListenerConfig(addrStr string, name string) *v2.Listener {
@@ -227,4 +239,56 @@ func TestUpdateTLS(t *testing.T) {
 		conn.Close()
 		t.Fatal("listener should not be support tls any more")
 	}
+}
+
+func TestIdleTimeoutAndUpdate(t *testing.T) {
+	defer func() {
+		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
+		defaultIdleTimeout = network.DefaultIdleTimeout
+	}()
+	log.DefaultLogger.SetLogLevel(log.DEBUG)
+	buffer.ConnReadTimeout = time.Second
+	defaultIdleTimeout = 3 * time.Second
+	addrStr := "127.0.0.1:8082"
+	name := "listener3"
+	// bas listener config have no idle timeout config, set the default value
+	listenerConfig := baseListenerConfig(addrStr, name)
+	// listenerConfig.Inspector = true
+	nfcfs := []types.NetworkFilterChainFactory{
+		&mockNetworkFilterFactory{},
+	}
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
+		t.Fatalf("add a new listener failed %v", err)
+	}
+	time.Sleep(time.Second) // wait listener start
+
+	n := time.Now()
+	conn, err := net.Dial("tcp", addrStr)
+	if err != nil {
+		t.Fatalf("dial failed, %v", err)
+	}
+	readChan := make(chan error)
+	// try read
+	go func() {
+		buf := make([]byte, 10)
+		_, err := conn.Read(buf)
+		readChan <- err
+	}()
+	select {
+	case err := <-readChan:
+		// connection should be closed by server
+		if err != io.EOF {
+			t.Fatalf("connection read returns error: %v", err)
+		}
+		if time.Now().Sub(n) < defaultIdleTimeout {
+			t.Fatal("connection closed too quickly")
+		}
+	case <-time.After(5 * time.Second):
+		conn.Close()
+		t.Fatal("connection should be closed, but not")
+	}
+	// Update idle timeout
+	// 1. update as no idle timeout
+	// 2. update as long idle timeout
+
 }

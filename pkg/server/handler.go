@@ -155,6 +155,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		al.listener.SetListenerTag(lc.ListenerTag)
 		rawConfig.HandOffRestoredDestinationConnections = lc.HandOffRestoredDestinationConnections
 		al.listener.SetHandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+		al.idleTimeout = lc.ConnectionIdleTimeout
 
 		al.listener.SetConfig(rawConfig)
 
@@ -337,6 +338,7 @@ type activeListener struct {
 	stats                       *listenerStats
 	accessLogs                  []types.AccessLog
 	updatedLabel                bool
+	idleTimeout                 *v2.DurationConfig
 	tlsMng                      types.TLSContextManager
 }
 
@@ -352,6 +354,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		stopChan:     stopChan,
 		accessLogs:   accessLoggers,
 		updatedLabel: false,
+		idleTimeout:  lc.ConnectionIdleTimeout,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
@@ -480,8 +483,19 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 
 }
 
+// defaultIdleTimeout represents the idle timeout if listener have no such configuration
+// we declared the defaultIdleTimeout reference to the network.DefaultIdleTimeout
+var defaultIdleTimeout = network.DefaultIdleTimeout
+
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
+	if al.idleTimeout != nil {
+		conn.SetIdleTimeout(al.idleTimeout.Duration)
+	} else {
+		// a nil idle timeout, we set a default one
+		// notice only server side connection set the default value
+		conn.SetIdleTimeout(defaultIdleTimeout)
+	}
 	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))

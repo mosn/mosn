@@ -68,6 +68,7 @@ type connection struct {
 	bytesSendCallbacks   []func(bytesSent uint64)
 	transferCallbacks    func() bool
 	filterManager        types.FilterManager
+	idleEventListener    types.ConnectionEventListener
 
 	stopChan           chan struct{}
 	curWriteBufferData []types.IoBuffer
@@ -143,7 +144,6 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	conn.filterManager = newFilterManager(conn)
-	conn.newIdleChecker()
 
 	return conn
 }
@@ -162,6 +162,10 @@ func (c *connection) Start(lctx context.Context) {
 			c.startRWLoop(lctx)
 		}
 	})
+}
+
+func (c *connection) SetIdleTimeout(d time.Duration) {
+	c.newIdleChecker(d)
 }
 
 func (c *connection) attachEventLoop(lctx context.Context) {

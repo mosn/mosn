@@ -297,6 +297,10 @@ type Connection interface {
 
 	// SetTransferEventListener set a method will be called when connection transfer occur
 	SetTransferEventListener(listener func() bool)
+
+	// SetIdleTimeout sets the timeout that will set the connnection to idle. mosn close idle connection
+	// if no idle timeout setted or a zero value for d means no idle connections.
+	SetIdleTimeout(d time.Duration)
 }
 
 // ConnectionStats is a group of connection metrics

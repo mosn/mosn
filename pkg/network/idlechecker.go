@@ -27,30 +27,30 @@ import (
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-var (
-	maxIdleCount uint32
-)
+const DefaultIdleTimeout = 90 * time.Second
 
-// SetIdleTimeout calculates the idle timeout as max idle count.
-func SetIdleTimeout(d time.Duration) {
+// getIdleCount calculates the idle timeout as max idle count.
+func getIdleCount(d time.Duration) uint32 {
 	fd := float64(d)
 	ft := float64(buffer.ConnReadTimeout)
-	maxIdleCount = uint32(math.Ceil(fd / ft))
+	return uint32(math.Ceil(fd / ft))
 }
 
 // idleChecker checks whether a server side connection is idle
 // if the idleCount is greater than maxIdleCount, close the connection
 // idleChecker is an implementation of types.ConnectionEventListener
 type idleChecker struct {
-	conn      *connection
-	idleCount uint32
-	lastWrite int64
-	lastRead  int64
+	conn         *connection
+	maxIdleCount uint32
+	idleCount    uint32
+	lastWrite    int64
+	lastRead     int64
 }
 
-func (conn *connection) newIdleChecker() {
+func (conn *connection) newIdleChecker(timeout time.Duration) {
 	checker := &idleChecker{
-		conn: conn,
+		conn:         conn,
+		maxIdleCount: getIdleCount(timeout),
 	}
 	conn.AddConnectionEventListener(checker)
 }
@@ -63,18 +63,18 @@ func (c *idleChecker) closeConnection() {
 }
 
 func (c *idleChecker) OnEvent(event types.ConnectionEvent) {
-	if event != types.OnReadTimeout || c == nil || maxIdleCount == 0 {
+	if event != types.OnReadTimeout || c == nil || c.maxIdleCount == 0 {
 		return
 	}
 	// if maxIdleCount is 1, close the connection directly
-	if maxIdleCount == 1 {
+	if c.maxIdleCount == 1 {
 		c.closeConnection()
 		return
 	}
 	read := c.conn.stats.ReadTotal.Count()
 	write := c.conn.stats.WriteTotal.Count()
 	if atomic.LoadInt64(&c.lastWrite) == write && atomic.LoadInt64(&c.lastRead) == read {
-		if atomic.AddUint32(&c.idleCount, 1) >= maxIdleCount {
+		if atomic.AddUint32(&c.idleCount, 1) >= c.maxIdleCount {
 			c.closeConnection()
 			return
 		}
