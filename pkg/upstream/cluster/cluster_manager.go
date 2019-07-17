@@ -288,37 +288,48 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			return nil, errUnknownProtocol
 		}
 		connectionPool := value.(*sync.Map)
+		// connectionPool Load and Store should have concurrency control
+		// we do not use LoadOrStore, so we can returns directly when protocol is not registered
+		newConnPool := func() error {
+			cm.mux.Lock()
+			defer cm.mux.Unlock()
+			if _, ok := connectionPool.Load(addr); ok {
+				// if addr is already stored
+				return nil
+			}
+			factory, ok := network.ConnNewPoolFactories[protocol]
+			if !ok {
+				return fmt.Errorf("protocol %v is not registered is pool factory", protocol)
+			}
+			newPool := factory(host)
+			connectionPool.Store(addr, newPool)
+			newPool.CheckAndInit(balancerContext.DownstreamContext())
+			pools[i] = newPool
+			return nil
+		}
 		connPool, ok := connectionPool.Load(addr)
 		if ok {
 			pool = connPool.(types.ConnectionPool)
-			if pool.CheckAndInit(balancerContext.DownstreamContext()) {
-				return pool, nil
-			}
-			pools[i] = pool
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [cluster manager] cluster host %s is not active", addr)
+			if pool.SupportTLS() == host.SupportTLS() {
+				if pool.CheckAndInit(balancerContext.DownstreamContext()) {
+					return pool, nil
+				}
+				pools[i] = pool
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [cluster manager] cluster host %s is not active", addr)
+				}
+			} else {
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [cluster manager] %s tls state changed", addr)
+				}
+				connectionPool.Delete(addr)
+				pool.Shutdown()
+				if err := newConnPool(); err != nil {
+					return nil, err
+				}
 			}
 		} else {
-			// connectionPool Load and Store should have concurrency control
-			// we do not use LoadOrStore, so we can returns directly when protocol is not registered
-			err := func() error {
-				cm.mux.Lock()
-				defer cm.mux.Unlock()
-				if _, ok := connectionPool.Load(addr); ok {
-					// if addr is already stored
-					return nil
-				}
-				factory, ok := network.ConnNewPoolFactories[protocol]
-				if !ok {
-					return fmt.Errorf("protocol %v is not registered is pool factory", protocol)
-				}
-				newPool := factory(host)
-				connectionPool.Store(addr, newPool)
-				newPool.CheckAndInit(balancerContext.DownstreamContext())
-				pools[i] = newPool
-				return nil
-			}()
-			if err != nil {
+			if err := newConnPool(); err != nil {
 				return nil, err
 			}
 		}

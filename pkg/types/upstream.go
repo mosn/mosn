@@ -170,6 +170,10 @@ type HostInfo interface {
 	// Config creates a host config by the host attributes
 	Config() v2.Host
 
+	// SupportTLS returns whether the host support tls connections or not
+	// If returns true, means support tls connection
+	SupportTLS() bool
+
 	// TODO: add deploy locality
 }
 

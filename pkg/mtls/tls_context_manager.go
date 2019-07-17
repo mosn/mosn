@@ -93,7 +93,7 @@ func (mng *serverContextManager) Conn(c net.Conn) net.Conn {
 	if _, ok := c.(*net.TCPConn); !ok {
 		return c
 	}
-	if len(mng.providers) == 0 {
+	if !mng.Enabled() {
 		return c
 	}
 	if !mng.inspector {
@@ -123,6 +123,15 @@ func (mng *serverContextManager) Conn(c net.Conn) net.Conn {
 	}
 }
 
+func (mng *serverContextManager) Enabled() bool {
+	for _, p := range mng.providers {
+		if p.Ready() {
+			return true
+		}
+	}
+	return false
+}
+
 type clientContextManager struct {
 	// client support only one certificate
 	provider types.TLSProvider
@@ -144,10 +153,14 @@ func (mng *clientContextManager) Conn(c net.Conn) net.Conn {
 	if _, ok := c.(*net.TCPConn); !ok {
 		return c
 	}
-	if mng.provider == nil || !mng.provider.Ready() {
+	if !mng.Enabled() {
 		return c
 	}
 	return &TLSConn{
 		tls.Client(c, mng.provider.GetTLSConfig(true)),
 	}
+}
+
+func (mng *clientContextManager) Enabled() bool {
+	return mng.provider != nil && mng.provider.Ready()
 }

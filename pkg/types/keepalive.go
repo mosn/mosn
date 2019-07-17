@@ -25,6 +25,7 @@ type KeepAlive interface {
 	HandleTimeout(id uint64)
 	HandleSuccess(id uint64)
 	AddCallback(cb KeepAliveCallback)
+	Stop()
 }
 
 type KeepAliveStatus int

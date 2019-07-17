@@ -240,3 +240,42 @@ func TestConnPoolForCluster(t *testing.T) {
 		t.Fatal("get conn pool failed")
 	}
 }
+
+func TestConnPoolUpdateTLS(t *testing.T) {
+	clusterConfig := v2.Cluster{
+		Name:   "test1",
+		LbType: v2.LB_RANDOM,
+		TLS: v2.TLSConfig{
+			Status:       true,
+			InsecureSkip: true,
+		},
+	}
+	host := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address:    "127.0.0.1:10000",
+			TLSDisable: true,
+		},
+	}
+	clusterMangerInstance.Destroy() // Destroy for test
+	NewClusterManagerSingleton([]v2.Cluster{clusterConfig}, map[string][]v2.Host{
+		"test1": []v2.Host{host},
+	})
+	snap := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
+	if connPool := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap, mockProtocol); connPool.SupportTLS() {
+		t.Fatal("conn pool support tls")
+	}
+	if err := GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{
+		{
+			HostConfig: v2.HostConfig{
+				Address: "127.0.0.1:10000",
+			},
+		},
+	}); err != nil {
+		t.Fatal("update cluster hosts failed, %v", err)
+	}
+	newSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
+	if connPool := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), newSnap, mockProtocol); !connPool.SupportTLS() {
+		t.Fatal("conn pool does not support tls")
+	}
+
+}

@@ -23,12 +23,12 @@ import (
 
 	"sync/atomic"
 
+	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
 )
 
 func init() {
@@ -49,6 +49,10 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
 		host: host,
 	}
+}
+
+func (p *connPool) SupportTLS() bool {
+	return p.host.SupportTLS()
 }
 
 // Protocol return xprotocol
@@ -112,6 +116,10 @@ func (p *connPool) Close() {
 	if p.primaryClient != nil {
 		p.primaryClient.client.Close()
 	}
+}
+
+func (p *connPool) Shutdown() {
+	// TODO: xprotocol connpool do nothing for shutdown
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {

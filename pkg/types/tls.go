@@ -30,6 +30,8 @@ type TLSContextManager interface {
 	// Conn handles the connection, makes a connection as tls connection
 	// or keep it as a non-tls connection
 	Conn(net.Conn) net.Conn
+	// Enabled returns true means the context manager can make a connection as tls connection
+	Enabled() bool
 }
 
 // TLSProvider provides a tls config for connection
