@@ -253,7 +253,6 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	name := "listener3"
 	// bas listener config have no idle timeout config, set the default value
 	listenerConfig := baseListenerConfig(addrStr, name)
-	// listenerConfig.Inspector = true
 	nfcfs := []types.NetworkFilterChainFactory{
 		&mockNetworkFilterFactory{},
 	}
@@ -262,33 +261,103 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	}
 	time.Sleep(time.Second) // wait listener start
 
-	n := time.Now()
-	conn, err := net.Dial("tcp", addrStr)
-	if err != nil {
-		t.Fatalf("dial failed, %v", err)
-	}
-	readChan := make(chan error)
-	// try read
-	go func() {
-		buf := make([]byte, 10)
-		_, err := conn.Read(buf)
-		readChan <- err
+	// 0. test default idle timeout
+	func() {
+		n := time.Now()
+		conn, err := tls.Dial("tcp", addrStr, &tls.Config{
+			InsecureSkipVerify: true,
+		})
+		if err != nil {
+			t.Fatalf("dial failed, %v", err)
+		}
+		readChan := make(chan error)
+		// try read
+		go func() {
+			buf := make([]byte, 10)
+			_, err := conn.Read(buf)
+			readChan <- err
+		}()
+		select {
+		case err := <-readChan:
+			// connection should be closed by server
+			if err != io.EOF {
+				t.Fatalf("connection read returns error: %v", err)
+			}
+			if time.Now().Sub(n) < defaultIdleTimeout {
+				t.Fatal("connection closed too quickly")
+			}
+		case <-time.After(5 * time.Second):
+			conn.Close()
+			t.Fatal("connection should be closed, but not")
+		}
 	}()
-	select {
-	case err := <-readChan:
-		// connection should be closed by server
-		if err != io.EOF {
-			t.Fatalf("connection read returns error: %v", err)
-		}
-		if time.Now().Sub(n) < defaultIdleTimeout {
-			t.Fatal("connection closed too quickly")
-		}
-	case <-time.After(5 * time.Second):
-		conn.Close()
-		t.Fatal("connection should be closed, but not")
-	}
 	// Update idle timeout
 	// 1. update as no idle timeout
-	// 2. update as long idle timeout
+	noIdle := baseListenerConfig(addrStr, name)
+	noIdle.ConnectionIdleTimeout = &v2.DurationConfig{
+		Duration: 0,
+	}
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, noIdle, nil, nil); err != nil {
+		t.Fatalf("update listener failed, %v", err)
+	}
+	func() {
+		conn, err := tls.Dial("tcp", addrStr, &tls.Config{
+			InsecureSkipVerify: true,
+		})
+		if err != nil {
+			t.Fatalf("dial failed, %v", err)
+		}
+		readChan := make(chan error)
+		// try read
+		go func() {
+			buf := make([]byte, 10)
+			_, err := conn.Read(buf)
+			readChan <- err
+		}()
+		select {
+		case err := <-readChan:
+			t.Fatalf("receive an error: %v", err)
+		case <-time.After(5 * time.Second):
+			conn.Close()
+		}
+
+	}()
+	// 2. update idle timeout with config
+	cfgIdle := baseListenerConfig(addrStr, name)
+	cfgIdle.ConnectionIdleTimeout = &v2.DurationConfig{
+		Duration: 5 * time.Second,
+	}
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfgIdle, nil, nil); err != nil {
+		t.Fatalf("update listener failed, %v", err)
+	}
+	func() {
+		n := time.Now()
+		conn, err := tls.Dial("tcp", addrStr, &tls.Config{
+			InsecureSkipVerify: true,
+		})
+		if err != nil {
+			t.Fatalf("dial failed, %v", err)
+		}
+		readChan := make(chan error)
+		// try read
+		go func() {
+			buf := make([]byte, 10)
+			_, err := conn.Read(buf)
+			readChan <- err
+		}()
+		select {
+		case err := <-readChan:
+			// connection should be closed by server
+			if err != io.EOF {
+				t.Fatalf("connection read returns error: %v", err)
+			}
+			if time.Now().Sub(n) < 5*time.Second {
+				t.Fatal("connection closed too quickly")
+			}
+		case <-time.After(8 * time.Second):
+			conn.Close()
+			t.Fatal("connection should be closed, but not")
+		}
+	}()
 
 }
