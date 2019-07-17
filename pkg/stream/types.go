@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 
+	metrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -39,7 +40,7 @@ type Client interface {
 
 	NewStream(context context.Context, respDecoder types.StreamReceiveListener) types.StreamSender
 
-	SetConnectionStats(stats *types.ConnectionStats)
+	SetConnectionCollector(read, write metrics.Counter)
 
 	AddConnectionEventListener(listener types.ConnectionEventListener)
 

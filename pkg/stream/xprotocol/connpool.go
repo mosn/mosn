@@ -28,7 +28,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
 )
 
 func init() {
@@ -227,13 +226,8 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
-	// bytes total adds all connections data together, but buffered data not
-	codecClient.SetConnectionStats(&types.ConnectionStats{
-		ReadTotal:     pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal,
-		ReadBuffered:  metrics.NewGauge(),
-		WriteTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal,
-		WriteBuffered: metrics.NewGauge(),
-	})
+	// bytes total adds all connections data together
+	codecClient.SetConnectionCollector(pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal, pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
 	return ac
 }
