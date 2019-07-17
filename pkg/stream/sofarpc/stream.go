@@ -110,7 +110,6 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 
 		contextManager: str.NewContextManager(ctx),
 	}
-
 	// init first context
 	sc.contextManager.Next()
 

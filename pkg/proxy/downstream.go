@@ -1108,6 +1108,9 @@ func (s *downStream) setupRetry(endStream bool) bool {
 
 // Note: retry-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
 func (s *downStream) doRetry() {
+	// retry interval
+	time.Sleep(10 * time.Millisecond)
+
 	// no reuse buffer
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 

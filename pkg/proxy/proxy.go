@@ -24,6 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	jsoniter "github.com/json-iterator/go"
+	"github.com/rcrowley/go-metrics"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
@@ -34,8 +36,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/stream"
 	mosnsync "sofastack.io/sofa-mosn/pkg/sync"
 	"sofastack.io/sofa-mosn/pkg/types"
-	jsoniter "github.com/json-iterator/go"
-	"github.com/rcrowley/go-metrics"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

@@ -21,6 +21,7 @@ import (
 	"context"
 	"net"
 	"time"
+	"errors"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
@@ -481,3 +482,7 @@ func (as Addresses) Contains(addr net.Addr) bool {
 
 	return false
 }
+
+var (
+	ErrConnectionHasClosed = errors.New("connection has closed")
+)

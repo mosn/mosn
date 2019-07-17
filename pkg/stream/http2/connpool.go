@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	str "sofastack.io/sofa-mosn/pkg/stream"
@@ -105,6 +106,7 @@ func (p *connPool) Close() {
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
+	log.DefaultLogger.Debugf("http2 connPool onConnectionEvent: %v", event)
 	if event.IsClose() {
 		if client.closeWithActiveReq {
 			if event == types.LocalClose {
@@ -170,17 +172,16 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	data := pool.host.CreateConnection(ctx)
 
-	ac.host = data
-	if err := ac.host.Connection.Connect(true); err != nil {
-		return nil
-	}
-
 	connCtx := mosnctx.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient
+	ac.host = data
+	if err := ac.host.Connection.Connect(true); err != nil {
+		return nil
+	}
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
