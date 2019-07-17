@@ -47,11 +47,12 @@ type Mosn struct {
 	routerManager  types.RouterManager
 	config         *config.MOSNConfig
 	adminServer    admin.Server
+	xdsClient      xds.Client
 }
 
 // NewMosn
 // Create server from mosn config
-func NewMosn(c *config.MOSNConfig) *Mosn {
+func NewMosn(c *config.MOSNConfig, serviceCluster string, serviceNode string) *Mosn {
 	initializeDefaultPath(config.GetConfigPath())
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
@@ -175,6 +176,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		m.servers = append(m.servers, srv)
 	}
 
+	//xds
+	m.xdsClient = xds.Client{}
+	m.xdsClient.Start(c, serviceCluster, serviceNode)
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 
@@ -265,7 +269,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	Mosn := NewMosn(c)
+	Mosn := NewMosn(c, serviceCluster, serviceNode)
 	Mosn.Start()
 	////get xds config
 	xdsClient := xds.Client{}
@@ -273,7 +277,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	//
 	////todo: daemon running
 	wg.Wait()
-	xdsClient.Stop()
+	Mosn.xdsClient.Stop()
 }
 
 func initializeTracing(config config.TracingConfig) {
