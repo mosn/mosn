@@ -61,7 +61,7 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 	// set config path into load package
 	config.Load(configPath)
 
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 
 	log.InitDefaultLogger("", log.DEBUG)
 

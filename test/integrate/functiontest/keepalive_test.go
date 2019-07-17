@@ -58,7 +58,7 @@ func TestKeepAlive(t *testing.T) {
 	server.GoServe()
 	clientMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, protocol.SofaRPC)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	stop := make(chan bool)
 	go func() {

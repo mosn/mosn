@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/mosn"
@@ -26,7 +27,6 @@ import (
 	_ "sofastack.io/sofa-mosn/pkg/stream/xprotocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 const (
@@ -135,7 +135,7 @@ func (c *TLSUpdateCase) Start(tls bool) {
 	cfg := MakeProxyWithTLSConfig(c.ListenerName, c.MeshAddr, []string{appAddr}, c.Protocol, tls)
 	// for test, reset adapter
 	server.ResetAdapter()
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish

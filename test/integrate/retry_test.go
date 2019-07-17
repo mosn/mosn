@@ -60,7 +60,7 @@ func (c *RetryCase) StartProxy() {
 	clientMeshAddr := util.CurrentMeshAddr()
 	c.ClientMeshAddr = clientMeshAddr
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{app1, app2}, c.AppProtocol)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish
@@ -87,7 +87,7 @@ func (c *RetryCase) Start(tls bool) {
 	c.ClientMeshAddr = clientMeshAddr
 	serverMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{app1, app2}, tls)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish

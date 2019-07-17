@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/mosn"
@@ -16,7 +17,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 // Test Direct Response
@@ -92,7 +92,7 @@ func (c *DirectResponseCase) StartProxy() {
 		Body:       c.body,
 	}
 	cfg := CreateDirectMeshProxy(addr, c.Protocol, resp)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish

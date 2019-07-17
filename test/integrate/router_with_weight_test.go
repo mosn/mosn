@@ -57,7 +57,7 @@ func (c *weightCase) Start() {
 	meshAddr := testutil.CurrentMeshAddr()
 	c.ClientMeshAddr = meshAddr
 	cfg := testutil.CreateWeightProxyMesh(meshAddr, protocol.SofaRPC, c.clusters)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish

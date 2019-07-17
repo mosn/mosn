@@ -43,7 +43,7 @@ func main() {
 		return
 	}
 	cfg := util.CreateProxyMesh(meshAddr, []string{serverAddr}, proto)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go server.Start()
 	// Proxy API

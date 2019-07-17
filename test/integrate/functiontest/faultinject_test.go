@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	_ "sofastack.io/sofa-mosn/pkg/filter/stream/faultinject"
@@ -19,7 +20,6 @@ import (
 	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
 	"sofastack.io/sofa-mosn/test/integrate"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 func AddFaultInject(mosn *config.MOSNConfig, listenername string, faultstr string) error {
@@ -76,7 +76,7 @@ func (c *faultInjectCase) StartProxy() {
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol)
 	faultstr := MakeFaultStr(c.abortstatus, c.delay)
 	AddFaultInject(cfg, "proxyListener", faultstr)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish

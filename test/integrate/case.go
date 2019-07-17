@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/tcpproxy"
 	"sofastack.io/sofa-mosn/pkg/mosn"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 type TestCase struct {
@@ -49,7 +49,7 @@ func (c *TestCase) StartProxy() {
 	clientMeshAddr := util.CurrentMeshAddr()
 	c.ClientMeshAddr = clientMeshAddr
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish
@@ -68,7 +68,7 @@ func (c *TestCase) Start(tls bool) {
 	c.ClientMeshAddr = clientMeshAddr
 	serverMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, tls)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish
@@ -88,7 +88,7 @@ func (c *TestCase) StartX(subprotocol string) {
 	c.ClientMeshAddr = clientMeshAddr
 	serverMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateXProtocolMesh(clientMeshAddr, serverMeshAddr, subprotocol, []string{appAddr})
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish

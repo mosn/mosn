@@ -73,7 +73,7 @@ func FuzzyClient(stop chan struct{}, client Client) {
 func CreateMeshProxy(t *testing.T, stop chan struct{}, serverList []string, proto types.Protocol) string {
 	meshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateProxyMesh(meshAddr, serverList, proto)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-stop
@@ -87,7 +87,7 @@ func CreateMeshCluster(t *testing.T, stop chan struct{}, serverList []string, ap
 	meshAddr := util.CurrentMeshAddr()
 	meshServerAddr := util.CurrentMeshAddr()
 	cfg := util.CreateMeshToMeshConfig(meshAddr, meshServerAddr, appproto, meshproto, serverList, false)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-stop

@@ -177,8 +177,11 @@ func NewMosn(c *config.MOSNConfig, serviceCluster string, serviceNode string) *M
 	}
 
 	//xds
-	m.xdsClient = xds.Client{}
-	m.xdsClient.Start(c, serviceCluster, serviceNode)
+	if serviceCluster != "" && serviceNode != "" {
+		m.xdsClient = xds.Client{}
+		m.xdsClient.Start(c, serviceCluster, serviceNode)
+	}
+
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
 

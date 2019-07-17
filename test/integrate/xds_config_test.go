@@ -119,7 +119,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	mosnConfig := config.Load(filepath.Join("testdata", "envoy.json"))
 	admin.Reset()
 	admin.SetMOSNConfig(mosnConfig)
-	Mosn := mosn.NewMosn(mosnConfig)
+	Mosn := mosn.NewMosn(mosnConfig, "", "")
 	Mosn.Start()
 
 	buf, err := admin.Dump()

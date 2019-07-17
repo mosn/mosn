@@ -20,7 +20,7 @@ func (c *tcpExtendCase) Start(isRouteEntryMode bool) {
 	meshAddr := testutil.CurrentMeshAddr()
 	c.ClientMeshAddr = meshAddr
 	cfg := testutil.CreateTCPProxyConfig(meshAddr, []string{appAddr}, isRouteEntryMode)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish

@@ -96,7 +96,7 @@ func (c *tlsExtendCase) Start(conf *testutil.ExtendVerifyConfig) {
 	c.ClientMeshAddr = clientMeshAddr
 	serverMeshAddr := testutil.CurrentMeshAddr()
 	cfg := testutil.CreateTLSExtensionConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, conf)
-	mesh := mosn.NewMosn(cfg)
+	mesh := mosn.NewMosn(cfg, "", "")
 	go mesh.Start()
 	go func() {
 		<-c.Finish
