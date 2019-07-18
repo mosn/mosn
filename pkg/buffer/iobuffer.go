@@ -40,6 +40,7 @@ var (
 	ErrTooLarge          = errors.New("io buffer: too large")
 	ErrNegativeCount     = errors.New("io buffer: negative count")
 	ErrInvalidWriteCount = errors.New("io buffer: invalid write count")
+	ConnReadTimeout      = types.DefaultConnReadTimeout
 )
 
 // IoBuffer
@@ -110,7 +111,7 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 		if conn != nil {
 			if first {
 				// TODO: support configure
-				conn.SetReadDeadline(time.Now().Add(types.DefaultConnReadTimeout))
+				conn.SetReadDeadline(time.Now().Add(ConnReadTimeout))
 			} else {
 				conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
 			}

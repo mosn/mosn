@@ -20,7 +20,11 @@ package types
 import "time"
 
 type KeepAlive interface {
+	// SendKeepAlive sends a heartbeat request for keepalive
 	SendKeepAlive()
+	// StartIdleTimeout starts the idle checker, if there are only heartbeat requests for a while,
+	// we will free the idle always connection, stop keeps it alive.
+	StartIdleTimeout()
 	GetTimeout() time.Duration
 	HandleTimeout(id uint64)
 	HandleSuccess(id uint64)

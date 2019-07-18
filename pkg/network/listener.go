@@ -90,7 +90,7 @@ func (l *listener) Start(lctx context.Context) {
 		if l.rawl == nil {
 			if err := l.listen(lctx); err != nil {
 				// TODO: notify listener callbacks
-				log.StartLogger.Fatalf("network] [listener start] [listen] %s listen failed, %v", l.name, err)
+				log.StartLogger.Fatalf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
 				return
 			}
 		}

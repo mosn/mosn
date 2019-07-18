@@ -19,11 +19,13 @@ package sofarpc
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "sofastack.io/sofa-mosn/pkg/stream"
@@ -81,6 +83,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 	}
 	// start a keep alive
 	keepAlive := NewSofaRPCKeepAlive(codec, sofarpc.PROTOCOL_CODE_V1, keepTimeout, thres)
+	keepAlive.StartIdleTimeout()
 	return &testCase{
 		KeepAlive: keepAlive.(*sofaRPCKeepAlive),
 		Server:    srv,
@@ -131,7 +134,7 @@ func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
 		tc.KeepAlive.SendKeepAlive()
 		time.Sleep(200 * time.Millisecond)
 	}
-	// set no delay, will not timeour
+	// set no delay, will not timeout
 	tc.Server.delay = 0
 	tc.KeepAlive.SendKeepAlive()
 	// wait response
@@ -143,4 +146,86 @@ func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
 		t.Error("timeout count not reset by success")
 	}
 
+}
+
+func TestKeepAliveIdleFree(t *testing.T) {
+	// setup for test
+	log.DefaultLogger.SetLogLevel(log.ERROR)
+	maxIdleCount = 20
+	// teardown for test
+	defer func() {
+		maxIdleCount = 0
+		log.DefaultLogger.SetLogLevel(log.INFO)
+	}()
+	tc := newTestCase(t, 0, time.Second, 6)
+	defer tc.Server.Close()
+	testStats := &testStats{}
+	tc.KeepAlive.AddCallback(testStats.Record)
+
+	var i uint32 = 0
+	for ; i < maxIdleCount; i++ {
+		tc.KeepAlive.SendKeepAlive()
+		time.Sleep(10 * time.Millisecond)
+	}
+	// should be closed
+	select {
+	case <-tc.KeepAlive.stop:
+		if testStats.timeout != 0 {
+			t.Errorf("expected no timeout, but got: %d", testStats.timeout)
+		}
+	case <-time.After(2 * time.Second):
+		t.Errorf("expected close codec, but not, heartbeat: %v", testStats)
+	}
+}
+
+func TestKeepAliveIdleFreeWithData(t *testing.T) {
+	// setup for test
+	log.DefaultLogger.SetLogLevel(log.ERROR)
+	maxIdleCount = 40
+	// teardown for test
+	defer func() {
+		maxIdleCount = 0
+		log.DefaultLogger.SetLogLevel(log.INFO)
+	}()
+	tc := newTestCase(t, 0, time.Second, 6)
+	defer tc.Server.Close()
+	ch := make(chan struct{})
+	wg := sync.WaitGroup{}
+	// 10ms a heartbeat, 400ms will send max count
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ticker := time.NewTicker(10 * time.Millisecond)
+		for {
+			select {
+			case <-ch:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				tc.KeepAlive.SendKeepAlive()
+			}
+		}
+	}()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		ticker := time.NewTicker(15 * time.Millisecond)
+		for {
+			select {
+			case <-ch:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				// simulate a request stream
+				tc.KeepAlive.Codec.NewStream(context.Background(), nil)
+			}
+		}
+	}()
+	select {
+	case <-tc.KeepAlive.stop:
+		t.Errorf("connection is closed")
+	case <-time.After(2 * time.Second):
+	}
+	close(ch)
+	wg.Wait()
 }
