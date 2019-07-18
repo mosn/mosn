@@ -244,7 +244,7 @@ func (m *Mosn) Start() {
 // Close mosn's server
 func (m *Mosn) Close() {
 	// close service
-	store.StopService()
+	store.CloseService()
 
 	// stop reconfigure domain socket
 	server.StopReconfigureHandler()
