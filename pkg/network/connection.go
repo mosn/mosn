@@ -42,7 +42,7 @@ import (
 
 // Network related const
 const (
-	DefaultBufferReadCapacity = 1 << 0
+	DefaultBufferReadCapacity = 1 << 7
 )
 
 var idCounter uint64 = 1
@@ -68,6 +68,7 @@ type connection struct {
 	bytesSendCallbacks   []func(bytesSent uint64)
 	transferCallbacks    func() bool
 	filterManager        types.FilterManager
+	idleEventListener    types.ConnectionEventListener
 
 	stopChan           chan struct{}
 	curWriteBufferData []types.IoBuffer
@@ -84,6 +85,8 @@ type connection struct {
 	writeSchedChan chan bool // writable if not scheduled yet.
 
 	stats              *types.ConnectionStats
+	readCollector      metrics.Counter
+	writeCollector     metrics.Counter
 	lastBytesSizeRead  int64
 	lastWriteSizeWrite int64
 
@@ -116,6 +119,8 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 			WriteTotal:    metrics.NewCounter(),
 			WriteBuffered: metrics.NewGauge(),
 		},
+		readCollector:  metrics.NilCounter{},
+		writeCollector: metrics.NilCounter{},
 	}
 
 	// store fd
@@ -157,6 +162,10 @@ func (c *connection) Start(lctx context.Context) {
 			c.startRWLoop(lctx)
 		}
 	})
+}
+
+func (c *connection) SetIdleTimeout(d time.Duration) {
+	c.newIdleChecker(d)
 }
 
 func (c *connection) attachEventLoop(lctx context.Context) {
@@ -313,7 +322,7 @@ func (c *connection) startReadLoop() {
 				err := c.doRead()
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
-						if c.readBuffer != nil && c.readBuffer.Len() == 0 {
+						if c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
 							c.readBuffer.Free()
 							c.readBuffer.Alloc(DefaultBufferReadCapacity)
 						}
@@ -366,6 +375,9 @@ func (c *connection) doRead() (err error) {
 	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
 
 	if err != nil {
+		if atomic.LoadUint32(&c.closed) == 1 {
+			return nil
+		}
 		if te, ok := err.(net.Error); ok && te.Timeout() {
 			for _, cb := range c.connCallbacks {
 				cb.OnEvent(types.OnReadTimeout) // run read timeout callback, for keep alive if configured
@@ -394,6 +406,7 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 
 	if bytesRead > 0 {
 		c.stats.ReadTotal.Inc(bytesRead)
+		c.readCollector.Inc(bytesRead)
 	}
 
 	if bytesBufSize != c.lastBytesSizeRead {
@@ -573,6 +586,9 @@ func (c *connection) appendBuffer(iobuffers *[]types.IoBuffer) {
 
 func (c *connection) doWrite() (int64, error) {
 	bytesSent, err := c.doWriteIo()
+	if err != nil && atomic.LoadUint32(&c.closed) == 1 {
+		return 0, nil
+	}
 
 	c.updateWriteBuffStats(bytesSent, int64(c.writeBufLen()))
 
@@ -616,6 +632,7 @@ func (c *connection) updateWriteBuffStats(bytesWrite int64, bytesBufSize int64) 
 
 	if bytesWrite > 0 {
 		c.stats.WriteTotal.Inc(bytesWrite)
+		c.writeCollector.Inc(bytesWrite)
 	}
 
 	if bytesBufSize != c.lastWriteSizeWrite {
@@ -769,8 +786,9 @@ func (c *connection) SetLocalAddress(localAddress net.Addr, restored bool) {
 	c.localAddressRestored = restored
 }
 
-func (c *connection) SetStats(stats *types.ConnectionStats) {
-	c.stats = stats
+func (c *connection) SetCollector(read, write metrics.Counter) {
+	c.readCollector = read
+	c.writeCollector = write
 }
 
 func (c *connection) LocalAddressRestored() bool {
@@ -825,7 +843,9 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 				WriteTotal:    metrics.NewCounter(),
 				WriteBuffered: metrics.NewGauge(),
 			},
-			tlsMng: tlsMng,
+			readCollector:  metrics.NilCounter{},
+			writeCollector: metrics.NilCounter{},
+			tlsMng:         tlsMng,
 		},
 	}
 

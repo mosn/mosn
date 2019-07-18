@@ -44,15 +44,16 @@ const EGRESS ListenerType = "egress"
 const INGRESS ListenerType = "ingress"
 
 type ListenerConfig struct {
-	Name           string        `json:"name,omitempty"`
-	Type           ListenerType  `json:"type,omitempty"`
-	AddrConfig     string        `json:"address,omitempty"`
-	BindToPort     bool          `json:"bind_port,omitempty"`
-	UseOriginalDst bool          `json:"use_original_dst,omitempty"`
-	AccessLogs     []AccessLog   `json:"access_logs,omitempty"`
-	FilterChains   []FilterChain `json:"filter_chains,omitempty"` // only one filterchains at this time
-	StreamFilters  []Filter      `json:"stream_filters,omitempty"`
-	Inspector      bool          `json:"inspector,omitempty"`
+	Name                  string          `json:"name,omitempty"`
+	Type                  ListenerType    `json:"type,omitempty"`
+	AddrConfig            string          `json:"address,omitempty"`
+	BindToPort            bool            `json:"bind_port,omitempty"`
+	UseOriginalDst        bool            `json:"use_original_dst,omitempty"`
+	AccessLogs            []AccessLog     `json:"access_logs,omitempty"`
+	FilterChains          []FilterChain   `json:"filter_chains,omitempty"` // only one filterchains at this time
+	StreamFilters         []Filter        `json:"stream_filters,omitempty"`
+	Inspector             bool            `json:"inspector,omitempty"`
+	ConnectionIdleTimeout *DurationConfig `json:"connection_idle_timeout,omitempty"`
 }
 
 type TCPRouteConfig struct {
@@ -83,7 +84,7 @@ type RouterConfigurationConfig struct {
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
-	RouterConfigPath        string               `json:"router_configs, omitempty"`
+	RouterConfigPath        string               `json:"router_configs,omitempty"`
 	StaticVirtualHosts      []*VirtualHost       `json:"virtual_hosts,omitempty"`
 }
 

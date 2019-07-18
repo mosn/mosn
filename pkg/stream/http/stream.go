@@ -116,6 +116,7 @@ type streamConnection struct {
 
 	conn              types.Connection
 	connEventListener types.ConnectionEventListener
+	resetReason       types.StreamResetReason
 
 	bufChan    chan types.IoBuffer
 	connClosed chan bool
@@ -218,7 +219,11 @@ func (conn *clientStreamConnection) serve() {
 		if err != nil {
 			if s != nil {
 				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
-				s.ResetStream(types.StreamRemoteReset)
+				reason := conn.resetReason
+				if reason == "" {
+					reason = types.StreamRemoteReset
+				}
+				s.ResetStream(reason)
 			}
 			return
 		}
@@ -280,6 +285,7 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 	close(conn.bufChan)
 	close(conn.connClosed)
+	conn.resetReason = reason
 }
 
 // types.ServerStreamConnection

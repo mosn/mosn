@@ -78,7 +78,7 @@
   revision = "4eba002a5eaea69cf8d235a388fc6b65ae68d2dd"
 
 [[projects]]
-  digest = "1:966e93407359a78ef2a3363df3d9a4735907f20d0991ce40a7e6fea650cfb1a3"
+  digest = "1:4cc0ab2ffde5af6ed91e57dd4f67864ec07c8f175c08225cd031932d7fc945b2"
   name = "github.com/envoyproxy/go-control-plane"
   packages = [
     "envoy/api/v2",
@@ -96,15 +96,17 @@
     "envoy/config/filter/network/http_connection_manager/v2",
     "envoy/config/filter/network/tcp_proxy/v2",
     "envoy/config/metrics/v2",
+    "envoy/config/overload/v2alpha",
     "envoy/config/ratelimit/v2",
     "envoy/config/trace/v2",
     "envoy/service/discovery/v2",
     "envoy/type",
+    "envoy/type/matcher",
     "pkg/util",
   ]
   pruneopts = "UT"
-  revision = "c14704578b82128fab17743d91f870c406ef8d09"
-  version = "v0.4"
+  revision = "0ad6fa1cf0b9b6ca8f3617a7188a568e81f40b87"
+  version = "v0.6.9"
 
 [[projects]]
   digest = "1:d2627f44c974bd0e0d54dbd348b340df8502d7e32d265c18c83431046b503dcf"

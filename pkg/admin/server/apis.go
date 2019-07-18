@@ -19,15 +19,15 @@ package server
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
-
-	"io/ioutil"
 
 	"sofastack.io/sofa-mosn/pkg/admin/store"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/metrics/sink/console"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var levelMap = map[string]log.Level{
@@ -46,7 +46,7 @@ const errMsgFmt = `{
 
 func configDump(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		log.DefaultLogger.Errorf("[admin api] [config dump] invalid method: %s", r.Method)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "config dump", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
@@ -55,7 +55,7 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)
 		w.Write(buf)
 	} else {
-		log.DefaultLogger.Errorf("[admin api] [config dump] config failed, error: %v", err)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "config dump", err)
 		w.WriteHeader(500)
 		msg := fmt.Sprintf(errMsgFmt, "internal error")
 		fmt.Fprint(w, msg)
@@ -64,7 +64,7 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 
 func statsDump(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		log.DefaultLogger.Errorf("[admin api] [stats dump] invalid method: %s", r.Method)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "stats dump", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
@@ -82,13 +82,13 @@ type LogLevelData struct {
 
 func updateLogLevel(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		log.DefaultLogger.Errorf("[admin api] [update log level] invalid method: %s", r.Method)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "update log level", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.DefaultLogger.Errorf("[admin api] [update log level] read body failed, error: %v", err)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: read body failed, %v", "update log level", err)
 		w.WriteHeader(http.StatusBadRequest)
 		msg := fmt.Sprintf(errMsgFmt, "read body error")
 		fmt.Fprint(w, msg)
@@ -105,7 +105,7 @@ func updateLogLevel(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	log.DefaultLogger.Errorf("[admin api] [update log level] update logger level failed with bad request data: %s", string(body))
+	log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, update logger level failed with bad request data: %s", "update log level", string(body))
 	w.WriteHeader(http.StatusBadRequest) // 400
 	msg := fmt.Sprintf(errMsgFmt, "update logger failed")
 	fmt.Fprint(w, msg)
@@ -115,20 +115,20 @@ func updateLogLevel(w http.ResponseWriter, r *http.Request) {
 // loggeer path
 func enableLogger(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		log.DefaultLogger.Errorf("[admin api] [enable logger] invalid method: %s", r.Method)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "enable logger", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	loggerPath, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.DefaultLogger.Errorf("[admin api] [enable logger] read body failed, error: %v", err)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: read body failed, %v", "enable logger", err)
 		w.WriteHeader(http.StatusBadRequest)
 		msg := fmt.Sprintf(errMsgFmt, "read body error")
 		fmt.Fprint(w, msg)
 		return
 	}
 	if !log.ToggleLogger(string(loggerPath), false) {
-		log.DefaultLogger.Errorf("[admin api] [enable logger] enbale logger failed, logger: %s", string(loggerPath))
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: enbale %s logger failed", "enable logger", string(loggerPath))
 		w.WriteHeader(http.StatusBadRequest) // 400
 		msg := fmt.Sprintf(errMsgFmt, "enable logger failed")
 		fmt.Fprint(w, msg)
@@ -141,20 +141,20 @@ func enableLogger(w http.ResponseWriter, r *http.Request) {
 
 func disableLogger(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		log.DefaultLogger.Errorf("[admin api] [disable logger] invalid method: %s", r.Method)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "disable logger", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	loggerPath, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.DefaultLogger.Errorf("[admin api] [disable logger] read body failed, error: %v", err)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: read body failed, %v", "disable logger", err)
 		w.WriteHeader(http.StatusBadRequest)
 		msg := fmt.Sprintf(errMsgFmt, "read body error")
 		fmt.Fprint(w, msg)
 		return
 	}
 	if !log.ToggleLogger(string(loggerPath), true) {
-		log.DefaultLogger.Errorf("[admin api] [disable logger] disale logger failed, logger: %s", string(loggerPath))
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: enbale %s logger failed", "disable logger", string(loggerPath))
 		w.WriteHeader(http.StatusBadRequest) // 400
 		msg := fmt.Sprintf(errMsgFmt, "disbale logger failed")
 		fmt.Fprint(w, msg)
@@ -169,7 +169,7 @@ func disableLogger(w http.ResponseWriter, r *http.Request) {
 // pid=xxx&state=xxx
 func getState(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		log.DefaultLogger.Errorf("[admin api] [get mosn state] invalid method: %s", r.Method)
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "get state", r.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}

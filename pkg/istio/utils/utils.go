@@ -22,9 +22,9 @@ import (
 	"strconv"
 	"strings"
 
-	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/gogo/protobuf/jsonpb"
-	"istio.io/api/mixer/v1"
+	v1 "istio.io/api/mixer/v1"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 const (
@@ -32,7 +32,7 @@ const (
 )
 
 // GetDestinationUID function
-func GetDestinationUID(metadata types.RouteMetaData) (uid string, err error) {
+func GetDestinationUID(metadata v2.Metadata) (uid string, err error) {
 	// TODO
 	return "", nil
 	/*

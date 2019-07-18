@@ -114,9 +114,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	clusters, clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
 	if mode == config.Xds {
-		m.clustermanager = cluster.NewClusterManager(nil, nil, nil, true, false)
+		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil)
 	} else {
-		m.clustermanager = cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
+		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap)
 	}
 
 	// initialize the routerManager
@@ -244,7 +244,7 @@ func (m *Mosn) Start() {
 // Close mosn's server
 func (m *Mosn) Close() {
 	// close service
-	store.StopService()
+	store.CloseService()
 
 	// stop reconfigure domain socket
 	server.StopReconfigureHandler()
@@ -253,7 +253,7 @@ func (m *Mosn) Close() {
 	for _, srv := range m.servers {
 		srv.Close()
 	}
-	m.clustermanager.Destory()
+	m.clustermanager.Destroy()
 }
 
 // Start mosn project

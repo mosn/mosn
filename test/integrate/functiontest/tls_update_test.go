@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/mosn"
@@ -26,7 +27,6 @@ import (
 	_ "sofastack.io/sofa-mosn/pkg/stream/xprotocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 const (
@@ -141,6 +141,7 @@ func (c *TLSUpdateCase) Start(tls bool) {
 		<-c.Finish
 		c.AppServer.Close()
 		mesh.Close()
+		time.Sleep(5 * time.Second)
 		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start

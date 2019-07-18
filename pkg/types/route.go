@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 // Default parameters for route
@@ -204,7 +204,7 @@ type MetadataMatchCriterion interface {
 	MetadataKeyName() string
 
 	// the value for the metadata key
-	MetadataValue() HashedValue
+	MetadataValue() string
 }
 
 type MetadataMatchCriteria interface {
@@ -214,11 +214,6 @@ type MetadataMatchCriteria interface {
 
 	MergeMatchCriteria(metadataMatches map[string]interface{}) MetadataMatchCriteria
 }
-
-// HashedValue is a value as md5's result
-// TODO: change hashed value to [16]string
-// currently use string for easily debug
-type HashedValue string
 
 type HeaderFormat interface {
 	Format(info RequestInfo) string
@@ -278,13 +273,4 @@ type LowerCaseString interface {
 type PathMatchCriterion interface {
 	MatchType() PathMatchType
 	Matcher() string
-}
-
-type Loader struct{}
-
-type RouteMetaData map[string]HashedValue
-
-//EqualHashValue comapres two HashedValues are equaled or not
-func EqualHashValue(h1 HashedValue, h2 HashedValue) bool {
-	return h1 == h2
 }

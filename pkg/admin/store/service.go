@@ -149,3 +149,17 @@ func StopService() {
 	listeners = listeners[:0]
 	log.DefaultLogger.Infof("[admin store] [stop service] clear all stored services")
 }
+
+// CloseService close the services directly
+func CloseService() {
+	for _, srv := range services {
+		if srv.exit != nil {
+			srv.exit()
+		}
+		srv.Close()
+		log.DefaultLogger.Infof("[admin store] [stop service] %s", srv.name)
+	}
+	services = services[:0]
+	listeners = listeners[:0]
+	log.DefaultLogger.Infof("[admin store] [stop service] clear all stored services")
+}

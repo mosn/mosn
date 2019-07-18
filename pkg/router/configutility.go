@@ -21,7 +21,7 @@ import (
 	"regexp"
 	"sort"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -170,7 +170,7 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 	for k, v := range metadataMatches {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  k,
-			Value: types.HashedValue(v),
+			Value: v,
 		}
 
 		if index, ok := existingMap[k]; ok {
@@ -191,7 +191,7 @@ func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *Met
 // Implement types.MetadataMatchCriterion
 type MetadataMatchCriterionImpl struct {
 	Name  string
-	Value types.HashedValue
+	Value string
 }
 
 // MetadataKeyName return name
@@ -200,6 +200,6 @@ func (mmci *MetadataMatchCriterionImpl) MetadataKeyName() string {
 }
 
 // MetadataValue return value
-func (mmci *MetadataMatchCriterionImpl) MetadataValue() types.HashedValue {
+func (mmci *MetadataMatchCriterionImpl) MetadataValue() string {
 	return mmci.Value
 }
