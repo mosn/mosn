@@ -122,9 +122,10 @@ func TestReRoute(t *testing.T) {
 	defer mesh.Close()
 	time.Sleep(2 * time.Second) // wait mosn start
 	// reset the logger
-	log.InitDefaultLogger(lgfile, log.ERROR)
+	log.InitDefaultLogger(lgfile, log.DEBUG)
 	// make a http request
-	resp, err := http.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
+	client := http.Client{Timeout:5*time.Second}
+	resp, err := client.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
 	if err != nil {
 		t.Error("rerquest reroute mosn error: ", err)
 		return
@@ -135,6 +136,7 @@ func TestReRoute(t *testing.T) {
 	resp.Body.Close() // release
 	// stop the server and make a request, expected get a error response from mosn
 	httpServer.Close()
+	client = http.Client{Timeout:5*time.Second}
 	errResp, err := http.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
 	if err != nil {
 		t.Error("rerquest reroute mosn error: ", err)

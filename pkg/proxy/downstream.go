@@ -296,7 +296,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 		}()
 
 		phase := types.InitPhase
-		for i := 0; i < 5; i++ {
+		for i := 0; i < 10; i++ {
 			s.cleanNotify()
 
 			phase = s.receive(ctx, id, phase)
