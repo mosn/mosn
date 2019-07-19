@@ -21,11 +21,11 @@ import (
 	"testing"
 	"time"
 
+	metrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/router"
 	"sofastack.io/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
 )
 
 func doNothing() {}
@@ -93,6 +93,37 @@ func TestRetryState(t *testing.T) {
 		{nil, types.StreamConnectionFailed, types.ShouldRetry},
 		{headerException, "", types.ShouldRetry},
 		{headerOK, "", types.NoRetry},
+	}
+	for i, tc := range testcases {
+		if rs.retry(tc.Header, tc.Reason) != tc.Expected {
+			t.Errorf("#%d retry state failed", i)
+		}
+	}
+}
+
+func TestRetryConnetionFailed(t *testing.T) {
+	rcfg := &v2.Router{}
+	pcfg := &v2.RetryPolicy{
+		RetryPolicyConfig: v2.RetryPolicyConfig{
+			RetryOn:    false,
+			NumRetries: 10,
+		},
+		RetryTimeout: time.Second,
+	}
+	rcfg.Route = v2.RouteAction{}
+	rcfg.Route.RetryPolicy = pcfg
+	r, _ := router.NewRouteRuleImplBase(nil, rcfg)
+	policy := r.Policy().RetryPolicy()
+	clusterInfo := &fakeClusterInfo{
+		mgr: &fakeResourceManager{},
+	}
+	rs := newRetryState(policy, nil, clusterInfo, protocol.HTTP1)
+	testcases := []struct {
+		Header   types.HeaderMap
+		Reason   types.StreamResetReason
+		Expected types.RetryCheckStatus
+	}{
+		{nil, types.StreamConnectionFailed, types.ShouldRetry},
 	}
 	for i, tc := range testcases {
 		if rs.retry(tc.Header, tc.Reason) != tc.Expected {
