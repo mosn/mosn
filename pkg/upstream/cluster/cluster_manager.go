@@ -271,6 +271,11 @@ var (
 )
 
 func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.Protocol) (types.ConnectionPool, error) {
+	factory, ok := network.ConnNewPoolFactories[protocol]
+	if !ok {
+		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
+	}
+
 	var pools [cycleTimes]types.ConnectionPool
 
 	for i := 0; i < cycleTimes; i++ {
@@ -278,6 +283,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		if host == nil {
 			return nil, errNilHostChoose
 		}
+
 		addr := host.AddressString()
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[upstream] [cluster manager] clusterSnapshot.loadbalancer.ChooseHost result is %s, cluster name = %s", addr, clusterSnapshot.ClusterInfo().Name())
@@ -286,77 +292,41 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		if !ok {
 			return nil, errUnknownProtocol
 		}
+
+		newConnPool := func() types.ConnectionPool {
+			return factory(host)
+		}
 		connectionPool := value.(*sync.Map)
-		newConnPool := func() error {
-			factory, ok := network.ConnNewPoolFactories[protocol]
-			if !ok {
-				return fmt.Errorf("protocol %v is not registered is pool factory", protocol)
-			}
-			newPool := factory(host)
-			connectionPool.Store(addr, newPool)
-			newPool.CheckAndInit(balancerContext.DownstreamContext())
-			pools[i] = newPool
-			return nil
-		}
-		// check returns the check state
-		// 0: tls not changed and pool is active
-		// 1: tls not changed, but pool is not active
-		// 2: tls changed
-		check := func(pool types.ConnectionPool) int {
-			if pool.SupportTLS() != host.SupportTLS() {
-				return 2
-			}
-			if pool.CheckAndInit(balancerContext.DownstreamContext()) {
-				return 0
-			}
+		connPool, loaded := connectionPool.LoadOrStore(addr, newConnPool())
+		pool := connPool.(types.ConnectionPool)
+		if !loaded { // new
 			pools[i] = pool
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [cluster manager] cluster host %s is not active", addr)
-			}
-			return 1
-		}
-		connPool, ok := connectionPool.Load(addr)
-		if ok {
-			pool := connPool.(types.ConnectionPool)
-			switch check(pool) {
-			case 0:
-				return pool, nil
-			case 1: // do nothing
-			case 2:
-				cm.mux.Lock()
-				defer cm.mux.Unlock()
-				// reload and check the pool
-				if connPool, ok := connectionPool.Load(addr); ok {
-					pool := connPool.(types.ConnectionPool)
-					switch check(pool) {
-					case 0:
-						return pool, nil
-					case 1: // do nothing
-					case 2:
-						// tls changed
-						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-							log.DefaultLogger.Debugf("[upstream] [cluster manager] %s tls state changed", addr)
+		} else { // exists
+			if pool.SupportTLS() != host.SupportTLS() {
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [cluster manager] %s tls state changed", addr)
+				}
+				func() {
+					// lock the load and delete
+					cm.mux.Lock()
+					defer cm.mux.Unlock()
+					// recheck whether the pool is changed
+					if connPool, ok := connectionPool.Load(addr); ok {
+						pool := connPool.(types.ConnectionPool)
+						if pool.SupportTLS() == host.SupportTLS() {
+							return
 						}
 						connectionPool.Delete(addr)
 						pool.Shutdown()
-						if err := newConnPool(); err != nil {
-							return nil, err
-						}
+						newPool := newConnPool()
+						pools[i] = newPool
+						connectionPool.Store(addr, newPool)
 					}
-
-				}
+				}()
 			}
-
-		} else {
-			// connectionPool Load and Store should have concurrency control
-			// we do not use LoadOrStore, so we can returns directly when protocol is not registered
-			cm.mux.Lock()
-			defer cm.mux.Unlock()
-			if _, ok := connectionPool.Load(addr); !ok {
-				if err := newConnPool(); err != nil {
-					return nil, err
-				}
-			}
+		}
+		if pool.CheckAndInit(balancerContext.DownstreamContext()) {
+			return pool, nil
 		}
 	}
 
