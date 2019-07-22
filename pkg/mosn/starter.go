@@ -160,7 +160,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
 				// network filters
-				if !lc.HandOffRestoredDestinationConnections {
+				if !lc.UseOriginalDst {
 					// network and stream filters
 					nfcf = config.GetNetworkFilters(&lc.FilterChains[0])
 					sfcf = config.GetStreamFilters(lc.StreamFilters)

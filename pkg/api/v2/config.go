@@ -44,16 +44,16 @@ const EGRESS ListenerType = "egress"
 const INGRESS ListenerType = "ingress"
 
 type ListenerConfig struct {
-	Name                                  string          `json:"name,omitempty"`
-	Type                                  ListenerType    `json:"type,omitempty"`
-	AddrConfig                            string          `json:"address,omitempty"`
-	BindToPort                            bool            `json:"bind_port,omitempty"`
-	HandOffRestoredDestinationConnections bool            `json:"handoff_restoreddestination,omitemptY"`
-	AccessLogs                            []AccessLog     `json:"access_logs,omitempty"`
-	FilterChains                          []FilterChain   `json:"filter_chains,omitempty"` // only one filterchains at this time
-	StreamFilters                         []Filter        `json:"stream_filters,omitempty"`
-	Inspector                             bool            `json:"inspector,omitempty"`
-	ConnectionIdleTimeout                 *DurationConfig `json:"connection_idle_timeout,omitempty"`
+	Name                  string          `json:"name,omitempty"`
+	Type                  ListenerType    `json:"type,omitempty"`
+	AddrConfig            string          `json:"address,omitempty"`
+	BindToPort            bool            `json:"bind_port,omitempty"`
+	UseOriginalDst        bool            `json:"use_original_dst,omitempty"`
+	AccessLogs            []AccessLog     `json:"access_logs,omitempty"`
+	FilterChains          []FilterChain   `json:"filter_chains,omitempty"` // only one filterchains at this time
+	StreamFilters         []Filter        `json:"stream_filters,omitempty"`
+	Inspector             bool            `json:"inspector,omitempty"`
+	ConnectionIdleTimeout *DurationConfig `json:"connection_idle_timeout,omitempty"`
 }
 
 type TCPRouteConfig struct {

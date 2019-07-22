@@ -6,7 +6,7 @@
 					"name": "from_iptables",
 					"address": "0.0.0.0:15001",
 					"bind_port": true,
-					"handoff_restoreddestination": true,
+					"use_original_dst": true,
 					"filter_chains": [
 						{}
 					]
