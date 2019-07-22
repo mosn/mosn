@@ -27,6 +27,7 @@ import (
 	"time"
 
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -198,6 +199,7 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 		testServers = append(testServers, s)
 		results[s.hostConfig.Address] = 0
 	}
+	log.DefaultLogger.SetLogLevel(log.INFO)
 	cluster := createHealthCheckCluster(testServers)
 	// choose host and add new host concurrency
 	// new host should be choosed after add
@@ -233,6 +235,11 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 		wg.Done()
 	}()
 	snew := newHealthCheckTestServer()
+	func() {
+		mux.Lock()
+		defer mux.Unlock()
+		results[snew.hostConfig.Address] = 0
+	}()
 	go func() {
 		var hosts []types.Host
 		hosts = append(hosts, cluster.Snapshot().HostSet().Hosts()...)
