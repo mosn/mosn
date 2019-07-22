@@ -21,6 +21,7 @@ import (
 	"context"
 	"net"
 	"time"
+	"errors"
 
 	"os"
 
@@ -485,3 +486,7 @@ func (as Addresses) Contains(addr net.Addr) bool {
 
 	return false
 }
+
+var (
+	ErrConnectionHasClosed = errors.New("connection has closed")
+)

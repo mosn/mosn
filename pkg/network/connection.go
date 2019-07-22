@@ -428,11 +428,12 @@ func (c *connection) onRead() {
 	c.filterManager.OnRead()
 }
 
-func (c *connection) Write(buffers ...types.IoBuffer) error {
+func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[network] [write] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v",
 				c.id, c.LocalAddr(), c.RemoteAddr())
+			err = types.ErrConnectionHasClosed
 		}
 	}()
 
@@ -536,6 +537,8 @@ func (c *connection) startWriteLoop() {
 				continue
 			}
 
+			//write err not Close, beacause readbuffer may have unread data
+			/*
 			if err == buffer.EOF {
 				c.Close(types.NoFlush, types.LocalClose)
 			} else if err == io.EOF {
@@ -545,6 +548,7 @@ func (c *connection) startWriteLoop() {
 				// on non-timeout error
 				c.Close(types.NoFlush, types.OnWriteErrClose)
 			}
+			*/
 
 			log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
 				c.id, c.RemoteAddr().String(), err, c)

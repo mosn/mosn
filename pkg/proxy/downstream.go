@@ -296,7 +296,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 		}()
 
 		phase := types.InitPhase
-		for i := 0; i < 5; i++ {
+		for i := 0; i < 10; i++ {
 			s.cleanNotify()
 
 			phase = s.receive(ctx, id, phase)
@@ -1108,6 +1108,9 @@ func (s *downStream) setupRetry(endStream bool) bool {
 
 // Note: retry-timer MUST be stopped before active stream got recycled, otherwise resetting stream's properties will cause panic here
 func (s *downStream) doRetry() {
+	// retry interval
+	time.Sleep(10 * time.Millisecond)
+
 	// no reuse buffer
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 
