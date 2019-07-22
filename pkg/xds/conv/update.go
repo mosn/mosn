@@ -68,7 +68,7 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 		var streamFilters []types.StreamFilterChainFactory
 		var networkFilters []types.NetworkFilterChainFactory
 
-		if !mosnListener.HandOffRestoredDestinationConnections {
+		if !mosnListener.UseOriginalDst {
 			for _, filterChain := range mosnListener.FilterChains {
 				nf := config.GetNetworkFilters(&filterChain)
 				networkFilters = append(networkFilters, nf...)

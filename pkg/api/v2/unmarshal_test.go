@@ -172,7 +172,7 @@ func TestListenerUnmarshal(t *testing.T) {
 		"name": "test",
 		"address": "127.0.0.1",
 		"bind_port": true,
-		"handoff_restoreddestination": true,
+		"use_original_dst":true,
 		"access_logs": [
 			{
 				"log_path":"stdout"
@@ -213,7 +213,7 @@ func TestListenerUnmarshal(t *testing.T) {
 	if !(ln.Name == "test" &&
 		ln.AddrConfig == "127.0.0.1" &&
 		ln.BindToPort == true &&
-		ln.HandOffRestoredDestinationConnections == true &&
+		ln.UseOriginalDst &&
 		ln.Inspector == true) {
 		t.Error("listener basic failed")
 	}

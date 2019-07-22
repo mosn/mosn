@@ -100,3 +100,34 @@ func TestRetryState(t *testing.T) {
 		}
 	}
 }
+
+func TestRetryConnetionFailed(t *testing.T) {
+	rcfg := &v2.Router{}
+	pcfg := &v2.RetryPolicy{
+		RetryPolicyConfig: v2.RetryPolicyConfig{
+			RetryOn:    false,
+			NumRetries: 10,
+		},
+		RetryTimeout: time.Second,
+	}
+	rcfg.Route = v2.RouteAction{}
+	rcfg.Route.RetryPolicy = pcfg
+	r, _ := router.NewRouteRuleImplBase(nil, rcfg)
+	policy := r.Policy().RetryPolicy()
+	clusterInfo := &fakeClusterInfo{
+		mgr: &fakeResourceManager{},
+	}
+	rs := newRetryState(policy, nil, clusterInfo, protocol.HTTP1)
+	testcases := []struct {
+		Header   types.HeaderMap
+		Reason   types.StreamResetReason
+		Expected types.RetryCheckStatus
+	}{
+		{nil, types.StreamConnectionFailed, types.ShouldRetry},
+	}
+	for i, tc := range testcases {
+		if rs.retry(tc.Header, tc.Reason) != tc.Expected {
+			t.Errorf("#%d retry state failed", i)
+		}
+	}
+}

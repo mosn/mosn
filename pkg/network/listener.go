@@ -32,27 +32,27 @@ import (
 
 // listener impl based on golang net package
 type listener struct {
-	name                                  string
-	localAddress                          net.Addr
-	bindToPort                            bool
-	listenerTag                           uint64
-	perConnBufferLimitBytes               uint32
-	handOffRestoredDestinationConnections bool
-	cb                                    types.ListenerEventListener
-	rawl                                  *net.TCPListener
-	config                                *v2.Listener
+	name                    string
+	localAddress            net.Addr
+	bindToPort              bool
+	listenerTag             uint64
+	perConnBufferLimitBytes uint32
+	useOriginalDst          bool
+	cb                      types.ListenerEventListener
+	rawl                    *net.TCPListener
+	config                  *v2.Listener
 }
 
 func NewListener(lc *v2.Listener) types.Listener {
 
 	l := &listener{
-		name:                                  lc.Name,
-		localAddress:                          lc.Addr,
-		bindToPort:                            lc.BindToPort,
-		listenerTag:                           lc.ListenerTag,
-		perConnBufferLimitBytes:               lc.PerConnBufferLimitBytes,
-		handOffRestoredDestinationConnections: lc.HandOffRestoredDestinationConnections,
-		config: lc,
+		name:                    lc.Name,
+		localAddress:            lc.Addr,
+		bindToPort:              lc.BindToPort,
+		listenerTag:             lc.ListenerTag,
+		perConnBufferLimitBytes: lc.PerConnBufferLimitBytes,
+		useOriginalDst:          lc.UseOriginalDst,
+		config:                  lc,
 	}
 
 	if lc.InheritListener != nil {
@@ -90,7 +90,7 @@ func (l *listener) Start(lctx context.Context) {
 		if l.rawl == nil {
 			if err := l.listen(lctx); err != nil {
 				// TODO: notify listener callbacks
-				log.StartLogger.Fatalf("network] [listener start] [listen] %s listen failed, %v", l.name, err)
+				log.StartLogger.Fatalf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
 				return
 			}
 		}
@@ -152,12 +152,12 @@ func (l *listener) GetListenerCallbacks() types.ListenerEventListener {
 	return l.cb
 }
 
-func (l *listener) SetHandOffRestoredDestinationConnections(restoredDestation bool) {
-	l.handOffRestoredDestinationConnections = restoredDestation
+func (l *listener) SetUseOriginalDst(use bool) {
+	l.useOriginalDst = use
 }
 
-func (l *listener) HandOffRestoredDestinationConnections() bool {
-	return l.handOffRestoredDestinationConnections
+func (l *listener) UseOriginalDst() bool {
+	return l.useOriginalDst
 }
 
 func (l *listener) Close(lctx context.Context) error {
@@ -187,7 +187,7 @@ func (l *listener) accept(lctx context.Context) error {
 
 	// TODO: use thread pool
 	utils.GoWithRecover(func() {
-		l.cb.OnAccept(rawc, l.handOffRestoredDestinationConnections, nil, nil, nil)
+		l.cb.OnAccept(rawc, l.useOriginalDst, nil, nil, nil)
 	}, nil)
 
 	return nil

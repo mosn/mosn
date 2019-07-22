@@ -40,6 +40,7 @@ type sofaRPCKeepAlive struct {
 	Callbacks    []types.KeepAliveCallback
 	// runtime
 	timeoutCount uint32
+	idleFree     *idleFree
 	// stop channel will stop all keep alive action
 	once sync.Once
 	stop chan struct{}
@@ -95,11 +96,20 @@ func (kp *sofaRPCKeepAlive) SendKeepAlive() {
 	}
 }
 
+func (kp *sofaRPCKeepAlive) StartIdleTimeout() {
+	kp.idleFree = newIdleFree()
+}
+
 // The function will be called when connection in the codec is idle
 func (kp *sofaRPCKeepAlive) sendKeepAlive() {
 	ctx := context.Background()
 	sender := kp.Codec.NewStream(ctx, kp)
 	id := sender.GetStream().ID()
+	// check idle free
+	if kp.idleFree.CheckFree(id) {
+		kp.Codec.Close()
+		return
+	}
 	// we send sofa rpc cmd as "header", but it maybe contains "body"
 	hb := sofarpc.NewHeartbeat(kp.ProtocolByte)
 	sender.AppendHeaders(ctx, hb, true)

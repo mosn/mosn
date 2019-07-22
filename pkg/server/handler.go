@@ -153,8 +153,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		al.listener.SetPerConnBufferLimitBytes(lc.PerConnBufferLimitBytes)
 		rawConfig.ListenerTag = lc.ListenerTag
 		al.listener.SetListenerTag(lc.ListenerTag)
-		rawConfig.HandOffRestoredDestinationConnections = lc.HandOffRestoredDestinationConnections
-		al.listener.SetHandOffRestoredDestinationConnections(lc.HandOffRestoredDestinationConnections)
+		rawConfig.UseOriginalDst = lc.UseOriginalDst
+		al.listener.SetUseOriginalDst(lc.UseOriginalDst)
+		al.idleTimeout = lc.ConnectionIdleTimeout
 
 		al.listener.SetConfig(rawConfig)
 
@@ -337,6 +338,7 @@ type activeListener struct {
 	stats                       *listenerStats
 	accessLogs                  []types.AccessLog
 	updatedLabel                bool
+	idleTimeout                 *v2.DurationConfig
 	tlsMng                      types.TLSContextManager
 }
 
@@ -352,6 +354,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		stopChan:     stopChan,
 		accessLogs:   accessLoggers,
 		updatedLabel: false,
+		idleTimeout:  lc.ConnectionIdleTimeout,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
@@ -390,11 +393,11 @@ func (al *activeListener) GoStart(lctx context.Context) {
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
+func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
 	var rawf *os.File
 
 	// only store fd and tls conn handshake in final working listener
-	if !handOffRestoredDestinationConnections {
+	if !useOriginalDst {
 		if !al.disableConnIo && network.UseNetpollMode {
 			// store fd for further usage
 			if tc, ok := rawc.(*net.TCPConn); ok {
@@ -409,10 +412,12 @@ func (al *activeListener) OnAccept(rawc net.Conn, handOffRestoredDestinationConn
 	arc := newActiveRawConn(rawc, al)
 	// TODO: create listener filter chain
 
-	if handOffRestoredDestinationConnections {
+	if useOriginalDst {
 		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
-		arc.handOffRestoredDestinationConnections = true
-		log.DefaultLogger.Debugf("[server] [listener] accept restored destination connection from %v, remote addr:%v, origin remote addr:%v", al.listener.Addr(), rawc.RemoteAddr(), oriRemoteAddr)
+		arc.useOriginalDst = true
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[server] [listener] use original dst from %v, remote addr:%v, origin remote addr:%v", al.listener.Addr(), rawc.RemoteAddr(), oriRemoteAddr)
+		}
 	}
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
@@ -480,8 +485,19 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 
 }
 
+// defaultIdleTimeout represents the idle timeout if listener have no such configuration
+// we declared the defaultIdleTimeout reference to the network.DefaultIdleTimeout
+var defaultIdleTimeout = network.DefaultIdleTimeout
+
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
+	if al.idleTimeout != nil {
+		conn.SetIdleTimeout(al.idleTimeout.Duration)
+	} else {
+		// a nil idle timeout, we set a default one
+		// notice only server side connection set the default value
+		conn.SetIdleTimeout(defaultIdleTimeout)
+	}
 	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
@@ -494,16 +510,16 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 }
 
 type activeRawConn struct {
-	rawc                                  net.Conn
-	rawf                                  *os.File
-	originalDstIP                         string
-	originalDstPort                       int
-	oriRemoteAddr                         net.Addr
-	handOffRestoredDestinationConnections bool
-	rawcElement                           *list.Element
-	activeListener                        *activeListener
-	acceptedFilters                       []types.ListenerFilter
-	acceptedFilterIndex                   int
+	rawc                net.Conn
+	rawf                *os.File
+	originalDstIP       string
+	originalDstPort     int
+	oriRemoteAddr       net.Addr
+	useOriginalDst      bool
+	rawcElement         *list.Element
+	activeListener      *activeListener
+	acceptedFilters     []types.ListenerFilter
+	acceptedFilterIndex int
 }
 
 func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawConn {
@@ -522,7 +538,7 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	}
 }
 
-func (arc *activeRawConn) HandOffRestoredDestinationConnectionsHandler(ctx context.Context) {
+func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	var listener, localListener *activeListener
 
 	for _, lst := range arc.activeListener.handler.listeners {
@@ -573,8 +589,8 @@ func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool)
 	}
 
 	// TODO: handle hand_off_restored_destination_connections logic
-	if arc.handOffRestoredDestinationConnections {
-		arc.HandOffRestoredDestinationConnectionsHandler(ctx)
+	if arc.useOriginalDst {
+		arc.UseOriginalDst(ctx)
 	} else {
 		arc.activeListener.newConnection(ctx, arc.rawc)
 	}
