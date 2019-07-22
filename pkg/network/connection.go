@@ -508,6 +508,7 @@ func (c *connection) startWriteLoop() {
 					}
 					c.appendBuffer(buf)
 				default:
+					break
 				}
 			}
 
@@ -517,6 +518,9 @@ func (c *connection) startWriteLoop() {
 		}
 
 		if err != nil {
+			log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
+				c.id, c.RemoteAddr().String(), err, c)
+
 			if te, ok := err.(net.Error); ok && te.Timeout() {
 				c.Close(types.NoFlush, types.OnWriteTimeout)
 			}
@@ -525,10 +529,7 @@ func (c *connection) startWriteLoop() {
 				c.Close(types.NoFlush, types.LocalClose)
 			}
 
-			//other write errs not Close connection, beacause readbuffer may have unread data.
-
-			log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
-				c.id, c.RemoteAddr().String(), err, c)
+			//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
 
 			return
 		}
