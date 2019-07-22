@@ -26,6 +26,7 @@ import (
 	"strings"
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/trace/sofa"
+	"sofastack.io/sofa-mosn/pkg/protocol"
 )
 
 type SofaRPCSpan struct {
@@ -194,7 +195,7 @@ func (s *SofaRPCSpan) log() error {
 		printData.WriteString("}")
 		printData.WriteString("\n")
 
-		return sofa.GetIngressLogger().Print(printData, true)
+		return sofa.GetIngressLogger(protocol.SofaRPC).Print(printData, true)
 	}
 
 	if s.tags[SPAN_TYPE] == "egress" {
@@ -230,7 +231,7 @@ func (s *SofaRPCSpan) log() error {
 		printData.WriteString("\"" + elapse + "\"")
 		printData.WriteString("}")
 		printData.WriteString("\n")
-		return sofa.GetEgressLogger().Print(printData, true)
+		return sofa.GetEgressLogger(protocol.SofaRPC).Print(printData, true)
 	}
 	return nil
 }

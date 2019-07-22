@@ -40,7 +40,7 @@ func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 	// TODO: support log & report
 	if PrintLog {
 		// TODO: read logger path from config
-		err := sofa.Init("", "", "")
+		err := sofa.Init(protocol.SofaRPC, "", "rpc-server-digest.log", "rpc-client-digest.log")
 		if err != nil {
 			return nil, err
 		}

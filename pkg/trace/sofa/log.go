@@ -21,16 +21,30 @@ import (
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sync"
 	"os/user"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"errors"
 )
 
-var (
+type tracelog struct {
 	ingressLogger *log.Logger
 	egressLogger  *log.Logger
-	logInit       sync.Once
+	init          sync.Once
+}
+
+var (
+	logMap           = make(map[types.Protocol]*tracelog)
+	ErrIngressLogger = errors.New("ingress logger cannot be empty")
+	ErrEgressLogger  = errors.New("egress logger cannot be empty")
 )
 
-func Init(logRoot, logIngress, logEgress string) (err error) {
-	logInit.Do(func() {
+func Init(protocol types.Protocol, logRoot, logIngress, logEgress string) (err error) {
+	tl, ok := logMap[protocol]
+	if !ok {
+		tl = &tracelog{}
+		logMap[protocol] = tl
+	}
+
+	tl.init.Do(func() {
 		if logRoot == "" {
 			// get default log root
 			usr, err := user.Current()
@@ -41,21 +55,21 @@ func Init(logRoot, logIngress, logEgress string) (err error) {
 		}
 
 		if logIngress == "" {
-			// get default ingress log path
-			logIngress = "rpc-server-digest.log"
+			err = ErrIngressLogger
+			return
 		}
 
-		ingressLogger, err = log.GetOrCreateLogger(logRoot + logIngress)
+		tl.ingressLogger, err = log.GetOrCreateLogger(logRoot + logIngress)
 		if err != nil {
 			return
 		}
 
 		if logEgress == "" {
-			// get default egress log path
-			logEgress = "rpc-client-digest.log"
+			err = ErrEgressLogger
+			return
 		}
 
-		egressLogger, err = log.GetOrCreateLogger(logRoot + logEgress)
+		tl.egressLogger, err = log.GetOrCreateLogger(logRoot + logEgress)
 		if err != nil {
 			return
 		}
@@ -63,10 +77,10 @@ func Init(logRoot, logIngress, logEgress string) (err error) {
 	return
 }
 
-func GetIngressLogger() *log.Logger {
-	return ingressLogger
+func GetIngressLogger(protocol types.Protocol) *log.Logger {
+	return logMap[protocol].ingressLogger
 }
 
-func GetEgressLogger() *log.Logger {
-	return egressLogger
+func GetEgressLogger(protocol types.Protocol) *log.Logger {
+	return logMap[protocol].egressLogger
 }

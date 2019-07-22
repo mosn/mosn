@@ -31,7 +31,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/types"
 
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa"
 )
 
 func init() {
@@ -43,14 +42,6 @@ var PrintLog = true
 type Tracer struct{}
 
 func NewTracer(config map[string]interface{}) (types.Tracer, error) {
-	// TODO: support log & report
-	if PrintLog {
-		// TODO: read logger path from config
-		err := sofa.Init("", "", "")
-		if err != nil {
-			return nil, err
-		}
-	}
 	// inherit rpc's logger & output format
 	return &Tracer{}, nil
 }
