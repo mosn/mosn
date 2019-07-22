@@ -293,12 +293,25 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			return nil, errUnknownProtocol
 		}
 
-		newConnPool := func() types.ConnectionPool {
-			return factory(host)
-		}
 		connectionPool := value.(*sync.Map)
-		connPool, loaded := connectionPool.LoadOrStore(addr, newConnPool())
-		pool := connPool.(types.ConnectionPool)
+		// we cannot use sync.Map.LoadOrStore directly, becasue we do not want to new a connpool every time
+		loadOrStoreConnPool := func() (types.ConnectionPool, bool) {
+			// avoid locking if it is already exists
+			if connPool, ok := connectionPool.Load(addr); ok {
+				pool := connPool.(types.ConnectionPool)
+				return pool, true
+			}
+			cm.mux.Lock()
+			defer cm.mux.Unlock()
+			if connPool, ok := connectionPool.Load(addr); ok {
+				pool := connPool.(types.ConnectionPool)
+				return pool, true
+			}
+			pool := factory(host)
+			connectionPool.Store(addr, pool)
+			return pool, false
+		}
+		pool, loaded := loadOrStoreConnPool()
 		if !loaded { // new
 			pools[i] = pool
 		} else { // exists
@@ -318,7 +331,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						}
 						connectionPool.Delete(addr)
 						pool.Shutdown()
-						newPool := newConnPool()
+						newPool := factory(host)
 						pools[i] = newPool
 						connectionPool.Store(addr, newPool)
 					}
