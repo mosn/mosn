@@ -476,6 +476,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
 func (c *connection) startWriteLoop() {
 	var id uint64
 	var err error
+	var zeroTime time.Time
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
 		select {
@@ -509,54 +510,28 @@ func (c *connection) startWriteLoop() {
 				default:
 				}
 			}
-			_, err = c.doWrite()
-		}
 
-		/*
-				i := 0
-				timer := time.NewTimer(3 * time.Millisecond)
-				for {
-					select {
-					case buf := <-c.writeBufferChan:
-						c.appendBuffer(buf)
-						i++
-						if i > 100 {
-							_, err = c.doWriteIo()
-							goto end
-						}
-					case <-timer.C:
-						_, err = c.doWriteIo()
-						goto end
-					}
-				}
-			end:
-		*/
+			c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
+			_, err = c.doWrite()
+			c.rawConnection.SetWriteDeadline(zeroTime)
+		}
 
 		if err != nil {
 			if te, ok := err.(net.Error); ok && te.Timeout() {
-				continue
+				c.Close(types.NoFlush, types.OnWriteTimeout)
 			}
 
-			//write err not Close, beacause readbuffer may have unread data
-			/*
 			if err == buffer.EOF {
 				c.Close(types.NoFlush, types.LocalClose)
-			} else if err == io.EOF {
-				// remote conn closed
-				c.Close(types.NoFlush, types.RemoteClose)
-			} else {
-				// on non-timeout error
-				c.Close(types.NoFlush, types.OnWriteErrClose)
 			}
-			*/
+
+			//other write errs not Close connection, beacause readbuffer may have unread data.
 
 			log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
 				c.id, c.RemoteAddr().String(), err, c)
 
 			return
 		}
-
-		runtime.Gosched()
 	}
 
 transfer:

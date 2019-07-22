@@ -19,9 +19,9 @@ package types
 
 import (
 	"context"
+	"errors"
 	"net"
 	"time"
-	"errors"
 
 	"os"
 
@@ -334,12 +334,13 @@ const (
 	ConnectTimeout  ConnectionEvent = "ConnectTimeout"
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
 	OnReadTimeout   ConnectionEvent = "OnReadTimeout"
+	OnWriteTimeout  ConnectionEvent = "OnWriteTimeout"
 )
 
 // IsClose represents whether the event is triggered by connection close
 func (ce ConnectionEvent) IsClose() bool {
 	return ce == LocalClose || ce == RemoteClose ||
-		ce == OnReadErrClose || ce == OnWriteErrClose
+		ce == OnReadErrClose || ce == OnWriteErrClose || ce == OnWriteTimeout
 }
 
 // ConnectFailure represents whether the event is triggered by connection failure
@@ -349,7 +350,8 @@ func (ce ConnectionEvent) ConnectFailure() bool {
 
 // Default connection arguments
 const (
-	DefaultConnReadTimeout = 15 * time.Second
+	DefaultConnReadTimeout  = 15 * time.Second
+	DefaultConnWriteTimeout = 15 * time.Second
 )
 
 // ConnectionEventListener is a network level callbacks that happen on a connection.
