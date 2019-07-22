@@ -65,9 +65,6 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 			certificates: make(map[string]*sdsProvider),
 		}
 		mng.validations[validationName] = v
-		// set a validation callback
-		client := GetSdsClient(cfg.SdsConfig.ValidationConfig)
-		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig, mng.setValidation)
 	}
 	certName := cfg.SdsConfig.CertificateConfig.Name
 	p, ok := v.certificates[certName]
@@ -82,6 +79,8 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		v.certificates[certName] = p
 		// set a certificate callback
 		client := GetSdsClient(cfg.SdsConfig.CertificateConfig)
+		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig, mng.setValidation)
+		// set a validation callback
 		client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig, p.setCertificate)
 	}
 

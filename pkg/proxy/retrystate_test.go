@@ -21,11 +21,11 @@ import (
 	"testing"
 	"time"
 
+	metrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/router"
 	"sofastack.io/sofa-mosn/pkg/types"
-	metrics "github.com/rcrowley/go-metrics"
 )
 
 func doNothing() {}

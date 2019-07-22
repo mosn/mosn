@@ -112,10 +112,15 @@ func (subscribe *SdsSubscriber) sendRequestLoop(sdsStreamClient *SdsStreamClient
 					Id: subscribe.serviceNode,
 				},
 			}
-			err := subscribe.sendRequest(discoveryReq)
-			if err != nil {
-				log.DefaultLogger.Errorf("[xds] [sds subscriber] send sds request fail , resource name = %v", name)
-				subscribe.reconnect()
+			for {
+				err := subscribe.sendRequest(discoveryReq)
+				if err != nil {
+					log.DefaultLogger.Errorf("[xds] [sds subscriber] send sds request fail , resource name = %v", name)
+					time.Sleep(1 * time.Second)
+					subscribe.reconnect()
+					continue
+				}
+				break
 			}
 		}
 	}
@@ -136,6 +141,7 @@ func (subscribe *SdsSubscriber) receiveResponseLoop(sdsStreamClient *SdsStreamCl
 			if err != nil {
 				log.DefaultLogger.Warnf("[xds] [sds subscriber] get resp timeout: %v, retry after 1s", err)
 				time.Sleep(time.Second)
+				subscribe.reconnect()
 				continue
 			}
 			subscribe.handleSecretResp(resp)
@@ -144,14 +150,19 @@ func (subscribe *SdsSubscriber) receiveResponseLoop(sdsStreamClient *SdsStreamCl
 }
 
 func (subscribe *SdsSubscriber) sendRequest(request *xdsapi.DiscoveryRequest) error {
+	log.DefaultLogger.Debugf("send sds request resource name = %v", request.ResourceNames)
 	return subscribe.sdsStreamClient.streamSecretsClient.Send(request)
 }
 
 func (subscribe *SdsSubscriber) handleSecretResp(response *xdsapi.DiscoveryResponse) {
+	log.DefaultLogger.Debugf("handle secret response %v", response)
 	for _, res := range response.Resources {
 		secret := auth.Secret{}
 		secret.Unmarshal(res.GetValue())
 		subscribe.provider.SetSecret(secret.Name, &secret)
+	}
+	if sdsPostCallback != nil {
+		sdsPostCallback()
 	}
 }
 

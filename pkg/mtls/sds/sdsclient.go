@@ -35,6 +35,7 @@ type SdsClientImpl struct {
 
 var sdsClient *SdsClientImpl
 var sdsClientLock sync.Mutex
+var sdsPostCallback func() = nil
 
 var ErrSdsClientNotInit = errors.New("sds client not init")
 
@@ -54,7 +55,7 @@ func NewSdsClientSingleton(config *auth.SdsSecretConfig) types.SdsClient {
 		sdsClient.sdsSubscriber = NewSdsSubscriber(sdsClient, config.SdsConfig, types.ServiceNode, types.ServiceCluster)
 		err := sdsClient.sdsSubscriber.Start()
 		if err != nil {
-			log.DefaultLogger.Errorf("[sds] [sdsclient] sds subscriber start fail", err)
+			log.DefaultLogger.Errorf("[sds] [sdsclient] sds subscriber start fail, %v", err)
 			return nil
 		}
 		return sdsClient
@@ -100,4 +101,9 @@ func (client *SdsClientImpl) SetSecret(name string, secret *auth.Secret) {
 		mosnSecret := types.SecretConvert(secret)
 		fc(name, mosnSecret)
 	}
+}
+
+// SetPostCallback
+func SetSdsPostCallback(fc func()) {
+	sdsPostCallback = fc
 }
