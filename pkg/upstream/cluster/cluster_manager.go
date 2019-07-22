@@ -271,7 +271,6 @@ var (
 )
 
 func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.Protocol) (types.ConnectionPool, error) {
-	var pool types.ConnectionPool
 	var pools [cycleTimes]types.ConnectionPool
 
 	for i := 0; i < cycleTimes; i++ {
@@ -288,15 +287,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			return nil, errUnknownProtocol
 		}
 		connectionPool := value.(*sync.Map)
-		// connectionPool Load and Store should have concurrency control
-		// we do not use LoadOrStore, so we can returns directly when protocol is not registered
 		newConnPool := func() error {
-			cm.mux.Lock()
-			defer cm.mux.Unlock()
-			if _, ok := connectionPool.Load(addr); ok {
-				// if addr is already stored
-				return nil
-			}
 			factory, ok := network.ConnNewPoolFactories[protocol]
 			if !ok {
 				return fmt.Errorf("protocol %v is not registered is pool factory", protocol)
@@ -307,30 +298,64 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			pools[i] = newPool
 			return nil
 		}
+		// check returns the check state
+		// 0: tls not changed and pool is active
+		// 1: tls not changed, but pool is not active
+		// 2: tls changed
+		check := func(pool types.ConnectionPool) int {
+			if pool.SupportTLS() != host.SupportTLS() {
+				return 2
+			}
+			if pool.CheckAndInit(balancerContext.DownstreamContext()) {
+				return 0
+			}
+			pools[i] = pool
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] cluster host %s is not active", addr)
+			}
+			return 1
+		}
 		connPool, ok := connectionPool.Load(addr)
 		if ok {
-			pool = connPool.(types.ConnectionPool)
-			if pool.SupportTLS() == host.SupportTLS() {
-				if pool.CheckAndInit(balancerContext.DownstreamContext()) {
-					return pool, nil
+			pool := connPool.(types.ConnectionPool)
+			switch check(pool) {
+			case 0:
+				return pool, nil
+			case 1: // do nothing
+			case 2:
+				cm.mux.Lock()
+				defer cm.mux.Unlock()
+				// reload and check the pool
+				if connPool, ok := connectionPool.Load(addr); ok {
+					pool := connPool.(types.ConnectionPool)
+					switch check(pool) {
+					case 0:
+						return pool, nil
+					case 1: // do nothing
+					case 2:
+						// tls changed
+						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+							log.DefaultLogger.Debugf("[upstream] [cluster manager] %s tls state changed", addr)
+						}
+						connectionPool.Delete(addr)
+						pool.Shutdown()
+						if err := newConnPool(); err != nil {
+							return nil, err
+						}
+					}
+
 				}
-				pools[i] = pool
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [cluster manager] cluster host %s is not active", addr)
-				}
-			} else {
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [cluster manager] %s tls state changed", addr)
-				}
-				connectionPool.Delete(addr)
-				pool.Shutdown()
+			}
+
+		} else {
+			// connectionPool Load and Store should have concurrency control
+			// we do not use LoadOrStore, so we can returns directly when protocol is not registered
+			cm.mux.Lock()
+			defer cm.mux.Unlock()
+			if _, ok := connectionPool.Load(addr); !ok {
 				if err := newConnPool(); err != nil {
 					return nil, err
 				}
-			}
-		} else {
-			if err := newConnPool(); err != nil {
-				return nil, err
 			}
 		}
 	}

@@ -79,9 +79,10 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		v.certificates[certName] = p
 		// set a certificate callback
 		client := GetSdsClient(cfg.SdsConfig.CertificateConfig)
-		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig, mng.setValidation)
-		// set a validation callback
 		client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig, p.setCertificate)
+		// set a validation callback
+		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig, mng.setValidation)
+		log.DefaultLogger.Infof("[mtls] [sds provider] add a new sds provider %s", certName)
 	}
 
 	return p
@@ -97,6 +98,7 @@ func (mng *secretManager) setValidation(name string, secret *types.SdsSecret) {
 	}
 	if secret.ValidationPEM != "" {
 		v.pem = secret.ValidationPEM
+		log.DefaultLogger.Infof("[mtls] [sds provider] provider %s receive a validation set", name)
 		// set the validation
 		for _, cert := range v.certificates {
 			cert.setValidation(v.pem)
@@ -124,6 +126,7 @@ func (p *sdsProvider) setCertificate(name string, secret *types.SdsSecret) {
 	if secret.CertificatePEM != "" {
 		p.info.Certificate = secret.CertificatePEM
 		p.info.PrivateKey = secret.PrivateKeyPEM
+		log.DefaultLogger.Infof("[mtls] [sds provider] provider %s receive a cerificate set", name)
 	}
 	if p.info.full() {
 		p.update()
