@@ -101,6 +101,7 @@ func makePool(size int) *ipPool {
 }
 
 type mockConnPool struct {
+	h types.Host
 	types.ConnectionPool
 }
 
@@ -114,9 +115,18 @@ func (p *mockConnPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
+func (p *mockConnPool) SupportTLS() bool {
+	return p.h.SupportTLS()
+}
+
+func (p *mockConnPool) Shutdown() {
+}
+
 func init() {
 	network.RegisterNewPoolFactory(mockProtocol, func(h types.Host) types.ConnectionPool {
-		return &mockConnPool{}
+		return &mockConnPool{
+			h: h,
+		}
 	})
 	types.RegisterConnPoolFactory(mockProtocol, true)
 }

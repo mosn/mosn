@@ -52,6 +52,10 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 	}
 }
 
+func (p *connPool) SupportTLS() bool {
+	return p.host.SupportTLS()
+}
+
 func (p *connPool) Protocol() types.Protocol {
 	return protocol.HTTP2
 }
@@ -101,6 +105,10 @@ func (p *connPool) Close() {
 	if p.activeClient != nil {
 		p.activeClient.client.Close()
 	}
+}
+
+func (p *connPool) Shutdown() {
+	//TODO: http2 connpool do nothing for shutdown
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {

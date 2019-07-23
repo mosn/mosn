@@ -63,6 +63,10 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 	return p
 }
 
+func (p *connPool) SupportTLS() bool {
+	return p.host.SupportTLS()
+}
+
 func (p *connPool) init(client *activeClient, sub byte) {
 	utils.GoWithRecover(func() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
@@ -159,14 +163,24 @@ func (p *connPool) NewStream(ctx context.Context,
 func (p *connPool) Close() {
 	f := func(k, v interface{}) bool {
 		ac, _ := v.(*activeClient)
-		// fakeclient
-		if ac.client == nil {
-			return true
+		if ac.client != nil {
+			ac.client.Close()
 		}
-		ac.client.Close()
 		return true
 	}
 
+	p.activeClients.Range(f)
+}
+
+// Shutdown stop the keepalive, so the connection will be idle after requests finished
+func (p *connPool) Shutdown() {
+	f := func(k, v interface{}) bool {
+		ac, _ := v.(*activeClient)
+		if ac.keepAlive != nil {
+			ac.keepAlive.keepAlive.Stop()
+		}
+		return true
+	}
 	p.activeClients.Range(f)
 }
 

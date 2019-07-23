@@ -864,7 +864,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 				}
 			}
 
-			if cc.tlsMng != nil && cc.tlsMng.Enabled() {
+			if cc.tlsMng != nil {
 				cc.rawConnection = cc.tlsMng.Conn(cc.rawConnection)
 			}
 

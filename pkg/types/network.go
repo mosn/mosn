@@ -21,13 +21,11 @@ import (
 	"context"
 	"errors"
 	"net"
-	"time"
-
 	"os"
+	"time"
 
 	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 )
 
 //
@@ -128,13 +126,6 @@ type Listener interface {
 
 	// Close closes listener, not closing connections
 	Close(lctx context.Context) error
-}
-
-//
-type TLSContextManager interface {
-	Conn(net.Conn) net.Conn
-	Enabled() bool
-	Config() *tls.Config
 }
 
 // ListenerEventListener is a Callback invoked by a listener.

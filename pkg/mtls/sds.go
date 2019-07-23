@@ -15,29 +15,16 @@
  * limitations under the License.
  */
 
-package types
+package mtls
 
-import "time"
-
-type KeepAlive interface {
-	// SendKeepAlive sends a heartbeat request for keepalive
-	SendKeepAlive()
-	// StartIdleTimeout starts the idle checker, if there are only heartbeat requests for a while,
-	// we will free the idle always connection, stop keeps it alive.
-	StartIdleTimeout()
-	GetTimeout() time.Duration
-	HandleTimeout(id uint64)
-	HandleSuccess(id uint64)
-	AddCallback(cb KeepAliveCallback)
-	Stop()
-}
-
-type KeepAliveStatus int
-
-const (
-	KeepAliveSuccess KeepAliveStatus = iota
-	KeepAliveTimeout
+import (
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	"sofastack.io/sofa-mosn/pkg/mtls/sds"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-// KeepAliveCallback is a callback when keep alive handle response/timeout
-type KeepAliveCallback func(KeepAliveStatus)
+var getSdsClientFunc func(cfg *auth.SdsSecretConfig) types.SdsClient = sds.NewSdsClientSingleton
+
+func GetSdsClient(cfg *auth.SdsSecretConfig) types.SdsClient {
+	return getSdsClientFunc(cfg)
+}

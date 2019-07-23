@@ -54,7 +54,7 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 	}
 	// tls mng
-	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS, info)
+	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS)
 	if err != nil {
 		log.DefaultLogger.Errorf("[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
 	}

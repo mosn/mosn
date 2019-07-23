@@ -428,7 +428,7 @@ func TestFilterChainMarshal(t *testing.T) {
 	if err != nil {
 		t.Fatal("marshal filter chain error: ", err)
 	}
-	expectedStr := `{"tls_context_set":[{"status":true,"fall_back":false,"CertificateConfig":null,"ValidationConfig":null}]}`
+	expectedStr := `{"tls_context_set":[{"status":true}]}`
 	if string(b) != expectedStr {
 		t.Error("marshal filter chain unexpected, got: ", string(b))
 	}

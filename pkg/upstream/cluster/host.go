@@ -96,6 +96,10 @@ func (sh *simpleHost) Config() v2.Host {
 	}
 }
 
+func (sh *simpleHost) SupportTLS() bool {
+	return !sh.tlsDisable && sh.clusterInfo.TLSMng().Enabled()
+}
+
 // types.Host Implement
 func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConnectionData {
 	var tlsMng types.TLSContextManager

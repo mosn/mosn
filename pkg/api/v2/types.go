@@ -26,7 +26,6 @@ import (
 	"time"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-
 	"istio.io/api/mixer/v1/config/client"
 	"sofastack.io/sofa-mosn/pkg/utils"
 )
@@ -362,23 +361,34 @@ type LBSubsetConfig struct {
 
 // TLSConfig is a configuration of tls context
 type TLSConfig struct {
-	Status       bool                   `json:"status,omitempty"`
-	Type         string                 `json:"type,omitempty"`
-	ServerName   string                 `json:"server_name,omitempty"`
-	CACert       string                 `json:"ca_cert,omitempty"`
-	CertChain    string                 `json:"cert_chain,omitempty"`
-	PrivateKey   string                 `json:"private_key,omitempty"`
-	VerifyClient bool                   `json:"verify_client,omitempty"`
-	InsecureSkip bool                   `json:"insecure_skip,omitempty"`
-	CipherSuites string                 `json:"cipher_suites,omitempty"`
-	EcdhCurves   string                 `json:"ecdh_curves,omitempty"`
-	MinVersion   string                 `json:"min_version,omitempty"`
-	MaxVersion   string                 `json:"max_version,omitempty"`
-	ALPN         string                 `json:"alpn,omitempty"`
-	Ticket       string                 `json:"ticket,omitempty"`
-	Fallback     bool                   `json:"fall_back"`
-	ExtendVerify map[string]interface{} `json:"extend_verify,omitempty"`
-	SDSConfig
+	Status            bool                   `json:"status,omitempty"`
+	Type              string                 `json:"type,omitempty"`
+	ServerName        string                 `json:"server_name,omitempty"`
+	CACert            string                 `json:"ca_cert,omitempty"`
+	CertChain         string                 `json:"cert_chain,omitempty"`
+	PrivateKey        string                 `json:"private_key,omitempty"`
+	VerifyClient      bool                   `json:"verify_client,omitempty"`
+	RequireClientCert bool                   `json:"require_client_cert,omitempty"`
+	InsecureSkip      bool                   `json:"insecure_skip,omitempty"`
+	CipherSuites      string                 `json:"cipher_suites,omitempty"`
+	EcdhCurves        string                 `json:"ecdh_curves,omitempty"`
+	MinVersion        string                 `json:"min_version,omitempty"`
+	MaxVersion        string                 `json:"max_version,omitempty"`
+	ALPN              string                 `json:"alpn,omitempty"`
+	Ticket            string                 `json:"ticket,omitempty"`
+	Fallback          bool                   `json:"fall_back,omitempty"`
+	ExtendVerify      map[string]interface{} `json:"extend_verify,omitempty"`
+	SdsConfig         *SdsConfig             `json:"sds_source,omitempty"`
+}
+
+type SdsConfig struct {
+	CertificateConfig *auth.SdsSecretConfig
+	ValidationConfig  *auth.SdsSecretConfig
+}
+
+// Valid checks the whether the SDS Config is valid or not
+func (c *SdsConfig) Valid() bool {
+	return c != nil && c.CertificateConfig != nil && c.ValidationConfig != nil
 }
 
 // AccessLog for making up access log
@@ -655,9 +665,4 @@ type ServerConfig struct {
 	Processor int `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
-}
-
-type SDSConfig struct {
-	CertificateConfig *auth.SdsSecretConfig
-	ValidationConfig  *auth.SdsSecretConfig
 }

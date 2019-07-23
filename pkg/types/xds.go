@@ -17,27 +17,8 @@
 
 package types
 
-import "time"
-
-type KeepAlive interface {
-	// SendKeepAlive sends a heartbeat request for keepalive
-	SendKeepAlive()
-	// StartIdleTimeout starts the idle checker, if there are only heartbeat requests for a while,
-	// we will free the idle always connection, stop keeps it alive.
-	StartIdleTimeout()
-	GetTimeout() time.Duration
-	HandleTimeout(id uint64)
-	HandleSuccess(id uint64)
-	AddCallback(cb KeepAliveCallback)
-	Stop()
-}
-
-type KeepAliveStatus int
-
-const (
-	KeepAliveSuccess KeepAliveStatus = iota
-	KeepAliveTimeout
+// The xds start parameters
+var (
+	ServiceCluster string
+	ServiceNode    string
 )
-
-// KeepAliveCallback is a callback when keep alive handle response/timeout
-type KeepAliveCallback func(KeepAliveStatus)

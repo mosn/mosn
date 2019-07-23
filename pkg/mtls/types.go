@@ -101,12 +101,18 @@ type ConfigHooks interface {
 	// GetX509Pool returns the x509.CertPool, which is a set of certificates.
 	// By default the index is the ca certificate file path or certificate pem string
 	GetX509Pool(caIndex string) (*x509.CertPool, error)
-	// VerifyPeerCertificate returns a "VerifyPeerCertificate" defined in tls.Config.
+	// ServerHandshakeVerify returns a function that used to set "VerifyPeerCertificate" defined in tls.Config.
 	// If it is returns nil, the normal certificate verification will be used.
 	// Notice that we set tls.Config.InsecureSkipVerify to make sure the "VerifyPeerCertificate" is called,
-	// so an implement of "VerifyPeerCertificate" should verify the trusted ca if necessary.
-	// If TLSConfig.InsecureSkip is true, the "VerifyPeerCertificate" will be ignored.
-	VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
+	// so the ServerHandshakeVerify should verify the trusted ca if necessary.
+	// If the TLSConfig.RequireClientCert is false, the ServerHandshakeVerify will be ignored
+	ServerHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
+	// ClientHandshakeVerify returns a function that used to set "VerifyPeerCertificate" defined in tls.Config.
+	// If it is returns nil, the normal certificate verification will be used.
+	// Notice that we set tls.Config.InsecureSkipVerify to make sure the "VerifyPeerCertificate" is called,
+	// so the ClientHandshakeVerify should verify the trusted ca if necessary.
+	// If TLSConfig.InsecureSkip is true, the ClientHandshakeVerify will be ignored.
+	ClientHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
 }
 
 // ConfigHooksFactory creates ConfigHooks by config
@@ -116,6 +122,3 @@ type ConfigHooksFactory interface {
 
 // ErrorNoCertConfigure represents config has no certificate
 var ErrorNoCertConfigure = errors.New("no certificate config")
-
-// ErrorGetCertificateFailed represents get certificate from config failed
-var ErrorGetCertificateFailed = errors.New("get certificate failed")

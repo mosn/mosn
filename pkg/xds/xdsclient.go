@@ -34,6 +34,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/log"
+	typ "sofastack.io/sofa-mosn/pkg/types"
 	v2 "sofastack.io/sofa-mosn/pkg/xds/v2"
 )
 
@@ -44,9 +45,6 @@ type Client struct {
 	v2        *v2.ClientV2
 	adsClient *v2.ADSClient
 }
-
-var ServiceNode = ""
-var ServiceCluster = ""
 
 func duration2String(duration *types.Duration) string {
 	d := time.Duration(duration.Seconds)*time.Second + time.Duration(duration.Nanos)*time.Nanosecond
@@ -198,8 +196,9 @@ func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode st
 			log.DefaultLogger.Warnf("fail to init xds config, skip xds: %v", err)
 			return errors.New("fail to init xds config")
 		}
-		ServiceCluster = serviceCluster
-		ServiceNode = serviceNode
+		// TODO: remove it
+		typ.ServiceCluster = serviceCluster
+		typ.ServiceNode = serviceNode
 		c.v2 = &v2.ClientV2{
 			ServiceCluster: serviceCluster,
 			ServiceNode:    serviceNode,

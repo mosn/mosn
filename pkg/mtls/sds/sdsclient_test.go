@@ -1,4 +1,21 @@
-package xds
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package sds
 
 import (
 	"context"
@@ -8,18 +25,14 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/types"
-
-	"sofastack.io/sofa-mosn/pkg/log"
-
-	"google.golang.org/grpc"
-
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	sds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	gopbtypes "github.com/gogo/protobuf/types"
+	"google.golang.org/grpc"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 const (
@@ -31,7 +44,7 @@ func Test_GetSdsClient(t *testing.T) {
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
 	config := InitSdsSecertConfig(sdsUdsPath)
-	sdsClient := GetSdsClient(config)
+	sdsClient := NewSdsClientSingleton(config)
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
 	}
@@ -42,12 +55,12 @@ func Test_AddUpdateCallback(t *testing.T) {
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
 	config := InitSdsSecertConfig(sdsUdsPath)
-	sdsClient := GetSdsClient(config)
+	sdsClient := NewSdsClientSingleton(config)
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
 	}
 	updatedChan := make(chan int)
-	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SDSSecret) {
+	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SdsSecret) {
 		if name != "default" {
 			t.Errorf("name should same with config.name")
 		}
@@ -65,11 +78,11 @@ func Test_DeleteUpdateCallback(t *testing.T) {
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
 	config := InitSdsSecertConfig(sdsUdsPath)
-	sdsClient := GetSdsClient(config)
+	sdsClient := NewSdsClientSingleton(config)
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
 	}
-	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SDSSecret) {})
+	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SdsSecret) {})
 	err := sdsClient.DeleteUpdateCallback(config)
 	if err != nil {
 		t.Errorf("delete update callback fail")
@@ -117,12 +130,12 @@ func InitMockSdsServer(sdsUdsPath string, t *testing.T) {
 	var err error
 	grpcWorkloadListener, err := setUpUds(sdsUdsPath)
 	if err != nil {
-		t.Errorf("SDS mock grpc server for workload proxies failed to start: %v", err)
+		t.Errorf("Sds mock grpc server for workload proxies failed to start: %v", err)
 	}
 
 	go func() {
 		if err = grpcWorkloadServer.Serve(grpcWorkloadListener); err != nil {
-			t.Errorf("SDS mock grpc server for workload proxies failed to start: %v", err)
+			t.Errorf("Sds mock grpc server for workload proxies failed to start: %v", err)
 		}
 	}()
 }
@@ -173,7 +186,7 @@ func setUpUds(udsPath string) (net.Listener, error) {
 		return nil, err
 	}
 
-	// Update SDS UDS file permission so that istio-proxy has permission to access it.
+	// Update Sds UDS file permission so that istio-proxy has permission to access it.
 	if _, err := os.Stat(udsPath); err != nil {
 		return nil, fmt.Errorf("sds uds file %q doesn't exist", udsPath)
 	}

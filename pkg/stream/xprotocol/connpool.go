@@ -50,6 +50,10 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 	}
 }
 
+func (p *connPool) SupportTLS() bool {
+	return p.host.SupportTLS()
+}
+
 // Protocol return xprotocol
 func (p *connPool) Protocol() types.Protocol {
 	return protocol.Xprotocol
@@ -111,6 +115,10 @@ func (p *connPool) Close() {
 	if p.primaryClient != nil {
 		p.primaryClient.client.Close()
 	}
+}
+
+func (p *connPool) Shutdown() {
+	// TODO: xprotocol connpool do nothing for shutdown
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {

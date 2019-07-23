@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	str "sofastack.io/sofa-mosn/pkg/stream"
@@ -41,6 +42,7 @@ type sofaRPCKeepAlive struct {
 	timeoutCount uint32
 	idleFree     *idleFree
 	// stop channel will stop all keep alive action
+	once sync.Once
 	stop chan struct{}
 	// requests records all running request
 	// a request is handled once: response or timeout
@@ -155,6 +157,13 @@ func (kp *sofaRPCKeepAlive) HandleSuccess(id uint64) {
 			kp.runCallback(types.KeepAliveSuccess)
 		}
 	}
+}
+
+func (kp *sofaRPCKeepAlive) Stop() {
+	kp.once.Do(func() {
+		log.DefaultLogger.Infof("[stream] [sofarpc] [keepalive] connection %d stopped keepalive", kp.Codec.ConnID())
+		close(kp.stop)
+	})
 }
 
 // StreamReceiver Implementation
