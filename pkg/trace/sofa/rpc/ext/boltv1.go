@@ -34,7 +34,7 @@ func init() {
 	rpc.RegisterSubProtocol(sofarpc.PROTOCOL_CODE_V1, boltv1Delegate)
 }
 
-func boltv1Delegate(ctx context.Context, cmd sofarpc.SofaRpcCmd, span *rpc.SofaRPCSpan) {
+func boltv1Delegate(ctx context.Context, cmd sofarpc.SofaRpcCmd, span types.Span) {
 	request, ok := cmd.(*sofarpc.BoltRequest)
 	if !ok {
 		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, type missmatch:%+v", cmd)

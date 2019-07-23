@@ -20,6 +20,7 @@ package rpc
 import (
 	"context"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 const (
@@ -49,4 +50,4 @@ const (
 	TRACE_END = 60
 )
 
-type SubProtocolDelegate func(ctx context.Context, request sofarpc.SofaRpcCmd, span *SofaRPCSpan)
+type SubProtocolDelegate func(ctx context.Context, request sofarpc.SofaRpcCmd, span types.Span)
