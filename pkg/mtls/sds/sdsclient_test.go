@@ -40,7 +40,7 @@ const (
 )
 
 func Test_GetSdsClient(t *testing.T) {
-	sdsUdsPath := "/tmp/sds"
+	sdsUdsPath := "/tmp/sds1"
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
 	config := InitSdsSecertConfig(sdsUdsPath)
@@ -51,7 +51,7 @@ func Test_GetSdsClient(t *testing.T) {
 }
 
 func Test_AddUpdateCallback(t *testing.T) {
-	sdsUdsPath := "/tmp/sds"
+	sdsUdsPath := "/tmp/sds2"
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
 	config := InitSdsSecertConfig(sdsUdsPath)
@@ -74,10 +74,11 @@ func Test_AddUpdateCallback(t *testing.T) {
 }
 
 func Test_DeleteUpdateCallback(t *testing.T) {
-	sdsUdsPath := "/tmp/sds"
+	sdsUdsPath := "/tmp/sds3"
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
 	config := InitSdsSecertConfig(sdsUdsPath)
+	config.Name = "delete"
 	sdsClient := NewSdsClientSingleton(config)
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
@@ -145,6 +146,12 @@ type fakeSdsServer struct {
 
 func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSecretsServer) error {
 	log.DefaultLogger.Debugf("get stream secrets")
+	// wait for request
+	// for test just ignore
+	_, err := stream.Recv()
+	if err != nil {
+		return err
+	}
 	resp := &xdsapi.DiscoveryResponse{
 		TypeUrl:     SecretType,
 		VersionInfo: "0",
