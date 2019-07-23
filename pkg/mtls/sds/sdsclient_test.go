@@ -40,7 +40,8 @@ const (
 )
 
 func Test_GetSdsClient(t *testing.T) {
-	sdsUdsPath := "/tmp/sds"
+	defer CloseSdsClient()
+	sdsUdsPath := "/tmp/sds1"
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
 	config := InitSdsSecertConfig(sdsUdsPath)
@@ -51,7 +52,8 @@ func Test_GetSdsClient(t *testing.T) {
 }
 
 func Test_AddUpdateCallback(t *testing.T) {
-	sdsUdsPath := "/tmp/sds"
+	defer CloseSdsClient()
+	sdsUdsPath := "/tmp/sds2"
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
 	config := InitSdsSecertConfig(sdsUdsPath)
@@ -66,18 +68,26 @@ func Test_AddUpdateCallback(t *testing.T) {
 		}
 		updatedChan <- 1
 	})
-	select {
-	case <-updatedChan:
-	case <-time.After(time.Second * 2):
-		t.Errorf("callback reponse timeout")
+	for {
+		select {
+		case <-updatedChan:
+			return
+		case <-time.After(time.Second * 2):
+			CloseSdsClient()
+			t.Errorf("callback reponse timeout")
+			return
+		}
 	}
+
 }
 
 func Test_DeleteUpdateCallback(t *testing.T) {
-	sdsUdsPath := "/tmp/sds"
+	defer CloseSdsClient()
+	sdsUdsPath := "/tmp/sds3"
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
 	config := InitSdsSecertConfig(sdsUdsPath)
+	config.Name = "delete"
 	sdsClient := NewSdsClientSingleton(config)
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
