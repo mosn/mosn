@@ -69,7 +69,6 @@ func Test_AddUpdateCallback(t *testing.T) {
 	select {
 	case <-updatedChan:
 	case <-time.After(time.Second * 2):
-		CloseSdsClient()
 		t.Errorf("callback reponse timeout")
 	}
 }
