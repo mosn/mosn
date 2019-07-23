@@ -40,7 +40,6 @@ const (
 )
 
 func Test_GetSdsClient(t *testing.T) {
-	defer CloseSdsClient()
 	sdsUdsPath := "/tmp/sds1"
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
@@ -52,7 +51,6 @@ func Test_GetSdsClient(t *testing.T) {
 }
 
 func Test_AddUpdateCallback(t *testing.T) {
-	defer CloseSdsClient()
 	sdsUdsPath := "/tmp/sds2"
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
@@ -68,21 +66,15 @@ func Test_AddUpdateCallback(t *testing.T) {
 		}
 		updatedChan <- 1
 	})
-	for {
-		select {
-		case <-updatedChan:
-			return
-		case <-time.After(time.Second * 2):
-			CloseSdsClient()
-			t.Errorf("callback reponse timeout")
-			return
-		}
+	select {
+	case <-updatedChan:
+	case <-time.After(time.Second * 2):
+		CloseSdsClient()
+		t.Errorf("callback reponse timeout")
 	}
-
 }
 
 func Test_DeleteUpdateCallback(t *testing.T) {
-	defer CloseSdsClient()
 	sdsUdsPath := "/tmp/sds3"
 	// mock sds server
 	InitMockSdsServer(sdsUdsPath, t)
@@ -155,6 +147,12 @@ type fakeSdsServer struct {
 
 func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSecretsServer) error {
 	log.DefaultLogger.Debugf("get stream secrets")
+	// wait for request
+	// for test just ignore
+	_, err := stream.Recv()
+	if err != nil {
+		return err
+	}
 	resp := &xdsapi.DiscoveryResponse{
 		TypeUrl:     SecretType,
 		VersionInfo: "0",
