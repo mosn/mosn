@@ -71,7 +71,7 @@ func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, th
 // keepalive should stop when connection closed
 func (kp *sofaRPCKeepAlive) OnEvent(event types.ConnectionEvent) {
 	if event.IsClose() || event.ConnectFailure() {
-		close(kp.stop)
+		kp.Stop()
 	}
 }
 

@@ -312,12 +312,10 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			return pool, false
 		}
 		pool, loaded := loadOrStoreConnPool()
-		if !loaded { // new
-			pools[i] = pool
-		} else { // exists
+		if loaded {
 			if pool.SupportTLS() != host.SupportTLS() {
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [cluster manager] %s tls state changed", addr)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				}
 				func() {
 					// lock the load and delete
@@ -325,15 +323,14 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 					defer cm.mux.Unlock()
 					// recheck whether the pool is changed
 					if connPool, ok := connectionPool.Load(addr); ok {
-						pool := connPool.(types.ConnectionPool)
+						pool = connPool.(types.ConnectionPool)
 						if pool.SupportTLS() == host.SupportTLS() {
 							return
 						}
 						connectionPool.Delete(addr)
 						pool.Shutdown()
-						newPool := factory(host)
-						pools[i] = newPool
-						connectionPool.Store(addr, newPool)
+						pool = factory(host)
+						connectionPool.Store(addr, pool)
 					}
 				}()
 			}
@@ -341,6 +338,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		if pool.CheckAndInit(balancerContext.DownstreamContext()) {
 			return pool, nil
 		}
+		pools[i] = pool
 	}
 
 	// perhaps the first request, wait for tcp handshaking. total wait time: 1ms + 10ms + 100ms + 1000ms
