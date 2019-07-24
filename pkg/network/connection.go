@@ -46,6 +46,15 @@ const (
 
 var idCounter uint64 = 1
 
+const NetBufferDefaultSize = 0
+const NetBufferDefaultCapacity = 1 << 4
+
+var netBufferPool = sync.Pool {
+	New: func() interface{} {
+		return make(net.Buffers, NetBufferDefaultSize, NetBufferDefaultCapacity)
+	},
+}
+
 type connection struct {
 	id         uint64
 	file       *os.File //copy of origin connection fd
@@ -537,7 +546,8 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 		return
 	}
 
-	var writeBuffer net.Buffers
+	netBuffer := netBufferPool.Get().(net.Buffers)
+	writeBuffer := netBuffer
 	var writeBufferLen int64
 
 	for _, buf := range *buf {
@@ -569,6 +579,8 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 
 		return
 	}
+
+	netBufferPool.Put(netBuffer)
 
 	for _, buf := range *buf {
 		if buf.EOF() {
