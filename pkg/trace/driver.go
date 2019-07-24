@@ -15,18 +15,48 @@
  * limitations under the License.
  */
 
-package http2
+package trace
 
 import (
-	"sofastack.io/sofa-mosn/pkg/module/http2"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
 	"sofastack.io/sofa-mosn/pkg/types"
+	"fmt"
 )
 
-func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc})
+type holder struct {
+	types.Tracer
+	types.TracerBuilder
 }
 
-func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc})
+type defaultDriver struct {
+	tracers map[types.Protocol]*holder
+}
+
+func (d *defaultDriver) Init(config map[string]interface{}) error {
+	for proto, holder := range d.tracers {
+		tracer, err := holder.TracerBuilder(config)
+		if err != nil {
+			return fmt.Errorf("build tracer for %v error, %s", proto, err)
+		}
+		holder.Tracer = tracer
+	}
+	return nil
+}
+
+func (d *defaultDriver) Register(proto types.Protocol, builder types.TracerBuilder) {
+	d.tracers[proto] = &holder{
+		TracerBuilder: builder,
+	}
+}
+
+func (d *defaultDriver) Get(proto types.Protocol) types.Tracer {
+	if holder, ok := d.tracers[proto]; ok {
+		return holder.Tracer
+	}
+	return nil
+}
+
+func NewDefaultDriverImpl() types.Driver {
+	return &defaultDriver{
+		tracers: make(map[types.Protocol]*holder),
+	}
 }

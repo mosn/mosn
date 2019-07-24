@@ -36,8 +36,10 @@ type ContentKey string
 
 // Tracing configuration for a server
 type TracingConfig struct {
-	Enable bool   `json:"enable"`
-	Tracer string `json:"tracer"`
+	Enable bool                   `json:"enable"`
+	Tracer string                 `json:"tracer"`
+	Driver string                 `json:"driver"`
+	Config map[string]interface{} `json:"config,omitempty"`
 }
 
 // MetricsConfig for metrics sinks

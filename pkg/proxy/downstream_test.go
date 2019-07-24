@@ -42,7 +42,7 @@ func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
 }
 
 func TestDownstream_FinishTracing_Enable(t *testing.T) {
-	trace.EnableTracing()
+	trace.Enable()
 	ds := downStream{context: context.Background()}
 	ds.finishTracing()
 	span := trace.SpanFromContext(context.Background())
@@ -52,10 +52,13 @@ func TestDownstream_FinishTracing_Enable(t *testing.T) {
 }
 
 func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
-	trace.EnableTracing()
-	tracer := trace.CreateTracer("SOFATracer")
-	trace.SetTracer(tracer)
-	span := trace.Tracer().Start(time.Now())
+	trace.Enable()
+	err := trace.Init("SOFATracer", nil)
+	if err != nil {
+		t.Error("init tracing driver failed: ", err)
+	}
+
+	span :=  trace.Tracer(mockProtocol).Start(context.Background(), nil, time.Now())
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
@@ -65,9 +68,8 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	if span == nil {
 		t.Error("Span is nil")
 	}
-	sofaTracerSpan := span.(*trace.SofaTracerSpan)
-	zeroTime := time.Time{}
-	if sofaTracerSpan.EndTime() == zeroTime {
+	mockSpan := span.(*mockSpan)
+	if !mockSpan.finished {
 		t.Error("Span is not finish")
 	}
 }

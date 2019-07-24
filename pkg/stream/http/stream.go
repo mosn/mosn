@@ -38,6 +38,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/utils"
+	"time"
 )
 
 func init() {
@@ -390,10 +391,14 @@ func (conn *serverStreamConnection) serve() {
 		}
 		s.connection = conn
 		s.responseDoneChan = make(chan bool, 1)
+		s.header = mosnhttp.RequestHeader{&s.request.Header, nil}
 
 		var span types.Span
-		if trace.IsTracingEnabled() {
-			span = spanBuilder.BuildSpan(ctx, request)
+		if trace.IsEnabled() {
+			tracer := trace.Tracer(protocol.HTTP1)
+			if tracer != nil {
+				span = tracer.Start(ctx, s.header, time.Now())
+			}
 		}
 		s.stream.ctx = s.connection.contextManager.InjectTrace(ctx, span)
 
@@ -569,6 +574,7 @@ func (s *clientStream) GetStream() types.Stream {
 type serverStream struct {
 	stream
 
+	header           mosnhttp.RequestHeader
 	connection       *serverStreamConnection
 	responseDoneChan chan bool
 }
@@ -676,12 +682,8 @@ func (s *serverStream) doSend() {
 
 func (s *serverStream) handleRequest() {
 	if s.request != nil {
-
-		// header
-		header := mosnhttp.RequestHeader{&s.request.Header, nil}
-
 		// set non-header info in request-line, like method, uri
-		injectInternalHeaders(header, s.request.URI())
+		injectInternalHeaders(s.header, s.request.URI())
 
 		hasData := true
 		if len(s.request.Body()) == 0 {
@@ -689,9 +691,9 @@ func (s *serverStream) handleRequest() {
 		}
 
 		if hasData {
-			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.request.Body()), nil)
+			s.receiver.OnReceive(s.ctx, s.header, buffer.NewIoBufferBytes(s.request.Body()), nil)
 		} else {
-			s.receiver.OnReceive(s.ctx, header, nil, nil)
+			s.receiver.OnReceive(s.ctx, s.header, nil, nil)
 		}
 	}
 }

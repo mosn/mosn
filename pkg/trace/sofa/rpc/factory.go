@@ -15,46 +15,12 @@
  * limitations under the License.
  */
 
-package types
+package rpc
 
-import (
-	"time"
-	"context"
+var (
+	delegateMap = make(map[byte]SubProtocolDelegate)
 )
 
-// factory
-type TracerBuilder func(config map[string]interface{}) (Tracer, error)
-
-type Driver interface {
-	Init(config map[string]interface{}) error
-
-	Register(proto Protocol, builder TracerBuilder)
-
-	Get(proto Protocol) Tracer
-}
-
-type Tracer interface {
-	Start(ctx context.Context, request interface{}, startTime time.Time) Span
-}
-
-type Span interface {
-	TraceId() string
-
-	SpanId() string
-
-	ParentSpanId() string
-
-	SetOperation(operation string)
-
-	SetTag(key uint64, value string)
-
-	SetRequestInfo(requestInfo RequestInfo)
-
-	Tag(key uint64) string
-
-	FinishSpan()
-
-	InjectContext(requestHeaders HeaderMap)
-
-	SpawnChild(operationName string, startTime time.Time) Span
+func RegisterSubProtocol(protocolCode byte, delegate SubProtocolDelegate) {
+	delegateMap[protocolCode] = delegate
 }

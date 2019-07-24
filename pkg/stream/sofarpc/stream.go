@@ -34,6 +34,7 @@ import (
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
+	"time"
 )
 
 // StreamDirection represent the stream's direction
@@ -248,9 +249,12 @@ func (conn *streamConnection) processStream(ctx context.Context, cmd sofarpc.Sof
 	switch cmd.CommandType() {
 	case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
 		var span types.Span
-		if trace.IsTracingEnabled() {
+		if trace.IsEnabled() {
 			// try build trace span
-			span = conn.codecEngine.BuildSpan(ctx, cmd)
+			tracer := trace.Tracer(protocol.SofaRPC)
+			if tracer != nil {
+				span = tracer.Start(ctx, cmd, time.Now())
+			}
 		}
 		return conn.onNewStreamDetect(ctx, cmd, span)
 	case sofarpc.RESPONSE:

@@ -15,46 +15,56 @@
  * limitations under the License.
  */
 
-package trace
+package rpc
 
 import (
-	"runtime"
 	"testing"
-	"time"
+	"runtime"
+	"log"
 )
 
-func init() {
-	tracer := CreateTracer("SOFATracer")
-	SetTracer(tracer)
+func TestSpanLog(t *testing.T) {
+	_, error := NewTracer(nil)
+	if error != nil {
+		log.Fatalln("create test tracer failed:", error)
+	}
+
+	span := &SofaRPCSpan{}
+	span.log()
 }
 
-func TestSofaTracerStartFinish(t *testing.T) {
-	span := Tracer().Start(time.Now())
-	span.SetTag(TRACE_ID, IdGen().GenerateTraceId())
-	span.FinishSpan()
-}
+func TestIngressSpanLog(t *testing.T) {
+	_, error := NewTracer(nil)
+	if error != nil {
+		log.Fatalln("create test tracer failed:", error)
+	}
 
-func TestSofaTracerPrintSpan(t *testing.T) {
-	Tracer().PrintSpan(&SofaTracerSpan{})
-}
-
-func TestSofaTracerPrintIngressSpan(t *testing.T) {
-	span := &SofaTracerSpan{}
+	span := &SofaRPCSpan{}
 	span.tags[DOWNSTEAM_HOST_ADDRESS] = "127.0.0.1:43"
 	span.tags[SPAN_TYPE] = "ingress"
-	Tracer().PrintSpan(span)
+	span.log()
 }
 
-func TestSofaTracerPrintEgressSpan(t *testing.T) {
-	span := &SofaTracerSpan{}
+func TestEgressSpanLog(t *testing.T) {
+	_, error := NewTracer(nil)
+	if error != nil {
+		log.Fatalln("create test tracer failed:", error)
+	}
+
+	span := &SofaRPCSpan{}
 	span.tags[SPAN_TYPE] = "egress"
-	Tracer().PrintSpan(span)
+	span.log()
 }
 
-func BenchmarkSofaTracer(b *testing.B) {
+func BenchmarkSofaTracelog(b *testing.B) {
+	_, error := NewTracer(nil)
+	if error != nil {
+		log.Fatalln("create test tracer failed:", error)
+	}
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	for n := 0; n < b.N; n++ {
-		span := &SofaTracerSpan{}
+		span := &SofaRPCSpan{}
 		span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
 		span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
 		span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")
@@ -69,18 +79,22 @@ func BenchmarkSofaTracer(b *testing.B) {
 		span.SetTag(SPAN_TYPE, "BenchmarkSofaTracer")
 		span.SetTag(BAGGAGE_DATA, "BenchmarkSofaTracer")
 		span.SetTag(REQUEST_URL, "BenchmarkSofaTracer")
-
 		span.SetTag(SPAN_TYPE, "ingress")
 
-		Tracer().PrintSpan(span)
+		span.FinishSpan()
 	}
 }
 
-func BenchmarkSofaTracerParallel(b *testing.B) {
+func BenchmarkSofaTracelogParallel(b *testing.B) {
+	_, error := NewTracer(nil)
+	if error != nil {
+		log.Fatalln("create test tracer failed:", error)
+	}
+
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			span := &SofaTracerSpan{}
+			span := &SofaRPCSpan{}
 			span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
 			span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
 			span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")
@@ -95,10 +109,9 @@ func BenchmarkSofaTracerParallel(b *testing.B) {
 			span.SetTag(SPAN_TYPE, "BenchmarkSofaTracer")
 			span.SetTag(BAGGAGE_DATA, "BenchmarkSofaTracer")
 			span.SetTag(REQUEST_URL, "BenchmarkSofaTracer")
-
 			span.SetTag(SPAN_TYPE, "ingress")
 
-			Tracer().PrintSpan(span)
+			span.FinishSpan()
 		}
 	})
 }

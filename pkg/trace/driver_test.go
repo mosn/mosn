@@ -15,46 +15,37 @@
  * limitations under the License.
  */
 
-package types
+package trace
 
 import (
+	"testing"
 	"time"
 	"context"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-// factory
-type TracerBuilder func(config map[string]interface{}) (Tracer, error)
 
-type Driver interface {
-	Init(config map[string]interface{}) error
-
-	Register(proto Protocol, builder TracerBuilder)
-
-	Get(proto Protocol) Tracer
+type mockTracer struct {
 }
 
-type Tracer interface {
-	Start(ctx context.Context, request interface{}, startTime time.Time) Span
+func (tracer *mockTracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {
+	return nil
 }
 
-type Span interface {
-	TraceId() string
+func TestTraceBuilderRegisterAndGet(t *testing.T) {
+	driver := NewDefaultDriverImpl()
+	proto := types.Protocol("test")
 
-	SpanId() string
+	driver.Register(proto, func(config map[string]interface{}) (types.Tracer, error) {
+		return &mockTracer{}, nil
+	})
 
-	ParentSpanId() string
+	driver.Init(nil)
 
-	SetOperation(operation string)
+	tracer := driver.Get(proto)
 
-	SetTag(key uint64, value string)
+	if tracer == nil {
+		t.Error("get tracer from driver failed")
+	}
 
-	SetRequestInfo(requestInfo RequestInfo)
-
-	Tag(key uint64) string
-
-	FinishSpan()
-
-	InjectContext(requestHeaders HeaderMap)
-
-	SpawnChild(operationName string, startTime time.Time) Span
 }
