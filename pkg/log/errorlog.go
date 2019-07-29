@@ -37,7 +37,7 @@ type errorLogger struct {
 }
 
 func CreateDefaultErrorLogger(output string, level Level) (ErrorLogger, error) {
-	lg, err := GetOrCreateLogger(output)
+	lg, err := GetOrCreateLogger(output, nil)
 	if err != nil {
 		return nil, err
 	}

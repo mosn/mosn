@@ -18,8 +18,6 @@
 package log
 
 import (
-	"io"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
@@ -29,7 +27,7 @@ import (
 )
 
 func TestLogPrintDiscard(t *testing.T) {
-	l, err := GetOrCreateLogger("/tmp/mosn_bench/benchmark.log")
+	l, err := GetOrCreateLogger("/tmp/mosn_bench/benchmark.log", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +57,7 @@ func TestLogPrintDiscard(t *testing.T) {
 func TestLogPrintnull(t *testing.T) {
 	logName := "/tmp/mosn_bench/printnull.log"
 	os.Remove(logName)
-	l, err := GetOrCreateLogger(logName)
+	l, err := GetOrCreateLogger(logName, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,95 +82,15 @@ func TestLogPrintnull(t *testing.T) {
 	}
 }
 
-func TestLogDefaultRollerTime(t *testing.T) {
-	logName := "/tmp/mosn_bench/printdefaultroller.log"
-	rollerName := logName + "." + time.Now().Format("2006-01-02")
-	os.Remove(logName)
-	os.Remove(rollerName)
-	// 2s
-	defaultRollerTime = 2
-	defer func() {
-		defaultRollerTime = 24 * 60 * 60
-	}()
-	logger, err := GetOrCreateLogger(logName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	logger.Print(buffer.NewIoBufferString("1111111"), false)
-	time.Sleep(3 * time.Second)
-	logger.Print(buffer.NewIoBufferString("2222222"), false)
-	time.Sleep(1 * time.Second)
-	logger.Close()
-
-	b := make([]byte, 100)
-	f, err := os.Open(logName)
-	if err != nil {
-		t.Errorf("TestLogDefaultRoller failed %v", err)
-	}
-	n, err := f.Read(b)
-	f.Close()
-	if err != io.EOF || n != 0 {
-		t.Errorf("TestLogDefaultRoller failed %v", err)
-	}
-
-	f, err = os.Open(rollerName)
-	if err != nil {
-		t.Errorf("TestLogDefaultRoller failed %v", err)
-	}
-	n, err = f.Read(b)
-	f.Close()
-	if n == 0 || string(b[0:n]) != "11111112222222" {
-		t.Errorf("TestLogDefaultRoller failed %v", string(b[0:n]))
-	}
-}
-
-func TestLogDefaultRollerAfterDelete(t *testing.T) {
-	logName := "/tmp/log_roller_delete.log"
-	rollerName := logName + "." + time.Now().Format("2006-01-02")
-	os.Remove(logName)
-	os.Remove(rollerName)
-	//
-	defaultRollerTime = 3
-	defer func() {
-		defaultRollerTime = 24 * 60 * 60
-	}()
-	logger, err := GetOrCreateLogger(logName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// remove the log file, the log is output to no where
-	os.Remove(logName)
-	logger.Print(buffer.NewIoBufferString("nowhere"), false)
-	// wait roller
-	time.Sleep(4 * time.Second)
-	// the first log trigger roller will be writed in the old file
-	logger.Print(buffer.NewIoBufferString("ignore"), false)
-	time.Sleep(100 * time.Millisecond) // wait write flush
-	logger.Print(buffer.NewIoBufferString("output"), false)
-	logger.Close() // force flush
-	b, err := ioutil.ReadFile(logName)
-	if err != nil {
-		t.Fatalf("read log file failed: %v", err)
-	}
-	if string(b) != "output" {
-		t.Errorf("read file data: %s", string(b))
-	}
-	// rollerName should not be exists
-	if _, err := os.Stat(rollerName); err == nil {
-		t.Errorf("roller file exists, but expected not: %v", err)
-	}
-
-}
-
 func TestLogReopen(t *testing.T) {
-	l, err := GetOrCreateLogger("")
+	l, err := GetOrCreateLogger("", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := l.reopen(); err != ErrReopenUnsupported {
 		t.Errorf("test log reopen failed")
 	}
-	l, err = GetOrCreateLogger("/tmp/mosn_bench/testlogreopen.log")
+	l, err = GetOrCreateLogger("/tmp/mosn_bench/testlogreopen.log", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +101,7 @@ func TestLogReopen(t *testing.T) {
 
 func TestLoglocalOffset(t *testing.T) {
 	_, offset := time.Now().Zone()
-	defaultRollerTime = 24 * 60 * 60
+	var defaultRollerTime int64 = 24 * 60 * 60
 	t1 := time.Date(2018, time.December, 25, 23, 59, 59, 0, time.Local)
 	t2 := time.Date(2018, time.December, 26, 00, 00, 01, 0, time.Local)
 	if (t1.Unix()+int64(offset))/defaultRollerTime+1 != (t2.Unix()+int64(offset))/defaultRollerTime {

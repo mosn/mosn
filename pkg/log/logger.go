@@ -80,13 +80,18 @@ type Logger struct {
 // key is output, same output reference the same Logger
 var loggers sync.Map // map[string]*Logger
 
-func GetOrCreateLogger(output string) (*Logger, error) {
+func GetOrCreateLogger(output string, roller *Roller) (*Logger, error) {
 	if lg, ok := loggers.Load(output); ok {
 		return lg.(*Logger), nil
 	}
+
+	if roller == nil {
+		roller = defaultRoller
+	}
+
 	lg := &Logger{
 		output:          output,
-		roller:          defaultRoller, // TODO: support by configuration
+		roller:          roller,
 		writeBufferChan: make(chan types.IoBuffer, 1000),
 		reopenChan:      make(chan struct{}),
 		closeChan:       make(chan struct{}),
@@ -126,7 +131,7 @@ func (l *Logger) start() error {
 			if err != nil {
 				return err
 			}
-			if l.roller != nil {
+			if l.roller.MaxTime == 0 {
 				file.Close()
 				l.roller.Filename = l.output
 				l.writer = l.roller.GetLogWriter()
@@ -303,16 +308,19 @@ func (l *Logger) Fatalln(args ...interface{}) {
 
 func (l *Logger) Write(p []byte) (n int, err error) {
 	// default roller by daily
-	if l.roller == nil {
-		if !l.create.IsZero() {
-			now := time.Now()
-			if (l.create.Unix()+int64(localOffset))/defaultRollerTime != (now.Unix()+int64(localOffset))/defaultRollerTime {
-				// ignore the rename error, in case the l.output is deleted
+	if !l.create.IsZero() {
+		now := time.Now()
+		if (l.create.Unix()+int64(localOffset))/(l.roller.MaxTime*60*60) !=
+			(now.Unix()+int64(localOffset))/(l.roller.MaxTime*60*60) {
+			// ignore the rename error, in case the l.output is deleted
+			if l.roller.MaxTime == defaultRotateTime {
 				os.Rename(l.output, l.output+"."+l.create.Format("2006-01-02"))
-				l.create = now
-				//TODO: recover?
-				go l.Reopen()
+			} else {
+				os.Rename(l.output, l.output+"."+l.create.Format("2006-01-02_15"))
 			}
+			l.create = now
+			//TODO: recover?
+			go l.Reopen()
 		}
 	}
 	return l.writer.Write(p)

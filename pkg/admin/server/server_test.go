@@ -270,7 +270,7 @@ func TestToggleLogger(t *testing.T) {
 	logName := "/tmp/mosn_admin/test_admin_toggler.log"
 	os.Remove(logName)
 	// Raw Logger
-	logger, err := log.GetOrCreateLogger(logName)
+	logger, err := log.GetOrCreateLogger(logName, nil)
 	if err != nil {
 		t.Fatal("create logger failed")
 	}

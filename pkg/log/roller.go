@@ -24,13 +24,12 @@ import (
 	"strconv"
 	"strings"
 
-	lumberjack "gopkg.in/natefinch/lumberjack.v2"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var (
-	defaultRoller *Roller
-	// defaultRollerTime is one day
-	defaultRollerTime int64 = 24 * 60 * 60
+	// defaultRoller is roller by one day
+	defaultRoller = &Roller{MaxTime: defaultRotateTime}
 
 	// lumberjacks maps log filenames to the logger
 	// that is being used to keep them rolled/maintained.
@@ -40,6 +39,8 @@ var (
 )
 
 const (
+	// defaultRotateTime is 24 hours
+	defaultRotateTime = 24
 	// defaultRotateSize is 100 MB.
 	defaultRotateSize = 1000
 	// defaultRotateAge is 7 days.
@@ -47,6 +48,7 @@ const (
 	// defaultRotateKeep is 10 files.
 	defaultRotateKeep = 10
 
+	directiveRotateTime     = "time"
 	directiveRotateSize     = "size"
 	directiveRotateAge      = "age"
 	directiveRotateKeep     = "keep"
@@ -61,6 +63,7 @@ type Roller struct {
 	MaxBackups int
 	Compress   bool
 	LocalTime  bool
+	MaxTime    int64
 }
 
 // GetLogWriter returns an io.Writer that writes to a rolling logger.
@@ -88,6 +91,7 @@ func (l Roller) GetLogWriter() io.Writer {
 		}
 		lumberjacks[absPath] = lj
 	}
+
 	return lj
 }
 
@@ -120,6 +124,12 @@ func ParseRoller(what string) (*Roller, error) {
 			break
 		}
 		switch v[0] {
+		case directiveRotateTime:
+			value, err = strconv.Atoi(v[1])
+			if err != nil {
+				break
+			}
+			roller.MaxTime = int64(value)
 		case directiveRotateSize:
 			value, err = strconv.Atoi(v[1])
 			if err != nil {
@@ -153,6 +163,7 @@ func ParseRoller(what string) (*Roller, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return roller, nil
 }
 
