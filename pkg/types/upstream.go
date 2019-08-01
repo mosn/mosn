@@ -85,6 +85,8 @@ type ClusterSnapshot interface {
 	// IsExistsHosts checks whether the metadata's subset contains host or not
 	// if metadata is nil, check the cluster snapshot contains host or not
 	IsExistsHosts(metadata MetadataMatchCriteria) bool
+
+	HostNum(metadata MetadataMatchCriteria) int
 }
 
 // Cluster is a group of upstream hosts

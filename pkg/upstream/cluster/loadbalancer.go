@@ -83,6 +83,10 @@ func (lb *randomLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriteria
 	return len(lb.hosts.Hosts()) > 0
 }
 
+func (lb *randomLoadBalancer) HostNum(metadata types.MetadataMatchCriteria) int {
+	return len(lb.hosts.Hosts())
+}
+
 type roundRobinLoadBalancer struct {
 	hosts   types.HostSet
 	rrIndex uint32
@@ -118,6 +122,10 @@ func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) 
 
 func (lb *roundRobinLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
 	return len(lb.hosts.Hosts()) > 0
+}
+
+func (lb *roundRobinLoadBalancer) HostNum(metadata types.MetadataMatchCriteria) int {
+	return len(lb.hosts.Hosts())
 }
 
 // TODO:

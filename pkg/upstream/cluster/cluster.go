@@ -192,3 +192,7 @@ func (snapshot *clusterSnapshot) LoadBalancer() types.LoadBalancer {
 func (snapshot *clusterSnapshot) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
 	return snapshot.lb.IsExistsHosts(metadata)
 }
+
+func (snapshot *clusterSnapshot) HostNum(metadata types.MetadataMatchCriteria) int {
+	return snapshot.lb.HostNum(metadata)
+}
