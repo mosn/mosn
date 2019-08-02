@@ -20,6 +20,7 @@ package stream
 import (
 	"context"
 
+	metrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -98,8 +99,8 @@ func (c *client) ActiveRequestsNum() int {
 	return c.ClientStreamConnection.ActiveStreamsNum()
 }
 
-func (c *client) SetConnectionStats(stats *types.ConnectionStats) {
-	c.Connection.SetStats(stats)
+func (c *client) SetConnectionCollector(read, write metrics.Counter) {
+	c.Connection.SetCollector(read, write)
 }
 
 func (c *client) SetStreamConnectionEventListener(listener types.StreamConnectionEventListener) {
@@ -135,6 +136,7 @@ func (c *client) OnGoAway() {
 // types.ConnectionEventListener
 // conn callbacks
 func (c *client) OnEvent(event types.ConnectionEvent) {
+	log.DefaultLogger.Debugf("client OnEvent %v, connected %v", event, c.ConnectedFlag)
 	switch event {
 	case types.Connected:
 		c.ConnectedFlag = true

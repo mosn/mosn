@@ -19,11 +19,14 @@ package log
 
 import (
 	"bufio"
+	"context"
 	"os"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type errorLogCase struct {
@@ -112,6 +115,41 @@ func TestErrorLog(t *testing.T) {
 		if !(len(qs) >= 4 && qs[2] == preMapping[c.level]) {
 			t.Errorf("level: %v write format is not expected", c)
 		}
+	}
+}
+
+func TestAlertLog(t *testing.T) {
+	logName := "/tmp/mosn/alert_test.log"
+	os.Remove(logName)
+	// common logger
+	lg, err := GetOrCreateDefaultErrorLogger(logName, RAW)
+	if err != nil {
+		t.Fatal("create default logger failed")
+	}
+	// proxy logger
+	plg, err := CreateDefaultProxyLogger(logName, RAW)
+	if err != nil {
+		t.Fatal("create proxy logger failed")
+	}
+	var testKey types.ErrorKey = types.ErrorModuleMosn + "test.alert"
+	lg.Alertf(testKey, "test-alert-log")
+	plg.Alertf(context.Background(), testKey, "test-%s", "alert-log")
+	time.Sleep(time.Second) // wait log flush
+	lines, err := readLines(logName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// {date time} [ERROR] [sofa-mosn.test.alert] test-alert-log
+	// {date time} [ERROR] [sofa-mosn.test.alert] [-,-] test-alert-log
+	if len(lines) < 2 {
+		t.Fatal("not enough log output")
+	}
+	// spilt datetime
+	defaultOut := strings.SplitN(lines[0], " ", 3)
+	proxyOut := strings.SplitN(lines[1], " ", 3)
+	if !(defaultOut[2] == "[ERROR] [sofa-mosn.test.alert] test-alert-log" &&
+		proxyOut[2] == "[ERROR] [sofa-mosn.test.alert] [-,-] test-alert-log") {
+		t.Errorf("log output is not expected, default output: %s , proxy output: %s", lines[0], lines[1])
 	}
 
 }

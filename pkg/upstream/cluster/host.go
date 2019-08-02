@@ -22,205 +22,131 @@ import (
 	"net"
 	"sync"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-type hostSet struct {
-	priority        uint32
-	hosts           []types.Host
-	healthyHosts    []types.Host
-	mux             sync.RWMutex
-	updateCallbacks []types.MemberUpdateCallback
-	metadata        v2.Metadata
+// simpleHost is an implement of types.Host and types.HostInfo
+type simpleHost struct {
+	hostname      string
+	addressString string
+	clusterInfo   types.ClusterInfo
+	stats         types.HostStats
+	metaData      v2.Metadata
+	tlsDisable    bool
+	weight        uint32
+	healthFlags   uint64
 }
 
-func (hs *hostSet) Hosts() []types.Host {
-	hs.mux.RLock()
-	defer hs.mux.RUnlock()
-
-	return hs.hosts
-}
-
-func (hs *hostSet) HealthyHosts() []types.Host {
-	hs.mux.RLock()
-	defer hs.mux.RUnlock()
-
-	return hs.healthyHosts
-}
-
-func (hs *hostSet) UpdateHosts(hosts []types.Host, healthyHosts []types.Host, hostsAdded []types.Host, hostsRemoved []types.Host) {
-	// todo change mutex
-	// modified because in updateCb(), there is lock condition
-	hs.mux.Lock()
-	hs.hosts = hosts
-	hs.healthyHosts = healthyHosts
-	hs.mux.Unlock()
-
-	for _, updateCb := range hs.updateCallbacks {
-		updateCb(hs.priority, hostsAdded, hostsRemoved)
+func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
+	// clusterInfo should not be nil
+	// pre resolve address
+	GetOrCreateAddr(config.Address)
+	return &simpleHost{
+		hostname:      config.Hostname,
+		addressString: config.Address,
+		clusterInfo:   clusterInfo,
+		stats:         newHostStats(clusterInfo.Name(), config.Address),
+		metaData:      config.MetaData,
+		tlsDisable:    config.TLSDisable,
+		weight:        config.Weight,
 	}
 }
 
-func (hs *hostSet) Priority() uint32 {
-	return hs.priority
+// types.HostInfo Implement
+func (sh *simpleHost) Hostname() string {
+	return sh.hostname
 }
 
-func (hs *hostSet) addMemberUpdateCb(cb types.MemberUpdateCallback) {
-	hs.updateCallbacks = append(hs.updateCallbacks, cb)
+func (sh *simpleHost) Metadata() v2.Metadata {
+	return sh.metaData
 }
 
-// Host
-type host struct {
-	hostInfo
-	weight uint32
-	used   bool
-
-	healthFlags uint64
+func (sh *simpleHost) ClusterInfo() types.ClusterInfo {
+	return sh.clusterInfo
 }
 
-// NewHost used to create types.Host
-func NewHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
-	addr, _ := net.ResolveTCPAddr("tcp", config.Address)
+func (sh *simpleHost) Address() net.Addr {
+	return GetOrCreateAddr(sh.addressString)
+}
 
-	return &host{
-		hostInfo: newHostInfo(addr, config, clusterInfo),
-		weight:   config.Weight,
+func (sh *simpleHost) AddressString() string {
+	return sh.addressString
+}
+
+func (sh *simpleHost) HostStats() types.HostStats {
+	return sh.stats
+}
+
+func (sh *simpleHost) Weight() uint32 {
+	return sh.weight
+}
+
+func (sh *simpleHost) Config() v2.Host {
+	return v2.Host{
+		HostConfig: v2.HostConfig{
+			Address:    sh.addressString,
+			Hostname:   sh.hostname,
+			TLSDisable: sh.tlsDisable,
+			Weight:     sh.weight,
+		},
+		MetaData: sh.metaData,
 	}
 }
 
-func (h *host) CreateConnection(context context.Context) types.CreateConnectionData {
+func (sh *simpleHost) SupportTLS() bool {
+	return !sh.tlsDisable && sh.clusterInfo.TLSMng().Enabled()
+}
+
+// types.Host Implement
+func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConnectionData {
 	var tlsMng types.TLSContextManager
-	if !h.tlsDisable {
-		tlsMng = h.clusterInfo.TLSMng()
+	if !sh.tlsDisable {
+		tlsMng = sh.clusterInfo.TLSMng()
 	}
-
-	clientConn := network.NewClientConnection(h.clusterInfo.SourceAddress(), tlsMng, h.address, nil)
-	clientConn.SetBufferLimit(h.clusterInfo.ConnBufferLimitBytes())
+	clientConn := network.NewClientConnection(nil, tlsMng, sh.Address(), nil)
+	clientConn.SetBufferLimit(sh.clusterInfo.ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
 		Connection: clientConn,
-		HostInfo:   &h.hostInfo,
+		HostInfo:   sh,
 	}
 }
 
-// health:0, unhealth:1
-// set h.healthFlags = 0
-// ^1 = 0
-func (h *host) ClearHealthFlag(flag types.HealthFlag) {
-	h.healthFlags &= ^uint64(flag)
+func (sh *simpleHost) ClearHealthFlag(flag types.HealthFlag) {
+	sh.healthFlags &= ^uint64(flag)
 }
 
-// return 1, if h.healthFlags = 1
-func (h *host) ContainHealthFlag(flag types.HealthFlag) bool {
-	return h.healthFlags&uint64(flag) > 0
+func (sh *simpleHost) ContainHealthFlag(flag types.HealthFlag) bool {
+	return sh.healthFlags&uint64(flag) > 0
 }
 
-// set h.healthFlags = 1
-func (h *host) SetHealthFlag(flag types.HealthFlag) {
-	h.healthFlags |= uint64(flag)
+func (sh *simpleHost) SetHealthFlag(flag types.HealthFlag) {
+	sh.healthFlags |= uint64(flag)
 }
 
-// return 1 when h.healthFlags == 0
-func (h *host) Health() bool {
-	return h.healthFlags == 0
+func (sh *simpleHost) HealthFlag() types.HealthFlag {
+	return types.HealthFlag(sh.healthFlags)
 }
 
-func (h *host) Weight() uint32 {
-	return h.weight
+func (sh *simpleHost) Health() bool {
+	return sh.healthFlags == 0
 }
 
-func (h *host) SetWeight(weight uint32) {
-	h.weight = weight
-}
+// net.Addr reuse for same address, valid in simple type
+var AddrStore sync.Map
 
-func (h *host) Used() bool {
-	return h.used
-}
-
-func (h *host) SetUsed(used bool) {
-	h.used = used
-}
-
-// HostInfo
-type hostInfo struct {
-	hostname       string
-	address        net.Addr
-	addressString  string
-	canary         bool
-	clusterInfo    types.ClusterInfo
-	stats          types.HostStats
-	metaData       types.RouteMetaData
-	originMetaData v2.Metadata
-	tlsDisable     bool
-	config         v2.Host
-
-	// TODO: locality, outlier, healthchecker
-}
-
-func newHostInfo(addr net.Addr, config v2.Host, clusterInfo types.ClusterInfo) hostInfo {
-	var name string
-	if clusterInfo != nil {
-		name = clusterInfo.Name()
+func GetOrCreateAddr(addrstr string) net.Addr {
+	if addr, ok := AddrStore.Load(addrstr); ok {
+		return addr.(net.Addr)
 	}
-	return hostInfo{
-		address:        addr,
-		addressString:  config.Address,
-		hostname:       config.Hostname,
-		clusterInfo:    clusterInfo,
-		stats:          newHostStats(name, config.Address),
-		metaData:       GenerateHostMetadata(config.MetaData),
-		originMetaData: config.MetaData,
-		tlsDisable:     config.TLSDisable,
-		config:         config,
+	addr, err := net.ResolveTCPAddr("tcp", addrstr)
+	if err != nil {
+		log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
+		return nil
 	}
-}
-
-func (hi *hostInfo) Hostname() string {
-	return hi.hostname
-}
-
-func (hi *hostInfo) Canary() bool {
-	return hi.canary
-}
-
-func (hi *hostInfo) Metadata() types.RouteMetaData {
-	return hi.metaData
-}
-
-func (hi *hostInfo) OriginMetaData() v2.Metadata {
-	return hi.originMetaData
-}
-
-func (hi *hostInfo) ClusterInfo() types.ClusterInfo {
-	return hi.clusterInfo
-}
-
-func (hi *hostInfo) Address() net.Addr {
-	return hi.address
-}
-
-func (hi *hostInfo) AddressString() string {
-	return hi.addressString
-}
-
-func (hi *hostInfo) HostStats() types.HostStats {
-	return hi.stats
-}
-func (hi *hostInfo) Config() v2.Host {
-	return hi.config
-}
-
-// GenerateHostMetadata
-// generate host's metadata in map[string]types.HashedValue type
-func GenerateHostMetadata(metadata v2.Metadata) types.RouteMetaData {
-	rm := make(map[string]types.HashedValue, 1)
-
-	for k, v := range metadata {
-		rm[k] = types.HashedValue(v)
-
-	}
-
-	return rm
+	AddrStore.Store(addrstr, addr)
+	return addr
 }

@@ -18,10 +18,9 @@
 package cluster
 
 import (
-	"net"
-	"sync"
+	"sync/atomic"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/mtls"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -29,153 +28,98 @@ import (
 	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
-// Cluster
-type cluster struct {
-	initializationStarted          bool
-	initializationCompleteCallback func()
-	prioritySet                    *prioritySet
-	info                           *clusterInfo
-	mux                            sync.RWMutex
-	initHelper                     concreteClusterInitHelper
-	healthChecker                  types.HealthChecker
+func NewCluster(clusterConfig v2.Cluster) types.Cluster {
+	// TODO: support cluster type registered
+	return newSimpleCluster(clusterConfig)
 }
 
-type concreteClusterInitHelper interface {
-	Init()
+// simpleCluster is an implementation of types.Cluster
+type simpleCluster struct {
+	info          *clusterInfo
+	healthChecker types.HealthChecker
+	lbInstance    types.LoadBalancer // load balancer used for this cluster
+	hostSet       *hostSet
+	snapshot      atomic.Value
 }
 
-func NewCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool) types.Cluster {
-	var newCluster types.Cluster
-
-	switch clusterConfig.ClusterType {
-
-	case v2.SIMPLE_CLUSTER, v2.DYNAMIC_CLUSTER, v2.EDS_CLUSTER:
-		newCluster = newSimpleInMemCluster(clusterConfig, sourceAddr, addedViaAPI)
-	default:
-		return nil
+func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
+	info := &clusterInfo{
+		name:                 clusterConfig.Name,
+		clusterType:          clusterConfig.ClusterType,
+		maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
+		connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
+		stats:                newClusterStats(clusterConfig.Name),
+		lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
+		lbType:               types.LoadBalancerType(clusterConfig.LbType),
+		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 	}
-
-	return newCluster
-}
-
-func newCluster(clusterConfig v2.Cluster, sourceAddr net.Addr, addedViaAPI bool, initHelper concreteClusterInitHelper) *cluster {
-	cluster := &cluster{
-		prioritySet: &prioritySet{},
-		info: &clusterInfo{
-			name:                 clusterConfig.Name,
-			clusterType:          clusterConfig.ClusterType,
-			sourceAddr:           sourceAddr,
-			addedViaAPI:          addedViaAPI,
-			maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
-			connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
-			stats:                newClusterStats(clusterConfig.Name),
-			lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
-		},
-		initHelper: initHelper,
-	}
-
-	// compatible, types.LoadBalancerType is same as v2.LbType
-	cluster.info.lbType = types.LoadBalancerType(clusterConfig.LbType)
-
-	// TODO: init more props: maxrequestsperconn, connecttimeout, connectionbuflimit
-
-	cluster.info.resourceManager = NewResourceManager(clusterConfig.CirBreThresholds)
-
-	cluster.prioritySet.GetOrCreateHostSet(0)
-	cluster.prioritySet.AddMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
-		// TODO: update cluster stats
-	})
-
-	var lb types.LoadBalancer
-
-	if cluster.Info().LbSubsetInfo().IsEnabled() {
-		// use subset loadbalancer
-		lb = NewSubsetLoadBalancer(cluster.Info().LbType(), cluster.PrioritySet(), cluster.Info().Stats(),
-			cluster.Info().LbSubsetInfo())
-
-	} else {
-		// use common loadbalancer
-		lb = NewLoadBalancer(cluster.Info().LbType(), cluster.PrioritySet())
-	}
-
-	cluster.info.lbInstance = lb
-
-	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS, cluster.info)
+	// tls mng
+	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS)
 	if err != nil {
 		log.DefaultLogger.Errorf("[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
 	}
-	cluster.info.tlsMng = mgr
-	// add health check, should have a service name for stats
+	info.tlsMng = mgr
+	cluster := &simpleCluster{
+		info: info,
+	}
+	// init a empty
+	hostSet := &hostSet{}
+	cluster.snapshot.Store(&clusterSnapshot{
+		info:    info,
+		hostSet: hostSet,
+		lb:      NewLoadBalancer(info.lbType, hostSet),
+	})
 	if clusterConfig.HealthCheck.ServiceName != "" {
 		log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
-		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck, cluster)
-		// add default call backs, for change host healthy status
+		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck)
 		cluster.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool, isHealthy bool) {
 			if changedState {
-				cluster.refreshHealthHosts(host)
+				log.DefaultLogger.Infof("[upstream] [cluster] host %s state change to %v", host.AddressString(), isHealthy)
+				cluster.hostSet.refreshHealthHost(host)
 			}
 		})
-		utils.GoWithRecover(func() {
-			cluster.healthChecker.Start()
-		}, nil)
-	}
 
+	}
 	return cluster
 }
 
-func (c *cluster) Initialize(cb func()) {
-	c.initializationCompleteCallback = cb
-
-	if c.initHelper != nil {
-		c.initHelper.Init()
-	}
-
-	if c.initializationCompleteCallback != nil {
-		c.initializationCompleteCallback()
-	}
-}
-
-func (c *cluster) Info() types.ClusterInfo {
-	return c.info
-}
-
-func (c *cluster) InitializePhase() types.InitializePhase {
-	return types.Primary
-}
-
-func (c *cluster) PrioritySet() types.PrioritySet {
-	return c.prioritySet
-}
-
-func (c *cluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
-	if c.healthChecker != nil {
-		c.healthChecker.AddHostCheckCompleteCb(cb)
-	}
-}
-
-// update health-hostSet for only one hostSet, reduce update times
-func (c *cluster) refreshHealthHosts(host types.Host) {
-	if host.Health() {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [cluster] [refresh health] Add health host %s to cluster's healthHostSet by refreshHealthHosts", host.AddressString())
-		}
-		addHealthyHost(c.prioritySet.hostSets, host)
+func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
+	info := sc.info
+	hostSet := &hostSet{}
+	hostSet.setFinalHost(newHosts)
+	// load balance
+	var lb types.LoadBalancer
+	if info.lbSubsetInfo.IsEnabled() {
+		lb = NewSubsetLoadBalancer(info, hostSet)
 	} else {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [cluster] [refresh health] Del host %s from cluster's healthHostSet by refreshHealthHosts", host.AddressString())
-		}
-		delHealthHost(c.prioritySet.hostSets, host)
+		lb = NewLoadBalancer(info.lbType, hostSet)
 	}
+	sc.lbInstance = lb
+	sc.hostSet = hostSet
+	sc.snapshot.Store(&clusterSnapshot{
+		lb:      lb,
+		hostSet: hostSet,
+		info:    info,
+	})
+	if sc.healthChecker != nil {
+		utils.GoWithRecover(func() {
+			sc.healthChecker.SetHealthCheckerHostSet(hostSet)
+		}, nil)
+	}
+
 }
 
-// refresh health hosts globally
-func (c *cluster) refreshHealthHostsGlobal() {
+func (sc *simpleCluster) Snapshot() types.ClusterSnapshot {
+	si := sc.snapshot.Load()
+	if snap, ok := si.(*clusterSnapshot); ok {
+		return snap
+	}
+	return nil
+}
 
-	for _, hostSet := range c.prioritySet.hostSets {
-		var healthyHost []types.Host
-		healthyHost = getHealthHost(hostSet.Hosts())
-
-		hostSet.UpdateHosts(hostSet.Hosts(), healthyHost, nil, nil)
+func (sc *simpleCluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
+	if sc.healthChecker != nil {
+		sc.healthChecker.AddHostCheckCompleteCb(cb)
 	}
 }
 
@@ -183,62 +127,28 @@ type clusterInfo struct {
 	name                 string
 	clusterType          v2.ClusterType
 	lbType               types.LoadBalancerType // if use subset lb , lbType is used as inner LB algorithm for choosing subset's host
-	lbInstance           types.LoadBalancer     // load balancer used for this cluster
-	sourceAddr           net.Addr
-	connectTimeout       int
 	connBufferLimitBytes uint32
-	features             int
 	maxRequestsPerConn   uint32
-	addedViaAPI          bool
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
-	healthCheckProtocol  string
-	tlsMng               types.TLSContextManager
 	lbSubsetInfo         types.LBSubsetInfo
-}
-
-func NewClusterInfo() types.ClusterInfo {
-	return &clusterInfo{}
+	tlsMng               types.TLSContextManager
 }
 
 func (ci *clusterInfo) Name() string {
 	return ci.name
 }
 
+func (ci *clusterInfo) ClusterType() v2.ClusterType {
+	return ci.clusterType
+}
+
 func (ci *clusterInfo) LbType() types.LoadBalancerType {
 	return ci.lbType
 }
 
-func (ci *clusterInfo) AddedViaAPI() bool {
-	return ci.addedViaAPI
-}
-
-func (ci *clusterInfo) SourceAddress() net.Addr {
-	return ci.sourceAddr
-}
-
-func (ci *clusterInfo) ConnectTimeout() int {
-	return ci.connectTimeout
-}
-
 func (ci *clusterInfo) ConnBufferLimitBytes() uint32 {
 	return ci.connBufferLimitBytes
-}
-
-func (ci *clusterInfo) Features() int {
-	return ci.features
-}
-
-func (ci *clusterInfo) Metadata() v2.Metadata {
-	return v2.Metadata{}
-}
-
-func (ci *clusterInfo) DiscoverType() string {
-	return ""
-}
-
-func (ci *clusterInfo) MaintenanceMode() bool {
-	return false
 }
 
 func (ci *clusterInfo) MaxRequestsPerConn() uint32 {
@@ -253,10 +163,6 @@ func (ci *clusterInfo) ResourceManager() types.ResourceManager {
 	return ci.resourceManager
 }
 
-func (ci *clusterInfo) HealthCheckProtocol() string {
-	return ci.healthCheckProtocol
-}
-
 func (ci *clusterInfo) TLSMng() types.TLSContextManager {
 	return ci.tlsMng
 }
@@ -265,135 +171,24 @@ func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 	return ci.lbSubsetInfo
 }
 
-func (ci *clusterInfo) LBInstance() types.LoadBalancer {
-	return ci.lbInstance
+type clusterSnapshot struct {
+	info    types.ClusterInfo
+	hostSet types.HostSet
+	lb      types.LoadBalancer
 }
 
-type prioritySet struct {
-	hostSets        []types.HostSet // Note: index is the priority
-	updateCallbacks []types.MemberUpdateCallback
-	mux             sync.RWMutex
+func (snapshot *clusterSnapshot) HostSet() types.HostSet {
+	return snapshot.hostSet
 }
 
-func NewPrioritySet() types.PrioritySet {
-	return &prioritySet{}
+func (snapshot *clusterSnapshot) ClusterInfo() types.ClusterInfo {
+	return snapshot.info
 }
 
-func (ps *prioritySet) GetOrCreateHostSet(priority uint32) types.HostSet {
-	ps.mux.Lock()
-	defer ps.mux.Unlock()
-
-	// Create a priority set
-	if uint32(len(ps.hostSets)) < priority+1 {
-
-		for i := uint32(len(ps.hostSets)); i <= priority; i++ {
-			hostSet := ps.createHostSet(i)
-			hostSet.addMemberUpdateCb(func(priority uint32, hostsAdded []types.Host, hostsRemoved []types.Host) {
-				for _, cb := range ps.updateCallbacks {
-					cb(priority, hostsAdded, hostsRemoved)
-				}
-			})
-			ps.hostSets = append(ps.hostSets, hostSet)
-		}
-	}
-
-	return ps.hostSets[priority]
+func (snapshot *clusterSnapshot) LoadBalancer() types.LoadBalancer {
+	return snapshot.lb
 }
 
-func (ps *prioritySet) createHostSet(priority uint32) *hostSet {
-	return &hostSet{
-		priority: priority,
-	}
-}
-
-func (ps *prioritySet) GetHostsInfo(priority uint32) []types.HostInfo {
-	var hostinfos []types.HostInfo
-	if uint32(len(ps.hostSets)) > priority {
-		hostset := ps.hostSets[priority]
-		for _, host := range hostset.Hosts() {
-			// host is an implement of hostinfo
-			hostinfos = append(hostinfos, host)
-		}
-	}
-	return hostinfos
-
-}
-
-func (ps *prioritySet) AddMemberUpdateCb(cb types.MemberUpdateCallback) {
-	ps.updateCallbacks = append(ps.updateCallbacks, cb)
-}
-
-func (ps *prioritySet) HostSetsByPriority() []types.HostSet {
-	ps.mux.RLock()
-	defer ps.mux.RUnlock()
-
-	return ps.hostSets
-}
-
-func getHealthHost(hosts []types.Host) []types.Host {
-	var healthyHost []types.Host
-	// todo: calculate healthyHost & healthyHostPerLocality
-	for _, h := range hosts {
-		if h.Health() {
-			healthyHost = append(healthyHost, h)
-		}
-	}
-	return healthyHost
-}
-
-func addHealthyHost(hostSets []types.HostSet, host types.Host) {
-	// Note: currently, one host only belong to a hostSet
-
-	for i, hostSet := range hostSets {
-		found := false
-
-		for _, h := range hostSet.Hosts() {
-			if h.AddressString() == host.AddressString() {
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [cluster] [health check] add healthy host = %s, in priority = %d", host.AddressString(), i)
-				}
-				found = true
-				break
-			}
-		}
-
-		if found {
-			newHealthHost := hostSet.HealthyHosts()
-			newHealthHost = append(newHealthHost, host)
-
-			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, nil, nil)
-			break
-		}
-	}
-}
-
-func delHealthHost(hostSets []types.HostSet, host types.Host) {
-	for i, hostSet := range hostSets {
-		// Note: currently, one host only belong to a hostSet
-		found := false
-
-		for _, h := range hostSet.Hosts() {
-			if h.AddressString() == host.AddressString() {
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[upstream] [cluster] [health check] del healthy host = %s, in priority = %d", host.AddressString(), i)
-				}
-				found = true
-				break
-			}
-		}
-
-		if found {
-			newHealthHost := hostSet.HealthyHosts()
-
-			for i, hh := range newHealthHost {
-				if host.AddressString() == hh.AddressString() {
-					//remove
-					newHealthHost = append(newHealthHost[:i], newHealthHost[i+1:]...)
-					break
-				}
-			}
-			hostSet.UpdateHosts(hostSet.Hosts(), newHealthHost, nil, nil)
-			break
-		}
-	}
+func (snapshot *clusterSnapshot) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+	return snapshot.lb.IsExistsHosts(metadata)
 }

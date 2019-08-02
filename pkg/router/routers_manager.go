@@ -23,7 +23,7 @@ import (
 	"sync"
 
 	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -55,18 +55,18 @@ type routersManagerImpl struct {
 // AddOrUpdateRouters used to add or update router
 func (rm *routersManagerImpl) AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error {
 	if routerConfig == nil {
-		log.DefaultLogger.Errorf(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", ErrNilRouterConfig.Error())
+		log.DefaultLogger.Alertf(types.ErrorKeyRouteUpdate, "error: %v", ErrNilRouterConfig)
 		return ErrNilRouterConfig
 	}
 	if v, ok := rm.routersWrapperMap.Load(routerConfig.RouterConfigName); ok {
 		rw, ok := v.(*RoutersWrapper)
 		if !ok {
-			log.DefaultLogger.Errorf(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "unexpected object in routers map")
+			log.DefaultLogger.Alertf(types.ErrorKeyRouteUpdate, "unexpected object in routers map")
 			return ErrUnexpected
 		}
 		routers, err := NewRouters(routerConfig)
 		if err != nil {
-			log.DefaultLogger.Errorf(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", err.Error())
+			log.DefaultLogger.Alertf(types.ErrorKeyRouteUpdate, "error: %v", err)
 			return err
 		}
 		rw.mux.Lock()
@@ -109,7 +109,7 @@ func (rm *routersManagerImpl) AddRoute(routerConfigName, domain string, route *v
 	if v, ok := rm.routersWrapperMap.Load(routerConfigName); ok {
 		rw, ok := v.(*RoutersWrapper)
 		if !ok {
-			log.DefaultLogger.Errorf(RouterLogFormat, "routers_manager", "AddRoute", "unexpected object in routers map")
+			log.DefaultLogger.Alertf(types.ErrorKeyRouteAppend, "unexpected object in routers map")
 			return ErrUnexpected
 		}
 		rw.mux.Lock()
@@ -117,14 +117,14 @@ func (rm *routersManagerImpl) AddRoute(routerConfigName, domain string, route *v
 		routers := rw.routers
 		// Stored routers should not be nil when called the api
 		if routers == nil {
-			log.DefaultLogger.Errorf(RouterLogFormat, "routers_manager", "AddRoute", ErrNoRouters.Error())
+			log.DefaultLogger.Alertf(types.ErrorKeyRouteAppend, "error: %v", ErrNoRouters)
 			return ErrNoRouters
 		}
 		cfg := rw.routersConfig
 		index := routers.AddRoute(domain, route)
 		if index == -1 {
 			errMsg := fmt.Sprintf("add route: %s into domain: %s failed", routerConfigName, domain)
-			log.DefaultLogger.Errorf(RouterLogFormat, "routers_manager", "AddRoute", errMsg)
+			log.DefaultLogger.Alertf(types.ErrorKeyRouteAppend, errMsg)
 			return errors.New(errMsg)
 		}
 		// modify config
@@ -142,7 +142,7 @@ func (rm *routersManagerImpl) RemoveAllRoutes(routerConfigName, domain string) e
 	if v, ok := rm.routersWrapperMap.Load(routerConfigName); ok {
 		rw, ok := v.(*RoutersWrapper)
 		if !ok {
-			log.DefaultLogger.Errorf(RouterLogFormat, "routers_manager", "RemoveAllRoutes", "unexpected object in routers map")
+			log.DefaultLogger.Alertf(types.ErrorKeyRouteClean, "unexpected object in routers map")
 			return ErrUnexpected
 		}
 		rw.mux.Lock()
@@ -150,14 +150,14 @@ func (rm *routersManagerImpl) RemoveAllRoutes(routerConfigName, domain string) e
 		routers := rw.routers
 		// Stored routers should not be nil when called the api
 		if routers == nil {
-			log.DefaultLogger.Errorf(RouterLogFormat, "routers_manager", "RemoveAllRoutes", ErrNoRouters.Error())
+			log.DefaultLogger.Alertf(types.ErrorKeyRouteClean, "error:%v", ErrNoRouters)
 			return ErrNoRouters
 		}
 		cfg := rw.routersConfig
 		index := routers.RemoveAllRoutes(domain)
 		if index == -1 {
 			errMsg := fmt.Sprintf("clear route: %s in domain: %s failed", routerConfigName, domain)
-			log.DefaultLogger.Errorf(RouterLogFormat, "routers_manager", "RemoveAllRoutes", errMsg)
+			log.DefaultLogger.Alertf(types.ErrorKeyRouteClean, errMsg)
 			return errors.New(errMsg)
 		}
 		// modify config

@@ -17,7 +17,25 @@
 
 package types
 
-import "time"
+import (
+	"time"
+	"context"
+)
+
+// factory
+type TracerBuilder func(config map[string]interface{}) (Tracer, error)
+
+type Driver interface {
+	Init(config map[string]interface{}) error
+
+	Register(proto Protocol, builder TracerBuilder)
+
+	Get(proto Protocol) Tracer
+}
+
+type Tracer interface {
+	Start(ctx context.Context, request interface{}, startTime time.Time) Span
+}
 
 type Span interface {
 	TraceId() string
@@ -36,13 +54,7 @@ type Span interface {
 
 	FinishSpan()
 
-	InjectContext(requestHeaders map[string]string)
+	InjectContext(requestHeaders HeaderMap)
 
 	SpawnChild(operationName string, startTime time.Time) Span
-}
-
-type Tracer interface {
-	Start(startTime time.Time) Span
-
-	PrintSpan(span Span) error
 }

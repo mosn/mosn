@@ -87,7 +87,7 @@ func reconfigure(start bool) {
 	notify.SetReadDeadline(time.Now().Add(10 * time.Minute))
 	n, err = notify.Read(buf[:])
 	if n != 1 {
-		log.DefaultLogger.Errorf("[server] [reconfigure] new mosn start failed")
+		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "new mosn start failed")
 		return
 	}
 

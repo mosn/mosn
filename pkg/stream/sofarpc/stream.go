@@ -34,6 +34,7 @@ import (
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
+	"time"
 )
 
 // StreamDirection represent the stream's direction
@@ -110,7 +111,6 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 
 		contextManager: str.NewContextManager(ctx),
 	}
-
 	// init first context
 	sc.contextManager.Next()
 
@@ -223,7 +223,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
-		log.Proxy.Errorf(conn.ctx, "[stream] [sofarpc] error occurs while proceeding codec logic: %v. close connection", err)
+		log.Proxy.Alertf(conn.ctx, types.ErrorKeyCodec, "error occurs while proceeding codec logic: %v. close connection", err)
 		//protocol decode error, close the connection directly
 		conn.conn.Close(types.NoFlush, types.LocalClose)
 	case types.ErrCodecException, types.ErrDeserializeException:
@@ -249,9 +249,12 @@ func (conn *streamConnection) processStream(ctx context.Context, cmd sofarpc.Sof
 	switch cmd.CommandType() {
 	case sofarpc.REQUEST, sofarpc.REQUEST_ONEWAY:
 		var span types.Span
-		if trace.IsTracingEnabled() {
+		if trace.IsEnabled() {
 			// try build trace span
-			span = conn.codecEngine.BuildSpan(ctx, cmd)
+			tracer := trace.Tracer(protocol.SofaRPC)
+			if tracer != nil {
+				span = tracer.Start(ctx, cmd, time.Now())
+			}
 		}
 		return conn.onNewStreamDetect(ctx, cmd, span)
 	case sofarpc.RESPONSE:

@@ -112,7 +112,11 @@ func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamRe
 			return true
 		}
 		// more policy
-
+	} else {
+		// default support connectionFailed retry
+		if reason == types.StreamConnectionFailed {
+			return true
+		}
 	}
 
 	return false

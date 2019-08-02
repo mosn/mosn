@@ -23,10 +23,6 @@ import (
 	"fmt"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/protocol/sofarpc/models"
-	"sofastack.io/sofa-mosn/pkg/trace"
-
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
@@ -35,7 +31,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
 	"sofastack.io/sofa-mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 )
 
 var (
@@ -43,7 +38,7 @@ var (
 )
 
 func init() {
-	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V1, BoltCodec, BoltCodec, &BoltV1SpanBuilder{})
+	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V1, BoltCodec, BoltCodec)
 	sofarpc.RegisterResponseBuilder(sofarpc.PROTOCOL_CODE_V1, BoltCodec)
 	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V1, BoltCodec)
 }
@@ -374,69 +369,4 @@ func (c *boltCodec) BuildResponse(respStatus int16) sofarpc.SofaRpcCmd {
 		Codec:          sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
 		ResponseStatus: respStatus,
 	}
-}
-
-type BoltV1SpanBuilder struct {
-}
-
-func (sb *BoltV1SpanBuilder) BuildSpan(args ...interface{}) types.Span {
-	if len(args) == 0 {
-		return nil
-	}
-
-	ctx, ok := args[0].(context.Context)
-	if !ok {
-		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, first arg unexpected:%+v", args[0])
-		return nil
-	}
-
-	request, ok := args[1].(*sofarpc.BoltRequest)
-	if !ok {
-		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, second arg unexpected:%+v", args[0])
-		return nil
-	}
-
-	if request.CmdCode == sofarpc.HEARTBEAT {
-		return nil
-	}
-
-	span := trace.Tracer().Start(time.Now())
-
-	traceId := request.RequestHeader[models.TRACER_ID_KEY]
-	if traceId == "" {
-		// TODO: set generated traceId into header?
-		traceId = trace.IdGen().GenerateTraceId()
-	}
-
-	span.SetTag(trace.TRACE_ID, traceId)
-	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
-	if lType == nil {
-		return span
-	}
-
-	spanId := request.RequestHeader[models.RPC_ID_KEY]
-	if spanId == "" {
-		spanId = "0" // Generate a new span id
-	} else {
-		if lType == v2.INGRESS {
-			trace.AddSpanIdGenerator(trace.NewSpanIdGenerator(traceId, spanId))
-		} else if lType == v2.EGRESS {
-			span.SetTag(trace.PARENT_SPAN_ID, spanId)
-			spanKey := &trace.SpanKey{TraceId: traceId, SpanId: spanId}
-			if spanIdGenerator := trace.GetSpanIdGenerator(spanKey); spanIdGenerator != nil {
-				spanId = spanIdGenerator.GenerateNextChildIndex()
-			}
-		}
-	}
-	span.SetTag(trace.SPAN_ID, spanId)
-
-	if lType == v2.EGRESS {
-		span.SetTag(trace.APP_NAME, request.RequestHeader[models.APP_NAME])
-	}
-	span.SetTag(trace.SPAN_TYPE, string(lType.(v2.ListenerType)))
-	span.SetTag(trace.METHOD_NAME, request.RequestHeader[models.TARGET_METHOD])
-	span.SetTag(trace.PROTOCOL, "bolt")
-	span.SetTag(trace.SERVICE_NAME, request.RequestHeader[models.SERVICE_KEY])
-	span.SetTag(trace.BAGGAGE_DATA, request.RequestHeader[models.SOFA_TRACE_BAGGAGE_DATA])
-	return span
 }

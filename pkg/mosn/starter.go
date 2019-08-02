@@ -22,7 +22,7 @@ import (
 
 	admin "sofastack.io/sofa-mosn/pkg/admin/server"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/connectionmanager"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -114,9 +114,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	clusters, clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
 	if mode == config.Xds {
-		m.clustermanager = cluster.NewClusterManager(nil, nil, nil, true, false)
+		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil)
 	} else {
-		m.clustermanager = cluster.NewClusterManager(nil, clusters, clusterMap, c.ClusterManager.AutoDiscovery, c.ClusterManager.RegistryUseHealthCheck)
+		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap)
 	}
 
 	// initialize the routerManager
@@ -160,7 +160,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
 				// network filters
-				if !lc.HandOffRestoredDestinationConnections {
+				if !lc.UseOriginalDst {
 					// network and stream filters
 					nfcf = config.GetNetworkFilters(&lc.FilterChains[0])
 					sfcf = config.GetStreamFilters(lc.StreamFilters)
@@ -244,7 +244,7 @@ func (m *Mosn) Start() {
 // Close mosn's server
 func (m *Mosn) Close() {
 	// close service
-	store.StopService()
+	store.CloseService()
 
 	// stop reconfigure domain socket
 	server.StopReconfigureHandler()
@@ -253,7 +253,7 @@ func (m *Mosn) Close() {
 	for _, srv := range m.servers {
 		srv.Close()
 	}
-	m.clustermanager.Destory()
+	m.clustermanager.Destroy()
 }
 
 // Start mosn project
@@ -277,20 +277,18 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 }
 
 func initializeTracing(config config.TracingConfig) {
-	if config.Enable && config.Tracer != "" {
-		tracer := trace.CreateTracer(config.Tracer)
-		if tracer != nil {
-			trace.SetTracer(tracer)
-		} else {
-			log.StartLogger.Errorf("[mosn] [init tracing] Unable to recognise tracing implementation %s, tracing functionality is turned off.", config.Tracer)
-			trace.DisableTracing()
+	if config.Enable && config.Driver != "" {
+		err := trace.Init(config.Driver, config.Config)
+		if err != nil {
+			log.StartLogger.Errorf("[mosn] [init tracing] init driver '%s' failed: %s, tracing functionality is turned off.", config.Driver, err)
+			trace.Disable()
 			return
 		}
 		log.StartLogger.Infof("[mosn] [init tracing] enable tracing")
-		trace.EnableTracing()
+		trace.Enable()
 	} else {
 		log.StartLogger.Infof("[mosn] [init tracing] disbale tracing")
-		trace.DisableTracing()
+		trace.Disable()
 	}
 }
 

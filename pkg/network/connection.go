@@ -25,7 +25,6 @@ import (
 	"net"
 	"os"
 	"reflect"
-	"runtime"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
@@ -42,7 +41,7 @@ import (
 
 // Network related const
 const (
-	DefaultBufferReadCapacity = 1 << 0
+	DefaultBufferReadCapacity = 1 << 7
 )
 
 var idCounter uint64 = 1
@@ -68,6 +67,7 @@ type connection struct {
 	bytesSendCallbacks   []func(bytesSent uint64)
 	transferCallbacks    func() bool
 	filterManager        types.FilterManager
+	idleEventListener    types.ConnectionEventListener
 
 	stopChan           chan struct{}
 	curWriteBufferData []types.IoBuffer
@@ -84,6 +84,8 @@ type connection struct {
 	writeSchedChan chan bool // writable if not scheduled yet.
 
 	stats              *types.ConnectionStats
+	readCollector      metrics.Counter
+	writeCollector     metrics.Counter
 	lastBytesSizeRead  int64
 	lastWriteSizeWrite int64
 
@@ -91,6 +93,10 @@ type connection struct {
 	connected uint32
 	startOnce sync.Once
 	eventLoop *eventLoop
+
+	writeLock    sync.RWMutex
+	needTransfer bool
+	useWriteLoop bool
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
@@ -116,6 +122,8 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 			WriteTotal:    metrics.NewCounter(),
 			WriteBuffered: metrics.NewGauge(),
 		},
+		readCollector:  metrics.NilCounter{},
+		writeCollector: metrics.NilCounter{},
 	}
 
 	// store fd
@@ -157,6 +165,10 @@ func (c *connection) Start(lctx context.Context) {
 			c.startRWLoop(lctx)
 		}
 	})
+}
+
+func (c *connection) SetIdleTimeout(d time.Duration) {
+	c.newIdleChecker(d)
 }
 
 func (c *connection) attachEventLoop(lctx context.Context) {
@@ -211,6 +223,19 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	}
 }
 
+func (c *connection) checkUseWriteLoop() bool {
+	tcpAddr, ok := c.remoteAddr.(*net.TCPAddr)
+	if !ok {
+		return false
+	}
+	if tcpAddr.IP.IsLoopback() {
+		log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
+			c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
+		return true
+	}
+	return false
+}
+
 func (c *connection) startRWLoop(lctx context.Context) {
 	c.internalLoopStarted = true
 
@@ -220,11 +245,14 @@ func (c *connection) startRWLoop(lctx context.Context) {
 		c.Close(types.NoFlush, types.LocalClose)
 	})
 
-	utils.GoWithRecover(func() {
-		c.startWriteLoop()
-	}, func(r interface{}) {
-		c.Close(types.NoFlush, types.LocalClose)
-	})
+	if c.checkUseWriteLoop() {
+		c.useWriteLoop = true
+		utils.GoWithRecover(func() {
+			c.startWriteLoop()
+		}, func(r interface{}) {
+			c.Close(types.NoFlush, types.LocalClose)
+		})
+	}
 }
 
 func (c *connection) scheduleWrite() {
@@ -298,7 +326,8 @@ func (c *connection) startReadLoop() {
 				}
 			} else {
 				if transferTime.Before(time.Now()) {
-					goto transfer
+					c.transfer()
+					return
 				}
 			}
 		default:
@@ -313,7 +342,7 @@ func (c *connection) startReadLoop() {
 				err := c.doRead()
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
-						if c.readBuffer != nil && c.readBuffer.Len() == 0 {
+						if c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
 							c.readBuffer.Free()
 							c.readBuffer.Alloc(DefaultBufferReadCapacity)
 						}
@@ -345,15 +374,40 @@ func (c *connection) startReadLoop() {
 				case <-time.After(100 * time.Millisecond):
 				}
 			}
-
-			runtime.Gosched()
 		}
 	}
+}
 
-transfer:
-	c.transferChan <- transferNotify
+func (c *connection) transfer() {
+	c.notifyTransfer()
 	id, _ := transferRead(c)
-	c.transferChan <- id
+	c.transferWrite(id)
+}
+
+func (c *connection) notifyTransfer() {
+	if c.useWriteLoop {
+		c.transferChan <- transferNotify
+	} else {
+		c.writeLock.Lock()
+		c.needTransfer = true
+		c.writeLock.Unlock()
+	}
+}
+
+func (c *connection) transferWrite(id uint64) {
+	log.DefaultLogger.Infof("[network] TransferWrite begin")
+	for {
+		select {
+		case <-c.internalStopChan:
+			return
+		case buf, ok := <-c.writeBufferChan:
+			if !ok {
+				return
+			}
+			c.appendBuffer(buf)
+			transferWrite(c, id)
+		}
+	}
 }
 
 func (c *connection) doRead() (err error) {
@@ -366,6 +420,9 @@ func (c *connection) doRead() (err error) {
 	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
 
 	if err != nil {
+		if atomic.LoadUint32(&c.closed) == 1 {
+			return nil
+		}
 		if te, ok := err.(net.Error); ok && te.Timeout() {
 			for _, cb := range c.connCallbacks {
 				cb.OnEvent(types.OnReadTimeout) // run read timeout callback, for keep alive if configured
@@ -394,6 +451,7 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 
 	if bytesRead > 0 {
 		c.stats.ReadTotal.Inc(bytesRead)
+		c.readCollector.Inc(bytesRead)
 	}
 
 	if bytesBufSize != c.lastBytesSizeRead {
@@ -415,11 +473,12 @@ func (c *connection) onRead() {
 	c.filterManager.OnRead()
 }
 
-func (c *connection) Write(buffers ...types.IoBuffer) error {
+func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("[network] [write] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v",
-				c.id, c.LocalAddr(), c.RemoteAddr())
+			log.DefaultLogger.Errorf("[network] [write] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
+				c.id, c.LocalAddr(), c.RemoteAddr(), r)
+			err = types.ErrConnectionHasClosed
 		}
 	}()
 
@@ -430,7 +489,11 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 	}
 
 	if !UseNetpollMode {
-		c.writeBufferChan <- &buffers
+		if c.useWriteLoop {
+			c.writeBufferChan <- &buffers
+		} else {
+			err = c.writeDirectly(&buffers)
+		}
 	} else {
 		if atomic.LoadUint32(&c.connected) == 1 {
 			return fmt.Errorf("can note schedule write on the un-connected connection %d", c.id)
@@ -456,11 +519,78 @@ func (c *connection) Write(buffers ...types.IoBuffer) error {
 		}
 	}
 
+	return
+}
+
+func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
+	select {
+	case <-c.internalStopChan:
+		return types.ErrConnectionHasClosed
+	default:
+	}
+
+	c.writeLock.RLock()
+	defer c.writeLock.RUnlock()
+
+	if c.needTransfer {
+		c.writeBufferChan <- buf
+		return
+	}
+
+	var writeBuffer net.Buffers
+	var writeBufferLen int64
+
+	for _, buf := range *buf {
+		if buf == nil {
+			continue
+		}
+		writeBuffer = append(writeBuffer, buf.Bytes())
+		writeBufferLen += int64(buf.Len())
+	}
+
+	var bytesSent int64
+
+	c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
+	if tlsConn, ok := c.rawConnection.(*mtls.TLSConn); ok {
+		bytesSent, err = tlsConn.WriteTo(&writeBuffer)
+	} else {
+		bytesSent, err = writeBuffer.WriteTo(c.rawConnection)
+	}
+
+	if err != nil {
+		log.DefaultLogger.Errorf("[network] [write directly] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
+			c.id, c.RemoteAddr().String(), err, c)
+
+		if te, ok := err.(net.Error); ok && te.Timeout() {
+			c.Close(types.NoFlush, types.OnWriteTimeout)
+		}
+
+		//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
+
+		return
+	}
+
+	for _, buf := range *buf {
+		if buf.EOF() {
+			err = buffer.EOF
+		}
+		if e := buffer.PutIoBuffer(buf); e != nil {
+			log.DefaultLogger.Errorf("[network] [write directly] PutIoBuffer error: %v", e)
+		}
+	}
+	if err == buffer.EOF {
+		c.Close(types.NoFlush, types.LocalClose)
+	}
+
+	c.updateWriteBuffStats(bytesSent, writeBufferLen)
+
+	for _, cb := range c.bytesSendCallbacks {
+		cb(uint64(bytesSent))
+	}
 	return nil
 }
 
 func (c *connection) startWriteLoop() {
-	var id uint64
 	var err error
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
@@ -474,10 +604,7 @@ func (c *connection) startWriteLoop() {
 		case <-c.internalStopChan:
 			return
 		case <-c.transferChan:
-			id = <-c.transferChan
-			if id != transferErr {
-				goto transfer
-			}
+			return
 		case buf, ok := <-c.writeBufferChan:
 			if !ok {
 				return
@@ -493,67 +620,29 @@ func (c *connection) startWriteLoop() {
 					}
 					c.appendBuffer(buf)
 				default:
+					break
 				}
 			}
+
+			c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
 			_, err = c.doWrite()
 		}
 
-		/*
-				i := 0
-				timer := time.NewTimer(3 * time.Millisecond)
-				for {
-					select {
-					case buf := <-c.writeBufferChan:
-						c.appendBuffer(buf)
-						i++
-						if i > 100 {
-							_, err = c.doWriteIo()
-							goto end
-						}
-					case <-timer.C:
-						_, err = c.doWriteIo()
-						goto end
-					}
-				}
-			end:
-		*/
-
 		if err != nil {
+			log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
+				c.id, c.RemoteAddr().String(), err, c)
+
 			if te, ok := err.(net.Error); ok && te.Timeout() {
-				continue
+				c.Close(types.NoFlush, types.OnWriteTimeout)
 			}
 
 			if err == buffer.EOF {
 				c.Close(types.NoFlush, types.LocalClose)
-			} else if err == io.EOF {
-				// remote conn closed
-				c.Close(types.NoFlush, types.RemoteClose)
-			} else {
-				// on non-timeout error
-				c.Close(types.NoFlush, types.OnWriteErrClose)
 			}
 
-			log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
-				c.id, c.RemoteAddr().String(), err, c)
+			//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
 
 			return
-		}
-
-		runtime.Gosched()
-	}
-
-transfer:
-	log.DefaultLogger.Infof("[network] [write loop] TransferWrite begin")
-	for {
-		select {
-		case <-c.internalStopChan:
-			return
-		case buf, ok := <-c.writeBufferChan:
-			if !ok {
-				return
-			}
-			c.appendBuffer(buf)
-			transferWrite(c, id)
 		}
 	}
 }
@@ -573,6 +662,9 @@ func (c *connection) appendBuffer(iobuffers *[]types.IoBuffer) {
 
 func (c *connection) doWrite() (int64, error) {
 	bytesSent, err := c.doWriteIo()
+	if err != nil && atomic.LoadUint32(&c.closed) == 1 {
+		return 0, nil
+	}
 
 	c.updateWriteBuffStats(bytesSent, int64(c.writeBufLen()))
 
@@ -616,6 +708,7 @@ func (c *connection) updateWriteBuffStats(bytesWrite int64, bytesBufSize int64) 
 
 	if bytesWrite > 0 {
 		c.stats.WriteTotal.Inc(bytesWrite)
+		c.writeCollector.Inc(bytesWrite)
 	}
 
 	if bytesBufSize != c.lastWriteSizeWrite {
@@ -769,8 +862,9 @@ func (c *connection) SetLocalAddress(localAddress net.Addr, restored bool) {
 	c.localAddressRestored = restored
 }
 
-func (c *connection) SetStats(stats *types.ConnectionStats) {
-	c.stats = stats
+func (c *connection) SetCollector(read, write metrics.Counter) {
+	c.readCollector = read
+	c.writeCollector = write
 }
 
 func (c *connection) LocalAddressRestored() bool {
@@ -825,7 +919,9 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 				WriteTotal:    metrics.NewCounter(),
 				WriteBuffered: metrics.NewGauge(),
 			},
-			tlsMng: tlsMng,
+			readCollector:  metrics.NilCounter{},
+			writeCollector: metrics.NilCounter{},
+			tlsMng:         tlsMng,
 		},
 	}
 
@@ -864,7 +960,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 				}
 			}
 
-			if cc.tlsMng != nil && cc.tlsMng.Enabled() {
+			if cc.tlsMng != nil {
 				cc.rawConnection = cc.tlsMng.Conn(cc.rawConnection)
 			}
 

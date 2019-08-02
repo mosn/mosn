@@ -20,10 +20,8 @@ package http
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
-	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
@@ -62,6 +60,10 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 	}
 
 	return pool
+}
+
+func (p *connPool) SupportTLS() bool {
+	return p.host.SupportTLS()
 }
 
 func (p *connPool) Protocol() types.Protocol {
@@ -132,6 +134,10 @@ func (p *connPool) Close() {
 	for _, c := range p.availableClients {
 		c.client.Close()
 	}
+}
+
+func (p *connPool) Shutdown() {
+	// TODO: http connpool do nothing for shutdown
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
@@ -224,9 +230,9 @@ type activeClient struct {
 	client             str.Client
 	host               types.CreateConnectionData
 	totalStream        uint64
-	pendingReset       uint32 // FIXME: temp fix for http concurrent problem, which is caused by downstream reset
 	closeWithActiveReq bool
 	closed             bool
+	closeConn          bool
 }
 
 func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.PoolFailureReason) {
@@ -251,13 +257,8 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
-	// bytes total adds all connections data together, but buffered data not
-	codecClient.SetConnectionStats(&types.ConnectionStats{
-		ReadTotal:     pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal,
-		ReadBuffered:  metrics.NewGauge(),
-		WriteTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal,
-		WriteBuffered: metrics.NewGauge(),
-	})
+	// bytes total adds all connections data together
+	codecClient.SetConnectionCollector(pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal, pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
 	return ac, ""
 }
@@ -269,17 +270,22 @@ func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
 
 // types.StreamEventListener
 func (ac *activeClient) OnDestroyStream() {
-	if atomic.LoadUint32(&ac.pendingReset) > 0 {
-		atomic.AddUint32(&ac.pendingReset, ^uint32(0))
-		return
+	if !ac.closed && ac.closeConn {
+		ac.client.Close()
 	}
 	ac.pool.onStreamDestroy(ac)
 }
 
 func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
-	atomic.AddUint32(&ac.pendingReset, 1)
 	ac.pool.onStreamReset(ac, reason)
+	if reason == types.StreamLocalReset && !ac.closed {
+		log.DefaultLogger.Debugf("[stream] [http] stream local reset, blow client away also, Connection = %d",
+			ac.client.ConnID())
+		ac.closeConn = true
+	}
 }
 
 // types.StreamConnectionEventListener
-func (ac *activeClient) OnGoAway() {}
+func (ac *activeClient) OnGoAway() {
+	ac.closeConn = true
+}

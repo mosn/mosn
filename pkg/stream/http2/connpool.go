@@ -23,11 +23,11 @@ import (
 	"sync/atomic"
 
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
 )
 
 func init() {
@@ -50,6 +50,10 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
 		host: host,
 	}
+}
+
+func (p *connPool) SupportTLS() bool {
+	return p.host.SupportTLS()
 }
 
 func (p *connPool) Protocol() types.Protocol {
@@ -103,8 +107,13 @@ func (p *connPool) Close() {
 	}
 }
 
+func (p *connPool) Shutdown() {
+	//TODO: http2 connpool do nothing for shutdown
+}
+
 func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
+	log.DefaultLogger.Debugf("http2 connPool onConnectionEvent: %v", event)
 	if event.IsClose() {
 		if client.closeWithActiveReq {
 			if event == types.LocalClose {
@@ -169,7 +178,6 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	}
 
 	data := pool.host.CreateConnection(ctx)
-
 	ac.host = data
 	if err := ac.host.Connection.Connect(true); err != nil {
 		return nil
@@ -188,12 +196,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
 	// bytes total adds all connections data together, but buffered data not
-	codecClient.SetConnectionStats(&types.ConnectionStats{
-		ReadTotal:     pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal,
-		ReadBuffered:  metrics.NewGauge(),
-		WriteTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal,
-		WriteBuffered: metrics.NewGauge(),
-	})
+	codecClient.SetConnectionCollector(pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal, pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
 	return ac
 }

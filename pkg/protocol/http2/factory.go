@@ -24,9 +24,9 @@ import (
 )
 
 func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc}, nil)
+	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc})
 }
 
 func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc}, nil)
+	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc})
 }

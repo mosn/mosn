@@ -33,7 +33,7 @@ import (
 var (
 	subProtocolFactories map[SubProtocol]CodecFactory
 	xProtocolCoder       = &Coder{}
-	xProtocolEngine      = rpc.NewEngine(xProtocolCoder, xProtocolCoder, nil)
+	xProtocolEngine      = rpc.NewEngine(xProtocolCoder, xProtocolCoder)
 )
 
 func Engine() types.ProtocolEngine {

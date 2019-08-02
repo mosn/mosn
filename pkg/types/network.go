@@ -19,13 +19,13 @@ package types
 
 import (
 	"context"
+	"errors"
 	"net"
+	"os"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 	"github.com/rcrowley/go-metrics"
-	"os"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 //
@@ -112,11 +112,11 @@ type Listener interface {
 	// Set limit bytes per connection
 	SetPerConnBufferLimitBytes(limitBytes uint32)
 
-	// Set if listener should hand off restored destination connections
-	SetHandOffRestoredDestinationConnections(restoredDestation bool)
+	// Set if listener should use original dst
+	SetUseOriginalDst(use bool)
 
-	// Get if listener hand off restored destination connections
-	HandOffRestoredDestinationConnections() bool
+	// Get if listener should use original dst
+	UseOriginalDst() bool
 
 	// SetListenerCallbacks set a listener event listener
 	SetListenerCallbacks(cb ListenerEventListener)
@@ -128,17 +128,10 @@ type Listener interface {
 	Close(lctx context.Context) error
 }
 
-//
-type TLSContextManager interface {
-	Conn(net.Conn) net.Conn
-	Enabled() bool
-	Config() *tls.Config
-}
-
 // ListenerEventListener is a Callback invoked by a listener.
 type ListenerEventListener interface {
 	// OnAccept is called on new connection accepted
-	OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan Connection, buf []byte)
+	OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, c chan Connection, buf []byte)
 
 	// OnNewConnection is called on new mosn connection created
 	OnNewConnection(ctx context.Context, conn Connection)
@@ -274,9 +267,8 @@ type Connection interface {
 	// SetLocalAddress sets a local address
 	SetLocalAddress(localAddress net.Addr, restored bool)
 
-	// SetStats injects a connection stats
-	SetStats(stats *ConnectionStats)
-
+	// SetCollector set read/write mertics collectors
+	SetCollector(read, write metrics.Counter)
 	// LocalAddressRestored returns whether local address is restored
 	// TODO: unsupported now
 	LocalAddressRestored() bool
@@ -297,6 +289,10 @@ type Connection interface {
 
 	// SetTransferEventListener set a method will be called when connection transfer occur
 	SetTransferEventListener(listener func() bool)
+
+	// SetIdleTimeout sets the timeout that will set the connnection to idle. mosn close idle connection
+	// if no idle timeout setted or a zero value for d means no idle connections.
+	SetIdleTimeout(d time.Duration)
 }
 
 // ConnectionStats is a group of connection metrics
@@ -329,12 +325,13 @@ const (
 	ConnectTimeout  ConnectionEvent = "ConnectTimeout"
 	ConnectFailed   ConnectionEvent = "ConnectFailed"
 	OnReadTimeout   ConnectionEvent = "OnReadTimeout"
+	OnWriteTimeout  ConnectionEvent = "OnWriteTimeout"
 )
 
 // IsClose represents whether the event is triggered by connection close
 func (ce ConnectionEvent) IsClose() bool {
 	return ce == LocalClose || ce == RemoteClose ||
-		ce == OnReadErrClose || ce == OnWriteErrClose
+		ce == OnReadErrClose || ce == OnWriteErrClose || ce == OnWriteTimeout
 }
 
 // ConnectFailure represents whether the event is triggered by connection failure
@@ -344,7 +341,8 @@ func (ce ConnectionEvent) ConnectFailure() bool {
 
 // Default connection arguments
 const (
-	DefaultConnReadTimeout = 15 * time.Second
+	DefaultConnReadTimeout  = 15 * time.Second
+	DefaultConnWriteTimeout = 15 * time.Second
 )
 
 // ConnectionEventListener is a network level callbacks that happen on a connection.
@@ -481,3 +479,7 @@ func (as Addresses) Contains(addr net.Addr) bool {
 
 	return false
 }
+
+var (
+	ErrConnectionHasClosed = errors.New("connection has closed")
+)

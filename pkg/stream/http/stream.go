@@ -38,6 +38,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/utils"
+	"time"
 )
 
 func init() {
@@ -116,6 +117,7 @@ type streamConnection struct {
 
 	conn              types.Connection
 	connEventListener types.ConnectionEventListener
+	resetReason       types.StreamResetReason
 
 	bufChan    chan types.IoBuffer
 	connClosed chan bool
@@ -218,7 +220,11 @@ func (conn *clientStreamConnection) serve() {
 		if err != nil {
 			if s != nil {
 				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
-				s.ResetStream(types.StreamRemoteReset)
+				reason := conn.resetReason
+				if reason == "" {
+					reason = types.StreamRemoteReset
+				}
+				s.ResetStream(reason)
 			}
 			return
 		}
@@ -233,15 +239,14 @@ func (conn *clientStreamConnection) serve() {
 			resetConn = true
 		}
 
-		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-			s.handleResponse()
-		}
-
 		// 3. local reset if header 'Connection: close' exists
 		if resetConn {
-			// close connection
-			s.connection.conn.Close(types.NoFlush, types.LocalClose)
-			return
+			// goaway the connpool
+			s.connection.streamConnectionEventListener.OnGoAway()
+		}
+
+		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+			s.handleResponse()
 		}
 	}
 }
@@ -280,6 +285,7 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 	close(conn.bufChan)
 	close(conn.connClosed)
+	conn.resetReason = reason
 }
 
 // types.ServerStreamConnection
@@ -384,10 +390,14 @@ func (conn *serverStreamConnection) serve() {
 		}
 		s.connection = conn
 		s.responseDoneChan = make(chan bool, 1)
+		s.header = mosnhttp.RequestHeader{&s.request.Header, nil}
 
 		var span types.Span
-		if trace.IsTracingEnabled() {
-			span = spanBuilder.BuildSpan(ctx, request)
+		if trace.IsEnabled() {
+			tracer := trace.Tracer(protocol.HTTP1)
+			if tracer != nil {
+				span = tracer.Start(ctx, s.header, time.Now())
+			}
 		}
 		s.stream.ctx = s.connection.contextManager.InjectTrace(ctx, span)
 
@@ -499,7 +509,22 @@ func (s *clientStream) AppendTrailers(context context.Context, trailers types.He
 }
 
 func (s *clientStream) endStream() {
-	s.doSend()
+	err := s.doSend()
+
+	if err != nil {
+		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send client request error: %+v", err)
+
+		if err == types.ErrConnectionHasClosed {
+			s.ResetStream(types.StreamConnectionFailed)
+		} else {
+			s.ResetStream(types.StreamLocalReset)
+		}
+		return
+	}
+
+	if log.Proxy.GetLogLevel() >= log.INFO {
+		log.Proxy.Infof(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
+	}
 	s.connection.requestSent <- true
 }
 
@@ -515,14 +540,9 @@ func (s *clientStream) ReadDisable(disable bool) {
 	}
 }
 
-func (s *clientStream) doSend() {
-	if _, err := s.request.WriteTo(s.connection); err != nil {
-		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send client request error: %+v", err)
-	} else {
-		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
-		}
-	}
+func (s *clientStream) doSend() (err error) {
+	_, err = s.request.WriteTo(s.connection)
+	return
 }
 
 func (s *clientStream) handleResponse() {
@@ -563,6 +583,7 @@ func (s *clientStream) GetStream() types.Stream {
 type serverStream struct {
 	stream
 
+	header           mosnhttp.RequestHeader
 	connection       *serverStreamConnection
 	responseDoneChan chan bool
 }
@@ -670,12 +691,8 @@ func (s *serverStream) doSend() {
 
 func (s *serverStream) handleRequest() {
 	if s.request != nil {
-
-		// header
-		header := mosnhttp.RequestHeader{&s.request.Header, nil}
-
 		// set non-header info in request-line, like method, uri
-		injectInternalHeaders(header, s.request.URI())
+		injectInternalHeaders(s.header, s.request.URI())
 
 		hasData := true
 		if len(s.request.Body()) == 0 {
@@ -683,9 +700,9 @@ func (s *serverStream) handleRequest() {
 		}
 
 		if hasData {
-			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.request.Body()), nil)
+			s.receiver.OnReceive(s.ctx, s.header, buffer.NewIoBufferBytes(s.request.Body()), nil)
 		} else {
-			s.receiver.OnReceive(s.ctx, header, nil, nil)
+			s.receiver.OnReceive(s.ctx, s.header, nil, nil)
 		}
 	}
 }

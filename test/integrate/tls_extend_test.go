@@ -21,21 +21,14 @@ type tlsConfigHooks struct {
 	cert tls.Certificate
 }
 
-func (hook *tlsConfigHooks) verifyPeerCertificate(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	var certs []*x509.Certificate
-	for _, asn1Data := range rawCerts {
-		cert, err := x509.ParseCertificate(asn1Data)
-		if err != nil {
-			return err
-		}
-		certs = append(certs, cert)
-	}
+func (hook *tlsConfigHooks) verifyPeerCertificate(roots *x509.CertPool, certs []*x509.Certificate, t time.Time) error {
 	intermediates := x509.NewCertPool()
 	for _, cert := range certs[1:] {
 		intermediates.AddCert(cert)
 	}
 	opts := x509.VerifyOptions{
-		Roots:         hook.root,
+		Roots:         roots,
+		CurrentTime:   t,
 		Intermediates: intermediates,
 	}
 	leaf := certs[0]
@@ -50,8 +43,46 @@ func (hook *tlsConfigHooks) GetCertificate(certIndex, keyIndex string) (tls.Cert
 func (hook *tlsConfigHooks) GetX509Pool(caIndex string) (*x509.CertPool, error) {
 	return hook.root, nil
 }
-func (hook *tlsConfigHooks) VerifyPeerCertificate() func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	return hook.verifyPeerCertificate
+func (hook *tlsConfigHooks) ServerHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+		certs := make([]*x509.Certificate, 0, len(rawCerts))
+		for _, asn1Data := range rawCerts {
+			cert, err := x509.ParseCertificate(asn1Data)
+			if err != nil {
+				return err
+			}
+			certs = append(certs, cert)
+		}
+		if cfg.ClientAuth >= tls.VerifyClientCertIfGiven && len(certs) > 0 {
+			var t time.Time
+			if cfg.Time != nil {
+				t = cfg.Time()
+			} else {
+				t = time.Now()
+			}
+			return hook.verifyPeerCertificate(cfg.ClientCAs, certs, t)
+		}
+		return nil
+	}
+}
+func (hook *tlsConfigHooks) ClientHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+		certs := make([]*x509.Certificate, 0, len(rawCerts))
+		for _, asn1Data := range rawCerts {
+			cert, err := x509.ParseCertificate(asn1Data)
+			if err != nil {
+				return err
+			}
+			certs = append(certs, cert)
+		}
+		var t time.Time
+		if cfg.Time != nil {
+			t = cfg.Time()
+		} else {
+			t = time.Now()
+		}
+		return hook.verifyPeerCertificate(cfg.RootCAs, certs, t)
+	}
 }
 
 type tlsConfigHooksFactory struct {

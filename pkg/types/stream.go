@@ -357,6 +357,12 @@ type ConnectionPool interface {
 	// check host health and init host
 	CheckAndInit(ctx context.Context) bool
 
+	// SupportTLS represents the connection support tls or not
+	SupportTLS() bool
+
+	// Shutdown gracefully shuts down the connection pool without interrupting any active requests
+	Shutdown()
+
 	Close()
 }
 

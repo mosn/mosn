@@ -23,7 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rcrowley/go-metrics"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
@@ -62,6 +61,10 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 		host: host,
 	}
 	return p
+}
+
+func (p *connPool) SupportTLS() bool {
+	return p.host.SupportTLS()
 }
 
 func (p *connPool) init(client *activeClient, sub byte) {
@@ -160,14 +163,24 @@ func (p *connPool) NewStream(ctx context.Context,
 func (p *connPool) Close() {
 	f := func(k, v interface{}) bool {
 		ac, _ := v.(*activeClient)
-		// fakeclient
-		if ac.client == nil {
-			return true
+		if ac.client != nil {
+			ac.client.Close()
 		}
-		ac.client.Close()
 		return true
 	}
 
+	p.activeClients.Range(f)
+}
+
+// Shutdown stop the keepalive, so the connection will be idle after requests finished
+func (p *connPool) Shutdown() {
+	f := func(k, v interface{}) bool {
+		ac, _ := v.(*activeClient)
+		if ac.keepAlive != nil {
+			ac.keepAlive.keepAlive.Stop()
+		}
+		return true
+	}
 	p.activeClients.Range(f)
 }
 
@@ -285,8 +298,10 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 
 	// TODO: support config
 	if subProtocol != defaultSubProtocol {
+		rpcKeepAlive := NewSofaRPCKeepAlive(codecClient, subProtocol, time.Second, 6)
+		rpcKeepAlive.StartIdleTimeout()
 		ac.keepAlive = &keepAliveListener{
-			keepAlive: NewSofaRPCKeepAlive(codecClient, subProtocol, time.Second, 6),
+			keepAlive: rpcKeepAlive,
 		}
 		ac.client.AddConnectionEventListener(ac.keepAlive)
 	}
@@ -301,13 +316,8 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
-	// bytes total adds all connections data together, but buffered data not
-	codecClient.SetConnectionStats(&types.ConnectionStats{
-		ReadTotal:     pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal,
-		ReadBuffered:  metrics.NewGauge(),
-		WriteTotal:    pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal,
-		WriteBuffered: metrics.NewGauge(),
-	})
+	// bytes total adds all connections data together
+	codecClient.SetConnectionCollector(pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal, pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
 	return ac
 }

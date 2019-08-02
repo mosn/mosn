@@ -59,7 +59,6 @@ func TestClusterUnmarshal(t *testing.T) {
 		"lb_type": "LB_RANDOM",
 		"circuit_breakers":[
 			{
-				"priority":"HIGH",
 				"max_connections":10,
 				"max_retries":1
 			}
@@ -119,8 +118,7 @@ func TestClusterUnmarshal(t *testing.T) {
 	if len(breakers) != 1 {
 		t.Error("CirBreThresholds failed")
 	} else {
-		if !(breakers[0].Priority == HIGH &&
-			breakers[0].MaxConnections == 10 &&
+		if !(breakers[0].MaxConnections == 10 &&
 			breakers[0].MaxRetries == 1) {
 			t.Error("CirBreThresholds failed")
 		}
@@ -174,7 +172,7 @@ func TestListenerUnmarshal(t *testing.T) {
 		"name": "test",
 		"address": "127.0.0.1",
 		"bind_port": true,
-		"handoff_restoreddestination": true,
+		"use_original_dst":true,
 		"access_logs": [
 			{
 				"log_path":"stdout"
@@ -215,7 +213,7 @@ func TestListenerUnmarshal(t *testing.T) {
 	if !(ln.Name == "test" &&
 		ln.AddrConfig == "127.0.0.1" &&
 		ln.BindToPort == true &&
-		ln.HandOffRestoredDestinationConnections == true &&
+		ln.UseOriginalDst &&
 		ln.Inspector == true) {
 		t.Error("listener basic failed")
 	}

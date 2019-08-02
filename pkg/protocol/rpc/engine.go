@@ -25,20 +25,18 @@ import (
 )
 
 type engine struct {
-	encoder     types.Encoder
-	decoder     types.Decoder
-	spanBuilder types.SpanBuilder
+	encoder types.Encoder
+	decoder types.Decoder
 }
 
 type mixedEngine struct {
 	engineMap map[byte]*engine
 }
 
-func NewEngine(encoder types.Encoder, decoder types.Decoder, spanBuilder types.SpanBuilder) types.ProtocolEngine {
+func NewEngine(encoder types.Encoder, decoder types.Decoder) types.ProtocolEngine {
 	return &engine{
-		encoder:     encoder,
-		decoder:     decoder,
-		spanBuilder: spanBuilder,
+		encoder: encoder,
+		decoder: decoder,
 	}
 }
 
@@ -60,17 +58,7 @@ func (eg *engine) Decode(ctx context.Context, data types.IoBuffer) (interface{},
 	return eg.decoder.Decode(ctx, data)
 }
 
-func (eg *engine) BuildSpan(args ...interface{}) types.Span {
-	builder := eg.spanBuilder
-	if builder != nil {
-		return builder.BuildSpan(args...)
-	} else {
-		log.DefaultLogger.Warnf("[protocol][engine][rpc] spanBuilder is empty, engine=%+v", eg)
-		return nil
-	}
-}
-
-func (eg *engine) Register(protocolCode byte, encoder types.Encoder, decoder types.Decoder, spanBuilder types.SpanBuilder) error {
+func (eg *engine) Register(protocolCode byte, encoder types.Encoder, decoder types.Decoder) error {
 	// unsupported for single protocol engine
 	return nil
 }
@@ -109,35 +97,15 @@ func (m *mixedEngine) Decode(ctx context.Context, data types.IoBuffer) (interfac
 	return nil, nil
 }
 
-func (m *mixedEngine) Register(protocolCode byte, encoder types.Encoder, decoder types.Decoder, spanBuilder types.SpanBuilder) error {
+func (m *mixedEngine) Register(protocolCode byte, encoder types.Encoder, decoder types.Decoder) error {
 	// register engine
 	if _, exists := m.engineMap[protocolCode]; exists {
 		return ErrDupRegistered
 	} else {
 		m.engineMap[protocolCode] = &engine{
-			encoder:     encoder,
-			decoder:     decoder,
-			spanBuilder: spanBuilder,
+			encoder: encoder,
+			decoder: decoder,
 		}
 	}
 	return nil
-}
-
-func (m *mixedEngine) BuildSpan(args ...interface{}) types.Span {
-	if len(args) < 2 {
-		return nil
-	}
-
-	cmd, ok := args[1].(RpcCmd)
-	if !ok || cmd == nil {
-		return nil
-	}
-
-	engine := m.engineMap[cmd.ProtocolCode()]
-
-	if engine == nil {
-		return nil
-	}
-
-	return engine.BuildSpan(args...)
 }

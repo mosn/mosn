@@ -31,11 +31,11 @@ import (
 
 	rawjson "encoding/json"
 
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/metrics"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -148,7 +148,7 @@ type mockMOSNConfig struct {
 
 func (m *mockMOSNConfig) GetAdmin() *v2.Admin {
 	return &v2.Admin{
-		Address: core.Address{
+		Address: &core.Address{
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Protocol: 0,
