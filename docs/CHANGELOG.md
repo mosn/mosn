@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.6.0
+
+### New Features
+
+- New config field, "connection_idle_timeout" in Listener, mosn will close idle timeout connection. The default value is 90s. 
+- New function "Alertf" in ErrorLogger
+- Support get certificate from SDS mode
+
+### Refatcor
+
+- Refactor package upstream
+  - Refactor the inner cluster structure
+  - UpdateHost updates all hosts every time, does not compute the difference any more
+  - Refactor the snapshot implementation
+  - Optimize memory usage
+  - Some functions parameters are changed
+- Refactor tracing implementation
+
+### Performance Optimize
+
+- Optimize connection metrics
+- Optimize metrics prometheus output format
+- Optimize network IO
+
+### Bug Fix
+
+- Fix maybe panic when create logger concurrent
+- Fix maybe panic when response and timeout are concurrent
+- Fix http handle reset stream bug
+- Fix log file cannot rotate when log file is deleted
+- Fix http2 goway bug
+- Fix http handle non-persistent connection bug
 
 ## 0.5.0
 
