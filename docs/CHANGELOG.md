@@ -4,15 +4,15 @@
 
 ### New Features
 
-- New config field, "connection_idle_timeout" in Listener, mosn will close idle timeout connection. The default value is 90s. 
+- Add "connection_idle_timeout" field to Listener config, default 90s. Mosn will close idle connections when timeout.
 - New function "Alertf" in ErrorLogger
-- Support get certificate from SDS mode
+- Support getting certificates from SDS mode
 
-### Refatcor
+### Refactor
 
-- Refactor package upstream
+- Refactor the upstream package
   - Refactor the inner cluster structure
-  - UpdateHost updates all hosts every time, does not compute the difference any more
+  - UpdateHost does full update every time, instead of incremental update
   - Refactor the snapshot implementation
   - Optimize memory usage
   - Some functions parameters are changed
@@ -26,8 +26,8 @@
 
 ### Bug Fix
 
-- Fix maybe panic when create logger concurrent
-- Fix maybe panic when response and timeout are concurrent
+- Fix panic when creating logger concurrently
+- Fix panic when doing response and timeout simultaneously
 - Fix http handle reset stream bug
 - Fix log file cannot rotate when log file is deleted
 - Fix http2 goway bug
