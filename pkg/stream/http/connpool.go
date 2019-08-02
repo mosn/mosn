@@ -286,4 +286,6 @@ func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 }
 
 // types.StreamConnectionEventListener
-func (ac *activeClient) OnGoAway() {}
+func (ac *activeClient) OnGoAway() {
+	ac.closeConn = true
+}
