@@ -30,6 +30,7 @@ import (
 	_ "sofastack.io/sofa-mosn/pkg/filter/stream/faultinject"
 	_ "sofastack.io/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "sofastack.io/sofa-mosn/pkg/filter/stream/mixer"
+	_ "sofastack.io/sofa-mosn/pkg/filter/stream/payloadlimit"
 	_ "sofastack.io/sofa-mosn/pkg/metrics/sink"
 	_ "sofastack.io/sofa-mosn/pkg/metrics/sink/prometheus"
 	_ "sofastack.io/sofa-mosn/pkg/network"
