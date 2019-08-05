@@ -398,14 +398,14 @@ func TestFallback(t *testing.T) {
 		lc.FilterChains = filterChains
 		serverMgr, err := NewTLSServerContextManager(lc)
 		if err != nil {
-			t.Fatal("create tls server context manager failed: %v", err)
+			t.Fatalf("create tls server context manager failed: %v", err)
 		}
 		if ctxMng, ok := serverMgr.(*serverContextManager); !ok || len(ctxMng.providers) != 0 {
 			t.Error("server context manager have providers, but expected not")
 		}
 		clientMgr, err := NewTLSClientContextManager(&cfg)
 		if err != nil {
-			t.Fatal("create tls client context manager failed: %v", err)
+			t.Fatalf("create tls client context manager failed: %v", err)
 		}
 		if ctxMng, ok := clientMgr.(*clientContextManager); !ok || !(ctxMng.provider != nil && ctxMng.provider.Empty()) {
 			t.Error("clienr context manager expected a empty provider")
@@ -432,14 +432,14 @@ func TestFallback(t *testing.T) {
 		lc.FilterChains = filterChains
 		serverMgr, err := NewTLSServerContextManager(lc)
 		if err != nil {
-			t.Fatal("create tls server context manager failed: %v", err)
+			t.Fatalf("create tls server context manager failed: %v", err)
 		}
 		if ctxMng, ok := serverMgr.(*serverContextManager); !ok || len(ctxMng.providers) != 0 {
 			t.Error("server context manager have providers, but expected not")
 		}
 		clientMgr, err := NewTLSClientContextManager(&cfg)
 		if err != nil {
-			t.Fatal("create tls client context manager failed: %v", err)
+			t.Fatalf("create tls client context manager failed: %v", err)
 		}
 		if ctxMng, ok := clientMgr.(*clientContextManager); !ok || !(ctxMng.provider != nil && ctxMng.provider.Empty()) {
 			t.Error("clienr context manager expected a empty provider")
@@ -466,7 +466,7 @@ func TestFallback(t *testing.T) {
 		}
 		clientMgr, err := NewTLSClientContextManager(&cfg)
 		if err != nil {
-			t.Fatal("create tls client context manager failed: %v", err)
+			t.Fatalf("create tls client context manager failed: %v", err)
 		}
 		if ctxMng, ok := clientMgr.(*clientContextManager); !ok || !(ctxMng.provider != nil && ctxMng.provider.Empty()) {
 			t.Error("clienr context manager expected a empty provider")
