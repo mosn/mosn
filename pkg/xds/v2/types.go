@@ -21,6 +21,7 @@ import (
 	"time"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"golang.org/x/net/context"
@@ -46,6 +47,7 @@ type ClusterConfig struct {
 	LbPolicy       envoy_api_v2.Cluster_LbPolicy
 	Address        []string
 	ConnectTimeout *time.Duration
+	TlsContext     *envoy_api_v2_auth.UpstreamTlsContext
 }
 
 // ADSConfig contains ADS config from dynamic resources

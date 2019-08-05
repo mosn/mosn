@@ -215,3 +215,7 @@ var (
 		"context.reporter.kind",
 	}
 )
+
+func AddAttributeToGlobalList(attr string) {
+	globalList = append(globalList, attr)
+}
