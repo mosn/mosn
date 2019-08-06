@@ -134,8 +134,8 @@ type MutableFeatureGate interface {
 	Add(features map[Feature]FeatureSpec) error
 }
 
-// DrmFeatureGate implements FeatureGate as well as pflag.Value for flag parsing.
-type DrmFeatureGate struct {
+// defaultFeatureGate implements FeatureGate as well as pflag.Value for flag parsing.
+type defaultFeatureGate struct {
 	special map[Feature]func(map[Feature]FeatureSpec, map[Feature]bool, bool)
 
 	// lock guards writes to known, enabled, and reads/writes of closed
@@ -163,9 +163,9 @@ func setUnsetAlphaGates(known map[Feature]FeatureSpec, enabled map[Feature]bool,
 }
 
 // Set, String, and Type implement pflag.Value
-var _ pflag.Value = &DrmFeatureGate{}
+var _ pflag.Value = &defaultFeatureGate{}
 
-func NewFeatureGate() *DrmFeatureGate {
+func NewFeatureGate() *defaultFeatureGate {
 	known := map[Feature]FeatureSpec{}
 	for k, v := range defaultFeatures {
 		known[k] = v
@@ -184,7 +184,7 @@ func NewFeatureGate() *DrmFeatureGate {
 
 	broadcasters := map[Feature]map[Submodule]*oneTimeBroadcaster{}
 
-	f := &DrmFeatureGate{
+	f := &defaultFeatureGate{
 		known:        knownValue,
 		special:      specialFeatures,
 		enabled:      enabledValue,
@@ -196,7 +196,7 @@ func NewFeatureGate() *DrmFeatureGate {
 
 // Set parses a string of the form "key1=value1,key2=value2,..." into a
 // map[string]bool of known keys or returns an error.
-func (f *DrmFeatureGate) Set(value string) error {
+func (f *defaultFeatureGate) Set(value string) error {
 	m := make(map[string]bool)
 	for _, s := range strings.Split(value, ",") {
 		if len(s) == 0 {
@@ -218,7 +218,7 @@ func (f *DrmFeatureGate) Set(value string) error {
 }
 
 // SetFromMap stores flag gates for known features from a map[string]bool or returns an error
-func (f *DrmFeatureGate) SetFromMap(m map[string]bool) error {
+func (f *defaultFeatureGate) SetFromMap(m map[string]bool) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -261,7 +261,7 @@ func (f *DrmFeatureGate) SetFromMap(m map[string]bool) error {
 }
 
 // String returns a string containing all enabled feature gates, formatted as "key1=value1,key2=value2,...".
-func (f *DrmFeatureGate) String() string {
+func (f *defaultFeatureGate) String() string {
 	pairs := []string{}
 	for k, v := range f.enabled.Load().(map[Feature]bool) {
 		pairs = append(pairs, fmt.Sprintf("%s=%t", k, v))
@@ -270,12 +270,12 @@ func (f *DrmFeatureGate) String() string {
 	return strings.Join(pairs, ",")
 }
 
-func (f *DrmFeatureGate) Type() string {
+func (f *defaultFeatureGate) Type() string {
 	return "mapStringBool"
 }
 
 // Add adds features to the featureGate.
-func (f *DrmFeatureGate) Add(features map[Feature]FeatureSpec) error {
+func (f *defaultFeatureGate) Add(features map[Feature]FeatureSpec) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -330,7 +330,7 @@ func (f *DrmFeatureGate) Add(features map[Feature]FeatureSpec) error {
 }
 
 // Enabled returns true if the key is enabled.
-func (f *DrmFeatureGate) Enabled(key Feature) bool {
+func (f *defaultFeatureGate) Enabled(key Feature) bool {
 	if v, ok := f.enabled.Load().(map[Feature]bool)[key]; ok {
 		return v
 	}
@@ -338,7 +338,7 @@ func (f *DrmFeatureGate) Enabled(key Feature) bool {
 }
 
 // AddFlag adds a flag for setting global feature gates to the specified FlagSet.
-func (f *DrmFeatureGate) AddFlag(fs *pflag.FlagSet) {
+func (f *defaultFeatureGate) AddFlag(fs *pflag.FlagSet) {
 	f.lock.Lock()
 	// TODO(mtaufen): Shouldn't we just close it on the first Set/SetFromMap instead?
 	// Not all components expose a feature gates flag using this AddFlag method, and
@@ -355,7 +355,7 @@ func (f *DrmFeatureGate) AddFlag(fs *pflag.FlagSet) {
 
 // KnownFeatures returns a slice of strings describing the FeatureGate's known features.
 // Deprecated and GA features are hidden from the list.
-func (f *DrmFeatureGate) KnownFeatures() []string {
+func (f *defaultFeatureGate) KnownFeatures() []string {
 	var known []string
 	for k, v := range f.known.Load().(map[Feature]FeatureSpec) {
 		if v.PreRelease == GA {
@@ -370,7 +370,7 @@ func (f *DrmFeatureGate) KnownFeatures() []string {
 // DeepCopy returns a deep copy of the FeatureGate object, such that gates can be
 // set on the copy without mutating the original. This is useful for validating
 // config against potential feature gate changes before committing those changes.
-func (f *DrmFeatureGate) DeepCopy() MutableFeatureGate {
+func (f *defaultFeatureGate) DeepCopy() MutableFeatureGate {
 	// Copy existing state.
 	known := map[Feature]FeatureSpec{}
 	for k, v := range f.known.Load().(map[Feature]FeatureSpec) {
@@ -407,7 +407,7 @@ func (f *DrmFeatureGate) DeepCopy() MutableFeatureGate {
 	// Construct a new featureGate around the copied state.
 	// Note that specialFeatures is treated as immutable by convention,
 	// and we maintain the value of f.closed across the copy.
-	return &DrmFeatureGate{
+	return &defaultFeatureGate{
 		special:      specialFeatures,
 		known:        knownValue,
 		enabled:      enabledValue,
@@ -421,7 +421,7 @@ func (f *DrmFeatureGate) DeepCopy() MutableFeatureGate {
 // unsupported:
 // 1. Rollback the notified of ready to false or Setting with false
 // 2. Repeat setting the notified of ready with true
-func (f *DrmFeatureGate) UpdateToReady(key Feature, subKey Submodule) error {
+func (f *defaultFeatureGate) UpdateToReady(key Feature, subKey Submodule) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -465,7 +465,7 @@ func (f *DrmFeatureGate) UpdateToReady(key Feature, subKey Submodule) error {
 	return nil
 }
 
-func (f *DrmFeatureGate) updateToReady(key Feature) {
+func (f *defaultFeatureGate) updateToReady(key Feature) {
 	// Copy existing state
 	ready := map[Feature]bool{}
 	for k, v := range f.ready.Load().(map[Feature]bool) {
@@ -476,7 +476,7 @@ func (f *DrmFeatureGate) updateToReady(key Feature) {
 }
 
 // IsReady returns true if the feature is ready
-func (f *DrmFeatureGate) IsReady(key Feature) bool {
+func (f *defaultFeatureGate) IsReady(key Feature) bool {
 	if v, ok := f.ready.Load().(map[Feature]bool)[key]; ok {
 		return v
 	}
@@ -487,7 +487,7 @@ func (f *DrmFeatureGate) IsReady(key Feature) bool {
 // Subscribe returns the ReadyMessage, which contains Ready and Channel
 //   Ready=true means subKey of key is ready, then Channel will be useless
 //   Ready=false means subKey of key is not ready, when it turns on a ready message will be broadcast through Channel
-func (f *DrmFeatureGate) Subscribe(key Feature, subKey Submodule) (ReadyMessage, error) {
+func (f *defaultFeatureGate) Subscribe(key Feature, subKey Submodule) (ReadyMessage, error) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
