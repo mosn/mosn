@@ -182,7 +182,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 
 // Start used to fetch listeners/clusters/clusterloadassignment config from pilot in cycle,
 // usually called when mosn start
-func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode string) error {
+func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode string, metadata *types.Struct) error {
 	log.DefaultLogger.Infof("xds client start")
 	if c.v2 == nil {
 		dynamicResources, staticResources, err := UnmarshalResources(config)
@@ -199,9 +199,11 @@ func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode st
 		// TODO: remove it
 		typ.ServiceCluster = serviceCluster
 		typ.ServiceNode = serviceNode
+		typ.Metadata = metadata
 		c.v2 = &v2.ClientV2{
 			ServiceCluster: serviceCluster,
 			ServiceNode:    serviceNode,
+			Metadata:       metadata,
 			Config:         &xdsConfig,
 		}
 	}

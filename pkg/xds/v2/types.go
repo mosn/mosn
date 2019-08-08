@@ -23,6 +23,7 @@ import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"github.com/gogo/protobuf/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"sofastack.io/sofa-mosn/pkg/config"
@@ -32,6 +33,7 @@ import (
 type ClientV2 struct {
 	ServiceCluster string
 	ServiceNode    string
+	Metadata       *types.Struct
 	Config         *XDSConfig
 }
 

@@ -23,11 +23,12 @@ import (
 	_ "net/http/pprof"
 	"runtime"
 
+	"github.com/gogo/protobuf/types"
+	"github.com/urfave/cli"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/mosn"
-	"github.com/urfave/cli"
 )
 
 var (
@@ -70,7 +71,12 @@ var (
 			// set version and go version
 			metrics.SetVersion(Version)
 			metrics.SetGoVersion(runtime.Version())
-			mosn.Start(conf, serviceCluster, serviceNode)
+			metadata := &types.Struct{
+				Fields: map[string]*types.Value{
+					"ISTIO_PROXY_VERSION": {Kind: &types.Value_StringValue{Version}},
+				},
+			}
+			mosn.Start(conf, serviceCluster, serviceNode, metadata)
 			return nil
 		},
 	}

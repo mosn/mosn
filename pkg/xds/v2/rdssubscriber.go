@@ -20,11 +20,11 @@ package v2
 import (
 	"errors"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
 )
 
 func (c *ClientV2) reqRoutes(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
@@ -44,8 +44,9 @@ func (c *ClientV2) reqRoutes(streamClient ads.AggregatedDiscoveryService_StreamA
 		ResponseNonce: "",
 		ErrorDetail:   nil,
 		Node: &envoy_api_v2_core1.Node{
-			Id:      c.ServiceNode,
-			Cluster: c.ServiceCluster,
+			Id:       c.ServiceNode,
+			Cluster:  c.ServiceCluster,
+			Metadata: c.Metadata,
 		},
 	})
 	if err != nil {

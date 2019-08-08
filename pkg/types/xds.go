@@ -17,8 +17,13 @@
 
 package types
 
+import (
+	"github.com/gogo/protobuf/types"
+)
+
 // The xds start parameters
 var (
 	ServiceCluster string
 	ServiceNode    string
+	Metadata       *types.Struct
 )
