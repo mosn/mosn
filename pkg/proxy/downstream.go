@@ -768,6 +768,9 @@ func (s *downStream) onResponseTimeout() {
 	if s.upstreamRequest != nil {
 		if s.upstreamRequest.host != nil {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
+
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout，host: %s, time: %s",
+				s.upstreamRequest.host.AddressString(), s.timeout.GlobalTimeout.String())
 		}
 
 		s.upstreamRequest.resetStream()
@@ -931,8 +934,6 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 // ~~~ upstream event handler
 func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 	// todo: update stats
-	log.Proxy.Errorf(s.context, "[proxy] [downstream] onUpstreamReset, reason: %v", reason)
-
 	// see if we need a retry
 	if reason != types.UpstreamGlobalTimeout &&
 		!s.downstreamResponseStarted && s.retryState != nil {
@@ -946,7 +947,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 
 			// setup retry timer and return
 			// clear reset flag
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onUpstreamReset, doRetry, reason %v", reason)
+			log.Proxy.Infof(s.context, "[proxy] [downstream] onUpstreamReset, doRetry, reason %v", reason)
 			atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 			return
 		} else if retryCheck == types.RetryOverflow {
@@ -979,7 +980,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 		}
 		// clear reset flag
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] onUpstreamReset, send hijack, reason %v", reason)
+		log.Proxy.Infof(s.context, "[proxy] [downstream] onUpstreamReset, send hijack, reason %v", reason)
 		atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 		s.sendHijackReply(code, s.downstreamReqHeaders)
 	}
@@ -1153,7 +1154,7 @@ func (s *downStream) resetStream() {
 }
 
 func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
-	log.Proxy.Errorf(s.context, "[proxy] [downstream] set hijack reply, proxyId = %d, code = %d", s.ID, code)
+	log.Proxy.Infof(s.context, "[proxy] [downstream] set hijack reply, proxyId = %d, code = %d", s.ID, code)
 	if headers == nil {
 		log.Proxy.Warnf(s.context, "[proxy] [downstream] hijack with no headers, proxyId = %d", s.ID)
 		raw := make(map[string]string, 5)
@@ -1172,7 +1173,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 // TODO: rpc status code may be not matched
 // TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
 func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
-	log.Proxy.Errorf(s.context, "[proxy] [downstream] set hijack reply with body, proxyId = %d, code = %d", s.ID, code)
+	log.Proxy.Infof(s.context, "[proxy] [downstream] set hijack reply with body, proxyId = %d, code = %d", s.ID, code)
 	if headers == nil {
 		log.Proxy.Warnf(s.context, "[proxy] [downstream] hijack with no headers, proxyId = %d", s.ID)
 		raw := make(map[string]string, 5)
