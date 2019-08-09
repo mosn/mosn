@@ -27,6 +27,11 @@ const (
 	// alpha:
 	// beta:
 	PayLoadLimitEnable Feature = "PayLoadLimitEnable"
+
+	// owner: @zewen
+	// alpha:
+	// beta:
+	MultiTenantMode Feature = "MultiTenantMode"
 )
 
 var (
@@ -51,4 +56,5 @@ func init() {
 var defaultMosnFeatureGates = map[Feature]FeatureSpec{
 	XdsMtlsEnable:      {Default: false, PreRelease: Alpha, Submodules: NilSubmodule},
 	PayLoadLimitEnable: {Default: false, PreRelease: Alpha, Submodules: NilSubmodule},
+	MultiTenantMode:    {Default: false, PreRelease: Alpha, Submodules: NilSubmodule},
 }

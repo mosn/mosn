@@ -30,6 +30,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/mosn"
 	"github.com/urfave/cli"
+	"sofastack.io/sofa-mosn/pkg/tenant"
 )
 
 var (
@@ -81,6 +82,10 @@ var (
 			// set version and go version
 			metrics.SetVersion(Version)
 			metrics.SetGoVersion(runtime.Version())
+			if featuregate.DefaultFeatureGate.Enabled(featuregate.MultiTenantMode) {
+				// init tenant mode
+				tenant.Init(serviceNode)
+			}
 			mosn.Start(conf, serviceCluster, serviceNode)
 			return nil
 		},
