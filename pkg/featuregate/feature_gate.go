@@ -41,6 +41,8 @@ const (
 	//   AllAlpha=false,NewFeature=true  will result in newFeature=true
 	//   AllAlpha=true,NewFeature=false  will result in newFeature=false
 	allAlphaGate Feature = "AllAlpha"
+
+	mapStringBool = "mapStringBool"
 )
 
 var (
@@ -80,7 +82,7 @@ const (
 
 type oneTimeBroadcaster struct {
 	notified bool
-	channel  chan AsynReadyMessage
+	channels []chan AsynReadyMessage
 }
 
 type ReadyMessage struct {
@@ -148,8 +150,10 @@ type defaultFeatureGate struct {
 	closed bool
 	// ready holds a map[Feature]bool
 	ready *atomic.Value
-	//
+	// using to notify subscriber
 	broadcasters map[Feature]map[Submodule]*oneTimeBroadcaster
+	// feature gate status info
+	info string
 }
 
 func setUnsetAlphaGates(known map[Feature]FeatureSpec, enabled map[Feature]bool, val bool) {
@@ -256,22 +260,25 @@ func (f *defaultFeatureGate) SetFromMap(m map[string]bool) error {
 	f.known.Store(known)
 	f.enabled.Store(enabled)
 
+	// set info
+	pairs := []string{}
+	for k, v := range enabled {
+		pairs = append(pairs, fmt.Sprintf("%s=%t", k, v))
+	}
+	sort.Strings(pairs)
+	f.info = strings.Join(pairs, ",")
+
 	log.DefaultLogger.Infof("feature gates: %v", f.enabled)
 	return nil
 }
 
 // String returns a string containing all enabled feature gates, formatted as "key1=value1,key2=value2,...".
 func (f *defaultFeatureGate) String() string {
-	pairs := []string{}
-	for k, v := range f.enabled.Load().(map[Feature]bool) {
-		pairs = append(pairs, fmt.Sprintf("%s=%t", k, v))
-	}
-	sort.Strings(pairs)
-	return strings.Join(pairs, ",")
+	return f.info
 }
 
 func (f *defaultFeatureGate) Type() string {
-	return "mapStringBool"
+	return mapStringBool
 }
 
 // Add adds features to the featureGate.
@@ -317,7 +324,7 @@ func (f *defaultFeatureGate) Add(features map[Feature]FeatureSpec) error {
 			for _, subModuleName := range spec.Submodules {
 				f.broadcasters[name][subModuleName] = &oneTimeBroadcaster{
 					notified: false,
-					channel:  make(chan AsynReadyMessage, 1),
+					channels: []chan AsynReadyMessage{},
 				}
 			}
 		}
@@ -390,7 +397,7 @@ func (f *defaultFeatureGate) DeepCopy() MutableFeatureGate {
 		for sk, sv := range v {
 			bySubmodule[sk] = &oneTimeBroadcaster{
 				notified: sv.notified,
-				channel:  sv.channel,
+				channels: sv.channels,
 			}
 		}
 		broadcasters[k] = bySubmodule
@@ -440,10 +447,12 @@ func (f *defaultFeatureGate) UpdateToReady(key Feature, subKey Submodule) error 
 		}
 
 		b.notified = true
-		b.channel <- AsynReadyMessage{
-			FeatureInfo:   key,
-			SubModuleInfo: subKey,
-			Ready:         true,
+		for _, ch := range b.channels {
+			ch <- AsynReadyMessage{
+				FeatureInfo:   key,
+				SubModuleInfo: subKey,
+				Ready:         true,
+			}
 		}
 
 		allSubmoduleReady := true
@@ -493,9 +502,11 @@ func (f *defaultFeatureGate) Subscribe(key Feature, subKey Submodule) (ReadyMess
 
 	if submoduleBroadcaster, found := f.broadcasters[key]; found {
 		if broadcaster, exist := submoduleBroadcaster[subKey]; exist {
+			ch := make(chan AsynReadyMessage, 1)
+			broadcaster.channels = append(broadcaster.channels, ch)
 			return ReadyMessage{
 				Ready:   broadcaster.notified,
-				Channel: broadcaster.channel,
+				Channel: ch,
 			}, nil
 		}
 	}
