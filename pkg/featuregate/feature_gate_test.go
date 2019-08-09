@@ -535,8 +535,16 @@ func TestFeatureGateUpdateToSubscribe(t *testing.T) {
 	if err != nil || msg.Ready {
 		t.Errorf("Excepted not error, and %s.%s is not ready", testAfterReady, "submodule001")
 	}
-	go f.UpdateToReady(testBeforeReady, "submodule011")
+	msg2, err := f.Subscribe(testBeforeReady, "submodule011")
+	if err != nil || msg.Ready {
+		t.Errorf("Excepted not error, and %s.%s is not ready", testAfterReady, "submodule001")
+	}
+	f.UpdateToReady(testBeforeReady, "submodule011")
 	c, _ := <-msg.Channel
+	if !c.Ready {
+		t.Errorf("Excepted %s.%s is ready", testBeforeReady, "submodule011")
+	}
+	c, _ = <-msg2.Channel
 	if !c.Ready {
 		t.Errorf("Excepted %s.%s is ready", testBeforeReady, "submodule011")
 	}
