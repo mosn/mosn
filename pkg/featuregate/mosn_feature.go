@@ -54,7 +54,7 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 // The features will be available throughout mosn binaries.
 var defaultMosnFeatureGates = map[Feature]FeatureSpec{
-	XdsMtlsEnable:      {Default: false, PreRelease: Alpha, Submodules: NilSubmodule},
-	PayLoadLimitEnable: {Default: false, PreRelease: Alpha, Submodules: NilSubmodule},
-	MultiTenantMode:    {Default: false, PreRelease: Alpha, Submodules: NilSubmodule},
+	XdsMtlsEnable:      {Default: false, PreRelease: Alpha},
+	PayLoadLimitEnable: {Default: false, PreRelease: Alpha},
+	MultiTenantMode:    {Default: false, PreRelease: Alpha},
 }

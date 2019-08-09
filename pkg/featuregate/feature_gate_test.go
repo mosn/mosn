@@ -387,165 +387,105 @@ func TestFeatureGateString(t *testing.T) {
 
 func TestFeatureGateReady(t *testing.T) {
 	const testDisabled Feature = "testDisabled"
-	const testDisabledWithSubmoduleNoReady Feature = "testDisabledWithSubmoduleNoReady"
-	const testDisabledWithSubmoduleReady Feature = "testDisabledWithSubmoduleReady"
-	const testDisabledWithSubmodule Feature = "testDisabledWithSubmodule"
-
 	const testEnabled Feature = "testEnabled"
-	const testEnabledWithSubmoduleNoReady Feature = "testEnabledWithSubmoduleNoReady"
-	const testEnabledWithSubmoduleReady Feature = "testEnabledWithSubmoduleReady"
-	const testEnabledWithSubmodule Feature = "testEnabledWithSubmodule"
+	const testEnabledChangeToReady Feature = "testEnabledChangeToReady"
 
 	// Don't parse the flag, assert defaults are used.
 	var f = NewFeatureGate()
 	f.Add(map[Feature]FeatureSpec{
-		testDisabled:                     {Default: false, PreRelease: Beta, Submodules: NilSubmodule},
-		testDisabledWithSubmoduleNoReady: {Default: false, PreRelease: Beta, Submodules: []Submodule{"submodule001"}},
-		testDisabledWithSubmoduleReady:   {Default: false, PreRelease: Beta, Submodules: []Submodule{"submodule011"}},
-		testDisabledWithSubmodule:        {Default: false, PreRelease: Beta, Submodules: []Submodule{"submodule021", "submodule022"}},
-
-		testEnabled:                     {Default: true, PreRelease: Beta, Submodules: NilSubmodule},
-		testEnabledWithSubmoduleNoReady: {Default: true, PreRelease: Beta, Submodules: []Submodule{"submodule031"}},
-		testEnabledWithSubmoduleReady:   {Default: true, PreRelease: Beta, Submodules: []Submodule{"submodule041"}},
-		testEnabledWithSubmodule:        {Default: true, PreRelease: Beta, Submodules: []Submodule{"submodule051", "submodule052"}},
+		testDisabled:             {Default: false, PreRelease: Beta},
+		testEnabled:              {Default: true, PreRelease: Beta},
+		testEnabledChangeToReady: {Default: true, PreRelease: Beta},
 	})
-
-	f.UpdateToReady(testDisabledWithSubmoduleReady, "submodule011")
-	f.UpdateToReady(testDisabledWithSubmodule, "submodule021")
-	f.UpdateToReady(testEnabledWithSubmoduleReady, "submodule041")
-	f.UpdateToReady(testEnabledWithSubmodule, "submodule051")
 
 	if f.IsReady(testDisabled) {
 		t.Errorf("Excepted false")
 	}
-	if f.IsReady(testDisabledWithSubmoduleNoReady) {
-		t.Errorf("Excepted false")
-	}
-	if f.IsReady(testDisabledWithSubmoduleReady) {
-		t.Errorf("Excepted false")
-	}
-	if f.IsReady(testDisabledWithSubmoduleReady) {
+
+	if f.IsReady(testEnabled) {
 		t.Errorf("Excepted false")
 	}
 
-	if !f.IsReady(testEnabled) {
+	f.UpdateToReady(testEnabledChangeToReady)
+	if !f.IsReady(testEnabledChangeToReady) {
 		t.Errorf("Excepted true")
-	}
-	if f.IsReady(testEnabledWithSubmoduleNoReady) {
-		t.Errorf("Excepted false")
-	}
-	if !f.IsReady(testEnabledWithSubmoduleReady) {
-		t.Errorf("Excepted true")
-	}
-	if f.IsReady(testEnabledWithSubmodule) {
-		t.Errorf("Excepted false")
 	}
 }
 
 func TestFeatureGateUpdateToReady(t *testing.T) {
 	const testDisabled Feature = "testDisabled"
-	const testEnabledWithMissingSubmodule Feature = "testEnabledWithMissingSubmodule"
 	const testEnabledWithRepeatUpdate Feature = "testEnabledWithRepeatUpdate"
 	const testEnabledSuccessfully Feature = "testEnabledSuccessfully"
 
 	// Don't parse the flag, assert defaults are used.
 	var f = NewFeatureGate()
 	f.Add(map[Feature]FeatureSpec{
-		testDisabled:                    {Default: false, PreRelease: Beta, Submodules: NilSubmodule},
-		testEnabledWithMissingSubmodule: {Default: true, PreRelease: Beta, Submodules: []Submodule{"existSubmodule"}},
-		testEnabledWithRepeatUpdate:     {Default: true, PreRelease: Beta, Submodules: []Submodule{"submodule001"}},
-		testEnabledSuccessfully:         {Default: true, PreRelease: Beta, Submodules: []Submodule{"submodule021", "submodule022"}},
+		testDisabled:                {Default: false, PreRelease: Beta},
+		testEnabledWithRepeatUpdate: {Default: true, PreRelease: Beta},
+		testEnabledSuccessfully:     {Default: true, PreRelease: Beta},
 	})
 
 	var err error
-	err = f.UpdateToReady(testDisabled, "nothing")
-	if err == nil || err.Error() != fmt.Sprintf("feature %s is disabled, can not update %s to ready ", testDisabled, "nothing") {
-		t.Errorf("Excepted error: feature %s is disabled, can not update %s to ready ", testDisabled, "nothing")
+	err = f.UpdateToReady("nothing")
+	if err == nil || err.Error() != fmt.Sprintf("feature %s is not found", "nothing") {
+		t.Errorf("Excepted error: feature %s is not found", "nothing")
 	}
 
-	err = f.UpdateToReady(testEnabledWithMissingSubmodule, "missingSubmodule")
-	if err == nil || err.Error() != fmt.Sprintf("submodule %s.%s unknow", testEnabledWithMissingSubmodule, "missingSubmodule") {
-		t.Errorf("Excepted error: submodule %s.%s unknow", testEnabledWithMissingSubmodule, "missingSubmodule")
-	}
-
-	err = f.UpdateToReady(testEnabledWithRepeatUpdate, "submodule001")
+	err = f.UpdateToReady(testEnabledWithRepeatUpdate)
 	if err != nil {
 		t.Error("Excepted no error")
 	}
-	err = f.UpdateToReady(testEnabledWithRepeatUpdate, "submodule001")
-	if err == nil || err.Error() != fmt.Sprintf("repeat setting submodule %s.%s to ready", testEnabledWithRepeatUpdate, "submodule001") {
-		t.Errorf("Excepted error: repeat setting submodule %s.%s to ready", testEnabledWithRepeatUpdate, "submodule001")
+	err = f.UpdateToReady(testEnabledWithRepeatUpdate)
+	if err == nil || err.Error() != fmt.Sprintf("repeat setting feature %s to ready", testEnabledWithRepeatUpdate) {
+		t.Errorf("Excepted error: repeat setting feature %s to ready", testEnabledWithRepeatUpdate)
 	}
 
-	err = f.UpdateToReady(testEnabledSuccessfully, "submodule021")
-	if err != nil {
-		t.Error("Excepted no error")
-	}
-	if f.IsReady(testEnabledSuccessfully) {
-		t.Error("Excepted false")
-	}
-	err = f.UpdateToReady(testEnabledSuccessfully, "submodule022")
+	err = f.UpdateToReady(testEnabledSuccessfully)
 	if err != nil {
 		t.Error("Excepted no error")
 	}
 	if !f.IsReady(testEnabledSuccessfully) {
-		t.Error("Excepted true")
+		t.Error("Excepted tue")
 	}
-
 }
 
 func TestFeatureGateUpdateToSubscribe(t *testing.T) {
 	const testDisabled Feature = "testDisabled"
-	const testMissingSubmodule Feature = "testMissingSubmodule"
 	const testAfterReady Feature = "testAfterReady"
 	const testBeforeReady Feature = "testBeforeReady"
 
 	// Don't parse the flag, assert defaults are used.
 	var f = NewFeatureGate()
 	f.Add(map[Feature]FeatureSpec{
-		testDisabled:         {Default: false, PreRelease: Beta, Submodules: NilSubmodule},
-		testMissingSubmodule: {Default: false, PreRelease: Beta, Submodules: []Submodule{"existSubmodule"}},
-		testAfterReady:       {Default: true, PreRelease: Beta, Submodules: []Submodule{"submodule001"}},
-		testBeforeReady:      {Default: true, PreRelease: Beta, Submodules: []Submodule{"submodule011"}},
+		testDisabled:    {Default: false, PreRelease: Beta},
+		testAfterReady:  {Default: true, PreRelease: Beta},
+		testBeforeReady: {Default: true, PreRelease: Beta},
 	})
 
 	var err error
-	_, err = f.Subscribe("missingFeatureKey", "")
+	_, err = f.Subscribe("missingFeatureKey")
 	if err == nil {
-		t.Errorf("Excepted error: subscribe fails, make sure %s/%s is inited correctly", "missingFeatureKey", "")
+		t.Errorf("Excepted error: feature %s is unknown", "missingFeatureKey")
 	}
 
-	_, err = f.Subscribe(testDisabled, "")
+	_, err = f.Subscribe(testDisabled)
 	if err == nil {
-		t.Errorf("Excepted error: subscribe fails, make sure %s/%s is inited correctly", testDisabled, "")
+		t.Errorf("Excepted error: subscribe fails, make sure %s is inited correctly", testDisabled)
 	}
 
-	_, err = f.Subscribe(testMissingSubmodule, "missSubmodule")
-	if err == nil {
-		t.Errorf("Excepted error: subscribe fails, make sure %s/%s is inited correctly", testMissingSubmodule, "missSubmodule")
-	}
-
-	f.UpdateToReady(testAfterReady, "submodule001")
-	msg, err := f.Subscribe(testAfterReady, "submodule001")
+	f.UpdateToReady(testAfterReady)
+	msg, err := f.Subscribe(testAfterReady)
 	if err != nil || !msg.Ready {
-		t.Errorf("Excepted not error, and %s.%s is ready", testAfterReady, "submodule001")
+		t.Errorf("Excepted not error, and %s is ready", testAfterReady)
 	}
 
-	msg, err = f.Subscribe(testBeforeReady, "submodule011")
+	msg, err = f.Subscribe(testBeforeReady)
 	if err != nil || msg.Ready {
-		t.Errorf("Excepted not error, and %s.%s is not ready", testAfterReady, "submodule001")
+		t.Errorf("Excepted not error, and %s is not ready", testAfterReady)
 	}
-	msg2, err := f.Subscribe(testBeforeReady, "submodule011")
-	if err != nil || msg.Ready {
-		t.Errorf("Excepted not error, and %s.%s is not ready", testAfterReady, "submodule001")
-	}
-	f.UpdateToReady(testBeforeReady, "submodule011")
+	f.UpdateToReady(testBeforeReady)
 	c, _ := <-msg.Channel
 	if !c.Ready {
-		t.Errorf("Excepted %s.%s is ready", testBeforeReady, "submodule011")
-	}
-	c, _ = <-msg2.Channel
-	if !c.Ready {
-		t.Errorf("Excepted %s.%s is ready", testBeforeReady, "submodule011")
+		t.Errorf("Excepted %s is ready", testBeforeReady)
 	}
 }

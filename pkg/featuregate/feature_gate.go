@@ -31,7 +31,6 @@ import (
 )
 
 type Feature string
-type Submodule string
 
 const (
 	flagName = "feature-gates"
@@ -57,7 +56,6 @@ var (
 	}
 
 	nilReadyMessage = ReadyMessage{}
-	NilSubmodule    = make([]Submodule, 0)
 )
 
 type FeatureSpec struct {
@@ -67,8 +65,6 @@ type FeatureSpec struct {
 	LockToDefault bool
 	// PreRelease indicates the maturity level of the feature
 	PreRelease prerelease
-	// Submodules indicates the submodules for the feature
-	Submodules []Submodule
 }
 
 type prerelease string
@@ -91,9 +87,8 @@ type ReadyMessage struct {
 }
 
 type AsynReadyMessage struct {
-	FeatureInfo   Feature
-	SubModuleInfo Submodule
-	Ready         bool
+	FeatureInfo Feature
+	Ready       bool
 }
 
 // FeatureGate indicates whether a given feature is enabled or not
@@ -112,12 +107,12 @@ type FeatureGate interface {
 	// Subscribe returns the ReadyMessage, which contains Ready and Channel
 	//   Ready=true means subKey of key is ready, then Channel will be useless
 	//   Ready=false means subKey of key is not ready, when it turns on a ready message will be broadcast through Channel
-	Subscribe(key Feature, subKey Submodule) (ReadyMessage, error)
-	// UpdateToReady supports updating submodule of feature to ready, then broadcasting the ReadMessage to subscribers
+	Subscribe(key Feature) (ReadyMessage, error)
+	// UpdateToReady supports updating feature to ready, then broadcasting the ReadMessage to subscribers
 	// unsupported:
 	// 1. Rollback the notified of ready to false or Setting with false
 	// 2. Repeat setting the notified of ready with true
-	UpdateToReady(key Feature, subKey Submodule) error
+	UpdateToReady(key Feature) error
 }
 
 // MutableFeatureGate parses and stores flag gates for known features from
@@ -151,7 +146,7 @@ type defaultFeatureGate struct {
 	// ready holds a map[Feature]bool
 	ready *atomic.Value
 	// using to notify subscriber
-	broadcasters map[Feature]map[Submodule]*oneTimeBroadcaster
+	broadcasters map[Feature]*oneTimeBroadcaster
 	// feature gate status info
 	info string
 }
@@ -186,7 +181,7 @@ func NewFeatureGate() *defaultFeatureGate {
 	readyValue := &atomic.Value{}
 	readyValue.Store(ready)
 
-	broadcasters := map[Feature]map[Submodule]*oneTimeBroadcaster{}
+	broadcasters := map[Feature]*oneTimeBroadcaster{}
 
 	f := &defaultFeatureGate{
 		known:        knownValue,
@@ -306,26 +301,10 @@ func (f *defaultFeatureGate) Add(features map[Feature]FeatureSpec) error {
 
 		known[name] = spec
 
-		// set submodule ready flag
-		if len(spec.Submodules) == 0 && spec.Default {
-			f.updateToReady(name)
-		}
-
-		moduleBroadcaster, found := f.broadcasters[name]
-		if found {
-			// make sure no submodule is ready
-			for _, subModuleName := range spec.Submodules {
-				if moduleBroadcaster[subModuleName].notified {
-					return fmt.Errorf("submodlue %s.%s is ready", name, subModuleName)
-				}
-			}
-		} else {
-			f.broadcasters[name] = make(map[Submodule]*oneTimeBroadcaster, len(spec.Submodules))
-			for _, subModuleName := range spec.Submodules {
-				f.broadcasters[name][subModuleName] = &oneTimeBroadcaster{
-					notified: false,
-					channels: []chan AsynReadyMessage{},
-				}
+		if _, found := f.broadcasters[name]; !found {
+			f.broadcasters[name] = &oneTimeBroadcaster{
+				notified: false,
+				channels: []chan AsynReadyMessage{},
 			}
 		}
 	}
@@ -391,16 +370,12 @@ func (f *defaultFeatureGate) DeepCopy() MutableFeatureGate {
 	for k, v := range f.ready.Load().(map[Feature]bool) {
 		enabled[k] = v
 	}
-	broadcasters := map[Feature]map[Submodule]*oneTimeBroadcaster{}
+	broadcasters := map[Feature]*oneTimeBroadcaster{}
 	for k, v := range f.broadcasters {
-		bySubmodule := map[Submodule]*oneTimeBroadcaster{}
-		for sk, sv := range v {
-			bySubmodule[sk] = &oneTimeBroadcaster{
-				notified: sv.notified,
-				channels: sv.channels,
-			}
+		broadcasters[k] = &oneTimeBroadcaster{
+			notified: v.notified,
+			channels: v.channels,
 		}
-		broadcasters[k] = bySubmodule
 	}
 
 	// Store copied state in new atomics.
@@ -424,49 +399,36 @@ func (f *defaultFeatureGate) DeepCopy() MutableFeatureGate {
 	}
 }
 
-// UpdateToReady supports updating submodule of feature to ready, then broadcasting the ReadMessage to subscribers
+// UpdateToReady supports updating feature to ready, then broadcasting the ReadMessage to subscribers
 // unsupported:
 // 1. Rollback the notified of ready to false or Setting with false
 // 2. Repeat setting the notified of ready with true
-func (f *defaultFeatureGate) UpdateToReady(key Feature, subKey Submodule) error {
+func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	if !f.Enabled(key) {
-		return fmt.Errorf("feature %s is disabled, can not update %s to ready ", key, subKey)
+	if _, ok := f.known.Load().(map[Feature]FeatureSpec)[key]; !ok {
+		return fmt.Errorf("feature %s is unknown", key)
 	}
 
-	if bySubmodule, found := f.broadcasters[key]; found {
-		b, exist := bySubmodule[subKey]
-		if !exist {
-			return fmt.Errorf("submodule %s.%s unknow", key, subKey)
-		}
+	if !f.Enabled(key) {
+		return fmt.Errorf("feature %s is disabled, can not update to ready", key)
+	}
 
+	if b, found := f.broadcasters[key]; found {
 		if b.notified {
-			return fmt.Errorf("repeat setting submodule %s.%s to ready", key, subKey)
+			return fmt.Errorf("repeat setting feature %s to ready", key)
 		}
 
 		b.notified = true
 		for _, ch := range b.channels {
 			ch <- AsynReadyMessage{
-				FeatureInfo:   key,
-				SubModuleInfo: subKey,
-				Ready:         true,
+				FeatureInfo: key,
+				Ready:       true,
 			}
 		}
 
-		allSubmoduleReady := true
-		for _, v := range bySubmodule {
-			if !v.notified {
-				allSubmoduleReady = false
-				break
-			}
-		}
-
-		if allSubmoduleReady {
-			f.updateToReady(key)
-		}
-
+		f.updateToReady(key)
 	} else {
 		return fmt.Errorf("unrecognized feature gate: %s", key)
 	}
@@ -496,20 +458,22 @@ func (f *defaultFeatureGate) IsReady(key Feature) bool {
 // Subscribe returns the ReadyMessage, which contains Ready and Channel
 //   Ready=true means subKey of key is ready, then Channel will be useless
 //   Ready=false means subKey of key is not ready, when it turns on a ready message will be broadcast through Channel
-func (f *defaultFeatureGate) Subscribe(key Feature, subKey Submodule) (ReadyMessage, error) {
+func (f *defaultFeatureGate) Subscribe(key Feature) (ReadyMessage, error) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	if submoduleBroadcaster, found := f.broadcasters[key]; found {
-		if broadcaster, exist := submoduleBroadcaster[subKey]; exist {
-			ch := make(chan AsynReadyMessage, 1)
-			broadcaster.channels = append(broadcaster.channels, ch)
-			return ReadyMessage{
-				Ready:   broadcaster.notified,
-				Channel: ch,
-			}, nil
-		}
+	if _, ok := f.known.Load().(map[Feature]FeatureSpec)[key]; !ok {
+		return nilReadyMessage, fmt.Errorf("feature %s is unknown", key)
 	}
 
-	return nilReadyMessage, fmt.Errorf("subscribe fails, make sure %s/%s is inited correctly", key, subKey)
+	if broadcaster, found := f.broadcasters[key]; found {
+		ch := make(chan AsynReadyMessage, 1)
+		broadcaster.channels = append(broadcaster.channels, ch)
+		return ReadyMessage{
+			Ready:   broadcaster.notified,
+			Channel: ch,
+		}, nil
+	}
+
+	return nilReadyMessage, fmt.Errorf("subscribe fails, make sure %s is inited correctly", key)
 }
