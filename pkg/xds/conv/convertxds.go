@@ -1137,7 +1137,7 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	}
 
 	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
-		config.CACert = common.GetValidationContext().GetTrustedCa().String()
+		config.CACert = common.GetValidationContext().GetTrustedCa().GetFilename()
 	}
 	if common.GetAlpnProtocols() != nil {
 		config.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
