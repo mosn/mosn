@@ -125,7 +125,7 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Hosts: convertClusterHosts(xdsCluster.GetHosts()),
+			Hosts: convertClusterHosts(xdsCluster.GetLoadAssignment()),
 			Spec:  convertSpec(xdsCluster),
 			TLS:   convertTLS(xdsCluster.GetTlsContext()),
 		}
@@ -1067,19 +1067,27 @@ func convertSpec(xdsCluster *xdsapi.Cluster) v2.ClusterSpecInfo {
 	}
 }
 
-func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.Host {
-	if xdsHosts == nil {
+func convertClusterHosts(loadAssignment *xdsapi.ClusterLoadAssignment) []v2.Host {
+	if loadAssignment == nil {
 		return nil
 	}
-	hostsWithMetaData := make([]v2.Host, 0, len(xdsHosts))
-	for _, xdsHost := range xdsHosts {
-		hostWithMetaData := v2.Host{
-			HostConfig: v2.HostConfig{
-				Address: convertAddress(xdsHost).String(),
-			},
+
+	hostsWithMetaData := make([]v2.Host, 0)
+	for _, enpoints := range loadAssignment.GetEndpoints() {
+		for _, enpoint := range enpoints.GetLbEndpoints() {
+			addr := convertAddress(enpoint.GetEndpoint().GetAddress())
+			if addr == nil {
+				continue
+			}
+			hostWithMetaData := v2.Host{
+				HostConfig: v2.HostConfig{
+					Address: addr.String(),
+				},
+			}
+			hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
 		}
-		hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
 	}
+
 	return hostsWithMetaData
 }
 
