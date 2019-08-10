@@ -334,7 +334,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:576c5a416ec2867f2855eefc8f26692a3c5a1cc4b1c9fae8a89ebd415dd4238c"
+  digest = "1:54a6041af989110a6edee54f56bb2f2c205dd387c79bb4fa13e38d1ffa768887"
   name = "golang.org/x/crypto"
   packages = [
     "chacha20poly1305",
@@ -342,33 +342,35 @@
     "internal/chacha20",
     "internal/subtle",
     "poly1305",
+    "ssh/terminal",
   ]
   pruneopts = "UT"
   revision = "df01cb2cc480549d72034218dd98bf97671450ac"
 
 [[projects]]
-  branch = "release-branch.go1.9"
-  digest = "1:1604cdec55ab4b828b9e83af0e7f1bd0f954cc3ffab4231587f6f33e5db53e6c"
+  branch = "release-branch.go1.12"
+  digest = "1:fc7b6b4384e1e849d99eab58eca4f8c0a76bad4699117d5077a9a5c3c83e289e"
   name = "golang.org/x/net"
   packages = [
     "context",
+    "http/httpguts",
     "http2",
     "http2/hpack",
     "idna",
     "internal/timeseries",
-    "lex/httplex",
     "trace",
   ]
   pruneopts = "UT"
-  revision = "44b7c21cbf19450f38b337eb6b6fe4f6496fb5b3"
+  revision = "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
 
 [[projects]]
   branch = "master"
-  digest = "1:c391c9a5dd4ee0c11962f64f8b9a9c31225699866b8013043fa5849aa1655e79"
+  digest = "1:38915cc39fc79dedca06b483584620781b60fe2aa4e25b3db127ebecc765b15d"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
     "unix",
+    "windows",
   ]
   pruneopts = "UT"
   revision = "e8e3143a4f4a00f1fafef0dd82ba78223281b01b"
@@ -498,6 +500,7 @@
     "github.com/golang/protobuf/ptypes/duration",
     "github.com/hashicorp/go-syslog",
     "github.com/json-iterator/go",
+    "github.com/juju/errors",
     "github.com/lyft/protoc-gen-validate/validate",
     "github.com/neverhook/easygo/netpoll",
     "github.com/prometheus/client_golang/prometheus",
@@ -508,11 +511,12 @@
     "github.com/valyala/fasthttp",
     "golang.org/x/crypto/chacha20poly1305",
     "golang.org/x/crypto/curve25519",
+    "golang.org/x/crypto/ssh/terminal",
     "golang.org/x/net/context",
+    "golang.org/x/net/http/httpguts",
     "golang.org/x/net/http2",
     "golang.org/x/net/http2/hpack",
     "golang.org/x/net/idna",
-    "golang.org/x/net/lex/httplex",
     "golang.org/x/sys/unix",
     "google.golang.org/grpc",
     "gopkg.in/natefinch/lumberjack.v2",
