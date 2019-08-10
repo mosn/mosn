@@ -47,6 +47,9 @@ func init() {
 		"/api/v1/enable_log":      enableLogger,
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,
+		"/api/v1/logging":         setLogLevel,
+		"/listeners":              getListeners,
+		"/stats":                  getProbeStats,
 	}
 }
 
