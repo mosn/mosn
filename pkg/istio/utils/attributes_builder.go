@@ -20,7 +20,6 @@ package utils
 import (
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 
 	google_protobuf1 "github.com/gogo/protobuf/types"
@@ -67,19 +66,19 @@ func (a *AttributesBuilder) AddInt64(key string, data int64) {
 
 // AddStringMap function
 func (a *AttributesBuilder) AddStringMap(key string, stringMap types.HeaderMap) {
-	c, ok := stringMap.(protocol.CommonHeader)
-	if !ok || len(c) == 0 {
-		return
-	}
-
 	entries := &v1.Attributes_AttributeValue_StringMapValue{
 		StringMapValue: &v1.Attributes_StringMap{
 			Entries: make(map[string]string, 0),
 		},
 	}
 
-	for k, v := range c {
-		entries.StringMapValue.Entries[k] = v
+	stringMap.Range(func(key, value string) bool{
+		entries.StringMapValue.Entries[key] = value
+		return true
+	} )
+
+	if len(entries.StringMapValue.Entries) == 0 {
+		return
 	}
 
 	a.attributes.Attributes[key] = &v1.Attributes_AttributeValue{

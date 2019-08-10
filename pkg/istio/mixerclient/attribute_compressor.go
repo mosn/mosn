@@ -197,7 +197,7 @@ func compressByDict(attributes *v1.Attributes, dict *messageDictionary, pb *v1.C
 
 		switch val := value.(type) {
 		case *v1.Attributes_AttributeValue_StringValue:
-			pb.Strings[index] = dict.getIndex(val.StringValue)
+			pb.Strings[index] = dict.getIndexOrTransform(val.StringValue)
 		case *v1.Attributes_AttributeValue_BytesValue:
 			pb.Bytes[index] = val.BytesValue
 		case *v1.Attributes_AttributeValue_Int64Value:
@@ -224,7 +224,7 @@ func createStringMap(sm *v1.Attributes_StringMap, dict *messageDictionary) v1.St
 	entries := compressedMap.Entries
 
 	for k, v := range sm.Entries {
-		entries[dict.getIndex(k)] = dict.getIndex(v)
+		entries[dict.getIndexOrTransform(k)] = dict.getIndexOrTransform(v)
 	}
 
 	return compressedMap
@@ -242,4 +242,32 @@ func newCompressAttributes() v1.CompressedAttributes {
 		Bytes:      make(map[int32][]byte, 0),
 		StringMaps: make(map[int32]v1.StringMap, 0),
 	}
+}
+
+func (m *messageDictionary) getIndexFor(key string) (int32, bool) {
+	index, exist := m.globalDict.GetIndex(key)
+	if exist {
+		return index, false
+	}
+	index, exist = m.messageDict[key]
+	if exist {
+		return index, true
+	}
+
+	index = int32(len(m.messageWords))
+	m.messageWords = append(m.messageWords, key)
+	m.messageDict[key] = int32(index)
+	return index, true
+}
+
+func (m *messageDictionary) getIndexOrTransform(key string) int32 {
+	slot, transform := m.getIndexFor(key)
+	if transform {
+		slot = slotToIndex(int(slot))
+	}
+	return slot
+}
+
+func slotToIndex(slot int) int32 {
+	return int32(-slot - 1)
 }
