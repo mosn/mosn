@@ -26,6 +26,7 @@ import (
 	"math/rand"
 	"time"
 
+	"google.golang.org/grpc/keepalive"
 	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/log"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -36,6 +37,11 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+)
+
+const (
+	keepaliveTime = 30
+	keepaliveTimeOut = 60
 )
 
 //  Init parsed ds and clusters config for xds
@@ -202,8 +208,10 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 		return nil
 	}
 
+	kp := keepalive.ClientParameters{Time:time.Duration(keepaliveTime * time.Second), Timeout:time.Duration(keepaliveTimeOut * time.Second)}
+
 	if tlsContext == nil || !featuregate.DefaultFeatureGate.Enabled(featuregate.XdsMtlsEnable) {
-		conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
+		conn, err := grpc.Dial(endpoint, grpc.WithInsecure(), grpc.WithKeepaliveParams(kp))
 		if err != nil {
 			log.DefaultLogger.Errorf("did not connect: %v", err)
 			return nil
@@ -217,7 +225,7 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 			log.DefaultLogger.Errorf("xds-grpc get tls creds fail: err= %v", err)
 			return nil
 		}
-		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds))
+		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds), grpc.WithKeepaliveParams(kp))
 		if err != nil {
 			log.DefaultLogger.Errorf("did not connect: %v", err)
 			return nil

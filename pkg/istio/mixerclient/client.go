@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	v1 "istio.io/api/mixer/v1"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
@@ -37,6 +38,8 @@ const (
 
 	// max entries before flush
 	flushMaxEntries = 100
+	keepaliveTime = 30
+	keepaliveTimeOut = 60
 )
 
 // MixerClient for communicate with mixer server
@@ -101,7 +104,9 @@ func (c *mixerClient) tryConnect(retry bool) error {
 
 	// TODO: use lb
 	mixerAddress := hosts[0].Address().String()
-	conn, err := grpc.Dial(mixerAddress, grpc.WithInsecure())
+	kp := keepalive.ClientParameters{Time:time.Duration(keepaliveTime * time.Second), Timeout:time.Duration(keepaliveTimeOut * time.Second)}
+
+	conn, err := grpc.Dial(mixerAddress, grpc.WithInsecure(), grpc.WithKeepaliveParams(kp))
 	if err != nil {
 		err := fmt.Errorf("grpc dial to mixer server %s error %v", mixerAddress, err)
 		log.DefaultLogger.Errorf("%s", err.Error())
