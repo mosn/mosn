@@ -50,21 +50,26 @@ type ReportData interface {
 	// GetDestinationUID return destination UID
 	//GetDestinationUID() (uid string, err error)
 
+	// GetRequestHeaders return requestHTTP headers
+	GetRequestHeaders() (headers types.HeaderMap)
+
 	// GetResponseHeaders return response HTTP headers
 	GetResponseHeaders() (headers types.HeaderMap)
 }
 
 type reportData struct {
 	respHeaders       types.HeaderMap
+	reqHeaders        types.HeaderMap
 	requestInfo       types.RequestInfo
 	requestTotalSize  uint64
 	responseTotalSize uint64
 }
 
 // NewReportData return ReportData
-func NewReportData(respHeaders types.HeaderMap, requestInfo types.RequestInfo, requestTotalSize uint64) ReportData {
+func NewReportData(reqHeaders, respHeaders types.HeaderMap, requestInfo types.RequestInfo, requestTotalSize uint64) ReportData {
 	return &reportData{
 		respHeaders:       respHeaders,
+		reqHeaders:		   reqHeaders,
 		requestInfo:       requestInfo,
 		requestTotalSize:  requestTotalSize,
 		responseTotalSize: requestInfo.BytesSent() + respHeaders.ByteSize(),
@@ -118,4 +123,9 @@ func (r *reportData) GetDestinationUID() (uid string, err error) {
 // GetResponseHeaders return response HTTP headers
 func (r *reportData) GetResponseHeaders() (headers types.HeaderMap) {
 	return r.respHeaders
+}
+
+// GetRequestHeaders return requestHTTP headers
+func (r *reportData) GetRequestHeaders() (headers types.HeaderMap) {
+	return r.reqHeaders
 }

@@ -26,6 +26,7 @@ type mockReportData struct {
 	getReportInfo        int
 	getDestinationIPPort int
 	getResponseHeaders   int
+	getRequestHeaders	 int
 }
 
 func newMockReportData() ReportData {
@@ -58,5 +59,10 @@ func (r *mockReportData) GetDestinationUID() (uid string, err error) {
 // GetResponseHeaders return response HTTP headers
 func (r *mockReportData) GetResponseHeaders() (headers types.HeaderMap) {
 	r.getResponseHeaders++
+	return protocol.CommonHeader(make(map[string]string, 0))
+}
+
+func (r *mockReportData) GetRequestHeaders() (headers types.HeaderMap) {
+	r.getRequestHeaders++
 	return protocol.CommonHeader(make(map[string]string, 0))
 }

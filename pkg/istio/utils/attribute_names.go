@@ -38,6 +38,8 @@ const (
 
 	// const string
 	KRequestTotalSize = "request.total_size"
+	// KResponseHeaders const string
+	KRequestHeaders = "request.headers"
 
 	// KResponseCode const string
 	KResponseCode = "response.code"

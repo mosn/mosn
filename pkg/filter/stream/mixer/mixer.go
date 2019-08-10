@@ -131,7 +131,7 @@ func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMa
 	// TODO: use f.receiverFilterHandler.Connection() to get address instead of requestInfo
 	checkData := http.NewCheckData(reqHeaders, requestInfo)
 
-	reportData := http.NewReportData(respHeaders, requestInfo, f.requestTotalSize)
+	reportData := http.NewReportData(reqHeaders, respHeaders, requestInfo, f.requestTotalSize)
 
 	f.requestHandler.Report(checkData, reportData)
 }

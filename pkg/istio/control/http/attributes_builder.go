@@ -85,6 +85,7 @@ func (b *attributesBuilder) ExtractReportAttributes(reportData ReportData) {
 
 	headers := reportData.GetResponseHeaders()
 	builder.AddStringMap(utils.KResponseHeaders, headers)
+	builder.AddStringMap(utils.KRequestHeaders, reportData.GetRequestHeaders())
 
 	builder.AddTimestamp(utils.KResponseTime, time.Now())
 
