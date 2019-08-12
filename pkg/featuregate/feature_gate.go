@@ -77,7 +77,7 @@ const (
 type oneTimeBroadcaster struct {
 	notified bool
 	once     sync.Once
-	channels chan struct{}
+	channel  chan struct{}
 }
 
 // FeatureGate indicates whether a given feature is enabled or not
@@ -291,7 +291,7 @@ func (f *defaultFeatureGate) Add(features map[Feature]FeatureSpec) error {
 		if _, found := f.broadcasters[name]; !found {
 			f.broadcasters[name] = &oneTimeBroadcaster{
 				notified: false,
-				channels: make(chan struct{}, 1),
+				channel:  make(chan struct{}, 1),
 			}
 		}
 	}
@@ -364,7 +364,7 @@ func (f *defaultFeatureGate) DeepCopy() MutableFeatureGate {
 	for k, v := range f.broadcasters {
 		broadcasters[k] = &oneTimeBroadcaster{
 			notified: v.notified,
-			channels: v.channels,
+			channel:  v.channel,
 		}
 	}
 
@@ -412,7 +412,7 @@ func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
 
 		b.notified = true
 		b.once.Do(func() {
-			close(b.channels)
+			close(b.channel)
 		})
 
 		f.updateToReady(key)
@@ -452,7 +452,7 @@ func (f *defaultFeatureGate) Subscribe(key Feature) (chan struct{}, error) {
 	}
 
 	if broadcaster, found := f.broadcasters[key]; found {
-		return broadcaster.channels, nil
+		return broadcaster.channel, nil
 	}
 
 	return nil, fmt.Errorf("subscribe fails, make sure %s is inited correctly", key)
