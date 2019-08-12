@@ -41,10 +41,10 @@ func init() {
 // HandleEnvoyListener parse envoy data to mosn listener config
 func HandleEnvoyListener(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
 	log.DefaultLogger.Tracef("get lds resp,handle it")
-	listeners := client.V2Client.handleListenersResp(resp)
+	listeners := client.handleListenersResp(resp)
 	log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
 	conv.ConvertAddOrUpdateListeners(listeners)
-	if err := client.V2Client.reqRoutes(client.StreamClient); err != nil {
+	if err := client.reqRoutes(client.StreamClient); err != nil {
 		log.DefaultLogger.Warnf("send thread request rds fail!auto retry next period")
 	}
 }
@@ -52,7 +52,7 @@ func HandleEnvoyListener(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse
 // HandleEnvoyCluster parse envoy data to mosn cluster config
 func HandleEnvoyCluster(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
 	log.DefaultLogger.Tracef("get cds resp,handle it")
-	clusters := client.V2Client.handleClustersResp(resp)
+	clusters := client.handleClustersResp(resp)
 	log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
 	conv.ConvertUpdateClusters(clusters)
 	clusterNames := make([]string, 0)
@@ -64,11 +64,11 @@ func HandleEnvoyCluster(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse)
 	}
 
 	if len(clusterNames) != 0 {
-		if err := client.V2Client.reqEndpoints(client.StreamClient, clusterNames); err != nil {
+		if err := client.reqEndpoints(client.StreamClient, clusterNames); err != nil {
 			log.DefaultLogger.Warnf("send thread request eds fail!auto retry next period")
 		}
 	} else {
-		if err := client.V2Client.reqListeners(client.StreamClient); err != nil {
+		if err := client.reqListeners(client.StreamClient); err != nil {
 			log.DefaultLogger.Warnf("send thread request lds fail!auto retry next period")
 		}
 	}
@@ -77,11 +77,11 @@ func HandleEnvoyCluster(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse)
 // HandleEnvoyClusterLoadAssignment parse envoy data to mosn endpoint config
 func HandleEnvoyClusterLoadAssignment(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
 	log.DefaultLogger.Tracef("get eds resp,handle it ")
-	endpoints := client.V2Client.handleEndpointsResp(resp)
+	endpoints := client.handleEndpointsResp(resp)
 	log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
 	conv.ConvertUpdateEndpoints(endpoints)
 
-	if err := client.V2Client.reqListeners(client.StreamClient); err != nil {
+	if err := client.reqListeners(client.StreamClient); err != nil {
 		log.DefaultLogger.Warnf("send thread request lds fail!auto retry next period")
 	}
 }
@@ -89,7 +89,7 @@ func HandleEnvoyClusterLoadAssignment(client *ADSClient, resp *envoy_api_v2.Disc
 // HandleEnvoyRouteConfiguration parse envoy data to mosn route config
 func HandleEnvoyRouteConfiguration(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
 	log.DefaultLogger.Tracef("get rds resp,handle it")
-	routes := client.V2Client.handleRoutesResp(resp)
+	routes := client.handleRoutesResp(resp)
 	log.DefaultLogger.Infof("get %d routes from RDS", len(routes))
 	conv.ConvertAddOrUpdateRouters(routes)
 }

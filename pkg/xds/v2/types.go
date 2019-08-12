@@ -21,21 +21,13 @@ import (
 	"time"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/gogo/protobuf/types"
+	//"github.com/gogo/protobuf/types"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"sofastack.io/sofa-mosn/pkg/config"
 )
-
-// ClientV2 contains config which v2 module needed
-type ClientV2 struct {
-	ServiceCluster string
-	ServiceNode    string
-	Metadata       *types.Struct
-	Config         *XDSConfig
-}
 
 // XDSConfig contains ADS config and clusters info
 type XDSConfig struct {
@@ -62,7 +54,6 @@ type ADSConfig struct {
 type ADSClient struct {
 	AdsConfig       *ADSConfig
 	StreamClient    ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient
-	V2Client        *ClientV2
 	MosnConfig      *config.MOSNConfig
 	SendControlChan chan int
 	RecvControlChan chan int

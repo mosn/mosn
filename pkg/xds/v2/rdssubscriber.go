@@ -24,10 +24,11 @@ import (
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
 )
 
-func (c *ClientV2) reqRoutes(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
+func (c *ADSClient) reqRoutes(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
 	if streamClient == nil {
 		return errors.New("stream client is nil")
 	}
@@ -44,9 +45,9 @@ func (c *ClientV2) reqRoutes(streamClient ads.AggregatedDiscoveryService_StreamA
 		ResponseNonce: "",
 		ErrorDetail:   nil,
 		Node: &envoy_api_v2_core1.Node{
-			Id:       c.ServiceNode,
-			Cluster:  c.ServiceCluster,
-			Metadata: c.Metadata,
+			Id:       types.GetGlobalXdsInfo().ServiceNode,
+			Cluster:  types.GetGlobalXdsInfo().ServiceCluster,
+			Metadata: types.GetGlobalXdsInfo().Metadata,
 		},
 	})
 	if err != nil {
@@ -56,7 +57,7 @@ func (c *ClientV2) reqRoutes(streamClient ads.AggregatedDiscoveryService_StreamA
 	return nil
 }
 
-func (c *ClientV2) handleRoutesResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.RouteConfiguration {
+func (c *ADSClient) handleRoutesResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.RouteConfiguration {
 	routes := make([]*envoy_api_v2.RouteConfiguration, 0)
 	for _, res := range resp.Resources {
 		route := envoy_api_v2.RouteConfiguration{}

@@ -34,7 +34,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/log"
-	typ "sofastack.io/sofa-mosn/pkg/types"
 	v2 "sofastack.io/sofa-mosn/pkg/xds/v2"
 )
 
@@ -42,7 +41,6 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // Client provide an ADS client
 type Client struct {
-	v2        *v2.ClientV2
 	adsClient *v2.ADSClient
 }
 
@@ -182,39 +180,28 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 
 // Start used to fetch listeners/clusters/clusterloadassignment config from pilot in cycle,
 // usually called when mosn start
-func (c *Client) Start(config *config.MOSNConfig, serviceCluster, serviceNode string, metadata *types.Struct) error {
+func (c *Client) Start(config *config.MOSNConfig) error {
 	log.DefaultLogger.Infof("xds client start")
-	if c.v2 == nil {
-		dynamicResources, staticResources, err := UnmarshalResources(config)
-		if err != nil {
-			log.DefaultLogger.Warnf("fail to unmarshal xds resources, skip xds: %v", err)
-			return errors.New("fail to unmarshal xds resources")
-		}
-		xdsConfig := v2.XDSConfig{}
-		err = xdsConfig.Init(dynamicResources, staticResources)
-		if err != nil {
-			log.DefaultLogger.Warnf("fail to init xds config, skip xds: %v", err)
-			return errors.New("fail to init xds config")
-		}
-		// TODO: remove it
-		typ.ServiceCluster = serviceCluster
-		typ.ServiceNode = serviceNode
-		typ.Metadata = metadata
-		c.v2 = &v2.ClientV2{
-			ServiceCluster: serviceCluster,
-			ServiceNode:    serviceNode,
-			Metadata:       metadata,
-			Config:         &xdsConfig,
-		}
+
+	dynamicResources, staticResources, err := UnmarshalResources(config)
+	if err != nil {
+		log.DefaultLogger.Warnf("fail to unmarshal xds resources, skip xds: %v", err)
+		return errors.New("fail to unmarshal xds resources")
+	}
+
+	xdsConfig := v2.XDSConfig{}
+	err = xdsConfig.Init(dynamicResources, staticResources)
+	if err != nil {
+		log.DefaultLogger.Warnf("fail to init xds config, skip xds: %v", err)
+		return errors.New("fail to init xds config")
 	}
 
 	stopChan := make(chan int)
 	sendControlChan := make(chan int)
 	recvControlChan := make(chan int)
 	adsClient := &v2.ADSClient{
-		AdsConfig:       c.v2.Config.ADSConfig,
+		AdsConfig:       xdsConfig.ADSConfig,
 		StreamClient:    nil,
-		V2Client:        c.v2,
 		MosnConfig:      config,
 		SendControlChan: sendControlChan,
 		RecvControlChan: recvControlChan,

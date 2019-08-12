@@ -20,7 +20,6 @@ package mosn
 import (
 	"sync"
 
-	pb "github.com/gogo/protobuf/types"
 	admin "sofastack.io/sofa-mosn/pkg/admin/server"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
@@ -260,7 +259,7 @@ func (m *Mosn) Close() {
 // Start mosn project
 // step1. NewMosn
 // step2. Start Mosn
-func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string, metadata *pb.Struct) {
+func Start(c *config.MOSNConfig) {
 	log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
 
 	wg := sync.WaitGroup{}
@@ -270,7 +269,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string, meta
 	Mosn.Start()
 	////get xds config
 	xdsClient := xds.Client{}
-	xdsClient.Start(c, serviceCluster, serviceNode, metadata)
+	xdsClient.Start(c)
 	//
 	////todo: daemon running
 	wg.Wait()
