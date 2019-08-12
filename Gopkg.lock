@@ -369,7 +369,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5afc434dea56423e2a50de133b70661a78552d24c81dab1c79734e0d4999c690"
+  digest = "1:54a6041af989110a6edee54f56bb2f2c205dd387c79bb4fa13e38d1ffa768887"
   name = "golang.org/x/crypto"
   packages = [
     "chacha20poly1305",
@@ -377,33 +377,35 @@
     "internal/chacha20",
     "internal/subtle",
     "poly1305",
+    "ssh/terminal",
   ]
   pruneopts = "UT"
   revision = "4def268fd1a49955bfb3dda92fe3db4f924f2285"
 
 [[projects]]
-  branch = "release-branch.go1.9"
-  digest = "1:1604cdec55ab4b828b9e83af0e7f1bd0f954cc3ffab4231587f6f33e5db53e6c"
+  branch = "release-branch.go1.12"
+  digest = "1:fc7b6b4384e1e849d99eab58eca4f8c0a76bad4699117d5077a9a5c3c83e289e"
   name = "golang.org/x/net"
   packages = [
     "context",
+    "http/httpguts",
     "http2",
     "http2/hpack",
     "idna",
     "internal/timeseries",
-    "lex/httplex",
     "trace",
   ]
   pruneopts = "UT"
-  revision = "44b7c21cbf19450f38b337eb6b6fe4f6496fb5b3"
+  revision = "65e2d4e15006aab9813ff8769e768bbf4bb667a0"
 
 [[projects]]
   branch = "master"
-  digest = "1:78e2de67d4ddf9fd41df5d1baf0e54135ec1fd8f690ea7ba602587f5524534bf"
+  digest = "1:38915cc39fc79dedca06b483584620781b60fe2aa4e25b3db127ebecc765b15d"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
     "unix",
+    "windows",
   ]
   pruneopts = "UT"
   revision = "51ab0e2deafac1f46c46ad59cf0921be2f180c3d"
@@ -548,11 +550,12 @@
     "github.com/valyala/fasthttp",
     "golang.org/x/crypto/chacha20poly1305",
     "golang.org/x/crypto/curve25519",
+    "golang.org/x/crypto/ssh/terminal",
     "golang.org/x/net/context",
+    "golang.org/x/net/http/httpguts",
     "golang.org/x/net/http2",
     "golang.org/x/net/http2/hpack",
     "golang.org/x/net/idna",
-    "golang.org/x/net/lex/httplex",
     "golang.org/x/sys/unix",
     "google.golang.org/grpc",
     "google.golang.org/grpc/credentials",
