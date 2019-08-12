@@ -54,8 +54,6 @@ var (
 	specialFeatures = map[Feature]func(known map[Feature]FeatureSpec, enabled map[Feature]bool, val bool){
 		allAlphaGate: setUnsetAlphaGates,
 	}
-
-	nilReadyMessage = ReadyMessage{}
 )
 
 type FeatureSpec struct {
@@ -78,17 +76,8 @@ const (
 
 type oneTimeBroadcaster struct {
 	notified bool
-	channels []chan AsynReadyMessage
-}
-
-type ReadyMessage struct {
-	Ready   bool
-	Channel chan AsynReadyMessage
-}
-
-type AsynReadyMessage struct {
-	FeatureInfo Feature
-	Ready       bool
+	once     sync.Once
+	channels chan struct{}
 }
 
 // FeatureGate indicates whether a given feature is enabled or not
@@ -104,11 +93,9 @@ type FeatureGate interface {
 
 	// IsReady returns true if the feature is ready
 	IsReady(key Feature) bool
-	// Subscribe returns the ReadyMessage, which contains Ready and Channel
-	//   Ready=true means subKey of key is ready, then Channel will be useless
-	//   Ready=false means subKey of key is not ready, when it turns on a ready message will be broadcast through Channel
-	Subscribe(key Feature) (ReadyMessage, error)
-	// UpdateToReady supports updating feature to ready, then broadcasting the ReadMessage to subscribers
+	// Subscribe returns a channel. if the channel is closed, means the feature is ready
+	Subscribe(key Feature) (chan struct{}, error)
+	// UpdateToReady supports updating feature to ready, then closing the channel
 	// unsupported:
 	// 1. Rollback the notified of ready to false or Setting with false
 	// 2. Repeat setting the notified of ready with true
@@ -304,7 +291,7 @@ func (f *defaultFeatureGate) Add(features map[Feature]FeatureSpec) error {
 		if _, found := f.broadcasters[name]; !found {
 			f.broadcasters[name] = &oneTimeBroadcaster{
 				notified: false,
-				channels: []chan AsynReadyMessage{},
+				channels: make(chan struct{}, 1),
 			}
 		}
 	}
@@ -424,12 +411,9 @@ func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
 		}
 
 		b.notified = true
-		for _, ch := range b.channels {
-			ch <- AsynReadyMessage{
-				FeatureInfo: key,
-				Ready:       true,
-			}
-		}
+		b.once.Do(func() {
+			close(b.channels)
+		})
 
 		f.updateToReady(key)
 	} else {
@@ -458,25 +442,18 @@ func (f *defaultFeatureGate) IsReady(key Feature) bool {
 	return false
 }
 
-// Subscribe returns the ReadyMessage, which contains Ready and Channel
-//   Ready=true means feature is ready, then Channel will be useless
-//   Ready=false means feature is not ready, when it turns on a ready message will be broadcast through Channel
-func (f *defaultFeatureGate) Subscribe(key Feature) (ReadyMessage, error) {
+// Subscribe returns a channel. if the channel is closed, means the feature is ready
+func (f *defaultFeatureGate) Subscribe(key Feature) (chan struct{}, error) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
 	if _, ok := f.known.Load().(map[Feature]FeatureSpec)[key]; !ok {
-		return nilReadyMessage, fmt.Errorf("feature %s is unknown", key)
+		return nil, fmt.Errorf("feature %s is unknown", key)
 	}
 
 	if broadcaster, found := f.broadcasters[key]; found {
-		ch := make(chan AsynReadyMessage, 1)
-		broadcaster.channels = append(broadcaster.channels, ch)
-		return ReadyMessage{
-			Ready:   broadcaster.notified,
-			Channel: ch,
-		}, nil
+		return broadcaster.channels, nil
 	}
 
-	return nilReadyMessage, fmt.Errorf("subscribe fails, make sure %s is inited correctly", key)
+	return nil, fmt.Errorf("subscribe fails, make sure %s is inited correctly", key)
 }

@@ -25,7 +25,9 @@ type streamPayloadLimitFilter struct {
 }
 
 func NewFilter(ctx context.Context, cfg *v2.StreamPayloadLimit) types.StreamReceiverFilter {
-	log.DefaultLogger.Debugf("create a new payload limit filter")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("create a new payload limit filter")
+	}
 	return &streamPayloadLimitFilter{
 		ctx:    ctx,
 		config: makePayloadLimitConfig(cfg),
@@ -73,7 +75,9 @@ func (f *streamPayloadLimitFilter) SetReceiveFilterHandler(handler types.StreamR
 }
 
 func (f *streamPayloadLimitFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
-	log.DefaultLogger.Debugf("payload limit stream do receive headers")
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("payload limit stream do receive headers")
+	}
 	if route := f.handler.Route(); route != nil {
 		// TODO: makes ReadPerRouteConfig as the StreamReceiverFilter's function
 		f.ReadPerRouteConfig(route.RouteRule().PerFilterConfig())
@@ -83,8 +87,10 @@ func (f *streamPayloadLimitFilter) OnReceive(ctx context.Context, headers types.
 	// buf is nil means request method is GET?
 	if buf != nil && f.config.maxEntitySize != 0 {
 		if buf.Len() > int(f.config.maxEntitySize) {
-			log.DefaultLogger.Debugf("payload size too large,data size = %d ,limit = %d",
-				buf.Len(), f.config.maxEntitySize)
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("payload size too large,data size = %d ,limit = %d",
+					buf.Len(), f.config.maxEntitySize)
+			}
 			f.handler.RequestInfo().SetResponseFlag(types.ReqEntityTooLarge)
 			f.handler.SendHijackReply(int(f.config.status), f.headers)
 			return types.StreamFilterStop

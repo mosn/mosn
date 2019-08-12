@@ -24,6 +24,7 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
+	"time"
 )
 
 func TestFeatureGateFlag(t *testing.T) {
@@ -478,18 +479,31 @@ func TestFeatureGateUpdateToSubscribe(t *testing.T) {
 	}
 
 	f.UpdateToReady(testAfterReady)
-	msg, err := f.Subscribe(testAfterReady)
-	if err != nil || !msg.Ready {
+	c, err := f.Subscribe(testAfterReady)
+	_, open := <-c
+	if err != nil || open {
 		t.Errorf("Excepted not error, and %s is ready", testAfterReady)
 	}
 
-	msg, err = f.Subscribe(testBeforeReady)
-	if err != nil || msg.Ready {
+	c, err = f.Subscribe(testBeforeReady)
+	if err != nil {
 		t.Errorf("Excepted not error, and %s is not ready", testAfterReady)
 	}
-	f.UpdateToReady(testBeforeReady)
-	c, _ := <-msg.Channel
-	if !c.Ready {
+	go func() {
+		time.Sleep(1 * time.Second)
+		f.UpdateToReady(testBeforeReady)
+	}()
+
+	ticker := time.NewTicker(2 * time.Second)
+
+	select {
+	case _, open = <-c:
+		if !open {
+			break
+		}
+	case <-ticker.C:
 		t.Errorf("Excepted %s is ready", testBeforeReady)
+		break
 	}
+
 }
