@@ -18,11 +18,11 @@ import (
 	"sync"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"golang.org/x/net/lex/httplex"
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var (
@@ -89,7 +89,7 @@ func (ms *MStream) SendResponse() error {
 	if rsp.Trailer != nil {
 		for k, _ := range rsp.Trailer {
 			k = http.CanonicalHeaderKey(k)
-			if !ValidTrailerHeader(k) {
+			if !httpguts.ValidTrailerHeader(k) {
 				rsp.Trailer.Del(k)
 			} else {
 				trailers = append(trailers, k)
@@ -471,7 +471,7 @@ func (st *stream) mprocessTrailerHeaders(ctx context.Context, f *MetaHeadersFram
 	if st.trailer != nil {
 		for _, hf := range f.RegularFields() {
 			key := sc.canonicalHeader(hf.Name)
-			if !ValidTrailerHeader(key) {
+			if !httpguts.ValidTrailerHeader(key) {
 				return streamError(st.id, ErrCodeProtocol)
 			}
 			st.trailer[key] = append(st.trailer[key], hf.Value)
@@ -1646,7 +1646,7 @@ func (fr *MFramer) readMetaFrame(ctx context.Context, hf *HeadersFrame, data typ
 	hdec.SetEmitEnabled(true)
 	hdec.SetMaxStringLength(fr.maxHeaderStringLen())
 	hdec.SetEmitFunc(func(hf hpack.HeaderField) {
-		if !httplex.ValidHeaderFieldValue(hf.Value) {
+		if !httpguts.ValidHeaderFieldValue(hf.Value) {
 			invalid = headerFieldValueError(hf.Value)
 		}
 		isPseudo := strings.HasPrefix(hf.Name, ":")

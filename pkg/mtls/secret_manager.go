@@ -54,6 +54,13 @@ func getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 	return secretManagerInstance.getOrCreateProvider(cfg)
 }
 
+func ClearSecretManager() {
+	secretManagerInstance.mutex.Lock()
+	defer secretManagerInstance.mutex.Unlock()
+	secretManagerInstance.validations = make(map[string]*validation)
+	log.DefaultLogger.Infof("[mtls] [sds provider] clear all providers")
+}
+
 func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
