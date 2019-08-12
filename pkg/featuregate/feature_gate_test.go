@@ -190,6 +190,10 @@ func TestFeatureGateFlagDefaults(t *testing.T) {
 	if f.Enabled(testBetaGate) != true {
 		t.Errorf("Expected true")
 	}
+	// missing feature return false as default
+	if f.Enabled("missingFeature") != false {
+		t.Errorf("Expected false")
+	}
 }
 
 func TestFeatureGateKnownFeatures(t *testing.T) {

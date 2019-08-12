@@ -320,7 +320,10 @@ func (f *defaultFeatureGate) Enabled(key Feature) bool {
 	if v, ok := f.enabled.Load().(map[Feature]bool)[key]; ok {
 		return v
 	}
-	return f.known.Load().(map[Feature]FeatureSpec)[key].Default
+	if v, ok := f.known.Load().(map[Feature]FeatureSpec)[key]; ok {
+		return v.Default
+	}
+	return false
 }
 
 // AddFlag adds a flag for setting global feature gates to the specified FlagSet.
