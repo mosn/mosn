@@ -29,13 +29,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/config"
 )
 
-// ClientV2 contains config which v2 module needed
-type ClientV2 struct {
-	ServiceCluster string
-	ServiceNode    string
-	Config         *XDSConfig
-}
-
 // XDSConfig contains ADS config and clusters info
 type XDSConfig struct {
 	ADSConfig *ADSConfig
@@ -62,7 +55,6 @@ type ADSConfig struct {
 type ADSClient struct {
 	AdsConfig       *ADSConfig
 	StreamClient    ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient
-	V2Client        *ClientV2
 	MosnConfig      *config.MOSNConfig
 	SendControlChan chan int
 	RecvControlChan chan int

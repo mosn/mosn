@@ -259,7 +259,7 @@ func (m *Mosn) Close() {
 // Start mosn project
 // step1. NewMosn
 // step2. Start Mosn
-func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
+func Start(c *config.MOSNConfig) {
 	log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
 
 	wg := sync.WaitGroup{}
@@ -269,7 +269,7 @@ func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
 	Mosn.Start()
 	////get xds config
 	xdsClient := xds.Client{}
-	xdsClient.Start(c, serviceCluster, serviceNode)
+	xdsClient.Start(c)
 	//
 	////todo: daemon running
 	wg.Wait()

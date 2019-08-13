@@ -24,12 +24,13 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/urfave/cli"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/mosn"
-	"github.com/urfave/cli"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var (
@@ -81,7 +82,8 @@ var (
 			// set version and go version
 			metrics.SetVersion(Version)
 			metrics.SetGoVersion(runtime.Version())
-			mosn.Start(conf, serviceCluster, serviceNode)
+			initXdsFlags(serviceCluster, serviceNode)
+			mosn.Start(conf)
 			return nil
 		},
 	}
@@ -102,3 +104,9 @@ var (
 		},
 	}
 )
+
+func initXdsFlags(serviceCluster, serviceNode string) {
+	info := types.GetGlobalXdsInfo()
+	info.ServiceCluster = serviceCluster
+	info.ServiceNode = serviceNode
+}
