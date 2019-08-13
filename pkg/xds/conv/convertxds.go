@@ -44,8 +44,10 @@ import (
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/router"
+	payloadlimit "sofastack.io/sofa-mosn/pkg/xds/model/filter/http/payloadlimit/v2"
 	xdsxproxy "sofastack.io/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
 	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
+	"sofastack.io/sofa-mosn/pkg/featuregate"
 )
 
 // support network filter list
@@ -64,9 +66,10 @@ var httpBaseConfig = map[string]bool{
 
 // istio stream filter names, which is quite different from mosn
 const (
-	IstioFault  = "envoy.fault"
-	IstioRouter = "envoy.router"
-	IstioCors   = "envoy.cors"
+	IstioFault       = "envoy.fault"
+	IstioRouter      = "envoy.router"
+	IstioCors        = "envoy.cors"
+	MosnPayloadLimit = "mosn.payload_limit"
 )
 
 // todo add streamfilters parse
@@ -83,7 +86,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr: convertAddress(&xdsListener.Address),
+		Addr:                    convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -271,7 +274,6 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 
 		for _, filter := range filterConfig.GetHttpFilters() {
 			streamFilter := convertStreamFilter(filter.GetName(), filter.GetConfig())
-			// only support mixer now, so ignore unsupport filter
 			if streamFilter.Type != "" {
 				log.DefaultLogger.Debugf("add a new stream filter, %v", streamFilter.Type)
 				filters = append(filters, streamFilter)
@@ -315,10 +317,38 @@ func convertStreamFilter(name string, s *types.Struct) v2.Filter {
 				log.DefaultLogger.Errorf("convert fault inject config error: %v", err)
 			}
 		}
+	case MosnPayloadLimit:
+		if featuregate.DefaultFeatureGate.Enabled(featuregate.PayLoadLimitEnable) {
+			filter.Type = v2.PayloadLimit
+			if s == nil {
+				payloadLimitInject := &v2.StreamPayloadLimit{}
+				filter.Config, err = makeJsonMap(payloadLimitInject)
+				if err != nil {
+					log.DefaultLogger.Errorf("convert payload limit config error: %v", err)
+				}
+			} else {
+				filter.Config, err = convertStreamPayloadLimitConfig(s)
+				if err != nil {
+					log.DefaultLogger.Errorf("convert payload limit config error: %v", err)
+				}
+			}
+		}
 	default:
 	}
 
 	return filter
+}
+
+func convertStreamPayloadLimitConfig(s *types.Struct) (map[string]interface{}, error) {
+	payloadLimitConfig := &payloadlimit.PayloadLimit{}
+	if err := xdsutil.StructToMessage(s, payloadLimitConfig); err != nil {
+		return nil, err
+	}
+	payloadLimitStream := &v2.StreamPayloadLimit{
+		MaxEntitySize: payloadLimitConfig.GetMaxEntitySize(),
+		HttpStatus:    payloadLimitConfig.GetHttpStatus(),
+	}
+	return makeJsonMap(payloadLimitStream)
 }
 
 func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, error) {
@@ -675,6 +705,16 @@ func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[strin
 			}
 			log.DefaultLogger.Debugf("add a fault inject stream filter in router")
 			perRouteConfig[v2.FaultStream] = cfg
+		case v2.PayloadLimit:
+			if featuregate.DefaultFeatureGate.Enabled(featuregate.PayLoadLimitEnable) {
+				cfg, err := convertStreamPayloadLimitConfig(config)
+				if err != nil {
+					log.DefaultLogger.Infof("convertPerRouteConfig[%s] error: %v", v2.PayloadLimit, err)
+					continue
+				}
+				log.DefaultLogger.Debugf("add a payload limit stream filter in router")
+				perRouteConfig[v2.PayloadLimit] = cfg
+			}
 		default:
 			log.DefaultLogger.Warnf("unknown per route config: %s", key)
 		}

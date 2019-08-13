@@ -21,11 +21,13 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"runtime"
 
 	"github.com/urfave/cli"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
 	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/mosn"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -49,6 +51,10 @@ var (
 				Name:   "service-node, n",
 				Usage:  "sidecar service node",
 				EnvVar: "SERVICE_NODE",
+			}, cli.StringFlag{
+				Name:   "feature-gates, f",
+				Usage:  "config feature gates",
+				EnvVar: "FEATURE_GATES",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -56,6 +62,11 @@ var (
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
 			conf := config.Load(configPath)
+			// set feature gates
+			err := featuregate.DefaultMutableFeatureGate.Set(c.String("feature-gates"))
+			if err != nil {
+				os.Exit(1)
+			}
 			// start pprof
 			if conf.Debug.StartDebug {
 				port := 9090 //default use 9090

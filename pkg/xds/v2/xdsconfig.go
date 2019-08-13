@@ -18,18 +18,24 @@
 package v2
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"time"
 
+	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/log"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 //  Init parsed ds and clusters config for xds
@@ -123,6 +129,7 @@ func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticReso
 	for _, cluster := range staticResources.Clusters {
 		name := cluster.Name
 		config := ClusterConfig{}
+		config.TlsContext = cluster.TlsContext
 		if cluster.LbPolicy != xdsapi.Cluster_RANDOM {
 			log.DefaultLogger.Warnf("only random lbPoliy supported, convert to random")
 		}
@@ -178,13 +185,15 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 		return nil
 	}
 	var endpoint string
-	//var timeout *time.Duration
+	var tlsContext *envoy_api_v2_auth.UpstreamTlsContext
+
 	for _, service := range c.Services {
 		if service.ClusterConfig == nil {
 			continue
 		}
 		endpoint, _ = service.ClusterConfig.GetEndpoint()
 		if len(endpoint) > 0 {
+			tlsContext = service.ClusterConfig.TlsContext
 			break
 		}
 	}
@@ -192,13 +201,31 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 		log.DefaultLogger.Errorf("no available ads endpoint")
 		return nil
 	}
-	conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
-	if err != nil {
-		log.DefaultLogger.Errorf("did not connect: %v", err)
-		return nil
+
+	if tlsContext == nil || !featuregate.DefaultFeatureGate.Enabled(featuregate.XdsMtlsEnable) {
+		conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
+		if err != nil {
+			log.DefaultLogger.Errorf("did not connect: %v", err)
+			return nil
+		}
+		log.DefaultLogger.Infof("mosn estab grpc connection to pilot at %v", endpoint)
+		sc.Conn = conn
+	} else {
+		// Grpc with mTls support
+		creds, err := c.getTLSCreds(tlsContext)
+		if err != nil {
+			log.DefaultLogger.Errorf("xds-grpc get tls creds fail: err= %v", err)
+			return nil
+		}
+		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds))
+		if err != nil {
+			log.DefaultLogger.Errorf("did not connect: %v", err)
+			return nil
+		}
+		log.DefaultLogger.Infof("mosn estab grpc connection to pilot at %v", endpoint)
+		sc.Conn = conn
 	}
-	sc.Conn = conn
-	client := ads.NewAggregatedDiscoveryServiceClient(conn)
+	client := ads.NewAggregatedDiscoveryServiceClient(sc.Conn)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	sc.Cancel = cancel
@@ -213,6 +240,44 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	sc.Client = streamClient
 	c.StreamClient = sc
 	return streamClient
+}
+
+func (c *ADSConfig) getTLSCreds(tlsContext *envoy_api_v2_auth.UpstreamTlsContext) (credentials.TransportCredentials, error) {
+	if tlsContext.CommonTlsContext.GetValidationContext() == nil ||
+		tlsContext.CommonTlsContext.GetValidationContext().GetTrustedCa() == nil {
+		return nil, errors.New("can't find trusted ca ")
+	}
+	rootCAPath := tlsContext.CommonTlsContext.GetValidationContext().GetTrustedCa().GetFilename()
+	if len(tlsContext.CommonTlsContext.GetTlsCertificates()) <= 0 {
+		return nil, errors.New("can't find client certificates")
+	}
+	if tlsContext.CommonTlsContext.GetTlsCertificates()[0].GetCertificateChain() == nil ||
+		tlsContext.CommonTlsContext.GetTlsCertificates()[0].GetPrivateKey() == nil {
+		return nil, errors.New("can't read client certificates fail")
+	}
+	certChainPath := tlsContext.CommonTlsContext.GetTlsCertificates()[0].GetCertificateChain().GetFilename()
+	privateKeyPath := tlsContext.CommonTlsContext.GetTlsCertificates()[0].GetPrivateKey().GetFilename()
+	log.DefaultLogger.Infof("mosn start with tls context,root ca certificate path = %v\n cert chain path = %v\n private key path = %v\n",
+		rootCAPath, certChainPath, privateKeyPath)
+	certPool := x509.NewCertPool()
+	bs, err := ioutil.ReadFile(rootCAPath)
+	if err != nil {
+		return nil, err
+	}
+	ok := certPool.AppendCertsFromPEM(bs)
+	if !ok {
+		return nil, errors.New("failed to append certs")
+	}
+	certificate, err := tls.LoadX509KeyPair(
+		certChainPath,
+		privateKeyPath,
+	)
+	creds := credentials.NewTLS(&tls.Config{
+		ServerName:   "",
+		Certificates: []tls.Certificate{certificate},
+		RootCAs:      certPool,
+	})
+	return creds, nil
 }
 
 func (c *ADSConfig) getADSRefreshDelay() *time.Duration {
