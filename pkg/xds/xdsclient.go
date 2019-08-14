@@ -215,7 +215,9 @@ func (c *Client) Start(config *config.MOSNConfig) error {
 // Stop used to stop fetch listeners/clusters/clusterloadassignment config from pilot,
 // usually called when mosn quit
 func (c *Client) Stop() {
-	log.DefaultLogger.Infof("prepare to stop xds client")
-	c.adsClient.Stop()
-	log.DefaultLogger.Infof("xds client stop")
+	if c.adsClient != nil {
+		log.DefaultLogger.Infof("prepare to stop xds client")
+		c.adsClient.Stop()
+		log.DefaultLogger.Infof("xds client stop")
+	}
 }
