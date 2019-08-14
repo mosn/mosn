@@ -348,8 +348,11 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		pools[i] = pool
 	}
 
-	// perhaps the first request, wait for tcp handshaking. total wait time: 1ms + 10ms + 100ms
-	waitTime := time.Millisecond
+	// perhaps the first request, wait for tcp handshaking. total wait time is connectTimeout
+	waitTime := clusterSnapshot.ClusterInfo().ConnectTimeout() / cycleTimes
+	if waitTime == 0 {
+		waitTime = time.Millisecond
+	}
 	for t := 0; t < cycleTimes; t++ {
 		time.Sleep(waitTime)
 		for i := 0; i < try; i++ {
@@ -360,7 +363,6 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				return pools[i], nil
 			}
 		}
-		waitTime *= 10
 	}
 	return nil, errNoHealthyHost
 }

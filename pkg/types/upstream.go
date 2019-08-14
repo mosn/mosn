@@ -21,6 +21,7 @@ import (
 	"context"
 	"net"
 	"sort"
+	"time"
 
 	metrics "github.com/rcrowley/go-metrics"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
@@ -228,6 +229,9 @@ type ClusterInfo interface {
 
 	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo
+
+	// ConectTimeout returns the connect timeout
+	ConnectTimeout() time.Duration
 }
 
 // ResourceManager manages different types of Resource

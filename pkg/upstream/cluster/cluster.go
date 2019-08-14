@@ -19,10 +19,12 @@ package cluster
 
 import (
 	"sync/atomic"
+	"time"
 
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/mtls"
+	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/upstream/healthcheck"
 	"sofastack.io/sofa-mosn/pkg/utils"
@@ -53,6 +55,14 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 		lbType:               types.LoadBalancerType(clusterConfig.LbType),
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 	}
+
+	// set ConnectTimeout
+	if clusterConfig.ConnectTimeout != nil {
+		info.connectTimeout = clusterConfig.ConnectTimeout.Duration
+	} else {
+		info.connectTimeout = network.DefaultConnectTimeout
+	}
+
 	// tls mng
 	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS)
 	if err != nil {
@@ -133,6 +143,7 @@ type clusterInfo struct {
 	stats                types.ClusterStats
 	lbSubsetInfo         types.LBSubsetInfo
 	tlsMng               types.TLSContextManager
+	connectTimeout       time.Duration
 }
 
 func (ci *clusterInfo) Name() string {
@@ -169,6 +180,10 @@ func (ci *clusterInfo) TLSMng() types.TLSContextManager {
 
 func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 	return ci.lbSubsetInfo
+}
+
+func (ci *clusterInfo) ConnectTimeout() time.Duration {
+	return ci.connectTimeout
 }
 
 type clusterSnapshot struct {
