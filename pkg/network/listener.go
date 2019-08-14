@@ -34,9 +34,9 @@ import (
 type ListenerState int
 
 // listener state
-// 0 means listener is inited, a inited listener can be started or stopped
-// 1 means listener is running, start a running listener will be ignored.
-// 2 means listener is stopped, start a stopped listener without restart flag will be ignored.
+// ListenerInited means listener is inited, a inited listener can be started or stopped
+// ListenerRunning means listener is running, start a running listener will be ignored.
+// ListenerStopped means listener is stopped, start a stopped listener without restart flag will be ignored.
 const (
 	ListenerInited ListenerState = iota
 	ListenerRunning
@@ -108,28 +108,34 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 			switch l.state {
 			case ListenerRunning:
 				// if listener is running, ignore start
+				log.DefaultLogger.Debugf("[network] [listener start] %s is running", l.name)
 				return true
 			case ListenerStopped:
-				// if listener is stopped and not a restart call, ignore start
 				if !restart {
+					return true
+				}
+				log.DefaultLogger.Infof("[network] [listener start] %s restart listener ", l.name)
+				if err := l.listen(lctx); err != nil {
+					// TODO: notify listener callbacks
+					log.DefaultLogger.Errorf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
 					return true
 				}
 			default:
 				// try start listener
-			}
-			//call listen if not inherit
-			if l.rawl == nil {
-				if err := l.listen(lctx); err != nil {
-					// TODO: notify listener callbacks
-					log.StartLogger.Fatalf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
+				//call listen if not inherit
+				if l.rawl == nil {
+					if err := l.listen(lctx); err != nil {
+						// TODO: notify listener callbacks
+						log.StartLogger.Fatalf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
+					}
 				}
 			}
+			l.state = ListenerRunning
 			return false
 		}()
 		if ignore {
 			return
 		}
-		l.state = ListenerRunning
 
 		for {
 			if err := l.accept(lctx); err != nil {
@@ -199,12 +205,10 @@ func (l *listener) UseOriginalDst() bool {
 func (l *listener) Close(lctx context.Context) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
+	l.state = ListenerStopped
 	if l.rawl != nil {
 		l.cb.OnClose()
-		l.state = ListenerStopped
-		err := l.rawl.Close()
-		l.rawl = nil
-		return err
+		return l.rawl.Close()
 	}
 	return nil
 }
