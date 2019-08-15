@@ -278,3 +278,59 @@ func DelMsgMeta(dataId string) {
 
 	dump(dirty)
 }
+
+// AddMqCEKey add mq cloudengine registry info
+func AddMqCEKey(id, group, ceConfig string) {
+	if config.ServiceRegistry.MqCEKey == nil {
+		config.ServiceRegistry.MqCEKey = make(map[string]string)
+	}
+
+	config.ServiceRegistry.MqCEKey["id"] = id
+	config.ServiceRegistry.MqCEKey["group"] = group
+	config.ServiceRegistry.MqCEKey["config"] = ceConfig
+
+	dump(true)
+}
+
+// UpdteMqMeta update mq meta info
+func UpdateMqMeta(topic, meta string, remove bool) {
+	if config.ServiceRegistry.MqMeta == nil {
+		config.ServiceRegistry.MqMeta = make(map[string]string)
+	}
+
+	if remove {
+		delete(config.ServiceRegistry.MqMeta, topic)
+	} else {
+		config.ServiceRegistry.MqMeta[topic] = meta
+	}
+
+	dump(true)
+}
+
+// SetMqConsumers update topic consumer list
+func SetMqConsumers(key string, consumers []string) {
+	if config.ServiceRegistry.MqConsumers == nil {
+		config.ServiceRegistry.MqConsumers = make(map[string][]string)
+	}
+
+	if len(key) != 0 {
+		if len(consumers) != 0 {
+			config.ServiceRegistry.MqConsumers[key] = consumers
+			return
+		}
+
+		delete(config.ServiceRegistry.MqConsumers, key)
+	}
+}
+
+// RmMqConsumers remove topic consumer list
+func RmMqConsumers(key string) {
+	if config.ServiceRegistry.MqConsumers== nil {
+		config.ServiceRegistry.MqConsumers = make(map[string][]string)
+		return
+	}
+
+	if len(key) != 0 {
+		delete(config.ServiceRegistry.MqConsumers, key)
+	}
+}
