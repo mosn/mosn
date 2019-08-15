@@ -20,13 +20,14 @@ package v2
 import (
 	"errors"
 
-	"sofastack.io/sofa-mosn/pkg/log"
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-func (c *ClientV2) reqListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
+func (c *ADSClient) reqListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
 	if streamClient == nil {
 		return errors.New("stream client is nil")
 	}
@@ -37,7 +38,9 @@ func (c *ClientV2) reqListeners(streamClient ads.AggregatedDiscoveryService_Stre
 		ResponseNonce: "",
 		ErrorDetail:   nil,
 		Node: &envoy_api_v2_core1.Node{
-			Id: c.ServiceNode,
+			Id:       types.GetGlobalXdsInfo().ServiceNode,
+			Cluster:  types.GetGlobalXdsInfo().ServiceCluster,
+			Metadata: types.GetGlobalXdsInfo().Metadata,
 		},
 	})
 	if err != nil {
@@ -47,7 +50,7 @@ func (c *ClientV2) reqListeners(streamClient ads.AggregatedDiscoveryService_Stre
 	return nil
 }
 
-func (c *ClientV2) handleListenersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Listener {
+func (c *ADSClient) handleListenersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Listener {
 	listeners := make([]*envoy_api_v2.Listener, 0)
 	for _, res := range resp.Resources {
 		listener := envoy_api_v2.Listener{}

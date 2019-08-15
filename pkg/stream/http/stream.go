@@ -239,15 +239,14 @@ func (conn *clientStreamConnection) serve() {
 			resetConn = true
 		}
 
-		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-			s.handleResponse()
-		}
-
 		// 3. local reset if header 'Connection: close' exists
 		if resetConn {
-			// close connection
-			s.connection.conn.Close(types.NoFlush, types.LocalClose)
-			return
+			// goaway the connpool
+			s.connection.streamConnectionEventListener.OnGoAway()
+		}
+
+		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+			s.handleResponse()
 		}
 	}
 }
@@ -510,7 +509,22 @@ func (s *clientStream) AppendTrailers(context context.Context, trailers types.He
 }
 
 func (s *clientStream) endStream() {
-	s.doSend()
+	err := s.doSend()
+
+	if err != nil {
+		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send client request error: %+v", err)
+
+		if err == types.ErrConnectionHasClosed {
+			s.ResetStream(types.StreamConnectionFailed)
+		} else {
+			s.ResetStream(types.StreamLocalReset)
+		}
+		return
+	}
+
+	if log.Proxy.GetLogLevel() >= log.INFO {
+		log.Proxy.Infof(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
+	}
 	s.connection.requestSent <- true
 }
 
@@ -526,14 +540,9 @@ func (s *clientStream) ReadDisable(disable bool) {
 	}
 }
 
-func (s *clientStream) doSend() {
-	if _, err := s.request.WriteTo(s.connection); err != nil {
-		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send client request error: %+v", err)
-	} else {
-		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
-		}
-	}
+func (s *clientStream) doSend() (err error) {
+	_, err = s.request.WriteTo(s.connection)
+	return
 }
 
 func (s *clientStream) handleResponse() {

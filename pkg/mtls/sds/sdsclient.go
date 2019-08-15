@@ -52,7 +52,7 @@ func NewSdsClientSingleton(config *auth.SdsSecretConfig) types.SdsClient {
 		}
 		// For Istio , sds config should be the same
 		// So we use first sds config to init sds subscriber
-		sdsClient.sdsSubscriber = NewSdsSubscriber(sdsClient, config.SdsConfig, types.ServiceNode, types.ServiceCluster)
+		sdsClient.sdsSubscriber = NewSdsSubscriber(sdsClient, config.SdsConfig, types.GetGlobalXdsInfo().ServiceNode, types.GetGlobalXdsInfo().ServiceCluster)
 		err := sdsClient.sdsSubscriber.Start()
 		if err != nil {
 			log.DefaultLogger.Errorf("[sds] [sdsclient] sds subscriber start fail, %v", err)

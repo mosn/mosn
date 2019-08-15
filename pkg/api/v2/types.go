@@ -47,8 +47,9 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER       = "mixer"
-	FaultStream = "fault"
+	MIXER        = "mixer"
+	FaultStream  = "fault"
+	PayloadLimit = "payload_limit"
 )
 
 // ClusterType
@@ -185,6 +186,12 @@ func (hf *HealthCheckFilter) UnmarshalJSON(b []byte) error {
 type FaultInject struct {
 	FaultInjectConfig
 	DelayDuration uint64 `json:"-"`
+}
+
+// PayloadLimitInject
+type StreamPayloadLimit struct {
+	MaxEntitySize int32 `json:"max_entity_size "`
+	HttpStatus    int32 `json:"http_status"`
 }
 
 func (f FaultInject) Marshal() (b []byte, err error) {

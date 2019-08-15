@@ -17,8 +17,20 @@
 
 package types
 
+import (
+	"github.com/gogo/protobuf/types"
+)
+
 // The xds start parameters
-var (
+type XdsInfo struct {
 	ServiceCluster string
 	ServiceNode    string
-)
+	Metadata       *types.Struct
+}
+
+var globalXdsInfo = &XdsInfo{}
+
+// GetGlobalXdsInfo returns pointer of globalXdsInfo
+func GetGlobalXdsInfo() *XdsInfo {
+	return globalXdsInfo
+}

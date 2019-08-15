@@ -43,7 +43,7 @@ func Test_handleRoutesResp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var client ClientV2
+			var client ADSClient
 			if got := client.handleRoutesResp(tt.args.resp); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("handleRoutesResp() = %v, want %v", got, tt.want)
 			}
