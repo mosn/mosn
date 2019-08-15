@@ -170,6 +170,7 @@ func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 	defer conn.mutex.Unlock()
 
 	for _, stream := range conn.streams {
+		stream.connReset = true
 		stream.ResetStream(reason)
 	}
 }
@@ -314,6 +315,8 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 // types.StreamSender
 type stream struct {
 	str.BaseStream
+
+	connReset bool
 
 	ctx context.Context
 	sc  *streamConnection
@@ -460,4 +463,14 @@ func (s *stream) endStream() {
 
 func (s *stream) GetStream() types.Stream {
 	return s
+}
+
+func (s *stream) ResetStream(reason types.StreamResetReason) {
+	if s.direction == ClientStream && !s.connReset {
+		s.sc.mutex.Lock()
+		delete(s.sc.streams, s.id)
+		s.sc.mutex.Unlock()
+	}
+
+	s.BaseStream.ResetStream(reason)
 }
