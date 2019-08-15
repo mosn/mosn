@@ -361,3 +361,18 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	}()
 
 }
+
+func TestFindListenerByName(t *testing.T) {
+	addrStr := "127.0.0.1:8083"
+	name := "listener4"
+	cfg := baseListenerConfig(addrStr, name)
+	if ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name); ln != nil {
+		t.Fatal("find listener name failed, expected not found")
+	}
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfg, nil, nil); err != nil {
+		t.Fatalf("update listener failed, %v", err)
+	}
+	if ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name); ln == nil {
+		t.Fatal("expected find listener, but not")
+	}
+}
