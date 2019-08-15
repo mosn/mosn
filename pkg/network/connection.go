@@ -961,10 +961,14 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 
 			if cc.tlsMng != nil {
-				cc.rawConnection = cc.tlsMng.Conn(cc.rawConnection)
+				// usually, the client tls manager will never returns an error
+				cc.rawConnection, err = cc.tlsMng.Conn(cc.rawConnection)
+
 			}
 
-			if ioEnabled {
+			if err != nil {
+				event = types.ConnectFailed
+			} else if ioEnabled {
 				cc.Start(nil)
 			}
 		}

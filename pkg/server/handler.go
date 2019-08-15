@@ -405,7 +405,14 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 			}
 		}
 		if al.tlsMng != nil {
-			rawc = al.tlsMng.Conn(rawc)
+			conn, err := al.tlsMng.Conn(rawc)
+			if err != nil {
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("[server] [listener] accept connection failed, error: %v", err)
+				}
+				return
+			}
+			rawc = conn
 		}
 	}
 
