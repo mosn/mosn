@@ -44,7 +44,7 @@ const (
 	DefaultBufferReadCapacity = 1 << 7
 
 	DefaultIdleTimeout    = 90 * time.Second
-	DefaultConnectTimeout = 200 * time.Millisecond
+	DefaultConnectTimeout = 3 * time.Second
 )
 
 var idCounter uint64 = 1
