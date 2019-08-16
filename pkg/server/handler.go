@@ -325,7 +325,6 @@ func (ch *connHandler) StopConnection() {
 
 // ListenerEventListener
 type activeListener struct {
-	disableConnIo               bool
 	listener                    types.Listener
 	networkFiltersFactories     []types.NetworkFilterChainFactory
 	streamFiltersFactoriesStore atomic.Value // store []types.StreamFilterChainFactory
@@ -397,7 +396,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 
 	// only store fd and tls conn handshake in final working listener
 	if !useOriginalDst {
-		if !al.disableConnIo && network.UseNetpollMode {
+		if network.UseNetpollMode {
 			// store fd for further usage
 			if tc, ok := rawc.(*net.TCPConn); ok {
 				rawf, _ = tc.File()
@@ -474,11 +473,8 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
-	if !al.disableConnIo {
-		// start conn loops first
-		conn.Start(ctx)
-	}
+	// start conn loops first
+	conn.Start(ctx)
 }
 
 func (al *activeListener) OnClose() {}
