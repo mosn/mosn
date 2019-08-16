@@ -80,7 +80,7 @@ func TestParseRoller(t *testing.T) {
 		t.Errorf("ParseRoller should be failed")
 	}
 
-	if defaultRoller.MaxTime != 12 {
+	if defaultRoller.MaxTime != 12 *60 *60 {
 		t.Errorf("ParseRoller failed")
 	}
 }
