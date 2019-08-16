@@ -340,6 +340,17 @@
   version = "v1.3.0"
 
 [[projects]]
+  digest = "1:5a46b1780cbd22d47ce4c63f4d65ed00eb0bf66039af82d8d2ccaa599961fcc2"
+  name = "github.com/tjfoc/gmsm"
+  packages = [
+    "sm3",
+    "sm4",
+  ]
+  pruneopts = "UT"
+  revision = "bfb01827afcb386d32de6814196be3888e766fe8"
+  version = "v1.2"
+
+[[projects]]
   digest = "1:b24d38b282bacf9791408a080f606370efa3d364e4b5fd9ba0f7b87786d3b679"
   name = "github.com/urfave/cli"
   packages = ["."]
@@ -546,6 +557,8 @@
     "github.com/rcrowley/go-metrics",
     "github.com/spf13/pflag",
     "github.com/stretchr/testify/assert",
+    "github.com/tjfoc/gmsm/sm3",
+    "github.com/tjfoc/gmsm/sm4",
     "github.com/urfave/cli",
     "github.com/valyala/fasthttp",
     "golang.org/x/crypto/chacha20poly1305",
