@@ -74,7 +74,7 @@ func TestUpdateLoggerConfig(t *testing.T) {
 	}
 	// Toggle Logger (not error logger)
 	baseLoggerPath := "/tmp/mosn/base_logger.log"
-	baseLogger, err := GetOrCreateLogger(baseLoggerPath)
+	baseLogger, err := GetOrCreateLogger(baseLoggerPath, nil)
 	if err != nil || baseLogger.disable {
 		t.Fatalf("Create Logger not expected, error: %v, logger state: %v", err, baseLogger.disable)
 	}

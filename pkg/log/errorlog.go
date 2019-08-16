@@ -18,6 +18,7 @@
 package log
 
 import (
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -37,7 +38,7 @@ type errorLogger struct {
 }
 
 func CreateDefaultErrorLogger(output string, level Level) (ErrorLogger, error) {
-	lg, err := GetOrCreateLogger(output)
+	lg, err := GetOrCreateLogger(output, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -135,12 +136,12 @@ type timeCache struct {
 	s string
 }
 
-// The default time precision we use is seconds
 // We use a cache to reduce the format
 func logTime() string {
 	var s string
 	t := time.Now()
-	now := t.Unix()
+	nano := t.UnixNano()
+	now := nano / 1e9
 	value := lastTime.Load()
 	if value != nil {
 		last := value.(*timeCache)
@@ -149,8 +150,10 @@ func logTime() string {
 		}
 	}
 	if s == "" {
-		s = t.Format("2006/01/02 15:04:05")
+		s = t.Format("2006-01-02 15:04:05")
 		lastTime.Store(&timeCache{now, s})
 	}
+	mi := nano % 1e9 / 1e6
+	s = s + "," + strconv.Itoa(int(mi))
 	return s
 }

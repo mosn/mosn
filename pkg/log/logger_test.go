@@ -29,7 +29,7 @@ import (
 )
 
 func TestLogPrintDiscard(t *testing.T) {
-	l, err := GetOrCreateLogger("/tmp/mosn_bench/benchmark.log")
+	l, err := GetOrCreateLogger("/tmp/mosn_bench/benchmark.log", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestLogPrintDiscard(t *testing.T) {
 func TestLogPrintnull(t *testing.T) {
 	logName := "/tmp/mosn_bench/printnull.log"
 	os.Remove(logName)
-	l, err := GetOrCreateLogger(logName)
+	l, err := GetOrCreateLogger(logName, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,15 +86,11 @@ func TestLogPrintnull(t *testing.T) {
 
 func TestLogDefaultRollerTime(t *testing.T) {
 	logName := "/tmp/mosn_bench/printdefaultroller.log"
-	rollerName := logName + "." + time.Now().Format("2006-01-02")
+	rollerName := logName + "." + time.Now().Format("2006-01-02_15")
 	os.Remove(logName)
 	os.Remove(rollerName)
 	// 2s
-	defaultRollerTime = 2
-	defer func() {
-		defaultRollerTime = 24 * 60 * 60
-	}()
-	logger, err := GetOrCreateLogger(logName)
+	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime:2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,12 +127,8 @@ func TestLogDefaultRollerAfterDelete(t *testing.T) {
 	rollerName := logName + "." + time.Now().Format("2006-01-02")
 	os.Remove(logName)
 	os.Remove(rollerName)
-	//
-	defaultRollerTime = 3
-	defer func() {
-		defaultRollerTime = 24 * 60 * 60
-	}()
-	logger, err := GetOrCreateLogger(logName)
+
+	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime:3})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,18 +153,17 @@ func TestLogDefaultRollerAfterDelete(t *testing.T) {
 	if _, err := os.Stat(rollerName); err == nil {
 		t.Errorf("roller file exists, but expected not: %v", err)
 	}
-
 }
 
 func TestLogReopen(t *testing.T) {
-	l, err := GetOrCreateLogger("")
+	l, err := GetOrCreateLogger("", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if err := l.reopen(); err != ErrReopenUnsupported {
 		t.Errorf("test log reopen failed")
 	}
-	l, err = GetOrCreateLogger("/tmp/mosn_bench/testlogreopen.log")
+	l, err = GetOrCreateLogger("/tmp/mosn_bench/testlogreopen.log", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +174,7 @@ func TestLogReopen(t *testing.T) {
 
 func TestLoglocalOffset(t *testing.T) {
 	_, offset := time.Now().Zone()
-	defaultRollerTime = 24 * 60 * 60
+	var defaultRollerTime int64 = 24 * 60 * 60
 	t1 := time.Date(2018, time.December, 25, 23, 59, 59, 0, time.Local)
 	t2 := time.Date(2018, time.December, 26, 00, 00, 01, 0, time.Local)
 	if (t1.Unix()+int64(offset))/defaultRollerTime+1 != (t2.Unix()+int64(offset))/defaultRollerTime {
