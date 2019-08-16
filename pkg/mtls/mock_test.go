@@ -99,7 +99,12 @@ func (ln MockListener) Accept() (net.Conn, error) {
 	if err != nil {
 		return conn, err
 	}
-	return ln.Mng.Conn(conn)
+	conn, err = ln.Mng.Conn(conn)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return conn, nil
 }
 
 type MockServer struct {

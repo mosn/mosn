@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"golang.org/x/net/http2"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
@@ -17,7 +18,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 type Client interface {
@@ -109,7 +109,7 @@ func (c *RPCClient) connect() error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", c.Addr)
 	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan)
-	if err := cc.Connect(true); err != nil {
+	if err := cc.Connect(); err != nil {
 		return err
 	}
 	c.conn = cc

@@ -346,7 +346,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
-		disableConnIo:           lc.DisableConnIo,
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		conns:        list.New(),
@@ -410,6 +409,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("[server] [listener] accept connection failed, error: %v", err)
 				}
+				rawc.Close()
 				return
 			}
 			rawc = conn

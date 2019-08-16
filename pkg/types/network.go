@@ -308,7 +308,7 @@ type ClientConnection interface {
 	Connection
 
 	// connect to server in a async way
-	Connect(ioEnabled bool) error
+	Connect() error
 }
 
 // ConnectionEvent type

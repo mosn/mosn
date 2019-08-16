@@ -26,12 +26,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/filter"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/gogo/protobuf/jsonpb"
 )
 
 var protocolsSupported = map[string]bool{
@@ -225,11 +225,6 @@ func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
 	}
 
 	return routerConfiguration
-}
-
-// GetListenerDisableIO used to check downstream protocol and return ListenerDisableIO
-func GetListenerDisableIO(c *v2.FilterChain) bool {
-	return false
 }
 
 // ParseProxyFilter

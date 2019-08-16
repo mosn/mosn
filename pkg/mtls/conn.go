@@ -51,14 +51,12 @@ type Conn struct {
 func (c *Conn) Peek() ([]byte, error) {
 	b := make([]byte, 1, 1)
 	c.Conn.SetReadDeadline(time.Now().Add(types.DefaultConnReadTimeout))
-	n, err := c.Conn.Read(b)
+	_, err := c.Conn.Read(b)
 	c.Conn.SetReadDeadline(time.Time{}) // clear read deadline
-	if n == 0 {
+	if err != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[mtls] TLS Peek() error: %v", err)
 		}
-		// close connection if peek failed
-		c.Conn.Close()
 		return nil, err
 	}
 	c.peek[0] = b[0]

@@ -930,7 +930,7 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 	return conn
 }
 
-func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
+func (cc *clientConnection) Connect() (err error) {
 	cc.connectOnce.Do(func() {
 		var event types.ConnectionEvent
 
@@ -950,7 +950,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			event = types.Connected
 
 			// ensure ioEnabled and UseNetpollMode
-			if ioEnabled && UseNetpollMode {
+			if UseNetpollMode {
 				// store fd
 				if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
 					cc.file, err = tc.File()
@@ -968,7 +968,8 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 
 			if err != nil {
 				event = types.ConnectFailed
-			} else if ioEnabled {
+				cc.rawConnection.Close()
+			} else {
 				cc.Start(nil)
 			}
 		}

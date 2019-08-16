@@ -45,7 +45,7 @@ func (c *XProtocolClient) Connect(addr string) error {
 	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan)
 	cc.SetReadDisable(true)
 	c.conn = cc
-	if err := cc.Connect(true); err != nil {
+	if err := cc.Connect(); err != nil {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}

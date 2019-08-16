@@ -74,7 +74,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 	host := cluster.NewSimpleHost(cfg, info)
 	ctx := context.Background()
 	conn := host.CreateConnection(ctx)
-	if err := conn.Connection.Connect(true); err != nil {
+	if err := conn.Connection.Connect(); err != nil {
 		t.Fatalf("create conenction failed %v", err)
 	}
 	codec := str.NewStreamClient(ctx, protocol.SofaRPC, conn.Connection, host)
