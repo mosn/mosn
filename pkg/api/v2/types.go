@@ -610,7 +610,7 @@ type ServiceRegistryInfo struct {
 	ServiceAppInfo ApplicationInfo     `json:"application,omitempty"`
 	ServicePubInfo []PublishInfo       `json:"publish_info,omitempty"`
 	MsgMetaInfo    map[string][]string `json:"msg_meta_info,omitempty"`
-	MqCEKey        map[string]string   `json:"mq_ce_key,omitempty"`
+	MqClientKey    map[string]string   `json:"mq_client_key,omitempty"`
 	MqMeta         map[string]string   `json:"mq_meta_info,omitempty"`
 	MqConsumers    map[string][]string `json:"mq_consumers,omitempty"`
 }

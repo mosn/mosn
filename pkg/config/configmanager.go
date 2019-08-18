@@ -279,15 +279,17 @@ func DelMsgMeta(dataId string) {
 	dump(dirty)
 }
 
-// AddMqCEKey add mq cloudengine registry info
-func AddMqCEKey(id, group, ceConfig string) {
-	if config.ServiceRegistry.MqCEKey == nil {
-		config.ServiceRegistry.MqCEKey = make(map[string]string)
+// UpdateMqClientKey update mq client registry info
+func UpdateMqClientKey(id, clientKey string, remove bool) {
+	if config.ServiceRegistry.MqClientKey == nil {
+		config.ServiceRegistry.MqClientKey = make(map[string]string)
 	}
 
-	config.ServiceRegistry.MqCEKey["id"] = id
-	config.ServiceRegistry.MqCEKey["group"] = group
-	config.ServiceRegistry.MqCEKey["config"] = ceConfig
+	if remove {
+		delete(config.ServiceRegistry.MqClientKey, id)
+	} else {
+		config.ServiceRegistry.MqClientKey[id] = clientKey
+	}
 
 	dump(true)
 }
