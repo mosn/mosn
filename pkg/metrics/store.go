@@ -24,16 +24,16 @@ import (
 	"fmt"
 	"sort"
 
-	"sofastack.io/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/metrics/shm"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 const maxLabelCount = 10
 
 var (
-	defaultStore *store
-	defaultMatcher *metricsMatcher
+	defaultStore          *store
+	defaultMatcher        *metricsMatcher
 	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
 )
 
@@ -171,6 +171,7 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 		return gometrics.NilHistogram{}
 	}
 
+	// TODO: notice the histogram only keeps 100 values as we set
 	return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
 }
 
