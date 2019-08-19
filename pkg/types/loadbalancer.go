@@ -39,6 +39,8 @@ type LoadBalancer interface {
 	// IsExistsHosts checks the load balancer contains hosts or not
 	// It will not be effect the load balancer's index
 	IsExistsHosts(MetadataMatchCriteria) bool
+
+	HostNum(MetadataMatchCriteria) int
 }
 
 // LoadBalancerContext contains the information for choose a host
@@ -71,6 +73,8 @@ type LBSubsetEntry interface {
 	CreateLoadBalancer(LoadBalancerType, HostSet)
 
 	LoadBalancer() LoadBalancer
+
+	HostNum() int
 }
 
 // FallBackPolicy type

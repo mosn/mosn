@@ -21,6 +21,7 @@ import (
 	"context"
 	"net"
 	"sort"
+	"time"
 
 	metrics "github.com/rcrowley/go-metrics"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
@@ -85,6 +86,8 @@ type ClusterSnapshot interface {
 	// IsExistsHosts checks whether the metadata's subset contains host or not
 	// if metadata is nil, check the cluster snapshot contains host or not
 	IsExistsHosts(metadata MetadataMatchCriteria) bool
+
+	HostNum(metadata MetadataMatchCriteria) int
 }
 
 // Cluster is a group of upstream hosts
@@ -226,6 +229,9 @@ type ClusterInfo interface {
 
 	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo
+
+	// ConectTimeout returns the connect timeout
+	ConnectTimeout() time.Duration
 }
 
 // ResourceManager manages different types of Resource
