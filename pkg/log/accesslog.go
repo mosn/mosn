@@ -72,7 +72,7 @@ type accesslog struct {
 // NewAccessLog
 func NewAccessLog(output string, filter types.AccessLogFilter,
 	format string) (types.AccessLog, error) {
-	lg, err := GetOrCreateLogger(output)
+	lg, err := GetOrCreateLogger(output, nil)
 	if err != nil {
 		return nil, err
 	}

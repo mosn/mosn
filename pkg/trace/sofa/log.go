@@ -59,7 +59,7 @@ func Init(protocol types.Protocol, logRoot, logIngress, logEgress string) (err e
 			return
 		}
 
-		tl.ingressLogger, err = log.GetOrCreateLogger(logRoot + logIngress)
+		tl.ingressLogger, err = log.GetOrCreateLogger(logRoot + logIngress, nil)
 		if err != nil {
 			return
 		}
@@ -69,7 +69,7 @@ func Init(protocol types.Protocol, logRoot, logIngress, logEgress string) (err e
 			return
 		}
 
-		tl.egressLogger, err = log.GetOrCreateLogger(logRoot + logEgress)
+		tl.egressLogger, err = log.GetOrCreateLogger(logRoot + logEgress, nil)
 		if err != nil {
 			return
 		}
