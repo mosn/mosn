@@ -33,11 +33,13 @@ const (
 	DownstreamBytesReadBuffered  = "bytes_read_buffered"
 	DownstreamBytesWriteTotal    = "bytes_write_total"
 	DownstreamBytesWriteBuffered = "bytes_write_buffered"
-	DownstreamRequestTotal       = "request_total"
+	DownstreamRequestTotal       = "request_total" // TODO: remove it, use histogram.Count instead
 	DownstreamRequestActive      = "request_active"
 	DownstreamRequestReset       = "request_reset"
 	DownstreamRequestTime        = "request_time"
-	DownstreamRequestTimeTotal   = "request_time_total"
+	DownstreamRequestTimeTotal   = "request_time_total" // TODO: remove it use histogram.Sum instead
+	DownstreamProcessTime        = "process_time"
+	DownstreamProcessTimeTotal   = "process_time_total" // TODO: remove it use histogram.Sum instead
 )
 
 // NewProxyStats returns a stats with namespace prefix proxy

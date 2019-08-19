@@ -181,6 +181,8 @@ func (s *downStream) cleanStream() {
 	s.requestInfo.SetRequestFinishedDuration(time.Now())
 
 	streamDurationNs := s.requestInfo.RequestFinishedDuration().Nanoseconds()
+	responseReceivedNs := s.requestInfo.ResponseReceivedDuration().Nanoseconds()
+	requestReceivedNs := s.requestInfo.RequestReceivedDuration().Nanoseconds()
 
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil && !s.upstreamProcessDone && !s.oneway {
@@ -199,6 +201,20 @@ func (s *downStream) cleanStream() {
 
 	for _, ef := range s.receiverFilters {
 		ef.filter.OnDestroy()
+	}
+	// processTime
+	// FIXME:
+	// The process time is not accurate when the stream have some exceptions such as retry,
+	// so we ignore it.
+	// should be fixed later.
+	if atomic.LoadUint32(&s.reuseBuffer) == 1 {
+		processTime := requestReceivedNs + (streamDurationNs - responseReceivedNs)
+
+		s.proxy.stats.DownstreamProcessTime.Update(processTime)
+		s.proxy.stats.DownstreamProcessTimeTotal.Inc(processTime)
+
+		s.proxy.listenerStats.DownstreamProcessTime.Update(processTime)
+		s.proxy.listenerStats.DownstreamProcessTimeTotal.Inc(processTime)
 	}
 
 	// countdown metrics
