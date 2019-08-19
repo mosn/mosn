@@ -77,7 +77,7 @@ func TestIdleChecker(t *testing.T) {
 	ln.SetListenerCallbacks(&mockHandler{
 		stopChan: make(chan struct{}),
 	})
-	go ln.Start(context.Background())
+	go ln.Start(context.Background(), false)
 	time.Sleep(2 * time.Second)
 	// create a connection, send nothing, will be closed after a while
 	start := time.Now()
@@ -122,7 +122,7 @@ func TestIdleCheckerWithData(t *testing.T) {
 	ln.SetListenerCallbacks(&mockHandler{
 		stopChan: make(chan struct{}),
 	})
-	go ln.Start(context.Background())
+	go ln.Start(context.Background(), false)
 	time.Sleep(2 * time.Second)
 	conn, err := net.Dial("tcp", testAddress)
 	if err != nil {

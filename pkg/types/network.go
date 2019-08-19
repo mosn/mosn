@@ -91,7 +91,7 @@ type Listener interface {
 	Addr() net.Addr
 
 	// Start starts listener with context
-	Start(lctx context.Context)
+	Start(lctx context.Context, restart bool)
 
 	// Stop stops listener
 	// Accepted connections and listening sockets will not be closed
@@ -353,17 +353,11 @@ type ConnectionEventListener interface {
 
 // ConnectionHandler contains the listeners for a mosn server
 type ConnectionHandler interface {
-	// NumConnections reports the connections that ConnectionHandler keeps.
-	NumConnections() uint64
-
 	// AddOrUpdateListener
 	// adds a listener into the ConnectionHandler or
 	// update a listener
 	AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []NetworkFilterChainFactory,
 		streamFiltersFactories []StreamFilterChainFactory) (ListenerEventListener, error)
-
-	// StartListener starts a listener by the specified listener tag
-	StartListener(lctx context.Context, listenerTag uint64)
 
 	//StartListeners starts all listeners the ConnectionHandler has
 	StartListeners(lctx context.Context)

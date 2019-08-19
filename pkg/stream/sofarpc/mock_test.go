@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -140,4 +141,8 @@ func (ci *mockClusterInfo) ConnBufferLimitBytes() uint32 {
 
 func (ci *mockClusterInfo) SourceAddress() net.Addr {
 	return nil
+}
+
+func (ci *mockClusterInfo) ConnectTimeout() time.Duration {
+	return network.DefaultConnectTimeout
 }

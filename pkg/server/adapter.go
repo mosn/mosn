@@ -54,17 +54,19 @@ func initListenerAdapterInstance(name string, connHandler types.ConnectionHandle
 	log.DefaultLogger.Debugf("[server] [init] add server conn handler, server name = %s", name)
 }
 
+func (adapter *ListenerAdapter) findHandler(serverName string) types.ConnectionHandler {
+	if serverName != "" {
+		// if serverName is not exists, return nil
+		return adapter.connHandlerMap[serverName]
+	}
+	return adapter.defaultConnHandler
+}
+
 // FindListenerByName
 func (adapter *ListenerAdapter) FindListenerByName(serverName string, listenerName string) types.Listener {
-	var connHandler types.ConnectionHandler
-	if serverName == "" {
-		connHandler = adapter.defaultConnHandler
-	} else {
-		if ch, ok := adapter.connHandlerMap[serverName]; ok {
-			connHandler = ch
-		} else {
-			return nil
-		}
+	connHandler := adapter.findHandler(serverName)
+	if connHandler == nil {
+		return nil
 	}
 	return connHandler.FindListenerByName(listenerName)
 }
@@ -85,20 +87,9 @@ func ResetAdapter() {
 func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Listener,
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) error {
 
-	var connHandler types.ConnectionHandler
-
-	if serverName == "" {
-		connHandler = adapter.defaultConnHandler
-	} else {
-		if ch, ok := adapter.connHandlerMap[serverName]; ok {
-			connHandler = ch
-		} else {
-			return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
-		}
-	}
-
+	connHandler := adapter.findHandler(serverName)
 	if connHandler == nil {
-		return fmt.Errorf("AddOrUpdateListener called error, connHandler is nil")
+		return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
 	}
 
 	listener, err := connHandler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
@@ -115,7 +106,7 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 		if !al.updatedLabel {
 			// start listener if this is new
 			utils.GoWithRecover(func() {
-				al.listener.Start(nil)
+				al.listener.Start(nil, false)
 			}, nil)
 		}
 
@@ -126,16 +117,9 @@ func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Li
 }
 
 func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName string) error {
-	var connHandler types.ConnectionHandler
-
-	if serverName == "" {
-		connHandler = adapter.defaultConnHandler
-	} else {
-		if ch, ok := adapter.connHandlerMap[serverName]; ok {
-			connHandler = ch
-		} else {
-			return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
-		}
+	connHandler := adapter.findHandler(serverName)
+	if connHandler == nil {
+		return fmt.Errorf("DeleteListener error, servername = %s not found", serverName)
 	}
 
 	// stop listener first
@@ -149,15 +133,9 @@ func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName s
 }
 
 func (adapter *ListenerAdapter) UpdateListenerTLS(serverName string, listenerName string, inspector bool, tlsConfigs []v2.TLSConfig) error {
-	var connHandler types.ConnectionHandler
-	if serverName == "" {
-		connHandler = adapter.defaultConnHandler
-	} else {
-		if ch, ok := adapter.connHandlerMap[serverName]; ok {
-			connHandler = ch
-		} else {
-			return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
-		}
+	connHandler := adapter.findHandler(serverName)
+	if connHandler == nil {
+		return fmt.Errorf("UpdateListenerTLS error, servername = %s not found", serverName)
 	}
 
 	if ln := connHandler.FindListenerByName(listenerName); ln != nil {

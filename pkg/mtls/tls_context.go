@@ -198,6 +198,10 @@ func newTLSContext(cfg *v2.TLSConfig, secret *secretInfo) (*tlsContext, error) {
 
 func tlsConfigTemplate(c *v2.TLSConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{}
+
+	// prefer server cipher suites by default
+	tlsConfig.PreferServerCipherSuites = true
+
 	if c.CipherSuites != "" {
 		ciphers := strings.Split(c.CipherSuites, ":")
 		for _, s := range ciphers {

@@ -108,7 +108,7 @@ func NewRPCClient(addr string) Client {
 func (c *RPCClient) connect() error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", c.Addr)
-	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan)
+	cc := network.NewClientConnection(nil, 0, nil, remoteAddr, stopChan)
 	if err := cc.Connect(); err != nil {
 		return err
 	}

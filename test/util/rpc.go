@@ -53,7 +53,7 @@ func NewRPCClient(t *testing.T, id string, proto string) *RPCClient {
 func (c *RPCClient) connect(addr string, tlsMng types.TLSContextManager) error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
-	cc := network.NewClientConnection(nil, tlsMng, remoteAddr, stopChan)
+	cc := network.NewClientConnection(nil, 0, tlsMng, remoteAddr, stopChan)
 	c.conn = cc
 	if err := cc.Connect(); err != nil {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)

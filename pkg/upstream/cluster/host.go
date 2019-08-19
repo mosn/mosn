@@ -106,7 +106,7 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 	if !sh.tlsDisable {
 		tlsMng = sh.clusterInfo.TLSMng()
 	}
-	clientConn := network.NewClientConnection(nil, tlsMng, sh.Address(), nil)
+	clientConn := network.NewClientConnection(nil, sh.clusterInfo.ConnectTimeout(), tlsMng, sh.Address(), nil)
 	clientConn.SetBufferLimit(sh.clusterInfo.ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
