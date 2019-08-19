@@ -135,7 +135,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	upstreamConnection.AddConnectionEventListener(p.upstreamCallbacks)
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
 	p.upstreamConnection = upstreamConnection
-	if err := upstreamConnection.Connect(true); err != nil {
+	if err := upstreamConnection.Connect(); err != nil {
 		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
 		p.onInitFailure(NoHealthyUpstream)
 		return types.Stop

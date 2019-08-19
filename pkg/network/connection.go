@@ -948,7 +948,7 @@ func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsM
 	return conn
 }
 
-func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
+func (cc *clientConnection) Connect() (err error) {
 	cc.connectOnce.Do(func() {
 		var event types.ConnectionEvent
 
@@ -973,7 +973,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			event = types.Connected
 
 			// ensure ioEnabled and UseNetpollMode
-			if ioEnabled && UseNetpollMode {
+			if UseNetpollMode {
 				// store fd
 				if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
 					cc.file, err = tc.File()
@@ -984,10 +984,15 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 
 			if cc.tlsMng != nil {
-				cc.rawConnection = cc.tlsMng.Conn(cc.rawConnection)
+				// usually, the client tls manager will never returns an error
+				cc.rawConnection, err = cc.tlsMng.Conn(cc.rawConnection)
+
 			}
 
-			if ioEnabled {
+			if err != nil {
+				event = types.ConnectFailed
+				cc.rawConnection.Close()
+			} else {
 				cc.Start(nil)
 			}
 		}

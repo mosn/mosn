@@ -179,7 +179,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	data := pool.host.CreateConnection(ctx)
 	ac.host = data
-	if err := ac.host.Connection.Connect(true); err != nil {
+	if err := ac.host.Connection.Connect(); err != nil {
 		return nil
 	}
 

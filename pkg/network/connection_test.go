@@ -102,7 +102,7 @@ func TestConnectTimeout(t *testing.T) {
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", "2.2.2.2:22222")
 	conn := NewClientConnection(nil, timeout, nil, remoteAddr, nil)
 	begin := time.Now()
-	err := conn.Connect(true)
+	err := conn.Connect()
 	if err == nil {
 		t.Errorf("connect should timeout")
 		return

@@ -217,7 +217,7 @@ func newActiveClient(context context.Context, pool *connPool) *activeClient {
 
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create connection")
 	data := pool.host.CreateConnection(context)
-	data.Connection.Connect(true)
+	data.Connection.Connect()
 	log.DefaultLogger.Tracef("xprotocol new active client , connect success %v", data)
 
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create codec client")

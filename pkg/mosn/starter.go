@@ -157,7 +157,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := config.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
-				lc.DisableConnIo = config.GetListenerDisableIO(&lc.FilterChains[0])
 
 				// parse routers from connection_manager filter and add it the routerManager
 				if routerConfig := config.ParseRouterConfiguration(&lc.FilterChains[0]); routerConfig.RouterConfigName != "" {

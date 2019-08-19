@@ -41,13 +41,13 @@ import (
 	"istio.io/api/mixer/v1/config/client"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/router"
 	payloadlimit "sofastack.io/sofa-mosn/pkg/xds/model/filter/http/payloadlimit/v2"
 	xdsxproxy "sofastack.io/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
 	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
-	"sofastack.io/sofa-mosn/pkg/featuregate"
 )
 
 // support network filter list
@@ -86,7 +86,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr:                    convertAddress(&xdsListener.Address),
+		Addr: convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -102,9 +102,6 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 		listenerConfig.FilterChains[0].Filters != nil {
 		listenerConfig.StreamFilters = convertStreamFilters(&xdsListener.FilterChains[0].Filters[0])
 	}
-
-	// TODO: remove it
-	listenerConfig.DisableConnIo = false
 
 	return listenerConfig
 }

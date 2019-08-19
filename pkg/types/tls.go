@@ -29,7 +29,7 @@ import (
 type TLSContextManager interface {
 	// Conn handles the connection, makes a connection as tls connection
 	// or keep it as a non-tls connection
-	Conn(net.Conn) net.Conn
+	Conn(net.Conn) (net.Conn, error)
 	// Enabled returns true means the context manager can make a connection as tls connection
 	Enabled() bool
 }
