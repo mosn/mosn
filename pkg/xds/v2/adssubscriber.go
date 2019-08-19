@@ -39,7 +39,7 @@ func (adsClient *ADSClient) Start() {
 
 func (adsClient *ADSClient) sendThread() {
 	log.DefaultLogger.Debugf("[xds] [ads client] send thread request cds")
-	err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
+	err := adsClient.reqClusters(adsClient.StreamClient)
 	if err != nil {
 		log.DefaultLogger.Warnf("[xds] [ads client] send thread request cds fail!auto retry next period")
 		adsClient.reconnect()
@@ -55,7 +55,7 @@ func (adsClient *ADSClient) sendThread() {
 			adsClient.StopChan <- 1
 			return
 		case <-t1.C:
-			err := adsClient.V2Client.reqClusters(adsClient.StreamClient)
+			err := adsClient.reqClusters(adsClient.StreamClient)
 			if err != nil {
 				log.DefaultLogger.Warnf("[xds] [ads client] send thread request cds fail!auto retry next period")
 				adsClient.reconnect()

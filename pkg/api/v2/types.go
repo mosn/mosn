@@ -47,8 +47,9 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER       = "mixer"
-	FaultStream = "fault"
+	MIXER        = "mixer"
+	FaultStream  = "fault"
+	PayloadLimit = "payload_limit"
 )
 
 // ClusterType
@@ -85,6 +86,7 @@ type Cluster struct {
 	LBSubSetConfig       LBSubsetConfig  `json:"lb_subset_config,omitempty"`
 	TLS                  TLSConfig       `json:"tls_context,omitempty"`
 	Hosts                []Host          `json:"hosts,omitempty"`
+	ConnectTimeout       *DurationConfig `json:"connect_timeout,omitempty"`
 }
 
 // HealthCheck is a configuration of health check
@@ -184,6 +186,12 @@ func (hf *HealthCheckFilter) UnmarshalJSON(b []byte) error {
 type FaultInject struct {
 	FaultInjectConfig
 	DelayDuration uint64 `json:"-"`
+}
+
+// PayloadLimitInject
+type StreamPayloadLimit struct {
+	MaxEntitySize int32 `json:"max_entity_size "`
+	HttpStatus    int32 `json:"http_status"`
 }
 
 func (f FaultInject) Marshal() (b []byte, err error) {
@@ -652,10 +660,10 @@ type StatsMatcher struct {
 // ServerConfig for making up server for mosn
 type ServerConfig struct {
 	//default logger
-	ServerName       string `json:"mosn_server_name,omitempty"`
-	DefaultLogPath   string `json:"default_log_path,omitempty"`
-	DefaultLogLevel  string `json:"default_log_level,omitempty"`
-	DefaultLogRoller string `json:"default_log_roller,omitempty"`
+	ServerName      string `json:"mosn_server_name,omitempty"`
+	DefaultLogPath  string `json:"default_log_path,omitempty"`
+	DefaultLogLevel string `json:"default_log_level,omitempty"`
+	GlobalLogRoller string `json:"global_log_roller,omitempty"`
 
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config

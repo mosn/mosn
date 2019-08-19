@@ -95,4 +95,12 @@
 
 [[constraint]]
   name = "golang.org/x/net"
-  branch = "release-branch.go1.9"
+  branch = "release-branch.go1.12"
+
+[[constraint]]
+  name = "github.com/spf13/pflag"
+  version = "v1.0.3"
+
+[[constraint]]
+  name = "github.com/tjfoc/gmsm"
+  version = "1.2.0"

@@ -263,6 +263,19 @@ func ParseFaultInjectFilter(cfg map[string]interface{}) *v2.FaultInject {
 	return filterConfig
 }
 
+// ParseStreamPayloadLimitFilter
+func ParseStreamPayloadLimitFilter(cfg map[string]interface{}) (*v2.StreamPayloadLimit, error) {
+	filterConfig := &v2.StreamPayloadLimit{}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, filterConfig); err != nil {
+		return nil, err
+	}
+	return filterConfig, nil
+}
+
 // ParseStreamFaultInjectFilter
 func ParseStreamFaultInjectFilter(cfg map[string]interface{}) (*v2.StreamFaultInject, error) {
 	filterConfig := &v2.StreamFaultInject{}

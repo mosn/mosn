@@ -55,7 +55,7 @@ func NewConfig(c *v2.ServerConfig) *Config {
 		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
 		LogLevel:        config.ParseLogLevel(c.DefaultLogLevel),
-		LogRoller:       c.DefaultLogRoller,
+		LogRoller:       c.GlobalLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,
 		UseNetpollMode:  c.UseNetpollMode,
@@ -182,7 +182,7 @@ func InitDefaultLogger(config *Config) {
 	}
 
 	if config.LogRoller != "" {
-		err := log.InitDefaultRoller(config.LogRoller)
+		err := log.InitGlobalRoller(config.LogRoller)
 		if err != nil {
 			log.StartLogger.Fatalln("[server] [init] initialize default logger Roller failed : ", err)
 		}

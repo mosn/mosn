@@ -383,7 +383,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 
 func (al *activeListener) GoStart(lctx context.Context) {
 	utils.GoWithRecover(func() {
-		al.listener.Start(lctx)
+		al.listener.Start(lctx, false)
 		// set listener addr metrics
 		metrics.AddListenerAddr(al.listener.Addr().String())
 	}, func(r interface{}) {

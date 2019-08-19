@@ -23,7 +23,7 @@ import (
 	"sort"
 	"testing"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -293,6 +293,13 @@ func TestNoSubsetHost(t *testing.T) {
 		"version": "1.0",
 		"xlarge":  "true",
 	})
+	// test HostNum
+	if lb.HostNum(ctx1.MetadataMatchCriteria()) != 0 {
+		t.Fatalf("expected hosts is 0")
+	}
+	if lb.HostNum(ctx2.MetadataMatchCriteria()) != 1 {
+		t.Fatalf("expected hosts is 1")
+	}
 	if h, ok := lb.tryChooseHostFromContext(ctx1); ok || h != nil {
 		t.Fatalf("expected choose failed, but returns a host, host: %v, ok: %v", h, ok)
 	}

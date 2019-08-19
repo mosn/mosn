@@ -22,12 +22,25 @@ import (
 	"net"
 	"os"
 	"runtime/debug"
+	"sync"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/utils"
+)
+
+type ListenerState int
+
+// listener state
+// ListenerInited means listener is inited, a inited listener can be started or stopped
+// ListenerRunning means listener is running, start a running listener will be ignored.
+// ListenerStopped means listener is stopped, start a stopped listener without restart flag will be ignored.
+const (
+	ListenerInited ListenerState = iota
+	ListenerRunning
+	ListenerStopped
 )
 
 // listener impl based on golang net package
@@ -41,6 +54,9 @@ type listener struct {
 	cb                      types.ListenerEventListener
 	rawl                    *net.TCPListener
 	config                  *v2.Listener
+	mutex                   sync.Mutex
+	// listener state indicates the listener's running state. The listener state effects if a listener binded to a port
+	state ListenerState
 }
 
 func NewListener(lc *v2.Listener) types.Listener {
@@ -78,7 +94,7 @@ func (l *listener) Addr() net.Addr {
 	return l.localAddress
 }
 
-func (l *listener) Start(lctx context.Context) {
+func (l *listener) Start(lctx context.Context, restart bool) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[network] [listener start] panic %v\n%s", r, string(debug.Stack()))
@@ -86,13 +102,39 @@ func (l *listener) Start(lctx context.Context) {
 	}()
 
 	if l.bindToPort {
-		//call listen if not inherit
-		if l.rawl == nil {
-			if err := l.listen(lctx); err != nil {
-				// TODO: notify listener callbacks
-				log.StartLogger.Fatalf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
-				return
+		ignore := func() bool {
+			l.mutex.Lock()
+			defer l.mutex.Unlock()
+			switch l.state {
+			case ListenerRunning:
+				// if listener is running, ignore start
+				log.DefaultLogger.Debugf("[network] [listener start] %s is running", l.name)
+				return true
+			case ListenerStopped:
+				if !restart {
+					return true
+				}
+				log.DefaultLogger.Infof("[network] [listener start] %s restart listener ", l.name)
+				if err := l.listen(lctx); err != nil {
+					// TODO: notify listener callbacks
+					log.DefaultLogger.Errorf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
+					return true
+				}
+			default:
+				// try start listener
+				//call listen if not inherit
+				if l.rawl == nil {
+					if err := l.listen(lctx); err != nil {
+						// TODO: notify listener callbacks
+						log.StartLogger.Fatalf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
+					}
+				}
 			}
+			l.state = ListenerRunning
+			return false
+		}()
+		if ignore {
+			return
 		}
 
 		for {
@@ -161,8 +203,14 @@ func (l *listener) UseOriginalDst() bool {
 }
 
 func (l *listener) Close(lctx context.Context) error {
-	l.cb.OnClose()
-	return l.rawl.Close()
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	l.state = ListenerStopped
+	if l.rawl != nil {
+		l.cb.OnClose()
+		return l.rawl.Close()
+	}
+	return nil
 }
 
 func (l *listener) listen(lctx context.Context) error {

@@ -271,7 +271,7 @@ func TestConnPoolUpdateTLS(t *testing.T) {
 			},
 		},
 	}); err != nil {
-		t.Fatal("update cluster hosts failed, %v", err)
+		t.Fatalf("update cluster hosts failed, %v", err)
 	}
 	newSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
 	if connPool := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), newSnap, mockProtocol); !connPool.SupportTLS() {

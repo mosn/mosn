@@ -42,7 +42,7 @@ func NewXClient(t *testing.T, id string, subproto string) *XProtocolClient {
 func (c *XProtocolClient) Connect(addr string) error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
-	cc := network.NewClientConnection(nil, nil, remoteAddr, stopChan)
+	cc := network.NewClientConnection(nil, 0, nil, remoteAddr, stopChan)
 	cc.SetReadDisable(true)
 	c.conn = cc
 	if err := cc.Connect(true); err != nil {
