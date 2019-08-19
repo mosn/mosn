@@ -41,3 +41,20 @@ diff -N pkg/mtls/crypto/tls/tls_test.go /usr/local/go/src/crypto/tls/tls_test.go
 21,22d21
 <
 < 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls/testenv"
+
+
+add supports for gm
+
+1. Assign ids to new gm cipher suites
+2. Add items into the global slice "cipherSuites"
+3. Add cipherSM4
+4. Add macSM3
+5. update tls testdata
+    a. build OpenSSL 1.1.0 from source and config with:
+        ./Configure enable-weak-ssl-ciphers enable-ssl3 enable-ssl3-method -static linux-x86_64
+    b. go to pkg/mtls/crypto/tls
+    c. go test -update ./...
+        if any test case fails due to 'Address already in use', one should ensure that no TIME_WAIT sockets on :24323 and re-run with: go test -update -run TestXXX
+6. run tls test
+    a. go to pkg/mtls
+    b. go test -v ./...
