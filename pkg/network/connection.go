@@ -42,14 +42,13 @@ import (
 // Network related const
 const (
 	DefaultBufferReadCapacity = 1 << 7
+	NetBufferDefaultSize      = 0
+	NetBufferDefaultCapacity  = 1 << 4
 )
 
 var idCounter uint64 = 1
 
-const NetBufferDefaultSize = 0
-const NetBufferDefaultCapacity = 1 << 4
-
-var netBufferPool = sync.Pool {
+var netBufferPool = sync.Pool{
 	New: func() interface{} {
 		return make(net.Buffers, NetBufferDefaultSize, NetBufferDefaultCapacity)
 	},
