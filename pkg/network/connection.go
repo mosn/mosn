@@ -43,11 +43,20 @@ import (
 const (
 	DefaultBufferReadCapacity = 1 << 7
 
+	NetBufferDefaultSize      = 0
+	NetBufferDefaultCapacity  = 1 << 4
+
 	DefaultIdleTimeout    = 90 * time.Second
 	DefaultConnectTimeout = 3 * time.Second
 )
 
 var idCounter uint64 = 1
+
+var netBufferPool = sync.Pool{
+	New: func() interface{} {
+		return make(net.Buffers, NetBufferDefaultSize, NetBufferDefaultCapacity)
+	},
+}
 
 type connection struct {
 	id         uint64
@@ -540,7 +549,8 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 		return
 	}
 
-	var writeBuffer net.Buffers
+	netBuffer := netBufferPool.Get().(net.Buffers)
+	writeBuffer := netBuffer
 	var writeBufferLen int64
 
 	for _, buf := range *buf {
@@ -572,6 +582,8 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 
 		return
 	}
+
+	netBufferPool.Put(netBuffer)
 
 	for _, buf := range *buf {
 		if buf.EOF() {
