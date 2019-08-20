@@ -323,6 +323,8 @@ func SetMqConsumers(key string, consumers []string) {
 
 		delete(config.ServiceRegistry.MqConsumers, key)
 	}
+
+	dump(true)
 }
 
 // RmMqConsumers remove topic consumer list
@@ -335,4 +337,6 @@ func RmMqConsumers(key string) {
 	if len(key) != 0 {
 		delete(config.ServiceRegistry.MqConsumers, key)
 	}
+
+	dump(true)
 }
