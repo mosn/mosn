@@ -19,6 +19,7 @@ package network
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -43,8 +44,8 @@ import (
 const (
 	DefaultBufferReadCapacity = 1 << 7
 
-	NetBufferDefaultSize      = 0
-	NetBufferDefaultCapacity  = 1 << 4
+	NetBufferDefaultSize     = 0
+	NetBufferDefaultCapacity = 1 << 4
 
 	DefaultIdleTimeout    = 90 * time.Second
 	DefaultConnectTimeout = 3 * time.Second
@@ -957,7 +958,12 @@ func (cc *clientConnection) Connect() (err error) {
 			timeout = DefaultConnectTimeout
 		}
 
-		cc.rawConnection, err = net.DialTimeout("tcp", cc.RemoteAddr().String(), timeout)
+		addr := cc.RemoteAddr()
+		if addr != nil {
+			cc.rawConnection, err = net.DialTimeout("tcp", cc.RemoteAddr().String(), timeout)
+		} else {
+			err = errors.New("ClientConnection RemoteAddr is nil")
+		}
 
 		if err != nil {
 			if err == io.EOF {
@@ -998,7 +1004,7 @@ func (cc *clientConnection) Connect() (err error) {
 		}
 
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
+			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr, event, err)
 		}
 
 		for _, cccb := range cc.connCallbacks {
