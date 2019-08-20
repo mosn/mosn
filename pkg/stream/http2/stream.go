@@ -399,6 +399,8 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers types.HeaderMa
 	var rsp *http.Response
 
 	var status int
+	// clone for retry
+	headers = headers.Clone()
 	if value, _ := headers.Get(types.HeaderStatus); value != "" {
 		headers.Del(types.HeaderStatus)
 		status, _ = strconv.Atoi(value)
