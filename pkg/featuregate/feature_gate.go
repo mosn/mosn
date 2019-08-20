@@ -26,8 +26,8 @@ import (
 	"sync/atomic"
 
 	"github.com/spf13/pflag"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"reflect"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 type Feature string
@@ -95,11 +95,6 @@ type FeatureGate interface {
 	IsReady(key Feature) bool
 	// Subscribe returns a channel. if the channel is closed, means the feature is ready
 	Subscribe(key Feature) (chan struct{}, error)
-	// UpdateToReady supports updating feature to ready, then closing the channel
-	// unsupported:
-	// 1. Rollback the notified of ready to false or Setting with false
-	// 2. Repeat setting the notified of ready with true
-	UpdateToReady(key Feature) error
 }
 
 // MutableFeatureGate parses and stores flag gates for known features from
@@ -116,8 +111,10 @@ type MutableFeatureGate interface {
 	SetFromMap(m map[string]bool) error
 	// Add adds features to the featureGate.
 	Add(features map[Feature]FeatureSpec) error
-	// Add init function for feature, which is invoked when UpdateToReady is called
+	// Add init function for feature, which is invoked when StartInit is called
 	AddInitFunc(key Feature, f func()) error
+	// call StartInit to trigger init functions of feature
+	StartInit() error
 }
 
 // defaultFeatureGate implements FeatureGate as well as pflag.Value for flag parsing.
@@ -329,7 +326,7 @@ func (f *defaultFeatureGate) AddFlag(fs *pflag.FlagSet) {
 	known := f.KnownFeatures()
 	fs.Var(f, flagName, ""+
 		"A set of key=value pairs that describe feature gates for alpha/experimental features. "+
-		"Options are:\n"+ strings.Join(known, "\n"))
+		"Options are:\n"+strings.Join(known, "\n"))
 }
 
 // KnownFeatures returns a slice of strings describing the FeatureGate's known features.
@@ -396,7 +393,7 @@ func (f *defaultFeatureGate) DeepCopy() MutableFeatureGate {
 // unsupported:
 // 1. Rollback the notified of ready to false or Setting with false
 // 2. Repeat setting the notified of ready with true
-func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
+func (f *defaultFeatureGate) updateToReady(key Feature) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -415,15 +412,11 @@ func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
 
 		b.notified = true
 		b.once.Do(func() {
-			if fs, found := f.initFuncs[key]; found {
-				for _, fun := range fs {
-					fun()
-				}
-			}
+			log.DefaultLogger.Infof("feature %s is ready, notify subscriber", key)
 			close(b.channel)
 		})
 
-		f.updateToReady(key)
+		f.doUpdateToReady(key)
 	} else {
 		return fmt.Errorf("unrecognized feature gate: %s", key)
 	}
@@ -431,7 +424,7 @@ func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
 	return nil
 }
 
-func (f *defaultFeatureGate) updateToReady(key Feature) {
+func (f *defaultFeatureGate) doUpdateToReady(key Feature) {
 	// Copy existing state
 	ready := map[Feature]bool{}
 	for k, v := range f.ready.Load().(map[Feature]bool) {
@@ -466,7 +459,7 @@ func (f *defaultFeatureGate) Subscribe(key Feature) (chan struct{}, error) {
 	return nil, fmt.Errorf("subscribe fails, make sure %s is inited correctly", key)
 }
 
-// Add init function for feature, which is invoked when UpdateToReady is called
+// Add init function for feature, which is invoked when StartInit is called
 func (f *defaultFeatureGate) AddInitFunc(key Feature, fun func()) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -481,5 +474,31 @@ func (f *defaultFeatureGate) AddInitFunc(key Feature, fun func()) error {
 	}
 	f.initFuncs[key] = append(list, fun)
 
+	return nil
+}
+
+// call StartInit to trigger init functions of feature
+func (f *defaultFeatureGate) StartInit() error {
+	w := &sync.WaitGroup{}
+	for key, enabled := range f.enabled.Load().(map[Feature]bool) {
+		if !enabled {
+			continue
+		}
+
+		if fs, found := f.initFuncs[key]; found {
+			w.Add(1)
+			log.DefaultLogger.Infof("feature %s start init", key)
+			go func(wg *sync.WaitGroup, k Feature) {
+				for _, fun := range fs {
+					fun()
+				}
+				f.updateToReady(k)
+				log.DefaultLogger.Infof("feature %s init done", k)
+				wg.Done()
+			}(w, key)
+		}
+	}
+
+	w.Wait()
 	return nil
 }
