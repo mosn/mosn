@@ -116,6 +116,8 @@ type MutableFeatureGate interface {
 	SetFromMap(m map[string]bool) error
 	// Add adds features to the featureGate.
 	Add(features map[Feature]FeatureSpec) error
+	// Add init function for feature, which is invoked when UpdateToReady is called
+	AddInitFunc(key Feature, f func()) error
 }
 
 // defaultFeatureGate implements FeatureGate as well as pflag.Value for flag parsing.
@@ -136,6 +138,8 @@ type defaultFeatureGate struct {
 	broadcasters map[Feature]*oneTimeBroadcaster
 	// feature gate status info
 	info string
+	// invoked before updating feature gate to ready
+	initFuncs map[Feature][]func()
 }
 
 func setUnsetAlphaGates(known map[Feature]FeatureSpec, enabled map[Feature]bool, val bool) {
@@ -168,14 +172,13 @@ func NewFeatureGate() *defaultFeatureGate {
 	readyValue := &atomic.Value{}
 	readyValue.Store(ready)
 
-	broadcasters := map[Feature]*oneTimeBroadcaster{}
-
 	f := &defaultFeatureGate{
 		known:        knownValue,
 		special:      specialFeatures,
 		enabled:      enabledValue,
 		ready:        readyValue,
-		broadcasters: broadcasters,
+		broadcasters: map[Feature]*oneTimeBroadcaster{},
+		initFuncs:    map[Feature][]func(){},
 	}
 	return f
 }
@@ -412,6 +415,11 @@ func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
 
 		b.notified = true
 		b.once.Do(func() {
+			if fs, found := f.initFuncs[key]; found {
+				for _, fun := range fs {
+					fun()
+				}
+			}
 			close(b.channel)
 		})
 
@@ -456,4 +464,22 @@ func (f *defaultFeatureGate) Subscribe(key Feature) (chan struct{}, error) {
 	}
 
 	return nil, fmt.Errorf("subscribe fails, make sure %s is inited correctly", key)
+}
+
+// Add init function for feature, which is invoked when UpdateToReady is called
+func (f *defaultFeatureGate) AddInitFunc(key Feature, fun func()) error {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	if _, ok := f.known.Load().(map[Feature]FeatureSpec)[key]; !ok {
+		return fmt.Errorf("feature %s is unknown", key)
+	}
+
+	list, found := f.initFuncs[key]
+	if !found {
+		list = make([]func(), 0)
+	}
+	f.initFuncs[key] = append(list, fun)
+
+	return nil
 }

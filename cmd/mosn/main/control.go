@@ -31,6 +31,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/mosn"
 	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 var (
@@ -65,6 +66,7 @@ var (
 			// set feature gates
 			err := featuregate.DefaultMutableFeatureGate.Set(c.String("feature-gates"))
 			if err != nil {
+				log.StartLogger.Infof("[mosn] [start] parse feature-gates flag fail : %+v", err)
 				os.Exit(1)
 			}
 			// start pprof

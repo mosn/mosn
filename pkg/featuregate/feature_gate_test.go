@@ -27,6 +27,16 @@ import (
 	"time"
 )
 
+var (
+	test = "1"
+)
+
+func init() {
+	TestDataMutableFeatureGate.AddInitFunc(TestDataFeatureEnable, func() {
+		test = "2"
+	})
+}
+
 func TestFeatureGateFlag(t *testing.T) {
 	// gates for testing
 	const testAlphaGate Feature = "TestAlpha"
@@ -504,6 +514,20 @@ func TestFeatureGateUpdateToSubscribe(t *testing.T) {
 	case <-ticker.C:
 		t.Errorf("Excepted %s is ready", testBeforeReady)
 		break
+	}
+
+}
+
+func TestInitFunc(t *testing.T) {
+	if test != "1" {
+		t.Errorf("Excepted %s, but got %s", "1", test)
+	}
+
+	TestDataMutableFeatureGate.Set(fmt.Sprintf("%s=true", TestDataFeatureEnable))
+	TestDataMutableFeatureGate.UpdateToReady(TestDataFeatureEnable)
+
+	if test != "2" {
+		t.Errorf("Excepted %s, but got %s", "2", test)
 	}
 
 }
