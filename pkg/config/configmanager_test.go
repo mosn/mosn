@@ -150,3 +150,47 @@ func TestUpdateStreamFilter(t *testing.T) {
 		}
 	}
 }
+
+func TestUpdateMqClientKey(t *testing.T) {
+	UpdateMqClientKey("hello", "ck", false)
+	if len(config.ServiceRegistry.MqClientKey) != 1 {
+		t.Errorf("len(config.ServiceRegistry.MqClientKey) != 1")
+	}
+
+	UpdateMqClientKey("hello", "", true)
+	if len(config.ServiceRegistry.MqClientKey) != 0 {
+		t.Errorf("len(config.ServiceRegistry.MqClientKey) != 0")
+	}
+}
+
+func TestUpdateMqMeta(t *testing.T) {
+	UpdateMqMeta("TP_TEST", "meta", false)
+	if len(config.ServiceRegistry.MqMeta) != 1 {
+		t.Errorf("len(config.ServiceRegistry.MqMeta) != 1")
+	}
+
+	UpdateMqMeta("TP_TEST", "meta", true)
+	if len(config.ServiceRegistry.MqMeta) != 0 {
+		t.Errorf("len(config.ServiceRegistry.MqMeta) != 0")
+	}
+}
+
+func TestSetMqConsumers(t *testing.T) {
+	SetMqConsumers("TP_TEST", []string{"cs1", "cs2", "cs3"})
+	if len(config.ServiceRegistry.MqConsumers) != 1 {
+		t.Errorf("len(config.ServiceRegistry.MqConsumers) != 1")
+	}
+
+	SetMqConsumers("TP_TEST", []string{})
+	if len(config.ServiceRegistry.MqConsumers) != 0 {
+		t.Errorf("len(config.ServiceRegistry.MqConsumers) != 0")
+	}
+}
+
+func TestRmMqConsumers(t *testing.T) {
+	SetMqConsumers("TP_TEST", []string{"cs1", "cs2", "cs3"})
+	RmMqConsumers("TP_TEST")
+	if len(config.ServiceRegistry.MqConsumers) != 0 {
+		t.Errorf("len(config.ServiceRegistry.MqConsumers) != 0")
+	}
+}
