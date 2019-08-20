@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"bytes"
-	"compress/gzip"
 	"io"
 	"math"
 	"strconv"
@@ -46,11 +45,6 @@ import (
 var (
 	sinkType        = "prometheus"
 	defaultEndpoint = "/metrics"
-	gzipPool        = sync.Pool{
-		New: func() interface{} {
-			return gzip.NewWriter(nil)
-		},
-	}
 	numBufPool = sync.Pool{
 		New: func() interface{} {
 			b := make([]byte, 0, 24)
@@ -97,20 +91,6 @@ func (exporter *promHttpExporter) ServeHTTP(rsp http.ResponseWriter, req *http.R
 // ~ MetricsSink
 func (psink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 	w := writer
-
-	rsp, ok := writer.(http.ResponseWriter)
-	if ok {
-		// gzip
-		if rsp.Header().Get("Content-Encoding") == "gzip" {
-			gz := gzipPool.Get().(*gzip.Writer)
-			defer gzipPool.Put(gz)
-
-			gz.Reset(w)
-			defer gz.Close()
-
-			w = gz
-		}
-	}
 
 	// mark whose TYPE/HELP text already printed
 	tracker := make(map[string]bool)
@@ -208,7 +188,9 @@ func NewPromeSink(config *promConfig) types.MetricsSink {
 	srvMux := http.NewServeMux()
 	srvMux.Handle(config.Endpoint, &promHttpExporter{
 		sink: promSink,
-		real: promhttp.HandlerFor(promReg, promhttp.HandlerOpts{}),
+		real: promhttp.HandlerFor(promReg, promhttp.HandlerOpts{
+			DisableCompression: true,
+		}),
 	})
 
 	srv := &http.Server{
