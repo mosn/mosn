@@ -28,6 +28,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"time"
+
 	"github.com/valyala/fasthttp"
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
@@ -38,7 +40,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/utils"
-	"time"
 )
 
 func init() {
@@ -471,7 +472,8 @@ type clientStream struct {
 
 // types.StreamSender
 func (s *clientStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
-	headers := headersIn.(mosnhttp.RequestHeader)
+	// clone for retry case
+	headers := headersIn.Clone().(mosnhttp.RequestHeader)
 
 	// TODO: protocol convert in pkg/protocol
 	//if the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
