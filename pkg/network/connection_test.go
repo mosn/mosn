@@ -118,3 +118,12 @@ func TestConnectTimeout(t *testing.T) {
 		t.Errorf("connect should timeout %v, but get %v", timeout, sub)
 	}
 }
+
+func TestClientConectionRemoteaddrIsNil(t *testing.T) {
+	conn := NewClientConnection(nil, 0, nil, nil, nil)
+	err := conn.Connect()
+	if err == nil {
+		t.Errorf("connect should Failed")
+		return
+	}
+}
