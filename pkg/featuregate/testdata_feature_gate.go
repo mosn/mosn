@@ -31,8 +31,4 @@ var (
 	}
 )
 
-func init() {
-	if err := TestDataMutableFeatureGate.Add(testDataFeatureGates); err != nil {
-		panic(err)
-	}
-}
+func init() {}

@@ -63,6 +63,8 @@ type FeatureSpec struct {
 	LockToDefault bool
 	// PreRelease indicates the maturity level of the feature
 	PreRelease prerelease
+	// InitFunc used to init process when StartInit is invoked
+	InitFunc func()
 }
 
 type prerelease string
@@ -111,8 +113,8 @@ type MutableFeatureGate interface {
 	SetFromMap(m map[string]bool) error
 	// Add adds features to the featureGate.
 	Add(features map[Feature]FeatureSpec) error
-	// Add init function for feature, which is invoked when StartInit is called
-	AddInitFunc(key Feature, f func()) error
+	// AddFeatureSpec adds feature to the featureGate.
+	AddFeatureSpec(key Feature, spec FeatureSpec) error
 	// call StartInit to trigger init functions of feature
 	StartInit() error
 }
@@ -135,8 +137,6 @@ type defaultFeatureGate struct {
 	broadcasters map[Feature]*oneTimeBroadcaster
 	// feature gate status info
 	info string
-	// invoked before updating feature gate to ready
-	initFuncs map[Feature][]func()
 }
 
 func setUnsetAlphaGates(known map[Feature]FeatureSpec, enabled map[Feature]bool, val bool) {
@@ -175,7 +175,6 @@ func NewFeatureGate() *defaultFeatureGate {
 		enabled:      enabledValue,
 		ready:        readyValue,
 		broadcasters: map[Feature]*oneTimeBroadcaster{},
-		initFuncs:    map[Feature][]func(){},
 	}
 	return f
 }
@@ -459,22 +458,9 @@ func (f *defaultFeatureGate) Subscribe(key Feature) (chan struct{}, error) {
 	return nil, fmt.Errorf("subscribe fails, make sure %s is inited correctly", key)
 }
 
-// Add init function for feature, which is invoked when StartInit is called
-func (f *defaultFeatureGate) AddInitFunc(key Feature, fun func()) error {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-
-	if _, ok := f.known.Load().(map[Feature]FeatureSpec)[key]; !ok {
-		return fmt.Errorf("feature %s is unknown", key)
-	}
-
-	list, found := f.initFuncs[key]
-	if !found {
-		list = make([]func(), 0)
-	}
-	f.initFuncs[key] = append(list, fun)
-
-	return nil
+// AddFeatureSpec adds feature to the featureGate.
+func (f *defaultFeatureGate) AddFeatureSpec(key Feature, spec FeatureSpec) error {
+	return f.Add(map[Feature]FeatureSpec{key: spec})
 }
 
 // call StartInit to trigger init functions of feature
@@ -485,18 +471,18 @@ func (f *defaultFeatureGate) StartInit() error {
 			continue
 		}
 
-		if fs, found := f.initFuncs[key]; found {
-			w.Add(1)
-			log.DefaultLogger.Infof("feature %s start init", key)
-			go func(wg *sync.WaitGroup, k Feature) {
-				for _, fun := range fs {
-					fun()
-				}
-				f.updateToReady(k)
-				log.DefaultLogger.Infof("feature %s init done", k)
-				wg.Done()
-			}(w, key)
-		}
+		spec, _ := f.known.Load().(map[Feature]FeatureSpec)[key]
+
+		w.Add(1)
+		log.DefaultLogger.Infof("feature %s start init", key)
+		go func(wg *sync.WaitGroup, k Feature) {
+			if spec.InitFunc != nil {
+				spec.InitFunc()
+			}
+			f.updateToReady(k)
+			log.DefaultLogger.Infof("feature %s init done", k)
+			wg.Done()
+		}(w, key)
 	}
 
 	w.Wait()

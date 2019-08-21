@@ -18,13 +18,13 @@
 package featuregate
 
 import (
-	"fmt"
-	"strings"
 	"testing"
 
+	"fmt"
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"sofastack.io/sofa-mosn/pkg/log"
+	"strings"
 	"time"
 )
 
@@ -34,25 +34,29 @@ var (
 )
 
 func init() {
-	TestDataMutableFeatureGate.AddInitFunc(TestDataFeatureEnable, func() {
-		test = "2"
-		time.Sleep(1 * time.Second)
-	})
-	TestDataMutableFeatureGate.AddInitFunc(AnotherTestDataFeatureEnable, func() {
-		c, err := TestDataMutableFeatureGate.Subscribe(TestDataFeatureEnable)
-		if err != nil {
-			log.DefaultLogger.Errorf("%v", err)
-		}
+	TestDataMutableFeatureGate.AddFeatureSpec(
+		TestDataFeatureEnable,
+		FeatureSpec{Default: false, PreRelease: Alpha, InitFunc: func() {
+			test = "2"
+			time.Sleep(1 * time.Second)
+		}})
 
-		select {
-		case _, open := <-c:
-			if !open {
-				break
+	TestDataMutableFeatureGate.AddFeatureSpec(
+		AnotherTestDataFeatureEnable,
+		FeatureSpec{Default: true, PreRelease: Beta, InitFunc: func() {
+			c, err := TestDataMutableFeatureGate.Subscribe(TestDataFeatureEnable)
+			if err != nil {
+				log.DefaultLogger.Errorf("%v", err)
 			}
-		}
 
-		anotherTest = "b"
-	})
+			select {
+			case _, open := <-c:
+				if !open {
+					break
+				}
+			}
+			anotherTest = "b"
+		}})
 }
 
 func TestFeatureGateFlag(t *testing.T) {
