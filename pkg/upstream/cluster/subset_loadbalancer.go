@@ -70,7 +70,7 @@ func (sslb *subsetLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.
 }
 
 func (sslb *subsetLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
-	if metadata != nil {
+	if metadata != nil || !reflect.ValueOf(metadata).IsNil() {
 		matchCriteria := metadata.MetadataMatchCriteria()
 		entry := sslb.findSubset(matchCriteria)
 		empty := (entry == nil || !entry.Active())
@@ -80,10 +80,10 @@ func (sslb *subsetLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriter
 }
 
 func (sslb *subsetLoadBalancer) HostNum(metadata types.MetadataMatchCriteria) int {
-	if metadata != nil {
+	if metadata != nil || !reflect.ValueOf(metadata).IsNil() {
 		matchCriteria := metadata.MetadataMatchCriteria()
 		entry := sslb.findSubset(matchCriteria)
-		if  entry == nil {
+		if entry == nil {
 			return 0
 		}
 		return entry.HostNum()
