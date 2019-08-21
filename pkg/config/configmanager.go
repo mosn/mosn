@@ -278,3 +278,65 @@ func DelMsgMeta(dataId string) {
 
 	dump(dirty)
 }
+
+// UpdateMqClientKey update mq client registry info
+func UpdateMqClientKey(id, clientKey string, remove bool) {
+	if config.ServiceRegistry.MqClientKey == nil {
+		config.ServiceRegistry.MqClientKey = make(map[string]string)
+	}
+
+	if remove {
+		delete(config.ServiceRegistry.MqClientKey, id)
+	} else {
+		config.ServiceRegistry.MqClientKey[id] = clientKey
+	}
+
+	dump(true)
+}
+
+// UpdteMqMeta update mq meta info
+func UpdateMqMeta(topic, meta string, remove bool) {
+	if config.ServiceRegistry.MqMeta == nil {
+		config.ServiceRegistry.MqMeta = make(map[string]string)
+	}
+
+	if remove {
+		delete(config.ServiceRegistry.MqMeta, topic)
+	} else {
+		config.ServiceRegistry.MqMeta[topic] = meta
+	}
+
+	dump(true)
+}
+
+// SetMqConsumers update topic consumer list
+func SetMqConsumers(key string, consumers []string) {
+	if config.ServiceRegistry.MqConsumers == nil {
+		config.ServiceRegistry.MqConsumers = make(map[string][]string)
+	}
+
+	if len(key) != 0 {
+		if len(consumers) != 0 {
+			config.ServiceRegistry.MqConsumers[key] = consumers
+			return
+		}
+
+		delete(config.ServiceRegistry.MqConsumers, key)
+	}
+
+	dump(true)
+}
+
+// RmMqConsumers remove topic consumer list
+func RmMqConsumers(key string) {
+	if config.ServiceRegistry.MqConsumers== nil {
+		config.ServiceRegistry.MqConsumers = make(map[string][]string)
+		return
+	}
+
+	if len(key) != 0 {
+		delete(config.ServiceRegistry.MqConsumers, key)
+	}
+
+	dump(true)
+}
