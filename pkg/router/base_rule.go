@@ -144,12 +144,17 @@ func (rri *RouteRuleImplBase) Policy() types.Policy {
 }
 
 func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.MetadataMatchCriteria {
+	criteria := rri.defaultCluster.clusterMetadataMatchCriteria
 	if len(rri.weightedClusters) != 0 {
 		if cluster, ok := rri.weightedClusters[clusterName]; ok {
-			return cluster.clusterMetadataMatchCriteria
+			criteria = cluster.clusterMetadataMatchCriteria
 		}
 	}
-	return rri.defaultCluster.clusterMetadataMatchCriteria
+	if criteria == nil {
+		return nil
+	}
+	return criteria
+
 }
 
 func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {

@@ -27,6 +27,27 @@ import (
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
+func TestNilMetadataMatchCriteria(t *testing.T) {
+	defaultRule := &RouteRuleImplBase{
+		defaultCluster: &weightedClusterEntry{},
+	}
+	if defaultRule.MetadataMatchCriteria("") != nil {
+		t.Errorf("nil criteria is not nil, got: %v", defaultRule.MetadataMatchCriteria(""))
+	}
+	weightRule := &RouteRuleImplBase{
+		defaultCluster: &weightedClusterEntry{},
+		weightedClusters: map[string]weightedClusterEntry{
+			"test": weightedClusterEntry{},
+		},
+	}
+	if weightRule.MetadataMatchCriteria("test") != nil {
+		t.Errorf("nil criteria is not nil, got: %v", weightRule.MetadataMatchCriteria("test"))
+	}
+	if weightRule.MetadataMatchCriteria("") != nil {
+		t.Errorf("nil criteria is not nil, got: %v", weightRule.MetadataMatchCriteria(""))
+	}
+}
+
 func TestWeightedClusterSelect(t *testing.T) {
 	routerMock1 := &v2.Router{}
 	routerMock1.Route = v2.RouteAction{
