@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.7.0
+
+### New Features
+
+- New feature: FeatureGates
+- New metircs: mosn process time
+- Support restarting closed listener
+
+### Refactor
+
+- Upgrade to Go 1.12.7
+- Start XDS cilent before mosn server
+
+### Bug Fix
+
+- Fix stream reset when RPC Stream Write error occur
+- Fix memory leak when no response from upstream
+- Fix HTTP parameters loss when doing retry
+- Fix panic when DNS host resolved failed
+- Fix dial never timeout when listener support inspector and TLS 
+- Fix promuthes error when requesting GZIP format
+
 ## 0.6.0
 
 ### New Features
