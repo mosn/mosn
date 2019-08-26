@@ -20,6 +20,7 @@ package mtls
 import (
 	gotls "crypto/tls"
 	"net"
+	"time"
 
 	"encoding/gob"
 	"errors"
@@ -47,18 +48,20 @@ type Conn struct {
 }
 
 // Peek returns 1 byte from connection, without draining any buffered data.
-func (c *Conn) Peek() []byte {
+func (c *Conn) Peek() ([]byte, error) {
 	b := make([]byte, 1, 1)
-	n, err := c.Conn.Read(b)
-	if n == 0 {
+	c.Conn.SetReadDeadline(time.Now().Add(types.DefaultConnReadTimeout))
+	_, err := c.Conn.Read(b)
+	c.Conn.SetReadDeadline(time.Time{}) // clear read deadline
+	if err != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[mtls] TLS Peek() error: %v", err)
 		}
-		return nil
+		return nil, err
 	}
 	c.peek[0] = b[0]
 	c.haspeek = true
-	return b
+	return b, nil
 }
 
 // Read reads data from the connection.

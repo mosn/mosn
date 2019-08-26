@@ -325,7 +325,6 @@ func (ch *connHandler) StopConnection() {
 
 // ListenerEventListener
 type activeListener struct {
-	disableConnIo               bool
 	listener                    types.Listener
 	networkFiltersFactories     []types.NetworkFilterChainFactory
 	streamFiltersFactoriesStore atomic.Value // store []types.StreamFilterChainFactory
@@ -346,7 +345,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
-		disableConnIo:           lc.DisableConnIo,
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
 		conns:        list.New(),
@@ -383,7 +381,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 
 func (al *activeListener) GoStart(lctx context.Context) {
 	utils.GoWithRecover(func() {
-		al.listener.Start(lctx)
+		al.listener.Start(lctx, false)
 		// set listener addr metrics
 		metrics.AddListenerAddr(al.listener.Addr().String())
 	}, func(r interface{}) {
@@ -398,14 +396,22 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 
 	// only store fd and tls conn handshake in final working listener
 	if !useOriginalDst {
-		if !al.disableConnIo && network.UseNetpollMode {
+		if network.UseNetpollMode {
 			// store fd for further usage
 			if tc, ok := rawc.(*net.TCPConn); ok {
 				rawf, _ = tc.File()
 			}
 		}
 		if al.tlsMng != nil {
-			rawc = al.tlsMng.Conn(rawc)
+			conn, err := al.tlsMng.Conn(rawc)
+			if err != nil {
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("[server] [listener] accept connection failed, error: %v", err)
+				}
+				rawc.Close()
+				return
+			}
+			rawc = conn
 		}
 	}
 
@@ -467,11 +473,8 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	// todo: this hack is due to http2 protocol process. golang http2 provides a io loop to read/write stream
-	if !al.disableConnIo {
-		// start conn loops first
-		conn.Start(ctx)
-	}
+	// start conn loops first
+	conn.Start(ctx)
 }
 
 func (al *activeListener) OnClose() {}

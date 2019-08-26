@@ -306,7 +306,7 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 		ac.client.AddConnectionEventListener(ac.keepAlive)
 	}
 
-	if err := ac.client.Connect(true); err != nil {
+	if err := ac.client.Connect(); err != nil {
 		return nil
 	}
 

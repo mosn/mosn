@@ -18,6 +18,7 @@
 package mosn
 
 import (
+	"net"
 	"sync"
 
 	admin "sofastack.io/sofa-mosn/pkg/admin/server"
@@ -47,6 +48,11 @@ type Mosn struct {
 	routerManager  types.RouterManager
 	config         *config.MOSNConfig
 	adminServer    admin.Server
+	xdsClient      *xds.Client
+	wg             sync.WaitGroup
+	// for smooth upgrade. reconfigure
+	inheritListeners []net.Listener
+	reconfigure      net.Conn
 }
 
 // NewMosn
@@ -78,7 +84,10 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	initializeMetrics(c.Metrics)
 
 	m := &Mosn{
-		config: c,
+		config:           c,
+		wg:               sync.WaitGroup{},
+		inheritListeners: inheritListeners,
+		reconfigure:      reconfigure,
 	}
 	mode := c.Mode()
 
@@ -148,7 +157,6 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := config.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
-				lc.DisableConnIo = config.GetListenerDisableIO(&lc.FilterChains[0])
 
 				// parse routers from connection_manager filter and add it the routerManager
 				if routerConfig := config.ParseRouterConfiguration(&lc.FilterChains[0]); routerConfig.RouterConfigName != "" {
@@ -175,9 +183,11 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		m.servers = append(m.servers, srv)
 	}
 
-	//parse service registry info
-	config.ParseServiceRegistry(c.ServiceRegistry)
+	return m
+}
 
+// beforeStart prepares some actions before mosn start proxy listener
+func (m *Mosn) beforeStart() {
 	// start adminApi
 	m.adminServer = admin.Server{}
 	m.adminServer.Start(m.config)
@@ -187,16 +197,16 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 	if store.GetMosnState() == store.Active_Reconfiguring {
 		// start other services
-		if err := store.StartService(inheritListeners); err != nil {
+		if err := store.StartService(m.inheritListeners); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
 		}
 
 		// notify old mosn to transfer connection
-		if _, err := reconfigure.Write([]byte{0}); err != nil {
+		if _, err := m.reconfigure.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalln("[mosn] [NewMosn] graceful failed, exit")
 		}
 
-		reconfigure.Close()
+		m.reconfigure.Close()
 
 		// transfer old mosn connections
 		utils.GoWithRecover(func() {
@@ -211,7 +221,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	}
 
 	//close legacy listeners
-	for _, ln := range inheritListeners {
+	for _, ln := range m.inheritListeners {
 		if ln != nil {
 			log.StartLogger.Infof("[mosn] [NewMosn] close useless legacy listener: %s", ln.Addr().String())
 			ln.Close()
@@ -227,12 +237,21 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	utils.GoWithRecover(func() {
 		server.ReconfigureHandler()
 	}, nil)
-
-	return m
 }
 
 // Start mosn's server
 func (m *Mosn) Start() {
+	m.wg.Add(1)
+	// Start XDS if configured
+	m.xdsClient = &xds.Client{}
+	m.xdsClient.Start(m.config)
+	// TODO: remove it
+	//parse service registry info
+	config.ParseServiceRegistry(m.config.ServiceRegistry)
+
+	// beforestart starts transfer connection and non-proxy listeners
+	m.beforeStart()
+
 	// start mosn server
 	for _, srv := range m.servers {
 		utils.GoWithRecover(func() {
@@ -253,27 +272,19 @@ func (m *Mosn) Close() {
 	for _, srv := range m.servers {
 		srv.Close()
 	}
+	m.xdsClient.Stop()
 	m.clustermanager.Destroy()
+	m.wg.Done()
 }
 
 // Start mosn project
 // step1. NewMosn
 // step2. Start Mosn
-func Start(c *config.MOSNConfig, serviceCluster string, serviceNode string) {
+func Start(c *config.MOSNConfig) {
 	log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
-
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
 	Mosn := NewMosn(c)
 	Mosn.Start()
-	////get xds config
-	xdsClient := xds.Client{}
-	xdsClient.Start(c, serviceCluster, serviceNode)
-	//
-	////todo: daemon running
-	wg.Wait()
-	xdsClient.Stop()
+	Mosn.wg.Wait()
 }
 
 func initializeTracing(config config.TracingConfig) {

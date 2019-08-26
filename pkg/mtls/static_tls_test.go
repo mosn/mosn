@@ -398,14 +398,14 @@ func TestFallback(t *testing.T) {
 		lc.FilterChains = filterChains
 		serverMgr, err := NewTLSServerContextManager(lc)
 		if err != nil {
-			t.Fatal("create tls server context manager failed: %v", err)
+			t.Fatalf("create tls server context manager failed: %v", err)
 		}
 		if ctxMng, ok := serverMgr.(*serverContextManager); !ok || len(ctxMng.providers) != 0 {
 			t.Error("server context manager have providers, but expected not")
 		}
 		clientMgr, err := NewTLSClientContextManager(&cfg)
 		if err != nil {
-			t.Fatal("create tls client context manager failed: %v", err)
+			t.Fatalf("create tls client context manager failed: %v", err)
 		}
 		if ctxMng, ok := clientMgr.(*clientContextManager); !ok || !(ctxMng.provider != nil && ctxMng.provider.Empty()) {
 			t.Error("clienr context manager expected a empty provider")
@@ -432,14 +432,14 @@ func TestFallback(t *testing.T) {
 		lc.FilterChains = filterChains
 		serverMgr, err := NewTLSServerContextManager(lc)
 		if err != nil {
-			t.Fatal("create tls server context manager failed: %v", err)
+			t.Fatalf("create tls server context manager failed: %v", err)
 		}
 		if ctxMng, ok := serverMgr.(*serverContextManager); !ok || len(ctxMng.providers) != 0 {
 			t.Error("server context manager have providers, but expected not")
 		}
 		clientMgr, err := NewTLSClientContextManager(&cfg)
 		if err != nil {
-			t.Fatal("create tls client context manager failed: %v", err)
+			t.Fatalf("create tls client context manager failed: %v", err)
 		}
 		if ctxMng, ok := clientMgr.(*clientContextManager); !ok || !(ctxMng.provider != nil && ctxMng.provider.Empty()) {
 			t.Error("clienr context manager expected a empty provider")
@@ -466,7 +466,7 @@ func TestFallback(t *testing.T) {
 		}
 		clientMgr, err := NewTLSClientContextManager(&cfg)
 		if err != nil {
-			t.Fatal("create tls client context manager failed: %v", err)
+			t.Fatalf("create tls client context manager failed: %v", err)
 		}
 		if ctxMng, ok := clientMgr.(*clientContextManager); !ok || !(ctxMng.provider != nil && ctxMng.provider.Empty()) {
 			t.Error("clienr context manager expected a empty provider")
@@ -497,4 +497,57 @@ func TestFallback(t *testing.T) {
 		}
 	})
 
+}
+
+func TestGmTLS(t *testing.T) {
+	info := certInfo{"Cert1", "RSA", "www.example.com"}
+	cfg, err := info.CreateCertConfig()
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	cfg.CipherSuites = "ECDHE-RSA-SM4-SM3"
+	cfg.VerifyClient = false
+	filterChains := []v2.FilterChain{
+		{
+			TLSContexts: []v2.TLSConfig{
+				*cfg,
+			},
+		},
+	}
+	lc := &v2.Listener{}
+	lc.Inspector = true
+	lc.FilterChains = filterChains
+	ctxMng, err := NewTLSServerContextManager(lc)
+	if err != nil {
+		t.Errorf("create context manager failed %v", err)
+		return
+	}
+	server := MockServer{
+		Mng: ctxMng,
+		t:   t,
+	}
+	server.GoListenAndServe(t)
+	defer server.Close()
+	time.Sleep(time.Second) //wait server start
+
+	clientConfig := v2.TLSConfig{
+		Status:       true,
+		CACert:       cfg.CACert,
+		CertChain:    cfg.CertChain,
+		PrivateKey:   cfg.PrivateKey,
+		InsecureSkip: true,
+		CipherSuites: "ECDHE-RSA-SM4-SM3",
+	}
+	cltMng, err := NewTLSClientContextManager(&clientConfig)
+	if err != nil {
+		t.Errorf("create client context manager failed %v", err)
+	}
+
+	resp, err := MockClient(t, server.Addr, cltMng)
+	if err != nil {
+		t.Errorf("request server error %v", err)
+	}
+	ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
 }

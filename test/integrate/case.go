@@ -9,13 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/tcpproxy"
 	"sofastack.io/sofa-mosn/pkg/mosn"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 type TestCase struct {
@@ -105,6 +105,8 @@ func (c *TestCase) FinishCase() {
 	<-c.Finish
 }
 
+const HTTPTestPath = "test/path"
+
 // mesh to mesh use tls if "istls" is true
 // client do "n" times request, interval time (ms)
 func (c *TestCase) RunCase(n int, interval int) {
@@ -113,7 +115,7 @@ func (c *TestCase) RunCase(n int, interval int) {
 	switch c.AppProtocol {
 	case protocol.HTTP1:
 		call = func() error {
-			resp, err := http.Get(fmt.Sprintf("http://%s/", c.ClientMeshAddr))
+			resp, err := http.Get(fmt.Sprintf("http://%s/%s", c.ClientMeshAddr, HTTPTestPath))
 			if err != nil {
 				return err
 			}
@@ -137,7 +139,7 @@ func (c *TestCase) RunCase(n int, interval int) {
 		}
 		httpClient := http.Client{Transport: tr}
 		call = func() error {
-			resp, err := httpClient.Get(fmt.Sprintf("http://%s/", c.ClientMeshAddr))
+			resp, err := httpClient.Get(fmt.Sprintf("http://%s/%s", c.ClientMeshAddr, HTTPTestPath))
 			if err != nil {
 				return err
 			}

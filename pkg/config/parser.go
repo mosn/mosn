@@ -26,12 +26,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/filter"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/gogo/protobuf/jsonpb"
 )
 
 var protocolsSupported = map[string]bool{
@@ -227,11 +227,6 @@ func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
 	return routerConfiguration
 }
 
-// GetListenerDisableIO used to check downstream protocol and return ListenerDisableIO
-func GetListenerDisableIO(c *v2.FilterChain) bool {
-	return false
-}
-
 // ParseProxyFilter
 func ParseProxyFilter(cfg map[string]interface{}) *v2.Proxy {
 	proxyConfig := &v2.Proxy{}
@@ -261,6 +256,19 @@ func ParseFaultInjectFilter(cfg map[string]interface{}) *v2.FaultInject {
 		log.StartLogger.Fatal("[config] parsing fault inject filter error")
 	}
 	return filterConfig
+}
+
+// ParseStreamPayloadLimitFilter
+func ParseStreamPayloadLimitFilter(cfg map[string]interface{}) (*v2.StreamPayloadLimit, error) {
+	filterConfig := &v2.StreamPayloadLimit{}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, filterConfig); err != nil {
+		return nil, err
+	}
+	return filterConfig, nil
 }
 
 // ParseStreamFaultInjectFilter

@@ -27,8 +27,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-const DefaultIdleTimeout = 90 * time.Second
-
 // getIdleCount calculates the idle timeout as max idle count.
 func getIdleCount(d time.Duration) uint32 {
 	fd := float64(d)

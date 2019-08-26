@@ -60,17 +60,27 @@ func TestParseRoller(t *testing.T) {
 	}
 
 	errorPraseArgs = "A=3"
-	err = InitDefaultRoller(errorPraseArgs)
+	err = InitGlobalRoller(errorPraseArgs)
 	if err == nil {
 		t.Errorf("ParseRoller should be failed")
 	}
 
 	praseArgs = "size=100"
-	err = InitDefaultRoller(praseArgs)
-	if defaultRoller == nil {
+	err = InitGlobalRoller(praseArgs)
+	if err != nil {
 		t.Errorf("ParseRoller failed")
 	}
 	if defaultRoller.MaxSize != 100 || defaultRoller.Compress != false {
+		t.Errorf("ParseRoller failed")
+	}
+
+	errorPraseArgs = "time=12"
+	err = InitGlobalRoller(errorPraseArgs)
+	if err != nil {
+		t.Errorf("ParseRoller should be failed")
+	}
+
+	if defaultRoller.MaxTime != 12 *60 *60 {
 		t.Errorf("ParseRoller failed")
 	}
 }

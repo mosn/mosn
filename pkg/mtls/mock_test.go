@@ -80,7 +80,7 @@ func MockClient(t *testing.T, addr string, cltMng types.TLSContextManager) (*htt
 	conn = c
 	if cltMng != nil {
 		req, _ = http.NewRequest("GET", "https://"+addr, nil)
-		conn = cltMng.Conn(c)
+		conn, _ = cltMng.Conn(c)
 		tlsConn, _ := conn.(*TLSConn)
 		if err := tlsConn.Handshake(); err != nil {
 			return nil, fmt.Errorf("request tls handshake error %v", err)
@@ -99,7 +99,12 @@ func (ln MockListener) Accept() (net.Conn, error) {
 	if err != nil {
 		return conn, err
 	}
-	return ln.Mng.Conn(conn), nil
+	conn, err = ln.Mng.Conn(conn)
+	if err != nil {
+		conn.Close()
+		return nil, err
+	}
+	return conn, nil
 }
 
 type MockServer struct {

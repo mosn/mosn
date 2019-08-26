@@ -105,4 +105,6 @@ func (b *attributesBuilder) ExtractReportAttributes(reportData ReportData) {
 	//builder.AddString()
 
 	// TODO: add rabc info
+
+	AddAttributesByPlugins(builder)
 }

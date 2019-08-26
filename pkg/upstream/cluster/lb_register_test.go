@@ -51,6 +51,10 @@ func (lb *headerLB) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
 	return len(lb.hostSet.Hosts()) > 0
 }
 
+func (lb *headerLB) HostNum(metadata types.MetadataMatchCriteria) int {
+	return len(lb.hostSet.Hosts())
+}
+
 type headerLBCfg struct {
 	key string
 }

@@ -19,6 +19,7 @@ package network
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -42,9 +43,21 @@ import (
 // Network related const
 const (
 	DefaultBufferReadCapacity = 1 << 7
+
+	NetBufferDefaultSize     = 0
+	NetBufferDefaultCapacity = 1 << 4
+
+	DefaultIdleTimeout    = 90 * time.Second
+	DefaultConnectTimeout = 3 * time.Second
 )
 
 var idCounter uint64 = 1
+
+var netBufferPool = sync.Pool{
+	New: func() interface{} {
+		return make(net.Buffers, NetBufferDefaultSize, NetBufferDefaultCapacity)
+	},
+}
 
 type connection struct {
 	id         uint64
@@ -537,7 +550,8 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 		return
 	}
 
-	var writeBuffer net.Buffers
+	netBuffer := netBufferPool.Get().(net.Buffers)
+	writeBuffer := netBuffer
 	var writeBufferLen int64
 
 	for _, buf := range *buf {
@@ -569,6 +583,8 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 
 		return
 	}
+
+	netBufferPool.Put(netBuffer)
 
 	for _, buf := range *buf {
 		if buf.EOF() {
@@ -895,11 +911,13 @@ func (c *connection) SetTransferEventListener(listener func() bool) {
 type clientConnection struct {
 	connection
 
+	connectTimeout time.Duration
+
 	connectOnce sync.Once
 }
 
 // NewClientConnection new client-side connection
-func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
+func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{
@@ -923,6 +941,7 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 			writeCollector: metrics.NilCounter{},
 			tlsMng:         tlsMng,
 		},
+		connectTimeout: connectTimeout,
 	}
 
 	conn.filterManager = newFilterManager(conn)
@@ -930,11 +949,21 @@ func NewClientConnection(sourceAddr net.Addr, tlsMng types.TLSContextManager, re
 	return conn
 }
 
-func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
+func (cc *clientConnection) Connect() (err error) {
 	cc.connectOnce.Do(func() {
 		var event types.ConnectionEvent
 
-		cc.rawConnection, err = net.DialTimeout("tcp", cc.RemoteAddr().String(), time.Second*3)
+		timeout := cc.connectTimeout
+		if timeout == 0 {
+			timeout = DefaultConnectTimeout
+		}
+
+		addr := cc.RemoteAddr()
+		if addr != nil {
+			cc.rawConnection, err = net.DialTimeout("tcp", cc.RemoteAddr().String(), timeout)
+		} else {
+			err = errors.New("ClientConnection RemoteAddr is nil")
+		}
 
 		if err != nil {
 			if err == io.EOF {
@@ -950,7 +979,7 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			event = types.Connected
 
 			// ensure ioEnabled and UseNetpollMode
-			if ioEnabled && UseNetpollMode {
+			if UseNetpollMode {
 				// store fd
 				if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
 					cc.file, err = tc.File()
@@ -961,16 +990,21 @@ func (cc *clientConnection) Connect(ioEnabled bool) (err error) {
 			}
 
 			if cc.tlsMng != nil {
-				cc.rawConnection = cc.tlsMng.Conn(cc.rawConnection)
+				// usually, the client tls manager will never returns an error
+				cc.rawConnection, err = cc.tlsMng.Conn(cc.rawConnection)
+
 			}
 
-			if ioEnabled {
+			if err != nil {
+				event = types.ConnectFailed
+				cc.rawConnection.Close()
+			} else {
 				cc.Start(nil)
 			}
 		}
 
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr.String(), event, err)
+			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr, event, err)
 		}
 
 		for _, cccb := range cc.connCallbacks {

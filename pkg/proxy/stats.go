@@ -18,9 +18,9 @@
 package proxy
 
 import (
+	gometrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/types"
-	gometrics "github.com/rcrowley/go-metrics"
 )
 
 type Stats struct {
@@ -34,6 +34,8 @@ type Stats struct {
 	DownstreamRequestReset      gometrics.Counter
 	DownstreamRequestTime       gometrics.Histogram
 	DownstreamRequestTimeTotal  gometrics.Counter
+	DownstreamProcessTime       gometrics.Histogram
+	DownstreamProcessTimeTotal  gometrics.Counter
 }
 
 func newListenerStats(listenerName string) *Stats {
@@ -57,5 +59,7 @@ func newStats(s types.Metrics) *Stats {
 		DownstreamRequestReset:      s.Counter(metrics.DownstreamRequestReset),
 		DownstreamRequestTime:       s.Histogram(metrics.DownstreamRequestTime),
 		DownstreamRequestTimeTotal:  s.Counter(metrics.DownstreamRequestTimeTotal),
+		DownstreamProcessTime:       s.Histogram(metrics.DownstreamProcessTime),
+		DownstreamProcessTimeTotal:  s.Counter(metrics.DownstreamProcessTimeTotal),
 	}
 }

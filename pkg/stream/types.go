@@ -34,7 +34,7 @@ type Client interface {
 
 	ConnID() uint64
 
-	Connect(ioEnabled bool) error
+	Connect() error
 
 	ActiveRequestsNum() int
 

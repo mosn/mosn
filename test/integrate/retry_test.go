@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,10 +29,10 @@ func NewRetryCase(t *testing.T, serverProto, meshProto types.Protocol, isClose b
 	var good, bad util.UpstreamServer
 	switch serverProto {
 	case protocol.HTTP1:
-		good = util.NewHTTPServer(t, nil)
+		good = util.NewHTTPServer(t, &PathHTTPHandler{})
 		bad = util.NewHTTPServer(t, &BadHTTPHandler{})
 	case protocol.HTTP2:
-		good = util.NewUpstreamHTTP2(t, app1, nil)
+		good = util.NewUpstreamHTTP2(t, app1, &PathHTTPHandler{})
 		bad = util.NewUpstreamHTTP2(t, app2, &BadHTTPHandler{})
 	case protocol.SofaRPC:
 		good = util.NewRPCServer(t, app1, util.Bolt1)
@@ -99,6 +100,16 @@ func (c *RetryCase) Start(tls bool) {
 		c.Finish <- true
 	}()
 	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+type PathHTTPHandler struct{}
+
+func (h *PathHTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+	if strings.Trim(r.URL.Path, "/") != HTTPTestPath {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	fmt.Fprintf(w, "\nRequestId:%s\n", r.Header.Get("Requestid"))
 }
 
 // BadServer Handler
@@ -192,14 +203,13 @@ func TestRetryProxy(t *testing.T) {
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
 		tc.StartProxy()
-		// at least run twice
-		go tc.RunCase(2, 0)
+		go tc.RunCase(10, 0)
 		select {
 		case err := <-tc.C:
 			if err != nil {
 				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, err)
 			}
-		case <-time.After(15 * time.Second):
+		case <-time.After(30 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
 		}
 		tc.FinishCase()

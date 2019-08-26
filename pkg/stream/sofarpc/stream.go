@@ -170,6 +170,7 @@ func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 	defer conn.mutex.Unlock()
 
 	for _, stream := range conn.streams {
+		stream.connReset = true
 		stream.ResetStream(reason)
 	}
 }
@@ -315,6 +316,8 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 type stream struct {
 	str.BaseStream
 
+	connReset bool
+
 	ctx context.Context
 	sc  *streamConnection
 
@@ -437,18 +440,37 @@ func (s *stream) endStream() {
 		}
 
 		if dataBuf := s.sendCmd.Data(); dataBuf != nil {
-			s.sc.conn.Write(buf, dataBuf)
+			err = s.sc.conn.Write(buf, dataBuf)
 		} else {
-			s.sc.conn.Write(buf)
+			err = s.sc.conn.Write(buf)
 		}
 
 		// log
 		if log.Proxy.GetLogLevel() >= log.INFO {
 			log.Proxy.Infof(s.ctx, "[stream] [sofarpc] send %s, requestId = %v", directionText[s.direction], s.id)
 		}
+
+		if err != nil {
+			log.Proxy.Errorf(s.ctx, "[stream] [sofarpc] requestId = %v, error = %v", s.id, err)
+			if err == types.ErrConnectionHasClosed {
+				s.ResetStream(types.StreamConnectionFailed)
+			} else {
+				s.ResetStream(types.StreamLocalReset)
+			}
+		}
 	}
 }
 
 func (s *stream) GetStream() types.Stream {
 	return s
+}
+
+func (s *stream) ResetStream(reason types.StreamResetReason) {
+	if s.direction == ClientStream && !s.connReset {
+		s.sc.mutex.Lock()
+		delete(s.sc.streams, s.id)
+		s.sc.mutex.Unlock()
+	}
+
+	s.BaseStream.ResetStream(reason)
 }

@@ -89,37 +89,35 @@ func (mng *serverContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (
 	return defaultProvider.GetTLSConfig(false), nil
 }
 
-func (mng *serverContextManager) Conn(c net.Conn) net.Conn {
+func (mng *serverContextManager) Conn(c net.Conn) (net.Conn, error) {
 	if _, ok := c.(*net.TCPConn); !ok {
-		return c
+		return c, nil
 	}
 	if !mng.Enabled() {
-		return c
+		return c, nil
 	}
 	if !mng.inspector {
 		return &TLSConn{
 			tls.Server(c, mng.config.Clone()),
-		}
+		}, nil
 	}
 	// inspector
 	conn := &Conn{
 		Conn: c,
 	}
-	buf := conn.Peek()
-	if buf == nil {
-		return &TLSConn{
-			tls.Server(conn, mng.config.Clone()),
-		}
+	buf, err := conn.Peek()
+	if err != nil {
+		return nil, err
 	}
 	switch buf[0] {
 	// TLS handshake
 	case 0x16:
 		return &TLSConn{
 			tls.Server(conn, mng.config.Clone()),
-		}
+		}, nil
 	// Non TLS
 	default:
-		return conn
+		return conn, nil
 	}
 }
 
@@ -149,16 +147,16 @@ func NewTLSClientContextManager(cfg *v2.TLSConfig) (types.TLSContextManager, err
 	return mng, nil
 }
 
-func (mng *clientContextManager) Conn(c net.Conn) net.Conn {
+func (mng *clientContextManager) Conn(c net.Conn) (net.Conn, error) {
 	if _, ok := c.(*net.TCPConn); !ok {
-		return c
+		return c, nil
 	}
 	if !mng.Enabled() {
-		return c
+		return c, nil
 	}
 	return &TLSConn{
 		tls.Client(c, mng.provider.GetTLSConfig(true)),
-	}
+	}, nil
 }
 
 func (mng *clientContextManager) Enabled() bool {
