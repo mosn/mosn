@@ -26,6 +26,7 @@ import (
 func init() {
 	serviceNameFunc = dubboGetServiceName
 	methodNameFunc = dubboGetMethodName
+	metaFunc = dubboGetMeta
 }
 
 func getSerializeId(flag byte) int {
@@ -41,8 +42,11 @@ func isReqFrame(flag byte) bool {
 }
 
 type dubboAttr struct {
-	serviceName string
-	methodName  string
+	serviceName  string
+	methodName   string
+	path         string
+	version      string
+	dubboVersion string
 }
 
 func unSerialize(serializeId int, data []byte) *dubboAttr {
@@ -70,6 +74,7 @@ func unSerialize(serializeId int, data []byte) *dubboAttr {
 		fmt.Printf("unSerialize: Decode dubbo_version fail, illegal type\n")
 		return nil
 	}
+	attr.dubboVersion = str
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -93,6 +98,7 @@ func unSerialize(serializeId int, data []byte) *dubboAttr {
 		fmt.Printf("unSerialize: Decode version fail, illegal type\n")
 		return nil
 	}
+	attr.version = str
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -156,4 +162,30 @@ func dubboGetMethodName(data []byte) string {
 		methodName = ret.methodName
 	}
 	return methodName
+}
+
+func dubboGetMeta(data []byte) map[string]string {
+	//return "dubboMeta"
+	rslt, bodyLen := isValidDubboData(data)
+	if rslt == false || bodyLen <= 0 {
+		return nil
+	}
+
+	flag := data[DUBBO_FLAG_IDX]
+	if getEventPing(flag) {
+		// heart-beat frame, there is not method-name
+		return nil
+	}
+	if isReqFrame(flag) != true {
+		return nil
+	}
+	serializeId := getSerializeId(flag)
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:])
+	retMap := make(map[string]string)
+	retMap["serviceName"] = ret.serviceName
+	retMap["dubboVersion"] = ret.dubboVersion
+	retMap["methodName"] = ret.methodName
+	retMap["path"] = ret.path
+	retMap["version"] = ret.version
+	return retMap
 }

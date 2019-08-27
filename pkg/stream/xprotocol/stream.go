@@ -85,6 +85,7 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 type streamConnection struct {
 	context                             context.Context
 	protocol                            types.Protocol
+	subProtocol                         xprotocol.SubProtocol
 	connection                          types.Connection
 	streamIDXprotocolCount              uint64
 	activeStream                        streamMap
@@ -107,6 +108,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		serverStreamConnectionEventListener: serverCallbacks,
 		codec:                               codec,
 		protocol:                            protocol.Xprotocol,
+		subProtocol:                         subProtocolName,
 	}
 }
 
@@ -168,6 +170,8 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 
 		reqBuf := networkbuffer.NewIoBufferBytes(request)
 		log.DefaultLogger.Tracef("after Dispatch on decode header and data")
+		// append sub protocol header
+		headers[types.HeaderXprotocolSubProtocol] = string(conn.subProtocol)
 		conn.OnReceive(ctx, streamID, protocol.CommonHeader(headers), reqBuf)
 		buffer.Drain(requestLen)
 	}
