@@ -71,7 +71,10 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 
 func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	// set sub protocol
-	// mosnctx.WithValue(context, types.ContextSubProtocol, SubProtocol)
+	subProtocol := mosnctx.Get(context, types.ContextSubProtocol)
+	if subProtocol != nil {
+		return nil
+	}
 	return str.FAILED
 }
 
