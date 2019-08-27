@@ -63,7 +63,7 @@ func NewRPCDubbo() xprotocol.Tracing {
  * +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
  * event: 1 mean ping
  * two way: 1 mean req & rsp pair
- * req/rsp: 1 mena req
+ * req/rsp: 1 mean req
  */
 
 const (
@@ -171,9 +171,11 @@ func (d *rpcDubbo) SetStreamID(data []byte, streamID string) []byte {
 
 type serviceNameFuncModel func(data []byte) string
 type methodNameFuncModel func(data []byte) string
+type metaFuncModel func(data []byte) map[string]string
 
 var serviceNameFunc serviceNameFuncModel
 var methodNameFunc methodNameFuncModel
+var metaFunc metaFuncModel
 
 func (d *rpcDubbo) GetServiceName(data []byte) string {
 	if serviceNameFunc != nil {
@@ -187,4 +189,11 @@ func (d *rpcDubbo) GetMethodName(data []byte) string {
 		return methodNameFunc(data)
 	}
 	return ""
+}
+
+func (d *rpcDubbo) GetMetas(data []byte) map[string]string {
+	if metaFunc != nil {
+		return metaFunc(data)
+	}
+	return nil
 }

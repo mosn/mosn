@@ -21,18 +21,19 @@ import "errors"
 
 // Header key types
 const (
-	HeaderStatus        = "x-mosn-status"
-	HeaderMethod        = "x-mosn-method"
-	HeaderHost          = "x-mosn-host"
-	HeaderPath          = "x-mosn-path"
-	HeaderQueryString   = "x-mosn-querystring"
-	HeaderStreamID      = "x-mosn-streamid"
-	HeaderGlobalTimeout = "x-mosn-global-timeout"
-	HeaderTryTimeout    = "x-mosn-try-timeout"
-	HeaderException     = "x-mosn-exception"
-	HeaderStremEnd      = "x-mosn-endstream"
-	HeaderRPCService    = "x-mosn-rpc-service"
-	HeaderRPCMethod     = "x-mosn-rpc-method"
+	HeaderStatus               = "x-mosn-status"
+	HeaderMethod               = "x-mosn-method"
+	HeaderHost                 = "x-mosn-host"
+	HeaderPath                 = "x-mosn-path"
+	HeaderQueryString          = "x-mosn-querystring"
+	HeaderStreamID             = "x-mosn-streamid"
+	HeaderGlobalTimeout        = "x-mosn-global-timeout"
+	HeaderTryTimeout           = "x-mosn-try-timeout"
+	HeaderException            = "x-mosn-exception"
+	HeaderStremEnd             = "x-mosn-endstream"
+	HeaderRPCService           = "x-mosn-rpc-service"
+	HeaderRPCMethod            = "x-mosn-rpc-method"
+	HeaderXprotocolSubProtocol = "x-mosn-xprotocol-sub-protocol"
 )
 
 // Error messages
