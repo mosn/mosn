@@ -31,7 +31,9 @@ import (
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
 	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
 	str "sofastack.io/sofa-mosn/pkg/stream"
+	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
+	"time"
 )
 
 // StreamDirection 1: server stream 0: client stream
@@ -92,6 +94,7 @@ type streamConnection struct {
 	codec                               xprotocol.Multiplexing
 	streamConnectionEventListener       types.StreamConnectionEventListener
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
+	contextManager                      *str.ContextManager
 }
 
 func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -100,6 +103,9 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 	log.DefaultLogger.Tracef("xprotocol subprotocol config name = %v", subProtocolName)
 	codec := xprotocol.CreateSubProtocolCodec(ctx, subProtocolName)
 	log.DefaultLogger.Tracef("xprotocol new stream connection, codec type = %v", subProtocolName)
+	contextManager := str.NewContextManager(ctx)
+	// init first context
+	contextManager.Next()
 	return &streamConnection{
 		context:                             ctx,
 		connection:                          connection,
@@ -109,6 +115,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		codec:                               codec,
 		protocol:                            protocol.Xprotocol,
 		subProtocol:                         subProtocolName,
+		contextManager:                      contextManager,
 	}
 }
 
@@ -166,6 +173,16 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 			headers[types.HeaderRPCService] = serviceName
 			headers[types.HeaderRPCMethod] = methodName
 			log.DefaultLogger.Tracef("xprotocol handle tracing ,serviceName = %v , methodName = %v", serviceName, methodName)
+
+			var span types.Span
+			if trace.IsEnabled() {
+				// try build trace span
+				tracer := trace.Tracer(protocol.Xprotocol)
+				if tracer != nil {
+					span = tracer.Start(conn.context, headers, time.Now())
+				}
+			}
+			conn.context = conn.contextManager.InjectTrace(conn.context, span)
 		}
 
 		reqBuf := networkbuffer.NewIoBufferBytes(request)
