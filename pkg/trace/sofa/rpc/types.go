@@ -26,7 +26,7 @@ import (
 const (
 	//0-30 for  rpc
 
-	TRACE_ID               = iota
+	TRACE_ID = iota
 	SPAN_ID
 	PARENT_SPAN_ID
 	SERVICE_NAME
@@ -45,6 +45,8 @@ const (
 	TARGET_IDC
 	TARGET_CITY
 	ROUTE_RECORD
+	APP_SERVICE
+	APP_SERVICE_VERSION
 	//30-60 for other extends
 
 	TRACE_END = 60
