@@ -125,7 +125,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		connected:        1,
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
-		writeBufferChan:  make(chan *[]types.IoBuffer, 32),
+		writeBufferChan:  make(chan *[]types.IoBuffer, 8),
 		writeSchedChan:   make(chan bool, 1),
 		transferChan:     make(chan uint64),
 		stats: &types.ConnectionStats{
@@ -928,7 +928,7 @@ func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsM
 			readEnabled:      true,
 			readEnabledChan:  make(chan bool, 1),
 			internalStopChan: make(chan struct{}),
-			writeBufferChan:  make(chan *[]types.IoBuffer, 32),
+			writeBufferChan:  make(chan *[]types.IoBuffer, 8),
 			writeSchedChan:   make(chan bool, 1),
 			stats: &types.ConnectionStats{
 				ReadTotal:     metrics.NewCounter(),

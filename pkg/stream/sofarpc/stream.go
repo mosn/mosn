@@ -115,7 +115,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 	sc.contextManager.Next()
 
 	if sc.streamConnectionEventListener != nil {
-		sc.streams = make(map[uint64]*stream, 32)
+		sc.streams = make(map[uint64]*stream, 2)
 	}
 
 	// set support transfer connection
