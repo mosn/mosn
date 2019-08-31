@@ -72,6 +72,7 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 			PrivateKey:   privatekey,
 			EcdhCurves:   "P256",
 			VerifyClient: true,
+			//CipherSuites: "ECDHE-RSA-SM4-SM3:ECDHE-ECDSA-SM4-SM3",
 			ServerName:   "127.0.0.1",
 		}
 		meshClusterConfig.TLS = tlsConf
