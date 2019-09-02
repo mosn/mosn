@@ -29,6 +29,14 @@
   version = "v1.0.2"
 
 [[projects]]
+  branch = "pojo"
+  digest = "1:ce7f91db39e18edd86e13857c7dae9077fe6ea62eec1f1bf43ba0492ff3b8e29"
+  name = "github.com/DarrenTai/hessian2"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "d04a0faf9fd85d552c8d9ae5b4ccde92ce781085"
+
+[[projects]]
   digest = "1:fef2f1c0c10ecb759f5e123616dc88c90b5c3991c160e26b7f363b762e2c9d68"
   name = "github.com/TarsCloud/TarsGo"
   packages = [
@@ -62,6 +70,14 @@
   version = "1.1.0"
 
 [[projects]]
+  digest = "1:e69e6cc60b099f496a40616de5f4b8c47209b98f85de4ede75282e8d2c688170"
+  name = "github.com/apache/dubbo-go-hessian2"
+  packages = ["java_exception"]
+  pruneopts = "UT"
+  revision = "3d274e9bafe9d8b5470e2498f2ab3078f0d00a2e"
+  version = "v1.2.4"
+
+[[projects]]
   digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
@@ -84,6 +100,17 @@
   pruneopts = "UT"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
+
+[[projects]]
+  digest = "1:fcfeebe2642c2283be74dc4334205faccd90c4558426bcfed3af7c238c558eb2"
+  name = "github.com/dubbogo/gost"
+  packages = [
+    "bytes",
+    "math/big",
+  ]
+  pruneopts = "UT"
+  revision = "8be848553fedaa50e7333328e3cd6c6c67716987"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:4cc0ab2ffde5af6ed91e57dd4f67864ec07c8f175c08225cd031932d7fc945b2"
@@ -265,6 +292,14 @@
   revision = "787757e6499086c1bb5dfe4ae7d3aa4aafe169d4"
 
 [[projects]]
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
+
+[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -380,7 +415,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:54a6041af989110a6edee54f56bb2f2c205dd387c79bb4fa13e38d1ffa768887"
+  digest = "1:dbc92eb2abb8d1ac8567a16de00cc12c8a5677ab8b0a18af2d4459c1320d41dc"
   name = "golang.org/x/crypto"
   packages = [
     "chacha20poly1305",
@@ -411,7 +446,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:38915cc39fc79dedca06b483584620781b60fe2aa4e25b3db127ebecc765b15d"
+  digest = "1:afce8593ac5918df05a46499b04b8c4e46a91e99566055e4a8ba829a8f389a09"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
@@ -519,6 +554,7 @@
   analyzer-version = 1
   input-imports = [
     "github.com/AlexStocks/dubbogo/codec/hessian",
+    "github.com/DarrenTai/hessian2",
     "github.com/TarsCloud/TarsGo/tars",
     "github.com/TarsCloud/TarsGo/tars/protocol/codec",
     "github.com/TarsCloud/TarsGo/tars/protocol/res/requestf",
