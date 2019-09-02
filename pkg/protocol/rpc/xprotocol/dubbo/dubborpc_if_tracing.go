@@ -87,6 +87,7 @@ func unSerialize(serializeId int, data []byte) *dubboAttr {
 		return nil
 	}
 	attr.serviceName = str
+	attr.path = str
 
 	field, err = decoder.Decode()
 	if err != nil {
