@@ -18,6 +18,7 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -43,6 +44,18 @@ const errMsgFmt = `{
 	"error": "%s"
 }
 `
+
+func help(w http.ResponseWriter, r *http.Request) {
+	var buf bytes.Buffer
+	buf.WriteString("support apis:\n")
+	for key := range apiHandleFuncStore {
+		if key != "/" { // do not show this pages
+			buf.WriteString(key)
+			buf.WriteRune('\n')
+		}
+	}
+	w.Write(buf.Bytes())
+}
 
 func configDump(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
