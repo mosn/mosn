@@ -40,6 +40,7 @@ const (
 	DownstreamRequestTimeTotal   = "request_time_total"
 	DownstreamProcessTime        = "process_time"
 	DownstreamProcessTimeTotal   = "process_time_total"
+	DownstreamRequestConcurrency = "request_concurrency"
 )
 
 // NewProxyStats returns a stats with namespace prefix proxy
