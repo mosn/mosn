@@ -92,7 +92,7 @@ func GetOrCreateLogger(output string, roller *Roller) (*Logger, error) {
 	lg := &Logger{
 		output:          output,
 		roller:          roller,
-		writeBufferChan: make(chan types.IoBuffer, 1000),
+		writeBufferChan: make(chan types.IoBuffer, 500),
 		reopenChan:      make(chan struct{}),
 		closeChan:       make(chan struct{}),
 		// writer and create will be setted in start()
