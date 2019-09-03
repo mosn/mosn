@@ -34,8 +34,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-var streamIDXprotocolCount uint64
-
 // StreamDirection 1: server stream 0: client stream
 type StreamDirection int
 
@@ -85,6 +83,7 @@ type streamConnection struct {
 	context                             context.Context
 	protocol                            types.Protocol
 	connection                          types.Connection
+	streamIDXprotocolCount              uint64
 	activeStream                        streamMap
 	codec                               xprotocol.Multiplexing
 	streamConnectionEventListener       types.StreamConnectionEventListener
@@ -103,8 +102,8 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		activeStream:                        newStreamMap(ctx),
 		streamConnectionEventListener:       clientCallbacks,
 		serverStreamConnectionEventListener: serverCallbacks,
-		codec:    codec,
-		protocol: protocol.Xprotocol,
+		codec:                               codec,
+		protocol:                            protocol.Xprotocol,
 	}
 }
 
@@ -119,6 +118,10 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 	// get sub protocol codec
 	requestList := conn.codec.SplitFrame(buffer.Bytes())
 	for _, request := range requestList {
+
+		// stream-level context
+		ctx := networkbuffer.NewBufferPoolContext(mosnctx.Clone(conn.context))
+
 		headers := make(map[string]string)
 		// support dynamic route
 		headers[strings.ToLower(protocol.MosnHeaderHostKey)] = conn.connection.RemoteAddr().String()
@@ -162,7 +165,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 
 		reqBuf := networkbuffer.NewIoBufferBytes(request)
 		log.DefaultLogger.Tracef("after Dispatch on decode header and data")
-		conn.OnReceive(conn.context, streamID, protocol.CommonHeader(headers), reqBuf)
+		conn.OnReceive(ctx, streamID, protocol.CommonHeader(headers), reqBuf)
 		buffer.Drain(requestLen)
 	}
 }
@@ -191,7 +194,7 @@ func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 
 // NewStream
 func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener) types.StreamSender {
-	nStreamID := atomic.AddUint64(&streamIDXprotocolCount, 1)
+	nStreamID := atomic.AddUint64(&conn.streamIDXprotocolCount, 1)
 	streamID := strconv.FormatUint(nStreamID, 10)
 
 	stream := stream{
@@ -206,15 +209,15 @@ func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder typ
 	return &stream
 }
 
-func (conn *streamConnection) OnReceive(context context.Context, streamID string, headers types.HeaderMap, data types.IoBuffer) types.FilterStatus {
+func (conn *streamConnection) OnReceive(ctx context.Context, streamID string, headers types.HeaderMap, data types.IoBuffer) types.FilterStatus {
 	log.DefaultLogger.Tracef("xprotocol stream on decode header")
 	if conn.serverStreamConnectionEventListener != nil {
 		log.DefaultLogger.Tracef("xprotocol stream on new stream detected invoked")
-		conn.onNewStreamDetected(streamID, headers)
+		conn.onNewStreamDetected(ctx, streamID, headers)
 	}
 	if stream, ok := conn.activeStream.Get(streamID); ok {
 		log.DefaultLogger.Tracef("xprotocol stream on decode header and data")
-		stream.streamReceiver.OnReceive(context, headers, data, nil)
+		stream.streamReceiver.OnReceive(ctx, headers, data, nil)
 
 		if stream.direction == ClientStream {
 			// for client stream, remove stream on response read
@@ -224,18 +227,18 @@ func (conn *streamConnection) OnReceive(context context.Context, streamID string
 	return types.Stop
 }
 
-func (conn *streamConnection) onNewStreamDetected(streamID string, headers types.HeaderMap) {
+func (conn *streamConnection) onNewStreamDetected(ctx context.Context, streamID string, headers types.HeaderMap) {
 	if ok := conn.activeStream.Has(streamID); ok {
 		return
 	}
 	stream := stream{
-		context:    mosnctx.WithValue(conn.context, types.ContextKeyStreamID, streamID),
+		context:    mosnctx.WithValue(ctx, types.ContextKeyStreamID, streamID),
 		streamID:   streamID,
 		direction:  ServerStream,
 		connection: conn,
 	}
 
-	stream.streamReceiver = conn.serverStreamConnectionEventListener.NewStreamDetect(conn.context, &stream, nil)
+	stream.streamReceiver = conn.serverStreamConnectionEventListener.NewStreamDetect(ctx, &stream, nil)
 	conn.activeStream.Set(streamID, stream)
 }
 
@@ -244,7 +247,6 @@ func (conn *streamConnection) onNewStreamDetected(streamID string, headers types
 type stream struct {
 	str.BaseStream
 
-	reqID            string
 	streamID         string
 	direction        StreamDirection // 0: out, 1: in
 	readDisableCount int
