@@ -41,13 +41,13 @@ func RegisterAdminHandleFunc(pattern string, handler func(http.ResponseWriter, *
 func init() {
 	// default admin api
 	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
-		"/": help,
 		"/api/v1/config_dump":     configDump,
 		"/api/v1/stats":           statsDump,
 		"/api/v1/update_loglevel": updateLogLevel,
 		"/api/v1/enable_log":      enableLogger,
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,
+		"/":                       help,
 	}
 }
 
