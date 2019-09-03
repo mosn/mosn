@@ -86,6 +86,10 @@ func (c *Concurrency) calculate(reqType ReqEventType) {
 }
 
 func (c *Concurrency) mainLoop() {
+	if c == nil {
+		return
+	}
+
 	c.lastCalculateTime = time.Now()
 	c.lastConcurrency = 0
 	for {
@@ -105,6 +109,10 @@ func (c *Concurrency) mainLoop() {
 }
 
 func (c *Concurrency) calculateTimeOnConcurrency(t time.Time) {
+	if c == nil {
+		return
+	}
+
 	if t.After(c.lastCalculateTime) {
 		durationSinceChange := t.Sub(c.lastCalculateTime).Nanoseconds() / 1.0e6
 		c.timeOnConcurrency[c.lastConcurrency] += durationSinceChange
@@ -113,6 +121,10 @@ func (c *Concurrency) calculateTimeOnConcurrency(t time.Time) {
 }
 
 func (c *Concurrency) updateTotalConcurrentTimeArea() {
+	if c == nil {
+		return
+	}
+
 	concurrentTimeArea := int64(0)
 	for c, t := range c.timeOnConcurrency {
 		concurrentTimeArea += t * c
@@ -123,6 +135,9 @@ func (c *Concurrency) updateTotalConcurrentTimeArea() {
 }
 
 func (c *Concurrency) Value() int64 {
+	if c == nil {
+		return 0
+	}
 	return c.totalConcurrentTimeAreaCounter.Count()
 }
 
