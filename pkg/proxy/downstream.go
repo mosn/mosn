@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/utils"
 
@@ -146,7 +146,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	proxy.stats.DownstreamRequestActive.Inc(1)
 	proxy.listenerStats.DownstreamRequestTotal.Inc(1)
 	proxy.listenerStats.DownstreamRequestActive.Inc(1)
-	calculateConcurrency(proxy.listenerStats.DownstreamRequestConcurrent, ReqIn)
+	proxy.listenerStats.DownstreamRequestConcurrent.calculate(ReqIn)
 
 	// info message for new downstream
 	if log.Proxy.GetLogLevel() >= log.INFO {
@@ -226,7 +226,7 @@ func (s *downStream) cleanStream() {
 	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
 	s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 	s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
-	calculateConcurrency(s.proxy.listenerStats.DownstreamRequestConcurrent, ReqOut)
+	s.proxy.listenerStats.DownstreamRequestConcurrent.calculate(ReqOut)
 
 	// finish tracing
 	s.finishTracing()

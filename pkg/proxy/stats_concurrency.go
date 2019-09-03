@@ -74,9 +74,13 @@ func getOrNewConcurrency(metricKey string, s types.Metrics) *Concurrency {
 	return c
 }
 
-func (c *Concurrency) calculate(t time.Time, reqType ReqEventType) {
+func (c *Concurrency) calculate(reqType ReqEventType) {
+	if c == nil {
+		return
+	}
+
 	c.calculateChan <- &ConcurrentData{
-		time:    t,
+		time:    time.Now(),
 		reqType: reqType,
 	}
 }
@@ -100,11 +104,11 @@ func (c *Concurrency) mainLoop() {
 	}
 }
 
-func (c *Concurrency) calculateTimeOnConcurrency(time time.Time) {
-	if time.After(c.lastCalculateTime) {
-		durationSinceChange := time.Sub(c.lastCalculateTime).Nanoseconds() / 1.0e6
+func (c *Concurrency) calculateTimeOnConcurrency(t time.Time) {
+	if t.After(c.lastCalculateTime) {
+		durationSinceChange := t.Sub(c.lastCalculateTime).Nanoseconds() / 1.0e6
 		c.timeOnConcurrency[c.lastConcurrency] += durationSinceChange
-		c.lastCalculateTime = time
+		c.lastCalculateTime = t
 	}
 }
 
@@ -134,16 +138,4 @@ const (
 type ConcurrentData struct {
 	time    time.Time
 	reqType ReqEventType
-}
-
-func calculateConcurrency(c *Concurrency, typ ReqEventType) {
-	if !featuregate.DefaultFeatureGate.Enabled(featuregate.ConcurrencyMetricsEnable) {
-		return
-	}
-
-	if c == nil {
-		return
-	}
-
-	c.calculate(time.Now(), typ)
 }
