@@ -32,6 +32,8 @@ const (
 	// alpha:
 	// beta:
 	MultiTenantMode Feature = "MultiTenantMode"
+
+	ConcurrencyMetricsEnable Feature = "ConcurrencyMetricsEnable"
 )
 
 var (
@@ -54,7 +56,8 @@ func init() {
 // To add a new feature, define a key for it above and add it here.
 // The features will be available throughout mosn binaries.
 var defaultMosnFeatureGates = map[Feature]FeatureSpec{
-	XdsMtlsEnable:      {Default: false, PreRelease: Alpha},
-	PayLoadLimitEnable: {Default: false, PreRelease: Alpha},
-	MultiTenantMode:    {Default: false, PreRelease: Alpha},
+	XdsMtlsEnable:            {Default: false, PreRelease: Alpha},
+	PayLoadLimitEnable:       {Default: false, PreRelease: Alpha},
+	MultiTenantMode:          {Default: false, PreRelease: Alpha},
+	ConcurrencyMetricsEnable: {Default: false, PreRelease: Alpha},
 }

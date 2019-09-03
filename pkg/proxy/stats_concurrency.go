@@ -19,16 +19,14 @@ package proxy
 
 import (
 	"github.com/rcrowley/go-metrics"
-	"os"
+	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sync"
 	"time"
 )
 
 const (
-	channelSize              = 2048
-	enableConcurrencyMetrics = "ENABLE_CONCURRENCY_METRICS"
-	enableValue              = "true"
+	channelSize = 2048
 )
 
 var (
@@ -48,7 +46,7 @@ type Concurrency struct {
 }
 
 func getOrNewConcurrency(metricKey string, s types.Metrics) *Concurrency {
-	if os.Getenv(enableConcurrencyMetrics) != enableValue {
+	if !featuregate.DefaultFeatureGate.Enabled(featuregate.ConcurrencyMetricsEnable) {
 		return nil
 	}
 
@@ -139,7 +137,7 @@ type ConcurrentData struct {
 }
 
 func calculateConcurrency(c *Concurrency, typ ReqEventType) {
-	if os.Getenv(enableConcurrencyMetrics) != enableValue {
+	if !featuregate.DefaultFeatureGate.Enabled(featuregate.ConcurrencyMetricsEnable) {
 		return
 	}
 
