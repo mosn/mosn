@@ -21,7 +21,20 @@ import (
 	"fmt"
 
 	"github.com/AlexStocks/dubbogo/codec/hessian"
+	"regexp"
+	"sofastack.io/sofa-mosn/pkg/protocol/sofarpc/models"
 )
+
+// regular
+const (
+	JAVA_IDENT_REGEX = "(?:[_$a-zA-Z][_$a-zA-Z0-9]*)"
+	CLASS_DESC       = "(?:L" + JAVA_IDENT_REGEX + "(?:\\/" + JAVA_IDENT_REGEX + ")*;)"
+	ARRAY_DESC       = "(?:\\[+(?:(?:[VZBCDFIJS])|" + CLASS_DESC + "))"
+	DESC_REGEX       = "(?:(?:[VZBCDFIJS])|" + CLASS_DESC + "|" + ARRAY_DESC + ")"
+)
+
+// DescRegex ...
+var DescRegex, _ = regexp.Compile(DESC_REGEX)
 
 func init() {
 	serviceNameFunc = dubboGetServiceName
@@ -47,9 +60,10 @@ type dubboAttr struct {
 	path         string
 	version      string
 	dubboVersion string
+	attachments  map[string]string
 }
 
-func unSerialize(serializeId int, data []byte) *dubboAttr {
+func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr {
 	if serializeId != 2 {
 		// not hessian, do not support
 		fmt.Printf("unSerialize: id=%d is not hessian\n", serializeId)
@@ -61,6 +75,7 @@ func unSerialize(serializeId int, data []byte) *dubboAttr {
 	var err error
 	var ok bool
 	var str string
+	var attachments map[string]string
 
 	// dubbo version + path + version + method
 
@@ -113,6 +128,37 @@ func unSerialize(serializeId int, data []byte) *dubboAttr {
 	}
 	attr.methodName = str
 
+	if !parseAttachments {
+		return attr
+	}
+
+	field, err = decoder.Decode()
+	if err != nil {
+		fmt.Printf("unSerialize: Decode argsTypes fail, err=%v\n", err)
+		return nil
+	}
+
+	ats := DescRegex.FindAllString(field.(string), -1)
+	for i := 0; i < len(ats); i++ {
+		_, err = decoder.Decode()
+		if err != nil {
+			fmt.Printf("unSerialize: Decode argsTypes item fail, err=%v\n", err)
+			return nil
+		}
+	}
+
+	field, err = decoder.Decode()
+	if err != nil {
+		fmt.Printf("unSerialize: Decode attachments fail, err=%v\n", err)
+		return nil
+	}
+	attachments, ok = field.(map[string]string)
+	if !ok {
+		fmt.Printf("unSerialize: Decode attachments fail, illegal type\n")
+		return nil
+	}
+	attr.attachments = attachments
+
 	return attr
 }
 
@@ -132,7 +178,7 @@ func dubboGetServiceName(data []byte) string {
 		return ""
 	}
 	serializeId := getSerializeId(flag)
-	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:])
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], false)
 	serviceName := ""
 	if ret != nil {
 		serviceName = ret.serviceName
@@ -157,7 +203,7 @@ func dubboGetMethodName(data []byte) string {
 		return ""
 	}
 	serializeId := getSerializeId(flag)
-	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:])
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], false)
 	methodName := ""
 	if ret != nil {
 		methodName = ret.methodName
@@ -181,12 +227,18 @@ func dubboGetMeta(data []byte) map[string]string {
 		return nil
 	}
 	serializeId := getSerializeId(flag)
-	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:])
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], true)
 	retMap := make(map[string]string)
 	retMap["serviceName"] = ret.serviceName
 	retMap["dubboVersion"] = ret.dubboVersion
 	retMap["methodName"] = ret.methodName
 	retMap["path"] = ret.path
 	retMap["version"] = ret.version
+
+	if ret.attachments != nil {
+		retMap[models.TRACER_ID_KEY] = ret.attachments[models.TRACER_ID_KEY]
+		retMap[models.RPC_ID_KEY] = ret.attachments[models.RPC_ID_KEY]
+	}
+
 	return retMap
 }
