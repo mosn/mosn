@@ -104,7 +104,3 @@
 [[constraint]]
   name = "github.com/tjfoc/gmsm"
   version = "1.2.0"
-
-[[constraint]]
-  name = "github.com/DarrenTai/hessian2"
-  branch = "pojo"

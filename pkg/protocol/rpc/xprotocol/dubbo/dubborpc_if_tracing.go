@@ -20,11 +20,7 @@ package dubbo
 import (
 	"fmt"
 
-	"bufio"
-	"bytes"
 	"github.com/AlexStocks/dubbogo/codec/hessian"
-	hessian2 "github.com/DarrenTai/hessian2"
-	"sofastack.io/sofa-mosn/pkg/protocol/sofarpc/models"
 )
 
 func init() {
@@ -192,14 +188,5 @@ func dubboGetMeta(data []byte) map[string]string {
 	retMap["methodName"] = ret.methodName
 	retMap["path"] = ret.path
 	retMap["version"] = ret.version
-
-	decoder := hessian2.NewHessianCodecBy(bufio.NewReader(bytes.NewReader(data[:])),
-		len(data)-DUBBO_HEADER_LEN, hessian2.PackageRequest)
-	attachments, err := decoder.ReadAttachments()
-	if err == nil {
-		retMap[models.TRACER_ID_KEY] = attachments[models.TRACER_ID_KEY]
-		retMap[models.RPC_ID_KEY] = attachments[models.RPC_ID_KEY]
-	}
-
 	return retMap
 }
