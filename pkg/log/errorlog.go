@@ -122,6 +122,26 @@ func (l *errorLogger) Tracef(format string, args ...interface{}) {
 	}
 }
 
+// Fatal logger cannot be disabled
+func (l *errorLogger) Fatalf(format string, args ...interface{}) {
+	s := l.formatter(FatalPre, format)
+	l.Logger.Fatalf(s, args...)
+}
+
+func (l *errorLogger) Fatal(args ...interface{}) {
+	args = append([]interface{}{
+		l.formatter(FatalPre, ""),
+	}, args...)
+	l.Logger.Fatal(args...)
+}
+
+func (l *errorLogger) Fatalln(args ...interface{}) {
+	args = append([]interface{}{
+		l.formatter(FatalPre, ""),
+	}, args...)
+	l.Logger.Fatalln(args...)
+}
+
 func (l *errorLogger) SetLogLevel(level Level) {
 	l.level = level
 }

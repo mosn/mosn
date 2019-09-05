@@ -274,6 +274,7 @@ func (l *Logger) Fatalf(format string, args ...interface{}) {
 	s := fmt.Sprintf(format, args...)
 	buf := buffer.GetIoBuffer(len(s))
 	buf.WriteString(s)
+	buf.WriteString("\n")
 	buf.WriteTo(l.writer)
 	os.Exit(1)
 }
