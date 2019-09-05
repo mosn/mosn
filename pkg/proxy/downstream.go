@@ -207,7 +207,7 @@ func (s *downStream) cleanStream() {
 	// The process time is not accurate when the stream have some exceptions such as retry,
 	// so we ignore it.
 	// should be fixed later.
-	if atomic.LoadUint32(&s.reuseBuffer) == 1 {
+	if atomic.LoadUint32(&s.reuseBuffer) == 1 && !s.requestInfo.IsHealthCheck() {
 		processTime := requestReceivedNs + (streamDurationNs - responseReceivedNs)
 
 		s.proxy.stats.DownstreamProcessTime.Update(processTime)
@@ -219,12 +219,19 @@ func (s *downStream) cleanStream() {
 
 	// countdown metrics
 	s.proxy.stats.DownstreamRequestActive.Dec(1)
-	s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
-	s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
-
 	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
-	s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
-	s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
+	// todo: Temporary modification, heartbeat not counted
+	if s.requestInfo.IsHealthCheck() {
+		s.proxy.stats.DownstreamRequestTotal.Dec(1)
+		s.proxy.listenerStats.DownstreamRequestTotal.Dec(1)
+	} else {
+		s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
+		s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
+		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
+		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+	}
 
 	// finish tracing
 	s.finishTracing()
