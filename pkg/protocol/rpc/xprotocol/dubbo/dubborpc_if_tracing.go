@@ -152,12 +152,10 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		fmt.Printf("unSerialize: Decode attachments fail, err=%v\n", err)
 		return nil
 	}
-	attachments, ok = field.(map[string]string)
-	if !ok {
-		fmt.Printf("unSerialize: Decode attachments fail, illegal type\n")
-		return nil
+	if v, ok := field.(map[interface{}]interface{}); ok {
+		attachments = ToMapStringString(v)
+		attr.attachments = attachments
 	}
-	attr.attachments = attachments
 
 	return attr
 }
@@ -241,4 +239,16 @@ func dubboGetMeta(data []byte) map[string]string {
 	}
 
 	return retMap
+}
+
+func ToMapStringString(origin map[interface{}]interface{}) map[string]string {
+	dest := make(map[string]string)
+	for k, v := range origin {
+		if kv, ok := k.(string); ok {
+			if vv, ok := v.(string); ok {
+				dest[kv] = vv
+			}
+		}
+	}
+	return dest
 }
