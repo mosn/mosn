@@ -219,17 +219,18 @@ func (s *downStream) cleanStream() {
 
 	// countdown metrics
 	s.proxy.stats.DownstreamRequestActive.Dec(1)
-	s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
-	s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
-
 	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
-	s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
-	s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
 	// todo: Temporary modification, heartbeat not counted
 	if s.requestInfo.IsHealthCheck() {
 		s.proxy.stats.DownstreamRequestTotal.Dec(1)
 		s.proxy.listenerStats.DownstreamRequestTotal.Dec(1)
+	} else {
+		s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
+		s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
+		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
+		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 	}
 
 	// finish tracing
