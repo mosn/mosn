@@ -40,7 +40,6 @@ func TestParseRoller(t *testing.T) {
 		t.Errorf("ParseRoller should be failed")
 	}
 
-
 	praseArgs := "size=100 age=10 keep=10 compress=on"
 	roller, err = ParseRoller(praseArgs)
 	if roller == nil {
@@ -80,7 +79,26 @@ func TestParseRoller(t *testing.T) {
 		t.Errorf("ParseRoller should be failed")
 	}
 
-	if defaultRoller.MaxTime != 12 *60 *60 {
+	if defaultRoller.MaxTime != 12*60*60 {
 		t.Errorf("ParseRoller failed")
 	}
+}
+
+func TestInitDefaultRoller(t *testing.T) {
+	lg, err := GetOrCreateLogger("/tmp/test_roller_init.log", nil)
+	if err != nil {
+		t.Fatal(lg)
+	}
+	if lg.roller.MaxTime != defaultRotateTime {
+		t.Errorf("unexpected default roller, got %d", lg.roller.MaxTime)
+	}
+	InitGlobalRoller("time=1")
+	defer func() {
+		// reset
+		defaultRoller = Roller{MaxTime: defaultRotateTime}
+	}()
+	if lg.roller.MaxTime != 60*60 {
+		t.Errorf("expected roller reset, but not, got: %d", lg.roller.MaxTime)
+	}
+
 }

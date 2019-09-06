@@ -29,7 +29,7 @@ import (
 
 var (
 	// defaultRoller is roller by one day
-	defaultRoller = &Roller{MaxTime: defaultRotateTime}
+	defaultRoller = Roller{MaxTime: defaultRotateTime}
 
 	// lumberjacks maps log filenames to the logger
 	// that is being used to keep them rolled/maintained.
@@ -96,8 +96,9 @@ func (l Roller) GetLogWriter() io.Writer {
 }
 
 // InitDefaultRoller
-func InitGlobalRoller(roller string) (err error) {
-	defaultRoller, err = ParseRoller(roller)
+func InitGlobalRoller(roller string) error {
+	r, err := ParseRoller(roller)
+	defaultRoller = *r
 	return err
 }
 
