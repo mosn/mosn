@@ -86,7 +86,7 @@ func GetOrCreateLogger(output string, roller *Roller) (*Logger, error) {
 	}
 
 	if roller == nil {
-		roller = defaultRoller
+		roller = &defaultRoller
 	}
 
 	lg := &Logger{
