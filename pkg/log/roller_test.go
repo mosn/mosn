@@ -22,6 +22,10 @@ import (
 )
 
 func TestParseRoller(t *testing.T) {
+	defer func() {
+		// reset
+		defaultRoller = Roller{MaxTime: defaultRotateTime}
+	}()
 	errorPraseArgs := "size=100 age=10 keep=10 compress=1"
 	roller, err := ParseRoller(errorPraseArgs)
 	if err == nil {
@@ -85,6 +89,7 @@ func TestParseRoller(t *testing.T) {
 }
 
 func TestInitDefaultRoller(t *testing.T) {
+
 	lg, err := GetOrCreateLogger("/tmp/test_roller_init.log", nil)
 	if err != nil {
 		t.Fatal(lg)

@@ -98,8 +98,11 @@ func (l Roller) GetLogWriter() io.Writer {
 // InitDefaultRoller
 func InitGlobalRoller(roller string) error {
 	r, err := ParseRoller(roller)
+	if err != nil {
+		return err
+	}
 	defaultRoller = *r
-	return err
+	return nil
 }
 
 // DefaultRoller will roll logs by default.
