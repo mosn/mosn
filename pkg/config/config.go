@@ -87,10 +87,15 @@ func (cc *ClusterManagerConfig) UnmarshalJSON(b []byte) error {
 		for _, f := range files {
 			fileName := path.Join(cc.ClusterConfigPath, f.Name())
 			cluster := v2.Cluster{}
-			if err := utils.ReadJsonFile(fileName, &cluster); err != nil && err != utils.ErrIgnore {
-				return err
+			e := utils.ReadJsonFile(fileName, &cluster)
+			switch e {
+			case nil:
+				cc.Clusters = append(cc.Clusters, cluster)
+			case utils.ErrIgnore:
+			// do nothing
+			default:
+				return e
 			}
-			cc.Clusters = append(cc.Clusters, cluster)
 		}
 	}
 	return nil
