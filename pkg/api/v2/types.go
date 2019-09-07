@@ -554,10 +554,15 @@ func (rc *RouterConfiguration) UnmarshalJSON(b []byte) error {
 		for _, f := range files {
 			fileName := path.Join(cfg.RouterConfigPath, f.Name())
 			vh := &VirtualHost{}
-			if err := utils.ReadJsonFile(fileName, vh); err != nil && err != utils.ErrIgnore {
-				return err
+			e := utils.ReadJsonFile(fileName, vh)
+			switch e {
+			case nil:
+				rc.VirtualHosts = append(rc.VirtualHosts, vh)
+			case utils.ErrIgnore:
+				// do nothing
+			default:
+				return e
 			}
-			rc.VirtualHosts = append(rc.VirtualHosts, vh)
 		}
 	}
 	return nil

@@ -720,6 +720,24 @@ func TestRouterConfigDynamicModeParse(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// write ignore error file
+	for _, f := range []struct {
+		fileName string
+		data     []byte
+	}{
+		{
+			fileName: fmt.Sprintf("%s/virtualhost_notjson.file", routerPath),
+			data:     []byte("12345"),
+		},
+		{
+			fileName: fmt.Sprintf("%s/virtualhost_empty.json", routerPath),
+		},
+	} {
+		if err := ioutil.WriteFile(f.fileName, f.data, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
 	// read dynamic mode config
 	routerConfig := `{
 		"router_config_name":"test_router",

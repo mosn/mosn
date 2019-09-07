@@ -75,6 +75,23 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	// write error ignore file
+	for _, f := range []struct {
+		fileName string
+		data     []byte
+	}{
+		{
+			fileName: fmt.Sprintf("%s/notjson.file", clusterPath),
+			data:     []byte("12345"),
+		},
+		{
+			fileName: fmt.Sprintf("%s/empty.json", clusterPath),
+		},
+	} {
+		if err := ioutil.WriteFile(f.fileName, f.data, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
 	// read dynamic mode config
 	mosnConfig := `{
 		"cluster_manager": {
