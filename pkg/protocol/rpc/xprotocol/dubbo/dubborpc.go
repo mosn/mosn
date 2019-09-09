@@ -25,10 +25,15 @@ import (
 	"strconv"
 
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"sofastack.io/sofa-mosn/pkg/types"
+)
+
+const (
+	XPROTOCOL_PLUGIN_DUBBO = "dubbo"
 )
 
 func init() {
-	xprotocol.Register("dubbo", &pluginDubboFactory{})
+	xprotocol.Register(XPROTOCOL_PLUGIN_DUBBO, &pluginDubboFactory{})
 }
 
 type pluginDubboFactory struct{}
@@ -94,7 +99,7 @@ func (d *rpcDubbo) SplitFrame(data []byte) [][]byte {
 	for true {
 		frameLen := getDubboLen(data[start:])
 		if frameLen > 0 && dataLen >= frameLen {
-			// there is one valid dubbo request
+			// there is one valid xprotocol request
 			frames = append(frames, data[start:(start+frameLen)])
 			start += frameLen
 			dataLen -= frameLen
@@ -167,6 +172,10 @@ func (d *rpcDubbo) SetStreamID(data []byte, streamID string) []byte {
 		data[start+i] = reqIDStr[i]
 	}
 	return data
+}
+
+func (d *rpcDubbo) BuildHeartbeatResp(headers types.HeaderMap) []byte {
+	return nil
 }
 
 type serviceNameFuncModel func(data []byte) string

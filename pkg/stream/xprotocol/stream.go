@@ -26,6 +26,7 @@ import (
 
 	networkbuffer "sofastack.io/sofa-mosn/pkg/buffer"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/filter"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
@@ -112,10 +113,10 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		activeStream:                        newStreamMap(ctx),
 		streamConnectionEventListener:       clientCallbacks,
 		serverStreamConnectionEventListener: serverCallbacks,
-		codec:                               codec,
-		protocol:                            protocol.Xprotocol,
-		subProtocol:                         subProtocolName,
-		contextManager:                      contextManager,
+		codec:          codec,
+		protocol:       protocol.Xprotocol,
+		subProtocol:    subProtocolName,
+		contextManager: contextManager,
 	}
 }
 
@@ -302,6 +303,14 @@ func (s *stream) BufferLimit() uint32 {
 // types.StreamEncoder
 func (s *stream) AppendHeaders(context context.Context, headers types.HeaderMap, endStream bool) error {
 	log.DefaultLogger.Tracef("EncodeHeaders,request id = %s, direction = %d", s.streamID, s.direction)
+	// if header is heartbeat inject , build health response
+	if protocol, ok := headers.Get(filter.X_PROTOCOL_HEARTBEAT_HIJACT); ok {
+		if protocol != string(s.connection.protocol) {
+			log.DefaultLogger.Debugf("EncodeHeaders,request id = %s, direction = %d,send hiJect wrong , protocol not match: codec.protocol = %v , hijact = %v",
+				s.streamID, s.direction, s.connection.protocol, protocol)
+		}
+		s.encodedData = networkbuffer.NewIoBufferBytes(s.connection.codec.BuildHeartbeatResp(headers))
+	}
 	if endStream {
 		s.endStream()
 	}
