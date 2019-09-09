@@ -245,9 +245,6 @@ func (m *Mosn) Start() {
 	// Start XDS if configured
 	m.xdsClient = &xds.Client{}
 	m.xdsClient.Start(m.config)
-	// TODO: remove it
-	//parse service registry info
-	config.ParseServiceRegistry(m.config.ServiceRegistry)
 
 	// beforestart starts transfer connection and non-proxy listeners
 	m.beforeStart()
@@ -258,6 +255,9 @@ func (m *Mosn) Start() {
 			srv.Start()
 		}, nil)
 	}
+	// TODO: remove it
+	//parse service registry info
+	config.ParseServiceRegistry(m.config.ServiceRegistry)
 }
 
 // Close mosn's server
