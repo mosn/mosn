@@ -20,6 +20,7 @@ package healthcheck
 import (
 	"runtime/debug"
 	"sync/atomic"
+	"time"
 
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -59,6 +60,8 @@ func newChecker(s types.HealthCheckSession, h types.Host, hc *healthChecker) *se
 	return c
 }
 
+var firstInterval = time.Second
+
 func (c *sessionChecker) Start() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -68,8 +71,7 @@ func (c *sessionChecker) Start() {
 		c.checkTimer.Stop()
 		c.checkTimeout.Stop()
 	}()
-	interval := c.HealthChecker.getCheckInterval()
-	c.checkTimer = utils.NewTimer(interval, c.OnCheck)
+	c.checkTimer = utils.NewTimer(firstInterval, c.OnCheck)
 	for {
 		select {
 		case <-c.stop:
