@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // CodecFactory subprotocol plugin factory
@@ -50,6 +51,7 @@ type Multiplexing interface {
 	SplitFrame(data []byte) [][]byte
 	GetStreamID(data []byte) string
 	SetStreamID(data []byte, streamID string) []byte
+	BuildHeartbeatResp(headers types.HeaderMap) []byte
 }
 
 // Tracing base on Multiplexing

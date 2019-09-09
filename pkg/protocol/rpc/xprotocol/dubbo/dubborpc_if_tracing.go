@@ -77,7 +77,7 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 	var str string
 	var attachments map[string]string
 
-	// dubbo version + path + version + method
+	// xprotocol version + path + version + method
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -211,6 +211,7 @@ func dubboGetMethodName(data []byte) string {
 
 func dubboGetMeta(data []byte) map[string]string {
 	//return "dubboMeta"
+	retMap := make(map[string]string)
 	rslt, bodyLen := isValidDubboData(data)
 	if rslt == false || bodyLen <= 0 {
 		return nil
@@ -219,14 +220,14 @@ func dubboGetMeta(data []byte) map[string]string {
 	flag := data[DUBBO_FLAG_IDX]
 	if getEventPing(flag) {
 		// heart-beat frame, there is not method-name
-		return nil
+		retMap["x-protocol-heartbeat"] = XPROTOCOL_PLUGIN_DUBBO
+		return retMap
 	}
 	if isReqFrame(flag) != true {
 		return nil
 	}
 	serializeId := getSerializeId(flag)
 	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], true)
-	retMap := make(map[string]string)
 	retMap["serviceName"] = ret.serviceName
 	retMap["dubboVersion"] = ret.dubboVersion
 	retMap["methodName"] = ret.methodName
