@@ -348,7 +348,9 @@ func (s *stream) endStream() {
 	log.DefaultLogger.Tracef("xprotocol stream end stream invoked , request id = %s, direction = %d", s.streamID, s.direction)
 	if stream, ok := s.connection.activeStream.Get(s.streamID); ok {
 		log.DefaultLogger.Tracef("xprotocol stream end stream write encodedata = %v", s.encodedData)
-		stream.connection.connection.Write(s.encodedData)
+		if s.encodedData != nil {
+			stream.connection.connection.Write(s.encodedData)
+		}
 	} else {
 		log.DefaultLogger.Errorf("No stream %s to end", s.streamID)
 	}
