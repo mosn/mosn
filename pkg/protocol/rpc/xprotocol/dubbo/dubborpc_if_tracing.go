@@ -22,7 +22,6 @@ import (
 
 	"github.com/AlexStocks/dubbogo/codec/hessian"
 	"regexp"
-	"sofastack.io/sofa-mosn/pkg/protocol/sofarpc/models"
 )
 
 // regular
@@ -235,8 +234,9 @@ func dubboGetMeta(data []byte) map[string]string {
 	retMap["version"] = ret.version
 
 	if ret.attachments != nil {
-		retMap[models.TRACER_ID_KEY] = ret.attachments[models.TRACER_ID_KEY]
-		retMap[models.RPC_ID_KEY] = ret.attachments[models.RPC_ID_KEY]
+		for k, v := range ret.attachments {
+			retMap[k] = v
+		}
 	}
 
 	return retMap
