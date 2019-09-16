@@ -71,10 +71,9 @@ func (b *IoBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
+func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, e error) {
 	var (
 		m               int
-		e               error
 		zeroTime        time.Time
 		conn            net.Conn
 		loop, ok, first = true, true, true
@@ -131,7 +130,7 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 		}
 
 		if e != nil {
-			if te, ok := err.(net.Error); ok && te.Timeout() && !first {
+			if te, ok := e.(net.Error); ok && te.Timeout() && !first {
 				return n, nil
 			}
 			return n, e
