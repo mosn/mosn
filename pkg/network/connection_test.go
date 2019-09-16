@@ -127,3 +127,29 @@ func TestClientConectionRemoteaddrIsNil(t *testing.T) {
 		return
 	}
 }
+
+
+type zeroReadConn struct {
+	net.Conn
+}
+
+func (r *zeroReadConn) Read(b []byte) (n int, err error) {
+	return 0, nil
+}
+
+func (r *zeroReadConn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func TestIoBufferZeroRead(t *testing.T) {
+	conn := &connection{}
+	conn.rawConnection = &zeroReadConn{}
+	now := time.Now()
+	err := conn.doRead()
+	diff := time.Since(now)
+	if err != nil || int(diff) < int(2*time.Second) || int(diff) > int(4*time.Second) {
+		t.Errorf("test connection Zero Read error")
+	}
+
+	t.Logf("read wait time %v", diff)
+}
