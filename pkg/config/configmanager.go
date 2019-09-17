@@ -43,13 +43,17 @@ import (
 func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []string) {
 	// reset service info
 	config.ServiceRegistry.ServiceAppInfo = v2.ApplicationInfo{
-		AntShareCloud: appInfo.AntShareCloud,
-		DataCenter:    appInfo.DataCenter,
-		AppName:       appInfo.AppName,
-		DeployMode:    appInfo.DeployMode,
-		MasterSystem:  appInfo.MasterSystem,
-		CloudName:     appInfo.CloudName,
-		HostMachine:   appInfo.HostMachine,
+		AntShareCloud:    appInfo.AntShareCloud,
+		DataCenter:       appInfo.DataCenter,
+		AppName:          appInfo.AppName,
+		DeployMode:       appInfo.DeployMode,
+		MasterSystem:     appInfo.MasterSystem,
+		CloudName:        appInfo.CloudName,
+		HostMachine:      appInfo.HostMachine,
+		InstanceId:       appInfo.InstanceId,
+		RegistryEndpoint: appInfo.RegistryEndpoint,
+		AccessKey:        appInfo.AccessKey,
+		SecretKey:        appInfo.SecretKey,
 	}
 
 	// reset servicePubInfo
@@ -329,7 +333,7 @@ func SetMqConsumers(key string, consumers []string) {
 
 // RmMqConsumers remove topic consumer list
 func RmMqConsumers(key string) {
-	if config.ServiceRegistry.MqConsumers== nil {
+	if config.ServiceRegistry.MqConsumers == nil {
 		config.ServiceRegistry.MqConsumers = make(map[string][]string)
 		return
 	}
