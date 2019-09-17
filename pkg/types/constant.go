@@ -34,6 +34,7 @@ const (
 	HeaderRPCService           = "x-mosn-rpc-service"
 	HeaderRPCMethod            = "x-mosn-rpc-method"
 	HeaderXprotocolSubProtocol = "x-mosn-xprotocol-sub-protocol"
+	HeaderXprotocolStreamId    = "x-mosn-xprotocol-stream-id"
 )
 
 // Error messages
