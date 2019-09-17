@@ -287,7 +287,7 @@ func (m *Mosn) Close() {
 // step1. NewMosn
 // step2. Start Mosn
 func Start(c *config.MOSNConfig) {
-	log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
+	log.DefaultLogger.Infof("[mosn] [start] start by config : %v", c)
 	Mosn := NewMosn(c)
 	Mosn.Start()
 	Mosn.wg.Wait()
