@@ -150,6 +150,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 
 		// get stream id
 		streamID := conn.codec.GetStreamID(request)
+		headers[types.HeaderXprotocolStreamId] = streamID
 		if conn.serverStreamConnectionEventListener != nil {
 			log.DefaultLogger.Tracef("Xprotocol get streamId %v", streamID)
 
