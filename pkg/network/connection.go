@@ -449,8 +449,8 @@ func (c *connection) doRead() (err error) {
 	}
 
 	//todo: ReadOnce maybe always return (0, nil) and causes dead loop (hack)
-	if bytesRead == 0 && c.readBuffer.Len() == 0 {
-		log.DefaultLogger.Errorf("[network] ReadOnce maybe always return (0, nil) and causes dead loop")
+	if bytesRead == 0 && c.readBuffer.Len() == 0 && err == nil {
+		log.DefaultLogger.Errorf("[network] ReadOnce maybe always return (0, nil) and causes dead loop, id: %d", c.id)
 		time.Sleep(3 * time.Second)
 		return
 	}
