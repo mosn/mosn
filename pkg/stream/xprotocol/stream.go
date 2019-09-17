@@ -151,19 +151,18 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		// get stream id
 		streamID := conn.codec.GetStreamID(request)
 		headers[types.HeaderXprotocolStreamId] = streamID
-		if conn.serverStreamConnectionEventListener != nil {
-			log.DefaultLogger.Tracef("Xprotocol get streamId %v", streamID)
+		log.DefaultLogger.Tracef("Xprotocol get streamId %v", streamID)
 
-			// request route
-			requestRouteCodec, ok := conn.codec.(xprotocol.RequestRouting)
-			if ok {
-				routeHeaders := requestRouteCodec.GetMetas(request)
-				for k, v := range routeHeaders {
-					headers[k] = v
-				}
-				log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v", headers)
+		// request route
+		requestRouteCodec, ok := conn.codec.(xprotocol.RequestRouting)
+		if ok {
+			routeHeaders := requestRouteCodec.GetMetas(request)
+			for k, v := range routeHeaders {
+				headers[k] = v
 			}
+			log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v", headers)
 		}
+
 		// tracing
 		tracingCodec, ok := conn.codec.(xprotocol.Tracing)
 		var span types.Span

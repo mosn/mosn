@@ -19,6 +19,7 @@ package dubbo
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/AlexStocks/dubbogo/codec/hessian"
 	"regexp"
@@ -30,6 +31,9 @@ const (
 	CLASS_DESC       = "(?:L" + JAVA_IDENT_REGEX + "(?:\\/" + JAVA_IDENT_REGEX + ")*;)"
 	ARRAY_DESC       = "(?:\\[+(?:(?:[VZBCDFIJS])|" + CLASS_DESC + "))"
 	DESC_REGEX       = "(?:(?:[VZBCDFIJS])|" + CLASS_DESC + "|" + ARRAY_DESC + ")"
+
+	RESPONSE_WITH_EXCEPTION                  int32 = 0
+	RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS int32 = 3
 )
 
 // DescRegex ...
@@ -223,7 +227,25 @@ func dubboGetMeta(data []byte) map[string]string {
 		return retMap
 	}
 	if isReqFrame(flag) != true {
-		return nil
+		status := data[DUBBO_STATUS_IDX]
+		retMap["x-mosn-xprotocol-resp-status"] = strconv.Itoa(int(status))
+
+		// TODO: support version under v2.7.1
+		decoder := hessian.NewDecoder(data[DUBBO_HEADER_LEN:])
+		field, err := decoder.Decode()
+		if err != nil {
+			fmt.Printf("Decode resWithException fail, err=%v\n", err)
+		}
+		resWithException, ok := field.(int32)
+		if !ok {
+			fmt.Printf("Decode resWithException fail, illegal type\n")
+		} else {
+			if resWithException == RESPONSE_WITH_EXCEPTION || resWithException == RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS {
+				retMap["x-mosn-xprotocol-resp-is-exception"] = "true"
+			}
+		}
+
+		return retMap
 	}
 	serializeId := getSerializeId(flag)
 	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], true)
