@@ -41,6 +41,13 @@ func (m *sofaMapping) MappingHeaderStatusCode(headers types.HeaderMap) (int, err
 	// TODO: more accurate mapping
 	switch code {
 	case RESPONSE_STATUS_SUCCESS:
+		resp, ok := headers.(*BoltResponse)
+		if ok && resp.ResponseHeader != nil {
+			respErr := resp.ResponseHeader[HeaderRespError]
+			if respErr == "true" {
+				return http.StatusInternalServerError, nil
+			}
+		}
 		return http.StatusOK, nil
 	case RESPONSE_STATUS_SERVER_THREADPOOL_BUSY:
 		return http.StatusServiceUnavailable, nil
