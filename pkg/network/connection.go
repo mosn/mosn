@@ -434,7 +434,7 @@ func (c *connection) doRead() (err error) {
 
 	if err != nil {
 		if atomic.LoadUint32(&c.closed) == 1 {
-			return nil
+			return err
 		}
 		if te, ok := err.(net.Error); ok && te.Timeout() {
 			for _, cb := range c.connCallbacks {
@@ -449,10 +449,9 @@ func (c *connection) doRead() (err error) {
 	}
 
 	//todo: ReadOnce maybe always return (0, nil) and causes dead loop (hack)
-	if bytesRead == 0 && c.readBuffer.Len() == 0 && err == nil {
+	if bytesRead == 0 && err == nil {
+		err = io.EOF
 		log.DefaultLogger.Errorf("[network] ReadOnce maybe always return (0, nil) and causes dead loop, id: %d", c.id)
-		time.Sleep(3 * time.Second)
-		return
 	}
 
 	for _, cb := range c.bytesReadCallbacks {
