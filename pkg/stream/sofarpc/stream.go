@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"time"
+
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -34,7 +36,6 @@ import (
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"time"
 )
 
 // StreamDirection represent the stream's direction
@@ -276,8 +277,8 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 	stream.direction = ServerStream
 	stream.sc = conn
 
-	if log.Proxy.GetLogLevel() >= log.INFO {
-		log.Proxy.Infof(stream.ctx, "[stream] [sofarpc] new stream detect, requestId = %v", stream.id)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(stream.ctx, "[stream] [sofarpc] new stream detect, requestId = %v", stream.id)
 	}
 
 	if cmd.CommandType() == sofarpc.REQUEST_ONEWAY {
@@ -302,8 +303,8 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		// transmit buffer ctx
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
-		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(stream.ctx, "[stream] [sofarpc] receive response, requestId = %v", stream.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(stream.ctx, "[stream] [sofarpc] receive response, requestId = %v", stream.id)
 		}
 		return stream
 	}
@@ -445,9 +446,8 @@ func (s *stream) endStream() {
 			err = s.sc.conn.Write(buf)
 		}
 
-		// log
-		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(s.ctx, "[stream] [sofarpc] send %s, requestId = %v", directionText[s.direction], s.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.ctx, "[stream] [sofarpc] send %s, requestId = %v", directionText[s.direction], s.id)
 		}
 
 		if err != nil {

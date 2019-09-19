@@ -18,36 +18,41 @@
 package utils
 
 import (
-	"fmt"
-	"os"
-	"runtime/debug"
+	"strconv"
+	"sync/atomic"
+	"time"
 )
 
-var debugIgnoreStdout = false
+var (
+	// lastTime is used to cache time
+	lastTime atomic.Value
+)
 
-// GoWithRecover wraps a `go func()` with recover()
-func GoWithRecover(handler func(), recoverHandler func(r interface{})) {
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				// TODO: log
-				if !debugIgnoreStdout {
-					fmt.Fprintf(os.Stderr, "%s goroutine panic: %v\n%s\n", CacheTime(), r, string(debug.Stack()))
-				}
-				if recoverHandler != nil {
-					go func() {
-						defer func() {
-							if p := recover(); p != nil {
-								if !debugIgnoreStdout {
-									fmt.Fprintf(os.Stderr, "recover goroutine panic:%v\n%s\n", p, string(debug.Stack()))
-								}
-							}
-						}()
-						recoverHandler(r)
-					}()
-				}
-			}
-		}()
-		handler()
-	}()
+// timeCache is used to reduce format
+type timeCache struct {
+	t int64
+	s string
+}
+
+// CacheTime returns a time cache in seconds.
+// we use a cache to reduce the format
+func CacheTime() string {
+	var s string
+	t := time.Now()
+	nano := t.UnixNano()
+	now := nano / 1e9
+	value := lastTime.Load()
+	if value != nil {
+		last := value.(*timeCache)
+		if now <= last.t {
+			s = last.s
+		}
+	}
+	if s == "" {
+		s = t.Format("2006-01-02 15:04:05")
+		lastTime.Store(&timeCache{now, s})
+	}
+	mi := nano % 1e9 / 1e6
+	s = s + "," + strconv.Itoa(int(mi))
+	return s
 }
