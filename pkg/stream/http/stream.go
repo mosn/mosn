@@ -128,10 +128,17 @@ type streamConnection struct {
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
+func (sc *streamConnection) Dispatch(buffer types.IoBuffer) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("[stream] [http] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
+				sc.conn.ID(), sc.conn.LocalAddr(), sc.conn.RemoteAddr(), r)
+		}
+	}()
+
 	for buffer.Len() > 0 {
-		conn.bufChan <- buffer
-		<-conn.bufChan
+		sc.bufChan <- buffer
+		<-sc.bufChan
 	}
 }
 
