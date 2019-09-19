@@ -19,6 +19,7 @@ package network
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -144,12 +145,8 @@ func (r *zeroReadConn) SetReadDeadline(t time.Time) error {
 func TestIoBufferZeroRead(t *testing.T) {
 	conn := &connection{}
 	conn.rawConnection = &zeroReadConn{}
-	now := time.Now()
 	err := conn.doRead()
-	diff := time.Since(now)
-	if err != nil || int(diff) < int(2*time.Second) || int(diff) > int(4*time.Second) {
-		t.Errorf("test connection Zero Read error")
+	if err != io.EOF {
+		t.Errorf("error should be io.EOF")
 	}
-
-	t.Logf("read wait time %v", diff)
 }
