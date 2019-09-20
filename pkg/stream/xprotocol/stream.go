@@ -30,6 +30,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
 	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/trace"
@@ -156,6 +157,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		headers[types.HeaderXprotocolStreamId] = streamID
 		log.DefaultLogger.Tracef("Xprotocol get streamId %v", streamID)
 
+		isHearbeat := false
 		// request route
 		requestRouteCodec, ok := conn.codec.(xprotocol.RequestRouting)
 		if ok {
@@ -164,6 +166,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 				headers[k] = v
 			}
 			log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v", headers)
+			_, isHearbeat = headers[types.HeaderXprotocolHeartbeat]
 		}
 
 		// tracing
@@ -189,7 +192,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		log.DefaultLogger.Tracef("after Dispatch on decode header and data")
 		// append sub protocol header
 		headers[types.HeaderXprotocolSubProtocol] = string(conn.subProtocol)
-		conn.OnReceive(ctx, streamID, protocol.CommonHeader(headers), reqBuf, span)
+		conn.OnReceive(ctx, streamID, protocol.CommonHeader(headers), reqBuf, span, isHearbeat)
 		buffer.Drain(requestLen)
 	}
 }
@@ -233,11 +236,17 @@ func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder typ
 	return &stream
 }
 
-func (conn *streamConnection) OnReceive(ctx context.Context, streamID string, headers types.HeaderMap, data types.IoBuffer, span types.Span) types.FilterStatus {
+func (conn *streamConnection) OnReceive(ctx context.Context, streamID string, headers types.HeaderMap, data types.IoBuffer, span types.Span, isHearbeat bool) types.FilterStatus {
 	log.DefaultLogger.Tracef("xprotocol stream on decode header")
 	if conn.serverStreamConnectionEventListener != nil {
 		log.DefaultLogger.Tracef("xprotocol stream on new stream detected invoked")
 		conn.onNewStreamDetected(ctx, streamID, headers, span)
+	} else {
+		// TODO:
+		if isHearbeat && conn.subProtocol == dubbo.XPROTOCOL_PLUGIN_DUBBO {
+			hbBuffer := networkbuffer.NewIoBufferBytes(conn.codec.BuildHeartbeatResp(headers))
+			conn.connection.Write(hbBuffer)
+		}
 	}
 	if stream, ok := conn.activeStream.Get(streamID); ok {
 		log.DefaultLogger.Tracef("xprotocol stream on decode header and data")
