@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"encoding/hex"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -175,7 +176,14 @@ func (d *rpcDubbo) SetStreamID(data []byte, streamID string) []byte {
 }
 
 func (d *rpcDubbo) BuildHeartbeatResp(headers types.HeaderMap) []byte {
-	return nil
+	requestId, ok := headers.Get(types.HeaderXprotocolStreamId)
+	if !ok {
+		return nil
+	}
+
+	strEchoBytes, _ := hex.DecodeString("dabb22140000000000000001000000024e4e")
+	// replace dubboId
+	return d.SetStreamID(strEchoBytes, requestId)
 }
 
 type serviceNameFuncModel func(data []byte) string
