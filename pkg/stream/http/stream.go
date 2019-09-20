@@ -230,8 +230,8 @@ func (conn *clientStreamConnection) serve() {
 			return
 		}
 
-		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
 		}
 
 		// 2. response processing
@@ -402,8 +402,8 @@ func (conn *serverStreamConnection) serve() {
 		}
 		s.stream.ctx = s.connection.contextManager.InjectTrace(ctx, span)
 
-		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(s.stream.ctx, "[stream] [http] new stream detect, requestId = %v", s.stream.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] new stream detect, requestId = %v", s.stream.id)
 		}
 
 		s.receiver = conn.serverStreamConnListener.NewStreamDetect(s.stream.ctx, s, span)
@@ -524,8 +524,8 @@ func (s *clientStream) endStream() {
 		return
 	}
 
-	if log.Proxy.GetLogLevel() >= log.INFO {
-		log.Proxy.Infof(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
 	}
 	s.connection.requestSent <- true
 }
@@ -685,8 +685,8 @@ func (s *serverStream) doSend() {
 	if _, err := s.response.WriteTo(s.connection); err != nil {
 		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send server response error: %+v", err)
 	} else {
-		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(s.stream.ctx, "[stream] [http] send server response, requestId = %v", s.stream.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send server response, requestId = %v", s.stream.id)
 		}
 	}
 }

@@ -148,9 +148,9 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	proxy.listenerStats.DownstreamRequestActive.Inc(1)
 
 	// info message for new downstream
-	if log.Proxy.GetLogLevel() >= log.INFO {
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		requestId := mosnctx.Get(stream.context, types.ContextKeyStreamID)
-		log.Proxy.Infof(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestId, stream.oneway)
+		log.Proxy.Debugf(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestId, stream.oneway)
 	}
 	return stream
 }
