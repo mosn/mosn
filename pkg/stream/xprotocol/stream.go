@@ -153,6 +153,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 		headers[types.HeaderXprotocolStreamId] = streamID
 		log.DefaultLogger.Tracef("Xprotocol get streamId %v", streamID)
 
+		isHearbeat := false
 		// request route
 		requestRouteCodec, ok := conn.codec.(xprotocol.RequestRouting)
 		if ok {
@@ -161,6 +162,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 				headers[k] = v
 			}
 			log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v", headers)
+			_, isHearbeat = headers[types.HeaderXprotocolHeartbeat]
 		}
 
 		// tracing
@@ -173,7 +175,7 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 			headers[types.HeaderRPCMethod] = methodName
 			log.DefaultLogger.Tracef("xprotocol handle tracing ,serviceName = %v , methodName = %v", serviceName, methodName)
 
-			if trace.IsEnabled() {
+			if trace.IsEnabled() && !isHearbeat {
 				// try build trace span
 				tracer := trace.Tracer(protocol.Xprotocol)
 				if tracer != nil {
