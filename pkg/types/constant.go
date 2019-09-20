@@ -37,6 +37,7 @@ const (
 	HeaderXprotocolStreamId        = "x-mosn-xprotocol-stream-id"
 	HeaderXprotocolRespStatus      = "x-mosn-xprotocol-resp-status"
 	HeaderXprotocolRespIsException = "x-mosn-xprotocol-resp-is-exception"
+	HeaderXprotocolHeartbeat       = "x-protocol-heartbeat"
 )
 
 // Error messages
