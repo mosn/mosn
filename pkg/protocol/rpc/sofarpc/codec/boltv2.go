@@ -37,11 +37,12 @@ var (
 	BoltCodecV2 = &boltCodecV2{}
 )
 
+// TODO: do not support bolt v2
 func init() {
-	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2, BoltCodecV2)
-	sofarpc.RegisterResponseBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2)
+	//	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2, BoltCodecV2)
+	//	sofarpc.RegisterResponseBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2)
 	// the heartbeat processing is same with boltV1
-	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodec)
+	//	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodec)
 }
 
 // ~~ types.Encoder
@@ -319,6 +320,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						content = bytesData[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
+					data.Drain(read)
 				} else {
 					// not enough data
 					if log.Proxy.GetLogLevel() >= log.DEBUG {
