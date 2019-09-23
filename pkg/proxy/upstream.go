@@ -152,6 +152,8 @@ func (r *upstreamRequest) receiveTrailers() {
 }
 
 func (r *upstreamRequest) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
+	log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] OnDecodeError error: %+v", err)
+
 	r.OnResetStream(types.StreamLocalReset)
 }
 
@@ -226,7 +228,9 @@ func (r *upstreamRequest) appendTrailers() {
 	if r.downStream.processDone() {
 		return
 	}
-	log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append trailers:%+v", r.downStream.downstreamReqTrailers)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append trailers:%+v", r.downStream.downstreamReqTrailers)
+	}
 	trailers := r.downStream.downstreamReqTrailers
 	r.sendComplete = true
 	r.trailerSent = true
@@ -254,6 +258,8 @@ func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderM
 // types.PoolEventListener
 func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.Host) {
 	var resetReason types.StreamResetReason
+
+	log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] OnFailure host:%s, reason:%v", host.AddressString(), reason)
 
 	switch reason {
 	case types.Overflow:

@@ -1009,8 +1009,14 @@ func (cc *clientConnection) Connect() (err error) {
 			}
 		}
 
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr, event, err)
+		if err == nil {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr, event, err)
+			}
+		} else {
+			if log.DefaultLogger.GetLogLevel() >= log.ERROR {
+				log.DefaultLogger.Errorf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr, event, err)
+			}
 		}
 
 		for _, cccb := range cc.connCallbacks {

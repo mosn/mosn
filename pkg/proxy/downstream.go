@@ -757,7 +757,9 @@ func (s *downStream) onUpstreamRequestSent() {
 
 		// setup global timeout timer
 		if s.timeout.GlobalTimeout > 0 {
-			log.Proxy.Debugf(s.context, "[proxy] [downstream] start a request timeout timer")
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] start a request timeout timer")
+			}
 			if s.responseTimer != nil {
 				s.responseTimer.Stop()
 			}
@@ -840,6 +842,9 @@ func (s *downStream) onPerReqTimeout() {
 
 		if s.upstreamRequest.host != nil {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
+
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] onPerReqTimeout，host: %s, time: %s",
+				s.upstreamRequest.host.AddressString(), s.timeout.TryTimeout.String())
 		}
 
 		s.upstreamRequest.resetStream()
@@ -1350,13 +1355,13 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	if atomic.LoadUint32(&s.upstreamReset) == 1 {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] processError=upstreamReset, proxyId: %d", s.ID)
+		log.Proxy.Infof(s.context, "[proxy] [downstream] processError=upstreamReset, proxyId: %d, reason: %+v", s.ID, s.resetReason)
 		s.onUpstreamReset(s.resetReason)
 		err = types.ErrExit
 	}
 
 	if atomic.LoadUint32(&s.downstreamReset) == 1 {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] processError=downstreamReset proxyId: %d", s.ID)
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] processError=downstreamReset proxyId: %d, reason: %+v", s.ID, s.resetReason)
 		s.ResetStream(s.resetReason)
 		err = types.ErrExit
 		return
