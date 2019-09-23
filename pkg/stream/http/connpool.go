@@ -109,8 +109,9 @@ func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types
 	n := len(p.availableClients)
 	// no available client
 	if n == 0 {
+		// max conns is 0 means no limit
 		maxConns := p.host.ClusterInfo().ResourceManager().Connections().Max()
-		if p.totalClientCount < maxConns {
+		if maxConns == 0 || p.totalClientCount < maxConns {
 			ac, reason := newActiveClient(ctx, p)
 			if ac != nil && reason == "" {
 				p.totalClientCount++
