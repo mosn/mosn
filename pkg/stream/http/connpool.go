@@ -111,8 +111,11 @@ func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types
 	if n == 0 {
 		maxConns := p.host.ClusterInfo().ResourceManager().Connections().Max()
 		if p.totalClientCount < maxConns {
-			p.totalClientCount++
-			return newActiveClient(ctx, p)
+			ac, reason := newActiveClient(ctx, p)
+			if ac != nil && reason == "" {
+				p.totalClientCount++
+			}
+			return ac, reason
 		} else {
 			p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 			p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
