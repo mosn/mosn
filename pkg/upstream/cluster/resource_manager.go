@@ -27,9 +27,9 @@ import (
 // default value is zero
 const (
 	DefaultMaxConnections     uint64 = 0
-	DefaultMaxPendingRequests        = 0
-	DefaultMaxRequests               = 0
-	DefaultMaxRetries                = 0
+	DefaultMaxPendingRequests uint64 = 0
+	DefaultMaxRequests        uint64 = 0
+	DefaultMaxRetries         uint64 = 0
 )
 
 // ResourceManager
