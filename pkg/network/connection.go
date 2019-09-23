@@ -526,8 +526,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
 		}
 
 	wait:
-		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
@@ -776,11 +776,10 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	// wait for io loops exit, ensure single thread operate streams on the connection
-	if c.internalLoopStarted {
-		// because close function must be called by one io loop thread, notify another loop here
-		close(c.internalStopChan)
-		close(c.writeBufferChan)
-	} else if c.eventLoop != nil {
+	// because close function must be called by one io loop thread, notify another loop here
+	close(c.internalStopChan)
+	close(c.writeBufferChan)
+	if c.eventLoop != nil {
 		// unregister events while connection close
 		c.eventLoop.unregister(c.id)
 		// close copied fd
