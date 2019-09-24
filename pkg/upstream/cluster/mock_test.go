@@ -138,7 +138,10 @@ type mockLbContext struct {
 }
 
 func newMockLbContext(m map[string]string) types.LoadBalancerContext {
-	mmc := router.NewMetadataMatchCriteriaImpl(m)
+	var mmc types.MetadataMatchCriteria
+	if m != nil {
+		mmc = router.NewMetadataMatchCriteriaImpl(m)
+	}
 	return &mockLbContext{
 		mmc: mmc,
 	}
