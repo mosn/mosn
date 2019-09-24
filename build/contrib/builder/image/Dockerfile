@@ -1,4 +1,4 @@
-FROM centos:centos6
+FROM centos:centos7
 MAINTAINER  xiaodong.dxd@alibaba-inc.com
 
 ENV TMP_FOLDER      /tmp
@@ -19,16 +19,16 @@ RUN echo -e "sleep 10;/bin/touch /var/spool/cron/a;/bin/rm -f /var/spool/cron/a;
 
 COPY ./etc/script/entrypoint.sh     /usr/local/bin/entrypoint.sh
 
-# supervisor
-RUN easy_install supervisor==3.4.0
-
-# supervisor-stdout
+# pip
 WORKDIR $TMP_FOLDER
-COPY ./etc/libs/pip/pip-1.5.5.tar.gz ./pip-1.5.5.tar.gz
-RUN tar zvxf pip-1.5.5.tar.gz
-WORKDIR $TMP_FOLDER/pip-1.5.5
+RUN wget https://mirrors.aliyun.com/pypi/packages/69/81/52b68d0a4de760a2f1979b0931ba7889202f302072cc7a0d614211bc7579/pip-18.0.tar.gz#sha256=a0e11645ee37c90b40c46d607070c4fd583e2cd46231b1c06e389c5e814eed76
+RUN tar zvxf pip-18.0.tar.gz
+WORKDIR $TMP_FOLDER/pip-18.0
 RUN python setup.py install
-RUN pip install supervisor-stdout
+
+# supervisor
+RUN pip install supervisor -i https://mirrors.aliyun.com/pypi/simple
+RUN pip install supervisor-stdout -i https://mirrors.aliyun.com/pypi/simple
 
 RUN echo "export MOSN_PREFIX=/home/admin/mosn" >> /etc/bashrc;
 RUN echo "export PATH=$PATH" >> /etc/bashrc
