@@ -19,7 +19,6 @@ package sofarpc
 
 import (
 	"context"
-	"net"
 	"sync"
 
 	"errors"
@@ -141,6 +140,16 @@ func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 		if cmd == nil && err == nil {
 			break
 		}
+		if err != nil {
+			var data []byte
+			if buf != nil {
+				data = buf.Bytes()
+				if len(data) > 50 {
+					data = data[:50]
+				}
+			}
+			log.Proxy.Errorf(conn.ctx, "[stream] [sofarpc] conn %d, %v decode error: %v, buf data: %v", conn.conn.ID(), conn.conn.RemoteAddr(), err, data)
+		}
 
 		// Do handle staff. Error would also be passed to this function.
 		conn.handleCommand(ctx, cmd, err)
@@ -226,10 +235,7 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
-		var addr net.Addr
-		if conn.conn != nil {
-			addr = conn.conn.RemoteAddr()
-		}
+		addr := conn.conn.RemoteAddr()
 		log.Proxy.Alertf(conn.ctx, types.ErrorKeyCodec, "error occurs while proceeding codec logic: %v. close connection, remote addr: %v", err, addr)
 		//protocol decode error, close the connection directly
 		conn.conn.Close(types.NoFlush, types.LocalClose)
