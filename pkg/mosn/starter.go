@@ -244,7 +244,9 @@ func (m *Mosn) Start() {
 	m.wg.Add(1)
 	// Start XDS if configured
 	m.xdsClient = &xds.Client{}
-	m.xdsClient.Start(m.config)
+	utils.GoWithRecover(func() {
+		m.xdsClient.Start(m.config)
+	}, nil)
 	// TODO: remove it
 	//parse service registry info
 	config.ParseServiceRegistry(m.config.ServiceRegistry)
