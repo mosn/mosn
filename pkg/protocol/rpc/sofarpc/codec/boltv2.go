@@ -253,9 +253,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					}
 					return cmd, nil
 				}
-				buffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-				requestv1 := &buffers.BoltReq
-
+				requestv1 := sofarpc.BoltRequest{}
 				requestv1.Protocol = sofarpc.PROTOCOL_CODE_V2
 				requestv1.CmdType = cmdType
 				requestv1.CmdCode = int16(cmdCode)
@@ -274,7 +272,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					requestv1.Content = buffer.NewIoBufferBytes(content)
 				}
 				request := &sofarpc.BoltRequestV2{
-					BoltRequest: *requestv1,
+					BoltRequest: requestv1,
 					Version1:    ver1,
 					SwitchCode:  switchCode,
 				}
@@ -326,8 +324,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					}
 					return cmd, nil
 				}
-				buffers := sofarpc.SofaProtocolBuffersByContext(ctx)
-				responsev1 := &buffers.BoltRsp
+				responsev1 := sofarpc.BoltResponse{}
 				responsev1.Protocol = sofarpc.PROTOCOL_CODE_V2
 				responsev1.CmdType = cmdType
 				responsev1.CmdCode = int16(cmdCode)
@@ -348,7 +345,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 				}
 
 				response := &sofarpc.BoltResponseV2{
-					BoltResponse: *responsev1,
+					BoltResponse: responsev1,
 					Version1:     ver1,
 					SwitchCode:   switchCode,
 				}
