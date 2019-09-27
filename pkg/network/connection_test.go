@@ -142,6 +142,10 @@ func (r *zeroReadConn) SetReadDeadline(t time.Time) error {
 	return nil
 }
 
+func (r *zeroReadConn) LocalAddr() net.Addr {
+	return nil
+}
+
 func TestIoBufferZeroRead(t *testing.T) {
 	conn := &connection{}
 	conn.rawConnection = &zeroReadConn{}

@@ -451,7 +451,8 @@ func (c *connection) doRead() (err error) {
 	//todo: ReadOnce maybe always return (0, nil) and causes dead loop (hack)
 	if bytesRead == 0 && err == nil {
 		err = io.EOF
-		log.DefaultLogger.Errorf("[network] ReadOnce maybe always return (0, nil) and causes dead loop, id: %d", c.id)
+		log.DefaultLogger.Errorf("[network] ReadOnce maybe always return (0, nil) and causes dead loop, Connection = %d, Local Address = %+v, Remote Address = %+v",
+			c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 	}
 
 	for _, cb := range c.bytesReadCallbacks {
@@ -526,8 +527,8 @@ func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
 		}
 
 	wait:
-	// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-	// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
+		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
+		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
 		for {
 			select {
 			case c.writeBufferChan <- &buffers:
