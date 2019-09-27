@@ -22,10 +22,12 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"sync"
 )
 
 var (
 	configPath     string
+	configLock     sync.Mutex
 	config         MOSNConfig
 	configLoadFunc ConfigLoadFunc = DefaultConfigLoad
 )
@@ -56,6 +58,8 @@ func DefaultConfigLoad(path string) *MOSNConfig {
 
 // Load config file and parse
 func Load(path string) *MOSNConfig {
+	configLock.Lock()
+	defer configLock.Unlock()
 	configPath, _ = filepath.Abs(path)
 	if cfg := configLoadFunc(path); cfg != nil {
 		config = *cfg
