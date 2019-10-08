@@ -769,6 +769,10 @@ func (s *downStream) onUpstreamRequestSent() {
 				func() {
 					atomic.StoreUint32(&s.reuseBuffer, 0)
 
+					if s.downstreamRespHeaders != nil {
+						return
+					}
+
 					if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 						return
 					}
@@ -815,6 +819,10 @@ func (s *downStream) setupPerReqTimeout() {
 		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout,
 			func() {
 				atomic.StoreUint32(&s.reuseBuffer, 0)
+
+				if s.downstreamRespHeaders != nil {
+					return
+				}
 
 				if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 					return
@@ -1263,7 +1271,6 @@ func (s *downStream) AddStreamAccessLog(accessLog types.AccessLog) {
 }
 
 // types.LoadBalancerContext
-
 func (s *downStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
 	if nil != s.requestInfo.RouteEntry() {
 		return s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
