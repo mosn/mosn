@@ -251,11 +251,14 @@ func TestUpdateConfigConcurrency(t *testing.T) {
 		func() {
 			RmMqConsumers("key")
 		},
+		func() {
+			dumpRouterConfig()
+		},
 	} {
 		f := fc
 		wg.Add(1)
 		go func() {
-			for i := 0; i < 10; i++ {
+			for i := 0; i < 1000; i++ {
 				ri := rand.Intn(3000)
 				f()
 				time.Sleep(time.Duration(ri))
