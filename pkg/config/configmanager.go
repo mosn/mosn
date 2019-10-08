@@ -180,8 +180,6 @@ func AddClusterWithRouter(listenername string, clusters []v2.Cluster, routerConf
 }
 
 func findListener(listenername string) (v2.Listener, int) {
-	configLock.Lock()
-	defer configLock.Unlock()
 	// support only one server
 	listeners := config.Servers[0].Listeners
 	for idx, ln := range listeners {
