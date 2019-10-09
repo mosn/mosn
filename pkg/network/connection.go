@@ -914,6 +914,16 @@ func (c *connection) SetTransferEventListener(listener func() bool) {
 	c.transferCallbacks = listener
 }
 
+func (c *connection) State() types.ConnState {
+	if atomic.LoadUint32(&c.closed) == 1 {
+		return types.ConnClosed
+	}
+	if atomic.LoadUint32(&c.connected) == 1 {
+		return types.ConnActive
+	}
+	return types.ConnInit
+}
+
 type clientConnection struct {
 	connection
 
