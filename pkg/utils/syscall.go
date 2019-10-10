@@ -44,10 +44,16 @@ func SetHijackStdPipeline(filepath string, stdout, stderr bool) {
 	}, nil)
 }
 
-func ResetHjiackStdPipeline() {
-	syscall.Dup2(standardStdoutFd, int(os.Stdout.Fd()))
-	syscall.Dup2(standardStderrFd, int(os.Stderr.Fd()))
+// if oldd ≠ newd and flags == 0, the behavior is identical to dup2(oldd, newd).
+// arm support dup3 only
+func Dup(from, to int) error {
+	// return syscall.Dup2(from,to)
+	return syscall.Dup3(from, to, 0)
+}
 
+func ResetHjiackStdPipeline() {
+	Dup(standardStdoutFd, int(os.Stdout.Fd()))
+	Dup(standardStderrFd, int(os.Stderr.Fd()))
 }
 
 // setHijackFile hijacks the stdFile outputs into the new file
@@ -59,7 +65,7 @@ func setHijackFile(stdFiles []*os.File, newFilePath string) {
 			return
 		}
 		for _, stdFile := range stdFiles {
-			syscall.Dup2(int(fp.Fd()), int(stdFile.Fd()))
+			Dup(int(fp.Fd()), int(stdFile.Fd()))
 		}
 	}
 	rotate := func(today string) {
