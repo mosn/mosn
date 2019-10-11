@@ -120,10 +120,10 @@ type RequestInfo interface {
 	OnUpstreamHostSelected(host HostInfo)
 
 	// UpstreamLocalAddress reports the upstream's local network address
-	UpstreamLocalAddress() net.Addr
+	UpstreamLocalAddress() string
 
 	// SetUpstreamLocalAddress sets upstream's local network address
-	SetUpstreamLocalAddress(localAddress net.Addr)
+	SetUpstreamLocalAddress(localAddress string)
 
 	// IsHealthCheck checks whether the request is health.
 	IsHealthCheck() bool

@@ -100,7 +100,7 @@ func (c *mixerClient) tryConnect(retry bool) error {
 	}
 
 	// TODO: use lb
-	mixerAddress := hosts[0].Address().String()
+	mixerAddress := hosts[0].AddressString()
 	conn, err := grpc.Dial(mixerAddress, grpc.WithInsecure())
 	if err != nil {
 		err := fmt.Errorf("grpc dial to mixer server %s error %v", mixerAddress, err)
