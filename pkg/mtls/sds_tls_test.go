@@ -39,11 +39,15 @@ func createSdsTLSConfig() *v2.TLSConfig {
 		RequireClientCert: true,
 		VerifyClient:      false,
 		SdsConfig: &v2.SdsConfig{
-			CertificateConfig: &auth.SdsSecretConfig{
-				Name: "default",
+			CertificateConfig: &v2.SecretConfigWrapper{
+				Config: &auth.SdsSecretConfig{
+					Name: "default",
+				},
 			},
-			ValidationConfig: &auth.SdsSecretConfig{
-				Name: "rootCA",
+			ValidationConfig: &v2.SecretConfigWrapper{
+				Config: &auth.SdsSecretConfig{
+					Name: "rootCA",
+				},
 			},
 		},
 	}
