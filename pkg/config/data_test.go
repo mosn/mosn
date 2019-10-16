@@ -64,3 +64,173 @@ const cfgStr = `{
 		 }
 	 }
 }`
+
+const xdsSdsConfig = `{
+  "servers": [
+    {
+      "mosn_server_name": "mosn",
+      "default_log_path": "/tmp/mosn/default.log",
+      "default_log_level": "ERROR",
+      "global_log_roller": "time=1",
+      "graceful_timeout": "30s",
+      "processor": 2,
+      "listeners": [
+        {
+          "name": "egress_sofa_bolt",
+          "type": "egress",
+          "address": "0.0.0.0:12220",
+          "bind_port": true,
+          "access_logs": [
+            {
+              "log_path": "/tmp/mosn/access_egress.log",
+              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
+            }
+          ],
+          "filter_chains": [
+            {
+              "tls_context_set": [
+                {}
+              ],
+              "filters": [
+                {
+                  "type": "proxy",
+                  "config": {
+                    "downstream_protocol": "SofaRpc",
+                    "name": "proxy_config",
+                    "router_config_name": "sofa_egress_bolt_router",
+                    "upstream_protocol": "SofaRpc"
+                  }
+                },
+                {
+                  "type": "connection_manager",
+                  "config": {
+                    "router_config_name": "sofa_egress_bolt_router",
+                    "router_configs": "/tmp/mosn/routers/sofa_egress_bolt_router/"
+                  }
+                }
+              ]
+            }
+          ],
+          "stream_filters": [
+            {
+              "type": "healthcheck",
+              "config": {
+                "cache_time": "360s",
+                "cluster_min_healthy_percentages": {
+                  "local_service": 70
+                },
+                "passthrough": false
+              }
+            }
+          ]
+        },
+        {
+          "name": "ingress_sofa_bolt",
+          "type": "ingress",
+          "address": "0.0.0.0:12200",
+          "bind_port": true,
+          "access_logs": [
+            {
+              "log_path": "/tmp/mosn/access_ingress.log",
+              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
+            }
+          ],
+          "filter_chains": [
+            {
+              "tls_context_set": [
+                {
+                  "status": true,
+                  "verify_client": true,
+                  "min_version": "TLS_AUTO",
+                  "max_version": "TLS_AUTO",
+                  "alpn": "h2,http/1.1",
+                  "sds_source": {
+                    "CertificateConfig": {
+                      "name": "default",
+                      "sdsConfig": {
+                        "apiConfigSource": {
+                          "apiType": "GRPC",
+                          "grpcServices": [
+                            {
+                              "googleGrpc": {
+                                "targetUri": "/var/run/sds",
+                                "channelCredentials": {
+                                  "localCredentials": {}
+                                },
+                                "callCredentials": [
+                                  {
+                                    "googleComputeEngine": {}
+                                  }
+                                ],
+                                "statPrefix": "sdsstat"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "ValidationConfig": {
+                      "name": "ROOTCA",
+                      "sdsConfig": {
+                        "apiConfigSource": {
+                          "apiType": "GRPC",
+                          "grpcServices": [
+                            {
+                              "googleGrpc": {
+                                "targetUri": "/var/run/sds",
+                                "channelCredentials": {
+                                  "localCredentials": {}
+                                },
+                                "callCredentials": [
+                                  {
+                                    "googleComputeEngine": {}
+                                  }
+                                ],
+                                "statPrefix": "sdsstat"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "filters": [
+                {
+                  "type": "proxy",
+                  "config": {
+                    "downstream_protocol": "SofaRpc",
+                    "name": "proxy_config",
+                    "router_config_name": "sofa_ingress_bolt_router",
+                    "upstream_protocol": "SofaRpc"
+                  }
+                },
+                {
+                  "type": "connection_manager",
+                  "config": {
+                    "router_config_name": "sofa_ingress_bolt_router",
+                    "router_configs": "/tmp/mosn/routers/sofa_ingress_bolt_router/"
+                  }
+                }
+              ]
+            }
+          ],
+          "stream_filters": [
+            {
+              "type": "healthcheck",
+              "config": {
+                "cache_time": "360s",
+                "cluster_min_healthy_percentages": {
+                  "local_service": 70
+                },
+                "passthrough": false
+              }
+            }
+          ],
+          "inspector": true
+         }]
+    }
+  ]
+}
+`

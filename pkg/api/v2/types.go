@@ -18,6 +18,7 @@
 package v2
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -26,6 +27,7 @@ import (
 	"time"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
 	"sofastack.io/sofa-mosn/pkg/utils"
 )
@@ -389,8 +391,29 @@ type TLSConfig struct {
 }
 
 type SdsConfig struct {
-	CertificateConfig *auth.SdsSecretConfig
-	ValidationConfig  *auth.SdsSecretConfig
+	CertificateConfig *SecretConfigWrapper
+	ValidationConfig  *SecretConfigWrapper
+}
+
+type SecretConfigWrapper struct {
+	Config *auth.SdsSecretConfig
+}
+
+func (sc SecretConfigWrapper) MarshalJSON() (b []byte, err error) {
+	newData := &bytes.Buffer{}
+	marshaler := &jsonpb.Marshaler{}
+	err = marshaler.Marshal(newData, sc.Config)
+	return newData.Bytes(), err
+}
+
+func (sc *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
+	secretConfig := &auth.SdsSecretConfig{}
+	err := jsonpb.Unmarshal(bytes.NewReader(b), secretConfig)
+	if err != nil {
+		return err
+	}
+	sc.Config = secretConfig
+	return nil
 }
 
 // Valid checks the whether the SDS Config is valid or not

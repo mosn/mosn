@@ -27,6 +27,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -290,4 +291,12 @@ func BenchmarkConfigMarshal(b *testing.B) {
 
 	b.Run("std json testing", stdBench)
 
+}
+
+func TestLoadSdsConfig(t *testing.T) {
+	cfg := &MOSNConfig{}
+	content := []byte(xdsSdsConfig)
+	if err := json.Unmarshal(content, cfg); err != nil {
+		log.StartLogger.Fatalln("json unmarshal config failed, ", xdsSdsConfig, "", err)
+	}
 }
