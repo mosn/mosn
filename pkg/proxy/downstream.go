@@ -203,12 +203,11 @@ func (s *downStream) cleanStream() {
 		ef.filter.OnDestroy()
 	}
 	// processTime
-	// FIXME:
-	// The process time is not accurate when the stream have some exceptions such as retry,
-	// so we ignore it.
-	// should be fixed later.
-	if atomic.LoadUint32(&s.reuseBuffer) == 1 && !s.requestInfo.IsHealthCheck() {
-		processTime := requestReceivedNs + (streamDurationNs - responseReceivedNs)
+	if !s.requestInfo.IsHealthCheck() {
+		processTime := requestReceivedNs // if no response, ignore the network
+		if responseReceivedNs > 0 {
+			processTime = requestReceivedNs + (streamDurationNs - responseReceivedNs)
+		}
 
 		s.proxy.stats.DownstreamProcessTime.Update(processTime)
 		s.proxy.stats.DownstreamProcessTimeTotal.Inc(processTime)
