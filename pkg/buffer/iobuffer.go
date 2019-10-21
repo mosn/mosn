@@ -91,6 +91,10 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, e error) {
 		b.copy(0)
 	}
 
+	if cap(b.buf) == len(b.buf) {
+		b.copy(MinRead)
+	}
+
 	for {
 		if first == false {
 			if free := cap(b.buf) - len(b.buf); free < MinRead {
