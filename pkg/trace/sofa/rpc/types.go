@@ -46,6 +46,7 @@ const (
 	TARGET_IDC
 	TARGET_CITY
 	ROUTE_RECORD
+	CALLER_CELL
 	//30-60 for other extends
 
 	TRACE_END = 60

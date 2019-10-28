@@ -19,12 +19,13 @@ package ext
 
 import (
 	"context"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa/rpc"
+
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/protocol/sofarpc/models"
 	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/trace/sofa/rpc"
 	"sofastack.io/sofa-mosn/pkg/types"
 
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
@@ -77,4 +78,5 @@ func boltv1Delegate(ctx context.Context, cmd sofarpc.SofaRpcCmd, span types.Span
 	span.SetTag(rpc.PROTOCOL, "bolt")
 	span.SetTag(rpc.SERVICE_NAME, request.RequestHeader[models.SERVICE_KEY])
 	span.SetTag(rpc.BAGGAGE_DATA, request.RequestHeader[models.SOFA_TRACE_BAGGAGE_DATA])
+	span.SetTag(rpc.CALLER_CELL, request.RequestHeader[models.CALLER_ZONE_KEY])
 }
