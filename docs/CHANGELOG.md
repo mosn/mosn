@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.8.0
+
+### Optimize
+
+- Reduce the default memory alloc in connection and stream
+- Optimize hosts info in config store
+- Optimize metrics
+  - SOFA RPC heartbeat requests are no longer counted in metrics
+  - Optimize release shm metrics
+  - New metrics: mosn process time
+- Add default help in admin api
+- Optimize read config, ignore non-json files and empty json files
+- Optimize xDS client
+- Add New interface function: connection returns active states
+
+### Bug Fix
+
+- Fix connection transfer in inspector mode
+- Fix logger roller can not be updated
+- Fix error logger fatal level lose the log time
+- Fix connection read casue dead loop in special scene
+- Fix http client connections count, ignore the failed connection
+- Fix close channel bugs when close connection
+- Fix protocol boltv2 handle response bugs
+- Fix config dump concurrency bugs
+- Fix timeout and response concurreny bugs
+
 ## 0.7.0
 
 ### New Features
