@@ -58,7 +58,7 @@ func TestAccessLog(t *testing.T) {
 	requestInfo.SetBytesReceived(2048)
 
 	requestInfo.SetResponseFlag(0)
-	requestInfo.SetUpstreamLocalAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 23456, ""})
+	requestInfo.SetUpstreamLocalAddress("127.0.0.1:23456")
 	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{net.ParseIP("2001:db8::68"), 12200, ""})
 	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 53242, ""})
 	requestInfo.OnUpstreamHostSelected(nil)
@@ -114,7 +114,7 @@ func TestAccessLogDisable(t *testing.T) {
 	requestInfo.SetBytesReceived(2048)
 
 	requestInfo.SetResponseFlag(0)
-	requestInfo.SetUpstreamLocalAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 23456, ""})
+	requestInfo.SetUpstreamLocalAddress("127.0.0.1:23456")
 	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{net.ParseIP("2001:db8::68"), 12200, ""})
 	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 53242, ""})
 	requestInfo.OnUpstreamHostSelected(nil)
@@ -193,7 +193,7 @@ func BenchmarkAccessLog(b *testing.B) {
 	requestInfo.SetBytesReceived(2048)
 
 	requestInfo.SetResponseFlag(0)
-	requestInfo.SetUpstreamLocalAddress(&net.TCPAddr{[]byte("127.0.0.1"), 23456, ""})
+	requestInfo.SetUpstreamLocalAddress("127.0.0.1:23456")
 	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{[]byte("127.0.0.1"), 12200, ""})
 	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{[]byte("127.0.0.2"), 53242, ""})
 	requestInfo.OnUpstreamHostSelected(nil)
@@ -227,7 +227,7 @@ func BenchmarkAccessLogParallel(b *testing.B) {
 	requestInfo.SetBytesReceived(2048)
 
 	requestInfo.SetResponseFlag(0)
-	requestInfo.SetUpstreamLocalAddress(&net.TCPAddr{[]byte("127.0.0.1"), 23456, ""})
+	requestInfo.SetUpstreamLocalAddress("127.0.0.1:23456")
 	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{[]byte("127.0.0.1"), 12200, ""})
 	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{[]byte("127.0.0.2"), 53242, ""})
 	requestInfo.OnUpstreamHostSelected(nil)
@@ -250,7 +250,7 @@ type mock_requestInfo struct {
 	bytesSent                uint64
 	bytesReceived            uint64
 	responseCode             int
-	localAddress             net.Addr
+	localAddress             string
 	downstreamLocalAddress   net.Addr
 	downstreamRemoteAddress  net.Addr
 	isHealthCheckRequest     bool
@@ -344,11 +344,11 @@ func (r *mock_requestInfo) OnUpstreamHostSelected(host types.HostInfo) {
 	r.upstreamHost = host
 }
 
-func (r *mock_requestInfo) UpstreamLocalAddress() net.Addr {
+func (r *mock_requestInfo) UpstreamLocalAddress() string {
 	return r.localAddress
 }
 
-func (r *mock_requestInfo) SetUpstreamLocalAddress(addr net.Addr) {
+func (r *mock_requestInfo) SetUpstreamLocalAddress(addr string) {
 	r.localAddress = addr
 }
 

@@ -90,7 +90,7 @@ func (r *reportData) GetDestinationIPPort() (ip string, port int, err error) {
 		return
 	}
 
-	address := hostInfo.Address().String()
+	address := hostInfo.AddressString()
 	array := strings.Split(address, ":")
 	if len(array) != 2 {
 		err = fmt.Errorf("wrong format of address %v", address)

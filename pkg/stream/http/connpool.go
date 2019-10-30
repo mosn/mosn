@@ -219,7 +219,7 @@ func (p *connPool) report() {
 	utils.GoWithRecover(func() {
 		for {
 			p.clientMux.Lock()
-			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
+			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.AddressString(), len(p.availableClients), p.totalClientCount)
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}

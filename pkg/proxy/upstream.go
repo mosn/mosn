@@ -288,6 +288,6 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
-	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
+	r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 	// todo: check if we get a reset on send headers
 }
