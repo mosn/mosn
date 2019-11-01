@@ -36,7 +36,10 @@ import (
 var errNilCluster = errors.New("cannot update nil cluster")
 
 // refreshHostsConfig refresh the stored config for admin api
-func refreshHostsConfig(name string, hosts []types.Host) {
+func refreshHostsConfig(c types.Cluster) {
+	// use new cluster snapshot to get new cluster config
+	name := c.Snapshot().ClusterInfo().Name()
+	hosts := c.Snapshot().HostSet().Hosts()
 	hostsConfig := make([]v2.Host, 0, len(hosts))
 	for _, h := range hosts {
 		hostsConfig = append(hostsConfig, h.Config())
@@ -117,7 +120,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 		hosts := c.Snapshot().HostSet().Hosts()
 		// update hosts, refresh
 		newCluster.UpdateHosts(hosts)
-		refreshHostsConfig(clusterName, hosts)
+		refreshHostsConfig(c)
 	}
 	cm.clustersMap.Store(clusterName, newCluster)
 	log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
@@ -175,7 +178,7 @@ func (cm *clusterManager) UpdateClusterHosts(clusterName string, hostConfigs []v
 		hosts = append(hosts, NewSimpleHost(hc, snap.ClusterInfo()))
 	}
 	c.UpdateHosts(hosts)
-	refreshHostsConfig(clusterName, hosts)
+	refreshHostsConfig(c)
 	return nil
 }
 
@@ -194,7 +197,7 @@ func (cm *clusterManager) AppendClusterHosts(clusterName string, hostConfigs []v
 	}
 	hosts = append(hosts, snap.HostSet().Hosts()...)
 	c.UpdateHosts(hosts)
-	refreshHostsConfig(clusterName, hosts)
+	refreshHostsConfig(c)
 	return nil
 }
 
@@ -222,7 +225,7 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 		}
 	}
 	c.UpdateHosts(sortedHosts)
-	refreshHostsConfig(clusterName, sortedHosts)
+	refreshHostsConfig(c)
 	return nil
 }
 

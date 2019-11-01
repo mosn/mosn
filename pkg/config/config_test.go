@@ -27,6 +27,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -72,6 +73,23 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 		data := []byte(c)
 		fileName := fmt.Sprintf("%s/cluster%d.json", clusterPath, i)
 		if err := ioutil.WriteFile(fileName, data, 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// write error ignore file
+	for _, f := range []struct {
+		fileName string
+		data     []byte
+	}{
+		{
+			fileName: fmt.Sprintf("%s/notjson.file", clusterPath),
+			data:     []byte("12345"),
+		},
+		{
+			fileName: fmt.Sprintf("%s/empty.json", clusterPath),
+		},
+	} {
+		if err := ioutil.WriteFile(f.fileName, f.data, 0644); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -273,4 +291,12 @@ func BenchmarkConfigMarshal(b *testing.B) {
 
 	b.Run("std json testing", stdBench)
 
+}
+
+func TestLoadSdsConfig(t *testing.T) {
+	cfg := &MOSNConfig{}
+	content := []byte(xdsSdsConfig)
+	if err := json.Unmarshal(content, cfg); err != nil {
+		log.StartLogger.Fatalln("json unmarshal config failed, ", xdsSdsConfig, "", err)
+	}
 }

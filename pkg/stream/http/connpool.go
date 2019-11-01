@@ -109,10 +109,14 @@ func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types
 	n := len(p.availableClients)
 	// no available client
 	if n == 0 {
+		// max conns is 0 means no limit
 		maxConns := p.host.ClusterInfo().ResourceManager().Connections().Max()
-		if p.totalClientCount < maxConns {
-			p.totalClientCount++
-			return newActiveClient(ctx, p)
+		if maxConns == 0 || p.totalClientCount < maxConns {
+			ac, reason := newActiveClient(ctx, p)
+			if ac != nil && reason == "" {
+				p.totalClientCount++
+			}
+			return ac, reason
 		} else {
 			p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 			p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
@@ -215,7 +219,7 @@ func (p *connPool) report() {
 	utils.GoWithRecover(func() {
 		for {
 			p.clientMux.Lock()
-			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.Address(), len(p.availableClients), p.totalClientCount)
+			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.AddressString(), len(p.availableClients), p.totalClientCount)
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}

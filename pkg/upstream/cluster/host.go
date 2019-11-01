@@ -136,7 +136,7 @@ func (sh *simpleHost) Health() bool {
 }
 
 // net.Addr reuse for same address, valid in simple type
-var AddrStore sync.Map
+var AddrStore *sync.Map = &sync.Map{}
 
 func GetOrCreateAddr(addrstr string) net.Addr {
 	if addr, ok := AddrStore.Load(addrstr); ok {

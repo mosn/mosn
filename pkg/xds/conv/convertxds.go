@@ -1128,8 +1128,8 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
 		isSdsMode = true
 		if validationContext, ok := common.GetValidationContextType().(*xdsauth.CommonTlsContext_CombinedValidationContext); ok {
-			config.SdsConfig.CertificateConfig = tlsCertSdsConfig[0]
-			config.SdsConfig.ValidationConfig = validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()
+			config.SdsConfig.CertificateConfig = &v2.SecretConfigWrapper{Config: tlsCertSdsConfig[0]}
+			config.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{Config: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()}
 		}
 	}
 

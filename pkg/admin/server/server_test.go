@@ -375,6 +375,54 @@ func TestRegisterNewAPI(t *testing.T) {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("unexpected status code: %d", resp.StatusCode)
 	}
+}
+
+func TestHelpAPI(t *testing.T) {
+	// reset
+	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
+		"/": help,
+		"/api/v1/config_dump":     configDump,
+		"/api/v1/stats":           statsDump,
+		"/api/v1/update_loglevel": updateLogLevel,
+		"/api/v1/enable_log":      enableLogger,
+		"/api/v1/disbale_log":     disableLogger,
+		"/api/v1/states":          getState,
+	}
+	time.Sleep(time.Second)
+	server := Server{}
+	config := &mockMOSNConfig{
+		Name: "mock",
+		Port: 8889,
+	}
+	server.Start(config)
+	store.StartService(nil)
+	defer store.StopService()
+
+	time.Sleep(time.Second) //wait server start
+	query := func(t *testing.T, addr string) string {
+		resp, err := http.Get("http://127.0.0.1:8889" + addr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("query help message, returns: %d", resp.StatusCode)
+		}
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	// root, and no registered addr should returns help
+	for _, addr := range []string{"/", "/not_exists"} {
+		s := query(t, addr)
+		s = strings.TrimSuffix(s, "\n")
+		apis := strings.Split(s, "\n")[1:] // the first line is "support apis:"
+		if len(apis) != 6 {                // exclued "/"
+			t.Errorf("apis count is not expected: %v, length is %d", apis, len(apis))
+		}
+	}
 
 }
 

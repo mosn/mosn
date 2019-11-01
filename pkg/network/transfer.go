@@ -170,6 +170,7 @@ func transferRead(c *connection) (uint64, error) {
 
 	file, tlsConn, err := transferGetFile(c)
 	if err != nil {
+		log.DefaultLogger.Errorf("[network] [transfer] [read] transferRead failed: %v", err)
 		return transferErr, err
 	}
 
@@ -231,6 +232,15 @@ func transferGetFile(c *connection) (file *os.File, tlsConn *mtls.TLSConn, err e
 		file, err = conn.File()
 		if err != nil {
 			return nil, nil, fmt.Errorf("TCP File failed %v", err)
+		}
+	case *mtls.Conn:
+		mtlsConn, ok := conn.Conn.(*net.TCPConn)
+		if !ok {
+			return nil, nil, errors.New("unexpected Conn type")
+		}
+		file, err = mtlsConn.File()
+		if err != nil {
+			return nil, nil, fmt.Errorf("mtls.Conn File failed %v", err)
 		}
 	case *mtls.TLSConn:
 		tlsConn = conn

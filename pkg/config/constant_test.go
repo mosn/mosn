@@ -87,10 +87,7 @@ var basicConfigStr = `
 				}
 			]
 		}
-	]
-}`
-
-const basicClusterConfigStr = `{
+	],
 	"cluster_manager":{
 		"clusters":[
 			{

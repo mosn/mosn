@@ -71,6 +71,7 @@ func dumpRouterConfig() bool {
 		}
 		delete(routerMap.config, listenername)
 		// support only one filter chain
+		configLock.Lock()
 		nfs := ln.FilterChains[0].Filters
 		filterIndex := -1
 		for i, nf := range nfs {
@@ -93,11 +94,15 @@ func dumpRouterConfig() bool {
 			if filterIndex == -1 {
 				nfs = append(nfs, filter)
 				ln.FilterChains[0].Filters = nfs
-				updateListener(idx, ln)
+				listeners := config.Servers[0].Listeners
+				if idx < len(listeners) {
+					listeners[idx] = ln
+				}
 			} else {
 				nfs[filterIndex] = filter
 			}
 		}
+		configLock.Unlock()
 	}
 	return true
 }

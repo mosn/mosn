@@ -22,10 +22,12 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"sync"
 )
 
 var (
 	configPath     string
+	configLock     sync.Mutex
 	config         MOSNConfig
 	configLoadFunc ConfigLoadFunc = DefaultConfigLoad
 )

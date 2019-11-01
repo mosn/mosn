@@ -15,41 +15,44 @@
  * limitations under the License.
  */
 
-package rpc
+package utils
 
 import (
-	"context"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"strconv"
+	"sync/atomic"
+	"time"
 )
 
-const (
-	//0-30 for  rpc
-
-	TRACE_ID = iota
-	SPAN_ID
-	PARENT_SPAN_ID
-	SERVICE_NAME
-	METHOD_NAME
-	PROTOCOL
-	RESULT_STATUS
-	REQUEST_SIZE
-	RESPONSE_SIZE
-	UPSTREAM_HOST_ADDRESS
-	DOWNSTEAM_HOST_ADDRESS
-	APP_NAME        //caller
-	TARGET_APP_NAME //remote app
-	SPAN_TYPE
-	BAGGAGE_DATA
-	REQUEST_URL
-	TARGET_CELL
-	TARGET_IDC
-	TARGET_CITY
-	ROUTE_RECORD
-	CALLER_CELL
-	//30-60 for other extends
-
-	TRACE_END = 60
+var (
+	// lastTime is used to cache time
+	lastTime atomic.Value
 )
 
-type SubProtocolDelegate func(ctx context.Context, request sofarpc.SofaRpcCmd, span types.Span)
+// timeCache is used to reduce format
+type timeCache struct {
+	t int64
+	s string
+}
+
+// CacheTime returns a time cache in seconds.
+// we use a cache to reduce the format
+func CacheTime() string {
+	var s string
+	t := time.Now()
+	nano := t.UnixNano()
+	now := nano / 1e9
+	value := lastTime.Load()
+	if value != nil {
+		last := value.(*timeCache)
+		if now <= last.t {
+			s = last.s
+		}
+	}
+	if s == "" {
+		s = t.Format("2006-01-02 15:04:05")
+		lastTime.Store(&timeCache{now, s})
+	}
+	mi := nano % 1e9 / 1e6
+	s = s + "," + strconv.Itoa(int(mi))
+	return s
+}

@@ -172,13 +172,13 @@ type ListenerFilterManager interface {
 }
 
 // Connection status
-type ConnState string
+type ConnState int
 
 // Connection statuses
 const (
-	Open    ConnState = "Open"
-	Closing ConnState = "Closing"
-	Closed  ConnState = "Closed"
+	ConnInit ConnState = iota
+	ConnActive
+	ConnClosed
 )
 
 // ConnectionCloseType represent connection close type
@@ -293,6 +293,9 @@ type Connection interface {
 	// SetIdleTimeout sets the timeout that will set the connnection to idle. mosn close idle connection
 	// if no idle timeout setted or a zero value for d means no idle connections.
 	SetIdleTimeout(d time.Duration)
+
+	// State returns the connection state
+	State() ConnState
 }
 
 // ConnectionStats is a group of connection metrics
