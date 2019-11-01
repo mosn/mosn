@@ -5,9 +5,9 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/alipay/sofa-mosn)](https://goreportcard.com/report/github.com/alipay/sofa-mosn)
 ![license](https://img.shields.io/badge/license-Apache--2.0-green.svg)
 
-[中文](README_CN.md)
+[中文](README.md)
 
-SOFAMosn is a powerful proxy written in Go that can be used as a Service Mesh's data plane. SOFAMosn is a project in [SOFAStack](https://www.sofastack.tech) and MOSN is the short name of Modular Observable Smart Network. SOFAMosn can be integrated with SOFAMesh through xDS API, also used as a standalone load balancer on layer 4 or 7. In the future, SOFAMosn will support more cloud native scenarios and the core forwarding function of Nginx.
+SOFAMosn is a powerful proxy written in Go that can be used as a Service Mesh's data plane. SOFAMosn is a project in [SOFAStack](https://www.sofastack.tech) and MOSN is the short name of Modular Observable Smart Network. SOFAMosn can be integrated with any Service Mesh wich support xDS API, also used as a standalone load balancer on layer 4 or 7. In the future, SOFAMosn will support more cloud native scenarios and the core forwarding function of Nginx.
 
 ## Features
 
