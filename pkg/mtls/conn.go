@@ -54,8 +54,8 @@ func (c *Conn) Peek() ([]byte, error) {
 	_, err := c.Conn.Read(b)
 	c.Conn.SetReadDeadline(time.Time{}) // clear read deadline
 	if err != nil {
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[mtls] TLS Peek() error: %v", err)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[mtls] TLS Peek() error: %v", err)
 		}
 		return nil, err
 	}

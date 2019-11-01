@@ -402,7 +402,8 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 				rawf, _ = tc.File()
 			}
 		}
-		if al.tlsMng != nil {
+		// if ch is not nil, the conn has been initialized in func transferNewConn
+		if al.tlsMng != nil && ch == nil {
 			conn, err := al.tlsMng.Conn(rawc)
 			if err != nil {
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {

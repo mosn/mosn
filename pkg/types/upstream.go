@@ -145,6 +145,9 @@ type Host interface {
 
 	// Health checks whether the host is healthy or not
 	Health() bool
+
+	// Address returns the host's Addr structure
+	Address() net.Addr
 }
 
 // HostInfo defines a host's basic information
@@ -157,9 +160,6 @@ type HostInfo interface {
 
 	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
-
-	// Address returns the host's Addr structure
-	Address() net.Addr
 
 	// AddressString retuens the host's address string
 	AddressString() string

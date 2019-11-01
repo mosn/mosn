@@ -23,6 +23,7 @@ import (
 
 	"sync/atomic"
 
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
@@ -67,7 +68,7 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 func (p *connPool) DrainConnections() {}
 
 // NewStream invoked by Proxy
-func (p *connPool) NewStream(context context.Context, responseDecoder types.StreamReceiveListener,
+func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener,
 	listener types.PoolEventListener) {
 	log.DefaultLogger.Tracef("xprotocol conn pool new stream")
 
@@ -75,7 +76,7 @@ func (p *connPool) NewStream(context context.Context, responseDecoder types.Stre
 		p.mux.Lock()
 		defer p.mux.Unlock()
 		if p.primaryClient == nil {
-			p.primaryClient = newActiveClient(context, p)
+			p.primaryClient = newActiveClient(ctx, p)
 		}
 		return p.primaryClient
 	}()
@@ -97,7 +98,7 @@ func (p *connPool) NewStream(context context.Context, responseDecoder types.Stre
 		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		p.host.ClusterInfo().ResourceManager().Requests().Increase()
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream")
-		streamSender := activeClient.client.NewStream(context, responseDecoder)
+		streamSender := activeClient.client.NewStream(ctx, responseDecoder)
 		streamSender.GetStream().AddEventListener(activeClient)
 
 		log.DefaultLogger.Tracef("xprotocol conn pool codec client new stream success,invoked OnPoolReady")
@@ -210,18 +211,24 @@ type activeClient struct {
 	closeWithActiveReq bool
 }
 
-func newActiveClient(context context.Context, pool *connPool) *activeClient {
+func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
 
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create connection")
-	data := pool.host.CreateConnection(context)
+	data := pool.host.CreateConnection(ctx)
 	data.Connection.Connect()
 	log.DefaultLogger.Tracef("xprotocol new active client , connect success %v", data)
 
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create codec client")
-	codecClient := pool.createStreamClient(context, data)
+
+
+
+	connCtx := mosnctx.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx = mosnctx.WithValue(connCtx, types.ContextSubProtocol, mosnctx.Get(ctx, types.ContextSubProtocol))
+
+	codecClient := pool.createStreamClient(connCtx, data)
 	log.DefaultLogger.Tracef("xprotocol new active client , create codec client success")
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)

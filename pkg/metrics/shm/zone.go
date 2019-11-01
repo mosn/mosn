@@ -26,7 +26,6 @@ import (
 	"time"
 	"unsafe"
 
-	"sofastack.io/sofa-mosn/pkg/server/keeper"
 	"sofastack.io/sofa-mosn/pkg/shm"
 	mosnlog "sofastack.io/sofa-mosn/pkg/log"
 )
@@ -39,16 +38,9 @@ var (
 )
 
 // InitDefaultMetricsZone used to initialize the default zone according to the configuration.
-// And the default zone will detach while process exiting
 func InitDefaultMetricsZone(name string, size int, clear bool) {
 	zone := createMetricsZone(name, size, clear)
-
 	defaultZone = zone
-
-	keeper.OnProcessShutDown(func() error {
-		zone.Detach()
-		return nil
-	})
 }
 
 // InitMetricsZone used to initialize the default zone according to the configuration.

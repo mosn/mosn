@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"time"
+
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -34,7 +36,6 @@ import (
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"time"
 )
 
 // StreamDirection represent the stream's direction
@@ -115,7 +116,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 	sc.contextManager.Next()
 
 	if sc.streamConnectionEventListener != nil {
-		sc.streams = make(map[uint64]*stream, 32)
+		sc.streams = make(map[uint64]*stream, 2)
 	}
 
 	// set support transfer connection
@@ -138,6 +139,16 @@ func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
 		// No enough data
 		if cmd == nil && err == nil {
 			break
+		}
+		if err != nil {
+			var data []byte
+			if buf != nil {
+				data = buf.Bytes()
+				if len(data) > 50 {
+					data = data[:50]
+				}
+			}
+			log.Proxy.Errorf(conn.ctx, "[stream] [sofarpc] conn %d, %v decode error: %v, buf data: %v", conn.conn.ID(), conn.conn.RemoteAddr(), err, data)
 		}
 
 		// Do handle staff. Error would also be passed to this function.
@@ -224,7 +235,8 @@ func (conn *streamConnection) handleCommand(ctx context.Context, model interface
 func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, err error) {
 	switch err {
 	case rpc.ErrUnrecognizedCode, sofarpc.ErrUnKnownCmdType, sofarpc.ErrUnKnownCmdCode, ErrNotSofarpcCmd:
-		log.Proxy.Alertf(conn.ctx, types.ErrorKeyCodec, "error occurs while proceeding codec logic: %v. close connection", err)
+		addr := conn.conn.RemoteAddr()
+		log.Proxy.Alertf(conn.ctx, types.ErrorKeyCodec, "error occurs while proceeding codec logic: %v. close connection, remote addr: %v", err, addr)
 		//protocol decode error, close the connection directly
 		conn.conn.Close(types.NoFlush, types.LocalClose)
 	case types.ErrCodecException, types.ErrDeserializeException:
@@ -276,8 +288,8 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 	stream.direction = ServerStream
 	stream.sc = conn
 
-	if log.Proxy.GetLogLevel() >= log.INFO {
-		log.Proxy.Infof(stream.ctx, "[stream] [sofarpc] new stream detect, requestId = %v", stream.id)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(stream.ctx, "[stream] [sofarpc] new stream detect, requestId = %v", stream.id)
 	}
 
 	if cmd.CommandType() == sofarpc.REQUEST_ONEWAY {
@@ -302,8 +314,8 @@ func (conn *streamConnection) onStreamRecv(ctx context.Context, cmd sofarpc.Sofa
 		// transmit buffer ctx
 		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
-		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(stream.ctx, "[stream] [sofarpc] receive response, requestId = %v", stream.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(stream.ctx, "[stream] [sofarpc] receive response, requestId = %v", stream.id)
 		}
 		return stream
 	}
@@ -445,9 +457,8 @@ func (s *stream) endStream() {
 			err = s.sc.conn.Write(buf)
 		}
 
-		// log
-		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(s.ctx, "[stream] [sofarpc] send %s, requestId = %v", directionText[s.direction], s.id)
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(s.ctx, "[stream] [sofarpc] send %s, requestId = %v", directionText[s.direction], s.id)
 		}
 
 		if err != nil {

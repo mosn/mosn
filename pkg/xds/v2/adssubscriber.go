@@ -18,6 +18,7 @@
 package v2
 
 import (
+	"math/rand"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -90,21 +91,46 @@ func (adsClient *ADSClient) receiveThread() {
 	}
 }
 
+var disableReconnect bool
+
+func DisableReconnect() {
+	disableReconnect = true
+}
+
+func EnableReconnect() {
+	disableReconnect = false
+}
+
+const maxRertyInterval = 60 * time.Second
+
+func computeInterval(t time.Duration) time.Duration {
+	t = t * 2
+	if t >= maxRertyInterval {
+		t = maxRertyInterval
+	}
+	return t
+}
+
 func (adsClient *ADSClient) reconnect() {
 
 	adsClient.AdsConfig.closeADSStreamClient()
 	adsClient.StreamClient = nil
 	log.DefaultLogger.Infof("[xds] [ads client] stream client closed")
 
+	interval := time.Second
+
 	for {
-		adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
-		if adsClient.StreamClient == nil {
-			log.DefaultLogger.Warnf("[xds] [ads client] stream client reconnect failed, retry after 1s")
-			time.Sleep(time.Second)
-			continue
+		if !disableReconnect {
+			adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
+			if adsClient.StreamClient != nil {
+				log.DefaultLogger.Infof("[xds] [ads client] stream client reconnected")
+				return
+			}
+			log.DefaultLogger.Warnf("[xds] [ads client] stream client reconnect failed, retry after %v", interval)
 		}
-		log.DefaultLogger.Infof("[xds] [ads client] stream client reconnected")
-		break
+		// sleep random
+		time.Sleep(interval + time.Duration(rand.Intn(1000))*time.Millisecond)
+		interval = computeInterval(interval)
 	}
 }
 

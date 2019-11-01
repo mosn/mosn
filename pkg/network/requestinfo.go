@@ -36,7 +36,7 @@ type RequestInfo struct {
 	bytesSent                uint64
 	bytesReceived            uint64
 	responseCode             int
-	localAddress             net.Addr
+	localAddress             string
 	downstreamLocalAddress   net.Addr
 	downstreamRemoteAddress  net.Addr
 	isHealthCheckRequest     bool
@@ -139,11 +139,11 @@ func (r *RequestInfo) OnUpstreamHostSelected(host types.HostInfo) {
 	r.upstreamHost = host
 }
 
-func (r *RequestInfo) UpstreamLocalAddress() net.Addr {
+func (r *RequestInfo) UpstreamLocalAddress() string {
 	return r.localAddress
 }
 
-func (r *RequestInfo) SetUpstreamLocalAddress(addr net.Addr) {
+func (r *RequestInfo) SetUpstreamLocalAddress(addr string) {
 	r.localAddress = addr
 }
 

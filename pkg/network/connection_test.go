@@ -18,7 +18,9 @@
 package network
 
 import (
+	"context"
 	"fmt"
+	"io"
 	"net"
 	"testing"
 	"time"
@@ -125,5 +127,71 @@ func TestClientConectionRemoteaddrIsNil(t *testing.T) {
 	if err == nil {
 		t.Errorf("connect should Failed")
 		return
+	}
+}
+
+
+type zeroReadConn struct {
+	net.Conn
+}
+
+func (r *zeroReadConn) Read(b []byte) (n int, err error) {
+	return 0, nil
+}
+
+func (r *zeroReadConn) SetReadDeadline(t time.Time) error {
+	return nil
+}
+
+func (r *zeroReadConn) LocalAddr() net.Addr {
+	return nil
+}
+
+func TestIoBufferZeroRead(t *testing.T) {
+	conn := &connection{}
+	conn.rawConnection = &zeroReadConn{}
+	err := conn.doRead()
+	if err != io.EOF {
+		t.Errorf("error should be io.EOF")
+	}
+}
+
+func TestConnState(t *testing.T) {
+	testAddr := "127.0.0.1:11234"
+	remoteAddr, _ := net.ResolveTCPAddr("tcp", testAddr)
+	l, err := net.Listen("tcp", testAddr)
+	if err != nil {
+		t.Logf("listen error %v", err)
+		return
+	}
+	rawc, err := net.Dial("tcp", testAddr)
+	if err != nil {
+		t.Logf("net.Dial error %v", err)
+		return
+	}
+	c := NewServerConnection(context.Background(), rawc, nil)
+	if c.State() != types.ConnActive {
+		t.Errorf("ConnState should be ConnActive")
+	}
+	c.Close(types.NoFlush, types.LocalClose)
+	if c.State() != types.ConnClosed {
+		t.Errorf("ConnState should be ConnClosed")
+	}
+
+	cc := NewClientConnection(nil, 0, nil, remoteAddr, nil)
+	if cc.State() != types.ConnInit {
+		t.Errorf("ConnState should be ConnInit")
+	}
+	if err := cc.Connect(); err != nil {
+		t.Errorf("conn Connect error: %v", err)
+	}
+	if cc.State() != types.ConnActive {
+		t.Errorf("ConnState should be ConnActive")
+	}
+	l.Close()
+
+	time.Sleep(10*time.Millisecond)
+	if cc.State() != types.ConnClosed {
+		t.Errorf("ConnState should be ConnClosed")
 	}
 }

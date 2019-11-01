@@ -37,10 +37,11 @@ var (
 	BoltCodecV2 = &boltCodecV2{}
 )
 
+// TODO: do not support bolt v2
 func init() {
 	sofarpc.RegisterProtocol(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2, BoltCodecV2)
 	sofarpc.RegisterResponseBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodecV2)
-	// the heartbeat processing is same with boltV1
+	//the heartbeat processing is same with boltV1
 	sofarpc.RegisterHeartbeatBuilder(sofarpc.PROTOCOL_CODE_V2, BoltCodec)
 }
 
@@ -73,8 +74,6 @@ func encodeRequestV2(ctx context.Context, cmd *sofarpc.BoltRequestV2) (types.IoB
 	}
 
 	var b [4]byte
-	// todo: reuse bytes @boqin
-	//data := make([]byte, 22, defaultTmpBufferSize)
 	size := sofarpc.REQUEST_HEADER_LEN_V2 + int(cmd.ClassLen) + headerLen
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetReqHeader(size)
@@ -144,7 +143,6 @@ func encodeResponseV2(ctx context.Context, cmd *sofarpc.BoltResponseV2) (types.I
 	}
 
 	var b [4]byte
-	// todo: reuse bytes @boqin
 	size := sofarpc.RESPONSE_HEADER_LEN_V2 + int(cmd.ClassLen) + headerLen
 	protocolCtx := protocol.ProtocolBuffersByContext(ctx)
 	buf := protocolCtx.GetRspHeader(size)
@@ -208,9 +206,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 
 	if readableBytes >= sofarpc.LESS_LEN_V2 {
 		bytesData := data.Bytes()
-
 		ver1 := bytesData[1]
-
 		cmdType := bytesData[2]
 
 		//1. request
@@ -257,27 +253,28 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					}
 					return cmd, nil
 				}
+				requestv1 := sofarpc.BoltRequest{}
+				requestv1.Protocol = sofarpc.PROTOCOL_CODE_V2
+				requestv1.CmdType = cmdType
+				requestv1.CmdCode = int16(cmdCode)
+				requestv1.Version = ver2
+				requestv1.ReqID = requestID
+				requestv1.Codec = codec
+				requestv1.Timeout = int(timeout)
+				requestv1.ClassLen = int16(classLen)
+				requestv1.HeaderLen = int16(headerLen)
+				requestv1.ContentLen = int(contentLen)
+				requestv1.ClassName = class
+				requestv1.HeaderMap = header
 
+				// avoid valid IoBuffer with empty buffer
+				if content != nil {
+					requestv1.Content = buffer.NewIoBufferBytes(content)
+				}
 				request := &sofarpc.BoltRequestV2{
-					BoltRequest: sofarpc.BoltRequest{
-						sofarpc.PROTOCOL_CODE_V2,
-						cmdType,
-						int16(cmdCode),
-						ver2,
-						requestID,
-						codec,
-						int(timeout),
-						int16(classLen),
-						int16(headerLen),
-						int(contentLen),
-						class,
-						header,
-						buffer.NewIoBufferBytes(content),
-						"",
-						nil,
-					},
-					Version1:   ver1,
-					SwitchCode: switchCode,
+					BoltRequest: requestv1,
+					Version1:    ver1,
+					SwitchCode:  switchCode,
 				}
 
 				sofarpc.DeserializeBoltRequest(ctx, &request.BoltRequest)
@@ -319,6 +316,7 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 						content = bytesData[read : read+int(contentLen)]
 						read += int(contentLen)
 					}
+					data.Drain(read)
 				} else {
 					// not enough data
 					if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -326,28 +324,30 @@ func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interfac
 					}
 					return cmd, nil
 				}
+				responsev1 := sofarpc.BoltResponse{}
+				responsev1.Protocol = sofarpc.PROTOCOL_CODE_V2
+				responsev1.CmdType = cmdType
+				responsev1.CmdCode = int16(cmdCode)
+				responsev1.Version = ver2
+				responsev1.ReqID = requestID
+				responsev1.Codec = codec
+				responsev1.ResponseStatus = int16(status)
+				responsev1.ClassLen = int16(classLen)
+				responsev1.HeaderLen = int16(headerLen)
+				responsev1.ContentLen = int(contentLen)
+				responsev1.ClassName = class
+				responsev1.HeaderMap = header
+				responsev1.Content = buffer.NewIoBufferBytes(content)
+				responsev1.ResponseTimeMillis = time.Now().UnixNano() / int64(time.Millisecond)
+				// avoid valid IoBuffer with empty buffer
+				if content != nil {
+					responsev1.Content = buffer.NewIoBufferBytes(content)
+				}
 
 				response := &sofarpc.BoltResponseV2{
-					BoltResponse: sofarpc.BoltResponse{
-						sofarpc.PROTOCOL_CODE_V2,
-						cmdType,
-						int16(cmdCode),
-						ver2,
-						requestID,
-						codec,
-						int16(status),
-						int16(classLen),
-						int16(headerLen),
-						int(contentLen),
-						class,
-						header,
-						buffer.NewIoBufferBytes(content),
-						"",
-						nil,
-						time.Now().UnixNano() / int64(time.Millisecond),
-					},
-					Version1:   ver1,
-					SwitchCode: switchCode,
+					BoltResponse: responsev1,
+					Version1:     ver1,
+					SwitchCode:   switchCode,
 				}
 
 				sofarpc.DeserializeBoltResponse(ctx, &response.BoltResponse)

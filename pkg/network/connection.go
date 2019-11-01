@@ -126,7 +126,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		connected:        1,
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
-		writeBufferChan:  make(chan *[]types.IoBuffer, 32),
+		writeBufferChan:  make(chan *[]types.IoBuffer, 8),
 		writeSchedChan:   make(chan bool, 1),
 		transferChan:     make(chan uint64),
 		stats: &types.ConnectionStats{
@@ -434,7 +434,7 @@ func (c *connection) doRead() (err error) {
 
 	if err != nil {
 		if atomic.LoadUint32(&c.closed) == 1 {
-			return nil
+			return err
 		}
 		if te, ok := err.(net.Error); ok && te.Timeout() {
 			for _, cb := range c.connCallbacks {
@@ -446,6 +446,13 @@ func (c *connection) doRead() (err error) {
 		} else if err != io.EOF {
 			return err
 		}
+	}
+
+	//todo: ReadOnce maybe always return (0, nil) and causes dead loop (hack)
+	if bytesRead == 0 && err == nil {
+		err = io.EOF
+		log.DefaultLogger.Errorf("[network] ReadOnce maybe always return (0, nil) and causes dead loop, Connection = %d, Local Address = %+v, Remote Address = %+v",
+			c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 	}
 
 	for _, cb := range c.bytesReadCallbacks {
@@ -770,11 +777,10 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	}
 
 	// wait for io loops exit, ensure single thread operate streams on the connection
-	if c.internalLoopStarted {
-		// because close function must be called by one io loop thread, notify another loop here
-		close(c.internalStopChan)
-		close(c.writeBufferChan)
-	} else if c.eventLoop != nil {
+	// because close function must be called by one io loop thread, notify another loop here
+	close(c.internalStopChan)
+	close(c.writeBufferChan)
+	if c.eventLoop != nil {
 		// unregister events while connection close
 		c.eventLoop.unregister(c.id)
 		// close copied fd
@@ -908,6 +914,16 @@ func (c *connection) SetTransferEventListener(listener func() bool) {
 	c.transferCallbacks = listener
 }
 
+func (c *connection) State() types.ConnState {
+	if atomic.LoadUint32(&c.closed) == 1 {
+		return types.ConnClosed
+	}
+	if atomic.LoadUint32(&c.connected) == 1 {
+		return types.ConnActive
+	}
+	return types.ConnInit
+}
+
 type clientConnection struct {
 	connection
 
@@ -929,7 +945,7 @@ func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsM
 			readEnabled:      true,
 			readEnabledChan:  make(chan bool, 1),
 			internalStopChan: make(chan struct{}),
-			writeBufferChan:  make(chan *[]types.IoBuffer, 32),
+			writeBufferChan:  make(chan *[]types.IoBuffer, 8),
 			writeSchedChan:   make(chan bool, 1),
 			stats: &types.ConnectionStats{
 				ReadTotal:     metrics.NewCounter(),
@@ -1003,8 +1019,14 @@ func (cc *clientConnection) Connect() (err error) {
 			}
 		}
 
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr, event, err)
+		if err == nil {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr, event, err)
+			}
+		} else {
+			if log.DefaultLogger.GetLogLevel() >= log.ERROR {
+				log.DefaultLogger.Errorf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr, event, err)
+			}
 		}
 
 		for _, cccb := range cc.connCallbacks {

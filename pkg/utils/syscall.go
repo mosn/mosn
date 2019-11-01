@@ -45,9 +45,8 @@ func SetHijackStdPipeline(filepath string, stdout, stderr bool) {
 }
 
 func ResetHjiackStdPipeline() {
-	syscall.Dup2(standardStdoutFd, int(os.Stdout.Fd()))
-	syscall.Dup2(standardStderrFd, int(os.Stderr.Fd()))
-
+	Dup(standardStdoutFd, int(os.Stdout.Fd()))
+	Dup(standardStderrFd, int(os.Stderr.Fd()))
 }
 
 // setHijackFile hijacks the stdFile outputs into the new file
@@ -59,7 +58,7 @@ func setHijackFile(stdFiles []*os.File, newFilePath string) {
 			return
 		}
 		for _, stdFile := range stdFiles {
-			syscall.Dup2(int(fp.Fd()), int(stdFile.Fd()))
+			Dup(int(fp.Fd()), int(stdFile.Fd()))
 		}
 	}
 	rotate := func(today string) {

@@ -142,7 +142,7 @@ func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
 	}
 
 	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
-	p.requestInfo.SetUpstreamLocalAddress(upstreamConnection.LocalAddr())
+	p.requestInfo.SetUpstreamLocalAddress(connectionData.HostInfo.AddressString())
 
 	// TODO: update upstream stats
 

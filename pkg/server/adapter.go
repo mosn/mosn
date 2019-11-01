@@ -55,6 +55,9 @@ func initListenerAdapterInstance(name string, connHandler types.ConnectionHandle
 }
 
 func (adapter *ListenerAdapter) findHandler(serverName string) types.ConnectionHandler {
+	if adapter == nil {
+		return nil
+	}
 	if serverName != "" {
 		// if serverName is not exists, return nil
 		return adapter.connHandlerMap[serverName]
