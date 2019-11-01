@@ -3,7 +3,7 @@
 Your PR should present related issues you want to solve.
 
 ### Sign the CLA
-Make sure you have signed the [CLA](https://www.clahub.com/agreements/alipay/sofa-mosn)
+Make sure you have signed the [CLA](http://cla.sofastack.tech)
 
 ### Solutions
 You should show your solutions about the issues in your PR, including the overall solutions, 
