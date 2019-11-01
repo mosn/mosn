@@ -2,6 +2,11 @@
 
 ## 0.8.0
 
+### New Feature
+
+- New metrics: mosn process time
+- Add New interface function: connection returns active states
+
 ### Optimize
 
 - Reduce the default memory alloc in connection and stream
@@ -9,11 +14,9 @@
 - Optimize metrics
   - SOFA RPC heartbeat requests are no longer counted in metrics
   - Optimize release shm metrics
-  - New metrics: mosn process time
 - Add default help in admin api
 - Optimize read config, ignore non-json files and empty json files
 - Optimize xDS client
-- Add New interface function: connection returns active states
 
 ### Bug Fix
 
