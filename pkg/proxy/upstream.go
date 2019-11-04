@@ -152,6 +152,8 @@ func (r *upstreamRequest) receiveTrailers() {
 }
 
 func (r *upstreamRequest) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
+	log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] OnDecodeError error: %+v", err)
+
 	r.OnResetStream(types.StreamLocalReset)
 }
 
@@ -226,7 +228,9 @@ func (r *upstreamRequest) appendTrailers() {
 	if r.downStream.processDone() {
 		return
 	}
-	log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append trailers:%+v", r.downStream.downstreamReqTrailers)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append trailers:%+v", r.downStream.downstreamReqTrailers)
+	}
 	trailers := r.downStream.downstreamReqTrailers
 	r.sendComplete = true
 	r.trailerSent = true
@@ -255,6 +259,8 @@ func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderM
 func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.Host) {
 	var resetReason types.StreamResetReason
 
+	log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] OnFailure host:%s, reason:%v", host.AddressString(), reason)
+
 	switch reason {
 	case types.Overflow:
 		resetReason = types.StreamOverflow
@@ -268,8 +274,8 @@ func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.H
 
 func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	// debug message for upstream
-	if log.Proxy.GetLogLevel() >= log.INFO {
-		log.Proxy.Infof(r.downStream.context, "[proxy] [upstream] connPool ready, proxyId = %v, host = %s", r.downStream.ID, host.AddressString())
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] connPool ready, proxyId = %v, host = %s", r.downStream.ID, host.AddressString())
 	}
 
 	r.requestSender = sender
@@ -282,6 +288,6 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)
 
 	r.downStream.requestInfo.OnUpstreamHostSelected(host)
-	r.downStream.requestInfo.SetUpstreamLocalAddress(host.Address())
+	r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 	// todo: check if we get a reset on send headers
 }

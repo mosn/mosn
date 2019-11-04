@@ -24,12 +24,12 @@ import (
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
+// default value is zero
 const (
-	// note: 10x bigger than envoy default value
-	DefaultMaxConnections     = uint64(10240)
-	DefaultMaxPendingRequests = uint64(10240)
-	DefaultMaxRequests        = uint64(10240)
-	DefaultMaxRetries         = uint64(3)
+	DefaultMaxConnections     uint64 = 0
+	DefaultMaxPendingRequests uint64 = 0
+	DefaultMaxRequests        uint64 = 0
+	DefaultMaxRetries         uint64 = 0
 )
 
 // ResourceManager
@@ -93,6 +93,9 @@ type resource struct {
 }
 
 func (r *resource) CanCreate() bool {
+	if r.max == 0 {
+		return true
+	}
 	curValue := atomic.LoadInt64(&r.current)
 
 	if curValue < 0 {
@@ -103,11 +106,15 @@ func (r *resource) CanCreate() bool {
 }
 
 func (r *resource) Increase() {
-	atomic.AddInt64(&r.current, 1)
+	if r.max != 0 {
+		atomic.AddInt64(&r.current, 1)
+	}
 }
 
 func (r *resource) Decrease() {
-	atomic.AddInt64(&r.current, -1)
+	if r.max != 0 {
+		atomic.AddInt64(&r.current, -1)
+	}
 }
 
 func (r *resource) Max() uint64 {

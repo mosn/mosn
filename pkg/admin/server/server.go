@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	jsoniter "github.com/json-iterator/go"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -47,6 +47,7 @@ func init() {
 		"/api/v1/enable_log":      enableLogger,
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,
+		"/":                       help,
 	}
 }
 

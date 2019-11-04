@@ -63,7 +63,7 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 
 	mesh := mosn.NewMosn(cfg)
 
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("./transfer.log", log.DEBUG)
 
 	mesh.Start()
 	time.Sleep(40 * time.Second)
@@ -96,7 +96,7 @@ func TestTransfer(t *testing.T) {
 		t.Fatal("fork error")
 		return
 	}
-	log.InitDefaultLogger("", log.DEBUG)
+	log.InitDefaultLogger("./transfer.log", log.DEBUG)
 	startTransferServer(tc)
 
 	// wait server and mesh start

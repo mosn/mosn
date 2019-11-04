@@ -66,7 +66,9 @@ func (rm *routersManagerImpl) AddOrUpdateRouters(routerConfig *v2.RouterConfigur
 		}
 		routers, err := NewRouters(routerConfig)
 		if err != nil {
-			log.DefaultLogger.Alertf(types.ErrorKeyRouteUpdate, "error: %v", err)
+			// TODO: the rds maybe call this function with a invalid routers(nil) just like Add
+			// so we should ignore the alert
+			// log.DefaultLogger.Alertf(types.ErrorKeyRouteUpdate, "error: %v", err)
 			return err
 		}
 		rw.mux.Lock()

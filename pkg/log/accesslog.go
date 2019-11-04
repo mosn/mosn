@@ -326,10 +326,7 @@ func GetResponseFlagGetter(info types.RequestInfo) string {
 // UpstreamLocalAddressGetter
 // get upstream's local address
 func UpstreamLocalAddressGetter(info types.RequestInfo) string {
-	if info.UpstreamLocalAddress() != nil {
-		return info.UpstreamLocalAddress().String()
-	}
-	return ""
+	return info.UpstreamLocalAddress()
 }
 
 // DownstreamLocalAddressGetter

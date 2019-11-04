@@ -25,11 +25,11 @@ import (
 	"path"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/utils"
 	"github.com/c2h5oh/datasize"
 	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 type ContentKey string
@@ -86,15 +86,16 @@ func (cc *ClusterManagerConfig) UnmarshalJSON(b []byte) error {
 		}
 		for _, f := range files {
 			fileName := path.Join(cc.ClusterConfigPath, f.Name())
-			data, err := ioutil.ReadFile(fileName)
-			if err != nil {
-				return err
-			}
 			cluster := v2.Cluster{}
-			if err := json.Unmarshal(data, &cluster); err != nil {
-				return err
+			e := utils.ReadJsonFile(fileName, &cluster)
+			switch e {
+			case nil:
+				cc.Clusters = append(cc.Clusters, cluster)
+			case utils.ErrIgnore:
+			// do nothing
+			default:
+				return e
 			}
-			cc.Clusters = append(cc.Clusters, cluster)
 		}
 	}
 	return nil

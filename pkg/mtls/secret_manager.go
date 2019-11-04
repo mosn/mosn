@@ -64,7 +64,7 @@ func ClearSecretManager() {
 func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
-	validationName := cfg.SdsConfig.ValidationConfig.Name
+	validationName := cfg.SdsConfig.ValidationConfig.Config.Name
 	v, ok := mng.validations[validationName]
 	if !ok {
 		// add a validation
@@ -73,7 +73,7 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		}
 		mng.validations[validationName] = v
 	}
-	certName := cfg.SdsConfig.CertificateConfig.Name
+	certName := cfg.SdsConfig.CertificateConfig.Config.Name
 	p, ok := v.certificates[certName]
 	if !ok {
 		// new a provider
@@ -85,10 +85,10 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		}
 		v.certificates[certName] = p
 		// set a certificate callback
-		client := GetSdsClient(cfg.SdsConfig.CertificateConfig)
-		client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig, p.setCertificate)
+		client := GetSdsClient(cfg.SdsConfig.CertificateConfig.Config)
+		client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig.Config, p.setCertificate)
 		// set a validation callback
-		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig, mng.setValidation)
+		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig.Config, mng.setValidation)
 		log.DefaultLogger.Infof("[mtls] [sds provider] add a new sds provider %s", certName)
 	}
 
