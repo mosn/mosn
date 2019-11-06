@@ -33,7 +33,9 @@ SOFAMosn 作为一款开源的网络代理，具有以下核心功能：
 
 ## 文档
 
-请参阅 [SOFAMosn 文档](https://www.sofastack.tech/projects/sofa-mosn/)。
+- [SOFAMosn 文档](https://www.sofastack.tech/projects/sofa-mosn/)
+
+- [SOFAMosn 版本更新日志](CHANGELOG.md)
 
 ## 贡献
 请参阅[贡献者指南](CONTRIBUTING.md)。
