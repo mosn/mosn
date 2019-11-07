@@ -36,6 +36,7 @@ type Stats struct {
 	DownstreamRequestTimeTotal  gometrics.Counter
 	DownstreamProcessTime       gometrics.Histogram
 	DownstreamProcessTimeTotal  gometrics.Counter
+	DownstreamRequestFailed     gometrics.Counter
 }
 
 func newListenerStats(listenerName string) *Stats {
@@ -61,5 +62,6 @@ func newStats(s types.Metrics) *Stats {
 		DownstreamRequestTimeTotal:  s.Counter(metrics.DownstreamRequestTimeTotal),
 		DownstreamProcessTime:       s.Histogram(metrics.DownstreamProcessTime),
 		DownstreamProcessTimeTotal:  s.Counter(metrics.DownstreamProcessTimeTotal),
+		DownstreamRequestFailed:     s.Counter(metrics.DownstreamRequestFailed),
 	}
 }

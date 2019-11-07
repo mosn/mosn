@@ -230,6 +230,8 @@ func (s *downStream) cleanStream() {
 
 		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
+		s.recordStreamFailed()
 	}
 
 	// finish tracing
@@ -243,6 +245,19 @@ func (s *downStream) cleanStream() {
 
 	// recycle if no reset events
 	s.giveStream()
+}
+
+// recordStreamFailed set stream failed metrics based on response flag
+// NoHealthyUpstream | NoRouteFound | FaultInjected | RateLimited
+func (s *downStream) recordStreamFailed() {
+	isFailed := (s.requestInfo.GetResponseFlag(types.NoHealthyUpstream) ||
+		s.requestInfo.GetResponseFlag(types.NoRouteFound) ||
+		s.requestInfo.GetResponseFlag(types.FaultInjected) ||
+		s.requestInfo.GetResponseFlag(types.RateLimited))
+	if isFailed {
+		s.proxy.stats.DownstreamRequestFailed.Inc(1)
+		s.proxy.listenerStats.DownstreamRequestFailed.Inc(1)
+	}
 }
 
 func (s *downStream) writeLog() {
