@@ -1,4 +1,4 @@
-# Changlog
+# Changelog
 
 ## v0.8.0
 
