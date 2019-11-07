@@ -31,7 +31,8 @@ Use `go get -u sofastack.io/sofa-mosn`, or you can git clone the repository to `
 
 ## Documentation
 
-See [SOFAMosn docs](https://www.sofastack.tech/projects/sofa-mosn/).
+- [SOFAMosn docs](https://www.sofastack.tech/projects/sofa-mosn/)
+- [Changelog](CHANGELOG_EN.md)
 
 ## Contribution
 
