@@ -59,7 +59,7 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 }
 
 func (f *healthCheckFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
-	if protocol, ok := headers.Get("x-protocol-heartbeat"); ok {
+	if protocol, ok := headers.Get(types.HeaderXprotocolHeartbeat); ok {
 		f.protocol = protocol
 		f.healthCheckReq = true
 		f.handler.RequestInfo().SetHealthCheck(true)

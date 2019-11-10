@@ -23,6 +23,7 @@ import (
 
 	"github.com/AlexStocks/dubbogo/codec/hessian"
 	"regexp"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // regular
@@ -223,12 +224,12 @@ func dubboGetMeta(data []byte) map[string]string {
 	flag := data[DUBBO_FLAG_IDX]
 	if getEventPing(flag) {
 		// heart-beat frame, there is not method-name
-		retMap["x-protocol-heartbeat"] = XPROTOCOL_PLUGIN_DUBBO
+		retMap[types.HeaderXprotocolHeartbeat] = XPROTOCOL_PLUGIN_DUBBO
 		return retMap
 	}
 	if isReqFrame(flag) != true {
 		status := data[DUBBO_STATUS_IDX]
-		retMap["x-mosn-xprotocol-resp-status"] = strconv.Itoa(int(status))
+		retMap[types.HeaderXprotocolRespStatus] = strconv.Itoa(int(status))
 
 		// TODO: support version under v2.7.1
 		decoder := hessian.NewDecoder(data[DUBBO_HEADER_LEN:])
@@ -241,7 +242,7 @@ func dubboGetMeta(data []byte) map[string]string {
 			fmt.Printf("Decode resWithException fail, illegal type\n")
 		} else {
 			if resWithException == RESPONSE_WITH_EXCEPTION || resWithException == RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS {
-				retMap["x-mosn-xprotocol-resp-is-exception"] = "true"
+				retMap[types.HeaderXprotocolRespIsException] = "true"
 			}
 		}
 

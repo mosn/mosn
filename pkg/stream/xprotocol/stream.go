@@ -96,7 +96,6 @@ type streamConnection struct {
 	codec                               xprotocol.Multiplexing
 	streamConnectionEventListener       types.StreamConnectionEventListener
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
-	contextManager                      *str.ContextManager
 }
 
 func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -105,9 +104,6 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 	log.DefaultLogger.Tracef("xprotocol subprotocol config name = %v", subProtocolName)
 	codec := xprotocol.CreateSubProtocolCodec(ctx, subProtocolName)
 	log.DefaultLogger.Tracef("xprotocol new stream connection, codec type = %v", subProtocolName)
-	contextManager := str.NewContextManager(ctx)
-	// init first context
-	contextManager.Next()
 	return &streamConnection{
 		context:                             ctx,
 		connection:                          connection,
@@ -117,7 +113,6 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		codec:                               codec,
 		protocol:                            protocol.Xprotocol,
 		subProtocol:                         subProtocolName,
-		contextManager:                      contextManager,
 	}
 }
 
