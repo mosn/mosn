@@ -300,6 +300,8 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 func (s *downStream) ResetStream(reason types.StreamResetReason) {
 	s.proxy.stats.DownstreamRequestReset.Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset.Inc(1)
+	// we assume downstream client close the connection when timeout, we do not care about the network makes connection closed.
+	s.requestInfo.SetResponseCode(types.TimeoutExceptionCode)
 	s.cleanStream()
 }
 
