@@ -184,30 +184,140 @@ func TestIoBufferRead(t *testing.T) {
 }
 
 func TestIoBufferReadOnce(t *testing.T) {
+	// test small data
 	b := NewIoBuffer(1)
-	s := randString(1024)
-	input := make([]byte, 0, 1024)
+	s := randString(25)
 	reader := bytes.NewReader([]byte(s))
 
-	for {
-		n, err := b.ReadOnce(reader)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			t.Fatal(err)
-		}
-
-		if n != 1<<minShift {
-			t.Errorf("Expect %d bytes but got %d", len(s), n)
-		}
-
-		input = append(input, b.Peek(int(n))...)
-		b.Drain(int(n))
+	n, err := b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != len(s) {
+		t.Errorf("Expect %d bytes but got %d", len(s), n)
+	}
+	if b.Cap() != 1<<minShift {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
 	}
 
-	if !bytes.Equal(input, []byte(s)) {
-		t.Errorf("Expect got %s but got %s", s, string(input))
+	if !bytes.Equal(b.Bytes(), []byte(s)) {
+		t.Errorf("Expect got %s but got %s", s, b.Bytes())
+	}
+
+
+	// test big data
+	b = NewIoBuffer(1)
+	bsize := 1025
+	s = randString(bsize)
+	reader = bytes.NewReader([]byte(s))
+
+	// first read  1<<minShift
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != 1<<minShift {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, n)
+	}
+	// expand buf
+	if b.Cap() != MinRead<<1 {
+		t.Errorf("Expect %d bytes but got %d", MinRead<<1, b.Cap())
+	}
+
+	//second read  MinRead<<1 - 1<<minShift
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != MinRead<<1-1<<minShift {
+		t.Errorf("Expect %d bytes but got %d", MinRead<<1-1<<minShift, n)
+	}
+	// expand buf
+	if b.Cap() != MinRead<<2 {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
+	}
+
+	// third read  bsize - MinRead<<1
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != bsize-MinRead<<1 {
+		t.Errorf("Expect %d bytes but got %d", bsize-MinRead<<1-1<<minShift, n)
+	}
+	// not expand buf
+	if b.Cap() != MinRead<<2 {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
+	}
+	if !bytes.Equal(b.Bytes(), []byte(s)) {
+		t.Errorf("Expect got %s but got %s", s, b.Bytes())
+	}
+
+	// test Read expand
+	b = NewIoBuffer(MinRead)
+	bsize = MinRead - 1
+	s = randString(bsize)
+	reader = bytes.NewReader([]byte(s))
+
+	// read  bsize
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != bsize {
+		t.Errorf("Expect %d bytes but got %d", bsize, n)
+	}
+	// not expand buf
+	if b.Cap() != MinRead {
+		t.Errorf("Expect %d bytes but got %d", MinRead<<1, b.Cap())
+	}
+	s = randString(10)
+	reader = bytes.NewReader([]byte(s))
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != 1 {
+		t.Errorf("Expect %d bytes but got %d", 1, n)
+	}
+	// expand buf
+	if b.Cap() != MinRead<<1 {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
+	}
+
+
+	// test Read expand
+	b = NewIoBuffer(MinRead)
+	bsize = MinRead - 1
+	s = randString(bsize)
+	reader = bytes.NewReader([]byte(s))
+
+	// read  bsize
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != bsize {
+		t.Errorf("Expect %d bytes but got %d", bsize, n)
+	}
+	// not expand buf
+	if b.Cap() != MinRead {
+		t.Errorf("Expect %d bytes but got %d", MinRead<<1, b.Cap())
+	}
+	b.Drain(MinRead/2+1)
+	bsize = MinRead/2+1
+	s = randString(bsize)
+	reader = bytes.NewReader([]byte(s))
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != bsize {
+		t.Errorf("Expect %d bytes but got %d", bsize, n)
+	}
+	// not expand buf
+	if b.Cap() != MinRead {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
 	}
 }
 

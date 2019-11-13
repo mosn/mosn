@@ -71,91 +71,38 @@ func (b *IoBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, e error) {
-	var (
-		m               int
-		zeroTime        time.Time
-		conn            net.Conn
-		loop, ok, first = true, true, true
-	)
+func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
+	var m int
 
-	if conn, ok = r.(net.Conn); !ok {
-		loop = false
-	}
-
-	if b.off >= len(b.buf) {
+	if b.off > 0 && b.off >= len(b.buf) {
 		b.Reset()
 	}
 
-	if b.off > 0 && len(b.buf)-b.off < 4*MinRead {
+	if b.off > cap(b.buf)/2 {
 		b.copy(0)
 	}
 
-	if cap(b.buf) == len(b.buf) {
+	l := cap(b.buf) - len(b.buf)
+
+	conn, _ := r.(net.Conn)
+	if conn != nil {
+		// TODO: support configure
+		conn.SetReadDeadline(time.Now().Add(ConnReadTimeout))
+
+		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
+	} else {
+		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
+	}
+
+	b.buf = b.buf[0 : len(b.buf)+m]
+	n = int64(m)
+
+	// Not enough space anywhere, we need to allocate.
+	if l == m {
 		b.copy(MinRead)
 	}
 
-	for {
-		if first == false {
-			if free := cap(b.buf) - len(b.buf); free < MinRead {
-				// not enough space at end
-				if b.off+free < MinRead {
-					// not enough space using beginning of buffer;
-					// double buffer capacity
-					b.copy(MinRead)
-				} else {
-					b.copy(0)
-				}
-			}
-		}
-
-		l := cap(b.buf) - len(b.buf)
-
-		if conn != nil {
-			if first {
-				// TODO: support configure
-				conn.SetReadDeadline(time.Now().Add(ConnReadTimeout))
-			} else {
-				conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
-			}
-
-			m, e = r.Read(b.buf[len(b.buf):cap(b.buf)])
-
-			// Reset read deadline
-			conn.SetReadDeadline(zeroTime)
-
-		} else {
-			m, e = r.Read(b.buf[len(b.buf):cap(b.buf)])
-		}
-
-		if m > 0 {
-			b.buf = b.buf[0 : len(b.buf)+m]
-			n += int64(m)
-		}
-
-		if e != nil {
-			if te, ok := e.(net.Error); ok && te.Timeout() && !first {
-				return n, nil
-			}
-			return n, e
-		}
-
-		if l != m {
-			loop = false
-		}
-
-		if n > MaxRead {
-			loop = false
-		}
-
-		if !loop {
-			break
-		}
-
-		first = false
-	}
-
-	return n, nil
+	return n, err
 }
 
 func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
@@ -424,7 +371,7 @@ func (b *IoBuffer) copy(expand int) {
 	var bufp *[]byte
 
 	if expand > 0 {
-		bufp = b.makeSlice(2*cap(b.buf) + expand)
+		bufp = b.makeSlice(cap(b.buf) + expand)
 		newBuf = *bufp
 		copy(newBuf, b.buf[b.off:])
 		PutBytes(b.b)
