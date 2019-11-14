@@ -18,15 +18,16 @@
 package rpc
 
 import (
-	"time"
 	"fmt"
 	"strconv"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"strings"
+	"time"
+
 	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/trace/sofa"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type SofaRPCSpan struct {
@@ -127,7 +128,7 @@ func (s *SofaRPCSpan) log() error {
 	printData := buffer.GetIoBuffer(512)
 	printData.WriteString("{")
 	printData.WriteString("\"timestamp\":")
-	date := s.endTime.Format("2006-01-02 15:04:05.999")
+	date := s.endTime.Format("2006-01-02 15:04:05.000")
 	printData.WriteString("\"" + date + "\",")
 
 	printData.WriteString("\"traceId\":")
