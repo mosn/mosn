@@ -136,7 +136,17 @@ func (l *Logger) start() error {
 				l.roller.Filename = l.output
 				l.writer = l.roller.GetLogWriter()
 			} else {
-				l.create = time.Now()
+				// time.Now() faster than reported timestamps from filesystem (https://github.com/golang/go/issues/33510)
+				// init logger
+				if l.create.IsZero() {
+					stat, err := file.Stat()
+					if err != nil {
+						return err
+					}
+					l.create = stat.ModTime()
+				} else {
+					l.create = time.Now()
+				}
 				l.writer = file
 			}
 		}
