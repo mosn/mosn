@@ -1,13 +1,13 @@
 # SOFAMosn
 
-[![Build Status](https://travis-ci.org/alipay/sofa-mosn.svg?branch=master)](https://travis-ci.org/alipay/sofa-mosn)
+[![Build Status](https://travis-ci.com/sofastack/sofa-mosn.svg?branch=master)](https://travis-ci.com/sofastack/sofa-mosn)
 [![codecov](https://codecov.io/gh/alipay/sofa-mosn/branch/master/graph/badge.svg)](https://codecov.io/gh/alipay/sofa-mosn)
 [![Go Report Card](https://goreportcard.com/badge/github.com/alipay/sofa-mosn)](https://goreportcard.com/report/github.com/alipay/sofa-mosn)
 ![license](https://img.shields.io/badge/license-Apache--2.0-green.svg)
 
-[中文](README_CN.md)
+[中文](README.md)
 
-SOFAMosn is a powerful proxy written in Go that can be used as a Service Mesh's data plane. SOFAMosn is a project in [SOFAStack](https://www.sofastack.tech) and MOSN is the short name of Modular Observable Smart Network. SOFAMosn can be integrated with SOFAMesh through xDS API, also used as a standalone load balancer on layer 4 or 7. In the future, SOFAMosn will support more cloud native scenarios and the core forwarding function of Nginx.
+SOFAMosn is a powerful proxy written in Go that can be used as a Service Mesh's data plane. SOFAMosn is a project in [SOFAStack](https://www.sofastack.tech) and MOSN is the short name of Modular Observable Smart Network. SOFAMosn can be integrated with any Service Mesh wich support xDS API, also used as a standalone load balancer on layer 4 or 7. In the future, SOFAMosn will support more cloud native scenarios and the core forwarding function of Nginx.
 
 ## Features
 
@@ -31,7 +31,8 @@ Use `go get -u sofastack.io/sofa-mosn`, or you can git clone the repository to `
 
 ## Documentation
 
-See [SOFAMosn docs](https://www.sofastack.tech/projects/sofa-mosn/).
+- [SOFAMosn docs](https://www.sofastack.tech/projects/sofa-mosn/)
+- [Changelog](CHANGELOG_EN.md)
 
 ## Contribution
 
