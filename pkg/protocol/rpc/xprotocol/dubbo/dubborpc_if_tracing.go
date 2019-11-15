@@ -19,10 +19,10 @@ package dubbo
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 
 	"github.com/AlexStocks/dubbogo/codec/hessian"
-	"regexp"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -67,7 +67,22 @@ type dubboAttr struct {
 	attachments  map[string]string
 }
 
-func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr {
+// unserializeCtl flag for Dubbo unserialize control
+type unserializeCtl uint8
+
+const (
+	_ unserializeCtl = iota
+	unserializeCtlDubboVersion
+	unserializeCtlPath
+	unserializeCtlVersion
+	unserializeCtlMethod
+	unserializeCtlArgsTypes
+	unserializeCtlAttachments
+)
+
+// unSerialize xprotocol dubbo_version + path + version + method + argsTypes ... + attachments
+func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAttr {
+
 	if serializeId != 2 {
 		// not hessian, do not support
 		fmt.Printf("unSerialize: id=%d is not hessian\n", serializeId)
@@ -81,8 +96,6 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 	var str string
 	var attachments map[string]string
 
-	// xprotocol version + path + version + method
-
 	field, err = decoder.Decode()
 	if err != nil {
 		fmt.Printf("unSerialize: Decode dubbo_version fail, err=%v\n", err)
@@ -94,6 +107,9 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		return nil
 	}
 	attr.dubboVersion = str
+	if parseCtl <= unserializeCtlDubboVersion {
+		return attr
+	}
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -107,6 +123,9 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 	}
 	attr.serviceName = str
 	attr.path = str
+	if parseCtl <= unserializeCtlPath {
+		return attr
+	}
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -119,6 +138,9 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		return nil
 	}
 	attr.version = str
+	if parseCtl <= unserializeCtlVersion {
+		return attr
+	}
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -131,8 +153,7 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		return nil
 	}
 	attr.methodName = str
-
-	if !parseAttachments {
+	if parseCtl <= unserializeCtlMethod {
 		return attr
 	}
 
@@ -141,7 +162,6 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		fmt.Printf("unSerialize: Decode argsTypes fail, err=%v\n", err)
 		return nil
 	}
-
 	ats := DescRegex.FindAllString(field.(string), -1)
 	for i := 0; i < len(ats); i++ {
 		_, err = decoder.Decode()
@@ -150,6 +170,10 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 			return nil
 		}
 	}
+	// No need here
+	//if parseCtl <= unserializeCtlArgsTypes {
+	//	return attr
+	//}
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -160,6 +184,10 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		attachments = ToMapStringString(v)
 		attr.attachments = attachments
 	}
+	// No need here
+	//if parseCtl <= unserializeCtlAttachments {
+	//	return attr
+	//}
 
 	return attr
 }
@@ -180,7 +208,7 @@ func dubboGetServiceName(data []byte) string {
 		return ""
 	}
 	serializeId := getSerializeId(flag)
-	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], false)
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], unserializeCtlPath)
 	serviceName := ""
 	if ret != nil {
 		serviceName = ret.serviceName
@@ -205,7 +233,7 @@ func dubboGetMethodName(data []byte) string {
 		return ""
 	}
 	serializeId := getSerializeId(flag)
-	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], false)
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], unserializeCtlMethod)
 	methodName := ""
 	if ret != nil {
 		methodName = ret.methodName
@@ -249,7 +277,7 @@ func dubboGetMeta(data []byte) map[string]string {
 		return retMap
 	}
 	serializeId := getSerializeId(flag)
-	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], true)
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], unserializeCtlAttachments)
 	retMap["serviceName"] = ret.serviceName
 	retMap["dubboVersion"] = ret.dubboVersion
 	retMap["methodName"] = ret.methodName
