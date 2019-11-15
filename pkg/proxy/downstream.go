@@ -180,10 +180,6 @@ func (s *downStream) cleanStream() {
 
 	s.requestInfo.SetRequestFinishedDuration(time.Now())
 
-	streamDurationNs := s.requestInfo.RequestFinishedDuration().Nanoseconds()
-	responseReceivedNs := s.requestInfo.ResponseReceivedDuration().Nanoseconds()
-	requestReceivedNs := s.requestInfo.RequestReceivedDuration().Nanoseconds()
-
 	// reset corresponding upstream stream
 	if s.upstreamRequest != nil && !s.upstreamProcessDone && !s.oneway {
 		log.Proxy.Errorf(s.context, "[proxy] [downstream] upstreamRequest.resetStream, proxyId: %d", s.ID)
@@ -202,37 +198,9 @@ func (s *downStream) cleanStream() {
 	for _, ef := range s.receiverFilters {
 		ef.filter.OnDestroy()
 	}
-	// processTime
-	if !s.requestInfo.IsHealthCheck() {
-		processTime := requestReceivedNs // if no response, ignore the network
-		if responseReceivedNs > 0 {
-			processTime = requestReceivedNs + (streamDurationNs - responseReceivedNs)
-		}
 
-		s.proxy.stats.DownstreamProcessTime.Update(processTime)
-		s.proxy.stats.DownstreamProcessTimeTotal.Inc(processTime)
-
-		s.proxy.listenerStats.DownstreamProcessTime.Update(processTime)
-		s.proxy.listenerStats.DownstreamProcessTimeTotal.Inc(processTime)
-	}
-
-	// countdown metrics
-	s.proxy.stats.DownstreamRequestActive.Dec(1)
-	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
-
-	// todo: Temporary modification, heartbeat not counted
-	if s.requestInfo.IsHealthCheck() {
-		s.proxy.stats.DownstreamRequestTotal.Dec(1)
-		s.proxy.listenerStats.DownstreamRequestTotal.Dec(1)
-	} else {
-		s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
-		s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
-
-		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
-		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
-
-		s.recordStreamFailed()
-	}
+	// record metrics
+	s.requestMetrics()
 
 	// finish tracing
 	s.finishTracing()
@@ -247,17 +215,49 @@ func (s *downStream) cleanStream() {
 	s.giveStream()
 }
 
-// recordStreamFailed set stream failed metrics based on response flag
-// NoHealthyUpstream | NoRouteFound | FaultInjected | RateLimited
-func (s *downStream) recordStreamFailed() {
-	isFailed := (s.requestInfo.GetResponseFlag(types.NoHealthyUpstream) ||
-		s.requestInfo.GetResponseFlag(types.NoRouteFound) ||
-		s.requestInfo.GetResponseFlag(types.FaultInjected) ||
-		s.requestInfo.GetResponseFlag(types.RateLimited))
-	if isFailed {
-		s.proxy.stats.DownstreamRequestFailed.Inc(1)
-		s.proxy.listenerStats.DownstreamRequestFailed.Inc(1)
+// requestMetrics records the request metrics when cleanStream
+func (s *downStream) requestMetrics() {
+	streamDurationNs := s.requestInfo.RequestFinishedDuration().Nanoseconds()
+	responseReceivedNs := s.requestInfo.ResponseReceivedDuration().Nanoseconds()
+	requestReceivedNs := s.requestInfo.RequestReceivedDuration().Nanoseconds()
+	// TODO: health check should not count in stream
+	if s.requestInfo.IsHealthCheck() {
+		s.proxy.stats.DownstreamRequestTotal.Dec(1)
+		s.proxy.listenerStats.DownstreamRequestTotal.Dec(1)
+	} else {
+		processTime := requestReceivedNs // if no response, ignore the network
+		if responseReceivedNs > 0 {
+			processTime = requestReceivedNs + (streamDurationNs - responseReceivedNs)
+		}
+
+		s.proxy.stats.DownstreamProcessTime.Update(processTime)
+		s.proxy.stats.DownstreamProcessTimeTotal.Inc(processTime)
+
+		s.proxy.listenerStats.DownstreamProcessTime.Update(processTime)
+		s.proxy.listenerStats.DownstreamProcessTimeTotal.Inc(processTime)
+
+		s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
+		s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
+		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
+		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
+		if s.isRequestFailed() {
+			s.proxy.stats.DownstreamRequestFailed.Inc(1)
+			s.proxy.listenerStats.DownstreamRequestFailed.Inc(1)
+		}
+
 	}
+	// countdown metrics
+	s.proxy.stats.DownstreamRequestActive.Dec(1)
+	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
+}
+
+const mosnProcessFailed = types.NoHealthyUpstream | types.NoRouteFound | types.FaultInjected | types.RateLimited
+
+// isRequestFailed marks request failed due to mosn process
+func (s *downStream) isRequestFailed() bool {
+	return s.requestInfo.GetResponseFlag(mosnProcessFailed)
 }
 
 func (s *downStream) writeLog() {

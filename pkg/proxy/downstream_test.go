@@ -58,7 +58,7 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 		t.Error("init tracing driver failed: ", err)
 	}
 
-	span :=  trace.Tracer(mockProtocol).Start(context.Background(), nil, time.Now())
+	span := trace.Tracer(mockProtocol).Start(context.Background(), nil, time.Now())
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
@@ -166,5 +166,64 @@ func TestOnewayHijack(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	if s.downstreamCleaned != 1 {
 		t.Errorf("downStream should be cleaned")
+	}
+}
+
+func TestIsRequestFailed(t *testing.T) {
+	testCases := []struct {
+		Flags    []types.ResponseFlag
+		Expected bool
+	}{
+		{
+			Flags:    []types.ResponseFlag{types.NoHealthyUpstream},
+			Expected: true,
+		},
+		{
+			Flags:    []types.ResponseFlag{types.UpstreamRequestTimeout},
+			Expected: false,
+		},
+		{
+			Flags:    []types.ResponseFlag{types.UpstreamRemoteReset},
+			Expected: false,
+		},
+		{
+			Flags:    []types.ResponseFlag{types.NoRouteFound},
+			Expected: true,
+		},
+		{
+			Flags:    []types.ResponseFlag{types.DelayInjected},
+			Expected: false,
+		},
+		{
+			Flags:    []types.ResponseFlag{types.FaultInjected},
+			Expected: true,
+		},
+		{
+			Flags:    []types.ResponseFlag{types.RateLimited},
+			Expected: true,
+		},
+		{
+			Flags:    []types.ResponseFlag{types.DelayInjected, types.FaultInjected},
+			Expected: true,
+		},
+		{
+			Flags:    []types.ResponseFlag{types.UpstreamRequestTimeout, types.NoHealthyUpstream},
+			Expected: true,
+		},
+		{
+			Flags:    []types.ResponseFlag{types.UpstreamConnectionTermination, types.UpstreamRemoteReset},
+			Expected: false,
+		},
+	}
+	for idx, tc := range testCases {
+		s := &downStream{
+			requestInfo: network.NewRequestInfo(),
+		}
+		for _, f := range tc.Flags {
+			s.requestInfo.SetResponseFlag(f)
+		}
+		if s.isRequestFailed() != tc.Expected {
+			t.Errorf("case no.%d is not expected, flag: %v, expected: %v", idx, tc.Flags, tc.Expected)
+		}
 	}
 }
