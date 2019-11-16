@@ -42,13 +42,15 @@ func ConvertAddOrUpdateRouters(routers []*envoy_api_v2.RouteConfiguration) {
 	} else {
 
 		for _, router := range routers {
-			if jsonStr, err := json.Marshal(router); err == nil {
-				log.DefaultLogger.Tracef("raw router config: %s", string(jsonStr))
+			log.DefaultLogger.Debugf("mosnRouter config: %+v", router)
+			if jsonStr, err := json.Marshal(router); err != nil {
+				log.DefaultLogger.Errorf("marshal router failed, error: %v", err)
 			}
 
 			mosnRouter, _ := ConvertRouterConf("", router)
-			log.DefaultLogger.Tracef("mosnRouter config: %+v", mosnRouter)
-			routersMngIns.AddOrUpdateRouters(mosnRouter)
+			if err := routersMngIns.AddOrUpdateRouters(mosnRouter); err != nil {
+				log.DefaultLogger.Errorf("xds client  routersMngIns.AddOrUpdateRouters error: %v", err)
+			}
 		}
 	}
 }
