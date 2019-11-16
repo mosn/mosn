@@ -133,13 +133,13 @@ func (subscribe *SdsSubscriber) receiveResponseLoop(sdsStreamClient *SdsStreamCl
 			return
 		default:
 			if subscribe.sdsStreamClient == nil {
-				log.DefaultLogger.Warnf("[xds] [sds subscriber] stream client closed, sleep 1s and wait for reconnect")
+				log.DefaultLogger.Infof("[xds] [sds subscriber] stream client closed, sleep 1s and wait for reconnect")
 				time.Sleep(time.Second)
 				continue
 			}
 			resp, err := subscribe.sdsStreamClient.streamSecretsClient.Recv()
 			if err != nil {
-				log.DefaultLogger.Warnf("[xds] [sds subscriber] get resp timeout: %v, retry after 1s", err)
+				log.DefaultLogger.Infof("[xds] [sds subscriber] get resp timeout: %v, retry after 1s", err)
 				time.Sleep(time.Second)
 				subscribe.reconnect()
 				continue
@@ -206,7 +206,7 @@ func (subscribe *SdsSubscriber) reconnect() {
 	for {
 		sdsStreamClient, err := subscribe.getSdsStreamClient(sdsStreamConfig)
 		if err != nil {
-			log.DefaultLogger.Warnf("[xds] [sds subscriber] stream client reconnect failed, retry after 1s")
+			log.DefaultLogger.Infof("[xds] [sds subscriber] stream client reconnect failed, retry after 1s")
 			time.Sleep(time.Second)
 			continue
 		}

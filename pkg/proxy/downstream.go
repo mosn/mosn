@@ -814,8 +814,10 @@ func (s *downStream) onResponseTimeout() {
 		if s.upstreamRequest.host != nil {
 			s.upstreamRequest.host.HostStats().UpstreamRequestTimeout.Inc(1)
 
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout，host: %s, time: %s",
-				s.upstreamRequest.host.AddressString(), s.timeout.GlobalTimeout.String())
+			if log.Proxy.GetLogLevel() >= log.INFO {
+				log.Proxy.Infof(s.context, "[proxy] [downstream] onResponseTimeout，host: %s, time: %s",
+					s.upstreamRequest.host.AddressString(), s.timeout.GlobalTimeout.String())
+			}
 		}
 
 		s.upstreamRequest.resetStream()
