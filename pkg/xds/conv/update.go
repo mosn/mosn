@@ -42,10 +42,7 @@ func ConvertAddOrUpdateRouters(routers []*envoy_api_v2.RouteConfiguration) {
 	} else {
 
 		for _, router := range routers {
-			log.DefaultLogger.Debugf("mosnRouter config: %+v", router)
-			if jsonStr, err := json.Marshal(router); err != nil {
-				log.DefaultLogger.Errorf("marshal router failed, error: %v", err)
-			}
+			log.DefaultLogger.Debugf("xds convert router config: %+v", router)
 
 			mosnRouter, _ := ConvertRouterConf("", router)
 			if err := routersMngIns.AddOrUpdateRouters(mosnRouter); err != nil {
@@ -58,12 +55,11 @@ func ConvertAddOrUpdateRouters(routers []*envoy_api_v2.RouteConfiguration) {
 // ConvertAddOrUpdateListeners converts listener configuration, used to  add or update listeners
 func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 	for _, listener := range listeners {
-		if jsonStr, err := json.Marshal(listener); err == nil {
-			log.DefaultLogger.Tracef("raw listener config: %s", string(jsonStr))
-		}
+		log.DefaultLogger.Debugf("xds convert listener config: %+v", listener)
 
 		mosnListener := ConvertListenerConfig(listener)
 		if mosnListener == nil {
+			log.DefaultLogger.Errorf("xds client ConvertListenerConfig failed")
 			continue
 		}
 
