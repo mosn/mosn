@@ -22,7 +22,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/AlexStocks/dubbogo/codec/hessian"
+	hessian "github.com/apache/dubbo-go-hessian2"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
