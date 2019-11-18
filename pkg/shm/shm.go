@@ -21,7 +21,7 @@ import (
 	"os"
 	"syscall"
 	"path/filepath"
-	"errors"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 func Alloc(name string, size int) (*ShmSpan, error) {
@@ -55,7 +55,7 @@ func Alloc(name string, size int) (*ShmSpan, error) {
 	// lock mmap data to avoid I/O page fault
 	err = syscall.Mlock(data)
 	if err != nil {
-		return nil, errors.New("failed to mlock memory from mmap, please check the RLIMIT_MEMLOCK:" + err.Error())
+		log.StartLogger.Warnf("failed to mlock memory from mmap, please check the RLIMIT_MEMLOCK:%s\n", err)
 	}
 
 	return NewShmSpan(name, data), nil
