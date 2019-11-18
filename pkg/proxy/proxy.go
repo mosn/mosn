@@ -55,11 +55,11 @@ func init() {
 func initWorkerPool(data interface{}, endParsing bool) error {
 	initGlobalStats()
 
-	poolSize := runtime.NumCPU() * 1024
+	poolSize := runtime.NumCPU() * 256
 
 	// set poolSize equal to processor if it was specified
 	if pNum, ok := data.(int); ok && pNum > 0 {
-		poolSize = pNum * 1024
+		poolSize = pNum * 256
 	}
 
 	pool = mosnsync.NewWorkerPool(poolSize)
