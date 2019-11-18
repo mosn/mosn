@@ -42,7 +42,7 @@ func (adsClient *ADSClient) sendThread() {
 	log.DefaultLogger.Debugf("[xds] [ads client] send thread request cds")
 	err := adsClient.reqClusters(adsClient.StreamClient)
 	if err != nil {
-		log.DefaultLogger.Warnf("[xds] [ads client] send thread request cds fail!auto retry next period")
+		log.DefaultLogger.Infof("[xds] [ads client] send thread request cds fail!auto retry next period")
 		adsClient.reconnect()
 	}
 
@@ -58,7 +58,7 @@ func (adsClient *ADSClient) sendThread() {
 		case <-t1.C:
 			err := adsClient.reqClusters(adsClient.StreamClient)
 			if err != nil {
-				log.DefaultLogger.Warnf("[xds] [ads client] send thread request cds fail!auto retry next period")
+				log.DefaultLogger.Infof("[xds] [ads client] send thread request cds fail!auto retry next period")
 				adsClient.reconnect()
 			}
 			t1.Reset(*refreshDelay)
@@ -75,13 +75,13 @@ func (adsClient *ADSClient) receiveThread() {
 			return
 		default:
 			if adsClient.StreamClient == nil {
-				log.DefaultLogger.Warnf("[xds] [ads client] stream client closed, sleep 1s and wait for reconnect")
+				log.DefaultLogger.Infof("[xds] [ads client] stream client closed, sleep 1s and wait for reconnect")
 				time.Sleep(time.Second)
 				continue
 			}
 			resp, err := adsClient.StreamClient.Recv()
 			if err != nil {
-				log.DefaultLogger.Warnf("[xds] [ads client] get resp timeout: %v, retry after 1s", err)
+				log.DefaultLogger.Infof("[xds] [ads client] get resp timeout: %v, retry after 1s", err)
 				time.Sleep(time.Second)
 				continue
 			}
@@ -126,7 +126,7 @@ func (adsClient *ADSClient) reconnect() {
 				log.DefaultLogger.Infof("[xds] [ads client] stream client reconnected")
 				return
 			}
-			log.DefaultLogger.Warnf("[xds] [ads client] stream client reconnect failed, retry after %v", interval)
+			log.DefaultLogger.Infof("[xds] [ads client] stream client reconnect failed, retry after %v", interval)
 		}
 		// sleep random
 		time.Sleep(interval + time.Duration(rand.Intn(1000))*time.Millisecond)

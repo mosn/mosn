@@ -551,7 +551,9 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 		if routersMngIns := router.GetRoutersMangerInstance(); routersMngIns == nil {
 			log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: router manager in nil")
 		} else {
-			routersMngIns.AddOrUpdateRouters(routerConfig)
+			if err := routersMngIns.AddOrUpdateRouters(routerConfig); err != nil {
+				log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: %v", err)
+			}
 		}
 		filtersConfigParsed[v2.CONNECTION_MANAGER] = toMap(routerConfig)
 	} else {
