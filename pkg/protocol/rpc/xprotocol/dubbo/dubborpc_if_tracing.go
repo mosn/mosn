@@ -19,7 +19,6 @@ package dubbo
 
 import (
 	"fmt"
-	"regexp"
 	"strconv"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
@@ -28,17 +27,9 @@ import (
 
 // regular
 const (
-	JAVA_IDENT_REGEX = "(?:[_$a-zA-Z][_$a-zA-Z0-9]*)"
-	CLASS_DESC       = "(?:L" + JAVA_IDENT_REGEX + "(?:\\/" + JAVA_IDENT_REGEX + ")*;)"
-	ARRAY_DESC       = "(?:\\[+(?:(?:[VZBCDFIJS])|" + CLASS_DESC + "))"
-	DESC_REGEX       = "(?:(?:[VZBCDFIJS])|" + CLASS_DESC + "|" + ARRAY_DESC + ")"
-
 	RESPONSE_WITH_EXCEPTION                  int32 = 0
 	RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS int32 = 3
 )
-
-// DescRegex ...
-var DescRegex, _ = regexp.Compile(DESC_REGEX)
 
 func init() {
 	serviceNameFunc = dubboGetServiceName
@@ -162,7 +153,8 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		fmt.Printf("unSerialize: Decode argsTypes fail, err=%v\n", err)
 		return nil
 	}
-	ats := DescRegex.FindAllString(field.(string), -1)
+
+	ats := hessian.DescRegex.FindAllString(field.(string), -1)
 	for i := 0; i < len(ats); i++ {
 		_, err = decoder.Decode()
 		if err != nil {
@@ -181,7 +173,7 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		return nil
 	}
 	if v, ok := field.(map[interface{}]interface{}); ok {
-		attachments = ToMapStringString(v)
+		attachments = hessian.ToMapStringString(v)
 		attr.attachments = attachments
 	}
 	// No need here
@@ -291,16 +283,4 @@ func dubboGetMeta(data []byte) map[string]string {
 	}
 
 	return retMap
-}
-
-func ToMapStringString(origin map[interface{}]interface{}) map[string]string {
-	dest := make(map[string]string)
-	for k, v := range origin {
-		if kv, ok := k.(string); ok {
-			if vv, ok := v.(string); ok {
-				dest[kv] = vv
-			}
-		}
-	}
-	return dest
 }
