@@ -24,7 +24,8 @@ import (
 
 	"sync/atomic"
 
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -98,7 +99,7 @@ func (r *upstreamRequest) endStream() {
 
 // types.StreamReceiveListener
 // Method to decode upstream's response message
-func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data buffer.IoBuffer, trailers types.HeaderMap) {
 	if r.downStream.processDone() || r.setupRetry {
 		return
 	}
@@ -206,7 +207,7 @@ func (r *upstreamRequest) appendData(endStream bool) {
 	r.requestSender.AppendData(r.downStream.context, r.convertData(data), endStream)
 }
 
-func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
+func (r *upstreamRequest) convertData(data buffer.IoBuffer) buffer.IoBuffer {
 	if r.downStream.noConvert {
 		return data
 	}

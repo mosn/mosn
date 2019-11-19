@@ -1,32 +1,12 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package buffer
 
 import (
 	"context"
 	"sync"
 	"sync/atomic"
-
 	"unsafe"
 
-	"sofastack.io/sofa-mosn/pkg/types"
-
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
 )
 
 const maxBufferPool = 16
@@ -40,7 +20,7 @@ var (
 	nullBufferValue [maxBufferPool]interface{}
 )
 
-// TempBufferCtx is template for types.BufferPoolCtx
+// TempBufferCtx is template for BufferPoolCtx
 type TempBufferCtx struct {
 	index int
 }
@@ -63,13 +43,13 @@ type ifaceWords struct {
 }
 
 // setIdex sets index, poolCtx must embedded TempBufferCtx
-func setIndex(poolCtx types.BufferPoolCtx, i int) {
+func setIndex(poolCtx BufferPoolCtx, i int) {
 	p := (*ifaceWords)(unsafe.Pointer(&poolCtx))
 	temp := (*TempBufferCtx)(p.data)
 	temp.index = i
 }
 
-func RegisterBuffer(poolCtx types.BufferPoolCtx) {
+func RegisterBuffer(poolCtx BufferPoolCtx) {
 	// frist index is 1
 	i := atomic.AddInt32(&index, 1)
 	if i >= maxBufferPool {
@@ -81,7 +61,7 @@ func RegisterBuffer(poolCtx types.BufferPoolCtx) {
 
 // bufferPool is buffer pool
 type bufferPool struct {
-	ctx types.BufferPoolCtx
+	ctx BufferPoolCtx
 	sync.Pool
 }
 
@@ -112,7 +92,7 @@ type bufferValue struct {
 
 // NewBufferPoolContext returns a context with bufferValue
 func NewBufferPoolContext(ctx context.Context) context.Context {
-	return mosnctx.WithValue(ctx, types.ContextKeyBufferPoolCtx, newBufferValue())
+	return mosnctx.WithValue(ctx, mosnctx.ContextKeyBufferPoolCtx, newBufferValue())
 }
 
 // TransmitBufferPoolContext copy a context
@@ -138,7 +118,7 @@ func newBufferValue() (value *bufferValue) {
 }
 
 // Find returns buffer from bufferValue
-func (bv *bufferValue) Find(poolCtx types.BufferPoolCtx, x interface{}) interface{} {
+func (bv *bufferValue) Find(poolCtx BufferPoolCtx, x interface{}) interface{} {
 	i := poolCtx.Index()
 	if i <= 0 || i > int(index) {
 		panic("buffer should call buffer.RegisterBuffer()")
@@ -150,7 +130,7 @@ func (bv *bufferValue) Find(poolCtx types.BufferPoolCtx, x interface{}) interfac
 }
 
 // Take returns buffer from buffer pools
-func (bv *bufferValue) Take(poolCtx types.BufferPoolCtx) (value interface{}) {
+func (bv *bufferValue) Take(poolCtx BufferPoolCtx) (value interface{}) {
 	i := poolCtx.Index()
 	value = bPool[i].take()
 	bv.value[i] = value
@@ -183,7 +163,7 @@ func (bv *bufferValue) Give() {
 // PoolContext returns bufferValue by context
 func PoolContext(ctx context.Context) *bufferValue {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyBufferPoolCtx); val != nil {
+		if val := mosnctx.Get(ctx, mosnctx.ContextKeyBufferPoolCtx); val != nil {
 			return val.(*bufferValue)
 		}
 	}

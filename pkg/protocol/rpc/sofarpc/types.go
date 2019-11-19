@@ -21,6 +21,7 @@ import (
 	"errors"
 	"time"
 
+	"sofastack.io/sofa-mosn/common/buffer"
 	apiv2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -201,7 +202,7 @@ type BoltRequest struct {
 	ContentLen int
 	ClassName  []byte
 	HeaderMap  []byte
-	Content    types.IoBuffer
+	Content    buffer.IoBuffer
 
 	RequestClass  string // deserialize fields
 	RequestHeader map[string]string
@@ -220,7 +221,7 @@ func (b *BoltRequest) Header() map[string]string {
 	return b.RequestHeader
 }
 
-func (b *BoltRequest) Data() types.IoBuffer {
+func (b *BoltRequest) Data() buffer.IoBuffer {
 	return b.Content
 }
 
@@ -232,7 +233,7 @@ func (b *BoltRequest) SetHeader(header map[string]string) {
 	b.RequestHeader = header
 }
 
-func (b *BoltRequest) SetData(data types.IoBuffer) {
+func (b *BoltRequest) SetData(data buffer.IoBuffer) {
 	b.Content = data
 }
 
@@ -313,7 +314,7 @@ type BoltResponse struct {
 	ContentLen int
 	ClassName  []byte
 	HeaderMap  []byte
-	Content    types.IoBuffer
+	Content    buffer.IoBuffer
 
 	ResponseClass  string // deserialize fields
 	ResponseHeader map[string]string
@@ -334,7 +335,7 @@ func (b *BoltResponse) Header() map[string]string {
 	return b.ResponseHeader
 }
 
-func (b *BoltResponse) Data() types.IoBuffer {
+func (b *BoltResponse) Data() buffer.IoBuffer {
 	return b.Content
 }
 
@@ -346,7 +347,7 @@ func (b *BoltResponse) SetHeader(header map[string]string) {
 	b.ResponseHeader = header
 }
 
-func (b *BoltResponse) SetData(data types.IoBuffer) {
+func (b *BoltResponse) SetData(data buffer.IoBuffer) {
 	b.Content = data
 }
 

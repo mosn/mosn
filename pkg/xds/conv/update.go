@@ -24,7 +24,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/router"
 	"sofastack.io/sofa-mosn/pkg/server"
 	"sofastack.io/sofa-mosn/pkg/types"

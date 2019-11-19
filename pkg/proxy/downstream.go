@@ -27,20 +27,20 @@ import (
 	"sync/atomic"
 	"time"
 
+	"sofastack.io/sofa-mosn/common/utils"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/utils"
 
 	"runtime/debug"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/http"
 	"sofastack.io/sofa-mosn/pkg/router"
 	"sofastack.io/sofa-mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
 )
 
 // types.StreamEventListener
@@ -69,12 +69,12 @@ type downStream struct {
 
 	// ~~~ downstream request buf
 	downstreamReqHeaders  types.HeaderMap
-	downstreamReqDataBuf  types.IoBuffer
+	downstreamReqDataBuf  buffer.IoBuffer
 	downstreamReqTrailers types.HeaderMap
 
 	// ~~~ downstream response buf
 	downstreamRespHeaders  types.HeaderMap
-	downstreamRespDataBuf  types.IoBuffer
+	downstreamRespDataBuf  buffer.IoBuffer
 	downstreamRespTrailers types.HeaderMap
 
 	// ~~~ state
@@ -120,8 +120,8 @@ type downStream struct {
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
 	if span != nil && trace.IsEnabled() {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyActiveSpan, span)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyActiveSpan, span)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 	}
 
 	proxyBuffers := proxyBuffersByContext(ctx)
@@ -149,7 +149,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	// info message for new downstream
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		requestId := mosnctx.Get(stream.context, types.ContextKeyStreamID)
+		requestId := mosnctx.Get(stream.context, mosnctx.ContextKeyStreamID)
 		log.Proxy.Debugf(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestId, stream.oneway)
 	}
 	return stream
@@ -308,7 +308,7 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 func (s *downStream) OnDestroyStream() {}
 
 // types.StreamReceiveListener
-func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data buffer.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
 	if data != nil {
 		s.downstreamReqDataBuf = data.Clone()
@@ -942,7 +942,7 @@ func (s *downStream) appendData(endStream bool) {
 	}
 }
 
-func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
+func (s *downStream) convertData(data buffer.IoBuffer) buffer.IoBuffer {
 	if s.noConvert {
 		return data
 	}
@@ -1110,8 +1110,8 @@ func (s *downStream) finishTracing() {
 			span.SetRequestInfo(s.requestInfo)
 			span.FinishSpan()
 
-			if mosnctx.Get(s.context, types.ContextKeyListenerType) == v2.INGRESS {
-				trace.DeleteSpanIdGenerator(mosnctx.Get(s.context, types.ContextKeyTraceSpanKey).(*trace.SpanKey))
+			if mosnctx.Get(s.context, mosnctx.ContextKeyListenerType) == v2.INGRESS {
+				trace.DeleteSpanIdGenerator(mosnctx.Get(s.context, mosnctx.ContextKeyTraceSpanKey).(*trace.SpanKey))
 			}
 		} else {
 			log.Proxy.Warnf(s.context, "[proxy] [downstream] trace span is null")

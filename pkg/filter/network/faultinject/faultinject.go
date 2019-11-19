@@ -22,9 +22,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/utils"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 type faultInjector struct {
@@ -43,7 +44,7 @@ func NewFaultInjector(config *v2.FaultInject) types.ReadFilter {
 	}
 }
 
-func (fi *faultInjector) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (fi *faultInjector) OnData(buffer buffer.IoBuffer) types.FilterStatus {
 	fi.tryInjectDelay()
 
 	if atomic.LoadUint32(&fi.delaying) > 0 {

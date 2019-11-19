@@ -25,12 +25,12 @@ import (
 	"strings"
 	"time"
 
+	"sofastack.io/sofa-mosn/common/buffer"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/types"
-
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 )
 
 // ReadFilter
@@ -53,7 +53,7 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.Clu
 		config:         NewProxyConfig(config),
 		clusterManager: clusterManager,
 		requestInfo:    network.NewRequestInfo(),
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]types.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, mosnctx.ContextKeyAccessLogs).([]types.AccessLog),
 	}
 
 	p.upstreamCallbacks = &upstreamCallbacks{
@@ -66,7 +66,7 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.Clu
 	return p
 }
 
-func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (p *proxy) OnData(buffer buffer.IoBuffer) types.FilterStatus {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[tcpproxy] [ondata] read data , len = %v", buffer.Len())
 	}
@@ -164,7 +164,7 @@ func (p *proxy) onInitFailure(reason UpstreamFailureReason) {
 	p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)
 }
 
-func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
+func (p *proxy) onUpstreamData(buffer buffer.IoBuffer) {
 	log.DefaultLogger.Tracef("Tcp Proxy :: read upstream data , len = %v", buffer.Len())
 	bytesSent := p.requestInfo.BytesSent() + uint64(buffer.Len())
 	p.requestInfo.SetBytesSent(bytesSent)
@@ -388,7 +388,7 @@ func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	uc.proxy.onUpstreamEvent(event)
 }
 
-func (uc *upstreamCallbacks) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (uc *upstreamCallbacks) OnData(buffer buffer.IoBuffer) types.FilterStatus {
 	uc.proxy.onUpstreamData(buffer)
 	return types.Stop
 }

@@ -21,7 +21,7 @@ import (
 	"regexp"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 

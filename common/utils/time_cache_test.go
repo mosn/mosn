@@ -15,35 +15,31 @@
  * limitations under the License.
  */
 
-package types
+package utils
 
-// ContextKey type
-type ContextKey int
-
-// Context key types(built-in)
-const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyConnectionID
-	ContextKeyListenerPort
-	ContextKeyListenerName
-	ContextKeyListenerType
-	ContextKeyListenerStatsNameSpace
-	ContextKeyNetworkFilterChainFactories
-	ContextKeyStreamFilterChainFactories
-	ContextKeyBufferPoolCtx
-	ContextKeyAccessLogs
-	ContextOriRemoteAddr
-	ContextKeyAcceptChan
-	ContextKeyAcceptBuffer
-	ContextKeyConnectionFd
-	ContextSubProtocol
-	ContextKeyTraceSpanKey
-	ContextKeyActiveSpan
-	ContextKeyTraceId
-	ContextKeyEnd
+import (
+	"runtime"
+	"testing"
+	"time"
 )
 
-// GlobalProxyName represents proxy name for metrics
-const (
-	GlobalProxyName = "global"
-)
+func BenchmarkLogTimeNow(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	for n := 0; n < b.N; n++ {
+		time.Now()
+	}
+}
+
+func BenchmarkLogTimeFormat(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	for n := 0; n < b.N; n++ {
+		time.Now().Format("2006/01/02 15:04:05.000")
+	}
+}
+
+func BenchmarkLogTime(b *testing.B) {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	for n := 0; n < b.N; n++ {
+		CacheTime()
+	}
+}

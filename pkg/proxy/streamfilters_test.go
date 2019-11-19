@@ -24,7 +24,7 @@ import (
 
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -269,7 +269,7 @@ type mockStreamReceiverFilter struct {
 
 func (f *mockStreamReceiverFilter) OnDestroy() {}
 
-func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf buffer.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	f.on++
 	if f.status == types.StreamFilterStop {
 		atomic.StoreUint32(&f.s.downstreamCleaned, 1)
@@ -293,7 +293,7 @@ type mockStreamSenderFilter struct {
 
 func (f *mockStreamSenderFilter) OnDestroy() {}
 
-func (f *mockStreamSenderFilter) Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *mockStreamSenderFilter) Append(ctx context.Context, headers types.HeaderMap, buf buffer.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	f.on++
 	f.handler.SetResponseHeaders(protocol.CommonHeader{})
 	f.handler.SetResponseData(buffer.NewIoBuffer(1))

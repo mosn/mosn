@@ -24,6 +24,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -102,7 +103,7 @@ func (c *common2sofa) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *common2sofa) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *common2sofa) ConvData(ctx context.Context, buffer buffer.IoBuffer) (buffer.IoBuffer, error) {
 	return buffer, nil
 }
 
@@ -125,7 +126,7 @@ func (c *sofa2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *sofa2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *sofa2common) ConvData(ctx context.Context, buffer buffer.IoBuffer) (buffer.IoBuffer, error) {
 	return buffer, nil
 }
 

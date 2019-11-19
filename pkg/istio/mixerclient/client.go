@@ -25,7 +25,7 @@ import (
 
 	"google.golang.org/grpc"
 	v1 "istio.io/api/mixer/v1"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
 )
 

@@ -48,7 +48,7 @@ func TestNewIoBufferBytes(t *testing.T) {
 
 func TestIoBufferCopy(t *testing.T) {
 	bi := NewIoBuffer(1)
-	b := bi.(*IoBuffer)
+	b := bi.(*ioBufferImpl)
 	n := randN(1024) + 1
 	b.copy(n)
 	if cap(b.buf) < 2*1+n {
@@ -107,7 +107,7 @@ func TestIoBufferWrite(t *testing.T) {
 
 func TestIoBufferAppend(t *testing.T) {
 	bi := NewIoBuffer(1)
-	b := bi.(*IoBuffer)
+	b := bi.(*ioBufferImpl)
 	n := randN(64)
 	for i := 0; i < n; i++ {
 		s := randString(i + 16)
@@ -126,7 +126,7 @@ func TestIoBufferAppend(t *testing.T) {
 
 func TestIoBufferAppendByte(t *testing.T) {
 	bi := NewIoBuffer(1)
-	b := bi.(*IoBuffer)
+	b := bi.(*ioBufferImpl)
 	input := make([]byte, 0, 1024)
 	n := randN(1024)
 
@@ -226,7 +226,7 @@ func TestIoBufferCut(t *testing.T) {
 	for i := 16; i < 1024+16; i++ {
 		s := randString(i)
 		bi := NewIoBufferString(s)
-		b := bi.(*IoBuffer)
+		b := bi.(*ioBufferImpl)
 		offset := randN(i) - 1
 		nb := b.Cut(offset)
 		if nb.String() != s[:offset] {

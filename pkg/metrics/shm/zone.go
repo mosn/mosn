@@ -27,7 +27,7 @@ import (
 	"unsafe"
 
 	"sofastack.io/sofa-mosn/pkg/shm"
-	mosnlog "sofastack.io/sofa-mosn/pkg/log"
+	mosnlog "sofastack.io/sofa-mosn/common/log"
 )
 
 var (

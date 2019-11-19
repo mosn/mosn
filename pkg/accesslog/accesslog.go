@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 
-package log
+package accesslog
 
 import (
 	"strconv"
 	"strings"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -66,13 +67,13 @@ type accesslog struct {
 	output    string
 	filter    types.AccessLogFilter
 	formatter types.AccessLogFormatter
-	logger    *Logger
+	logger    *log.Logger
 }
 
 // NewAccessLog
 func NewAccessLog(output string, filter types.AccessLogFilter,
 	format string) (types.AccessLog, error) {
-	lg, err := GetOrCreateLogger(output, nil)
+	lg, err := log.GetOrCreateLogger(output, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +94,7 @@ func NewAccessLog(output string, filter types.AccessLogFilter,
 
 func (l *accesslog) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	// return directly
-	if l.logger.disable {
+	if l.logger.Disable() {
 		return
 	}
 	if l.filter != nil {
@@ -128,7 +129,7 @@ func NewAccessLogFormatter(format string) types.AccessLogFormatter {
 	}
 }
 
-func (f *accesslogformatter) Format(buf types.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (f *accesslogformatter) Format(buf buffer.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	for _, formatter := range f.formatters {
 		formatter.Format(buf, reqHeaders, respHeaders, requestInfo)
 	}
@@ -140,10 +141,10 @@ type simpleRequestInfoFormatter struct {
 }
 
 // Format request info headers
-func (f *simpleRequestInfoFormatter) Format(buf types.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (f *simpleRequestInfoFormatter) Format(buf buffer.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	// todo: map fieldName to field vale string
 	if f.reqInfoFunc == nil {
-		DefaultLogger.Debugf("No ReqInfo Format Keys Input")
+		log.DefaultLogger.Debugf("No ReqInfo Format Keys Input")
 		return
 	}
 
@@ -163,9 +164,9 @@ type simpleReqHeadersFormatter struct {
 }
 
 // Format request headers format
-func (f *simpleReqHeadersFormatter) Format(buf types.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (f *simpleReqHeadersFormatter) Format(buf buffer.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	if f.reqHeaderFormat == nil {
-		DefaultLogger.Debugf("No ReqHeaders Format Keys Input")
+		log.DefaultLogger.Debugf("No ReqHeaders Format Keys Input")
 		return
 	}
 
@@ -189,9 +190,9 @@ type simpleRespHeadersFormatter struct {
 }
 
 // Format response headers format
-func (f *simpleRespHeadersFormatter) Format(buf types.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (f *simpleRespHeadersFormatter) Format(buf buffer.IoBuffer, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	if f.respHeaderFormat == nil {
-		DefaultLogger.Debugf("No RespHeaders Format Keys Input")
+		log.DefaultLogger.Debugf("No RespHeaders Format Keys Input")
 		return
 	}
 
@@ -254,7 +255,7 @@ func formatToFormatter(format string) []types.AccessLogFormatter {
 		if vFunc, ok := RequestInfoFuncMap[key]; ok {
 			infoFunc = append(infoFunc, vFunc)
 		} else {
-			DefaultLogger.Debugf("Invalid ReqInfo Format Keys: %s", key)
+			log.DefaultLogger.Debugf("Invalid ReqInfo Format Keys: %s", key)
 		}
 	}
 

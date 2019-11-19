@@ -23,7 +23,7 @@ import (
 
 	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/limit"
 	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/common/utils"
 )
 
 func TestNewStat(t *testing.T) {

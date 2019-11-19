@@ -20,9 +20,10 @@ package serialize
 import (
 	"encoding/binary"
 	"fmt"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"reflect"
 	"unsafe"
+
+	"sofastack.io/sofa-mosn/common/buffer"
 )
 
 // Instance
@@ -35,7 +36,7 @@ func (s *simpleSerialization) GetSerialNum() int {
 	return 6
 }
 
-func (s *simpleSerialization) SerializeMap(m map[string]string, b types.IoBuffer) error {
+func (s *simpleSerialization) SerializeMap(m map[string]string, b buffer.IoBuffer) error {
 	lenBuf := make([]byte, 4)
 
 	for key, value := range m {

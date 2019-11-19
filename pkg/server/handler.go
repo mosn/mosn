@@ -32,16 +32,17 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
+	"sofastack.io/sofa-mosn/common/utils"
+	"sofastack.io/sofa-mosn/pkg/accesslog"
 	admin "sofastack.io/sofa-mosn/pkg/admin/store"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/filter/accept/originaldst"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/mtls"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // ConnectionHandler
@@ -178,7 +179,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 				alConfig.Path = types.MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
 			}
 
-			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
+			if al, err := accesslog.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
 				return nil, fmt.Errorf("initialize listener access logger %s failed: %v", alConfig.Path, err.Error())
@@ -427,21 +428,21 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		}
 	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, &al.streamFiltersFactoriesStore)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyListenerPort, al.listenPort)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyListenerType, al.listener.Config().Type)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyListenerName, al.listener.Name())
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamFilterChainFactories, &al.streamFiltersFactoriesStore)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAccessLogs, al.accessLogs)
 	if rawf != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionFd, rawf)
 	}
 	if ch != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAcceptChan, ch)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextOriRemoteAddr, oriRemoteAddr)
 	}
 
 	arc.ContinueFilterChain(ctx, true)
@@ -502,11 +503,11 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 		// notice only server side connection set the default value
 		conn.SetIdleTimeout(defaultIdleTimeout)
 	}
-	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
+	oriRemoteAddr := mosnctx.Get(ctx, mosnctx.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
+	newCtx := mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionID, conn.ID())
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
@@ -558,9 +559,9 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	var ch chan types.Connection
 	var buf []byte
-	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
+	if val := mosnctx.Get(ctx, mosnctx.ContextKeyAcceptChan); val != nil {
 		ch = val.(chan types.Connection)
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+		if val := mosnctx.Get(ctx, mosnctx.ContextKeyAcceptBuffer); val != nil {
 			buf = val.([]byte)
 		}
 	}

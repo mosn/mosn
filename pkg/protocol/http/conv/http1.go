@@ -22,10 +22,11 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/valyala/fasthttp"
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/http"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/valyala/fasthttp"
 )
 
 func init() {
@@ -64,7 +65,7 @@ func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *common2http) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *common2http) ConvData(ctx context.Context, buffer buffer.IoBuffer) (buffer.IoBuffer, error) {
 	return buffer, nil
 }
 
@@ -103,7 +104,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *http2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *http2common) ConvData(ctx context.Context, buffer buffer.IoBuffer) (buffer.IoBuffer, error) {
 	return buffer, nil
 }
 

@@ -22,7 +22,7 @@ import (
 	"net"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -104,7 +104,7 @@ func (s *mockServer) HandleConn(conn net.Conn) {
 	}
 }
 
-func (s *mockServer) Reply(iobuf types.IoBuffer) []byte {
+func (s *mockServer) Reply(iobuf buffer.IoBuffer) []byte {
 	if s.delay != 0 {
 		time.Sleep(s.delay)
 	}

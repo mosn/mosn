@@ -20,13 +20,14 @@ package mixer
 import (
 	"context"
 
+	"istio.io/api/mixer/v1/config/client"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/filter"
 	"sofastack.io/sofa-mosn/pkg/istio/control/http"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"istio.io/api/mixer/v1/config/client"
 )
 
 func init() {
@@ -100,7 +101,7 @@ func (f *mixerFilter) createRequestHandler() {
 	f.requestHandler = http.NewRequestHandler(f.serviceContext)
 }
 
-func (f *mixerFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *mixerFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf buffer.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	if headers != nil {
 		f.requestTotalSize += headers.ByteSize()
 		f.createRequestHandler()

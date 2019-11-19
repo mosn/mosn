@@ -22,7 +22,7 @@ import (
 	"sync"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 

@@ -17,6 +17,8 @@
 
 package types
 
+import "sofastack.io/sofa-mosn/common/buffer"
+
 //    The bunch of interfaces are used to print the access log in format designed by users.
 //    Access log format consists of three parts, which are "RequestInfoFormat", "RequestHeaderFormat"
 //    and "ResponseHeaderFormat", also you can get details by reading "AccessLogDetails.md".
@@ -38,7 +40,7 @@ type AccessLogFilter interface {
 // AccessLogFormatter is a object that format the request info to string
 type AccessLogFormatter interface {
 	// Format makes the request headers, response headers and request info to string for printing according to log formatter
-	Format(buf IoBuffer, reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo)
+	Format(buf buffer.IoBuffer, reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo)
 }
 
 // The identification of a request info's content

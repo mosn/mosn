@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 
 	"github.com/spf13/pflag"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"reflect"
 )
 

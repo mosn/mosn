@@ -21,7 +21,8 @@ import (
 	"context"
 
 	metrics "github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -155,7 +156,7 @@ func (c *client) OnEvent(event types.ConnectionEvent) {
 
 // types.ReadFilter
 // read filter, recv upstream data
-func (c *client) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (c *client) OnData(buffer buffer.IoBuffer) types.FilterStatus {
 	c.ClientStreamConnection.Dispatch(buffer)
 
 	return types.Stop
@@ -173,7 +174,7 @@ type clientStreamReceiverWrapper struct {
 	streamReceiver types.StreamReceiveListener
 }
 
-func (w *clientStreamReceiverWrapper) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (w *clientStreamReceiverWrapper) OnReceive(ctx context.Context, headers types.HeaderMap, data buffer.IoBuffer, trailers types.HeaderMap) {
 	w.stream.DestroyStream()
 	w.streamReceiver.OnReceive(ctx, headers, data, trailers)
 }

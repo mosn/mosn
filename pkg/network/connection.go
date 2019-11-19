@@ -32,12 +32,12 @@ import (
 	"time"
 
 	"github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
+	"sofastack.io/sofa-mosn/common/utils"
 	"sofastack.io/sofa-mosn/pkg/mtls"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // Network related const
@@ -83,11 +83,11 @@ type connection struct {
 	idleEventListener    types.ConnectionEventListener
 
 	stopChan           chan struct{}
-	curWriteBufferData []types.IoBuffer
-	readBuffer         types.IoBuffer
+	curWriteBufferData []buffer.IoBuffer
+	readBuffer         buffer.IoBuffer
 	writeBuffers       net.Buffers
-	ioBuffers          []types.IoBuffer
-	writeBufferChan    chan *[]types.IoBuffer
+	ioBuffers          []buffer.IoBuffer
+	writeBufferChan    chan *[]buffer.IoBuffer
 	transferChan       chan uint64
 
 	// readLoop/writeLoop goroutine fields:
@@ -126,7 +126,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		connected:        1,
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
-		writeBufferChan:  make(chan *[]types.IoBuffer, 8),
+		writeBufferChan:  make(chan *[]buffer.IoBuffer, 8),
 		writeSchedChan:   make(chan bool, 1),
 		transferChan:     make(chan uint64),
 		stats: &types.ConnectionStats{
@@ -140,13 +140,13 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	// store fd
-	if val := mosnctx.Get(ctx, types.ContextKeyConnectionFd); val != nil {
+	if val := mosnctx.Get(ctx, mosnctx.ContextKeyConnectionFd); val != nil {
 		conn.file = val.(*os.File)
 	}
 
 	// transfer old mosn connection
-	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+	if val := mosnctx.Get(ctx, mosnctx.ContextKeyAcceptChan); val != nil {
+		if val := mosnctx.Get(ctx, mosnctx.ContextKeyAcceptBuffer); val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(len(buf))
 			conn.readBuffer.Write(buf)
@@ -493,7 +493,7 @@ func (c *connection) onRead() {
 	c.filterManager.OnRead()
 }
 
-func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
+func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[network] [write] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
@@ -542,7 +542,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
 	return
 }
 
-func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
+func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	select {
 	case <-c.internalStopChan:
 		return types.ErrConnectionHasClosed
@@ -670,7 +670,7 @@ func (c *connection) startWriteLoop() {
 	}
 }
 
-func (c *connection) appendBuffer(iobuffers *[]types.IoBuffer) {
+func (c *connection) appendBuffer(iobuffers *[]buffer.IoBuffer) {
 	if iobuffers == nil {
 		return
 	}
@@ -894,11 +894,11 @@ func (c *connection) LocalAddressRestored() bool {
 }
 
 // BufferSource
-func (c *connection) GetWriteBuffer() []types.IoBuffer {
+func (c *connection) GetWriteBuffer() []buffer.IoBuffer {
 	return c.curWriteBufferData
 }
 
-func (c *connection) GetReadBuffer() types.IoBuffer {
+func (c *connection) GetReadBuffer() buffer.IoBuffer {
 	return c.readBuffer
 }
 
@@ -945,7 +945,7 @@ func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsM
 			readEnabled:      true,
 			readEnabledChan:  make(chan bool, 1),
 			internalStopChan: make(chan struct{}),
-			writeBufferChan:  make(chan *[]types.IoBuffer, 8),
+			writeBufferChan:  make(chan *[]buffer.IoBuffer, 8),
 			writeSchedChan:   make(chan bool, 1),
 			stats: &types.ConnectionStats{
 				ReadTotal:     metrics.NewCounter(),

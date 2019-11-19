@@ -19,11 +19,11 @@ package stream
 
 import (
 	"context"
-	"sofastack.io/sofa-mosn/pkg/buffer"
+
+	"sofastack.io/sofa-mosn/common/buffer"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
-
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 )
 
 // contextManager
@@ -43,10 +43,10 @@ func (cm *ContextManager) Next() {
 
 func (cm *ContextManager) InjectTrace(ctx context.Context, span types.Span) context.Context {
 	if span != nil {
-		return mosnctx.WithValue(ctx, types.ContextKeyTraceId, span.TraceId())
+		return mosnctx.WithValue(ctx, mosnctx.ContextKeyTraceId, span.TraceId())
 	}
 	// generate traceId
-	return mosnctx.WithValue(ctx, types.ContextKeyTraceId, trace.IdGen().GenerateTraceId())
+	return mosnctx.WithValue(ctx, mosnctx.ContextKeyTraceId, trace.IdGen().GenerateTraceId())
 }
 
 func NewContextManager(base context.Context) *ContextManager {

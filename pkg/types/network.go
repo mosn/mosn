@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/rcrowley/go-metrics"
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
@@ -203,7 +204,7 @@ type Connection interface {
 
 	// Write writes data to the connection.
 	// Called by other-side stream connection's read loop. Will loop through stream filters with the buffer if any are installed.
-	Write(buf ...IoBuffer) error
+	Write(buf ...buffer.IoBuffer) error
 
 	// Close closes connection with connection type and event type.
 	// ConnectionCloseType - how to close to connection
@@ -274,10 +275,10 @@ type Connection interface {
 	LocalAddressRestored() bool
 
 	// GetWriteBuffer is used by network writer filter
-	GetWriteBuffer() []IoBuffer
+	GetWriteBuffer() []buffer.IoBuffer
 
 	// GetReadBuffer is used by network read filter
-	GetReadBuffer() IoBuffer
+	GetReadBuffer() buffer.IoBuffer
 
 	// FilterManager returns the FilterManager
 	FilterManager() FilterManager
@@ -391,7 +392,7 @@ type ConnectionHandler interface {
 // ReadFilter is a connection binary read filter, registered by FilterManager.AddReadFilter
 type ReadFilter interface {
 	// OnData is called everytime bytes is read from the connection
-	OnData(buffer IoBuffer) FilterStatus
+	OnData(buffer buffer.IoBuffer) FilterStatus
 
 	// OnNewConnection is called on new connection is created
 	OnNewConnection() FilterStatus
@@ -403,7 +404,7 @@ type ReadFilter interface {
 // WriteFilter is a connection binary write filter, only called by conn accept loop
 type WriteFilter interface {
 	// OnWrite is called before data write to raw connection
-	OnWrite(buffer []IoBuffer) FilterStatus
+	OnWrite(buffer []buffer.IoBuffer) FilterStatus
 }
 
 // ReadFilterCallbacks is called by read filter to talk to connection
@@ -442,7 +443,7 @@ type FilterManager interface {
 	OnRead()
 
 	// OnWrite is called before data write
-	OnWrite(buffer []IoBuffer) FilterStatus
+	OnWrite(buffer []buffer.IoBuffer) FilterStatus
 }
 
 type FilterChainFactory interface {

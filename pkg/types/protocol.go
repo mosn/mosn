@@ -19,6 +19,8 @@ package types
 
 import (
 	"context"
+
+	"sofastack.io/sofa-mosn/common/buffer"
 )
 
 // 	 The bunch of interfaces are structure skeleton to build a extensible protocol engine.
@@ -84,12 +86,12 @@ type ProtocolEngine interface {
 type Encoder interface {
 	// Encode encodes a model to binary data
 	// return 1. encoded bytes 2. encode error
-	Encode(ctx context.Context, model interface{}) (IoBuffer, error)
+	Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error)
 
 	// EncodeTo encodes a model to binary data, and append into the given buffer
 	// This method should be used in term of performance
 	// return 1. encoded bytes number 2. encode error
-	//EncodeTo(ctx context.Context, model interface{}, buf IoBuffer) (int, error)
+	//EncodeTo(ctx context.Context, model interface{}, buf buffer.IoBuffer) (int, error)
 }
 
 // Decoder is a decoder interface to extend various of protocols
@@ -97,5 +99,5 @@ type Decoder interface {
 	// Decode decodes binary data to a model
 	// pass sub protocol type to identify protocol format
 	// return 1. decoded model(nil if no enough data) 2. decode error
-	Decode(ctx context.Context, data IoBuffer) (interface{}, error)
+	Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error)
 }

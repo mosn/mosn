@@ -20,8 +20,7 @@ package protocol
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/common/buffer"
 )
 
 func init() {
@@ -37,19 +36,19 @@ var (
 )
 
 type ProtocolBuffers struct {
-	reqData     types.IoBuffer
-	reqHeader   types.IoBuffer
+	reqData     buffer.IoBuffer
+	reqHeader   buffer.IoBuffer
 	reqHeaders  map[string]string
 	reqTrailers map[string]string
 
-	rspData     types.IoBuffer
-	rspHeader   types.IoBuffer
+	rspData     buffer.IoBuffer
+	rspHeader   buffer.IoBuffer
 	rspHeaders  map[string]string
 	rspTrailers map[string]string
 }
 
-type protocolBufferCtx struct{
-	 buffer.TempBufferCtx
+type protocolBufferCtx struct {
+	buffer.TempBufferCtx
 }
 
 func (ctx protocolBufferCtx) New() interface{} {
@@ -85,7 +84,7 @@ func (ctx protocolBufferCtx) Reset(i interface{}) {
 }
 
 // GetReqData returns IoBuffer for request data
-func (p *ProtocolBuffers) GetReqData(size int) types.IoBuffer {
+func (p *ProtocolBuffers) GetReqData(size int) buffer.IoBuffer {
 	if size <= 0 {
 		size = defaultDataSize
 	}
@@ -94,7 +93,7 @@ func (p *ProtocolBuffers) GetReqData(size int) types.IoBuffer {
 }
 
 // GetReqHeader returns IoBuffer for request header
-func (p *ProtocolBuffers) GetReqHeader(size int) types.IoBuffer {
+func (p *ProtocolBuffers) GetReqHeader(size int) buffer.IoBuffer {
 	if size <= 0 {
 		size = defaultHeaderSize
 	}
@@ -113,7 +112,7 @@ func (p *ProtocolBuffers) GetReqTailers() map[string]string {
 }
 
 // GetRspData returns IoBuffer for response data
-func (p *ProtocolBuffers) GetRspData(size int) types.IoBuffer {
+func (p *ProtocolBuffers) GetRspData(size int) buffer.IoBuffer {
 	if size <= 0 {
 		size = defaultDataSize
 	}
@@ -122,7 +121,7 @@ func (p *ProtocolBuffers) GetRspData(size int) types.IoBuffer {
 }
 
 // GetRspHeader returns IoBuffer for response header
-func (p *ProtocolBuffers) GetRspHeader(size int) types.IoBuffer {
+func (p *ProtocolBuffers) GetRspHeader(size int) buffer.IoBuffer {
 	if size <= 0 {
 		size = defaultHeaderSize
 	}

@@ -1,37 +1,19 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package context
 
 import (
 	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"math/rand"
 	"testing"
 )
 
 const testNodeNum = 10
 
-var randomTable [testNodeNum]types.ContextKey
+var randomTable [testNodeNum]ContextKey
 
 func init() {
 	// init random table per-run for all benchmark scenario, so the performance will not be affected by random functions.
 	for i := 0; i < testNodeNum; i++ {
-		randomTable[i] = types.ContextKey(rand.Intn(int(types.ContextKeyEnd)))
+		randomTable[i] = ContextKey(rand.Intn(int(ContextKeyEnd)))
 	}
 }
 
@@ -40,10 +22,10 @@ func TestSetGet(t *testing.T) {
 	ctx := context.Background()
 
 	// set
-	ctx = WithValue(ctx, types.ContextKeyListenerType, expected)
+	ctx = WithValue(ctx, ContextKeyListenerType, expected)
 
 	// get
-	value := ctx.Value(types.ContextKeyListenerType)
+	value := ctx.Value(ContextKeyListenerType)
 	if listenerType, ok := value.(string); ok {
 		if listenerType != expected {
 			t.Errorf("get value error, expected %s, real %s", expected, listenerType)
@@ -51,7 +33,6 @@ func TestSetGet(t *testing.T) {
 	} else {
 		t.Error("get value type error")
 	}
-
 }
 
 func BenchmarkCompatibleGet(b *testing.B) {
@@ -85,7 +66,6 @@ func BenchmarkGet(b *testing.B) {
 			Get(ctx, randomTable[i])
 		}
 	}
-
 }
 
 func BenchmarkSet(b *testing.B) {

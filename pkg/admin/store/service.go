@@ -25,9 +25,9 @@ import (
 	"os"
 	"sync"
 
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/common/utils"
 )
 
 var lock = new(sync.Mutex)

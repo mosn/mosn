@@ -20,6 +20,7 @@ package server
 import (
 	"context"
 
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -39,7 +40,7 @@ func (cmf *mockClusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb
 
 type mockNetworkFilter struct{}
 
-func (nf *mockNetworkFilter) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (nf *mockNetworkFilter) OnData(buffer buffer.IoBuffer) types.FilterStatus {
 	return types.Stop
 }
 func (nf *mockNetworkFilter) OnNewConnection() types.FilterStatus {

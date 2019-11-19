@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/common/utils"
 	"istio.io/api/mixer/v1"
 )
 

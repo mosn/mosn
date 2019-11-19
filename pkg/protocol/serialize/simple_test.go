@@ -18,7 +18,7 @@
 package serialize
 
 import (
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/common/buffer"
 	"testing"
 )
 

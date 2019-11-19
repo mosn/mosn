@@ -20,7 +20,7 @@ package proxy
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/network"
 )
 

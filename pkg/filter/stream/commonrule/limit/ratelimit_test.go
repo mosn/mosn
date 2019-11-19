@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/common/log"
+	"sofastack.io/sofa-mosn/common/utils"
 )
 
 func TestRateLimiter_TryAcquire(t *testing.T) {

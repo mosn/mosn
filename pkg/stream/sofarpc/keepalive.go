@@ -23,12 +23,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
+	"sofastack.io/sofa-mosn/common/utils"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 // StreamReceiver to receive keep alive response
@@ -168,7 +169,7 @@ func (kp *sofaRPCKeepAlive) Stop() {
 
 // StreamReceiver Implementation
 // we just needs to make sure we can receive a response, do not care the data we received
-func (kp *sofaRPCKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (kp *sofaRPCKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data buffer.IoBuffer, trailers types.HeaderMap) {
 	if ack, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		kp.HandleSuccess(ack.RequestID())
 	}

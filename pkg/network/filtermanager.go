@@ -18,6 +18,7 @@
 package network
 
 import (
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -112,7 +113,7 @@ func (fm *filterManager) OnRead() {
 	fm.onContinueReading(nil)
 }
 
-func (fm *filterManager) OnWrite(buffer []types.IoBuffer) types.FilterStatus {
+func (fm *filterManager) OnWrite(buffer []buffer.IoBuffer) types.FilterStatus {
 	for _, df := range fm.downstreamFilters {
 		status := df.OnWrite(buffer)
 

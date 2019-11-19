@@ -20,7 +20,7 @@ package sofarpc
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/common/buffer"
 )
 
 func init() {
@@ -29,7 +29,7 @@ func init() {
 
 var ins = SofaProtocolBufferCtx{}
 
-type SofaProtocolBufferCtx struct{
+type SofaProtocolBufferCtx struct {
 	buffer.TempBufferCtx
 }
 

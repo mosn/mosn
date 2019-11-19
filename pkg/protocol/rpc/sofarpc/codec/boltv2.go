@@ -24,13 +24,12 @@ import (
 	"fmt"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
-	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var (
@@ -49,7 +48,7 @@ func init() {
 // ~~ types.Decoder
 type boltCodecV2 struct{}
 
-func (c *boltCodecV2) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (c *boltCodecV2) Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error) {
 	switch cmd := model.(type) {
 	case *sofarpc.BoltRequestV2:
 		return encodeRequestV2(ctx, cmd)
@@ -61,7 +60,7 @@ func (c *boltCodecV2) Encode(ctx context.Context, model interface{}) (types.IoBu
 	}
 }
 
-func encodeRequestV2(ctx context.Context, cmd *sofarpc.BoltRequestV2) (types.IoBuffer, error) {
+func encodeRequestV2(ctx context.Context, cmd *sofarpc.BoltRequestV2) (buffer.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.RequestClass != "" {
 		cmd.ClassName = serialize.UnsafeStrToByte(cmd.RequestClass)
@@ -130,7 +129,7 @@ func encodeRequestV2(ctx context.Context, cmd *sofarpc.BoltRequestV2) (types.IoB
 	return buf, nil
 }
 
-func encodeResponseV2(ctx context.Context, cmd *sofarpc.BoltResponseV2) (types.IoBuffer, error) {
+func encodeResponseV2(ctx context.Context, cmd *sofarpc.BoltResponseV2) (buffer.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.ResponseClass != "" {
 		cmd.ClassName = serialize.UnsafeStrToByte(cmd.ResponseClass)
@@ -199,7 +198,7 @@ func encodeResponseV2(ctx context.Context, cmd *sofarpc.BoltResponseV2) (types.I
 	return buf, nil
 }
 
-func (c *boltCodecV2) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *boltCodecV2) Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}

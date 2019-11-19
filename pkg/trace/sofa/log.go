@@ -18,7 +18,7 @@
 package sofa
 
 import (
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sync"
 	"os/user"
 	"sofastack.io/sofa-mosn/pkg/types"

@@ -30,8 +30,8 @@ import (
 	"time"
 
 	gsyslog "github.com/hashicorp/go-syslog"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/utils"
 )
 
 var (
@@ -49,7 +49,7 @@ var (
 
 // Logger is a basic sync logger implement, contains unexported fields
 // The Logger Function contains:
-// Print(buffer types.IoBuffer, discard bool) error
+// Print(buffer buffer.IoBuffer, discard bool) error
 // Printf(format string, args ...interface{})
 // Println(args ...interface{})
 // Fatalf(format string, args ...interface{})
@@ -73,7 +73,7 @@ type Logger struct {
 	create          time.Time
 	reopenChan      chan struct{}
 	closeChan       chan struct{}
-	writeBufferChan chan types.IoBuffer
+	writeBufferChan chan buffer.IoBuffer
 }
 
 // loggers keeps all Logger we created
@@ -92,7 +92,7 @@ func GetOrCreateLogger(output string, roller *Roller) (*Logger, error) {
 	lg := &Logger{
 		output:          output,
 		roller:          roller,
-		writeBufferChan: make(chan types.IoBuffer, 500),
+		writeBufferChan: make(chan buffer.IoBuffer, 500),
 		reopenChan:      make(chan struct{}),
 		closeChan:       make(chan struct{}),
 		// writer and create will be setted in start()
@@ -164,7 +164,7 @@ func (l *Logger) handler() {
 			go l.handler()
 		}
 	}()
-	var buf types.IoBuffer
+	var buf buffer.IoBuffer
 	for {
 		select {
 		case <-l.reopenChan:
@@ -173,7 +173,7 @@ func (l *Logger) handler() {
 			if err == nil {
 				return
 			}
-			DefaultLogger.Infof("%s reopen failed : %v", l.output, err)
+			fmt.Fprintf(os.Stdout, "%s reopen failed : %v", l.output, err)
 		case <-l.closeChan:
 			// flush all buffers before close
 			// make sure all logs are outputed
@@ -234,7 +234,7 @@ func (l *Logger) reopen() error {
 
 // Print writes the final buffere to the buffer chan
 // if discard is true and the buffer is full, returns an error
-func (l *Logger) Print(buf types.IoBuffer, discard bool) error {
+func (l *Logger) Print(buf buffer.IoBuffer, discard bool) error {
 	if l.disable {
 		// free the buf
 		buffer.PutIoBuffer(buf)
@@ -245,7 +245,7 @@ func (l *Logger) Print(buf types.IoBuffer, discard bool) error {
 	default:
 		// todo: configurable
 		if discard {
-			return types.ErrChanFull
+			return ErrChanFull
 		} else {
 			l.writeBufferChan <- buf
 		}
@@ -292,7 +292,7 @@ func (l *Logger) Fatalf(format string, args ...interface{}) {
 func (l *Logger) Fatal(args ...interface{}) {
 	s := fmt.Sprint(args...)
 	buf := buffer.GetIoBuffer(len(s))
-	buf.WriteString(logTime() + " " + FatalPre)
+	buf.WriteString(utils.CacheTime() + " " + FatalPre)
 	buf.WriteString(s)
 	if len(s) == 0 || s[len(s)-1] != '\n' {
 		buf.WriteString("\n")
@@ -304,7 +304,7 @@ func (l *Logger) Fatal(args ...interface{}) {
 func (l *Logger) Fatalln(args ...interface{}) {
 	s := fmt.Sprintln(args...)
 	buf := buffer.GetIoBuffer(len(s))
-	buf.WriteString(logTime() + " " + FatalPre)
+	buf.WriteString(utils.CacheTime() + " " + FatalPre)
 	buf.WriteString(s)
 	if len(s) == 0 || s[len(s)-1] != '\n' {
 		buf.WriteString("\n")
@@ -350,6 +350,10 @@ func (l *Logger) Reopen() error {
 
 func (l *Logger) Toggle(disable bool) {
 	l.disable = disable
+}
+
+func (l *Logger) Disable() bool {
+	return l.disable
 }
 
 // syslogAddress

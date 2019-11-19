@@ -20,7 +20,7 @@ package sofarpc
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/common/buffer"
 )
 
 func init() {

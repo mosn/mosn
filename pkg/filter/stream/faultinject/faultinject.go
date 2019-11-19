@@ -22,12 +22,13 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/json-iterator/go"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/router"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -117,7 +118,7 @@ func (f *streamFaultInjectFilter) SetReceiveFilterHandler(handler types.StreamRe
 	f.handler = handler
 }
 
-func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf buffer.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] fault inject filter do receive headers")
 	}

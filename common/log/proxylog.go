@@ -19,12 +19,10 @@ package log
 
 import (
 	"context"
-
-	"sofastack.io/sofa-mosn/pkg/types"
-
 	"strconv"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/utils"
 )
 
 // proxyLogger is a default implementation of ProxyLogger
@@ -44,7 +42,7 @@ func CreateDefaultProxyLogger(output string, level Level) (ProxyLogger, error) {
 // trace logger format:
 // {time} [{level}] [{connId},{traceId}] {content}
 func (l *proxyLogger) formatter(ctx context.Context, lvPre string, format string) string {
-	return logTime() + " " + lvPre + " " + traceInfo(ctx) + " " + format
+	return utils.CacheTime() + " " + lvPre + " " + traceInfo(ctx) + " " + format
 }
 
 func (l *proxyLogger) Infof(ctx context.Context, format string, args ...interface{}) {
@@ -82,17 +80,17 @@ func (l *proxyLogger) Errorf(ctx context.Context, format string, args ...interfa
 		return
 	}
 	if l.level >= ERROR {
-		s := logTime() + " " + ErrorPre + " [" + defaultErrorCode + "] " + traceInfo(ctx) + " " + format
+		s := utils.CacheTime() + " " + ErrorPre + " [" + defaultErrorCode + "] " + traceInfo(ctx) + " " + format
 		l.Printf(s, args...)
 	}
 }
 
-func (l *proxyLogger) Alertf(ctx context.Context, errkey types.ErrorKey, format string, args ...interface{}) {
+func (l *proxyLogger) Alertf(ctx context.Context, errkey ErrorKey, format string, args ...interface{}) {
 	if l.disable {
 		return
 	}
 	if l.level >= ERROR {
-		s := logTime() + " " + ErrorPre + " [" + string(errkey) + "] " + traceInfo(ctx) + " " + format
+		s := utils.CacheTime() + " " + ErrorPre + " [" + string(errkey) + "] " + traceInfo(ctx) + " " + format
 		l.Printf(s, args...)
 	}
 }
@@ -114,11 +112,11 @@ func traceInfo(ctx context.Context) string {
 	cid := "-"
 	tid := "-"
 
-	connId := mosnctx.Get(ctx, types.ContextKeyConnectionID) // uint64
+	connId := mosnctx.Get(ctx, mosnctx.ContextKeyConnectionID) // uint64
 	if connId != nil {
 		cid = strconv.FormatUint(connId.(uint64), 10)
 	}
-	traceId := mosnctx.Get(ctx, types.ContextKeyTraceId) // string
+	traceId := mosnctx.Get(ctx, mosnctx.ContextKeyTraceId) // string
 	if traceId != nil {
 		tid = traceId.(string)
 	}

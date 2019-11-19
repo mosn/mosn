@@ -20,12 +20,12 @@ package proxy
 import (
 	"sync/atomic"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // run stream append filters
-func (s *downStream) runAppendFilters(p types.Phase, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) bool {
+func (s *downStream) runAppendFilters(p types.Phase, headers types.HeaderMap, data buffer.IoBuffer, trailers types.HeaderMap) bool {
 	for ; s.senderFiltersIndex < len(s.senderFilters); s.senderFiltersIndex++ {
 		f := s.senderFilters[s.senderFiltersIndex]
 
@@ -39,7 +39,7 @@ func (s *downStream) runAppendFilters(p types.Phase, headers types.HeaderMap, da
 }
 
 // run stream receive filters
-func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) bool {
+func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, data buffer.IoBuffer, trailers types.HeaderMap) bool {
 	for ; s.receiverFiltersIndex < len(s.receiverFilters); s.receiverFiltersIndex++ {
 		f := s.receiverFilters[s.receiverFiltersIndex]
 		if f.p != p {
@@ -109,7 +109,7 @@ func (f *activeStreamReceiverFilter) AppendHeaders(headers types.HeaderMap, endS
 	f.activeStream.appendHeaders(endStream)
 }
 
-func (f *activeStreamReceiverFilter) AppendData(buf types.IoBuffer, endStream bool) {
+func (f *activeStreamReceiverFilter) AppendData(buf buffer.IoBuffer, endStream bool) {
 	f.activeStream.downstreamRespDataBuf = buf
 	f.activeStream.noConvert = true
 	f.activeStream.appendData(endStream)
@@ -125,7 +125,7 @@ func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.Hea
 	f.activeStream.sendHijackReply(code, headers)
 }
 
-func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
+func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap, buf buffer.IoBuffer, trailers types.HeaderMap) {
 	atomic.StoreUint32(&f.activeStream.reuseBuffer, 0)
 	f.activeStream.noConvert = true
 	f.activeStream.downstreamRespHeaders = headers
@@ -166,11 +166,11 @@ func (f *activeStreamReceiverFilter) GetRequestHeaders() types.HeaderMap {
 func (f *activeStreamReceiverFilter) SetRequestHeaders(headers types.HeaderMap) {
 	f.activeStream.downstreamReqHeaders = headers
 }
-func (f *activeStreamReceiverFilter) GetRequestData() types.IoBuffer {
+func (f *activeStreamReceiverFilter) GetRequestData() buffer.IoBuffer {
 	return f.activeStream.downstreamReqDataBuf
 }
 
-func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
+func (f *activeStreamReceiverFilter) SetRequestData(data buffer.IoBuffer) {
 	// data is the original data. do nothing
 	if f.activeStream.downstreamReqDataBuf == data {
 		return
@@ -198,11 +198,11 @@ func (f *activeStreamSenderFilter) SetResponseHeaders(headers types.HeaderMap) {
 	f.activeStream.downstreamRespHeaders = headers
 }
 
-func (f *activeStreamSenderFilter) GetResponseData() types.IoBuffer {
+func (f *activeStreamSenderFilter) GetResponseData() buffer.IoBuffer {
 	return f.activeStream.downstreamRespDataBuf
 }
 
-func (f *activeStreamSenderFilter) SetResponseData(data types.IoBuffer) {
+func (f *activeStreamSenderFilter) SetResponseData(data buffer.IoBuffer) {
 	// data is the original data. do nothing
 	if f.activeStream.downstreamRespDataBuf == data {
 		return

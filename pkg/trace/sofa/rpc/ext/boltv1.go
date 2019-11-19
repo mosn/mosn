@@ -20,15 +20,15 @@ package ext
 import (
 	"context"
 
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/protocol/sofarpc/models"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/trace/sofa/rpc"
 	"sofastack.io/sofa-mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
 )
 
 func init() {
@@ -49,7 +49,7 @@ func boltv1Delegate(ctx context.Context, cmd sofarpc.SofaRpcCmd, span types.Span
 	}
 
 	span.SetTag(rpc.TRACE_ID, traceId)
-	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
+	lType := mosnctx.Get(ctx, mosnctx.ContextKeyListenerType)
 	if lType == nil {
 		return
 	}

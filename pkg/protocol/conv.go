@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -59,8 +60,8 @@ type ProtocolConv interface {
 	// ConvHeader convert header part represents in `types.HeaderMap`
 	ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error)
 
-	// ConvData convert data part represents in `types.IoBuffer`
-	ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error)
+	// ConvData convert data part represents in `buffer.IoBuffer`
+	ConvData(ctx context.Context, buffer buffer.IoBuffer) (buffer.IoBuffer, error)
 
 	// ConvTrailer convert trailer part represents in `types.HeaderMap`
 	ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error)
@@ -107,7 +108,7 @@ func ConvertHeader(ctx context.Context, src, dst types.Protocol, srcHeader types
 }
 
 // ConvertData convert data from source protocol format to destination protocol format
-func ConvertData(ctx context.Context, src, dst types.Protocol, srcData types.IoBuffer) (types.IoBuffer, error) {
+func ConvertData(ctx context.Context, src, dst types.Protocol, srcData buffer.IoBuffer) (buffer.IoBuffer, error) {
 	// 1. try direct path
 	if sub, subOk := protoConvFactory[src]; subOk {
 		if f, ok := sub[dst]; ok {

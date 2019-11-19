@@ -18,13 +18,14 @@
 package rpc
 
 import (
+	"context"
+	"log"
 	"testing"
 	"time"
-	"context"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"log"
-	"sofastack.io/sofa-mosn/pkg/types"
+
+	mosnctx "sofastack.io/sofa-mosn/common/context"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/trace"
 )
 
 func TestSofaTracerStartFinish(t *testing.T) {
@@ -34,7 +35,7 @@ func TestSofaTracerStartFinish(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, types.ContextKeyListenerType, v2.EGRESS)
+	ctx = context.WithValue(ctx, mosnctx.ContextKeyListenerType, v2.EGRESS)
 
 	span := tracer.Start(ctx, nil, time.Now())
 	span.SetTag(TRACE_ID, trace.IdGen().GenerateTraceId())

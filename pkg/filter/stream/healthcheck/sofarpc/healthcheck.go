@@ -21,10 +21,11 @@ import (
 	"context"
 	"time"
 
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/filter"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -61,7 +62,7 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 	}
 }
 
-func (f *healthCheckFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *healthCheckFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf buffer.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
 		if cmd.CommandCode() == sofarpc.HEARTBEAT {
 			f.protocol = cmd.ProtocolCode()

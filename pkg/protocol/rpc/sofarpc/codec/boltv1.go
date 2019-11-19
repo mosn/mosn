@@ -23,14 +23,12 @@ import (
 	"fmt"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
-	"sofastack.io/sofa-mosn/pkg/types"
-
 )
 
 var (
@@ -47,7 +45,7 @@ func init() {
 // ~~ types.Decoder
 type boltCodec struct{}
 
-func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (c *boltCodec) Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error) {
 	switch cmd := model.(type) {
 	case *sofarpc.BoltRequest:
 		return encodeRequest(ctx, cmd)
@@ -59,7 +57,7 @@ func (c *boltCodec) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	}
 }
 
-func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffer, error) {
+func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (buffer.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.RequestClass != "" {
 		cmd.ClassName = serialize.UnsafeStrToByte(cmd.RequestClass)
@@ -128,7 +126,7 @@ func encodeRequest(ctx context.Context, cmd *sofarpc.BoltRequest) (types.IoBuffe
 	return buf, nil
 }
 
-func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (types.IoBuffer, error) {
+func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (buffer.IoBuffer, error) {
 	// serialize classname and header
 	if cmd.ResponseClass != "" {
 		cmd.ClassName = serialize.UnsafeStrToByte(cmd.ResponseClass)
@@ -196,7 +194,7 @@ func encodeResponse(ctx context.Context, cmd *sofarpc.BoltResponse) (types.IoBuf
 	return buf, nil
 }
 
-func (c *boltCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *boltCodec) Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error) {
 	readableBytes := data.Len()
 	read := 0
 	var cmd interface{}

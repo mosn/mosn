@@ -19,6 +19,8 @@ package types
 
 import (
 	"context"
+
+	"sofastack.io/sofa-mosn/common/buffer"
 )
 
 //
@@ -146,7 +148,7 @@ type StreamSender interface {
 
 	// Append data
 	// endStream supplies whether this is the last data frame
-	AppendData(ctx context.Context, data IoBuffer, endStream bool) error
+	AppendData(ctx context.Context, data buffer.IoBuffer, endStream bool) error
 
 	// Append trailers, implicitly ends the stream.
 	AppendTrailers(ctx context.Context, trailers HeaderMap) error
@@ -160,7 +162,7 @@ type StreamSender interface {
 // On client scenario, StreamReceiveListener is called to handle response
 type StreamReceiveListener interface {
 	// OnReceive is called with decoded request/response
-	OnReceive(ctx context.Context, headers HeaderMap, data IoBuffer, trailers HeaderMap)
+	OnReceive(ctx context.Context, headers HeaderMap, data buffer.IoBuffer, trailers HeaderMap)
 
 	// OnDecodeError is called with when exception occurs
 	OnDecodeError(ctx context.Context, err error, headers HeaderMap)
@@ -171,7 +173,7 @@ type StreamConnection interface {
 	// Dispatch incoming data
 	// On data read scenario, it connects connection and stream by dispatching read buffer to stream,
 	// stream uses protocol decode data, and popup event to controller
-	Dispatch(buffer IoBuffer)
+	Dispatch(buffer buffer.IoBuffer)
 
 	// Protocol on the connection
 	Protocol() Protocol
@@ -236,7 +238,7 @@ type StreamSenderFilter interface {
 	StreamFilterBase
 
 	// Append encodes request/response
-	Append(ctx context.Context, headers HeaderMap, buf IoBuffer, trailers HeaderMap) StreamFilterStatus
+	Append(ctx context.Context, headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap) StreamFilterStatus
 
 	// SetSenderFilterHandler sets the StreamSenderFilterHandler
 	SetSenderFilterHandler(handler StreamSenderFilterHandler)
@@ -252,8 +254,8 @@ type StreamSenderFilterHandler interface {
 	GetResponseHeaders() HeaderMap
 	SetResponseHeaders(headers HeaderMap)
 
-	GetResponseData() IoBuffer
-	SetResponseData(buf IoBuffer)
+	GetResponseData() buffer.IoBuffer
+	SetResponseData(buf buffer.IoBuffer)
 
 	GetResponseTrailers() HeaderMap
 	SetResponseTrailers(trailers HeaderMap)
@@ -264,7 +266,7 @@ type StreamReceiverFilter interface {
 	StreamFilterBase
 
 	// OnReceive is called with decoded request/response
-	OnReceive(ctx context.Context, headers HeaderMap, buf IoBuffer, trailers HeaderMap) StreamFilterStatus
+	OnReceive(ctx context.Context, headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap) StreamFilterStatus
 
 	// SetReceiveFilterHandler sets decoder filter callbacks
 	SetReceiveFilterHandler(handler StreamReceiverFilterHandler)
@@ -285,7 +287,7 @@ type StreamReceiverFilterHandler interface {
 	// AppendData is called with data to be encoded, optionally indicating end of stream.
 	// Filter uses this function to send out request/response data of the stream
 	// endStream supplies whether this is the last data
-	AppendData(buf IoBuffer, endStream bool)
+	AppendData(buf buffer.IoBuffer, endStream bool)
 
 	// AppendTrailers is called with trailers to be encoded, implicitly ends the stream.
 	// Filter uses this function to send out request/response trailers of the stream
@@ -295,7 +297,7 @@ type StreamReceiverFilterHandler interface {
 	SendHijackReply(code int, headers HeaderMap)
 
 	// SendDirectRespoonse is call when the filter will response directly
-	SendDirectResponse(headers HeaderMap, buf IoBuffer, trailers HeaderMap)
+	SendDirectResponse(headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap)
 
 	// TODO: remove all of the following when proxy changed to single request @lieyuan
 	// StreamFilters will modified headers/data/trailer in different steps
@@ -303,8 +305,8 @@ type StreamReceiverFilterHandler interface {
 	GetRequestHeaders() HeaderMap
 	SetRequestHeaders(headers HeaderMap)
 
-	GetRequestData() IoBuffer
-	SetRequestData(buf IoBuffer)
+	GetRequestData() buffer.IoBuffer
+	SetRequestData(buf buffer.IoBuffer)
 
 	GetRequestTrailers() HeaderMap
 	SetRequestTrailers(trailers HeaderMap)

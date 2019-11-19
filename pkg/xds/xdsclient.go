@@ -33,7 +33,7 @@ import (
 	"github.com/gogo/protobuf/types"
 	jsoniter "github.com/json-iterator/go"
 	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	v2 "sofastack.io/sofa-mosn/pkg/xds/v2"
 )
 

@@ -5,9 +5,10 @@ import (
 
 	"encoding/json"
 
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -74,7 +75,7 @@ func (f *streamPayloadLimitFilter) SetReceiveFilterHandler(handler types.StreamR
 	f.handler = handler
 }
 
-func (f *streamPayloadLimitFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *streamPayloadLimitFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf buffer.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("payload limit stream do receive headers")
 	}

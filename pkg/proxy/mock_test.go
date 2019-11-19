@@ -20,9 +20,11 @@ package proxy
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/types"
 	"time"
+
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/trace"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var mockProtocol = types.Protocol("mockProtocol")
@@ -125,7 +127,7 @@ type mockClusterSnapshot struct {
 type mockResponseSender struct {
 	// receive data
 	headers  types.HeaderMap
-	data     types.IoBuffer
+	data     buffer.IoBuffer
 	trailers types.HeaderMap
 }
 
@@ -134,7 +136,7 @@ func (s *mockResponseSender) AppendHeaders(ctx context.Context, headers types.He
 	return nil
 }
 
-func (s *mockResponseSender) AppendData(ctx context.Context, data types.IoBuffer, endStream bool) error {
+func (s *mockResponseSender) AppendData(ctx context.Context, data buffer.IoBuffer, endStream bool) error {
 	s.data = data
 	return nil
 }

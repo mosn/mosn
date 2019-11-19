@@ -21,7 +21,7 @@ import (
 	"errors"
 
 	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 )
 
 // LimitEngine limit

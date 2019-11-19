@@ -25,7 +25,7 @@ import (
 	"time"
 
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	str "sofastack.io/sofa-mosn/pkg/stream"

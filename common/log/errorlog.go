@@ -17,10 +17,7 @@
 
 package log
 
-import (
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
-)
+import "sofastack.io/sofa-mosn/common/utils"
 
 // errorLogger is a default implementation of ErrorLogger
 // we use ErrorLogger to write common log message.
@@ -46,11 +43,11 @@ func CreateDefaultErrorLogger(output string, level Level) (ErrorLogger, error) {
 const defaultErrorCode = "normal"
 
 func (l *errorLogger) formatter(lvPre string, format string) string {
-	return logTime() + " " + lvPre + " " + format
+	return utils.CacheTime() + " " + lvPre + " " + format
 }
 
 func (l *errorLogger) codeFormatter(lvPre, errCode, format string) string {
-	return logTime() + " " + lvPre + " [" + errCode + "] " + format
+	return utils.CacheTime() + " " + lvPre + " [" + errCode + "] " + format
 }
 
 func (l *errorLogger) Infof(format string, args ...interface{}) {
@@ -93,7 +90,7 @@ func (l *errorLogger) Errorf(format string, args ...interface{}) {
 	}
 }
 
-func (l *errorLogger) Alertf(errkey types.ErrorKey, format string, args ...interface{}) {
+func (l *errorLogger) Alertf(errkey ErrorKey, format string, args ...interface{}) {
 	if l.Logger.disable {
 		return
 	}
@@ -140,9 +137,4 @@ func (l *errorLogger) SetLogLevel(level Level) {
 
 func (l *errorLogger) GetLogLevel() Level {
 	return l.level
-}
-
-// logTime is a wrapper of utils.CacheTime for compatibility
-func logTime() string {
-	return utils.CacheTime()
 }

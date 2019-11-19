@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
 )
 

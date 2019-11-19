@@ -22,12 +22,11 @@ import (
 	"errors"
 	"strconv"
 
-	networkbuffer "sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
 	"sofastack.io/sofa-mosn/pkg/types"
-
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 )
 
 var (
@@ -46,7 +45,7 @@ func Engine() types.ProtocolEngine {
 type Coder struct {
 }
 
-func (coder *Coder) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (coder *Coder) Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error) {
 	xRpcCmd, ok := model.(*XRpcCmd)
 	if ok {
 		return xRpcCmd.data, nil
@@ -55,8 +54,8 @@ func (coder *Coder) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	return nil, err
 }
 
-func (coder *Coder) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
-	subProtocolType := SubProtocol(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
+func (coder *Coder) Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error) {
+	subProtocolType := SubProtocol(mosnctx.Get(ctx, mosnctx.ContextSubProtocol).(string))
 	codec := CreateSubProtocolCodec(ctx, SubProtocol(subProtocolType))
 	if codec == nil {
 		err := errors.New("create sub protocol fail")
@@ -95,7 +94,7 @@ func CreateSubProtocolCodec(context context.Context, prot SubProtocol) Multiplex
 type XRpcCmd struct {
 	ctx    context.Context
 	codec  Multiplexing
-	data   types.IoBuffer
+	data   buffer.IoBuffer
 	header map[string]string
 }
 
@@ -120,7 +119,7 @@ func (xRpcCmd *XRpcCmd) RequestID() uint64 {
 // SetRequestID no use util we change multiplexing interface
 func (xRpcCmd *XRpcCmd) SetRequestID(requestID uint64) {
 	streamId := strconv.FormatUint(requestID, 10)
-	xRpcCmd.data = networkbuffer.NewIoBufferBytes(xRpcCmd.codec.SetStreamID(xRpcCmd.data.Bytes(), streamId))
+	xRpcCmd.data = buffer.NewIoBufferBytes(xRpcCmd.codec.SetStreamID(xRpcCmd.data.Bytes(), streamId))
 }
 
 // Header no use util we change multiplexing interface
@@ -129,7 +128,7 @@ func (xRpcCmd *XRpcCmd) Header() map[string]string {
 }
 
 // Data no use util we change multiplexing interface
-func (xRpcCmd *XRpcCmd) Data() types.IoBuffer {
+func (xRpcCmd *XRpcCmd) Data() buffer.IoBuffer {
 	return xRpcCmd.data
 }
 
@@ -139,7 +138,7 @@ func (xRpcCmd *XRpcCmd) SetHeader(header map[string]string) {
 }
 
 // SetData no use util we change multiplexing interface
-func (xRpcCmd *XRpcCmd) SetData(data types.IoBuffer) {
+func (xRpcCmd *XRpcCmd) SetData(data buffer.IoBuffer) {
 	xRpcCmd.data = data
 }
 

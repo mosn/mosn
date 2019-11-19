@@ -8,10 +8,9 @@ import (
 	"strconv"
 	"testing"
 
-	networkbuffer "sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
+	networkbuffer "sofastack.io/sofa-mosn/common/buffer"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
 )
 
 func init() {
@@ -106,7 +105,7 @@ func (re *testExample) Convert(data []byte) (map[string]string, []byte) {
 }
 
 func Test_Engine_Coder(t *testing.T) {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, "ut-example")
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextSubProtocol, "ut-example")
 	engine := Engine()
 	data := networkbuffer.NewIoBufferBytes([]byte{0, 0, 0, 0, 0, 0, 0, 0})
 	xRpcCmd, err := engine.Decode(ctx, data)

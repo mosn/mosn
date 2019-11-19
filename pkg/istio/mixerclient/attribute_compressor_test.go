@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/istio/utils"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1"

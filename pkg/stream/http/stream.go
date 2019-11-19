@@ -31,15 +31,15 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
+	"sofastack.io/sofa-mosn/common/utils"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 func init() {
@@ -120,7 +120,7 @@ type streamConnection struct {
 	connEventListener types.ConnectionEventListener
 	resetReason       types.StreamResetReason
 
-	bufChan    chan types.IoBuffer
+	bufChan    chan buffer.IoBuffer
 	connClosed chan bool
 
 	br *bufio.Reader
@@ -128,7 +128,7 @@ type streamConnection struct {
 }
 
 // types.StreamConnection
-func (sc *streamConnection) Dispatch(buffer types.IoBuffer) {
+func (sc *streamConnection) Dispatch(buffer buffer.IoBuffer) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[stream] [http] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
@@ -193,7 +193,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 		streamConnection: streamConnection{
 			context:    ctx,
 			conn:       connection,
-			bufChan:    make(chan types.IoBuffer),
+			bufChan:    make(chan buffer.IoBuffer),
 			connClosed: make(chan bool, 1),
 		},
 		connectionEventListener:       connCallbacks,
@@ -267,7 +267,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	s := &buffers.clientStream
 	s.stream = stream{
 		id:       id,
-		ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
+		ctx:      mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamID, id),
 		request:  &buffers.clientRequest,
 		receiver: receiver,
 	}
@@ -314,7 +314,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 		streamConnection: streamConnection{
 			context:    ctx,
 			conn:       connection,
-			bufChan:    make(chan types.IoBuffer),
+			bufChan:    make(chan buffer.IoBuffer),
 			connClosed: make(chan bool, 1),
 		},
 		contextManager:           str.NewContextManager(ctx),
@@ -392,7 +392,7 @@ func (conn *serverStreamConnection) serve() {
 		// 4. request processing
 		s.stream = stream{
 			id:       id,
-			ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
+			ctx:      context.WithValue(ctx, mosnctx.ContextKeyStreamID, id),
 			request:  request,
 			response: &buffers.serverResponse,
 		}
@@ -502,7 +502,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	return nil
 }
 
-func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *clientStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	s.request.SetBody(data.Bytes())
 
 	if endStream {
@@ -633,7 +633,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 	return nil
 }
 
-func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	s.response.SetBody(data.Bytes())
 
 	if endStream {

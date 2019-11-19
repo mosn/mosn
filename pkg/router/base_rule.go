@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	httpmosn "sofastack.io/sofa-mosn/pkg/protocol/http"
 	"sofastack.io/sofa-mosn/pkg/types"

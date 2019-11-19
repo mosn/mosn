@@ -21,7 +21,7 @@ import (
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -38,7 +38,7 @@ type MStream struct {
 	Response       *http.Response
 	Header         http.Header
 	Trailers       http.Header
-	SendData       types.IoBuffer
+	SendData       buffer.IoBuffer
 }
 
 // ID returns stream id
@@ -948,7 +948,7 @@ type MClientStream struct {
 	*clientStream
 	conn     *MClientConn
 	Request  *http.Request
-	SendData types.IoBuffer
+	SendData buffer.IoBuffer
 }
 
 func NewMClientStream(conn *MClientConn, req *http.Request) *MClientStream {
@@ -1564,14 +1564,14 @@ func (fr *MFramer) writeHeaders(p HeadersFrameParam) error {
 	return fr.endWrite(buf)
 }
 
-func (fr *MFramer) writeByte(b types.IoBuffer, v byte)     { b.Write([]byte{v}) }
-func (fr *MFramer) writeBytes(b types.IoBuffer, v []byte)  { b.Write(v) }
-func (fr *MFramer) writeUint16(b types.IoBuffer, v uint16) { b.Write([]byte{byte(v >> 8), byte(v)}) }
-func (fr *MFramer) writeUint32(b types.IoBuffer, v uint32) {
+func (fr *MFramer) writeByte(b buffer.IoBuffer, v byte)     { b.Write([]byte{v}) }
+func (fr *MFramer) writeBytes(b buffer.IoBuffer, v []byte)  { b.Write(v) }
+func (fr *MFramer) writeUint16(b buffer.IoBuffer, v uint16) { b.Write([]byte{byte(v >> 8), byte(v)}) }
+func (fr *MFramer) writeUint32(b buffer.IoBuffer, v uint32) {
 	b.Write([]byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)})
 }
 
-func (fr *MFramer) startWrite(buf types.IoBuffer, ftype FrameType, flags Flags, streamID uint32) {
+func (fr *MFramer) startWrite(buf buffer.IoBuffer, ftype FrameType, flags Flags, streamID uint32) {
 	// Write the FrameHeader.
 	header := []byte{
 		0, // 3 bytes of length, filled in in endWrite
@@ -1588,7 +1588,7 @@ func (fr *MFramer) startWrite(buf types.IoBuffer, ftype FrameType, flags Flags, 
 	buf.Write(header)
 }
 
-func (fr *MFramer) endWrite(buf types.IoBuffer) error {
+func (fr *MFramer) endWrite(buf buffer.IoBuffer) error {
 	// Now that we know the final size, fill in the FrameHeader in
 	// the space previously reserved for it. Abuse append.
 	length := buf.Len() - frameHeaderLen
@@ -1602,7 +1602,7 @@ func (fr *MFramer) endWrite(buf types.IoBuffer) error {
 	return fr.Connection.Write(buf)
 }
 
-func (fr *MFramer) readFrameHeader(ctx context.Context, data types.IoBuffer, off int) (FrameHeader, error) {
+func (fr *MFramer) readFrameHeader(ctx context.Context, data buffer.IoBuffer, off int) (FrameHeader, error) {
 	if data.Len() < off+frameHeaderLen {
 		return FrameHeader{}, ErrAGAIN
 	}
@@ -1616,7 +1616,7 @@ func (fr *MFramer) readFrameHeader(ctx context.Context, data types.IoBuffer, off
 	}, nil
 }
 
-func (fr *MFramer) readMetaFrame(ctx context.Context, hf *HeadersFrame, data types.IoBuffer, off int) (*MetaHeadersFrame, int, error) {
+func (fr *MFramer) readMetaFrame(ctx context.Context, hf *HeadersFrame, data buffer.IoBuffer, off int) (*MetaHeadersFrame, int, error) {
 	mh := &MetaHeadersFrame{
 		HeadersFrame: hf,
 	}
@@ -1702,7 +1702,7 @@ func (fr *MFramer) readMetaFrame(ctx context.Context, hf *HeadersFrame, data typ
 }
 
 // ReadFrame read Frame
-func (fr *MFramer) ReadFrame(ctx context.Context, data types.IoBuffer, off int) (Frame, int, error) {
+func (fr *MFramer) ReadFrame(ctx context.Context, data buffer.IoBuffer, off int) (Frame, int, error) {
 	fr.errDetail = nil
 	last := fr.lastFrame
 	lastHeader := fr.lastHeaderStream
@@ -1752,7 +1752,7 @@ func (fr *MFramer) ReadFrame(ctx context.Context, data types.IoBuffer, off int) 
 }
 
 // ReadPreface read the client preface
-func (fr *MFramer) ReadPreface(data types.IoBuffer) error {
+func (fr *MFramer) ReadPreface(data buffer.IoBuffer) error {
 	if data.Len() < len(clientPreface) {
 		return ErrAGAIN
 	}

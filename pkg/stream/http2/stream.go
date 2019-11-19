@@ -28,9 +28,9 @@ import (
 	"strconv"
 	"sync"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/module/http2"
 	"sofastack.io/sofa-mosn/pkg/mtls"
 	"sofastack.io/sofa-mosn/pkg/protocol"
@@ -112,7 +112,7 @@ type stream struct {
 
 	id       uint32
 	header   types.HeaderMap
-	sendData []types.IoBuffer
+	sendData []buffer.IoBuffer
 	conn     types.Connection
 }
 
@@ -133,7 +133,7 @@ func (s *stream) GetStream() types.Stream {
 	return s
 }
 
-func (s *stream) buildData() types.IoBuffer {
+func (s *stream) buildData() buffer.IoBuffer {
 	if s.sendData == nil {
 		return buffer.NewIoBuffer(0)
 	} else if len(s.sendData) == 1 {
@@ -193,7 +193,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 }
 
 // types.StreamConnectionM
-func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
+func (conn *serverStreamConnection) Dispatch(buf buffer.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
 		ctx := conn.cm.Get()
@@ -359,7 +359,7 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *http2.MStream, endStream bool) (*serverStream, error) {
 	stream := &serverStream{}
 	stream.id = h2s.ID()
-	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamID, stream.id)
 	stream.sc = conn
 	stream.h2s = h2s
 	stream.conn = conn.conn
@@ -436,7 +436,7 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers types.HeaderMa
 	return nil
 }
 
-func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	s.h2s.SendData = data
 	log.Proxy.Debugf(s.ctx, "http2 server ApppendData id = %d", s.id)
 
@@ -522,7 +522,7 @@ func newClientStreamConnection(ctx context.Context, connection types.Connection,
 }
 
 // types.StreamConnection
-func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
+func (conn *clientStreamConnection) Dispatch(buf buffer.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
 		ctx := conn.cm.Get()
@@ -772,7 +772,7 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn types.Header
 	return nil
 }
 
-func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *clientStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	s.h2s.SendData = data
 	log.Proxy.Debugf(s.ctx, "http2 client AppendData: id = %d", s.id)
 	if endStream {

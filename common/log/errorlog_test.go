@@ -25,8 +25,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type errorLogCase struct {
@@ -131,7 +129,7 @@ func TestAlertLog(t *testing.T) {
 	if err != nil {
 		t.Fatal("create proxy logger failed")
 	}
-	var testKey types.ErrorKey = types.ErrorModuleMosn + "test.alert"
+	var testKey ErrorKey = "sofa-mosn.test.alert"
 	lg.Alertf(testKey, "test-alert-log")
 	plg.Alertf(context.Background(), testKey, "test-%s", "alert-log")
 	time.Sleep(time.Second) // wait log flush
@@ -176,25 +174,4 @@ func BenchmarkLogParallel(b *testing.B) {
 			l.Debugf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
 		}
 	})
-}
-
-func BenchmarkLogTimeNow(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for n := 0; n < b.N; n++ {
-		time.Now()
-	}
-}
-
-func BenchmarkLogTimeFormat(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for n := 0; n < b.N; n++ {
-		time.Now().Format("2006/01/02 15:04:05.000")
-	}
-}
-
-func BenchmarkLogTime(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for n := 0; n < b.N; n++ {
-		logTime()
-	}
 }

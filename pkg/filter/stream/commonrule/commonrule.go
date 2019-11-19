@@ -21,11 +21,12 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/json-iterator/go"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/filter"
 	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -70,7 +71,7 @@ func NewCommonRuleFilter(context context.Context, config *model.CommonRuleConfig
 	return f
 }
 
-func (f *commmonRuleFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *commmonRuleFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf buffer.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
 	if f.RuleEngineFactory.invoke(headers) {
 		return types.StreamFilterContinue
 	}

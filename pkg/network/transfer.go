@@ -30,12 +30,12 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
+	"sofastack.io/sofa-mosn/common/utils"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/mtls"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 const (
@@ -269,7 +269,7 @@ func transferGetFile(c *connection) (file *os.File, tlsConn *mtls.TLSConn, err e
 	return
 }
 
-func transferBuildIoBuffer(c *connection) types.IoBuffer {
+func transferBuildIoBuffer(c *connection) buffer.IoBuffer {
 	buf := buffer.GetIoBuffer(c.writeBufLen())
 	for _, b := range c.writeBuffers {
 		buf.Write(b)
@@ -408,7 +408,7 @@ func transferRecvType(uc *net.UnixConn) (net.Conn, error) {
 	return conn, nil
 }
 
-func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer, logger log.ErrorLogger) error {
+func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf buffer.IoBuffer, logger log.ErrorLogger) error {
 	// send header
 	s1 := buf.Len()
 	s2 := c.GetTLSInfo(buf)
@@ -421,7 +421,7 @@ func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer,
 	return transferSendIoBuffer(uc, buf)
 }
 
-func transferWriteSendData(uc *net.UnixConn, id int, buf types.IoBuffer) error {
+func transferWriteSendData(uc *net.UnixConn, id int, buf buffer.IoBuffer) error {
 	// send header
 	err := transferSendHead(uc, uint32(buf.Len()), uint32(id))
 	if err != nil {
@@ -471,7 +471,7 @@ func transferRecvHead(uc *net.UnixConn) (int, int, error) {
 	return size, id, nil
 }
 
-func transferSendIoBuffer(uc *net.UnixConn, buf types.IoBuffer) error {
+func transferSendIoBuffer(uc *net.UnixConn, buf buffer.IoBuffer) error {
 	if buf.Len() == 0 {
 		return nil
 	}

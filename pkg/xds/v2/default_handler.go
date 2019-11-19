@@ -19,7 +19,7 @@ package v2
 
 import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/xds/conv"
 )
 

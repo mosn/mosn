@@ -23,13 +23,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
+	"sofastack.io/sofa-mosn/common/utils"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
 )
 
 const (
@@ -284,7 +284,7 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 	}
 
 	data := pool.host.CreateConnection(ctx)
-	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx := mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
@@ -340,7 +340,7 @@ func (ac *activeClient) OnGoAway() {}
 
 func getSubProtocol(ctx context.Context) byte {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextSubProtocol); val != nil {
+		if val := mosnctx.Get(ctx, mosnctx.ContextSubProtocol); val != nil {
 			if code, ok := val.(byte); ok {
 				return code
 			}

@@ -22,14 +22,14 @@ import (
 	"testing"
 	"time"
 
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
@@ -59,7 +59,7 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	}
 
 	span := trace.Tracer(mockProtocol).Start(context.Background(), nil, time.Now())
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyActiveSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
 	ds.finishTracing()

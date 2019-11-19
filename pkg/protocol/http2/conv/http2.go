@@ -20,6 +20,8 @@ package conv
 import (
 	"context"
 	"errors"
+
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/http2"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -48,7 +50,7 @@ func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *common2http) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *common2http) ConvData(ctx context.Context, buffer buffer.IoBuffer) (buffer.IoBuffer, error) {
 	return buffer, nil
 }
 
@@ -62,7 +64,7 @@ type http2common struct{}
 func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	headers := http2.DecodeHeader(headerMap)
 	direction := ""
-	switch  headerMap.(type) {
+	switch headerMap.(type) {
 	case *http2.ReqHeader:
 		direction = protocol.Request
 	case *http2.RspHeader:
@@ -75,7 +77,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return headers, nil
 }
 
-func (c *http2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *http2common) ConvData(ctx context.Context, buffer buffer.IoBuffer) (buffer.IoBuffer, error) {
 	return buffer, nil
 }
 

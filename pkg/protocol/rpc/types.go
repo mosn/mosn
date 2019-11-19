@@ -18,9 +18,10 @@
 package rpc
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
-
 	"errors"
+
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var (
@@ -47,11 +48,11 @@ type RpcCmd interface {
 
 	Header() map[string]string
 
-	Data() types.IoBuffer
+	Data() buffer.IoBuffer
 
 	SetHeader(header map[string]string)
 
-	SetData(data types.IoBuffer)
+	SetData(data buffer.IoBuffer)
 
 	GetTimeout() int
 }

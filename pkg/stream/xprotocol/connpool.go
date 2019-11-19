@@ -20,11 +20,10 @@ package xprotocol
 import (
 	"context"
 	"sync"
-
 	"sync/atomic"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	str "sofastack.io/sofa-mosn/pkg/stream"
@@ -223,10 +222,8 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create codec client")
 
-
-
-	connCtx := mosnctx.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
-	connCtx = mosnctx.WithValue(connCtx, types.ContextSubProtocol, mosnctx.Get(ctx, types.ContextSubProtocol))
+	connCtx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyConnectionID, data.Connection.ID())
+	connCtx = mosnctx.WithValue(connCtx, mosnctx.ContextSubProtocol, mosnctx.Get(ctx, mosnctx.ContextSubProtocol))
 
 	codecClient := pool.createStreamClient(connCtx, data)
 	log.DefaultLogger.Tracef("xprotocol new active client , create codec client success")

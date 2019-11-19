@@ -21,17 +21,15 @@ import (
 	"errors"
 	"io"
 	"net"
-	"time"
-
 	"sync/atomic"
-
-	"sofastack.io/sofa-mosn/pkg/types"
+	"time"
 )
 
 const MinRead = 1 << 9
 const MaxRead = 1 << 17
 const ResetOffMark = -1
 const DefaultSize = 1 << 4
+const DefaultConnReadTimeout = 15 * time.Second
 
 var nullByte []byte
 
@@ -40,11 +38,11 @@ var (
 	ErrTooLarge          = errors.New("io buffer: too large")
 	ErrNegativeCount     = errors.New("io buffer: negative count")
 	ErrInvalidWriteCount = errors.New("io buffer: invalid write count")
-	ConnReadTimeout      = types.DefaultConnReadTimeout
+	ConnReadTimeout      = DefaultConnReadTimeout
 )
 
-// IoBuffer
-type IoBuffer struct {
+// ioBufferImpl is an implementation of IoBuffer
+type ioBufferImpl struct {
 	buf     []byte // contents: buf[off : len(buf)]
 	off     int    // read from &buf[off], write to &buf[len(buf)]
 	offMark int
@@ -54,7 +52,7 @@ type IoBuffer struct {
 	b *[]byte
 }
 
-func (b *IoBuffer) Read(p []byte) (n int, err error) {
+func (b *ioBufferImpl) Read(p []byte) (n int, err error) {
 	if b.off >= len(b.buf) {
 		b.Reset()
 
@@ -71,7 +69,7 @@ func (b *IoBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, e error) {
+func (b *ioBufferImpl) ReadOnce(r io.Reader) (n int64, e error) {
 	var (
 		m               int
 		zeroTime        time.Time
@@ -89,10 +87,6 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, e error) {
 
 	if b.off > 0 && len(b.buf)-b.off < 4*MinRead {
 		b.copy(0)
-	}
-
-	if cap(b.buf) == len(b.buf) {
-		b.copy(MinRead)
 	}
 
 	for {
@@ -158,7 +152,7 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, e error) {
 	return n, nil
 }
 
-func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
+func (b *ioBufferImpl) ReadFrom(r io.Reader) (n int64, err error) {
 	if b.off >= len(b.buf) {
 		b.Reset()
 	}
@@ -196,7 +190,7 @@ func (b *IoBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 	return
 }
 
-func (b *IoBuffer) Write(p []byte) (n int, err error) {
+func (b *ioBufferImpl) Write(p []byte) (n int, err error) {
 	m, ok := b.tryGrowByReslice(len(p))
 
 	if !ok {
@@ -206,7 +200,7 @@ func (b *IoBuffer) Write(p []byte) (n int, err error) {
 	return copy(b.buf[m:], p), nil
 }
 
-func (b *IoBuffer) WriteString(s string) (n int, err error) {
+func (b *ioBufferImpl) WriteString(s string) (n int, err error) {
 	m, ok := b.tryGrowByReslice(len(s))
 
 	if !ok {
@@ -216,7 +210,7 @@ func (b *IoBuffer) WriteString(s string) (n int, err error) {
 	return copy(b.buf[m:], s), nil
 }
 
-func (b *IoBuffer) tryGrowByReslice(n int) (int, bool) {
+func (b *ioBufferImpl) tryGrowByReslice(n int) (int, bool) {
 	if l := len(b.buf); l+n <= cap(b.buf) {
 		b.buf = b.buf[:l+n]
 
@@ -226,7 +220,7 @@ func (b *IoBuffer) tryGrowByReslice(n int) (int, bool) {
 	return 0, false
 }
 
-func (b *IoBuffer) grow(n int) int {
+func (b *ioBufferImpl) grow(n int) int {
 	m := b.Len()
 
 	// If buffer is empty, reset to recover space.
@@ -257,7 +251,7 @@ func (b *IoBuffer) grow(n int) int {
 	return m
 }
 
-func (b *IoBuffer) WriteTo(w io.Writer) (n int64, err error) {
+func (b *ioBufferImpl) WriteTo(w io.Writer) (n int64, err error) {
 	for b.off < len(b.buf) {
 		nBytes := b.Len()
 		m, e := w.Write(b.buf[b.off:])
@@ -281,7 +275,7 @@ func (b *IoBuffer) WriteTo(w io.Writer) (n int64, err error) {
 	return
 }
 
-func (b *IoBuffer) Append(data []byte) error {
+func (b *ioBufferImpl) Append(data []byte) error {
 	if b.off >= len(b.buf) {
 		b.Reset()
 	}
@@ -305,11 +299,11 @@ func (b *IoBuffer) Append(data []byte) error {
 	return nil
 }
 
-func (b *IoBuffer) AppendByte(data byte) error {
+func (b *ioBufferImpl) AppendByte(data byte) error {
 	return b.Append([]byte{data})
 }
 
-func (b *IoBuffer) Peek(n int) []byte {
+func (b *ioBufferImpl) Peek(n int) []byte {
 	if len(b.buf)-b.off < n {
 		return nil
 	}
@@ -317,22 +311,22 @@ func (b *IoBuffer) Peek(n int) []byte {
 	return b.buf[b.off : b.off+n]
 }
 
-func (b *IoBuffer) Mark() {
+func (b *ioBufferImpl) Mark() {
 	b.offMark = b.off
 }
 
-func (b *IoBuffer) Restore() {
+func (b *ioBufferImpl) Restore() {
 	if b.offMark != ResetOffMark {
 		b.off = b.offMark
 		b.offMark = ResetOffMark
 	}
 }
 
-func (b *IoBuffer) Bytes() []byte {
+func (b *ioBufferImpl) Bytes() []byte {
 	return b.buf[b.off:]
 }
 
-func (b *IoBuffer) Cut(offset int) types.IoBuffer {
+func (b *ioBufferImpl) Cut(offset int) IoBuffer {
 	if b.off+offset > len(b.buf) {
 		return nil
 	}
@@ -343,13 +337,13 @@ func (b *IoBuffer) Cut(offset int) types.IoBuffer {
 	b.off += offset
 	b.offMark = ResetOffMark
 
-	return &IoBuffer{
+	return &ioBufferImpl{
 		buf: buf,
 		off: 0,
 	}
 }
 
-func (b *IoBuffer) Drain(offset int) {
+func (b *ioBufferImpl) Drain(offset int) {
 	if b.off+offset > len(b.buf) {
 		return
 	}
@@ -358,30 +352,30 @@ func (b *IoBuffer) Drain(offset int) {
 	b.offMark = ResetOffMark
 }
 
-func (b *IoBuffer) String() string {
+func (b *ioBufferImpl) String() string {
 	return string(b.buf[b.off:])
 }
 
-func (b *IoBuffer) Len() int {
+func (b *ioBufferImpl) Len() int {
 	return len(b.buf) - b.off
 }
 
-func (b *IoBuffer) Cap() int {
+func (b *ioBufferImpl) Cap() int {
 	return cap(b.buf)
 }
 
-func (b *IoBuffer) Reset() {
+func (b *ioBufferImpl) Reset() {
 	b.buf = b.buf[:0]
 	b.off = 0
 	b.offMark = ResetOffMark
 	b.eof = false
 }
 
-func (b *IoBuffer) available() int {
+func (b *ioBufferImpl) available() int {
 	return len(b.buf) - b.off
 }
 
-func (b *IoBuffer) Clone() types.IoBuffer {
+func (b *ioBufferImpl) Clone() IoBuffer {
 	buf := GetIoBuffer(b.Len())
 	buf.Write(b.Bytes())
 
@@ -390,12 +384,12 @@ func (b *IoBuffer) Clone() types.IoBuffer {
 	return buf
 }
 
-func (b *IoBuffer) Free() {
+func (b *ioBufferImpl) Free() {
 	b.Reset()
 	b.giveSlice()
 }
 
-func (b *IoBuffer) Alloc(size int) {
+func (b *ioBufferImpl) Alloc(size int) {
 	if b.buf != nil {
 		b.Free()
 	}
@@ -407,19 +401,19 @@ func (b *IoBuffer) Alloc(size int) {
 	b.buf = b.buf[:0]
 }
 
-func (b *IoBuffer) Count(count int32) int32 {
+func (b *ioBufferImpl) Count(count int32) int32 {
 	return atomic.AddInt32(&b.count, count)
 }
 
-func (b *IoBuffer) EOF() bool {
+func (b *ioBufferImpl) EOF() bool {
 	return b.eof
 }
 
-func (b *IoBuffer) SetEOF(eof bool) {
+func (b *ioBufferImpl) SetEOF(eof bool) {
 	b.eof = eof
 }
 
-func (b *IoBuffer) copy(expand int) {
+func (b *ioBufferImpl) copy(expand int) {
 	var newBuf []byte
 	var bufp *[]byte
 
@@ -437,11 +431,11 @@ func (b *IoBuffer) copy(expand int) {
 	b.off = 0
 }
 
-func (b *IoBuffer) makeSlice(n int) *[]byte {
+func (b *ioBufferImpl) makeSlice(n int) *[]byte {
 	return GetBytes(n)
 }
 
-func (b *IoBuffer) giveSlice() {
+func (b *ioBufferImpl) giveSlice() {
 	if b.b != nil {
 		PutBytes(b.b)
 		b.b = nil
@@ -449,8 +443,8 @@ func (b *IoBuffer) giveSlice() {
 	}
 }
 
-func NewIoBuffer(capacity int) types.IoBuffer {
-	buffer := &IoBuffer{
+func NewIoBuffer(capacity int) IoBuffer {
+	buffer := &ioBufferImpl{
 		offMark: ResetOffMark,
 		count:   1,
 	}
@@ -462,29 +456,29 @@ func NewIoBuffer(capacity int) types.IoBuffer {
 	return buffer
 }
 
-func NewIoBufferString(s string) types.IoBuffer {
+func NewIoBufferString(s string) IoBuffer {
 	if s == "" {
 		return NewIoBuffer(0)
 	}
-	return &IoBuffer{
+	return &ioBufferImpl{
 		buf:     []byte(s),
 		offMark: ResetOffMark,
 		count:   1,
 	}
 }
 
-func NewIoBufferBytes(bytes []byte) types.IoBuffer {
+func NewIoBufferBytes(bytes []byte) IoBuffer {
 	if bytes == nil {
 		return NewIoBuffer(0)
 	}
-	return &IoBuffer{
+	return &ioBufferImpl{
 		buf:     bytes,
 		offMark: ResetOffMark,
 		count:   1,
 	}
 }
 
-func NewIoBufferEOF() types.IoBuffer {
+func NewIoBufferEOF() IoBuffer {
 	buf := NewIoBuffer(0)
 	buf.SetEOF(true)
 	return buf

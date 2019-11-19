@@ -30,7 +30,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/trace/sofa/rpc"
 	"sofastack.io/sofa-mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
 )
 
 func init() {
@@ -59,7 +59,7 @@ func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime 
 		traceId = trace.IdGen().GenerateTraceId()
 	}
 	span.SetTag(rpc.TRACE_ID, traceId)
-	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
+	lType := mosnctx.Get(ctx, mosnctx.ContextKeyListenerType)
 
 	spanId, ok := header.Get(models.HTTP_RPC_ID_KEY)
 	if !ok {

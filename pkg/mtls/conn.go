@@ -19,14 +19,13 @@ package mtls
 
 import (
 	gotls "crypto/tls"
+	"encoding/gob"
+	"errors"
 	"net"
 	"time"
 
-	"encoding/gob"
-	"errors"
-
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -95,7 +94,7 @@ func (c *TLSConn) GetRawConn() net.Conn {
 }
 
 // GetTLSInfo returns TLSInfo
-func (c *TLSConn) GetTLSInfo(buf types.IoBuffer) int {
+func (c *TLSConn) GetTLSInfo(buf buffer.IoBuffer) int {
 	if c == nil {
 		return 0
 	}

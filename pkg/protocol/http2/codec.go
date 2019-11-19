@@ -20,8 +20,8 @@ package http2
 import (
 	"context"
 
+	"sofastack.io/sofa-mosn/common/buffer"
 	"sofastack.io/sofa-mosn/pkg/module/http2"
-	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // types.Encoder
@@ -32,13 +32,13 @@ type serverCodec struct {
 	init    bool
 }
 
-func (c *serverCodec) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (c *serverCodec) Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error) {
 	ms := model.(*http2.MStream)
 	err := ms.SendResponse()
 	return nil, err
 }
 
-func (c *serverCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *serverCodec) Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error) {
 	if !c.init {
 		c.init = true
 		c.sc.Init()
@@ -58,13 +58,13 @@ type clientCodec struct {
 	cc *http2.MClientConn
 }
 
-func (c *clientCodec) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (c *clientCodec) Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error) {
 	ms := model.(*http2.MClientStream)
 	err := ms.RoundTrip(ctx)
 	return nil, err
 }
 
-func (c *clientCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *clientCodec) Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error) {
 	frame, _, err := c.cc.Framer.ReadFrame(ctx, data, 0)
 	return frame, err
 }

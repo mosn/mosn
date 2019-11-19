@@ -14,14 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package log
 
 import (
 	"context"
-
-	"sofastack.io/sofa-mosn/pkg/types"
+	"errors"
 )
+
+type ErrorKey string
+
+var ErrChanFull = errors.New("Channel is full")
 
 type Level uint8
 
@@ -51,7 +53,7 @@ type ErrorLogger interface {
 	Printf(format string, args ...interface{})
 
 	// Alertf is a wrapper of Errorf
-	Alertf(errkey types.ErrorKey, format string, args ...interface{})
+	Alertf(errkey ErrorKey, format string, args ...interface{})
 
 	Infof(format string, args ...interface{})
 
@@ -81,7 +83,7 @@ type ErrorLogger interface {
 // ProxyLogger generates lines of output to an io.Writer, works for data flow
 type ProxyLogger interface {
 	// Alertf is a wrapper of Errorf
-	Alertf(ctx context.Context, errkey types.ErrorKey, format string, args ...interface{})
+	Alertf(ctx context.Context, errkey ErrorKey, format string, args ...interface{})
 
 	Infof(ctx context.Context, format string, args ...interface{})
 

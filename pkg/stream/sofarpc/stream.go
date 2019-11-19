@@ -27,9 +27,9 @@ import (
 
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
@@ -128,7 +128,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 }
 
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buf types.IoBuffer) {
+func (conn *streamConnection) Dispatch(buf buffer.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
 		ctx := conn.contextManager.Get()
@@ -193,7 +193,7 @@ func (conn *streamConnection) NewStream(ctx context.Context, receiver types.Stre
 	//stream := &stream{}
 
 	stream.id = atomic.AddUint64(&conn.currStreamID, 1)
-	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamID, stream.id)
 	stream.direction = ClientStream
 	stream.sc = conn
 	stream.receiver = receiver
@@ -282,8 +282,8 @@ func (conn *streamConnection) onNewStreamDetect(ctx context.Context, cmd sofarpc
 
 	//stream := &stream{}
 	stream.id = cmd.RequestID()
-	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
-	stream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, cmd.ProtocolCode())
+	stream.ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamID, stream.id)
+	stream.ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, cmd.ProtocolCode())
 	stream.ctx = conn.contextManager.InjectTrace(stream.ctx, span)
 	stream.direction = ServerStream
 	stream.sc = conn
@@ -337,7 +337,7 @@ type stream struct {
 	direction StreamDirection // 0: out, 1: in
 	receiver  types.StreamReceiveListener
 	sendCmd   sofarpc.SofaRpcCmd
-	sendBuf   types.IoBuffer
+	sendBuf   buffer.IoBuffer
 }
 
 // ~~ types.Stream
@@ -404,7 +404,7 @@ func (s *stream) buildHijackResp(request sofarpc.SofaRpcCmd) (sofarpc.SofaRpcCmd
 	return nil, types.ErrNoStatusCodeForHijack
 }
 
-func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *stream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	if s.sendCmd != nil {
 		// TODO: may affect buffer reuse
 		s.sendCmd.SetData(data)

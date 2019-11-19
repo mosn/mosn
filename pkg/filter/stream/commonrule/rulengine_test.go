@@ -24,9 +24,9 @@ import (
 	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/limit"
 	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/resource"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"sofastack.io/sofa-mosn/common/utils"
 )
 
 var params = []model.ComparisonCofig{

@@ -15,19 +15,19 @@
  * limitations under the License.
  */
 
-package log
+package accesslog
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
+	"regexp"
 	"runtime"
 	"testing"
 	"time"
 
-	"os"
-	"regexp"
-
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -125,7 +125,7 @@ func TestAccessLogDisable(t *testing.T) {
 		t.Fatalf("verify log file failed, data len: %d, error: %v", len(b), err)
 	}
 	// enable access log
-	if !ToggleLogger(logName, false) {
+	if !log.ToggleLogger(logName, false) {
 		t.Fatal("enable access log failed")
 	}
 	// retry, write success
@@ -137,7 +137,7 @@ func TestAccessLogDisable(t *testing.T) {
 }
 
 func TestAccessLogManage(t *testing.T) {
-	defer CloseAll()
+	defer log.CloseAll()
 	DefaultDisableAccessLog = false
 	format := "%StartTime% %ResponseFlag%"
 	var logs []types.AccessLog
@@ -163,7 +163,7 @@ func TestAccessLogManage(t *testing.T) {
 	// all accesslog is disabled
 	for _, lg := range logs {
 		alg := lg.(*accesslog)
-		if !alg.logger.disable {
+		if !alg.logger.Disable() {
 			t.Fatal("some access log is enabled")
 		}
 	}
@@ -171,7 +171,7 @@ func TestAccessLogManage(t *testing.T) {
 
 func BenchmarkAccessLog(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	InitDefaultLogger("", INFO)
+	log.InitDefaultLogger("", log.INFO)
 	// ~ replace the path if needed
 	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", nil, "")
 
@@ -205,7 +205,7 @@ func BenchmarkAccessLog(b *testing.B) {
 
 func BenchmarkAccessLogParallel(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	InitDefaultLogger("", INFO)
+	log.InitDefaultLogger("", log.INFO)
 	// ~ replace the path if needed
 	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", nil, "")
 

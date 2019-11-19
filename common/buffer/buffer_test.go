@@ -21,7 +21,6 @@ import (
 	"context"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/types"
 	"runtime/debug"
 )
 
@@ -61,13 +60,13 @@ func BenchmarkByteMake(b *testing.B) {
 // Test IoBufferPool
 var Buffer [Size]byte
 
-func testiobufferpool() types.IoBuffer {
+func testiobufferpool() IoBuffer {
 	b := GetIoBuffer(Size)
 	b.Write(Buffer[:])
 	return b
 }
 
-func testiobuffer() types.IoBuffer {
+func testiobuffer() IoBuffer {
 	b := NewIoBuffer(Size)
 	b.Write(Buffer[:])
 	return b

@@ -25,10 +25,11 @@ import (
 	"sync/atomic"
 
 	jsoniter "github.com/json-iterator/go"
+	"sofastack.io/sofa-mosn/common/buffer"
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/common/log"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/mtls"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/router"
@@ -68,7 +69,7 @@ func initWorkerPool(data interface{}, endParsing bool) error {
 }
 
 func initGlobalStats() {
-	globalStats = newProxyStats(types.GlobalProxyName)
+	globalStats = newProxyStats(mosnctx.GlobalProxyName)
 }
 
 // types.ReadFilter
@@ -98,7 +99,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		activeSteams:   list.New(),
 		stats:          globalStats,
 		context:        ctx,
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]types.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, mosnctx.ContextKeyAccessLogs).([]types.AccessLog),
 	}
 
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
@@ -106,13 +107,13 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
 		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
-		proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
+		proxy.context = mosnctx.WithValue(proxy.context, mosnctx.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 		log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
 	} else {
 		log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
 	}
 
-	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+	listenerName := mosnctx.Get(ctx, mosnctx.ContextKeyListenerName).(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
@@ -128,7 +129,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 	return proxy
 }
 
-func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
+func (p *proxy) OnData(buf buffer.IoBuffer) types.FilterStatus {
 	if p.serverStreamConn == nil {
 		var prot string
 		if conn, ok := p.readCallbacks.Connection().RawConn().(*mtls.TLSConn); ok {
@@ -207,7 +208,7 @@ func (p *proxy) OnGoAway() {}
 func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
 
-	if value := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); value != nil {
+	if value := mosnctx.Get(p.context, mosnctx.ContextKeyStreamFilterChainFactories); value != nil {
 		ff := value.(*atomic.Value)
 		ffs, ok := ff.Load().([]types.StreamFilterChainFactory)
 		if ok {

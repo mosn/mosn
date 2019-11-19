@@ -25,7 +25,7 @@ import (
 	"os"
 
 	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/metrics/sink/console"
 	"sofastack.io/sofa-mosn/pkg/types"

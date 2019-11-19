@@ -18,11 +18,11 @@
 package trace
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
 	"context"
-
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"errors"
+
+	mosnctx "sofastack.io/sofa-mosn/common/context"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var ErrNoSuchDriver = errors.New("no such driver")
@@ -37,7 +37,7 @@ var global = globalHolder{
 }
 
 func SpanFromContext(ctx context.Context) types.Span {
-	if val := mosnctx.Get(ctx, types.ContextKeyActiveSpan); val != nil {
+	if val := mosnctx.Get(ctx, mosnctx.ContextKeyActiveSpan); val != nil {
 		if sp, ok := val.(types.Span); ok {
 			return sp
 		}

@@ -24,7 +24,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	jsoniter "github.com/json-iterator/go"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/log"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

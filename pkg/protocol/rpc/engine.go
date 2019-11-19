@@ -20,7 +20,8 @@ package rpc
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/log"
+	"sofastack.io/sofa-mosn/common/buffer"
+	"sofastack.io/sofa-mosn/common/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
@@ -46,15 +47,15 @@ func NewMixedEngine() types.ProtocolEngine {
 	}
 }
 
-func (eg *engine) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (eg *engine) Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error) {
 	return eg.encoder.Encode(ctx, model)
 }
 
-//func (eg *engine) EncodeTo(ctx context.Context, model interface{}, buf types.IoBuffer) (int, error) {
+//func (eg *engine) EncodeTo(ctx context.Context, model interface{}, buf buffer.IoBuffer) (int, error) {
 //	return eg.encoder.EncodeTo(ctx, model, buf)
 //}
 
-func (eg *engine) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (eg *engine) Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error) {
 	return eg.decoder.Decode(ctx, data)
 }
 
@@ -63,7 +64,7 @@ func (eg *engine) Register(protocolCode byte, encoder types.Encoder, decoder typ
 	return nil
 }
 
-func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error) {
 	switch cmd := model.(type) {
 	case RpcCmd:
 		code := cmd.ProtocolCode()
@@ -79,7 +80,7 @@ func (m *mixedEngine) Encode(ctx context.Context, model interface{}) (types.IoBu
 	}
 }
 
-func (m *mixedEngine) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (m *mixedEngine) Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error) {
 	// at least 1 byte for protocol code recognize
 	if data.Len() > 1 {
 		code := data.Bytes()[0]
