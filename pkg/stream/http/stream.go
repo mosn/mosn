@@ -392,7 +392,7 @@ func (conn *serverStreamConnection) serve() {
 		// 4. request processing
 		s.stream = stream{
 			id:       id,
-			ctx:      context.WithValue(ctx, types.ContextKeyStreamID, id),
+			ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
 			request:  request,
 			response: &buffers.serverResponse,
 		}
