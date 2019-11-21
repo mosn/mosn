@@ -20,12 +20,13 @@ package rpc
 import (
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/protocol"
 	"context"
+
+	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/trace/sofa"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func init() {
@@ -39,14 +40,21 @@ type Tracer struct{}
 func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 	// TODO: support log & report
 	if PrintLog {
-		// TODO: read logger path from config
-		err := sofa.Init(protocol.SofaRPC, "", "rpc-server-digest.log", "rpc-client-digest.log")
-		if err != nil {
-			return nil, err
+		if value, ok := config["log_path"]; ok {
+			if logPath, ok := value.(string); ok {
+				if err := sofa.Init(protocol.SofaRPC, logPath, "rpc-server-digest.log", "rpc-client-digest.log"); err != nil {
+					return nil, err
+				}
+			}
+		} else {
+			err := sofa.Init(protocol.SofaRPC, "", "rpc-server-digest.log", "rpc-client-digest.log")
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	return  &Tracer{}, nil
+	return &Tracer{}, nil
 }
 
 func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {
