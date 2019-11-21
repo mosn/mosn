@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.8.1
+
+### New features
+
+- Metrics added: count of requests that SOFAMosn failed to process
+
+### Optimization
+
+- Improved the write performance of Metrics shared memory with MMAP
+- Reduced the default coroutine pool size and optimize memory usage
+- Optimized log output
+
+### Bug fix
+
+- Fixed a bug where if there is a log file when SOFAMosn starts, it is not rotated normally.
+
 ## v0.8.0
 
 ### New features
