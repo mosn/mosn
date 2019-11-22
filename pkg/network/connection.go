@@ -594,6 +594,9 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 	netBufferPool.Put(netBuffer)
 
 	for _, buf := range *buf {
+		if buf == nil {
+			continue
+		}
 		if buf.EOF() {
 			err = buffer.EOF
 		}
