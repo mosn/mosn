@@ -26,8 +26,6 @@ type valueCtx struct {
 	context.Context
 
 	builtin [types.ContextKeyEnd]interface{}
-	// TODO
-	//variables map[string]Variable
 }
 
 func (c *valueCtx) Value(key interface{}) interface{} {

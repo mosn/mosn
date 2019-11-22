@@ -15,4 +15,48 @@
  * limitations under the License.
  */
 
-package context
+package variable
+
+import "context"
+
+const (
+	MOSN_VAR_FLAG_CHANGEABLE  = 1
+	MOSN_VAR_FLAG_NOCACHEABLE = 2
+	MOSN_VAR_FLAG_INDEXED     = 4
+	MOSN_VAR_FLAG_NOHASH      = 8
+)
+
+type VariableGetter func(ctx context.Context, data interface{}) string
+
+type VariableSetter func(value string)
+
+type VariableValue struct {
+	valid       bool
+	noCacheable bool
+	notFound    bool
+	escape      bool
+
+	data string
+}
+
+type Variable interface {
+	// variable name
+	Name() string
+	// variable name
+	Data() interface{}
+	// variable flags
+	Flags() uint32
+	// value getter
+	Getter() VariableGetter
+	// value setter
+	Setter() VariableSetter
+}
+
+// VariableIndexer is used for optimize performance
+type VariableIndexer interface {
+	// variable index
+	GetIndex() uint32
+
+	// set index to variable
+	SetIndex(index uint32)
+}
