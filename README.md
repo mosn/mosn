@@ -1,4 +1,4 @@
-# SOFAMosn
+# MOSN
 
 [![Build Status](https://travis-ci.com/sofastack/sofa-mosn.svg?branch=master)](https://travis-ci.com/sofastack/sofa-mosn)
 [![codecov](https://codecov.io/gh/alipay/sofa-mosn/branch/master/graph/badge.svg)](https://codecov.io/gh/alipay/sofa-mosn)
@@ -7,11 +7,11 @@
 
 [English](README_EN.md)
 
-SOFAMson 是一款使用 Go 语言开发的 Service Mesh 数据平面代理，旨在为服务提供分布式、模块化、可观察和智能化的代理能力。SOFAMosn 是 [SOFAStack](https://www.sofastack.tech) 中的一个项目，其中 MOSN 是 Modular Observable Smart Network 的简称。SOFAMosn 可以与任何支持 xDS API 的 Service Mesh 集成，亦可以作为独立的四、七层负载均衡使用。未来 SOFAMosn 将支持更多云原生场景，并支持 Nginx 的核心转发功能。
+MOSN 是一款使用 Go 语言开发的网络代理软件，作为云原生的网络数据平面，旨在为服务提供多协议，模块化，智能化，安全的代理能力。MOSN 是 Modular Open Smart Network-proxy 的简称。MOSN 可以与任何支持 xDS API 的 Service Mesh 集成，亦可以作为独立的四、七层负载均衡，API Gateway，云原生 Ingress 等使用。
 
 ## 功能
 
-SOFAMosn 作为一款开源的网络代理，具有以下核心功能：
+MOSN 作为一款开源的网络代理，具有以下核心功能：
 
 + 通过 xDS API 对接 Service Mesh，支持全动态资源配置运行
 + 支持 TCP 代理、HTTP 协议、多种 RPC 代理能力
@@ -33,9 +33,9 @@ SOFAMosn 作为一款开源的网络代理，具有以下核心功能：
 
 ## 文档
 
-- [SOFAMosn 文档](https://www.sofastack.tech/projects/sofa-mosn/)
+- [MOSN 文档](https://www.sofastack.tech/projects/sofa-mosn/)
 
-- [SOFAMosn 版本更新日志](CHANGELOG.md)
+- [MOSN 版本更新日志](CHANGELOG.md)
 
 ## 贡献
 请参阅[贡献者指南](CONTRIBUTING.md)。
@@ -44,10 +44,7 @@ SOFAMosn 作为一款开源的网络代理，具有以下核心功能：
 
 请参阅 [SOFAStack community](https://github.com/sofastack/community) 了解社区运行细则和获取社区资源。
 
-使用钉钉扫描下面的二维码加入 SOFAMosn 用户交流群。
+使用钉钉扫描下面的二维码加入 MOSN 用户交流群。
 
 ![SOFAMosn 用户交流钉钉群二维码](https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ)
-
-## 致谢
-SOFAMosn 建立在 [Envoy](https://github.com/envoyproxy/envoy)、[Istio](https://github.com/istio/istio) 等开源项目基础上，感谢开源社区的努力。
 

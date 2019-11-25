@@ -4,7 +4,7 @@
 
 ### New features
 
-- Metrics added: count of requests that SOFAMosn failed to process
+- Metrics added: count of requests that MOSN failed to process
 
 ### Optimization
 
@@ -14,7 +14,7 @@
 
 ### Bug fix
 
-- Fixed a bug where if there is a log file when SOFAMosn starts, it is not rotated normally.
+- Fixed a bug where if there is a log file when MOSN starts, it is not rotated normally.
 
 ## v0.8.0
 
@@ -52,13 +52,13 @@
 ### New features
 
 - Added FeatureGates support
-- Added Metrics: request processing time in SOFAMosn
+- Added Metrics: request processing time in MOSN
 - Support for restarting listening sockets that have been closed at runtime
 
 ### Refactoring
 
 - Upgraded to Go 1.12.7
-- Modified the xDS client startup order, now it will start before the SOFAMosn service
+- Modified the xDS client startup order, now it will start before the MOSN service
 
 ### Bug fix
 
@@ -73,7 +73,7 @@
 
 ### New features
 
-- Configured the new idle connection timeout `connection_idle_timeout` field, the default value is 90s. SOFAMosn will actively close the connection when the idle connection timeout is triggered
+- Configured the new idle connection timeout `connection_idle_timeout` field, the default value is 90s. MOSN will actively close the connection when the idle connection timeout is triggered
 - Error log adds Alert interface and outputs error log with error code format
 - Support SDS to obtain TLS certificate
 
@@ -141,10 +141,10 @@
 - Add new Metrics to show basic information
   - version number
   - version of Go used
-  - SOFAMosn runtime state
+  - MOSN runtime state
   - the address to listen to
 - Support for Metrics filtering
-- Support for registering callback functions when SOFAMosn changes state
+- Support for registering callback functions when MOSN changes state
 - Support Request oneway
 - Support batch modification of error log level, support batch shutdown of Access log
 
@@ -282,7 +282,7 @@
 
 ### New features
 
-- Implemented a programmable, scalable network extension framework SOFAMosn
+- Implemented a programmable, scalable network extension framework MOSN
 - Achieved the protocol framework
   - Support SOFA RPC protocol
   - Support HTTP protocol
