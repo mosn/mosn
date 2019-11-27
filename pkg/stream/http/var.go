@@ -40,16 +40,33 @@ func init() {
 	variable.RegisterPrefixVariable("http_header_", getHttpHeader)
 }
 
-func getRequestBytes(ctx context.Context, data interface{}) string {
+func getRequestBytes(ctx context.Context, value *variable.VariableValue, data interface{}) string {
+	
+	
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
-	return strconv.Itoa(len(request.Header.Header()) + len(request.Body()))
+	length := len(request.Header.Header()) + len(request.Body())
+	if length == 0 {
+		value.NotFound = true
+		return variable.ValueNotFound
+	}
+
+	value.Valid = true
+	return strconv.Itoa(length)
 }
 
-func getHttpHeader(ctx context.Context, data interface{}) string {
+func getHttpHeader(ctx context.Context, value *variable.VariableValue, data interface{}) string {
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
 
 	headerName := data.(string)
-	return string(request.Header.Peek(strings.TrimPrefix(headerName, "http_header_")))
+	headerValue := request.Header.Peek(strings.TrimPrefix(headerName, "http_header_"))
+	// nil means no kv exists, "" means kv exists, but value is ""
+	if headerValue == nil {
+		value.NotFound = true
+		return variable.ValueNotFound
+	}
+
+	value.Valid = true
+	return string(headerValue)
 }

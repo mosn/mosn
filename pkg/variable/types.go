@@ -24,17 +24,19 @@ const (
 	MOSN_VAR_FLAG_NOCACHEABLE = 2
 	MOSN_VAR_FLAG_INDEXED     = 4
 	MOSN_VAR_FLAG_NOHASH      = 8
+
+	ValueNotFound = "-"
 )
 
-type VariableGetter func(ctx context.Context, data interface{}) string
+type VariableGetter func(ctx context.Context, value *VariableValue, data interface{}) string
 
 type VariableSetter func(value string)
 
 type VariableValue struct {
-	valid       bool
+	Valid       bool
+	NotFound    bool
 	noCacheable bool
-	notFound    bool
-	escape      bool
+	//escape      bool
 
 	data string
 }

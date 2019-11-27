@@ -94,13 +94,13 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 			return getFlushedVariableValue(ctx, indexer.GetIndex()), nil
 		}
 		getter := variable.Getter()
-		return getter(ctx, variable.Data()), nil
+		return getter(ctx, nil, variable.Data()), nil
 	}
 
 	// check prefix getter
 	for prefix, getter := range prefixGetters {
 		if strings.HasPrefix(name, prefix) {
-			return getter(ctx, name), nil
+			return getter(ctx, nil, name), nil
 		}
 	}
 
@@ -119,34 +119,33 @@ func NewVariableContext(ctx context.Context) context.Context {
 func getFlushedVariableValue(ctx context.Context, index uint32) string {
 	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
 		if values, ok := variables.([]VariableValue); ok {
-			value := values[index]
-			if value.valid || value.notFound {
+			value := &values[index]
+			if value.Valid || value.NotFound {
 				if !value.noCacheable {
 					return value.data
 				}
 
 				// clear flags
-				value.valid = false
-				value.notFound = false
+				value.Valid = false
+				value.NotFound = false
 			}
 
-			return getIndexedVariableValue(ctx, index)
+			return getIndexedVariableValue(ctx, value, index)
 		}
 	}
 
-	return "-"
+	return ValueNotFound
 }
 
-func getIndexedVariableValue(ctx context.Context, index uint32) string {
+func getIndexedVariableValue(ctx context.Context, value *VariableValue, index uint32) string {
 	variable := indexedVariables[index]
-	value := indexedValues[index]
 
-	if value.notFound || value.valid {
+	if value.NotFound || value.Valid {
 		return value.data;
 	}
 
 	getter := variable.Getter()
-	value.data = getter(ctx, variable.Data())
+	value.data = getter(ctx, value, variable.Data())
 
 	if value.data != "" {
 		if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == 1 {
@@ -155,7 +154,7 @@ func getIndexedVariableValue(ctx context.Context, index uint32) string {
 		return value.data
 	}
 
-	value.valid = false
-	value.notFound = true
-	return "-"
+	value.Valid = false
+	value.NotFound = true
+	return ValueNotFound
 }

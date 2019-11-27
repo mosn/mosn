@@ -90,8 +90,8 @@ const (
 type RequestHeader struct {
 	*fasthttp.RequestHeader
 
-	// Due the fact that fasthttp's implement has no correct semantic for Set("key", "") and Peek("key") at the
-	// first usage. We need another way for compensate.
+	// Due to the fact that fasthttp's implementation doesn't have correct semantic for Set("key", "") and Peek("key") at the
+	// first time of usage. We need another way for compensate.
 	//
 	// The problem is caused by the func initHeaderKV, if the original kv.value is nil, ant input value is also nil,
 	// then the final kv.value remains nil.
