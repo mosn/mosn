@@ -21,30 +21,52 @@ import (
 	"errors"
 	"sync"
 	"context"
-	"strings"
 	"sofastack.io/sofa-mosn/pkg/types"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"strings"
 )
 
 var (
 	// global scope
 	mux              sync.RWMutex
-	variables        = make(map[string]Variable, 32)       // all built-in variable definitions
-	prefixGetters    = make(map[string]VariableGetter, 32) // all prefix getter definitions
-	indexedVariables = make([]Variable, 0, 32)             // indexed variables
+	variables        = make(map[string]Variable, 32) // all built-in variable definitions
+	prefixVariables  = make(map[string]Variable, 32) // all prefix getter definitions
+	indexedVariables = make([]Variable, 0, 32)       // indexed variables
 
 	// request scope
-	indexedValues = make([]VariableValue, 0, 32) // indexed values, which means its' memory is pre-allocated
+	indexedValues = make([]IndexedValue, 0, 32) // indexed values, which means its' memory is pre-allocated
 
 	// error message
-	errVariableDuplicated = "duplicate variable register, name: "
-	errPrefixDuplicated   = "duplicate prefix variable register, prefix: "
-	errUndefinedVariable  = "undefined variable, name: "
+	errVariableDuplicated   = "duplicate variable register, name: "
+	errPrefixDuplicated     = "duplicate prefix variable register, prefix: "
+	errUndefinedVariable    = "undefined variable, name: "
+	errNoVariablesInContext = "no variables found in context"
+	errGetterNotFound       = "getter function undefined, variable name: "
+	errSetterNotFound       = "setter function undefined, variable name: "
 )
 
-// TODO: for runtime variable definition, e.g. variable from configs or codes
-func AddVariable(name string) {
+// AddVariable is used to make non-indexed variables into indexed variables. Typical usage is variables used in
+// access logs.
+func AddVariable(name string) (Variable, error) {
+	// find built-in variables
+	if variable, ok := variables[name]; ok {
+		return variable, nil
+	}
 
+	// check prefix variables
+	for prefix, variable := range prefixVariables {
+		if strings.HasPrefix(name, prefix) {
+			// make it into indexed variables
+			indexed := NewIndexedVariable(name, name, variable.Getter(), variable.Setter(), variable.Flags())
+			// register indexed one
+			if err := RegisterVariable(indexed); err != nil {
+				return nil, err
+			}
+			return indexed, nil
+		}
+	}
+
+	return nil, errors.New(errUndefinedVariable + name)
 }
 
 func RegisterVariable(variable Variable) error {
@@ -62,99 +84,33 @@ func RegisterVariable(variable Variable) error {
 	variables[name] = variable
 
 	// check index
-	if indexer, ok := variable.(VariableIndexer); ok {
+	if indexer, ok := variable.(Indexer); ok {
 		index := len(indexedVariables)
 		indexer.SetIndex(uint32(index))
 
 		indexedVariables = append(indexedVariables, variable)
-		indexedValues = append(indexedValues, VariableValue{})
+		indexedValues = append(indexedValues, IndexedValue{})
 	}
 	return nil
 }
 
-func RegisterPrefixVariable(prefix string, getter VariableGetter) error {
+func RegisterPrefixVariable(prefix string, variable Variable) error {
 	mux.Lock()
 	defer mux.Unlock()
 
 	// check conflict
-	if _, ok := prefixGetters[prefix]; ok {
+	if _, ok := prefixVariables[prefix]; ok {
 		return errors.New(errPrefixDuplicated + prefix)
 	}
 
 	// register
-	prefixGetters[prefix] = getter
+	prefixVariables[prefix] = variable
 	return nil
-}
-
-func GetVariableValue(ctx context.Context, name string) (string, error) {
-	// find built-in variables
-	if variable, ok := variables[name]; ok {
-		// check index
-		if indexer, ok := variable.(VariableIndexer); ok {
-			return getFlushedVariableValue(ctx, indexer.GetIndex()), nil
-		}
-		getter := variable.Getter()
-		return getter(ctx, nil, variable.Data()), nil
-	}
-
-	// check prefix getter
-	for prefix, getter := range prefixGetters {
-		if strings.HasPrefix(name, prefix) {
-			return getter(ctx, nil, name), nil
-		}
-	}
-
-	return "", errors.New(errUndefinedVariable + name)
 }
 
 func NewVariableContext(ctx context.Context) context.Context {
 	// TODO: sync.Pool reuse
-	values := make([]VariableValue, len(indexedValues)) // *2 buffer for runtime variable
-	//copy(values, indexedValues)
+	values := make([]IndexedValue, len(indexedValues)) // TODO: pre-alloc buffer for runtime variable
 
 	return mosnctx.WithValue(ctx, types.ContextKeyVariables, values)
-}
-
-// TODO: provide direct access to this function, so the cost of variable name finding could be optimized
-func getFlushedVariableValue(ctx context.Context, index uint32) string {
-	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
-		if values, ok := variables.([]VariableValue); ok {
-			value := &values[index]
-			if value.Valid || value.NotFound {
-				if !value.noCacheable {
-					return value.data
-				}
-
-				// clear flags
-				value.Valid = false
-				value.NotFound = false
-			}
-
-			return getIndexedVariableValue(ctx, value, index)
-		}
-	}
-
-	return ValueNotFound
-}
-
-func getIndexedVariableValue(ctx context.Context, value *VariableValue, index uint32) string {
-	variable := indexedVariables[index]
-
-	if value.NotFound || value.Valid {
-		return value.data;
-	}
-
-	getter := variable.Getter()
-	value.data = getter(ctx, value, variable.Data())
-
-	if value.data != "" {
-		if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == 1 {
-			value.noCacheable = true
-		}
-		return value.data
-	}
-
-	value.Valid = false
-	value.NotFound = true
-	return ValueNotFound
 }
