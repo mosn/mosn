@@ -23,7 +23,7 @@ func main() {
 	flag.Parse()
 	var server Server
 	var client Client
-	var proto types.Protocol
+	var proto types.ProtocolName
 	meshAddr := "127.0.0.1:2045"
 	serverAddr := "127.0.0.1:8080"
 	switch *p {

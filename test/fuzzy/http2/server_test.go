@@ -45,7 +45,7 @@ func TestServerCloseProxy(t *testing.T) {
 
 }
 
-func runServerCloseMeshToMesh(t *testing.T, proto types.Protocol) {
+func runServerCloseMeshToMesh(t *testing.T, proto types.ProtocolName) {
 	serverList := []string{
 		"127.0.0.1:8080",
 		"127.0.0.1:8081",

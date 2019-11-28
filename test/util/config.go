@@ -22,7 +22,7 @@ func CurrentMeshAddr() string {
 }
 
 // mesh as a proxy , client and servre have same protocol
-func CreateProxyMesh(addr string, hosts []string, proto types.Protocol) *config.MOSNConfig {
+func CreateProxyMesh(addr string, hosts []string, proto types.ProtocolName) *config.MOSNConfig {
 	clusterName := "proxyCluster"
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
@@ -45,7 +45,7 @@ func CreateProxyMesh(addr string, hosts []string, proto types.Protocol) *config.
 // appproto is client and server (not mesh) protocol
 // meshproto is mesh's protocol
 // hosts is server's addresses
-func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types.Protocol, meshproto types.Protocol, hosts []string, tls bool) *config.MOSNConfig {
+func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types.ProtocolName, meshproto types.ProtocolName, hosts []string, tls bool) *config.MOSNConfig {
 	downstreamCluster := "downstream"
 	upstreamCluster := "upstream"
 	downstreamRouters := []v2.Router{
@@ -129,7 +129,7 @@ type ExtendVerifyConfig struct {
 	VerifyConfig map[string]interface{}
 }
 
-func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto types.Protocol, meshproto types.Protocol, hosts []string, ext *ExtendVerifyConfig) *config.MOSNConfig {
+func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto types.ProtocolName, meshproto types.ProtocolName, hosts []string, ext *ExtendVerifyConfig) *config.MOSNConfig {
 	downstreamCluster := "downstream"
 	upstreamCluster := "upstream"
 	downstreamRouters := []v2.Router{
@@ -223,7 +223,7 @@ type WeightHost struct {
 }
 
 // mesh as a proxy , client and servre have same protocol
-func CreateWeightProxyMesh(addr string, proto types.Protocol, clusters []*WeightCluster) *config.MOSNConfig {
+func CreateWeightProxyMesh(addr string, proto types.ProtocolName, clusters []*WeightCluster) *config.MOSNConfig {
 	var clusterConfigs []v2.Cluster
 	var weightClusters []v2.WeightedCluster
 	for _, c := range clusters {

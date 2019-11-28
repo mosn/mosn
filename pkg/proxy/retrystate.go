@@ -29,11 +29,11 @@ type retryState struct {
 	cluster          types.ClusterInfo
 	retryOn          bool
 	retiesRemaining  uint32
-	upstreamProtocol types.Protocol
+	upstreamProtocol types.ProtocolName
 }
 
 func newRetryState(retryPolicy types.RetryPolicy,
-	requestHeaders types.HeaderMap, cluster types.ClusterInfo, proto types.Protocol) *retryState {
+	requestHeaders types.HeaderMap, cluster types.ClusterInfo, proto types.ProtocolName) *retryState {
 	rs := &retryState{
 		retryPolicy:      retryPolicy,
 		requestHeaders:   requestHeaders,

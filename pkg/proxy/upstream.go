@@ -35,7 +35,7 @@ import (
 type upstreamRequest struct {
 	proxy         *proxy
 	downStream    *downStream
-	protocol      types.Protocol
+	protocol      types.ProtocolName
 	host          types.Host
 	requestSender types.StreamSender
 	connPool      types.ConnectionPool

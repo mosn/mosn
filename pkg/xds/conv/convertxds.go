@@ -86,7 +86,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr: convertAddress(&xdsListener.Address),
+		Addr:                    convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -502,9 +502,10 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 				UpstreamProtocol:   string(protocol.HTTP1),
 			}
 		} else {
+			// FIXME
 			proxyConfig = v2.Proxy{
-				DownstreamProtocol: string(protocol.SofaRPC),
-				UpstreamProtocol:   string(protocol.SofaRPC),
+				DownstreamProtocol: string(protocol.Xprotocol),
+				UpstreamProtocol:   string(protocol.Xprotocol),
 			}
 		}
 	} else if name == v2.X_PROXY {

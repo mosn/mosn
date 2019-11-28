@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/utils"
 
@@ -587,22 +587,22 @@ func (s *downStream) matchRoute() {
 	s.snapshot, s.route = handlerChain.DoNextHandler()
 }
 
-func (s *downStream) convertProtocol() (dp, up types.Protocol) {
+func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {
 	dp = s.getDownstreamProtocol()
 	up = s.getUpstreamProtocol()
 	return
 }
 
-func (s *downStream) getDownstreamProtocol() (prot types.Protocol) {
+func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
 	if s.proxy.serverStreamConn == nil {
-		prot = types.Protocol(s.proxy.config.DownstreamProtocol)
+		prot = types.ProtocolName(s.proxy.config.DownstreamProtocol)
 	} else {
 		prot = s.proxy.serverStreamConn.Protocol()
 	}
 	return prot
 }
 
-func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
+func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
 	configProtocol := s.proxy.config.UpstreamProtocol
 
 	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
@@ -614,7 +614,7 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
 	if configProtocol == string(protocol.Auto) {
 		currentProtocol = s.getDownstreamProtocol()
 	} else {
-		currentProtocol = types.Protocol(configProtocol)
+		currentProtocol = types.ProtocolName(configProtocol)
 	}
 
 	return currentProtocol

@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -61,7 +61,7 @@ func TestHealthCheck(t *testing.T) {
 	log.InitDefaultLogger("", log.DEBUG)
 	interval := 500 * time.Millisecond
 	firstInterval = interval
-	RegisterSessionFactory(types.Protocol("test"), &mockSessionFactory{})
+	RegisterSessionFactory(types.ProtocolName("test"), &mockSessionFactory{})
 	result := &testResult{
 		results: map[string]*testCounter{},
 	}

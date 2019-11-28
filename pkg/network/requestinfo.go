@@ -26,7 +26,7 @@ import (
 
 // RequestInfo
 type RequestInfo struct {
-	protocol                 types.Protocol
+	protocol                 types.ProtocolName
 	startTime                time.Time
 	responseFlag             types.ResponseFlag
 	upstreamHost             types.HostInfo
@@ -44,7 +44,7 @@ type RequestInfo struct {
 }
 
 // todo check
-func newRequestInfoWithPort(protocol types.Protocol) types.RequestInfo {
+func newRequestInfoWithPort(protocol types.ProtocolName) types.RequestInfo {
 	return &RequestInfo{
 		protocol:  protocol,
 		startTime: time.Now(),
@@ -107,7 +107,7 @@ func (r *RequestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *RequestInfo) Protocol() types.Protocol {
+func (r *RequestInfo) Protocol() types.ProtocolName {
 	return r.protocol
 }
 

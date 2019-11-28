@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	httpMappingFactory = make(map[types.Protocol]HTTPMapping)
+	httpMappingFactory = make(map[types.ProtocolName]HTTPMapping)
 	ErrNoMapping       = errors.New("no mapping function found")
 )
 
@@ -40,11 +40,11 @@ type HTTPMapping interface {
 	MappingHeaderStatusCode(headers types.HeaderMap) (int, error)
 }
 
-func RegisterMapping(p types.Protocol, m HTTPMapping) {
+func RegisterMapping(p types.ProtocolName, m HTTPMapping) {
 	httpMappingFactory[p] = m
 }
 
-func MappingHeaderStatusCode(p types.Protocol, headers types.HeaderMap) (int, error) {
+func MappingHeaderStatusCode(p types.ProtocolName, headers types.HeaderMap) (int, error) {
 	if f, ok := httpMappingFactory[p]; ok {
 		return f.MappingHeaderStatusCode(headers)
 	}

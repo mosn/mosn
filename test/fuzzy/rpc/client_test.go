@@ -57,7 +57,7 @@ func TestClientCloseProxy(t *testing.T) {
 
 }
 
-func runClientCloseMeshToMesh(t *testing.T, proto types.Protocol) {
+func runClientCloseMeshToMesh(t *testing.T, proto types.ProtocolName) {
 	serverList := []string{"127.0.0.1:8081"}
 	stopClient := make(chan struct{})
 	stopServer := make(chan struct{})

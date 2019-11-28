@@ -17,7 +17,7 @@ var (
 )
 
 // Create Mesh Config
-func NewProxyFilter(routerfgname string, downstream, upstream types.Protocol) *v2.Proxy {
+func NewProxyFilter(routerfgname string, downstream, upstream types.ProtocolName) *v2.Proxy {
 	return &v2.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
@@ -56,7 +56,7 @@ func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.Fi
 	}
 }
 
-func NewFilterChain(routerConfigName string, downstream, upstream types.Protocol, routers []v2.Router) v2.FilterChain {
+func NewFilterChain(routerConfigName string, downstream, upstream types.ProtocolName, routers []v2.Router) v2.FilterChain {
 	proxy := NewProxyFilter(routerConfigName, downstream, upstream)
 
 	return makeFilterChain(proxy, routers, routerConfigName)

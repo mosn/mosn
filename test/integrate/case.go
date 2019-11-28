@@ -19,8 +19,8 @@ import (
 )
 
 type TestCase struct {
-	AppProtocol    types.Protocol
-	MeshProtocol   types.Protocol
+	AppProtocol    types.ProtocolName
+	MeshProtocol   types.ProtocolName
 	C              chan error
 	T              *testing.T
 	AppServer      util.UpstreamServer
@@ -29,7 +29,7 @@ type TestCase struct {
 	Finish         chan bool
 }
 
-func NewTestCase(t *testing.T, app, mesh types.Protocol, server util.UpstreamServer) *TestCase {
+func NewTestCase(t *testing.T, app, mesh types.ProtocolName, server util.UpstreamServer) *TestCase {
 	return &TestCase{
 		AppProtocol:  app,
 		MeshProtocol: mesh,

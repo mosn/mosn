@@ -24,8 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	jsoniter "github.com/json-iterator/go"
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"github.com/json-iterator/go"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -198,7 +198,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamListener)
 	if p.config.DownstreamProtocol != string(protocol.Auto) {
-		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, types.ProtocolName(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
 	}
 }
 

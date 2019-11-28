@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/network"
 	"sofastack.io/sofa-mosn/pkg/router"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -105,9 +105,9 @@ type mockConnPool struct {
 	types.ConnectionPool
 }
 
-const mockProtocol = types.Protocol("mock")
+const mockProtocol = types.ProtocolName("mock")
 
-func (p *mockConnPool) Protocol() types.Protocol {
+func (p *mockConnPool) Protocol() types.ProtocolName {
 	return mockProtocol
 }
 

@@ -66,7 +66,7 @@ func (p *connPool) SupportTLS() bool {
 	return p.host.SupportTLS()
 }
 
-func (p *connPool) Protocol() types.Protocol {
+func (p *connPool) Protocol() types.ProtocolName {
 	return protocol.HTTP1
 }
 

@@ -64,7 +64,7 @@ type HTTPCase struct {
 	*integrate.TestCase
 }
 
-func NewHTTPCase(t *testing.T, serverProto, meshProto types.Protocol, server util.UpstreamServer) *HTTPCase {
+func NewHTTPCase(t *testing.T, serverProto, meshProto types.ProtocolName, server util.UpstreamServer) *HTTPCase {
 	c := integrate.NewTestCase(t, serverProto, meshProto, server)
 	return &HTTPCase{c}
 }

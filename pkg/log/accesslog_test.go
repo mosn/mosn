@@ -35,7 +35,7 @@ import (
 func TestAccessLog(t *testing.T) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	format := "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
-		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
+		"%BytesReceived% %ProtocolName% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
 		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
 	logName := "/tmp/mosn_bench/benchmark_access.log"
 	os.Remove(logName)
@@ -92,7 +92,7 @@ func TestAccessLogStartTime(t *testing.T) {
 func TestAccessLogDisable(t *testing.T) {
 	DefaultDisableAccessLog = true
 	format := "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
-		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
+		"%BytesReceived% %ProtocolName% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
 		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
 	logName := "/tmp/mosn_accesslog/disbale_access.log"
 	os.Remove(logName)
@@ -240,7 +240,7 @@ func BenchmarkAccessLogParallel(b *testing.B) {
 
 // mock_requestInfo
 type mock_requestInfo struct {
-	protocol                 types.Protocol
+	protocol                 types.ProtocolName
 	startTime                time.Time
 	responseFlag             types.ResponseFlag
 	upstreamHost             types.HostInfo
@@ -312,7 +312,7 @@ func (r *mock_requestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *mock_requestInfo) Protocol() types.Protocol {
+func (r *mock_requestInfo) Protocol() types.ProtocolName {
 	return r.protocol
 }
 

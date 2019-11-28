@@ -29,7 +29,7 @@ func RegisterDriver(typ string, driver types.Driver) {
 	drivers[typ] = driver
 }
 
-func RegisterTracerBuilder(typ string, protocol types.Protocol, builder types.TracerBuilder) {
+func RegisterTracerBuilder(typ string, protocol types.ProtocolName, builder types.TracerBuilder) {
 	if driver, ok := drivers[typ]; ok {
 		driver.Register(protocol, builder)
 	}

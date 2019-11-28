@@ -245,7 +245,7 @@ func TestParseListenerConfig(t *testing.T) {
 func TestParseProxyFilter(t *testing.T) {
 	proxyConfigStr := `{
 		"name": "proxy",
-		"downstream_protocol": "SofaRpc",
+		"downstream_protocol": "X",
 		"upstream_protocol": "Http2",
 		"router_config_name":"test_router",
 		"extend_config":{
@@ -259,7 +259,7 @@ func TestParseProxyFilter(t *testing.T) {
 	}
 	proxy := ParseProxyFilter(m)
 	if !(proxy.Name == "proxy" &&
-		proxy.DownstreamProtocol == string(protocol.SofaRPC) &&
+		proxy.DownstreamProtocol == string(protocol.Xprotocol) &&
 		proxy.UpstreamProtocol == string(protocol.HTTP2) && proxy.RouterConfigName == "test_router") {
 		t.Error("parse proxy filter failed")
 	}

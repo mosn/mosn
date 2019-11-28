@@ -21,13 +21,12 @@ import (
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
-// Protocol type definition
+// ProtocolName type definition
 const (
-	Auto      types.Protocol = "Auto"
-	SofaRPC   types.Protocol = "SofaRpc"
-	HTTP1     types.Protocol = "Http1"
-	HTTP2     types.Protocol = "Http2"
-	Xprotocol types.Protocol = "X"
+	Auto      types.ProtocolName = "Auto"
+	HTTP1     types.ProtocolName = "Http1"
+	HTTP2     types.ProtocolName = "Http2"
+	Xprotocol types.ProtocolName = "X"
 )
 
 // header direction definition

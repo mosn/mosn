@@ -20,12 +20,12 @@ package rpc
 import (
 	"testing"
 	"time"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa/rpc"
 	"log"
 	"context"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/trace/sofa/xprotocol"
 )
 
 func TestSofaHttpTracerStartFinish(t *testing.T) {
@@ -38,6 +38,6 @@ func TestSofaHttpTracerStartFinish(t *testing.T) {
 	ctx = context.WithValue(ctx, types.ContextKeyListenerType, v2.EGRESS)
 
 	span := tracer.Start(ctx, nil, time.Now())
-	span.SetTag(rpc.TRACE_ID, trace.IdGen().GenerateTraceId())
+	span.SetTag(xprotocol.TRACE_ID, trace.IdGen().GenerateTraceId())
 	span.FinishSpan()
 }

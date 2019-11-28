@@ -20,7 +20,7 @@ package stream
 import (
 	"context"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -29,7 +29,7 @@ import (
 // types.ReadFilter
 // types.StreamConnectionEventListener
 type client struct {
-	Protocol                      types.Protocol
+	Protocol                      types.ProtocolName
 	Connection                    types.ClientConnection
 	Host                          types.HostInfo
 	ClientStreamConnection        types.ClientStreamConnection
@@ -39,7 +39,7 @@ type client struct {
 
 // NewStreamClient
 // Create a codecclient used as a client to send/receive stream in a connection
-func NewStreamClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo) Client {
+func NewStreamClient(ctx context.Context, prot types.ProtocolName, connection types.ClientConnection, host types.HostInfo) Client {
 	client := &client{
 		Protocol:   prot,
 		Connection: connection,
@@ -61,7 +61,7 @@ func NewStreamClient(ctx context.Context, prot types.Protocol, connection types.
 
 // NewBiDirectStreamClient
 // Create a bidirectional client used to realize bidirectional communication
-func NewBiDirectStreamClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
+func NewBiDirectStreamClient(ctx context.Context, prot types.ProtocolName, connection types.ClientConnection, host types.HostInfo,
 	serverCallbacks types.ServerStreamConnectionEventListener) Client {
 	client := &client{
 		Protocol:   prot,

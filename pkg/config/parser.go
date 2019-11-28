@@ -36,7 +36,6 @@ import (
 
 var protocolsSupported = map[string]bool{
 	string(protocol.Auto):      true,
-	string(protocol.SofaRPC):   true,
 	string(protocol.HTTP1):     true,
 	string(protocol.HTTP2):     true,
 	string(protocol.Xprotocol): true,
@@ -237,11 +236,11 @@ func ParseProxyFilter(cfg map[string]interface{}) *v2.Proxy {
 	}
 
 	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
-		log.StartLogger.Fatal("[config] [parse proxy] Protocol in String Needed in Proxy Network Filter")
+		log.StartLogger.Fatal("[config] [parse proxy] ProtocolName in String Needed in Proxy Network Filter")
 	} else if _, ok := protocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
-		log.StartLogger.Fatal("[config] [parse proxy] Invalid Downstream Protocol = ", proxyConfig.DownstreamProtocol)
+		log.StartLogger.Fatal("[config] [parse proxy] Invalid Downstream ProtocolName = ", proxyConfig.DownstreamProtocol)
 	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
-		log.StartLogger.Fatal("[config] [parse proxy] Invalid Upstream Protocol = ", proxyConfig.UpstreamProtocol)
+		log.StartLogger.Fatal("[config] [parse proxy] Invalid Upstream ProtocolName = ", proxyConfig.UpstreamProtocol)
 	}
 
 	return proxyConfig

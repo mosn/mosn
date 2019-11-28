@@ -91,10 +91,10 @@ type streamConnection struct {
 	conn types.Connection
 	cm   *str.ContextManager
 
-	codecEngine types.ProtocolEngine
+	protocol types.Protocol
 }
 
-func (conn *streamConnection) Protocol() types.Protocol {
+func (conn *streamConnection) Protocol() types.ProtocolName {
 	return protocol.HTTP2
 }
 
@@ -167,9 +167,9 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 
 	sc := &serverStreamConnection{
 		streamConnection: streamConnection{
-			ctx:         ctx,
-			conn:        connection,
-			codecEngine: mhttp2.EngineServer(h2sc),
+			ctx:      ctx,
+			conn:     connection,
+			protocol: mhttp2.ServerProto(h2sc),
 
 			cm: str.NewContextManager(ctx),
 		},
@@ -199,7 +199,7 @@ func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
 		ctx := conn.cm.Get()
 
 		// 2. decode process
-		frame, err := conn.codecEngine.Decode(ctx, buf)
+		frame, err := conn.protocol.Decode(ctx, buf)
 		// No enough data
 		if err == http2.ErrAGAIN {
 			break
@@ -466,7 +466,7 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 func (s *serverStream) endStream() {
 	defer s.DestroyStream()
 
-	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
+	_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
 	if err != nil {
 		// todo: other error scenes
 		log.Proxy.Errorf(s.ctx, "http2 server SendResponse  error :%v", err)
@@ -503,9 +503,9 @@ func newClientStreamConnection(ctx context.Context, connection types.Connection,
 
 	sc := &clientStreamConnection{
 		streamConnection: streamConnection{
-			ctx:         ctx,
-			conn:        connection,
-			codecEngine: mhttp2.EngineClient(h2cc),
+			ctx:      ctx,
+			conn:     connection,
+			protocol: mhttp2.ClientProto(h2cc),
 
 			cm: str.NewContextManager(ctx),
 		},
@@ -528,7 +528,7 @@ func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 		ctx := conn.cm.Get()
 
 		// 2. decode process
-		frame, err := conn.codecEngine.Decode(ctx, buf)
+		frame, err := conn.protocol.Decode(ctx, buf)
 		// No enough data
 		if err == http2.ErrAGAIN {
 			break
@@ -802,7 +802,7 @@ func (s *clientStream) endStream() {
 	s.sc.mutex.Lock()
 	defer s.sc.mutex.Unlock()
 
-	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
+	_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
 	if err != nil {
 		// todo: other error scenes
 		log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)

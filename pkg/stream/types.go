@@ -21,8 +21,18 @@ import (
 	"context"
 	"errors"
 
-	metrics "github.com/rcrowley/go-metrics"
+	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/types"
+)
+
+// StreamDirection represent the stream's direction
+type StreamDirection int
+
+// ServerStream = 1
+// ClientStream = 0
+const (
+	ServerStream StreamDirection = 1
+	ClientStream StreamDirection = 0
 )
 
 var FAILED = errors.New("FAILED")

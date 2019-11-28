@@ -65,7 +65,7 @@ func (f *injectFilter) inject() {
 }
 
 // mosn config with stream filter called inject
-func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *config.MOSNConfig {
+func createInjectProxyMesh(addr string, hosts []string, proto types.ProtocolName) *config.MOSNConfig {
 	clusterName := "http_server"
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []v2.Cluster{

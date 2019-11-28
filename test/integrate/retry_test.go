@@ -23,7 +23,7 @@ type RetryCase struct {
 	BadIsClose bool
 }
 
-func NewRetryCase(t *testing.T, serverProto, meshProto types.Protocol, isClose bool) *RetryCase {
+func NewRetryCase(t *testing.T, serverProto, meshProto types.ProtocolName, isClose bool) *RetryCase {
 	app1 := "127.0.0.1:8080"
 	app2 := "127.0.0.1:8081"
 	var good, bad util.UpstreamServer

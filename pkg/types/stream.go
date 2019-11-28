@@ -173,8 +173,8 @@ type StreamConnection interface {
 	// stream uses protocol decode data, and popup event to controller
 	Dispatch(buffer IoBuffer)
 
-	// Protocol on the connection
-	Protocol() Protocol
+	// ProtocolName on the connection
+	Protocol() ProtocolName
 
 	// Active streams count
 	ActiveStreamsNum() int
@@ -350,7 +350,7 @@ const (
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
-	Protocol() Protocol
+	Protocol() ProtocolName
 
 	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
 

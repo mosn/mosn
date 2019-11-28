@@ -81,7 +81,7 @@ func TestAutoTLS(t *testing.T) {
 }
 
 func TestProtocolHttp2(t *testing.T) {
-	var prot types.Protocol
+	var prot types.ProtocolName
 	var magic string
 	var err error
 
@@ -104,7 +104,7 @@ func TestProtocolHttp2(t *testing.T) {
 }
 
 func TestProtocolHttp1(t *testing.T) {
-	var prot types.Protocol
+	var prot types.ProtocolName
 	var magic string
 	var err error
 

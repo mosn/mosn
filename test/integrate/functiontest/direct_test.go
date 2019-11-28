@@ -24,7 +24,7 @@ import (
 // TODO: rpc status have something wrong
 
 // Direct Response ignore upstream cluster information and route rule config
-func CreateDirectMeshProxy(addr string, proto types.Protocol, response *v2.DirectResponseAction) *config.MOSNConfig {
+func CreateDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.DirectResponseAction) *config.MOSNConfig {
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			v2.Cluster{
@@ -62,7 +62,7 @@ func NewDirectResponsePrefixRouter(prefix string, response *v2.DirectResponseAct
 
 // Proxy Mode is OK
 type DirectResponseCase struct {
-	Protocol   types.Protocol
+	Protocol   types.ProtocolName
 	RPCClient  *util.RPCClient
 	C          chan error
 	T          *testing.T
@@ -72,7 +72,7 @@ type DirectResponseCase struct {
 	body       string
 }
 
-func NewDirectResponseCase(t *testing.T, proto types.Protocol, status int, body string, client *util.RPCClient) *DirectResponseCase {
+func NewDirectResponseCase(t *testing.T, proto types.ProtocolName, status int, body string, client *util.RPCClient) *DirectResponseCase {
 	return &DirectResponseCase{
 		Protocol:  proto,
 		RPCClient: client,

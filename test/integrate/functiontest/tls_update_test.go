@@ -67,7 +67,7 @@ T/Yriezreq8BhYukV8tT5QLq83hcw6kGPA==
 // case2 mosn listen a tls (without inspector) changed to non-tls (needs to create new connection)
 // case3 mosn listen a tls (without inspector) changed to inspector mode
 type TLSUpdateCase struct {
-	Protocol     types.Protocol
+	Protocol     types.ProtocolName
 	AppServer    util.UpstreamServer
 	MeshAddr     string
 	ListenerName string
@@ -76,7 +76,7 @@ type TLSUpdateCase struct {
 	Finish       chan bool
 }
 
-func NewTLSUpdateCase(t *testing.T, proto types.Protocol, server util.UpstreamServer) *TLSUpdateCase {
+func NewTLSUpdateCase(t *testing.T, proto types.ProtocolName, server util.UpstreamServer) *TLSUpdateCase {
 	return &TLSUpdateCase{
 		Protocol:  proto,
 		AppServer: server,
@@ -94,7 +94,7 @@ var DefaultTLSConfig = v2.TLSConfig{
 	ServerName: "127.0.0.1",
 }
 
-func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, proto types.Protocol, tls bool) *config.MOSNConfig {
+func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, proto types.ProtocolName, tls bool) *config.MOSNConfig {
 	clusterName := "upstream"
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []v2.Cluster{

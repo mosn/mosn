@@ -92,8 +92,8 @@ type RequestInfo interface {
 	// SetBytesReceived sets the bytes received
 	SetBytesReceived(bytesReceived uint64)
 
-	// Protocol returns the request's protocol type
-	Protocol() Protocol
+	// ProtocolName returns the request's protocol type
+	Protocol() ProtocolName
 
 	// ResponseCode reports the request's response code
 	// The code is http standard status code.

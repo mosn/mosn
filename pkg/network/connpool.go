@@ -6,14 +6,14 @@ import (
 )
 
 func init() {
-	ConnNewPoolFactories = make(map[types.Protocol]connNewPool)
+	ConnNewPoolFactories = make(map[types.ProtocolName]connNewPool)
 }
 
 type connNewPool func(host types.Host) types.ConnectionPool
 
-var ConnNewPoolFactories map[types.Protocol]connNewPool
+var ConnNewPoolFactories map[types.ProtocolName]connNewPool
 
-func RegisterNewPoolFactory(protocol types.Protocol, factory connNewPool) {
+func RegisterNewPoolFactory(protocol types.ProtocolName, factory connNewPool) {
 	//other
 	log.DefaultLogger.Infof("[network] [ register pool factory] register protocol: %v factory", protocol)
 	ConnNewPoolFactories[protocol] = factory

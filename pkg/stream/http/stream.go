@@ -142,7 +142,7 @@ func (sc *streamConnection) Dispatch(buffer types.IoBuffer) {
 	}
 }
 
-func (conn *streamConnection) Protocol() types.Protocol {
+func (conn *streamConnection) Protocol() types.ProtocolName {
 	return protocol.HTTP1
 }
 
@@ -356,6 +356,8 @@ func (conn *serverStreamConnection) serve() {
 		ctx := conn.contextManager.Get()
 		buffers := httpBuffersByContext(ctx)
 		request := &buffers.serverRequest
+
+		request.Header.DisableNormalizing()
 
 		// 2. blocking read using fasthttp.Request.Read
 		err := request.ReadLimitBody(conn.br, defaultMaxRequestBodySize)

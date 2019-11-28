@@ -31,7 +31,7 @@ func (c *tcpExtendCase) Start(isRouteEntryMode bool) {
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
-const _NIL types.Protocol = "null"
+const _NIL types.ProtocolName = "null"
 
 func TestTCPProxy(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
