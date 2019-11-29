@@ -33,7 +33,7 @@ import (
 
 	"golang.org/x/sys/unix"
 	admin "sofastack.io/sofa-mosn/pkg/admin/store"
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/filter/accept/originaldst"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -178,7 +178,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 				alConfig.Path = types.MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
 			}
 
-			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
+			if al, err := log.NewAccessLog(alConfig.Path, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
 				return nil, fmt.Errorf("initialize listener access logger %s failed: %v", alConfig.Path, err.Error())

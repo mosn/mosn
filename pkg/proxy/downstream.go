@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/utils"
 
@@ -273,14 +273,14 @@ func (s *downStream) writeLog() {
 	// proxy access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
 		for _, al := range s.proxy.accessLogs {
-			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
+			al.Log(s.context, s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 		}
 	}
 
 	// per-stream access log
 	if s.streamAccessLogs != nil {
 		for _, al := range s.streamAccessLogs {
-			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
+			al.Log(s.context, s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 		}
 	}
 }

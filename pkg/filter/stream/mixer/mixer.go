@@ -121,7 +121,7 @@ func (f *mixerFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilter
 
 func (f *mixerFilter) OnDestroy() {}
 
-func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (f *mixerFilter) Log(ctx context.Context, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	if reqHeaders == nil || respHeaders == nil || requestInfo == nil {
 		return
 	}

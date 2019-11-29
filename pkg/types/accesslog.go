@@ -26,5 +26,10 @@ import "context"
 // AccessLog is a log object that used to log the access info.
 type AccessLog interface {
 	// Log write the access info.
-	Log(ctx context.Context)
+	Log(ctx context.Context, reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo)
 }
+
+// DefaultAccessLogFormat provides a pre-defined format
+const DefaultAccessLogFormat = "%start_time% %request_received_duration% %response_received_duration% %bytes_sent%" + " " +
+	"%bytes_received% %protocol% %response_code% %duration% %response_flag% %response_code% %upstream_local_address%" + " " +
+	"%downstream_local_address% %downstream_remote_address% %upstream_host%"

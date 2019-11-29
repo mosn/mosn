@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/network"
@@ -42,12 +42,6 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 		ListenerConfig: v2.ListenerConfig{
 			Name:       name,
 			BindToPort: true,
-			AccessLogs: []v2.AccessLog{
-				{
-					Path:   "stdout",
-					Format: types.DefaultAccessLogFormat,
-				},
-			},
 			FilterChains: []v2.FilterChain{
 				{
 					FilterChainConfig: v2.FilterChainConfig{

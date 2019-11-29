@@ -32,6 +32,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/variable"
 	"strconv"
 	"context"
+	"strings"
 )
 
 func prepareLocalIpv6Ctx() context.Context {
@@ -67,9 +68,7 @@ func prepareLocalIpv6Ctx() context.Context {
 func TestAccessLog(t *testing.T) {
 	registerTestVarDefs()
 
-	format := "%start_time% %request_received_duration% %response_received_duration% %bytes_sent%" + " " +
-		"%bytes_received% %protocol% %response_code% %duration% %response_flag% %response_code% %upstream_local_address%" + " " +
-		"%downstream_local_address% %downstream_remote_address% %upstream_host%"
+	format := types.DefaultAccessLogFormat
 	logName := "/tmp/mosn_bench/benchmark_access.log"
 	os.Remove(logName)
 	accessLog, err := NewAccessLog(logName, format)
@@ -80,7 +79,7 @@ func TestAccessLog(t *testing.T) {
 	}
 
 	ctx := prepareLocalIpv6Ctx()
-	accessLog.Log(ctx)
+	accessLog.Log(ctx, nil, nil, nil)
 	l := "2018/12/14 18:08:33.054 1.329µs 2.00000227s 2048 2048 - 0 126.868µs false 0 127.0.0.1:23456 [2001:db8::68]:12200 127.0.0.1:53242 -\n"
 	time.Sleep(2 * time.Second)
 	f, _ := os.Open(logName)
@@ -106,13 +105,70 @@ func TestAccessLogStartTime(t *testing.T) {
 	}
 }
 
+func TestAccessLogWithCustomText(t *testing.T) {
+	registerTestVarDefs()
+
+	format := "send request to upstream by local address %upstream_local_address%"
+	logName := "/tmp/mosn_bench/test_access.log"
+	os.Remove(logName)
+	accessLog, err := NewAccessLog(logName, format)
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	ctx := prepareLocalIpv6Ctx()
+	accessLog.Log(ctx, nil, nil, nil)
+	time.Sleep(2 * time.Second)
+	f, err := os.Open(logName)
+	if err != nil {
+		t.Error("open accesslog error ", err)
+	}
+	b := make([]byte, 1024)
+	n, err := f.Read(b)
+	f.Close()
+	if err != nil {
+		t.Error("read accesslog error ", err)
+	}
+
+	if string(b)[0:n] != "send request to upstream by local address 127.0.0.1:23456\n" {
+		t.Error("test accesslog error")
+	}
+}
+
+func TestAccessLogWithEmptyVar(t *testing.T) {
+	registerTestVarDefs()
+
+	format := "send request to upstream by local address %%"
+	logName := "/tmp/mosn_bench/benchmark_access.log"
+	os.Remove(logName)
+	_, err := NewAccessLog(logName, format)
+
+	if err == nil || !strings.Contains(err.Error(), "empty variable definition"){
+		t.Error("should return empty variable definition error but actually not")
+		return
+	}
+}
+
+func TestAccessLogWithUnclosedVar(t *testing.T) {
+	registerTestVarDefs()
+
+	format := "send request to upstream by local address %"
+	logName := "/tmp/mosn_bench/benchmark_access.log"
+	os.Remove(logName)
+	_, err := NewAccessLog(logName, format)
+
+	if err == nil || !strings.Contains(err.Error(), "unclosed variable definition"){
+		t.Error("should return unclosed variable definition error but actually not")
+		return
+	}
+}
+
 func TestAccessLogDisable(t *testing.T) {
 	registerTestVarDefs()
 
 	DefaultDisableAccessLog = true
-	format := "%start_time% %request_received_duration% %response_received_duration% %bytes_sent%" + " " +
-		"%bytes_received% %protocol% %response_code% %duration% %response_flag% %response_code% %upstream_local_address%" + " " +
-		"%downstream_local_address% %downstream_remote_address% %upstream_host%"
+	format := types.DefaultAccessLogFormat
 	logName := "/tmp/mosn_accesslog/disbale_access.log"
 	os.Remove(logName)
 	accessLog, err := NewAccessLog(logName, format)
@@ -122,7 +178,7 @@ func TestAccessLogDisable(t *testing.T) {
 
 	ctx := prepareLocalIpv6Ctx()
 	// try write disbale access log nothing happened
-	accessLog.Log(ctx)
+	accessLog.Log(ctx, nil, nil, nil)
 	time.Sleep(time.Second)
 	if b, err := ioutil.ReadFile(logName); err != nil || len(b) > 0 {
 		t.Fatalf("verify log file failed, data len: %d, error: %v", len(b), err)
@@ -132,7 +188,7 @@ func TestAccessLogDisable(t *testing.T) {
 		t.Fatal("enable access log failed")
 	}
 	// retry, write success
-	accessLog.Log(ctx)
+	accessLog.Log(ctx, nil, nil, nil)
 	time.Sleep(time.Second)
 	if b, err := ioutil.ReadFile(logName); err != nil || len(b) == 0 {
 		t.Fatalf("verify log file failed, data len: %d, error: %v", len(b), err)
@@ -208,9 +264,7 @@ func BenchmarkAccessLog(b *testing.B) {
 	registerTestVarDefs()
 	InitDefaultLogger("", INFO)
 	// ~ replace the path if needed
-	format := "%start_time% %request_received_duration% %response_received_duration% %bytes_sent%" + " " +
-		"%bytes_received% %protocol% %response_code% %duration% %response_flag% %response_code% %upstream_local_address%" + " " +
-		"%downstream_local_address% %downstream_remote_address% %upstream_host%"
+	format := types.DefaultAccessLogFormat
 	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", format)
 
 	if err != nil {
@@ -220,7 +274,7 @@ func BenchmarkAccessLog(b *testing.B) {
 
 	ctx := prepareLocalIpv4Ctx()
 	for n := 0; n < b.N; n++ {
-		accessLog.Log(ctx)
+		accessLog.Log(ctx, nil, nil, nil)
 	}
 }
 
@@ -229,9 +283,7 @@ func BenchmarkAccessLogParallel(b *testing.B) {
 	registerTestVarDefs()
 	InitDefaultLogger("", INFO)
 	// ~ replace the path if needed
-	format := "%start_time% %request_received_duration% %response_received_duration% %bytes_sent%" + " " +
-		"%bytes_received% %protocol% %response_code% %duration% %response_flag% %response_code% %upstream_local_address%" + " " +
-		"%downstream_local_address% %downstream_remote_address% %upstream_host%"
+	format := types.DefaultAccessLogFormat
 	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", format)
 
 	if err != nil {
@@ -240,7 +292,7 @@ func BenchmarkAccessLogParallel(b *testing.B) {
 	ctx := prepareLocalIpv4Ctx()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			accessLog.Log(ctx)
+			accessLog.Log(ctx, nil, nil, nil)
 		}
 	})
 }

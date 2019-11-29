@@ -102,7 +102,7 @@ func NewAccessLog(output string, format string) (types.AccessLog, error) {
 	return l, nil
 }
 
-func (l *accesslog) Log(ctx context.Context) {
+func (l *accesslog) Log(ctx context.Context, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	// return directly
 	if l.logger.disable {
 		return
