@@ -3,20 +3,21 @@ package functiontest
 import (
 	"crypto/tls"
 	"fmt"
+	"golang.org/x/net/http2"
 	"io/ioutil"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/mosn"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 // Test Direct Response
@@ -67,7 +68,8 @@ type DirectResponseCase struct {
 	C          chan error
 	T          *testing.T
 	ClientAddr string
-	Finish     chan bool
+	Finish     chan struct{}
+	Wg         sync.WaitGroup
 	status     int
 	body       string
 }
@@ -78,7 +80,7 @@ func NewDirectResponseCase(t *testing.T, proto types.Protocol, status int, body 
 		RPCClient: client,
 		C:         make(chan error),
 		T:         t,
-		Finish:    make(chan bool),
+		Finish:    make(chan struct{}),
 		status:    status,
 		body:      body,
 	}
@@ -94,17 +96,24 @@ func (c *DirectResponseCase) StartProxy() {
 	cfg := CreateDirectMeshProxy(addr, c.Protocol, resp)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go func() {
-		<-c.Finish
+	go c.DeferFinishCase(func() {
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
-func (c *DirectResponseCase) FinishCase() {
-	c.Finish <- true
+func (c *DirectResponseCase) DeferFinishCase(f func()) {
 	<-c.Finish
+	c.Wg.Add(1)
+	c.Finish <- struct{}{}
+	f()
+	c.Wg.Done()
+}
+
+// Finish case and wait close returns
+func (c *DirectResponseCase) FinishCase() {
+	c.Finish <- struct{}{}
+	c.Wg.Wait()
 }
 
 func (c *DirectResponseCase) RunCase(n int, interval time.Duration) {

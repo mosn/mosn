@@ -8,11 +8,12 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
 	"golang.org/x/net/http2"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/mosn"
 	"sofastack.io/sofa-mosn/pkg/protocol"
@@ -73,7 +74,8 @@ type TLSUpdateCase struct {
 	ListenerName string
 	C            chan error
 	T            *testing.T
-	Finish       chan bool
+	Finish       chan struct{}
+	Wg           sync.WaitGroup
 }
 
 func NewTLSUpdateCase(t *testing.T, proto types.Protocol, server util.UpstreamServer) *TLSUpdateCase {
@@ -82,7 +84,7 @@ func NewTLSUpdateCase(t *testing.T, proto types.Protocol, server util.UpstreamSe
 		AppServer: server,
 		C:         make(chan error),
 		T:         t,
-		Finish:    make(chan bool),
+		Finish:    make(chan struct{}),
 	}
 }
 
@@ -137,19 +139,25 @@ func (c *TLSUpdateCase) Start(tls bool) {
 	server.ResetAdapter()
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go func() {
-		<-c.Finish
+	go c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		time.Sleep(5 * time.Second)
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
-func (c *TLSUpdateCase) FinishCase() {
-	c.Finish <- true
+func (c *TLSUpdateCase) DeferFinishCase(f func()) {
 	<-c.Finish
+	c.Wg.Add(1)
+	c.Finish <- struct{}{}
+	f()
+	c.Wg.Done()
+}
+
+// Finish case and wait close returns
+func (c *TLSUpdateCase) FinishCase() {
+	c.Finish <- struct{}{}
+	c.Wg.Wait()
 }
 
 func (c *TLSUpdateCase) UpdateTLS(inspector bool, cfgs []v2.TLSConfig) error {

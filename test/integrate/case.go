@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
@@ -26,7 +27,8 @@ type TestCase struct {
 	AppServer      util.UpstreamServer
 	ClientMeshAddr string
 	ServerMeshAddr string
-	Finish         chan bool
+	Finish         chan struct{}
+	Wg             sync.WaitGroup
 }
 
 func NewTestCase(t *testing.T, app, mesh types.Protocol, server util.UpstreamServer) *TestCase {
@@ -36,7 +38,7 @@ func NewTestCase(t *testing.T, app, mesh types.Protocol, server util.UpstreamSer
 		C:            make(chan error),
 		T:            t,
 		AppServer:    server,
-		Finish:       make(chan bool),
+		Finish:       make(chan struct{}),
 	}
 }
 
@@ -51,12 +53,10 @@ func (c *TestCase) StartProxy() {
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go func() {
-		<-c.Finish
+	go c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
@@ -70,12 +70,10 @@ func (c *TestCase) Start(tls bool) {
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, tls)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go func() {
-		<-c.Finish
+	go c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
@@ -90,19 +88,25 @@ func (c *TestCase) StartX(subprotocol string) {
 	cfg := util.CreateXProtocolMesh(clientMeshAddr, serverMeshAddr, subprotocol, []string{appAddr})
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go func() {
-		<-c.Finish
+	go c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+func (c *TestCase) DeferFinishCase(f func()) {
+	<-c.Finish
+	c.Wg.Add(1)
+	c.Finish <- struct{}{}
+	f()
+	c.Wg.Done()
 }
 
 // Finish case and wait close returns
 func (c *TestCase) FinishCase() {
-	c.Finish <- true
-	<-c.Finish
+	c.Finish <- struct{}{}
+	c.Wg.Wait()
 }
 
 const HTTPTestPath = "test/path"
