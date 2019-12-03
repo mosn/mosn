@@ -2,6 +2,7 @@ package integrate
 
 import (
 	"testing"
+	"context"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/module/http2"
@@ -86,18 +87,18 @@ func TestProtocolHttp2(t *testing.T) {
 	var err error
 
 	magic = http2.ClientPreface
-	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(context.Background(), "", []byte(magic))
 	if prot != protocol.HTTP2 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	len := len(http2.ClientPreface)
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic)[0:len-1])
+	prot, err = stream.SelectStreamFactoryProtocol(context.Background(), "", []byte(magic)[0:len-1])
 	if err != stream.EAGAIN {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
-	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte("helloworld"))
+	prot, err = stream.SelectStreamFactoryProtocol(context.Background(), "", []byte("helloworld"))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
