@@ -65,7 +65,7 @@ func (c *weightCase) Start() {
 		}
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 const thres float64 = 0.3

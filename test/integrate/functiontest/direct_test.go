@@ -96,7 +96,7 @@ func (c *DirectResponseCase) StartProxy() {
 	go c.DeferFinishCase(func() {
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 func (c *DirectResponseCase) DeferFinishCase(f func()) {

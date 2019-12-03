@@ -70,7 +70,7 @@ func (c *RetryCase) StartProxy() {
 		}
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 
 }
 
@@ -95,7 +95,7 @@ func (c *RetryCase) Start(tls bool) {
 		}
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 type PathHTTPHandler struct{}

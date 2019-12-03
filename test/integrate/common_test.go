@@ -1,6 +1,7 @@
 package integrate
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -39,7 +40,7 @@ func TestCommon(t *testing.T) {
 		//NewTestCase(T, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(T, appaddr, util.Bolt2)),
 	}
 	for i, tc := range testCases {
-		t.Logf("start case #%d\n", i)
+		fmt.Printf("start case #%d %v\n", i, time.Now())
 		tc.Start(false)
 		go tc.RunCase(1, 0)
 		select {

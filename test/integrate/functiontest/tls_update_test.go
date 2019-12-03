@@ -140,7 +140,7 @@ func (c *TLSUpdateCase) Start(tls bool) {
 		c.AppServer.Close()
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 func (c *TLSUpdateCase) DeferFinishCase(f func()) {
