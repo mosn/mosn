@@ -136,7 +136,7 @@ func (c *TLSUpdateCase) Start(tls bool) {
 	server.ResetAdapter()
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
 	})

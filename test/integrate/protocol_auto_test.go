@@ -28,7 +28,7 @@ func (c *TestCase) StartAuto(tls bool) {
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, protocol.Auto, protocol.Auto, []string{appAddr}, tls)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
 	})

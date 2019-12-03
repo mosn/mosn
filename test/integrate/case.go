@@ -50,7 +50,7 @@ func (c *TestCase) StartProxy() {
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
 	})
@@ -67,7 +67,7 @@ func (c *TestCase) Start(tls bool) {
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, tls)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
 	})
@@ -85,7 +85,7 @@ func (c *TestCase) StartX(subprotocol string) {
 	cfg := util.CreateXProtocolMesh(clientMeshAddr, serverMeshAddr, subprotocol, []string{appAddr})
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
 	})

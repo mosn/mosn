@@ -59,7 +59,7 @@ func (c *weightCase) Start() {
 	cfg := testutil.CreateWeightProxyMesh(meshAddr, protocol.SofaRPC, c.clusters)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		for _, appserver := range c.appServers {
 			appserver.Close()
 		}

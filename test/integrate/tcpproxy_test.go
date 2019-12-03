@@ -22,7 +22,7 @@ func (c *tcpExtendCase) Start(isRouteEntryMode bool) {
 	cfg := testutil.CreateTCPProxyConfig(meshAddr, []string{appAddr}, isRouteEntryMode)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
 	})

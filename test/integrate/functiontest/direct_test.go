@@ -93,7 +93,7 @@ func (c *DirectResponseCase) StartProxy() {
 	cfg := CreateDirectMeshProxy(addr, c.Protocol, resp)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		mesh.Close()
 	})
 	time.Sleep(1 * time.Second) //wait server and mesh start

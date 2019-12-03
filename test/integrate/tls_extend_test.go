@@ -129,7 +129,7 @@ func (c *tlsExtendCase) Start(conf *testutil.ExtendVerifyConfig) {
 	cfg := testutil.CreateTLSExtensionConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, conf)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
 	})

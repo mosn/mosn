@@ -63,7 +63,7 @@ func (c *RetryCase) StartProxy() {
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{app1, app2}, c.AppProtocol)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		c.GoodServer.Close()
 		if !c.BadIsClose {
 			c.BadServer.Close()
@@ -88,7 +88,7 @@ func (c *RetryCase) Start(tls bool) {
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{app1, app2}, tls)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
-	go c.DeferFinishCase(func() {
+	c.DeferFinishCase(func() {
 		c.GoodServer.Close()
 		if !c.BadIsClose {
 			c.BadServer.Close()
