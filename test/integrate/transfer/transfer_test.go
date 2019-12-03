@@ -71,11 +71,9 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 
 func startTransferServer(tc *integrate.TestCase) {
 	tc.AppServer.GoServe()
-	go func() {
-		<-tc.Finish
+	go tc.DeferFinishCase(func() {
 		tc.AppServer.Close()
-		tc.Finish <- true
-	}()
+	})
 }
 
 func TestTransfer(t *testing.T) {
