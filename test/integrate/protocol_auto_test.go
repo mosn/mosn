@@ -27,13 +27,11 @@ func (c *TestCase) StartAuto(tls bool) {
 	serverMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, protocol.Auto, protocol.Auto, []string{appAddr}, tls)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 

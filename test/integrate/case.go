@@ -26,7 +26,7 @@ type TestCase struct {
 	AppServer      util.UpstreamServer
 	ClientMeshAddr string
 	ServerMeshAddr string
-	Finish         chan bool
+	Defers         []func()
 }
 
 func NewTestCase(t *testing.T, app, mesh types.Protocol, server util.UpstreamServer) *TestCase {
@@ -36,7 +36,6 @@ func NewTestCase(t *testing.T, app, mesh types.Protocol, server util.UpstreamSer
 		C:            make(chan error),
 		T:            t,
 		AppServer:    server,
-		Finish:       make(chan bool),
 	}
 }
 
@@ -50,13 +49,11 @@ func (c *TestCase) StartProxy() {
 	c.ClientMeshAddr = clientMeshAddr
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, c.AppProtocol)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
@@ -69,13 +66,11 @@ func (c *TestCase) Start(tls bool) {
 	serverMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, tls)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
@@ -89,20 +84,26 @@ func (c *TestCase) StartX(subprotocol string) {
 	serverMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateXProtocolMesh(clientMeshAddr, serverMeshAddr, subprotocol, []string{appAddr})
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+func (c *TestCase) DeferFinishCase(f func()) {
+	c.Defers = append(c.Defers, f)
 }
 
 // Finish case and wait close returns
 func (c *TestCase) FinishCase() {
-	c.Finish <- true
-	<-c.Finish
+	if len(c.Defers) != 0 {
+		for _, def := range c.Defers {
+			def()
+		}
+		c.Defers = c.Defers[:0]
+	}
 }
 
 const HTTPTestPath = "test/path"

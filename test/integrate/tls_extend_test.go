@@ -128,13 +128,11 @@ func (c *tlsExtendCase) Start(conf *testutil.ExtendVerifyConfig) {
 	serverMeshAddr := testutil.CurrentMeshAddr()
 	cfg := testutil.CreateTLSExtensionConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, conf)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 

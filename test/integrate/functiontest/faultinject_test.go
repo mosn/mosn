@@ -10,7 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"golang.org/x/net/http2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	_ "sofastack.io/sofa-mosn/pkg/filter/stream/faultinject"
 	"sofastack.io/sofa-mosn/pkg/mosn"
@@ -19,7 +20,6 @@ import (
 	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
 	"sofastack.io/sofa-mosn/test/integrate"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 func AddFaultInject(mosn *config.MOSNConfig, listenername string, faultstr string) error {
@@ -77,13 +77,11 @@ func (c *faultInjectCase) StartProxy() {
 	faultstr := MakeFaultStr(c.abortstatus, c.delay)
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 

@@ -58,15 +58,13 @@ func (c *weightCase) Start() {
 	c.ClientMeshAddr = meshAddr
 	cfg := testutil.CreateWeightProxyMesh(meshAddr, protocol.SofaRPC, c.clusters)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		for _, appserver := range c.appServers {
 			appserver.Close()
 		}
 		mesh.Close()
-		c.Finish <- true
-	}()
+	})
 	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
