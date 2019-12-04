@@ -194,7 +194,7 @@ func (c *faultInjectCase) RunCase(n int, interval int) {
 }
 
 func TestFaultInject(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
+
 	testCases := []*faultInjectCase{
 		// delay
 		&faultInjectCase{
@@ -202,11 +202,11 @@ func TestFaultInject(t *testing.T) {
 			delay:    time.Second,
 		},
 		&faultInjectCase{
-			TestCase: integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			TestCase: integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
 			delay:    time.Second,
 		},
 		&faultInjectCase{
-			TestCase: integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+			TestCase: integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
 			delay:    time.Second,
 		},
 		// abort
@@ -215,11 +215,11 @@ func TestFaultInject(t *testing.T) {
 			abortstatus: 500,
 		},
 		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
 			abortstatus: 500,
 		},
 		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+			TestCase:    integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
 			abortstatus: 500,
 		},
 		// delay and abort
@@ -229,12 +229,12 @@ func TestFaultInject(t *testing.T) {
 			abortstatus: 500,
 		},
 		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
 			delay:       time.Second,
 			abortstatus: 500,
 		},
 		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+			TestCase:    integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
 			delay:       time.Second,
 			abortstatus: 500,
 		},

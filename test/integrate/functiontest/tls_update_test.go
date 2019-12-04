@@ -284,11 +284,10 @@ func (c *TLSUpdateCase) RequestTLS(isTLS bool, n int, interval int) {
 // NoneToTLS
 // first listen a non-tls listener, then update to tls
 func TestUpdateTLS_NoneToTLS(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TLSUpdateCase{
 		NewTLSUpdateCase(t, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
+		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
 	}
 	for i, tc := range testCases {
 		verify := func() {
@@ -321,11 +320,10 @@ func TestUpdateTLS_NoneToTLS(t *testing.T) {
 // TLSToNone
 // first listen a tls listener, then update to non-tls
 func TestUpdateTLS_TLSToNone(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TLSUpdateCase{
 		NewTLSUpdateCase(t, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
+		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
 	}
 	for i, tc := range testCases {
 		verify := func() {
@@ -356,11 +354,10 @@ func TestUpdateTLS_TLSToNone(t *testing.T) {
 
 // TLS to inspector
 func TestUpdateTLS_TLSToInspector(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TLSUpdateCase{
 		NewTLSUpdateCase(t, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
+		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
 	}
 	for i, tc := range testCases {
 		verify := func() {

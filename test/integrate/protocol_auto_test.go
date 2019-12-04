@@ -36,9 +36,8 @@ func (c *TestCase) StartAuto(tls bool) {
 }
 
 func TestAuto(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TestCase{
-		NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+		NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
 		NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
 	}
 	for i, tc := range testCases {
@@ -58,9 +57,8 @@ func TestAuto(t *testing.T) {
 }
 
 func TestAutoTLS(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TestCase{
-		NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+		NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
 		NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
 	}
 	for i, tc := range testCases {

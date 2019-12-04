@@ -32,11 +32,10 @@ func (c *tcpExtendCase) Start(isRouteEntryMode bool) {
 const _NIL types.Protocol = "null"
 
 func TestTCPProxy(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*tcpExtendCase{
 		&tcpExtendCase{NewTestCase(t, protocol.HTTP1, _NIL, testutil.NewHTTPServer(t, nil))},
-		&tcpExtendCase{NewTestCase(t, protocol.HTTP2, _NIL, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
-		&tcpExtendCase{NewTestCase(t, protocol.SofaRPC, _NIL, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},
+		&tcpExtendCase{NewTestCase(t, protocol.HTTP2, _NIL, testutil.NewUpstreamHTTP2WithAnyPort(t, nil))},
+		&tcpExtendCase{NewTestCase(t, protocol.SofaRPC, _NIL, testutil.NewRPCServerWithAnyPort(t, testutil.Bolt1))},
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
@@ -54,11 +53,10 @@ func TestTCPProxy(t *testing.T) {
 	}
 }
 func TestTCPProxyRouteEntry(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*tcpExtendCase{
 		&tcpExtendCase{NewTestCase(t, protocol.HTTP1, _NIL, testutil.NewHTTPServer(t, nil))},
-		&tcpExtendCase{NewTestCase(t, protocol.HTTP2, _NIL, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
-		&tcpExtendCase{NewTestCase(t, protocol.SofaRPC, _NIL, testutil.NewRPCServer(t, appaddr, testutil.Bolt1))},
+		&tcpExtendCase{NewTestCase(t, protocol.HTTP2, _NIL, testutil.NewUpstreamHTTP2WithAnyPort(t, nil))},
+		&tcpExtendCase{NewTestCase(t, protocol.SofaRPC, _NIL, testutil.NewRPCServerWithAnyPort(t, testutil.Bolt1))},
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)

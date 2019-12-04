@@ -19,13 +19,13 @@ import (
 func TestUpdateStreamFilters(t *testing.T) {
 	server.ResetAdapter()
 	// start a server
-	appAddr := "127.0.0.1:8080"
-	server := util.NewRPCServer(t, appAddr, util.Bolt1)
+
+	server := util.NewRPCServerWithAnyPort(t, util.Bolt1)
 	server.GoServe()
 	defer server.Close()
 	// create mosn without stream filters
 	clientMeshAddr := util.CurrentMeshAddr()
-	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, protocol.SofaRPC)
+	cfg := util.CreateProxyMesh(clientMeshAddr, []string{server.Addr()}, protocol.SofaRPC)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	defer mesh.Close()
