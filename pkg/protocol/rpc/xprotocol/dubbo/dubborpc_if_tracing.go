@@ -21,24 +21,15 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/AlexStocks/dubbogo/codec/hessian"
-	"regexp"
+	hessian "github.com/apache/dubbo-go-hessian2"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // regular
 const (
-	JAVA_IDENT_REGEX = "(?:[_$a-zA-Z][_$a-zA-Z0-9]*)"
-	CLASS_DESC       = "(?:L" + JAVA_IDENT_REGEX + "(?:\\/" + JAVA_IDENT_REGEX + ")*;)"
-	ARRAY_DESC       = "(?:\\[+(?:(?:[VZBCDFIJS])|" + CLASS_DESC + "))"
-	DESC_REGEX       = "(?:(?:[VZBCDFIJS])|" + CLASS_DESC + "|" + ARRAY_DESC + ")"
-
 	RESPONSE_WITH_EXCEPTION                  int32 = 0
 	RESPONSE_WITH_EXCEPTION_WITH_ATTACHMENTS int32 = 3
 )
-
-// DescRegex ...
-var DescRegex, _ = regexp.Compile(DESC_REGEX)
 
 func init() {
 	serviceNameFunc = dubboGetServiceName
@@ -67,7 +58,22 @@ type dubboAttr struct {
 	attachments  map[string]string
 }
 
-func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr {
+// unserializeCtl flag for Dubbo unserialize control
+type unserializeCtl uint8
+
+const (
+	_ unserializeCtl = iota
+	unserializeCtlDubboVersion
+	unserializeCtlPath
+	unserializeCtlVersion
+	unserializeCtlMethod
+	unserializeCtlArgsTypes
+	unserializeCtlAttachments
+)
+
+// unSerialize xprotocol dubbo_version + path + version + method + argsTypes ... + attachments
+func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAttr {
+
 	if serializeId != 2 {
 		// not hessian, do not support
 		fmt.Printf("unSerialize: id=%d is not hessian\n", serializeId)
@@ -81,8 +87,6 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 	var str string
 	var attachments map[string]string
 
-	// xprotocol version + path + version + method
-
 	field, err = decoder.Decode()
 	if err != nil {
 		fmt.Printf("unSerialize: Decode dubbo_version fail, err=%v\n", err)
@@ -94,6 +98,9 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		return nil
 	}
 	attr.dubboVersion = str
+	if parseCtl <= unserializeCtlDubboVersion {
+		return attr
+	}
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -107,6 +114,9 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 	}
 	attr.serviceName = str
 	attr.path = str
+	if parseCtl <= unserializeCtlPath {
+		return attr
+	}
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -119,6 +129,9 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		return nil
 	}
 	attr.version = str
+	if parseCtl <= unserializeCtlVersion {
+		return attr
+	}
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -131,8 +144,7 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		return nil
 	}
 	attr.methodName = str
-
-	if !parseAttachments {
+	if parseCtl <= unserializeCtlMethod {
 		return attr
 	}
 
@@ -142,7 +154,7 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		return nil
 	}
 
-	ats := DescRegex.FindAllString(field.(string), -1)
+	ats := hessian.DescRegex.FindAllString(field.(string), -1)
 	for i := 0; i < len(ats); i++ {
 		_, err = decoder.Decode()
 		if err != nil {
@@ -150,6 +162,10 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 			return nil
 		}
 	}
+	// No need here
+	//if parseCtl <= unserializeCtlArgsTypes {
+	//	return attr
+	//}
 
 	field, err = decoder.Decode()
 	if err != nil {
@@ -157,9 +173,13 @@ func unSerialize(serializeId int, data []byte, parseAttachments bool) *dubboAttr
 		return nil
 	}
 	if v, ok := field.(map[interface{}]interface{}); ok {
-		attachments = ToMapStringString(v)
+		attachments = hessian.ToMapStringString(v)
 		attr.attachments = attachments
 	}
+	// No need here
+	//if parseCtl <= unserializeCtlAttachments {
+	//	return attr
+	//}
 
 	return attr
 }
@@ -180,7 +200,7 @@ func dubboGetServiceName(data []byte) string {
 		return ""
 	}
 	serializeId := getSerializeId(flag)
-	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], false)
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], unserializeCtlPath)
 	serviceName := ""
 	if ret != nil {
 		serviceName = ret.serviceName
@@ -205,7 +225,7 @@ func dubboGetMethodName(data []byte) string {
 		return ""
 	}
 	serializeId := getSerializeId(flag)
-	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], false)
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], unserializeCtlMethod)
 	methodName := ""
 	if ret != nil {
 		methodName = ret.methodName
@@ -249,7 +269,7 @@ func dubboGetMeta(data []byte) map[string]string {
 		return retMap
 	}
 	serializeId := getSerializeId(flag)
-	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], true)
+	ret := unSerialize(serializeId, data[DUBBO_HEADER_LEN:], unserializeCtlAttachments)
 	retMap["serviceName"] = ret.serviceName
 	retMap["dubboVersion"] = ret.dubboVersion
 	retMap["methodName"] = ret.methodName
@@ -263,16 +283,4 @@ func dubboGetMeta(data []byte) map[string]string {
 	}
 
 	return retMap
-}
-
-func ToMapStringString(origin map[interface{}]interface{}) map[string]string {
-	dest := make(map[string]string)
-	for k, v := range origin {
-		if kv, ok := k.(string); ok {
-			if vv, ok := v.(string); ok {
-				dest[kv] = vv
-			}
-		}
-	}
-	return dest
 }

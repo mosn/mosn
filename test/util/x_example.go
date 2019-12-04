@@ -115,6 +115,20 @@ func NewXProtocolServer(t *testing.T, addr string, subproto string) UpstreamServ
 	return s
 }
 
+func NewXProtocolServerWithAnyPort(t *testing.T, subproto string) UpstreamServer {
+	s := &XProtocolServer{
+		Client: NewXClient(t, "xClient", subproto),
+	}
+	switch subproto {
+	case XExample:
+		s.UpstreamServer = NewUpstreamServerWithAnyPort(t, s.ServeXExample)
+	default:
+		t.Errorf("unsupport sub protocol")
+		return nil
+	}
+	return s
+}
+
 func (s *XProtocolServer) ServeXExample(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
 		codec := example.NewRPCExample()
