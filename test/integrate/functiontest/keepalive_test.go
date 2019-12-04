@@ -52,12 +52,12 @@ func (s *heartBeatServer) ServeBoltOrHeartbeat(t *testing.T, conn net.Conn) {
 // Test Proxy Mode
 // TODO: support protocol convert
 func TestKeepAlive(t *testing.T) {
-	appAddr := "127.0.0.1:8080"
+
 	server := &heartBeatServer{}
-	server.UpstreamServer = util.NewUpstreamServer(t, appAddr, server.ServeBoltOrHeartbeat)
+	server.UpstreamServer = util.NewUpstreamServerWithAnyPort(t, server.ServeBoltOrHeartbeat)
 	server.GoServe()
 	clientMeshAddr := util.CurrentMeshAddr()
-	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, protocol.SofaRPC)
+	cfg := util.CreateProxyMesh(clientMeshAddr, []string{server.Addr()}, protocol.SofaRPC)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	stop := make(chan bool)
@@ -67,7 +67,7 @@ func TestKeepAlive(t *testing.T) {
 		mesh.Close()
 		stop <- true
 	}()
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 	// start case
 	client := util.NewRPCClient(t, "testKeepAlive", util.Bolt1)
 	if err := client.Connect(clientMeshAddr); err != nil {
