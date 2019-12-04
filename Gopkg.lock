@@ -2,33 +2,6 @@
 
 
 [[projects]]
-  digest = "1:5db342e03532ae5e12cdb4f25118788c1e550b18bca25c4f03be9ba38fbcacd3"
-  name = "github.com/AlexStocks/dubbogo"
-  packages = [
-    "codec",
-    "codec/hessian",
-  ]
-  pruneopts = "UT"
-  revision = "d706e009647c54fe93b3a0b8f8c15fe56cc85cf7"
-  version = "v0.2.0"
-
-[[projects]]
-  digest = "1:63df7e01e8668d32cfe55ad065f841e8c3f04850a55b39c57d6ecad28252e7f5"
-  name = "github.com/AlexStocks/goext"
-  packages = ["strings"]
-  pruneopts = "UT"
-  revision = "65da9f24c77737361cf831a15336dd1f4b9ae7aa"
-  version = "v0.3.2"
-
-[[projects]]
-  digest = "1:5a37a4aac1ae78aa048122c33634ae546c47ce585cbd10d727f32b068b5f23f5"
-  name = "github.com/AlexStocks/log4go"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "c0d5f610c34a60bfb67dca1a6ed47e0785b129d7"
-  version = "v1.0.2"
-
-[[projects]]
   digest = "1:fef2f1c0c10ecb759f5e123616dc88c90b5c3991c160e26b7f363b762e2c9d68"
   name = "github.com/TarsCloud/TarsGo"
   packages = [
@@ -62,6 +35,17 @@
   version = "1.1.0"
 
 [[projects]]
+  digest = "1:f4be968368b6c78a68a439d7ef71c782b7036d185925e4dd1d2d6e773dcc59c3"
+  name = "github.com/apache/dubbo-go-hessian2"
+  packages = [
+    ".",
+    "java_exception",
+  ]
+  pruneopts = "UT"
+  revision = "0ef010e9ccf4fea50b122e43ba2c0ba62a260fcb"
+  version = "v1.3.0"
+
+[[projects]]
   digest = "1:d6afaeed1502aa28e80a4ed0981d570ad91b2579193404256ce672ed0a609e0d"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
@@ -84,6 +68,17 @@
   pruneopts = "UT"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
+
+[[projects]]
+  digest = "1:fcfeebe2642c2283be74dc4334205faccd90c4558426bcfed3af7c238c558eb2"
+  name = "github.com/dubbogo/gost"
+  packages = [
+    "bytes",
+    "math/big",
+  ]
+  pruneopts = "UT"
+  revision = "7368eb97867373c8f5aad2d6e50890244c28fff4"
+  version = "v1.3.0"
 
 [[projects]]
   digest = "1:4cc0ab2ffde5af6ed91e57dd4f67864ec07c8f175c08225cd031932d7fc945b2"
@@ -212,27 +207,6 @@
   version = "v0.0.14"
 
 [[projects]]
-  branch = "master"
-  digest = "1:ad157c87bae81a72ca4cc7b5d2da8907eeedf060ac9828833bfa3013982f6f66"
-  name = "github.com/mailru/easyjson"
-  packages = [
-    ".",
-    "buffer",
-    "jlexer",
-    "jwriter",
-  ]
-  pruneopts = "UT"
-  revision = "b2ccc519800e761ac8000b95e5d57c80a897ff9e"
-
-[[projects]]
-  digest = "1:9b90c7639a41697f3d4ad12d7d67dfacc9a7a4a6e0bbfae4fc72d0da57c28871"
-  name = "github.com/mattn/go-isatty"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "1311e847b0cb909da63b5fecfb5370aa66236465"
-  version = "v0.0.8"
-
-[[projects]]
   digest = "1:ff5ebae34cfbf047d505ee150de27e60570e8c394b3b8fdbb720ff6ac71985fc"
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
@@ -263,6 +237,14 @@
   packages = ["netpoll"]
   pruneopts = "UT"
   revision = "787757e6499086c1bb5dfe4ae7d3aa4aafe169d4"
+
+[[projects]]
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -380,7 +362,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:54a6041af989110a6edee54f56bb2f2c205dd387c79bb4fa13e38d1ffa768887"
+  digest = "1:dbc92eb2abb8d1ac8567a16de00cc12c8a5677ab8b0a18af2d4459c1320d41dc"
   name = "golang.org/x/crypto"
   packages = [
     "chacha20poly1305",
@@ -411,7 +393,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:38915cc39fc79dedca06b483584620781b60fe2aa4e25b3db127ebecc765b15d"
+  digest = "1:afce8593ac5918df05a46499b04b8c4e46a91e99566055e4a8ba829a8f389a09"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
@@ -518,10 +500,10 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/AlexStocks/dubbogo/codec/hessian",
     "github.com/TarsCloud/TarsGo/tars",
     "github.com/TarsCloud/TarsGo/tars/protocol/codec",
     "github.com/TarsCloud/TarsGo/tars/protocol/res/requestf",
+    "github.com/apache/dubbo-go-hessian2",
     "github.com/c2h5oh/datasize",
     "github.com/envoyproxy/go-control-plane/envoy/api/v2",
     "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth",

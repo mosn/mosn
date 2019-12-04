@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"golang.org/x/net/http2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/mosn"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 // Test Direct Response
@@ -67,7 +67,7 @@ type DirectResponseCase struct {
 	C          chan error
 	T          *testing.T
 	ClientAddr string
-	Finish     chan bool
+	Defers     []func()
 	status     int
 	body       string
 }
@@ -78,7 +78,6 @@ func NewDirectResponseCase(t *testing.T, proto types.Protocol, status int, body 
 		RPCClient: client,
 		C:         make(chan error),
 		T:         t,
-		Finish:    make(chan bool),
 		status:    status,
 		body:      body,
 	}
@@ -93,18 +92,25 @@ func (c *DirectResponseCase) StartProxy() {
 	}
 	cfg := CreateDirectMeshProxy(addr, c.Protocol, resp)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		mesh.Close()
-		c.Finish <- true
-	}()
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	})
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
+func (c *DirectResponseCase) DeferFinishCase(f func()) {
+	c.Defers = append(c.Defers, f)
+}
+
+// Finish case and wait close returns
 func (c *DirectResponseCase) FinishCase() {
-	c.Finish <- true
-	<-c.Finish
+	if len(c.Defers) != 0 {
+		for _, def := range c.Defers {
+			def()
+		}
+		c.Defers = c.Defers[:0]
+	}
 }
 
 func (c *DirectResponseCase) RunCase(n int, interval time.Duration) {

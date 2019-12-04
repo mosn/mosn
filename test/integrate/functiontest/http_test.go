@@ -121,7 +121,6 @@ func (c *HTTPCase) runCaseWithClient(client *http.Client, n, interval int) {
 }
 
 func TestHTTPMethod(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	// support non-tls/tls/proxy mode
 	for _, f := range []func(c *HTTPCase){
 		func(c *HTTPCase) {
@@ -137,8 +136,8 @@ func TestHTTPMethod(t *testing.T) {
 		testCases := []*HTTPCase{
 			NewHTTPCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, &MethodHTTPHandler{})),
 			NewHTTPCase(t, protocol.HTTP1, protocol.HTTP2, util.NewHTTPServer(t, &MethodHTTPHandler{})),
-			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
-			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2(t, appaddr, &MethodHTTPHandler{})),
+			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, &MethodHTTPHandler{})),
+			NewHTTPCase(t, protocol.HTTP2, protocol.HTTP1, util.NewUpstreamHTTP2WithAnyPort(t, &MethodHTTPHandler{})),
 		}
 		for i, tc := range testCases {
 			t.Logf("start case #%d\n", i)
