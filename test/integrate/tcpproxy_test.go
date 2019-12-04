@@ -26,7 +26,7 @@ func (c *tcpExtendCase) Start(isRouteEntryMode bool) {
 		c.AppServer.Close()
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 const _NIL types.Protocol = "null"

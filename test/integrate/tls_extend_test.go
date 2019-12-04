@@ -133,7 +133,7 @@ func (c *tlsExtendCase) Start(conf *testutil.ExtendVerifyConfig) {
 		c.AppServer.Close()
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 func TestTLSExtend(t *testing.T) {

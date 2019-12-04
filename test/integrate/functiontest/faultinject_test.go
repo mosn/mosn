@@ -82,7 +82,7 @@ func (c *faultInjectCase) StartProxy() {
 		c.AppServer.Close()
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 func (c *faultInjectCase) RunCase(n int, interval int) {

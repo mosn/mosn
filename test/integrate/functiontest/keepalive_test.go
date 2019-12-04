@@ -67,7 +67,7 @@ func TestKeepAlive(t *testing.T) {
 		mesh.Close()
 		stop <- true
 	}()
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 	// start case
 	client := util.NewRPCClient(t, "testKeepAlive", util.Bolt1)
 	if err := client.Connect(clientMeshAddr); err != nil {

@@ -54,7 +54,7 @@ func (c *TestCase) StartProxy() {
 		c.AppServer.Close()
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 // client - mesh - mesh - server
@@ -71,7 +71,7 @@ func (c *TestCase) Start(tls bool) {
 		c.AppServer.Close()
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 // XProtocol CASE
@@ -89,7 +89,7 @@ func (c *TestCase) StartX(subprotocol string) {
 		c.AppServer.Close()
 		mesh.Close()
 	})
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
 func (c *TestCase) DeferFinishCase(f func()) {
