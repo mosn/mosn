@@ -26,12 +26,16 @@ import (
 
 	networkbuffer "sofastack.io/sofa-mosn/pkg/buffer"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/filter"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
 	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
 	str "sofastack.io/sofa-mosn/pkg/stream"
+	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
+	"time"
 )
 
 // StreamDirection 1: server stream 0: client stream
@@ -71,7 +75,10 @@ func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connec
 
 func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	// set sub protocol
-	// mosnctx.WithValue(context, types.ContextSubProtocol, SubProtocol)
+	subProtocol := mosnctx.Get(context, types.ContextSubProtocol)
+	if subProtocol != nil {
+		return nil
+	}
 	return str.FAILED
 }
 
@@ -82,6 +89,7 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 type streamConnection struct {
 	context                             context.Context
 	protocol                            types.Protocol
+	subProtocol                         xprotocol.SubProtocol
 	connection                          types.Connection
 	streamIDXprotocolCount              uint64
 	activeStream                        streamMap
@@ -104,6 +112,7 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		serverStreamConnectionEventListener: serverCallbacks,
 		codec:                               codec,
 		protocol:                            protocol.Xprotocol,
+		subProtocol:                         subProtocolName,
 	}
 }
 
@@ -140,32 +149,45 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 
 		// get stream id
 		streamID := conn.codec.GetStreamID(request)
-		if conn.serverStreamConnectionEventListener != nil {
-			log.DefaultLogger.Tracef("Xprotocol get streamId %v", streamID)
+		headers[types.HeaderXprotocolStreamId] = streamID
+		log.DefaultLogger.Tracef("Xprotocol get streamId %v", streamID)
 
-			// request route
-			requestRouteCodec, ok := conn.codec.(xprotocol.RequestRouting)
-			if ok {
-				routeHeaders := requestRouteCodec.GetMetas(request)
-				for k, v := range routeHeaders {
-					headers[k] = v
-				}
-				log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v", headers)
+		isHearbeat := false
+		// request route
+		requestRouteCodec, ok := conn.codec.(xprotocol.RequestRouting)
+		if ok {
+			routeHeaders := requestRouteCodec.GetMetas(request)
+			for k, v := range routeHeaders {
+				headers[k] = v
 			}
+			log.DefaultLogger.Tracef("xprotocol handle request route ,headers = %v", headers)
+			_, isHearbeat = headers[types.HeaderXprotocolHeartbeat]
 		}
+
 		// tracing
 		tracingCodec, ok := conn.codec.(xprotocol.Tracing)
+		var span types.Span
 		if ok {
 			serviceName := tracingCodec.GetServiceName(request)
 			methodName := tracingCodec.GetMethodName(request)
 			headers[types.HeaderRPCService] = serviceName
 			headers[types.HeaderRPCMethod] = methodName
 			log.DefaultLogger.Tracef("xprotocol handle tracing ,serviceName = %v , methodName = %v", serviceName, methodName)
+
+			if trace.IsEnabled() {
+				// try build trace span
+				tracer := trace.Tracer(protocol.Xprotocol)
+				if tracer != nil {
+					span = tracer.Start(conn.context, headers, time.Now())
+				}
+			}
 		}
 
 		reqBuf := networkbuffer.NewIoBufferBytes(request)
 		log.DefaultLogger.Tracef("after Dispatch on decode header and data")
-		conn.OnReceive(ctx, streamID, protocol.CommonHeader(headers), reqBuf)
+		// append sub protocol header
+		headers[types.HeaderXprotocolSubProtocol] = string(conn.subProtocol)
+		conn.OnReceive(ctx, streamID, protocol.CommonHeader(headers), reqBuf, span, isHearbeat)
 		buffer.Drain(requestLen)
 	}
 }
@@ -209,11 +231,17 @@ func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder typ
 	return &stream
 }
 
-func (conn *streamConnection) OnReceive(ctx context.Context, streamID string, headers types.HeaderMap, data types.IoBuffer) types.FilterStatus {
+func (conn *streamConnection) OnReceive(ctx context.Context, streamID string, headers types.HeaderMap, data types.IoBuffer, span types.Span, isHearbeat bool) types.FilterStatus {
 	log.DefaultLogger.Tracef("xprotocol stream on decode header")
 	if conn.serverStreamConnectionEventListener != nil {
 		log.DefaultLogger.Tracef("xprotocol stream on new stream detected invoked")
-		conn.onNewStreamDetected(ctx, streamID, headers)
+		conn.onNewStreamDetected(ctx, streamID, headers, span)
+	} else {
+		// TODO:
+		if isHearbeat && conn.subProtocol == dubbo.XPROTOCOL_PLUGIN_DUBBO {
+			hbBuffer := networkbuffer.NewIoBufferBytes(conn.codec.BuildHeartbeatResp(headers))
+			conn.connection.Write(hbBuffer)
+		}
 	}
 	if stream, ok := conn.activeStream.Get(streamID); ok {
 		log.DefaultLogger.Tracef("xprotocol stream on decode header and data")
@@ -227,7 +255,7 @@ func (conn *streamConnection) OnReceive(ctx context.Context, streamID string, he
 	return types.Stop
 }
 
-func (conn *streamConnection) onNewStreamDetected(ctx context.Context, streamID string, headers types.HeaderMap) {
+func (conn *streamConnection) onNewStreamDetected(ctx context.Context, streamID string, headers types.HeaderMap, span types.Span) {
 	if ok := conn.activeStream.Has(streamID); ok {
 		return
 	}
@@ -238,7 +266,7 @@ func (conn *streamConnection) onNewStreamDetected(ctx context.Context, streamID 
 		connection: conn,
 	}
 
-	stream.streamReceiver = conn.serverStreamConnectionEventListener.NewStreamDetect(ctx, &stream, nil)
+	stream.streamReceiver = conn.serverStreamConnectionEventListener.NewStreamDetect(ctx, &stream, span)
 	conn.activeStream.Set(streamID, stream)
 }
 
@@ -278,6 +306,14 @@ func (s *stream) BufferLimit() uint32 {
 // types.StreamEncoder
 func (s *stream) AppendHeaders(context context.Context, headers types.HeaderMap, endStream bool) error {
 	log.DefaultLogger.Tracef("EncodeHeaders,request id = %s, direction = %d", s.streamID, s.direction)
+	// if header is heartbeat inject , build health response
+	if protocol, ok := headers.Get(filter.X_PROTOCOL_HEARTBEAT_HIJACT); ok {
+		if protocol != string(s.connection.protocol) {
+			log.DefaultLogger.Debugf("EncodeHeaders,request id = %s, direction = %d,send hiJect wrong , protocol not match: codec.protocol = %v , hijact = %v",
+				s.streamID, s.direction, s.connection.protocol, protocol)
+		}
+		s.encodedData = networkbuffer.NewIoBufferBytes(s.connection.codec.BuildHeartbeatResp(headers))
+	}
 	if endStream {
 		s.endStream()
 	}
@@ -318,7 +354,9 @@ func (s *stream) endStream() {
 	log.DefaultLogger.Tracef("xprotocol stream end stream invoked , request id = %s, direction = %d", s.streamID, s.direction)
 	if stream, ok := s.connection.activeStream.Get(s.streamID); ok {
 		log.DefaultLogger.Tracef("xprotocol stream end stream write encodedata = %v", s.encodedData)
-		stream.connection.connection.Write(s.encodedData)
+		if s.encodedData != nil {
+			stream.connection.connection.Write(s.encodedData)
+		}
 	} else {
 		log.DefaultLogger.Errorf("No stream %s to end", s.streamID)
 	}

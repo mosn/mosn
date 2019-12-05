@@ -647,14 +647,18 @@ type ServiceRegistryInfo struct {
 }
 
 type ApplicationInfo struct {
-	AntShareCloud bool   `json:"ant_share_cloud,omitempty"`
-	DataCenter    string `json:"data_center,omitempty"`
-	AppName       string `json:"app_name,omitempty"`
-	Zone          string `json:"zone,omitempty"`
-	DeployMode    bool   `json:"deploy_mode,omitempty"`
-	MasterSystem  bool   `json:"master_system,omitempty"`
-	CloudName     string `json:"cloud_name,omitempty"`
-	HostMachine   string `json:"host_machine,omitempty"`
+	AntShareCloud    bool   `json:"ant_share_cloud,omitempty"`
+	DataCenter       string `json:"data_center,omitempty"`
+	AppName          string `json:"app_name,omitempty"`
+	Zone             string `json:"zone,omitempty"`
+	DeployMode       bool   `json:"deploy_mode,omitempty"`
+	MasterSystem     bool   `json:"master_system,omitempty"`
+	CloudName        string `json:"cloud_name,omitempty"`
+	HostMachine      string `json:"host_machine,omitempty"`
+	InstanceId       string `json:"instance_id,omitempty"`
+	RegistryEndpoint string `json:"registry_endpoint,omitempty"`
+	AccessKey        string `json:"access_key,omitempty"`
+	SecretKey        string `json:"secret_key,omitempty"`
 }
 
 // PublishInfo implements json.Marshaler and json.Unmarshaler

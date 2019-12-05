@@ -24,11 +24,17 @@ import (
 	"fmt"
 	"strconv"
 
+	"encoding/hex"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"sofastack.io/sofa-mosn/pkg/types"
+)
+
+const (
+	XPROTOCOL_PLUGIN_DUBBO = "dubbo"
 )
 
 func init() {
-	xprotocol.Register("dubbo", &pluginDubboFactory{})
+	xprotocol.Register(XPROTOCOL_PLUGIN_DUBBO, &pluginDubboFactory{})
 }
 
 type pluginDubboFactory struct{}
@@ -63,7 +69,7 @@ func NewRPCDubbo() xprotocol.Tracing {
  * +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
  * event: 1 mean ping
  * two way: 1 mean req & rsp pair
- * req/rsp: 1 mena req
+ * req/rsp: 1 mean req
  */
 
 const (
@@ -94,7 +100,7 @@ func (d *rpcDubbo) SplitFrame(data []byte) [][]byte {
 	for true {
 		frameLen := getDubboLen(data[start:])
 		if frameLen > 0 && dataLen >= frameLen {
-			// there is one valid dubbo request
+			// there is one valid xprotocol request
 			frames = append(frames, data[start:(start+frameLen)])
 			start += frameLen
 			dataLen -= frameLen
@@ -169,11 +175,24 @@ func (d *rpcDubbo) SetStreamID(data []byte, streamID string) []byte {
 	return data
 }
 
+func (d *rpcDubbo) BuildHeartbeatResp(headers types.HeaderMap) []byte {
+	requestId, ok := headers.Get(types.HeaderXprotocolStreamId)
+	if !ok {
+		return nil
+	}
+
+	strEchoBytes, _ := hex.DecodeString("dabb22140000000000000001000000024e4e")
+	// replace dubboId
+	return d.SetStreamID(strEchoBytes, requestId)
+}
+
 type serviceNameFuncModel func(data []byte) string
 type methodNameFuncModel func(data []byte) string
+type metaFuncModel func(data []byte) map[string]string
 
 var serviceNameFunc serviceNameFuncModel
 var methodNameFunc methodNameFuncModel
+var metaFunc metaFuncModel
 
 func (d *rpcDubbo) GetServiceName(data []byte) string {
 	if serviceNameFunc != nil {
@@ -187,4 +206,11 @@ func (d *rpcDubbo) GetMethodName(data []byte) string {
 		return methodNameFunc(data)
 	}
 	return ""
+}
+
+func (d *rpcDubbo) GetMetas(data []byte) map[string]string {
+	if metaFunc != nil {
+		return metaFunc(data)
+	}
+	return nil
 }

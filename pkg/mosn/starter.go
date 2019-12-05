@@ -23,7 +23,7 @@ import (
 
 	admin "sofastack.io/sofa-mosn/pkg/admin/server"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/connectionmanager"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -260,6 +260,14 @@ func (m *Mosn) Start() {
 	// start mosn server
 	log.StartLogger.Infof("mosn start server")
 	for _, srv := range m.servers {
+
+		// TODO
+		// This can't be deleted, otherwise the code behind is equivalent at
+		// utils.GoWithRecover(func() {
+		//	 m.servers[0].Start()
+		// },
+		srv := srv
+
 		utils.GoWithRecover(func() {
 			srv.Start()
 		}, nil)
@@ -287,7 +295,7 @@ func (m *Mosn) Close() {
 // step1. NewMosn
 // step2. Start Mosn
 func Start(c *config.MOSNConfig) {
-	log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
+	log.StartLogger.Infof("[mosn] [start] start by config : %#v", c)
 	Mosn := NewMosn(c)
 	Mosn.Start()
 	Mosn.wg.Wait()

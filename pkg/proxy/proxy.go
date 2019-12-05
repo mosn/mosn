@@ -106,8 +106,12 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
 		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
-		proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
-		log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+		if xProxyExtendConfig.SubProtocol != "" {
+			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
+			log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+		} else {
+			log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
+		}
 	} else {
 		log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
 	}

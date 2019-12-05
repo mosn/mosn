@@ -26,3 +26,7 @@ type StreamFilterFactoryCreator func(config map[string]interface{}) (types.Strea
 
 // NetworkFilterFactoryCreator creates a NetworkFilterChainFactory according to config
 type NetworkFilterFactoryCreator func(config map[string]interface{}) (types.NetworkFilterChainFactory, error)
+
+const (
+	X_PROTOCOL_HEARTBEAT_HIJACT = "xprotocol-heartbeat-hijact"
+)
