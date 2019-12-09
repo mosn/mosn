@@ -56,17 +56,13 @@ func TestKeepAlive(t *testing.T) {
 	server := &heartBeatServer{}
 	server.UpstreamServer = util.NewUpstreamServerWithAnyPort(t, server.ServeBoltOrHeartbeat)
 	server.GoServe()
+	defer server.Close()
 	clientMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{server.Addr()}, protocol.SofaRPC)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	stop := make(chan bool)
-	go func() {
-		<-stop
-		server.Close()
-		mesh.Close()
-		stop <- true
-	}()
+	mesh.Start()
+	defer mesh.Close()
+
 	time.Sleep(1 * time.Second) //wait server and mesh start
 	// start case
 	client := util.NewRPCClient(t, "testKeepAlive", util.Bolt1)
@@ -101,7 +97,5 @@ func TestKeepAlive(t *testing.T) {
 	// stop the ticker goroutine and then stop the case
 	st <- true
 	<-st
-	// stop the case
-	stop <- true
-	<-stop
+
 }

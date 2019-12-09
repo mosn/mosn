@@ -27,7 +27,7 @@ func TestUpdateStreamFilters(t *testing.T) {
 	clientMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateProxyMesh(clientMeshAddr, []string{server.Addr()}, protocol.SofaRPC)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
+	mesh.Start()
 	defer mesh.Close()
 	time.Sleep(5 * time.Second)
 	// send a request to mosn, create connection between mosns
