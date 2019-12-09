@@ -114,7 +114,6 @@ func TestReRoute(t *testing.T) {
 	// start a http server
 	httpServer := util.NewHTTPServer(t, nil)
 	httpServer.GoServe()
-	defer httpServer.Close()
 	httpAddr := httpServer.Addr()
 	meshAddr := util.CurrentMeshAddr()
 	cfg := createInjectProxyMesh(meshAddr, []string{httpAddr}, protocol.HTTP1)
@@ -136,6 +135,7 @@ func TestReRoute(t *testing.T) {
 	}
 	resp.Body.Close() // release
 	// stop the server and make a request, expected get a error response from mosn
+	httpServer.Close()
 	client = http.Client{Timeout: 5 * time.Second}
 	errResp, err := http.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
 	if err != nil {
