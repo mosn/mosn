@@ -90,7 +90,7 @@ func TestLogDefaultRollerTime(t *testing.T) {
 	os.Remove(logName)
 	os.Remove(rollerName)
 	// 2s
-	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime:2})
+	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestLogDefaultRollerAfterDelete(t *testing.T) {
 	os.Remove(logName)
 	os.Remove(rollerName)
 
-	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime:3})
+	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime: 3})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,6 +142,7 @@ func TestLogDefaultRollerAfterDelete(t *testing.T) {
 	time.Sleep(100 * time.Millisecond) // wait write flush
 	logger.Print(buffer.NewIoBufferString("output"), false)
 	logger.Close() // force flush
+	time.Sleep(1 * time.Second)
 	b, err := ioutil.ReadFile(logName)
 	if err != nil {
 		t.Fatalf("read log file failed: %v", err)
