@@ -29,12 +29,10 @@ type MngAdapter struct {
 	types.ClusterManager
 }
 
-var adapterInstance = &MngAdapter{
-	ClusterManager: clusterMangerInstance,
-}
-
 func GetClusterMngAdapterInstance() *MngAdapter {
-	return adapterInstance
+	return &MngAdapter{
+		ClusterManager: clusterMangerInstance,
+	}
 }
 
 func (ca *MngAdapter) TriggerClusterAddOrUpdate(cluster v2.Cluster) error {

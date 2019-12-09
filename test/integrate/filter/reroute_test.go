@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/filter"
 	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
@@ -114,17 +114,18 @@ func TestReRoute(t *testing.T) {
 	// start a http server
 	httpServer := util.NewHTTPServer(t, nil)
 	httpServer.GoServe()
+	defer httpServer.Close()
 	httpAddr := httpServer.Addr()
 	meshAddr := util.CurrentMeshAddr()
 	cfg := createInjectProxyMesh(meshAddr, []string{httpAddr}, protocol.HTTP1)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
+	mesh.Start()
 	defer mesh.Close()
 	time.Sleep(2 * time.Second) // wait mosn start
 	// reset the logger
 	log.InitDefaultLogger(lgfile, log.DEBUG)
 	// make a http request
-	client := http.Client{Timeout:5*time.Second}
+	client := http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
 	if err != nil {
 		t.Error("rerquest reroute mosn error: ", err)
@@ -135,8 +136,7 @@ func TestReRoute(t *testing.T) {
 	}
 	resp.Body.Close() // release
 	// stop the server and make a request, expected get a error response from mosn
-	httpServer.Close()
-	client = http.Client{Timeout:5*time.Second}
+	client = http.Client{Timeout: 5 * time.Second}
 	errResp, err := http.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
 	if err != nil {
 		t.Error("rerquest reroute mosn error: ", err)

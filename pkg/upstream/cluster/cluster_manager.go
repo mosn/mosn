@@ -53,50 +53,55 @@ func refreshHostsConfig(c types.Cluster) {
 	}
 }
 
+var (
+	clusterMangerInstance    *clusterManager
+	clusterMangerInstanceMux sync.RWMutex
+)
+
 // types.ClusterManager
 type clusterManager struct {
 	clustersMap      sync.Map
 	protocolConnPool sync.Map
-	mux              sync.Mutex
 }
 
-type clusterManagerSingleton struct {
-	instanceMutex sync.Mutex
-	*clusterManager
+func (cm *clusterManager) Destroy() {
+	clusterMangerInstanceMux.Lock()
+	defer clusterMangerInstanceMux.Unlock()
+	clusterMangerInstance = nil
 }
-
-func (singleton *clusterManagerSingleton) Destroy() {
-	clusterMangerInstance.instanceMutex.Lock()
-	defer clusterMangerInstance.instanceMutex.Unlock()
-	clusterMangerInstance.clusterManager = nil
-}
-
-var clusterMangerInstance = &clusterManagerSingleton{}
 
 func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host) types.ClusterManager {
-	clusterMangerInstance.instanceMutex.Lock()
-	defer clusterMangerInstance.instanceMutex.Unlock()
-	if clusterMangerInstance.clusterManager != nil {
+
+	clusterMangerInstanceMux.Lock()
+	defer clusterMangerInstanceMux.Unlock()
+	if clusterMangerInstance != nil {
 		return clusterMangerInstance
 	}
-	clusterMangerInstance.clusterManager = &clusterManager{}
+
+	clusterMangerInstance = newClusterManager(clusters, clusterMap)
+
+	return clusterMangerInstance
+}
+
+func newClusterManager(clusters []v2.Cluster, clusterMap map[string][]v2.Host) *clusterManager {
+	clusterManager := &clusterManager{}
 	for k := range types.ConnPoolFactories {
-		clusterMangerInstance.protocolConnPool.Store(k, &sync.Map{})
+		clusterManager.protocolConnPool.Store(k, &sync.Map{})
 	}
 
 	//Add cluster to cm
 	for _, cluster := range clusters {
-		if err := clusterMangerInstance.AddOrUpdatePrimaryCluster(cluster); err != nil {
+		if err := clusterManager.AddOrUpdatePrimaryCluster(cluster); err != nil {
 			log.DefaultLogger.Errorf("[upstream] [cluster manager] NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s, error: %v", cluster.Name, err)
 		}
 	}
 	// Add cluster host
 	for clusterName, hosts := range clusterMap {
-		if err := clusterMangerInstance.UpdateClusterHosts(clusterName, hosts); err != nil {
+		if err := clusterManager.UpdateClusterHosts(clusterName, hosts); err != nil {
 			log.DefaultLogger.Errorf("[upstream] [cluster manager] NewClusterManager: UpdateClusterHosts failure, cluster name = %s, error: %v", clusterName, err)
 		}
 	}
-	return clusterMangerInstance
+	return clusterManager
 }
 
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
@@ -311,8 +316,8 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				pool := connPool.(types.ConnectionPool)
 				return pool, true
 			}
-			cm.mux.Lock()
-			defer cm.mux.Unlock()
+			clusterMangerInstanceMux.Lock()
+			defer clusterMangerInstanceMux.Unlock()
 			if connPool, ok := connectionPool.Load(addr); ok {
 				pool := connPool.(types.ConnectionPool)
 				return pool, true
@@ -329,8 +334,8 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				}
 				func() {
 					// lock the load and delete
-					cm.mux.Lock()
-					defer cm.mux.Unlock()
+					clusterMangerInstanceMux.Lock()
+					defer clusterMangerInstanceMux.Unlock()
 					// recheck whether the pool is changed
 					if connPool, ok := connectionPool.Load(addr); ok {
 						pool = connPool.(types.ConnectionPool)
