@@ -18,6 +18,7 @@
 package utils
 
 import (
+	"strings"
 	"time"
 
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -66,6 +67,11 @@ func (a *AttributesBuilder) AddInt64(key string, data int64) {
 
 // AddStringMap function
 func (a *AttributesBuilder) AddStringMap(key string, stringMap types.HeaderMap) {
+	a.AddLowerCaseStringMap(key, stringMap, false)
+}
+
+// AddStringMap function
+func (a *AttributesBuilder) AddLowerCaseStringMap(key string, stringMap types.HeaderMap, lowerCase bool) {
 	entries := &v1.Attributes_AttributeValue_StringMapValue{
 		StringMapValue: &v1.Attributes_StringMap{
 			Entries: make(map[string]string, 0),
@@ -73,6 +79,9 @@ func (a *AttributesBuilder) AddStringMap(key string, stringMap types.HeaderMap) 
 	}
 
 	stringMap.Range(func(key, value string) bool{
+		if lowerCase {
+			key = strings.ToLower(key)
+		}
 		entries.StringMapValue.Entries[key] = value
 		return true
 	} )
