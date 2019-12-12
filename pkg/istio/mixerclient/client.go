@@ -137,6 +137,8 @@ func (c *mixerClient) SendReport(request *v1.ReportRequest) *v1.ReportResponse {
 	defer cancel()
 	if err != nil {
 		log.DefaultLogger.Errorf("send report error: %v, stack: %s\n\n", err, string(debug.Stack()))
+	} else {
+		log.DefaultLogger.Tracef("send report success: %+v \n", request)
 	}
 	return response
 }

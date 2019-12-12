@@ -40,6 +40,8 @@ const (
 	KRequestTotalSize = "request.total_size"
 	// KResponseHeaders const string
 	KRequestHeaders = "request.headers"
+	KRequestHost = "request.host"
+	KRequestPath = "request.path"
 
 	// KResponseCode const string
 	KResponseCode = "response.code"
@@ -53,4 +55,5 @@ const (
 	KResponseTotalSize = "response.total_size"
 	// KResponseTime const string
 	KResponseTime = "response.time"
+
 )

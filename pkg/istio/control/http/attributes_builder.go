@@ -19,13 +19,17 @@ package http
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/istio/control"
-	"sofastack.io/sofa-mosn/pkg/istio/utils"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"istio.io/api/mixer/v1"
+
+	"sofastack.io/sofa-mosn/pkg/istio/control"
+	"sofastack.io/sofa-mosn/pkg/istio/utils"
+	"sofastack.io/sofa-mosn/pkg/log"
+	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
 )
 
 type attributesBuilder struct {
@@ -86,7 +90,6 @@ func (b *attributesBuilder) ExtractReportAttributes(reportData ReportData) {
 	headers := reportData.GetResponseHeaders()
 	builder.AddStringMap(utils.KResponseHeaders, headers)
 	builder.AddStringMap(utils.KRequestHeaders, reportData.GetRequestHeaders())
-
 	builder.AddTimestamp(utils.KResponseTime, time.Now())
 
 	reportInfo := reportData.GetReportInfo()
@@ -96,6 +99,21 @@ func (b *attributesBuilder) ExtractReportAttributes(reportData ReportData) {
 	builder.AddInt64(utils.KRequestTotalSize, int64(reportInfo.requestTotalSize))
 	builder.AddInt64(utils.KResponseTotalSize, int64(reportInfo.responseTotalSize))
 	builder.AddDuration(utils.KResponseDuration, reportInfo.duration)
+
+	httpRequestHeader , ok :=  reportData.GetRequestHeaders().(mosnhttp.RequestHeader)
+	if ok {
+		builder.AddString(utils.KRequestHost, string(httpRequestHeader.Host()))
+		requestURI := string(httpRequestHeader.RequestURI())
+		uri, err := url.ParseRequestURI(requestURI)
+		if err != nil {
+			log.DefaultLogger.Warnf("parse request URI %s error %s", requestURI, err)
+		} else {
+			builder.AddString(utils.KRequestPath, uri.Path)
+			log.DefaultLogger.Debugf("parse URI %s Path is %s", requestURI, uri.Path)
+		}
+	} else {
+		log.DefaultLogger.Debugf("ExtractReportAttributes convert header fail %T", headers)
+	}
 
 	// TODO: add check status code
 	builder.AddInt64(utils.KResponseCode, int64(reportInfo.responseCode))
