@@ -192,7 +192,7 @@ func (g *GlobalDictionary) GetIndex(key string) (index int32, exist bool) {
 
 func compressByDict(attributes *v1.Attributes, dict *messageDictionary, pb *v1.CompressedAttributes) {
 	for k, v := range attributes.Attributes {
-		index := dict.getIndex(k)
+		index := dict.getIndexOrTransform(k)
 		value := v.Value
 
 		switch val := value.(type) {
