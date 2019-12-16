@@ -43,8 +43,6 @@ func init() {
 	types.RegisterConnPoolFactory(protocol.Xprotocol, true)
 }
 
-var defaultSubProtocol types.ProtocolName = "XProtocol_default"
-
 // types.ConnectionPool
 // activeClient used as connected client
 // host is the upstream
@@ -298,7 +296,7 @@ func newActiveClient(ctx context.Context, subProtocol types.ProtocolName, pool *
 	// TODO: support protocol convert
 
 	// TODO: support config
-	if subProtocol != defaultSubProtocol {
+	if subProtocol != "" {
 		rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second, 6)
 		rpcKeepAlive.StartIdleTimeout()
 		ac.keepAlive = &keepAliveListener{
@@ -342,10 +340,10 @@ func (ac *activeClient) OnGoAway() {}
 func getSubProtocol(ctx context.Context) types.ProtocolName {
 	if ctx != nil {
 		if val := mosnctx.Get(ctx, types.ContextSubProtocol); val != nil {
-			if code, ok := val.(types.ProtocolName); ok {
-				return code
+			if code, ok := val.(string); ok {
+				return types.ProtocolName(code)
 			}
 		}
 	}
-	return defaultSubProtocol
+	return ""
 }

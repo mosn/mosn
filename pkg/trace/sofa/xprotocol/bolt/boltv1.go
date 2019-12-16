@@ -79,7 +79,7 @@ func boltv1Delegate(ctx context.Context, frame xproto.XFrame, span types.Span) {
 	span.SetTag(xprotocol.SPAN_TYPE, string(lType.(v2.ListenerType)))
 	method, _ := header.Get(sofa.TARGET_METHOD)
 	span.SetTag(xprotocol.METHOD_NAME, method)
-	span.SetTag(xprotocol.PROTOCOL, "bolt")
+	span.SetTag(xprotocol.PROTOCOL, string(bolt.ProtocolName))
 	service, _ := header.Get(sofa.SERVICE_KEY)
 	span.SetTag(xprotocol.SERVICE_NAME, service)
 	bdata, _ := header.Get(sofa.SOFA_TRACE_BAGGAGE_DATA)

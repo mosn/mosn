@@ -9,7 +9,7 @@ import (
 
 // bolt constants
 const (
-	ProtocolName    types.ProtocolName = "Bolt" // protocol
+	ProtocolName    types.ProtocolName = "bolt" // protocol
 	ProtocolCode    byte               = 1
 	ProtocolVersion byte               = 1
 

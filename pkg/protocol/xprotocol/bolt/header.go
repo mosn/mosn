@@ -15,7 +15,7 @@ type header struct {
 }
 
 // ~ HeaderMap
-func (h header) Get(key string) (value string, ok bool) {
+func (h *header) Get(key string) (value string, ok bool) {
 	for i, n := 0, len(h.kvs); i < n; i++ {
 		kv := &h.kvs[i]
 		if key == string(kv.key) {
@@ -25,7 +25,7 @@ func (h header) Get(key string) (value string, ok bool) {
 	return "", false
 }
 
-func (h header) Set(key string, value string) {
+func (h *header) Set(key string, value string) {
 	for i, n := 0, len(h.kvs); i < n; i++ {
 		kv := &h.kvs[i]
 		if key == string(kv.key) {
@@ -40,11 +40,11 @@ func (h header) Set(key string, value string) {
 	kv.value = append(kv.value[:0], value...)
 }
 
-func (h header) Add(key string, value string) {
+func (h *header) Add(key string, value string) {
 	panic("not supported")
 }
 
-func (h header) Del(key string) {
+func (h *header) Del(key string) {
 	for i, n := 0, len(h.kvs); i < n; i++ {
 		kv := &h.kvs[i]
 		if key == string(kv.key) {
@@ -58,7 +58,7 @@ func (h header) Del(key string) {
 	}
 }
 
-func (h header) Range(f func(key, value string) bool) {
+func (h *header) Range(f func(key, value string) bool) {
 	for i, n := 0, len(h.kvs); i < n; i++ {
 		kv := &h.kvs[i]
 		// false means stop iteration
@@ -68,10 +68,10 @@ func (h header) Range(f func(key, value string) bool) {
 	}
 }
 
-func (h header) Clone() header {
+func (h *header) Clone() *header {
 	n := len(h.kvs)
 
-	clone := header{
+	clone := &header{
 		kvs: make([]bytesKV, n),
 	}
 
@@ -86,7 +86,7 @@ func (h header) Clone() header {
 	return clone
 }
 
-func (h header) ByteSize() (size uint64) {
+func (h *header) ByteSize() (size uint64) {
 	for _, kv := range h.kvs {
 		size += uint64(len(kv.key) + len(kv.value))
 	}

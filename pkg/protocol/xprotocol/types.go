@@ -71,7 +71,7 @@ type XProtocol interface {
 	Hijacker
 }
 
-// HeartbeatBuilder provides interface to construct proper heartbeat command for sofarpc sub-protocols
+// HeartbeatBuilder provides interface to construct proper heartbeat command for xprotocol sub-protocols
 type Heartbeater interface {
 	// Trigger builds an active heartbeat command
 	Trigger(requestId uint64) XFrame
@@ -80,7 +80,7 @@ type Heartbeater interface {
 	Reply(requestId uint64) XFrame
 }
 
-// HeartbeatBuilder provides interface to construct proper response command for sofarpc sub-protocols
+// HeartbeatBuilder provides interface to construct proper response command for xprotocol sub-protocols
 type Hijacker interface {
 	// BuildResponse build response with given status code
 	Hijack(statusCode uint32) XFrame

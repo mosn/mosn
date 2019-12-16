@@ -310,10 +310,7 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
-	if data != nil {
-		s.downstreamReqDataBuf = data.Clone()
-		data.Drain(data.Len())
-	}
+	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {

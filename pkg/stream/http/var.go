@@ -21,52 +21,125 @@ import (
 	"sofastack.io/sofa-mosn/pkg/variable"
 	"context"
 	"strconv"
-	"strings"
+)
+
+const (
+	VarRequestMethod = "http_request_method"
+	VarRequestLength = "http_request_length"
+
+	headerPrefix = "http_header_"
+	headerIndex  = len(headerPrefix)
+	argPrefix    = "http_arg_"
+	argIndex     = len(argPrefix)
+	cookiePrefix = "http_cookie_"
+	cookieIndex  = len(cookiePrefix)
 )
 
 var (
-	httpVariables = []variable.Variable{
-		variable.NewSimpleBasicVariable("http_request_length", getRequestBytes, variable.MOSN_VAR_FLAG_INDEXED),
+	builtinVariables = []variable.Variable{
+		variable.NewIndexedVariable(VarRequestMethod, nil, requestMethodGetter, nil, 0),
+		variable.NewIndexedVariable(VarRequestLength, nil, requestLengthGetter, nil, 0),
+	}
+
+	prefixVariables = []variable.Variable{
+		variable.NewBasicVariable(headerPrefix, nil, httpHeaderGetter, nil, 0),
+		variable.NewBasicVariable(argPrefix, nil, httpArgGetter, nil, 0),
+		variable.NewBasicVariable(cookiePrefix, nil, httpCookieGetter, nil, 0),
 	}
 )
 
 func init() {
 	// register built-in variables
-	for idx := range httpVariables {
-		variable.RegisterVariable(httpVariables[idx])
+	for idx := range builtinVariables {
+		variable.RegisterVariable(builtinVariables[idx])
 	}
 
-	// register prefix getter
-	variable.RegisterPrefixVariable("http_header_", getHttpHeader)
+	// register prefix variables, like header_xxx/arg_xxx/cookie_xxx
+	for idx := range prefixVariables {
+		variable.RegisterPrefixVariable(prefixVariables[idx].Name(), prefixVariables[idx])
+	}
 }
 
-func getRequestBytes(ctx context.Context, value *variable.VariableValue, data interface{}) string {
-	
-	
+func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
+
+	// method is always valid in fasthttp's implementation
+	value.Valid = true
+	return string(request.Header.Method()), nil
+}
+
+func requestLengthGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+
 	length := len(request.Header.Header()) + len(request.Body())
 	if length == 0 {
 		value.NotFound = true
-		return variable.ValueNotFound
+		return variable.ValueNotFound, nil
 	}
 
 	value.Valid = true
-	return strconv.Itoa(length)
+	return strconv.Itoa(length), nil
 }
 
-func getHttpHeader(ctx context.Context, value *variable.VariableValue, data interface{}) string {
+func httpHeaderGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
 
 	headerName := data.(string)
-	headerValue := request.Header.Peek(strings.TrimPrefix(headerName, "http_header_"))
+	headerValue := request.Header.Peek(headerName[headerIndex:])
 	// nil means no kv exists, "" means kv exists, but value is ""
 	if headerValue == nil {
-		value.NotFound = true
-		return variable.ValueNotFound
+		if value != nil {
+			value.NotFound = true
+		}
+		return variable.ValueNotFound, nil
 	}
 
-	value.Valid = true
-	return string(headerValue)
+	if value != nil {
+		value.Valid = true
+	}
+	return string(headerValue), nil
+}
+
+func httpArgGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+
+	argName := data.(string)
+	// TODO: support post args
+	argValue := request.URI().QueryArgs().Peek(argName[argIndex:])
+	// nil means no kv exists, "" means kv exists, but value is ""
+	if argValue == nil {
+		if value != nil {
+			value.NotFound = true
+		}
+		return variable.ValueNotFound, nil
+	}
+
+	if value != nil {
+		value.Valid = true
+	}
+	return string(argValue), nil
+}
+
+func httpCookieGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+
+	cookieName := data.(string)
+	cookieValue := request.Header.Cookie(cookieName[cookieIndex:])
+	// nil means no kv exists, "" means kv exists, but value is ""
+	if cookieValue == nil {
+		if value != nil {
+			value.NotFound = true
+		}
+		return variable.ValueNotFound, nil
+	}
+
+	if value != nil {
+		value.Valid = true
+	}
+	return string(cookieValue), nil
 }

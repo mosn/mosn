@@ -63,7 +63,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	}
 	if headerLen > 0 {
 		request.rawHeader = (*request.rawData)[headerIndex:contentIndex]
-		err = decodeHeader(request.rawHeader, request.header)
+		err = decodeHeader(request.rawHeader, &request.header)
 	}
 	if contentLen > 0 {
 		request.rawContent = (*request.rawData)[contentIndex:]
@@ -109,6 +109,7 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 		rawData: buffer.GetBytesByContext(ctx, frameLen),
 	}
 
+	//TODO: test recycle by model, so we can recycle request/response models, headers also
 	//4. copy data for io multiplexing
 	copy(*response.rawData, bytes)
 
@@ -125,7 +126,7 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	}
 	if headerLen > 0 {
 		response.rawHeader = (*response.rawData)[headerIndex:contentIndex]
-		err = decodeHeader(response.rawHeader, response.header)
+		err = decodeHeader(response.rawHeader, &response.header)
 	}
 	if contentLen > 0 {
 		response.rawContent = (*response.rawData)[contentIndex:]
@@ -134,7 +135,7 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	return response, err
 }
 
-func decodeHeader(bytes []byte, h header) (err error) {
+func decodeHeader(bytes []byte, h *header) (err error) {
 	totalLen := len(bytes)
 	index := 0
 

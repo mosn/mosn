@@ -22,17 +22,39 @@ import "context"
 const (
 	MOSN_VAR_FLAG_CHANGEABLE  = 1
 	MOSN_VAR_FLAG_NOCACHEABLE = 2
-	MOSN_VAR_FLAG_INDEXED     = 4
-	MOSN_VAR_FLAG_NOHASH      = 8
+	MOSN_VAR_FLAG_NOHASH      = 4
 
 	ValueNotFound = "-"
 )
 
-type VariableGetter func(ctx context.Context, value *VariableValue, data interface{}) string
+// GetterFunc used to get the value of variable, the implementation should handle the field
+// (Valid, NotFound) of IndexedValue if it was not nil, Valid means the value is valid; NotFound
+// means the value can not be found. It indicates that value can be cached for next-time get handle
+// if any one of (Valid, NotFound) is set to true.
+//
+// Function should return ValueNotFound("-") if target value not exists.
+// E.g. reference to the header which is not existed in current request.
+type GetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
 
-type VariableSetter func(value string)
+// SetterFunc used to set the value of variable
+type SetterFunc func(variableValue *IndexedValue, value string) error
 
-type VariableValue struct {
+// Variable provides a flexible and convenient way to pass information
+type Variable interface {
+	// variable name
+	Name() string
+	// variable data, which is useful for getter/setter
+	Data() interface{}
+	// variable flags
+	Flags() uint32
+	// value getter
+	Getter() GetterFunc
+	// value setter
+	Setter() SetterFunc
+}
+
+// IndexedValue used to store result value
+type IndexedValue struct {
 	Valid       bool
 	NotFound    bool
 	noCacheable bool
@@ -41,21 +63,8 @@ type VariableValue struct {
 	data string
 }
 
-type Variable interface {
-	// variable name
-	Name() string
-	// variable name
-	Data() interface{}
-	// variable flags
-	Flags() uint32
-	// value getter
-	Getter() VariableGetter
-	// value setter
-	Setter() VariableSetter
-}
-
-// VariableIndexer is used for optimize performance
-type VariableIndexer interface {
+// Indexer indicates that variable needs to be cached by using pre-allocated IndexedValue
+type Indexer interface {
 	// variable index
 	GetIndex() uint32
 

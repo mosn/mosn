@@ -27,7 +27,7 @@ func (h *RequestHeader) Clone() types.HeaderMap {
 	*clone = *h
 
 	// deep copy
-	clone.header = h.header.Clone()
+	clone.header = *h.header.Clone()
 
 	return clone
 }
@@ -100,7 +100,7 @@ func (h *ResponseHeader) Clone() types.HeaderMap {
 	*clone = *h
 
 	// deep copy
-	clone.header = h.header.Clone()
+	clone.header = *h.header.Clone()
 
 	return clone
 }
