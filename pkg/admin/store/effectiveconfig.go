@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
 	jsoniter "github.com/json-iterator/go"
+	"sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 const (
@@ -34,21 +34,21 @@ const (
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
-// effectiveConfig represents mosn's runtime config model
+// EffectiveConfig represents mosn's runtime config model
 // MOSNConfig is the original config when mosn start
-type effectiveConfig struct {
-	MOSNConfig interface{}                       `json:"mosn_config,omitempty"`
-	Listener   map[string]v2.Listener            `json:"listener,omitempty"`
-	Cluster    map[string]v2.Cluster             `json:"cluster,omitempty"`
-	Routers    map[string]v2.RouterConfiguration `json:"routers,omitempty"`
+type EffectiveConfig struct {
+	//	MOSNConfig interface{}                       `json:"mosn_config,omitempty"`
+	Listener map[string]v2.Listener            `json:"listener,omitempty"`
+	Cluster  map[string]v2.Cluster             `json:"cluster,omitempty"`
+	Routers  map[string]v2.RouterConfiguration `json:"routers,omitempty"`
 }
 
-var conf effectiveConfig
+var conf EffectiveConfig
 var mutex sync.RWMutex
 
 func init() {
 
-	conf = effectiveConfig{
+	conf = EffectiveConfig{
 		Listener: make(map[string]v2.Listener),
 		Cluster:  make(map[string]v2.Cluster),
 		Routers:  make(map[string]v2.RouterConfiguration),
@@ -58,17 +58,19 @@ func init() {
 func Reset() {
 	mutex.Lock()
 	defer mutex.Unlock()
-	conf.MOSNConfig = nil
+	// conf.MOSNConfig = nil
 	conf.Listener = make(map[string]v2.Listener)
 	conf.Cluster = make(map[string]v2.Cluster)
 	conf.Routers = make(map[string]v2.RouterConfiguration)
 }
 
+/*
 func SetMOSNConfig(msonConfig interface{}) {
 	mutex.Lock()
 	conf.MOSNConfig = msonConfig
 	mutex.Unlock()
 }
+*/
 
 // SetListenerConfig
 // Set listener config when AddOrUpdateListener
@@ -84,18 +86,21 @@ func SetListenerConfig(listenerName string, listenerConfig v2.Listener) {
 	} else {
 		conf.Listener[listenerName] = listenerConfig
 	}
+	setCache()
 }
 
 func SetClusterConfig(clusterName string, cluster v2.Cluster) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	conf.Cluster[clusterName] = cluster
+	setCache()
 }
 
 func RemoveClusterConfig(clusterName string) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	delete(conf.Cluster, clusterName)
+	setCache()
 }
 
 func SetHosts(clusterName string, hostConfigs []v2.Host) {
@@ -105,6 +110,7 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 		cluster.Hosts = hostConfigs
 		conf.Cluster[clusterName] = cluster
 	}
+	setCache()
 }
 
 func SetRouter(routerName string, router v2.RouterConfiguration) {
@@ -113,6 +119,7 @@ func SetRouter(routerName string, router v2.RouterConfiguration) {
 	// clear the router's dynamic mode, so the dump api will show all routes in the router
 	router.RouterConfigPath = ""
 	conf.Routers[routerName] = router
+	setCache()
 }
 
 // Dump

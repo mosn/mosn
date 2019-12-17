@@ -32,7 +32,8 @@ var (
 	MosnLogProxyPath       = MosnLogBasePath + string(os.PathSeparator) + "proxy.log"
 	MosnPidDefaultFileName = MosnLogBasePath + string(os.PathSeparator) + "mosn.pid"
 
-	MosnConfigPath = MosnBasePath + string(os.PathSeparator) + "conf"
+	MosnConfigPath  = MosnBasePath + string(os.PathSeparator) + "conf"
+	MosnCacheConfig = MosnConfigPath + string(os.PathSeparator) + "cache_config.json"
 
 	ReconfigureDomainSocket    = MosnConfigPath + string(os.PathSeparator) + "reconfig.sock"
 	TransferConnDomainSocket   = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
@@ -65,6 +66,7 @@ func InitDefaultPath(path string) {
 	MosnPidDefaultFileName = MosnLogBasePath + string(os.PathSeparator) + "mosn.pid"
 
 	MosnConfigPath = config
+	MosnCacheConfig = MosnConfigPath + string(os.PathSeparator) + "cache_config.json"
 
 	ReconfigureDomainSocket = MosnConfigPath + string(os.PathSeparator) + "reconfig.sock"
 	TransferConnDomainSocket = MosnConfigPath + string(os.PathSeparator) + "conn.sock"

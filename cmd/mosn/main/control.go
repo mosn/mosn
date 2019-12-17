@@ -24,12 +24,12 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/urfave/cli"
 	"sofastack.io/sofa-mosn/pkg/admin/store"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/mosn"
-	"github.com/urfave/cli"
 	"sofastack.io/sofa-mosn/pkg/tenant"
 )
 

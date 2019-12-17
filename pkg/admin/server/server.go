@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	jsoniter "github.com/json-iterator/go"
+	"sofastack.io/sofa-mosn/pkg/admin/store"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -61,7 +61,7 @@ func (s *Server) Start(config Config) {
 	var addr string
 	if config != nil {
 		// merge MOSNConfig into global context
-		store.SetMOSNConfig(config)
+		// store.SetMOSNConfig(config)
 		// get admin config
 		adminConfig := config.GetAdmin()
 		if adminConfig == nil {

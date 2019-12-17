@@ -23,7 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/admin/store"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -116,7 +115,7 @@ func DumpConfig() {
 		log.DefaultLogger.Debugf("[config] [dump] dump config content: %+v", config)
 
 		//update mosn_config
-		store.SetMOSNConfig(config)
+		// store.SetMOSNConfig(config)
 		// use golang original json lib, so the marshal ident can handle MarshalJSON interface implement correctly
 		content, err := json.MarshalIndent(config, "", "  ")
 		if err == nil {

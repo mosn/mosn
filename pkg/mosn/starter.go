@@ -174,6 +174,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		}
 		m.servers = append(m.servers, srv)
 	}
+	LoadCacheConfig(inheritListeners)
 
 	//parse service registry info
 	config.ParseServiceRegistry(c.ServiceRegistry)
@@ -221,6 +222,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// start dump config process
 	utils.GoWithRecover(func() {
 		config.DumpConfigHandler()
+	}, nil)
+	utils.GoWithRecover(func() {
+		store.CacheConfigHandler()
 	}, nil)
 
 	// start reconfigure domain socket
