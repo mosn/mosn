@@ -21,7 +21,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/rpc"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
@@ -29,6 +31,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-plugin"
 	gsyslog "github.com/hashicorp/go-syslog"
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -74,6 +77,40 @@ type Logger struct {
 	reopenChan      chan struct{}
 	closeChan       chan struct{}
 	writeBufferChan chan types.IoBuffer
+
+	pclient  *plugin.Client
+	client   *rpc.Client
+}
+
+type logServer struct {
+	lg *Logger
+}
+
+func (logs *logServer) Log(b []byte, resp *interface{}) error {
+	return logs.lg.Log(b)
+}
+
+func (lg *Logger) Server(*plugin.MuxBroker) (interface{}, error) {
+	return &logServer{lg:lg}, nil
+}
+
+func (lg *Logger) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
+	lg.client = c
+	return lg, nil
+}
+
+func (lg *Logger) Log(b []byte) error {
+	if lg.pclient != nil {
+		var resp interface{}
+		return lg.client.Call("Plugin.Log", b, &resp)
+	} else {
+		_, err := lg.writer.Write(b)
+		return err
+	}
+}
+
+func (lg *Logger) SetWriter(w io.Writer) {
+	lg.writer = w
 }
 
 // loggers keeps all Logger we created
@@ -97,6 +134,34 @@ func GetOrCreateLogger(output string, roller *Roller) (*Logger, error) {
 		closeChan:       make(chan struct{}),
 		// writer and create will be setted in start()
 	}
+
+	if output != "" {
+		lg.pclient = plugin.NewClient(&plugin.ClientConfig{
+			HandshakeConfig: plugin.HandshakeConfig{
+				ProtocolVersion:  1,
+				MagicCookieKey:   "log",
+				MagicCookieValue: "log",
+			},
+			Plugins: map[string]plugin.Plugin{
+				"log": lg,
+			},
+			Cmd: exec.Command("./plugin-log"),
+		})
+		// Connect via RPC
+		rpcClient, err := lg.pclient.Client()
+		if err != nil {
+			fmt.Println("Error:", err.Error())
+			os.Exit(1)
+		}
+
+		// Request the plugin
+		_, err = rpcClient.Dispense("log")
+		if err != nil {
+			fmt.Println("Error:", err.Error())
+			os.Exit(1)
+		}
+	}
+
 	err := lg.start()
 	if err == nil { // only keeps start success logger
 		loggers.Store(output, lg)
@@ -181,7 +246,11 @@ func (l *Logger) handler() {
 			for {
 				select {
 				case buf = <-l.writeBufferChan:
-					buf.WriteTo(l)
+					if l.output == "" {
+						buf.WriteTo(l)
+					} else {
+						l.Log(buf.Bytes())
+					}
 					buffer.PutIoBuffer(buf)
 				default:
 					l.stop()
@@ -198,7 +267,11 @@ func (l *Logger) handler() {
 					break
 				}
 			}
-			buf.WriteTo(l)
+			if l.output == "" {
+				buf.WriteTo(l)
+			} else {
+				l.Log(buf.Bytes())
+			}
 			buffer.PutIoBuffer(buf)
 		}
 		runtime.Gosched()
