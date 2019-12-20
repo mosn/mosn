@@ -255,6 +255,7 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 		p.asMux.Lock()
 		p.activeSteams.Remove(s.element)
 		p.asMux.Unlock()
+		s.element = nil
 	}
 }
 
