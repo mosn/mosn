@@ -335,7 +335,6 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 					r, s, id, s.ID, string(debug.Stack()))
 
 				if id == s.ID {
-					s.writeLog()
 					s.delete()
 				}
 			}
