@@ -28,6 +28,7 @@ import (
 	"sofastack.io/sofa-mosn/pkg/admin/store"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/featuregate"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/metrics"
 	"sofastack.io/sofa-mosn/pkg/mosn"
 	"sofastack.io/sofa-mosn/pkg/types"
@@ -65,8 +66,15 @@ var (
 			// set feature gates
 			err := featuregate.DefaultMutableFeatureGate.Set(c.String("feature-gates"))
 			if err != nil {
+				log.StartLogger.Infof("[mosn] [start] parse feature-gates flag fail : %+v", err)
 				os.Exit(1)
 			}
+			err = featuregate.DefaultMutableFeatureGate.StartInit()
+			if err != nil {
+				log.StartLogger.Infof("[mosn] [start] init feature-gates fail : %+v", err)
+				os.Exit(1)
+			}
+
 			// start pprof
 			if conf.Debug.StartDebug {
 				port := 9090 //default use 9090
