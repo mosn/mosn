@@ -102,8 +102,8 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		activeStream:                        newStreamMap(ctx),
 		streamConnectionEventListener:       clientCallbacks,
 		serverStreamConnectionEventListener: serverCallbacks,
-		codec:                               codec,
-		protocol:                            protocol.Xprotocol,
+		codec:    codec,
+		protocol: protocol.Xprotocol,
 	}
 }
 

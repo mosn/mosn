@@ -45,7 +45,7 @@ import (
 var (
 	sinkType        = "prometheus"
 	defaultEndpoint = "/metrics"
-	numBufPool = sync.Pool{
+	numBufPool      = sync.Pool{
 		New: func() interface{} {
 			b := make([]byte, 0, 24)
 			return &b

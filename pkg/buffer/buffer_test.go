@@ -21,8 +21,9 @@ import (
 	"context"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/types"
 	"runtime/debug"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 const Size = 2048

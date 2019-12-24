@@ -23,8 +23,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/log"
 	"time"
+
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 type TestJob struct {

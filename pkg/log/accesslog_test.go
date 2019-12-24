@@ -28,11 +28,12 @@ import (
 	"os"
 	"regexp"
 
+	"context"
+	"strconv"
+	"strings"
+
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/variable"
-	"strconv"
-	"context"
-	"strings"
 )
 
 func prepareLocalIpv6Ctx() context.Context {
@@ -144,7 +145,7 @@ func TestAccessLogWithEmptyVar(t *testing.T) {
 	os.Remove(logName)
 	_, err := NewAccessLog(logName, format)
 
-	if err == nil || !strings.Contains(err.Error(), "empty variable definition"){
+	if err == nil || !strings.Contains(err.Error(), "empty variable definition") {
 		t.Error("should return empty variable definition error but actually not")
 		return
 	}
@@ -158,7 +159,7 @@ func TestAccessLogWithUnclosedVar(t *testing.T) {
 	os.Remove(logName)
 	_, err := NewAccessLog(logName, format)
 
-	if err == nil || !strings.Contains(err.Error(), "unclosed variable definition"){
+	if err == nil || !strings.Contains(err.Error(), "unclosed variable definition") {
 		t.Error("should return unclosed variable definition error but actually not")
 		return
 	}

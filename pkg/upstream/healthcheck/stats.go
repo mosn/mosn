@@ -18,8 +18,8 @@
 package healthcheck
 
 import (
-	"sofastack.io/sofa-mosn/pkg/metrics"
 	gometrics "github.com/rcrowley/go-metrics"
+	"sofastack.io/sofa-mosn/pkg/metrics"
 )
 
 type healthCheckStats struct {

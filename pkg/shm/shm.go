@@ -19,8 +19,9 @@ package shm
 
 import (
 	"os"
-	"syscall"
 	"path/filepath"
+	"syscall"
+
 	"sofastack.io/sofa-mosn/pkg/log"
 )
 

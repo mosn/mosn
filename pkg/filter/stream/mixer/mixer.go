@@ -20,13 +20,13 @@ package mixer
 import (
 	"context"
 
+	"istio.io/api/mixer/v1/config/client"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/filter"
 	"sofastack.io/sofa-mosn/pkg/istio/control/http"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"istio.io/api/mixer/v1/config/client"
 )
 
 func init() {

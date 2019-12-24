@@ -131,6 +131,9 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
+	stream.requestInfo.SetDownstreamLocalAddress(proxy.readCallbacks.Connection().LocalAddr())
+	// todo: detect remote addr
+	stream.requestInfo.SetDownstreamRemoteAddress(proxy.readCallbacks.Connection().RemoteAddr())
 	stream.context = ctx
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
@@ -663,11 +666,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	}
 
 	s.cluster = s.snapshot.ClusterInfo()
-
 	s.requestInfo.SetRouteEntry(s.route.RouteRule())
-	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
-	// todo: detect remote addr
-	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
 	pool, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {

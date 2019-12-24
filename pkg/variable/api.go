@@ -18,10 +18,11 @@
 package variable
 
 import (
-	"strings"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"context"
 	"errors"
+	"strings"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func GetVariableValue(ctx context.Context, name string) (string, error) {
@@ -65,8 +66,8 @@ func getFlushedVariableValue(ctx context.Context, index uint32) (string, error) 
 				}
 
 				// clear flags
-				value.Valid = false
-				value.NotFound = false
+				//value.Valid = false
+				//value.NotFound = false
 			}
 
 			return getIndexedVariableValue(ctx, value, index)
@@ -79,9 +80,9 @@ func getFlushedVariableValue(ctx context.Context, index uint32) (string, error) 
 func getIndexedVariableValue(ctx context.Context, value *IndexedValue, index uint32) (string, error) {
 	variable := indexedVariables[index]
 
-	if value.NotFound || value.Valid {
-		return value.data, nil
-	}
+	//if value.NotFound || value.Valid {
+	//	return value.data, nil
+	//}
 
 	getter := variable.Getter()
 	if getter == nil {

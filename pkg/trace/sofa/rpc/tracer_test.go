@@ -18,13 +18,14 @@
 package rpc
 
 import (
+	"context"
+	"log"
 	"testing"
 	"time"
-	"context"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"log"
-	"sofastack.io/sofa-mosn/pkg/types"
+
 	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/trace"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func TestSofaTracerStartFinish(t *testing.T) {

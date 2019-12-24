@@ -20,8 +20,8 @@ package store
 import (
 	"sync"
 
+	"github.com/json-iterator/go"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
-	jsoniter "github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

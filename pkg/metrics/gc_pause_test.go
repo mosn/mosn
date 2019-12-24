@@ -18,11 +18,12 @@
 package metrics
 
 import (
-	"time"
+	"fmt"
 	"runtime"
 	"runtime/debug"
 	"testing"
-	"fmt"
+	"time"
+
 	gometrics "github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/metrics/shm"
 )

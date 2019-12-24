@@ -22,9 +22,10 @@ import (
 	"strings"
 	"testing"
 
+	"time"
+
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
-	"time"
 )
 
 func TestFeatureGateFlag(t *testing.T) {

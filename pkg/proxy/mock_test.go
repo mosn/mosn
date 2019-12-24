@@ -20,9 +20,10 @@ package proxy
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/types"
 	"time"
+
 	"sofastack.io/sofa-mosn/pkg/trace"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 var mockProtocol = types.Protocol("mockProtocol")

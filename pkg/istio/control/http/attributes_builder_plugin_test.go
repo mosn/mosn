@@ -18,9 +18,10 @@
 package http
 
 import (
-	"sofastack.io/sofa-mosn/pkg/istio/utils"
 	"testing"
+
 	"istio.io/api/mixer/v1"
+	"sofastack.io/sofa-mosn/pkg/istio/utils"
 )
 
 type testAttributesBuilderPlugin struct{}

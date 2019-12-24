@@ -19,11 +19,13 @@ package stream
 
 import (
 	"context"
+
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
 
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/variable"
 )
 
 // contextManager
@@ -39,6 +41,8 @@ func (cm *ContextManager) Get() context.Context {
 func (cm *ContextManager) Next() {
 	// buffer context
 	cm.curr = buffer.NewBufferPoolContext(mosnctx.Clone(cm.base))
+	// variable context
+	cm.curr = variable.NewVariableContext(cm.curr)
 }
 
 func (cm *ContextManager) InjectTrace(ctx context.Context, span types.Span) context.Context {

@@ -18,8 +18,8 @@
 package buffer
 
 import (
-	"sync"
 	"errors"
+	"sync"
 
 	"sofastack.io/sofa-mosn/pkg/types"
 )

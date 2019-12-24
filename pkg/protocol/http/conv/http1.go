@@ -22,10 +22,10 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/valyala/fasthttp"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/http"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/valyala/fasthttp"
 )
 
 func init() {

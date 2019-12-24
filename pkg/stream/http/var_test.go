@@ -18,15 +18,16 @@
 package http
 
 import (
-	"testing"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/variable"
 	"bufio"
 	"bytes"
+	"context"
 	"strconv"
+	"testing"
+
+	"sofastack.io/sofa-mosn/pkg/buffer"
+	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"sofastack.io/sofa-mosn/pkg/types"
+	"sofastack.io/sofa-mosn/pkg/variable"
 )
 
 var (

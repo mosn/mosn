@@ -18,12 +18,12 @@
 package log
 
 import (
+	"context"
+	"errors"
+
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/variable"
-	"errors"
-	"context"
-	"fmt"
 )
 
 // RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value
@@ -52,7 +52,7 @@ func DisableAllAccessLog() {
 // types.AccessLog
 type accesslog struct {
 	output  string
-	entries []logEntry
+	entries []*logEntry
 	logger  *Logger
 }
 
@@ -61,13 +61,12 @@ type logEntry struct {
 	variable variable.Variable
 }
 
-func (le logEntry) log(ctx context.Context, buf types.IoBuffer) {
+func (le *logEntry) log(ctx context.Context, buf types.IoBuffer) {
 	if le.text != "" {
 		buf.WriteString(le.text)
 	} else {
 		value, err := variable.GetVariableValue(ctx, le.variable.Name())
 		if err != nil {
-			fmt.Println(err)
 			buf.WriteString(variable.ValueNotFound)
 		} else {
 			buf.WriteString(value)
@@ -116,12 +115,12 @@ func (l *accesslog) Log(ctx context.Context, reqHeaders types.HeaderMap, respHea
 	l.logger.Print(buf, true)
 }
 
-func parseFormat(format string) ([]logEntry, error) {
+func parseFormat(format string) ([]*logEntry, error) {
 	if format == "" {
 		return nil, ErrLogFormatUndefined
 	}
 
-	entries := make([]logEntry, 0, 8)
+	entries := make([]*logEntry, 0, 8)
 	varDef := false
 	// last pos of '%' occur
 	lastMark := -1
@@ -147,13 +146,13 @@ func parseFormat(format string) ([]logEntry, error) {
 					if err != nil {
 						return nil, err
 					}
-					entries = append(entries, logEntry{variable: varEntry})
+					entries = append(entries, &logEntry{variable: varEntry})
 				} else {
 					// ignore empty text
 					if pos > lastMark+1 {
 						// var def begin, add text
 						textEntry := format[lastMark+1 : pos]
-						entries = append(entries, logEntry{text: textEntry})
+						entries = append(entries, &logEntry{text: textEntry})
 					}
 				}
 
@@ -175,7 +174,7 @@ func parseFormat(format string) ([]logEntry, error) {
 	// Check remaining text part. lastMark would be equal to (length - 1) if format ends with variable def.
 	formatLen := len(format)
 	if lastMark < formatLen-1 {
-		entries = append(entries, logEntry{text: format[lastMark+1 : formatLen]})
+		entries = append(entries, &logEntry{text: format[lastMark+1 : formatLen]})
 	}
 
 	return entries, nil

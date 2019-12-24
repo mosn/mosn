@@ -20,13 +20,14 @@ package log
 import (
 	"context"
 	"fmt"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"math/rand"
 	"os"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 )

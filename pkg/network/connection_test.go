@@ -130,7 +130,6 @@ func TestClientConectionRemoteaddrIsNil(t *testing.T) {
 	}
 }
 
-
 type zeroReadConn struct {
 	net.Conn
 }
@@ -190,7 +189,7 @@ func TestConnState(t *testing.T) {
 	}
 	l.Close()
 
-	time.Sleep(10*time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	if cc.State() != types.ConnClosed {
 		t.Errorf("ConnState should be ConnClosed")
 	}

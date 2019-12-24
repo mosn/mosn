@@ -18,9 +18,10 @@
 package http
 
 import (
-	"sofastack.io/sofa-mosn/pkg/variable"
 	"context"
 	"strconv"
+
+	"sofastack.io/sofa-mosn/pkg/variable"
 )
 
 const (
@@ -37,8 +38,8 @@ const (
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewIndexedVariable(VarRequestMethod, nil, requestMethodGetter, nil, 0),
-		variable.NewIndexedVariable(VarRequestLength, nil, requestLengthGetter, nil, 0),
+		variable.NewBasicVariable(VarRequestMethod, nil, requestMethodGetter, nil, 0),
+		variable.NewBasicVariable(VarRequestLength, nil, requestLengthGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
@@ -64,8 +65,6 @@ func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
 
-	// method is always valid in fasthttp's implementation
-	value.Valid = true
 	return string(request.Header.Method()), nil
 }
 
@@ -75,11 +74,9 @@ func requestLengthGetter(ctx context.Context, value *variable.IndexedValue, data
 
 	length := len(request.Header.Header()) + len(request.Body())
 	if length == 0 {
-		value.NotFound = true
 		return variable.ValueNotFound, nil
 	}
 
-	value.Valid = true
 	return strconv.Itoa(length), nil
 }
 
@@ -91,15 +88,9 @@ func httpHeaderGetter(ctx context.Context, value *variable.IndexedValue, data in
 	headerValue := request.Header.Peek(headerName[headerIndex:])
 	// nil means no kv exists, "" means kv exists, but value is ""
 	if headerValue == nil {
-		if value != nil {
-			value.NotFound = true
-		}
 		return variable.ValueNotFound, nil
 	}
 
-	if value != nil {
-		value.Valid = true
-	}
 	return string(headerValue), nil
 }
 
@@ -112,15 +103,9 @@ func httpArgGetter(ctx context.Context, value *variable.IndexedValue, data inter
 	argValue := request.URI().QueryArgs().Peek(argName[argIndex:])
 	// nil means no kv exists, "" means kv exists, but value is ""
 	if argValue == nil {
-		if value != nil {
-			value.NotFound = true
-		}
 		return variable.ValueNotFound, nil
 	}
 
-	if value != nil {
-		value.Valid = true
-	}
 	return string(argValue), nil
 }
 
@@ -132,14 +117,8 @@ func httpCookieGetter(ctx context.Context, value *variable.IndexedValue, data in
 	cookieValue := request.Header.Cookie(cookieName[cookieIndex:])
 	// nil means no kv exists, "" means kv exists, but value is ""
 	if cookieValue == nil {
-		if value != nil {
-			value.NotFound = true
-		}
 		return variable.ValueNotFound, nil
 	}
 
-	if value != nil {
-		value.Valid = true
-	}
 	return string(cookieValue), nil
 }

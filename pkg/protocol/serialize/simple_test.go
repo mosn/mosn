@@ -18,8 +18,9 @@
 package serialize
 
 import (
-	"sofastack.io/sofa-mosn/pkg/buffer"
 	"testing"
+
+	"sofastack.io/sofa-mosn/pkg/buffer"
 )
 
 func BenchmarkSerializeMap(b *testing.B) {

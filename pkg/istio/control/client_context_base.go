@@ -18,9 +18,9 @@
 package control
 
 import (
+	"istio.io/api/mixer/v1"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/istio/mixerclient"
-	"istio.io/api/mixer/v1"
 )
 
 // ClientContextBase hold mixer client

@@ -48,8 +48,8 @@ type ProtocolBuffers struct {
 	rspTrailers map[string]string
 }
 
-type protocolBufferCtx struct{
-	 buffer.TempBufferCtx
+type protocolBufferCtx struct {
+	buffer.TempBufferCtx
 }
 
 func (ctx protocolBufferCtx) New() interface{} {

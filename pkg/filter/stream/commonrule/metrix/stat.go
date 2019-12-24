@@ -23,10 +23,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/rcrowley/go-metrics"
 	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/utils"
-	"github.com/rcrowley/go-metrics"
 )
 
 // namespace

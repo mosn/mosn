@@ -18,9 +18,10 @@
 package proxy
 
 import (
-	"sofastack.io/sofa-mosn/pkg/variable"
 	"context"
 	"strconv"
+
+	"sofastack.io/sofa-mosn/pkg/variable"
 )
 
 // The identification of a request info's content
@@ -50,20 +51,20 @@ const (
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewIndexedVariable(VarStartTime, nil, startTimeGetter, nil, 0),
-		variable.NewIndexedVariable(VarRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
-		variable.NewIndexedVariable(VarResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
-		variable.NewIndexedVariable(VarRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
-		variable.NewIndexedVariable(VarBytesSent, nil, bytesSentGetter, nil, 0),
-		variable.NewIndexedVariable(VarBytesReceived, nil, bytesReceivedGetter, nil, 0),
-		variable.NewIndexedVariable(VarProtocol, nil, protocolGetter, nil, 0),
-		variable.NewIndexedVariable(VarResponseCode, nil, responseCodeGetter, nil, 0),
-		variable.NewIndexedVariable(VarDuration, nil, durationGetter, nil, 0),
-		variable.NewIndexedVariable(VarResponseFlag, nil, responseFlagGetter, nil, 0),
-		variable.NewIndexedVariable(VarUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
-		variable.NewIndexedVariable(VarDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
-		variable.NewIndexedVariable(VarDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
-		variable.NewIndexedVariable(VarUpstreamHost, nil, upstreamHostGetter, nil, 0),
+		variable.NewBasicVariable(VarStartTime, nil, startTimeGetter, nil, 0),
+		variable.NewBasicVariable(VarRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
+		variable.NewBasicVariable(VarResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
+		variable.NewBasicVariable(VarRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
+		variable.NewBasicVariable(VarBytesSent, nil, bytesSentGetter, nil, 0),
+		variable.NewBasicVariable(VarBytesReceived, nil, bytesReceivedGetter, nil, 0),
+		variable.NewBasicVariable(VarProtocol, nil, protocolGetter, nil, 0),
+		variable.NewBasicVariable(VarResponseCode, nil, responseCodeGetter, nil, 0),
+		variable.NewBasicVariable(VarDuration, nil, durationGetter, nil, 0),
+		variable.NewBasicVariable(VarResponseFlag, nil, responseFlagGetter, nil, 0),
+		variable.NewBasicVariable(VarUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
+		variable.NewBasicVariable(VarDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
+		variable.NewBasicVariable(VarDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
+		variable.NewBasicVariable(VarUpstreamHost, nil, upstreamHostGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
@@ -188,11 +189,9 @@ func downstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedVa
 	info := proxyBuffers.info
 
 	if info.DownstreamLocalAddress() != nil {
-		value.Valid = true
 		return info.DownstreamLocalAddress().String(), nil
 	}
 
-	value.NotFound = true
 	return variable.ValueNotFound, nil
 }
 
@@ -203,11 +202,9 @@ func downstreamRemoteAddressGetter(ctx context.Context, value *variable.IndexedV
 	info := proxyBuffers.info
 
 	if info.DownstreamRemoteAddress() != nil {
-		value.Valid = true
 		return info.DownstreamRemoteAddress().String(), nil
 	}
 
-	value.NotFound = true
 	return variable.ValueNotFound, nil
 }
 
@@ -218,11 +215,9 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 	info := proxyBuffers.info
 
 	if info.UpstreamHost() != nil {
-		value.Valid = true
 		return info.UpstreamHost().Hostname(), nil
 	}
 
-	value.NotFound = true
 	return variable.ValueNotFound, nil
 }
 
@@ -233,15 +228,9 @@ func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, d
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
 	if !ok {
-		if value != nil {
-			value.NotFound = true
-		}
 		return variable.ValueNotFound, nil
 	}
 
-	if value != nil {
-		value.Valid = true
-	}
 	return string(headerValue), nil
 }
 
@@ -252,14 +241,8 @@ func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[respHeaderIndex:])
 	if !ok {
-		if value != nil {
-			value.NotFound = true
-		}
 		return variable.ValueNotFound, nil
 	}
 
-	if value != nil {
-		value.Valid = true
-	}
 	return string(headerValue), nil
 }
