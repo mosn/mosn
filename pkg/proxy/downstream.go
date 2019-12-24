@@ -211,8 +211,8 @@ func (s *downStream) cleanStream() {
 	// write access log
 	s.writeLog()
 
-	// delete stream
-	s.proxy.deleteActiveStream(s)
+	// delete stream reference
+	s.delete()
 
 	// recycle if no reset events
 	s.giveStream()
@@ -288,6 +288,12 @@ func (s *downStream) writeLog() {
 	}
 }
 
+func (s *downStream) delete() {
+	if s.proxy != nil {
+		s.proxy.deleteActiveStream(s)
+	}
+}
+
 // types.StreamEventListener
 // Called by stream layer normally
 func (s *downStream) OnResetStream(reason types.StreamResetReason) {
@@ -332,7 +338,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 					r, s, id, s.ID, string(debug.Stack()))
 
 				if id == s.ID {
-					s.writeLog()
+					s.delete()
 				}
 			}
 		}()
