@@ -475,20 +475,20 @@ const (
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewIndexedVariable(varStartTime, nil, startTimeGetter, nil, 0),
-		variable.NewIndexedVariable(varRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
-		variable.NewIndexedVariable(varResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
-		variable.NewIndexedVariable(varRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
-		variable.NewIndexedVariable(varBytesSent, nil, bytesSentGetter, nil, 0),
-		variable.NewIndexedVariable(varBytesReceived, nil, bytesReceivedGetter, nil, 0),
-		variable.NewIndexedVariable(varProtocol, nil, protocolGetter, nil, 0),
-		variable.NewIndexedVariable(varResponseCode, nil, responseCodeGetter, nil, 0),
-		variable.NewIndexedVariable(varDuration, nil, durationGetter, nil, 0),
-		variable.NewIndexedVariable(varResponseFlag, nil, responseFlagGetter, nil, 0),
-		variable.NewIndexedVariable(varUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
-		variable.NewIndexedVariable(varDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
-		variable.NewIndexedVariable(varDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
-		variable.NewIndexedVariable(varUpstreamHost, nil, upstreamHostGetter, nil, 0),
+		variable.NewBasicVariable(varStartTime, nil, startTimeGetter, nil, 0),
+		variable.NewBasicVariable(varRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
+		variable.NewBasicVariable(varResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
+		variable.NewBasicVariable(varRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
+		variable.NewBasicVariable(varBytesSent, nil, bytesSentGetter, nil, 0),
+		variable.NewBasicVariable(varBytesReceived, nil, bytesReceivedGetter, nil, 0),
+		variable.NewBasicVariable(varProtocol, nil, protocolGetter, nil, 0),
+		variable.NewBasicVariable(varResponseCode, nil, responseCodeGetter, nil, 0),
+		variable.NewBasicVariable(varDuration, nil, durationGetter, nil, 0),
+		variable.NewBasicVariable(varResponseFlag, nil, responseFlagGetter, nil, 0),
+		variable.NewBasicVariable(varUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
+		variable.NewBasicVariable(varDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
+		variable.NewBasicVariable(varDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
+		variable.NewBasicVariable(varUpstreamHost, nil, upstreamHostGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
@@ -601,11 +601,9 @@ func downstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedVa
 	info := ctx.Value(requestInfoKey).(types.RequestInfo)
 
 	if info.DownstreamLocalAddress() != nil {
-		value.Valid = true
 		return info.DownstreamLocalAddress().String(), nil
 	}
 
-	value.NotFound = true
 	return variable.ValueNotFound, nil
 }
 
@@ -615,11 +613,9 @@ func downstreamRemoteAddressGetter(ctx context.Context, value *variable.IndexedV
 	info := ctx.Value(requestInfoKey).(types.RequestInfo)
 
 	if info.DownstreamRemoteAddress() != nil {
-		value.Valid = true
 		return info.DownstreamRemoteAddress().String(), nil
 	}
 
-	value.NotFound = true
 	return variable.ValueNotFound, nil
 }
 
@@ -629,11 +625,9 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 	info := ctx.Value(requestInfoKey).(types.RequestInfo)
 
 	if info.UpstreamHost() != nil {
-		value.Valid = true
 		return info.UpstreamHost().Hostname(), nil
 	}
 
-	value.NotFound = true
 	return variable.ValueNotFound, nil
 }
 
@@ -643,15 +637,9 @@ func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, d
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
 	if !ok {
-		if value != nil {
-			value.NotFound = true
-		}
 		return variable.ValueNotFound, nil
 	}
 
-	if value != nil {
-		value.Valid = true
-	}
 	return string(headerValue), nil
 }
 
@@ -661,14 +649,8 @@ func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[respHeaderIndex:])
 	if !ok {
-		if value != nil {
-			value.NotFound = true
-		}
 		return variable.ValueNotFound, nil
 	}
 
-	if value != nil {
-		value.Valid = true
-	}
 	return string(headerValue), nil
 }
