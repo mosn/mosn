@@ -18,15 +18,47 @@
 package featuregate
 
 import (
-	"fmt"
-	"strings"
 	"testing"
-
+  
+  "fmt"
+  "strings"
 	"time"
 
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
+
+var (
+	test        = "1"
+	anotherTest = "a"
+)
+
+func init() {
+	TestDataMutableFeatureGate.AddFeatureSpec(
+		TestDataFeatureEnable,
+		FeatureSpec{Default: false, PreRelease: Alpha, InitFunc: func() {
+			test = "2"
+			time.Sleep(1 * time.Second)
+		}})
+
+	TestDataMutableFeatureGate.AddFeatureSpec(
+		AnotherTestDataFeatureEnable,
+		FeatureSpec{Default: true, PreRelease: Beta, InitFunc: func() {
+			c, err := TestDataMutableFeatureGate.Subscribe(TestDataFeatureEnable)
+			if err != nil {
+				log.DefaultLogger.Errorf("%v", err)
+			}
+
+			select {
+			case _, open := <-c:
+				if !open {
+					break
+				}
+			}
+			anotherTest = "b"
+		}})
+}
 
 func TestFeatureGateFlag(t *testing.T) {
 	// gates for testing
@@ -412,7 +444,7 @@ func TestFeatureGateReady(t *testing.T) {
 		t.Errorf("Excepted false")
 	}
 
-	f.UpdateToReady(testEnabledChangeToReady)
+	f.updateToReady(testEnabledChangeToReady)
 	if !f.IsReady(testEnabledChangeToReady) {
 		t.Errorf("Excepted true")
 	}
@@ -432,21 +464,21 @@ func TestFeatureGateUpdateToReady(t *testing.T) {
 	})
 
 	var err error
-	err = f.UpdateToReady("nothing")
+	err = f.updateToReady("nothing")
 	if err == nil || err.Error() != fmt.Sprintf("feature %s is unknown", "nothing") {
 		t.Errorf("Excepted error: feature %s is unknown", "nothing")
 	}
 
-	err = f.UpdateToReady(testEnabledWithRepeatUpdate)
+	err = f.updateToReady(testEnabledWithRepeatUpdate)
 	if err != nil {
 		t.Error("Excepted no error")
 	}
-	err = f.UpdateToReady(testEnabledWithRepeatUpdate)
+	err = f.updateToReady(testEnabledWithRepeatUpdate)
 	if err == nil || err.Error() != fmt.Sprintf("repeat setting feature %s to ready", testEnabledWithRepeatUpdate) {
 		t.Errorf("Excepted error: repeat setting feature %s to ready", testEnabledWithRepeatUpdate)
 	}
 
-	err = f.UpdateToReady(testEnabledSuccessfully)
+	err = f.updateToReady(testEnabledSuccessfully)
 	if err != nil {
 		t.Error("Excepted no error")
 	}
@@ -479,7 +511,7 @@ func TestFeatureGateUpdateToSubscribe(t *testing.T) {
 		t.Errorf("Excepted not error")
 	}
 
-	f.UpdateToReady(testAfterReady)
+	f.updateToReady(testAfterReady)
 	c, err := f.Subscribe(testAfterReady)
 	_, open := <-c
 	if err != nil || open {
@@ -492,7 +524,7 @@ func TestFeatureGateUpdateToSubscribe(t *testing.T) {
 	}
 	go func() {
 		time.Sleep(1 * time.Second)
-		f.UpdateToReady(testBeforeReady)
+		f.updateToReady(testBeforeReady)
 	}()
 
 	ticker := time.NewTicker(2 * time.Second)
@@ -507,4 +539,23 @@ func TestFeatureGateUpdateToSubscribe(t *testing.T) {
 		break
 	}
 
+}
+
+func TestInitFunc(t *testing.T) {
+	if test != "1" {
+		t.Errorf("Excepted %s, but got %s", "1", test)
+	}
+	if anotherTest != "a" {
+		t.Errorf("Excepted %s, but got %s", "a", test)
+	}
+
+	TestDataMutableFeatureGate.Set(fmt.Sprintf("%s=true,%s=true", TestDataFeatureEnable, AnotherTestDataFeatureEnable))
+	TestDataMutableFeatureGate.StartInit()
+
+	if test != "2" {
+		t.Errorf("Excepted %s, but got %s", "2", test)
+	}
+	if anotherTest != "b" {
+		t.Errorf("Excepted %s, but got %s", "b", anotherTest)
+	}
 }
