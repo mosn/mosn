@@ -37,7 +37,9 @@ var once sync.Once
 // TODO: if we consider smooth upgrade, add a lock here and call lock in reconfigure
 func CacheConfigHandler() {
 	once.Do(func() {
-		time.Sleep(3 * time.Second)
-		writeCacheConfig()
+		for {
+			time.Sleep(3 * time.Second)
+			writeCacheConfig()
+		}
 	})
 }
