@@ -22,6 +22,8 @@ import (
 
 	"time"
 
+	"net"
+
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -171,6 +173,16 @@ type mockConnection struct {
 
 func (c *mockConnection) ID() uint64 {
 	return 0
+}
+
+func (c *mockConnection) LocalAddr() net.Addr {
+	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1")
+	return addr
+}
+
+func (c *mockConnection) RemoteAddr() net.Addr {
+	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.2")
+	return addr
 }
 
 type mockTracer struct {
