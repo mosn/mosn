@@ -41,13 +41,13 @@ import (
 	"istio.io/api/mixer/v1/config/client"
 	"sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
+	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/router"
 	payloadlimit "sofastack.io/sofa-mosn/pkg/xds/model/filter/http/payloadlimit/v2"
 	xdsxproxy "sofastack.io/sofa-mosn/pkg/xds/model/filter/network/x_proxy/v2"
 	"sofastack.io/sofa-mosn/pkg/xds/v2/rds"
-	"sofastack.io/sofa-mosn/pkg/featuregate"
 )
 
 // support network filter list
@@ -78,15 +78,22 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 		return nil
 	}
 
+	addr := convertAddress(&xdsListener.Address)
+	if addr == nil {
+		log.DefaultLogger.Errorf("[xds] convert listener config failed, no address found")
+		return nil
+	}
+
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			Name:           xdsListener.GetName(),
+			AddrConfig:     addr.String(),
 			BindToPort:     convertBindToPort(xdsListener.GetDeprecatedV1()),
 			Inspector:      true,
 			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr:                    convertAddress(&xdsListener.Address),
+		Addr: addr,
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
