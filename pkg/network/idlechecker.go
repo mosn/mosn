@@ -22,9 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 // getIdleCount calculates the idle timeout as max idle count.

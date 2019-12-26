@@ -18,7 +18,7 @@ diff -N pkg/mtls/crypto/tls/common.go /usr/local/go/src/crypto/tls/common.go
 > 	"crypto/internal/cipherhw"
 21,22d21
 <
-< 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls/cipherhw"
+< 	"mosn.io/mosn/pkg/mtls/crypto/tls/cipherhw"
 diff -N pkg/mtls/crypto/tls/conn.go /usr/local/go/src/crypto/tls/conn.go
 103,105d102
 <
@@ -40,7 +40,7 @@ diff -N pkg/mtls/crypto/tls/tls_test.go /usr/local/go/src/crypto/tls/tls_test.go
 > 	"internal/testenv"
 21,22d21
 <
-< 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls/testenv"
+< 	"mosn.io/mosn/pkg/mtls/crypto/tls/testenv"
 
 
 add supports for gm

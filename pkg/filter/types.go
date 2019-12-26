@@ -18,7 +18,7 @@
 package filter
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 // StreamFilterFactoryCreator creates a StreamFilterChainFactory according to config

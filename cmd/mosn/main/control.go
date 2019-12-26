@@ -25,12 +25,12 @@ import (
 	"runtime"
 
 	"github.com/urfave/cli"
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/featuregate"
-	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/featuregate"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/types"
 )
 
 var (

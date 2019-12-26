@@ -21,8 +21,8 @@ import (
 	"strings"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/protocol"
 )
 
 // Prefix > Path > Regex

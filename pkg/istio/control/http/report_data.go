@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
-	//"sofastack.io/sofa-mosn/pkg/istio/utils"
-	"sofastack.io/sofa-mosn/pkg/types"
+	//"mosn.io/mosn/pkg/istio/utils"
+	"mosn.io/mosn/pkg/types"
 )
 
 // ReportInfo get additional report info.

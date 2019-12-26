@@ -18,8 +18,8 @@
 package cluster
 
 import (
-	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/types"
 )
 
 func newHostStats(clustername string, addr string) types.HostStats {

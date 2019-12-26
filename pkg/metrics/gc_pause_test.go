@@ -24,7 +24,7 @@ import (
 	"testing"
 	"fmt"
 	gometrics "github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/metrics/shm"
+	"mosn.io/mosn/pkg/metrics/shm"
 )
 
 func gcPause() time.Duration {

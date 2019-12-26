@@ -19,8 +19,8 @@ package proxy
 
 import (
 	gometrics "github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/types"
 )
 
 type Stats struct {

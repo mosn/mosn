@@ -18,7 +18,7 @@
 package http
 
 import (
-	"sofastack.io/sofa-mosn/pkg/istio/utils"
+	"mosn.io/mosn/pkg/istio/utils"
 	"testing"
 	"istio.io/api/mixer/v1"
 )

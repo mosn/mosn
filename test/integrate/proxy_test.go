@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/test/util"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/test/util"
 )
 
 // Proxy Mode

@@ -28,8 +28,8 @@ import (
 	"os"
 	"regexp"
 
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestAccessLog(t *testing.T) {

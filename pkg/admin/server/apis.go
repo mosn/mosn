@@ -24,11 +24,11 @@ import (
 	"net/http"
 	"os"
 
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/metrics/sink/console"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/sink/console"
+	"mosn.io/mosn/pkg/types"
 )
 
 var levelMap = map[string]log.Level{

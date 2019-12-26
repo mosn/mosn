@@ -18,8 +18,8 @@
 package control
 
 import (
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/istio/mixerclient"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/istio/mixerclient"
 	"istio.io/api/mixer/v1"
 )
 

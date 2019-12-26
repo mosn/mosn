@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 const (

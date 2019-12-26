@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "mosn.io/mosn/pkg/api/v2"
 )
 
 func mockInitConfig(t *testing.T, cfg []byte) {

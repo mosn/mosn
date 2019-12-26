@@ -20,9 +20,9 @@ package connectionmanager
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/filter"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/filter"
+	"mosn.io/mosn/pkg/types"
 )
 
 // todo this filter may use in the future

@@ -7,12 +7,12 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/test/util"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/test/util"
 )
 
 type heartBeatServer struct {

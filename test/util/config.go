@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/types"
 	"github.com/json-iterator/go"
 )
 

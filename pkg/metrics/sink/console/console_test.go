@@ -24,7 +24,7 @@ import (
 	"sync"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics"
 )
 
 type testAction int
