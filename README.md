@@ -33,7 +33,7 @@ Use `go get -u sofastack.io/sofa-mosn`, or you can git clone the repository to `
 
 ## Documentation
 
-- [MOSN website](https://mosn.io)
+- [MOSN website](http://mosn.io)
 - [Changelog](CHANGELOG.md)
 
 ## Contributing

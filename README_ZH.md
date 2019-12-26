@@ -33,7 +33,7 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
 
 ## 文档
 
-- [MOSN 官网](https://mosn.io)
+- [MOSN 官网](http://mosn.io)
 
 - [MOSN 版本更新日志](CHANGELOG.md)
 
