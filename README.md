@@ -7,7 +7,7 @@
 
 [中文](README_ZH.md)
 
-MOSN is a powerful cloud-native proxy acts as edge proxy or service mesh's data plane. As a cloud-native network data plane, it aims to provide multi-protocol, modular, intelligent, and secure proxy capabilities for services. MOSN is the short name of Modular Open Smart Network-proxy. MOSN can be integrated with any Service Mesh wich support xDS API. It can also be used as an independent Layer 4 or Layer 7 load balancer, API Gateway, cloud-native Ingress, etc.
+MOSN is a network proxy written in Golang. It can be used as a cloud-native network data plane, providing services with the following proxy functions:  multi-protocol, modular, intelligent, and secure. MOSN is the short name of Modular Open Smart Network-proxy. MOSN can be integrated with any Service Mesh wich support xDS API. It can also be used as an independent Layer 4 or Layer 7 load balancer, API Gateway, cloud-native Ingress, etc.
 
 ## Features
 
