@@ -58,10 +58,12 @@ func (c *ADSClient) reqRoutes(streamClient ads.AggregatedDiscoveryService_Stream
 }
 
 func (c *ADSClient) handleRoutesResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.RouteConfiguration {
-	routes := make([]*envoy_api_v2.RouteConfiguration, 0)
+	routes := make([]*envoy_api_v2.RouteConfiguration, 0, len(resp.Resources))
 	for _, res := range resp.Resources {
 		route := envoy_api_v2.RouteConfiguration{}
-		route.Unmarshal(res.GetValue())
+		if err := route.Unmarshal(res.GetValue()); err != nil {
+			log.DefaultLogger.Errorf("ADSClient unmarshal route fail: %v", err)
+		}
 		routes = append(routes, &route)
 	}
 	return routes
