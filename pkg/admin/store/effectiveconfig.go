@@ -20,8 +20,8 @@ package store
 import (
 	"sync"
 
+	"github.com/json-iterator/go"
 	"mosn.io/mosn/pkg/api/v2"
-	jsoniter "github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

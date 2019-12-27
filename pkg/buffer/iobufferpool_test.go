@@ -31,6 +31,6 @@ func TestIoBufferPooPutduplicate(t *testing.T) {
 	}
 	err = PutIoBuffer(buf)
 	if err == nil {
-		t.Errorf("iobuffer should be error: Put IoBuffer duplicate" )
+		t.Errorf("iobuffer should be error: Put IoBuffer duplicate")
 	}
 }

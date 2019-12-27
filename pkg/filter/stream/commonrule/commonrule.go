@@ -21,11 +21,11 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/json-iterator/go"
 	"mosn.io/mosn/pkg/filter"
 	"mosn.io/mosn/pkg/filter/stream/commonrule/model"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

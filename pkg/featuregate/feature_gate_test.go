@@ -21,11 +21,12 @@ import (
 	"testing"
 
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/log"
-	"strings"
-	"time"
 )
 
 var (

@@ -26,8 +26,8 @@ import (
 	"time"
 	"unsafe"
 
-	"mosn.io/mosn/pkg/shm"
 	mosnlog "mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/shm"
 )
 
 var (

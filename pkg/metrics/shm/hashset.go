@@ -20,8 +20,8 @@ package shm
 import (
 	"errors"
 	"reflect"
-	"unsafe"
 	"strconv"
+	"unsafe"
 )
 
 var (

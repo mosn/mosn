@@ -18,8 +18,8 @@
 package healthcheck
 
 import (
-	"mosn.io/mosn/pkg/metrics"
 	gometrics "github.com/rcrowley/go-metrics"
+	"mosn.io/mosn/pkg/metrics"
 )
 
 type healthCheckStats struct {

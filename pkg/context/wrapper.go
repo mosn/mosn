@@ -19,6 +19,7 @@ package context
 
 import (
 	"context"
+
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -29,9 +30,10 @@ func Get(ctx context.Context, key types.ContextKey) interface{} {
 	return ctx.Value(key)
 }
 
-// WithValue add the given key-value pair into the existed value context, or create a new value context contains the pair.
-// This Function should not be used along the official context.WithValue !!
-// The following context topology will leads to existed pair {'foo':'bar'} NOT FOUND, cause recursive lookup for
+// WithValue add the given key-value pair into the existed value context, or create a new value context which contains the pair.
+// This Function should not be used along with the official context.WithValue !!
+
+// The following context topology will leads to existed pair {'foo':'bar'} NOT FOUND, because recursive lookup for
 // key-type=ContextKey is not supported by mosn.valueCtx.
 //
 // topology: context.Background -> mosn.valueCtx{'foo':'bar'} -> context.valueCtx -> mosn.valueCtx{'hmm':'haa'}

@@ -23,8 +23,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	mosnsync "mosn.io/mosn/pkg/sync"
 	"github.com/neverhook/easygo/netpoll"
+	mosnsync "mosn.io/mosn/pkg/sync"
 )
 
 var (

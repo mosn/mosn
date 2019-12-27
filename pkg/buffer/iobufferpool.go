@@ -18,8 +18,8 @@
 package buffer
 
 import (
-	"sync"
 	"errors"
+	"sync"
 
 	"mosn.io/mosn/pkg/types"
 )

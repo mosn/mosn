@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/utils"
 
@@ -131,6 +131,9 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
+	stream.requestInfo.SetDownstreamLocalAddress(proxy.readCallbacks.Connection().LocalAddr())
+	// todo: detect remote addr
+	stream.requestInfo.SetDownstreamRemoteAddress(proxy.readCallbacks.Connection().RemoteAddr())
 	stream.context = ctx
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
@@ -273,14 +276,14 @@ func (s *downStream) writeLog() {
 	// proxy access log
 	if s.proxy != nil && s.proxy.accessLogs != nil {
 		for _, al := range s.proxy.accessLogs {
-			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
+			al.Log(s.context, s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 		}
 	}
 
 	// per-stream access log
 	if s.streamAccessLogs != nil {
 		for _, al := range s.streamAccessLogs {
-			al.Log(s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
+			al.Log(s.context, s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 		}
 	}
 }
@@ -669,11 +672,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	}
 
 	s.cluster = s.snapshot.ClusterInfo()
-
 	s.requestInfo.SetRouteEntry(s.route.RouteRule())
-	s.requestInfo.SetDownstreamLocalAddress(s.proxy.readCallbacks.Connection().LocalAddr())
-	// todo: detect remote addr
-	s.requestInfo.SetDownstreamRemoteAddress(s.proxy.readCallbacks.Connection().RemoteAddr())
 
 	pool, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {

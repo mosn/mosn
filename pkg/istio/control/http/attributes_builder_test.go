@@ -20,10 +20,10 @@ package http
 import (
 	"testing"
 
-	"mosn.io/mosn/pkg/istio/control"
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
 	"istio.io/api/mixer/v1"
+	"mosn.io/mosn/pkg/istio/control"
 )
 
 func compareData(pb1 proto.Message, pb2 proto.Message) bool {

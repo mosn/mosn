@@ -18,9 +18,9 @@
 package http
 
 import (
-	"mosn.io/mosn/pkg/istio/control"
 	"github.com/gogo/protobuf/proto"
 	"istio.io/api/mixer/v1/config/client"
+	"mosn.io/mosn/pkg/istio/control"
 )
 
 // ServiceContext hold service config for HTTP

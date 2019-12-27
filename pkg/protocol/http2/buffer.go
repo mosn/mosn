@@ -29,7 +29,7 @@ func init() {
 	buffer.RegisterBuffer(&ins)
 }
 
-type Http2BufferCtx struct{
+type Http2BufferCtx struct {
 	buffer.TempBufferCtx
 }
 

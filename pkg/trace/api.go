@@ -18,11 +18,13 @@
 package trace
 
 import (
-	"mosn.io/mosn/pkg/types"
 	"context"
 
-	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
+
 	"errors"
+
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 var ErrNoSuchDriver = errors.New("no such driver")

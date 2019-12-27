@@ -18,8 +18,9 @@
 package types
 
 import (
-	"github.com/rcrowley/go-metrics"
 	"io"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 // Metrics is a wrapper interface for go-metrics

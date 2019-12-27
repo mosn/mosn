@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/net/http2"
 	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 type Server interface {

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
@@ -19,7 +20,6 @@ import (
 	_ "mosn.io/mosn/pkg/stream/sofarpc"
 	"mosn.io/mosn/test/integrate"
 	"mosn.io/mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 func AddFaultInject(mosn *config.MOSNConfig, listenername string, faultstr string) error {

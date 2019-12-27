@@ -19,9 +19,10 @@ package context
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/types"
 	"math/rand"
 	"testing"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 const testNodeNum = 10

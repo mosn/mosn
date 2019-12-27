@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
+	"istio.io/api/mixer/v1"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/protocol"
-	"istio.io/api/mixer/v1"
 )
 
 type testCallback struct {

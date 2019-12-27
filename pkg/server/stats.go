@@ -18,8 +18,8 @@
 package server
 
 import (
-	"mosn.io/mosn/pkg/metrics"
 	gometrics "github.com/rcrowley/go-metrics"
+	"mosn.io/mosn/pkg/metrics"
 )
 
 type listenerStats struct {

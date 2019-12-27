@@ -40,6 +40,7 @@ const (
 	ContextKeyTraceSpanKey
 	ContextKeyActiveSpan
 	ContextKeyTraceId
+	ContextKeyVariables
 	ContextKeyEnd
 )
 

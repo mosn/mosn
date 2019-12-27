@@ -18,11 +18,12 @@
 package sofa
 
 import (
-	"mosn.io/mosn/pkg/log"
-	"sync"
-	"os/user"
-	"mosn.io/mosn/pkg/types"
 	"errors"
+	"os/user"
+	"sync"
+
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 type tracelog struct {
@@ -59,7 +60,7 @@ func Init(protocol types.Protocol, logRoot, logIngress, logEgress string) (err e
 			return
 		}
 
-		tl.ingressLogger, err = log.GetOrCreateLogger(logRoot + logIngress, nil)
+		tl.ingressLogger, err = log.GetOrCreateLogger(logRoot+logIngress, nil)
 		if err != nil {
 			return
 		}
@@ -69,7 +70,7 @@ func Init(protocol types.Protocol, logRoot, logIngress, logEgress string) (err e
 			return
 		}
 
-		tl.egressLogger, err = log.GetOrCreateLogger(logRoot + logEgress, nil)
+		tl.egressLogger, err = log.GetOrCreateLogger(logRoot+logEgress, nil)
 		if err != nil {
 			return
 		}

@@ -20,6 +20,7 @@ package conv
 import (
 	"context"
 	"errors"
+
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/types"
@@ -62,7 +63,7 @@ type http2common struct{}
 func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	headers := http2.DecodeHeader(headerMap)
 	direction := ""
-	switch  headerMap.(type) {
+	switch headerMap.(type) {
 	case *http2.ReqHeader:
 		direction = protocol.Request
 	case *http2.RspHeader:

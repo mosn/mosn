@@ -20,13 +20,14 @@ package log
 import (
 	"context"
 	"fmt"
-	"mosn.io/mosn/pkg/types"
 	"math/rand"
 	"os"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/types"
 
 	mosnctx "mosn.io/mosn/pkg/context"
 )

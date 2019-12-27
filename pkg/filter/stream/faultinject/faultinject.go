@@ -22,12 +22,12 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/json-iterator/go"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
-	"github.com/json-iterator/go"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

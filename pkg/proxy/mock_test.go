@@ -20,9 +20,12 @@ package proxy
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/types"
 	"time"
+
+	"net"
+
 	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
 )
 
 var mockProtocol = types.Protocol("mockProtocol")
@@ -170,6 +173,16 @@ type mockConnection struct {
 
 func (c *mockConnection) ID() uint64 {
 	return 0
+}
+
+func (c *mockConnection) LocalAddr() net.Addr {
+	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1")
+	return addr
+}
+
+func (c *mockConnection) RemoteAddr() net.Addr {
+	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.2")
+	return addr
 }
 
 type mockTracer struct {

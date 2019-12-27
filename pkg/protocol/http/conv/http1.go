@@ -22,10 +22,10 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/valyala/fasthttp"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
-	"github.com/valyala/fasthttp"
 )
 
 func init() {

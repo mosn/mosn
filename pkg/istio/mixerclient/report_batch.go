@@ -21,8 +21,8 @@ import (
 	"sync"
 	"time"
 
-	"mosn.io/mosn/pkg/utils"
 	"istio.io/api/mixer/v1"
+	"mosn.io/mosn/pkg/utils"
 )
 
 const (

@@ -18,8 +18,9 @@
 package trace
 
 import (
-	"mosn.io/mosn/pkg/types"
 	"fmt"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 type holder struct {

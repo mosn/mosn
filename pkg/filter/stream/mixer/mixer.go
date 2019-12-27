@@ -20,13 +20,13 @@ package mixer
 import (
 	"context"
 
+	"istio.io/api/mixer/v1/config/client"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	"mosn.io/mosn/pkg/filter"
 	"mosn.io/mosn/pkg/istio/control/http"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"istio.io/api/mixer/v1/config/client"
 )
 
 func init() {
@@ -121,7 +121,7 @@ func (f *mixerFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilter
 
 func (f *mixerFilter) OnDestroy() {}
 
-func (f *mixerFilter) Log(reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (f *mixerFilter) Log(ctx context.Context, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 	if reqHeaders == nil || respHeaders == nil || requestInfo == nil {
 		return
 	}

@@ -23,8 +23,9 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"mosn.io/mosn/pkg/log"
 	"time"
+
+	"mosn.io/mosn/pkg/log"
 )
 
 type TestJob struct {

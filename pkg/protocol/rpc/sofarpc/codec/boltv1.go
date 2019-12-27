@@ -30,7 +30,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/protocol/serialize"
 	"mosn.io/mosn/pkg/types"
-
 )
 
 var (

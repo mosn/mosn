@@ -21,8 +21,9 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/mosn/pkg/types"
 	"runtime/debug"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 const Size = 2048
