@@ -21,9 +21,9 @@ import (
 	"strings"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
 )
 
 func newTestSimpleRouter(name string) v2.Router {

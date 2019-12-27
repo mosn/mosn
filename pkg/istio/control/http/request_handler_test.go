@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"istio.io/api/mixer/v1/config/client"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/api/v2"
 )
 
 func TestHandlerReport(t *testing.T) {

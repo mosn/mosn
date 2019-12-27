@@ -23,9 +23,9 @@ import (
 	"strings"
 
 	"github.com/valyala/fasthttp"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/http"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {

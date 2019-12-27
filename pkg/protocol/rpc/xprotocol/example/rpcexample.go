@@ -24,8 +24,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/rpc/xprotocol"
 )
 
 func init() {

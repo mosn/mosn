@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 // Server

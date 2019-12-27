@@ -28,7 +28,7 @@ import (
 	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
+	"mosn.io/mosn/pkg/protocol/rpc/xprotocol"
 )
 
 func init() {

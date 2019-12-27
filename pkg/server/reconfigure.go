@@ -25,11 +25,11 @@ import (
 
 	"net"
 
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/server/keeper"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {

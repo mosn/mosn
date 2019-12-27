@@ -20,8 +20,8 @@ package router
 import (
 	"strings"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 func getHeaderFormatter(value string, append bool) headerFormatter {

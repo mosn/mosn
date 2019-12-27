@@ -23,8 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/types"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
 )
 
 var (

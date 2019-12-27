@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	mosnhttp "sofastack.io/sofa-mosn/pkg/protocol/http"
-	"sofastack.io/sofa-mosn/pkg/stream"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http" // register http1
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
+	mosnhttp "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/stream"
+	_ "mosn.io/mosn/pkg/stream/http" // register http1
+	"mosn.io/mosn/pkg/types"
 )
 
 type receiver struct {

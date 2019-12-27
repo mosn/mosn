@@ -19,14 +19,14 @@ package featuregate
 
 import (
 	"testing"
-  
-  "fmt"
-  "strings"
+
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
 	"github.com/stretchr/testify/assert"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 )
 
 var (

@@ -20,12 +20,12 @@ package stream
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/variable"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // contextManager

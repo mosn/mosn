@@ -1,6 +1,6 @@
-# SOFAMosn 贡献者指南
+# MOSN 贡献者指南
 
-SOFAMosn 基于 Apache 2.0 许可发布，遵循标准的 Github 开发流程，使用 Github Issue 跟踪问题并将 Pull Request 合并到 master 分支中。本文档可以帮助你了解如何参与贡献。
+MOSN 基于 Apache 2.0 许可发布，遵循标准的 Github 开发流程，使用 Github Issue 跟踪问题并将 Pull Request 合并到 master 分支中。本文档可以帮助你了解如何参与贡献。
 
 在提交 Pull Request 之前您需要先签署[贡献者许可协议（CLA）](http://cla.sofastack.tech/)。虽然签署 CLA 不会给您授予主存储库的提交权利，但这意味着我们可以接受您的贡献，签署 CLA 后您将成为本项目的荣誉作者。对于活跃的贡献者甚至可以加入我们的核心团队，并具有合并 Pull Request 的权限。
 

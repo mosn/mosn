@@ -24,8 +24,8 @@ import (
 	"net"
 	"syscall"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 // OriginDST filter used to find out destination address of a connection which been redirected by iptables

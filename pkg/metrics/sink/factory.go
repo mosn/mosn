@@ -20,7 +20,7 @@ package sink
 import (
 	"fmt"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 // MetricsSinkCreator creates a MetricsSink according to config

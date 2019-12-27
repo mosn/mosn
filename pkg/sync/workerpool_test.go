@@ -25,7 +25,7 @@ import (
 
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 )
 
 type TestJob struct {

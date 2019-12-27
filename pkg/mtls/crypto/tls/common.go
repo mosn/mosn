@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls/cipherhw"
+	"mosn.io/mosn/pkg/mtls/crypto/tls/cipherhw"
 )
 
 const (

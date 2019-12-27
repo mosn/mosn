@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/api/v2"
 )
 
 type checkFunction func() error

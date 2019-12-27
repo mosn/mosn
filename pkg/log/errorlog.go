@@ -18,8 +18,8 @@
 package log
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/utils"
 )
 
 // errorLogger is a default implementation of ErrorLogger

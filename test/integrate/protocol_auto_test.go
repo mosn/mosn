@@ -4,18 +4,18 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/module/http2"
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
-	"sofastack.io/sofa-mosn/pkg/stream"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http2"
-	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
-	_ "sofastack.io/sofa-mosn/pkg/stream/xprotocol"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/test/util"
+	"mosn.io/mosn/pkg/module/http2"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol"
+	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/conv"
+	"mosn.io/mosn/pkg/stream"
+	_ "mosn.io/mosn/pkg/stream/http"
+	_ "mosn.io/mosn/pkg/stream/http2"
+	_ "mosn.io/mosn/pkg/stream/sofarpc"
+	_ "mosn.io/mosn/pkg/stream/xprotocol"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/test/util"
 )
 
 func (c *TestCase) StartAuto(tls bool) {
@@ -86,7 +86,7 @@ func TestProtocolHttp2(t *testing.T) {
 	var err error
 
 	magic = http2.ClientPreface
-	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
 	if prot != protocol.HTTP2 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
@@ -97,7 +97,7 @@ func TestProtocolHttp2(t *testing.T) {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
-	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte("helloworld"))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte("helloworld"))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
@@ -109,25 +109,25 @@ func TestProtocolHttp1(t *testing.T) {
 	var err error
 
 	magic = "GET"
-	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
 	if prot != protocol.HTTP1 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	magic = "POST"
-	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
 	if prot != protocol.HTTP1 {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
 
 	magic = "POS"
-	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
 	if err != stream.EAGAIN {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
 	magic = "PPPPPPP"
-	prot, err = stream.SelectStreamFactoryProtocol(nil,"", []byte(magic))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}

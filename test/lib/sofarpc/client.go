@@ -8,13 +8,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/stream"
-	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc" // register sofarpc
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/rpc"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/stream"
+	_ "mosn.io/mosn/pkg/stream/sofarpc" // register sofarpc
+	"mosn.io/mosn/pkg/types"
 )
 
 type receiver struct {

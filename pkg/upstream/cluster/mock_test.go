@@ -21,10 +21,10 @@ import (
 	"context"
 	"fmt"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/router"
-	"sofastack.io/sofa-mosn/pkg/types"
+	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/types"
 )
 
 type mockHost struct {

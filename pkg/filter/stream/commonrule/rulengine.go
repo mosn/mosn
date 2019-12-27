@@ -18,11 +18,11 @@
 package commonrule
 
 import (
-	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/limit"
-	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/metrix"
-	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/resource"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/filter/stream/commonrule/limit"
+	"mosn.io/mosn/pkg/filter/stream/commonrule/metrix"
+	"mosn.io/mosn/pkg/filter/stream/commonrule/model"
+	"mosn.io/mosn/pkg/filter/stream/commonrule/resource"
+	"mosn.io/mosn/pkg/types"
 )
 
 // RuleEngine as
