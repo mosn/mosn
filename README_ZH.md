@@ -35,10 +35,10 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
 
 - [MOSN 官网](http://mosn.io)
 
-- [MOSN 版本更新日志](CHANGELOG.md)
+- [MOSN 版本更新日志](CHANGELOG_ZH.md)
 
 ## 贡献
-请参阅[贡献者指南](CONTRIBUTING.md)。
+请参阅[贡献者指南](CONTRIBUTING_ZH.md)。
 
 ## 社区
 
