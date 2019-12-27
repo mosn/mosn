@@ -19,8 +19,8 @@ package mtls
 
 import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"sofastack.io/sofa-mosn/pkg/mtls/sds"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/mtls/sds"
+	"mosn.io/mosn/pkg/types"
 )
 
 var getSdsClientFunc func(cfg *auth.SdsSecretConfig) types.SdsClient = sds.NewSdsClientSingleton

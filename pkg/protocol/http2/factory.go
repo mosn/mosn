@@ -18,9 +18,9 @@
 package http2
 
 import (
-	"sofastack.io/sofa-mosn/pkg/module/http2"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/module/http2"
+	"mosn.io/mosn/pkg/protocol/rpc"
+	"mosn.io/mosn/pkg/types"
 )
 
 func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {

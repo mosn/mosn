@@ -18,7 +18,7 @@
 package protocol
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 // Protocol type definition

@@ -25,7 +25,7 @@ import (
 
 	"sync/atomic"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 const MinRead = 1 << 9

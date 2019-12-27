@@ -20,7 +20,7 @@ package xprotocol
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
+	"mosn.io/mosn/pkg/protocol/rpc"
 )
 
 // CodecFactory subprotocol plugin factory

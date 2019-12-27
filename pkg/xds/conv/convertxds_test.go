@@ -29,10 +29,10 @@ import (
 	v1 "istio.io/api/mixer/v1"
 	"istio.io/api/mixer/v1/config/client"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/router"
-	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
+	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/upstream/cluster"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"

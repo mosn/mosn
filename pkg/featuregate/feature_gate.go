@@ -28,7 +28,7 @@ import (
 	"reflect"
 
 	"github.com/spf13/pflag"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 )
 
 type Feature string

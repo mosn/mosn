@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
-	"sofastack.io/sofa-mosn/pkg/log"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http2"
-	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
-	"sofastack.io/sofa-mosn/test/fuzzy"
-	"sofastack.io/sofa-mosn/test/util"
+	_ "mosn.io/mosn/pkg/filter/network/proxy"
+	"mosn.io/mosn/pkg/log"
+	_ "mosn.io/mosn/pkg/stream/http"
+	_ "mosn.io/mosn/pkg/stream/http2"
+	_ "mosn.io/mosn/pkg/stream/sofarpc"
+	"mosn.io/mosn/test/fuzzy"
+	"mosn.io/mosn/test/util"
 	"golang.org/x/net/http2"
 )
 

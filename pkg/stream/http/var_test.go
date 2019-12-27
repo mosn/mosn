@@ -24,10 +24,10 @@ import (
 	"strconv"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/variable"
+	"mosn.io/mosn/pkg/buffer"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 var (

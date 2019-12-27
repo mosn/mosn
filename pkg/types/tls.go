@@ -22,7 +22,7 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/mtls/crypto/tls"
 )
 
 // TLSContextManager manages the listener/cluster's tls config

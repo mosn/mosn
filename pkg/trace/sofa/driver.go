@@ -17,7 +17,7 @@
 
 package sofa
 
-import "sofastack.io/sofa-mosn/pkg/trace"
+import "mosn.io/mosn/pkg/trace"
 
 func init() {
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())

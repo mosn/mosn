@@ -30,8 +30,8 @@ import (
 	"time"
 
 	gsyslog "github.com/hashicorp/go-syslog"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 )
 
 var (

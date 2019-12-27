@@ -23,9 +23,9 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/serialize"
 )
 
 // compare binary put and get

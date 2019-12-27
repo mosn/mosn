@@ -20,9 +20,9 @@ package resource
 import (
 	"strings"
 
-	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/filter/stream/commonrule/model"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 // DefaultMatcher macher

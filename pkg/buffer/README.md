@@ -7,7 +7,7 @@ package example
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/buffer"
 	"net/http"
 )
 

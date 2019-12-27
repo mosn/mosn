@@ -24,13 +24,13 @@ import (
 	"testing"
 	"time"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	str "sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/upstream/cluster"
+	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
 type testStats struct {

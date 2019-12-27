@@ -24,8 +24,8 @@ import (
 
 	"net"
 
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
 )
 
 var mockProtocol = types.Protocol("mockProtocol")

@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"istio.io/api/mixer/v1"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/protocol"
 )
 
 type testCallback struct {

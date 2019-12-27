@@ -22,7 +22,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 )
 
 func Alloc(name string, size int) (*ShmSpan, error) {

@@ -23,8 +23,8 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	jsoniter "github.com/json-iterator/go"
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/log"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

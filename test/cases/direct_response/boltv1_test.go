@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/test/lib"
-	testlib_sofarpc "sofastack.io/sofa-mosn/test/lib/sofarpc"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/test/lib"
+	testlib_sofarpc "mosn.io/mosn/test/lib/sofarpc"
 )
 
 func TestBoltv1DirectResponse(t *testing.T) {

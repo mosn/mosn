@@ -18,7 +18,7 @@
 package metrics
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 // HealthCheckType represents health check metrics type

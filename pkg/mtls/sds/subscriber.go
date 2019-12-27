@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/juju/errors"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/utils"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -13,7 +13,7 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 )
 
 type SdsSubscriber struct {

@@ -21,9 +21,9 @@ import (
 	"context"
 	"errors"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/variable"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value

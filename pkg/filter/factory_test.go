@@ -22,7 +22,7 @@ import (
 	"errors"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 type testStreamFilterFactory struct{}

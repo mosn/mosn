@@ -20,7 +20,7 @@ package http2
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 var ins Http2BufferCtx

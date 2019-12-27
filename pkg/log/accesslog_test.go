@@ -32,8 +32,8 @@ import (
 	"strconv"
 	"strings"
 
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/variable"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func prepareLocalIpv6Ctx() context.Context {

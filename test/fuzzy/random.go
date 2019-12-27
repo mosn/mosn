@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/http/conv"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/http2/conv"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/test/util"
+	"mosn.io/mosn/pkg/mosn"
+	_ "mosn.io/mosn/pkg/protocol/http/conv"
+	_ "mosn.io/mosn/pkg/protocol/http2/conv"
+	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/conv"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/test/util"
 )
 
 type Server interface {

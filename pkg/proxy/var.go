@@ -21,7 +21,7 @@ import (
 	"context"
 	"strconv"
 
-	"sofastack.io/sofa-mosn/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // The identification of a request info's content

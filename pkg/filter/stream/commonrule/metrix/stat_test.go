@@ -21,9 +21,9 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/limit"
-	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"mosn.io/mosn/pkg/filter/stream/commonrule/limit"
+	"mosn.io/mosn/pkg/filter/stream/commonrule/model"
+	"mosn.io/mosn/pkg/utils"
 )
 
 func TestNewStat(t *testing.T) {

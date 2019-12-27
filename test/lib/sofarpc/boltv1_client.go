@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/types"
 )
 
 func BuildBoltV1Request(id uint64, header map[string]string, body []byte) (types.HeaderMap, types.IoBuffer) {

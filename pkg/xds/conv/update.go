@@ -22,13 +22,13 @@ import (
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	jsoniter "github.com/json-iterator/go"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/router"
-	"sofastack.io/sofa-mosn/pkg/server"
-	"sofastack.io/sofa-mosn/pkg/types"
-	clusterAdapter "sofastack.io/sofa-mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/server"
+	"mosn.io/mosn/pkg/types"
+	clusterAdapter "mosn.io/mosn/pkg/upstream/cluster"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

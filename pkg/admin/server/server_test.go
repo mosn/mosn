@@ -33,9 +33,9 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {

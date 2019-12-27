@@ -21,8 +21,8 @@ import (
 	"net/http"
 	"strings"
 
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 type HeaderMap struct {

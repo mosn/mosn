@@ -24,7 +24,7 @@ import (
 	"sync/atomic"
 
 	"github.com/neverhook/easygo/netpoll"
-	mosnsync "sofastack.io/sofa-mosn/pkg/sync"
+	mosnsync "mosn.io/mosn/pkg/sync"
 )
 
 var (

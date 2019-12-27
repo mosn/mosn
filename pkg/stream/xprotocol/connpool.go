@@ -23,12 +23,12 @@ import (
 
 	"sync/atomic"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	str "sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/types"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
+	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {

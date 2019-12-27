@@ -22,7 +22,7 @@ import (
 	"errors"
 	"strings"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 func GetVariableValue(ctx context.Context, name string) (string, error) {
