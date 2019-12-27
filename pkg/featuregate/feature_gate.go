@@ -19,6 +19,7 @@ package featuregate
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"

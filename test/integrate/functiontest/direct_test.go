@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	"mosn.io/mosn/pkg/mosn"
@@ -16,7 +17,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 // Test Direct Response

@@ -19,9 +19,9 @@ package featuregate
 
 import (
 	"testing"
-  
-  "fmt"
-  "strings"
+
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"

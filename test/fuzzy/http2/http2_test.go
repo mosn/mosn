@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/net/http2"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/log"
 	_ "mosn.io/mosn/pkg/stream/http"
@@ -18,7 +19,6 @@ import (
 	_ "mosn.io/mosn/pkg/stream/sofarpc"
 	"mosn.io/mosn/test/fuzzy"
 	"mosn.io/mosn/test/util"
-	"golang.org/x/net/http2"
 )
 
 var (
