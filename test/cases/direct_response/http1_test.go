@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/test/lib"
-	testlib_http "sofastack.io/sofa-mosn/test/lib/http"
+	"mosn.io/mosn/test/lib"
+	testlib_http "mosn.io/mosn/test/lib/http"
 )
 
 func TestHttp1DirectResponse(t *testing.T) {
