@@ -97,7 +97,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 
 			err = jsonpb.UnmarshalString(string(b), dynamicResources)
 			if err != nil {
-				log.DefaultLogger.Errorf("fail to marshal dynamic_resources: %v", err)
+				log.DefaultLogger.Errorf("fail to unmarshal dynamic_resources: %v", err)
 				return nil, nil, err
 			}
 			err = dynamicResources.Validate()
