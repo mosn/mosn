@@ -20,7 +20,7 @@ package store
 import (
 	"sync"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/api/v2"
 	jsoniter "github.com/json-iterator/go"
 )
 

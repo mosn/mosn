@@ -21,7 +21,7 @@ import (
 	"strconv"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 var bitSize64 = 1 << 6

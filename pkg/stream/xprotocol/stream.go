@@ -24,14 +24,14 @@ import (
 	"sync"
 	"sync/atomic"
 
-	networkbuffer "sofastack.io/sofa-mosn/pkg/buffer"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol/dubbo"
-	str "sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/types"
+	networkbuffer "mosn.io/mosn/pkg/buffer"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/rpc/xprotocol"
+	_ "mosn.io/mosn/pkg/protocol/rpc/xprotocol/dubbo"
+	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
 )
 
 // StreamDirection 1: server stream 0: client stream

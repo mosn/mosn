@@ -3,8 +3,8 @@ package cluster
 import (
 	"testing"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/types"
+	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/types"
 )
 
 func _createTestCluster() types.Cluster {

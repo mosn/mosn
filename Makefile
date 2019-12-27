@@ -3,7 +3,7 @@ SHELL = /bin/bash
 TARGET          = mosnd
 TARGET_SIDECAR  = mosn
 CONFIG_FILE     = mosn_config.json
-PROJECT_NAME    = sofastack.io/sofa-mosn
+PROJECT_NAME    = mosn.io/mosn
 
 SCRIPT_DIR      = $(shell pwd)/etc/script
 
@@ -14,7 +14,7 @@ GIT_NOTES       = $(shell git log -1 --oneline)
 BUILD_IMAGE     = godep-builder
 
 IMAGE_NAME      = mosn
-REPOSITORY      = sofastack/${IMAGE_NAME}
+REPOSITORY      = mosnio/${IMAGE_NAME}
 
 RPM_BUILD_IMAGE = afenp-rpm-builder
 RPM_VERSION     = $(shell cat VERSION | tr -d '-')

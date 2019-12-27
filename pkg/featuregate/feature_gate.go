@@ -19,6 +19,7 @@ package featuregate
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,8 +27,7 @@ import (
 	"sync/atomic"
 
 	"github.com/spf13/pflag"
-	"reflect"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 )
 
 type Feature string

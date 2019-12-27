@@ -25,7 +25,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestAtomic(t *testing.T) {

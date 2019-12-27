@@ -18,10 +18,10 @@
 package sofa
 
 import (
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 	"sync"
 	"os/user"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 	"errors"
 )
 

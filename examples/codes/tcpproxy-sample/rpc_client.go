@@ -7,16 +7,16 @@ import (
 	"net"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
-	"sofastack.io/sofa-mosn/pkg/stream"
-	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	"mosn.io/mosn/pkg/protocol/serialize"
+	"mosn.io/mosn/pkg/stream"
+	_ "mosn.io/mosn/pkg/stream/sofarpc"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 type Client struct {

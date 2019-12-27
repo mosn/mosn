@@ -18,7 +18,7 @@
 package server
 
 import (
-	"sofastack.io/sofa-mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics"
 	gometrics "github.com/rcrowley/go-metrics"
 )
 

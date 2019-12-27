@@ -20,9 +20,9 @@ package sofarpc
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/serialize"
 )
 
 // NewResponse build sofa response msg according to given protocol code and respStatus

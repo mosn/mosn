@@ -20,8 +20,8 @@ package http
 import (
 	"encoding/base64"
 
-	"sofastack.io/sofa-mosn/pkg/istio/utils"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/istio/utils"
+	"mosn.io/mosn/pkg/types"
 )
 
 // CheckData extract HTTP data for Mixer check

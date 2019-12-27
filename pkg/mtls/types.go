@@ -21,7 +21,7 @@ import (
 	"crypto/x509"
 	"errors"
 
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/mtls/crypto/tls"
 )
 
 // Support Protocols version

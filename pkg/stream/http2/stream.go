@@ -28,15 +28,15 @@ import (
 	"strconv"
 	"sync"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/module/http2"
-	"sofastack.io/sofa-mosn/pkg/mtls"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	mhttp2 "sofastack.io/sofa-mosn/pkg/protocol/http2"
-	str "sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/module/http2"
+	"mosn.io/mosn/pkg/mtls"
+	"mosn.io/mosn/pkg/protocol"
+	mhttp2 "mosn.io/mosn/pkg/protocol/http2"
+	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {

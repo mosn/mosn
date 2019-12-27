@@ -23,7 +23,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	mosnsync "sofastack.io/sofa-mosn/pkg/sync"
+	mosnsync "mosn.io/mosn/pkg/sync"
 	"github.com/neverhook/easygo/netpoll"
 )
 

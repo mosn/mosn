@@ -35,11 +35,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
 	gometrics "github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/metrics/sink"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/sink"
+	"mosn.io/mosn/pkg/types"
 )
 
 var (

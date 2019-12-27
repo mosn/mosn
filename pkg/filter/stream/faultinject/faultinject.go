@@ -22,11 +22,11 @@ import (
 	"math/rand"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/router"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/types"
 	"github.com/json-iterator/go"
 )
 

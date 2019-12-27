@@ -18,7 +18,7 @@
 package originaldst
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 // OriginalDst interface contains just one method: OnAccept

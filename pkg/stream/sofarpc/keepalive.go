@@ -23,12 +23,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	str "sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/utils"
 )
 
 // StreamReceiver to receive keep alive response

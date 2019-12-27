@@ -5,17 +5,17 @@ import (
 	"net/http"
 	"time"
 
-	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
-	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/metrics/sink/console"
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http2"
-	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/test/util"
+	_ "mosn.io/mosn/pkg/filter/network/proxy"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/sink/console"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol"
+	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	_ "mosn.io/mosn/pkg/stream/http"
+	_ "mosn.io/mosn/pkg/stream/http2"
+	_ "mosn.io/mosn/pkg/stream/sofarpc"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/test/util"
 )
 
 func main() {

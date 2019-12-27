@@ -36,14 +36,14 @@ import (
 	http_conn "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/gogo/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
-	admin "sofastack.io/sofa-mosn/pkg/admin/store"
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	_ "sofastack.io/sofa-mosn/pkg/filter/stream/faultinject"
-	_ "sofastack.io/sofa-mosn/pkg/filter/stream/healthcheck/sofarpc"
-	_ "sofastack.io/sofa-mosn/pkg/filter/stream/mixer"
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	"sofastack.io/sofa-mosn/pkg/xds/conv"
+	admin "mosn.io/mosn/pkg/admin/store"
+	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
+	_ "mosn.io/mosn/pkg/filter/stream/healthcheck/sofarpc"
+	_ "mosn.io/mosn/pkg/filter/stream/mixer"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/xds/conv"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

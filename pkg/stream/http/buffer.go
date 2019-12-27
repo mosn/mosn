@@ -17,7 +17,7 @@
 package http
 
 import (
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/buffer"
 	"context"
 	"github.com/valyala/fasthttp"
 )
