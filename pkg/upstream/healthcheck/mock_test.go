@@ -21,7 +21,7 @@ import (
 	"sync"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 // use a mock session Factory to generate a mock session

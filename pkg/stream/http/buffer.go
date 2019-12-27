@@ -17,9 +17,10 @@
 package http
 
 import (
-	"sofastack.io/sofa-mosn/pkg/buffer"
 	"context"
+
 	"github.com/valyala/fasthttp"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 func init() {

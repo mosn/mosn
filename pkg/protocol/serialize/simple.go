@@ -20,9 +20,10 @@ package serialize
 import (
 	"encoding/binary"
 	"fmt"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"reflect"
 	"unsafe"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 // Instance

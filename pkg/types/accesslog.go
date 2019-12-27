@@ -17,6 +17,8 @@
 
 package types
 
+import "context"
+
 //    The bunch of interfaces are used to print the access log in format designed by users.
 //    Access log format consists of three parts, which are "RequestInfoFormat", "RequestHeaderFormat"
 //    and "ResponseHeaderFormat", also you can get details by reading "AccessLogDetails.md".
@@ -24,52 +26,10 @@ package types
 // AccessLog is a log object that used to log the access info.
 type AccessLog interface {
 	// Log write the access info.
-	// The "reqHeaders" contains the request header's information, "respHeader" contains the response header's information
-	// and "requestInfo" contains some request information
-	Log(reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo)
+	Log(ctx context.Context, reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo)
 }
 
-// AccessLogFilter is a filter of access log to do some filters to access log info
-type AccessLogFilter interface {
-	// Decide can make a decision about how to filter the request headers and requestInfo
-	Decide(reqHeaders HeaderMap, requestInfo RequestInfo) bool
-}
-
-// AccessLogFormatter is a object that format the request info to string
-type AccessLogFormatter interface {
-	// Format makes the request headers, response headers and request info to string for printing according to log formatter
-	Format(buf IoBuffer, reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo)
-}
-
-// The identification of a request info's content
-const (
-	LogStartTime                  string = "StartTime"
-	LogRequestReceivedDuration    string = "RequestReceivedDuration"
-	LogResponseReceivedDuration   string = "ResponseReceivedDuration"
-	LogRequestFinishedDuration    string = "RequestFinishedDuration"
-	LogBytesSent                  string = "BytesSent"
-	LogBytesReceived              string = "BytesReceived"
-	LogProtocol                   string = "Protocol"
-	LogResponseCode               string = "ResponseCode"
-	LogDuration                   string = "Duration"
-	LogResponseFlag               string = "ResponseFlag"
-	LogUpstreamLocalAddress       string = "UpstreamLocalAddress"
-	LogDownstreamLocalAddress     string = "DownstreamLocalAddress"
-	LogDownstreamRemoteAddress    string = "DownstreamRemoteAddress"
-	LogUpstreamHostSelectedGetter string = "UpstreamHostSelected"
-)
-
-const (
-	// ReqHeaderPrefix is the prefix of request header's formatter
-	ReqHeaderPrefix string = "REQ."
-	// RespHeaderPrefix is the prefix of response header's formatter
-	RespHeaderPrefix string = "RESP."
-)
-
-const (
-	// DefaultAccessLogFormat is the default access log format.
-	// For more details please read "AccessLogDetails.md"
-	DefaultAccessLogFormat = "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %RequestFinishedDuration% %BytesSent%" + " " +
-		"%BytesReceived% %Protocol% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
-		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
-)
+// DefaultAccessLogFormat provides a pre-defined format
+const DefaultAccessLogFormat = "%start_time% %request_received_duration% %response_received_duration% %bytes_sent%" + " " +
+	"%bytes_received% %protocol% %response_code% %duration% %response_flag% %response_code% %upstream_local_address%" + " " +
+	"%downstream_local_address% %downstream_remote_address% %upstream_host%"

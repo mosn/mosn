@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/test/util"
 	"golang.org/x/net/http2"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/test/util"
 )
 
 type Server interface {

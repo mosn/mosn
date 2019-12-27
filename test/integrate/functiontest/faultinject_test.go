@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	_ "sofastack.io/sofa-mosn/pkg/filter/stream/faultinject"
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
-	"sofastack.io/sofa-mosn/test/integrate"
-	"sofastack.io/sofa-mosn/test/util"
 	"golang.org/x/net/http2"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	_ "mosn.io/mosn/pkg/stream/sofarpc"
+	"mosn.io/mosn/test/integrate"
+	"mosn.io/mosn/test/util"
 )
 
 func AddFaultInject(mosn *config.MOSNConfig, listenername string, faultstr string) error {

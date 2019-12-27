@@ -24,13 +24,13 @@ import (
 	"sync"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics"
 )
 
 type testAction int
 
 const (
-	countInc        testAction = iota
+	countInc testAction = iota
 	countDec
 	gaugeUpdate
 	histogramUpdate

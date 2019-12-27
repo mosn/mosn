@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 func TestLogPrintDiscard(t *testing.T) {
@@ -90,7 +90,7 @@ func TestLogDefaultRollerTime(t *testing.T) {
 	os.Remove(logName)
 	os.Remove(rollerName)
 	// 2s
-	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime:2})
+	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime: 2})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestLogDefaultRollerAfterDelete(t *testing.T) {
 	os.Remove(logName)
 	os.Remove(rollerName)
 
-	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime:3})
+	logger, err := GetOrCreateLogger(logName, &Roller{MaxTime: 3})
 	if err != nil {
 		t.Fatal(err)
 	}

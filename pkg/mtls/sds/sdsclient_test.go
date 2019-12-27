@@ -31,8 +31,8 @@ import (
 	sds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	gopbtypes "github.com/gogo/protobuf/types"
 	"google.golang.org/grpc"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 const (

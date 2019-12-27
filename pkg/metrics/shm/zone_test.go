@@ -56,7 +56,6 @@ func TestNewSharedMetrics(t *testing.T) {
 	}
 }
 
-
 func TestClear(t *testing.T) {
 	defer Reset()
 
@@ -79,7 +78,6 @@ func TestClear(t *testing.T) {
 	}
 
 	defer zone.Detach()
-
 
 	// 2. attach without clear
 	zone2 := createMetricsZone("TestClear", 10*1024*1024, false)

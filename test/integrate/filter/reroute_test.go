@@ -10,16 +10,16 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/filter"
-	_ "sofastack.io/sofa-mosn/pkg/filter/network/proxy"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/test/util"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/filter"
+	_ "mosn.io/mosn/pkg/filter/network/proxy"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol"
+	_ "mosn.io/mosn/pkg/stream/http"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/test/util"
 )
 
 // Test and demo for use stream filter to re route
@@ -124,7 +124,7 @@ func TestReRoute(t *testing.T) {
 	// reset the logger
 	log.InitDefaultLogger(lgfile, log.DEBUG)
 	// make a http request
-	client := http.Client{Timeout:5*time.Second}
+	client := http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
 	if err != nil {
 		t.Error("rerquest reroute mosn error: ", err)
@@ -136,7 +136,7 @@ func TestReRoute(t *testing.T) {
 	resp.Body.Close() // release
 	// stop the server and make a request, expected get a error response from mosn
 	httpServer.Close()
-	client = http.Client{Timeout:5*time.Second}
+	client = http.Client{Timeout: 5 * time.Second}
 	errResp, err := http.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
 	if err != nil {
 		t.Error("rerquest reroute mosn error: ", err)

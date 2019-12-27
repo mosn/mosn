@@ -15,4 +15,20 @@
  * limitations under the License.
  */
 
-package context
+package featuregate
+
+const (
+	TestDataFeatureEnable        Feature = "TestDataFeatureEnable"
+	AnotherTestDataFeatureEnable Feature = "AnotherTestDataFeatureEnable"
+)
+
+var (
+	TestDataMutableFeatureGate MutableFeatureGate = NewFeatureGate()
+	TestDataFeatureGate        FeatureGate        = TestDataMutableFeatureGate
+	testDataFeatureGates                          = map[Feature]FeatureSpec{
+		TestDataFeatureEnable:        {Default: false, PreRelease: Alpha},
+		AnotherTestDataFeatureEnable: {Default: true, PreRelease: Beta},
+	}
+)
+
+func init() {}

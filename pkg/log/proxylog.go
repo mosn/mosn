@@ -20,11 +20,11 @@ package log
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 
 	"strconv"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 // proxyLogger is a default implementation of ProxyLogger

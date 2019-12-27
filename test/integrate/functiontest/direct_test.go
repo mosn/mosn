@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/test/util"
 	"golang.org/x/net/http2"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/test/util"
 )
 
 // Test Direct Response

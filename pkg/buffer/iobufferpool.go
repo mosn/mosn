@@ -18,10 +18,10 @@
 package buffer
 
 import (
-	"sync"
 	"errors"
+	"sync"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 var ibPool IoBufferPool

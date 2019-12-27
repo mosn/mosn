@@ -23,12 +23,12 @@ import (
 
 	"sync/atomic"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	str "sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/types"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
+	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -222,8 +222,6 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	log.DefaultLogger.Tracef("xprotocol new active client , connect success %v", data)
 
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create codec client")
-
-
 
 	connCtx := mosnctx.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
 	connCtx = mosnctx.WithValue(connCtx, types.ContextSubProtocol, mosnctx.Get(ctx, types.ContextSubProtocol))

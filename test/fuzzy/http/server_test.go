@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/test/fuzzy"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/test/fuzzy"
 )
 
 func runClient(t *testing.T, meshAddr string, stop chan struct{}) {

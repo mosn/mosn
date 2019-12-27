@@ -20,8 +20,8 @@ package router
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 // RouteHandlerChain returns first available handler's router

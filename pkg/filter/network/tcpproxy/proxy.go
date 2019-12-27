@@ -25,12 +25,12 @@ import (
 	"strings"
 	"time"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 // ReadFilter
@@ -212,12 +212,6 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 			p.upstreamConnection.Close(types.FlushWrite, types.LocalClose)
 		} else if event == types.LocalClose {
 			p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
-		}
-	}
-
-	if event.IsClose() {
-		for _, al := range p.accessLogs {
-			al.Log(nil, nil, p.requestInfo)
 		}
 	}
 }

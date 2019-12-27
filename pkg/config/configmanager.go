@@ -18,8 +18,8 @@
 package config
 
 import (
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/log"
 )
 
 // TODO: The functions in this file is for service discovery, but the function implmentation is not general, should fix it

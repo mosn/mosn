@@ -25,7 +25,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestAtomic(t *testing.T) {
@@ -84,7 +84,7 @@ func TestConsitency(t *testing.T) {
 		t.Error(err)
 	}
 
-	_,  err = Alloc("TestConsitency", 512)
+	_, err = Alloc("TestConsitency", 512)
 	if err == nil && err.Error() == "mmap target path ./mosn_shm_TestConsitency exists and its size 256 mismatch 512" {
 		t.Error()
 	}

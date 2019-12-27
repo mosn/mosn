@@ -19,6 +19,7 @@ package featuregate
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -26,8 +27,7 @@ import (
 	"sync/atomic"
 
 	"github.com/spf13/pflag"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"reflect"
+	"mosn.io/mosn/pkg/log"
 )
 
 type Feature string
@@ -63,6 +63,8 @@ type FeatureSpec struct {
 	LockToDefault bool
 	// PreRelease indicates the maturity level of the feature
 	PreRelease prerelease
+	// InitFunc used to init process when StartInit is invoked
+	InitFunc func()
 }
 
 type prerelease string
@@ -95,11 +97,6 @@ type FeatureGate interface {
 	IsReady(key Feature) bool
 	// Subscribe returns a channel. if the channel is closed, means the feature is ready
 	Subscribe(key Feature) (chan struct{}, error)
-	// UpdateToReady supports updating feature to ready, then closing the channel
-	// unsupported:
-	// 1. Rollback the notified of ready to false or Setting with false
-	// 2. Repeat setting the notified of ready with true
-	UpdateToReady(key Feature) error
 }
 
 // MutableFeatureGate parses and stores flag gates for known features from
@@ -116,6 +113,10 @@ type MutableFeatureGate interface {
 	SetFromMap(m map[string]bool) error
 	// Add adds features to the featureGate.
 	Add(features map[Feature]FeatureSpec) error
+	// AddFeatureSpec adds feature to the featureGate.
+	AddFeatureSpec(key Feature, spec FeatureSpec) error
+	// call StartInit to trigger init functions of feature
+	StartInit() error
 }
 
 // defaultFeatureGate implements FeatureGate as well as pflag.Value for flag parsing.
@@ -168,14 +169,12 @@ func NewFeatureGate() *defaultFeatureGate {
 	readyValue := &atomic.Value{}
 	readyValue.Store(ready)
 
-	broadcasters := map[Feature]*oneTimeBroadcaster{}
-
 	f := &defaultFeatureGate{
 		known:        knownValue,
 		special:      specialFeatures,
 		enabled:      enabledValue,
 		ready:        readyValue,
-		broadcasters: broadcasters,
+		broadcasters: map[Feature]*oneTimeBroadcaster{},
 	}
 	return f
 }
@@ -326,7 +325,7 @@ func (f *defaultFeatureGate) AddFlag(fs *pflag.FlagSet) {
 	known := f.KnownFeatures()
 	fs.Var(f, flagName, ""+
 		"A set of key=value pairs that describe feature gates for alpha/experimental features. "+
-		"Options are:\n"+ strings.Join(known, "\n"))
+		"Options are:\n"+strings.Join(known, "\n"))
 }
 
 // KnownFeatures returns a slice of strings describing the FeatureGate's known features.
@@ -393,7 +392,7 @@ func (f *defaultFeatureGate) DeepCopy() MutableFeatureGate {
 // unsupported:
 // 1. Rollback the notified of ready to false or Setting with false
 // 2. Repeat setting the notified of ready with true
-func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
+func (f *defaultFeatureGate) updateToReady(key Feature) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -412,10 +411,11 @@ func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
 
 		b.notified = true
 		b.once.Do(func() {
+			log.DefaultLogger.Infof("feature %s is ready, notify subscriber", key)
 			close(b.channel)
 		})
 
-		f.updateToReady(key)
+		f.doUpdateToReady(key)
 	} else {
 		return fmt.Errorf("unrecognized feature gate: %s", key)
 	}
@@ -423,7 +423,7 @@ func (f *defaultFeatureGate) UpdateToReady(key Feature) error {
 	return nil
 }
 
-func (f *defaultFeatureGate) updateToReady(key Feature) {
+func (f *defaultFeatureGate) doUpdateToReady(key Feature) {
 	// Copy existing state
 	ready := map[Feature]bool{}
 	for k, v := range f.ready.Load().(map[Feature]bool) {
@@ -456,4 +456,35 @@ func (f *defaultFeatureGate) Subscribe(key Feature) (chan struct{}, error) {
 	}
 
 	return nil, fmt.Errorf("subscribe fails, make sure %s is inited correctly", key)
+}
+
+// AddFeatureSpec adds feature to the featureGate.
+func (f *defaultFeatureGate) AddFeatureSpec(key Feature, spec FeatureSpec) error {
+	return f.Add(map[Feature]FeatureSpec{key: spec})
+}
+
+// call StartInit to trigger init functions of feature
+func (f *defaultFeatureGate) StartInit() error {
+	w := &sync.WaitGroup{}
+	for key, enabled := range f.enabled.Load().(map[Feature]bool) {
+		if !enabled {
+			continue
+		}
+
+		spec, _ := f.known.Load().(map[Feature]FeatureSpec)[key]
+
+		w.Add(1)
+		log.DefaultLogger.Infof("feature %s start init", key)
+		go func(wg *sync.WaitGroup, k Feature) {
+			if spec.InitFunc != nil {
+				spec.InitFunc()
+			}
+			f.updateToReady(k)
+			log.DefaultLogger.Infof("feature %s init done", k)
+			wg.Done()
+		}(w, key)
+	}
+
+	w.Wait()
+	return nil
 }

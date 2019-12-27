@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/api/v2"
 )
 
 func Test_getWeightedClusterEntryAndVerify(t *testing.T) {

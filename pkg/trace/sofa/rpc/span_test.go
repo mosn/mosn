@@ -18,9 +18,9 @@
 package rpc
 
 import (
-	"testing"
-	"runtime"
 	"log"
+	"runtime"
+	"testing"
 )
 
 func TestSpanLog(t *testing.T) {

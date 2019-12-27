@@ -22,7 +22,7 @@ import (
 	"errors"
 
 	metrics "github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 var FAILED = errors.New("FAILED")

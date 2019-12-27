@@ -27,10 +27,9 @@ func (m *metricsMatcher) isExclusionKey(key string) bool {
 	}
 	// TODO: support pattern
 	for _, eKey := range m.exclusionKeys {
-		if eKey == key  {
+		if eKey == key {
 			return true
 		}
 	}
 	return false
 }
-

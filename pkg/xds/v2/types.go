@@ -27,7 +27,7 @@ import (
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"sofastack.io/sofa-mosn/pkg/config"
+	"mosn.io/mosn/pkg/config"
 )
 
 // XDSConfig contains ADS config and clusters info

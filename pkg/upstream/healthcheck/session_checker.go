@@ -22,9 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/utils"
 )
 
 // sessionChecker is a wrapper of types.HealthCheckSession for health check

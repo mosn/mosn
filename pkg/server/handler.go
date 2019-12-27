@@ -32,16 +32,16 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
-	admin "sofastack.io/sofa-mosn/pkg/admin/store"
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/filter/accept/originaldst"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/mtls"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	admin "mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/api/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/filter/accept/originaldst"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/mtls"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/utils"
 )
 
 // ConnectionHandler
@@ -178,7 +178,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 				alConfig.Path = types.MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
 			}
 
-			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
+			if al, err := log.NewAccessLog(alConfig.Path, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
 				return nil, fmt.Errorf("initialize listener access logger %s failed: %v", alConfig.Path, err.Error())

@@ -28,9 +28,9 @@ import (
 
 	"fmt"
 
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/metrics"
-	"sofastack.io/sofa-mosn/pkg/metrics/sink"
+	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/metrics/sink"
 )
 
 type testAction int

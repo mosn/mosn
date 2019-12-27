@@ -20,8 +20,8 @@ package mtls
 import (
 	"testing"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/mtls/crypto/tls"
 )
 
 func TestTLSContext(t *testing.T) {

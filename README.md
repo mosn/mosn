@@ -24,11 +24,11 @@ As an open source network proxy, MOSN has the following core functions:
   
 ## Download&Install
 
-Use `go get -u sofastack.io/sofa-mosn`, or you can git clone the repository to `$GOPATH/src/sofastack.io/sofa-mosn`.
+Use `go get -u mosn.io/mosn`, or you can git clone the repository to `$GOPATH/src/mosn.io/mosn`.
 
 **Notice**
 
-- If you need to use code before 0.5.0, you may needs to run the script ` transfer_path.sh` to fix the import path.
+- If you need to use code before 0.8.1, you may needs to run the script `transfer_path.sh` to fix the import path.
 - If you are in Linux, you should modify the `SED_CMD` in `transfer_path.sh`, see the comment in the script file.
 
 ## Documentation

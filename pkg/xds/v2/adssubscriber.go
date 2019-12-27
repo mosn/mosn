@@ -21,8 +21,8 @@ import (
 	"math/rand"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/utils"
 )
 
 // Start adsClient send goroutine and receive goroutine

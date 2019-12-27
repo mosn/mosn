@@ -24,9 +24,9 @@ import (
 
 	"unsafe"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 const maxBufferPool = 16

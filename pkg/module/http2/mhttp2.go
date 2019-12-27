@@ -21,8 +21,8 @@ import (
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 )
 
 var (
@@ -210,10 +210,14 @@ func (sc *MServerConn) getStream(id uint32) *stream {
 	return sc.streams[id]
 }
 
-func (sc *MServerConn) delStream(id uint32) {
+func (sc *MServerConn) delStream(id uint32) bool {
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
-	delete(sc.streams, id)
+	if _, ok := sc.streams[id]; ok {
+		delete(sc.streams, id)
+		return true
+	}
+	return false
 }
 
 func (sc *MServerConn) setStream(id uint32, ms *stream) {
@@ -622,13 +626,14 @@ func (sc *MServerConn) closeStream(st *stream, err error) {
 	if st == nil {
 		return
 	}
-	st.state = stateClosed
-	if st.isPushed() {
-		sc.curPushedStreams--
-	} else {
-		sc.curClientStreams--
+	if sc.delStream(st.id) {
+		st.state = stateClosed
+		if st.isPushed() {
+			sc.curPushedStreams--
+		} else {
+			sc.curClientStreams--
+		}
 	}
-	sc.delStream(st.id)
 }
 
 func (sc *MServerConn) state(streamID uint32) (streamState, *stream) {
