@@ -26,8 +26,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"reflect"
-
 	"github.com/spf13/pflag"
 	"mosn.io/mosn/pkg/log"
 )
