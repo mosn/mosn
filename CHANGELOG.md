@@ -1,5 +1,21 @@
 # Changelog
 
+### v0.9.0
+
+## Refactoring
+
++ Refactored package reference path for `sofastack.io/sofa-mosn` to `mosn.io/mosn`
+
+### Bug fix
+
+- Fixed the bug that buf is not empty when Write is connected
+- Fixed HTTP2 stream counting bug
+- Fix memory leak caused by proxy coroutine panic
+- Fix memory leak caused by read and write coroutine stuck in specific scenarios
+- Fix the bug of xDS concurrent processing
+- `make image` output image modification, modified to a MOSN example
+- Fixed the field of getting CallerAPP in TraceLog of SOFA RPC
+
 ## v0.8.1
 
 ### New features
