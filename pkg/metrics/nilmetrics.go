@@ -18,7 +18,7 @@
 package metrics
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
 )
 

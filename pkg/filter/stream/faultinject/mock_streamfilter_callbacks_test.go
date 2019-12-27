@@ -18,7 +18,7 @@
 package faultinject
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 // this file mocks the interface that used for test

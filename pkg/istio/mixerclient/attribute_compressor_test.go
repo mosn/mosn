@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/istio/utils"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/istio/utils"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
 	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1"
 )

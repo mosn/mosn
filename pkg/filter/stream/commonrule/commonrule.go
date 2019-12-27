@@ -21,10 +21,10 @@ import (
 	"context"
 	"strconv"
 
-	"sofastack.io/sofa-mosn/pkg/filter"
-	"sofastack.io/sofa-mosn/pkg/filter/stream/commonrule/model"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/filter"
+	"mosn.io/mosn/pkg/filter/stream/commonrule/model"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 	"github.com/json-iterator/go"
 )
 

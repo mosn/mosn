@@ -23,13 +23,13 @@ import (
 	"fmt"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/rpc"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/serialize"
+	"mosn.io/mosn/pkg/types"
 
 )
 

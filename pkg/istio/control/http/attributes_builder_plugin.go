@@ -17,7 +17,7 @@
 
 package http
 
-import "sofastack.io/sofa-mosn/pkg/istio/utils"
+import "mosn.io/mosn/pkg/istio/utils"
 
 var (
 	attributesBuilderPlugins = make([]AttributesBuilderPlugin, 0)

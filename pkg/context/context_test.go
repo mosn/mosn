@@ -19,7 +19,7 @@ package context
 
 import (
 	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 	"math/rand"
 	"testing"
 )

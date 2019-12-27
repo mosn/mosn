@@ -5,9 +5,9 @@ import (
 	"net"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
 )
 
 type SofaRPCServer struct {

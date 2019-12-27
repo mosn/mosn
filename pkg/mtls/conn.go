@@ -25,10 +25,10 @@ import (
 	"encoding/gob"
 	"errors"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/types"
 )
 
 // mtls.TLSConn -> tls.Conn -> mtls.Conn

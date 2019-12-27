@@ -24,10 +24,10 @@ import (
 
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {

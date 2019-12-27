@@ -23,11 +23,11 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
 + 支持无损平滑升级
 ## 下载安装
 
-使用 `go get -u sofastack.io/sofa-mosn` 命令或者将项目代码克隆到 `$GOPATH/src/sofastack.io/sofa-mosn` 目录中。
+使用 `go get -u mosn.io/mosn` 命令或者将项目代码克隆到 `$GOPATH/src/mosn.io/mosn` 目录中。
 
 **注意事项**
 
-- 如果您想使用 v0.5.0 以前的版本，需要使用 `transfer_path.sh` 命令修复代码包导入问题。
+- 如果您想使用 v0.8.1 以前的版本，需要使用 `transfer_path.sh` 命令修复代码包导入问题。
 
 - 如果您使用的是 Linux 系统，需要修改 `transfer_path.sh` 脚本中的 `SED_CMD` 的变量，请参阅脚本中的注释。
 

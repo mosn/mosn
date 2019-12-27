@@ -23,11 +23,11 @@ import (
 	"sync"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	httpmosn "sofastack.io/sofa-mosn/pkg/protocol/http"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
+	httpmosn "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
 )
 
 type RouteRuleImplBase struct {

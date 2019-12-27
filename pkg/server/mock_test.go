@@ -20,7 +20,7 @@ package server
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 type mockClusterManager struct {

@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"testing"
 
-	networkbuffer "sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
+	networkbuffer "mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 func init() {

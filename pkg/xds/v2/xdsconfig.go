@@ -34,8 +34,8 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"sofastack.io/sofa-mosn/pkg/featuregate"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/featuregate"
+	"mosn.io/mosn/pkg/log"
 )
 
 //  Init parsed ds and clusters config for xds
