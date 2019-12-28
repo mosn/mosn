@@ -2,6 +2,10 @@
 
 ## v0.9.0
 
+### 新功能
+
+- 支持变量机制，accesslog 修改为使用变量机制获取信息
+
 ### 重构
 
 - 重构了包引用路径从 `sofastack.io/sofa-mosn` 变更为 `mosn.io/mosn`

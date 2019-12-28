@@ -2,6 +2,10 @@
 
 ### v0.9.0
 
+### New features
+
++ Support variable mechanism, accesslog is modified to use variable mechanism to obtain information
+
 ## Refactoring
 
 + Refactored package reference path for `sofastack.io/sofa-mosn` to `mosn.io/mosn`
