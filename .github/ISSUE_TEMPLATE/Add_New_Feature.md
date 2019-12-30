@@ -1,20 +1,20 @@
 ---
 name: Feature request
-about: Suggest an idea to improve SOFAMosn
-
+about: Suggest an idea to improve MOSN
 ---
 
 ### The New Feature
 
-describe the new feature you want to support clearly
+Describe the new feature you want to support clearly.
 
 ### Your scenes
 
-describe your use scenes (why need this feature)
+Describe your use scenes (why need this feature).
 
 ### Your advice
 
-describe the advice or solution of this new feature
+Describe the advice or solution of this new feature.
 
 ### Environment
-+ SOFAMosn Version
+
+- MOSN Version
