@@ -105,6 +105,7 @@ const (
 	UpstreamReset               StreamResetReason = "UpstreamReset"
 	UpstreamGlobalTimeout       StreamResetReason = "UpstreamGlobalTimeout"
 	UpstreamPerTryTimeout       StreamResetReason = "UpstreamPerTryTimeout"
+	UpstreamClose               StreamResetReason = "UpstreamClose"
 )
 
 // Stream is a generic protocol stream, it is the core model in stream layer

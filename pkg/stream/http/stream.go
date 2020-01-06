@@ -153,7 +153,15 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 
 	// Connection close
 	if !ok {
-		err = errConnClose
+		// Compatible with the fasthttp,
+		// it should be set err = IO.EOF when the peer connection is closed.
+		switch conn.resetReason {
+		case types.UpstreamClose:
+			err = io.EOF
+		default:
+			err = errConnClose
+		}
+
 		return
 	}
 
