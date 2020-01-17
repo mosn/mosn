@@ -1,7 +1,7 @@
 # change import path 
-# github.com/alipay/sofa-mosn to sofastack.io/sofa-mosn
-REPSTR="s/github.com\/alipay\/sofa-mosn/sofastack.io\/sofa-mosn/g"
-GREPSTR="grep github.com/alipay/sofa-mosn -rl" 
+# sofastack.io/sofa-mosn to mosn.io/mosn
+REPSTR="s/sofastack.io\/sofa-mosn/mosn.io\/mosn/g"
+GREPSTR="grep sofastack.io/sofa-mosn -rl"
 CODES=("./pkg/" "./examples/codes/" "./test/" "./cmd/")
 # valid for MacOS (Drawin)
 # if you run the script in MacOS, you should use this one

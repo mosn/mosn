@@ -18,14 +18,14 @@
 package rpc
 
 import (
+	"context"
+	"log"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
+	"mosn.io/mosn/pkg/types"
 	"testing"
 	"time"
-	"log"
-	"context"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa/xprotocol"
 )
 
 func TestSofaHttpTracerStartFinish(t *testing.T) {

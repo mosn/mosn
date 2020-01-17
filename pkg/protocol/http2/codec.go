@@ -20,9 +20,9 @@ package http2
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/module/http2"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/module/http2"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 // types.Encoder

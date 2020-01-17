@@ -18,11 +18,11 @@
 package trace
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
 	"context"
+	"mosn.io/mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"errors"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 var ErrNoSuchDriver = errors.New("no such driver")

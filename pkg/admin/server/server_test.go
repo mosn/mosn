@@ -33,9 +33,9 @@ import (
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"sofastack.io/sofa-mosn/pkg/admin/store"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -380,7 +380,7 @@ func TestRegisterNewAPI(t *testing.T) {
 func TestHelpAPI(t *testing.T) {
 	// reset
 	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
-		"/": help,
+		"/":                       help,
 		"/api/v1/config_dump":     configDump,
 		"/api/v1/stats":           statsDump,
 		"/api/v1/update_loglevel": updateLogLevel,

@@ -1,9 +1,9 @@
 package xprotocol
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
 	"context"
 	"errors"
+	"mosn.io/mosn/pkg/types"
 )
 
 type matchPair struct {

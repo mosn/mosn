@@ -8,16 +8,16 @@ import (
 
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/buffer"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
 	"strings"
-	"sofastack.io/sofa-mosn/pkg/mtls"
-	"sofastack.io/sofa-mosn/pkg/stream"
 )
 
 // types.DecodeFilter

@@ -4,16 +4,16 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/http/conv"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/http2/conv"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc/conv"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http"
-	_ "sofastack.io/sofa-mosn/pkg/stream/http2"
-	_ "sofastack.io/sofa-mosn/pkg/stream/sofarpc"
-	_ "sofastack.io/sofa-mosn/pkg/stream/xprotocol"
-	"sofastack.io/sofa-mosn/test/util"
+	"mosn.io/mosn/pkg/protocol"
+	_ "mosn.io/mosn/pkg/protocol/http/conv"
+	_ "mosn.io/mosn/pkg/protocol/http2/conv"
+	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/conv"
+	_ "mosn.io/mosn/pkg/stream/http"
+	_ "mosn.io/mosn/pkg/stream/http2"
+	_ "mosn.io/mosn/pkg/stream/sofarpc"
+	_ "mosn.io/mosn/pkg/stream/xprotocol"
+	"mosn.io/mosn/test/util"
 )
 
 // Notice can'T use APP(HTTPX) to MESH(SofaRPC),

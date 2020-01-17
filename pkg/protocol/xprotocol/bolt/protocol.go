@@ -2,11 +2,11 @@ package bolt
 
 import (
 	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol"
 	"fmt"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/types"
 	"net/http"
-	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 /**

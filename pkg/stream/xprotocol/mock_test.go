@@ -22,11 +22,11 @@ import (
 	"net"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/types"
 )
 
 // a mock server for handle heart beat request

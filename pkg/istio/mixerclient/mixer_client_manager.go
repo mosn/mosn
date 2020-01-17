@@ -22,7 +22,7 @@ import (
 	"sync"
 
 	"istio.io/api/mixer/v1"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"mosn.io/mosn/pkg/utils"
 )
 
 const (

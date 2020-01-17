@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/api/v2"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:

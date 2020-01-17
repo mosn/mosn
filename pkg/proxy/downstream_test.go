@@ -22,14 +22,14 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {

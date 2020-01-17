@@ -18,13 +18,13 @@
 package metrics
 
 import (
-	"time"
+	"fmt"
+	gometrics "github.com/rcrowley/go-metrics"
+	"mosn.io/mosn/pkg/metrics/shm"
 	"runtime"
 	"runtime/debug"
 	"testing"
-	"fmt"
-	gometrics "github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/metrics/shm"
+	"time"
 )
 
 func gcPause() time.Duration {

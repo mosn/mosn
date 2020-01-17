@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 
 	"github.com/spf13/pflag"
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 	"reflect"
 )
 
@@ -326,7 +326,7 @@ func (f *defaultFeatureGate) AddFlag(fs *pflag.FlagSet) {
 	known := f.KnownFeatures()
 	fs.Var(f, flagName, ""+
 		"A set of key=value pairs that describe feature gates for alpha/experimental features. "+
-		"Options are:\n"+ strings.Join(known, "\n"))
+		"Options are:\n"+strings.Join(known, "\n"))
 }
 
 // KnownFeatures returns a slice of strings describing the FeatureGate's known features.

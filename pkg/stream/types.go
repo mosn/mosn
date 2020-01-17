@@ -22,7 +22,7 @@ import (
 	"errors"
 
 	"github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 // StreamDirection represent the stream's direction

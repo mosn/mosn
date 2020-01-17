@@ -24,7 +24,7 @@ package dubbo
 //	"fmt"
 //	"strconv"
 //
-//	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
+//	"mosn.io/mosn/pkg/protocol/rpc/xprotocol"
 //)
 //
 //func init() {

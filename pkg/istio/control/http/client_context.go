@@ -18,8 +18,8 @@
 package http
 
 import (
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/istio/control"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/istio/control"
 )
 
 // ClientContext is the global context object to hold:

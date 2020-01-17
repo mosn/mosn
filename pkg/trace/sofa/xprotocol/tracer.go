@@ -21,12 +21,12 @@ import (
 	"time"
 
 	"context"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/trace/sofa"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {

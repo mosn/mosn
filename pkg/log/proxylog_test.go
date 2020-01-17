@@ -20,15 +20,15 @@ package log
 import (
 	"context"
 	"fmt"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"math/rand"
+	"mosn.io/mosn/pkg/types"
 	"os"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 func TestProxyLog(t *testing.T) {

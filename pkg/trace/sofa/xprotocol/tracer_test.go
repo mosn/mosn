@@ -18,13 +18,13 @@
 package xprotocol
 
 import (
+	"context"
+	"log"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
 	"testing"
 	"time"
-	"context"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"log"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 func TestSofaTracerStartFinish(t *testing.T) {

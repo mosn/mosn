@@ -20,16 +20,16 @@ package bolt
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa/xprotocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol/bolt"
-	xproto "sofastack.io/sofa-mosn/pkg/protocol/xprotocol"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa"
+	mosnctx "mosn.io/mosn/pkg/context"
+	xproto "mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/trace/sofa"
+	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
 )
 
 func init() {

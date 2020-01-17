@@ -2,12 +2,12 @@ package xprotocol
 
 import (
 	"context"
-	"strconv"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol"
 	"fmt"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
+	"strconv"
 )
 
 // types.Stream

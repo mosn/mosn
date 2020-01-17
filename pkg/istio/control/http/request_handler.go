@@ -18,7 +18,7 @@
 package http
 
 import (
-	"sofastack.io/sofa-mosn/pkg/istio/control"
+	"mosn.io/mosn/pkg/istio/control"
 )
 
 // RequestHandler handle a HTTP request

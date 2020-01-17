@@ -18,10 +18,10 @@
 package variable
 
 import (
-	"strings"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"context"
 	"errors"
+	"mosn.io/mosn/pkg/types"
+	"strings"
 )
 
 func GetVariableValue(ctx context.Context, name string) (string, error) {

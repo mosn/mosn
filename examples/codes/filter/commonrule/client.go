@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 )
 
 func request() {

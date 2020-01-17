@@ -18,9 +18,9 @@
 package stream
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
-	"testing"
 	"errors"
+	"mosn.io/mosn/pkg/types"
+	"testing"
 )
 
 type event struct {
@@ -47,7 +47,7 @@ func TestStreamEventListener(t *testing.T) {
 
 	var base BaseStream
 
-	for i := 0 ; i < 10; i++ {
+	for i := 0; i < 10; i++ {
 		go func() {
 			for i := 0; i < 1000; i++ {
 				base.AddEventListener(&event{})
@@ -55,7 +55,7 @@ func TestStreamEventListener(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i< 100000; i++ {
+	for i := 0; i < 100000; i++ {
 		base.ResetStream(types.StreamLocalReset)
 	}
 }

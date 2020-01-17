@@ -25,9 +25,9 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/valyala/fasthttp"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/http"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {

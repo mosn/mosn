@@ -18,8 +18,8 @@
 package http
 
 import (
-	"sofastack.io/sofa-mosn/pkg/variable"
 	"context"
+	"mosn.io/mosn/pkg/variable"
 	"strconv"
 )
 

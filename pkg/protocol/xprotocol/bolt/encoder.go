@@ -1,10 +1,10 @@
 package bolt
 
 import (
-	"encoding/binary"
 	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"encoding/binary"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 )
 
 func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error) {
@@ -124,7 +124,7 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 }
 
 func getHeaderEncodeLength(kvs []bytesKV) (size int) {
-	for i, n := 0, len(kvs); i < n; i ++ {
+	for i, n := 0, len(kvs); i < n; i++ {
 		size += 8 + len(kvs[i].key) + len(kvs[i].value)
 	}
 	return

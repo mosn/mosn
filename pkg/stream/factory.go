@@ -20,7 +20,7 @@ package stream
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
 )
 
 var streamFactories map[types.ProtocolName]ProtocolStreamFactory

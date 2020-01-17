@@ -26,9 +26,9 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/mtls/certtool"
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/mtls/certtool"
+	"mosn.io/mosn/pkg/mtls/crypto/tls"
 )
 
 func pass(resp *http.Response, err error) bool {

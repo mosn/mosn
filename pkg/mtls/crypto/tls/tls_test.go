@@ -19,7 +19,7 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls/testenv"
+	"mosn.io/mosn/pkg/mtls/crypto/tls/testenv"
 )
 
 var rsaCertPEM = `-----BEGIN CERTIFICATE-----

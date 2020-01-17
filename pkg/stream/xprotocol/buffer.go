@@ -1,8 +1,8 @@
 package xprotocol
 
 import (
-	"sofastack.io/sofa-mosn/pkg/buffer"
 	"context"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 func init() {

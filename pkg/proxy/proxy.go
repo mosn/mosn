@@ -25,16 +25,16 @@ import (
 	"sync/atomic"
 
 	"github.com/json-iterator/go"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/mtls"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/router"
-	"sofastack.io/sofa-mosn/pkg/stream"
-	mosnsync "sofastack.io/sofa-mosn/pkg/sync"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/stream"
+	mosnsync "mosn.io/mosn/pkg/sync"
+	"mosn.io/mosn/pkg/types"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

@@ -23,11 +23,11 @@ import (
 	"sync/atomic"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	str "sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/utils"
 )
 
 // StreamReceiver to receive keep alive response

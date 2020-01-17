@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	mosntls "sofastack.io/sofa-mosn/pkg/mtls"
-	"sofastack.io/sofa-mosn/pkg/mtls/certtool"
-	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	testutil "sofastack.io/sofa-mosn/test/util"
+	"mosn.io/mosn/pkg/mosn"
+	mosntls "mosn.io/mosn/pkg/mtls"
+	"mosn.io/mosn/pkg/mtls/certtool"
+	"mosn.io/mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/protocol"
+	testutil "mosn.io/mosn/test/util"
 )
 
 // Test tls config hooks extension

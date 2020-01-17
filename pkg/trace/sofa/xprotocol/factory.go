@@ -17,7 +17,7 @@
 
 package xprotocol
 
-import "sofastack.io/sofa-mosn/pkg/types"
+import "mosn.io/mosn/pkg/types"
 
 var (
 	delegateMap = make(map[types.ProtocolName]SubProtocolDelegate)

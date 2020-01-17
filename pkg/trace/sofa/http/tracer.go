@@ -22,15 +22,15 @@ import (
 
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/http"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
 
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa/xprotocol"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/trace/sofa"
+	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
 )
 
 func init() {

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/json-iterator/go"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/types"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -73,7 +73,7 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 			EcdhCurves:   "P256",
 			VerifyClient: true,
 			//CipherSuites: "ECDHE-RSA-SM4-SM3:ECDHE-ECDSA-SM4-SM3",
-			ServerName:   "127.0.0.1",
+			ServerName: "127.0.0.1",
 		}
 		meshClusterConfig.TLS = tlsConf
 		meshServerChain.TLSContexts = []v2.TLSConfig{

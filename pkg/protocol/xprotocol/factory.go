@@ -1,8 +1,8 @@
 package xprotocol
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
 	"errors"
+	"mosn.io/mosn/pkg/types"
 )
 
 var (

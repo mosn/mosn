@@ -20,8 +20,8 @@ package protocol
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -48,8 +48,8 @@ type ProtocolBuffers struct {
 	rspTrailers map[string]string
 }
 
-type protocolBufferCtx struct{
-	 buffer.TempBufferCtx
+type protocolBufferCtx struct {
+	buffer.TempBufferCtx
 }
 
 func (ctx protocolBufferCtx) New() interface{} {

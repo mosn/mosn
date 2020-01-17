@@ -20,7 +20,7 @@ package http2
 import (
 	"context"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 var ins Http2BufferCtx
@@ -29,7 +29,7 @@ func init() {
 	buffer.RegisterBuffer(&ins)
 }
 
-type Http2BufferCtx struct{
+type Http2BufferCtx struct {
 	buffer.TempBufferCtx
 }
 

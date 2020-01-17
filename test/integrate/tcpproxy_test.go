@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/mosn"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	"sofastack.io/sofa-mosn/pkg/types"
-	testutil "sofastack.io/sofa-mosn/test/util"
+	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
+	testutil "mosn.io/mosn/test/util"
 )
 
 type tcpExtendCase struct {

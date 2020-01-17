@@ -1,8 +1,8 @@
 package bolt
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 type RequestHeader struct {

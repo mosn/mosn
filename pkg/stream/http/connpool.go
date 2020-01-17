@@ -22,12 +22,12 @@ import (
 	"sync"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol"
-	str "sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
+	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/utils"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet

@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/types"
 )
 
 type mockEventListener struct {
@@ -45,7 +45,7 @@ func TestListenerStart(t *testing.T) {
 			BindToPort: true,
 		},
 		PerConnBufferLimitBytes: 1024,
-		Addr: addr,
+		Addr:                    addr,
 	}
 	ln := NewListener(cfg)
 	ln.SetListenerCallbacks(&mockEventListener{})

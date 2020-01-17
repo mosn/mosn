@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 )
 
 // types.ListenerEventListener
@@ -53,7 +53,7 @@ const testAddress = "127.0.0.1:18080"
 func _createListener(address string) types.Listener {
 	addr, _ := net.ResolveTCPAddr("tcp", address)
 	lc := &v2.Listener{
-		Addr: addr,
+		Addr:                    addr,
 		PerConnBufferLimitBytes: 1 << 15,
 		ListenerConfig: v2.ListenerConfig{
 			BindToPort: true,

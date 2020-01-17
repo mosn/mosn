@@ -2,10 +2,10 @@ package bolt
 
 import (
 	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
 	"encoding/binary"
-	"sofastack.io/sofa-mosn/pkg/buffer"
 	"fmt"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 )
 
 func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd interface{}, err error) {

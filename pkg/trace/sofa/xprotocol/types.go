@@ -19,14 +19,14 @@ package xprotocol
 
 import (
 	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 const (
 	//0-30 for  rpc
 
-	TRACE_ID               = iota
+	TRACE_ID = iota
 	SPAN_ID
 	PARENT_SPAN_ID
 	SERVICE_NAME
@@ -37,8 +37,8 @@ const (
 	RESPONSE_SIZE
 	UPSTREAM_HOST_ADDRESS
 	DOWNSTEAM_HOST_ADDRESS
-	APP_NAME                //caller
-	TARGET_APP_NAME         //remote app
+	APP_NAME        //caller
+	TARGET_APP_NAME //remote app
 	SPAN_TYPE
 	BAGGAGE_DATA
 	REQUEST_URL

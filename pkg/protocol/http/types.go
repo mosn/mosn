@@ -18,8 +18,8 @@
 package http
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
 	"github.com/valyala/fasthttp"
+	"mosn.io/mosn/pkg/types"
 )
 
 type Code uint32

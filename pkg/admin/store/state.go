@@ -18,8 +18,8 @@
 package store
 
 import (
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 )
 
 type State int

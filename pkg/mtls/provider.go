@@ -18,8 +18,8 @@
 package mtls
 
 import (
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/types"
 )
 
 // staticProvider is an implementation of types.Provider

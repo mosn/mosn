@@ -2,9 +2,9 @@ package xprotocol
 
 import (
 	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/stream"
-	"sofastack.io/sofa-mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {

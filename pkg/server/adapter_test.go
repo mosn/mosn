@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/types"
+	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/types"
 )
 
 const testServerName = "test_server"
@@ -79,7 +79,7 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 				},
 			}, //no stream filters parsed, but the config still exists for test
 		},
-		Addr: addr,
+		Addr:                    addr,
 		PerConnBufferLimitBytes: 1 << 15,
 	}
 }
@@ -142,7 +142,7 @@ func TestLDS(t *testing.T) {
 			StreamFilters: []v2.Filter{}, // stream filter will not be updated
 			Inspector:     true,
 		},
-		Addr: listenerConfig.Addr, // addr should not be changed
+		Addr:                    listenerConfig.Addr, // addr should not be changed
 		PerConnBufferLimitBytes: 1 << 10,
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, newListenerConfig, nil, nil); err != nil {

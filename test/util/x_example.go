@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/network"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
-	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol/example"
-	"sofastack.io/sofa-mosn/pkg/types"
+	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol/rpc/xprotocol"
+	"mosn.io/mosn/pkg/protocol/rpc/xprotocol/example"
+	"mosn.io/mosn/pkg/types"
 )
 
 // XProtocol needs subprotocol for rpc

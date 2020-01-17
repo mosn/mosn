@@ -18,12 +18,12 @@
 package variable
 
 import (
-	"errors"
-	"sync"
 	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
-	mosnctx "sofastack.io/sofa-mosn/pkg/context"
+	"errors"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
 	"strings"
+	"sync"
 )
 
 var (

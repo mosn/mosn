@@ -18,12 +18,11 @@
 package trace
 
 import (
+	"context"
+	"mosn.io/mosn/pkg/types"
 	"testing"
 	"time"
-	"context"
-	"sofastack.io/sofa-mosn/pkg/types"
 )
-
 
 type mockTracer struct {
 }

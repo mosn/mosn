@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/log"
-	"sofastack.io/sofa-mosn/pkg/utils"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/utils"
 )
 
 func TestQpsLimiter_TryAcquire(t *testing.T) {
