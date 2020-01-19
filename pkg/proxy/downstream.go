@@ -1386,6 +1386,11 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 	if atomic.LoadUint32(&s.upstreamReset) == 1 {
 		log.Proxy.Infof(s.context, "[proxy] [downstream] processError=upstreamReset, proxyId: %d, reason: %+v", s.ID, s.resetReason)
+		if s.oneway {
+			phase = types.Oneway
+			err = types.ErrExit
+			return
+		}
 		s.onUpstreamReset(s.resetReason)
 		err = types.ErrExit
 	}
