@@ -471,7 +471,7 @@ func transferRecvHead(uc *net.UnixConn) (int, int, error) {
 	if err != nil {
 		return 0, 0, fmt.Errorf("ReadMsgUnix error: %v", err)
 	}
-	size := int(binary.BigEndian.Uint32(buf[0:]))
+	size := int(binary.BigEndian.Uint32(buf[:4]))
 	id := int(binary.BigEndian.Uint32(buf[4:]))
 	return size, id, nil
 }
