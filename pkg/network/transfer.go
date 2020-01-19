@@ -411,7 +411,12 @@ func transferRecvType(uc *net.UnixConn) (net.Conn, error) {
 func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer, logger log.ErrorLogger) error {
 	// send header
 	s1 := buf.Len()
-	s2 := c.GetTLSInfo(buf)
+	var s2 int
+	if c != nil {
+		s2 = c.GetTLSInfo(buf)
+	} else {
+		s2 = 0
+	}
 	err := transferSendHead(uc, uint32(s1), uint32(s2))
 	if err != nil {
 		return err
