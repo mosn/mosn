@@ -221,9 +221,10 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	err := data.Connection.Connect()
 	/**
-	 *	fix unable to retry connection.
+	 * fix unable to retry connection.
 	 */
 	if err != nil {
+		log.DefaultLogger.Tracef("failed to create xprotocol activeClient, connect failed %v", data)
 		return nil
 	}
 
