@@ -7,7 +7,7 @@
 
 [中文](README_ZH.md)
 
-MOSN is a network proxy written in Golang. It can be used as a cloud-native network data plane, providing services with the following proxy functions:  multi-protocol, modular, intelligent, and secure. MOSN is the short name of Modular Open Smart Network-proxy. MOSN can be integrated with any Service Mesh wich support xDS API. It can also be used as an independent Layer 4 or Layer 7 load balancer, API Gateway, cloud-native Ingress, etc.
+MOSN is a network proxy written in Golang. It can be used as a cloud-native network data plane, providing services with the following proxy functions:  multi-protocol, modular, intelligent, and secure. MOSN is the short name of Modular Open Smart Network-proxy. MOSN can be integrated with any Service Mesh which support xDS API. It also can be used as an independent Layer 4 or Layer 7 load balancer, API Gateway, cloud-native Ingress, etc.
 
 ## Features
 
@@ -33,7 +33,7 @@ Use `go get -u mosn.io/mosn`, or you can git clone the repository to `$GOPATH/sr
 
 ## Documentation
 
-- [MOSN website](http://mosn.io)
+- [MOSN website](https://mosn.io)
 - [Changelog](CHANGELOG.md)
 
 ## Contributing
@@ -42,6 +42,8 @@ See our [contributor guide](CONTRIBUTING.md).
 
 ## Community
 
-Scan the QR code below with [DingTalk](https://www.dingtalk.com) to join the MOSN user group.
+See our community materials on <https://github.com/mosn/community>.
 
-![SOFAMosn user group DingTalk QR code](https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ)
+Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
+
+![MOSN user group DingTalk QR code](https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ)
