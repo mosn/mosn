@@ -56,6 +56,16 @@ func TestIoBufferCopy(t *testing.T) {
 	}
 }
 
+func TestIoBufferGrowCopy(t *testing.T) {
+	bi := NewIoBuffer(MaxThreshold + 1)
+	b := bi.(*IoBuffer)
+	n := randN(1024) + 1
+	b.copy(n)
+	if cap(b.buf) > (MaxThreshold+1)+(MaxThreshold+1)/4+n {
+		t.Errorf("b.copy(%d) should expand to %d, but got %d", n, (MaxThreshold+1)+(MaxThreshold+1)/4+n, cap(b.buf))
+	}
+}
+
 func TestIoBufferWrite(t *testing.T) {
 	b := NewIoBuffer(1)
 	n := randN(64)
@@ -184,31 +194,74 @@ func TestIoBufferRead(t *testing.T) {
 }
 
 func TestIoBufferReadOnce(t *testing.T) {
+	// test small data
 	b := NewIoBuffer(1)
-	s := randString(1024)
-	input := make([]byte, 0, 1024)
+	s := randString(25)
 	reader := bytes.NewReader([]byte(s))
 
-	for {
-		n, err := b.ReadOnce(reader)
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			t.Fatal(err)
-		}
-
-		if n != 1<<minShift {
-			t.Errorf("Expect %d bytes but got %d", len(s), n)
-		}
-
-		input = append(input, b.Peek(int(n))...)
-		b.Drain(int(n))
+	n, err := b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != len(s) {
+		t.Errorf("Expect %d bytes but got %d", len(s), n)
+	}
+	if b.Cap() != 1<<minShift {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
 	}
 
-	if !bytes.Equal(input, []byte(s)) {
-		t.Errorf("Expect got %s but got %s", s, string(input))
+	if !bytes.Equal(b.Bytes(), []byte(s)) {
+		t.Errorf("Expect got %s but got %s", s, b.Bytes())
 	}
+
+	// test big data
+	b = NewIoBuffer(1)
+	bsize := 1025
+	s = randString(bsize)
+	reader = bytes.NewReader([]byte(s))
+
+	// first read  1<<minShift
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != 1<<minShift {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, n)
+	}
+	// expand buf
+	if b.Cap() != MinRead<<1 {
+		t.Errorf("Expect %d bytes but got %d", MinRead<<1, b.Cap())
+	}
+
+	//second read  MinRead<<1 - 1<<minShift
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != MinRead<<1-1<<minShift {
+		t.Errorf("Expect %d bytes but got %d", MinRead<<1-1<<minShift, n)
+	}
+	// expand buf
+	if b.Cap() != MinRead<<2 {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
+	}
+
+	// third read  bsize - MinRead<<1
+	n, err = b.ReadOnce(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if int(n) != bsize-MinRead<<1 {
+		t.Errorf("Expect %d bytes but got %d", bsize-MinRead<<1-1<<minShift, n)
+	}
+	// not expand buf
+	if b.Cap() != MinRead<<2 {
+		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
+	}
+	if !bytes.Equal(b.Bytes(), []byte(s)) {
+		t.Errorf("Expect got %s but got %s", s, b.Bytes())
+	}
+
 }
 
 func TestIoBufferClone(t *testing.T) {
@@ -312,5 +365,38 @@ func TestIoBufferZero(t *testing.T) {
 
 	if len(b.Peek(0)) != 0 {
 		t.Errorf("Expect 0, but got %d", len(b.Bytes()))
+	}
+}
+
+func TestIoBufferMaxBufferReadOnce(t *testing.T) {
+	b := NewIoBuffer(1)
+	s := randString(MaxBufferLength + 1)
+	input := make([]byte, 0, 1024)
+	reader := bytes.NewReader([]byte(s))
+	countbytes := 0
+	for {
+		n, err := b.ReadOnce(reader)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			t.Fatal(err)
+		}
+		countbytes = countbytes + int(n)
+		if countbytes >= MaxBufferLength {
+			input = append(input, b.Peek(int(countbytes))...)
+			b.Drain(int(countbytes))
+			countbytes = 0
+		}
+	}
+	if countbytes > 0 {
+		input = append(input, b.Peek(int(countbytes))...)
+		b.Drain(int(countbytes))
+	}
+	if !bytes.Equal(input, []byte(s)) {
+		t.Errorf("Expect got %s but got %s", s, string(input))
+	}
+	if b.Cap() > MaxBufferLength {
+		t.Errorf("Expect got length %d", b.Cap())
 	}
 }
