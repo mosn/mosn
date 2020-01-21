@@ -3,6 +3,7 @@ package sofarpc
 import (
 	"bytes"
 	"fmt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"time"
 
 	"mosn.io/mosn/pkg/buffer"
@@ -16,7 +17,8 @@ func BuildBoltV1Request(id uint64, header map[string]string, body []byte) (types
 	for k, v := range header {
 		m[k] = v
 	}
-	cmd := &sofarpc.BoltRequest{
+	cmd := &bolt.Request{
+
 		Protocol:      sofarpc.PROTOCOL_CODE_V1,
 		CmdType:       sofarpc.REQUEST,
 		CmdCode:       sofarpc.RPC_REQUEST,

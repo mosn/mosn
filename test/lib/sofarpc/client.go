@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"net"
 	"sync/atomic"
 	"time"
@@ -24,8 +25,8 @@ type receiver struct {
 }
 
 func (r *receiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	cmd := headers.(sofarpc.SofaRpcCmd)
-	r.Data.Header = cmd.Header()
+	cmd := headers.(xprotocol.XRespFrame)
+	r.Data.Header = cmd.GetHeader()
 	resp := cmd.(rpc.RespStatus)
 	r.Data.Status = resp.RespStatus()
 	if data != nil {
