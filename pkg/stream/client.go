@@ -22,7 +22,6 @@ import (
 
 	metrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -143,22 +142,7 @@ func (c *client) OnEvent(event types.ConnectionEvent) {
 		c.ConnectedFlag = true
 	}
 
-	if event.IsClose() || event.ConnectFailure() {
-		reason := types.StreamConnectionFailed
-
-		if c.ConnectedFlag {
-			reason = types.StreamConnectionTermination
-
-			if c.Protocol == protocol.HTTP1 {
-				switch event {
-				case types.RemoteClose:
-					reason = types.UpstreamClose
-				default:
-					reason = types.StreamConnectionTermination
-				}
-			}
-		}
-
+	if reason, ok := c.ClientStreamConnection.CheckReasonError(c.ConnectedFlag, event); !ok {
 		c.ClientStreamConnection.Reset(reason)
 	}
 }

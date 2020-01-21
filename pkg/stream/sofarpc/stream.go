@@ -176,6 +176,20 @@ func (conn *streamConnection) ActiveStreamsNum() int {
 	return len(conn.streams)
 }
 
+func (conn *streamConnection) CheckReasonError(connected bool, event types.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			reason = types.StreamConnectionTermination
+		}
+		return reason, false
+
+	}
+
+	return reason, true
+}
+
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 	conn.mutex.Lock()
 	defer conn.mutex.Unlock()

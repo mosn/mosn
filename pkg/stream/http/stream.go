@@ -156,7 +156,7 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 		// Compatible with the fasthttp,
 		// it should be set err = IO.EOF when the peer connection is closed.
 		switch conn.resetReason {
-		case types.UpstreamClose:
+		case types.UpstreamReset:
 			err = io.EOF
 		default:
 			err = errConnClose
@@ -296,6 +296,24 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 	} else {
 		return 1
 	}
+}
+
+func (conn *clientStreamConnection) CheckReasonError(connected bool, event types.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			switch event {
+			case types.RemoteClose:
+				reason = types.UpstreamReset
+			default:
+				reason = types.StreamConnectionTermination
+			}
+		}
+		return reason, false
+
+	}
+	return reason, true
 }
 
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
@@ -451,6 +469,24 @@ func (conn *serverStreamConnection) ActiveStreamsNum() int {
 	} else {
 		return 1
 	}
+}
+
+func (conn *serverStreamConnection) CheckReasonError(connected bool, event types.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			switch event {
+			case types.RemoteClose:
+				reason = types.UpstreamReset
+			default:
+				reason = types.StreamConnectionTermination
+			}
+		}
+		return reason, false
+
+	}
+	return reason, true
 }
 
 func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {

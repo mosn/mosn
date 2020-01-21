@@ -102,8 +102,8 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 		activeStream:                        newStreamMap(ctx),
 		streamConnectionEventListener:       clientCallbacks,
 		serverStreamConnectionEventListener: serverCallbacks,
-		codec:    codec,
-		protocol: protocol.Xprotocol,
+		codec:                               codec,
+		protocol:                            protocol.Xprotocol,
 	}
 }
 
@@ -181,6 +181,20 @@ func (conn *streamConnection) GoAway() {
 
 func (conn *streamConnection) ActiveStreamsNum() int {
 	return conn.activeStream.Len()
+}
+
+func (conn *streamConnection) CheckReasonError(connected bool, event types.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			reason = types.StreamConnectionTermination
+		}
+		return reason, false
+
+	}
+
+	return reason, true
 }
 
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {

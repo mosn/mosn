@@ -99,13 +99,13 @@ type StreamResetReason string
 const (
 	StreamConnectionTermination StreamResetReason = "ConnectionTermination"
 	StreamConnectionFailed      StreamResetReason = "ConnectionFailed"
+	StreamConnectionSuccessed   StreamResetReason = "ConnectionSuccessed"
 	StreamLocalReset            StreamResetReason = "StreamLocalReset"
 	StreamOverflow              StreamResetReason = "StreamOverflow"
 	StreamRemoteReset           StreamResetReason = "StreamRemoteReset"
 	UpstreamReset               StreamResetReason = "UpstreamReset"
 	UpstreamGlobalTimeout       StreamResetReason = "UpstreamGlobalTimeout"
 	UpstreamPerTryTimeout       StreamResetReason = "UpstreamPerTryTimeout"
-	UpstreamClose               StreamResetReason = "UpstreamClose"
 )
 
 // Stream is a generic protocol stream, it is the core model in stream layer
@@ -185,6 +185,9 @@ type StreamConnection interface {
 
 	// Reset underlying streams
 	Reset(reason StreamResetReason)
+
+	//Check reason
+	CheckReasonError(connected bool, event ConnectionEvent) (StreamResetReason, bool)
 }
 
 // ServerStreamConnection is a server side stream connection.
