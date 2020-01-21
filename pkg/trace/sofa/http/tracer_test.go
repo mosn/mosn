@@ -20,12 +20,13 @@ package rpc
 import (
 	"context"
 	"log"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/trace"
-	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
-	"mosn.io/mosn/pkg/types"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/trace/sofa/rpc"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestSofaHttpTracerStartFinish(t *testing.T) {
@@ -38,6 +39,6 @@ func TestSofaHttpTracerStartFinish(t *testing.T) {
 	ctx = context.WithValue(ctx, types.ContextKeyListenerType, v2.EGRESS)
 
 	span := tracer.Start(ctx, nil, time.Now())
-	span.SetTag(xprotocol.TRACE_ID, trace.IdGen().GenerateTraceId())
+	span.SetTag(rpc.TRACE_ID, trace.IdGen().GenerateTraceId())
 	span.FinishSpan()
 }

@@ -23,8 +23,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/rcrowley/go-metrics"
-	"mosn.io/mosn/pkg/api/v2"
+	metrics "github.com/rcrowley/go-metrics"
+	v2 "mosn.io/mosn/pkg/api/v2"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -57,7 +57,7 @@ type ClusterManager interface {
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
 	// ConnPoolForCluster used to get protocol related conn pool
-	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol ProtocolName) ConnectionPool
+	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol Protocol) ConnectionPool
 
 	// RemovePrimaryCluster used to remove cluster from set
 	RemovePrimaryCluster(clusters ...string) error
@@ -401,12 +401,12 @@ func (ss *SortedStringSetType) Swap(i, j int) {
 }
 
 func init() {
-	ConnPoolFactories = make(map[ProtocolName]bool)
+	ConnPoolFactories = make(map[Protocol]bool)
 }
 
-var ConnPoolFactories map[ProtocolName]bool
+var ConnPoolFactories map[Protocol]bool
 
-func RegisterConnPoolFactory(protocol ProtocolName, registered bool) {
+func RegisterConnPoolFactory(protocol Protocol, registered bool) {
 	//other
 	ConnPoolFactories[protocol] = registered
 }

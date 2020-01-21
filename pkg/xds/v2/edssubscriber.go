@@ -51,10 +51,12 @@ func (c *ADSClient) reqEndpoints(streamClient ads.AggregatedDiscoveryService_Str
 }
 
 func (c *ADSClient) handleEndpointsResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.ClusterLoadAssignment {
-	lbAssignments := make([]*envoy_api_v2.ClusterLoadAssignment, 0)
+	lbAssignments := make([]*envoy_api_v2.ClusterLoadAssignment, 0, len(resp.Resources))
 	for _, res := range resp.Resources {
 		lbAssignment := envoy_api_v2.ClusterLoadAssignment{}
-		lbAssignment.Unmarshal(res.GetValue())
+		if err := lbAssignment.Unmarshal(res.GetValue()); err != nil {
+			log.DefaultLogger.Errorf("ADSClient unmarshal lbAssignment fail: %v", err)
+		}
 		lbAssignments = append(lbAssignments, &lbAssignment)
 	}
 	return lbAssignments

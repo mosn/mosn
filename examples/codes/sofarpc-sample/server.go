@@ -6,9 +6,10 @@ import (
 	"net"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+
 	"mosn.io/mosn/pkg/buffer"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -33,6 +34,7 @@ func (s *SofaRPCServer) Run() {
 
 func (s *SofaRPCServer) Serve(conn net.Conn) {
 	iobuf := buffer.NewIoBuffer(102400)
+	protocol := xprotocol.GetProtocol(bolt.ProtocolName)
 	for {
 		now := time.Now()
 		conn.SetReadDeadline(now.Add(30 * time.Second))
@@ -48,23 +50,22 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 		if bytesRead > 0 {
 			iobuf.Write(buf[:bytesRead])
 			for iobuf.Len() > 1 {
-				cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
+				cmd, _ := protocol.Decode(nil, iobuf)
 				if cmd == nil {
 					break
 				}
-				if req, ok := cmd.(*sofarpc.BoltRequest); ok {
+				if req, ok := cmd.(*bolt.Request); ok {
 					var iobufresp types.IoBuffer
 					var err error
-					switch req.CommandCode() {
-					case sofarpc.HEARTBEAT:
-						hbAck := sofarpc.NewHeartbeatAck(req.ProtocolCode())
-						hbAck.SetRequestID(req.RequestID())
-						iobufresp, err = codec.BoltCodec.Encode(context.Background(), hbAck)
-						fmt.Printf("[RPC Server] reponse heart beat, requestId: %d\n", req.RequestID())
-					case sofarpc.RPC_REQUEST:
+					switch req.CmdCode {
+					case bolt.CmdCodeHeartbeat:
+						hbAck := protocol.Reply(req.GetRequestId())
+						iobufresp, err = protocol.Encode(context.Background(), hbAck)
+						fmt.Printf("[RPC Server] reponse heart beat, requestId: %d\n", req.GetRequestId())
+					case bolt.CmdCodeRpcRequest:
 						resp := buildBoltV1Response(req)
-						iobufresp, err = codec.BoltCodec.Encode(nil, resp)
-						fmt.Printf("[RPC Server] reponse connection: %s, requestId: %d\n", conn.RemoteAddr().String(), req.RequestID())
+						iobufresp, err = protocol.Encode(context.Background(), resp)
+						fmt.Printf("[RPC Server] reponse connection: %s, requestId: %d\n", conn.RemoteAddr().String(), req.GetRequestId())
 					}
 					if err != nil {
 						fmt.Printf("[RPC Server] build response error: %v\n", err)
@@ -78,17 +79,17 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 	}
 }
 
-func buildBoltV1Response(req *sofarpc.BoltRequest) *sofarpc.BoltResponse {
-	return &sofarpc.BoltResponse{
-		Protocol:       req.Protocol,
-		CmdType:        sofarpc.RESPONSE,
-		CmdCode:        sofarpc.RPC_RESPONSE,
-		Version:        req.Version,
-		ReqID:          req.ReqID,
-		Codec:          req.Codec,
-		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
-		HeaderLen:      req.HeaderLen,
-		HeaderMap:      req.HeaderMap,
+func buildBoltV1Response(req *bolt.Request) *bolt.Response {
+	return &bolt.Response{
+		ResponseHeader: bolt.ResponseHeader{
+			Protocol:       req.Protocol,
+			CmdType:        bolt.CmdTypeResponse,
+			CmdCode:        bolt.CmdCodeRpcResponse,
+			Version:        req.Version,
+			RequestId:      req.RequestId,
+			Codec:          req.Codec,
+			ResponseStatus: bolt.ResponseStatusSuccess,
+		},
 	}
 
 }

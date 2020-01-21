@@ -15,75 +15,68 @@
  * limitations under the License.
  */
 
-package bolt
+package ext
 
 import (
 	"context"
 
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/sofarpc/models"
 	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/trace/sofa/rpc"
 	"mosn.io/mosn/pkg/types"
 
 	mosnctx "mosn.io/mosn/pkg/context"
-	xproto "mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-	"mosn.io/mosn/pkg/trace/sofa"
-	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
 )
 
 func init() {
-	xprotocol.RegisterSubProtocol(bolt.ProtocolName, boltv1Delegate)
+	rpc.RegisterSubProtocol(sofarpc.PROTOCOL_CODE_V1, boltv1Delegate)
 }
 
-func boltv1Delegate(ctx context.Context, frame xproto.XFrame, span types.Span) {
-	request, ok := frame.(*bolt.Request)
+func boltv1Delegate(ctx context.Context, cmd sofarpc.SofaRpcCmd, span types.Span) {
+	request, ok := cmd.(*sofarpc.BoltRequest)
 	if !ok {
-		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, type miss match:%+v", frame)
+		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, type missmatch:%+v", cmd)
 		return
 	}
-	header := request.GetHeader()
 
-	traceId, ok := header.Get(sofa.TRACER_ID_KEY)
-	if !ok {
+	traceId := request.RequestHeader[models.TRACER_ID_KEY]
+	if traceId == "" {
 		// TODO: set generated traceId into header?
 		traceId = trace.IdGen().GenerateTraceId()
 	}
 
-	span.SetTag(xprotocol.TRACE_ID, traceId)
+	span.SetTag(rpc.TRACE_ID, traceId)
 	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
 	if lType == nil {
 		return
 	}
 
-	spanId, ok := header.Get(sofa.RPC_ID_KEY)
-	if !ok {
+	spanId := request.RequestHeader[models.RPC_ID_KEY]
+	if spanId == "" {
 		spanId = "0" // Generate a new span id
 	} else {
 		if lType == v2.INGRESS {
 			trace.AddSpanIdGenerator(trace.NewSpanIdGenerator(traceId, spanId))
 		} else if lType == v2.EGRESS {
-			span.SetTag(xprotocol.PARENT_SPAN_ID, spanId)
+			span.SetTag(rpc.PARENT_SPAN_ID, spanId)
 			spanKey := &trace.SpanKey{TraceId: traceId, SpanId: spanId}
 			if spanIdGenerator := trace.GetSpanIdGenerator(spanKey); spanIdGenerator != nil {
 				spanId = spanIdGenerator.GenerateNextChildIndex()
 			}
 		}
 	}
-	span.SetTag(xprotocol.SPAN_ID, spanId)
+	span.SetTag(rpc.SPAN_ID, spanId)
 
 	if lType == v2.EGRESS {
-		appName, _ := header.Get(sofa.APP_NAME)
-		span.SetTag(xprotocol.APP_NAME, appName)
+		span.SetTag(rpc.APP_NAME, request.RequestHeader[models.APP_NAME])
 	}
-	span.SetTag(xprotocol.SPAN_TYPE, string(lType.(v2.ListenerType)))
-	method, _ := header.Get(sofa.TARGET_METHOD)
-	span.SetTag(xprotocol.METHOD_NAME, method)
-	span.SetTag(xprotocol.PROTOCOL, string(bolt.ProtocolName))
-	service, _ := header.Get(sofa.SERVICE_KEY)
-	span.SetTag(xprotocol.SERVICE_NAME, service)
-	bdata, _ := header.Get(sofa.SOFA_TRACE_BAGGAGE_DATA)
-	span.SetTag(xprotocol.BAGGAGE_DATA, bdata)
-	caller, _ := header.Get(sofa.CALLER_ZONE_KEY)
-	span.SetTag(xprotocol.CALLER_CELL, caller)
+	span.SetTag(rpc.SPAN_TYPE, string(lType.(v2.ListenerType)))
+	span.SetTag(rpc.METHOD_NAME, request.RequestHeader[models.TARGET_METHOD])
+	span.SetTag(rpc.PROTOCOL, "bolt")
+	span.SetTag(rpc.SERVICE_NAME, request.RequestHeader[models.SERVICE_KEY])
+	span.SetTag(rpc.BAGGAGE_DATA, request.RequestHeader[models.SOFA_TRACE_BAGGAGE_DATA])
+	span.SetTag(rpc.CALLER_CELL, request.RequestHeader[models.CALLER_ZONE_KEY])
 }

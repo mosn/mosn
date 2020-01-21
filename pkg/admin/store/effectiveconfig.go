@@ -20,7 +20,7 @@ package store
 import (
 	"sync"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 	"mosn.io/mosn/pkg/api/v2"
 )
 

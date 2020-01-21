@@ -19,10 +19,11 @@ package sofa
 
 import (
 	"errors"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 	"os/user"
 	"sync"
+
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 type tracelog struct {
@@ -32,12 +33,12 @@ type tracelog struct {
 }
 
 var (
-	logMap           = make(map[types.ProtocolName]*tracelog)
+	logMap           = make(map[types.Protocol]*tracelog)
 	ErrIngressLogger = errors.New("ingress logger cannot be empty")
 	ErrEgressLogger  = errors.New("egress logger cannot be empty")
 )
 
-func Init(protocol types.ProtocolName, logRoot, logIngress, logEgress string) (err error) {
+func Init(protocol types.Protocol, logRoot, logIngress, logEgress string) (err error) {
 	tl, ok := logMap[protocol]
 	if !ok {
 		tl = &tracelog{}
@@ -77,10 +78,10 @@ func Init(protocol types.ProtocolName, logRoot, logIngress, logEgress string) (e
 	return
 }
 
-func GetIngressLogger(protocol types.ProtocolName) *log.Logger {
+func GetIngressLogger(protocol types.Protocol) *log.Logger {
 	return logMap[protocol].ingressLogger
 }
 
-func GetEgressLogger(protocol types.ProtocolName) *log.Logger {
+func GetEgressLogger(protocol types.Protocol) *log.Logger {
 	return logMap[protocol].egressLogger
 }

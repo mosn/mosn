@@ -22,7 +22,7 @@ type ContextKey int
 
 // Context key types(built-in)
 const (
-	ContextKeyStreamID                    ContextKey = iota
+	ContextKeyStreamID ContextKey = iota
 	ContextKeyConnectionID
 	ContextKeyListenerPort
 	ContextKeyListenerName

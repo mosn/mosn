@@ -15,14 +15,12 @@
  * limitations under the License.
  */
 
-package xprotocol
-
-import "mosn.io/mosn/pkg/types"
+package rpc
 
 var (
-	delegateMap = make(map[types.ProtocolName]SubProtocolDelegate)
+	delegateMap = make(map[byte]SubProtocolDelegate)
 )
 
-func RegisterSubProtocol(name types.ProtocolName, delegate SubProtocolDelegate) {
-	delegateMap[name] = delegate
+func RegisterSubProtocol(protocolCode byte, delegate SubProtocolDelegate) {
+	delegateMap[protocolCode] = delegate
 }

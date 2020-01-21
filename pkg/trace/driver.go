@@ -19,6 +19,7 @@ package trace
 
 import (
 	"fmt"
+
 	"mosn.io/mosn/pkg/types"
 )
 

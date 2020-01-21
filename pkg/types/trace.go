@@ -18,8 +18,8 @@
 package types
 
 import (
-	"time"
 	"context"
+	"time"
 )
 
 // factory

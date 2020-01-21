@@ -18,7 +18,7 @@ type RequestHeader struct {
 	ContentLen uint32
 
 	Class string // payload fields
-	header
+	xprotocol.Header
 }
 
 // ~ HeaderMap
@@ -27,7 +27,7 @@ func (h *RequestHeader) Clone() types.HeaderMap {
 	*clone = *h
 
 	// deep copy
-	clone.header = *h.header.Clone()
+	clone.Header = *h.Header.Clone()
 
 	return clone
 }
@@ -91,7 +91,7 @@ type ResponseHeader struct {
 	ContentLen     uint32
 
 	Class string // payload fields
-	header
+	xprotocol.Header
 }
 
 // ~ HeaderMap
@@ -100,7 +100,7 @@ func (h *ResponseHeader) Clone() types.HeaderMap {
 	*clone = *h
 
 	// deep copy
-	clone.header = *h.header.Clone()
+	clone.Header = *h.Header.Clone()
 
 	return clone
 }
@@ -142,4 +142,8 @@ func (r *Response) GetHeader() types.HeaderMap {
 
 func (r *Response) GetData() types.IoBuffer {
 	return r.Content
+}
+
+func (r *Response) GetStatusCode() uint32 {
+	return uint32(r.ResponseStatus)
 }

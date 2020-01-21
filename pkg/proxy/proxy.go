@@ -24,8 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/json-iterator/go"
-	"mosn.io/mosn/pkg/api/v2"
+	jsoniter "github.com/json-iterator/go"
+	v2 "mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
@@ -198,7 +198,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamListener)
 	if p.config.DownstreamProtocol != string(protocol.Auto) {
-		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, types.ProtocolName(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
 	}
 }
 
@@ -255,6 +255,7 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 		p.asMux.Lock()
 		p.activeSteams.Remove(s.element)
 		p.asMux.Unlock()
+		s.element = nil
 	}
 }
 

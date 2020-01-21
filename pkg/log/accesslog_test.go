@@ -28,29 +28,28 @@ import (
 	"os"
 	"regexp"
 
-	"mosn.io/mosn/pkg/protocol"
+	"context"
+	"strconv"
+	"strings"
+
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
-func TestAccessLog(t *testing.T) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	format := "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
-		"%BytesReceived% %ProtocolName% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
-		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
-	logName := "/tmp/mosn_bench/benchmark_access.log"
-	os.Remove(logName)
-	accessLog, err := NewAccessLog(logName, nil, format)
+func prepareLocalIpv6Ctx() context.Context {
+	ctx := context.Background()
+	ctx = variable.NewVariableContext(ctx)
 
-	if err != nil {
-		t.Errorf(err.Error())
-	}
 	reqHeaders := map[string]string{
 		"service": "test",
 	}
+	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaders)
 
 	respHeaders := map[string]string{
 		"Server": "MOSN",
 	}
+	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaders)
+
 	requestInfo := newRequestInfo()
 	requestInfo.SetRequestReceivedDuration(time.Now())
 	requestInfo.SetResponseReceivedDuration(time.Now().Add(time.Second * 2))
@@ -62,8 +61,26 @@ func TestAccessLog(t *testing.T) {
 	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{net.ParseIP("2001:db8::68"), 12200, ""})
 	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 53242, ""})
 	requestInfo.OnUpstreamHostSelected(nil)
+	ctx = context.WithValue(ctx, requestInfoKey, requestInfo)
 
-	accessLog.Log(protocol.CommonHeader(reqHeaders), protocol.CommonHeader(respHeaders), requestInfo)
+	return ctx
+}
+
+func TestAccessLog(t *testing.T) {
+	registerTestVarDefs()
+
+	format := types.DefaultAccessLogFormat
+	logName := "/tmp/mosn_bench/benchmark_access.log"
+	os.Remove(logName)
+	accessLog, err := NewAccessLog(logName, format)
+
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	ctx := prepareLocalIpv6Ctx()
+	accessLog.Log(ctx, nil, nil, nil)
 	l := "2018/12/14 18:08:33.054 1.329µs 2.00000227s 2048 2048 - 0 126.868µs false 0 127.0.0.1:23456 [2001:db8::68]:12200 127.0.0.1:53242 -\n"
 	time.Sleep(2 * time.Second)
 	f, _ := os.Open(logName)
@@ -89,37 +106,80 @@ func TestAccessLogStartTime(t *testing.T) {
 	}
 }
 
+func TestAccessLogWithCustomText(t *testing.T) {
+	registerTestVarDefs()
+
+	format := "send request to upstream by local address %upstream_local_address%"
+	logName := "/tmp/mosn_bench/test_access.log"
+	os.Remove(logName)
+	accessLog, err := NewAccessLog(logName, format)
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	ctx := prepareLocalIpv6Ctx()
+	accessLog.Log(ctx, nil, nil, nil)
+	time.Sleep(2 * time.Second)
+	f, err := os.Open(logName)
+	if err != nil {
+		t.Error("open accesslog error ", err)
+	}
+	b := make([]byte, 1024)
+	n, err := f.Read(b)
+	f.Close()
+	if err != nil {
+		t.Error("read accesslog error ", err)
+	}
+
+	if string(b)[0:n] != "send request to upstream by local address 127.0.0.1:23456\n" {
+		t.Error("test accesslog error")
+	}
+}
+
+func TestAccessLogWithEmptyVar(t *testing.T) {
+	registerTestVarDefs()
+
+	format := "send request to upstream by local address %%"
+	logName := "/tmp/mosn_bench/benchmark_access.log"
+	os.Remove(logName)
+	_, err := NewAccessLog(logName, format)
+
+	if err == nil || !strings.Contains(err.Error(), "empty variable definition") {
+		t.Error("should return empty variable definition error but actually not")
+		return
+	}
+}
+
+func TestAccessLogWithUnclosedVar(t *testing.T) {
+	registerTestVarDefs()
+
+	format := "send request to upstream by local address %"
+	logName := "/tmp/mosn_bench/benchmark_access.log"
+	os.Remove(logName)
+	_, err := NewAccessLog(logName, format)
+
+	if err == nil || !strings.Contains(err.Error(), "unclosed variable definition") {
+		t.Error("should return unclosed variable definition error but actually not")
+		return
+	}
+}
+
 func TestAccessLogDisable(t *testing.T) {
+	registerTestVarDefs()
+
 	DefaultDisableAccessLog = true
-	format := "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %BytesSent%" + " " +
-		"%BytesReceived% %ProtocolName% %ResponseCode% %Duration% %ResponseFlag% %ResponseCode% %UpstreamLocalAddress%" + " " +
-		"%DownstreamLocalAddress% %DownstreamRemoteAddress% %UpstreamHostSelected%"
+	format := types.DefaultAccessLogFormat
 	logName := "/tmp/mosn_accesslog/disbale_access.log"
 	os.Remove(logName)
-	accessLog, err := NewAccessLog(logName, nil, format)
+	accessLog, err := NewAccessLog(logName, format)
 	if err != nil {
 		t.Fatal(err)
 	}
-	reqHeaders := map[string]string{
-		"service": "test",
-	}
 
-	respHeaders := map[string]string{
-		"Server": "MOSN",
-	}
-	requestInfo := newRequestInfo()
-	requestInfo.SetRequestReceivedDuration(time.Now())
-	requestInfo.SetResponseReceivedDuration(time.Now().Add(time.Second * 2))
-	requestInfo.SetBytesSent(2048)
-	requestInfo.SetBytesReceived(2048)
-
-	requestInfo.SetResponseFlag(0)
-	requestInfo.SetUpstreamLocalAddress("127.0.0.1:23456")
-	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{net.ParseIP("2001:db8::68"), 12200, ""})
-	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{net.ParseIP("127.0.0.1"), 53242, ""})
-	requestInfo.OnUpstreamHostSelected(nil)
+	ctx := prepareLocalIpv6Ctx()
 	// try write disbale access log nothing happened
-	accessLog.Log(protocol.CommonHeader(reqHeaders), protocol.CommonHeader(respHeaders), requestInfo)
+	accessLog.Log(ctx, nil, nil, nil)
 	time.Sleep(time.Second)
 	if b, err := ioutil.ReadFile(logName); err != nil || len(b) > 0 {
 		t.Fatalf("verify log file failed, data len: %d, error: %v", len(b), err)
@@ -129,7 +189,7 @@ func TestAccessLogDisable(t *testing.T) {
 		t.Fatal("enable access log failed")
 	}
 	// retry, write success
-	accessLog.Log(protocol.CommonHeader(reqHeaders), protocol.CommonHeader(respHeaders), requestInfo)
+	accessLog.Log(ctx, nil, nil, nil)
 	time.Sleep(time.Second)
 	if b, err := ioutil.ReadFile(logName); err != nil || len(b) == 0 {
 		t.Fatalf("verify log file failed, data len: %d, error: %v", len(b), err)
@@ -137,13 +197,15 @@ func TestAccessLogDisable(t *testing.T) {
 }
 
 func TestAccessLogManage(t *testing.T) {
+	registerTestVarDefs()
+
 	defer CloseAll()
 	DefaultDisableAccessLog = false
-	format := "%StartTime% %ResponseFlag%"
+	format := "%start_time% %response_flag%"
 	var logs []types.AccessLog
 	for i := 0; i < 100; i++ {
 		logName := fmt.Sprintf("/tmp/accesslog.%d.log", i)
-		lg, err := NewAccessLog(logName, nil, format)
+		lg, err := NewAccessLog(logName, format)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -153,7 +215,7 @@ func TestAccessLogManage(t *testing.T) {
 	// new access log is auto disabled
 	for i := 200; i < 300; i++ {
 		logName := fmt.Sprintf("/tmp/accesslog.%d.log", i)
-		lg, err := NewAccessLog(logName, nil, format)
+		lg, err := NewAccessLog(logName, format)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -169,22 +231,19 @@ func TestAccessLogManage(t *testing.T) {
 	}
 }
 
-func BenchmarkAccessLog(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	InitDefaultLogger("", INFO)
-	// ~ replace the path if needed
-	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", nil, "")
+func prepareLocalIpv4Ctx() context.Context {
+	ctx := context.Background()
+	ctx = variable.NewVariableContext(ctx)
 
-	if err != nil {
-		fmt.Errorf(err.Error())
-	}
 	reqHeaders := map[string]string{
 		"service": "test",
 	}
+	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaders)
 
 	respHeaders := map[string]string{
 		"Server": "MOSN",
 	}
+	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaders)
 
 	requestInfo := newRequestInfo()
 	requestInfo.SetRequestReceivedDuration(time.Now())
@@ -197,50 +256,51 @@ func BenchmarkAccessLog(b *testing.B) {
 	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{[]byte("127.0.0.1"), 12200, ""})
 	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{[]byte("127.0.0.2"), 53242, ""})
 	requestInfo.OnUpstreamHostSelected(nil)
+	ctx = context.WithValue(ctx, requestInfoKey, requestInfo)
 
+	return ctx
+}
+
+func BenchmarkAccessLog(b *testing.B) {
+	registerTestVarDefs()
+	InitDefaultLogger("", INFO)
+	// ~ replace the path if needed
+	format := types.DefaultAccessLogFormat
+	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", format)
+
+	if err != nil {
+		b.Error(err)
+		return
+	}
+
+	ctx := prepareLocalIpv4Ctx()
 	for n := 0; n < b.N; n++ {
-		accessLog.Log(protocol.CommonHeader(reqHeaders), protocol.CommonHeader(respHeaders), requestInfo)
+		accessLog.Log(ctx, nil, nil, nil)
 	}
 }
 
 func BenchmarkAccessLogParallel(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
+	registerTestVarDefs()
 	InitDefaultLogger("", INFO)
 	// ~ replace the path if needed
-	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", nil, "")
+	format := types.DefaultAccessLogFormat
+	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", format)
 
 	if err != nil {
 		b.Errorf(err.Error())
 	}
-	reqHeaders := map[string]string{
-		"service": "test",
-	}
-
-	respHeaders := map[string]string{
-		"Server": "MOSN",
-	}
-
-	requestInfo := newRequestInfo()
-	requestInfo.SetRequestReceivedDuration(time.Now())
-	requestInfo.SetResponseReceivedDuration(time.Now().Add(time.Second * 2))
-	requestInfo.SetBytesSent(2048)
-	requestInfo.SetBytesReceived(2048)
-
-	requestInfo.SetResponseFlag(0)
-	requestInfo.SetUpstreamLocalAddress("127.0.0.1:23456")
-	requestInfo.SetDownstreamLocalAddress(&net.TCPAddr{[]byte("127.0.0.1"), 12200, ""})
-	requestInfo.SetDownstreamRemoteAddress(&net.TCPAddr{[]byte("127.0.0.2"), 53242, ""})
-	requestInfo.OnUpstreamHostSelected(nil)
+	ctx := prepareLocalIpv4Ctx()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			accessLog.Log(protocol.CommonHeader(reqHeaders), protocol.CommonHeader(respHeaders), requestInfo)
+			accessLog.Log(ctx, nil, nil, nil)
 		}
 	})
 }
 
 // mock_requestInfo
 type mock_requestInfo struct {
-	protocol                 types.ProtocolName
+	protocol                 types.Protocol
 	startTime                time.Time
 	responseFlag             types.ResponseFlag
 	upstreamHost             types.HostInfo
@@ -312,7 +372,7 @@ func (r *mock_requestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *mock_requestInfo) Protocol() types.ProtocolName {
+func (r *mock_requestInfo) Protocol() types.Protocol {
 	return r.protocol
 }
 
@@ -382,4 +442,215 @@ func (r *mock_requestInfo) RouteEntry() types.RouteRule {
 
 func (r *mock_requestInfo) SetRouteEntry(routerRule types.RouteRule) {
 	r.routerRule = routerRule
+}
+
+// The identification of a request info's content
+const (
+	requestInfoKey       = "requestInfo"
+	requestHeaderMapKey  = "requestHeaderMap"
+	responseHeaderMapKey = "responseHeaderMap"
+
+	varStartTime                string = "start_time"
+	varRequestReceivedDuration  string = "request_received_duration"
+	varResponseReceivedDuration string = "response_received_duration"
+	varRequestFinishedDuration  string = "request_finished_duration"
+	varBytesSent                string = "bytes_sent"
+	varBytesReceived            string = "bytes_received"
+	varProtocol                 string = "protocol"
+	varResponseCode             string = "response_code"
+	varDuration                 string = "duration"
+	varResponseFlag             string = "response_flag"
+	varUpstreamLocalAddress     string = "upstream_local_address"
+	varDownstreamLocalAddress   string = "downstream_local_address"
+	varDownstreamRemoteAddress  string = "downstream_remote_address"
+	varUpstreamHost             string = "upstream_host"
+
+	// ReqHeaderPrefix is the prefix of request header's formatter
+	reqHeaderPrefix string = "request_header_"
+	reqHeaderIndex         = len(reqHeaderPrefix)
+	// RespHeaderPrefix is the prefix of response header's formatter
+	respHeaderPrefix string = "response_header_"
+	respHeaderIndex         = len(respHeaderPrefix)
+)
+
+var (
+	builtinVariables = []variable.Variable{
+		variable.NewBasicVariable(varStartTime, nil, startTimeGetter, nil, 0),
+		variable.NewBasicVariable(varRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
+		variable.NewBasicVariable(varResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
+		variable.NewBasicVariable(varRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
+		variable.NewBasicVariable(varBytesSent, nil, bytesSentGetter, nil, 0),
+		variable.NewBasicVariable(varBytesReceived, nil, bytesReceivedGetter, nil, 0),
+		variable.NewBasicVariable(varProtocol, nil, protocolGetter, nil, 0),
+		variable.NewBasicVariable(varResponseCode, nil, responseCodeGetter, nil, 0),
+		variable.NewBasicVariable(varDuration, nil, durationGetter, nil, 0),
+		variable.NewBasicVariable(varResponseFlag, nil, responseFlagGetter, nil, 0),
+		variable.NewBasicVariable(varUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
+		variable.NewBasicVariable(varDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
+		variable.NewBasicVariable(varDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
+		variable.NewBasicVariable(varUpstreamHost, nil, upstreamHostGetter, nil, 0),
+	}
+
+	prefixVariables = []variable.Variable{
+		variable.NewBasicVariable(reqHeaderPrefix, nil, requestHeaderMapGetter, nil, 0),
+		variable.NewBasicVariable(respHeaderPrefix, nil, responseHeaderMapGetter, nil, 0),
+	}
+)
+
+func registerTestVarDefs() {
+	// register built-in variables
+	for idx := range builtinVariables {
+		variable.RegisterVariable(builtinVariables[idx])
+	}
+
+	// register prefix variables, like header_xxx/arg_xxx/cookie_xxx
+	for idx := range prefixVariables {
+		variable.RegisterPrefixVariable(prefixVariables[idx].Name(), prefixVariables[idx])
+	}
+}
+
+// StartTimeGetter
+// get request's arriving time
+func startTimeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return info.StartTime().Format("2006/01/02 15:04:05.000"), nil
+}
+
+// ReceivedDurationGetter
+// get duration between request arriving and request resend to upstream
+func receivedDurationGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return info.RequestReceivedDuration().String(), nil
+}
+
+// ResponseReceivedDurationGetter
+// get duration between request arriving and response sending
+func responseReceivedDurationGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return info.ResponseReceivedDuration().String(), nil
+}
+
+// RequestFinishedDurationGetter hets duration between request arriving and request finished
+func requestFinishedDurationGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return info.RequestFinishedDuration().String(), nil
+}
+
+// BytesSentGetter
+// get bytes sent
+func bytesSentGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return strconv.FormatUint(info.BytesSent(), 10), nil
+}
+
+// BytesReceivedGetter
+// get bytes received
+func bytesReceivedGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return strconv.FormatUint(info.BytesReceived(), 10), nil
+}
+
+// get request's protocol type
+func protocolGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return string(info.Protocol()), nil
+}
+
+// ResponseCodeGetter
+// get request's response code
+func responseCodeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return strconv.FormatUint(uint64(info.ResponseCode()), 10), nil
+}
+
+// DurationGetter
+// get duration since request's starting time
+func durationGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return info.Duration().String(), nil
+}
+
+// GetResponseFlagGetter
+// get request's response flag
+func responseFlagGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return strconv.FormatBool(info.GetResponseFlag(0)), nil
+}
+
+// UpstreamLocalAddressGetter
+// get upstream's local address
+func upstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	return info.UpstreamLocalAddress(), nil
+}
+
+// DownstreamLocalAddressGetter
+// get downstream's local address
+func downstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	if info.DownstreamLocalAddress() != nil {
+		return info.DownstreamLocalAddress().String(), nil
+	}
+
+	return variable.ValueNotFound, nil
+}
+
+// DownstreamRemoteAddressGetter
+// get upstream's remote address
+func downstreamRemoteAddressGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	if info.DownstreamRemoteAddress() != nil {
+		return info.DownstreamRemoteAddress().String(), nil
+	}
+
+	return variable.ValueNotFound, nil
+}
+
+// upstreamHostGetter
+// get upstream's selected host address
+func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+
+	if info.UpstreamHost() != nil {
+		return info.UpstreamHost().Hostname(), nil
+	}
+
+	return variable.ValueNotFound, nil
+}
+
+func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	headers := ctx.Value(requestHeaderMapKey).(types.HeaderMap)
+
+	headerName := data.(string)
+	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
+	if !ok {
+		return variable.ValueNotFound, nil
+	}
+
+	return string(headerValue), nil
+}
+
+func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	headers := ctx.Value(responseHeaderMapKey).(types.HeaderMap)
+
+	headerName := data.(string)
+	headerValue, ok := headers.Get(headerName[respHeaderIndex:])
+	if !ok {
+		return variable.ValueNotFound, nil
+	}
+
+	return string(headerValue), nil
 }

@@ -19,9 +19,10 @@ package trace
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/types"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 type mockTracer struct {
@@ -33,7 +34,7 @@ func (tracer *mockTracer) Start(ctx context.Context, request interface{}, startT
 
 func TestTraceBuilderRegisterAndGet(t *testing.T) {
 	driver := NewDefaultDriverImpl()
-	proto := types.ProtocolName("test")
+	proto := types.Protocol("test")
 
 	driver.Register(proto, func(config map[string]interface{}) (types.Tracer, error) {
 		return &mockTracer{}, nil

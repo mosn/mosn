@@ -18,10 +18,11 @@
 package shm
 
 import (
-	"mosn.io/mosn/pkg/log"
 	"os"
 	"path/filepath"
 	"syscall"
+
+	"mosn.io/mosn/pkg/log"
 )
 
 func Alloc(name string, size int) (*ShmSpan, error) {

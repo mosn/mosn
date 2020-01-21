@@ -15,16 +15,17 @@
  * limitations under the License.
  */
 
-package xprotocol
+package rpc
 
 import (
 	"context"
 	"log"
+	"testing"
+	"time"
+
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"testing"
-	"time"
 )
 
 func TestSofaTracerStartFinish(t *testing.T) {

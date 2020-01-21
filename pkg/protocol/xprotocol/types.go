@@ -38,6 +38,12 @@ type XFrame interface {
 	GetData() types.IoBuffer
 }
 
+type XRespFrame interface {
+	XFrame
+
+	GetStatusCode() uint32
+}
+
 type Multiplexing interface {
 	GetRequestId() uint64
 

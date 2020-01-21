@@ -21,7 +21,6 @@ import (
 	"context"
 
 	"mosn.io/mosn/pkg/module/http2"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -31,10 +30,6 @@ type serverCodec struct {
 	sc      *http2.MServerConn
 	preface bool
 	init    bool
-}
-
-func (c *serverCodec) Name() types.ProtocolName {
-	return protocol.HTTP2
 }
 
 func (c *serverCodec) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
@@ -61,10 +56,6 @@ func (c *serverCodec) Decode(ctx context.Context, data types.IoBuffer) (interfac
 
 type clientCodec struct {
 	cc *http2.MClientConn
-}
-
-func (c *clientCodec) Name() types.ProtocolName {
-	return protocol.HTTP2
 }
 
 func (c *clientCodec) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {

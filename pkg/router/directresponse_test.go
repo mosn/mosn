@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/json-iterator/go"
 	"mosn.io/mosn/pkg/api/v2"
 )
 

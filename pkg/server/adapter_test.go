@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
@@ -42,12 +42,6 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 		ListenerConfig: v2.ListenerConfig{
 			Name:       name,
 			BindToPort: true,
-			AccessLogs: []v2.AccessLog{
-				{
-					Path:   "stdout",
-					Format: types.DefaultAccessLogFormat,
-				},
-			},
 			FilterChains: []v2.FilterChain{
 				{
 					FilterChainConfig: v2.FilterChainConfig{
@@ -79,7 +73,7 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 				},
 			}, //no stream filters parsed, but the config still exists for test
 		},
-		Addr:                    addr,
+		Addr: addr,
 		PerConnBufferLimitBytes: 1 << 15,
 	}
 }
@@ -142,7 +136,7 @@ func TestLDS(t *testing.T) {
 			StreamFilters: []v2.Filter{}, // stream filter will not be updated
 			Inspector:     true,
 		},
-		Addr:                    listenerConfig.Addr, // addr should not be changed
+		Addr: listenerConfig.Addr, // addr should not be changed
 		PerConnBufferLimitBytes: 1 << 10,
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, newListenerConfig, nil, nil); err != nil {

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package xprotocol
+package sofarpc
 
 import (
 	"context"
@@ -24,10 +24,10 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/api/v2"
+	v2 "mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
@@ -49,7 +49,7 @@ func (s *testStats) Record(status types.KeepAliveStatus) {
 
 // use bolt v1 to test keep alive
 type testCase struct {
-	KeepAlive *xprotocolKeepAlive
+	KeepAlive *sofaRPCKeepAlive
 	Server    *mockServer
 }
 
@@ -73,21 +73,19 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 	}
 	host := cluster.NewSimpleHost(cfg, info)
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, types.ContextSubProtocol, string(bolt.ProtocolName))
-
 	conn := host.CreateConnection(ctx)
 	if err := conn.Connection.Connect(); err != nil {
 		t.Fatalf("create conenction failed %v", err)
 	}
-	codec := str.NewStreamClient(ctx, protocol.Xprotocol, conn.Connection, host)
+	codec := str.NewStreamClient(ctx, protocol.SofaRPC, conn.Connection, host)
 	if codec == nil {
 		t.Fatal("codec is nil")
 	}
 	// start a keep alive
-	keepAlive := NewKeepAlive(codec, bolt.ProtocolName, keepTimeout, thres)
+	keepAlive := NewSofaRPCKeepAlive(codec, sofarpc.PROTOCOL_CODE_V1, keepTimeout, thres)
 	keepAlive.StartIdleTimeout()
 	return &testCase{
-		KeepAlive: keepAlive.(*xprotocolKeepAlive),
+		KeepAlive: keepAlive.(*sofaRPCKeepAlive),
 		Server:    srv,
 	}
 

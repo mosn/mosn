@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -63,7 +64,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	}
 	if headerLen > 0 {
 		request.rawHeader = (*request.rawData)[headerIndex:contentIndex]
-		err = decodeHeader(request.rawHeader, &request.header)
+		err = decodeHeader(request.rawHeader, &request.Header)
 	}
 	if contentLen > 0 {
 		request.rawContent = (*request.rawData)[contentIndex:]
@@ -126,7 +127,7 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	}
 	if headerLen > 0 {
 		response.rawHeader = (*response.rawData)[headerIndex:contentIndex]
-		err = decodeHeader(response.rawHeader, &response.header)
+		err = decodeHeader(response.rawHeader, &response.Header)
 	}
 	if contentLen > 0 {
 		response.rawContent = (*response.rawData)[contentIndex:]
@@ -135,27 +136,27 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	return response, err
 }
 
-func decodeHeader(bytes []byte, h *header) (err error) {
+func decodeHeader(bytes []byte, h *xprotocol.Header) (err error) {
 	totalLen := len(bytes)
 	index := 0
 
 	for index < totalLen {
-		kv := bytesKV{}
+		kv := xprotocol.BytesKV{}
 
 		// 1. read key
-		kv.key, index, err = decodeStr(bytes, totalLen, index)
+		kv.Key, index, err = decodeStr(bytes, totalLen, index)
 		if err != nil {
 			return
 		}
 
 		// 2. read value
-		kv.value, index, err = decodeStr(bytes, totalLen, index)
+		kv.Value, index, err = decodeStr(bytes, totalLen, index)
 		if err != nil {
 			return
 		}
 
 		// 3. kv append
-		h.kvs = append(h.kvs, kv)
+		h.Kvs = append(h.Kvs, kv)
 	}
 	return nil
 }

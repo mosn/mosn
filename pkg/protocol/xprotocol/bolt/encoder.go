@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -24,8 +25,8 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	if request.Class != "" {
 		request.ClassLen = uint16(len(request.Class))
 	}
-	if len(request.header.kvs) != 0 {
-		request.HeaderLen = uint16(getHeaderEncodeLength(request.header.kvs))
+	if len(request.Header.Kvs) != 0 {
+		request.HeaderLen = uint16(getHeaderEncodeLength(request.Header.Kvs))
 	}
 	if request.Content != nil {
 		request.ContentLen = uint32(request.Content.Len())
@@ -55,7 +56,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	}
 
 	if request.HeaderLen > 0 {
-		encodeHeader(buf[headerIndex:], request.header)
+		encodeHeader(buf[headerIndex:], request.Header)
 	}
 
 	if request.ContentLen > 0 {
@@ -82,8 +83,8 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	if response.Class != "" {
 		response.ClassLen = uint16(len(response.Class))
 	}
-	if len(response.header.kvs) != 0 {
-		response.HeaderLen = uint16(getHeaderEncodeLength(response.header.kvs))
+	if len(response.Header.Kvs) != 0 {
+		response.HeaderLen = uint16(getHeaderEncodeLength(response.Header.Kvs))
 	}
 	if response.Content != nil {
 		response.ContentLen = uint32(response.Content.Len())
@@ -113,7 +114,7 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	}
 
 	if response.HeaderLen > 0 {
-		encodeHeader(buf[headerIndex:], response.header)
+		encodeHeader(buf[headerIndex:], response.Header)
 	}
 
 	if response.ContentLen > 0 {
@@ -123,19 +124,19 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	return buffer.NewIoBufferBytes(buf), nil
 }
 
-func getHeaderEncodeLength(kvs []bytesKV) (size int) {
+func getHeaderEncodeLength(kvs []xprotocol.BytesKV) (size int) {
 	for i, n := 0, len(kvs); i < n; i++ {
-		size += 8 + len(kvs[i].key) + len(kvs[i].value)
+		size += 8 + len(kvs[i].Key) + len(kvs[i].Value)
 	}
 	return
 }
 
-func encodeHeader(buf []byte, h header) {
+func encodeHeader(buf []byte, h xprotocol.Header) {
 	index := 0
 
-	for _, kv := range h.kvs {
-		index = encodeStr(buf, index, kv.key)
-		index = encodeStr(buf, index, kv.value)
+	for _, kv := range h.Kvs {
+		index = encodeStr(buf, index, kv.Key)
+		index = encodeStr(buf, index, kv.Value)
 	}
 }
 

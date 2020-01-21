@@ -19,8 +19,9 @@ package stream
 
 import (
 	"errors"
-	"mosn.io/mosn/pkg/types"
 	"testing"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 type event struct {

@@ -15,22 +15,22 @@
  * limitations under the License.
  */
 
-package xprotocol
+package rpc
 
 import (
 	"time"
 
 	"context"
-	mosnctx "mosn.io/mosn/pkg/context"
+
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	trace.RegisterTracerBuilder("SOFATracer", protocol.Xprotocol, NewTracer)
+	trace.RegisterTracerBuilder("SOFATracer", protocol.SofaRPC, NewTracer)
 }
 
 var PrintLog = true
@@ -42,12 +42,12 @@ func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 	if PrintLog {
 		if value, ok := config["log_path"]; ok {
 			if logPath, ok := value.(string); ok {
-				if err := sofa.Init(protocol.Xprotocol, logPath, "rpc-server-digest.log", "rpc-client-digest.log"); err != nil {
+				if err := sofa.Init(protocol.SofaRPC, logPath, "rpc-server-digest.log", "rpc-client-digest.log"); err != nil {
 					return nil, err
 				}
 			}
 		} else {
-			err := sofa.Init(protocol.Xprotocol, "", "rpc-server-digest.log", "rpc-client-digest.log")
+			err := sofa.Init(protocol.SofaRPC, "", "rpc-server-digest.log", "rpc-client-digest.log")
 			if err != nil {
 				return nil, err
 			}
@@ -57,24 +57,22 @@ func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 	return &Tracer{}, nil
 }
 
-func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime time.Time) types.Span {
+func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {
 	span := NewSpan(startTime)
 
-	xframe, ok := frame.(xprotocol.XFrame)
-	if !ok || xframe == nil {
+	cmd, ok := request.(sofarpc.SofaRpcCmd)
+	if !ok || cmd == nil {
 		return span
 	}
 
 	// ignore heartbeat
-	if xframe.IsHeartbeatFrame() {
+	if cmd.CommandCode() == sofarpc.HEARTBEAT {
 		return span
 	}
 
 	// use delegate instrument if exists
-	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol).(types.ProtocolName)
-
-	if delegate := delegateMap[subProtocol]; delegate != nil {
-		delegate(ctx, xframe, span)
+	if delegate := delegateMap[cmd.ProtocolCode()]; delegate != nil {
+		delegate(ctx, cmd, span)
 	}
 	return span
 }

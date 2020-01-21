@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/api/v2"
+	v2 "mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -253,7 +253,7 @@ func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, sna
 	return host.CreateConnection(context.Background())
 }
 
-func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) types.ConnectionPool {
+func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.Protocol) types.ConnectionPool {
 	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager]  %s ConnPool For Cluster is nil", protocol)
 		return nil
@@ -273,7 +273,7 @@ var (
 	errNoHealthyHost   = errors.New("no health hosts")
 )
 
-func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.ConnectionPool, error) {
+func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.Protocol) (types.ConnectionPool, error) {
 	factory, ok := network.ConnNewPoolFactories[protocol]
 	if !ok {
 		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)

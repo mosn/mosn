@@ -7,16 +7,13 @@ import (
 	"net"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/rpc"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
-	"mosn.io/mosn/pkg/protocol/serialize"
 	"mosn.io/mosn/pkg/stream"
-	_ "mosn.io/mosn/pkg/stream/sofarpc"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -35,18 +32,19 @@ func NewClient(addr string) *Client {
 		fmt.Println(err)
 		return nil
 	}
-	c.Client = stream.NewStreamClient(context.Background(), protocol.SofaRPC, conn, nil)
+	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(bolt.ProtocolName))
+	c.Client = stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	c.conn = conn
 	return c
 }
 
 func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	fmt.Printf("[RPC Client] Receive Data:")
-	if cmd, ok := headers.(sofarpc.SofaRpcCmd); ok {
-		streamID := protocol.StreamIDConv(cmd.RequestID())
+	if cmd, ok := headers.(xprotocol.XFrame); ok {
+		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
-		if resp, ok := cmd.(rpc.RespStatus); ok {
-			fmt.Println("stream:", streamID, " status:", resp.RespStatus())
+		if resp, ok := cmd.(xprotocol.XRespFrame); ok {
+			fmt.Println("stream:", streamID, " status:", resp.GetStatusCode())
 		}
 	}
 }
@@ -60,27 +58,20 @@ func (c *Client) Request() {
 	requestEncoder.AppendHeaders(context.Background(), headers, true)
 }
 
-func buildBoltV1Request(requestID uint64) *sofarpc.BoltRequest {
-	request := &sofarpc.BoltRequest{
-		Protocol: sofarpc.PROTOCOL_CODE_V1,
-		CmdType:  sofarpc.REQUEST,
-		CmdCode:  sofarpc.RPC_REQUEST,
-		Version:  1,
-		ReqID:    uint32(requestID),
-		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
-		Timeout:  -1,
+func buildBoltV1Request(requestID uint64) *bolt.Request {
+	request := &bolt.Request{
+		RequestHeader: bolt.RequestHeader{
+			Protocol:  bolt.ProtocolCode,
+			CmdType:   bolt.CmdTypeRequest,
+			CmdCode:   bolt.CmdCodeRpcRequest,
+			Version:   bolt.ProtocolVersion,
+			RequestId: uint32(requestID),
+			Codec:     bolt.Hessian2Serialize,
+			Timeout:   -1,
+		},
 	}
 
-	headers := map[string]string{"service": "testSofa"} // used for sofa routing
-
-	buf := buffer.NewIoBuffer(100)
-	if err := serialize.Instance.SerializeMap(headers, buf); err != nil {
-		panic("serialize headers error")
-	} else {
-		request.HeaderMap = buf.Bytes()
-		request.HeaderLen = int16(buf.Len())
-	}
-
+	request.Set("service", "testSofa")
 	return request
 }
 

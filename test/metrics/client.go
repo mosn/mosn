@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"net"
 	"net/http"
 	"sync/atomic"
@@ -76,9 +78,9 @@ type streamReceiver struct {
 }
 
 func (s *streamReceiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if resp, ok := headers.(rpc.RespStatus); ok {
-		status := resp.RespStatus()
-		if int16(status) != sofarpc.RESPONSE_STATUS_SUCCESS {
+	if resp, ok := headers.(xprotocol.XRespFrame); ok {
+		status := resp.GetStatusCode()
+		if uint16(status) != bolt.ResponseStatusSuccess {
 			s.ch <- errors.New(fmt.Sprintf("%d", status))
 			return
 		}
@@ -124,7 +126,8 @@ func (c *RPCClient) Send() <-chan error {
 				ch <- err
 				return
 			}
-			c.client = stream.NewStreamClient(context.Background(), protocol.SofaRPC, c.conn, nil)
+			ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(bolt.ProtocolName))
+			c.client = stream.NewStreamClient(ctx, protocol.Xprotocol, c.conn, nil)
 		}
 		id := atomic.AddUint64(&c.streamID, 1)
 		encoder := c.client.NewStream(context.Background(), &streamReceiver{ch})
