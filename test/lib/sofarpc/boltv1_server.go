@@ -2,6 +2,7 @@ package sofarpc
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 
 	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol/rpc"
@@ -16,7 +17,7 @@ type BoltV1ResponseBuilder struct {
 	Content types.IoBuffer
 }
 
-func (b *BoltV1ResponseBuilder) Build(req sofarpc.SofaRpcCmd) sofarpc.SofaRpcCmd {
+func (b *BoltV1ResponseBuilder) Build(req bolt.Request) sofarpc.SofaRpcCmd {
 	cmd := &sofarpc.BoltResponse{
 		Protocol:       sofarpc.PROTOCOL_CODE_V1,
 		CmdType:        sofarpc.RESPONSE,

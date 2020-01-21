@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sofarpc
+package xprotocol
 
 import (
 	"context"
@@ -24,20 +24,19 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/utils"
 )
 
 // StreamReceiver to receive keep alive response
-type sofaRPCKeepAlive struct {
-	Codec        str.Client
-	ProtocolByte byte
-	Timeout      time.Duration
-	Threshold    uint32
-	Callbacks    []types.KeepAliveCallback
+type xprotocolKeepAlive struct {
+	Codec     str.Client
+	Protocol  xprotocol.XProtocol
+	Timeout   time.Duration
+	Threshold uint32
+	Callbacks []types.KeepAliveCallback
 	// runtime
 	timeoutCount uint32
 	idleFree     *idleFree
@@ -50,10 +49,10 @@ type sofaRPCKeepAlive struct {
 	mutex    sync.Mutex
 }
 
-func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, thres uint32) types.KeepAlive {
-	kp := &sofaRPCKeepAlive{
+func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Duration, thres uint32) types.KeepAlive {
+	kp := &xprotocolKeepAlive{
 		Codec:        codec,
-		ProtocolByte: proto,
+		Protocol:     xprotocol.GetProtocol(proto),
 		Timeout:      timeout,
 		Threshold:    thres,
 		Callbacks:    []types.KeepAliveCallback{},
@@ -62,6 +61,7 @@ func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, th
 		requests:     make(map[uint64]*keepAliveTimeout),
 		mutex:        sync.Mutex{},
 	}
+
 	// register keepalive to connection event listener
 	// if connection is closed, keepalive should stop
 	kp.Codec.AddConnectionEventListener(kp)
@@ -69,17 +69,17 @@ func NewSofaRPCKeepAlive(codec str.Client, proto byte, timeout time.Duration, th
 }
 
 // keepalive should stop when connection closed
-func (kp *sofaRPCKeepAlive) OnEvent(event types.ConnectionEvent) {
+func (kp *xprotocolKeepAlive) OnEvent(event types.ConnectionEvent) {
 	if event.IsClose() || event.ConnectFailure() {
 		kp.Stop()
 	}
 }
 
-func (kp *sofaRPCKeepAlive) AddCallback(cb types.KeepAliveCallback) {
+func (kp *xprotocolKeepAlive) AddCallback(cb types.KeepAliveCallback) {
 	kp.Callbacks = append(kp.Callbacks, cb)
 }
 
-func (kp *sofaRPCKeepAlive) runCallback(status types.KeepAliveStatus) {
+func (kp *xprotocolKeepAlive) runCallback(status types.KeepAliveStatus) {
 	for _, cb := range kp.Callbacks {
 		cb(status)
 	}
@@ -87,7 +87,7 @@ func (kp *sofaRPCKeepAlive) runCallback(status types.KeepAliveStatus) {
 
 // SendKeepAlive will make a request to server via codec.
 // use channel, do not block
-func (kp *sofaRPCKeepAlive) SendKeepAlive() {
+func (kp *xprotocolKeepAlive) SendKeepAlive() {
 	select {
 	case <-kp.stop:
 		return
@@ -96,12 +96,12 @@ func (kp *sofaRPCKeepAlive) SendKeepAlive() {
 	}
 }
 
-func (kp *sofaRPCKeepAlive) StartIdleTimeout() {
+func (kp *xprotocolKeepAlive) StartIdleTimeout() {
 	kp.idleFree = newIdleFree()
 }
 
 // The function will be called when connection in the codec is idle
-func (kp *sofaRPCKeepAlive) sendKeepAlive() {
+func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	ctx := context.Background()
 	sender := kp.Codec.NewStream(ctx, kp)
 	id := sender.GetStream().ID()
@@ -111,19 +111,19 @@ func (kp *sofaRPCKeepAlive) sendKeepAlive() {
 		return
 	}
 	// we send sofa rpc cmd as "header", but it maybe contains "body"
-	hb := sofarpc.NewHeartbeat(kp.ProtocolByte)
-	sender.AppendHeaders(ctx, hb, true)
+	hb := kp.Protocol.Trigger(id)
+	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
 	kp.mutex.Lock()
 	kp.requests[id] = startTimeout(id, kp)
 	kp.mutex.Unlock()
 }
 
-func (kp *sofaRPCKeepAlive) GetTimeout() time.Duration {
+func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
 	return kp.Timeout
 }
 
-func (kp *sofaRPCKeepAlive) HandleTimeout(id uint64) {
+func (kp *xprotocolKeepAlive) HandleTimeout(id uint64) {
 	select {
 	case <-kp.stop:
 		return
@@ -142,7 +142,7 @@ func (kp *sofaRPCKeepAlive) HandleTimeout(id uint64) {
 	}
 }
 
-func (kp *sofaRPCKeepAlive) HandleSuccess(id uint64) {
+func (kp *xprotocolKeepAlive) HandleSuccess(id uint64) {
 	select {
 	case <-kp.stop:
 		return
@@ -159,7 +159,7 @@ func (kp *sofaRPCKeepAlive) HandleSuccess(id uint64) {
 	}
 }
 
-func (kp *sofaRPCKeepAlive) Stop() {
+func (kp *xprotocolKeepAlive) Stop() {
 	kp.once.Do(func() {
 		log.DefaultLogger.Infof("[stream] [sofarpc] [keepalive] connection %d stopped keepalive", kp.Codec.ConnID())
 		close(kp.stop)
@@ -168,13 +168,13 @@ func (kp *sofaRPCKeepAlive) Stop() {
 
 // StreamReceiver Implementation
 // we just needs to make sure we can receive a response, do not care the data we received
-func (kp *sofaRPCKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if ack, ok := headers.(sofarpc.SofaRpcCmd); ok {
-		kp.HandleSuccess(ack.RequestID())
+func (kp *xprotocolKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	if ack, ok := headers.(xprotocol.XFrame); ok {
+		kp.HandleSuccess(ack.GetRequestId())
 	}
 }
 
-func (kp *sofaRPCKeepAlive) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
+func (kp *xprotocolKeepAlive) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
 }
 
 //

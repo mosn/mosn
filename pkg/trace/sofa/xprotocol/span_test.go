@@ -18,9 +18,9 @@
 package xprotocol
 
 import (
-	"log"
-	"runtime"
 	"testing"
+	"runtime"
+	"log"
 )
 
 func TestSpanLog(t *testing.T) {

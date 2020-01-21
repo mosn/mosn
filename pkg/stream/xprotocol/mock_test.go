@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package sofarpc
+package xprotocol
 
 import (
 	"context"
@@ -24,16 +24,17 @@ import (
 
 	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 )
 
 // a mock server for handle heart beat request
 type mockServer struct {
-	ln    net.Listener
-	stop  chan struct{}
-	codec types.ProtocolEngine
-	delay time.Duration
+	ln       net.Listener
+	stop     chan struct{}
+	protocol xprotocol.XProtocol
+	delay    time.Duration
 }
 
 func newMockServer(delay time.Duration) (*mockServer, error) {
@@ -42,10 +43,10 @@ func newMockServer(delay time.Duration) (*mockServer, error) {
 		return nil, err
 	}
 	return &mockServer{
-		ln:    ln,
-		stop:  make(chan struct{}),
-		codec: sofarpc.Engine(),
-		delay: delay,
+		ln:       ln,
+		stop:     make(chan struct{}),
+		protocol: xprotocol.GetProtocol(bolt.ProtocolName),
+		delay:    delay,
 	}, nil
 }
 
@@ -108,15 +109,14 @@ func (s *mockServer) Reply(iobuf types.IoBuffer) []byte {
 	if s.delay != 0 {
 		time.Sleep(s.delay)
 	}
-	cmd, _ := s.codec.Decode(context.Background(), iobuf)
+	cmd, _ := s.protocol.Decode(context.Background(), iobuf)
 	if cmd == nil {
 		return nil
 	}
-	rpccmd := cmd.(sofarpc.SofaRpcCmd)
-	if rpccmd.CommandCode() == sofarpc.HEARTBEAT {
-		ack := sofarpc.NewHeartbeatAck(rpccmd.ProtocolCode())
-		ack.SetRequestID(rpccmd.RequestID())
-		resp, err := s.codec.Encode(context.Background(), ack)
+	xframe := cmd.(xprotocol.XFrame)
+	if xframe.IsHeartbeatFrame() {
+		ack := s.protocol.Reply(xframe.GetRequestId())
+		resp, err := s.protocol.Encode(context.Background(), ack)
 		if err != nil {
 			return nil
 		}

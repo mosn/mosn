@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -97,18 +98,18 @@ func (c *RPCClient) SendRequestWithData(in string) {
 	ID := atomic.AddUint64(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
-	var headers xprotocol.XFrame
+	var frame xprotocol.XFrame
 	data := buffer.NewIoBufferString(in)
 	switch c.Protocol {
 	case Bolt1:
-		headers = BuildBoltV1RequestWithContent(ID, data)
+		frame = BuildBoltV1RequestWithContent(ID, data)
 	case Bolt2:
-		headers = BuildBoltV2Request(ID)
+		frame = BuildBoltV2Request(ID)
 	default:
 		c.t.Errorf("unsupport protocol")
 		return
 	}
-	requestEncoder.AppendHeaders(context.Background(), headers, false)
+	requestEncoder.AppendHeaders(context.Background(), frame.GetHeader(), false)
 	requestEncoder.AppendData(context.Background(), data, true)
 	atomic.AddUint32(&c.requestCount, 1)
 	c.Waits.Store(streamID, streamID)
@@ -169,7 +170,7 @@ func BuildBoltV1Request(requestID uint64) *bolt.Request {
 	return request
 }
 
-func BuildBoltV2Request(requestID uint64) *bolt.BoltRequestV2 {
+func BuildBoltV2Request(requestID uint64) *boltv2.Request {
 	//TODO:
 	return nil
 }
@@ -193,7 +194,7 @@ func BuildBoltV1Response(req *bolt.Request) *bolt.Response {
 	})
 	return resp
 }
-func BuildBoltV2Response(req *sofarpc.BoltRequestV2) *sofarpc.BoltResponseV2 {
+func BuildBoltV2Response(req *boltv2.Request) *boltv2.Response {
 	//TODO:
 	return nil
 }

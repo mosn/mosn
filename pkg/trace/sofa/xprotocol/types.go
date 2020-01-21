@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-package rpc
+package xprotocol
 
 import (
 	"context"
-
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -53,4 +52,4 @@ const (
 	TRACE_END = 60
 )
 
-type SubProtocolDelegate func(ctx context.Context, request sofarpc.SofaRpcCmd, span types.Span)
+type SubProtocolDelegate func(ctx context.Context, frame xprotocol.XFrame, span types.Span)
