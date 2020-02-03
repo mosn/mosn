@@ -20,23 +20,22 @@ package connectionmanager
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/filter"
-	"mosn.io/mosn/pkg/types"
 )
 
 // todo this filter may use in the future
 func init() {
-	filter.RegisterNetwork(v2.CONNECTION_MANAGER, CreateProxyFactory)
+	api.RegisterNetwork(v2.CONNECTION_MANAGER, CreateProxyFactory)
 }
 
 type connectionManagerFilterConfigFactory struct {
 }
 
-func (cmfcf *connectionManagerFilterConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
+func (cmfcf *connectionManagerFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 
 }
 
-func CreateProxyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
 	return &connectionManagerFilterConfigFactory{}, nil
 }

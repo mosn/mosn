@@ -5,10 +5,11 @@ import (
 
 	"encoding/json"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type payloadLimitConfig struct {
@@ -16,15 +17,15 @@ type payloadLimitConfig struct {
 	status        int32
 }
 
-// streamPayloadLimitFilter is an implement of types.StreamReceiverFilter
+// streamPayloadLimitFilter is an implement of StreamReceiverFilter
 type streamPayloadLimitFilter struct {
 	ctx     context.Context
-	handler types.StreamReceiverFilterHandler
+	handler api.StreamReceiverFilterHandler
 	config  *payloadLimitConfig
-	headers types.HeaderMap
+	headers api.HeaderMap
 }
 
-func NewFilter(ctx context.Context, cfg *v2.StreamPayloadLimit) types.StreamReceiverFilter {
+func NewFilter(ctx context.Context, cfg *v2.StreamPayloadLimit) api.StreamReceiverFilter {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("create a new payload limit filter")
 	}
@@ -70,11 +71,11 @@ func (f *streamPayloadLimitFilter) ReadPerRouteConfig(cfg map[string]interface{}
 	}
 }
 
-func (f *streamPayloadLimitFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+func (f *streamPayloadLimitFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	f.handler = handler
 }
 
-func (f *streamPayloadLimitFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *streamPayloadLimitFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("payload limit stream do receive headers")
 	}
@@ -91,13 +92,13 @@ func (f *streamPayloadLimitFilter) OnReceive(ctx context.Context, headers types.
 				log.DefaultLogger.Debugf("payload size too large,data size = %d ,limit = %d",
 					buf.Len(), f.config.maxEntitySize)
 			}
-			f.handler.RequestInfo().SetResponseFlag(types.ReqEntityTooLarge)
+			f.handler.RequestInfo().SetResponseFlag(api.ReqEntityTooLarge)
 			f.handler.SendHijackReply(int(f.config.status), f.headers)
-			return types.StreamFilterStop
+			return api.StreamFilterStop
 		}
 	}
 
-	return types.StreamFilterContinue
+	return api.StreamFilterContinue
 }
 
 func (f *streamPayloadLimitFilter) OnDestroy() {}

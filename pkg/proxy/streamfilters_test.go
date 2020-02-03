@@ -24,10 +24,11 @@ import (
 
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func init() {
@@ -44,15 +45,15 @@ func TestRunReiverFilters(t *testing.T) {
 			filters: []*mockStreamReceiverFilter{
 				// this filter returns all continue, like mixer filter or fault inject filter not matched condition
 				{
-					status: types.StreamFilterContinue,
-					phase:  types.DownFilter,
+					status: api.StreamFilterContinue,
+					phase:  api.BeforeRoute,
 				},
 				// this filter like fault inject filter matched condition
 				// in fault inject, it will call ContinueReceiving/SendHijackReply
 				// this test will ignore it
 				{
-					status: types.StreamFilterStop,
-					phase:  types.DownFilter,
+					status: api.StreamFilterStop,
+					phase:  api.BeforeRoute,
 				},
 			},
 		},
@@ -60,31 +61,31 @@ func TestRunReiverFilters(t *testing.T) {
 		{
 			filters: []*mockStreamReceiverFilter{
 				{
-					status: types.StreamFilterContinue,
-					phase:  types.DownFilter,
+					status: api.StreamFilterContinue,
+					phase:  api.BeforeRoute,
 				},
 				{
-					status: types.StreamFilterReMatchRoute,
-					phase:  types.DownFilterAfterRoute,
+					status: api.StreamFilterReMatchRoute,
+					phase:  api.AfterRoute,
 				},
 				// to prevent proxy. if a real stream filter returns all stop,
 				// it should call SendHijackReply, or the stream will be hung up
 				// this test will ignore it
 				{
-					status: types.StreamFilterStop,
-					phase:  types.DownFilterAfterRoute,
+					status: api.StreamFilterStop,
+					phase:  api.AfterRoute,
 				},
 			},
 		},
 		{
 			filters: []*mockStreamReceiverFilter{
 				{
-					status: types.StreamFilterReMatchRoute,
-					phase:  types.DownFilterAfterRoute,
+					status: api.StreamFilterReMatchRoute,
+					phase:  api.AfterRoute,
 				},
 				{
-					status: types.StreamFilterStop,
-					phase:  types.DownFilterAfterRoute,
+					status: api.StreamFilterStop,
+					phase:  api.AfterRoute,
 				},
 			},
 		},
@@ -124,16 +125,16 @@ func TestRunReiverFiltersStop(t *testing.T) {
 	}{
 		filters: []*mockStreamReceiverFilter{
 			{
-				status: types.StreamFilterReMatchRoute,
-				phase:  types.DownFilterAfterRoute,
+				status: api.StreamFilterReMatchRoute,
+				phase:  api.AfterRoute,
 			},
 			{
-				status: types.StreamFilterStop,
-				phase:  types.DownFilterAfterRoute,
+				status: api.StreamFilterStop,
+				phase:  api.AfterRoute,
 			},
 			{
-				status: types.StreamFilterContinue,
-				phase:  types.DownFilterAfterRoute,
+				status: api.StreamFilterContinue,
+				phase:  api.AfterRoute,
 			},
 		},
 	}
@@ -173,23 +174,23 @@ func TestRunSenderFilters(t *testing.T) {
 		{
 			filters: []*mockStreamSenderFilter{
 				{
-					status: types.StreamFilterContinue,
+					status: api.StreamFilterContinue,
 				},
 				{
-					status: types.StreamFilterStop,
+					status: api.StreamFilterStop,
 				},
 			},
 		},
 		{
 			filters: []*mockStreamSenderFilter{
 				{
-					status: types.StreamFilterContinue,
+					status: api.StreamFilterContinue,
 				},
 				{
-					status: types.StreamFilterContinue,
+					status: api.StreamFilterContinue,
 				},
 				{
-					status: types.StreamFilterStop,
+					status: api.StreamFilterStop,
 				},
 			},
 		},
@@ -224,13 +225,13 @@ func TestRunSenderFiltersStop(t *testing.T) {
 	}{
 		filters: []*mockStreamSenderFilter{
 			{
-				status: types.StreamFilterContinue,
+				status: api.StreamFilterContinue,
 			},
 			{
-				status: types.StreamFilterStop,
+				status: api.StreamFilterStop,
 			},
 			{
-				status: types.StreamFilterContinue,
+				status: api.StreamFilterContinue,
 			},
 		},
 	}
@@ -257,52 +258,52 @@ func TestRunSenderFiltersStop(t *testing.T) {
 
 // Mock stream filters
 type mockStreamReceiverFilter struct {
-	handler types.StreamReceiverFilterHandler
+	handler api.StreamReceiverFilterHandler
 	// api called count
 	on int
 	// returns status
-	status types.StreamFilterStatus
+	status api.StreamFilterStatus
 	// mock for test
-	phase types.Phase
+	phase api.FilterPhase
 	s     *downStream
 }
 
 func (f *mockStreamReceiverFilter) OnDestroy() {}
 
-func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	f.on++
-	if f.status == types.StreamFilterStop {
+	if f.status == api.StreamFilterStop {
 		atomic.StoreUint32(&f.s.downstreamCleaned, 1)
 	}
 	return f.status
 }
 
-func (f *mockStreamReceiverFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+func (f *mockStreamReceiverFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	f.handler = handler
 }
 
 type mockStreamSenderFilter struct {
-	handler types.StreamSenderFilterHandler
+	handler api.StreamSenderFilterHandler
 	// api called count
 	on int
 	// returns status
-	status types.StreamFilterStatus
+	status api.StreamFilterStatus
 	// mock for test
 	s *downStream
 }
 
 func (f *mockStreamSenderFilter) OnDestroy() {}
 
-func (f *mockStreamSenderFilter) Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *mockStreamSenderFilter) Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	f.on++
 	f.handler.SetResponseHeaders(protocol.CommonHeader{})
 	f.handler.SetResponseData(buffer.NewIoBuffer(1))
-	if f.status == types.StreamFilterStop {
+	if f.status == api.StreamFilterStop {
 		atomic.StoreUint32(&f.s.downstreamCleaned, 1)
 	}
 	return f.status
 }
 
-func (f *mockStreamSenderFilter) SetSenderFilterHandler(handler types.StreamSenderFilterHandler) {
+func (f *mockStreamSenderFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
 	f.handler = handler
 }

@@ -22,12 +22,12 @@ import (
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	jsoniter "github.com/json-iterator/go"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
-	"mosn.io/mosn/pkg/types"
 	clusterAdapter "mosn.io/mosn/pkg/upstream/cluster"
 )
 
@@ -63,8 +63,8 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 			continue
 		}
 
-		var streamFilters []types.StreamFilterChainFactory
-		var networkFilters []types.NetworkFilterChainFactory
+		var streamFilters []api.StreamFilterChainFactory
+		var networkFilters []api.NetworkFilterChainFactory
 
 		if !mosnListener.UseOriginalDst {
 			for _, filterChain := range mosnListener.FilterChains {

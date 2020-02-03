@@ -24,7 +24,7 @@ import (
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 // sessionChecker is a wrapper of types.HealthCheckSession for health check

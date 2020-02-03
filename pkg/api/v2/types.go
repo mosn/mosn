@@ -29,13 +29,9 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/api"
+	"mosn.io/pkg/utils"
 )
-
-// Metadata field can be used to provide additional information about the route.
-// It can be used for configuration, stats, and logging.
-// The metadata should go under the filter namespace that will need it.
-type Metadata map[string]string
 
 // Network Filter's Type
 const (
@@ -76,19 +72,19 @@ const (
 
 // Cluster represents a cluster's information
 type Cluster struct {
-	Name                 string          `json:"name,omitempty"`
-	ClusterType          ClusterType     `json:"type,omitempty"`
-	SubType              string          `json:"sub_type,omitempty"` //not used yet
-	LbType               LbType          `json:"lb_type,omitempty"`
-	MaxRequestPerConn    uint32          `json:"max_request_per_conn,omitempty"`
-	ConnBufferLimitBytes uint32          `json:"conn_buffer_limit_bytes,omitempty"`
-	CirBreThresholds     CircuitBreakers `json:"circuit_breakers,omitempty"`
-	HealthCheck          HealthCheck     `json:"health_check,omitempty"`
-	Spec                 ClusterSpecInfo `json:"spec,omitempty"`
-	LBSubSetConfig       LBSubsetConfig  `json:"lb_subset_config,omitempty"`
-	TLS                  TLSConfig       `json:"tls_context,omitempty"`
-	Hosts                []Host          `json:"hosts,omitempty"`
-	ConnectTimeout       *DurationConfig `json:"connect_timeout,omitempty"`
+	Name                 string              `json:"name,omitempty"`
+	ClusterType          ClusterType         `json:"type,omitempty"`
+	SubType              string              `json:"sub_type,omitempty"` //not used yet
+	LbType               LbType              `json:"lb_type,omitempty"`
+	MaxRequestPerConn    uint32              `json:"max_request_per_conn,omitempty"`
+	ConnBufferLimitBytes uint32              `json:"conn_buffer_limit_bytes,omitempty"`
+	CirBreThresholds     CircuitBreakers     `json:"circuit_breakers,omitempty"`
+	HealthCheck          HealthCheck         `json:"health_check,omitempty"`
+	Spec                 ClusterSpecInfo     `json:"spec,omitempty"`
+	LBSubSetConfig       LBSubsetConfig      `json:"lb_subset_config,omitempty"`
+	TLS                  TLSConfig           `json:"tls_context,omitempty"`
+	Hosts                []Host              `json:"hosts,omitempty"`
+	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
 }
 
 // HealthCheck is a configuration of health check
@@ -121,7 +117,7 @@ func (hc *HealthCheck) UnmarshalJSON(b []byte) error {
 // Host represenets a host information
 type Host struct {
 	HostConfig
-	MetaData Metadata `json:"-"`
+	MetaData api.Metadata `json:"-"`
 }
 
 func (h Host) MarshalJSON() (b []byte, err error) {
@@ -248,7 +244,7 @@ type Mixer struct {
 type Router struct {
 	RouterConfig
 	// Metadata is created from MetadataConfig, which is used to subset
-	Metadata Metadata `json:"-"`
+	Metadata api.Metadata `json:"-"`
 }
 
 func (r Router) MarshalJSON() (b []byte, err error) {
@@ -267,7 +263,7 @@ func (r *Router) UnmarshalJSON(b []byte) error {
 // RouteAction represents the information of route request to upstream clusters
 type RouteAction struct {
 	RouterActionConfig
-	MetadataMatch Metadata      `json:"-"`
+	MetadataMatch api.Metadata  `json:"-"`
 	Timeout       time.Duration `json:"-"`
 }
 
@@ -294,7 +290,7 @@ type Decorator string
 // of traffic to be forwarded to each cluster
 type ClusterWeight struct {
 	ClusterWeightConfig
-	MetadataMatch Metadata `json:"-"`
+	MetadataMatch api.Metadata `json:"-"`
 }
 
 func (cw ClusterWeight) MarshalJSON() (b []byte, err error) {
@@ -693,7 +689,7 @@ type ServerConfig struct {
 
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
-	GracefulTimeout DurationConfig `json:"graceful_timeout,omitempty"`
+	GracefulTimeout api.DurationConfig `json:"graceful_timeout,omitempty"`
 
 	//go processor number
 	Processor int `json:"processor,omitempty"`

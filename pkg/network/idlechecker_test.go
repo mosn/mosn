@@ -24,9 +24,10 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // types.ListenerEventListener
@@ -34,14 +35,14 @@ type mockHandler struct {
 	stopChan chan struct{}
 }
 
-func (h *mockHandler) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan types.Connection, buf []byte) {
+func (h *mockHandler) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan api.Connection, buf []byte) {
 	ctx := context.Background()
 	conn := NewServerConnection(ctx, rawc, h.stopChan)
 	conn.SetIdleTimeout(3 * time.Second)
 	h.OnNewConnection(ctx, conn)
 }
 
-func (h *mockHandler) OnNewConnection(ctx context.Context, conn types.Connection) {
+func (h *mockHandler) OnNewConnection(ctx context.Context, conn api.Connection) {
 	conn.Start(ctx)
 }
 

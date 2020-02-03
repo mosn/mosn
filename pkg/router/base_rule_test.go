@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
@@ -60,7 +61,7 @@ func TestWeightedClusterSelect(t *testing.T) {
 							Name:   "w1",
 							Weight: 90,
 						},
-						MetadataMatch: v2.Metadata{
+						MetadataMatch: api.Metadata{
 							"version": "v1",
 						},
 					},
@@ -71,7 +72,7 @@ func TestWeightedClusterSelect(t *testing.T) {
 							Name:   "w2",
 							Weight: 10,
 						},
-						MetadataMatch: v2.Metadata{
+						MetadataMatch: api.Metadata{
 							"version": "v2",
 						},
 					},
@@ -90,7 +91,7 @@ func TestWeightedClusterSelect(t *testing.T) {
 							Name:   "w1",
 							Weight: 50,
 						},
-						MetadataMatch: v2.Metadata{
+						MetadataMatch: api.Metadata{
 							"version": "v1",
 						},
 					},
@@ -101,7 +102,7 @@ func TestWeightedClusterSelect(t *testing.T) {
 							Name:   "w2",
 							Weight: 50,
 						},
-						MetadataMatch: v2.Metadata{
+						MetadataMatch: api.Metadata{
 							"version": "v2",
 						},
 					},

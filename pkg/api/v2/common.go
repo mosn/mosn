@@ -19,11 +19,9 @@ package v2
 
 import (
 	"errors"
-	"fmt"
-	"strings"
-	"time"
 
 	jsoniter "github.com/json-iterator/go"
+	"mosn.io/api"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -36,7 +34,7 @@ type LbMeta struct {
 	LbMetaKey map[string]interface{} `json:"mosn.lb"`
 }
 
-func metadataToConfig(md Metadata) *MetadataConfig {
+func metadataToConfig(md api.Metadata) *MetadataConfig {
 	if len(md) == 0 {
 		return nil
 	}
@@ -51,8 +49,8 @@ func metadataToConfig(md Metadata) *MetadataConfig {
 	}
 }
 
-func configToMetadata(cfg *MetadataConfig) Metadata {
-	result := Metadata{}
+func configToMetadata(cfg *MetadataConfig) api.Metadata {
+	result := api.Metadata{}
 	if cfg != nil {
 		mosnLb := cfg.MetaKey.LbMetaKey
 		for k, v := range mosnLb {
@@ -62,22 +60,6 @@ func configToMetadata(cfg *MetadataConfig) Metadata {
 		}
 	}
 	return result
-}
-
-// DurationConfig ia a wrapper for time.Duration, so time config can be written in '300ms' or '1h' format
-type DurationConfig struct {
-	time.Duration
-}
-
-// UnmarshalJSON get DurationConfig.Duration from json file
-func (d *DurationConfig) UnmarshalJSON(b []byte) (err error) {
-	d.Duration, err = time.ParseDuration(strings.Trim(string(b), `"`))
-	return
-}
-
-// MarshalJSON
-func (d DurationConfig) MarshalJSON() (b []byte, err error) {
-	return []byte(fmt.Sprintf(`"%s"`, d.String())), nil
 }
 
 var ErrDuplicateTLSConfig = errors.New("tls_context and tls_context_set can only exists one at the same time")

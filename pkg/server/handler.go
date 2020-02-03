@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
+	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/api/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -41,7 +42,7 @@ import (
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 // ConnectionHandler
@@ -95,8 +96,8 @@ func (ch *connHandler) NumConnections() uint64 {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error) {
+func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []api.NetworkFilterChainFactory,
+	streamFiltersFactories []api.StreamFilterChainFactory) (types.ListenerEventListener, error) {
 
 	var listenerName string
 	if lc.Name == "" {
@@ -169,7 +170,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		listenerStopChan := make(chan struct{})
 
 		//initialize access log
-		var als []types.AccessLog
+		var als []api.AccessLog
 
 		for _, alConfig := range lc.AccessLogs {
 
@@ -326,8 +327,8 @@ func (ch *connHandler) StopConnection() {
 // ListenerEventListener
 type activeListener struct {
 	listener                    types.Listener
-	networkFiltersFactories     []types.NetworkFilterChainFactory
-	streamFiltersFactoriesStore atomic.Value // store []types.StreamFilterChainFactory
+	networkFiltersFactories     []api.NetworkFilterChainFactory
+	streamFiltersFactoriesStore atomic.Value // store []api.StreamFilterChainFactory
 	listenIP                    string
 	listenPort                  int
 	conns                       *list.List
@@ -335,14 +336,14 @@ type activeListener struct {
 	handler                     *connHandler
 	stopChan                    chan struct{}
 	stats                       *listenerStats
-	accessLogs                  []types.AccessLog
+	accessLogs                  []api.AccessLog
 	updatedLabel                bool
-	idleTimeout                 *v2.DurationConfig
+	idleTimeout                 *api.DurationConfig
 	tlsMng                      types.TLSContextManager
 }
 
-func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers []types.AccessLog,
-	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
+func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers []api.AccessLog,
+	networkFiltersFactories []api.NetworkFilterChainFactory, streamFiltersFactories []api.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                listener,
@@ -391,7 +392,7 @@ func (al *activeListener) GoStart(lctx context.Context) {
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
+func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, ch chan api.Connection, buf []byte) {
 	var rawf *os.File
 
 	// only store fd and tls conn handshake in final working listener
@@ -447,18 +448,18 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	arc.ContinueFilterChain(ctx, true)
 }
 
-func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connection) {
+func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connection) {
 	//Register Proxy's Filter
 	filterManager := conn.FilterManager()
 	for _, nfcf := range al.networkFiltersFactories {
-		nfcf.CreateFilterChain(ctx, al.handler.clusterManager, filterManager)
+		nfcf.CreateFilterChain(ctx, filterManager)
 	}
 	filterManager.InitializeReadFilters()
 
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
-		conn.Close(types.NoFlush, types.LocalClose)
+		conn.Close(api.NoFlush, api.LocalClose)
 		return
 	}
 	ac := newActiveConnection(al, conn)
@@ -556,10 +557,10 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		}
 	}
 
-	var ch chan types.Connection
+	var ch chan api.Connection
 	var buf []byte
 	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
-		ch = val.(chan types.Connection)
+		ch = val.(chan api.Connection)
 		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
 			buf = val.([]byte)
 		}
@@ -587,7 +588,7 @@ func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool)
 
 	for ; arc.acceptedFilterIndex < len(arc.acceptedFilters); arc.acceptedFilterIndex++ {
 		filterStatus := arc.acceptedFilters[arc.acceptedFilterIndex].OnAccept(arc)
-		if filterStatus == types.Stop {
+		if filterStatus == api.Stop {
 			return
 		}
 	}
@@ -611,10 +612,10 @@ func (arc *activeRawConn) Conn() net.Conn {
 type activeConnection struct {
 	element  *list.Element
 	listener *activeListener
-	conn     types.Connection
+	conn     api.Connection
 }
 
-func newActiveConnection(listener *activeListener, conn types.Connection) *activeConnection {
+func newActiveConnection(listener *activeListener, conn api.Connection) *activeConnection {
 	ac := &activeConnection{
 		conn:     conn,
 		listener: listener,
@@ -639,7 +640,7 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 }
 
 // ConnectionEventListener
-func (ac *activeConnection) OnEvent(event types.ConnectionEvent) {
+func (ac *activeConnection) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		ac.listener.removeConnection(ac)
 	}

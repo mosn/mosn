@@ -18,10 +18,11 @@
 package originaldst
 
 import (
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
 // OriginalDst interface contains just one method: OnAccept
 type OriginalDst interface {
-	OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus
+	OnAccept(cb types.ListenerFilterCallbacks) api.FilterStatus
 }

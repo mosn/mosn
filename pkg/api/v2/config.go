@@ -17,11 +17,13 @@
 
 package v2
 
+import "mosn.io/api"
+
 type HealthCheckConfig struct {
 	Protocol             string                 `json:"protocol,omitempty"`
-	TimeoutConfig        DurationConfig         `json:"timeout,omitempty"`
-	IntervalConfig       DurationConfig         `json:"interval,omitempty"`
-	IntervalJitterConfig DurationConfig         `json:"interval_jitter,omitempty"`
+	TimeoutConfig        api.DurationConfig     `json:"timeout,omitempty"`
+	IntervalConfig       api.DurationConfig     `json:"interval,omitempty"`
+	IntervalJitterConfig api.DurationConfig     `json:"interval_jitter,omitempty"`
 	HealthyThreshold     uint32                 `json:"healthy_threshold,omitempty"`
 	UnhealthyThreshold   uint32                 `json:"unhealthy_threshold,omitempty"`
 	ServiceName          string                 `json:"service_name,omitempty"`
@@ -44,16 +46,16 @@ const EGRESS ListenerType = "egress"
 const INGRESS ListenerType = "ingress"
 
 type ListenerConfig struct {
-	Name                  string          `json:"name,omitempty"`
-	Type                  ListenerType    `json:"type,omitempty"`
-	AddrConfig            string          `json:"address,omitempty"`
-	BindToPort            bool            `json:"bind_port,omitempty"`
-	UseOriginalDst        bool            `json:"use_original_dst,omitempty"`
-	AccessLogs            []AccessLog     `json:"access_logs,omitempty"`
-	FilterChains          []FilterChain   `json:"filter_chains,omitempty"` // only one filterchains at this time
-	StreamFilters         []Filter        `json:"stream_filters,omitempty"`
-	Inspector             bool            `json:"inspector,omitempty"`
-	ConnectionIdleTimeout *DurationConfig `json:"connection_idle_timeout,omitempty"`
+	Name                  string              `json:"name,omitempty"`
+	Type                  ListenerType        `json:"type,omitempty"`
+	AddrConfig            string              `json:"address,omitempty"`
+	BindToPort            bool                `json:"bind_port,omitempty"`
+	UseOriginalDst        bool                `json:"use_original_dst,omitempty"`
+	AccessLogs            []AccessLog         `json:"access_logs,omitempty"`
+	FilterChains          []FilterChain       `json:"filter_chains,omitempty"` // only one filterchains at this time
+	StreamFilters         []Filter            `json:"stream_filters,omitempty"`
+	Inspector             bool                `json:"inspector,omitempty"`
+	ConnectionIdleTimeout *api.DurationConfig `json:"connection_idle_timeout,omitempty"`
 }
 
 type TCPRouteConfig struct {
@@ -64,19 +66,19 @@ type TCPRouteConfig struct {
 
 type HealthCheckFilterConfig struct {
 	PassThrough                 bool               `json:"passthrough,omitempty"`
-	CacheTimeConfig             DurationConfig     `json:"cache_time,omitempty"`
+	CacheTimeConfig             api.DurationConfig `json:"cache_time,omitempty"`
 	Endpoint                    string             `json:"endpoint,omitempty"`
 	ClusterMinHealthyPercentage map[string]float32 `json:"cluster_min_healthy_percentages,omitempty"`
 }
 
 type FaultInjectConfig struct {
-	DelayPercent        uint32         `json:"delay_percent,omitempty"`
-	DelayDurationConfig DurationConfig `json:"delay_duration,omitempty"`
+	DelayPercent        uint32             `json:"delay_percent,omitempty"`
+	DelayDurationConfig api.DurationConfig `json:"delay_duration,omitempty"`
 }
 
 type DelayInjectConfig struct {
-	Percent             uint32         `json:"percentage,omitempty"`
-	DelayDurationConfig DurationConfig `json:"fixed_delay,omitempty"`
+	Percent             uint32             `json:"percentage,omitempty"`
+	DelayDurationConfig api.DurationConfig `json:"fixed_delay,omitempty"`
 }
 
 type RouterConfigurationConfig struct {
@@ -102,7 +104,7 @@ type RouterActionConfig struct {
 	ClusterHeader           string               `json:"cluster_header,omitempty"`
 	WeightedClusters        []WeightedCluster    `json:"weighted_clusters,omitempty"`
 	MetadataConfig          *MetadataConfig      `json:"metadata_match,omitempty"`
-	TimeoutConfig           DurationConfig       `json:"timeout,omitempty"`
+	TimeoutConfig           api.DurationConfig   `json:"timeout,omitempty"`
 	RetryPolicy             *RetryPolicy         `json:"retry_policy,omitempty"`
 	PrefixRewrite           string               `json:"prefix_rewrite,omitempty"`
 	HostRewrite             string               `json:"host_rewrite,omitempty"`
@@ -119,9 +121,9 @@ type ClusterWeightConfig struct {
 }
 
 type RetryPolicyConfig struct {
-	RetryOn            bool           `json:"retry_on,omitempty"`
-	RetryTimeoutConfig DurationConfig `json:"retry_timeout,omitempty"`
-	NumRetries         uint32         `json:"num_retries,omitempty"`
+	RetryOn            bool               `json:"retry_on,omitempty"`
+	RetryTimeoutConfig api.DurationConfig `json:"retry_timeout,omitempty"`
+	NumRetries         uint32             `json:"num_retries,omitempty"`
 }
 
 type FilterChainConfig struct {

@@ -3,6 +3,7 @@ package cluster
 import (
 	"testing"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/types"
 )
@@ -27,10 +28,10 @@ func TestClusterUpdateHosts(t *testing.T) {
 	// init hosts
 	pool := makePool(100)
 	var hosts []types.Host
-	metas := []v2.Metadata{
-		v2.Metadata{"version": "1", "zone": "a"},
-		v2.Metadata{"version": "1", "zone": "b"},
-		v2.Metadata{"version": "2", "zone": "a"},
+	metas := []api.Metadata{
+		api.Metadata{"version": "1", "zone": "a"},
+		api.Metadata{"version": "1", "zone": "b"},
+		api.Metadata{"version": "2", "zone": "a"},
 		nil, // no meta (in any point)
 	}
 	for _, meta := range metas {
@@ -68,11 +69,11 @@ func TestClusterUpdateHosts(t *testing.T) {
 	newHosts = append(newHosts, hosts[10:15]...)
 	newHosts = append(newHosts, hosts[20:]...)
 	newHosts = append(newHosts, pool.MakeHosts(10, metas[2])...)
-	newHosts = append(newHosts, pool.MakeHosts(10, v2.Metadata{
+	newHosts = append(newHosts, pool.MakeHosts(10, api.Metadata{
 		"version": "2",
 		"zone":    "b",
 	})...)
-	newHosts = append(newHosts, pool.MakeHosts(10, v2.Metadata{
+	newHosts = append(newHosts, pool.MakeHosts(10, api.Metadata{
 		"version": "3",
 		"ignore":  "true",
 	})...)
@@ -111,7 +112,7 @@ func TestUpdateHostLabels(t *testing.T) {
 	cluster := _createTestCluster()
 	host := &mockHost{
 		addr: "127.0.0.1:8080",
-		meta: v2.Metadata{
+		meta: api.Metadata{
 			"version": "1",
 		},
 	}
@@ -137,7 +138,7 @@ func TestUpdateHostLabels(t *testing.T) {
 	// update host label
 	newHost := &mockHost{
 		addr: "127.0.0.1:8080",
-		meta: v2.Metadata{
+		meta: api.Metadata{
 			"zone":    "a",
 			"version": "2",
 		},

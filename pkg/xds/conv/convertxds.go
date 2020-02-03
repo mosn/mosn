@@ -39,6 +39,7 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	"mosn.io/mosn/pkg/featuregate"
@@ -367,7 +368,7 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 		Delay: &v2.DelayInject{
 			DelayInjectConfig: v2.DelayInjectConfig{
 				Percent: delayPercent,
-				DelayDurationConfig: v2.DurationConfig{
+				DelayDurationConfig: api.DurationConfig{
 					Duration: fixed_delay,
 				},
 			},
@@ -772,7 +773,7 @@ func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
 	return headerMatchers
 }
 
-func convertMeta(xdsMeta *xdscore.Metadata) v2.Metadata {
+func convertMeta(xdsMeta *xdscore.Metadata) api.Metadata {
 	if xdsMeta == nil {
 		return nil
 	}

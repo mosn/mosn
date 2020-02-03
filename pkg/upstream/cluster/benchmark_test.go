@@ -20,6 +20,7 @@ package cluster
 import (
 	"testing"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -36,7 +37,7 @@ func BenchmarkHostSetRefresh(b *testing.B) {
 		[]string{"zone", "version"},
 		[]string{"zone"},
 	}
-	createHostSet := func(m map[int]v2.Metadata) *hostSet {
+	createHostSet := func(m map[int]api.Metadata) *hostSet {
 		count := 0
 		for cnt := range m {
 			count += cnt
@@ -59,7 +60,7 @@ func BenchmarkHostSetRefresh(b *testing.B) {
 		return hs
 	}
 	b.Run("RefreshSimple100", func(b *testing.B) {
-		config := map[int]v2.Metadata{
+		config := map[int]api.Metadata{
 			100: nil,
 		}
 		hs := createHostSet(config)
@@ -74,7 +75,7 @@ func BenchmarkHostSetRefresh(b *testing.B) {
 		}
 	})
 	b.Run("RefreshSimple1000", func(b *testing.B) {
-		config := map[int]v2.Metadata{
+		config := map[int]api.Metadata{
 			1000: nil,
 		}
 		hs := createHostSet(config)
@@ -89,17 +90,17 @@ func BenchmarkHostSetRefresh(b *testing.B) {
 		}
 	})
 	b.Run("RefreshMeta1000", func(b *testing.B) {
-		config := map[int]v2.Metadata{
+		config := map[int]api.Metadata{
 			100: nil,
-			300: v2.Metadata{
+			300: api.Metadata{
 				"zone":    "a",
 				"version": "1.0",
 			},
-			400: v2.Metadata{
+			400: api.Metadata{
 				"zone":    "a",
 				"version": "2.0",
 			},
-			200: v2.Metadata{
+			200: api.Metadata{
 				"zone": "b",
 			},
 		}
@@ -121,7 +122,7 @@ func BenchmarkHostConfig(b *testing.B) {
 		hostname:      "Testhost",
 		addressString: "127.0.0.1:8080",
 		weight:        100,
-		metaData: v2.Metadata{
+		metaData: api.Metadata{
 			"zone":    "a",
 			"version": "1",
 		},
@@ -138,10 +139,10 @@ func BenchmarkUpdateClusterHosts(b *testing.B) {
 	// assume cluster have 1000 hosts
 	pool := makePool(1010)
 	hosts := make([]types.Host, 0, 1000)
-	metas := []v2.Metadata{
-		v2.Metadata{"version": "1", "zone": "a"},
-		v2.Metadata{"version": "1", "zone": "b"},
-		v2.Metadata{"version": "2", "zone": "a"},
+	metas := []api.Metadata{
+		api.Metadata{"version": "1", "zone": "a"},
+		api.Metadata{"version": "1", "zone": "b"},
+		api.Metadata{"version": "2", "zone": "a"},
 	}
 	for _, meta := range metas {
 		hosts = append(hosts, pool.MakeHosts(300, meta)...)
@@ -153,7 +154,7 @@ func BenchmarkUpdateClusterHosts(b *testing.B) {
 	for idx := range metas {
 		newHosts = append(newHosts, hosts[idx:idx*300+5]...)
 	}
-	newHosts = append(newHosts, pool.MakeHosts(10, v2.Metadata{
+	newHosts = append(newHosts, pool.MakeHosts(10, api.Metadata{
 		"version": "3",
 		"zone":    "b",
 	})...)
@@ -173,9 +174,9 @@ func BencmarkUpdateClusterHostsLabel(b *testing.B) {
 	cluster := _createTestCluster()
 	pool := makePool(1000)
 	hosts := make([]types.Host, 0, 1000)
-	metas := []v2.Metadata{
-		v2.Metadata{"zone": "a"},
-		v2.Metadata{"zone": "b"},
+	metas := []api.Metadata{
+		api.Metadata{"zone": "a"},
+		api.Metadata{"zone": "b"},
 	}
 	for _, meta := range metas {
 		hosts = append(hosts, pool.MakeHosts(500, meta)...)
@@ -192,7 +193,7 @@ func BencmarkUpdateClusterHostsLabel(b *testing.B) {
 		}
 		newHost := &mockHost{
 			addr: host.AddressString(),
-			meta: v2.Metadata{
+			meta: api.Metadata{
 				"version": ver,
 				"zone":    "a",
 			},
@@ -213,10 +214,10 @@ func BenchmarkClusterManagerRemoveHosts(b *testing.B) {
 	_createClusterManager()
 	pool := makePool(1200)
 	hostsConfig := make([]v2.Host, 0, 1200)
-	metas := []v2.Metadata{
-		v2.Metadata{"version": "1", "zone": "a"},
-		v2.Metadata{"version": "1", "zone": "b"},
-		v2.Metadata{"version": "2", "zone": "a"},
+	metas := []api.Metadata{
+		api.Metadata{"version": "1", "zone": "a"},
+		api.Metadata{"version": "1", "zone": "b"},
+		api.Metadata{"version": "2", "zone": "a"},
 		nil,
 	}
 	for _, meta := range metas {
@@ -252,10 +253,10 @@ func BenchmarkClusterManagerAppendHosts(b *testing.B) {
 	_createClusterManager()
 	pool := makePool(1240)
 	hostsConfig := make([]v2.Host, 0, 1200)
-	metas := []v2.Metadata{
-		v2.Metadata{"version": "1", "zone": "a"},
-		v2.Metadata{"version": "1", "zone": "b"},
-		v2.Metadata{"version": "2", "zone": "a"},
+	metas := []api.Metadata{
+		api.Metadata{"version": "1", "zone": "a"},
+		api.Metadata{"version": "1", "zone": "b"},
+		api.Metadata{"version": "2", "zone": "a"},
 		nil,
 	}
 	for _, meta := range metas {
@@ -330,11 +331,11 @@ func BenchmarkSubsetLB(b *testing.B) {
 	}
 	pool := makePool(10)
 	var hosts []types.Host
-	hosts = append(hosts, pool.MakeHosts(5, v2.Metadata{
+	hosts = append(hosts, pool.MakeHosts(5, api.Metadata{
 		"zone":    "RZ41A",
 		"version": "1.0.0",
 	})...)
-	hosts = append(hosts, pool.MakeHosts(5, v2.Metadata{
+	hosts = append(hosts, pool.MakeHosts(5, api.Metadata{
 		"zone":    "RZ41A",
 		"version": "2.0.0",
 	})...)

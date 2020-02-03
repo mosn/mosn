@@ -15,41 +15,35 @@
  * limitations under the License.
  */
 
-package log
+package buffer
 
 import (
-	"testing"
+	"context"
+
+	"mosn.io/pkg/buffer"
 )
 
-func BenchmarkWrapper(b *testing.B) {
-	lg := &errorLogger{
-		Logger: &Logger{
-			output: "stdout",
-			roller: DefaultRoller(),
-		},
-		level: ERROR,
-	}
-	for n := 0; n < b.N; n++ {
-		lg.Debugf("say something:%s%s", "hello", expr("world", "!"))
-	}
+var ins = ByteBufferCtx{}
 
+func init() {
+	RegisterBuffer(&ins)
 }
 
-func BenchmarkDirect(b *testing.B) {
-	lg := &errorLogger{
-		Logger: &Logger{
-			output: "stdout",
-			roller: DefaultRoller(),
-		},
-		level: ERROR,
-	}
-	for n := 0; n < b.N; n++ {
-		if lg.level >= DEBUG {
-			lg.Debugf("say something:%s%s", "hello", expr("world", "!"))
-		}
-	}
+type ByteBufferCtx struct {
+	TempBufferCtx
 }
 
-func expr(left, right string) string {
-	return left + right
+func (ctx ByteBufferCtx) New() interface{} {
+	return buffer.NewByteBufferPoolContainer()
+}
+
+func (ctx ByteBufferCtx) Reset(i interface{}) {
+	p := i.(*buffer.ByteBufferPoolContainer)
+	p.Reset()
+}
+
+// GetBytesByContext returns []byte from byteBufferPool by context
+func GetBytesByContext(context context.Context, size int) *[]byte {
+	p := PoolContext(context).Find(&ins, nil).(*buffer.ByteBufferPoolContainer)
+	return p.Take(size)
 }

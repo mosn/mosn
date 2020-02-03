@@ -20,26 +20,25 @@ package tcpproxy
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/filter"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	filter.RegisterNetwork(v2.TCP_PROXY, CreateTCPProxyFactory)
+	api.RegisterNetwork(v2.TCP_PROXY, CreateTCPProxyFactory)
 }
 
 type tcpProxyFilterConfigFactory struct {
 	Proxy *v2.TCPProxy
 }
 
-func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
-	rf := NewProxy(context, f.Proxy, clusterManager)
+func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
+	rf := NewProxy(context, f.Proxy)
 	callbacks.AddReadFilter(rf)
 }
 
-func CreateTCPProxyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+func CreateTCPProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
 	p, err := config.ParseTCPProxy(conf)
 	if err != nil {
 		return nil, err

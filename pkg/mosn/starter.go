@@ -21,6 +21,7 @@ import (
 	"net"
 	"sync"
 
+	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/api/v2"
@@ -37,8 +38,8 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/utils"
 	"mosn.io/mosn/pkg/xds"
+	"mosn.io/pkg/utils"
 )
 
 // Mosn class which wrapper server
@@ -65,7 +66,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	//get inherit fds
 	inheritListeners, reconfigure, err := server.GetInheritListeners()
 	if err != nil {
-		log.StartLogger.Fatalln("[mosn] [NewMosn] getInheritListeners failed, exit")
+		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
 	}
 	if reconfigure != nil {
 		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
@@ -102,7 +103,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	} else {
 		if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
 			if !c.ClusterManager.AutoDiscovery {
-				log.StartLogger.Fatalln("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
+				log.StartLogger.Fatalf("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
 			}
 
 		}
@@ -111,9 +112,9 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	srvNum := len(c.Servers)
 
 	if srvNum == 0 {
-		log.StartLogger.Fatalln("[mosn] [NewMosn] no server found")
+		log.StartLogger.Fatalf("[mosn] [NewMosn] no server found")
 	} else if srvNum > 1 {
-		log.StartLogger.Fatalln("[mosn] [NewMosn] multiple server not supported yet, got ", srvNum)
+		log.StartLogger.Fatalf("[mosn] [NewMosn] multiple server not supported yet, got %d", srvNum)
 	}
 
 	//cluster manager filter
@@ -151,7 +152,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 			//add listener
 			if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
-				log.StartLogger.Fatalln("[mosn] [NewMosn] no listener found")
+				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
 			}
 
 			for idx, _ := range serverConfig.Listeners {
@@ -163,8 +164,8 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 					m.routerManager.AddOrUpdateRouters(routerConfig)
 				}
 
-				var nfcf []types.NetworkFilterChainFactory
-				var sfcf []types.StreamFilterChainFactory
+				var nfcf []api.NetworkFilterChainFactory
+				var sfcf []api.StreamFilterChainFactory
 
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
 				// network filters
@@ -203,7 +204,7 @@ func (m *Mosn) beforeStart() {
 
 		// notify old mosn to transfer connection
 		if _, err := m.reconfigure.Write([]byte{0}); err != nil {
-			log.StartLogger.Fatalln("[mosn] [NewMosn] graceful failed, exit")
+			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
 		}
 
 		m.reconfigure.Close()

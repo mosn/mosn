@@ -21,6 +21,7 @@ import (
 	"regexp"
 	"sort"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -34,7 +35,7 @@ type configUtility struct {
 }
 
 // types.MatchHeaders
-func (cu *configUtility) MatchHeaders(requestHeaders types.HeaderMap, configHeaders []*types.HeaderData) bool {
+func (cu *configUtility) MatchHeaders(requestHeaders api.HeaderMap, configHeaders []*types.HeaderData) bool {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match header", requestHeaders)
 	}
@@ -123,17 +124,17 @@ func NewMetadataMatchCriteriaImpl(metadataMatches map[string]string) *MetadataMa
 // MetadataMatchCriteriaImpl class wrapper MatchCriteriaArray
 // which contains MatchCriteria in dictionary sorted
 type MetadataMatchCriteriaImpl struct {
-	MatchCriteriaArray []types.MetadataMatchCriterion
+	MatchCriteriaArray []api.MetadataMatchCriterion
 }
 
 // MetadataMatchCriteria
-func (mmcti *MetadataMatchCriteriaImpl) MetadataMatchCriteria() []types.MetadataMatchCriterion {
+func (mmcti *MetadataMatchCriteriaImpl) MetadataMatchCriteria() []api.MetadataMatchCriterion {
 	return mmcti.MatchCriteriaArray
 }
 
 // MergeMatchCriteria
 // No usage currently
-func (mmcti *MetadataMatchCriteriaImpl) MergeMatchCriteria(metadataMatches map[string]interface{}) types.MetadataMatchCriteria {
+func (mmcti *MetadataMatchCriteriaImpl) MergeMatchCriteria(metadataMatches map[string]interface{}) api.MetadataMatchCriteria {
 	return nil
 }
 
@@ -154,7 +155,7 @@ func (mmcti *MetadataMatchCriteriaImpl) Swap(i, j int) {
 func (mmcti *MetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *MetadataMatchCriteriaImpl,
 	metadataMatches map[string]string) {
 
-	var mdMatchCriteria []types.MetadataMatchCriterion
+	var mdMatchCriteria []api.MetadataMatchCriterion
 	// used to record key and its index for o(1) searching
 	var existingMap = make(map[string]uint32)
 

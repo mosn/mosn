@@ -23,6 +23,7 @@ import (
 	"strings"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/types"
 )
@@ -40,7 +41,7 @@ var (
 )
 
 type headerFormatter interface {
-	format(requestInfo types.RequestInfo) string
+	format(requestInfo api.RequestInfo) string
 	append() bool
 }
 
@@ -72,12 +73,12 @@ type weightedClusterEntry struct {
 }
 
 type Matchable interface {
-	Match(headers types.HeaderMap, randomValue uint64) types.Route
+	Match(headers api.HeaderMap, randomValue uint64) api.Route
 }
 
 type RouteBase interface {
-	types.Route
-	types.PathMatchCriterion
+	api.Route
+	api.PathMatchCriterion
 	Matchable
 }
 
@@ -87,11 +88,11 @@ type policy struct {
 	shadowPolicy *shadowPolicyImpl //TODO: not implement yet
 }
 
-func (p *policy) RetryPolicy() types.RetryPolicy {
+func (p *policy) RetryPolicy() api.RetryPolicy {
 	return p.retryPolicy
 }
 
-func (p *policy) ShadowPolicy() types.ShadowPolicy {
+func (p *policy) ShadowPolicy() api.ShadowPolicy {
 	return p.shadowPolicy
 }
 
@@ -139,7 +140,7 @@ func (spi *shadowPolicyImpl) RuntimeKey() string {
 type RouterRuleFactory func(base *RouteRuleImplBase, header []v2.HeaderMatcher) RouteBase
 
 // MakeHandlerChain creates a RouteHandlerChain, should not returns a nil handler chain, or the stream filters will be ignored
-type MakeHandlerChain func(context.Context, types.HeaderMap, types.Routers, types.ClusterManager) *RouteHandlerChain
+type MakeHandlerChain func(context.Context, api.HeaderMap, types.Routers, types.ClusterManager) *RouteHandlerChain
 
 // The reigister order, is a wrapper of registered factory
 // We register a factory with order, a new factory can replace old registered factory only if the register order

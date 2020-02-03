@@ -22,9 +22,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 type faultInjector struct {
@@ -32,32 +33,32 @@ type faultInjector struct {
 	delayPercent  uint32
 	delayDuration uint64
 	delaying      uint32
-	readCallbacks types.ReadFilterCallbacks
+	readCallbacks api.ReadFilterCallbacks
 }
 
 // NewFaultInjector makes a fault injector as types.ReadFilter
-func NewFaultInjector(config *v2.FaultInject) types.ReadFilter {
+func NewFaultInjector(config *v2.FaultInject) api.ReadFilter {
 	return &faultInjector{
 		delayPercent:  config.DelayPercent,
 		delayDuration: config.DelayDuration,
 	}
 }
 
-func (fi *faultInjector) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (fi *faultInjector) OnData(buffer types.IoBuffer) api.FilterStatus {
 	fi.tryInjectDelay()
 
 	if atomic.LoadUint32(&fi.delaying) > 0 {
-		return types.Stop
+		return api.Stop
 	}
 
-	return types.Continue
+	return api.Continue
 }
 
-func (fi *faultInjector) OnNewConnection() types.FilterStatus {
-	return types.Continue
+func (fi *faultInjector) OnNewConnection() api.FilterStatus {
+	return api.Continue
 }
 
-func (fi *faultInjector) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
+func (fi *faultInjector) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 	fi.readCallbacks = cb
 }
 

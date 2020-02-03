@@ -9,11 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 const testServerName = "test_server"
@@ -84,7 +85,7 @@ func TestLDS(t *testing.T) {
 	name := "listener1"
 	listenerConfig := baseListenerConfig(addrStr, name)
 	// set a network filter do nothing, just for keep the connection not close
-	nfcfs := []types.NetworkFilterChainFactory{
+	nfcfs := []api.NetworkFilterChainFactory{
 		&mockNetworkFilterFactory{},
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
@@ -194,7 +195,7 @@ func TestUpdateTLS(t *testing.T) {
 	name := "listener2"
 	listenerConfig := baseListenerConfig(addrStr, name)
 	// set a network filter do nothing, just for keep the connection not close
-	nfcfs := []types.NetworkFilterChainFactory{
+	nfcfs := []api.NetworkFilterChainFactory{
 		&mockNetworkFilterFactory{},
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
@@ -247,7 +248,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	name := "listener3"
 	// bas listener config have no idle timeout config, set the default value
 	listenerConfig := baseListenerConfig(addrStr, name)
-	nfcfs := []types.NetworkFilterChainFactory{
+	nfcfs := []api.NetworkFilterChainFactory{
 		&mockNetworkFilterFactory{},
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
@@ -288,7 +289,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	// Update idle timeout
 	// 1. update as no idle timeout
 	noIdle := baseListenerConfig(addrStr, name)
-	noIdle.ConnectionIdleTimeout = &v2.DurationConfig{
+	noIdle.ConnectionIdleTimeout = &api.DurationConfig{
 		Duration: 0,
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, noIdle, nil, nil); err != nil {
@@ -318,7 +319,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	}()
 	// 2. update idle timeout with config
 	cfgIdle := baseListenerConfig(addrStr, name)
-	cfgIdle.ConnectionIdleTimeout = &v2.DurationConfig{
+	cfgIdle.ConnectionIdleTimeout = &api.DurationConfig{
 		Duration: 5 * time.Second,
 	}
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfgIdle, nil, nil); err != nil {

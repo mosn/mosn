@@ -18,14 +18,15 @@
 package cluster
 
 import (
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
 )
 
-func newHostStats(clustername string, addr string) types.HostStats {
+func newHostStats(clustername string, addr string) api.HostStats {
 	s := metrics.NewHostStats(clustername, addr)
 
-	return types.HostStats{
+	return api.HostStats{
 		UpstreamConnectionTotal:                        s.Counter(metrics.UpstreamConnectionTotal),
 		UpstreamConnectionClose:                        s.Counter(metrics.UpstreamConnectionClose),
 		UpstreamConnectionActive:                       s.Counter(metrics.UpstreamConnectionActive),

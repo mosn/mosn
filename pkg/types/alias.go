@@ -15,36 +15,22 @@
  * limitations under the License.
  */
 
-package utils
+package types
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
-	"testing"
-	"time"
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
 )
 
-func TestSetHijackStdPipeline(t *testing.T) {
-	// init
-	stderrFile := "/tmp/test_stderr"
-	os.Remove(stderrFile)
-	// call, test std error only
-	SetHijackStdPipeline(stderrFile, false, true)
-	time.Sleep(time.Second) // wait goroutine run
-	fmt.Fprintf(os.Stderr, "test stderr")
-	// verify
-	if !verifyFile(stderrFile, "test stderr") {
-		t.Error("stderr hijack failed")
-	}
-	ResetHjiackStdPipeline()
-	fmt.Fprintf(os.Stderr, "repaired\n")
-}
+// use alias to keep compatiable
+type IoBuffer = buffer.IoBuffer
 
-func verifyFile(p string, data string) bool {
-	b, err := ioutil.ReadFile(p)
-	if err != nil {
-		return false
-	}
-	return string(b) == data
-}
+type Protocol = api.Protocol
+
+type HeaderMap = api.HeaderMap
+
+type HostInfo = api.HostInfo
+
+type RequestInfo = api.RequestInfo
+
+type Route = api.Route

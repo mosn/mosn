@@ -22,13 +22,15 @@ import (
 	"runtime"
 	"time"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/log"
+	mlog "mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/log"
 )
 
 // currently, only one server supported
@@ -45,7 +47,6 @@ var servers []*server
 
 type server struct {
 	serverName string
-	logger     log.ErrorLogger
 	stopChan   chan struct{}
 	handler    types.ConnectionHandler
 }
@@ -71,7 +72,7 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 
 		network.UseNetpollMode = config.UseNetpollMode
 		if config.UseNetpollMode {
-			log.StartLogger.Infof("[server] [reconfigure] [new server] Netpoll mode enabled.")
+			log.DefaultLogger.Infof("[server] [reconfigure] [new server] Netpoll mode enabled.")
 		}
 	}
 
@@ -81,7 +82,6 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 
 	server := &server{
 		serverName: config.ServerName,
-		logger:     log.DefaultLogger,
 		stopChan:   make(chan struct{}),
 		handler:    NewHandler(cmFilter, clMng),
 	}
@@ -93,8 +93,8 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	return server
 }
 
-func (srv *server) AddListener(lc *v2.Listener, networkFiltersFactories []types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error) {
+func (srv *server) AddListener(lc *v2.Listener, networkFiltersFactories []api.NetworkFilterChainFactory,
+	streamFiltersFactories []api.StreamFilterChainFactory) (types.ListenerEventListener, error) {
 
 	return srv.handler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
 }
@@ -184,12 +184,12 @@ func InitDefaultLogger(config *Config) {
 	if config.LogRoller != "" {
 		err := log.InitGlobalRoller(config.LogRoller)
 		if err != nil {
-			log.StartLogger.Fatalln("[server] [init] initialize default logger Roller failed : ", err)
+			log.DefaultLogger.Fatalf("[server] [init] initialize default logger Roller failed : %v", err)
 		}
 	}
 
-	err := log.InitDefaultLogger(logPath, logLevel)
+	err := mlog.InitDefaultLogger(logPath, logLevel)
 	if err != nil {
-		log.StartLogger.Fatalln("[server] [init] initialize default logger failed : ", err)
+		mlog.StartLogger.Fatalf("[server] [init] initialize default logger failed : %v", err)
 	}
 }

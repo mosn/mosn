@@ -27,7 +27,7 @@ import (
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 var lock = new(sync.Mutex)
@@ -92,7 +92,7 @@ func StartService(inheritListeners []net.Listener) error {
 		s := srv
 		saddr, err = net.ResolveTCPAddr("tcp", s.Addr)
 		if err != nil {
-			log.StartLogger.Fatalln("[admin store] [start service] [inheritListener] not valid:", s.Addr)
+			log.StartLogger.Fatalf("[admin store] [start service] [inheritListener] not valid: %v", s.Addr)
 		}
 
 		for i, l := range inheritListeners {
@@ -101,7 +101,7 @@ func StartService(inheritListeners []net.Listener) error {
 			}
 			addr, err := net.ResolveTCPAddr("tcp", l.Addr().String())
 			if err != nil {
-				log.StartLogger.Fatalln("[admin store] [start service] [inheritListener] not valid: ", l.Addr().String())
+				log.StartLogger.Fatalf("[admin store] [start service] [inheritListener] not valid: %v", l.Addr().String())
 			}
 
 			if addr.Port == saddr.Port {

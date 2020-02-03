@@ -24,7 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	networkbuffer "mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
+	mbuffer "mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -32,6 +33,7 @@ import (
 	_ "mosn.io/mosn/pkg/protocol/rpc/xprotocol/dubbo"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // StreamDirection 1: server stream 0: client stream
@@ -52,12 +54,12 @@ type streamConnFactory struct{}
 
 // CreateClientStream upstream create
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
-	clientCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
+	clientCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newStreamConnection(context, connection, clientCallbacks, nil)
 }
 
 // CreateServerStream downstream create
-func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
+func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newStreamConnection(context, connection, nil, serverCallbacks)
 }
@@ -81,8 +83,8 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 // types.ServerStreamConnection
 type streamConnection struct {
 	context                             context.Context
-	protocol                            types.Protocol
-	connection                          types.Connection
+	protocol                            api.Protocol
+	connection                          api.Connection
 	streamIDXprotocolCount              uint64
 	activeStream                        streamMap
 	codec                               xprotocol.Multiplexing
@@ -90,7 +92,7 @@ type streamConnection struct {
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 }
 
-func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
+func newStreamConnection(ctx context.Context, connection api.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	subProtocolName := xprotocol.SubProtocol(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
 	log.DefaultLogger.Tracef("xprotocol subprotocol config name = %v", subProtocolName)
@@ -111,16 +113,16 @@ func newStreamConnection(ctx context.Context, connection types.Connection, clien
 // serverStreamConnection receive request
 // clientStreamConnection receive response
 // types.StreamConnection
-func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
-	log.DefaultLogger.Tracef("stream connection dispatch data bytes = %v", buffer.Bytes())
-	log.DefaultLogger.Tracef("stream connection dispatch data string = %v", buffer.String())
+func (conn *streamConnection) Dispatch(buf buffer.IoBuffer) {
+	log.DefaultLogger.Tracef("stream connection dispatch data bytes = %v", buf.Bytes())
+	log.DefaultLogger.Tracef("stream connection dispatch data string = %v", buf.String())
 
 	// get sub protocol codec
-	requestList := conn.codec.SplitFrame(buffer.Bytes())
+	requestList := conn.codec.SplitFrame(buf.Bytes())
 	for _, request := range requestList {
 
 		// stream-level context
-		ctx := networkbuffer.NewBufferPoolContext(mosnctx.Clone(conn.context))
+		ctx := mbuffer.NewBufferPoolContext(mosnctx.Clone(conn.context))
 
 		headers := make(map[string]string)
 		// support dynamic route
@@ -163,15 +165,15 @@ func (conn *streamConnection) Dispatch(buffer types.IoBuffer) {
 			log.DefaultLogger.Tracef("xprotocol handle tracing ,serviceName = %v , methodName = %v", serviceName, methodName)
 		}
 
-		reqBuf := networkbuffer.NewIoBufferBytes(request)
+		reqBuf := buffer.NewIoBufferBytes(request)
 		log.DefaultLogger.Tracef("after Dispatch on decode header and data")
 		conn.OnReceive(ctx, streamID, protocol.CommonHeader(headers), reqBuf)
-		buffer.Drain(requestLen)
+		buf.Drain(requestLen)
 	}
 }
 
 // Protocol return xprotocol
-func (conn *streamConnection) Protocol() types.Protocol {
+func (conn *streamConnection) Protocol() api.Protocol {
 	return conn.protocol
 }
 
@@ -209,7 +211,7 @@ func (conn *streamConnection) NewStream(ctx context.Context, responseDecoder typ
 	return &stream
 }
 
-func (conn *streamConnection) OnReceive(ctx context.Context, streamID string, headers types.HeaderMap, data types.IoBuffer) types.FilterStatus {
+func (conn *streamConnection) OnReceive(ctx context.Context, streamID string, headers types.HeaderMap, data buffer.IoBuffer) api.FilterStatus {
 	log.DefaultLogger.Tracef("xprotocol stream on decode header")
 	if conn.serverStreamConnectionEventListener != nil {
 		log.DefaultLogger.Tracef("xprotocol stream on new stream detected invoked")
@@ -224,7 +226,7 @@ func (conn *streamConnection) OnReceive(ctx context.Context, streamID string, he
 			stream.connection.activeStream.Remove(stream.streamID)
 		}
 	}
-	return types.Stop
+	return api.Stop
 }
 
 func (conn *streamConnection) onNewStreamDetected(ctx context.Context, streamID string, headers types.HeaderMap) {
@@ -288,7 +290,7 @@ func (s *stream) AppendHeaders(context context.Context, headers types.HeaderMap,
 func (s *stream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	// replace request id
 	newData := s.connection.codec.SetStreamID(data.Bytes(), s.streamID)
-	s.encodedData = networkbuffer.NewIoBufferBytes(newData)
+	s.encodedData = buffer.NewIoBufferBytes(newData)
 
 	if endStream {
 		s.endStream()

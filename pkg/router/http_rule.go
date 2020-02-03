@@ -21,9 +21,9 @@ import (
 	"regexp"
 	"strings"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
 )
 
 type PathRouteRuleImpl struct {
@@ -31,11 +31,11 @@ type PathRouteRuleImpl struct {
 	path string
 }
 
-func (prri *PathRouteRuleImpl) PathMatchCriterion() types.PathMatchCriterion {
+func (prri *PathRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
 	return prri
 }
 
-func (prri *PathRouteRuleImpl) RouteRule() types.RouteRule {
+func (prri *PathRouteRuleImpl) RouteRule() api.RouteRule {
 	return prri
 }
 
@@ -44,18 +44,18 @@ func (prri *PathRouteRuleImpl) Matcher() string {
 	return prri.path
 }
 
-func (prri *PathRouteRuleImpl) MatchType() types.PathMatchType {
-	return types.Exact
+func (prri *PathRouteRuleImpl) MatchType() api.PathMatchType {
+	return api.Exact
 }
 
 // types.RouteRule
 // override Base
-func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 	prri.finalizeRequestHeaders(headers, requestInfo)
 	prri.finalizePathHeader(headers, prri.path)
 }
 
-func (prri *PathRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
+func (prri *PathRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
 	if prri.matchRoute(headers, randomValue) {
 		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
 			// TODO: config to support case sensitive
@@ -75,11 +75,11 @@ type PrefixRouteRuleImpl struct {
 	prefix string
 }
 
-func (prei *PrefixRouteRuleImpl) PathMatchCriterion() types.PathMatchCriterion {
+func (prei *PrefixRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
 	return prei
 }
 
-func (prei *PrefixRouteRuleImpl) RouteRule() types.RouteRule {
+func (prei *PrefixRouteRuleImpl) RouteRule() api.RouteRule {
 	return prei
 }
 
@@ -88,18 +88,18 @@ func (prei *PrefixRouteRuleImpl) Matcher() string {
 	return prei.prefix
 }
 
-func (prei *PrefixRouteRuleImpl) MatchType() types.PathMatchType {
-	return types.Prefix
+func (prei *PrefixRouteRuleImpl) MatchType() api.PathMatchType {
+	return api.Prefix
 }
 
 // types.RouteRule
 // override Base
-func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 	prei.finalizeRequestHeaders(headers, requestInfo)
 	prei.finalizePathHeader(headers, prei.prefix)
 }
 
-func (prei *PrefixRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
+func (prei *PrefixRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
 	if prei.matchRoute(headers, randomValue) {
 		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
@@ -118,11 +118,11 @@ type RegexRouteRuleImpl struct {
 	regexPattern *regexp.Regexp
 }
 
-func (rrei *RegexRouteRuleImpl) PathMatchCriterion() types.PathMatchCriterion {
+func (rrei *RegexRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
 	return rrei
 }
 
-func (rrei *RegexRouteRuleImpl) RouteRule() types.RouteRule {
+func (rrei *RegexRouteRuleImpl) RouteRule() api.RouteRule {
 	return rrei
 }
 
@@ -130,16 +130,16 @@ func (rrei *RegexRouteRuleImpl) Matcher() string {
 	return rrei.regexStr
 }
 
-func (rrei *RegexRouteRuleImpl) MatchType() types.PathMatchType {
-	return types.Regex
+func (rrei *RegexRouteRuleImpl) MatchType() api.PathMatchType {
+	return api.Regex
 }
 
-func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rrei.finalizeRequestHeaders(headers, requestInfo)
 	rrei.finalizePathHeader(headers, rrei.regexStr)
 }
 
-func (rrei *RegexRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
+func (rrei *RegexRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
 	if rrei.matchRoute(headers, randomValue) {
 		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
 			if rrei.regexPattern.MatchString(headerPathValue) {

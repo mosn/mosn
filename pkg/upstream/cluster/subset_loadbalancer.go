@@ -21,6 +21,7 @@ import (
 	"reflect"
 	"sort"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -69,7 +70,7 @@ func (sslb *subsetLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.
 	return sslb.fallbackSubset.LoadBalancer().ChooseHost(ctx)
 }
 
-func (sslb *subsetLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+func (sslb *subsetLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	if metadata != nil && !reflect.ValueOf(metadata).IsNil() {
 		matchCriteria := metadata.MetadataMatchCriteria()
 		entry := sslb.findSubset(matchCriteria)
@@ -79,7 +80,7 @@ func (sslb *subsetLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriter
 	return len(sslb.hostSet.Hosts()) > 0
 }
 
-func (sslb *subsetLoadBalancer) HostNum(metadata types.MetadataMatchCriteria) int {
+func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	if metadata != nil && !reflect.ValueOf(metadata).IsNil() {
 		matchCriteria := metadata.MetadataMatchCriteria()
 		entry := sslb.findSubset(matchCriteria)
@@ -158,7 +159,7 @@ func (sslb *subsetLoadBalancer) createFallbackSubset(policy types.FallBackPolicy
 	}
 }
 
-func (sslb *subsetLoadBalancer) findSubset(matchCriteria []types.MetadataMatchCriterion) types.LBSubsetEntry {
+func (sslb *subsetLoadBalancer) findSubset(matchCriteria []api.MetadataMatchCriterion) types.LBSubsetEntry {
 	subSets := sslb.subSets
 	for i, mcCriterion := range matchCriteria {
 		vsMap, ok := subSets[mcCriterion.MetadataKeyName()]
@@ -208,7 +209,7 @@ func (sslb *subsetLoadBalancer) findOrCreateSubset(subsets types.LbSubsetMap, kv
 }
 
 // if subsetKeys are all contained in the host metadata
-func ExtractSubsetMetadata(subsetKeys []string, metadata v2.Metadata) types.SubsetMetadata {
+func ExtractSubsetMetadata(subsetKeys []string, metadata api.Metadata) types.SubsetMetadata {
 	var kvs types.SubsetMetadata
 	for _, key := range subsetKeys {
 		value, ok := metadata[key]

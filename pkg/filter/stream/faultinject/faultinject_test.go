@@ -23,9 +23,9 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
 )
 
 func TestMatchUpstream(t *testing.T) {
@@ -209,7 +209,7 @@ func TestFaultInject_AllWithDelay(t *testing.T) {
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
 	start := time.Now()
-	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterStop {
+	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != api.StreamFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -243,7 +243,7 @@ func TestFaultInject_AllAbortWithoutDelay(t *testing.T) {
 	}
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
-	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterStop {
+	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != api.StreamFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -279,7 +279,7 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
 	start := time.Now()
-	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterContinue {
+	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != api.StreamFilterContinue {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -296,7 +296,7 @@ func TestFaultInject_MatchedUpstream(t *testing.T) {
 	}
 	f2 := NewFilter(context.Background(), cfg)
 	f2.SetReceiveFilterHandler(notmatched)
-	if status := f2.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterContinue {
+	if status := f2.OnReceive(context.TODO(), nil, nil, nil); status != api.StreamFilterContinue {
 		t.Error("unmatched upstream not returns continue")
 	}
 
@@ -330,7 +330,7 @@ func TestFaultInject_MatchedHeader(t *testing.T) {
 		"User": "Alice",
 	})
 	start := time.Now()
-	if status := f.OnReceive(context.TODO(), headers, nil, nil); status != types.StreamFilterContinue {
+	if status := f.OnReceive(context.TODO(), headers, nil, nil); status != api.StreamFilterContinue {
 		t.Error("fault inject should matched")
 		return
 	}
@@ -343,7 +343,7 @@ func TestFaultInject_MatchedHeader(t *testing.T) {
 	})
 	f2 := NewFilter(context.Background(), cfg)
 	f2.SetReceiveFilterHandler(cb)
-	if status := f2.OnReceive(context.TODO(), notmatched, nil, nil); status != types.StreamFilterContinue {
+	if status := f2.OnReceive(context.TODO(), notmatched, nil, nil); status != api.StreamFilterContinue {
 		t.Error("unmatched headers not return continue")
 	}
 }
@@ -373,7 +373,7 @@ func TestFaultInject_RouteConfigOverride(t *testing.T) {
 	}
 	f := NewFilter(context.Background(), cfg)
 	f.SetReceiveFilterHandler(cb)
-	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != types.StreamFilterStop {
+	if status := f.OnReceive(context.TODO(), nil, nil, nil); status != api.StreamFilterStop {
 		t.Error("fault inject should matched")
 		return
 	}

@@ -20,10 +20,11 @@ package server
 import (
 	"fmt"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 var listenerAdapterInstance *ListenerAdapter
@@ -88,7 +89,7 @@ func ResetAdapter() {
 // Add and start listener when listener doesn't exist
 // Update listener when listener already exist
 func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Listener,
-	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) error {
+	networkFiltersFactories []api.NetworkFilterChainFactory, streamFiltersFactories []api.StreamFilterChainFactory) error {
 
 	connHandler := adapter.findHandler(serverName)
 	if connHandler == nil {

@@ -22,6 +22,7 @@ import (
 	"sort"
 	"strings"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -41,7 +42,7 @@ type routersImpl struct {
 	virtualHosts []types.VirtualHost
 }
 
-func (ri *routersImpl) MatchRoute(headers types.HeaderMap, randomValue uint64) types.Route {
+func (ri *routersImpl) MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
 	}
@@ -61,7 +62,7 @@ func (ri *routersImpl) MatchRoute(headers types.HeaderMap, randomValue uint64) t
 	return router
 }
 
-func (ri *routersImpl) MatchAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
+func (ri *routersImpl) MatchAllRoutes(headers api.HeaderMap, randomValue uint64) []api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
 	}
@@ -81,7 +82,7 @@ func (ri *routersImpl) MatchAllRoutes(headers types.HeaderMap, randomValue uint6
 	return routers
 }
 
-func (ri *routersImpl) MatchRouteFromHeaderKV(headers types.HeaderMap, key string, value string) types.Route {
+func (ri *routersImpl) MatchRouteFromHeaderKV(headers api.HeaderMap, key string, value string) api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
 	}
@@ -167,7 +168,7 @@ func (ri *routersImpl) findWildcardVirtualHost(host string) int {
 	return -1
 }
 
-func (ri *routersImpl) findVirtualHost(headers types.HeaderMap) types.VirtualHost {
+func (ri *routersImpl) findVirtualHost(headers api.HeaderMap) types.VirtualHost {
 	// optimize, if there is only a default, use it
 	if len(ri.virtualHostsIndex) == 0 &&
 		len(ri.wildcardVirtualHostSuffixesIndex) == 0 &&

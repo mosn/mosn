@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/log"
 
 	mosnctx "mosn.io/mosn/pkg/context"
 )
@@ -35,7 +36,7 @@ import (
 func TestProxyLog(t *testing.T) {
 	logName := "/tmp/mosn/proxy_log_print.log"
 	os.Remove(logName)
-	lg, err := CreateDefaultProxyLogger(logName, RAW)
+	lg, err := CreateDefaultContextLogger(logName, log.RAW)
 	if err != nil {
 		t.Fatal("create logger failed")
 	}
@@ -67,7 +68,7 @@ func TestProxyLog(t *testing.T) {
 
 func BenchmarkProxyLog(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	l, err := CreateDefaultProxyLogger("/tmp/mosn_bench/benchmark.log", DEBUG)
+	l, err := CreateDefaultContextLogger("/tmp/mosn_bench/benchmark.log", log.DEBUG)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -82,7 +83,7 @@ func BenchmarkProxyLog(b *testing.B) {
 
 func BenchmarkProxyLogParallel(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
-	l, err := CreateDefaultProxyLogger("/tmp/mosn_bench/benchmark.log", DEBUG)
+	l, err := CreateDefaultContextLogger("/tmp/mosn_bench/benchmark.log", log.DEBUG)
 	if err != nil {
 		b.Fatal(err)
 	}

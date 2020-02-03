@@ -25,6 +25,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"mosn.io/api"
 )
 
 // test marshal, use unmarshal to verify it
@@ -220,7 +222,7 @@ func TestRouterUnmarshal(t *testing.T) {
 
 func TestRouterActionMarshal(t *testing.T) {
 	routerAction := &RouteAction{
-		MetadataMatch: Metadata{
+		MetadataMatch: api.Metadata{
 			"label": "gray",
 		},
 		Timeout: time.Second,
@@ -293,7 +295,7 @@ func TestRouterActionUnmarshal(t *testing.T) {
 
 func TestClusterWeightMarshal(t *testing.T) {
 	cw := &ClusterWeight{
-		MetadataMatch: Metadata{
+		MetadataMatch: api.Metadata{
 			"label": "gray",
 		},
 	}
@@ -650,7 +652,7 @@ func TestRouterConfigUmarshal(t *testing.T) {
 				router.Match.Headers[0].Value == "test") {
 				t.Error("virtual host failed")
 			}
-			meta := Metadata{
+			meta := api.Metadata{
 				"test": "test",
 			}
 			if !(router.Route.ClusterName == "cluster" &&

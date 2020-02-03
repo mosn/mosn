@@ -22,6 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
@@ -111,26 +112,26 @@ func (p *connPool) Shutdown() {
 	//TODO: http2 connpool do nothing for shutdown
 }
 
-func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
+func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
 	log.DefaultLogger.Debugf("http2 connPool onConnectionEvent: %v", event)
 	if event.IsClose() {
 		if client.closeWithActiveReq {
-			if event == types.LocalClose {
+			if event == api.LocalClose {
 				p.host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-			} else if event == types.RemoteClose {
+			} else if event == api.RemoteClose {
 				p.host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 			}
 		}
 		p.activeClient = nil
-	} else if event == types.ConnectTimeout {
+	} else if event == api.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		client.client.Close()
 		p.activeClient = nil
-	} else if event == types.ConnectFailed {
+	} else if event == api.ConnectFailed {
 		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
 		p.activeClient = nil
@@ -158,7 +159,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 }
 
 func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
-	return str.NewStreamClient(context, protocol.HTTP2, connData.Connection, connData.HostInfo)
+	return str.NewStreamClient(context, protocol.HTTP2, connData.Connection, connData.Host)
 }
 
 // types.StreamEventListener
@@ -201,7 +202,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	return ac
 }
 
-func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
+func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 

@@ -23,6 +23,7 @@ import (
 	"sort"
 	"testing"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/types"
 )
@@ -554,7 +555,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 	hostA := &mockHost{
 		addr: "127.0.0.1:8080",
 		name: "A",
-		meta: v2.Metadata{
+		meta: api.Metadata{
 			"zone":  "zone0",
 			"group": "a",
 		},
@@ -629,7 +630,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 		hostB := &mockHost{
 			addr: "127.0.0.1:8080",
 			name: "B",
-			meta: v2.Metadata{
+			meta: api.Metadata{
 				"zone":  "zone0",
 				"group": "b",
 			},
@@ -674,7 +675,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 		hostB := &mockHost{
 			addr: "127.0.0.1:8080",
 			name: "B",
-			meta: v2.Metadata{
+			meta: api.Metadata{
 				"zone":  "zone0",
 				"group": "a",
 			},

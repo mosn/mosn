@@ -27,7 +27,6 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -297,6 +296,6 @@ func TestLoadSdsConfig(t *testing.T) {
 	cfg := &MOSNConfig{}
 	content := []byte(xdsSdsConfig)
 	if err := json.Unmarshal(content, cfg); err != nil {
-		log.StartLogger.Fatalln("json unmarshal config failed, ", xdsSdsConfig, "", err)
+		t.Fatal("json unmarshal config failed, ", xdsSdsConfig, "", err)
 	}
 }

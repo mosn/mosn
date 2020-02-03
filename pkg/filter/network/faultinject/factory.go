@@ -20,26 +20,25 @@ package faultinject
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/filter"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	filter.RegisterNetwork(v2.FAULT_INJECT_NETWORK_FILTER, CreateFaultInjectFactory)
+	api.RegisterNetwork(v2.FAULT_INJECT_NETWORK_FILTER, CreateFaultInjectFactory)
 }
 
 type faultInjectConfigFactory struct {
 	FaultInject *v2.FaultInject
 }
 
-func (f *faultInjectConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
+func (f *faultInjectConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 	rf := NewFaultInjector(f.FaultInject)
 	callbacks.AddReadFilter(rf)
 }
 
-func CreateFaultInjectFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+func CreateFaultInjectFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
 	return &faultInjectConfigFactory{
 		FaultInject: config.ParseFaultInjectFilter(conf),
 	}, nil

@@ -29,7 +29,7 @@ import (
 	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/gogo/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 type ContentKey string

@@ -23,17 +23,17 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/types"
 )
 
 type mockEventListener struct {
 }
 
-func (e *mockEventListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, c chan types.Connection, buf []byte) {
+func (e *mockEventListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, c chan api.Connection, buf []byte) {
 }
 
-func (e *mockEventListener) OnNewConnection(ctx context.Context, conn types.Connection) {}
+func (e *mockEventListener) OnNewConnection(ctx context.Context, conn api.Connection) {}
 
 func (e *mockEventListener) OnClose() {}
 

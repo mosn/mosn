@@ -20,27 +20,26 @@ package proxy
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/filter"
 	"mosn.io/mosn/pkg/proxy"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	filter.RegisterNetwork(v2.DEFAULT_NETWORK_FILTER, CreateProxyFactory)
+	api.RegisterNetwork(v2.DEFAULT_NETWORK_FILTER, CreateProxyFactory)
 }
 
 type genericProxyFilterConfigFactory struct {
 	Proxy *v2.Proxy
 }
 
-func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
-	p := proxy.NewProxy(context, gfcf.Proxy, clusterManager)
+func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
+	p := proxy.NewProxy(context, gfcf.Proxy)
 	callbacks.AddReadFilter(p)
 }
 
-func CreateProxyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
 	return &genericProxyFilterConfigFactory{
 		Proxy: config.ParseProxyFilter(conf),
 	}, nil

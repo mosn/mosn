@@ -26,7 +26,7 @@ import (
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/filter/stream/commonrule/model"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 // namespace

@@ -21,8 +21,10 @@ import (
 	"context"
 
 	metrics "github.com/rcrowley/go-metrics"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // stream.Client
@@ -31,7 +33,7 @@ import (
 type client struct {
 	Protocol                      types.Protocol
 	Connection                    types.ClientConnection
-	Host                          types.HostInfo
+	Host                          types.Host
 	ClientStreamConnection        types.ClientStreamConnection
 	StreamConnectionEventListener types.StreamConnectionEventListener
 	ConnectedFlag                 bool
@@ -39,7 +41,7 @@ type client struct {
 
 // NewStreamClient
 // Create a codecclient used as a client to send/receive stream in a connection
-func NewStreamClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo) Client {
+func NewStreamClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.Host) Client {
 	client := &client{
 		Protocol:   prot,
 		Connection: connection,
@@ -61,7 +63,7 @@ func NewStreamClient(ctx context.Context, prot types.Protocol, connection types.
 
 // NewBiDirectStreamClient
 // Create a bidirectional client used to realize bidirectional communication
-func NewBiDirectStreamClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.HostInfo,
+func NewBiDirectStreamClient(ctx context.Context, prot types.Protocol, connection types.ClientConnection, host types.Host,
 	serverCallbacks types.ServerStreamConnectionEventListener) Client {
 	client := &client{
 		Protocol:   prot,
@@ -91,7 +93,7 @@ func (c *client) Connect() error {
 	return c.Connection.Connect()
 }
 
-func (c *client) AddConnectionEventListener(listener types.ConnectionEventListener) {
+func (c *client) AddConnectionEventListener(listener api.ConnectionEventListener) {
 	c.Connection.AddConnectionEventListener(listener)
 }
 
@@ -125,7 +127,7 @@ func (c *client) NewStream(context context.Context, respReceiver types.StreamRec
 }
 
 func (c *client) Close() {
-	c.Connection.Close(types.NoFlush, types.LocalClose)
+	c.Connection.Close(api.NoFlush, api.LocalClose)
 }
 
 // types.StreamConnectionEventListener
@@ -135,10 +137,10 @@ func (c *client) OnGoAway() {
 
 // types.ConnectionEventListener
 // conn callbacks
-func (c *client) OnEvent(event types.ConnectionEvent) {
+func (c *client) OnEvent(event api.ConnectionEvent) {
 	log.DefaultLogger.Debugf("client OnEvent %v, connected %v", event, c.ConnectedFlag)
 	switch event {
-	case types.Connected:
+	case api.Connected:
 		c.ConnectedFlag = true
 	}
 
@@ -155,17 +157,17 @@ func (c *client) OnEvent(event types.ConnectionEvent) {
 
 // types.ReadFilter
 // read filter, recv upstream data
-func (c *client) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (c *client) OnData(buffer buffer.IoBuffer) api.FilterStatus {
 	c.ClientStreamConnection.Dispatch(buffer)
 
-	return types.Stop
+	return api.Stop
 }
 
-func (c *client) OnNewConnection() types.FilterStatus {
-	return types.Continue
+func (c *client) OnNewConnection() api.FilterStatus {
+	return api.Continue
 }
 
-func (c *client) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
+func (c *client) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {}
 
 // uniform wrapper to destroy stream at client side
 type clientStreamReceiverWrapper struct {

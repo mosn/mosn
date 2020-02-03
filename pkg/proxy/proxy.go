@@ -25,6 +25,7 @@ import (
 	"sync/atomic"
 
 	jsoniter "github.com/json-iterator/go"
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -35,6 +36,8 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	mosnsync "mosn.io/mosn/pkg/sync"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/pkg/buffer"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -76,9 +79,9 @@ func initGlobalStats() {
 type proxy struct {
 	config             *v2.Proxy
 	clusterManager     types.ClusterManager
-	readCallbacks      types.ReadFilterCallbacks
+	readCallbacks      api.ReadFilterCallbacks
 	upstreamConnection types.ClientConnection
-	downstreamListener types.ConnectionEventListener
+	downstreamListener api.ConnectionEventListener
 	clusterName        string
 	routersWrapper     types.RouterWrapper // wrapper used to point to the routers instance
 	serverStreamConn   types.ServerStreamConnection
@@ -87,18 +90,18 @@ type proxy struct {
 	asMux              sync.RWMutex
 	stats              *Stats
 	listenerStats      *Stats
-	accessLogs         []types.AccessLog
+	accessLogs         []api.AccessLog
 }
 
 // NewProxy create proxy instance for given v2.Proxy config
-func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.ClusterManager) Proxy {
+func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	proxy := &proxy{
 		config:         config,
-		clusterManager: clusterManager,
+		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		activeSteams:   list.New(),
 		stats:          globalStats,
 		context:        ctx,
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]types.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
 	}
 
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
@@ -128,7 +131,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy, clusterManager types.Cluste
 	return proxy
 }
 
-func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
+func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 	if p.serverStreamConn == nil {
 		var prot string
 		if conn, ok := p.readCallbacks.Connection().RawConn().(*mtls.TLSConn); ok {
@@ -136,7 +139,7 @@ func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 		}
 		protocol, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes())
 		if err == stream.EAGAIN {
-			return types.Stop
+			return api.Stop
 		} else if err == stream.FAILED {
 			var size int
 			if buf.Len() > 10 {
@@ -145,19 +148,19 @@ func (p *proxy) OnData(buf types.IoBuffer) types.FilterStatus {
 				size = buf.Len()
 			}
 			log.DefaultLogger.Errorf("[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
-			p.readCallbacks.Connection().Close(types.NoFlush, types.OnReadErrClose)
-			return types.Stop
+			p.readCallbacks.Connection().Close(api.NoFlush, api.OnReadErrClose)
+			return api.Stop
 		}
 		log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
 		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
 	}
 	p.serverStreamConn.Dispatch(buf)
 
-	return types.Stop
+	return api.Stop
 }
 
 //rpc realize upstream on event
-func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
+func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		p.stats.DownstreamConnectionDestroy.Inc(1)
 		p.stats.DownstreamConnectionActive.Dec(1)
@@ -185,7 +188,7 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 	// TODO
 }
 
-func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
+func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 
 	// bytes total adds all connections data together
@@ -209,7 +212,7 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 
 	if value := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); value != nil {
 		ff := value.(*atomic.Value)
-		ffs, ok := ff.Load().([]types.StreamFilterChainFactory)
+		ffs, ok := ff.Load().([]api.StreamFilterChainFactory)
 		if ok {
 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -229,22 +232,22 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 	return stream
 }
 
-func (p *proxy) OnNewConnection() types.FilterStatus {
-	return types.Continue
+func (p *proxy) OnNewConnection() api.FilterStatus {
+	return api.Continue
 }
 
-func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) types.ResponseFlag {
+func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) api.ResponseFlag {
 	switch reason {
 	case types.StreamConnectionFailed:
-		return types.UpstreamConnectionFailure
+		return api.UpstreamConnectionFailure
 	case types.StreamConnectionTermination:
-		return types.UpstreamConnectionTermination
+		return api.UpstreamConnectionTermination
 	case types.StreamLocalReset:
-		return types.UpstreamLocalReset
+		return api.UpstreamLocalReset
 	case types.StreamOverflow:
-		return types.UpstreamOverflow
+		return api.UpstreamOverflow
 	case types.StreamRemoteReset:
-		return types.UpstreamRemoteReset
+		return api.UpstreamRemoteReset
 	}
 
 	return 0
@@ -264,6 +267,6 @@ type downstreamCallbacks struct {
 	proxy *proxy
 }
 
-func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
+func (dc *downstreamCallbacks) OnEvent(event api.ConnectionEvent) {
 	dc.proxy.onDownstreamEvent(event)
 }
