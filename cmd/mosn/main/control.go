@@ -23,6 +23,9 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"runtime"
+	"strings"
+
+	pbtypes "github.com/gogo/protobuf/types"
 
 	"github.com/urfave/cli"
 	"mosn.io/mosn/pkg/admin/store"
@@ -52,6 +55,10 @@ var (
 				Name:   "service-node, n",
 				Usage:  "sidecar service node",
 				EnvVar: "SERVICE_NODE",
+			}, cli.StringSliceFlag{
+				Name:   "service-meta, sm",
+				Usage:  "sidecar service metadata",
+				EnvVar: "SERVICE_META",
 			}, cli.StringFlag{
 				Name:   "feature-gates, f",
 				Usage:  "config feature gates",
@@ -62,6 +69,7 @@ var (
 			configPath := c.String("config")
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
+			serviceMeta := c.StringSlice("service-meta")
 			conf := config.Load(configPath)
 			// set feature gates
 			err := featuregate.Set(c.String("feature-gates"))
@@ -84,7 +92,8 @@ var (
 			// set version and go version
 			metrics.SetVersion(Version)
 			metrics.SetGoVersion(runtime.Version())
-			initXdsFlags(serviceCluster, serviceNode)
+			initXdsFlags(serviceCluster, serviceNode, serviceMeta)
+
 			mosn.Start(conf)
 			return nil
 		},
@@ -107,8 +116,28 @@ var (
 	}
 )
 
-func initXdsFlags(serviceCluster, serviceNode string) {
+const serviceMetaSeparator = ":"
+
+func initXdsFlags(serviceCluster, serviceNode string, serviceMeta []string) {
 	info := types.GetGlobalXdsInfo()
 	info.ServiceCluster = serviceCluster
 	info.ServiceNode = serviceNode
+	info.Metadata = &pbtypes.Struct{
+		Fields: map[string]*pbtypes.Value{},
+	}
+
+	for _, keyValue := range serviceMeta {
+		keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
+		if len(keyValueSep) != 2 {
+			continue
+		}
+		key := keyValueSep[0]
+		value := keyValueSep[1]
+
+		info.Metadata.Fields[key] = &pbtypes.Value{
+			Kind: &pbtypes.Value_StringValue{
+				StringValue: value,
+			},
+		}
+	}
 }
