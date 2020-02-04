@@ -202,7 +202,7 @@ func TestAccessLogManage(t *testing.T) {
 	defer log.CloseAll()
 	DefaultDisableAccessLog = false
 	format := "%start_time% %response_flag%"
-	var logs []types.AccessLog
+	var logs []api.AccessLog
 	for i := 0; i < 100; i++ {
 		logName := fmt.Sprintf("/tmp/accesslog.%d.log", i)
 		lg, err := NewAccessLog(logName, format)
