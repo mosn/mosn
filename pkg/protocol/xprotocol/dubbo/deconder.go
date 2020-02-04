@@ -54,7 +54,7 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	frame.SerializationId = int(frame.Flag & 0x1f)
 
 	// decode payload
-	frame.payload = dataBytes[HeaderLen:]
+	frame.payload = dataBytes[HeaderLen : HeaderLen+frame.DataLen]
 	frame.content = buffer.NewIoBufferBytes(frame.payload)
 
 	// not heartbeat & is request
@@ -69,6 +69,8 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 		}
 	}
 
+	frameLen := HeaderLen + int(frame.DataLen)
+	data.Drain(frameLen)
 	return frame, nil
 }
 

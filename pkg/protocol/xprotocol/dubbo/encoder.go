@@ -27,8 +27,6 @@ func encodeFrame(ctx context.Context, frame *Frame) (types.IoBuffer, error) {
 	binary.BigEndian.PutUint64(buf[4:], frame.Id)
 	binary.BigEndian.PutUint32(buf[12:], frame.DataLen)
 	// encode payload
-	for index, b := range frame.payload {
-		buf[HeaderLen+index] = b
-	}
+	copy(buf[HeaderLen:], frame.payload)
 	return buffer.NewIoBufferBytes(buf), nil
 }

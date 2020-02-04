@@ -2,6 +2,7 @@ package dubbo
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 
 	"mosn.io/mosn/pkg/log"
@@ -57,12 +58,16 @@ func (proto *dubboProtocol) Encode(ctx context.Context, model interface{}) (type
 
 func (proto *dubboProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	if data.Len() >= HeaderLen {
-		frame, err := decodeFrame(ctx, data)
-		if err != nil {
-			// unknown cmd type
-			return nil, fmt.Errorf("[protocol][dubbo] Decode Error, type = %s , err = %v", UnKnownCmdType, err)
+		// check frame size
+		payLoadLen := binary.BigEndian.Uint32(data.Bytes()[DataLenIdx:(DataLenIdx + DataLenSize)])
+		if data.Len() >= (HeaderLen + int(payLoadLen)) {
+			frame, err := decodeFrame(ctx, data)
+			if err != nil {
+				// unknown cmd type
+				return nil, fmt.Errorf("[protocol][dubbo] Decode Error, type = %s , err = %v", UnKnownCmdType, err)
+			}
+			return frame, err
 		}
-		return frame, err
 	}
 	return nil, nil
 }
