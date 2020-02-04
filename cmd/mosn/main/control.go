@@ -64,17 +64,11 @@ var (
 			serviceNode := c.String("service-node")
 			conf := config.Load(configPath)
 			// set feature gates
-			err := featuregate.DefaultMutableFeatureGate.Set(c.String("feature-gates"))
+			err := featuregate.Set(c.String("feature-gates"))
 			if err != nil {
 				log.StartLogger.Infof("[mosn] [start] parse feature-gates flag fail : %+v", err)
 				os.Exit(1)
 			}
-			err = featuregate.DefaultMutableFeatureGate.StartInit()
-			if err != nil {
-				log.StartLogger.Infof("[mosn] [start] init feature-gates fail : %+v", err)
-				os.Exit(1)
-			}
-
 			// start pprof
 			if conf.Debug.StartDebug {
 				port := 9090 //default use 9090
