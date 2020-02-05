@@ -23,9 +23,6 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"runtime"
-	"strings"
-
-	pbtypes "github.com/gogo/protobuf/types"
 
 	"github.com/urfave/cli"
 	"mosn.io/mosn/pkg/admin/store"
@@ -92,7 +89,7 @@ var (
 			// set version and go version
 			metrics.SetVersion(Version)
 			metrics.SetGoVersion(runtime.Version())
-			initXdsFlags(serviceCluster, serviceNode, serviceMeta)
+			types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta)
 
 			mosn.Start(conf)
 			return nil
@@ -115,29 +112,3 @@ var (
 		},
 	}
 )
-
-const serviceMetaSeparator = ":"
-
-func initXdsFlags(serviceCluster, serviceNode string, serviceMeta []string) {
-	info := types.GetGlobalXdsInfo()
-	info.ServiceCluster = serviceCluster
-	info.ServiceNode = serviceNode
-	info.Metadata = &pbtypes.Struct{
-		Fields: map[string]*pbtypes.Value{},
-	}
-
-	for _, keyValue := range serviceMeta {
-		keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
-		if len(keyValueSep) != 2 {
-			continue
-		}
-		key := keyValueSep[0]
-		value := keyValueSep[1]
-
-		info.Metadata.Fields[key] = &pbtypes.Value{
-			Kind: &pbtypes.Value_StringValue{
-				StringValue: value,
-			},
-		}
-	}
-}
