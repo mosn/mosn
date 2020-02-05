@@ -1,13 +1,31 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package boltv2
 
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
-	"net/http"
 )
 
 /**
@@ -96,13 +114,13 @@ func (proto *boltv2Protocol) Trigger(requestId uint64) xprotocol.XFrame {
 	return &Request{
 		RequestHeader: RequestHeader{
 			RequestHeader: bolt.RequestHeader{
-				Protocol:   ProtocolCode,
-				CmdType:    bolt.CmdTypeRequest,
-				CmdCode:    bolt.CmdCodeHeartbeat,
-				Version:    ProtocolVersion,
-				RequestId:  uint32(requestId),
-				Codec:      bolt.Hessian2Serialize,
-				Timeout:    -1,
+				Protocol:  ProtocolCode,
+				CmdType:   bolt.CmdTypeRequest,
+				CmdCode:   bolt.CmdCodeHeartbeat,
+				Version:   ProtocolVersion,
+				RequestId: uint32(requestId),
+				Codec:     bolt.Hessian2Serialize,
+				Timeout:   -1,
 			},
 		},
 	}
@@ -133,7 +151,7 @@ func (proto *boltv2Protocol) Hijack(statusCode uint32) xprotocol.XFrame {
 				CmdType:        bolt.CmdTypeResponse,
 				CmdCode:        bolt.CmdCodeRpcResponse,
 				Version:        ProtocolVersion,
-				RequestId:      0,                 // this would be overwrite by stream layer
+				RequestId:      0,                      // this would be overwrite by stream layer
 				Codec:          bolt.Hessian2Serialize, //todo: read default codec from config
 				ResponseStatus: uint16(statusCode),
 			},

@@ -14,16 +14,18 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/stream"
+	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
 type Client struct {
+	proto  types.ProtocolName
 	Client stream.Client
 	conn   types.ClientConnection
 	Id     uint64
 }
 
-func NewClient(addr string) *Client {
+func NewClient(addr string, proto types.ProtocolName) *Client {
 	c := &Client{}
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
@@ -32,14 +34,16 @@ func NewClient(addr string) *Client {
 		fmt.Println(err)
 		return nil
 	}
-	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(bolt.ProtocolName))
+	// pass sub protocol to stream client
+	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(proto))
 	c.Client = stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	c.conn = conn
+	c.proto = proto
 	return c
 }
 
 func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	fmt.Printf("[RPC Client] Receive Data:")
+	fmt.Printf("[Xprotocol RPC Client] Receive Data:")
 	if cmd, ok := headers.(xprotocol.XFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
@@ -54,32 +58,24 @@ func (c *Client) OnDecodeError(context context.Context, err error, headers types
 func (c *Client) Request() {
 	c.Id++
 	requestEncoder := c.Client.NewStream(context.Background(), c)
-	headers := buildBoltV1Request(c.Id)
-	requestEncoder.AppendHeaders(context.Background(), headers, true)
-}
 
-func buildBoltV1Request(requestID uint64) *bolt.Request {
-	request := &bolt.Request{
-		RequestHeader: bolt.RequestHeader{
-			Protocol:  bolt.ProtocolCode,
-			CmdType:   bolt.CmdTypeRequest,
-			CmdCode:   bolt.CmdCodeRpcRequest,
-			Version:   bolt.ProtocolVersion,
-			RequestId: uint32(requestID),
-			Codec:     bolt.Hessian2Serialize,
-			Timeout:   -1,
-		},
+	var request xprotocol.XFrame
+	switch c.proto {
+	case bolt.ProtocolName:
+		request = bolt.NewRpcRequest(uint32(c.Id), protocol.CommonHeader(map[string]string{"service": "testSofa"}), nil)
+	default:
+		panic("unknown protocol, please complete the protocol-switch in Client.Request method")
 	}
 
-	request.Set("service", "testSofa")
-	return request
+	requestEncoder.AppendHeaders(context.Background(), request.GetHeader(), true)
 }
 
 func main() {
 	log.InitDefaultLogger("", log.DEBUG)
 	t := flag.Bool("t", false, "-t")
 	flag.Parse()
-	if client := NewClient("127.0.0.1:2045"); client != nil {
+	// use bolt as example
+	if client := NewClient("127.0.0.1:2045", bolt.ProtocolName); client != nil {
 		for {
 			client.Request()
 			time.Sleep(200 * time.Millisecond)

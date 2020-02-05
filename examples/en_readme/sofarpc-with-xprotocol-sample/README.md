@@ -3,7 +3,6 @@
 ## Introduction
 
 + This sample project demonstrates how to configure SOFAMosn as a SOFARPC Proxy.
-+ Protocol between SOFAMosn is HTTP2.
 + For the convenience of demonstration, SOFAMosn listens to two ports, one forwards the client request,
  and one forwards to the server after receiving the request.
 

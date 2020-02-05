@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package xprotocol
 
 import (
@@ -8,6 +25,8 @@ import (
 
 	"time"
 
+	"strings"
+
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
@@ -17,7 +36,6 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"strings"
 )
 
 // types.DecodeFilter
@@ -170,9 +188,6 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 }
 
 func (sc *streamConn) Protocol() types.ProtocolName {
-	if sc.protocol != nil {
-		return sc.protocol.Name()
-	}
 	return protocol.Xprotocol
 }
 
@@ -338,7 +353,7 @@ func (sc *streamConn) newServerStream(ctx context.Context, frame xprotocol.XFram
 	serverStream.id = frame.GetRequestId()
 	serverStream.direction = stream.ServerStream
 	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, serverStream.id)
-	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.Protocol()))
+	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
 	serverStream.sc = sc
 
 	return serverStream
@@ -353,7 +368,7 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 	clientStream.id = atomic.AddUint64(&sc.clientStreamId, 1)
 	clientStream.direction = stream.ClientStream
 	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, clientStream.id)
-	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.Protocol()))
+	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
 	clientStream.sc = sc
 
 	return clientStream

@@ -3,7 +3,6 @@
 ## 简介
 
 + 该样例工程演示了如何配置使得SOFAMosn作为SofaRpc代理
-+ SOFAMosn之间的协议是HTTP2
 + 为了演示方便，SOFAMosn监听两个端口,一个转发Client的请求，一个收到请求以后转发给Server
 
 ## 准备
