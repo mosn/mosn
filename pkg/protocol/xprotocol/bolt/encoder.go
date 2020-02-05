@@ -106,11 +106,11 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	binary.BigEndian.PutUint16(buf[14:], response.HeaderLen)
 	binary.BigEndian.PutUint32(buf[16:], response.ContentLen)
 
-	headerIndex := RequestHeaderLen + int(response.ClassLen)
+	headerIndex := ResponseHeaderLen + int(response.ClassLen)
 	contentIndex := headerIndex + int(response.HeaderLen)
 
 	if response.ClassLen > 0 {
-		buf = append(buf[RequestHeaderLen:], response.Class...)
+		buf = append(buf[ResponseHeaderLen:], response.Class...)
 	}
 
 	if response.HeaderLen > 0 {

@@ -105,9 +105,9 @@ type mockConnPool struct {
 	types.ConnectionPool
 }
 
-const mockProtocol = types.Protocol("mock")
+const mockProtocol = types.ProtocolName("mock")
 
-func (p *mockConnPool) Protocol() types.Protocol {
+func (p *mockConnPool) Protocol() types.ProtocolName {
 	return mockProtocol
 }
 

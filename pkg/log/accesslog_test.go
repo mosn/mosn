@@ -300,7 +300,7 @@ func BenchmarkAccessLogParallel(b *testing.B) {
 
 // mock_requestInfo
 type mock_requestInfo struct {
-	protocol                 types.Protocol
+	protocol                 types.ProtocolName
 	startTime                time.Time
 	responseFlag             types.ResponseFlag
 	upstreamHost             types.HostInfo
@@ -372,7 +372,7 @@ func (r *mock_requestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *mock_requestInfo) Protocol() types.Protocol {
+func (r *mock_requestInfo) Protocol() types.ProtocolName {
 	return r.protocol
 }
 
