@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol/rpc/xprotocol"
 	"mosn.io/mosn/pkg/protocol/rpc/xprotocol/example"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // XProtocol needs subprotocol for rpc
@@ -92,7 +93,7 @@ func (c *XProtocolClient) RequestAndWaitReponse() error {
 }
 func (c *XProtocolClient) Close() {
 	if c.conn != nil {
-		c.conn.Close(types.NoFlush, types.LocalClose)
+		c.conn.Close(api.NoFlush, api.LocalClose)
 	}
 }
 
