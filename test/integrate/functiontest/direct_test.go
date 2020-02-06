@@ -9,12 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+
 	"golang.org/x/net/http2"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
 )
@@ -42,6 +43,27 @@ func CreateDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.D
 	listener := util.NewListener("proxyListener", addr, chains)
 	return util.NewMOSNConfig([]v2.Listener{listener}, cmconfig)
 }
+
+// Direct Response ignore upstream cluster information and route rule config
+func CreateXDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.DirectResponseAction) *config.MOSNConfig {
+	cmconfig := config.ClusterManagerConfig{
+		Clusters: []v2.Cluster{
+			v2.Cluster{
+				Name: "cluster",
+			},
+		},
+	}
+	routers := []v2.Router{
+		NewDirectResponseHeaderRouter(".*", response),
+		NewDirectResponsePrefixRouter("/", response),
+	}
+	chains := []v2.FilterChain{
+		util.NewXProtocolFilterChain("proxyVirtualHost", proto, routers),
+	}
+	listener := util.NewListener("proxyListener", addr, chains)
+	return util.NewMOSNConfig([]v2.Listener{listener}, cmconfig)
+}
+
 func NewDirectResponseHeaderRouter(value string, response *v2.DirectResponseAction) v2.Router {
 	header := v2.HeaderMatcher{Name: "service", Value: value}
 	return v2.Router{
@@ -157,14 +179,14 @@ func (c *DirectResponseCase) RunCase(n int, interval time.Duration) {
 			}
 			return nil
 		}
-	case protocol.SofaRPC:
+	case bolt.ProtocolName:
 		client := c.RPCClient
 		if err := client.Connect(c.ClientAddr); err != nil {
 			c.C <- err
 			return
 		}
 		if c.status != 200 {
-			client.ExpectedStatus = sofarpc.RESPONSE_STATUS_UNKNOWN
+			client.ExpectedStatus = int16(bolt.ResponseStatusUnknown)
 		}
 		defer client.Close()
 		call = func() error {
@@ -185,6 +207,29 @@ func (c *DirectResponseCase) RunCase(n int, interval time.Duration) {
 	c.C <- nil
 }
 
+// xprotocl extend
+type XDirectResponseCase struct {
+	*DirectResponseCase
+}
+
+func (c *XDirectResponseCase) StartProxy() {
+	addr := util.CurrentMeshAddr()
+	c.ClientAddr = addr
+	resp := &v2.DirectResponseAction{
+		StatusCode: c.status,
+		Body:       c.body,
+	}
+	cfg := CreateXDirectMeshProxy(addr, c.Protocol, resp)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Finish
+		mesh.Close()
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
 func TestDirectResponse(t *testing.T) {
 	testCases := []*DirectResponseCase{
 		NewDirectResponseCase(t, protocol.HTTP1, 500, "", nil),
@@ -195,7 +240,7 @@ func TestDirectResponse(t *testing.T) {
 		NewDirectResponseCase(t, protocol.HTTP2, 200, "testdata", nil),
 		// RPC
 		// FIXME: RPC cannot direct response success, code will be transfer
-		NewDirectResponseCase(t, protocol.SofaRPC, 500, "", util.NewRPCClient(t, "directfail", util.Bolt1)),
+		NewDirectResponseCase(t, bolt.ProtocolName, 500, "", util.NewRPCClient(t, "directfail", bolt.ProtocolName)),
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)

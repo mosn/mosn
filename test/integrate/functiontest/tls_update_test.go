@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+
 	"golang.org/x/net/http2"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
@@ -18,12 +20,9 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/http/conv"
 	_ "mosn.io/mosn/pkg/protocol/http2/conv"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/conv"
 	"mosn.io/mosn/pkg/server"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
-	_ "mosn.io/mosn/pkg/stream/sofarpc"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
@@ -86,6 +85,22 @@ func NewTLSUpdateCase(t *testing.T, proto types.ProtocolName, server util.Upstre
 	}
 }
 
+type XExtendTLSUpdateCase struct {
+	*TLSUpdateCase
+}
+
+func NewXExtendTLSUpdateCase(t *testing.T, proto types.ProtocolName, server util.UpstreamServer) *XExtendTLSUpdateCase {
+	return &XExtendTLSUpdateCase{
+		TLSUpdateCase: &TLSUpdateCase{
+			Protocol:  proto,
+			AppServer: server,
+			C:         make(chan error),
+			T:         t,
+			Finish:    make(chan bool),
+		},
+	}
+}
+
 var DefaultTLSConfig = v2.TLSConfig{
 	Status:     true,
 	CACert:     caPEM,
@@ -94,7 +109,7 @@ var DefaultTLSConfig = v2.TLSConfig{
 	ServerName: "127.0.0.1",
 }
 
-func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, proto types.ProtocolName, tls bool) *config.MOSNConfig {
+func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, proto types.ProtocolName, tls bool, xproto bool) *config.MOSNConfig {
 	clusterName := "upstream"
 	cmconfig := config.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
@@ -106,6 +121,10 @@ func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, pr
 		util.NewHeaderRouter(clusterName, ".*"),
 	}
 	filterChain := util.NewFilterChain("proxyVirtualHost", proto, proto, routers)
+	if xproto {
+		filterChain = util.NewXProtocolFilterChain("proxyVirtualHost", proto, routers)
+	}
+
 	if tls {
 		filterChain.TLSContexts = []v2.TLSConfig{
 			DefaultTLSConfig,
@@ -132,7 +151,7 @@ func (c *TLSUpdateCase) Start(tls bool) {
 	appAddr := c.AppServer.Addr()
 	c.MeshAddr = util.CurrentMeshAddr()
 	c.ListenerName = "test_dynamic"
-	cfg := MakeProxyWithTLSConfig(c.ListenerName, c.MeshAddr, []string{appAddr}, c.Protocol, tls)
+	cfg := MakeProxyWithTLSConfig(c.ListenerName, c.MeshAddr, []string{appAddr}, c.Protocol, tls, false)
 	// for test, reset adapter
 	server.ResetAdapter()
 	mesh := mosn.NewMosn(cfg)
@@ -234,7 +253,42 @@ func (c *TLSUpdateCase) RequestTLS(isTLS bool, n int, interval int) {
 			c.T.Logf("HTTP2 client receive data: %s\n", string(b))
 			return nil
 		}
-	case protocol.SofaRPC:
+	}
+	for i := 0; i < n; i++ {
+		if err := call(); err != nil {
+			c.C <- err
+			return
+		}
+		time.Sleep(time.Duration(interval) * time.Millisecond)
+	}
+	c.C <- nil
+}
+
+func (c *XExtendTLSUpdateCase) Start(tls bool) {
+	c.AppServer.GoServe()
+	appAddr := c.AppServer.Addr()
+	c.MeshAddr = util.CurrentMeshAddr()
+	c.ListenerName = "test_dynamic"
+	cfg := MakeProxyWithTLSConfig(c.ListenerName, c.MeshAddr, []string{appAddr}, c.Protocol, tls, true)
+	// for test, reset adapter
+	server.ResetAdapter()
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Finish
+		c.AppServer.Close()
+		mesh.Close()
+		time.Sleep(5 * time.Second)
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+// client do "n" times request, interval time (ms)
+func (c *XExtendTLSUpdateCase) RequestTLS(isTLS bool, n int, interval int) {
+	var call func() error
+	switch c.Protocol {
+	case bolt.ProtocolName:
 		server, ok := c.AppServer.(*util.RPCServer)
 		if !ok {
 			c.C <- fmt.Errorf("need a sofa rpc server")
@@ -279,11 +333,9 @@ func (c *TLSUpdateCase) RequestTLS(isTLS bool, n int, interval int) {
 // NoneToTLS
 // first listen a non-tls listener, then update to tls
 func TestUpdateTLS_NoneToTLS(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TLSUpdateCase{
 		NewTLSUpdateCase(t, protocol.HTTP1, util.NewHTTPServer(t, nil)),
 		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
 	}
 	for i, tc := range testCases {
 		verify := func() {
@@ -316,11 +368,9 @@ func TestUpdateTLS_NoneToTLS(t *testing.T) {
 // TLSToNone
 // first listen a tls listener, then update to non-tls
 func TestUpdateTLS_TLSToNone(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TLSUpdateCase{
 		NewTLSUpdateCase(t, protocol.HTTP1, util.NewHTTPServer(t, nil)),
 		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
 	}
 	for i, tc := range testCases {
 		verify := func() {
@@ -351,11 +401,109 @@ func TestUpdateTLS_TLSToNone(t *testing.T) {
 
 // TLS to inspector
 func TestUpdateTLS_TLSToInspector(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TLSUpdateCase{
 		NewTLSUpdateCase(t, protocol.HTTP1, util.NewHTTPServer(t, nil)),
 		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+	}
+	for i, tc := range testCases {
+		verify := func() {
+			select {
+			case err := <-tc.C:
+				if err != nil {
+					t.Errorf("request failed, case %d, protocol %v, error: %v", i, tc.Protocol, err)
+				}
+			case <-time.After(2 * time.Second):
+				t.Errorf("request hung up case %d, protocol %v", i, tc.Protocol)
+			}
+		}
+		t.Logf("start case #%d\n", i)
+		tc.Start(true)
+		go tc.RequestTLS(true, 1, 0)
+		verify()
+		// update to inspector
+		if err := tc.UpdateTLS(true, []v2.TLSConfig{DefaultTLSConfig}); err != nil {
+			t.Fatal("update tls failed")
+		}
+		go tc.RequestTLS(false, 1, 0)
+		verify()
+		tc.FinishCase()
+	}
+}
+
+// NoneToTLS
+// first listen a non-tls listener, then update to tls
+func TestXUpdateTLS_NoneToTLS(t *testing.T) {
+	appaddr := "127.0.0.1:8080"
+	testCases := []*XExtendTLSUpdateCase{
+		NewXExtendTLSUpdateCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
+	}
+	for i, tc := range testCases {
+		verify := func() {
+			select {
+			case err := <-tc.C:
+				if err != nil {
+					t.Errorf("request failed, case %d, protocol %v, error: %v", i, tc.Protocol, err)
+				}
+			case <-time.After(2 * time.Second):
+				t.Errorf("request hung up case %d, protocol %v", i, tc.Protocol)
+			}
+		}
+		t.Logf("start case #%d\n", i)
+		tc.Start(false)
+		go tc.RequestTLS(false, 1, 0)
+		t.Logf("verify non-tls")
+		verify()
+		// update to tls
+		if err := tc.UpdateTLS(false, []v2.TLSConfig{DefaultTLSConfig}); err != nil {
+			t.Fatal("update tls failed")
+		}
+		go tc.RequestTLS(true, 1, 0)
+		t.Logf("verify tls")
+		verify()
+		tc.FinishCase()
+
+	}
+}
+
+// xprotocol TLSToNone
+// first listen a tls listener, then update to non-tls
+func TestXUpdateTLS_TLSToNone(t *testing.T) {
+	appaddr := "127.0.0.1:8080"
+	testCases := []*XExtendTLSUpdateCase{
+		NewXExtendTLSUpdateCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
+	}
+	for i, tc := range testCases {
+		verify := func() {
+			select {
+			case err := <-tc.C:
+				if err != nil {
+					t.Errorf("request failed, case %d, protocol %v, error: %v", i, tc.Protocol, err)
+				}
+			case <-time.After(2 * time.Second):
+				t.Errorf("request hung up case %d, protocol %v", i, tc.Protocol)
+			}
+		}
+		t.Logf("start case #%d\n", i)
+		tc.Start(true)
+		go tc.RequestTLS(true, 1, 0)
+		verify()
+		// update to non-tls
+		if err := tc.UpdateTLS(false, []v2.TLSConfig{v2.TLSConfig{}}); err != nil {
+			t.Fatal("update tls failed")
+		}
+		go tc.RequestTLS(false, 1, 0)
+		verify()
+		// finish
+		tc.FinishCase()
+	}
+
+}
+
+// TLS to inspector
+func TestXUpdateTLS_TLSToInspector(t *testing.T) {
+	appaddr := "127.0.0.1:8080"
+	testCases := []*XExtendTLSUpdateCase{
+		NewXExtendTLSUpdateCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
 	}
 	for i, tc := range testCases {
 		verify := func() {

@@ -14,8 +14,6 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/http/conv"
 	_ "mosn.io/mosn/pkg/protocol/http2/conv"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/conv"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
 	"mosn.io/mosn/pkg/types"

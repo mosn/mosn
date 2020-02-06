@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -21,15 +20,10 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-const (
-	Bolt1 = "boltV1"
-	Bolt2 = "boltV2"
-)
-
 type RPCClient struct {
 	t              *testing.T
 	ClientID       string
-	Protocol       string //bolt1, bolt2
+	Protocol       types.ProtocolName //bolt1, bolt2
 	Codec          stream.Client
 	Waits          sync.Map
 	conn           types.ClientConnection
@@ -39,7 +33,7 @@ type RPCClient struct {
 	ExpectedStatus int16
 }
 
-func NewRPCClient(t *testing.T, id string, proto string) *RPCClient {
+func NewRPCClient(t *testing.T, id string, proto types.ProtocolName) *RPCClient {
 	return &RPCClient{
 		t:              t,
 		ClientID:       id,
@@ -58,7 +52,7 @@ func (c *RPCClient) connect(addr string, tlsMng types.TLSContextManager) error {
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(bolt.ProtocolName))
+	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(c.Protocol))
 	c.Codec = stream.NewStreamClient(ctx, protocol.Xprotocol, cc, nil)
 	if c.Codec == nil {
 		return fmt.Errorf("NewStreamClient error %v, %v", protocol.Xprotocol, cc)
@@ -100,11 +94,11 @@ func (c *RPCClient) SendRequestWithData(in string) {
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
 	var frame xprotocol.XFrame
 	data := buffer.NewIoBufferString(in)
+	// TODO: support boltv2, dubbo, tars
 	switch c.Protocol {
-	case Bolt1:
-		frame = BuildBoltV1RequestWithContent(ID, data)
-	case Bolt2:
-		frame = BuildBoltV2Request(ID)
+	case bolt.ProtocolName:
+		// header used for sofa routing
+		frame = bolt.NewRpcRequest(uint32(ID), protocol.CommonHeader(map[string]string{"service": "testSofa"}), data)
 	default:
 		c.t.Errorf("unsupport protocol")
 		return
@@ -137,68 +131,6 @@ func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data
 func (c *RPCClient) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 }
 
-func BuildBoltV1RequestWithContent(requestID uint64, data types.IoBuffer) *bolt.Request {
-	request := &bolt.Request{
-		RequestHeader: bolt.RequestHeader{
-			Protocol:   bolt.ProtocolCode,
-			CmdType:    bolt.CmdTypeRequest,
-			CmdCode:    bolt.CmdCodeRpcRequest,
-			Version:    bolt.ProtocolVersion,
-			RequestId:  uint32(requestID),
-			Codec:      bolt.Hessian2Serialize,
-			Timeout:    -1,
-		},
-	}
-	request.Set("service", "testSofa")  // used for sofa routing
-	request.Content = data
-	return request
-}
-
-func BuildBoltV1Request(requestID uint64) *bolt.Request {
-	request := &bolt.Request{
-		RequestHeader: bolt.RequestHeader{
-			Protocol:   bolt.ProtocolCode,
-			CmdType:    bolt.CmdTypeRequest,
-			CmdCode:    bolt.CmdCodeRpcRequest,
-			Version:    bolt.ProtocolVersion,
-			RequestId:  uint32(requestID),
-			Codec:      bolt.Hessian2Serialize,
-			Timeout:    -1,
-		},
-	}
-	request.Set("service", "testSofa")  // used for sofa routing
-	return request
-}
-
-func BuildBoltV2Request(requestID uint64) *boltv2.Request {
-	//TODO:
-	return nil
-}
-
-func BuildBoltV1Response(req *bolt.Request) *bolt.Response {
-	resp := &bolt.Response{
-		ResponseHeader: bolt.ResponseHeader{
-			Protocol:       req.Protocol,
-			CmdType:        bolt.CmdTypeResponse,
-			CmdCode:        bolt.CmdCodeRpcResponse,
-			Version:        req.Version,
-			RequestId:      req.RequestId,
-			Codec:          req.Codec,
-			ResponseStatus: bolt.ResponseStatusSuccess,
-		},
-	}
-
-	req.GetHeader().Range(func(key, value string) bool {
-		resp.Set(key, value)
-		return true
-	})
-	return resp
-}
-func BuildBoltV2Response(req *boltv2.Request) *boltv2.Response {
-	//TODO:
-	return nil
-}
-
 type RPCServer struct {
 	UpstreamServer
 	Client *RPCClient
@@ -207,16 +139,15 @@ type RPCServer struct {
 	Count uint32
 }
 
-func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
+func NewRPCServer(t *testing.T, addr string, proto types.ProtocolName) UpstreamServer {
 	s := &RPCServer{
 		Client: NewRPCClient(t, "rpcClient", proto),
 		Name:   addr,
 	}
+	// TODO: support boltv2, dubbo, tars
 	switch proto {
-	case Bolt1:
+	case bolt.ProtocolName:
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV1)
-	case Bolt2:
-		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV2)
 	default:
 		t.Errorf("unsupport protocol")
 		return nil
@@ -233,7 +164,7 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 		}
 		if req, ok := cmd.(*bolt.Request); ok {
 			atomic.AddUint32(&s.Count, 1)
-			resp := BuildBoltV1Response(req)
+			resp := bolt.NewRpcResponse(req.RequestId, bolt.ResponseStatusSuccess, nil, nil)
 			iobufresp, err := protocol.Encode(context.Background(), resp)
 			if err != nil {
 				t.Errorf("Build response error: %v\n", err)
@@ -245,9 +176,6 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 	}
 	ServeSofaRPC(t, conn, response)
 
-}
-func (s *RPCServer) ServeBoltV2(t *testing.T, conn net.Conn) {
-	//TODO:
 }
 
 func ServeSofaRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {
