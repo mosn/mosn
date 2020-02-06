@@ -55,6 +55,7 @@ func TestKeepAlive(t *testing.T) {
 	appAddr := "127.0.0.1:8080"
 	server := &heartBeatServer{}
 	server.UpstreamServer = util.NewUpstreamServer(t, appAddr, server.ServeBoltOrHeartbeat)
+	server.boltProto = xprotocol.GetProtocol(bolt.ProtocolName)
 	server.GoServe()
 	clientMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateXProtocolProxyMesh(clientMeshAddr, []string{appAddr}, bolt.ProtocolName)
