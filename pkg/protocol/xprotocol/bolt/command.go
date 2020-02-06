@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package bolt
 
 import (
@@ -5,6 +22,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+// RequestHeader is the header part of bolt v1 request
 type RequestHeader struct {
 	Protocol   byte // meta fields
 	CmdType    byte
@@ -18,7 +36,7 @@ type RequestHeader struct {
 	ContentLen uint32
 
 	Class string // payload fields
-	header
+	xprotocol.Header
 }
 
 // ~ HeaderMap
@@ -27,7 +45,7 @@ func (h *RequestHeader) Clone() types.HeaderMap {
 	*clone = *h
 
 	// deep copy
-	clone.header = *h.header.Clone()
+	clone.Header = *h.Header.Clone()
 
 	return clone
 }
@@ -78,6 +96,7 @@ func (r *Request) GetData() types.IoBuffer {
 	return r.Content
 }
 
+// RequestHeader is the header part of bolt v1 response
 type ResponseHeader struct {
 	Protocol       byte // meta fields
 	CmdType        byte
@@ -91,7 +110,7 @@ type ResponseHeader struct {
 	ContentLen     uint32
 
 	Class string // payload fields
-	header
+	xprotocol.Header
 }
 
 // ~ HeaderMap
@@ -100,7 +119,7 @@ func (h *ResponseHeader) Clone() types.HeaderMap {
 	*clone = *h
 
 	// deep copy
-	clone.header = *h.header.Clone()
+	clone.Header = *h.Header.Clone()
 
 	return clone
 }
@@ -119,7 +138,7 @@ type Response struct {
 	Content types.IoBuffer // wrapper of raw content
 }
 
-// ~ XFrame
+// ~ XRespFrame
 func (r *Response) GetRequestId() uint64 {
 	return uint64(r.ResponseHeader.RequestId)
 }
@@ -142,4 +161,8 @@ func (r *Response) GetHeader() types.HeaderMap {
 
 func (r *Response) GetData() types.IoBuffer {
 	return r.Content
+}
+
+func (r *Response) GetStatusCode() uint32 {
+	return uint32(r.ResponseStatus)
 }

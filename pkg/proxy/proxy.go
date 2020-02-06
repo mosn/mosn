@@ -24,8 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/json-iterator/go"
-	"mosn.io/mosn/pkg/api/v2"
+	jsoniter "github.com/json-iterator/go"
+	v2 "mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/config"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
@@ -255,6 +255,7 @@ func (p *proxy) deleteActiveStream(s *downStream) {
 		p.asMux.Lock()
 		p.activeSteams.Remove(s.element)
 		p.asMux.Unlock()
+		s.element = nil
 	}
 }
 

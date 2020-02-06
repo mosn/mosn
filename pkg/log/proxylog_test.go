@@ -21,12 +21,13 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"mosn.io/mosn/pkg/types"
 	"os"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/types"
 
 	mosnctx "mosn.io/mosn/pkg/context"
 )

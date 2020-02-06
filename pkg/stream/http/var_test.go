@@ -21,12 +21,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"strconv"
+	"testing"
+
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
-	"strconv"
-	"testing"
 )
 
 var (

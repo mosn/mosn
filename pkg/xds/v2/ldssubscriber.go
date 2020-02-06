@@ -51,10 +51,12 @@ func (c *ADSClient) reqListeners(streamClient ads.AggregatedDiscoveryService_Str
 }
 
 func (c *ADSClient) handleListenersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Listener {
-	listeners := make([]*envoy_api_v2.Listener, 0)
+	listeners := make([]*envoy_api_v2.Listener, 0, len(resp.Resources))
 	for _, res := range resp.Resources {
 		listener := envoy_api_v2.Listener{}
-		listener.Unmarshal(res.GetValue())
+		if err := listener.Unmarshal(res.GetValue()); err != nil {
+			log.DefaultLogger.Errorf("ADSClient unmarshal listener fail: %v", err)
+		}
 		listeners = append(listeners, &listener)
 	}
 	return listeners

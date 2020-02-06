@@ -594,6 +594,9 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 	netBufferPool.Put(netBuffer)
 
 	for _, buf := range *buf {
+		if buf == nil {
+			continue
+		}
 		if buf.EOF() {
 			err = buffer.EOF
 		}
@@ -614,6 +617,13 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 }
 
 func (c *connection) startWriteLoop() {
+	var needTransfer bool
+	defer func() {
+		if !needTransfer {
+			close(c.writeBufferChan)
+		}
+	}()
+
 	var err error
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
@@ -627,6 +637,7 @@ func (c *connection) startWriteLoop() {
 		case <-c.internalStopChan:
 			return
 		case <-c.transferChan:
+			needTransfer = true
 			return
 		case buf, ok := <-c.writeBufferChan:
 			if !ok {
@@ -779,7 +790,6 @@ func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.Con
 	// wait for io loops exit, ensure single thread operate streams on the connection
 	// because close function must be called by one io loop thread, notify another loop here
 	close(c.internalStopChan)
-	close(c.writeBufferChan)
 	if c.eventLoop != nil {
 		// unregister events while connection close
 		c.eventLoop.unregister(c.id)

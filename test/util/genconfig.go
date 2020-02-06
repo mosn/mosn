@@ -12,7 +12,7 @@ import (
 // can set
 var (
 	MeshLogPath  = "stdout"
-	MeshLogLevel = "WARN"
+	MeshLogLevel = "INFO"
 	StartRetry   = false
 )
 
@@ -62,10 +62,10 @@ func NewFilterChain(routerConfigName string, downstream, upstream types.Protocol
 	return makeFilterChain(proxy, routers, routerConfigName)
 }
 
-func NewXProtocolFilterChain(name string, subproto string, routers []v2.Router) v2.FilterChain {
+func NewXProtocolFilterChain(name string, subProtocol types.ProtocolName, routers []v2.Router) v2.FilterChain {
 	proxy := NewProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol)
 	extendConfig := &v2.XProxyExtendConfig{
-		SubProtocol: subproto,
+		SubProtocol: string(subProtocol),
 	}
 	extendMap := make(map[string]interface{})
 	data, _ := json.Marshal(extendConfig)

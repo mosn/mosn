@@ -18,9 +18,10 @@
 package http
 
 import (
+	"testing"
+
 	"istio.io/api/mixer/v1"
 	"mosn.io/mosn/pkg/istio/utils"
-	"testing"
 )
 
 type testAttributesBuilderPlugin struct{}

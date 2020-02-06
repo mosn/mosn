@@ -30,12 +30,14 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
+	_ "mosn.io/mosn/pkg/filter/stream/transcoder/bolt2http"
 	_ "mosn.io/mosn/pkg/metrics/sink"
 	_ "mosn.io/mosn/pkg/metrics/sink/prometheus"
 	_ "mosn.io/mosn/pkg/network"
 	_ "mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/http/conv"
 	_ "mosn.io/mosn/pkg/protocol/http2/conv"
+	_ "mosn.io/mosn/pkg/protocol/xprotocol"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/router"
 	_ "mosn.io/mosn/pkg/stream/http"
@@ -45,6 +47,7 @@ import (
 	_ "mosn.io/mosn/pkg/xds"
 
 	_ "mosn.io/mosn/pkg/trace/sofa/http"
+	_ "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	_ "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
 )
 

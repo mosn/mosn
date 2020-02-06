@@ -33,7 +33,7 @@ import (
 
 	"golang.org/x/sys/unix"
 	admin "mosn.io/mosn/pkg/admin/store"
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/api/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/accept/originaldst"
 	"mosn.io/mosn/pkg/log"
@@ -178,7 +178,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 				alConfig.Path = types.MosnLogBasePath + string(os.PathSeparator) + lc.Name + "_access.log"
 			}
 
-			if al, err := log.NewAccessLog(alConfig.Path, nil, alConfig.Format); err == nil {
+			if al, err := log.NewAccessLog(alConfig.Path, alConfig.Format); err == nil {
 				als = append(als, al)
 			} else {
 				return nil, fmt.Errorf("initialize listener access logger %s failed: %v", alConfig.Path, err.Error())
@@ -347,12 +347,12 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	al := &activeListener{
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
-		conns:                   list.New(),
-		handler:                 handler,
-		stopChan:                stopChan,
-		accessLogs:              accessLoggers,
-		updatedLabel:            false,
-		idleTimeout:             lc.ConnectionIdleTimeout,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		accessLogs:   accessLoggers,
+		updatedLabel: false,
+		idleTimeout:  lc.ConnectionIdleTimeout,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 

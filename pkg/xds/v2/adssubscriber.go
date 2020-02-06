@@ -74,12 +74,15 @@ func (adsClient *ADSClient) receiveThread() {
 			adsClient.StopChan <- 2
 			return
 		default:
-			if adsClient.StreamClient == nil {
+			adsClient.StreamClientMutex.RLock()
+			sc := adsClient.StreamClient
+			adsClient.StreamClientMutex.RUnlock()
+			if sc == nil {
 				log.DefaultLogger.Infof("[xds] [ads client] stream client closed, sleep 1s and wait for reconnect")
 				time.Sleep(time.Second)
 				continue
 			}
-			resp, err := adsClient.StreamClient.Recv()
+			resp, err := sc.Recv()
 			if err != nil {
 				log.DefaultLogger.Infof("[xds] [ads client] get resp timeout: %v, retry after 1s", err)
 				time.Sleep(time.Second)
@@ -114,15 +117,20 @@ func computeInterval(t time.Duration) time.Duration {
 func (adsClient *ADSClient) reconnect() {
 
 	adsClient.AdsConfig.closeADSStreamClient()
+	adsClient.StreamClientMutex.Lock()
 	adsClient.StreamClient = nil
+	adsClient.StreamClientMutex.Unlock()
 	log.DefaultLogger.Infof("[xds] [ads client] stream client closed")
 
 	interval := time.Second
 
 	for {
 		if !disableReconnect {
-			adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
-			if adsClient.StreamClient != nil {
+			sc := adsClient.AdsConfig.GetStreamClient()
+			if sc != nil {
+				adsClient.StreamClientMutex.Lock()
+				adsClient.StreamClient = sc
+				adsClient.StreamClientMutex.Unlock()
 				log.DefaultLogger.Infof("[xds] [ads client] stream client reconnected")
 				return
 			}

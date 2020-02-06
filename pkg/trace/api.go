@@ -19,9 +19,11 @@ package trace
 
 import (
 	"context"
+
 	"mosn.io/mosn/pkg/types"
 
 	"errors"
+
 	mosnctx "mosn.io/mosn/pkg/context"
 )
 

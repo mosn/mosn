@@ -18,10 +18,10 @@
 package shm
 
 import (
+	"math/rand"
 	"strconv"
 	"testing"
 	"unsafe"
-	"math/rand"
 )
 
 func TestHashSet_Alloc(t *testing.T) {

@@ -19,10 +19,11 @@ package sofa
 
 import (
 	"errors"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 	"os/user"
 	"sync"
+
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 type tracelog struct {

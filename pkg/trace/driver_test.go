@@ -19,9 +19,10 @@ package trace
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/types"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 type mockTracer struct {

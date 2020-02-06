@@ -23,8 +23,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/rcrowley/go-metrics"
-	"mosn.io/mosn/pkg/api/v2"
+	metrics "github.com/rcrowley/go-metrics"
+	v2 "mosn.io/mosn/pkg/api/v2"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:

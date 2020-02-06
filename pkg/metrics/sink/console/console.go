@@ -22,9 +22,10 @@ import (
 	"io"
 	"strconv"
 
+	"strings"
+
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/types"
-	"strings"
 )
 
 // histogram output percents

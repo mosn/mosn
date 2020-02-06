@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -212,12 +212,6 @@ func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
 			p.upstreamConnection.Close(types.FlushWrite, types.LocalClose)
 		} else if event == types.LocalClose {
 			p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
-		}
-	}
-
-	if event.IsClose() {
-		for _, al := range p.accessLogs {
-			al.Log(nil, nil, p.requestInfo)
 		}
 	}
 }

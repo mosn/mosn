@@ -1,11 +1,16 @@
 ---
 name: Ask Question
-about: Ask a question about usage or feature
-
+about: Ask a question about usage or features
 ---
+
 ### Your question
 
-describe your question clearly
+Describe your question clearly.
 
 ### Environment
-+ SOFAMosn Version
+
+- MOSN Version
+
+### Logs
+
+- Paste the logs you see.

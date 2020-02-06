@@ -21,7 +21,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/rcrowley/go-metrics"
+	metrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/types"
 )
 

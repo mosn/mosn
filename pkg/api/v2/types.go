@@ -49,9 +49,10 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER        = "mixer"
-	FaultStream  = "fault"
-	PayloadLimit = "payload_limit"
+	MIXER                  = "mixer"
+	FaultStream            = "fault"
+	PayloadLimit           = "payload_limit"
+	MosnBoltHttpTranscoder = "mosn.bolt_http_transcoder"
 )
 
 // ClusterType
@@ -193,6 +194,12 @@ type FaultInject struct {
 type StreamPayloadLimit struct {
 	MaxEntitySize int32 `json:"max_entity_size "`
 	HttpStatus    int32 `json:"http_status"`
+}
+
+// TranscodeBoltHttp
+type TranscodeBoltHttp struct {
+	SourceEncoding string `json:"source_encoding "`
+	TargetEncoding string `json:"target_encoding"`
 }
 
 func (f FaultInject) Marshal() (b []byte, err error) {
@@ -452,7 +459,7 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	if len(fc.TLSConfigs) > 0 {
 		fc.TLSContexts = make([]TLSConfig, len(fc.TLSConfigs))
 		copy(fc.TLSContexts, fc.TLSConfigs)
-	} else { // no tls_context_set, use tls_context
+	} else {                     // no tls_context_set, use tls_context
 		if fc.TLSConfig == nil { // no tls_context, generate a default one
 			fc.TLSContexts = append(fc.TLSContexts, TLSConfig{})
 		} else { // use tls_context
