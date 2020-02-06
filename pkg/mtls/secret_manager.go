@@ -87,6 +87,7 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		// set a certificate callback
 		client := GetSdsClient(cfg.SdsConfig.CertificateConfig.Config)
 		if client == nil {
+			log.DefaultLogger.Errorf("[mtls] [sds provider] get sds client fail, client is nil")
 			return nil
 		}
 		client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig.Config, p.setCertificate)
