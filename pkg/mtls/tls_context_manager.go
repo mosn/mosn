@@ -20,6 +20,7 @@ package mtls
 import (
 	"net"
 
+	"github.com/juju/errors"
 	"mosn.io/mosn/pkg/api/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
@@ -60,6 +61,8 @@ func NewTLSServerContextManager(cfg *v2.Listener) (types.TLSContextManager, erro
 				} else {
 					mng.providers = append(mng.providers, provider)
 				}
+			} else {
+				return nil, errors.New("new provider fail , provider is nil")
 			}
 		}
 	}
@@ -140,6 +143,9 @@ func NewTLSClientContextManager(cfg *v2.TLSConfig) (types.TLSContextManager, err
 	provider, err := NewProvider(cfg)
 	if err != nil {
 		return nil, err
+	}
+	if provider == nil {
+		return nil, errors.New("new provider fail , provider is nil")
 	}
 	mng := &clientContextManager{
 		provider: provider,

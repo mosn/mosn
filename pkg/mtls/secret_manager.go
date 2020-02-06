@@ -86,6 +86,9 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		v.certificates[certName] = p
 		// set a certificate callback
 		client := GetSdsClient(cfg.SdsConfig.CertificateConfig.Config)
+		if client == nil {
+			return nil
+		}
 		client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig.Config, p.setCertificate)
 		// set a validation callback
 		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig.Config, mng.setValidation)
