@@ -129,6 +129,9 @@ const (
 type Host interface {
 	api.HostInfo
 
+	// HostStats returns the host stats metrics
+	HostStats() HostStats
+
 	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
 
@@ -207,6 +210,30 @@ type Resource interface {
 	Increase()
 	Decrease()
 	Max() uint64
+}
+
+// HostStats defines a host's statistics information
+type HostStats struct {
+	UpstreamConnectionTotal                        metrics.Counter
+	UpstreamConnectionClose                        metrics.Counter
+	UpstreamConnectionActive                       metrics.Counter
+	UpstreamConnectionConFail                      metrics.Counter
+	UpstreamConnectionLocalClose                   metrics.Counter
+	UpstreamConnectionRemoteClose                  metrics.Counter
+	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
+	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
+	UpstreamConnectionCloseNotify                  metrics.Counter
+	UpstreamRequestTotal                           metrics.Counter
+	UpstreamRequestActive                          metrics.Counter
+	UpstreamRequestLocalReset                      metrics.Counter
+	UpstreamRequestRemoteReset                     metrics.Counter
+	UpstreamRequestTimeout                         metrics.Counter
+	UpstreamRequestFailureEject                    metrics.Counter
+	UpstreamRequestPendingOverflow                 metrics.Counter
+	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamResponseSuccess                        metrics.Counter
+	UpstreamResponseFailed                         metrics.Counter
 }
 
 // ClusterStats defines a cluster's statistics information

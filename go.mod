@@ -39,6 +39,6 @@ require (
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.20.1
 	istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
-	mosn.io/api v0.0.0-20200204095338-5f5702f73866
+	mosn.io/api v0.0.0-20200206015326-e673810b2876
 	mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d
 )

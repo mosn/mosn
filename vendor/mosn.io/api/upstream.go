@@ -17,8 +17,6 @@
 
 package api
 
-import metrics "github.com/rcrowley/go-metrics"
-
 // HostInfo defines a host's basic information
 type HostInfo interface {
 	// Hostname returns the host's name
@@ -30,9 +28,6 @@ type HostInfo interface {
 	// AddressString retuens the host's address string
 	AddressString() string
 
-	// HostStats returns the host stats metrics
-	HostStats() HostStats
-
 	// Weight returns the host weight
 	Weight() uint32
 
@@ -41,28 +36,4 @@ type HostInfo interface {
 	SupportTLS() bool
 
 	// TODO: add deploy locality
-}
-
-// HostStats defines a host's statistics information
-type HostStats struct {
-	UpstreamConnectionTotal                        metrics.Counter
-	UpstreamConnectionClose                        metrics.Counter
-	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionConFail                      metrics.Counter
-	UpstreamConnectionLocalClose                   metrics.Counter
-	UpstreamConnectionRemoteClose                  metrics.Counter
-	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
-	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
-	UpstreamConnectionCloseNotify                  metrics.Counter
-	UpstreamRequestTotal                           metrics.Counter
-	UpstreamRequestActive                          metrics.Counter
-	UpstreamRequestLocalReset                      metrics.Counter
-	UpstreamRequestRemoteReset                     metrics.Counter
-	UpstreamRequestTimeout                         metrics.Counter
-	UpstreamRequestFailureEject                    metrics.Counter
-	UpstreamRequestPendingOverflow                 metrics.Counter
-	UpstreamRequestDuration                        metrics.Histogram
-	UpstreamRequestDurationTotal                   metrics.Counter
-	UpstreamResponseSuccess                        metrics.Counter
-	UpstreamResponseFailed                         metrics.Counter
 }
