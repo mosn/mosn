@@ -52,6 +52,10 @@ var (
 				Name:   "service-node, n",
 				Usage:  "sidecar service node",
 				EnvVar: "SERVICE_NODE",
+			}, cli.StringSliceFlag{
+				Name:   "service-meta, sm",
+				Usage:  "sidecar service metadata",
+				EnvVar: "SERVICE_META",
 			}, cli.StringFlag{
 				Name:   "feature-gates, f",
 				Usage:  "config feature gates",
@@ -62,6 +66,7 @@ var (
 			configPath := c.String("config")
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
+			serviceMeta := c.StringSlice("service-meta")
 			conf := config.Load(configPath)
 			// set feature gates
 			err := featuregate.Set(c.String("feature-gates"))
@@ -84,7 +89,8 @@ var (
 			// set version and go version
 			metrics.SetVersion(Version)
 			metrics.SetGoVersion(runtime.Version())
-			initXdsFlags(serviceCluster, serviceNode)
+			types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta)
+
 			mosn.Start(conf)
 			return nil
 		},
@@ -106,9 +112,3 @@ var (
 		},
 	}
 )
-
-func initXdsFlags(serviceCluster, serviceNode string) {
-	info := types.GetGlobalXdsInfo()
-	info.ServiceCluster = serviceCluster
-	info.ServiceNode = serviceNode
-}

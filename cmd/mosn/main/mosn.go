@@ -53,6 +53,7 @@ import (
 	_ "mosn.io/mosn/pkg/trace/sofa/rpc/ext"
 )
 
+// Version mosn version
 var Version = "0.4.0"
 
 func main() {
