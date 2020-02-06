@@ -44,7 +44,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 		request.ClassLen = uint16(len(request.Class))
 	}
 	if len(request.Header.Kvs) != 0 {
-		request.HeaderLen = uint16(getHeaderEncodeLength(request.Header.Kvs))
+		request.HeaderLen = uint16(getHeaderEncodeLength(&request.Header))
 	}
 	if request.Content != nil {
 		request.ContentLen = uint32(request.Content.Len())
@@ -74,7 +74,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	}
 
 	if request.HeaderLen > 0 {
-		encodeHeader(buf[headerIndex:], request.Header)
+		encodeHeader(buf[headerIndex:], &request.Header)
 	}
 
 	if request.ContentLen > 0 {
@@ -102,7 +102,7 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 		response.ClassLen = uint16(len(response.Class))
 	}
 	if len(response.Header.Kvs) != 0 {
-		response.HeaderLen = uint16(getHeaderEncodeLength(response.Header.Kvs))
+		response.HeaderLen = uint16(getHeaderEncodeLength(&response.Header))
 	}
 	if response.Content != nil {
 		response.ContentLen = uint32(response.Content.Len())
@@ -132,7 +132,7 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	}
 
 	if response.HeaderLen > 0 {
-		encodeHeader(buf[headerIndex:], response.Header)
+		encodeHeader(buf[headerIndex:], &response.Header)
 	}
 
 	if response.ContentLen > 0 {
