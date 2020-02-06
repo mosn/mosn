@@ -28,6 +28,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+const AutoExpand = 1
 const MinRead = 1 << 9
 const MaxRead = 1 << 17
 const ResetOffMark = -1
@@ -75,7 +76,6 @@ func (b *IoBuffer) Read(p []byte) (n int, err error) {
 
 func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 	var m int
-	var zeroTime time.Time
 
 	if b.off > 0 && b.off >= len(b.buf) {
 		b.Reset()
@@ -100,8 +100,6 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
 
-		// Reset read deadline
-		conn.SetReadDeadline(zeroTime)
 	} else {
 		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
 	}
@@ -111,7 +109,7 @@ func (b *IoBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 	// Not enough space anywhere, we need to allocate.
 	if l == m {
-		b.copy(MinRead)
+		b.copy(AutoExpand)
 	}
 
 	return n, err
@@ -393,7 +391,11 @@ func (b *IoBuffer) copy(expand int) {
 			cap = cap + cap/4
 		}
 
-		bufp = b.makeSlice(cap)
+		if expand == AutoExpand {
+			expand = 0
+		}
+
+		bufp = b.makeSlice(cap + expand)
 		newBuf = *bufp
 		copy(newBuf, b.buf[b.off:])
 		PutBytes(b.b)

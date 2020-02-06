@@ -243,7 +243,7 @@ func TestIoBufferReadOnce(t *testing.T) {
 	}
 	// expand buf
 	if b.Cap() != MinRead<<2 {
-		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
+		t.Errorf("Expect %d bytes but got %d", MinRead<<2, b.Cap())
 	}
 
 	// third read  bsize - MinRead<<1
@@ -256,7 +256,7 @@ func TestIoBufferReadOnce(t *testing.T) {
 	}
 	// not expand buf
 	if b.Cap() != MinRead<<2 {
-		t.Errorf("Expect %d bytes but got %d", 1<<minShift, b.Cap())
+		t.Errorf("Expect %d bytes but got %d", MinRead<<2, b.Cap())
 	}
 	if !bytes.Equal(b.Bytes(), []byte(s)) {
 		t.Errorf("Expect got %s but got %s", s, b.Bytes())
