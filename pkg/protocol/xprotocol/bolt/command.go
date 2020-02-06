@@ -22,6 +22,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+// RequestHeader is the header part of bolt v1 request
 type RequestHeader struct {
 	Protocol   byte // meta fields
 	CmdType    byte
@@ -95,6 +96,7 @@ func (r *Request) GetData() types.IoBuffer {
 	return r.Content
 }
 
+// RequestHeader is the header part of bolt v1 response
 type ResponseHeader struct {
 	Protocol       byte // meta fields
 	CmdType        byte
@@ -136,7 +138,7 @@ type Response struct {
 	Content types.IoBuffer // wrapper of raw content
 }
 
-// ~ XFrame
+// ~ XRespFrame
 func (r *Response) GetRequestId() uint64 {
 	return uint64(r.ResponseHeader.RequestId)
 }

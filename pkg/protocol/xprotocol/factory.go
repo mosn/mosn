@@ -28,6 +28,7 @@ var (
 	matcherMap  = make(map[types.ProtocolName]types.ProtocolMatch)
 )
 
+// RegisterProtocol register the protocol to factory
 func RegisterProtocol(name types.ProtocolName, protocol XProtocol) error {
 	// check name conflict
 	_, ok := protocolMap[name]
@@ -39,10 +40,12 @@ func RegisterProtocol(name types.ProtocolName, protocol XProtocol) error {
 	return nil
 }
 
+// GetProtocol return the corresponding protocol for given name(if was registered)
 func GetProtocol(name types.ProtocolName) XProtocol {
 	return protocolMap[name]
 }
 
+// RegisterMatcher register the matcher of the protocol into factory
 func RegisterMatcher(name types.ProtocolName, matcher types.ProtocolMatch) error {
 	// check name conflict
 	_, ok := matcherMap[name]
@@ -54,6 +57,7 @@ func RegisterMatcher(name types.ProtocolName, matcher types.ProtocolMatch) error
 	return nil
 }
 
+// GetMatcher return the corresponding matcher for given name(if was registered)
 func GetMatcher(name types.ProtocolName) types.ProtocolMatch {
 	return matcherMap[name]
 }

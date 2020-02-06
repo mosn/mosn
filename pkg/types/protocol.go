@@ -38,8 +38,11 @@ import (
 //
 
 type (
+	// ProtocolName must be unique
 	ProtocolName string
+	// MatchResult
 	MatchResult int
+	// ProtocolMatch recognize if the given data matches the protocol specification or not
 	ProtocolMatch func(data []byte) MatchResult
 )
 
@@ -49,6 +52,7 @@ const (
 	MatchAgain
 )
 
+// Protocol need to provides ability to convert mode-to-binary and vice-versa
 type Protocol interface {
 	// Encoder is the encoder implementation of the protocol
 	Encoder

@@ -95,7 +95,7 @@ type Response struct {
 	Content types.IoBuffer // wrapper of raw content
 }
 
-// ~ XFrame
+// ~ XRespFrame
 func (r *Response) GetRequestId() uint64 {
 	return uint64(r.ResponseHeader.RequestId)
 }

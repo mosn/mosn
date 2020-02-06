@@ -69,6 +69,7 @@ func init() {
 
 type boltProtocol struct{}
 
+// types.Protocol
 func (proto *boltProtocol) Name() types.ProtocolName {
 	return ProtocolName
 }
@@ -105,7 +106,7 @@ func (proto *boltProtocol) Decode(ctx context.Context, data types.IoBuffer) (int
 	return nil, nil
 }
 
-// heartbeater
+// Heartbeater
 func (proto *boltProtocol) Trigger(requestId uint64) xprotocol.XFrame {
 	return &Request{
 		RequestHeader: RequestHeader{
@@ -134,7 +135,7 @@ func (proto *boltProtocol) Reply(requestId uint64) xprotocol.XRespFrame {
 	}
 }
 
-// hijacker
+// Hijacker
 func (proto *boltProtocol) Hijack(statusCode uint32) xprotocol.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{

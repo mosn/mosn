@@ -22,11 +22,13 @@ import (
 	"unsafe"
 )
 
+// BytesKV key-value pair in byte slice
 type BytesKV struct {
 	Key   []byte
 	Value []byte
 }
 
+// Header consists of multi key-value pair in byte slice formation. This could reduce the cost of []byte to string for protocol codec.
 type Header struct {
 	Kvs []BytesKV
 }
