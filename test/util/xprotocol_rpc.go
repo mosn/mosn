@@ -163,6 +163,7 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 			return nil, false
 		}
 		if req, ok := cmd.(*bolt.Request); ok {
+			t.Logf("RPC Server receive streamId: %d \n", req.RequestId)
 			atomic.AddUint32(&s.Count, 1)
 			resp := bolt.NewRpcResponse(req.RequestId, bolt.ResponseStatusSuccess, nil, nil)
 			iobufresp, err := protocol.Encode(context.Background(), resp)
@@ -171,6 +172,8 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 				return nil, true
 			}
 			return iobufresp.Bytes(), true
+		} else {
+			t.Logf("Unrecognized request:%+v \n", cmd)
 		}
 		return nil, true
 	}

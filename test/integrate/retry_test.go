@@ -223,7 +223,7 @@ func (c *XRetryCase) StartProxy() {
 	}
 	clientMeshAddr := util.CurrentMeshAddr()
 	c.ClientMeshAddr = clientMeshAddr
-	cfg := util.CreateXProtocolProxyMesh(clientMeshAddr, []string{app1, app2}, c.AppProtocol)
+	cfg := util.CreateXProtocolProxyMesh(clientMeshAddr, []string{app1, app2}, c.SubProtocol)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
@@ -294,7 +294,7 @@ func TestXRetry(t *testing.T) {
 	}()
 	testCases := []*XRetryCase{
 		// A server reponse not success
-		NewXRetryCase(t, bolt.ProtocolName, false),
+		NewXRetryCase(t, bolt.ProtocolName, true),
 		//TODO: boltv2, dubbo, tars
 	}
 	for i, tc := range testCases {
@@ -320,7 +320,7 @@ func TestXRetryProxy(t *testing.T) {
 		util.StartRetry = false
 	}()
 	testCases := []*XRetryCase{
-		NewXRetryCase(t, bolt.ProtocolName, false),
+		NewXRetryCase(t, bolt.ProtocolName, true),
 		//TODO: boltv2, dubbo, tars
 	}
 	for i, tc := range testCases {
