@@ -23,8 +23,8 @@ import (
 	"time"
 
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	mlog "mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/server/keeper"
@@ -55,7 +55,7 @@ func NewConfig(c *v2.ServerConfig) *Config {
 	return &Config{
 		ServerName:      c.ServerName,
 		LogPath:         c.DefaultLogPath,
-		LogLevel:        config.ParseLogLevel(c.DefaultLogLevel),
+		LogLevel:        configmanager.ParseLogLevel(c.DefaultLogLevel),
 		LogRoller:       c.GlobalLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
 		Processor:       c.Processor,

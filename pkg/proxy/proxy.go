@@ -26,8 +26,8 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
@@ -52,7 +52,7 @@ var (
 
 func init() {
 	// register init function with interest of P number
-	config.RegisterConfigParsedListener(config.ParseCallbackKeyProcessor, initWorkerPool)
+	configmanager.RegisterConfigParsedListener(configmanager.ParseCallbackKeyProcessor, initWorkerPool)
 }
 
 func initWorkerPool(data interface{}, endParsing bool) error {

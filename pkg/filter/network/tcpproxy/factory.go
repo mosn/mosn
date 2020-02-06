@@ -19,10 +19,11 @@ package tcpproxy
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 func init() {
@@ -39,11 +40,22 @@ func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context,
 }
 
 func CreateTCPProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
-	p, err := config.ParseTCPProxy(conf)
+	p, err := ParseTCPProxy(conf)
 	if err != nil {
 		return nil, err
 	}
 	return &tcpProxyFilterConfigFactory{
 		Proxy: p,
 	}, nil
+}
+
+// ParseTCPProxy
+func ParseTCPProxy(cfg map[string]interface{}) (*v2.TCPProxy, error) {
+	proxy := &v2.TCPProxy{}
+	if data, err := json.Marshal(cfg); err == nil {
+		json.Unmarshal(data, proxy)
+	} else {
+		return nil, fmt.Errorf("[config] config is not a tcp proxy config: %v", err)
+	}
+	return proxy, nil
 }

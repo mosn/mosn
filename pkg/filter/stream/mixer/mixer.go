@@ -19,11 +19,13 @@ package mixer
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/istio/control/http"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/buffer"
@@ -145,7 +147,31 @@ func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbac
 
 // CreateMixerFilterFactory for create mixer filter factory
 func CreateMixerFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	m, err := ParseMixerFilter(conf)
+	if err != nil {
+		return nil, err
+	}
 	return &FilterConfigFactory{
-		MixerConfig: config.ParseMixerFilter(conf),
+		MixerConfig: m,
 	}, nil
+}
+
+// ParseMixerFilter
+func ParseMixerFilter(cfg map[string]interface{}) (*v2.Mixer, error) {
+	mixerFilter := &v2.Mixer{}
+
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		log.DefaultLogger.Errorf("[mixer] parsing mixer filter error, err: %v, cfg: %v", err, cfg)
+		return nil, err
+	}
+
+	var un jsonpb.Unmarshaler
+	err = un.Unmarshal(strings.NewReader(string(data)), &mixerFilter.HttpClientConfig)
+	if err != nil {
+		log.DefaultLogger.Errorf("[mixer] parsing mixer filter error, err: %v, cfg: %v", err, cfg)
+		return nil, err
+	}
+
+	return mixerFilter, nil
 }

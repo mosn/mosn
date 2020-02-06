@@ -21,7 +21,7 @@ import (
 	"errors"
 	"time"
 
-	apiv2 "mosn.io/mosn/pkg/api/v2"
+	apiv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol/rpc"
 	"mosn.io/mosn/pkg/types"
 )

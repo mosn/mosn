@@ -34,7 +34,7 @@ import (
 	"golang.org/x/sys/unix"
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/accept/originaldst"
 	"mosn.io/mosn/pkg/log"

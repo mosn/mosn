@@ -26,7 +26,7 @@ import (
 
 	"github.com/urfave/cli"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -62,7 +62,7 @@ var (
 			configPath := c.String("config")
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
-			conf := config.Load(configPath)
+			conf := configmanager.Load(configPath)
 			// set feature gates
 			err := featuregate.DefaultMutableFeatureGate.Set(c.String("feature-gates"))
 			if err != nil {

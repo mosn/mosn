@@ -6,8 +6,7 @@ import (
 	"encoding/json"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/buffer"
 )
@@ -50,7 +49,7 @@ func parseStreamPayloadLimitConfig(c interface{}) (*payloadLimitConfig, bool) {
 		return nil, false
 	}
 	json.Unmarshal(b, &conf)
-	cfg, err := config.ParseStreamPayloadLimitFilter(conf)
+	cfg, err := ParseStreamPayloadLimitFilter(conf)
 	if err != nil {
 		log.DefaultLogger.Errorf("config is not stream payload limit", err)
 		return nil, false

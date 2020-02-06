@@ -21,7 +21,7 @@ import (
 	"context"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 // todo this filter may use in the future

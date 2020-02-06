@@ -40,8 +40,8 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -164,10 +164,10 @@ func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.H
 			MetaData: convertMeta(xdsHost.Metadata),
 		}
 
-		if weight := xdsHost.GetLoadBalancingWeight().GetValue(); weight < config.MinHostWeight {
-			host.Weight = config.MinHostWeight
-		} else if weight > config.MaxHostWeight {
-			host.Weight = config.MaxHostWeight
+		if weight := xdsHost.GetLoadBalancingWeight().GetValue(); weight < configmanager.MinHostWeight {
+			host.Weight = configmanager.MinHostWeight
+		} else if weight > configmanager.MaxHostWeight {
+			host.Weight = configmanager.MaxHostWeight
 		}
 
 		hosts = append(hosts, host)
@@ -600,9 +600,9 @@ func convertCidrRange(cidr []*xdscore.CidrRange) []v2.CidrRange {
 	return cidrRanges
 }
 
-func convertXProxyExtendConfig(config *xdsxproxy.XProxy) map[string]interface{} {
+func convertXProxyExtendConfig(cfg *xdsxproxy.XProxy) map[string]interface{} {
 	extendConfig := &v2.XProxyExtendConfig{
-		SubProtocol: config.XProtocol,
+		SubProtocol: cfg.XProtocol,
 	}
 	return toMap(extendConfig)
 }
@@ -1097,69 +1097,69 @@ func convertDuration(p *types.Duration) time.Duration {
 }
 
 func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
-	var config v2.TLSConfig
+	var cfg v2.TLSConfig
 	var isDownstream bool
 	var isSdsMode bool
 	var common *xdsauth.CommonTlsContext
 
 	if xdsTLSContext == nil {
-		return config
+		return cfg
 	}
 	if context, ok := xdsTLSContext.(*xdsauth.DownstreamTlsContext); ok {
 		if context.GetRequireClientCertificate() != nil {
-			config.VerifyClient = context.GetRequireClientCertificate().GetValue()
+			cfg.VerifyClient = context.GetRequireClientCertificate().GetValue()
 		}
 		common = context.GetCommonTlsContext()
 		isDownstream = true
 	} else if context, ok := xdsTLSContext.(*xdsauth.UpstreamTlsContext); ok {
-		config.ServerName = context.GetSni()
+		cfg.ServerName = context.GetSni()
 		common = context.GetCommonTlsContext()
 		isDownstream = false
 	}
 	if common == nil {
-		return config
+		return cfg
 	}
 	// Currently only a single certificate is supported
 	if common.GetTlsCertificates() != nil {
 		for _, cert := range common.GetTlsCertificates() {
 			if cert.GetCertificateChain() != nil && cert.GetPrivateKey() != nil {
 				// use GetFilename to get the cert's path
-				config.CertChain = cert.GetCertificateChain().GetFilename()
-				config.PrivateKey = cert.GetPrivateKey().GetFilename()
+				cfg.CertChain = cert.GetCertificateChain().GetFilename()
+				cfg.PrivateKey = cert.GetPrivateKey().GetFilename()
 			}
 		}
 	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
 		isSdsMode = true
 		if validationContext, ok := common.GetValidationContextType().(*xdsauth.CommonTlsContext_CombinedValidationContext); ok {
-			config.SdsConfig.CertificateConfig = &v2.SecretConfigWrapper{Config: tlsCertSdsConfig[0]}
-			config.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{Config: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()}
+			cfg.SdsConfig.CertificateConfig = &v2.SecretConfigWrapper{Config: tlsCertSdsConfig[0]}
+			cfg.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{Config: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()}
 		}
 	}
 
 	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
-		config.CACert = common.GetValidationContext().GetTrustedCa().String()
+		cfg.CACert = common.GetValidationContext().GetTrustedCa().String()
 	}
 	if common.GetAlpnProtocols() != nil {
-		config.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
+		cfg.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
 	}
 	param := common.GetTlsParams()
 	if param != nil {
 		if param.GetCipherSuites() != nil {
-			config.CipherSuites = strings.Join(param.GetCipherSuites(), ":")
+			cfg.CipherSuites = strings.Join(param.GetCipherSuites(), ":")
 		}
 		if param.GetEcdhCurves() != nil {
-			config.EcdhCurves = strings.Join(param.GetEcdhCurves(), ",")
+			cfg.EcdhCurves = strings.Join(param.GetEcdhCurves(), ",")
 		}
-		config.MinVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMinimumProtocolVersion())]
-		config.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
+		cfg.MinVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMinimumProtocolVersion())]
+		cfg.MaxVersion = xdsauth.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
 	}
 
-	if !isSdsMode && isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
+	if !isSdsMode && isDownstream && (cfg.CertChain == "" || cfg.PrivateKey == "") {
 		log.DefaultLogger.Errorf("tls_certificates are required in downstream tls_context")
-		config.Status = false
-		return config
+		cfg.Status = false
+		return cfg
 	}
 
-	config.Status = true
-	return config
+	cfg.Status = true
+	return cfg
 }

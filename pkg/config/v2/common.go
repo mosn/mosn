@@ -20,11 +20,8 @@ package v2
 import (
 	"errors"
 
-	jsoniter "github.com/json-iterator/go"
 	"mosn.io/api"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // MetadataConfig is a config for metadata
 type MetadataConfig struct {

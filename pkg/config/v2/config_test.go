@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package config
+package v2
 
 import (
 	"encoding/json"
@@ -26,8 +26,6 @@ import (
 	"testing"
 
 	jsoniter "github.com/json-iterator/go"
-	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/types"
 )
 
 func TestClusterConfigParse(t *testing.T) {
@@ -107,10 +105,10 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 		t.Fatalf("cluster parsed not enough, got : %v", testConfig.ClusterManager.Clusters)
 	}
 	// add a new cluster
-	testConfig.ClusterManager.Clusters = append(testConfig.ClusterManager.Clusters, v2.Cluster{
+	testConfig.ClusterManager.Clusters = append(testConfig.ClusterManager.Clusters, Cluster{
 		Name: "test_subset",
-		LBSubSetConfig: v2.LBSubsetConfig{
-			FallBackPolicy: uint8(types.AnyEndPoint),
+		LBSubSetConfig: LBSubsetConfig{
+			FallBackPolicy: uint8(1),
 		},
 	})
 	// dump json
@@ -143,7 +141,7 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 	if err := json.Unmarshal([]byte(mosnConfig), newTestConfig); err != nil {
 		t.Fatal(err)
 	}
-	if newTestConfig.ClusterManager.Clusters[0].LBSubSetConfig.FallBackPolicy != uint8(types.AnyEndPoint) {
+	if newTestConfig.ClusterManager.Clusters[0].LBSubSetConfig.FallBackPolicy != uint8(1) {
 		t.Error("new cluster config is not expected")
 	}
 }
@@ -163,7 +161,7 @@ func TestClusterConfigConflict(t *testing.T) {
 		if e == nil {
 			return false
 		}
-		return strings.Contains(e.Error(), v2.ErrDuplicateStaticAndDynamic.Error())
+		return strings.Contains(e.Error(), ErrDuplicateStaticAndDynamic.Error())
 	}
 	if err := json.Unmarshal([]byte(mosnConfig), &MOSNConfig{}); !errCompare(err) {
 		t.Fatalf("test config conflict with both dynamic mode and static mode failed, get error: %v", err)
@@ -237,13 +235,13 @@ func BenchmarkConfigMarshal(b *testing.B) {
 		ClusterManagerConfigJson: ClusterManagerConfigJson{
 			ClusterConfigPath: clusterPath,
 		},
-		Clusters: make([]v2.Cluster, 0, 5000),
+		Clusters: make([]Cluster, 0, 5000),
 	}
 	for i := 0; i < 5000; i++ {
-		c := v2.Cluster{
+		c := Cluster{
 			Name:        fmt.Sprintf("cluster%d", i),
-			ClusterType: v2.SIMPLE_CLUSTER,
-			LbType:      v2.LB_RANDOM,
+			ClusterType: SIMPLE_CLUSTER,
+			LbType:      LB_RANDOM,
 		}
 		cfg.Clusters = append(cfg.Clusters, c)
 	}

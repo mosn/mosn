@@ -11,8 +11,7 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
@@ -65,9 +64,9 @@ func (f *injectFilter) inject() {
 }
 
 // mosn config with stream filter called inject
-func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *config.MOSNConfig {
+func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *v2.MOSNConfig {
 	clusterName := "http_server"
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			util.NewBasicCluster(clusterName, hosts),
 		},

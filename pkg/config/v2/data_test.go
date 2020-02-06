@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package config
+package v2
 
 const cfgStr = `{
 	 "servers": [

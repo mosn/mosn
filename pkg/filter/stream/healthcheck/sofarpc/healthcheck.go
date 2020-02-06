@@ -19,11 +19,11 @@ package sofarpc
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/types"
@@ -106,7 +106,25 @@ func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Conte
 
 // CreateHealthCheckFilterFactory
 func CreateHealthCheckFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	f, err := ParseHealthCheckFilter(conf)
+	if err != nil {
+		return nil, err
+	}
 	return &HealthCheckFilterConfigFactory{
-		FilterConfig: config.ParseHealthCheckFilter(conf),
+		FilterConfig: f,
 	}, nil
+}
+
+// ParseHealthCheckFilter
+func ParseHealthCheckFilter(cfg map[string]interface{}) (*v2.HealthCheckFilter, error) {
+	filterConfig := &v2.HealthCheckFilter{}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, filterConfig); err != nil {
+		return nil, err
+	}
+
+	return filterConfig, nil
 }

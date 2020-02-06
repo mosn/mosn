@@ -19,10 +19,10 @@ package faultinject
 
 import (
 	"context"
+	"encoding/json"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 func init() {
@@ -39,7 +39,24 @@ func (f *faultInjectConfigFactory) CreateFilterChain(context context.Context, ca
 }
 
 func CreateFaultInjectFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+	f, err := ParseFaultInjectFilter(conf)
+	if err != nil {
+		return nil, err
+	}
 	return &faultInjectConfigFactory{
-		FaultInject: config.ParseFaultInjectFilter(conf),
+		FaultInject: f,
 	}, nil
+}
+
+// ParseFaultInjectFilter
+func ParseFaultInjectFilter(cfg map[string]interface{}) (*v2.FaultInject, error) {
+	filterConfig := &v2.FaultInject{}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, filterConfig); err != nil {
+		return nil, err
+	}
+	return filterConfig, nil
 }

@@ -23,7 +23,7 @@ import (
 
 	metrics "github.com/rcrowley/go-metrics"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"

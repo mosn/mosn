@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package config
+package configmanager
 
 // some test constant defines
 var basicConfigStr = `

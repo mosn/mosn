@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package config
+package configmanager
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 func mockInitConfig(t *testing.T, cfg []byte) {

@@ -23,8 +23,8 @@ import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
@@ -68,10 +68,10 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 
 		if !mosnListener.UseOriginalDst {
 			for _, filterChain := range mosnListener.FilterChains {
-				nf := config.GetNetworkFilters(&filterChain)
+				nf := configmanager.GetNetworkFilters(&filterChain)
 				networkFilters = append(networkFilters, nf...)
 			}
-			streamFilters = config.GetStreamFilters(mosnListener.StreamFilters)
+			streamFilters = configmanager.GetStreamFilters(mosnListener.StreamFilters)
 
 			if len(networkFilters) == 0 {
 				log.DefaultLogger.Errorf("xds client update listener error: proxy needed in network filters")

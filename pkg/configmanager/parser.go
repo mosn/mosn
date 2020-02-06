@@ -15,25 +15,24 @@
  * limitations under the License.
  */
 
-package config
+package configmanager
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"os"
 	"runtime"
 	"strconv"
-	"strings"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 )
 
-var protocolsSupported = map[string]bool{
+type ContentKey string
+
+var ProtocolsSupported = map[string]bool{
 	string(protocol.Auto):      true,
 	string(protocol.SofaRPC):   true,
 	string(protocol.HTTP1):     true,
@@ -51,11 +50,11 @@ const (
 // RegisterProtocolParser
 // used to register parser
 func RegisterProtocolParser(key string) bool {
-	if _, ok := protocolsSupported[key]; ok {
+	if _, ok := ProtocolsSupported[key]; ok {
 		return false
 	}
-	log.StartLogger.Infof("[config] %s added to protocolsSupported", key)
-	protocolsSupported[key] = true
+	log.StartLogger.Infof("[config] %s added to ProtocolsSupported", key)
+	ProtocolsSupported[key] = true
 	return true
 }
 
@@ -114,7 +113,7 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 				"For 1, represent ANY_ENDPOINT" +
 				"For 2, represent DEFAULT_SUBSET")
 		}
-		if _, ok := protocolsSupported[c.HealthCheck.Protocol]; !ok && c.HealthCheck.Protocol != "" {
+		if _, ok := ProtocolsSupported[c.HealthCheck.Protocol]; !ok && c.HealthCheck.Protocol != "" {
 			log.StartLogger.Fatalf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
 		}
 		c.Hosts = parseHostConfig(c.Hosts)
@@ -224,105 +223,6 @@ func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
 	}
 
 	return routerConfiguration
-}
-
-// ParseProxyFilter
-func ParseProxyFilter(cfg map[string]interface{}) *v2.Proxy {
-	proxyConfig := &v2.Proxy{}
-	if data, err := json.Marshal(cfg); err == nil {
-		json.Unmarshal(data, proxyConfig)
-	} else {
-		log.StartLogger.Fatalf("[config] [parse proxy] Parsing Proxy Network Filter Error")
-	}
-
-	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
-		log.StartLogger.Fatalf("[config] [parse proxy] Protocol in String Needed in Proxy Network Filter")
-	} else if _, ok := protocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
-		log.StartLogger.Fatalf("[config] [parse proxy] Invalid Downstream Protocol = %s", proxyConfig.DownstreamProtocol)
-	} else if _, ok := protocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
-		log.StartLogger.Fatalf("[config] [parse proxy] Invalid Upstream Protocol = %s", proxyConfig.UpstreamProtocol)
-	}
-
-	return proxyConfig
-}
-
-// ParseFaultInjectFilter
-func ParseFaultInjectFilter(cfg map[string]interface{}) *v2.FaultInject {
-	filterConfig := &v2.FaultInject{}
-	if data, err := json.Marshal(cfg); err == nil {
-		json.Unmarshal(data, filterConfig)
-	} else {
-		log.StartLogger.Fatalf("[config] parsing fault inject filter error")
-	}
-	return filterConfig
-}
-
-// ParseStreamPayloadLimitFilter
-func ParseStreamPayloadLimitFilter(cfg map[string]interface{}) (*v2.StreamPayloadLimit, error) {
-	filterConfig := &v2.StreamPayloadLimit{}
-	data, err := json.Marshal(cfg)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(data, filterConfig); err != nil {
-		return nil, err
-	}
-	return filterConfig, nil
-}
-
-// ParseStreamFaultInjectFilter
-func ParseStreamFaultInjectFilter(cfg map[string]interface{}) (*v2.StreamFaultInject, error) {
-	filterConfig := &v2.StreamFaultInject{}
-	data, err := json.Marshal(cfg)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(data, filterConfig); err != nil {
-		return nil, err
-	}
-	return filterConfig, nil
-}
-
-// ParseMixerFilter
-func ParseMixerFilter(cfg map[string]interface{}) *v2.Mixer {
-	mixerFilter := &v2.Mixer{}
-
-	data, err := json.Marshal(cfg)
-	if err != nil {
-		log.StartLogger.Errorf("[config] parsing mixer filter error, err: %v, cfg: %v", err, cfg)
-		return nil
-	}
-
-	var un jsonpb.Unmarshaler
-	err = un.Unmarshal(strings.NewReader(string(data)), &mixerFilter.HttpClientConfig)
-	if err != nil {
-		log.StartLogger.Errorf("[config] parsing mixer filter error, err: %v, cfg: %v", err, cfg)
-		return nil
-	}
-
-	return mixerFilter
-}
-
-// ParseHealthCheckFilter
-func ParseHealthCheckFilter(cfg map[string]interface{}) *v2.HealthCheckFilter {
-	filterConfig := &v2.HealthCheckFilter{}
-	if data, err := json.Marshal(cfg); err == nil {
-		json.Unmarshal(data, filterConfig)
-	} else {
-		log.StartLogger.Fatalf("[config] parsing health check filter failed")
-	}
-	return filterConfig
-}
-
-// ParseTCPProxy
-func ParseTCPProxy(cfg map[string]interface{}) (*v2.TCPProxy, error) {
-	proxy := &v2.TCPProxy{}
-	if data, err := json.Marshal(cfg); err == nil {
-		json.Unmarshal(data, proxy)
-	} else {
-		return nil, fmt.Errorf("[config] config is not a tcp proxy config: %v", err)
-	}
-	return proxy, nil
 }
 
 func ParseServiceRegistry(src v2.ServiceRegistryInfo) {

@@ -15,18 +15,15 @@
  * limitations under the License.
  */
 
-package config
+package configmanager
 
 import (
 	"encoding/json"
 	"net"
 	"reflect"
 	"testing"
-	"time"
 
-	"istio.io/api/mixer/v1"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 type testCallback struct {
@@ -242,203 +239,10 @@ func TestParseListenerConfig(t *testing.T) {
 	}
 }
 
-func TestParseProxyFilter(t *testing.T) {
-	proxyConfigStr := `{
-		"name": "proxy",
-		"downstream_protocol": "SofaRpc",
-		"upstream_protocol": "Http2",
-		"router_config_name":"test_router",
-		"extend_config":{
-			"sub_protocol":"example"
-		}
-	}`
-	m := map[string]interface{}{}
-	if err := json.Unmarshal([]byte(proxyConfigStr), &m); err != nil {
-		t.Error(err)
-		return
-	}
-	proxy := ParseProxyFilter(m)
-	if !(proxy.Name == "proxy" &&
-		proxy.DownstreamProtocol == string(protocol.SofaRPC) &&
-		proxy.UpstreamProtocol == string(protocol.HTTP2) && proxy.RouterConfigName == "test_router") {
-		t.Error("parse proxy filter failed")
-	}
-}
-
-func TestParseFaultInjectFilter(t *testing.T) {
-	m := map[string]interface{}{
-		"delay_percent":  100,
-		"delay_duration": "15s",
-	}
-	faultInject := ParseFaultInjectFilter(m)
-	if !(faultInject.DelayDuration == uint64(15*time.Second) && faultInject.DelayPercent == 100) {
-		t.Error("parse fault inject failed")
-	}
-}
-
-func TestParseStreamPayloadLimitFilter(t *testing.T) {
-	m := map[string]interface{}{
-		"max_entity_size": 100,
-		"http_status":     500,
-	}
-	payloadLimit, err := ParseStreamPayloadLimitFilter(m)
-	if err != nil {
-		t.Error("parse stream payload limit failed")
-		return
-	}
-	if payloadLimit.MaxEntitySize == 100 && payloadLimit.HttpStatus == 500 {
-		t.Error("parse stream payload limit unexpected")
-		return
-	}
-}
-
-func TestParseStreamFaultInjectFilter(t *testing.T) {
-	m := map[string]interface{}{
-		"delay": map[string]interface{}{
-			"fixed_delay": "1s",
-			"percentage":  100,
-		},
-		"abort": map[string]interface{}{
-			"status":     500,
-			"percentage": 100,
-		},
-		"upstream_cluster": "clustername",
-		"headers": []interface{}{
-			map[string]interface{}{
-				"name":  "service",
-				"value": "test",
-				"regex": false,
-			},
-			map[string]interface{}{
-				"name":  "user",
-				"value": "bob",
-				"regex": false,
-			},
-		},
-	}
-	faultInject, err := ParseStreamFaultInjectFilter(m)
-	if err != nil {
-		t.Error("parse stream fault inject failed")
-		return
-	}
-	if !(faultInject.UpstreamCluster == "clustername" &&
-		len(faultInject.Headers) == 2 &&
-		faultInject.Abort != nil &&
-		faultInject.Delay != nil) {
-		t.Error("parse stream fault inject unexpected")
-		return
-	}
-	if !(faultInject.Abort.Percent == 100 && faultInject.Abort.Status == 500) {
-		t.Error("parse stream fault inject's abort unexpected")
-	}
-	if !(faultInject.Delay.Percent == 100 && faultInject.Delay.Delay == time.Second) {
-		t.Error("parse stream fault inject's delay unexpected")
-	}
-}
-
-func TestParseHealthCheckFilter(t *testing.T) {
-	m := map[string]interface{}{
-		"passthrough": true,
-		"cache_time":  "10m",
-		"endpoint":    "test",
-		"cluster_min_healthy_percentages": map[string]float64{
-			"test": 10.0,
-		},
-	}
-	healthCheck := ParseHealthCheckFilter(m)
-	if !(healthCheck.PassThrough &&
-		healthCheck.CacheTime == 10*time.Minute &&
-		healthCheck.Endpoint == "test" &&
-		len(healthCheck.ClusterMinHealthyPercentage) == 1 &&
-		healthCheck.ClusterMinHealthyPercentage["test"] == 10.0) {
-		t.Error("parse health check filter failed")
-	}
-}
-
-func TestParseTCPProxy(t *testing.T) {
-	m := map[string]interface{}{
-		"stat_prefix":          "tcp_proxy",
-		"cluster":              "cluster",
-		"max_connect_attempts": 1000,
-		"routes": []interface{}{
-			map[string]interface{}{
-				"cluster": "test",
-				"SourceAddrs": []interface{}{
-					map[string]interface{}{
-						"address": "127.0.0.1",
-						"length":  32,
-					},
-				},
-				"DestinationAddrs": []interface{}{
-					map[string]interface{}{
-						"address": "127.0.0.1",
-						"length":  32,
-					},
-				},
-				"SourcePort":      "8080",
-				"DestinationPort": "8080",
-			},
-		},
-	}
-	tcpproxy, err := ParseTCPProxy(m)
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	if len(tcpproxy.Routes) != 1 {
-		t.Error("parse tcpproxy failed")
-	} else {
-		r := tcpproxy.Routes[0]
-		if !(r.Cluster == "test" &&
-			len(r.SourceAddrs) == 1 &&
-			r.SourceAddrs[0].Address == "127.0.0.1" &&
-			r.SourceAddrs[0].Length == 32 &&
-			len(r.DestinationAddrs) == 1 &&
-			r.DestinationAddrs[0].Address == "127.0.0.1" &&
-			r.DestinationAddrs[0].Length == 32 &&
-			r.SourcePort == "8080" &&
-			r.DestinationPort == "8080") {
-			t.Error("route failed")
-		}
-	}
-}
 func TestParseServiceRegistry(t *testing.T) {
 	cb.Count = 0
 	ParseServiceRegistry(v2.ServiceRegistryInfo{})
 	if cb.Count != 1 {
 		t.Error("no callback")
-	}
-}
-
-func TestParseMixerFilter(t *testing.T) {
-	m := map[string]interface{}{
-		"mixer_attributes": map[string]interface{}{
-			"attributes": map[string]interface{}{
-				"context.reporter.kind": map[string]interface{}{
-					"string_value": "outbound",
-				},
-			},
-		},
-	}
-
-	mixer := ParseMixerFilter(m)
-	if mixer == nil {
-		t.Errorf("parse mixer config error")
-	}
-
-	if mixer.MixerAttributes == nil {
-		t.Errorf("parse mixer config error")
-	}
-	val, exist := mixer.MixerAttributes.Attributes["context.reporter.kind"]
-	if !exist {
-		t.Errorf("parse mixer config error")
-	}
-
-	strVal, ok := val.Value.(*v1.Attributes_AttributeValue_StringValue)
-	if !ok {
-		t.Errorf("parse mixer config error")
-	}
-	if strVal.StringValue != "outbound" {
-		t.Errorf("parse mixer config error")
 	}
 }

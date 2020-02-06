@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package config
+package configmanager
 
 import (
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 

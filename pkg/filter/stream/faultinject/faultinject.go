@@ -19,20 +19,17 @@ package faultinject
 
 import (
 	"context"
+	"encoding/json"
 	"math/rand"
 	"time"
 
-	"github.com/json-iterator/go"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // faultInjectConfig is parsed from v2.StreamFaultInject
 type faultInjectConfig struct {
@@ -70,7 +67,7 @@ func parseStreamFaultInjectConfig(c interface{}) (*faultInjectConfig, bool) {
 		return nil, false
 	}
 	json.Unmarshal(b, &conf)
-	cfg, err := config.ParseStreamFaultInjectFilter(conf)
+	cfg, err := ParseStreamFaultInjectFilter(conf)
 	if err != nil {
 		log.DefaultLogger.Errorf("config is not stream fault inject", err)
 		return nil, false

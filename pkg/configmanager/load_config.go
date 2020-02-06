@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package config
+package configmanager
 
 import (
 	"encoding/json"
@@ -23,30 +23,37 @@ import (
 	"log"
 	"path/filepath"
 	"sync"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 var (
 	configPath     string
 	configLock     sync.Mutex
-	config         MOSNConfig
+	config         v2.MOSNConfig
 	configLoadFunc ConfigLoadFunc = DefaultConfigLoad
 )
 
+// protetced configPath, read only
+func GetConfigPath() string {
+	return configPath
+}
+
 // ConfigLoadFunc parse a input(usually file path) into a mosn config
-type ConfigLoadFunc func(path string) *MOSNConfig
+type ConfigLoadFunc func(path string) *v2.MOSNConfig
 
 // RegisterConfigLoadFunc can replace a new config load function instead of default
 func RegisterConfigLoadFunc(f ConfigLoadFunc) {
 	configLoadFunc = f
 }
 
-func DefaultConfigLoad(path string) *MOSNConfig {
+func DefaultConfigLoad(path string) *v2.MOSNConfig {
 	log.Println("load config from : ", path)
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatalln("[config] [default load] load config failed, ", err)
 	}
-	cfg := &MOSNConfig{}
+	cfg := &v2.MOSNConfig{}
 	// translate to lower case
 	err = json.Unmarshal(content, cfg)
 	if err != nil {
@@ -57,7 +64,7 @@ func DefaultConfigLoad(path string) *MOSNConfig {
 }
 
 // Load config file and parse
-func Load(path string) *MOSNConfig {
+func Load(path string) *v2.MOSNConfig {
 	configPath, _ = filepath.Abs(path)
 	if cfg := configLoadFunc(path); cfg != nil {
 		config = *cfg

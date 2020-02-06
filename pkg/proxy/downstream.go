@@ -29,7 +29,7 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	mbuffer "mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"

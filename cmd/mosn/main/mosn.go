@@ -45,12 +45,11 @@ import (
 	_ "mosn.io/mosn/pkg/stream/http2"
 	_ "mosn.io/mosn/pkg/stream/sofarpc"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
-	_ "mosn.io/mosn/pkg/upstream/healthcheck"
-	_ "mosn.io/mosn/pkg/xds"
-
 	_ "mosn.io/mosn/pkg/trace/sofa/http"
 	_ "mosn.io/mosn/pkg/trace/sofa/rpc"
 	_ "mosn.io/mosn/pkg/trace/sofa/rpc/ext"
+	_ "mosn.io/mosn/pkg/upstream/healthcheck"
+	_ "mosn.io/mosn/pkg/xds"
 )
 
 var Version = "0.4.0"

@@ -33,7 +33,7 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/types"
 	jsoniter "github.com/json-iterator/go"
-	"mosn.io/mosn/pkg/config"
+	mv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	v2 "mosn.io/mosn/pkg/xds/v2"
 )
@@ -54,7 +54,7 @@ func duration2String(duration *types.Duration) string {
 }
 
 // UnmarshalResources used in order to convert bootstrap_v2 json to pb struct (go-control-plane), some fields must be exchanged format
-func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources, err error) {
+func UnmarshalResources(config *mv2.MOSNConfig) (dynamicResources *bootstrap.Bootstrap_DynamicResources, staticResources *bootstrap.Bootstrap_StaticResources, err error) {
 
 	if len(config.RawDynamicResources) > 0 {
 		dynamicResources = &bootstrap.Bootstrap_DynamicResources{}
@@ -181,7 +181,7 @@ func UnmarshalResources(config *config.MOSNConfig) (dynamicResources *bootstrap.
 
 // Start used to fetch listeners/clusters/clusterloadassignment config from pilot in cycle,
 // usually called when mosn start
-func (c *Client) Start(config *config.MOSNConfig) error {
+func (c *Client) Start(config *mv2.MOSNConfig) error {
 	log.DefaultLogger.Infof("xds client start")
 
 	dynamicResources, staticResources, err := UnmarshalResources(config)
