@@ -45,7 +45,9 @@ func readLines(path string) ([]string, error) {
 // Errorf should add default error code
 func TestErrorLog(t *testing.T) {
 	logName := "/tmp/mosn/error_log_print.log"
+	alogName := "/tmp/mosn/alert.error_log_print.log"
 	os.Remove(logName)
+	os.Remove(alogName)
 	lg, err := GetOrCreateDefaultErrorLogger(logName, log.ERROR)
 	if err != nil {
 		t.Fatal("create logger failed")
@@ -54,27 +56,36 @@ func TestErrorLog(t *testing.T) {
 	lg.Alertf("mosn.test", "test_alert")
 	time.Sleep(time.Second) // wait buffer flush
 	// read lines
-	lines, err := readLines(logName)
-	if err != nil {
+	if lines, err := readLines(logName); err != nil {
 		t.Fatal(err)
+	} else {
+		if len(lines) != 1 {
+			t.Fatalf("logger write lines not expected, writes: %d, expected: %d", len(lines), 1)
+		}
+		// verify log format
+		// 2006-01-02 15:04:05,000 [ERROR] [normal] testdata
+		out := strings.SplitN(lines[0], " ", 5)
+		if !(len(out) == 5 &&
+			out[2] == "[ERROR]" &&
+			out[3] == "[normal]" &&
+			out[4] == "testdata") {
+			t.Errorf("output data is unexpected: %s", lines[0])
+		}
 	}
-	if len(lines) != 2 {
-		t.Fatalf("logger write lines not expected, writes: %d, expected: %d", len(lines), 2)
-	}
-	// verify log format
-	// 2006-01-02 15:04:05,000 [ERROR] [normal] testdata
-	out := strings.SplitN(lines[0], " ", 5)
-	if !(len(out) == 5 &&
-		out[2] == "[ERROR]" &&
-		out[3] == "[normal]" &&
-		out[4] == "testdata") {
-		t.Errorf("output data is unexpected: %s", lines[0])
-	}
-	alert_out := strings.SplitN(lines[1], " ", 5)
-	if !(len(alert_out) == 5 &&
-		alert_out[2] == "[ERROR]" &&
-		alert_out[3] == "[mosn.test]" &&
-		alert_out[4] == "test_alert") {
-		t.Errorf("output data is unexpected: %s", lines[1])
+	// read alert log
+	if lines, err := readLines(alogName); err != nil {
+		t.Fatal(err)
+	} else {
+		if len(lines) != 1 {
+			t.Fatalf("logger write lines not expected, writes: %d, expected: %d", len(lines), 1)
+		}
+		// 2006-01-02 15:04:05,000 [ERROR] [mosn.test] test_alert
+		alert_out := strings.SplitN(lines[0], " ", 5)
+		if !(len(alert_out) == 5 &&
+			alert_out[2] == "[ERROR]" &&
+			alert_out[3] == "[mosn.test]" &&
+			alert_out[4] == "test_alert") {
+			t.Errorf("output data is unexpected: %s", lines[1])
+		}
 	}
 }
