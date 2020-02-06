@@ -2,58 +2,16 @@ package tars
 
 import (
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
-type MetaMap struct {
-	meta map[string]string
-}
-
-// ~ HeaderMap
-func (metaMap *MetaMap) Get(key string) (string, bool) {
-	return metaMap.Get(key)
-}
-
-func (metaMap *MetaMap) Set(key, value string) {
-	metaMap.Set(key, value)
-}
-
-func (metaMap *MetaMap) Add(key, value string) {
-	metaMap.Add(key, value)
-}
-
-func (metaMap *MetaMap) Del(key string) {
-	metaMap.Del(key)
-}
-
-func (metaMap *MetaMap) Range(f func(key, value string) bool) {
-	metaMap.Range(f)
-}
-
-func (metaMap *MetaMap) Clone() types.HeaderMap {
-	newMetaMap := &MetaMap{
-		meta: make(map[string]string, len(metaMap.meta)),
-	}
-	for k, v := range metaMap.meta {
-		newMetaMap.meta[k] = v
-	}
-	return newMetaMap
-}
-
-func (metaMap *MetaMap) ByteSize() uint64 {
-	size := 0
-	for k, v := range metaMap.meta {
-		size += len(k) + len(v)
-	}
-	return uint64(size)
-}
-
 type Request struct {
 	cmd     *requestf.RequestPacket
-	metaMap *MetaMap
 	rawData []byte         // raw data
 	data    types.IoBuffer // wrapper of data
+	protocol.CommonHeader
 }
 
 // ~ XFrame
@@ -75,7 +33,7 @@ func (r *Request) GetStreamType() xprotocol.StreamType {
 }
 
 func (r *Request) GetHeader() types.HeaderMap {
-	return r.metaMap
+	return r
 }
 
 func (r *Request) GetData() types.IoBuffer {
@@ -84,9 +42,9 @@ func (r *Request) GetData() types.IoBuffer {
 
 type Response struct {
 	cmd     *requestf.ResponsePacket
-	metaMap *MetaMap
 	rawData []byte         // raw data
 	data    types.IoBuffer // wrapper of data
+	protocol.CommonHeader
 }
 
 // ~ XFrame
@@ -104,11 +62,11 @@ func (r *Response) IsHeartbeatFrame() bool {
 }
 
 func (r *Response) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Request
+	return xprotocol.Response
 }
 
 func (r *Response) GetHeader() types.HeaderMap {
-	return r.metaMap
+	return r
 }
 
 func (r *Response) GetData() types.IoBuffer {

@@ -13,10 +13,7 @@ import (
 func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
 	// convert data to duboo frame
 	dataBytes := data.Bytes()
-	frame := &Frame{
-		rawData: dataBytes,
-		data:    data,
-	}
+	frame := &Frame{}
 	// decode magic
 	frame.Magic = dataBytes[MagicIdx:FlagIdx]
 	// decode flag
@@ -64,12 +61,14 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 		if err != nil {
 			return nil, err
 		}
-		frame.metaMap = &MetaMap{
-			meta: meta,
+		for k, v := range meta {
+			frame.Set(k, v)
 		}
 	}
 
 	frameLen := HeaderLen + int(frame.DataLen)
+	frame.rawData = dataBytes[:frameLen]
+	frame.data = buffer.NewIoBufferBytes(frame.rawData)
 	data.Drain(frameLen)
 	return frame, nil
 }

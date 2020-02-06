@@ -38,7 +38,7 @@ func (proto *tarsProtocol) Encode(ctx context.Context, model interface{}) (types
 }
 
 func (proto *tarsProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
-	frameLen, status := tars.TarsRequest(data.Bytes())
+	_, status := tars.TarsRequest(data.Bytes())
 	if status == tars.PACKAGE_FULL {
 		streamType, err := getStreamType(data.Bytes())
 		switch streamType {
@@ -50,7 +50,6 @@ func (proto *tarsProtocol) Decode(ctx context.Context, data types.IoBuffer) (int
 			// unknown cmd type
 			return nil, fmt.Errorf("[protocol][dubbo] Decode Error, type = %s , err = %v", UnKnownCmdType, err)
 		}
-		data.Drain(frameLen)
 	}
 	return nil, nil
 }

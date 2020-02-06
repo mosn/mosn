@@ -1,6 +1,7 @@
 package dubbo
 
 import (
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
@@ -16,54 +17,11 @@ type Header struct {
 	TwoWay          int // 1 mean req & resp pair
 	Direction       int // 1 mean req
 	SerializationId int // 2 mean hessian
-}
-
-type MetaMap struct {
-	meta map[string]string
-}
-
-// ~ HeaderMap
-func (metaMap *MetaMap) Get(key string) (string, bool) {
-	return metaMap.Get(key)
-}
-
-func (metaMap *MetaMap) Set(key, value string) {
-	metaMap.Set(key, value)
-}
-
-func (metaMap *MetaMap) Add(key, value string) {
-	metaMap.Add(key, value)
-}
-
-func (metaMap *MetaMap) Del(key string) {
-	metaMap.Del(key)
-}
-
-func (metaMap *MetaMap) Range(f func(key, value string) bool) {
-	metaMap.Range(f)
-}
-
-func (metaMap *MetaMap) Clone() types.HeaderMap {
-	newMetaMap := &MetaMap{
-		meta: make(map[string]string, len(metaMap.meta)),
-	}
-	for k, v := range metaMap.meta {
-		newMetaMap.meta[k] = v
-	}
-	return newMetaMap
-}
-
-func (metaMap *MetaMap) ByteSize() uint64 {
-	size := 0
-	for k, v := range metaMap.meta {
-		size += len(k) + len(v)
-	}
-	return uint64(size)
+	protocol.CommonHeader
 }
 
 type Frame struct {
 	Header
-	metaMap *MetaMap
 	rawData []byte // raw data
 	payload []byte // raw payload
 
@@ -96,7 +54,7 @@ func (r *Frame) GetStreamType() xprotocol.StreamType {
 }
 
 func (r *Frame) GetHeader() types.HeaderMap {
-	return r.metaMap
+	return r
 }
 
 func (r *Frame) GetData() types.IoBuffer {
