@@ -70,7 +70,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	contentIndex := headerIndex + int(request.HeaderLen)
 
 	if request.ClassLen > 0 {
-		buf = append(buf[RequestHeaderLen:], request.Class...)
+		copy(buf[RequestHeaderLen:], request.Class)
 	}
 
 	if request.HeaderLen > 0 {
@@ -78,7 +78,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	}
 
 	if request.ContentLen > 0 {
-		buf = append(buf[contentIndex:], request.Content.Bytes()...)
+		copy(buf[contentIndex:], request.Content.Bytes())
 	}
 
 	return buffer.NewIoBufferBytes(buf), nil
@@ -124,11 +124,11 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	binary.BigEndian.PutUint16(buf[14:], response.HeaderLen)
 	binary.BigEndian.PutUint32(buf[16:], response.ContentLen)
 
-	headerIndex := RequestHeaderLen + int(response.ClassLen)
+	headerIndex := ResponseHeaderLen + int(response.ClassLen)
 	contentIndex := headerIndex + int(response.HeaderLen)
 
 	if response.ClassLen > 0 {
-		buf = append(buf[RequestHeaderLen:], response.Class...)
+		copy(buf[ResponseHeaderLen:], response.Class)
 	}
 
 	if response.HeaderLen > 0 {
@@ -136,20 +136,20 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	}
 
 	if response.ContentLen > 0 {
-		buf = append(buf[contentIndex:], response.Content.Bytes()...)
+		copy(buf[contentIndex:], response.Content.Bytes())
 	}
 
 	return buffer.NewIoBufferBytes(buf), nil
 }
 
-func getHeaderEncodeLength(kvs []xprotocol.BytesKV) (size int) {
-	for i, n := 0, len(kvs); i < n; i++ {
-		size += 8 + len(kvs[i].Key) + len(kvs[i].Value)
+func getHeaderEncodeLength(h *xprotocol.Header) (size int) {
+	for i, n := 0, len(h.Kvs); i < n; i++ {
+		size += 8 + len(h.Kvs[i].Key) + len(h.Kvs[i].Value)
 	}
 	return
 }
 
-func encodeHeader(buf []byte, h xprotocol.Header) {
+func encodeHeader(buf []byte, h *xprotocol.Header) {
 	index := 0
 
 	for _, kv := range h.Kvs {
@@ -165,7 +165,7 @@ func encodeStr(buf []byte, index int, str []byte) (newIndex int) {
 	binary.BigEndian.PutUint32(buf[index:], uint32(length))
 
 	// 2. encode str value
-	buf = append(buf[index+4:], str...)
+	copy(buf[index+4:], str)
 
 	return index + 4 + length
 }

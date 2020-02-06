@@ -126,7 +126,7 @@ func (proto *boltv2Protocol) Trigger(requestId uint64) xprotocol.XFrame {
 	}
 }
 
-func (proto *boltv2Protocol) Reply(requestId uint64) xprotocol.XFrame {
+func (proto *boltv2Protocol) Reply(requestId uint64) xprotocol.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			ResponseHeader: bolt.ResponseHeader{
@@ -143,7 +143,7 @@ func (proto *boltv2Protocol) Reply(requestId uint64) xprotocol.XFrame {
 }
 
 // hijacker
-func (proto *boltv2Protocol) Hijack(statusCode uint32) xprotocol.XFrame {
+func (proto *boltv2Protocol) Hijack(statusCode uint32) xprotocol.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			ResponseHeader: bolt.ResponseHeader{
