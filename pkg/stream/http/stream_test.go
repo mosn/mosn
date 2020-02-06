@@ -29,6 +29,7 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -96,7 +97,7 @@ func Test_header_capitalization(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
-			"Args": "Hello, world!",
+			"Args":                            "Hello, world!",
 		},
 	}
 
@@ -231,7 +232,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -243,6 +244,27 @@ func Test_serverStream_handleRequest(t *testing.T) {
 			s.handleRequest()
 		})
 	}
+}
+
+func Test_clientStream_CheckReasonError(t *testing.T) {
+	remoteAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:12200")
+
+	csc := &clientStreamConnection{
+		streamConnection: streamConnection{
+			conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+		},
+	}
+
+	res, ok := csc.CheckReasonError(true, types.RemoteClose)
+	if res != types.UpstreamReset || ok {
+		t.Errorf("csc.CheckReasonError(true, types.RemoteClose) got %v , want %v", res, types.UpstreamReset)
+	}
+
+	res, ok = csc.CheckReasonError(true, types.OnConnect)
+	if res != types.StreamConnectionSuccessed || !ok {
+		t.Errorf("csc.CheckReasonError(true, types.OnConnect) got %v , want %v", res, types.StreamConnectionSuccessed)
+	}
+
 }
 
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
