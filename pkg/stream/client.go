@@ -142,13 +142,7 @@ func (c *client) OnEvent(event types.ConnectionEvent) {
 		c.ConnectedFlag = true
 	}
 
-	if event.IsClose() || event.ConnectFailure() {
-		reason := types.StreamConnectionFailed
-
-		if c.ConnectedFlag {
-			reason = types.StreamConnectionTermination
-		}
-
+	if reason, ok := c.ClientStreamConnection.CheckReasonError(c.ConnectedFlag, event); !ok {
 		c.ClientStreamConnection.Reset(reason)
 	}
 }

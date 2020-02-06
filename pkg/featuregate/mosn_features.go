@@ -18,17 +18,23 @@
 package featuregate
 
 const (
-	TestDataFeatureEnable        Feature = "TestDataFeatureEnable"
-	AnotherTestDataFeatureEnable Feature = "AnotherTestDataFeatureEnable"
+	XdsMtlsEnable      Feature = "XdsMtlsEnable"
+	PayLoadLimitEnable Feature = "PayLoadLimitEnable"
+	MultiTenantMode    Feature = "MultiTenantMode"
 )
 
-var (
-	TestDataMutableFeatureGate MutableFeatureGate = NewFeatureGate()
-	TestDataFeatureGate        FeatureGate        = TestDataMutableFeatureGate
-	testDataFeatureGates                          = map[Feature]FeatureSpec{
-		TestDataFeatureEnable:        {Default: false, PreRelease: Alpha},
-		AnotherTestDataFeatureEnable: {Default: true, PreRelease: Beta},
-	}
-)
+func init() {
+	AddFeatureSpec(XdsMtlsEnable, &BaseFeatureSpec{
+		DefaultValue:    false,
+		PreReleaseValue: Alpha,
+	})
+	AddFeatureSpec(PayLoadLimitEnable, &BaseFeatureSpec{
+		DefaultValue:    false,
+		PreReleaseValue: Alpha,
+	})
+	AddFeatureSpec(MultiTenantMode, &BaseFeatureSpec{
+		DefaultValue:    false,
+		PreReleaseValue: Alpha,
+	})
 
-func init() {}
+}
