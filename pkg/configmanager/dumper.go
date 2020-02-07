@@ -123,6 +123,8 @@ func DumpConfig() {
 		//update mosn_config
 		store.SetMOSNConfig(config)
 		// use golang original json lib, so the marshal ident can handle MarshalJSON interface implement correctly
+		configLock.Lock()
+		defer configLock.Unlock()
 		content, err := json.MarshalIndent(config, "", "  ")
 		if err == nil {
 			err = utils.WriteFileSafety(configPath, content, 0644)
@@ -130,6 +132,8 @@ func DumpConfig() {
 
 		if err != nil {
 			log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: "+err.Error())
+			// add retry if dump failed
+			setDump()
 		}
 	}
 }

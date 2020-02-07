@@ -29,8 +29,8 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
 	mbuffer "mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -633,7 +633,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 
 	// after stream filters run, check the route
 	if s.route == nil {
-		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route to init upstream, headers = %v", s.downstreamReqHeaders)
+		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route to init upstream")
 		s.requestInfo.SetResponseFlag(api.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
@@ -651,7 +651,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	}
 	// not direct response, needs a cluster snapshot and route rule
 	if rule := s.route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
-		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route rule to init upstream, headers = %v", s.downstreamReqHeaders)
+		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route rule to init upstream")
 		s.requestInfo.SetResponseFlag(api.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
@@ -1212,9 +1212,8 @@ func (s *downStream) resetStream() {
 }
 
 func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
-	log.Proxy.Infof(s.context, "[proxy] [downstream] set hijack reply, proxyId = %d, code = %d", s.ID, code)
+	log.Proxy.Warnf(s.context, "[proxy] [downstream] set hijack reply, proxyId = %d, code = %d, with headers = %t", s.ID, code, headers == nil)
 	if headers == nil {
-		log.Proxy.Warnf(s.context, "[proxy] [downstream] hijack with no headers, proxyId = %d", s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
@@ -1231,9 +1230,8 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 // TODO: rpc status code may be not matched
 // TODO: rpc content(body) is not matched the headers, rpc should not hijack with body, use sendHijackReply instead
 func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
-	log.Proxy.Infof(s.context, "[proxy] [downstream] set hijack reply with body, proxyId = %d, code = %d", s.ID, code)
+	log.Proxy.Warnf(s.context, "[proxy] [downstream] set hijack reply with body, proxyId = %d, code = %d, with headers = %t", s.ID, code, headers == nil)
 	if headers == nil {
-		log.Proxy.Warnf(s.context, "[proxy] [downstream] hijack with no headers, proxyId = %d", s.ID)
 		raw := make(map[string]string, 5)
 		headers = protocol.CommonHeader(raw)
 	}
@@ -1394,6 +1392,11 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 	if atomic.LoadUint32(&s.upstreamReset) == 1 {
 		log.Proxy.Infof(s.context, "[proxy] [downstream] processError=upstreamReset, proxyId: %d, reason: %+v", s.ID, s.resetReason)
+		if s.oneway {
+			phase = types.Oneway
+			err = types.ErrExit
+			return
+		}
 		s.onUpstreamReset(s.resetReason)
 		err = types.ErrExit
 	}

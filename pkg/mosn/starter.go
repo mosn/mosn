@@ -26,6 +26,7 @@ import (
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
+	"mosn.io/mosn/pkg/featuregate"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -249,6 +250,8 @@ func (m *Mosn) Start() {
 	utils.GoWithRecover(func() {
 		m.xdsClient.Start(m.config)
 	}, nil)
+	// start mosn feature
+	featuregate.StartInit()
 	// TODO: remove it
 	//parse service registry info
 	log.StartLogger.Infof("mosn parse registry info")
