@@ -17,7 +17,9 @@
 
 package log
 
-import "mosn.io/pkg/utils"
+import (
+	"mosn.io/pkg/utils"
+)
 
 var DefaultLogger ErrorLogger
 
@@ -98,8 +100,13 @@ func (l *SimpleErrorLog) Tracef(format string, args ...interface{}) {
 }
 
 func (l *SimpleErrorLog) Fatalf(format string, args ...interface{}) {
-	s := l.Formatter(FatalPre, "", format)
-	l.Fatalf(s, args...)
+	var s string
+	if l.Formatter != nil {
+		s = l.Formatter(FatalPre, "", format)
+	} else {
+		s = DefaultFormatter(FatalPre, "", format)
+	}
+	l.Logger.Fatalf(s, args...)
 }
 
 func (l *SimpleErrorLog) SetLogLevel(level Level) {
