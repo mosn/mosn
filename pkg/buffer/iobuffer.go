@@ -28,7 +28,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-const AutoExpand = 1
+const AutoExpand = -1
 const MinRead = 1 << 9
 const MaxRead = 1 << 17
 const ResetOffMark = -1
@@ -376,11 +376,15 @@ func (b *IoBuffer) SetEOF(eof bool) {
 	b.eof = eof
 }
 
+//The expand parameter means the following:
+//A, if expand > 0, cap(newbuf) is calculated according to cap(oldbuf) and expand.
+//B, if expand == AutoExpand, cap(newbuf) is calculated only according to cap(oldbuf).
+//C, if expand == 0, only copy, buf not be expanded.
 func (b *IoBuffer) copy(expand int) {
 	var newBuf []byte
 	var bufp *[]byte
 
-	if expand > 0 {
+	if expand > 0 || expand == AutoExpand {
 		cap := cap(b.buf)
 		// when buf cap greater than MaxThreshold, start Slow Grow.
 		if cap < 2*MinRead {
