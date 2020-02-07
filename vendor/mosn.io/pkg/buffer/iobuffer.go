@@ -26,10 +26,13 @@ import (
 )
 
 const (
-	MinRead      = 1 << 9
-	MaxRead      = 1 << 17
-	ResetOffMark = -1
-	DefaultSize  = 1 << 4
+	AutoExpand      = -1
+	MinRead         = 1 << 9
+	MaxRead         = 1 << 17
+	ResetOffMark    = -1
+	DefaultSize     = 1 << 4
+	MaxBufferLength = 1 << 20
+	MaxThreshold    = 1 << 22
 )
 
 var nullByte []byte
@@ -111,91 +114,45 @@ func (b *ioBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
-func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, e error) {
-	var (
-		m               int
-		zeroTime        time.Time
-		conn            net.Conn
-		loop, ok, first = true, true, true
-	)
+func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
+	var m int
 
-	if conn, ok = r.(net.Conn); !ok {
-		loop = false
-	}
-
-	if b.off >= len(b.buf) {
+	if b.off > 0 && b.off >= len(b.buf) {
 		b.Reset()
 	}
 
-	if b.off > 0 && len(b.buf)-b.off < 4*MinRead {
+	if b.off >= (cap(b.buf) - len(b.buf)) {
 		b.copy(0)
 	}
 
-	if cap(b.buf) == len(b.buf) {
-		b.copy(MinRead)
+	// free max buffers avoid memleak
+	if b.off == len(b.buf) && cap(b.buf) > MaxBufferLength {
+		b.Free()
+		b.Alloc(MaxRead)
 	}
 
-	for {
-		if first == false {
-			if free := cap(b.buf) - len(b.buf); free < MinRead {
-				// not enough space at end
-				if b.off+free < MinRead {
-					// not enough space using beginning of buffer;
-					// double buffer capacity
-					b.copy(MinRead)
-				} else {
-					b.copy(0)
-				}
-			}
-		}
+	l := cap(b.buf) - len(b.buf)
 
-		l := cap(b.buf) - len(b.buf)
+	conn, _ := r.(net.Conn)
+	if conn != nil {
+		// TODO: support configure
+		conn.SetReadDeadline(time.Now().Add(ConnReadTimeout))
 
-		if conn != nil {
-			if first {
-				// TODO: support configure
-				conn.SetReadDeadline(time.Now().Add(ConnReadTimeout))
-			} else {
-				conn.SetReadDeadline(time.Now().Add(10 * time.Millisecond))
-			}
+		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
 
-			m, e = r.Read(b.buf[len(b.buf):cap(b.buf)])
-
-			// Reset read deadline
-			conn.SetReadDeadline(zeroTime)
-
-		} else {
-			m, e = r.Read(b.buf[len(b.buf):cap(b.buf)])
-		}
-
-		if m > 0 {
-			b.buf = b.buf[0 : len(b.buf)+m]
-			n += int64(m)
-		}
-
-		if e != nil {
-			if te, ok := e.(net.Error); ok && te.Timeout() && !first {
-				return n, nil
-			}
-			return n, e
-		}
-
-		if l != m {
-			loop = false
-		}
-
-		if n > MaxRead {
-			loop = false
-		}
-
-		if !loop {
-			break
-		}
-
-		first = false
+	} else {
+		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
 	}
 
-	return n, nil
+	b.buf = b.buf[0 : len(b.buf)+m]
+	n = int64(m)
+
+	// Not enough space anywhere, we need to allocate.
+	if l == m {
+		b.copy(AutoExpand)
+	}
+
+	return n, err
 }
 
 func (b *ioBuffer) ReadFrom(r io.Reader) (n int64, err error) {
@@ -459,12 +416,30 @@ func (b *ioBuffer) SetEOF(eof bool) {
 	b.eof = eof
 }
 
+//The expand parameter means the following:
+//A, if expand > 0, cap(newbuf) is calculated according to cap(oldbuf) and expand.
+//B, if expand == AutoExpand, cap(newbuf) is calculated only according to cap(oldbuf).
+//C, if expand == 0, only copy, buf not be expanded.
 func (b *ioBuffer) copy(expand int) {
 	var newBuf []byte
 	var bufp *[]byte
 
-	if expand > 0 {
-		bufp = b.makeSlice(2*cap(b.buf) + expand)
+	if expand > 0 || expand == AutoExpand {
+		cap := cap(b.buf)
+		// when buf cap greater than MaxThreshold, start Slow Grow.
+		if cap < 2*MinRead {
+			cap = 2 * MinRead
+		} else if cap < MaxThreshold {
+			cap = 2 * cap
+		} else {
+			cap = cap + cap/4
+		}
+
+		if expand == AutoExpand {
+			expand = 0
+		}
+
+		bufp = b.makeSlice(cap + expand)
 		newBuf = *bufp
 		copy(newBuf, b.buf[b.off:])
 		PutBytes(b.b)
