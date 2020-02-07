@@ -22,10 +22,10 @@ import (
 	"net"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // a mock server for handle heart beat request

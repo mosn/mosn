@@ -21,10 +21,11 @@ import (
 	"net"
 	"sync"
 
+	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	"mosn.io/mosn/pkg/log"
@@ -38,8 +39,8 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/mosn/pkg/utils"
 	"mosn.io/mosn/pkg/xds"
+	"mosn.io/pkg/utils"
 )
 
 // Mosn class which wrapper server
@@ -47,7 +48,7 @@ type Mosn struct {
 	servers        []server.Server
 	clustermanager types.ClusterManager
 	routerManager  types.RouterManager
-	config         *config.MOSNConfig
+	config         *v2.MOSNConfig
 	adminServer    admin.Server
 	xdsClient      *xds.Client
 	wg             sync.WaitGroup
@@ -58,22 +59,22 @@ type Mosn struct {
 
 // NewMosn
 // Create server from mosn config
-func NewMosn(c *config.MOSNConfig) *Mosn {
-	initializeDefaultPath(config.GetConfigPath())
+func NewMosn(c *v2.MOSNConfig) *Mosn {
+	initializeDefaultPath(configmanager.GetConfigPath())
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 
 	//get inherit fds
 	inheritListeners, reconfigure, err := server.GetInheritListeners()
 	if err != nil {
-		log.StartLogger.Fatalln("[mosn] [NewMosn] getInheritListeners failed, exit")
+		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
 	}
 	if reconfigure != nil {
 		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
 		// set Mosn Active_Reconfiguring
 		store.SetMosnState(store.Active_Reconfiguring)
 		// parse MOSNConfig again
-		c = config.Load(config.GetConfigPath())
+		c = configmanager.Load(configmanager.GetConfigPath())
 	} else {
 		log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 		// start init services
@@ -92,7 +93,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	}
 	mode := c.Mode()
 
-	if mode == config.Xds {
+	if mode == v2.Xds {
 		servers := make([]v2.ServerConfig, 0, 1)
 		server := v2.ServerConfig{
 			DefaultLogPath:  "stdout",
@@ -103,7 +104,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	} else {
 		if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
 			if !c.ClusterManager.AutoDiscovery {
-				log.StartLogger.Fatalln("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
+				log.StartLogger.Fatalf("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
 			}
 
 		}
@@ -112,18 +113,18 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	srvNum := len(c.Servers)
 
 	if srvNum == 0 {
-		log.StartLogger.Fatalln("[mosn] [NewMosn] no server found")
+		log.StartLogger.Fatalf("[mosn] [NewMosn] no server found")
 	} else if srvNum > 1 {
-		log.StartLogger.Fatalln("[mosn] [NewMosn] multiple server not supported yet, got ", srvNum)
+		log.StartLogger.Fatalf("[mosn] [NewMosn] multiple server not supported yet, got %d", srvNum)
 	}
 
 	//cluster manager filter
 	cmf := &clusterManagerFilter{}
 
 	// parse cluster all in one
-	clusters, clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
+	clusters, clusterMap := configmanager.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
-	if mode == config.Xds {
+	if mode == v2.Xds {
 		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil)
 	} else {
 		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap)
@@ -135,7 +136,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
 		//server config
-		c := config.ParseServerConfig(&serverConfig)
+		c := configmanager.ParseServerConfig(&serverConfig)
 
 		// new server config
 		sc := server.NewConfig(c)
@@ -144,7 +145,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		server.InitDefaultLogger(sc)
 
 		var srv server.Server
-		if mode == config.Xds {
+		if mode == v2.Xds {
 			srv = server.NewServer(sc, cmf, m.clustermanager)
 		} else {
 			//initialize server instance
@@ -152,27 +153,27 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 
 			//add listener
 			if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
-				log.StartLogger.Fatalln("[mosn] [NewMosn] no listener found")
+				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
 			}
 
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
-				lc := config.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
+				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
 
 				// parse routers from connection_manager filter and add it the routerManager
-				if routerConfig := config.ParseRouterConfiguration(&lc.FilterChains[0]); routerConfig.RouterConfigName != "" {
+				if routerConfig := configmanager.ParseRouterConfiguration(&lc.FilterChains[0]); routerConfig.RouterConfigName != "" {
 					m.routerManager.AddOrUpdateRouters(routerConfig)
 				}
 
-				var nfcf []types.NetworkFilterChainFactory
-				var sfcf []types.StreamFilterChainFactory
+				var nfcf []api.NetworkFilterChainFactory
+				var sfcf []api.StreamFilterChainFactory
 
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
 				// network filters
 				if !lc.UseOriginalDst {
 					// network and stream filters
-					nfcf = config.GetNetworkFilters(&lc.FilterChains[0])
-					sfcf = config.GetStreamFilters(lc.StreamFilters)
+					nfcf = configmanager.GetNetworkFilters(&lc.FilterChains[0])
+					sfcf = configmanager.GetStreamFilters(lc.StreamFilters)
 				}
 
 				_, err := srv.AddListener(lc, nfcf, sfcf)
@@ -204,7 +205,7 @@ func (m *Mosn) beforeStart() {
 
 		// notify old mosn to transfer connection
 		if _, err := m.reconfigure.Write([]byte{0}); err != nil {
-			log.StartLogger.Fatalln("[mosn] [NewMosn] graceful failed, exit")
+			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
 		}
 
 		m.reconfigure.Close()
@@ -231,7 +232,7 @@ func (m *Mosn) beforeStart() {
 
 	// start dump config process
 	utils.GoWithRecover(func() {
-		config.DumpConfigHandler()
+		configmanager.DumpConfigHandler()
 	}, nil)
 
 	// start reconfigure domain socket
@@ -254,7 +255,7 @@ func (m *Mosn) Start() {
 	// TODO: remove it
 	//parse service registry info
 	log.StartLogger.Infof("mosn parse registry info")
-	config.ParseServiceRegistry(m.config.ServiceRegistry)
+	configmanager.ParseServiceRegistry(m.config.ServiceRegistry)
 
 	// beforestart starts transfer connection and non-proxy listeners
 	log.StartLogger.Infof("mosn prepare for start")
@@ -289,14 +290,14 @@ func (m *Mosn) Close() {
 // Start mosn project
 // step1. NewMosn
 // step2. Start Mosn
-func Start(c *config.MOSNConfig) {
-	log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
+func Start(c *v2.MOSNConfig) {
+	//log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
 	Mosn := NewMosn(c)
 	Mosn.Start()
 	Mosn.wg.Wait()
 }
 
-func initializeTracing(config config.TracingConfig) {
+func initializeTracing(config v2.TracingConfig) {
 	if config.Enable && config.Driver != "" {
 		err := trace.Init(config.Driver, config.Config)
 		if err != nil {
@@ -312,7 +313,7 @@ func initializeTracing(config config.TracingConfig) {
 	}
 }
 
-func initializeMetrics(config config.MetricsConfig) {
+func initializeMetrics(config v2.MetricsConfig) {
 	// init shm zone
 	if config.ShmZone != "" && config.ShmSize > 0 {
 		shm.InitDefaultMetricsZone(config.ShmZone, int(config.ShmSize), store.GetMosnState() != store.Active_Reconfiguring)

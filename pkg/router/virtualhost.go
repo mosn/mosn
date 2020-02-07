@@ -21,16 +21,16 @@ import (
 	"regexp"
 	"sync"
 
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 )
 
 type VirtualHostImpl struct {
 	virtualHostName       string
 	mutex                 sync.RWMutex
 	routes                []RouteBase
-	fastIndex             map[string]map[string]types.Route
+	fastIndex             map[string]map[string]api.Route
 	globalRouteConfig     *configImpl
 	requestHeadersParser  *headerParser
 	responseHeadersParser *headerParser
@@ -84,7 +84,7 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 			value := route.Match.Headers[0].Value
 			valueMap, ok := vh.fastIndex[key]
 			if !ok {
-				valueMap = make(map[string]types.Route)
+				valueMap = make(map[string]api.Route)
 				vh.fastIndex[key] = valueMap
 			}
 			valueMap[value] = router
@@ -98,7 +98,7 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 
 }
 
-func (vh *VirtualHostImpl) GetRouteFromEntries(headers types.HeaderMap, randomValue uint64) types.Route {
+func (vh *VirtualHostImpl) GetRouteFromEntries(headers api.HeaderMap, randomValue uint64) api.Route {
 	vh.mutex.RLock()
 	defer vh.mutex.RUnlock()
 	for _, route := range vh.routes {
@@ -109,10 +109,10 @@ func (vh *VirtualHostImpl) GetRouteFromEntries(headers types.HeaderMap, randomVa
 	return nil
 }
 
-func (vh *VirtualHostImpl) GetAllRoutesFromEntries(headers types.HeaderMap, randomValue uint64) []types.Route {
+func (vh *VirtualHostImpl) GetAllRoutesFromEntries(headers api.HeaderMap, randomValue uint64) []api.Route {
 	vh.mutex.RLock()
 	defer vh.mutex.RUnlock()
-	var routes []types.Route
+	var routes []api.Route
 	for _, route := range vh.routes {
 		if r := route.Match(headers, randomValue); r != nil {
 			routes = append(routes, r)
@@ -121,7 +121,7 @@ func (vh *VirtualHostImpl) GetAllRoutesFromEntries(headers types.HeaderMap, rand
 	return routes
 }
 
-func (vh *VirtualHostImpl) GetRouteFromHeaderKV(key, value string) types.Route {
+func (vh *VirtualHostImpl) GetRouteFromHeaderKV(key, value string) api.Route {
 	vh.mutex.RLock()
 	defer vh.mutex.RUnlock()
 	if m, ok := vh.fastIndex[key]; ok {
@@ -140,7 +140,7 @@ func (vh *VirtualHostImpl) RemoveAllRoutes() {
 	vh.mutex.Lock()
 	defer vh.mutex.Unlock()
 	// clear the value map
-	vh.fastIndex = make(map[string]map[string]types.Route)
+	vh.fastIndex = make(map[string]map[string]api.Route)
 	// clear the routes
 	vh.routes = vh.routes[:0]
 	return
@@ -149,7 +149,7 @@ func (vh *VirtualHostImpl) RemoveAllRoutes() {
 func NewVirtualHostImpl(virtualHost *v2.VirtualHost) (*VirtualHostImpl, error) {
 	vhImpl := &VirtualHostImpl{
 		virtualHostName:       virtualHost.Name,
-		fastIndex:             make(map[string]map[string]types.Route),
+		fastIndex:             make(map[string]map[string]api.Route),
 		requestHeadersParser:  getHeaderParser(virtualHost.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(virtualHost.ResponseHeadersToAdd, virtualHost.ResponseHeadersToRemove),
 	}

@@ -23,11 +23,11 @@ import (
 	"strings"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type SofaRPCSpan struct {

@@ -36,10 +36,10 @@ import (
 	dto "github.com/prometheus/client_model/go"
 	gometrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/sink"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 var (

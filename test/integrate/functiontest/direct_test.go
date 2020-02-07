@@ -10,8 +10,7 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
@@ -24,8 +23,8 @@ import (
 // TODO: rpc status have something wrong
 
 // Direct Response ignore upstream cluster information and route rule config
-func CreateDirectMeshProxy(addr string, proto types.Protocol, response *v2.DirectResponseAction) *config.MOSNConfig {
-	cmconfig := config.ClusterManagerConfig{
+func CreateDirectMeshProxy(addr string, proto types.Protocol, response *v2.DirectResponseAction) *v2.MOSNConfig {
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			v2.Cluster{
 				Name: "cluster",

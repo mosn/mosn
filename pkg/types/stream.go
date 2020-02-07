@@ -19,6 +19,9 @@ package types
 
 import (
 	"context"
+
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
 )
 
 //
@@ -143,14 +146,14 @@ type StreamEventListener interface {
 type StreamSender interface {
 	// Append headers
 	// endStream supplies whether this is a header only request/response
-	AppendHeaders(ctx context.Context, headers HeaderMap, endStream bool) error
+	AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error
 
 	// Append data
 	// endStream supplies whether this is the last data frame
-	AppendData(ctx context.Context, data IoBuffer, endStream bool) error
+	AppendData(ctx context.Context, data buffer.IoBuffer, endStream bool) error
 
 	// Append trailers, implicitly ends the stream.
-	AppendTrailers(ctx context.Context, trailers HeaderMap) error
+	AppendTrailers(ctx context.Context, trailers api.HeaderMap) error
 
 	// Get related stream
 	GetStream() Stream
@@ -161,10 +164,10 @@ type StreamSender interface {
 // On client scenario, StreamReceiveListener is called to handle response
 type StreamReceiveListener interface {
 	// OnReceive is called with decoded request/response
-	OnReceive(ctx context.Context, headers HeaderMap, data IoBuffer, trailers HeaderMap)
+	OnReceive(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, trailers api.HeaderMap)
 
 	// OnDecodeError is called with when exception occurs
-	OnDecodeError(ctx context.Context, err error, headers HeaderMap)
+	OnDecodeError(ctx context.Context, err error, headers api.HeaderMap)
 }
 
 // StreamConnection is a connection runs multiple streams
@@ -172,10 +175,10 @@ type StreamConnection interface {
 	// Dispatch incoming data
 	// On data read scenario, it connects connection and stream by dispatching read buffer to stream,
 	// stream uses protocol decode data, and popup event to controller
-	Dispatch(buffer IoBuffer)
+	Dispatch(buffer buffer.IoBuffer)
 
 	// Protocol on the connection
-	Protocol() Protocol
+	Protocol() api.Protocol
 
 	// Active streams count
 	ActiveStreamsNum() int
@@ -187,7 +190,7 @@ type StreamConnection interface {
 	Reset(reason StreamResetReason)
 
 	//Check reason
-	CheckReasonError(connected bool, event ConnectionEvent) (StreamResetReason, bool)
+	CheckReasonError(connected bool, event api.ConnectionEvent) (StreamResetReason, bool)
 }
 
 // ServerStreamConnection is a server side stream connection.
@@ -219,130 +222,6 @@ type ServerStreamConnectionEventListener interface {
 	NewStreamDetect(context context.Context, sender StreamSender, span Span) StreamReceiveListener
 }
 
-type StreamFilterBase interface {
-	OnDestroy()
-}
-
-// StreamFilterHandler is called by stream filter to interact with underlying stream
-type StreamFilterHandler interface {
-	// Route returns a route for current stream
-	Route() Route
-
-	// RequestInfo returns request info related to the stream
-	RequestInfo() RequestInfo
-
-	// Connection returns the originating connection
-	Connection() Connection
-}
-
-// StreamSenderFilter is a stream sender filter
-type StreamSenderFilter interface {
-	StreamFilterBase
-
-	// Append encodes request/response
-	Append(ctx context.Context, headers HeaderMap, buf IoBuffer, trailers HeaderMap) StreamFilterStatus
-
-	// SetSenderFilterHandler sets the StreamSenderFilterHandler
-	SetSenderFilterHandler(handler StreamSenderFilterHandler)
-}
-
-// StreamSenderFilterHandler is a StreamFilterHandler wrapper
-type StreamSenderFilterHandler interface {
-	StreamFilterHandler
-
-	// TODO :remove all of the following when proxy changed to single request @lieyuan
-	// StreamFilters will modified headers/data/trailer in different steps
-	// for example, maybe modify headers in AppendData
-	GetResponseHeaders() HeaderMap
-	SetResponseHeaders(headers HeaderMap)
-
-	GetResponseData() IoBuffer
-	SetResponseData(buf IoBuffer)
-
-	GetResponseTrailers() HeaderMap
-	SetResponseTrailers(trailers HeaderMap)
-}
-
-// StreamReceiverFilter is a StreamFilterBase wrapper
-type StreamReceiverFilter interface {
-	StreamFilterBase
-
-	// OnReceive is called with decoded request/response
-	OnReceive(ctx context.Context, headers HeaderMap, buf IoBuffer, trailers HeaderMap) StreamFilterStatus
-
-	// SetReceiveFilterHandler sets decoder filter callbacks
-	SetReceiveFilterHandler(handler StreamReceiverFilterHandler)
-}
-
-// StreamReceiverFilterHandler add additional callbacks that allow a decoding filter to restart
-// decoding if they decide to hold data
-type StreamReceiverFilterHandler interface {
-	StreamFilterHandler
-
-	// TODO: consider receiver filter needs AppendXXX or not
-
-	// AppendHeaders is called with headers to be encoded, optionally indicating end of stream
-	// Filter uses this function to send out request/response headers of the stream
-	// endStream supplies whether this is a header only request/response
-	AppendHeaders(headers HeaderMap, endStream bool)
-
-	// AppendData is called with data to be encoded, optionally indicating end of stream.
-	// Filter uses this function to send out request/response data of the stream
-	// endStream supplies whether this is the last data
-	AppendData(buf IoBuffer, endStream bool)
-
-	// AppendTrailers is called with trailers to be encoded, implicitly ends the stream.
-	// Filter uses this function to send out request/response trailers of the stream
-	AppendTrailers(trailers HeaderMap)
-
-	// SendHijackReply is called when the filter will response directly
-	SendHijackReply(code int, headers HeaderMap)
-
-	// SendDirectRespoonse is call when the filter will response directly
-	SendDirectResponse(headers HeaderMap, buf IoBuffer, trailers HeaderMap)
-
-	// TODO: remove all of the following when proxy changed to single request @lieyuan
-	// StreamFilters will modified headers/data/trailer in different steps
-	// for example, maybe modify headers in on receive data
-	GetRequestHeaders() HeaderMap
-	SetRequestHeaders(headers HeaderMap)
-
-	GetRequestData() IoBuffer
-	SetRequestData(buf IoBuffer)
-
-	GetRequestTrailers() HeaderMap
-	SetRequestTrailers(trailers HeaderMap)
-
-	SetConvert(on bool)
-}
-
-// StreamFilterChainFactory adds filter into callbacks
-type StreamFilterChainFactory interface {
-	CreateFilterChain(context context.Context, callbacks StreamFilterChainFactoryCallbacks)
-}
-
-// StreamFilterChainFactoryCallbacks is called in StreamFilterChainFactory
-type StreamFilterChainFactoryCallbacks interface {
-	AddStreamSenderFilter(filter StreamSenderFilter)
-
-	AddStreamReceiverFilter(filter StreamReceiverFilter, p Phase)
-
-	// add access log per stream
-	AddStreamAccessLog(accessLog AccessLog)
-}
-
-type StreamFilterStatus string
-
-// StreamFilterStatus types
-const (
-	// Continue filter chain iteration.
-	StreamFilterContinue StreamFilterStatus = "Continue"
-	// Do not iterate to next iterator.
-	StreamFilterStop StreamFilterStatus = "Stop"
-
-	StreamFilterReMatchRoute StreamFilterStatus = "Retry Match Route"
-)
-
 // PoolFailureReason type
 type PoolFailureReason string
 
@@ -354,7 +233,7 @@ const (
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
-	Protocol() Protocol
+	Protocol() api.Protocol
 
 	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
 

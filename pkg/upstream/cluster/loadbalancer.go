@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -79,11 +80,11 @@ func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 	return targets[idx]
 }
 
-func (lb *randomLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+func (lb *randomLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	return len(lb.hosts.Hosts()) > 0
 }
 
-func (lb *randomLoadBalancer) HostNum(metadata types.MetadataMatchCriteria) int {
+func (lb *randomLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
 }
 
@@ -120,11 +121,11 @@ func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) 
 	return targets[index]
 }
 
-func (lb *roundRobinLoadBalancer) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+func (lb *roundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	return len(lb.hosts.Hosts()) > 0
 }
 
-func (lb *roundRobinLoadBalancer) HostNum(metadata types.MetadataMatchCriteria) int {
+func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
 }
 

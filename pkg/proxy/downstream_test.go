@@ -22,12 +22,13 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 
 	mosnctx "mosn.io/mosn/pkg/context"
 )
@@ -171,47 +172,47 @@ func TestOnewayHijack(t *testing.T) {
 
 func TestIsRequestFailed(t *testing.T) {
 	testCases := []struct {
-		Flags    []types.ResponseFlag
+		Flags    []api.ResponseFlag
 		Expected bool
 	}{
 		{
-			Flags:    []types.ResponseFlag{types.NoHealthyUpstream},
+			Flags:    []api.ResponseFlag{api.NoHealthyUpstream},
 			Expected: true,
 		},
 		{
-			Flags:    []types.ResponseFlag{types.UpstreamRequestTimeout},
+			Flags:    []api.ResponseFlag{api.UpstreamRequestTimeout},
 			Expected: false,
 		},
 		{
-			Flags:    []types.ResponseFlag{types.UpstreamRemoteReset},
+			Flags:    []api.ResponseFlag{api.UpstreamRemoteReset},
 			Expected: false,
 		},
 		{
-			Flags:    []types.ResponseFlag{types.NoRouteFound},
+			Flags:    []api.ResponseFlag{api.NoRouteFound},
 			Expected: true,
 		},
 		{
-			Flags:    []types.ResponseFlag{types.DelayInjected},
+			Flags:    []api.ResponseFlag{api.DelayInjected},
 			Expected: false,
 		},
 		{
-			Flags:    []types.ResponseFlag{types.FaultInjected},
+			Flags:    []api.ResponseFlag{api.FaultInjected},
 			Expected: true,
 		},
 		{
-			Flags:    []types.ResponseFlag{types.RateLimited},
+			Flags:    []api.ResponseFlag{api.RateLimited},
 			Expected: true,
 		},
 		{
-			Flags:    []types.ResponseFlag{types.DelayInjected, types.FaultInjected},
+			Flags:    []api.ResponseFlag{api.DelayInjected, api.FaultInjected},
 			Expected: true,
 		},
 		{
-			Flags:    []types.ResponseFlag{types.UpstreamRequestTimeout, types.NoHealthyUpstream},
+			Flags:    []api.ResponseFlag{api.UpstreamRequestTimeout, api.NoHealthyUpstream},
 			Expected: true,
 		},
 		{
-			Flags:    []types.ResponseFlag{types.UpstreamConnectionTermination, types.UpstreamRemoteReset},
+			Flags:    []api.ResponseFlag{api.UpstreamConnectionTermination, api.UpstreamRemoteReset},
 			Expected: false,
 		},
 	}

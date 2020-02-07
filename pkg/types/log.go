@@ -17,30 +17,28 @@
 
 package types
 
-type ErrorKey string
-
 // module name
-const ErrorModuleMosn ErrorKey = "sofa-mosn."
+const ErrorModuleMosn string = "mosn."
 
 // sub module name
 const (
-	ErrorSubModuleIO     ErrorKey = "io."
-	ErrorSubModuleProxy           = "proxy."
-	ErrorSubModuleAdmin           = "admin."
-	ErrorSubModuleCommon          = "common."
+	ErrorSubModuleIO     string = "io."
+	ErrorSubModuleProxy         = "proxy."
+	ErrorSubModuleAdmin         = "admin."
+	ErrorSubModuleCommon        = "common."
 )
 
 // error keys
 const (
-	ErrorKeyAdmin        ErrorKey = ErrorModuleMosn + ErrorSubModuleAdmin + "admin_failed"
-	ErrorKeyConfigDump            = ErrorModuleMosn + ErrorSubModuleCommon + "config_dump_failed"
-	ErrorKeyReconfigure           = ErrorModuleMosn + ErrorSubModuleCommon + "reconfigure_failed"
-	ErrorKeyTLSFallback           = ErrorModuleMosn + ErrorSubModuleCommon + "tls_fallback"
-	ErrorKeyAppendHeader          = ErrorModuleMosn + ErrorSubModuleProxy + "append_header_failed"
-	ErrorKeyRouteMatch            = ErrorModuleMosn + ErrorSubModuleProxy + "route_match_failed"
-	ErrorKeyClusterGet            = ErrorModuleMosn + ErrorSubModuleProxy + "cluster_get_failed"
-	ErrorKeyUpstreamConn          = ErrorModuleMosn + ErrorSubModuleProxy + "upstream_conn_failed"
-	ErrorKeyCodec                 = ErrorModuleMosn + ErrorSubModuleProxy + "codec_error"
-	ErrorKeyHeartBeat             = ErrorModuleMosn + ErrorSubModuleProxy + "heartbeat_unknown"
+	ErrorKeyAdmin        string = ErrorModuleMosn + ErrorSubModuleAdmin + "admin_failed"
+	ErrorKeyConfigDump          = ErrorModuleMosn + ErrorSubModuleCommon + "config_dump_failed"
+	ErrorKeyReconfigure         = ErrorModuleMosn + ErrorSubModuleCommon + "reconfigure_failed"
+	ErrorKeyTLSFallback         = ErrorModuleMosn + ErrorSubModuleCommon + "tls_fallback"
+	ErrorKeyAppendHeader        = ErrorModuleMosn + ErrorSubModuleProxy + "append_header_failed"
+	ErrorKeyRouteMatch          = ErrorModuleMosn + ErrorSubModuleProxy + "route_match_failed"
+	ErrorKeyClusterGet          = ErrorModuleMosn + ErrorSubModuleProxy + "cluster_get_failed"
+	ErrorKeyUpstreamConn        = ErrorModuleMosn + ErrorSubModuleProxy + "upstream_conn_failed"
+	ErrorKeyCodec               = ErrorModuleMosn + ErrorSubModuleProxy + "codec_error"
+	ErrorKeyHeartBeat           = ErrorModuleMosn + ErrorSubModuleProxy + "heartbeat_unknown"
 	// TODO: more keys
 )

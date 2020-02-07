@@ -219,9 +219,9 @@ type metricKV struct {
 }
 
 func (r *StandardRegistry) registered() []metricKV {
-	metrics := make([]metricKV, 0, len(r.metrics))
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
+	metrics := make([]metricKV, 0, len(r.metrics))
 	for name, i := range r.metrics {
 		metrics = append(metrics, metricKV{
 			name:  name,

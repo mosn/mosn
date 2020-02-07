@@ -24,6 +24,7 @@ import (
 	"net"
 	"syscall"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -45,11 +46,11 @@ func NewOriginalDst() OriginalDst {
 }
 
 // OnAccept called when connection accept
-func (filter *originalDst) OnAccept(cb types.ListenerFilterCallbacks) types.FilterStatus {
+func (filter *originalDst) OnAccept(cb types.ListenerFilterCallbacks) api.FilterStatus {
 	ip, port, err := getOriginalAddr(cb.Conn())
 	if err != nil {
 		log.DefaultLogger.Errorf("[originaldst] get original addr failed: %v", err)
-		return types.Continue
+		return api.Continue
 	}
 	ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
 
@@ -57,7 +58,7 @@ func (filter *originalDst) OnAccept(cb types.ListenerFilterCallbacks) types.Filt
 
 	cb.SetOriginalAddr(ips, port)
 
-	return types.Continue
+	return api.Continue
 }
 
 func getOriginalAddr(conn net.Conn) ([]byte, int, error) {

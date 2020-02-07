@@ -19,6 +19,7 @@ package server
 
 import (
 	"bufio"
+	rawjson "encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -28,8 +29,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	rawjson "encoding/json"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"

@@ -20,7 +20,7 @@ package mtls
 import (
 	"testing"
 
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 )
 

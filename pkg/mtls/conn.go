@@ -19,16 +19,15 @@ package mtls
 
 import (
 	gotls "crypto/tls"
+	"encoding/gob"
+	"errors"
 	"net"
 	"time"
 
-	"encoding/gob"
-	"errors"
-
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // mtls.TLSConn -> tls.Conn -> mtls.Conn

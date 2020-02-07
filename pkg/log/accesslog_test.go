@@ -18,22 +18,22 @@
 package log
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
+	"os"
+	"regexp"
 	"runtime"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
-	"os"
-	"regexp"
-
-	"context"
-	"strconv"
-	"strings"
-
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/log"
 )
 
 func prepareLocalIpv6Ctx() context.Context {
@@ -199,10 +199,10 @@ func TestAccessLogDisable(t *testing.T) {
 func TestAccessLogManage(t *testing.T) {
 	registerTestVarDefs()
 
-	defer CloseAll()
+	defer log.CloseAll()
 	DefaultDisableAccessLog = false
 	format := "%start_time% %response_flag%"
-	var logs []types.AccessLog
+	var logs []api.AccessLog
 	for i := 0; i < 100; i++ {
 		logName := fmt.Sprintf("/tmp/accesslog.%d.log", i)
 		lg, err := NewAccessLog(logName, format)
@@ -225,7 +225,7 @@ func TestAccessLogManage(t *testing.T) {
 	// all accesslog is disabled
 	for _, lg := range logs {
 		alg := lg.(*accesslog)
-		if !alg.logger.disable {
+		if !alg.logger.Disable() {
 			t.Fatal("some access log is enabled")
 		}
 	}
@@ -263,7 +263,7 @@ func prepareLocalIpv4Ctx() context.Context {
 
 func BenchmarkAccessLog(b *testing.B) {
 	registerTestVarDefs()
-	InitDefaultLogger("", INFO)
+	InitDefaultLogger("", log.INFO)
 	// ~ replace the path if needed
 	format := types.DefaultAccessLogFormat
 	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", format)
@@ -282,7 +282,7 @@ func BenchmarkAccessLog(b *testing.B) {
 func BenchmarkAccessLogParallel(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	registerTestVarDefs()
-	InitDefaultLogger("", INFO)
+	InitDefaultLogger("", log.INFO)
 	// ~ replace the path if needed
 	format := types.DefaultAccessLogFormat
 	accessLog, err := NewAccessLog("/tmp/mosn_bench/benchmark_access.log", format)
@@ -300,10 +300,10 @@ func BenchmarkAccessLogParallel(b *testing.B) {
 
 // mock_requestInfo
 type mock_requestInfo struct {
-	protocol                 types.Protocol
+	protocol                 api.Protocol
 	startTime                time.Time
-	responseFlag             types.ResponseFlag
-	upstreamHost             types.HostInfo
+	responseFlag             api.ResponseFlag
+	upstreamHost             api.HostInfo
 	requestReceivedDuration  time.Duration
 	responseReceivedDuration time.Duration
 	requestFinishedDuration  time.Duration
@@ -314,11 +314,11 @@ type mock_requestInfo struct {
 	downstreamLocalAddress   net.Addr
 	downstreamRemoteAddress  net.Addr
 	isHealthCheckRequest     bool
-	routerRule               types.RouteRule
+	routerRule               api.RouteRule
 }
 
 // NewrequestInfo
-func newRequestInfo() types.RequestInfo {
+func newRequestInfo() api.RequestInfo {
 	return &mock_requestInfo{
 		startTime: time.Now(),
 	}
@@ -372,7 +372,7 @@ func (r *mock_requestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *mock_requestInfo) Protocol() types.Protocol {
+func (r *mock_requestInfo) Protocol() api.Protocol {
 	return r.protocol
 }
 
@@ -388,19 +388,19 @@ func (r *mock_requestInfo) Duration() time.Duration {
 	return time.Now().Sub(r.startTime)
 }
 
-func (r *mock_requestInfo) GetResponseFlag(flag types.ResponseFlag) bool {
+func (r *mock_requestInfo) GetResponseFlag(flag api.ResponseFlag) bool {
 	return r.responseFlag&flag != 0
 }
 
-func (r *mock_requestInfo) SetResponseFlag(flag types.ResponseFlag) {
+func (r *mock_requestInfo) SetResponseFlag(flag api.ResponseFlag) {
 	r.responseFlag |= flag
 }
 
-func (r *mock_requestInfo) UpstreamHost() types.HostInfo {
+func (r *mock_requestInfo) UpstreamHost() api.HostInfo {
 	return r.upstreamHost
 }
 
-func (r *mock_requestInfo) OnUpstreamHostSelected(host types.HostInfo) {
+func (r *mock_requestInfo) OnUpstreamHostSelected(host api.HostInfo) {
 	r.upstreamHost = host
 }
 
@@ -436,11 +436,11 @@ func (r *mock_requestInfo) SetDownstreamRemoteAddress(addr net.Addr) {
 	r.downstreamRemoteAddress = addr
 }
 
-func (r *mock_requestInfo) RouteEntry() types.RouteRule {
+func (r *mock_requestInfo) RouteEntry() api.RouteRule {
 	return r.routerRule
 }
 
-func (r *mock_requestInfo) SetRouteEntry(routerRule types.RouteRule) {
+func (r *mock_requestInfo) SetRouteEntry(routerRule api.RouteRule) {
 	r.routerRule = routerRule
 }
 
@@ -512,7 +512,7 @@ func registerTestVarDefs() {
 // StartTimeGetter
 // get request's arriving time
 func startTimeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return info.StartTime().Format("2006/01/02 15:04:05.000"), nil
 }
@@ -520,7 +520,7 @@ func startTimeGetter(ctx context.Context, value *variable.IndexedValue, data int
 // ReceivedDurationGetter
 // get duration between request arriving and request resend to upstream
 func receivedDurationGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return info.RequestReceivedDuration().String(), nil
 }
@@ -528,14 +528,14 @@ func receivedDurationGetter(ctx context.Context, value *variable.IndexedValue, d
 // ResponseReceivedDurationGetter
 // get duration between request arriving and response sending
 func responseReceivedDurationGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return info.ResponseReceivedDuration().String(), nil
 }
 
 // RequestFinishedDurationGetter hets duration between request arriving and request finished
 func requestFinishedDurationGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return info.RequestFinishedDuration().String(), nil
 }
@@ -543,7 +543,7 @@ func requestFinishedDurationGetter(ctx context.Context, value *variable.IndexedV
 // BytesSentGetter
 // get bytes sent
 func bytesSentGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return strconv.FormatUint(info.BytesSent(), 10), nil
 }
@@ -551,14 +551,14 @@ func bytesSentGetter(ctx context.Context, value *variable.IndexedValue, data int
 // BytesReceivedGetter
 // get bytes received
 func bytesReceivedGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return strconv.FormatUint(info.BytesReceived(), 10), nil
 }
 
 // get request's protocol type
 func protocolGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return string(info.Protocol()), nil
 }
@@ -566,7 +566,7 @@ func protocolGetter(ctx context.Context, value *variable.IndexedValue, data inte
 // ResponseCodeGetter
 // get request's response code
 func responseCodeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return strconv.FormatUint(uint64(info.ResponseCode()), 10), nil
 }
@@ -574,7 +574,7 @@ func responseCodeGetter(ctx context.Context, value *variable.IndexedValue, data 
 // DurationGetter
 // get duration since request's starting time
 func durationGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return info.Duration().String(), nil
 }
@@ -582,7 +582,7 @@ func durationGetter(ctx context.Context, value *variable.IndexedValue, data inte
 // GetResponseFlagGetter
 // get request's response flag
 func responseFlagGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return strconv.FormatBool(info.GetResponseFlag(0)), nil
 }
@@ -590,7 +590,7 @@ func responseFlagGetter(ctx context.Context, value *variable.IndexedValue, data 
 // UpstreamLocalAddressGetter
 // get upstream's local address
 func upstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	return info.UpstreamLocalAddress(), nil
 }
@@ -598,7 +598,7 @@ func upstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedValu
 // DownstreamLocalAddressGetter
 // get downstream's local address
 func downstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	if info.DownstreamLocalAddress() != nil {
 		return info.DownstreamLocalAddress().String(), nil
@@ -610,7 +610,7 @@ func downstreamLocalAddressGetter(ctx context.Context, value *variable.IndexedVa
 // DownstreamRemoteAddressGetter
 // get upstream's remote address
 func downstreamRemoteAddressGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	if info.DownstreamRemoteAddress() != nil {
 		return info.DownstreamRemoteAddress().String(), nil
@@ -622,7 +622,7 @@ func downstreamRemoteAddressGetter(ctx context.Context, value *variable.IndexedV
 // upstreamHostGetter
 // get upstream's selected host address
 func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	info := ctx.Value(requestInfoKey).(types.RequestInfo)
+	info := ctx.Value(requestInfoKey).(api.RequestInfo)
 
 	if info.UpstreamHost() != nil {
 		return info.UpstreamHost().Hostname(), nil
@@ -632,7 +632,7 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 }
 
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	headers := ctx.Value(requestHeaderMapKey).(types.HeaderMap)
+	headers := ctx.Value(requestHeaderMapKey).(api.HeaderMap)
 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
@@ -644,7 +644,7 @@ func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, d
 }
 
 func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	headers := ctx.Value(responseHeaderMapKey).(types.HeaderMap)
+	headers := ctx.Value(responseHeaderMapKey).(api.HeaderMap)
 
 	headerName := data.(string)
 	headerValue, ok := headers.Get(headerName[respHeaderIndex:])

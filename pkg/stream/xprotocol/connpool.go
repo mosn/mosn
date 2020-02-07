@@ -23,6 +23,7 @@ import (
 
 	"sync/atomic"
 
+	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
@@ -56,7 +57,7 @@ func (p *connPool) SupportTLS() bool {
 }
 
 // Protocol return xprotocol
-func (p *connPool) Protocol() types.Protocol {
+func (p *connPool) Protocol() api.Protocol {
 	return protocol.Xprotocol
 }
 
@@ -122,14 +123,14 @@ func (p *connPool) Shutdown() {
 	// TODO: xprotocol connpool do nothing for shutdown
 }
 
-func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
+func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
 	if event.IsClose() {
 
 		if client.closeWithActiveReq {
-			if event == types.LocalClose {
+			if event == api.LocalClose {
 				p.host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-			} else if event == types.RemoteClose {
+			} else if event == api.RemoteClose {
 				p.host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 			}
@@ -141,11 +142,11 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 		if p.primaryClient == client {
 			p.primaryClient = nil
 		}
-	} else if event == types.ConnectTimeout {
+	} else if event == api.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		client.client.Close()
-	} else if event == types.ConnectFailed {
+	} else if event == api.ConnectFailed {
 		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
 	}
@@ -184,7 +185,7 @@ func (p *connPool) onGoAway(client *activeClient) {
 }
 
 func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
-	return str.NewStreamClient(context, protocol.Xprotocol, connData.Connection, connData.HostInfo)
+	return str.NewStreamClient(context, protocol.Xprotocol, connData.Connection, connData.Host)
 }
 
 func (p *connPool) movePrimaryToDraining() {
@@ -206,7 +207,7 @@ func (p *connPool) movePrimaryToDraining() {
 type activeClient struct {
 	pool               *connPool
 	client             str.Client
-	host               types.HostInfo
+	host               types.Host
 	totalStream        uint64
 	closeWithActiveReq bool
 }
@@ -232,7 +233,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient
-	ac.host = data.HostInfo
+	ac.host = data.Host
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
@@ -247,7 +248,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 // types.ConnectionEventListener
 // OnEvent handle connection event
-func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
+func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 
