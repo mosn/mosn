@@ -224,7 +224,7 @@ func (conn *serverStreamConnection) ActiveStreamsNum() int {
 	return len(conn.streams)
 }
 
-func (conn *serverStreamConnection) CheckReasonError(connected bool, event types.ConnectionEvent) (types.StreamResetReason, bool) {
+func (conn *serverStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
 	reason := types.StreamConnectionSuccessed
 	if event.IsClose() || event.ConnectFailure() {
 		reason = types.StreamConnectionFailed
@@ -567,7 +567,7 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 	return len(conn.streams)
 }
 
-func (conn *clientStreamConnection) CheckReasonError(connected bool, event types.ConnectionEvent) (types.StreamResetReason, bool) {
+func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
 	reason := types.StreamConnectionSuccessed
 	if event.IsClose() || event.ConnectFailure() {
 		reason = types.StreamConnectionFailed

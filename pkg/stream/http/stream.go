@@ -299,13 +299,13 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 	}
 }
 
-func (conn *clientStreamConnection) CheckReasonError(connected bool, event types.ConnectionEvent) (types.StreamResetReason, bool) {
+func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
 	reason := types.StreamConnectionSuccessed
 	if event.IsClose() || event.ConnectFailure() {
 		reason = types.StreamConnectionFailed
 		if connected {
 			switch event {
-			case types.RemoteClose:
+			case api.RemoteClose:
 				reason = types.UpstreamReset
 			default:
 				reason = types.StreamConnectionTermination
@@ -472,13 +472,13 @@ func (conn *serverStreamConnection) ActiveStreamsNum() int {
 	}
 }
 
-func (conn *serverStreamConnection) CheckReasonError(connected bool, event types.ConnectionEvent) (types.StreamResetReason, bool) {
+func (conn *serverStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
 	reason := types.StreamConnectionSuccessed
 	if event.IsClose() || event.ConnectFailure() {
 		reason = types.StreamConnectionFailed
 		if connected {
 			switch event {
-			case types.RemoteClose:
+			case api.RemoteClose:
 				reason = types.UpstreamReset
 			default:
 				reason = types.StreamConnectionTermination

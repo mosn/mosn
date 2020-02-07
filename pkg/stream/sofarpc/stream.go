@@ -175,7 +175,7 @@ func (conn *streamConnection) ActiveStreamsNum() int {
 	return len(conn.streams)
 }
 
-func (conn *streamConnection) CheckReasonError(connected bool, event types.ConnectionEvent) (types.StreamResetReason, bool) {
+func (conn *streamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
 	reason := types.StreamConnectionSuccessed
 	if event.IsClose() || event.ConnectFailure() {
 		reason = types.StreamConnectionFailed

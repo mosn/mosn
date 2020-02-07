@@ -190,7 +190,7 @@ type StreamConnection interface {
 	Reset(reason StreamResetReason)
 
 	//Check reason
-	CheckReasonError(connected bool, event ConnectionEvent) (StreamResetReason, bool)
+	CheckReasonError(connected bool, event api.ConnectionEvent) (StreamResetReason, bool)
 }
 
 // ServerStreamConnection is a server side stream connection.
