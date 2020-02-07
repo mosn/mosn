@@ -21,7 +21,8 @@ import (
 	"context"
 	"testing"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -43,7 +44,7 @@ func _createClusterManager() types.ClusterManager {
 		HostConfig: v2.HostConfig{
 			Address: "127.0.0.1:10000",
 		},
-		MetaData: v2.Metadata{
+		MetaData: api.Metadata{
 			"version": "1.0.0",
 			"zone":    "a",
 		},
@@ -52,7 +53,7 @@ func _createClusterManager() types.ClusterManager {
 		HostConfig: v2.HostConfig{
 			Address: "127.0.0.1:10001",
 		},
-		MetaData: v2.Metadata{
+		MetaData: api.Metadata{
 			"version": "2.0.0",
 			"zone":    "a",
 		},
@@ -179,7 +180,7 @@ func TestClusterUpdateHostsWithSnapshot(t *testing.T) {
 			HostConfig: v2.HostConfig{
 				Address: "127.0.0.1:10000",
 			},
-			MetaData: v2.Metadata{
+			MetaData: api.Metadata{
 				"version": "3.0.0",
 			},
 		},
@@ -187,7 +188,7 @@ func TestClusterUpdateHostsWithSnapshot(t *testing.T) {
 			HostConfig: v2.HostConfig{
 				Address: "127.0.0.1:10002",
 			},
-			MetaData: v2.Metadata{
+			MetaData: api.Metadata{
 				"version": "1.0.0",
 				"zone":    "b",
 			},

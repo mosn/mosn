@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 // Start adsClient send goroutine and receive goroutine

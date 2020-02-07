@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 func TestQpsLimiter_TryAcquire(t *testing.T) {

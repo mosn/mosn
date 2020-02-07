@@ -18,12 +18,12 @@
 package tcpproxy
 
 import (
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 // Proxy
 type Proxy interface {
-	types.ReadFilter
+	api.ReadFilter
 
 	ReadDisableUpstream(disable bool)
 
@@ -32,18 +32,18 @@ type Proxy interface {
 
 // ProxyConfig
 type ProxyConfig interface {
-	GetRouteFromEntries(connection types.Connection) string
+	GetRouteFromEntries(connection api.Connection) string
 }
 
 // UpstreamCallbacks for upstream's callbacks
 type UpstreamCallbacks interface {
-	types.ReadFilter
-	types.ConnectionEventListener
+	api.ReadFilter
+	api.ConnectionEventListener
 }
 
 // DownstreamCallbacks for downstream's callbacks
 type DownstreamCallbacks interface {
-	types.ConnectionEventListener
+	api.ConnectionEventListener
 }
 
 // UpstreamFailureReason used to define Upstream Failure Reason

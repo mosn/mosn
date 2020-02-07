@@ -29,8 +29,8 @@ import (
 	v1 "istio.io/api/mixer/v1"
 	"istio.io/api/mixer/v1/config/client"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/filter/stream/faultinject"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/upstream/cluster"
 
@@ -717,7 +717,7 @@ func Test_convertPerRouteConfig(t *testing.T) {
 		}
 		conf := make(map[string]interface{})
 		json.Unmarshal(b, &conf)
-		rawFault, err := config.ParseStreamFaultInjectFilter(conf)
+		rawFault, err := faultinject.ParseStreamFaultInjectFilter(conf)
 		if err != nil {
 			t.Fatal("fault config is not expected")
 		}

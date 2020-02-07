@@ -19,20 +19,13 @@ package log
 
 import (
 	"bufio"
-	"context"
 	"os"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/log"
 )
-
-type errorLogCase struct {
-	level Level
-	f     func(format string, args ...interface{})
-}
 
 func readLines(path string) ([]string, error) {
 	file, err := os.Open(path)
@@ -49,152 +42,39 @@ func readLines(path string) ([]string, error) {
 	return lines, scanner.Err()
 }
 
-var preMapping = map[Level]string{
-	FATAL: FatalPre,
-	ERROR: ErrorPre,
-	WARN:  WarnPre,
-	INFO:  InfoPre,
-	DEBUG: DebugPre,
-	TRACE: TracePre,
-}
-
+// Errorf should add default error code
 func TestErrorLog(t *testing.T) {
 	logName := "/tmp/mosn/error_log_print.log"
 	os.Remove(logName)
-	lg, err := GetOrCreateDefaultErrorLogger(logName, RAW)
+	lg, err := GetOrCreateDefaultErrorLogger(logName, log.ERROR)
 	if err != nil {
 		t.Fatal("create logger failed")
 	}
-	cases := []errorLogCase{
-		{
-			level: ERROR,
-			f:     lg.Errorf,
-		},
-		{
-			level: WARN,
-			f:     lg.Warnf,
-		},
-		{
-			level: INFO,
-			f:     lg.Infof,
-		},
-		{
-			level: DEBUG,
-			f:     lg.Debugf,
-		},
-		{
-			level: TRACE,
-			f:     lg.Tracef,
-		},
-	}
-	for _, c := range cases {
-		lg.SetLogLevel(c.level)
-		c.f("testdata")
-	}
-	lg.Toggle(true) // disable
-	for _, c := range cases {
-		lg.SetLogLevel(c.level)
-		c.f("testdata") // write nothing
-	}
+	lg.Errorf("testdata")
+	lg.Alertf("mosn.test", "test_alert")
 	time.Sleep(time.Second) // wait buffer flush
 	// read lines
 	lines, err := readLines(logName)
 	if err != nil {
 		t.Fatal(err)
 	}
-	// verify count
-	if len(lines) != len(cases) {
-		t.Fatalf("logger write lines not expected, writes: %d, expected: %d", len(lines), len(cases))
+	if len(lines) != 2 {
+		t.Fatalf("logger write lines not expected, writes: %d, expected: %d", len(lines), 2)
 	}
-	// verify log in order if channel buffer is not full
-	for i, l := range lines {
-		// l format
-		// 2006/01/02 15:04:05 [Level] {Count}
-		qs := strings.Split(l, " ")
-		c := cases[i]
-		if !(len(qs) >= 4 && qs[2] == preMapping[c.level]) {
-			t.Errorf("level: %v write format is not expected", c)
-		}
+	// verify log format
+	// 2006-01-02 15:04:05,000 [ERROR] [normal] testdata
+	out := strings.SplitN(lines[0], " ", 5)
+	if !(len(out) == 5 &&
+		out[2] == "[ERROR]" &&
+		out[3] == "[normal]" &&
+		out[4] == "testdata") {
+		t.Errorf("output data is unexpected: %s", lines[0])
 	}
-}
-
-func TestAlertLog(t *testing.T) {
-	logName := "/tmp/mosn/alert_test.log"
-	os.Remove(logName)
-	// common logger
-	lg, err := GetOrCreateDefaultErrorLogger(logName, RAW)
-	if err != nil {
-		t.Fatal("create default logger failed")
-	}
-	// proxy logger
-	plg, err := CreateDefaultProxyLogger(logName, RAW)
-	if err != nil {
-		t.Fatal("create proxy logger failed")
-	}
-	var testKey types.ErrorKey = types.ErrorModuleMosn + "test.alert"
-	lg.Alertf(testKey, "test-alert-log")
-	plg.Alertf(context.Background(), testKey, "test-%s", "alert-log")
-	time.Sleep(time.Second) // wait log flush
-	lines, err := readLines(logName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// {date time} [ERROR] [sofa-mosn.test.alert] test-alert-log
-	// {date time} [ERROR] [sofa-mosn.test.alert] [-,-] test-alert-log
-	if len(lines) < 2 {
-		t.Fatal("not enough log output")
-	}
-	// spilt datetime
-	defaultOut := strings.SplitN(lines[0], " ", 3)
-	proxyOut := strings.SplitN(lines[1], " ", 3)
-	if !(defaultOut[2] == "[ERROR] [sofa-mosn.test.alert] test-alert-log" &&
-		proxyOut[2] == "[ERROR] [sofa-mosn.test.alert] [-,-] test-alert-log") {
-		t.Errorf("log output is not expected, default output: %s , proxy output: %s", lines[0], lines[1])
-	}
-
-}
-
-func BenchmarkLog(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	l, err := GetOrCreateDefaultErrorLogger("/tmp/mosn_bench/benchmark.log", DEBUG)
-	if err != nil {
-		b.Fatal(err)
-	}
-	for n := 0; n < b.N; n++ {
-		l.Debugf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
-	}
-}
-
-func BenchmarkLogParallel(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	l, err := GetOrCreateDefaultErrorLogger("/tmp/mosn_bench/benchmark.log", DEBUG)
-	if err != nil {
-		b.Fatal(err)
-	}
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			l.Debugf("BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog BenchmarkLog %v", l)
-		}
-	})
-}
-
-func BenchmarkLogTimeNow(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for n := 0; n < b.N; n++ {
-		time.Now()
-	}
-}
-
-func BenchmarkLogTimeFormat(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for n := 0; n < b.N; n++ {
-		time.Now().Format("2006/01/02 15:04:05.000")
-	}
-}
-
-func BenchmarkLogTime(b *testing.B) {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	for n := 0; n < b.N; n++ {
-		logTime()
+	alert_out := strings.SplitN(lines[1], " ", 5)
+	if !(len(alert_out) == 5 &&
+		alert_out[2] == "[ERROR]" &&
+		alert_out[3] == "[mosn.test]" &&
+		alert_out[4] == "test_alert") {
+		t.Errorf("output data is unexpected: %s", lines[1])
 	}
 }

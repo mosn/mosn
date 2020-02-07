@@ -26,7 +26,8 @@ import (
 	"testing"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -103,7 +104,7 @@ func createHealthCheckCluster(servers []*healthCheckTestServer) types.Cluster {
 			HostConfig: v2.HostConfig{
 				Address: s.hostConfig.Address,
 			},
-			MetaData: v2.Metadata{
+			MetaData: api.Metadata{
 				"version": "1.0.0",
 			},
 		}
@@ -247,7 +248,7 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 			HostConfig: v2.HostConfig{
 				Address: snew.hostConfig.Address,
 			},
-			MetaData: v2.Metadata{
+			MetaData: api.Metadata{
 				"version": "1.0.0",
 			},
 		}

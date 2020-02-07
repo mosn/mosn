@@ -19,19 +19,21 @@ package mixer
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/filter"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/istio/control/http"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func init() {
 	// static mixer stream filter factory
-	filter.RegisterStream(v2.MIXER, CreateMixerFilterFactory)
+	api.RegisterStream(v2.MIXER, CreateMixerFilterFactory)
 }
 
 // FilterConfigFactory filter config factory
@@ -45,7 +47,7 @@ type mixerFilter struct {
 	serviceContext        *http.ServiceContext
 	clientContext         *http.ClientContext
 	requestHandler        http.RequestHandler
-	receiverFilterHandler types.StreamReceiverFilterHandler
+	receiverFilterHandler api.StreamReceiverFilterHandler
 	requestTotalSize      uint64
 }
 
@@ -100,7 +102,7 @@ func (f *mixerFilter) createRequestHandler() {
 	f.requestHandler = http.NewRequestHandler(f.serviceContext)
 }
 
-func (f *mixerFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *mixerFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	if headers != nil {
 		f.requestTotalSize += headers.ByteSize()
 		f.createRequestHandler()
@@ -112,16 +114,16 @@ func (f *mixerFilter) OnReceive(ctx context.Context, headers types.HeaderMap, bu
 		f.requestTotalSize += trailers.ByteSize()
 	}
 
-	return types.StreamFilterContinue
+	return api.StreamFilterContinue
 }
 
-func (f *mixerFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+func (f *mixerFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	f.receiverFilterHandler = handler
 }
 
 func (f *mixerFilter) OnDestroy() {}
 
-func (f *mixerFilter) Log(ctx context.Context, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (f *mixerFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo) {
 	if reqHeaders == nil || respHeaders == nil || requestInfo == nil {
 		return
 	}
@@ -137,15 +139,39 @@ func (f *mixerFilter) Log(ctx context.Context, reqHeaders types.HeaderMap, respH
 }
 
 // CreateFilterChain for create mixer filter
-func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := newMixerFilter(context, f.MixerConfig)
-	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
+	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 	callbacks.AddStreamAccessLog(filter)
 }
 
 // CreateMixerFilterFactory for create mixer filter factory
-func CreateMixerFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+func CreateMixerFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	m, err := ParseMixerFilter(conf)
+	if err != nil {
+		return nil, err
+	}
 	return &FilterConfigFactory{
-		MixerConfig: config.ParseMixerFilter(conf),
+		MixerConfig: m,
 	}, nil
+}
+
+// ParseMixerFilter
+func ParseMixerFilter(cfg map[string]interface{}) (*v2.Mixer, error) {
+	mixerFilter := &v2.Mixer{}
+
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		log.DefaultLogger.Errorf("[mixer] parsing mixer filter error, err: %v, cfg: %v", err, cfg)
+		return nil, err
+	}
+
+	var un jsonpb.Unmarshaler
+	err = un.Unmarshal(strings.NewReader(string(data)), &mixerFilter.HttpClientConfig)
+	if err != nil {
+		log.DefaultLogger.Errorf("[mixer] parsing mixer filter error, err: %v, cfg: %v", err, cfg)
+		return nil, err
+	}
+
+	return mixerFilter, nil
 }

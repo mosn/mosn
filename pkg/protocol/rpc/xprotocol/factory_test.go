@@ -8,10 +8,9 @@ import (
 	"strconv"
 	"testing"
 
-	networkbuffer "mosn.io/mosn/pkg/buffer"
-	"mosn.io/mosn/pkg/types"
-
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
+	networkbuffer "mosn.io/pkg/buffer"
 )
 
 func init() {

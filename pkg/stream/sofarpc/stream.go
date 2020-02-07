@@ -19,14 +19,13 @@ package sofarpc
 
 import (
 	"context"
-	"sync"
-
 	"errors"
 	"strconv"
+	"sync"
 	"sync/atomic"
-
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
@@ -65,11 +64,11 @@ func init() {
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
-	clientCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
+	clientCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newStreamConnection(context, connection, clientCallbacks, nil)
 }
 
-func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
+func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newStreamConnection(context, connection, nil, serverCallbacks)
 }
@@ -90,7 +89,7 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 // types.ServerStreamConnection
 type streamConnection struct {
 	ctx                                 context.Context
-	conn                                types.Connection
+	conn                                api.Connection
 	contextManager                      *str.ContextManager
 	mutex                               sync.RWMutex
 	currStreamID                        uint64
@@ -100,7 +99,7 @@ type streamConnection struct {
 	serverStreamConnectionEventListener types.ServerStreamConnectionEventListener
 }
 
-func newStreamConnection(ctx context.Context, connection types.Connection, clientCallbacks types.StreamConnectionEventListener,
+func newStreamConnection(ctx context.Context, connection api.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	sc := &streamConnection{
@@ -176,6 +175,20 @@ func (conn *streamConnection) ActiveStreamsNum() int {
 	return len(conn.streams)
 }
 
+func (conn *streamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			reason = types.StreamConnectionTermination
+		}
+		return reason, false
+
+	}
+
+	return reason, true
+}
+
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 	conn.mutex.Lock()
 	defer conn.mutex.Unlock()
@@ -238,7 +251,7 @@ func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, 
 		addr := conn.conn.RemoteAddr()
 		log.Proxy.Alertf(conn.ctx, types.ErrorKeyCodec, "error occurs while proceeding codec logic: %v. close connection, remote addr: %v", err, addr)
 		//protocol decode error, close the connection directly
-		conn.conn.Close(types.NoFlush, types.LocalClose)
+		conn.conn.Close(api.NoFlush, api.LocalClose)
 	case types.ErrCodecException, types.ErrDeserializeException:
 		if cmd, ok := cmd.(sofarpc.SofaRpcCmd); ok {
 			if reqID := cmd.RequestID(); reqID > 0 {
@@ -254,7 +267,7 @@ func (conn *streamConnection) handleError(ctx context.Context, cmd interface{}, 
 			}
 		}
 		// if no request id found, no reason to send response, so close connection
-		conn.conn.Close(types.NoFlush, types.LocalClose)
+		conn.conn.Close(api.NoFlush, api.LocalClose)
 	}
 }
 

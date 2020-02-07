@@ -4,7 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
@@ -69,13 +70,13 @@ func TestUpdateStreamFilters(t *testing.T) {
 }
 
 // call mosn LDS API
-func updateListener(cfg *config.MOSNConfig, faultstr string) error {
+func updateListener(cfg *v2.MOSNConfig, faultstr string) error {
 	// reset stream filters
 	cfg.Servers[0].Listeners[0].StreamFilters = cfg.Servers[0].Listeners[0].StreamFilters[:0]
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	// get config
 	lc := cfg.Servers[0].Listeners[0]
-	streamFilterFactories := config.GetStreamFilters(lc.StreamFilters)
+	streamFilterFactories := configmanager.GetStreamFilters(lc.StreamFilters)
 	// nil network filters, nothing changed
 	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, nil, streamFilterFactories)
 }

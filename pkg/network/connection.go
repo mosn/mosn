@@ -32,12 +32,13 @@ import (
 	"time"
 
 	"github.com/rcrowley/go-metrics"
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 // Network related const
@@ -75,19 +76,19 @@ type connection struct {
 	rawConnection        net.Conn
 	tlsMng               types.TLSContextManager
 	closeWithFlush       bool
-	connCallbacks        []types.ConnectionEventListener
+	connCallbacks        []api.ConnectionEventListener
 	bytesReadCallbacks   []func(bytesRead uint64)
 	bytesSendCallbacks   []func(bytesSent uint64)
 	transferCallbacks    func() bool
-	filterManager        types.FilterManager
-	idleEventListener    types.ConnectionEventListener
+	filterManager        api.FilterManager
+	idleEventListener    api.ConnectionEventListener
 
 	stopChan           chan struct{}
-	curWriteBufferData []types.IoBuffer
-	readBuffer         types.IoBuffer
+	curWriteBufferData []buffer.IoBuffer
+	readBuffer         buffer.IoBuffer
 	writeBuffers       net.Buffers
-	ioBuffers          []types.IoBuffer
-	writeBufferChan    chan *[]types.IoBuffer
+	ioBuffers          []buffer.IoBuffer
+	writeBufferChan    chan *[]buffer.IoBuffer
 	transferChan       chan uint64
 
 	// readLoop/writeLoop goroutine fields:
@@ -113,7 +114,7 @@ type connection struct {
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
-func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}) types.Connection {
+func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}) api.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &connection{
@@ -126,7 +127,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		connected:        1,
 		readEnabledChan:  make(chan bool, 1),
 		internalStopChan: make(chan struct{}),
-		writeBufferChan:  make(chan *[]types.IoBuffer, 8),
+		writeBufferChan:  make(chan *[]buffer.IoBuffer, 8),
 		writeSchedChan:   make(chan bool, 1),
 		transferChan:     make(chan uint64),
 		stats: &types.ConnectionStats{
@@ -152,7 +153,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 			conn.readBuffer.Write(buf)
 		}
 
-		ch := val.(chan types.Connection)
+		ch := val.(chan api.Connection)
 		ch <- conn
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[network] [new server connection] NewServerConnection id = %d, buffer = %d", conn.id, conn.readBuffer.Len())
@@ -205,9 +206,9 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 					}
 
 					if err == io.EOF {
-						c.Close(types.NoFlush, types.RemoteClose)
+						c.Close(api.NoFlush, api.RemoteClose)
 					} else {
-						c.Close(types.NoFlush, types.OnReadErrClose)
+						c.Close(api.NoFlush, api.OnReadErrClose)
 					}
 
 					log.DefaultLogger.Errorf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
@@ -226,7 +227,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 		onHup: func() bool {
 			log.DefaultLogger.Errorf("[network] [event loop] [onHup] ReadHup error. Connection = %d, Remote Address = %s", c.id, c.RemoteAddr().String())
-			c.Close(types.NoFlush, types.RemoteClose)
+			c.Close(api.NoFlush, api.RemoteClose)
 			return false
 		},
 	})
@@ -255,7 +256,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 	utils.GoWithRecover(func() {
 		c.startReadLoop()
 	}, func(r interface{}) {
-		c.Close(types.NoFlush, types.LocalClose)
+		c.Close(api.NoFlush, api.LocalClose)
 	})
 
 	if c.checkUseWriteLoop() {
@@ -263,7 +264,7 @@ func (c *connection) startRWLoop(lctx context.Context) {
 		utils.GoWithRecover(func() {
 			c.startWriteLoop()
 		}, func(r interface{}) {
-			c.Close(types.NoFlush, types.LocalClose)
+			c.Close(api.NoFlush, api.LocalClose)
 		})
 	}
 }
@@ -301,10 +302,10 @@ func (c *connection) scheduleWrite() {
 			if err != nil {
 				if err == io.EOF {
 					// remote conn closed
-					c.Close(types.NoFlush, types.RemoteClose)
+					c.Close(api.NoFlush, api.RemoteClose)
 				} else {
 					// on non-timeout error
-					c.Close(types.NoFlush, types.OnWriteErrClose)
+					c.Close(api.NoFlush, api.OnWriteErrClose)
 				}
 				log.DefaultLogger.Errorf("[network] [schedule write] Error on write. Connection = %d, Remote Address = %s, err = %s",
 					c.id, c.RemoteAddr().String(), err)
@@ -374,9 +375,9 @@ func (c *connection) startReadLoop() {
 					}
 
 					if err == io.EOF {
-						c.Close(types.NoFlush, types.RemoteClose)
+						c.Close(api.NoFlush, api.RemoteClose)
 					} else {
-						c.Close(types.NoFlush, types.OnReadErrClose)
+						c.Close(api.NoFlush, api.OnReadErrClose)
 					}
 
 					return
@@ -438,7 +439,7 @@ func (c *connection) doRead() (err error) {
 		}
 		if te, ok := err.(net.Error); ok && te.Timeout() {
 			for _, cb := range c.connCallbacks {
-				cb.OnEvent(types.OnReadTimeout) // run read timeout callback, for keep alive if configured
+				cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
 			}
 			if bytesRead == 0 {
 				return err
@@ -493,7 +494,7 @@ func (c *connection) onRead() {
 	c.filterManager.OnRead()
 }
 
-func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
+func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[network] [write] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
@@ -504,7 +505,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
 
 	fs := c.filterManager.OnWrite(buffers)
 
-	if fs == types.Stop {
+	if fs == api.Stop {
 		return nil
 	}
 
@@ -542,7 +543,7 @@ func (c *connection) Write(buffers ...types.IoBuffer) (err error) {
 	return
 }
 
-func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
+func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	select {
 	case <-c.internalStopChan:
 		return types.ErrConnectionHasClosed
@@ -583,7 +584,7 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 			c.id, c.RemoteAddr().String(), err, c)
 
 		if te, ok := err.(net.Error); ok && te.Timeout() {
-			c.Close(types.NoFlush, types.OnWriteTimeout)
+			c.Close(api.NoFlush, api.OnWriteTimeout)
 		}
 
 		//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
@@ -605,7 +606,7 @@ func (c *connection) writeDirectly(buf *[]types.IoBuffer) (err error) {
 		}
 	}
 	if err == buffer.EOF {
-		c.Close(types.NoFlush, types.LocalClose)
+		c.Close(api.NoFlush, api.LocalClose)
 	}
 
 	c.updateWriteBuffStats(bytesSent, writeBufferLen)
@@ -667,11 +668,11 @@ func (c *connection) startWriteLoop() {
 				c.id, c.RemoteAddr().String(), err, c)
 
 			if te, ok := err.(net.Error); ok && te.Timeout() {
-				c.Close(types.NoFlush, types.OnWriteTimeout)
+				c.Close(api.NoFlush, api.OnWriteTimeout)
 			}
 
 			if err == buffer.EOF {
-				c.Close(types.NoFlush, types.LocalClose)
+				c.Close(api.NoFlush, api.LocalClose)
 			}
 
 			//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
@@ -681,7 +682,7 @@ func (c *connection) startWriteLoop() {
 	}
 }
 
-func (c *connection) appendBuffer(iobuffers *[]types.IoBuffer) {
+func (c *connection) appendBuffer(iobuffers *[]buffer.IoBuffer) {
 	if iobuffers == nil {
 		return
 	}
@@ -758,14 +759,14 @@ func (c *connection) writeBufLen() (bufLen int) {
 	return
 }
 
-func (c *connection) Close(ccType types.ConnectionCloseType, eventType types.ConnectionEvent) error {
+func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.ConnectionEvent) error {
 	defer func() {
 		if p := recover(); p != nil {
 			log.DefaultLogger.Errorf("[network] [close connection] panic %v\n%s", p, string(debug.Stack()))
 		}
 	}()
 
-	if ccType == types.FlushWrite {
+	if ccType == api.FlushWrite {
 		c.Write(buffer.NewIoBufferEOF())
 		return nil
 	}
@@ -825,7 +826,7 @@ func (c *connection) SetRemoteAddr(address net.Addr) {
 	c.remoteAddr = address
 }
 
-func (c *connection) AddConnectionEventListener(cb types.ConnectionEventListener) {
+func (c *connection) AddConnectionEventListener(cb api.ConnectionEventListener) {
 	c.connCallbacks = append(c.connCallbacks, cb)
 }
 
@@ -904,15 +905,15 @@ func (c *connection) LocalAddressRestored() bool {
 }
 
 // BufferSource
-func (c *connection) GetWriteBuffer() []types.IoBuffer {
+func (c *connection) GetWriteBuffer() []buffer.IoBuffer {
 	return c.curWriteBufferData
 }
 
-func (c *connection) GetReadBuffer() types.IoBuffer {
+func (c *connection) GetReadBuffer() buffer.IoBuffer {
 	return c.readBuffer
 }
 
-func (c *connection) FilterManager() types.FilterManager {
+func (c *connection) FilterManager() api.FilterManager {
 	return c.filterManager
 }
 
@@ -924,14 +925,14 @@ func (c *connection) SetTransferEventListener(listener func() bool) {
 	c.transferCallbacks = listener
 }
 
-func (c *connection) State() types.ConnState {
+func (c *connection) State() api.ConnState {
 	if atomic.LoadUint32(&c.closed) == 1 {
-		return types.ConnClosed
+		return api.ConnClosed
 	}
 	if atomic.LoadUint32(&c.connected) == 1 {
-		return types.ConnActive
+		return api.ConnActive
 	}
-	return types.ConnInit
+	return api.ConnInit
 }
 
 type clientConnection struct {
@@ -955,7 +956,7 @@ func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsM
 			readEnabled:      true,
 			readEnabledChan:  make(chan bool, 1),
 			internalStopChan: make(chan struct{}),
-			writeBufferChan:  make(chan *[]types.IoBuffer, 8),
+			writeBufferChan:  make(chan *[]buffer.IoBuffer, 8),
 			writeSchedChan:   make(chan bool, 1),
 			stats: &types.ConnectionStats{
 				ReadTotal:     metrics.NewCounter(),
@@ -977,7 +978,7 @@ func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsM
 
 func (cc *clientConnection) Connect() (err error) {
 	cc.connectOnce.Do(func() {
-		var event types.ConnectionEvent
+		var event api.ConnectionEvent
 
 		timeout := cc.connectTimeout
 		if timeout == 0 {
@@ -994,15 +995,15 @@ func (cc *clientConnection) Connect() (err error) {
 		if err != nil {
 			if err == io.EOF {
 				// remote conn closed
-				event = types.RemoteClose
+				event = api.RemoteClose
 			} else if err, ok := err.(net.Error); ok && err.Timeout() {
-				event = types.ConnectTimeout
+				event = api.ConnectTimeout
 			} else {
-				event = types.ConnectFailed
+				event = api.ConnectFailed
 			}
 		} else {
 			atomic.StoreUint32(&cc.connected, 1)
-			event = types.Connected
+			event = api.Connected
 
 			// ensure ioEnabled and UseNetpollMode
 			if UseNetpollMode {
@@ -1022,7 +1023,7 @@ func (cc *clientConnection) Connect() (err error) {
 			}
 
 			if err != nil {
-				event = types.ConnectFailed
+				event = api.ConnectFailed
 				cc.rawConnection.Close()
 			} else {
 				cc.Start(nil)

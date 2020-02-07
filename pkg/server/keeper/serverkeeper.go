@@ -27,9 +27,9 @@ import (
 	"sync"
 	"syscall"
 
-	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/log"
+	"mosn.io/pkg/utils"
 )
 
 func init() {

@@ -24,13 +24,13 @@ import (
 	"fmt"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/rpc"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/protocol/serialize"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 var (

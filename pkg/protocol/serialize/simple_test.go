@@ -20,7 +20,7 @@ package serialize
 import (
 	"testing"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/pkg/buffer"
 )
 
 func BenchmarkSerializeMap(b *testing.B) {

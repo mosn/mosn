@@ -23,11 +23,11 @@ import (
 	"strings"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type SofaRPCSpan struct {
@@ -69,8 +69,8 @@ func (s *SofaRPCSpan) SetTag(key uint64, value string) {
 }
 
 func (s *SofaRPCSpan) SetRequestInfo(reqinfo types.RequestInfo) {
-	s.tags[REQUEST_SIZE] = strconv.FormatInt(int64(reqinfo.BytesSent()), 10)
-	s.tags[RESPONSE_SIZE] = strconv.FormatInt(int64(reqinfo.BytesReceived()), 10)
+	s.tags[REQUEST_SIZE] = strconv.FormatInt(int64(reqinfo.BytesReceived()), 10)
+	s.tags[RESPONSE_SIZE] = strconv.FormatInt(int64(reqinfo.BytesSent()), 10)
 	if reqinfo.UpstreamHost() != nil {
 		s.tags[UPSTREAM_HOST_ADDRESS] = reqinfo.UpstreamHost().AddressString()
 	}

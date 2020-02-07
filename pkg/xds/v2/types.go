@@ -27,7 +27,7 @@ import (
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"mosn.io/mosn/pkg/config"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 // XDSConfig contains ADS config and clusters info
@@ -57,7 +57,7 @@ type ADSClient struct {
 	AdsConfig         *ADSConfig
 	StreamClientMutex sync.RWMutex
 	StreamClient      ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient
-	MosnConfig        *config.MOSNConfig
+	MosnConfig        *v2.MOSNConfig
 	SendControlChan   chan int
 	RecvControlChan   chan int
 	StopChan          chan int

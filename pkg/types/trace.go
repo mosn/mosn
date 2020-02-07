@@ -20,6 +20,8 @@ package types
 import (
 	"context"
 	"time"
+
+	"mosn.io/api"
 )
 
 // factory
@@ -28,9 +30,9 @@ type TracerBuilder func(config map[string]interface{}) (Tracer, error)
 type Driver interface {
 	Init(config map[string]interface{}) error
 
-	Register(proto Protocol, builder TracerBuilder)
+	Register(proto api.Protocol, builder TracerBuilder)
 
-	Get(proto Protocol) Tracer
+	Get(proto api.Protocol) Tracer
 }
 
 type Tracer interface {
@@ -48,13 +50,13 @@ type Span interface {
 
 	SetTag(key uint64, value string)
 
-	SetRequestInfo(requestInfo RequestInfo)
+	SetRequestInfo(requestInfo api.RequestInfo)
 
 	Tag(key uint64) string
 
 	FinishSpan()
 
-	InjectContext(requestHeaders HeaderMap)
+	InjectContext(requestHeaders api.HeaderMap)
 
 	SpawnChild(operationName string, startTime time.Time) Span
 }

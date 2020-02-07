@@ -19,29 +19,56 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/filter"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/proxy"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	filter.RegisterNetwork(v2.DEFAULT_NETWORK_FILTER, CreateProxyFactory)
+	api.RegisterNetwork(v2.DEFAULT_NETWORK_FILTER, CreateProxyFactory)
 }
 
 type genericProxyFilterConfigFactory struct {
 	Proxy *v2.Proxy
 }
 
-func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
-	p := proxy.NewProxy(context, gfcf.Proxy, clusterManager)
+func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
+	p := proxy.NewProxy(context, gfcf.Proxy)
 	callbacks.AddReadFilter(p)
 }
 
-func CreateProxyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+	p, err := ParseProxyFilter(conf)
+	if err != nil {
+		return nil, err
+	}
 	return &genericProxyFilterConfigFactory{
-		Proxy: config.ParseProxyFilter(conf),
+		Proxy: p,
 	}, nil
+}
+
+// ParseProxyFilter
+func ParseProxyFilter(cfg map[string]interface{}) (*v2.Proxy, error) {
+	proxyConfig := &v2.Proxy{}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, proxyConfig); err != nil {
+		return nil, err
+	}
+
+	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
+		return nil, fmt.Errorf("protocol in string needed in proxy network filter")
+	} else if _, ok := configmanager.ProtocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
+		return nil, fmt.Errorf("invalid downstream protocol %s", proxyConfig.DownstreamProtocol)
+	} else if _, ok := configmanager.ProtocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
+		return nil, fmt.Errorf("invalid upstream protocol %s", proxyConfig.UpstreamProtocol)
+	}
+
+	return proxyConfig, nil
 }

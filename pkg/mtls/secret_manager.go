@@ -21,7 +21,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/types"
@@ -86,6 +86,10 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		v.certificates[certName] = p
 		// set a certificate callback
 		client := GetSdsClient(cfg.SdsConfig.CertificateConfig.Config)
+		if client == nil {
+			log.DefaultLogger.Errorf("[mtls] [sds provider] get sds client fail, client is nil")
+			return nil
+		}
 		client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig.Config, p.setCertificate)
 		// set a validation callback
 		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig.Config, mng.setValidation)

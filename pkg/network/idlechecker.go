@@ -22,9 +22,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // getIdleCount calculates the idle timeout as max idle count.
@@ -57,11 +57,11 @@ func (c *idleChecker) closeConnection() {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[network] [server idle checker] close the idle connection %d", c.conn.id)
 	}
-	c.conn.Close(types.NoFlush, types.LocalClose)
+	c.conn.Close(api.NoFlush, api.LocalClose)
 }
 
-func (c *idleChecker) OnEvent(event types.ConnectionEvent) {
-	if event != types.OnReadTimeout || c == nil || c.maxIdleCount == 0 {
+func (c *idleChecker) OnEvent(event api.ConnectionEvent) {
+	if event != api.OnReadTimeout || c == nil || c.maxIdleCount == 0 {
 		return
 	}
 	// if maxIdleCount is 1, close the connection directly
