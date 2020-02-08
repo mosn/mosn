@@ -40,5 +40,5 @@ require (
 	google.golang.org/grpc v1.20.1
 	istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
 	mosn.io/api v0.0.0-20200206015326-e673810b2876
-	mosn.io/pkg v0.0.0-20200207083907-727e8442ab4e
+	mosn.io/pkg v0.0.0-20200207120148-6da53b3d2db5
 )
