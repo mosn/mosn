@@ -37,7 +37,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
-	"mosn.io/mosn/pkg/trace/sofa/rpc"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
@@ -250,7 +249,7 @@ func (s *downStream) requestMetrics() {
 			s.proxy.listenerStats.DownstreamRequestFailed.Inc(1)
 		}
 
-		s.setProcessSpan(time.Duration(processTime))
+		s.requestInfo.SetProcessTimeDuration(time.Duration(processTime))
 
 	}
 	// countdown metrics
@@ -1104,18 +1103,6 @@ func (s *downStream) onUpstreamData(endStream bool) {
 	}
 
 	s.appendData(endStream)
-}
-
-func (s *downStream) setProcessSpan(t time.Duration) {
-	if trace.IsEnabled() {
-		if s.context == nil {
-			return
-		}
-		span := trace.SpanFromContext(s.context)
-		if span != nil {
-			span.SetTag(rpc.MOSN_PROCESS_TIME, t.String())
-		}
-	}
 }
 
 func (s *downStream) finishTracing() {

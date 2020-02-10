@@ -307,6 +307,7 @@ type mock_requestInfo struct {
 	requestReceivedDuration  time.Duration
 	responseReceivedDuration time.Duration
 	requestFinishedDuration  time.Duration
+	processTimeDuration      time.Duration
 	bytesSent                uint64
 	bytesReceived            uint64
 	responseCode             int
@@ -354,6 +355,14 @@ func (r *mock_requestInfo) RequestFinishedDuration() time.Duration {
 
 func (r *mock_requestInfo) SetRequestFinishedDuration(t time.Time) {
 	r.requestFinishedDuration = t.Sub(r.startTime)
+}
+
+func (r *mock_requestInfo) ProcessTimeDuration() time.Duration {
+	return r.processTimeDuration
+}
+
+func (r *mock_requestInfo) SetProcessTimeDuration(d time.Duration) {
+	r.processTimeDuration = d
 }
 
 func (r *mock_requestInfo) BytesSent() uint64 {

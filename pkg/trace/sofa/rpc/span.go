@@ -78,6 +78,7 @@ func (s *SofaRPCSpan) SetRequestInfo(reqinfo types.RequestInfo) {
 		s.tags[DOWNSTEAM_HOST_ADDRESS] = reqinfo.DownstreamRemoteAddress().String()
 	}
 	s.tags[RESULT_STATUS] = strconv.Itoa(reqinfo.ResponseCode())
+	s.tags[MOSN_PROCESS_TIME] = reqinfo.ProcessTimeDuration().String()
 }
 
 func (s *SofaRPCSpan) Tag(key uint64) string {
