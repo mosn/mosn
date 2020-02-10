@@ -79,8 +79,14 @@ type RequestInfo interface {
 	// RequestFinishedDuration returns duration between request arriving and request finished
 	RequestFinishedDuration() time.Duration
 
-	// SetRequestFinishedDuration sets uration between request arriving and request finished
+	// SetRequestFinishedDuration sets duration between request arriving and request finished
 	SetRequestFinishedDuration(time time.Time)
+
+	// SetProcessTimeDuration sets duration in mosn
+	SetProcessTimeDuration(d time.Duration)
+
+	// ProcessTimeDuration returns duration between mosn
+	ProcessTimeDuration() time.Duration
 
 	// BytesSent reports the bytes sent
 	BytesSent() uint64
