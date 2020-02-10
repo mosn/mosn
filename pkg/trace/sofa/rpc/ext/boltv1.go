@@ -69,10 +69,7 @@ func boltv1Delegate(ctx context.Context, cmd sofarpc.SofaRpcCmd, span types.Span
 		}
 	}
 	span.SetTag(rpc.SPAN_ID, spanId)
-
-	if lType == v2.EGRESS {
-		span.SetTag(rpc.APP_NAME, request.RequestHeader[models.APP_NAME])
-	}
+	span.SetTag(rpc.APP_NAME, request.RequestHeader[models.APP_NAME])
 	span.SetTag(rpc.SPAN_TYPE, string(lType.(v2.ListenerType)))
 	span.SetTag(rpc.METHOD_NAME, request.RequestHeader[models.TARGET_METHOD])
 	span.SetTag(rpc.PROTOCOL, "bolt")
