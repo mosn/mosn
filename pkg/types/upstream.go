@@ -101,6 +101,9 @@ type Cluster interface {
 
 	// Add health check callbacks in health checker
 	AddHealthCheckCallbacks(cb HealthCheckCb)
+
+	// Shutdown the healthcheck routine, if exists
+	StopHealthChecking()
 }
 
 // HostPredicate checks wether the host is matched the metadata

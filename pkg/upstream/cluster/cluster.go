@@ -134,6 +134,12 @@ func (sc *simpleCluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
 	}
 }
 
+func (sc *simpleCluster) StopHealthChecking() {
+	if sc.healthChecker != nil {
+		sc.healthChecker.Stop()
+	}
+}
+
 type clusterInfo struct {
 	name                 string
 	clusterType          v2.ClusterType
