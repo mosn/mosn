@@ -26,7 +26,7 @@ require (
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
-	github.com/spf13/pflag v1.0.3
+	github.com/spf13/pflag v1.0.3 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb
 	github.com/urfave/cli v1.20.0
@@ -40,5 +40,5 @@ require (
 	google.golang.org/grpc v1.20.1
 	istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
 	mosn.io/api v0.0.0-20200206015326-e673810b2876
-	mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d
+	mosn.io/pkg v0.0.0-20200207120148-6da53b3d2db5
 )

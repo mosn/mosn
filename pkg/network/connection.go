@@ -54,12 +54,6 @@ const (
 
 var idCounter uint64 = 1
 
-var netBufferPool = sync.Pool{
-	New: func() interface{} {
-		return make(net.Buffers, NetBufferDefaultSize, NetBufferDefaultCapacity)
-	},
-}
-
 type connection struct {
 	id         uint64
 	file       *os.File //copy of origin connection fd
@@ -108,7 +102,7 @@ type connection struct {
 	startOnce sync.Once
 	eventLoop *eventLoop
 
-	writeLock    sync.RWMutex
+	tryMutex     *utils.Mutex
 	needTransfer bool
 	useWriteLoop bool
 }
@@ -138,6 +132,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		},
 		readCollector:  metrics.NilCounter{},
 		writeCollector: metrics.NilCounter{},
+		tryMutex:       utils.NewMutex(),
 	}
 
 	// store fd
@@ -402,9 +397,11 @@ func (c *connection) notifyTransfer() {
 	if c.useWriteLoop {
 		c.transferChan <- transferNotify
 	} else {
-		c.writeLock.Lock()
-		c.needTransfer = true
-		c.writeLock.Unlock()
+		locked := c.tryMutex.TryLock(types.DefaultConnTryTimeout)
+		if locked {
+			c.needTransfer = true
+			c.tryMutex.Unlock()
+		}
 	}
 }
 
@@ -550,33 +547,22 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	default:
 	}
 
-	c.writeLock.RLock()
-	defer c.writeLock.RUnlock()
+	locked := c.tryMutex.TryLock(types.DefaultConnTryTimeout)
 
-	if c.needTransfer {
-		c.writeBufferChan <- buf
-		return
-	}
-
-	netBuffer := netBufferPool.Get().(net.Buffers)
-	writeBuffer := netBuffer
-	var writeBufferLen int64
-
-	for _, buf := range *buf {
-		if buf == nil {
-			continue
+	if locked {
+		defer c.tryMutex.Unlock()
+		if c.needTransfer {
+			c.writeBufferChan <- buf
+			return
 		}
-		writeBuffer = append(writeBuffer, buf.Bytes())
-		writeBufferLen += int64(buf.Len())
-	}
 
-	var bytesSent int64
+		c.appendBuffer(buf)
 
-	c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
-	if tlsConn, ok := c.rawConnection.(*mtls.TLSConn); ok {
-		bytesSent, err = tlsConn.WriteTo(&writeBuffer)
+		c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
+		_, err = c.doWrite()
 	} else {
-		bytesSent, err = writeBuffer.WriteTo(c.rawConnection)
+		// trylock timeouted
+		err = types.ErrWriteTryLockTimeout
 	}
 
 	if err != nil {
@@ -587,33 +573,15 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 			c.Close(api.NoFlush, api.OnWriteTimeout)
 		}
 
+		if err == buffer.EOF {
+			c.Close(api.NoFlush, api.LocalClose)
+		}
+
 		//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
 
 		return
 	}
 
-	netBufferPool.Put(netBuffer)
-
-	for _, buf := range *buf {
-		if buf == nil {
-			continue
-		}
-		if buf.EOF() {
-			err = buffer.EOF
-		}
-		if e := buffer.PutIoBuffer(buf); e != nil {
-			log.DefaultLogger.Errorf("[network] [write directly] PutIoBuffer error: %v", e)
-		}
-	}
-	if err == buffer.EOF {
-		c.Close(api.NoFlush, api.LocalClose)
-	}
-
-	c.updateWriteBuffStats(bytesSent, writeBufferLen)
-
-	for _, cb := range c.bytesSendCallbacks {
-		cb(uint64(bytesSent))
-	}
 	return nil
 }
 
@@ -967,6 +935,7 @@ func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsM
 			readCollector:  metrics.NilCounter{},
 			writeCollector: metrics.NilCounter{},
 			tlsMng:         tlsMng,
+			tryMutex:       utils.NewMutex(),
 		},
 		connectTimeout: connectTimeout,
 	}

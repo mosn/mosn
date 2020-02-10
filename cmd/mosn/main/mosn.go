@@ -52,6 +52,7 @@ import (
 	_ "mosn.io/mosn/pkg/xds"
 )
 
+// Version mosn version
 var Version = "0.4.0"
 
 func main() {

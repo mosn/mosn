@@ -224,6 +224,20 @@ func (conn *serverStreamConnection) ActiveStreamsNum() int {
 	return len(conn.streams)
 }
 
+func (conn *serverStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			reason = types.StreamConnectionTermination
+		}
+		return reason, false
+
+	}
+
+	return reason, true
+}
+
 func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
 	conn.mutex.RLock()
 	defer conn.mutex.Unlock()
@@ -551,6 +565,20 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 	defer conn.mutex.RUnlock()
 
 	return len(conn.streams)
+}
+
+func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			reason = types.StreamConnectionTermination
+		}
+		return reason, false
+
+	}
+
+	return reason, true
 }
 
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {

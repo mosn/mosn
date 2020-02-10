@@ -110,3 +110,21 @@ func TestSetAllErrorLogLevel(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultLoggerInit(t *testing.T) {
+	logName := "/tmp/mosn/test_update_logger.log"
+	// reset for test
+	errorLoggerManagerInstance.managers = make(map[string]log.ErrorLogger)
+	log.ClearAll()
+	InitDefaultLogger(logName, ERROR)
+	// Test Default Logger Level Update
+	if !(DefaultLogger.GetLogLevel() == ERROR &&
+		Proxy.GetLogLevel() == ERROR) {
+		t.Fatal("init log failed")
+	}
+	UpdateErrorLoggerLevel(logName, INFO)
+	if !(DefaultLogger.GetLogLevel() == INFO &&
+		Proxy.GetLogLevel() == INFO) {
+		t.Fatal("init log failed")
+	}
+}

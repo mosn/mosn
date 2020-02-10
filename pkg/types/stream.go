@@ -102,6 +102,7 @@ type StreamResetReason string
 const (
 	StreamConnectionTermination StreamResetReason = "ConnectionTermination"
 	StreamConnectionFailed      StreamResetReason = "ConnectionFailed"
+	StreamConnectionSuccessed   StreamResetReason = "ConnectionSuccessed"
 	StreamLocalReset            StreamResetReason = "StreamLocalReset"
 	StreamOverflow              StreamResetReason = "StreamOverflow"
 	StreamRemoteReset           StreamResetReason = "StreamRemoteReset"
@@ -187,6 +188,9 @@ type StreamConnection interface {
 
 	// Reset underlying streams
 	Reset(reason StreamResetReason)
+
+	//Check reason
+	CheckReasonError(connected bool, event api.ConnectionEvent) (StreamResetReason, bool)
 }
 
 // ServerStreamConnection is a server side stream connection.

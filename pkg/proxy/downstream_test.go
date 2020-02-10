@@ -228,3 +228,73 @@ func TestIsRequestFailed(t *testing.T) {
 		}
 	}
 }
+
+func TestProcessError(t *testing.T) {
+	var s *downStream
+	var p types.Phase
+	var e error
+
+	s = &downStream{}
+	p, e = s.processError(0)
+	if p != types.End || e != nil {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	s.oneway = true
+	p, e = s.processError(0)
+	if p != types.End || e != nil {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	p, e = s.processError(1)
+	if p != types.End || e != types.ErrExit {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	s.downstreamCleaned = 1
+	p, e = s.processError(0)
+	if p != types.End || e != types.ErrExit {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	s.upstreamReset = 1
+	s.oneway = true
+	p, e = s.processError(0)
+	if p != types.Oneway || e != types.ErrExit {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	s.directResponse = true
+	p, e = s.processError(0)
+	if p != types.UpFilter || e != types.ErrExit {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	s.directResponse = true
+	s.oneway = true
+	p, e = s.processError(0)
+	if p != types.Oneway || e != types.ErrExit {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	s.upstreamRequest = &upstreamRequest{}
+	s.upstreamRequest.setupRetry = true
+	p, e = s.processError(0)
+	if p != types.Retry || e != types.ErrExit {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	s.receiverFiltersAgain = true
+	p, e = s.processError(0)
+	if p != types.MatchRoute || e != types.ErrExit {
+		t.Errorf("TestprocessError Error")
+	}
+}

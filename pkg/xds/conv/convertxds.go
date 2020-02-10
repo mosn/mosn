@@ -316,7 +316,7 @@ func convertStreamFilter(name string, s *types.Struct) v2.Filter {
 			}
 		}
 	case MosnPayloadLimit:
-		if featuregate.DefaultFeatureGate.Enabled(featuregate.PayLoadLimitEnable) {
+		if featuregate.Enabled(featuregate.PayLoadLimitEnable) {
 			filter.Type = v2.PayloadLimit
 			if s == nil {
 				payloadLimitInject := &v2.StreamPayloadLimit{}
@@ -706,7 +706,7 @@ func convertPerRouteConfig(xdsPerRouteConfig map[string]*types.Struct) map[strin
 			log.DefaultLogger.Debugf("add a fault inject stream filter in router")
 			perRouteConfig[v2.FaultStream] = cfg
 		case v2.PayloadLimit:
-			if featuregate.DefaultFeatureGate.Enabled(featuregate.PayLoadLimitEnable) {
+			if featuregate.Enabled(featuregate.PayLoadLimitEnable) {
 				cfg, err := convertStreamPayloadLimitConfig(config)
 				if err != nil {
 					log.DefaultLogger.Infof("convertPerRouteConfig[%s] error: %v", v2.PayloadLimit, err)

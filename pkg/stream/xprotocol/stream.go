@@ -185,6 +185,20 @@ func (conn *streamConnection) ActiveStreamsNum() int {
 	return conn.activeStream.Len()
 }
 
+func (conn *streamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			reason = types.StreamConnectionTermination
+		}
+		return reason, false
+
+	}
+
+	return reason, true
+}
+
 func (conn *streamConnection) Reset(reason types.StreamResetReason) {
 	conn.activeStream.mux.Lock()
 	defer conn.activeStream.mux.Unlock()
