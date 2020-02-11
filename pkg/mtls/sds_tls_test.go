@@ -57,7 +57,7 @@ func resetTest() {
 	secretManagerInstance = &secretManager{
 		validations: make(map[string]*validation),
 	}
-	sdsCallbacks = []func(){}
+	sdsCallbacks = []func(*v2.TLSConfig){}
 	mockSdsClientInstance = &mockSdsClient{
 		callback: make(map[string]types.SdsUpdateCallbackFunc),
 	}

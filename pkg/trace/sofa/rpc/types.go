@@ -57,6 +57,7 @@ const (
 
 const (
 	MOSN_PROCESS_TIME = 60 + iota
+	MOSN_TLS_STATE
 )
 
 type SubProtocolDelegate func(ctx context.Context, request sofarpc.SofaRpcCmd, span types.Span)
