@@ -249,6 +249,8 @@ func (s *downStream) requestMetrics() {
 			s.proxy.listenerStats.DownstreamRequestFailed.Inc(1)
 		}
 
+		s.requestInfo.SetProcessTimeDuration(time.Duration(processTime))
+
 	}
 	// countdown metrics
 	s.proxy.stats.DownstreamRequestActive.Dec(1)

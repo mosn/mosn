@@ -19,6 +19,7 @@ package log
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -30,19 +31,20 @@ import (
 // context will add trace info into formatter
 // we use poxyLogger to record proxy events.
 type proxyLogger struct {
-	*log.Logger
-	Level log.Level
+	*errorLogger
 }
 
 func CreateDefaultContextLogger(output string, level log.Level) (log.ContextLogger, error) {
-	lg, err := log.GetOrCreateLogger(output, nil)
+	lg, err := GetOrCreateDefaultErrorLogger(output, level)
 	if err != nil {
 		return nil, err
 	}
-	return &proxyLogger{
-		Logger: lg,
-		Level:  level,
-	}, nil
+	if l, ok := lg.(*errorLogger); ok {
+		return &proxyLogger{l}, nil
+	} else {
+		return nil, errors.New("proxy logger should equal mosn default error log")
+	}
+
 }
 func (l *proxyLogger) fomatter(ctx context.Context, lv, alert, format string) string {
 	return log.DefaultFormatter(lv, alert, traceInfo(ctx)+" "+format)

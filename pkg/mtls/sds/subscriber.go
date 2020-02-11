@@ -169,7 +169,7 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 	if subscribe.sdsStreamClient != nil {
 		return subscribe.sdsStreamClient, nil
 	}
-	udsPath := "unix://" + sdsStreamConfig.sdsUdsPath
+	udsPath := "unix:" + sdsStreamConfig.sdsUdsPath
 	conn, err := grpc.Dial(
 		udsPath,
 		grpc.WithInsecure(),

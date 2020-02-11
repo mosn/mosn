@@ -33,6 +33,7 @@ type RequestInfo struct {
 	requestReceivedDuration  time.Duration
 	requestFinishedDuration  time.Duration
 	responseReceivedDuration time.Duration
+	processTimeDuration      time.Duration
 	bytesSent                uint64
 	bytesReceived            uint64
 	responseCode             int
@@ -89,6 +90,14 @@ func (r *RequestInfo) RequestFinishedDuration() time.Duration {
 func (r *RequestInfo) SetRequestFinishedDuration(t time.Time) {
 	r.requestFinishedDuration = t.Sub(r.startTime)
 
+}
+
+func (r *RequestInfo) ProcessTimeDuration() time.Duration {
+	return r.processTimeDuration
+}
+
+func (r *RequestInfo) SetProcessTimeDuration(d time.Duration) {
+	r.processTimeDuration = d
 }
 
 func (r *RequestInfo) BytesSent() uint64 {

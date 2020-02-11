@@ -183,6 +183,7 @@ type ClientConnection interface {
 const (
 	DefaultConnReadTimeout  = 15 * time.Second
 	DefaultConnWriteTimeout = 15 * time.Second
+	DefaultConnTryTimeout   = 60 * time.Second
 )
 
 // ConnectionHandler contains the listeners for a mosn server
@@ -242,4 +243,5 @@ func (as Addresses) Contains(addr net.Addr) bool {
 
 var (
 	ErrConnectionHasClosed = errors.New("connection has closed")
+	ErrWriteTryLockTimeout = errors.New("write trylock has timeout")
 )

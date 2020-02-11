@@ -15,48 +15,39 @@
  * limitations under the License.
  */
 
-package rpc
+package utils
 
-import (
-	"context"
+import "time"
 
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
-	"mosn.io/mosn/pkg/types"
-)
+type Mutex struct {
+	c chan struct{}
+}
 
-const (
-	//0-30 for  rpc
+func NewMutex() *Mutex {
+	return &Mutex{make(chan struct{}, 1)}
+}
 
-	TRACE_ID = iota
-	SPAN_ID
-	PARENT_SPAN_ID
-	SERVICE_NAME
-	METHOD_NAME
-	PROTOCOL
-	RESULT_STATUS
-	REQUEST_SIZE
-	RESPONSE_SIZE
-	UPSTREAM_HOST_ADDRESS
-	DOWNSTEAM_HOST_ADDRESS
-	APP_NAME        //caller
-	TARGET_APP_NAME //remote app
-	SPAN_TYPE
-	BAGGAGE_DATA
-	REQUEST_URL
-	TARGET_CELL
-	TARGET_IDC
-	TARGET_CITY
-	ROUTE_RECORD
-	CALLER_CELL
-	// 30-60 for other extends
+func (m *Mutex) Lock() {
+	m.c <- struct{}{}
+}
 
-	// 60-70 for mosn common
+func (m *Mutex) Unlock() {
+	<-m.c
+}
 
-	TRACE_END = 70
-)
+func (m *Mutex) TryLock(timeout time.Duration) bool {
 
-const (
-	MOSN_PROCESS_TIME = 60 + iota
-)
+	select {
+	case m.c <- struct{}{}:
+		return true
+	default:
+		select {
+		case m.c <- struct{}{}:
+			return true
+		case <-time.After(timeout):
+			return false
+		}
 
-type SubProtocolDelegate func(ctx context.Context, request sofarpc.SofaRpcCmd, span types.Span)
+	}
+	return false
+}
