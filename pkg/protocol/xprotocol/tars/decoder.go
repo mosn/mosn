@@ -17,7 +17,9 @@ func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, e
 		return nil, errors.New("tars request status fail")
 	}
 	req := &Request{}
-	req.rawData = data.Bytes()[:frameLen]
+	rawData := make([]byte, frameLen)
+	copy(rawData, data.Bytes()[:frameLen])
+	req.rawData = rawData
 	req.data = buffer.NewIoBufferBytes(req.rawData)
 	reqPacket := &requestf.RequestPacket{}
 	is := codec.NewReader(data.Bytes())
@@ -41,7 +43,9 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 		return nil, errors.New("tars request status fail")
 	}
 	resp := &Response{}
-	resp.rawData = data.Bytes()[:frameLen]
+	rawData := make([]byte, frameLen)
+	copy(rawData, data.Bytes()[:frameLen])
+	resp.rawData = rawData
 	resp.data = buffer.NewIoBufferBytes(resp.rawData)
 	respPacket := &requestf.ResponsePacket{}
 	is := codec.NewReader(data.Bytes())
