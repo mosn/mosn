@@ -434,6 +434,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, &al.streamFiltersFactoriesStore)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, rawc)
 	if rawf != nil {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
 	}
