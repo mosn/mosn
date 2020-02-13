@@ -31,6 +31,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -85,6 +86,17 @@ var (
 				s := &http.Server{Addr: addr, Handler: nil}
 				store.AddService(s, "pprof", nil, nil)
 			}
+
+			// start Plugin
+			if conf.Plugin.Enable {
+				srv, err := plugin.NewHttp(conf.Plugin.Port, conf.Plugin.LogDir)
+				if err == nil {
+					store.AddService(srv, "Mosn Plugin Admin", nil, nil)
+				} else {
+					log.StartLogger.Errorf("[mosn] [start] Plugin Admin error: %v", err)
+				}
+			}
+
 			// set mosn metrics flush
 			metrics.FlushMosnMetrics = true
 			// set version and go version

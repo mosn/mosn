@@ -40,6 +40,7 @@ type MOSNConfig struct {
 	RawAdmin            json.RawMessage `json:"admin,omitempty"`             // admin raw message
 	Debug               PProfConfig     `json:"pprof,omitempty"`
 	Pid                 string          `json:"pid,omitempty"` // pid file
+	Plugin              PluginConfig    `json:"plugin,omitempty"`  // plugin config
 }
 
 // PProfConfig is used to start a pprof server for debug
@@ -62,6 +63,13 @@ type MetricsConfig struct {
 	StatsMatcher StatsMatcher      `json:"stats_matcher"`
 	ShmZone      string            `json:"shm_zone"`
 	ShmSize      datasize.ByteSize `json:"shm_size"`
+}
+
+// PluginConfig for plugin config
+type PluginConfig struct {
+	Enable bool   `json:"enable"`
+	Port   int    `json:"port_value"` // If port value is 0, will use 9091 as default
+	LogDir string `json:"log_dir"`
 }
 
 // StatsMatcher is a configuration for disabling stat instantiation.

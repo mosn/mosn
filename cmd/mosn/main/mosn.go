@@ -31,6 +31,7 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
+	_ "mosn.io/mosn/pkg/filter/stream/pluginfilter"
 	_ "mosn.io/mosn/pkg/metrics/sink"
 	_ "mosn.io/mosn/pkg/metrics/sink/prometheus"
 	_ "mosn.io/mosn/pkg/network"
