@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/admin/store"
-	v2 "mosn.io/mosn/pkg/api/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -155,6 +155,14 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 	}
 	// delete all of them
 	for _, clusterName := range clusterNames {
+		v, ok := cm.clustersMap.Load(clusterName)
+		if !ok {
+			// In theory there's still a chance that cluster was just removed by another routine after the upper for-loop check.
+			continue
+		}
+		c := v.(types.Cluster)
+		c.StopHealthChecking()
+
 		cm.clustersMap.Delete(clusterName)
 		store.RemoveClusterConfig(clusterName)
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {

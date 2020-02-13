@@ -26,7 +26,7 @@ import (
 	"net"
 
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/types"
@@ -69,10 +69,10 @@ func reconfigure(start bool) {
 	defer store.SetMosnState(store.Running)
 
 	// dump lastest config, and stop DumpConfigHandler()
-	config.DumpLock()
-	config.DumpConfig()
+	configmanager.DumpLock()
+	configmanager.DumpConfig()
 	// if reconfigure failed, enable DumpConfigHandler()
-	defer config.DumpUnlock()
+	defer configmanager.DumpUnlock()
 
 	// transfer listen fd
 	var notify net.Conn

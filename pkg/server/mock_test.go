@@ -20,7 +20,9 @@ package server
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type mockClusterManager struct {
@@ -39,17 +41,17 @@ func (cmf *mockClusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb
 
 type mockNetworkFilter struct{}
 
-func (nf *mockNetworkFilter) OnData(buffer types.IoBuffer) types.FilterStatus {
-	return types.Stop
+func (nf *mockNetworkFilter) OnData(buffer buffer.IoBuffer) api.FilterStatus {
+	return api.Stop
 }
-func (nf *mockNetworkFilter) OnNewConnection() types.FilterStatus {
-	return types.Continue
+func (nf *mockNetworkFilter) OnNewConnection() api.FilterStatus {
+	return api.Continue
 }
-func (nf *mockNetworkFilter) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
+func (nf *mockNetworkFilter) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {}
 
 type mockNetworkFilterFactory struct{}
 
-func (ff *mockNetworkFilterFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
+func (ff *mockNetworkFilterFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 	callbacks.AddReadFilter(&mockNetworkFilter{})
 }
 

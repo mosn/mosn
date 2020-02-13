@@ -22,7 +22,8 @@ import (
 	"net"
 	"sync"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -34,7 +35,7 @@ type simpleHost struct {
 	addressString string
 	clusterInfo   types.ClusterInfo
 	stats         types.HostStats
-	metaData      v2.Metadata
+	metaData      api.Metadata
 	tlsDisable    bool
 	weight        uint32
 	healthFlags   uint64
@@ -60,7 +61,7 @@ func (sh *simpleHost) Hostname() string {
 	return sh.hostname
 }
 
-func (sh *simpleHost) Metadata() v2.Metadata {
+func (sh *simpleHost) Metadata() api.Metadata {
 	return sh.metaData
 }
 
@@ -111,7 +112,7 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 
 	return types.CreateConnectionData{
 		Connection: clientConn,
-		HostInfo:   sh,
+		Host:       sh,
 	}
 }
 

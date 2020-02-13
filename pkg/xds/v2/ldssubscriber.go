@@ -44,7 +44,7 @@ func (c *ADSClient) reqListeners(streamClient ads.AggregatedDiscoveryService_Str
 		},
 	})
 	if err != nil {
-		log.DefaultLogger.Errorf("get listener fail: %v", err)
+		log.DefaultLogger.Infof("get listener fail: %v", err)
 		return err
 	}
 	return nil

@@ -37,8 +37,8 @@ import (
 	"github.com/gogo/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
 	admin "mosn.io/mosn/pkg/admin/store"
-	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	_ "mosn.io/mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
@@ -84,7 +84,7 @@ func handleClustersResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.Cluster {
 	return clusters
 }
 
-func handleXdsData(mosnConfig *config.MOSNConfig, xdsFiles []string) error {
+func handleXdsData(mosnConfig *v2.MOSNConfig, xdsFiles []string) error {
 	for _, fileName := range xdsFiles {
 		file := filepath.Join("testdata", fileName)
 		msg := &xdsapi.DiscoveryResponse{}
@@ -116,7 +116,7 @@ func handleXdsData(mosnConfig *config.MOSNConfig, xdsFiles []string) error {
 }
 
 func TestConfigAddAndUpdate(t *testing.T) {
-	mosnConfig := config.Load(filepath.Join("testdata", "envoy.json"))
+	mosnConfig := configmanager.Load(filepath.Join("testdata", "envoy.json"))
 	admin.Reset()
 	admin.SetMOSNConfig(mosnConfig)
 	Mosn := mosn.NewMosn(mosnConfig)

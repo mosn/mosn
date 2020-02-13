@@ -22,7 +22,8 @@ import (
 	"time"
 
 	metrics "github.com/rcrowley/go-metrics"
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
@@ -88,11 +89,11 @@ func TestRetryState(t *testing.T) {
 	testcases := []struct {
 		Header   types.HeaderMap
 		Reason   types.StreamResetReason
-		Expected types.RetryCheckStatus
+		Expected api.RetryCheckStatus
 	}{
-		{nil, types.StreamConnectionFailed, types.ShouldRetry},
-		{headerException, "", types.ShouldRetry},
-		{headerOK, "", types.NoRetry},
+		{nil, types.StreamConnectionFailed, api.ShouldRetry},
+		{headerException, "", api.ShouldRetry},
+		{headerOK, "", api.NoRetry},
 	}
 	for i, tc := range testcases {
 		if rs.retry(tc.Header, tc.Reason) != tc.Expected {
@@ -121,9 +122,9 @@ func TestRetryConnetionFailed(t *testing.T) {
 	testcases := []struct {
 		Header   types.HeaderMap
 		Reason   types.StreamResetReason
-		Expected types.RetryCheckStatus
+		Expected api.RetryCheckStatus
 	}{
-		{nil, types.StreamConnectionFailed, types.ShouldRetry},
+		{nil, types.StreamConnectionFailed, api.ShouldRetry},
 	}
 	for i, tc := range testcases {
 		if rs.retry(tc.Header, tc.Reason) != tc.Expected {

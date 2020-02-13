@@ -18,13 +18,14 @@
 package proxy
 
 import (
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 )
 
 type retryState struct {
-	retryPolicy      types.RetryPolicy
+	retryPolicy      api.RetryPolicy
 	requestHeaders   types.HeaderMap // TODO: support retry policy by header
 	cluster          types.ClusterInfo
 	retryOn          bool
@@ -32,8 +33,8 @@ type retryState struct {
 	upstreamProtocol types.Protocol
 }
 
-func newRetryState(retryPolicy types.RetryPolicy,
-	requestHeaders types.HeaderMap, cluster types.ClusterInfo, proto types.Protocol) *retryState {
+func newRetryState(retryPolicy api.RetryPolicy,
+	requestHeaders api.HeaderMap, cluster types.ClusterInfo, proto api.Protocol) *retryState {
 	rs := &retryState{
 		retryPolicy:      retryPolicy,
 		requestHeaders:   requestHeaders,
@@ -50,7 +51,7 @@ func newRetryState(retryPolicy types.RetryPolicy,
 	return rs
 }
 
-func (r *retryState) retry(headers types.HeaderMap, reason types.StreamResetReason) types.RetryCheckStatus {
+func (r *retryState) retry(headers api.HeaderMap, reason types.StreamResetReason) api.RetryCheckStatus {
 	r.reset()
 
 	check := r.shouldRetry(headers, reason)
@@ -65,24 +66,24 @@ func (r *retryState) retry(headers types.HeaderMap, reason types.StreamResetReas
 	return 0
 }
 
-func (r *retryState) shouldRetry(headers types.HeaderMap, reason types.StreamResetReason) types.RetryCheckStatus {
+func (r *retryState) shouldRetry(headers api.HeaderMap, reason types.StreamResetReason) api.RetryCheckStatus {
 	if r.retiesRemaining == 0 {
-		return types.NoRetry
+		return api.NoRetry
 	}
 
 	r.retiesRemaining--
 
 	if !r.doRetryCheck(headers, reason) {
-		return types.NoRetry
+		return api.NoRetry
 	}
 
 	if !r.cluster.ResourceManager().Retries().CanCreate() {
 		r.cluster.Stats().UpstreamRequestRetryOverflow.Inc(1)
 
-		return types.RetryOverflow
+		return api.RetryOverflow
 	}
 
-	return types.ShouldRetry
+	return api.ShouldRetry
 }
 
 func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamResetReason) bool {

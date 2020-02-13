@@ -3,17 +3,16 @@ package sds
 import (
 	"time"
 
-	"github.com/juju/errors"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
-
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"github.com/juju/errors"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/utils"
 )
 
 type SdsSubscriber struct {
@@ -170,7 +169,7 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 	if subscribe.sdsStreamClient != nil {
 		return subscribe.sdsStreamClient, nil
 	}
-	udsPath := "unix://" + sdsStreamConfig.sdsUdsPath
+	udsPath := "unix:" + sdsStreamConfig.sdsUdsPath
 	conn, err := grpc.Dial(
 		udsPath,
 		grpc.WithInsecure(),

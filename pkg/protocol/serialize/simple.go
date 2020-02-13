@@ -20,6 +20,7 @@ package serialize
 import (
 	"encoding/binary"
 	"fmt"
+	"math"
 	"reflect"
 	"unsafe"
 
@@ -78,16 +79,16 @@ func (s *simpleSerialization) DeserializeMap(b []byte, m map[string]string) erro
 
 		length = binary.BigEndian.Uint32(b[index:])
 		index += 4
-		end = index + int(length)
-
-		if end > totalLen {
-			return fmt.Errorf("index %d, length %d, totalLen %d, b %v\n", index, length, totalLen, b)
+		//avoid length = -1
+		if length != math.MaxUint32 {
+			end = index + int(length)
+			if end > totalLen {
+				return fmt.Errorf("index %d, length %d, totalLen %d, b %v\n", index, length, totalLen, b)
+			}
+			value := b[index:end]
+			index = end
+			m[string(key)] = string(value)
 		}
-
-		value := b[index:end]
-		index = end
-
-		m[string(key)] = string(value)
 	}
 	return nil
 }

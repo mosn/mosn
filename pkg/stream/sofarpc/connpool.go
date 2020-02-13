@@ -23,13 +23,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 const (
@@ -184,7 +185,7 @@ func (p *connPool) Shutdown() {
 	p.activeClients.Range(f)
 }
 
-func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
+func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
 	if event.IsClose() {
 		p.host.HostStats().UpstreamConnectionClose.Inc(1)
@@ -194,7 +195,7 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 		p.host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
 
 		switch event {
-		case types.LocalClose:
+		case api.LocalClose:
 			p.host.HostStats().UpstreamConnectionLocalClose.Inc(1)
 			p.host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
 
@@ -203,7 +204,7 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 			}
 
-		case types.RemoteClose:
+		case api.RemoteClose:
 			p.host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
 			p.host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
 
@@ -218,11 +219,11 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 		p.mux.Lock()
 		p.activeClients.Delete(client.subProtocol)
 		p.mux.Unlock()
-	} else if event == types.ConnectTimeout {
+	} else if event == api.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		client.client.Close()
-	} else if event == types.ConnectFailed {
+	} else if event == api.ConnectFailed {
 		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
 	}
@@ -249,7 +250,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 }
 
 func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
-	return str.NewStreamClient(context, protocol.SofaRPC, connData.Connection, connData.HostInfo)
+	return str.NewStreamClient(context, protocol.SofaRPC, connData.Connection, connData.Host)
 }
 
 // keepAliveListener is a types.ConnectionEventListener
@@ -257,8 +258,8 @@ type keepAliveListener struct {
 	keepAlive types.KeepAlive
 }
 
-func (l *keepAliveListener) OnEvent(event types.ConnectionEvent) {
-	if event == types.OnReadTimeout {
+func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
+	if event == api.OnReadTimeout {
 		l.keepAlive.SendKeepAlive()
 	}
 }
@@ -322,7 +323,7 @@ func newActiveClient(ctx context.Context, subProtocol byte, pool *connPool) *act
 	return ac
 }
 
-func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
+func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 

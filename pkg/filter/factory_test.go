@@ -22,14 +22,14 @@ import (
 	"errors"
 	"testing"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 type testStreamFilterFactory struct{}
 
-func (f *testStreamFilterFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+func (f *testStreamFilterFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 }
-func testStreamFilterFactoryCreator(config map[string]interface{}) (types.StreamFilterChainFactory, error) {
+func testStreamFilterFactoryCreator(config map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	if _, ok := config["error"]; ok {
 		return nil, errors.New("error")
 	}
@@ -38,9 +38,9 @@ func testStreamFilterFactoryCreator(config map[string]interface{}) (types.Stream
 
 type testNetworkFilterFactory struct{}
 
-func (f *testNetworkFilterFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
+func (f *testNetworkFilterFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 }
-func testNetworkFilterFactoryCreator(config map[string]interface{}) (types.NetworkFilterChainFactory, error) {
+func testNetworkFilterFactoryCreator(config map[string]interface{}) (api.NetworkFilterChainFactory, error) {
 	if _, ok := config["error"]; ok {
 		return nil, errors.New("error")
 	}
@@ -49,31 +49,31 @@ func testNetworkFilterFactoryCreator(config map[string]interface{}) (types.Netwo
 
 func TestCreateStreamFilterChainFactory(t *testing.T) {
 	name := "test"
-	RegisterStream(name, testStreamFilterFactoryCreator)
+	api.RegisterStream(name, testStreamFilterFactoryCreator)
 	config := make(map[string]interface{})
-	if _, err := CreateStreamFilterChainFactory("no", config); err == nil {
+	if _, err := api.CreateStreamFilterChainFactory("no", config); err == nil {
 		t.Error("no register type should return an error")
 	}
-	if _, err := CreateStreamFilterChainFactory(name, config); err != nil {
+	if _, err := api.CreateStreamFilterChainFactory(name, config); err != nil {
 		t.Error(err)
 	}
 	config["error"] = true
-	if _, err := CreateStreamFilterChainFactory(name, config); err == nil {
+	if _, err := api.CreateStreamFilterChainFactory(name, config); err == nil {
 		t.Error("create factory failed, expected an error")
 	}
 }
 func TestCreateNetworkFilterChainFactory(t *testing.T) {
 	name := "test"
-	RegisterNetwork(name, testNetworkFilterFactoryCreator)
+	api.RegisterNetwork(name, testNetworkFilterFactoryCreator)
 	config := make(map[string]interface{})
-	if _, err := CreateNetworkFilterChainFactory("no", config); err == nil {
+	if _, err := api.CreateNetworkFilterChainFactory("no", config); err == nil {
 		t.Error("no register type should return an error")
 	}
-	if _, err := CreateNetworkFilterChainFactory(name, config); err != nil {
+	if _, err := api.CreateNetworkFilterChainFactory(name, config); err != nil {
 		t.Error(err)
 	}
 	config["error"] = true
-	if _, err := CreateNetworkFilterChainFactory(name, config); err == nil {
+	if _, err := api.CreateNetworkFilterChainFactory(name, config); err == nil {
 		t.Error("create factory failed, expected an error")
 	}
 }

@@ -23,7 +23,8 @@ import (
 	"sync"
 	"time"
 
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
@@ -100,7 +101,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 	return base, nil
 }
 
-func (rri *RouteRuleImplBase) DirectResponseRule() types.DirectResponseRule {
+func (rri *RouteRuleImplBase) DirectResponseRule() api.DirectResponseRule {
 	return rri.directResponseRule
 }
 
@@ -135,15 +136,11 @@ func (rri *RouteRuleImplBase) GlobalTimeout() time.Duration {
 	return rri.routerAction.Timeout
 }
 
-func (rri *RouteRuleImplBase) VirtualHost() types.VirtualHost {
-	return rri.vHost
-}
-
-func (rri *RouteRuleImplBase) Policy() types.Policy {
+func (rri *RouteRuleImplBase) Policy() api.Policy {
 	return rri.policy
 }
 
-func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) types.MetadataMatchCriteria {
+func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) api.MetadataMatchCriteria {
 	criteria := rri.defaultCluster.clusterMetadataMatchCriteria
 	if len(rri.weightedClusters) != 0 {
 		if cluster, ok := rri.weightedClusters[clusterName]; ok {
@@ -162,7 +159,7 @@ func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {
 }
 
 // matchRoute is a common matched for http
-func (rri *RouteRuleImplBase) matchRoute(headers types.HeaderMap, randomValue uint64) bool {
+func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint64) bool {
 	// 1. match headers' KV
 	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
@@ -182,7 +179,7 @@ func (rri *RouteRuleImplBase) matchRoute(headers types.HeaderMap, randomValue ui
 	return true
 }
 
-func (rri *RouteRuleImplBase) finalizePathHeader(headers types.HeaderMap, matchedPath string) {
+func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedPath string) {
 	if len(rri.prefixRewrite) < 1 {
 		return
 	}
@@ -195,11 +192,11 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers types.HeaderMap, matche
 	}
 }
 
-func (rri *RouteRuleImplBase) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+func (rri *RouteRuleImplBase) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.finalizeRequestHeaders(headers, requestInfo)
 }
 
-func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
@@ -208,7 +205,7 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers types.HeaderMap, re
 	}
 }
 
-func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)

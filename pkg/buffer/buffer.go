@@ -21,12 +21,10 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
-
 	"unsafe"
 
-	"mosn.io/mosn/pkg/types"
-
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
 )
 
 const maxBufferPool = 16

@@ -19,32 +19,44 @@ package payloadlimit
 
 import (
 	"context"
+	"encoding/json"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/filter"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	filter.RegisterStream(v2.PayloadLimit, CreatePayloadLimitFilterFactory)
+	api.RegisterStream(v2.PayloadLimit, CreatePayloadLimitFilterFactory)
 }
 
 type FilterConfigFactory struct {
 	Config *v2.StreamPayloadLimit
 }
 
-func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewFilter(context, f.Config)
-	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
+	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 
-func CreatePayloadLimitFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+func CreatePayloadLimitFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	log.DefaultLogger.Debugf("create payload limit stream filter factory")
-	cfg, err := config.ParseStreamPayloadLimitFilter(conf)
+	cfg, err := ParseStreamPayloadLimitFilter(conf)
 	if err != nil {
 		return nil, err
 	}
 	return &FilterConfigFactory{cfg}, nil
+}
+
+// ParseStreamPayloadLimitFilter
+func ParseStreamPayloadLimitFilter(cfg map[string]interface{}) (*v2.StreamPayloadLimit, error) {
+	filterConfig := &v2.StreamPayloadLimit{}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, filterConfig); err != nil {
+		return nil, err
+	}
+	return filterConfig, nil
 }

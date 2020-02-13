@@ -26,9 +26,11 @@ import (
 	"fmt"
 
 	"github.com/valyala/fasthttp"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -243,6 +245,27 @@ func Test_serverStream_handleRequest(t *testing.T) {
 			s.handleRequest()
 		})
 	}
+}
+
+func Test_clientStream_CheckReasonError(t *testing.T) {
+	remoteAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:12200")
+
+	csc := &clientStreamConnection{
+		streamConnection: streamConnection{
+			conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+		},
+	}
+
+	res, ok := csc.CheckReasonError(true, api.RemoteClose)
+	if res != types.UpstreamReset || ok {
+		t.Errorf("csc.CheckReasonError(true, types.RemoteClose) got %v , want %v", res, types.UpstreamReset)
+	}
+
+	res, ok = csc.CheckReasonError(true, api.OnConnect)
+	if res != types.StreamConnectionSuccessed || !ok {
+		t.Errorf("csc.CheckReasonError(true, types.OnConnect) got %v , want %v", res, types.StreamConnectionSuccessed)
+	}
+
 }
 
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {

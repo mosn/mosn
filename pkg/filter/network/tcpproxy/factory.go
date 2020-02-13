@@ -19,32 +19,43 @@ package tcpproxy
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/filter"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 func init() {
-	filter.RegisterNetwork(v2.TCP_PROXY, CreateTCPProxyFactory)
+	api.RegisterNetwork(v2.TCP_PROXY, CreateTCPProxyFactory)
 }
 
 type tcpProxyFilterConfigFactory struct {
 	Proxy *v2.TCPProxy
 }
 
-func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
-	rf := NewProxy(context, f.Proxy, clusterManager)
+func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
+	rf := NewProxy(context, f.Proxy)
 	callbacks.AddReadFilter(rf)
 }
 
-func CreateTCPProxyFactory(conf map[string]interface{}) (types.NetworkFilterChainFactory, error) {
-	p, err := config.ParseTCPProxy(conf)
+func CreateTCPProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+	p, err := ParseTCPProxy(conf)
 	if err != nil {
 		return nil, err
 	}
 	return &tcpProxyFilterConfigFactory{
 		Proxy: p,
 	}, nil
+}
+
+// ParseTCPProxy
+func ParseTCPProxy(cfg map[string]interface{}) (*v2.TCPProxy, error) {
+	proxy := &v2.TCPProxy{}
+	if data, err := json.Marshal(cfg); err == nil {
+		json.Unmarshal(data, proxy)
+	} else {
+		return nil, fmt.Errorf("[config] config is not a tcp proxy config: %v", err)
+	}
+	return proxy, nil
 }

@@ -21,13 +21,14 @@ import (
 	"sync/atomic"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/healthcheck"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 func NewCluster(clusterConfig v2.Cluster) types.Cluster {
@@ -133,6 +134,12 @@ func (sc *simpleCluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
 	}
 }
 
+func (sc *simpleCluster) StopHealthChecking() {
+	if sc.healthChecker != nil {
+		sc.healthChecker.Stop()
+	}
+}
+
 type clusterInfo struct {
 	name                 string
 	clusterType          v2.ClusterType
@@ -204,10 +211,10 @@ func (snapshot *clusterSnapshot) LoadBalancer() types.LoadBalancer {
 	return snapshot.lb
 }
 
-func (snapshot *clusterSnapshot) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+func (snapshot *clusterSnapshot) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	return snapshot.lb.IsExistsHosts(metadata)
 }
 
-func (snapshot *clusterSnapshot) HostNum(metadata types.MetadataMatchCriteria) int {
+func (snapshot *clusterSnapshot) HostNum(metadata api.MetadataMatchCriteria) int {
 	return snapshot.lb.HostNum(metadata)
 }

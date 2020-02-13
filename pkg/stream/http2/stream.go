@@ -28,7 +28,8 @@ import (
 	"strconv"
 	"sync"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
+	mbuffer "mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2"
@@ -37,6 +38,7 @@ import (
 	mhttp2 "mosn.io/mosn/pkg/protocol/http2"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func init() {
@@ -46,11 +48,11 @@ func init() {
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
-	clientCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
+	clientCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(context, connection, clientCallbacks)
 }
 
-func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
+func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(context, connection, serverCallbacks)
 }
@@ -88,7 +90,7 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 // types.ServerStreamConnection
 type streamConnection struct {
 	ctx  context.Context
-	conn types.Connection
+	conn api.Connection
 	cm   *str.ContextManager
 
 	codecEngine types.ProtocolEngine
@@ -113,7 +115,7 @@ type stream struct {
 	id       uint32
 	header   types.HeaderMap
 	sendData []types.IoBuffer
-	conn     types.Connection
+	conn     api.Connection
 }
 
 // ~~ types.Stream
@@ -161,7 +163,7 @@ type serverStreamConnection struct {
 	serverCallbacks types.ServerStreamConnectionEventListener
 }
 
-func newServerStreamConnection(ctx context.Context, connection types.Connection, serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+func newServerStreamConnection(ctx context.Context, connection api.Connection, serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 
 	h2sc := http2.NewServerConn(connection)
 
@@ -220,6 +222,20 @@ func (conn *serverStreamConnection) ActiveStreamsNum() int {
 	defer conn.mutex.Unlock()
 
 	return len(conn.streams)
+}
+
+func (conn *serverStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			reason = types.StreamConnectionTermination
+		}
+		return reason, false
+
+	}
+
+	return reason, true
 }
 
 func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
@@ -348,10 +364,10 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 			}
 		case http2.ConnectionError:
 			log.Proxy.Errorf(ctx, "Http2 server handleError conn err: %v", err)
-			conn.conn.Close(types.NoFlush, types.OnReadErrClose)
+			conn.conn.Close(api.NoFlush, api.OnReadErrClose)
 		default:
 			log.Proxy.Errorf(ctx, "Http2 server handleError err: %v", err)
-			conn.conn.Close(types.NoFlush, types.RemoteClose)
+			conn.conn.Close(api.NoFlush, api.RemoteClose)
 		}
 	}
 }
@@ -395,7 +411,7 @@ type serverStream struct {
 }
 
 // types.StreamSender
-func (s *serverStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) error {
+func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error {
 	var rsp *http.Response
 
 	var status int
@@ -436,7 +452,7 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers types.HeaderMa
 	return nil
 }
 
-func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	s.h2s.SendData = data
 	log.Proxy.Debugf(s.ctx, "http2 server ApppendData id = %d", s.id)
 
@@ -447,7 +463,7 @@ func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, 
 	return nil
 }
 
-func (s *serverStream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
+func (s *serverStream) AppendTrailers(context context.Context, trailers api.HeaderMap) error {
 	switch trailer := trailers.(type) {
 	case protocol.CommonHeader:
 		s.h2s.Response.Trailer = mhttp2.EncodeHeader(trailer)
@@ -496,7 +512,7 @@ type clientStreamConnection struct {
 	streamConnectionEventListener types.StreamConnectionEventListener
 }
 
-func newClientStreamConnection(ctx context.Context, connection types.Connection,
+func newClientStreamConnection(ctx context.Context, connection api.Connection,
 	clientCallbacks types.StreamConnectionEventListener) types.ClientStreamConnection {
 
 	h2cc := http2.NewClientConn(connection)
@@ -549,6 +565,20 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 	defer conn.mutex.RUnlock()
 
 	return len(conn.streams)
+}
+
+func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			reason = types.StreamConnectionTermination
+		}
+		return reason, false
+
+	}
+
+	return reason, true
 }
 
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
@@ -619,7 +649,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		code := strconv.Itoa(rsp.StatusCode)
 		header.Set(types.HeaderStatus, code)
 
-		buffer.TransmitBufferPoolContext(stream.ctx, ctx)
+		mbuffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
 		log.Proxy.Debugf(stream.ctx, "http2 client header: id = %d, headers = %+v", id, rsp.Header)
 		if endStream {
@@ -677,10 +707,10 @@ func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Fra
 			}
 		case http2.ConnectionError:
 			log.Proxy.Errorf(ctx, "Http2 client handleError conn err: %v", err)
-			conn.conn.Close(types.FlushWrite, types.OnReadErrClose)
+			conn.conn.Close(api.FlushWrite, api.OnReadErrClose)
 		default:
 			log.Proxy.Errorf(ctx, "Http2 client handleError err: %v", err)
-			conn.conn.Close(types.NoFlush, types.RemoteClose)
+			conn.conn.Close(api.NoFlush, api.RemoteClose)
 		}
 	}
 }
@@ -692,7 +722,7 @@ type clientStream struct {
 	sc  *clientStreamConnection
 }
 
-func (s *clientStream) AppendHeaders(ctx context.Context, headersIn types.HeaderMap, endStream bool) error {
+func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMap, endStream bool) error {
 	var req *http.Request
 	var isReqHeader bool
 
@@ -772,7 +802,7 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn types.Header
 	return nil
 }
 
-func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *clientStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	s.h2s.SendData = data
 	log.Proxy.Debugf(s.ctx, "http2 client AppendData: id = %d", s.id)
 	if endStream {
@@ -782,7 +812,7 @@ func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, 
 	return nil
 }
 
-func (s *clientStream) AppendTrailers(context context.Context, trailers types.HeaderMap) error {
+func (s *clientStream) AppendTrailers(context context.Context, trailers api.HeaderMap) error {
 	switch trailer := trailers.(type) {
 	case protocol.CommonHeader:
 		s.h2s.Request.Trailer = mhttp2.EncodeHeader(trailer)
