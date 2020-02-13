@@ -135,12 +135,12 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	response.Data = buffer.NewIoBufferBytes(*response.rawData)
 
 	//5. process wrappers: Class, Header, Content, Data
-	headerIndex := RequestHeaderLen + int(classLen)
+	headerIndex := ResponseHeaderLen + int(classLen)
 	contentIndex := headerIndex + int(headerLen)
 
-	response.rawMeta = (*response.rawData)[:RequestHeaderLen]
+	response.rawMeta = (*response.rawData)[:ResponseHeaderLen]
 	if classLen > 0 {
-		response.rawClass = (*response.rawData)[RequestHeaderLen:headerIndex]
+		response.rawClass = (*response.rawData)[ResponseHeaderLen:headerIndex]
 		response.Class = string(response.rawClass)
 	}
 	if headerLen > 0 {
