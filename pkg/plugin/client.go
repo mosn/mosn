@@ -37,7 +37,6 @@ type Client struct {
 	config   *Config
 	name     string
 	fullName string
-	args     []string
 	service  *client
 	enable   bool
 	on       bool
@@ -50,7 +49,7 @@ type Config struct {
 	Args     []string
 }
 
-func newClient(name string, args []string) (*Client, error) {
+func newClient(name string, config *Config) (*Client, error) {
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		return nil, err
@@ -64,7 +63,11 @@ func newClient(name string, args []string) (*Client, error) {
 	c.enable = true
 	c.name = name
 	c.fullName = fullName
-	c.args = args
+	c.config = config
+	if c.config == nil {
+		c.config = &Config{1, nil}
+	}
+
 
 	c.Check()
 	return c, nil
@@ -128,7 +131,7 @@ func (c *Client) Check() error {
 	}
 	c.on = false
 
-	cmd := exec.Command(c.fullName, c.args...)
+	cmd := exec.Command(c.fullName, c.config.Args...)
 
 	procs := 1
 	if c.config != nil && c.config.MaxProcs >= 0 && c.config.MaxProcs <= 4 {

@@ -15,12 +15,11 @@ func Register(name string, config *Config) (*Client, error) {
 	if c, ok := pluginFactories[name]; ok {
 		return c, nil
 	}
-	c, err := newClient(name, config.Args)
+	c, err := newClient(name, config)
 	if err != nil {
 		return nil, err
 	}
 	pluginFactories[name] = c
-	c.config = config
 
 	return c, nil
 }
