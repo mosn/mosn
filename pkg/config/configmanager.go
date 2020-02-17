@@ -55,6 +55,7 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 		RegistryEndpoint: appInfo.RegistryEndpoint,
 		AccessKey:        appInfo.AccessKey,
 		SecretKey:        appInfo.SecretKey,
+		ServiceNode:      appInfo.ServiceNode,
 	}
 
 	// reset servicePubInfo
