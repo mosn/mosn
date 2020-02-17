@@ -63,16 +63,11 @@ func OpenPlugin(name string) error {
 // http://ip:port/plugin?status=pluginname
 // http://ip:port/plugin?status=all
 // NewHttp new http server
-func NewHttp(p int, log string) (*http.Server, error) {
+func NewHttp(addr string, log string) (*http.Server, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", adminApi)
 	mux.HandleFunc("/plugin", adminApi)
 
-	port := 9091 //default use 9090
-	if p != 0 {
-		port = p
-	}
-	addr := fmt.Sprintf("0.0.0.0:%d", port)
 	srv := &http.Server{Addr: addr, Handler: mux}
 
 	_, err := os.Stat(log)

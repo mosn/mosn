@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -89,11 +90,18 @@ var (
 
 			// start Plugin
 			if conf.Plugin.Enable {
-				srv, err := plugin.NewHttp(conf.Plugin.Port, conf.Plugin.LogDir)
+				if conf.Plugin.Addr == "" {
+					log.StartLogger.Fatalf("[config] [start] Plugin Address not valid: %v", conf.Plugin.Addr)
+				}
+				_, err := net.ResolveTCPAddr("tcp", conf.Plugin.Addr)
+				if err != nil {
+					log.StartLogger.Fatalf("[config] [start] Plugin Address not valid: %v", conf.Plugin.Addr)
+				}
+				srv, err := plugin.NewHttp(conf.Plugin.Addr, conf.Plugin.LogDir)
 				if err == nil {
 					store.AddService(srv, "Mosn Plugin Admin", nil, nil)
 				} else {
-					log.StartLogger.Errorf("[mosn] [start] Plugin Admin error: %v", err)
+					log.StartLogger.Fatalf("[mosn] [start] Plugin Admin error: %v", err)
 				}
 			}
 

@@ -1,7 +1,7 @@
 {
   "plugin": {
     "enable": true,
-    "port_value": 34905,
+    "address": "0.0.0.0:9091",
     "log_dir": "/home/admin/mosn/logs/"
   },
   "servers": [{

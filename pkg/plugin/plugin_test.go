@@ -18,7 +18,7 @@ func testRegister(name string) (*Client, error) {
 
 func TestPluginClient(t *testing.T) {
 	// test admin api
-	server, err := NewHttp(34567, "/tmp/")
+	server, err := NewHttp("0.0.0.0:34567", "/tmp/")
 	if err != nil {
 		t.Fatalf("TestNewPluginClient error, NewHttp error :%v", err)
 	}

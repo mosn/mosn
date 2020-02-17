@@ -39,8 +39,8 @@ type MOSNConfig struct {
 	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin            json.RawMessage `json:"admin,omitempty"`             // admin raw message
 	Debug               PProfConfig     `json:"pprof,omitempty"`
-	Pid                 string          `json:"pid,omitempty"` // pid file
-	Plugin              PluginConfig    `json:"plugin,omitempty"`  // plugin config
+	Pid                 string          `json:"pid,omitempty"`    // pid file
+	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
 }
 
 // PProfConfig is used to start a pprof server for debug
@@ -68,7 +68,7 @@ type MetricsConfig struct {
 // PluginConfig for plugin config
 type PluginConfig struct {
 	Enable bool   `json:"enable"`
-	Port   int    `json:"port_value"` // If port value is 0, will use 9091 as default
+	Addr   string `json:"address"`
 	LogDir string `json:"log_dir"`
 }
 
