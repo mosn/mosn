@@ -636,6 +636,7 @@ type ApplicationInfo struct {
 	RegistryEndpoint string `json:"registry_endpoint,omitempty"`
 	AccessKey        string `json:"access_key,omitempty"`
 	SecretKey        string `json:"secret_key,omitempty"`
+	ServiceNode      string `json:"service_node,omitempty"`
 }
 
 // PublishInfo implements json.Marshaler and json.Unmarshaler
