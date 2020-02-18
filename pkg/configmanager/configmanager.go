@@ -173,9 +173,9 @@ func DelPubInfo(serviceName string) {
 
 // AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddOrUpdateRoutersConfig
 // use this function to only dump config once
-func AddClusterWithRouter(listenername string, clusters []v2.Cluster, routerConfig *v2.RouterConfiguration) {
+func AddClusterWithRouter(clusters []v2.Cluster, routerConfig *v2.RouterConfiguration) {
 	addOrUpdateClusterConfig(clusters)
-	addOrUpdateRouterConfig(listenername, routerConfig)
+	addOrUpdateRouterConfig(routerConfig)
 	dump(true)
 }
 
@@ -190,22 +190,24 @@ func findListener(listenername string) (v2.Listener, int) {
 	return v2.Listener{}, -1
 }
 
-// AddOrUpdateRouterConfig update the connection_manager's config
-func AddOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) {
-	if addOrUpdateRouterConfig(listenername, routerConfig) {
+// AddOrUpdateRouterConfig update the router config
+func AddOrUpdateRouterConfig(routerConfig *v2.RouterConfiguration) {
+	if addOrUpdateRouterConfig(routerConfig) {
 		dump(true)
 	}
 }
 
-func addOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) bool {
-	_, idx := findListener(listenername)
-	if idx == -1 {
-		return false
+func addOrUpdateRouterConfig(routerConfig *v2.RouterConfiguration) bool {
+	// support only one server
+	routers := config.Servers[0].Routers
+	for idx, rt := range routers {
+		if rt.RouterConfigName == routerConfig.RouterConfigName {
+			config.Servers[0].Routers[idx] = routerConfig
+			return true
+		}
 	}
-
-	routerMap.Lock()
-	routerMap.config[listenername] = routerConfig
-	routerMap.Unlock()
+	// not equal
+	config.Servers[0].Routers = append(config.Servers[0].Routers, routerConfig)
 	return true
 }
 

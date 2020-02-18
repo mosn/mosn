@@ -81,7 +81,7 @@ func TestUpdateRouterConfig(t *testing.T) {
 	cfg := []byte(basicConfigStr)
 	mockInitConfig(t, cfg)
 	routerConfigStr := `{
-		"router_config_name":"test_update",
+		"router_config_name":"egress_router",
 		"virtual_hosts":[{
 			"name":"test_update",
 			"domains": ["*"],
@@ -97,20 +97,58 @@ func TestUpdateRouterConfig(t *testing.T) {
 	if err := json.Unmarshal([]byte(routerConfigStr), routerConfiguration); err != nil {
 		t.Fatal("create update config failed", err)
 	}
-	if !addOrUpdateRouterConfig("egress", routerConfiguration) {
+	if !addOrUpdateRouterConfig(routerConfiguration) {
 		t.Fatal("update router config failed")
 	}
-	dumpRouterConfig()
 	// verify
-	ln, idx := findListener("egress")
-	if idx == -1 {
-		t.Fatal("cannot found egress listener")
+	routers := config.Servers[0].Routers
+	if len(routers) != 2 {
+		t.Fatal("router update failed")
 	}
-	filter := ln.FilterChains[0].Filters[0] // only one connection_manager
 	newConfig := &v2.RouterConfiguration{}
-	if data, err := json.Marshal(filter.Config); err == nil {
-		if err := json.Unmarshal(data, &newConfig); err != nil {
-			t.Error("invalid config in router config", err)
+	for _, r := range routers {
+		if r.RouterConfigName == "egress_router" {
+			newConfig = r
+		}
+	}
+	if !reflect.DeepEqual(newConfig, routerConfiguration) {
+		t.Error("new config is not equal update config")
+	}
+}
+
+func TestAddRouterConfig(t *testing.T) {
+	// only keep useful test part
+	cfg := []byte(basicConfigStr)
+	mockInitConfig(t, cfg)
+	routerConfigStr := `{
+		"router_config_name":"test_add",
+		"virtual_hosts":[{
+			"name":"test_add",
+			"domains": ["*"],
+			"routers": [
+				{
+					 "match": {"prefix":"/test_add"},
+					 "route":{"cluster_name":"test_add"}
+				}
+			]
+		}]
+	}`
+	routerConfiguration := &v2.RouterConfiguration{}
+	if err := json.Unmarshal([]byte(routerConfigStr), routerConfiguration); err != nil {
+		t.Fatal("create update config failed", err)
+	}
+	if !addOrUpdateRouterConfig(routerConfiguration) {
+		t.Fatal("update router config failed")
+	}
+	// verify
+	routers := config.Servers[0].Routers
+	if len(routers) != 3 {
+		t.Fatal("router add failed")
+	}
+	newConfig := &v2.RouterConfiguration{}
+	for _, r := range routers {
+		if r.RouterConfigName == "test_add" {
+			newConfig = r
 		}
 	}
 	if !reflect.DeepEqual(newConfig, routerConfiguration) {
@@ -223,10 +261,10 @@ func TestUpdateConfigConcurrency(t *testing.T) {
 			DelPubInfo("key")
 		},
 		func() {
-			AddClusterWithRouter("egress", []v2.Cluster{}, &v2.RouterConfiguration{})
+			AddClusterWithRouter([]v2.Cluster{}, &v2.RouterConfiguration{})
 		},
 		func() {
-			AddOrUpdateRouterConfig("egress", &v2.RouterConfiguration{})
+			AddOrUpdateRouterConfig(&v2.RouterConfiguration{})
 		},
 		func() {
 			AddOrUpdateStreamFilters("egress", "test", map[string]interface{}{})
@@ -250,9 +288,6 @@ func TestUpdateConfigConcurrency(t *testing.T) {
 		},
 		func() {
 			RmMqConsumers("key")
-		},
-		func() {
-			dumpRouterConfig()
 		},
 	} {
 		f := fc

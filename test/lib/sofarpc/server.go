@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/pkg/buffer"
 )
 
 type MockServer struct {

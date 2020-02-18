@@ -6,6 +6,69 @@
       "default_log_level": "DEBUG",
       "graceful_timeout": "10s",
       "processor": 1,
+      "routers":[
+        {
+	  "router_config_name":"test_router",
+	  "virtual_hosts": [
+	  	{
+			"name": "sofa",
+			"domains": ["*"],
+			"routers": [
+				{
+					 "match": {
+						 "headers": [
+						 	{
+								"name": "service",
+								"value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0"
+							}
+						 ]
+					 },
+					 "route": {
+						 "cluster_name": "test_cpp",
+						 "metadata_match": {
+							 "filter_metadata": {
+								 "mosn.lb": {
+									 "version": "1.1",
+									 "stage": "pre-release",
+									 "label": "gray"
+								 }
+							 }
+						 },
+						 "weighted_clusters": [
+						 	{
+								"cluster": {
+									"name": "serverCluster1",
+									"weight": 90,
+									"metadata_match": {
+										"filter_metadata": {
+											"mosn.lb": {
+												"version": "v1"
+											}
+										}
+									}
+								}
+							},
+							{
+								"cluster": {
+									"name": "serverCluster2",
+									"weight": 10,
+									"metadata_match": {
+										"filter_metadata": {
+											"mosn.lb": {
+												"version": "v2"
+											}
+										}
+									}
+								}
+							}
+						 ]
+					 }
+				}
+			]
+		}
+	  ]
+	}
+      ]
       "listeners": [
         {
           "name": "ingress_sofa",
@@ -35,73 +98,6 @@
                     "upstream_protocol": "SofaRpc",
                     "router_config_name": "test_router"
                   }
-                },
-                {
-                  "type": "connection_manager",
-                  "config": {
-                    "router_config_name": "test_router",
-                    "virtual_hosts": [
-                      {
-                        "name": "sofa",
-                        "domains": [
-                          "*testwilccard"
-                        ],
-                        "routers": [
-                          {
-                            "match": {
-                              "headers": [
-                                {
-                                  "name": "service",
-                                  "value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
-                                  "regex": false
-                                }
-                              ]
-                            },
-                            "route": {
-                              "cluster_name": "test_cpp",
-                              "metadata_match": {
-                                "filter_metadata": {
-                                  "mosn.lb": {
-                                    "version": "1.1",
-                                    "stage": "pre-release",
-                                    "label": "gray"
-                                  }
-                                }
-                              },
-                              "weighted_clusters": [
-                                {
-                                  "cluster": {
-                                    "name": "serverCluster1",
-                                    "weight": 90,
-                                    "metadata_match": {
-                                      "filter_metadata": {
-                                        "mosn.lb": {
-                                          "version": "v1"
-                                        }
-                                      }
-                                    }
-                                  }
-                                },
-                                {
-                                  "cluster": {
-                                    "name": "serverCluster2",
-                                    "weight": 10,
-                                    "metadata_match": {
-                                      "filter_metadata": {
-                                        "mosn.lb": {
-                                          "version": "v2"
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  }
                 }
               ]
             }
@@ -118,12 +114,10 @@
               }
             }
           ],
-          "log_path": "/home/admin/mosn/logs/ingress.log",
-          "log_level": "DEBUG",
           "access_logs": [
             {
               "log_path": "/home/admin/mosn/logs/access_ingress.log",
-              "log_format": "%StartTime% %RequestReceivedDuration% %ResponseReceivedDuration% %REQ.requestid% %REQ.cmdcode% %RESP.requestid% %RESP.service%"
+              "log_format": "%start_time% %request_received_duration% %response_received_duration% %req.requestid% %req.cmdcode% %resp.requestid% %resp.service%"
             }
           ]
         }

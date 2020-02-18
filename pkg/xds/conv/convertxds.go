@@ -556,7 +556,6 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 				log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: %v", err)
 			}
 		}
-		filtersConfigParsed[v2.CONNECTION_MANAGER] = toMap(routerConfig)
 	} else {
 		log.DefaultLogger.Errorf("no router config found, filter name: %s", name)
 	}

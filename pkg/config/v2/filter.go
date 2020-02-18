@@ -44,7 +44,6 @@ type DelayInjectConfig struct {
 
 // Network Filter's Type
 const (
-	CONNECTION_MANAGER          = "connection_manager"
 	DEFAULT_NETWORK_FILTER      = "proxy"
 	TCP_PROXY                   = "tcp_proxy"
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"

@@ -36,10 +36,13 @@ func CreateDirectMeshProxy(addr string, proto types.Protocol, response *v2.Direc
 		NewDirectResponsePrefixRouter("/", response),
 	}
 	chains := []v2.FilterChain{
-		util.NewFilterChain("proxyVirtualHost", proto, proto, routers),
+		util.NewFilterChain("proxyVirtualHost", proto, proto),
+	}
+	rs := []*v2.RouterConfiguration{
+		util.MakeRouterConfig("proxyVirtualHost", routers),
 	}
 	listener := util.NewListener("proxyListener", addr, chains)
-	return util.NewMOSNConfig([]v2.Listener{listener}, cmconfig)
+	return util.NewMOSNConfig([]v2.Listener{listener}, rs, cmconfig)
 }
 func NewDirectResponseHeaderRouter(value string, response *v2.DirectResponseAction) v2.Router {
 	header := v2.HeaderMatcher{Name: "service", Value: value}

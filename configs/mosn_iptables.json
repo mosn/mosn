@@ -1,6 +1,25 @@
 {
 	"servers": [
 		{
+			"routers":[
+				{
+					"router_config_name": "test_hijack",
+					"virtual_hosts": [
+						{
+							"name": "virtual",
+							"domains": ["*"],
+							"routers": [
+								{
+									 "match": {"prefix":"/"},
+									 "route": {
+										 "cluster_name": "test_server"
+									 }
+								}
+							]
+						}
+					]
+				}
+			],
 			"listeners": [
 				{
 					"name": "from_iptables",
@@ -25,26 +44,6 @@
 										"upstream_protocol": "Http1",
 										"router_config_name": "test_hijack"
 									}
-								},
-								{
-									 "type": "connection_manager",
-									  "config": {
-										  "router_config_name": "test_hijack",
-										  "virtual_hosts": [
-										  	{
-												"name": "virtual",
-												"domains": ["*"],
-												"routers": [
-													{
-														"match": {"prefix":"/"},
-														"route": {
-															"cluster_name": "test_server"
-														}
-													}
-												]
-											}
-										  ]
-									  }
 								}
 							]
 						}

@@ -27,7 +27,6 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
-	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/shm"
@@ -156,14 +155,16 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
 			}
 
+			// Add Router Config
+			for _, routerConfig := range serverConfig.Routers {
+				if routerConfig.RouterConfigName != "" {
+					m.routerManager.AddOrUpdateRouters(routerConfig)
+				}
+			}
+
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
-
-				// parse routers from connection_manager filter and add it the routerManager
-				if routerConfig := configmanager.ParseRouterConfiguration(&lc.FilterChains[0]); routerConfig.RouterConfigName != "" {
-					m.routerManager.AddOrUpdateRouters(routerConfig)
-				}
 
 				var nfcf []api.NetworkFilterChainFactory
 				var sfcf []api.StreamFilterChainFactory

@@ -3,6 +3,45 @@
 	 	{
 			"default_log_path": "/home/admin/mosn/logs/default.log",
 			"default_log_level": "DEBUG",
+			"routers": [
+				{
+					"router_config_name": "test_router",
+					"virtual_hosts": [
+						{
+							"name": "dubbo_server_1",
+							"domains": [
+								"192.168.100.100"
+							],
+							"routers": [
+								{
+									"match": {
+										"path":"/"
+									},
+									"route": {
+										"cluster_name":"server_1"
+									}
+								}
+							]
+						},
+						{
+							"name": "dubbo_server_2",
+							"domains": [
+								"192.168.100.101"
+							],
+							"routers": [
+								{
+									"match": {
+										"path":"/"
+									},
+									"route": {
+										"cluster_name":"server_1"
+									}
+								}
+							]
+						}
+					]
+				}
+			],
 			"listeners": [
 				{
 					"name": "xprotocol_dubbo",
@@ -22,46 +61,6 @@
 											  "sub_protocol":"dubbo"
 										  }
 									 }
-								},
-								{
-									"type": "connection_manager",
-									"config": {
-										"router_config_name": "test_router",
-										"virtual_hosts": [
-											{
-												"name": "dubbo_server_1",
-												"domains": [
-													"192.168.100.100"
-												],
-												"routers": [
-													{
-														 "match": {
-															 "path":"/"
-														 },
-														 "route": {
-															 "cluster_name":"server_1"
-														 }
-													}
-												]
-											},
-											{
-												"name": "dubbo_server_2",
-												"domains": [
-													 "192.168.100.101"
-												],
-												"routers": [
-													{
-														"match": {
-															"path":"/"
-														},
-														"route": {
-															"cluster_name":"server_2"
-														}
-													}
-												]
-											}
-										]
-									}
 								}
 							]
 						}

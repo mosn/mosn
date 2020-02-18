@@ -18,7 +18,6 @@
 package configmanager
 
 import (
-	"encoding/json"
 	"net"
 	"os"
 	"runtime"
@@ -204,25 +203,6 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.L
 	lc.PerConnBufferLimitBytes = 1 << 15
 	lc.InheritListener = old
 	return lc
-}
-
-// ParseRouterConfiguration used to get virtualhosts from filter
-func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
-	routerConfiguration := &v2.RouterConfiguration{}
-	for _, f := range c.Filters {
-		if f.Type == v2.CONNECTION_MANAGER {
-
-			if data, err := json.Marshal(f.Config); err == nil {
-				if err := json.Unmarshal(data, routerConfiguration); err != nil {
-					log.StartLogger.Fatalf("[config] [parse router] Parsing Virtual Host Error: %v", err)
-				}
-			} else {
-				log.StartLogger.Fatalf("[config] [parse router] Parsing Virtual Host Error")
-			}
-		}
-	}
-
-	return routerConfiguration
 }
 
 func ParseServiceRegistry(src v2.ServiceRegistryInfo) {

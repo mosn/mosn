@@ -18,7 +18,6 @@
 package configmanager
 
 import (
-	"encoding/json"
 	"net"
 	"reflect"
 	"testing"
@@ -67,92 +66,9 @@ var mockedFilterChains = `
                     "upstream_protocol": "SofaRpc",
                     "router_config_name":"test_router"
                   }
-                },
-                {
-                  "type":"connection_manager",
-                  "config":{
-                    "router_config_name":"test_router",
-                    "virtual_hosts": [
-                      {
-                        "name": "sofa",
-                        "require_tls": "no",
-                        "domains":[
-                          "*testwilccard"
-                        ],
-                        "routers": [
-                          {
-                            "match": {
-                              "headers": [
-                                {
-                                  "name": "service",
-                                  "value": "com.alipay.rpc.common.service.facade.pb.SampleServicePb:1.0",
-                                  "regex":false
-                                }
-                              ]
-                            },
-                            "route": {
-                              "cluster_name": "test_cpp",
-                              "metadata_match": {
-                                "filter_metadata": {
-                                  "mosn.lb": {
-                                    "version":"1.1",
-                                    "stage":"pre-release",
-                                    "label": "gray"
-                                  }
-                                }
-                              },
-                              "weighted_clusters":[
-                                {
-                                  "cluster":{
-                                    "name":"serverCluster1",
-                                    "weight":90,
-                                    "metadata_match":{
-                                      "filter_metadata": {
-                                        "mosn.lb": {
-                                          "version": "v1"
-                                        }
-                                      }
-                                    }
-                                  }
-                                },
-                                {
-                                  "cluster":{
-                                    "name":"serverCluster2",
-                                    "weight":10,
-                                    "metadata_match":{
-                                      "filter_metadata": {
-                                        "mosn.lb": {
-                                          "version": "v2"
-                                        }
-                                      }
-                                    }
-                                  }
-                                }
-                              ]
-                            }
-                          }
-                        ]
-                      }
-                    ]
-                  }
                 }
               ]
             }`
-
-func TestParseRouterConfiguration(t *testing.T) {
-	bytes := []byte(mockedFilterChains)
-	filterChan := &v2.FilterChain{}
-	if err := json.Unmarshal(bytes, filterChan); err != nil {
-		t.Fatalf("init router config failed: %v", err)
-	}
-
-	routerCfg := ParseRouterConfiguration(filterChan)
-
-	if routerCfg.RouterConfigName != "test_router" || len(routerCfg.VirtualHosts) != 1 ||
-		routerCfg.VirtualHosts[0].Name != "sofa" || len(routerCfg.VirtualHosts[0].Routers) != 1 {
-		t.Errorf("TestParseRouterConfiguration error, config: %v", routerCfg)
-	}
-}
 
 func TestParseClusterConfig(t *testing.T) {
 	// Test Host Weight trans and hosts maps return

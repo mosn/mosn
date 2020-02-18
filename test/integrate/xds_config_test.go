@@ -24,17 +24,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/envoyproxy/go-control-plane/pkg/util"
-
+	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/gogo/protobuf/types"
-
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	http_conn "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/gogo/protobuf/proto"
+	"github.com/gogo/protobuf/types"
 	jsoniter "github.com/json-iterator/go"
 	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -49,9 +47,10 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type effectiveConfig struct {
-	MOSNConfig interface{}            `json:"mosn_config,omitempty"`
-	Listener   map[string]v2.Listener `json:"listener,omitempty"`
-	Cluster    map[string]v2.Cluster  `json:"cluster,omitempty"`
+	MOSNConfig interface{}                       `json:"mosn_config,omitempty"`
+	Listener   map[string]v2.Listener            `json:"listener,omitempty"`
+	Cluster    map[string]v2.Cluster             `json:"cluster,omitempty"`
+	Routers    map[string]v2.RouterConfiguration `josn:"routers,omitempty"`
 }
 
 func handleListenersResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.Listener {
@@ -161,27 +160,22 @@ func TestConfigAddAndUpdate(t *testing.T) {
 			t.Fatalf("error listener[0.0.0.0_9080] config: %v", listener)
 		}
 
-		if len(listener.FilterChains[0].Filters) != 2 {
+		if len(listener.FilterChains[0].Filters) != 1 {
 			t.Fatalf("error listener[0.0.0.0_9080] config: %v", listener)
 		}
 
-		var filter v2.Filter
-		for _, data := range listener.FilterChains[0].Filters {
-			if data.Type == "connection_manager" {
-				filter = data
-			}
+		if len(m.Routers) != 1 {
+			t.Fatalf("listener[0.0.0.0_9080] router config is wrong")
 		}
-		if data, ok := filter.Config["virtual_hosts"]; !ok {
-			t.Fatalf("listener[0.0.0.0_9080] missing virtual_hosts")
-		} else {
-			hosts := data.([]interface{})
-			host := hosts[3].(map[string]interface{})
-			routers := host["routers"].([]interface{})
-			router := routers[0].(map[string]interface{})
-			route := router["route"].(map[string]interface{})
-			clusterName := route["cluster_name"].(string)
-
+		for _, rcfg := range m.Routers {
+			vhs := rcfg.VirtualHosts
+			if len(vhs) != 4 {
+				t.Fatalf("listener[0.0.0.0_9080] virtual hosts is not 3, got %d", len(vhs))
+			}
+			vh := vhs[3]
+			routers := vh.Routers
 			// 第一次 reviews 没有按照版本和权重来路由（v1,v2,v3 轮训）
+			clusterName := routers[0].Route.ClusterName
 			if clusterName != "outbound|9080||reviews.default.svc.cluster.local" {
 				t.Fatalf("reviews.default.svc.cluster.local:9080 should route to [outbound|9080||reviews.default.svc.cluster.local], but got %s", clusterName)
 			}
@@ -226,40 +220,26 @@ func TestConfigAddAndUpdate(t *testing.T) {
 		if listener.Name != "0.0.0.0_9080" || listener.BindToPort || len(listener.FilterChains) != 1 {
 			t.Fatalf("error listener config: %v", listener)
 		}
-
-		var filter v2.Filter
-		for _, data := range listener.FilterChains[0].Filters {
-			if data.Type == "connection_manager" {
-				filter = data
-			}
+		if len(m.Routers) != 1 {
+			t.Fatalf("listener[0.0.0.0_9080] router config is wrong")
 		}
-
-		if data, ok := filter.Config["virtual_hosts"]; !ok {
-			t.Fatalf("listener[0.0.0.0_9080] missing virtual_hosts, %v", filter)
-		} else {
-			hosts := data.([]interface{})
-			host := hosts[3].(map[string]interface{})
-			routers := host["routers"].([]interface{})
-			router := routers[0].(map[string]interface{})
-			route := router["route"].(map[string]interface{})
-			weightedClusters := route["weighted_clusters"].([]interface{})
-
-			// cluster_name is omitempty
-			if _, ok := route["cluster_name"]; ok {
+		for _, rcfg := range m.Routers {
+			vhs := rcfg.VirtualHosts
+			if len(vhs) != 4 {
+				t.Fatalf("listener[0.0.0.0_9080] virtual hosts is not 3, got %d", len(vhs))
+			}
+			vh := vhs[3]
+			router := vh.Routers[0].Route
+			if router.ClusterName != "" {
 				t.Fatal("cluster_name is not omitempty")
 			}
-			if len(weightedClusters) != 2 {
+			if len(router.WeightedClusters) != 2 {
 				t.Fatalf("reviews.default.svc.cluster.local:9080 should route to weighted_clusters")
 			}
-			cluster1 := weightedClusters[0].(map[string]interface{})["cluster"].(map[string]interface{})
-			cluster2 := weightedClusters[1].(map[string]interface{})["cluster"].(map[string]interface{})
-
-			clusterName1 := cluster1["name"].(string)
-			clusterName2 := cluster2["name"].(string)
-
-			weight1 := cluster1["weight"].(float64)
-			weight2 := cluster2["weight"].(float64)
-
+			clusterName1 := router.WeightedClusters[0].Cluster.Name
+			clusterName2 := router.WeightedClusters[1].Cluster.Name
+			weight1 := router.WeightedClusters[0].Cluster.Weight
+			weight2 := router.WeightedClusters[1].Cluster.Weight
 			// 第二次 review，按照 v1 和 v3 版本各 50% 的权重路由
 			if clusterName1 != "outbound|9080|v1|reviews.default.svc.cluster.local" || weight1 != 50 ||
 				clusterName2 != "outbound|9080|v3|reviews.default.svc.cluster.local" || weight2 != 50 {

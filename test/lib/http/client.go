@@ -10,12 +10,14 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/http" // register http1
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type receiver struct {
@@ -24,7 +26,7 @@ type receiver struct {
 	ch    chan<- *Response
 }
 
-func (r *receiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (r *receiver) OnReceive(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, trailers api.HeaderMap) {
 	cmd := headers.(mosnhttp.ResponseHeader)
 	r.Data.Header = cmd
 	if data != nil {
@@ -34,7 +36,7 @@ func (r *receiver) OnReceive(ctx context.Context, headers types.HeaderMap, data 
 	r.ch <- r.Data
 }
 
-func (r *receiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
+func (r *receiver) OnDecodeError(context context.Context, err error, headers api.HeaderMap) {
 	header := &fasthttp.ResponseHeader{}
 	header.SetStatusCode(http.StatusInternalServerError)
 	header.Set("error_message", err.Error())
@@ -78,7 +80,7 @@ func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
 	return c, nil
 }
 
-func (c *ConnClient) OnEvent(event types.ConnectionEvent) {
+func (c *ConnClient) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		c.isClosed = true
 		close(c.close)
@@ -86,7 +88,7 @@ func (c *ConnClient) OnEvent(event types.ConnectionEvent) {
 }
 
 func (c *ConnClient) Close() {
-	c.conn.Close(types.NoFlush, types.LocalClose)
+	c.conn.Close(api.NoFlush, api.LocalClose)
 }
 
 func (c *ConnClient) IsClosed() bool {

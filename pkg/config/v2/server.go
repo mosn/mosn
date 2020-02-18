@@ -40,6 +40,8 @@ type ServerConfig struct {
 	Processor int `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
+
+	Routers []*RouterConfiguration `json:"routers,omitempty"`
 }
 
 // ListenerType: Ingress or Egress

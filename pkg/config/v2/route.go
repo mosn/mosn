@@ -173,8 +173,7 @@ type HeaderValue struct {
 	Value string `json:"value,omitempty"`
 }
 
-// RouterConfiguration is a filter for routers
-// Filter type is:  "CONNECTION_MANAGER"
+// RouterConfiguration is a config for routers
 type RouterConfiguration struct {
 	VirtualHosts []*VirtualHost `json:"-"`
 	RouterConfigurationConfig
