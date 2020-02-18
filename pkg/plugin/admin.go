@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 )
 
 // CheckPluginStatus check plugin's status
@@ -63,24 +61,16 @@ func OpenPlugin(name string) error {
 // http://ip:port/plugin?status=pluginname
 // http://ip:port/plugin?status=all
 // NewHttp new http server
-func NewHttp(addr string, log string) (*http.Server, error) {
+func NewHttp(addr string) (*http.Server, error) {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", adminApi)
-	mux.HandleFunc("/plugin", adminApi)
+	mux.HandleFunc("/", AdminApi)
+	mux.HandleFunc("/plugin", AdminApi)
 
 	srv := &http.Server{Addr: addr, Handler: mux}
-
-	_, err := os.Stat(log)
-	if err == nil {
-		pluginLogDir = log
-	} else {
-		pluginLogDir, _ = filepath.Abs(filepath.Dir(os.Args[0]))
-	}
-
 	return srv, nil
 }
 
-func adminApi(w http.ResponseWriter, r *http.Request) {
+func AdminApi(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	if p := query.Get("enable"); p != "" {

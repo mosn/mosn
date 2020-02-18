@@ -17,14 +17,21 @@ func testRegister(name string) (*Client, error) {
 }
 
 func TestPluginClient(t *testing.T) {
-	// test admin api
-	server, err := NewHttp("0.0.0.0:34567", "/tmp/")
-	if err != nil {
-		t.Fatalf("TestNewPluginClient error, NewHttp error :%v", err)
-	}
+	// init log base
+	InitPlugin("/tmp")
 	if GetLogPath() != "/tmp/" {
 		t.Fatalf("TestNewPluginClient error, GetLogPath error")
 	}
+	InitPlugin("/tmp/1/")
+	if GetLogPath() != "/tmp/1/" {
+		t.Fatalf("TestNewPluginClient error, GetLogPath error")
+	}
+	// test admin api
+	server, err := NewHttp("127.0.0.1:34567")
+	if err != nil {
+		t.Fatalf("TestNewPluginClient error, NewHttp error :%v", err)
+	}
+
 	go server.ListenAndServe()
 	defer server.Close()
 

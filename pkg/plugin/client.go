@@ -138,7 +138,7 @@ func (c *Client) Check() error {
 		procs = c.config.MaxProcs
 	}
 	cmd.Env = append(cmd.Env, fmt.Sprintf("MOSN_PROCS=%d", procs))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("MOSN_LOGDIR=%s", pluginLogDir))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("MOSN_LOGBASE=%s", pluginLogBase))
 
 	pclient := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: Handshake,

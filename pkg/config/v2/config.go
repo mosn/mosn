@@ -67,9 +67,7 @@ type MetricsConfig struct {
 
 // PluginConfig for plugin config
 type PluginConfig struct {
-	Enable bool   `json:"enable"`
-	Addr   string `json:"address"`
-	LogDir string `json:"log_dir"`
+	LogBase string `json:"log_base"`
 }
 
 // StatsMatcher is a configuration for disabling stat instantiation.

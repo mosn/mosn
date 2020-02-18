@@ -1,8 +1,6 @@
 {
   "plugin": {
-    "enable": true,
-    "address": "0.0.0.0:9091",
-    "log_dir": "/home/admin/mosn/logs/"
+      "log_base": "/tmp/"
   },
   "servers": [{
     "listeners": [{

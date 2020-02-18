@@ -19,7 +19,6 @@ package main
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -32,7 +31,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mosn"
-	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -86,23 +84,6 @@ var (
 				addr := fmt.Sprintf("0.0.0.0:%d", port)
 				s := &http.Server{Addr: addr, Handler: nil}
 				store.AddService(s, "pprof", nil, nil)
-			}
-
-			// start Plugin
-			if conf.Plugin.Enable {
-				if conf.Plugin.Addr == "" {
-					log.StartLogger.Fatalf("[config] [start] Plugin Address not valid: %v", conf.Plugin.Addr)
-				}
-				_, err := net.ResolveTCPAddr("tcp", conf.Plugin.Addr)
-				if err != nil {
-					log.StartLogger.Fatalf("[config] [start] Plugin Address not valid: %v", conf.Plugin.Addr)
-				}
-				srv, err := plugin.NewHttp(conf.Plugin.Addr, conf.Plugin.LogDir)
-				if err == nil {
-					store.AddService(srv, "Mosn Plugin Admin", nil, nil)
-				} else {
-					log.StartLogger.Fatalf("[mosn] [start] Plugin Admin error: %v", err)
-				}
 			}
 
 			// set mosn metrics flush

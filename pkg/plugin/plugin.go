@@ -9,13 +9,20 @@ import (
 	"mosn.io/mosn/pkg/plugin/proto"
 )
 
-var pluginLogDir string
+var pluginLogBase string
+
+func InitPlugin(log string) {
+	if log != "" && log[len(log)-1] != os.PathSeparator {
+		log += string(os.PathSeparator)
+	}
+	pluginLogBase = log
+}
 
 func GetLogPath() string {
-	if pluginLogDir != "" {
-		return pluginLogDir
+	if pluginLogBase != "" {
+		return pluginLogBase
 	}
-	return os.Getenv("MOSN_LOGDIR")
+	return os.Getenv("MOSN_LOGBASE")
 }
 
 // Service is a service that Implemented by plugin main process
