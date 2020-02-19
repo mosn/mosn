@@ -231,7 +231,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 			vh := vhs[3]
 			router := vh.Routers[0].Route
 			if router.ClusterName != "" {
-				t.Fatal("cluster_name is not omitempty")
+				t.Fatalf("cluster_name is not omitempty: %s", router.ClusterName)
 			}
 			if len(router.WeightedClusters) != 2 {
 				t.Fatalf("reviews.default.svc.cluster.local:9080 should route to weighted_clusters")
@@ -298,6 +298,7 @@ func loadXdsData2() {
 							Config: MessageToStruct(&http_conn.HttpConnectionManager{
 								RouteSpecifier: &http_conn.HttpConnectionManager_RouteConfig{
 									RouteConfig: &xdsapi.RouteConfiguration{
+										Name: "test_router_name",
 										VirtualHosts: []route.VirtualHost{
 											route.VirtualHost{},
 											route.VirtualHost{},
@@ -305,6 +306,11 @@ func loadXdsData2() {
 											route.VirtualHost{
 												Routes: []route.Route{
 													route.Route{
+														Match: route.RouteMatch{
+															PathSpecifier: &route.RouteMatch_Prefix{
+																Prefix: "/",
+															},
+														},
 														Action: &route.Route_Route{
 															Route: &route.RouteAction{
 																ClusterSpecifier: &route.RouteAction_WeightedClusters{
@@ -388,6 +394,7 @@ func loadXdsData() {
 							Config: MessageToStruct(&http_conn.HttpConnectionManager{
 								RouteSpecifier: &http_conn.HttpConnectionManager_RouteConfig{
 									RouteConfig: &xdsapi.RouteConfiguration{
+										Name: "test_router_name",
 										VirtualHosts: []route.VirtualHost{
 											route.VirtualHost{},
 											route.VirtualHost{},
@@ -395,6 +402,11 @@ func loadXdsData() {
 											route.VirtualHost{
 												Routes: []route.Route{
 													route.Route{
+														Match: route.RouteMatch{
+															PathSpecifier: &route.RouteMatch_Prefix{
+																Prefix: "/",
+															},
+														},
 														Action: &route.Route_Route{
 															Route: &route.RouteAction{
 																ClusterSpecifier: &route.RouteAction_Cluster{

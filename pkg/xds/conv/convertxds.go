@@ -384,6 +384,9 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 }
 
 func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
+	if percent == nil {
+		return 0
+	}
 	switch percent.Denominator {
 	case xdstype.FractionalPercent_MILLION:
 		return percent.Numerator / 10000

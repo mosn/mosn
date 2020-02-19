@@ -15,34 +15,28 @@
  * limitations under the License.
  */
 
-package server
+package conv
 
 import (
-	"time"
+	"context"
 
-	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/log"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
-type Config struct {
-	ServerName      string
-	LogPath         string
-	LogLevel        log.Level
-	LogRoller       string
-	GracefulTimeout time.Duration
-	Processor       int
-	UseNetpollMode  bool
+type mockCMF struct{}
+
+func (cmf *mockCMF) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {}
+
+type mockNetworkFilterFactory struct{}
+
+func (ff *mockNetworkFilterFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 }
 
-type Server interface {
-	AddListener(lc *v2.Listener, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error)
+func CreateMockFilerFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+	return &mockNetworkFilterFactory{}, nil
+}
 
-	Start()
-
-	Restart()
-
-	Close()
-
-	Handler() types.ConnectionHandler
+func init() {
+	api.RegisterNetwork("proxy", CreateMockFilerFactory)
 }

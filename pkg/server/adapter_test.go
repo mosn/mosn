@@ -48,11 +48,8 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 					FilterChainConfig: v2.FilterChainConfig{
 						Filters: []v2.Filter{
 							{
-								Type: "network",
-								Config: map[string]interface{}{
-									"network": "exists",
-								},
-							}, // no network filter parsed, but the config still exists for test
+								Type: "mock_network",
+							},
 						},
 					},
 					TLSContexts: []v2.TLSConfig{
@@ -67,10 +64,7 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 			},
 			StreamFilters: []v2.Filter{
 				{
-					Type: "stream",
-					Config: map[string]interface{}{
-						"stream": "exists",
-					},
+					Type: "mock_stream",
 				},
 			}, //no stream filters parsed, but the config still exists for test
 		},
@@ -79,16 +73,62 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 	}
 }
 
+func TestLDSWithFilter(t *testing.T) {
+	addrStr := "127.0.0.1:8080"
+	name := "listener_filter"
+	listenerConfig := baseListenerConfig(addrStr, name)
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, true, true); err != nil {
+		t.Fatalf("add a new listener failed %v", err)
+	}
+	{
+		ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name)
+		cfg := ln.Config()
+		if !(cfg.FilterChains[0].Filters[0].Type == "mock_network" && cfg.StreamFilters[0].Type == "mock_stream") {
+			t.Fatal("listener filter config is not expected")
+		}
+	}
+	nCfg := baseListenerConfig(addrStr, name)
+	nCfg.FilterChains[0] = v2.FilterChain{
+		FilterChainConfig: v2.FilterChainConfig{
+			Filters: []v2.Filter{
+				{
+					Type: "mock_network2",
+				},
+			},
+		},
+	}
+	nCfg.StreamFilters = nil
+	// do not update filter
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, nCfg, false, false); err != nil {
+		t.Fatalf("update listener failed: %v", err)
+	}
+	{
+		ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name)
+		cfg := ln.Config()
+		if !(cfg.FilterChains[0].Filters[0].Type == "mock_network" && cfg.StreamFilters[0].Type == "mock_stream") {
+			t.Fatal("listener filter config is not expected")
+		}
+	}
+	// update filter, can remove it
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, nCfg, true, true); err != nil {
+		t.Fatalf("update listener failed: %v", err)
+	}
+	{
+		ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name)
+		cfg := ln.Config()
+		if !(cfg.FilterChains[0].Filters[0].Type == "mock_network2" && len(cfg.StreamFilters) == 0) {
+			t.Fatal("listener filter config is not expected")
+		}
+	}
+
+}
+
 // LDS include add\update\delete listener
 func TestLDS(t *testing.T) {
 	addrStr := "127.0.0.1:8080"
 	name := "listener1"
 	listenerConfig := baseListenerConfig(addrStr, name)
-	// set a network filter do nothing, just for keep the connection not close
-	nfcfs := []api.NetworkFilterChainFactory{
-		&mockNetworkFilterFactory{},
-	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, true, true); err != nil {
 		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
@@ -140,7 +180,7 @@ func TestLDS(t *testing.T) {
 		Addr: listenerConfig.Addr, // addr should not be changed
 		PerConnBufferLimitBytes: 1 << 10,
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, newListenerConfig, nil, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, newListenerConfig, false, false); err != nil {
 		t.Fatal("update listener failed", err)
 	}
 	// verify
@@ -194,11 +234,7 @@ func TestUpdateTLS(t *testing.T) {
 	addrStr := "127.0.0.1:8081"
 	name := "listener2"
 	listenerConfig := baseListenerConfig(addrStr, name)
-	// set a network filter do nothing, just for keep the connection not close
-	nfcfs := []api.NetworkFilterChainFactory{
-		&mockNetworkFilterFactory{},
-	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, true, true); err != nil {
 		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
@@ -248,10 +284,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	name := "listener3"
 	// bas listener config have no idle timeout config, set the default value
 	listenerConfig := baseListenerConfig(addrStr, name)
-	nfcfs := []api.NetworkFilterChainFactory{
-		&mockNetworkFilterFactory{},
-	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, true, true); err != nil {
 		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
@@ -292,7 +325,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	noIdle.ConnectionIdleTimeout = &api.DurationConfig{
 		Duration: 0,
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, noIdle, nil, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, noIdle, false, false); err != nil {
 		t.Fatalf("update listener failed, %v", err)
 	}
 	func() {
@@ -322,7 +355,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	cfgIdle.ConnectionIdleTimeout = &api.DurationConfig{
 		Duration: 5 * time.Second,
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfgIdle, nil, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfgIdle, false, false); err != nil {
 		t.Fatalf("update listener failed, %v", err)
 	}
 	func() {
@@ -364,7 +397,7 @@ func TestFindListenerByName(t *testing.T) {
 	if ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name); ln != nil {
 		t.Fatal("find listener name failed, expected not found")
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfg, nil, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfg, false, false); err != nil {
 		t.Fatalf("update listener failed, %v", err)
 	}
 	if ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name); ln == nil {

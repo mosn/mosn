@@ -21,7 +21,6 @@ import (
 	"net"
 	"sync"
 
-	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/config/v2"
@@ -166,18 +165,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
 
-				var nfcf []api.NetworkFilterChainFactory
-				var sfcf []api.StreamFilterChainFactory
-
-				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
-				// network filters
-				if !lc.UseOriginalDst {
-					// network and stream filters
-					nfcf = configmanager.GetNetworkFilters(&lc.FilterChains[0])
-					sfcf = configmanager.GetStreamFilters(lc.StreamFilters)
-				}
-
-				_, err := srv.AddListener(lc, nfcf, sfcf)
+				_, err := srv.AddListener(lc, true, true)
 				if err != nil {
 					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
 				}
