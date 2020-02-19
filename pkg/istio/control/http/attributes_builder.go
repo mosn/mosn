@@ -79,7 +79,7 @@ func (b *attributesBuilder) ExtractReportAttributes(reportData ReportData) {
 			builder.AddBytes(utils.KDestinationIP, []byte(destIP))
 		}
 		if !builder.HasAttribute(utils.KDestinationPort) {
-			builder.AddInt64(utils.KDestinationIP, int64(despPort))
+			builder.AddInt64(utils.KDestinationPort, int64(despPort))
 		}
 	}
 

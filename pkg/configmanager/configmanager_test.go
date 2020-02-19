@@ -35,6 +35,51 @@ func mockInitConfig(t *testing.T, cfg []byte) {
 	}
 }
 
+func TestUpdateClusterHost(t *testing.T) {
+	// only keep useful test part
+	cfg := []byte(basicConfigStr)
+	mockInitConfig(t, cfg)
+	clusterName := "test_cluster"
+	hostCfg := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: "127.0.0.1:8080",
+		},
+	}
+	AddOrUpdateClusterHost(clusterName, hostCfg)
+	// verify
+	{
+		c := config.ClusterManager.Clusters[0]
+		if len(c.Hosts) != 1 {
+			t.Fatal("cluster host added failed")
+		}
+		if c.Hosts[0].Weight != 0 {
+			t.Fatal("unexpected host info")
+		}
+	}
+	AddOrUpdateClusterHost(clusterName, v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: "127.0.0.1:8080",
+			Weight:  100,
+		},
+	})
+	{
+		c := config.ClusterManager.Clusters[0]
+		if len(c.Hosts) != 1 {
+			t.Fatal("cluster host update failed")
+		}
+		if c.Hosts[0].Weight != 100 {
+			t.Fatal("unexpected host info")
+		}
+	}
+	DeleteClusterHost(clusterName, "127.0.0.1:8080")
+	{
+		c := config.ClusterManager.Clusters[0]
+		if len(c.Hosts) != 0 {
+			t.Fatal("cluster host delete failed")
+		}
+	}
+}
+
 func TestUpdateClusterConfig(t *testing.T) {
 	// only keep useful test part
 	cfg := []byte(basicConfigStr)
