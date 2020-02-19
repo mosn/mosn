@@ -39,7 +39,8 @@ type MOSNConfig struct {
 	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin            json.RawMessage `json:"admin,omitempty"`             // admin raw message
 	Debug               PProfConfig     `json:"pprof,omitempty"`
-	Pid                 string          `json:"pid,omitempty"` // pid file
+	Pid                 string          `json:"pid,omitempty"`    // pid file
+	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
 }
 
 // PProfConfig is used to start a pprof server for debug
@@ -62,6 +63,11 @@ type MetricsConfig struct {
 	StatsMatcher StatsMatcher      `json:"stats_matcher"`
 	ShmZone      string            `json:"shm_zone"`
 	ShmSize      datasize.ByteSize `json:"shm_size"`
+}
+
+// PluginConfig for plugin config
+type PluginConfig struct {
+	LogBase string `json:"log_base"`
 }
 
 // StatsMatcher is a configuration for disabling stat instantiation.
