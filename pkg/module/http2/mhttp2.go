@@ -27,6 +27,9 @@ import (
 
 var (
 	ErrAGAIN = errors.New("EAGAIN")
+
+	//todo: support configuration
+	initialConnRecvWindowSize = int32(1 << 30)
 )
 
 // Mstream is Http2 Server stream
@@ -186,7 +189,7 @@ func (sc *MServerConn) Init() error {
 		{SettingMaxFrameSize, defaultMaxReadFrameSize},
 		{SettingMaxConcurrentStreams, defaultMaxStreams},
 		{SettingMaxHeaderListSize, http.DefaultMaxHeaderBytes},
-		{SettingInitialWindowSize, uint32(1 << 20)},
+		{SettingInitialWindowSize, uint32(initialConnRecvWindowSize)},
 	}
 
 	err := sc.Framer.writeSettings(settings)
@@ -197,7 +200,7 @@ func (sc *MServerConn) Init() error {
 
 	// Each connection starts with intialWindowSize inflow tokens.
 	// If a higher value is configured, we add more tokens.
-	if diff := 1<<20 - initialWindowSize; diff > 0 {
+	if diff := initialConnRecvWindowSize - initialWindowSize; diff > 0 {
 		sc.sendWindowUpdate(nil, int(diff))
 	}
 
@@ -607,9 +610,9 @@ func (sc *MServerConn) newStream(id, pusherID uint32, state streamState) *stream
 		sc:    &sc.serverConn,
 	}
 	st.flow.conn = &sc.flow // link to conn-level counter
-	st.flow.add(sc.initialStreamSendWindowSize)
+	st.flow.add(initialConnRecvWindowSize)
 	st.inflow.conn = &sc.inflow // link to conn-level counter
-	st.inflow.add(1 << 20)
+	st.inflow.add(initialConnRecvWindowSize)
 
 	sc.setStream(id, st)
 
