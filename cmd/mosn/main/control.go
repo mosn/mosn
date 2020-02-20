@@ -85,6 +85,7 @@ var (
 				s := &http.Server{Addr: addr, Handler: nil}
 				store.AddService(s, "pprof", nil, nil)
 			}
+
 			// set mosn metrics flush
 			metrics.FlushMosnMetrics = true
 			// set version and go version

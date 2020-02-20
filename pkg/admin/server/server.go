@@ -47,6 +47,7 @@ func init() {
 		"/api/v1/enable_log":      enableLogger,
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,
+		"/api/v1/plugin":          pluginApi,
 		"/":                       help,
 	}
 }

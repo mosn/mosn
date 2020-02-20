@@ -31,6 +31,7 @@ import (
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/metrics/sink"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/server/keeper"
@@ -61,6 +62,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeDefaultPath(configmanager.GetConfigPath())
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
+	initializePlugin(c.Plugin.LogBase)
 
 	//get inherit fds
 	inheritListeners, reconfigure, err := server.GetInheritListeners()
@@ -329,6 +331,13 @@ func initializePidFile(pid string) {
 
 func initializeDefaultPath(path string) {
 	types.InitDefaultPath(path)
+}
+
+func initializePlugin(log string) {
+	if log == "" {
+		log = types.MosnLogBasePath
+	}
+	plugin.InitPlugin(log)
 }
 
 type clusterManagerFilter struct {
