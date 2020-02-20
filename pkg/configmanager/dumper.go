@@ -23,7 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
@@ -61,8 +60,6 @@ func DumpConfig() {
 	if getDump() {
 		log.DefaultLogger.Debugf("[config] [dump] dump config content: %+v", config)
 
-		//update mosn_config
-		store.SetMOSNConfig(config)
 		// use golang original json lib, so the marshal ident can handle MarshalJSON interface implement correctly
 		configLock.Lock()
 		defer configLock.Unlock()

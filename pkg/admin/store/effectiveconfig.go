@@ -27,10 +27,10 @@ import (
 // effectiveConfig represents mosn's runtime config model
 // MOSNConfig is the original config when mosn start
 type effectiveConfig struct {
-	MOSNConfig interface{}                       `json:"mosn_config,omitempty"`
-	Listener   map[string]v2.Listener            `json:"listener,omitempty"`
-	Cluster    map[string]v2.Cluster             `json:"cluster,omitempty"`
-	Routers    map[string]v2.RouterConfiguration `json:"routers,omitempty"`
+	Listener         map[string]v2.Listener            `json:"listener,omitempty"`
+	Cluster          map[string]v2.Cluster             `json:"cluster,omitempty"`
+	Routers          map[string]v2.RouterConfiguration `json:"routers,omitempty"`
+	routerConfigPath map[string]string                 `json:"-"`
 }
 
 var conf effectiveConfig
@@ -39,25 +39,20 @@ var mutex sync.RWMutex
 func init() {
 
 	conf = effectiveConfig{
-		Listener: make(map[string]v2.Listener),
-		Cluster:  make(map[string]v2.Cluster),
-		Routers:  make(map[string]v2.RouterConfiguration),
+		Listener:         make(map[string]v2.Listener),
+		Cluster:          make(map[string]v2.Cluster),
+		Routers:          make(map[string]v2.RouterConfiguration),
+		routerConfigPath: make(map[string]string),
 	}
 }
 
 func Reset() {
 	mutex.Lock()
 	defer mutex.Unlock()
-	conf.MOSNConfig = nil
 	conf.Listener = make(map[string]v2.Listener)
 	conf.Cluster = make(map[string]v2.Cluster)
 	conf.Routers = make(map[string]v2.RouterConfiguration)
-}
-
-func SetMOSNConfig(msonConfig interface{}) {
-	mutex.Lock()
-	conf.MOSNConfig = msonConfig
-	mutex.Unlock()
+	conf.routerConfigPath = make(map[string]string)
 }
 
 // SetListenerConfig
@@ -100,6 +95,8 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 func SetRouter(routerName string, router v2.RouterConfiguration) {
 	mutex.Lock()
 	defer mutex.Unlock()
+	// keep the origin router path for config persistent
+	conf.routerConfigPath[routerName] = router.RouterConfigPath
 	// clear the router's dynamic mode, so the dump api will show all routes in the router
 	router.RouterConfigPath = ""
 	conf.Routers[routerName] = router
