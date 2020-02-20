@@ -21,11 +21,11 @@ import (
 	"context"
 	"time"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/stream/healthcheck/sofarpc"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/api"
 	"mosn.io/mosn/pkg/stream/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 // todo: support cached pass through
@@ -46,11 +46,11 @@ type healthCheckFilter struct {
 	protocol       string
 	healthCheckReq bool
 	// callbacks
-	handler types.StreamReceiverFilterHandler
+	handler api.StreamReceiverFilterHandler
 }
 
 // NewHealthCheckFilter used to create new health check filter
-func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter) types.StreamReceiverFilter {
+func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter) api.StreamReceiverFilter {
 	return &healthCheckFilter{
 		context:                      context,
 		passThrough:                  config.PassThrough,
@@ -59,17 +59,17 @@ func NewHealthCheckFilter(context context.Context, config *v2.HealthCheckFilter)
 	}
 }
 
-func (f *healthCheckFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *healthCheckFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if protocol, ok := headers.Get(types.HeaderXprotocolHeartbeat); ok {
 		f.protocol = protocol
 		f.healthCheckReq = true
 		f.handler.RequestInfo().SetHealthCheck(true)
 		if !f.passThrough {
 			f.handleIntercept(headers)
-			return types.StreamFilterStop
+			return api.StreamFilterStop
 		}
 	}
-	return types.StreamFilterContinue
+	return api.StreamFilterContinue
 }
 
 func (f *healthCheckFilter) handleIntercept(headers types.HeaderMap) {
@@ -78,7 +78,7 @@ func (f *healthCheckFilter) handleIntercept(headers types.HeaderMap) {
 	f.handler.AppendHeaders(headers, true)
 }
 
-func (f *healthCheckFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+func (f *healthCheckFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	f.handler = handler
 }
 
@@ -89,14 +89,18 @@ type HealthCheckFilterConfigFactory struct {
 	FilterConfig *v2.HealthCheckFilter
 }
 
-func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+func (f *HealthCheckFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewHealthCheckFilter(context, f.FilterConfig)
-	callbacks.AddStreamReceiverFilter(filter, types.DownFilter)
+	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
 }
 
 // CreateHealthCheckFilterFactory
-func CreateHealthCheckFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+func CreateHealthCheckFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	f, err := sofarpc.ParseHealthCheckFilter(conf)
+	if err != nil {
+		return nil, err
+	}
 	return &HealthCheckFilterConfigFactory{
-		FilterConfig: sofarpc.ParseHealthCheckFilter(conf),
+		FilterConfig: f,
 	}, nil
 }
