@@ -18,6 +18,7 @@
 package configmanager
 
 import (
+	"encoding/json"
 	"net"
 	"os"
 	"runtime"
@@ -205,6 +206,23 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.L
 	return lc
 }
 
+func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error) {
+	routerConfiguration := &v2.RouterConfiguration{}
+	for _, f := range c.Filters {
+		if f.Type == v2.CONNECTION_MANAGER {
+			data, err := json.Marshal(f.Config)
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(data, routerConfiguration); err != nil {
+				return nil, err
+			}
+		}
+	}
+	return routerConfiguration, nil
+
+}
+
 func ParseServiceRegistry(src v2.ServiceRegistryInfo) {
 	//trigger all callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyServiceRgtInfo]; ok {
@@ -256,7 +274,9 @@ func GetNetworkFilters(c *v2.FilterChain) []api.NetworkFilterChainFactory {
 			log.StartLogger.Errorf("[config] network filter create failed, type:%s, error: %v", f.Type, err)
 			continue
 		}
-		factories = append(factories, factory)
+		if factory != nil {
+			factories = append(factories, factory)
+		}
 	}
 	return factories
 }

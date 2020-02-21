@@ -158,20 +158,25 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
 			}
 
+			for idx, _ := range serverConfig.Listeners {
+				// parse ListenerConfig
+				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
+				// deprecated: keep compatible for route config in listener's connection_manager
+				deprecatedRouter, err := configmanager.ParseRouterConfiguration(&lc.FilterChains[0])
+				if err != nil {
+					log.StartLogger.Fatalf("[mosn] [NewMosn] compatible router: %v", err)
+				}
+				if deprecatedRouter.RouterConfigName != "" {
+					m.routerManager.AddOrUpdateRouters(deprecatedRouter)
+				}
+				if _, err := srv.AddListener(lc, true, true); err != nil {
+					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
+				}
+			}
 			// Add Router Config
 			for _, routerConfig := range serverConfig.Routers {
 				if routerConfig.RouterConfigName != "" {
 					m.routerManager.AddOrUpdateRouters(routerConfig)
-				}
-			}
-
-			for idx, _ := range serverConfig.Listeners {
-				// parse ListenerConfig
-				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
-
-				_, err := srv.AddListener(lc, true, true)
-				if err != nil {
-					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
 				}
 			}
 		}

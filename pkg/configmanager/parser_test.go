@@ -18,6 +18,7 @@
 package configmanager
 
 import (
+	"encoding/json"
 	"net"
 	"reflect"
 	"testing"
@@ -152,6 +153,35 @@ func TestParseListenerConfig(t *testing.T) {
 	}
 	if inherit[0] != nil {
 		t.Error("no inherit listener")
+	}
+}
+
+func TestParseRouterConfig(t *testing.T) {
+	filterStr := `{
+		"filters": [{
+			"type":"connection_manager",
+			"config": {
+				"router_config_name":"test_router",
+				"virtual_hosts": []
+			}
+		}]
+	}`
+	filterChan := &v2.FilterChain{}
+	if err := json.Unmarshal([]byte(filterStr), filterChan); err != nil {
+		t.Fatal(err)
+	}
+	routerCfg, err := ParseRouterConfiguration(filterChan)
+	if err != nil || routerCfg.RouterConfigName != "test_router" {
+		t.Fatal("parse router configuration failed")
+	}
+	// test filter chain without router
+	noRouteFilterChain := &v2.FilterChain{}
+	if err := json.Unmarshal([]byte(mockedFilterChains), noRouteFilterChain); err != nil {
+		t.Fatal(err)
+	}
+	emptyRouter, err := ParseRouterConfiguration(noRouteFilterChain)
+	if err != nil || emptyRouter.RouterConfigName != "" {
+		t.Fatal("parse no router configuration failed")
 	}
 }
 
