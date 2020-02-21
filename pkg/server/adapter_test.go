@@ -28,12 +28,7 @@ func tearDown() {
 	for _, handler := range listenerAdapterInstance.connHandlerMap {
 		handler.StopListeners(context.Background(), true)
 	}
-}
-
-func TestMain(m *testing.M) {
-	setup()
-	m.Run()
-	tearDown()
+	listenerAdapterInstance = nil
 }
 
 func baseListenerConfig(addrStr string, name string) *v2.Listener {
@@ -74,7 +69,9 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 }
 
 func TestLDSWithFilter(t *testing.T) {
-	addrStr := "127.0.0.1:8080"
+	setup()
+	defer tearDown()
+	addrStr := "127.0.0.1:8079"
 	name := "listener_filter"
 	listenerConfig := baseListenerConfig(addrStr, name)
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, true, true); err != nil {
@@ -125,6 +122,9 @@ func TestLDSWithFilter(t *testing.T) {
 
 // LDS include add\update\delete listener
 func TestLDS(t *testing.T) {
+	setup()
+	defer tearDown()
+
 	addrStr := "127.0.0.1:8080"
 	name := "listener1"
 	listenerConfig := baseListenerConfig(addrStr, name)
@@ -231,6 +231,9 @@ func TestLDS(t *testing.T) {
 }
 
 func TestUpdateTLS(t *testing.T) {
+	setup()
+	defer tearDown()
+
 	addrStr := "127.0.0.1:8081"
 	name := "listener2"
 	listenerConfig := baseListenerConfig(addrStr, name)
@@ -273,6 +276,9 @@ func TestUpdateTLS(t *testing.T) {
 }
 
 func TestIdleTimeoutAndUpdate(t *testing.T) {
+	setup()
+	defer tearDown()
+
 	defer func() {
 		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
 		defaultIdleTimeout = network.DefaultIdleTimeout
@@ -391,6 +397,9 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 }
 
 func TestFindListenerByName(t *testing.T) {
+	setup()
+	defer tearDown()
+
 	addrStr := "127.0.0.1:8083"
 	name := "listener4"
 	cfg := baseListenerConfig(addrStr, name)
