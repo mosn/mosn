@@ -103,12 +103,14 @@ func SetClusterConfig(clusterName string, cluster v2.Cluster) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	conf.Cluster[clusterName] = cluster
+	tryDump()
 }
 
 func RemoveClusterConfig(clusterName string) {
 	mutex.Lock()
 	defer mutex.Unlock()
 	delete(conf.Cluster, clusterName)
+	tryDump()
 }
 
 func SetHosts(clusterName string, hostConfigs []v2.Host) {
@@ -118,6 +120,7 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 		cluster.Hosts = hostConfigs
 		conf.Cluster[clusterName] = cluster
 	}
+	tryDump()
 }
 
 func SetRouter(routerName string, router v2.RouterConfiguration) {
@@ -128,6 +131,7 @@ func SetRouter(routerName string, router v2.RouterConfiguration) {
 	// clear the router's dynamic mode, so the dump api will show all routes in the router
 	router.RouterConfigPath = ""
 	conf.Routers[routerName] = router
+	tryDump()
 }
 
 // Dump

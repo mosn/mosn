@@ -36,8 +36,14 @@ type ConfigAutoFeature struct {
 
 const ConfigAutoWrite featuregate.Feature = "auto_config"
 
+var feature *ConfigAutoFeature
+
+func tryDump() {
+	feature.dumpConfig()
+}
+
 func init() {
-	feature := &ConfigAutoFeature{
+	feature = &ConfigAutoFeature{
 		BaseFeatureSpec: featuregate.BaseFeatureSpec{
 			DefaultValue: false,
 		},
@@ -60,6 +66,7 @@ func (f *ConfigAutoFeature) doDumpConfig() {
 		var listeners []v2.Listener
 		var routers []*v2.RouterConfiguration
 		var clusters []v2.Cluster
+		log.DefaultLogger.Debugf("try to dump full config")
 		// get listeners
 		for _, l := range conf.Listener {
 			listeners = append(listeners, l)
@@ -69,8 +76,9 @@ func (f *ConfigAutoFeature) doDumpConfig() {
 			clusters = append(clusters, c)
 		}
 		// get routers, should set the original path
-		for name, r := range conf.Routers {
+		for name := range conf.Routers {
 			routerPath := conf.routerConfigPath[name]
+			r := conf.Routers[name] // copy the value
 			r.RouterConfigPath = routerPath
 			routers = append(routers, &r)
 		}
