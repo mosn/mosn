@@ -64,6 +64,8 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
 
+	store.SetMosnConfig(c)
+
 	//get inherit fds
 	inheritListeners, reconfigure, err := server.GetInheritListeners()
 	if err != nil {

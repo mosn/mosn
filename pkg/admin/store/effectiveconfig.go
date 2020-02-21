@@ -27,6 +27,7 @@ import (
 // effectiveConfig represents mosn's runtime config model
 // MOSNConfig is the original config when mosn start
 type effectiveConfig struct {
+	MosnConfig       *v2.MOSNConfig                    `json:"mosn_config,omitempty"`
 	Listener         map[string]v2.Listener            `json:"listener,omitempty"`
 	Cluster          map[string]v2.Cluster             `json:"cluster,omitempty"`
 	Routers          map[string]v2.RouterConfiguration `json:"routers,omitempty"`
@@ -53,6 +54,33 @@ func Reset() {
 	conf.Cluster = make(map[string]v2.Cluster)
 	conf.Routers = make(map[string]v2.RouterConfiguration)
 	conf.routerConfigPath = make(map[string]string)
+}
+
+func SetMosnConfig(cfg *v2.MOSNConfig) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	// Copy the unchanged config
+	conf.MosnConfig = &v2.MOSNConfig{
+		Tracing:             cfg.Tracing,
+		Metrics:             cfg.Metrics,
+		RawDynamicResources: cfg.RawDynamicResources,
+		RawStaticResources:  cfg.RawStaticResources,
+		RawAdmin:            cfg.RawAdmin,
+		Debug:               cfg.Debug,
+		Plugin:              cfg.Plugin,
+	}
+	if len(cfg.Servers) > 0 {
+		srv := cfg.Servers[0] // support only one server
+		conf.MosnConfig.Servers = []v2.ServerConfig{
+			{
+				DefaultLogPath:  srv.DefaultLogPath,
+				DefaultLogLevel: srv.DefaultLogLevel,
+				GlobalLogRoller: srv.GlobalLogRoller,
+				UseNetpollMode:  srv.UseNetpollMode,
+				GracefulTimeout: srv.GracefulTimeout,
+			},
+		}
+	}
 }
 
 // SetListenerConfig

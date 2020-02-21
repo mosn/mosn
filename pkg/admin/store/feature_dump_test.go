@@ -38,6 +38,7 @@ func TestFeatureDump(t *testing.T) {
 	Reset()
 	createMosnConfig()
 	if cfg := configmanager.Load(testConfigPath); cfg != nil {
+		SetMosnConfig(cfg)
 		// init set
 		ln := cfg.Servers[0].Listeners[0]
 		SetListenerConfig(ln.Name, ln)
@@ -45,6 +46,7 @@ func TestFeatureDump(t *testing.T) {
 		SetClusterConfig(cluster.Name, cluster)
 		router := cfg.Servers[0].Routers[0]
 		SetRouter(router.RouterConfigName, *router)
+
 	}
 	// update config
 	SetListenerConfig("test_mosn_listener", v2.Listener{
@@ -78,7 +80,6 @@ func TestFeatureDump(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := string(b)
-	fmt.Println(output)
 
 	// config verify
 	if !(len(cfg.Servers[0].Listeners) == 1 &&
@@ -105,6 +106,13 @@ func TestFeatureDump(t *testing.T) {
 	// should have cluster and router in plain text
 	if !(strings.Contains(output, "virtualhost") &&
 		strings.Contains(output, "lb_type")) {
+		t.Fatalf("output is not expected: %s", output)
+	}
+	// should have other configs
+	if !(strings.Contains(output, "socket_address") && // admin
+		strings.Contains(output, "tracing") && // tracing
+		strings.Contains(output, "metrics") && // metrics
+		strings.Contains(output, "pprof")) {
 		t.Fatalf("output is not expected: %s", output)
 	}
 
