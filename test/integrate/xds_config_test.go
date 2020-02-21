@@ -117,7 +117,7 @@ func handleXdsData(mosnConfig *v2.MOSNConfig, xdsFiles []string) error {
 func TestConfigAddAndUpdate(t *testing.T) {
 	mosnConfig := configmanager.Load(filepath.Join("testdata", "envoy.json"))
 	admin.Reset()
-	admin.SetMOSNConfig(mosnConfig)
+	admin.SetMosnConfig(mosnConfig)
 	Mosn := mosn.NewMosn(mosnConfig)
 	Mosn.Start()
 
