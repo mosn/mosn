@@ -238,7 +238,7 @@ func (c *XTestCase) RunCase(n int, interval int) {
 		defer client.Close()
 		call = func() error {
 			client.SendRequest()
-			if !util.WaitMapEmpty(&client.Waits, 150*time.Second) {
+			if !util.WaitMapEmpty(&client.Waits, 2*time.Second) {
 				return fmt.Errorf("request get no response")
 			}
 			return nil

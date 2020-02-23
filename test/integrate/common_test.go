@@ -104,7 +104,7 @@ func TestXprotocol(t *testing.T) {
 			if err != nil {
 				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v xprotocol: %s test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, tc.SubProtocol, err)
 			}
-		case <-time.After(150 * time.Second):
+		case <-time.After(15 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v xprotocol: %s hang\n", i, tc.AppProtocol, tc.MeshProtocol, tc.SubProtocol)
 		}
 		tc.FinishCase()
