@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 
 	"golang.org/x/net/http2"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
@@ -222,7 +224,7 @@ func (c *XTestCase) RunCase(n int, interval int) {
 	// Client Call
 	var call func() error
 	switch c.SubProtocol {
-	case bolt.ProtocolName:
+	case bolt.ProtocolName, dubbo.ProtocolName, tars.ProtocolName:
 		server, ok := c.AppServer.(*util.RPCServer)
 		if !ok {
 			c.C <- fmt.Errorf("need a xprotocol rpc server")
@@ -236,7 +238,7 @@ func (c *XTestCase) RunCase(n int, interval int) {
 		defer client.Close()
 		call = func() error {
 			client.SendRequest()
-			if !util.WaitMapEmpty(&client.Waits, 2*time.Second) {
+			if !util.WaitMapEmpty(&client.Waits, 150*time.Second) {
 				return fmt.Errorf("request get no response")
 			}
 			return nil

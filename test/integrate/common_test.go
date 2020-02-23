@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/http/conv"
@@ -89,7 +91,9 @@ func TestXprotocol(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
 	testCases := []*XTestCase{
 		NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
-		//TODO: boltv2, dubbo, tars
+		NewXTestCase(t, dubbo.ProtocolName, util.NewRPCServer(t, appaddr, dubbo.ProtocolName)),
+		NewXTestCase(t, tars.ProtocolName, util.NewRPCServer(t, appaddr, tars.ProtocolName)),
+		//TODO: boltv2
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
@@ -100,7 +104,7 @@ func TestXprotocol(t *testing.T) {
 			if err != nil {
 				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v xprotocol: %s test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, tc.SubProtocol, err)
 			}
-		case <-time.After(15 * time.Second):
+		case <-time.After(150 * time.Second):
 			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v xprotocol: %s hang\n", i, tc.AppProtocol, tc.MeshProtocol, tc.SubProtocol)
 		}
 		tc.FinishCase()

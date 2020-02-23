@@ -24,12 +24,10 @@ func (proto *tarsProtocol) Name() types.ProtocolName {
 }
 
 func (proto *tarsProtocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
-	switch model.(type) {
-	case Request:
-		cmd := model.(*Request)
+	switch cmd := model.(type) {
+	case *Request:
 		return encodeRequest(ctx, cmd)
-	case Response:
-		cmd := model.(*Response)
+	case *Response:
 		return encodeResponse(ctx, cmd)
 	default:
 		log.Proxy.Errorf(ctx, "[protocol][tars] encode with unknown command : %+v", model)
@@ -43,12 +41,12 @@ func (proto *tarsProtocol) Decode(ctx context.Context, data types.IoBuffer) (int
 		streamType, err := getStreamType(data.Bytes())
 		switch streamType {
 		case CmdTypeRequest:
-			decodeRequest(ctx, data)
+			return decodeRequest(ctx, data)
 		case CmdTypeResponse:
-			decodeResponse(ctx, data)
+			return decodeResponse(ctx, data)
 		default:
 			// unknown cmd type
-			return nil, fmt.Errorf("[protocol][dubbo] Decode Error, type = %s , err = %v", UnKnownCmdType, err)
+			return nil, fmt.Errorf("[protocol][tars] Decode Error, type = %s , err = %v", UnKnownCmdType, err)
 		}
 	}
 	return nil, nil
@@ -60,20 +58,20 @@ func (proto *tarsProtocol) Trigger(requestId uint64) xprotocol.XFrame {
 	return nil
 }
 
-func (proto *tarsProtocol) Reply(requestId uint64) xprotocol.XFrame {
+func (proto *tarsProtocol) Reply(requestId uint64) xprotocol.XRespFrame {
 	// not support
 	return nil
 }
 
 // hijacker
-func (proto *tarsProtocol) Hijack(statusCode uint32) xprotocol.XFrame {
+func (proto *tarsProtocol) Hijack(statusCode uint32) xprotocol.XRespFrame {
 	// not support
 	return nil
 }
 
 func (proto *tarsProtocol) Mapping(httpStatusCode uint32) uint32 {
 	// not support
-	return -1
+	return 0
 }
 
 //判断packet的类型，resonse Packet的包tag=5是字段iRet,int类型；request packet的包tag=5是字段sServantName,string类型
@@ -89,7 +87,7 @@ func getStreamType(pkg []byte) (byte, error) {
 		return CmdTypeUndefine, nil
 	}
 	switch ty {
-	case codec.INT:
+	case codec.INT, codec.ZERO_TAG:
 		return CmdTypeResponse, nil
 	case codec.STRING1:
 		return CmdTypeRequest, nil

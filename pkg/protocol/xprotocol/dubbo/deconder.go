@@ -5,15 +5,20 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/AlexStocks/dubbogo/codec/hessian"
+	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
 func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
 	// convert data to duboo frame
 	dataBytes := data.Bytes()
-	frame := &Frame{}
+	frame := &Frame{
+		Header: Header{
+			CommonHeader: protocol.CommonHeader{},
+		},
+	}
 	// decode magic
 	frame.Magic = dataBytes[MagicIdx:FlagIdx]
 	// decode flag

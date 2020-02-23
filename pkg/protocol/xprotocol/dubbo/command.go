@@ -60,3 +60,7 @@ func (r *Frame) GetHeader() types.HeaderMap {
 func (r *Frame) GetData() types.IoBuffer {
 	return r.content
 }
+
+func (r *Frame) GetStatusCode() uint32 {
+	return uint32(r.Header.Status)
+}
