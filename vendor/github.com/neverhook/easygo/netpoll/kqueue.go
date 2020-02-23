@@ -7,8 +7,9 @@ import (
 	"sync"
 	"unsafe"
 
-	"golang.org/x/sys/unix"
 	"runtime"
+
+	"golang.org/x/sys/unix"
 )
 
 // KeventFilter is a kqueue event filter.

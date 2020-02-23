@@ -56,7 +56,9 @@ func (m *FileAccessLog) Validate() error {
 
 	case *FileAccessLog_JsonFormat:
 
-		if v, ok := interface{}(m.GetJsonFormat()).(interface{ Validate() error }); ok {
+		if v, ok := interface{}(m.GetJsonFormat()).(interface {
+			Validate() error
+		}); ok {
 			if err := v.Validate(); err != nil {
 				return FileAccessLogValidationError{
 					Field:  "JsonFormat",

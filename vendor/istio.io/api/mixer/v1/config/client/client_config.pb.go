@@ -7,16 +7,17 @@ package client
 
 import (
 	fmt "fmt"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
-	github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
-	types "github.com/gogo/protobuf/types"
 	io "io"
-	v1 "istio.io/api/mixer/v1"
 	math "math"
 	reflect "reflect"
 	strconv "strconv"
 	strings "strings"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
+	types "github.com/gogo/protobuf/types"
+	v1 "istio.io/api/mixer/v1"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

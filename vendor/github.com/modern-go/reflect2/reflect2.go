@@ -1,9 +1,10 @@
 package reflect2
 
 import (
-	"github.com/modern-go/concurrent"
 	"reflect"
 	"unsafe"
+
+	"github.com/modern-go/concurrent"
 )
 
 type Type interface {
@@ -291,8 +292,8 @@ func UnsafeCastString(str string) []byte {
 	stringHeader := (*reflect.StringHeader)(unsafe.Pointer(&str))
 	sliceHeader := &reflect.SliceHeader{
 		Data: stringHeader.Data,
-		Cap: stringHeader.Len,
-		Len: stringHeader.Len,
+		Cap:  stringHeader.Len,
+		Len:  stringHeader.Len,
 	}
 	return *(*[]byte)(unsafe.Pointer(sliceHeader))
 }
