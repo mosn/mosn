@@ -46,7 +46,7 @@ func (s *heartBeatServer) ServeBoltOrHeartbeat(t *testing.T, conn net.Conn) {
 		}
 		return nil, true
 	}
-	util.ServeSofaRPC(t, conn, response)
+	util.ServeRPC(t, conn, response)
 }
 
 // Test Proxy Mode
