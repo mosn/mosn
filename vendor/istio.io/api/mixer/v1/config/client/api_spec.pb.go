@@ -5,13 +5,14 @@ package client
 
 import (
 	fmt "fmt"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
 	io "io"
-	v1 "istio.io/api/mixer/v1"
 	math "math"
 	reflect "reflect"
 	strings "strings"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	v1 "istio.io/api/mixer/v1"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.
