@@ -41,10 +41,12 @@ func (m *Mutex) TryLock(timeout time.Duration) bool {
 	case m.c <- struct{}{}:
 		return true
 	default:
+		timer := time.NewTimer(timeout)
 		select {
 		case m.c <- struct{}{}:
+			timer.Stop()
 			return true
-		case <-time.After(timeout):
+		case <-timer.C:
 			return false
 		}
 

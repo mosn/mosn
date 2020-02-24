@@ -31,7 +31,6 @@ import (
 // we use proxyLogger to record proxy events.
 type proxyLogger struct {
 	log.ErrorLogger
-	disabled bool
 }
 
 func CreateDefaultContextLogger(output string, level log.Level) (log.ContextLogger, error) {
@@ -41,7 +40,6 @@ func CreateDefaultContextLogger(output string, level log.Level) (log.ContextLogg
 	}
 	return &proxyLogger{
 		ErrorLogger: lg,
-		disabled:    false,
 	}, nil
 
 }
@@ -50,7 +48,7 @@ func (l *proxyLogger) fomatter(ctx context.Context, format string) string {
 }
 
 func (l *proxyLogger) Infof(ctx context.Context, format string, args ...interface{}) {
-	if l.disabled {
+	if l.Disable() {
 		return
 	}
 	if l.GetLogLevel() >= log.INFO {
@@ -60,7 +58,7 @@ func (l *proxyLogger) Infof(ctx context.Context, format string, args ...interfac
 }
 
 func (l *proxyLogger) Debugf(ctx context.Context, format string, args ...interface{}) {
-	if l.disabled {
+	if l.Disable() {
 		return
 	}
 	if l.GetLogLevel() >= log.DEBUG {
@@ -70,7 +68,7 @@ func (l *proxyLogger) Debugf(ctx context.Context, format string, args ...interfa
 }
 
 func (l *proxyLogger) Warnf(ctx context.Context, format string, args ...interface{}) {
-	if l.disabled {
+	if l.Disable() {
 		return
 	}
 	if l.GetLogLevel() >= log.WARN {
@@ -80,7 +78,7 @@ func (l *proxyLogger) Warnf(ctx context.Context, format string, args ...interfac
 }
 
 func (l *proxyLogger) Errorf(ctx context.Context, format string, args ...interface{}) {
-	if l.disabled {
+	if l.Disable() {
 		return
 	}
 	if l.GetLogLevel() >= log.ERROR {
@@ -90,7 +88,7 @@ func (l *proxyLogger) Errorf(ctx context.Context, format string, args ...interfa
 }
 
 func (l *proxyLogger) Alertf(ctx context.Context, alert string, format string, args ...interface{}) {
-	if l.disabled {
+	if l.Disable() {
 		return
 	}
 	if l.GetLogLevel() >= log.ERROR {
@@ -100,7 +98,7 @@ func (l *proxyLogger) Alertf(ctx context.Context, alert string, format string, a
 }
 
 func (l *proxyLogger) Fatalf(ctx context.Context, format string, args ...interface{}) {
-	if l.disabled {
+	if l.Disable() {
 		return
 	}
 	if l.GetLogLevel() >= log.FATAL {

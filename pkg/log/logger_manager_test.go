@@ -168,6 +168,12 @@ func TestExtendErrorLogger(t *testing.T) {
 			t.Fatalf("log output is unexpected: %s", l)
 		}
 	}
+	ToggleLogger(logName, true)
+	DefaultLogger.Infof("test_%d", 123)
+	Proxy.Infof(context.Background(), "test_%d", 123)
+	if lines, err := readLines(logName); err != nil || len(lines) != 2 {
+		t.Fatal("disable proxy logger failed")
+	}
 }
 
 // mock a logger
