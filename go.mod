@@ -13,6 +13,7 @@ require (
 	github.com/gogo/googleapis v1.2.0 // indirect
 	github.com/gogo/protobuf v1.2.1
 	github.com/golang/protobuf v1.3.2
+	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.6
 	github.com/juju/errors v0.0.0-20190207033735-e65537c515d7
 	github.com/juju/loggo v0.0.0-20190526231331-6e530bcce5d8 // indirect
