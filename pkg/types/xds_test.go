@@ -20,12 +20,12 @@ package types
 import (
 	"testing"
 
-	"github.com/gogo/protobuf/types"
+	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestInitXdsFlags(t *testing.T) {
-	InitXdsFlags("cluster", "node", []string{})
+	InitXdsFlags("cluster", "node", []string{}, []string{})
 	xdsInfo := GetGlobalXdsInfo()
 
 	if !assert.Equal(t, "cluster", xdsInfo.ServiceCluster, "serviceCluster should be 'cluster'") {
@@ -42,7 +42,7 @@ func TestInitXdsFlags(t *testing.T) {
 		"k:v",
 		"not_exist_key",
 		"not_exist_value",
-	})
+	}, []string{})
 	if !assert.Equal(t, 1, len(xdsInfo.Metadata.GetFields()), "serviceMeta len should be one") {
 		t.FailNow()
 	}
@@ -51,10 +51,10 @@ func TestInitXdsFlags(t *testing.T) {
 			t.Fatalf("serviceMeta len should be zero")
 		}
 
-		if vv, ok := v.Kind.(*types.Value_StringValue); !ok {
+		if vv, ok := v.Kind.(*_struct.Value_StructValue); !ok {
 			t.Fatal("value should be convert to types.Value_StringValue")
 		} else {
-			if !assert.Equal(t, "v", vv.StringValue, "value should be 'v'") {
+			if !assert.Equal(t, "v", vv.StructValue, "value should be 'v'") {
 				t.FailNow()
 			}
 		}

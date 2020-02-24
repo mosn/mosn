@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"mosn.io/pkg/buffer"
 	"net"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
 )

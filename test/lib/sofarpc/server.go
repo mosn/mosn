@@ -1,11 +1,10 @@
 package sofarpc
 
 import (
+	"mosn.io/pkg/buffer"
 	"net"
 	"sync"
 	"time"
-
-	"mosn.io/mosn/pkg/buffer"
 )
 
 type MockServer struct {

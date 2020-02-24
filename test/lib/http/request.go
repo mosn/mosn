@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
-	"mosn.io/mosn/pkg/buffer"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func BuildHTTP1Request(method string, header map[string]string, body []byte) (types.HeaderMap, types.IoBuffer) {

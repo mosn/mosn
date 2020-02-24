@@ -4,10 +4,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"mosn.io/pkg/buffer"
 	"net"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -89,13 +89,12 @@ func main() {
 	t := flag.Bool("t", false, "-t")
 	flag.Parse()
 	if client := NewClient("127.0.0.1:2045"); client != nil {
-		for {
-			client.Request()
-			time.Sleep(200 * time.Millisecond)
-			if !*t {
-				time.Sleep(3 * time.Second)
-				return
-			}
+		client.Request()
+		time.Sleep(200 * time.Millisecond)
+		if !*t {
+			time.Sleep(3 * time.Second)
+			return
 		}
+
 	}
 }

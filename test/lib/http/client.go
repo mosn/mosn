@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mosn.io/api"
 	"net"
 	"net/http"
 	"sync/atomic"
@@ -78,7 +79,7 @@ func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
 	return c, nil
 }
 
-func (c *ConnClient) OnEvent(event types.ConnectionEvent) {
+func (c *ConnClient) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		c.isClosed = true
 		close(c.close)
@@ -86,7 +87,7 @@ func (c *ConnClient) OnEvent(event types.ConnectionEvent) {
 }
 
 func (c *ConnClient) Close() {
-	c.conn.Close(types.NoFlush, types.LocalClose)
+	c.conn.Close(api.NoFlush, api.LocalClose)
 }
 
 func (c *ConnClient) IsClosed() bool {

@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"mosn.io/pkg/buffer"
 	"net"
 	"net/http"
 	"time"
 
 	"golang.org/x/net/http2"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
 	"mosn.io/mosn/pkg/types"

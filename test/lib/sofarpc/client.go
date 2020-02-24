@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 	"net"
 	"sync/atomic"
 	"time"
@@ -14,7 +16,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/sofarpc" // register sofarpc
-	"mosn.io/mosn/pkg/types"
 )
 
 type receiver struct {
@@ -45,6 +46,7 @@ func (r *receiver) OnDecodeError(context context.Context, err error, headers typ
 }
 
 type ConnClient struct {
+	api.ConnectionEventListener
 	MakeRequest MakeRequestFunc
 	SyncTimeout time.Duration
 	//
@@ -78,7 +80,7 @@ func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
 	return c, nil
 }
 
-func (c *ConnClient) OnEvent(event types.ConnectionEvent) {
+func (c *ConnClient) Event(event api.ConnectionEvent) {
 	if event.IsClose() {
 		c.isClosed = true
 		close(c.close)
@@ -86,7 +88,7 @@ func (c *ConnClient) OnEvent(event types.ConnectionEvent) {
 }
 
 func (c *ConnClient) Close() {
-	c.conn.Close(types.NoFlush, types.LocalClose)
+	c.conn.Close(api.NoFlush, api.LocalClose)
 }
 
 func (c *ConnClient) IsClosed() bool {
