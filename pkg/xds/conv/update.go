@@ -19,7 +19,6 @@ package conv
 
 import (
 	"fmt"
-
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/api"
@@ -74,7 +73,7 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 			streamFilters = configmanager.GetStreamFilters(mosnListener.StreamFilters)
 
 			if len(networkFilters) == 0 {
-				log.DefaultLogger.Errorf("xds client update listener error: proxy needed in network filters")
+				log.DefaultLogger.Warnf("xds client update listener error: proxy needed in network filters")
 				continue
 			}
 		}
@@ -133,7 +132,7 @@ func ConvertUpdateClusters(clusters []*envoy_api_v2.Cluster) {
 
 	for _, cluster := range mosnClusters {
 		var err error
-		log.DefaultLogger.Debugf("update cluster: %+v\n", cluster)
+		//log.DefaultLogger.Debugf("update cluster: %+v\n", cluster)
 		if cluster.ClusterType == v2.EDS_CLUSTER {
 			err = clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterAddOrUpdate(*cluster)
 		} else {
@@ -178,7 +177,7 @@ func ConvertUpdateEndpoints(loadAssignments []*envoy_api_v2.ClusterLoadAssignmen
 		clusterName := loadAssignment.ClusterName
 
 		for _, endpoints := range loadAssignment.Endpoints {
-			hosts := ConvertEndpointsConfig(&endpoints)
+			hosts := ConvertEndpointsConfig(endpoints)
 			log.DefaultLogger.Debugf("xds client update endpoints: cluster: %s, priority: %d", loadAssignment.ClusterName, endpoints.Priority)
 			for index, host := range hosts {
 				log.DefaultLogger.Debugf("host[%d] is : %+v", index, host)

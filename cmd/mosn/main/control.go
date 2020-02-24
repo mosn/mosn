@@ -49,24 +49,44 @@ var (
 				Usage:  "sidecar service cluster",
 				EnvVar: "SERVICE_CLUSTER",
 			}, cli.StringFlag{
-				Name:   "service-node, n",
+				Name:   "service-type, n",
 				Usage:  "sidecar service node",
-				EnvVar: "SERVICE_NODE",
+				EnvVar: "SERVICE_TYPE",
 			}, cli.StringSliceFlag{
 				Name:   "service-meta, sm",
 				Usage:  "sidecar service metadata",
 				EnvVar: "SERVICE_META",
+			}, cli.StringSliceFlag{
+				Name:   "service-lables, sl",
+				Usage:  "sidecar service metadata labels",
+				EnvVar: "SERVICE_LAB",
 			}, cli.StringFlag{
 				Name:   "feature-gates, f",
 				Usage:  "config feature gates",
 				EnvVar: "FEATURE_GATES",
+			}, cli.StringFlag{
+				Name:   "pod-namespace, pns",
+				Usage:  "config feature gates",
+				EnvVar: "POD_NAMESPACE",
+			}, cli.StringFlag{
+				Name:   "pod-name, pn",
+				Usage:  "config feature gates",
+				EnvVar: "POD_NAME",
+			}, cli.StringFlag{
+				Name:   "pod-ip, pi",
+				Usage:  "config feature gates",
+				EnvVar: "POD_IP",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			configPath := c.String("config")
 			serviceCluster := c.String("service-cluster")
-			serviceNode := c.String("service-node")
+			serviceType := c.String("service-type")
 			serviceMeta := c.StringSlice("service-meta")
+			metaLabels := c.StringSlice("service-lables")
+			podName := c.String("pod-name")
+			podNamespace := c.String("pod-namespace")
+			podIp := c.String("pod-ip")
 
 			conf := configmanager.Load(configPath)
 			// set feature gates
@@ -91,7 +111,12 @@ var (
 			// set version and go version
 			metrics.SetVersion(Version)
 			metrics.SetGoVersion(runtime.Version())
-			types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta)
+
+			if types.IsApplicationNodeType(serviceType) {
+				sn := podName + "." + podNamespace
+				serviceNode := serviceType + "~" + podIp + "~" + sn + "~" + "boss.twl"
+				types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
+			}
 
 			mosn.Start(conf)
 			return nil
