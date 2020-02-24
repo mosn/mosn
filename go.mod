@@ -9,8 +9,8 @@ require (
 	github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
+	github.com/census-instrumentation/opencensus-proto v0.2.1
 	github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473
-    github.com/census-instrumentation/opencensus-proto v0.2.1
 	github.com/gogo/googleapis v1.3.2 // indirect
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/protobuf v1.3.2
