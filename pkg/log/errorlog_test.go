@@ -62,12 +62,11 @@ func TestErrorLog(t *testing.T) {
 		t.Fatalf("logger write lines not expected, writes: %d, expected: %d", len(lines), 2)
 	}
 	// verify log format
-	// 2006-01-02 15:04:05,000 [ERROR] [normal] testdata
+	// 2006-01-02 15:04:05,000 [ERROR] testdata
 	out := strings.SplitN(lines[0], " ", 5)
-	if !(len(out) == 5 &&
+	if !(len(out) == 4 &&
 		out[2] == "[ERROR]" &&
-		out[3] == "[normal]" &&
-		out[4] == "testdata") {
+		out[3] == "testdata") {
 		t.Errorf("output data is unexpected: %s", lines[0])
 	}
 	// 2006-01-02 15:04:05,000 [ERROR] [mosn.test] test_alert

@@ -37,20 +37,20 @@ func TestUpdateLoggerConfig(t *testing.T) {
 	if lg, err := GetOrCreateDefaultErrorLogger(logName, log.DEBUG); err != nil {
 		t.Fatal(err)
 	} else {
-		if lg.(*errorLogger).Level != log.DEBUG {
+		if lg.(*log.SimpleErrorLog).Level != log.DEBUG {
 			t.Fatal("logger created, but level is not expected")
 		}
 	}
 	if lg, err := GetOrCreateDefaultErrorLogger(logName, log.INFO); err != nil {
 		t.Fatal(err)
 	} else {
-		if lg.(*errorLogger).Level != log.DEBUG {
+		if lg.(*log.SimpleErrorLog).Level != log.DEBUG {
 			t.Fatal("expected get a logger, not create a new one")
 		}
 	}
 	// keeps the logger
 	lg, _ := GetOrCreateDefaultErrorLogger(logName, log.RAW)
-	logger := lg.(*errorLogger)
+	logger := lg.(*log.SimpleErrorLog)
 	if ok := UpdateErrorLoggerLevel("not_exists", log.INFO); ok {
 		t.Fatal("update a not exists logger, expected failed")
 	}

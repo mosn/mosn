@@ -86,7 +86,7 @@ func TestProxyLog2(t *testing.T) {
 		f(ctx, "test_%d", i)
 	}
 	// test error level
-	lg.Errorf(ctx, "test_%s", "error")               // 2006-01-02 15:04:05,000 [ERROR] [normal] [connId, traceId] msg
+	lg.Errorf(ctx, "test_%s", "error")               // 2006-01-02 15:04:05,000 [ERROR] [connId, traceId] msg
 	lg.Alertf(ctx, "mosn.alert", "test_%s", "alert") // 2006-01-02 15:04:05,000 [ERROR] [mosn.alert] [connId, traceId] msg
 	time.Sleep(time.Second)                          // wait buffer flush
 	// read lines
@@ -101,10 +101,9 @@ func TestProxyLog2(t *testing.T) {
 		}
 	}
 	errMsgs := strings.Split(lines[3], " ")
-	if !(len(errMsgs) == 6 &&
-		errMsgs[3] == "[normal]" &&
-		errMsgs[4] == proxyMsg &&
-		errMsgs[5] == "test_error") {
+	if !(len(errMsgs) == 5 &&
+		errMsgs[3] == proxyMsg &&
+		errMsgs[4] == "test_error") {
 		t.Fatalf("error lines unexpected: %s", lines[3])
 	}
 	alertMsgs := strings.Split(lines[4], " ")

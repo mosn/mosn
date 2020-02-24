@@ -21,38 +21,15 @@ import (
 	"mosn.io/pkg/log"
 )
 
-// errorLogger is a default implementation of ErrorLogger
-// we use ErrorLogger to write common log message.
-type errorLogger struct {
-	*log.SimpleErrorLog
-}
-
 func CreateDefaultErrorLogger(output string, level log.Level) (log.ErrorLogger, error) {
 	lg, err := log.GetOrCreateLogger(output, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &errorLogger{
-		SimpleErrorLog: &log.SimpleErrorLog{
-			Logger:    lg,
-			Formatter: log.DefaultFormatter,
-			Level:     level,
-		},
+	return &log.SimpleErrorLog{
+		Logger:    lg,
+		Formatter: log.DefaultFormatter,
+		Level:     level,
 	}, nil
-}
-
-// default logger error level format:
-// {time} [{level}] [{error code}] {content}
-// default error code is normal
-const defaultErrorCode = "normal"
-
-func (l *errorLogger) Errorf(format string, args ...interface{}) {
-	if l.Disable() {
-		return
-	}
-	if l.Level >= log.ERROR {
-		s := l.SimpleErrorLog.Formatter(log.ErrorPre, defaultErrorCode, format)
-		l.Logger.Printf(s, args...)
-	}
 }
