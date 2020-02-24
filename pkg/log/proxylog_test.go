@@ -60,10 +60,60 @@ func TestProxyLog(t *testing.T) {
 		// l format
 		//  {time} [{level}] [{connId},{traceId}] {content}
 		if strings.Index(l, targetStr) < 0 {
-			t.Errorf("line %v write format is not expected", i)
+			t.Errorf("line %v write format is not expected: %s", i, l)
 		}
 	}
+}
 
+func TestProxyLog2(t *testing.T) {
+	logName := "/tmp/mosn/proxy_log_print2.log"
+	os.Remove(logName)
+	lg, err := CreateDefaultContextLogger(logName, log.RAW)
+	if err != nil {
+		t.Fatal("create logger failed")
+	}
+	traceId := "0abfc19515355177863163255e6d87"
+	connId := uint64(1)
+	proxyMsg := fmt.Sprintf("[%d,%s]", connId, traceId)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyTraceId, traceId)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, connId)
+	funcs := []func(ctx context.Context, format string, args ...interface{}){
+		lg.Infof,
+		lg.Warnf,
+		lg.Debugf,
+	}
+	for i, f := range funcs {
+		f(ctx, "test_%d", i)
+	}
+	// test error level
+	lg.Errorf(ctx, "test_%s", "error")               // 2006-01-02 15:04:05,000 [ERROR] [normal] [connId, traceId] msg
+	lg.Alertf(ctx, "mosn.alert", "test_%s", "alert") // 2006-01-02 15:04:05,000 [ERROR] [mosn.alert] [connId, traceId] msg
+	time.Sleep(time.Second)                          // wait buffer flush
+	// read lines
+	lines, err := readLines(logName)
+	for i, l := range lines[:len(funcs)] {
+		qs := strings.Split(l, " ")
+		// 2006-01-02 15:04:05,000 [LEVEL] [connId, traceId] msg
+		if !(len(qs) == 5 &&
+			qs[3] == proxyMsg &&
+			qs[4] == fmt.Sprintf("test_%d", i)) {
+			t.Fatalf("%d write unexpected data: %s", i, l)
+		}
+	}
+	errMsgs := strings.Split(lines[3], " ")
+	if !(len(errMsgs) == 6 &&
+		errMsgs[3] == "[normal]" &&
+		errMsgs[4] == proxyMsg &&
+		errMsgs[5] == "test_error") {
+		t.Fatalf("error lines unexpected: %s", lines[3])
+	}
+	alertMsgs := strings.Split(lines[4], " ")
+	if !(len(alertMsgs) == 6 &&
+		alertMsgs[3] == "[mosn.alert]" &&
+		alertMsgs[4] == proxyMsg &&
+		alertMsgs[5] == "test_alert") {
+		t.Fatalf("alert lines unexpected: %s", lines[4])
+	}
 }
 
 func BenchmarkProxyLog(b *testing.B) {
