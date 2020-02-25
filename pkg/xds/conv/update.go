@@ -132,7 +132,7 @@ func ConvertUpdateClusters(clusters []*envoy_api_v2.Cluster) {
 
 	for _, cluster := range mosnClusters {
 		var err error
-		//log.DefaultLogger.Debugf("update cluster: %+v\n", cluster)
+		log.DefaultLogger.Debugf("update cluster: %+v\n", cluster)
 		if cluster.ClusterType == v2.EDS_CLUSTER {
 			err = clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterAddOrUpdate(*cluster)
 		} else {
