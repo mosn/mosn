@@ -49,8 +49,12 @@ var (
 				Usage:  "sidecar service cluster",
 				EnvVar: "SERVICE_CLUSTER",
 			}, cli.StringFlag{
-				Name:   "service-type, n",
+				Name:   "service-node, n",
 				Usage:  "sidecar service node",
+				EnvVar: "SERVICE_NODE",
+			}, cli.StringFlag{
+				Name:   "service-type, n",
+				Usage:  "sidecar service type",
 				EnvVar: "SERVICE_TYPE",
 			}, cli.StringSliceFlag{
 				Name:   "service-meta, sm",
@@ -60,30 +64,36 @@ var (
 				Name:   "service-lables, sl",
 				Usage:  "sidecar service metadata labels",
 				EnvVar: "SERVICE_LAB",
+			}, cli.StringSliceFlag{
+				Name:   "cluster-domain, domain",
+				Usage:  "sidecar service metadata labels",
+				EnvVar: "CLUSTER_DOMAIN",
 			}, cli.StringFlag{
 				Name:   "feature-gates, f",
 				Usage:  "config feature gates",
 				EnvVar: "FEATURE_GATES",
 			}, cli.StringFlag{
 				Name:   "pod-namespace, pns",
-				Usage:  "config feature gates",
+				Usage:  "mosn pod namespaces",
 				EnvVar: "POD_NAMESPACE",
 			}, cli.StringFlag{
 				Name:   "pod-name, pn",
-				Usage:  "config feature gates",
+				Usage:  "mosn pod name",
 				EnvVar: "POD_NAME",
 			}, cli.StringFlag{
 				Name:   "pod-ip, pi",
-				Usage:  "config feature gates",
+				Usage:  "mosn pod ip",
 				EnvVar: "POD_IP",
 			},
 		},
 		Action: func(c *cli.Context) error {
 			configPath := c.String("config")
 			serviceCluster := c.String("service-cluster")
+			serviceNode := c.String("service-node")
 			serviceType := c.String("service-type")
 			serviceMeta := c.StringSlice("service-meta")
 			metaLabels := c.StringSlice("service-lables")
+			clusterDomain := c.String("cluster-domain")
 			podName := c.String("pod-name")
 			podNamespace := c.String("pod-namespace")
 			podIp := c.String("pod-ip")
@@ -112,10 +122,16 @@ var (
 			metrics.SetVersion(Version)
 			metrics.SetGoVersion(runtime.Version())
 
-			if types.IsApplicationNodeType(serviceType) {
-				sn := podName + "." + podNamespace
-				serviceNode := serviceType + "~" + podIp + "~" + sn + "~" + "boss.twl"
+			if serviceNode != "" {
 				types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
+			} else {
+				if types.IsApplicationNodeType(serviceType) {
+					sn := podName + "." + podNamespace
+					serviceNode := serviceType + "~" + podIp + "~" + sn + "~" + clusterDomain
+					types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
+				} else {
+					log.StartLogger.Infof("[mosn] [start] xds service type must be sidecar or router")
+				}
 			}
 
 			mosn.Start(conf)

@@ -554,8 +554,9 @@ func convertFilterConfig(filter *xdslistener.Filter) map[string]map[string]inter
 	} else if name == xdswellknown.TCPProxy {
 		filterConfig := GetTcpProxy(filter)
 		log.DefaultLogger.Tracef("TCPProxy:filter config = %v,v1-config = %v", filterConfig, filterConfig.GetDeprecatedV1())
+
 		d, err := ptypes.Duration(filterConfig.GetIdleTimeout())
-		if err == nil {
+		if err != nil {
 			log.DefaultLogger.Infof("[xds] [convert] Idletimeout is nil: %s", name)
 		}
 		tcpProxyConfig := v2.TCPProxy{
