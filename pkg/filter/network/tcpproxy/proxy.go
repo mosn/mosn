@@ -48,6 +48,7 @@ type proxy struct {
 	upstreamConnecting bool
 
 	accessLogs []api.AccessLog
+	ctx        context.Context
 }
 
 func NewProxy(ctx context.Context, config *v2.TCPProxy) Proxy {
@@ -56,6 +57,7 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy) Proxy {
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		requestInfo:    network.NewRequestInfo(),
 		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+		ctx:            ctx,
 	}
 
 	p.upstreamCallbacks = &upstreamCallbacks{
@@ -122,7 +124,9 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	}
 
 	ctx := &LbContext{
-		conn: p.readCallbacks,
+		conn:    p.readCallbacks,
+		ctx:     p.ctx,
+		cluster: clusterInfo,
 	}
 	connectionData := p.clusterManager.TCPConnForCluster(ctx, clusterSnapshot)
 	if connectionData.Connection == nil {
@@ -408,7 +412,9 @@ func (dc *downstreamCallbacks) OnEvent(event api.ConnectionEvent) {
 
 // LbContext is a types.LoadBalancerContext implementation
 type LbContext struct {
-	conn api.ReadFilterCallbacks
+	conn    api.ReadFilterCallbacks
+	ctx     context.Context
+	cluster types.ClusterInfo
 }
 
 func (c *LbContext) MetadataMatchCriteria() api.MetadataMatchCriteria {
@@ -425,5 +431,9 @@ func (c *LbContext) DownstreamHeaders() api.HeaderMap {
 }
 
 func (c *LbContext) DownstreamContext() context.Context {
-	return nil
+	return c.ctx
+}
+
+func (c *LbContext) DownstreamCluster() types.ClusterInfo {
+	return c.cluster
 }

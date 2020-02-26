@@ -170,13 +170,13 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				var nfcf []api.NetworkFilterChainFactory
 				var sfcf []api.StreamFilterChainFactory
 
-				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
+				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled.
+				// when using UseOriginalDst, If it can’t find any matching virtual listeners
+				// it sends the request to the PassthroughCluster which connects to the destination directly.
 				// network filters
-				if !lc.UseOriginalDst {
-					// network and stream filters
-					nfcf = configmanager.GetNetworkFilters(&lc.FilterChains[0])
-					sfcf = configmanager.GetStreamFilters(lc.StreamFilters)
-				}
+				// network and stream filters
+				nfcf = configmanager.GetNetworkFilters(&lc.FilterChains[0])
+				sfcf = configmanager.GetStreamFilters(lc.StreamFilters)
 
 				_, err := srv.AddListener(lc, nfcf, sfcf)
 				if err != nil {

@@ -348,12 +348,12 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	al := &activeListener{
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
-		conns:        list.New(),
-		handler:      handler,
-		stopChan:     stopChan,
-		accessLogs:   accessLoggers,
-		updatedLabel: false,
-		idleTimeout:  lc.ConnectionIdleTimeout,
+		conns:                   list.New(),
+		handler:                 handler,
+		stopChan:                stopChan,
+		accessLogs:              accessLoggers,
+		updatedLabel:            false,
+		idleTimeout:             lc.ConnectionIdleTimeout,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
@@ -544,7 +544,7 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 }
 
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
-	var listener, localListener *activeListener
+	var virtualListener, listener, localListener *activeListener
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -554,6 +554,10 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
 			localListener = lst
+		}
+
+		if lst.listener.Name() == "virtual" {
+			virtualListener = lst
 		}
 	}
 
@@ -567,16 +571,26 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	}
 
 	if listener != nil {
+		virtualListener = nil
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 	if localListener != nil {
+		virtualListener = nil
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+	}
+
+	// If it can’t find any matching listeners and should using the virtual listener.
+	if virtualListener != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", virtualListener.listenIP, virtualListener.listenPort)
+		}
+		virtualListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 }
 
