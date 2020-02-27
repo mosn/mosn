@@ -219,7 +219,16 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create connection")
 	data := pool.host.CreateConnection(ctx)
-	data.Connection.Connect()
+
+	err := data.Connection.Connect()
+	/**
+	 * fix unable to retry connection.
+	 */
+	if err != nil {
+		log.DefaultLogger.Tracef("failed to create xprotocol activeClient, connect failed %v", data)
+		return nil
+	}
+
 	log.DefaultLogger.Tracef("xprotocol new active client , connect success %v", data)
 
 	log.DefaultLogger.Tracef("xprotocol new active client , try to create codec client")
