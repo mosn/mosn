@@ -74,6 +74,13 @@ type Listener struct {
 	Remain                  bool             `json:"-"`
 }
 
+func (l Listener) MarshalJSON() (b []byte, err error) {
+	if l.Addr != nil {
+		l.AddrConfig = l.Addr.String()
+	}
+	return json.Marshal(l.ListenerConfig)
+}
+
 // AccessLog for making up access log
 type AccessLog struct {
 	Path   string `json:"log_path,omitempty"`
