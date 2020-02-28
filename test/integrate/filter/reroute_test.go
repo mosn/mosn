@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
@@ -117,7 +117,7 @@ func TestReRoute(t *testing.T) {
 	meshAddr := util.CurrentMeshAddr()
 	cfg := createInjectProxyMesh(meshAddr, []string{httpAddr}, protocol.HTTP1)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
+	mesh.Start()
 	defer mesh.Close()
 	time.Sleep(2 * time.Second) // wait mosn start
 	// reset the logger

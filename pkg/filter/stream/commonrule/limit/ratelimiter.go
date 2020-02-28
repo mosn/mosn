@@ -53,7 +53,7 @@ func NewRateLimiter(maxAllows int64, periodMs int64, MaxBurstRatio float64) (*Ra
 		stableIntervalMicros: interval,
 		start:                time.Now(),
 	}
-	l.nextFreeTicketMicros = int64(time.Since(l.start))
+	l.nextFreeTicketMicros = int64(time.Since(l.start)) + int64(interval)
 
 	return l, nil
 }

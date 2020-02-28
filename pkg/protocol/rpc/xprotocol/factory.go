@@ -152,6 +152,9 @@ func (xRpcCmd *XRpcCmd) GetStreamID(data []byte) string {
 func (xRpcCmd *XRpcCmd) SetStreamID(data []byte, streamID string) []byte {
 	return xRpcCmd.codec.SetStreamID(data, streamID)
 }
+func (XRpcCmd *XRpcCmd) BuildHeartbeat(headers types.HeaderMap) []byte {
+	return XRpcCmd.codec.BuildHeartbeatResp(headers)
+}
 
 //Tracing
 func (xRpcCmd *XRpcCmd) GetServiceName(data []byte) string {
