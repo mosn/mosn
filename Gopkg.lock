@@ -2,10 +2,56 @@
 
 
 [[projects]]
-  name = "github.com/basgys/goxml2json"
+  name = "github.com/AlexStocks/dubbogo"
+  packages = [
+    "codec",
+    "codec/hessian"
+  ]
+  revision = "d706e009647c54fe93b3a0b8f8c15fe56cc85cf7"
+  version = "v0.2.0"
+
+[[projects]]
+  name = "github.com/AlexStocks/goext"
+  packages = ["strings"]
+  revision = "65da9f24c77737361cf831a15336dd1f4b9ae7aa"
+  version = "v0.3.2"
+
+[[projects]]
+  name = "github.com/AlexStocks/log4go"
   packages = ["."]
-  revision = "652b277a9313806ef04f7c0cb0205dd455c4f344"
-  version = "v1.1.0"
+  revision = "f8351bf0d74639d03576f789adf7ea631fdfe82b"
+  version = "v1.0.6"
+
+[[projects]]
+  name = "github.com/TarsCloud/TarsGo"
+  packages = [
+    "tars",
+    "tars/model",
+    "tars/protocol/codec",
+    "tars/protocol/res/adminf",
+    "tars/protocol/res/basef",
+    "tars/protocol/res/configf",
+    "tars/protocol/res/endpointf",
+    "tars/protocol/res/logf",
+    "tars/protocol/res/nodef",
+    "tars/protocol/res/notifyf",
+    "tars/protocol/res/propertyf",
+    "tars/protocol/res/queryf",
+    "tars/protocol/res/requestf",
+    "tars/protocol/res/statf",
+    "tars/transport",
+    "tars/util/conf",
+    "tars/util/current",
+    "tars/util/debug",
+    "tars/util/endpoint",
+    "tars/util/gpool",
+    "tars/util/rogger",
+    "tars/util/rtimer",
+    "tars/util/set",
+    "tars/util/tools"
+  ]
+  revision = "2d42457f2025b1e24d845d8fa8d42c9452ce3372"
+  version = "1.1.0"
 
 [[projects]]
   name = "github.com/beorn7/perks"
@@ -130,6 +176,23 @@
   packages = ["validate"]
   revision = "ff6f7a9bc2e5fe006509b9f8c7594c41a953d50f"
   version = "v0.0.14"
+
+[[projects]]
+  name = "github.com/mailru/easyjson"
+  packages = [
+    ".",
+    "buffer",
+    "jlexer",
+    "jwriter"
+  ]
+  revision = "8edcc4e51f39ddbd3505a3386aff3f435a7fd028"
+  version = "v0.7.1"
+
+[[projects]]
+  name = "github.com/mattn/go-isatty"
+  packages = ["."]
+  revision = "7b513a986450394f7bbf1476909911b3aa3a55ce"
+  version = "v0.0.12"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
@@ -263,9 +326,6 @@
   name = "golang.org/x/net"
   packages = [
     "context",
-    "html",
-    "html/atom",
-    "html/charset",
     "http/httpguts",
     "http2",
     "http2/hpack",
@@ -290,16 +350,6 @@
   packages = [
     "collate",
     "collate/build",
-    "encoding",
-    "encoding/charmap",
-    "encoding/htmlindex",
-    "encoding/internal",
-    "encoding/internal/identifier",
-    "encoding/japanese",
-    "encoding/korean",
-    "encoding/simplifiedchinese",
-    "encoding/traditionalchinese",
-    "encoding/unicode",
     "internal/colltab",
     "internal/gen",
     "internal/language",
@@ -307,9 +357,7 @@
     "internal/tag",
     "internal/triegen",
     "internal/ucd",
-    "internal/utf8internal",
     "language",
-    "runes",
     "secure/bidirule",
     "transform",
     "unicode/bidi",
@@ -372,6 +420,12 @@
   version = "v2.1"
 
 [[projects]]
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  revision = "53403b58ad1b561927d19068c655246f2db79d48"
+  version = "v2.2.8"
+
+[[projects]]
   name = "istio.io/api"
   packages = [
     "mixer/v1",
@@ -383,6 +437,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "515560f5c4b91dbf8440b365a2981ea82d5c367241f56ba8819756d6e840ae10"
+  inputs-digest = "ad255addf7da400d63a67d818a0680ba7bb489dc0ad74137148a798340dc2a4b"
   solver-name = "gps-cdcl"
   solver-version = 1

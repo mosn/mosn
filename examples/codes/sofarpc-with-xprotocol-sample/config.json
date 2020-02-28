@@ -2,6 +2,7 @@
   "servers": [
     {
       "default_log_path": "stdout",
+      "default_log_level": "DEBUG",
       "listeners": [
         {
           "name": "serverListener",
@@ -139,5 +140,9 @@
         ]
       }
     ]
+  },
+  "tracing":{
+    "enable": true,
+    "driver": "SOFATracer"
   }
 }

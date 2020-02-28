@@ -15,4 +15,24 @@
  * limitations under the License.
  */
 
-package bolt2http
+package transcoder
+
+import (
+	"encoding/json"
+)
+
+type config struct {
+	Type string `json:"type, omitempty"`
+}
+
+func parseConfig(cfg interface{}) (*config, error) {
+	filterConfig := &config{}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, filterConfig); err != nil {
+		return nil, err
+	}
+	return filterConfig, nil
+}

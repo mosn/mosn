@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package bolt2http
+package transcoder
 
 import (
 	"context"
@@ -25,8 +25,9 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+// stream factory
 func init() {
-	filter.RegisterStream(v2.MosnBoltHttpTranscoder, createFilterChainFactory)
+	filter.RegisterStream(v2.Transcoder, createFilterChainFactory)
 }
 
 type filterChainFactory struct {
@@ -35,8 +36,10 @@ type filterChainFactory struct {
 
 func (f *filterChainFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
 	transcodeFilter := newTranscodeFilter(context, f.cfg)
-	callbacks.AddStreamReceiverFilter(transcodeFilter, types.DownFilterAfterRoute)
-	callbacks.AddStreamSenderFilter(transcodeFilter)
+	if transcodeFilter != nil {
+		callbacks.AddStreamReceiverFilter(transcodeFilter, types.DownFilterAfterRoute)
+		callbacks.AddStreamSenderFilter(transcodeFilter)
+	}
 }
 
 func createFilterChainFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
@@ -45,4 +48,19 @@ func createFilterChainFactory(conf map[string]interface{}) (types.StreamFilterCh
 		return nil, err
 	}
 	return &filterChainFactory{cfg}, nil
+}
+
+// transcoder factory
+var transcoderFactory = make(map[string]Transcoder)
+
+func MustRegister(typ string, transcoder Transcoder) {
+	if transcoderFactory[typ] != nil {
+		panic("target stream transcoder already exists: " + typ)
+	}
+
+	transcoderFactory[typ] = transcoder
+}
+
+func GetTranscoder(typ string) Transcoder {
+	return transcoderFactory[typ]
 }

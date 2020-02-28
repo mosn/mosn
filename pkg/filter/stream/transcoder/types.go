@@ -15,25 +15,20 @@
  * limitations under the License.
  */
 
-package bolt2http
+package transcoder
 
 import (
-	"encoding/json"
+	"context"
+
+	"mosn.io/mosn/pkg/types"
 )
 
-type config struct {
-	sourceEncoding string
-	targetEncoding string
-}
-
-func parseConfig(cfg interface{}) (*config, error) {
-	filterConfig := &config{}
-	data, err := json.Marshal(cfg)
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(data, filterConfig); err != nil {
-		return nil, err
-	}
-	return filterConfig, nil
+// Transcoder provide ability to transcoding request/response
+type Transcoder interface {
+	// Accept
+	Accept(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool
+	// TranscodingRequest
+	TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error)
+	// TranscodingResponse
+	TranscodingResponse(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error)
 }

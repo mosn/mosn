@@ -2,6 +2,7 @@
   "servers": [
     {
       "default_log_path": "stdout",
+      "default_log_level": "DEBUG",
       "listeners": [
         {
           "name": "serverListener",
@@ -15,9 +16,12 @@
                 {
                   "type": "proxy",
                   "config": {
-                    "downstream_protocol": "Http2",
+                    "downstream_protocol": "X",
                     "upstream_protocol": "X",
-                    "router_config_name": "server_router"
+                    "router_config_name": "server_router",
+                    "extend_config": {
+                      "sub_protocol": "bolt"
+                    }
                   }
                 },
                 {
@@ -33,7 +37,12 @@
                         "routers": [
                           {
                             "match": {
-                              "prefix": "/"
+                              "headers": [
+                                {
+                                  "name": "service",
+                                  "value": ".*"
+                                }
+                              ]
                             },
                             "route": {
                               "cluster_name": "serverCluster"
@@ -61,8 +70,11 @@
                   "type": "proxy",
                   "config": {
                     "downstream_protocol": "Http1",
-                    "upstream_protocol": "Http2",
-                    "router_config_name": "client_router"
+                    "upstream_protocol": "X",
+                    "router_config_name": "client_router",
+                    "extend_config": {
+                      "sub_protocol": "bolt"
+                    }
                   }
                 },
                 {
@@ -78,7 +90,12 @@
                         "routers": [
                           {
                             "match": {
-                              "prefix": "/"
+                              "headers": [
+                                {
+                                  "name": "service",
+                                  "value": ".*"
+                                }
+                              ]
                             },
                             "route": {
                               "cluster_name": "clientCluster"
@@ -94,46 +111,9 @@
           ],
           "stream_filters": [
             {
-              "type": "commonrule",
+              "type": "transcoder",
               "config": {
-                "rule_configs": [
-                  {
-                    "enable": true,
-                    "id": 1,
-                    "index": 3,
-                    "limit": {
-                      "limit_strategy": "QPS",
-                      "max_burst_ratio": 1.0,
-                      "period_ms": 1000,
-                      "max_allows": 5
-                    },
-                    "name": "rule1",
-                    "resources": [
-                      {
-                        "headers": [
-                          {
-                            "compare_type": "EQUALS",
-                            "key": "path",
-                            "value": "/serverlist"
-                          },
-                          {
-                            "compare_type": "EQUALS",
-                            "key": "method",
-                            "value": "GET"
-                          }
-                        ],
-                        "params": [
-                          {
-                            "compare_type": "EQUALS",
-                            "key": "aa",
-                            "value": "a1"
-                          }
-                        ]
-                      }
-                    ],
-                    "run_mode": "CONTROL"
-                  }
-                ]
+                "type": "http2bolt_simple"
               }
             }
           ]
@@ -168,5 +148,9 @@
         ]
       }
     ]
+  },
+  "tracing": {
+    "enable": true,
+    "driver": "SOFATracer"
   }
 }

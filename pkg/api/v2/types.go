@@ -49,10 +49,10 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER                  = "mixer"
-	FaultStream            = "fault"
-	PayloadLimit           = "payload_limit"
-	MosnBoltHttpTranscoder = "mosn.bolt_http_transcoder"
+	MIXER        = "mixer"
+	FaultStream  = "fault"
+	PayloadLimit = "payload_limit"
+	Transcoder   = "transcoder"
 )
 
 // ClusterType
@@ -196,10 +196,9 @@ type StreamPayloadLimit struct {
 	HttpStatus    int32 `json:"http_status"`
 }
 
-// TranscodeBoltHttp
-type TranscodeBoltHttp struct {
-	SourceEncoding string `json:"source_encoding "`
-	TargetEncoding string `json:"target_encoding"`
+// Transcoder
+type StreamTranscoder struct {
+	Type string `json:"type "`
 }
 
 func (f FaultInject) Marshal() (b []byte, err error) {
