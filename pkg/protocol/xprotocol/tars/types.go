@@ -15,3 +15,6 @@ const (
 	ServiceNameHeader string = "service"
 	MethodNameHeader  string = "method"
 )
+const (
+	ResponseStatusSuccess uint16 = 0x00 // 0x00 response status
+)

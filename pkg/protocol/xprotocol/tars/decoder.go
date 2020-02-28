@@ -8,6 +8,7 @@ import (
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	"github.com/juju/errors"
 	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -16,7 +17,9 @@ func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, e
 	if status != tars.PACKAGE_FULL {
 		return nil, errors.New("tars request status fail")
 	}
-	req := &Request{}
+	req := &Request{
+		CommonHeader: protocol.CommonHeader{},
+	}
 	rawData := make([]byte, frameLen)
 	copy(rawData, data.Bytes()[:frameLen])
 	req.rawData = rawData
@@ -27,12 +30,12 @@ func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, e
 	if err != nil {
 		return nil, err
 	}
+	req.cmd = reqPacket
 	// service aware
 	metaHeader, err := getServiceAwareMeta(req)
 	for k, v := range metaHeader {
 		req.Set(k, v)
 	}
-	req.cmd = reqPacket
 	data.Drain(frameLen)
 	return req, nil
 }

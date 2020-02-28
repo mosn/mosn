@@ -2,27 +2,6 @@
 
 
 [[projects]]
-  name = "github.com/AlexStocks/dubbogo"
-  packages = [
-    "codec",
-    "codec/hessian"
-  ]
-  revision = "d706e009647c54fe93b3a0b8f8c15fe56cc85cf7"
-  version = "v0.2.0"
-
-[[projects]]
-  name = "github.com/AlexStocks/goext"
-  packages = ["strings"]
-  revision = "65da9f24c77737361cf831a15336dd1f4b9ae7aa"
-  version = "v0.3.2"
-
-[[projects]]
-  name = "github.com/AlexStocks/log4go"
-  packages = ["."]
-  revision = "f8351bf0d74639d03576f789adf7ea631fdfe82b"
-  version = "v1.0.6"
-
-[[projects]]
   name = "github.com/TarsCloud/TarsGo"
   packages = [
     "tars",
@@ -54,6 +33,15 @@
   version = "1.1.0"
 
 [[projects]]
+  name = "github.com/apache/dubbo-go-hessian2"
+  packages = [
+    ".",
+    "java_exception"
+  ]
+  revision = "0ef010e9ccf4fea50b122e43ba2c0ba62a260fcb"
+  version = "v1.3.0"
+
+[[projects]]
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
   revision = "37c8de3658fcb183f997c4e13e8337516ab753e6"
@@ -70,6 +58,15 @@
   packages = ["spew"]
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
+
+[[projects]]
+  name = "github.com/dubbogo/gost"
+  packages = [
+    "bytes",
+    "math/big"
+  ]
+  revision = "20509bdbed635a91a2e9b34d74c6d7583b538ecd"
+  version = "v1.6.0"
 
 [[projects]]
   name = "github.com/envoyproxy/go-control-plane"
@@ -178,23 +175,6 @@
   version = "v0.0.14"
 
 [[projects]]
-  name = "github.com/mailru/easyjson"
-  packages = [
-    ".",
-    "buffer",
-    "jlexer",
-    "jwriter"
-  ]
-  revision = "8edcc4e51f39ddbd3505a3386aff3f435a7fd028"
-  version = "v0.7.1"
-
-[[projects]]
-  name = "github.com/mattn/go-isatty"
-  packages = ["."]
-  revision = "7b513a986450394f7bbf1476909911b3aa3a55ce"
-  version = "v0.0.12"
-
-[[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
   revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
@@ -217,6 +197,12 @@
   name = "github.com/neverhook/easygo"
   packages = ["netpoll"]
   revision = "787757e6499086c1bb5dfe4ae7d3aa4aafe169d4"
+
+[[projects]]
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  revision = "614d223910a179a466c1767a985424175c39b465"
+  version = "v0.9.1"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -420,12 +406,6 @@
   version = "v2.1"
 
 [[projects]]
-  name = "gopkg.in/yaml.v2"
-  packages = ["."]
-  revision = "53403b58ad1b561927d19068c655246f2db79d48"
-  version = "v2.2.8"
-
-[[projects]]
   name = "istio.io/api"
   packages = [
     "mixer/v1",
@@ -437,6 +417,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "ad255addf7da400d63a67d818a0680ba7bb489dc0ad74137148a798340dc2a4b"
+  inputs-digest = "4cd66bf2fee872853c19ce2b3d5980883cfce28965d19a2f4d04fee1f7bc7d30"
   solver-name = "gps-cdcl"
   solver-version = 1

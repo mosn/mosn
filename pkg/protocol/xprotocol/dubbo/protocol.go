@@ -78,7 +78,7 @@ func (proto *dubboProtocol) Trigger(requestId uint64) xprotocol.XFrame {
 	return nil
 }
 
-func (proto *dubboProtocol) Reply(requestId uint64) xprotocol.XFrame {
+func (proto *dubboProtocol) Reply(requestId uint64) xprotocol.XRespFrame {
 	// TODO make readable
 	return &Frame{
 		Header: Header{
@@ -93,12 +93,12 @@ func (proto *dubboProtocol) Reply(requestId uint64) xprotocol.XFrame {
 }
 
 // hijacker
-func (proto *dubboProtocol) Hijack(statusCode uint32) xprotocol.XFrame {
+func (proto *dubboProtocol) Hijack(statusCode uint32) xprotocol.XRespFrame {
 	// not support
 	return nil
 }
 
 func (proto *dubboProtocol) Mapping(httpStatusCode uint32) uint32 {
 	// not support
-	return -1
+	return 0
 }

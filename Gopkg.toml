@@ -104,3 +104,7 @@
 [[constraint]]
   name = "github.com/tjfoc/gmsm"
   version = "1.2.0"
+
+[[constraint]]
+  name = "github.com/apache/dubbo-go-hessian2"
+  version = "v1.3.0"

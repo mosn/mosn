@@ -72,3 +72,7 @@ func (r *Response) GetHeader() types.HeaderMap {
 func (r *Response) GetData() types.IoBuffer {
 	return r.data
 }
+
+func (r *Response) GetStatusCode() uint32 {
+	return uint32(r.cmd.IRet)
+}

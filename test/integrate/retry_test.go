@@ -284,7 +284,7 @@ func ServeBadBoltV1(t *testing.T, conn net.Conn) {
 		}
 		return nil, true
 	}
-	util.ServeSofaRPC(t, conn, response)
+	util.ServeRPC(t, conn, response)
 }
 
 func TestXRetry(t *testing.T) {
