@@ -19,7 +19,6 @@ package http2bolt
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -113,7 +112,7 @@ func Test_http2bolt_TranscodingRequest(t1 *testing.T) {
 				t1.Errorf("TranscodingRequest() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(fmt.Sprint(got), fmt.Sprint(tt.wantArgs.headers)) {
+			if !checkHeadersEqual(got, tt.wantArgs.headers) {
 				t1.Errorf("TranscodingRequest() headers got = %v, want %v", got, tt.wantArgs.headers)
 			}
 			if !reflect.DeepEqual(got1, tt.wantArgs.buf) {
@@ -180,7 +179,7 @@ func Test_http2bolt_TranscodingResponse(t1 *testing.T) {
 				t1.Errorf("TranscodingResponse() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(fmt.Sprint(got), fmt.Sprint(tt.wantArgs.headers)) {
+			if !checkHeadersEqual(got, tt.wantArgs.headers) {
 				t1.Errorf("TranscodingResponse() headers got = %v, want %v", got, tt.wantArgs.headers)
 			}
 			if !reflect.DeepEqual(got1, tt.wantArgs.buf) {
@@ -213,4 +212,32 @@ func buildHttpResponseHeaders(status int, args map[string]string) http.ResponseH
 	header.SetStatusCode(status)
 
 	return http.ResponseHeader{ResponseHeader: header}
+}
+
+func checkHeadersEqual(left, right types.HeaderMap) bool {
+	leftFlat := make(map[string]string)
+	rightFlat := make(map[string]string)
+
+	left.Range(func(key, value string) bool {
+		leftFlat[key] = value
+		return true
+	})
+
+	right.Range(func(key, value string) bool {
+		rightFlat[key] = value
+		return true
+	})
+
+	headerEqual := reflect.DeepEqual(leftFlat, rightFlat)
+	statusEqual := true
+
+	switch left.(type) {
+	case http.ResponseHeader:
+		leftHttpResp := left.(http.ResponseHeader)
+		rightHttpResp := right.(http.ResponseHeader)
+
+		statusEqual = leftHttpResp.StatusCode() == rightHttpResp.StatusCode()
+	}
+
+	return headerEqual && statusEqual
 }
