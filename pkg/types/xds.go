@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"github.com/golang/protobuf/jsonpb"
 	_struct "github.com/golang/protobuf/ptypes/struct"
+	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -64,7 +66,7 @@ func InitXdsFlags(serviceCluster, serviceNode string, serviceMeta []string, labe
 	globalXdsInfo.ServiceNode = serviceNode
 	globalXdsInfo.Metadata = &_struct.Struct{}
 
-	if len(serviceMeta)+len(labels) > 0 {
+	if len(labels) > 0 {
 		defaultMeta.Labels = make(map[string]string, len(labels))
 		for _, keyValue := range labels {
 			keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
@@ -72,6 +74,25 @@ func InitXdsFlags(serviceCluster, serviceNode string, serviceMeta []string, labe
 				continue
 			}
 			defaultMeta.Labels[keyValueSep[0]] = keyValueSep[1]
+		}
+	}
+	if len(serviceMeta) > 0 {
+		for _, keyValue := range serviceMeta {
+			keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
+			if len(keyValueSep) != 2 {
+				continue
+			}
+
+			f := reflect.ValueOf(defaultMeta).Elem().FieldByName(keyValueSep[0])
+			switch f.Kind() {
+			case reflect.String:
+				f.SetString(keyValueSep[1])
+			case reflect.Int:
+				if i, e := strconv.ParseInt(keyValueSep[1], 10, 64); e == nil {
+					f.SetInt(i)
+				}
+
+			}
 		}
 
 	}

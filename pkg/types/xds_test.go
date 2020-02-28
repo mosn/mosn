@@ -17,40 +17,35 @@
 
 package types
 
-//func TestInitXdsFlags(t *testing.T) {
-//	InitXdsFlags("cluster", "node", []string{}, []string{})
-//	xdsInfo := GetGlobalXdsInfo()
-//
-//	if !assert.Equal(t, "cluster", xdsInfo.ServiceCluster, "serviceCluster should be 'cluster'") {
-//		t.FailNow()
-//	}
-//	if !assert.Equal(t, "node", xdsInfo.ServiceNode, "serviceNode should be 'node'") {
-//		t.FailNow()
-//	}
-//	if !assert.Equal(t, 0, len(xdsInfo.Metadata.GetFields()), "serviceMeta len should be zero") {
-//		t.FailNow()
-//	}
-//
-//	InitXdsFlags("cluster", "node", []string{
-//		"k:v",
-//		"not_exist_key",
-//		"not_exist_value",
-//	}, []string{})
-//	if !assert.Equal(t, 1, len(xdsInfo.Metadata.GetFields()), "serviceMeta len should be one") {
-//		t.FailNow()
-//	}
-//	for k, v := range xdsInfo.Metadata.Fields {
-//		if !assert.Equal(t, "k", k, "key should be 'k'") {
-//			t.Fatalf("serviceMeta len should be zero")
-//		}
-//
-//		if vv, ok := v.Kind.(*_struct.Value_StructValue); !ok {
-//			t.Fatal("value should be convert to types.Value_StringValue")
-//		} else {
-//			if !assert.Equal(t, "v", vv.StructValue, "value should be 'v'") {
-//				t.FailNow()
-//			}
-//		}
-//	}
-//
-//}
+import (
+	"github.com/stretchr/testify/assert"
+	"testing"
+)
+
+func TestInitXdsFlags(t *testing.T) {
+	InitXdsFlags("cluster", "node", []string{}, []string{})
+	xdsInfo := GetGlobalXdsInfo()
+
+	if !assert.Equal(t, "cluster", xdsInfo.ServiceCluster, "serviceCluster should be 'cluster'") {
+		t.FailNow()
+	}
+	if !assert.Equal(t, "node", xdsInfo.ServiceNode, "serviceNode should be 'node'") {
+		t.FailNow()
+	}
+	//if !assert.Equal(t, 3, len(xdsInfo.Metadata.GetFields()), "serviceMeta len default be three") {
+	//	t.FailNow()
+	//}
+
+	InitXdsFlags("cluster", "node", []string{
+		"IstioVersion:1.1",
+		"Not_exist_key:1",
+		"not_exist_value",
+	}, []string{})
+	if !assert.Equal(t, 3, len(xdsInfo.Metadata.GetFields()), "serviceMeta len should be one") {
+		t.FailNow()
+	}
+	if !assert.Equal(t, "1.1", xdsInfo.Metadata.Fields["ISTIO_VERSION"].GetStringValue(), "serviceMeta len should be one") {
+		t.FailNow()
+	}
+
+}
