@@ -81,6 +81,7 @@ type Cluster struct {
 	HealthCheck          HealthCheck         `json:"health_check,omitempty"`
 	Spec                 ClusterSpecInfo     `json:"spec,omitempty"`
 	LBSubSetConfig       LBSubsetConfig      `json:"lb_subset_config,omitempty"`
+	LBOriDstConfig       LBOriDstConfig      `json:"original_dst_lb_config,omitempty"`
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
@@ -169,6 +170,12 @@ type LBSubsetConfig struct {
 	FallBackPolicy  uint8             `json:"fall_back_policy,omitempty"`
 	DefaultSubset   map[string]string `json:"default_subset,omitempty"`
 	SubsetSelectors [][]string        `json:"subset_selectors,omitempty"`
+}
+
+// LBOriDstConfig for OriDst load balancer.
+type LBOriDstConfig struct {
+	UseHttpHeader bool   `json:"use_http_header,omitempty"`
+	HeaderName    string `json:"header_name,omitempty"`
 }
 
 // ClusterManagerConfig for making up cluster manager

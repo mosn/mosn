@@ -22,6 +22,7 @@ import (
 	"mosn.io/api"
 	"testing"
 
+	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 	"net"
@@ -31,6 +32,7 @@ import (
 type LbCtx struct {
 	ctx     context.Context
 	cluster types.ClusterInfo
+	headers api.HeaderMap
 }
 
 func (c *LbCtx) MetadataMatchCriteria() api.MetadataMatchCriteria {
@@ -42,7 +44,7 @@ func (c *LbCtx) DownstreamConnection() net.Conn {
 }
 
 func (c *LbCtx) DownstreamHeaders() api.HeaderMap {
-	return nil
+	return c.headers
 }
 
 func (c *LbCtx) DownstreamContext() context.Context {
@@ -53,15 +55,53 @@ func (c *LbCtx) DownstreamCluster() types.ClusterInfo {
 	return c.cluster
 }
 
+type Header struct {
+	v map[string]string
+}
+
+func (h *Header) Get(key string) (string, bool) {
+	k, ok := h.v[key]
+	return k, ok
+}
+
+func (h *Header) Set(key, value string) {
+	h.v[key] = value
+}
+
+func (h *Header) Add(key, value string) {
+}
+
+func (h *Header) Del(key string) {
+
+}
+
+func (h *Header) Range(f func(key, value string) bool) {
+
+}
+
+func (h *Header) Clone() api.HeaderMap {
+	return h
+}
+
+func (h *Header) ByteSize() uint64 {
+	return 0
+}
+
 func TestChooseHost(t *testing.T) {
+	// check use original dst
 	hostSet := &hostSet{}
 	orilb := newOriginalDstLoadBalancer(hostSet)
 	orihost := "127.0.0.1:8888"
 	oriRemoteAddr, _ := net.ResolveTCPAddr("", orihost)
 	ctx := mosnctx.WithValue(context.Background(), types.ContextOriRemoteAddr, oriRemoteAddr)
+	oriDstCfg := &v2.LBOriDstConfig{
+		UseHttpHeader: false,
+	}
+
 	cluster := &clusterInfo{
-		name:   "testOriDst",
-		lbType: types.ORIGINAL_DST,
+		name:         "testOriDst",
+		lbType:       types.ORIGINAL_DST,
+		lbOriDstInfo: NewLBOriDstInfo(oriDstCfg),
 	}
 
 	lbCtx := &LbCtx{
@@ -70,6 +110,33 @@ func TestChooseHost(t *testing.T) {
 	}
 
 	host := orilb.ChooseHost(lbCtx)
+	if host.AddressString() != orihost {
+		t.Fatalf("expected choose failed, expect host: %s, but got: %s", orihost, host.AddressString())
+	}
+
+	// check use host header
+	oriDstCfg = &v2.LBOriDstConfig{
+		UseHttpHeader: true,
+	}
+
+	cluster = &clusterInfo{
+		name:         "testOriDst",
+		lbType:       types.ORIGINAL_DST,
+		lbOriDstInfo: NewLBOriDstInfo(oriDstCfg),
+	}
+
+	lbCtx = &LbCtx{
+		ctx:     ctx,
+		cluster: cluster,
+		headers: &Header{
+			v: make(map[string]string),
+		},
+	}
+
+	orihost = "127.0.0.1:9999"
+	lbCtx.headers.Set("host", orihost)
+
+	host = orilb.ChooseHost(lbCtx)
 	if host.AddressString() != orihost {
 		t.Fatalf("expected choose failed, expect host: %s, but got: %s", orihost, host.AddressString())
 	}

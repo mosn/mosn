@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"strings"
 	"sync"
 
 	"mosn.io/api"
@@ -47,27 +48,50 @@ func newOriginalDstLoadBalancer(hosts types.HostSet) types.LoadBalancer {
 
 func (lb *OriginalDstLoadBalancer) ChooseHost(lbCtx types.LoadBalancerContext) types.Host {
 
-	// TODO support use_http_header_
+	var dstAdd string
 	ctx := lbCtx.DownstreamContext()
 	cluster := lbCtx.DownstreamCluster()
+	headers := lbCtx.DownstreamHeaders()
+	lbOriDstInfo := cluster.LbOriDstInfo()
 
-	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
-	if oriRemoteAddr == nil {
-		return nil
+	// Check if host header is present, if yes use it otherwise use OriRemoteAddr.
+	if lbOriDstInfo.IsEnabled() && headers != nil {
+		headername := lbOriDstInfo.GetHeader()
+		// default use host header
+		if headername == "" {
+			headername = "host"
+		}
+		if hostHeader, ok := headers.Get(headername); ok {
+			dstAdd = hostHeader
+		}
 	}
-	ori := oriRemoteAddr.(*net.TCPAddr)
-	ipadd := ori.String()
+
+	if dstAdd == "" {
+		oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
+		if oriRemoteAddr == nil {
+			return nil
+		}
+
+		ori := oriRemoteAddr.(*net.TCPAddr)
+		dstAdd = ori.String()
+
+	}
+
+	// if does not specify a port and default useing 80.
+	if ok := strings.Contains(dstAdd, ":"); !ok {
+		dstAdd = dstAdd + ":80"
+	}
 
 	var config v2.Host
-	config.Address = ipadd
-	config.Hostname = ipadd
+	config.Address = dstAdd
+	config.Hostname = dstAdd
 
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
-	host, ok := lb.host[ipadd]
+	host, ok := lb.host[dstAdd]
 	if !ok {
 		host = NewSimpleHost(config, cluster)
-		lb.host[config.Address] = host
+		lb.host[dstAdd] = host
 	}
 
 	return host
@@ -79,4 +103,26 @@ func (lb *OriginalDstLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCrite
 
 func (lb *OriginalDstLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return 1
+}
+
+type LBOriDstInfoImpl struct {
+	useHttpHeader bool
+	headerName    string
+}
+
+func (info *LBOriDstInfoImpl) IsEnabled() bool {
+	return info.useHttpHeader
+}
+
+func (info *LBOriDstInfoImpl) GetHeader() string {
+	return info.headerName
+}
+
+func NewLBOriDstInfo(oridstCfg *v2.LBOriDstConfig) types.LBOriDstInfo {
+	dstInfo := &LBOriDstInfoImpl{
+		useHttpHeader: oridstCfg.UseHttpHeader,
+		headerName:    oridstCfg.HeaderName,
+	}
+
+	return dstInfo
 }
