@@ -71,7 +71,7 @@ func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime ti
 	}
 
 	// use delegate instrument if exists
-	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol).(types.ProtocolName)
+	subProtocol := types.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
 
 	if delegate := delegateMap[subProtocol]; delegate != nil {
 		delegate(ctx, xframe, span)
