@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.10.0
+
+### New features
+
+- Support multi-process plugin mode
+- Startup parameters support service-meta parameters
+- Supports abstract uds mode to mount sds socket
+
+### Refactoring
+
+- Separate some mosn base library code into mosn.io/pkg package (github.com/mosn/pkg)
+- Separate mosn interface definition to mosn.io/api package (github.com/mosn/api)
+
+### Optimization
+
+- The log basic module is separated into mosn.io/pkg, and the log of mosn is optimized
+- Optimize FeatureGate
+- Added processing when failed to get SDS configuration
+- When CDS deletes a cluster dynamically, it will stop the health check corresponding to the cluster
+- The callback function when sds triggers certificate update adds certificate configuration as a parameter
+
+### Bug fixes
+
+- Fixed a memory leak issue when SOFARPC Oneway request failed
+- Fixed the issue of 502 error when receiving non-standard HTTP response
+- Fixed possible conflicts during DUMP configuration
+- Fixed the error of Request and Response Size of TraceLog statistics
+- Fixed write timeout failure due to concurrent write connections
+- Fixed serialize bug
+- Fixed the problem that the memory reuse buffer is too large when the connection is read, causing the memory consumption to be too high
+- Optimize Dubbo related implementation in XProtocol
+
 ### v0.9.0
 
 ### New features
