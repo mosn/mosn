@@ -33,6 +33,7 @@ type Proxy interface {
 // ProxyConfig
 type ProxyConfig interface {
 	GetRouteFromEntries(connection api.Connection) string
+	GetTransparentProxy() bool
 }
 
 // UpstreamCallbacks for upstream's callbacks

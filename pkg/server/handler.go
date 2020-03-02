@@ -578,6 +578,10 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
+
+	if listener == nil && localListener == nil {
+		arc.activeListener.newConnection(ctx, arc.rawc)
+	}
 }
 
 func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool) {
@@ -595,6 +599,7 @@ func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool)
 
 	// TODO: handle hand_off_restored_destination_connections logic
 	if arc.useOriginalDst {
+		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, arc.oriRemoteAddr)
 		arc.UseOriginalDst(ctx)
 	} else {
 		arc.activeListener.newConnection(ctx, arc.rawc)

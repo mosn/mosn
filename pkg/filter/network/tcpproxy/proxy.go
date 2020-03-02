@@ -94,7 +94,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 	p.requestInfo.SetDownstreamRemoteAddress(p.readCallbacks.Connection().RemoteAddr())
 	p.requestInfo.SetDownstreamLocalAddress(p.readCallbacks.Connection().LocalAddr())
 
-	p.readCallbacks.Connection().SetReadDisable(true)
+	//p.readCallbacks.Connection().SetReadDisable(true)
 
 	// TODO: set downstream connection stats
 }
@@ -102,37 +102,45 @@ func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	clusterName := p.getUpstreamCluster()
 
-	clusterSnapshot := p.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
+	var connectionData types.CreateConnectionData
+	if len(clusterName) == 0 {
+		if p.config.GetTransparentProxy() == false {
+			return api.Stop
+		}
+		connectionData = p.TCPConnForTransparentProxy()
+	} else {
+		clusterSnapshot := p.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
+		if reflect.ValueOf(clusterSnapshot).IsNil() {
+			p.requestInfo.SetResponseFlag(api.NoRouteFound)
+			p.onInitFailure(NoRoute)
 
-	if reflect.ValueOf(clusterSnapshot).IsNil() {
-		p.requestInfo.SetResponseFlag(api.NoRouteFound)
-		p.onInitFailure(NoRoute)
+			return api.Stop
+		}
 
-		return api.Stop
+		clusterInfo := clusterSnapshot.ClusterInfo()
+		clusterConnectionResource := clusterInfo.ResourceManager().Connections()
+
+		if !clusterConnectionResource.CanCreate() {
+			p.requestInfo.SetResponseFlag(api.UpstreamOverflow)
+			p.onInitFailure(ResourceLimitExceeded)
+
+			return api.Stop
+		}
+
+		ctx := &LbContext{
+			conn: p.readCallbacks,
+		}
+		connectionData = p.clusterManager.TCPConnForCluster(ctx, clusterSnapshot)
+		if connectionData.Connection == nil {
+			p.requestInfo.SetResponseFlag(api.NoHealthyUpstream)
+			p.onInitFailure(NoHealthyUpstream)
+
+			return api.Stop
+		}
+		p.readCallbacks.SetUpstreamHost(connectionData.Host)
+		clusterConnectionResource.Increase()
 	}
 
-	clusterInfo := clusterSnapshot.ClusterInfo()
-	clusterConnectionResource := clusterInfo.ResourceManager().Connections()
-
-	if !clusterConnectionResource.CanCreate() {
-		p.requestInfo.SetResponseFlag(api.UpstreamOverflow)
-		p.onInitFailure(ResourceLimitExceeded)
-
-		return api.Stop
-	}
-
-	ctx := &LbContext{
-		conn: p.readCallbacks,
-	}
-	connectionData := p.clusterManager.TCPConnForCluster(ctx, clusterSnapshot)
-	if connectionData.Connection == nil {
-		p.requestInfo.SetResponseFlag(api.NoHealthyUpstream)
-		p.onInitFailure(NoHealthyUpstream)
-
-		return api.Stop
-	}
-	p.readCallbacks.SetUpstreamHost(connectionData.Host)
-	clusterConnectionResource.Increase()
 	upstreamConnection := connectionData.Connection
 	upstreamConnection.AddConnectionEventListener(p.upstreamCallbacks)
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
@@ -149,6 +157,42 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	// TODO: update upstream stats
 
 	return api.Continue
+}
+
+func getTransparentProxyCluster() types.Cluster {
+	clusterConfig := v2.Cluster{
+		Name:   "transparent_cluster",
+		LbType: v2.LB_RANDOM,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: 1, // AnyEndPoint
+			SubsetSelectors: [][]string{
+				[]string{"version"},
+				[]string{"version", "zone"},
+			},
+		},
+	}
+	return cluster.NewCluster(clusterConfig)
+}
+
+func (p *proxy) TCPConnForTransparentProxy() types.CreateConnectionData {
+	config := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address:    p.readCallbacks.Connection().RemoteAddr().String(),
+		},
+	}
+
+	tpc := getTransparentProxyCluster()
+
+	newHost := cluster.NewSimpleHost(config, tpc.Snapshot().ClusterInfo())
+
+	var tlsMng types.TLSContextManager
+	clientConn := network.NewClientConnection(nil, 3 * time.Second, tlsMng, p.readCallbacks.Connection().RemoteAddr(), nil)
+	clientConn.SetBufferLimit(16 * 1024)
+
+	return types.CreateConnectionData{
+		Connection: clientConn,
+		Host:   newHost,
+	}
 }
 
 func (p *proxy) closeUpstreamConnection() {
@@ -234,6 +278,7 @@ type proxyConfig struct {
 	idleTimeout        *time.Duration
 	maxConnectAttempts uint32
 	routes             []*route
+	transparentProxy   bool
 }
 
 type IpRangeList struct {
@@ -339,7 +384,12 @@ func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 		idleTimeout:        config.IdleTimeout,
 		maxConnectAttempts: config.MaxConnectAttempts,
 		routes:             routes,
+		transparentProxy:   config.TransparentProxy,
 	}
+}
+
+func (pc *proxyConfig) GetTransparentProxy() bool {
+	return pc.transparentProxy
 }
 
 func (pc *proxyConfig) GetRouteFromEntries(connection api.Connection) string {

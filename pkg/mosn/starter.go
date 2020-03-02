@@ -172,11 +172,11 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
 				// network filters
-				if !lc.UseOriginalDst {
+				//if !lc.UseOriginalDst {
 					// network and stream filters
 					nfcf = configmanager.GetNetworkFilters(&lc.FilterChains[0])
 					sfcf = configmanager.GetStreamFilters(lc.StreamFilters)
-				}
+				//}
 
 				_, err := srv.AddListener(lc, nfcf, sfcf)
 				if err != nil {

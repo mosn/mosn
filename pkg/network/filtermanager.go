@@ -88,9 +88,7 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 
 		if !uf.initialized {
 			uf.initialized = true
-
 			status := uf.filter.OnNewConnection()
-
 			if status == api.Stop {
 				return
 			}
@@ -102,9 +100,12 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 			status := uf.filter.OnData(buf)
 
 			if status == api.Stop {
+
 				//fm.conn.Write("your data")
 				return
 			}
+		} else {
+			return
 		}
 	}
 }

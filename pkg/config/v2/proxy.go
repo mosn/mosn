@@ -26,6 +26,7 @@ type TCPProxy struct {
 	IdleTimeout        *time.Duration `json:"idle_timeout,omitempty"`
 	MaxConnectAttempts uint32         `json:"max_connect_attempts,omitempty"`
 	Routes             []*TCPRoute    `json:"routes,omitempty"`
+	TransparentProxy   bool           `json:"transparent_proxy,omitempty"`
 }
 
 // WebSocketProxy
@@ -43,6 +44,7 @@ type Proxy struct {
 	RouterConfigName   string                 `json:"router_config_name,omitempty"`
 	ValidateClusters   bool                   `json:"validate_clusters,omitempty"`
 	ExtendConfig       map[string]interface{} `json:"extend_config,omitempty"`
+	TransparentProxy   bool                   `json:"transparent_proxy,omitempty"`
 }
 
 // XProxyExtendConfig

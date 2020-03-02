@@ -20,7 +20,7 @@ package originaldst
 import (
 	"errors"
 	"fmt"
-	__tl "log"
+	//__tl "log"
 	"net"
 	"syscall"
 
@@ -54,7 +54,7 @@ func (filter *originalDst) OnAccept(cb types.ListenerFilterCallbacks) api.Filter
 	}
 	ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
 
-	__tl.Print("ips:", ips)
+	//__tl.Print("ips:", ips)
 
 	cb.SetOriginalAddr(ips, port)
 

@@ -152,6 +152,9 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 				size = buf.Len()
 			}
 			log.DefaultLogger.Errorf("[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
+			if p.config.TransparentProxy == true {
+				return api.Continue
+			}
 			p.readCallbacks.Connection().Close(api.NoFlush, api.OnReadErrClose)
 			return api.Stop
 		}

@@ -595,6 +595,11 @@ func (s *downStream) matchRoute() {
 		return
 	}
 	s.snapshot, s.route = handlerChain.DoNextHandler()
+
+	// for transparent proxy
+	if s.route == nil && s.proxy.config.TransparentProxy == true {
+		s.snapshot, s.route = getTransparentRoute(s.proxy.readCallbacks.Connection().RemoteAddr())
+	}
 }
 
 func (s *downStream) convertProtocol() (dp, up types.Protocol) {
