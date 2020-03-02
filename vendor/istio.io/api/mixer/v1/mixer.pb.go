@@ -9,13 +9,6 @@ package v1
 import (
 	context "context"
 	fmt "fmt"
-	io "io"
-	math "math"
-	reflect "reflect"
-	strconv "strconv"
-	strings "strings"
-	time "time"
-
 	rpc "github.com/gogo/googleapis/google/rpc"
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
@@ -23,6 +16,12 @@ import (
 	_ "github.com/gogo/protobuf/types"
 	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
 	grpc "google.golang.org/grpc"
+	io "io"
+	math "math"
+	reflect "reflect"
+	strconv "strconv"
+	strings "strings"
+	time "time"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

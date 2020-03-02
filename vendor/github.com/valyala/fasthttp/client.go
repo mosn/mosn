@@ -406,9 +406,9 @@ func (c *Client) Do(req *Request, resp *Response) error {
 	hc := m[string(host)]
 	if hc == nil {
 		hc = &HostClient{
-			Addr: addMissingPort(string(host), isTLS),
-			Name: c.Name,
-			NoDefaultUserAgentHeader: c.NoDefaultUserAgentHeader,
+			Addr:                          addMissingPort(string(host), isTLS),
+			Name:                          c.Name,
+			NoDefaultUserAgentHeader:      c.NoDefaultUserAgentHeader,
 			Dial:                          c.Dial,
 			DialDualStack:                 c.DialDualStack,
 			IsTLS:                         isTLS,

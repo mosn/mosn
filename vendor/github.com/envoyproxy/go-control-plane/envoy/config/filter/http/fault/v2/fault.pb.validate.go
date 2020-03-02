@@ -41,9 +41,7 @@ func (m *FaultAbort) Validate() error {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetPercentage()).(interface {
-		Validate() error
-	}); ok {
+	if v, ok := interface{}(m.GetPercentage()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return FaultAbortValidationError{
 				Field:  "Percentage",
@@ -113,9 +111,7 @@ func (m *HTTPFault) Validate() error {
 		return nil
 	}
 
-	if v, ok := interface{}(m.GetDelay()).(interface {
-		Validate() error
-	}); ok {
+	if v, ok := interface{}(m.GetDelay()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return HTTPFaultValidationError{
 				Field:  "Delay",
@@ -125,9 +121,7 @@ func (m *HTTPFault) Validate() error {
 		}
 	}
 
-	if v, ok := interface{}(m.GetAbort()).(interface {
-		Validate() error
-	}); ok {
+	if v, ok := interface{}(m.GetAbort()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return HTTPFaultValidationError{
 				Field:  "Abort",
@@ -142,9 +136,7 @@ func (m *HTTPFault) Validate() error {
 	for idx, item := range m.GetHeaders() {
 		_, _ = idx, item
 
-		if v, ok := interface{}(item).(interface {
-			Validate() error
-		}); ok {
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
 			if err := v.Validate(); err != nil {
 				return HTTPFaultValidationError{
 					Field:  fmt.Sprintf("Headers[%v]", idx),
@@ -156,9 +148,7 @@ func (m *HTTPFault) Validate() error {
 
 	}
 
-	if v, ok := interface{}(m.GetMaxActiveFaults()).(interface {
-		Validate() error
-	}); ok {
+	if v, ok := interface{}(m.GetMaxActiveFaults()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
 			return HTTPFaultValidationError{
 				Field:  "MaxActiveFaults",

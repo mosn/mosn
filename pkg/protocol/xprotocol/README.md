@@ -12,6 +12,138 @@ All you need is to write protocol-level extension and implements the `interfaces
 
 TODO: pic
 
+# Quick-start
+
+In the section, "x_example" protocol(code folder: pkg/protocol/xprotocol/example) will be taken as example to demonstrates how to develop a brand new protocol with XProtocol framework.
+
+Generally speaking, There are three steps:
+1. Confirm the protocol format
+2. Define packet models 
+3. Define protocol behaviours 
+
+## Confirm the protocol format
+
+First of all, take a glance at the protocol format. All of the following works are dependent with the protocol design itself.
+
+```
+/**
+ * Request command
+ * 0     1     2           4           6           8          10           12          14         16
+ * +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+ * |magic| type| dir |      requestId        |     payloadLength     |     payload bytes ...       |
+ * +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+ *
+ * Response command
+ * 0     1     2     3     4           6           8          10           12          14         16
+ * +-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+-----+
+ * |magic| type| dir |      requestId        |   status  |      payloadLength    | payload bytes ..|
+ * +-----------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+ */
+```
+
+Once the format is determined, we should be aware of the binary bytes format, the packet model layout and how to encode/decode them.
+
+## Define packet models
+
+Based on the protocol format, now we can define our packet models. Models will be treated as programmable objects in higher-level, like in Proxy and Router module. In particular, XProtocol framework defined a standard set of interfaces to abstract the ability XProtocol needed. Packet models should implement the interfaces by case.
+
+### Define model structure
+
+Usually the struct is determined by the protocol format, keep the logical mapping between them.
+
+```go
+type Request struct {
+	Type       byte
+	RequestId  uint32
+	PayloadLen uint32
+	Payload    []byte
+	Content    types.IoBuffer
+}
+
+type Response struct {
+	Request
+	Status uint16
+}
+```
+
+### Implement XProtocol interfaces
+
+Request and response should implement the `XFrame` and `XRespFrame` interface, XProtocol framework is dependent on the abilities provided by the interfaces, such as `Multiplexing` and `HeartbeatPredicate`.
+
+`Multiplexing` provides the ability to distinguish multi-requests in single-connection by recognize 'request-id' semantics. And `HeartbeatPredicate` provides the ability to judge if current frame is a heartbeat, which is usually used to make connection keepalive
+
+```go
+// XFrame represents the minimal programmable object of the protocol.
+type XFrame interface {
+	// TODO: make multiplexing optional, and maybe we can support PING-PONG protocol in this framework.
+	Multiplexing
+
+	HeartbeatPredicate
+
+	GetStreamType() StreamType
+
+	GetHeader() types.HeaderMap
+
+	GetData() types.IoBuffer
+}
+
+// XRespFrame expose response status code based on the XFrame
+type XRespFrame interface {
+	XFrame
+
+	GetStatusCode() uint32
+}
+```
+
+## Define protocol behaviours
+
+Beside the concrete packet frame, XProtocol framework also need some ability which should provided by the general protocol. And this is also represent in the interface form as following:
+
+```go
+// XProtocol provides extra ability(Heartbeater, Hijacker) to interacts with the proxy framework based on the Protocol interface.
+// e.g. A request which cannot find route should be responded with a error response like '404 Not Found', that is what Hijacker
+// interface exactly provides.
+type XProtocol interface {
+	types.Protocol
+
+	Heartbeater
+
+	Hijacker
+}
+```
+
+What you need is to implement the protocol and register it into XProtocol framework.
+
+```go
+func init() {
+	xprotocol.RegisterProtocol(ProtocolName, &proto{})
+}
+
+```
+
+At last, don't forget to import your implementation at the entry point `cmd/mosn/main` and speficy the sub protocol in configuration.
+
+```go
+import _ "mosn.io/mosn/pkg/protocol/xprotocol/example"
+```
+
+```json
+...
+{
+  "type": "proxy",
+  "config": {
+    "downstream_protocol": "X",
+    "upstream_protocol": "X",
+    "router_config_name": "router",
+    "extend_config": {
+      "sub_protocol": "x_example"
+    }
+  }
+}
+...
+```
+
+That's it, the 'x_example' protocol is done!
 
 # Tips, Tricks and Hacks
 
@@ -55,5 +187,4 @@ But for most RPC protocols, there is no need to divide the transmission of the r
 
 So we use a trick here, decorate your model as `types.HeaderMap` and pass it by append headers. The XProtocol framework would recognize this and ignore append data/trailers.
 
-# Quick-start
  

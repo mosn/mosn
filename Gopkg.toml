@@ -106,9 +106,5 @@
   version = "1.2.0"
 
 [[constraint]]
-  name = "github.com/basgys/goxml2json"
-  version = "v1.1.0"
-
-[[constraint]]
   name = "github.com/apache/dubbo-go-hessian2"
   version = "v1.3.0"

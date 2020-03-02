@@ -5,9 +5,8 @@ package netpoll
 import (
 	"sync"
 
-	"runtime"
-
 	"golang.org/x/sys/unix"
+	"runtime"
 )
 
 // EpollEvent represents epoll events configuration bit mask.
