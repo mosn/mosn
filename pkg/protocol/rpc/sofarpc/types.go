@@ -70,6 +70,7 @@ const (
 	HeaderSwitchCode    string = "switchcode"
 	HeaderRespStatus    string = "respstatus"
 	HeaderRespTimeMills string = "resptimemills"
+	HeaderRespError     string = "sofa_head_response_error"
 
 	// ~~ constans
 	PROTOCOL_CODE_V1 byte = 1 // protocol code

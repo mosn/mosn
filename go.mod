@@ -7,6 +7,7 @@ require (
 	github.com/AlexStocks/goext v0.3.2 // indirect
 	github.com/AlexStocks/log4go v1.0.2 // indirect
 	github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
+	github.com/apache/dubbo-go-hessian2 v1.3.0
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/envoyproxy/go-control-plane v0.6.9
@@ -37,7 +38,6 @@ require (
 	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
 	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.20.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect

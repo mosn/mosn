@@ -99,6 +99,10 @@ func (re *testExample) GetMetas(data []byte) map[string]string {
 	return metas
 }
 
+func (re *testExample) BuildHeartbeatResp(headers types.HeaderMap) []byte {
+	return []byte{}
+}
+
 //ProtocolConvertor
 func (re *testExample) Convert(data []byte) (map[string]string, []byte) {
 	return nil, nil
