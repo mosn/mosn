@@ -90,7 +90,7 @@ func GetErrorLoggerManagerInstance() *ErrorLoggerManager {
 
 // GetOrCreateDefaultErrorLogger used default create function
 func GetOrCreateDefaultErrorLogger(p string, level log.Level) (log.ErrorLogger, error) {
-	return errorLoggerManagerInstance.GetOrCreateErrorLogger(p, level, CreateDefaultErrorLogger)
+	return errorLoggerManagerInstance.GetOrCreateErrorLogger(p, level, DefaultCreateErrorLoggerFunc)
 }
 
 func InitDefaultLogger(output string, level log.Level) (err error) {
