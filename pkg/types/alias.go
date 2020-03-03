@@ -20,6 +20,7 @@ package types
 import (
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
+	"sync"
 )
 
 // use alias to keep compatiable
@@ -34,3 +35,27 @@ type HostInfo = api.HostInfo
 type RequestInfo = api.RequestInfo
 
 type Route = api.Route
+
+type StreamBuffer struct {
+	buffer.IoBuffer
+	End chan int
+	mu  sync.Mutex
+}
+
+func (b *StreamBuffer) SynAppend(data []byte) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.Append(data)
+}
+
+func (b *StreamBuffer) SynLen() int {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.Len()
+}
+
+func (b *StreamBuffer) SynRead(p []byte) (n int, err error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.Read(p)
+}

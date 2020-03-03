@@ -113,8 +113,13 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 	r.downStream.downstreamRespHeaders = headers
 
 	if data != nil {
-		r.downStream.downstreamRespDataBuf = data.Clone()
-		data.Drain(data.Len())
+		if value := ctx.Value(types.ContextKeyHttp2Stream); value != nil && value.(bool) {
+			r.downStream.RespStreamDataBuf = data.(*types.StreamBuffer)
+			r.downStream.downstreamRespTrailers = trailers
+		} else {
+			r.downStream.downstreamRespDataBuf = data.Clone()
+			data.Drain(data.Len())
+		}
 	}
 
 	r.downStream.downstreamRespTrailers = trailers
@@ -198,6 +203,13 @@ func (r *upstreamRequest) appendData(endStream bool) {
 	}
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] append data:% +v", r.downStream.downstreamReqDataBuf)
+	}
+	if b := r.downStream.context.Value(types.ContextKeyHttp2Stream); b != nil && b.(bool) {
+		data := r.downStream.ReqStreamDataBuf
+		_ = r.requestSender.AppendData(r.downStream.context, data, endStream)
+		r.sendComplete = endStream
+		r.dataSent = true
+		return
 	}
 
 	data := r.downStream.downstreamReqDataBuf
