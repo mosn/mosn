@@ -563,7 +563,8 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 }
 
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
-	var virtualListener, listener, localListener *activeListener
+	var listener, localListener *activeListener
+	var found bool
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -575,9 +576,6 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			localListener = lst
 		}
 
-		if lst.listener.Name() == "virtual" {
-			virtualListener = lst
-		}
 	}
 
 	var ch chan api.Connection
@@ -590,26 +588,27 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	}
 
 	if listener != nil {
-		virtualListener = nil
+		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 	if localListener != nil {
-		virtualListener = nil
+		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 
-	// If it can’t find any matching listeners and should using the virtual listener.
-	if virtualListener != nil {
+	// If it can’t find any matching listeners and should using the self listener.
+	if !found {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", virtualListener.listenIP, virtualListener.listenPort)
+			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 		}
-		virtualListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+		arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+
 	}
 }
 
