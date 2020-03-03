@@ -191,7 +191,8 @@ type ConnectionHandler interface {
 	// AddOrUpdateListener
 	// adds a listener into the ConnectionHandler or
 	// update a listener
-	AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []api.NetworkFilterChainFactory,
+	AddOrUpdateListener(lc *v2.Listener, listenerFiltersFactories []api.ListenerFilterChainFactory,
+		networkFiltersFactories []api.NetworkFilterChainFactory,
 		streamFiltersFactories []api.StreamFilterChainFactory) (ListenerEventListener, error)
 
 	//StartListeners starts all listeners the ConnectionHandler has

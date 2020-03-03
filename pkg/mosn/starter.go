@@ -24,7 +24,7 @@ import (
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
@@ -167,6 +167,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 					m.routerManager.AddOrUpdateRouters(routerConfig)
 				}
 
+				var lfcf []api.ListenerFilterChainFactory
 				var nfcf []api.NetworkFilterChainFactory
 				var sfcf []api.StreamFilterChainFactory
 
@@ -174,11 +175,12 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				// when using UseOriginalDst, If it can’t find any matching virtual listeners
 				// it sends the request to the PassthroughCluster which connects to the destination directly.
 				// network filters
-				// network and stream filters
+				// listener network and stream filters
+				lfcf = configmanager.GetListenerFilters(lc.ListenerFilters)
 				nfcf = configmanager.GetNetworkFilters(&lc.FilterChains[0])
 				sfcf = configmanager.GetStreamFilters(lc.StreamFilters)
 
-				_, err := srv.AddListener(lc, nfcf, sfcf)
+				_, err := srv.AddListener(lc, lfcf, nfcf, sfcf)
 				if err != nil {
 					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
 				}

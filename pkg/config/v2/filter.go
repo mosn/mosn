@@ -42,6 +42,11 @@ type DelayInjectConfig struct {
 	DelayDurationConfig api.DurationConfig `json:"fixed_delay,omitempty"`
 }
 
+// Listener Filter's Type
+const (
+	ORIGINALDST_LISTENER_FILTER = "original_dst"
+)
+
 // Network Filter's Type
 const (
 	CONNECTION_MANAGER          = "connection_manager"

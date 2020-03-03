@@ -18,43 +18,40 @@
 package originaldst
 
 import (
-	"errors"
 	"fmt"
-	"net"
-	"syscall"
+	__tl "log"
 
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
-// OriginDST, option for syscall.GetsockoptIPv6Mreq
-const (
-	SO_ORIGINAL_DST      = 80
-	IP6T_SO_ORIGINAL_DST = 80
-)
+// OriginDST filter used to find out destination address of a connection which been redirected by iptables
 
-func getOriginalAddr(conn net.Conn) ([]byte, int, error) {
-	tc := conn.(*net.TCPConn)
+func init() {
+	api.RegisterListener(v2.ORIGINALDST_LISTENER_FILTER, CreateOriginalDstFactory)
+}
 
-	f, err := tc.File()
+type originalDst struct {
+}
+
+func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterChainFactory, error) {
+	return &originalDst{}, nil
+}
+
+// OnAccept called when connection accept
+func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) api.FilterStatus {
+	ip, port, err := getOriginalAddr(cb.Conn())
 	if err != nil {
-		log.DefaultLogger.Errorf("[originaldst] get conn file error, err: %v", err)
-		return nil, 0, errors.New("conn has error")
-	}
-	defer f.Close()
-
-	fd := int(f.Fd())
-	addr, err := syscall.GetsockoptIPv6Mreq(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST)
-
-	if err := syscall.SetNonblock(fd, true); err != nil {
-		return nil, 0, fmt.Errorf("setnonblock %v", err)
+		log.DefaultLogger.Errorf("[originaldst] get original addr failed: %v", err)
+		return api.Continue
 	}
 
-	p0 := int(addr.Multiaddr[2])
-	p1 := int(addr.Multiaddr[3])
+	ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
 
-	port := p0*256 + p1
+	__tl.Print("ips:", ips)
 
-	ip := addr.Multiaddr[4:8]
+	cb.SetOriginalAddr(ips, port)
 
-	return ip, port, nil
+	return api.Continue
 }

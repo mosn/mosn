@@ -63,10 +63,12 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 			continue
 		}
 
+		var listenerFilters []api.ListenerFilterChainFactory
 		var streamFilters []api.StreamFilterChainFactory
 		var networkFilters []api.NetworkFilterChainFactory
 
 		if !mosnListener.UseOriginalDst {
+			listenerFilters = configmanager.GetListenerFilters(mosnListener.ListenerFilters)
 			for _, filterChain := range mosnListener.FilterChains {
 				nf := configmanager.GetNetworkFilters(&filterChain)
 				networkFilters = append(networkFilters, nf...)
@@ -85,10 +87,9 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 			log.DefaultLogger.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
 			return
 		}
-		log.DefaultLogger.Debugf("listenerAdapter.AddOrUpdateListener called, with mosn Listener:%+v, networkFilters:%+v, streamFilters: %+v",
-			mosnListener, networkFilters, streamFilters)
+		log.DefaultLogger.Debugf("listenerAdapter.AddOrUpdateListener called, with mosn Listener:%+v, listenerFilters:%+v, networkFilters:%+v, streamFilters: %+v", mosnListener, listenerFilters, networkFilters, streamFilters)
 
-		if err := listenerAdapter.AddOrUpdateListener("", mosnListener, networkFilters, streamFilters); err == nil {
+		if err := listenerAdapter.AddOrUpdateListener("", mosnListener, listenerFilters, networkFilters, streamFilters); err == nil {
 			log.DefaultLogger.Debugf("xds AddOrUpdateListener success,listener address = %s", mosnListener.Addr.String())
 		} else {
 			log.DefaultLogger.Errorf("xds AddOrUpdateListener failure,listener address = %s, msg = %s ",

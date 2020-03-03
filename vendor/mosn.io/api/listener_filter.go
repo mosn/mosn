@@ -15,14 +15,27 @@
  * limitations under the License.
  */
 
-package originaldst
+package api
 
 import (
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
+	"context"
+	"net"
 )
 
-// OriginalDst interface contains just one method: OnAccept
-type OriginalDst interface {
-	OnAccept(cb types.ListenerFilterCallbacks) api.FilterStatus
+// ListenerFilterChainFactoryCallbacks is a wrapper of FilterManager that called in NetworkFilterChainFactory
+type ListenerFilterChainFactoryCallbacks interface {
+	// Conn returns the Connection reference used in callback handler
+	Conn() net.Conn
+	ContinueFilterChain(ctx context.Context, success bool)
+	// SetOriginalAddr sets the original ip and port
+	SetOriginalAddr(ip string, port int)
+	// Set useOriginalDst
+	SetUseOriginalDst(flag bool)
+	// Get Context
+	GetOriContext() context.Context
+}
+
+// ListenerFilterChainFactory adds filter into ListenerFilterChainFactoryCallbacks
+type ListenerFilterChainFactory interface {
+	OnAccept(callbacks ListenerFilterChainFactoryCallbacks) FilterStatus
 }
