@@ -53,6 +53,7 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 		connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 		stats:                newClusterStats(clusterConfig.Name),
 		lbSubsetInfo:         NewLBSubsetInfo(&clusterConfig.LBSubSetConfig), // new subset load balancer info
+		lbOriDstInfo:         NewLBOriDstInfo(&clusterConfig.LBOriDstConfig), // new oridst load balancer info
 		lbType:               types.LoadBalancerType(clusterConfig.LbType),
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
 	}
@@ -149,6 +150,7 @@ type clusterInfo struct {
 	resourceManager      types.ResourceManager
 	stats                types.ClusterStats
 	lbSubsetInfo         types.LBSubsetInfo
+	lbOriDstInfo         types.LBOriDstInfo
 	tlsMng               types.TLSContextManager
 	connectTimeout       time.Duration
 }
@@ -191,6 +193,10 @@ func (ci *clusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 
 func (ci *clusterInfo) ConnectTimeout() time.Duration {
 	return ci.connectTimeout
+}
+
+func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {
+	return ci.lbOriDstInfo
 }
 
 type clusterSnapshot struct {

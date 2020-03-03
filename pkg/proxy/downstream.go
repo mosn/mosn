@@ -1322,6 +1322,10 @@ func (s *downStream) DownstreamContext() context.Context {
 	return s.context
 }
 
+func (s *downStream) DownstreamCluster() types.ClusterInfo {
+	return s.cluster
+}
+
 func (s *downStream) giveStream() {
 	if atomic.LoadUint32(&s.reuseBuffer) != 1 {
 		return
