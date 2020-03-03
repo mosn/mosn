@@ -26,6 +26,7 @@ import (
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/rpc/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -99,4 +100,8 @@ func (re *rpcExample) SetStreamID(data []byte, streamID string) []byte {
 		data[ReqIDBeginOffset+i] = reqIDStr[i]
 	}
 	return data
+}
+
+func (re *rpcExample) BuildHeartbeatResp(headers types.HeaderMap) []byte {
+	return nil
 }

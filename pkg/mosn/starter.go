@@ -268,6 +268,14 @@ func (m *Mosn) Start() {
 	// start mosn server
 	log.StartLogger.Infof("mosn start server")
 	for _, srv := range m.servers {
+
+		// TODO
+		// This can't be deleted, otherwise the code behind is equivalent at
+		// utils.GoWithRecover(func() {
+		//	 m.servers[0].Start()
+		// },
+		srv := srv
+
 		utils.GoWithRecover(func() {
 			srv.Start()
 		}, nil)

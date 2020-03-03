@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -226,6 +226,24 @@ func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV1)
 	case Bolt2:
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV2)
+	default:
+		t.Errorf("unsupport protocol")
+		return nil
+	}
+	return s
+}
+
+func NewRPCServerWithAnyPort(t *testing.T, proto string) UpstreamServer {
+	s := &RPCServer{
+		Client: NewRPCClient(t, "rpcClient", proto),
+	}
+	switch proto {
+	case Bolt1:
+		s.UpstreamServer = NewUpstreamServerWithAnyPort(t, s.ServeBoltV1)
+		s.Name = s.UpstreamServer.Addr()
+	case Bolt2:
+		s.UpstreamServer = NewUpstreamServerWithAnyPort(t, s.ServeBoltV2)
+		s.Name = s.UpstreamServer.Addr()
 	default:
 		t.Errorf("unsupport protocol")
 		return nil
