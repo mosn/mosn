@@ -175,6 +175,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				// when using UseOriginalDst, If it can’t find any matching virtual listeners
 				// it sends the request to the PassthroughCluster which connects to the destination directly.
 				// network filters
+        
 				// listener network and stream filters
 				lfcf = configmanager.GetListenerFilters(lc.ListenerFilters)
 				nfcf = configmanager.GetNetworkFilters(&lc.FilterChains[0])

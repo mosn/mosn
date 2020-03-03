@@ -594,6 +594,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
+  
 	if localListener != nil {
 		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
@@ -608,7 +609,6 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 		}
 		arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
-
 	}
 }
 
