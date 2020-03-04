@@ -174,8 +174,8 @@ type LBSubsetConfig struct {
 
 // LBOriDstConfig for OriDst load balancer.
 type LBOriDstConfig struct {
-	UseHttpHeader bool   `json:"use_http_header,omitempty"`
-	HeaderName    string `json:"header_name,omitempty"`
+	UseHeader  bool   `json:"use_header,omitempty"`
+	HeaderName string `json:"header_name,omitempty"`
 }
 
 // ClusterManagerConfig for making up cluster manager

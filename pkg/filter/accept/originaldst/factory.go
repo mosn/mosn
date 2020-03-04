@@ -26,7 +26,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 )
 
-// OriginDST filter used to find out destination address of a connection which been redirected by iptables
+// OriginDST filter used to find out destination address of a connection which been redirected by iptables or user header.
 
 func init() {
 	api.RegisterListener(v2.ORIGINALDST_LISTENER_FILTER, CreateOriginalDstFactory)
