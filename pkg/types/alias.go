@@ -75,6 +75,8 @@ func (b *StreamBuffer) SynRead(p []byte) (n int, err error) {
 }
 
 func (b *StreamBuffer) Terminate() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 	b.end <- 1
 }
 
