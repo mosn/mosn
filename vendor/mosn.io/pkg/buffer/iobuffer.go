@@ -21,6 +21,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -44,6 +45,83 @@ var (
 	ErrInvalidWriteCount = errors.New("io buffer: invalid write count")
 	ConnReadTimeout      = 15 * time.Second
 )
+
+type pipe struct {
+	IoBuffer
+	mu sync.Mutex
+	c  sync.Cond
+
+	err error
+}
+
+func (p *pipe) Len() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.IoBuffer == nil {
+		return 0
+	}
+	return p.IoBuffer.Len()
+}
+
+// Read waits until data is available and copies bytes
+// from the buffer into p.
+func (p *pipe) Read(d []byte) (n int, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.c.L == nil {
+		p.c.L = &p.mu
+	}
+	for {
+		if p.IoBuffer != nil && p.IoBuffer.Len() > 0 {
+			return p.IoBuffer.Read(d)
+		}
+		if p.err != nil {
+			return 0, p.err
+		}
+		p.c.Wait()
+	}
+}
+
+var errClosedPipeWrite = errors.New("write on closed buffer")
+
+// Write copies bytes from p into the buffer and wakes a reader.
+// It is an error to write more data than the buffer can hold.
+func (p *pipe) Write(d []byte) (n int, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.c.L == nil {
+		p.c.L = &p.mu
+	}
+	defer p.c.Signal()
+	if p.err != nil {
+		return 0, errClosedPipeWrite
+	}
+	return len(d), p.IoBuffer.Append(d)
+}
+
+// CloseWithError causes the next Read (waking up a current blocked
+// Read if needed) to return the provided err after all data has been
+// read.
+//
+// The error must be non-nil.
+func (p *pipe) CloseWithError(err error) {
+	if err == nil {
+		panic("err must be non-nil")
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.c.L == nil {
+		p.c.L = &p.mu
+	}
+	p.err = err
+	defer p.c.Signal()
+}
+
+func NewPipeBuffer(capacity int) IoBuffer {
+	return &pipe{
+		IoBuffer: NewIoBuffer(capacity),
+	}
+}
 
 // ioBuffer is an implementation of IoBuffer
 type ioBuffer struct {
@@ -462,4 +540,7 @@ func (b *ioBuffer) giveSlice() {
 		b.b = nil
 		b.buf = nullByte
 	}
+}
+
+func (b *ioBuffer) CloseWithError(err error) {
 }

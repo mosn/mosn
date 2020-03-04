@@ -116,4 +116,6 @@ type IoBuffer interface {
 	SetEOF(eof bool)
 
 	Append(data []byte) error
+
+	CloseWithError(err error)
 }

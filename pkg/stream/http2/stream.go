@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -114,7 +115,7 @@ type stream struct {
 
 	id       uint32
 	header   types.HeaderMap
-	recData  *types.StreamBuffer
+	recData  types.IoBuffer
 	trailers *mhttp2.HeaderMap
 	conn     api.Connection
 }
@@ -209,6 +210,7 @@ func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
 		}
 
 		// Do handle staff. Error would also be passed to this function.
+		log.DefaultLogger.Infof("[Server Stream] Dispatch %+v", frame)
 		conn.handleFrame(ctx, frame, err)
 		if err != nil {
 			break
@@ -309,7 +311,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
 			return
 		}
-		stream.recData = types.NewStreamBuffer()
+		stream.recData = buffer.NewPipeBuffer(0)
 		stream.trailers = &mhttp2.HeaderMap{}
 		stream.receiver.OnReceive(stream.ctx, header, stream.recData, stream.trailers)
 		stream.header = header
@@ -324,7 +326,9 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 			return
 		}
 		log.DefaultLogger.Debugf("http2 server receive data: %d", id)
-		_ = stream.recData.SynAppend(data)
+		if _, err = stream.recData.Write(data); err != nil {
+			conn.handleError(ctx, f, err)
+		}
 	}
 
 	if hasTrailer {
@@ -335,7 +339,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 
 	if endStream {
 		log.DefaultLogger.Infof("http2 server stream end %d", id)
-		stream.recData.Terminate()
+		stream.recData.CloseWithError(io.EOF)
 	}
 
 }
@@ -553,6 +557,7 @@ func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 		}
 
 		// Do handle staff. Error would also be passed to this function.
+		log.DefaultLogger.Infof("[Client Stream] Dispatch %+v", frame)
 		conn.handleFrame(ctx, frame, err)
 		if err != nil {
 			break
@@ -659,7 +664,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		if endStream {
 			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
 		} else {
-			stream.recData = types.NewStreamBuffer()
+			stream.recData = buffer.NewPipeBuffer(0)
 			stream.header = header
 			stream.trailers = &mhttp2.HeaderMap{}
 			stream.receiver.OnReceive(stream.ctx, header, stream.recData, stream.trailers)
@@ -671,7 +676,10 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	// data
 	if data != nil {
 		log.DefaultLogger.Debugf("http2 server receive data: %d", id)
-		_ = stream.recData.SynAppend(data)
+		if _, err = stream.recData.Write(data); err != nil {
+			conn.handleError(ctx, f, err)
+		}
+
 	}
 	if trailer != nil {
 		stream.trailers.H = trailer
@@ -680,7 +688,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 
 	if endStream {
 		log.DefaultLogger.Infof("http2 client stream recive end %d", id)
-		stream.recData.Terminate()
+		stream.recData.CloseWithError(io.EOF)
 	}
 
 }

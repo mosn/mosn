@@ -69,13 +69,11 @@ type downStream struct {
 	// ~~~ downstream request buf
 	downstreamReqHeaders  types.HeaderMap
 	downstreamReqDataBuf  types.IoBuffer
-	ReqStreamDataBuf      *types.StreamBuffer
 	downstreamReqTrailers types.HeaderMap
 
 	// ~~~ downstream response buf
 	downstreamRespHeaders  types.HeaderMap
 	downstreamRespDataBuf  types.IoBuffer
-	RespStreamDataBuf      *types.StreamBuffer
 	downstreamRespTrailers types.HeaderMap
 
 	// ~~~ state
@@ -322,14 +320,7 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
-	if data != nil {
-		if value := ctx.Value(types.ContextKeyHttp2Stream); value != nil && value.(bool) {
-			s.ReqStreamDataBuf = data.(*types.StreamBuffer)
-		} else {
-			s.downstreamReqDataBuf = data.Clone()
-			data.Drain(data.Len())
-		}
-	}
+	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -417,7 +408,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
 				}
-				s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil && s.ReqStreamDataBuf == nil)
+				s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
 					return p
@@ -427,7 +418,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// downstream receive data
 		case types.DownRecvData:
-			if s.downstreamReqDataBuf != nil || s.ReqStreamDataBuf != nil {
+			if s.downstreamReqDataBuf != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
 				}
@@ -530,8 +521,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
 				}
-				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil &&
-					s.downstreamRespTrailers == nil && s.RespStreamDataBuf == nil)
+				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
 					return p
@@ -541,7 +531,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// upstream receive data
 		case types.UpRecvData:
-			if s.downstreamRespDataBuf != nil || s.RespStreamDataBuf != nil {
+			if s.downstreamRespDataBuf != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
 				}
@@ -555,7 +545,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			// upstream receive triler
 		case types.UpRecvTrailer:
-			if s.downstreamRespTrailers != nil && s.ReqStreamDataBuf != nil {
+			if s.downstreamRespTrailers != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
 				}
@@ -719,10 +709,6 @@ func (s *downStream) receiveHeaders(endStream bool) {
 func (s *downStream) receiveData(ctx context.Context, endStream bool) {
 	// if active stream finished before receive data, just ignore further data
 	if s.processDone() {
-		return
-	}
-	if b := ctx.Value(types.ContextKeyHttp2Stream); b != nil && b.(bool) {
-		s.upstreamRequest.appendData(endStream)
 		return
 	}
 
@@ -949,10 +935,6 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 }
 
 func (s *downStream) appendData(endStream bool) {
-	if s.RespStreamDataBuf != nil {
-		s.responseSender.AppendData(s.context, s.RespStreamDataBuf, endStream)
-		return
-	}
 	s.upstreamProcessDone = endStream
 
 	data := s.convertData(s.downstreamRespDataBuf)
