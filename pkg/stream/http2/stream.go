@@ -309,10 +309,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
 			return
 		}
-		stream.recData = &types.StreamBuffer{
-			IoBuffer: buffer.NewIoBuffer(0),
-			End:      make(chan int),
-		}
+		stream.recData = types.NewStreamBuffer()
 		stream.trailers = &mhttp2.HeaderMap{}
 		stream.receiver.OnReceive(stream.ctx, header, stream.recData, stream.trailers)
 		stream.header = header
@@ -338,7 +335,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 
 	if endStream {
 		log.DefaultLogger.Infof("http2 server stream end %d", id)
-		stream.recData.End <- 1
+		stream.recData.Terminate()
 	}
 
 }
@@ -662,10 +659,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		if endStream {
 			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
 		} else {
-			stream.recData = &types.StreamBuffer{
-				IoBuffer: buffer.NewIoBufferBytes(data),
-				End:      make(chan int),
-			}
+			stream.recData = types.NewStreamBuffer()
 			stream.header = header
 			stream.trailers = &mhttp2.HeaderMap{}
 			stream.receiver.OnReceive(stream.ctx, header, stream.recData, stream.trailers)
@@ -686,7 +680,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 
 	if endStream {
 		log.DefaultLogger.Infof("http2 client stream recive end %d", id)
-		stream.recData.End <- 1
+		stream.recData.Terminate()
 	}
 
 }

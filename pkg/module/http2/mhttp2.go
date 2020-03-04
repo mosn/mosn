@@ -72,27 +72,13 @@ func (ms *MStream) WriteHeader() error {
 func (ms *MStream) WriteData() error {
 	streamBuffer := ms.SendData.(*types.StreamBuffer)
 	var err error
-	ms.conn.mu.Lock()
-	defer ms.conn.mu.Unlock()
 	writeln := func() {
-		dl := streamBuffer.SynLen()
 		for {
+			dl := streamBuffer.SynLen()
 			if dl == 0 {
 				return
 			}
-			alow := int(ms.flow.available())
-			if alow == 0 {
-				ms.conn.cond.Wait()
-				alow = int(ms.flow.available())
-			}
-			if dl > alow {
-				dl -= alow
-			} else {
-				alow = dl
-				dl = 0
-			}
-			ms.flow.take(int32(alow))
-			bs := make([]byte, alow)
+			bs := make([]byte, ms.sendDataWindowControl(dl))
 			if _, err = streamBuffer.SynRead(bs); err != nil {
 				return
 			}
@@ -104,13 +90,13 @@ func (ms *MStream) WriteData() error {
 	}
 	for {
 		select {
-		case <-streamBuffer.End:
+		case <-streamBuffer.Done():
 			writeln()
 			if err != nil {
 				return err
 			}
 			return nil
-		default:
+		case <-streamBuffer.Enread():
 			writeln()
 			if err != nil {
 				return err
@@ -118,6 +104,23 @@ func (ms *MStream) WriteData() error {
 		}
 
 	}
+}
+
+func (ms *MStream) sendDataWindowControl(dl int) (alow int) {
+	ms.conn.mu.Lock()
+	defer ms.conn.mu.Unlock()
+	alow = int(ms.flow.available())
+	if alow == 0 {
+		ms.conn.cond.Wait()
+		alow = int(ms.flow.available())
+	}
+	if dl > alow {
+		dl -= alow
+	} else {
+		alow = dl
+	}
+	ms.flow.take(int32(alow))
+	return
 }
 
 func (ms *MStream) WriteTrailers() error {
@@ -1020,9 +1023,9 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) error {
 	endStream := !hasBody
 
 	cc.conn.mu.Lock()
-	defer cc.conn.mu.Unlock()
 
 	cs, err := cc.conn.WriteHeaders(ctx, cc.Request, "", endStream)
+	cc.conn.mu.Unlock()
 	if err != nil {
 		return err
 	}
@@ -1035,35 +1038,20 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) error {
 	if cc.SendData != nil {
 		streamBuffer := cc.SendData.(*types.StreamBuffer)
 		writeln := func(end bool) error {
-			dl := streamBuffer.SynLen()
-			var flag bool
-			if dl == 0 && end {
-				err = cc.conn.Framer.writeData(cc.ID, end, nil)
-				return err
-			}
 			for {
-				if dl <= 0 {
-					return nil
+				dl := streamBuffer.SynLen()
+				if dl == 0 {
+					if end {
+						err = cc.conn.Framer.writeData(cc.ID, end, nil)
+					}
+					return err
 				}
-				alow := int(cc.flow.available())
-				if alow == 0 {
-					cc.cc.cond.Wait()
-					alow = int(cc.flow.available())
-				}
-				if dl > alow {
-					dl -= alow
-					flag = false
-				} else {
-					flag = end
-					alow = dl
-					dl = 0
-				}
-				cc.flow.take(int32(alow))
+				alow := cc.sendDataWindowControl(dl)
 				bs := make([]byte, alow)
 				if _, err = streamBuffer.SynRead(bs); err != nil {
 					return err
 				}
-				if err = cc.conn.Framer.writeData(cc.ID, flag, bs); err != nil {
+				if err = cc.conn.Framer.writeData(cc.ID, false, bs); err != nil {
 					return err
 				}
 
@@ -1072,14 +1060,13 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) error {
 
 		for {
 			select {
-			case <-streamBuffer.End:
+			case <-streamBuffer.Done():
 				if end := cc.Trailer == nil || len(cc.Trailer) == 0; end {
 					err = writeln(end)
 				} else {
 					var trls []byte
 					trls, err = cc.conn.encodeTrailers(cc.Request)
 					if err != nil {
-						cc.conn.mu.Unlock()
 						return err
 					}
 					err = cc.conn.writeHeaders(cc.ID, true, int(cc.conn.maxFrameSize), trls)
@@ -1088,7 +1075,7 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) error {
 					return err
 				}
 				return nil
-			default:
+			case <-streamBuffer.Enread():
 				err = writeln(false)
 				if err != nil {
 					return err
@@ -1098,6 +1085,24 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) error {
 	}
 
 	return err
+}
+
+func (cc *MClientStream) sendDataWindowControl(dl int) (alow int) {
+	cc.conn.mu.Lock()
+	defer cc.conn.mu.Unlock()
+	alow = int(cc.flow.available())
+	if alow == 0 {
+		cc.cc.cond.Wait()
+		alow = int(cc.flow.available())
+	}
+	if dl > alow {
+		dl -= alow
+	} else {
+		alow = dl
+		dl = 0
+	}
+	cc.flow.take(int32(alow))
+	return
 }
 
 func (cc *MClientConn) writeHeaders(streamID uint32, endStream bool, maxFrameSize int, hdrs []byte) error {
