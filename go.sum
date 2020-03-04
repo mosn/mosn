@@ -5,7 +5,7 @@ github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025 h1:NNCy5N13hhwTZF
 github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025/go.mod h1:ybmr1NnX41dauJftSX4BwnVAoA0UpE4PeyjMpPKIdzY=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
-github.com/apache/dubbo-go-hessian2 v1.3.0 h1:ZhQYDm8GHqIp6i53T4ZJHQBN11nAYAjxlwoVznfyvD8=
+github.com/apache/dubbo-go-hessian2 v1.3.0 h1:VLDQuaoFRI6Wh9QJwRka4/Y9a0sE3jJXCGYGWw5bjvE=
 github.com/apache/dubbo-go-hessian2 v1.3.0/go.mod h1:LWnndnrFXZmJLAzoyNAPNHSIJ1KOHVkTSsHgC3YYWlo=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/beorn7/perks v1.0.0/go.mod h1:KWe93zE9D1o94FZ5RNwFwVgaQK1VOXiVxmqh+CedLV8=
