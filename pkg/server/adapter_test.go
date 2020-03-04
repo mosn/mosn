@@ -74,7 +74,7 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 				},
 			}, //no stream filters parsed, but the config still exists for test
 		},
-		Addr: addr,
+		Addr:                    addr,
 		PerConnBufferLimitBytes: 1 << 15,
 	}
 }
@@ -88,7 +88,7 @@ func TestLDS(t *testing.T) {
 	nfcfs := []api.NetworkFilterChainFactory{
 		&mockNetworkFilterFactory{},
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nil, nfcfs, nil); err != nil {
 		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
@@ -137,10 +137,10 @@ func TestLDS(t *testing.T) {
 			StreamFilters: []v2.Filter{}, // stream filter will not be updated
 			Inspector:     true,
 		},
-		Addr: listenerConfig.Addr, // addr should not be changed
+		Addr:                    listenerConfig.Addr, // addr should not be changed
 		PerConnBufferLimitBytes: 1 << 10,
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, newListenerConfig, nil, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, newListenerConfig, nil, nil, nil); err != nil {
 		t.Fatal("update listener failed", err)
 	}
 	// verify
@@ -198,7 +198,7 @@ func TestUpdateTLS(t *testing.T) {
 	nfcfs := []api.NetworkFilterChainFactory{
 		&mockNetworkFilterFactory{},
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nil, nfcfs, nil); err != nil {
 		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
@@ -251,7 +251,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	nfcfs := []api.NetworkFilterChainFactory{
 		&mockNetworkFilterFactory{},
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nfcfs, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, nil, nfcfs, nil); err != nil {
 		t.Fatalf("add a new listener failed %v", err)
 	}
 	time.Sleep(time.Second) // wait listener start
@@ -292,7 +292,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	noIdle.ConnectionIdleTimeout = &api.DurationConfig{
 		Duration: 0,
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, noIdle, nil, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, noIdle, nil, nil, nil); err != nil {
 		t.Fatalf("update listener failed, %v", err)
 	}
 	func() {
@@ -322,7 +322,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	cfgIdle.ConnectionIdleTimeout = &api.DurationConfig{
 		Duration: 5 * time.Second,
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfgIdle, nil, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfgIdle, nil, nil, nil); err != nil {
 		t.Fatalf("update listener failed, %v", err)
 	}
 	func() {
@@ -364,7 +364,7 @@ func TestFindListenerByName(t *testing.T) {
 	if ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name); ln != nil {
 		t.Fatal("find listener name failed, expected not found")
 	}
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfg, nil, nil); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfg, nil, nil, nil); err != nil {
 		t.Fatalf("update listener failed, %v", err)
 	}
 	if ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name); ln == nil {

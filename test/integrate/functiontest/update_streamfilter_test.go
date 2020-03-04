@@ -78,5 +78,5 @@ func updateListener(cfg *v2.MOSNConfig, faultstr string) error {
 	lc := cfg.Servers[0].Listeners[0]
 	streamFilterFactories := configmanager.GetStreamFilters(lc.StreamFilters)
 	// nil network filters, nothing changed
-	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, nil, streamFilterFactories)
+	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, nil, nil, streamFilterFactories)
 }
