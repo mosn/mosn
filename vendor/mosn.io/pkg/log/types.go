@@ -66,6 +66,8 @@ type ErrorLogger interface {
 
 	// Toggle disable/enable the logger
 	Toggle(disable bool)
+
+	Disable() bool
 }
 
 type ContextLogger interface {

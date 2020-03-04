@@ -190,6 +190,9 @@ type ClusterInfo interface {
 
 	// ConectTimeout returns the connect timeout
 	ConnectTimeout() time.Duration
+
+	// LbOriDstInfo returns the load balancer oridst config
+	LbOriDstInfo() LBOriDstInfo
 }
 
 // ResourceManager manages different types of Resource
@@ -312,6 +315,14 @@ type LBSubsetInfo interface {
 
 	// SubsetKeys returns the sorted subset keys
 	SubsetKeys() []SortedStringSetType
+}
+
+type LBOriDstInfo interface {
+	// Check use host header
+	IsEnabled() bool
+
+	// GET header name
+	GetHeader() string
 }
 
 // SortedHosts is an implementation of sort.Interface
