@@ -41,7 +41,6 @@ const (
 	ContextKeyActiveSpan
 	ContextKeyTraceId
 	ContextKeyVariables
-	ContextKeyHttp2Stream
 	ContextKeyEnd
 )
 

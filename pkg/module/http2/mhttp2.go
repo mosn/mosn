@@ -102,7 +102,7 @@ func (ms *MStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 	for {
-		if a := cc.flow.available(); a > 0 {
+		if a := ms.flow.available(); a > 0 {
 			take := a
 			if int(take) > maxBytes {
 
@@ -111,7 +111,7 @@ func (ms *MStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
 			if take > int32(cc.maxFrameSize) {
 				take = int32(cc.maxFrameSize)
 			}
-			cc.flow.take(take)
+			ms.flow.take(take)
 			return take, nil
 		}
 		cc.cond.Wait()
@@ -636,7 +636,7 @@ func (sc *MServerConn) newStream(id, pusherID uint32, state streamState) *stream
 		sc:    &sc.serverConn,
 	}
 	st.flow.conn = &sc.flow // link to conn-level counter
-	st.flow.add(initialConnRecvWindowSize)
+	st.flow.add(sc.initialStreamSendWindowSize)
 	st.inflow.conn = &sc.inflow // link to conn-level counter
 	st.inflow.add(initialConnRecvWindowSize)
 
@@ -785,8 +785,8 @@ func (sc *MServerConn) processSettings(f *SettingsFrame) error {
 // processWindowUpdate Processes WindowUpdate Frame for Http2 Server
 func (sc *MServerConn) processWindowUpdate(f *WindowUpdateFrame) error {
 
-	//sc.mu.Lock()
-	//defer sc.mu.Unlock()
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
 	switch {
 	case f.StreamID != 0: // stream-level flow control
 		state, st := sc.state(f.StreamID)
@@ -908,6 +908,9 @@ func (sc *MServerConn) goAway(code ErrCode, debugData []byte) {
 
 type MClientConn struct {
 	ClientConn
+
+	mu   sync.Mutex
+	cond *sync.Cond
 
 	Framer *MFramer
 	api.Connection
@@ -1065,6 +1068,36 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
 		err = cc.conn.writeHeaders(cc.ID, true, int(cc.conn.maxFrameSize), trls)
 	}
 	return
+}
+
+func (cs *MClientStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
+	cc := cs.conn
+	cc.mu.Lock()
+	defer cc.mu.Unlock()
+	for {
+		if cc.closed {
+			return 0, errClientConnClosed
+		}
+		if cs.stopReqBody != nil {
+			return 0, cs.stopReqBody
+		}
+		if err := cs.checkResetOrDone(); err != nil {
+			return 0, err
+		}
+		if a := cs.flow.available(); a > 0 {
+			take := a
+			if int(take) > maxBytes {
+
+				take = int32(maxBytes) // can't truncate int; take is int32
+			}
+			if take > int32(cc.maxFrameSize) {
+				take = int32(cc.maxFrameSize)
+			}
+			cs.flow.take(take)
+			return take, nil
+		}
+		cc.cond.Wait()
+	}
 }
 
 func (cc *MClientConn) writeHeaders(streamID uint32, endStream bool, maxFrameSize int, hdrs []byte) error {

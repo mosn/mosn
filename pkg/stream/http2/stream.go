@@ -306,7 +306,6 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 
 		log.Proxy.Debugf(stream.ctx, "http2 server header: %d, %+v", id, h2s.Request.Header)
 
-		stream.ctx = mosnctx.WithValue(stream.ctx, types.ContextKeyHttp2Stream, !endStream)
 		if endStream {
 			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
 			return
@@ -561,7 +560,7 @@ func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 		}
 
 		// Do handle staff. Error would also be passed to this function.
-		log.DefaultLogger.Infof("[Client Stream] Dispatch %+v", frame)
+		//log.DefaultLogger.Infof("[Client Stream] Dispatch %+v", frame)
 		conn.handleFrame(ctx, frame, err)
 		if err != nil {
 			break
