@@ -785,33 +785,27 @@ func (sc *MServerConn) processSettings(f *SettingsFrame) error {
 // processWindowUpdate Processes WindowUpdate Frame for Http2 Server
 func (sc *MServerConn) processWindowUpdate(f *WindowUpdateFrame) error {
 
+	state, st := sc.state(f.StreamID)
+	if f.StreamID != 0 && st == nil {
+		return nil
+	}
+	if state == stateIdle {
+		// Section 5.1: "Receiving any frame other than HEADERS
+		// or PRIORITY on a stream in this state MUST be
+		// treated as a connection error (Section 5.4.1) of
+		// type PROTOCOL_ERROR."
+		return ConnectionError(ErrCodeProtocol)
+	}
+
 	sc.mu.Lock()
 	defer sc.mu.Unlock()
-	switch {
-	case f.StreamID != 0: // stream-level flow control
-		state, st := sc.state(f.StreamID)
-		if state == stateIdle {
-			// Section 5.1: "Receiving any frame other than HEADERS
-			// or PRIORITY on a stream in this state MUST be
-			// treated as a connection error (Section 5.4.1) of
-			// type PROTOCOL_ERROR."
-			return ConnectionError(ErrCodeProtocol)
-		}
-		if st == nil {
-			// "WINDOW_UPDATE can be sent by a peer that has sent a
-			// frame bearing the END_STREAM flag. This means that a
-			// receiver could receive a WINDOW_UPDATE frame on a "half
-			// closed (remote)" or "closed" stream. A receiver MUST
-			// NOT treat this as an error, see Section 5.1."
-			return nil
-		}
-		if !st.flow.add(int32(f.Increment)) {
-			return streamError(f.StreamID, ErrCodeFlowControl)
-		}
-	default: // connection-level flow control
-		if !sc.flow.add(int32(f.Increment)) {
-			return goAwayFlowError{}
-		}
+
+	fl := &sc.flow
+	if st != nil {
+		fl = &st.flow
+	}
+	if !fl.add(int32(f.Increment)) {
+		return ConnectionError(ErrCodeFlowControl)
 	}
 	sc.cond.Broadcast()
 	return nil
