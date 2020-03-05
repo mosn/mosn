@@ -41,7 +41,7 @@ type MStream struct {
 	Request        *http.Request
 	Response       *http.Response
 	Header         http.Header
-	Trailers       http.Header
+	Trailers       *http.Header
 	SendData       buffer.IoBuffer
 }
 
@@ -51,10 +51,10 @@ func (ms *MStream) ID() uint32 {
 }
 
 // SendResponse is Http2 Server send response
-func (ms *MStream) WriteHeader() error {
+func (ms *MStream) WriteHeader(end bool) error {
 
 	rsp := ms.Response
-	endStream := ms.Request.Method == "HEAD"
+	endStream := end || ms.Request.Method == "HEAD"
 
 	ws := &writeResHeaders{
 		streamID:      ms.id,
@@ -121,13 +121,13 @@ func (ms *MStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
 func (ms *MStream) WriteTrailers() error {
 
 	defer ms.conn.closeStream(ms.stream, nil)
-	rsp := ms.Response
+	tramap := *ms.Trailers
 	var trailers []string
-	if rsp.Trailer != nil {
-		for k, _ := range rsp.Trailer {
+	if tramap != nil {
+		for k, _ := range tramap {
 			k = http.CanonicalHeaderKey(k)
 			if !httpguts.ValidTrailerHeader(k) {
-				rsp.Trailer.Del(k)
+				tramap.Del(k)
 			} else {
 				trailers = append(trailers, k)
 			}
@@ -138,7 +138,7 @@ func (ms *MStream) WriteTrailers() error {
 	if len(trailers) > 0 {
 		ws := &writeResHeaders{
 			streamID:  ms.id,
-			h:         rsp.Trailer,
+			h:         tramap,
 			trailers:  trailers,
 			endStream: true,
 		}
@@ -158,13 +158,15 @@ func (ms *MStream) Reset() {
 }
 
 func (ms *MStream) SendResponse() error {
-	if ms.SendData == nil && ms.Trailers == nil {
-		return ms.WriteHeader()
-	} else if ms.Trailers == nil {
-		return ms.WriteData()
-	} else {
-		return ms.WriteTrailers()
+	endHeader := ms.SendData == nil && ms.Trailers == nil
+	if err := ms.WriteHeader(endHeader); err != nil || endHeader {
+		return err
 	}
+
+	if err := ms.WriteData(); err != nil {
+		return err
+	}
+	return ms.WriteTrailers()
 }
 
 type MServerConn struct {
@@ -476,7 +478,6 @@ func (sc *MServerConn) processHeaders(ctx context.Context, f *MetaHeadersFrame) 
 	}
 
 	st.reqTrailer = req.Trailer
-	req.Trailer = st.reqTrailer
 	if st.reqTrailer != nil {
 		st.trailer = make(http.Header)
 	}
@@ -908,8 +909,6 @@ func (sc *MServerConn) goAway(code ErrCode, debugData []byte) {
 type MClientConn struct {
 	ClientConn
 
-	slock sync.Mutex
-
 	Framer *MFramer
 	api.Connection
 }
@@ -969,17 +968,19 @@ func (cc *MClientConn) WriteHeaders(ctx context.Context, req *http.Request, trai
 	if err := checkConnHeaders(req); err != nil {
 		return nil, err
 	}
+	cc.mu.Lock()
 
 	cs := cc.newStream()
 	cs.req = req
 	hdrs, err := cc.encodeHeaders(req, false, trailers, req.ContentLength)
+	cc.mu.Unlock()
 	if err != nil {
-		delete(cc.streams, cs.ID)
+		//delete(cc.streams, cs.ID)
 		return nil, err
 	}
 	err = cc.writeHeaders(cs.ID, endStream, int(cc.maxFrameSize), hdrs)
 	if err != nil {
-		delete(cc.streams, cs.ID)
+		//delete(cc.streams, cs.ID)
 		return nil, err
 	}
 	return cs, nil

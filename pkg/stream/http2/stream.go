@@ -443,7 +443,9 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap,
 
 	log.Proxy.Debugf(s.ctx, "http2 server ApppendHeaders id = %d, headers = %+v", s.id, rsp.Header)
 
-	s.sendStream()
+	if endStream {
+		s.sendStream()
+	}
 
 	return nil
 }
@@ -452,7 +454,9 @@ func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer,
 	s.h2s.SendData = data
 	log.Proxy.Debugf(s.ctx, "http2 server ApppendData id = %d", s.id)
 
-	s.sendStream()
+	if endStream {
+		s.sendStream()
+	}
 
 	return nil
 }
@@ -463,13 +467,13 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers api.Head
 		s.h2s.Response.Trailer = mhttp2.EncodeHeader(trailer)
 	case *mhttp2.HeaderMap:
 		s.h2s.Response.Trailer = trailer.H
-		s.h2s.Trailers = trailer.H
+		s.h2s.Trailers = &trailer.H
 	default:
 		log.Proxy.Errorf(s.ctx, "h2 AppendTrailers error type :%v", reflect.TypeOf(trailers))
 		return errors.New("trailers type error")
 	}
 	log.Proxy.Debugf(s.ctx, "http2 server ApppendTrailers id = %d, trailers = %+v", s.id, s.h2s.Response.Trailer)
-	s.endStream()
+	s.sendStream()
 
 	return nil
 }
@@ -660,9 +664,9 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 
 		log.Proxy.Debugf(stream.ctx, "http2 client header: id = %d, headers = %+v", id, rsp.Header)
 
-		stream.ctx = mosnctx.WithValue(stream.ctx, types.ContextKeyHttp2Stream, !endStream)
 		if endStream {
 			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
+			return
 		} else {
 			stream.recData = buffer.NewPipeBuffer(0)
 			stream.header = header
@@ -847,10 +851,10 @@ func (s *clientStream) AppendPing(context context.Context) {
 }
 
 func (s *clientStream) endStream() {
-	s.sc.mutex.Lock()
-	defer s.sc.mutex.Unlock()
 
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
+	s.sc.mutex.Lock()
+	defer s.sc.mutex.Unlock()
 	if err != nil {
 		// todo: other error scenes
 		log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)
