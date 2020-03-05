@@ -2,7 +2,6 @@
   "servers":[
      {
        "default_log_path":"stdout",
-		 "default_log_level": "DEBUG",
        "listeners":[
           {
 	    "name":"serverListener",
@@ -15,30 +14,42 @@
 			 {
 	           "type": "proxy",
 		   "config": {
-		      "downstream_protocol": "Auto",
-		      "upstream_protocol": "Http1",
+		      "downstream_protocol": "SofaRpc",
+		      "upstream_protocol": "SofaRpc",
 			 "router_config_name":"server_router"
-
-		   }
-			 },
+		  	 }
+	       },
 			 {
-			 "type":"connection_manager",
-			 "config":{
-			   "router_config_name":"server_router",
-			   "virtual_hosts":[{
-				 "name":"serverHost",
-				 "domains": ["*"],
-				 "routers": [
-				   {
-					 "match":{"prefix":"/"},
-					 "route":{"cluster_name":"serverCluster"}
-				   }
-				 ]
-			   }]
-			  
-			 }
+			   "type":"connection_manager",
+			   "config":{
+				 "router_config_name":"server_router",
+				 "virtual_hosts":[{
+				   "name":"serverHost",
+				   "domains": ["*"],
+				   "routers": [
+					 {
+					   "match":{"headers":[{"name":"service","value":".*"}]},
+					   "route":{"cluster_name":"serverCluster"}
+					 }
+				   ]
+				 }]
+			   }
+
+					 
 			 }]
-	    }]
+	    }],
+	    "stream_filters": [
+	    	{
+			"type": "healthcheck",
+			"config": {
+				"cache_time": "360s",
+				"cluster_min_healthy_percentages": {
+					"local_service": 70
+				},
+				"passthrough": false
+			}
+		}
+	    ]
 	  },
 	  {
 	    "name":"clientListener",
@@ -50,11 +61,11 @@
 	       "filters": [
 			 {
 	           "type": "proxy",
-			 "config": {
-				"downstream_protocol": "Auto",
-				"upstream_protocol": "Http2",
-			   "router_config_name":"client_router"
-			 }
+			   "config": {
+				  "downstream_protocol": "SofaRpc",
+				  "upstream_protocol": "SofaRpc",
+				 "router_config_name":"client_router"
+			   }
 	       },
 			 {
 			   "type":"connection_manager",
@@ -65,14 +76,14 @@
 				   "domains": ["*"],
 				   "routers": [
 					 {
-					   "match":{"prefix":"/"},
+					   "match":{"headers":[{"name":"service","value":".*"}]},
 					   "route":{"cluster_name":"clientCluster"}
 					 }
 				   ]
 				 }]
 			   }
-		   }
-		   ]
+					 
+			 }]
 	    }]
 	  }
        ]
