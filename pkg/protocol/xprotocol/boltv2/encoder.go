@@ -32,9 +32,38 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 		// 1. replace requestId
 		binary.BigEndian.PutUint32(request.rawMeta[RequestIdIndex:], request.RequestId)
 
-		// 2. TODO: header mutate
+		// 2. check header change
+		// TODO: body change judge
+		if !request.Header.Changed  {
+			return request.Data, nil
+		}
 
-		return request.Data, nil
+		// 3. calculate length
+		headerLen := getHeaderEncodeLength(&request.Header)
+		frameLen := RequestHeaderLen + int(request.ClassLen) + headerLen + int(request.ContentLen)
+
+		// 4. repack buffer
+		// TODO: buffer chain
+		buf := *buffer.GetBytesByContext(ctx, frameLen)
+
+		copy(buf[0:], request.rawMeta)
+
+		headerIndex := RequestHeaderLen + int(request.ClassLen)
+		contentIndex := headerIndex + int(request.HeaderLen)
+
+		if request.ClassLen > 0 {
+			copy(buf[RequestHeaderLen:], request.Class)
+		}
+
+		if request.HeaderLen > 0 {
+			encodeHeader(buf[headerIndex:], &request.Header)
+		}
+
+		if request.ContentLen > 0 {
+			copy(buf[contentIndex:], request.Content.Bytes())
+		}
+
+		return buffer.NewIoBufferBytes(buf), nil
 	}
 
 	// 2. slow-path, construct buffer from scratch
@@ -90,9 +119,38 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 		// 1. replace requestId
 		binary.BigEndian.PutUint32(response.rawMeta[RequestIdIndex:], uint32(response.RequestId))
 
-		// 2. TODO: header mutate
+		// 2. check header change
+		// TODO: body change judge
+		if !response.Header.Changed  {
+			return response.Data, nil
+		}
 
-		return response.Data, nil
+		// 3. calculate length
+		headerLen := getHeaderEncodeLength(&response.Header)
+		frameLen := ResponseHeaderLen + int(response.ClassLen) + headerLen + int(response.ContentLen)
+
+		// 4. repack buffer
+		// TODO: buffer chain
+		buf := *buffer.GetBytesByContext(ctx, frameLen)
+
+		copy(buf[0:], response.rawMeta)
+
+		headerIndex := ResponseHeaderLen + int(response.ClassLen)
+		contentIndex := headerIndex + int(response.HeaderLen)
+
+		if response.ClassLen > 0 {
+			copy(buf[ResponseHeaderLen:], response.Class)
+		}
+
+		if response.HeaderLen > 0 {
+			encodeHeader(buf[headerIndex:], &response.Header)
+		}
+
+		if response.ContentLen > 0 {
+			copy(buf[contentIndex:], response.Content.Bytes())
+		}
+
+		return buffer.NewIoBufferBytes(buf), nil
 	}
 
 	// 2. slow-path, construct buffer from scratch

@@ -81,11 +81,6 @@ type HeartbeatPredicate interface {
 	IsHeartbeatFrame() bool
 }
 
-// TODO: confirm
-type HeaderMutator interface {
-	MutateHeader(bytes []byte) []byte
-}
-
 // ServiceAware provides the ability to get the most common info for rpc invocation: service name and method name
 type ServiceAware interface {
 	GetServiceName() string
