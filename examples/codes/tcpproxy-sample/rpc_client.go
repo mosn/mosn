@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"mosn.io/pkg/buffer"
 	"net"
 	"time"
 
@@ -16,7 +17,6 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/sofarpc"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/buffer"
 )
 
 type Client struct {

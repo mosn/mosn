@@ -1,8 +1,17 @@
+<<<<<<< HEAD
+=======
+# github.com/AlexStocks/dubbogo v0.2.0
+github.com/AlexStocks/dubbogo/codec
+github.com/AlexStocks/dubbogo/codec/hessian
+# github.com/AlexStocks/goext v0.3.2
+github.com/AlexStocks/goext/strings
+# github.com/AlexStocks/log4go v1.0.2
+github.com/AlexStocks/log4go
+>>>>>>> istio1.4
 # github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
 github.com/TarsCloud/TarsGo/tars
-github.com/TarsCloud/TarsGo/tars/protocol/codec
-github.com/TarsCloud/TarsGo/tars/protocol/res/requestf
 github.com/TarsCloud/TarsGo/tars/model
+github.com/TarsCloud/TarsGo/tars/protocol/codec
 github.com/TarsCloud/TarsGo/tars/protocol/res/adminf
 github.com/TarsCloud/TarsGo/tars/protocol/res/basef
 github.com/TarsCloud/TarsGo/tars/protocol/res/configf
@@ -12,26 +21,35 @@ github.com/TarsCloud/TarsGo/tars/protocol/res/nodef
 github.com/TarsCloud/TarsGo/tars/protocol/res/notifyf
 github.com/TarsCloud/TarsGo/tars/protocol/res/propertyf
 github.com/TarsCloud/TarsGo/tars/protocol/res/queryf
+github.com/TarsCloud/TarsGo/tars/protocol/res/requestf
 github.com/TarsCloud/TarsGo/tars/protocol/res/statf
 github.com/TarsCloud/TarsGo/tars/transport
 github.com/TarsCloud/TarsGo/tars/util/conf
 github.com/TarsCloud/TarsGo/tars/util/current
 github.com/TarsCloud/TarsGo/tars/util/debug
 github.com/TarsCloud/TarsGo/tars/util/endpoint
+github.com/TarsCloud/TarsGo/tars/util/gpool
 github.com/TarsCloud/TarsGo/tars/util/rogger
 github.com/TarsCloud/TarsGo/tars/util/rtimer
 github.com/TarsCloud/TarsGo/tars/util/set
 github.com/TarsCloud/TarsGo/tars/util/tools
+<<<<<<< HEAD
 github.com/TarsCloud/TarsGo/tars/util/gpool
 # github.com/apache/dubbo-go-hessian2 v1.3.0
 github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java_exception
+=======
+>>>>>>> istio1.4
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 github.com/c2h5oh/datasize
+# github.com/census-instrumentation/opencensus-proto v0.2.1
+github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1
+github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+<<<<<<< HEAD
 # github.com/dubbogo/gost v1.1.1
 github.com/dubbogo/gost/bytes
 github.com/dubbogo/gost/math/big
@@ -39,44 +57,54 @@ github.com/dubbogo/gost/math/big
 github.com/envoyproxy/go-control-plane/envoy/api/v2/core
 github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2
 github.com/envoyproxy/go-control-plane/envoy/api/v2/auth
+=======
+# github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473
+>>>>>>> istio1.4
 github.com/envoyproxy/go-control-plane/envoy/api/v2
-github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2
+github.com/envoyproxy/go-control-plane/envoy/api/v2/auth
 github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster
+github.com/envoyproxy/go-control-plane/envoy/api/v2/core
 github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint
 github.com/envoyproxy/go-control-plane/envoy/api/v2/listener
 github.com/envoyproxy/go-control-plane/envoy/api/v2/route
 github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2
+github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2
+github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
+github.com/envoyproxy/go-control-plane/envoy/config/filter/fault/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2
-github.com/envoyproxy/go-control-plane/envoy/type
-github.com/envoyproxy/go-control-plane/pkg/util
-github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
+github.com/envoyproxy/go-control-plane/envoy/config/listener/v2
 github.com/envoyproxy/go-control-plane/envoy/config/metrics/v2
 github.com/envoyproxy/go-control-plane/envoy/config/overload/v2alpha
-github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v2
 github.com/envoyproxy/go-control-plane/envoy/config/trace/v2
-github.com/envoyproxy/go-control-plane/envoy/config/filter/fault/v2
+github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2
+github.com/envoyproxy/go-control-plane/envoy/type
 github.com/envoyproxy/go-control-plane/envoy/type/matcher
-# github.com/gogo/googleapis v1.2.0
+github.com/envoyproxy/go-control-plane/pkg/conversion
+github.com/envoyproxy/go-control-plane/pkg/wellknown
+# github.com/envoyproxy/protoc-gen-validate v0.1.0
+github.com/envoyproxy/protoc-gen-validate/validate
+# github.com/gogo/googleapis v1.3.2
 github.com/gogo/googleapis/google/rpc
-github.com/gogo/googleapis/google/api
-# github.com/gogo/protobuf v1.2.1
+# github.com/gogo/protobuf v1.3.1
+github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/proto
-github.com/gogo/protobuf/types
-github.com/gogo/protobuf/gogoproto
-github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
+github.com/gogo/protobuf/sortkeys
+github.com/gogo/protobuf/types
 # github.com/golang/protobuf v1.3.2
-github.com/golang/protobuf/proto
 github.com/golang/protobuf/jsonpb
-github.com/golang/protobuf/ptypes/duration
-github.com/golang/protobuf/ptypes/struct
+github.com/golang/protobuf/proto
 github.com/golang/protobuf/protoc-gen-go/descriptor
-github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
+github.com/golang/protobuf/ptypes/duration
+github.com/golang/protobuf/ptypes/empty
+github.com/golang/protobuf/ptypes/struct
+github.com/golang/protobuf/ptypes/timestamp
+github.com/golang/protobuf/ptypes/wrappers
 # github.com/hashicorp/go-hclog v0.0.0-20180709165350-ff2cf002a8dd
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-plugin v1.0.1
@@ -98,6 +126,16 @@ github.com/klauspost/compress/zlib
 github.com/klauspost/cpuid
 # github.com/lyft/protoc-gen-validate v0.0.14
 github.com/lyft/protoc-gen-validate/validate
+<<<<<<< HEAD
+=======
+# github.com/mailru/easyjson v0.0.0-20190626092158-b2ccc519800e
+github.com/mailru/easyjson
+github.com/mailru/easyjson/buffer
+github.com/mailru/easyjson/jlexer
+github.com/mailru/easyjson/jwriter
+# github.com/mattn/go-isatty v0.0.8
+github.com/mattn/go-isatty
+>>>>>>> istio1.4
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77
@@ -116,14 +154,14 @@ github.com/pkg/errors
 github.com/pmezard/go-difflib/difflib
 # github.com/prometheus/client_golang v1.0.0
 github.com/prometheus/client_golang/prometheus
-github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus/internal
-# github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
+github.com/prometheus/client_golang/prometheus/promhttp
+# github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
 github.com/prometheus/client_model/go
 # github.com/prometheus/common v0.6.0
 github.com/prometheus/common/expfmt
-github.com/prometheus/common/model
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.3
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
@@ -143,41 +181,47 @@ github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/stackless
 # golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/chacha20poly1305
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/chacha20
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
+golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
+golang.org/x/net/context
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-golang.org/x/net/context
-golang.org/x/net/trace
 golang.org/x/net/internal/timeseries
+golang.org/x/net/trace
 # golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
+golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-golang.org/x/sys/cpu
 # golang.org/x/text v0.3.2
 golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-golang.org/x/text/transform
-# google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64
+# google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.20.1
+# google.golang.org/grpc v1.23.0
 google.golang.org/grpc
-google.golang.org/grpc/credentials
 google.golang.org/grpc/balancer
+google.golang.org/grpc/balancer/base
 google.golang.org/grpc/balancer/roundrobin
+google.golang.org/grpc/binarylog/grpc_binarylog_v1
 google.golang.org/grpc/codes
 google.golang.org/grpc/connectivity
+google.golang.org/grpc/credentials
+google.golang.org/grpc/credentials/internal
 google.golang.org/grpc/encoding
 google.golang.org/grpc/encoding/proto
 google.golang.org/grpc/grpclog
+google.golang.org/grpc/health
+google.golang.org/grpc/health/grpc_health_v1
 google.golang.org/grpc/internal
 google.golang.org/grpc/internal/backoff
 google.golang.org/grpc/internal/balancerload
@@ -186,6 +230,7 @@ google.golang.org/grpc/internal/channelz
 google.golang.org/grpc/internal/envconfig
 google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
+google.golang.org/grpc/internal/syscall
 google.golang.org/grpc/internal/transport
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/metadata
@@ -194,23 +239,23 @@ google.golang.org/grpc/peer
 google.golang.org/grpc/resolver
 google.golang.org/grpc/resolver/dns
 google.golang.org/grpc/resolver/passthrough
+google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-google.golang.org/grpc/health
-google.golang.org/grpc/health/grpc_health_v1
-google.golang.org/grpc/credentials/internal
-google.golang.org/grpc/balancer/base
-google.golang.org/grpc/binarylog/grpc_binarylog_v1
-google.golang.org/grpc/internal/syscall
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
 # istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
-istio.io/api/mixer/v1/config/client
 istio.io/api/mixer/v1
+istio.io/api/mixer/v1/config/client
 # mosn.io/api v0.0.0-20200210061141-e6cfcd972201
 mosn.io/api
+<<<<<<< HEAD
 # mosn.io/pkg v0.0.0-20200224153138-1e4184714e74
+=======
+# mosn.io/pkg v0.0.0-20200207120148-6da53b3d2db5
+>>>>>>> istio1.4
 mosn.io/pkg/buffer
 mosn.io/pkg/utils
 mosn.io/pkg/log
+mosn.io/pkg/utils

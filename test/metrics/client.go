@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"mosn.io/api"
 	"net"
 	"net/http"
 	"sync/atomic"
@@ -135,7 +136,7 @@ func (c *RPCClient) Send() <-chan error {
 }
 func (c *RPCClient) DestroyConn() {
 	if c.conn != nil {
-		c.conn.Close(types.NoFlush, types.LocalClose)
+		c.conn.Close(api.NoFlush, api.LocalClose)
 		c.conn = nil
 	}
 }
