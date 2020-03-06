@@ -273,7 +273,10 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 	return pool
 }
 
-const cycleTimes = 5
+const (
+	maxHostsCounts  = 3
+	maxTryConnTimes = 7
+)
 
 var (
 	errNilHostChoose   = errors.New("cluster snapshot choose host is nil")
@@ -287,14 +290,14 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
 	}
 
-	var pools [cycleTimes]types.ConnectionPool
+	var pools [maxHostsCounts]types.ConnectionPool
 
 	try := clusterSnapshot.HostNum(balancerContext.MetadataMatchCriteria())
 	if try == 0 {
 		return nil, errNilHostChoose
 	}
-	if try > cycleTimes {
-		try = cycleTimes
+	if try > maxHostsCounts {
+		try = maxHostsCounts
 	}
 	for i := 0; i < try; i++ {
 		host := clusterSnapshot.LoadBalancer().ChooseHost(balancerContext)
@@ -361,7 +364,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 
 	// perhaps the first request, wait for tcp handshaking. total wait time is 1ms + 10ms + (100ms * 5)
 	waitTime := time.Millisecond
-	for t := 0; t < cycleTimes; t++ {
+	for t := 0; t < maxTryConnTimes; t++ {
 		time.Sleep(waitTime)
 		for i := 0; i < try; i++ {
 			if pools[i] == nil {
