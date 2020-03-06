@@ -273,7 +273,7 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 	return pool
 }
 
-const cycleTimes = 3
+const cycleTimes = 5
 
 var (
 	errNilHostChoose   = errors.New("cluster snapshot choose host is nil")
@@ -359,7 +359,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		pools[i] = pool
 	}
 
-	// perhaps the first request, wait for tcp handshaking. total wait time is 1ms + 10ms + 100ms
+	// perhaps the first request, wait for tcp handshaking. total wait time is 1ms + 10ms + (100ms * 5)
 	waitTime := time.Millisecond
 	for t := 0; t < cycleTimes; t++ {
 		time.Sleep(waitTime)
@@ -371,7 +371,10 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				return pools[i], nil
 			}
 		}
-		waitTime *= 10
+		// max wait time is 100 * time.Millisecond
+		if waitTime < 100*time.Millisecond {
+			waitTime *= 10
+		}
 	}
 	return nil, errNoHealthyHost
 }
