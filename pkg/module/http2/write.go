@@ -8,11 +8,11 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 	"net/http"
 	"net/url"
 
 	"golang.org/x/net/http/httpguts"
-	"golang.org/x/net/http2/hpack"
 )
 
 // writeFramer is implemented by any type that is used to write frames.

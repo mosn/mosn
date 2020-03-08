@@ -327,6 +327,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		log.DefaultLogger.Debugf("http2 server receive data: %d", id)
 		if _, err = stream.recData.Write(data); err != nil {
 			conn.handleError(ctx, f, err)
+			return
 		}
 	}
 
@@ -697,7 +698,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 }
 
 func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Frame, err error) {
-	conn.mClientConn.HandleError(ctx, f, err)
+	//conn.mClientConn.HandleError(ctx, f, err)
 	if err != nil {
 		switch err := err.(type) {
 		// todo: other error scenes

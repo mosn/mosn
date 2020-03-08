@@ -12,12 +12,11 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/net/http/httpguts"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/hpack"
 	"io"
 	"math"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 	"mosn.io/pkg/buffer"
 	"net/http"
 	"net/url"
@@ -186,18 +185,18 @@ func NewServerConn(conn api.Connection) *MServerConn {
 	sc.cond = sync.NewCond(&sc.mu)
 
 	// init serverConn
-	sc.serverConn.hpackEncoder = hpack.NewEncoder(&sc.headerWriteBuf)
-	sc.serverConn.flow.add(initialWindowSize)
-	sc.serverConn.inflow.add(initialWindowSize)
+	sc.hpackEncoder = hpack.NewEncoder(&sc.headerWriteBuf)
+	sc.flow.add(initialWindowSize)
+	sc.inflow.add(initialWindowSize)
 
-	sc.serverConn.advMaxStreams = defaultMaxStreams
-	sc.serverConn.streams = make(map[uint32]*stream)
-	sc.serverConn.clientMaxStreams = math.MaxUint32
-	sc.serverConn.initialStreamSendWindowSize = initialWindowSize
-	sc.serverConn.maxFrameSize = initialMaxFrameSize
-	sc.serverConn.headerTableSize = initialHeaderTableSize
+	sc.advMaxStreams = defaultMaxStreams
+	sc.streams = make(map[uint32]*stream)
+	sc.clientMaxStreams = math.MaxUint32
+	sc.initialStreamSendWindowSize = initialWindowSize
+	sc.maxFrameSize = initialMaxFrameSize
+	sc.headerTableSize = initialHeaderTableSize
 
-	sc.serverConn.pushEnabled = false
+	sc.pushEnabled = false
 
 	// init MFramer
 	fr := new(MFramer)
@@ -380,7 +379,7 @@ func (sc *MServerConn) HandleFrame(ctx context.Context, f Frame) (*MStream, []by
 	case *PushPromiseFrame:
 		// A client cannot push. Thus, servers MUST treat the receipt of a PUSH_PROMISE
 		// frame as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
-		err = http2.ConnectionError(http2.ErrCodeProtocol)
+		err = ConnectionError(ErrCodeProtocol)
 	default:
 		err = fmt.Errorf("http2: server ignoring frame: %v", f.Header())
 	}
@@ -404,6 +403,7 @@ func (sc *MServerConn) HandleFrame(ctx context.Context, f Frame) (*MStream, []by
 }
 
 func (sc *MServerConn) HandleError(ctx context.Context, f Frame, err error) {
+	log.DefaultLogger.Warnf("[Server Conn] [Handler Err] hanler frame：%v error：%v", f, err)
 	return
 }
 
@@ -903,8 +903,7 @@ func (sc *MServerConn) goAway(code ErrCode, debugData []byte) {
 type MClientConn struct {
 	ClientConn
 
-	mu   sync.Mutex
-	cond *sync.Cond
+	hmu sync.Mutex
 
 	Framer *MFramer
 	api.Connection
@@ -915,15 +914,15 @@ func NewClientConn(conn api.Connection) *MClientConn {
 	cc := new(MClientConn)
 	cc.Connection = conn
 
-	cc.ClientConn.streams = make(map[uint32]*clientStream)
-	cc.ClientConn.pings = make(map[[8]byte]chan struct{})
-	cc.ClientConn.wantSettingsAck = true
-	cc.ClientConn.nextStreamID = 1
-	cc.ClientConn.maxFrameSize = 16 << 10
-	cc.ClientConn.initialWindowSize = 65535
-	cc.ClientConn.maxConcurrentStreams = 1000
-	cc.ClientConn.peerMaxHeaderListSize = 0xffffffffffffffff
-	cc.ClientConn.wantSettingsAck = true
+	cc.streams = make(map[uint32]*clientStream)
+	cc.pings = make(map[[8]byte]chan struct{})
+	cc.wantSettingsAck = true
+	cc.nextStreamID = 1
+	cc.maxFrameSize = 16 << 10
+	cc.initialWindowSize = 65535
+	cc.maxConcurrentStreams = 1000
+	cc.peerMaxHeaderListSize = 0xffffffffffffffff
+	cc.wantSettingsAck = true
 	cc.cond = sync.NewCond(&cc.mu)
 
 	cc.flow.add(initialWindowSize)
@@ -965,12 +964,17 @@ func (cc *MClientConn) WriteHeaders(ctx context.Context, req *http.Request, trai
 	if err := checkConnHeaders(req); err != nil {
 		return nil, err
 	}
+
+	// StreamId has to be sequential
 	cc.mu.Lock()
+	defer cc.mu.Unlock()
 
 	cs := cc.newStream()
 	cs.req = req
+	cc.hmu.Lock()
 	hdrs, err := cc.encodeHeaders(req, false, trailers, req.ContentLength)
-	cc.mu.Unlock()
+	cc.hmu.Unlock()
+
 	if err != nil {
 		//delete(cc.streams, cs.ID)
 		return nil, err
@@ -1024,74 +1028,64 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
 		return
 	}
 
-	// write data
+	// write data and trailer
+	//todo start a new thread to implement bothstream
+	go func() {
+		if err = cc.writeDataAndTrailer(); err != nil {
+			cc.conn.HandleError(nil, cc.ID, err, cc.SendData)
+		}
+	}()
+
+	return
+}
+
+func (cc *MClientStream) writeDataAndTrailer() (err error) {
+	conn := cc.conn
 	var sawEOF bool
 	for !sawEOF {
-		buf := make([]byte, defaultMaxReadFrameSize)
+		buf := make([]byte, conn.maxFrameSize)
 		n, err := cc.SendData.Read(buf)
 		if err == io.EOF {
 			sawEOF = true
 			err = nil
 		} else if err != nil {
-			_ = cc.conn.Framer.WriteRSTStream(cc.ID, ErrCodeCancel)
 			return err
 		}
 		remain := buf[:n]
-		for len(remain) > 0 && err == nil {
+		for len(remain) > 0 {
 			var allowed int32
-			allowed, err = cc.awaitFlowControl(len(remain))
-			cc.conn.mu.Lock()
+			if allowed, err = cc.awaitFlowControl(len(remain)); err != nil {
+				return err
+			}
 			data := remain[:allowed]
 			remain = remain[allowed:]
-			err = cc.conn.Framer.writeData(cc.ID, false, data)
-			cc.conn.mu.Unlock()
+			if err = conn.Framer.writeData(cc.ID, false, data); err != nil {
+				return err
+			}
 		}
 	}
 
 	//write trailer
 	if end := cc.Trailer == nil || len(cc.Trailer) == 0; end {
 		err = cc.conn.Framer.writeData(cc.ID, true, nil)
+		if err != nil {
+			return
+		}
 	} else {
-		cc.conn.mu.Lock()
+		cc.conn.hmu.Lock()
 		var trls []byte
 		trls, err = cc.conn.encodeTrailers(cc.Request)
-		cc.conn.mu.Unlock()
+		cc.conn.hmu.Unlock()
 		if err != nil {
-			return err
+			log.DefaultLogger.Fatalf("[Stream H2] [Client] Encode trailer error: %v", err)
+			return
 		}
 		err = cc.conn.writeHeaders(cc.ID, true, int(cc.conn.maxFrameSize), trls)
+		if err != nil {
+			return
+		}
 	}
 	return
-}
-
-func (cs *MClientStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
-	cc := cs.conn
-	cc.mu.Lock()
-	defer cc.mu.Unlock()
-	for {
-		if cc.closed {
-			return 0, errClientConnClosed
-		}
-		if cs.stopReqBody != nil {
-			return 0, cs.stopReqBody
-		}
-		if err := cs.checkResetOrDone(); err != nil {
-			return 0, err
-		}
-		if a := cs.flow.available(); a > 0 {
-			take := a
-			if int(take) > maxBytes {
-
-				take = int32(maxBytes) // can't truncate int; take is int32
-			}
-			if take > int32(cc.maxFrameSize) {
-				take = int32(cc.maxFrameSize)
-			}
-			cs.flow.take(take)
-			return take, nil
-		}
-		cc.cond.Wait()
-	}
 }
 
 func (cc *MClientConn) writeHeaders(streamID uint32, endStream bool, maxFrameSize int, hdrs []byte) error {
@@ -1139,7 +1133,18 @@ func (cc *MClientConn) newStream() *clientStream {
 	return cs
 }
 
-func (sc *MClientConn) HandleError(ctx context.Context, f Frame, err error) {
+func (cc *MClientConn) HandleError(ctx context.Context, streamId uint32, err error, buffer buffer.IoBuffer) {
+	if cs := cc.streamByID(streamId, true); cs != nil {
+		_ = cc.Framer.WriteRSTStream(streamId, ErrCodeCancel)
+	}
+	if buffer != nil {
+		buffer.CloseWithError(StreamError{
+			StreamID: streamId,
+			Code:     ErrCodeCancel,
+			Cause:    err,
+		})
+	}
+
 	return
 }
 
@@ -1173,7 +1178,7 @@ func (sc *MClientConn) HandleFrame(ctx context.Context, f Frame) (*http.Response
 	case *PushPromiseFrame:
 		// A client cannot push. Thus, servers MUST treat the receipt of a PUSH_PROMISE
 		// frame as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
-		err = ConnectionError(http2.ErrCodeProtocol)
+		err = ConnectionError(ErrCodeProtocol)
 	default:
 		err = fmt.Errorf("http2: server ignoring frame: %v", f.Header())
 	}
