@@ -20,6 +20,7 @@ package server
 import (
 	"fmt"
 	"net/http"
+	"runtime"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	jsoniter "github.com/json-iterator/go"
@@ -56,6 +57,23 @@ type Server struct {
 	*http.Server
 }
 
+type recoveryHandler struct {
+	handle func(http.ResponseWriter, *http.Request)
+}
+
+func (h *recoveryHandler) serveHTTP(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		e := recover()
+		if e != nil {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			log.DefaultLogger.Errorf("http: panic serving %v: %v\n%s", r.RemoteAddr, e, buf)
+		}
+	}()
+	h.handle(w, r)
+}
+
 func (s *Server) Start(config Config) {
 	var addr string
 	if config != nil {
@@ -76,7 +94,8 @@ func (s *Server) Start(config Config) {
 
 	mux := http.NewServeMux()
 	for pattern, handler := range apiHandleFuncStore {
-		mux.HandleFunc(pattern, handler)
+		wrphandler := recoveryHandler{handler}
+		mux.HandleFunc(pattern, wrphandler.serveHTTP)
 	}
 
 	srv := &http.Server{Addr: addr, Handler: mux}
