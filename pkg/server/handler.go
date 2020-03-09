@@ -113,10 +113,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter 
 	// set network filter and stream filter
 	var networkFiltersFactories []api.NetworkFilterChainFactory
 	var streamFiltersFactories []api.StreamFilterChainFactory
-	if !lc.UseOriginalDst {
-		networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
-		streamFiltersFactories = configmanager.GetStreamFilters(lc.StreamFilters)
-	}
+	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
+	streamFiltersFactories = configmanager.GetStreamFilters(lc.StreamFilters)
 
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
@@ -131,19 +129,17 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter 
 		rawConfig := al.listener.Config()
 		// FIXME: update log level need the pkg/logger support.
 
-		if !lc.UseOriginalDst {
-			if updateNetworkFilter {
-				log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
-				al.networkFiltersFactories = networkFiltersFactories
-				rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
-				rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
-			}
+		if updateNetworkFilter {
+			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
+			al.networkFiltersFactories = networkFiltersFactories
+			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
+			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
+		}
 
-			if updateStreamFilter {
-				log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
-				al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
-				rawConfig.StreamFilters = lc.StreamFilters
-			}
+		if updateStreamFilter {
+			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
+			al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
+			rawConfig.StreamFilters = lc.StreamFilters
 		}
 
 		// tls update only take effects on new connections
@@ -554,7 +550,7 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 }
 
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
-	var listener, localListener *activeListener
+	var virtualListener, listener, localListener *activeListener
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -564,6 +560,10 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
 			localListener = lst
+		}
+
+		if lst.listener.Name() == "virtual" {
+			virtualListener = lst
 		}
 	}
 
@@ -577,16 +577,26 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	}
 
 	if listener != nil {
+		virtualListener = nil
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 	if localListener != nil {
+		virtualListener = nil
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+	}
+
+	// If it can’t find any matching listeners and should using the virtual listener.
+	if virtualListener != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", virtualListener.listenIP, virtualListener.listenPort)
+		}
+		virtualListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 }
 

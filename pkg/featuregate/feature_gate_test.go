@@ -124,6 +124,50 @@ func TestSetFeatureGate(t *testing.T) {
 
 }
 
+func TestSetFromMap(t *testing.T) {
+	fg := NewFeatureGate()
+	features := []struct {
+		name     string
+		spec     FeatureSpec
+		expected bool
+	}{
+		{
+			name:     "foo",
+			spec:     &BaseFeatureSpec{},
+			expected: true,
+		},
+		{
+			name:     "bar",
+			spec:     &BaseFeatureSpec{},
+			expected: true,
+		},
+	}
+
+	m := make(map[string]bool)
+	for _, f := range features {
+		fg.AddFeatureSpec(Feature(f.name), f.spec)
+		m[f.name] = f.expected
+	}
+
+	// expect no error setting from map.
+	if err := fg.SetFromMap(m); err != nil {
+		t.Errorf("error setting feature states from map: %v", err)
+	}
+
+	// expect actual state equals to expected state.
+	for k, v := range m {
+		if state := fg.Enabled(Feature(k)); state != v {
+			t.Errorf("feature state not equal, expect: %v, actual: %v", v, state)
+		}
+	}
+
+	// expect error when setting state for a non-registered feature.
+	m["feature-not-found"] = true
+	if err := fg.SetFromMap(m); err == nil {
+		t.Errorf("setting feature state without registering, expect err, got nil.")
+	}
+}
+
 func _IsSubTimeout(err error) bool {
 	if err == nil {
 		return false

@@ -24,6 +24,9 @@ import (
 // CreateErrorLoggerFunc creates a ErrorLogger implementation by output and level
 type CreateErrorLoggerFunc func(output string, level log.Level) (log.ErrorLogger, error)
 
+// The default function to CreateErrorLoggerFunc
+var DefaultCreateErrorLoggerFunc CreateErrorLoggerFunc = CreateDefaultErrorLogger
+
 // Wrapper of pkg/log
 // Level is an alias of log.Level
 type Level = log.Level

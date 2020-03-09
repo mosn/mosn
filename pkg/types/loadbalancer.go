@@ -29,8 +29,9 @@ type LoadBalancerType string
 
 // The load balancer's types
 const (
-	RoundRobin LoadBalancerType = "LB_ROUNDROBIN"
-	Random     LoadBalancerType = "LB_RANDOM"
+	RoundRobin   LoadBalancerType = "LB_ROUNDROBIN"
+	Random       LoadBalancerType = "LB_RANDOM"
+	ORIGINAL_DST LoadBalancerType = "LB_ORIGINAL_DST"
 )
 
 // LoadBalancer is a upstream load balancer.
@@ -59,6 +60,9 @@ type LoadBalancerContext interface {
 
 	// DownstreamContext returns the downstream context
 	DownstreamContext() context.Context
+
+	// Downstream cluster info
+	DownstreamCluster() ClusterInfo
 }
 
 // LBSubsetEntry is a entry that stored in the subset hierarchy.

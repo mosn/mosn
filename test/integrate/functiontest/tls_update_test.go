@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/http/conv"
@@ -72,7 +72,7 @@ type TLSUpdateCase struct {
 	ListenerName string
 	C            chan error
 	T            *testing.T
-	Finish       chan bool
+	Defers       []func()
 }
 
 func NewTLSUpdateCase(t *testing.T, proto types.Protocol, server util.UpstreamServer) *TLSUpdateCase {
@@ -81,7 +81,6 @@ func NewTLSUpdateCase(t *testing.T, proto types.Protocol, server util.UpstreamSe
 		AppServer: server,
 		C:         make(chan error),
 		T:         t,
-		Finish:    make(chan bool),
 	}
 }
 
@@ -138,20 +137,26 @@ func (c *TLSUpdateCase) Start(tls bool) {
 	// for test, reset adapter
 	server.ResetAdapter()
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		c.AppServer.Close()
 		mesh.Close()
-		time.Sleep(5 * time.Second)
-		c.Finish <- true
-	}()
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	})
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
+func (c *TLSUpdateCase) DeferFinishCase(f func()) {
+	c.Defers = append(c.Defers, f)
+}
+
+// Finish case and wait close returns
 func (c *TLSUpdateCase) FinishCase() {
-	c.Finish <- true
-	<-c.Finish
+	if len(c.Defers) != 0 {
+		for _, def := range c.Defers {
+			def()
+		}
+		c.Defers = c.Defers[:0]
+	}
 }
 
 func (c *TLSUpdateCase) UpdateTLS(inspector bool, cfgs []v2.TLSConfig) error {
@@ -281,11 +286,10 @@ func (c *TLSUpdateCase) RequestTLS(isTLS bool, n int, interval int) {
 // NoneToTLS
 // first listen a non-tls listener, then update to tls
 func TestUpdateTLS_NoneToTLS(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TLSUpdateCase{
 		NewTLSUpdateCase(t, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
+		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
 	}
 	for i, tc := range testCases {
 		verify := func() {
@@ -318,11 +322,10 @@ func TestUpdateTLS_NoneToTLS(t *testing.T) {
 // TLSToNone
 // first listen a tls listener, then update to non-tls
 func TestUpdateTLS_TLSToNone(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TLSUpdateCase{
 		NewTLSUpdateCase(t, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
+		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
 	}
 	for i, tc := range testCases {
 		verify := func() {
@@ -353,11 +356,10 @@ func TestUpdateTLS_TLSToNone(t *testing.T) {
 
 // TLS to inspector
 func TestUpdateTLS_TLSToInspector(t *testing.T) {
-	appaddr := "127.0.0.1:8080"
 	testCases := []*TLSUpdateCase{
 		NewTLSUpdateCase(t, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
-		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1)),
+		// NewTLSUpdateCase(t, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
+		NewTLSUpdateCase(t, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
 	}
 	for i, tc := range testCases {
 		verify := func() {

@@ -271,13 +271,17 @@ func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []strin
 	configLock.Lock()
 	// reset service info
 	config.ServiceRegistry.ServiceAppInfo = v2.ApplicationInfo{
-		AntShareCloud: appInfo.AntShareCloud,
-		DataCenter:    appInfo.DataCenter,
-		AppName:       appInfo.AppName,
-		DeployMode:    appInfo.DeployMode,
-		MasterSystem:  appInfo.MasterSystem,
-		CloudName:     appInfo.CloudName,
-		HostMachine:   appInfo.HostMachine,
+		AntShareCloud:    appInfo.AntShareCloud,
+		DataCenter:       appInfo.DataCenter,
+		AppName:          appInfo.AppName,
+		DeployMode:       appInfo.DeployMode,
+		MasterSystem:     appInfo.MasterSystem,
+		CloudName:        appInfo.CloudName,
+		HostMachine:      appInfo.HostMachine,
+		InstanceId:       appInfo.InstanceId,
+		RegistryEndpoint: appInfo.RegistryEndpoint,
+		AccessKey:        appInfo.AccessKey,
+		SecretKey:        appInfo.SecretKey,
 	}
 
 	// reset servicePubInfo
