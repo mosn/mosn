@@ -100,6 +100,12 @@ func (ms *MStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 	for {
+		if cc.State() == api.ConnClosed {
+			return
+		}
+		if ms.state == stateClosed {
+			return
+		}
 		if a := ms.flow.available(); a > 0 {
 			take := a
 			if int(take) > maxBytes {
@@ -151,7 +157,7 @@ func (ms *MStream) WriteTrailers() error {
 func (ms *MStream) Reset() {
 	ev := streamError(ms.id, ErrCodeInternal)
 	ms.conn.resetStream(ev)
-	ms.conn.delStream(ms.id)
+	ms.conn.closeStream(ms.stream, ev)
 
 }
 
@@ -748,8 +754,8 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 		}
 		st.inflow.take(int32(f.Length))
 
-		if st.inflow.available() < sc.maxFrameSize {
-			i := int(sc.initialStreamSendWindowSize - sc.inflow.available())
+		if st.inflow.available() < initialConnRecvWindowSize/2 {
+			i := int(initialConnRecvWindowSize - st.inflow.available())
 			sc.sendWindowUpdate(nil, i)
 			sc.sendWindowUpdate(st, i)
 		}
@@ -1098,6 +1104,36 @@ func (cc *MClientStream) writeDataAndTrailer() (err error) {
 	return
 }
 
+func (cs *MClientStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
+	cc := cs.conn
+	cc.mu.Lock()
+	defer cc.mu.Unlock()
+	for {
+		if cc.State() == api.ConnClosed {
+			return
+		}
+		select {
+		case <-cs.done:
+			return
+		default:
+		}
+
+		if a := cs.flow.available(); a > 0 {
+			take := a
+			if int(take) > maxBytes {
+
+				take = int32(maxBytes) // can't truncate int; take is int32
+			}
+			if take > int32(cc.maxFrameSize) {
+				take = int32(cc.maxFrameSize)
+			}
+			cs.flow.take(take)
+			return take, nil
+		}
+		cc.cond.Wait()
+	}
+}
+
 func (cc *MClientConn) writeHeaders(streamID uint32, endStream bool, maxFrameSize int, hdrs []byte) error {
 	first := true // first frame written (HEADERS is first, then CONTINUATION)
 
@@ -1138,6 +1174,7 @@ func (cc *MClientConn) newStream() *clientStream {
 	cs.flow.setConnFlow(&cc.flow)
 	cs.inflow.add(transportDefaultStreamFlow)
 	cs.inflow.setConnFlow(&cc.inflow)
+	cs.done = make(chan struct{})
 	cc.nextStreamID += 2
 	return cs
 }
@@ -1578,6 +1615,8 @@ func (cc *MClientConn) streamByID(id uint32, andRemove bool) *clientStream {
 	if andRemove && cs != nil {
 		cc.lastActive = time.Now()
 		delete(cc.streams, id)
+		close(cs.done)
+		cc.cond.Broadcast()
 	}
 	return cs
 }

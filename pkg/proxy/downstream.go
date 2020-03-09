@@ -1354,7 +1354,6 @@ func (s *downStream) sendNotify() {
 	select {
 	case s.notify <- struct{}{}:
 	default:
-		close(s.notify)
 	}
 }
 

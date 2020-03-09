@@ -209,7 +209,6 @@ func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 				buf.CloseWithError(errClosedServerConn)
 			}
 		}
-
 	}
 }
 
@@ -374,7 +373,6 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 			conn.mutex.Lock()
 			s := conn.streams[err.StreamID]
 			if s != nil {
-
 				delete(conn.streams, err.StreamID)
 			}
 			conn.mutex.Unlock()
@@ -408,9 +406,9 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	detect := conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
 
 	stream.receiver = detect
-	if listener, b := detect.(types.StreamEventListener); b {
-		stream.AddEventListener(listener)
-	}
+
+	stream.AddEventListener(detect.(types.StreamEventListener))
+
 	return stream, nil
 }
 
