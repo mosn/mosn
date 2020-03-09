@@ -715,6 +715,7 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 		// But still enforce their connection-level flow control,
 		// and return any flow control bytes since we're not going
 		// to consume them.
+		sc.mu.Lock()
 		if sc.inflow.available() < int32(f.Length) {
 			return false, streamError(id, ErrCodeFlowControl)
 		}
@@ -724,6 +725,7 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 		// frames.
 		sc.inflow.take(int32(f.Length))
 		sc.sendWindowUpdate(nil, int(f.Length)) // conn-level
+		sc.mu.Unlock()
 
 		if st != nil && st.resetQueued {
 			// Already have a stream error in flight. Don't send another.
@@ -738,11 +740,19 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 	}
 
 	if f.Length > 0 {
+		sc.mu.Lock()
+		defer sc.mu.Unlock()
 		// Check whether the client has flow control quota.
 		if st.inflow.available() < int32(f.Length) {
 			return false, streamError(id, ErrCodeFlowControl)
 		}
 		st.inflow.take(int32(f.Length))
+
+		if st.inflow.available() < sc.maxFrameSize {
+			i := int(sc.initialStreamSendWindowSize - sc.inflow.available())
+			sc.sendWindowUpdate(nil, i)
+			sc.sendWindowUpdate(st, i)
+		}
 
 		// Return any padded flow control now, since we won't
 		// refund it later on body reads.
