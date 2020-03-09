@@ -22,9 +22,5 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	if string(response.Body) != "world" {
-		fmt.Printf("faild! response body :%s\n", string(response.Body))
-		return
-	}
-	fmt.Printf("success! response body: %s\n", string(response.Body))
+	fmt.Printf("response body: %s\n", string(response.Body))
 }
