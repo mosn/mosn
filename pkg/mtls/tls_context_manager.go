@@ -19,6 +19,7 @@ package mtls
 
 import (
 	"net"
+	"reflect"
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -50,7 +51,8 @@ func NewTLSServerContextManager(cfg *v2.Listener) (types.TLSContextManager, erro
 			if err != nil {
 				return nil, err
 			}
-			if provider != nil {
+			// provider is an interface, needs to check by reflect
+			if provider != nil && !reflect.ValueOf(provider).IsNil() {
 				// if a server receive a empty provider and do not support fallback, it should be failed
 				if provider.Empty() {
 					if !tlsCfg.Fallback {
