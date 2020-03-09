@@ -191,9 +191,26 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection, s
 	})
 
 	sc.streams = make(map[uint32]*serverStream, 32)
+
+	connection.AddConnectionEventListener(sc)
 	log.Proxy.Debugf(ctx, "new http2 server stream connection")
 
 	return sc
+}
+
+var errClosedServerConn = errors.New("server conn is closed")
+
+func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+	if event.IsClose() || event.ConnectFailure() {
+		for _, stream := range conn.streams {
+			if buf := stream.recData; buf != nil {
+				buf.CloseWithError(errClosedServerConn)
+			}
+		}
+
+	}
 }
 
 // types.StreamConnectionM
@@ -314,7 +331,6 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		stream.trailers = &mhttp2.HeaderMap{}
 		stream.receiver.OnReceive(stream.ctx, header, stream.recData, stream.trailers)
 		stream.header = header
-		//return
 	}
 
 	// data
@@ -326,7 +342,11 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		}
 		log.DefaultLogger.Debugf("http2 server receive data: %d", id)
 		if _, err = stream.recData.Write(data); err != nil {
-			conn.handleError(ctx, f, err)
+			conn.handleError(ctx, f, http2.StreamError{
+				StreamID: id,
+				Code:     http2.ErrCodeCancel,
+				Cause:    err,
+			})
 			return
 		}
 	}
@@ -506,7 +526,8 @@ func (s *serverStream) GetStream() types.Stream {
 func (s *serverStream) sendStream() {
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
 	if err != nil {
-		// todo: other error scenes
+		//todo delete stream
+
 		log.Proxy.Errorf(s.ctx, "http2 server SendResponse  error :%v", err)
 		s.stream.ResetStream(types.StreamLocalReset)
 		return
@@ -544,7 +565,23 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 	sc.cm.Next()
 
 	sc.streams = make(map[uint32]*clientStream, 32)
+	connection.AddConnectionEventListener(sc)
 	return sc
+}
+
+var errClosedClientConn = errors.New("client conn is closed")
+
+func (conn *clientStreamConnection) OnEvent(event api.ConnectionEvent) {
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+	if event.IsClose() || event.ConnectFailure() {
+		for _, stream := range conn.streams {
+			if buf := stream.recData; buf != nil {
+				buf.CloseWithError(errClosedClientConn)
+			}
+		}
+
+	}
 }
 
 // types.StreamConnection
@@ -679,7 +716,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 
 	// data
 	if data != nil {
-		log.DefaultLogger.Debugf("http2 server receive data: %d", id)
+		log.DefaultLogger.Debugf("http2 client receive data: %d", id)
 		if _, err = stream.recData.Write(data); err != nil {
 			conn.handleError(ctx, f, err)
 		}

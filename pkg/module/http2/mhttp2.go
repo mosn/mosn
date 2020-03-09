@@ -79,13 +79,12 @@ func (ms *MStream) WriteData() (err error) {
 			sawEOF = true
 			err = nil
 		} else if err != nil {
-			_ = ms.conn.Framer.WriteRSTStream(ms.id, ErrCodeCancel)
 			return err
 		}
 		remain := buf[:n]
 		for len(remain) > 0 && err == nil {
 			var allowed int32
-			allowed, err = ms.awaitFlowControl(len(remain))
+			allowed, _ = ms.awaitFlowControl(len(remain))
 			ms.conn.mu.Lock()
 			data := remain[:allowed]
 			remain = remain[allowed:]
@@ -976,16 +975,15 @@ func (cc *MClientConn) WriteHeaders(ctx context.Context, req *http.Request, trai
 	cc.hmu.Unlock()
 
 	if err != nil {
-		//delete(cc.streams, cs.ID)
 		return nil, err
 	}
 	err = cc.writeHeaders(cs.ID, endStream, int(cc.maxFrameSize), hdrs)
 	if err != nil {
-		//delete(cc.streams, cs.ID)
 		return nil, err
 	}
-	return cs, nil
 
+	cc.streams[cs.ID] = cs
+	return cs, nil
 }
 
 // MClientStream is Http2 Client Stream
@@ -1019,6 +1017,7 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
 
 	endStream := cc.SendData == nil
 
+	//if WriteHeader err
 	cs, err := cc.conn.WriteHeaders(ctx, cc.Request, "", endStream)
 	if err != nil {
 		return err
@@ -1029,10 +1028,11 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
 	}
 
 	// write data and trailer
-	//todo start a new thread to implement bothstream
+	//if writeData err ,
 	go func() {
 		if err = cc.writeDataAndTrailer(); err != nil {
 			cc.conn.HandleError(nil, cc.ID, err, cc.SendData)
+
 		}
 	}()
 
@@ -1128,24 +1128,26 @@ func (cc *MClientConn) newStream() *clientStream {
 	cs.flow.setConnFlow(&cc.flow)
 	cs.inflow.add(transportDefaultStreamFlow)
 	cs.inflow.setConnFlow(&cc.inflow)
-	cc.streams[cs.ID] = cs
 	cc.nextStreamID += 2
 	return cs
 }
 
 func (cc *MClientConn) HandleError(ctx context.Context, streamId uint32, err error, buffer buffer.IoBuffer) {
-	if cs := cc.streamByID(streamId, true); cs != nil {
-		_ = cc.Framer.WriteRSTStream(streamId, ErrCodeCancel)
-	}
-	if buffer != nil {
-		buffer.CloseWithError(StreamError{
-			StreamID: streamId,
-			Code:     ErrCodeCancel,
-			Cause:    err,
-		})
+	log.DefaultLogger.Warnf("[Stream Client] Stream ID %d, err %v", streamId, err)
+	serr := StreamError{
+		StreamID: streamId,
+		Code:     ErrCodeCancel,
+		Cause:    err,
 	}
 
-	return
+	_ = cc.resetStream(serr)
+
+	if buffer != nil {
+		buffer.CloseWithError(serr)
+	}
+	//todo Distinguish stream and conn err
+	//close connection，because the other thread need delete stream
+	cc.Connection.Close(api.NoFlush, api.RemoteClose)
 }
 
 // HandlerFrame handles Frame for Http2 Client
