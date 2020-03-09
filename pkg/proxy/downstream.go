@@ -301,7 +301,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
 		return
 	}
-
+	log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
 	s.resetReason = reason
 
 	s.sendNotify()

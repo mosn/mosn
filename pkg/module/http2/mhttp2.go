@@ -402,8 +402,7 @@ func (sc *MServerConn) HandleFrame(ctx context.Context, f Frame) (*MStream, []by
 }
 
 func (sc *MServerConn) HandleError(ctx context.Context, f Frame, err error) {
-	log.DefaultLogger.Warnf("[Server Conn] [Handler Err] hanler frame：%v error：%v", f, err)
-	return
+	log.DefaultLogger.Warnf("[Server Conn] [Handler Err] hanfler frame：%v error：%v", f, err)
 }
 
 // processHeaders processes Headers Frame
@@ -875,6 +874,7 @@ func (sc *MServerConn) startGracefulShutdownInternal() {
 
 func (sc *MServerConn) resetStream(se StreamError) error {
 	if st := sc.getStream(se.StreamID); st != nil {
+		log.DefaultLogger.Warnf("[Mservr Conn] streamId %d send RestFrame ", se.StreamID)
 		st.resetQueued = true
 
 		buf := buffer.NewIoBuffer(frameHeaderLen + 8)
@@ -1077,7 +1077,7 @@ func (cc *MClientStream) writeDataAndTrailer() (err error) {
 		trls, err = cc.conn.encodeTrailers(cc.Request)
 		cc.conn.hmu.Unlock()
 		if err != nil {
-			log.DefaultLogger.Fatalf("[Stream H2] [Client] Encode trailer error: %v", err)
+			log.DefaultLogger.Errorf("[Stream H2] [Client] Encode trailer error: %v", err)
 			return
 		}
 		err = cc.conn.writeHeaders(cc.ID, true, int(cc.conn.maxFrameSize), trls)
@@ -1552,7 +1552,7 @@ func (cc *MClientConn) processGoAway(f *GoAwayFrame) error {
 
 func (sc *MClientConn) resetStream(se StreamError) error {
 	if st := sc.streamByID(se.StreamID, true); st != nil {
-
+		log.DefaultLogger.Warnf("[Mclient Conn] streamId %d send RestFrame ", se.StreamID)
 		buf := buffer.NewIoBuffer(frameHeaderLen + 8)
 		sc.Framer.startWrite(buf, FrameRSTStream, 0, se.StreamID)
 		sc.Framer.writeUint32(buf, uint32(se.Code))

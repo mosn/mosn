@@ -374,6 +374,7 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 			conn.mutex.Lock()
 			s := conn.streams[err.StreamID]
 			if s != nil {
+
 				delete(conn.streams, err.StreamID)
 			}
 			conn.mutex.Unlock()
@@ -404,7 +405,12 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 		conn.mutex.Unlock()
 	}
 
-	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
+	detect := conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
+
+	stream.receiver = detect
+	if listener, b := detect.(types.StreamEventListener); b {
+		stream.AddEventListener(listener)
+	}
 	return stream, nil
 }
 
@@ -498,20 +504,6 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers api.Head
 	return nil
 }
 
-func (s *serverStream) endStream() {
-	defer s.DestroyStream()
-
-	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
-	if err != nil {
-		// todo: other error scenes
-		log.Proxy.Errorf(s.ctx, "http2 server SendResponse  error :%v", err)
-		s.stream.ResetStream(types.StreamLocalReset)
-		return
-	}
-
-	log.Proxy.Debugf(s.ctx, "http2 server SendResponse id = %d", s.id)
-}
-
 func (s *serverStream) ResetStream(reason types.StreamResetReason) {
 	// on stream reset
 	log.Proxy.Errorf(s.ctx, "http2 server reset stream id = %d, error = %v", s.id, reason)
@@ -526,14 +518,12 @@ func (s *serverStream) GetStream() types.Stream {
 func (s *serverStream) sendStream() {
 	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
 	if err != nil {
-		//todo delete stream
-
 		log.Proxy.Errorf(s.ctx, "http2 server SendResponse  error :%v", err)
 		s.stream.ResetStream(types.StreamLocalReset)
 		return
 	}
 
-	log.Proxy.Infof(s.ctx, "http2 server SendResponse id = %d", s.id)
+	log.Proxy.Debugf(s.ctx, "http2 server SendResponse id = %d", s.id)
 }
 
 type clientStreamConnection struct {
@@ -718,7 +708,11 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	if data != nil {
 		log.DefaultLogger.Debugf("http2 client receive data: %d", id)
 		if _, err = stream.recData.Write(data); err != nil {
-			conn.handleError(ctx, f, err)
+			conn.handleError(ctx, f, &http2.StreamError{
+				StreamID: id,
+				Code:     http2.ErrCodeCancel,
+				Cause:    err,
+			})
 		}
 
 	}
