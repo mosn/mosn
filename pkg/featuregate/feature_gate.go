@@ -215,9 +215,6 @@ func (fg *FeatureGate) setFeatureState(key Feature, enable bool) error {
 		return fmt.Errorf("feature %s is locked to %v", key, spec.Default())
 	}
 	spec.SetState(enable)
-	if spec.PreRelease() == GA {
-		log.StartLogger.Warnf("Setting GA feature gate %s=%t. It will be removed in a future release.", key, enable)
-	}
 	return nil
 }
 

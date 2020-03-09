@@ -101,15 +101,18 @@ func TestSetFeatureGate(t *testing.T) {
 	if !fg.Enabled("feature_set_to_true") {
 		t.Error("set feature failed")
 	}
-	// if exists a feature not registered, ignore it
 	// empty will be ignore
-	p := "feature_set_to_true=true, feature_set_to_false=false, feature_lock_to_true=false, feature_not_exists=true,,"
-	fg.Set(p)
+	p := "feature_set_to_true=true, feature_set_to_false=false ,"
+	if err := fg.Set(p); err != nil {
+		t.Fatal(err)
+	}
 	// set invalid parameters, ignore all of them
 	for _, invalid := range []string{
 		"feature_set_to_true,feature_set_to_false", // no equals
 		"feature_set_to_false=yes",                 // not a boolean
 		"feature_set_to_false==true",               // too many equals
+		"feature_not_exists=true",                  // not a known feature
+		"feature_lock_to_true=false",               // a locked feature
 	} {
 		if err := fg.Set(invalid); err == nil {
 			t.Error("expected set failed")
