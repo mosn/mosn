@@ -59,16 +59,12 @@ func Reset() {
 func SetMosnConfig(cfg *v2.MOSNConfig) {
 	mutex.Lock()
 	defer mutex.Unlock()
-	// Copy the unchanged config
-	conf.MosnConfig = &v2.MOSNConfig{
-		Tracing:             cfg.Tracing,
-		Metrics:             cfg.Metrics,
-		RawDynamicResources: cfg.RawDynamicResources,
-		RawStaticResources:  cfg.RawStaticResources,
-		RawAdmin:            cfg.RawAdmin,
-		Debug:               cfg.Debug,
-		Plugin:              cfg.Plugin,
-	}
+	conf.MosnConfig = &v2.MOSNConfig{}
+	*conf.MosnConfig = *cfg
+	// Clear the changed config
+	conf.MosnConfig.ServiceRegistry = v2.ServiceRegistryInfo{}
+	conf.MosnConfig.ClusterManager = v2.ClusterManagerConfig{}
+	conf.MosnConfig.Servers = []v2.ServerConfig{}
 	if len(cfg.Servers) > 0 {
 		srv := cfg.Servers[0] // support only one server
 		conf.MosnConfig.Servers = []v2.ServerConfig{
