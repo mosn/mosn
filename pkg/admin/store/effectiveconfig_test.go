@@ -37,6 +37,7 @@ func setupSubTest(t *testing.T) func(t *testing.T) {
 
 func TestSetMosnConfig(t *testing.T) {
 	Reset()
+	createMosnConfig()
 	// Set MosnConfig
 	rawcfg := &v2.MOSNConfig{}
 	if err := json.Unmarshal([]byte(mosnConfig), rawcfg); err != nil {
