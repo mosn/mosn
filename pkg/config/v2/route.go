@@ -187,7 +187,7 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 	}
 	// dynamic mode, should write file
 	// first, get all the files in the directory
-	os.Mkdir(rc.RouterConfigPath, 0755)
+	os.MkdirAll(rc.RouterConfigPath, 0755)
 	files, err := ioutil.ReadDir(rc.RouterConfigPath)
 	if err != nil {
 		return nil, err
