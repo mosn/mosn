@@ -17,6 +17,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2/hpack"
+	"mosn.io/mosn/vendor/mosn.io/pkg/utils"
 	"mosn.io/pkg/buffer"
 	"net/http"
 	"net/url"
@@ -72,8 +73,8 @@ func (ms *MStream) WriteHeader(end bool) error {
 
 func (ms *MStream) WriteData() (err error) {
 	var sawEOF bool
+	buf := make([]byte, defaultMaxReadFrameSize)
 	for !sawEOF {
-		buf := make([]byte, defaultMaxReadFrameSize)
 		n, err := ms.SendData.Read(buf)
 		if err == io.EOF {
 			sawEOF = true
@@ -84,7 +85,9 @@ func (ms *MStream) WriteData() (err error) {
 		remain := buf[:n]
 		for len(remain) > 0 && err == nil {
 			var allowed int32
-			allowed, _ = ms.awaitFlowControl(len(remain))
+			if allowed, err = ms.awaitFlowControl(len(remain)); err != nil {
+				return err
+			}
 			ms.conn.mu.Lock()
 			data := remain[:allowed]
 			remain = remain[allowed:]
@@ -101,10 +104,10 @@ func (ms *MStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
 	defer cc.mu.Unlock()
 	for {
 		if cc.State() == api.ConnClosed {
-			return
+			return 0, errClientConnClosed
 		}
 		if ms.state == stateClosed {
-			return
+			return 0, errStreamClosed
 		}
 		if a := ms.flow.available(); a > 0 {
 			take := a
@@ -723,6 +726,7 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 		// to consume them.
 		sc.mu.Lock()
 		if sc.inflow.available() < int32(f.Length) {
+			sc.mu.Unlock()
 			return false, streamError(id, ErrCodeFlowControl)
 		}
 		// Deduct the flow control from inflow, since we're
@@ -747,18 +751,12 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 
 	if f.Length > 0 {
 		sc.mu.Lock()
-		defer sc.mu.Unlock()
 		// Check whether the client has flow control quota.
 		if st.inflow.available() < int32(f.Length) {
+			sc.mu.Unlock()
 			return false, streamError(id, ErrCodeFlowControl)
 		}
 		st.inflow.take(int32(f.Length))
-
-		if st.inflow.available() < initialConnRecvWindowSize/2 {
-			i := int(initialConnRecvWindowSize - st.inflow.available())
-			sc.sendWindowUpdate(nil, i)
-			sc.sendWindowUpdate(st, i)
-		}
 
 		// Return any padded flow control now, since we won't
 		// refund it later on body reads.
@@ -767,7 +765,14 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 			sc.sendWindowUpdate32(st, pad)
 		}
 
+		if st.inflow.available() < initialConnRecvWindowSize/2 {
+			i := int(initialConnRecvWindowSize - st.inflow.available())
+			sc.sendWindowUpdate(nil, i)
+			sc.sendWindowUpdate(st, i)
+		}
+
 		st.bodyBytes += int64(len(data))
+		sc.mu.Unlock()
 	}
 	if f.StreamEnded() {
 		st.state = stateHalfClosedRemote
@@ -1045,21 +1050,20 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
 
 	// write data and trailer
 	//if writeData err ,
-	go func() {
+	utils.GoWithRecover(func() {
 		if err = cc.writeDataAndTrailer(); err != nil {
 			cc.conn.HandleError(nil, cc.ID, err, cc.SendData)
 
 		}
-	}()
-
+	}, nil)
 	return
 }
 
 func (cc *MClientStream) writeDataAndTrailer() (err error) {
 	conn := cc.conn
 	var sawEOF bool
+	buf := make([]byte, conn.maxFrameSize)
 	for !sawEOF {
-		buf := make([]byte, conn.maxFrameSize)
 		n, err := cc.SendData.Read(buf)
 		if err == io.EOF {
 			sawEOF = true
@@ -1110,11 +1114,11 @@ func (cs *MClientStream) awaitFlowControl(maxBytes int) (taken int32, err error)
 	defer cc.mu.Unlock()
 	for {
 		if cc.State() == api.ConnClosed {
-			return
+			return 0, errClientConnClosed
 		}
 		select {
 		case <-cs.done:
-			return
+			return 0, errStreamClosed
 		default:
 		}
 

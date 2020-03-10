@@ -403,11 +403,7 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 		conn.mutex.Unlock()
 	}
 
-	detect := conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
-
-	stream.receiver = detect
-
-	stream.AddEventListener(detect.(types.StreamEventListener))
+	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
 
 	return stream, nil
 }
