@@ -80,7 +80,7 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		return nil
 	}
 	attr := &dubboAttr{}
-	decoder := hessian.NewDecoder(data[:])
+	decoder := hessian.NewDecoderWithSkip(data[:])
 	var field interface{}
 	var err error
 	var ok bool
@@ -252,7 +252,7 @@ func dubboGetMeta(data []byte) map[string]string {
 		retMap[types.HeaderXprotocolRespStatus] = strconv.Itoa(int(status))
 
 		// TODO: support version under v2.7.1
-		decoder := hessian.NewDecoder(data[DUBBO_HEADER_LEN:])
+		decoder := hessian.NewDecoderWithSkip(data[DUBBO_HEADER_LEN:])
 		field, err := decoder.Decode()
 		if err != nil {
 			fmt.Printf("Decode resWithException fail, err=%v\n", err)
