@@ -22,6 +22,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"net"
+	"strings"
 	"time"
 
 	"mosn.io/mosn/pkg/log"
@@ -36,6 +37,14 @@ import (
 // It implements the net.Conn interface.
 type TLSConn struct {
 	*tls.Conn
+}
+
+func (c *TLSConn) Read(b []byte) (int, error) {
+	n, err := c.Conn.Read(b)
+	if err != nil && strings.Contains(err.Error(), "tls") {
+		log.DefaultLogger.Errorf("[mtls] tls connection read error: %v", err)
+	}
+	return n, err
 }
 
 // Conn is a generic stream-oriented network connection.
