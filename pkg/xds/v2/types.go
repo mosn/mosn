@@ -45,10 +45,11 @@ type ClusterConfig struct {
 
 // ADSConfig contains ADS config from dynamic resources
 type ADSConfig struct {
-	APIType      core.ApiConfigSource_ApiType
-	RefreshDelay *time.Duration
-	Services     []*ServiceConfig
-	StreamClient *StreamClient
+	APIType        core.ApiConfigSource_ApiType
+	RefreshDelay   *time.Duration
+	RequestTimeout *time.Duration
+	Services       []*ServiceConfig
+	StreamClient   *StreamClient
 }
 
 // ADSClient communicated with pilot
