@@ -6,12 +6,12 @@ package tls
 
 import (
 	"bytes"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 	"net"
 	"os"
 	"reflect"

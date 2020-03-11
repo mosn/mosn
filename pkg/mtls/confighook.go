@@ -18,12 +18,12 @@
 package mtls
 
 import (
-	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"strings"
 
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 )
 
 type defaultConfigHooks struct{}

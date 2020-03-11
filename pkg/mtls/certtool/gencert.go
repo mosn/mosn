@@ -25,13 +25,14 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
 	"math/big"
 	"net"
 	"time"
+	
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 )
 
 type certificate struct {

@@ -11,11 +11,11 @@ import (
 	"crypto/md5"
 	"crypto/rsa"
 	"crypto/sha1"
-	"crypto/x509"
 	"encoding/asn1"
 	"errors"
 	"io"
 	"math/big"
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 
 	"golang.org/x/crypto/curve25519"
 )

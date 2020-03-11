@@ -164,22 +164,33 @@ func (c *Conn) GetConnectionState() gotls.ConnectionState {
 	state.ServerName = c.serverName
 
 	if c.handshakeComplete {
-		state.Version = c.vers
-		state.NegotiatedProtocol = c.clientProtocol
-		state.DidResume = c.didResume
-		state.NegotiatedProtocolIsMutual = !c.clientProtocolFallback
-		state.CipherSuite = c.cipherSuite
-		state.PeerCertificates = c.peerCertificates
-		state.VerifiedChains = c.verifiedChains
-		state.SignedCertificateTimestamps = c.scts
-		state.OCSPResponse = c.ocspResponse
-		if !c.didResume {
-			if c.clientFinishedIsFirst {
-				state.TLSUnique = c.clientFinished[:]
-			} else {
-				state.TLSUnique = c.serverFinished[:]
+		if useBabasslTag.IsOpen() {
+			sslConnState := c.ssl.GetConnectionState()
+			state.Version = sslConnState.Version
+			state.DidResume = sslConnState.DidResume
+			state.NegotiatedProtocol = sslConnState.NegotiatedProtocol
+			state.NegotiatedProtocolIsMutual = sslConnState.NegotiatedProtocolIsMutual
+			state.CipherSuite = sslConnState.CipherSuite
+			state.PeerCertificates = TransferSliceX509toGoX509(sslConnState.PeerCertificates)
+		} else {
+			state.Version = c.vers
+			state.NegotiatedProtocol = c.clientProtocol
+			state.DidResume = c.didResume
+			state.NegotiatedProtocolIsMutual = !c.clientProtocolFallback
+			state.CipherSuite = c.cipherSuite
+			state.PeerCertificates = TransferSliceX509toGoX509(c.peerCertificates)
+			state.VerifiedChains = TransferSliceArrX509toGoX509(c.verifiedChains)
+			state.SignedCertificateTimestamps = c.scts
+			state.OCSPResponse = c.ocspResponse
+			if !c.didResume {
+				if c.clientFinishedIsFirst {
+					state.TLSUnique = c.clientFinished[:]
+				} else {
+					state.TLSUnique = c.serverFinished[:]
+				}
 			}
 		}
+
 	}
 
 	return state

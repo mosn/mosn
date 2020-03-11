@@ -18,10 +18,10 @@
 package mtls
 
 import (
-	"crypto/x509"
 	"errors"
 
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 )
 
 // Support Protocols version

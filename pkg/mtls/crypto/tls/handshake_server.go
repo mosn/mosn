@@ -9,11 +9,11 @@ import (
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"crypto/subtle"
-	"crypto/x509"
 	"encoding/asn1"
 	"errors"
 	"fmt"
 	"io"
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 )
 
 // serverHandshakeState contains details of a server handshake in progress.

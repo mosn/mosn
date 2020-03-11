@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/pem"
@@ -25,6 +24,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 )
 
 // Note: see comment in handshake_test.go for details of how the reference

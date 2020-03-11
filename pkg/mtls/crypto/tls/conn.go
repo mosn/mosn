@@ -10,7 +10,6 @@ import (
 	"bytes"
 	"crypto/cipher"
 	"crypto/subtle"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -18,13 +17,18 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 )
 
 // A Conn represents a secured connection.
 // It implements the net.Conn interface.
 type Conn struct {
 	// constant
-	conn     net.Conn
+	conn net.Conn
+	// cgo with BabaSSL
+	ssl *Ssl
+
 	isClient bool
 
 	// constant after handshake; protected by handshakeMutex
@@ -556,7 +560,12 @@ func (e RecordHeaderError) Error() string { return "tls: " + e.Msg }
 
 func (c *Conn) newRecordHeaderError(msg string) (err RecordHeaderError) {
 	err.Msg = msg
-	copy(err.RecordHeader[:], c.rawInput.data)
+	if useBabasslTag.IsOpen() {
+		rawByte := c.ssl.GetRawInput()
+		copy(err.RecordHeader[:], rawByte[:5])
+	} else {
+		copy(err.RecordHeader[:], c.rawInput.data)
+	}
 	return err
 }
 
@@ -1036,40 +1045,45 @@ func (c *Conn) Write(b []byte) (int, error) {
 	c.out.Lock()
 	defer c.out.Unlock()
 
-	if err := c.out.err; err != nil {
-		return 0, err
-	}
-
-	if !c.handshakeComplete {
-		return 0, alertInternalError
-	}
-
-	if c.closeNotifySent {
-		return 0, errShutdown
-	}
-
-	// SSL 3.0 and TLS 1.0 are susceptible to a chosen-plaintext
-	// attack when using block mode ciphers due to predictable IVs.
-	// This can be prevented by splitting each Application Data
-	// record into two records, effectively randomizing the IV.
-	//
-	// http://www.openssl.org/~bodo/tls-cbc.txt
-	// https://bugzilla.mozilla.org/show_bug.cgi?id=665814
-	// http://www.imperialviolet.org/2012/01/15/beastfollowup.html
-
-	var m int
-	if len(b) > 1 && c.vers <= VersionTLS10 {
-		if _, ok := c.out.cipher.(cipher.BlockMode); ok {
-			n, err := c.writeRecordLocked(recordTypeApplicationData, b[:1])
-			if err != nil {
-				return n, c.out.setErrorLocked(err)
-			}
-			m, b = 1, b[1:]
+	if useBabasslTag.IsOpen() {
+		n, err := c.ssl.Write(b)
+		return n, err
+	} else {
+		if err := c.out.err; err != nil {
+			return 0, err
 		}
-	}
 
-	n, err := c.writeRecordLocked(recordTypeApplicationData, b)
-	return n + m, c.out.setErrorLocked(err)
+		if !c.handshakeComplete {
+			return 0, alertInternalError
+		}
+
+		if c.closeNotifySent {
+			return 0, errShutdown
+		}
+
+		// SSL 3.0 and TLS 1.0 are susceptible to a chosen-plaintext
+		// attack when using block mode ciphers due to predictable IVs.
+		// This can be prevented by splitting each Application Data
+		// record into two records, effectively randomizing the IV.
+		//
+		// http://www.openssl.org/~bodo/tls-cbc.txt
+		// https://bugzilla.mozilla.org/show_bug.cgi?id=665814
+		// http://www.imperialviolet.org/2012/01/15/beastfollowup.html
+
+		var m int
+		if len(b) > 1 && c.vers <= VersionTLS10 {
+			if _, ok := c.out.cipher.(cipher.BlockMode); ok {
+				n, err := c.writeRecordLocked(recordTypeApplicationData, b[:1])
+				if err != nil {
+					return n, c.out.setErrorLocked(err)
+				}
+				m, b = 1, b[1:]
+			}
+		}
+
+		n, err := c.writeRecordLocked(recordTypeApplicationData, b)
+		return n + m, c.out.setErrorLocked(err)
+	}
 }
 
 // handleRenegotiation processes a HelloRequest handshake message.
@@ -1129,58 +1143,70 @@ func (c *Conn) Read(b []byte) (n int, err error) {
 	c.in.Lock()
 	defer c.in.Unlock()
 
-	// Some OpenSSL servers send empty records in order to randomize the
-	// CBC IV. So this loop ignores a limited number of empty records.
-	const maxConsecutiveEmptyRecords = 100
-	for emptyRecordCount := 0; emptyRecordCount <= maxConsecutiveEmptyRecords; emptyRecordCount++ {
-		for c.input == nil && c.in.err == nil {
-			if err := c.readRecord(recordTypeApplicationData); err != nil {
-				// Soft error, like EAGAIN
-				return 0, err
-			}
-			if c.hand.Len() > 0 {
-				// We received handshake bytes, indicating the
-				// start of a renegotiation.
-				if err := c.handleRenegotiation(); err != nil {
-					return 0, err
+	if useBabasslTag.IsOpen() {
+		n, readErr := c.ssl.Read(b)
+		if readErr != nil {
+			if sslerr, ok := readErr.(*babasslErr); ok {
+				if sslerr.ErrType == sslErrSsl {
+					return n, c.newRecordHeaderError(sslerr.Msg)
 				}
 			}
 		}
-		if err := c.in.err; err != nil {
-			return 0, err
-		}
+		return n, readErr
+	} else {
+		// Some OpenSSL servers send empty records in order to randomize the
+		// CBC IV. So this loop ignores a limited number of empty records.
+		const maxConsecutiveEmptyRecords = 100
+		for emptyRecordCount := 0; emptyRecordCount <= maxConsecutiveEmptyRecords; emptyRecordCount++ {
+			for c.input == nil && c.in.err == nil {
+				if err := c.readRecord(recordTypeApplicationData); err != nil {
+					// Soft error, like EAGAIN
+					return 0, err
+				}
+				if c.hand.Len() > 0 {
+					// We received handshake bytes, indicating the
+					// start of a renegotiation.
+					if err := c.handleRenegotiation(); err != nil {
+						return 0, err
+					}
+				}
+			}
+			if err := c.in.err; err != nil {
+				return 0, err
+			}
 
-		n, err = c.input.Read(b)
-		if c.input.off >= len(c.input.data) {
-			c.in.freeBlock(c.input)
-			c.input = nil
-		}
+			n, err = c.input.Read(b)
+			if c.input.off >= len(c.input.data) {
+				c.in.freeBlock(c.input)
+				c.input = nil
+			}
 
-		// If a close-notify alert is waiting, read it so that
-		// we can return (n, EOF) instead of (n, nil), to signal
-		// to the HTTP response reading goroutine that the
-		// connection is now closed. This eliminates a race
-		// where the HTTP response reading goroutine would
-		// otherwise not observe the EOF until its next read,
-		// by which time a client goroutine might have already
-		// tried to reuse the HTTP connection for a new
-		// request.
-		// See https://codereview.appspot.com/76400046
-		// and https://golang.org/issue/3514
-		if ri := c.rawInput; ri != nil &&
-			n != 0 && err == nil &&
-			c.input == nil && len(ri.data) > 0 && recordType(ri.data[0]) == recordTypeAlert {
-			if recErr := c.readRecord(recordTypeApplicationData); recErr != nil {
-				err = recErr // will be io.EOF on closeNotify
+			// If a close-notify alert is waiting, read it so that
+			// we can return (n, EOF) instead of (n, nil), to signal
+			// to the HTTP response reading goroutine that the
+			// connection is now closed. This eliminates a race
+			// where the HTTP response reading goroutine would
+			// otherwise not observe the EOF until its next read,
+			// by which time a client goroutine might have already
+			// tried to reuse the HTTP connection for a new
+			// request.
+			// See https://codereview.appspot.com/76400046
+			// and https://golang.org/issue/3514
+			if ri := c.rawInput; ri != nil &&
+				n != 0 && err == nil &&
+				c.input == nil && len(ri.data) > 0 && recordType(ri.data[0]) == recordTypeAlert {
+				if recErr := c.readRecord(recordTypeApplicationData); recErr != nil {
+					err = recErr // will be io.EOF on closeNotify
+				}
+			}
+
+			if n != 0 || err != nil {
+				return n, err
 			}
 		}
 
-		if n != 0 || err != nil {
-			return n, err
-		}
+		return 0, io.ErrNoProgress
 	}
-
-	return 0, io.ErrNoProgress
 }
 
 // Close closes the connection.
@@ -1206,18 +1232,23 @@ func (c *Conn) Close() error {
 		return c.conn.Close()
 	}
 
-	var alertErr error
+	if useBabasslTag.IsOpen() {
+		c.ssl.Close()
+		return c.conn.Close()
+	} else {
+		var alertErr error
 
-	c.handshakeMutex.Lock()
-	if c.handshakeComplete {
-		alertErr = c.closeNotify()
-	}
-	c.handshakeMutex.Unlock()
+		c.handshakeMutex.Lock()
+		if c.handshakeComplete {
+			alertErr = c.closeNotify()
+		}
+		c.handshakeMutex.Unlock()
 
-	if err := c.conn.Close(); err != nil {
-		return err
+		if err := c.conn.Close(); err != nil {
+			return err
+		}
+		return alertErr
 	}
-	return alertErr
 }
 
 var errEarlyCloseWrite = errors.New("tls: CloseWrite called before handshake complete")
@@ -1276,59 +1307,104 @@ func (c *Conn) Handshake() error {
 	c.handshakeMutex.Lock()
 	defer c.handshakeMutex.Unlock()
 
-	for {
-		if err := c.handshakeErr; err != nil {
-			return err
-		}
-		if c.handshakeComplete {
+	if useBabasslTag.IsOpen() {
+		if c.handshakeComplete == false {
+			ssl := Ssl{}
+			err := ssl.Init(c.conn, c.config.CgoBabasslCtx, c.isClient)
+			if err != nil {
+				return err
+			}
+			c.ssl = &ssl
+
+			err = ssl.DoHandshake()
+			if err != nil {
+				if sslerr, ok := err.(*babasslErr); ok {
+					if sslerr.ErrType == sslErrSsl {
+						return c.newRecordHeaderError(sslerr.Msg)
+					}
+				}
+				return err
+			}
+			if !c.config.InsecureSkipVerify {
+				if c.config.ServerName != "" {
+					err = checkServerNameMatchCertificate(ssl.ssl, c.config.ServerName)
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			//call self define VertifyPeerCertificate callback
+			if c.config.VerifyPeerCertificate != nil {
+				rawCerts, certErr := getPeerCertsAsGoRawByte(c.ssl.ssl)
+				if certErr != nil {
+					return certErr
+				}
+				verifyErr := c.config.VerifyPeerCertificate(rawCerts, c.verifiedChains)
+				if verifyErr != nil {
+					return verifyErr
+				}
+			}
+
+			c.handshakeComplete = true
 			return nil
 		}
-		if c.handshakeCond == nil {
-			break
+		return nil
+	} else {
+		for {
+			if err := c.handshakeErr; err != nil {
+				return err
+			}
+			if c.handshakeComplete {
+				return nil
+			}
+			if c.handshakeCond == nil {
+				break
+			}
+
+			c.handshakeCond.Wait()
 		}
 
-		c.handshakeCond.Wait()
+		// Set handshakeCond to indicate that this goroutine is committing to
+		// running the handshake.
+		c.handshakeCond = sync.NewCond(&c.handshakeMutex)
+		c.handshakeMutex.Unlock()
+
+		c.in.Lock()
+		defer c.in.Unlock()
+
+		c.handshakeMutex.Lock()
+
+		// The handshake cannot have completed when handshakeMutex was unlocked
+		// because this goroutine set handshakeCond.
+		if c.handshakeErr != nil || c.handshakeComplete {
+			panic("handshake should not have been able to complete after handshakeCond was set")
+		}
+
+		if c.isClient {
+			c.handshakeErr = c.clientHandshake()
+		} else {
+			c.handshakeErr = c.serverHandshake()
+		}
+		if c.handshakeErr == nil {
+			c.handshakes++
+		} else {
+			// If an error occurred during the hadshake try to flush the
+			// alert that might be left in the buffer.
+			c.flush()
+		}
+
+		if c.handshakeErr == nil && !c.handshakeComplete {
+			panic("handshake should have had a result.")
+		}
+
+		// Wake any other goroutines that are waiting for this handshake to
+		// complete.
+		c.handshakeCond.Broadcast()
+		c.handshakeCond = nil
+
+		return c.handshakeErr
 	}
-
-	// Set handshakeCond to indicate that this goroutine is committing to
-	// running the handshake.
-	c.handshakeCond = sync.NewCond(&c.handshakeMutex)
-	c.handshakeMutex.Unlock()
-
-	c.in.Lock()
-	defer c.in.Unlock()
-
-	c.handshakeMutex.Lock()
-
-	// The handshake cannot have completed when handshakeMutex was unlocked
-	// because this goroutine set handshakeCond.
-	if c.handshakeErr != nil || c.handshakeComplete {
-		panic("handshake should not have been able to complete after handshakeCond was set")
-	}
-
-	if c.isClient {
-		c.handshakeErr = c.clientHandshake()
-	} else {
-		c.handshakeErr = c.serverHandshake()
-	}
-	if c.handshakeErr == nil {
-		c.handshakes++
-	} else {
-		// If an error occurred during the hadshake try to flush the
-		// alert that might be left in the buffer.
-		c.flush()
-	}
-
-	if c.handshakeErr == nil && !c.handshakeComplete {
-		panic("handshake should have had a result.")
-	}
-
-	// Wake any other goroutines that are waiting for this handshake to
-	// complete.
-	c.handshakeCond.Broadcast()
-	c.handshakeCond = nil
-
-	return c.handshakeErr
 }
 
 // ConnectionState returns basic TLS details about the connection.
@@ -1341,20 +1417,29 @@ func (c *Conn) ConnectionState() ConnectionState {
 	state.ServerName = c.serverName
 
 	if c.handshakeComplete {
-		state.Version = c.vers
-		state.NegotiatedProtocol = c.clientProtocol
-		state.DidResume = c.didResume
-		state.NegotiatedProtocolIsMutual = !c.clientProtocolFallback
-		state.CipherSuite = c.cipherSuite
-		state.PeerCertificates = c.peerCertificates
-		state.VerifiedChains = c.verifiedChains
-		state.SignedCertificateTimestamps = c.scts
-		state.OCSPResponse = c.ocspResponse
-		if !c.didResume {
-			if c.clientFinishedIsFirst {
-				state.TLSUnique = c.clientFinished[:]
-			} else {
-				state.TLSUnique = c.serverFinished[:]
+		if useBabasslTag.IsOpen() {
+			sslConnState := c.ssl.GetConnectionState()
+			state.Version = sslConnState.Version
+			state.DidResume = sslConnState.DidResume
+			state.NegotiatedProtocol = sslConnState.NegotiatedProtocol
+			state.NegotiatedProtocolIsMutual = sslConnState.NegotiatedProtocolIsMutual
+			state.CipherSuite = sslConnState.CipherSuite
+		} else {
+			state.Version = c.vers
+			state.NegotiatedProtocol = c.clientProtocol
+			state.DidResume = c.didResume
+			state.NegotiatedProtocolIsMutual = !c.clientProtocolFallback
+			state.CipherSuite = c.cipherSuite
+			state.PeerCertificates = c.peerCertificates
+			state.VerifiedChains = c.verifiedChains
+			state.SignedCertificateTimestamps = c.scts
+			state.OCSPResponse = c.ocspResponse
+			if !c.didResume {
+				if c.clientFinishedIsFirst {
+					state.TLSUnique = c.clientFinished[:]
+				} else {
+					state.TLSUnique = c.serverFinished[:]
+				}
 			}
 		}
 	}

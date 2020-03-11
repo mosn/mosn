@@ -12,8 +12,9 @@ import (
 	"crypto/rc4"
 	"crypto/sha1"
 	"crypto/sha256"
-	"crypto/x509"
 	"hash"
+
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 
 	"github.com/tjfoc/gmsm/sm3"
 	"github.com/tjfoc/gmsm/sm4"
@@ -429,6 +430,15 @@ const (
 	TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305  uint16 = 0xcca9
 	TLS_ECDHE_RSA_WITH_SM4_SM3              uint16 = 0xe00f
 	TLS_ECDHE_ECDSA_WITH_SM4_SM3            uint16 = 0xe010
+
+	// TLS 1.3 cipher suites.
+	TLS_AES_128_GCM_SHA256       uint16 = 0x1301
+	TLS_AES_256_GCM_SHA384       uint16 = 0x1302
+	TLS_CHACHA20_POLY1305_SHA256 uint16 = 0x1303
+
+	//formal gm cipher
+	TLS_SM4_GCM_SM3 uint16 = 0x00c6
+	TLS_SM4_CCM_SM3 uint16 = 0x00c7
 
 	// TLS_FALLBACK_SCSV isn't a standard cipher suite but an indicator
 	// that the client is doing version fallback. See

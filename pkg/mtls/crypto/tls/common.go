@@ -9,16 +9,19 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/sha512"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
 	"math/big"
+
 	"net"
 	"strings"
 	"sync"
 	"time"
 
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
+
+	//"mosn.io/mosn/pkg/mtls/crypto/tls/cipherhw"
 	"mosn.io/mosn/pkg/mtls/crypto/tls/cipherhw"
 )
 
@@ -517,6 +520,9 @@ type Config struct {
 	// for new tickets and any subsequent keys can be used to decrypt old
 	// tickets.
 	sessionTicketKeys []ticketKey
+
+	//cgo babassl context of ssl and ssl_ctx
+	CgoBabasslCtx *SslCtx
 }
 
 // ticketKeyNameLen is the number of bytes of identifier that is prepended to
@@ -814,6 +820,10 @@ type Certificate struct {
 	// processing for TLS clients doing client authentication. If nil, the
 	// leaf certificate will be parsed as needed.
 	Leaf *x509.Certificate
+	//use for babassl
+	BabasslCert     *SslCertificate
+	CertificateFile string
+	PrivateKeyFile  string
 }
 
 type handshakeMessage interface {
