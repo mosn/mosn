@@ -551,3 +551,60 @@ func TestGmTLS(t *testing.T) {
 	ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 }
+
+func TestAlpnMatch(t *testing.T) {
+	info := certInfo{"Cert1", "RSA", "www.example.com"}
+	cfg, err := info.CreateCertConfig()
+	if err != nil {
+		t.Errorf("%v", err)
+		return
+	}
+	cfg.VerifyClient = false
+	cfg.ALPN = "h2,http/1.1,sofa"
+	filterChains := []v2.FilterChain{
+		{
+			TLSContexts: []v2.TLSConfig{
+				*cfg,
+			},
+		},
+	}
+	lc := &v2.Listener{}
+	lc.FilterChains = filterChains
+	ctxMng, err := NewTLSServerContextManager(lc)
+	if err != nil {
+		t.Errorf("create context manager failed %v", err)
+		return
+	}
+	server := MockServer{
+		Mng: ctxMng,
+		t:   t,
+	}
+	server.GoListenAndServe(t)
+	defer server.Close()
+	time.Sleep(time.Second) //wait server start
+
+	clientConfig := v2.TLSConfig{
+		Status:       true,
+		CACert:       cfg.CACert,
+		CertChain:    cfg.CertChain,
+		PrivateKey:   cfg.PrivateKey,
+		InsecureSkip: true,
+		ALPN:         "sofa,http/1.1",
+	}
+	cltMng, err := NewTLSClientContextManager(&clientConfig)
+	if err != nil {
+		t.Errorf("create client context manager failed %v", err)
+	}
+
+	resp, err := MockClient(t, server.Addr, cltMng)
+	if err != nil {
+		t.Errorf("request server error %v", err)
+	}
+    //alpn select should follow server privilege
+	alpnChoose := resp.TLS.NegotiatedProtocol 
+	if alpnChoose != "http/1.1" {
+		t.Errorf("alpn choose fail, want http/1.1, but %s", alpnChoose)
+	}
+	ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+}

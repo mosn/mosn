@@ -340,3 +340,191 @@ func TestTestTLSExtensionsVerifyServer(t *testing.T) {
 	}
 
 }
+
+// TestTestTLSExtensionsVerifyServerCertChain tests client accept server 
+// response with cert chain and cerificate's common name is server only
+func TestTestTLSExtensionsVerifyServerCertChain(t *testing.T) {
+	extendVerify := map[string]interface{}{
+		"name": "client",
+		"cn":   "server",
+	}
+	clientInfo := &certInfo{
+		CommonName: extendVerify["name"].(string),
+		Curve:      "RSA",
+	}
+
+	testCases := []struct {
+		Info *certInfo
+		Pass func(resp *http.Response, err error) bool
+	}{
+		{
+			Info: &certInfo{
+				CommonName: extendVerify["cn"].(string),
+				Curve:      clientInfo.Curve,
+				DNS:        "www.pass.com",
+			},
+			Pass: pass,
+		},
+		{
+			Info: &certInfo{
+				CommonName: "invalid server",
+				Curve:      clientInfo.Curve,
+				DNS:        "www.fail.com",
+			},
+			Pass: fail,
+		},
+	}
+	var filterChains []v2.FilterChain
+	for i, tc := range testCases {
+		cfg, err := tc.Info.CreateCertChainConfig()
+		if err != nil {
+			t.Errorf("#%d %v", i, err)
+			return
+		}
+		fc := v2.FilterChain{
+			TLSContexts: []v2.TLSConfig{
+				*cfg,
+			},
+		}
+		filterChains = append(filterChains, fc)
+	}
+	lc := &v2.Listener{}
+	lc.FilterChains = filterChains
+	ctxMng, err := NewTLSServerContextManager(lc)
+	if err != nil {
+		t.Errorf("create context manager failed %v", err)
+		return
+	}
+	server := MockServer{
+		Mng: ctxMng,
+		t:   t,
+	}
+	server.GoListenAndServe(t)
+	defer server.Close()
+	time.Sleep(time.Second) //wait server start
+	clientConfig, err := clientInfo.CreateCertConfig()
+	if err != nil {
+		t.Errorf("create client certificate error %v", err)
+		return
+	}
+	clientConfig.Type = testType
+	clientConfig.ExtendVerify = extendVerify
+	for i, tc := range testCases {
+		clientConfig.ServerName = tc.Info.DNS
+		cltMng, err := NewTLSClientContextManager(clientConfig)
+		if err != nil {
+			t.Errorf("create client context manager failed %v", err)
+			return
+		}
+
+		resp, err := MockClient(t, server.Addr, cltMng)
+		if !tc.Pass(resp, err) {
+			t.Errorf("#%d verify failed", i)
+		}
+	}
+	// insecure skip will skip even if it is registered
+	skipConfig := &v2.TLSConfig{
+		Status:       true,
+		Type:         clientConfig.Type,
+		CACert:       clientConfig.CACert,
+		CertChain:    clientConfig.CertChain,
+		PrivateKey:   clientConfig.PrivateKey,
+		InsecureSkip: true,
+	}
+	for i, tc := range testCases {
+		skipConfig.ServerName = tc.Info.DNS
+		skipMng, err := NewTLSClientContextManager(skipConfig)
+		if err != nil {
+			t.Errorf("create client context manager failed %v", err)
+			return
+		}
+		resp, err := MockClient(t, server.Addr, skipMng)
+		// ignore the case, must be pass
+		if !pass(resp, err) {
+			t.Errorf("#%d skip verify failed", i)
+		}
+	}
+
+}
+
+// TestTLSExtensionsVerifyClientCertChain tests server allow request 
+// with certificate's common name is client only
+func TestTLSExtensionsVerifyClientCertChain(t *testing.T) {
+	// Server
+	extendVerify := map[string]interface{}{
+		"name": "server",
+		"cn":   "client",
+	}
+	serverInfo := &certInfo{
+		CommonName: extendVerify["name"].(string),
+		Curve:      "RSA",
+	}
+	serverConfig, err := serverInfo.CreateCertConfig()
+	if err != nil {
+		t.Errorf("create server certificate error %v", err)
+		return
+	}
+	serverConfig.RequireClientCert = true
+	serverConfig.VerifyClient = true
+	serverConfig.Type = testType
+	serverConfig.ExtendVerify = extendVerify
+	filterChains := []v2.FilterChain{
+		{
+			TLSContexts: []v2.TLSConfig{
+				*serverConfig,
+			},
+		},
+	}
+	lc := &v2.Listener{}
+	lc.FilterChains = filterChains
+	ctxMng, err := NewTLSServerContextManager(lc)
+	if err != nil {
+		t.Errorf("create context manager failed %v", err)
+		return
+	}
+	server := MockServer{
+		Mng: ctxMng,
+		t:   t,
+	}
+	server.GoListenAndServe(t)
+	defer server.Close()
+	time.Sleep(time.Second) //wait server start
+	testCases := []struct {
+		Info *certInfo
+		Pass func(resp *http.Response, err error) bool
+	}{
+		{
+			Info: &certInfo{
+				CommonName: extendVerify["cn"].(string),
+				Curve:      serverInfo.Curve,
+			},
+			Pass: pass,
+		},
+		{
+			Info: &certInfo{
+				CommonName: "invalid client",
+				Curve:      serverInfo.Curve,
+			},
+			Pass: fail,
+		},
+	}
+	for i, tc := range testCases {
+		cfg, err := tc.Info.CreateCertChainConfig()
+		cfg.ServerName = "127.0.0.1"
+		if err != nil {
+			t.Errorf("#%d create client certificate error %v", i, err)
+			continue
+		}
+		cltMng, err := NewTLSClientContextManager(cfg)
+		if err != nil {
+			t.Errorf("#%d create client context manager failed %v", i, err)
+			continue
+		}
+
+		resp, err := MockClient(t, server.Addr, cltMng)
+		if !tc.Pass(resp, err) {
+			t.Errorf("#%d verify failed", i)
+		}
+	}
+
+}
