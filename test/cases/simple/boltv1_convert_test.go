@@ -57,6 +57,34 @@ const ConfigBoltv1ConvertTmpl = `{
                 {
                         "default_log_path":"stdout",
                         "default_log_level": "FATAL",
+			"routers":[
+				{
+					"router_config_name":"router_to_mosn",
+					"virtual_hosts":[{
+						"name":"mosn_hosts",
+						"domains": ["*"],
+						"routers": [
+							{
+								"match":{"headers":[{"name":"service","value":".*"}]},
+								"route":{"cluster_name":"mosn_cluster"}
+							}
+						]
+					}]
+				},
+				{
+					"router_config_name":"router_to_server",
+					"virtual_hosts":[{
+						"name":"server_hosts",
+						"domains": ["*"],
+						"routers": [
+							{
+								 "match":{"headers":[{"name":"service","value":".*"}]},
+								 "route":{"cluster_name":"server_cluster"}
+							}
+						]
+					}]
+				}
+			],
                         "listeners":[
                                 {
                                         "address":"127.0.0.1:2045",
@@ -71,22 +99,6 @@ const ConfigBoltv1ConvertTmpl = `{
                                                                         "downstream_protocol": "SofaRpc",
                                                                         "upstream_protocol": "%s",
                                                                         "router_config_name":"router_to_mosn"
-                                                                }
-                                                        },
-                                                        {
-                                                                "type": "connection_manager",
-                                                                "config": {
-                                                                        "router_config_name":"router_to_mosn",
-                                                                        "virtual_hosts":[{
-                                                                                "name":"mosn_hosts",
-                                                                                "domains": ["*"],
-                                                                                "routers": [
-                                                                                        {
-                                                                                                 "match":{"headers":[{"name":"service","value":".*"}]},
-                                                                                                 "route":{"cluster_name":"mosn_cluster"}
-                                                                                        }
-                                                                                ]
-                                                                        }]
                                                                 }
                                                         }
                                                 ]
@@ -106,23 +118,7 @@ const ConfigBoltv1ConvertTmpl = `{
                                                                         "upstream_protocol": "SofaRpc",
                                                                         "router_config_name":"router_to_server"
                                                                 }
-                                                      },
-                                                        {
-                                                                "type": "connection_manager",
-                                                                "config": {
-                                                                        "router_config_name":"router_to_server",
-                                                                        "virtual_hosts":[{
-                                                                                "name":"server_hosts",
-                                                                                "domains": ["*"],
-                                                                                "routers": [
-                                                                                        {
-                                                                                                 "match":{"headers":[{"name":"service","value":".*"}]},
-                                                                                                 "route":{"cluster_name":"server_cluster"}
-                                                                                        }
-                                                                                ]
-                                                                        }]
-                                                                }
-                                                        }
+                                                       }
                                                 ]
                                         }]
                                 }

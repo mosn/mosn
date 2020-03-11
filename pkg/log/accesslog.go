@@ -22,6 +22,7 @@ import (
 	"errors"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/log"
@@ -118,7 +119,8 @@ func (l *accesslog) Log(ctx context.Context, reqHeaders api.HeaderMap, respHeade
 
 func parseFormat(format string) ([]*logEntry, error) {
 	if format == "" {
-		return nil, ErrLogFormatUndefined
+		//	return nil, ErrLogFormatUndefined
+		format = types.DefaultAccessLogFormat
 	}
 
 	entries := make([]*logEntry, 0, 8)

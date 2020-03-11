@@ -23,8 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/admin/store"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
@@ -52,61 +50,6 @@ func getDump() bool {
 	return atomic.CompareAndSwapInt32(&dumping, 1, 0)
 }
 
-type routerConfigMap struct {
-	config map[string]*v2.RouterConfiguration
-	sync.Mutex
-}
-
-var routerMap = &routerConfigMap{
-	config: make(map[string]*v2.RouterConfiguration),
-}
-
-func dumpRouterConfig() bool {
-	routerMap.Lock()
-	defer routerMap.Unlock()
-	for listenername, routerConfig := range routerMap.config {
-		ln, idx := findListener(listenername)
-		if idx == -1 {
-			continue
-		}
-		delete(routerMap.config, listenername)
-		// support only one filter chain
-		configLock.Lock()
-		nfs := ln.FilterChains[0].Filters
-		filterIndex := -1
-		for i, nf := range nfs {
-			if nf.Type == v2.CONNECTION_MANAGER {
-				filterIndex = i
-				break
-			}
-		}
-
-		if data, err := json.MarshalIndent(routerConfig, "", " "); err == nil {
-			cfg := make(map[string]interface{})
-			if err := json.Unmarshal(data, &cfg); err != nil {
-				log.DefaultLogger.Errorf("[config] [dump] invalid router config, update config failed")
-				continue
-			}
-			filter := v2.Filter{
-				Type:   v2.CONNECTION_MANAGER,
-				Config: cfg,
-			}
-			if filterIndex == -1 {
-				nfs = append(nfs, filter)
-				ln.FilterChains[0].Filters = nfs
-				listeners := config.Servers[0].Listeners
-				if idx < len(listeners) {
-					listeners[idx] = ln
-				}
-			} else {
-				nfs[filterIndex] = filter
-			}
-		}
-		configLock.Unlock()
-	}
-	return true
-}
-
 func dump(dirty bool) {
 	if dirty {
 		setDump()
@@ -115,13 +58,8 @@ func dump(dirty bool) {
 
 func DumpConfig() {
 	if getDump() {
-		//update router config
-		dumpRouterConfig()
-
 		log.DefaultLogger.Debugf("[config] [dump] dump config content: %+v", config)
 
-		//update mosn_config
-		store.SetMOSNConfig(config)
 		// use golang original json lib, so the marshal ident can handle MarshalJSON interface implement correctly
 		configLock.Lock()
 		defer configLock.Unlock()

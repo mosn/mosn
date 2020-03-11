@@ -29,17 +29,18 @@ import (
 // Servers contains the listener, filter and so on
 // ClusterManager used to manage the upstream
 type MOSNConfig struct {
-	Servers         []ServerConfig       `json:"servers,omitempty"`         //server config
-	ClusterManager  ClusterManagerConfig `json:"cluster_manager,omitempty"` //cluster config
-	ServiceRegistry ServiceRegistryInfo  `json:"service_registry"`          //service registry config, used by service discovery module
+	Servers         []ServerConfig       `json:"servers,omitempty"`          //server config
+	ClusterManager  ClusterManagerConfig `json:"cluster_manager,omitempty"`  //cluster config
+	ServiceRegistry ServiceRegistryInfo  `json:"service_registry,omitempty"` //service registry config, used by service discovery module
 	//tracing config
-	Tracing             TracingConfig   `json:"tracing"`
-	Metrics             MetricsConfig   `json:"metrics"`
+	Tracing             TracingConfig   `json:"tracing,omitempty"`
+	Metrics             MetricsConfig   `json:"metrics,omitempty"`
 	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
 	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin            json.RawMessage `json:"admin,omitempty"`             // admin raw message
 	Debug               PProfConfig     `json:"pprof,omitempty"`
-	Pid                 string          `json:"pid,omitempty"` // pid file
+	Pid                 string          `json:"pid,omitempty"`    // pid file
+	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
 }
 
 // PProfConfig is used to start a pprof server for debug
@@ -50,9 +51,9 @@ type PProfConfig struct {
 
 // Tracing configuration for a server
 type TracingConfig struct {
-	Enable bool                   `json:"enable"`
-	Tracer string                 `json:"tracer"`
-	Driver string                 `json:"driver"`
+	Enable bool                   `json:"enable,omitempty"`
+	Tracer string                 `json:"tracer,omitempty"` // DEPRECATED
+	Driver string                 `json:"driver,omitempty"`
 	Config map[string]interface{} `json:"config,omitempty"`
 }
 
@@ -62,6 +63,11 @@ type MetricsConfig struct {
 	StatsMatcher StatsMatcher      `json:"stats_matcher"`
 	ShmZone      string            `json:"shm_zone"`
 	ShmSize      datasize.ByteSize `json:"shm_size"`
+}
+
+// PluginConfig for plugin config
+type PluginConfig struct {
+	LogBase string `json:"log_base"`
 }
 
 // StatsMatcher is a configuration for disabling stat instantiation.

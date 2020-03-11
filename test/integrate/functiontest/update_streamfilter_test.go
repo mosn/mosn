@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
@@ -20,15 +19,15 @@ import (
 func TestUpdateStreamFilters(t *testing.T) {
 	server.ResetAdapter()
 	// start a server
-	appAddr := "127.0.0.1:8080"
-	server := util.NewRPCServer(t, appAddr, util.Bolt1)
+
+	server := util.NewRPCServerWithAnyPort(t, util.Bolt1)
 	server.GoServe()
 	defer server.Close()
 	// create mosn without stream filters
 	clientMeshAddr := util.CurrentMeshAddr()
-	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, protocol.SofaRPC)
+	cfg := util.CreateProxyMesh(clientMeshAddr, []string{server.Addr()}, protocol.SofaRPC)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
+	mesh.Start()
 	defer mesh.Close()
 	time.Sleep(5 * time.Second)
 	// send a request to mosn, create connection between mosns
@@ -76,7 +75,6 @@ func updateListener(cfg *v2.MOSNConfig, faultstr string) error {
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	// get config
 	lc := cfg.Servers[0].Listeners[0]
-	streamFilterFactories := configmanager.GetStreamFilters(lc.StreamFilters)
 	// nil network filters, nothing changed
-	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, nil, streamFilterFactories)
+	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, false, true)
 }

@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
@@ -92,7 +92,10 @@ func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *v
 		},
 	}
 	chains := []v2.FilterChain{
-		util.NewFilterChain("proxyVirtualHost", proto, proto, routers),
+		util.NewFilterChain("proxyVirtualHost", proto, proto),
+	}
+	rs := []*v2.RouterConfiguration{
+		util.MakeRouterConfig("proxyVirtualHost", routers),
 	}
 	listener := util.NewListener("proxyListener", addr, chains)
 	listener.StreamFilters = []v2.Filter{
@@ -101,7 +104,7 @@ func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *v
 			Config: map[string]interface{}{},
 		},
 	}
-	cfg := util.NewMOSNConfig([]v2.Listener{listener}, cmconfig)
+	cfg := util.NewMOSNConfig([]v2.Listener{listener}, rs, cmconfig)
 	return cfg
 }
 
@@ -117,7 +120,7 @@ func TestReRoute(t *testing.T) {
 	meshAddr := util.CurrentMeshAddr()
 	cfg := createInjectProxyMesh(meshAddr, []string{httpAddr}, protocol.HTTP1)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
+	mesh.Start()
 	defer mesh.Close()
 	time.Sleep(2 * time.Second) // wait mosn start
 	// reset the logger

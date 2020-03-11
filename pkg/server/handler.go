@@ -35,6 +35,7 @@ import (
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/accept/originaldst"
 	"mosn.io/mosn/pkg/log"
@@ -96,8 +97,7 @@ func (ch *connHandler) NumConnections() uint64 {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []api.NetworkFilterChainFactory,
-	streamFiltersFactories []api.StreamFilterChainFactory) (types.ListenerEventListener, error) {
+func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error) {
 
 	var listenerName string
 	if lc.Name == "" {
@@ -106,6 +106,15 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 	} else {
 		listenerName = lc.Name
 	}
+	// currently, we just support one filter chain
+	if len(lc.FilterChains) != 1 {
+		return nil, errors.New("error updating listener, listener have filter chains count is not 1")
+	}
+	// set network filter and stream filter
+	var networkFiltersFactories []api.NetworkFilterChainFactory
+	var streamFiltersFactories []api.StreamFilterChainFactory
+	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
+	streamFiltersFactories = configmanager.GetStreamFilters(lc.StreamFilters)
 
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
@@ -116,21 +125,18 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 			al.listener.Addr().Network() != lc.Addr.Network() {
 			return nil, errors.New("error updating listener, listen address and listen name doesn't match")
 		}
-		// currently, we just support one filter chain
-		if len(lc.FilterChains) != 1 {
-			return nil, errors.New("error updating listener, listener have filter chains count is not 1")
-		}
+
 		rawConfig := al.listener.Config()
 		// FIXME: update log level need the pkg/logger support.
 
-		// only chaned if not nil
-		if networkFiltersFactories != nil {
+		if updateNetworkFilter {
 			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
 			al.networkFiltersFactories = networkFiltersFactories
 			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
 			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
 		}
-		if streamFiltersFactories != nil {
+
+		if updateStreamFilter {
 			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
 			al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 			rawConfig.StreamFilters = lc.StreamFilters
@@ -544,7 +550,7 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 }
 
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
-	var listener, localListener *activeListener
+	var virtualListener, listener, localListener *activeListener
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -554,6 +560,10 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
 			localListener = lst
+		}
+
+		if lst.listener.Name() == "virtual" {
+			virtualListener = lst
 		}
 	}
 
@@ -567,16 +577,26 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	}
 
 	if listener != nil {
+		virtualListener = nil
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 	if localListener != nil {
+		virtualListener = nil
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+	}
+
+	// If it can’t find any matching listeners and should using the virtual listener.
+	if virtualListener != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", virtualListener.listenIP, virtualListener.listenPort)
+		}
+		virtualListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 }
 

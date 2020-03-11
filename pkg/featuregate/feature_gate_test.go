@@ -101,15 +101,18 @@ func TestSetFeatureGate(t *testing.T) {
 	if !fg.Enabled("feature_set_to_true") {
 		t.Error("set feature failed")
 	}
-	// if exists a feature not registered, ignore it
 	// empty will be ignore
-	p := "feature_set_to_true=true, feature_set_to_false=false, feature_lock_to_true=false, feature_not_exists=true,,"
-	fg.Set(p)
+	p := "feature_set_to_true=true, feature_set_to_false=false ,"
+	if err := fg.Set(p); err != nil {
+		t.Fatal(err)
+	}
 	// set invalid parameters, ignore all of them
 	for _, invalid := range []string{
 		"feature_set_to_true,feature_set_to_false", // no equals
 		"feature_set_to_false=yes",                 // not a boolean
 		"feature_set_to_false==true",               // too many equals
+		"feature_not_exists=true",                  // not a known feature
+		"feature_lock_to_true=false",               // a locked feature
 	} {
 		if err := fg.Set(invalid); err == nil {
 			t.Error("expected set failed")
@@ -122,6 +125,50 @@ func TestSetFeatureGate(t *testing.T) {
 		}
 	}
 
+}
+
+func TestSetFromMap(t *testing.T) {
+	fg := NewFeatureGate()
+	features := []struct {
+		name     string
+		spec     FeatureSpec
+		expected bool
+	}{
+		{
+			name:     "foo",
+			spec:     &BaseFeatureSpec{},
+			expected: true,
+		},
+		{
+			name:     "bar",
+			spec:     &BaseFeatureSpec{},
+			expected: true,
+		},
+	}
+
+	m := make(map[string]bool)
+	for _, f := range features {
+		fg.AddFeatureSpec(Feature(f.name), f.spec)
+		m[f.name] = f.expected
+	}
+
+	// expect no error setting from map.
+	if err := fg.SetFromMap(m); err != nil {
+		t.Errorf("error setting feature states from map: %v", err)
+	}
+
+	// expect actual state equals to expected state.
+	for k, v := range m {
+		if state := fg.Enabled(Feature(k)); state != v {
+			t.Errorf("feature state not equal, expect: %v, actual: %v", v, state)
+		}
+	}
+
+	// expect error when setting state for a non-registered feature.
+	m["feature-not-found"] = true
+	if err := fg.SetFromMap(m); err == nil {
+		t.Errorf("setting feature state without registering, expect err, got nil.")
+	}
 }
 
 func _IsSubTimeout(err error) bool {
