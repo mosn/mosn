@@ -92,10 +92,14 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		fmt.Printf("unSerialize: Decode dubbo_version fail, err=%v\n", err)
 		return nil
 	}
-	str, ok = field.(string)
-	if !ok {
-		fmt.Printf("unSerialize: Decode dubbo_version fail, illegal type\n")
-		return nil
+
+	// check dubbo_version is nil ?
+	if field != nil {
+		str, ok = field.(string)
+		if !ok {
+			fmt.Printf("unSerialize: Decode dubbo_version fail, illegal type\n")
+			return nil
+		}
 	}
 	attr.dubboVersion = str
 	if parseCtl <= unserializeCtlDubboVersion {
@@ -107,10 +111,14 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		fmt.Printf("unSerialize: Decode path fail, err=%v\n", err)
 		return nil
 	}
-	str, ok = field.(string)
-	if !ok {
-		fmt.Printf("unSerialize: Decode path fail, illegal type\n")
-		return nil
+
+	// check path is nil ?
+	if str = ""; field != nil {
+		str, ok = field.(string)
+		if !ok {
+			fmt.Printf("unSerialize: Decode path fail, illegal type\n")
+			return nil
+		}
 	}
 	attr.serviceName = str
 	attr.path = str
@@ -123,10 +131,14 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		fmt.Printf("unSerialize: Decode version fail, err=%v\n", err)
 		return nil
 	}
-	str, ok = field.(string)
-	if !ok {
-		fmt.Printf("unSerialize: Decode version fail, illegal type\n")
-		return nil
+
+	// check version is nil ?
+	if str = ""; field != nil {
+		str, ok = field.(string)
+		if !ok {
+			fmt.Printf("unSerialize: Decode version fail, illegal type\n")
+			return nil
+		}
 	}
 	attr.version = str
 	if parseCtl <= unserializeCtlVersion {
@@ -138,11 +150,16 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		fmt.Printf("unSerialize: Decode method fail, err=%v\n", err)
 		return nil
 	}
-	str, ok = field.(string)
-	if !ok {
-		fmt.Printf("unSerialize: Decode method fail, illegal type\n")
-		return nil
+
+	// check method is nil ?
+	if str = ""; field != nil {
+		str, ok = field.(string)
+		if !ok {
+			fmt.Printf("unSerialize: Decode method fail, illegal type\n")
+			return nil
+		}
 	}
+
 	attr.methodName = str
 	if parseCtl <= unserializeCtlMethod {
 		return attr
