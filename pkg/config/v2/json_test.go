@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"reflect"
 	"strings"
@@ -783,5 +784,67 @@ func TestRouterConfigDynamicModeParse(t *testing.T) {
 	}
 	if len(files) != 1 {
 		t.Fatalf("new virtual host is not dumped, just got %d files", len(files))
+	}
+}
+
+func TestListenerMarshal(t *testing.T) {
+	addrStr := "0.0.0.0:8080"
+	addr, err := net.ResolveTCPAddr("tcp", addrStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ln := &Listener{
+		ListenerConfig: ListenerConfig{
+			Name:       "test_listener",
+			Type:       INGRESS,
+			BindToPort: true,
+			Inspector:  true,
+		},
+		Addr: addr,
+	}
+	b, err := json.Marshal(ln)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ln2 := &Listener{}
+	if err := json.Unmarshal(b, ln2); err != nil {
+		t.Fatal(err)
+	}
+	if !(ln2.AddrConfig == addrStr && // addr config will be replaced by net.Addr
+		ln2.Name == "test_listener" &&
+		ln2.Type == INGRESS &&
+		ln2.Inspector == true &&
+		ln2.ConnectionIdleTimeout == nil &&
+		ln2.Addr == nil) {
+		t.Fatalf("listener config marshal unepxected, got :%v", ln2)
+	}
+}
+
+func TestListenerUnmarshal(t *testing.T) {
+	listenerConfig := `{
+		"name": "test_listener",
+		"type": "ingress",
+		"address": "0.0.0.0:8080",
+		"bind_port": true,
+		"connection_idle_timeout": "90s"
+	}`
+	ln := &Listener{}
+	if err := json.Unmarshal([]byte(listenerConfig), ln); err != nil {
+		t.Fatal(err)
+	}
+	if !(ln.AddrConfig == "0.0.0.0:8080" &&
+		ln.Name == "test_listener" &&
+		ln.Type == INGRESS &&
+		ln.BindToPort == true &&
+		ln.ConnectionIdleTimeout.Duration == 90*time.Second) {
+		t.Fatalf("json unmarshal failed, got: %v", ln)
+	}
+	b, err := json.Marshal(ln)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// if there is only addr config but no net.Addr, should be marshal addr config
+	if !strings.Contains(string(b), "0.0.0.0:8080") {
+		t.Fatalf("mashal json unexpected, got : %s", string(b))
 	}
 }

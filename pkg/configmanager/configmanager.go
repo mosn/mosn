@@ -22,49 +22,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 )
 
-// TODO: The functions in this file is for service discovery, but the function implmentation is not general, should fix it
-
-// dumper provides basic operation with mosn elements, like 'cluster', to write back the config file with dynamic changes
-// biz logic operation, like 'clear all subscribe info', should be written in the bridge code, not in config module.
-//
-// changes dump flow :
-//
-// biz ops -> bridge module -> config module
-//
-//  dumped info load flow:
-//
-// 1. bridge module register key of interesting config(like 'cluster') into config module
-// 2. config parser invoke callback functions (if exists) of config key
-// 3. bridge module get biz info(like service subscribe/publish, application info) from callback invocations
-// 4. biz module(like confreg) get biz info from bridge module directly
-
-// ResetServiceRegistryInfo
-// called when reset service registry info received
-func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []string) {
-	configLock.Lock()
-	// reset service info
-	config.ServiceRegistry.ServiceAppInfo = v2.ApplicationInfo{
-		AntShareCloud:    appInfo.AntShareCloud,
-		DataCenter:       appInfo.DataCenter,
-		AppName:          appInfo.AppName,
-		DeployMode:       appInfo.DeployMode,
-		MasterSystem:     appInfo.MasterSystem,
-		CloudName:        appInfo.CloudName,
-		HostMachine:      appInfo.HostMachine,
-		InstanceId:       appInfo.InstanceId,
-		RegistryEndpoint: appInfo.RegistryEndpoint,
-		AccessKey:        appInfo.AccessKey,
-		SecretKey:        appInfo.SecretKey,
-	}
-
-	// reset servicePubInfo
-	config.ServiceRegistry.ServicePubInfo = []v2.PublishInfo{}
-	configLock.Unlock()
-
-	// delete subInfo / dynamic clusters
-	RemoveClusterConfig(subServiceList)
-}
-
 // AddOrUpdateClusterConfig
 // called when add cluster config info received
 func AddOrUpdateClusterConfig(clusters []v2.Cluster) {
@@ -226,9 +183,9 @@ func DelPubInfo(serviceName string) {
 
 // AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddOrUpdateRoutersConfig
 // use this function to only dump config once
-func AddClusterWithRouter(listenername string, clusters []v2.Cluster, routerConfig *v2.RouterConfiguration) {
+func AddClusterWithRouter(clusters []v2.Cluster, routerConfig *v2.RouterConfiguration) {
 	addOrUpdateClusterConfig(clusters)
-	addOrUpdateRouterConfig(listenername, routerConfig)
+	addOrUpdateRouterConfig(routerConfig)
 	dump(true)
 }
 
@@ -243,60 +200,96 @@ func findListener(listenername string) (v2.Listener, int) {
 	return v2.Listener{}, -1
 }
 
-// AddOrUpdateRouterConfig update the connection_manager's config
-func AddOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) {
-	if addOrUpdateRouterConfig(listenername, routerConfig) {
+// AddOrUpdateRouterConfig update the router config
+func AddOrUpdateRouterConfig(routerConfig *v2.RouterConfiguration) {
+	if addOrUpdateRouterConfig(routerConfig) {
 		dump(true)
 	}
 }
 
-func addOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) bool {
-	_, idx := findListener(listenername)
-	if idx == -1 {
-		return false
-	}
-
-	routerMap.Lock()
-	routerMap.config[listenername] = routerConfig
-	routerMap.Unlock()
-	return true
-}
-
-// AddOrUpdateStreamFilters update the stream filters config
-func AddOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) {
-	if addOrUpdateStreamFilters(listenername, typ, cfg) {
-		dump(true)
-	}
-}
-
-func addOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) bool {
-	ln, idx := findListener(listenername)
-	if idx == -1 {
-		return false
-	}
+func addOrUpdateRouterConfig(routerConfig *v2.RouterConfiguration) bool {
 	configLock.Lock()
 	defer configLock.Unlock()
-	filterIndex := -1
-	for i, sf := range ln.StreamFilters {
-		if sf.Type == typ {
-			filterIndex = i
-			break
+	// support only one server
+	routers := config.Servers[0].Routers
+	for idx, rt := range routers {
+		if rt.RouterConfigName == routerConfig.RouterConfigName {
+			config.Servers[0].Routers[idx] = routerConfig
+			return true
 		}
 	}
-	filter := v2.Filter{
-		Type:   typ,
-		Config: cfg,
-	}
-	if filterIndex == -1 {
-		ln.StreamFilters = append(ln.StreamFilters, filter)
-		listeners := config.Servers[0].Listeners
-		if idx < len(listeners) {
-			listeners[idx] = ln
-		}
-	} else {
-		ln.StreamFilters[filterIndex] = filter
-	}
+	// not equal
+	config.Servers[0].Routers = append(config.Servers[0].Routers, routerConfig)
 	return true
+}
+
+func AddOrUpdateListener(listener *v2.Listener) {
+	configLock.Lock()
+	defer configLock.Unlock()
+
+	_, idx := findListener(listener.Name)
+	if idx == -1 {
+		config.Servers[0].Listeners = append(config.Servers[0].Listeners, *listener)
+	} else {
+		config.Servers[0].Listeners[idx] = *listener
+	}
+	dump(true)
+}
+
+// FIXME: all config should be changed to pointer instead of struct
+func UpdateFullConfig(listeners []v2.Listener, routers []*v2.RouterConfiguration, clusters []v2.Cluster) {
+	configLock.Lock()
+	defer configLock.Unlock()
+
+	config.Servers[0].Listeners = listeners
+	config.Servers[0].Routers = routers
+	config.ClusterManager.Clusters = clusters
+
+	dump(true)
+}
+
+// DEPRECATED: we will remove these functions, because we will use a general extendable field to instead of these fields.
+// TODO: The functions in this file is for service discovery, but the function implmentation is not general, should fix it
+
+// dumper provides basic operation with mosn elements, like 'cluster', to write back the config file with dynamic changes
+// biz logic operation, like 'clear all subscribe info', should be written in the bridge code, not in config module.
+//
+// changes dump flow :
+//
+// biz ops -> bridge module -> config module
+//
+//  dumped info load flow:
+//
+// 1. bridge module register key of interesting config(like 'cluster') into config module
+// 2. config parser invoke callback functions (if exists) of config key
+// 3. bridge module get biz info(like service subscribe/publish, application info) from callback invocations
+// 4. biz module(like confreg) get biz info from bridge module directly
+
+// ResetServiceRegistryInfo
+// called when reset service registry info received
+func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []string) {
+	configLock.Lock()
+	// reset service info
+	config.ServiceRegistry.ServiceAppInfo = v2.ApplicationInfo{
+		AntShareCloud:    appInfo.AntShareCloud,
+		DataCenter:       appInfo.DataCenter,
+		AppName:          appInfo.AppName,
+		DeployMode:       appInfo.DeployMode,
+		MasterSystem:     appInfo.MasterSystem,
+		CloudName:        appInfo.CloudName,
+		HostMachine:      appInfo.HostMachine,
+		InstanceId:       appInfo.InstanceId,
+		RegistryEndpoint: appInfo.RegistryEndpoint,
+		AccessKey:        appInfo.AccessKey,
+		SecretKey:        appInfo.SecretKey,
+	}
+
+	// reset servicePubInfo
+	config.ServiceRegistry.ServicePubInfo = []v2.PublishInfo{}
+	configLock.Unlock()
+
+	// delete subInfo / dynamic clusters
+	RemoveClusterConfig(subServiceList)
 }
 
 // AddMsgMeta
