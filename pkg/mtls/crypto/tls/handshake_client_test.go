@@ -465,285 +465,317 @@ func runClientTestTLS12(t *testing.T, template *clientTest) {
 }
 
 func TestHandshakeClientRSARC4(t *testing.T) {
-	test := &clientTest{
-		name:    "RSA-RC4",
-		command: []string{"openssl", "s_server", "-cipher", "RC4-SHA"},
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "RSA-RC4",
+			command: []string{"openssl", "s_server", "-cipher", "RC4-SHA"},
+		}
+		runClientTestTLS10(t, test)
+		runClientTestTLS11(t, test)
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS10(t, test)
-	runClientTestTLS11(t, test)
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientRSAAES128GCM(t *testing.T) {
-	test := &clientTest{
-		name:    "AES128-GCM-SHA256",
-		command: []string{"openssl", "s_server", "-cipher", "AES128-GCM-SHA256"},
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "AES128-GCM-SHA256",
+			command: []string{"openssl", "s_server", "-cipher", "AES128-GCM-SHA256"},
+		}
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientRSAAES256GCM(t *testing.T) {
-	test := &clientTest{
-		name:    "AES256-GCM-SHA384",
-		command: []string{"openssl", "s_server", "-cipher", "AES256-GCM-SHA384"},
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "AES256-GCM-SHA384",
+			command: []string{"openssl", "s_server", "-cipher", "AES256-GCM-SHA384"},
+		}
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientECDHERSAAES(t *testing.T) {
-	test := &clientTest{
-		name:    "ECDHE-RSA-AES",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES128-SHA"},
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "ECDHE-RSA-AES",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES128-SHA"},
+		}
+		runClientTestTLS10(t, test)
+		runClientTestTLS11(t, test)
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS10(t, test)
-	runClientTestTLS11(t, test)
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientECDHEECDSAAES(t *testing.T) {
-	test := &clientTest{
-		name:    "ECDHE-ECDSA-AES",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA"},
-		cert:    testECDSACertificate,
-		key:     testECDSAPrivateKey,
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "ECDHE-ECDSA-AES",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA"},
+			cert:    testECDSACertificate,
+			key:     testECDSAPrivateKey,
+		}
+		runClientTestTLS10(t, test)
+		runClientTestTLS11(t, test)
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS10(t, test)
-	runClientTestTLS11(t, test)
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientECDHEECDSAAESGCM(t *testing.T) {
-	test := &clientTest{
-		name:    "ECDHE-ECDSA-AES-GCM",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-GCM-SHA256"},
-		cert:    testECDSACertificate,
-		key:     testECDSAPrivateKey,
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "ECDHE-ECDSA-AES-GCM",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-GCM-SHA256"},
+			cert:    testECDSACertificate,
+			key:     testECDSAPrivateKey,
+		}
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientAES256GCMSHA384(t *testing.T) {
-	test := &clientTest{
-		name:    "ECDHE-ECDSA-AES256-GCM-SHA384",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES256-GCM-SHA384"},
-		cert:    testECDSACertificate,
-		key:     testECDSAPrivateKey,
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "ECDHE-ECDSA-AES256-GCM-SHA384",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES256-GCM-SHA384"},
+			cert:    testECDSACertificate,
+			key:     testECDSAPrivateKey,
+		}
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientAES128CBCSHA256(t *testing.T) {
-	test := &clientTest{
-		name:    "AES128-SHA256",
-		command: []string{"openssl", "s_server", "-cipher", "AES128-SHA256"},
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "AES128-SHA256",
+			command: []string{"openssl", "s_server", "-cipher", "AES128-SHA256"},
+		}
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientECDHERSAAES128CBCSHA256(t *testing.T) {
-	test := &clientTest{
-		name:    "ECDHE-RSA-AES128-SHA256",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES128-SHA256"},
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "ECDHE-RSA-AES128-SHA256",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES128-SHA256"},
+		}
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientECDHEECDSAAES128CBCSHA256(t *testing.T) {
-	test := &clientTest{
-		name:    "ECDHE-ECDSA-AES128-SHA256",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA256"},
-		cert:    testECDSACertificate,
-		key:     testECDSAPrivateKey,
+	if !useBabasslTag.IsOpen() {
+		test := &clientTest{
+			name:    "ECDHE-ECDSA-AES128-SHA256",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA256"},
+			cert:    testECDSACertificate,
+			key:     testECDSAPrivateKey,
+		}
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientX25519(t *testing.T) {
-	config := testConfig.Clone()
-	config.CurvePreferences = []CurveID{X25519}
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.CurvePreferences = []CurveID{X25519}
 
-	test := &clientTest{
-		name:    "X25519-ECDHE-RSA-AES-GCM",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES128-GCM-SHA256"},
-		config:  config,
+		test := &clientTest{
+			name:    "X25519-ECDHE-RSA-AES-GCM",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES128-GCM-SHA256"},
+			config:  config,
+		}
+
+		runClientTestTLS12(t, test)
 	}
-
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientECDHERSAChaCha20(t *testing.T) {
-	config := testConfig.Clone()
-	config.CipherSuites = []uint16{TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305}
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.CipherSuites = []uint16{TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305}
 
-	test := &clientTest{
-		name:    "ECDHE-RSA-CHACHA20-POLY1305",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-CHACHA20-POLY1305"},
-		config:  config,
+		test := &clientTest{
+			name:    "ECDHE-RSA-CHACHA20-POLY1305",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-CHACHA20-POLY1305"},
+			config:  config,
+		}
+
+		runClientTestTLS12(t, test)
 	}
-
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientECDHEECDSAChaCha20(t *testing.T) {
-	config := testConfig.Clone()
-	config.CipherSuites = []uint16{TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305}
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.CipherSuites = []uint16{TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305}
 
-	test := &clientTest{
-		name:    "ECDHE-ECDSA-CHACHA20-POLY1305",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-CHACHA20-POLY1305"},
-		config:  config,
-		cert:    testECDSACertificate,
-		key:     testECDSAPrivateKey,
+		test := &clientTest{
+			name:    "ECDHE-ECDSA-CHACHA20-POLY1305",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-CHACHA20-POLY1305"},
+			config:  config,
+			cert:    testECDSACertificate,
+			key:     testECDSAPrivateKey,
+		}
+
+		runClientTestTLS12(t, test)
 	}
-
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientCertRSA(t *testing.T) {
-	config := testConfig.Clone()
-	cert, _ := X509KeyPair([]byte(clientCertificatePEM), []byte(clientKeyPEM))
-	config.Certificates = []Certificate{cert}
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		cert, _ := X509KeyPair([]byte(clientCertificatePEM), []byte(clientKeyPEM))
+		config.Certificates = []Certificate{cert}
 
-	test := &clientTest{
-		name:    "ClientCert-RSA-RSA",
-		command: []string{"openssl", "s_server", "-cipher", "AES128", "-verify", "1"},
-		config:  config,
+		test := &clientTest{
+			name:    "ClientCert-RSA-RSA",
+			command: []string{"openssl", "s_server", "-cipher", "AES128", "-verify", "1"},
+			config:  config,
+		}
+
+		runClientTestTLS10(t, test)
+		runClientTestTLS12(t, test)
+
+		test = &clientTest{
+			name:    "ClientCert-RSA-ECDSA",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA", "-verify", "1"},
+			config:  config,
+			cert:    testECDSACertificate,
+			key:     testECDSAPrivateKey,
+		}
+
+		runClientTestTLS10(t, test)
+		runClientTestTLS12(t, test)
+
+		test = &clientTest{
+			name:    "ClientCert-RSA-AES256-GCM-SHA384",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES256-GCM-SHA384", "-verify", "1"},
+			config:  config,
+			cert:    testRSACertificate,
+			key:     testRSAPrivateKey,
+		}
+
+		runClientTestTLS12(t, test)
 	}
-
-	runClientTestTLS10(t, test)
-	runClientTestTLS12(t, test)
-
-	test = &clientTest{
-		name:    "ClientCert-RSA-ECDSA",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA", "-verify", "1"},
-		config:  config,
-		cert:    testECDSACertificate,
-		key:     testECDSAPrivateKey,
-	}
-
-	runClientTestTLS10(t, test)
-	runClientTestTLS12(t, test)
-
-	test = &clientTest{
-		name:    "ClientCert-RSA-AES256-GCM-SHA384",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES256-GCM-SHA384", "-verify", "1"},
-		config:  config,
-		cert:    testRSACertificate,
-		key:     testRSAPrivateKey,
-	}
-
-	runClientTestTLS12(t, test)
 }
 
 func TestHandshakeClientCertECDSA(t *testing.T) {
-	config := testConfig.Clone()
-	cert, _ := X509KeyPair([]byte(clientECDSACertificatePEM), []byte(clientECDSAKeyPEM))
-	config.Certificates = []Certificate{cert}
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		cert, _ := X509KeyPair([]byte(clientECDSACertificatePEM), []byte(clientECDSAKeyPEM))
+		config.Certificates = []Certificate{cert}
 
-	test := &clientTest{
-		name:    "ClientCert-ECDSA-RSA",
-		command: []string{"openssl", "s_server", "-cipher", "AES128", "-verify", "1"},
-		config:  config,
+		test := &clientTest{
+			name:    "ClientCert-ECDSA-RSA",
+			command: []string{"openssl", "s_server", "-cipher", "AES128", "-verify", "1"},
+			config:  config,
+		}
+
+		runClientTestTLS10(t, test)
+		runClientTestTLS12(t, test)
+
+		test = &clientTest{
+			name:    "ClientCert-ECDSA-ECDSA",
+			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA", "-verify", "1"},
+			config:  config,
+			cert:    testECDSACertificate,
+			key:     testECDSAPrivateKey,
+		}
+
+		runClientTestTLS10(t, test)
+		runClientTestTLS12(t, test)
 	}
-
-	runClientTestTLS10(t, test)
-	runClientTestTLS12(t, test)
-
-	test = &clientTest{
-		name:    "ClientCert-ECDSA-ECDSA",
-		command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA", "-verify", "1"},
-		config:  config,
-		cert:    testECDSACertificate,
-		key:     testECDSAPrivateKey,
-	}
-
-	runClientTestTLS10(t, test)
-	runClientTestTLS12(t, test)
 }
 
 func TestClientResumption(t *testing.T) {
-	serverConfig := &Config{
-		CipherSuites: []uint16{TLS_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA},
-		Certificates: testConfig.Certificates,
-	}
+	if !useBabasslTag.IsOpen() {
+		serverConfig := &Config{
+			CipherSuites: []uint16{TLS_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA},
+			Certificates: testConfig.Certificates,
+		}
 
-	issuer, err := x509.ParseCertificate(testRSACertificateIssuer)
-	if err != nil {
-		panic(err)
-	}
-
-	rootCAs := x509.NewCertPool()
-	rootCAs.AddCert(issuer)
-
-	clientConfig := &Config{
-		CipherSuites:       []uint16{TLS_RSA_WITH_RC4_128_SHA},
-		ClientSessionCache: NewLRUClientSessionCache(32),
-		RootCAs:            rootCAs,
-		ServerName:         "example.golang",
-	}
-
-	testResumeState := func(test string, didResume bool) {
-		_, hs, err := testHandshake(clientConfig, serverConfig)
+		issuer, err := x509.ParseCertificate(testRSACertificateIssuer)
 		if err != nil {
-			t.Fatalf("%s: handshake failed: %s", test, err)
+			panic(err)
 		}
-		if hs.DidResume != didResume {
-			t.Fatalf("%s resumed: %v, expected: %v", test, hs.DidResume, didResume)
+
+		rootCAs := x509.NewCertPool()
+		rootCAs.AddCert(issuer)
+
+		clientConfig := &Config{
+			CipherSuites:       []uint16{TLS_RSA_WITH_RC4_128_SHA},
+			ClientSessionCache: NewLRUClientSessionCache(32),
+			RootCAs:            rootCAs,
+			ServerName:         "example.golang",
 		}
-		if didResume && (hs.PeerCertificates == nil || hs.VerifiedChains == nil) {
-			t.Fatalf("expected non-nil certificates after resumption. Got peerCertificates: %#v, verifiedCertificates: %#v", hs.PeerCertificates, hs.VerifiedChains)
+
+		testResumeState := func(test string, didResume bool) {
+			_, hs, err := testHandshake(clientConfig, serverConfig)
+			if err != nil {
+				t.Fatalf("%s: handshake failed: %s", test, err)
+			}
+			if hs.DidResume != didResume {
+				t.Fatalf("%s resumed: %v, expected: %v", test, hs.DidResume, didResume)
+			}
+			if didResume && (hs.PeerCertificates == nil || hs.VerifiedChains == nil) {
+				t.Fatalf("expected non-nil certificates after resumption. Got peerCertificates: %#v, verifiedCertificates: %#v", hs.PeerCertificates, hs.VerifiedChains)
+			}
 		}
-	}
 
-	getTicket := func() []byte {
-		return clientConfig.ClientSessionCache.(*lruSessionCache).q.Front().Value.(*lruSessionCacheEntry).state.sessionTicket
-	}
-	randomKey := func() [32]byte {
-		var k [32]byte
-		if _, err := io.ReadFull(serverConfig.rand(), k[:]); err != nil {
-			t.Fatalf("Failed to read new SessionTicketKey: %s", err)
+		getTicket := func() []byte {
+			return clientConfig.ClientSessionCache.(*lruSessionCache).q.Front().Value.(*lruSessionCacheEntry).state.sessionTicket
 		}
-		return k
+		randomKey := func() [32]byte {
+			var k [32]byte
+			if _, err := io.ReadFull(serverConfig.rand(), k[:]); err != nil {
+				t.Fatalf("Failed to read new SessionTicketKey: %s", err)
+			}
+			return k
+		}
+
+		testResumeState("Handshake", false)
+		ticket := getTicket()
+		testResumeState("Resume", true)
+		if !bytes.Equal(ticket, getTicket()) {
+			t.Fatal("first ticket doesn't match ticket after resumption")
+		}
+
+		key1 := randomKey()
+		serverConfig.SetSessionTicketKeys([][32]byte{key1})
+
+		testResumeState("InvalidSessionTicketKey", false)
+		testResumeState("ResumeAfterInvalidSessionTicketKey", true)
+
+		key2 := randomKey()
+		serverConfig.SetSessionTicketKeys([][32]byte{key2, key1})
+		ticket = getTicket()
+		testResumeState("KeyChange", true)
+		if bytes.Equal(ticket, getTicket()) {
+			t.Fatal("new ticket wasn't included while resuming")
+		}
+		testResumeState("KeyChangeFinish", true)
+
+		// Reset serverConfig to ensure that calling SetSessionTicketKeys
+		// before the serverConfig is used works.
+		serverConfig = &Config{
+			CipherSuites: []uint16{TLS_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA},
+			Certificates: testConfig.Certificates,
+		}
+		serverConfig.SetSessionTicketKeys([][32]byte{key2})
+
+		testResumeState("FreshConfig", true)
+
+		clientConfig.CipherSuites = []uint16{TLS_ECDHE_RSA_WITH_RC4_128_SHA}
+		testResumeState("DifferentCipherSuite", false)
+		testResumeState("DifferentCipherSuiteRecovers", true)
+
+		clientConfig.ClientSessionCache = nil
+		testResumeState("WithoutSessionCache", false)
 	}
-
-	testResumeState("Handshake", false)
-	ticket := getTicket()
-	testResumeState("Resume", true)
-	if !bytes.Equal(ticket, getTicket()) {
-		t.Fatal("first ticket doesn't match ticket after resumption")
-	}
-
-	key1 := randomKey()
-	serverConfig.SetSessionTicketKeys([][32]byte{key1})
-
-	testResumeState("InvalidSessionTicketKey", false)
-	testResumeState("ResumeAfterInvalidSessionTicketKey", true)
-
-	key2 := randomKey()
-	serverConfig.SetSessionTicketKeys([][32]byte{key2, key1})
-	ticket = getTicket()
-	testResumeState("KeyChange", true)
-	if bytes.Equal(ticket, getTicket()) {
-		t.Fatal("new ticket wasn't included while resuming")
-	}
-	testResumeState("KeyChangeFinish", true)
-
-	// Reset serverConfig to ensure that calling SetSessionTicketKeys
-	// before the serverConfig is used works.
-	serverConfig = &Config{
-		CipherSuites: []uint16{TLS_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA},
-		Certificates: testConfig.Certificates,
-	}
-	serverConfig.SetSessionTicketKeys([][32]byte{key2})
-
-	testResumeState("FreshConfig", true)
-
-	clientConfig.CipherSuites = []uint16{TLS_ECDHE_RSA_WITH_RC4_128_SHA}
-	testResumeState("DifferentCipherSuite", false)
-	testResumeState("DifferentCipherSuiteRecovers", true)
-
-	clientConfig.ClientSessionCache = nil
-	testResumeState("WithoutSessionCache", false)
 }
 
 func TestLRUClientSessionCache(t *testing.T) {
@@ -793,191 +825,205 @@ func TestLRUClientSessionCache(t *testing.T) {
 }
 
 func TestKeyLog(t *testing.T) {
-	var serverBuf, clientBuf bytes.Buffer
+	if !useBabasslTag.IsOpen() {
+		var serverBuf, clientBuf bytes.Buffer
 
-	clientConfig := testConfig.Clone()
-	clientConfig.KeyLogWriter = &clientBuf
+		clientConfig := testConfig.Clone()
+		clientConfig.KeyLogWriter = &clientBuf
 
-	serverConfig := testConfig.Clone()
-	serverConfig.KeyLogWriter = &serverBuf
+		serverConfig := testConfig.Clone()
+		serverConfig.KeyLogWriter = &serverBuf
 
-	c, s := net.Pipe()
-	done := make(chan bool)
+		c, s := net.Pipe()
+		done := make(chan bool)
 
-	go func() {
-		defer close(done)
+		go func() {
+			defer close(done)
 
-		if err := Server(s, serverConfig).Handshake(); err != nil {
-			t.Errorf("server: %s", err)
-			return
+			if err := Server(s, serverConfig).Handshake(); err != nil {
+				t.Errorf("server: %s", err)
+				return
+			}
+			s.Close()
+		}()
+
+		if err := Client(c, clientConfig).Handshake(); err != nil {
+			t.Fatalf("client: %s", err)
 		}
-		s.Close()
-	}()
 
-	if err := Client(c, clientConfig).Handshake(); err != nil {
-		t.Fatalf("client: %s", err)
+		c.Close()
+		<-done
+
+		checkKeylogLine := func(side, loggedLine string) {
+			if len(loggedLine) == 0 {
+				t.Fatalf("%s: no keylog line was produced", side)
+			}
+			const expectedLen = 13 /* "CLIENT_RANDOM" */ +
+				1 /* space */ +
+				32*2 /* hex client nonce */ +
+				1 /* space */ +
+				48*2 /* hex master secret */ +
+				1 /* new line */
+			if len(loggedLine) != expectedLen {
+				t.Fatalf("%s: keylog line has incorrect length (want %d, got %d): %q", side, expectedLen, len(loggedLine), loggedLine)
+			}
+			if !strings.HasPrefix(loggedLine, "CLIENT_RANDOM "+strings.Repeat("0", 64)+" ") {
+				t.Fatalf("%s: keylog line has incorrect structure or nonce: %q", side, loggedLine)
+			}
+		}
+
+		checkKeylogLine("client", string(clientBuf.Bytes()))
+		checkKeylogLine("server", string(serverBuf.Bytes()))
 	}
-
-	c.Close()
-	<-done
-
-	checkKeylogLine := func(side, loggedLine string) {
-		if len(loggedLine) == 0 {
-			t.Fatalf("%s: no keylog line was produced", side)
-		}
-		const expectedLen = 13 /* "CLIENT_RANDOM" */ +
-			1 /* space */ +
-			32*2 /* hex client nonce */ +
-			1 /* space */ +
-			48*2 /* hex master secret */ +
-			1 /* new line */
-		if len(loggedLine) != expectedLen {
-			t.Fatalf("%s: keylog line has incorrect length (want %d, got %d): %q", side, expectedLen, len(loggedLine), loggedLine)
-		}
-		if !strings.HasPrefix(loggedLine, "CLIENT_RANDOM "+strings.Repeat("0", 64)+" ") {
-			t.Fatalf("%s: keylog line has incorrect structure or nonce: %q", side, loggedLine)
-		}
-	}
-
-	checkKeylogLine("client", string(clientBuf.Bytes()))
-	checkKeylogLine("server", string(serverBuf.Bytes()))
 }
 
 func TestHandshakeClientALPNMatch(t *testing.T) {
-	config := testConfig.Clone()
-	config.NextProtos = []string{"proto2", "proto1"}
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.NextProtos = []string{"proto2", "proto1"}
 
-	test := &clientTest{
-		name: "ALPN",
-		// Note that this needs OpenSSL 1.0.2 because that is the first
-		// version that supports the -alpn flag.
-		command: []string{"openssl", "s_server", "-alpn", "proto1,proto2"},
-		config:  config,
-		validate: func(state ConnectionState) error {
-			// The server's preferences should override the client.
-			if state.NegotiatedProtocol != "proto1" {
-				return fmt.Errorf("Got protocol %q, wanted proto1", state.NegotiatedProtocol)
-			}
-			return nil
-		},
+		test := &clientTest{
+			name: "ALPN",
+			// Note that this needs OpenSSL 1.0.2 because that is the first
+			// version that supports the -alpn flag.
+			command: []string{"openssl", "s_server", "-alpn", "proto1,proto2"},
+			config:  config,
+			validate: func(state ConnectionState) error {
+				// The server's preferences should override the client.
+				if state.NegotiatedProtocol != "proto1" {
+					return fmt.Errorf("Got protocol %q, wanted proto1", state.NegotiatedProtocol)
+				}
+				return nil
+			},
+		}
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS12(t, test)
 }
 
 // sctsBase64 contains data from `openssl s_client -serverinfo 18 -connect ritter.vg:443`
 const sctsBase64 = "ABIBaQFnAHUApLkJkLQYWBSHuxOizGdwCjw1mAT5G9+443fNDsgN3BAAAAFHl5nuFgAABAMARjBEAiAcS4JdlW5nW9sElUv2zvQyPoZ6ejKrGGB03gjaBZFMLwIgc1Qbbn+hsH0RvObzhS+XZhr3iuQQJY8S9G85D9KeGPAAdgBo9pj4H2SCvjqM7rkoHUz8cVFdZ5PURNEKZ6y7T0/7xAAAAUeX4bVwAAAEAwBHMEUCIDIhFDgG2HIuADBkGuLobU5a4dlCHoJLliWJ1SYT05z6AiEAjxIoZFFPRNWMGGIjskOTMwXzQ1Wh2e7NxXE1kd1J0QsAdgDuS723dc5guuFCaR+r4Z5mow9+X7By2IMAxHuJeqj9ywAAAUhcZIqHAAAEAwBHMEUCICmJ1rBT09LpkbzxtUC+Hi7nXLR0J+2PmwLp+sJMuqK+AiEAr0NkUnEVKVhAkccIFpYDqHOlZaBsuEhWWrYpg2RtKp0="
 
 func TestHandshakClientSCTs(t *testing.T) {
-	config := testConfig.Clone()
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
 
-	scts, err := base64.StdEncoding.DecodeString(sctsBase64)
-	if err != nil {
-		t.Fatal(err)
-	}
+		scts, err := base64.StdEncoding.DecodeString(sctsBase64)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	test := &clientTest{
-		name: "SCT",
-		// Note that this needs OpenSSL 1.0.2 because that is the first
-		// version that supports the -serverinfo flag.
-		command:    []string{"openssl", "s_server"},
-		config:     config,
-		extensions: [][]byte{scts},
-		validate: func(state ConnectionState) error {
-			expectedSCTs := [][]byte{
-				scts[8:125],
-				scts[127:245],
-				scts[247:],
-			}
-			if n := len(state.SignedCertificateTimestamps); n != len(expectedSCTs) {
-				return fmt.Errorf("Got %d scts, wanted %d", n, len(expectedSCTs))
-			}
-			for i, expected := range expectedSCTs {
-				if sct := state.SignedCertificateTimestamps[i]; !bytes.Equal(sct, expected) {
-					return fmt.Errorf("SCT #%d contained %x, expected %x", i, sct, expected)
+		test := &clientTest{
+			name: "SCT",
+			// Note that this needs OpenSSL 1.0.2 because that is the first
+			// version that supports the -serverinfo flag.
+			command:    []string{"openssl", "s_server"},
+			config:     config,
+			extensions: [][]byte{scts},
+			validate: func(state ConnectionState) error {
+				expectedSCTs := [][]byte{
+					scts[8:125],
+					scts[127:245],
+					scts[247:],
 				}
-			}
-			return nil
-		},
+				if n := len(state.SignedCertificateTimestamps); n != len(expectedSCTs) {
+					return fmt.Errorf("Got %d scts, wanted %d", n, len(expectedSCTs))
+				}
+				for i, expected := range expectedSCTs {
+					if sct := state.SignedCertificateTimestamps[i]; !bytes.Equal(sct, expected) {
+						return fmt.Errorf("SCT #%d contained %x, expected %x", i, sct, expected)
+					}
+				}
+				return nil
+			},
+		}
+		runClientTestTLS12(t, test)
 	}
-	runClientTestTLS12(t, test)
 }
 
 func TestRenegotiationRejected(t *testing.T) {
-	config := testConfig.Clone()
-	test := &clientTest{
-		name:                        "RenegotiationRejected",
-		command:                     []string{"openssl", "s_server", "-state"},
-		config:                      config,
-		numRenegotiations:           1,
-		renegotiationExpectedToFail: 1,
-		checkRenegotiationError: func(renegotiationNum int, err error) error {
-			if err == nil {
-				return errors.New("expected error from renegotiation but got nil")
-			}
-			if !strings.Contains(err.Error(), "no renegotiation") {
-				return fmt.Errorf("expected renegotiation to be rejected but got %q", err)
-			}
-			return nil
-		},
-	}
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		test := &clientTest{
+			name:                        "RenegotiationRejected",
+			command:                     []string{"openssl", "s_server", "-state"},
+			config:                      config,
+			numRenegotiations:           1,
+			renegotiationExpectedToFail: 1,
+			checkRenegotiationError: func(renegotiationNum int, err error) error {
+				if err == nil {
+					return errors.New("expected error from renegotiation but got nil")
+				}
+				if !strings.Contains(err.Error(), "no renegotiation") {
+					return fmt.Errorf("expected renegotiation to be rejected but got %q", err)
+				}
+				return nil
+			},
+		}
 
-	runClientTestTLS12(t, test)
+		runClientTestTLS12(t, test)
+	}
 }
 
 func TestRenegotiateOnce(t *testing.T) {
-	config := testConfig.Clone()
-	config.Renegotiation = RenegotiateOnceAsClient
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.Renegotiation = RenegotiateOnceAsClient
 
-	test := &clientTest{
-		name:              "RenegotiateOnce",
-		command:           []string{"openssl", "s_server", "-state"},
-		config:            config,
-		numRenegotiations: 1,
+		test := &clientTest{
+			name:              "RenegotiateOnce",
+			command:           []string{"openssl", "s_server", "-state"},
+			config:            config,
+			numRenegotiations: 1,
+		}
+
+		runClientTestTLS12(t, test)
 	}
-
-	runClientTestTLS12(t, test)
 }
 
 func TestRenegotiateTwice(t *testing.T) {
-	config := testConfig.Clone()
-	config.Renegotiation = RenegotiateFreelyAsClient
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.Renegotiation = RenegotiateFreelyAsClient
 
-	test := &clientTest{
-		name:              "RenegotiateTwice",
-		command:           []string{"openssl", "s_server", "-state"},
-		config:            config,
-		numRenegotiations: 2,
+		test := &clientTest{
+			name:              "RenegotiateTwice",
+			command:           []string{"openssl", "s_server", "-state"},
+			config:            config,
+			numRenegotiations: 2,
+		}
+
+		runClientTestTLS12(t, test)
 	}
-
-	runClientTestTLS12(t, test)
 }
 
 func TestRenegotiateTwiceRejected(t *testing.T) {
-	config := testConfig.Clone()
-	config.Renegotiation = RenegotiateOnceAsClient
+	if !useBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.Renegotiation = RenegotiateOnceAsClient
 
-	test := &clientTest{
-		name:                        "RenegotiateTwiceRejected",
-		command:                     []string{"openssl", "s_server", "-state"},
-		config:                      config,
-		numRenegotiations:           2,
-		renegotiationExpectedToFail: 2,
-		checkRenegotiationError: func(renegotiationNum int, err error) error {
-			if renegotiationNum == 1 {
-				return err
-			}
+		test := &clientTest{
+			name:                        "RenegotiateTwiceRejected",
+			command:                     []string{"openssl", "s_server", "-state"},
+			config:                      config,
+			numRenegotiations:           2,
+			renegotiationExpectedToFail: 2,
+			checkRenegotiationError: func(renegotiationNum int, err error) error {
+				if renegotiationNum == 1 {
+					return err
+				}
 
-			if err == nil {
-				return errors.New("expected error from renegotiation but got nil")
-			}
-			if !strings.Contains(err.Error(), "no renegotiation") {
-				return fmt.Errorf("expected renegotiation to be rejected but got %q", err)
-			}
-			return nil
-		},
+				if err == nil {
+					return errors.New("expected error from renegotiation but got nil")
+				}
+				if !strings.Contains(err.Error(), "no renegotiation") {
+					return fmt.Errorf("expected renegotiation to be rejected but got %q", err)
+				}
+				return nil
+			},
+		}
+
+		runClientTestTLS12(t, test)
 	}
-
-	runClientTestTLS12(t, test)
 }
 
 var hostnameInSNITests = []struct {
@@ -1003,12 +1049,58 @@ var hostnameInSNITests = []struct {
 }
 
 func TestHostnameInSNI(t *testing.T) {
-	for _, tt := range hostnameInSNITests {
-		c, s := net.Pipe()
+	if !useBabasslTag.IsOpen() {
+		for _, tt := range hostnameInSNITests {
+			c, s := net.Pipe()
 
-		go func(host string) {
-			Client(c, &Config{ServerName: host, InsecureSkipVerify: true}).Handshake()
-		}(tt.in)
+			go func(host string) {
+				Client(c, &Config{ServerName: host, InsecureSkipVerify: true}).Handshake()
+			}(tt.in)
+
+			var header [5]byte
+			if _, err := io.ReadFull(s, header[:]); err != nil {
+				t.Fatal(err)
+			}
+			recordLen := int(header[3])<<8 | int(header[4])
+
+			record := make([]byte, recordLen)
+			if _, err := io.ReadFull(s, record[:]); err != nil {
+				t.Fatal(err)
+			}
+
+			c.Close()
+			s.Close()
+
+			var m clientHelloMsg
+			if !m.unmarshal(record) {
+				t.Errorf("unmarshaling ClientHello for %q failed", tt.in)
+				continue
+			}
+			if tt.in != tt.out && m.serverName == tt.in {
+				t.Errorf("prohibited %q found in ClientHello: %x", tt.in, record)
+			}
+			if m.serverName != tt.out {
+				t.Errorf("expected %q not found in ClientHello: %x", tt.out, record)
+			}
+		}
+	}
+}
+
+func TestServerSelectingUnconfiguredCipherSuite(t *testing.T) {
+	if !useBabasslTag.IsOpen() {
+		// This checks that the server can't select a cipher suite that the
+		// client didn't offer. See #13174.
+
+		c, s := net.Pipe()
+		errChan := make(chan error, 1)
+
+		go func() {
+			client := Client(c, &Config{
+				ServerName:   "foo",
+				CipherSuites: []uint16{TLS_RSA_WITH_AES_128_GCM_SHA256},
+			})
+			errChan <- client.Handshake()
+		}()
 
 		var header [5]byte
 		if _, err := io.ReadFull(s, header[:]); err != nil {
@@ -1017,228 +1109,188 @@ func TestHostnameInSNI(t *testing.T) {
 		recordLen := int(header[3])<<8 | int(header[4])
 
 		record := make([]byte, recordLen)
-		if _, err := io.ReadFull(s, record[:]); err != nil {
+		if _, err := io.ReadFull(s, record); err != nil {
 			t.Fatal(err)
 		}
 
-		c.Close()
+		// Create a ServerHello that selects a different cipher suite than the
+		// sole one that the client offered.
+		serverHello := &serverHelloMsg{
+			vers:        VersionTLS12,
+			random:      make([]byte, 32),
+			cipherSuite: TLS_RSA_WITH_AES_256_GCM_SHA384,
+		}
+		serverHelloBytes := serverHello.marshal()
+
+		s.Write([]byte{
+			byte(recordTypeHandshake),
+			byte(VersionTLS12 >> 8),
+			byte(VersionTLS12 & 0xff),
+			byte(len(serverHelloBytes) >> 8),
+			byte(len(serverHelloBytes)),
+		})
+		s.Write(serverHelloBytes)
 		s.Close()
 
-		var m clientHelloMsg
-		if !m.unmarshal(record) {
-			t.Errorf("unmarshaling ClientHello for %q failed", tt.in)
-			continue
+		if err := <-errChan; !strings.Contains(err.Error(), "unconfigured cipher") {
+			t.Fatalf("Expected error about unconfigured cipher suite but got %q", err)
 		}
-		if tt.in != tt.out && m.serverName == tt.in {
-			t.Errorf("prohibited %q found in ClientHello: %x", tt.in, record)
-		}
-		if m.serverName != tt.out {
-			t.Errorf("expected %q not found in ClientHello: %x", tt.out, record)
-		}
-	}
-}
-
-func TestServerSelectingUnconfiguredCipherSuite(t *testing.T) {
-	// This checks that the server can't select a cipher suite that the
-	// client didn't offer. See #13174.
-
-	c, s := net.Pipe()
-	errChan := make(chan error, 1)
-
-	go func() {
-		client := Client(c, &Config{
-			ServerName:   "foo",
-			CipherSuites: []uint16{TLS_RSA_WITH_AES_128_GCM_SHA256},
-		})
-		errChan <- client.Handshake()
-	}()
-
-	var header [5]byte
-	if _, err := io.ReadFull(s, header[:]); err != nil {
-		t.Fatal(err)
-	}
-	recordLen := int(header[3])<<8 | int(header[4])
-
-	record := make([]byte, recordLen)
-	if _, err := io.ReadFull(s, record); err != nil {
-		t.Fatal(err)
-	}
-
-	// Create a ServerHello that selects a different cipher suite than the
-	// sole one that the client offered.
-	serverHello := &serverHelloMsg{
-		vers:        VersionTLS12,
-		random:      make([]byte, 32),
-		cipherSuite: TLS_RSA_WITH_AES_256_GCM_SHA384,
-	}
-	serverHelloBytes := serverHello.marshal()
-
-	s.Write([]byte{
-		byte(recordTypeHandshake),
-		byte(VersionTLS12 >> 8),
-		byte(VersionTLS12 & 0xff),
-		byte(len(serverHelloBytes) >> 8),
-		byte(len(serverHelloBytes)),
-	})
-	s.Write(serverHelloBytes)
-	s.Close()
-
-	if err := <-errChan; !strings.Contains(err.Error(), "unconfigured cipher") {
-		t.Fatalf("Expected error about unconfigured cipher suite but got %q", err)
 	}
 }
 
 func TestVerifyPeerCertificate(t *testing.T) {
-	issuer, err := x509.ParseCertificate(testRSACertificateIssuer)
-	if err != nil {
-		panic(err)
-	}
-
-	rootCAs := x509.NewCertPool()
-	rootCAs.AddCert(issuer)
-
-	now := func() time.Time { return time.Unix(1476984729, 0) }
-
-	sentinelErr := errors.New("TestVerifyPeerCertificate")
-
-	verifyCallback := func(called *bool, rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
-		if l := len(rawCerts); l != 1 {
-			return fmt.Errorf("got len(rawCerts) = %d, wanted 1", l)
+	if !useBabasslTag.IsOpen() {
+		issuer, err := x509.ParseCertificate(testRSACertificateIssuer)
+		if err != nil {
+			panic(err)
 		}
-		if len(validatedChains) == 0 {
-			return errors.New("got len(validatedChains) = 0, wanted non-zero")
+
+		rootCAs := x509.NewCertPool()
+		rootCAs.AddCert(issuer)
+
+		now := func() time.Time { return time.Unix(1476984729, 0) }
+
+		sentinelErr := errors.New("TestVerifyPeerCertificate")
+
+		verifyCallback := func(called *bool, rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
+			if l := len(rawCerts); l != 1 {
+				return fmt.Errorf("got len(rawCerts) = %d, wanted 1", l)
+			}
+			if len(validatedChains) == 0 {
+				return errors.New("got len(validatedChains) = 0, wanted non-zero")
+			}
+			*called = true
+			return nil
 		}
-		*called = true
-		return nil
-	}
 
-	tests := []struct {
-		configureServer func(*Config, *bool)
-		configureClient func(*Config, *bool)
-		validate        func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error)
-	}{
-		{
-			configureServer: func(config *Config, called *bool) {
-				config.InsecureSkipVerify = false
-				config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
-					return verifyCallback(called, rawCerts, validatedChains)
-				}
-			},
-			configureClient: func(config *Config, called *bool) {
-				config.InsecureSkipVerify = false
-				config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
-					return verifyCallback(called, rawCerts, validatedChains)
-				}
-			},
-			validate: func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error) {
-				if clientErr != nil {
-					t.Errorf("test[%d]: client handshake failed: %v", testNo, clientErr)
-				}
-				if serverErr != nil {
-					t.Errorf("test[%d]: server handshake failed: %v", testNo, serverErr)
-				}
-				if !clientCalled {
-					t.Errorf("test[%d]: client did not call callback", testNo)
-				}
-				if !serverCalled {
-					t.Errorf("test[%d]: server did not call callback", testNo)
-				}
-			},
-		},
-		{
-			configureServer: func(config *Config, called *bool) {
-				config.InsecureSkipVerify = false
-				config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
-					return sentinelErr
-				}
-			},
-			configureClient: func(config *Config, called *bool) {
-				config.VerifyPeerCertificate = nil
-			},
-			validate: func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error) {
-				if serverErr != sentinelErr {
-					t.Errorf("#%d: got server error %v, wanted sentinelErr", testNo, serverErr)
-				}
-			},
-		},
-		{
-			configureServer: func(config *Config, called *bool) {
-				config.InsecureSkipVerify = false
-			},
-			configureClient: func(config *Config, called *bool) {
-				config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
-					return sentinelErr
-				}
-			},
-			validate: func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error) {
-				if clientErr != sentinelErr {
-					t.Errorf("#%d: got client error %v, wanted sentinelErr", testNo, clientErr)
-				}
-			},
-		},
-		{
-			configureServer: func(config *Config, called *bool) {
-				config.InsecureSkipVerify = false
-			},
-			configureClient: func(config *Config, called *bool) {
-				config.InsecureSkipVerify = true
-				config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
-					if l := len(rawCerts); l != 1 {
-						return fmt.Errorf("got len(rawCerts) = %d, wanted 1", l)
+		tests := []struct {
+			configureServer func(*Config, *bool)
+			configureClient func(*Config, *bool)
+			validate        func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error)
+		}{
+			{
+				configureServer: func(config *Config, called *bool) {
+					config.InsecureSkipVerify = false
+					config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
+						return verifyCallback(called, rawCerts, validatedChains)
 					}
-					// With InsecureSkipVerify set, this
-					// callback should still be called but
-					// validatedChains must be empty.
-					if l := len(validatedChains); l != 0 {
-						return errors.New("got len(validatedChains) = 0, wanted zero")
+				},
+				configureClient: func(config *Config, called *bool) {
+					config.InsecureSkipVerify = false
+					config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
+						return verifyCallback(called, rawCerts, validatedChains)
 					}
-					*called = true
-					return nil
-				}
+				},
+				validate: func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error) {
+					if clientErr != nil {
+						t.Errorf("test[%d]: client handshake failed: %v", testNo, clientErr)
+					}
+					if serverErr != nil {
+						t.Errorf("test[%d]: server handshake failed: %v", testNo, serverErr)
+					}
+					if !clientCalled {
+						t.Errorf("test[%d]: client did not call callback", testNo)
+					}
+					if !serverCalled {
+						t.Errorf("test[%d]: server did not call callback", testNo)
+					}
+				},
 			},
-			validate: func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error) {
-				if clientErr != nil {
-					t.Errorf("test[%d]: client handshake failed: %v", testNo, clientErr)
-				}
-				if serverErr != nil {
-					t.Errorf("test[%d]: server handshake failed: %v", testNo, serverErr)
-				}
-				if !clientCalled {
-					t.Errorf("test[%d]: client did not call callback", testNo)
-				}
+			{
+				configureServer: func(config *Config, called *bool) {
+					config.InsecureSkipVerify = false
+					config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
+						return sentinelErr
+					}
+				},
+				configureClient: func(config *Config, called *bool) {
+					config.VerifyPeerCertificate = nil
+				},
+				validate: func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error) {
+					if serverErr != sentinelErr {
+						t.Errorf("#%d: got server error %v, wanted sentinelErr", testNo, serverErr)
+					}
+				},
 			},
-		},
-	}
+			{
+				configureServer: func(config *Config, called *bool) {
+					config.InsecureSkipVerify = false
+				},
+				configureClient: func(config *Config, called *bool) {
+					config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
+						return sentinelErr
+					}
+				},
+				validate: func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error) {
+					if clientErr != sentinelErr {
+						t.Errorf("#%d: got client error %v, wanted sentinelErr", testNo, clientErr)
+					}
+				},
+			},
+			{
+				configureServer: func(config *Config, called *bool) {
+					config.InsecureSkipVerify = false
+				},
+				configureClient: func(config *Config, called *bool) {
+					config.InsecureSkipVerify = true
+					config.VerifyPeerCertificate = func(rawCerts [][]byte, validatedChains [][]*x509.Certificate) error {
+						if l := len(rawCerts); l != 1 {
+							return fmt.Errorf("got len(rawCerts) = %d, wanted 1", l)
+						}
+						// With InsecureSkipVerify set, this
+						// callback should still be called but
+						// validatedChains must be empty.
+						if l := len(validatedChains); l != 0 {
+							return errors.New("got len(validatedChains) = 0, wanted zero")
+						}
+						*called = true
+						return nil
+					}
+				},
+				validate: func(t *testing.T, testNo int, clientCalled, serverCalled bool, clientErr, serverErr error) {
+					if clientErr != nil {
+						t.Errorf("test[%d]: client handshake failed: %v", testNo, clientErr)
+					}
+					if serverErr != nil {
+						t.Errorf("test[%d]: server handshake failed: %v", testNo, serverErr)
+					}
+					if !clientCalled {
+						t.Errorf("test[%d]: client did not call callback", testNo)
+					}
+				},
+			},
+		}
 
-	for i, test := range tests {
-		c, s := net.Pipe()
-		done := make(chan error)
+		for i, test := range tests {
+			c, s := net.Pipe()
+			done := make(chan error)
 
-		var clientCalled, serverCalled bool
+			var clientCalled, serverCalled bool
 
-		go func() {
+			go func() {
+				config := testConfig.Clone()
+				config.ServerName = "example.golang"
+				config.ClientAuth = RequireAndVerifyClientCert
+				config.ClientCAs = rootCAs
+				config.Time = now
+				test.configureServer(config, &serverCalled)
+
+				err = Server(s, config).Handshake()
+				s.Close()
+				done <- err
+			}()
+
 			config := testConfig.Clone()
 			config.ServerName = "example.golang"
-			config.ClientAuth = RequireAndVerifyClientCert
-			config.ClientCAs = rootCAs
+			config.RootCAs = rootCAs
 			config.Time = now
-			test.configureServer(config, &serverCalled)
+			test.configureClient(config, &clientCalled)
+			clientErr := Client(c, config).Handshake()
+			c.Close()
+			serverErr := <-done
 
-			err = Server(s, config).Handshake()
-			s.Close()
-			done <- err
-		}()
-
-		config := testConfig.Clone()
-		config.ServerName = "example.golang"
-		config.RootCAs = rootCAs
-		config.Time = now
-		test.configureClient(config, &clientCalled)
-		clientErr := Client(c, config).Handshake()
-		c.Close()
-		serverErr := <-done
-
-		test.validate(t, i, clientCalled, serverCalled, clientErr, serverErr)
+			test.validate(t, i, clientCalled, serverCalled, clientErr, serverErr)
+		}
 	}
 }
 
@@ -1268,25 +1320,27 @@ func (b *brokenConn) Write(data []byte) (int, error) {
 }
 
 func TestFailedWrite(t *testing.T) {
-	// Test that a write error during the handshake is returned.
-	for _, breakAfter := range []int{0, 1} {
-		c, s := net.Pipe()
-		done := make(chan bool)
+	if !useBabasslTag.IsOpen() {
+		// Test that a write error during the handshake is returned.
+		for _, breakAfter := range []int{0, 1} {
+			c, s := net.Pipe()
+			done := make(chan bool)
 
-		go func() {
-			Server(s, testConfig).Handshake()
-			s.Close()
-			done <- true
-		}()
+			go func() {
+				Server(s, testConfig).Handshake()
+				s.Close()
+				done <- true
+			}()
 
-		brokenC := &brokenConn{Conn: c, breakAfter: breakAfter}
-		err := Client(brokenC, testConfig).Handshake()
-		if err != brokenConnErr {
-			t.Errorf("#%d: expected error from brokenConn but got %q", breakAfter, err)
+			brokenC := &brokenConn{Conn: c, breakAfter: breakAfter}
+			err := Client(brokenC, testConfig).Handshake()
+			if err != brokenConnErr {
+				t.Errorf("#%d: expected error from brokenConn but got %q", breakAfter, err)
+			}
+			brokenC.Close()
+
+			<-done
 		}
-		brokenC.Close()
-
-		<-done
 	}
 }
 
@@ -1304,137 +1358,145 @@ func (wcc *writeCountingConn) Write(data []byte) (int, error) {
 }
 
 func TestBuffering(t *testing.T) {
-	c, s := net.Pipe()
-	done := make(chan bool)
+	if !useBabasslTag.IsOpen() {
+		c, s := net.Pipe()
+		done := make(chan bool)
 
-	clientWCC := &writeCountingConn{Conn: c}
-	serverWCC := &writeCountingConn{Conn: s}
+		clientWCC := &writeCountingConn{Conn: c}
+		serverWCC := &writeCountingConn{Conn: s}
 
-	go func() {
-		Server(serverWCC, testConfig).Handshake()
-		serverWCC.Close()
-		done <- true
-	}()
+		go func() {
+			Server(serverWCC, testConfig).Handshake()
+			serverWCC.Close()
+			done <- true
+		}()
 
-	err := Client(clientWCC, testConfig).Handshake()
-	if err != nil {
-		t.Fatal(err)
-	}
-	clientWCC.Close()
-	<-done
+		err := Client(clientWCC, testConfig).Handshake()
+		if err != nil {
+			t.Fatal(err)
+		}
+		clientWCC.Close()
+		<-done
 
-	if n := clientWCC.numWrites; n != 2 {
-		t.Errorf("expected client handshake to complete with only two writes, but saw %d", n)
-	}
+		if n := clientWCC.numWrites; n != 2 {
+			t.Errorf("expected client handshake to complete with only two writes, but saw %d", n)
+		}
 
-	if n := serverWCC.numWrites; n != 2 {
-		t.Errorf("expected server handshake to complete with only two writes, but saw %d", n)
+		if n := serverWCC.numWrites; n != 2 {
+			t.Errorf("expected server handshake to complete with only two writes, but saw %d", n)
+		}
 	}
 }
 
 func TestAlertFlushing(t *testing.T) {
-	c, s := net.Pipe()
-	done := make(chan bool)
+	if !useBabasslTag.IsOpen() {
+		c, s := net.Pipe()
+		done := make(chan bool)
 
-	clientWCC := &writeCountingConn{Conn: c}
-	serverWCC := &writeCountingConn{Conn: s}
+		clientWCC := &writeCountingConn{Conn: c}
+		serverWCC := &writeCountingConn{Conn: s}
 
-	serverConfig := testConfig.Clone()
+		serverConfig := testConfig.Clone()
 
-	// Cause a signature-time error
-	brokenKey := rsa.PrivateKey{PublicKey: testRSAPrivateKey.PublicKey}
-	brokenKey.D = big.NewInt(42)
-	serverConfig.Certificates = []Certificate{{
-		Certificate: [][]byte{testRSACertificate},
-		PrivateKey:  &brokenKey,
-	}}
+		// Cause a signature-time error
+		brokenKey := rsa.PrivateKey{PublicKey: testRSAPrivateKey.PublicKey}
+		brokenKey.D = big.NewInt(42)
+		serverConfig.Certificates = []Certificate{{
+			Certificate: [][]byte{testRSACertificate},
+			PrivateKey:  &brokenKey,
+		}}
 
-	go func() {
-		Server(serverWCC, serverConfig).Handshake()
-		serverWCC.Close()
-		done <- true
-	}()
+		go func() {
+			Server(serverWCC, serverConfig).Handshake()
+			serverWCC.Close()
+			done <- true
+		}()
 
-	err := Client(clientWCC, testConfig).Handshake()
-	if err == nil {
-		t.Fatal("client unexpectedly returned no error")
-	}
+		err := Client(clientWCC, testConfig).Handshake()
+		if err == nil {
+			t.Fatal("client unexpectedly returned no error")
+		}
 
-	const expectedError = "remote error: tls: handshake failure"
-	if e := err.Error(); !strings.Contains(e, expectedError) {
-		t.Fatalf("expected to find %q in error but error was %q", expectedError, e)
-	}
-	clientWCC.Close()
-	<-done
+		const expectedError = "remote error: tls: handshake failure"
+		if e := err.Error(); !strings.Contains(e, expectedError) {
+			t.Fatalf("expected to find %q in error but error was %q", expectedError, e)
+		}
+		clientWCC.Close()
+		<-done
 
-	if n := clientWCC.numWrites; n != 1 {
-		t.Errorf("expected client handshake to complete with one write, but saw %d", n)
-	}
+		if n := clientWCC.numWrites; n != 1 {
+			t.Errorf("expected client handshake to complete with one write, but saw %d", n)
+		}
 
-	if n := serverWCC.numWrites; n != 1 {
-		t.Errorf("expected server handshake to complete with one write, but saw %d", n)
+		if n := serverWCC.numWrites; n != 1 {
+			t.Errorf("expected server handshake to complete with one write, but saw %d", n)
+		}
 	}
 }
 
 func TestHandshakeRace(t *testing.T) {
-	t.Parallel()
-	// This test races a Read and Write to try and complete a handshake in
-	// order to provide some evidence that there are no races or deadlocks
-	// in the handshake locking.
-	for i := 0; i < 32; i++ {
-		c, s := net.Pipe()
+	if !useBabasslTag.IsOpen() {
+		t.Parallel()
+		// This test races a Read and Write to try and complete a handshake in
+		// order to provide some evidence that there are no races or deadlocks
+		// in the handshake locking.
+		for i := 0; i < 32; i++ {
+			c, s := net.Pipe()
 
-		go func() {
-			server := Server(s, testConfig)
-			if err := server.Handshake(); err != nil {
-				panic(err)
+			go func() {
+				server := Server(s, testConfig)
+				if err := server.Handshake(); err != nil {
+					panic(err)
+				}
+
+				var request [1]byte
+				if n, err := server.Read(request[:]); err != nil || n != 1 {
+					panic(err)
+				}
+
+				server.Write(request[:])
+				server.Close()
+			}()
+
+			startWrite := make(chan struct{})
+			startRead := make(chan struct{})
+			readDone := make(chan struct{})
+
+			client := Client(c, testConfig)
+			go func() {
+				<-startWrite
+				var request [1]byte
+				client.Write(request[:])
+			}()
+
+			go func() {
+				<-startRead
+				var reply [1]byte
+				if n, err := client.Read(reply[:]); err != nil || n != 1 {
+					panic(err)
+				}
+				c.Close()
+				readDone <- struct{}{}
+			}()
+
+			if i&1 == 1 {
+				startWrite <- struct{}{}
+				startRead <- struct{}{}
+			} else {
+				startRead <- struct{}{}
+				startWrite <- struct{}{}
 			}
-
-			var request [1]byte
-			if n, err := server.Read(request[:]); err != nil || n != 1 {
-				panic(err)
-			}
-
-			server.Write(request[:])
-			server.Close()
-		}()
-
-		startWrite := make(chan struct{})
-		startRead := make(chan struct{})
-		readDone := make(chan struct{})
-
-		client := Client(c, testConfig)
-		go func() {
-			<-startWrite
-			var request [1]byte
-			client.Write(request[:])
-		}()
-
-		go func() {
-			<-startRead
-			var reply [1]byte
-			if n, err := client.Read(reply[:]); err != nil || n != 1 {
-				panic(err)
-			}
-			c.Close()
-			readDone <- struct{}{}
-		}()
-
-		if i&1 == 1 {
-			startWrite <- struct{}{}
-			startRead <- struct{}{}
-		} else {
-			startRead <- struct{}{}
-			startWrite <- struct{}{}
+			<-readDone
 		}
-		<-readDone
 	}
 }
 
 func TestTLS11SignatureSchemes(t *testing.T) {
-	expected := tls11SignatureSchemesNumECDSA + tls11SignatureSchemesNumRSA
-	if expected != len(tls11SignatureSchemes) {
-		t.Errorf("expected to find %d TLS 1.1 signature schemes, but found %d", expected, len(tls11SignatureSchemes))
+	if !useBabasslTag.IsOpen() {
+		expected := tls11SignatureSchemesNumECDSA + tls11SignatureSchemesNumRSA
+		if expected != len(tls11SignatureSchemes) {
+			t.Errorf("expected to find %d TLS 1.1 signature schemes, but found %d", expected, len(tls11SignatureSchemes))
+		}
 	}
 }
 
@@ -1509,58 +1571,60 @@ var getClientCertificateTests = []struct {
 }
 
 func TestGetClientCertificate(t *testing.T) {
-	issuer, err := x509.ParseCertificate(testRSACertificateIssuer)
-	if err != nil {
-		panic(err)
-	}
-
-	for i, test := range getClientCertificateTests {
-		serverConfig := testConfig.Clone()
-		serverConfig.ClientAuth = RequestClientCert
-		serverConfig.RootCAs = x509.NewCertPool()
-		serverConfig.RootCAs.AddCert(issuer)
-
-		clientConfig := testConfig.Clone()
-
-		test.setup(clientConfig)
-
-		type serverResult struct {
-			cs  ConnectionState
-			err error
+	if !useBabasslTag.IsOpen() {
+		issuer, err := x509.ParseCertificate(testRSACertificateIssuer)
+		if err != nil {
+			panic(err)
 		}
 
-		c, s := net.Pipe()
-		done := make(chan serverResult)
+		for i, test := range getClientCertificateTests {
+			serverConfig := testConfig.Clone()
+			serverConfig.ClientAuth = RequestClientCert
+			serverConfig.RootCAs = x509.NewCertPool()
+			serverConfig.RootCAs.AddCert(issuer)
 
-		go func() {
-			defer s.Close()
-			server := Server(s, serverConfig)
-			err := server.Handshake()
+			clientConfig := testConfig.Clone()
 
-			var cs ConnectionState
-			if err == nil {
-				cs = server.ConnectionState()
+			test.setup(clientConfig)
+
+			type serverResult struct {
+				cs  ConnectionState
+				err error
 			}
-			done <- serverResult{cs, err}
-		}()
 
-		clientErr := Client(c, clientConfig).Handshake()
-		c.Close()
+			c, s := net.Pipe()
+			done := make(chan serverResult)
 
-		result := <-done
+			go func() {
+				defer s.Close()
+				server := Server(s, serverConfig)
+				err := server.Handshake()
 
-		if clientErr != nil {
-			if len(test.expectedClientError) == 0 {
-				t.Errorf("#%d: client error: %v", i, clientErr)
-			} else if got := clientErr.Error(); got != test.expectedClientError {
-				t.Errorf("#%d: expected client error %q, but got %q", i, test.expectedClientError, got)
+				var cs ConnectionState
+				if err == nil {
+					cs = server.ConnectionState()
+				}
+				done <- serverResult{cs, err}
+			}()
+
+			clientErr := Client(c, clientConfig).Handshake()
+			c.Close()
+
+			result := <-done
+
+			if clientErr != nil {
+				if len(test.expectedClientError) == 0 {
+					t.Errorf("#%d: client error: %v", i, clientErr)
+				} else if got := clientErr.Error(); got != test.expectedClientError {
+					t.Errorf("#%d: expected client error %q, but got %q", i, test.expectedClientError, got)
+				}
+			} else if len(test.expectedClientError) > 0 {
+				t.Errorf("#%d: expected client error %q, but got no error", i, test.expectedClientError)
+			} else if err := result.err; err != nil {
+				t.Errorf("#%d: server error: %v", i, err)
+			} else {
+				test.verify(t, i, &result.cs)
 			}
-		} else if len(test.expectedClientError) > 0 {
-			t.Errorf("#%d: expected client error %q, but got no error", i, test.expectedClientError)
-		} else if err := result.err; err != nil {
-			t.Errorf("#%d: server error: %v", i, err)
-		} else {
-			test.verify(t, i, &result.cs)
 		}
 	}
 }
