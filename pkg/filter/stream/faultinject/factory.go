@@ -19,32 +19,44 @@ package faultinject
 
 import (
 	"context"
+	"encoding/json"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/filter"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	filter.RegisterStream(v2.FaultStream, CreateFaultInjectFilterFactory)
+	api.RegisterStream(v2.FaultStream, CreateFaultInjectFilterFactory)
 }
 
 type FilterConfigFactory struct {
 	Config *v2.StreamFaultInject
 }
 
-func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewFilter(context, f.Config)
-	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
+	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 
-func CreateFaultInjectFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+func CreateFaultInjectFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	log.DefaultLogger.Debugf("create fault inject stream filter factory")
-	cfg, err := config.ParseStreamFaultInjectFilter(conf)
+	cfg, err := ParseStreamFaultInjectFilter(conf)
 	if err != nil {
 		return nil, err
 	}
 	return &FilterConfigFactory{cfg}, nil
+}
+
+// ParseStreamFaultInjectFilter
+func ParseStreamFaultInjectFilter(cfg map[string]interface{}) (*v2.StreamFaultInject, error) {
+	filterConfig := &v2.StreamFaultInject{}
+	data, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(data, filterConfig); err != nil {
+		return nil, err
+	}
+	return filterConfig, nil
 }

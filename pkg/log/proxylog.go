@@ -19,94 +19,93 @@ package log
 
 import (
 	"context"
-
-	"mosn.io/mosn/pkg/types"
-
 	"strconv"
 
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/log"
 )
 
-// proxyLogger is a default implementation of ProxyLogger
-// we use ProxyLogger to record proxy events.
+// proxyLogger is a default implementation of ContextLogger
+// context will add trace info into formatter
+// we use proxyLogger to record proxy events.
 type proxyLogger struct {
-	*errorLogger
+	log.ErrorLogger
 }
 
-func CreateDefaultProxyLogger(output string, level Level) (ProxyLogger, error) {
+func CreateDefaultContextLogger(output string, level log.Level) (log.ContextLogger, error) {
 	lg, err := GetOrCreateDefaultErrorLogger(output, level)
 	if err != nil {
 		return nil, err
 	}
-	return &proxyLogger{lg.(*errorLogger)}, nil
-}
+	return &proxyLogger{
+		ErrorLogger: lg,
+	}, nil
 
-// trace logger format:
-// {time} [{level}] [{connId},{traceId}] {content}
-func (l *proxyLogger) formatter(ctx context.Context, lvPre string, format string) string {
-	return logTime() + " " + lvPre + " " + traceInfo(ctx) + " " + format
+}
+func (l *proxyLogger) fomatter(ctx context.Context, format string) string {
+	return traceInfo(ctx) + " " + format
 }
 
 func (l *proxyLogger) Infof(ctx context.Context, format string, args ...interface{}) {
-	if l.disable {
+	if l.Disable() {
 		return
 	}
-	if l.level >= INFO {
-		s := l.formatter(ctx, InfoPre, format)
-		l.Printf(s, args...)
+	if l.GetLogLevel() >= log.INFO {
+		s := l.fomatter(ctx, format)
+		l.ErrorLogger.Infof(s, args...)
 	}
 }
 
 func (l *proxyLogger) Debugf(ctx context.Context, format string, args ...interface{}) {
-	if l.disable {
+	if l.Disable() {
 		return
 	}
-	if l.level >= DEBUG {
-		s := l.formatter(ctx, DebugPre, format)
-		l.Printf(s, args...)
+	if l.GetLogLevel() >= log.DEBUG {
+		s := l.fomatter(ctx, format)
+		l.ErrorLogger.Debugf(s, args...)
 	}
 }
 
 func (l *proxyLogger) Warnf(ctx context.Context, format string, args ...interface{}) {
-	if l.disable {
+	if l.Disable() {
 		return
 	}
-	if l.level >= WARN {
-		s := l.formatter(ctx, WarnPre, format)
-		l.Printf(s, args...)
+	if l.GetLogLevel() >= log.WARN {
+		s := l.fomatter(ctx, format)
+		l.ErrorLogger.Warnf(s, args...)
 	}
 }
 
 func (l *proxyLogger) Errorf(ctx context.Context, format string, args ...interface{}) {
-	if l.disable {
+	if l.Disable() {
 		return
 	}
-	if l.level >= ERROR {
-		s := logTime() + " " + ErrorPre + " [" + defaultErrorCode + "] " + traceInfo(ctx) + " " + format
-		l.Printf(s, args...)
+	if l.GetLogLevel() >= log.ERROR {
+		s := l.fomatter(ctx, format)
+		l.ErrorLogger.Errorf(s, args...)
 	}
 }
 
-func (l *proxyLogger) Alertf(ctx context.Context, errkey types.ErrorKey, format string, args ...interface{}) {
-	if l.disable {
+func (l *proxyLogger) Alertf(ctx context.Context, alert string, format string, args ...interface{}) {
+	if l.Disable() {
 		return
 	}
-	if l.level >= ERROR {
-		s := logTime() + " " + ErrorPre + " [" + string(errkey) + "] " + traceInfo(ctx) + " " + format
-		l.Printf(s, args...)
+	if l.GetLogLevel() >= log.ERROR {
+		s := l.fomatter(ctx, format)
+		l.ErrorLogger.Alertf(alert, s, args...)
 	}
 }
 
 func (l *proxyLogger) Fatalf(ctx context.Context, format string, args ...interface{}) {
-	if l.disable {
+	if l.Disable() {
 		return
 	}
-	if l.level >= FATAL {
-		s := l.formatter(ctx, FatalPre, format)
-		l.Logger.Fatalf(s, args...)
+	if l.GetLogLevel() >= log.FATAL {
+		s := l.fomatter(ctx, format)
+		l.ErrorLogger.Fatalf(s, args...)
 	}
 }
-
 func traceInfo(ctx context.Context) string {
 	if ctx == nil {
 		return ""

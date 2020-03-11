@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/admin/store"
-	v2 "mosn.io/mosn/pkg/api/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -155,6 +155,14 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 	}
 	// delete all of them
 	for _, clusterName := range clusterNames {
+		v, ok := cm.clustersMap.Load(clusterName)
+		if !ok {
+			// In theory there's still a chance that cluster was just removed by another routine after the upper for-loop check.
+			continue
+		}
+		c := v.(types.Cluster)
+		c.StopHealthChecking()
+
 		cm.clustersMap.Delete(clusterName)
 		store.RemoveClusterConfig(clusterName)
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
@@ -265,7 +273,10 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 	return pool
 }
 
-const cycleTimes = 3
+const (
+	maxHostsCounts  = 3
+	maxTryConnTimes = 7
+)
 
 var (
 	errNilHostChoose   = errors.New("cluster snapshot choose host is nil")
@@ -279,14 +290,14 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
 	}
 
-	var pools [cycleTimes]types.ConnectionPool
+	var pools [maxHostsCounts]types.ConnectionPool
 
 	try := clusterSnapshot.HostNum(balancerContext.MetadataMatchCriteria())
 	if try == 0 {
 		return nil, errNilHostChoose
 	}
-	if try > cycleTimes {
-		try = cycleTimes
+	if try > maxHostsCounts {
+		try = maxHostsCounts
 	}
 	for i := 0; i < try; i++ {
 		host := clusterSnapshot.LoadBalancer().ChooseHost(balancerContext)
@@ -351,9 +362,9 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		pools[i] = pool
 	}
 
-	// perhaps the first request, wait for tcp handshaking. total wait time is 1ms + 10ms + 100ms
+	// perhaps the first request, wait for tcp handshaking. total wait time is 1ms + 10ms + (100ms * 5)
 	waitTime := time.Millisecond
-	for t := 0; t < cycleTimes; t++ {
+	for t := 0; t < maxTryConnTimes; t++ {
 		time.Sleep(waitTime)
 		for i := 0; i < try; i++ {
 			if pools[i] == nil {
@@ -363,7 +374,10 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				return pools[i], nil
 			}
 		}
-		waitTime *= 10
+		// max wait time is 100 * time.Millisecond
+		if waitTime < 100*time.Millisecond {
+			waitTime *= 10
+		}
 	}
 	return nil, errNoHealthyHost
 }

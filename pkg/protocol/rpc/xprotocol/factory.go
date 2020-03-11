@@ -22,12 +22,11 @@ import (
 	"errors"
 	"strconv"
 
-	networkbuffer "mosn.io/mosn/pkg/buffer"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/rpc"
 	"mosn.io/mosn/pkg/types"
-
-	mosnctx "mosn.io/mosn/pkg/context"
+	networkbuffer "mosn.io/pkg/buffer"
 )
 
 var (
@@ -152,6 +151,9 @@ func (xRpcCmd *XRpcCmd) GetStreamID(data []byte) string {
 }
 func (xRpcCmd *XRpcCmd) SetStreamID(data []byte, streamID string) []byte {
 	return xRpcCmd.codec.SetStreamID(data, streamID)
+}
+func (XRpcCmd *XRpcCmd) BuildHeartbeat(headers types.HeaderMap) []byte {
+	return XRpcCmd.codec.BuildHeartbeatResp(headers)
 }
 
 //Tracing

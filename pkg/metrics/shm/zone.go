@@ -19,14 +19,13 @@ package shm
 
 import (
 	"errors"
-	"log"
 	"os"
 	"runtime"
 	"sync/atomic"
 	"time"
 	"unsafe"
 
-	mosnlog "mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/shm"
 )
 
@@ -63,7 +62,7 @@ func createMetricsZone(name string, size int, clear bool) *zone {
 
 	zone, err := newSharedMetrics(name, size)
 	if err != nil {
-		log.Fatalln("open shared memory for metrics failed:", err)
+		log.DefaultLogger.Fatalf("open shared memory for metrics failed: %v", err)
 	}
 	return zone
 }
@@ -159,7 +158,7 @@ func (z *zone) lock() {
 
 func (z *zone) unlock() {
 	if !atomic.CompareAndSwapUint32(z.mutex, pid, 0) {
-		mosnlog.DefaultLogger.Errorf("[metrics][shm] unexpected lock holder, can not unlock")
+		log.DefaultLogger.Errorf("[metrics][shm] unexpected lock holder, can not unlock")
 	}
 
 }

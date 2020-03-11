@@ -23,9 +23,9 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
 	"mosn.io/mosn/pkg/protocol/serialize"
+	"mosn.io/pkg/buffer"
 )
 
 // compare binary put and get

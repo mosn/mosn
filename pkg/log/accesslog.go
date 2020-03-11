@@ -21,9 +21,11 @@ import (
 	"context"
 	"errors"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/log"
 )
 
 // RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value
@@ -53,7 +55,7 @@ func DisableAllAccessLog() {
 type accesslog struct {
 	output  string
 	entries []*logEntry
-	logger  *Logger
+	logger  *log.Logger
 }
 
 type logEntry struct {
@@ -61,7 +63,7 @@ type logEntry struct {
 	variable variable.Variable
 }
 
-func (le *logEntry) log(ctx context.Context, buf types.IoBuffer) {
+func (le *logEntry) log(ctx context.Context, buf buffer.IoBuffer) {
 	if le.text != "" {
 		buf.WriteString(le.text)
 	} else {
@@ -75,8 +77,8 @@ func (le *logEntry) log(ctx context.Context, buf types.IoBuffer) {
 }
 
 // NewAccessLog
-func NewAccessLog(output string, format string) (types.AccessLog, error) {
-	lg, err := GetOrCreateLogger(output, nil)
+func NewAccessLog(output string, format string) (api.AccessLog, error) {
+	lg, err := log.GetOrCreateLogger(output, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +103,9 @@ func NewAccessLog(output string, format string) (types.AccessLog, error) {
 	return l, nil
 }
 
-func (l *accesslog) Log(ctx context.Context, reqHeaders types.HeaderMap, respHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (l *accesslog) Log(ctx context.Context, reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo) {
 	// return directly
-	if l.logger.disable {
+	if l.logger.Disable() {
 		return
 	}
 
@@ -117,7 +119,8 @@ func (l *accesslog) Log(ctx context.Context, reqHeaders types.HeaderMap, respHea
 
 func parseFormat(format string) ([]*logEntry, error) {
 	if format == "" {
-		return nil, ErrLogFormatUndefined
+		//	return nil, ErrLogFormatUndefined
+		format = types.DefaultAccessLogFormat
 	}
 
 	entries := make([]*logEntry, 0, 8)

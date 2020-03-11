@@ -26,7 +26,7 @@ import (
 
 	"github.com/urfave/cli"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -67,7 +67,8 @@ var (
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
 			serviceMeta := c.StringSlice("service-meta")
-			conf := config.Load(configPath)
+
+			conf := configmanager.Load(configPath)
 			// set feature gates
 			err := featuregate.Set(c.String("feature-gates"))
 			if err != nil {
@@ -84,6 +85,7 @@ var (
 				s := &http.Server{Addr: addr, Handler: nil}
 				store.AddService(s, "pprof", nil, nil)
 			}
+
 			// set mosn metrics flush
 			metrics.FlushMosnMetrics = true
 			// set version and go version

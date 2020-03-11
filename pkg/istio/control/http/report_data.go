@@ -24,6 +24,7 @@ import (
 	"time"
 
 	//"mosn.io/mosn/pkg/istio/utils"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -35,7 +36,7 @@ type ReportInfo struct {
 	responseCode      int
 	requestBodySize   uint64
 	responseBodySize  uint64
-	responseFlag      types.ResponseFlag
+	responseFlag      api.ResponseFlag
 }
 
 // ReportData extract HTTP data for Mixer report.

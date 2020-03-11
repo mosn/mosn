@@ -22,7 +22,8 @@ import (
 	"regexp"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 // Default parameters for route
@@ -41,12 +42,12 @@ const (
 // Routers defines and manages all router
 type Routers interface {
 	// MatchRoute return first route with headers
-	MatchRoute(headers HeaderMap, randomValue uint64) Route
+	MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route
 	// MatchAllRoutes returns all routes with headers
-	MatchAllRoutes(headers HeaderMap, randomValue uint64) []Route
+	MatchAllRoutes(headers api.HeaderMap, randomValue uint64) []api.Route
 	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	// header is used to find virtual host
-	MatchRouteFromHeaderKV(headers HeaderMap, key, value string) Route
+	MatchRouteFromHeaderKV(headers api.HeaderMap, key, value string) api.Route
 	// AddRoute adds a route into virtual host, find virtual host by domain
 	// returns the virtualhost index, -1 means no virtual host found
 	AddRoute(domain string, route *v2.Router) int
@@ -81,7 +82,7 @@ type RouteHandler interface {
 	// IsAvailable returns HandlerStatus represents the handler will be used/not used/stop next handler check
 	IsAvailable(context.Context, ClusterManager) (ClusterSnapshot, HandlerStatus)
 	// Route returns handler's route
-	Route() Route
+	Route() api.Route
 }
 type RouterWrapper interface {
 	// GetRouters returns the routers in the wrapper
@@ -90,147 +91,25 @@ type RouterWrapper interface {
 	GetRoutersConfig() v2.RouterConfiguration
 }
 
-// Route is a route instance
-type Route interface {
-	// RouteRule returns the route rule
-	RouteRule() RouteRule
-
-	// DirectResponseRule returns direct response rile
-	DirectResponseRule() DirectResponseRule
-}
-
-// RouteRule defines parameters for a route
-type RouteRule interface {
-	// ClusterName returns the route's cluster name
-	ClusterName() string
-
-	// UpstreamProtocol returns the protocol that route's cluster supported
-	// If it is configured, the protocol will replace the proxy config's upstream protocol
-	UpstreamProtocol() string
-
-	// GlobalTimeout returns the global timeout
-	GlobalTimeout() time.Duration
-
-	// VirtualHost returns the route's virtual host
-	VirtualHost() VirtualHost
-
-	// Policy returns the route's route policy
-	Policy() Policy
-
-	// MetadataMatchCriteria returns the metadata that a subset load balancer should match when selecting an upstream host
-	// as we may use weighted cluster's metadata, so need to input cluster's name
-	MetadataMatchCriteria(clusterName string) MetadataMatchCriteria
-
-	// PerFilterConfig returns per filter config from xds
-	PerFilterConfig() map[string]interface{}
-
-	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
-	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)
-
-	// FinalizeResponseHeaders do potentially destructive header transforms on response headers prior to forwarding
-	FinalizeResponseHeaders(headers HeaderMap, requestInfo RequestInfo)
-
-	// PathMatchCriterion returns the route's PathMatchCriterion
-	PathMatchCriterion() PathMatchCriterion
-}
-
-// Policy defines a group of route policy
-type Policy interface {
-	RetryPolicy() RetryPolicy
-
-	ShadowPolicy() ShadowPolicy
-}
-
-// RetryCheckStatus type
-type RetryCheckStatus int
-
-// RetryCheckStatus types
-const (
-	ShouldRetry   RetryCheckStatus = 0
-	NoRetry       RetryCheckStatus = -1
-	RetryOverflow RetryCheckStatus = -2
-)
-
-// RetryPolicy is a type of Policy
-type RetryPolicy interface {
-	RetryOn() bool
-
-	TryTimeout() time.Duration
-
-	NumRetries() uint32
-}
-
-type DoRetryCallback func()
-
-type RetryState interface {
-	Enabled() bool
-
-	ShouldRetry(respHeaders map[string]string, resetReson string, doRetryCb DoRetryCallback) bool
-}
-
-// ShadowPolicy is a type of Policy
-type ShadowPolicy interface {
-	ClusterName() string
-
-	RuntimeKey() string
-}
-
 type VirtualHost interface {
 	Name() string
 
 	// GetRouteFromEntries returns a Route matched the condition
-	GetRouteFromEntries(headers HeaderMap, randomValue uint64) Route
+	GetRouteFromEntries(headers api.HeaderMap, randomValue uint64) api.Route
 	// GetAllRoutesFromEntries returns all Route matched the condition
-	GetAllRoutesFromEntries(headers HeaderMap, randomValue uint64) []Route
+	GetAllRoutesFromEntries(headers api.HeaderMap, randomValue uint64) []api.Route
 	// GetRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
-	GetRouteFromHeaderKV(key, value string) Route
+	GetRouteFromHeaderKV(key, value string) api.Route
 	// AddRoute adds a new route into virtual host
 	AddRoute(route *v2.Router) error
 	// RemoveAllRoutes clear all the routes in the virtual host
 	RemoveAllRoutes()
 }
 
-// DirectResponseRule contains direct response info
-type DirectResponseRule interface {
-
-	// StatusCode returns the repsonse status code
-	StatusCode() int
-	// Body returns the response body string
-	Body() string
-}
-
-type MetadataMatchCriterion interface {
-	// the name of the metadata key
-	MetadataKeyName() string
-
-	// the value for the metadata key
-	MetadataValue() string
-}
-
-type MetadataMatchCriteria interface {
-	// @return: a set of MetadataMatchCriterion(metadata) sorted lexically by name
-	// to be matched against upstream endpoints when load balancing
-	MetadataMatchCriteria() []MetadataMatchCriterion
-
-	MergeMatchCriteria(metadataMatches map[string]interface{}) MetadataMatchCriteria
-}
-
 type HeaderFormat interface {
-	Format(info RequestInfo) string
+	Format(info api.RequestInfo) string
 	Append() bool
 }
-
-// PathMatchType defines the match pattern
-type PathMatchType uint32
-
-// Path match patterns
-const (
-	None PathMatchType = iota
-	Prefix
-	Exact
-	Regex
-	SofaHeader
-)
 
 // QueryParams is a string-string map
 type QueryParams map[string]string
@@ -268,9 +147,4 @@ type LowerCaseString interface {
 	Lower()
 	Equal(rhs LowerCaseString) bool
 	Get() string
-}
-
-type PathMatchCriterion interface {
-	MatchType() PathMatchType
-	Matcher() string
 }

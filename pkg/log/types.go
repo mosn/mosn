@@ -18,89 +18,29 @@
 package log
 
 import (
-	"context"
-
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/log"
 )
-
-type Level uint8
-
-const (
-	FATAL Level = iota
-	ERROR
-	WARN
-	INFO
-	DEBUG
-	TRACE
-	RAW
-)
-
-const (
-	InfoPre  string = "[INFO]"
-	DebugPre string = "[DEBUG]"
-	WarnPre  string = "[WARN]"
-	ErrorPre string = "[ERROR]"
-	FatalPre string = "[FATAL]"
-	TracePre string = "[TRACE]"
-)
-
-// ErrorLogger generates lines of output to an io.Writer
-type ErrorLogger interface {
-	Println(args ...interface{})
-
-	Printf(format string, args ...interface{})
-
-	// Alertf is a wrapper of Errorf
-	Alertf(errkey types.ErrorKey, format string, args ...interface{})
-
-	Infof(format string, args ...interface{})
-
-	Debugf(format string, args ...interface{})
-
-	Warnf(format string, args ...interface{})
-
-	Errorf(format string, args ...interface{})
-
-	Tracef(format string, args ...interface{})
-
-	Fatalf(format string, args ...interface{})
-
-	Fatal(args ...interface{})
-
-	Fatalln(args ...interface{})
-
-	// SetLogLevel updates the log level
-	SetLogLevel(Level)
-	// GetLogLevel returns the logger's level
-	GetLogLevel() Level
-
-	// Toggle disable/enable the logger
-	Toggle(disable bool)
-}
-
-// ProxyLogger generates lines of output to an io.Writer, works for data flow
-type ProxyLogger interface {
-	// Alertf is a wrapper of Errorf
-	Alertf(ctx context.Context, errkey types.ErrorKey, format string, args ...interface{})
-
-	Infof(ctx context.Context, format string, args ...interface{})
-
-	Debugf(ctx context.Context, format string, args ...interface{})
-
-	Warnf(ctx context.Context, format string, args ...interface{})
-
-	Errorf(ctx context.Context, format string, args ...interface{})
-
-	Fatalf(ctx context.Context, format string, args ...interface{})
-
-	// SetLogLevel updates the log level
-	SetLogLevel(Level)
-	// GetLogLevel returns the logger's level
-	GetLogLevel() Level
-
-	// Toggle disable/enable the logger
-	Toggle(disable bool)
-}
 
 // CreateErrorLoggerFunc creates a ErrorLogger implementation by output and level
-type CreateErrorLoggerFunc func(output string, level Level) (ErrorLogger, error)
+type CreateErrorLoggerFunc func(output string, level log.Level) (log.ErrorLogger, error)
+
+// The default function to CreateErrorLoggerFunc
+var DefaultCreateErrorLoggerFunc CreateErrorLoggerFunc = CreateDefaultErrorLogger
+
+// Wrapper of pkg/log
+// Level is an alias of log.Level
+type Level = log.Level
+
+const (
+	FATAL Level = log.FATAL
+	ERROR       = log.ERROR
+	WARN        = log.WARN
+	INFO        = log.INFO
+	DEBUG       = log.DEBUG
+	TRACE       = log.TRACE
+	RAW         = log.RAW
+)
+
+func GetOrCreateLogger(output string, roller *log.Roller) (*log.Logger, error) {
+	return log.GetOrCreateLogger(output, roller)
+}

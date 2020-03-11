@@ -20,12 +20,12 @@ package proxy
 import (
 	"time"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 // Proxy
 type Proxy interface {
-	types.ReadFilter
+	api.ReadFilter
 
 	ReadDisableUpstream(disable bool)
 
@@ -35,8 +35,8 @@ type Proxy interface {
 // UpstreamCallbacks
 // callback invoked when upstream event happened
 type UpstreamCallbacks interface {
-	types.ReadFilter
-	types.ConnectionEventListener
+	api.ReadFilter
+	api.ConnectionEventListener
 }
 
 // Timeout

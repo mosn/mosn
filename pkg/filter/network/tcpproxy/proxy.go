@@ -25,19 +25,21 @@ import (
 	"strings"
 	"time"
 
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
-
-	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/pkg/buffer"
 )
 
 // ReadFilter
 type proxy struct {
 	config              ProxyConfig
 	clusterManager      types.ClusterManager
-	readCallbacks       types.ReadFilterCallbacks
+	readCallbacks       api.ReadFilterCallbacks
 	upstreamConnection  types.ClientConnection
 	requestInfo         types.RequestInfo
 	upstreamCallbacks   UpstreamCallbacks
@@ -45,15 +47,17 @@ type proxy struct {
 
 	upstreamConnecting bool
 
-	accessLogs []types.AccessLog
+	accessLogs []api.AccessLog
+	ctx        context.Context
 }
 
-func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.ClusterManager) Proxy {
+func NewProxy(ctx context.Context, config *v2.TCPProxy) Proxy {
 	p := &proxy{
 		config:         NewProxyConfig(config),
-		clusterManager: clusterManager,
+		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		requestInfo:    network.NewRequestInfo(),
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]types.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+		ctx:            ctx,
 	}
 
 	p.upstreamCallbacks = &upstreamCallbacks{
@@ -66,7 +70,7 @@ func NewProxy(ctx context.Context, config *v2.TCPProxy, clusterManager types.Clu
 	return p
 }
 
-func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (p *proxy) OnData(buffer buffer.IoBuffer) api.FilterStatus {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[tcpproxy] [ondata] read data , len = %v", buffer.Len())
 	}
@@ -75,17 +79,17 @@ func (p *proxy) OnData(buffer types.IoBuffer) types.FilterStatus {
 
 	p.upstreamConnection.Write(buffer.Clone())
 	buffer.Drain(buffer.Len())
-	return types.Stop
+	return api.Stop
 }
 
-func (p *proxy) OnNewConnection() types.FilterStatus {
+func (p *proxy) OnNewConnection() api.FilterStatus {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[tcpproxy] [new conn] accept new connection")
 	}
 	return p.initializeUpstreamConnection()
 }
 
-func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
+func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamCallbacks)
@@ -97,61 +101,63 @@ func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	// TODO: set downstream connection stats
 }
 
-func (p *proxy) initializeUpstreamConnection() types.FilterStatus {
+func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 	clusterName := p.getUpstreamCluster()
 
 	clusterSnapshot := p.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
 
 	if reflect.ValueOf(clusterSnapshot).IsNil() {
-		p.requestInfo.SetResponseFlag(types.NoRouteFound)
+		p.requestInfo.SetResponseFlag(api.NoRouteFound)
 		p.onInitFailure(NoRoute)
 
-		return types.Stop
+		return api.Stop
 	}
 
 	clusterInfo := clusterSnapshot.ClusterInfo()
 	clusterConnectionResource := clusterInfo.ResourceManager().Connections()
 
 	if !clusterConnectionResource.CanCreate() {
-		p.requestInfo.SetResponseFlag(types.UpstreamOverflow)
+		p.requestInfo.SetResponseFlag(api.UpstreamOverflow)
 		p.onInitFailure(ResourceLimitExceeded)
 
-		return types.Stop
+		return api.Stop
 	}
 
 	ctx := &LbContext{
-		conn: p.readCallbacks,
+		conn:    p.readCallbacks,
+		ctx:     p.ctx,
+		cluster: clusterInfo,
 	}
 	connectionData := p.clusterManager.TCPConnForCluster(ctx, clusterSnapshot)
 	if connectionData.Connection == nil {
-		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
+		p.requestInfo.SetResponseFlag(api.NoHealthyUpstream)
 		p.onInitFailure(NoHealthyUpstream)
 
-		return types.Stop
+		return api.Stop
 	}
-	p.readCallbacks.SetUpstreamHost(connectionData.HostInfo)
+	p.readCallbacks.SetUpstreamHost(connectionData.Host)
 	clusterConnectionResource.Increase()
 	upstreamConnection := connectionData.Connection
 	upstreamConnection.AddConnectionEventListener(p.upstreamCallbacks)
 	upstreamConnection.FilterManager().AddReadFilter(p.upstreamCallbacks)
 	p.upstreamConnection = upstreamConnection
 	if err := upstreamConnection.Connect(); err != nil {
-		p.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
+		p.requestInfo.SetResponseFlag(api.NoHealthyUpstream)
 		p.onInitFailure(NoHealthyUpstream)
-		return types.Stop
+		return api.Stop
 	}
 
-	p.requestInfo.OnUpstreamHostSelected(connectionData.HostInfo)
-	p.requestInfo.SetUpstreamLocalAddress(connectionData.HostInfo.AddressString())
+	p.requestInfo.OnUpstreamHostSelected(connectionData.Host)
+	p.requestInfo.SetUpstreamLocalAddress(connectionData.Host.AddressString())
 
 	// TODO: update upstream stats
 
-	return types.Continue
+	return api.Continue
 }
 
 func (p *proxy) closeUpstreamConnection() {
 	// TODO: finalize upstream connection stats
-	p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
+	p.upstreamConnection.Close(api.NoFlush, api.LocalClose)
 }
 
 func (p *proxy) getUpstreamCluster() string {
@@ -161,7 +167,7 @@ func (p *proxy) getUpstreamCluster() string {
 }
 
 func (p *proxy) onInitFailure(reason UpstreamFailureReason) {
-	p.readCallbacks.Connection().Close(types.NoFlush, types.LocalClose)
+	p.readCallbacks.Connection().Close(api.NoFlush, api.LocalClose)
 }
 
 func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
@@ -173,45 +179,47 @@ func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
 	buffer.Drain(buffer.Len())
 }
 
-func (p *proxy) onUpstreamEvent(event types.ConnectionEvent) {
+func (p *proxy) onUpstreamEvent(event api.ConnectionEvent) {
 	switch event {
-	case types.RemoteClose:
+	case api.RemoteClose:
 		p.finalizeUpstreamConnectionStats()
-		p.readCallbacks.Connection().Close(types.FlushWrite, types.LocalClose)
+		p.readCallbacks.Connection().Close(api.FlushWrite, api.LocalClose)
 
-	case types.LocalClose:
+	case api.LocalClose:
 		p.finalizeUpstreamConnectionStats()
-	case types.OnConnect:
-	case types.Connected:
+	case api.OnConnect:
+	case api.Connected:
 		p.readCallbacks.Connection().SetReadDisable(false)
 
 		p.onConnectionSuccess()
-	case types.ConnectTimeout:
+	case api.ConnectTimeout:
 		p.finalizeUpstreamConnectionStats()
 
-		p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
+		p.requestInfo.SetResponseFlag(api.UpstreamConnectionFailure)
 		p.closeUpstreamConnection()
 		p.initializeUpstreamConnection()
-	case types.ConnectFailed:
-		p.requestInfo.SetResponseFlag(types.UpstreamConnectionFailure)
+	case api.ConnectFailed:
+		p.requestInfo.SetResponseFlag(api.UpstreamConnectionFailure)
 	}
 }
 
 func (p *proxy) finalizeUpstreamConnectionStats() {
-	upstreamClusterInfo := p.readCallbacks.UpstreamHost().ClusterInfo()
-	upstreamClusterInfo.ResourceManager().Connections().Decrease()
+	hostInfo := p.readCallbacks.UpstreamHost()
+	if host, ok := hostInfo.(types.Host); ok {
+		host.ClusterInfo().ResourceManager().Connections().Decrease()
+	}
 }
 
 func (p *proxy) onConnectionSuccess() {
 	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())
 }
 
-func (p *proxy) onDownstreamEvent(event types.ConnectionEvent) {
+func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 	if p.upstreamConnection != nil {
-		if event == types.RemoteClose {
-			p.upstreamConnection.Close(types.FlushWrite, types.LocalClose)
-		} else if event == types.LocalClose {
-			p.upstreamConnection.Close(types.NoFlush, types.LocalClose)
+		if event == api.RemoteClose {
+			p.upstreamConnection.Close(api.FlushWrite, api.LocalClose)
+		} else if event == api.LocalClose {
+			p.upstreamConnection.Close(api.NoFlush, api.LocalClose)
 		}
 	}
 }
@@ -338,7 +346,7 @@ func NewProxyConfig(config *v2.TCPProxy) ProxyConfig {
 	}
 }
 
-func (pc *proxyConfig) GetRouteFromEntries(connection types.Connection) string {
+func (pc *proxyConfig) GetRouteFromEntries(connection api.Connection) string {
 	if pc.cluster != "" {
 		log.DefaultLogger.Tracef("Tcp Proxy get cluster from config , cluster name = %v", pc.cluster)
 		return pc.cluster
@@ -372,9 +380,9 @@ type upstreamCallbacks struct {
 	proxy *proxy
 }
 
-func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
+func (uc *upstreamCallbacks) OnEvent(event api.ConnectionEvent) {
 	switch event {
-	case types.Connected:
+	case api.Connected:
 		uc.proxy.upstreamConnection.SetNoDelay(true)
 		uc.proxy.upstreamConnection.SetReadDisable(false)
 	}
@@ -382,32 +390,34 @@ func (uc *upstreamCallbacks) OnEvent(event types.ConnectionEvent) {
 	uc.proxy.onUpstreamEvent(event)
 }
 
-func (uc *upstreamCallbacks) OnData(buffer types.IoBuffer) types.FilterStatus {
+func (uc *upstreamCallbacks) OnData(buffer buffer.IoBuffer) api.FilterStatus {
 	uc.proxy.onUpstreamData(buffer)
-	return types.Stop
+	return api.Stop
 }
 
-func (uc *upstreamCallbacks) OnNewConnection() types.FilterStatus {
-	return types.Continue
+func (uc *upstreamCallbacks) OnNewConnection() api.FilterStatus {
+	return api.Continue
 }
 
-func (uc *upstreamCallbacks) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
+func (uc *upstreamCallbacks) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {}
 
 // ConnectionEventListener
 type downstreamCallbacks struct {
 	proxy *proxy
 }
 
-func (dc *downstreamCallbacks) OnEvent(event types.ConnectionEvent) {
+func (dc *downstreamCallbacks) OnEvent(event api.ConnectionEvent) {
 	dc.proxy.onDownstreamEvent(event)
 }
 
 // LbContext is a types.LoadBalancerContext implementation
 type LbContext struct {
-	conn types.ReadFilterCallbacks
+	conn    api.ReadFilterCallbacks
+	ctx     context.Context
+	cluster types.ClusterInfo
 }
 
-func (c *LbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
+func (c *LbContext) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	return nil
 }
 
@@ -416,10 +426,14 @@ func (c *LbContext) DownstreamConnection() net.Conn {
 }
 
 // TCP Proxy have no header
-func (c *LbContext) DownstreamHeaders() types.HeaderMap {
+func (c *LbContext) DownstreamHeaders() api.HeaderMap {
 	return nil
 }
 
 func (c *LbContext) DownstreamContext() context.Context {
-	return nil
+	return c.ctx
+}
+
+func (c *LbContext) DownstreamCluster() types.ClusterInfo {
+	return c.cluster
 }

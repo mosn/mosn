@@ -10,7 +10,7 @@ import (
 
 	"math/rand"
 
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
@@ -59,7 +59,7 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 		t.Fatal("write config file failed", err)
 	}
 	// set config path into load package
-	config.Load(configPath)
+	configmanager.Load(configPath)
 
 	mesh := mosn.NewMosn(cfg)
 
@@ -71,11 +71,9 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 
 func startTransferServer(tc *integrate.TestCase) {
 	tc.AppServer.GoServe()
-	go func() {
-		<-tc.Finish
+	tc.DeferFinishCase(func() {
 		tc.AppServer.Close()
-		tc.Finish <- true
-	}()
+	})
 }
 
 func TestTransfer(t *testing.T) {

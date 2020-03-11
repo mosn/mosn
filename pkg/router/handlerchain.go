@@ -20,6 +20,7 @@ package router
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -41,7 +42,7 @@ func NewRouteHandlerChain(ctx context.Context, clusterManager types.ClusterManag
 	}
 }
 
-func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, types.Route) {
+func (hc *RouteHandlerChain) DoNextHandler() (types.ClusterSnapshot, api.Route) {
 	handler := hc.Next()
 	if handler == nil {
 		return nil, nil

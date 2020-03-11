@@ -10,8 +10,7 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
@@ -24,8 +23,8 @@ import (
 // TODO: rpc status have something wrong
 
 // Direct Response ignore upstream cluster information and route rule config
-func CreateDirectMeshProxy(addr string, proto types.Protocol, response *v2.DirectResponseAction) *config.MOSNConfig {
-	cmconfig := config.ClusterManagerConfig{
+func CreateDirectMeshProxy(addr string, proto types.Protocol, response *v2.DirectResponseAction) *v2.MOSNConfig {
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			v2.Cluster{
 				Name: "cluster",
@@ -37,10 +36,13 @@ func CreateDirectMeshProxy(addr string, proto types.Protocol, response *v2.Direc
 		NewDirectResponsePrefixRouter("/", response),
 	}
 	chains := []v2.FilterChain{
-		util.NewFilterChain("proxyVirtualHost", proto, proto, routers),
+		util.NewFilterChain("proxyVirtualHost", proto, proto),
+	}
+	rs := []*v2.RouterConfiguration{
+		util.MakeRouterConfig("proxyVirtualHost", routers),
 	}
 	listener := util.NewListener("proxyListener", addr, chains)
-	return util.NewMOSNConfig([]v2.Listener{listener}, cmconfig)
+	return util.NewMOSNConfig([]v2.Listener{listener}, rs, cmconfig)
 }
 func NewDirectResponseHeaderRouter(value string, response *v2.DirectResponseAction) v2.Router {
 	header := v2.HeaderMatcher{Name: "service", Value: value}
@@ -67,7 +69,7 @@ type DirectResponseCase struct {
 	C          chan error
 	T          *testing.T
 	ClientAddr string
-	Finish     chan bool
+	Defers     []func()
 	status     int
 	body       string
 }
@@ -78,7 +80,6 @@ func NewDirectResponseCase(t *testing.T, proto types.Protocol, status int, body 
 		RPCClient: client,
 		C:         make(chan error),
 		T:         t,
-		Finish:    make(chan bool),
 		status:    status,
 		body:      body,
 	}
@@ -93,18 +94,25 @@ func (c *DirectResponseCase) StartProxy() {
 	}
 	cfg := CreateDirectMeshProxy(addr, c.Protocol, resp)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
+	mesh.Start()
+	c.DeferFinishCase(func() {
 		mesh.Close()
-		c.Finish <- true
-	}()
-	time.Sleep(5 * time.Second) //wait server and mesh start
+	})
+	time.Sleep(1 * time.Second) //wait server and mesh start
 }
 
+func (c *DirectResponseCase) DeferFinishCase(f func()) {
+	c.Defers = append(c.Defers, f)
+}
+
+// Finish case and wait close returns
 func (c *DirectResponseCase) FinishCase() {
-	c.Finish <- true
-	<-c.Finish
+	if len(c.Defers) != 0 {
+		for _, def := range c.Defers {
+			def()
+		}
+		c.Defers = c.Defers[:0]
+	}
 }
 
 func (c *DirectResponseCase) RunCase(n int, interval time.Duration) {

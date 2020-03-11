@@ -21,7 +21,7 @@ import (
 	"errors"
 	"time"
 
-	apiv2 "mosn.io/mosn/pkg/api/v2"
+	apiv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol/rpc"
 	"mosn.io/mosn/pkg/types"
 )
@@ -70,6 +70,7 @@ const (
 	HeaderSwitchCode    string = "switchcode"
 	HeaderRespStatus    string = "respstatus"
 	HeaderRespTimeMills string = "resptimemills"
+	HeaderRespError     string = "sofa_head_response_error"
 
 	// ~~ constans
 	PROTOCOL_CODE_V1 byte = 1 // protocol code

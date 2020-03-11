@@ -42,7 +42,24 @@ const ConfigBoltv1 = `{
                 {
                         "default_log_path":"stdout",
                         "default_log_level": "FATAL",
-                         "listeners":[
+			"routers": [
+				{
+					"router_config_name":"router_direct",
+					"virtual_hosts":[{
+						"name":"mosn_hosts",
+						"domains": ["*"],
+						"routers": [
+							{
+								"match":{"headers":[{"name":"service","value":".*"}]},
+								"direct_response": {
+									"status": 200
+								}
+							}
+						]
+					}]
+				}
+			],
+                        "listeners":[
                                 {
                                         "address":"127.0.0.1:2045",
                                         "bind_port": true,
@@ -56,24 +73,6 @@ const ConfigBoltv1 = `{
                                                                         "downstream_protocol": "SofaRpc",
                                                                         "upstream_protocol": "SofaRpc",
                                                                         "router_config_name":"router_direct"
-                                                                }
-                                                        },
-                                                        {
-                                                                "type": "connection_manager",
-                                                                "config": {
-                                                                        "router_config_name":"router_direct",
-                                                                        "virtual_hosts":[{
-                                                                                "name":"mosn_hosts",
-                                                                                "domains": ["*"],
-                                                                                "routers": [
-                                                                                        {
-                                                                                                 "match":{"headers":[{"name":"service","value":".*"}]},
-                                                                                                 "direct_response": {
-                                                                                                         "status": 200
-                                                                                                 }
-                                                                                        }
-                                                                                ]
-                                                                        }]
                                                                 }
                                                         }
                                                 ]

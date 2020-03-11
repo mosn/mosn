@@ -21,7 +21,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/types"
@@ -31,10 +31,10 @@ var (
 	secretManagerInstance = &secretManager{
 		validations: make(map[string]*validation),
 	}
-	sdsCallbacks = []func(){}
+	sdsCallbacks = []func(*v2.TLSConfig){}
 )
 
-func RegisterSdsCallback(f func()) {
+func RegisterSdsCallback(f func(*v2.TLSConfig)) {
 	sdsCallbacks = append(sdsCallbacks, f)
 }
 
@@ -153,7 +153,7 @@ func (p *sdsProvider) update() {
 	log.DefaultLogger.Infof("[mtls] [sds] update tls context success")
 	// notify certificates updates
 	for _, cb := range sdsCallbacks {
-		cb()
+		cb(p.config)
 	}
 }
 

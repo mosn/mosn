@@ -20,6 +20,7 @@ package stream
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -33,7 +34,7 @@ func Register(prot types.Protocol, factory ProtocolStreamFactory) {
 	streamFactories[prot] = factory
 }
 
-func CreateServerStreamConnection(context context.Context, prot types.Protocol, connection types.Connection,
+func CreateServerStreamConnection(context context.Context, prot types.Protocol, connection api.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 
 	if ssc, ok := streamFactories[prot]; ok {

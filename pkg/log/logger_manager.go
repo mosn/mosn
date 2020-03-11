@@ -20,12 +20,14 @@ package log
 import (
 	"errors"
 	"sync"
+
+	"mosn.io/pkg/log"
 )
 
 var (
-	DefaultLogger ErrorLogger
-	StartLogger   ErrorLogger
-	Proxy         ProxyLogger
+	DefaultLogger log.ErrorLogger
+	StartLogger   log.ErrorLogger
+	Proxy         log.ContextLogger
 
 	ErrNoLoggerFound = errors.New("no logger found in logger manager")
 )
@@ -35,25 +37,27 @@ var errorLoggerManagerInstance *ErrorLoggerManager
 func init() {
 	errorLoggerManagerInstance = &ErrorLoggerManager{
 		mutex:    sync.Mutex{},
-		managers: make(map[string]ErrorLogger),
+		managers: make(map[string]log.ErrorLogger),
 	}
 	// use console as start logger
-	StartLogger, _ = GetOrCreateDefaultErrorLogger("", INFO)
+	StartLogger, _ = GetOrCreateDefaultErrorLogger("", log.INFO)
 	// default as start before Init
-	DefaultLogger = StartLogger
+	log.DefaultLogger = StartLogger
+	DefaultLogger = log.DefaultLogger
 	// default proxy logger for test, override after config parsed
-	Proxy, _ = CreateDefaultProxyLogger("", INFO)
+	log.DefaultContextLogger, _ = CreateDefaultContextLogger("", log.INFO)
+	Proxy = log.DefaultContextLogger
 }
 
 // ErrorLoggerManager manages error log can be updated dynamicly
 type ErrorLoggerManager struct {
 	mutex    sync.Mutex
-	managers map[string]ErrorLogger
+	managers map[string]log.ErrorLogger
 }
 
 // GetOrCreateErrorLogger returns a ErrorLogger based on the output(p).
 // If Logger not exists, and create function is not nil, creates a new logger
-func (mng *ErrorLoggerManager) GetOrCreateErrorLogger(p string, level Level, f CreateErrorLoggerFunc) (ErrorLogger, error) {
+func (mng *ErrorLoggerManager) GetOrCreateErrorLogger(p string, level log.Level, f CreateErrorLoggerFunc) (log.ErrorLogger, error) {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
 	if lg, ok := mng.managers[p]; ok {
@@ -71,7 +75,7 @@ func (mng *ErrorLoggerManager) GetOrCreateErrorLogger(p string, level Level, f C
 	return lg, nil
 }
 
-func (mng *ErrorLoggerManager) SetAllErrorLoggerLevel(level Level) {
+func (mng *ErrorLoggerManager) SetAllErrorLoggerLevel(level log.Level) {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
 	for _, lg := range mng.managers {
@@ -85,20 +89,27 @@ func GetErrorLoggerManagerInstance() *ErrorLoggerManager {
 }
 
 // GetOrCreateDefaultErrorLogger used default create function
-func GetOrCreateDefaultErrorLogger(p string, level Level) (ErrorLogger, error) {
-	return errorLoggerManagerInstance.GetOrCreateErrorLogger(p, level, CreateDefaultErrorLogger)
+func GetOrCreateDefaultErrorLogger(p string, level log.Level) (log.ErrorLogger, error) {
+	return errorLoggerManagerInstance.GetOrCreateErrorLogger(p, level, DefaultCreateErrorLoggerFunc)
 }
 
-func InitDefaultLogger(output string, level Level) (err error) {
+func InitDefaultLogger(output string, level log.Level) (err error) {
 	DefaultLogger, err = GetOrCreateDefaultErrorLogger(output, level)
-	if err == nil {
-		Proxy, err = CreateDefaultProxyLogger(output, level)
+	if err != nil {
+		return err
 	}
+	Proxy, err = CreateDefaultContextLogger(output, level)
+	if err != nil {
+		return err
+	}
+	// compatible for the mosn caller
+	log.DefaultLogger = DefaultLogger
+	log.DefaultContextLogger = Proxy
 	return
 }
 
 // UpdateErrorLoggerLevel updates the exists ErrorLogger's Level
-func UpdateErrorLoggerLevel(p string, level Level) bool {
+func UpdateErrorLoggerLevel(p string, level log.Level) bool {
 	// we use a nil create function means just get exists logger
 	if lg, _ := errorLoggerManagerInstance.GetOrCreateErrorLogger(p, 0, nil); lg != nil {
 		lg.SetLogLevel(level)
@@ -114,36 +125,5 @@ func ToggleLogger(p string, disable bool) bool {
 		lg.Toggle(disable)
 		return true
 	}
-	// find Logger
-	if lg, ok := loggers.Load(p); ok {
-		lg.(*Logger).Toggle(disable)
-		return true
-	}
-	return false
-}
-
-// Reopen all logger
-func Reopen() (err error) {
-	loggers.Range(func(key, value interface{}) bool {
-		logger := value.(*Logger)
-		err = logger.Reopen()
-		if err != nil {
-			return false
-		}
-		return true
-	})
-	return
-}
-
-// CloseAll logger
-func CloseAll() (err error) {
-	loggers.Range(func(key, value interface{}) bool {
-		logger := value.(*Logger)
-		err = logger.Close()
-		if err != nil {
-			return false
-		}
-		return true
-	})
-	return
+	return log.ToggleLogger(p, disable)
 }

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -20,6 +20,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/serialize"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 const (
@@ -86,7 +87,7 @@ func (c *RPCClient) Stats() bool {
 
 func (c *RPCClient) Close() {
 	if c.conn != nil {
-		c.conn.Close(types.NoFlush, types.LocalClose)
+		c.conn.Close(api.NoFlush, api.LocalClose)
 		c.streamID = 0 // reset connection stream id
 	}
 }
@@ -225,6 +226,24 @@ func NewRPCServer(t *testing.T, addr string, proto string) UpstreamServer {
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV1)
 	case Bolt2:
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeBoltV2)
+	default:
+		t.Errorf("unsupport protocol")
+		return nil
+	}
+	return s
+}
+
+func NewRPCServerWithAnyPort(t *testing.T, proto string) UpstreamServer {
+	s := &RPCServer{
+		Client: NewRPCClient(t, "rpcClient", proto),
+	}
+	switch proto {
+	case Bolt1:
+		s.UpstreamServer = NewUpstreamServerWithAnyPort(t, s.ServeBoltV1)
+		s.Name = s.UpstreamServer.Addr()
+	case Bolt2:
+		s.UpstreamServer = NewUpstreamServerWithAnyPort(t, s.ServeBoltV2)
+		s.Name = s.UpstreamServer.Addr()
 	default:
 		t.Errorf("unsupport protocol")
 		return nil

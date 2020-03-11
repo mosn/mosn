@@ -22,8 +22,8 @@ import (
 	"sort"
 	"testing"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
@@ -50,7 +50,7 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				},
 			},
 			want: &MetadataMatchCriteriaImpl{
-				MatchCriteriaArray: []types.MetadataMatchCriterion{
+				MatchCriteriaArray: []api.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
 						Value: "test",
@@ -74,7 +74,7 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				},
 			},
 			want: &MetadataMatchCriteriaImpl{
-				MatchCriteriaArray: []types.MetadataMatchCriterion{
+				MatchCriteriaArray: []api.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "appInfo",
 						Value: "test",
@@ -98,7 +98,7 @@ func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
 				},
 			},
 			want: &MetadataMatchCriteriaImpl{
-				MatchCriteriaArray: []types.MetadataMatchCriterion{
+				MatchCriteriaArray: []api.MetadataMatchCriterion{
 					&MetadataMatchCriterionImpl{
 						Name:  "version",
 						Value: "v1",
@@ -198,7 +198,7 @@ func Test_NewConfigImpl(t *testing.T) {
 func TestMetadataMatchCriteriaImplSort(t *testing.T) {
 	keys := []string{"1", "3", "2", "0"}
 	values := []string{"b", "d", "c", "a"}
-	var mciArray []types.MetadataMatchCriterion
+	var mciArray []api.MetadataMatchCriterion
 	for i := range keys {
 		mmci := &MetadataMatchCriterionImpl{
 			Name:  keys[i],

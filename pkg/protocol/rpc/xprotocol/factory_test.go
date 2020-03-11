@@ -8,10 +8,9 @@ import (
 	"strconv"
 	"testing"
 
-	networkbuffer "mosn.io/mosn/pkg/buffer"
-	"mosn.io/mosn/pkg/types"
-
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
+	networkbuffer "mosn.io/pkg/buffer"
 )
 
 func init() {
@@ -98,6 +97,10 @@ func (re *testExample) GetMetas(data []byte) map[string]string {
 	metas := make(map[string]string)
 	metas["ua"] = "firefox"
 	return metas
+}
+
+func (re *testExample) BuildHeartbeatResp(headers types.HeaderMap) []byte {
+	return []byte{}
 }
 
 //ProtocolConvertor

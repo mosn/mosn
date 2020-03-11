@@ -10,9 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
-	"mosn.io/mosn/pkg/filter"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
@@ -30,30 +29,30 @@ import (
 // implementation of a new stream filter called inject
 type injectConfigFactory struct{}
 
-func (f *injectConfigFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+func (f *injectConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := &injectFilter{}
-	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
+	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 
-func createInjectFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+func createInjectFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	return &injectConfigFactory{}, nil
 }
 
 func init() {
-	filter.RegisterStream("inject", createInjectFactory)
+	api.RegisterStream("inject", createInjectFactory)
 }
 
 type injectFilter struct {
-	handler types.StreamReceiverFilterHandler
+	handler api.StreamReceiverFilterHandler
 }
 
-func (f *injectFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+func (f *injectFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	f.handler = handler
 }
 
-func (f *injectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *injectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	f.inject()
-	return types.StreamFilterReMatchRoute
+	return api.StreamFilterReMatchRoute
 }
 
 func (f *injectFilter) OnDestroy() {}
@@ -65,9 +64,9 @@ func (f *injectFilter) inject() {
 }
 
 // mosn config with stream filter called inject
-func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *config.MOSNConfig {
+func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *v2.MOSNConfig {
 	clusterName := "http_server"
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			util.NewBasicCluster(clusterName, hosts),
 		},
@@ -93,7 +92,10 @@ func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *c
 		},
 	}
 	chains := []v2.FilterChain{
-		util.NewFilterChain("proxyVirtualHost", proto, proto, routers),
+		util.NewFilterChain("proxyVirtualHost", proto, proto),
+	}
+	rs := []*v2.RouterConfiguration{
+		util.MakeRouterConfig("proxyVirtualHost", routers),
 	}
 	listener := util.NewListener("proxyListener", addr, chains)
 	listener.StreamFilters = []v2.Filter{
@@ -102,7 +104,7 @@ func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *c
 			Config: map[string]interface{}{},
 		},
 	}
-	cfg := util.NewMOSNConfig([]v2.Listener{listener}, cmconfig)
+	cfg := util.NewMOSNConfig([]v2.Listener{listener}, rs, cmconfig)
 	return cfg
 }
 
@@ -118,7 +120,7 @@ func TestReRoute(t *testing.T) {
 	meshAddr := util.CurrentMeshAddr()
 	cfg := createInjectProxyMesh(meshAddr, []string{httpAddr}, protocol.HTTP1)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
+	mesh.Start()
 	defer mesh.Close()
 	time.Sleep(2 * time.Second) // wait mosn start
 	// reset the logger

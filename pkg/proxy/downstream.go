@@ -23,24 +23,23 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"runtime/debug"
 	"strconv"
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/trace"
-	"mosn.io/mosn/pkg/utils"
-
-	"runtime/debug"
-
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
+	mbuffer "mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-
-	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 // types.StreamEventListener
@@ -112,7 +111,7 @@ type downStream struct {
 	context context.Context
 
 	// stream access logs
-	streamAccessLogs []types.AccessLog
+	streamAccessLogs []api.AccessLog
 	logDone          uint32
 
 	snapshot types.ClusterSnapshot
@@ -250,13 +249,15 @@ func (s *downStream) requestMetrics() {
 			s.proxy.listenerStats.DownstreamRequestFailed.Inc(1)
 		}
 
+		s.requestInfo.SetProcessTimeDuration(time.Duration(processTime))
+
 	}
 	// countdown metrics
 	s.proxy.stats.DownstreamRequestActive.Dec(1)
 	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
 }
 
-const mosnProcessFailed = types.NoHealthyUpstream | types.NoRouteFound | types.FaultInjected | types.RateLimited
+const mosnProcessFailed = api.NoHealthyUpstream | api.NoRouteFound | api.FaultInjected | api.RateLimited
 
 // isRequestFailed marks request failed due to mosn process
 func (s *downStream) isRequestFailed() bool {
@@ -577,7 +578,7 @@ func (s *downStream) matchRoute() {
 	headers := s.downstreamReqHeaders
 	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
 		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil while trying to get router, headers= %v", headers)
-		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.requestInfo.SetResponseFlag(api.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
 	}
@@ -589,7 +590,7 @@ func (s *downStream) matchRoute() {
 	// handlerChain should never be nil
 	if handlerChain == nil {
 		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "no route to make handler chain, headers = %v", headers)
-		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.requestInfo.SetResponseFlag(api.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, headers)
 		return
 	}
@@ -635,7 +636,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	// after stream filters run, check the route
 	if s.route == nil {
 		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route to init upstream")
-		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.requestInfo.SetResponseFlag(api.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
@@ -653,14 +654,14 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	// not direct response, needs a cluster snapshot and route rule
 	if rule := s.route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
 		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route rule to init upstream")
-		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.requestInfo.SetResponseFlag(api.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
 	if s.snapshot == nil || reflect.ValueOf(s.snapshot).IsNil() {
 		// no available cluster
 		log.Proxy.Alertf(s.context, types.ErrorKeyClusterGet, " cluster snapshot is nil, cluster name is: %s", s.route.RouteRule().ClusterName())
-		s.requestInfo.SetResponseFlag(types.NoRouteFound)
+		s.requestInfo.SetResponseFlag(api.NoRouteFound)
 		s.sendHijackReply(types.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
@@ -677,7 +678,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	pool, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {
 		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "initialize Upstream Connection Pool error, request can't be proxyed, error = %v", err)
-		s.requestInfo.SetResponseFlag(types.NoHealthyUpstream)
+		s.requestInfo.SetResponseFlag(api.NoHealthyUpstream)
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
 	}
@@ -879,7 +880,7 @@ func (s *downStream) onPerReqTimeout() {
 		}
 
 		s.upstreamRequest.resetStream()
-		s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
+		s.requestInfo.SetResponseFlag(api.UpstreamRequestTimeout)
 		s.upstreamRequest.OnResetStream(types.UpstreamPerTryTimeout)
 	} else {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] skip request timeout on getting upstream response")
@@ -998,7 +999,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 		!s.downstreamResponseStarted && s.retryState != nil {
 		retryCheck := s.retryState.retry(nil, reason)
 
-		if retryCheck == types.ShouldRetry && s.setupRetry(true) {
+		if retryCheck == api.ShouldRetry && s.setupRetry(true) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 				s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
@@ -1009,8 +1010,8 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 			log.Proxy.Infof(s.context, "[proxy] [downstream] onUpstreamReset, doRetry, reason %v", reason)
 			atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 			return
-		} else if retryCheck == types.RetryOverflow {
-			s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
+		} else if retryCheck == api.RetryOverflow {
+			s.requestInfo.SetResponseFlag(api.UpstreamOverflow)
 		}
 	}
 
@@ -1026,7 +1027,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 		var code int
 
 		if reason == types.UpstreamGlobalTimeout || reason == types.UpstreamPerTryTimeout {
-			s.requestInfo.SetResponseFlag(types.UpstreamRequestTimeout)
+			s.requestInfo.SetResponseFlag(api.UpstreamRequestTimeout)
 			code = types.TimeoutExceptionCode
 		} else {
 			reasonFlag := s.proxy.streamResetReasonToResponseFlag(reason)
@@ -1052,15 +1053,15 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 	if s.retryState != nil {
 		retryCheck := s.retryState.retry(headers, "")
 
-		if retryCheck == types.ShouldRetry && s.setupRetry(endStream) {
+		if retryCheck == api.ShouldRetry && s.setupRetry(endStream) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 				s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 				s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 			}
 
 			return
-		} else if retryCheck == types.RetryOverflow {
-			s.requestInfo.SetResponseFlag(types.UpstreamOverflow)
+		} else if retryCheck == api.RetryOverflow {
+			s.requestInfo.SetResponseFlag(api.UpstreamOverflow)
 		}
 
 		s.retryState.reset()
@@ -1272,27 +1273,36 @@ func (s *downStream) setBufferLimit(bufferLimit uint32) {
 	// todo
 }
 
-func (s *downStream) AddStreamReceiverFilter(filter types.StreamReceiverFilter, p types.Phase) {
-	sf := newActiveStreamReceiverFilter(s, filter, p)
+func (s *downStream) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.FilterPhase) {
+	var phase types.Phase
+	switch p {
+	case api.BeforeRoute:
+		phase = types.DownFilter
+	case api.AfterRoute:
+		phase = types.DownFilterAfterRoute
+	default:
+		phase = types.DownFilterAfterRoute
+	}
+	sf := newActiveStreamReceiverFilter(s, filter, phase)
 	s.receiverFilters = append(s.receiverFilters, sf)
 }
 
-func (s *downStream) AddStreamSenderFilter(filter types.StreamSenderFilter) {
+func (s *downStream) AddStreamSenderFilter(filter api.StreamSenderFilter) {
 	sf := newActiveStreamSenderFilter(s, filter)
 	s.senderFilters = append(s.senderFilters, sf)
 }
 
-func (s *downStream) AddStreamAccessLog(accessLog types.AccessLog) {
+func (s *downStream) AddStreamAccessLog(accessLog api.AccessLog) {
 	if s.proxy != nil {
 		if s.streamAccessLogs == nil {
-			s.streamAccessLogs = make([]types.AccessLog, 0)
+			s.streamAccessLogs = make([]api.AccessLog, 0)
 		}
 		s.streamAccessLogs = append(s.streamAccessLogs, accessLog)
 	}
 }
 
 // types.LoadBalancerContext
-func (s *downStream) MetadataMatchCriteria() types.MetadataMatchCriteria {
+func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	if nil != s.requestInfo.RouteEntry() {
 		return s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
 	}
@@ -1310,6 +1320,10 @@ func (s *downStream) DownstreamHeaders() types.HeaderMap {
 
 func (s *downStream) DownstreamContext() context.Context {
 	return s.context
+}
+
+func (s *downStream) DownstreamCluster() types.ClusterInfo {
+	return s.cluster
 }
 
 func (s *downStream) giveStream() {
@@ -1332,7 +1346,7 @@ func (s *downStream) giveStream() {
 	}
 
 	// Give buffers to bufferPool
-	if ctx := buffer.PoolContext(s.context); ctx != nil {
+	if ctx := mbuffer.PoolContext(s.context); ctx != nil {
 		ctx.Give()
 	}
 }

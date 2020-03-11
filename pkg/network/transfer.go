@@ -30,12 +30,13 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 const (
@@ -182,7 +183,7 @@ func transferRead(c *connection) (uint64, error) {
 		return transferErr, err
 	}
 	// send header + buffer + TLS
-	err = transferReadSendData(uc, tlsConn, c.readBuffer, log.DefaultLogger)
+	err = transferReadSendData(uc, tlsConn, c.readBuffer)
 	if err != nil {
 		log.DefaultLogger.Errorf("[network] [transfer] [read] transferRead failed: %v", err)
 		return transferErr, err
@@ -408,7 +409,7 @@ func transferRecvType(uc *net.UnixConn) (net.Conn, error) {
 	return conn, nil
 }
 
-func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer, logger log.ErrorLogger) error {
+func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf buffer.IoBuffer) error {
 	// send header
 	s1 := buf.Len()
 	s2 := c.GetTLSInfo(buf)
@@ -416,7 +417,7 @@ func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf types.IoBuffer,
 	if err != nil {
 		return err
 	}
-	logger.Infof("TransferRead dataBuf = %d, tlsBuf = %d", s1, s2)
+	log.DefaultLogger.Infof("TransferRead dataBuf = %d, tlsBuf = %d", s1, s2)
 	// send read/write buffer
 	return transferSendIoBuffer(uc, buf)
 }
@@ -545,7 +546,7 @@ func transferNewConn(conn net.Conn, dataBuf, tlsBuf []byte, handler types.Connec
 		}
 	}
 
-	ch := make(chan types.Connection, 1)
+	ch := make(chan api.Connection, 1)
 	// new connection
 	utils.GoWithRecover(func() {
 		listener.GetListenerCallbacks().OnAccept(conn, listener.UseOriginalDst(), nil, ch, dataBuf)

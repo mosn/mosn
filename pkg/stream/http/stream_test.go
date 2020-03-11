@@ -26,6 +26,7 @@ import (
 	"fmt"
 
 	"github.com/valyala/fasthttp"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
@@ -97,7 +98,7 @@ func Test_header_capitalization(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
-			"Args":                            "Hello, world!",
+			"Args": "Hello, world!",
 		},
 	}
 
@@ -232,7 +233,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -255,12 +256,12 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 		},
 	}
 
-	res, ok := csc.CheckReasonError(true, types.RemoteClose)
+	res, ok := csc.CheckReasonError(true, api.RemoteClose)
 	if res != types.UpstreamReset || ok {
 		t.Errorf("csc.CheckReasonError(true, types.RemoteClose) got %v , want %v", res, types.UpstreamReset)
 	}
 
-	res, ok = csc.CheckReasonError(true, types.OnConnect)
+	res, ok = csc.CheckReasonError(true, api.OnConnect)
 	if res != types.StreamConnectionSuccessed || !ok {
 		t.Errorf("csc.CheckReasonError(true, types.OnConnect) got %v , want %v", res, types.StreamConnectionSuccessed)
 	}

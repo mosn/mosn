@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -57,7 +57,7 @@ func resetTest() {
 	secretManagerInstance = &secretManager{
 		validations: make(map[string]*validation),
 	}
-	sdsCallbacks = []func(){}
+	sdsCallbacks = []func(*v2.TLSConfig){}
 	mockSdsClientInstance = &mockSdsClient{
 		callback: make(map[string]types.SdsUpdateCallbackFunc),
 	}

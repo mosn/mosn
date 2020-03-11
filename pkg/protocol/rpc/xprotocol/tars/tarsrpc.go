@@ -28,7 +28,9 @@ import (
 	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
+
 	"mosn.io/mosn/pkg/protocol/rpc/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -139,6 +141,10 @@ func (r *rpcTars) SetStreamID(data []byte, streamID string) []byte {
 		resp.IRequestId = int32(respId)
 		return rsp2Byte(resp)
 	}
+}
+
+func (r *rpcTars) BuildHeartbeatResp(headers types.HeaderMap) []byte {
+	return nil
 }
 
 func (r *rpcTars) GetServiceName(data []byte) string {

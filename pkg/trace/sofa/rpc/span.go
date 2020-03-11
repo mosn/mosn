@@ -23,11 +23,11 @@ import (
 	"strings"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type SofaRPCSpan struct {
@@ -78,6 +78,7 @@ func (s *SofaRPCSpan) SetRequestInfo(reqinfo types.RequestInfo) {
 		s.tags[DOWNSTEAM_HOST_ADDRESS] = reqinfo.DownstreamRemoteAddress().String()
 	}
 	s.tags[RESULT_STATUS] = strconv.Itoa(reqinfo.ResponseCode())
+	s.tags[MOSN_PROCESS_TIME] = reqinfo.ProcessTimeDuration().String()
 }
 
 func (s *SofaRPCSpan) Tag(key uint64) string {
@@ -154,6 +155,9 @@ func (s *SofaRPCSpan) log() error {
 
 	printData.WriteString("\"baggage\":")
 	printData.WriteString("\"" + s.tags[BAGGAGE_DATA] + "\",")
+
+	printData.WriteString("\"mosn.duration\":")
+	printData.WriteString("\"" + s.tags[MOSN_PROCESS_TIME] + "\",")
 
 	// Set status code. TODO can not get the result code if server throw an exception.
 

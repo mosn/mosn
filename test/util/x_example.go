@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol/rpc/xprotocol"
 	"mosn.io/mosn/pkg/protocol/rpc/xprotocol/example"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // XProtocol needs subprotocol for rpc
@@ -92,7 +93,7 @@ func (c *XProtocolClient) RequestAndWaitReponse() error {
 }
 func (c *XProtocolClient) Close() {
 	if c.conn != nil {
-		c.conn.Close(types.NoFlush, types.LocalClose)
+		c.conn.Close(api.NoFlush, api.LocalClose)
 	}
 }
 
@@ -108,6 +109,20 @@ func NewXProtocolServer(t *testing.T, addr string, subproto string) UpstreamServ
 	switch subproto {
 	case XExample:
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeXExample)
+	default:
+		t.Errorf("unsupport sub protocol")
+		return nil
+	}
+	return s
+}
+
+func NewXProtocolServerWithAnyPort(t *testing.T, subproto string) UpstreamServer {
+	s := &XProtocolServer{
+		Client: NewXClient(t, "xClient", subproto),
+	}
+	switch subproto {
+	case XExample:
+		s.UpstreamServer = NewUpstreamServerWithAnyPort(t, s.ServeXExample)
 	default:
 		t.Errorf("unsupport sub protocol")
 		return nil

@@ -18,9 +18,10 @@
 package serialize
 
 import (
+	"encoding/hex"
 	"testing"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/pkg/buffer"
 )
 
 func BenchmarkSerializeMap(b *testing.B) {
@@ -49,5 +50,38 @@ func BenchmarkDeserializeMap(b *testing.B) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		Instance.DeserializeMap(bytes, header)
+	}
+}
+
+func Test_simpleSerialization_DeserializeMap(t *testing.T) {
+	type args struct {
+		b []byte
+		m map[string]string
+	}
+	decodeString, _ := hex.DecodeString("0000000161FFFFFFFF00000001620000000163")
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{name: "empty", args: args{
+			b: decodeString,
+			m: map[string]string{},
+		}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &simpleSerialization{}
+			if err := s.DeserializeMap(tt.args.b, tt.args.m); (err != nil) != tt.wantErr {
+				t.Errorf("DeserializeMap() error = %v, wantErr %v", err, tt.wantErr)
+			} else {
+				if tt.args.m["b"] != "c" {
+					t.Errorf("DeserializeMap() error = %v, wantErr %v", err, tt.wantErr)
+				}
+				if _, ok := tt.args.m["a"]; ok {
+					t.Errorf("DeserializeMap() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			}
+		})
 	}
 }
