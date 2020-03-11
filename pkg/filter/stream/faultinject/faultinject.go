@@ -19,18 +19,17 @@ package faultinject
 
 import (
 	"context"
+	"encoding/json"
 	"math/rand"
 	"time"
 
-	"github.com/json-iterator/go"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // faultInjectConfig is parsed from v2.StreamFaultInject
 type faultInjectConfig struct {
@@ -68,7 +67,7 @@ func parseStreamFaultInjectConfig(c interface{}) (*faultInjectConfig, bool) {
 		return nil, false
 	}
 	json.Unmarshal(b, &conf)
-	cfg, err := config.ParseStreamFaultInjectFilter(conf)
+	cfg, err := ParseStreamFaultInjectFilter(conf)
 	if err != nil {
 		log.DefaultLogger.Errorf("config is not stream fault inject", err)
 		return nil, false
@@ -76,17 +75,17 @@ func parseStreamFaultInjectConfig(c interface{}) (*faultInjectConfig, bool) {
 	return makefaultInjectConfig(cfg), true
 }
 
-// streamFaultInjectFilter is an implement of types.StreamReceiverFilter
+// streamFaultInjectFilter is an implement of api.StreamReceiverFilter
 type streamFaultInjectFilter struct {
 	ctx     context.Context
-	handler types.StreamReceiverFilterHandler
+	handler api.StreamReceiverFilterHandler
 	config  *faultInjectConfig
 	stop    chan struct{}
 	rander  *rand.Rand
-	headers types.HeaderMap
+	headers api.HeaderMap
 }
 
-func NewFilter(ctx context.Context, cfg *v2.StreamFaultInject) types.StreamReceiverFilter {
+func NewFilter(ctx context.Context, cfg *v2.StreamFaultInject) api.StreamReceiverFilter {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(ctx, "[stream filter] [fault inject] create a new fault inject filter")
 	}
@@ -113,11 +112,11 @@ func (f *streamFaultInjectFilter) ReadPerRouteConfig(cfg map[string]interface{})
 	}
 }
 
-func (f *streamFaultInjectFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+func (f *streamFaultInjectFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	f.handler = handler
 }
 
-func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] fault inject filter do receive headers")
 	}
@@ -129,38 +128,38 @@ func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers types.H
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] upstream is not matched")
 		}
-		return types.StreamFilterContinue
+		return api.StreamFilterContinue
 	}
 	// TODO: check downstream nodes, support later
 	//if !f.downstreamNodes() {
-	//	return types.StreamHeadersFilterContinue
+	//	return api.StreamHeadersFilterContinue
 	//}
 	if !router.ConfigUtilityInst.MatchHeaders(headers, f.config.headers) {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] header is not matched, request headers: %v, config headers: %v", headers, f.config.headers)
 		}
-		return types.StreamFilterContinue
+		return api.StreamFilterContinue
 	}
 	// TODO: some parameters can get from request header
 	if delay := f.getDelayDuration(); delay > 0 {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] start a delay timer")
 		}
-		f.handler.RequestInfo().SetResponseFlag(types.DelayInjected)
+		f.handler.RequestInfo().SetResponseFlag(api.DelayInjected)
 		select {
 		case <-time.After(delay):
 		case <-f.stop:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] timer is stopped")
 			}
-			return types.StreamFilterStop
+			return api.StreamFilterStop
 		}
 	}
 	if f.isAbort() {
 		f.abort(headers)
-		return types.StreamFilterStop
+		return api.StreamFilterStop
 	}
-	return types.StreamFilterContinue
+	return api.StreamFilterContinue
 }
 
 func (f *streamFaultInjectFilter) OnDestroy() {
@@ -220,10 +219,10 @@ func (f *streamFaultInjectFilter) isAbort() bool {
 }
 
 // TODO: make a header
-func (f *streamFaultInjectFilter) abort(headers types.HeaderMap) {
+func (f *streamFaultInjectFilter) abort(headers api.HeaderMap) {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] abort inject")
 	}
-	f.handler.RequestInfo().SetResponseFlag(types.FaultInjected)
+	f.handler.RequestInfo().SetResponseFlag(api.FaultInjected)
 	f.handler.SendHijackReply(f.config.abortStatus, headers)
 }

@@ -32,8 +32,10 @@ import (
 	"time"
 
 	"golang.org/x/sys/unix"
+	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/accept/originaldst"
 	"mosn.io/mosn/pkg/log"
@@ -41,7 +43,7 @@ import (
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 // ConnectionHandler
@@ -95,8 +97,7 @@ func (ch *connHandler) NumConnections() uint64 {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error) {
+func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error) {
 
 	var listenerName string
 	if lc.Name == "" {
@@ -105,6 +106,15 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 	} else {
 		listenerName = lc.Name
 	}
+	// currently, we just support one filter chain
+	if len(lc.FilterChains) != 1 {
+		return nil, errors.New("error updating listener, listener have filter chains count is not 1")
+	}
+	// set network filter and stream filter
+	var networkFiltersFactories []api.NetworkFilterChainFactory
+	var streamFiltersFactories []api.StreamFilterChainFactory
+	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
+	streamFiltersFactories = configmanager.GetStreamFilters(lc.StreamFilters)
 
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
@@ -115,21 +125,18 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 			al.listener.Addr().Network() != lc.Addr.Network() {
 			return nil, errors.New("error updating listener, listen address and listen name doesn't match")
 		}
-		// currently, we just support one filter chain
-		if len(lc.FilterChains) != 1 {
-			return nil, errors.New("error updating listener, listener have filter chains count is not 1")
-		}
+
 		rawConfig := al.listener.Config()
 		// FIXME: update log level need the pkg/logger support.
 
-		// only chaned if not nil
-		if networkFiltersFactories != nil {
+		if updateNetworkFilter {
 			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
 			al.networkFiltersFactories = networkFiltersFactories
 			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
 			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
 		}
-		if streamFiltersFactories != nil {
+
+		if updateStreamFilter {
 			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
 			al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 			rawConfig.StreamFilters = lc.StreamFilters
@@ -169,7 +176,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		listenerStopChan := make(chan struct{})
 
 		//initialize access log
-		var als []types.AccessLog
+		var als []api.AccessLog
 
 		for _, alConfig := range lc.AccessLogs {
 
@@ -326,8 +333,8 @@ func (ch *connHandler) StopConnection() {
 // ListenerEventListener
 type activeListener struct {
 	listener                    types.Listener
-	networkFiltersFactories     []types.NetworkFilterChainFactory
-	streamFiltersFactoriesStore atomic.Value // store []types.StreamFilterChainFactory
+	networkFiltersFactories     []api.NetworkFilterChainFactory
+	streamFiltersFactoriesStore atomic.Value // store []api.StreamFilterChainFactory
 	listenIP                    string
 	listenPort                  int
 	conns                       *list.List
@@ -335,14 +342,14 @@ type activeListener struct {
 	handler                     *connHandler
 	stopChan                    chan struct{}
 	stats                       *listenerStats
-	accessLogs                  []types.AccessLog
+	accessLogs                  []api.AccessLog
 	updatedLabel                bool
-	idleTimeout                 *v2.DurationConfig
+	idleTimeout                 *api.DurationConfig
 	tlsMng                      types.TLSContextManager
 }
 
-func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers []types.AccessLog,
-	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory,
+func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers []api.AccessLog,
+	networkFiltersFactories []api.NetworkFilterChainFactory, streamFiltersFactories []api.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                listener,
@@ -391,7 +398,7 @@ func (al *activeListener) GoStart(lctx context.Context) {
 }
 
 // ListenerEventListener
-func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, ch chan types.Connection, buf []byte) {
+func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, ch chan api.Connection, buf []byte) {
 	var rawf *os.File
 
 	// only store fd and tls conn handshake in final working listener
@@ -447,18 +454,18 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	arc.ContinueFilterChain(ctx, true)
 }
 
-func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connection) {
+func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connection) {
 	//Register Proxy's Filter
 	filterManager := conn.FilterManager()
 	for _, nfcf := range al.networkFiltersFactories {
-		nfcf.CreateFilterChain(ctx, al.handler.clusterManager, filterManager)
+		nfcf.CreateFilterChain(ctx, filterManager)
 	}
 	filterManager.InitializeReadFilters()
 
 	if len(filterManager.ListReadFilter()) == 0 &&
 		len(filterManager.ListWriteFilters()) == 0 {
 		// no filter found, close connection
-		conn.Close(types.NoFlush, types.LocalClose)
+		conn.Close(api.NoFlush, api.LocalClose)
 		return
 	}
 	ac := newActiveConnection(al, conn)
@@ -543,7 +550,7 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 }
 
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
-	var listener, localListener *activeListener
+	var virtualListener, listener, localListener *activeListener
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -554,28 +561,42 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
 			localListener = lst
 		}
+
+		if lst.listener.Name() == "virtual" {
+			virtualListener = lst
+		}
 	}
 
-	var ch chan types.Connection
+	var ch chan api.Connection
 	var buf []byte
 	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
-		ch = val.(chan types.Connection)
+		ch = val.(chan api.Connection)
 		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
 			buf = val.([]byte)
 		}
 	}
 
 	if listener != nil {
+		virtualListener = nil
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 	if localListener != nil {
+		virtualListener = nil
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+	}
+
+	// If it can’t find any matching listeners and should using the virtual listener.
+	if virtualListener != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", virtualListener.listenIP, virtualListener.listenPort)
+		}
+		virtualListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 }
 
@@ -587,7 +608,7 @@ func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool)
 
 	for ; arc.acceptedFilterIndex < len(arc.acceptedFilters); arc.acceptedFilterIndex++ {
 		filterStatus := arc.acceptedFilters[arc.acceptedFilterIndex].OnAccept(arc)
-		if filterStatus == types.Stop {
+		if filterStatus == api.Stop {
 			return
 		}
 	}
@@ -611,10 +632,10 @@ func (arc *activeRawConn) Conn() net.Conn {
 type activeConnection struct {
 	element  *list.Element
 	listener *activeListener
-	conn     types.Connection
+	conn     api.Connection
 }
 
-func newActiveConnection(listener *activeListener, conn types.Connection) *activeConnection {
+func newActiveConnection(listener *activeListener, conn api.Connection) *activeConnection {
 	ac := &activeConnection{
 		conn:     conn,
 		listener: listener,
@@ -639,7 +660,7 @@ func newActiveConnection(listener *activeListener, conn types.Connection) *activ
 }
 
 // ConnectionEventListener
-func (ac *activeConnection) OnEvent(event types.ConnectionEvent) {
+func (ac *activeConnection) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		ac.listener.removeConnection(ac)
 	}

@@ -21,18 +21,19 @@ import (
 	"net"
 	"time"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 // RequestInfo
 type RequestInfo struct {
-	protocol                 types.ProtocolName
+	protocol                 api.Protocol
 	startTime                time.Time
-	responseFlag             types.ResponseFlag
-	upstreamHost             types.HostInfo
+	responseFlag             api.ResponseFlag
+	upstreamHost             api.HostInfo
 	requestReceivedDuration  time.Duration
 	requestFinishedDuration  time.Duration
 	responseReceivedDuration time.Duration
+	processTimeDuration      time.Duration
 	bytesSent                uint64
 	bytesReceived            uint64
 	responseCode             int
@@ -40,11 +41,10 @@ type RequestInfo struct {
 	downstreamLocalAddress   net.Addr
 	downstreamRemoteAddress  net.Addr
 	isHealthCheckRequest     bool
-	routerRule               types.RouteRule
+	routerRule               api.RouteRule
 }
 
-// todo check
-func newRequestInfoWithPort(protocol types.ProtocolName) types.RequestInfo {
+func newRequestInfoWithPort(protocol api.Protocol) api.RequestInfo {
 	return &RequestInfo{
 		protocol:  protocol,
 		startTime: time.Now(),
@@ -52,7 +52,7 @@ func newRequestInfoWithPort(protocol types.ProtocolName) types.RequestInfo {
 }
 
 // NewrequestInfo
-func NewRequestInfo() types.RequestInfo {
+func NewRequestInfo() api.RequestInfo {
 	return &RequestInfo{
 		startTime: time.Now(),
 	}
@@ -91,6 +91,14 @@ func (r *RequestInfo) SetRequestFinishedDuration(t time.Time) {
 
 }
 
+func (r *RequestInfo) ProcessTimeDuration() time.Duration {
+	return r.processTimeDuration
+}
+
+func (r *RequestInfo) SetProcessTimeDuration(d time.Duration) {
+	r.processTimeDuration = d
+}
+
 func (r *RequestInfo) BytesSent() uint64 {
 	return r.bytesSent
 }
@@ -107,7 +115,7 @@ func (r *RequestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *RequestInfo) Protocol() types.ProtocolName {
+func (r *RequestInfo) Protocol() api.Protocol {
 	return r.protocol
 }
 
@@ -123,19 +131,19 @@ func (r *RequestInfo) Duration() time.Duration {
 	return time.Now().Sub(r.startTime)
 }
 
-func (r *RequestInfo) GetResponseFlag(flag types.ResponseFlag) bool {
+func (r *RequestInfo) GetResponseFlag(flag api.ResponseFlag) bool {
 	return r.responseFlag&flag != 0
 }
 
-func (r *RequestInfo) SetResponseFlag(flag types.ResponseFlag) {
+func (r *RequestInfo) SetResponseFlag(flag api.ResponseFlag) {
 	r.responseFlag |= flag
 }
 
-func (r *RequestInfo) UpstreamHost() types.HostInfo {
+func (r *RequestInfo) UpstreamHost() api.HostInfo {
 	return r.upstreamHost
 }
 
-func (r *RequestInfo) OnUpstreamHostSelected(host types.HostInfo) {
+func (r *RequestInfo) OnUpstreamHostSelected(host api.HostInfo) {
 	r.upstreamHost = host
 }
 
@@ -171,10 +179,10 @@ func (r *RequestInfo) SetDownstreamRemoteAddress(addr net.Addr) {
 	r.downstreamRemoteAddress = addr
 }
 
-func (r *RequestInfo) RouteEntry() types.RouteRule {
+func (r *RequestInfo) RouteEntry() api.RouteRule {
 	return r.routerRule
 }
 
-func (r *RequestInfo) SetRouteEntry(routerRule types.RouteRule) {
+func (r *RequestInfo) SetRouteEntry(routerRule api.RouteRule) {
 	r.routerRule = routerRule
 }

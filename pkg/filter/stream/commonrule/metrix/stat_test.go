@@ -23,7 +23,7 @@ import (
 
 	"mosn.io/mosn/pkg/filter/stream/commonrule/limit"
 	"mosn.io/mosn/pkg/filter/stream/commonrule/model"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 func TestNewStat(t *testing.T) {

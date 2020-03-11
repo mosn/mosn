@@ -19,6 +19,8 @@ package types
 
 import (
 	"context"
+
+	"mosn.io/pkg/buffer"
 )
 
 // 	 The bunch of interfaces are structure skeleton to build a extensible protocol engine.
@@ -38,8 +40,6 @@ import (
 //
 
 type (
-	// ProtocolName must be unique
-	ProtocolName string
 	// MatchResult
 	MatchResult int
 	// ProtocolMatch recognize if the given data matches the protocol specification or not
@@ -47,10 +47,12 @@ type (
 )
 
 const (
-	MatchFailed  MatchResult = iota
+	MatchFailed MatchResult = iota
 	MatchSuccess
 	MatchAgain
 )
+
+// TODO: Protocol and api.Protocol have the same name, maybe makes some ambiguity.
 
 // Protocol need to provides ability to convert mode-to-binary and vice-versa
 type Protocol interface {
@@ -103,7 +105,7 @@ type ProtocolEngine interface {
 type Encoder interface {
 	// Encode encodes a model to binary data
 	// return 1. encoded bytes 2. encode error
-	Encode(ctx context.Context, model interface{}) (IoBuffer, error)
+	Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error)
 
 	// EncodeTo encodes a model to binary data, and append into the given buffer
 	// This method should be used in term of performance
@@ -116,5 +118,5 @@ type Decoder interface {
 	// Decode decodes binary data to a model
 	// pass sub protocol type to identify protocol format
 	// return 1. decoded model(nil if no enough data) 2. decode error
-	Decode(ctx context.Context, data IoBuffer) (interface{}, error)
+	Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error)
 }

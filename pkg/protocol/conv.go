@@ -21,11 +21,12 @@ import (
 	"context"
 	"errors"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
 )
 
 var (
-	protoConvFactory = make(map[types.ProtocolName]map[types.ProtocolName]ProtocolConv)
+	protoConvFactory = make(map[api.Protocol]map[api.Protocol]ProtocolConv)
 
 	ErrNotFound = errors.New("no convert function found for given protocol pair")
 
@@ -51,25 +52,25 @@ var (
 	// The common way not works if we want to convert from sofarpc to dubbo. We get ['c', 'd', 'e'] properties while
 	// convert from 'sofarpc' to 'common', and need ['c', 'd', 'f'] for converting from 'common' to 'dubbo'. In this case,
 	// write specific impl-aware convert functions for src and dst protocol.
-	common types.ProtocolName = "common"
+	common api.Protocol = "common"
 )
 
 // ProtocolConv extract common methods for protocol conversion(header, data, trailer)
 type ProtocolConv interface {
-	// ConvHeader convert header part represents in `types.HeaderMap`
-	ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error)
+	// ConvHeader convert header part represents in `api.HeaderMap`
+	ConvHeader(ctx context.Context, headerMap api.HeaderMap) (api.HeaderMap, error)
 
-	// ConvData convert data part represents in `types.IoBuffer`
-	ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error)
+	// ConvData convert data part represents in `buffer.IoBuffer`
+	ConvData(ctx context.Context, buffer buffer.IoBuffer) (buffer.IoBuffer, error)
 
-	// ConvTrailer convert trailer part represents in `types.HeaderMap`
-	ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error)
+	// ConvTrailer convert trailer part represents in `api.HeaderMap`
+	ConvTrailer(ctx context.Context, headerMap api.HeaderMap) (api.HeaderMap, error)
 }
 
 // RegisterConv register concrete protocol convert function for specified source protocol and destination protocol
-func RegisterConv(src, dst types.ProtocolName, f ProtocolConv) {
+func RegisterConv(src, dst api.Protocol, f ProtocolConv) {
 	if _, subOk := protoConvFactory[src]; !subOk {
-		protoConvFactory[src] = make(map[types.ProtocolName]ProtocolConv)
+		protoConvFactory[src] = make(map[api.Protocol]ProtocolConv)
 	}
 
 	protoConvFactory[src][dst] = f
@@ -77,13 +78,13 @@ func RegisterConv(src, dst types.ProtocolName, f ProtocolConv) {
 
 // RegisterCommonConv register concrete protocol convert function for specified protocol and common representation.
 // e.g. SofaRpcCmd <-> CommonHeader, which both implements the types.HeaderMap interface
-func RegisterCommonConv(protocol types.ProtocolName, from, to ProtocolConv) {
+func RegisterCommonConv(protocol api.Protocol, from, to ProtocolConv) {
 	RegisterConv(common, protocol, from)
 	RegisterConv(protocol, common, to)
 }
 
 // ConvertHeader convert header from source protocol format to destination protocol format
-func ConvertHeader(ctx context.Context, src, dst types.ProtocolName, srcHeader types.HeaderMap) (types.HeaderMap, error) {
+func ConvertHeader(ctx context.Context, src, dst api.Protocol, srcHeader api.HeaderMap) (api.HeaderMap, error) {
 	// 1. try direct path
 	if sub, subOk := protoConvFactory[src]; subOk {
 		if f, ok := sub[dst]; ok {
@@ -107,7 +108,7 @@ func ConvertHeader(ctx context.Context, src, dst types.ProtocolName, srcHeader t
 }
 
 // ConvertData convert data from source protocol format to destination protocol format
-func ConvertData(ctx context.Context, src, dst types.ProtocolName, srcData types.IoBuffer) (types.IoBuffer, error) {
+func ConvertData(ctx context.Context, src, dst api.Protocol, srcData buffer.IoBuffer) (buffer.IoBuffer, error) {
 	// 1. try direct path
 	if sub, subOk := protoConvFactory[src]; subOk {
 		if f, ok := sub[dst]; ok {
@@ -128,7 +129,7 @@ func ConvertData(ctx context.Context, src, dst types.ProtocolName, srcData types
 }
 
 // ConvertTrailer convert trailer from source protocol format to destination protocol format
-func ConvertTrailer(ctx context.Context, src, dst types.ProtocolName, srcTrailer types.HeaderMap) (types.HeaderMap, error) {
+func ConvertTrailer(ctx context.Context, src, dst api.Protocol, srcTrailer api.HeaderMap) (api.HeaderMap, error) {
 	// 1. try direct path
 	if sub, subOk := protoConvFactory[src]; subOk {
 		if f, ok := sub[dst]; ok {

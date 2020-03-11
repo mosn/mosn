@@ -22,46 +22,47 @@ import (
 	"reflect"
 	"testing"
 
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
 type mockRouters struct {
-	r      []types.Route
-	header types.HeaderMap
+	r      []api.Route
+	header api.HeaderMap
 }
 type mockRouter struct {
-	types.Route
+	api.Route
 	status types.HandlerStatus
 }
 
-func (r *mockRouter) RouteRule() types.RouteRule {
+func (r *mockRouter) RouteRule() api.RouteRule {
 	return &mockRouteRule{}
 }
 
 type mockRouteRule struct {
-	types.RouteRule
+	api.RouteRule
 }
 
 func (r *mockRouteRule) ClusterName() string {
 	return ""
 }
 
-func (routers *mockRouters) MatchRoute(headers types.HeaderMap, randomValue uint64) types.Route {
+func (routers *mockRouters) MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route {
 	if reflect.DeepEqual(headers, routers.header) {
 		return routers.r[0]
 	}
 	return nil
 }
-func (routers *mockRouters) MatchAllRoutes(headers types.HeaderMap, randomValue uint64) []types.Route {
+func (routers *mockRouters) MatchAllRoutes(headers api.HeaderMap, randomValue uint64) []api.Route {
 	if reflect.DeepEqual(headers, routers.header) {
 		return routers.r
 	}
 	return nil
 }
 
-func (routers *mockRouters) MatchRouteFromHeaderKV(headers types.HeaderMap, key, value string) types.Route {
+func (routers *mockRouters) MatchRouteFromHeaderKV(headers api.HeaderMap, key, value string) api.Route {
 	return nil
 }
 
@@ -93,7 +94,7 @@ func TestDefaultMakeHandlerChain(t *testing.T) {
 		"test": "test",
 	})
 	routers := &mockRouters{
-		r: []types.Route{
+		r: []api.Route{
 			&mockRouter{},
 		},
 		header: headerMatch,
@@ -126,7 +127,7 @@ func TestDefaultMakeHandlerChain(t *testing.T) {
 
 type mockStatusHandler struct {
 	status types.HandlerStatus
-	router types.Route
+	router api.Route
 }
 
 func (h *mockStatusHandler) IsAvailable(ctx context.Context, manager types.ClusterManager) (types.ClusterSnapshot, types.HandlerStatus) {
@@ -134,11 +135,11 @@ func (h *mockStatusHandler) IsAvailable(ctx context.Context, manager types.Clust
 	snapshot := manager.GetClusterSnapshot(context.Background(), clusterName)
 	return snapshot, h.status
 }
-func (h *mockStatusHandler) Route() types.Route {
+func (h *mockStatusHandler) Route() api.Route {
 	return h.router
 }
 
-func _TestMakeHandlerChain(ctx context.Context, headers types.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
+func _TestMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	rs := routers.MatchAllRoutes(headers, 1)
 	var handlers []types.RouteHandler
 	for _, r := range rs {
@@ -158,7 +159,7 @@ func TestExtendHandler(t *testing.T) {
 	})
 	// Test HandlerChain: 1. NotAvailable 2. Stop
 	routers := &mockRouters{
-		r: []types.Route{
+		r: []api.Route{
 			&mockRouter{status: types.HandlerNotAvailable},
 			&mockRouter{status: types.HandlerStop},
 		},
@@ -181,7 +182,7 @@ func TestExtendHandler(t *testing.T) {
 	}
 	// Test HandlerChain: 1. NotAvailable 2. Unexpected(as NotAvailable) 3. Available (checked)
 	routers2 := &mockRouters{
-		r: []types.Route{
+		r: []api.Route{
 			&mockRouter{status: types.HandlerNotAvailable},
 			&mockRouter{status: types.HandlerStatus(-1)}, // Unexpected
 			&mockRouter{}, //Available
@@ -202,7 +203,7 @@ func TestExtendHandler(t *testing.T) {
 	}
 	// Test HandlerChain: all of the handlers are NotAvailable
 	routers3 := &mockRouters{
-		r: []types.Route{
+		r: []api.Route{
 			&mockRouter{status: types.HandlerNotAvailable},
 			&mockRouter{status: types.HandlerNotAvailable},
 			&mockRouter{status: types.HandlerNotAvailable},

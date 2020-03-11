@@ -22,8 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/pkg/buffer"
 )
 
 var maxIdleCount uint32 = 0

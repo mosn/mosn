@@ -17,45 +17,43 @@
 
 package faultinject
 
-import (
-	"mosn.io/mosn/pkg/types"
-)
+import "mosn.io/api"
 
 // this file mocks the interface that used for test
 // only implement the function that used in test
 type mockStreamReceiverFilterCallbacks struct {
-	types.StreamReceiverFilterHandler
+	api.StreamReceiverFilterHandler
 	route      *mockRoute
 	hijackCode int
 	info       *mockRequestInfo
 	called     chan int
 }
 
-func (cb *mockStreamReceiverFilterCallbacks) Route() types.Route {
+func (cb *mockStreamReceiverFilterCallbacks) Route() api.Route {
 	return cb.route
 }
-func (cb *mockStreamReceiverFilterCallbacks) RequestInfo() types.RequestInfo {
+func (cb *mockStreamReceiverFilterCallbacks) RequestInfo() api.RequestInfo {
 	return cb.info
 }
 func (cb *mockStreamReceiverFilterCallbacks) ContinueReceiving() {
 	cb.called <- 1
 }
-func (cb *mockStreamReceiverFilterCallbacks) SendHijackReply(code int, headers types.HeaderMap) {
+func (cb *mockStreamReceiverFilterCallbacks) SendHijackReply(code int, headers api.HeaderMap) {
 	cb.hijackCode = code
 	cb.called <- 1
 }
 
 type mockRoute struct {
-	types.Route
+	api.Route
 	rule *mockRouteRule
 }
 
-func (r *mockRoute) RouteRule() types.RouteRule {
+func (r *mockRoute) RouteRule() api.RouteRule {
 	return r.rule
 }
 
 type mockRouteRule struct {
-	types.RouteRule
+	api.RouteRule
 	clustername string
 	config      map[string]interface{}
 }
@@ -68,10 +66,10 @@ func (r *mockRouteRule) PerFilterConfig() map[string]interface{} {
 }
 
 type mockRequestInfo struct {
-	types.RequestInfo
-	flag types.ResponseFlag
+	api.RequestInfo
+	flag api.ResponseFlag
 }
 
-func (info *mockRequestInfo) SetResponseFlag(flag types.ResponseFlag) {
+func (info *mockRequestInfo) SetResponseFlag(flag api.ResponseFlag) {
 	info.flag = flag
 }

@@ -19,11 +19,10 @@ package proxy
 
 import (
 	"context"
-
+	"net"
 	"time"
 
-	"net"
-
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 )
@@ -52,7 +51,7 @@ func (rw *mockRouterWrapper) GetRouters() types.Routers {
 
 type mockRouters struct {
 	types.Routers
-	route types.Route
+	route api.Route
 }
 
 func (r *mockRouters) MatchRoute(types.HeaderMap, uint64) types.Route {
@@ -63,19 +62,19 @@ func (r *mockRouters) MatchRoute(types.HeaderMap, uint64) types.Route {
 }
 
 type mockRoute struct {
-	types.Route
-	rule   types.RouteRule
-	direct types.DirectResponseRule
+	api.Route
+	rule   api.RouteRule
+	direct api.DirectResponseRule
 }
 
-func (r *mockRoute) RouteRule() types.RouteRule {
+func (r *mockRoute) RouteRule() api.RouteRule {
 	if r.rule != nil {
 		return r.rule
 	}
 	return &mockRouteRule{}
 }
 
-func (r *mockRoute) DirectResponseRule() types.DirectResponseRule {
+func (r *mockRoute) DirectResponseRule() api.DirectResponseRule {
 	if r.direct != nil {
 		return r.direct
 	}
@@ -83,7 +82,7 @@ func (r *mockRoute) DirectResponseRule() types.DirectResponseRule {
 }
 
 type mockRouteRule struct {
-	types.RouteRule
+	api.RouteRule
 }
 
 func (r *mockRouteRule) ClusterName() string {
@@ -94,7 +93,7 @@ func (r *mockRouteRule) UpstreamProtocol() string {
 	return ""
 }
 
-func (c *mockRouteRule) FinalizeResponseHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+func (c *mockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 	return
 }
 
@@ -127,12 +126,12 @@ type mockClusterSnapshot struct {
 
 type mockResponseSender struct {
 	// receive data
-	headers  types.HeaderMap
+	headers  api.HeaderMap
 	data     types.IoBuffer
-	trailers types.HeaderMap
+	trailers api.HeaderMap
 }
 
-func (s *mockResponseSender) AppendHeaders(ctx context.Context, headers types.HeaderMap, endStream bool) error {
+func (s *mockResponseSender) AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error {
 	s.headers = headers
 	return nil
 }
@@ -160,15 +159,15 @@ func (s *mockStream) ResetStream(reason types.StreamResetReason) {
 }
 
 type mockReadFilterCallbacks struct {
-	types.ReadFilterCallbacks
+	api.ReadFilterCallbacks
 }
 
-func (cb *mockReadFilterCallbacks) Connection() types.Connection {
+func (cb *mockReadFilterCallbacks) Connection() api.Connection {
 	return &mockConnection{}
 }
 
 type mockConnection struct {
-	types.Connection
+	api.Connection
 }
 
 func (c *mockConnection) ID() uint64 {

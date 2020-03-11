@@ -22,12 +22,13 @@ import (
 	"sync"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
@@ -144,14 +145,14 @@ func (p *connPool) Shutdown() {
 	// TODO: http connpool do nothing for shutdown
 }
 
-func (p *connPool) onConnectionEvent(client *activeClient, event types.ConnectionEvent) {
+func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
 	if event.IsClose() {
 
 		if client.closeWithActiveReq {
-			if event == types.LocalClose {
+			if event == api.LocalClose {
 				p.host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-			} else if event == types.RemoteClose {
+			} else if event == api.RemoteClose {
 				p.host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 			}
@@ -173,11 +174,11 @@ func (p *connPool) onConnectionEvent(client *activeClient, event types.Connectio
 
 		// set closed flag if not available
 		client.closed = true
-	} else if event == types.ConnectTimeout {
+	} else if event == api.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		client.client.Close()
-	} else if event == types.ConnectFailed {
+	} else if event == api.ConnectFailed {
 		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
 	}
@@ -211,7 +212,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 }
 
 func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
-	return str.NewStreamClient(context, protocol.HTTP1, connData.Connection, connData.HostInfo)
+	return str.NewStreamClient(context, protocol.HTTP1, connData.Connection, connData.Host)
 }
 
 func (p *connPool) report() {
@@ -268,7 +269,7 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 }
 
 // types.ConnectionEventListener
-func (ac *activeClient) OnEvent(event types.ConnectionEvent) {
+func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 	ac.pool.onConnectionEvent(ac, event)
 }
 

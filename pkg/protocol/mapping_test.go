@@ -20,6 +20,7 @@ package protocol
 import (
 	"testing"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -28,7 +29,7 @@ func TestMapping(t *testing.T) {
 		t.Error("no register type")
 	}
 	testcases := []struct {
-		Header   types.HeaderMap
+		Header   api.HeaderMap
 		Expetced int
 	}{
 		{

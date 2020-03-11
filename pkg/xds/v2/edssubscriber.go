@@ -44,7 +44,7 @@ func (c *ADSClient) reqEndpoints(streamClient ads.AggregatedDiscoveryService_Str
 		},
 	})
 	if err != nil {
-		log.DefaultLogger.Errorf("get endpoints fail: %v", err)
+		log.DefaultLogger.Infof("get endpoints fail: %v", err)
 		return err
 	}
 	return nil

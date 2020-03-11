@@ -21,17 +21,18 @@ import (
 	"context"
 	"strconv"
 
-	"github.com/json-iterator/go"
-	"mosn.io/mosn/pkg/filter"
+	jsoniter "github.com/json-iterator/go"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/filter/stream/commonrule/model"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 func init() {
-	filter.RegisterStream("commonrule", CreateCommonRuleFilterFactory)
+	api.RegisterStream("commonrule", CreateCommonRuleFilterFactory)
 }
 
 func parseCommonRuleConfig(config map[string]interface{}) *model.CommonRuleConfig {
@@ -40,14 +41,14 @@ func parseCommonRuleConfig(config map[string]interface{}) *model.CommonRuleConfi
 	if data, err := json.Marshal(config); err == nil {
 		json.Unmarshal(data, commonRuleConfig)
 	} else {
-		log.StartLogger.Fatalln("[commonrule] parsing commonRule filter check failed")
+		log.StartLogger.Fatalf("[commonrule] parsing commonRule filter check failed")
 	}
 	return commonRuleConfig
 }
 
 type commmonRuleFilter struct {
 	context           context.Context
-	handler           types.StreamReceiverFilterHandler
+	handler           api.StreamReceiverFilterHandler
 	commonRuleConfig  *model.CommonRuleConfig
 	RuleEngineFactory *RuleEngineFactory
 }
@@ -61,7 +62,7 @@ func NewFacatoryInstance(config *model.CommonRuleConfig) {
 }
 
 // NewCommonRuleFilter as
-func NewCommonRuleFilter(context context.Context, config *model.CommonRuleConfig) types.StreamReceiverFilter {
+func NewCommonRuleFilter(context context.Context, config *model.CommonRuleConfig) api.StreamReceiverFilter {
 	f := &commmonRuleFilter{
 		context:          context,
 		commonRuleConfig: config,
@@ -70,16 +71,16 @@ func NewCommonRuleFilter(context context.Context, config *model.CommonRuleConfig
 	return f
 }
 
-func (f *commmonRuleFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *commmonRuleFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	if f.RuleEngineFactory.invoke(headers) {
-		return types.StreamFilterContinue
+		return api.StreamFilterContinue
 	}
 	headers.Set(types.HeaderStatus, strconv.Itoa(types.LimitExceededCode))
 	f.handler.AppendHeaders(headers, true)
-	return types.StreamFilterStop
+	return api.StreamFilterStop
 }
 
-func (f *commmonRuleFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+func (f *commmonRuleFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	f.handler = handler
 }
 
@@ -89,13 +90,13 @@ type commonRuleFilterFactory struct {
 	commonRuleConfig *model.CommonRuleConfig
 }
 
-func (f *commonRuleFilterFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+func (f *commonRuleFilterFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewCommonRuleFilter(context, f.commonRuleConfig)
-	callbacks.AddStreamReceiverFilter(filter, types.DownFilterAfterRoute)
+	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 
 // CreateCommonRuleFilterFactory as
-func CreateCommonRuleFilterFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+func CreateCommonRuleFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	f := &commonRuleFilterFactory{
 		commonRuleConfig: parseCommonRuleConfig(conf),
 	}

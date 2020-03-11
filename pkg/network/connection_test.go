@@ -25,12 +25,12 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 type MyEventListener struct{}
 
-func (el *MyEventListener) OnEvent(event types.ConnectionEvent) {}
+func (el *MyEventListener) OnEvent(event api.ConnectionEvent) {}
 
 func testAddConnectionEventListener(n int, t *testing.T) {
 	c := connection{}
@@ -169,28 +169,28 @@ func TestConnState(t *testing.T) {
 		return
 	}
 	c := NewServerConnection(context.Background(), rawc, nil)
-	if c.State() != types.ConnActive {
+	if c.State() != api.ConnActive {
 		t.Errorf("ConnState should be ConnActive")
 	}
-	c.Close(types.NoFlush, types.LocalClose)
-	if c.State() != types.ConnClosed {
+	c.Close(api.NoFlush, api.LocalClose)
+	if c.State() != api.ConnClosed {
 		t.Errorf("ConnState should be ConnClosed")
 	}
 
 	cc := NewClientConnection(nil, 0, nil, remoteAddr, nil)
-	if cc.State() != types.ConnInit {
+	if cc.State() != api.ConnInit {
 		t.Errorf("ConnState should be ConnInit")
 	}
 	if err := cc.Connect(); err != nil {
 		t.Errorf("conn Connect error: %v", err)
 	}
-	if cc.State() != types.ConnActive {
+	if cc.State() != api.ConnActive {
 		t.Errorf("ConnState should be ConnActive")
 	}
 	l.Close()
 
 	time.Sleep(10 * time.Millisecond)
-	if cc.State() != types.ConnClosed {
+	if cc.State() != api.ConnClosed {
 		t.Errorf("ConnState should be ConnClosed")
 	}
 }

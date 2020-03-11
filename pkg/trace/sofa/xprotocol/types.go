@@ -47,9 +47,16 @@ const (
 	TARGET_CITY
 	ROUTE_RECORD
 	CALLER_CELL
-	//30-60 for other extends
+	// 30-60 for other extends
 
-	TRACE_END = 60
+	// 60-70 for mosn common
+
+	TRACE_END = 70
+)
+
+const (
+	MOSN_PROCESS_TIME = 60 + iota
+	MOSN_TLS_STATE
 )
 
 type SubProtocolDelegate func(ctx context.Context, frame xprotocol.XFrame, span types.Span)

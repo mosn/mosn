@@ -20,6 +20,8 @@ package types
 import (
 	"context"
 	"net"
+
+	"mosn.io/api"
 )
 
 // LoadBalancerType is the load balancer's type
@@ -27,8 +29,9 @@ type LoadBalancerType string
 
 // The load balancer's types
 const (
-	RoundRobin LoadBalancerType = "LB_ROUNDROBIN"
-	Random     LoadBalancerType = "LB_RANDOM"
+	RoundRobin   LoadBalancerType = "LB_ROUNDROBIN"
+	Random       LoadBalancerType = "LB_RANDOM"
+	ORIGINAL_DST LoadBalancerType = "LB_ORIGINAL_DST"
 )
 
 // LoadBalancer is a upstream load balancer.
@@ -38,25 +41,28 @@ type LoadBalancer interface {
 	ChooseHost(context LoadBalancerContext) Host
 	// IsExistsHosts checks the load balancer contains hosts or not
 	// It will not be effect the load balancer's index
-	IsExistsHosts(MetadataMatchCriteria) bool
+	IsExistsHosts(api.MetadataMatchCriteria) bool
 
-	HostNum(MetadataMatchCriteria) int
+	HostNum(api.MetadataMatchCriteria) int
 }
 
 // LoadBalancerContext contains the information for choose a host
 type LoadBalancerContext interface {
 
 	// MetadataMatchCriteria gets metadata match criteria used for selecting a subset of hosts
-	MetadataMatchCriteria() MetadataMatchCriteria
+	MetadataMatchCriteria() api.MetadataMatchCriteria
 
 	// DownstreamConnection returns the downstream connection.
 	DownstreamConnection() net.Conn
 
 	// DownstreamHeaders returns the downstream headers map.
-	DownstreamHeaders() HeaderMap
+	DownstreamHeaders() api.HeaderMap
 
 	// DownstreamContext returns the downstream context
 	DownstreamContext() context.Context
+
+	// Downstream cluster info
+	DownstreamCluster() ClusterInfo
 }
 
 // LBSubsetEntry is a entry that stored in the subset hierarchy.

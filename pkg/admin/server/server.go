@@ -47,6 +47,7 @@ func init() {
 		"/api/v1/enable_log":      enableLogger,
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,
+		"/api/v1/plugin":          pluginApi,
 		"/":                       help,
 	}
 }
@@ -58,8 +59,6 @@ type Server struct {
 func (s *Server) Start(config Config) {
 	var addr string
 	if config != nil {
-		// merge MOSNConfig into global context
-		store.SetMOSNConfig(config)
 		// get admin config
 		adminConfig := config.GetAdmin()
 		if adminConfig == nil {

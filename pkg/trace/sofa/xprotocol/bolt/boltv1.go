@@ -20,16 +20,15 @@ package bolt
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/trace"
-	"mosn.io/mosn/pkg/types"
-
+	"mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/log"
 	xproto "mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -72,10 +71,8 @@ func boltv1Delegate(ctx context.Context, frame xproto.XFrame, span types.Span) {
 	}
 	span.SetTag(xprotocol.SPAN_ID, spanId)
 
-	if lType == v2.EGRESS {
-		appName, _ := header.Get(sofa.APP_NAME)
-		span.SetTag(xprotocol.APP_NAME, appName)
-	}
+	appName, _ := header.Get(sofa.APP_NAME)
+	span.SetTag(xprotocol.APP_NAME, appName)
 	span.SetTag(xprotocol.SPAN_TYPE, string(lType.(v2.ListenerType)))
 	method, _ := header.Get(sofa.TARGET_METHOD)
 	span.SetTag(xprotocol.METHOD_NAME, method)

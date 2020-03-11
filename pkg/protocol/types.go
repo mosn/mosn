@@ -18,15 +18,16 @@
 package protocol
 
 import (
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 // ProtocolName type definition
 const (
-	Auto      types.ProtocolName = "Auto"
-	HTTP1     types.ProtocolName = "Http1"
-	HTTP2     types.ProtocolName = "Http2"
-	Xprotocol types.ProtocolName = "X"
+	Auto      api.Protocol = "Auto"
+	SofaRPC   api.Protocol = "SofaRpc"
+	HTTP1     api.Protocol = "Http1"
+	HTTP2     api.Protocol = "Http2"
+	Xprotocol api.Protocol = "X"
 )
 
 // header direction definition
@@ -91,7 +92,7 @@ func (h CommonHeader) Range(f func(key, value string) bool) {
 }
 
 // Clone used to deep copy header's map
-func (h CommonHeader) Clone() types.HeaderMap {
+func (h CommonHeader) Clone() api.HeaderMap {
 	copy := make(map[string]string)
 
 	for k, v := range h {

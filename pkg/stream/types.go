@@ -22,6 +22,7 @@ import (
 	"errors"
 
 	metrics "github.com/rcrowley/go-metrics"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -39,8 +40,8 @@ var FAILED = errors.New("FAILED")
 var EAGAIN = errors.New("AGAIN")
 
 type Client interface {
-	types.ConnectionEventListener
-	types.ReadFilter
+	api.ConnectionEventListener
+	api.ReadFilter
 
 	ConnID() uint64
 
@@ -52,7 +53,7 @@ type Client interface {
 
 	SetConnectionCollector(read, write metrics.Counter)
 
-	AddConnectionEventListener(listener types.ConnectionEventListener)
+	AddConnectionEventListener(listener api.ConnectionEventListener)
 
 	SetStreamConnectionEventListener(listener types.StreamConnectionEventListener)
 
@@ -62,9 +63,9 @@ type Client interface {
 type ProtocolStreamFactory interface {
 	CreateClientStream(context context.Context, connection types.ClientConnection,
 		streamConnCallbacks types.StreamConnectionEventListener,
-		callbacks types.ConnectionEventListener) types.ClientStreamConnection
+		callbacks api.ConnectionEventListener) types.ClientStreamConnection
 
-	CreateServerStream(context context.Context, connection types.Connection,
+	CreateServerStream(context context.Context, connection api.Connection,
 		callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection
 
 	CreateBiDirectStream(context context.Context, connection types.ClientConnection,
