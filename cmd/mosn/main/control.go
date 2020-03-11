@@ -53,7 +53,7 @@ var (
 				Usage:  "sidecar service node",
 				EnvVar: "SERVICE_NODE",
 			}, cli.StringFlag{
-				Name:   "service-type, n",
+				Name:   "service-type, p",
 				Usage:  "sidecar service type",
 				EnvVar: "SERVICE_TYPE",
 			}, cli.StringSliceFlag{
