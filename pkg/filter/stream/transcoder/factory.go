@@ -20,29 +20,28 @@ package transcoder
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/filter"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 // stream factory
 func init() {
-	filter.RegisterStream(v2.Transcoder, createFilterChainFactory)
+	api.RegisterStream(v2.Transcoder, createFilterChainFactory)
 }
 
 type filterChainFactory struct {
 	cfg *config
 }
 
-func (f *filterChainFactory) CreateFilterChain(context context.Context, callbacks types.StreamFilterChainFactoryCallbacks) {
+func (f *filterChainFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	transcodeFilter := newTranscodeFilter(context, f.cfg)
 	if transcodeFilter != nil {
-		callbacks.AddStreamReceiverFilter(transcodeFilter, types.DownFilterAfterRoute)
+		callbacks.AddStreamReceiverFilter(transcodeFilter, api.AfterRoute)
 		callbacks.AddStreamSenderFilter(transcodeFilter)
 	}
 }
 
-func createFilterChainFactory(conf map[string]interface{}) (types.StreamFilterChainFactory, error) {
+func createFilterChainFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	cfg, err := parseConfig(conf)
 	if err != nil {
 		return nil, err

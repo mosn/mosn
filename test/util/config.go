@@ -5,8 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/json-iterator/go"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -22,9 +21,9 @@ func CurrentMeshAddr() string {
 }
 
 // mesh as a proxy , client and servre have same protocol
-func CreateProxyMesh(addr string, hosts []string, proto types.ProtocolName) *config.MOSNConfig {
+func CreateProxyMesh(addr string, hosts []string, proto types.ProtocolName) *v2.MOSNConfig {
 	clusterName := "proxyCluster"
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			NewBasicCluster(clusterName, hosts),
 		},
@@ -45,7 +44,7 @@ func CreateProxyMesh(addr string, hosts []string, proto types.ProtocolName) *con
 // appproto is client and server (not mesh) protocol
 // meshproto is mesh's protocol
 // hosts is server's addresses
-func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types.ProtocolName, meshproto types.ProtocolName, hosts []string, tls bool) *config.MOSNConfig {
+func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types.ProtocolName, meshproto types.ProtocolName, hosts []string, tls bool) *v2.MOSNConfig {
 	downstreamCluster := "downstream"
 	upstreamCluster := "upstream"
 	downstreamRouters := []v2.Router{
@@ -80,7 +79,7 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 			tlsConf,
 		}
 	}
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			meshClusterConfig,
 			NewBasicCluster(upstreamCluster, hosts),
@@ -94,9 +93,9 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 }
 
 // XProtocol mesh as a proxy , client and servre have same protocol
-func CreateXProtocolProxyMesh(addr string, hosts []string, proto types.ProtocolName) *config.MOSNConfig {
+func CreateXProtocolProxyMesh(addr string, hosts []string, proto types.ProtocolName) *v2.MOSNConfig {
 	clusterName := "proxyCluster"
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			NewBasicCluster(clusterName, hosts),
 		},
@@ -114,7 +113,7 @@ func CreateXProtocolProxyMesh(addr string, hosts []string, proto types.ProtocolN
 
 // XProtocol mesh to mesh
 // currently, support Path/Prefix is "/" only
-func CreateXProtocolMesh(clientaddr string, serveraddr string, subProtocol types.ProtocolName, hosts []string, tls bool) *config.MOSNConfig {
+func CreateXProtocolMesh(clientaddr string, serveraddr string, subProtocol types.ProtocolName, hosts []string, tls bool) *v2.MOSNConfig {
 	downstreamCluster := "downstream"
 	upstreamCluster := "upstream"
 	downstreamRouters := []v2.Router{
@@ -147,7 +146,7 @@ func CreateXProtocolMesh(clientaddr string, serveraddr string, subProtocol types
 			tlsConf,
 		}
 	}
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			meshClusterConfig,
 			NewBasicCluster(upstreamCluster, hosts),
@@ -166,7 +165,7 @@ type ExtendVerifyConfig struct {
 	VerifyConfig map[string]interface{}
 }
 
-func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto types.ProtocolName, meshproto types.ProtocolName, hosts []string, ext *ExtendVerifyConfig) *config.MOSNConfig {
+func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto types.ProtocolName, meshproto types.ProtocolName, hosts []string, ext *ExtendVerifyConfig) *v2.MOSNConfig {
 	downstreamCluster := "downstream"
 	upstreamCluster := "upstream"
 	downstreamRouters := []v2.Router{
@@ -193,7 +192,7 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 	meshServerChain.TLSContexts = []v2.TLSConfig{
 		tlsConf,
 	}
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			meshClusterConfig,
 			NewBasicCluster(upstreamCluster, hosts),
@@ -207,7 +206,7 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 
 }
 
-func CreateXprotocolTLSExtensionConfig(clientaddr string, serveraddr string, subProtocol types.ProtocolName, hosts []string, ext *ExtendVerifyConfig) *config.MOSNConfig {
+func CreateXprotocolTLSExtensionConfig(clientaddr string, serveraddr string, subProtocol types.ProtocolName, hosts []string, ext *ExtendVerifyConfig) *v2.MOSNConfig {
 	downstreamCluster := "downstream"
 	upstreamCluster := "upstream"
 	downstreamRouters := []v2.Router{
@@ -234,7 +233,7 @@ func CreateXprotocolTLSExtensionConfig(clientaddr string, serveraddr string, sub
 	meshServerChain.TLSContexts = []v2.TLSConfig{
 		tlsConf,
 	}
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			meshClusterConfig,
 			NewBasicCluster(upstreamCluster, hosts),
@@ -249,7 +248,7 @@ func CreateXprotocolTLSExtensionConfig(clientaddr string, serveraddr string, sub
 }
 
 // TCP Proxy
-func CreateTCPProxyConfig(meshaddr string, hosts []string, isRouteEntryMode bool) *config.MOSNConfig {
+func CreateTCPProxyConfig(meshaddr string, hosts []string, isRouteEntryMode bool) *v2.MOSNConfig {
 	clusterName := "cluster"
 	cluster := clusterName
 	if isRouteEntryMode {
@@ -279,7 +278,7 @@ func CreateTCPProxyConfig(meshaddr string, hosts []string, isRouteEntryMode bool
 			},
 		},
 	}
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			NewBasicCluster(clusterName, hosts),
 		},
@@ -301,7 +300,7 @@ type WeightHost struct {
 }
 
 // mesh as a proxy , client and servre have same protocol
-func CreateXWeightProxyMesh(addr string, proto types.ProtocolName, clusters []*WeightCluster) *config.MOSNConfig {
+func CreateXWeightProxyMesh(addr string, proto types.ProtocolName, clusters []*WeightCluster) *v2.MOSNConfig {
 	var clusterConfigs []v2.Cluster
 	var weightClusters []v2.WeightedCluster
 	for _, c := range clusters {
@@ -315,7 +314,7 @@ func CreateXWeightProxyMesh(addr string, proto types.ProtocolName, clusters []*W
 			},
 		})
 	}
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: clusterConfigs,
 	}
 	routers := []v2.Router{

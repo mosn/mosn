@@ -9,13 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-
 	"golang.org/x/net/http2"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
 )
@@ -25,8 +23,8 @@ import (
 // TODO: rpc status have something wrong
 
 // Direct Response ignore upstream cluster information and route rule config
-func CreateDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.DirectResponseAction) *config.MOSNConfig {
-	cmconfig := config.ClusterManagerConfig{
+func CreateDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.DirectResponseAction) *v2.MOSNConfig {
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			v2.Cluster{
 				Name: "cluster",
@@ -45,8 +43,8 @@ func CreateDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.D
 }
 
 // Direct Response ignore upstream cluster information and route rule config
-func CreateXDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.DirectResponseAction) *config.MOSNConfig {
-	cmconfig := config.ClusterManagerConfig{
+func CreateXDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.DirectResponseAction) *v2.MOSNConfig {
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			v2.Cluster{
 				Name: "cluster",
@@ -255,7 +253,6 @@ func (c *XDirectResponseCase) RunCase(n int, interval time.Duration) {
 	}
 	c.C <- nil
 }
-
 
 func TestDirectResponse(t *testing.T) {
 	testCases := []*DirectResponseCase{

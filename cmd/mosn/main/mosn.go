@@ -40,6 +40,7 @@ import (
 	_ "mosn.io/mosn/pkg/protocol/http2/conv"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	_ "mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	_ "mosn.io/mosn/pkg/router"

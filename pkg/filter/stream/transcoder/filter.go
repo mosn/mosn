@@ -21,7 +21,8 @@ import (
 	"context"
 	"net/http"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -35,8 +36,8 @@ type transcodeFilter struct {
 
 	needTranscode bool
 
-	receiveHandler types.StreamReceiverFilterHandler
-	sendHandler    types.StreamSenderFilterHandler
+	receiveHandler api.StreamReceiverFilterHandler
+	sendHandler    api.StreamSenderFilterHandler
 }
 
 func newTranscodeFilter(ctx context.Context, cfg *config) *transcodeFilter {
@@ -72,14 +73,14 @@ func (f *transcodeFilter) readPerRouteConfig(ctx context.Context, cfg map[string
 	}
 }
 
-func (f *transcodeFilter) SetReceiveFilterHandler(handler types.StreamReceiverFilterHandler) {
+func (f *transcodeFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	f.receiveHandler = handler
 }
 
-func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	// check accept
 	if !f.transcoder.Accept(ctx, headers, buf, trailers) {
-		return types.StreamFilterContinue
+		return api.StreamFilterContinue
 	}
 
 	// for response check
@@ -98,27 +99,27 @@ func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap
 	outHeaders, outBuf, outTrailers, err := f.transcoder.TranscodingRequest(ctx, headers, buf, trailers)
 	if err != nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcode request failed: %v", err)
-		f.receiveHandler.RequestInfo().SetResponseFlag(types.RequestTranscodeFail)
+		f.receiveHandler.RequestInfo().SetResponseFlag(RequestTranscodeFail)
 		f.receiveHandler.SendHijackReply(http.StatusBadRequest, headers)
-		return types.StreamFilterStop
+		return api.StreamFilterStop
 	}
 	f.receiveHandler.SetRequestHeaders(outHeaders)
 	f.receiveHandler.SetRequestData(outBuf)
 	f.receiveHandler.SetRequestTrailers(outTrailers)
-	return types.StreamFilterContinue
+	return api.StreamFilterContinue
 }
 
 func (f *transcodeFilter) OnDestroy() {}
 
 // SetSenderFilterHandler sets the StreamSenderFilterHandler
-func (f *transcodeFilter) SetSenderFilterHandler(handler types.StreamSenderFilterHandler) {
+func (f *transcodeFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
 	f.sendHandler = handler
 }
 
 // Append encodes request/response
-func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) types.StreamFilterStatus {
+func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if !f.needTranscode {
-		return types.StreamFilterContinue
+		return api.StreamFilterContinue
 	}
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -129,12 +130,12 @@ func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, b
 	outHeaders, outBuf, outTrailers, err := f.transcoder.TranscodingResponse(ctx, headers, buf, trailers)
 	if err != nil {
 		log.Proxy.Errorf(ctx, "[stream filter][transcoder] transcode response failed: %v", err)
-		f.receiveHandler.RequestInfo().SetResponseFlag(types.RequestTranscodeFail)
+		f.receiveHandler.RequestInfo().SetResponseFlag(RequestTranscodeFail)
 		f.receiveHandler.SendHijackReply(http.StatusInternalServerError, headers)
-		return types.StreamFilterStop
+		return api.StreamFilterStop
 	}
 	f.sendHandler.SetResponseHeaders(outHeaders)
 	f.sendHandler.SetResponseData(outBuf)
 	f.sendHandler.SetResponseTrailers(outTrailers)
-	return types.StreamFilterContinue
+	return api.StreamFilterContinue
 }

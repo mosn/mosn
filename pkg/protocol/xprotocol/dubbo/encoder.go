@@ -21,8 +21,9 @@ import (
 	"context"
 	"encoding/binary"
 
-	"mosn.io/mosn/pkg/buffer"
+	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func encodeRequest(ctx context.Context, request *Frame) (types.IoBuffer, error) {
@@ -35,7 +36,7 @@ func encodeResponse(ctx context.Context, response *Frame) (types.IoBuffer, error
 func encodeFrame(ctx context.Context, frame *Frame) (types.IoBuffer, error) {
 	// alloc encode buffer
 	frameLen := int(HeaderLen + frame.DataLen)
-	buf := *buffer.GetBytesByContext(ctx, frameLen)
+	buf := *mbuffer.GetBytesByContext(ctx, frameLen)
 	// encode header
 	buf[0] = frame.Magic[0]
 	buf[1] = frame.Magic[1]

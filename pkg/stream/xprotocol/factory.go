@@ -20,6 +20,7 @@ package xprotocol
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
@@ -32,11 +33,11 @@ func init() {
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
-	clientCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
+	clientCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newStreamConnection(context, connection, clientCallbacks, nil)
 }
 
-func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
+func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newStreamConnection(context, connection, nil, serverCallbacks)
 }

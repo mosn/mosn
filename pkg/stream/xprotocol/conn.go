@@ -19,14 +19,12 @@ package xprotocol
 
 import (
 	"context"
+	"strings"
 	"sync"
-
 	"sync/atomic"
-
 	"time"
 
-	"strings"
-
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
@@ -44,7 +42,7 @@ import (
 // types.ServerStreamConnection
 type streamConn struct {
 	ctx        context.Context
-	netConn    types.Connection
+	netConn    api.Connection
 	ctxManager *stream.ContextManager
 
 	engine   *xprotocol.XEngine // xprotocol fields
@@ -58,7 +56,7 @@ type streamConn struct {
 	clientCallbacks types.StreamConnectionEventListener
 }
 
-func newStreamConnection(ctx context.Context, conn types.Connection, clientCallbacks types.StreamConnectionEventListener,
+func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 
 	sc := &streamConn{
@@ -109,6 +107,20 @@ func newStreamConnection(ctx context.Context, conn types.Connection, clientCallb
 	return sc
 }
 
+func (sc *streamConn) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			reason = types.StreamConnectionTermination
+		}
+		return reason, false
+
+	}
+
+	return reason, true
+}
+
 // types.StreamConnection
 func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	// match if multi protocol used
@@ -120,7 +132,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 			if proto == nil {
 				log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] negotiated protocol not exists: %s", name)
 				// close conn
-				sc.netConn.Close(types.NoFlush, types.OnReadErrClose)
+				sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
 				return
 			}
 		}
@@ -138,7 +150,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 			}
 			log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] engine match failed for magic :%v", buf.Bytes()[:size])
 			// close conn
-			sc.netConn.Close(types.NoFlush, types.OnReadErrClose)
+			sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
 			return
 		case types.MatchAgain:
 			// do nothing and return, wait for more data
@@ -245,7 +257,7 @@ func (sc *streamConn) handleError(ctx context.Context, frame interface{}, err er
 	//protocol decode error, close the connection directly
 	addr := sc.netConn.RemoteAddr()
 	log.Proxy.Alertf(sc.ctx, types.ErrorKeyCodec, "error occurs while proceeding codec logic: %v. close connection, remote addr: %v", err, addr)
-	sc.netConn.Close(types.NoFlush, types.LocalClose)
+	sc.netConn.Close(api.NoFlush, api.LocalClose)
 }
 
 func (sc *streamConn) handleFrame(ctx context.Context, frame xprotocol.XFrame) {

@@ -4,10 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/test/util"
 )
@@ -19,6 +18,7 @@ import (
 func TestUpdateStreamFilters(t *testing.T) {
 	server.ResetAdapter()
 	// start a server
+
 	appAddr := "127.0.0.1:8080"
 	server := util.NewRPCServer(t, appAddr, bolt.ProtocolName)
 	server.GoServe()
@@ -27,7 +27,7 @@ func TestUpdateStreamFilters(t *testing.T) {
 	clientMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateXProtocolProxyMesh(clientMeshAddr, []string{appAddr}, bolt.ProtocolName)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
+	mesh.Start()
 	defer mesh.Close()
 	time.Sleep(5 * time.Second)
 	// send a request to mosn, create connection between mosns
@@ -69,13 +69,12 @@ func TestUpdateStreamFilters(t *testing.T) {
 }
 
 // call mosn LDS API
-func updateListener(cfg *config.MOSNConfig, faultstr string) error {
+func updateListener(cfg *v2.MOSNConfig, faultstr string) error {
 	// reset stream filters
 	cfg.Servers[0].Listeners[0].StreamFilters = cfg.Servers[0].Listeners[0].StreamFilters[:0]
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	// get config
 	lc := cfg.Servers[0].Listeners[0]
-	streamFilterFactories := config.GetStreamFilters(lc.StreamFilters)
 	// nil network filters, nothing changed
-	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, nil, streamFilterFactories)
+	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, false, true)
 }

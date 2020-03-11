@@ -15,19 +15,18 @@ import (
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/basef"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	hessian "github.com/apache/dubbo-go-hessian2"
-
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/mtls"
+	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
-
-	v2 "mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/buffer"
-	"mosn.io/mosn/pkg/mtls"
-	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type RPCClient struct {
@@ -99,7 +98,7 @@ func (c *RPCClient) Stats() bool {
 
 func (c *RPCClient) Close() {
 	if c.conn != nil {
-		c.conn.Close(types.NoFlush, types.LocalClose)
+		c.conn.Close(api.NoFlush, api.LocalClose)
 		c.streamID = 0 // reset connection stream id
 	}
 }
