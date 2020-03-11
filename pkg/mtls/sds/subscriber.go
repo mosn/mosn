@@ -39,6 +39,10 @@ type SdsStreamConfig struct {
 	statPrefix string
 }
 
+var (
+	SubscriberRetryPeriod = 3 * time.Second
+)
+
 func NewSdsSubscriber(provider types.SecretProvider, sdsConfig *core.ConfigSource, serviceNode string, serviceCluster string) *SdsSubscriber {
 	return &SdsSubscriber{
 		provider:           provider,
@@ -52,23 +56,30 @@ func NewSdsSubscriber(provider types.SecretProvider, sdsConfig *core.ConfigSourc
 	}
 }
 
-func (subscribe *SdsSubscriber) Start() error {
-	sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
-	if err != nil {
-		return err
+func (subscribe *SdsSubscriber) Start() {
+	for {
+		sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
+		if err != nil {
+			log.DefaultLogger.Errorf("[sds][subscribe] convert sds config fail %v", err)
+			time.Sleep(SubscriberRetryPeriod)
+			continue
+		}
+		streamClient, err := subscribe.getSdsStreamClient(sdsStreamConfig)
+		if err != nil {
+			log.DefaultLogger.Errorf("[sds][subscribe] get sds stream client fail %v", err)
+			time.Sleep(SubscriberRetryPeriod)
+			continue
+		}
+		log.DefaultLogger.Infof("[sds][subscribe] init sds stream client success")
+		subscribe.sdsStreamClient = streamClient
+		break
 	}
-	streamClient, err := subscribe.getSdsStreamClient(sdsStreamConfig)
-	if err != nil {
-		return err
-	}
-	subscribe.sdsStreamClient = streamClient
 	utils.GoWithRecover(func() {
 		subscribe.sendRequestLoop(subscribe.sdsStreamClient)
 	}, nil)
 	utils.GoWithRecover(func() {
 		subscribe.receiveResponseLoop(subscribe.sdsStreamClient)
 	}, nil)
-	return nil
 }
 
 func (subscribe *SdsSubscriber) Stop() {
@@ -200,14 +211,19 @@ func (subscribe *SdsSubscriber) reconnect() {
 		subscribe.sdsStreamClient.conn.Close()
 		subscribe.sdsStreamClient.conn = nil
 	}
-	sdsStreamConfig := subscribe.sdsStreamClient.sdsStreamConfig
 	subscribe.sdsStreamClient = nil
 	log.DefaultLogger.Infof("[xds] [sds subscriber] stream client closed")
 	for {
+		sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
+		if err != nil {
+			log.DefaultLogger.Errorf("[xds][sds subscriber] convert sds config fail %v", err)
+			time.Sleep(SubscriberRetryPeriod)
+			continue
+		}
 		sdsStreamClient, err := subscribe.getSdsStreamClient(sdsStreamConfig)
 		if err != nil {
 			log.DefaultLogger.Infof("[xds] [sds subscriber] stream client reconnect failed, retry after 1s")
-			time.Sleep(time.Second)
+			time.Sleep(SubscriberRetryPeriod)
 			continue
 		}
 		subscribe.sdsStreamClient = sdsStreamClient
