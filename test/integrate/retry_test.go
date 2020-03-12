@@ -134,9 +134,6 @@ func TestRetry(t *testing.T) {
 		/*
 			NewRetryCase(t, protocol.HTTP2, protocol.HTTP1, true),
 			NewRetryCase(t, protocol.HTTP2, protocol.HTTP2, true),
-			NewRetryCase(t, protocol.SofaRPC, protocol.HTTP1, true),
-			NewRetryCase(t, protocol.SofaRPC, protocol.HTTP2, true),
-			NewRetryCase(t, protocol.SofaRPC, protocol.SofaRPC, true),
 		*/
 	}
 	for i, tc := range testCases {

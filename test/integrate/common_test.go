@@ -30,11 +30,6 @@ func TestCommon(t *testing.T) {
 		//Protocol-auto
 		NewTestCase(t, protocol.HTTP2, protocol.Auto, util.NewUpstreamHTTP2(t, appaddr, nil)),
 		NewTestCase(t, protocol.HTTP1, protocol.Auto, util.NewHTTPServer(t, nil)),
-
-		//TODO:
-		//NewTestCase(T, protocol.SofaRPC, protocol.HTTP1, util.NewRPCServer(T, appaddr, util.Bolt2)),
-		//NewTestCase(T, protocol.SofaRPC, protocol.HTTP2, util.NewRPCServer(T, appaddr, util.Bolt2)),
-		//NewTestCase(T, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(T, appaddr, util.Bolt2)),
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
@@ -63,12 +58,6 @@ func TestTLS(t *testing.T) {
 		//Protocol-auto
 		NewTestCase(t, protocol.HTTP2, protocol.Auto, util.NewUpstreamHTTP2(t, appaddr, nil)),
 		NewTestCase(t, protocol.HTTP1, protocol.Auto, util.NewHTTPServer(t, nil)),
-
-		//TODO:
-		//NewTestCase(T, protocol.SofaRPC, protocol.HTTP1, util.NewRPCServer(T, appaddr, util.Bolt2)),
-		//NewTestCase(T, protocol.SofaRPC, protocol.HTTP2, util.NewRPCServer(T, appaddr, util.Bolt2)),
-		//NewTestCase(T, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(T, appaddr, util.Bolt2)),
-		//NewTestCase(T, protocol.Xprotocol, protocol.Xprotocol, util.NewRPCServer(T, appaddr, util.Xprotocol)),
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
@@ -115,7 +104,9 @@ func TestXprotocolTLS(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
 	testCases := []*XTestCase{
 		NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
-		//TODO: boltv2, dubbo, tars
+		NewXTestCase(t, dubbo.ProtocolName, util.NewRPCServer(t, appaddr, dubbo.ProtocolName)),
+		NewXTestCase(t, tars.ProtocolName, util.NewRPCServer(t, appaddr, tars.ProtocolName)),
+		//TODO: boltv2
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
