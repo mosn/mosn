@@ -4,15 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mosn.io/mosn/pkg/protocol"
 	"net"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type Server struct {

@@ -41,8 +41,11 @@
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "SofaRpc",
-									"upstream_protocol": "SofaRpc",
+									"downstream_protocol": "X",
+									"upstream_protocol": "X",
+									"extend_config": {
+										"sub_protocol": "bolt"
+									},
 									"router_config_name":"server_router"
 								}
 							}
@@ -65,8 +68,11 @@
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "SofaRpc",
-									"upstream_protocol": "SofaRpc",
+									"downstream_protocol": "X",
+									"upstream_protocol": "X",
+									"extend_config": {
+										"sub_protocol": "bolt"
+									},
 									"router_config_name":"client_router"
 								}
 							}

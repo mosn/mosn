@@ -1,35 +1,60 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
-type SofaRPCServer struct {
-	Listener net.Listener
+type Server struct {
+	Listener     net.Listener
+	protocolName types.ProtocolName
+	protocol     xprotocol.XProtocol
 }
 
-func (s *SofaRPCServer) Run() {
+func NewServer(addr string, proto types.ProtocolName) *Server {
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	protocol := xprotocol.GetProtocol(proto)
+	if protocol == nil {
+		fmt.Println("unknown protocol:" + proto)
+		return nil
+	}
+
+	return &Server{
+		Listener:     ln,
+		protocolName: proto,
+		protocol:     protocol,
+	}
+}
+
+func (s *Server) Run() {
 	for {
 		conn, err := s.Listener.Accept()
 		if err != nil {
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
-				fmt.Printf("[RPC Server] Accept temporary error: %v\n", ne)
+				fmt.Printf("[Xprotocol RPC Server] Accept temporary error: %v\n", ne)
 				continue
 			}
 			return //not temporary error, exit
 		}
-		fmt.Println("[RPC Server] get connection :", conn.RemoteAddr().String())
+		fmt.Println("[Xprotocol RPC Server] get connection :", conn.RemoteAddr().String())
 		go s.Serve(conn)
 	}
 }
 
-func (s *SofaRPCServer) Serve(conn net.Conn) {
+func (s *Server) Serve(conn net.Conn) {
 	iobuf := buffer.NewIoBuffer(102400)
 	for {
 		now := time.Now()
@@ -38,7 +63,7 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 		bytesRead, err := conn.Read(buf)
 		if err != nil {
 			if err, ok := err.(net.Error); ok && err.Timeout() {
-				fmt.Printf("[RPC Server] Connect read error: %v\n", err)
+				fmt.Printf("[Xprotocol RPC Server] Connect read error: %v\n", err)
 				continue
 			}
 
@@ -46,47 +71,49 @@ func (s *SofaRPCServer) Serve(conn net.Conn) {
 		if bytesRead > 0 {
 			iobuf.Write(buf[:bytesRead])
 			for iobuf.Len() > 1 {
-				cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
+				cmd, _ := s.protocol.Decode(nil, iobuf)
 				if cmd == nil {
 					break
 				}
-				if req, ok := cmd.(*sofarpc.BoltRequest); ok {
-					resp := buildBoltV1Response(req)
-					iobufresp, err := codec.BoltCodec.Encode(nil, resp)
-					if err != nil {
-						fmt.Printf("[RPC Server] build response error: %v\n", err)
-					} else {
-						fmt.Printf("[RPC Server] reponse connection: %s, requestId: %d\n", conn.RemoteAddr().String(), resp.RequestID())
-						respdata := iobufresp.Bytes()
-						conn.Write(respdata)
-					}
+
+				// handle request
+				resp, err := s.HandleRequest(conn, cmd)
+				if err != nil {
+					fmt.Printf("[Xprotocol RPC Server] handle request error: %v\n", err)
+					return
 				}
+				respData, err := s.protocol.Encode(context.Background(), resp)
+				if err != nil {
+					fmt.Printf("[Xprotocol RPC Server] encode response error: %v\n", err)
+					return
+				}
+				conn.Write(respData.Bytes())
 			}
 		}
 	}
 }
 
-func buildBoltV1Response(req *sofarpc.BoltRequest) *sofarpc.BoltResponse {
-	return &sofarpc.BoltResponse{
-		Protocol:       req.Protocol,
-		CmdType:        sofarpc.RESPONSE,
-		CmdCode:        sofarpc.RPC_RESPONSE,
-		Version:        req.Version,
-		ReqID:          req.ReqID,
-		Codec:          req.Codec,
-		ResponseStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
-		HeaderLen:      req.HeaderLen,
-		HeaderMap:      req.HeaderMap,
+func (s *Server) HandleRequest(conn net.Conn, cmd interface{}) (xprotocol.XRespFrame, error) {
+	switch s.protocolName {
+	case bolt.ProtocolName:
+		if req, ok := cmd.(*bolt.Request); ok {
+			switch req.CmdCode {
+			case bolt.CmdCodeHeartbeat:
+				hbAck := s.protocol.Reply(req.GetRequestId())
+				fmt.Printf("[Xprotocol RPC Server] reponse bolt heartbeat, connection: %s, requestId: %d\n", conn.RemoteAddr().String(), req.GetRequestId())
+				return hbAck, nil
+			case bolt.CmdCodeRpcRequest:
+				resp := bolt.NewRpcResponse(req.RequestId, bolt.ResponseStatusSuccess, nil, nil)
+				fmt.Printf("[Xprotocol RPC Server] reponse bolt request, connection: %s, requestId: %d\n", conn.RemoteAddr().String(), req.GetRequestId())
+				return resp, nil
+			}
+		}
 	}
-
+	return nil, errors.New("unknown protocol:" + string(s.protocolName))
 }
 
 func main() {
-	ln, err := net.Listen("tcp", "127.0.0.1:8080")
-	if err != nil {
-		fmt.Println(err)
-		return
+	if server := NewServer("127.0.0.1:8080", bolt.ProtocolName); server != nil {
+		server.Run()
 	}
-	server := &SofaRPCServer{ln}
-	server.Run()
 }
