@@ -73,13 +73,13 @@ func messageToAny(msg proto.Message) *types.Any {
 }
 
 // mmessageToStruct converts from proto message to proto Struct
-func messageToStruct(msg proto.Message) *types.Struct {
-	s, err := xdsutil.MessageToStruct(msg)
-	if err != nil {
-		return nil
-	}
-	return s
-}
+//func messageToStruct(msg proto.Message) *types.Struct {
+//	s, err := xdsutil.MessageToStruct(msg)
+//	if err != nil {
+//		return nil
+//	}
+//	return s
+//}
 
 // todo fill the unit test
 func Test_convertEndpointsConfig(t *testing.T) {
@@ -169,7 +169,7 @@ func Test_convertListenerConfig(t *testing.T) {
 	}
 	// TODO use Any
 	//accessLogFilterConfig := messageToAny(&xdsaccesslog.FileAccessLog{
-	accessLogFilterConfig := messageToStruct(&xdsaccesslog.FileAccessLog{
+	accessLogFilterConfig := messageToStruct(t, &xdsaccesslog.FileAccessLog{
 		Path: "/dev/stdout",
 	})
 
@@ -366,7 +366,7 @@ func Test_convertListenerConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// TODO use Any
 			//conf := messageToAny(tt.args.filterConfig)
-			conf := messageToStruct(tt.args.filterConfig)
+			conf := messageToStruct(t, tt.args.filterConfig)
 			listenerConfig := &xdsapi.Listener{
 				Name:    "0.0.0.0_80",
 				Address: tt.args.address,

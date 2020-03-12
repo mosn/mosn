@@ -73,7 +73,7 @@ func TestLDSWithFilter(t *testing.T) {
 	addrStr := "127.0.0.1:8079"
 	name := "listener_filter"
 	listenerConfig := baseListenerConfig(addrStr, name)
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, true, true); err != nil {
+	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, true, true, true); err != nil {
 		t.Fatalf("add a new listener failed %v", err)
 	}
 	{
@@ -292,7 +292,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	name := "listener3"
 	// bas listener config have no idle timeout config, set the default value
 	listenerConfig := baseListenerConfig(addrStr, name)
-  
+
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig, true, true, true); err != nil {
 		t.Fatalf("add a new listener failed %v", err)
 	}
@@ -334,7 +334,7 @@ func TestIdleTimeoutAndUpdate(t *testing.T) {
 	noIdle.ConnectionIdleTimeout = &api.DurationConfig{
 		Duration: 0,
 	}
-  
+
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, noIdle, false, false, false); err != nil {
 		t.Fatalf("update listener failed, %v", err)
 	}
@@ -415,7 +415,7 @@ func TestFindListenerByName(t *testing.T) {
 	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfg, false, false, false); err != nil {
 		t.Fatalf("update listener failed, %v", err)
 	}
-  
+
 	if ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name); ln == nil {
 		t.Fatal("expected find listener, but not")
 	}
