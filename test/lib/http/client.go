@@ -17,7 +17,6 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/http" // register http1
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 )
 
 type receiver struct {
@@ -26,7 +25,7 @@ type receiver struct {
 	ch    chan<- *Response
 }
 
-func (r *receiver) OnReceive(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, trailers api.HeaderMap) {
+func (r *receiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	cmd := headers.(mosnhttp.ResponseHeader)
 	r.Data.Header = cmd
 	if data != nil {
@@ -36,7 +35,7 @@ func (r *receiver) OnReceive(ctx context.Context, headers api.HeaderMap, data bu
 	r.ch <- r.Data
 }
 
-func (r *receiver) OnDecodeError(context context.Context, err error, headers api.HeaderMap) {
+func (r *receiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 	header := &fasthttp.ResponseHeader{}
 	header.SetStatusCode(http.StatusInternalServerError)
 	header.Set("error_message", err.Error())

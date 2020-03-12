@@ -19,14 +19,13 @@ package http2
 
 import (
 	"mosn.io/mosn/pkg/module/http2"
-	"mosn.io/mosn/pkg/protocol/rpc"
 	"mosn.io/mosn/pkg/types"
 )
 
-func EngineServer(sc *http2.MServerConn) types.ProtocolEngine {
-	return rpc.NewEngine(&serverCodec{sc: sc}, &serverCodec{sc: sc})
+func ServerProto(sc *http2.MServerConn) types.Protocol {
+	return &serverCodec{sc: sc}
 }
 
-func EngineClient(cc *http2.MClientConn) types.ProtocolEngine {
-	return rpc.NewEngine(&clientCodec{cc: cc}, &clientCodec{cc: cc})
+func ClientProto(cc *http2.MClientConn) types.Protocol {
+	return &clientCodec{cc: cc}
 }

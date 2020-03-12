@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
-	_ "mosn.io/mosn/pkg/stream/sofarpc"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/test/integrate"
 	"mosn.io/mosn/test/util"
 )
@@ -76,12 +76,14 @@ func (c *faultInjectCase) StartProxy() {
 	faultstr := MakeFaultStr(c.abortstatus, c.delay)
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	mesh := mosn.NewMosn(cfg)
-	mesh.Start()
-	c.DeferFinishCase(func() {
+	go mesh.Start()
+	go func() {
+		<-c.Finish
 		c.AppServer.Close()
 		mesh.Close()
-	})
-	time.Sleep(1 * time.Second) //wait server and mesh start
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
 func (c *faultInjectCase) RunCase(n int, interval int) {
@@ -151,7 +153,96 @@ func (c *faultInjectCase) RunCase(n int, interval int) {
 			c.T.Logf("HTTP2 client receive data: %s\n", string(b))
 			return nil
 		}
-	case protocol.SofaRPC:
+	}
+	for i := 0; i < n; i++ {
+		if err := call(); err != nil {
+			c.C <- err
+			return
+		}
+		time.Sleep(time.Duration(interval) * time.Millisecond)
+	}
+	c.C <- nil
+}
+
+func TestFaultInject(t *testing.T) {
+	appaddr := "127.0.0.1:8080"
+	testCases := []*faultInjectCase{
+		// delay
+		&faultInjectCase{
+			TestCase: integrate.NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
+			delay:    time.Second,
+		},
+		&faultInjectCase{
+			TestCase: integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			delay:    time.Second,
+		},
+		// abort
+		&faultInjectCase{
+			TestCase:    integrate.NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
+			abortstatus: 500,
+		},
+		&faultInjectCase{
+			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			abortstatus: 500,
+		},
+		// delay and abort
+		&faultInjectCase{
+			TestCase:    integrate.NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
+			delay:       time.Second,
+			abortstatus: 500,
+		},
+		&faultInjectCase{
+			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2(t, appaddr, nil)),
+			delay:       time.Second,
+			abortstatus: 500,
+		},
+	}
+	for i, tc := range testCases {
+		t.Logf("start case #%d\n", i)
+		tc.StartProxy()
+		go tc.RunCase(1, 0)
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, err)
+			}
+		case <-time.After(15 * time.Second):
+			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
+		}
+		tc.FinishCase()
+	}
+
+}
+
+type XFaultInjectCase struct {
+	*integrate.XTestCase
+	abortstatus int
+	delay       time.Duration
+}
+
+func (c *XFaultInjectCase) StartProxy() {
+	c.AppServer.GoServe()
+	appAddr := c.AppServer.Addr()
+	clientMeshAddr := util.CurrentMeshAddr()
+	c.ClientMeshAddr = clientMeshAddr
+	cfg := util.CreateXProtocolProxyMesh(clientMeshAddr, []string{appAddr}, c.SubProtocol)
+	faultstr := MakeFaultStr(c.abortstatus, c.delay)
+	AddFaultInject(cfg, "proxyListener", faultstr)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Finish
+		c.AppServer.Close()
+		mesh.Close()
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+func (c *XFaultInjectCase) RunCase(n int, interval int) {
+	var call func() error
+	switch c.SubProtocol {
+	case bolt.ProtocolName:
 		server, ok := c.AppServer.(*util.RPCServer)
 		if !ok {
 			c.C <- fmt.Errorf("need a sofa rpc server")
@@ -160,7 +251,7 @@ func (c *faultInjectCase) RunCase(n int, interval int) {
 		client := server.Client
 		// TODO: rpc abort status have something wrong, fix it later
 		if c.abortstatus != 0 {
-			client.ExpectedStatus = sofarpc.RESPONSE_STATUS_UNKNOWN
+			client.ExpectedStatus = int16(bolt.ResponseStatusUnknown)
 		}
 		if err := client.Connect(c.ClientMeshAddr); err != nil {
 			c.C <- err
@@ -192,48 +283,22 @@ func (c *faultInjectCase) RunCase(n int, interval int) {
 	c.C <- nil
 }
 
-func TestFaultInject(t *testing.T) {
-
-	testCases := []*faultInjectCase{
+func TestXFaultInject(t *testing.T) {
+	appaddr := "127.0.0.1:8080"
+	testCases := []*XFaultInjectCase{
 		// delay
-		&faultInjectCase{
-			TestCase: integrate.NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-			delay:    time.Second,
-		},
-		&faultInjectCase{
-			TestCase: integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
-			delay:    time.Second,
-		},
-		&faultInjectCase{
-			TestCase: integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
-			delay:    time.Second,
+		&XFaultInjectCase{
+			XTestCase: integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
+			delay:     time.Second,
 		},
 		// abort
-		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-			abortstatus: 500,
-		},
-		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
-			abortstatus: 500,
-		},
-		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
+		&XFaultInjectCase{
+			XTestCase:   integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
 			abortstatus: 500,
 		},
 		// delay and abort
-		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.HTTP1, protocol.HTTP1, util.NewHTTPServer(t, nil)),
-			delay:       time.Second,
-			abortstatus: 500,
-		},
-		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.HTTP2, protocol.HTTP2, util.NewUpstreamHTTP2WithAnyPort(t, nil)),
-			delay:       time.Second,
-			abortstatus: 500,
-		},
-		&faultInjectCase{
-			TestCase:    integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServerWithAnyPort(t, util.Bolt1)),
+		&XFaultInjectCase{
+			XTestCase:   integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
 			delay:       time.Second,
 			abortstatus: 500,
 		},

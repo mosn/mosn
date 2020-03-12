@@ -497,8 +497,8 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 }
 
 // defaultIdleTimeout represents the idle timeout if listener have no such configuration
-// we declared the defaultIdleTimeout reference to the network.DefaultIdleTimeout
-var defaultIdleTimeout = network.DefaultIdleTimeout
+// we declared the defaultIdleTimeout reference to the types.DefaultIdleTimeout
+var defaultIdleTimeout = types.DefaultIdleTimeout
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)

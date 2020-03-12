@@ -29,7 +29,7 @@ type holder struct {
 }
 
 type defaultDriver struct {
-	tracers map[types.Protocol]*holder
+	tracers map[types.ProtocolName]*holder
 }
 
 func (d *defaultDriver) Init(config map[string]interface{}) error {
@@ -43,13 +43,13 @@ func (d *defaultDriver) Init(config map[string]interface{}) error {
 	return nil
 }
 
-func (d *defaultDriver) Register(proto types.Protocol, builder types.TracerBuilder) {
+func (d *defaultDriver) Register(proto types.ProtocolName, builder types.TracerBuilder) {
 	d.tracers[proto] = &holder{
 		TracerBuilder: builder,
 	}
 }
 
-func (d *defaultDriver) Get(proto types.Protocol) types.Tracer {
+func (d *defaultDriver) Get(proto types.ProtocolName) types.Tracer {
 	if holder, ok := d.tracers[proto]; ok {
 		return holder.Tracer
 	}
@@ -58,6 +58,6 @@ func (d *defaultDriver) Get(proto types.Protocol) types.Tracer {
 
 func NewDefaultDriverImpl() types.Driver {
 	return &defaultDriver{
-		tracers: make(map[types.Protocol]*holder),
+		tracers: make(map[types.ProtocolName]*holder),
 	}
 }

@@ -38,7 +38,6 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
-	_ "mosn.io/mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/xds/conv"

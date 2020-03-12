@@ -77,7 +77,7 @@ func RegisterConv(src, dst api.Protocol, f ProtocolConv) {
 }
 
 // RegisterCommonConv register concrete protocol convert function for specified protocol and common representation.
-// e.g. SofaRpcCmd <-> CommonHeader, which both implements the api.HeaderMap interface
+// e.g. SofaRpcCmd <-> CommonHeader, which both implements the types.HeaderMap interface
 func RegisterCommonConv(protocol api.Protocol, from, to ProtocolConv) {
 	RegisterConv(common, protocol, from)
 	RegisterConv(protocol, common, to)

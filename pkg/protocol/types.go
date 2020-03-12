@@ -21,7 +21,7 @@ import (
 	"mosn.io/api"
 )
 
-// Protocol type definition
+// ProtocolName type definition
 const (
 	Auto      api.Protocol = "Auto"
 	SofaRPC   api.Protocol = "SofaRpc"

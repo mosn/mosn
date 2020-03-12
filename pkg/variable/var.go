@@ -17,6 +17,8 @@
 
 package variable
 
+import "context"
+
 // variable.Variable
 type BasicVariable struct {
 	getter GetterFunc
@@ -85,4 +87,11 @@ func NewIndexedVariable(name string, data interface{}, getter GetterFunc, setter
 			flags:  flags,
 		},
 	}
+}
+
+// BasicSetter used for variable value setting only, and would not affect any real data structure, like headers.
+func BasicSetter(ctx context.Context, variableValue *IndexedValue, value string) error {
+	variableValue.data = value
+	variableValue.Valid = true
+	return nil
 }

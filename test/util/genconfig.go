@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/json"
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
@@ -12,21 +11,24 @@ import (
 // can set
 var (
 	MeshLogPath  = "stdout"
-	MeshLogLevel = "WARN"
+	MeshLogLevel = "INFO"
 	StartRetry   = false
 )
 
 // Create Mesh Config
-func NewProxyFilter(routerfgname string, downstream, upstream types.Protocol) *v2.Proxy {
+func NewProxyFilter(routerfgname string, downstream, upstream types.ProtocolName) *v2.Proxy {
 	return &v2.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
 		RouterConfigName:   routerfgname,
 	}
 }
+func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.FilterChain {
+	chains := make(map[string]interface{})
+	b, _ := json.Marshal(proxy)
+	json.Unmarshal(b, &chains)
 
-func MakeRouterConfig(cfgName string, routers []v2.Router) *v2.RouterConfiguration {
-	return &v2.RouterConfiguration{
+	routerConfig := v2.RouterConfiguration{
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: cfgName,
 		},
@@ -38,37 +40,37 @@ func MakeRouterConfig(cfgName string, routers []v2.Router) *v2.RouterConfigurati
 			},
 		},
 	}
-}
-func makeFilterChain(proxy *v2.Proxy) v2.FilterChain {
-	chains := make(map[string]interface{})
-	b, _ := json.Marshal(proxy)
-	json.Unmarshal(b, &chains)
+
+	chainsConnMng := make(map[string]interface{})
+	b2, _ := json.Marshal(routerConfig)
+	json.Unmarshal(b2, &chainsConnMng)
 
 	return v2.FilterChain{
 		FilterChainConfig: v2.FilterChainConfig{
 			Filters: []v2.Filter{
 				v2.Filter{Type: "proxy", Config: chains},
+				{Type: "connection_manager", Config: chainsConnMng},
 			},
 		},
 	}
 }
 
-func NewFilterChain(routerConfigName string, downstream, upstream types.Protocol) v2.FilterChain {
+func NewFilterChain(routerConfigName string, downstream, upstream types.ProtocolName, routers []v2.Router) v2.FilterChain {
 	proxy := NewProxyFilter(routerConfigName, downstream, upstream)
 
-	return makeFilterChain(proxy)
+	return makeFilterChain(proxy, routers, routerConfigName)
 }
 
-func NewXProtocolFilterChain(name string, subproto string) v2.FilterChain {
+func NewXProtocolFilterChain(name string, subProtocol types.ProtocolName, routers []v2.Router) v2.FilterChain {
 	proxy := NewProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol)
 	extendConfig := &v2.XProxyExtendConfig{
-		SubProtocol: subproto,
+		SubProtocol: string(subProtocol),
 	}
 	extendMap := make(map[string]interface{})
 	data, _ := json.Marshal(extendConfig)
 	json.Unmarshal(data, &extendMap)
 	proxy.ExtendConfig = extendMap
-	return makeFilterChain(proxy)
+	return makeFilterChain(proxy, routers, name)
 }
 
 func NewBasicCluster(name string, hosts []string) v2.Cluster {
@@ -121,14 +123,13 @@ func NewListener(name, addr string, chains []v2.FilterChain) v2.Listener {
 	}
 }
 
-func NewMOSNConfig(listeners []v2.Listener, routers []*v2.RouterConfiguration, clusterManager v2.ClusterManagerConfig) *v2.MOSNConfig {
+func NewMOSNConfig(listeners []v2.Listener, clusterManager v2.ClusterManagerConfig) *v2.MOSNConfig {
 	return &v2.MOSNConfig{
 		Servers: []v2.ServerConfig{
 			v2.ServerConfig{
 				DefaultLogPath:  MeshLogPath,
 				DefaultLogLevel: MeshLogLevel,
 				Listeners:       listeners,
-				Routers:         routers,
 			},
 		},
 		ClusterManager: clusterManager,
