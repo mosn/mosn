@@ -35,6 +35,7 @@ const (
 	ErrorKeyReconfigure         = ErrorModuleMosn + ErrorSubModuleCommon + "reconfigure_failed"
 	ErrorKeyTLSFallback         = ErrorModuleMosn + ErrorSubModuleCommon + "tls_fallback"
 	ErrorKeySdsFailed           = ErrorModuleMosn + ErrorSubModuleCommon + "sds_failed"
+	ErrorKeyTLSRead             = ErrorModuleMosn + ErrorSubModuleCommon + "tls_read_error"
 	ErrorKeyAppendHeader        = ErrorModuleMosn + ErrorSubModuleProxy + "append_header_failed"
 	ErrorKeyRouteMatch          = ErrorModuleMosn + ErrorSubModuleProxy + "route_match_failed"
 	ErrorKeyClusterGet          = ErrorModuleMosn + ErrorSubModuleProxy + "cluster_get_failed"
