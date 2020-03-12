@@ -11,7 +11,6 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
-	"mosn.io/mosn/pkg/mtls/crypto/x509"
 	"net"
 	"os"
 	"reflect"
@@ -20,6 +19,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/mtls/crypto/tls/testenv"
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 )
 
 var rsaCertPEM = `-----BEGIN CERTIFICATE-----
@@ -680,6 +680,8 @@ func TestCloneNonFuncFields(t *testing.T) {
 				f.Set(reflect.ValueOf([]CurveID{CurveP256}))
 			case "Renegotiation":
 				f.Set(reflect.ValueOf(RenegotiateOnceAsClient))
+			case "CgoBabasslCtx":
+				// do nothing, only cgo openssl/babassl need this field
 			default:
 				t.Errorf("all fields must be accounted for, but saw unknown field %q", fn)
 			}
