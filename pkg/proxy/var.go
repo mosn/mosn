@@ -49,6 +49,13 @@ const (
 	respHeaderIndex         = len(respHeaderPrefix)
 )
 
+// internal communication
+const (
+	VarTryTimeout    string = "proxy_try_timeout"
+	VarGlobalTimeout string = "proxy_global_timeout"
+	VarHijackStatus  string = "proxy_hijack_status"
+)
+
 var (
 	builtinVariables = []variable.Variable{
 		variable.NewBasicVariable(VarStartTime, nil, startTimeGetter, nil, 0),
@@ -65,6 +72,10 @@ var (
 		variable.NewBasicVariable(VarDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
 		variable.NewBasicVariable(VarDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
 		variable.NewBasicVariable(VarUpstreamHost, nil, upstreamHostGetter, nil, 0),
+
+		variable.NewIndexedVariable(VarTryTimeout, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(VarGlobalTimeout, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(VarHijackStatus, nil, nil, variable.BasicSetter, 0),
 	}
 
 	prefixVariables = []variable.Variable{
