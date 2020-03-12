@@ -98,7 +98,7 @@ var keyPairTests = []struct {
 }
 
 func TestX509KeyPair(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		t.Parallel()
 		var pem []byte
 		for _, test := range keyPairTests {
@@ -115,7 +115,7 @@ func TestX509KeyPair(t *testing.T) {
 }
 
 func TestX509KeyPairErrors(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		_, err := X509KeyPair([]byte(rsaKeyPEM), []byte(rsaCertPEM))
 		if err == nil {
 			t.Fatalf("X509KeyPair didn't return an error when arguments were switched")
@@ -149,7 +149,7 @@ Zm9vZm9vZm9v
 }
 
 func TestX509MixedKeyPair(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		if _, err := X509KeyPair([]byte(rsaCertPEM), []byte(ecdsaKeyPEM)); err == nil {
 			t.Error("Load of RSA certificate succeeded with ECDSA private key")
 		}
@@ -217,7 +217,7 @@ func isTimeoutError(err error) bool {
 // (non-zero, nil) when a Close (alertCloseNotify) is sitting right
 // behind the application data in the buffer.
 func TestConnReadNonzeroAndEOF(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		// This test is racy: it assumes that after a write to a
 		// localhost TCP connection, the peer TCP connection can
 		// immediately read it. Because it's racy, we skip this test
@@ -294,7 +294,7 @@ func testConnReadNonzeroAndEOF(t *testing.T, delay time.Duration) error {
 }
 
 func TestTLSUniqueMatches(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		ln := newLocalListener(t)
 		defer ln.Close()
 
@@ -342,7 +342,7 @@ func TestTLSUniqueMatches(t *testing.T) {
 }
 
 func TestVerifyHostname(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		testenv.MustHaveExternalNetwork(t)
 
 		c, err := Dial("tcp", "www.google.com:https", nil)
@@ -397,7 +397,7 @@ func TestVerifyHostnameResumed(t *testing.T) {
 */
 
 func TestConnCloseBreakingWrite(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		ln := newLocalListener(t)
 		defer ln.Close()
 
@@ -478,7 +478,7 @@ func TestConnCloseBreakingWrite(t *testing.T) {
 }
 
 func TestConnCloseWrite(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		ln := newLocalListener(t)
 		defer ln.Close()
 
@@ -586,7 +586,7 @@ func TestConnCloseWrite(t *testing.T) {
 }
 
 func TestCloneFuncFields(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		const expectedCount = 5
 		called := 0
 
@@ -628,7 +628,7 @@ func TestCloneFuncFields(t *testing.T) {
 }
 
 func TestCloneNonFuncFields(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		var c1 Config
 		v := reflect.ValueOf(&c1).Elem()
 

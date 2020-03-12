@@ -1,7 +1,6 @@
 package integrate
 
 import (
-	"crypto/x509"
 	"testing"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	mosntls "mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/mtls/certtool"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/mtls/crypto/x509"
 	"mosn.io/mosn/pkg/protocol"
 	testutil "mosn.io/mosn/test/util"
 )

@@ -29,20 +29,20 @@ func (tag *babasslTag) IsOpen() bool {
 }
 
 // use to determine whether use babassl, default close
-var useBabasslTag = &babasslTag{
+var UseBabasslTag = &babasslTag{
 	tag: true,
 }
 
-// OpenBabasslTag is used to open useBabasslTag, when this tag is open
+// OpenBabasslTag is used to open UseBabasslTag, when this tag is open
 // tls processing will work in openssl
 func OpenBabasslTag() {
-	useBabasslTag.Open()
+	UseBabasslTag.Open()
 }
 
-// CloseBabasslTag is used to close useBabasslTag, when this tag is close
+// CloseBabasslTag is used to close UseBabasslTag, when this tag is close
 // tls processing will work in go tls
 func CloseBabasslTag() {
-	useBabasslTag.Close()
+	UseBabasslTag.Close()
 }
 
 //BabasslPrintTraceTag is use to determine whether open print trace, default close
@@ -50,13 +50,13 @@ var BabasslPrintTraceTag = &babasslTag{
 	tag: false,
 }
 
-// OpenBabasslPrintTraceTag is used to open useBabasslTag, when this tag is open
+// OpenBabasslPrintTraceTag is used to open UseBabasslTag, when this tag is open
 // some openssl debug infomation would print to stdout
 func OpenBabasslPrintTraceTag() {
 	BabasslPrintTraceTag.Open()
 }
 
-// CloseBabasslPrintTraceTag is used to close useBabasslTag
+// CloseBabasslPrintTraceTag is used to close UseBabasslTag
 func CloseBabasslPrintTraceTag() {
 	BabasslPrintTraceTag.Close()
 }

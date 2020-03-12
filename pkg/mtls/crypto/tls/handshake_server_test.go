@@ -95,7 +95,7 @@ func testClientHelloFailure(t *testing.T, serverConfig *Config, m handshakeMessa
 }
 
 func TestSimpleError(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		testClientHelloFailure(t, testConfig, &serverHelloDoneMsg{}, "unexpected handshake message")
 	}
 }
@@ -103,7 +103,7 @@ func TestSimpleError(t *testing.T) {
 var badProtocolVersions = []uint16{0x0000, 0x0005, 0x0100, 0x0105, 0x0200, 0x0205}
 
 func TestRejectBadProtocolVersion(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		for _, v := range badProtocolVersions {
 			testClientHelloFailure(t, testConfig, &clientHelloMsg{vers: v}, "unsupported, maximum protocol version")
 		}
@@ -111,7 +111,7 @@ func TestRejectBadProtocolVersion(t *testing.T) {
 }
 
 func TestNoSuiteOverlap(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		clientHello := &clientHelloMsg{
 			vers:               VersionTLS10,
 			cipherSuites:       []uint16{0xff00},
@@ -122,7 +122,7 @@ func TestNoSuiteOverlap(t *testing.T) {
 }
 
 func TestNoCompressionOverlap(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		clientHello := &clientHelloMsg{
 			vers:               VersionTLS10,
 			cipherSuites:       []uint16{TLS_RSA_WITH_RC4_128_SHA},
@@ -133,7 +133,7 @@ func TestNoCompressionOverlap(t *testing.T) {
 }
 
 func TestNoRC4ByDefault(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		clientHello := &clientHelloMsg{
 			vers:               VersionTLS10,
 			cipherSuites:       []uint16{TLS_RSA_WITH_RC4_128_SHA},
@@ -148,13 +148,13 @@ func TestNoRC4ByDefault(t *testing.T) {
 }
 
 func TestRejectSNIWithTrailingDot(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		testClientHelloFailure(t, testConfig, &clientHelloMsg{vers: VersionTLS12, serverName: "foo.com."}, "unexpected message")
 	}
 }
 
 func TestDontSelectECDSAWithRSAKey(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		// Test that, even when both sides support an ECDSA cipher suite, it
 		// won't be selected if the server's private key doesn't support it.
 		clientHello := &clientHelloMsg{
@@ -181,7 +181,7 @@ func TestDontSelectECDSAWithRSAKey(t *testing.T) {
 }
 
 func TestDontSelectRSAWithECDSAKey(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		// Test that, even when both sides support an RSA cipher suite, it
 		// won't be selected if the server's private key doesn't support it.
 		clientHello := &clientHelloMsg{
@@ -207,7 +207,7 @@ func TestDontSelectRSAWithECDSAKey(t *testing.T) {
 }
 
 func TestRenegotiationExtension(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		clientHello := &clientHelloMsg{
 			vers:                         VersionTLS12,
 			compressionMethods:           []uint8{compressionNone},
@@ -258,7 +258,7 @@ func TestRenegotiationExtension(t *testing.T) {
 }
 
 func TestTLS12OnlyCipherSuites(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		// Test that a Server doesn't select a TLS 1.2-only cipher suite when
 		// the client negotiates TLS 1.1.
 		var zeros [32]byte
@@ -307,7 +307,7 @@ func TestTLS12OnlyCipherSuites(t *testing.T) {
 }
 
 func TestAlertForwarding(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		c, s := net.Pipe()
 		go func() {
 			Client(c, testConfig).sendAlert(alertUnknownCA)
@@ -323,7 +323,7 @@ func TestAlertForwarding(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		c, s := net.Pipe()
 		go c.Close()
 
@@ -356,7 +356,7 @@ func testHandshake(clientConfig, serverConfig *Config) (serverState, clientState
 }
 
 func TestVersion(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		serverConfig := &Config{
 			Certificates: testConfig.Certificates,
 			MaxVersion:   VersionTLS11,
@@ -375,7 +375,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestCipherSuitePreference(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		serverConfig := &Config{
 			CipherSuites: []uint16{TLS_RSA_WITH_RC4_128_SHA, TLS_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA},
 			Certificates: testConfig.Certificates,
@@ -406,7 +406,7 @@ func TestCipherSuitePreference(t *testing.T) {
 }
 
 func TestSCTHandshake(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		expected := [][]byte{[]byte("certificate"), []byte("transparency")}
 		serverConfig := &Config{
 			Certificates: []Certificate{{
@@ -435,7 +435,7 @@ func TestSCTHandshake(t *testing.T) {
 }
 
 func TestCrossVersionResume(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		serverConfig := &Config{
 			CipherSuites: []uint16{TLS_RSA_WITH_AES_128_CBC_SHA},
 			Certificates: testConfig.Certificates,
@@ -725,7 +725,7 @@ func runServerTestTLS12(t *testing.T, template *serverTest) {
 }
 
 func TestHandshakeServerRSARC4(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &serverTest{
 			name:    "RSA-RC4",
 			command: []string{"openssl", "s_client", "-no_ticket", "-cipher", "RC4-SHA"},
@@ -738,7 +738,7 @@ func TestHandshakeServerRSARC4(t *testing.T) {
 }
 
 func TestHandshakeServerRSA3DES(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &serverTest{
 			name:    "RSA-3DES",
 			command: []string{"openssl", "s_client", "-no_ticket", "-cipher", "DES-CBC3-SHA"},
@@ -750,7 +750,7 @@ func TestHandshakeServerRSA3DES(t *testing.T) {
 }
 
 func TestHandshakeServerRSAAES(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &serverTest{
 			name:    "RSA-AES",
 			command: []string{"openssl", "s_client", "-no_ticket", "-cipher", "AES128-SHA"},
@@ -762,7 +762,7 @@ func TestHandshakeServerRSAAES(t *testing.T) {
 }
 
 func TestHandshakeServerAESGCM(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &serverTest{
 			name:    "RSA-AES-GCM",
 			command: []string{"openssl", "s_client", "-no_ticket", "-cipher", "ECDHE-RSA-AES128-GCM-SHA256"},
@@ -772,7 +772,7 @@ func TestHandshakeServerAESGCM(t *testing.T) {
 }
 
 func TestHandshakeServerAES256GCMSHA384(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &serverTest{
 			name:    "RSA-AES256-GCM-SHA384",
 			command: []string{"openssl", "s_client", "-no_ticket", "-cipher", "ECDHE-RSA-AES256-GCM-SHA384"},
@@ -782,7 +782,7 @@ func TestHandshakeServerAES256GCMSHA384(t *testing.T) {
 }
 
 func TestHandshakeServerECDHEECDSAAES(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.Certificates = make([]Certificate, 1)
 		config.Certificates[0].Certificate = [][]byte{testECDSACertificate}
@@ -800,7 +800,7 @@ func TestHandshakeServerECDHEECDSAAES(t *testing.T) {
 }
 
 func TestHandshakeServerX25519(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.CurvePreferences = []CurveID{X25519}
 
@@ -814,7 +814,7 @@ func TestHandshakeServerX25519(t *testing.T) {
 }
 
 func TestHandshakeServerALPN(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.NextProtos = []string{"proto1", "proto2"}
 
@@ -837,7 +837,7 @@ func TestHandshakeServerALPN(t *testing.T) {
 }
 
 func TestHandshakeServerALPNNoMatch(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.NextProtos = []string{"proto3"}
 
@@ -864,7 +864,7 @@ func TestHandshakeServerALPNNoMatch(t *testing.T) {
 // "snitest.com", which happens to match the CN of testSNICertificate. The test
 // verifies that the server correctly selects that certificate.
 func TestHandshakeServerSNI(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &serverTest{
 			name:    "SNI",
 			command: []string{"openssl", "s_client", "-no_ticket", "-cipher", "AES128-SHA", "-servername", "snitest.com"},
@@ -876,7 +876,7 @@ func TestHandshakeServerSNI(t *testing.T) {
 // TestHandshakeServerSNICertForName is similar to TestHandshakeServerSNI, but
 // tests the dynamic GetCertificate method
 func TestHandshakeServerSNIGetCertificate(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 
 		// Replace the NameToCertificate map with a GetCertificate function
@@ -900,7 +900,7 @@ func TestHandshakeServerSNIGetCertificate(t *testing.T) {
 // GetCertificate method doesn't return a cert, we fall back to what's in
 // the NameToCertificate map.
 func TestHandshakeServerSNIGetCertificateNotFound(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 
 		config.GetCertificate = func(clientHello *ClientHelloInfo) (*Certificate, error) {
@@ -918,7 +918,7 @@ func TestHandshakeServerSNIGetCertificateNotFound(t *testing.T) {
 // TestHandshakeServerSNICertForNameError tests to make sure that errors in
 // GetCertificate result in a tls alert.
 func TestHandshakeServerSNIGetCertificateError(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		const errMsg = "TestHandshakeServerSNIGetCertificateError error"
 
 		serverConfig := testConfig.Clone()
@@ -939,7 +939,7 @@ func TestHandshakeServerSNIGetCertificateError(t *testing.T) {
 // TestHandshakeServerEmptyCertificates tests that GetCertificates is called in
 // the case that Certificates is empty, even without SNI.
 func TestHandshakeServerEmptyCertificates(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		const errMsg = "TestHandshakeServerEmptyCertificates error"
 
 		serverConfig := testConfig.Clone()
@@ -971,7 +971,7 @@ func TestHandshakeServerEmptyCertificates(t *testing.T) {
 // TestCipherSuiteCertPreferance ensures that we select an RSA ciphersuite with
 // an RSA certificate and an ECDSA ciphersuite with an ECDSA certificate.
 func TestCipherSuiteCertPreferenceECDSA(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.CipherSuites = []uint16{TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA}
 		config.PreferServerCipherSuites = true
@@ -1002,7 +1002,7 @@ func TestCipherSuiteCertPreferenceECDSA(t *testing.T) {
 }
 
 func TestResumption(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		sessionFilePath := tempFile("")
 		defer os.Remove(sessionFilePath)
 
@@ -1021,7 +1021,7 @@ func TestResumption(t *testing.T) {
 }
 
 func TestResumptionDisabled(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		sessionFilePath := tempFile("")
 		defer os.Remove(sessionFilePath)
 
@@ -1049,7 +1049,7 @@ func TestResumptionDisabled(t *testing.T) {
 }
 
 func TestFallbackSCSV(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		serverConfig := Config{
 			Certificates: testConfig.Certificates,
 		}
@@ -1128,7 +1128,7 @@ FMBexFe01MNvja5oHt1vzobhfm6ySD6B5U7ixohLZNz1MLvT/2XMW/TdtWo+PtAd
 -----END EC PRIVATE KEY-----`
 
 func TestClientAuth(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		setParallel(t)
 		var certPath, keyPath, ecdsaCertPath, ecdsaKeyPath string
 
@@ -1172,7 +1172,7 @@ func TestClientAuth(t *testing.T) {
 }
 
 func TestSNIGivenOnFailure(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		const expectedServerName = "test.testing"
 
 		clientHello := &clientHelloMsg{
@@ -1302,7 +1302,7 @@ var getConfigForClientTests = []struct {
 }
 
 func TestGetConfigForClient(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		serverConfig := testConfig.Clone()
 		clientConfig := testConfig.Clone()
 		clientConfig.MinVersion = VersionTLS12

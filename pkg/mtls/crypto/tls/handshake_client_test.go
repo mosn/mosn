@@ -465,7 +465,7 @@ func runClientTestTLS12(t *testing.T, template *clientTest) {
 }
 
 func TestHandshakeClientRSARC4(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "RSA-RC4",
 			command: []string{"openssl", "s_server", "-cipher", "RC4-SHA"},
@@ -477,7 +477,7 @@ func TestHandshakeClientRSARC4(t *testing.T) {
 }
 
 func TestHandshakeClientRSAAES128GCM(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "AES128-GCM-SHA256",
 			command: []string{"openssl", "s_server", "-cipher", "AES128-GCM-SHA256"},
@@ -487,7 +487,7 @@ func TestHandshakeClientRSAAES128GCM(t *testing.T) {
 }
 
 func TestHandshakeClientRSAAES256GCM(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "AES256-GCM-SHA384",
 			command: []string{"openssl", "s_server", "-cipher", "AES256-GCM-SHA384"},
@@ -497,7 +497,7 @@ func TestHandshakeClientRSAAES256GCM(t *testing.T) {
 }
 
 func TestHandshakeClientECDHERSAAES(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "ECDHE-RSA-AES",
 			command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES128-SHA"},
@@ -509,7 +509,7 @@ func TestHandshakeClientECDHERSAAES(t *testing.T) {
 }
 
 func TestHandshakeClientECDHEECDSAAES(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "ECDHE-ECDSA-AES",
 			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA"},
@@ -523,7 +523,7 @@ func TestHandshakeClientECDHEECDSAAES(t *testing.T) {
 }
 
 func TestHandshakeClientECDHEECDSAAESGCM(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "ECDHE-ECDSA-AES-GCM",
 			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-GCM-SHA256"},
@@ -535,7 +535,7 @@ func TestHandshakeClientECDHEECDSAAESGCM(t *testing.T) {
 }
 
 func TestHandshakeClientAES256GCMSHA384(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "ECDHE-ECDSA-AES256-GCM-SHA384",
 			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES256-GCM-SHA384"},
@@ -547,7 +547,7 @@ func TestHandshakeClientAES256GCMSHA384(t *testing.T) {
 }
 
 func TestHandshakeClientAES128CBCSHA256(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "AES128-SHA256",
 			command: []string{"openssl", "s_server", "-cipher", "AES128-SHA256"},
@@ -557,7 +557,7 @@ func TestHandshakeClientAES128CBCSHA256(t *testing.T) {
 }
 
 func TestHandshakeClientECDHERSAAES128CBCSHA256(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "ECDHE-RSA-AES128-SHA256",
 			command: []string{"openssl", "s_server", "-cipher", "ECDHE-RSA-AES128-SHA256"},
@@ -567,7 +567,7 @@ func TestHandshakeClientECDHERSAAES128CBCSHA256(t *testing.T) {
 }
 
 func TestHandshakeClientECDHEECDSAAES128CBCSHA256(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		test := &clientTest{
 			name:    "ECDHE-ECDSA-AES128-SHA256",
 			command: []string{"openssl", "s_server", "-cipher", "ECDHE-ECDSA-AES128-SHA256"},
@@ -579,7 +579,7 @@ func TestHandshakeClientECDHEECDSAAES128CBCSHA256(t *testing.T) {
 }
 
 func TestHandshakeClientX25519(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.CurvePreferences = []CurveID{X25519}
 
@@ -594,7 +594,7 @@ func TestHandshakeClientX25519(t *testing.T) {
 }
 
 func TestHandshakeClientECDHERSAChaCha20(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.CipherSuites = []uint16{TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305}
 
@@ -609,7 +609,7 @@ func TestHandshakeClientECDHERSAChaCha20(t *testing.T) {
 }
 
 func TestHandshakeClientECDHEECDSAChaCha20(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.CipherSuites = []uint16{TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305}
 
@@ -626,7 +626,7 @@ func TestHandshakeClientECDHEECDSAChaCha20(t *testing.T) {
 }
 
 func TestHandshakeClientCertRSA(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		cert, _ := X509KeyPair([]byte(clientCertificatePEM), []byte(clientKeyPEM))
 		config.Certificates = []Certificate{cert}
@@ -664,7 +664,7 @@ func TestHandshakeClientCertRSA(t *testing.T) {
 }
 
 func TestHandshakeClientCertECDSA(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		cert, _ := X509KeyPair([]byte(clientECDSACertificatePEM), []byte(clientECDSAKeyPEM))
 		config.Certificates = []Certificate{cert}
@@ -692,7 +692,7 @@ func TestHandshakeClientCertECDSA(t *testing.T) {
 }
 
 func TestClientResumption(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		serverConfig := &Config{
 			CipherSuites: []uint16{TLS_RSA_WITH_RC4_128_SHA, TLS_ECDHE_RSA_WITH_RC4_128_SHA},
 			Certificates: testConfig.Certificates,
@@ -825,7 +825,7 @@ func TestLRUClientSessionCache(t *testing.T) {
 }
 
 func TestKeyLog(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		var serverBuf, clientBuf bytes.Buffer
 
 		clientConfig := testConfig.Clone()
@@ -878,7 +878,7 @@ func TestKeyLog(t *testing.T) {
 }
 
 func TestHandshakeClientALPNMatch(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.NextProtos = []string{"proto2", "proto1"}
 
@@ -904,7 +904,7 @@ func TestHandshakeClientALPNMatch(t *testing.T) {
 const sctsBase64 = "ABIBaQFnAHUApLkJkLQYWBSHuxOizGdwCjw1mAT5G9+443fNDsgN3BAAAAFHl5nuFgAABAMARjBEAiAcS4JdlW5nW9sElUv2zvQyPoZ6ejKrGGB03gjaBZFMLwIgc1Qbbn+hsH0RvObzhS+XZhr3iuQQJY8S9G85D9KeGPAAdgBo9pj4H2SCvjqM7rkoHUz8cVFdZ5PURNEKZ6y7T0/7xAAAAUeX4bVwAAAEAwBHMEUCIDIhFDgG2HIuADBkGuLobU5a4dlCHoJLliWJ1SYT05z6AiEAjxIoZFFPRNWMGGIjskOTMwXzQ1Wh2e7NxXE1kd1J0QsAdgDuS723dc5guuFCaR+r4Z5mow9+X7By2IMAxHuJeqj9ywAAAUhcZIqHAAAEAwBHMEUCICmJ1rBT09LpkbzxtUC+Hi7nXLR0J+2PmwLp+sJMuqK+AiEAr0NkUnEVKVhAkccIFpYDqHOlZaBsuEhWWrYpg2RtKp0="
 
 func TestHandshakClientSCTs(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 
 		scts, err := base64.StdEncoding.DecodeString(sctsBase64)
@@ -941,7 +941,7 @@ func TestHandshakClientSCTs(t *testing.T) {
 }
 
 func TestRenegotiationRejected(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		test := &clientTest{
 			name:                        "RenegotiationRejected",
@@ -965,7 +965,7 @@ func TestRenegotiationRejected(t *testing.T) {
 }
 
 func TestRenegotiateOnce(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.Renegotiation = RenegotiateOnceAsClient
 
@@ -981,7 +981,7 @@ func TestRenegotiateOnce(t *testing.T) {
 }
 
 func TestRenegotiateTwice(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.Renegotiation = RenegotiateFreelyAsClient
 
@@ -997,7 +997,7 @@ func TestRenegotiateTwice(t *testing.T) {
 }
 
 func TestRenegotiateTwiceRejected(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		config := testConfig.Clone()
 		config.Renegotiation = RenegotiateOnceAsClient
 
@@ -1049,7 +1049,7 @@ var hostnameInSNITests = []struct {
 }
 
 func TestHostnameInSNI(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		for _, tt := range hostnameInSNITests {
 			c, s := net.Pipe()
 
@@ -1087,7 +1087,7 @@ func TestHostnameInSNI(t *testing.T) {
 }
 
 func TestServerSelectingUnconfiguredCipherSuite(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		// This checks that the server can't select a cipher suite that the
 		// client didn't offer. See #13174.
 
@@ -1139,7 +1139,7 @@ func TestServerSelectingUnconfiguredCipherSuite(t *testing.T) {
 }
 
 func TestVerifyPeerCertificate(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		issuer, err := x509.ParseCertificate(testRSACertificateIssuer)
 		if err != nil {
 			panic(err)
@@ -1320,7 +1320,7 @@ func (b *brokenConn) Write(data []byte) (int, error) {
 }
 
 func TestFailedWrite(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		// Test that a write error during the handshake is returned.
 		for _, breakAfter := range []int{0, 1} {
 			c, s := net.Pipe()
@@ -1358,7 +1358,7 @@ func (wcc *writeCountingConn) Write(data []byte) (int, error) {
 }
 
 func TestBuffering(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		c, s := net.Pipe()
 		done := make(chan bool)
 
@@ -1389,7 +1389,7 @@ func TestBuffering(t *testing.T) {
 }
 
 func TestAlertFlushing(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		c, s := net.Pipe()
 		done := make(chan bool)
 
@@ -1435,7 +1435,7 @@ func TestAlertFlushing(t *testing.T) {
 }
 
 func TestHandshakeRace(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		t.Parallel()
 		// This test races a Read and Write to try and complete a handshake in
 		// order to provide some evidence that there are no races or deadlocks
@@ -1492,7 +1492,7 @@ func TestHandshakeRace(t *testing.T) {
 }
 
 func TestTLS11SignatureSchemes(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		expected := tls11SignatureSchemesNumECDSA + tls11SignatureSchemesNumRSA
 		if expected != len(tls11SignatureSchemes) {
 			t.Errorf("expected to find %d TLS 1.1 signature schemes, but found %d", expected, len(tls11SignatureSchemes))
@@ -1571,7 +1571,7 @@ var getClientCertificateTests = []struct {
 }
 
 func TestGetClientCertificate(t *testing.T) {
-	if !useBabasslTag.IsOpen() {
+	if !UseBabasslTag.IsOpen() {
 		issuer, err := x509.ParseCertificate(testRSACertificateIssuer)
 		if err != nil {
 			panic(err)

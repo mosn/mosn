@@ -164,7 +164,7 @@ func (c *Conn) GetConnectionState() gotls.ConnectionState {
 	state.ServerName = c.serverName
 
 	if c.handshakeComplete {
-		if useBabasslTag.IsOpen() {
+		if UseBabasslTag.IsOpen() {
 			sslConnState := c.ssl.GetConnectionState()
 			state.Version = sslConnState.Version
 			state.DidResume = sslConnState.DidResume

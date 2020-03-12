@@ -560,7 +560,7 @@ func (e RecordHeaderError) Error() string { return "tls: " + e.Msg }
 
 func (c *Conn) newRecordHeaderError(msg string) (err RecordHeaderError) {
 	err.Msg = msg
-	if useBabasslTag.IsOpen() {
+	if UseBabasslTag.IsOpen() {
 		rawByte := c.ssl.GetRawInput()
 		copy(err.RecordHeader[:], rawByte[:5])
 	} else {
@@ -1045,7 +1045,7 @@ func (c *Conn) Write(b []byte) (int, error) {
 	c.out.Lock()
 	defer c.out.Unlock()
 
-	if useBabasslTag.IsOpen() {
+	if UseBabasslTag.IsOpen() {
 		n, err := c.ssl.Write(b)
 		return n, err
 	} else {
@@ -1143,7 +1143,7 @@ func (c *Conn) Read(b []byte) (n int, err error) {
 	c.in.Lock()
 	defer c.in.Unlock()
 
-	if useBabasslTag.IsOpen() {
+	if UseBabasslTag.IsOpen() {
 		n, readErr := c.ssl.Read(b)
 		if readErr != nil {
 			if sslerr, ok := readErr.(*babasslErr); ok {
@@ -1232,7 +1232,7 @@ func (c *Conn) Close() error {
 		return c.conn.Close()
 	}
 
-	if useBabasslTag.IsOpen() {
+	if UseBabasslTag.IsOpen() {
 		c.ssl.Close()
 		return c.conn.Close()
 	} else {
@@ -1307,7 +1307,7 @@ func (c *Conn) Handshake() error {
 	c.handshakeMutex.Lock()
 	defer c.handshakeMutex.Unlock()
 
-	if useBabasslTag.IsOpen() {
+	if UseBabasslTag.IsOpen() {
 		if c.handshakeComplete == false {
 			ssl := Ssl{}
 			err := ssl.Init(c.conn, c.config.CgoBabasslCtx, c.isClient)
@@ -1417,7 +1417,7 @@ func (c *Conn) ConnectionState() ConnectionState {
 	state.ServerName = c.serverName
 
 	if c.handshakeComplete {
-		if useBabasslTag.IsOpen() {
+		if UseBabasslTag.IsOpen() {
 			sslConnState := c.ssl.GetConnectionState()
 			state.Version = sslConnState.Version
 			state.DidResume = sslConnState.DidResume

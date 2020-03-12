@@ -10,9 +10,11 @@ import (
 
 	"math/rand"
 
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/server"
 	_ "mosn.io/mosn/pkg/stream/sofarpc"
@@ -47,7 +49,15 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 	types.TransferStatsDomainSocket = "/tmp/stats.sock"
 	types.TransferListenDomainSocket = "/tmp/listen.sock"
 	types.ReconfigureDomainSocket = "/tmp/reconfig.sock"
-	cfg := util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
+	// cgo openssl/babassl does not intend to implement tls connection migration for now
+	var cfg *v2.MOSNConfig
+	if !tls.UseBabasslTag.IsOpen() {
+		cfg = util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr,
+			tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
+	} else {
+		cfg = util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr,
+			tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, false)
+	}
 
 	configPath := "/tmp/transfer.json"
 	os.Remove(configPath)
