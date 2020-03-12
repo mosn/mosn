@@ -35,7 +35,7 @@ import (
 type upstreamRequest struct {
 	proxy         *proxy
 	downStream    *downStream
-	protocol      types.Protocol
+	protocol      types.ProtocolName
 	host          types.Host
 	requestSender types.StreamSender
 	connPool      types.ConnectionPool
@@ -111,12 +111,7 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 
 	r.downStream.requestInfo.SetResponseReceivedDuration(time.Now())
 	r.downStream.downstreamRespHeaders = headers
-
-	if data != nil {
-		r.downStream.downstreamRespDataBuf = data.Clone()
-		data.Drain(data.Len())
-	}
-
+	r.downStream.downstreamRespDataBuf = data
 	r.downStream.downstreamRespTrailers = trailers
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {

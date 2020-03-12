@@ -34,7 +34,7 @@ func (tracer *mockTracer) Start(ctx context.Context, request interface{}, startT
 
 func TestTraceBuilderRegisterAndGet(t *testing.T) {
 	driver := NewDefaultDriverImpl()
-	proto := types.Protocol("test")
+	proto := types.ProtocolName("test")
 
 	driver.Register(proto, func(config map[string]interface{}) (types.Tracer, error) {
 		return &mockTracer{}, nil

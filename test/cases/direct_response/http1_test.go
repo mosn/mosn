@@ -42,24 +42,24 @@ const ConfigHttp1 = `{
                 {
                         "default_log_path":"stdout",
                         "default_log_level": "FATAL",
-			"routers":[
-				{
-					"router_config_name":"router_direct",
-					"virtual_hosts":[{
-						"name":"mosn_hosts",
-						"domains": ["*"],
-						"routers": [
+                        "routers":[
+                                {
+                                        "router_config_name":"router_direct",
+                                        "virtual_hosts":[{
+                                                "name":"mosn_hosts",
+                                                "domains": ["*"],
+                                                "routers": [
                                                         {
-								"match":{"prefix": "/"},
-								 "direct_response": {
-									 "status": 200,
-									 "body": "test body"
-								 }
-							}
-						]
-					}]
-				}
-			],
+                                                                "match":{"prefix": "/"},
+                                                                 "direct_response": {
+                                                                         "status": 200,
+                                                                         "body": "test body"
+                                                                 }
+                                                        }
+                                                ]
+                                        }]
+                                }
+                        ],
                         "listeners":[
                                 {
                                         "address":"127.0.0.1:2045",

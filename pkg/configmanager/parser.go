@@ -34,7 +34,6 @@ type ContentKey string
 
 var ProtocolsSupported = map[string]bool{
 	string(protocol.Auto):      true,
-	string(protocol.SofaRPC):   true,
 	string(protocol.HTTP1):     true,
 	string(protocol.HTTP2):     true,
 	string(protocol.Xprotocol): true,
