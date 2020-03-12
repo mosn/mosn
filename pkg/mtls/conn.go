@@ -42,7 +42,7 @@ type TLSConn struct {
 func (c *TLSConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
 	if err != nil && strings.Contains(err.Error(), "tls") {
-		log.DefaultLogger.Errorf("[mtls] tls connection read error: %v", err)
+		log.DefaultLogger.Alertf(types.ErrorKeyTLSRead, "[mtls] tls connection read error: %v", err)
 	}
 	return n, err
 }
@@ -58,7 +58,7 @@ type Conn struct {
 // Peek returns 1 byte from connection, without draining any buffered data.
 func (c *Conn) Peek() ([]byte, error) {
 	b := make([]byte, 1, 1)
-	c.Conn.SetReadDeadline(time.Now().Add(types.DefaultConnReadTimeout))
+	c.Conn.SetReadDeadline(time.Now().Add(types.DefaultIdleTimeout))
 	_, err := c.Conn.Read(b)
 	c.Conn.SetReadDeadline(time.Time{}) // clear read deadline
 	if err != nil {

@@ -184,6 +184,7 @@ const (
 	DefaultConnReadTimeout  = 15 * time.Second
 	DefaultConnWriteTimeout = 15 * time.Second
 	DefaultConnTryTimeout   = 60 * time.Second
+	DefaultIdleTimeout      = 90 * time.Second
 )
 
 // ConnectionHandler contains the listeners for a mosn server
