@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
 )
@@ -23,7 +23,7 @@ import (
 // TODO: rpc status have something wrong
 
 // Direct Response ignore upstream cluster information and route rule config
-func CreateDirectMeshProxy(addr string, proto types.Protocol, response *v2.DirectResponseAction) *v2.MOSNConfig {
+func CreateDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.DirectResponseAction) *v2.MOSNConfig {
 	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			v2.Cluster{
@@ -41,6 +41,27 @@ func CreateDirectMeshProxy(addr string, proto types.Protocol, response *v2.Direc
 	listener := util.NewListener("proxyListener", addr, chains)
 	return util.NewMOSNConfig([]v2.Listener{listener}, cmconfig)
 }
+
+// Direct Response ignore upstream cluster information and route rule config
+func CreateXDirectMeshProxy(addr string, proto types.ProtocolName, response *v2.DirectResponseAction) *v2.MOSNConfig {
+	cmconfig := v2.ClusterManagerConfig{
+		Clusters: []v2.Cluster{
+			v2.Cluster{
+				Name: "cluster",
+			},
+		},
+	}
+	routers := []v2.Router{
+		NewDirectResponseHeaderRouter(".*", response),
+		NewDirectResponsePrefixRouter("/", response),
+	}
+	chains := []v2.FilterChain{
+		util.NewXProtocolFilterChain("proxyVirtualHost", proto, routers),
+	}
+	listener := util.NewListener("proxyListener", addr, chains)
+	return util.NewMOSNConfig([]v2.Listener{listener}, cmconfig)
+}
+
 func NewDirectResponseHeaderRouter(value string, response *v2.DirectResponseAction) v2.Router {
 	header := v2.HeaderMatcher{Name: "service", Value: value}
 	return v2.Router{
@@ -61,22 +82,23 @@ func NewDirectResponsePrefixRouter(prefix string, response *v2.DirectResponseAct
 
 // Proxy Mode is OK
 type DirectResponseCase struct {
-	Protocol   types.Protocol
+	Protocol   types.ProtocolName
 	RPCClient  *util.RPCClient
 	C          chan error
 	T          *testing.T
 	ClientAddr string
-	Defers     []func()
+	Finish     chan bool
 	status     int
 	body       string
 }
 
-func NewDirectResponseCase(t *testing.T, proto types.Protocol, status int, body string, client *util.RPCClient) *DirectResponseCase {
+func NewDirectResponseCase(t *testing.T, proto types.ProtocolName, status int, body string, client *util.RPCClient) *DirectResponseCase {
 	return &DirectResponseCase{
 		Protocol:  proto,
 		RPCClient: client,
 		C:         make(chan error),
 		T:         t,
+		Finish:    make(chan bool),
 		status:    status,
 		body:      body,
 	}
@@ -91,25 +113,18 @@ func (c *DirectResponseCase) StartProxy() {
 	}
 	cfg := CreateDirectMeshProxy(addr, c.Protocol, resp)
 	mesh := mosn.NewMosn(cfg)
-	mesh.Start()
-	c.DeferFinishCase(func() {
+	go mesh.Start()
+	go func() {
+		<-c.Finish
 		mesh.Close()
-	})
-	time.Sleep(1 * time.Second) //wait server and mesh start
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
-func (c *DirectResponseCase) DeferFinishCase(f func()) {
-	c.Defers = append(c.Defers, f)
-}
-
-// Finish case and wait close returns
 func (c *DirectResponseCase) FinishCase() {
-	if len(c.Defers) != 0 {
-		for _, def := range c.Defers {
-			def()
-		}
-		c.Defers = c.Defers[:0]
-	}
+	c.Finish <- true
+	<-c.Finish
 }
 
 func (c *DirectResponseCase) RunCase(n int, interval time.Duration) {
@@ -162,14 +177,63 @@ func (c *DirectResponseCase) RunCase(n int, interval time.Duration) {
 			}
 			return nil
 		}
-	case protocol.SofaRPC:
+	}
+	for i := 0; i < n; i++ {
+		if err := call(); err != nil {
+			c.C <- err
+			return
+		}
+		time.Sleep(interval)
+	}
+	c.C <- nil
+}
+
+// xprotocl extend
+type XDirectResponseCase struct {
+	*DirectResponseCase
+}
+
+func NewXDirectResponseCase(t *testing.T, proto types.ProtocolName, status int, body string, client *util.RPCClient) *XDirectResponseCase {
+	return &XDirectResponseCase{
+		DirectResponseCase: &DirectResponseCase{
+			Protocol:  proto,
+			RPCClient: client,
+			C:         make(chan error),
+			T:         t,
+			Finish:    make(chan bool),
+			status:    status,
+			body:      body,
+		}}
+}
+
+func (c *XDirectResponseCase) StartProxy() {
+	addr := util.CurrentMeshAddr()
+	c.ClientAddr = addr
+	resp := &v2.DirectResponseAction{
+		StatusCode: c.status,
+		Body:       c.body,
+	}
+	cfg := CreateXDirectMeshProxy(addr, c.Protocol, resp)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Finish
+		mesh.Close()
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+func (c *XDirectResponseCase) RunCase(n int, interval time.Duration) {
+	var call func() error
+	switch c.Protocol {
+	case bolt.ProtocolName:
 		client := c.RPCClient
 		if err := client.Connect(c.ClientAddr); err != nil {
 			c.C <- err
 			return
 		}
 		if c.status != 200 {
-			client.ExpectedStatus = sofarpc.RESPONSE_STATUS_UNKNOWN
+			client.ExpectedStatus = int16(bolt.ResponseStatusUnknown)
 		}
 		defer client.Close()
 		call = func() error {
@@ -198,9 +262,28 @@ func TestDirectResponse(t *testing.T) {
 		NewDirectResponseCase(t, protocol.HTTP2, 500, "internal error", nil),
 		NewDirectResponseCase(t, protocol.HTTP1, 200, "testdata", nil),
 		NewDirectResponseCase(t, protocol.HTTP2, 200, "testdata", nil),
+	}
+	for i, tc := range testCases {
+		t.Logf("start case #%d\n", i)
+		tc.StartProxy()
+		go tc.RunCase(1, 0)
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("[ERROR MESSAGE] #%d protocol %v test failed, error: %v\n", i, tc.Protocol, err)
+			}
+		case <-time.After(15 * time.Second):
+			t.Errorf("[ERROR MESSAGE] #%d protocol %v hang\n", i, tc.Protocol)
+		}
+		tc.FinishCase()
+	}
+}
+
+func TestXDirectResponse(t *testing.T) {
+	testCases := []*XDirectResponseCase{
 		// RPC
 		// FIXME: RPC cannot direct response success, code will be transfer
-		NewDirectResponseCase(t, protocol.SofaRPC, 500, "", util.NewRPCClient(t, "directfail", util.Bolt1)),
+		NewXDirectResponseCase(t, bolt.ProtocolName, 500, "", util.NewRPCClient(t, "directfail", bolt.ProtocolName)),
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)

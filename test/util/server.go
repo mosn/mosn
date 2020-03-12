@@ -40,10 +40,6 @@ func NewUpstreamServer(t *testing.T, addr string, serve ServeConn) UpstreamServe
 	}
 }
 
-func NewUpstreamServerWithAnyPort(t *testing.T, serve ServeConn) UpstreamServer {
-	return NewUpstreamServer(t, "127.0.0.1:0", serve)
-}
-
 // GoServe and Close exists concurrency
 // expected action is Close should close the server, should not restart
 func (s *upstreamServer) GoServe() {
@@ -57,7 +53,6 @@ func (s *upstreamServer) GoServe() {
 	for i := 0; i < 3; i++ {
 		s.Listener, err = net.Listen("tcp", s.Address)
 		if s.Listener != nil {
-			s.Address = s.Listener.Addr().String()
 			break
 		}
 		time.Sleep(time.Second)
@@ -133,18 +128,6 @@ func NewUpstreamHTTP2(t *testing.T, addr string, h http.Handler) UpstreamServer 
 		Handler: h,
 	}
 	return NewUpstreamServer(t, addr, s.ServeConn)
-}
-
-func NewUpstreamHTTP2WithAnyPort(t *testing.T, h http.Handler) UpstreamServer {
-	if h == nil {
-		h = &HTTPHandler{}
-	}
-	s := &HTTP2Server{
-		t:       t,
-		Server:  &http2.Server{IdleTimeout: 1 * time.Minute},
-		Handler: h,
-	}
-	return NewUpstreamServerWithAnyPort(t, s.ServeConn)
 }
 
 //Http Server

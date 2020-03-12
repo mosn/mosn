@@ -25,7 +25,7 @@ import (
 )
 
 func TestMapping(t *testing.T) {
-	if _, err := MappingHeaderStatusCode(SofaRPC, nil); err != ErrNoMapping {
+	if _, err := MappingHeaderStatusCode(Xprotocol, nil); err != ErrNoMapping {
 		t.Error("no register type")
 	}
 	testcases := []struct {

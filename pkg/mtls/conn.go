@@ -22,6 +22,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"net"
+	"strings"
 	"time"
 
 	"mosn.io/mosn/pkg/log"
@@ -38,6 +39,14 @@ type TLSConn struct {
 	*tls.Conn
 }
 
+func (c *TLSConn) Read(b []byte) (int, error) {
+	n, err := c.Conn.Read(b)
+	if err != nil && strings.Contains(err.Error(), "tls") {
+		log.DefaultLogger.Alertf(types.ErrorKeyTLSRead, "[mtls] tls connection read error: %v", err)
+	}
+	return n, err
+}
+
 // Conn is a generic stream-oriented network connection.
 // It implements the net.Conn interface.
 type Conn struct {
@@ -49,7 +58,7 @@ type Conn struct {
 // Peek returns 1 byte from connection, without draining any buffered data.
 func (c *Conn) Peek() ([]byte, error) {
 	b := make([]byte, 1, 1)
-	c.Conn.SetReadDeadline(time.Now().Add(types.DefaultConnReadTimeout))
+	c.Conn.SetReadDeadline(time.Now().Add(types.DefaultIdleTimeout))
 	_, err := c.Conn.Read(b)
 	c.Conn.SetReadDeadline(time.Time{}) // clear read deadline
 	if err != nil {

@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"time"
 
-	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mlog "mosn.io/mosn/pkg/log"
@@ -93,11 +92,9 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	return server
 }
 
-func (srv *server) AddListener(lc *v2.Listener, listenerFiltersFactories []api.ListenerFilterChainFactory,
-	networkFiltersFactories []api.NetworkFilterChainFactory,
-	streamFiltersFactories []api.StreamFilterChainFactory) (types.ListenerEventListener, error) {
+func (srv *server) AddListener(lc *v2.Listener, updateListenerFilter bool, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error) {
 
-	return srv.handler.AddOrUpdateListener(lc, listenerFiltersFactories, networkFiltersFactories, streamFiltersFactories)
+	return srv.handler.AddOrUpdateListener(lc, updateListenerFilter, updateNetworkFilter, updateStreamFilter)
 }
 
 func (srv *server) Start() {

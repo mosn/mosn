@@ -213,6 +213,5 @@ istio.io/api/mixer/v1/config/client
 mosn.io/api
 # mosn.io/pkg v0.0.0-20200224153138-1e4184714e74
 mosn.io/pkg/buffer
-mosn.io/pkg/utils
 mosn.io/pkg/log
 mosn.io/pkg/utils

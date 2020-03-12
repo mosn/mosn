@@ -32,6 +32,7 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/stream/faultinject"
 	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/upstream/cluster"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -52,7 +53,13 @@ import (
 func TestMain(m *testing.M) {
 	// init
 	router.NewRouterManager()
-	cluster.NewClusterManagerSingleton(nil, nil)
+	cm := cluster.NewClusterManagerSingleton(nil, nil)
+	sc := server.NewConfig(&v2.ServerConfig{
+		ServerName:      "test_xds_server",
+		DefaultLogPath:  "stdout",
+		DefaultLogLevel: "FATAL",
+	})
+	server.NewServer(sc, &mockCMF{}, cm)
 	m.Run()
 }
 

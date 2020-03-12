@@ -73,7 +73,7 @@ func IsEnabled() bool {
 	return global.enable
 }
 
-func Tracer(protocol types.Protocol) types.Tracer {
+func Tracer(protocol types.ProtocolName) types.Tracer {
 	return global.driver.Get(protocol)
 }
 

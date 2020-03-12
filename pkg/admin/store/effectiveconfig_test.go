@@ -18,8 +18,10 @@
 package store
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 
 	"mosn.io/mosn/pkg/config/v2"
@@ -31,6 +33,30 @@ func setupSubTest(t *testing.T) func(t *testing.T) {
 	return func(t *testing.T) {
 		Reset()
 	}
+}
+
+func TestSetMosnConfig(t *testing.T) {
+	Reset()
+	createMosnConfig()
+	// Set MosnConfig
+	rawcfg := &v2.MOSNConfig{}
+	if err := json.Unmarshal([]byte(mosnConfig), rawcfg); err != nil {
+		t.Fatal(err)
+	}
+	SetMosnConfig(rawcfg)
+	// the parameters should not be changed
+	if !(rawcfg.ClusterManager.ClusterConfigPath != "" &&
+		len(rawcfg.Servers[0].Listeners) > 0 &&
+		len(rawcfg.Servers[0].Routers) > 0) {
+		t.Fatalf("the parameter config has been changed: %v", rawcfg)
+	}
+	// the stored config contains no dynamic config, such as listeners and clustersy
+	if !(reflect.DeepEqual(conf.MosnConfig.ClusterManager, v2.ClusterManagerConfig{}) &&
+		len(conf.MosnConfig.Servers[0].Listeners) == 0 &&
+		len(conf.MosnConfig.Servers[0].Routers) == 0) {
+		t.Fatalf("the stored config contains dynamic configs: %v", conf.MosnConfig)
+	}
+
 }
 
 func TestSetListenerConfig(t *testing.T) {

@@ -184,6 +184,7 @@ const (
 	DefaultConnReadTimeout  = 15 * time.Second
 	DefaultConnWriteTimeout = 15 * time.Second
 	DefaultConnTryTimeout   = 60 * time.Second
+	DefaultIdleTimeout      = 90 * time.Second
 )
 
 // ConnectionHandler contains the listeners for a mosn server
@@ -191,9 +192,7 @@ type ConnectionHandler interface {
 	// AddOrUpdateListener
 	// adds a listener into the ConnectionHandler or
 	// update a listener
-	AddOrUpdateListener(lc *v2.Listener, listenerFiltersFactories []api.ListenerFilterChainFactory,
-		networkFiltersFactories []api.NetworkFilterChainFactory,
-		streamFiltersFactories []api.StreamFilterChainFactory) (ListenerEventListener, error)
+	AddOrUpdateListener(lc *v2.Listener, updateListenerFilter bool, updateNetworkFilter bool, updateStreamFilter bool) (ListenerEventListener, error)
 
 	//StartListeners starts all listeners the ConnectionHandler has
 	StartListeners(lctx context.Context)

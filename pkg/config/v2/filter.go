@@ -49,12 +49,13 @@ const (
 
 // Network Filter's Type
 const (
-	CONNECTION_MANAGER          = "connection_manager"
+	CONNECTION_MANAGER          = "connection_manager" // deprecated
 	DEFAULT_NETWORK_FILTER      = "proxy"
 	TCP_PROXY                   = "tcp_proxy"
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
 	RPC_PROXY                   = "rpc_proxy"
 	X_PROXY                     = "x_proxy"
+	Transcoder                  = "transcoder"
 )
 
 // Stream Filter's Type
@@ -81,6 +82,11 @@ func (hf *HealthCheckFilter) UnmarshalJSON(b []byte) error {
 	}
 	hf.CacheTime = hf.CacheTimeConfig.Duration
 	return nil
+}
+
+// Transcoder
+type StreamTranscoder struct {
+	Type string `json:"type"`
 }
 
 // FaultInject
