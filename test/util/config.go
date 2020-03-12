@@ -31,10 +31,13 @@ func CreateProxyMesh(addr string, hosts []string, proto types.Protocol) *v2.MOSN
 		NewHeaderRouter(clusterName, ".*"),
 	}
 	chains := []v2.FilterChain{
-		NewFilterChain("proxyVirtualHost", proto, proto, routers),
+		NewFilterChain("proxyVirtualHost", proto, proto),
 	}
 	listener := NewListener("proxyListener", addr, chains)
-	return NewMOSNConfig([]v2.Listener{listener}, cmconfig)
+	rs := []*v2.RouterConfiguration{
+		MakeRouterConfig("proxyVirtualHost", routers),
+	}
+	return NewMOSNConfig([]v2.Listener{listener}, rs, cmconfig)
 }
 
 // Mesh to Mesh
@@ -50,7 +53,10 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 		NewHeaderRouter(downstreamCluster, ".*"),
 	}
 	clientChains := []v2.FilterChain{
-		NewFilterChain("downstreamFilter", appproto, meshproto, downstreamRouters),
+		NewFilterChain("downstreamFilter", appproto, meshproto),
+	}
+	rs := []*v2.RouterConfiguration{
+		MakeRouterConfig("downstreamFilter", downstreamRouters),
 	}
 	clientListener := NewListener("downstreamListener", clientaddr, clientChains)
 	upstreamRouters := []v2.Router{
@@ -60,7 +66,8 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 	// client mesh -> cluster need tls
 	meshClusterConfig := NewBasicCluster(downstreamCluster, []string{serveraddr})
 	//  server mesh listener need tls
-	meshServerChain := NewFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters)
+	meshServerChain := NewFilterChain("upstreamFilter", meshproto, appproto)
+	rs = append(rs, MakeRouterConfig("upstreamFilter", upstreamRouters))
 	if tls {
 		tlsConf := v2.TLSConfig{
 			Status:       true,
@@ -87,7 +94,7 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 	serverListener := NewListener("upstreamListener", serveraddr, serverChains)
 	return NewMOSNConfig([]v2.Listener{
 		clientListener, serverListener,
-	}, cmconfig)
+	}, rs, cmconfig)
 }
 
 // XProtocol must be mesh to mesh
@@ -99,14 +106,18 @@ func CreateXProtocolMesh(clientaddr string, serveraddr string, subprotocol strin
 		NewPrefixRouter(downstreamCluster, "/"),
 	}
 	clientChains := []v2.FilterChain{
-		NewXProtocolFilterChain("xprotocol_test_router_config_name", subprotocol, downstreamRouters),
+		NewXProtocolFilterChain("xprotocol_test_router_config_name", subprotocol),
+	}
+	rs := []*v2.RouterConfiguration{
+		MakeRouterConfig("xprotocol_test_router_config_name", downstreamRouters),
 	}
 	clientListener := NewListener("downstreamListener", clientaddr, clientChains)
 	upstreamRouters := []v2.Router{
 		NewPrefixRouter(upstreamCluster, "/"),
 	}
 	meshClusterConfig := NewBasicCluster(downstreamCluster, []string{serveraddr})
-	meshServerChain := NewXProtocolFilterChain("upstreamFilter", subprotocol, upstreamRouters)
+	meshServerChain := NewXProtocolFilterChain("upstreamFilter", subprotocol)
+	rs = append(rs, MakeRouterConfig("upstreamFilter", upstreamRouters))
 	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			meshClusterConfig,
@@ -117,7 +128,7 @@ func CreateXProtocolMesh(clientaddr string, serveraddr string, subprotocol strin
 	serverListener := NewListener("upstreamListener", serveraddr, serverChains)
 	return NewMOSNConfig([]v2.Listener{
 		clientListener, serverListener,
-	}, cmconfig)
+	}, rs, cmconfig)
 }
 
 // TLS Extension
@@ -134,7 +145,10 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 		NewHeaderRouter(downstreamCluster, ".*"),
 	}
 	clientChains := []v2.FilterChain{
-		NewFilterChain("downstreamFilter", appproto, meshproto, downstreamRouters),
+		NewFilterChain("downstreamFilter", appproto, meshproto),
+	}
+	rs := []*v2.RouterConfiguration{
+		MakeRouterConfig("downstreamFilter", downstreamRouters),
 	}
 	clientListener := NewListener("downstreamListener", clientaddr, clientChains)
 	upstreamRouters := []v2.Router{
@@ -149,7 +163,8 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 	}
 	meshClusterConfig := NewBasicCluster(downstreamCluster, []string{serveraddr})
 	meshClusterConfig.TLS = tlsConf
-	meshServerChain := NewFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters)
+	meshServerChain := NewFilterChain("upstreamFilter", meshproto, appproto)
+	rs = append(rs, MakeRouterConfig("upstreamFilter", upstreamRouters))
 	meshServerChain.TLSContexts = []v2.TLSConfig{
 		tlsConf,
 	}
@@ -163,7 +178,7 @@ func CreateTLSExtensionConfig(clientaddr string, serveraddr string, appproto typ
 	serverListener := NewListener("upstreamListener", serveraddr, serverChains)
 	return NewMOSNConfig([]v2.Listener{
 		clientListener, serverListener,
-	}, cmconfig)
+	}, rs, cmconfig)
 
 }
 
@@ -206,7 +221,7 @@ func CreateTCPProxyConfig(meshaddr string, hosts []string, isRouteEntryMode bool
 	listener := NewListener("listener", meshaddr, filterChains)
 	return NewMOSNConfig([]v2.Listener{
 		listener,
-	}, cmconfig)
+	}, nil, cmconfig)
 }
 
 type WeightCluster struct {
@@ -241,9 +256,12 @@ func CreateWeightProxyMesh(addr string, proto types.Protocol, clusters []*Weight
 		NewHeaderWeightedRouter(weightClusters, ".*"),
 	}
 	chains := []v2.FilterChain{
-		NewFilterChain("proxyVirtualHost", proto, proto, routers),
+		NewFilterChain("proxyVirtualHost", proto, proto),
 	}
 	listener := NewListener("proxyListener", addr, chains)
+	rs := []*v2.RouterConfiguration{
+		MakeRouterConfig("proxyVirtualHost", routers),
+	}
 
-	return NewMOSNConfig([]v2.Listener{listener}, cmconfig)
+	return NewMOSNConfig([]v2.Listener{listener}, rs, cmconfig)
 }

@@ -15,27 +15,28 @@
  * limitations under the License.
  */
 
-package connectionmanager
+package conv
 
 import (
 	"context"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/types"
 )
 
-// todo this filter may use in the future
+type mockCMF struct{}
+
+func (cmf *mockCMF) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {}
+
+type mockNetworkFilterFactory struct{}
+
+func (ff *mockNetworkFilterFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
+}
+
+func CreateMockFilerFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+	return &mockNetworkFilterFactory{}, nil
+}
+
 func init() {
-	api.RegisterNetwork(v2.CONNECTION_MANAGER, CreateProxyFactory)
-}
-
-type connectionManagerFilterConfigFactory struct {
-}
-
-func (cmfcf *connectionManagerFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
-
-}
-
-func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
-	return &connectionManagerFilterConfigFactory{}, nil
+	api.RegisterNetwork("proxy", CreateMockFilerFactory)
 }

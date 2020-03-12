@@ -103,7 +103,10 @@ func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, pr
 		util.NewPrefixRouter(clusterName, "/"),
 		util.NewHeaderRouter(clusterName, ".*"),
 	}
-	filterChain := util.NewFilterChain("proxyVirtualHost", proto, proto, routers)
+	filterChain := util.NewFilterChain("proxyVirtualHost", proto, proto)
+	rs := []*v2.RouterConfiguration{
+		util.MakeRouterConfig("proxyVirtualHost", routers),
+	}
 	if tls {
 		filterChain.TLSContexts = []v2.TLSConfig{
 			DefaultTLSConfig,
@@ -112,7 +115,7 @@ func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, pr
 	chains := []v2.FilterChain{filterChain}
 	lnCfg := util.NewListener(listenerName, addr, chains)
 	lnCfg.Inspector = false
-	mosnConfig := util.NewMOSNConfig([]v2.Listener{lnCfg}, cmconfig)
+	mosnConfig := util.NewMOSNConfig([]v2.Listener{lnCfg}, rs, cmconfig)
 	mosnConfig.RawAdmin = json.RawMessage([]byte(`{
 		 "address":{
 			 "socket_address":{

@@ -237,6 +237,8 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 	}
 	// dynamic mode, should write file
 	// first, get all the files in the directory
+	// try to make dir if not exists
+	os.MkdirAll(cc.ClusterConfigPath, 0755)
 	files, err := ioutil.ReadDir(cc.ClusterConfigPath)
 	if err != nil {
 		return nil, err

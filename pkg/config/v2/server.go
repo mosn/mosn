@@ -40,6 +40,8 @@ type ServerConfig struct {
 	Processor int `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
+
+	Routers []*RouterConfiguration `json:"routers,omitempty"`
 }
 
 // ListenerType: Ingress or Egress
@@ -70,6 +72,13 @@ type Listener struct {
 	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
 	InheritListener         *net.TCPListener `json:"-"`
 	Remain                  bool             `json:"-"`
+}
+
+func (l Listener) MarshalJSON() (b []byte, err error) {
+	if l.Addr != nil {
+		l.AddrConfig = l.Addr.String()
+	}
+	return json.Marshal(l.ListenerConfig)
 }
 
 // AccessLog for making up access log

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
@@ -76,7 +75,6 @@ func updateListener(cfg *v2.MOSNConfig, faultstr string) error {
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	// get config
 	lc := cfg.Servers[0].Listeners[0]
-	streamFilterFactories := configmanager.GetStreamFilters(lc.StreamFilters)
 	// nil network filters, nothing changed
-	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, nil, streamFilterFactories)
+	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, false, true)
 }

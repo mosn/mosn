@@ -92,7 +92,10 @@ func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *v
 		},
 	}
 	chains := []v2.FilterChain{
-		util.NewFilterChain("proxyVirtualHost", proto, proto, routers),
+		util.NewFilterChain("proxyVirtualHost", proto, proto),
+	}
+	rs := []*v2.RouterConfiguration{
+		util.MakeRouterConfig("proxyVirtualHost", routers),
 	}
 	listener := util.NewListener("proxyListener", addr, chains)
 	listener.StreamFilters = []v2.Filter{
@@ -101,7 +104,7 @@ func createInjectProxyMesh(addr string, hosts []string, proto types.Protocol) *v
 			Config: map[string]interface{}{},
 		},
 	}
-	cfg := util.NewMOSNConfig([]v2.Listener{listener}, cmconfig)
+	cfg := util.NewMOSNConfig([]v2.Listener{listener}, rs, cmconfig)
 	return cfg
 }
 

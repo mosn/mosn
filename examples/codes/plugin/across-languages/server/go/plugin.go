@@ -15,7 +15,7 @@ func (s *filter) Call(request *proto.Request) (*proto.Response, error) {
 	}
 
 	response := new(proto.Response)
-	response.Body = []byte("world")
+	response.Body = []byte("hello go")
 	response.Status = 1
 	return response, nil
 }
