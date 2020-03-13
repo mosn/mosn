@@ -225,21 +225,27 @@ func runDynamicRecordSizingTest(t *testing.T, config *Config) {
 }
 
 func TestDynamicRecordSizingWithStreamCipher(t *testing.T) {
-	config := testConfig.Clone()
-	config.CipherSuites = []uint16{TLS_RSA_WITH_RC4_128_SHA}
-	runDynamicRecordSizingTest(t, config)
+	if !UseBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.CipherSuites = []uint16{TLS_RSA_WITH_RC4_128_SHA}
+		runDynamicRecordSizingTest(t, config)
+	}
 }
 
 func TestDynamicRecordSizingWithCBC(t *testing.T) {
-	config := testConfig.Clone()
-	config.CipherSuites = []uint16{TLS_RSA_WITH_AES_256_CBC_SHA}
-	runDynamicRecordSizingTest(t, config)
+	if !UseBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.CipherSuites = []uint16{TLS_RSA_WITH_AES_256_CBC_SHA}
+		runDynamicRecordSizingTest(t, config)
+	}
 }
 
 func TestDynamicRecordSizingWithAEAD(t *testing.T) {
-	config := testConfig.Clone()
-	config.CipherSuites = []uint16{TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256}
-	runDynamicRecordSizingTest(t, config)
+	if !UseBabasslTag.IsOpen() {
+		config := testConfig.Clone()
+		config.CipherSuites = []uint16{TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256}
+		runDynamicRecordSizingTest(t, config)
+	}
 }
 
 // hairpinConn is a net.Conn that makes a “hairpin” call when closed, back into
@@ -255,20 +261,22 @@ func (conn *hairpinConn) Close() error {
 }
 
 func TestHairpinInClose(t *testing.T) {
-	// This tests that the underlying net.Conn can call back into the
-	// tls.Conn when being closed without deadlocking.
-	client, server := net.Pipe()
-	defer server.Close()
-	defer client.Close()
+	if !UseBabasslTag.IsOpen() {
+		// This tests that the underlying net.Conn can call back into the
+		// tls.Conn when being closed without deadlocking.
+		client, server := net.Pipe()
+		defer server.Close()
+		defer client.Close()
 
-	conn := &hairpinConn{client, nil}
-	tlsConn := Server(conn, &Config{
-		GetCertificate: func(*ClientHelloInfo) (*Certificate, error) {
-			panic("unreachable")
-		},
-	})
-	conn.tlsConn = tlsConn
+		conn := &hairpinConn{client, nil}
+		tlsConn := Server(conn, &Config{
+			GetCertificate: func(*ClientHelloInfo) (*Certificate, error) {
+				panic("unreachable")
+			},
+		})
+		conn.tlsConn = tlsConn
 
-	// This call should not deadlock.
-	tlsConn.Close()
+		// This call should not deadlock.
+		tlsConn.Close()
+	}
 }

@@ -14,7 +14,6 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -22,6 +21,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	"crypto/x509"
 )
 
 // Server returns a new TLS server side connection
@@ -29,7 +30,21 @@ import (
 // The configuration config must be non-nil and must include
 // at least one certificate or else set GetCertificate.
 func Server(conn net.Conn, config *Config) *Conn {
-	return &Conn{conn: conn, config: config}
+	if UseBabasslTag.IsOpen() {
+		if config.CgoBabasslCtx == nil {
+			sslCtx := SslCtx{}
+			isClient := false
+			err := sslCtx.Init(config, isClient)
+			if err != nil {
+				panic(err)
+			}
+			sslCtx.Conn = conn
+			config.CgoBabasslCtx = &sslCtx
+		}
+		return &Conn{conn: conn, config: config}
+	} else {
+		return &Conn{conn: conn, config: config}
+	}
 }
 
 // Client returns a new TLS client side connection
@@ -37,7 +52,21 @@ func Server(conn net.Conn, config *Config) *Conn {
 // The config cannot be nil: users must set either ServerName or
 // InsecureSkipVerify in the config.
 func Client(conn net.Conn, config *Config) *Conn {
-	return &Conn{conn: conn, config: config, isClient: true}
+	if UseBabasslTag.IsOpen() {
+		if config.CgoBabasslCtx == nil {
+			sslCtx := SslCtx{}
+			isClient := true
+			err := sslCtx.Init(config, isClient)
+			if err != nil {
+				panic(err)
+			}
+			config.CgoBabasslCtx = &sslCtx
+		}
+		return &Conn{conn: conn, config: config, isClient: true}
+	} else {
+		return &Conn{conn: conn, config: config, isClient: true}
+	}
+
 }
 
 // A listener implements a network listener (net.Listener) for TLS connections.
@@ -195,6 +224,29 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 
 	var cert Certificate
 	var skippedBlockTypes []string
+
+	if UseBabasslTag.IsOpen() {
+		var err error
+		babasslCert := &SslCertificate{}
+
+		babasslCert.Cert, err = TranslateRawByteToSslX509(certPEMBlock)
+		if err != nil {
+			return fail(err)
+		}
+
+		babasslCert.CertChain, err = TranslateRawByteToSslX509Chain(certPEMBlock)
+		if err != nil {
+			return fail(err)
+		}
+
+		babasslCert.Pkey, err = TranslateRawByteToSslPrivateKey(keyPEMBlock)
+		if err != nil {
+			return fail(err)
+		}
+
+		cert.BabasslCert = babasslCert
+	}
+
 	for {
 		var certDERBlock *pem.Block
 		certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)

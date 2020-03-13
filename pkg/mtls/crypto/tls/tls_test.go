@@ -98,58 +98,64 @@ var keyPairTests = []struct {
 }
 
 func TestX509KeyPair(t *testing.T) {
-	t.Parallel()
-	var pem []byte
-	for _, test := range keyPairTests {
-		pem = []byte(test.cert + test.key)
-		if _, err := X509KeyPair(pem, pem); err != nil {
-			t.Errorf("Failed to load %s cert followed by %s key: %s", test.algo, test.algo, err)
-		}
-		pem = []byte(test.key + test.cert)
-		if _, err := X509KeyPair(pem, pem); err != nil {
-			t.Errorf("Failed to load %s key followed by %s cert: %s", test.algo, test.algo, err)
+	if !UseBabasslTag.IsOpen() {
+		t.Parallel()
+		var pem []byte
+		for _, test := range keyPairTests {
+			pem = []byte(test.cert + test.key)
+			if _, err := X509KeyPair(pem, pem); err != nil {
+				t.Errorf("Failed to load %s cert followed by %s key: %s", test.algo, test.algo, err)
+			}
+			pem = []byte(test.key + test.cert)
+			if _, err := X509KeyPair(pem, pem); err != nil {
+				t.Errorf("Failed to load %s key followed by %s cert: %s", test.algo, test.algo, err)
+			}
 		}
 	}
 }
 
 func TestX509KeyPairErrors(t *testing.T) {
-	_, err := X509KeyPair([]byte(rsaKeyPEM), []byte(rsaCertPEM))
-	if err == nil {
-		t.Fatalf("X509KeyPair didn't return an error when arguments were switched")
-	}
-	if subStr := "been switched"; !strings.Contains(err.Error(), subStr) {
-		t.Fatalf("Expected %q in the error when switching arguments to X509KeyPair, but the error was %q", subStr, err)
-	}
+	if !UseBabasslTag.IsOpen() {
+		_, err := X509KeyPair([]byte(rsaKeyPEM), []byte(rsaCertPEM))
+		if err == nil {
+			t.Fatalf("X509KeyPair didn't return an error when arguments were switched")
+		}
+		if subStr := "been switched"; !strings.Contains(err.Error(), subStr) {
+			t.Fatalf("Expected %q in the error when switching arguments to X509KeyPair, but the error was %q", subStr, err)
+		}
 
-	_, err = X509KeyPair([]byte(rsaCertPEM), []byte(rsaCertPEM))
-	if err == nil {
-		t.Fatalf("X509KeyPair didn't return an error when both arguments were certificates")
-	}
-	if subStr := "certificate"; !strings.Contains(err.Error(), subStr) {
-		t.Fatalf("Expected %q in the error when both arguments to X509KeyPair were certificates, but the error was %q", subStr, err)
-	}
+		_, err = X509KeyPair([]byte(rsaCertPEM), []byte(rsaCertPEM))
+		if err == nil {
+			t.Fatalf("X509KeyPair didn't return an error when both arguments were certificates")
+		}
+		if subStr := "certificate"; !strings.Contains(err.Error(), subStr) {
+			t.Fatalf("Expected %q in the error when both arguments to X509KeyPair were certificates, but the error was %q", subStr, err)
+		}
 
-	const nonsensePEM = `
+		const nonsensePEM = `
 -----BEGIN NONSENSE-----
 Zm9vZm9vZm9v
 -----END NONSENSE-----
 `
 
-	_, err = X509KeyPair([]byte(nonsensePEM), []byte(nonsensePEM))
-	if err == nil {
-		t.Fatalf("X509KeyPair didn't return an error when both arguments were nonsense")
-	}
-	if subStr := "NONSENSE"; !strings.Contains(err.Error(), subStr) {
-		t.Fatalf("Expected %q in the error when both arguments to X509KeyPair were nonsense, but the error was %q", subStr, err)
+		_, err = X509KeyPair([]byte(nonsensePEM), []byte(nonsensePEM))
+		if err == nil {
+			t.Fatalf("X509KeyPair didn't return an error when both arguments were nonsense")
+		}
+		if subStr := "NONSENSE"; !strings.Contains(err.Error(), subStr) {
+			t.Fatalf("Expected %q in the error when both arguments to X509KeyPair were nonsense, but the error was %q", subStr, err)
+		}
 	}
 }
 
 func TestX509MixedKeyPair(t *testing.T) {
-	if _, err := X509KeyPair([]byte(rsaCertPEM), []byte(ecdsaKeyPEM)); err == nil {
-		t.Error("Load of RSA certificate succeeded with ECDSA private key")
-	}
-	if _, err := X509KeyPair([]byte(ecdsaCertPEM), []byte(rsaKeyPEM)); err == nil {
-		t.Error("Load of ECDSA certificate succeeded with RSA private key")
+	if !UseBabasslTag.IsOpen() {
+		if _, err := X509KeyPair([]byte(rsaCertPEM), []byte(ecdsaKeyPEM)); err == nil {
+			t.Error("Load of RSA certificate succeeded with ECDSA private key")
+		}
+		if _, err := X509KeyPair([]byte(ecdsaCertPEM), []byte(rsaKeyPEM)); err == nil {
+			t.Error("Load of ECDSA certificate succeeded with RSA private key")
+		}
 	}
 }
 
@@ -211,22 +217,24 @@ func isTimeoutError(err error) bool {
 // (non-zero, nil) when a Close (alertCloseNotify) is sitting right
 // behind the application data in the buffer.
 func TestConnReadNonzeroAndEOF(t *testing.T) {
-	// This test is racy: it assumes that after a write to a
-	// localhost TCP connection, the peer TCP connection can
-	// immediately read it. Because it's racy, we skip this test
-	// in short mode, and then retry it several times with an
-	// increasing sleep in between our final write (via srv.Close
-	// below) and the following read.
-	if testing.Short() {
-		t.Skip("skipping in short mode")
-	}
-	var err error
-	for delay := time.Millisecond; delay <= 64*time.Millisecond; delay *= 2 {
-		if err = testConnReadNonzeroAndEOF(t, delay); err == nil {
-			return
+	if !UseBabasslTag.IsOpen() {
+		// This test is racy: it assumes that after a write to a
+		// localhost TCP connection, the peer TCP connection can
+		// immediately read it. Because it's racy, we skip this test
+		// in short mode, and then retry it several times with an
+		// increasing sleep in between our final write (via srv.Close
+		// below) and the following read.
+		if testing.Short() {
+			t.Skip("skipping in short mode")
 		}
+		var err error
+		for delay := time.Millisecond; delay <= 64*time.Millisecond; delay *= 2 {
+			if err = testConnReadNonzeroAndEOF(t, delay); err == nil {
+				return
+			}
+		}
+		t.Error(err)
 	}
-	t.Error(err)
 }
 
 func testConnReadNonzeroAndEOF(t *testing.T, delay time.Duration) error {
@@ -286,74 +294,78 @@ func testConnReadNonzeroAndEOF(t *testing.T, delay time.Duration) error {
 }
 
 func TestTLSUniqueMatches(t *testing.T) {
-	ln := newLocalListener(t)
-	defer ln.Close()
+	if !UseBabasslTag.IsOpen() {
+		ln := newLocalListener(t)
+		defer ln.Close()
 
-	serverTLSUniques := make(chan []byte)
-	go func() {
-		for i := 0; i < 2; i++ {
-			sconn, err := ln.Accept()
-			if err != nil {
-				t.Error(err)
-				return
+		serverTLSUniques := make(chan []byte)
+		go func() {
+			for i := 0; i < 2; i++ {
+				sconn, err := ln.Accept()
+				if err != nil {
+					t.Error(err)
+					return
+				}
+				serverConfig := testConfig.Clone()
+				srv := Server(sconn, serverConfig)
+				if err := srv.Handshake(); err != nil {
+					t.Error(err)
+					return
+				}
+				serverTLSUniques <- srv.ConnectionState().TLSUnique
 			}
-			serverConfig := testConfig.Clone()
-			srv := Server(sconn, serverConfig)
-			if err := srv.Handshake(); err != nil {
-				t.Error(err)
-				return
-			}
-			serverTLSUniques <- srv.ConnectionState().TLSUnique
+		}()
+
+		clientConfig := testConfig.Clone()
+		clientConfig.ClientSessionCache = NewLRUClientSessionCache(1)
+		conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
+		if err != nil {
+			t.Fatal(err)
 		}
-	}()
+		if !bytes.Equal(conn.ConnectionState().TLSUnique, <-serverTLSUniques) {
+			t.Error("client and server channel bindings differ")
+		}
+		conn.Close()
 
-	clientConfig := testConfig.Clone()
-	clientConfig.ClientSessionCache = NewLRUClientSessionCache(1)
-	conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(conn.ConnectionState().TLSUnique, <-serverTLSUniques) {
-		t.Error("client and server channel bindings differ")
-	}
-	conn.Close()
-
-	conn, err = Dial("tcp", ln.Addr().String(), clientConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer conn.Close()
-	if !conn.ConnectionState().DidResume {
-		t.Error("second session did not use resumption")
-	}
-	if !bytes.Equal(conn.ConnectionState().TLSUnique, <-serverTLSUniques) {
-		t.Error("client and server channel bindings differ when session resumption is used")
+		conn, err = Dial("tcp", ln.Addr().String(), clientConfig)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer conn.Close()
+		if !conn.ConnectionState().DidResume {
+			t.Error("second session did not use resumption")
+		}
+		if !bytes.Equal(conn.ConnectionState().TLSUnique, <-serverTLSUniques) {
+			t.Error("client and server channel bindings differ when session resumption is used")
+		}
 	}
 }
 
 func TestVerifyHostname(t *testing.T) {
-	testenv.MustHaveExternalNetwork(t)
+	if !UseBabasslTag.IsOpen() {
+		testenv.MustHaveExternalNetwork(t)
 
-	c, err := Dial("tcp", "www.google.com:https", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := c.VerifyHostname("www.google.com"); err != nil {
-		t.Fatalf("verify www.google.com: %v", err)
-	}
-	if err := c.VerifyHostname("www.yahoo.com"); err == nil {
-		t.Fatalf("verify www.yahoo.com succeeded")
-	}
+		c, err := Dial("tcp", "www.google.com:https", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := c.VerifyHostname("www.google.com"); err != nil {
+			t.Fatalf("verify www.google.com: %v", err)
+		}
+		if err := c.VerifyHostname("www.yahoo.com"); err == nil {
+			t.Fatalf("verify www.yahoo.com succeeded")
+		}
 
-	c, err = Dial("tcp", "www.google.com:https", &Config{InsecureSkipVerify: true})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := c.VerifyHostname("www.google.com"); err == nil {
-		t.Fatalf("verify www.google.com succeeded with InsecureSkipVerify=true")
-	}
-	if err := c.VerifyHostname("www.yahoo.com"); err == nil {
-		t.Fatalf("verify www.google.com succeeded with InsecureSkipVerify=true")
+		c, err = Dial("tcp", "www.google.com:https", &Config{InsecureSkipVerify: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := c.VerifyHostname("www.google.com"); err == nil {
+			t.Fatalf("verify www.google.com succeeded with InsecureSkipVerify=true")
+		}
+		if err := c.VerifyHostname("www.yahoo.com"); err == nil {
+			t.Fatalf("verify www.google.com succeeded with InsecureSkipVerify=true")
+		}
 	}
 }
 
@@ -385,295 +397,305 @@ func TestVerifyHostnameResumed(t *testing.T) {
 */
 
 func TestConnCloseBreakingWrite(t *testing.T) {
-	ln := newLocalListener(t)
-	defer ln.Close()
+	if !UseBabasslTag.IsOpen() {
+		ln := newLocalListener(t)
+		defer ln.Close()
 
-	srvCh := make(chan *Conn, 1)
-	var serr error
-	var sconn net.Conn
-	go func() {
-		var err error
-		sconn, err = ln.Accept()
+		srvCh := make(chan *Conn, 1)
+		var serr error
+		var sconn net.Conn
+		go func() {
+			var err error
+			sconn, err = ln.Accept()
+			if err != nil {
+				serr = err
+				srvCh <- nil
+				return
+			}
+			serverConfig := testConfig.Clone()
+			srv := Server(sconn, serverConfig)
+			if err := srv.Handshake(); err != nil {
+				serr = fmt.Errorf("handshake: %v", err)
+				srvCh <- nil
+				return
+			}
+			srvCh <- srv
+		}()
+
+		cconn, err := net.Dial("tcp", ln.Addr().String())
 		if err != nil {
-			serr = err
-			srvCh <- nil
-			return
+			t.Fatal(err)
 		}
-		serverConfig := testConfig.Clone()
-		srv := Server(sconn, serverConfig)
-		if err := srv.Handshake(); err != nil {
-			serr = fmt.Errorf("handshake: %v", err)
-			srvCh <- nil
-			return
+		defer cconn.Close()
+
+		conn := &changeImplConn{
+			Conn: cconn,
 		}
-		srvCh <- srv
-	}()
 
-	cconn, err := net.Dial("tcp", ln.Addr().String())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cconn.Close()
+		clientConfig := testConfig.Clone()
+		tconn := Client(conn, clientConfig)
+		if err := tconn.Handshake(); err != nil {
+			t.Fatal(err)
+		}
 
-	conn := &changeImplConn{
-		Conn: cconn,
-	}
+		srv := <-srvCh
+		if srv == nil {
+			t.Fatal(serr)
+		}
+		defer sconn.Close()
 
-	clientConfig := testConfig.Clone()
-	tconn := Client(conn, clientConfig)
-	if err := tconn.Handshake(); err != nil {
-		t.Fatal(err)
-	}
+		connClosed := make(chan struct{})
+		conn.closeFunc = func() error {
+			close(connClosed)
+			return nil
+		}
 
-	srv := <-srvCh
-	if srv == nil {
-		t.Fatal(serr)
-	}
-	defer sconn.Close()
+		inWrite := make(chan bool, 1)
+		var errConnClosed = errors.New("conn closed for test")
+		conn.writeFunc = func(p []byte) (n int, err error) {
+			inWrite <- true
+			<-connClosed
+			return 0, errConnClosed
+		}
 
-	connClosed := make(chan struct{})
-	conn.closeFunc = func() error {
-		close(connClosed)
-		return nil
-	}
+		closeReturned := make(chan bool, 1)
+		go func() {
+			<-inWrite
+			tconn.Close() // test that this doesn't block forever.
+			closeReturned <- true
+		}()
 
-	inWrite := make(chan bool, 1)
-	var errConnClosed = errors.New("conn closed for test")
-	conn.writeFunc = func(p []byte) (n int, err error) {
-		inWrite <- true
-		<-connClosed
-		return 0, errConnClosed
-	}
+		_, err = tconn.Write([]byte("foo"))
+		if err != errConnClosed {
+			t.Errorf("Write error = %v; want errConnClosed", err)
+		}
 
-	closeReturned := make(chan bool, 1)
-	go func() {
-		<-inWrite
-		tconn.Close() // test that this doesn't block forever.
-		closeReturned <- true
-	}()
-
-	_, err = tconn.Write([]byte("foo"))
-	if err != errConnClosed {
-		t.Errorf("Write error = %v; want errConnClosed", err)
-	}
-
-	<-closeReturned
-	if err := tconn.Close(); err != errClosed {
-		t.Errorf("Close error = %v; want errClosed", err)
+		<-closeReturned
+		if err := tconn.Close(); err != errClosed {
+			t.Errorf("Close error = %v; want errClosed", err)
+		}
 	}
 }
 
 func TestConnCloseWrite(t *testing.T) {
-	ln := newLocalListener(t)
-	defer ln.Close()
+	if !UseBabasslTag.IsOpen() {
+		ln := newLocalListener(t)
+		defer ln.Close()
 
-	clientDoneChan := make(chan struct{})
+		clientDoneChan := make(chan struct{})
 
-	serverCloseWrite := func() error {
-		sconn, err := ln.Accept()
-		if err != nil {
-			return fmt.Errorf("accept: %v", err)
-		}
-		defer sconn.Close()
+		serverCloseWrite := func() error {
+			sconn, err := ln.Accept()
+			if err != nil {
+				return fmt.Errorf("accept: %v", err)
+			}
+			defer sconn.Close()
 
-		serverConfig := testConfig.Clone()
-		srv := Server(sconn, serverConfig)
-		if err := srv.Handshake(); err != nil {
-			return fmt.Errorf("handshake: %v", err)
-		}
-		defer srv.Close()
+			serverConfig := testConfig.Clone()
+			srv := Server(sconn, serverConfig)
+			if err := srv.Handshake(); err != nil {
+				return fmt.Errorf("handshake: %v", err)
+			}
+			defer srv.Close()
 
-		data, err := ioutil.ReadAll(srv)
-		if err != nil {
-			return err
-		}
-		if len(data) > 0 {
-			return fmt.Errorf("Read data = %q; want nothing", data)
-		}
+			data, err := ioutil.ReadAll(srv)
+			if err != nil {
+				return err
+			}
+			if len(data) > 0 {
+				return fmt.Errorf("Read data = %q; want nothing", data)
+			}
 
-		if err := srv.CloseWrite(); err != nil {
-			return fmt.Errorf("server CloseWrite: %v", err)
-		}
+			if err := srv.CloseWrite(); err != nil {
+				return fmt.Errorf("server CloseWrite: %v", err)
+			}
 
-		// Wait for clientCloseWrite to finish, so we know we
-		// tested the CloseWrite before we defer the
-		// sconn.Close above, which would also cause the
-		// client to unblock like CloseWrite.
-		<-clientDoneChan
-		return nil
-	}
-
-	clientCloseWrite := func() error {
-		defer close(clientDoneChan)
-
-		clientConfig := testConfig.Clone()
-		conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
-		if err != nil {
-			return err
-		}
-		if err := conn.Handshake(); err != nil {
-			return err
-		}
-		defer conn.Close()
-
-		if err := conn.CloseWrite(); err != nil {
-			return fmt.Errorf("client CloseWrite: %v", err)
+			// Wait for clientCloseWrite to finish, so we know we
+			// tested the CloseWrite before we defer the
+			// sconn.Close above, which would also cause the
+			// client to unblock like CloseWrite.
+			<-clientDoneChan
+			return nil
 		}
 
-		if _, err := conn.Write([]byte{0}); err != errShutdown {
-			return fmt.Errorf("CloseWrite error = %v; want errShutdown", err)
+		clientCloseWrite := func() error {
+			defer close(clientDoneChan)
+
+			clientConfig := testConfig.Clone()
+			conn, err := Dial("tcp", ln.Addr().String(), clientConfig)
+			if err != nil {
+				return err
+			}
+			if err := conn.Handshake(); err != nil {
+				return err
+			}
+			defer conn.Close()
+
+			if err := conn.CloseWrite(); err != nil {
+				return fmt.Errorf("client CloseWrite: %v", err)
+			}
+
+			if _, err := conn.Write([]byte{0}); err != errShutdown {
+				return fmt.Errorf("CloseWrite error = %v; want errShutdown", err)
+			}
+
+			data, err := ioutil.ReadAll(conn)
+			if err != nil {
+				return err
+			}
+			if len(data) > 0 {
+				return fmt.Errorf("Read data = %q; want nothing", data)
+			}
+			return nil
 		}
 
-		data, err := ioutil.ReadAll(conn)
-		if err != nil {
-			return err
+		errChan := make(chan error, 2)
+
+		go func() { errChan <- serverCloseWrite() }()
+		go func() { errChan <- clientCloseWrite() }()
+
+		for i := 0; i < 2; i++ {
+			select {
+			case err := <-errChan:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-time.After(10 * time.Second):
+				t.Fatal("deadlock")
+			}
 		}
-		if len(data) > 0 {
-			return fmt.Errorf("Read data = %q; want nothing", data)
-		}
-		return nil
-	}
 
-	errChan := make(chan error, 2)
+		// Also test CloseWrite being called before the handshake is
+		// finished:
+		{
+			ln2 := newLocalListener(t)
+			defer ln2.Close()
 
-	go func() { errChan <- serverCloseWrite() }()
-	go func() { errChan <- clientCloseWrite() }()
-
-	for i := 0; i < 2; i++ {
-		select {
-		case err := <-errChan:
+			netConn, err := net.Dial("tcp", ln2.Addr().String())
 			if err != nil {
 				t.Fatal(err)
 			}
-		case <-time.After(10 * time.Second):
-			t.Fatal("deadlock")
-		}
-	}
+			defer netConn.Close()
+			conn := Client(netConn, testConfig.Clone())
 
-	// Also test CloseWrite being called before the handshake is
-	// finished:
-	{
-		ln2 := newLocalListener(t)
-		defer ln2.Close()
-
-		netConn, err := net.Dial("tcp", ln2.Addr().String())
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer netConn.Close()
-		conn := Client(netConn, testConfig.Clone())
-
-		if err := conn.CloseWrite(); err != errEarlyCloseWrite {
-			t.Errorf("CloseWrite error = %v; want errEarlyCloseWrite", err)
+			if err := conn.CloseWrite(); err != errEarlyCloseWrite {
+				t.Errorf("CloseWrite error = %v; want errEarlyCloseWrite", err)
+			}
 		}
 	}
 }
 
 func TestCloneFuncFields(t *testing.T) {
-	const expectedCount = 5
-	called := 0
+	if !UseBabasslTag.IsOpen() {
+		const expectedCount = 5
+		called := 0
 
-	c1 := Config{
-		Time: func() time.Time {
-			called |= 1 << 0
-			return time.Time{}
-		},
-		GetCertificate: func(*ClientHelloInfo) (*Certificate, error) {
-			called |= 1 << 1
-			return nil, nil
-		},
-		GetClientCertificate: func(*CertificateRequestInfo) (*Certificate, error) {
-			called |= 1 << 2
-			return nil, nil
-		},
-		GetConfigForClient: func(*ClientHelloInfo) (*Config, error) {
-			called |= 1 << 3
-			return nil, nil
-		},
-		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			called |= 1 << 4
-			return nil
-		},
-	}
+		c1 := Config{
+			Time: func() time.Time {
+				called |= 1 << 0
+				return time.Time{}
+			},
+			GetCertificate: func(*ClientHelloInfo) (*Certificate, error) {
+				called |= 1 << 1
+				return nil, nil
+			},
+			GetClientCertificate: func(*CertificateRequestInfo) (*Certificate, error) {
+				called |= 1 << 2
+				return nil, nil
+			},
+			GetConfigForClient: func(*ClientHelloInfo) (*Config, error) {
+				called |= 1 << 3
+				return nil, nil
+			},
+			VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+				called |= 1 << 4
+				return nil
+			},
+		}
 
-	c2 := c1.Clone()
+		c2 := c1.Clone()
 
-	c2.Time()
-	c2.GetCertificate(nil)
-	c2.GetClientCertificate(nil)
-	c2.GetConfigForClient(nil)
-	c2.VerifyPeerCertificate(nil, nil)
+		c2.Time()
+		c2.GetCertificate(nil)
+		c2.GetClientCertificate(nil)
+		c2.GetConfigForClient(nil)
+		c2.VerifyPeerCertificate(nil, nil)
 
-	if called != (1<<expectedCount)-1 {
-		t.Fatalf("expected %d calls but saw calls %b", expectedCount, called)
+		if called != (1<<expectedCount)-1 {
+			t.Fatalf("expected %d calls but saw calls %b", expectedCount, called)
+		}
 	}
 }
 
 func TestCloneNonFuncFields(t *testing.T) {
-	var c1 Config
-	v := reflect.ValueOf(&c1).Elem()
+	if !UseBabasslTag.IsOpen() {
+		var c1 Config
+		v := reflect.ValueOf(&c1).Elem()
 
-	typ := v.Type()
-	for i := 0; i < typ.NumField(); i++ {
-		f := v.Field(i)
-		if !f.CanSet() {
-			// unexported field; not cloned.
-			continue
+		typ := v.Type()
+		for i := 0; i < typ.NumField(); i++ {
+			f := v.Field(i)
+			if !f.CanSet() {
+				// unexported field; not cloned.
+				continue
+			}
+
+			// testing/quick can't handle functions or interfaces and so
+			// isn't used here.
+			switch fn := typ.Field(i).Name; fn {
+			case "Rand":
+				f.Set(reflect.ValueOf(io.Reader(os.Stdin)))
+			case "Time", "GetCertificate", "GetConfigForClient", "VerifyPeerCertificate", "GetClientCertificate":
+				// DeepEqual can't compare functions. If you add a
+				// function field to this list, you must also change
+				// TestCloneFuncFields to ensure that the func field is
+				// cloned.
+			case "Certificates":
+				f.Set(reflect.ValueOf([]Certificate{
+					{Certificate: [][]byte{{'b'}}},
+				}))
+			case "NameToCertificate":
+				f.Set(reflect.ValueOf(map[string]*Certificate{"a": nil}))
+			case "RootCAs", "ClientCAs":
+				f.Set(reflect.ValueOf(x509.NewCertPool()))
+			case "ClientSessionCache":
+				f.Set(reflect.ValueOf(NewLRUClientSessionCache(10)))
+			case "KeyLogWriter":
+				f.Set(reflect.ValueOf(io.Writer(os.Stdout)))
+			case "NextProtos":
+				f.Set(reflect.ValueOf([]string{"a", "b"}))
+			case "ServerName":
+				f.Set(reflect.ValueOf("b"))
+			case "ClientAuth":
+				f.Set(reflect.ValueOf(VerifyClientCertIfGiven))
+			case "InsecureSkipVerify", "SessionTicketsDisabled", "DynamicRecordSizingDisabled", "PreferServerCipherSuites":
+				f.Set(reflect.ValueOf(true))
+			case "MinVersion", "MaxVersion":
+				f.Set(reflect.ValueOf(uint16(VersionTLS12)))
+			case "SessionTicketKey":
+				f.Set(reflect.ValueOf([32]byte{}))
+			case "CipherSuites":
+				f.Set(reflect.ValueOf([]uint16{1, 2}))
+			case "CurvePreferences":
+				f.Set(reflect.ValueOf([]CurveID{CurveP256}))
+			case "Renegotiation":
+				f.Set(reflect.ValueOf(RenegotiateOnceAsClient))
+			case "CgoBabasslCtx":
+				// do nothing, only cgo openssl/babassl need this field
+			default:
+				t.Errorf("all fields must be accounted for, but saw unknown field %q", fn)
+			}
 		}
 
-		// testing/quick can't handle functions or interfaces and so
-		// isn't used here.
-		switch fn := typ.Field(i).Name; fn {
-		case "Rand":
-			f.Set(reflect.ValueOf(io.Reader(os.Stdin)))
-		case "Time", "GetCertificate", "GetConfigForClient", "VerifyPeerCertificate", "GetClientCertificate":
-			// DeepEqual can't compare functions. If you add a
-			// function field to this list, you must also change
-			// TestCloneFuncFields to ensure that the func field is
-			// cloned.
-		case "Certificates":
-			f.Set(reflect.ValueOf([]Certificate{
-				{Certificate: [][]byte{{'b'}}},
-			}))
-		case "NameToCertificate":
-			f.Set(reflect.ValueOf(map[string]*Certificate{"a": nil}))
-		case "RootCAs", "ClientCAs":
-			f.Set(reflect.ValueOf(x509.NewCertPool()))
-		case "ClientSessionCache":
-			f.Set(reflect.ValueOf(NewLRUClientSessionCache(10)))
-		case "KeyLogWriter":
-			f.Set(reflect.ValueOf(io.Writer(os.Stdout)))
-		case "NextProtos":
-			f.Set(reflect.ValueOf([]string{"a", "b"}))
-		case "ServerName":
-			f.Set(reflect.ValueOf("b"))
-		case "ClientAuth":
-			f.Set(reflect.ValueOf(VerifyClientCertIfGiven))
-		case "InsecureSkipVerify", "SessionTicketsDisabled", "DynamicRecordSizingDisabled", "PreferServerCipherSuites":
-			f.Set(reflect.ValueOf(true))
-		case "MinVersion", "MaxVersion":
-			f.Set(reflect.ValueOf(uint16(VersionTLS12)))
-		case "SessionTicketKey":
-			f.Set(reflect.ValueOf([32]byte{}))
-		case "CipherSuites":
-			f.Set(reflect.ValueOf([]uint16{1, 2}))
-		case "CurvePreferences":
-			f.Set(reflect.ValueOf([]CurveID{CurveP256}))
-		case "Renegotiation":
-			f.Set(reflect.ValueOf(RenegotiateOnceAsClient))
-		default:
-			t.Errorf("all fields must be accounted for, but saw unknown field %q", fn)
+		c2 := c1.Clone()
+		// DeepEqual also compares unexported fields, thus c2 needs to have run
+		// serverInit in order to be DeepEqual to c1. Cloning it and discarding
+		// the result is sufficient.
+		c2.Clone()
+
+		if !reflect.DeepEqual(&c1, c2) {
+			t.Errorf("clone failed to copy a field")
 		}
-	}
-
-	c2 := c1.Clone()
-	// DeepEqual also compares unexported fields, thus c2 needs to have run
-	// serverInit in order to be DeepEqual to c1. Cloning it and discarding
-	// the result is sufficient.
-	c2.Clone()
-
-	if !reflect.DeepEqual(&c1, c2) {
-		t.Errorf("clone failed to copy a field")
 	}
 }
 
