@@ -57,7 +57,7 @@ binary-host: build-host
 
 build-local:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
-	CGO_ENABLED=0 go build\
+	CGO_ENABLED=1 go build\
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION})" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
@@ -69,7 +69,7 @@ build-local:
 
 build-linux32:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
-	CGO_ENABLED=0 env GOOS=linux GOARCH=386 go build\
+	CGO_ENABLED=1 env GOOS=linux GOARCH=386 go build\
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION})" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
@@ -81,7 +81,7 @@ build-linux32:
 
 build-linux64:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
-	CGO_ENABLED=0 env GOOS=linux GOARCH=amd64 go build\
+	CGO_ENABLED=1 env GOOS=linux GOARCH=amd64 go build\
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION})" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
