@@ -19,7 +19,6 @@ package originaldst
 
 import (
 	"fmt"
-	__tl "log"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
@@ -49,7 +48,9 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 
 	ips := fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
 
-	__tl.Print("ips:", ips)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("originalDst remote addr: %s:%d", ips, port)
+	}
 
 	cb.SetOriginalAddr(ips, port)
 

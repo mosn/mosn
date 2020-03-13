@@ -110,14 +110,15 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateListenerFilter
 		return nil, errors.New("error updating listener, listener have filter chains count is not 1")
 	}
 	// set listener filter , network filter and stream filter
-  var listenerFiltersFactories []api.ListenerFilterChainFactory
+	var listenerFiltersFactories []api.ListenerFilterChainFactory
 	var networkFiltersFactories []api.NetworkFilterChainFactory
 	var streamFiltersFactories []api.StreamFilterChainFactory
-  listenerFiltersFactories = configmanager.GetListenerFilters(lc.ListenerFilters)
+	listenerFiltersFactories = configmanager.GetListenerFilters(lc.ListenerFilters)
 	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
 	streamFiltersFactories = configmanager.GetStreamFilters(lc.StreamFilters)
 
 	// check ListenerFilters for UseOriginalDst
+	// TODO remove
 	for _, v := range lc.ListenerFilters {
 		if v.Type == v2.ORIGINALDST_LISTENER_FILTER {
 			lc.UseOriginalDst = true
@@ -601,7 +602,7 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
-  
+
 	if localListener != nil {
 		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
