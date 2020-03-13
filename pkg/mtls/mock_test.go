@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls/certtool"
 	"mosn.io/mosn/pkg/types"
@@ -192,6 +192,52 @@ func (c *certInfo) CreateSecret() (*secretInfo, error) {
 
 func (c *certInfo) CreateCertConfig() (*v2.TLSConfig, error) {
 	secret, err := c.CreateSecret()
+	if err != nil {
+		return nil, err
+	}
+	return &v2.TLSConfig{
+		Status:     true,
+		CACert:     secret.Validation,
+		CertChain:  secret.Certificate,
+		PrivateKey: secret.PrivateKey,
+	}, nil
+}
+
+func (c *certInfo) CreateSecretCertChain() (*secretInfo, error) {
+	middleCaPriv, err := certtool.GeneratePrivateKey(c.Curve)
+	if err != nil {
+		return nil, fmt.Errorf("generate key failed %v", err)
+	}
+
+	middleCaCert, err := certtool.CreateTemplate("", true, nil)
+
+	middleCa, err := certtool.GenerateMiddleCA(middleCaCert, middleCaPriv)
+
+	priv, err := certtool.GeneratePrivateKey(c.Curve)
+	if err != nil {
+		return nil, fmt.Errorf("generate key failed %v", err)
+	}
+	var dns []string
+	if c.DNS != "" {
+		dns = append(dns, c.DNS)
+	}
+	tmpl, err := certtool.CreateTemplate(c.CommonName, false, dns)
+	if err != nil {
+		return nil, fmt.Errorf("generate certificate template failed %v", err)
+	}
+	cert, err := certtool.CreateCertificateInfo(tmpl, middleCa.Cert, priv, middleCa.Priv)
+	if err != nil {
+		return nil, fmt.Errorf("sign certificate failed %v", err)
+	}
+	return &secretInfo{
+		Certificate: cert.CertPem + middleCa.CertificateInfo.CertPem,
+		PrivateKey:  cert.KeyPem,
+		Validation:  certtool.GetRootCA().CertPem,
+	}, nil
+}
+
+func (c *certInfo) CreateCertChainConfig() (*v2.TLSConfig, error) {
+	secret, err := c.CreateSecretCertChain()
 	if err != nil {
 		return nil, err
 	}

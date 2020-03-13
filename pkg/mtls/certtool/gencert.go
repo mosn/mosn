@@ -216,3 +216,27 @@ func SignCertificate(template *x509.Certificate, priv interface{}) (*Certificate
 	}
 	return CreateCertificateInfo(template, rootCA.cert, priv, rootCA.priv)
 }
+
+type MiddleCA struct {
+	*CertificateInfo
+	Cert *x509.Certificate
+	Priv interface{}
+}
+
+func GenerateMiddleCA(template *x509.Certificate, priv interface{}) (*MiddleCA, error) {
+	if rootCA == nil {
+		if err := Initialize(); err != nil {
+			return nil, err
+		}
+	}
+
+	middleCa, err := createCertificate(template, rootCA.cert, priv, rootCA.priv)
+	if err != nil {
+		return nil, err
+	}
+	return &MiddleCA{
+		CertificateInfo: middleCa.CertificateInfo,
+		Cert:            middleCa.cert,
+		Priv:            middleCa.priv,
+	}, nil
+}

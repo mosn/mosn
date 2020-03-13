@@ -9,9 +9,11 @@ import (
 	"testing"
 	"time"
 
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
@@ -46,7 +48,12 @@ func startTransferMesh(t *testing.T, tc *integrate.XTestCase) {
 	types.TransferStatsDomainSocket = "/tmp/stats.sock"
 	types.TransferListenDomainSocket = "/tmp/listen.sock"
 	types.ReconfigureDomainSocket = "/tmp/reconfig.sock"
-	cfg := util.CreateXProtocolMesh(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.SubProtocol, []string{tc.AppServer.Addr()}, true)
+	var cfg *v2.MOSNConfig
+	if !tls.UseBabasslTag.IsOpen() {
+		cfg = util.CreateXProtocolMesh(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.SubProtocol, []string{tc.AppServer.Addr()}, true)
+	} else {
+		cfg = util.CreateXProtocolMesh(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.SubProtocol, []string{tc.AppServer.Addr()}, false)
+	}
 
 	configPath := "/tmp/transfer.json"
 	os.Remove(configPath)
