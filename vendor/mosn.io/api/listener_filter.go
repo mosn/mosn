@@ -31,8 +31,12 @@ type ListenerFilterChainFactoryCallbacks interface {
 	SetOriginalAddr(ip string, port int)
 	// Set useOriginalDst
 	SetUseOriginalDst(flag bool)
+	// Get useOriginalDst
+	GetUseOriginalDst() bool
 	// Get Context
 	GetOriContext() context.Context
+	// Accept again
+	UseOriginalDst(ctx context.Context)
 }
 
 // ListenerFilterChainFactory adds filter into ListenerFilterChainFactoryCallbacks

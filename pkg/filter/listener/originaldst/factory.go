@@ -40,6 +40,10 @@ func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterCh
 
 // OnAccept called when connection accept
 func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) api.FilterStatus {
+	if !cb.GetUseOriginalDst() {
+		return api.Continue
+	}
+
 	ip, port, err := getOriginalAddr(cb.Conn())
 	if err != nil {
 		log.DefaultLogger.Errorf("[originaldst] get original addr failed: %v", err)
@@ -53,6 +57,7 @@ func (filter *originalDst) OnAccept(cb api.ListenerFilterChainFactoryCallbacks) 
 	}
 
 	cb.SetOriginalAddr(ips, port)
+	cb.UseOriginalDst(cb.GetOriContext())
 
-	return api.Continue
+	return api.Stop
 }

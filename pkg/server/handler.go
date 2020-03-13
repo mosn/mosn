@@ -117,14 +117,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateListenerFilter
 	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
 	streamFiltersFactories = configmanager.GetStreamFilters(lc.StreamFilters)
 
-	// check ListenerFilters for UseOriginalDst
-	// TODO remove
-	for _, v := range lc.ListenerFilters {
-		if v.Type == v2.ORIGINALDST_LISTENER_FILTER {
-			lc.UseOriginalDst = true
-		}
-	}
-
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
 		// listener already exist, update the listener
@@ -633,12 +625,7 @@ func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool)
 		}
 	}
 
-	// TODO: handle hand_off_restored_destination_connections logic
-	if arc.useOriginalDst {
-		arc.UseOriginalDst(ctx)
-	} else {
-		arc.activeListener.newConnection(ctx, arc.rawc)
-	}
+	arc.activeListener.newConnection(ctx, arc.rawc)
 
 }
 
@@ -652,6 +639,10 @@ func (arc *activeRawConn) GetOriContext() context.Context {
 
 func (arc *activeRawConn) SetUseOriginalDst(flag bool) {
 	arc.useOriginalDst = flag
+}
+
+func (arc *activeRawConn) GetUseOriginalDst() bool {
+	return arc.useOriginalDst
 }
 
 // ConnectionEventListener
