@@ -20,6 +20,9 @@ package boltv2
 import (
 	"context"
 	"encoding/binary"
+	"strconv"
+
+	"mosn.io/mosn/pkg/variable"
 
 	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -72,11 +75,14 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 		request.CmdType = bolt.CmdTypeRequestOneway
 	}
 
-	//4. copy data for io multiplexing
+	// 4. set timeout to notify proxy
+	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(request.Timeout)))
+
+	//5. copy data for io multiplexing
 	copy(*request.rawData, bytes)
 	request.Data = buffer.NewIoBufferBytes(*request.rawData)
 
-	//5. process wrappers: Class, Header, Content, Data
+	//6. process wrappers: Class, Header, Content, Data
 	headerIndex := RequestHeaderLen + int(classLen)
 	contentIndex := headerIndex + int(headerLen)
 
