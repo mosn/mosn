@@ -39,5 +39,5 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
 	mosn.io/api v0.0.0-20200210061141-e6cfcd972201
-	mosn.io/pkg v0.0.0-20200224153138-1e4184714e74
+	mosn.io/pkg v0.0.0-20200306153343-5ed3dae838b4
 )
