@@ -20,12 +20,13 @@ package rpc
 import (
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/trace"
-	"sofastack.io/sofa-mosn/pkg/protocol"
 	"context"
+
+	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
+	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/trace/sofa"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 func init() {
@@ -46,7 +47,7 @@ func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 		}
 	}
 
-	return  &Tracer{}, nil
+	return &Tracer{}, nil
 }
 
 func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {

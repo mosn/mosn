@@ -19,6 +19,7 @@ package stream
 
 import (
 	"context"
+
 	"sofastack.io/sofa-mosn/pkg/buffer"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"

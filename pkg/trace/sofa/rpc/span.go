@@ -18,15 +18,16 @@
 package rpc
 
 import (
-	"time"
 	"fmt"
 	"strconv"
-	"sofastack.io/sofa-mosn/pkg/types"
-	"sofastack.io/sofa-mosn/pkg/log"
 	"strings"
+	"time"
+
 	"sofastack.io/sofa-mosn/pkg/buffer"
-	"sofastack.io/sofa-mosn/pkg/trace/sofa"
+	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
+	"sofastack.io/sofa-mosn/pkg/trace/sofa"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type SofaRPCSpan struct {

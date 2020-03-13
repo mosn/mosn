@@ -14,23 +14,35 @@
 */
 package v2
 
-import proto "github.com/gogo/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import envoy_api_v2_core2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-import envoy_api_v21 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-import envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-import envoy_type1 "github.com/envoyproxy/go-control-plane/envoy/type"
-import _ "github.com/golang/protobuf/ptypes/duration"
-import google_protobuf "github.com/gogo/protobuf/types"
-import _ "github.com/lyft/protoc-gen-validate/validate"
-import _ "github.com/gogo/protobuf/gogoproto"
+import (
+	fmt "fmt"
 
-import time "time"
+	proto "github.com/gogo/protobuf/proto"
 
-import types "github.com/gogo/protobuf/types"
+	math "math"
 
-import io "io"
+	envoy_api_v2_core2 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+
+	envoy_api_v21 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+
+	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+
+	envoy_type1 "github.com/envoyproxy/go-control-plane/envoy/type"
+
+	_ "github.com/golang/protobuf/ptypes/duration"
+
+	google_protobuf "github.com/gogo/protobuf/types"
+
+	_ "github.com/lyft/protoc-gen-validate/validate"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+
+	time "time"
+
+	types "github.com/gogo/protobuf/types"
+
+	io "io"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal

@@ -61,6 +61,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	initializeDefaultPath(config.GetConfigPath())
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
+	store.SetMosnConfig(c)
 
 	//get inherit fds
 	inheritListeners, reconfigure, err := server.GetInheritListeners()
@@ -91,7 +92,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	}
 	mode := c.Mode()
 
-	if mode == config.Xds {
+	if mode == v2.Xds {
 		servers := make([]v2.ServerConfig, 0, 1)
 		server := v2.ServerConfig{
 			DefaultLogPath:  "stdout",
@@ -122,7 +123,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 	// parse cluster all in one
 	clusters, clusterMap := config.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
-	if mode == config.Xds {
+	if mode == v2.Xds {
 		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil)
 	} else {
 		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap)
@@ -143,7 +144,7 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 		server.InitDefaultLogger(sc)
 
 		var srv server.Server
-		if mode == config.Xds {
+		if mode == v2.Xds {
 			srv = server.NewServer(sc, cmf, m.clustermanager)
 		} else {
 			//initialize server instance
@@ -159,24 +160,22 @@ func NewMosn(c *config.MOSNConfig) *Mosn {
 				lc := config.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
 
 				// parse routers from connection_manager filter and add it the routerManager
-				if routerConfig := config.ParseRouterConfiguration(&lc.FilterChains[0]); routerConfig.RouterConfigName != "" {
+				routerConfig, err := config.ParseRouterConfiguration(&lc.FilterChains[0])
+				if err != nil {
+					log.StartLogger.Fatalf("[mosn] [NewMosn] compatible router: %v", err)
+				}
+				if routerConfig.RouterConfigName != "" {
 					m.routerManager.AddOrUpdateRouters(routerConfig)
 				}
 
-				var nfcf []types.NetworkFilterChainFactory
-				var sfcf []types.StreamFilterChainFactory
-
-				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
-				// network filters
-				if !lc.UseOriginalDst {
-					// network and stream filters
-					nfcf = config.GetNetworkFilters(&lc.FilterChains[0])
-					sfcf = config.GetStreamFilters(lc.StreamFilters)
-				}
-
-				_, err := srv.AddListener(lc, nfcf, sfcf)
-				if err != nil {
+				if _, err := srv.AddListener(lc, true, true); err != nil {
 					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
+				}
+			}
+			// Add Router Config
+			for _, routerConfig := range serverConfig.Routers {
+				if routerConfig.RouterConfigName != "" {
+					m.routerManager.AddOrUpdateRouters(routerConfig)
 				}
 			}
 		}
@@ -248,6 +247,7 @@ func (m *Mosn) Start() {
 	utils.GoWithRecover(func() {
 		m.xdsClient.Start(m.config)
 	}, nil)
+	store.StartFeature() // 作为FeatureGate的Start启动
 	// TODO: remove it
 	//parse service registry info
 	log.StartLogger.Infof("mosn parse registry info")
@@ -295,7 +295,7 @@ func (m *Mosn) Close() {
 // step1. NewMosn
 // step2. Start Mosn
 func Start(c *config.MOSNConfig) {
-	log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
+	log.StartLogger.Infof("[mosn] [start] start by config : %#v", c)
 	Mosn := NewMosn(c)
 	Mosn.Start()
 	Mosn.wg.Wait()

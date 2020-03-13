@@ -18,6 +18,7 @@
 package v2
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -144,6 +145,13 @@ type Listener struct {
 	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
 	InheritListener         *net.TCPListener `json:"-"`
 	Remain                  bool             `json:"-"`
+}
+
+func (l Listener) MarshalJSON() (b []byte, err error) {
+	if l.Addr != nil {
+		l.AddrConfig = l.Addr.String()
+	}
+	return json.Marshal(l.ListenerConfig)
 }
 
 // TCPRoute
@@ -500,6 +508,7 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 	}
 	// dynamic mode, should write file
 	// first, get all the files in the directory
+	os.Mkdir(rc.RouterConfigPath, 0755)
 	files, err := ioutil.ReadDir(rc.RouterConfigPath)
 	if err != nil {
 		return nil, err
@@ -679,5 +688,6 @@ type ServerConfig struct {
 	//go processor number
 	Processor int `json:"processor,omitempty"`
 
-	Listeners []Listener `json:"listeners,omitempty"`
+	Listeners []Listener             `json:"listeners,omitempty"`
+	Routers   []*RouterConfiguration `json:"routers,omitempty"`
 }

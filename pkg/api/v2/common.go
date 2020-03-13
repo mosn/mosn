@@ -22,11 +22,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	jsoniter "github.com/json-iterator/go"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // MetadataConfig is a config for metadata
 type MetadataConfig struct {

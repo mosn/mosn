@@ -21,9 +21,10 @@ import (
 	"errors"
 	"net/http"
 
+	"strconv"
+
 	"sofastack.io/sofa-mosn/pkg/protocol"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"strconv"
 )
 
 // Response related consts

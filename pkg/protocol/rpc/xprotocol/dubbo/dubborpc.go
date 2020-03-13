@@ -25,6 +25,7 @@ import (
 	"strconv"
 
 	"encoding/hex"
+
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/xprotocol"
 	"sofastack.io/sofa-mosn/pkg/types"
 )

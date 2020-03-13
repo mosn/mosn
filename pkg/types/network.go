@@ -25,7 +25,7 @@ import (
 	"time"
 
 	"github.com/rcrowley/go-metrics"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 )
 
 //
@@ -359,8 +359,7 @@ type ConnectionHandler interface {
 	// AddOrUpdateListener
 	// adds a listener into the ConnectionHandler or
 	// update a listener
-	AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []NetworkFilterChainFactory,
-		streamFiltersFactories []StreamFilterChainFactory) (ListenerEventListener, error)
+	AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter bool, updateStreamFilter bool) (ListenerEventListener, error)
 
 	//StartListeners starts all listeners the ConnectionHandler has
 	StartListeners(lctx context.Context)

@@ -30,7 +30,7 @@ func init() {
 
 var ins = proxyBufferCtx{}
 
-type proxyBufferCtx struct{
+type proxyBufferCtx struct {
 	buffer.TempBufferCtx
 }
 

@@ -26,8 +26,6 @@ import (
 	"math/rand"
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/featuregate"
-	"sofastack.io/sofa-mosn/pkg/log"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -36,6 +34,8 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"sofastack.io/sofa-mosn/pkg/featuregate"
+	"sofastack.io/sofa-mosn/pkg/log"
 )
 
 //  Init parsed ds and clusters config for xds

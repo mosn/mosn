@@ -93,10 +93,8 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	return server
 }
 
-func (srv *server) AddListener(lc *v2.Listener, networkFiltersFactories []types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error) {
-
-	return srv.handler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
+func (srv *server) AddListener(lc *v2.Listener, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error) {
+	return srv.handler.AddOrUpdateListener(lc, updateNetworkFilter, updateStreamFilter)
 }
 
 func (srv *server) Start() {

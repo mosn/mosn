@@ -34,6 +34,7 @@ import (
 	"golang.org/x/sys/unix"
 	admin "sofastack.io/sofa-mosn/pkg/admin/store"
 	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
+	"sofastack.io/sofa-mosn/pkg/config"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/filter/accept/originaldst"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -95,8 +96,7 @@ func (ch *connHandler) NumConnections() uint64 {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactories []types.NetworkFilterChainFactory,
-	streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error) {
+func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error) {
 
 	var listenerName string
 	if lc.Name == "" {
@@ -104,6 +104,17 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		lc.Name = listenerName
 	} else {
 		listenerName = lc.Name
+	}
+	// currently, we just support one filter chain
+	if len(lc.FilterChains) != 1 {
+		return nil, errors.New("error updating listener, listener have filter chains count is not 1")
+	}
+	// set network filter and stream filter
+	var networkFiltersFactories []types.NetworkFilterChainFactory
+	var streamFiltersFactories []types.StreamFilterChainFactory
+	if !lc.UseOriginalDst {
+		networkFiltersFactories = config.GetNetworkFilters(&lc.FilterChains[0])
+		streamFiltersFactories = config.GetStreamFilters(lc.StreamFilters)
 	}
 
 	var al *activeListener
@@ -121,18 +132,19 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, networkFiltersFactor
 		}
 		rawConfig := al.listener.Config()
 		// FIXME: update log level need the pkg/logger support.
+		if !lc.UseOriginalDst {
+			if updateNetworkFilter {
+				log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
+				al.networkFiltersFactories = networkFiltersFactories
+				rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
+				rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
+			}
 
-		// only chaned if not nil
-		if networkFiltersFactories != nil {
-			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
-			al.networkFiltersFactories = networkFiltersFactories
-			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
-			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
-		}
-		if streamFiltersFactories != nil {
-			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
-			al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
-			rawConfig.StreamFilters = lc.StreamFilters
+			if updateStreamFilter {
+				log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
+				al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
+				rawConfig.StreamFilters = lc.StreamFilters
+			}
 		}
 
 		// tls update only take effects on new connections
@@ -347,12 +359,12 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	al := &activeListener{
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
-		conns:        list.New(),
-		handler:      handler,
-		stopChan:     stopChan,
-		accessLogs:   accessLoggers,
-		updatedLabel: false,
-		idleTimeout:  lc.ConnectionIdleTimeout,
+		conns:                   list.New(),
+		handler:                 handler,
+		stopChan:                stopChan,
+		accessLogs:              accessLoggers,
+		updatedLabel:            false,
+		idleTimeout:             lc.ConnectionIdleTimeout,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 

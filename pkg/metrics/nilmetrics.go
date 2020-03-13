@@ -18,8 +18,8 @@
 package metrics
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
 	gometrics "github.com/rcrowley/go-metrics"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // NilMetrics is an implementation of types.Metrics

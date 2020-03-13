@@ -18,8 +18,9 @@
 package trace
 
 import (
-	"sofastack.io/sofa-mosn/pkg/types"
 	"fmt"
+
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 type holder struct {

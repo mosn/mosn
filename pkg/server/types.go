@@ -20,7 +20,7 @@ package server
 import (
 	"time"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 )
@@ -36,8 +36,7 @@ type Config struct {
 }
 
 type Server interface {
-	AddListener(lc *v2.Listener, networkFiltersFactories []types.NetworkFilterChainFactory,
-		streamFiltersFactories []types.StreamFilterChainFactory) (types.ListenerEventListener, error)
+	AddListener(lc *v2.Listener, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error)
 
 	Start()
 

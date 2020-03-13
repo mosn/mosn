@@ -18,7 +18,7 @@
 package config
 
 import (
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 )
 
@@ -202,52 +202,31 @@ func AddOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfigu
 }
 
 func addOrUpdateRouterConfig(listenername string, routerConfig *v2.RouterConfiguration) bool {
-	_, idx := findListener(listenername)
-	if idx == -1 {
-		return false
-	}
-
-	routerMap.Lock()
-	routerMap.config[listenername] = routerConfig
-	routerMap.Unlock()
-	return true
-}
-
-// AddOrUpdateStreamFilters update the stream filters config
-func AddOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) {
-	if addOrUpdateStreamFilters(listenername, typ, cfg) {
-		dump(true)
-	}
-}
-
-func addOrUpdateStreamFilters(listenername string, typ string, cfg map[string]interface{}) bool {
-	ln, idx := findListener(listenername)
-	if idx == -1 {
-		return false
-	}
 	configLock.Lock()
 	defer configLock.Unlock()
-	filterIndex := -1
-	for i, sf := range ln.StreamFilters {
-		if sf.Type == typ {
-			filterIndex = i
-			break
+	// support only one server
+	routers := config.Servers[0].Routers
+	for idx, rt := range routers {
+		if rt.RouterConfigName == routerConfig.RouterConfigName {
+			config.Servers[0].Routers[idx] = routerConfig
+			return true
 		}
 	}
-	filter := v2.Filter{
-		Type:   typ,
-		Config: cfg,
-	}
-	if filterIndex == -1 {
-		ln.StreamFilters = append(ln.StreamFilters, filter)
-		listeners := config.Servers[0].Listeners
-		if idx < len(listeners) {
-			listeners[idx] = ln
-		}
-	} else {
-		ln.StreamFilters[filterIndex] = filter
-	}
+	// not equal
+	config.Servers[0].Routers = append(config.Servers[0].Routers, routerConfig)
 	return true
+}
+
+// FIXME: all config should be changed to pointer instead of struct
+func UpdateFullConfig(listeners []v2.Listener, routers []*v2.RouterConfiguration, clusters []v2.Cluster) {
+	configLock.Lock()
+	defer configLock.Unlock()
+
+	config.Servers[0].Listeners = listeners
+	config.Servers[0].Routers = routers
+	config.ClusterManager.Clusters = clusters
+
+	dump(true)
 }
 
 // AddMsgMeta

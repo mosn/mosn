@@ -39,7 +39,7 @@ import (
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/protobuf/jsonpb"
 	"istio.io/api/mixer/v1/config/client"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/config"
 	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/log"
@@ -86,7 +86,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr: convertAddress(&xdsListener.Address),
+		Addr:                    convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -383,6 +383,9 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 }
 
 func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
+	if percent == nil {
+		return 0
+	}
 	switch percent.Denominator {
 	case xdstype.FractionalPercent_MILLION:
 		return percent.Numerator / 10000
@@ -553,7 +556,6 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 		} else {
 			routersMngIns.AddOrUpdateRouters(routerConfig)
 		}
-		filtersConfigParsed[v2.CONNECTION_MANAGER] = toMap(routerConfig)
 	} else {
 		log.DefaultLogger.Errorf("no router config found, filter name: %s", name)
 	}

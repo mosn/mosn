@@ -22,12 +22,10 @@ import (
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	jsoniter "github.com/json-iterator/go"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
-	"sofastack.io/sofa-mosn/pkg/config"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/router"
 	"sofastack.io/sofa-mosn/pkg/server"
-	"sofastack.io/sofa-mosn/pkg/types"
 	clusterAdapter "sofastack.io/sofa-mosn/pkg/upstream/cluster"
 )
 
@@ -65,32 +63,15 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 			continue
 		}
 
-		var streamFilters []types.StreamFilterChainFactory
-		var networkFilters []types.NetworkFilterChainFactory
-
-		if !mosnListener.UseOriginalDst {
-			for _, filterChain := range mosnListener.FilterChains {
-				nf := config.GetNetworkFilters(&filterChain)
-				networkFilters = append(networkFilters, nf...)
-			}
-			streamFilters = config.GetStreamFilters(mosnListener.StreamFilters)
-
-			if len(networkFilters) == 0 {
-				log.DefaultLogger.Errorf("xds client update listener error: proxy needed in network filters")
-				continue
-			}
-		}
-
 		listenerAdapter := server.GetListenerAdapterInstance()
 		if listenerAdapter == nil {
 			// if listenerAdapter is nil, return directly
 			log.DefaultLogger.Errorf("listenerAdapter is nil and hasn't been initiated at this time")
 			return
 		}
-		log.DefaultLogger.Debugf("listenerAdapter.AddOrUpdateListener called, with mosn Listener:%+v, networkFilters:%+v, streamFilters: %+v",
-			mosnListener, networkFilters, streamFilters)
+		log.DefaultLogger.Debugf("listenerAdapter.AddOrUpdateListener called, with mosn Listener:%+v", mosnListener)
 
-		if err := listenerAdapter.AddOrUpdateListener("", mosnListener, networkFilters, streamFilters); err == nil {
+		if err := listenerAdapter.AddOrUpdateListener("", mosnListener, true, true); err == nil {
 			log.DefaultLogger.Debugf("xds AddOrUpdateListener success,listener address = %s", mosnListener.Addr.String())
 		} else {
 			log.DefaultLogger.Errorf("xds AddOrUpdateListener failure,listener address = %s, msg = %s ",

@@ -27,7 +27,7 @@ import (
 	"strings"
 
 	"github.com/gogo/protobuf/jsonpb"
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/filter"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/protocol"
@@ -209,22 +209,20 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.L
 }
 
 // ParseRouterConfiguration used to get virtualhosts from filter
-func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
+func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error) {
 	routerConfiguration := &v2.RouterConfiguration{}
 	for _, f := range c.Filters {
 		if f.Type == v2.CONNECTION_MANAGER {
-
-			if data, err := json.Marshal(f.Config); err == nil {
-				if err := json.Unmarshal(data, routerConfiguration); err != nil {
-					log.StartLogger.Fatal("[config] [parse router] Parsing Virtual Host Error:", err)
-				}
-			} else {
-				log.StartLogger.Fatal("[config] [parse router] Parsing Virtual Host Error")
+			data, err := json.Marshal(f.Config)
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(data, routerConfiguration); err != nil {
+				return nil, err
 			}
 		}
 	}
-
-	return routerConfiguration
+	return routerConfiguration, nil
 }
 
 // ParseProxyFilter
@@ -377,7 +375,9 @@ func GetNetworkFilters(c *v2.FilterChain) []types.NetworkFilterChainFactory {
 			log.StartLogger.Errorf("[config] network filter create failed, type:%s, error: %v", f.Type, err)
 			continue
 		}
-		factories = append(factories, factory)
+		if factory != nil {
+			factories = append(factories, factory)
+		}
 	}
 	return factories
 }

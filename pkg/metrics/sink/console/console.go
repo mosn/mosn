@@ -22,9 +22,10 @@ import (
 	"io"
 	"strconv"
 
-	"sofastack.io/sofa-mosn/pkg/types"
-	"github.com/rcrowley/go-metrics"
 	"strings"
+
+	"github.com/rcrowley/go-metrics"
+	"sofastack.io/sofa-mosn/pkg/types"
 )
 
 // histogram output percents

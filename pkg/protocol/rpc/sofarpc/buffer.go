@@ -29,7 +29,7 @@ func init() {
 
 var ins = SofaProtocolBufferCtx{}
 
-type SofaProtocolBufferCtx struct{
+type SofaProtocolBufferCtx struct {
 	buffer.TempBufferCtx
 }
 

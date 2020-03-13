@@ -21,7 +21,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/mtls/crypto/tls"
 	"sofastack.io/sofa-mosn/pkg/types"

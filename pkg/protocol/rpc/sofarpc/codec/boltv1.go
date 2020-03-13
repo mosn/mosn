@@ -30,7 +30,6 @@ import (
 	"sofastack.io/sofa-mosn/pkg/protocol/rpc/sofarpc"
 	"sofastack.io/sofa-mosn/pkg/protocol/serialize"
 	"sofastack.io/sofa-mosn/pkg/types"
-
 )
 
 var (

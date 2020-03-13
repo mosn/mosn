@@ -24,6 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"time"
+
 	networkbuffer "sofastack.io/sofa-mosn/pkg/buffer"
 	mosnctx "sofastack.io/sofa-mosn/pkg/context"
 	"sofastack.io/sofa-mosn/pkg/filter"
@@ -35,7 +37,6 @@ import (
 	str "sofastack.io/sofa-mosn/pkg/stream"
 	"sofastack.io/sofa-mosn/pkg/trace"
 	"sofastack.io/sofa-mosn/pkg/types"
-	"time"
 )
 
 // StreamDirection 1: server stream 0: client stream

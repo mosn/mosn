@@ -20,7 +20,7 @@ package server
 import (
 	"fmt"
 
-	"sofastack.io/sofa-mosn/pkg/api/v2"
+	v2 "sofastack.io/sofa-mosn/pkg/api/v2"
 	"sofastack.io/sofa-mosn/pkg/log"
 	"sofastack.io/sofa-mosn/pkg/types"
 	"sofastack.io/sofa-mosn/pkg/utils"
@@ -88,14 +88,14 @@ func ResetAdapter() {
 // Add and start listener when listener doesn't exist
 // Update listener when listener already exist
 func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Listener,
-	networkFiltersFactories []types.NetworkFilterChainFactory, streamFiltersFactories []types.StreamFilterChainFactory) error {
+	updateNetworkFilter bool, updateStreamFilter bool) error {
 
 	connHandler := adapter.findHandler(serverName)
 	if connHandler == nil {
 		return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
 	}
 
-	listener, err := connHandler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
+	listener, err := connHandler.AddOrUpdateListener(lc, updateNetworkFilter, updateStreamFilter)
 
 	if err != nil {
 		return fmt.Errorf("connHandler.AddOrUpdateListener called error: %s", err.Error())
@@ -154,7 +154,7 @@ func (adapter *ListenerAdapter) UpdateListenerTLS(serverName string, listenerNam
 				TLSContexts: tlsConfigs,
 			},
 		}
-		if _, err := connHandler.AddOrUpdateListener(&cfg, nil, nil); err != nil {
+		if _, err := connHandler.AddOrUpdateListener(&cfg, false, false); err != nil {
 			return fmt.Errorf("connHandler.UpdateListenerTLS called error, server:%s, error: %s", serverName, err.Error())
 		}
 		return nil
