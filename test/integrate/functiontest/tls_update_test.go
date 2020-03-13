@@ -11,15 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-
 	"golang.org/x/net/http2"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/http/conv"
 	_ "mosn.io/mosn/pkg/protocol/http2/conv"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
@@ -109,9 +107,9 @@ var DefaultTLSConfig = v2.TLSConfig{
 	ServerName: "127.0.0.1",
 }
 
-func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, proto types.ProtocolName, tls bool, xproto bool) *config.MOSNConfig {
+func MakeProxyWithTLSConfig(listenerName string, addr string, hosts []string, proto types.ProtocolName, tls bool, xproto bool) *v2.MOSNConfig {
 	clusterName := "upstream"
-	cmconfig := config.ClusterManagerConfig{
+	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{
 			util.NewBasicCluster(clusterName, hosts),
 		},

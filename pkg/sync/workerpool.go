@@ -22,7 +22,7 @@ import (
 	"runtime/debug"
 
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 const (

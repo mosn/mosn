@@ -23,8 +23,8 @@ import (
 	"encoding/binary"
 
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error) {

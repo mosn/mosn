@@ -22,8 +22,8 @@ import (
 	"os/user"
 	"sync"
 
-	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/log"
 )
 
 type tracelog struct {

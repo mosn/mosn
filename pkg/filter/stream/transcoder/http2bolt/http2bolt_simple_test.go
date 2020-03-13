@@ -23,11 +23,11 @@ import (
 	"testing"
 
 	"github.com/valyala/fasthttp"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func Test_http2bolt_Accept(t1 *testing.T) {

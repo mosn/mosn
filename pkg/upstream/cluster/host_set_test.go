@@ -21,14 +21,14 @@ import (
 	"fmt"
 	"testing"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
 func newSimpleMockHost(addr string, metaValue string) *mockHost {
 	return &mockHost{
 		addr: addr,
-		meta: v2.Metadata{
+		meta: api.Metadata{
 			"key": metaValue,
 		},
 	}

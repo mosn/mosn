@@ -3,8 +3,7 @@ package util
 import (
 	"time"
 
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
@@ -124,8 +123,8 @@ func NewListener(name, addr string, chains []v2.FilterChain) v2.Listener {
 	}
 }
 
-func NewMOSNConfig(listeners []v2.Listener, clusterManager config.ClusterManagerConfig) *config.MOSNConfig {
-	return &config.MOSNConfig{
+func NewMOSNConfig(listeners []v2.Listener, clusterManager v2.ClusterManagerConfig) *v2.MOSNConfig {
+	return &v2.MOSNConfig{
 		Servers: []v2.ServerConfig{
 			v2.ServerConfig{
 				DefaultLogPath:  MeshLogPath,

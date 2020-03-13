@@ -21,11 +21,12 @@ import (
 	"errors"
 	"strconv"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
 var (
-	httpMappingFactory = make(map[types.ProtocolName]HTTPMapping)
+	httpMappingFactory = make(map[api.Protocol]HTTPMapping)
 	ErrNoMapping       = errors.New("no mapping function found")
 )
 
@@ -37,14 +38,14 @@ func init() {
 
 // HTTPMapping maps the contents of protocols to HTTP standard
 type HTTPMapping interface {
-	MappingHeaderStatusCode(headers types.HeaderMap) (int, error)
+	MappingHeaderStatusCode(headers api.HeaderMap) (int, error)
 }
 
-func RegisterMapping(p types.ProtocolName, m HTTPMapping) {
+func RegisterMapping(p api.Protocol, m HTTPMapping) {
 	httpMappingFactory[p] = m
 }
 
-func MappingHeaderStatusCode(p types.ProtocolName, headers types.HeaderMap) (int, error) {
+func MappingHeaderStatusCode(p api.Protocol, headers api.HeaderMap) (int, error) {
 	if f, ok := httpMappingFactory[p]; ok {
 		return f.MappingHeaderStatusCode(headers)
 	}
@@ -54,7 +55,7 @@ func MappingHeaderStatusCode(p types.ProtocolName, headers types.HeaderMap) (int
 // HTTP get status directly
 type httpMapping struct{}
 
-func (m *httpMapping) MappingHeaderStatusCode(headers types.HeaderMap) (int, error) {
+func (m *httpMapping) MappingHeaderStatusCode(headers api.HeaderMap) (int, error) {
 	status, ok := headers.Get(types.HeaderStatus)
 	if !ok {
 		return 0, errors.New("headers have no status code")

@@ -21,12 +21,15 @@ import (
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/hpack"
-	"mosn.io/mosn/pkg/buffer"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
 )
 
 var (
 	ErrAGAIN = errors.New("EAGAIN")
+
+	//todo: support configuration
+	initialConnRecvWindowSize = int32(1 << 30)
 )
 
 // Mstream is Http2 Server stream
@@ -38,7 +41,7 @@ type MStream struct {
 	Response       *http.Response
 	Header         http.Header
 	Trailers       http.Header
-	SendData       types.IoBuffer
+	SendData       buffer.IoBuffer
 }
 
 // ID returns stream id
@@ -147,11 +150,11 @@ type MServerConn struct {
 	mu sync.Mutex
 
 	Framer *MFramer
-	types.Connection
+	api.Connection
 }
 
 // NewserverConn returns a Http2 Server Connection
-func NewServerConn(conn types.Connection) *MServerConn {
+func NewServerConn(conn api.Connection) *MServerConn {
 	sc := new(MServerConn)
 	sc.Connection = conn
 
@@ -186,7 +189,7 @@ func (sc *MServerConn) Init() error {
 		{SettingMaxFrameSize, defaultMaxReadFrameSize},
 		{SettingMaxConcurrentStreams, defaultMaxStreams},
 		{SettingMaxHeaderListSize, http.DefaultMaxHeaderBytes},
-		{SettingInitialWindowSize, uint32(1 << 20)},
+		{SettingInitialWindowSize, uint32(initialConnRecvWindowSize)},
 	}
 
 	err := sc.Framer.writeSettings(settings)
@@ -197,7 +200,7 @@ func (sc *MServerConn) Init() error {
 
 	// Each connection starts with intialWindowSize inflow tokens.
 	// If a higher value is configured, we add more tokens.
-	if diff := 1<<20 - initialWindowSize; diff > 0 {
+	if diff := initialConnRecvWindowSize - initialWindowSize; diff > 0 {
 		sc.sendWindowUpdate(nil, int(diff))
 	}
 
@@ -607,9 +610,9 @@ func (sc *MServerConn) newStream(id, pusherID uint32, state streamState) *stream
 		sc:    &sc.serverConn,
 	}
 	st.flow.conn = &sc.flow // link to conn-level counter
-	st.flow.add(sc.initialStreamSendWindowSize)
+	st.flow.add(initialConnRecvWindowSize)
 	st.inflow.conn = &sc.inflow // link to conn-level counter
-	st.inflow.add(1 << 20)
+	st.inflow.add(initialConnRecvWindowSize)
 
 	sc.setStream(id, st)
 
@@ -878,11 +881,11 @@ type MClientConn struct {
 	slock sync.Mutex
 
 	Framer *MFramer
-	types.Connection
+	api.Connection
 }
 
 // NewClientConn return Http2 Client conncetion
-func NewClientConn(conn types.Connection) *MClientConn {
+func NewClientConn(conn api.Connection) *MClientConn {
 	cc := new(MClientConn)
 	cc.Connection = conn
 
@@ -953,7 +956,7 @@ type MClientStream struct {
 	*clientStream
 	conn     *MClientConn
 	Request  *http.Request
-	SendData types.IoBuffer
+	SendData buffer.IoBuffer
 }
 
 func NewMClientStream(conn *MClientConn, req *http.Request) *MClientStream {
@@ -1446,7 +1449,7 @@ func (cc *MClientConn) streamByID(id uint32, andRemove bool) *clientStream {
 
 type MFramer struct {
 	Framer
-	types.Connection
+	api.Connection
 }
 
 // WriteSettings wirtes Setting Frame
@@ -1569,14 +1572,14 @@ func (fr *MFramer) writeHeaders(p HeadersFrameParam) error {
 	return fr.endWrite(buf)
 }
 
-func (fr *MFramer) writeByte(b types.IoBuffer, v byte)     { b.Write([]byte{v}) }
-func (fr *MFramer) writeBytes(b types.IoBuffer, v []byte)  { b.Write(v) }
-func (fr *MFramer) writeUint16(b types.IoBuffer, v uint16) { b.Write([]byte{byte(v >> 8), byte(v)}) }
-func (fr *MFramer) writeUint32(b types.IoBuffer, v uint32) {
+func (fr *MFramer) writeByte(b buffer.IoBuffer, v byte)     { b.Write([]byte{v}) }
+func (fr *MFramer) writeBytes(b buffer.IoBuffer, v []byte)  { b.Write(v) }
+func (fr *MFramer) writeUint16(b buffer.IoBuffer, v uint16) { b.Write([]byte{byte(v >> 8), byte(v)}) }
+func (fr *MFramer) writeUint32(b buffer.IoBuffer, v uint32) {
 	b.Write([]byte{byte(v >> 24), byte(v >> 16), byte(v >> 8), byte(v)})
 }
 
-func (fr *MFramer) startWrite(buf types.IoBuffer, ftype FrameType, flags Flags, streamID uint32) {
+func (fr *MFramer) startWrite(buf buffer.IoBuffer, ftype FrameType, flags Flags, streamID uint32) {
 	// Write the FrameHeader.
 	header := []byte{
 		0, // 3 bytes of length, filled in in endWrite
@@ -1593,7 +1596,7 @@ func (fr *MFramer) startWrite(buf types.IoBuffer, ftype FrameType, flags Flags, 
 	buf.Write(header)
 }
 
-func (fr *MFramer) endWrite(buf types.IoBuffer) error {
+func (fr *MFramer) endWrite(buf buffer.IoBuffer) error {
 	// Now that we know the final size, fill in the FrameHeader in
 	// the space previously reserved for it. Abuse append.
 	length := buf.Len() - frameHeaderLen
@@ -1607,7 +1610,7 @@ func (fr *MFramer) endWrite(buf types.IoBuffer) error {
 	return fr.Connection.Write(buf)
 }
 
-func (fr *MFramer) readFrameHeader(ctx context.Context, data types.IoBuffer, off int) (FrameHeader, error) {
+func (fr *MFramer) readFrameHeader(ctx context.Context, data buffer.IoBuffer, off int) (FrameHeader, error) {
 	if data.Len() < off+frameHeaderLen {
 		return FrameHeader{}, ErrAGAIN
 	}
@@ -1621,7 +1624,7 @@ func (fr *MFramer) readFrameHeader(ctx context.Context, data types.IoBuffer, off
 	}, nil
 }
 
-func (fr *MFramer) readMetaFrame(ctx context.Context, hf *HeadersFrame, data types.IoBuffer, off int) (*MetaHeadersFrame, int, error) {
+func (fr *MFramer) readMetaFrame(ctx context.Context, hf *HeadersFrame, data buffer.IoBuffer, off int) (*MetaHeadersFrame, int, error) {
 	mh := &MetaHeadersFrame{
 		HeadersFrame: hf,
 	}
@@ -1707,7 +1710,7 @@ func (fr *MFramer) readMetaFrame(ctx context.Context, hf *HeadersFrame, data typ
 }
 
 // ReadFrame read Frame
-func (fr *MFramer) ReadFrame(ctx context.Context, data types.IoBuffer, off int) (Frame, int, error) {
+func (fr *MFramer) ReadFrame(ctx context.Context, data buffer.IoBuffer, off int) (Frame, int, error) {
 	fr.errDetail = nil
 	last := fr.lastFrame
 	lastHeader := fr.lastHeaderStream
@@ -1757,7 +1760,7 @@ func (fr *MFramer) ReadFrame(ctx context.Context, data types.IoBuffer, off int) 
 }
 
 // ReadPreface read the client preface
-func (fr *MFramer) ReadPreface(data types.IoBuffer) error {
+func (fr *MFramer) ReadPreface(data buffer.IoBuffer) error {
 	if data.Len() < len(clientPreface) {
 		return ErrAGAIN
 	}

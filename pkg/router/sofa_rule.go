@@ -18,7 +18,8 @@
 package router
 
 import (
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -42,11 +43,11 @@ type SofaRouteRuleImpl struct {
 	matchValue string
 }
 
-func (srri *SofaRouteRuleImpl) PathMatchCriterion() types.PathMatchCriterion {
+func (srri *SofaRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
 	return srri
 }
 
-func (srri *SofaRouteRuleImpl) RouteRule() types.RouteRule {
+func (srri *SofaRouteRuleImpl) RouteRule() api.RouteRule {
 	return srri
 }
 
@@ -54,14 +55,14 @@ func (srri *SofaRouteRuleImpl) Matcher() string {
 	return srri.matchValue
 }
 
-func (srri *SofaRouteRuleImpl) MatchType() types.PathMatchType {
-	return types.SofaHeader
+func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
+	return api.SofaHeader
 }
 
-func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers types.HeaderMap, requestInfo types.RequestInfo) {
+func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 }
 
-func (srri *SofaRouteRuleImpl) Match(headers types.HeaderMap, randomValue uint64) types.Route {
+func (srri *SofaRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
 	if value, ok := headers.Get(types.SofaRouteMatchKey); ok {
 		if value == srri.matchValue || srri.matchValue == ".*" {
 			return srri

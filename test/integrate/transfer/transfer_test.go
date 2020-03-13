@@ -3,18 +3,16 @@ package transfer
 import (
 	"encoding/json"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"syscall"
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-
-	"math/rand"
-
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
@@ -60,7 +58,7 @@ func startTransferMesh(t *testing.T, tc *integrate.XTestCase) {
 		t.Fatal("write config file failed", err)
 	}
 	// set config path into load package
-	config.Load(configPath)
+	configmanager.Load(configPath)
 
 	mesh := mosn.NewMosn(cfg)
 

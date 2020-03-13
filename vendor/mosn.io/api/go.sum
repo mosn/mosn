@@ -1,0 +1,6 @@
+github.com/hashicorp/go-syslog v1.0.0/go.mod h1:qPfqrKkXGihmCqbJM2mZgkZGvKG1dFdvsLplgctolz4=
+github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563 h1:dY6ETXrvDG7Sa4vE8ZQG4yqWg6UnOcbqTAahkV813vQ=
+github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
+gopkg.in/natefinch/lumberjack.v2 v2.0.0/go.mod h1:l0ndWWf7gzL7RNwBG7wST/UCcT4T24xpD6X8LsfU/+k=
+mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d h1:p5BKQJrfU67nkQciB3Bxh9SPpdT+oGBVLfOQxuwhUKQ=
+mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=

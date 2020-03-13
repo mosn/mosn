@@ -18,544 +18,280 @@
 package featuregate
 
 import (
-	"testing"
-
-	"fmt"
 	"strings"
+	"testing"
 	"time"
-
-	"github.com/spf13/pflag"
-	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/log"
 )
 
-var (
-	test        = "1"
-	anotherTest = "a"
-)
-
-func init() {
-	TestDataMutableFeatureGate.AddFeatureSpec(
-		TestDataFeatureEnable,
-		FeatureSpec{Default: false, PreRelease: Alpha, InitFunc: func() {
-			test = "2"
-			time.Sleep(1 * time.Second)
-		}})
-
-	TestDataMutableFeatureGate.AddFeatureSpec(
-		AnotherTestDataFeatureEnable,
-		FeatureSpec{Default: true, PreRelease: Beta, InitFunc: func() {
-			c, err := TestDataMutableFeatureGate.Subscribe(TestDataFeatureEnable)
-			if err != nil {
-				log.DefaultLogger.Errorf("%v", err)
-			}
-
-			select {
-			case _, open := <-c:
-				if !open {
-					break
-				}
-			}
-			anotherTest = "b"
-		}})
+func TestAddAndSetFeatureSpec(t *testing.T) {
+	var feature Feature = "test"
+	var lock Feature = "lockToTrue"
+	fg := NewFeatureGate()
+	fg.AddFeatureSpec(feature, &BaseFeatureSpec{
+		DefaultValue: true,
+	})
+	fg.SetFeatureState(feature, false)
+	if fg.Enabled(feature) {
+		t.Error("set feature to false, but got true")
+	}
+	fg.AddFeatureSpec(lock, &BaseFeatureSpec{
+		DefaultValue:    true,
+		IsLockedDefault: true,
+	})
+	// duplicate add, should be ignore
+	fg.AddFeatureSpec(lock, &BaseFeatureSpec{})
+	// the first add is valid, lock to default
+	fg.SetFeatureState(lock, false)
+	if !fg.Enabled(lock) {
+		t.Error("feature should always to be true")
+	}
+	fg.StartInit()
+	fg.WaitInitFinsh()
+	var failed Feature = "failed"
+	if err := fg.AddFeatureSpec(failed, &BaseFeatureSpec{}); err == nil {
+		t.Error("add a new feature after init should be failed")
+	}
+	if err := fg.SetFeatureState(feature, true); err == nil {
+		t.Error("feature state should not be setted after init")
+	}
 }
 
-func TestFeatureGateFlag(t *testing.T) {
-	// gates for testing
-	const testAlphaGate Feature = "TestAlpha"
-	const testBetaGate Feature = "TestBeta"
-
-	tests := []struct {
-		arg        string
-		expect     map[Feature]bool
-		parseError string
+func TestSetFeatureGate(t *testing.T) {
+	fg := NewFeatureGate()
+	// if feature is not set, use default value
+	// if feature is not lock to default, use the set value
+	// if feature is lock to default, ignore the set value
+	features := []struct {
+		name     Feature
+		spec     FeatureSpec
+		expected bool
 	}{
 		{
-			arg: "",
-			expect: map[Feature]bool{
-				allAlphaGate:  false,
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
+			name:     Feature("default_false"),
+			spec:     &BaseFeatureSpec{},
+			expected: false,
 		},
 		{
-			arg: "fooBarBaz=true",
-			expect: map[Feature]bool{
-				allAlphaGate:  false,
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
-			parseError: "unrecognized feature gate: fooBarBaz",
+			name:     Feature("default_true"),
+			spec:     &BaseFeatureSpec{DefaultValue: true},
+			expected: true,
 		},
 		{
-			arg: "AllAlpha=false",
-			expect: map[Feature]bool{
-				allAlphaGate:  false,
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
+			name:     Feature("feature_set_to_true"),
+			spec:     &BaseFeatureSpec{},
+			expected: true,
 		},
 		{
-			arg: "AllAlpha=true",
-			expect: map[Feature]bool{
-				allAlphaGate:  true,
-				testAlphaGate: true,
-				testBetaGate:  false,
-			},
+			name:     Feature("feature_set_to_false"),
+			spec:     &BaseFeatureSpec{DefaultValue: true},
+			expected: false,
 		},
 		{
-			arg: "AllAlpha=banana",
-			expect: map[Feature]bool{
-				allAlphaGate:  false,
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
-			parseError: "invalid value of AllAlpha",
-		},
-		{
-			arg: "AllAlpha=false,TestAlpha=true",
-			expect: map[Feature]bool{
-				allAlphaGate:  false,
-				testAlphaGate: true,
-				testBetaGate:  false,
-			},
-		},
-		{
-			arg: "TestAlpha=true,AllAlpha=false",
-			expect: map[Feature]bool{
-				allAlphaGate:  false,
-				testAlphaGate: true,
-				testBetaGate:  false,
-			},
-		},
-		{
-			arg: "AllAlpha=true,TestAlpha=false",
-			expect: map[Feature]bool{
-				allAlphaGate:  true,
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
-		},
-		{
-			arg: "TestAlpha=false,AllAlpha=true",
-			expect: map[Feature]bool{
-				allAlphaGate:  true,
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
-		},
-		{
-			arg: "TestBeta=true,AllAlpha=false",
-			expect: map[Feature]bool{
-				allAlphaGate:  false,
-				testAlphaGate: false,
-				testBetaGate:  true,
-			},
+			name:     Feature("feature_lock_to_true"),
+			spec:     &BaseFeatureSpec{DefaultValue: true, IsLockedDefault: true},
+			expected: true,
 		},
 	}
-	for i, test := range tests {
-		fs := pflag.NewFlagSet("testfeaturegateflag", pflag.ContinueOnError)
-		f := NewFeatureGate()
-		f.Add(map[Feature]FeatureSpec{
-			testAlphaGate: {Default: false, PreRelease: Alpha},
-			testBetaGate:  {Default: false, PreRelease: Beta},
-		})
-		f.AddFlag(fs)
-
-		err := fs.Parse([]string{fmt.Sprintf("--%s=%s", flagName, test.arg)})
-		if test.parseError != "" {
-			if !strings.Contains(err.Error(), test.parseError) {
-				t.Errorf("%d: Parse() Expected %v, Got %v", i, test.parseError, err)
-			}
-		} else if err != nil {
-			t.Errorf("%d: Parse() Expected nil, Got %v", i, err)
-		}
-		for k, v := range test.expect {
-			if actual := f.enabled.Load().(map[Feature]bool)[k]; actual != v {
-				t.Errorf("%d: expected %s=%v, Got %v", i, k, v, actual)
-			}
+	for _, fc := range features {
+		fg.AddFeatureSpec(fc.name, fc.spec)
+	}
+	// set only one feature
+	one := "feature_set_to_true=true"
+	fg.Set(one)
+	if !fg.Enabled("feature_set_to_true") {
+		t.Error("set feature failed")
+	}
+	// empty will be ignore
+	p := "feature_set_to_true=true, feature_set_to_false=false ,"
+	if err := fg.Set(p); err != nil {
+		t.Fatal(err)
+	}
+	// set invalid parameters, ignore all of them
+	for _, invalid := range []string{
+		"feature_set_to_true,feature_set_to_false", // no equals
+		"feature_set_to_false=yes",                 // not a boolean
+		"feature_set_to_false==true",               // too many equals
+		"feature_not_exists=true",                  // not a known feature
+		"feature_lock_to_true=false",               // a locked feature
+	} {
+		if err := fg.Set(invalid); err == nil {
+			t.Error("expected set failed")
 		}
 	}
+
+	for _, fc := range features {
+		if fg.Enabled(fc.name) != fc.expected {
+			t.Errorf("feature %s state expected %v", fc.name, fc.expected)
+		}
+	}
+
 }
 
-func TestFeatureGateOverride(t *testing.T) {
-	const testAlphaGate Feature = "TestAlpha"
-	const testBetaGate Feature = "TestBeta"
-
-	// Don't parse the flag, assert defaults are used.
-	var f *defaultFeatureGate = NewFeatureGate()
-	f.Add(map[Feature]FeatureSpec{
-		testAlphaGate: {Default: false, PreRelease: Alpha},
-		testBetaGate:  {Default: false, PreRelease: Beta},
-	})
-
-	f.Set("TestAlpha=true,TestBeta=true")
-	if f.Enabled(testAlphaGate) != true {
-		t.Errorf("Expected true")
-	}
-	if f.Enabled(testBetaGate) != true {
-		t.Errorf("Expected true")
-	}
-
-	f.Set("TestAlpha=false")
-	if f.Enabled(testAlphaGate) != false {
-		t.Errorf("Expected false")
-	}
-	if f.Enabled(testBetaGate) != true {
-		t.Errorf("Expected true")
-	}
-}
-
-func TestFeatureGateFlagDefaults(t *testing.T) {
-	// gates for testing
-	const testAlphaGate Feature = "TestAlpha"
-	const testBetaGate Feature = "TestBeta"
-
-	// Don't parse the flag, assert defaults are used.
-	var f *defaultFeatureGate = NewFeatureGate()
-	f.Add(map[Feature]FeatureSpec{
-		testAlphaGate: {Default: false, PreRelease: Alpha},
-		testBetaGate:  {Default: true, PreRelease: Beta},
-	})
-
-	if f.Enabled(testAlphaGate) != false {
-		t.Errorf("Expected false")
-	}
-	if f.Enabled(testBetaGate) != true {
-		t.Errorf("Expected true")
-	}
-	// missing feature return false as default
-	if f.Enabled("missingFeature") != false {
-		t.Errorf("Expected false")
-	}
-}
-
-func TestFeatureGateKnownFeatures(t *testing.T) {
-	// gates for testing
-	const (
-		testAlphaGate      Feature = "TestAlpha"
-		testBetaGate       Feature = "TestBeta"
-		testGAGate         Feature = "TestGA"
-		testDeprecatedGate Feature = "TestDeprecated"
-	)
-
-	// Don't parse the flag, assert defaults are used.
-	var f *defaultFeatureGate = NewFeatureGate()
-	f.Add(map[Feature]FeatureSpec{
-		testAlphaGate: {Default: false, PreRelease: Alpha},
-		testBetaGate:  {Default: true, PreRelease: Beta},
-		testGAGate:    {Default: true, PreRelease: GA},
-	})
-
-	known := strings.Join(f.KnownFeatures(), " ")
-
-	assert.Contains(t, known, testAlphaGate)
-	assert.Contains(t, known, testBetaGate)
-	assert.NotContains(t, known, testGAGate)
-	assert.NotContains(t, known, testDeprecatedGate)
-}
-
-func TestFeatureGateSetFromMap(t *testing.T) {
-	// gates for testing
-	const testAlphaGate Feature = "TestAlpha"
-	const testBetaGate Feature = "TestBeta"
-	const testLockedTrueGate Feature = "TestLockedTrue"
-	const testLockedFalseGate Feature = "TestLockedFalse"
-
-	tests := []struct {
-		name        string
-		setmap      map[string]bool
-		expect      map[Feature]bool
-		setmapError string
+func TestSetFromMap(t *testing.T) {
+	fg := NewFeatureGate()
+	features := []struct {
+		name     string
+		spec     FeatureSpec
+		expected bool
 	}{
 		{
-			name: "set TestAlpha and TestBeta true",
-			setmap: map[string]bool{
-				"TestAlpha": true,
-				"TestBeta":  true,
-			},
-			expect: map[Feature]bool{
-				testAlphaGate: true,
-				testBetaGate:  true,
-			},
+			name:     "foo",
+			spec:     &BaseFeatureSpec{},
+			expected: true,
 		},
 		{
-			name: "set TestBeta true",
-			setmap: map[string]bool{
-				"TestBeta": true,
-			},
-			expect: map[Feature]bool{
-				testAlphaGate: false,
-				testBetaGate:  true,
-			},
-		},
-		{
-			name: "set TestAlpha false",
-			setmap: map[string]bool{
-				"TestAlpha": false,
-			},
-			expect: map[Feature]bool{
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
-		},
-		{
-			name: "set TestInvaild true",
-			setmap: map[string]bool{
-				"TestInvaild": true,
-			},
-			expect: map[Feature]bool{
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
-			setmapError: "unrecognized feature gate:",
-		},
-		{
-			name: "set locked gates",
-			setmap: map[string]bool{
-				"TestLockedTrue":  true,
-				"TestLockedFalse": false,
-			},
-			expect: map[Feature]bool{
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
-		},
-		{
-			name: "set locked gates",
-			setmap: map[string]bool{
-				"TestLockedTrue": false,
-			},
-			expect: map[Feature]bool{
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
-			setmapError: "cannot set feature gate TestLockedTrue to false, feature is locked to true",
-		},
-		{
-			name: "set locked gates",
-			setmap: map[string]bool{
-				"TestLockedFalse": true,
-			},
-			expect: map[Feature]bool{
-				testAlphaGate: false,
-				testBetaGate:  false,
-			},
-			setmapError: "cannot set feature gate TestLockedFalse to true, feature is locked to false",
+			name:     "bar",
+			spec:     &BaseFeatureSpec{},
+			expected: true,
 		},
 	}
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("SetFromMap %s", test.name), func(t *testing.T) {
-			f := NewFeatureGate()
-			f.Add(map[Feature]FeatureSpec{
-				testAlphaGate:       {Default: false, PreRelease: Alpha},
-				testBetaGate:        {Default: false, PreRelease: Beta},
-				testLockedTrueGate:  {Default: true, PreRelease: GA, LockToDefault: true},
-				testLockedFalseGate: {Default: false, PreRelease: GA, LockToDefault: true},
-			})
-			err := f.SetFromMap(test.setmap)
-			if test.setmapError != "" {
-				if err == nil {
-					t.Errorf("expected error, got none")
-				} else if !strings.Contains(err.Error(), test.setmapError) {
-					t.Errorf("%d: SetFromMap(%#v) Expected err:%v, Got err:%v", i, test.setmap, test.setmapError, err)
-				}
-			} else if err != nil {
-				t.Errorf("%d: SetFromMap(%#v) Expected success, Got err:%v", i, test.setmap, err)
-			}
-			for k, v := range test.expect {
-				if actual := f.Enabled(k); actual != v {
-					t.Errorf("%d: SetFromMap(%#v) Expected %s=%v, Got %s=%v", i, test.setmap, k, v, k, actual)
-				}
-			}
-		})
+
+	m := make(map[string]bool)
+	for _, f := range features {
+		fg.AddFeatureSpec(Feature(f.name), f.spec)
+		m[f.name] = f.expected
+	}
+
+	// expect no error setting from map.
+	if err := fg.SetFromMap(m); err != nil {
+		t.Errorf("error setting feature states from map: %v", err)
+	}
+
+	// expect actual state equals to expected state.
+	for k, v := range m {
+		if state := fg.Enabled(Feature(k)); state != v {
+			t.Errorf("feature state not equal, expect: %v, actual: %v", v, state)
+		}
+	}
+
+	// expect error when setting state for a non-registered feature.
+	m["feature-not-found"] = true
+	if err := fg.SetFromMap(m); err == nil {
+		t.Errorf("setting feature state without registering, expect err, got nil.")
 	}
 }
 
-func TestFeatureGateString(t *testing.T) {
-	// gates for testing
-	const testAlphaGate Feature = "TestAlpha"
-	const testBetaGate Feature = "TestBeta"
-	const testGAGate Feature = "TestGA"
-
-	featuremap := map[Feature]FeatureSpec{
-		testGAGate:    {Default: true, PreRelease: GA},
-		testAlphaGate: {Default: false, PreRelease: Alpha},
-		testBetaGate:  {Default: true, PreRelease: Beta},
+func _IsSubTimeout(err error) bool {
+	if err == nil {
+		return false
 	}
-
-	tests := []struct {
-		setmap map[string]bool
-		expect string
-	}{
-		{
-			setmap: map[string]bool{
-				"TestAlpha": false,
-			},
-			expect: "TestAlpha=false",
-		},
-		{
-			setmap: map[string]bool{
-				"TestAlpha": false,
-				"TestBeta":  true,
-			},
-			expect: "TestAlpha=false,TestBeta=true",
-		},
-		{
-			setmap: map[string]bool{
-				"TestGA":    true,
-				"TestAlpha": false,
-				"TestBeta":  true,
-			},
-			expect: "TestAlpha=false,TestBeta=true,TestGA=true",
-		},
-	}
-	for i, test := range tests {
-		t.Run(fmt.Sprintf("SetFromMap %s", test.expect), func(t *testing.T) {
-			f := NewFeatureGate()
-			f.Add(featuremap)
-			f.SetFromMap(test.setmap)
-			result := f.String()
-			if result != test.expect {
-				t.Errorf("%d: SetFromMap(%#v) Expected %s, Got %s", i, test.setmap, test.expect, result)
-			}
-		})
-	}
+	return strings.Contains(err.Error(), "subscribe timeout")
 }
 
-func TestFeatureGateReady(t *testing.T) {
-	const testDisabled Feature = "testDisabled"
-	const testEnabled Feature = "testEnabled"
-	const testEnabledChangeToReady Feature = "testEnabledChangeToReady"
+type _NotifySpec struct {
+	*BaseFeatureSpec
+	inited bool
+	ch     chan struct{}
+}
 
-	// Don't parse the flag, assert defaults are used.
-	var f = NewFeatureGate()
-	f.Add(map[Feature]FeatureSpec{
-		testDisabled:             {Default: false, PreRelease: Beta},
-		testEnabled:              {Default: true, PreRelease: Beta},
-		testEnabledChangeToReady: {Default: true, PreRelease: Beta},
+func (s *_NotifySpec) InitFunc() {
+	s.inited = true
+	<-s.ch
+}
+
+func TestFeatureGateSubscribe(t *testing.T) {
+	fg := NewFeatureGate()
+	var feature Feature = "test"
+	var notify Feature = "notify"
+	fg.AddFeatureSpec(feature, &_NotifySpec{
+		BaseFeatureSpec: &BaseFeatureSpec{},
+		ch:              make(chan struct{}),
 	})
-
-	if f.IsReady(testDisabled) {
-		t.Errorf("Excepted false")
+	fnotify := &_NotifySpec{
+		BaseFeatureSpec: &BaseFeatureSpec{},
+		ch:              make(chan struct{}),
 	}
-
-	if f.IsReady(testEnabled) {
-		t.Errorf("Excepted false")
+	fg.AddFeatureSpec(notify, fnotify)
+	fg.Set("test=false, notify=true")
+	if _, err := fg.Subscribe(feature, 0); err == nil {
+		t.Error("subscribe before init, expected got an error")
 	}
-
-	f.updateToReady(testEnabledChangeToReady)
-	if !f.IsReady(testEnabledChangeToReady) {
-		t.Errorf("Excepted true")
+	fg.StartInit()
+	// sub a disable feature, directly return, no init func called
+	ready, err := fg.Subscribe(feature, time.Second)
+	if err != nil || ready {
+		t.Error("expected got false directly")
 	}
-}
-
-func TestFeatureGateUpdateToReady(t *testing.T) {
-	const testDisabled Feature = "testDisabled"
-	const testEnabledWithRepeatUpdate Feature = "testEnabledWithRepeatUpdate"
-	const testEnabledSuccessfully Feature = "testEnabledSuccessfully"
-
-	// Don't parse the flag, assert defaults are used.
-	var f = NewFeatureGate()
-	f.Add(map[Feature]FeatureSpec{
-		testDisabled:                {Default: false, PreRelease: Beta},
-		testEnabledWithRepeatUpdate: {Default: true, PreRelease: Beta},
-		testEnabledSuccessfully:     {Default: true, PreRelease: Beta},
-	})
-
-	var err error
-	err = f.updateToReady("nothing")
-	if err == nil || err.Error() != fmt.Sprintf("feature %s is unknown", "nothing") {
-		t.Errorf("Excepted error: feature %s is unknown", "nothing")
+	if _, err := fg.Subscribe(notify, time.Second); !_IsSubTimeout(err) {
+		t.Error("expected timeout")
 	}
-
-	err = f.updateToReady(testEnabledWithRepeatUpdate)
-	if err != nil {
-		t.Error("Excepted no error")
-	}
-	err = f.updateToReady(testEnabledWithRepeatUpdate)
-	if err == nil || err.Error() != fmt.Sprintf("repeat setting feature %s to ready", testEnabledWithRepeatUpdate) {
-		t.Errorf("Excepted error: repeat setting feature %s to ready", testEnabledWithRepeatUpdate)
-	}
-
-	err = f.updateToReady(testEnabledSuccessfully)
-	if err != nil {
-		t.Error("Excepted no error")
-	}
-	if !f.IsReady(testEnabledSuccessfully) {
-		t.Error("Excepted tue")
-	}
-}
-
-func TestFeatureGateUpdateToSubscribe(t *testing.T) {
-	const testDisabled Feature = "testDisabled"
-	const testAfterReady Feature = "testAfterReady"
-	const testBeforeReady Feature = "testBeforeReady"
-
-	// Don't parse the flag, assert defaults are used.
-	var f = NewFeatureGate()
-	f.Add(map[Feature]FeatureSpec{
-		testDisabled:    {Default: false, PreRelease: Beta},
-		testAfterReady:  {Default: true, PreRelease: Beta},
-		testBeforeReady: {Default: true, PreRelease: Beta},
-	})
-
-	var err error
-	_, err = f.Subscribe("missingFeatureKey")
-	if err == nil || err.Error() != fmt.Sprintf("feature %s is unknown", "missingFeatureKey") {
-		t.Errorf("Excepted error: feature %s is unknown", "missingFeatureKey")
-	}
-
-	_, err = f.Subscribe(testDisabled)
-	if err != nil {
-		t.Errorf("Excepted not error")
-	}
-
-	f.updateToReady(testAfterReady)
-	c, err := f.Subscribe(testAfterReady)
-	_, open := <-c
-	if err != nil || open {
-		t.Errorf("Excepted not error, and %s is ready", testAfterReady)
-	}
-
-	c, err = f.Subscribe(testBeforeReady)
-	if err != nil {
-		t.Errorf("Excepted not error, and %s is not ready", testAfterReady)
-	}
+	ch := make(chan struct{})
 	go func() {
-		time.Sleep(1 * time.Second)
-		f.updateToReady(testBeforeReady)
+		defer func() {
+			close(ch)
+		}()
+		ready, err := fg.Subscribe(notify, 0)
+		if err != nil {
+			t.Errorf("subscribe failed: %v", err)
+			return
+		}
+		if !ready {
+			t.Error("subscribe expected ready")
+		}
+	}()
+	// send notify
+	close(fnotify.ch)
+	select {
+	case <-ch:
+		if !fnotify.inited {
+			t.Error("expected init notify feature")
+		}
+	case <-time.After(time.Second):
+		t.Error("subscribe failed")
+	}
+}
+
+func TestDefaultSubscribe(t *testing.T) {
+	fg := NewFeatureGate()
+	var notify Feature = "notify"
+	var notify2 Feature = "notify2"
+	fnotify := &_NotifySpec{
+		BaseFeatureSpec: &BaseFeatureSpec{
+			DefaultValue: true,
+		},
+		ch: make(chan struct{}),
+	}
+	fnotify2 := &_NotifySpec{
+		BaseFeatureSpec: &BaseFeatureSpec{
+			DefaultValue: false,
+		},
+		ch: make(chan struct{}),
+	}
+	fg.AddFeatureSpec(notify, fnotify)
+	fg.AddFeatureSpec(notify2, fnotify2)
+	fg.StartInit()
+	if _, err := fg.Subscribe(notify, time.Second); !_IsSubTimeout(err) {
+		t.Error("expected timeout")
+	}
+	if _, err := fg.Subscribe(notify2, time.Second); err != nil {
+		t.Error("expected sub return not ready")
+	}
+	ch := make(chan struct{})
+	go func() {
+		defer func() {
+			close(ch)
+		}()
+		ready, err := fg.Subscribe(notify, 0)
+		if err != nil {
+			t.Errorf("subscribe failed: %v", err)
+			return
+		}
+		if !ready {
+			t.Error("subscribe expected ready")
+		}
 	}()
 
-	ticker := time.NewTicker(2 * time.Second)
-
+	// send notify
+	close(fnotify.ch)
 	select {
-	case _, open = <-c:
-		if !open {
-			break
+	case <-ch:
+		if !fnotify.inited {
+			t.Error("expected init notify feature")
 		}
-	case <-ticker.C:
-		t.Errorf("Excepted %s is ready", testBeforeReady)
-		break
+	case <-time.After(time.Second):
+		t.Error("subscribe failed")
 	}
-
-}
-
-func TestInitFunc(t *testing.T) {
-	if test != "1" {
-		t.Errorf("Excepted %s, but got %s", "1", test)
-	}
-	if anotherTest != "a" {
-		t.Errorf("Excepted %s, but got %s", "a", test)
-	}
-
-	TestDataMutableFeatureGate.Set(fmt.Sprintf("%s=true,%s=true", TestDataFeatureEnable, AnotherTestDataFeatureEnable))
-	TestDataMutableFeatureGate.StartInit()
-
-	if test != "2" {
-		t.Errorf("Excepted %s, but got %s", "2", test)
-	}
-	if anotherTest != "b" {
-		t.Errorf("Excepted %s, but got %s", "b", anotherTest)
+	if fnotify2.inited {
+		t.Error("notify2 should not be inited")
 	}
 }

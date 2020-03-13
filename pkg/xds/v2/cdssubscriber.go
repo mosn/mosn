@@ -44,7 +44,7 @@ func (c *ADSClient) reqClusters(streamClient ads.AggregatedDiscoveryService_Stre
 		},
 	})
 	if err != nil {
-		log.DefaultLogger.Errorf("get clusters fail: %v", err)
+		log.DefaultLogger.Infof("get clusters fail: %v", err)
 		return err
 	}
 	return nil

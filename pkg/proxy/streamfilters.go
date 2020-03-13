@@ -20,8 +20,9 @@ package proxy
 import (
 	"sync/atomic"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // run stream append filters
@@ -30,7 +31,7 @@ func (s *downStream) runAppendFilters(p types.Phase, headers types.HeaderMap, da
 		f := s.senderFilters[s.senderFiltersIndex]
 
 		status := f.filter.Append(s.context, headers, data, trailers)
-		if status == types.StreamFilterStop {
+		if status == api.StreamFilterStop {
 			return true
 		}
 	}
@@ -47,11 +48,11 @@ func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, d
 		}
 
 		status := f.filter.OnReceive(s.context, headers, data, trailers)
-		if status == types.StreamFilterStop {
+		if status == api.StreamFilterStop {
 			return true
 		}
 
-		if status == types.StreamFilterReMatchRoute {
+		if status == api.StreamFilterReMatchRoute {
 			s.receiverFiltersIndex++
 			s.receiverFiltersAgain = true
 			return false
@@ -66,7 +67,7 @@ type activeStreamFilter struct {
 	activeStream *downStream
 }
 
-func (f *activeStreamFilter) Connection() types.Connection {
+func (f *activeStreamFilter) Connection() api.Connection {
 	return f.activeStream.proxy.readCallbacks.Connection()
 }
 
@@ -83,11 +84,11 @@ func (f *activeStreamFilter) RequestInfo() types.RequestInfo {
 type activeStreamReceiverFilter struct {
 	p types.Phase
 	activeStreamFilter
-	filter types.StreamReceiverFilter
+	filter api.StreamReceiverFilter
 }
 
 func newActiveStreamReceiverFilter(activeStream *downStream,
-	filter types.StreamReceiverFilter, p types.Phase) *activeStreamReceiverFilter {
+	filter api.StreamReceiverFilter, p types.Phase) *activeStreamReceiverFilter {
 	if p != types.DownFilter && p != types.DownFilterAfterRoute {
 		p = types.DownFilterAfterRoute
 	}
@@ -142,11 +143,11 @@ func (f *activeStreamReceiverFilter) SetConvert(on bool) {
 type activeStreamSenderFilter struct {
 	activeStreamFilter
 
-	filter types.StreamSenderFilter
+	filter api.StreamSenderFilter
 }
 
 func newActiveStreamSenderFilter(activeStream *downStream,
-	filter types.StreamSenderFilter) *activeStreamSenderFilter {
+	filter api.StreamSenderFilter) *activeStreamSenderFilter {
 	f := &activeStreamSenderFilter{
 		activeStreamFilter: activeStreamFilter{
 			activeStream: activeStream,

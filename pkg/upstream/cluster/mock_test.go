@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
@@ -30,7 +30,7 @@ import (
 type mockHost struct {
 	name       string
 	addr       string
-	meta       v2.Metadata
+	meta       api.Metadata
 	healthFlag uint64
 	types.Host
 }
@@ -43,7 +43,7 @@ func (h *mockHost) AddressString() string {
 	return h.addr
 }
 
-func (h *mockHost) Metadata() v2.Metadata {
+func (h *mockHost) Metadata() api.Metadata {
 	return h.meta
 }
 
@@ -74,7 +74,7 @@ func (pool *ipPool) Get() string {
 	return ip
 }
 
-func (pool *ipPool) MakeHosts(size int, meta v2.Metadata) []types.Host {
+func (pool *ipPool) MakeHosts(size int, meta api.Metadata) []types.Host {
 	hosts := make([]types.Host, size)
 	for i := 0; i < size; i++ {
 		host := &mockHost{
@@ -133,12 +133,12 @@ func init() {
 
 type mockLbContext struct {
 	types.LoadBalancerContext
-	mmc    types.MetadataMatchCriteria
-	header types.HeaderMap
+	mmc    api.MetadataMatchCriteria
+	header api.HeaderMap
 }
 
 func newMockLbContext(m map[string]string) types.LoadBalancerContext {
-	var mmc types.MetadataMatchCriteria
+	var mmc api.MetadataMatchCriteria
 	if m != nil {
 		mmc = router.NewMetadataMatchCriteriaImpl(m)
 	}
@@ -155,7 +155,7 @@ func newMockLbContextWithHeader(m map[string]string, header types.HeaderMap) typ
 	}
 }
 
-func (ctx *mockLbContext) MetadataMatchCriteria() types.MetadataMatchCriteria {
+func (ctx *mockLbContext) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	return ctx.mmc
 }
 

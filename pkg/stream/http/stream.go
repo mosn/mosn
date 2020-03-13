@@ -27,11 +27,11 @@ import (
 	"strconv"
 	"sync"
 	"sync/atomic"
-
 	"time"
 
 	"github.com/valyala/fasthttp"
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/api"
+	mbuffer "mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -39,7 +39,8 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 func init() {
@@ -74,11 +75,11 @@ var (
 type streamConnFactory struct{}
 
 func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
-	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
+	streamConnCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(context, connection, streamConnCallbacks, connCallbacks)
 }
 
-func (f *streamConnFactory) CreateServerStream(context context.Context, connection types.Connection,
+func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(context, connection, callbacks)
 }
@@ -116,11 +117,11 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 type streamConnection struct {
 	context context.Context
 
-	conn              types.Connection
-	connEventListener types.ConnectionEventListener
+	conn              api.Connection
+	connEventListener api.ConnectionEventListener
 	resetReason       types.StreamResetReason
 
-	bufChan    chan types.IoBuffer
+	bufChan    chan buffer.IoBuffer
 	connClosed chan bool
 
 	br *bufio.Reader
@@ -128,7 +129,7 @@ type streamConnection struct {
 }
 
 // types.StreamConnection
-func (sc *streamConnection) Dispatch(buffer types.IoBuffer) {
+func (sc *streamConnection) Dispatch(buffer buffer.IoBuffer) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[stream] [http] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
@@ -153,7 +154,15 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 
 	// Connection close
 	if !ok {
-		err = errConnClose
+		// Compatible with the fasthttp,
+		// it should be set err = IO.EOF when the peer connection is closed.
+		switch conn.resetReason {
+		case types.UpstreamReset:
+			err = io.EOF
+		default:
+			err = errConnClose
+		}
+
 		return
 	}
 
@@ -181,19 +190,19 @@ type clientStreamConnection struct {
 	stream                        *clientStream
 	requestSent                   chan bool
 	mutex                         sync.RWMutex
-	connectionEventListener       types.ConnectionEventListener
+	connectionEventListener       api.ConnectionEventListener
 	streamConnectionEventListener types.StreamConnectionEventListener
 }
 
 func newClientStreamConnection(ctx context.Context, connection types.ClientConnection,
 	streamConnCallbacks types.StreamConnectionEventListener,
-	connCallbacks types.ConnectionEventListener) types.ClientStreamConnection {
+	connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 
 	csc := &clientStreamConnection{
 		streamConnection: streamConnection{
 			context:    ctx,
 			conn:       connection,
-			bufChan:    make(chan types.IoBuffer),
+			bufChan:    make(chan buffer.IoBuffer),
 			connClosed: make(chan bool, 1),
 		},
 		connectionEventListener:       connCallbacks,
@@ -290,6 +299,24 @@ func (conn *clientStreamConnection) ActiveStreamsNum() int {
 	}
 }
 
+func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			switch event {
+			case api.RemoteClose:
+				reason = types.UpstreamReset
+			default:
+				reason = types.StreamConnectionTermination
+			}
+		}
+		return reason, false
+
+	}
+	return reason, true
+}
+
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 	close(conn.bufChan)
 	close(conn.connClosed)
@@ -308,13 +335,13 @@ type serverStreamConnection struct {
 	serverStreamConnListener types.ServerStreamConnectionEventListener
 }
 
-func newServerStreamConnection(ctx context.Context, connection types.Connection,
+func newServerStreamConnection(ctx context.Context, connection api.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	ssc := &serverStreamConnection{
 		streamConnection: streamConnection{
 			context:    ctx,
 			conn:       connection,
-			bufChan:    make(chan types.IoBuffer),
+			bufChan:    make(chan buffer.IoBuffer),
 			connClosed: make(chan bool, 1),
 		},
 		contextManager:           str.NewContextManager(ctx),
@@ -343,7 +370,7 @@ func newServerStreamConnection(ctx context.Context, connection types.Connection,
 	return ssc
 }
 
-func (conn *serverStreamConnection) OnEvent(event types.ConnectionEvent) {
+func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		close(conn.bufChan)
 		close(conn.connClosed)
@@ -383,7 +410,7 @@ func (conn *serverStreamConnection) serve() {
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 
 				// close connection with flush
-				conn.conn.Close(types.FlushWrite, types.LocalClose)
+				conn.conn.Close(api.FlushWrite, api.LocalClose)
 			}
 			return
 		}
@@ -447,6 +474,24 @@ func (conn *serverStreamConnection) ActiveStreamsNum() int {
 	}
 }
 
+func (conn *serverStreamConnection) CheckReasonError(connected bool, event api.ConnectionEvent) (types.StreamResetReason, bool) {
+	reason := types.StreamConnectionSuccessed
+	if event.IsClose() || event.ConnectFailure() {
+		reason = types.StreamConnectionFailed
+		if connected {
+			switch event {
+			case api.RemoteClose:
+				reason = types.UpstreamReset
+			default:
+				reason = types.StreamConnectionTermination
+			}
+		}
+		return reason, false
+
+	}
+	return reason, true
+}
+
 func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
 	close(conn.bufChan)
 }
@@ -504,7 +549,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	return nil
 }
 
-func (s *clientStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *clientStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	s.request.SetBody(data.Bytes())
 
 	if endStream {
@@ -635,7 +680,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 	return nil
 }
 
-func (s *serverStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
 	s.response.SetBody(data.Bytes())
 
 	if endStream {
@@ -669,7 +714,7 @@ func (s *serverStream) endStream() {
 
 	if resetConn {
 		// close connection
-		s.connection.conn.Close(types.FlushWrite, types.LocalClose)
+		s.connection.conn.Close(api.FlushWrite, api.LocalClose)
 	}
 
 	// clean up & recycle
@@ -787,5 +832,5 @@ type contextManager struct {
 
 func (cm *contextManager) next() {
 	// new stream-level context based on connection-level's
-	cm.curr = buffer.NewBufferPoolContext(mosnctx.Clone(cm.base))
+	cm.curr = mbuffer.NewBufferPoolContext(mosnctx.Clone(cm.base))
 }

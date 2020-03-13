@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 
 	"mosn.io/mosn/pkg/mosn"
 	mosntls "mosn.io/mosn/pkg/mtls"
@@ -224,6 +225,7 @@ func TestXTLSExtend(t *testing.T) {
 	appaddr := "127.0.0.1:8080"
 	testCases := []*tlsXExtendCase{
 		&tlsXExtendCase{NewXTestCase(t, bolt.ProtocolName, testutil.NewRPCServer(t, appaddr, bolt.ProtocolName))},
+		&tlsXExtendCase{NewXTestCase(t, dubbo.ProtocolName, testutil.NewRPCServer(t, appaddr, dubbo.ProtocolName))},
 		//TODO: boltv2, dubbo, tars
 	}
 	for i, tc := range testCases {

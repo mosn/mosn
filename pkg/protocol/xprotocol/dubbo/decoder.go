@@ -23,9 +23,9 @@ import (
 	"fmt"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {

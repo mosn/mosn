@@ -20,7 +20,8 @@ package cluster
 import (
 	"testing"
 
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
@@ -47,11 +48,11 @@ func (lb *headerLB) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	return lb.randLB.ChooseHost(ctx)
 }
 
-func (lb *headerLB) IsExistsHosts(metadata types.MetadataMatchCriteria) bool {
+func (lb *headerLB) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	return len(lb.hostSet.Hosts()) > 0
 }
 
-func (lb *headerLB) HostNum(metadata types.MetadataMatchCriteria) int {
+func (lb *headerLB) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hostSet.Hosts())
 }
 

@@ -21,9 +21,9 @@ import (
 	"regexp"
 	"testing"
 
-	"mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
 )
 
 func TestPrefixRouteRuleImpl(t *testing.T) {
@@ -66,7 +66,7 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
 		if result != nil {
-			if result.RouteRule().PathMatchCriterion().MatchType() != types.Prefix {
+			if result.RouteRule().PathMatchCriterion().MatchType() != api.Prefix {
 				t.Errorf("#%d match type is not expected", i)
 			}
 		}
@@ -103,7 +103,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
 		if result != nil {
-			if result.RouteRule().PathMatchCriterion().MatchType() != types.Exact {
+			if result.RouteRule().PathMatchCriterion().MatchType() != api.Exact {
 				t.Errorf("#%d match type is not expected", i)
 			}
 		}
@@ -148,7 +148,7 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
 		if result != nil {
-			if result.RouteRule().PathMatchCriterion().MatchType() != types.Regex {
+			if result.RouteRule().PathMatchCriterion().MatchType() != api.Regex {
 				t.Errorf("#%d match type is not expected", i)
 			}
 		}

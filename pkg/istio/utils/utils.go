@@ -24,7 +24,7 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	v1 "istio.io/api/mixer/v1"
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
 )
 
 const (
@@ -32,7 +32,7 @@ const (
 )
 
 // GetDestinationUID function
-func GetDestinationUID(metadata v2.Metadata) (uid string, err error) {
+func GetDestinationUID(metadata api.Metadata) (uid string, err error) {
 	// TODO
 	return "", nil
 	/*

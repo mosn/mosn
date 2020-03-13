@@ -18,25 +18,26 @@
 package network
 
 import (
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
 )
 
 type filterManager struct {
 	upstreamFilters   []*activeReadFilter
-	downstreamFilters []types.WriteFilter
-	conn              types.Connection
-	host              types.HostInfo
+	downstreamFilters []api.WriteFilter
+	conn              api.Connection
+	host              api.HostInfo
 }
 
-func newFilterManager(conn types.Connection) types.FilterManager {
+func newFilterManager(conn api.Connection) api.FilterManager {
 	return &filterManager{
 		conn:              conn,
 		upstreamFilters:   make([]*activeReadFilter, 0, 8),
-		downstreamFilters: make([]types.WriteFilter, 0, 8),
+		downstreamFilters: make([]api.WriteFilter, 0, 8),
 	}
 }
 
-func (fm *filterManager) AddReadFilter(rf types.ReadFilter) {
+func (fm *filterManager) AddReadFilter(rf api.ReadFilter) {
 	newArf := &activeReadFilter{
 		filter:        rf,
 		filterManager: fm,
@@ -46,12 +47,12 @@ func (fm *filterManager) AddReadFilter(rf types.ReadFilter) {
 	fm.upstreamFilters = append(fm.upstreamFilters, newArf)
 }
 
-func (fm *filterManager) AddWriteFilter(wf types.WriteFilter) {
+func (fm *filterManager) AddWriteFilter(wf api.WriteFilter) {
 	fm.downstreamFilters = append(fm.downstreamFilters, wf)
 }
 
-func (fm *filterManager) ListReadFilter() []types.ReadFilter {
-	var readFilters []types.ReadFilter
+func (fm *filterManager) ListReadFilter() []api.ReadFilter {
+	var readFilters []api.ReadFilter
 
 	for _, uf := range fm.upstreamFilters {
 		readFilters = append(readFilters, uf.filter)
@@ -60,7 +61,7 @@ func (fm *filterManager) ListReadFilter() []types.ReadFilter {
 	return readFilters
 }
 
-func (fm *filterManager) ListWriteFilters() []types.WriteFilter {
+func (fm *filterManager) ListWriteFilters() []api.WriteFilter {
 	return fm.downstreamFilters
 }
 
@@ -90,17 +91,17 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 
 			status := uf.filter.OnNewConnection()
 
-			if status == types.Stop {
+			if status == api.Stop {
 				return
 			}
 		}
 
-		buffer := fm.conn.GetReadBuffer()
+		buf := fm.conn.GetReadBuffer()
 
-		if buffer != nil && buffer.Len() > 0 {
-			status := uf.filter.OnData(buffer)
+		if buf != nil && buf.Len() > 0 {
+			status := uf.filter.OnData(buf)
 
-			if status == types.Stop {
+			if status == api.Stop {
 				//fm.conn.Write("your data")
 				return
 			}
@@ -112,27 +113,27 @@ func (fm *filterManager) OnRead() {
 	fm.onContinueReading(nil)
 }
 
-func (fm *filterManager) OnWrite(buffer []types.IoBuffer) types.FilterStatus {
+func (fm *filterManager) OnWrite(buf []buffer.IoBuffer) api.FilterStatus {
 	for _, df := range fm.downstreamFilters {
-		status := df.OnWrite(buffer)
+		status := df.OnWrite(buf)
 
-		if status == types.Stop {
-			return types.Stop
+		if status == api.Stop {
+			return api.Stop
 		}
 	}
 
-	return types.Continue
+	return api.Continue
 }
 
 // as a ReadFilterCallbacks
 type activeReadFilter struct {
 	index         int
-	filter        types.ReadFilter
+	filter        api.ReadFilter
 	filterManager *filterManager
 	initialized   bool
 }
 
-func (arf *activeReadFilter) Connection() types.Connection {
+func (arf *activeReadFilter) Connection() api.Connection {
 	return arf.filterManager.conn
 }
 
@@ -140,10 +141,10 @@ func (arf *activeReadFilter) ContinueReading() {
 	arf.filterManager.onContinueReading(arf)
 }
 
-func (arf *activeReadFilter) UpstreamHost() types.HostInfo {
+func (arf *activeReadFilter) UpstreamHost() api.HostInfo {
 	return arf.filterManager.host
 }
 
-func (arf *activeReadFilter) SetUpstreamHost(upstreamHost types.HostInfo) {
+func (arf *activeReadFilter) SetUpstreamHost(upstreamHost api.HostInfo) {
 	arf.filterManager.host = upstreamHost
 }

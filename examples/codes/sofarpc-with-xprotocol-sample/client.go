@@ -7,12 +7,11 @@ import (
 	"net"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"

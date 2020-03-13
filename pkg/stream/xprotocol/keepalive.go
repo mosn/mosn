@@ -23,11 +23,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 // StreamReceiver to receive keep alive response
@@ -69,7 +70,7 @@ func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Durat
 }
 
 // keepalive should stop when connection closed
-func (kp *xprotocolKeepAlive) OnEvent(event types.ConnectionEvent) {
+func (kp *xprotocolKeepAlive) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() || event.ConnectFailure() {
 		kp.Stop()
 	}

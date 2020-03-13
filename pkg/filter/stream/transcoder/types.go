@@ -20,8 +20,11 @@ package transcoder
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
+
+const RequestTranscodeFail api.ResponseFlag = 0x2000
 
 // Transcoder provide ability to transcoding request/response
 type Transcoder interface {

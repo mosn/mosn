@@ -10,22 +10,21 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
-	"mosn.io/mosn/pkg/protocol/serialize"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/stream"
-	_ "mosn.io/mosn/pkg/stream/sofarpc"
+	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/buffer"
 )
 
 type Client struct {
-	Codec stream.Client
-	conn  types.ClientConnection
-	Id    uint64
+	proto  types.ProtocolName
+	Client stream.Client
+	conn   types.ClientConnection
+	Id     uint64
 }
 
-func NewClient(addr string) *Client {
+func NewClient(addr string, proto types.ProtocolName) *Client {
 	c := &Client{}
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
@@ -34,58 +33,48 @@ func NewClient(addr string) *Client {
 		fmt.Println(err)
 		return nil
 	}
-	c.Codec = stream.NewStreamClient(context.Background(), protocol.SofaRPC, conn, nil)
+	// pass sub protocol to stream client
+	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(proto))
+	c.Client = stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	c.conn = conn
+	c.proto = proto
 	return c
 }
 
 func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	fmt.Printf("[RPC Client] Receive Data:")
-	if streamID, ok := headers.Get(sofarpc.SofaPropertyHeader(sofarpc.HeaderReqID)); ok {
-		fmt.Println(streamID)
-	}
+	fmt.Printf("[Xprotocol RPC Client] Receive Data:")
+	if cmd, ok := headers.(xprotocol.XFrame); ok {
+		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
-	fmt.Println("Response Headers are:", headers)
+		if resp, ok := cmd.(xprotocol.XRespFrame); ok {
+			fmt.Println("stream:", streamID, " status:", resp.GetStatusCode())
+		}
+	}
 }
 
 func (c *Client) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {}
 
 func (c *Client) Request() {
 	c.Id++
-	requestEncoder := c.Codec.NewStream(context.Background(), c)
-	headers := buildBoltV1Request(c.Id)
-	requestEncoder.AppendHeaders(context.Background(), headers, true)
-}
+	requestEncoder := c.Client.NewStream(context.Background(), c)
 
-func buildBoltV1Request(requestID uint64) *sofarpc.BoltRequest {
-	request := &sofarpc.BoltRequest{
-		Protocol: sofarpc.PROTOCOL_CODE_V1,
-		CmdType:  sofarpc.REQUEST,
-		CmdCode:  sofarpc.RPC_REQUEST,
-		Version:  1,
-		ReqID:    uint32(requestID),
-		Codec:    sofarpc.HESSIAN2_SERIALIZE, //todo: read default codec from config
-		Timeout:  -1,
+	var request xprotocol.XFrame
+	switch c.proto {
+	case bolt.ProtocolName:
+		request = bolt.NewRpcRequest(uint32(c.Id), protocol.CommonHeader(map[string]string{"service": "testSofa"}), nil)
+	default:
+		panic("unknown protocol, please complete the protocol-switch in Client.Request method")
 	}
 
-	headers := map[string]string{"service": "testSofa"} // used for sofa routing
-
-	buf := buffer.NewIoBuffer(100)
-	if err := serialize.Instance.SerializeMap(headers, buf); err != nil {
-		panic("serialize headers error")
-	} else {
-		request.HeaderMap = buf.Bytes()
-		request.HeaderLen = int16(buf.Len())
-	}
-
-	return request
+	requestEncoder.AppendHeaders(context.Background(), request.GetHeader(), true)
 }
 
 func main() {
 	log.InitDefaultLogger("", log.DEBUG)
 	t := flag.Bool("t", false, "-t")
 	flag.Parse()
-	if client := NewClient("127.0.0.1:2045"); client != nil {
+	// use bolt as example
+	if client := NewClient("127.0.0.1:2045", bolt.ProtocolName); client != nil {
 		for {
 			client.Request()
 			time.Sleep(200 * time.Millisecond)

@@ -22,9 +22,10 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"mosn.io/mosn/pkg/buffer"
+	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd interface{}, err error) {
@@ -61,7 +62,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 			HeaderLen:  headerLen,
 			ContentLen: contentLen,
 		},
-		rawData: buffer.GetBytesByContext(ctx, frameLen),
+		rawData: mbuffer.GetBytesByContext(ctx, frameLen),
 	}
 	if oneway {
 		request.CmdType = CmdTypeRequestOneway
@@ -125,7 +126,7 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 			HeaderLen:      headerLen,
 			ContentLen:     contentLen,
 		},
-		rawData: buffer.GetBytesByContext(ctx, frameLen),
+		rawData: mbuffer.GetBytesByContext(ctx, frameLen),
 	}
 
 	//TODO: test recycle by model, so we can recycle request/response models, headers also

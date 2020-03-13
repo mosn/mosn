@@ -1,0 +1,13 @@
+Go
+$ go build -o plugin-client client/plugin.go
+$ go build -o plugin-server server/go/plugin.go
+$ ./plugin-client  2> /tmp/1
+response body: hello go
+
+
+Python
+$ go build -o plugin-client client/plugin.go
+$ pyinstaller -F server/python/plugin.py
+$ cp dist/plugin plugin-server
+$ ./plugin-client  2> /tmp/1
+response body: hello python

@@ -24,7 +24,8 @@ import (
 	"time"
 
 	metrics "github.com/rcrowley/go-metrics"
-	v2 "mosn.io/mosn/pkg/api/v2"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 //   Below is the basic relation between clusterManager, cluster, hostSet, and hosts:
@@ -57,7 +58,7 @@ type ClusterManager interface {
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
 	// ConnPoolForCluster used to get protocol related conn pool
-	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol ProtocolName) ConnectionPool
+	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol api.Protocol) ConnectionPool
 
 	// RemovePrimaryCluster used to remove cluster from set
 	RemovePrimaryCluster(clusters ...string) error
@@ -85,9 +86,9 @@ type ClusterSnapshot interface {
 
 	// IsExistsHosts checks whether the metadata's subset contains host or not
 	// if metadata is nil, check the cluster snapshot contains host or not
-	IsExistsHosts(metadata MetadataMatchCriteria) bool
+	IsExistsHosts(metadata api.MetadataMatchCriteria) bool
 
-	HostNum(metadata MetadataMatchCriteria) int
+	HostNum(metadata api.MetadataMatchCriteria) int
 }
 
 // Cluster is a group of upstream hosts
@@ -100,6 +101,9 @@ type Cluster interface {
 
 	// Add health check callbacks in health checker
 	AddHealthCheckCallbacks(cb HealthCheckCb)
+
+	// Shutdown the healthcheck routine, if exists
+	StopHealthChecking()
 }
 
 // HostPredicate checks wether the host is matched the metadata
@@ -126,7 +130,13 @@ const (
 
 // Host is an upstream host
 type Host interface {
-	HostInfo
+	api.HostInfo
+
+	// HostStats returns the host stats metrics
+	HostStats() HostStats
+
+	// ClusterInfo returns the cluster info
+	ClusterInfo() ClusterInfo
 
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
@@ -148,60 +158,8 @@ type Host interface {
 
 	// Address returns the host's Addr structure
 	Address() net.Addr
-}
-
-// HostInfo defines a host's basic information
-type HostInfo interface {
-	// Hostname returns the host's name
-	Hostname() string
-
-	// Metadata returns the host's meta data
-	Metadata() v2.Metadata
-
-	// ClusterInfo returns the cluster info
-	ClusterInfo() ClusterInfo
-
-	// AddressString retuens the host's address string
-	AddressString() string
-
-	// HostStats returns the host stats metrics
-	HostStats() HostStats
-
-	// Weight returns the host weight
-	Weight() uint32
-
 	// Config creates a host config by the host attributes
 	Config() v2.Host
-
-	// SupportTLS returns whether the host support tls connections or not
-	// If returns true, means support tls connection
-	SupportTLS() bool
-
-	// TODO: add deploy locality
-}
-
-// HostStats defines a host's statistics information
-type HostStats struct {
-	UpstreamConnectionTotal                        metrics.Counter
-	UpstreamConnectionClose                        metrics.Counter
-	UpstreamConnectionActive                       metrics.Counter
-	UpstreamConnectionConFail                      metrics.Counter
-	UpstreamConnectionLocalClose                   metrics.Counter
-	UpstreamConnectionRemoteClose                  metrics.Counter
-	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
-	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
-	UpstreamConnectionCloseNotify                  metrics.Counter
-	UpstreamRequestTotal                           metrics.Counter
-	UpstreamRequestActive                          metrics.Counter
-	UpstreamRequestLocalReset                      metrics.Counter
-	UpstreamRequestRemoteReset                     metrics.Counter
-	UpstreamRequestTimeout                         metrics.Counter
-	UpstreamRequestFailureEject                    metrics.Counter
-	UpstreamRequestPendingOverflow                 metrics.Counter
-	UpstreamRequestDuration                        metrics.Histogram
-	UpstreamRequestDurationTotal                   metrics.Counter
-	UpstreamResponseSuccess                        metrics.Counter
-	UpstreamResponseFailed                         metrics.Counter
 }
 
 // ClusterInfo defines a cluster's information
@@ -232,6 +190,9 @@ type ClusterInfo interface {
 
 	// ConectTimeout returns the connect timeout
 	ConnectTimeout() time.Duration
+
+	// LbOriDstInfo returns the load balancer oridst config
+	LbOriDstInfo() LBOriDstInfo
 }
 
 // ResourceManager manages different types of Resource
@@ -255,6 +216,30 @@ type Resource interface {
 	Increase()
 	Decrease()
 	Max() uint64
+}
+
+// HostStats defines a host's statistics information
+type HostStats struct {
+	UpstreamConnectionTotal                        metrics.Counter
+	UpstreamConnectionClose                        metrics.Counter
+	UpstreamConnectionActive                       metrics.Counter
+	UpstreamConnectionConFail                      metrics.Counter
+	UpstreamConnectionLocalClose                   metrics.Counter
+	UpstreamConnectionRemoteClose                  metrics.Counter
+	UpstreamConnectionLocalCloseWithActiveRequest  metrics.Counter
+	UpstreamConnectionRemoteCloseWithActiveRequest metrics.Counter
+	UpstreamConnectionCloseNotify                  metrics.Counter
+	UpstreamRequestTotal                           metrics.Counter
+	UpstreamRequestActive                          metrics.Counter
+	UpstreamRequestLocalReset                      metrics.Counter
+	UpstreamRequestRemoteReset                     metrics.Counter
+	UpstreamRequestTimeout                         metrics.Counter
+	UpstreamRequestFailureEject                    metrics.Counter
+	UpstreamRequestPendingOverflow                 metrics.Counter
+	UpstreamRequestDuration                        metrics.Histogram
+	UpstreamRequestDurationTotal                   metrics.Counter
+	UpstreamResponseSuccess                        metrics.Counter
+	UpstreamResponseFailed                         metrics.Counter
 }
 
 // ClusterStats defines a cluster's statistics information
@@ -290,7 +275,7 @@ type ClusterStats struct {
 
 type CreateConnectionData struct {
 	Connection ClientConnection
-	HostInfo   HostInfo
+	Host       Host
 }
 
 // SimpleCluster is a simple cluster in memory
@@ -330,6 +315,14 @@ type LBSubsetInfo interface {
 
 	// SubsetKeys returns the sorted subset keys
 	SubsetKeys() []SortedStringSetType
+}
+
+type LBOriDstInfo interface {
+	// Check use host header
+	IsEnabled() bool
+
+	// GET header name
+	GetHeader() string
 }
 
 // SortedHosts is an implementation of sort.Interface
@@ -401,12 +394,12 @@ func (ss *SortedStringSetType) Swap(i, j int) {
 }
 
 func init() {
-	ConnPoolFactories = make(map[ProtocolName]bool)
+	ConnPoolFactories = make(map[api.Protocol]bool)
 }
 
-var ConnPoolFactories map[ProtocolName]bool
+var ConnPoolFactories map[api.Protocol]bool
 
-func RegisterConnPoolFactory(protocol ProtocolName, registered bool) {
+func RegisterConnPoolFactory(protocol api.Protocol, registered bool) {
 	//other
 	ConnPoolFactories[protocol] = registered
 }

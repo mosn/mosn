@@ -10,20 +10,18 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-
 	"golang.org/x/net/http2"
-	"mosn.io/mosn/pkg/api/v2"
-	"mosn.io/mosn/pkg/config"
+	"mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/test/integrate"
 	"mosn.io/mosn/test/util"
 )
 
-func AddFaultInject(mosn *config.MOSNConfig, listenername string, faultstr string) error {
+func AddFaultInject(mosn *v2.MOSNConfig, listenername string, faultstr string) error {
 	// make v2 config
 	cfg := make(map[string]interface{})
 	if err := json.Unmarshal([]byte(faultstr), &cfg); err != nil {

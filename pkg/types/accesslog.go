@@ -17,18 +17,6 @@
 
 package types
 
-import "context"
-
-//    The bunch of interfaces are used to print the access log in format designed by users.
-//    Access log format consists of three parts, which are "RequestInfoFormat", "RequestHeaderFormat"
-//    and "ResponseHeaderFormat", also you can get details by reading "AccessLogDetails.md".
-
-// AccessLog is a log object that used to log the access info.
-type AccessLog interface {
-	// Log write the access info.
-	Log(ctx context.Context, reqHeaders HeaderMap, respHeaders HeaderMap, requestInfo RequestInfo)
-}
-
 // DefaultAccessLogFormat provides a pre-defined format
 const DefaultAccessLogFormat = "%start_time% %request_received_duration% %response_received_duration% %bytes_sent%" + " " +
 	"%bytes_received% %protocol% %response_code% %duration% %response_flag% %response_code% %upstream_local_address%" + " " +

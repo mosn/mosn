@@ -20,7 +20,9 @@ package server
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type mockClusterManager struct {
@@ -39,18 +41,39 @@ func (cmf *mockClusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb
 
 type mockNetworkFilter struct{}
 
-func (nf *mockNetworkFilter) OnData(buffer types.IoBuffer) types.FilterStatus {
-	return types.Stop
+func (nf *mockNetworkFilter) OnData(buffer buffer.IoBuffer) api.FilterStatus {
+	return api.Stop
 }
-func (nf *mockNetworkFilter) OnNewConnection() types.FilterStatus {
-	return types.Continue
+func (nf *mockNetworkFilter) OnNewConnection() api.FilterStatus {
+	return api.Continue
 }
-func (nf *mockNetworkFilter) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {}
+func (nf *mockNetworkFilter) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {}
 
 type mockNetworkFilterFactory struct{}
 
-func (ff *mockNetworkFilterFactory) CreateFilterChain(context context.Context, clusterManager types.ClusterManager, callbacks types.NetWorkFilterChainFactoryCallbacks) {
+func (ff *mockNetworkFilterFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 	callbacks.AddReadFilter(&mockNetworkFilter{})
+}
+
+func CreateMockFilerFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+	return &mockNetworkFilterFactory{}, nil
+}
+
+type mockStreamFilterFactory struct{}
+
+func (ff *mockStreamFilterFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
+}
+
+func CreateMockStreamFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	return &mockStreamFilterFactory{}, nil
+}
+
+func init() {
+	api.RegisterNetwork("mock_network", CreateMockFilerFactory)
+	api.RegisterNetwork("mock_network2", CreateMockFilerFactory)
+	api.RegisterStream("mock_stream", CreateMockStreamFilterFactory)
+	api.RegisterStream("mock_stream2", CreateMockStreamFilterFactory)
+
 }
 
 const mockCAPEM = `-----BEGIN CERTIFICATE-----

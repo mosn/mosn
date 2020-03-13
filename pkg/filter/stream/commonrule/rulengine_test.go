@@ -26,7 +26,7 @@ import (
 	"mosn.io/mosn/pkg/filter/stream/commonrule/resource"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/utils"
+	"mosn.io/pkg/utils"
 )
 
 var params = []model.ComparisonCofig{
