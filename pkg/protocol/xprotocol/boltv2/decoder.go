@@ -20,7 +20,6 @@ package boltv2
 import (
 	"context"
 	"encoding/binary"
-	"fmt"
 
 	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -88,7 +87,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	}
 	if headerLen > 0 {
 		request.rawHeader = (*request.rawData)[headerIndex:contentIndex]
-		err = decodeHeader(request.rawHeader, &request.Header)
+		err = xprotocol.DecodeHeader(request.rawHeader, &request.Header)
 	}
 	if contentLen > 0 {
 		request.rawContent = (*request.rawData)[contentIndex:]
@@ -155,49 +154,11 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	}
 	if headerLen > 0 {
 		response.rawHeader = (*response.rawData)[headerIndex:contentIndex]
-		err = decodeHeader(response.rawHeader, &response.Header)
+		err = xprotocol.DecodeHeader(response.rawHeader, &response.Header)
 	}
 	if contentLen > 0 {
 		response.rawContent = (*response.rawData)[contentIndex:]
 		response.Content = buffer.NewIoBufferBytes(response.rawContent)
 	}
 	return response, err
-}
-
-func decodeHeader(bytes []byte, h *xprotocol.Header) (err error) {
-	totalLen := len(bytes)
-	index := 0
-
-	for index < totalLen {
-		kv := xprotocol.BytesKV{}
-
-		// 1. read key
-		kv.Key, index, err = decodeStr(bytes, totalLen, index)
-		if err != nil {
-			return
-		}
-
-		// 2. read value
-		kv.Value, index, err = decodeStr(bytes, totalLen, index)
-		if err != nil {
-			return
-		}
-
-		// 3. kv append
-		h.Kvs = append(h.Kvs, kv)
-	}
-	return nil
-}
-
-func decodeStr(bytes []byte, totalLen, index int) (str []byte, newIndex int, err error) {
-	// 1. read str length
-	length := binary.BigEndian.Uint32(bytes[index:])
-	end := index + 4 + int(length)
-
-	if end > totalLen {
-		return nil, end, fmt.Errorf("decode bolt header failed, index %d, length %d, totalLen %d, bytes %v\n", index, length, totalLen, bytes)
-	}
-
-	// 2. read str value
-	return bytes[index+4 : end], end, nil
 }
