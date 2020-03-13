@@ -656,7 +656,7 @@ func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
 			route := v2.Router{
 				RouterConfig: v2.RouterConfig{
 					Match: convertRouteMatch(xdsRoute.GetMatch()),
-					Route: convertRouteAction(xdsRouteAction),
+					Route: convertRouteAction(xdsRoute, xdsRouteAction),
 					//Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
@@ -783,10 +783,26 @@ func convertMeta(xdsMeta *xdscore.Metadata) v2.Metadata {
 	return meta
 }
 
-func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
+func convertRouteAction(xdsRoute xdsroute.Route, xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 	if xdsRouteAction == nil {
 		return v2.RouteAction{}
 	}
+
+	reqHeadersToAdd := xdsRoute.RequestHeadersToAdd
+	if xdsRouteAction.GetRequestHeadersToAdd() != nil && len(xdsRouteAction.GetRequestHeadersToAdd()) > 0 {
+		reqHeadersToAdd = append(xdsRouteAction.GetRequestHeadersToAdd(), reqHeadersToAdd...)
+	}
+
+	rspHeadersToAdd := xdsRoute.ResponseHeadersToAdd
+	if xdsRouteAction.GetResponseHeadersToAdd() != nil && len(xdsRouteAction.GetResponseHeadersToAdd()) > 0 {
+		rspHeadersToAdd = append(xdsRouteAction.GetResponseHeadersToAdd(), rspHeadersToAdd...)
+	}
+
+	rspHeadersToRemote := xdsRoute.ResponseHeadersToRemove
+	if xdsRouteAction.GetResponseHeadersToRemove() != nil && len(xdsRouteAction.GetResponseHeadersToRemove()) > 0 {
+		rspHeadersToRemote = append(xdsRouteAction.GetResponseHeadersToRemove(), rspHeadersToRemote...)
+	}
+
 	return v2.RouteAction{
 		RouterActionConfig: v2.RouterActionConfig{
 			ClusterName:             xdsRouteAction.GetCluster(),
@@ -796,9 +812,9 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 			PrefixRewrite:           xdsRouteAction.GetPrefixRewrite(),
 			HostRewrite:             xdsRouteAction.GetHostRewrite(),
 			AutoHostRewrite:         xdsRouteAction.GetAutoHostRewrite().GetValue(),
-			RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteAction.GetRequestHeadersToAdd()),
-			ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteAction.GetResponseHeadersToAdd()),
-			ResponseHeadersToRemove: xdsRouteAction.GetResponseHeadersToRemove(),
+			RequestHeadersToAdd:     convertHeadersToAdd(reqHeadersToAdd),
+			ResponseHeadersToAdd:    convertHeadersToAdd(rspHeadersToAdd),
+			ResponseHeadersToRemove: rspHeadersToRemote,
 		},
 		MetadataMatch: convertMeta(xdsRouteAction.GetMetadataMatch()),
 		Timeout:       convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),

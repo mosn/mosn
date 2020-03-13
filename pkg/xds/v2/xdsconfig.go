@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"time"
 
@@ -34,6 +35,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 	"sofastack.io/sofa-mosn/pkg/featuregate"
 	"sofastack.io/sofa-mosn/pkg/log"
 )
@@ -84,6 +86,13 @@ func (c *XDSConfig) getAPISourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 		config.RefreshDelay = &duration
 	} else {
 		config.RefreshDelay = source.RefreshDelay
+	}
+
+	if source.RequestTimeout == nil || source.RefreshDelay.Nanoseconds() <= 0 {
+		duration := time.Duration(time.Second * 10)
+		config.RequestTimeout = &duration
+	} else {
+		config.RequestTimeout = source.RequestTimeout
 	}
 
 	config.Services = make([]*ServiceConfig, 0, len(source.GrpcServices))
@@ -202,14 +211,25 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 		return nil
 	}
 
+	ctx := context.Background()
+	if c.RequestTimeout != nil {
+		ctx, _ = context.WithTimeout(ctx, *c.RequestTimeout)
+	}
+
+	var opts []grpc.DialOption
+	keepOpt := grpc.WithKeepaliveParams(keepalive.ClientParameters{
+		Time:                10 * time.Second,
+		Timeout:             20 * time.Second,
+		PermitWithoutStream: false,
+	})
+	callOpt := grpc.WithDefaultCallOptions(
+		grpc.MaxCallRecvMsgSize(math.MaxInt32),
+		grpc.MaxCallSendMsgSize(math.MaxInt32),
+	)
+	opts = append(opts, keepOpt, callOpt)
+
 	if tlsContext == nil || !featuregate.DefaultFeatureGate.Enabled(featuregate.XdsMtlsEnable) {
-		conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
-		if err != nil {
-			log.DefaultLogger.Errorf("did not connect: %v", err)
-			return nil
-		}
-		log.DefaultLogger.Infof("mosn estab grpc connection to pilot at %v", endpoint)
-		sc.Conn = conn
+		opts = append(opts, grpc.WithInsecure())
 	} else {
 		// Grpc with mTls support
 		creds, err := c.getTLSCreds(tlsContext)
@@ -217,14 +237,17 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 			log.DefaultLogger.Errorf("xds-grpc get tls creds fail: err= %v", err)
 			return nil
 		}
-		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds))
-		if err != nil {
-			log.DefaultLogger.Errorf("did not connect: %v", err)
-			return nil
-		}
-		log.DefaultLogger.Infof("mosn estab grpc connection to pilot at %v", endpoint)
-		sc.Conn = conn
+		opts = append(opts, grpc.WithTransportCredentials(creds))
 	}
+
+	conn, err := grpc.DialContext(ctx, endpoint, opts...)
+	if err != nil {
+		log.DefaultLogger.Errorf("did not connect: %v", err)
+		return nil
+	}
+	log.DefaultLogger.Infof("mosn estab grpc connection to pilot at %v", endpoint)
+	sc.Conn = conn
+
 	client := ads.NewAggregatedDiscoveryServiceClient(sc.Conn)
 
 	ctx, cancel := context.WithCancel(context.Background())

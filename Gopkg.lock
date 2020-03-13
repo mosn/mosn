@@ -554,6 +554,7 @@
     "golang.org/x/sys/unix",
     "google.golang.org/grpc",
     "google.golang.org/grpc/credentials",
+    "google.golang.org/grpc/keepalive",
     "gopkg.in/natefinch/lumberjack.v2",
     "istio.io/api/mixer/v1",
     "istio.io/api/mixer/v1/config/client",
