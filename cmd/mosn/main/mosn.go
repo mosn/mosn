@@ -25,6 +25,7 @@ import (
 
 	"github.com/urfave/cli"
 	_ "mosn.io/mosn/pkg/buffer"
+	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	_ "mosn.io/mosn/pkg/filter/network/tcpproxy"

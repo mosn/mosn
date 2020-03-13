@@ -208,7 +208,7 @@ gopkg.in/natefinch/lumberjack.v2
 # istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
 istio.io/api/mixer/v1
 istio.io/api/mixer/v1/config/client
-# mosn.io/api v0.0.0-20200210061141-e6cfcd972201
+# mosn.io/api v0.0.0-20200313100800-96f82cd67746
 mosn.io/api
 # mosn.io/pkg v0.0.0-20200306153343-5ed3dae838b4
 mosn.io/pkg/buffer

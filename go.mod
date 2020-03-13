@@ -33,11 +33,10 @@ require (
 	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
 	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.20.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
-	mosn.io/api v0.0.0-20200210061141-e6cfcd972201
+	mosn.io/api v0.0.0-20200313100800-96f82cd67746
 	mosn.io/pkg v0.0.0-20200306153343-5ed3dae838b4
 )
