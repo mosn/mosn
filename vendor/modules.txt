@@ -23,7 +23,6 @@ github.com/TarsCloud/TarsGo/tars/util/rogger
 github.com/TarsCloud/TarsGo/tars/util/rtimer
 github.com/TarsCloud/TarsGo/tars/util/set
 github.com/TarsCloud/TarsGo/tars/util/tools
-github.com/TarsCloud/TarsGo/tars/util/gpool
 # github.com/apache/dubbo-go-hessian2 v1.3.0
 github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java_exception
@@ -211,7 +210,7 @@ istio.io/api/mixer/v1
 istio.io/api/mixer/v1/config/client
 # mosn.io/api v0.0.0-20200303034443-fc977f5f57f2
 mosn.io/api
-# mosn.io/pkg v0.0.0-20200224153138-1e4184714e74
+# mosn.io/pkg v0.0.0-20200306153343-5ed3dae838b4
 mosn.io/pkg/buffer
 mosn.io/pkg/log
 mosn.io/pkg/utils
