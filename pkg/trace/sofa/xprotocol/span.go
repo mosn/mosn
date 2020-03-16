@@ -93,7 +93,7 @@ func (s *SofaRPCSpan) FinishSpan() {
 	}
 }
 
-func (s *SofaRPCSpan) InjectContext(requestHeaders types.HeaderMap) {
+func (s *SofaRPCSpan) InjectContext(requestHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 }
 
 func (s *SofaRPCSpan) SpawnChild(operationName string, startTime time.Time) types.Span {

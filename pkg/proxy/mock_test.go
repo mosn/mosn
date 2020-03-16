@@ -225,7 +225,7 @@ func (s *mockSpan) FinishSpan() {
 	s.finished = true
 }
 
-func (s *mockSpan) InjectContext(requestHeaders types.HeaderMap) {
+func (s *mockSpan) InjectContext(requestHeaders types.HeaderMap, requestInfo types.RequestInfo) {
 }
 
 func (s *mockSpan) SpawnChild(operationName string, startTime time.Time) types.Span {
