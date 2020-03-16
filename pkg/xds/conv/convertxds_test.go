@@ -22,6 +22,7 @@ import (
 	"github.com/golang/protobuf/ptypes/duration"
 	pstruct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"mosn.io/mosn/pkg/server"
 	"reflect"
 	"testing"
 	"time"
@@ -376,7 +377,7 @@ func Test_convertListenerConfig(t *testing.T) {
 					BindToPort: NewBoolValue(false),
 				},
 				DrainType: xdsapi.Listener_DEFAULT,
-				ListenerFilters: []xdslistener.ListenerFilter{
+				ListenerFilters: []*xdslistener.ListenerFilter{
 					{
 						Name:       "original_dst",
 						ConfigType: &xdslistener.ListenerFilter_TypedConfig{},
