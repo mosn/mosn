@@ -75,6 +75,6 @@ func updateListener(cfg *v2.MOSNConfig, faultstr string) error {
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	// get config
 	lc := cfg.Servers[0].Listeners[0]
-	// nil network filters, nothing changed
-	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, false, true)
+	// nil listener network filters, nothing changed
+	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, false, false, true)
 }

@@ -95,7 +95,7 @@ func TestChooseHost(t *testing.T) {
 	oriRemoteAddr, _ := net.ResolveTCPAddr("", orihost)
 	ctx := mosnctx.WithValue(context.Background(), types.ContextOriRemoteAddr, oriRemoteAddr)
 	oriDstCfg := &v2.LBOriDstConfig{
-		UseHttpHeader: false,
+		UseHeader: false,
 	}
 
 	cluster := &clusterInfo{
@@ -116,7 +116,7 @@ func TestChooseHost(t *testing.T) {
 
 	// check use host header
 	oriDstCfg = &v2.LBOriDstConfig{
-		UseHttpHeader: true,
+		UseHeader: true,
 	}
 
 	cluster = &clusterInfo{

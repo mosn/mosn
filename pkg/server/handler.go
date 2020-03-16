@@ -37,7 +37,6 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/filter/accept/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
@@ -97,7 +96,7 @@ func (ch *connHandler) NumConnections() uint64 {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error) {
+func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateListenerFilter bool, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error) {
 
 	var listenerName string
 	if lc.Name == "" {
@@ -110,9 +109,11 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter 
 	if len(lc.FilterChains) != 1 {
 		return nil, errors.New("error updating listener, listener have filter chains count is not 1")
 	}
-	// set network filter and stream filter
+	// set listener filter , network filter and stream filter
+	var listenerFiltersFactories []api.ListenerFilterChainFactory
 	var networkFiltersFactories []api.NetworkFilterChainFactory
 	var streamFiltersFactories []api.StreamFilterChainFactory
+	listenerFiltersFactories = configmanager.GetListenerFilters(lc.ListenerFilters)
 	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
 	streamFiltersFactories = configmanager.GetStreamFilters(lc.StreamFilters)
 
@@ -128,6 +129,12 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter 
 
 		rawConfig := al.listener.Config()
 		// FIXME: update log level need the pkg/logger support.
+
+		if updateListenerFilter {
+			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update listener filters")
+			al.listenerFiltersFactories = listenerFiltersFactories
+			rawConfig.ListenerFilters = lc.ListenerFilters
+		}
 
 		if updateNetworkFilter {
 			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
@@ -195,7 +202,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateNetworkFilter 
 		l := network.NewListener(lc)
 
 		var err error
-		al, err = newActiveListener(l, lc, als, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan)
+		al, err = newActiveListener(l, lc, als, listenerFiltersFactories, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan)
 		if err != nil {
 			return al, err
 		}
@@ -333,6 +340,7 @@ func (ch *connHandler) StopConnection() {
 // ListenerEventListener
 type activeListener struct {
 	listener                    types.Listener
+	listenerFiltersFactories    []api.ListenerFilterChainFactory
 	networkFiltersFactories     []api.NetworkFilterChainFactory
 	streamFiltersFactoriesStore atomic.Value // store []api.StreamFilterChainFactory
 	listenIP                    string
@@ -349,17 +357,19 @@ type activeListener struct {
 }
 
 func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers []api.AccessLog,
+	listenerFiltersFactories []api.ListenerFilterChainFactory,
 	networkFiltersFactories []api.NetworkFilterChainFactory, streamFiltersFactories []api.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
-		listener:                listener,
-		networkFiltersFactories: networkFiltersFactories,
-		conns:        list.New(),
-		handler:      handler,
-		stopChan:     stopChan,
-		accessLogs:   accessLoggers,
-		updatedLabel: false,
-		idleTimeout:  lc.ConnectionIdleTimeout,
+		listener:                 listener,
+		listenerFiltersFactories: listenerFiltersFactories,
+		networkFiltersFactories:  networkFiltersFactories,
+		conns:                    list.New(),
+		handler:                  handler,
+		stopChan:                 stopChan,
+		accessLogs:               accessLoggers,
+		updatedLabel:             false,
+		idleTimeout:              lc.ConnectionIdleTimeout,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
@@ -424,14 +434,14 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	}
 
 	arc := newActiveRawConn(rawc, al)
-	// TODO: create listener filter chain
 
 	if useOriginalDst {
-		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 		arc.useOriginalDst = true
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[server] [listener] use original dst from %v, remote addr:%v, origin remote addr:%v", al.listener.Addr(), rawc.RemoteAddr(), oriRemoteAddr)
-		}
+	}
+
+	// listener filter chain.
+	for _, lfcf := range al.listenerFiltersFactories {
+		arc.acceptedFilters = append(arc.acceptedFilters, lfcf)
 	}
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
@@ -450,6 +460,8 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	if oriRemoteAddr != nil {
 		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
+
+	arc.ctx = ctx
 
 	arc.ContinueFilterChain(ctx, true)
 }
@@ -523,13 +535,14 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 type activeRawConn struct {
 	rawc                net.Conn
 	rawf                *os.File
+	ctx                 context.Context
 	originalDstIP       string
 	originalDstPort     int
 	oriRemoteAddr       net.Addr
 	useOriginalDst      bool
 	rawcElement         *list.Element
 	activeListener      *activeListener
-	acceptedFilters     []types.ListenerFilter
+	acceptedFilters     []api.ListenerFilterChainFactory
 	acceptedFilterIndex int
 }
 
@@ -550,7 +563,8 @@ func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 }
 
 func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
-	var virtualListener, listener, localListener *activeListener
+	var listener, localListener *activeListener
+	var found bool
 
 	for _, lst := range arc.activeListener.handler.listeners {
 		if lst.listenIP == arc.originalDstIP && lst.listenPort == arc.originalDstPort {
@@ -562,9 +576,6 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			localListener = lst
 		}
 
-		if lst.listener.Name() == "virtual" {
-			virtualListener = lst
-		}
 	}
 
 	var ch chan api.Connection
@@ -577,26 +588,27 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 	}
 
 	if listener != nil {
-		virtualListener = nil
+		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", listener.listenIP, listener.listenPort)
 		}
 		listener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
+
 	if localListener != nil {
-		virtualListener = nil
+		found = true
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", localListener.listenIP, localListener.listenPort)
 		}
 		localListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 
-	// If it can’t find any matching listeners and should using the virtual listener.
-	if virtualListener != nil {
+	// If it can’t find any matching listeners and should using the self listener.
+	if !found {
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", virtualListener.listenIP, virtualListener.listenPort)
+			log.DefaultLogger.Infof("[server] [conn] original dst:%s:%d", arc.activeListener.listenIP, arc.activeListener.listenPort)
 		}
-		virtualListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
+		arc.activeListener.OnAccept(arc.rawc, false, arc.oriRemoteAddr, ch, buf)
 	}
 }
 
@@ -613,17 +625,24 @@ func (arc *activeRawConn) ContinueFilterChain(ctx context.Context, success bool)
 		}
 	}
 
-	// TODO: handle hand_off_restored_destination_connections logic
-	if arc.useOriginalDst {
-		arc.UseOriginalDst(ctx)
-	} else {
-		arc.activeListener.newConnection(ctx, arc.rawc)
-	}
+	arc.activeListener.newConnection(ctx, arc.rawc)
 
 }
 
 func (arc *activeRawConn) Conn() net.Conn {
 	return arc.rawc
+}
+
+func (arc *activeRawConn) GetOriContext() context.Context {
+	return arc.ctx
+}
+
+func (arc *activeRawConn) SetUseOriginalDst(flag bool) {
+	arc.useOriginalDst = flag
+}
+
+func (arc *activeRawConn) GetUseOriginalDst() bool {
+	return arc.useOriginalDst
 }
 
 // ConnectionEventListener
