@@ -33,6 +33,7 @@ import (
 	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	jsonp "github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"istio.io/api/mixer/v1/config/client"
@@ -113,6 +114,37 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 	}
 
 	return listenerConfig
+}
+
+func convertListenerFilters(listenerFilter []*xdslistener.ListenerFilter) []v2.Filter {
+	if listenerFilter == nil {
+		return nil
+	}
+
+	filters := make([]v2.Filter, 0)
+	for _, filter := range listenerFilter {
+		listenerfilter := convertListenerFilter(filter.GetName(), filter.GetTypedConfig())
+		if listenerfilter.Type != "" {
+			log.DefaultLogger.Debugf("add a new listener filter, %v", listenerfilter.Type)
+			filters = append(filters, listenerfilter)
+		}
+	}
+
+	return filters
+}
+
+func convertListenerFilter(name string, s *any.Any) v2.Filter {
+	filter := v2.Filter{}
+	switch name {
+	case v2.ORIGINALDST_LISTENER_FILTER:
+		// originaldst filter don't need filter.Config
+		filter.Type = name
+
+	default:
+		log.DefaultLogger.Errorf("not support %s listener filter.", name)
+	}
+
+	return filter
 }
 
 func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
@@ -661,7 +693,7 @@ func ConvertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 	}, false
 }
 
-func convertRoutes(xdsRoutes []xdsroute.Route) []v2.Router {
+func convertRoutes(xdsRoutes []*xdsroute.Route) []v2.Router {
 	if xdsRoutes == nil {
 		return nil
 	}
@@ -1031,9 +1063,6 @@ func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.Ci
 	}
 	thresholds := make([]v2.Thresholds, 0, len(xdsCircuitBreaker.GetThresholds()))
 	for _, xdsThreshold := range xdsCircuitBreaker.GetThresholds() {
-		if xdsThreshold.Size() == 0 {
-			continue
-		}
 		threshold := v2.Thresholds{
 			MaxConnections:     xdsThreshold.GetMaxConnections().GetValue(),
 			MaxPendingRequests: xdsThreshold.GetMaxPendingRequests().GetValue(),
