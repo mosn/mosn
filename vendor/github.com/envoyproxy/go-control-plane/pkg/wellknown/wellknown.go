@@ -12,7 +12,8 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-package util
+// Package wellknown contains common names for filters, listeners, etc.
+package wellknown
 
 // HTTP filter names
 const (
@@ -46,6 +47,8 @@ const (
 	Squash = "envoy.squash"
 	// HTTPExternalAuthorization HTTP filter
 	HTTPExternalAuthorization = "envoy.ext_authz"
+	// HTTPRoleBasedAccessControl HTTP filter
+	HTTPRoleBasedAccessControl = "envoy.filters.http.rbac"
 )
 
 // Network filter names
@@ -70,6 +73,8 @@ const (
 	MySQLProxy = "envoy.filters.network.mysql_proxy"
 	// ExternalAuthorization network filter
 	ExternalAuthorization = "envoy.ext_authz"
+	// RoleBasedAccessControl network filter
+	RoleBasedAccessControl = "envoy.filters.network.rbac"
 )
 
 // Listener filter names
@@ -80,6 +85,8 @@ const (
 	ProxyProtocol = "envoy.listener.proxy_protocol"
 	// TlsInspector listener filter
 	TlsInspector = "envoy.listener.tls_inspector"
+	// HttpInspector listener filter
+	HttpInspector = "envoy.listener.http_inspector"
 )
 
 // Tracing provider names
