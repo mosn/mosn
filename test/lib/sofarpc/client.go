@@ -80,7 +80,7 @@ func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
 	return c, nil
 }
 
-func (c *ConnClient) Event(event api.ConnectionEvent) {
+func (c *ConnClient) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		c.isClosed = true
 		close(c.close)
