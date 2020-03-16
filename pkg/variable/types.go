@@ -37,7 +37,7 @@ const (
 type GetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
 
 // SetterFunc used to set the value of variable
-type SetterFunc func(variableValue *IndexedValue, value string) error
+type SetterFunc func(ctx context.Context, variableValue *IndexedValue, value string) error
 
 // Variable provides a flexible and convenient way to pass information
 type Variable interface {

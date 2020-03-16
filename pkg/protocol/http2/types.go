@@ -149,12 +149,13 @@ func (h HeaderMap) ByteSize() uint64 {
 	return size
 }
 
-func EncodeHeader(in map[string]string) (header http.Header) {
-	header = http.Header((make(map[string][]string, len(in))))
-	for k, v := range in {
-		header.Add(k, v)
-	}
-	return header
+func EncodeHeader(header types.HeaderMap) http.Header {
+	h := http.Header((make(map[string][]string)))
+	header.Range(func(k, v string) bool {
+		h.Add(k, v)
+		return true
+	})
+	return h
 }
 
 func DecodeHeader(header types.HeaderMap) types.HeaderMap {
@@ -170,7 +171,7 @@ func DecodeHeader(header types.HeaderMap) types.HeaderMap {
 		return nil
 	}
 
-	out := make(map[string]string, len(in))
+	out := make(map[string]string)
 	for k, v := range in {
 		out[strings.ToLower(k)] = strings.Join(v, ",")
 	}

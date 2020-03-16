@@ -27,7 +27,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-var mockProtocol = types.Protocol("mockProtocol")
+var mockProtocol = types.ProtocolName("mockProtocol")
 
 func init() {
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())

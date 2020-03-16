@@ -24,6 +24,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/utils"
 )
 
 type SdsClientImpl struct {
@@ -44,6 +45,8 @@ func NewSdsClientSingleton(config *auth.SdsSecretConfig) types.SdsClient {
 	sdsClientLock.Lock()
 	defer sdsClientLock.Unlock()
 	if sdsClient != nil {
+		// update sds config
+		sdsClient.sdsSubscriber.sdsConfig = config.SdsConfig
 		return sdsClient
 	} else {
 		sdsClient = &SdsClientImpl{
@@ -53,14 +56,9 @@ func NewSdsClientSingleton(config *auth.SdsSecretConfig) types.SdsClient {
 		// For Istio , sds config should be the same
 		// So we use first sds config to init sds subscriber
 		sdsClient.sdsSubscriber = NewSdsSubscriber(sdsClient, config.SdsConfig, types.GetGlobalXdsInfo().ServiceNode, types.GetGlobalXdsInfo().ServiceCluster)
-		err := sdsClient.sdsSubscriber.Start()
-		if err != nil {
-			log.DefaultLogger.Errorf("[sds] [sdsclient] sds subscriber start fail, %v", err)
-			return nil
-		}
+		utils.GoWithRecover(sdsClient.sdsSubscriber.Start, nil)
 		return sdsClient
 	}
-	return nil
 }
 
 // CloseSdsClientImpl used only mosn exit

@@ -59,8 +59,6 @@ type Server struct {
 func (s *Server) Start(config Config) {
 	var addr string
 	if config != nil {
-		// merge MOSNConfig into global context
-		store.SetMOSNConfig(config)
 		// get admin config
 		adminConfig := config.GetAdmin()
 		if adminConfig == nil {

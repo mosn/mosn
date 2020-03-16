@@ -55,6 +55,18 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 	return "", errors.New(errUndefinedVariable + name)
 }
 
+func SetVariableValue(ctx context.Context, name, value string) error {
+	// find built-in & indexed variables, prefix and non-indexed are not supported
+	if variable, ok := variables[name]; ok {
+		// 1.1 check indexed value
+		if indexer, ok := variable.(Indexer); ok {
+			return setFlushedVariableValue(ctx, indexer.GetIndex(), value)
+		}
+	}
+
+	return errors.New(errSupportIndexedOnly + ": set variable value")
+}
+
 // TODO: provide direct access to this function, so the cost of variable name finding could be optimized
 func getFlushedVariableValue(ctx context.Context, index uint32) (string, error) {
 	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
@@ -100,5 +112,21 @@ func getIndexedVariableValue(ctx context.Context, value *IndexedValue, index uin
 		value.noCacheable = true
 	}
 	return value.data, nil
+}
 
+func setFlushedVariableValue(ctx context.Context, index uint32, value string) error {
+	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
+		if values, ok := variables.([]IndexedValue); ok {
+			variable := indexedVariables[index]
+			variableValue := &values[index]
+
+			setter := variable.Setter()
+			if setter == nil {
+				return errors.New(errSetterNotFound + variable.Name())
+			}
+			return setter(ctx, variableValue, value)
+		}
+	}
+
+	return errors.New(errNoVariablesInContext)
 }

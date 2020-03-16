@@ -61,7 +61,7 @@ func TestHealthCheck(t *testing.T) {
 	log.InitDefaultLogger("", log.DEBUG)
 	interval := 500 * time.Millisecond
 	firstInterval = interval
-	RegisterSessionFactory(types.Protocol("test"), &mockSessionFactory{})
+	RegisterSessionFactory(types.ProtocolName("test"), &mockSessionFactory{})
 	result := &testResult{
 		results: map[string]*testCounter{},
 	}

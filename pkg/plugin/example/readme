@@ -1,4 +1,0 @@
-$ go build -o plugin-client client/plugin.go
-$ go build -o plugin-server server/plugin.go
-$ ./plugin-client  2> /tmp/1
-success! response body: world

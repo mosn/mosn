@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/json"
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
@@ -12,12 +11,12 @@ import (
 // can set
 var (
 	MeshLogPath  = "stdout"
-	MeshLogLevel = "WARN"
+	MeshLogLevel = "INFO"
 	StartRetry   = false
 )
 
 // Create Mesh Config
-func NewProxyFilter(routerfgname string, downstream, upstream types.Protocol) *v2.Proxy {
+func NewProxyFilter(routerfgname string, downstream, upstream types.ProtocolName) *v2.Proxy {
 	return &v2.Proxy{
 		DownstreamProtocol: string(downstream),
 		UpstreamProtocol:   string(upstream),
@@ -56,16 +55,16 @@ func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.Fi
 	}
 }
 
-func NewFilterChain(routerConfigName string, downstream, upstream types.Protocol, routers []v2.Router) v2.FilterChain {
+func NewFilterChain(routerConfigName string, downstream, upstream types.ProtocolName, routers []v2.Router) v2.FilterChain {
 	proxy := NewProxyFilter(routerConfigName, downstream, upstream)
 
 	return makeFilterChain(proxy, routers, routerConfigName)
 }
 
-func NewXProtocolFilterChain(name string, subproto string, routers []v2.Router) v2.FilterChain {
+func NewXProtocolFilterChain(name string, subProtocol types.ProtocolName, routers []v2.Router) v2.FilterChain {
 	proxy := NewProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol)
 	extendConfig := &v2.XProxyExtendConfig{
-		SubProtocol: subproto,
+		SubProtocol: string(subProtocol),
 	}
 	extendMap := make(map[string]interface{})
 	data, _ := json.Marshal(extendConfig)

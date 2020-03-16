@@ -55,6 +55,27 @@ func (ff *mockNetworkFilterFactory) CreateFilterChain(context context.Context, c
 	callbacks.AddReadFilter(&mockNetworkFilter{})
 }
 
+func CreateMockFilerFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+	return &mockNetworkFilterFactory{}, nil
+}
+
+type mockStreamFilterFactory struct{}
+
+func (ff *mockStreamFilterFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
+}
+
+func CreateMockStreamFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	return &mockStreamFilterFactory{}, nil
+}
+
+func init() {
+	api.RegisterNetwork("mock_network", CreateMockFilerFactory)
+	api.RegisterNetwork("mock_network2", CreateMockFilerFactory)
+	api.RegisterStream("mock_stream", CreateMockStreamFilterFactory)
+	api.RegisterStream("mock_stream2", CreateMockStreamFilterFactory)
+
+}
+
 const mockCAPEM = `-----BEGIN CERTIFICATE-----
 MIIC4jCCAcqgAwIBAgIQdme9dUKPZVTgfIVpy+fmmjANBgkqhkiG9w0BAQsFADAS
 MRAwDgYDVQQKEwdBY21lIENvMB4XDTE5MDIyMDA3NTMyOFoXDTIwMDIyMDA3NTMy
