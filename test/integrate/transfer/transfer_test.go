@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
@@ -48,12 +47,7 @@ func startTransferMesh(t *testing.T, tc *integrate.XTestCase) {
 	types.TransferStatsDomainSocket = "/tmp/stats.sock"
 	types.TransferListenDomainSocket = "/tmp/listen.sock"
 	types.ReconfigureDomainSocket = "/tmp/reconfig.sock"
-	var cfg *v2.MOSNConfig
-	if !tls.UseBabasslTag.IsOpen() {
-		cfg = util.CreateXProtocolMesh(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.SubProtocol, []string{tc.AppServer.Addr()}, true)
-	} else {
-		cfg = util.CreateXProtocolMesh(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.SubProtocol, []string{tc.AppServer.Addr()}, false)
-	}
+	cfg := util.CreateXProtocolMesh(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.SubProtocol, []string{tc.AppServer.Addr()}, true)
 
 	configPath := "/tmp/transfer.json"
 	os.Remove(configPath)
@@ -85,55 +79,56 @@ func startTransferServer(tc *integrate.XTestCase) {
 }
 
 func TestTransfer(t *testing.T) {
+	if !tls.UseBabasslTag.IsOpen() {
+		appaddr := "127.0.0.1:8080"
 
-	appaddr := "127.0.0.1:8080"
+		tc := integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
 
-	tc := integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
+		tc.ClientMeshAddr = "127.0.0.1:12101"
+		tc.ServerMeshAddr = "127.0.0.1:12102"
 
-	tc.ClientMeshAddr = "127.0.0.1:12101"
-	tc.ServerMeshAddr = "127.0.0.1:12102"
-
-	if os.Getenv("_MOSN_TEST_TRANSFER") == "true" {
-		startTransferMesh(t, tc)
-		return
-	}
-	pid := forkTransferMesh(tc)
-	if pid == 0 {
-		t.Fatal("fork error")
-		return
-	}
-	log.InitDefaultLogger("./transfer.log", log.DEBUG)
-	startTransferServer(tc)
-
-	// wait server and mesh start
-	time.Sleep(time.Second)
-
-	// run test cases
-	internal := 100 // ms
-	// todo: support concurrency
-	go tc.RunCase(5000, internal)
-
-	// frist reload Mosn Server, Signal
-	time.Sleep(2 * time.Second)
-	syscall.Kill(pid, syscall.SIGHUP)
-
-	select {
-	case err := <-tc.C:
-		if err != nil {
-			t.Errorf("transfer test failed, error: %v\n", err)
+		if os.Getenv("_MOSN_TEST_TRANSFER") == "true" {
+			startTransferMesh(t, tc)
+			return
 		}
-	case <-time.After(20 * time.Second):
-	}
-
-	// second reload Mosn Server, direct start
-	forkTransferMesh(tc)
-
-	select {
-	case err := <-tc.C:
-		if err != nil {
-			t.Errorf("transfer test failed, error: %v\n", err)
+		pid := forkTransferMesh(tc)
+		if pid == 0 {
+			t.Fatal("fork error")
+			return
 		}
-	case <-time.After(20 * time.Second):
+		log.InitDefaultLogger("./transfer.log", log.DEBUG)
+		startTransferServer(tc)
+
+		// wait server and mesh start
+		time.Sleep(time.Second)
+
+		// run test cases
+		internal := 100 // ms
+		// todo: support concurrency
+		go tc.RunCase(5000, internal)
+
+		// frist reload Mosn Server, Signal
+		time.Sleep(2 * time.Second)
+		syscall.Kill(pid, syscall.SIGHUP)
+
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("transfer test failed, error: %v\n", err)
+			}
+		case <-time.After(20 * time.Second):
+		}
+
+		// second reload Mosn Server, direct start
+		forkTransferMesh(tc)
+
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("transfer test failed, error: %v\n", err)
+			}
+		case <-time.After(20 * time.Second):
+		}
+		tc.FinishCase()
 	}
-	tc.FinishCase()
 }
