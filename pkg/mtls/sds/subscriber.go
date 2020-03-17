@@ -1,11 +1,12 @@
 package sds
 
 import (
+	"github.com/golang/protobuf/ptypes"
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/juju/errors"
 	"golang.org/x/net/context"
@@ -167,9 +168,9 @@ func (subscribe *SdsSubscriber) sendRequest(request *xdsapi.DiscoveryRequest) er
 func (subscribe *SdsSubscriber) handleSecretResp(response *xdsapi.DiscoveryResponse) {
 	log.DefaultLogger.Debugf("handle secret response %v", response)
 	for _, res := range response.Resources {
-		secret := auth.Secret{}
-		secret.Unmarshal(res.GetValue())
-		subscribe.provider.SetSecret(secret.Name, &secret)
+		secret := &auth.Secret{}
+		ptypes.UnmarshalAny(res, secret)
+		subscribe.provider.SetSecret(secret.Name, secret)
 	}
 	if sdsPostCallback != nil {
 		sdsPostCallback()

@@ -20,24 +20,26 @@ package integrate
 import (
 	"errors"
 	"fmt"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	xdsconver "github.com/envoyproxy/go-control-plane/pkg/conversion"
+	pstruct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/ptypes/wrappers"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	http_conn "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/util"
 	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
 	jsoniter "github.com/json-iterator/go"
 	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
+	_ "mosn.io/mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/xds/conv"
@@ -46,17 +48,16 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type effectiveConfig struct {
-	MOSNConfig interface{}                       `json:"mosn_config,omitempty"`
-	Listener   map[string]v2.Listener            `json:"listener,omitempty"`
-	Cluster    map[string]v2.Cluster             `json:"cluster,omitempty"`
-	Routers    map[string]v2.RouterConfiguration `josn:"routers,omitempty"`
+	MOSNConfig interface{}            `json:"mosn_config,omitempty"`
+	Listener   map[string]v2.Listener `json:"listener,omitempty"`
+	Cluster    map[string]v2.Cluster  `json:"cluster,omitempty"`
 }
 
 func handleListenersResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.Listener {
 	listeners := make([]*xdsapi.Listener, 0)
 	for _, res := range msg.Resources {
 		listener := xdsapi.Listener{}
-		listener.Unmarshal(res.GetValue())
+		listener.XXX_Unmarshal(res.GetValue())
 		listeners = append(listeners, &listener)
 	}
 	return listeners
@@ -66,7 +67,7 @@ func handleEndpointsResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.ClusterLoadAss
 	lbAssignments := make([]*xdsapi.ClusterLoadAssignment, 0)
 	for _, res := range msg.Resources {
 		lbAssignment := xdsapi.ClusterLoadAssignment{}
-		lbAssignment.Unmarshal(res.GetValue())
+		lbAssignment.XXX_Unmarshal(res.GetValue())
 		lbAssignments = append(lbAssignments, &lbAssignment)
 	}
 	return lbAssignments
@@ -76,7 +77,7 @@ func handleClustersResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.Cluster {
 	clusters := make([]*xdsapi.Cluster, 0)
 	for _, res := range msg.Resources {
 		cluster := xdsapi.Cluster{}
-		cluster.Unmarshal(res.GetValue())
+		cluster.XXX_Unmarshal(res.GetValue())
 		clusters = append(clusters, &cluster)
 	}
 	return clusters
@@ -272,7 +273,7 @@ func loadXdsData2() {
 	// Listeners
 	listener := &xdsapi.Listener{
 		Name: "0.0.0.0_9080",
-		Address: core.Address{
+		Address: &core.Address{
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Address: "0.0.0.0",
@@ -282,29 +283,29 @@ func loadXdsData2() {
 				},
 			},
 		},
-		UseOriginalDst: &types.BoolValue{Value: false},
+		UseOriginalDst: &wrappers.BoolValue{Value: false},
 		DeprecatedV1: &xdsapi.Listener_DeprecatedV1{
-			BindToPort: &types.BoolValue{Value: false},
+			BindToPort: &wrappers.BoolValue{Value: false},
 		},
-		FilterChains: []xdslistener.FilterChain{
-			xdslistener.FilterChain{
+		FilterChains: []*xdslistener.FilterChain{
+			{
 				FilterChainMatch: nil,
 				TlsContext:       &auth.DownstreamTlsContext{},
-				Filters: []xdslistener.Filter{
-					xdslistener.Filter{
+				Filters: []*xdslistener.Filter{
+					{
 						Name: "envoy.http_connection_manager",
 						ConfigType: &xdslistener.Filter_Config{
 							Config: MessageToStruct(&http_conn.HttpConnectionManager{
 								RouteSpecifier: &http_conn.HttpConnectionManager_RouteConfig{
 									RouteConfig: &xdsapi.RouteConfiguration{
 										Name: "test_router_name",
-										VirtualHosts: []route.VirtualHost{
-											route.VirtualHost{},
-											route.VirtualHost{},
-											route.VirtualHost{},
-											route.VirtualHost{
-												Routes: []route.Route{
-													route.Route{
+										VirtualHosts: []*route.VirtualHost{
+											&route.VirtualHost{},
+											&route.VirtualHost{},
+											&route.VirtualHost{},
+											&route.VirtualHost{
+												Routes: []*route.Route{
+													&route.Route{
 														Match: route.RouteMatch{
 															PathSpecifier: &route.RouteMatch_Prefix{
 																Prefix: "/",
@@ -317,11 +318,11 @@ func loadXdsData2() {
 																		Clusters: []*route.WeightedCluster_ClusterWeight{
 																			&route.WeightedCluster_ClusterWeight{
 																				Name:   "outbound|9080|v1|reviews.default.svc.cluster.local",
-																				Weight: &types.UInt32Value{Value: 50},
+																				Weight: &wrappers.UInt32Value{Value: 50},
 																			},
 																			&route.WeightedCluster_ClusterWeight{
 																				Name:   "outbound|9080|v3|reviews.default.svc.cluster.local",
-																				Weight: &types.UInt32Value{Value: 50},
+																				Weight: &wrappers.UInt32Value{Value: 50},
 																			},
 																		},
 																	},
@@ -368,7 +369,7 @@ func loadXdsData() {
 	// Listeners
 	listener := &xdsapi.Listener{
 		Name: "0.0.0.0_9080",
-		Address: core.Address{
+		Address: &core.Address{
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Address: "0.0.0.0",
@@ -378,30 +379,30 @@ func loadXdsData() {
 				},
 			},
 		},
-		UseOriginalDst: &types.BoolValue{Value: false},
+		UseOriginalDst: &wrappers.BoolValue{Value: false},
 		DeprecatedV1: &xdsapi.Listener_DeprecatedV1{
-			BindToPort: &types.BoolValue{Value: false},
+			BindToPort: &wrappers.BoolValue{Value: false},
 		},
-		FilterChains: []xdslistener.FilterChain{
-			xdslistener.FilterChain{
+		FilterChains: []*xdslistener.FilterChain{
+			&xdslistener.FilterChain{
 				FilterChainMatch: nil,
 				TlsContext:       &auth.DownstreamTlsContext{},
-				Filters: []xdslistener.Filter{
-					xdslistener.Filter{
+				Filters: []*xdslistener.Filter{
+					&xdslistener.Filter{
 						Name: "envoy.http_connection_manager",
 						ConfigType: &xdslistener.Filter_Config{
 							Config: MessageToStruct(&http_conn.HttpConnectionManager{
 								RouteSpecifier: &http_conn.HttpConnectionManager_RouteConfig{
 									RouteConfig: &xdsapi.RouteConfiguration{
 										Name: "test_router_name",
-										VirtualHosts: []route.VirtualHost{
-											route.VirtualHost{},
-											route.VirtualHost{},
-											route.VirtualHost{},
-											route.VirtualHost{
-												Routes: []route.Route{
-													route.Route{
-														Match: route.RouteMatch{
+										VirtualHosts: []*route.VirtualHost{
+											&route.VirtualHost{},
+											&route.VirtualHost{},
+											&route.VirtualHost{},
+											&route.VirtualHost{
+												Routes: []*route.Route{
+													&route.Route{
+														Match: &route.RouteMatch{
 															PathSpecifier: &route.RouteMatch_Prefix{
 																Prefix: "/",
 															},

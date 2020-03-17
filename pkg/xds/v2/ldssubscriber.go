@@ -19,6 +19,7 @@ package v2
 
 import (
 	"errors"
+	"github.com/golang/protobuf/ptypes"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -53,11 +54,11 @@ func (c *ADSClient) reqListeners(streamClient ads.AggregatedDiscoveryService_Str
 func (c *ADSClient) handleListenersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Listener {
 	listeners := make([]*envoy_api_v2.Listener, 0, len(resp.Resources))
 	for _, res := range resp.Resources {
-		listener := envoy_api_v2.Listener{}
-		if err := listener.Unmarshal(res.GetValue()); err != nil {
+		listener := &envoy_api_v2.Listener{}
+		if err := ptypes.UnmarshalAny(res, listener); err != nil {
 			log.DefaultLogger.Errorf("ADSClient unmarshal listener fail: %v", err)
 		}
-		listeners = append(listeners, &listener)
+		listeners = append(listeners, listener)
 	}
 	return listeners
 }

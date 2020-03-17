@@ -19,7 +19,6 @@ package conv
 
 import (
 	"fmt"
-
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/mosn/pkg/config/v2"
@@ -160,7 +159,7 @@ func ConvertUpdateEndpoints(loadAssignments []*envoy_api_v2.ClusterLoadAssignmen
 		clusterName := loadAssignment.ClusterName
 
 		for _, endpoints := range loadAssignment.Endpoints {
-			hosts := ConvertEndpointsConfig(&endpoints)
+			hosts := ConvertEndpointsConfig(endpoints)
 			log.DefaultLogger.Debugf("xds client update endpoints: cluster: %s, priority: %d", loadAssignment.ClusterName, endpoints.Priority)
 			for index, host := range hosts {
 				log.DefaultLogger.Debugf("host[%d] is : %+v", index, host)

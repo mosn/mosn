@@ -12,22 +12,22 @@
 //   See the License for the specific language governing permissions and
 //   limitations under the License.
 
-// Package util contains shared utility functions.
-package util
+// Package conversion contains shared utility functions for converting xDS resources.
+package conversion
 
 import (
 	"bytes"
 	"errors"
 
-	"github.com/gogo/protobuf/jsonpb"
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
+	pstruct "github.com/golang/protobuf/ptypes/struct"
 )
 
 // MessageToStruct encodes a protobuf Message into a Struct. Hilariously, it
 // uses JSON as the intermediary
 // author:glen@turbinelabs.io
-func MessageToStruct(msg proto.Message) (*types.Struct, error) {
+func MessageToStruct(msg proto.Message) (*pstruct.Struct, error) {
 	if msg == nil {
 		return nil, errors.New("nil message")
 	}
@@ -37,7 +37,7 @@ func MessageToStruct(msg proto.Message) (*types.Struct, error) {
 		return nil, err
 	}
 
-	pbs := &types.Struct{}
+	pbs := &pstruct.Struct{}
 	if err := jsonpb.Unmarshal(buf, pbs); err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func MessageToStruct(msg proto.Message) (*types.Struct, error) {
 }
 
 // StructToMessage decodes a protobuf Message from a Struct.
-func StructToMessage(pbst *types.Struct, out proto.Message) error {
+func StructToMessage(pbst *pstruct.Struct, out proto.Message) error {
 	if pbst == nil {
 		return errors.New("nil struct")
 	}
