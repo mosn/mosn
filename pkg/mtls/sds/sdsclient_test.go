@@ -141,6 +141,12 @@ func InitMockSdsServer(sdsUdsPath string, t *testing.T) {
 	}()
 }
 
+// SecretDiscoveryServiceServer is the server API for SecretDiscoveryService service.
+//type SecretDiscoveryServiceServer interface {
+//        DeltaSecrets(SecretDiscoveryService_DeltaSecretsServer) error
+//        StreamSecrets(SecretDiscoveryService_StreamSecretsServer) error
+//        FetchSecrets(context.Context, *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error)
+//}
 type fakeSdsServer struct {
 	sds.SecretDiscoveryServiceServer
 }

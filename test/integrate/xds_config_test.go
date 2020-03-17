@@ -23,23 +23,22 @@ import (
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	xdsconver "github.com/envoyproxy/go-control-plane/pkg/conversion"
-	pstruct "github.com/golang/protobuf/ptypes/struct"
+        _struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
+        xdsutil "github.com/envoyproxy/go-control-plane/pkg/conversion"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	http_conn "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	"github.com/gogo/protobuf/proto"
+        "github.com/golang/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
 	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
-	_ "mosn.io/mosn/pkg/filter/stream/healthcheck/sofarpc"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/xds/conv"
@@ -51,6 +50,7 @@ type effectiveConfig struct {
 	MOSNConfig interface{}            `json:"mosn_config,omitempty"`
 	Listener   map[string]v2.Listener `json:"listener,omitempty"`
 	Cluster    map[string]v2.Cluster  `json:"cluster,omitempty"`
+	Routers    map[string]v2.RouterConfiguration `josn:"routers,omitempty"`
 }
 
 func handleListenersResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.Listener {
@@ -126,7 +126,10 @@ func TestConfigAddAndUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	var m effectiveConfig
-	json.Unmarshal(buf, &m)
+	err = json.Unmarshal(buf, &m)
+        if err != nil {
+		t.Fatal(err)
+        }
 
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
@@ -144,7 +147,10 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	json.Unmarshal(buf, &m)
+	err = json.Unmarshal(buf, &m)
+        if err != nil {
+		t.Fatal(err)
+        }
 
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
@@ -306,7 +312,7 @@ func loadXdsData2() {
 											&route.VirtualHost{
 												Routes: []*route.Route{
 													&route.Route{
-														Match: route.RouteMatch{
+														Match: &route.RouteMatch{
 															PathSpecifier: &route.RouteMatch_Prefix{
 																Prefix: "/",
 															},
@@ -451,10 +457,10 @@ func loadXdsData() {
 }
 
 // MessageToStruct converts from proto message to proto Struct
-func MessageToStruct(msg proto.Message) *types.Struct {
-	s, err := util.MessageToStruct(msg)
+func MessageToStruct(msg proto.Message) *_struct.Struct {
+	s, err := xdsutil.MessageToStruct(msg)
 	if err != nil {
-		return &types.Struct{}
+		return &_struct.Struct{}
 	}
 	return s
 }
