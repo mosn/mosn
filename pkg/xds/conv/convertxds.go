@@ -32,6 +32,7 @@ import (
 	xdsconversion "github.com/envoyproxy/go-control-plane/pkg/conversion"
 	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	jsonp "github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
@@ -1058,7 +1059,7 @@ func convertHealthChecks(xdsHealthChecks []*xdscore.HealthCheck) v2.HealthCheck 
 }
 
 func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.CircuitBreakers {
-	if xdsCircuitBreaker == nil {
+	if xdsCircuitBreaker == nil || proto.Size(xdsCircuitBreaker) == 0 {
 		return v2.CircuitBreakers{}
 	}
 	thresholds := make([]v2.Thresholds, 0, len(xdsCircuitBreaker.GetThresholds()))

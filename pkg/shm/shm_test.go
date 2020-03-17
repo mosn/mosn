@@ -60,9 +60,9 @@ func TestAtomic(t *testing.T) {
 
 	wg.Wait()
 
-	//if *counter != uint32(expected) {
-	//	t.Errorf("counter error, expected %d, actual %d", 10000, *counter)
-	//}
+	if *counter != uint32(expected) {
+		t.Errorf("counter error, expected %d, actual %d", 10000, *counter)
+	}
 
 	if err := Free(span); nil != err {
 		log.Fatalln(err)
