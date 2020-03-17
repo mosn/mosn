@@ -505,6 +505,7 @@ func convertFilterChains(xdsFilterChains []*xdslistener.FilterChain) []v2.Filter
 	for _, xdsFilterChain := range xdsFilterChains {
 		xdsFilters = append(xdsFilters, xdsFilterChain.GetFilters()...)
 
+		//todo Distinguish between multiple filterChainMaths
 		if xdsFilterChain.GetFilterChainMatch() != nil {
 			chainMatch = xdsFilterChain.GetFilterChainMatch().String()
 		}
