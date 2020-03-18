@@ -42,7 +42,8 @@ func init() {
 type connPool struct {
 	MaxConn int
 
-	host types.Host
+	host       types.Host
+	supportTLS bool
 
 	statReport bool
 
@@ -53,7 +54,8 @@ type connPool struct {
 
 func NewConnPool(host types.Host) types.ConnectionPool {
 	pool := &connPool{
-		host: host,
+		host:       host,
+		supportTLS: host.SupportTLS(),
 	}
 
 	if pool.statReport {
@@ -64,7 +66,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) SupportTLS() bool {
-	return p.host.SupportTLS()
+	return p.supportTLS
 }
 
 func (p *connPool) Protocol() types.Protocol {
@@ -142,7 +144,12 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) Shutdown() {
-	// TODO: http connpool do nothing for shutdown
+	p.clientMux.Lock()
+	defer p.clientMux.Unlock()
+
+	for _, client := range p.availableClients {
+		client.OnGoAway()
+	}
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
