@@ -92,10 +92,14 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		fmt.Printf("Failed to decode dubbo framework version, err=%v\n", err)
 		return nil
 	}
-	str, ok = field.(string)
-	if !ok {
-		fmt.Printf("Failed to decode dubbo framework version, illegal type\n")
-		return nil
+
+	// check dubbo framework version is nil ?
+	if field != nil {
+		str, ok = field.(string)
+		if !ok {
+			fmt.Printf("Failed to decode dubbo framework version, illegal type\n")
+			return nil
+		}
 	}
 	attr.dubboVersion = str
 	if parseCtl <= unserializeCtlDubboVersion {
@@ -107,10 +111,13 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		fmt.Printf("Failed to decode dubbo path, err=%v\n", err)
 		return nil
 	}
-	str, ok = field.(string)
-	if !ok {
-		fmt.Printf("Failed to decode dubbo path, illegal type\n")
-		return nil
+	// check path is nil ?
+	if str = ""; field != nil {
+		str, ok = field.(string)
+		if !ok {
+			fmt.Printf("Failed to decode dubbo path, illegal type\n")
+			return nil
+		}
 	}
 	attr.serviceName = str
 	attr.path = str
@@ -123,10 +130,14 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		fmt.Printf("Failed to decode dubbo version, err=%v\n", err)
 		return nil
 	}
-	str, ok = field.(string)
-	if !ok {
-		fmt.Printf("Failed to decode dubbo version, illegal type\n")
-		return nil
+
+	// check version is nil ?
+	if str = ""; field != nil {
+		str, ok = field.(string)
+		if !ok {
+			fmt.Printf("Failed to decode dubbo version, illegal type\n")
+			return nil
+		}
 	}
 	attr.version = str
 	if parseCtl <= unserializeCtlVersion {
@@ -138,11 +149,16 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 		fmt.Printf("Failed to decode dubbo method, err=%v\n", err)
 		return nil
 	}
-	str, ok = field.(string)
-	if !ok {
-		fmt.Printf("Failed to decode dubbo method, illegal type\n")
-		return nil
+
+	// check method is nil ?
+	if str = ""; field != nil {
+		str, ok = field.(string)
+		if !ok {
+			fmt.Printf("Failed to decode dubbo method, illegal type\n")
+			return nil
+		}
 	}
+
 	attr.methodName = str
 	if parseCtl <= unserializeCtlMethod {
 		return attr
