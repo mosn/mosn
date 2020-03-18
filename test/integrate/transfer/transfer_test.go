@@ -12,7 +12,6 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
-	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
@@ -79,7 +78,7 @@ func startTransferServer(tc *integrate.XTestCase) {
 }
 
 func TestTransfer(t *testing.T) {
-	if !tls.UseBabasslTag.IsOpen() {
+	if false {
 		appaddr := "127.0.0.1:8080"
 
 		tc := integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
