@@ -18,14 +18,11 @@
 package cluster
 
 import (
-	"sync/atomic"
 	"testing"
 )
 
 func testStateReset() {
-	// reset for test
-	var newstate atomic.Value
-	disableClientSideTLS = newstate
+	isDisableClientSideTLS = 0
 }
 
 func TestIsSupportTLS(t *testing.T) {
@@ -36,11 +33,11 @@ func TestIsSupportTLS(t *testing.T) {
 		t.Error("the default value should be support tls")
 	}
 	//
-	SetDisableClientSideTLS(true)
+	DisableClientSideTLS()
 	if IsSupportTLS() {
 		t.Error("disbale tls, should not support tls any more")
 	}
-	SetDisableClientSideTLS(false)
+	EnableClientSideTLS()
 	if !IsSupportTLS() {
 		t.Error("set disbale is false, still support tls")
 	}

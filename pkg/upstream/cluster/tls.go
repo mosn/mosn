@@ -21,18 +21,18 @@ import "sync/atomic"
 
 // temporary implement:
 // control client side tls support without update config
-var disableClientSideTLS atomic.Value
+var isDisableClientSideTLS uint32
 
-func SetDisableClientSideTLS(b bool) {
-	disableClientSideTLS.Store(b)
+func DisableClientSideTLS() {
+	atomic.StoreUint32(&isDisableClientSideTLS, 1)
+}
+
+func EnableClientSideTLS() {
+	atomic.StoreUint32(&isDisableClientSideTLS, 0)
 }
 
 // IsSupportTLS returns the client side is support tls or not
 // default is support
 func IsSupportTLS() bool {
-	v := disableClientSideTLS.Load()
-	if b, ok := v.(bool); ok {
-		return !b
-	}
-	return true
+	return atomic.LoadUint32(&isDisableClientSideTLS) == 0
 }

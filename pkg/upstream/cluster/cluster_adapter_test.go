@@ -283,7 +283,7 @@ func TestConnPoolUpdateTLS(t *testing.T) {
 		t.Fatal("conn pool does not support tls")
 	}
 	// disbale tls, connpool should will be changed
-	SetDisableClientSideTLS(true)
+	DisableClientSideTLS()
 	connPool3 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
 	// connpool should be changed, but old connpool should not be effected
 	if !connPool2.SupportTLS() {
