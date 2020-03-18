@@ -89,12 +89,12 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode dubbo_version fail, err=%v\n", err)
+		fmt.Printf("Failed to decode dubbo framework version, err=%v\n", err)
 		return nil
 	}
 	str, ok = field.(string)
 	if !ok {
-		fmt.Printf("unSerialize: Decode dubbo_version fail, illegal type\n")
+		fmt.Printf("Failed to decode dubbo framework version, illegal type\n")
 		return nil
 	}
 	attr.dubboVersion = str
@@ -104,12 +104,12 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode path fail, err=%v\n", err)
+		fmt.Printf("Failed to decode dubbo path, err=%v\n", err)
 		return nil
 	}
 	str, ok = field.(string)
 	if !ok {
-		fmt.Printf("unSerialize: Decode path fail, illegal type\n")
+		fmt.Printf("Failed to decode dubbo path, illegal type\n")
 		return nil
 	}
 	attr.serviceName = str
@@ -120,12 +120,12 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode version fail, err=%v\n", err)
+		fmt.Printf("Failed to decode dubbo version, err=%v\n", err)
 		return nil
 	}
 	str, ok = field.(string)
 	if !ok {
-		fmt.Printf("unSerialize: Decode version fail, illegal type\n")
+		fmt.Printf("Failed to decode dubbo version, illegal type\n")
 		return nil
 	}
 	attr.version = str
@@ -135,12 +135,12 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode method fail, err=%v\n", err)
+		fmt.Printf("Failed to decode dubbo method, err=%v\n", err)
 		return nil
 	}
 	str, ok = field.(string)
 	if !ok {
-		fmt.Printf("unSerialize: Decode method fail, illegal type\n")
+		fmt.Printf("Failed to decode dubbo method, illegal type\n")
 		return nil
 	}
 	attr.methodName = str
@@ -150,7 +150,7 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode argsTypes fail, err=%v\n", err)
+		fmt.Printf("Failed to decode dubbo argsTypes, err=%v\n", err)
 		return nil
 	}
 
@@ -158,7 +158,7 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 	for i := 0; i < len(ats); i++ {
 		_, err = decoder.Decode()
 		if err != nil {
-			fmt.Printf("unSerialize: Decode argsTypes item fail, err=%v\n", err)
+			fmt.Printf("Failed to decode dubbo argsTypes item, err=%v\n", err)
 			return nil
 		}
 	}
@@ -169,13 +169,25 @@ func unSerialize(serializeId int, data []byte, parseCtl unserializeCtl) *dubboAt
 
 	field, err = decoder.Decode()
 	if err != nil {
-		fmt.Printf("unSerialize: Decode attachments fail, err=%v\n", err)
+		fmt.Printf("Failed to decode dubbo attachments, err=%v\n", err)
 		return nil
 	}
 	if v, ok := field.(map[interface{}]interface{}); ok {
 		attachments = hessian.ToMapStringString(v)
 		attr.attachments = attachments
 	}
+
+	var targetInterface string
+	if attr.attachments != nil {
+		targetInterface = attr.attachments["interface"]
+		// cluster根据interface、version和group构造dataId, 默认场景
+		// path和interface是相等的，在同一个接口多次暴露或者消费时，path和interface不相等
+		// 最终导致构造dataId不正确，无法正确路由到cluster
+		if targetInterface != "" {
+			attr.serviceName = targetInterface
+		}
+	}
+
 	// No need here
 	//if parseCtl <= unserializeCtlAttachments {
 	//	return attr
@@ -281,6 +293,16 @@ func dubboGetMeta(data []byte) map[string]string {
 			retMap[k] = v
 		}
 	}
+
+	// 默认不传，dubbo超时1秒
+	timeout := "1000" // ms
+
+	// 解析dubbo的timeout参数, 如果有直接使用
+	if _timeout := retMap["timeout"]; _timeout != "" {
+		timeout = _timeout
+	}
+
+	retMap[types.HeaderGlobalTimeout] = timeout
 
 	return retMap
 }

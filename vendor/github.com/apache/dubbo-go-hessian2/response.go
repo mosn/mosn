@@ -206,6 +206,16 @@ func unpackResponseBody(decoder *Decoder, resp interface{}) error {
 			}
 		}
 
+		// 修复解码dubbo response attachments.
+		// 待开源发布时，会升级hessian2库依赖
+		// 开源pr: https://github.com/apache/dubbo-go-hessian2/pull/167
+
+		// If the return value is nil,
+		// we should consider it normal
+		if rsp == nil {
+			return nil
+		}
+
 		return perrors.WithStack(ReflectResponse(rsp, response.RspObj))
 
 	case RESPONSE_NULL_VALUE, RESPONSE_NULL_VALUE_WITH_ATTACHMENTS:
