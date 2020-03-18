@@ -144,7 +144,12 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) Shutdown() {
-	// TODO: http connpool do nothing for shutdown
+	p.clientMux.Lock()
+	defer p.clientMux.Unlock()
+
+	for _, client := range p.availableClients {
+		client.OnGoAway()
+	}
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {

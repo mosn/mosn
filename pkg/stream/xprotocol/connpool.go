@@ -122,7 +122,7 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) Shutdown() {
-	// TODO: xprotocol connpool do nothing for shutdown
+	// FIXME:
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
