@@ -52,6 +52,7 @@ var defaultSubProtocol byte = 0x00
 type connPool struct {
 	activeClients sync.Map //sub protocol -> activeClient
 	host          types.Host
+	supportTLS    bool
 
 	mux sync.Mutex
 }
@@ -59,13 +60,14 @@ type connPool struct {
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
 	p := &connPool{
-		host: host,
+		host:       host,
+		supportTLS: host.SupportTLS(), // should do a snapshot
 	}
 	return p
 }
 
 func (p *connPool) SupportTLS() bool {
-	return p.host.SupportTLS()
+	return p.supportTLS
 }
 
 func (p *connPool) init(client *activeClient, sub byte) {
