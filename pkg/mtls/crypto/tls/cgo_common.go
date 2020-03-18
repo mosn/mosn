@@ -30,7 +30,7 @@ func (tag *babasslTag) IsOpen() bool {
 
 // UseBabasslTag is used to determine whether use babassl, default close
 var UseBabasslTag = &babasslTag{
-	tag: false,
+	tag: true,
 }
 
 // OpenBabasslTag is used to open UseBabasslTag, when this tag is open
