@@ -12,7 +12,6 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
@@ -239,7 +238,7 @@ func TestUpdateTLS(t *testing.T) {
 func TestIdleTimeoutAndUpdate(t *testing.T) {
 	defer func() {
 		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
-		defaultIdleTimeout = network.DefaultIdleTimeout
+		defaultIdleTimeout = types.DefaultIdleTimeout
 	}()
 	log.DefaultLogger.SetLogLevel(log.DEBUG)
 	buffer.ConnReadTimeout = time.Second

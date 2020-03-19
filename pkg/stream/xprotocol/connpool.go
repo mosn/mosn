@@ -43,17 +43,19 @@ type connPool struct {
 	drainingClient *activeClient
 	mux            sync.Mutex
 	host           types.Host
+	supportTLS     bool
 }
 
 // NewConnPool for xprotocol upstream host
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
-		host: host,
+		host:       host,
+		supportTLS: host.SupportTLS(),
 	}
 }
 
 func (p *connPool) SupportTLS() bool {
-	return p.host.SupportTLS()
+	return p.supportTLS
 }
 
 // Protocol return xprotocol
@@ -120,7 +122,7 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) Shutdown() {
-	// TODO: xprotocol connpool do nothing for shutdown
+	// FIXME:
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {

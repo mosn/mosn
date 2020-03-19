@@ -42,6 +42,7 @@ func init() {
 type connPool struct {
 	activeClient *activeClient
 	host         types.Host
+	supportTLS   bool
 
 	mux sync.Mutex
 }
@@ -49,12 +50,13 @@ type connPool struct {
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
 	return &connPool{
-		host: host,
+		host:       host,
+		supportTLS: host.SupportTLS(),
 	}
 }
 
 func (p *connPool) SupportTLS() bool {
-	return p.host.SupportTLS()
+	return p.supportTLS
 }
 
 func (p *connPool) Protocol() types.Protocol {
