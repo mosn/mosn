@@ -56,6 +56,10 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 }
 
 func SetVariableValue(ctx context.Context, name, value string) error {
+	if ctx == nil {
+		return errors.New(errInvalidContext)
+	}
+
 	// find built-in & indexed variables, prefix and non-indexed are not supported
 	if variable, ok := variables[name]; ok {
 		// 1.1 check indexed value
