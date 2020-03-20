@@ -22,8 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
@@ -126,9 +124,6 @@ func TestDirectResponse(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
-		ctx := context.Background()
-		ctx = variable.NewVariableContext(ctx)
-
 		s := &downStream{
 			proxy: &proxy{
 				config: &v2.Proxy{},
@@ -144,11 +139,10 @@ func TestDirectResponse(t *testing.T) {
 			},
 			responseSender: tc.client,
 			requestInfo:    &network.RequestInfo{},
-			context:        ctx,
 		}
 		// event call Receive Headers
 		// trigger direct response
-		s.OnReceive(ctx, protocol.CommonHeader{}, buffer.NewIoBuffer(1), nil)
+		s.OnReceive(context.Background(), protocol.CommonHeader{}, buffer.NewIoBuffer(1), nil)
 		// check
 		time.Sleep(100 * time.Millisecond)
 		tc.check(t, tc.client)

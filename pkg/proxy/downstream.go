@@ -28,8 +28,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/config/v2"
@@ -1220,7 +1218,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	}
 	s.requestInfo.SetResponseCode(code)
 
-	variable.SetVariableValue(s.context, types.VarProxyHijackStatus, strconv.Itoa(code))
+	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
@@ -1239,7 +1237,7 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	}
 	s.requestInfo.SetResponseCode(code)
 
-	variable.SetVariableValue(s.context, types.VarProxyHijackStatus, strconv.Itoa(code))
+	headers.Set(types.HeaderStatus, strconv.Itoa(code))
 
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers

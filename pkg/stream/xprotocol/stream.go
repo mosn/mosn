@@ -20,7 +20,6 @@ package xprotocol
 import (
 	"context"
 	"fmt"
-	"mosn.io/mosn/pkg/variable"
 	"strconv"
 
 	"mosn.io/mosn/pkg/log"
@@ -64,13 +63,14 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 		return
 	}
 
-	s.frame = frame
-
 	// hijack process
-	if statusValue, err := variable.GetVariableValue(ctx, types.VarProxyHijackStatus); err == nil {
-		statusCode, _ := strconv.Atoi(statusValue)
-		proto := s.sc.protocol
-		s.frame =  proto.Hijack(proto.Mapping(uint32(statusCode)))
+	if s.direction == stream.ServerStream && frame.GetStreamType() == xprotocol.Request {
+		s.frame, err = s.buildHijackResp(headers)
+		if err != nil {
+			return
+		}
+	} else {
+		s.frame = frame
 	}
 
 	// endStream
@@ -80,6 +80,16 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 	return
 }
 
+func (s *xStream) buildHijackResp(header types.HeaderMap) (xprotocol.XFrame, error) {
+	if status, ok := header.Get(types.HeaderStatus); ok {
+		header.Del(types.HeaderStatus)
+		statusCode, _ := strconv.Atoi(status)
+		proto := s.sc.protocol
+		return proto.Hijack(proto.Mapping(uint32(statusCode))), nil
+	}
+
+	return nil, types.ErrNoStatusCodeForHijack
+}
 
 func (s *xStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
