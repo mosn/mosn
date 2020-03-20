@@ -22,6 +22,8 @@ import (
 	"net"
 	"time"
 
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
@@ -133,6 +135,12 @@ type mockResponseSender struct {
 
 func (s *mockResponseSender) AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error {
 	s.headers = headers
+
+	// hijack process
+	if statusValue, err := variable.GetVariableValue(ctx, types.VarProxyHijackStatus); err == nil {
+		s.headers.Set(types.HeaderStatus, statusValue)
+	}
+
 	return nil
 }
 
