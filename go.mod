@@ -3,6 +3,7 @@ module mosn.io/mosn
 go 1.12
 
 require (
+	github.com/SkyAPM/go2sky v0.3.1-0.20200329092408-8b3e4d536d8d
 	github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
 	github.com/apache/dubbo-go-hessian2 v1.5.0-rc1
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -20,19 +21,21 @@ require (
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
+	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
+	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
 	golang.org/x/text v0.3.2 // indirect
+	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.20.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
