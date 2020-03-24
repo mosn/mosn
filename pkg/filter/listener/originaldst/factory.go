@@ -34,6 +34,12 @@ func init() {
 type originalDst struct {
 }
 
+// TODO remove it when Istio deprecate UseOriginalDst.
+// NewOriginalDst new an original dst filter.
+func NewOriginalDst() api.ListenerFilterChainFactory {
+	return &originalDst{}
+}
+
 func CreateOriginalDstFactory(conf map[string]interface{}) (api.ListenerFilterChainFactory, error) {
 	return &originalDst{}, nil
 }
