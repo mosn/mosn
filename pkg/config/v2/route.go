@@ -173,8 +173,7 @@ type HeaderValue struct {
 	Value string `json:"value,omitempty"`
 }
 
-// RouterConfiguration is a filter for routers
-// Filter type is:  "CONNECTION_MANAGER"
+// RouterConfiguration is a config for routers
 type RouterConfiguration struct {
 	VirtualHosts []*VirtualHost `json:"-"`
 	RouterConfigurationConfig
@@ -188,6 +187,7 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 	}
 	// dynamic mode, should write file
 	// first, get all the files in the directory
+	os.MkdirAll(rc.RouterConfigPath, 0755)
 	files, err := ioutil.ReadDir(rc.RouterConfigPath)
 	if err != nil {
 		return nil, err

@@ -7,12 +7,10 @@ import (
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/conv"
+	_ "mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
-	_ "mosn.io/mosn/pkg/stream/sofarpc"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
@@ -81,7 +79,7 @@ func TestAutoTLS(t *testing.T) {
 }
 
 func TestProtocolHttp2(t *testing.T) {
-	var prot types.Protocol
+	var prot types.ProtocolName
 	var magic string
 	var err error
 
@@ -104,7 +102,7 @@ func TestProtocolHttp2(t *testing.T) {
 }
 
 func TestProtocolHttp1(t *testing.T) {
-	var prot types.Protocol
+	var prot types.ProtocolName
 	var magic string
 	var err error
 

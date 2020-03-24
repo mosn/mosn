@@ -5,10 +5,8 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/mosn"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/test/util"
 )
@@ -20,15 +18,16 @@ import (
 func TestUpdateStreamFilters(t *testing.T) {
 	server.ResetAdapter()
 	// start a server
+
 	appAddr := "127.0.0.1:8080"
-	server := util.NewRPCServer(t, appAddr, util.Bolt1)
+	server := util.NewRPCServer(t, appAddr, bolt.ProtocolName)
 	server.GoServe()
 	defer server.Close()
 	// create mosn without stream filters
 	clientMeshAddr := util.CurrentMeshAddr()
-	cfg := util.CreateProxyMesh(clientMeshAddr, []string{appAddr}, protocol.SofaRPC)
+	cfg := util.CreateXProtocolProxyMesh(clientMeshAddr, []string{appAddr}, bolt.ProtocolName)
 	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
+	mesh.Start()
 	defer mesh.Close()
 	time.Sleep(5 * time.Second)
 	// send a request to mosn, create connection between mosns
@@ -50,7 +49,7 @@ func TestUpdateStreamFilters(t *testing.T) {
 		t.Fatalf("update listener failed, error: %v", err)
 	}
 	// set expected status
-	clt.ExpectedStatus = sofarpc.RESPONSE_STATUS_UNKNOWN
+	clt.ExpectedStatus = int16(bolt.ResponseStatusUnknown)
 	// send request to verify the stream filters is valid
 	clt.SendRequestWithData("testdata")
 	if !util.WaitMapEmpty(&clt.Waits, 2*time.Second) {
@@ -61,7 +60,7 @@ func TestUpdateStreamFilters(t *testing.T) {
 		t.Fatalf("update listener failed, error: %v", err)
 	}
 	// verify stream fllters
-	clt.ExpectedStatus = sofarpc.RESPONSE_STATUS_SUCCESS
+	clt.ExpectedStatus = int16(bolt.ResponseStatusSuccess)
 	clt.SendRequestWithData("testdata")
 	if !util.WaitMapEmpty(&clt.Waits, 2*time.Second) {
 		t.Fatal("no expected response")
@@ -76,7 +75,6 @@ func updateListener(cfg *v2.MOSNConfig, faultstr string) error {
 	AddFaultInject(cfg, "proxyListener", faultstr)
 	// get config
 	lc := cfg.Servers[0].Listeners[0]
-	streamFilterFactories := configmanager.GetStreamFilters(lc.StreamFilters)
-	// nil network filters, nothing changed
-	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, nil, streamFilterFactories)
+	// nil listener network filters, nothing changed
+	return server.GetListenerAdapterInstance().AddOrUpdateListener("", &lc, false, false, true)
 }

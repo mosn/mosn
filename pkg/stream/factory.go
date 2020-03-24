@@ -24,17 +24,17 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-var streamFactories map[types.Protocol]ProtocolStreamFactory
+var streamFactories map[types.ProtocolName]ProtocolStreamFactory
 
 func init() {
-	streamFactories = make(map[types.Protocol]ProtocolStreamFactory)
+	streamFactories = make(map[types.ProtocolName]ProtocolStreamFactory)
 }
 
-func Register(prot types.Protocol, factory ProtocolStreamFactory) {
+func Register(prot types.ProtocolName, factory ProtocolStreamFactory) {
 	streamFactories[prot] = factory
 }
 
-func CreateServerStreamConnection(context context.Context, prot types.Protocol, connection api.Connection,
+func CreateServerStreamConnection(context context.Context, prot api.Protocol, connection api.Connection,
 	callbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 
 	if ssc, ok := streamFactories[prot]; ok {
@@ -44,7 +44,7 @@ func CreateServerStreamConnection(context context.Context, prot types.Protocol, 
 	return nil
 }
 
-func SelectStreamFactoryProtocol(ctx context.Context, prot string, peek []byte) (types.Protocol, error) {
+func SelectStreamFactoryProtocol(ctx context.Context, prot string, peek []byte) (types.ProtocolName, error) {
 	var err error
 	var again bool
 	for p, factory := range streamFactories {

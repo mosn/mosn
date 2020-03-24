@@ -87,7 +87,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr: convertAddress(&xdsListener.Address),
+		Addr:                    convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -95,6 +95,8 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 	if listenerConfig.Name == "virtual" {
 		return listenerConfig
 	}
+
+	listenerConfig.ListenerFilters = convertListenerFilters(xdsListener.GetListenerFilters())
 
 	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
 
@@ -263,6 +265,37 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 	return accessLogs
 }
 
+func convertListenerFilters(listenerFilter []xdslistener.ListenerFilter) []v2.Filter {
+	if listenerFilter == nil {
+		return nil
+	}
+
+	filters := make([]v2.Filter, 0)
+	for _, filter := range listenerFilter {
+		listenerfilter := convertListenerFilter(filter.GetName(), filter.GetTypedConfig())
+		if listenerfilter.Type != "" {
+			log.DefaultLogger.Debugf("add a new listener filter, %v", listenerfilter.Type)
+			filters = append(filters, listenerfilter)
+		}
+	}
+
+	return filters
+}
+
+func convertListenerFilter(name string, s *types.Any) v2.Filter {
+	filter := v2.Filter{}
+	switch name {
+	case v2.ORIGINALDST_LISTENER_FILTER:
+		// originaldst filter don't need filter.Config
+		filter.Type = name
+
+	default:
+		log.DefaultLogger.Errorf("not support %s listener filter.", name)
+	}
+
+	return filter
+}
+
 func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 	filters := make([]v2.Filter, 0)
 	name := networkFilter.GetName()
@@ -384,6 +417,9 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 }
 
 func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
+	if percent == nil {
+		return 0
+	}
 	switch percent.Denominator {
 	case xdstype.FractionalPercent_MILLION:
 		return percent.Numerator / 10000
@@ -503,9 +539,10 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 				UpstreamProtocol:   string(protocol.HTTP1),
 			}
 		} else {
+			// FIXME
 			proxyConfig = v2.Proxy{
-				DownstreamProtocol: string(protocol.SofaRPC),
-				UpstreamProtocol:   string(protocol.SofaRPC),
+				DownstreamProtocol: string(protocol.Xprotocol),
+				UpstreamProtocol:   string(protocol.Xprotocol),
 			}
 		}
 	} else if name == v2.X_PROXY {
@@ -556,7 +593,6 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 				log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: %v", err)
 			}
 		}
-		filtersConfigParsed[v2.CONNECTION_MANAGER] = toMap(routerConfig)
 	} else {
 		log.DefaultLogger.Errorf("no router config found, filter name: %s", name)
 	}

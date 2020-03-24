@@ -22,28 +22,29 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+
 	"mosn.io/mosn/pkg/mosn"
-	"mosn.io/mosn/pkg/protocol"
 	testutil "mosn.io/mosn/test/util"
 )
 
 type weightCase struct {
-	*TestCase
+	*XTestCase
 	appServers map[string]testutil.UpstreamServer
 	clusters   []*testutil.WeightCluster
 }
 
-// support SofaRPC only
+// support SofaRPC with xprotocol only
 func newWeightCase(t *testing.T, clusters []*testutil.WeightCluster) *weightCase {
-	tc := NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, testutil.NewRPCServer(t, "", testutil.Bolt1))
+	tc := NewXTestCase(t, bolt.ProtocolName, testutil.NewRPCServer(t, "", bolt.ProtocolName))
 	appServers := make(map[string]testutil.UpstreamServer)
 	for _, cluster := range clusters {
 		for _, host := range cluster.Hosts {
-			appServers[host.Addr] = testutil.NewRPCServer(t, host.Addr, testutil.Bolt1)
+			appServers[host.Addr] = testutil.NewRPCServer(t, host.Addr, bolt.ProtocolName)
 		}
 	}
 	return &weightCase{
-		TestCase:   tc,
+		XTestCase:  tc,
 		appServers: appServers,
 		clusters:   clusters,
 	}
@@ -56,7 +57,8 @@ func (c *weightCase) Start() {
 
 	meshAddr := testutil.CurrentMeshAddr()
 	c.ClientMeshAddr = meshAddr
-	cfg := testutil.CreateWeightProxyMesh(meshAddr, protocol.SofaRPC, c.clusters)
+	// use bolt as example
+	cfg := testutil.CreateXWeightProxyMesh(meshAddr, bolt.ProtocolName, c.clusters)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {

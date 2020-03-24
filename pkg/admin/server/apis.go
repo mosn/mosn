@@ -28,6 +28,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/sink/console"
+	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -190,4 +191,13 @@ func getState(w http.ResponseWriter, r *http.Request) {
 	state := store.GetMosnState()
 	msg := fmt.Sprintf("pid=%d&state=%d\n", pid, state)
 	fmt.Fprint(w, msg)
+}
+
+// http://ip:port/plugin?enable=pluginname
+// http://ip:port/plugin?disable=pluginname
+// http://ip:port/plugin?status=pluginname
+// http://ip:port/plugin?status=all
+func pluginApi(w http.ResponseWriter, r *http.Request) {
+	log.DefaultLogger.Infof("[admin api] [plugin] url %s", r.URL.RequestURI())
+	plugin.AdminApi(w, r)
 }

@@ -9,6 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+
 	"golang.org/x/net/http2"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	_ "mosn.io/mosn/pkg/filter/network/tcpproxy"
@@ -18,9 +22,16 @@ import (
 	"mosn.io/mosn/test/util"
 )
 
+// TODO: base interface
+//type Case interface {
+//	StartProxy()
+//	Start(tls bool)
+//	RunCase(n int, interval int)
+//}
+
 type TestCase struct {
-	AppProtocol    types.Protocol
-	MeshProtocol   types.Protocol
+	AppProtocol    types.ProtocolName
+	MeshProtocol   types.ProtocolName
 	C              chan error
 	T              *testing.T
 	AppServer      util.UpstreamServer
@@ -29,7 +40,7 @@ type TestCase struct {
 	Finish         chan bool
 }
 
-func NewTestCase(t *testing.T, app, mesh types.Protocol, server util.UpstreamServer) *TestCase {
+func NewTestCase(t *testing.T, app, mesh types.ProtocolName, server util.UpstreamServer) *TestCase {
 	return &TestCase{
 		AppProtocol:  app,
 		MeshProtocol: mesh,
@@ -68,26 +79,6 @@ func (c *TestCase) Start(tls bool) {
 	c.ClientMeshAddr = clientMeshAddr
 	serverMeshAddr := util.CurrentMeshAddr()
 	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, tls)
-	mesh := mosn.NewMosn(cfg)
-	go mesh.Start()
-	go func() {
-		<-c.Finish
-		c.AppServer.Close()
-		mesh.Close()
-		c.Finish <- true
-	}()
-	time.Sleep(5 * time.Second) //wait server and mesh start
-}
-
-// XProtocol CASE
-// should use subprotocol
-func (c *TestCase) StartX(subprotocol string) {
-	c.AppServer.GoServe()
-	appAddr := c.AppServer.Addr()
-	clientMeshAddr := util.CurrentMeshAddr()
-	c.ClientMeshAddr = clientMeshAddr
-	serverMeshAddr := util.CurrentMeshAddr()
-	cfg := util.CreateXProtocolMesh(clientMeshAddr, serverMeshAddr, subprotocol, []string{appAddr})
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {
@@ -155,10 +146,88 @@ func (c *TestCase) RunCase(n int, interval int) {
 			c.T.Logf("HTTP2 client receive data: %s\n", string(b))
 			return nil
 		}
-	case protocol.SofaRPC:
+	default:
+		c.C <- fmt.Errorf("unsupported protocol: %v", c.AppProtocol)
+		return
+	}
+	for i := 0; i < n; i++ {
+		if err := call(); err != nil {
+			c.C <- err
+			return
+		}
+		time.Sleep(time.Duration(interval) * time.Millisecond)
+	}
+	c.C <- nil
+}
+
+// XProtocol case, should use sub-protocol
+type XTestCase struct {
+	TestCase
+	SubProtocol types.ProtocolName
+}
+
+func NewXTestCase(t *testing.T, subProtocol types.ProtocolName, server util.UpstreamServer) *XTestCase {
+	return &XTestCase{
+		TestCase: TestCase{
+			AppProtocol:  protocol.Xprotocol,
+			MeshProtocol: protocol.Xprotocol,
+			C:            make(chan error),
+			T:            t,
+			AppServer:    server,
+			Finish:       make(chan bool),
+		},
+		SubProtocol: subProtocol,
+	}
+}
+
+// client - mesh - server
+// not support tls
+// ignore parameter : mesh protocol
+func (c *XTestCase) StartProxy() {
+	c.AppServer.GoServe()
+	appAddr := c.AppServer.Addr()
+	clientMeshAddr := util.CurrentMeshAddr()
+	c.ClientMeshAddr = clientMeshAddr
+	cfg := util.CreateXProtocolProxyMesh(clientMeshAddr, []string{appAddr}, c.SubProtocol)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Finish
+		c.AppServer.Close()
+		mesh.Close()
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+func (c *XTestCase) Start(tls bool) {
+	c.AppServer.GoServe()
+	appAddr := c.AppServer.Addr()
+	clientMeshAddr := util.CurrentMeshAddr()
+	c.ClientMeshAddr = clientMeshAddr
+	serverMeshAddr := util.CurrentMeshAddr()
+	cfg := util.CreateXProtocolMesh(clientMeshAddr, serverMeshAddr, c.SubProtocol, []string{appAddr}, tls)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Finish
+		c.AppServer.Close()
+		mesh.Close()
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+// mesh to mesh use tls if "istls" is true
+// client do "n" times request, interval time (ms)
+func (c *XTestCase) RunCase(n int, interval int) {
+	// Client Call
+	var call func() error
+	switch c.SubProtocol {
+	case bolt.ProtocolName, dubbo.ProtocolName, tars.ProtocolName:
 		server, ok := c.AppServer.(*util.RPCServer)
 		if !ok {
-			c.C <- fmt.Errorf("need a sofa rpc server")
+			c.C <- fmt.Errorf("need a xprotocol rpc server")
 			return
 		}
 		client := server.Client
@@ -174,19 +243,6 @@ func (c *TestCase) RunCase(n int, interval int) {
 			}
 			return nil
 		}
-	case protocol.Xprotocol:
-		server, ok := c.AppServer.(*util.XProtocolServer)
-		if !ok {
-			c.C <- fmt.Errorf("need a xprotocol server")
-			return
-		}
-		client := server.Client
-		if err := client.Connect(c.ClientMeshAddr); err != nil {
-			c.C <- err
-			return
-		}
-		defer client.Close()
-		call = client.RequestAndWaitReponse
 	default:
 		c.C <- fmt.Errorf("unsupported protocol: %v", c.AppProtocol)
 		return

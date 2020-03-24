@@ -320,10 +320,7 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
-	if data != nil {
-		s.downstreamReqDataBuf = data.Clone()
-		data.Drain(data.Len())
-	}
+	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -597,22 +594,22 @@ func (s *downStream) matchRoute() {
 	s.snapshot, s.route = handlerChain.DoNextHandler()
 }
 
-func (s *downStream) convertProtocol() (dp, up types.Protocol) {
+func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {
 	dp = s.getDownstreamProtocol()
 	up = s.getUpstreamProtocol()
 	return
 }
 
-func (s *downStream) getDownstreamProtocol() (prot types.Protocol) {
+func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
 	if s.proxy.serverStreamConn == nil {
-		prot = types.Protocol(s.proxy.config.DownstreamProtocol)
+		prot = types.ProtocolName(s.proxy.config.DownstreamProtocol)
 	} else {
 		prot = s.proxy.serverStreamConn.Protocol()
 	}
 	return prot
 }
 
-func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
+func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
 	configProtocol := s.proxy.config.UpstreamProtocol
 
 	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
@@ -624,7 +621,7 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
 	if configProtocol == string(protocol.Auto) {
 		currentProtocol = s.getDownstreamProtocol()
 	} else {
-		currentProtocol = types.Protocol(configProtocol)
+		currentProtocol = types.ProtocolName(configProtocol)
 	}
 
 	return currentProtocol
@@ -1320,6 +1317,10 @@ func (s *downStream) DownstreamHeaders() types.HeaderMap {
 
 func (s *downStream) DownstreamContext() context.Context {
 	return s.context
+}
+
+func (s *downStream) DownstreamCluster() types.ClusterInfo {
+	return s.cluster
 }
 
 func (s *downStream) giveStream() {

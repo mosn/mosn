@@ -48,7 +48,6 @@ const (
 	NetBufferDefaultSize     = 0
 	NetBufferDefaultCapacity = 1 << 4
 
-	DefaultIdleTimeout    = 90 * time.Second
 	DefaultConnectTimeout = 3 * time.Second
 )
 

@@ -81,6 +81,7 @@ type Cluster struct {
 	HealthCheck          HealthCheck         `json:"health_check,omitempty"`
 	Spec                 ClusterSpecInfo     `json:"spec,omitempty"`
 	LBSubSetConfig       LBSubsetConfig      `json:"lb_subset_config,omitempty"`
+	LBOriDstConfig       LBOriDstConfig      `json:"original_dst_lb_config,omitempty"`
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
@@ -171,6 +172,12 @@ type LBSubsetConfig struct {
 	SubsetSelectors [][]string        `json:"subset_selectors,omitempty"`
 }
 
+// LBOriDstConfig for OriDst load balancer.
+type LBOriDstConfig struct {
+	UseHeader  bool   `json:"use_header,omitempty"`
+	HeaderName string `json:"header_name,omitempty"`
+}
+
 // ClusterManagerConfig for making up cluster manager
 // Cluster is the global cluster of mosn
 type ClusterManagerConfig struct {
@@ -230,6 +237,8 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 	}
 	// dynamic mode, should write file
 	// first, get all the files in the directory
+	// try to make dir if not exists
+	os.MkdirAll(cc.ClusterConfigPath, 0755)
 	files, err := ioutil.ReadDir(cc.ClusterConfigPath)
 	if err != nil {
 		return nil, err

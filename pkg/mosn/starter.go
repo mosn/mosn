@@ -21,18 +21,17 @@ import (
 	"net"
 	"sync"
 
-	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
-	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/shm"
 	"mosn.io/mosn/pkg/metrics/sink"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/plugin"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/server/keeper"
@@ -63,6 +62,9 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeDefaultPath(configmanager.GetConfigPath())
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
+	initializePlugin(c.Plugin.LogBase)
+
+	store.SetMosnConfig(c)
 
 	//get inherit fds
 	inheritListeners, reconfigure, err := server.GetInheritListeners()
@@ -159,26 +161,22 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
-
-				// parse routers from connection_manager filter and add it the routerManager
-				if routerConfig := configmanager.ParseRouterConfiguration(&lc.FilterChains[0]); routerConfig.RouterConfigName != "" {
-					m.routerManager.AddOrUpdateRouters(routerConfig)
-				}
-
-				var nfcf []api.NetworkFilterChainFactory
-				var sfcf []api.StreamFilterChainFactory
-
-				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled
-				// network filters
-				if !lc.UseOriginalDst {
-					// network and stream filters
-					nfcf = configmanager.GetNetworkFilters(&lc.FilterChains[0])
-					sfcf = configmanager.GetStreamFilters(lc.StreamFilters)
-				}
-
-				_, err := srv.AddListener(lc, nfcf, sfcf)
+				// deprecated: keep compatible for route config in listener's connection_manager
+				deprecatedRouter, err := configmanager.ParseRouterConfiguration(&lc.FilterChains[0])
 				if err != nil {
+					log.StartLogger.Fatalf("[mosn] [NewMosn] compatible router: %v", err)
+				}
+				if deprecatedRouter.RouterConfigName != "" {
+					m.routerManager.AddOrUpdateRouters(deprecatedRouter)
+				}
+				if _, err := srv.AddListener(lc, true, true, true); err != nil {
 					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
+				}
+			}
+			// Add Router Config
+			for _, routerConfig := range serverConfig.Routers {
+				if routerConfig.RouterConfigName != "" {
+					m.routerManager.AddOrUpdateRouters(routerConfig)
 				}
 			}
 		}
@@ -264,6 +262,14 @@ func (m *Mosn) Start() {
 	// start mosn server
 	log.StartLogger.Infof("mosn start server")
 	for _, srv := range m.servers {
+
+		// TODO
+		// This can't be deleted, otherwise the code behind is equivalent at
+		// utils.GoWithRecover(func() {
+		//	 m.servers[0].Start()
+		// },
+		srv := srv
+
 		utils.GoWithRecover(func() {
 			srv.Start()
 		}, nil)
@@ -340,6 +346,13 @@ func initializePidFile(pid string) {
 
 func initializeDefaultPath(path string) {
 	types.InitDefaultPath(path)
+}
+
+func initializePlugin(log string) {
+	if log == "" {
+		log = types.MosnLogBasePath
+	}
+	plugin.InitPlugin(log)
 }
 
 type clusterManagerFilter struct {

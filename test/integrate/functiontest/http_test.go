@@ -14,8 +14,6 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/http/conv"
 	_ "mosn.io/mosn/pkg/protocol/http2/conv"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
-	_ "mosn.io/mosn/pkg/protocol/rpc/sofarpc/conv"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
 	"mosn.io/mosn/pkg/types"
@@ -64,7 +62,7 @@ type HTTPCase struct {
 	*integrate.TestCase
 }
 
-func NewHTTPCase(t *testing.T, serverProto, meshProto types.Protocol, server util.UpstreamServer) *HTTPCase {
+func NewHTTPCase(t *testing.T, serverProto, meshProto types.ProtocolName, server util.UpstreamServer) *HTTPCase {
 	c := integrate.NewTestCase(t, serverProto, meshProto, server)
 	return &HTTPCase{c}
 }

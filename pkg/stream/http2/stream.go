@@ -20,11 +20,9 @@ package http2
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
-	"reflect"
 	"strconv"
 	"sync"
 
@@ -93,10 +91,10 @@ type streamConnection struct {
 	conn api.Connection
 	cm   *str.ContextManager
 
-	codecEngine types.ProtocolEngine
+	protocol types.Protocol
 }
 
-func (conn *streamConnection) Protocol() types.Protocol {
+func (conn *streamConnection) Protocol() types.ProtocolName {
 	return protocol.HTTP2
 }
 
@@ -169,9 +167,9 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection, s
 
 	sc := &serverStreamConnection{
 		streamConnection: streamConnection{
-			ctx:         ctx,
-			conn:        connection,
-			codecEngine: mhttp2.EngineServer(h2sc),
+			ctx:      ctx,
+			conn:     connection,
+			protocol: mhttp2.ServerProto(h2sc),
 
 			cm: str.NewContextManager(ctx),
 		},
@@ -201,7 +199,7 @@ func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
 		ctx := conn.cm.Get()
 
 		// 2. decode process
-		frame, err := conn.codecEngine.Decode(ctx, buf)
+		frame, err := conn.protocol.Decode(ctx, buf)
 		// No enough data
 		if err == http2.ErrAGAIN {
 			break
@@ -427,18 +425,15 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap,
 	switch header := headers.(type) {
 	case *mhttp2.RspHeader:
 		rsp = header.Rsp
-	case protocol.CommonHeader:
-		rsp = new(http.Response)
-		rsp.StatusCode = status
-		rsp.Header = mhttp2.EncodeHeader(headers.(protocol.CommonHeader))
 	case *mhttp2.ReqHeader:
 		// indicates the invocation is under hijack scene
 		rsp = new(http.Response)
 		rsp.StatusCode = status
 		rsp.Header = s.h2s.Request.Header
 	default:
-		log.Proxy.Errorf(s.ctx, "http2 Server AppendHeaders error type :%v", reflect.TypeOf(headers))
-		return errors.New("header type error")
+		rsp = new(http.Response)
+		rsp.StatusCode = status
+		rsp.Header = mhttp2.EncodeHeader(headers)
 	}
 
 	s.h2s.Response = rsp
@@ -465,13 +460,10 @@ func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer,
 
 func (s *serverStream) AppendTrailers(context context.Context, trailers api.HeaderMap) error {
 	switch trailer := trailers.(type) {
-	case protocol.CommonHeader:
-		s.h2s.Response.Trailer = mhttp2.EncodeHeader(trailer)
 	case *mhttp2.HeaderMap:
 		s.h2s.Response.Trailer = trailer.H
 	default:
-		log.Proxy.Errorf(s.ctx, "h2 AppendTrailers error type :%v", reflect.TypeOf(trailers))
-		return errors.New("trailers type error")
+		s.h2s.Response.Trailer = mhttp2.EncodeHeader(trailer)
 	}
 	log.Proxy.Debugf(s.ctx, "http2 server ApppendTrailers id = %d, trailers = %+v", s.id, s.h2s.Response.Trailer)
 	s.endStream()
@@ -482,7 +474,7 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers api.Head
 func (s *serverStream) endStream() {
 	defer s.DestroyStream()
 
-	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
+	_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
 	if err != nil {
 		// todo: other error scenes
 		log.Proxy.Errorf(s.ctx, "http2 server SendResponse  error :%v", err)
@@ -519,9 +511,9 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 
 	sc := &clientStreamConnection{
 		streamConnection: streamConnection{
-			ctx:         ctx,
-			conn:        connection,
-			codecEngine: mhttp2.EngineClient(h2cc),
+			ctx:      ctx,
+			conn:     connection,
+			protocol: mhttp2.ClientProto(h2cc),
 
 			cm: str.NewContextManager(ctx),
 		},
@@ -544,7 +536,7 @@ func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 		ctx := conn.cm.Get()
 
 		// 2. decode process
-		frame, err := conn.codecEngine.Decode(ctx, buf)
+		frame, err := conn.protocol.Decode(ctx, buf)
 		// No enough data
 		if err == http2.ErrAGAIN {
 			break
@@ -727,14 +719,11 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	var isReqHeader bool
 
 	switch header := headersIn.(type) {
-	case protocol.CommonHeader:
-		req = new(http.Request)
 	case *mhttp2.ReqHeader:
 		req = header.Req
 		isReqHeader = true
 	default:
-		log.Proxy.Debugf(s.ctx, "http2 client AppendHeaders error type :%v", reflect.TypeOf(headersIn))
-		return errors.New("header type error")
+		req = new(http.Request)
 	}
 
 	scheme := "http"
@@ -789,7 +778,7 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 		req.Method = method
 		req.Host = host
 		req.URL = URL
-		req.Header = mhttp2.EncodeHeader(headersIn.(protocol.CommonHeader))
+		req.Header = mhttp2.EncodeHeader(headersIn)
 	}
 
 	log.Proxy.Debugf(s.ctx, "http2 client AppendHeaders: id = %d, headers = %+v", s.id, req.Header)
@@ -814,13 +803,10 @@ func (s *clientStream) AppendData(context context.Context, data buffer.IoBuffer,
 
 func (s *clientStream) AppendTrailers(context context.Context, trailers api.HeaderMap) error {
 	switch trailer := trailers.(type) {
-	case protocol.CommonHeader:
-		s.h2s.Request.Trailer = mhttp2.EncodeHeader(trailer)
 	case *mhttp2.HeaderMap:
 		s.h2s.Request.Trailer = trailer.H
 	default:
-		log.Proxy.Errorf(s.ctx, "h2 AppendTrailers error type :%v", reflect.TypeOf(trailers))
-		return errors.New("trailers type error")
+		s.h2s.Request.Trailer = mhttp2.EncodeHeader(trailer)
 	}
 	log.Proxy.Debugf(s.ctx, "http2 client AppendTrailers: id = %d, trailers = %+v", s.id, s.h2s.Request.Trailer)
 	s.endStream()
@@ -832,7 +818,7 @@ func (s *clientStream) endStream() {
 	s.sc.mutex.Lock()
 	defer s.sc.mutex.Unlock()
 
-	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
+	_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
 	if err != nil {
 		// todo: other error scenes
 		log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)

@@ -32,6 +32,7 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/stream/faultinject"
 	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/upstream/cluster"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -52,7 +53,13 @@ import (
 func TestMain(m *testing.M) {
 	// init
 	router.NewRouterManager()
-	cluster.NewClusterManagerSingleton(nil, nil)
+	cm := cluster.NewClusterManagerSingleton(nil, nil)
+	sc := server.NewConfig(&v2.ServerConfig{
+		ServerName:      "test_xds_server",
+		DefaultLogPath:  "stdout",
+		DefaultLogLevel: "FATAL",
+	})
+	server.NewServer(sc, &mockCMF{}, cm)
 	m.Run()
 }
 
@@ -64,6 +71,15 @@ func messageToAny(msg proto.Message) *types.Any {
 	}
 	return s
 }
+
+// mmessageToStruct converts from proto message to proto Struct
+//func messageToStruct(msg proto.Message) *types.Struct {
+//	s, err := xdsutil.MessageToStruct(msg)
+//	if err != nil {
+//		return nil
+//	}
+//	return s
+//}
 
 // todo fill the unit test
 func Test_convertEndpointsConfig(t *testing.T) {
@@ -151,8 +167,9 @@ func Test_convertListenerConfig(t *testing.T) {
 		filterName   string
 		filterConfig *xdshttp.HttpConnectionManager
 	}
-
-	accessLogFilterConfig := messageToAny(&xdsaccesslog.FileAccessLog{
+	// TODO use Any
+	//accessLogFilterConfig := messageToAny(&xdsaccesslog.FileAccessLog{
+	accessLogFilterConfig := messageToStruct(t, &xdsaccesslog.FileAccessLog{
 		Path: "/dev/stdout",
 	})
 
@@ -310,18 +327,20 @@ func Test_convertListenerConfig(t *testing.T) {
 					AccessLog: []*xdsfal.AccessLog{{
 						Name:   "envoy.file_access_log",
 						Filter: nil,
-						ConfigType: &xdsfal.AccessLog_TypedConfig{
+						// TODO use Any
+						//ConfigType: &xdsfal.AccessLog_TypedConfig{
+						ConfigType: &xdsfal.AccessLog_Config{
 							accessLogFilterConfig,
 						},
 					}},
-					UseRemoteAddress:                           NewBoolValue(false),
-					XffNumTrustedHops:                          0,
-					SkipXffAppend:                              false,
-					Via:                                        "",
-					GenerateRequestId:                          NewBoolValue(true),
-					ForwardClientCertDetails:                   xdshttp.SANITIZE,
-					SetCurrentClientCertDetails:                nil,
-					Proxy_100Continue:                          false,
+					UseRemoteAddress:            NewBoolValue(false),
+					XffNumTrustedHops:           0,
+					SkipXffAppend:               false,
+					Via:                         "",
+					GenerateRequestId:           NewBoolValue(true),
+					ForwardClientCertDetails:    xdshttp.SANITIZE,
+					SetCurrentClientCertDetails: nil,
+					Proxy_100Continue:           false,
 					RepresentIpv4RemoteAddressAsIpv4MappedIpv6: false,
 				},
 				filterName: "envoy.http_connection_manager",
@@ -345,7 +364,9 @@ func Test_convertListenerConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conf := messageToAny(tt.args.filterConfig)
+			// TODO use Any
+			//conf := messageToAny(tt.args.filterConfig)
+			conf := messageToStruct(t, tt.args.filterConfig)
 			listenerConfig := &xdsapi.Listener{
 				Name:    "0.0.0.0_80",
 				Address: tt.args.address,
@@ -356,7 +377,9 @@ func Test_convertListenerConfig(t *testing.T) {
 						Filters: []xdslistener.Filter{
 							{
 								Name: tt.args.filterName,
-								ConfigType: &xdslistener.Filter_TypedConfig{
+								// TODO use Any
+								//ConfigType: &xdslistener.Filter_TypedConfig{
+								ConfigType: &xdslistener.Filter_Config{
 									conf,
 								},
 							},
@@ -367,17 +390,24 @@ func Test_convertListenerConfig(t *testing.T) {
 					BindToPort: NewBoolValue(false),
 				},
 				DrainType: xdsapi.Listener_DEFAULT,
+				ListenerFilters: []xdslistener.ListenerFilter{
+					{
+						Name:       "original_dst",
+						ConfigType: &xdslistener.ListenerFilter_TypedConfig{},
+					},
+				},
 			}
 
+			tt.want = `{"name":"0.0.0.0_80","access_logs":[{"log_path":"/dev/stdout"}],"listener_filters":[{"type":"original_dst"}],"filter_chains":[{"match":"\u003cnil\u003e","tls_context_set":[{}],"filters":[{"type":"proxy","config":{"downstream_protocol":"Http1","router_config_name":"80","upstream_protocol":"Http1"}},{"type":"connection_manager","config":{"router_config_name":"80","virtual_hosts":[{"domains":["istio-egressgateway.istio-system.svc.cluster.local","istio-egressgateway.istio-system.svc.cluster.local:80","istio-egressgateway.istio-system","istio-egressgateway.istio-system:80","istio-egressgateway.istio-system.svc.cluster","istio-egressgateway.istio-system.svc.cluster:80","istio-egressgateway.istio-system.svc","istio-egressgateway.istio-system.svc:80","172.19.3.204","172.19.3.204:80"],"name":"istio-egressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-egressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["istio-ingressgateway.istio-system.svc.cluster.local","istio-ingressgateway.istio-system.svc.cluster.local:80","istio-ingressgateway.istio-system","istio-ingressgateway.istio-system:80","istio-ingressgateway.istio-system.svc.cluster","istio-ingressgateway.istio-system.svc.cluster:80","istio-ingressgateway.istio-system.svc","istio-ingressgateway.istio-system.svc:80","172.19.8.101","172.19.8.101:80"],"name":"istio-ingressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-ingressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["nginx-ingress-lb.kube-system.svc.cluster.local","nginx-ingress-lb.kube-system.svc.cluster.local:80","nginx-ingress-lb.kube-system","nginx-ingress-lb.kube-system:80","nginx-ingress-lb.kube-system.svc.cluster","nginx-ingress-lb.kube-system.svc.cluster:80","nginx-ingress-lb.kube-system.svc","nginx-ingress-lb.kube-system.svc:80","172.19.6.192:80","172.19.8.101:80"],"name":"nginx-ingress-lb.kube-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]}]}}]}],"inspector":true}`
 			got := ConvertListenerConfig(listenerConfig)
-			//if data, err := json.Marshal(got); err == nil {
-			if _, err := json.Marshal(got); err == nil {
-				// TODO: use string comapre for result is not expected
-				//if strings.Compare(tt.want, string(data)) != 0 {
-				//	t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener)\ngot=%s\nwant=%s\n", string(data), tt.want)
-				//}
-			} else {
-				t.Errorf("json.Marshal(listenerConfig) got error: %v", err)
+			want := &v2.Listener{}
+			err := json.Unmarshal([]byte(tt.want), want)
+			if err != nil {
+				t.Errorf("json.Unmarshal([]byte(tt.want) got error: %v", err)
+			}
+
+			if !reflect.DeepEqual(want.ListenerConfig.ListenerFilters, got.ListenerConfig.ListenerFilters) {
+				t.Errorf("convertListenerConfig(xdsListener *xdsapi.Listener)\ngot=%+v\nwant=%+v\n", got.ListenerConfig.ListenerFilters, want.ListenerConfig.ListenerFilters)
 			}
 		})
 	}

@@ -44,7 +44,6 @@ type RequestInfo struct {
 	routerRule               api.RouteRule
 }
 
-// todo check
 func newRequestInfoWithPort(protocol api.Protocol) api.RequestInfo {
 	return &RequestInfo{
 		protocol:  protocol,

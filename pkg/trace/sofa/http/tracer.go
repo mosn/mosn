@@ -25,12 +25,12 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/protocol/sofarpc/models"
 	"mosn.io/mosn/pkg/trace"
-	"mosn.io/mosn/pkg/trace/sofa/rpc"
 	"mosn.io/mosn/pkg/types"
 
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/trace/sofa"
+	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
 )
 
 func init() {
@@ -47,44 +47,44 @@ func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 }
 
 func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {
-	span := rpc.NewSpan(startTime)
+	span := xprotocol.NewSpan(startTime)
 
 	header, ok := request.(http.RequestHeader)
 	if !ok || header.RequestHeader == nil {
 		return span
 	}
 
-	traceId, ok := header.Get(models.HTTP_TRACER_ID_KEY)
+	traceId, ok := header.Get(sofa.HTTP_TRACER_ID_KEY)
 	if !ok {
 		traceId = trace.IdGen().GenerateTraceId()
 	}
-	span.SetTag(rpc.TRACE_ID, traceId)
+	span.SetTag(xprotocol.TRACE_ID, traceId)
 	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
 
-	spanId, ok := header.Get(models.HTTP_RPC_ID_KEY)
+	spanId, ok := header.Get(sofa.HTTP_RPC_ID_KEY)
 	if !ok {
 		spanId = "0" // Generate a new span id
 	} else {
 		if lType == v2.INGRESS {
 			trace.AddSpanIdGenerator(trace.NewSpanIdGenerator(traceId, spanId))
 		} else if lType == v2.EGRESS {
-			span.SetTag(rpc.PARENT_SPAN_ID, spanId)
+			span.SetTag(xprotocol.PARENT_SPAN_ID, spanId)
 			spanKey := &trace.SpanKey{TraceId: traceId, SpanId: spanId}
 			if spanIdGenerator := trace.GetSpanIdGenerator(spanKey); spanIdGenerator != nil {
 				spanId = spanIdGenerator.GenerateNextChildIndex()
 			}
 		}
 	}
-	span.SetTag(rpc.SPAN_ID, spanId)
+	span.SetTag(xprotocol.SPAN_ID, spanId)
 
 	if lType == v2.EGRESS {
-		span.SetTag(rpc.APP_NAME, string(header.Peek(models.APP_NAME)))
+		span.SetTag(xprotocol.APP_NAME, string(header.Peek(sofa.APP_NAME)))
 	}
-	span.SetTag(rpc.SPAN_TYPE, string(lType.(v2.ListenerType)))
-	span.SetTag(rpc.METHOD_NAME, string(header.Peek(models.TARGET_METHOD)))
-	span.SetTag(rpc.PROTOCOL, "HTTP")
-	span.SetTag(rpc.SERVICE_NAME, string(header.Peek(models.SERVICE_KEY)))
-	span.SetTag(rpc.BAGGAGE_DATA, string(header.Peek(models.SOFA_TRACE_BAGGAGE_DATA)))
+	span.SetTag(xprotocol.SPAN_TYPE, string(lType.(v2.ListenerType)))
+	span.SetTag(xprotocol.METHOD_NAME, string(header.Peek(sofa.TARGET_METHOD)))
+	span.SetTag(xprotocol.PROTOCOL, "HTTP")
+	span.SetTag(xprotocol.SERVICE_NAME, string(header.Peek(sofa.SERVICE_KEY)))
+	span.SetTag(xprotocol.BAGGAGE_DATA, string(header.Peek(sofa.SOFA_TRACE_BAGGAGE_DATA)))
 
 	return span
 }

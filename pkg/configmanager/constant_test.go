@@ -26,28 +26,7 @@ var basicConfigStr = `
 				{
 					"name": "egress",
 					"filter_chains": [
-						{
-							"filters": [
-								{
-									"type":"connection_manager",
-									"config":{
-										"router_config_name":"egress_router",
-										"virtual_hosts":[
-											{
-												"name": "egress",
-												"domains":["*"],
-												"routers": [
-													{
-														"match": {"prefix":"/"},
-														"route":{"cluster_name":"test1"}
-													}
-												]
-											}
-										]
-									}		
-								}	
-							]
-						}
+						{}
 					],
 					"stream_filters": [
 						{
@@ -61,30 +40,41 @@ var basicConfigStr = `
 				{
 					"name": "ingress",
 					"filter_chains": [
+						{}	
+					]
+				}
+			],
+			"routers": [
+				{
+					"router_config_name":"egress_router",
+					"virtual_hosts":[
 						{
-							"filters": [
+							"name": "egress",
+							"domains":["*"],
+							"routers": [
 								{
-									"type":"connection_manager",
-								 	"config":{
-										"router_config_name":"ingress_router",
-									 	"virtual_hosts":[
-									 		{
-												"name": "ingress",									
-												"domains":["*"],
-												"routers": [
-													{
-														"match": {"prefix":"/"},
-														"route":{"cluster_name":"test1"}
-													}
-												]
-											}
-									 	]
-								 	}
+									"match": {"prefix":"/"},
+									"route":{"cluster_name":"test1"}
 								}
 							]
 						}
 					]
-				}
+				},
+				{
+					"router_config_name":"ingress_router",
+					"virtual_hosts":[
+						{
+							"name": "ingress",									
+							"domains":["*"],
+							"routers": [
+								{
+									"match": {"prefix":"/"},
+									"route":{"cluster_name":"test1"}
+								}
+							]
+						}
+					]
+				}	
 			]
 		}
 	],

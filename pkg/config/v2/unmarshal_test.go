@@ -168,7 +168,7 @@ func TestClusterUnmarshal(t *testing.T) {
 	}
 }
 
-func TestListenerUnmarshal(t *testing.T) {
+func TestListenerConfigUnmarshal(t *testing.T) {
 	lc := `{
 		"name": "test",
 		"address": "127.0.0.1",

@@ -104,7 +104,10 @@ func (fg *FeatureGate) SetFromMap(m map[string]bool) error {
 	// set
 	for k, v := range m {
 		fname := Feature(k)
-		fg.setFeatureState(fname, v)
+		if err := fg.setFeatureState(fname, v); err != nil {
+			log.StartLogger.Errorf("[feature gate] error setting feature state for %s: %v", fname, err)
+			return fmt.Errorf("set feature state for %s: %v", fname, err)
+		}
 	}
 	return nil
 }
@@ -212,9 +215,6 @@ func (fg *FeatureGate) setFeatureState(key Feature, enable bool) error {
 		return fmt.Errorf("feature %s is locked to %v", key, spec.Default())
 	}
 	spec.SetState(enable)
-	if spec.PreRelease() == GA {
-		log.StartLogger.Warnf("Setting GA feature gate %s=%t. It will be removed in a future release.", key, enable)
-	}
 	return nil
 }
 

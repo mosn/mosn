@@ -45,7 +45,7 @@ func TestListenerStart(t *testing.T) {
 			BindToPort: true,
 		},
 		PerConnBufferLimitBytes: 1024,
-		Addr: addr,
+		Addr:                    addr,
 	}
 	ln := NewListener(cfg)
 	ln.SetListenerCallbacks(&mockEventListener{})

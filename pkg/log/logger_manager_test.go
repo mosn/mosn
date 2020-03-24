@@ -18,8 +18,12 @@
 package log
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	"mosn.io/pkg/log"
 )
@@ -33,20 +37,20 @@ func TestUpdateLoggerConfig(t *testing.T) {
 	if lg, err := GetOrCreateDefaultErrorLogger(logName, log.DEBUG); err != nil {
 		t.Fatal(err)
 	} else {
-		if lg.(*errorLogger).Level != log.DEBUG {
+		if lg.(*log.SimpleErrorLog).Level != log.DEBUG {
 			t.Fatal("logger created, but level is not expected")
 		}
 	}
 	if lg, err := GetOrCreateDefaultErrorLogger(logName, log.INFO); err != nil {
 		t.Fatal(err)
 	} else {
-		if lg.(*errorLogger).Level != log.DEBUG {
+		if lg.(*log.SimpleErrorLog).Level != log.DEBUG {
 			t.Fatal("expected get a logger, not create a new one")
 		}
 	}
 	// keeps the logger
 	lg, _ := GetOrCreateDefaultErrorLogger(logName, log.RAW)
-	logger := lg.(*errorLogger)
+	logger := lg.(*log.SimpleErrorLog)
 	if ok := UpdateErrorLoggerLevel("not_exists", log.INFO); ok {
 		t.Fatal("update a not exists logger, expected failed")
 	}
@@ -127,4 +131,68 @@ func TestDefaultLoggerInit(t *testing.T) {
 		Proxy.GetLogLevel() == INFO) {
 		t.Fatal("init log failed")
 	}
+}
+
+// The error logger creator can be replaced to another implementation.
+// The logger manager & proxy logger will use the same implementation.
+func TestExtendErrorLogger(t *testing.T) {
+	DefaultCreateErrorLoggerFunc = NewMockLogger
+	defer func() {
+		DefaultCreateErrorLoggerFunc = CreateDefaultErrorLogger
+	}()
+	logName := "/tmp/mosn/test_mock_log.log"
+	os.Remove(logName)
+	// reset for test
+	errorLoggerManagerInstance.managers = make(map[string]log.ErrorLogger)
+	log.ClearAll()
+	if err := InitDefaultLogger(logName, INFO); err != nil {
+		t.Fatal(err)
+	}
+	DefaultLogger.Infof("test_%d", 123)               // [mocked] [INFO] [] test_123
+	Proxy.Infof(context.Background(), "test_%d", 123) // [mocked] [INFO] [] [connId,traceId] test_123
+	time.Sleep(time.Second)
+	lines, err := readLines(logName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(lines) != 2 {
+		t.Fatalf("logger write lines not expected, writes: %d, expected: %d", len(lines), 2)
+	}
+	for _, l := range lines {
+		qs := strings.SplitN(l, " ", 4)
+		if !(len(qs) == 4 &&
+			qs[0] == "[mocked]" &&
+			qs[1] == "[INFO]" &&
+			qs[2] == "[]" &&
+			strings.Contains(qs[3], "test_123")) {
+			t.Fatalf("log output is unexpected: %s", l)
+		}
+	}
+	ToggleLogger(logName, true)
+	DefaultLogger.Infof("test_%d", 123)
+	Proxy.Infof(context.Background(), "test_%d", 123)
+	if lines, err := readLines(logName); err != nil || len(lines) != 2 {
+		t.Fatal("disable proxy logger failed")
+	}
+}
+
+// mock a logger
+type mockLogger struct {
+	*log.SimpleErrorLog
+}
+
+func NewMockLogger(output string, level log.Level) (log.ErrorLogger, error) {
+	lg, err := log.GetOrCreateLogger(output, nil)
+	if err != nil {
+		return nil, err
+	}
+	return &mockLogger{
+		&log.SimpleErrorLog{
+			Logger: lg,
+			Level:  level,
+			Formatter: func(lv string, alert string, format string) string {
+				return fmt.Sprintf("[mocked] %s [%s] %s", lv, alert, format)
+			},
+		},
+	}, nil
 }
