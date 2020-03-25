@@ -680,7 +680,7 @@ func (s *downStream) receiveHeaders(endStream bool) {
 		return
 	}
 
-	parseProxyTimeout(&s.timeout, s.route, s.downstreamReqHeaders)
+	parseProxyTimeout(s.context, &s.timeout, s.route, s.downstreamReqHeaders)
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] timeout info: %+v", s.timeout)
 	}
@@ -1219,6 +1219,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	s.requestInfo.SetResponseCode(code)
 
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
+
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = nil
@@ -1235,7 +1236,9 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 		headers = protocol.CommonHeader(raw)
 	}
 	s.requestInfo.SetResponseCode(code)
+
 	headers.Set(types.HeaderStatus, strconv.Itoa(code))
+
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = buffer.NewIoBufferString(body)

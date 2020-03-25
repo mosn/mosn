@@ -57,7 +57,7 @@ func prepareRequest(t *testing.T, requestBytes []byte) context.Context {
 func Test_get_request_length_and_method(t *testing.T) {
 	ctx := prepareRequest(t, postRequestBytes)
 
-	requestLen, err := variable.GetVariableValue(ctx, VarRequestLength)
+	requestLen, err := variable.GetVariableValue(ctx, types.VarHttpRequestLength)
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
@@ -67,7 +67,7 @@ func Test_get_request_length_and_method(t *testing.T) {
 		t.Error("request length assert failed, expected:", expected, ", actual is: ", requestLen)
 	}
 
-	requestMethod, err := variable.GetVariableValue(ctx, VarRequestMethod)
+	requestMethod, err := variable.GetVariableValue(ctx, types.VarHttpRequestMethod)
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}

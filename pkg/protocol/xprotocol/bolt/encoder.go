@@ -33,9 +33,38 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 		// 1. replace requestId
 		binary.BigEndian.PutUint32(request.rawMeta[RequestIdIndex:], request.RequestId)
 
-		// 2. TODO: header mutate
+		// 2. check header change
+		// TODO: body change judge
+		if !request.Header.Changed {
+			return request.Data, nil
+		}
 
-		return request.Data, nil
+		// 3. calculate length
+		headerLen := xprotocol.GetHeaderEncodeLength(&request.Header)
+		frameLen := RequestHeaderLen + int(request.ClassLen) + headerLen + int(request.ContentLen)
+
+		// 4. repack buffer
+		// TODO: buffer chain
+		buf := *mbuffer.GetBytesByContext(ctx, frameLen)
+
+		copy(buf[0:], request.rawMeta)
+
+		headerIndex := RequestHeaderLen + int(request.ClassLen)
+		contentIndex := headerIndex + int(request.HeaderLen)
+
+		if request.ClassLen > 0 {
+			copy(buf[RequestHeaderLen:], request.Class)
+		}
+
+		if request.HeaderLen > 0 {
+			xprotocol.EncodeHeader(buf[headerIndex:], &request.Header)
+		}
+
+		if request.ContentLen > 0 {
+			copy(buf[contentIndex:], request.Content.Bytes())
+		}
+
+		return buffer.NewIoBufferBytes(buf), nil
 	}
 
 	// 2. slow-path, construct buffer from scratch
@@ -45,7 +74,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 		request.ClassLen = uint16(len(request.Class))
 	}
 	if len(request.Header.Kvs) != 0 {
-		request.HeaderLen = uint16(getHeaderEncodeLength(&request.Header))
+		request.HeaderLen = uint16(xprotocol.GetHeaderEncodeLength(&request.Header))
 	}
 	if request.Content != nil {
 		request.ContentLen = uint32(request.Content.Len())
@@ -75,7 +104,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	}
 
 	if request.HeaderLen > 0 {
-		encodeHeader(buf[headerIndex:], &request.Header)
+		xprotocol.EncodeHeader(buf[headerIndex:], &request.Header)
 	}
 
 	if request.ContentLen > 0 {
@@ -91,9 +120,38 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 		// 1. replace requestId
 		binary.BigEndian.PutUint32(response.rawMeta[RequestIdIndex:], uint32(response.RequestId))
 
-		// 2. TODO: header mutate
+		// 2. check header change
+		// TODO: body change judge
+		if !response.Header.Changed {
+			return response.Data, nil
+		}
 
-		return response.Data, nil
+		// 3. calculate length
+		headerLen := xprotocol.GetHeaderEncodeLength(&response.Header)
+		frameLen := ResponseHeaderLen + int(response.ClassLen) + headerLen + int(response.ContentLen)
+
+		// 4. repack buffer
+		// TODO: buffer chain
+		buf := *mbuffer.GetBytesByContext(ctx, frameLen)
+
+		copy(buf[0:], response.rawMeta)
+
+		headerIndex := ResponseHeaderLen + int(response.ClassLen)
+		contentIndex := headerIndex + int(response.HeaderLen)
+
+		if response.ClassLen > 0 {
+			copy(buf[ResponseHeaderLen:], response.Class)
+		}
+
+		if response.HeaderLen > 0 {
+			xprotocol.EncodeHeader(buf[headerIndex:], &response.Header)
+		}
+
+		if response.ContentLen > 0 {
+			copy(buf[contentIndex:], response.Content.Bytes())
+		}
+
+		return buffer.NewIoBufferBytes(buf), nil
 	}
 
 	// 2. slow-path, construct buffer from scratch
@@ -103,7 +161,7 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 		response.ClassLen = uint16(len(response.Class))
 	}
 	if len(response.Header.Kvs) != 0 {
-		response.HeaderLen = uint16(getHeaderEncodeLength(&response.Header))
+		response.HeaderLen = uint16(xprotocol.GetHeaderEncodeLength(&response.Header))
 	}
 	if response.Content != nil {
 		response.ContentLen = uint32(response.Content.Len())
@@ -133,7 +191,7 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	}
 
 	if response.HeaderLen > 0 {
-		encodeHeader(buf[headerIndex:], &response.Header)
+		xprotocol.EncodeHeader(buf[headerIndex:], &response.Header)
 	}
 
 	if response.ContentLen > 0 {
@@ -141,32 +199,4 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	}
 
 	return buffer.NewIoBufferBytes(buf), nil
-}
-
-func getHeaderEncodeLength(h *xprotocol.Header) (size int) {
-	for i, n := 0, len(h.Kvs); i < n; i++ {
-		size += 8 + len(h.Kvs[i].Key) + len(h.Kvs[i].Value)
-	}
-	return
-}
-
-func encodeHeader(buf []byte, h *xprotocol.Header) {
-	index := 0
-
-	for _, kv := range h.Kvs {
-		index = encodeStr(buf, index, kv.Key)
-		index = encodeStr(buf, index, kv.Value)
-	}
-}
-
-func encodeStr(buf []byte, index int, str []byte) (newIndex int) {
-	length := len(str)
-
-	// 1. encode str length
-	binary.BigEndian.PutUint32(buf[index:], uint32(length))
-
-	// 2. encode str value
-	copy(buf[index+4:], str)
-
-	return index + 4 + length
 }
