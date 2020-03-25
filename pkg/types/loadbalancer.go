@@ -32,7 +32,7 @@ const (
 	RoundRobin         LoadBalancerType = "LB_ROUNDROBIN"
 	Random             LoadBalancerType = "LB_RANDOM"
 	ORIGINAL_DST       LoadBalancerType = "LB_ORIGINAL_DST"
-	LeastActiveRequest LoadBalancerType = "LB_LEAST_ACTIVE_REQUEST"
+	LeastActiveRequest LoadBalancerType = "LB_LEAST_REQUEST"
 )
 
 // LoadBalancer is a upstream load balancer.

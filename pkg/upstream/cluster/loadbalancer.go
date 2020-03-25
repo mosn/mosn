@@ -46,7 +46,7 @@ func init() {
 	}
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
-	RegisterLBType(types.LeastActiveRequest, newleastActiveLoadBalancer)
+	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
 }
 
 func NewLoadBalancer(lbType types.LoadBalancerType, hosts types.HostSet) types.LoadBalancer {
@@ -146,25 +146,29 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 	return len(lb.hosts.Hosts())
 }
 
-// leastActiveLoadBalancer choose the host with the least active request
-type leastActiveLoadBalancer struct {
+// leastActiveRequestLoadBalancer choose the host with the least active request
+type leastActiveRequestLoadBalancer struct {
 	hosts types.HostSet
 	rand  *rand.Rand
 }
 
-func newleastActiveLoadBalancer(hosts types.HostSet) types.LoadBalancer {
-	return &leastActiveLoadBalancer{
+func newleastActiveRequestLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+	return &leastActiveRequestLoadBalancer{
 		hosts: hosts,
 		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
-func (lb *leastActiveLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	healthHosts := lb.hosts.HealthyHosts()
 	if len(healthHosts) == 0 {
 		return nil
 	}
-	// The list of hosts having the same least active reqeuest value
+	// exactly one healthy host, return this host directly
+	if len(healthHosts) == 1 {
+		return healthHosts[0]
+	}
+	// The list of hosts having the same least active request value
 	candicate := make([]types.Host, 0, len(healthHosts))
 	// The least active request value of all hosts
 	leastActive := int64(math.MaxInt64)
@@ -183,15 +187,15 @@ func (lb *leastActiveLoadBalancer) ChooseHost(context types.LoadBalancerContext)
 	if len(candicate) == 1 {
 		return candicate[0]
 	}
-	// choose one host based on the random
+	// choose one candicate based on the random
 	return candicate[lb.rand.Intn(len(candicate))]
 }
 
-func (lb *leastActiveLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+func (lb *leastActiveRequestLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	return len(lb.hosts.Hosts()) > 0
 }
 
-func (lb *leastActiveLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+func (lb *leastActiveRequestLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
 }
 

@@ -987,6 +987,7 @@ func convertLbPolicy(xdsLbPolicy xdsapi.Cluster_LbPolicy) v2.LbType {
 	case xdsapi.Cluster_ROUND_ROBIN:
 		return v2.LB_ROUNDROBIN
 	case xdsapi.Cluster_LEAST_REQUEST:
+		return v2.LB_LEAST_REQUEST
 	case xdsapi.Cluster_RING_HASH:
 	case xdsapi.Cluster_RANDOM:
 		return v2.LB_RANDOM

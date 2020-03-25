@@ -9,7 +9,7 @@ import (
 func TestNewLARBalancer(t *testing.T) {
 	balancer := NewLoadBalancer(types.LeastActiveRequest, &hostSet{})
 	assert.NotNil(t, balancer)
-	assert.IsType(t, &leastActiveLoadBalancer{}, balancer)
+	assert.IsType(t, &leastActiveRequestLoadBalancer{}, balancer)
 }
 
 func TestLARChooseHost(t *testing.T) {

@@ -67,6 +67,7 @@ type LbType string
 const (
 	LB_RANDOM     LbType = "LB_RANDOM"
 	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
+	LB_LEAST_REQUEST LbType = "LB_LEAST_REQUEST"
 )
 
 // Cluster represents a cluster's information
