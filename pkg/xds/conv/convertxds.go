@@ -28,8 +28,6 @@ import (
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
-	"github.com/envoyproxy/go-control-plane/pkg/conversion"
-	xdsconversion "github.com/envoyproxy/go-control-plane/pkg/conversion"
 	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	jsonp "github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
@@ -37,7 +35,6 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"istio.io/api/mixer/v1/config/client"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
@@ -324,7 +321,7 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 		filterConfig := GetHTTPConnectionManager(networkFilter)
 
 		for _, filter := range filterConfig.GetHttpFilters() {
-			streamFilter := convertStreamFilter(filter.GetName(), filter.GetConfig())
+			streamFilter := convertStreamFilter(filter.GetName(), filter.GetTypedConfig())
 			if streamFilter.Type != "" {
 				log.DefaultLogger.Debugf("add a new stream filter, %v", streamFilter.Type)
 				filters = append(filters, streamFilter)
@@ -342,7 +339,7 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 	return filters
 }
 
-func convertStreamFilter(name string, s *structpb.Struct) v2.Filter {
+func convertStreamFilter(name string, s *any.Any) v2.Filter {
 	filter := v2.Filter{}
 	var err error
 
@@ -403,9 +400,9 @@ func convertStreamFilter(name string, s *structpb.Struct) v2.Filter {
 //	return makeJsonMap(payloadLimitStream)
 //}
 
-func convertStreamFaultInjectConfig(s *structpb.Struct) (map[string]interface{}, error) {
+func convertStreamFaultInjectConfig(s *any.Any) (map[string]interface{}, error) {
 	faultConfig := &xdshttpfault.HTTPFault{}
-	if err := xdsconversion.StructToMessage(s, faultConfig); err != nil {
+	if err := ptypes.UnmarshalAny(s, faultConfig); err != nil {
 		return nil, err
 	}
 
@@ -465,9 +462,9 @@ func makeJsonMap(v interface{}) (map[string]interface{}, error) {
 
 }
 
-func convertMixerConfig(s *structpb.Struct) (map[string]interface{}, error) {
+func convertMixerConfig(s *any.Any) (map[string]interface{}, error) {
 	mixerConfig := v2.Mixer{}
-	err := conversion.StructToMessage(s, &mixerConfig.HttpClientConfig)
+	err := ptypes.UnmarshalAny(s, &mixerConfig.HttpClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -710,7 +707,7 @@ func convertRoutes(xdsRoutes []*xdsroute.Route) []v2.Router {
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
 			}
-			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.PerFilterConfig)
+			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.GetTypedPerFilterConfig())
 			routes = append(routes, route)
 		} else if xdsRouteAction := xdsRoute.GetRedirect(); xdsRouteAction != nil {
 			route := v2.Router{
@@ -721,7 +718,7 @@ func convertRoutes(xdsRoutes []*xdsroute.Route) []v2.Router {
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
 			}
-			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.PerFilterConfig)
+			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.GetTypedPerFilterConfig())
 			routes = append(routes, route)
 		} else {
 			log.DefaultLogger.Errorf("unsupported route actin, just Route and Redirect support yet, ignore this route")
@@ -731,15 +728,14 @@ func convertRoutes(xdsRoutes []*xdsroute.Route) []v2.Router {
 	return routes
 }
 
-func convertPerRouteConfig(xdsPerRouteConfig map[string]*structpb.Struct) map[string]interface{} {
+func convertPerRouteConfig(xdsPerRouteConfig map[string]*any.Any) map[string]interface{} {
 	perRouteConfig := make(map[string]interface{}, 0)
 
 	for key, config := range xdsPerRouteConfig {
 		switch key {
 		case v2.MIXER:
-			// TODO: use convertMixerConfig
-			var serviceConfig client.ServiceConfig
-			err := conversion.StructToMessage(config, &serviceConfig)
+			// TODO: remove mixer
+			serviceConfig, err := convertMixerConfig(config)
 			if err != nil {
 				log.DefaultLogger.Infof("convertPerRouteConfig[%s] error: %v", v2.MIXER, err)
 				continue
