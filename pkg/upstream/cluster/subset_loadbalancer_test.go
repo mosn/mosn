@@ -113,6 +113,21 @@ func createHostset(cfg []v2.Host) *hostSet {
 	hs.setFinalHost(hosts)
 	return hs
 }
+func createHostsetWithStats(cfg []v2.Host, clusterName string) *hostSet {
+	var hosts []types.Host
+	for _, h := range cfg {
+		host := &mockHost{
+			name: h.Hostname,
+			addr: h.Address,
+			meta: h.MetaData,
+		}
+		host.stats = newHostStats(clusterName, host.addr)
+		hosts = append(hosts, host)
+	}
+	hs := &hostSet{}
+	hs.setFinalHost(hosts)
+	return hs
+}
 
 // Selector Config
 /*

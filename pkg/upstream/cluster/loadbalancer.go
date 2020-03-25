@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"math"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -45,6 +46,7 @@ func init() {
 	}
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
+	RegisterLBType(types.LeastActiveRequest, newleastActiveLoadBalancer)
 }
 
 func NewLoadBalancer(lbType types.LoadBalancerType, hosts types.HostSet) types.LoadBalancer {
@@ -141,6 +143,55 @@ func (lb *roundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriter
 }
 
 func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+	return len(lb.hosts.Hosts())
+}
+
+// leastActiveLoadBalancer choose the host with the least active request
+type leastActiveLoadBalancer struct {
+	hosts types.HostSet
+	rand  *rand.Rand
+}
+
+func newleastActiveLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+	return &leastActiveLoadBalancer{
+		hosts: hosts,
+		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+}
+
+func (lb *leastActiveLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	healthHosts := lb.hosts.HealthyHosts()
+	if len(healthHosts) == 0 {
+		return nil
+	}
+	// The list of hosts having the same least active reqeuest value
+	candicate := make([]types.Host, 0, len(healthHosts))
+	// The least active request value of all hosts
+	leastActive := int64(math.MaxInt64)
+	for _, host := range healthHosts {
+		active := host.HostStats().UpstreamRequestActive.Count()
+		// less than the current least active
+		if active < leastActive {
+			leastActive = active
+			candicate = candicate[:0]
+			candicate = append(candicate, host)
+		} else if active == leastActive {
+			candicate = append(candicate, host)
+		}
+	}
+	//  exactly one host, return this host directly
+	if len(candicate) == 1 {
+		return candicate[0]
+	}
+	// choose one host based on the random
+	return candicate[lb.rand.Intn(len(candicate))]
+}
+
+func (lb *leastActiveLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+	return len(lb.hosts.Hosts()) > 0
+}
+
+func (lb *leastActiveLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
 }
 
