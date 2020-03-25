@@ -37,6 +37,7 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
@@ -435,13 +436,15 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 
 	arc := newActiveRawConn(rawc, al)
 
-	if useOriginalDst {
-		arc.useOriginalDst = true
-	}
-
 	// listener filter chain.
 	for _, lfcf := range al.listenerFiltersFactories {
 		arc.acceptedFilters = append(arc.acceptedFilters, lfcf)
+	}
+
+	if useOriginalDst {
+		arc.useOriginalDst = true
+		// TODO remove it when Istio deprecate UseOriginalDst.
+		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 	}
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
