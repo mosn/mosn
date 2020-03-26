@@ -20,7 +20,6 @@ package conv
 import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
-	pstruct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"mosn.io/mosn/pkg/server"
 	"reflect"
@@ -49,7 +48,6 @@ import (
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
-	xdsutil "github.com/envoyproxy/go-control-plane/pkg/conversion"
 	ptypes "github.com/golang/protobuf/ptypes"
 )
 
@@ -67,9 +65,10 @@ func TestMain(m *testing.M) {
 }
 
 // messageToAny converts from proto message to proto Any
-func messageToAny(msg proto.Message) *any.Any {
+func messageToAny(t *testing.T, msg proto.Message) *any.Any {
 	s, err := ptypes.MarshalAny(msg)
 	if err != nil {
+		t.Fatalf("transfer failed: %v", err)
 		return nil
 	}
 	return s
@@ -162,7 +161,7 @@ func Test_convertListenerConfig(t *testing.T) {
 		filterConfig *xdshttp.HttpConnectionManager
 	}
 
-	accessLogFilterConfig := messageToAny(&xdsaccesslog.FileAccessLog{
+	accessLogFilterConfig := messageToAny(t, &xdsaccesslog.FileAccessLog{
 		Path: "/dev/stdout",
 	})
 
@@ -355,7 +354,7 @@ func Test_convertListenerConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conf := messageToAny(tt.args.filterConfig)
+			conf := messageToAny(t, tt.args.filterConfig)
 			listenerConfig := &xdsapi.Listener{
 				Name:    "0.0.0.0_80",
 				Address: &tt.args.address,
@@ -577,13 +576,11 @@ func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 			},
 		},
 	}
-	faultStruct, err := xdsutil.MessageToStruct(faultInjectConfig)
-	if err != nil {
-		t.Fatal("make fault inject struct failed")
-	}
+
+	faultStruct := messageToAny(t, faultInjectConfig)
 	// empty types.Struct will makes a default empty filter
 	testCases := []struct {
-		config   *pstruct.Struct
+		config   *any.Any
 		expected *v2.StreamFaultInject
 	}{
 		{
@@ -665,10 +662,8 @@ func Test_convertPerRouteConfig(t *testing.T) {
 			},
 		},
 	}
-	mixerStruct, err := xdsutil.MessageToStruct(mixerFilterConfig)
-	if err != nil {
-		t.Fatal("make mixer struct failed")
-	}
+
+	mixerStruct := messageToAny(t, mixerFilterConfig)
 	fixedDelay := duration.Duration{}
 	faultInjectConfig := &xdshttpfault.HTTPFault{
 		Delay: &xdsfault.FaultDelay{
@@ -700,11 +695,8 @@ func Test_convertPerRouteConfig(t *testing.T) {
 			},
 		},
 	}
-	faultStruct, err := xdsutil.MessageToStruct(faultInjectConfig)
-	if err != nil {
-		t.Fatal("make fault inject struct failed")
-	}
-	configs := map[string]*pstruct.Struct{
+	faultStruct := messageToAny(t, faultInjectConfig)
+	configs := map[string]*any.Any{
 		v2.MIXER:       mixerStruct,
 		v2.FaultStream: faultStruct,
 	}
