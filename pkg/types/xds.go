@@ -49,7 +49,7 @@ type meta struct {
 }
 
 var defaultMeta = &meta{
-	IstioVersion:     "1.4.4",
+	IstioVersion:     "1.5.0",
 	Labels:           map[string]string{"istio": "ingressgateway"},
 	InterceptionMode: InterceptionRedirect,
 }

@@ -51,6 +51,13 @@ func (m *ApiConfigSource) Validate() error {
 		}
 	}
 
+	if _, ok := ApiVersion_name[int32(m.GetTransportApiVersion())]; !ok {
+		return ApiConfigSourceValidationError{
+			field:  "TransportApiVersion",
+			reason: "value must be one of the defined enum values",
+		}
+	}
+
 	for idx, item := range m.GetGrpcServices() {
 		_, _ = idx, item
 
@@ -401,6 +408,13 @@ func (m *ConfigSource) Validate() error {
 				reason: "embedded message failed validation",
 				cause:  err,
 			}
+		}
+	}
+
+	if _, ok := ApiVersion_name[int32(m.GetResourceApiVersion())]; !ok {
+		return ConfigSourceValidationError{
+			field:  "ResourceApiVersion",
+			reason: "value must be one of the defined enum values",
 		}
 	}
 
