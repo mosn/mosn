@@ -1,4 +1,4 @@
-// +build !BabaSSL
+// +build BabaSSL
 
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
@@ -121,7 +121,19 @@ NextCipherSuite:
 
 	var params ecdheParameters
 	if hello.supportedVersions[0] == VersionTLS13 {
-		hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13()...)
+		// I don't think it's a good way to force set use tls1.3-gm cipher to do
+		// tls handshake, but go-tls does not provide another way to set tls1.3
+		// cipher
+		smTag := false
+		for _, c := range possibleCipherSuites {
+			if c == TLS_SM4_GCM_SM3 {
+				smTag = true
+				hello.cipherSuites = append(hello.cipherSuites, TLS_SM4_GCM_SM3)
+			}
+		}
+		if !smTag {
+			hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13()...)
+		}
 
 		curveID := config.curvePreferences()[0]
 		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
