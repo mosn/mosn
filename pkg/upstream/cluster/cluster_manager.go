@@ -66,37 +66,37 @@ type clusterManagerSingleton struct {
 }
 
 func (singleton *clusterManagerSingleton) Destroy() {
-	clusterMangerInstance.instanceMutex.Lock()
-	defer clusterMangerInstance.instanceMutex.Unlock()
-	clusterMangerInstance.clusterManager = nil
+	clusterManagerInstance.instanceMutex.Lock()
+	defer clusterManagerInstance.instanceMutex.Unlock()
+	clusterManagerInstance.clusterManager = nil
 }
 
-var clusterMangerInstance = &clusterManagerSingleton{}
+var clusterManagerInstance = &clusterManagerSingleton{}
 
 func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host) types.ClusterManager {
-	clusterMangerInstance.instanceMutex.Lock()
-	defer clusterMangerInstance.instanceMutex.Unlock()
-	if clusterMangerInstance.clusterManager != nil {
-		return clusterMangerInstance
+	clusterManagerInstance.instanceMutex.Lock()
+	defer clusterManagerInstance.instanceMutex.Unlock()
+	if clusterManagerInstance.clusterManager != nil {
+		return clusterManagerInstance
 	}
-	clusterMangerInstance.clusterManager = &clusterManager{}
+	clusterManagerInstance.clusterManager = &clusterManager{}
 	for k := range types.ConnPoolFactories {
-		clusterMangerInstance.protocolConnPool.Store(k, &sync.Map{})
+		clusterManagerInstance.protocolConnPool.Store(k, &sync.Map{})
 	}
 
 	//Add cluster to cm
 	for _, cluster := range clusters {
-		if err := clusterMangerInstance.AddOrUpdatePrimaryCluster(cluster); err != nil {
+		if err := clusterManagerInstance.AddOrUpdatePrimaryCluster(cluster); err != nil {
 			log.DefaultLogger.Errorf("[upstream] [cluster manager] NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s, error: %v", cluster.Name, err)
 		}
 	}
 	// Add cluster host
 	for clusterName, hosts := range clusterMap {
-		if err := clusterMangerInstance.UpdateClusterHosts(clusterName, hosts); err != nil {
+		if err := clusterManagerInstance.UpdateClusterHosts(clusterName, hosts); err != nil {
 			log.DefaultLogger.Errorf("[upstream] [cluster manager] NewClusterManager: UpdateClusterHosts failure, cluster name = %s, error: %v", clusterName, err)
 		}
 	}
-	return clusterMangerInstance
+	return clusterManagerInstance
 }
 
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
