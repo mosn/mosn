@@ -192,6 +192,7 @@ func (tracer *mockTracer) Start(ctx context.Context, request interface{}, startT
 }
 
 type mockSpan struct {
+	inject bool
 	finished bool
 }
 
@@ -225,7 +226,9 @@ func (s *mockSpan) FinishSpan() {
 	s.finished = true
 }
 
-func (s *mockSpan) InjectContext(requestHeaders types.HeaderMap) {
+func (s *mockSpan) InjectContext(requestHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+	requestHeaders.Set("test-inject", "mock")
+	s.inject = true
 }
 
 func (s *mockSpan) SpawnChild(operationName string, startTime time.Time) types.Span {

@@ -63,6 +63,8 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
+	header := protocol.CommonHeader{}
+	span.InjectContext(header, requestInfo)
 	ds.finishTracing()
 
 	span = trace.SpanFromContext(ctx)
@@ -70,6 +72,12 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 		t.Error("Span is nil")
 	}
 	mockSpan := span.(*mockSpan)
+	if v, _ := header.Get("test-inject"); v != "mock" {
+		t.Error("Span is not inject")
+	}
+	if !mockSpan.inject {
+		t.Error("Span is not inject")
+	}
 	if !mockSpan.finished {
 		t.Error("Span is not finish")
 	}

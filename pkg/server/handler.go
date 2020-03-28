@@ -37,6 +37,7 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
@@ -96,7 +97,7 @@ func (ch *connHandler) NumConnections() uint64 {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateListenerFilter bool, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error) {
+func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEventListener, error) {
 
 	var listenerName string
 	if lc.Name == "" {
@@ -130,24 +131,14 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateListenerFilter
 		rawConfig := al.listener.Config()
 		// FIXME: update log level need the pkg/logger support.
 
-		if updateListenerFilter {
-			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update listener filters")
-			al.listenerFiltersFactories = listenerFiltersFactories
-			rawConfig.ListenerFilters = lc.ListenerFilters
-		}
+		al.listenerFiltersFactories = listenerFiltersFactories
+		rawConfig.ListenerFilters = lc.ListenerFilters
+		al.networkFiltersFactories = networkFiltersFactories
+		rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
+		rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
 
-		if updateNetworkFilter {
-			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
-			al.networkFiltersFactories = networkFiltersFactories
-			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
-			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
-		}
-
-		if updateStreamFilter {
-			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
-			al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
-			rawConfig.StreamFilters = lc.StreamFilters
-		}
+		al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
+		rawConfig.StreamFilters = lc.StreamFilters
 
 		// tls update only take effects on new connections
 		// config changed
@@ -364,12 +355,12 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		listener:                 listener,
 		listenerFiltersFactories: listenerFiltersFactories,
 		networkFiltersFactories:  networkFiltersFactories,
-		conns:                    list.New(),
-		handler:                  handler,
-		stopChan:                 stopChan,
-		accessLogs:               accessLoggers,
-		updatedLabel:             false,
-		idleTimeout:              lc.ConnectionIdleTimeout,
+		conns:        list.New(),
+		handler:      handler,
+		stopChan:     stopChan,
+		accessLogs:   accessLoggers,
+		updatedLabel: false,
+		idleTimeout:  lc.ConnectionIdleTimeout,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
@@ -435,13 +426,15 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 
 	arc := newActiveRawConn(rawc, al)
 
-	if useOriginalDst {
-		arc.useOriginalDst = true
-	}
-
 	// listener filter chain.
 	for _, lfcf := range al.listenerFiltersFactories {
 		arc.acceptedFilters = append(arc.acceptedFilters, lfcf)
+	}
+
+	if useOriginalDst {
+		arc.useOriginalDst = true
+		// TODO remove it when Istio deprecate UseOriginalDst.
+		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 	}
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)

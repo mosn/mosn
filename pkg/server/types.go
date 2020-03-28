@@ -36,7 +36,7 @@ type Config struct {
 }
 
 type Server interface {
-	AddListener(lc *v2.Listener, updateListenerFilter bool, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error)
+	AddListener(lc *v2.Listener) (types.ListenerEventListener, error)
 
 	Start()
 
