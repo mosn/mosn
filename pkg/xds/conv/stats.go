@@ -7,7 +7,7 @@ import (
 
 var Stats types.XdsStats
 
-func init() {
+func InitStats() {
 	m := metrics.NewXdsStats()
 	Stats = types.XdsStats{
 		CdsUpdateSuccess: m.Counter(metrics.CdsUpdateSuccessTotal),

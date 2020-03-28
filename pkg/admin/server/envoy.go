@@ -5,20 +5,26 @@ import (
 	"fmt"
 	"net/http"
 
+	envoyControlPlaneAPI "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/xds/conv"
-	envoyControlPlaneAPI "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
-
 )
 
-func statsForEnvoy(w http.ResponseWriter, r *http.Request) {
+const (
+	CDS_UPDATE_SUCCESS = "cluster_manager.cds.update_success"
+	CDS_UPDATE_REJECT  = "cluster_manager.cds.update_rejected"
+	LDS_UPDATE_SUCCESS = "listener_manager.lds.update_success"
+	LDS_UPDATE_REJECT  = "listener_manager.lds.update_rejected"
+)
+
+func statsForIstio(w http.ResponseWriter, r *http.Request) {
 	sb := bytes.NewBufferString("")
-	sb.WriteString(fmt.Sprintf("cluster_manager.cds.update_success: %d\n", conv.Stats.CdsUpdateSuccess.Count()))
-	sb.WriteString(fmt.Sprintf("cluster_manager.cds.update_rejected: %d\n", conv.Stats.CdsUpdateReject.Count()))
-	sb.WriteString(fmt.Sprintf("listener_manager.lds.update_success: %d\n", conv.Stats.LdsUpdateSuccess.Count()))
-	sb.WriteString(fmt.Sprintf("listener_manager.lds.update_rejected: %d\n", conv.Stats.LdsUpdateReject.Count()))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", CDS_UPDATE_SUCCESS, conv.Stats.CdsUpdateSuccess.Count()))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", CDS_UPDATE_REJECT, conv.Stats.CdsUpdateReject.Count()))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_SUCCESS, conv.Stats.LdsUpdateSuccess.Count()))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_REJECT, conv.Stats.LdsUpdateReject.Count()))
 	_, err := sb.WriteTo(w)
 
 	if err != nil {
@@ -26,11 +32,10 @@ func statsForEnvoy(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func serverInfoForEnvoy(w http.ResponseWriter, r *http.Request) {
+func serverInfoForIstio(w http.ResponseWriter, r *http.Request) {
 	mosnState := store.GetMosnState()
 
-	i := envoyControlPlaneAPI.ServerInfo{
-	}
+	i := envoyControlPlaneAPI.ServerInfo{}
 
 	switch mosnState {
 	case store.Active_Reconfiguring:
@@ -44,7 +49,7 @@ func serverInfoForEnvoy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := jsonpb.Marshaler{}
-	err:=  m.Marshal(w, &i)
+	err := m.Marshal(w, &i)
 	if err != nil {
 		log.DefaultLogger.Warnf("marshal to string failed")
 	}
