@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"github.com/golang/protobuf/jsonpb"
 	_struct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/rcrowley/go-metrics"
+
 	"reflect"
 	"strconv"
 	"strings"
@@ -127,6 +129,14 @@ const (
 	// AllPortsLiteral is the string value indicating all ports
 	AllPortsLiteral = "*"
 )
+
+type XdsStats struct {
+	CdsUpdateSuccess metrics.Counter
+	CdsUpdateReject metrics.Counter
+	LdsUpdateSuccess metrics.Counter
+	LdsUpdateReject metrics.Counter
+}
+
 
 func IsApplicationNodeType(nType string) bool {
 	switch NodeType(nType) {
