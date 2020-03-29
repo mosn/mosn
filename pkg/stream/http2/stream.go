@@ -275,6 +275,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 	var h2s *http2.MStream
 	var endStream, hasTrailer bool
 	var data []byte
+	useStream := mosnctx.Get(ctx, types.ContextKeyH2Stream).(bool)
 
 	h2s, data, hasTrailer, endStream, err = conn.sc.HandleFrame(ctx, f)
 
@@ -328,7 +329,9 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		}
 		stream.recData = buffer.NewPipeBuffer(0)
 		stream.trailers = &mhttp2.HeaderMap{}
-		stream.receiver.OnReceive(stream.ctx, header, stream.recData, stream.trailers)
+		if useStream {
+			stream.receiver.OnReceive(stream.ctx, header, stream.recData, stream.trailers)
+		}
 		stream.header = header
 	}
 
@@ -357,6 +360,9 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 	}
 
 	if endStream {
+		if !useStream {
+			stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailers)
+		}
 		log.DefaultLogger.Infof("http2 server stream end %d", id)
 		stream.recData.CloseWithError(io.EOF)
 	}
@@ -649,6 +655,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	var data []byte
 	var trailer http.Header
 	var rsp *http.Response
+	useStream := mosnctx.Get(ctx, types.ContextKeyH2Stream).(bool)
 
 	rsp, data, trailer, endStream, err = conn.mClientConn.HandleFrame(ctx, f)
 
@@ -693,7 +700,9 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 			stream.header = header
 			stream.trailers = &mhttp2.HeaderMap{}
 			stream.receiver.OnReceive(stream.ctx, header, stream.recData, stream.trailers)
-
+			if useStream {
+				stream.receiver.OnReceive(stream.ctx, header, stream.recData, stream.trailers)
+			}
 		}
 		//return
 	}
@@ -716,6 +725,9 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	}
 
 	if endStream {
+		if !useStream {
+			stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailers)
+		}
 		log.DefaultLogger.Infof("http2 client stream recive end %d", id)
 		stream.recData.CloseWithError(io.EOF)
 	}
