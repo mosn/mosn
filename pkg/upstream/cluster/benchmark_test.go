@@ -258,7 +258,18 @@ func BenchmarkRoundRobinLBWithUnhealthyHost(b *testing.B) {
 			lb.ChooseHost(nil)
 		}
 	})
+}
 
+func BenchmarkLeastActiveRequestLB(b *testing.B) {
+	hostSet := &hostSet{}
+	hosts := makePool(10).MakeHosts(10, map[string]string{"cluster":""})
+	hostSet.setFinalHost(hosts)
+	lb := newleastActiveRequestLoadBalancer(hostSet)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			lb.ChooseHost(nil)
+		}
+	})
 }
 
 func BenchmarkSubsetLB(b *testing.B) {

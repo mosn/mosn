@@ -96,6 +96,7 @@ func (pool *ipPool) MakeHosts(size int, meta api.Metadata) []types.Host {
 			meta: meta,
 		}
 		host.name = host.addr
+		host.stats = newHostStats(meta["cluster"], host.addr)
 		hosts[i] = host
 	}
 	return hosts

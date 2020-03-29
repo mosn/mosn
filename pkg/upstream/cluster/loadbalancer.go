@@ -150,6 +150,7 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 type leastActiveRequestLoadBalancer struct {
 	hosts types.HostSet
 	rand  *rand.Rand
+	mutex sync.Mutex
 }
 
 func newleastActiveRequestLoadBalancer(hosts types.HostSet) types.LoadBalancer {
@@ -172,8 +173,13 @@ func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerC
 	candicate := make([]types.Host, 0, len(healthHosts))
 	// The least active request value of all hosts
 	leastActive := int64(math.MaxInt64)
+
 	for _, host := range healthHosts {
 		active := host.HostStats().UpstreamRequestActive.Count()
+		// return it directly if the active count is zero
+		if active == 0{
+			return host
+		}
 		// less than the current least active
 		if active < leastActive {
 			leastActive = active
@@ -188,6 +194,8 @@ func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerC
 		return candicate[0]
 	}
 	// choose one candicate based on the random
+	lb.mutex.Lock()
+	defer lb.mutex.Unlock()
 	return candicate[lb.rand.Intn(len(candicate))]
 }
 
