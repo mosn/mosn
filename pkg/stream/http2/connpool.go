@@ -65,6 +65,10 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
+func (p *connPool) GetHost() types.Host {
+	return p.host
+}
+
 func (p *connPool) NewStream(ctx context.Context,
 	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
 

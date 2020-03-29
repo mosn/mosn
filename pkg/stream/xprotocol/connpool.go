@@ -66,6 +66,10 @@ func (p *connPool) SupportTLS() bool {
 	return p.host.SupportTLS()
 }
 
+func (p *connPool) GetHost() types.Host {
+	return p.host
+}
+
 func (p *connPool) init(client *activeClient, sub types.ProtocolName) {
 	utils.GoWithRecover(func() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
