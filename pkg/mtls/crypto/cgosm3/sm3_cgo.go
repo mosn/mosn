@@ -64,7 +64,7 @@ func (sm3 *SM3) Sum(in []byte) []byte {
 	if toWrite != 0 {
 		ret := C.EVP_DigestUpdate(sm3.mdCtx, unsafe.Pointer(&in[0]), C.ulong(toWrite))
 		if int(ret) <= 0 {
-			panic(errors.New("sm3 update digest error"))
+			panic("sm3 update digest error")
 		}
 	}
 
@@ -74,11 +74,11 @@ func (sm3 *SM3) Sum(in []byte) []byte {
 	var hashLen C.uint
 	ret := C.EVP_DigestFinal_ex(ctx, (*C.uchar)(unsafe.Pointer(&out[0])), &hashLen)
 	if int(ret) <= 0 {
-		panic(errors.New("sm3 update digest error"))
+		panic("sm3 update digest error")
 	}
 
 	if int(hashLen) != sm3.Size() {
-		panic(errors.New("sm3 final digest error"))
+		panic("sm3 final digest error")
 	}
 	return out
 }
