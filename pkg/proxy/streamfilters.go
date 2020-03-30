@@ -140,6 +140,23 @@ func (f *activeStreamReceiverFilter) SetConvert(on bool) {
 	f.activeStream.noConvert = !on
 }
 
+// GetFilterCurrentPhase get current phase for filter
+func (f *activeStreamReceiverFilter) GetFilterCurrentPhase() api.FilterPhase {
+	// default AfterRoute
+	p := api.AfterRoute
+
+	switch f.p {
+	case types.DownFilter:
+		p = api.BeforeRoute
+	case types.DownFilterAfterRoute:
+		p = api.AfterRoute
+	case types.DownFilterAfterChooseHost:
+		p = api.AfterChooseHost
+	}
+
+	return p
+}
+
 // types.StreamSenderFilterHandler
 type activeStreamSenderFilter struct {
 	activeStreamFilter
