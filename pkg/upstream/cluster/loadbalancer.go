@@ -170,44 +170,40 @@ func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerC
 	if healthHostsLen == 1 {
 		return healthHosts[0]
 	}
-	// The list of hosts having the same least active request value
-	candicate := make([]types.Host, 0, healthHostsLen)
+	// The candicate of the host having the least active request value
+	var candicate types.Host
 	// The least active request value of all hosts
 	leastActive := int64(math.MaxInt64)
 	lb.mutex.Lock()
-	randomIndex := lb.rand.Intn(healthHostsLen)
+	randomStart := lb.rand.Intn(healthHostsLen)
 	lb.mutex.Unlock()
+	end := healthHostsLen
+	first := true
 
-	searchFunc := func(start, end int) types.Host {
-		for i := start; i < end; i++ {
-			host := healthHosts[i]
-			active := host.HostStats().UpstreamRequestActive.Count()
-			// return it directly if the active count is zero
-			if active == 0 {
-				return host
+	for cur := randomStart; ; cur++ {
+		// flip the cur to loop all hosts
+		if cur >= end {
+			if !first {
+				break
 			}
-			// less than the current least active
-			if active < leastActive {
-				leastActive = active
-				candicate = candicate[:0]
-				candicate = append(candicate, host)
-			} else if active == leastActive {
-				candicate = append(candicate, host)
-			}
+			end = randomStart
+			cur = 0
+			first = false
 		}
-		return nil
+		host := healthHosts[cur]
+		active := host.HostStats().UpstreamRequestActive.Count()
+		// return it directly if the active count is zero
+		if active == 0 {
+			return host
+		}
+		// less than the current least active
+		if active < leastActive {
+			leastActive = active
+			candicate = host
+		}
 	}
-	res := searchFunc(randomIndex, healthHostsLen)
-	// return the res directly if active count is zero
-	if res != nil {
-		return res
-	}
-	res = searchFunc(0, randomIndex)
-	if res != nil {
-		return res
-	}
-	// Always return the first of the candicates
-	return candicate[0]
+
+	return candicate
 }
 
 // shuffleHealthyHosts to randomly pick an host as start index
