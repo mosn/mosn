@@ -2,12 +2,12 @@
 
 package cgosm4
 
-// #cgo darwin CFLAGS: -I${SRCDIR}/../darwin_BabaSSL_lib/include -Wno-deprecated-declarations
-// #cgo darwin LDFLAGS: -L${SRCDIR}/../darwin_BabaSSL_lib/lib -lssl -lcrypto
-// #cgo linux,!arm,!arm64 CFLAGS: -I${SRCDIR}/../linux_BabaSSL_lib/include -Wno-deprecated-declarations
-// #cgo linux,!arm,!arm64 LDFLAGS: -L${SRCDIR}/../linux_BabaSSL_lib/lib -lssl -lcrypto -ldl -lpthread
-// #cgo linux,arm64 CFLAGS: -I${SRCDIR}/../linux_BabaSSL_arm_lib/include -Wno-deprecated-declarations
-// #cgo linux,arm64 LDFLAGS: -L${SRCDIR}/../linux_BabaSSL_arm_lib/lib -lssl -lcrypto -ldl -lpthread
+// #cgo darwin CFLAGS: -I/usr/local/BabaSSL/darwin_BabaSSL_lib/include -Wno-deprecated-declarations
+// #cgo darwin LDFLAGS: -L/usr/local/BabaSSL/darwin_BabaSSL_lib/lib -lssl -lcrypto
+// #cgo linux,!arm,!arm64 CFLAGS: -I/usr/local/BabaSSL/linux_BabaSSL_lib/include -Wno-deprecated-declarations
+// #cgo linux,!arm,!arm64 LDFLAGS: -L/usr/local/BabaSSL/linux_BabaSSL_lib/lib -lssl -lcrypto -ldl -lpthread
+// #cgo linux,arm64 CFLAGS: -I/usr/local/BabaSSL/linux_BabaSSL_arm_lib/include -Wno-deprecated-declarations
+// #cgo linux,arm64 LDFLAGS: -L/usr/local/BabaSSL/linux_BabaSSL_arm_lib/lib -lssl -lcrypto -ldl -lpthread
 /*
 #include <openssl/evp.h>
 
