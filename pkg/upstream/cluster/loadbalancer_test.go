@@ -24,6 +24,9 @@ func TestLARChooseHost(t *testing.T) {
 	}
 	actual := balancer.ChooseHost(newMockLbContext(nil))
 	assert.Equal(t, expectHost, actual)
+	mockRequest(expectHost, true, 20)
+	actual = balancer.ChooseHost(newMockLbContext(nil))
+	assert.NotEqual(t, expectHost, actual)
 }
 
 func mockRequest(host types.Host, active bool, times int) {

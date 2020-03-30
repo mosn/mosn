@@ -161,42 +161,53 @@ func newleastActiveRequestLoadBalancer(hosts types.HostSet) types.LoadBalancer {
 }
 
 func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	healthHosts := lb.shuffleHealthyHosts()
-	if len(healthHosts) == 0 {
+	healthHosts := lb.hosts.HealthyHosts()
+	healthHostsLen := len(healthHosts)
+	if healthHostsLen == 0 {
 		return nil
 	}
 	// exactly one healthy host, return this host directly
-	if len(healthHosts) == 1 {
+	if healthHostsLen == 1 {
 		return healthHosts[0]
 	}
 	// The list of hosts having the same least active request value
-	candicate := make([]types.Host, 0, len(healthHosts))
+	candicate := make([]types.Host, 0, healthHostsLen)
 	// The least active request value of all hosts
 	leastActive := int64(math.MaxInt64)
-
-	for _, host := range healthHosts {
-		active := host.HostStats().UpstreamRequestActive.Count()
-		// return it directly if the active count is zero
-		if active == 0 {
-			return host
-		}
-		// less than the current least active
-		if active < leastActive {
-			leastActive = active
-			candicate = candicate[:0]
-			candicate = append(candicate, host)
-		} else if active == leastActive {
-			candicate = append(candicate, host)
-		}
-	}
-	//  exactly one host, return this host directly
-	if len(candicate) == 1 {
-		return candicate[0]
-	}
-	// choose one candicate based on the random
 	lb.mutex.Lock()
-	defer lb.mutex.Unlock()
-	return candicate[lb.rand.Intn(len(candicate))]
+	randomIndex := lb.rand.Intn(healthHostsLen)
+	lb.mutex.Unlock()
+
+	searchFunc := func(start, end int) types.Host {
+		for i := start; i < end; i++ {
+			host := healthHosts[i]
+			active := host.HostStats().UpstreamRequestActive.Count()
+			// return it directly if the active count is zero
+			if active == 0 {
+				return host
+			}
+			// less than the current least active
+			if active < leastActive {
+				leastActive = active
+				candicate = candicate[:0]
+				candicate = append(candicate, host)
+			} else if active == leastActive {
+				candicate = append(candicate, host)
+			}
+		}
+		return nil
+	}
+	res := searchFunc(randomIndex, healthHostsLen)
+	// return the res directly if active count is zero
+	if res != nil {
+		return res
+	}
+	res = searchFunc(0, randomIndex)
+	if res != nil {
+		return res
+	}
+	// Always return the first of the candicates
+	return candicate[0]
 }
 
 // shuffleHealthyHosts to randomly pick an host as start index
