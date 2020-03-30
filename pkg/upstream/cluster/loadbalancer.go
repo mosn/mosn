@@ -206,18 +206,6 @@ func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerC
 	return candicate
 }
 
-// shuffleHealthyHosts to randomly pick an host as start index
-func (lb *leastActiveRequestLoadBalancer) shuffleHealthyHosts() []types.Host {
-	healthHosts := lb.hosts.HealthyHosts()
-	n := len(healthHosts)
-	lb.mutex.Lock()
-	start := lb.rand.Intn(n)
-	lb.mutex.Unlock()
-	ret := make([]types.Host, len(healthHosts))
-	ret = append(healthHosts[start:], healthHosts[:start]...)
-	return ret
-}
-
 func (lb *leastActiveRequestLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	return len(lb.hosts.Hosts()) > 0
 }
