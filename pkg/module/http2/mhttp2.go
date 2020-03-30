@@ -7,27 +7,28 @@ package http2
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"golang.org/x/net/http/httpguts"
+	"io"
 	"math"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/module/http2/hpack"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"golang.org/x/net/http/httpguts"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/hpack"
-	"mosn.io/api"
-	"mosn.io/pkg/buffer"
 )
 
 var (
 	ErrAGAIN = errors.New("EAGAIN")
-
 	//todo: support configuration
 	initialConnRecvWindowSize = int32(1 << 30)
 )
@@ -40,7 +41,7 @@ type MStream struct {
 	Request        *http.Request
 	Response       *http.Response
 	Header         http.Header
-	Trailers       http.Header
+	Trailers       *http.Header
 	SendData       buffer.IoBuffer
 }
 
@@ -50,104 +51,135 @@ func (ms *MStream) ID() uint32 {
 }
 
 // SendResponse is Http2 Server send response
-func (ms *MStream) SendResponse() error {
-	ms.conn.closeStream(ms.stream, nil)
-	if ms.bodyBytes > 0 {
-		ms.conn.sendWindowUpdate(nil, int(ms.bodyBytes))
-	}
-
-	isHeadResp := ms.Request.Method == "HEAD"
-	var ctype, clen string
-	var dataLen int
-	if ms.SendData != nil {
-		dataLen = ms.SendData.Len()
-	}
+func (ms *MStream) WriteHeader(end bool) error {
 
 	rsp := ms.Response
+	endStream := end || ms.Request.Method == "HEAD"
 
-	if clen = rsp.Header.Get("Content-Length"); clen != "" {
-		rsp.Header.Del("Content-Length")
-		clen64, err := strconv.ParseInt(clen, 10, 64)
-		if err == nil && clen64 >= 0 {
-			ms.sentContentLen = clen64
-		} else {
-			clen = ""
+	ws := &writeResHeaders{
+		streamID:      ms.id,
+		httpResCode:   rsp.StatusCode,
+		h:             rsp.Header,
+		endStream:     endStream,
+		contentLength: ms.Header.Get("Content-Length"),
+		contentType:   ms.Header.Get("Content-Type"),
+		date:          ms.Header.Get("Date"),
+	}
+	if endStream {
+		ms.conn.closeStream(ms.stream, nil)
+	}
+	return ms.conn.writeHeaders(ws)
+}
+
+func (ms *MStream) WriteData() (err error) {
+	var sawEOF bool
+	buf := make([]byte, defaultMaxReadFrameSize)
+	for !sawEOF {
+		n, err := ms.SendData.Read(buf)
+		if err == io.EOF {
+			sawEOF = true
+			err = nil
+		} else if err != nil {
+			return err
+		}
+		remain := buf[:n]
+		for len(remain) > 0 && err == nil {
+			var allowed int32
+			if allowed, err = ms.awaitFlowControl(len(remain)); err != nil {
+				return err
+			}
+			ms.conn.mu.Lock()
+			data := remain[:allowed]
+			remain = remain[allowed:]
+			err = ms.conn.Framer.writeData(ms.id, false, data)
+			ms.conn.mu.Unlock()
 		}
 	}
+	return
+}
 
-	if dataLen == 0 || isHeadResp || !bodyAllowedForStatus(rsp.StatusCode) {
-		clen = "0"
-	}
+func (ms *MStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
+	cc := ms.conn
+	cc.mu.Lock()
+	defer cc.mu.Unlock()
+	for {
+		if cc.State() == api.ConnClosed {
+			return 0, errClientConnClosed
+		}
+		if ms.state == stateClosed {
+			return 0, errStreamClosed
+		}
+		if a := ms.flow.available(); a > 0 {
+			take := a
+			if int(take) > maxBytes {
 
-	hasContentType := rsp.Header.Get("Content-Type")
-	if hasContentType == "" && bodyAllowedForStatus(rsp.StatusCode) && dataLen > 0 {
-		ctype = http.DetectContentType(ms.SendData.Bytes())
+				take = int32(maxBytes) // can't truncate int; take is int32
+			}
+			if take > int32(cc.maxFrameSize) {
+				take = int32(cc.maxFrameSize)
+			}
+			ms.flow.take(take)
+			return take, nil
+		}
+		cc.cond.Wait()
 	}
-	var date string
-	if ok := rsp.Header.Get("Date"); ok == "" {
-		date = time.Now().UTC().Format(http.TimeFormat)
-	}
+}
 
+func (ms *MStream) WriteTrailers() error {
+
+	defer ms.conn.closeStream(ms.stream, nil)
+	tramap := *ms.Trailers
 	var trailers []string
-	if rsp.Trailer != nil {
-		for k, _ := range rsp.Trailer {
+	if tramap != nil {
+		for k, _ := range tramap {
 			k = http.CanonicalHeaderKey(k)
 			if !httpguts.ValidTrailerHeader(k) {
-				rsp.Trailer.Del(k)
+				tramap.Del(k)
 			} else {
 				trailers = append(trailers, k)
 			}
 		}
 	}
 
-	endStream := (dataLen == 0 && len(trailers) == 0) || isHeadResp
-	ws := &writeResHeaders{
-		streamID:      ms.id,
-		httpResCode:   rsp.StatusCode,
-		h:             rsp.Header,
-		endStream:     endStream,
-		contentType:   ctype,
-		contentLength: clen,
-		date:          date,
-	}
-	err := ms.conn.writeHeaders(ws)
-	if err != nil {
-		return err
-	}
-	if endStream {
-		return nil
-	}
-
-	if dataLen > 0 {
-		err = ms.conn.Framer.writeData(ms.stream.id, len(trailers) == 0, ms.SendData.Bytes())
-		if err != nil {
-			return err
-		}
-		buffer.PutIoBuffer(ms.SendData)
-	}
-
+	var err error
 	if len(trailers) > 0 {
 		ws := &writeResHeaders{
 			streamID:  ms.id,
-			h:         rsp.Trailer,
+			h:         tramap,
 			trailers:  trailers,
 			endStream: true,
 		}
 		err = ms.conn.writeHeaders(ws)
-	}
+	} else {
+		err = ms.conn.Framer.writeData(ms.id, true, nil)
 
+	}
 	return err
 }
 
 func (ms *MStream) Reset() {
 	ev := streamError(ms.id, ErrCodeInternal)
 	ms.conn.resetStream(ev)
-	ms.conn.delStream(ms.id)
+	ms.conn.closeStream(ms.stream, ev)
+
+}
+
+func (ms *MStream) SendResponse() error {
+	endHeader := ms.SendData == nil && ms.Trailers == nil
+	if err := ms.WriteHeader(endHeader); err != nil || endHeader {
+		return err
+	}
+
+	if err := ms.WriteData(); err != nil {
+		return err
+	}
+	return ms.WriteTrailers()
 }
 
 type MServerConn struct {
 	serverConn
-	mu sync.Mutex
+	mu   sync.Mutex
+	cond *sync.Cond
 
 	Framer *MFramer
 	api.Connection
@@ -158,19 +190,21 @@ func NewServerConn(conn api.Connection) *MServerConn {
 	sc := new(MServerConn)
 	sc.Connection = conn
 
+	sc.cond = sync.NewCond(&sc.mu)
+
 	// init serverConn
-	sc.serverConn.hpackEncoder = hpack.NewEncoder(&sc.headerWriteBuf)
-	sc.serverConn.flow.add(initialWindowSize)
-	sc.serverConn.inflow.add(initialWindowSize)
+	sc.hpackEncoder = hpack.NewEncoder(&sc.headerWriteBuf)
+	sc.flow.add(initialWindowSize)
+	sc.inflow.add(initialWindowSize)
 
-	sc.serverConn.advMaxStreams = defaultMaxStreams
-	sc.serverConn.streams = make(map[uint32]*stream)
-	sc.serverConn.clientMaxStreams = math.MaxUint32
-	sc.serverConn.initialStreamSendWindowSize = initialWindowSize
-	sc.serverConn.maxFrameSize = initialMaxFrameSize
-	sc.serverConn.headerTableSize = initialHeaderTableSize
+	sc.advMaxStreams = defaultMaxStreams
+	sc.streams = make(map[uint32]*stream)
+	sc.clientMaxStreams = math.MaxUint32
+	sc.initialStreamSendWindowSize = initialWindowSize
+	sc.maxFrameSize = initialMaxFrameSize
+	sc.headerTableSize = initialHeaderTableSize
 
-	sc.serverConn.pushEnabled = false
+	sc.pushEnabled = false
 
 	// init MFramer
 	fr := new(MFramer)
@@ -353,7 +387,7 @@ func (sc *MServerConn) HandleFrame(ctx context.Context, f Frame) (*MStream, []by
 	case *PushPromiseFrame:
 		// A client cannot push. Thus, servers MUST treat the receipt of a PUSH_PROMISE
 		// frame as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
-		err = http2.ConnectionError(http2.ErrCodeProtocol)
+		err = ConnectionError(ErrCodeProtocol)
 	default:
 		err = fmt.Errorf("http2: server ignoring frame: %v", f.Header())
 	}
@@ -377,7 +411,7 @@ func (sc *MServerConn) HandleFrame(ctx context.Context, f Frame) (*MStream, []by
 }
 
 func (sc *MServerConn) HandleError(ctx context.Context, f Frame, err error) {
-	return
+	log.DefaultLogger.Warnf("[Server Conn] [Handler Err] hanfler frame：%v error：%v", f, err)
 }
 
 // processHeaders processes Headers Frame
@@ -451,7 +485,6 @@ func (sc *MServerConn) processHeaders(ctx context.Context, f *MetaHeadersFrame) 
 	}
 
 	st.reqTrailer = req.Trailer
-	req.Trailer = st.reqTrailer
 	if st.reqTrailer != nil {
 		st.trailer = make(http.Header)
 	}
@@ -610,7 +643,7 @@ func (sc *MServerConn) newStream(id, pusherID uint32, state streamState) *stream
 		sc:    &sc.serverConn,
 	}
 	st.flow.conn = &sc.flow // link to conn-level counter
-	st.flow.add(initialConnRecvWindowSize)
+	st.flow.add(sc.initialStreamSendWindowSize)
 	st.inflow.conn = &sc.inflow // link to conn-level counter
 	st.inflow.add(initialConnRecvWindowSize)
 
@@ -691,7 +724,9 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 		// But still enforce their connection-level flow control,
 		// and return any flow control bytes since we're not going
 		// to consume them.
+		sc.mu.Lock()
 		if sc.inflow.available() < int32(f.Length) {
+			sc.mu.Unlock()
 			return false, streamError(id, ErrCodeFlowControl)
 		}
 		// Deduct the flow control from inflow, since we're
@@ -700,6 +735,7 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 		// frames.
 		sc.inflow.take(int32(f.Length))
 		sc.sendWindowUpdate(nil, int(f.Length)) // conn-level
+		sc.mu.Unlock()
 
 		if st != nil && st.resetQueued {
 			// Already have a stream error in flight. Don't send another.
@@ -714,8 +750,10 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 	}
 
 	if f.Length > 0 {
+		sc.mu.Lock()
 		// Check whether the client has flow control quota.
 		if st.inflow.available() < int32(f.Length) {
+			sc.mu.Unlock()
 			return false, streamError(id, ErrCodeFlowControl)
 		}
 		st.inflow.take(int32(f.Length))
@@ -727,7 +765,14 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 			sc.sendWindowUpdate32(st, pad)
 		}
 
+		if st.inflow.available() < initialConnRecvWindowSize/2 {
+			i := int(initialConnRecvWindowSize - st.inflow.available())
+			sc.sendWindowUpdate(nil, i)
+			sc.sendWindowUpdate(st, i)
+		}
+
 		st.bodyBytes += int64(len(data))
+		sc.mu.Unlock()
 	}
 	if f.StreamEnded() {
 		st.state = stateHalfClosedRemote
@@ -748,6 +793,7 @@ func (sc *MServerConn) processSettings(f *SettingsFrame) error {
 		return nil
 	}
 	if err := f.ForeachSetting(sc.processSetting); err != nil {
+		sc.cond.Broadcast()
 		return err
 	}
 	buf := buffer.NewIoBuffer(frameHeaderLen)
@@ -757,32 +803,30 @@ func (sc *MServerConn) processSettings(f *SettingsFrame) error {
 
 // processWindowUpdate Processes WindowUpdate Frame for Http2 Server
 func (sc *MServerConn) processWindowUpdate(f *WindowUpdateFrame) error {
-	switch {
-	case f.StreamID != 0: // stream-level flow control
-		state, st := sc.state(f.StreamID)
-		if state == stateIdle {
-			// Section 5.1: "Receiving any frame other than HEADERS
-			// or PRIORITY on a stream in this state MUST be
-			// treated as a connection error (Section 5.4.1) of
-			// type PROTOCOL_ERROR."
-			return ConnectionError(ErrCodeProtocol)
-		}
-		if st == nil {
-			// "WINDOW_UPDATE can be sent by a peer that has sent a
-			// frame bearing the END_STREAM flag. This means that a
-			// receiver could receive a WINDOW_UPDATE frame on a "half
-			// closed (remote)" or "closed" stream. A receiver MUST
-			// NOT treat this as an error, see Section 5.1."
-			return nil
-		}
-		if !st.flow.add(int32(f.Increment)) {
-			return streamError(f.StreamID, ErrCodeFlowControl)
-		}
-	default: // connection-level flow control
-		if !sc.flow.add(int32(f.Increment)) {
-			return goAwayFlowError{}
-		}
+
+	state, st := sc.state(f.StreamID)
+	if f.StreamID != 0 && st == nil {
+		return nil
 	}
+	if state == stateIdle {
+		// Section 5.1: "Receiving any frame other than HEADERS
+		// or PRIORITY on a stream in this state MUST be
+		// treated as a connection error (Section 5.4.1) of
+		// type PROTOCOL_ERROR."
+		return ConnectionError(ErrCodeProtocol)
+	}
+
+	sc.mu.Lock()
+	defer sc.mu.Unlock()
+
+	fl := &sc.flow
+	if st != nil {
+		fl = &st.flow
+	}
+	if !fl.add(int32(f.Increment)) {
+		return ConnectionError(ErrCodeFlowControl)
+	}
+	sc.cond.Broadcast()
 	return nil
 }
 
@@ -851,6 +895,7 @@ func (sc *MServerConn) startGracefulShutdownInternal() {
 
 func (sc *MServerConn) resetStream(se StreamError) error {
 	if st := sc.getStream(se.StreamID); st != nil {
+		log.DefaultLogger.Warnf("[Mservr Conn] streamId %d send RestFrame ", se.StreamID)
 		st.resetQueued = true
 
 		buf := buffer.NewIoBuffer(frameHeaderLen + 8)
@@ -878,7 +923,7 @@ func (sc *MServerConn) goAway(code ErrCode, debugData []byte) {
 type MClientConn struct {
 	ClientConn
 
-	slock sync.Mutex
+	hmu sync.Mutex
 
 	Framer *MFramer
 	api.Connection
@@ -889,16 +934,16 @@ func NewClientConn(conn api.Connection) *MClientConn {
 	cc := new(MClientConn)
 	cc.Connection = conn
 
-	cc.ClientConn.streams = make(map[uint32]*clientStream)
-	cc.ClientConn.pings = make(map[[8]byte]chan struct{})
-	cc.ClientConn.wantSettingsAck = true
-	cc.ClientConn.nextStreamID = 1
-	cc.ClientConn.maxFrameSize = 16 << 10
-	cc.ClientConn.initialWindowSize = 65535
-	cc.ClientConn.maxConcurrentStreams = 1000
-	cc.ClientConn.peerMaxHeaderListSize = 0xffffffffffffffff
-	cc.ClientConn.wantSettingsAck = true
-	cc.ClientConn.streams = make(map[uint32]*clientStream)
+	cc.streams = make(map[uint32]*clientStream)
+	cc.pings = make(map[[8]byte]chan struct{})
+	cc.wantSettingsAck = true
+	cc.nextStreamID = 1
+	cc.maxFrameSize = 16 << 10
+	cc.initialWindowSize = 65535
+	cc.maxConcurrentStreams = 1000
+	cc.peerMaxHeaderListSize = 0xffffffffffffffff
+	cc.wantSettingsAck = true
+	cc.cond = sync.NewCond(&cc.mu)
 
 	cc.flow.add(initialWindowSize)
 	cc.inflow.add(initialWindowSize)
@@ -921,7 +966,12 @@ func NewClientConn(conn api.Connection) *MClientConn {
 		initialSettings = append(initialSettings, Setting{ID: SettingMaxHeaderListSize, Val: uint32(max)})
 	}
 
-	cc.Connection.Write(buffer.NewIoBufferBytes(clientPreface))
+	//log.DefaultLogger.Infof("[network] [http2] New Client Connection & write %s", clientPreface)
+
+	err := cc.Connection.Write(buffer.NewIoBufferBytes(clientPreface))
+	if err != nil {
+		log.DefaultLogger.Errorf("[network] [http2] Connection Write error : %+v", err)
+	}
 	cc.Framer.writeSettings(initialSettings)
 	cc.Framer.writeWindowUpdate(0, transportDefaultConnFlow)
 	cc.inflow.add(transportDefaultConnFlow + initialWindowSize)
@@ -935,20 +985,26 @@ func (cc *MClientConn) WriteHeaders(ctx context.Context, req *http.Request, trai
 		return nil, err
 	}
 
+	// StreamId has to be sequential
+	cc.mu.Lock()
+	defer cc.mu.Unlock()
+
 	cs := cc.newStream()
 	cs.req = req
+	cc.hmu.Lock()
 	hdrs, err := cc.encodeHeaders(req, false, trailers, req.ContentLength)
+	cc.hmu.Unlock()
+
 	if err != nil {
-		delete(cc.streams, cs.ID)
 		return nil, err
 	}
 	err = cc.writeHeaders(cs.ID, endStream, int(cc.maxFrameSize), hdrs)
 	if err != nil {
-		delete(cc.streams, cs.ID)
 		return nil, err
 	}
-	return cs, nil
 
+	cc.streams[cs.ID] = cs
+	return cs, nil
 }
 
 // MClientStream is Http2 Client Stream
@@ -957,6 +1013,7 @@ type MClientStream struct {
 	conn     *MClientConn
 	Request  *http.Request
 	SendData buffer.IoBuffer
+	Trailer  http.Header
 }
 
 func NewMClientStream(conn *MClientConn, req *http.Request) *MClientStream {
@@ -972,55 +1029,113 @@ func (cc *MClientStream) GetID() uint32 {
 }
 
 // RoundTrip sends Request for Http2 Client
-func (cc *MClientStream) RoundTrip(ctx context.Context) error {
-	trailers, err := commaSeparatedTrailers(cc.Request)
-	if err != nil {
-		return err
+func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
+
+	//write header
+	if cl, ok := cc.Request.Header["Content-Length"]; ok {
+		cc.Request.ContentLength, _ = strconv.ParseInt(cl[0], 10, 64)
 	}
 
-	hasTrailers := trailers != ""
-	hasBody := cc.SendData != nil && cc.SendData.Len() != 0
+	endStream := cc.SendData == nil
 
-	if hasBody {
-		cc.Request.ContentLength = int64(cc.SendData.Len())
-	}
-
-	endStream := !hasTrailers && !hasBody
-
-	cc.conn.mu.Lock()
-
-	cs, err := cc.conn.WriteHeaders(ctx, cc.Request, trailers, endStream)
+	//if WriteHeader err
+	cs, err := cc.conn.WriteHeaders(ctx, cc.Request, "", endStream)
 	if err != nil {
-		cc.conn.mu.Unlock()
 		return err
 	}
 	cc.clientStream = cs
-	cc.conn.mu.Unlock()
-
 	if endStream {
-		return nil
+		return
 	}
 
-	if hasBody {
-		err = cc.conn.Framer.writeData(cc.ID, !hasTrailers, cc.SendData.Bytes())
-		if err != nil {
+	// write data and trailer
+	//if writeData err ,
+	utils.GoWithRecover(func() {
+		if err = cc.writeDataAndTrailer(); err != nil {
+			cc.conn.HandleError(nil, cc.ID, err, cc.SendData)
+
+		}
+	}, nil)
+	return
+}
+
+func (cc *MClientStream) writeDataAndTrailer() (err error) {
+	conn := cc.conn
+	var sawEOF bool
+	buf := make([]byte, conn.maxFrameSize)
+	for !sawEOF {
+		n, err := cc.SendData.Read(buf)
+		if err == io.EOF {
+			sawEOF = true
+			err = nil
+		} else if err != nil {
 			return err
 		}
-		buffer.PutIoBuffer(cc.SendData)
+		remain := buf[:n]
+		for len(remain) > 0 {
+			var allowed int32
+			if allowed, err = cc.awaitFlowControl(len(remain)); err != nil {
+				return err
+			}
+			data := remain[:allowed]
+			remain = remain[allowed:]
+			if err = conn.Framer.writeData(cc.ID, false, data); err != nil {
+				return err
+			}
+		}
 	}
 
-	if hasTrailers {
-		var trls []byte
-		cc.conn.mu.Lock()
-		trls, err = cc.conn.encodeTrailers(cc.Request)
+	//write trailer
+	if end := cc.Trailer == nil || len(cc.Trailer) == 0; end {
+		err = cc.conn.Framer.writeData(cc.ID, true, nil)
 		if err != nil {
-			cc.conn.mu.Unlock()
-			return err
+			return
+		}
+	} else {
+		cc.conn.hmu.Lock()
+		var trls []byte
+		trls, err = cc.conn.encodeTrailers(cc.Request)
+		cc.conn.hmu.Unlock()
+		if err != nil {
+			log.DefaultLogger.Errorf("[Stream H2] [Client] Encode trailer error: %v", err)
+			return
 		}
 		err = cc.conn.writeHeaders(cc.ID, true, int(cc.conn.maxFrameSize), trls)
-		cc.conn.mu.Unlock()
+		if err != nil {
+			return
+		}
 	}
-	return err
+	return
+}
+
+func (cs *MClientStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
+	cc := cs.conn
+	cc.mu.Lock()
+	defer cc.mu.Unlock()
+	for {
+		if cc.State() == api.ConnClosed {
+			return 0, errClientConnClosed
+		}
+		select {
+		case <-cs.done:
+			return 0, errStreamClosed
+		default:
+		}
+
+		if a := cs.flow.available(); a > 0 {
+			take := a
+			if int(take) > maxBytes {
+
+				take = int32(maxBytes) // can't truncate int; take is int32
+			}
+			if take > int32(cc.maxFrameSize) {
+				take = int32(cc.maxFrameSize)
+			}
+			cs.flow.take(take)
+			return take, nil
+		}
+		cc.cond.Wait()
+	}
 }
 
 func (cc *MClientConn) writeHeaders(streamID uint32, endStream bool, maxFrameSize int, hdrs []byte) error {
@@ -1063,13 +1178,27 @@ func (cc *MClientConn) newStream() *clientStream {
 	cs.flow.setConnFlow(&cc.flow)
 	cs.inflow.add(transportDefaultStreamFlow)
 	cs.inflow.setConnFlow(&cc.inflow)
-	cc.streams[cs.ID] = cs
+	cs.done = make(chan struct{})
 	cc.nextStreamID += 2
 	return cs
 }
 
-func (sc *MClientConn) HandleError(ctx context.Context, f Frame, err error) {
-	return
+func (cc *MClientConn) HandleError(ctx context.Context, streamId uint32, err error, buffer buffer.IoBuffer) {
+	log.DefaultLogger.Warnf("[Stream Client] Stream ID %d, err %v", streamId, err)
+	serr := StreamError{
+		StreamID: streamId,
+		Code:     ErrCodeCancel,
+		Cause:    err,
+	}
+
+	_ = cc.resetStream(serr)
+
+	if buffer != nil {
+		buffer.CloseWithError(serr)
+	}
+	//todo Distinguish stream and conn err
+	//close connection，because the other thread need delete stream
+	cc.Connection.Close(api.NoFlush, api.RemoteClose)
 }
 
 // HandlerFrame handles Frame for Http2 Client
@@ -1102,7 +1231,7 @@ func (sc *MClientConn) HandleFrame(ctx context.Context, f Frame) (*http.Response
 	case *PushPromiseFrame:
 		// A client cannot push. Thus, servers MUST treat the receipt of a PUSH_PROMISE
 		// frame as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
-		err = ConnectionError(http2.ErrCodeProtocol)
+		err = ConnectionError(ErrCodeProtocol)
 	default:
 		err = fmt.Errorf("http2: server ignoring frame: %v", f.Header())
 	}
@@ -1283,6 +1412,7 @@ func (cc *MClientConn) processData(ctx context.Context, f *DataFrame) (bool, err
 		if didReset {
 			refund += len(f.Data())
 		}
+
 		if refund > 0 {
 			cc.inflow.add(int32(refund))
 			cc.wmu.Lock()
@@ -1307,7 +1437,7 @@ func (cc *MClientConn) processData(ctx context.Context, f *DataFrame) (bool, err
 	}
 
 	v := int(cs.inflow.available())
-	if v < transportDefaultStreamFlow-transportDefaultStreamMinRefresh {
+	if v < transportDefaultStreamMinRefresh {
 		streamAdd = int32(transportDefaultStreamFlow - v)
 		cs.inflow.add(streamAdd)
 	}
@@ -1393,7 +1523,53 @@ func (cc *MClientConn) processWindowUpdate(f *WindowUpdateFrame) error {
 	if !fl.add(int32(f.Increment)) {
 		return ConnectionError(ErrCodeFlowControl)
 	}
+	cc.cond.Broadcast()
 	return nil
+}
+
+func (cc *MClientConn) Ping(ctx context.Context) error {
+	c := make(chan struct{})
+	// Generate a random payload
+	var p [8]byte
+	for {
+		if _, err := rand.Read(p[:]); err != nil {
+			return err
+		}
+		cc.mu.Lock()
+		// check for dup before insert
+		if _, found := cc.pings[p]; !found {
+			cc.pings[p] = c
+			cc.mu.Unlock()
+			break
+		}
+		cc.mu.Unlock()
+	}
+	cc.wmu.Lock()
+	if err := cc.WritePing(false, p); err != nil {
+		cc.wmu.Unlock()
+		return err
+	}
+	cc.wmu.Unlock()
+	select {
+	case <-c:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-cc.readerDone:
+		// connection closed
+		return cc.readerErr
+	}
+}
+
+func (cc *MClientConn) WritePing(ack bool, data [8]byte) error {
+	var flags Flags
+	if ack {
+		flags = FlagPingAck
+	}
+	buf := buffer.NewIoBuffer(frameHeaderLen + 8)
+	cc.Framer.startWrite(buf, FramePing, flags, 0)
+	cc.Framer.writeBytes(buf, data[:])
+	return cc.Framer.endWrite(buf)
 }
 
 // processPing processes Ping Frame for Http2 Client
@@ -1427,7 +1603,7 @@ func (cc *MClientConn) processGoAway(f *GoAwayFrame) error {
 
 func (sc *MClientConn) resetStream(se StreamError) error {
 	if st := sc.streamByID(se.StreamID, true); st != nil {
-
+		log.DefaultLogger.Warnf("[Mclient Conn] streamId %d send RestFrame ", se.StreamID)
 		buf := buffer.NewIoBuffer(frameHeaderLen + 8)
 		sc.Framer.startWrite(buf, FrameRSTStream, 0, se.StreamID)
 		sc.Framer.writeUint32(buf, uint32(se.Code))
@@ -1443,6 +1619,8 @@ func (cc *MClientConn) streamByID(id uint32, andRemove bool) *clientStream {
 	if andRemove && cs != nil {
 		cc.lastActive = time.Now()
 		delete(cc.streams, id)
+		close(cs.done)
+		cc.cond.Broadcast()
 	}
 	return cs
 }
@@ -1479,7 +1657,6 @@ func (fr *MFramer) writeWindowUpdate(streamID, incr uint32) error {
 func (fr *MFramer) writeData(streamID uint32, endStream bool, data []byte) error {
 	const maxFrameSize = 16384
 	//const maxFrameSize = 100
-
 	var err error
 	if data == nil {
 		err = fr.sendData(streamID, endStream, nil)

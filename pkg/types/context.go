@@ -41,6 +41,7 @@ const (
 	ContextKeyActiveSpan
 	ContextKeyTraceId
 	ContextKeyVariables
+	ContextKeyH2Stream
 	ContextKeyEnd
 )
 
