@@ -17,6 +17,7 @@
 
 package java_exception
 
+// EOFException represents an exception of the same name in java
 type EOFException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type EOFException struct {
 	Cause                Throwabler
 }
 
+// NewEOFException is the constructor
 func NewEOFException(detailMessage string) *EOFException {
 	return &EOFException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e EOFException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (EOFException) JavaClassName() string {
 	return "java.io.EOFException"
 }

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// RejectedExecutionException represents an exception of the same name in java
 type RejectedExecutionException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,13 +26,17 @@ type RejectedExecutionException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e RejectedExecutionException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (RejectedExecutionException) JavaClassName() string {
 	return "java.util.concurrent.RejectedExecutionException"
 }
+
+// NewRejectedExecutionException is the constructor
 func NewRejectedExecutionException(detailMessage string) *RejectedExecutionException {
 	return &RejectedExecutionException{DetailMessage: detailMessage}
 }

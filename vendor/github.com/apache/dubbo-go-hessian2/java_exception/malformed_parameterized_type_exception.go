@@ -17,6 +17,7 @@
 
 package java_exception
 
+// MalformedParameterizedTypeException represents an exception of the same name in java
 type MalformedParameterizedTypeException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,13 +26,17 @@ type MalformedParameterizedTypeException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e MalformedParameterizedTypeException) Error() string {
 	return "MalformedParameterizedType"
 }
 
+// JavaClassName  java fully qualified path
 func (MalformedParameterizedTypeException) JavaClassName() string {
 	return "java.lang.reflect.MalformedParameterizedTypeException"
 }
+
+// NewMalformedParameterizedTypeException is the constructor
 func NewMalformedParameterizedTypeException(detailMessage string) *MalformedParameterizedTypeException {
 	return &MalformedParameterizedTypeException{DetailMessage: detailMessage}
 }

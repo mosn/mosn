@@ -23,7 +23,7 @@ github.com/TarsCloud/TarsGo/tars/util/rogger
 github.com/TarsCloud/TarsGo/tars/util/rtimer
 github.com/TarsCloud/TarsGo/tars/util/set
 github.com/TarsCloud/TarsGo/tars/util/tools
-# github.com/apache/dubbo-go-hessian2 v1.3.0
+# github.com/apache/dubbo-go-hessian2 v1.5.0-rc1
 github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java_exception
 # github.com/beorn7/perks v1.0.1
@@ -32,7 +32,7 @@ github.com/beorn7/perks/quantile
 github.com/c2h5oh/datasize
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/dubbogo/gost v1.1.1
+# github.com/dubbogo/gost v1.5.1
 github.com/dubbogo/gost/bytes
 github.com/dubbogo/gost/math/big
 # github.com/envoyproxy/go-control-plane v0.6.9
@@ -129,7 +129,7 @@ github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 # github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 github.com/rcrowley/go-metrics
-# github.com/stretchr/testify v1.3.0
+# github.com/stretchr/testify v1.4.0
 github.com/stretchr/testify/assert
 # github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb
 github.com/tjfoc/gmsm/sm3
@@ -205,6 +205,8 @@ google.golang.org/grpc/status
 google.golang.org/grpc/tap
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
+# gopkg.in/yaml.v2 v2.2.2
+gopkg.in/yaml.v2
 # istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
 istio.io/api/mixer/v1
 istio.io/api/mixer/v1/config/client

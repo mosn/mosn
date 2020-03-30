@@ -19,6 +19,7 @@ package java_exception
 
 import "strconv"
 
+// IllegalFormatWidthException represents an exception of the same name in java
 type IllegalFormatWidthException struct {
 	SerialVersionUID     int64
 	W                    int
@@ -28,13 +29,17 @@ type IllegalFormatWidthException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e IllegalFormatWidthException) Error() string {
 	return strconv.Itoa(e.W)
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalFormatWidthException) JavaClassName() string {
 	return "java.util.IllegalFormatWidthException"
 }
+
+// NewIllegalFormatWidthException is the constructor
 func NewIllegalFormatWidthException(w int) *IllegalFormatWidthException {
 	return &IllegalFormatWidthException{W: w}
 }

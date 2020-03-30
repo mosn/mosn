@@ -19,6 +19,7 @@ package java_exception
 
 import "strconv"
 
+// IllegalFormatPrecisionException represents an exception of the same name in java
 type IllegalFormatPrecisionException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -28,14 +29,17 @@ type IllegalFormatPrecisionException struct {
 	P                    int32
 }
 
+// NewIllegalFormatPrecisionException is the constructor
 func NewIllegalFormatPrecisionException(p int32) *IllegalFormatPrecisionException {
 	return &IllegalFormatPrecisionException{P: p, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IllegalFormatPrecisionException) Error() string {
 	return strconv.Itoa(int(e.P))
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalFormatPrecisionException) JavaClassName() string {
 	return "java.util.IllegalFormatPrecisionException"
 }

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// NoSuchMethodException represents an exception of the same name in java
 type NoSuchMethodException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type NoSuchMethodException struct {
 	Cause                Throwabler
 }
 
+// NewNoSuchMethodException is the constructor
 func NewNoSuchMethodException(detailMessage string) *NoSuchMethodException {
 	return &NoSuchMethodException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e NoSuchMethodException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (NoSuchMethodException) JavaClassName() string {
 	return "java.lang.NoSuchMethodException"
 }
