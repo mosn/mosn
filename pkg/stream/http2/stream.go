@@ -22,9 +22,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
-	"reflect"
 	"strconv"
 	"sync"
 
@@ -508,7 +508,7 @@ func (s *serverStream) GetStream() types.Stream {
 }
 
 func (s *serverStream) sendStream() {
-	_, err := s.sc.codecEngine.Encode(s.ctx, s.h2s)
+	_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
 	if err != nil {
 		log.Proxy.Errorf(s.ctx, "http2 server SendResponse  error :%v", err)
 		s.stream.ResetStream(types.StreamLocalReset)
@@ -573,7 +573,7 @@ func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 		ctx := conn.cm.Get()
 
 		// 2. decode process
-		frame, err := conn.codecEngine.Decode(ctx, buf)
+		frame, err := conn.protocol.Decode(ctx, buf)
 		// No enough data
 		if err == http2.ErrAGAIN {
 			break
@@ -646,7 +646,12 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	var data []byte
 	var trailer http.Header
 	var rsp *http.Response
-	useStream := mosnctx.Get(ctx, types.ContextKeyH2Stream).(bool)
+	var useStream bool
+	if b := mosnctx.Get(ctx, types.ContextKeyH2Stream); b == nil {
+		useStream = false
+	} else {
+		useStream = b.(bool)
+	}
 
 	rsp, data, trailer, endStream, err = conn.mClientConn.HandleFrame(ctx, f)
 
