@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
-	github.com/apache/dubbo-go-hessian2 v1.3.0
+	github.com/apache/dubbo-go-hessian2 v1.5.0-rc1
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/envoyproxy/go-control-plane v0.6.9
@@ -25,7 +25,7 @@ require (
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0

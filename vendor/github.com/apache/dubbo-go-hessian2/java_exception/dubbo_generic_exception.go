@@ -17,6 +17,7 @@
 
 package java_exception
 
+// DubboGenericException represents an exception of the same name in java
 type DubboGenericException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -27,14 +28,17 @@ type DubboGenericException struct {
 	ExceptionMessage     string
 }
 
+// NewDubboGenericException is the constructor
 func NewDubboGenericException(exceptionClass, exceptionMessage string) *DubboGenericException {
 	return &DubboGenericException{ExceptionClass: exceptionClass, ExceptionMessage: exceptionMessage}
 }
 
+// Error output error message
 func (e DubboGenericException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (DubboGenericException) JavaClassName() string {
 	return "com.alibaba.dubbo.rpc.service.GenericException"
 }
