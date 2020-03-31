@@ -2,11 +2,11 @@
 
 ## 简介
 
-+ 该样例工程演示了如何配置使得SkyWalking作SOFAMosn的trace框架
++ 该样例工程演示了如何配置使得SkyWalking作MOSN的trace框架
 
 ## 准备
 
-需要一个编译好的SOFAMosn程序
+需要一个编译好的MOSN程序
 ```
 cd ${projectpath}/cmd/mosn/main
 go build
@@ -29,9 +29,9 @@ cd ${targetpath}
 ## 目录结构
 
 ```
-main          // 编译完成的SOFAMosn程序
+main          // 编译完成的MOSN程序
 server.go     // 模拟的Http Server
-config.json   // 非TLS的配置
+config.json   // MOSN配置
 ```
 
 ## 运行说明
@@ -42,9 +42,9 @@ config.json   // 非TLS的配置
 go run server.go
 ```
 
-### 启动SOFAMosn
+### 启动MOSN
 
-+ 使用config.json 运行非TLS加密的SOFAMosn
++ 使用config.json 运行MOSN
 
 ```
 ./main start -c config.json

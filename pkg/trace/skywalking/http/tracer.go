@@ -138,7 +138,7 @@ func (h httpSkySpan) SetRequestInfo(requestInfo api.RequestInfo) {
 	// end exit span (upstream)
 	if h.carrier.exitSpan != nil {
 		exit := h.carrier.exitSpan
-		if requestInfo.ResponseCode() > 400 {
+		if requestInfo.ResponseCode() >= http.BadRequest {
 			exit.Error(time.Now(), skywalking.ErrorLog)
 		}
 		exit.Tag(go2sky.TagStatusCode, responseCode)
@@ -147,7 +147,7 @@ func (h httpSkySpan) SetRequestInfo(requestInfo api.RequestInfo) {
 
 	// entry span (downstream)
 	entry := h.carrier.entrySpan
-	if requestInfo.ResponseCode() > 400 {
+	if requestInfo.ResponseCode() >= http.BadRequest {
 		entry.Error(time.Now(), skywalking.ErrorLog)
 	}
 	entry.Tag(go2sky.TagStatusCode, responseCode)
