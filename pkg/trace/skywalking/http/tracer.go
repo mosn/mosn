@@ -19,6 +19,9 @@ package http
 
 import (
 	"context"
+	"strconv"
+	"time"
+
 	"github.com/SkyAPM/go2sky"
 	"github.com/SkyAPM/go2sky/propagation"
 	"github.com/SkyAPM/go2sky/reporter/grpc/common"
@@ -29,8 +32,6 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/skywalking"
 	"mosn.io/mosn/pkg/types"
-	"strconv"
-	"time"
 )
 
 var (
@@ -79,7 +80,15 @@ func (tracer *httpSkyTracer) Start(ctx context.Context, request interface{}, _ t
 		return skywalking.NoopSpan
 	}
 	entry.Tag(go2sky.TagHTTPMethod, string(header.Method()))
-	entry.Tag(go2sky.TagURL, string(header.Host())+requestURI)
+	// https://github.com/mosn/mosn/pull/1061#discussion_r401571554
+	host := header.Header()
+	var url string
+	if host != nil {
+		url = string(host) + requestURI
+	} else {
+		url = requestURI
+	}
+	entry.Tag(go2sky.TagURL, url)
 	entry.SetComponent(skywalking.MOSNComponentID)
 	entry.SetSpanLayer(common.SpanLayer_Http)
 

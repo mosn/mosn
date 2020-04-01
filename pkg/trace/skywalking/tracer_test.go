@@ -19,9 +19,10 @@ package skywalking
 
 import (
 	"context"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"testing"
 	"time"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 func TestNewGO2SkyTracer(t *testing.T) {

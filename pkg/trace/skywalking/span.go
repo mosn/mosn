@@ -18,10 +18,11 @@
 package skywalking
 
 import (
+	"time"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"time"
 )
 
 const (

@@ -19,6 +19,7 @@ package skywalking
 
 import (
 	"encoding/json"
+
 	"github.com/SkyAPM/go2sky"
 	"github.com/SkyAPM/go2sky/reporter"
 	"github.com/pkg/errors"

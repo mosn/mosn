@@ -19,14 +19,15 @@ package http
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/SkyAPM/go2sky/propagation"
 	"github.com/valyala/fasthttp"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/trace/skywalking"
-	"testing"
-	"time"
 )
 
 const header string = "1-MTU1NTY0NDg4Mjk2Nzg2ODAwMC4wLjU5NDYzNzUyMDYzMzg3NDkwODc=" +

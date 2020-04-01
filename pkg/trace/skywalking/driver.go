@@ -19,6 +19,7 @@ package skywalking
 
 import (
 	"fmt"
+
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 )

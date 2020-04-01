@@ -19,10 +19,11 @@ package skywalking
 
 import (
 	"context"
-	"github.com/SkyAPM/go2sky"
-	"mosn.io/mosn/pkg/types"
 	"testing"
 	"time"
+
+	"github.com/SkyAPM/go2sky"
+	"mosn.io/mosn/pkg/types"
 )
 
 type mockTracer struct {
