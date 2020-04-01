@@ -52,12 +52,22 @@ func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, d
 		case api.StreamFilterStop:
 			return true
 		case api.StreamFilterReMatchRoute:
-			s.receiverFiltersIndex++
-			s.receiverFiltersAgainPhase = types.MatchRoute
+			// Retry only at the DownFilterAfterRoute phase
+			if p == types.DownFilterAfterRoute {
+				// FiltersIndex is not increased until no retry is required
+				s.receiverFiltersAgainPhase = types.MatchRoute
+			} else {
+				s.receiverFiltersIndex++
+			}
 			return false
 		case api.StreamFilterReChooseHost:
-			s.receiverFiltersIndex++
-			s.receiverFiltersAgainPhase = types.ChooseHost
+			// Retry only at the DownFilterAfterChooseHost phase
+			if p == types.DownFilterAfterChooseHost {
+				// FiltersIndex is not increased until no retry is required
+				s.receiverFiltersAgainPhase = types.ChooseHost
+			} else {
+				s.receiverFiltersIndex++
+			}
 			return false
 		}
 

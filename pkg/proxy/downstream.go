@@ -137,7 +137,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
 
-	// init receiverFiltersAgainPhase to InitPhase means that don't need run receiverfilter agnin.
+	// init receiverFiltersAgainPhase to InitPhase means that don't need run receiverfilter again.
 	stream.receiverFiltersAgainPhase = types.InitPhase
 
 	if responseSender == nil || reflect.ValueOf(responseSender).IsNil() {

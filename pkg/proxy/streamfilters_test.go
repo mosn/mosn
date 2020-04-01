@@ -338,7 +338,11 @@ func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.
 	if f.status == api.StreamFilterStop {
 		atomic.StoreUint32(&f.s.downstreamCleaned, 1)
 	}
-	return f.status
+	if f.status == api.StreamFilterReMatchRoute || f.status == api.StreamFilterReChooseHost {
+		return api.StreamFilterContinue
+	} else {
+		return f.status
+	}
 }
 
 func (f *mockStreamReceiverFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
