@@ -27,6 +27,21 @@ func TestLARChooseHost(t *testing.T) {
 	mockRequest(expectHost, true, 20)
 	actual = balancer.ChooseHost(newMockLbContext(nil))
 	assert.NotEqual(t, expectHost, actual)
+
+	// test only one host
+	h := exampleHostConfigs()[0:1]
+	hosts = createHostsetWithStats(h, "test")
+	balancer = NewLoadBalancer(types.LeastActiveRequest, hosts)
+	actual = balancer.ChooseHost(nil)
+	assert.Equal(t, hosts.healthyHosts[0], actual)
+
+	// test no host
+	h = exampleHostConfigs()[0:0]
+	hosts = createHostsetWithStats(h, "test")
+	balancer = NewLoadBalancer(types.LeastActiveRequest, hosts)
+	actual = balancer.ChooseHost(nil)
+	assert.Nil(t, actual)
+
 }
 
 func mockRequest(host types.Host, active bool, times int) {

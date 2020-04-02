@@ -180,13 +180,13 @@ func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerC
 	end := healthHostsLen
 	first := true
 
-	for cur := randomStart; ; cur++ {
+	for cur := randomStart + 1; ; cur++ {
 		// flip the cur to loop all hosts
 		if cur >= end {
 			if !first {
 				break
 			}
-			end = randomStart
+			end = randomStart + 1
 			cur = 0
 			first = false
 		}
