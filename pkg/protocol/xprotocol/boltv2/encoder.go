@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/binary"
 
-	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -33,38 +32,12 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 		// 1. replace requestId
 		binary.BigEndian.PutUint32(request.rawMeta[RequestIdIndex:], request.RequestId)
 
-		// 2. check header change
-		// TODO: body change judge
-		if !request.Header.Changed {
+		// 1.2 check if header/content changed
+		if !request.Header.Changed && !request.ContentChanged {
+			// hack: increase the buffer count to avoid premature recycle
+			request.Data.Count(1)
 			return request.Data, nil
 		}
-
-		// 3. calculate length
-		headerLen := xprotocol.GetHeaderEncodeLength(&request.Header)
-		frameLen := RequestHeaderLen + int(request.ClassLen) + headerLen + int(request.ContentLen)
-
-		// 4. repack buffer
-		// TODO: buffer chain
-		buf := *mbuffer.GetBytesByContext(ctx, frameLen)
-
-		copy(buf[0:], request.rawMeta)
-
-		headerIndex := RequestHeaderLen + int(request.ClassLen)
-		contentIndex := headerIndex + int(request.HeaderLen)
-
-		if request.ClassLen > 0 {
-			copy(buf[RequestHeaderLen:], request.Class)
-		}
-
-		if request.HeaderLen > 0 {
-			xprotocol.EncodeHeader(buf[headerIndex:], &request.Header)
-		}
-
-		if request.ContentLen > 0 {
-			copy(buf[contentIndex:], request.Content.Bytes())
-		}
-
-		return buffer.NewIoBufferBytes(buf), nil
 	}
 
 	// 2. slow-path, construct buffer from scratch
@@ -81,37 +54,38 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	}
 	frameLen := RequestHeaderLen + int(request.ClassLen) + int(request.HeaderLen) + int(request.ContentLen)
 
-	// 2.2 alloc encode buffer
-	buf := *mbuffer.GetBytesByContext(ctx, frameLen)
+	// 2.2 alloc encode buffer, this buffer will be recycled after connection.Write
+	buf := buffer.GetIoBuffer(frameLen)
 
 	// 2.3 encode: meta, class, header, content
-	buf[0] = request.Protocol
-	buf[1] = request.CmdType
-	binary.BigEndian.PutUint16(buf[2:], request.CmdCode)
-	buf[4] = request.Version
-	binary.BigEndian.PutUint32(buf[5:], request.RequestId)
-	buf[9] = request.Codec
-	binary.BigEndian.PutUint32(buf[10:], uint32(request.Timeout))
-	binary.BigEndian.PutUint16(buf[14:], request.ClassLen)
-	binary.BigEndian.PutUint16(buf[16:], request.HeaderLen)
-	binary.BigEndian.PutUint32(buf[18:], request.ContentLen)
-
-	headerIndex := RequestHeaderLen + int(request.ClassLen)
-	contentIndex := headerIndex + int(request.HeaderLen)
-
+	// 2.3.1 meta
+	buf.WriteByte(request.Protocol)
+	buf.WriteByte(request.Version1)
+	buf.WriteByte(request.CmdType)
+	buf.WriteUint16(request.CmdCode)
+	buf.WriteByte(request.Version)
+	buf.WriteUint32(request.RequestId)
+	buf.WriteByte(request.Codec)
+	buf.WriteByte(request.SwitchCode)
+	buf.WriteUint32(uint32(request.Timeout))
+	buf.WriteUint16(request.ClassLen)
+	buf.WriteUint16(request.HeaderLen)
+	buf.WriteUint32(request.ContentLen)
+	// 2.3.2 class
 	if request.ClassLen > 0 {
-		copy(buf[RequestHeaderLen:], request.Class)
+		buf.WriteString(request.Class)
 	}
-
+	// 2.3.3 header
 	if request.HeaderLen > 0 {
-		xprotocol.EncodeHeader(buf[headerIndex:], &request.Header)
+		xprotocol.EncodeHeader(buf, &request.Header)
 	}
-
+	// 2.3.4 content
 	if request.ContentLen > 0 {
-		copy(buf[contentIndex:], request.Content.Bytes())
+		// use request.Content.WriteTo might have error under retry scene
+		buf.Write(request.Content.Bytes())
 	}
 
-	return buffer.NewIoBufferBytes(buf), nil
+	return buf, nil
 }
 
 func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, error) {
@@ -120,38 +94,12 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 		// 1. replace requestId
 		binary.BigEndian.PutUint32(response.rawMeta[RequestIdIndex:], uint32(response.RequestId))
 
-		// 2. check header change
-		// TODO: body change judge
-		if !response.Header.Changed {
+		// 1.2 check if header/content changed
+		if !response.Header.Changed && !response.ContentChanged {
+			// hack: increase the buffer count to avoid premature recycle
+			response.Data.Count(1)
 			return response.Data, nil
 		}
-
-		// 3. calculate length
-		headerLen := xprotocol.GetHeaderEncodeLength(&response.Header)
-		frameLen := ResponseHeaderLen + int(response.ClassLen) + headerLen + int(response.ContentLen)
-
-		// 4. repack buffer
-		// TODO: buffer chain
-		buf := *mbuffer.GetBytesByContext(ctx, frameLen)
-
-		copy(buf[0:], response.rawMeta)
-
-		headerIndex := ResponseHeaderLen + int(response.ClassLen)
-		contentIndex := headerIndex + int(response.HeaderLen)
-
-		if response.ClassLen > 0 {
-			copy(buf[ResponseHeaderLen:], response.Class)
-		}
-
-		if response.HeaderLen > 0 {
-			xprotocol.EncodeHeader(buf[headerIndex:], &response.Header)
-		}
-
-		if response.ContentLen > 0 {
-			copy(buf[contentIndex:], response.Content.Bytes())
-		}
-
-		return buffer.NewIoBufferBytes(buf), nil
 	}
 
 	// 2. slow-path, construct buffer from scratch
@@ -168,35 +116,36 @@ func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, er
 	}
 	frameLen := ResponseHeaderLen + int(response.ClassLen) + int(response.HeaderLen) + int(response.ContentLen)
 
-	// 2.2 alloc encode buffer
-	buf := *mbuffer.GetBytesByContext(ctx, frameLen)
+	// 2.2 alloc encode buffer, this buffer will be recycled after connection.Write
+	buf := buffer.GetIoBuffer(frameLen)
 
 	// 2.3 encode: meta, class, header, content
-	buf[0] = response.Protocol
-	buf[1] = response.CmdType
-	binary.BigEndian.PutUint16(buf[2:], response.CmdCode)
-	buf[4] = response.Version
-	binary.BigEndian.PutUint32(buf[5:], response.RequestId)
-	buf[9] = response.Codec
-	binary.BigEndian.PutUint16(buf[10:], uint16(response.ResponseStatus))
-	binary.BigEndian.PutUint16(buf[12:], response.ClassLen)
-	binary.BigEndian.PutUint16(buf[14:], response.HeaderLen)
-	binary.BigEndian.PutUint32(buf[16:], response.ContentLen)
-
-	headerIndex := ResponseHeaderLen + int(response.ClassLen)
-	contentIndex := headerIndex + int(response.HeaderLen)
-
+	// 2.3.1 meta
+	buf.WriteByte(response.Protocol)
+	buf.WriteByte(response.Version1)
+	buf.WriteByte(response.CmdType)
+	buf.WriteUint16(response.CmdCode)
+	buf.WriteByte(response.Version)
+	buf.WriteUint32(response.RequestId)
+	buf.WriteByte(response.Codec)
+	buf.WriteByte(response.SwitchCode)
+	buf.WriteUint16(response.ResponseStatus)
+	buf.WriteUint16(response.ClassLen)
+	buf.WriteUint16(response.HeaderLen)
+	buf.WriteUint32(response.ContentLen)
+	// 2.3.2 class
 	if response.ClassLen > 0 {
-		copy(buf[ResponseHeaderLen:], response.Class)
+		buf.WriteString(response.Class)
 	}
-
+	// 2.3.3 header
 	if response.HeaderLen > 0 {
-		xprotocol.EncodeHeader(buf[headerIndex:], &response.Header)
+		xprotocol.EncodeHeader(buf, &response.Header)
 	}
-
+	// 2.3.4 content
 	if response.ContentLen > 0 {
-		copy(buf[contentIndex:], response.Content.Bytes())
+		// use request.Content.WriteTo might have error under retry scene
+		buf.Write(response.Content.Bytes())
 	}
 
-	return buffer.NewIoBufferBytes(buf), nil
+	return buf, nil
 }

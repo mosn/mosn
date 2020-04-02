@@ -19,9 +19,7 @@ package dubbo
 
 import (
 	"context"
-	"encoding/binary"
 
-	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
@@ -36,15 +34,15 @@ func encodeResponse(ctx context.Context, response *Frame) (types.IoBuffer, error
 func encodeFrame(ctx context.Context, frame *Frame) (types.IoBuffer, error) {
 	// alloc encode buffer
 	frameLen := int(HeaderLen + frame.DataLen)
-	buf := *mbuffer.GetBytesByContext(ctx, frameLen)
+	buf := buffer.GetIoBuffer(frameLen)
 	// encode header
-	buf[0] = frame.Magic[0]
-	buf[1] = frame.Magic[1]
-	buf[2] = frame.Flag
-	buf[3] = frame.Status
-	binary.BigEndian.PutUint64(buf[4:], frame.Id)
-	binary.BigEndian.PutUint32(buf[12:], frame.DataLen)
+	buf.WriteByte(frame.Magic[0])
+	buf.WriteByte(frame.Magic[1])
+	buf.WriteByte(frame.Flag)
+	buf.WriteByte(frame.Status)
+	buf.WriteUint64(frame.Id)
+	buf.WriteUint32(frame.DataLen)
 	// encode payload
-	copy(buf[HeaderLen:], frame.payload)
-	return buffer.NewIoBufferBytes(buf), nil
+	buf.Write(frame.payload)
+	return buf, nil
 }

@@ -32,7 +32,8 @@ func BenchmarkEncodeHeader(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 
 		buf := buffer.GetIoBuffer(128)
-		EncodeHeader(buf.Bytes()[0:128], h)
+		EncodeHeader(buf, h)
+		buf.Reset()
 	}
 }
 
@@ -40,7 +41,7 @@ func BenchmarkDecodeHeader(b *testing.B) {
 	h := &Header{}
 	h.Set("service", "io.mosn.test.TestService:1.0")
 	buf := buffer.GetIoBuffer(128)
-	EncodeHeader(buf.Bytes()[0:128], h)
+	EncodeHeader(buf, h)
 
 	decoded := &Header{}
 
