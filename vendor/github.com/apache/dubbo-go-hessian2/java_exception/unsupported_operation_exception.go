@@ -17,6 +17,7 @@
 
 package java_exception
 
+// UnsupportedOperationException represents an exception of the same name in java
 type UnsupportedOperationException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type UnsupportedOperationException struct {
 	Cause                Throwabler
 }
 
+// NewUnsupportedOperationException is the constructor
 func NewUnsupportedOperationException(detailMessage string) *UnsupportedOperationException {
 	return &UnsupportedOperationException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e UnsupportedOperationException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (UnsupportedOperationException) JavaClassName() string {
 	return "java.lang.UnsupportedOperationException"
 }

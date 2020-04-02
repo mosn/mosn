@@ -17,6 +17,7 @@
 
 package java_exception
 
+// IncompleteAnnotationException represents an exception of the same name in java
 type IncompleteAnnotationException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -27,14 +28,17 @@ type IncompleteAnnotationException struct {
 	Cause                Throwabler
 }
 
+// NewIncompleteAnnotationException is the constructor
 func NewIncompleteAnnotationException(detailMessage string) *IncompleteAnnotationException {
 	return &IncompleteAnnotationException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IncompleteAnnotationException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (IncompleteAnnotationException) JavaClassName() string {
 	return "java.lang.annotation.IncompleteAnnotationException"
 }
