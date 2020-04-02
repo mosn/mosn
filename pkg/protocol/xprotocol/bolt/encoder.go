@@ -20,6 +20,7 @@ package bolt
 import (
 	"context"
 	"encoding/binary"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"

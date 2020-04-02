@@ -390,6 +390,17 @@ func (b *ioBuffer) WriteUint32(p uint32) error {
 	return nil
 }
 
+func (b *ioBuffer) WriteUint64(p uint64) error {
+	m, ok := b.tryGrowByReslice(8)
+
+	if !ok {
+		m = b.grow(8)
+	}
+
+	binary.BigEndian.PutUint64(b.buf[m:], p)
+	return nil
+}
+
 func (b *ioBuffer) Append(data []byte) error {
 	if b.off >= len(b.buf) {
 		b.Reset()

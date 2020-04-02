@@ -37,10 +37,10 @@ const (
 
 // Error def
 var (
-	AlreadyRegistered   = "protocol code already registered"
-	UnknownType         = "unknown model type"
-	UnrecognizedCode    = "unrecognized protocol code"
-	NoProtocolCode      = "no protocol code found"
+	AlreadyRegistered = "protocol code already registered"
+	UnknownType       = "unknown model type"
+	UnrecognizedCode  = "unrecognized protocol code"
+	NoProtocolCode    = "no protocol code found"
 
 	ErrDupRegistered    = errors.New(AlreadyRegistered)
 	ErrUnknownType      = errors.New(UnknownType)
