@@ -18,24 +18,15 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/SkyAPM/go2sky"
 	httpPlugin "github.com/SkyAPM/go2sky/plugins/http"
 	"github.com/SkyAPM/go2sky/reporter"
 )
-
-func serveHTTP(w http.ResponseWriter, r *http.Request) {
-
-}
-
-type emptyHandler struct {
-}
-
-func (h emptyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
-}
 
 func main() {
 	r, err := reporter.NewGRPCReporter("127.0.0.1:11800")
@@ -44,17 +35,28 @@ func main() {
 		return
 	}
 
-	tracer, err := go2sky.NewTracer("server", go2sky.WithReporter(r))
+	tracer, err := go2sky.NewTracer("client", go2sky.WithReporter(r))
 	if err != nil {
 		log.Fatalf("create tracer error %v \n", err)
 	}
 	tracer.WaitUntilRegister()
 
-	sm, err := httpPlugin.NewServerMiddleware(tracer)
+	client, err := httpPlugin.NewClient(tracer)
 	if err != nil {
-		log.Fatalf("create server middleware error %v \n", err)
+		log.Fatalf("create client error %v \n", err)
 	}
 
-	http.HandleFunc("/", serveHTTP)
-	http.ListenAndServe("127.0.0.1:8081", sm(emptyHandler{}))
+	// call server
+	request, err := http.NewRequest("GET", fmt.Sprintf("http://127.0.0.1:2046/go2sky"), nil)
+	if err != nil {
+		log.Fatalf("unable to create http request: %+v\n", err)
+	}
+	for {
+		res, err := client.Do(request)
+		if err != nil {
+			log.Fatalf("unable to do http request: %+v\n", err)
+		}
+		_ = res.Body.Close()
+		time.Sleep(time.Second)
+	}
 }
