@@ -1,13 +1,13 @@
-## 使用 SOFAMosn 作为 Dubbo 代理
+## 使用 MOSN 作为 Dubbo 代理
  
 ## 简介
 
-+ 该样例工程演示了如何配置使得SOFAMosn作为Dubbo代理
-+ 为了演示方便，SOFAMosn监听两个端口,一个转发Client的请求，一个收到请求以后转发给Server
++ 该样例工程演示了如何配置使得MOSN作为Dubbo代理
++ 为了演示方便，MOSN监听两个端口,一个转发Client的请求，一个收到请求以后转发给Server
 
 ## 准备
 
-+ 需要一个编译好的SOFAMosn程序
++ 需要一个编译好的MOSN程序
 
 ```
 cd ${projectpath}/cmd/mosn/main
@@ -31,7 +31,7 @@ cd ${targetpath}
 ## 目录结构
 
 ```
-main        // 编译完成的SOFAMosn程序
+main        // 编译完成的MOSN程序
 dubbo-examples/   // 包含java编写的dubbo provider和dubbo consumer
 config.json // 非TLS的配置
 run.sh     // 打包和启动dubbo provider和dubbo consumer脚本
@@ -45,9 +45,9 @@ run.sh     // 打包和启动dubbo provider和dubbo consumer脚本
 sh run.sh server
 ```
 
-### 启动SOFAMosn
+### 启动MOSN
 
-+ 使用config.json 运行非TLS加密的SOFAMosn
++ 使用config.json 运行非TLS加密的MOSN
 
 ```
 ./main start -c config.json
