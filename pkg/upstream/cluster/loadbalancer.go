@@ -177,20 +177,11 @@ func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerC
 	lb.mutex.Lock()
 	randomStart := lb.rand.Intn(healthHostsLen)
 	lb.mutex.Unlock()
-	end := healthHostsLen
-	first := true
 
 	for cur := randomStart + 1; ; cur++ {
-		// flip the cur to loop all hosts
-		if cur >= end {
-			if !first {
-				break
-			}
-			end = randomStart + 1
-			cur = 0
-			first = false
-		}
-		host := healthHosts[cur]
+		// mod to get array index
+		index := cur % healthHostsLen
+		host := healthHosts[index]
 		active := host.HostStats().UpstreamRequestActive.Count()
 		// return it directly if the active count is zero
 		if active == 0 {
@@ -200,6 +191,9 @@ func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerC
 		if active < leastActive {
 			leastActive = active
 			candicate = host
+		}
+		if index == randomStart {
+			break
 		}
 	}
 
