@@ -21,6 +21,7 @@ package java_exception
 // Throwable interface
 ////////////////////////////
 
+// Throwabler represents an exception of the same name in java
 type Throwabler interface {
 	Error() string
 	JavaClassName() string
@@ -29,7 +30,7 @@ type Throwabler interface {
 ////////////////////////////
 // Throwable
 ////////////////////////////
-
+// Throwable represents an exception of the same name in java
 type Throwable struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -38,14 +39,17 @@ type Throwable struct {
 	Cause                Throwabler
 }
 
+// NewThrowable is the constructor
 func NewThrowable(detailMessage string) *Throwable {
 	return &Throwable{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e Throwable) Error() string {
 	return e.DetailMessage
 }
 
+//JavaClassName  java fully qualified path
 func (Throwable) JavaClassName() string {
 	return "java.lang.Throwable"
 }
@@ -70,6 +74,7 @@ func (e Exception) Error() string {
 	return e.DetailMessage
 }
 
+//JavaClassName  java fully qualified path
 func (Exception) JavaClassName() string {
 	return "java.lang.Exception"
 }
@@ -85,6 +90,7 @@ type StackTraceElement struct {
 	LineNumber     int
 }
 
+//JavaClassName  java fully qualified path
 func (StackTraceElement) JavaClassName() string {
 	return "java.lang.StackTraceElement"
 }
@@ -97,6 +103,7 @@ type Method struct {
 	Name string
 }
 
+//JavaClassName  java fully qualified path
 func (Method) JavaClassName() string {
 	return "java.lang.reflect.Method"
 }

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// IllegalAccessException represents an exception of the same name in java
 type IllegalAccessException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type IllegalAccessException struct {
 	Cause                Throwabler
 }
 
+// NewIllegalAccessException is the constructor
 func NewIllegalAccessException(detailMessage string) *IllegalAccessException {
 	return &IllegalAccessException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IllegalAccessException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalAccessException) JavaClassName() string {
 	return "java.lang.IllegalAccessException"
 }

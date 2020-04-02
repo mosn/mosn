@@ -17,6 +17,7 @@
 
 package java_exception
 
+// MalformedParametersException represents an exception of the same name in java
 type MalformedParametersException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,13 +26,17 @@ type MalformedParametersException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e MalformedParametersException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (MalformedParametersException) JavaClassName() string {
 	return "java.lang.reflect.MalformedParametersException"
 }
+
+// NewMalformedParametersException is the constructor
 func NewMalformedParametersException(detailMessage string) *MalformedParametersException {
 	return &MalformedParametersException{DetailMessage: detailMessage}
 }

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// CompletionException represents an exception of the same name in java
 type CompletionException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,13 +26,17 @@ type CompletionException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e CompletionException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (CompletionException) JavaClassName() string {
 	return "java.util.concurrent.CompletionException"
 }
+
+// NewCompletionException is the constructor
 func NewCompletionException(detailMessage string) *CompletionException {
 	return &CompletionException{DetailMessage: detailMessage}
 }

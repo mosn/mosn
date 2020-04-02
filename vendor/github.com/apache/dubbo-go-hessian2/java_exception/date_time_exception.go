@@ -17,6 +17,7 @@
 
 package java_exception
 
+// DateTimeException represents an exception of the same name in java
 type DateTimeException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type DateTimeException struct {
 	Cause                Throwabler
 }
 
+// NewDateTimeException is the constructor
 func NewDateTimeException(detailMessage string) *DateTimeException {
 	return &DateTimeException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e DateTimeException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (DateTimeException) JavaClassName() string {
 	return "java.time.DateTimeException"
 }

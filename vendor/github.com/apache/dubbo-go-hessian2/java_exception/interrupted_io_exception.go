@@ -20,7 +20,7 @@ package java_exception
 ////////////////////////////
 // InterruptedIOException
 ////////////////////////////
-
+// InterruptedIOException represents an exception of the same name in java
 type InterruptedIOException struct {
 	SerialVersionUID     int64
 	BytesTransferred     int32
@@ -30,14 +30,17 @@ type InterruptedIOException struct {
 	Cause                Throwabler
 }
 
+// NewInterruptedIOException is the constructor
 func NewInterruptedIOException(detailMessage string) *InterruptedIOException {
 	return &InterruptedIOException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e InterruptedIOException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (InterruptedIOException) JavaClassName() string {
 	return "java.io.InterruptedIOException"
 }

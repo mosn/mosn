@@ -17,6 +17,7 @@
 
 package java_exception
 
+// FormatterClosedException represents an exception of the same name in java
 type FormatterClosedException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type FormatterClosedException struct {
 	Cause                Throwabler
 }
 
+// NewFormatterClosedException is the constructor
 func NewFormatterClosedException() *FormatterClosedException {
 	return &FormatterClosedException{StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e FormatterClosedException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (FormatterClosedException) JavaClassName() string {
 	return "java.util.FormatterClosedException"
 }

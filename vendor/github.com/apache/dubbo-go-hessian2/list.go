@@ -311,7 +311,13 @@ func (d *Decoder) readTypedList(tag byte) (interface{}, error) {
 	} else {
 		return nil, perrors.Errorf("error typed list tag: 0x%x", tag)
 	}
+	if isCollectionSerialize(listTyp) {
+		return d.decodeCollection(length, listTyp)
+	}
+	return d.readTypedListValue(length, listTyp, isVariableArr)
+}
 
+func (d *Decoder) readTypedListValue(length int, listTyp string, isVariableArr bool) (interface{}, error) {
 	// return when no element
 	if length < 0 {
 		return nil, nil

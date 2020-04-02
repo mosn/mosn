@@ -19,6 +19,7 @@ package java_exception
 
 import "fmt"
 
+// UnknownFormatConversionException represents an exception of the same name in java
 type UnknownFormatConversionException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -28,14 +29,17 @@ type UnknownFormatConversionException struct {
 	S                    string
 }
 
+// NewUnknownFormatConversionException is the constructor
 func NewUnknownFormatConversionException(s string) *UnknownFormatConversionException {
 	return &UnknownFormatConversionException{S: s, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e UnknownFormatConversionException) Error() string {
 	return fmt.Sprintf("Conversion = '%s'", e.S)
 }
 
+// JavaClassName  java fully qualified path
 func (UnknownFormatConversionException) JavaClassName() string {
 	return "java.util.UnknownFormatConversionException"
 }
