@@ -54,14 +54,16 @@ func (h *RequestHeader) Clone() types.HeaderMap {
 type Request struct {
 	RequestHeader
 
-	rawData    *[]byte // raw data
-	rawMeta    []byte  // sub slice of raw data, start from protocol code, ends to content length
-	rawClass   []byte  // sub slice of raw data, class bytes
-	rawHeader  []byte  // sub slice of raw data, header bytes
-	rawContent []byte  // sub slice of raw data, content bytes
+	rawData    []byte // raw data
+	rawMeta    []byte // sub slice of raw data, start from protocol code, ends to content length
+	rawClass   []byte // sub slice of raw data, class bytes
+	rawHeader  []byte // sub slice of raw data, header bytes
+	rawContent []byte // sub slice of raw data, content bytes
 
 	Data    types.IoBuffer // wrapper of raw data
 	Content types.IoBuffer // wrapper of raw content
+
+	ContentChanged bool // indicate that content changed
 }
 
 // ~ XFrame
@@ -96,6 +98,14 @@ func (r *Request) GetData() types.IoBuffer {
 	return r.Content
 }
 
+func (r *Request) SetData(data types.IoBuffer) {
+	// judge if the address unchanged, assume that proxy logic will not operate the original Content buffer.
+	if r.Content != data {
+		r.ContentChanged = true
+		r.Content = data
+	}
+}
+
 // RequestHeader is the header part of bolt v1 response
 type ResponseHeader struct {
 	Protocol       byte // meta fields
@@ -128,14 +138,16 @@ func (h *ResponseHeader) Clone() types.HeaderMap {
 type Response struct {
 	ResponseHeader
 
-	rawData    *[]byte // raw data
-	rawMeta    []byte  // sub slice of raw data, start from protocol code, ends to content length
-	rawClass   []byte  // sub slice of raw data, class bytes
-	rawHeader  []byte  // sub slice of raw data, header bytes
-	rawContent []byte  // sub slice of raw data, content bytes
+	rawData    []byte // raw data
+	rawMeta    []byte // sub slice of raw data, start from protocol code, ends to content length
+	rawClass   []byte // sub slice of raw data, class bytes
+	rawHeader  []byte // sub slice of raw data, header bytes
+	rawContent []byte // sub slice of raw data, content bytes
 
 	Data    types.IoBuffer // wrapper of raw data
 	Content types.IoBuffer // wrapper of raw content
+
+	ContentChanged bool // indicate that content changed
 }
 
 // ~ XRespFrame
@@ -161,6 +173,14 @@ func (r *Response) GetHeader() types.HeaderMap {
 
 func (r *Response) GetData() types.IoBuffer {
 	return r.Content
+}
+
+func (r *Response) SetData(data types.IoBuffer) {
+	// judge if the address unchanged, assume that proxy logic will not operate the original Content buffer.
+	if r.Content != data {
+		r.ContentChanged = true
+		r.Content = data
+	}
 }
 
 func (r *Response) GetStatusCode() uint32 {

@@ -37,10 +37,10 @@ const (
 
 // Error def
 var (
-	AlreadyRegistered = "protocol code already registered."
-	UnknownType       = "unknown model type."
-	UnrecognizedCode  = "unrecognized protocol code."
-	NoProtocolCode    = "no protocol code found."
+	AlreadyRegistered   = "protocol code already registered"
+	UnknownType         = "unknown model type"
+	UnrecognizedCode    = "unrecognized protocol code"
+	NoProtocolCode      = "no protocol code found"
 
 	ErrDupRegistered    = errors.New(AlreadyRegistered)
 	ErrUnknownType      = errors.New(UnknownType)
@@ -60,6 +60,8 @@ type XFrame interface {
 	GetHeader() types.HeaderMap
 
 	GetData() types.IoBuffer
+
+	SetData(data types.IoBuffer)
 }
 
 // XRespFrame expose response status code based on the XFrame

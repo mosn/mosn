@@ -181,3 +181,5 @@ mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d h1:p5BKQJrfU67nkQciB3Bxh9SPpdT+oG
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 mosn.io/pkg v0.0.0-20200306153343-5ed3dae838b4 h1:MPpHltoSb5+/Aqgi0E9uEt/q6BGTI5PQF0NTslWLFPg=
 mosn.io/pkg v0.0.0-20200306153343-5ed3dae838b4/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
+mosn.io/pkg v0.0.0-20200331032330-7c1127e10ddb h1:oWxe6iD6y4Y/yPVlxv3LpCgvRKHU/ec5ymREp+wD61U=
+mosn.io/pkg v0.0.0-20200331032330-7c1127e10ddb/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
