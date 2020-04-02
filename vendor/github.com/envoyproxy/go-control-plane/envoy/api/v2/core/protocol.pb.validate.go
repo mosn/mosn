@@ -103,6 +103,78 @@ var _ interface {
 	ErrorName() string
 } = TcpProtocolOptionsValidationError{}
 
+// Validate checks the field values on UpstreamHttpProtocolOptions with the
+// rules defined in the proto definition for this message. If any rules are
+// violated, an error is returned.
+func (m *UpstreamHttpProtocolOptions) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for AutoSni
+
+	// no validation rules for AutoSanValidation
+
+	return nil
+}
+
+// UpstreamHttpProtocolOptionsValidationError is the validation error returned
+// by UpstreamHttpProtocolOptions.Validate if the designated constraints
+// aren't met.
+type UpstreamHttpProtocolOptionsValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e UpstreamHttpProtocolOptionsValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e UpstreamHttpProtocolOptionsValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e UpstreamHttpProtocolOptionsValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e UpstreamHttpProtocolOptionsValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e UpstreamHttpProtocolOptionsValidationError) ErrorName() string {
+	return "UpstreamHttpProtocolOptionsValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e UpstreamHttpProtocolOptionsValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sUpstreamHttpProtocolOptions.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = UpstreamHttpProtocolOptionsValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = UpstreamHttpProtocolOptionsValidationError{}
+
 // Validate checks the field values on HttpProtocolOptions with the rules
 // defined in the proto definition for this message. If any rules are
 // violated, an error is returned.
@@ -232,6 +304,8 @@ func (m *Http1ProtocolOptions) Validate() error {
 			}
 		}
 	}
+
+	// no validation rules for EnableTrailers
 
 	return nil
 }
