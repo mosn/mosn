@@ -175,6 +175,10 @@ func (p *connPool) Close() {
 	p.activeClients.Range(f)
 }
 
+func (p *connPool) GetHost() types.Host {
+	return p.host
+}
+
 // Shutdown stop the keepalive, so the connection will be idle after requests finished
 func (p *connPool) Shutdown() {
 	f := func(k, v interface{}) bool {

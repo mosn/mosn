@@ -58,6 +58,10 @@ func (p *connPool) SupportTLS() bool {
 	return p.supportTLS
 }
 
+func (p *connPool) GetHost() types.Host {
+	return p.host
+}
+
 // Protocol return xprotocol
 func (p *connPool) Protocol() api.Protocol {
 	return protocol.Xprotocol

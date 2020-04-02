@@ -77,7 +77,11 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
-//由 PROXY 调用
+func (p *connPool) GetHost() types.Host {
+	return p.host
+}
+
+// NewStream Create a client stream and call's by proxy
 func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
 	c, reason := p.getAvailableClient(ctx)
 
