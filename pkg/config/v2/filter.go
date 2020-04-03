@@ -42,6 +42,24 @@ type DelayInjectConfig struct {
 	DelayDurationConfig api.DurationConfig `json:"fixed_delay,omitempty"`
 }
 
+type FaultToleranceFilterConfig struct {
+	Effective             bool
+	Kind                  FaultToleranceKind
+	TimeWindow            uint32
+	LeastWindowCount      uint64
+	MaxHostCount          uint64
+	MaxHostRatio          float32
+	ExceptionRateMultiple float32
+}
+
+type FaultToleranceKind string
+
+const (
+	OFF     FaultToleranceKind = "OFF"
+	MONITOR FaultToleranceKind = "MONITOR"
+	ON      FaultToleranceKind = "ON"
+)
+
 // Network Filter's Type
 const (
 	CONNECTION_MANAGER          = "connection_manager"
@@ -54,9 +72,10 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER        = "mixer"
-	FaultStream  = "fault"
-	PayloadLimit = "payload_limit"
+	MIXER          = "mixer"
+	FaultStream    = "fault"
+	PayloadLimit   = "payload_limit"
+	FaultTolerance = "fault_tolerance"
 )
 
 // HealthCheckFilter
