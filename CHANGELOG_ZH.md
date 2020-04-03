@@ -5,14 +5,14 @@
 ### 新功能
 
 - 支持 Listener Filter 的扩展，透明劫持能力基于 Listener Filter 实现 [@wangfakang](https://github.com/wangfakang)
-- 变量机制新增 Set 方法 [@neverhook]((https://github.com/neverhook)
+- 变量机制新增 Set 方法 [@neverhook](https://github.com/neverhook)
 - 新增 SDS Client 失败时自动重试和异常处理 [@pxzero](https://github.com/pxzero)
 - 完善 TraceLog，支持注入 context[@taoyuanyuan](https://github.com/taoyuanyuan)
 - 新增 FeatureGate `auto_config`，当开启该Feature以后动态更新的配置会保存到启动配置中 [@nejisama](https://github.com/nejisama)
 
 ### 重构
 
-- 重构 XProtocol Engine，并且重新实现了 SofaRPC 协议 [@neverhook]((https://github.com/neverhook)
+- 重构 XProtocol Engine，并且重新实现了 SofaRPC 协议 [@neverhook](https://github.com/neverhook)
   - 移除了 SofaRpc Healthcheck filter，改为 xprotocol 内建的 heartbeat 实现
   - 移除了 SofaRpc 协议原本的协议转换 (protocol conv) 支持，新增了基于 stream filter 的的协议转换扩展实现能力
   - xprotocol 新增 idle free 和 keepalive
@@ -25,7 +25,7 @@
 
 - 优化 Upstream 动态解析域名机制 [@wangfakang](https://github.com/wangfakang)
 - 优化 TLS 封装，新增了错误日志，修改了兼容模式下的超时时间 [@nejisama](https://github.com/nejisama)
-- 优化超时时间设置，使用变量机制设置超时时间 [@neverhook]((https://github.com/neverhook)
+- 优化超时时间设置，使用变量机制设置超时时间 [@neverhook](https://github.com/neverhook)
 - Dubbo 解析库依赖升级到 1.5.0 [@cch123](https://github.com/cch123)
 - 引用路径迁移脚本新增 OS 自适应 [@taomaree](https://github.com/taomaree)
 
