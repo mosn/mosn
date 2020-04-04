@@ -14,20 +14,24 @@ func NewCalculatePool() *CalculatePool {
 }
 
 func (p *CalculatePool) Regulate(dimension InvocationStatDimension) {
+	if measureModel := p.GetRegulationModel(dimension); measureModel != nil {
 
+	}
 }
 
 func (p *CalculatePool) GetRegulationModel(invocationStatDimension InvocationStatDimension) *MeasureModel {
 	key := invocationStatDimension.GetInvocationKey()
 	if value, ok := p.appRegulationModels.Load(key); ok {
-		return value.(*MeasureModel)
+		value.(*MeasureModel).addInvocationStat(invocationStatDimension)
+		return nil
 	} else {
 		measureModel := NewMeasureModel(invocationStatDimension.GetMeasureKey())
 		measureModel.addInvocationStat(invocationStatDimension)
-		value, ok := p.appRegulationModels.LoadOrStore(key, measureModel)
-		if ok {
+		if value, ok := p.appRegulationModels.LoadOrStore(key, measureModel); ok {
 			value.(*MeasureModel).addInvocationStat(invocationStatDimension)
+			return nil
+		} else {
+			return value.(*MeasureModel)
 		}
-		return value.(*MeasureModel)
 	}
 }
