@@ -414,6 +414,10 @@ func TestGetState(t *testing.T) {
 	if err != nil {
 		t.Fatal("get mosn states for istio failed")
 	}
+	stats, err := getStatsForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn stats for istio failed")
+	}
 
 	// reconfiguring
 	store.SetMosnState(store.Passive_Reconfiguring)
@@ -424,6 +428,10 @@ func TestGetState(t *testing.T) {
 	stateForIstio2, err := getMosnStateForIstio(config.Port)
 	if err != nil {
 		t.Fatal("get mosn states for istio failed")
+	}
+	stats2, err := getStatsForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn stats for istio failed")
 	}
 
 	// running
@@ -436,6 +444,10 @@ func TestGetState(t *testing.T) {
 	if err != nil {
 		t.Fatal("get mosn states for istio failed")
 	}
+	stats3, err := getStatsForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn stats for istio failed")
+	}
 
 	// active reconfiguring
 	store.SetMosnState(store.Active_Reconfiguring)
@@ -446,6 +458,10 @@ func TestGetState(t *testing.T) {
 	stateForIstio4, err := getMosnStateForIstio(config.Port)
 	if err != nil {
 		t.Fatal("get mosn states for istio failed")
+	}
+	stats4, err := getStatsForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn stats for istio failed")
 	}
 
 	// verify
@@ -467,6 +483,29 @@ func TestGetState(t *testing.T) {
 		stateForIstio3 == envoy_admin_v2alpha.ServerInfo_LIVE &&
 		stateForIstio4 == envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING) {
 		t.Error("mosn state for istio is not expected", stateForIstio, stateForIstio2, stateForIstio3, stateForIstio4)
+	}
+	prefix := fmt.Sprintf("%s: ", SERVER_STATE)
+	stateMatched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_INITIALIZING), stats)
+	if err != nil {
+		t.Errorf("regex match err %v", err)
+	}
+	state2Matched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_DRAINING), stats2)
+	if err != nil {
+		t.Errorf("regex match err %v", err)
+	}
+	state3Matched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_LIVE), stats3)
+	if err != nil {
+		t.Errorf("regex match err %v", err)
+	}
+	state4Matched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING), stats4)
+	if err != nil {
+		t.Errorf("regex match err %v", err)
+	}
+	if !(stateMatched &&
+		state2Matched &&
+		state3Matched &&
+		state4Matched) {
+		t.Error("mosn state is not expected", state, state2, state3, state4)
 	}
 }
 
