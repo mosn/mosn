@@ -1,5 +1,6 @@
 package faulttolerance
 
 type InvocationStatDimension interface {
-	GetKey() string
+	GetMeasureKey() string
+	GetInvocationKey() string
 }

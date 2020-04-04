@@ -35,6 +35,7 @@ func (f *FaultToleranceFilter) Append(ctx context.Context, headers api.HeaderMap
 	status := response.RespStatus()
 	stat.Call(f.IsException(status))
 	f.calculatePool.Regulate(stat)
+	return api.StreamFilterContinue
 }
 
 func (f *FaultToleranceFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {

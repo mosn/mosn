@@ -9,7 +9,7 @@ type InvocationStatFactory struct {
 }
 
 func (f *InvocationStatFactory) GetInvocationStat(dimension InvocationStatDimension) InvocationStat {
-	key := dimension.GetKey()
+	key := dimension.GetInvocationKey()
 	if value, ok := f.invocationStats.Load(key); ok {
 		return value.(InvocationStat)
 	} else {
