@@ -187,7 +187,11 @@ istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6 h1:KjkjYblLRucAo7oS/XPzEMubZSHxK
 istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6/go.mod h1:hhLFQmpHia8zgaM37vb2ml9iS5NfNfqZGRt1pS9aVEo=
 mosn.io/api v0.0.0-20200313100800-96f82cd67746 h1:6Aq9JtdZpOxwbizzKo7sDiQkzIcJoZGhLLZJaGaD66c=
 mosn.io/api v0.0.0-20200313100800-96f82cd67746/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
+mosn.io/api v0.0.0-20200331022606-b8e92614d87c h1:koEaEZEM31nIxybyloXFAgWc5gh4YX2PT/phUZ2EV/w=
+mosn.io/api v0.0.0-20200331022606-b8e92614d87c/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d h1:p5BKQJrfU67nkQciB3Bxh9SPpdT+oGBVLfOQxuwhUKQ=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 mosn.io/pkg v0.0.0-20200306153343-5ed3dae838b4 h1:MPpHltoSb5+/Aqgi0E9uEt/q6BGTI5PQF0NTslWLFPg=
 mosn.io/pkg v0.0.0-20200306153343-5ed3dae838b4/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
+mosn.io/pkg v0.0.0-20200402102508-6d1b24c77225 h1:4ytO9xEwZlrsh5afexV762MW+iAfPjOKZZWmcdrrACQ=
+mosn.io/pkg v0.0.0-20200402102508-6d1b24c77225/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=

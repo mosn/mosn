@@ -301,7 +301,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
 		return
 	}
-
+	log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
 	s.resetReason = reason
 
 	s.sendNotify()
@@ -422,8 +422,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
 				}
-				s.downstreamReqDataBuf.Count(1)
-				s.receiveData(s.downstreamReqTrailers == nil)
+				//s.ReqStreamDataBuf.Count(1)
+				s.receiveData(ctx, s.downstreamReqTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
 					return p
@@ -706,11 +706,12 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	}
 }
 
-func (s *downStream) receiveData(endStream bool) {
+func (s *downStream) receiveData(ctx context.Context, endStream bool) {
 	// if active stream finished before receive data, just ignore further data
 	if s.processDone() {
 		return
 	}
+
 	data := s.downstreamReqDataBuf
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] receive data = %v", data)

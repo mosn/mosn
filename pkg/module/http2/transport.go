@@ -20,6 +20,7 @@ import (
 	"log"
 	"math"
 	mathrand "math/rand"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 	"net"
 	"net/http"
 	"net/http/httptrace"
@@ -31,7 +32,6 @@ import (
 	"time"
 
 	"golang.org/x/net/http/httpguts"
-	"golang.org/x/net/http2/hpack"
 	"golang.org/x/net/idna"
 )
 
@@ -1493,6 +1493,12 @@ func (cc *ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trail
 		}
 	})
 
+	if i := cc.hbuf.Len(); i > 0 {
+		bs := make([]byte, i)
+		copy(bs, cc.hbuf.Bytes())
+		return bs, nil
+	}
+
 	return cc.hbuf.Bytes(), nil
 }
 
@@ -1541,6 +1547,13 @@ func (cc *ClientConn) encodeTrailers(req *http.Request) ([]byte, error) {
 			cc.writeHeader(lowKey, v)
 		}
 	}
+
+	if i := cc.hbuf.Len(); i > 0 {
+		bs := make([]byte, i)
+		copy(bs, cc.hbuf.Bytes())
+		return bs, nil
+	}
+
 	return cc.hbuf.Bytes(), nil
 }
 
