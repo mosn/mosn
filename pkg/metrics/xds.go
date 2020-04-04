@@ -34,7 +34,9 @@ const (
 
 // NewXdsStats returns a stats with namespace prefix proxy
 func NewXdsStats() types.Metrics {
-	metrics, _ := NewMetrics(XdsType, map[string]string{})
+	metrics, _ := NewMetrics(XdsType, map[string]string{
+		"xds": "info",
+	})
 	return metrics
 }
 
