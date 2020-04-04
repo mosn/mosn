@@ -1,20 +1,17 @@
 package faulttolerance
 
 import (
-	"mosn.io/api"
+	"sync"
 )
 
 type CalculatePool struct {
+	invocationStats *sync.Map
 }
 
 func NewCalculatePool() *CalculatePool {
 	return &CalculatePool{}
 }
 
-func (p *CalculatePool) Regulate(headers api.HeaderMap) {
+func (p *CalculatePool) Regulate(stat InvocationStat) {
 
-}
-
-func (p *CalculatePool) GetInvocationStat(dimension InvocationStatDimension) InvocationStat {
-	return InvocationStat{}
 }
