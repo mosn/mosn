@@ -8,10 +8,13 @@ import (
 )
 
 type FaultToleranceFilter struct {
+	config *v2.FaultToleranceFilterConfig
 }
 
 func NewFaultToleranceFilter(config *v2.FaultToleranceFilterConfig) *FaultToleranceFilter {
-
+	return &FaultToleranceFilter{
+		config: config,
+	}
 }
 
 func (f *FaultToleranceFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
