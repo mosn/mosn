@@ -18,7 +18,6 @@
 package proxy
 
 import (
-	"container/list"
 	"context"
 	"time"
 
@@ -52,9 +51,6 @@ type upstreamRequest struct {
 
 	// time at send upstream request
 	startTime time.Time
-
-	// list element
-	element *list.Element
 }
 
 // reset upstream request in proxy context

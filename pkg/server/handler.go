@@ -18,7 +18,6 @@
 package server
 
 import (
-	"container/list"
 	"context"
 	"errors"
 	"fmt"
@@ -26,7 +25,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -336,8 +334,6 @@ type activeListener struct {
 	streamFiltersFactoriesStore atomic.Value // store []api.StreamFilterChainFactory
 	listenIP                    string
 	listenPort                  int
-	conns                       *list.List
-	connsMux                    sync.RWMutex
 	handler                     *connHandler
 	stopChan                    chan struct{}
 	stats                       *listenerStats
@@ -355,7 +351,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		listener:                 listener,
 		listenerFiltersFactories: listenerFiltersFactories,
 		networkFiltersFactories:  networkFiltersFactories,
-		conns:        list.New(),
 		handler:      handler,
 		stopChan:     stopChan,
 		accessLogs:   accessLoggers,
@@ -473,12 +468,8 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		conn.Close(api.NoFlush, api.LocalClose)
 		return
 	}
-	ac := newActiveConnection(al, conn)
 
-	al.connsMux.Lock()
-	e := al.conns.PushBack(ac)
-	al.connsMux.Unlock()
-	ac.element = e
+	registerListenerConnCallbacks(al, conn)
 
 	atomic.AddInt64(&al.handler.numConnections, 1)
 
@@ -493,10 +484,6 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 func (al *activeListener) OnClose() {}
 
 func (al *activeListener) removeConnection(ac *activeConnection) {
-	al.connsMux.Lock()
-	al.conns.Remove(ac.element)
-	al.connsMux.Unlock()
-
 	atomic.AddInt64(&al.handler.numConnections, -1)
 
 }
@@ -527,13 +514,11 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 
 type activeRawConn struct {
 	rawc                net.Conn
-	rawf                *os.File
 	ctx                 context.Context
 	originalDstIP       string
 	originalDstPort     int
 	oriRemoteAddr       net.Addr
 	useOriginalDst      bool
-	rawcElement         *list.Element
 	activeListener      *activeListener
 	acceptedFilters     []api.ListenerFilterChainFactory
 	acceptedFilterIndex int
@@ -642,12 +627,11 @@ func (arc *activeRawConn) GetUseOriginalDst() bool {
 // ListenerFilterManager note:unsupported now
 // ListenerFilterCallbacks note:unsupported now
 type activeConnection struct {
-	element  *list.Element
 	listener *activeListener
 	conn     api.Connection
 }
 
-func newActiveConnection(listener *activeListener, conn api.Connection) *activeConnection {
+func registerListenerConnCallbacks(listener *activeListener, conn api.Connection) *activeConnection {
 	ac := &activeConnection{
 		conn:     conn,
 		listener: listener,

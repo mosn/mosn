@@ -80,9 +80,7 @@ type proxy struct {
 	config             *v2.Proxy
 	clusterManager     types.ClusterManager
 	readCallbacks      api.ReadFilterCallbacks
-	upstreamConnection types.ClientConnection
 	downstreamListener api.ConnectionEventListener
-	clusterName        string
 	routersWrapper     types.RouterWrapper // wrapper used to point to the routers instance
 	serverStreamConn   types.ServerStreamConnection
 	context            context.Context

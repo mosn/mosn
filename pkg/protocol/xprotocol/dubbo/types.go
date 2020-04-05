@@ -47,8 +47,8 @@ const (
 )
 
 const (
-	ServiceNameHeader string = "service"
-	MethodNameHeader  string = "method"
+	ServiceNameHeader string = "service" // refers to "interface" in dubbo
+	MethodNameHeader  string = "method"  // the same as dubbo method
 )
 
 const (

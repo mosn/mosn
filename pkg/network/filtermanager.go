@@ -70,17 +70,12 @@ func (fm *filterManager) InitializeReadFilters() bool {
 		return false
 	}
 
-	fm.onContinueReading(nil)
+	fm.onContinueReading(0)
 	return true
 }
 
-func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
-	var index int
+func (fm *filterManager) onContinueReading(index int) {
 	var uf *activeReadFilter
-
-	if filter != nil {
-		index = filter.index + 1
-	}
 
 	for ; index < len(fm.upstreamFilters); index++ {
 		uf = fm.upstreamFilters[index]
@@ -110,7 +105,7 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 }
 
 func (fm *filterManager) OnRead() {
-	fm.onContinueReading(nil)
+	fm.onContinueReading(0)
 }
 
 func (fm *filterManager) OnWrite(buf []buffer.IoBuffer) api.FilterStatus {
@@ -138,7 +133,7 @@ func (arf *activeReadFilter) Connection() api.Connection {
 }
 
 func (arf *activeReadFilter) ContinueReading() {
-	arf.filterManager.onContinueReading(arf)
+	arf.filterManager.onContinueReading(arf.index + 1)
 }
 
 func (arf *activeReadFilter) UpstreamHost() api.HostInfo {
