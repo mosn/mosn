@@ -51,7 +51,7 @@ type FaultToleranceFilterConfig struct {
 	LeastWindowCount      uint64
 	MaxHostCount          uint64
 	MaxHostRatio          float32
-	ExceptionRateMultiple float32
+	ExceptionRateMultiple float64
 	StateDimension        []string
 }
 

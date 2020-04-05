@@ -25,6 +25,17 @@ func (s *InvocationStat) GetExceptionCount() uint64 {
 	return *s.exceptionCount
 }
 
+func (s *InvocationStat) GetExceptionRate() (bool, float64) {
+	exception := s.GetExceptionCount()
+	call := s.GetCallCount()
+	if call == 0 {
+		return false, 0
+	} else {
+		value := DivideUint64(exception, call)
+		return true, value
+	}
+}
+
 func (s *InvocationStat) Snapshot() *InvocationStat {
 	return &InvocationStat{
 		dimension:      s.dimension,

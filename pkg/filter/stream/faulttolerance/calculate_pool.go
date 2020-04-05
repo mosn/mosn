@@ -1,7 +1,6 @@
 package faulttolerance
 
 import (
-	"math/big"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"sync"
 	"time"
@@ -45,6 +44,19 @@ func (p *CalculatePool) measure(model MeasureModel) {
 		leastWindowCount = LEGAL_LEAST_WINDOW_COUNT
 	}
 
+	_, averageExceptionRate := p.calculateAverageExceptionRate(invocationStats, leastWindowCount)
+	for _, invocationStat := range invocationStats {
+		windowCount := invocationStat.GetCallCount()
+		if windowCount > leastWindowCount {
+			_, windowExceptionRate := invocationStat.GetExceptionRate()
+			windowExceptionRateMultiple := DivideFloat64(windowExceptionRate, averageExceptionRate)
+			if windowExceptionRateMultiple >= p.config.ExceptionRateMultiple {
+				//healthy
+			} else {
+				//unhealthy
+			}
+		}
+	}
 }
 
 func (p *CalculatePool) calculateAverageExceptionRate(invocationStats []*InvocationStat, leastWindowCount uint64) (bool, float64) {
@@ -59,7 +71,7 @@ func (p *CalculatePool) calculateAverageExceptionRate(invocationStats []*Invocat
 	if sumCall == 0 {
 		return false, 0
 	}
-
+	return true, DivideUint64(sumException, sumCall)
 }
 
 func (p *CalculatePool) isArriveTimeWindow() bool {
