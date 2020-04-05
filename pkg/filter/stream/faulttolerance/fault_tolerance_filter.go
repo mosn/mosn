@@ -34,7 +34,7 @@ func (f *FaultToleranceFilter) Append(ctx context.Context, headers api.HeaderMap
 	stat := f.invocationFactory.GetInvocationStat(dimension)
 	status := response.RespStatus()
 	stat.Call(f.IsException(status))
-	f.calculatePool.Regulate(stat)
+	f.calculatePool.Regulate(dimension)
 	return api.StreamFilterContinue
 }
 

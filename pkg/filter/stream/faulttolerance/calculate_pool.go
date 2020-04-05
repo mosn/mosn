@@ -2,6 +2,7 @@ package faulttolerance
 
 import (
 	"sync"
+	"time"
 )
 
 type CalculatePool struct {
@@ -15,8 +16,23 @@ func NewCalculatePool() *CalculatePool {
 
 func (p *CalculatePool) Regulate(dimension InvocationStatDimension) {
 	if measureModel := p.GetRegulationModel(dimension); measureModel != nil {
+		tick := time.NewTicker(1 * time.Second)
+		for {
+			select {
+			case <-tick.C:
+				p.doRegulate(measureModel)
 
+			}
+		}
 	}
+}
+
+func (p *CalculatePool) doRegulate(measureModel *MeasureModel) {
+
+}
+
+func (p *CalculatePool) isArriveTimeWindow() {
+
 }
 
 func (p *CalculatePool) GetRegulationModel(invocationStatDimension InvocationStatDimension) *MeasureModel {
