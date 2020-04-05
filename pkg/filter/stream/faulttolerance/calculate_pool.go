@@ -36,6 +36,31 @@ func (p *CalculatePool) doRegulate(measureModel *MeasureModel) {
 	}
 }
 
+func (p *CalculatePool) measure(model MeasureModel) {
+	dimensions := model.getInvocationDimensions()
+	invocationStats := GetInvocationStatFactoryInstance().getSnapshotInvocationStats(dimensions)
+	leastWindowCount := p.config.LeastWindowCount
+	if leastWindowCount < LEGAL_LEAST_WINDOW_COUNT {
+		leastWindowCount = LEGAL_LEAST_WINDOW_COUNT
+	}
+
+}
+
+func (p *CalculatePool) calculateAverageExceptionRate(invocationStats []*InvocationStat, leastWindowCount uint64) (bool, float64) {
+	var sumException uint64
+	var sumCall uint64
+	for _, stat := range invocationStats {
+		if stat.GetCallCount() >= leastWindowCount {
+			sumException += stat.GetExceptionCount()
+			sumCall += stat.GetCallCount()
+		}
+	}
+	if sumCall == 0 {
+		return false, 0
+	}
+
+}
+
 func (p *CalculatePool) isArriveTimeWindow() bool {
 	timeWindow := p.config.TimeWindow
 	if p.currentTimeWindow <= timeWindow {

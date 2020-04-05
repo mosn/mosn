@@ -20,3 +20,7 @@ func (m *MeasureModel) addInvocationStat(dimension InvocationStatDimension) {
 	key := dimension.GetInvocationKey()
 	m.dimensions.Store(key, dimension)
 }
+
+func (m *MeasureModel) getInvocationDimensions() *sync.Map {
+	return m.dimensions
+}
