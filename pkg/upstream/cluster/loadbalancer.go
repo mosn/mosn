@@ -148,15 +148,14 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
-	hosts types.HostSet
-	rand  *rand.Rand
+	*EdfLoadBalancer
 	mutex sync.Mutex
 }
 
 func newleastActiveRequestLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+
 	return &leastActiveRequestLoadBalancer{
-		hosts: hosts,
-		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		EdfLoadBalancer: newEdfLoadBalancerLoadBalancer(hosts),
 	}
 }
 
@@ -210,3 +209,66 @@ func (lb *leastActiveRequestLoadBalancer) HostNum(metadata api.MetadataMatchCrit
 
 // TODO:
 // WRR
+
+type EdfLoadBalancer struct {
+	scheduler      *edfSchduler
+	hosts          types.HostSet
+	rand           *rand.Rand
+	mutex          sync.Mutex
+	unWeightChoose func(types.LoadBalancerContext) types.Host
+}
+
+func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+
+	if lb.scheduler != nil {
+		// do weight selection
+		host := lb.scheduler.Next().(types.Host)
+		return host
+	} else {
+		return lb.unWeightChoose(context)
+	}
+}
+
+func (lb *EdfLoadBalancer) IsExistsHosts(api.MetadataMatchCriteria) bool {
+	panic("implement me")
+}
+
+func (lb *EdfLoadBalancer) HostNum(api.MetadataMatchCriteria) int {
+	panic("implement me")
+}
+
+func newEdfLoadBalancerLoadBalancer(hosts types.HostSet) *EdfLoadBalancer {
+	lb := &EdfLoadBalancer{
+		hosts: hosts,
+		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+	}
+	lb.refresh(hosts.HealthyHosts())
+	return lb
+}
+
+func (lb *EdfLoadBalancer) refresh(hosts []types.Host) {
+	if hostWeightsAreEqual(hosts) {
+		// Skip edf creation.
+		return
+	}
+
+	lb.scheduler = newEdfScheduler()
+
+	for _, host := range hosts {
+		lb.scheduler.Add(host, host.Weight())
+	}
+
+}
+
+func hostWeightsAreEqual(hosts []types.Host) bool {
+	if len(hosts) <= 1 {
+		return true
+	}
+	weight := hosts[0].Weight()
+	for i := 1; i < len(hosts); i++ {
+		if hosts[i].Weight() != weight {
+			return false
+		}
+	}
+	return true
+}
