@@ -18,7 +18,6 @@
 package cluster
 
 import (
-	"math"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -149,73 +148,62 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
 	*EdfLoadBalancer
-	mutex sync.Mutex
+	choice int
 }
 
 func newleastActiveRequestLoadBalancer(hosts types.HostSet) types.LoadBalancer {
-
-	return &leastActiveRequestLoadBalancer{
-		EdfLoadBalancer: newEdfLoadBalancerLoadBalancer(hosts),
-	}
+	lb := &leastActiveRequestLoadBalancer{}
+	// TODO init the choice num with the least request config
+	lb.choice = 2
+	lb.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, lb.unweightChooseHost)
+	return lb
 }
 
-func (lb *leastActiveRequestLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	healthHosts := lb.hosts.HealthyHosts()
-	healthHostsLen := len(healthHosts)
-	if healthHostsLen == 0 {
+func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
+
+	healthyHosts := lb.hosts.HealthyHosts()
+	healthyHostLen := len(healthyHosts)
+	if healthyHostLen == 0 {
+		// Return nil directly if healthyHosts is nil or size is 0
 		return nil
-	}
-	// exactly one healthy host, return this host directly
-	if healthHostsLen == 1 {
-		return healthHosts[0]
-	}
-	// The candicate of the host having the least active request value
-	var candicate types.Host
-	// The least active request value of all hosts
-	leastActive := int64(math.MaxInt64)
-	lb.mutex.Lock()
-	randomStart := lb.rand.Intn(healthHostsLen)
-	lb.mutex.Unlock()
+	} else if healthyHostLen == 1 {
+		// Return directly if there is only one host
+		return healthyHosts[0]
+	} else {
+		lb.mutex.Lock()
+		defer lb.mutex.Unlock()
+		var candicate types.Host
+		// Choose `choice` times and return the best one
+		// See The Power of Two Random Choices: A Survey of Techniques and Results
+		//  http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
+		for cur := 0; cur < lb.choice; cur++ {
 
-	for cur := randomStart + 1; ; cur++ {
-		// mod to get array index
-		index := cur % healthHostsLen
-		host := healthHosts[index]
-		active := host.HostStats().UpstreamRequestActive.Count()
-		// return it directly if the active count is zero
-		if active == 0 {
-			return host
+			randIdx := lb.rand.Intn(healthyHostLen)
+			tempHost := healthyHosts[randIdx]
+			if candicate == nil {
+				candicate = tempHost
+				continue
+			}
+			if candicate.HostStats().UpstreamRequestActive.Count() > tempHost.HostStats().UpstreamRequestActive.Count() {
+				candicate = tempHost
+			}
 		}
-		// less than the current least active
-		if active < leastActive {
-			leastActive = active
-			candicate = host
-		}
-		if index == randomStart {
-			break
-		}
+		return candicate
 	}
 
-	return candicate
-}
-
-func (lb *leastActiveRequestLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
-	return len(lb.hosts.Hosts()) > 0
-}
-
-func (lb *leastActiveRequestLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
-	return len(lb.hosts.Hosts())
 }
 
 // TODO:
 // WRR
 
 type EdfLoadBalancer struct {
-	scheduler      *edfSchduler
-	hosts          types.HostSet
-	rand           *rand.Rand
-	mutex          sync.Mutex
-	unWeightChoose func(types.LoadBalancerContext) types.Host
+	scheduler *edfSchduler
+	hosts     types.HostSet
+	rand      *rand.Rand
+	mutex     sync.Mutex
+	// the method to choose host when all host
+	unweightChoose func(types.LoadBalancerContext) types.Host
+	HostWight      func(host types.Host) uint32
 }
 
 func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
@@ -225,37 +213,40 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 		host := lb.scheduler.Next().(types.Host)
 		return host
 	} else {
-		return lb.unWeightChoose(context)
+		// do unweight selection
+		return lb.unweightChoose(context)
 	}
 }
 
-func (lb *EdfLoadBalancer) IsExistsHosts(api.MetadataMatchCriteria) bool {
-	panic("implement me")
+func (lb *EdfLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+	return len(lb.hosts.Hosts()) > 0
 }
 
-func (lb *EdfLoadBalancer) HostNum(api.MetadataMatchCriteria) int {
-	panic("implement me")
+func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+	return len(lb.hosts.Hosts())
 }
 
-func newEdfLoadBalancerLoadBalancer(hosts types.HostSet) *EdfLoadBalancer {
+func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host) *EdfLoadBalancer {
 	lb := &EdfLoadBalancer{
-		hosts: hosts,
-		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		hosts:          hosts,
+		rand:           rand.New(rand.NewSource(time.Now().UnixNano())),
+		unweightChoose: unWeightChoose,
 	}
 	lb.refresh(hosts.HealthyHosts())
 	return lb
 }
 
 func (lb *EdfLoadBalancer) refresh(hosts []types.Host) {
+	// Check if the original host weights are equal and skip EDF creation if they are
 	if hostWeightsAreEqual(hosts) {
-		// Skip edf creation.
 		return
 	}
 
 	lb.scheduler = newEdfScheduler()
 
+	// Init Edf scheduler with healthy hosts.
 	for _, host := range hosts {
-		lb.scheduler.Add(host, host.Weight())
+		lb.scheduler.Add(host, lb.HostWight(host))
 	}
 
 }
@@ -265,6 +256,7 @@ func hostWeightsAreEqual(hosts []types.Host) bool {
 		return true
 	}
 	weight := hosts[0].Weight()
+
 	for i := 1; i < len(hosts); i++ {
 		if hosts[i].Weight() != weight {
 			return false

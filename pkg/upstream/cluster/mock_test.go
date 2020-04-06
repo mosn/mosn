@@ -34,7 +34,8 @@ type mockHost struct {
 	meta       api.Metadata
 	healthFlag *uint64
 	types.Host
-	stats types.HostStats
+	stats  types.HostStats
+	weight uint32
 }
 
 func (h *mockHost) Hostname() string {
@@ -75,6 +76,9 @@ func (h *mockHost) HealthFlag() api.HealthFlag {
 }
 func (h *mockHost) HostStats() types.HostStats {
 	return h.stats
+}
+func (h *mockHost) Weight() uint32 {
+	return h.weight
 }
 
 type ipPool struct {

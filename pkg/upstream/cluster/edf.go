@@ -24,6 +24,39 @@ type edfEntry struct {
 // PriorityQueue
 type PriorityQueue []*edfEntry
 
+// Current time in EDF scheduler.
+func (edf *edfSchduler) currentTime() float64 {
+	if len(edf.items) == 0 {
+		return 0.0
+	}
+	return edf.items[0].deadline
+}
+
+// Add new item into the edfSchduler
+func (edf *edfSchduler) Add(item interface{}, weight uint32) {
+	edf.lock.Lock()
+	defer edf.lock.Unlock()
+	entry := edfEntry{
+		deadline: edf.currentTime() + 1.0/float64(weight),
+		weight:   weight,
+		item:     item,
+	}
+	heap.Push(&edf.items, &entry)
+}
+
+// Pick entry with closest deadline.
+func (edf *edfSchduler) Next() interface{} {
+	edf.lock.Lock()
+	defer edf.lock.Unlock()
+	if len(edf.items) == 0 {
+		return nil
+	}
+	item := edf.items[0]
+	item.deadline = edf.currentTime() + 1.0/float64(item.weight)
+	heap.Fix(&edf.items, 0)
+	return item.item
+}
+
 func (pq PriorityQueue) Len() int           { return len(pq) }
 func (pq PriorityQueue) Less(i, j int) bool { return pq[i].deadline < pq[j].deadline }
 func (pq PriorityQueue) Swap(i, j int)      { pq[i], pq[j] = pq[j], pq[i] }
@@ -36,36 +69,4 @@ func (pq *PriorityQueue) Pop() interface{} {
 	old := *pq
 	*pq = old[0 : len(old)-1]
 	return old[len(old)-1]
-}
-
-
-// Current time in EDF scheduler.
-func (edf *edfSchduler) currentTime() float64 {
-	if len(edf.items) == 0 {
-		return 0.0
-	}
-	return edf.items[0].deadline
-}
-
-func (edf *edfSchduler) Add(item interface{}, weight uint32) {
-	edf.lock.Lock()
-	defer edf.lock.Unlock()
-	entry := edfEntry{
-		deadline: edf.currentTime() + 1.0/float64(weight),
-		weight:   weight,
-		item:     item,
-	}
-	heap.Push(&edf.items, &entry)
-}
-
-func (edf *edfSchduler) Next() interface{} {
-	edf.lock.Lock()
-	defer edf.lock.Unlock()
-	if len(edf.items) == 0 {
-		return nil
-	}
-	item := edf.items[0]
-	item.deadline = edf.currentTime() + 1.0/float64(item.weight)
-	heap.Fix(&edf.items, 0)
-	return item.item
 }
