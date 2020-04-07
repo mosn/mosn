@@ -61,6 +61,9 @@ func PutIoBuffer(buf IoBuffer) error {
 	} else if count < 0 {
 		return errors.New("PutIoBuffer duplicate")
 	}
+	if p, _ := buf.(*pipe); p != nil {
+		buf = p.IoBuffer
+	}
 	ibPool.give(buf)
 	return nil
 }
