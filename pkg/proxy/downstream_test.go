@@ -292,9 +292,16 @@ func TestProcessError(t *testing.T) {
 	}
 
 	s = &downStream{}
-	s.receiverFiltersAgain = true
+	s.receiverFiltersAgainPhase = types.MatchRoute
 	p, e = s.processError(0)
 	if p != types.MatchRoute || e != types.ErrExit {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	s.receiverFiltersAgainPhase = types.ChooseHost
+	p, e = s.processError(0)
+	if p != types.ChooseHost || e != types.ErrExit {
 		t.Errorf("TestprocessError Error")
 	}
 }

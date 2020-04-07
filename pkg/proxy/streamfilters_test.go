@@ -163,6 +163,66 @@ func TestRunReiverFiltersStop(t *testing.T) {
 	}
 }
 
+func TestRunReiverFilterHandler(t *testing.T) {
+	testCases := []struct {
+		filters []*mockStreamReceiverFilter
+	}{
+		{
+			filters: []*mockStreamReceiverFilter{
+				{
+					status: api.StreamFilterContinue,
+					phase:  api.BeforeRoute,
+				},
+				{
+					status: api.StreamFilterStop,
+					phase:  api.BeforeRoute,
+				},
+			},
+		},
+		{
+			filters: []*mockStreamReceiverFilter{
+				{
+					status: api.StreamFilterReMatchRoute,
+					phase:  api.AfterRoute,
+				},
+				{
+					status: api.StreamFilterStop,
+					phase:  api.AfterRoute,
+				},
+			},
+		},
+	}
+	for i, tc := range testCases {
+		s := &downStream{
+			proxy: &proxy{
+				routersWrapper: &mockRouterWrapper{},
+				clusterManager: &mockClusterManager{},
+			},
+			requestInfo: &network.RequestInfo{},
+			notify:      make(chan struct{}, 1),
+		}
+
+		s.context = context.Background()
+		for _, f := range tc.filters {
+			f.s = s
+			s.AddStreamReceiverFilter(f, f.phase)
+		}
+		// mock run
+		s.downstreamReqHeaders = protocol.CommonHeader{}
+		s.downstreamReqDataBuf = buffer.NewIoBuffer(0)
+		s.downstreamReqTrailers = protocol.CommonHeader{}
+		s.OnReceive(s.context, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+
+		time.Sleep(100 * time.Millisecond)
+
+		for j, f := range tc.filters {
+			if f.currentPhase != f.phase {
+				t.Errorf("#%d.%d stream filter phase want: %d but got: %d", i, j, f.phase, f.currentPhase)
+			}
+		}
+	}
+}
+
 // StreamSenderFilter
 // MOSN receive the upstream response, run StreamSenderFilters, and send repsonse to downstream
 
@@ -261,6 +321,8 @@ type mockStreamReceiverFilter struct {
 	handler api.StreamReceiverFilterHandler
 	// api called count
 	on int
+	// current phase
+	currentPhase api.FilterPhase
 	// returns status
 	status api.StreamFilterStatus
 	// mock for test
@@ -272,10 +334,15 @@ func (f *mockStreamReceiverFilter) OnDestroy() {}
 
 func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	f.on++
+	f.currentPhase = f.handler.GetFilterCurrentPhase()
 	if f.status == api.StreamFilterStop {
 		atomic.StoreUint32(&f.s.downstreamCleaned, 1)
 	}
-	return f.status
+	if f.status == api.StreamFilterReMatchRoute || f.status == api.StreamFilterReChooseHost {
+		return api.StreamFilterContinue
+	} else {
+		return f.status
+	}
 }
 
 func (f *mockStreamReceiverFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
