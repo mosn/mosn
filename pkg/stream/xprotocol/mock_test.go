@@ -115,7 +115,7 @@ func (s *mockServer) Reply(iobuf types.IoBuffer) []byte {
 	}
 	xframe := cmd.(xprotocol.XFrame)
 	if xframe.IsHeartbeatFrame() {
-		ack := s.protocol.Reply(xframe.GetRequestId())
+		ack := s.protocol.Reply(xframe)
 		resp, err := s.protocol.Encode(context.Background(), ack)
 		if err != nil {
 			return nil
