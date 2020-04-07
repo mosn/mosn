@@ -113,7 +113,7 @@ type Heartbeater interface {
 	Trigger(requestId uint64) XFrame
 
 	// Reply builds heartbeat command corresponding to the given requestID
-	Reply(requestId uint64) XRespFrame
+	Reply(request XFrame) XRespFrame
 }
 
 // Hijacker provides the ability to construct proper response command for xprotocol sub-protocols
