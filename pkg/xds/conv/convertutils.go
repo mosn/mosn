@@ -1,6 +1,8 @@
 package conv
 
 import (
+	"time"
+
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	xdsaccesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
@@ -11,7 +13,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/duration"
 	"mosn.io/mosn/pkg/log"
-	"time"
 )
 
 func getFilterConfig(filter *xdslistener.Filter, out proto.Message) error {
@@ -69,8 +70,11 @@ func ConvertDuration(p *duration.Duration) time.Duration {
 	}
 	d := time.Duration(p.Seconds) * time.Second
 	if p.Nanos != 0 {
-		if dur := d + time.Duration(p.Nanos); (dur < 0) != (p.Nanos < 0) {
+		dur := d + time.Duration(p.Nanos)
+		if (dur < 0) != (p.Nanos < 0) {
 			log.DefaultLogger.Warnf("duration: %#v is out of range for time.Duration, ignore nanos", p)
+		} else {
+			d = dur
 		}
 	}
 	return d
