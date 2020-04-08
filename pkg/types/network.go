@@ -138,6 +138,9 @@ type ListenerEventListener interface {
 
 	// OnClose is called on listener close
 	OnClose()
+
+	// PreStopHook is called on listener quit(but before closed)
+	PreStopHook(ctx context.Context) func() error
 }
 
 // FilterStatus type

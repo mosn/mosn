@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sofastack.io/sofa-mosn/pkg/proxy"
 	"strconv"
 	"strings"
 	"sync"
@@ -347,12 +348,12 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	al := &activeListener{
 		listener:                listener,
 		networkFiltersFactories: networkFiltersFactories,
-		conns:        list.New(),
-		handler:      handler,
-		stopChan:     stopChan,
-		accessLogs:   accessLoggers,
-		updatedLabel: false,
-		idleTimeout:  lc.ConnectionIdleTimeout,
+		conns:                   list.New(),
+		handler:                 handler,
+		stopChan:                stopChan,
+		accessLogs:              accessLoggers,
+		updatedLabel:            false,
+		idleTimeout:             lc.ConnectionIdleTimeout,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
@@ -478,7 +479,80 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn types.Connec
 	conn.Start(ctx)
 }
 
+type activeProxy map[*activeConnection][]proxy.Proxy
+
+// active proxy filters,
+// holds all the information about the connection
+var filters = make(activeProxy)
+
+func (p *activeProxy) activeProxy(activeConn *activeConnection) (proxy []proxy.Proxy) {
+	proxy, _ = filters[activeConn]
+	return proxy
+}
+
+func (p *activeProxy) appendProxy(activeConn *activeConnection, proxy proxy.Proxy) []proxy.Proxy {
+	filters[activeConn] = append(filters[activeConn], proxy)
+	return filters[activeConn]
+}
+
+func (al *activeListener) activeStreamSize() int {
+	if al.conns == nil || al.conns.Len() <= 0 {
+		return 0
+	}
+	var activeStream int
+	for conn := al.conns.Front(); conn != nil; conn = conn.Next() {
+		if activeConn, ok := conn.Value.(*activeConnection); ok {
+			proxyFilters := filters.activeProxy(activeConn)
+			if proxyFilters == nil {
+				for _, rf := range activeConn.conn.FilterManager().ListReadFilter() {
+					if proxy, isProxy := rf.(proxy.Proxy); isProxy {
+						proxyFilters = filters.appendProxy(activeConn, proxy)
+					}
+				}
+			}
+			if proxyFilters != nil {
+				for _, proxyFilter := range proxyFilters {
+					activeStream += proxyFilter.ActiveStreamSize()
+				}
+			}
+		}
+	}
+
+	return activeStream
+}
+
 func (al *activeListener) OnClose() {}
+
+func (al *activeListener) PreStopHook(ctx context.Context) func() error {
+	// before allowing you to stop listening,
+	// check that the preconditions are met.
+	// for example: whether all request queues are processed ?
+	return func() error {
+		if ctx != nil {
+			shutdownTimeout := ctx.Value(types.GlobalShutdownTimeout)
+			if shutdownTimeout != nil {
+				if timeout, err := strconv.ParseInt(shutdownTimeout.(string), 10, 64); err == nil {
+					current := time.Now()
+					// if there any stream being processed and without timeout,
+					// we try to wait for processing to complete, or wait for a timeout.
+					for al.activeStreamSize() > 0 && Milliseconds(time.Since(current)) <= timeout {
+						// waiting for 10ms
+						time.Sleep(10 * time.Millisecond)
+					}
+				}
+			}
+		}
+
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[activeListener] listener %s pre stop hook complete", al.listener.Name())
+		}
+
+		return nil
+	}
+}
+
+// 兼容go 1.12.x
+func Milliseconds(d time.Duration) int64 { return int64(d) / 1e6 }
 
 func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.connsMux.Lock()

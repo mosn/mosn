@@ -37,6 +37,10 @@ func (e *mockEventListener) OnNewConnection(ctx context.Context, conn types.Conn
 
 func (e *mockEventListener) OnClose() {}
 
+func (e *mockEventListener) PreStopHook(ctx context.Context) func() error {
+	return nil
+}
+
 func TestListenerStart(t *testing.T) {
 	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:10101")
 	cfg := &v2.Listener{
@@ -45,7 +49,7 @@ func TestListenerStart(t *testing.T) {
 			BindToPort: true,
 		},
 		PerConnBufferLimitBytes: 1024,
-		Addr: addr,
+		Addr:                    addr,
 	}
 	ln := NewListener(cfg)
 	ln.SetListenerCallbacks(&mockEventListener{})

@@ -48,12 +48,16 @@ func (h *mockHandler) OnNewConnection(ctx context.Context, conn types.Connection
 func (h *mockHandler) OnClose() {
 }
 
+func (h *mockHandler) PreStopHook(ctx context.Context) func() error {
+	return nil
+}
+
 const testAddress = "127.0.0.1:18080"
 
 func _createListener(address string) types.Listener {
 	addr, _ := net.ResolveTCPAddr("tcp", address)
 	lc := &v2.Listener{
-		Addr: addr,
+		Addr:                    addr,
 		PerConnBufferLimitBytes: 1 << 15,
 		ListenerConfig: v2.ListenerConfig{
 			BindToPort: true,

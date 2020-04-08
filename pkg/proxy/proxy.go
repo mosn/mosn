@@ -189,6 +189,13 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 	// TODO
 }
 
+func (p *proxy) ActiveStreamSize() int {
+	if p.activeSteams == nil {
+		return 0
+	}
+	return p.activeSteams.Len()
+}
+
 func (p *proxy) InitializeReadFilterCallbacks(cb types.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 

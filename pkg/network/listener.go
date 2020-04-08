@@ -202,7 +202,7 @@ func (l *listener) UseOriginalDst() bool {
 	return l.useOriginalDst
 }
 
-func (l *listener) Close(lctx context.Context) error {
+func (l *listener) Close(ctx context.Context) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.state = ListenerStopped

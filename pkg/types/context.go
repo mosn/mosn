@@ -45,5 +45,6 @@ const (
 
 // GlobalProxyName represents proxy name for metrics
 const (
-	GlobalProxyName = "global"
+	GlobalProxyName       = "global"
+	GlobalShutdownTimeout = "GlobalShutdownTimeout"
 )

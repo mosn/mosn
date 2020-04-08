@@ -165,7 +165,9 @@ func ExecuteShutdownCallbacks(signame string) (exitCode int) {
 		var errs []error
 
 		for _, cb := range shutdownCallbacks {
-			errs = append(errs, cb())
+			if err := cb(); err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		if len(errs) > 0 {
