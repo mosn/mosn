@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"github.com/golang/protobuf/jsonpb"
 	_struct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/rcrowley/go-metrics"
+
 	"reflect"
 	"strconv"
 	"strings"
@@ -49,7 +51,7 @@ type meta struct {
 }
 
 var defaultMeta = &meta{
-	IstioVersion:     "1.4.4",
+	IstioVersion:     "1.5.0",
 	Labels:           map[string]string{"istio": "ingressgateway"},
 	InterceptionMode: InterceptionRedirect,
 }
@@ -127,6 +129,14 @@ const (
 	// AllPortsLiteral is the string value indicating all ports
 	AllPortsLiteral = "*"
 )
+
+type XdsStats struct {
+	CdsUpdateSuccess metrics.Counter
+	CdsUpdateReject metrics.Counter
+	LdsUpdateSuccess metrics.Counter
+	LdsUpdateReject metrics.Counter
+}
+
 
 func IsApplicationNodeType(nType string) bool {
 	switch NodeType(nType) {

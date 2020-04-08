@@ -19,6 +19,7 @@ package istio.mixer.v1.config.client;
 option go_package="istio.io/api/mixer/v1/config/client";
 
 import "gogoproto/gogo.proto";
+import "google/api/field_behavior.proto";
 
 import "mixer/v1/attributes.proto";
 import "mixer/v1/config/client/service.proto";
@@ -80,9 +81,28 @@ option (gogoproto.stable_marshaler_all) = true;
 //           stringValue: deletePet
 //     httpMethod: DELETE
 //     uriTemplate: /api/pets/{id}
-//   api_keys:
+//   apiKeys:
 //   - query: api-key
 // ```
+//
+// <!-- crd generation tags
+// +cue-gen:HTTPAPISpec:schema:istio.mixer.v1.config.client.HTTPAPISpec
+// +cue-gen:HTTPAPISpec:groupName:config.istio.io
+// +cue-gen:HTTPAPISpec:version:v1alpha2
+// +cue-gen:HTTPAPISpec:storageVersion
+// +cue-gen:HTTPAPISpec:annotations:helm.sh/resource-policy=keep
+// +cue-gen:HTTPAPISpec:labels:app=istio-mixer,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:HTTPAPISpec:subresource:status
+// +cue-gen:HTTPAPISpec:scope:Namespaced
+// +cue-gen:HTTPAPISpec:resource:categories=istio-io,apim-istio-io
+// -->
+//
+// <!-- go code generation tags
+// +kubetype-gen
+// +kubetype-gen:groupVersion=config.istio.io/v1alpha2
+// +genclient
+// +k8s:deepcopy-gen=true
+// -->
 message HTTPAPISpec {
   // List of attributes that are generated when *any* of the HTTP
   // patterns match. This list typically includes the "api.service"
@@ -203,9 +223,9 @@ message APIKey {
 //   namespace: bar
 // ```
 message HTTPAPISpecReference {
-  // REQUIRED. The short name of the HTTPAPISpec. This is the resource
+  // The short name of the HTTPAPISpec. This is the resource
   // name defined by the metadata name field.
-  string name = 1;
+  string name = 1 [(google.api.field_behavior) = REQUIRED];
 
   // Optional namespace of the HTTPAPISpec. Defaults to the encompassing
   // HTTPAPISpecBinding's metadata namespace field.
@@ -226,16 +246,35 @@ message HTTPAPISpecReference {
 //   services:
 //   - name: foo
 //     namespace: bar
-//   api_specs:
+//   apiSpecs:
 //   - name: petstore
 //     namespace: default
 // ```
+//
+// <!-- crd generation tags
+// +cue-gen:HTTPAPISpecBinding:schema:istio.mixer.v1.config.client.HTTPAPISpecBinding
+// +cue-gen:HTTPAPISpecBinding:groupName:config.istio.io
+// +cue-gen:HTTPAPISpecBinding:version:v1alpha2
+// +cue-gen:HTTPAPISpecBinding:storageVersion
+// +cue-gen:HTTPAPISpecBinding:annotations:helm.sh/resource-policy=keep
+// +cue-gen:HTTPAPISpecBinding:labels:app=istio-mixer,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:HTTPAPISpecBinding:subresource:status
+// +cue-gen:HTTPAPISpecBinding:scope:Namespaced
+// +cue-gen:HTTPAPISpecBinding:resource:categories=istio-io,apim-istio-io
+// -->
+//
+// <!-- go code generation tags
+// +kubetype-gen
+// +kubetype-gen:groupVersion=config.istio.io/v1alpha2
+// +genclient
+// +k8s:deepcopy-gen=true
+// -->
 message HTTPAPISpecBinding {
-  // REQUIRED. One or more services to map the listed HTTPAPISpec onto.
-  repeated IstioService services = 1;
+  // One or more services to map the listed HTTPAPISpec onto.
+  repeated IstioService services = 1 [(google.api.field_behavior) = REQUIRED];
 
-  // REQUIRED. One or more HTTPAPISpec references that should be mapped to
+  // One or more HTTPAPISpec references that should be mapped to
   // the specified service(s). The aggregate collection of match
   // conditions defined in the HTTPAPISpecs should not overlap.
-  repeated HTTPAPISpecReference api_specs = 2;
+  repeated HTTPAPISpecReference api_specs = 2 [(google.api.field_behavior) = REQUIRED];
 }

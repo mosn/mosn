@@ -68,6 +68,18 @@ func (m *FileAccessLog) Validate() error {
 			}
 		}
 
+	case *FileAccessLog_TypedJsonFormat:
+
+		if v, ok := interface{}(m.GetTypedJsonFormat()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return FileAccessLogValidationError{
+					field:  "TypedJsonFormat",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	}
 
 	return nil

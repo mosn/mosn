@@ -19,6 +19,11 @@ package conv
 
 import (
 	"fmt"
+
+	"net"
+	"strings"
+	"time"
+
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
@@ -38,15 +43,11 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/xds/v2/rds"
-	"net"
-	"strings"
-	"time"
 )
 
 // support network filter list
@@ -408,7 +409,7 @@ func convertStreamFaultInjectConfig(s *any.Any) (map[string]interface{}, error) 
 
 	var fixed_delay time.Duration
 	if d := faultConfig.Delay.GetFixedDelay(); d != nil {
-		fixed_delay = time.Duration(d.Seconds)
+		fixed_delay = ConvertDuration(d)
 	}
 
 	// convert istio percentage to mosn percent

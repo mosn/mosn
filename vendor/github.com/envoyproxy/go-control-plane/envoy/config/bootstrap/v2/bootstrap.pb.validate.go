@@ -216,6 +216,8 @@ func (m *Bootstrap) Validate() error {
 		}
 	}
 
+	// no validation rules for UseTcpForDnsLookups
+
 	return nil
 }
 

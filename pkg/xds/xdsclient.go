@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/duration"
+	"mosn.io/mosn/pkg/xds/conv"
 	"strings"
 	"sync"
 	"time"
@@ -184,6 +185,8 @@ func UnmarshalResources(config *mv2.MOSNConfig) (dynamicResources *bootstrap.Boo
 // usually called when mosn start
 func (c *Client) Start(config *mv2.MOSNConfig) error {
 	log.DefaultLogger.Infof("xds client start")
+
+	conv.InitStats()
 
 	dynamicResources, staticResources, err := UnmarshalResources(config)
 	if err != nil {
