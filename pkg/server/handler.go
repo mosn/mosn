@@ -528,6 +528,8 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 	// check that the preconditions are met.
 	// for example: whether all request queues are processed ?
 	return func() error {
+		var remainStream int
+		var waitedMilliseconds int64
 		if ctx != nil {
 			shutdownTimeout := ctx.Value(types.GlobalShutdownTimeout)
 			if shutdownTimeout != nil {
@@ -535,16 +537,24 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 					current := time.Now()
 					// if there any stream being processed and without timeout,
 					// we try to wait for processing to complete, or wait for a timeout.
-					for al.activeStreamSize() > 0 && Milliseconds(time.Since(current)) <= timeout {
+					remainStream, waitedMilliseconds =
+						al.activeStreamSize(), Milliseconds(time.Since(current))
+					for ; remainStream > 0 && waitedMilliseconds <= timeout; remainStream, waitedMilliseconds =
+						al.activeStreamSize(), Milliseconds(time.Since(current)) {
 						// waiting for 10ms
 						time.Sleep(10 * time.Millisecond)
+						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+							log.DefaultLogger.Debugf("[activeListener] listener %s invoking stop hook, remaining stream count %d, waited time %dms",
+								al.listener.Name(), remainStream, waitedMilliseconds)
+						}
 					}
 				}
 			}
 		}
 
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[activeListener] listener %s pre stop hook complete", al.listener.Name())
+			log.DefaultLogger.Infof("[activeListener] listener %s pre stop hook complete, remaining stream count %d, waited time %dms",
+				al.listener.Name(), remainStream, waitedMilliseconds)
 		}
 
 		return nil

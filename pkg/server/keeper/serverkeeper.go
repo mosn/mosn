@@ -165,6 +165,9 @@ func ExecuteShutdownCallbacks(signame string) (exitCode int) {
 		var errs []error
 
 		for _, cb := range shutdownCallbacks {
+			// If the callback is performing normally,
+			// err does not need to be saved to prevent
+			// the exit code from being non-zero
 			if err := cb(); err != nil {
 				errs = append(errs, err)
 			}
@@ -187,6 +190,14 @@ func OnProcessExit(cb func()) {
 
 func OnProcessShutDown(cb func() error) {
 	shutdownCallbacks = append(shutdownCallbacks, cb)
+}
+
+func OnProcessShutDownFirst(cb func() error) {
+	var firstCallbacks []func() error
+	firstCallbacks = append(firstCallbacks, cb)
+	firstCallbacks = append(firstCallbacks, shutdownCallbacks...)
+	// replace current firstCallbacks
+	shutdownCallbacks = firstCallbacks
 }
 
 func AddSignalCallback(signal syscall.Signal, cb func()) {
