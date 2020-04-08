@@ -1,10 +1,10 @@
-## Use SOFAMosn as HTTP Proxy
+## Use MOSN as HTTP Proxy
 
 ## Introduction
 
-+ This sample project demonstrates how to configure SOFAMosn as a HTTP Proxy.
-+ Protocol between SOFAMosn is HTTP2.
-+ For the convenience of demonstration, SOFAMosn listens to two ports, one forwards the client request,
++ This sample project demonstrates how to configure MOSN as a HTTP Proxy.
++ Protocol between MOSN is HTTP2.
++ For the convenience of demonstration, MOSN listens to two ports, one forwards the client request,
  and one forwards to the server after receiving the request.
  
 ## Preparation
@@ -32,7 +32,7 @@ cd ${targetpath}
 ## Catelog
 
 ```
-main        // compiled SOFAMosn
+main        // compiled MOSN
 server.go   // Mocked SofaRpc Server
 client.go   // Mocked SofaRpc client
 config.json // Configure without TLS
@@ -47,9 +47,9 @@ tls.json    // Configure with TLS
 go run server.go
 ```
 
-### Start SOFAMosn
+### Start MOSN
 
-+ Use config.json to run SOFAMosn without TLS.
++ Use config.json to run MOSN without TLS.
 
 ```
 ./main start -c config.json

@@ -1,9 +1,9 @@
-## Use SOFAMosn as Dubbo Proxy
+## Use MOSN as Dubbo Proxy
 
 ## Introduction
 
-+ This sample project demonstrates how to configure SOFAMosn as a Dubbo Proxy.
-+ For the convenience of demonstration, SOFAMosn listens to two ports, one forwards the client request,
++ This sample project demonstrates how to configure MOSN as a Dubbo Proxy.
++ For the convenience of demonstration, MOSN listens to two ports, one forwards the client request,
  and one forwards to the server after receiving the request.
 
 ## Preparation
@@ -33,7 +33,7 @@ cd ${targetpath}
 ## Catelog
 
 ```
-main        // compiled SOFAMosn
+main        // compiled MOSN
 dubbo-examples/   // the code dir of Dubbo Java provider and consumer
 config.json // Configure without TLS
 run.sh     // the scripts of packaging and running Dubbo Java provider and consumer
@@ -47,9 +47,9 @@ run.sh     // the scripts of packaging and running Dubbo Java provider and consu
 sh run.sh server
 ```
 
-### Start SOFAMosn
+### Start MOSN
 
-+ Use config.json to run SOFAMosn without TLS.
++ Use config.json to run MOSN without TLS.
 
 ```
 ./main start -c config.json

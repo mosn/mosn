@@ -22,6 +22,8 @@ import (
 	"errors"
 	"fmt"
 	"math"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 var (
@@ -35,12 +37,10 @@ func GetHeaderEncodeLength(h *Header) (size int) {
 	return
 }
 
-func EncodeHeader(buf []byte, h *Header) {
-	index := 0
-
+func EncodeHeader(buf types.IoBuffer, h *Header) {
 	for _, kv := range h.Kvs {
-		index = encodeStr(buf, index, kv.Key)
-		index = encodeStr(buf, index, kv.Value)
+		encodeStr(buf, kv.Key)
+		encodeStr(buf, kv.Value)
 	}
 }
 
@@ -75,16 +75,14 @@ func DecodeHeader(bytes []byte, h *Header) (err error) {
 	return nil
 }
 
-func encodeStr(buf []byte, index int, str []byte) (newIndex int) {
+func encodeStr(buf types.IoBuffer, str []byte) {
 	length := len(str)
 
 	// 1. encode str length
-	binary.BigEndian.PutUint32(buf[index:], uint32(length))
+	buf.WriteUint32(uint32(length))
 
 	// 2. encode str value
-	copy(buf[index+4:], str)
-
-	return index + 4 + length
+	buf.Write(str)
 }
 
 func decodeStr(bytes []byte, totalLen, index int) (str []byte, newIndex int, err error) {

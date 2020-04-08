@@ -126,7 +126,7 @@ func (proto *boltv2Protocol) Trigger(requestId uint64) xprotocol.XFrame {
 	}
 }
 
-func (proto *boltv2Protocol) Reply(requestId uint64) xprotocol.XRespFrame {
+func (proto *boltv2Protocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			ResponseHeader: bolt.ResponseHeader{
@@ -134,7 +134,7 @@ func (proto *boltv2Protocol) Reply(requestId uint64) xprotocol.XRespFrame {
 				CmdType:        bolt.CmdTypeResponse,
 				CmdCode:        bolt.CmdCodeHeartbeat,
 				Version:        ProtocolVersion,
-				RequestId:      uint32(requestId),
+				RequestId:      uint32(request.GetRequestId()),
 				Codec:          bolt.Hessian2Serialize,
 				ResponseStatus: bolt.ResponseStatusSuccess,
 			},

@@ -78,6 +78,10 @@ func (r *Frame) GetData() types.IoBuffer {
 	return r.content
 }
 
+func (r *Frame) SetData(data types.IoBuffer) {
+	r.content = data
+}
+
 func (r *Frame) GetStatusCode() uint32 {
 	return uint32(r.Header.Status)
 }
