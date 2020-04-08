@@ -39,7 +39,6 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -199,7 +198,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		}
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
-		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.AddrConfig)
+		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
+
 	}
 	admin.SetListenerConfig(listenerName, *al.listener.Config())
 	return al, nil
@@ -390,8 +390,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 func (al *activeListener) GoStart(lctx context.Context) {
 	utils.GoWithRecover(func() {
 		al.listener.Start(lctx, false)
-		// set listener addr metrics
-		metrics.AddListenerAddr(al.listener.Addr().String())
 	}, func(r interface{}) {
 		// TODO: add a times limit?
 		al.GoStart(lctx)
