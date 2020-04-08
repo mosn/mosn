@@ -93,6 +93,7 @@ func GetOrCreateDefaultErrorLogger(p string, level log.Level) (log.ErrorLogger, 
 	return errorLoggerManagerInstance.GetOrCreateErrorLogger(p, level, DefaultCreateErrorLoggerFunc)
 }
 
+// InitDefaultLogger inits a default logger
 func InitDefaultLogger(output string, level log.Level) (err error) {
 	DefaultLogger, err = GetOrCreateDefaultErrorLogger(output, level)
 	if err != nil {

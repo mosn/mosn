@@ -75,17 +75,17 @@ func reconfigure(start bool) {
 	defer configmanager.DumpUnlock()
 
 	// transfer listen fd
-	var notify net.Conn
+	var listenSockConn net.Conn
 	var err error
 	var n int
 	var buf [1]byte
-	if notify, err = sendInheritListeners(); err != nil {
+	if listenSockConn, err = sendInheritListeners(); err != nil {
 		return
 	}
 
 	// Wait new mosn parse configuration
-	notify.SetReadDeadline(time.Now().Add(10 * time.Minute))
-	n, err = notify.Read(buf[:])
+	listenSockConn.SetReadDeadline(time.Now().Add(10 * time.Minute))
+	n, err = listenSockConn.Read(buf[:])
 	if n != 1 {
 		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "new mosn start failed")
 		return
