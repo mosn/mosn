@@ -116,10 +116,26 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	ci, exists := cm.clustersMap.Load(clusterName)
 	if exists {
 		c := ci.(types.Cluster)
-		//FIXME: cluster info in hosts should be updated too
 		hosts := c.Snapshot().HostSet().Hosts()
+
+		newSnap := newCluster.Snapshot()
+
+		oldResourceManager := c.Snapshot().ClusterInfo().ResourceManager()
+		newResourceManager := newSnap.ClusterInfo().ResourceManager()
+		// sync oldResourceManager to newResourceManager
+		newResourceManager.Connections().UpdateCur(oldResourceManager.Connections().Cur())
+		newResourceManager.PendingRequests().UpdateCur(oldResourceManager.PendingRequests().Cur())
+		newResourceManager.Requests().UpdateCur(oldResourceManager.Requests().Cur())
+		newResourceManager.Retries().UpdateCur(oldResourceManager.Retries().Cur())
+
+		// sync old cluster info
+		newHosts := make([]types.Host, 0, len(hosts))
+		for _, h := range hosts {
+			newHosts = append(newHosts, NewSimpleHost(h.Config(), newSnap.ClusterInfo()))
+		}
+
 		// update hosts, refresh
-		newCluster.UpdateHosts(hosts)
+		newCluster.UpdateHosts(newHosts)
 		refreshHostsConfig(c)
 	}
 	cm.clustersMap.Store(clusterName, newCluster)
@@ -354,6 +370,10 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						connectionPool.Store(addr, pool)
 					}
 				}()
+
+			} else if pool.Host() != host {
+				// update host info
+				pool.UpdateHost(host)
 			}
 		}
 		if pool.CheckAndInit(balancerContext.DownstreamContext()) {

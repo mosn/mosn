@@ -59,9 +59,11 @@ type fakeResource struct{}
 func (r *fakeResource) CanCreate() bool {
 	return true
 }
-func (r *fakeResource) Increase()   {}
-func (r *fakeResource) Decrease()   {}
-func (r *fakeResource) Max() uint64 { return 10 }
+func (r *fakeResource) Increase()           {}
+func (r *fakeResource) Decrease()           {}
+func (r *fakeResource) Max() uint64         { return 10 }
+func (r *fakeResource) Cur() int64          { return 5 }
+func (r *fakeResource) UpdateCur(cur int64) {}
 
 func TestRetryState(t *testing.T) {
 	rcfg := &v2.Router{}
