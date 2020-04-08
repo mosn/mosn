@@ -44,6 +44,8 @@ func messageToStruct(t *testing.T, msg proto.Message) *pstruct.Struct {
 }
 
 func Test_updateListener(t *testing.T) {
+	InitStats()
+
 	// no support access log register
 	//	accessLogFilterConfig := messageToStruct(t, &xdsaccesslog.FileAccessLog{
 	//		Path: "/dev/stdout",
