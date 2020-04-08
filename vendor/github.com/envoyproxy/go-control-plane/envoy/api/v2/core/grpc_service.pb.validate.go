@@ -697,6 +697,18 @@ func (m *GrpcService_GoogleGrpc_CallCredentials) Validate() error {
 			}
 		}
 
+	case *GrpcService_GoogleGrpc_CallCredentials_StsService_:
+
+		if v, ok := interface{}(m.GetStsService()).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return GrpcService_GoogleGrpc_CallCredentialsValidationError{
+					field:  "StsService",
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
 	default:
 		return GrpcService_GoogleGrpc_CallCredentialsValidationError{
 			field:  "CredentialSpecifier",
@@ -1036,3 +1048,107 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = GrpcService_GoogleGrpc_CallCredentials_MetadataCredentialsFromPluginValidationError{}
+
+// Validate checks the field values on
+// GrpcService_GoogleGrpc_CallCredentials_StsService with the rules defined in
+// the proto definition for this message. If any rules are violated, an error
+// is returned.
+func (m *GrpcService_GoogleGrpc_CallCredentials_StsService) Validate() error {
+	if m == nil {
+		return nil
+	}
+
+	// no validation rules for TokenExchangeServiceUri
+
+	// no validation rules for Resource
+
+	// no validation rules for Audience
+
+	// no validation rules for Scope
+
+	// no validation rules for RequestedTokenType
+
+	if len(m.GetSubjectTokenPath()) < 1 {
+		return GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError{
+			field:  "SubjectTokenPath",
+			reason: "value length must be at least 1 bytes",
+		}
+	}
+
+	if len(m.GetSubjectTokenType()) < 1 {
+		return GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError{
+			field:  "SubjectTokenType",
+			reason: "value length must be at least 1 bytes",
+		}
+	}
+
+	// no validation rules for ActorTokenPath
+
+	// no validation rules for ActorTokenType
+
+	return nil
+}
+
+// GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError is the
+// validation error returned by
+// GrpcService_GoogleGrpc_CallCredentials_StsService.Validate if the
+// designated constraints aren't met.
+type GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError) Field() string {
+	return e.field
+}
+
+// Reason function returns reason value.
+func (e GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError) Reason() string {
+	return e.reason
+}
+
+// Cause function returns cause value.
+func (e GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError) Cause() error {
+	return e.cause
+}
+
+// Key function returns key value.
+func (e GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError) ErrorName() string {
+	return "GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGrpcService_GoogleGrpc_CallCredentials_StsService.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GrpcService_GoogleGrpc_CallCredentials_StsServiceValidationError{}

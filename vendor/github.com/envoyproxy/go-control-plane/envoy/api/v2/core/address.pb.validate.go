@@ -50,6 +50,13 @@ func (m *Pipe) Validate() error {
 		}
 	}
 
+	if m.GetMode() > 511 {
+		return PipeValidationError{
+			field:  "Mode",
+			reason: "value must be less than or equal to 511",
+		}
+	}
+
 	return nil
 }
 

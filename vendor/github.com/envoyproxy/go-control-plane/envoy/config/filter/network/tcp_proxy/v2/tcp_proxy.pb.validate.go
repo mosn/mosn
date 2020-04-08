@@ -126,6 +126,28 @@ func (m *TcpProxy) Validate() error {
 
 	}
 
+	if len(m.GetHashPolicy()) > 1 {
+		return TcpProxyValidationError{
+			field:  "HashPolicy",
+			reason: "value must contain no more than 1 item(s)",
+		}
+	}
+
+	for idx, item := range m.GetHashPolicy() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return TcpProxyValidationError{
+					field:  fmt.Sprintf("HashPolicy[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
 	switch m.ClusterSpecifier.(type) {
 
 	case *TcpProxy_Cluster:
@@ -514,6 +536,16 @@ func (m *TcpProxy_WeightedCluster_ClusterWeight) Validate() error {
 		return TcpProxy_WeightedCluster_ClusterWeightValidationError{
 			field:  "Weight",
 			reason: "value must be greater than or equal to 1",
+		}
+	}
+
+	if v, ok := interface{}(m.GetMetadataMatch()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return TcpProxy_WeightedCluster_ClusterWeightValidationError{
+				field:  "MetadataMatch",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
 		}
 	}
 
