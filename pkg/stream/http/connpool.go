@@ -88,7 +88,7 @@ func (p *connPool) UpdateHost(h types.Host) {
 	p.host.Store(h)
 }
 
-//由 PROXY 调用
+// NewStream Create a client stream and call's by proxy
 func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
 	host := p.Host()
 	c, reason := p.getAvailableClient(ctx)
@@ -123,10 +123,10 @@ func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types
 
 	host := p.Host()
 	n := len(p.availableClients)
+	// max conns is 0 means no limit
+	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
 	// no available client
 	if n == 0 {
-		// max conns is 0 means no limit
-		maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
 		if maxConns == 0 || p.totalClientCount < maxConns {
 			ac, reason := newActiveClient(ctx, p)
 			if ac != nil && reason == "" {
@@ -139,7 +139,16 @@ func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types
 			return nil, types.Overflow
 		}
 	} else {
+
+		// Only refuse extra connection, keepalive-connection is closed by timeout
 		n--
+		usedConns := p.totalClientCount - uint64(n)
+		if maxConns != 0 && usedConns > host.ClusterInfo().ResourceManager().Connections().Max() {
+			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+			return nil, types.Overflow
+		}
+
 		c := p.availableClients[n]
 		p.availableClients[n] = nil
 		p.availableClients = p.availableClients[:n]
