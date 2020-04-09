@@ -17,6 +17,7 @@
 
 package java_exception
 
+// WrongMethodTypeException represents an exception of the same name in java
 type WrongMethodTypeException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,13 +26,17 @@ type WrongMethodTypeException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e WrongMethodTypeException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (WrongMethodTypeException) JavaClassName() string {
 	return "java.lang.invoke.WrongMethodTypeException"
 }
+
+// NewWrongMethodTypeException is the constructor
 func NewWrongMethodTypeException(detailMessage string) *WrongMethodTypeException {
 	return &WrongMethodTypeException{DetailMessage: detailMessage}
 }

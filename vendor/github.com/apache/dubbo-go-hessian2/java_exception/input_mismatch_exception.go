@@ -17,6 +17,7 @@
 
 package java_exception
 
+// InputMismatchException represents an exception of the same name in java
 type InputMismatchException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type InputMismatchException struct {
 	Cause                Throwabler
 }
 
+// NewInputMismatchException is the constructor
 func NewInputMismatchException(detailMessage string) *InputMismatchException {
 	return &InputMismatchException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e InputMismatchException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (InputMismatchException) JavaClassName() string {
 	return "java.util.InputMismatchException"
 }

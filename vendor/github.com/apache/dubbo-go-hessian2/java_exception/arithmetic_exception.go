@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ArithmeticException represents an exception of the same name in java
 type ArithmeticException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type ArithmeticException struct {
 	Cause                Throwabler
 }
 
+// NewArithmeticException is the constructor
 func NewArithmeticException(detailMessage string) *ArithmeticException {
 	return &ArithmeticException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e ArithmeticException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ArithmeticException) JavaClassName() string {
 	return "java.lang.ArithmeticException"
 }

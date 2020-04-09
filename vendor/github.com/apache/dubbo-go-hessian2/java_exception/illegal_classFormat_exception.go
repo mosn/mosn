@@ -17,6 +17,7 @@
 
 package java_exception
 
+// IllegalClassFormatException represents an exception of the same name in java
 type IllegalClassFormatException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type IllegalClassFormatException struct {
 	Cause                Throwabler
 }
 
+// NewIllegalClassFormatException is the constructor
 func NewIllegalClassFormatException(detailMessage string) *IllegalClassFormatException {
 	return &IllegalClassFormatException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IllegalClassFormatException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalClassFormatException) JavaClassName() string {
 	return "java.lang.instrument.IllegalClassFormatException"
 }

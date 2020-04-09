@@ -763,7 +763,7 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	if path, ok := headersIn.Get(protocol.MosnHeaderPathKey); ok {
 		headersIn.Del(protocol.MosnHeaderPathKey)
 		if query != "" {
-			URI := fmt.Sprintf(scheme+"://%s%s?", req.Host, path, query)
+			URI := fmt.Sprintf(scheme+"://%s%s?%s", req.Host, path, query)
 			URL, _ = url.Parse(URI)
 		} else {
 			URI := fmt.Sprintf(scheme+"://%s%s", req.Host, path)
