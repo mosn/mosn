@@ -14,18 +14,17 @@ func GetInvocationStatFactoryInstance() *InvocationStatFactory {
 	return InvocationStatFactoryInstance
 }
 
-func (f *InvocationStatFactory) GetInvocationStat(dimension InvocationStatDimension) InvocationStat {
-	key := dimension.GetInvocationKey()
-	if value, ok := f.invocationStats.Load(key); ok {
+func (f *InvocationStatFactory) GetInvocationStat(dimension InvocationDimension) InvocationStat {
+	if value, ok := f.invocationStats.Load(dimension); ok {
 		return value.(InvocationStat)
 	} else {
 		stat := f.newInvocationStat(dimension)
-		value, _ := f.invocationStats.LoadOrStore(key, stat)
+		value, _ := f.invocationStats.LoadOrStore(dimension, stat)
 		return value.(InvocationStat)
 	}
 }
 
-func (f *InvocationStatFactory) newInvocationStat(dimension InvocationStatDimension) *InvocationStat {
+func (f *InvocationStatFactory) newInvocationStat(dimension InvocationDimension) *InvocationStat {
 	return &InvocationStat{
 		dimension: dimension,
 	}

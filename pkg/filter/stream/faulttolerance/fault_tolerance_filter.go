@@ -11,7 +11,7 @@ import (
 type FaultToleranceFilter struct {
 	config            *v2.FaultToleranceFilterConfig
 	handler           api.StreamSenderFilterHandler
-	newDimension      func(api.HeaderMap) InvocationStatDimension
+	newDimension      func(api.HeaderMap) InvocationDimension
 	invocationFactory *InvocationStatFactory
 	calculatePool     *CalculatePool
 }
@@ -30,11 +30,15 @@ func (f *FaultToleranceFilter) Append(ctx context.Context, headers api.HeaderMap
 		return api.StreamFilterContinue
 	}
 
-	dimension := f.newDimension(headers)
-	stat := f.invocationFactory.GetInvocationStat(dimension)
-	status := response.RespStatus()
-	stat.Call(f.IsException(status))
-	f.calculatePool.Regulate(dimension)
+	if ok, dimension := f.getInvocationDimension(response); ok {
+		stat := f.invocationFactory.GetInvocationStat(dimension)
+		if stat.Call(f.IsException(response.RespStatus()), f.config) {
+			f.handler.RequestInfo().UpstreamHost()
+		}
+
+	}
+
+	f.handler.RequestInfo().UpstreamHost()
 	return api.StreamFilterContinue
 }
 
@@ -48,4 +52,19 @@ func (f *FaultToleranceFilter) OnDestroy() {
 
 func (f *FaultToleranceFilter) IsException(uint32) bool {
 	return false
+}
+
+func (f *FaultToleranceFilter) getInvocationDimension(headers api.HeaderMap) (bool, InvocationDimension) {
+	dimensionKey := f.config.DimensionKey
+	if dimension, ok := headers.Get(dimensionKey); ok {
+		if requestInfo := f.handler.RequestInfo(); requestInfo != nil {
+			if host := requestInfo.UpstreamHost(); host != nil {
+				if address := host.AddressString(); address != "" {
+					invocationDimension := NewInvocationDimension(dimension, address)
+					return true, invocationDimension
+				}
+			}
+		}
+	}
+	return false, GetEmptyInvocationDimension()
 }

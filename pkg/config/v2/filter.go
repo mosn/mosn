@@ -43,16 +43,16 @@ type DelayInjectConfig struct {
 }
 
 type FaultToleranceFilterConfig struct {
-	Effective             bool
-	Kind                  string
-	Protocol              []string
-	ExceptionType         []string
-	TimeWindow            uint32
-	LeastWindowCount      uint64
-	MaxHostCount          uint64
-	MaxHostRatio          float32
-	ExceptionRateMultiple float64
-	StateDimension        []string
+	Effective          bool
+	Kind               string
+	Protocol           []string
+	ExceptionType      []string
+	TimeWindow         int64
+	LeastWindowCount   uint64
+	MaxHostCount       int64
+	MaxHostRatio       float32
+	ExceptionThreshold float64
+	DimensionKey       string
 }
 
 type FaultToleranceKind string
