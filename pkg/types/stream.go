@@ -243,6 +243,9 @@ type ConnectionPool interface {
 	// SupportTLS represents the connection support tls or not
 	SupportTLS() bool
 
+	// GetHost is return a host of connection pool
+	GetHost() Host
+
 	// Shutdown gracefully shuts down the connection pool without interrupting any active requests
 	Shutdown()
 
