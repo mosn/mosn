@@ -49,7 +49,7 @@ type FaultToleranceFilterConfig struct {
 	ExceptionType      []string
 	TimeWindow         int64
 	LeastWindowCount   uint64
-	MaxHostCount       int64
+	MaxHostCount       uint64
 	MaxHostRatio       float32
 	ExceptionThreshold float64
 	DimensionKey       string

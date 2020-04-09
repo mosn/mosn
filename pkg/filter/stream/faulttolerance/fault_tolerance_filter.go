@@ -11,16 +11,13 @@ import (
 type FaultToleranceFilter struct {
 	config            *v2.FaultToleranceFilterConfig
 	handler           api.StreamSenderFilterHandler
-	newDimension      func(api.HeaderMap) InvocationDimension
 	invocationFactory *InvocationStatFactory
-	calculatePool     *CalculatePool
+	hostStatusManager *HostStatusManager
 }
 
 func NewFaultToleranceFilter(config *v2.FaultToleranceFilterConfig) *FaultToleranceFilter {
-
 	return &FaultToleranceFilter{
-		config:        config,
-		calculatePool: NewCalculatePool(),
+		config: config,
 	}
 }
 
@@ -30,12 +27,17 @@ func (f *FaultToleranceFilter) Append(ctx context.Context, headers api.HeaderMap
 		return api.StreamFilterContinue
 	}
 
+	address := f.handler.RequestInfo().UpstreamHost().AddressString()
+	if f.hostStatusManager.IsUnHealthy(address) {
+		//f.handler.RequestInfo().UpstreamHost()
+	}
+
 	if ok, dimension := f.getInvocationDimension(response); ok {
 		stat := f.invocationFactory.GetInvocationStat(dimension)
 		if stat.Call(f.IsException(response.RespStatus()), f.config) {
-			f.handler.RequestInfo().UpstreamHost()
+			f.hostStatusManager.PutUnHealthyHost(dimension.dimension, address, f.GetMaxHostThreshold())
+			//f.handler.RequestInfo().UpstreamHost()
 		}
-
 	}
 
 	f.handler.RequestInfo().UpstreamHost()
@@ -44,6 +46,17 @@ func (f *FaultToleranceFilter) Append(ctx context.Context, headers api.HeaderMap
 
 func (f *FaultToleranceFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
 	f.handler = handler
+}
+
+func (f *FaultToleranceFilter) GetMaxHostThreshold() uint64 {
+	result := f.config.MaxHostCount
+	for _, function := range GetExtensionGetMaxHostThresholdFunc() {
+		temp := function(f.config)
+		if temp < result {
+			result = temp
+		}
+	}
+	return result
 }
 
 func (f *FaultToleranceFilter) OnDestroy() {
