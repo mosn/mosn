@@ -19,12 +19,17 @@ package router
 
 import (
 	"math/rand"
+	goHttp "net/http"
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -144,6 +149,49 @@ func TestWeightedClusterSelect(t *testing.T) {
 
 		}
 		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
+	}
+}
+
+func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
+	route := &v2.Router{
+		RouterConfig: v2.RouterConfig{
+			Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{
+				{
+					Name:  "method",
+					Value: "POST",
+				},
+			}},
+			Route: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterName: "test",
+				},
+			},
+		},
+	}
+
+	routeRuleBase, err := NewRouteRuleImplBase(nil, route)
+	if !assert.NoErrorf(t, err, "new route rule impl failed, err should be nil, get %+v", err) {
+		t.FailNow()
+	}
+
+	headers := http.RequestHeader{
+		RequestHeader: &fasthttp.RequestHeader{},
+	}
+	headers.Set(protocol.MosnHeaderMethod, "POST")
+	match := routeRuleBase.matchRoute(headers, 1)
+	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
+		t.FailNow()
+	}
+
+	http2Request := &goHttp.Request{
+		Method: "POST",
+		Header: goHttp.Header{},
+	}
+	headerHttp2 := http2.NewReqHeader(http2Request)
+	headerHttp2.Set(protocol.MosnHeaderMethod, http2Request.Method)
+	match = routeRuleBase.matchRoute(headerHttp2, 1)
+	if !assert.Truef(t, match, "match http2 method failed, result should be true, get %+v", match) {
+		t.FailNow()
 	}
 }
 
