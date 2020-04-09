@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
@@ -122,12 +123,12 @@ func (c *sessionChecker) Stop() {
 func (c *sessionChecker) HandleSuccess() {
 	c.unHealthCount = 0
 	changed := false
-	if c.Host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
+	if c.Host.ContainHealthFlag(api.FAILED_ACTIVE_HC) {
 		c.healthCount++
 		// check the threshold
 		if c.healthCount == c.HealthChecker.healthyThreshold {
 			changed = true
-			c.Host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
+			c.Host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
 		}
 	}
 	c.HealthChecker.incHealthy(c.Host, changed)
@@ -136,12 +137,12 @@ func (c *sessionChecker) HandleSuccess() {
 func (c *sessionChecker) HandleFailure(reason types.FailureType) {
 	c.healthCount = 0
 	changed := false
-	if !c.Host.ContainHealthFlag(types.FAILED_ACTIVE_HC) {
+	if !c.Host.ContainHealthFlag(api.FAILED_ACTIVE_HC) {
 		c.unHealthCount++
 		// check the threshold
 		if c.unHealthCount == c.HealthChecker.unhealthyThreshold {
 			changed = true
-			c.Host.SetHealthFlag(types.FAILED_ACTIVE_HC)
+			c.Host.SetHealthFlag(api.FAILED_ACTIVE_HC)
 		}
 	}
 	c.HealthChecker.decHealthy(c.Host, reason, changed)

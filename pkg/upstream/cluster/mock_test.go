@@ -51,16 +51,16 @@ func (h *mockHost) Health() bool {
 	return h.healthFlag == 0
 }
 
-func (h *mockHost) ClearHealthFlag(flag types.HealthFlag) {
+func (h *mockHost) ClearHealthFlag(flag api.HealthFlag) {
 	h.healthFlag &= ^uint64(flag)
 }
 
-func (h *mockHost) SetHealthFlag(flag types.HealthFlag) {
+func (h *mockHost) SetHealthFlag(flag api.HealthFlag) {
 	h.healthFlag |= uint64(flag)
 }
 
-func (h *mockHost) HealthFlag() types.HealthFlag {
-	return types.HealthFlag(h.healthFlag)
+func (h *mockHost) HealthFlag() api.HealthFlag {
+	return api.HealthFlag(h.healthFlag)
 }
 
 type ipPool struct {
