@@ -476,7 +476,7 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers api.Head
 		header := mhttp2.EncodeHeader(trailer)
 		s.h2s.Trailer = &header
 	}
-	log.Proxy.Debugf(s.ctx, "http2 server ApppendTrailers id = %d, trailer = %+v", s.id, s.h2s.Response.Trailer)
+	log.Proxy.Debugf(s.ctx, "http2 server ApppendTrailers id = %d, trailer = %+v", s.id, s.h2s.Trailer)
 	s.endStream()
 
 	return nil

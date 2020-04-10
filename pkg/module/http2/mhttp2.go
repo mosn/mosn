@@ -51,18 +51,47 @@ func (ms *MStream) ID() uint32 {
 
 // SendResponse is Http2 Server send response
 func (ms *MStream) WriteHeader(end bool) error {
-
 	rsp := ms.Response
 	endStream := end || ms.Request.Method == "HEAD"
+
+	isHeadResp := ms.Request.Method == "HEAD"
+	var ctype, clen string
+	var dataLen int
+	if ms.SendData != nil {
+		dataLen = ms.SendData.Len()
+	}
+
+	if clen = rsp.Header.Get("Content-Length"); clen != "" {
+		rsp.Header.Del("Content-Length")
+		clen64, err := strconv.ParseInt(clen, 10, 64)
+		if err == nil && clen64 >= 0 {
+			ms.sentContentLen = clen64
+		} else {
+			clen = ""
+		}
+	}
+
+	if dataLen == 0 || isHeadResp || !bodyAllowedForStatus(rsp.StatusCode) {
+		clen = "0"
+	}
+
+	hasContentType := rsp.Header.Get("Content-Type")
+	if hasContentType == "" && bodyAllowedForStatus(rsp.StatusCode) && dataLen > 0 {
+		ctype = http.DetectContentType(ms.SendData.Bytes())
+	}
+	var date string
+	if ok := rsp.Header.Get("Date"); ok == "" {
+		date = time.Now().UTC().Format(http.TimeFormat)
+	}
 
 	ws := &writeResHeaders{
 		streamID:      ms.id,
 		httpResCode:   rsp.StatusCode,
 		h:             rsp.Header,
 		endStream:     endStream,
-		contentLength: rsp.Header.Get("Content-Length"),
-		contentType:   rsp.Header.Get("Content-Type"),
-		date:          rsp.Header.Get("Date"),
+		contentLength: clen,
+		contentType:   ctype,
+		date:          date,
 	}
 	if endStream {
 		ms.conn.closeStream(ms.stream, nil)
@@ -1048,7 +1077,6 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
 	}
 
 	// write data and trailer
-	// if SendData is buffer.IoBuffer, no UseStream
 	if !cc.UseStream {
 		if err = cc.writeDataAndTrailer(); err != nil {
 			cc.conn.HandleError(nil, cc.ID, err, cc.SendData)
