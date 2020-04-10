@@ -67,9 +67,9 @@ func BenchmarkHostSetRefresh(b *testing.B) {
 		host := hs.Hosts()[50]
 		for i := 0; i < b.N; i++ {
 			if i%2 == 0 {
-				host.SetHealthFlag(types.FAILED_ACTIVE_HC)
+				host.SetHealthFlag(api.FAILED_ACTIVE_HC)
 			} else {
-				host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
+				host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
 			}
 			hs.refreshHealthHost(host)
 		}
@@ -82,9 +82,9 @@ func BenchmarkHostSetRefresh(b *testing.B) {
 		host := hs.Hosts()[500]
 		for i := 0; i < b.N; i++ {
 			if i%2 == 0 {
-				host.SetHealthFlag(types.FAILED_ACTIVE_HC)
+				host.SetHealthFlag(api.FAILED_ACTIVE_HC)
 			} else {
-				host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
+				host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
 			}
 			hs.refreshHealthHost(host)
 		}
@@ -108,9 +108,9 @@ func BenchmarkHostSetRefresh(b *testing.B) {
 		host := hs.Hosts()[150] // zone:a, version:1.0
 		for i := 0; i < b.N; i++ {
 			if i%2 == 0 {
-				host.SetHealthFlag(types.FAILED_ACTIVE_HC)
+				host.SetHealthFlag(api.FAILED_ACTIVE_HC)
 			} else {
-				host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
+				host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
 			}
 			hs.refreshHealthHost(host)
 		}

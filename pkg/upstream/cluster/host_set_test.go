@@ -109,7 +109,7 @@ func TestHostSetRefresh(t *testing.T) {
 	// mock health check set
 	allHosts := hs.Hosts()
 	host := allHosts[5] // mock one host healthy is changed
-	host.SetHealthFlag(types.FAILED_ACTIVE_HC)
+	host.SetHealthFlag(api.FAILED_ACTIVE_HC)
 	hs.refreshHealthHost(host)
 	if !(len(hs.HealthyHosts()) == 19 &&
 		len(subV1.HealthyHosts()) == 9 &&

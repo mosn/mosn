@@ -116,20 +116,20 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 	}
 }
 
-func (sh *simpleHost) ClearHealthFlag(flag types.HealthFlag) {
+func (sh *simpleHost) ClearHealthFlag(flag api.HealthFlag) {
 	sh.healthFlags &= ^uint64(flag)
 }
 
-func (sh *simpleHost) ContainHealthFlag(flag types.HealthFlag) bool {
+func (sh *simpleHost) ContainHealthFlag(flag api.HealthFlag) bool {
 	return sh.healthFlags&uint64(flag) > 0
 }
 
-func (sh *simpleHost) SetHealthFlag(flag types.HealthFlag) {
+func (sh *simpleHost) SetHealthFlag(flag api.HealthFlag) {
 	sh.healthFlags |= uint64(flag)
 }
 
-func (sh *simpleHost) HealthFlag() types.HealthFlag {
-	return types.HealthFlag(sh.healthFlags)
+func (sh *simpleHost) HealthFlag() api.HealthFlag {
+	return api.HealthFlag(sh.healthFlags)
 }
 
 func (sh *simpleHost) Health() bool {
