@@ -5,7 +5,6 @@ mtls/crypto/tls
 3. modify import paths
 4. Call TransferSetTLSInfo() to set transfer info when TLS handshake is successful
 
-
 add supports for tls1.3-gm
 see draft:https://datatracker.ietf.org/doc/draft-yang-tls-tls13-sm-suites/
 
