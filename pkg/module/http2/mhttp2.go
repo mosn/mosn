@@ -40,8 +40,7 @@ type MStream struct {
 	conn           *MServerConn
 	Request        *http.Request
 	Response       *http.Response
-	Header         http.Header
-	Trailers       *http.Header
+	Trailer        *http.Header
 	SendData       buffer.IoBuffer
 }
 
@@ -61,9 +60,9 @@ func (ms *MStream) WriteHeader(end bool) error {
 		httpResCode:   rsp.StatusCode,
 		h:             rsp.Header,
 		endStream:     endStream,
-		contentLength: ms.Header.Get("Content-Length"),
-		contentType:   ms.Header.Get("Content-Type"),
-		date:          ms.Header.Get("Date"),
+		contentLength: rsp.Header.Get("Content-Length"),
+		contentType:   rsp.Header.Get("Content-Type"),
+		date:          rsp.Header.Get("Date"),
 	}
 	if endStream {
 		ms.conn.closeStream(ms.stream, nil)
@@ -126,9 +125,8 @@ func (ms *MStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
 }
 
 func (ms *MStream) WriteTrailers() error {
-
 	defer ms.conn.closeStream(ms.stream, nil)
-	tramap := *ms.Trailers
+	tramap := *ms.Trailer
 	var trailers []string
 	if tramap != nil {
 		for k, _ := range tramap {
@@ -165,7 +163,7 @@ func (ms *MStream) Reset() {
 }
 
 func (ms *MStream) SendResponse() error {
-	endHeader := ms.SendData == nil && ms.Trailers == nil
+	endHeader := ms.SendData == nil && ms.Trailer == nil
 	if err := ms.WriteHeader(endHeader); err != nil || endHeader {
 		return err
 	}
@@ -573,7 +571,7 @@ func (sc *MServerConn) processRequest(st *stream, f *MetaHeadersFrame) (*http.Re
 		rp.header.Set("Cookie", strings.Join(cookies, "; "))
 	}
 
-	// Setup Trailers
+	// Setup Trailer
 	var trailer http.Header
 	for _, v := range rp.header["Trailer"] {
 		for _, key := range strings.Split(v, ",") {
@@ -1010,10 +1008,11 @@ func (cc *MClientConn) WriteHeaders(ctx context.Context, req *http.Request, trai
 // MClientStream is Http2 Client Stream
 type MClientStream struct {
 	*clientStream
-	conn     *MClientConn
-	Request  *http.Request
-	SendData buffer.IoBuffer
-	Trailer  http.Header
+	conn      *MClientConn
+	Request   *http.Request
+	SendData  buffer.IoBuffer
+	Trailer   *http.Header
+	UseStream bool
 }
 
 func NewMClientStream(conn *MClientConn, req *http.Request) *MClientStream {
@@ -1036,7 +1035,7 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
 		cc.Request.ContentLength, _ = strconv.ParseInt(cl[0], 10, 64)
 	}
 
-	endStream := cc.SendData == nil
+	endStream := cc.SendData == nil && cc.Trailer == nil
 
 	//if WriteHeader err
 	cs, err := cc.conn.WriteHeaders(ctx, cc.Request, "", endStream)
@@ -1049,13 +1048,20 @@ func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
 	}
 
 	// write data and trailer
-	//if writeData err ,
-	utils.GoWithRecover(func() {
+	// if SendData is buffer.IoBuffer, no UseStream
+	if !cc.UseStream {
 		if err = cc.writeDataAndTrailer(); err != nil {
 			cc.conn.HandleError(nil, cc.ID, err, cc.SendData)
 
 		}
-	}, nil)
+	} else {
+		utils.GoWithRecover(func() {
+			if err = cc.writeDataAndTrailer(); err != nil {
+				cc.conn.HandleError(nil, cc.ID, err, cc.SendData)
+
+			}
+		}, nil)
+	}
 	return
 }
 
@@ -1086,12 +1092,14 @@ func (cc *MClientStream) writeDataAndTrailer() (err error) {
 	}
 
 	//write trailer
-	if end := cc.Trailer == nil || len(cc.Trailer) == 0; end {
+	if cc.Trailer == nil || len(*cc.Trailer) == 0 {
 		err = cc.conn.Framer.writeData(cc.ID, true, nil)
 		if err != nil {
 			return
 		}
 	} else {
+		cc.Request.Trailer = *cc.Trailer
+
 		cc.conn.hmu.Lock()
 		var trls []byte
 		trls, err = cc.conn.encodeTrailers(cc.Request)
