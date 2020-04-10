@@ -71,18 +71,19 @@ func newRandomLoadBalancer(hosts types.HostSet) types.LoadBalancer {
 
 func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	targets := lb.hosts.Hosts()
-	if len(targets) == 0 {
+	total := len(targets)
+	if total == 0 {
 		return nil
 	}
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
-	idx := lb.rand.Intn(len(targets))
-	for i := 0; i < len(targets); i++ {
+	idx := lb.rand.Intn(total)
+	for i := 0; i < total; i++ {
 		host := targets[idx]
 		if host.Health() {
 			return host
 		}
-		idx = (idx + 1) % len(targets)
+		idx = (idx + 1) % total
 	}
 	return nil
 }
@@ -121,11 +122,12 @@ func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(hosts types.Ho
 
 func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	targets := lb.hosts.Hosts()
-	if len(targets) == 0 {
+	total := len(targets)
+	if total == 0 {
 		return nil
 	}
-	for i := 0; i < len(targets); i++ {
-		index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(len(targets))
+	for i := 0; i < total; i++ {
+		index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
 		host := targets[index]
 		if host.Health() {
 			return host
