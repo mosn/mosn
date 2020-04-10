@@ -22,9 +22,18 @@ import (
 	"strconv"
 	"testing"
 	"unsafe"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestHashSet_Alloc(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := InitMetricsZone("TestNewSharedMetrics", 10*1024*1024)
 	defer func() {
 		zone.Detach()
@@ -53,6 +62,13 @@ func TestHashSet_Alloc(t *testing.T) {
 }
 
 func TestHashSet_Free(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := InitMetricsZone("TestNewSharedMetrics", 10*1024*1024)
 	defer func() {
 		zone.Detach()
@@ -91,6 +107,13 @@ func TestHashSet_EntrySize(t *testing.T) {
 }
 
 func TestHashSet_AddWithLongName(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := InitMetricsZone("TestHashSet_AddWithLongName", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -109,6 +132,13 @@ func TestHashSet_AddWithLongName(t *testing.T) {
 }
 
 func TestHashSet_AddWithMaxLengthName(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := InitMetricsZone("TestHashSet_AddWithMaxLengthName", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -127,6 +157,13 @@ func TestHashSet_AddWithMaxLengthName(t *testing.T) {
 }
 
 func BenchmarkHashSet_Free(b *testing.B) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := InitMetricsZone("TestNewSharedMetrics", 30*1024*1024)
 	defer func() {
 		zone.Detach()
