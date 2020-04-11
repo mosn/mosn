@@ -116,6 +116,24 @@ func (mng *ErrorLoggerManager) Disable() {
 	}
 }
 
+func (mng *ErrorLoggerManager) Enable() {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+
+	mng.disabled = false
+	for _, lg := range mng.managers {
+		lg.Toggle(false)
+	}
+}
+
+func (mng *ErrorLoggerManager) DisableLogLevelControl() {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+
+	mng.withLogLevelControl = false
+	mng.logLevelControl = log.RAW
+}
+
 // Default Export Functions
 func GetErrorLoggerManagerInstance() *ErrorLoggerManager {
 	return errorLoggerManagerInstance

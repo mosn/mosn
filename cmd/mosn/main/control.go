@@ -100,28 +100,28 @@ var (
 				EnvVar: "LOG_LEVEL",
 			}, cli.StringFlag{
 				Name:   "log-format, lf",
-				Usage:  "mosn log format",
+				Usage:  "mosn log format, currently useless",
 			}, cli.StringSliceFlag{
 				Name:  "component-log-level, lc",
-				Usage: "mosn component format",
+				Usage: "mosn component format, currently useless",
 			}, cli.StringFlag{
 				Name:  "local-address-ip-version",
-				Usage: "mosn log format",
+				Usage: "ip version, v4 or v6, currently useless",
 			}, cli.IntFlag{
 				Name:  "restart-epoch",
-				Usage: "mosn log level",
+				Usage: "eporch to restart, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
 				Name:  "drain-time-s",
-				Usage: "mosn log format",
+				Usage: "seconds to drain, align to Istio startup params, currently useless",
 			}, cli.StringFlag{
 				Name:  "parent-shutdown-time-s",
-				Usage: "mosn log format",
+				Usage: "parent shutdown time seconds, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
 				Name:  "max-obj-name-len",
-				Usage: "mosn log format",
+				Usage: "object name limit, align to Istio startup params, currently useless",
 			}, cli.IntFlag{
 				Name:  "concurrency",
-				Usage: "mosn log format",
+				Usage: "concurrency, align to Istio startup params, currently useless",
 			},
 		},
 		Action: func(c *cli.Context) error {
