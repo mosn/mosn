@@ -155,6 +155,12 @@ type clusterInfo struct {
 	connectTimeout       time.Duration
 }
 
+func updateClusterResourceManager(ci types.ClusterInfo, rm types.ResourceManager) {
+	if c, ok := ci.(*clusterInfo); ok {
+		c.resourceManager = rm
+	}
+}
+
 func (ci *clusterInfo) Name() string {
 	return ci.name
 }
