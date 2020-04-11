@@ -120,3 +120,11 @@ func (r *resource) Decrease() {
 func (r *resource) Max() uint64 {
 	return r.max
 }
+
+func (r *resource) Cur() int64 {
+	return r.current
+}
+
+func (r *resource) UpdateCur(cur int64) {
+	r.current = cur
+}

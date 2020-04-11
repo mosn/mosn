@@ -20,6 +20,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
@@ -101,8 +102,7 @@ func makePool(size int) *ipPool {
 }
 
 type mockConnPool struct {
-	h types.Host
-	types.ConnectionPool
+	host atomic.Value
 }
 
 const mockProtocol = types.ProtocolName("mock")
@@ -116,17 +116,36 @@ func (p *mockConnPool) CheckAndInit(ctx context.Context) bool {
 }
 
 func (p *mockConnPool) SupportTLS() bool {
-	return p.h.SupportTLS()
+	return p.Host().SupportTLS()
 }
 
 func (p *mockConnPool) Shutdown() {
 }
 
+func (p *mockConnPool) Close() {
+}
+
+func (p *mockConnPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
+}
+
+func (p *mockConnPool) Host() types.Host {
+	h := p.host.Load()
+	if host, ok := h.(types.Host); ok {
+		return host
+	}
+
+	return nil
+}
+
+func (p *mockConnPool) UpdateHost(h types.Host) {
+	p.host.Store(h)
+}
+
 func init() {
 	network.RegisterNewPoolFactory(mockProtocol, func(h types.Host) types.ConnectionPool {
-		return &mockConnPool{
-			h: h,
-		}
+		pool := &mockConnPool{}
+		pool.host.Store(h)
+		return pool
 	})
 	types.RegisterConnPoolFactory(mockProtocol, true)
 }
