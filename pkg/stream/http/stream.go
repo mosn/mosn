@@ -537,6 +537,11 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 		headers.SetMethod(http.MethodPost)
 	}
 
+	// clear 'Connection:close' header for keepalive connection with upstream
+	if headers.ConnectionClose() {
+		headers.Del("Connection")
+	}
+
 	removeInternalHeaders(headers, s.connection.conn.RemoteAddr())
 
 	// copy headers
@@ -699,7 +704,11 @@ func (s *serverStream) endStream() {
 	resetConn := false
 	// check if we need close connection
 	if s.connection.close || s.request.Header.ConnectionClose() {
-		s.response.SetConnectionClose()
+		// should delete 'Connection:keepalive' header
+		if !s.response.ConnectionClose() {
+			s.response.Header.Del("Connection")
+			s.response.SetConnectionClose()
+		}
 		resetConn = true
 	} else if !s.request.Header.IsHTTP11() {
 		// Set 'Connection: keep-alive' response header for non-HTTP/1.1 request.
