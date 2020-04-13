@@ -21,6 +21,7 @@ import (
 	"context"
 	"net"
 	"sync"
+	"sync/atomic"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -38,7 +39,7 @@ type simpleHost struct {
 	metaData      api.Metadata
 	tlsDisable    bool
 	weight        uint32
-	healthFlags   uint64
+	healthFlags   *uint64
 }
 
 func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
@@ -53,6 +54,7 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 		metaData:      config.MetaData,
 		tlsDisable:    config.TLSDisable,
 		weight:        config.Weight,
+		healthFlags:   GetHealthFlagPointer(config.Address),
 	}
 }
 
@@ -117,23 +119,23 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 }
 
 func (sh *simpleHost) ClearHealthFlag(flag api.HealthFlag) {
-	sh.healthFlags &= ^uint64(flag)
+	ClearHealthFlag(sh.healthFlags, flag)
 }
 
 func (sh *simpleHost) ContainHealthFlag(flag api.HealthFlag) bool {
-	return sh.healthFlags&uint64(flag) > 0
+	return atomic.LoadUint64(sh.healthFlags)&uint64(flag) > 0
 }
 
 func (sh *simpleHost) SetHealthFlag(flag api.HealthFlag) {
-	sh.healthFlags |= uint64(flag)
+	SetHealthFlag(sh.healthFlags, flag)
 }
 
 func (sh *simpleHost) HealthFlag() api.HealthFlag {
-	return api.HealthFlag(sh.healthFlags)
+	return api.HealthFlag(atomic.LoadUint64(sh.healthFlags))
 }
 
 func (sh *simpleHost) Health() bool {
-	return sh.healthFlags == 0
+	return atomic.LoadUint64(sh.healthFlags) == 0
 }
 
 // net.Addr reuse for same address, valid in simple type
