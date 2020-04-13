@@ -84,13 +84,6 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 	if clusterConfig.HealthCheck.ServiceName != "" {
 		log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
 		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck)
-		cluster.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool, isHealthy bool) {
-			if changedState {
-				log.DefaultLogger.Infof("[upstream] [cluster] host %s state change to %v", host.AddressString(), isHealthy)
-				cluster.hostSet.refreshHealthHost(host)
-			}
-		})
-
 	}
 	return cluster
 }

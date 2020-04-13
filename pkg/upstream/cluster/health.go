@@ -18,38 +18,39 @@
 package cluster
 
 import (
-	"testing"
+	"sync"
+	"sync/atomic"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
 )
 
-func newSimpleMockHost(addr string, metaValue string) *mockHost {
-	return &mockHost{
-		addr: addr,
-		meta: api.Metadata{
-			"key": metaValue,
-		},
-	}
+// health flag resue for same address
+// TODO: use one map for all reuse data
+var healthStore = sync.Map{}
+
+func GetHealthFlagPointer(addr string) *uint64 {
+	v, _ := healthStore.LoadOrStore(addr, func() *uint64 {
+		f := uint64(0)
+		return &f
+	}())
+	p, _ := v.(*uint64)
+	return p
 }
 
-type simpleMockHostConfig struct {
-	addr      string
-	metaValue string
+func SetHealthFlag(p *uint64, flag api.HealthFlag) {
+	if p == nil {
+		return
+	}
+	f := atomic.LoadUint64(p)
+	f |= uint64(flag)
+	atomic.StoreUint64(p, f)
 }
 
-func TestHostSetDistinct(t *testing.T) {
-	hs := &hostSet{}
-	ip := "127.0.0.1"
-	var hosts []types.Host
-	for i := 0; i < 5; i++ {
-		host := &mockHost{
-			addr: ip,
-		}
-		hosts = append(hosts, host)
+func ClearHealthFlag(p *uint64, flag api.HealthFlag) {
+	if p == nil {
+		return
 	}
-	hs.setFinalHost(hosts)
-	if len(hs.Hosts()) != 1 {
-		t.Fatal("hostset distinct failed")
-	}
+	f := atomic.LoadUint64(p)
+	f &= ^uint64(flag)
+	atomic.StoreUint64(p, f)
 }
