@@ -32,6 +32,12 @@ const (
 	DefaultMaxRetries         uint64 = 0
 )
 
+// int64 max and min value
+const (
+	INT64_MAX = int64((1 << 63) - 1)
+	INT64_MIN = int64(-INT64_MAX - 1)
+)
+
 // ResourceManager
 type resourcemanager struct {
 	connections     *resource
@@ -123,7 +129,11 @@ func (r *resource) Increase() {
 
 func (r *resource) Decrease() {
 	if r.max != 0 {
+		// avoid int64 overflow
+		atomic.CompareAndSwapInt64(&r.current, INT64_MIN, 0)
 		atomic.AddInt64(&r.current, -1)
+		// avoid int64 overflow
+		atomic.CompareAndSwapInt64(&r.current, INT64_MAX, 0)
 	}
 }
 
