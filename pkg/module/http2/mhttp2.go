@@ -116,11 +116,9 @@ func (ms *MStream) WriteData() (err error) {
 			if allowed, err = ms.awaitFlowControl(len(remain)); err != nil {
 				return err
 			}
-			ms.conn.mu.Lock()
 			data := remain[:allowed]
 			remain = remain[allowed:]
 			err = ms.conn.Framer.writeData(ms.id, false, data)
-			ms.conn.mu.Unlock()
 		}
 	}
 	return
@@ -438,7 +436,7 @@ func (sc *MServerConn) HandleFrame(ctx context.Context, f Frame) (*MStream, []by
 }
 
 func (sc *MServerConn) HandleError(ctx context.Context, f Frame, err error) {
-	log.DefaultLogger.Warnf("[Server Conn] [Handler Err] hanfler frame：%v error：%v", f, err)
+	log.DefaultLogger.Warnf("[Server Conn] [Handler Err] handler frame：%v error：%v", f, err)
 }
 
 // processHeaders processes Headers Frame
@@ -689,6 +687,8 @@ func (sc *MServerConn) closeStream(st *stream, err error) {
 	if st == nil {
 		return
 	}
+	sc.cond.Broadcast()
+
 	if sc.delStream(st.id) {
 		st.state = stateClosed
 		if st.isPushed() {
@@ -922,7 +922,7 @@ func (sc *MServerConn) startGracefulShutdownInternal() {
 
 func (sc *MServerConn) resetStream(se StreamError) error {
 	if st := sc.getStream(se.StreamID); st != nil {
-		log.DefaultLogger.Warnf("[Mservr Conn] streamId %d send RestFrame ", se.StreamID)
+		log.DefaultLogger.Warnf("[Mserver Conn] streamId %d send RestFrame ", se.StreamID)
 		st.resetQueued = true
 
 		buf := buffer.NewIoBuffer(frameHeaderLen + 8)
@@ -1037,11 +1037,12 @@ func (cc *MClientConn) WriteHeaders(ctx context.Context, req *http.Request, trai
 // MClientStream is Http2 Client Stream
 type MClientStream struct {
 	*clientStream
-	conn      *MClientConn
-	Request   *http.Request
-	SendData  buffer.IoBuffer
-	Trailer   *http.Header
-	UseStream bool
+	conn       *MClientConn
+	Request    *http.Request
+	SendData   buffer.IoBuffer
+	Trailer    *http.Header
+	UseStream  bool
+	sendHeader bool
 }
 
 func NewMClientStream(conn *MClientConn, req *http.Request) *MClientStream {
@@ -1058,35 +1059,40 @@ func (cc *MClientStream) GetID() uint32 {
 
 // RoundTrip sends Request for Http2 Client
 func (cc *MClientStream) RoundTrip(ctx context.Context) (err error) {
+	if !cc.sendHeader {
+		cc.sendHeader = true
+		//write header
+		if cl, ok := cc.Request.Header["Content-Length"]; ok {
+			cc.Request.ContentLength, _ = strconv.ParseInt(cl[0], 10, 64)
+		}
 
-	//write header
-	if cl, ok := cc.Request.Header["Content-Length"]; ok {
-		cc.Request.ContentLength, _ = strconv.ParseInt(cl[0], 10, 64)
-	}
+		endStream := cc.SendData == nil && cc.Trailer == nil
 
-	endStream := cc.SendData == nil && cc.Trailer == nil
+		//if WriteHeader err
+		cs, err := cc.conn.WriteHeaders(ctx, cc.Request, "", endStream)
+		if err != nil {
+			return err
+		}
+		cc.clientStream = cs
 
-	//if WriteHeader err
-	cs, err := cc.conn.WriteHeaders(ctx, cc.Request, "", endStream)
-	if err != nil {
 		return err
 	}
-	cc.clientStream = cs
+
+	// write data and trailer
+	endStream := cc.SendData == nil && cc.Trailer == nil
 	if endStream {
 		return
 	}
 
-	// write data and trailer
 	if !cc.UseStream {
+		cc.SendData = buffer.NewIoBufferBytes(cc.SendData.Bytes())
 		if err = cc.writeDataAndTrailer(); err != nil {
 			cc.conn.HandleError(nil, cc.ID, err, cc.SendData)
-
 		}
 	} else {
 		utils.GoWithRecover(func() {
 			if err = cc.writeDataAndTrailer(); err != nil {
 				cc.conn.HandleError(nil, cc.ID, err, cc.SendData)
-
 			}
 		}, nil)
 	}
@@ -1232,9 +1238,6 @@ func (cc *MClientConn) HandleError(ctx context.Context, streamId uint32, err err
 	if buffer != nil {
 		buffer.CloseWithError(serr)
 	}
-	//todo Distinguish stream and conn err
-	//close connection，because the other thread need delete stream
-	cc.Connection.Close(api.NoFlush, api.RemoteClose)
 }
 
 // HandlerFrame handles Frame for Http2 Client
@@ -1639,7 +1642,7 @@ func (cc *MClientConn) processGoAway(f *GoAwayFrame) error {
 
 func (sc *MClientConn) resetStream(se StreamError) error {
 	if st := sc.streamByID(se.StreamID, true); st != nil {
-		log.DefaultLogger.Warnf("[Mclient Conn] streamId %d send RestFrame ", se.StreamID)
+		log.DefaultLogger.Warnf("[Mclient Conn] streamId %d send ResetFrame ", se.StreamID)
 		buf := buffer.NewIoBuffer(frameHeaderLen + 8)
 		sc.Framer.startWrite(buf, FrameRSTStream, 0, se.StreamID)
 		sc.Framer.writeUint32(buf, uint32(se.Code))

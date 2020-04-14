@@ -191,9 +191,7 @@ func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 	defer conn.mutex.Unlock()
 	if event.IsClose() || event.ConnectFailure() {
 		for _, stream := range conn.streams {
-			if buf := stream.recData; buf != nil {
-				buf.CloseWithError(errClosedServerConn)
-			}
+                stream.ResetStream(types.StreamRemoteReset)
 		}
 	}
 }
@@ -361,6 +359,9 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 		switch err := err.(type) {
 		// todo: other error scenes
 		case http2.StreamError:
+			if err.Code == http2.ErrCodeNo {
+				return
+			}
 			log.Proxy.Errorf(ctx, "Http2 server handleError stream error: %v", err)
 			conn.mutex.Lock()
 			s := conn.streams[err.StreamID]
@@ -389,11 +390,9 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	stream.h2s = h2s
 	stream.conn = conn.conn
 
-	if !endStream {
-		conn.mutex.Lock()
-		conn.streams[stream.id] = stream
-		conn.mutex.Unlock()
-	}
+	conn.mutex.Lock()
+	conn.streams[stream.id] = stream
+	conn.mutex.Unlock()
 
 	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
 
@@ -404,10 +403,6 @@ func (conn *serverStreamConnection) onStreamRecv(ctx context.Context, id uint32,
 	conn.mutex.Lock()
 	defer conn.mutex.Unlock()
 	if stream, ok := conn.streams[id]; ok {
-		if endStream {
-			delete(conn.streams, id)
-		}
-
 		log.Proxy.Debugf(stream.ctx, "http2 server OnStreamRecv, id = %d", stream.id)
 		return stream
 	}
@@ -484,7 +479,11 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers api.Head
 
 func (s *serverStream) ResetStream(reason types.StreamResetReason) {
 	// on stream reset
-	log.Proxy.Errorf(s.ctx, "http2 server reset stream id = %d, error = %v", s.id, reason)
+	log.Proxy.Warnf(s.ctx, "http2 server reset stream id = %d, error = %v", s.id, reason)
+	if s.sc.useStream && s.recData != nil {
+		s.recData.CloseWithError(io.EOF)
+	}
+
 	s.h2s.Reset()
 	s.stream.ResetStream(reason)
 }
@@ -495,10 +494,18 @@ func (s *serverStream) GetStream() types.Stream {
 
 func (s *serverStream) endStream() {
 	_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
+
+	s.sc.mutex.Lock()
+	delete(s.sc.streams, s.id)
+	s.sc.mutex.Unlock()
+
 	if err != nil {
-		log.Proxy.Errorf(s.ctx, "http2 server SendResponse  error :%v", err)
-		s.stream.ResetStream(types.StreamLocalReset)
+		log.Proxy.Errorf(s.ctx, "http2 server SendResponse error :%v", err)
+		s.ResetStream(types.StreamLocalReset)
 		return
+	}
+	if s.sc.useStream && s.recData != nil {
+		s.recData.CloseWithError(io.EOF)
 	}
 
 	log.Proxy.Debugf(s.ctx, "http2 server SendResponse id = %d", s.id)
@@ -720,6 +727,9 @@ func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Fra
 		switch err := err.(type) {
 		// todo: other error scenes
 		case http2.StreamError:
+			if err.Code == http2.ErrCodeNo {
+				return
+			}
 			log.Proxy.Errorf(ctx, "Http2 client handleError stream err: %v", err)
 			conn.mutex.Lock()
 			s := conn.streams[err.StreamID]
@@ -865,22 +875,31 @@ func (s *clientStream) AppendPing(context context.Context) {
 }
 
 func (s *clientStream) endStream() {
-
-	_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
-	s.sc.mutex.Lock()
-	defer s.sc.mutex.Unlock()
-	if err != nil {
-		// todo: other error scenes
-		log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)
-		if err == types.ErrConnectionHasClosed {
-			s.ResetStream(types.StreamConnectionFailed)
-		} else {
-			s.ResetStream(types.StreamLocalReset)
+	encode := func() error {
+		_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
+		if err != nil {
+			// todo: other error scenes
+			log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)
+			if err == types.ErrConnectionHasClosed || err == errClosedClientConn {
+				s.ResetStream(types.StreamConnectionFailed)
+			} else {
+				s.ResetStream(types.StreamLocalReset)
+			}
 		}
+		return err
+	}
+	// send header
+	s.sc.mutex.Lock()
+	if err := encode(); err != nil {
+		s.sc.mutex.Unlock()
 		return
 	}
 	s.id = s.h2s.GetID()
 	s.sc.streams[s.id] = s
+	s.sc.mutex.Unlock()
+
+	// send body and trailer
+	encode()
 
 	log.Proxy.Debugf(s.ctx, "http2 client SendRequest id = %d", s.id)
 }
