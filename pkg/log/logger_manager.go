@@ -92,18 +92,32 @@ func (mng *ErrorLoggerManager) GetOrCreateErrorLogger(p string, level log.Level,
 	return lg, nil
 }
 
-func (mng *ErrorLoggerManager) SetAllErrorLoggerLevel(level log.Level) {
+func (mng *ErrorLoggerManager) SetLogLevelControl(level log.Level) {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
-	for _, lg := range mng.managers {
-		if level < lg.GetLogLevel() {
-			lg.SetLogLevel(level)
-		}
-	}
-
 	// save logLevelControl
 	mng.withLogLevelControl = true
 	mng.logLevelControl = level
+}
+
+func (mng *ErrorLoggerManager) DisableLogLevelControl() {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+
+	mng.withLogLevelControl = false
+	mng.logLevelControl = log.RAW
+}
+
+func (mng *ErrorLoggerManager) SetAllErrorLoggerLevel(level log.Level) {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+	// check logLevelControl
+	if mng.withLogLevelControl && mng.logLevelControl < level {
+		level = mng.logLevelControl
+	}
+	for _, lg := range mng.managers {
+		lg.SetLogLevel(level)
+	}
 }
 
 func (mng *ErrorLoggerManager) Disable() {
@@ -124,14 +138,6 @@ func (mng *ErrorLoggerManager) Enable() {
 	for _, lg := range mng.managers {
 		lg.Toggle(false)
 	}
-}
-
-func (mng *ErrorLoggerManager) DisableLogLevelControl() {
-	mng.mutex.Lock()
-	defer mng.mutex.Unlock()
-
-	mng.withLogLevelControl = false
-	mng.logLevelControl = log.RAW
 }
 
 // Default Export Functions

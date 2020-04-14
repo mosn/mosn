@@ -71,8 +71,9 @@ func TestErrorLoggerManager_EnableDisable(t *testing.T) {
 	}
 }
 
-func TestErrorLoggerManager_DisableLogLevelControl(t *testing.T) {
-	GetErrorLoggerManagerInstance().SetAllErrorLoggerLevel(log.FATAL)
+func TestErrorLoggerManager_LogLevelControl(t *testing.T) {
+	// test Enable
+	GetErrorLoggerManagerInstance().SetLogLevelControl(log.FATAL)
 	if !assert.Truef(t, GetErrorLoggerManagerInstance().withLogLevelControl,
 		"with log level control in errLoggerManagerInstance should be true") {
 		t.FailNow()
@@ -89,6 +90,17 @@ func TestErrorLoggerManager_DisableLogLevelControl(t *testing.T) {
 		t.FailNow()
 	}
 
+	// test SetAllErrorLoggerLevel method controled by logLevelControl
+	GetErrorLoggerManagerInstance().SetAllErrorLoggerLevel(log.INFO)
+	controledlogger, err = GetOrCreateDefaultErrorLogger("/tmp/controled.log", log.INFO)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !assert.Equalf(t, log.FATAL, controledlogger.GetLogLevel(), "level should be contorled, to be fatal") {
+		t.FailNow()
+	}
+
+	// test Disable
 	GetErrorLoggerManagerInstance().DisableLogLevelControl()
 	if !assert.Falsef(t, GetErrorLoggerManagerInstance().withLogLevelControl,
 		"with log level control in errLoggerManagerInstance should be false") {
@@ -104,6 +116,15 @@ func TestErrorLoggerManager_DisableLogLevelControl(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !assert.Equalf(t, log.INFO, notControledlogger.GetLogLevel(), "level should be not contorled, to be info") {
+		t.FailNow()
+	}
+	// test without logLevelControl, SetAllErrorLoggerLevel method can successfully set log level
+	GetErrorLoggerManagerInstance().SetAllErrorLoggerLevel(log.ERROR)
+	notControledlogger, err = GetOrCreateDefaultErrorLogger("/tmp/not_controled.log", log.ERROR)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !assert.Equalf(t, log.ERROR, notControledlogger.GetLogLevel(), "level should be contorled, to be error") {
 		t.FailNow()
 	}
 }
@@ -192,7 +213,6 @@ func TestSetAllErrorLogLevel(t *testing.T) {
 		logs = append(logs, lg)
 	}
 	GetErrorLoggerManagerInstance().SetAllErrorLoggerLevel(log.ERROR)
-	defer GetErrorLoggerManagerInstance().DisableLogLevelControl()
 
 	// verify
 	for _, lg := range logs {
@@ -201,15 +221,15 @@ func TestSetAllErrorLogLevel(t *testing.T) {
 		}
 	}
 
-	// log level higher than log.ERROR should be keeped
-	if fatalLogger.GetLogLevel() != log.FATAL {
-		t.Fatal("fatal logger level should be fatal")
+	// log level higher than log.ERROR should be set
+	if fatalLogger.GetLogLevel() != log.ERROR {
+		t.Fatal("fatal logger level should be error")
 	}
 
-	// logger created after since should be error level
+	// logger created after since should be level in the param
 	loggerAfter, err := GetOrCreateDefaultErrorLogger("/tmp/after.log", log.INFO)
-	if loggerAfter.GetLogLevel() != log.ERROR {
-		t.Fatal("logger created should be error level")
+	if loggerAfter.GetLogLevel() != log.INFO {
+		t.Fatal("logger created should be INFO level")
 	}
 }
 

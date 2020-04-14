@@ -143,7 +143,7 @@ var (
 				if mosnLogLevel == "OFF" {
 					log.GetErrorLoggerManagerInstance().Disable()
 				} else {
-					log.GetErrorLoggerManagerInstance().SetAllErrorLoggerLevel(configmanager.ParseLogLevel(mosnLogLevel))
+					log.GetErrorLoggerManagerInstance().SetLogLevelControl(configmanager.ParseLogLevel(mosnLogLevel))
 				}
 			}
 
