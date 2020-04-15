@@ -139,7 +139,7 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 }
 
 // TODO support more LB converter
-func convertLbConfig(config interface{}) interface{} {
+func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
 	switch config.(type) {
 	case *xdsv2.Cluster_LeastRequestLbConfig:
 		return &v2.LeastRequestLbConfig{ChoiceCount:config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}

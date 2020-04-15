@@ -77,7 +77,7 @@ type LBSubsetEntry interface {
 	// Children returns the next lb subset map
 	Children() LbSubsetMap
 
-	CreateLoadBalancer(LoadBalancerType, HostSet)
+	CreateLoadBalancer(ClusterInfo, HostSet)
 
 	LoadBalancer() LoadBalancer
 

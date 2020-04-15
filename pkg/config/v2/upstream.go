@@ -86,7 +86,7 @@ type Cluster struct {
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
-	LbConfig             interface{}
+	LbConfig             IsCluster_LbConfig  `json:"lbconfig,omitempty"`
 }
 
 // HealthCheck is a configuration of health check

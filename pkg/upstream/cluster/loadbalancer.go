@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"math/rand"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,11 +29,11 @@ import (
 )
 
 // NewLoadBalancer can be register self defined type
-var lbFactories map[types.LoadBalancerType]func(types.HostSet) types.LoadBalancer
+var lbFactories map[types.LoadBalancerType]func(types.ClusterInfo, types.HostSet) types.LoadBalancer
 
-func RegisterLBType(lbType types.LoadBalancerType, f func(types.HostSet) types.LoadBalancer) {
+func RegisterLBType(lbType types.LoadBalancerType, f func(types.ClusterInfo, types.HostSet) types.LoadBalancer) {
 	if lbFactories == nil {
-		lbFactories = make(map[types.LoadBalancerType]func(types.HostSet) types.LoadBalancer)
+		lbFactories = make(map[types.LoadBalancerType]func(types.ClusterInfo, types.HostSet) types.LoadBalancer)
 	}
 	lbFactories[lbType] = f
 }
@@ -48,11 +49,12 @@ func init() {
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
 }
 
-func NewLoadBalancer(lbType types.LoadBalancerType, hosts types.HostSet) types.LoadBalancer {
+func NewLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	lbType := info.LbType()
 	if f, ok := lbFactories[lbType]; ok {
-		return f(hosts)
+		return f(info, hosts)
 	}
-	return rrFactory.newRoundRobinLoadBalancer(hosts)
+	return rrFactory.newRoundRobinLoadBalancer(info, hosts)
 }
 
 // LoadBalancer Implementations
@@ -63,7 +65,7 @@ type randomLoadBalancer struct {
 	hosts types.HostSet
 }
 
-func newRandomLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+func newRandomLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	return &randomLoadBalancer{
 		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
 		hosts: hosts,
@@ -107,7 +109,7 @@ type roundRobinLoadBalancerFactory struct {
 	rand  *rand.Rand
 }
 
-func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	var idx uint32
 	hostsList := hosts.Hosts()
 	f.mutex.Lock()
@@ -145,16 +147,20 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 	return len(lb.hosts.Hosts())
 }
 
+const default_choice  = 2
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
 	*EdfLoadBalancer
-	choice int
+	choice uint32
 }
 
-func newleastActiveRequestLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
-	// TODO init the choice num with the least request config
-	lb.choice = 2
+	if info.LbConfig() != nil {
+		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
+	} else {
+		lb.choice = default_choice
+	}
 	lb.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, lb.unweightChooseHost)
 	return lb
 }
@@ -176,7 +182,7 @@ func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadB
 		// Choose `choice` times and return the best one
 		// See The Power of Two Random Choices: A Survey of Techniques and Results
 		//  http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
-		for cur := 0; cur < lb.choice; cur++ {
+		for cur := 0; cur < int(lb.choice); cur++ {
 
 			randIdx := lb.rand.Intn(healthyHostLen)
 			tempHost := healthyHosts[randIdx]
