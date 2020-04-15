@@ -400,6 +400,7 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
 	stream.sc = conn
 	stream.h2s = h2s
+	stream.h2s.UseStream = conn.useStream
 	stream.conn = conn.conn
 
 	conn.mutex.Lock()
@@ -535,6 +536,7 @@ func (s *serverStream) endStream() {
 
 type clientStreamConnection struct {
 	streamConnection
+	lastStream                    uint32
 	mutex                         sync.RWMutex
 	streams                       map[uint32]*clientStream
 	mClientConn                   *http2.MClientConn
@@ -570,7 +572,7 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 	return sc
 }
 
-var errClosedClientConn = errors.New("client conn is closed")
+var errClosedClientConn = errors.New("http2: client conn is closed")
 
 func (conn *clientStreamConnection) OnEvent(event api.ConnectionEvent) {
 	conn.mutex.Lock()
@@ -633,12 +635,6 @@ func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 	conn.mutex.Lock()
 	defer conn.mutex.Unlock()
 
-	// todo：hack for goaway causes failed
-	switch reason {
-	case types.StreamConnectionTermination:
-		reason = types.StreamConnectionFailed
-	}
-
 	for _, stream := range conn.streams {
 		stream.ResetStream(reason)
 	}
@@ -665,15 +661,23 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	var data []byte
 	var trailer http.Header
 	var rsp *http.Response
+	var lastStream uint32
 
-	rsp, data, trailer, endStream, err = conn.mClientConn.HandleFrame(ctx, f)
+	rsp, data, trailer, endStream, lastStream, err = conn.mClientConn.HandleFrame(ctx, f)
 
 	if err != nil {
 		conn.handleError(ctx, f, err)
 		return
 	}
 
-	if rsp == nil && trailer == nil && data == nil && !endStream {
+	if rsp == nil && trailer == nil && data == nil && !endStream && lastStream == 0 {
+		return
+	}
+
+	if lastStream != 0 {
+		conn.lastStream = lastStream
+		conn.streamConnectionEventListener.OnGoAway()
+		log.DefaultLogger.Debugf("http2 client recevice goaway lastStremID = %d", conn.lastStream)
 		return
 	}
 
@@ -681,9 +685,6 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 
 	conn.mutex.Lock()
 	stream := conn.streams[id]
-	if endStream && stream != nil {
-		delete(conn.streams, id)
-	}
 	conn.mutex.Unlock()
 
 	if stream == nil {
@@ -705,6 +706,11 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 
 		if endStream {
 			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
+
+			conn.mutex.Lock()
+			delete(conn.streams, id)
+			conn.mutex.Unlock()
+
 			return
 		}
 		stream.header = header
@@ -747,8 +753,10 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Infof("http2 client stream receive end %d", id)
 		}
+		conn.mutex.Lock()
+		delete(conn.streams, id)
+		conn.mutex.Unlock()
 	}
-
 }
 
 func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Frame, err error) {
@@ -891,7 +899,7 @@ func (s *clientStream) AppendTrailers(context context.Context, trailers api.Head
 		s.h2s.Trailer = &header
 	}
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.ctx, "http2 client AppendTrailers: id = %d, trailer = %+v", s.id, s.h2s.Request.Trailer)
+		log.Proxy.Debugf(s.ctx, "http2 client AppendTrailers: id = %d, trailer = %+v", s.id, s.h2s.Trailer)
 	}
 	s.endStream()
 
@@ -944,4 +952,21 @@ func (s *clientStream) endStream() {
 
 func (s *clientStream) GetStream() types.Stream {
 	return s
+}
+
+func (s *clientStream) ResetStream(reason types.StreamResetReason) {
+	// reset by goaway, support retry.
+	if s.sc.lastStream > 0 && s.id > s.sc.lastStream {
+		log.DefaultLogger.Warnf("http2 client reset by goaway, retry it, lastStream = %d, streamId = %d", s.sc.lastStream, s.id)
+		reason = types.StreamConnectionFailed
+	}
+	switch reason {
+	case types.StreamConnectionTermination:
+		reason = types.StreamConnectionFailed
+	}
+
+	if s.h2s != nil {
+		s.h2s.Reset()
+	}
+	s.stream.ResetStream(reason)
 }

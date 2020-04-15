@@ -71,6 +71,9 @@ func (p *connPool) NewStream(ctx context.Context,
 	activeClient := func() *activeClient {
 		p.mux.Lock()
 		defer p.mux.Unlock()
+		if p.activeClient != nil && atomic.LoadUint32(&p.activeClient.goaway) == 1 {
+			p.activeClient = nil
+		}
 		if p.activeClient == nil {
 			p.activeClient = newActiveClient(ctx, p)
 		}
@@ -126,6 +129,9 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 			}
 		}
+		if atomic.LoadUint32(&client.goaway) == 1 {
+			return
+		}
 		p.mux.Lock()
 		p.activeClient = nil
 		p.mux.Unlock()
@@ -172,6 +178,7 @@ type activeClient struct {
 	host               types.CreateConnectionData
 	closeWithActiveReq bool
 	totalStream        uint64
+	goaway             uint32
 }
 
 func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
@@ -217,5 +224,6 @@ func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 }
 
 // types.StreamConnectionEventListener
-// todo: support http2 goaway
-func (ac *activeClient) OnGoAway() {}
+func (ac *activeClient) OnGoAway() {
+	atomic.StoreUint32(&ac.goaway, 1)
+}
