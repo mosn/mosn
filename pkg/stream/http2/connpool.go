@@ -103,8 +103,9 @@ func (p *connPool) NewStream(ctx context.Context,
 }
 
 func (p *connPool) Close() {
-	if p.activeClient != nil {
-		p.activeClient.client.Close()
+	activeClient := p.activeClient
+	if activeClient != nil {
+		activeClient.client.Close()
 	}
 }
 
@@ -125,16 +126,16 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 			}
 		}
+		p.mux.Lock()
 		p.activeClient = nil
+		p.mux.Unlock()
 	} else if event == api.ConnectTimeout {
 		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		client.client.Close()
-		p.activeClient = nil
 	} else if event == api.ConnectFailed {
 		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
 		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
-		p.activeClient = nil
 	}
 }
 
@@ -179,17 +180,17 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 	}
 
 	data := pool.host.CreateConnection(ctx)
-	ac.host = data
-	if err := ac.host.Connection.Connect(); err != nil {
-		return nil
-	}
-
 	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient
+	ac.host = data
+
+	if err := ac.host.Connection.Connect(); err != nil {
+		return nil
+	}
 
 	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
 	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
