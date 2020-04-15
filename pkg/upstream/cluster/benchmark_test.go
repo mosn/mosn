@@ -210,7 +210,7 @@ func BenchmarkRandomLB(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, nil)
 	hostSet.setFinalHost(hosts)
-	lb := newRandomLoadBalancer(hostSet)
+	lb := newRandomLoadBalancer(nil, hostSet)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			lb.ChooseHost(nil)
@@ -237,7 +237,7 @@ func BenchmarkRoundRobinLB(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, nil)
 	hostSet.setFinalHost(hosts)
-	lb := rrFactory.newRoundRobinLoadBalancer(hostSet)
+	lb := rrFactory.newRoundRobinLoadBalancer(nil, hostSet)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			lb.ChooseHost(nil)
@@ -264,7 +264,7 @@ func BenchmarkLeastActiveRequestLB(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, map[string]string{"cluster":""})
 	hostSet.setFinalHost(hosts)
-	lb := newleastActiveRequestLoadBalancer(hostSet)
+	lb := newleastActiveRequestLoadBalancer(nil, hostSet)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			lb.ChooseHost(nil)

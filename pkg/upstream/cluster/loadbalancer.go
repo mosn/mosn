@@ -147,7 +147,8 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 	return len(lb.hosts.Hosts())
 }
 
-const default_choice  = 2
+const default_choice = 2
+
 // leastActiveRequestLoadBalancer choose the host with the least active request
 type leastActiveRequestLoadBalancer struct {
 	*EdfLoadBalancer
@@ -156,7 +157,7 @@ type leastActiveRequestLoadBalancer struct {
 
 func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	lb := &leastActiveRequestLoadBalancer{}
-	if info.LbConfig() != nil {
+	if info != nil && info.LbConfig() != nil {
 		lb.choice = info.LbConfig().(*v2.LeastRequestLbConfig).ChoiceCount
 	} else {
 		lb.choice = default_choice

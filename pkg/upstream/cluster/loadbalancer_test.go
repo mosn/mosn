@@ -7,14 +7,14 @@ import (
 )
 
 func TestNewLARBalancer(t *testing.T) {
-	balancer := NewLoadBalancer(types.LeastActiveRequest, &hostSet{})
+	balancer := NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, &hostSet{})
 	assert.NotNil(t, balancer)
 	assert.IsType(t, &leastActiveRequestLoadBalancer{}, balancer)
 }
 
 func TestLARChooseHost(t *testing.T) {
 	hosts := createHostsetWithStats(exampleHostConfigs(), "test")
-	balancer := NewLoadBalancer(types.LeastActiveRequest, hosts)
+	balancer := NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	host := balancer.ChooseHost(newMockLbContext(nil))
 	assert.NotNil(t, host)
 
@@ -27,14 +27,14 @@ func TestLARChooseHost(t *testing.T) {
 	// test only one host
 	h := exampleHostConfigs()[0:1]
 	hosts = createHostsetWithStats(h, "test")
-	balancer = NewLoadBalancer(types.LeastActiveRequest, hosts)
+	balancer = NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	actual = balancer.ChooseHost(nil)
 	assert.Equal(t, hosts.healthyHosts[0], actual)
 
 	// test no host
 	h = exampleHostConfigs()[0:0]
 	hosts = createHostsetWithStats(h, "test")
-	balancer = NewLoadBalancer(types.LeastActiveRequest, hosts)
+	balancer = NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	actual = balancer.ChooseHost(nil)
 	assert.Nil(t, actual)
 
