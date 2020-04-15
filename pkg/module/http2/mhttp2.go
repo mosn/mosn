@@ -1218,8 +1218,7 @@ func (ms *MClientStream) Reset() {
 	if ms.clientStream == nil {
 		return
 	}
-	ev := streamError(ms.ID, ErrCodeInternal)
-	ms.conn.resetStream(ev)
+	ms.conn.streamByID(ms.ID, true)
 }
 
 func (cc *MClientConn) writeHeaders(streamID uint32, endStream bool, maxFrameSize int, hdrs []byte) error {
