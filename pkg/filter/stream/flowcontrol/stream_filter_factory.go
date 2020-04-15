@@ -10,8 +10,6 @@ import (
 	"mosn.io/api"
 )
 
-const alipayLimitFilterName = "alipayLimitFilter"
-
 type FlowControlConfig struct {
 	GlobalSwitch bool       `json:"global_switch"`
 	Monitor      bool       `json:"monitor"`
@@ -30,7 +28,7 @@ type FlowRule struct {
 }
 
 func init() {
-	api.RegisterStream(alipayLimitFilterName, createRpcFlowControlFilterFactory)
+	api.RegisterStream(FlowControlFilterName, createRpcFlowControlFilterFactory)
 }
 
 // StreamFilterFactory represents the stream filter factory.

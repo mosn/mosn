@@ -11,6 +11,9 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+// FlowControlFilterName is the flow control stream filter name.
+const FlowControlFilterName = "flowControlFilter"
+
 var (
 	once             sync.Once
 	defaultCallbacks = &DefaultCallbacks{}
@@ -24,7 +27,7 @@ func init() {
 	}
 }
 
-// StreamFilter represents the default flow control stream filter.
+// StreamFilter represents the flow control stream filter.
 type StreamFilter struct {
 	Entry      *base.SentinelEntry
 	BlockError *base.BlockError
@@ -34,20 +37,12 @@ type StreamFilter struct {
 
 // NewStreamFilter creates flow control filter.
 func NewStreamFilter(callbacks Callbacks) *StreamFilter {
-	filter := &StreamFilter{Callbacks: callbacks}
-	filter.init()
-	return filter
+	callbacks.Init()
+	return &StreamFilter{Callbacks: callbacks}
 }
 
 func (rc *StreamFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	rc.handler = handler
-}
-
-func (f *StreamFilter) init() {
-	if f.Callbacks == nil {
-		f.Callbacks = defaultCallbacks
-	}
-	f.Callbacks.Init(f)
 }
 
 // OnReceive creates resource and judges whether current request should be blocked.
@@ -55,14 +50,13 @@ func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap, b
 	if !f.Callbacks.Enabled() {
 		return api.StreamFilterContinue
 	}
-	resource := f.Callbacks.ParseResource(ctx, headers, buf, trailers)
-	if resource == nil {
+	pr := f.Callbacks.ParseResource(ctx, headers, buf, trailers)
+	if pr == nil {
 		log.DefaultLogger.Warnf("can't get resource: %+v", headers)
 		return api.StreamFilterContinue
 	}
 
-	entry, err := sentinel.Entry(resource.Name(),
-		sentinel.WithTrafficType(resource.FlowType()))
+	entry, err := sentinel.Entry(pr.resource.Name(), pr.opts...)
 	f.Entry = entry
 	f.BlockError = err
 	if err != nil {
