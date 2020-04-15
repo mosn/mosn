@@ -25,26 +25,28 @@ type ParsedResource struct {
 }
 
 // DefaultCallbacks represents the default flow control filter implementation.
-type DefaultCallbacks struct{}
+type DefaultCallbacks struct {
+	enabled *bool
+}
 
 // Init is a no-op.
-func (nc *DefaultCallbacks) Init() {}
+func (dc *DefaultCallbacks) Init() {}
 
 // ParseResource is a no-op.
-func (nc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) *ParsedResource {
+func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) *ParsedResource {
 	return nil
 }
 
 // AfterBlock is a no-op.
-func (nc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
+func (dc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 }
 
 // AfterPass is a no-op.
-func (nc *DefaultCallbacks) AfterPass(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
+func (dc *DefaultCallbacks) AfterPass(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 }
 
 // Exit is a no-op.
-func (nc *DefaultCallbacks) Exit(filter *StreamFilter) {}
+func (dc *DefaultCallbacks) Exit(filter *StreamFilter) {}
 
-// Enabled always returns true.
-func (nc *DefaultCallbacks) Enabled() bool { return true }
+// Enabled reports whether the callbacks enabled.
+func (dc *DefaultCallbacks) Enabled() bool { return *dc.enabled }

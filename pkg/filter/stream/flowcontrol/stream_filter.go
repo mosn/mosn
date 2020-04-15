@@ -15,8 +15,7 @@ import (
 const FlowControlFilterName = "flowControlFilter"
 
 var (
-	once             sync.Once
-	defaultCallbacks = &DefaultCallbacks{}
+	once sync.Once
 )
 
 func init() {
@@ -41,8 +40,8 @@ func NewStreamFilter(callbacks Callbacks) *StreamFilter {
 	return &StreamFilter{Callbacks: callbacks}
 }
 
-func (rc *StreamFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
-	rc.handler = handler
+func (f *StreamFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
+	f.handler = handler
 }
 
 // OnReceive creates resource and judges whether current request should be blocked.

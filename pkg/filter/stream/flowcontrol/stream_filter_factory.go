@@ -32,12 +32,14 @@ func init() {
 }
 
 // StreamFilterFactory represents the stream filter factory.
-type StreamFilterFactory struct{}
+type StreamFilterFactory struct {
+	config *FlowControlConfig
+}
 
 // CreateFilterChain add the flow control stream filter to filter chain.
 func (f *StreamFilterFactory) CreateFilterChain(context context.Context,
 	callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := NewStreamFilter(defaultCallbacks)
+	filter := NewStreamFilter(&DefaultCallbacks{enabled: &f.config.GlobalSwitch})
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 
@@ -62,6 +64,6 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 		log.DefaultLogger.Errorf("update rules failed")
 		return nil, err
 	}
-	factory := &StreamFilterFactory{}
+	factory := &StreamFilterFactory{config: flowControlCfg}
 	return factory, nil
 }
