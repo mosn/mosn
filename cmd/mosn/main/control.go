@@ -35,6 +35,16 @@ import (
 )
 
 var (
+	flagToMosnLogLevel = map[string]string{
+		"trace":    "TRACE",
+		"debug":    "DEBUG",
+		"info":     "INFO",
+		"warning":  "WARN",
+		"error":    "ERROR",
+		"critical": "FATAL",
+		"off":      "OFF",
+	}
+
 	cmdStart = cli.Command{
 		Name:  "start",
 		Usage: "start mosn proxy",
@@ -84,6 +94,34 @@ var (
 				Name:   "pod-ip, pi",
 				Usage:  "mosn pod ip",
 				EnvVar: "POD_IP",
+			}, cli.StringFlag{
+				Name:   "log-level, l",
+				Usage:  "mosn log level, trace|debug|info|warning|error|critical|off",
+				EnvVar: "LOG_LEVEL",
+			}, cli.StringFlag{
+				Name:   "log-format, lf",
+				Usage:  "mosn log format, currently useless",
+			}, cli.StringSliceFlag{
+				Name:  "component-log-level, lc",
+				Usage: "mosn component format, currently useless",
+			}, cli.StringFlag{
+				Name:  "local-address-ip-version",
+				Usage: "ip version, v4 or v6, currently useless",
+			}, cli.IntFlag{
+				Name:  "restart-epoch",
+				Usage: "eporch to restart, align to Istio startup params, currently useless",
+			}, cli.IntFlag{
+				Name:  "drain-time-s",
+				Usage: "seconds to drain, align to Istio startup params, currently useless",
+			}, cli.StringFlag{
+				Name:  "parent-shutdown-time-s",
+				Usage: "parent shutdown time seconds, align to Istio startup params, currently useless",
+			}, cli.IntFlag{
+				Name:  "max-obj-name-len",
+				Usage: "object name limit, align to Istio startup params, currently useless",
+			}, cli.IntFlag{
+				Name:  "concurrency",
+				Usage: "concurrency, align to Istio startup params, currently useless",
 			},
 		},
 		Action: func(c *cli.Context) error {
@@ -98,7 +136,17 @@ var (
 			podNamespace := c.String("pod-namespace")
 			podIp := c.String("pod-ip")
 
+			flagLogLevel := c.String("log-level")
+
 			conf := configmanager.Load(configPath)
+			if mosnLogLevel, ok := flagToMosnLogLevel[flagLogLevel]; ok {
+				if mosnLogLevel == "OFF" {
+					log.GetErrorLoggerManagerInstance().Disable()
+				} else {
+					log.GetErrorLoggerManagerInstance().SetLogLevelControl(configmanager.ParseLogLevel(mosnLogLevel))
+				}
+			}
+
 			// set feature gates
 			err := featuregate.Set(c.String("feature-gates"))
 			if err != nil {
