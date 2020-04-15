@@ -33,13 +33,13 @@ func init() {
 	api.RegisterStream(alipayLimitFilterName, createRpcFlowControlFilterFactory)
 }
 
-// FlowControlStreamFilterFactory represents the stream filter.
-type FlowControlStreamFilterFactory struct{}
+// StreamFilterFactory represents the stream filter factory.
+type StreamFilterFactory struct{}
 
 // CreateFilterChain add the flow control stream filter to filter chain.
-func (f *FlowControlStreamFilterFactory) CreateFilterChain(context context.Context,
+func (f *StreamFilterFactory) CreateFilterChain(context context.Context,
 	callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := NewDefaultFlowControlStreamFilter()
+	filter := NewStreamFilter(defaultCallbacks)
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 
@@ -64,6 +64,6 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 		log.DefaultLogger.Errorf("update rules failed")
 		return nil, err
 	}
-	factory := &FlowControlStreamFilterFactory{}
+	factory := &StreamFilterFactory{}
 	return factory, nil
 }

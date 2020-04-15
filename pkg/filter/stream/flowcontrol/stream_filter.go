@@ -24,14 +24,26 @@ func init() {
 	}
 }
 
-// FlowControlStreamFilter represents the flow control stream filter.
-type FlowControlStreamFilter struct {
+// StreamFilter represents the default flow control stream filter.
+type StreamFilter struct {
 	Entry      *base.SentinelEntry
 	BlockError *base.BlockError
-	Callbacks  FlowControlCallbacks
+	Callbacks  Callbacks
+	handler    api.StreamReceiverFilterHandler
 }
 
-func (f *FlowControlStreamFilter) init() {
+// NewStreamFilter creates flow control filter.
+func NewStreamFilter(callbacks Callbacks) *StreamFilter {
+	filter := &StreamFilter{Callbacks: callbacks}
+	filter.init()
+	return filter
+}
+
+func (rc *StreamFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
+	rc.handler = handler
+}
+
+func (f *StreamFilter) init() {
 	if f.Callbacks == nil {
 		f.Callbacks = defaultCallbacks
 	}
@@ -39,7 +51,7 @@ func (f *FlowControlStreamFilter) init() {
 }
 
 // OnReceive creates resource and judges whether current request should be blocked.
-func (f *FlowControlStreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if !f.Callbacks.Enabled() {
 		return api.StreamFilterContinue
 	}
@@ -63,7 +75,7 @@ func (f *FlowControlStreamFilter) OnReceive(ctx context.Context, headers types.H
 }
 
 // OnDestroy does some exit tasks.
-func (f *FlowControlStreamFilter) OnDestroy() {
+func (f *StreamFilter) OnDestroy() {
 	if f.Entry != nil {
 		f.Callbacks.Exit(f)
 		f.Entry.Exit()
