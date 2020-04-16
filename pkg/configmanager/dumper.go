@@ -84,7 +84,7 @@ func dumpRouterConfig() bool {
 		if data, err := json.MarshalIndent(routerConfig, "", " "); err == nil {
 			cfg := make(map[string]interface{})
 			if err := json.Unmarshal(data, &cfg); err != nil {
-				log.DefaultLogger.Errorf("[config] [dump] invalid router config, update config failed")
+				log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "[config] [dump] invalid router config, update config failed")
 				continue
 			}
 			filter := v2.Filter{

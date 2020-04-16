@@ -66,7 +66,7 @@ var firstInterval = time.Second
 func (c *sessionChecker) Start() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("[upstream] [health check] [session checker] panic %v\n%s", r, string(debug.Stack()))
+			log.DefaultLogger.Alertf("healthcheck.session", "[upstream] [health check] [session checker] panic %v\n%s", r, string(debug.Stack()))
 		}
 		// stop all the timer when start is finished
 		c.checkTimer.Stop()

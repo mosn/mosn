@@ -947,7 +947,7 @@ func (s *downStream) appendHeaders(endStream bool) {
 	headers := s.convertHeader(s.downstreamRespHeaders)
 	//Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
-		log.Proxy.Alertf(s.context, types.ErrorKeyAppendHeader, "append headers error: %s", err)
+		log.Proxy.Errorf(s.context, "append headers error: %s", err)
 	}
 
 	if endStream {
