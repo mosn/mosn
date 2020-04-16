@@ -125,11 +125,15 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	proxyBuffers := proxyBuffersByContext(ctx)
 
+	// save downstream protocol
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proxy.serverStreamConn.Protocol())
+
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
+	stream.requestInfo.SetProtocol(proxy.serverStreamConn.Protocol())
 	stream.requestInfo.SetDownstreamLocalAddress(proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	stream.requestInfo.SetDownstreamRemoteAddress(proxy.readCallbacks.Connection().RemoteAddr())
