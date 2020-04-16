@@ -11,20 +11,16 @@ import (
 )
 
 type FlowControlConfig struct {
-	GlobalSwitch bool       `json:"global_switch"`
-	Monitor      bool       `json:"monitor"`
-	Rules        []FlowRule `json:"rules"`
+	GlobalSwitch bool             `json:"global_switch"`
+	Monitor      bool             `json:"monitor"`
+	KeyType      string           `json:"limit_key_type"`
+	Action       FlowAction       `json:"action"`
+	Rules        []*flow.FlowRule `json:"rules"`
 }
 
 type FlowAction struct {
-	Status uint   `json:"status"`
+	Status int    `json:"status"`
 	Body   string `json:"body"`
-}
-
-type FlowRule struct {
-	KeyType string         `json:"limit_key_type"`
-	Action  FlowAction     `json:"action"`
-	Rule    *flow.FlowRule `json:"rule"`
 }
 
 func init() {
@@ -39,7 +35,7 @@ type StreamFilterFactory struct {
 // CreateFilterChain add the flow control stream filter to filter chain.
 func (f *StreamFilterFactory) CreateFilterChain(context context.Context,
 	callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := NewStreamFilter(&DefaultCallbacks{enabled: &f.config.GlobalSwitch})
+	filter := NewStreamFilter(&DefaultCallbacks{config: f.config})
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 
@@ -55,11 +51,7 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 		log.DefaultLogger.Errorf("parse flow control filter config failed")
 		return nil, err
 	}
-	rules := []*flow.FlowRule{}
-	for _, rule := range flowControlCfg.Rules {
-		rules = append(rules, rule.Rule)
-	}
-	_, err = flow.LoadRules(rules)
+	_, err = flow.LoadRules(flowControlCfg.Rules)
 	if err != nil {
 		log.DefaultLogger.Errorf("update rules failed")
 		return nil, err
