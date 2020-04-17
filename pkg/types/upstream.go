@@ -216,6 +216,8 @@ type Resource interface {
 	Increase()
 	Decrease()
 	Max() uint64
+	Cur() int64
+	UpdateCur(int64)
 }
 
 // HostStats defines a host's statistics information

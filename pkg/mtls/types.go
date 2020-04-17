@@ -1,3 +1,5 @@
+// +build !BabaSSL
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -27,7 +29,7 @@ import (
 // Support Protocols version
 const (
 	minProtocols uint16 = tls.VersionTLS10
-	maxProtocols uint16 = tls.VersionTLS12
+	maxProtocols uint16 = tls.VersionTLS13
 )
 
 // version string map
@@ -36,6 +38,7 @@ var version = map[string]uint16{
 	"tlsv1_0":  tls.VersionTLS10,
 	"tlsv1_1":  tls.VersionTLS11,
 	"tlsv1_2":  tls.VersionTLS12,
+	"tlsv1_3":  tls.VersionTLS13,
 }
 
 // Curves
@@ -74,8 +77,6 @@ var (
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
 		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_SM4_SM3,
-		tls.TLS_ECDHE_ECDSA_WITH_SM4_SM3,
 	}
 	ciphersMap = map[string]uint16{
 		"ECDHE-ECDSA-AES256-GCM-SHA384":      tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
@@ -92,8 +93,6 @@ var (
 		"RSA-AES128-CBC-SHA":                 tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 		"ECDHE-RSA-3DES-EDE-CBC-SHA":         tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
 		"RSA-3DES-EDE-CBC-SHA":               tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-		"ECDHE-RSA-SM4-SM3":                  tls.TLS_ECDHE_RSA_WITH_SM4_SM3,
-		"ECDHE-ECDSA-SM4-SM3":                tls.TLS_ECDHE_ECDSA_WITH_SM4_SM3,
 	}
 )
 

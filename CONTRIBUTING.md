@@ -25,7 +25,7 @@ paragraph on what the class is for.
 
 ## Version naming convention
 
-SOFAMosn's version contains three-digit with the format x.x.x, the first one is for compatibility; the second one is for new features and enhancement; the last one is for a bug fix.
+MOSN's version contains three-digit with the format x.x.x, the first one is for compatibility; the second one is for new features and enhancement; the last one is for a bug fix.
 
 ## PR review policy for maintainers
 
