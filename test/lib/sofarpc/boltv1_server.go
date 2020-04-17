@@ -95,7 +95,7 @@ func (s *BoltV1Serve) Serve(reqdata types.IoBuffer) *WriteResponseData {
 		var resp xprotocol.XRespFrame
 		switch req.CmdCode {
 		case bolt.CmdCodeHeartbeat:
-			resp = engine.Reply(req.GetRequestId())
+			resp = engine.Reply(req)
 			status = int16(bolt.ResponseStatusSuccess) // heartbeat must be success
 		case bolt.CmdCodeRpcRequest:
 			resp = s.MakeResponse(req)

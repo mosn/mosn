@@ -23,6 +23,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
@@ -294,16 +296,18 @@ func newActiveClient(ctx context.Context, subProtocol types.ProtocolName, pool *
 
 	// Add Keep Alive
 	// protocol is from onNewDetectStream
-	// TODO: support protocol convert
-
-	// TODO: support config
 	if subProtocol != "" {
-		rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second, 6)
-		rpcKeepAlive.StartIdleTimeout()
-		ac.keepAlive = &keepAliveListener{
-			keepAlive: rpcKeepAlive,
+		// check heartbeat enable, hack: judge trigger result of Heartbeater
+		proto := xprotocol.GetProtocol(subProtocol)
+		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+			// create keepalive
+			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second, 6)
+			rpcKeepAlive.StartIdleTimeout()
+			ac.keepAlive = &keepAliveListener{
+				keepAlive: rpcKeepAlive,
+			}
+			ac.client.AddConnectionEventListener(ac.keepAlive)
 		}
-		ac.client.AddConnectionEventListener(ac.keepAlive)
 	}
 
 	if err := ac.client.Connect(); err != nil {

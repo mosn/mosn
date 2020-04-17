@@ -115,21 +115,21 @@ func (proto *boltProtocol) Trigger(requestId uint64) xprotocol.XFrame {
 			CmdCode:   CmdCodeHeartbeat,
 			Version:   1,
 			RequestId: uint32(requestId),
-			Codec:     Hessian2Serialize, //todo: read default codec from config
+			Codec:     Hessian2Serialize,
 			Timeout:   -1,
 		},
 	}
 }
 
-func (proto *boltProtocol) Reply(requestId uint64) xprotocol.XRespFrame {
+func (proto *boltProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,
 			CmdType:        CmdTypeResponse,
 			CmdCode:        CmdCodeHeartbeat,
 			Version:        ProtocolVersion,
-			RequestId:      uint32(requestId),
-			Codec:          Hessian2Serialize, //todo: read default codec from config
+			RequestId:      uint32(request.GetRequestId()),
+			Codec:          Hessian2Serialize,
 			ResponseStatus: ResponseStatusSuccess,
 		},
 	}

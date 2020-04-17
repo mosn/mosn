@@ -128,7 +128,12 @@ func StartService(inheritListeners []net.Listener) error {
 			// set metrics
 			metrics.AddListenerAddr(s.Addr)
 			log.StartLogger.Infof("[admin store] [start service] start service %s on %s", s.name, ln.Addr().String())
-			s.Serve(ln)
+
+			err := s.Serve(ln)
+			if err != nil {
+				log.StartLogger.Warnf("[admin store] [start service] start serve failed : %s %s %s", s.name, ln.Addr().String(), err.Error())
+			}
+
 		}, nil)
 	}
 	return nil

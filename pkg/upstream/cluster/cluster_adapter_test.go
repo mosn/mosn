@@ -58,7 +58,7 @@ func _createClusterManager() types.ClusterManager {
 			"zone":    "a",
 		},
 	}
-	clusterMangerInstance.Destroy() // Destroy for test
+	clusterManagerInstance.Destroy() // Destroy for test
 	return NewClusterManagerSingleton([]v2.Cluster{clusterConfig}, map[string][]v2.Host{
 		"test1": []v2.Host{host1, host2},
 	})
@@ -257,7 +257,7 @@ func TestConnPoolUpdateTLS(t *testing.T) {
 			TLSDisable: true,
 		},
 	}
-	clusterMangerInstance.Destroy() // Destroy for test
+	clusterManagerInstance.Destroy() // Destroy for test
 	NewClusterManagerSingleton([]v2.Cluster{clusterConfig}, map[string][]v2.Host{
 		"test1": []v2.Host{host},
 	})
