@@ -1318,6 +1318,7 @@ func (sc *MClientConn) HandleFrame(ctx context.Context, f Frame) (*http.Response
 	}
 
 	if err != nil {
+		log.DefaultLogger.Errorf("http2 HandleFrame error: %+v, %+v", f, err)
 		switch ev := err.(type) {
 		case StreamError:
 			sc.resetStream(ev)
@@ -1455,7 +1456,7 @@ func (cc *MClientConn) processData(ctx context.Context, f *DataFrame) (bool, err
 
 			cc.Framer.writeWindowUpdate(0, uint32(f.Length))
 		}
-		return false, ConnectionError(ErrCodeProtocol)
+		return false, streamError(f.StreamID, ErrCodeStreamClosed)
 	}
 	if !cs.firstByte {
 		cc.logf("protocol error: received DATA before a HEADERS frame")
