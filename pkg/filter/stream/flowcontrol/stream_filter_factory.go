@@ -3,6 +3,7 @@ package flowcontrol
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"mosn.io/mosn/pkg/types"
 
@@ -57,9 +58,14 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 		log.DefaultLogger.Errorf("marshal flow control filter config failed")
 		return nil, err
 	}
-	err = json.Unmarshal(cfg, &flowControlCfg)
+	err = json.Unmarshal(cfg, flowControlCfg)
 	if err != nil {
 		log.DefaultLogger.Errorf("parse flow control filter config failed")
+		return nil, err
+	}
+	_, err = isValidConfig(flowControlCfg)
+	if err != nil {
+		log.DefaultLogger.Errorf("invalid configuration: %v", err)
 		return nil, err
 	}
 	_, err = flow.LoadRules(flowControlCfg.Rules)
@@ -69,4 +75,13 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 	}
 	factory := &StreamFilterFactory{config: flowControlCfg}
 	return factory, nil
+}
+
+func isValidConfig(cfg *Config) (bool, error) {
+	switch cfg.KeyType {
+	case api.PATH, api.ARG, api.URI:
+	default:
+		return false, errors.New("invalid key type")
+	}
+	return true, nil
 }
