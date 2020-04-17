@@ -169,7 +169,10 @@ func (ms *MStream) awaitFlowControl(maxBytes int) (taken int32, err error) {
 
 func (ms *MStream) WriteTrailers() error {
 	defer ms.conn.closeStream(ms.stream, nil)
-	tramap := *ms.Trailer
+	var tramap http.Header
+	if ms.Trailer != nil {
+		tramap = *ms.Trailer
+	}
 	var trailers []string
 	if tramap != nil {
 		for k, _ := range tramap {
