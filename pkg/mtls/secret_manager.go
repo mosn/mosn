@@ -146,7 +146,7 @@ func (p *sdsProvider) setCertificate(name string, secret *types.SdsSecret) {
 func (p *sdsProvider) update() {
 	ctx, err := newTLSContext(p.config, p.info)
 	if err != nil {
-		log.DefaultLogger.Errorf("[mtls] [sds] update tls context failed: %v", err)
+		log.DefaultLogger.Errorf("sds.update", "[mtls] [sds] update tls context failed: %v", err)
 		return
 	}
 	p.value.Store(ctx)
