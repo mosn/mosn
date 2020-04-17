@@ -141,21 +141,6 @@ type Host interface {
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
-	// ClearHealthFlag clear the input flag
-	ClearHealthFlag(flag HealthFlag)
-
-	// ContainHealthFlag checks whether the heatlhy state contains the flag
-	ContainHealthFlag(flag HealthFlag) bool
-
-	// SetHealthFlag set the input flag
-	SetHealthFlag(flag HealthFlag)
-
-	// HealthFlag returns the current healthy flag
-	HealthFlag() HealthFlag
-
-	// Health checks whether the host is healthy or not
-	Health() bool
-
 	// Address returns the host's Addr structure
 	Address() net.Addr
 	// Config creates a host config by the host attributes

@@ -49,7 +49,6 @@ func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap, b
 		log.DefaultLogger.Warnf("can't get resource: %+v", headers)
 		return api.StreamFilterContinue
 	}
-
 	entry, err := sentinel.Entry(pr.resource.Name(), pr.opts...)
 	f.Entry = entry
 	f.BlockError = err

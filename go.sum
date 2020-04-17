@@ -797,6 +797,8 @@ k8s.io/client-go v8.0.0+incompatible/go.mod h1:7vJpHMYJwNQCWgzmNV+VYUl1zCObLyodB
 mosn.io/api v0.0.0-20200210061141-e6cfcd972201/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/api v0.0.0-20200313100800-96f82cd67746 h1:6Aq9JtdZpOxwbizzKo7sDiQkzIcJoZGhLLZJaGaD66c=
 mosn.io/api v0.0.0-20200313100800-96f82cd67746/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
+mosn.io/api v0.0.0-20200416082846-2e7ce9a85557 h1:dfkhSEeVvUV8D+6a9mcvxciexjhcuEFtGobQxokS9gk=
+mosn.io/api v0.0.0-20200416082846-2e7ce9a85557/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/mosn v0.0.0-20200210071039-fb6f4f169ed1/go.mod h1:GkVDqNsJQqI78qIMwBO2Qrl5TZ4JlC/fvDO+rS/jH2c=
 mosn.io/mosn v0.0.0-20200318101600-e62b04fe2616/go.mod h1:SzvEG+jNCcI5+mRrNtEpsURlf5w4z2ZvVpt9AwOLgF0=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
