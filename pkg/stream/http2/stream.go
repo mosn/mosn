@@ -918,34 +918,33 @@ func (s *clientStream) AppendPing(context context.Context) {
 }
 
 func (s *clientStream) endStream() {
-	encode := func() error {
-		_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
-		if err != nil {
-			// todo: other error scenes
-			log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)
-			if err == types.ErrConnectionHasClosed || err == errClosedClientConn {
-				s.ResetStream(types.StreamConnectionFailed)
-			} else {
-				s.ResetStream(types.StreamLocalReset)
-			}
-		}
-		return err
-	}
 	// send header
 	s.sc.mutex.Lock()
-	if err := encode(); err != nil {
+	_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
+	if err == nil {
+		s.id = s.h2s.GetID()
+		s.sc.streams[s.id] = s
 		s.sc.mutex.Unlock()
-		return
+	} else {
+		s.sc.mutex.Unlock()
+		goto reset
 	}
-	s.id = s.h2s.GetID()
-	s.sc.streams[s.id] = s
-	s.sc.mutex.Unlock()
-
-	// send body and trailer
-	encode()
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.ctx, "http2 client SendRequest id = %d", s.id)
+	}
+	// send body and trailer
+	_, err = s.sc.protocol.Encode(s.ctx, s.h2s)
+	if err == nil {
+		return
+	}
+
+	reset:
+	log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)
+	if err == types.ErrConnectionHasClosed || err == errClosedClientConn {
+		s.ResetStream(types.StreamConnectionFailed)
+	} else {
+		s.ResetStream(types.StreamLocalReset)
 	}
 }
 
