@@ -1037,8 +1037,8 @@ func (cc *MClientConn) WriteHeaders(ctx context.Context, req *http.Request, trai
 	cs := cc.newStream()
 	cs.req = req
 	cc.hmu.Lock()
+	defer cc.hmu.Unlock()
 	hdrs, err := cc.encodeHeaders(req, false, trailers, req.ContentLength)
-	cc.hmu.Unlock()
 
 	if err != nil {
 		return nil, err
@@ -1172,9 +1172,9 @@ func (cc *MClientStream) writeDataAndTrailer() (err error) {
 		cc.Request.Trailer = *cc.Trailer
 
 		cc.conn.hmu.Lock()
+		defer cc.conn.hmu.Unlock()
 		var trls []byte
 		trls, err = cc.conn.encodeTrailers(cc.Request)
-		cc.conn.hmu.Unlock()
 		if err != nil {
 			log.DefaultLogger.Errorf("[Stream H2] [Client] Encode trailer error: %v", err)
 			return
@@ -1804,7 +1804,7 @@ func (fr *MFramer) writeHeaders(p HeadersFrameParam) error {
 		return errStreamID
 	}
 	var flags Flags
-	buf := buffer.NewIoBuffer(len(p.BlockFragment) + frameHeaderLen + 8)
+	buf := buffer.GetIoBuffer(len(p.BlockFragment) + frameHeaderLen + 8)
 	if p.PadLength != 0 {
 		flags |= FlagHeadersPadded
 	}

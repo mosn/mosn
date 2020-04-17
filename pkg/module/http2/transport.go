@@ -1493,12 +1493,6 @@ func (cc *ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trail
 		}
 	})
 
-	if i := cc.hbuf.Len(); i > 0 {
-		bs := make([]byte, i)
-		copy(bs, cc.hbuf.Bytes())
-		return bs, nil
-	}
-
 	return cc.hbuf.Bytes(), nil
 }
 
@@ -1546,12 +1540,6 @@ func (cc *ClientConn) encodeTrailers(req *http.Request) ([]byte, error) {
 		for _, v := range vv {
 			cc.writeHeader(lowKey, v)
 		}
-	}
-
-	if i := cc.hbuf.Len(); i > 0 {
-		bs := make([]byte, i)
-		copy(bs, cc.hbuf.Bytes())
-		return bs, nil
 	}
 
 	return cc.hbuf.Bytes(), nil

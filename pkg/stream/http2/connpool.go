@@ -203,7 +203,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		pool: pool,
 	}
 
-  host := pool.Host()
+	host := pool.Host()
 	data := host.CreateConnection(ctx)
 	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
