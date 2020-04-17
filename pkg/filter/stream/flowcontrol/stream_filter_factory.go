@@ -4,21 +4,26 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/alibaba/sentinel-golang/core/flow"
-	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 
+	"github.com/alibaba/sentinel-golang/core/flow"
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
 )
 
-type FlowControlConfig struct {
-	GlobalSwitch bool             `json:"global_switch"`
-	Monitor      bool             `json:"monitor"`
-	KeyType      string           `json:"limit_key_type"`
-	Action       FlowAction       `json:"action"`
-	Rules        []*flow.FlowRule `json:"rules"`
+const defaultResponse = "current request is limited"
+
+// Config represents the flow control configurations.
+type Config struct {
+	GlobalSwitch bool                     `json:"global_switch"`
+	Monitor      bool                     `json:"monitor"`
+	KeyType      api.ProtocolResourceName `json:"limit_key_type"`
+	Action       Action                   `json:"action"`
+	Rules        []*flow.FlowRule         `json:"rules"`
 }
 
-type FlowAction struct {
+// Action represents the direct response of request after limited.
+type Action struct {
 	Status int    `json:"status"`
 	Body   string `json:"body"`
 }
@@ -29,7 +34,7 @@ func init() {
 
 // StreamFilterFactory represents the stream filter factory.
 type StreamFilterFactory struct {
-	config *FlowControlConfig
+	config *Config
 }
 
 // CreateFilterChain add the flow control stream filter to filter chain.
@@ -40,7 +45,13 @@ func (f *StreamFilterFactory) CreateFilterChain(context context.Context,
 }
 
 func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
-	flowControlCfg := &FlowControlConfig{}
+	flowControlCfg := &Config{
+		Action: Action{
+			Status: types.LimitExceededCode,
+			Body:   defaultResponse,
+		},
+		KeyType: api.PATH,
+	}
 	cfg, err := json.Marshal(conf)
 	if err != nil {
 		log.DefaultLogger.Errorf("marshal flow control filter config failed")

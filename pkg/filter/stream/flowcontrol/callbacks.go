@@ -4,14 +4,12 @@ import (
 	"context"
 	"strconv"
 
-	"mosn.io/pkg/buffer"
-
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
-	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
 // Callbacks defines the flow control callbacks
@@ -32,7 +30,7 @@ type ParsedResource struct {
 
 // DefaultCallbacks represents the default flow control filter implementation.
 type DefaultCallbacks struct {
-	config *FlowControlConfig
+	config *Config
 }
 
 // Init is a no-op.
@@ -40,7 +38,7 @@ func (dc *DefaultCallbacks) Init() {}
 
 // ParseResource parses resource from context.
 func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) *ParsedResource {
-	resource, err := variable.GetProtocolResource(ctx, convertProtocolResourceName(dc.config.KeyType))
+	resource, err := variable.GetProtocolResource(ctx, dc.config.KeyType)
 	if err != nil || resource == "" {
 		log.DefaultLogger.Errorf("parse resource failed: %v", err)
 		return nil
@@ -50,17 +48,6 @@ func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.Hea
 		sentinel.WithTrafficType(base.Inbound),
 	}
 	return &ParsedResource{resource: res, opts: options}
-}
-
-func convertProtocolResourceName(keyType string) api.ProtocolResourceName {
-	switch keyType {
-	case string(api.URI):
-		return api.URI
-	case string(api.ARG):
-		return api.ARG
-	default:
-		return api.PATH
-	}
 }
 
 // AfterBlock sends response directly.

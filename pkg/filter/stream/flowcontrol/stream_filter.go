@@ -2,7 +2,6 @@ package flowcontrol
 
 import (
 	"context"
-	"sync"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
@@ -13,10 +12,6 @@ import (
 
 // FlowControlFilterName is the flow control stream filter name.
 const FlowControlFilterName = "flowControlFilter"
-
-var (
-	once sync.Once
-)
 
 func init() {
 	err := sentinel.InitDefault()
