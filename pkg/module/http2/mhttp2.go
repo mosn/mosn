@@ -240,7 +240,7 @@ func NewServerConn(conn api.Connection) *MServerConn {
 	sc.flow.add(initialWindowSize)
 	sc.inflow.add(initialWindowSize)
 
-	sc.advMaxStreams = defaultMaxStreams
+	sc.advMaxStreams = defaultMaxStreams * 100
 	sc.streams = make(map[uint32]*stream)
 	sc.clientMaxStreams = math.MaxUint32
 	sc.initialStreamSendWindowSize = initialWindowSize
@@ -264,7 +264,7 @@ func NewServerConn(conn api.Connection) *MServerConn {
 func (sc *MServerConn) Init() error {
 	settings := writeSettings{
 		{SettingMaxFrameSize, defaultMaxReadFrameSize},
-		{SettingMaxConcurrentStreams, defaultMaxStreams},
+		{SettingMaxConcurrentStreams, defaultMaxStreams * 100},
 		{SettingMaxHeaderListSize, http.DefaultMaxHeaderBytes},
 		{SettingInitialWindowSize, uint32(initialConnRecvWindowSize)},
 	}
@@ -985,7 +985,7 @@ func NewClientConn(conn api.Connection) *MClientConn {
 	cc.nextStreamID = 1
 	cc.maxFrameSize = 16 << 10
 	cc.initialWindowSize = 65535
-	cc.maxConcurrentStreams = 1000
+	cc.maxConcurrentStreams = 10000
 	cc.peerMaxHeaderListSize = 0xffffffffffffffff
 	cc.wantSettingsAck = true
 	cc.cond = sync.NewCond(&cc.mu)
@@ -1151,7 +1151,7 @@ func (cc *MClientStream) writeDataAndTrailer() (err error) {
 		for len(remain) > 0 {
 			var allowed int32
 			if allowed, err = cc.awaitFlowControl(len(remain)); err != nil {
-				log.DefaultLogger.Errorf("http2 writeDataAndTrailer error: id %d, len %d",cc.ID, len(remain))
+				log.DefaultLogger.Errorf("http2 writeDataAndTrailer error: id %d, len %d", cc.ID, len(remain))
 				return err
 			}
 			data := remain[:allowed]
