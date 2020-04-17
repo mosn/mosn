@@ -636,6 +636,7 @@ func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 	defer conn.mutex.Unlock()
 
 	for _, stream := range conn.streams {
+		stream.connReset = true
 		stream.ResetStream(reason)
 	}
 }
@@ -771,9 +772,6 @@ func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Fra
 			log.Proxy.Errorf(ctx, "Http2 client handleError stream err: %v", err)
 			conn.mutex.Lock()
 			s := conn.streams[err.StreamID]
-			if s != nil {
-				delete(conn.streams, err.StreamID)
-			}
 			conn.mutex.Unlock()
 			if s != nil {
 				s.ResetStream(types.StreamRemoteReset)
@@ -791,6 +789,7 @@ func (conn *clientStreamConnection) handleError(ctx context.Context, f http2.Fra
 type clientStream struct {
 	stream
 	useStream bool
+	connReset bool
 
 	h2s *http2.MClientStream
 	sc  *clientStreamConnection
@@ -968,5 +967,12 @@ func (s *clientStream) ResetStream(reason types.StreamResetReason) {
 	if s.h2s != nil {
 		s.h2s.Reset()
 	}
+
+	if !s.connReset {
+		s.sc.mutex.Lock()
+		delete(s.sc.streams, s.id)
+		s.sc.mutex.Unlock()
+	}
+
 	s.stream.ResetStream(reason)
 }
