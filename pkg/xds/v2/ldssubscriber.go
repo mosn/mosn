@@ -19,13 +19,17 @@ package v2
 
 import (
 	"errors"
-	"github.com/golang/protobuf/ptypes"
+	"fmt"
+	"strings"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"github.com/golang/protobuf/ptypes"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/router/handler"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/xds/conv"
 )
 
 func (c *ADSClient) reqListeners(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient) error {
@@ -58,7 +62,20 @@ func (c *ADSClient) handleListenersResp(resp *envoy_api_v2.DiscoveryResponse) []
 		if err := ptypes.UnmarshalAny(res, listener); err != nil {
 			log.DefaultLogger.Errorf("ADSClient unmarshal listener fail: %v", err)
 		}
-		listeners = append(listeners, listener)
+		if !filterCustomerPort(listener) {
+			listeners = append(listeners, listener)
+		}
 	}
 	return listeners
+}
+
+func filterCustomerPort(listener *envoy_api_v2.Listener) bool {
+	for _, p := range handler.CustomerPort {
+		addr := conv.ConvertAddress(listener.Address)
+		if strings.HasSuffix(addr.String(), fmt.Sprintf(":%d", p)) {
+			log.DefaultLogger.Warnf("listener [%s] port is same with customer set, unexpect", listener.Name)
+			return true
+		}
+	}
+	return false
 }

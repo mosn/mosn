@@ -86,7 +86,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr:                    convertAddress(xdsListener.Address),
+		Addr:                    ConvertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -953,7 +953,7 @@ func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.
 }
 */
 
-func convertAddress(xdsAddress *xdscore.Address) net.Addr {
+func ConvertAddress(xdsAddress *xdscore.Address) net.Addr {
 	if xdsAddress == nil {
 		return nil
 	}
@@ -1118,7 +1118,7 @@ func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.Host {
 	for _, xdsHost := range xdsHosts {
 		hostWithMetaData := v2.Host{
 			HostConfig: v2.HostConfig{
-				Address: convertAddress(xdsHost).String(),
+				Address: ConvertAddress(xdsHost).String(),
 			},
 		}
 		hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
