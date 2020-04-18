@@ -118,6 +118,86 @@ func TestClusterManagerAddCluster(t *testing.T) {
 	}
 }
 
+func TestClusterManagerUpdateCluster(t *testing.T) {
+	_createClusterManager()
+	if !GetClusterMngAdapterInstance().ClusterExist("test1") {
+		t.Fatal("not exists expected cluster")
+	}
+
+	var maxc uint32 = 8
+	clusterConfig := v2.Cluster{
+		Name:   "test1",
+		LbType: v2.LB_RANDOM,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: 1, // AnyEndPoint
+			SubsetSelectors: [][]string{
+				[]string{"version"},
+				[]string{"version", "zone"},
+			},
+		},
+		CirBreThresholds: v2.CircuitBreakers{
+			[]v2.Thresholds{
+				{
+					MaxConnections: maxc,
+				},
+			}},
+	}
+	// Update cluster info
+	if err := GetClusterMngAdapterInstance().TriggerClusterAddOrUpdate(
+		clusterConfig); err != nil {
+		t.Fatal("update cluster failed: ", err)
+	}
+
+	snapshot := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	rm := snapshot.ClusterInfo().ResourceManager()
+	if rm.Connections().Max() != uint64(maxc) {
+		t.Fatal("ResourceManager update failed")
+	}
+
+	if !GetClusterMngAdapterInstance().ClusterExist("test1") {
+		t.Fatal("cluster add failed")
+	}
+	mockLbCtx := newMockLbContext((map[string]string{
+		"zone":    "a",
+		"version": "1.0.0"}))
+
+	pool := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
+
+	if pool.Host().ClusterInfo().ResourceManager().Connections().Max() != uint64(maxc) {
+		t.Fatal("update cluster resource failed")
+	}
+
+	var maxc1 uint32 = 9
+	clusterConfig = v2.Cluster{
+		Name:   "test1",
+		LbType: v2.LB_RANDOM,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: 1, // AnyEndPoint
+			SubsetSelectors: [][]string{
+				[]string{"version"},
+				[]string{"version", "zone"},
+			},
+		},
+		CirBreThresholds: v2.CircuitBreakers{
+			[]v2.Thresholds{
+				{
+					MaxConnections: maxc1,
+				},
+			}},
+	}
+	// Update cluster info
+	if err := GetClusterMngAdapterInstance().TriggerClusterAddOrUpdate(
+		clusterConfig); err != nil {
+		t.Fatal("update cluster failed: ", err)
+	}
+
+	snapshot = GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	pool = GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
+	if pool.Host().ClusterInfo().ResourceManager().Connections().Max() != uint64(maxc1) {
+		t.Fatal("update cluster resource failed")
+	}
+}
+
 func TestClusterManagerRemoveCluster(t *testing.T) {
 	_createClusterManager()
 	if err := GetClusterMngAdapterInstance().TriggerClusterDel("test1", "test2"); err == nil {
