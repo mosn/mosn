@@ -46,7 +46,7 @@ func startTransferMesh(t *testing.T, tc *integrate.XTestCase) {
 	types.TransferStatsDomainSocket = "/tmp/stats.sock"
 	types.TransferListenDomainSocket = "/tmp/listen.sock"
 	types.ReconfigureDomainSocket = "/tmp/reconfig.sock"
-	cfg := util.CreateXProtocolMesh(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.SubProtocol, []string{tc.AppServer.Addr()}, true)
+	cfg := util.CreateXProtocolMesh(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.SubProtocol, []string{tc.AppServer.Addr()}, false)
 
 	configPath := "/tmp/transfer.json"
 	os.Remove(configPath)

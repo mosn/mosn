@@ -1,4 +1,6 @@
-![MOSN Logo](https://raw.githubusercontent.com/mosn/community/master/icons/png/mosn-labeled-horizontal.png)
+<p align="center">
+<img src="https://raw.githubusercontent.com/mosn/community/master/icons/png/mosn-labeled-horizontal.png" width="350" title="MOSN Logo" alt="MOSN logo">
+</p>
 
 [![Build Status](https://travis-ci.com/mosn/mosn.svg?branch=master)](https://travis-ci.com/mosn/mosn)
 [![codecov](https://codecov.io/gh/mosn/mosn/branch/master/graph/badge.svg)](https://codecov.io/gh/mosn/mosn)
@@ -33,7 +35,7 @@ Use `go get -u mosn.io/mosn`, or you can git clone the repository to `$GOPATH/sr
 
 ## Documentation
 
-- [MOSN website](https://mosn.io)
+- [Website](https://mosn.io)
 - [Changelog](CHANGELOG.md)
 
 ## Contributing
@@ -46,4 +48,16 @@ See our community materials on <https://github.com/mosn/community>.
 
 Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
 
-![MOSN user group DingTalk QR code](https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ)
+<p align="center">
+<img src="https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ" width="150">
+</p>
+
+
+## Landscapes
+
+<p align="center">
+<img src="https://landscape.cncf.io/images/left-logo.svg" width="150"/>&nbsp;&nbsp;<img src="https://landscape.cncf.io/images/right-logo.svg" width="200"/>
+<br/><br/>
+MOSN enriches the <a href="https://landscape.cncf.io/landscape=observability-and-analysis&license=apache-license-2-0">CNCF CLOUD NATIVE Landscape.</a>
+</p>
+
