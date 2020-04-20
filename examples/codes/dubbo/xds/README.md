@@ -1,3 +1,24 @@
+## env
+
+istio info
+
+```shell
+citadel version: 1.4.6
+galley version: 1.4.6
+ingressgateway version: f288658b710d932bd4b0200728920fe3cbe0af61-dirty
+pilot version: 1.4.6
+policy version: 1.4.6
+sidecar-injector version: 1.4.6
+telemetry version: 1.4.6
+data plane version: 1.5.0 (4 proxies), 1.4.6 (7 proxies)
+```
+
+install: [Support mosn as a sidecar](https://github.com/mosn/istio/pull/1)
+
+kubernetes: v1.14.3
+
+**this demo not use sidecar-injector, replace with multiple container add mosn proxy**
+
 ## step
 
 `cd ${project_root}/examples/codes/dubbo/xds`
