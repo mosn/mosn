@@ -11,12 +11,14 @@ import (
 type handler func(route api.Route, header api.HeaderMap) types.RouteHandler
 
 var (
+	// XHandler x protocal handler
 	XHandler = make(map[string]handler)
 
-	// CustomerPort use xDS shuold filter this 0.0.0.0_port
+	// CustomerPort use xDS shuold filter this 0.0.0.0:port
 	CustomerPort = make([]int, 0, 2)
 )
 
+// GetRouteHandler get route handler
 func GetRouteHandler(ctx context.Context, route api.Route, header api.HeaderMap) types.RouteHandler {
 	protocal, ok := ctx.Value(types.ContextSubProtocol).(string)
 	if ok {

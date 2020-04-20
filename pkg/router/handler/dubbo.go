@@ -5,18 +5,16 @@ import (
 	"fmt"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	XHandler["dubbo"] = GetDubboRouteHandler
+	XHandler[dubbo.ProtocolName] = GetDubboRouteHandler
 	CustomerPort = append(CustomerPort, dubboPort, dubboMosnPort)
 }
 
 const (
-	dubboService = "service"
-	dubboMethod  = "method"
-
 	dubboClusterPre = "outbound|%d|%s|dubbo-%s-%s"
 
 	// consumer  -> 127.0.0.1:20880(mosn-consumer)->provider:20881(mosn-provider)->127.0.0.1:20880
@@ -38,11 +36,11 @@ func (d *dubboHandler) IsAvailable(ctx context.Context, manager types.ClusterMan
 		return nil, types.HandlerNotAvailable
 	}
 
-	service, ok := d.header.Get(dubboService)
+	service, ok := d.header.Get(dubbo.ServiceNameHeader)
 	if !ok {
 		return nil, types.HandlerNotAvailable
 	}
-	method, ok := d.header.Get(dubboMethod)
+	method, ok := d.header.Get(dubbo.MethodNameHeader)
 	if !ok {
 		return nil, types.HandlerNotAvailable
 	}

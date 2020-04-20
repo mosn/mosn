@@ -73,13 +73,11 @@ func RegisterMakeHandlerChain(f MakeHandlerChain, order uint32) {
 
 func DefaultMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	var handlers []types.RouteHandler
-	// var ok bool
 	if r := routers.MatchRoute(headers, 1); r != nil {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, RouterLogFormat, "DefaultHandklerChain", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
 		}
 		handlers = append(handlers, handler.GetRouteHandler(ctx, r, headers))
-
 	}
 	return NewRouteHandlerChain(ctx, clusterManager, handlers)
 }
