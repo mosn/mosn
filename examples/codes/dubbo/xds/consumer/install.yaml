@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: consumer
+  namespace: dubbo-app
+spec:
+  selector:
+    matchLabels:
+      app: consumer
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: consumer
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: consumer
+        image: registry.cn-hangzhou.aliyuncs.com/sink-demo/dubbo-consumer:v0.0.1
+        imagePullPolicy: Always
+        env:
+        - name: "PROVIDER_LISTENER_PORT"
+          value: "20881"
+      - name: istio-proxy
+        image: registry.cn-hangzhou.aliyuncs.com/sink-demo/mosn:v0.0.1
+        imagePullPolicy: Always
+        args:
+        - start
+        - --config
+        - /etc/istio/proxy/envoy-rev0.json
+        - --service-cluster
+        - details.default
+        - --service-node
+        - sidecar~10.13.160.94~details-v1-c5b5f496d-72tfd.default~default.svc.cluster.local

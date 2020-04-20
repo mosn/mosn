@@ -11,15 +11,16 @@ import (
 
 func init() {
 	XHandler[dubbo.ProtocolName] = GetDubboRouteHandler
-	CustomerPort = append(CustomerPort, dubboPort, dubboMosnPort)
+	CustomerPort = append(CustomerPort, dubboPort, dubboMosnConsumerPort, dubboMosnProviderPort)
 }
 
 const (
 	dubboClusterPre = "outbound|%d|%s|dubbo-%s-%s"
 
 	// consumer  -> 127.0.0.1:20880(mosn-consumer)->provider:20881(mosn-provider)->127.0.0.1:20880
-	dubboPort     = 20880
-	dubboMosnPort = 20881
+	dubboPort             = 20880
+	dubboMosnConsumerPort = 20881
+	dubboMosnProviderPort = 20882
 )
 
 type dubboHandler struct {
@@ -53,10 +54,10 @@ func (d *dubboHandler) IsAvailable(ctx context.Context, manager types.ClusterMan
 	}
 
 	var clusterName string
-	if listenerPort == dubboMosnPort {
+	if listenerPort == dubboMosnProviderPort {
 		clusterName = d.Route().RouteRule().ClusterName()
 	} else {
-		clusterName = fmt.Sprintf(dubboClusterPre, dubboMosnPort, subset, service, method)
+		clusterName = fmt.Sprintf(dubboClusterPre, dubboMosnProviderPort, subset, service, method)
 	}
 	snapshot := manager.GetClusterSnapshot(context.Background(), clusterName)
 

@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: provider
+  namespace: dubbo-app
+  labels:
+    app: provider
+spec:
+  ports:
+    - port: 20880
+  selector:
+    app: provider
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: provider
+  namespace: dubbo-app
+spec:
+  selector:
+    matchLabels:
+      app: provider
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: provider
+        version: v1
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      containers:
+      - name: provider
+        image: registry.cn-hangzhou.aliyuncs.com/sink-demo/dubbo-provider:v0.0.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 20880
+      - name: istio-proxy
+        image: registry.cn-hangzhou.aliyuncs.com/sink-demo/mosn:v0.0.1
+        imagePullPolicy: Always
+        args:
+        - start
+        - --config
+        - /etc/istio/proxy/envoy-rev0.json
+        - --service-cluster
+        - details.default
+        - --service-node
+        - sidecar~10.13.160.94~details-v1-c5b5f496d-72tfd.default~default.svc.cluster.local
