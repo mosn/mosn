@@ -28,7 +28,6 @@ require (
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/stretchr/testify v1.5.1
-	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4

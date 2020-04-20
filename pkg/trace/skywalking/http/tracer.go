@@ -40,7 +40,7 @@ var (
 )
 
 func init() {
-	trace.RegisterTracerBuilder("SkyWalking", protocol.HTTP1, NewHttpSkyTracer)
+	trace.RegisterTracerBuilder(skywalking.SkyDriverName, protocol.HTTP1, NewHttpSkyTracer)
 }
 
 type httpSkyTracer struct {

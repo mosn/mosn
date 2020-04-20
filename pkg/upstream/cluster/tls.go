@@ -15,50 +15,24 @@
  * limitations under the License.
  */
 
-package shm
+package cluster
 
-import (
-	"testing"
-	"unsafe"
+import "sync/atomic"
 
-	"mosn.io/mosn/pkg/types"
-)
+// temporary implement:
+// control client side tls support without update config
+var isDisableClientSideTLS uint32
 
-func TestCounter(t *testing.T) {
-	// just for test
-	originPath := types.MosnConfigPath
-	types.MosnConfigPath = "."
+func DisableClientSideTLS() {
+	atomic.StoreUint32(&isDisableClientSideTLS, 1)
+}
 
-	defer func() {
-		types.MosnConfigPath = originPath
-	}()
-	zone := InitMetricsZone("TestCounter", 10*1024)
-	defer func() {
-		zone.Detach()
-		Reset()
-	}()
+func EnableClientSideTLS() {
+	atomic.StoreUint32(&isDisableClientSideTLS, 0)
+}
 
-	entry, err := defaultZone.alloc("TestCounter")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// inc
-	counter := ShmCounter(unsafe.Pointer(&entry.value))
-	counter.Inc(5)
-
-	if counter.Count() != 5 {
-		t.Error("count ops failed")
-	}
-
-	// dec
-	counter.Dec(2)
-	if counter.Count() != 3 {
-		t.Error("count ops failed")
-	}
-
-	// clear
-	counter.Clear()
-	if counter.Count() != 0 {
-		t.Error("count ops failed")
-	}
+// IsSupportTLS returns the client side is support tls or not
+// default is support
+func IsSupportTLS() bool {
+	return atomic.LoadUint32(&isDisableClientSideTLS) == 0
 }

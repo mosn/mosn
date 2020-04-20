@@ -70,14 +70,22 @@ func newRandomLoadBalancer(hosts types.HostSet) types.LoadBalancer {
 }
 
 func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	targets := lb.hosts.HealthyHosts()
-	if len(targets) == 0 {
+	targets := lb.hosts.Hosts()
+	total := len(targets)
+	if total == 0 {
 		return nil
 	}
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
-	idx := lb.rand.Intn(len(targets))
-	return targets[idx]
+	idx := lb.rand.Intn(total)
+	for i := 0; i < total; i++ {
+		host := targets[idx]
+		if host.Health() {
+			return host
+		}
+		idx = (idx + 1) % total
+	}
+	return nil
 }
 
 func (lb *randomLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
@@ -113,12 +121,19 @@ func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(hosts types.Ho
 }
 
 func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	targets := lb.hosts.HealthyHosts()
-	if len(targets) == 0 {
+	targets := lb.hosts.Hosts()
+	total := len(targets)
+	if total == 0 {
 		return nil
 	}
-	index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(len(targets))
-	return targets[index]
+	for i := 0; i < total; i++ {
+		index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
+		host := targets[index]
+		if host.Health() {
+			return host
+		}
+	}
+	return nil
 }
 
 func (lb *roundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {

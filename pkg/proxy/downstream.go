@@ -102,11 +102,11 @@ type downStream struct {
 	resetReason types.StreamResetReason
 
 	//filters
-	senderFilters        []*activeStreamSenderFilter
-	senderFiltersIndex   int
-	receiverFilters      []*activeStreamReceiverFilter
-	receiverFiltersIndex int
-	receiverFiltersAgain bool
+	senderFilters             []*activeStreamSenderFilter
+	senderFiltersIndex        int
+	receiverFilters           []*activeStreamReceiverFilter
+	receiverFiltersIndex      int
+	receiverFiltersAgainPhase types.Phase
 
 	context context.Context
 
@@ -140,6 +140,9 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.context = ctx
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
+
+	// init receiverFiltersAgainPhase to InitPhase means that don't need run receiverfilter again.
+	stream.receiverFiltersAgainPhase = types.InitPhase
 
 	if responseSender == nil || reflect.ValueOf(responseSender).IsNil() {
 		stream.oneway = true
@@ -371,7 +374,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.InitPhase:
 			phase++
 
-			// downstream filter before route
+		// downstream filter before route
 		case types.DownFilter:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
@@ -383,7 +386,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// match route
+		// match route
 		case types.MatchRoute:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
@@ -394,7 +397,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// downstream filter after route
+		// downstream filter after route
 		case types.DownFilterAfterRoute:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
@@ -406,7 +409,33 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// downstream receive header
+		// TODO support retry
+		// downstream choose host
+		case types.ChooseHost:
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+			}
+
+			s.chooseHost(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
+
+			if p, err := s.processError(id); err != nil {
+				return p
+			}
+			phase++
+
+		// downstream filter after choose host
+		case types.DownFilterAfterChooseHost:
+			if log.Proxy.GetLogLevel() >= log.DEBUG {
+				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+			}
+			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+
+			if p, err := s.processError(id); err != nil {
+				return p
+			}
+			phase++
+
+		// downstream receive header
 		case types.DownRecvHeader:
 			if s.downstreamReqHeaders != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -420,7 +449,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// downstream receive data
+		// downstream receive data
 		case types.DownRecvData:
 			if s.downstreamReqDataBuf != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -435,7 +464,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// downstream receive trailer
+		// downstream receive trailer
 		case types.DownRecvTrailer:
 			if s.downstreamReqTrailers != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -449,7 +478,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// downstream oneway
+		// downstream oneway
 		case types.Oneway:
 			if s.oneway {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -466,7 +495,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// no oneway, skip types.Retry
 			phase = types.WaitNofity
 
-			// retry request
+		// retry request
 		case types.Retry:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
@@ -481,7 +510,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// wait for upstreamRequest or reset
+		// wait for upstreamRequest or reset
 		case types.WaitNofity:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
@@ -496,7 +525,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			phase++
 
-			// upstream filter
+		// upstream filter
 		case types.UpFilter:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
@@ -518,7 +547,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 			phase++
 
-			// upstream receive header
+		// upstream receive header
 		case types.UpRecvHeader:
 			// send downstream response
 			if s.downstreamRespHeaders != nil {
@@ -533,7 +562,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// upstream receive data
+		// upstream receive data
 		case types.UpRecvData:
 			if s.downstreamRespDataBuf != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -547,7 +576,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// upstream receive triler
+		// upstream receive triler
 		case types.UpRecvTrailer:
 			if s.downstreamRespTrailers != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -561,7 +590,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 			phase++
 
-			// process end
+		// process end
 		case types.End:
 			return types.End
 
@@ -631,7 +660,8 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) 
 	return currentProtocol
 }
 
-func (s *downStream) receiveHeaders(endStream bool) {
+func (s *downStream) chooseHost(endStream bool) {
+
 	s.downstreamRecvDone = endStream
 
 	// after stream filters run, check the route
@@ -683,8 +713,11 @@ func (s *downStream) receiveHeaders(endStream bool) {
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
 	}
+	s.requestInfo.OnUpstreamHostSelected(pool.Host())
+	s.requestInfo.SetUpstreamLocalAddress(pool.Host().AddressString())
 
 	parseProxyTimeout(s.context, &s.timeout, s.route, s.downstreamReqHeaders)
+
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] timeout info: %+v", s.timeout)
 	}
@@ -700,8 +733,12 @@ func (s *downStream) receiveHeaders(endStream bool) {
 	s.upstreamRequest.proxy = s.proxy
 	s.upstreamRequest.protocol = prot
 	s.upstreamRequest.connPool = pool
-	s.route.RouteRule().FinalizeRequestHeaders(s.downstreamReqHeaders, s.requestInfo)
+}
 
+func (s *downStream) receiveHeaders(endStream bool) {
+
+	//Modify request headers
+	s.route.RouteRule().FinalizeRequestHeaders(s.downstreamReqHeaders, s.requestInfo)
 	//Call upstream's append header method to build upstream's request
 	s.upstreamRequest.appendHeaders(endStream)
 
@@ -911,7 +948,7 @@ func (s *downStream) appendHeaders(endStream bool) {
 	headers := s.convertHeader(s.downstreamRespHeaders)
 	//Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
-		log.Proxy.Alertf(s.context, types.ErrorKeyAppendHeader, "append headers error: %s", err)
+		log.Proxy.Errorf(s.context, "append headers error: %s", err)
 	}
 
 	if endStream {
@@ -1284,6 +1321,8 @@ func (s *downStream) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p 
 		phase = types.DownFilter
 	case api.AfterRoute:
 		phase = types.DownFilterAfterRoute
+	case api.AfterChooseHost:
+		phase = types.DownFilterAfterChooseHost
 	default:
 		phase = types.DownFilterAfterRoute
 	}
@@ -1439,10 +1478,10 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 		return
 	}
 
-	if s.receiverFiltersAgain {
-		s.receiverFiltersAgain = false
-		phase = types.MatchRoute
+	if s.receiverFiltersAgainPhase != types.InitPhase {
+		phase = s.receiverFiltersAgainPhase
 		err = types.ErrExit
+		s.receiverFiltersAgainPhase = types.InitPhase
 		return
 	}
 

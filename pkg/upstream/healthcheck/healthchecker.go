@@ -134,7 +134,7 @@ func (hc *healthChecker) startCheck(host types.Host) {
 	if _, ok := hc.checkers[addr]; !ok {
 		s := hc.sessionFactory.NewSession(hc.sessionConfig, host)
 		if s == nil {
-			log.DefaultLogger.Errorf("[upstream] [health check] Create Health Check Session Error, Remote Address = %s", addr)
+			log.DefaultLogger.Alertf("healthcheck.session", "[upstream] [health check] Create Health Check Session Error, Remote Address = %s", addr)
 			return
 		}
 		c := newChecker(s, host, hc)
