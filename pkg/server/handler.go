@@ -352,14 +352,15 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	networkFiltersFactories []api.NetworkFilterChainFactory, streamFiltersFactories []api.StreamFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
-		listener:                listener,
-		conns:                   list.New(),
-		handler:                 handler,
-		stopChan:                stopChan,
-		accessLogs:              accessLoggers,
-		updatedLabel:            false,
-		idleTimeout:             lc.ConnectionIdleTimeout,
-		networkFiltersFactories: networkFiltersFactories,
+		listener:                 listener,
+		conns:                    list.New(),
+		handler:                  handler,
+		stopChan:                 stopChan,
+		accessLogs:               accessLoggers,
+		updatedLabel:             false,
+		idleTimeout:              lc.ConnectionIdleTimeout,
+		networkFiltersFactories:  networkFiltersFactories,
+		listenerFiltersFactories: listenerFiltersFactories,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
