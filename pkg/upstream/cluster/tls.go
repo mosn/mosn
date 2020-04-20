@@ -17,39 +17,22 @@
 
 package cluster
 
-import (
-	"testing"
+import "sync/atomic"
 
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
-)
+// temporary implement:
+// control client side tls support without update config
+var isDisableClientSideTLS uint32
 
-func newSimpleMockHost(addr string, metaValue string) *mockHost {
-	return &mockHost{
-		addr: addr,
-		meta: api.Metadata{
-			"key": metaValue,
-		},
-	}
+func DisableClientSideTLS() {
+	atomic.StoreUint32(&isDisableClientSideTLS, 1)
 }
 
-type simpleMockHostConfig struct {
-	addr      string
-	metaValue string
+func EnableClientSideTLS() {
+	atomic.StoreUint32(&isDisableClientSideTLS, 0)
 }
 
-func TestHostSetDistinct(t *testing.T) {
-	hs := &hostSet{}
-	ip := "127.0.0.1"
-	var hosts []types.Host
-	for i := 0; i < 5; i++ {
-		host := &mockHost{
-			addr: ip,
-		}
-		hosts = append(hosts, host)
-	}
-	hs.setFinalHost(hosts)
-	if len(hs.Hosts()) != 1 {
-		t.Fatal("hostset distinct failed")
-	}
+// IsSupportTLS returns the client side is support tls or not
+// default is support
+func IsSupportTLS() bool {
+	return atomic.LoadUint32(&isDisableClientSideTLS) == 0
 }

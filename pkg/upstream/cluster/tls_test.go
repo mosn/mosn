@@ -19,37 +19,26 @@ package cluster
 
 import (
 	"testing"
-
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
 )
 
-func newSimpleMockHost(addr string, metaValue string) *mockHost {
-	return &mockHost{
-		addr: addr,
-		meta: api.Metadata{
-			"key": metaValue,
-		},
-	}
+func testStateReset() {
+	isDisableClientSideTLS = 0
 }
 
-type simpleMockHostConfig struct {
-	addr      string
-	metaValue string
-}
-
-func TestHostSetDistinct(t *testing.T) {
-	hs := &hostSet{}
-	ip := "127.0.0.1"
-	var hosts []types.Host
-	for i := 0; i < 5; i++ {
-		host := &mockHost{
-			addr: ip,
-		}
-		hosts = append(hosts, host)
+func TestIsSupportTLS(t *testing.T) {
+	testStateReset()
+	defer testStateReset()
+	//
+	if !IsSupportTLS() {
+		t.Error("the default value should be support tls")
 	}
-	hs.setFinalHost(hosts)
-	if len(hs.Hosts()) != 1 {
-		t.Fatal("hostset distinct failed")
+	//
+	DisableClientSideTLS()
+	if IsSupportTLS() {
+		t.Error("disbale tls, should not support tls any more")
+	}
+	EnableClientSideTLS()
+	if !IsSupportTLS() {
+		t.Error("set disbale is false, still support tls")
 	}
 }
