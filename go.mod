@@ -28,7 +28,6 @@ require (
 	github.com/prometheus/procfs v0.0.3 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/stretchr/testify v1.5.1
-	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
@@ -40,6 +39,6 @@ require (
 	google.golang.org/grpc v1.20.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
-	mosn.io/api v0.0.0-20200313100800-96f82cd67746
+	mosn.io/api v0.0.0-20200409121255-57255099f0d0
 	mosn.io/pkg v0.0.0-20200402102508-6d1b24c77225
 )

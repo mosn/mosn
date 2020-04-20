@@ -48,15 +48,29 @@ func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, d
 		}
 
 		status := f.filter.OnReceive(s.context, headers, data, trailers)
-		if status == api.StreamFilterStop {
+		switch status {
+		case api.StreamFilterStop:
 			return true
-		}
-
-		if status == api.StreamFilterReMatchRoute {
-			s.receiverFiltersIndex++
-			s.receiverFiltersAgain = true
+		case api.StreamFilterReMatchRoute:
+			// Retry only at the DownFilterAfterRoute phase
+			if p == types.DownFilterAfterRoute {
+				// FiltersIndex is not increased until no retry is required
+				s.receiverFiltersAgainPhase = types.MatchRoute
+			} else {
+				s.receiverFiltersIndex++
+			}
+			return false
+		case api.StreamFilterReChooseHost:
+			// Retry only at the DownFilterAfterChooseHost phase
+			if p == types.DownFilterAfterChooseHost {
+				// FiltersIndex is not increased until no retry is required
+				s.receiverFiltersAgainPhase = types.ChooseHost
+			} else {
+				s.receiverFiltersIndex++
+			}
 			return false
 		}
+
 	}
 
 	s.receiverFiltersIndex = 0
@@ -89,9 +103,6 @@ type activeStreamReceiverFilter struct {
 
 func newActiveStreamReceiverFilter(activeStream *downStream,
 	filter api.StreamReceiverFilter, p types.Phase) *activeStreamReceiverFilter {
-	if p != types.DownFilter && p != types.DownFilterAfterRoute {
-		p = types.DownFilterAfterRoute
-	}
 	f := &activeStreamReceiverFilter{
 		activeStreamFilter: activeStreamFilter{
 			activeStream: activeStream,
@@ -137,6 +148,23 @@ func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap,
 
 func (f *activeStreamReceiverFilter) SetConvert(on bool) {
 	f.activeStream.noConvert = !on
+}
+
+// GetFilterCurrentPhase get current phase for filter
+func (f *activeStreamReceiverFilter) GetFilterCurrentPhase() api.FilterPhase {
+	// default AfterRoute
+	p := api.AfterRoute
+
+	switch f.p {
+	case types.DownFilter:
+		p = api.BeforeRoute
+	case types.DownFilterAfterRoute:
+		p = api.AfterRoute
+	case types.DownFilterAfterChooseHost:
+		p = api.AfterChooseHost
+	}
+
+	return p
 }
 
 // types.StreamSenderFilterHandler

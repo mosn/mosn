@@ -20,6 +20,7 @@ package cluster
 import (
 	"context"
 	"net"
+	"sync/atomic"
 	"time"
 
 	"mosn.io/api"
@@ -39,7 +40,7 @@ type simpleHost struct {
 	metaData      api.Metadata
 	tlsDisable    bool
 	weight        uint32
-	healthFlags   uint64
+	healthFlags   *uint64
 }
 
 func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
@@ -54,6 +55,7 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 		metaData:      config.MetaData,
 		tlsDisable:    config.TLSDisable,
 		weight:        config.Weight,
+		healthFlags:   GetHealthFlagPointer(config.Address),
 	}
 }
 
@@ -99,13 +101,13 @@ func (sh *simpleHost) Config() v2.Host {
 }
 
 func (sh *simpleHost) SupportTLS() bool {
-	return !sh.tlsDisable && sh.clusterInfo.TLSMng().Enabled()
+	return IsSupportTLS() && !sh.tlsDisable && sh.clusterInfo.TLSMng().Enabled()
 }
 
 // types.Host Implement
 func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConnectionData {
 	var tlsMng types.TLSContextManager
-	if !sh.tlsDisable {
+	if sh.SupportTLS() {
 		tlsMng = sh.clusterInfo.TLSMng()
 	}
 	clientConn := network.NewClientConnection(nil, sh.clusterInfo.ConnectTimeout(), tlsMng, sh.Address(), nil)
@@ -117,24 +119,24 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 	}
 }
 
-func (sh *simpleHost) ClearHealthFlag(flag types.HealthFlag) {
-	sh.healthFlags &= ^uint64(flag)
+func (sh *simpleHost) ClearHealthFlag(flag api.HealthFlag) {
+	ClearHealthFlag(sh.healthFlags, flag)
 }
 
-func (sh *simpleHost) ContainHealthFlag(flag types.HealthFlag) bool {
-	return sh.healthFlags&uint64(flag) > 0
+func (sh *simpleHost) ContainHealthFlag(flag api.HealthFlag) bool {
+	return atomic.LoadUint64(sh.healthFlags)&uint64(flag) > 0
 }
 
-func (sh *simpleHost) SetHealthFlag(flag types.HealthFlag) {
-	sh.healthFlags |= uint64(flag)
+func (sh *simpleHost) SetHealthFlag(flag api.HealthFlag) {
+	SetHealthFlag(sh.healthFlags, flag)
 }
 
-func (sh *simpleHost) HealthFlag() types.HealthFlag {
-	return types.HealthFlag(sh.healthFlags)
+func (sh *simpleHost) HealthFlag() api.HealthFlag {
+	return api.HealthFlag(atomic.LoadUint64(sh.healthFlags))
 }
 
 func (sh *simpleHost) Health() bool {
-	return sh.healthFlags == 0
+	return atomic.LoadUint64(sh.healthFlags) == 0
 }
 
 // net.Addr reuse for same address, valid in simple type

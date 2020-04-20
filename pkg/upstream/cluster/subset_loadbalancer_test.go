@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"sync"
 	"testing"
 
 	"mosn.io/api"
@@ -96,6 +97,9 @@ func exampleHostConfigs() (hosts []v2.Host) {
 }
 
 func createHostset(cfg []v2.Host) *hostSet {
+	// clear healthy flag
+	healthStore = sync.Map{}
+	// create
 	var hosts []types.Host
 	for _, h := range cfg {
 		host := &mockHost{

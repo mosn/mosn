@@ -36,9 +36,9 @@ type headerLB struct {
 func (lb *headerLB) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	if headers := ctx.DownstreamHeaders(); headers != nil {
 		if value, ok := headers.Get(lb.key); ok {
-			hosts := lb.hostSet.HealthyHosts()
+			hosts := lb.hostSet.Hosts()
 			for _, h := range hosts {
-				if h.Hostname() == value {
+				if h.Health() && h.Hostname() == value {
 					return h
 				}
 			}
