@@ -45,6 +45,7 @@ func init() {
 	}
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
+	RegisterLBType(types.WeightedRoundRobin, newSmoothWeightedRRLoadBalancer)
 }
 
 func NewLoadBalancer(lbType types.LoadBalancerType, hosts types.HostSet) types.LoadBalancer {
@@ -144,5 +145,81 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 	return len(lb.hosts.Hosts())
 }
 
-// TODO:
-// WRR
+/*
+SW (smoothWeightedRRLoadBalancer) is a struct that contains weighted items and provides methods to select a weighted item.
+It is used for the smooth weighted round-robin balancing algorithm. This algorithm is implemented in Nginx:
+https://github.com/phusion/nginx/commit/27e94984486058d73157038f7950a0a36ecc6e35.
+Algorithm is as follows: on each peer selection we increase current_weight
+of each eligible peer by its weight, select peer with greatest current_weight
+and reduce its current_weight by total number of weight points distributed
+among peers.
+*/
+type smoothWeightedRRLoadBalancer struct {
+	hosts         types.HostSet
+	hostsWeighted map[string]*hostSmoothWeighted
+}
+
+type hostSmoothWeighted struct {
+	weight          int
+	currentWeight   int
+	effectiveWeight int
+}
+
+func newSmoothWeightedRRLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+	smoothWRRLoadBalancer := &smoothWeightedRRLoadBalancer{
+		hosts:         hosts,
+		hostsWeighted: make(map[string]*hostSmoothWeighted),
+	}
+	// iterate over all hosts to init host with Weighted
+	for _, host := range hosts.Hosts() {
+		w := int(host.Weight())
+		smoothWRRLoadBalancer.hostsWeighted[host.AddressString()] = &hostSmoothWeighted{
+			effectiveWeight: w,
+			weight:          w,
+		}
+	}
+	return smoothWRRLoadBalancer
+}
+
+// smooth weighted round robin
+// O(n), traverse over all hosts
+func (lb *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	totalWeight := 0
+	var selectedHostWeighted *hostSmoothWeighted
+	var selectedHost types.Host
+	// TODO: lock?
+	for _, host := range lb.hosts.Hosts() {
+		if !host.Health() {
+			continue
+		}
+		addr := host.AddressString()
+		hw, ok := lb.hostsWeighted[addr]
+		if !ok {
+			continue
+		}
+		hw.currentWeight += hw.effectiveWeight
+		totalWeight += hw.effectiveWeight
+
+		if hw.effectiveWeight < hw.weight {
+			hw.effectiveWeight++
+		}
+
+		if selectedHostWeighted == nil || hw.currentWeight > selectedHostWeighted.currentWeight {
+			selectedHostWeighted = hw
+			selectedHost = host
+		}
+	}
+	//
+	if selectedHostWeighted != nil {
+		selectedHostWeighted.currentWeight -= totalWeight
+	}
+	return selectedHost
+}
+
+func (lb *smoothWeightedRRLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+	return len(lb.hosts.Hosts()) > 0
+}
+
+func (lb *smoothWeightedRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+	return len(lb.hosts.Hosts())
+}
