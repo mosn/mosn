@@ -11,20 +11,21 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"golang.org/x/net/http/httpguts"
 	"io"
 	"math"
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/module/http2/hpack"
-	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/utils"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/net/http/httpguts"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/module/http2/hpack"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 var (

@@ -35,7 +35,6 @@ import (
 	"io"
 	"log"
 	"math"
-	"mosn.io/mosn/pkg/module/http2/hpack"
 	"net"
 	"net/http"
 	"net/textproto"
@@ -49,6 +48,7 @@ import (
 	"time"
 
 	"golang.org/x/net/http/httpguts"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 )
 
 const (

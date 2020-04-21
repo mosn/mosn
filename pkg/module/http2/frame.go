@@ -9,12 +9,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"golang.org/x/net/http/httpguts"
 	"io"
 	"log"
-	"mosn.io/mosn/pkg/module/http2/hpack"
 	"strings"
 	"sync"
+
+	"golang.org/x/net/http/httpguts"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 )
 
 const frameHeaderLen = 9

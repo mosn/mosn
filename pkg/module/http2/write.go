@@ -8,9 +8,10 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"mosn.io/mosn/pkg/module/http2/hpack"
 	"net/http"
 	"net/url"
+
+	"mosn.io/mosn/pkg/module/http2/hpack"
 
 	"golang.org/x/net/http/httpguts"
 )

@@ -939,7 +939,7 @@ func (s *clientStream) endStream() {
 		return
 	}
 
-	reset:
+reset:
 	log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)
 	if err == types.ErrConnectionHasClosed || err == errClosedClientConn {
 		s.ResetStream(types.StreamConnectionFailed)

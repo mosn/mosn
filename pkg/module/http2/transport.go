@@ -20,7 +20,6 @@ import (
 	"log"
 	"math"
 	mathrand "math/rand"
-	"mosn.io/mosn/pkg/module/http2/hpack"
 	"net"
 	"net/http"
 	"net/http/httptrace"
@@ -33,6 +32,7 @@ import (
 
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/idna"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 )
 
 const (
