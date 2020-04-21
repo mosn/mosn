@@ -15,37 +15,30 @@
  * limitations under the License.
  */
 
-package types
+package cluster
 
-// ContextKey type
-type ContextKey int
-
-// Context key types(built-in)
-const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyConnectionID
-	ContextKeyListenerPort
-	ContextKeyListenerName
-	ContextKeyListenerType
-	ContextKeyListenerStatsNameSpace
-	ContextKeyNetworkFilterChainFactories
-	ContextKeyStreamFilterChainFactories
-	ContextKeyBufferPoolCtx
-	ContextKeyAccessLogs
-	ContextOriRemoteAddr
-	ContextKeyAcceptChan
-	ContextKeyAcceptBuffer
-	ContextKeyConnectionFd
-	ContextSubProtocol
-	ContextKeyTraceSpanKey
-	ContextKeyActiveSpan
-	ContextKeyTraceId
-	ContextKeyVariables
-	ContextKeyDownStreamProtocol
-	ContextKeyEnd
+import (
+	"testing"
 )
 
-// GlobalProxyName represents proxy name for metrics
-const (
-	GlobalProxyName = "global"
-)
+func testStateReset() {
+	isDisableClientSideTLS = 0
+}
+
+func TestIsSupportTLS(t *testing.T) {
+	testStateReset()
+	defer testStateReset()
+	//
+	if !IsSupportTLS() {
+		t.Error("the default value should be support tls")
+	}
+	//
+	DisableClientSideTLS()
+	if IsSupportTLS() {
+		t.Error("disbale tls, should not support tls any more")
+	}
+	EnableClientSideTLS()
+	if !IsSupportTLS() {
+		t.Error("set disbale is false, still support tls")
+	}
+}

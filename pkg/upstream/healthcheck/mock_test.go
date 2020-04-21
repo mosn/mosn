@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -91,14 +92,14 @@ func (h *mockHost) AddressString() string {
 	return h.addr
 }
 
-func (h *mockHost) ClearHealthFlag(flag types.HealthFlag) {
+func (h *mockHost) ClearHealthFlag(flag api.HealthFlag) {
 	h.flag &= ^uint64(flag)
 }
 
-func (h *mockHost) ContainHealthFlag(flag types.HealthFlag) bool {
+func (h *mockHost) ContainHealthFlag(flag api.HealthFlag) bool {
 	return h.flag&uint64(flag) > 0
 }
 
-func (h *mockHost) SetHealthFlag(flag types.HealthFlag) {
+func (h *mockHost) SetHealthFlag(flag api.HealthFlag) {
 	h.flag |= uint64(flag)
 }

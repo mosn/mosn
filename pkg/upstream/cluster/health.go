@@ -15,37 +15,42 @@
  * limitations under the License.
  */
 
-package types
+package cluster
 
-// ContextKey type
-type ContextKey int
+import (
+	"sync"
+	"sync/atomic"
 
-// Context key types(built-in)
-const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyConnectionID
-	ContextKeyListenerPort
-	ContextKeyListenerName
-	ContextKeyListenerType
-	ContextKeyListenerStatsNameSpace
-	ContextKeyNetworkFilterChainFactories
-	ContextKeyStreamFilterChainFactories
-	ContextKeyBufferPoolCtx
-	ContextKeyAccessLogs
-	ContextOriRemoteAddr
-	ContextKeyAcceptChan
-	ContextKeyAcceptBuffer
-	ContextKeyConnectionFd
-	ContextSubProtocol
-	ContextKeyTraceSpanKey
-	ContextKeyActiveSpan
-	ContextKeyTraceId
-	ContextKeyVariables
-	ContextKeyDownStreamProtocol
-	ContextKeyEnd
+	"mosn.io/api"
 )
 
-// GlobalProxyName represents proxy name for metrics
-const (
-	GlobalProxyName = "global"
-)
+// health flag resue for same address
+// TODO: use one map for all reuse data
+var healthStore = sync.Map{}
+
+func GetHealthFlagPointer(addr string) *uint64 {
+	v, _ := healthStore.LoadOrStore(addr, func() *uint64 {
+		f := uint64(0)
+		return &f
+	}())
+	p, _ := v.(*uint64)
+	return p
+}
+
+func SetHealthFlag(p *uint64, flag api.HealthFlag) {
+	if p == nil {
+		return
+	}
+	f := atomic.LoadUint64(p)
+	f |= uint64(flag)
+	atomic.StoreUint64(p, f)
+}
+
+func ClearHealthFlag(p *uint64, flag api.HealthFlag) {
+	if p == nil {
+		return
+	}
+	f := atomic.LoadUint64(p)
+	f &= ^uint64(flag)
+	atomic.StoreUint64(p, f)
+}

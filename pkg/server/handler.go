@@ -39,7 +39,6 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -199,7 +198,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		}
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
-		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.AddrConfig)
+		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
+
 	}
 	admin.SetListenerConfig(listenerName, *al.listener.Config())
 	return al, nil
@@ -289,7 +289,7 @@ func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
 	for idx, l := range ch.listeners {
 		file, err := l.listener.ListenerFile()
 		if err != nil {
-			log.DefaultLogger.Errorf("[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
+			log.DefaultLogger.Alertf("listener.list", "[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
 		files[idx] = file
@@ -353,14 +353,14 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                 listener,
-		listenerFiltersFactories: listenerFiltersFactories,
+		conns:                    list.New(),
+		handler:                  handler,
+		stopChan:                 stopChan,
+		accessLogs:               accessLoggers,
+		updatedLabel:             false,
+		idleTimeout:              lc.ConnectionIdleTimeout,
 		networkFiltersFactories:  networkFiltersFactories,
-		conns:        list.New(),
-		handler:      handler,
-		stopChan:     stopChan,
-		accessLogs:   accessLoggers,
-		updatedLabel: false,
-		idleTimeout:  lc.ConnectionIdleTimeout,
+		listenerFiltersFactories: listenerFiltersFactories,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
@@ -390,8 +390,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 func (al *activeListener) GoStart(lctx context.Context) {
 	utils.GoWithRecover(func() {
 		al.listener.Start(lctx, false)
-		// set listener addr metrics
-		metrics.AddListenerAddr(al.listener.Addr().String())
 	}, func(r interface{}) {
 		// TODO: add a times limit?
 		al.GoStart(lctx)

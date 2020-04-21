@@ -15,37 +15,24 @@
  * limitations under the License.
  */
 
-package types
+package cluster
 
-// ContextKey type
-type ContextKey int
+import "sync/atomic"
 
-// Context key types(built-in)
-const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyConnectionID
-	ContextKeyListenerPort
-	ContextKeyListenerName
-	ContextKeyListenerType
-	ContextKeyListenerStatsNameSpace
-	ContextKeyNetworkFilterChainFactories
-	ContextKeyStreamFilterChainFactories
-	ContextKeyBufferPoolCtx
-	ContextKeyAccessLogs
-	ContextOriRemoteAddr
-	ContextKeyAcceptChan
-	ContextKeyAcceptBuffer
-	ContextKeyConnectionFd
-	ContextSubProtocol
-	ContextKeyTraceSpanKey
-	ContextKeyActiveSpan
-	ContextKeyTraceId
-	ContextKeyVariables
-	ContextKeyDownStreamProtocol
-	ContextKeyEnd
-)
+// temporary implement:
+// control client side tls support without update config
+var isDisableClientSideTLS uint32
 
-// GlobalProxyName represents proxy name for metrics
-const (
-	GlobalProxyName = "global"
-)
+func DisableClientSideTLS() {
+	atomic.StoreUint32(&isDisableClientSideTLS, 1)
+}
+
+func EnableClientSideTLS() {
+	atomic.StoreUint32(&isDisableClientSideTLS, 0)
+}
+
+// IsSupportTLS returns the client side is support tls or not
+// default is support
+func IsSupportTLS() bool {
+	return atomic.LoadUint32(&isDisableClientSideTLS) == 0
+}
