@@ -19,9 +19,11 @@ package http
 
 import (
 	"context"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 	"strconv"
 
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/variable"
 )
 
@@ -35,6 +37,9 @@ var (
 	builtinVariables = []variable.Variable{
 		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
@@ -54,6 +59,11 @@ func init() {
 	for idx := range prefixVariables {
 		variable.RegisterPrefixVariable(prefixVariables[idx].Name(), prefixVariables[idx])
 	}
+
+	// register protocol resource
+	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarHttpRequestPath)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarHttpRequestUri)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarHttpRequestArg)
 }
 
 func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -73,6 +83,26 @@ func requestLengthGetter(ctx context.Context, value *variable.IndexedValue, data
 	}
 
 	return strconv.Itoa(length), nil
+}
+
+func requestPathGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+
+	return string(request.URI().Path()), nil
+}
+
+func requestUriGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+
+	return string(request.Header.RequestURI()), nil
+}
+
+func requestArgGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+	return request.URI().QueryArgs().String(), nil
 }
 
 func httpHeaderGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

@@ -234,3 +234,11 @@ func (s *mockSpan) InjectContext(requestHeaders types.HeaderMap, requestInfo typ
 func (s *mockSpan) SpawnChild(operationName string, startTime time.Time) types.Span {
 	return nil
 }
+
+type mockServerConn struct {
+	types.ServerStreamConnection
+}
+
+func (s *mockServerConn) Protocol() api.Protocol {
+	return "mockProtocol"
+}

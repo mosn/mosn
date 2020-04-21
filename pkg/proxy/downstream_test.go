@@ -140,10 +140,11 @@ func TestDirectResponse(t *testing.T) {
 						route: tc.route,
 					},
 				},
-				clusterManager: &mockClusterManager{},
-				readCallbacks:  &mockReadFilterCallbacks{},
-				stats:          globalStats,
-				listenerStats:  newListenerStats("test"),
+				clusterManager:   &mockClusterManager{},
+				readCallbacks:    &mockReadFilterCallbacks{},
+				stats:            globalStats,
+				listenerStats:    newListenerStats("test"),
+				serverStreamConn: &mockServerConn{},
 			},
 			responseSender: tc.client,
 			requestInfo:    &network.RequestInfo{},
@@ -160,12 +161,13 @@ func TestDirectResponse(t *testing.T) {
 func TestOnewayHijack(t *testing.T) {
 	initGlobalStats()
 	proxy := &proxy{
-		config:         &v2.Proxy{},
-		routersWrapper: nil,
-		clusterManager: &mockClusterManager{},
-		readCallbacks:  &mockReadFilterCallbacks{},
-		stats:          globalStats,
-		listenerStats:  newListenerStats("test"),
+		config:           &v2.Proxy{},
+		routersWrapper:   nil,
+		clusterManager:   &mockClusterManager{},
+		readCallbacks:    &mockReadFilterCallbacks{},
+		stats:            globalStats,
+		listenerStats:    newListenerStats("test"),
+		serverStreamConn: &mockServerConn{},
 	}
 	s := newActiveStream(context.Background(), proxy, nil, nil)
 

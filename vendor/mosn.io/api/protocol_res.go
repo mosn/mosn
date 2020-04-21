@@ -15,37 +15,16 @@
  * limitations under the License.
  */
 
-package types
+package api
 
-// ContextKey type
-type ContextKey int
+type ProtocolResourceName string
 
-// Context key types(built-in)
+// protocol resource name
 const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyConnectionID
-	ContextKeyListenerPort
-	ContextKeyListenerName
-	ContextKeyListenerType
-	ContextKeyListenerStatsNameSpace
-	ContextKeyNetworkFilterChainFactories
-	ContextKeyStreamFilterChainFactories
-	ContextKeyBufferPoolCtx
-	ContextKeyAccessLogs
-	ContextOriRemoteAddr
-	ContextKeyAcceptChan
-	ContextKeyAcceptBuffer
-	ContextKeyConnectionFd
-	ContextSubProtocol
-	ContextKeyTraceSpanKey
-	ContextKeyActiveSpan
-	ContextKeyTraceId
-	ContextKeyVariables
-	ContextKeyDownStreamProtocol
-	ContextKeyEnd
-)
-
-// GlobalProxyName represents proxy name for metrics
-const (
-	GlobalProxyName = "global"
+	// full uri contains path + args
+	URI ProtocolResourceName = "URI"
+	// only path not contains args
+	PATH ProtocolResourceName = "PATH"
+	// only arguments
+	ARG ProtocolResourceName = "ARG"
 )
