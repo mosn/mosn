@@ -156,24 +156,25 @@ among peers.
 */
 type smoothWeightedRRLoadBalancer struct {
 	hosts         types.HostSet
-	hostsWeighted map[string]*hostSmoothWeighted
+	hostsWeighted []*hostSmoothWeighted
+	lock          sync.Mutex
 }
 
 type hostSmoothWeighted struct {
-	weight          int
-	currentWeight   int
-	effectiveWeight int
+	weight          int64
+	currentWeight   int64
+	effectiveWeight int64
 }
 
 func newSmoothWeightedRRLoadBalancer(hosts types.HostSet) types.LoadBalancer {
 	smoothWRRLoadBalancer := &smoothWeightedRRLoadBalancer{
 		hosts:         hosts,
-		hostsWeighted: make(map[string]*hostSmoothWeighted),
+		hostsWeighted: make([]*hostSmoothWeighted, len(hosts.Hosts())),
 	}
 	// iterate over all hosts to init host with Weighted
-	for _, host := range hosts.Hosts() {
-		w := int(host.Weight())
-		smoothWRRLoadBalancer.hostsWeighted[host.AddressString()] = &hostSmoothWeighted{
+	for idx, host := range hosts.Hosts() {
+		w := int64(host.Weight())
+		smoothWRRLoadBalancer.hostsWeighted[idx] = &hostSmoothWeighted{
 			effectiveWeight: w,
 			weight:          w,
 		}
@@ -184,24 +185,19 @@ func newSmoothWeightedRRLoadBalancer(hosts types.HostSet) types.LoadBalancer {
 // smooth weighted round robin
 // O(n), traverse over all hosts
 func (lb *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	totalWeight := 0
+	var totalWeight int64 = 0
 	var selectedHostWeighted *hostSmoothWeighted
 	var selectedHost types.Host
-	// TODO: lock?
-	for _, host := range lb.hosts.Hosts() {
+	for idx, host := range lb.hosts.Hosts() {
 		if !host.Health() {
 			continue
 		}
-		addr := host.AddressString()
-		hw, ok := lb.hostsWeighted[addr]
-		if !ok {
-			continue
-		}
-		hw.currentWeight += hw.effectiveWeight
+		hw := lb.hostsWeighted[idx]
+		atomic.AddInt64(&hw.currentWeight, hw.effectiveWeight)
 		totalWeight += hw.effectiveWeight
 
 		if hw.effectiveWeight < hw.weight {
-			hw.effectiveWeight++
+			atomic.AddInt64(&hw.effectiveWeight, 1)
 		}
 
 		if selectedHostWeighted == nil || hw.currentWeight > selectedHostWeighted.currentWeight {
@@ -211,7 +207,7 @@ func (lb *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCon
 	}
 	//
 	if selectedHostWeighted != nil {
-		selectedHostWeighted.currentWeight -= totalWeight
+		atomic.AddInt64(&selectedHostWeighted.currentWeight, -totalWeight)
 	}
 	return selectedHost
 }

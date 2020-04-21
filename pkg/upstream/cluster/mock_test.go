@@ -32,6 +32,7 @@ type mockHost struct {
 	name       string
 	addr       string
 	meta       api.Metadata
+	w          uint32
 	healthFlag *uint64
 	types.Host
 }
@@ -71,6 +72,10 @@ func (h *mockHost) SetHealthFlag(flag api.HealthFlag) {
 
 func (h *mockHost) HealthFlag() api.HealthFlag {
 	return api.HealthFlag(atomic.LoadUint64(h.healthFlag))
+}
+
+func (h *mockHost) Weight() uint32 {
+	return h.w
 }
 
 type ipPool struct {
