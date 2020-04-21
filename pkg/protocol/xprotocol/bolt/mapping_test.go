@@ -15,44 +15,56 @@
  * limitations under the License.
  */
 
-package protocol
+package bolt
 
 import (
 	"context"
 	"testing"
 
-	"mosn.io/api"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
-func TestMapping(t *testing.T) {
-	if _, err := MappingHeaderStatusCode(context.Background(), Xprotocol, nil); err != ErrNoMapping {
-		t.Error("no register type")
-	}
+func TestSofaMapping(t *testing.T) {
+	m := &boltStatusMapping{}
 	testcases := []struct {
-		Header   api.HeaderMap
-		Expetced int
+		Header   types.HeaderMap
+		Expected int
 	}{
 		{
-			CommonHeader{types.HeaderStatus: "200"},
-			200,
+			Header:   NewRpcResponse(0, ResponseStatusSuccess, nil, nil),
+			Expected: 200,
 		},
 		{
-			CommonHeader{},
-			0,
+			Header:   NewRpcResponse(0, ResponseStatusServerThreadpoolBusy, nil, nil),
+			Expected: 503,
+		},
+		{
+			Header:   NewRpcResponse(0, ResponseStatusTimeout, nil, nil),
+			Expected: 504,
+		},
+		{
+			Header:   NewRpcResponse(0, ResponseStatusClientSendError, nil, nil),
+			Expected: 500,
+		},
+		{
+			Header:   NewRpcResponse(0, ResponseStatusConnectionClosed, nil, nil),
+			Expected: 502,
+		},
+		{
+			Header:   NewRpcResponse(0, ResponseStatusError, nil, nil),
+			Expected: 500,
+		},
+		{
+			Header:   protocol.CommonHeader{},
+			Expected: 0,
 		},
 	}
 	for i, tc := range testcases {
-		code, _ := MappingHeaderStatusCode(context.Background(), HTTP1, tc.Header)
-		if code != tc.Expetced {
-			t.Errorf("#%d unexpected status code", i)
+		code, _ := m.MappingHeaderStatusCode(context.Background(), tc.Header)
+		if code != tc.Expected {
+			t.Errorf("#%d get unexpected code", i)
 		}
-	}
 
-	for i, tc := range testcases {
-		code, _ := MappingHeaderStatusCode(context.Background(), HTTP2, tc.Header)
-		if code != tc.Expetced {
-			t.Errorf("#%d unexpected status code", i)
-		}
 	}
 }

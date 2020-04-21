@@ -15,50 +15,30 @@
  * limitations under the License.
  */
 
-package shm
+package cluster
 
 import (
 	"testing"
-	"unsafe"
-
-	"mosn.io/mosn/pkg/types"
 )
 
-func TestCounter(t *testing.T) {
-	// just for test
-	originPath := types.MosnConfigPath
-	types.MosnConfigPath = "."
+func testStateReset() {
+	isDisableClientSideTLS = 0
+}
 
-	defer func() {
-		types.MosnConfigPath = originPath
-	}()
-	zone := InitMetricsZone("TestCounter", 10*1024)
-	defer func() {
-		zone.Detach()
-		Reset()
-	}()
-
-	entry, err := defaultZone.alloc("TestCounter")
-	if err != nil {
-		t.Fatal(err)
+func TestIsSupportTLS(t *testing.T) {
+	testStateReset()
+	defer testStateReset()
+	//
+	if !IsSupportTLS() {
+		t.Error("the default value should be support tls")
 	}
-	// inc
-	counter := ShmCounter(unsafe.Pointer(&entry.value))
-	counter.Inc(5)
-
-	if counter.Count() != 5 {
-		t.Error("count ops failed")
+	//
+	DisableClientSideTLS()
+	if IsSupportTLS() {
+		t.Error("disbale tls, should not support tls any more")
 	}
-
-	// dec
-	counter.Dec(2)
-	if counter.Count() != 3 {
-		t.Error("count ops failed")
-	}
-
-	// clear
-	counter.Clear()
-	if counter.Count() != 0 {
-		t.Error("count ops failed")
+	EnableClientSideTLS()
+	if !IsSupportTLS() {
+		t.Error("set disbale is false, still support tls")
 	}
 }

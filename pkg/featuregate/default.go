@@ -47,6 +47,10 @@ func SetFeatureState(key Feature, enable bool) error {
 	return defaultFeatureGate.SetFeatureState(key, enable)
 }
 
+func KnownFeatures() map[string]bool {
+	return defaultFeatureGate.KnownFeatures()
+}
+
 func StartInit() {
 	defaultFeatureGate.StartInit()
 }

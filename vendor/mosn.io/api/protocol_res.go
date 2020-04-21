@@ -15,50 +15,16 @@
  * limitations under the License.
  */
 
-package shm
+package api
 
-import (
-	"testing"
-	"unsafe"
+type ProtocolResourceName string
 
-	"mosn.io/mosn/pkg/types"
+// protocol resource name
+const (
+	// full uri contains path + args
+	URI ProtocolResourceName = "URI"
+	// only path not contains args
+	PATH ProtocolResourceName = "PATH"
+	// only arguments
+	ARG ProtocolResourceName = "ARG"
 )
-
-func TestCounter(t *testing.T) {
-	// just for test
-	originPath := types.MosnConfigPath
-	types.MosnConfigPath = "."
-
-	defer func() {
-		types.MosnConfigPath = originPath
-	}()
-	zone := InitMetricsZone("TestCounter", 10*1024)
-	defer func() {
-		zone.Detach()
-		Reset()
-	}()
-
-	entry, err := defaultZone.alloc("TestCounter")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// inc
-	counter := ShmCounter(unsafe.Pointer(&entry.value))
-	counter.Inc(5)
-
-	if counter.Count() != 5 {
-		t.Error("count ops failed")
-	}
-
-	// dec
-	counter.Dec(2)
-	if counter.Count() != 3 {
-		t.Error("count ops failed")
-	}
-
-	// clear
-	counter.Clear()
-	if counter.Count() != 0 {
-		t.Error("count ops failed")
-	}
-}

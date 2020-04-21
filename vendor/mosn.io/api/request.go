@@ -102,6 +102,8 @@ type RequestInfo interface {
 
 	// Protocol returns the request's protocol type
 	Protocol() Protocol
+	// SetProtocol sets the request's protocol type
+	SetProtocol(p Protocol)
 
 	// ResponseCode reports the request's response code
 	// The code is http standard status code.

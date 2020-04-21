@@ -32,6 +32,8 @@ const (
 	DownFilter
 	MatchRoute
 	DownFilterAfterRoute
+	ChooseHost
+	DownFilterAfterChooseHost
 	DownRecvHeader
 	DownRecvData
 	DownRecvTrailer
