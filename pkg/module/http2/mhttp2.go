@@ -811,9 +811,14 @@ func (sc *MServerConn) processData(ctx context.Context, f *DataFrame) (bool, err
 			sc.sendWindowUpdate32(st, pad)
 		}
 
+		// Check the conn-level first, before the stream-level.
+		if sc.inflow.available() < initialConnRecvWindowSize/2 {
+			i := int(initialConnRecvWindowSize - sc.inflow.available())
+			sc.sendWindowUpdate(nil, i)
+		}
+
 		if st.inflow.available() < initialConnRecvWindowSize/2 {
 			i := int(initialConnRecvWindowSize - st.inflow.available())
-			sc.sendWindowUpdate(nil, i)
 			sc.sendWindowUpdate(st, i)
 		}
 
