@@ -192,7 +192,7 @@ func (tracer *mockTracer) Start(ctx context.Context, request interface{}, startT
 }
 
 type mockSpan struct {
-	inject bool
+	inject   bool
 	finished bool
 }
 
