@@ -18,18 +18,22 @@ func TestLARChooseHost(t *testing.T) {
 	host := balancer.ChooseHost(newMockLbContext(nil))
 	assert.NotNil(t, host)
 
-	for _, host := range hosts.healthyHosts[1:] {
+	for _, host := range hosts.Hosts() {
 		mockRequest(host, true, 10)
 	}
+	// new lb to refresh edf
+	balancer = NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	actual := balancer.ChooseHost(newMockLbContext(nil))
-	assert.NotNil(t, host)
+	// now
+	assert.Equal(t, hosts.allHosts[6], actual)
+	actual = balancer.ChooseHost(newMockLbContext(nil))
 
 	// test only one host
 	h := exampleHostConfigs()[0:1]
 	hosts = createHostsetWithStats(h, "test")
 	balancer = NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	actual = balancer.ChooseHost(nil)
-	assert.Equal(t, hosts.healthyHosts[0], actual)
+	assert.Equal(t, hosts.allHosts[0], actual)
 
 	// test no host
 	h = exampleHostConfigs()[0:0]

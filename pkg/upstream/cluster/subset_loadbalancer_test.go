@@ -88,6 +88,7 @@ func exampleHostConfigs() (hosts []v2.Host) {
 			HostConfig: v2.HostConfig{
 				Hostname: hostName,
 				Address:  addr,
+				Weight:   uint32(i) + 1,
 			},
 			MetaData: md,
 		}

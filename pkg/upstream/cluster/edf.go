@@ -8,36 +8,32 @@ import (
 type edfSchduler struct {
 	lock  sync.Mutex
 	items PriorityQueue
+	currentTime float64
 }
 
-func newEdfScheduler() *edfSchduler {
-	return &edfSchduler{}
+func newEdfScheduler(cap int) *edfSchduler {
+	return &edfSchduler{
+		items: make(PriorityQueue, 0, cap),
+	}
 }
 
 // edfEntry is an internal wrapper for item that also stores weight and relative position in the queue.
 type edfEntry struct {
 	deadline float64
-	weight   uint32
+	weight   float64
 	item     interface{}
 }
 
 // PriorityQueue
 type PriorityQueue []*edfEntry
 
-// Current time in EDF scheduler.
-func (edf *edfSchduler) currentTime() float64 {
-	if len(edf.items) == 0 {
-		return 0.0
-	}
-	return edf.items[0].deadline
-}
 
 // Add new item into the edfSchduler
-func (edf *edfSchduler) Add(item interface{}, weight uint32) {
+func (edf *edfSchduler) Add(item interface{}, weight float64) {
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
 	entry := edfEntry{
-		deadline: edf.currentTime() + 1.0/float64(weight),
+		deadline: edf.currentTime + 1.0/ weight,
 		weight:   weight,
 		item:     item,
 	}
@@ -51,9 +47,8 @@ func (edf *edfSchduler) Next() interface{} {
 	if len(edf.items) == 0 {
 		return nil
 	}
-	item := edf.items[0]
-	item.deadline = edf.currentTime() + 1.0/float64(item.weight)
-	heap.Fix(&edf.items, 0)
+	item := heap.Pop(&edf.items).(*edfEntry)
+	edf.currentTime = item.deadline
 	return item.item
 }
 

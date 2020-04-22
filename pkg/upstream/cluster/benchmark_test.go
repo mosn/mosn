@@ -222,7 +222,7 @@ func BenchmarkRandomLBWithUnhealthyHost(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, nil)
 	hostSet.setFinalHost(hosts)
-	lb := newRandomLoadBalancer(hostSet)
+	lb := newRandomLoadBalancer(nil, hostSet)
 	for i := 0; i < 5; i++ {
 		hosts[i].SetHealthFlag(api.FAILED_ACTIVE_HC)
 	}
@@ -249,7 +249,7 @@ func BenchmarkRoundRobinLBWithUnhealthyHost(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, nil)
 	hostSet.setFinalHost(hosts)
-	lb := rrFactory.newRoundRobinLoadBalancer(hostSet)
+	lb := rrFactory.newRoundRobinLoadBalancer(nil, hostSet)
 	for i := 0; i < 5; i++ {
 		hosts[i].SetHealthFlag(api.FAILED_OUTLIER_CHECK)
 	}
