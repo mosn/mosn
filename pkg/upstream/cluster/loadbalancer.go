@@ -172,35 +172,27 @@ func (lb *leastActiveRequestLoadBalancer) hostWeight(host types.Host) float64 {
 
 func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
 
-	healthyHosts := lb.hosts.Hosts()
-	healthyHostLen := len(healthyHosts)
-	if healthyHostLen == 0 {
-		// Return nil directly if healthyHosts is nil or size is 0
-		return nil
-	} else if healthyHostLen == 1 {
-		// Return directly if there is only one host
-		return healthyHosts[0]
-	} else {
-		lb.mutex.Lock()
-		defer lb.mutex.Unlock()
-		var candicate types.Host
-		// Choose `choice` times and return the best one
-		// See The Power of Two Random Choices: A Survey of Techniques and Results
-		//  http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
-		for cur := 0; cur < int(lb.choice); cur++ {
+	allHosts := lb.hosts.Hosts()
+	total := len(allHosts)
+	lb.mutex.Lock()
+	defer lb.mutex.Unlock()
+	var candicate types.Host
+	// Choose `choice` times and return the best one
+	// See The Power of Two Random Choices: A Survey of Techniques and Results
+	//  http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
+	for cur := 0; cur < int(lb.choice); cur++ {
 
-			randIdx := lb.rand.Intn(healthyHostLen)
-			tempHost := healthyHosts[randIdx]
-			if candicate == nil {
-				candicate = tempHost
-				continue
-			}
-			if candicate.HostStats().UpstreamRequestActive.Count() > tempHost.HostStats().UpstreamRequestActive.Count() {
-				candicate = tempHost
-			}
+		randIdx := lb.rand.Intn(total)
+		tempHost := allHosts[randIdx]
+		if candicate == nil {
+			candicate = tempHost
+			continue
 		}
-		return candicate
+		if candicate.HostStats().UpstreamRequestActive.Count() > tempHost.HostStats().UpstreamRequestActive.Count() {
+			candicate = tempHost
+		}
 	}
+	return candicate
 
 }
 
@@ -219,15 +211,36 @@ type EdfLoadBalancer struct {
 
 func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 
-	if lb.scheduler != nil {
-		// do weight selection
-		host := lb.scheduler.Next().(types.Host)
-		lb.scheduler.Add(host, lb.hostWeightFunc(host))
-		return host
-	} else {
-		// do unweight selection
-		return lb.unweightChooseHostFunc(context)
+	var candicate types.Host
+	targetHosts := lb.hosts.Hosts()
+	total := len(targetHosts)
+	if total == 0 {
+		// Return nil directly if allHosts is nil or size is 0
+		return nil
 	}
+	if total == 1 {
+		// Return directly if there is only one host
+		return targetHosts[0]
+	}
+	for i := 0; i < total; i++ {
+		if lb.scheduler != nil {
+			// do weight selection
+			host := lb.scheduler.Next().(types.Host)
+			lb.scheduler.Add(host, lb.hostWeightFunc(host))
+			candicate = host
+		} else {
+			// do unweight selection
+			candicate = lb.unweightChooseHostFunc(context)
+		}
+		// only return when candicate is healthy
+		if candicate.Health() {
+			return candicate
+		}
+	}
+	lb.mutex.Lock()
+	defer lb.mutex.Unlock()
+	// randomly choose one when all instances are unhealthy
+	return targetHosts[lb.rand.Intn(total)]
 }
 
 func (lb *EdfLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
