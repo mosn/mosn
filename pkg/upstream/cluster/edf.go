@@ -44,6 +44,7 @@ func (edf *edfSchduler) Add(item WeightItem, weight float64) {
 }
 
 // Pick entry with closest deadline and push again
+// Note that you need to ensure the return result of weightFunc is not equal to 0
 func (edf *edfSchduler) NextAndPush(weightFunc func(item WeightItem) float64) interface{} {
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
