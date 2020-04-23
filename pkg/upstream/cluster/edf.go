@@ -6,8 +6,8 @@ import (
 )
 
 type edfSchduler struct {
-	lock  sync.Mutex
-	items PriorityQueue
+	lock        sync.Mutex
+	items       PriorityQueue
 	currentTime float64
 }
 
@@ -21,35 +21,43 @@ func newEdfScheduler(cap int) *edfSchduler {
 type edfEntry struct {
 	deadline float64
 	weight   float64
-	item     interface{}
+	item     WeightItem
+}
+
+type WeightItem interface {
+	Weight() uint32
 }
 
 // PriorityQueue
 type PriorityQueue []*edfEntry
 
-
 // Add new item into the edfSchduler
-func (edf *edfSchduler) Add(item interface{}, weight float64) {
+func (edf *edfSchduler) Add(item WeightItem, weight float64) {
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
 	entry := edfEntry{
-		deadline: edf.currentTime + 1.0/ weight,
+		deadline: edf.currentTime + 1.0/weight,
 		weight:   weight,
 		item:     item,
 	}
 	heap.Push(&edf.items, &entry)
 }
 
-// Pick entry with closest deadline.
-func (edf *edfSchduler) Next() interface{} {
+// Pick entry with closest deadline and push again
+func (edf *edfSchduler) NextAndPush(weightFunc func(item WeightItem) float64) interface{} {
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
 	if len(edf.items) == 0 {
 		return nil
 	}
-	item := heap.Pop(&edf.items).(*edfEntry)
-	edf.currentTime = item.deadline
-	return item.item
+	entry := heap.Pop(&edf.items).(*edfEntry)
+	edf.currentTime = entry.deadline
+	weight := weightFunc(entry.item)
+	// update the deadline and put into priorityQueue again
+	entry.deadline = entry.deadline + 1.0/weight
+	entry.weight = weight
+	heap.Push(&edf.items, entry)
+	return entry.item
 }
 
 func (pq PriorityQueue) Len() int           { return len(pq) }

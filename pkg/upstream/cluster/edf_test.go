@@ -16,12 +16,12 @@ func Test(t *testing.T) {
 	edfScheduler.Add(B, float64(B.weight))
 	edfScheduler.Add(C, float64(C.weight))
 	edfScheduler.Add(D, float64(D.weight))
-
-	ele := edfScheduler.Next()
+	weightFunc := func(item WeightItem) float64 {
+		return float64(item.Weight())
+	}
+	ele := edfScheduler.NextAndPush(weightFunc)
 	assert.Equal(t, A, ele)
-	ele = edfScheduler.Next()
+	ele = edfScheduler.NextAndPush(weightFunc)
 	assert.Equal(t, C, ele)
-	ele = edfScheduler.Next()
-	assert.Equal(t, B, ele)
 
 }

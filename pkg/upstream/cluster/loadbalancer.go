@@ -166,7 +166,8 @@ func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 	return lb
 }
 
-func (lb *leastActiveRequestLoadBalancer) hostWeight(host types.Host) float64 {
+func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
+	host := item.(types.Host)
 	return float64(host.Weight()) / float64((host.HostStats().UpstreamRequestActive.Count() + 1))
 }
 
@@ -206,7 +207,7 @@ type EdfLoadBalancer struct {
 	mutex     sync.Mutex
 	// the method to choose host when all host
 	unweightChooseHostFunc func(types.LoadBalancerContext) types.Host
-	hostWeightFunc         func(host types.Host) float64
+	hostWeightFunc         func(item WeightItem) float64
 }
 
 func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
@@ -225,7 +226,7 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 	for i := 0; i < total; i++ {
 		if lb.scheduler != nil {
 			// do weight selection
-			host := lb.scheduler.Next().(types.Host)
+			host := lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
 			lb.scheduler.Add(host, lb.hostWeightFunc(host))
 			candicate = host
 		} else {
@@ -251,7 +252,7 @@ func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
 }
 
-func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host types.Host) float64) *EdfLoadBalancer {
+func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
 	lb := &EdfLoadBalancer{
 		hosts:                  hosts,
 		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
