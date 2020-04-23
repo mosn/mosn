@@ -42,7 +42,6 @@ import (
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/internal/binarylog"
 	"google.golang.org/grpc/internal/channelz"
-	"google.golang.org/grpc/internal/grpcsync"
 	"google.golang.org/grpc/internal/transport"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
@@ -56,8 +55,6 @@ const (
 	defaultServerMaxReceiveMessageSize = 1024 * 1024 * 4
 	defaultServerMaxSendMessageSize    = math.MaxInt32
 )
-
-var statusOK = status.New(codes.OK, "")
 
 type methodHandler func(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor UnaryServerInterceptor) (interface{}, error)
 
@@ -100,8 +97,10 @@ type Server struct {
 	m      map[string]*service // service name -> service info
 	events trace.EventLog
 
-	quit               *grpcsync.Event
-	done               *grpcsync.Event
+	quit               chan struct{}
+	done               chan struct{}
+	quitOnce           sync.Once
+	doneOnce           sync.Once
 	channelzRemoveOnce sync.Once
 	serveWG            sync.WaitGroup // counts active Serve goroutines for GracefulStop
 
@@ -389,8 +388,8 @@ func NewServer(opt ...ServerOption) *Server {
 		opts:   opts,
 		conns:  make(map[transport.ServerTransport]bool),
 		m:      make(map[string]*service),
-		quit:   grpcsync.NewEvent(),
-		done:   grpcsync.NewEvent(),
+		quit:   make(chan struct{}),
+		done:   make(chan struct{}),
 		czData: new(channelzData),
 	}
 	s.cv = sync.NewCond(&s.mu)
@@ -557,9 +556,11 @@ func (s *Server) Serve(lis net.Listener) error {
 	s.serveWG.Add(1)
 	defer func() {
 		s.serveWG.Done()
-		if s.quit.HasFired() {
-			// Stop or GracefulStop called; block until done and return nil.
-			<-s.done.Done()
+		select {
+		// Stop or GracefulStop called; block until done and return nil.
+		case <-s.quit:
+			<-s.done
+		default:
 		}
 	}()
 
@@ -602,7 +603,7 @@ func (s *Server) Serve(lis net.Listener) error {
 				timer := time.NewTimer(tempDelay)
 				select {
 				case <-timer.C:
-				case <-s.quit.Done():
+				case <-s.quit:
 					timer.Stop()
 					return nil
 				}
@@ -612,8 +613,10 @@ func (s *Server) Serve(lis net.Listener) error {
 			s.printf("done serving; Accept = %v", err)
 			s.mu.Unlock()
 
-			if s.quit.HasFired() {
+			select {
+			case <-s.quit:
 				return nil
+			default:
 			}
 			return err
 		}
@@ -634,10 +637,6 @@ func (s *Server) Serve(lis net.Listener) error {
 // handleRawConn forks a goroutine to handle a just-accepted connection that
 // has not had any I/O performed on it yet.
 func (s *Server) handleRawConn(rawConn net.Conn) {
-	if s.quit.HasFired() {
-		rawConn.Close()
-		return
-	}
 	rawConn.SetDeadline(time.Now().Add(s.opts.connectionTimeout))
 	conn, authInfo, err := s.useTransportAuthenticator(rawConn)
 	if err != nil {
@@ -653,6 +652,14 @@ func (s *Server) handleRawConn(rawConn net.Conn) {
 		rawConn.SetDeadline(time.Time{})
 		return
 	}
+
+	s.mu.Lock()
+	if s.conns == nil {
+		s.mu.Unlock()
+		conn.Close()
+		return
+	}
+	s.mu.Unlock()
 
 	// Finish handshaking (HTTP2)
 	st := s.newHTTP2Transport(conn, authInfo)
@@ -761,9 +768,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // traceInfo returns a traceInfo and associates it with stream, if tracing is enabled.
 // If tracing is not enabled, it returns nil.
 func (s *Server) traceInfo(st transport.ServerTransport, stream *transport.Stream) (trInfo *traceInfo) {
-	if !EnableTracing {
-		return nil
-	}
 	tr, ok := trace.FromContext(stream.Context())
 	if !ok {
 		return nil
@@ -1074,7 +1078,7 @@ func (s *Server) processUnaryRPC(t transport.ServerTransport, stream *transport.
 	// TODO: Should we be logging if writing status failed here, like above?
 	// Should the logging be in WriteStatus?  Should we ignore the WriteStatus
 	// error or allow the stats handler to see it?
-	err = t.WriteStatus(stream, statusOK)
+	err = t.WriteStatus(stream, status.New(codes.OK, ""))
 	if binlog != nil {
 		binlog.Log(&binarylog.ServerTrailer{
 			Trailer: stream.Trailer(),
@@ -1232,7 +1236,7 @@ func (s *Server) processStreamingRPC(t transport.ServerTransport, stream *transp
 		ss.trInfo.tr.LazyLog(stringer("OK"), false)
 		ss.mu.Unlock()
 	}
-	err = t.WriteStatus(ss.s, statusOK)
+	err = t.WriteStatus(ss.s, status.New(codes.OK, ""))
 	if ss.binlog != nil {
 		ss.binlog.Log(&binarylog.ServerTrailer{
 			Trailer: ss.s.Trailer(),
@@ -1349,11 +1353,15 @@ func ServerTransportStreamFromContext(ctx context.Context) ServerTransportStream
 // pending RPCs on the client side will get notified by connection
 // errors.
 func (s *Server) Stop() {
-	s.quit.Fire()
+	s.quitOnce.Do(func() {
+		close(s.quit)
+	})
 
 	defer func() {
 		s.serveWG.Wait()
-		s.done.Fire()
+		s.doneOnce.Do(func() {
+			close(s.done)
+		})
 	}()
 
 	s.channelzRemoveOnce.Do(func() {
@@ -1390,8 +1398,15 @@ func (s *Server) Stop() {
 // accepting new connections and RPCs and blocks until all the pending RPCs are
 // finished.
 func (s *Server) GracefulStop() {
-	s.quit.Fire()
-	defer s.done.Fire()
+	s.quitOnce.Do(func() {
+		close(s.quit)
+	})
+
+	defer func() {
+		s.doneOnce.Do(func() {
+			close(s.done)
+		})
+	}()
 
 	s.channelzRemoveOnce.Do(func() {
 		if channelz.IsOn() {

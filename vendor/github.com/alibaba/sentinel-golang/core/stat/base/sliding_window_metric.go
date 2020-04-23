@@ -45,11 +45,6 @@ func NewSlidingWindowMetric(sampleCount, intervalInMs uint32, real *BucketLeapAr
 		panic(fmt.Sprintf("The interval(%d) of SlidingWindowMetric is greater than parent BucketLeapArray(%d).", intervalInMs, parentIntervalInMs))
 	}
 
-	// 10 * 1000 ms == parent
-	if parentIntervalInMs%intervalInMs != 0 {
-		panic(fmt.Sprintf("SlidingWindowMetric's intervalInMs(%d) is not divisible by real BucketLeapArray's intervalInMs(%d).", intervalInMs, parentIntervalInMs))
-	}
-
 	return &SlidingWindowMetric{
 		bucketLengthInMs: bucketLengthInMs,
 		sampleCount:      sampleCount,

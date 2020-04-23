@@ -9,7 +9,6 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
-	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
 )
@@ -23,7 +22,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 // A Timestamp represents a point in time independent of any time zone or local
 // calendar, encoded as a count of seconds and fractions of seconds at
@@ -98,13 +97,11 @@ const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 // 01:30 UTC on January 15, 2017.
 //
 // In JavaScript, one can convert a Date object to this format using the
-// standard
-// [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)
+// standard [toISOString()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date/toISOString)
 // method. In Python, a standard `datetime.datetime` object can be converted
-// to this format using
-// [`strftime`](https://docs.python.org/2/library/time.html#time.strftime) with
-// the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one can use
-// the Joda Time's [`ISODateTimeFormat.dateTime()`](
+// to this format using [`strftime`](https://docs.python.org/2/library/time.html#time.strftime)
+// with the time format spec '%Y-%m-%dT%H:%M:%S.%fZ'. Likewise, in Java, one
+// can use the Joda Time's [`ISODateTimeFormat.dateTime()`](
 // http://www.joda.org/joda-time/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateTime%2D%2D
 // ) to obtain a formatter capable of generating timestamps in this format.
 //
@@ -138,7 +135,7 @@ func (m *Timestamp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Timestamp.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -295,7 +292,7 @@ func valueToGoStringTimestamp(v interface{}, typ string) string {
 func (m *Timestamp) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -303,42 +300,34 @@ func (m *Timestamp) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Timestamp) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Timestamp) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Seconds != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintTimestamp(dAtA, i, uint64(m.Seconds))
 	}
 	if m.Nanos != 0 {
-		i = encodeVarintTimestamp(dAtA, i, uint64(m.Nanos))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintTimestamp(dAtA, i, uint64(m.Nanos))
 	}
-	if m.Seconds != 0 {
-		i = encodeVarintTimestamp(dAtA, i, uint64(m.Seconds))
-		i--
-		dAtA[i] = 0x8
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func encodeVarintTimestamp(dAtA []byte, offset int, v uint64) int {
-	offset -= sovTimestamp(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func (m *Timestamp) Size() (n int) {
 	if m == nil {
@@ -359,7 +348,14 @@ func (m *Timestamp) Size() (n int) {
 }
 
 func sovTimestamp(x uint64) (n int) {
-	return (math_bits.Len64(x|1) + 6) / 7
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
 }
 func sozTimestamp(x uint64) (n int) {
 	return sovTimestamp(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -459,7 +455,6 @@ func (m *Timestamp) Unmarshal(dAtA []byte) error {
 func skipTimestamp(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
-	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -491,8 +486,10 @@ func skipTimestamp(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
+			return iNdEx, nil
 		case 1:
 			iNdEx += 8
+			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -513,30 +510,55 @@ func skipTimestamp(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthTimestamp
 			}
 			iNdEx += length
-		case 3:
-			depth++
-		case 4:
-			if depth == 0 {
-				return 0, ErrUnexpectedEndOfGroupTimestamp
+			if iNdEx < 0 {
+				return 0, ErrInvalidLengthTimestamp
 			}
-			depth--
+			return iNdEx, nil
+		case 3:
+			for {
+				var innerWire uint64
+				var start int = iNdEx
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return 0, ErrIntOverflowTimestamp
+					}
+					if iNdEx >= l {
+						return 0, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					innerWire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				innerWireType := int(innerWire & 0x7)
+				if innerWireType == 4 {
+					break
+				}
+				next, err := skipTimestamp(dAtA[start:])
+				if err != nil {
+					return 0, err
+				}
+				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthTimestamp
+				}
+			}
+			return iNdEx, nil
+		case 4:
+			return iNdEx, nil
 		case 5:
 			iNdEx += 4
+			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
-		if iNdEx < 0 {
-			return 0, ErrInvalidLengthTimestamp
-		}
-		if depth == 0 {
-			return iNdEx, nil
-		}
 	}
-	return 0, io.ErrUnexpectedEOF
+	panic("unreachable")
 }
 
 var (
-	ErrInvalidLengthTimestamp        = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowTimestamp          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupTimestamp = fmt.Errorf("proto: unexpected end of group")
+	ErrInvalidLengthTimestamp = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowTimestamp   = fmt.Errorf("proto: integer overflow")
 )

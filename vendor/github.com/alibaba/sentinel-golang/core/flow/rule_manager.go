@@ -3,9 +3,10 @@ package flow
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
+
 	"github.com/alibaba/sentinel-golang/logging"
 	"github.com/pkg/errors"
-	"sync"
 )
 
 // const
@@ -139,10 +140,11 @@ func getTrafficControllerListFor(name string) []*TrafficShapingController {
 
 // NotThreadSafe (should be guarded by the lock)
 func buildFlowMap(rules []*FlowRule) TrafficControllerMap {
-	if len(rules) == 0 {
-		return make(TrafficControllerMap)
-	}
 	m := make(TrafficControllerMap)
+	if len(rules) == 0 {
+		return m
+	}
+
 	for _, rule := range rules {
 		if err := IsValidFlowRule(rule); err != nil {
 			logger.Warnf("Ignoring invalid flow rule: %v, reason: %s", rule, err.Error())

@@ -9,7 +9,6 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
-	math_bits "math/bits"
 	reflect "reflect"
 	strconv "strconv"
 	strings "strings"
@@ -24,7 +23,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 // The syntax in which a protocol buffer element is defined.
 type Syntax int32
@@ -206,7 +205,7 @@ func (m *Type) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Type.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -313,7 +312,7 @@ func (m *Field) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Field.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -436,7 +435,7 @@ func (m *Enum) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Enum.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -520,7 +519,7 @@ func (m *EnumValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_EnumValue.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -595,7 +594,7 @@ func (m *Option) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Option.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -1405,7 +1404,7 @@ func valueToGoStringType(v interface{}, typ string) string {
 func (m *Type) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1413,87 +1412,80 @@ func (m *Type) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Type) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Type) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.Name) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
 	}
-	if m.Syntax != 0 {
-		i = encodeVarintType(dAtA, i, uint64(m.Syntax))
-		i--
-		dAtA[i] = 0x30
-	}
-	if m.SourceContext != nil {
-		{
-			size, err := m.SourceContext.MarshalToSizedBuffer(dAtA[:i])
+	if len(m.Fields) > 0 {
+		for _, msg := range m.Fields {
+			dAtA[i] = 0x12
+			i++
+			i = encodeVarintType(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintType(dAtA, i, uint64(size))
-		}
-		i--
-		dAtA[i] = 0x2a
-	}
-	if len(m.Options) > 0 {
-		for iNdEx := len(m.Options) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Options[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintType(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x22
+			i += n
 		}
 	}
 	if len(m.Oneofs) > 0 {
-		for iNdEx := len(m.Oneofs) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Oneofs[iNdEx])
-			copy(dAtA[i:], m.Oneofs[iNdEx])
-			i = encodeVarintType(dAtA, i, uint64(len(m.Oneofs[iNdEx])))
-			i--
+		for _, s := range m.Oneofs {
 			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.Fields) > 0 {
-		for iNdEx := len(m.Fields) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Fields[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintType(dAtA, i, uint64(size))
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
 			}
-			i--
-			dAtA[i] = 0x12
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
 		}
 	}
-	if len(m.Name) > 0 {
-		i -= len(m.Name)
-		copy(dAtA[i:], m.Name)
-		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
-		i--
-		dAtA[i] = 0xa
+	if len(m.Options) > 0 {
+		for _, msg := range m.Options {
+			dAtA[i] = 0x22
+			i++
+			i = encodeVarintType(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
 	}
-	return len(dAtA) - i, nil
+	if m.SourceContext != nil {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.SourceContext.Size()))
+		n1, err := m.SourceContext.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n1
+	}
+	if m.Syntax != 0 {
+		dAtA[i] = 0x30
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.Syntax))
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *Field) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1501,98 +1493,86 @@ func (m *Field) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Field) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Field) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if m.Kind != 0 {
+		dAtA[i] = 0x8
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.Kind))
 	}
-	if len(m.DefaultValue) > 0 {
-		i -= len(m.DefaultValue)
-		copy(dAtA[i:], m.DefaultValue)
-		i = encodeVarintType(dAtA, i, uint64(len(m.DefaultValue)))
-		i--
-		dAtA[i] = 0x5a
+	if m.Cardinality != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.Cardinality))
 	}
-	if len(m.JsonName) > 0 {
-		i -= len(m.JsonName)
-		copy(dAtA[i:], m.JsonName)
-		i = encodeVarintType(dAtA, i, uint64(len(m.JsonName)))
-		i--
-		dAtA[i] = 0x52
+	if m.Number != 0 {
+		dAtA[i] = 0x18
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.Number))
 	}
-	if len(m.Options) > 0 {
-		for iNdEx := len(m.Options) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Options[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintType(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x4a
-		}
+	if len(m.Name) > 0 {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
+	}
+	if len(m.TypeUrl) > 0 {
+		dAtA[i] = 0x32
+		i++
+		i = encodeVarintType(dAtA, i, uint64(len(m.TypeUrl)))
+		i += copy(dAtA[i:], m.TypeUrl)
+	}
+	if m.OneofIndex != 0 {
+		dAtA[i] = 0x38
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.OneofIndex))
 	}
 	if m.Packed {
-		i--
+		dAtA[i] = 0x40
+		i++
 		if m.Packed {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x40
+		i++
 	}
-	if m.OneofIndex != 0 {
-		i = encodeVarintType(dAtA, i, uint64(m.OneofIndex))
-		i--
-		dAtA[i] = 0x38
+	if len(m.Options) > 0 {
+		for _, msg := range m.Options {
+			dAtA[i] = 0x4a
+			i++
+			i = encodeVarintType(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
 	}
-	if len(m.TypeUrl) > 0 {
-		i -= len(m.TypeUrl)
-		copy(dAtA[i:], m.TypeUrl)
-		i = encodeVarintType(dAtA, i, uint64(len(m.TypeUrl)))
-		i--
-		dAtA[i] = 0x32
+	if len(m.JsonName) > 0 {
+		dAtA[i] = 0x52
+		i++
+		i = encodeVarintType(dAtA, i, uint64(len(m.JsonName)))
+		i += copy(dAtA[i:], m.JsonName)
 	}
-	if len(m.Name) > 0 {
-		i -= len(m.Name)
-		copy(dAtA[i:], m.Name)
-		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
-		i--
-		dAtA[i] = 0x22
+	if len(m.DefaultValue) > 0 {
+		dAtA[i] = 0x5a
+		i++
+		i = encodeVarintType(dAtA, i, uint64(len(m.DefaultValue)))
+		i += copy(dAtA[i:], m.DefaultValue)
 	}
-	if m.Number != 0 {
-		i = encodeVarintType(dAtA, i, uint64(m.Number))
-		i--
-		dAtA[i] = 0x18
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	if m.Cardinality != 0 {
-		i = encodeVarintType(dAtA, i, uint64(m.Cardinality))
-		i--
-		dAtA[i] = 0x10
-	}
-	if m.Kind != 0 {
-		i = encodeVarintType(dAtA, i, uint64(m.Kind))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *Enum) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1600,78 +1580,65 @@ func (m *Enum) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Enum) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Enum) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.Name) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
 	}
-	if m.Syntax != 0 {
-		i = encodeVarintType(dAtA, i, uint64(m.Syntax))
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.SourceContext != nil {
-		{
-			size, err := m.SourceContext.MarshalToSizedBuffer(dAtA[:i])
+	if len(m.Enumvalue) > 0 {
+		for _, msg := range m.Enumvalue {
+			dAtA[i] = 0x12
+			i++
+			i = encodeVarintType(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintType(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
-		dAtA[i] = 0x22
 	}
 	if len(m.Options) > 0 {
-		for iNdEx := len(m.Options) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Options[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintType(dAtA, i, uint64(size))
-			}
-			i--
+		for _, msg := range m.Options {
 			dAtA[i] = 0x1a
-		}
-	}
-	if len(m.Enumvalue) > 0 {
-		for iNdEx := len(m.Enumvalue) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Enumvalue[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintType(dAtA, i, uint64(size))
+			i++
+			i = encodeVarintType(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
 			}
-			i--
-			dAtA[i] = 0x12
+			i += n
 		}
 	}
-	if len(m.Name) > 0 {
-		i -= len(m.Name)
-		copy(dAtA[i:], m.Name)
-		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
-		i--
-		dAtA[i] = 0xa
+	if m.SourceContext != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.SourceContext.Size()))
+		n2, err := m.SourceContext.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n2
 	}
-	return len(dAtA) - i, nil
+	if m.Syntax != 0 {
+		dAtA[i] = 0x28
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.Syntax))
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *EnumValue) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1679,52 +1646,43 @@ func (m *EnumValue) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *EnumValue) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *EnumValue) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.Options) > 0 {
-		for iNdEx := len(m.Options) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Options[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintType(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x1a
-		}
+	if len(m.Name) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
 	}
 	if m.Number != 0 {
-		i = encodeVarintType(dAtA, i, uint64(m.Number))
-		i--
 		dAtA[i] = 0x10
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.Number))
 	}
-	if len(m.Name) > 0 {
-		i -= len(m.Name)
-		copy(dAtA[i:], m.Name)
-		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
-		i--
-		dAtA[i] = 0xa
+	if len(m.Options) > 0 {
+		for _, msg := range m.Options {
+			dAtA[i] = 0x1a
+			i++
+			i = encodeVarintType(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
 	}
-	return len(dAtA) - i, nil
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
 }
 
 func (m *Option) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1732,56 +1690,45 @@ func (m *Option) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Option) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Option) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.Name) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
+		i += copy(dAtA[i:], m.Name)
 	}
 	if m.Value != nil {
-		{
-			size, err := m.Value.MarshalToSizedBuffer(dAtA[:i])
-			if err != nil {
-				return 0, err
-			}
-			i -= size
-			i = encodeVarintType(dAtA, i, uint64(size))
-		}
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintType(dAtA, i, uint64(m.Value.Size()))
+		n3, err := m.Value.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n3
 	}
-	if len(m.Name) > 0 {
-		i -= len(m.Name)
-		copy(dAtA[i:], m.Name)
-		i = encodeVarintType(dAtA, i, uint64(len(m.Name)))
-		i--
-		dAtA[i] = 0xa
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func encodeVarintType(dAtA []byte, offset int, v uint64) int {
-	offset -= sovType(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func NewPopulatedType(r randyType, easy bool) *Type {
 	this := &Type{}
 	this.Name = string(randStringType(r))
-	if r.Intn(5) != 0 {
+	if r.Intn(10) != 0 {
 		v1 := r.Intn(5)
 		this.Fields = make([]*Field, v1)
 		for i := 0; i < v1; i++ {
@@ -1793,14 +1740,14 @@ func NewPopulatedType(r randyType, easy bool) *Type {
 	for i := 0; i < v2; i++ {
 		this.Oneofs[i] = string(randStringType(r))
 	}
-	if r.Intn(5) != 0 {
+	if r.Intn(10) != 0 {
 		v3 := r.Intn(5)
 		this.Options = make([]*Option, v3)
 		for i := 0; i < v3; i++ {
 			this.Options[i] = NewPopulatedOption(r, easy)
 		}
 	}
-	if r.Intn(5) != 0 {
+	if r.Intn(10) != 0 {
 		this.SourceContext = NewPopulatedSourceContext(r, easy)
 	}
 	this.Syntax = Syntax([]int32{0, 1}[r.Intn(2)])
@@ -1825,7 +1772,7 @@ func NewPopulatedField(r randyType, easy bool) *Field {
 		this.OneofIndex *= -1
 	}
 	this.Packed = bool(bool(r.Intn(2) == 0))
-	if r.Intn(5) != 0 {
+	if r.Intn(10) != 0 {
 		v4 := r.Intn(5)
 		this.Options = make([]*Option, v4)
 		for i := 0; i < v4; i++ {
@@ -1843,21 +1790,21 @@ func NewPopulatedField(r randyType, easy bool) *Field {
 func NewPopulatedEnum(r randyType, easy bool) *Enum {
 	this := &Enum{}
 	this.Name = string(randStringType(r))
-	if r.Intn(5) != 0 {
+	if r.Intn(10) != 0 {
 		v5 := r.Intn(5)
 		this.Enumvalue = make([]*EnumValue, v5)
 		for i := 0; i < v5; i++ {
 			this.Enumvalue[i] = NewPopulatedEnumValue(r, easy)
 		}
 	}
-	if r.Intn(5) != 0 {
+	if r.Intn(10) != 0 {
 		v6 := r.Intn(5)
 		this.Options = make([]*Option, v6)
 		for i := 0; i < v6; i++ {
 			this.Options[i] = NewPopulatedOption(r, easy)
 		}
 	}
-	if r.Intn(5) != 0 {
+	if r.Intn(10) != 0 {
 		this.SourceContext = NewPopulatedSourceContext(r, easy)
 	}
 	this.Syntax = Syntax([]int32{0, 1}[r.Intn(2)])
@@ -1874,7 +1821,7 @@ func NewPopulatedEnumValue(r randyType, easy bool) *EnumValue {
 	if r.Intn(2) == 0 {
 		this.Number *= -1
 	}
-	if r.Intn(5) != 0 {
+	if r.Intn(10) != 0 {
 		v7 := r.Intn(5)
 		this.Options = make([]*Option, v7)
 		for i := 0; i < v7; i++ {
@@ -1890,7 +1837,7 @@ func NewPopulatedEnumValue(r randyType, easy bool) *EnumValue {
 func NewPopulatedOption(r randyType, easy bool) *Option {
 	this := &Option{}
 	this.Name = string(randStringType(r))
-	if r.Intn(5) != 0 {
+	if r.Intn(10) != 0 {
 		this.Value = NewPopulatedAny(r, easy)
 	}
 	if !easy && r.Intn(10) != 0 {
@@ -2142,7 +2089,14 @@ func (m *Option) Size() (n int) {
 }
 
 func sovType(x uint64) (n int) {
-	return (math_bits.Len64(x|1) + 6) / 7
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
 }
 func sozType(x uint64) (n int) {
 	return sovType(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -2151,21 +2105,11 @@ func (this *Type) String() string {
 	if this == nil {
 		return "nil"
 	}
-	repeatedStringForFields := "[]*Field{"
-	for _, f := range this.Fields {
-		repeatedStringForFields += strings.Replace(f.String(), "Field", "Field", 1) + ","
-	}
-	repeatedStringForFields += "}"
-	repeatedStringForOptions := "[]*Option{"
-	for _, f := range this.Options {
-		repeatedStringForOptions += strings.Replace(f.String(), "Option", "Option", 1) + ","
-	}
-	repeatedStringForOptions += "}"
 	s := strings.Join([]string{`&Type{`,
 		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
-		`Fields:` + repeatedStringForFields + `,`,
+		`Fields:` + strings.Replace(fmt.Sprintf("%v", this.Fields), "Field", "Field", 1) + `,`,
 		`Oneofs:` + fmt.Sprintf("%v", this.Oneofs) + `,`,
-		`Options:` + repeatedStringForOptions + `,`,
+		`Options:` + strings.Replace(fmt.Sprintf("%v", this.Options), "Option", "Option", 1) + `,`,
 		`SourceContext:` + strings.Replace(fmt.Sprintf("%v", this.SourceContext), "SourceContext", "SourceContext", 1) + `,`,
 		`Syntax:` + fmt.Sprintf("%v", this.Syntax) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
@@ -2177,11 +2121,6 @@ func (this *Field) String() string {
 	if this == nil {
 		return "nil"
 	}
-	repeatedStringForOptions := "[]*Option{"
-	for _, f := range this.Options {
-		repeatedStringForOptions += strings.Replace(f.String(), "Option", "Option", 1) + ","
-	}
-	repeatedStringForOptions += "}"
 	s := strings.Join([]string{`&Field{`,
 		`Kind:` + fmt.Sprintf("%v", this.Kind) + `,`,
 		`Cardinality:` + fmt.Sprintf("%v", this.Cardinality) + `,`,
@@ -2190,7 +2129,7 @@ func (this *Field) String() string {
 		`TypeUrl:` + fmt.Sprintf("%v", this.TypeUrl) + `,`,
 		`OneofIndex:` + fmt.Sprintf("%v", this.OneofIndex) + `,`,
 		`Packed:` + fmt.Sprintf("%v", this.Packed) + `,`,
-		`Options:` + repeatedStringForOptions + `,`,
+		`Options:` + strings.Replace(fmt.Sprintf("%v", this.Options), "Option", "Option", 1) + `,`,
 		`JsonName:` + fmt.Sprintf("%v", this.JsonName) + `,`,
 		`DefaultValue:` + fmt.Sprintf("%v", this.DefaultValue) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
@@ -2202,20 +2141,10 @@ func (this *Enum) String() string {
 	if this == nil {
 		return "nil"
 	}
-	repeatedStringForEnumvalue := "[]*EnumValue{"
-	for _, f := range this.Enumvalue {
-		repeatedStringForEnumvalue += strings.Replace(f.String(), "EnumValue", "EnumValue", 1) + ","
-	}
-	repeatedStringForEnumvalue += "}"
-	repeatedStringForOptions := "[]*Option{"
-	for _, f := range this.Options {
-		repeatedStringForOptions += strings.Replace(f.String(), "Option", "Option", 1) + ","
-	}
-	repeatedStringForOptions += "}"
 	s := strings.Join([]string{`&Enum{`,
 		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
-		`Enumvalue:` + repeatedStringForEnumvalue + `,`,
-		`Options:` + repeatedStringForOptions + `,`,
+		`Enumvalue:` + strings.Replace(fmt.Sprintf("%v", this.Enumvalue), "EnumValue", "EnumValue", 1) + `,`,
+		`Options:` + strings.Replace(fmt.Sprintf("%v", this.Options), "Option", "Option", 1) + `,`,
 		`SourceContext:` + strings.Replace(fmt.Sprintf("%v", this.SourceContext), "SourceContext", "SourceContext", 1) + `,`,
 		`Syntax:` + fmt.Sprintf("%v", this.Syntax) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
@@ -2227,15 +2156,10 @@ func (this *EnumValue) String() string {
 	if this == nil {
 		return "nil"
 	}
-	repeatedStringForOptions := "[]*Option{"
-	for _, f := range this.Options {
-		repeatedStringForOptions += strings.Replace(f.String(), "Option", "Option", 1) + ","
-	}
-	repeatedStringForOptions += "}"
 	s := strings.Join([]string{`&EnumValue{`,
 		`Name:` + fmt.Sprintf("%v", this.Name) + `,`,
 		`Number:` + fmt.Sprintf("%v", this.Number) + `,`,
-		`Options:` + repeatedStringForOptions + `,`,
+		`Options:` + strings.Replace(fmt.Sprintf("%v", this.Options), "Option", "Option", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -3287,7 +3211,6 @@ func (m *Option) Unmarshal(dAtA []byte) error {
 func skipType(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
-	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -3319,8 +3242,10 @@ func skipType(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
+			return iNdEx, nil
 		case 1:
 			iNdEx += 8
+			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -3341,30 +3266,55 @@ func skipType(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthType
 			}
 			iNdEx += length
-		case 3:
-			depth++
-		case 4:
-			if depth == 0 {
-				return 0, ErrUnexpectedEndOfGroupType
+			if iNdEx < 0 {
+				return 0, ErrInvalidLengthType
 			}
-			depth--
+			return iNdEx, nil
+		case 3:
+			for {
+				var innerWire uint64
+				var start int = iNdEx
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return 0, ErrIntOverflowType
+					}
+					if iNdEx >= l {
+						return 0, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					innerWire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				innerWireType := int(innerWire & 0x7)
+				if innerWireType == 4 {
+					break
+				}
+				next, err := skipType(dAtA[start:])
+				if err != nil {
+					return 0, err
+				}
+				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthType
+				}
+			}
+			return iNdEx, nil
+		case 4:
+			return iNdEx, nil
 		case 5:
 			iNdEx += 4
+			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
-		if iNdEx < 0 {
-			return 0, ErrInvalidLengthType
-		}
-		if depth == 0 {
-			return iNdEx, nil
-		}
 	}
-	return 0, io.ErrUnexpectedEOF
+	panic("unreachable")
 }
 
 var (
-	ErrInvalidLengthType        = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowType          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupType = fmt.Errorf("proto: unexpected end of group")
+	ErrInvalidLengthType = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowType   = fmt.Errorf("proto: integer overflow")
 )

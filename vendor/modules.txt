@@ -35,7 +35,7 @@ github.com/TarsCloud/TarsGo/tars/util/rtimer
 github.com/TarsCloud/TarsGo/tars/util/set
 github.com/TarsCloud/TarsGo/tars/util/tools
 github.com/TarsCloud/TarsGo/tars/util/gpool
-# github.com/alibaba/sentinel-golang v0.2.1-0.20200413073922-72ef75853bb9
+# github.com/alibaba/sentinel-golang v0.0.0-20200421053610-f61c1098f11f
 github.com/alibaba/sentinel-golang/api
 github.com/alibaba/sentinel-golang/core/base
 github.com/alibaba/sentinel-golang/core/flow
@@ -52,14 +52,14 @@ github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java_exception
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/c2h5oh/datasize v0.0.0-20200112174442-28bbd4740fee
+# github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 github.com/c2h5oh/datasize
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/dubbogo/gost v1.5.2
 github.com/dubbogo/gost/bytes
 github.com/dubbogo/gost/math/big
-# github.com/envoyproxy/go-control-plane v0.8.0
+# github.com/envoyproxy/go-control-plane v0.8.0 => github.com/envoyproxy/go-control-plane v0.6.9
 github.com/envoyproxy/go-control-plane/envoy/api/v2/core
 github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2
 github.com/envoyproxy/go-control-plane/envoy/api/v2/auth
@@ -78,31 +78,30 @@ github.com/envoyproxy/go-control-plane/pkg/util
 github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
 github.com/envoyproxy/go-control-plane/envoy/config/metrics/v2
 github.com/envoyproxy/go-control-plane/envoy/config/overload/v2alpha
+github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v2
 github.com/envoyproxy/go-control-plane/envoy/config/trace/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/fault/v2
 github.com/envoyproxy/go-control-plane/envoy/type/matcher
-# github.com/envoyproxy/protoc-gen-validate v0.0.14
-github.com/envoyproxy/protoc-gen-validate/validate
 # github.com/go-ole/go-ole v1.2.4
 github.com/go-ole/go-ole
 github.com/go-ole/go-ole/oleutil
-# github.com/gogo/googleapis v1.3.2
+# github.com/gogo/googleapis v1.2.0
 github.com/gogo/googleapis/google/rpc
 github.com/gogo/googleapis/google/api
-# github.com/gogo/protobuf v1.3.1
+# github.com/gogo/protobuf v1.2.1
 github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/types
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
-# github.com/golang/protobuf v1.3.3
+# github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/ptypes/duration
-github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/struct
 github.com/golang/protobuf/protoc-gen-go/descriptor
+github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 # github.com/google/uuid v1.1.1
@@ -116,14 +115,16 @@ github.com/hashicorp/go-plugin/internal/plugin
 github.com/hashicorp/go-syslog
 # github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 github.com/hashicorp/yamux
-# github.com/json-iterator/go v1.1.9
+# github.com/json-iterator/go v1.1.7
 github.com/json-iterator/go
-# github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9
+# github.com/juju/errors v0.0.0-20190207033735-e65537c515d7
 github.com/juju/errors
-# github.com/klauspost/compress v1.9.8
+# github.com/klauspost/compress v1.7.5
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
+# github.com/klauspost/cpuid v1.2.1
+github.com/klauspost/cpuid
 # github.com/lyft/protoc-gen-validate v0.0.14
 github.com/lyft/protoc-gen-validate/validate
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -138,7 +139,7 @@ github.com/modern-go/reflect2
 github.com/neverhook/easygo/netpoll
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
-# github.com/pkg/errors v0.9.1
+# github.com/pkg/errors v0.8.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
@@ -146,19 +147,18 @@ github.com/pmezard/go-difflib/difflib
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/promhttp
 github.com/prometheus/client_golang/prometheus/internal
-# github.com/prometheus/client_model v0.2.0
+# github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 github.com/prometheus/client_model/go
-# github.com/prometheus/common v0.9.1
+# github.com/prometheus/common v0.6.0
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
 github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
-# github.com/prometheus/procfs v0.0.8
+# github.com/prometheus/procfs v0.0.3
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
-github.com/prometheus/procfs/internal/util
 # github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 github.com/rcrowley/go-metrics
-# github.com/shirou/gopsutil v2.20.1+incompatible
+# github.com/shirou/gopsutil v2.19.12+incompatible
 github.com/shirou/gopsutil/cpu
 github.com/shirou/gopsutil/load
 github.com/shirou/gopsutil/internal/common
@@ -201,7 +201,7 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/transform
 # google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.24.0
+# google.golang.org/grpc v1.22.1
 google.golang.org/grpc
 google.golang.org/grpc/credentials
 google.golang.org/grpc/connectivity
@@ -239,7 +239,7 @@ google.golang.org/grpc/binarylog/grpc_binarylog_v1
 google.golang.org/grpc/internal/syscall
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
-# gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
 # istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
 istio.io/api/mixer/v1/config/client

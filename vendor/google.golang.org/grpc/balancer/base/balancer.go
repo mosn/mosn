@@ -73,9 +73,7 @@ func (b *baseBalancer) HandleResolvedAddrs(addrs []resolver.Address, err error) 
 func (b *baseBalancer) UpdateClientConnState(s balancer.ClientConnState) {
 	// TODO: handle s.ResolverState.Err (log if not nil) once implemented.
 	// TODO: handle s.ResolverState.ServiceConfig?
-	if grpclog.V(2) {
-		grpclog.Infoln("base.baseBalancer: got new ClientConn state: ", s)
-	}
+	grpclog.Infoln("base.baseBalancer: got new ClientConn state: ", s)
 	// addrsSet is the set converted from addrs, it's used for quick lookup of an address.
 	addrsSet := make(map[resolver.Address]struct{})
 	for _, a := range s.ResolverState.Addresses {
@@ -129,14 +127,10 @@ func (b *baseBalancer) HandleSubConnStateChange(sc balancer.SubConn, s connectiv
 
 func (b *baseBalancer) UpdateSubConnState(sc balancer.SubConn, state balancer.SubConnState) {
 	s := state.ConnectivityState
-	if grpclog.V(2) {
-		grpclog.Infof("base.baseBalancer: handle SubConn state change: %p, %v", sc, s)
-	}
+	grpclog.Infof("base.baseBalancer: handle SubConn state change: %p, %v", sc, s)
 	oldS, ok := b.scStates[sc]
 	if !ok {
-		if grpclog.V(2) {
-			grpclog.Infof("base.baseBalancer: got state changes for an unknown SubConn: %p, %v", sc, s)
-		}
+		grpclog.Infof("base.baseBalancer: got state changes for an unknown SubConn: %p, %v", sc, s)
 		return
 	}
 	b.scStates[sc] = s

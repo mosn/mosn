@@ -9,7 +9,6 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
-	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
 )
@@ -23,7 +22,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 // Defines the HTTP configuration for an API service. It contains a list of
 // [HttpRule][google.api.HttpRule], each specifying the mapping of an RPC method
@@ -33,7 +32,7 @@ type Http struct {
 	//
 	// **NOTE:** All service configuration rules follow "last one wins" order.
 	Rules []*HttpRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
-	// When set to true, URL path parameters will be fully URI-decoded except in
+	// When set to true, URL path parmeters will be fully URI-decoded except in
 	// cases of single segment matches in reserved expansion, where "%2F" will be
 	// left encoded.
 	//
@@ -58,7 +57,7 @@ func (m *Http) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_Http.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -264,15 +263,18 @@ func (*Http) XXX_MessageName() string {
 // 1. Leaf request fields (recursive expansion nested messages in the request
 //    message) are classified into three categories:
 //    - Fields referred by the path template. They are passed via the URL path.
-//    - Fields referred by the [HttpRule.body][google.api.HttpRule.body]. They are passed via the HTTP
+//    - Fields referred by the [HttpRule.body][google.api.HttpRule.body]. They
+//    are passed via the HTTP
 //      request body.
 //    - All other fields are passed via the URL query parameters, and the
 //      parameter name is the field path in the request message. A repeated
 //      field can be represented as multiple query parameters under the same
 //      name.
-//  2. If [HttpRule.body][google.api.HttpRule.body] is "*", there is no URL query parameter, all fields
+//  2. If [HttpRule.body][google.api.HttpRule.body] is "*", there is no URL
+//  query parameter, all fields
 //     are passed via URL path and HTTP request body.
-//  3. If [HttpRule.body][google.api.HttpRule.body] is omitted, there is no HTTP request body, all
+//  3. If [HttpRule.body][google.api.HttpRule.body] is omitted, there is no HTTP
+//  request body, all
 //     fields are passed via URL path and URL query parameters.
 //
 // ### Path template syntax
@@ -367,7 +369,8 @@ func (*Http) XXX_MessageName() string {
 type HttpRule struct {
 	// Selects a method to which this rule applies.
 	//
-	// Refer to [selector][google.api.DocumentationRule.selector] for syntax details.
+	// Refer to [selector][google.api.DocumentationRule.selector] for syntax
+	// details.
 	Selector string `protobuf:"bytes,1,opt,name=selector,proto3" json:"selector,omitempty"`
 	// Determines the URL pattern is matched by this rules. This pattern can be
 	// used with any of the {get|put|post|delete|patch} methods. A custom method
@@ -417,7 +420,7 @@ func (m *HttpRule) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return xxx_messageInfo_HttpRule.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -444,22 +447,22 @@ type isHttpRule_Pattern interface {
 }
 
 type HttpRule_Get struct {
-	Get string `protobuf:"bytes,2,opt,name=get,proto3,oneof" json:"get,omitempty"`
+	Get string `protobuf:"bytes,2,opt,name=get,proto3,oneof"`
 }
 type HttpRule_Put struct {
-	Put string `protobuf:"bytes,3,opt,name=put,proto3,oneof" json:"put,omitempty"`
+	Put string `protobuf:"bytes,3,opt,name=put,proto3,oneof"`
 }
 type HttpRule_Post struct {
-	Post string `protobuf:"bytes,4,opt,name=post,proto3,oneof" json:"post,omitempty"`
+	Post string `protobuf:"bytes,4,opt,name=post,proto3,oneof"`
 }
 type HttpRule_Delete struct {
-	Delete string `protobuf:"bytes,5,opt,name=delete,proto3,oneof" json:"delete,omitempty"`
+	Delete string `protobuf:"bytes,5,opt,name=delete,proto3,oneof"`
 }
 type HttpRule_Patch struct {
-	Patch string `protobuf:"bytes,6,opt,name=patch,proto3,oneof" json:"patch,omitempty"`
+	Patch string `protobuf:"bytes,6,opt,name=patch,proto3,oneof"`
 }
 type HttpRule_Custom struct {
-	Custom *CustomHttpPattern `protobuf:"bytes,8,opt,name=custom,proto3,oneof" json:"custom,omitempty"`
+	Custom *CustomHttpPattern `protobuf:"bytes,8,opt,name=custom,proto3,oneof"`
 }
 
 func (*HttpRule_Get) isHttpRule_Pattern()    {}
@@ -546,9 +549,9 @@ func (m *HttpRule) GetAdditionalBindings() []*HttpRule {
 	return nil
 }
 
-// XXX_OneofWrappers is for the internal use of the proto package.
-func (*HttpRule) XXX_OneofWrappers() []interface{} {
-	return []interface{}{
+// XXX_OneofFuncs is for the internal use of the proto package.
+func (*HttpRule) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
+	return _HttpRule_OneofMarshaler, _HttpRule_OneofUnmarshaler, _HttpRule_OneofSizer, []interface{}{
 		(*HttpRule_Get)(nil),
 		(*HttpRule_Put)(nil),
 		(*HttpRule_Post)(nil),
@@ -556,6 +559,124 @@ func (*HttpRule) XXX_OneofWrappers() []interface{} {
 		(*HttpRule_Patch)(nil),
 		(*HttpRule_Custom)(nil),
 	}
+}
+
+func _HttpRule_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
+	m := msg.(*HttpRule)
+	// pattern
+	switch x := m.Pattern.(type) {
+	case *HttpRule_Get:
+		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
+		_ = b.EncodeStringBytes(x.Get)
+	case *HttpRule_Put:
+		_ = b.EncodeVarint(3<<3 | proto.WireBytes)
+		_ = b.EncodeStringBytes(x.Put)
+	case *HttpRule_Post:
+		_ = b.EncodeVarint(4<<3 | proto.WireBytes)
+		_ = b.EncodeStringBytes(x.Post)
+	case *HttpRule_Delete:
+		_ = b.EncodeVarint(5<<3 | proto.WireBytes)
+		_ = b.EncodeStringBytes(x.Delete)
+	case *HttpRule_Patch:
+		_ = b.EncodeVarint(6<<3 | proto.WireBytes)
+		_ = b.EncodeStringBytes(x.Patch)
+	case *HttpRule_Custom:
+		_ = b.EncodeVarint(8<<3 | proto.WireBytes)
+		if err := b.EncodeMessage(x.Custom); err != nil {
+			return err
+		}
+	case nil:
+	default:
+		return fmt.Errorf("HttpRule.Pattern has unexpected type %T", x)
+	}
+	return nil
+}
+
+func _HttpRule_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
+	m := msg.(*HttpRule)
+	switch tag {
+	case 2: // pattern.get
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.Pattern = &HttpRule_Get{x}
+		return true, err
+	case 3: // pattern.put
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.Pattern = &HttpRule_Put{x}
+		return true, err
+	case 4: // pattern.post
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.Pattern = &HttpRule_Post{x}
+		return true, err
+	case 5: // pattern.delete
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.Pattern = &HttpRule_Delete{x}
+		return true, err
+	case 6: // pattern.patch
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		x, err := b.DecodeStringBytes()
+		m.Pattern = &HttpRule_Patch{x}
+		return true, err
+	case 8: // pattern.custom
+		if wire != proto.WireBytes {
+			return true, proto.ErrInternalBadWireType
+		}
+		msg := new(CustomHttpPattern)
+		err := b.DecodeMessage(msg)
+		m.Pattern = &HttpRule_Custom{msg}
+		return true, err
+	default:
+		return false, nil
+	}
+}
+
+func _HttpRule_OneofSizer(msg proto.Message) (n int) {
+	m := msg.(*HttpRule)
+	// pattern
+	switch x := m.Pattern.(type) {
+	case *HttpRule_Get:
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(len(x.Get)))
+		n += len(x.Get)
+	case *HttpRule_Put:
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(len(x.Put)))
+		n += len(x.Put)
+	case *HttpRule_Post:
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(len(x.Post)))
+		n += len(x.Post)
+	case *HttpRule_Delete:
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(len(x.Delete)))
+		n += len(x.Delete)
+	case *HttpRule_Patch:
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(len(x.Patch)))
+		n += len(x.Patch)
+	case *HttpRule_Custom:
+		s := proto.Size(x.Custom)
+		n += 1 // tag and wire
+		n += proto.SizeVarint(uint64(s))
+		n += s
+	case nil:
+	default:
+		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
+	}
+	return n
 }
 
 func (*HttpRule) XXX_MessageName() string {
@@ -586,7 +707,7 @@ func (m *CustomHttpPattern) XXX_Marshal(b []byte, deterministic bool) ([]byte, e
 		return xxx_messageInfo_CustomHttpPattern.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
+		n, err := m.MarshalTo(b)
 		if err != nil {
 			return nil, err
 		}
@@ -631,35 +752,35 @@ func init() {
 func init() { proto.RegisterFile("google/api/http.proto", fileDescriptor_ff9994be407cdcc9) }
 
 var fileDescriptor_ff9994be407cdcc9 = []byte{
-	// 440 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x92, 0xb1, 0x8f, 0xd3, 0x30,
-	0x14, 0xc6, 0xeb, 0x36, 0xed, 0xb5, 0xaf, 0x07, 0x12, 0xe6, 0x40, 0x16, 0x02, 0x53, 0x95, 0xa5,
-	0x62, 0xe8, 0x49, 0xc7, 0xc0, 0xc0, 0x44, 0xa0, 0xe2, 0xd8, 0xaa, 0x4c, 0x88, 0x25, 0x72, 0xe3,
-	0x47, 0x6b, 0x91, 0x8b, 0xad, 0xd8, 0x41, 0x74, 0xe3, 0x6f, 0x61, 0xe2, 0x4f, 0x61, 0x64, 0x44,
-	0x4c, 0x34, 0x2c, 0x8c, 0x37, 0xde, 0x88, 0xec, 0xa4, 0x5c, 0x25, 0x24, 0xb6, 0xf7, 0x7d, 0xef,
-	0x97, 0x97, 0x2f, 0x2f, 0x0f, 0xee, 0xac, 0xb5, 0x5e, 0xe7, 0x78, 0x2a, 0x8c, 0x3a, 0xdd, 0x38,
-	0x67, 0xe6, 0xa6, 0xd4, 0x4e, 0x53, 0x68, 0xec, 0xb9, 0x30, 0x6a, 0xba, 0x85, 0xe8, 0xdc, 0x39,
-	0x43, 0x1f, 0x43, 0xbf, 0xac, 0x72, 0xb4, 0x8c, 0x4c, 0x7a, 0xb3, 0xf1, 0xd9, 0xc9, 0xfc, 0x9a,
-	0x99, 0x7b, 0x20, 0xa9, 0x72, 0x4c, 0x1a, 0x84, 0x2e, 0xe0, 0xe1, 0xbb, 0x2a, 0xcf, 0xb7, 0xa9,
-	0xc4, 0x4c, 0x4b, 0x4c, 0x4b, 0xb4, 0x58, 0x7e, 0x40, 0x99, 0xe2, 0x47, 0x23, 0x0a, 0xab, 0x74,
-	0xc1, 0xba, 0x13, 0x32, 0x1b, 0x26, 0xf7, 0x03, 0xf6, 0x32, 0x50, 0x49, 0x0b, 0x2d, 0xf6, 0xcc,
-	0xf4, 0x47, 0x17, 0x86, 0xfb, 0xd1, 0xf4, 0x1e, 0x0c, 0x2d, 0xe6, 0x98, 0x39, 0x5d, 0x32, 0x32,
-	0x21, 0xb3, 0x51, 0xf2, 0x57, 0x53, 0x0a, 0xbd, 0x35, 0xba, 0x30, 0x73, 0x74, 0xde, 0x49, 0xbc,
-	0xf0, 0x9e, 0xa9, 0x1c, 0xeb, 0xed, 0x3d, 0x53, 0x39, 0x7a, 0x02, 0x91, 0xd1, 0xd6, 0xb1, 0xa8,
-	0x35, 0x83, 0xa2, 0x0c, 0x06, 0x12, 0x73, 0x74, 0xc8, 0xfa, 0xad, 0xdf, 0x6a, 0x7a, 0x17, 0xfa,
-	0x46, 0xb8, 0x6c, 0xc3, 0x06, 0x6d, 0xa3, 0x91, 0xf4, 0x29, 0x0c, 0xb2, 0xca, 0x3a, 0x7d, 0xc1,
-	0x86, 0x13, 0x32, 0x1b, 0x9f, 0x3d, 0x38, 0x5c, 0xc6, 0x8b, 0xd0, 0xf1, 0xb9, 0x97, 0xc2, 0x39,
-	0x2c, 0x0b, 0x3f, 0xb0, 0xc1, 0x29, 0x85, 0x68, 0xa5, 0xe5, 0x96, 0x1d, 0x85, 0x0f, 0x08, 0x35,
-	0x7d, 0x04, 0x37, 0x4a, 0xb4, 0x46, 0x17, 0x16, 0xd3, 0xd0, 0x3c, 0x0e, 0xcd, 0xe3, 0xbd, 0x19,
-	0x7b, 0x68, 0x01, 0xb7, 0x85, 0x94, 0xca, 0x29, 0x5d, 0x88, 0x3c, 0x5d, 0xa9, 0x42, 0xaa, 0x62,
-	0x6d, 0xd9, 0xf8, 0x3f, 0xff, 0x82, 0x5e, 0x3f, 0x10, 0xb7, 0x7c, 0x3c, 0x82, 0x23, 0xd3, 0x84,
-	0x9a, 0x3e, 0x83, 0x5b, 0xff, 0x24, 0xf5, 0xf9, 0xde, 0xab, 0x42, 0xb6, 0x0b, 0x0e, 0xb5, 0xf7,
-	0x8c, 0x70, 0x9b, 0x66, 0xbb, 0x49, 0xa8, 0xe3, 0x37, 0xdf, 0x77, 0xbc, 0x73, 0xb9, 0xe3, 0xe4,
-	0x6a, 0xc7, 0xc9, 0xa7, 0x9a, 0x93, 0x2f, 0x35, 0x27, 0x5f, 0x6b, 0x4e, 0xbe, 0xd5, 0x9c, 0xfc,
-	0xac, 0x39, 0xf9, 0x5d, 0xf3, 0xce, 0xa5, 0xf7, 0x7e, 0x71, 0x02, 0x37, 0x33, 0x7d, 0x71, 0x10,
-	0x31, 0x1e, 0x85, 0x57, 0xfa, 0x4b, 0x5b, 0x92, 0xb7, 0x3d, 0x61, 0xd4, 0x15, 0x21, 0x9f, 0xbb,
-	0xd1, 0xab, 0xe7, 0xcb, 0xd7, 0xab, 0x41, 0xb8, 0xc0, 0x27, 0x7f, 0x02, 0x00, 0x00, 0xff, 0xff,
-	0x1e, 0x40, 0xdc, 0xc0, 0x9a, 0x02, 0x00, 0x00,
+	// 444 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x92, 0xb1, 0x6f, 0xd3, 0x40,
+	0x14, 0xc6, 0x73, 0x89, 0x93, 0x26, 0x2f, 0x05, 0x89, 0xa3, 0xa0, 0x13, 0x82, 0x23, 0x0a, 0x4b,
+	0xc4, 0x90, 0x4a, 0x65, 0x60, 0x60, 0xc2, 0x10, 0x51, 0xb6, 0xc8, 0x23, 0x42, 0xb2, 0x2e, 0xbe,
+	0x47, 0x72, 0xc2, 0xf5, 0x9d, 0x7c, 0x67, 0x44, 0x36, 0xfe, 0x16, 0x26, 0xfe, 0x14, 0xc6, 0x8e,
+	0x88, 0x89, 0x98, 0x85, 0xb1, 0x63, 0x47, 0x74, 0x67, 0x87, 0x56, 0x42, 0xea, 0xf6, 0xbe, 0xef,
+	0xfd, 0xfc, 0xfc, 0xf9, 0xf9, 0xc1, 0xbd, 0xb5, 0xd6, 0xeb, 0x1c, 0x8f, 0x85, 0x51, 0xc7, 0x1b,
+	0xe7, 0xcc, 0xdc, 0x94, 0xda, 0x69, 0x0a, 0x8d, 0x3d, 0x17, 0x46, 0x4d, 0xb7, 0x10, 0x9d, 0x3a,
+	0x67, 0xe8, 0x53, 0xe8, 0x97, 0x55, 0x8e, 0x96, 0x91, 0x49, 0x6f, 0x36, 0x3e, 0x39, 0x9a, 0x5f,
+	0x31, 0x73, 0x0f, 0x24, 0x55, 0x8e, 0x49, 0x83, 0xd0, 0x05, 0x3c, 0xfe, 0x50, 0xe5, 0xf9, 0x36,
+	0x95, 0x98, 0x69, 0x89, 0x69, 0x89, 0x16, 0xcb, 0x4f, 0x28, 0x53, 0xfc, 0x6c, 0x44, 0x61, 0x95,
+	0x2e, 0x58, 0x77, 0x42, 0x66, 0xc3, 0xe4, 0x61, 0xc0, 0x5e, 0x07, 0x2a, 0x69, 0xa1, 0xc5, 0x9e,
+	0x99, 0xfe, 0xec, 0xc2, 0x70, 0x3f, 0x9a, 0x3e, 0x80, 0xa1, 0xc5, 0x1c, 0x33, 0xa7, 0x4b, 0x46,
+	0x26, 0x64, 0x36, 0x4a, 0xfe, 0x69, 0x4a, 0xa1, 0xb7, 0x46, 0x17, 0x66, 0x8e, 0x4e, 0x3b, 0x89,
+	0x17, 0xde, 0x33, 0x95, 0x63, 0xbd, 0xbd, 0x67, 0x2a, 0x47, 0x8f, 0x20, 0x32, 0xda, 0x3a, 0x16,
+	0xb5, 0x66, 0x50, 0x94, 0xc1, 0x40, 0x62, 0x8e, 0x0e, 0x59, 0xbf, 0xf5, 0x5b, 0x4d, 0xef, 0x43,
+	0xdf, 0x08, 0x97, 0x6d, 0xd8, 0xa0, 0x6d, 0x34, 0x92, 0x3e, 0x87, 0x41, 0x56, 0x59, 0xa7, 0xcf,
+	0xd8, 0x70, 0x42, 0x66, 0xe3, 0x93, 0x47, 0xd7, 0x97, 0xf1, 0x2a, 0x74, 0x7c, 0xee, 0xa5, 0x70,
+	0x0e, 0xcb, 0xc2, 0x0f, 0x6c, 0x70, 0x4a, 0x21, 0x5a, 0x69, 0xb9, 0x65, 0x07, 0xe1, 0x03, 0x42,
+	0x4d, 0x9f, 0xc0, 0xad, 0x12, 0xad, 0xd1, 0x85, 0xc5, 0x34, 0x34, 0x0f, 0x43, 0xf3, 0x70, 0x6f,
+	0xc6, 0x1e, 0x5a, 0xc0, 0x5d, 0x21, 0xa5, 0x72, 0x4a, 0x17, 0x22, 0x4f, 0x57, 0xaa, 0x90, 0xaa,
+	0x58, 0x5b, 0x36, 0xbe, 0xe1, 0x5f, 0xd0, 0xab, 0x07, 0xe2, 0x96, 0x8f, 0x47, 0x70, 0x60, 0x9a,
+	0x50, 0xd3, 0x17, 0x70, 0xe7, 0xbf, 0xa4, 0x3e, 0xdf, 0x47, 0x55, 0xc8, 0x76, 0xc1, 0xa1, 0xf6,
+	0x9e, 0x11, 0x6e, 0xd3, 0x6c, 0x37, 0x09, 0x75, 0xfc, 0xfe, 0x7c, 0xc7, 0x3b, 0x3f, 0x76, 0xbc,
+	0x73, 0xb1, 0xe3, 0xe4, 0x72, 0xc7, 0xc9, 0x97, 0x9a, 0x93, 0x6f, 0x35, 0x27, 0xdf, 0x6b, 0x4e,
+	0xce, 0x6b, 0x4e, 0x7e, 0xd5, 0x9c, 0xfc, 0xa9, 0x79, 0xe7, 0xc2, 0x7b, 0xbf, 0x39, 0x81, 0xdb,
+	0x99, 0x3e, 0xbb, 0x16, 0x33, 0x1e, 0x85, 0xd7, 0xfa, 0x6b, 0x5b, 0x92, 0x77, 0x3d, 0x61, 0xd4,
+	0x25, 0x21, 0x5f, 0xbb, 0xd1, 0x9b, 0x97, 0xcb, 0xb7, 0xab, 0x41, 0xb8, 0xc2, 0x67, 0x7f, 0x03,
+	0x00, 0x00, 0xff, 0xff, 0xa1, 0x9d, 0x2a, 0xeb, 0x9e, 0x02, 0x00, 0x00,
 }
 
 func (this *Http) Equal(that interface{}) bool {
@@ -1031,7 +1152,7 @@ func valueToGoStringHttp(v interface{}, typ string) string {
 func (m *Http) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1039,50 +1160,42 @@ func (m *Http) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Http) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Http) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.Rules) > 0 {
+		for _, msg := range m.Rules {
+			dAtA[i] = 0xa
+			i++
+			i = encodeVarintHttp(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
+			if err != nil {
+				return 0, err
+			}
+			i += n
+		}
 	}
 	if m.FullyDecodeReservedExpansion {
-		i--
+		dAtA[i] = 0x10
+		i++
 		if m.FullyDecodeReservedExpansion {
 			dAtA[i] = 1
 		} else {
 			dAtA[i] = 0
 		}
-		i--
-		dAtA[i] = 0x10
+		i++
 	}
-	if len(m.Rules) > 0 {
-		for iNdEx := len(m.Rules) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Rules[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintHttp(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0xa
-		}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func (m *HttpRule) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1090,161 +1203,111 @@ func (m *HttpRule) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *HttpRule) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *HttpRule) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
-	}
-	if len(m.ResponseBody) > 0 {
-		i -= len(m.ResponseBody)
-		copy(dAtA[i:], m.ResponseBody)
-		i = encodeVarintHttp(dAtA, i, uint64(len(m.ResponseBody)))
-		i--
-		dAtA[i] = 0x62
-	}
-	if len(m.AdditionalBindings) > 0 {
-		for iNdEx := len(m.AdditionalBindings) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.AdditionalBindings[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintHttp(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x5a
-		}
+	if len(m.Selector) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintHttp(dAtA, i, uint64(len(m.Selector)))
+		i += copy(dAtA[i:], m.Selector)
 	}
 	if m.Pattern != nil {
-		{
-			size := m.Pattern.Size()
-			i -= size
-			if _, err := m.Pattern.MarshalTo(dAtA[i:]); err != nil {
-				return 0, err
-			}
+		nn1, err := m.Pattern.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
 		}
+		i += nn1
 	}
 	if len(m.Body) > 0 {
-		i -= len(m.Body)
-		copy(dAtA[i:], m.Body)
-		i = encodeVarintHttp(dAtA, i, uint64(len(m.Body)))
-		i--
 		dAtA[i] = 0x3a
+		i++
+		i = encodeVarintHttp(dAtA, i, uint64(len(m.Body)))
+		i += copy(dAtA[i:], m.Body)
 	}
-	if len(m.Selector) > 0 {
-		i -= len(m.Selector)
-		copy(dAtA[i:], m.Selector)
-		i = encodeVarintHttp(dAtA, i, uint64(len(m.Selector)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *HttpRule_Get) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *HttpRule_Get) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i -= len(m.Get)
-	copy(dAtA[i:], m.Get)
-	i = encodeVarintHttp(dAtA, i, uint64(len(m.Get)))
-	i--
-	dAtA[i] = 0x12
-	return len(dAtA) - i, nil
-}
-func (m *HttpRule_Put) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *HttpRule_Put) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i -= len(m.Put)
-	copy(dAtA[i:], m.Put)
-	i = encodeVarintHttp(dAtA, i, uint64(len(m.Put)))
-	i--
-	dAtA[i] = 0x1a
-	return len(dAtA) - i, nil
-}
-func (m *HttpRule_Post) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *HttpRule_Post) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i -= len(m.Post)
-	copy(dAtA[i:], m.Post)
-	i = encodeVarintHttp(dAtA, i, uint64(len(m.Post)))
-	i--
-	dAtA[i] = 0x22
-	return len(dAtA) - i, nil
-}
-func (m *HttpRule_Delete) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *HttpRule_Delete) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i -= len(m.Delete)
-	copy(dAtA[i:], m.Delete)
-	i = encodeVarintHttp(dAtA, i, uint64(len(m.Delete)))
-	i--
-	dAtA[i] = 0x2a
-	return len(dAtA) - i, nil
-}
-func (m *HttpRule_Patch) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *HttpRule_Patch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	i -= len(m.Patch)
-	copy(dAtA[i:], m.Patch)
-	i = encodeVarintHttp(dAtA, i, uint64(len(m.Patch)))
-	i--
-	dAtA[i] = 0x32
-	return len(dAtA) - i, nil
-}
-func (m *HttpRule_Custom) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *HttpRule_Custom) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	if m.Custom != nil {
-		{
-			size, err := m.Custom.MarshalToSizedBuffer(dAtA[:i])
+	if len(m.AdditionalBindings) > 0 {
+		for _, msg := range m.AdditionalBindings {
+			dAtA[i] = 0x5a
+			i++
+			i = encodeVarintHttp(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
-			i -= size
-			i = encodeVarintHttp(dAtA, i, uint64(size))
+			i += n
 		}
-		i--
-		dAtA[i] = 0x42
 	}
-	return len(dAtA) - i, nil
+	if len(m.ResponseBody) > 0 {
+		dAtA[i] = 0x62
+		i++
+		i = encodeVarintHttp(dAtA, i, uint64(len(m.ResponseBody)))
+		i += copy(dAtA[i:], m.ResponseBody)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *HttpRule_Get) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	dAtA[i] = 0x12
+	i++
+	i = encodeVarintHttp(dAtA, i, uint64(len(m.Get)))
+	i += copy(dAtA[i:], m.Get)
+	return i, nil
+}
+func (m *HttpRule_Put) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	dAtA[i] = 0x1a
+	i++
+	i = encodeVarintHttp(dAtA, i, uint64(len(m.Put)))
+	i += copy(dAtA[i:], m.Put)
+	return i, nil
+}
+func (m *HttpRule_Post) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	dAtA[i] = 0x22
+	i++
+	i = encodeVarintHttp(dAtA, i, uint64(len(m.Post)))
+	i += copy(dAtA[i:], m.Post)
+	return i, nil
+}
+func (m *HttpRule_Delete) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	dAtA[i] = 0x2a
+	i++
+	i = encodeVarintHttp(dAtA, i, uint64(len(m.Delete)))
+	i += copy(dAtA[i:], m.Delete)
+	return i, nil
+}
+func (m *HttpRule_Patch) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	dAtA[i] = 0x32
+	i++
+	i = encodeVarintHttp(dAtA, i, uint64(len(m.Patch)))
+	i += copy(dAtA[i:], m.Patch)
+	return i, nil
+}
+func (m *HttpRule_Custom) MarshalTo(dAtA []byte) (int, error) {
+	i := 0
+	if m.Custom != nil {
+		dAtA[i] = 0x42
+		i++
+		i = encodeVarintHttp(dAtA, i, uint64(m.Custom.Size()))
+		n2, err := m.Custom.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n2
+	}
+	return i, nil
 }
 func (m *CustomHttpPattern) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
@@ -1252,50 +1315,40 @@ func (m *CustomHttpPattern) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *CustomHttpPattern) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *CustomHttpPattern) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
+	var i int
 	_ = i
 	var l int
 	_ = l
-	if m.XXX_unrecognized != nil {
-		i -= len(m.XXX_unrecognized)
-		copy(dAtA[i:], m.XXX_unrecognized)
+	if len(m.Kind) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintHttp(dAtA, i, uint64(len(m.Kind)))
+		i += copy(dAtA[i:], m.Kind)
 	}
 	if len(m.Path) > 0 {
-		i -= len(m.Path)
-		copy(dAtA[i:], m.Path)
-		i = encodeVarintHttp(dAtA, i, uint64(len(m.Path)))
-		i--
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintHttp(dAtA, i, uint64(len(m.Path)))
+		i += copy(dAtA[i:], m.Path)
 	}
-	if len(m.Kind) > 0 {
-		i -= len(m.Kind)
-		copy(dAtA[i:], m.Kind)
-		i = encodeVarintHttp(dAtA, i, uint64(len(m.Kind)))
-		i--
-		dAtA[i] = 0xa
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
 	}
-	return len(dAtA) - i, nil
+	return i, nil
 }
 
 func encodeVarintHttp(dAtA []byte, offset int, v uint64) int {
-	offset -= sovHttp(v)
-	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return base
+	return offset + 1
 }
 func NewPopulatedHttp(r randyHttp, easy bool) *Http {
 	this := &Http{}
-	if r.Intn(5) == 0 {
+	if r.Intn(10) == 0 {
 		v1 := r.Intn(5)
 		this.Rules = make([]*HttpRule, v1)
 		for i := 0; i < v1; i++ {
@@ -1328,7 +1381,7 @@ func NewPopulatedHttpRule(r randyHttp, easy bool) *HttpRule {
 		this.Pattern = NewPopulatedHttpRule_Custom(r, easy)
 	}
 	this.Body = string(randStringHttp(r))
-	if r.Intn(5) == 0 {
+	if r.Intn(10) == 0 {
 		v2 := r.Intn(5)
 		this.AdditionalBindings = make([]*HttpRule, v2)
 		for i := 0; i < v2; i++ {
@@ -1591,7 +1644,14 @@ func (m *CustomHttpPattern) Size() (n int) {
 }
 
 func sovHttp(x uint64) (n int) {
-	return (math_bits.Len64(x|1) + 6) / 7
+	for {
+		n++
+		x >>= 7
+		if x == 0 {
+			break
+		}
+	}
+	return n
 }
 func sozHttp(x uint64) (n int) {
 	return sovHttp(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -1600,13 +1660,8 @@ func (this *Http) String() string {
 	if this == nil {
 		return "nil"
 	}
-	repeatedStringForRules := "[]*HttpRule{"
-	for _, f := range this.Rules {
-		repeatedStringForRules += strings.Replace(f.String(), "HttpRule", "HttpRule", 1) + ","
-	}
-	repeatedStringForRules += "}"
 	s := strings.Join([]string{`&Http{`,
-		`Rules:` + repeatedStringForRules + `,`,
+		`Rules:` + strings.Replace(fmt.Sprintf("%v", this.Rules), "HttpRule", "HttpRule", 1) + `,`,
 		`FullyDecodeReservedExpansion:` + fmt.Sprintf("%v", this.FullyDecodeReservedExpansion) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
@@ -1617,16 +1672,11 @@ func (this *HttpRule) String() string {
 	if this == nil {
 		return "nil"
 	}
-	repeatedStringForAdditionalBindings := "[]*HttpRule{"
-	for _, f := range this.AdditionalBindings {
-		repeatedStringForAdditionalBindings += strings.Replace(f.String(), "HttpRule", "HttpRule", 1) + ","
-	}
-	repeatedStringForAdditionalBindings += "}"
 	s := strings.Join([]string{`&HttpRule{`,
 		`Selector:` + fmt.Sprintf("%v", this.Selector) + `,`,
 		`Pattern:` + fmt.Sprintf("%v", this.Pattern) + `,`,
 		`Body:` + fmt.Sprintf("%v", this.Body) + `,`,
-		`AdditionalBindings:` + repeatedStringForAdditionalBindings + `,`,
+		`AdditionalBindings:` + strings.Replace(fmt.Sprintf("%v", this.AdditionalBindings), "HttpRule", "HttpRule", 1) + `,`,
 		`ResponseBody:` + fmt.Sprintf("%v", this.ResponseBody) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
@@ -2321,7 +2371,6 @@ func (m *CustomHttpPattern) Unmarshal(dAtA []byte) error {
 func skipHttp(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
-	depth := 0
 	for iNdEx < l {
 		var wire uint64
 		for shift := uint(0); ; shift += 7 {
@@ -2353,8 +2402,10 @@ func skipHttp(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
+			return iNdEx, nil
 		case 1:
 			iNdEx += 8
+			return iNdEx, nil
 		case 2:
 			var length int
 			for shift := uint(0); ; shift += 7 {
@@ -2375,30 +2426,55 @@ func skipHttp(dAtA []byte) (n int, err error) {
 				return 0, ErrInvalidLengthHttp
 			}
 			iNdEx += length
-		case 3:
-			depth++
-		case 4:
-			if depth == 0 {
-				return 0, ErrUnexpectedEndOfGroupHttp
+			if iNdEx < 0 {
+				return 0, ErrInvalidLengthHttp
 			}
-			depth--
+			return iNdEx, nil
+		case 3:
+			for {
+				var innerWire uint64
+				var start int = iNdEx
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return 0, ErrIntOverflowHttp
+					}
+					if iNdEx >= l {
+						return 0, io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					innerWire |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				innerWireType := int(innerWire & 0x7)
+				if innerWireType == 4 {
+					break
+				}
+				next, err := skipHttp(dAtA[start:])
+				if err != nil {
+					return 0, err
+				}
+				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthHttp
+				}
+			}
+			return iNdEx, nil
+		case 4:
+			return iNdEx, nil
 		case 5:
 			iNdEx += 4
+			return iNdEx, nil
 		default:
 			return 0, fmt.Errorf("proto: illegal wireType %d", wireType)
 		}
-		if iNdEx < 0 {
-			return 0, ErrInvalidLengthHttp
-		}
-		if depth == 0 {
-			return iNdEx, nil
-		}
 	}
-	return 0, io.ErrUnexpectedEOF
+	panic("unreachable")
 }
 
 var (
-	ErrInvalidLengthHttp        = fmt.Errorf("proto: negative length found during unmarshaling")
-	ErrIntOverflowHttp          = fmt.Errorf("proto: integer overflow")
-	ErrUnexpectedEndOfGroupHttp = fmt.Errorf("proto: unexpected end of group")
+	ErrInvalidLengthHttp = fmt.Errorf("proto: negative length found during unmarshaling")
+	ErrIntOverflowHttp   = fmt.Errorf("proto: integer overflow")
 )
