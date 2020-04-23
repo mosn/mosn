@@ -227,7 +227,6 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 		if lb.scheduler != nil {
 			// do weight selection
 			host := lb.scheduler.NextAndPush(lb.hostWeightFunc).(types.Host)
-			lb.scheduler.Add(host, lb.hostWeightFunc(host))
 			candicate = host
 		} else {
 			// do unweight selection

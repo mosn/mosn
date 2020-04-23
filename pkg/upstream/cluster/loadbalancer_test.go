@@ -24,7 +24,6 @@ func TestLARChooseHost(t *testing.T) {
 	// new lb to refresh edf
 	balancer = NewLoadBalancer(&clusterInfo{lbType: types.LeastActiveRequest}, hosts)
 	actual := balancer.ChooseHost(newMockLbContext(nil))
-	// now
 	assert.Equal(t, hosts.allHosts[6], actual)
 	actual = balancer.ChooseHost(newMockLbContext(nil))
 
