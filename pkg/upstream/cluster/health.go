@@ -15,50 +15,42 @@
  * limitations under the License.
  */
 
-package shm
+package cluster
 
 import (
-	"testing"
-	"unsafe"
+	"sync"
+	"sync/atomic"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
-func TestCounter(t *testing.T) {
-	// just for test
-	originPath := types.MosnConfigPath
-	types.MosnConfigPath = "."
+// health flag resue for same address
+// TODO: use one map for all reuse data
+var healthStore = sync.Map{}
 
-	defer func() {
-		types.MosnConfigPath = originPath
-	}()
-	zone := InitMetricsZone("TestCounter", 10*1024)
-	defer func() {
-		zone.Detach()
-		Reset()
-	}()
+func GetHealthFlagPointer(addr string) *uint64 {
+	v, _ := healthStore.LoadOrStore(addr, func() *uint64 {
+		f := uint64(0)
+		return &f
+	}())
+	p, _ := v.(*uint64)
+	return p
+}
 
-	entry, err := defaultZone.alloc("TestCounter")
-	if err != nil {
-		t.Fatal(err)
+func SetHealthFlag(p *uint64, flag api.HealthFlag) {
+	if p == nil {
+		return
 	}
-	// inc
-	counter := ShmCounter(unsafe.Pointer(&entry.value))
-	counter.Inc(5)
+	f := atomic.LoadUint64(p)
+	f |= uint64(flag)
+	atomic.StoreUint64(p, f)
+}
 
-	if counter.Count() != 5 {
-		t.Error("count ops failed")
+func ClearHealthFlag(p *uint64, flag api.HealthFlag) {
+	if p == nil {
+		return
 	}
-
-	// dec
-	counter.Dec(2)
-	if counter.Count() != 3 {
-		t.Error("count ops failed")
-	}
-
-	// clear
-	counter.Clear()
-	if counter.Count() != 0 {
-		t.Error("count ops failed")
-	}
+	f := atomic.LoadUint64(p)
+	f &= ^uint64(flag)
+	atomic.StoreUint64(p, f)
 }

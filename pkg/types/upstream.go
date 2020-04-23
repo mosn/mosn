@@ -113,20 +113,7 @@ type HostPredicate func(Host) bool
 type HostSet interface {
 	// Hosts returns all hosts that make up the set at the current time.
 	Hosts() []Host
-
-	// HealthyHosts returns all healthy hosts
-	HealthyHosts() []Host
 }
-
-// HealthFlag type
-type HealthFlag int
-
-const (
-	// The host is currently failing active health checks.
-	FAILED_ACTIVE_HC HealthFlag = 0x1
-	// The host is currently considered an outlier and has been ejected.
-	FAILED_OUTLIER_CHECK HealthFlag = 0x02
-)
 
 // Host is an upstream host
 type Host interface {

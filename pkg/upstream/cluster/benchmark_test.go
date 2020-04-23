@@ -31,92 +31,6 @@ func TestMain(m *testing.M) {
 	m.Run()
 }
 
-// BenchmarkHostSetRefresh test host heatlthy state changed
-func BenchmarkHostSetRefresh(b *testing.B) {
-	subsetKeys := [][]string{
-		[]string{"zone", "version"},
-		[]string{"zone"},
-	}
-	createHostSet := func(m map[int]api.Metadata) *hostSet {
-		count := 0
-		for cnt := range m {
-			count += cnt
-		}
-		pool := makePool(count)
-		totalHosts := make([]types.Host, 0, count)
-		for cnt, meta := range m {
-			totalHosts = append(totalHosts, pool.MakeHosts(cnt, meta)...)
-		}
-		hs := &hostSet{}
-		hs.setFinalHost(totalHosts)
-		for _, meta := range m {
-			for _, keys := range subsetKeys {
-				kvs := ExtractSubsetMetadata(keys, meta)
-				hs.createSubset(func(h types.Host) bool {
-					return HostMatches(kvs, h)
-				})
-			}
-		}
-		return hs
-	}
-	b.Run("RefreshSimple100", func(b *testing.B) {
-		config := map[int]api.Metadata{
-			100: nil,
-		}
-		hs := createHostSet(config)
-		host := hs.Hosts()[50]
-		for i := 0; i < b.N; i++ {
-			if i%2 == 0 {
-				host.SetHealthFlag(types.FAILED_ACTIVE_HC)
-			} else {
-				host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
-			}
-			hs.refreshHealthHost(host)
-		}
-	})
-	b.Run("RefreshSimple1000", func(b *testing.B) {
-		config := map[int]api.Metadata{
-			1000: nil,
-		}
-		hs := createHostSet(config)
-		host := hs.Hosts()[500]
-		for i := 0; i < b.N; i++ {
-			if i%2 == 0 {
-				host.SetHealthFlag(types.FAILED_ACTIVE_HC)
-			} else {
-				host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
-			}
-			hs.refreshHealthHost(host)
-		}
-	})
-	b.Run("RefreshMeta1000", func(b *testing.B) {
-		config := map[int]api.Metadata{
-			100: nil,
-			300: api.Metadata{
-				"zone":    "a",
-				"version": "1.0",
-			},
-			400: api.Metadata{
-				"zone":    "a",
-				"version": "2.0",
-			},
-			200: api.Metadata{
-				"zone": "b",
-			},
-		}
-		hs := createHostSet(config)
-		host := hs.Hosts()[150] // zone:a, version:1.0
-		for i := 0; i < b.N; i++ {
-			if i%2 == 0 {
-				host.SetHealthFlag(types.FAILED_ACTIVE_HC)
-			} else {
-				host.ClearHealthFlag(types.FAILED_ACTIVE_HC)
-			}
-			hs.refreshHealthHost(host)
-		}
-	})
-}
-
 func BenchmarkHostConfig(b *testing.B) {
 	host := &simpleHost{
 		hostname:      "Testhost",
@@ -304,6 +218,21 @@ func BenchmarkRandomLB(b *testing.B) {
 	})
 }
 
+func BenchmarkRandomLBWithUnhealthyHost(b *testing.B) {
+	hostSet := &hostSet{}
+	hosts := makePool(10).MakeHosts(10, nil)
+	hostSet.setFinalHost(hosts)
+	lb := newRandomLoadBalancer(hostSet)
+	for i := 0; i < 5; i++ {
+		hosts[i].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			lb.ChooseHost(nil)
+		}
+	})
+}
+
 func BenchmarkRoundRobinLB(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, nil)
@@ -314,6 +243,22 @@ func BenchmarkRoundRobinLB(b *testing.B) {
 			lb.ChooseHost(nil)
 		}
 	})
+}
+
+func BenchmarkRoundRobinLBWithUnhealthyHost(b *testing.B) {
+	hostSet := &hostSet{}
+	hosts := makePool(10).MakeHosts(10, nil)
+	hostSet.setFinalHost(hosts)
+	lb := rrFactory.newRoundRobinLoadBalancer(hostSet)
+	for i := 0; i < 5; i++ {
+		hosts[i].SetHealthFlag(api.FAILED_OUTLIER_CHECK)
+	}
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			lb.ChooseHost(nil)
+		}
+	})
+
 }
 
 func BenchmarkSubsetLB(b *testing.B) {

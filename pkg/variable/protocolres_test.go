@@ -64,3 +64,40 @@ func TestGetProtocolResource(t *testing.T) {
 		t.Fatal("unexpected get error")
 	}
 }
+
+func BenchmarkGetProtocolResource(b *testing.B) {
+	ctx := prepareProtocolResource()
+	for i := 0; i < b.N; i++ {
+		_, err := GetProtocolResource(ctx, api.PATH)
+		if err != nil {
+			b.Error("get variable failed:", err)
+		}
+	}
+}
+
+func BenchmarkGetVariableValue(b *testing.B) {
+
+	ctx := prepareProtocolResource()
+	for i := 0; i < b.N; i++ {
+		_, err := GetVariableValue(ctx, string(api.PATH))
+		if err != nil {
+			b.Error("get variable failed:", err)
+		}
+	}
+}
+
+func prepareProtocolResource() context.Context {
+	name := "http_request_path"
+	value := "/path"
+	// register test variable
+	RegisterVariable(NewBasicVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+		return value, nil
+	}, nil, 0))
+
+	// register HTTP protocol resource var
+	RegisterProtocolResource(HTTP1, api.PATH, name)
+
+	ctx := context.Background()
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, HTTP1)
+	return ctx
+}
