@@ -17,7 +17,7 @@ func init() {
 const (
 	dubboClusterPre = "outbound|%d|%s|dubbo-%s-%s"
 
-	// consumer  -> 127.0.0.1:20880(mosn-consumer)->provider:20881(mosn-provider)->127.0.0.1:20880
+	// consumer  -> 127.0.0.1:20881(mosn-consumer)->provider:20882(mosn-provider)->127.0.0.1:20880
 	dubboPort             = 20880
 	dubboMosnConsumerPort = 20881
 	dubboMosnProviderPort = 20882

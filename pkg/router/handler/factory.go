@@ -15,7 +15,7 @@ var (
 	XHandler = make(map[string]handler)
 
 	// CustomerPort use xDS shuold filter this 0.0.0.0:port
-	CustomerPort = make([]int, 0, 2)
+	CustomerPort = make([]int, 0)
 )
 
 // GetRouteHandler get route handler

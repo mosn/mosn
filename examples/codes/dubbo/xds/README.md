@@ -122,4 +122,4 @@ Hello MOSN, response from provider: 10.13.160.93:20880
 Hello MOSN, response from provider: 10.13.160.4:20880
 ```
 
-![image](https://github.com/champly/mosn/blob/feature-istio-dubbo_adapter/configs/img/result.png)
+![image](https://github.com/champly/mosn/blob/feature-istio-dubbo_adapter/examples/codes/dubbo/xds/img/result.png)
