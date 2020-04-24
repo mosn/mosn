@@ -33,7 +33,7 @@ type IoBufferPool struct {
 func (p *IoBufferPool) take(size int) (buf IoBuffer) {
 	v := p.pool.Get()
 	if v == nil {
-		buf = NewIoBuffer(size)
+		buf = newIoBuffer(size)
 	} else {
 		buf = v.(IoBuffer)
 		buf.Alloc(size)
@@ -51,6 +51,11 @@ func (p *IoBufferPool) give(buf IoBuffer) {
 // GetIoBuffer returns IoBuffer from pool
 func GetIoBuffer(size int) IoBuffer {
 	return ibPool.take(size)
+}
+
+// NewIoBuffer is an alias for GetIoBuffer
+func NewIoBuffer(size int) IoBuffer {
+	return GetIoBuffer(size)
 }
 
 // PutIoBuffer returns IoBuffer to pool

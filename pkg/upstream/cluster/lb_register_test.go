@@ -60,11 +60,11 @@ type headerLBCfg struct {
 	key string
 }
 
-func (cfg *headerLBCfg) newLB(hs types.HostSet) types.LoadBalancer {
+func (cfg *headerLBCfg) newLB(info types.ClusterInfo, hs types.HostSet) types.LoadBalancer {
 	return &headerLB{
 		hostSet: hs,
 		key:     cfg.key,
-		randLB:  newRandomLoadBalancer(hs),
+		randLB:  newRandomLoadBalancer(nil, hs),
 	}
 }
 
@@ -80,7 +80,7 @@ func TestRegisterNewLB(t *testing.T) {
 	// init hosts
 	// reuse subset test config
 	hs := createHostset(exampleHostConfigs())
-	lb := NewLoadBalancer(headerKey, hs)
+	lb := NewLoadBalancer(&clusterInfo{lbType: headerKey}, hs)
 	// expected headerLB
 	if _, ok := lb.(*headerLB); !ok {
 		t.Fatal("load balancer created not expected")
