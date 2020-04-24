@@ -113,6 +113,9 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	}
 	// we send sofa rpc cmd as "header", but it maybe contains "body"
 	hb := kp.Protocol.Trigger(id)
+	if hb == nil {
+		return
+	}
 	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
 	kp.mutex.Lock()
