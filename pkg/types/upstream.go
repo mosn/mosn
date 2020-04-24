@@ -167,7 +167,7 @@ type ClusterInfo interface {
 	LbOriDstInfo() LBOriDstInfo
 
 	// Optional configuration for the load balancing algorithm selected by
-	LbConfig()   v2.IsCluster_LbConfig
+	LbConfig() v2.IsCluster_LbConfig
 }
 
 // ResourceManager manages different types of Resource

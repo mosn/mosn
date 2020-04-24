@@ -194,7 +194,7 @@ func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 	return ci.lbOriDstInfo
 }
 
-func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig{
+func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig {
 	return ci.lbconfig
 }
 
