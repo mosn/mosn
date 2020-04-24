@@ -193,14 +193,14 @@ func (lb *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerCon
 			continue
 		}
 		hw := lb.hostsWeighted[idx]
-		atomic.AddInt64(&hw.currentWeight, hw.effectiveWeight)
-		totalWeight += hw.effectiveWeight
+		atomic.AddInt64(&hw.currentWeight, atomic.LoadInt64(&hw.effectiveWeight))
+		totalWeight += atomic.LoadInt64(&hw.effectiveWeight)
 
 		if hw.effectiveWeight < hw.weight {
 			atomic.AddInt64(&hw.effectiveWeight, 1)
 		}
 
-		if selectedHostWeighted == nil || hw.currentWeight > selectedHostWeighted.currentWeight {
+		if selectedHostWeighted == nil || atomic.LoadInt64(&hw.currentWeight) > atomic.LoadInt64(&selectedHostWeighted.currentWeight) {
 			selectedHostWeighted = hw
 			selectedHost = host
 		}
