@@ -146,8 +146,7 @@ type clusterInfo struct {
 	lbOriDstInfo         types.LBOriDstInfo
 	tlsMng               types.TLSContextManager
 	connectTimeout       time.Duration
-	lbconfig	         v2.IsCluster_LbConfig
-
+	lbConfig             v2.IsCluster_LbConfig
 }
 
 func (ci *clusterInfo) Name() string {
@@ -195,7 +194,7 @@ func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 }
 
 func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig {
-	return ci.lbconfig
+	return ci.lbConfig
 }
 
 type clusterSnapshot struct {
