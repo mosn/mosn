@@ -88,6 +88,7 @@ func exampleHostConfigs() (hosts []v2.Host) {
 			HostConfig: v2.HostConfig{
 				Hostname: hostName,
 				Address:  addr,
+				Weight:   uint32(i) + 1,
 			},
 			MetaData: md,
 		}
@@ -107,6 +108,22 @@ func createHostset(cfg []v2.Host) *hostSet {
 			addr: h.Address,
 			meta: h.MetaData,
 		}
+		hosts = append(hosts, host)
+	}
+	hs := &hostSet{}
+	hs.setFinalHost(hosts)
+	return hs
+}
+func createHostsetWithStats(cfg []v2.Host, clusterName string) *hostSet {
+	var hosts []types.Host
+	for _, h := range cfg {
+		host := &mockHost{
+			name: h.Hostname,
+			addr: h.Address,
+			meta: h.MetaData,
+			weight: h.Weight,
+		}
+		host.stats = newHostStats(clusterName, host.addr)
 		hosts = append(hosts, host)
 	}
 	hs := &hostSet{}
