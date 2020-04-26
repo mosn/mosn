@@ -120,7 +120,7 @@ func (p *pipe) CloseWithError(err error) {
 
 func NewPipeBuffer(capacity int) IoBuffer {
 	return &pipe{
-		IoBuffer: NewIoBuffer(capacity),
+		IoBuffer: newIoBuffer(capacity),
 	}
 }
 
@@ -135,7 +135,7 @@ type ioBuffer struct {
 	b *[]byte
 }
 
-func NewIoBuffer(capacity int) IoBuffer {
+func newIoBuffer(capacity int) IoBuffer {
 	buffer := &ioBuffer{
 		offMark: ResetOffMark,
 		count:   1,
@@ -150,7 +150,7 @@ func NewIoBuffer(capacity int) IoBuffer {
 
 func NewIoBufferString(s string) IoBuffer {
 	if s == "" {
-		return NewIoBuffer(0)
+		return newIoBuffer(0)
 	}
 	return &ioBuffer{
 		buf:     []byte(s),
@@ -171,7 +171,7 @@ func NewIoBufferBytes(bytes []byte) IoBuffer {
 }
 
 func NewIoBufferEOF() IoBuffer {
-	buf := NewIoBuffer(0)
+	buf := newIoBuffer(0)
 	buf.SetEOF(true)
 	return buf
 }

@@ -18,6 +18,7 @@
 package protocol
 
 import (
+	"context"
 	"errors"
 	"strconv"
 
@@ -38,16 +39,16 @@ func init() {
 
 // HTTPMapping maps the contents of protocols to HTTP standard
 type HTTPMapping interface {
-	MappingHeaderStatusCode(headers api.HeaderMap) (int, error)
+	MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error)
 }
 
 func RegisterMapping(p api.Protocol, m HTTPMapping) {
 	httpMappingFactory[p] = m
 }
 
-func MappingHeaderStatusCode(p api.Protocol, headers api.HeaderMap) (int, error) {
+func MappingHeaderStatusCode(ctx context.Context, p api.Protocol, headers api.HeaderMap) (int, error) {
 	if f, ok := httpMappingFactory[p]; ok {
-		return f.MappingHeaderStatusCode(headers)
+		return f.MappingHeaderStatusCode(ctx, headers)
 	}
 	return 0, ErrNoMapping
 }
@@ -55,7 +56,7 @@ func MappingHeaderStatusCode(p api.Protocol, headers api.HeaderMap) (int, error)
 // HTTP get status directly
 type httpMapping struct{}
 
-func (m *httpMapping) MappingHeaderStatusCode(headers api.HeaderMap) (int, error) {
+func (m *httpMapping) MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error) {
 	status, ok := headers.Get(types.HeaderStatus)
 	if !ok {
 		return 0, errors.New("headers have no status code")

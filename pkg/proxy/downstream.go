@@ -125,11 +125,15 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	proxyBuffers := proxyBuffersByContext(ctx)
 
+	// save downstream protocol
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proxy.serverStreamConn.Protocol())
+
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
+	stream.requestInfo.SetProtocol(proxy.serverStreamConn.Protocol())
 	stream.requestInfo.SetDownstreamLocalAddress(proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	stream.requestInfo.SetDownstreamRemoteAddress(proxy.readCallbacks.Connection().RemoteAddr())
@@ -1031,7 +1035,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 	// see if we need a retry
 	if reason != types.UpstreamGlobalTimeout &&
 		!s.downstreamResponseStarted && s.retryState != nil {
-		retryCheck := s.retryState.retry(nil, reason)
+		retryCheck := s.retryState.retry(s.context, nil, reason)
 
 		if retryCheck == api.ShouldRetry && s.setupRetry(true) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
@@ -1085,7 +1089,7 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 
 	// check retry
 	if s.retryState != nil {
-		retryCheck := s.retryState.retry(headers, "")
+		retryCheck := s.retryState.retry(s.context, headers, "")
 
 		if retryCheck == api.ShouldRetry && s.setupRetry(endStream) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {

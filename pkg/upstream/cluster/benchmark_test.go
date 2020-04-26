@@ -210,7 +210,7 @@ func BenchmarkRandomLB(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, nil)
 	hostSet.setFinalHost(hosts)
-	lb := newRandomLoadBalancer(hostSet)
+	lb := newRandomLoadBalancer(nil, hostSet)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			lb.ChooseHost(nil)
@@ -222,7 +222,7 @@ func BenchmarkRandomLBWithUnhealthyHost(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, nil)
 	hostSet.setFinalHost(hosts)
-	lb := newRandomLoadBalancer(hostSet)
+	lb := newRandomLoadBalancer(nil, hostSet)
 	for i := 0; i < 5; i++ {
 		hosts[i].SetHealthFlag(api.FAILED_ACTIVE_HC)
 	}
@@ -237,7 +237,7 @@ func BenchmarkRoundRobinLB(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, nil)
 	hostSet.setFinalHost(hosts)
-	lb := rrFactory.newRoundRobinLoadBalancer(hostSet)
+	lb := rrFactory.newRoundRobinLoadBalancer(nil, hostSet)
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			lb.ChooseHost(nil)
@@ -249,7 +249,7 @@ func BenchmarkRoundRobinLBWithUnhealthyHost(b *testing.B) {
 	hostSet := &hostSet{}
 	hosts := makePool(10).MakeHosts(10, nil)
 	hostSet.setFinalHost(hosts)
-	lb := rrFactory.newRoundRobinLoadBalancer(hostSet)
+	lb := rrFactory.newRoundRobinLoadBalancer(nil, hostSet)
 	for i := 0; i < 5; i++ {
 		hosts[i].SetHealthFlag(api.FAILED_OUTLIER_CHECK)
 	}
@@ -258,7 +258,18 @@ func BenchmarkRoundRobinLBWithUnhealthyHost(b *testing.B) {
 			lb.ChooseHost(nil)
 		}
 	})
+}
 
+func BenchmarkLeastActiveRequestLB(b *testing.B) {
+	hostSet := &hostSet{}
+	hosts := makePool(10).MakeHosts(10, map[string]string{"cluster":""})
+	hostSet.setFinalHost(hosts)
+	lb := newleastActiveRequestLoadBalancer(nil, hostSet)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			lb.ChooseHost(nil)
+		}
+	})
 }
 
 func BenchmarkSubsetLB(b *testing.B) {

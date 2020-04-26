@@ -27,6 +27,7 @@ import (
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
@@ -131,6 +132,8 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 				}
 			}
 			l.state = ListenerRunning
+			// add metrics for listener if bind port
+			metrics.AddListenerAddr(l.rawl.Addr().String())
 			return false
 		}()
 		if ignore {

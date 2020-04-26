@@ -20,12 +20,15 @@ package xprotocol
 import (
 	"errors"
 
+	"mosn.io/mosn/pkg/protocol"
+
 	"mosn.io/mosn/pkg/types"
 )
 
 var (
 	protocolMap = make(map[types.ProtocolName]XProtocol)
 	matcherMap  = make(map[types.ProtocolName]types.ProtocolMatch)
+	mappingMap  = make(map[types.ProtocolName]protocol.HTTPMapping)
 )
 
 // RegisterProtocol register the protocol to factory
@@ -60,4 +63,21 @@ func RegisterMatcher(name types.ProtocolName, matcher types.ProtocolMatch) error
 // GetMatcher return the corresponding matcher for given name(if was registered)
 func GetMatcher(name types.ProtocolName) types.ProtocolMatch {
 	return matcherMap[name]
+}
+
+// RegisterMapping register the HTTP status code mapping function of the protocol into factory
+func RegisterMapping(name types.ProtocolName, mapping protocol.HTTPMapping) error {
+	// check name conflict
+	_, ok := mappingMap[name]
+	if ok {
+		return errors.New("duplicate mapping register:" + string(name))
+	}
+
+	mappingMap[name] = mapping
+	return nil
+}
+
+// GetMapping return the corresponding HTTP status code mapping function for given name(if was registered)
+func GetMapping(name types.ProtocolName) protocol.HTTPMapping {
+	return mappingMap[name]
 }

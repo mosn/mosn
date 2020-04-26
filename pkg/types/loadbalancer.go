@@ -33,6 +33,7 @@ const (
 	Random             LoadBalancerType = "LB_RANDOM"
 	WeightedRoundRobin LoadBalancerType = "LB_WEIGHTED_ROUNDROBIN"
 	ORIGINAL_DST       LoadBalancerType = "LB_ORIGINAL_DST"
+	LeastActiveRequest LoadBalancerType = "LB_LEAST_REQUEST"
 )
 
 // LoadBalancer is a upstream load balancer.
@@ -77,7 +78,7 @@ type LBSubsetEntry interface {
 	// Children returns the next lb subset map
 	Children() LbSubsetMap
 
-	CreateLoadBalancer(LoadBalancerType, HostSet)
+	CreateLoadBalancer(ClusterInfo, HostSet)
 
 	LoadBalancer() LoadBalancer
 

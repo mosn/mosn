@@ -39,6 +39,6 @@ require (
 	google.golang.org/grpc v1.20.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
-	mosn.io/api v0.0.0-20200409121255-57255099f0d0
-	mosn.io/pkg v0.0.0-20200402102508-6d1b24c77225
+	mosn.io/api v0.0.0-20200416082846-2e7ce9a85557
+	mosn.io/pkg v0.0.0-20200424031850-d58c95786d4c
 )
