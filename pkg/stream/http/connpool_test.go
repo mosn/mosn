@@ -46,6 +46,10 @@ type fakeTLSContextManager struct {
 	types.TLSContextManager
 }
 
+func (mg *fakeTLSContextManager) Enabled() bool {
+	return false
+}
+
 func (ci *fakeClusterInfo) TLSMng() types.TLSContextManager {
 	return &fakeTLSContextManager{}
 }
