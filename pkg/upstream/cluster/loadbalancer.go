@@ -41,10 +41,10 @@ var primes = []int{
 }
 
 // pick a prime which not equal to i
-func pickPrimeNotEqual(i int) int {
-	var idx = rand.Intn(len(primes))
+func pickPrimeNotEqual(i int, r *rand.Rand) int {
+	var idx = r.Intn(len(primes))
 	if primes[idx] != i {
-		return primes[i]
+		return primes[idx]
 	}
 	return primes[(idx+1)%len(primes)]
 }
@@ -104,7 +104,7 @@ func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 	defer lb.mutex.Unlock()
 	idx := lb.rand.Intn(total)
 
-	step := pickPrimeNotEqual(total)
+	step := pickPrimeNotEqual(total, lb.rand)
 	for i := 0; i < total; i++ {
 		host := targets[idx]
 		if host.Health() {
