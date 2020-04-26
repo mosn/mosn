@@ -31,6 +31,7 @@ type LoadBalancerType string
 const (
 	RoundRobin         LoadBalancerType = "LB_ROUNDROBIN"
 	Random             LoadBalancerType = "LB_RANDOM"
+	WeightedRoundRobin LoadBalancerType = "LB_WEIGHTED_ROUNDROBIN"
 	ORIGINAL_DST       LoadBalancerType = "LB_ORIGINAL_DST"
 	LeastActiveRequest LoadBalancerType = "LB_LEAST_REQUEST"
 )
