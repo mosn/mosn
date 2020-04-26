@@ -86,7 +86,7 @@ func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		if host.Health() {
 			return host
 		}
-		idx = (idx + 1) % total
+		idx = (idx + lb.rand.Intn(total)) % total
 	}
 	return nil
 }
@@ -168,7 +168,7 @@ func newleastActiveRequestLoadBalancer(info types.ClusterInfo, hosts types.HostS
 
 func (lb *leastActiveRequestLoadBalancer) hostWeight(item WeightItem) float64 {
 	host := item.(types.Host)
-	return float64(host.Weight()) / float64(host.HostStats().UpstreamRequestActive.Count() + 1)
+	return float64(host.Weight()) / float64(host.HostStats().UpstreamRequestActive.Count()+1)
 }
 
 func (lb *leastActiveRequestLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
