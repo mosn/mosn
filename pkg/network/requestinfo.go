@@ -119,6 +119,10 @@ func (r *RequestInfo) Protocol() api.Protocol {
 	return r.protocol
 }
 
+func (r *RequestInfo) SetProtocol(p api.Protocol) {
+	r.protocol = p
+}
+
 func (r *RequestInfo) ResponseCode() int {
 	return r.responseCode
 }

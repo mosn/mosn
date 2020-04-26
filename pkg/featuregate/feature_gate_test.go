@@ -18,6 +18,7 @@
 package featuregate
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -123,6 +124,30 @@ func TestSetFeatureGate(t *testing.T) {
 		if fg.Enabled(fc.name) != fc.expected {
 			t.Errorf("feature %s state expected %v", fc.name, fc.expected)
 		}
+	}
+
+}
+
+func TestKnownFeatures(t *testing.T) {
+	fg := NewFeatureGate()
+	for _, fn := range []Feature{
+		"f1", "f2", "f3", "f4", "f5",
+	} {
+		fg.AddFeatureSpec(fn, &BaseFeatureSpec{})
+	}
+	// set
+	fg.Set("f1=true, f2=false, f3=true, f4=false")
+	known := fg.KnownFeatures()
+	// verify
+	expected := map[string]bool{
+		"f1": true,
+		"f2": false,
+		"f3": true,
+		"f4": false,
+		"f5": false,
+	}
+	if !reflect.DeepEqual(expected, known) {
+		t.Errorf("known features returns unexpected, known: %v, expected: %v", known, expected)
 	}
 
 }

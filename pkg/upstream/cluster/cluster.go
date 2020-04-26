@@ -68,7 +68,7 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 	// tls mng
 	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS)
 	if err != nil {
-		log.DefaultLogger.Errorf("[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
+		log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
 	}
 	info.tlsMng = mgr
 	cluster := &simpleCluster{
@@ -79,18 +79,11 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 	cluster.snapshot.Store(&clusterSnapshot{
 		info:    info,
 		hostSet: hostSet,
-		lb:      NewLoadBalancer(info.lbType, hostSet),
+		lb:      NewLoadBalancer(info, hostSet),
 	})
 	if clusterConfig.HealthCheck.ServiceName != "" {
 		log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
 		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck)
-		cluster.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool, isHealthy bool) {
-			if changedState {
-				log.DefaultLogger.Infof("[upstream] [cluster] host %s state change to %v", host.AddressString(), isHealthy)
-				cluster.hostSet.refreshHealthHost(host)
-			}
-		})
-
 	}
 	return cluster
 }
@@ -104,7 +97,7 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	if info.lbSubsetInfo.IsEnabled() {
 		lb = NewSubsetLoadBalancer(info, hostSet)
 	} else {
-		lb = NewLoadBalancer(info.lbType, hostSet)
+		lb = NewLoadBalancer(info, hostSet)
 	}
 	sc.lbInstance = lb
 	sc.hostSet = hostSet
@@ -153,6 +146,13 @@ type clusterInfo struct {
 	lbOriDstInfo         types.LBOriDstInfo
 	tlsMng               types.TLSContextManager
 	connectTimeout       time.Duration
+	lbConfig             v2.IsCluster_LbConfig
+}
+
+func updateClusterResourceManager(ci types.ClusterInfo, rm types.ResourceManager) {
+	if c, ok := ci.(*clusterInfo); ok {
+		c.resourceManager = rm
+	}
 }
 
 func (ci *clusterInfo) Name() string {
@@ -197,6 +197,10 @@ func (ci *clusterInfo) ConnectTimeout() time.Duration {
 
 func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 	return ci.lbOriDstInfo
+}
+
+func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig {
+	return ci.lbConfig
 }
 
 type clusterSnapshot struct {
