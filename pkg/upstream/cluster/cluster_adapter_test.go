@@ -185,9 +185,40 @@ func TestClusterManagerUpdateCluster(t *testing.T) {
 				},
 			}},
 	}
-	// Update cluster info
+
+	// test cluster info update
 	if err := GetClusterMngAdapterInstance().TriggerClusterAddOrUpdate(
 		clusterConfig); err != nil {
+		t.Fatal("update cluster failed: ", err)
+	}
+
+	pool = GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
+	if pool.Host().ClusterInfo().ResourceManager().Connections().Max() != uint64(maxc1) {
+		t.Fatal("update cluster resource failed")
+	}
+
+	// test cluster host update
+	host1 := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: "127.0.0.1:10002",
+		},
+		MetaData: api.Metadata{
+			"version": "1.0.0",
+			"zone":    "a",
+		},
+	}
+	host2 := v2.Host{
+		HostConfig: v2.HostConfig{
+			Address: "127.0.0.1:10003",
+		},
+		MetaData: api.Metadata{
+			"version": "2.0.0",
+			"zone":    "a",
+		},
+	}
+
+	if err := GetClusterMngAdapterInstance().TriggerClusterHostUpdate(
+		"test1", []v2.Host{host1, host2}); err != nil {
 		t.Fatal("update cluster failed: ", err)
 	}
 

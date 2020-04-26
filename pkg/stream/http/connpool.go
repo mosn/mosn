@@ -146,7 +146,7 @@ func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types
 		// Only refuse extra connection, keepalive-connection is closed by timeout
 		n--
 		usedConns := p.totalClientCount - uint64(n)
-		if maxConns != 0 && usedConns > host.ClusterInfo().ResourceManager().Connections().Max() {
+		if maxConns != 0 && usedConns > maxConns {
 			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 			return nil, types.Overflow

@@ -149,6 +149,12 @@ type clusterInfo struct {
 	lbConfig             v2.IsCluster_LbConfig
 }
 
+func updateClusterResourceManager(ci types.ClusterInfo, rm types.ResourceManager) {
+	if c, ok := ci.(*clusterInfo); ok {
+		c.resourceManager = rm
+	}
+}
+
 func (ci *clusterInfo) Name() string {
 	return ci.name
 }
