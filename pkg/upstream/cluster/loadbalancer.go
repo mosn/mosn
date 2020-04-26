@@ -87,7 +87,7 @@ func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		if host.Health() {
 			return host
 		}
-		idx = (idx + 1) % total
+		idx = (idx + lb.rand.Intn(total)) % total
 	}
 	return nil
 }
