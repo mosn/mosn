@@ -1460,6 +1460,10 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 	if s.directResponse {
 		s.directResponse = false
+
+		// don't retry
+		s.retryState = nil
+
 		if s.oneway {
 			phase = types.Oneway
 		} else {
