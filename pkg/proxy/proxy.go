@@ -125,7 +125,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
 	} else {
-		log.DefaultLogger.Errorf("[proxy] RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
+		log.DefaultLogger.Alertf("proxy.config", "[proxy] RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
 	}
 
 	proxy.downstreamListener = &downstreamCallbacks{
@@ -151,7 +151,7 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 			} else {
 				size = buf.Len()
 			}
-			log.DefaultLogger.Errorf("[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
+			log.DefaultLogger.Alertf("proxy.auto", "[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
 			p.readCallbacks.Connection().Close(api.NoFlush, api.OnReadErrClose)
 			return api.Stop
 		}

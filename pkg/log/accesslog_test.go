@@ -385,6 +385,10 @@ func (r *mock_requestInfo) Protocol() api.Protocol {
 	return r.protocol
 }
 
+func (r *mock_requestInfo) SetProtocol(p api.Protocol) {
+	r.protocol = p
+}
+
 func (r *mock_requestInfo) ResponseCode() int {
 	return r.responseCode
 }

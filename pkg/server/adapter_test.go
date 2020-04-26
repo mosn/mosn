@@ -3,15 +3,18 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
@@ -407,5 +410,43 @@ func TestFindListenerByName(t *testing.T) {
 
 	if ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name); ln == nil {
 		t.Fatal("expected find listener, but not")
+	}
+}
+
+func TestListenerMetrics(t *testing.T) {
+	setup()
+	defer tearDown()
+
+	metrics.FlushMosnMetrics = true
+
+	for i := 0; i < 5; i++ {
+		name := fmt.Sprintf("test_listener_metrics_%d", i)
+		cfg := baseListenerConfig("127.0.0.1:0", name)
+		if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfg); err != nil {
+			t.Fatalf("add listener failed, %v", err)
+		}
+	}
+	// wait start
+	time.Sleep(time.Second)
+	// read metrics
+	var mosn types.Metrics
+	for _, m := range metrics.GetAll() {
+		if m.Type() == metrics.MosnMetaType {
+			mosn = m
+			break
+		}
+	}
+	if mosn == nil {
+		t.Fatal("no mosn metrics found")
+	}
+	lnCount := 0
+	mosn.Each(func(key string, value interface{}) {
+		if strings.Contains(key, metrics.ListenerAddr) {
+			lnCount++
+			t.Logf("listener metrics: %s", key)
+		}
+	})
+	if lnCount != 5 {
+		t.Fatalf("mosn listener metrics is not expected, got %d", lnCount)
 	}
 }

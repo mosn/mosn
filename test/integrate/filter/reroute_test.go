@@ -43,6 +43,7 @@ func init() {
 }
 
 type injectFilter struct {
+	status  api.StreamFilterStatus
 	handler api.StreamReceiverFilterHandler
 }
 
@@ -51,8 +52,13 @@ func (f *injectFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterH
 }
 
 func (f *injectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
-	f.inject()
-	return api.StreamFilterReMatchRoute
+	if f.status == api.StreamFilterReMatchRoute {
+		return api.StreamFilterContinue
+	} else {
+		f.inject()
+		f.status = api.StreamFilterReMatchRoute
+		return api.StreamFilterReMatchRoute
+	}
 }
 
 func (f *injectFilter) OnDestroy() {}

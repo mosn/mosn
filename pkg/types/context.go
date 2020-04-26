@@ -41,6 +41,7 @@ const (
 	ContextKeyActiveSpan
 	ContextKeyTraceId
 	ContextKeyVariables
+	ContextKeyDownStreamProtocol
 	ContextKeyEnd
 )
 

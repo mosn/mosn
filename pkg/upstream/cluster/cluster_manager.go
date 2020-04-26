@@ -87,13 +87,13 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	//Add cluster to cm
 	for _, cluster := range clusters {
 		if err := clusterManagerInstance.AddOrUpdatePrimaryCluster(cluster); err != nil {
-			log.DefaultLogger.Errorf("[upstream] [cluster manager] NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s, error: %v", cluster.Name, err)
+			log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s, error: %v", cluster.Name, err)
 		}
 	}
 	// Add cluster host
 	for clusterName, hosts := range clusterMap {
 		if err := clusterManagerInstance.UpdateClusterHosts(clusterName, hosts); err != nil {
-			log.DefaultLogger.Errorf("[upstream] [cluster manager] NewClusterManager: UpdateClusterHosts failure, cluster name = %s, error: %v", clusterName, err)
+			log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: UpdateClusterHosts failure, cluster name = %s, error: %v", clusterName, err)
 		}
 	}
 	return clusterManagerInstance
