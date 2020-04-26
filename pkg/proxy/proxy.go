@@ -252,6 +252,8 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 		return api.UpstreamOverflow
 	case types.StreamRemoteReset:
 		return api.UpstreamRemoteReset
+	case types.UpstreamGlobalTimeout, types.UpstreamPerTryTimeout:
+		return api.UpstreamRequestTimeout
 	}
 
 	return 0

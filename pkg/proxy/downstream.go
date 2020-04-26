@@ -1064,19 +1064,15 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 		// send err response if response not started
 		var code int
 
-		if reason == types.UpstreamGlobalTimeout || reason == types.UpstreamPerTryTimeout {
-			s.requestInfo.SetResponseFlag(api.UpstreamRequestTimeout)
-			code = types.TimeoutExceptionCode
-		} else {
-			reasonFlag := s.proxy.streamResetReasonToResponseFlag(reason)
-			s.requestInfo.SetResponseFlag(reasonFlag)
-			code = types.NoHealthUpstreamCode
-		}
+		reasonFlag := s.proxy.streamResetReasonToResponseFlag(reason)
+		s.requestInfo.SetResponseFlag(reasonFlag)
+		code = convertReasonToCode(reason)
 
 		if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 		}
+
 		// clear reset flag
 		log.Proxy.Infof(s.context, "[proxy] [downstream] onUpstreamReset, send hijack, reason %v", reason)
 		atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)

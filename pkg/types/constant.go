@@ -68,6 +68,7 @@ const (
 	SuccessCode           = 200
 	PermissionDeniedCode  = 403
 	RouterUnavailableCode = 404
+	InternalErrorCode     = 500
 	NoHealthUpstreamCode  = 502
 	UpstreamOverFlowCode  = 503
 	TimeoutExceptionCode  = 504

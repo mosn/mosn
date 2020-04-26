@@ -69,3 +69,22 @@ func parseProxyTimeout(ctx context.Context, timeout *Timeout, route types.Route,
 		timeout.TryTimeout = 0
 	}
 }
+
+func convertReasonToCode(reason types.StreamResetReason) int {
+	switch reason {
+	case types.StreamConnectionSuccessed:
+		return types.SuccessCode
+
+	case types.UpstreamGlobalTimeout, types.UpstreamPerTryTimeout:
+		return types.TimeoutExceptionCode
+
+	case types.StreamOverflow:
+		return types.UpstreamOverFlowCode
+
+	case types.StreamRemoteReset, types.UpstreamReset, types.StreamLocalReset, types.StreamConnectionFailed:
+		return types.NoHealthUpstreamCode
+
+	default:
+		return types.InternalErrorCode
+	}
+}
