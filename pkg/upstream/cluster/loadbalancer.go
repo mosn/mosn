@@ -28,6 +28,27 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+var primes = []int{
+	12289, 24593, 49193, 98387, 196799, 393611, 787243, 1574491, 3148987, 6297979,
+	12595991, 25191989, 50383981, 100767977, 201535967, 403071937, 806143879,
+	1612287763, 3224575537, 6449151103, 12898302233, 25796604473, 51593208973,
+	103186417951, 206372835917, 412745671837, 825491343683, 1650982687391,
+	3301965374803, 6603930749621, 13207861499251, 26415722998507, 52831445997037,
+	105662891994103, 211325783988211, 422651567976461, 845303135952931, 1690606271905871,
+	3381212543811743, 6762425087623523, 13524850175247127, 27049700350494287,
+	54099400700988593, 108198801401977301, 216397602803954641,
+	432795205607909293, 865590411215818597, 1731180822431637217,
+}
+
+// pick a prime which not equal to i
+func pickPrimeNotEqual(i int) int {
+	var idx = rand.Intn(len(primes))
+	if primes[idx] != i {
+		return primes[i]
+	}
+	return primes[(idx+1)%len(primes)]
+}
+
 // NewLoadBalancer can be register self defined type
 var lbFactories map[types.LoadBalancerType]func(types.ClusterInfo, types.HostSet) types.LoadBalancer
 
@@ -82,12 +103,14 @@ func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
 	idx := lb.rand.Intn(total)
+
+	step := pickPrimeNotEqual(total)
 	for i := 0; i < total; i++ {
 		host := targets[idx]
 		if host.Health() {
 			return host
 		}
-		idx = (idx + 1) % total
+		idx = (idx + step) % total
 	}
 	return nil
 }
@@ -325,8 +348,8 @@ func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 
 func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
 	lb := &EdfLoadBalancer{
-		hosts: hosts,
-		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		hosts:                  hosts,
+		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 		unweightChooseHostFunc: unWeightChoose,
 		hostWeightFunc:         hostWeightFunc,
 	}
