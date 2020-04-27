@@ -3,8 +3,8 @@ module mosn.io/mosn
 go 1.12
 
 require (
-	github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
-	github.com/apache/dubbo-go-hessian2 v1.3.0
+	github.com/TarsCloud/TarsGo v0.0.0-20190521041003-0022231bc5b2
+	github.com/apache/dubbo-go-hessian2 v1.5.0
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/envoyproxy/go-control-plane v0.9.4
@@ -20,6 +20,8 @@ require (
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
+	github.com/opentracing/opentracing-go v1.1.0 // indirect
+	github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5 // indirect
 	github.com/prometheus/client_golang v1.0.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
 	github.com/prometheus/common v0.6.0 // indirect

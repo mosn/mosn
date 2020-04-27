@@ -17,6 +17,7 @@
 
 package java_exception
 
+// TooManyListenersException represents an exception of the same name in java
 type TooManyListenersException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type TooManyListenersException struct {
 	Cause                Throwabler
 }
 
+// NewTooManyListenersException is the constructor
 func NewTooManyListenersException(detailMessage string) *TooManyListenersException {
 	return &TooManyListenersException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e TooManyListenersException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (TooManyListenersException) JavaClassName() string {
 	return "java.util.TooManyListenersException"
 }

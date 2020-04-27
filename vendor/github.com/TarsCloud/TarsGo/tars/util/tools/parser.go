@@ -4,6 +4,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"time"
 )
 
 const (
@@ -87,6 +88,24 @@ func ParseLogNum(strVal string) (ret uint64) {
 	ret, err := strconv.ParseUint(strVal, 10, 64)
 	if err != nil {
 		return defualtLogNum
+	}
+	return ret
+}
+
+// ParseTimeOut : Parse time.Duration from int
+func ParseTimeOut(timeout int) (ret time.Duration) {
+	ret = time.Duration(timeout) * time.Millisecond
+	return ret
+}
+
+// ParseStrBool : Parse bool from string
+func ParseStrBool(delay string) (ret bool) {
+	if delay == "" {
+		return false
+	}
+	ret, err := strconv.ParseBool(delay)
+	if err != nil {
+		return false
 	}
 	return ret
 }

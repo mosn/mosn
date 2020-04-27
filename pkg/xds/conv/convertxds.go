@@ -1001,6 +1001,7 @@ func convertLbPolicy(xdsLbPolicy xdsapi.Cluster_LbPolicy) v2.LbType {
 	case xdsapi.Cluster_RANDOM:
 		return v2.LB_RANDOM
 	case xdsapi.Cluster_ORIGINAL_DST_LB:
+		return v2.LB_ORIGINAL_DST
 	case xdsapi.Cluster_MAGLEV:
 	}
 	//log.DefaultLogger.Fatalf("unsupported lb policy: %s, exchange to LB_RANDOM", xdsLbPolicy.String())

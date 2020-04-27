@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ConcurrentModificationException represents an exception of the same name in java
 type ConcurrentModificationException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,13 +26,17 @@ type ConcurrentModificationException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e ConcurrentModificationException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ConcurrentModificationException) JavaClassName() string {
 	return "java.util.ConcurrentModificationException"
 }
+
+// NewConcurrentModificationException is the constructor
 func NewConcurrentModificationException(detailMessage string) *ConcurrentModificationException {
 	return &ConcurrentModificationException{DetailMessage: detailMessage}
 }

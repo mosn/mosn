@@ -17,6 +17,7 @@
 
 package java_exception
 
+// IllegalMonitorStateException represents an exception of the same name in java
 type IllegalMonitorStateException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type IllegalMonitorStateException struct {
 	Cause                Throwabler
 }
 
+// NewIllegalMonitorStateException is the constructor
 func NewIllegalMonitorStateException(detailMessage string) *IllegalMonitorStateException {
 	return &IllegalMonitorStateException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IllegalMonitorStateException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalMonitorStateException) JavaClassName() string {
 	return "java.lang.IllegalMonitorStateException"
 }
