@@ -45,7 +45,6 @@ func (e *EndpointManager) setObjName(objName string) {
 		TLOG.Debug("proxy mode:", objName)
 		e.objName = objName
 		//comm := NewCommunicator()
-		//comm.SetProperty("netthread", 1)
 		obj, _ := e.comm.GetProperty("locator")
 		q := new(queryf.QueryF)
 		e.comm.StringToProxy(obj, q)
@@ -80,6 +79,7 @@ func (e *EndpointManager) GetNextValidProxy() *AdapterProxy {
 	e.mlock.Lock()
 	ep := e.GetNextEndpoint()
 	if ep == nil {
+		e.mlock.Unlock()
 		return nil
 	}
 	if adp, ok := e.adapters[*ep]; ok {

@@ -2,15 +2,18 @@ package transport
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/TarsCloud/TarsGo/tars/util/current"
 	"github.com/TarsCloud/TarsGo/tars/util/gpool"
+	"github.com/TarsCloud/TarsGo/tars/util/grace"
 )
 
 type tcpHandler struct {
@@ -19,28 +22,36 @@ type tcpHandler struct {
 	lis *net.TCPListener
 	ts  *TarsServer
 
-	acceptNum   int32
-	invokeNum   int32
 	readBuffer  int
 	writeBuffer int
 	tcpNoDelay  bool
-	idleTime    time.Time
 	gpool       *gpool.Pool
+
+	conns sync.Map
+}
+
+type connInfo struct {
+	conn      *net.TCPConn
+	idleTime  int64
+	numInvoke int32
+	writeLock sync.Mutex
 }
 
 func (h *tcpHandler) Listen() (err error) {
 	cfg := h.conf
-	addr, err := net.ResolveTCPAddr("tcp4", cfg.Address)
-	if err != nil {
-		return err
+	ln, err := grace.CreateListener("tcp", cfg.Address)
+	if err == nil {
+		TLOG.Infof("Listening on %s", cfg.Address)
+		h.lis = ln.(*net.TCPListener)
+	} else {
+		TLOG.Infof("Listening on %s error: %v", cfg.Address, err)
 	}
-	h.lis, err = net.ListenTCP("tcp4", addr)
-	TLOG.Info("Listening on", cfg.Address)
-	return
+	return err
 }
 
-func (h *tcpHandler) handleConn(conn *net.TCPConn, pkg []byte) {
+func (h *tcpHandler) handleConn(connSt *connInfo, pkg []byte) {
 	handler := func() {
+		conn := connSt.conn
 		ctx := context.Background()
 		remoteAddr := conn.RemoteAddr().String()
 		ipPort := strings.Split(remoteAddr, ":")
@@ -54,9 +65,12 @@ func (h *tcpHandler) handleConn(conn *net.TCPConn, pkg []byte) {
 			TLOG.Error("Failed to set context with client port")
 		}
 		rsp := h.ts.invoke(ctx, pkg)
+		connSt.writeLock.Lock()
 		if _, err := conn.Write(rsp); err != nil {
 			TLOG.Errorf("send pkg to %v failed %v", remoteAddr, err)
 		}
+		connSt.writeLock.Unlock()
+		atomic.AddInt32(&connSt.numInvoke, -1)
 	}
 
 	cfg := h.conf
@@ -73,8 +87,14 @@ func (h *tcpHandler) handleConn(conn *net.TCPConn, pkg []byte) {
 
 func (h *tcpHandler) Handle() error {
 	cfg := h.conf
-	for !h.ts.isClosed {
-		h.lis.SetDeadline(time.Now().Add(cfg.AcceptTimeout)) // set accept timeout
+	for {
+		if atomic.LoadInt32(&h.ts.isClosed) == 1 {
+			break
+		}
+		if cfg.AcceptTimeout > 0 {
+			// set accept timeout
+			h.lis.SetDeadline(time.Now().Add(cfg.AcceptTimeout))
+		}
 		conn, err := h.lis.AcceptTCP()
 		if err != nil {
 			if !isNoDataError(err) {
@@ -84,46 +104,106 @@ func (h *tcpHandler) Handle() error {
 			}
 			continue
 		}
+		atomic.AddInt32(&h.ts.numConn, 1)
 		go func(conn *net.TCPConn) {
-			TLOG.Debug("TCP accept:", conn.RemoteAddr())
-			atomic.AddInt32(&h.acceptNum, 1)
+			fd, _ := conn.File()
+			key := fmt.Sprintf("%v", fd.Fd())
+			TLOG.Debugf("TCP accept: %s, fd: %s", conn.RemoteAddr(), key)
 			conn.SetReadBuffer(cfg.TCPReadBuffer)
 			conn.SetWriteBuffer(cfg.TCPWriteBuffer)
 			conn.SetNoDelay(cfg.TCPNoDelay)
-			h.recv(conn)
-			atomic.AddInt32(&h.acceptNum, -1)
+
+			cf := &connInfo{conn: conn}
+			h.conns.Store(key, cf)
+			h.recv(cf)
+			h.conns.Delete(key)
 		}(conn)
 	}
-
-	h.gpool.Release()
+	if h.gpool != nil {
+		h.gpool.Release()
+	}
 	return nil
 }
 
-func (h *tcpHandler) recv(conn *net.TCPConn) {
-	defer conn.Close()
+func (h *tcpHandler) OnShutdown() {
+	// close listeners
+	h.lis.SetDeadline(time.Now())
+	// send close-package
+	h.conns.Range(func(key, val interface{}) bool {
+		conn := val.(*connInfo)
+		conn.conn.SetReadDeadline(time.Now())
+		// send a reconnect-message
+		TLOG.Debugf("send close message to %v", conn.conn.RemoteAddr())
+		conn.writeLock.Lock()
+		closeMsg := h.ts.svr.GetCloseMsg()
+		conn.conn.Write(closeMsg)
+		conn.writeLock.Unlock()
+		return true
+	})
+}
+
+//CloseIdles close all idle connections(no active package within n secnods)
+func (h *tcpHandler) CloseIdles(n int64) bool {
+	allClosed := true
+	h.conns.Range(func(key, val interface{}) bool {
+		conn := val.(*connInfo)
+		TLOG.Debugf("num invoke %d %v", atomic.LoadInt32(&conn.numInvoke), conn.idleTime+n > time.Now().Unix())
+		if atomic.LoadInt32(&conn.numInvoke) > 0 || conn.idleTime+n > time.Now().Unix() {
+			allClosed = false
+		}
+		return true
+	})
+	return allClosed
+}
+
+func (h *tcpHandler) recv(connSt *connInfo) {
+	conn := connSt.conn
+	defer func() {
+		watchInterval := time.Millisecond * 500
+		tk := time.NewTicker(watchInterval)
+		defer tk.Stop()
+		for range tk.C {
+			if atomic.LoadInt32(&connSt.numInvoke) == 0 {
+				break
+			}
+		}
+		TLOG.Debugf("Close connection: %v", conn.RemoteAddr())
+		conn.Close()
+		connSt.idleTime = 0
+	}()
+
 	cfg := h.conf
 	buffer := make([]byte, 1024*4)
 	var currBuffer []byte // need a deep copy of buffer
-	h.idleTime = time.Now()
+	//TODO: change to gtime
+	connSt.idleTime = time.Now().Unix()
 	var n int
 	var err error
-	for !h.ts.isClosed {
-		if cfg.ReadTimeout != 0 {
+	for {
+		TLOG.Info("recv is closed: ", h.ts.isClosed)
+		if atomic.LoadInt32(&h.ts.isClosed) == 1 {
+			// set short deadline to clear connection buffer
+			conn.SetReadDeadline(time.Now().Add(time.Millisecond * 100))
+		} else if cfg.ReadTimeout > 0 {
 			conn.SetReadDeadline(time.Now().Add(cfg.ReadTimeout))
 		}
+		connSt.idleTime = time.Now().Unix()
 		n, err = conn.Read(buffer)
+		// TLOG.Debugf("%s closed: %d, read %d, nil buff: %d, err: %v", h.ts.conf.Address, atomic.LoadInt32(&h.ts.isClosed), n, len(currBuffer), err)
 		if err != nil {
-			if len(currBuffer) == 0 && h.ts.numInvoke == 0 && h.idleTime.Add(cfg.IdleTimeout).Before(time.Now()) {
+			if atomic.LoadInt32(&h.ts.isClosed) == 1 && currBuffer == nil {
 				return
 			}
-			h.idleTime = time.Now()
+			if len(currBuffer) == 0 && connSt.numInvoke == 0 && (connSt.idleTime+int64(cfg.IdleTimeout)/int64(time.Second)) < time.Now().Unix() {
+				return
+			}
 			if isNoDataError(err) {
 				continue
 			}
 			if err == io.EOF {
 				TLOG.Debug("connection closed by remote:", conn.RemoteAddr())
 			} else {
-				TLOG.Error("read packge error:", reflect.TypeOf(err), err)
+				TLOG.Error("read package error:", reflect.TypeOf(err), err)
 			}
 			return
 		}
@@ -134,17 +214,18 @@ func (h *tcpHandler) recv(conn *net.TCPConn) {
 				break
 			}
 			if status == PACKAGE_FULL {
+				atomic.AddInt32(&connSt.numInvoke, 1)
 				pkg := make([]byte, pkgLen-4)
 				copy(pkg, currBuffer[4:pkgLen])
 				currBuffer = currBuffer[pkgLen:]
-				h.handleConn(conn, pkg)
+				h.handleConn(connSt, pkg)
 				if len(currBuffer) > 0 {
 					continue
 				}
 				currBuffer = nil
 				break
 			}
-			TLOG.Errorf("parse packge error %s %v", conn.RemoteAddr(), err)
+			TLOG.Errorf("parse package error %s %v", conn.RemoteAddr(), err)
 			return
 		}
 	}

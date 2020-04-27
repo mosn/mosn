@@ -43,7 +43,7 @@ import (
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
-	//_ "mosn.io/mosn/pkg/protocol/xprotocol/tars"
+	_ "mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	_ "mosn.io/mosn/pkg/router"
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"

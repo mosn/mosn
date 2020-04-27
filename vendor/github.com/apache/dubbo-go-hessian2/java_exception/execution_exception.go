@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ExecutionException represents an exception of the same name in java
 type ExecutionException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type ExecutionException struct {
 	Cause                Throwabler
 }
 
+// NewExecutionException is the constructor
 func NewExecutionException(detailMessage string) *ExecutionException {
 	return &ExecutionException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e ExecutionException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ExecutionException) JavaClassName() string {
 	return "java.util.concurrent.ExecutionException"
 }

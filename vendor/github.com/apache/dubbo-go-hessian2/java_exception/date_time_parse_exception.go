@@ -17,6 +17,7 @@
 
 package java_exception
 
+// DateTimeParseException represents an exception of the same name in java
 type DateTimeParseException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -27,14 +28,17 @@ type DateTimeParseException struct {
 	ErrorIndex           int32
 }
 
+// NewDateTimeParseException is the constructor
 func NewDateTimeParseException(detailMessage string, parsedString string, errorIndex int32) *DateTimeParseException {
 	return &DateTimeParseException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}, ParsedString: parsedString, ErrorIndex: errorIndex}
 }
 
+// Error output error message
 func (e DateTimeParseException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (DateTimeParseException) JavaClassName() string {
 	return "java.time.format.DateTimeParseException"
 }

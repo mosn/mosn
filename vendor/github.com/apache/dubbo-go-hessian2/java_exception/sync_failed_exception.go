@@ -17,6 +17,7 @@
 
 package java_exception
 
+// SyncFailedException represents an exception of the same name in java
 type SyncFailedException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type SyncFailedException struct {
 	Cause                Throwabler
 }
 
+// NewSyncFailedException is the constructor
 func NewSyncFailedException(detailMessage string) *SyncFailedException {
 	return &SyncFailedException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e SyncFailedException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (SyncFailedException) JavaClassName() string {
 	return "java.io.SyncFailedException"
 }
