@@ -1,21 +1,22 @@
 package cluster
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func Test(t *testing.T) {
-	A := &mockHost{name: "A", weight: 4}
-	B := &mockHost{name: "B", weight: 2}
-	C := &mockHost{name: "C", weight: 3}
-	D := &mockHost{name: "D", weight: 1}
+	A := &mockHost{name: "A", w: 4}
+	B := &mockHost{name: "B", w: 2}
+	C := &mockHost{name: "C", w: 3}
+	D := &mockHost{name: "D", w: 1}
 
 	edfScheduler := newEdfScheduler(4)
-	edfScheduler.Add(A, float64(A.weight))
-	edfScheduler.Add(B, float64(B.weight))
-	edfScheduler.Add(C, float64(C.weight))
-	edfScheduler.Add(D, float64(D.weight))
+	edfScheduler.Add(A, float64(A.w))
+	edfScheduler.Add(B, float64(B.w))
+	edfScheduler.Add(C, float64(C.w))
+	edfScheduler.Add(D, float64(D.w))
 	weightFunc := func(item WeightItem) float64 {
 		return float64(item.Weight())
 	}

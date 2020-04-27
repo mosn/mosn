@@ -121,7 +121,7 @@ func createHostsetWithStats(cfg []v2.Host, clusterName string) *hostSet {
 			name: h.Hostname,
 			addr: h.Address,
 			meta: h.MetaData,
-			weight: h.Weight,
+			w:    h.Weight,
 		}
 		host.stats = newHostStats(clusterName, host.addr)
 		hosts = append(hosts, host)

@@ -48,7 +48,7 @@ import (
 	"time"
 
 	"golang.org/x/net/http/httpguts"
-	"golang.org/x/net/http2/hpack"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 )
 
 const (
@@ -2002,7 +2002,7 @@ func (sc *serverConn) newWriterAndRequestNoBody(st *stream, rp requestParam) (*r
 		rp.header.Set("Cookie", strings.Join(cookies, "; "))
 	}
 
-	// Setup Trailers
+	// Setup Trailer
 	var trailer http.Header
 	for _, v := range rp.header["Trailer"] {
 		for _, key := range strings.Split(v, ",") {
@@ -2447,16 +2447,16 @@ const TrailerPrefix = "Trailer:"
 
 // promoteUndeclaredTrailers permits http.Handlers to set trailers
 // after the header has already been flushed. Because the Go
-// ResponseWriter interface has no way to set Trailers (only the
+// ResponseWriter interface has no way to set Trailer (only the
 // Header), and because we didn't want to expand the ResponseWriter
 // interface, and because nobody used trailers, and because RFC 7230
 // says you SHOULD (but not must) predeclare any trailers in the
 // header, the official ResponseWriter rules said trailers in Go must
 // be predeclared, and then we reuse the same ResponseWriter.Header()
-// map to mean both Headers and Trailers. When it's time to write the
-// Trailers, we pick out the fields of Headers that were declared as
+// map to mean both Headers and Trailer. When it's time to write the
+// Trailer, we pick out the fields of Headers that were declared as
 // trailers. That worked for a while, until we found the first major
-// user of Trailers in the wild: gRPC (using them only over http2),
+// user of Trailer in the wild: gRPC (using them only over http2),
 // and gRPC libraries permit setting trailers mid-stream without
 // predeclarnig them. So: change of plans. We still permit the old
 // way, but we also permit this hack: if a Header() key begins with
