@@ -17,6 +17,7 @@
 
 package java_exception
 
+// SecurityException represents an exception of the same name in java
 type SecurityException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type SecurityException struct {
 	Cause                Throwabler
 }
 
+// NewSecurityException is the constructor
 func NewSecurityException(detailMessage string) *SecurityException {
 	return &SecurityException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e SecurityException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (SecurityException) JavaClassName() string {
 	return "java.lang.SecurityException"
 }

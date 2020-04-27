@@ -17,6 +17,7 @@
 
 package java_exception
 
+// InvalidPreferencesFormatException represents an exception of the same name in java
 type InvalidPreferencesFormatException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type InvalidPreferencesFormatException struct {
 	Cause                Throwabler
 }
 
+// NewInvalidPreferencesFormatException is the constructor
 func NewInvalidPreferencesFormatException(detailMessage string) *InvalidPreferencesFormatException {
 	return &InvalidPreferencesFormatException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e InvalidPreferencesFormatException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (InvalidPreferencesFormatException) JavaClassName() string {
 	return "java.util.prefs.InvalidPreferencesFormatException"
 }

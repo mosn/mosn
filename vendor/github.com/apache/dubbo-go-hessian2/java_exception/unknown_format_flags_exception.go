@@ -17,6 +17,7 @@
 
 package java_exception
 
+// UnknownFormatFlagsException represents an exception of the same name in java
 type UnknownFormatFlagsException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -26,14 +27,17 @@ type UnknownFormatFlagsException struct {
 	Flags                string
 }
 
+// NewUnknownFormatFlagsException is the constructor
 func NewUnknownFormatFlagsException(flags string) *UnknownFormatFlagsException {
 	return &UnknownFormatFlagsException{Flags: flags, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e UnknownFormatFlagsException) Error() string {
 	return "Flags = " + e.Flags
 }
 
+// JavaClassName  java fully qualified path
 func (UnknownFormatFlagsException) JavaClassName() string {
 	return "java.util.UnknownFormatFlagsException"
 }

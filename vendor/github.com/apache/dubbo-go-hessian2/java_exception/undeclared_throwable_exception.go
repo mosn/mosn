@@ -17,6 +17,7 @@
 
 package java_exception
 
+// UndeclaredThrowableException represents an exception of the same name in java
 type UndeclaredThrowableException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -26,14 +27,17 @@ type UndeclaredThrowableException struct {
 	UndeclaredThrowable  Throwabler
 }
 
+// Error output error message
 func (e UndeclaredThrowableException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (UndeclaredThrowableException) JavaClassName() string {
 	return "java.lang.reflect.UndeclaredThrowableException"
 }
 
+// NewUndeclaredThrowableException is the constructor
 func NewUndeclaredThrowableException(detailMessage string) *UndeclaredThrowableException {
 	return &UndeclaredThrowableException{DetailMessage: detailMessage, UndeclaredThrowable: Throwable{}}
 }

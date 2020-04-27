@@ -17,6 +17,7 @@
 
 package java_exception
 
+// InvalidPropertiesFormatException represents an exception of the same name in java
 type InvalidPropertiesFormatException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type InvalidPropertiesFormatException struct {
 	Cause                Throwabler
 }
 
+// NewInvalidPropertiesFormatException is the constructor
 func NewInvalidPropertiesFormatException(detailMessage string) *InvalidPropertiesFormatException {
 	return &InvalidPropertiesFormatException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e InvalidPropertiesFormatException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (InvalidPropertiesFormatException) JavaClassName() string {
 	return "java.util.InvalidPropertiesFormatException"
 }

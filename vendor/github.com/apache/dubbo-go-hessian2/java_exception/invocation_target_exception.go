@@ -17,6 +17,7 @@
 
 package java_exception
 
+// InvocationTargetException represents an exception of the same name in java
 type InvocationTargetException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -26,14 +27,17 @@ type InvocationTargetException struct {
 	Target               Throwabler
 }
 
+// NewInvocationTargetException is the constructor
 func NewInvocationTargetException(target Throwabler, detailMessage string) *InvocationTargetException {
 	return &InvocationTargetException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}, Target: target}
 }
 
+// Error output error message
 func (e InvocationTargetException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (InvocationTargetException) JavaClassName() string {
 	return "java.lang.reflect.InvocationTargetException"
 }

@@ -18,5 +18,11 @@ lint:
 
 lint2:
 	golangci-lint run
+
+format:
+	go fmt
+
 test:
 	go test
+
+all: format test

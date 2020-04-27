@@ -17,6 +17,7 @@
 
 package java_exception
 
+// IllegalStateException represents an exception of the same name in java
 type IllegalStateException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type IllegalStateException struct {
 	Cause                Throwabler
 }
 
+// NewIllegalStateException is the constructor
 func NewIllegalStateException(detailMessage string) *IllegalStateException {
 	return &IllegalStateException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IllegalStateException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalStateException) JavaClassName() string {
 	return "java.lang.IllegalStateException"
 }
