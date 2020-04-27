@@ -1066,7 +1066,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 
 		reasonFlag := s.proxy.streamResetReasonToResponseFlag(reason)
 		s.requestInfo.SetResponseFlag(reasonFlag)
-		code = convertReasonToCode(reason)
+		code = types.ConvertReasonToCode(reason)
 
 		if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
