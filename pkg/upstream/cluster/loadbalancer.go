@@ -64,12 +64,14 @@ type randomLoadBalancer struct {
 	mutex sync.Mutex
 	rand  *rand.Rand
 	hosts types.HostSet
+	rrLB  types.LoadBalancer // if node fails, we'll degrade to rr load balancer
 }
 
 func newRandomLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	return &randomLoadBalancer{
 		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
 		hosts: hosts,
+		rrLB:  rrFactory.newRoundRobinLoadBalancer(info, hosts),
 	}
 }
 
@@ -79,17 +81,18 @@ func (lb *randomLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 	if total == 0 {
 		return nil
 	}
+
 	lb.mutex.Lock()
-	defer lb.mutex.Unlock()
 	idx := lb.rand.Intn(total)
-	for i := 0; i < total; i++ {
-		host := targets[idx]
-		if host.Health() {
-			return host
-		}
-		idx = (idx + 1) % total
+	lb.mutex.Unlock()
+
+	host := targets[idx]
+	if host.Health() {
+		return host
 	}
-	return nil
+
+	// degrade to rr lb, to make node selection more balanced
+	return lb.rrLB.ChooseHost(context)
 }
 
 func (lb *randomLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
@@ -325,8 +328,8 @@ func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 
 func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
 	lb := &EdfLoadBalancer{
-		hosts: hosts,
-		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		hosts:                  hosts,
+		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 		unweightChooseHostFunc: unWeightChoose,
 		hostWeightFunc:         hostWeightFunc,
 	}
