@@ -20,6 +20,7 @@ package cluster
 import (
 	"math"
 	"math/rand"
+	"mosn.io/api"
 	"sync"
 	"testing"
 	"time"
@@ -27,6 +28,63 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/types"
 )
+
+// load should be balanced when node fails
+func TestRandomLBWhenNodeFailBalanced(t *testing.T) {
+	pool := makePool(4)
+	var hosts []types.Host
+	var unhealthyIdx = 2
+	for i := 0; i < 4; i++ {
+		host := &mockHost{
+			addr: pool.Get(),
+		}
+		if i == unhealthyIdx {
+			host.SetHealthFlag(api.FAILED_ACTIVE_HC)
+		}
+		hosts = append(hosts, host)
+	}
+
+	hs := &hostSet{}
+	hs.setFinalHost(hosts)
+	lb := newRandomLoadBalancer(nil, hs)
+	total := 1000000
+	runCase := func(subTotal int) {
+		results := map[string]int{}
+		for i := 0; i < subTotal; i++ {
+			h := lb.ChooseHost(nil)
+			v, ok := results[h.AddressString()]
+			if !ok {
+				v = 0
+			}
+			results[h.AddressString()] = v + 1
+		}
+		for i := 0; i < 4; i++ {
+			addr := hosts[i].AddressString()
+			rate := float64(results[addr]) / float64(subTotal)
+			expected := 0.33333
+			if i == unhealthyIdx {
+				expected = 0.000
+			}
+			if math.Abs(rate-expected) > 0.03 { // no lock, have deviation 3% is acceptable
+				t.Errorf("%s request rate is %f, expected %f", addr, rate, expected)
+			}
+			t.Logf("%s request rate is %f, request count: %d", addr, rate, results[addr])
+		}
+	}
+	// simple test
+	runCase(total)
+	// concurr
+	wg := sync.WaitGroup{}
+	subTotal := total / 10
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			runCase(subTotal)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
 
 func TestWRRLB(t *testing.T) {
 	pool := makePool(4)
