@@ -45,7 +45,7 @@ github.com/davecgh/go-spew/spew
 # github.com/dubbogo/gost v1.5.1
 github.com/dubbogo/gost/bytes
 github.com/dubbogo/gost/math/big
-# github.com/envoyproxy/go-control-plane v0.6.9
+# github.com/envoyproxy/go-control-plane v0.6.9 => github.com/envoyproxy/go-control-plane v0.6.9
 github.com/envoyproxy/go-control-plane/envoy/api/v2/core
 github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2
 github.com/envoyproxy/go-control-plane/envoy/api/v2/auth
@@ -169,14 +169,10 @@ golang.org/x/net/context
 golang.org/x/net/trace
 golang.org/x/net/http2/hpack
 golang.org/x/net/internal/timeseries
-golang.org/x/net/idna
-golang.org/x/net/context
-golang.org/x/net/trace
-golang.org/x/net/internal/timeseries
 # golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
+golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
-golang.org/x/sys/cpu
 # golang.org/x/text v0.3.2
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
@@ -228,7 +224,7 @@ istio.io/api/mixer/v1/config/client
 istio.io/api/mixer/v1
 # mosn.io/api v0.0.0-20200416082846-2e7ce9a85557
 mosn.io/api
-# mosn.io/pkg v0.0.0-20200424031850-d58c95786d4c
+# mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
 mosn.io/pkg/buffer
 mosn.io/pkg/log
 mosn.io/pkg/utils
