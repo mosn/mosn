@@ -285,7 +285,7 @@ func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
 	for idx, l := range ch.listeners {
 		file, err := l.listener.ListenerFile()
 		if err != nil {
-			log.DefaultLogger.Errorf("[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
+			log.DefaultLogger.Alertf("listener.list", "[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
 		files[idx] = file
@@ -347,13 +347,13 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                listener,
-		networkFiltersFactories: networkFiltersFactories,
 		conns:                   list.New(),
 		handler:                 handler,
 		stopChan:                stopChan,
 		accessLogs:              accessLoggers,
 		updatedLabel:            false,
 		idleTimeout:             lc.ConnectionIdleTimeout,
+		networkFiltersFactories: networkFiltersFactories,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 

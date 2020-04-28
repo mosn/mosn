@@ -158,7 +158,7 @@ func (z *zone) lock() {
 
 func (z *zone) unlock() {
 	if !atomic.CompareAndSwapUint32(z.mutex, pid, 0) {
-		log.DefaultLogger.Errorf("[metrics][shm] unexpected lock holder, can not unlock")
+		log.DefaultLogger.Alertf("metrics.shm", "[metrics][shm] unexpected lock holder, can not unlock")
 	}
 
 }

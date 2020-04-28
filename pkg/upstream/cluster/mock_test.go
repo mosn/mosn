@@ -20,6 +20,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
@@ -31,7 +32,7 @@ type mockHost struct {
 	name       string
 	addr       string
 	meta       api.Metadata
-	healthFlag uint64
+	healthFlag *uint64
 	types.Host
 }
 
@@ -48,19 +49,28 @@ func (h *mockHost) Metadata() api.Metadata {
 }
 
 func (h *mockHost) Health() bool {
-	return h.healthFlag == 0
+	if h.healthFlag == nil {
+		h.healthFlag = GetHealthFlagPointer(h.addr)
+	}
+	return atomic.LoadUint64(h.healthFlag) == 0
 }
 
-func (h *mockHost) ClearHealthFlag(flag types.HealthFlag) {
-	h.healthFlag &= ^uint64(flag)
+func (h *mockHost) ClearHealthFlag(flag api.HealthFlag) {
+	if h.healthFlag == nil {
+		h.healthFlag = GetHealthFlagPointer(h.addr)
+	}
+	ClearHealthFlag(h.healthFlag, flag)
 }
 
-func (h *mockHost) SetHealthFlag(flag types.HealthFlag) {
-	h.healthFlag |= uint64(flag)
+func (h *mockHost) SetHealthFlag(flag api.HealthFlag) {
+	if h.healthFlag == nil {
+		h.healthFlag = GetHealthFlagPointer(h.addr)
+	}
+	SetHealthFlag(h.healthFlag, flag)
 }
 
-func (h *mockHost) HealthFlag() types.HealthFlag {
-	return types.HealthFlag(h.healthFlag)
+func (h *mockHost) HealthFlag() api.HealthFlag {
+	return api.HealthFlag(atomic.LoadUint64(h.healthFlag))
 }
 
 type ipPool struct {
