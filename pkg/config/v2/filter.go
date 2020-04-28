@@ -43,12 +43,13 @@ type DelayInjectConfig struct {
 }
 
 type FaultToleranceFilterConfig struct {
-	exceptionTypes        map[uint32]bool
-	timeWindow            int64
-	leastWindowCount      int64
-	exceptionRateMultiple float64
-	maxIpCount            int64
-	maxIpRatio            float64
+	Enabled               bool `json:"enabled"`
+	ExceptionTypes        map[uint32]bool
+	TimeWindow            int64
+	LeastWindowCount      int64
+	ExceptionRateMultiple float64
+	MaxIpCount            int64
+	MaxIpRatio            float64
 }
 
 // Network Filter's Type

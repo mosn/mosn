@@ -4,10 +4,14 @@ import (
 	"mosn.io/api"
 )
 
-var dimensionNewFunc NewDimension
-
 type NewDimension func(info api.RequestInfo) InvocationDimension
+
+var dimensionNewFunc NewDimension
 
 func RegisterNewDimension(newDimension NewDimension) {
 	dimensionNewFunc = newDimension
+}
+
+func GetNewDimensionFunc() NewDimension {
+	return dimensionNewFunc
 }
