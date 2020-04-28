@@ -22,7 +22,7 @@ import (
 )
 
 type config struct {
-	Type string `json:"type, omitempty"`
+	Type string `json:"type,omitempty"`
 }
 
 func parseConfig(cfg interface{}) (*config, error) {
