@@ -31,6 +31,11 @@ import (
 
 // load should be balanced when node fails
 func TestRandomLBWhenNodeFailBalanced(t *testing.T) {
+	defer func () {
+		// clear healthStore
+		healthStore = sync.Map{}
+	}()
+
 	pool := makePool(4)
 	var hosts []types.Host
 	var unhealthyIdx = 2
