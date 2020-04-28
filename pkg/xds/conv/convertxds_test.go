@@ -18,6 +18,7 @@
 package conv
 
 import (
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -60,7 +61,7 @@ func TestMain(m *testing.M) {
 		DefaultLogLevel: "FATAL",
 	})
 	server.NewServer(sc, &mockCMF{}, cm)
-	m.Run()
+	os.Exit(m.Run())
 }
 
 // messageToAny converts from proto message to proto Any
@@ -333,14 +334,14 @@ func Test_convertListenerConfig(t *testing.T) {
 							accessLogFilterConfig,
 						},
 					}},
-					UseRemoteAddress:            NewBoolValue(false),
-					XffNumTrustedHops:           0,
-					SkipXffAppend:               false,
-					Via:                         "",
-					GenerateRequestId:           NewBoolValue(true),
-					ForwardClientCertDetails:    xdshttp.SANITIZE,
-					SetCurrentClientCertDetails: nil,
-					Proxy_100Continue:           false,
+					UseRemoteAddress:                           NewBoolValue(false),
+					XffNumTrustedHops:                          0,
+					SkipXffAppend:                              false,
+					Via:                                        "",
+					GenerateRequestId:                          NewBoolValue(true),
+					ForwardClientCertDetails:                   xdshttp.SANITIZE,
+					SetCurrentClientCertDetails:                nil,
+					Proxy_100Continue:                          false,
 					RepresentIpv4RemoteAddressAsIpv4MappedIpv6: false,
 				},
 				filterName: "envoy.http_connection_manager",
