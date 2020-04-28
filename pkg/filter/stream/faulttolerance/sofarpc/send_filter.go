@@ -38,11 +38,12 @@ func (f *SendFilter) Append(ctx context.Context, headers api.HeaderMap, buf buff
 		return api.StreamFilterContinue
 	}
 
-	hostInfo := f.handler.RequestInfo()
-	dimension := newDimension(hostInfo)
-	stat := f.invocationFactory.GetInvocationStat(hostInfo.UpstreamHost(), dimension)
-	config := fault_tolerance_rule.GetFaultToleranceStoreInstance().GetRule(app)
-	stat.Call(config.IsException(status))
+	requestInfo := f.handler.RequestInfo()
+	host := requestInfo.UpstreamHost()
+	dimension := newDimension(requestInfo)
+	isException := f.IsException(requestInfo)
+	stat := f.invocationFactory.GetInvocationStat(&host, dimension)
+	stat.Call(isException)
 
 	return api.StreamFilterContinue
 }
@@ -53,4 +54,12 @@ func (f *SendFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandle
 
 func (f *SendFilter) OnDestroy() {
 
+}
+
+func (f *SendFilter) IsException(requestInfo api.RequestInfo) bool {
+	responseCode := requestInfo.ResponseCode()
+	if _, ok := f.config.ExceptionTypes[uint32(responseCode)]; ok {
+		return true
+	}
+	return false
 }
