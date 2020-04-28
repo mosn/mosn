@@ -43,25 +43,13 @@ type DelayInjectConfig struct {
 }
 
 type FaultToleranceFilterConfig struct {
-	Effective          bool
-	Kind               string
-	Protocol           []string
-	ExceptionType      []string
-	TimeWindow         int64
-	LeastWindowCount   uint64
-	MaxHostCount       uint64
-	MaxHostRatio       float32
-	ExceptionThreshold float64
-	DimensionKey       string
+	exceptionTypes        map[uint32]bool
+	timeWindow            int64
+	leastWindowCount      int64
+	exceptionRateMultiple float64
+	maxIpCount            int64
+	maxIpRatio            float64
 }
-
-type FaultToleranceKind string
-
-const (
-	OFF     FaultToleranceKind = "OFF"
-	MONITOR FaultToleranceKind = "MONITOR"
-	ON      FaultToleranceKind = "ON"
-)
 
 // Network Filter's Type
 const (
