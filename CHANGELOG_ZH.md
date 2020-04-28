@@ -1,5 +1,38 @@
 # 更新日志
 
+## v0.12.0
+
+### 新功能
+
+- 支持Skywalking [@arugal](https://github.com/arugal)
+- Stream Filter 新增了一个Receive Filter执行的阶段，可在MOSN路由选择完Host以后，再次执行Receive Filter [@wangfakang](https://github.com/wangfakang)
+- HTTP2 支持流式 [@peacocktrain](https://github.com/peacocktrain) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- FeatureGate新增接口KnownFeatures，可输出当前FeatureGate状态 [@nejisama](https://github.com/nejisama)
+- 提供一种协议透明的方式获取请求资源（PATH、URI、ARG），对于资源的定义由各个协议自身定义 [@wangfakang](https://github.com/wangfakang)
+- 新增负载均衡算法
+  - 支持ActiveRequest LB [CodingSinger](https://github.com/CodingSinger)
+  - 支持WRR LB [@nejisama](https://github.com/nejisama)
+
+### 优化
+
+- XProtocol 协议引擎优化[@neverhook](https://github.com/neverhook)
+  - 修改XProtocol 心跳响应接口，支持协议的心跳响应可返回更多的信息
+  - 优化connpool的心跳触发，只有实现了心跳的协议才会发心跳
+- Dubbo库依赖版本从v1.5.0-rc1更新到v1.5.0 [@cch123](https://github.com/cch123)
+- API 调整，HostInfo新增健康检查相关的接口 [@wangfakang](https://github.com/wangfakang)
+- 熔断功能实现优化 [@wangfakang](https://github.com/wangfakang)
+- 负责均衡选择逻辑简化，同样地址的Host复用相同的健康检查标记 [@nejisama](https://github.com/nejisama) [@cch123](https://github.com/cch123)
+- 优化HTTP建连逻辑，提升HTTP建立性能 [@wangfakang](https://github.com/wangfakang)
+- 日志轮转逻辑从写日志触发，调整为定时触发 [@nejisama](https://github.com/nejisama)
+- typo 调整 [@xujianhai666](https://github.com/xujianhai666) [@candyleer](https://github.com/candyleer)
+
+### Bug 修复
+
+- 修复xDS解析故障注入配置的错误 [@champly](https://github.com/champly)
+- 修复MOSN HTTP HEAD方法导致的请求Hold问题 [@wangfakang](https://github.com/wangfakang)
+- 修复XProtocol引擎对于StatusCode映射缺失的问题 [@neverhook](https://github.com/neverhook)
+- 修复DirectReponse触发重试的BUG [@taoyuanyuan](https://github.com/taoyuanyuan)
+
 ## v0.11.0
 
 ### 新功能
