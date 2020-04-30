@@ -20,7 +20,7 @@ package java_exception
 ////////////////////////////
 // UnmodifiableClassException
 ////////////////////////////
-
+// UnmodifiableClassException represents an exception of the same name in java
 type UnmodifiableClassException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -29,14 +29,17 @@ type UnmodifiableClassException struct {
 	Cause                Throwabler
 }
 
+// NewUnmodifiableClassException is the constructor
 func NewUnmodifiableClassException(detailMessage string) *UnmodifiableClassException {
 	return &UnmodifiableClassException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e UnmodifiableClassException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (UnmodifiableClassException) JavaClassName() string {
 	return "java.lang.instrument.UnmodifiableClassException"
 }

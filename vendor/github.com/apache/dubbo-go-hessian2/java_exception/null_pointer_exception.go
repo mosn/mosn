@@ -17,6 +17,7 @@
 
 package java_exception
 
+// NullPointerException represents an exception of the same name in java
 type NullPointerException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type NullPointerException struct {
 	Cause                Throwabler
 }
 
+// NewNullPointerException is the constructor
 func NewNullPointerException(detailMessage string) *NullPointerException {
 	return &NullPointerException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e NullPointerException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (e NullPointerException) JavaClassName() string {
 	return "java.lang.NullPointerException"
 }

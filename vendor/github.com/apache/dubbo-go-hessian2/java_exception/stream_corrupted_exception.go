@@ -17,6 +17,7 @@
 
 package java_exception
 
+// StreamCorruptedException represents an exception of the same name in java
 type StreamCorruptedException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type StreamCorruptedException struct {
 	Cause                Throwabler
 }
 
+// NewStreamCorruptedException is the constructor
 func NewStreamCorruptedException(detailMessage string) *StreamCorruptedException {
 	return &StreamCorruptedException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e StreamCorruptedException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (StreamCorruptedException) JavaClassName() string {
 	return "java.io.StreamCorruptedException"
 }

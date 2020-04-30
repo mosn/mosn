@@ -17,6 +17,7 @@
 
 package java_exception
 
+// BackingStoreException represents an exception of the same name in java
 type BackingStoreException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type BackingStoreException struct {
 	Cause                Throwabler
 }
 
+// NewBackingStoreException is the constructor
 func NewBackingStoreException(detailMessage string) *BackingStoreException {
 	return &BackingStoreException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e BackingStoreException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (BackingStoreException) JavaClassName() string {
 	return "java.util.prefs.BackingStoreException"
 }

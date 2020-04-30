@@ -17,6 +17,7 @@
 
 package java_exception
 
+// EmptyStackException represents an exception of the same name in java
 type EmptyStackException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,13 +26,17 @@ type EmptyStackException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e EmptyStackException) Error() string {
 	return "EmptyStackException"
 }
 
+// JavaClassName  java fully qualified path
 func (EmptyStackException) JavaClassName() string {
 	return "java.util.EmptyStackException"
 }
+
+// NewEmptyStackException is the constructor
 func NewEmptyStackException(detailMessage string) *EmptyStackException {
 	return &EmptyStackException{DetailMessage: detailMessage}
 }

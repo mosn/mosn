@@ -234,10 +234,13 @@ func packRequest(service Service, header DubboHeader, req interface{}) ([]byte, 
 	}
 
 	request.Attachments[PATH_KEY] = service.Path
-	request.Attachments[GROUP_KEY] = service.Group
-	request.Attachments[INTERFACE_KEY] = service.Interface
 	request.Attachments[VERSION_KEY] = service.Version
-
+	if len(service.Group) > 0 {
+		request.Attachments[GROUP_KEY] = service.Group
+	}
+	if len(service.Interface) > 0 {
+		request.Attachments[INTERFACE_KEY] = service.Interface
+	}
 	if service.Timeout != 0 {
 		request.Attachments[TIMEOUT_KEY] = strconv.Itoa(int(service.Timeout / time.Millisecond))
 	}

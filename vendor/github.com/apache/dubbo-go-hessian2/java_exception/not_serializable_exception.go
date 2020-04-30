@@ -17,6 +17,7 @@
 
 package java_exception
 
+// NotSerializableException represents an exception of the same name in java
 type NotSerializableException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type NotSerializableException struct {
 	Cause                Throwabler
 }
 
+// NewNotSerializableException is the constructor
 func NewNotSerializableException(detailMessage string) *NotActiveException {
 	return &NotActiveException{DetailMessage: detailMessage}
 }
 
+// Error output error message
 func (e NotSerializableException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (NotSerializableException) JavaClassName() string {
 	return "java.io.NotSerializableException"
 }

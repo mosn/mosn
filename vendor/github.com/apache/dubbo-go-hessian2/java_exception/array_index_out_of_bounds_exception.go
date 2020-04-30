@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ArrayIndexOutOfBoundsException represents an exception of the same name in java
 type ArrayIndexOutOfBoundsException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type ArrayIndexOutOfBoundsException struct {
 	Cause                Throwabler
 }
 
+// NewArrayIndexOutOfBoundsException is the constructor
 func NewArrayIndexOutOfBoundsException(detailMessage string) *ArrayIndexOutOfBoundsException {
 	return &ArrayIndexOutOfBoundsException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e ArrayIndexOutOfBoundsException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ArrayIndexOutOfBoundsException) JavaClassName() string {
 	return "java.lang.ArrayIndexOutOfBoundsException"
 }

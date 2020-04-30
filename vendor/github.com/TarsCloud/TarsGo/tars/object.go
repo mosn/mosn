@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/TarsCloud/TarsGo/tars/protocol/res/basef"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	"github.com/TarsCloud/TarsGo/tars/util/rtimer"
 )
@@ -30,10 +31,9 @@ func (obj *ObjectProxy) Init(comm *Communicator, objName string) {
 func (obj *ObjectProxy) Invoke(ctx context.Context, msg *Message, timeout time.Duration) error {
 	adp := obj.manager.SelectAdapterProxy(msg)
 	if adp == nil {
-		TLOG.Error("no adapter Proxy selected:" + msg.Req.SServantName)
 		return errors.New("no adapter Proxy selected:" + msg.Req.SServantName)
 	}
-	if obj.queueLen > ObjQueueMax {
+	if obj.queueLen > obj.comm.Client.ObjQueueMax {
 		return errors.New("invoke queue is full:" + msg.Req.SServantName)
 	}
 	msg.Adp = adp
@@ -51,12 +51,13 @@ func (obj *ObjectProxy) Invoke(ctx context.Context, msg *Message, timeout time.D
 	}
 	select {
 	case <-rtimer.After(timeout):
-		TLOG.Error("req timeout:", msg.Req.IRequestId)
-		//TODO set resp ret from base.tars
-		//msg.Resp.IRet = -1
+		msg.Status = basef.TARSINVOKETIMEOUT
 		adp.failAdd()
 		return fmt.Errorf("%s|%s|%d", "request timeout", msg.Req.SServantName, msg.Req.IRequestId)
 	case msg.Resp = <-readCh:
+		if msg.Resp.IRet != basef.TARSSERVERSUCCESS {
+			return errors.New(msg.Resp.SResultDesc)
+		}
 		TLOG.Debug("recv msg succ ", msg.Req.IRequestId)
 	}
 	return nil

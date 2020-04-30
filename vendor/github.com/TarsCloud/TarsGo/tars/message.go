@@ -1,9 +1,9 @@
 package tars
 
 import (
-	"github.com/TarsCloud/TarsGo/tars/protocol/res/basef"
-	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	"time"
+
+	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 )
 
 // Message is a struct contains servant information
@@ -17,7 +17,7 @@ type Message struct {
 
 	BeginTime int64
 	EndTime   int64
-	Status    int
+	Status    int32
 
 	hashCode int64
 	isHash   bool
@@ -30,7 +30,6 @@ func (m *Message) Init() {
 
 // End define the endtime
 func (m *Message) End() {
-	m.Status = int(basef.TARSSERVERSUCCESS)
 	m.EndTime = time.Now().UnixNano() / 1000000
 }
 

@@ -2,6 +2,7 @@ package transport
 
 import (
 	"context"
+	"net"
 	"sync/atomic"
 	"time"
 
@@ -10,24 +11,34 @@ import (
 )
 
 const (
+	//PACKAGE_LESS shows is not a completed package.
 	PACKAGE_LESS = iota
+	//PACKAGE_FULL shows is a completed package.
 	PACKAGE_FULL
+	//PACKAGE_ERROR shows is a error package.
 	PACKAGE_ERROR
 )
 
-var TLOG = rogger.GetLogger("transport")
+//TLOG  is logger for transport.
+var TLOG = rogger.GetLogger("TLOG")
 
+//TarsProtoCol is interface for handling the server side tars package.
 type TarsProtoCol interface {
 	Invoke(ctx context.Context, pkg []byte) []byte
 	ParsePackage(buff []byte) (int, int)
 	InvokeTimeout(pkg []byte) []byte
+	GetCloseMsg() []byte
 }
 
+//ServerHandler  is interface with listen and handler method
 type ServerHandler interface {
 	Listen() error
 	Handle() error
+	OnShutdown()
+	CloseIdles(n int64) bool
 }
 
+//TarsServerConf server config for tars server side.
 type TarsServerConf struct {
 	Proto          string
 	Address        string
@@ -43,18 +54,23 @@ type TarsServerConf struct {
 	TCPNoDelay     bool
 }
 
+//TarsServer tars server struct.
 type TarsServer struct {
+	Listener   net.Listener
 	svr        TarsProtoCol
 	conf       *TarsServerConf
+	handle     ServerHandler
 	lastInvoke time.Time
 	idleTime   time.Time
-	isClosed   bool
+	isClosed   int32
 	numInvoke  int32
+	numConn    int32
 }
 
+//NewTarsServer new TarsServer and init with conf.
 func NewTarsServer(svr TarsProtoCol, conf *TarsServerConf) *TarsServer {
 	ts := &TarsServer{svr: svr, conf: conf}
-	ts.isClosed = false
+	ts.isClosed = 0
 	ts.lastInvoke = time.Now()
 	return ts
 }
@@ -70,22 +86,42 @@ func (ts *TarsServer) getHandler() (sh ServerHandler) {
 	return
 }
 
+//Serve listen and handle
 func (ts *TarsServer) Serve() error {
-	h := ts.getHandler()
-	if err := h.Listen(); err != nil {
+	ts.handle = ts.getHandler()
+	if err := ts.handle.Listen(); err != nil {
 		return err
 	}
-	return h.Handle()
+	return ts.handle.Handle()
 }
 
-func (ts *TarsServer) Shutdown() {
-	ts.isClosed = true
+//Shutdown try to shutdown server gracefully.
+func (ts *TarsServer) Shutdown(ctx context.Context) error {
+	// step 1: close listeners, notify client reconnect
+	atomic.StoreInt32(&ts.isClosed, 1)
+	ts.handle.OnShutdown()
+	// step 2: wait and close idle connections
+	watchInterval := time.Millisecond * 500
+	tk := time.NewTicker(watchInterval)
+	defer tk.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-tk.C:
+			if ts.handle.CloseIdles(2) {
+				return nil
+			}
+		}
+	}
 }
 
+//GetConfig gets the tars server config.
 func (ts *TarsServer) GetConfig() *TarsServerConf {
 	return ts.conf
 }
 
+//IsZombie show whether the server is hanged by the request.
 func (ts *TarsServer) IsZombie(timeout time.Duration) bool {
 	conf := ts.GetConfig()
 	return conf.MaxInvoke != 0 && ts.numInvoke == conf.MaxInvoke && ts.lastInvoke.Add(timeout).Before(time.Now())
@@ -93,7 +129,6 @@ func (ts *TarsServer) IsZombie(timeout time.Duration) bool {
 
 func (ts *TarsServer) invoke(ctx context.Context, pkg []byte) []byte {
 	cfg := ts.conf
-	atomic.AddInt32(&ts.numInvoke, 1)
 	var rsp []byte
 	if cfg.HandleTimeout == 0 {
 		rsp = ts.svr.Invoke(ctx, pkg)
@@ -109,6 +144,5 @@ func (ts *TarsServer) invoke(ctx context.Context, pkg []byte) []byte {
 		case <-done:
 		}
 	}
-	atomic.AddInt32(&ts.numInvoke, -1)
 	return rsp
 }

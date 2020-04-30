@@ -65,8 +65,9 @@ type LbType string
 
 // Group of load balancer type
 const (
-	LB_RANDOM     LbType = "LB_RANDOM"
-	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
+	LB_RANDOM       LbType = "LB_RANDOM"
+	LB_ROUNDROBIN   LbType = "LB_ROUNDROBIN"
+	LB_ORIGINAL_DST LbType = "LB_ORIGINAL_DST"
 )
 
 // Cluster represents a cluster's information

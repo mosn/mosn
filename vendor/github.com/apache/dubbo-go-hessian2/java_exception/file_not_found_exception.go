@@ -17,6 +17,7 @@
 
 package java_exception
 
+// FileNotFoundException represents an exception of the same name in java
 type FileNotFoundException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type FileNotFoundException struct {
 	Cause                Throwabler
 }
 
+// NewFileNotFoundException is the constructor
 func NewFileNotFoundException(detailMessage string) *FileNotFoundException {
 	return &FileNotFoundException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e FileNotFoundException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (FileNotFoundException) JavaClassName() string {
 	return "java.io.FileNotFoundException"
 }

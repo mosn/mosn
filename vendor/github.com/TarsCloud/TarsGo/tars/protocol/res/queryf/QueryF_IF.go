@@ -5,10 +5,10 @@ package queryf
 
 import (
 	"context"
-	"github.com/TarsCloud/TarsGo/tars/protocol/res/endpointf"
 	"fmt"
 	m "github.com/TarsCloud/TarsGo/tars/model"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
+	"github.com/TarsCloud/TarsGo/tars/protocol/res/endpointf"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	"github.com/TarsCloud/TarsGo/tars/util/current"
 	"github.com/TarsCloud/TarsGo/tars/util/tools"
@@ -46,7 +46,7 @@ func (_obj *QueryF) FindObjectById(Id string, _opt ...map[string]string) (ret []
 		return ret, err
 	}
 	_is := codec.NewReader(tools.Int8ToByte(_resp.SBuffer))
-	err, have, ty = _is.SkipToNoCheck(0, true)
+	err, _, ty = _is.SkipToNoCheck(0, true)
 	if err != nil {
 		return ret, err
 	}
@@ -76,28 +76,7 @@ func (_obj *QueryF) FindObjectById(Id string, _opt ...map[string]string) (ret []
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -130,7 +109,7 @@ func (_obj *QueryF) FindObjectByIdWithContext(ctx context.Context, Id string, _o
 		return ret, err
 	}
 	_is := codec.NewReader(tools.Int8ToByte(_resp.SBuffer))
-	err, have, ty = _is.SkipToNoCheck(0, true)
+	err, _, ty = _is.SkipToNoCheck(0, true)
 	if err != nil {
 		return ret, err
 	}
@@ -160,28 +139,7 @@ func (_obj *QueryF) FindObjectByIdWithContext(ctx context.Context, Id string, _o
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -220,7 +178,7 @@ func (_obj *QueryF) FindObjectById4Any(Id string, ActiveEp *[]endpointf.Endpoint
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(2, true)
+	err, _, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -250,7 +208,7 @@ func (_obj *QueryF) FindObjectById4Any(Id string, ActiveEp *[]endpointf.Endpoint
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -280,28 +238,7 @@ func (_obj *QueryF) FindObjectById4Any(Id string, ActiveEp *[]endpointf.Endpoint
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -339,7 +276,7 @@ func (_obj *QueryF) FindObjectById4AnyWithContext(ctx context.Context, Id string
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(2, true)
+	err, _, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -369,7 +306,7 @@ func (_obj *QueryF) FindObjectById4AnyWithContext(ctx context.Context, Id string
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -399,28 +336,7 @@ func (_obj *QueryF) FindObjectById4AnyWithContext(ctx context.Context, Id string
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -459,7 +375,7 @@ func (_obj *QueryF) FindObjectById4All(Id string, ActiveEp *[]endpointf.Endpoint
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(2, true)
+	err, _, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -489,7 +405,7 @@ func (_obj *QueryF) FindObjectById4All(Id string, ActiveEp *[]endpointf.Endpoint
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -519,28 +435,7 @@ func (_obj *QueryF) FindObjectById4All(Id string, ActiveEp *[]endpointf.Endpoint
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -578,7 +473,7 @@ func (_obj *QueryF) FindObjectById4AllWithContext(ctx context.Context, Id string
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(2, true)
+	err, _, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -608,7 +503,7 @@ func (_obj *QueryF) FindObjectById4AllWithContext(ctx context.Context, Id string
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -638,28 +533,7 @@ func (_obj *QueryF) FindObjectById4AllWithContext(ctx context.Context, Id string
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -698,7 +572,7 @@ func (_obj *QueryF) FindObjectByIdInSameGroup(Id string, ActiveEp *[]endpointf.E
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(2, true)
+	err, _, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -728,7 +602,7 @@ func (_obj *QueryF) FindObjectByIdInSameGroup(Id string, ActiveEp *[]endpointf.E
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -758,28 +632,7 @@ func (_obj *QueryF) FindObjectByIdInSameGroup(Id string, ActiveEp *[]endpointf.E
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -817,7 +670,7 @@ func (_obj *QueryF) FindObjectByIdInSameGroupWithContext(ctx context.Context, Id
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(2, true)
+	err, _, ty = _is.SkipToNoCheck(2, true)
 	if err != nil {
 		return ret, err
 	}
@@ -847,7 +700,7 @@ func (_obj *QueryF) FindObjectByIdInSameGroupWithContext(ctx context.Context, Id
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -877,28 +730,7 @@ func (_obj *QueryF) FindObjectByIdInSameGroupWithContext(ctx context.Context, Id
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -942,7 +774,7 @@ func (_obj *QueryF) FindObjectByIdInSameStation(Id string, SStation string, Acti
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -972,7 +804,7 @@ func (_obj *QueryF) FindObjectByIdInSameStation(Id string, SStation string, Acti
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(4, true)
+	err, _, ty = _is.SkipToNoCheck(4, true)
 	if err != nil {
 		return ret, err
 	}
@@ -1002,28 +834,7 @@ func (_obj *QueryF) FindObjectByIdInSameStation(Id string, SStation string, Acti
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -1066,7 +877,7 @@ func (_obj *QueryF) FindObjectByIdInSameStationWithContext(ctx context.Context, 
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -1096,7 +907,7 @@ func (_obj *QueryF) FindObjectByIdInSameStationWithContext(ctx context.Context, 
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(4, true)
+	err, _, ty = _is.SkipToNoCheck(4, true)
 	if err != nil {
 		return ret, err
 	}
@@ -1126,28 +937,7 @@ func (_obj *QueryF) FindObjectByIdInSameStationWithContext(ctx context.Context, 
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -1191,7 +981,7 @@ func (_obj *QueryF) FindObjectByIdInSameSet(Id string, SetId string, ActiveEp *[
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -1221,7 +1011,7 @@ func (_obj *QueryF) FindObjectByIdInSameSet(Id string, SetId string, ActiveEp *[
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(4, true)
+	err, _, ty = _is.SkipToNoCheck(4, true)
 	if err != nil {
 		return ret, err
 	}
@@ -1251,28 +1041,7 @@ func (_obj *QueryF) FindObjectByIdInSameSet(Id string, SetId string, ActiveEp *[
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -1315,7 +1084,7 @@ func (_obj *QueryF) FindObjectByIdInSameSetWithContext(ctx context.Context, Id s
 		return ret, err
 	}
 
-	err, have, ty = _is.SkipToNoCheck(3, true)
+	err, _, ty = _is.SkipToNoCheck(3, true)
 	if err != nil {
 		return ret, err
 	}
@@ -1345,7 +1114,7 @@ func (_obj *QueryF) FindObjectByIdInSameSetWithContext(ctx context.Context, Id s
 		}
 	}
 
-	err, have, ty = _is.SkipToNoCheck(4, true)
+	err, _, ty = _is.SkipToNoCheck(4, true)
 	if err != nil {
 		return ret, err
 	}
@@ -1375,28 +1144,7 @@ func (_obj *QueryF) FindObjectByIdInSameSetWithContext(ctx context.Context, Id s
 		}
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -1411,6 +1159,29 @@ func (_obj *QueryF) SetServant(s m.Servant) {
 //TarsSetTimeout sets the timeout for the servant which is in ms.
 func (_obj *QueryF) TarsSetTimeout(t int) {
 	_obj.s.TarsSetTimeout(t)
+}
+func setMap(l int, res *requestf.ResponsePacket, ctx map[string]string, sts map[string]string) {
+	if l == 1 {
+		for k := range ctx {
+			delete(ctx, k)
+		}
+		for k, v := range res.Context {
+			ctx[k] = v
+		}
+	} else if l == 2 {
+		for k := range ctx {
+			delete(ctx, k)
+		}
+		for k, v := range res.Context {
+			ctx[k] = v
+		}
+		for k := range sts {
+			delete(sts, k)
+		}
+		for k, v := range res.Status {
+			sts[k] = v
+		}
+	}
 }
 
 type _impQueryF interface {
@@ -1430,389 +1201,471 @@ type _impQueryFWithContext interface {
 	FindObjectByIdInSameSet(ctx context.Context, Id string, SetId string, ActiveEp *[]endpointf.EndpointF, InactiveEp *[]endpointf.EndpointF) (ret int32, err error)
 }
 
-//Dispatch is used to call the server side implemnet for the method defined in the tars file. withContext shows using context or not.
-func (_obj *QueryF) Dispatch(ctx context.Context, _val interface{}, req *requestf.RequestPacket, resp *requestf.ResponsePacket, withContext bool) (err error) {
+func findObjectById(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
 	var length int32
 	var have bool
 	var ty byte
+	var Id string
+	err = _is.Read_string(&Id, 1, true)
+	if err != nil {
+		return err
+	}
+	if withContext == false {
+		_imp := _val.(_impQueryF)
+		ret, err := _imp.FindObjectById(Id)
+		if err != nil {
+			return err
+		}
+
+		err = _os.WriteHead(codec.LIST, 0)
+		if err != nil {
+			return err
+		}
+		err = _os.Write_int32(int32(len(ret)), 0)
+		if err != nil {
+			return err
+		}
+		for _, v := range ret {
+
+			err = v.WriteBlock(_os, 0)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		_imp := _val.(_impQueryFWithContext)
+		ret, err := _imp.FindObjectById(ctx, Id)
+		if err != nil {
+			return err
+		}
+
+		err = _os.WriteHead(codec.LIST, 0)
+		if err != nil {
+			return err
+		}
+		err = _os.Write_int32(int32(len(ret)), 0)
+		if err != nil {
+			return err
+		}
+		for _, v := range ret {
+
+			err = v.WriteBlock(_os, 0)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+func findObjectById4Any(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
+	var Id string
+	err = _is.Read_string(&Id, 1, true)
+	if err != nil {
+		return err
+	}
+	var ActiveEp []endpointf.EndpointF
+	var InactiveEp []endpointf.EndpointF
+	if withContext == false {
+		_imp := _val.(_impQueryF)
+		ret, err := _imp.FindObjectById4Any(Id, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impQueryFWithContext)
+		ret, err := _imp.FindObjectById4Any(ctx, Id, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 2)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(ActiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range ActiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 3)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(InactiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range InactiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+func findObjectById4All(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
+	var Id string
+	err = _is.Read_string(&Id, 1, true)
+	if err != nil {
+		return err
+	}
+	var ActiveEp []endpointf.EndpointF
+	var InactiveEp []endpointf.EndpointF
+	if withContext == false {
+		_imp := _val.(_impQueryF)
+		ret, err := _imp.FindObjectById4All(Id, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impQueryFWithContext)
+		ret, err := _imp.FindObjectById4All(ctx, Id, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 2)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(ActiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range ActiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 3)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(InactiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range InactiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+func findObjectByIdInSameGroup(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
+	var Id string
+	err = _is.Read_string(&Id, 1, true)
+	if err != nil {
+		return err
+	}
+	var ActiveEp []endpointf.EndpointF
+	var InactiveEp []endpointf.EndpointF
+	if withContext == false {
+		_imp := _val.(_impQueryF)
+		ret, err := _imp.FindObjectByIdInSameGroup(Id, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impQueryFWithContext)
+		ret, err := _imp.FindObjectByIdInSameGroup(ctx, Id, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 2)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(ActiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range ActiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 3)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(InactiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range InactiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+func findObjectByIdInSameStation(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
+	var Id string
+	err = _is.Read_string(&Id, 1, true)
+	if err != nil {
+		return err
+	}
+	var SStation string
+	err = _is.Read_string(&SStation, 2, true)
+	if err != nil {
+		return err
+	}
+	var ActiveEp []endpointf.EndpointF
+	var InactiveEp []endpointf.EndpointF
+	if withContext == false {
+		_imp := _val.(_impQueryF)
+		ret, err := _imp.FindObjectByIdInSameStation(Id, SStation, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impQueryFWithContext)
+		ret, err := _imp.FindObjectByIdInSameStation(ctx, Id, SStation, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 3)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(ActiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range ActiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 4)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(InactiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range InactiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+func findObjectByIdInSameSet(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
+	var Id string
+	err = _is.Read_string(&Id, 1, true)
+	if err != nil {
+		return err
+	}
+	var SetId string
+	err = _is.Read_string(&SetId, 2, true)
+	if err != nil {
+		return err
+	}
+	var ActiveEp []endpointf.EndpointF
+	var InactiveEp []endpointf.EndpointF
+	if withContext == false {
+		_imp := _val.(_impQueryF)
+		ret, err := _imp.FindObjectByIdInSameSet(Id, SetId, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impQueryFWithContext)
+		ret, err := _imp.FindObjectByIdInSameSet(ctx, Id, SetId, &ActiveEp, &InactiveEp)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 3)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(ActiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range ActiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = _os.WriteHead(codec.LIST, 4)
+	if err != nil {
+		return err
+	}
+	err = _os.Write_int32(int32(len(InactiveEp)), 0)
+	if err != nil {
+		return err
+	}
+	for _, v := range InactiveEp {
+
+		err = v.WriteBlock(_os, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+
+//Dispatch is used to call the server side implemnet for the method defined in the tars file. withContext shows using context or not.
+func (_obj *QueryF) Dispatch(ctx context.Context, _val interface{}, req *requestf.RequestPacket, resp *requestf.ResponsePacket, withContext bool) (err error) {
 	_is := codec.NewReader(tools.Int8ToByte(req.SBuffer))
 	_os := codec.NewBuffer()
 	switch req.SFuncName {
 	case "findObjectById":
-		var Id string
-		err = _is.Read_string(&Id, 1, true)
+		err := findObjectById(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		if withContext == false {
-			_imp := _val.(_impQueryF)
-			ret, err := _imp.FindObjectById(Id)
-			if err != nil {
-				return err
-			}
-
-			err = _os.WriteHead(codec.LIST, 0)
-			if err != nil {
-				return err
-			}
-			err = _os.Write_int32(int32(len(ret)), 0)
-			if err != nil {
-				return err
-			}
-			for _, v := range ret {
-
-				err = v.WriteBlock(_os, 0)
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			_imp := _val.(_impQueryFWithContext)
-			ret, err := _imp.FindObjectById(ctx, Id)
-			if err != nil {
-				return err
-			}
-
-			err = _os.WriteHead(codec.LIST, 0)
-			if err != nil {
-				return err
-			}
-			err = _os.Write_int32(int32(len(ret)), 0)
-			if err != nil {
-				return err
-			}
-			for _, v := range ret {
-
-				err = v.WriteBlock(_os, 0)
-				if err != nil {
-					return err
-				}
-			}
 		}
 	case "findObjectById4Any":
-		var Id string
-		err = _is.Read_string(&Id, 1, true)
+		err := findObjectById4Any(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		var ActiveEp []endpointf.EndpointF
-		var InactiveEp []endpointf.EndpointF
-		if withContext == false {
-			_imp := _val.(_impQueryF)
-			ret, err := _imp.FindObjectById4Any(Id, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impQueryFWithContext)
-			ret, err := _imp.FindObjectById4Any(ctx, Id, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 2)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(ActiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range ActiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 3)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(InactiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range InactiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
 		}
 	case "findObjectById4All":
-		var Id string
-		err = _is.Read_string(&Id, 1, true)
+		err := findObjectById4All(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		var ActiveEp []endpointf.EndpointF
-		var InactiveEp []endpointf.EndpointF
-		if withContext == false {
-			_imp := _val.(_impQueryF)
-			ret, err := _imp.FindObjectById4All(Id, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impQueryFWithContext)
-			ret, err := _imp.FindObjectById4All(ctx, Id, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 2)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(ActiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range ActiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 3)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(InactiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range InactiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
 		}
 	case "findObjectByIdInSameGroup":
-		var Id string
-		err = _is.Read_string(&Id, 1, true)
+		err := findObjectByIdInSameGroup(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		var ActiveEp []endpointf.EndpointF
-		var InactiveEp []endpointf.EndpointF
-		if withContext == false {
-			_imp := _val.(_impQueryF)
-			ret, err := _imp.FindObjectByIdInSameGroup(Id, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impQueryFWithContext)
-			ret, err := _imp.FindObjectByIdInSameGroup(ctx, Id, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 2)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(ActiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range ActiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 3)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(InactiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range InactiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
 		}
 	case "findObjectByIdInSameStation":
-		var Id string
-		err = _is.Read_string(&Id, 1, true)
+		err := findObjectByIdInSameStation(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		var SStation string
-		err = _is.Read_string(&SStation, 2, true)
-		if err != nil {
-			return err
-		}
-		var ActiveEp []endpointf.EndpointF
-		var InactiveEp []endpointf.EndpointF
-		if withContext == false {
-			_imp := _val.(_impQueryF)
-			ret, err := _imp.FindObjectByIdInSameStation(Id, SStation, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impQueryFWithContext)
-			ret, err := _imp.FindObjectByIdInSameStation(ctx, Id, SStation, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 3)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(ActiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range ActiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 4)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(InactiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range InactiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
 		}
 	case "findObjectByIdInSameSet":
-		var Id string
-		err = _is.Read_string(&Id, 1, true)
+		err := findObjectByIdInSameSet(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		var SetId string
-		err = _is.Read_string(&SetId, 2, true)
-		if err != nil {
-			return err
-		}
-		var ActiveEp []endpointf.EndpointF
-		var InactiveEp []endpointf.EndpointF
-		if withContext == false {
-			_imp := _val.(_impQueryF)
-			ret, err := _imp.FindObjectByIdInSameSet(Id, SetId, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impQueryFWithContext)
-			ret, err := _imp.FindObjectByIdInSameSet(ctx, Id, SetId, &ActiveEp, &InactiveEp)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 3)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(ActiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range ActiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = _os.WriteHead(codec.LIST, 4)
-		if err != nil {
-			return err
-		}
-		err = _os.Write_int32(int32(len(InactiveEp)), 0)
-		if err != nil {
-			return err
-		}
-		for _, v := range InactiveEp {
-
-			err = v.WriteBlock(_os, 0)
-			if err != nil {
-				return err
-			}
 		}
 
 	default:
@@ -1839,8 +1692,5 @@ func (_obj *QueryF) Dispatch(ctx context.Context, _val interface{}, req *request
 		SResultDesc:  "",
 		Context:      _context,
 	}
-	_ = length
-	_ = have
-	_ = ty
 	return nil
 }
