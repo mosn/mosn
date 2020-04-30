@@ -20,7 +20,6 @@ package server
 import (
 	"fmt"
 
-	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -88,16 +87,14 @@ func ResetAdapter() {
 // AddOrUpdateListener used to:
 // Add and start listener when listener doesn't exist
 // Update listener when listener already exist
-func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Listener,
-	networkFiltersFactories []api.NetworkFilterChainFactory, streamFiltersFactories []api.StreamFilterChainFactory) error {
+func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Listener) error {
 
 	connHandler := adapter.findHandler(serverName)
 	if connHandler == nil {
 		return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
 	}
 
-	listener, err := connHandler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
-
+	listener, err := connHandler.AddOrUpdateListener(lc)
 	if err != nil {
 		return fmt.Errorf("connHandler.AddOrUpdateListener called error: %s", err.Error())
 	}
@@ -155,7 +152,8 @@ func (adapter *ListenerAdapter) UpdateListenerTLS(serverName string, listenerNam
 				TLSContexts: tlsConfigs,
 			},
 		}
-		if _, err := connHandler.AddOrUpdateListener(&cfg, nil, nil); err != nil {
+
+		if _, err := connHandler.AddOrUpdateListener(&cfg); err != nil {
 			return fmt.Errorf("connHandler.UpdateListenerTLS called error, server:%s, error: %s", serverName, err.Error())
 		}
 		return nil

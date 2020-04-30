@@ -1,3 +1,5 @@
+// +build MOSNTest
+
 package directresp
 
 import (
@@ -42,7 +44,25 @@ const ConfigHttp1 = `{
                 {
                         "default_log_path":"stdout",
                         "default_log_level": "FATAL",
-                         "listeners":[
+                        "routers":[
+                                {
+                                        "router_config_name":"router_direct",
+                                        "virtual_hosts":[{
+                                                "name":"mosn_hosts",
+                                                "domains": ["*"],
+                                                "routers": [
+                                                        {
+                                                                "match":{"prefix": "/"},
+                                                                 "direct_response": {
+                                                                         "status": 200,
+                                                                         "body": "test body"
+                                                                 }
+                                                        }
+                                                ]
+                                        }]
+                                }
+                        ],
+                        "listeners":[
                                 {
                                         "address":"127.0.0.1:2045",
                                         "bind_port": true,
@@ -56,27 +76,6 @@ const ConfigHttp1 = `{
                                                                         "downstream_protocol": "Http1",
                                                                         "upstream_protocol": "Http1",
                                                                         "router_config_name":"router_direct"
-                                                                }
-                                                        },
-                                                        {
-                                                                "type": "connection_manager",
-                                                                "config": {
-                                                                        "router_config_name":"router_direct",
-                                                                        "virtual_hosts":[{
-                                                                                "name":"mosn_hosts",
-                                                                                "domains": ["*"],
-                                                                                "routers": [
-                                                                                        {
-                                                                                                 "match":{
-                                                                                                         "prefix": "/"
-                                                                                                 },
-                                                                                                 "direct_response": {
-                                                                                                         "status": 200,
-                                                                                                         "body": "test body"
-                                                                                                 }
-                                                                                        }
-                                                                                ]
-                                                                        }]
                                                                 }
                                                         }
                                                 ]

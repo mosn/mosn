@@ -33,6 +33,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"mosn.io/mosn/pkg/admin/store"
+	mv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 )
@@ -174,12 +175,20 @@ func TestDumpConfig(t *testing.T) {
 	store.StartService(nil)
 	defer store.StopService()
 
+	mcfg := &mv2.MOSNConfig{
+		Tracing: mv2.TracingConfig{
+			Enable: true,
+			Driver: "test",
+		},
+	}
+	store.SetMosnConfig(mcfg)
+
 	time.Sleep(time.Second) //wait server start
 
 	if data, err := getEffectiveConfig(config.Port); err != nil {
 		t.Error(err)
 	} else {
-		if data != `{"mosn_config":{"name":"mock","port":8889}}` {
+		if !strings.Contains(data, `tracing":{"enable":true,"driver":"test"}`) {
 			t.Errorf("unexpected effectiveConfig: %s\n", data)
 		}
 	}
@@ -379,7 +388,7 @@ func TestRegisterNewAPI(t *testing.T) {
 func TestHelpAPI(t *testing.T) {
 	// reset
 	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
-		"/": help,
+		"/":                       help,
 		"/api/v1/config_dump":     configDump,
 		"/api/v1/stats":           statsDump,
 		"/api/v1/update_loglevel": updateLogLevel,

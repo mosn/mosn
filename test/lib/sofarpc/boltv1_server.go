@@ -3,11 +3,11 @@ package sofarpc
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/buffer"
-	"mosn.io/mosn/pkg/protocol/rpc"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type BoltV1ResponseBuilder struct {
@@ -16,25 +16,17 @@ type BoltV1ResponseBuilder struct {
 	Content types.IoBuffer
 }
 
-func (b *BoltV1ResponseBuilder) Build(req sofarpc.SofaRpcCmd) sofarpc.SofaRpcCmd {
-	cmd := &sofarpc.BoltResponse{
-		Protocol:       sofarpc.PROTOCOL_CODE_V1,
-		CmdType:        sofarpc.RESPONSE,
-		CmdCode:        sofarpc.RPC_RESPONSE,
-		Version:        1,
-		Codec:          sofarpc.HESSIAN2_SERIALIZE,
-		ResponseStatus: b.Status,
-		ResponseHeader: b.Header, // codec encode will encode it into header map byte
-	}
+func (b *BoltV1ResponseBuilder) Build(req *bolt.Request) *bolt.Response {
+	reqId := uint32(req.GetRequestId())
+	cmd := bolt.NewRpcResponse(reqId, uint16(b.Status), protocol.CommonHeader(b.Header), nil)
 	if b.Content != nil {
 		cmd.Content = b.Content
-		cmd.ContentLen = b.Content.Len()
 	}
 	return cmd
 }
 
 var DefaultBuilder = &BoltV1ResponseBuilder{
-	Status: sofarpc.RESPONSE_STATUS_SUCCESS,
+	Status: int16(bolt.ResponseStatusSuccess),
 	Header: map[string]string{
 		"mosn-test-default": "boltv1",
 	},
@@ -42,7 +34,7 @@ var DefaultBuilder = &BoltV1ResponseBuilder{
 }
 
 var ErrorBuilder = &BoltV1ResponseBuilder{
-	Status: sofarpc.RESPONSE_STATUS_ERROR,
+	Status: int16(bolt.ResponseStatusError),
 	Header: map[string]string{
 		"error-message": "no matched config",
 	},
@@ -76,8 +68,12 @@ type BoltV1Serve struct {
 	Configs []*BoltV1ReponseConfig
 }
 
-func (s *BoltV1Serve) MakeResponse(req *sofarpc.BoltRequest) sofarpc.SofaRpcCmd {
-	header := req.Header()
+func (s *BoltV1Serve) MakeResponse(req *bolt.Request) *bolt.Response {
+	header := make(map[string]string)
+	req.GetHeader().Range(func(key, value string) bool {
+		header[key] = value
+		return true
+	})
 	for _, cfg := range s.Configs {
 		if cfg.Match(header) {
 			return cfg.Builder.Build(req)
@@ -88,36 +84,32 @@ func (s *BoltV1Serve) MakeResponse(req *sofarpc.BoltRequest) sofarpc.SofaRpcCmd 
 
 func (s *BoltV1Serve) Serve(reqdata types.IoBuffer) *WriteResponseData {
 	ctx := context.Background()
-	cmd, _ := codec.BoltCodec.Decode(ctx, reqdata)
-	if cmd == nil {
+	engine := xprotocol.GetProtocol(bolt.ProtocolName)
+	cmd, err := engine.Decode(ctx, reqdata)
+	if cmd == nil || err != nil {
 		return nil
 	}
 	var status int16
 	var data []byte
-	if req, ok := cmd.(*sofarpc.BoltRequest); ok {
-		var resp sofarpc.SofaRpcCmd
-		switch req.CommandCode() {
-		case sofarpc.HEARTBEAT:
-			resp = codec.BoltCodec.Reply()
-			status = sofarpc.RESPONSE_STATUS_SUCCESS // heartbeat must be success
-		case sofarpc.RPC_REQUEST:
+	if req, ok := cmd.(*bolt.Request); ok {
+		var resp xprotocol.XRespFrame
+		switch req.CmdCode {
+		case bolt.CmdCodeHeartbeat:
+			resp = engine.Reply(req)
+			status = int16(bolt.ResponseStatusSuccess) // heartbeat must be success
+		case bolt.CmdCodeRpcRequest:
 			resp = s.MakeResponse(req)
-			if s, ok := resp.(rpc.RespStatus); ok {
-				status = int16(s.RespStatus())
+			if s, ok := resp.(*bolt.Response); ok {
+				status = int16(s.GetStatusCode())
 			}
 		default:
 			return nil
 		}
 		if resp != nil {
-			resp.SetRequestID(req.RequestID())
 			// header
-			iobuf, err := codec.BoltCodec.Encode(ctx, resp)
+			iobuf, err := engine.Encode(ctx, resp)
 			if err == nil {
 				data = iobuf.Bytes()
-			}
-			// body
-			if resp.Data() != nil {
-				data = append(data, resp.Data().Bytes()...)
 			}
 			return &WriteResponseData{
 				Status:      status,

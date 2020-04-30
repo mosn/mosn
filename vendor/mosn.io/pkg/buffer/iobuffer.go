@@ -18,9 +18,11 @@
 package buffer
 
 import (
+	"encoding/binary"
 	"errors"
 	"io"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -45,6 +47,83 @@ var (
 	ConnReadTimeout      = 15 * time.Second
 )
 
+type pipe struct {
+	IoBuffer
+	mu sync.Mutex
+	c  sync.Cond
+
+	err error
+}
+
+func (p *pipe) Len() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.IoBuffer == nil {
+		return 0
+	}
+	return p.IoBuffer.Len()
+}
+
+// Read waits until data is available and copies bytes
+// from the buffer into p.
+func (p *pipe) Read(d []byte) (n int, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.c.L == nil {
+		p.c.L = &p.mu
+	}
+	for {
+		if p.IoBuffer != nil && p.IoBuffer.Len() > 0 {
+			return p.IoBuffer.Read(d)
+		}
+		if p.err != nil {
+			return 0, p.err
+		}
+		p.c.Wait()
+	}
+}
+
+var errClosedPipeWrite = errors.New("write on closed buffer")
+
+// Write copies bytes from p into the buffer and wakes a reader.
+// It is an error to write more data than the buffer can hold.
+func (p *pipe) Write(d []byte) (n int, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.c.L == nil {
+		p.c.L = &p.mu
+	}
+	defer p.c.Signal()
+	if p.err != nil {
+		return 0, errClosedPipeWrite
+	}
+	return len(d), p.IoBuffer.Append(d)
+}
+
+// CloseWithError causes the next Read (waking up a current blocked
+// Read if needed) to return the provided err after all data has been
+// read.
+//
+// The error must be non-nil.
+func (p *pipe) CloseWithError(err error) {
+	if err == nil {
+		err = io.EOF
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.c.L == nil {
+		p.c.L = &p.mu
+	}
+	p.err = err
+	defer p.c.Signal()
+}
+
+func NewPipeBuffer(capacity int) IoBuffer {
+	return &pipe{
+		IoBuffer: newIoBuffer(capacity),
+	}
+}
+
 // ioBuffer is an implementation of IoBuffer
 type ioBuffer struct {
 	buf     []byte // contents: buf[off : len(buf)]
@@ -56,7 +135,7 @@ type ioBuffer struct {
 	b *[]byte
 }
 
-func NewIoBuffer(capacity int) IoBuffer {
+func newIoBuffer(capacity int) IoBuffer {
 	buffer := &ioBuffer{
 		offMark: ResetOffMark,
 		count:   1,
@@ -71,7 +150,7 @@ func NewIoBuffer(capacity int) IoBuffer {
 
 func NewIoBufferString(s string) IoBuffer {
 	if s == "" {
-		return NewIoBuffer(0)
+		return newIoBuffer(0)
 	}
 	return &ioBuffer{
 		buf:     []byte(s),
@@ -92,7 +171,7 @@ func NewIoBufferBytes(bytes []byte) IoBuffer {
 }
 
 func NewIoBufferEOF() IoBuffer {
-	buf := NewIoBuffer(0)
+	buf := newIoBuffer(0)
 	buf.SetEOF(true)
 	return buf
 }
@@ -276,6 +355,50 @@ func (b *ioBuffer) WriteTo(w io.Writer) (n int64, err error) {
 	}
 
 	return
+}
+
+func (b *ioBuffer) WriteByte(p byte) error {
+	m, ok := b.tryGrowByReslice(1)
+
+	if !ok {
+		m = b.grow(1)
+	}
+
+	b.buf[m] = p
+	return nil
+}
+
+func (b *ioBuffer) WriteUint16(p uint16) error {
+	m, ok := b.tryGrowByReslice(2)
+
+	if !ok {
+		m = b.grow(2)
+	}
+
+	binary.BigEndian.PutUint16(b.buf[m:], p)
+	return nil
+}
+
+func (b *ioBuffer) WriteUint32(p uint32) error {
+	m, ok := b.tryGrowByReslice(4)
+
+	if !ok {
+		m = b.grow(4)
+	}
+
+	binary.BigEndian.PutUint32(b.buf[m:], p)
+	return nil
+}
+
+func (b *ioBuffer) WriteUint64(p uint64) error {
+	m, ok := b.tryGrowByReslice(8)
+
+	if !ok {
+		m = b.grow(8)
+	}
+
+	binary.BigEndian.PutUint64(b.buf[m:], p)
+	return nil
 }
 
 func (b *ioBuffer) Append(data []byte) error {
@@ -462,4 +585,7 @@ func (b *ioBuffer) giveSlice() {
 		b.b = nil
 		b.buf = nullByte
 	}
+}
+
+func (b *ioBuffer) CloseWithError(err error) {
 }

@@ -66,37 +66,37 @@ type clusterManagerSingleton struct {
 }
 
 func (singleton *clusterManagerSingleton) Destroy() {
-	clusterMangerInstance.instanceMutex.Lock()
-	defer clusterMangerInstance.instanceMutex.Unlock()
-	clusterMangerInstance.clusterManager = nil
+	clusterManagerInstance.instanceMutex.Lock()
+	defer clusterManagerInstance.instanceMutex.Unlock()
+	clusterManagerInstance.clusterManager = nil
 }
 
-var clusterMangerInstance = &clusterManagerSingleton{}
+var clusterManagerInstance = &clusterManagerSingleton{}
 
 func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host) types.ClusterManager {
-	clusterMangerInstance.instanceMutex.Lock()
-	defer clusterMangerInstance.instanceMutex.Unlock()
-	if clusterMangerInstance.clusterManager != nil {
-		return clusterMangerInstance
+	clusterManagerInstance.instanceMutex.Lock()
+	defer clusterManagerInstance.instanceMutex.Unlock()
+	if clusterManagerInstance.clusterManager != nil {
+		return clusterManagerInstance
 	}
-	clusterMangerInstance.clusterManager = &clusterManager{}
+	clusterManagerInstance.clusterManager = &clusterManager{}
 	for k := range types.ConnPoolFactories {
-		clusterMangerInstance.protocolConnPool.Store(k, &sync.Map{})
+		clusterManagerInstance.protocolConnPool.Store(k, &sync.Map{})
 	}
 
 	//Add cluster to cm
 	for _, cluster := range clusters {
-		if err := clusterMangerInstance.AddOrUpdatePrimaryCluster(cluster); err != nil {
+		if err := clusterManagerInstance.AddOrUpdatePrimaryCluster(cluster); err != nil {
 			log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s, error: %v", cluster.Name, err)
 		}
 	}
 	// Add cluster host
 	for clusterName, hosts := range clusterMap {
-		if err := clusterMangerInstance.UpdateClusterHosts(clusterName, hosts); err != nil {
+		if err := clusterManagerInstance.UpdateClusterHosts(clusterName, hosts); err != nil {
 			log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: UpdateClusterHosts failure, cluster name = %s, error: %v", clusterName, err)
 		}
 	}
-	return clusterMangerInstance
+	return clusterManagerInstance
 }
 
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
@@ -116,8 +116,19 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	ci, exists := cm.clustersMap.Load(clusterName)
 	if exists {
 		c := ci.(types.Cluster)
-		//FIXME: cluster info in hosts should be updated too
 		hosts := c.Snapshot().HostSet().Hosts()
+
+		newSnap := newCluster.Snapshot()
+
+		oldResourceManager := c.Snapshot().ClusterInfo().ResourceManager()
+		newResourceManager := newSnap.ClusterInfo().ResourceManager()
+
+		// sync oldResourceManager to new cluster ResourceManager
+		updateClusterResourceManager(newSnap.ClusterInfo(), oldResourceManager)
+
+		// sync newResourceManager value to oldResourceManager value
+		updateResourceValue(oldResourceManager, newResourceManager)
+
 		// update hosts, refresh
 		newCluster.UpdateHosts(hosts)
 		refreshHostsConfig(c)
@@ -261,7 +272,7 @@ func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, sna
 	return host.CreateConnection(context.Background())
 }
 
-func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.Protocol) types.ConnectionPool {
+func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) types.ConnectionPool {
 	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager]  %s ConnPool For Cluster is nil", protocol)
 		return nil
@@ -284,7 +295,7 @@ var (
 	errNoHealthyHost   = errors.New("no health hosts")
 )
 
-func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.Protocol) (types.ConnectionPool, error) {
+func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.ConnectionPool, error) {
 	factory, ok := network.ConnNewPoolFactories[protocol]
 	if !ok {
 		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
@@ -354,6 +365,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						connectionPool.Store(addr, pool)
 					}
 				}()
+
 			}
 		}
 		if pool.CheckAndInit(balancerContext.DownstreamContext()) {

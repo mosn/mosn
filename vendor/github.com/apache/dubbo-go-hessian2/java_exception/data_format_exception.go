@@ -17,6 +17,7 @@
 
 package java_exception
 
+// DataFormatException represents an exception of the same name in java
 type DataFormatException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type DataFormatException struct {
 	Cause                Throwabler
 }
 
+// NewDataFormatException is the constructor
 func NewDataFormatException(detailMessage string) *DataFormatException {
 	return &DataFormatException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e DataFormatException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (DataFormatException) JavaClassName() string {
 	return "java.util.zip.DataFormatException"
 }

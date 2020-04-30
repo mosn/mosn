@@ -20,9 +20,18 @@ package shm
 import (
 	"testing"
 	"unsafe"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestCounter(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := InitMetricsZone("TestCounter", 10*1024)
 	defer func() {
 		zone.Detach()

@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/mosn"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc/codec"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
 )
@@ -18,26 +17,26 @@ import (
 type heartBeatServer struct {
 	util.UpstreamServer
 	HeartBeatCount uint32
+	boltProto      xprotocol.XProtocol
 }
 
 func (s *heartBeatServer) ServeBoltOrHeartbeat(t *testing.T, conn net.Conn) {
 	response := func(iobuf types.IoBuffer) ([]byte, bool) {
-		cmd, _ := codec.BoltCodec.Decode(nil, iobuf)
+		cmd, _ := s.boltProto.Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
 		}
-		if req, ok := cmd.(*sofarpc.BoltRequest); ok {
+		if req, ok := cmd.(*bolt.Request); ok {
 			var iobufresp types.IoBuffer
 			var err error
-			switch req.CommandCode() {
-			case sofarpc.HEARTBEAT:
-				hbAck := sofarpc.NewHeartbeatAck(req.ProtocolCode())
-				hbAck.SetRequestID(req.RequestID())
-				iobufresp, err = codec.BoltCodec.Encode(context.Background(), hbAck)
+			switch req.CmdCode {
+			case bolt.CmdCodeHeartbeat:
+				hbAck := s.boltProto.Reply(req)
+				iobufresp, err = s.boltProto.Encode(context.Background(), hbAck)
 				atomic.AddUint32(&s.HeartBeatCount, 1)
-			case sofarpc.RPC_REQUEST:
-				resp := util.BuildBoltV1Response(req)
-				iobufresp, err = codec.BoltCodec.Encode(nil, resp)
+			case bolt.CmdCodeRpcRequest:
+				resp := bolt.NewRpcResponse(req.RequestId, bolt.ResponseStatusSuccess, nil, nil)
+				iobufresp, err = s.boltProto.Encode(context.Background(), resp)
 			}
 			if err != nil {
 				return nil, true
@@ -46,26 +45,31 @@ func (s *heartBeatServer) ServeBoltOrHeartbeat(t *testing.T, conn net.Conn) {
 		}
 		return nil, true
 	}
-	util.ServeSofaRPC(t, conn, response)
+	util.ServeRPC(t, conn, response)
 }
 
 // Test Proxy Mode
 // TODO: support protocol convert
 func TestKeepAlive(t *testing.T) {
-
+	appAddr := "127.0.0.1:8080"
 	server := &heartBeatServer{}
-	server.UpstreamServer = util.NewUpstreamServerWithAnyPort(t, server.ServeBoltOrHeartbeat)
+	server.UpstreamServer = util.NewUpstreamServer(t, appAddr, server.ServeBoltOrHeartbeat)
+	server.boltProto = xprotocol.GetProtocol(bolt.ProtocolName)
 	server.GoServe()
-	defer server.Close()
 	clientMeshAddr := util.CurrentMeshAddr()
-	cfg := util.CreateProxyMesh(clientMeshAddr, []string{server.Addr()}, protocol.SofaRPC)
+	cfg := util.CreateXProtocolProxyMesh(clientMeshAddr, []string{appAddr}, bolt.ProtocolName)
 	mesh := mosn.NewMosn(cfg)
-	mesh.Start()
-	defer mesh.Close()
-
-	time.Sleep(1 * time.Second) //wait server and mesh start
+	go mesh.Start()
+	stop := make(chan bool)
+	go func() {
+		<-stop
+		server.Close()
+		mesh.Close()
+		stop <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
 	// start case
-	client := util.NewRPCClient(t, "testKeepAlive", util.Bolt1)
+	client := util.NewRPCClient(t, "testKeepAlive", bolt.ProtocolName)
 	if err := client.Connect(clientMeshAddr); err != nil {
 		t.Fatal(err)
 	}
@@ -97,5 +101,7 @@ func TestKeepAlive(t *testing.T) {
 	// stop the ticker goroutine and then stop the case
 	st <- true
 	<-st
-
+	// stop the case
+	stop <- true
+	<-stop
 }

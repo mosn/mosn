@@ -67,6 +67,7 @@ type LbType string
 const (
 	LB_RANDOM     LbType = "LB_RANDOM"
 	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
+	LB_LEAST_REQUEST LbType = "LB_LEAST_REQUEST"
 )
 
 // Cluster represents a cluster's information
@@ -85,6 +86,7 @@ type Cluster struct {
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
+	LbConfig             IsCluster_LbConfig  `json:"lbconfig,omitempty"`
 }
 
 // HealthCheck is a configuration of health check
@@ -174,8 +176,8 @@ type LBSubsetConfig struct {
 
 // LBOriDstConfig for OriDst load balancer.
 type LBOriDstConfig struct {
-	UseHttpHeader bool   `json:"use_http_header,omitempty"`
-	HeaderName    string `json:"header_name,omitempty"`
+	UseHeader  bool   `json:"use_header,omitempty"`
+	HeaderName string `json:"header_name,omitempty"`
 }
 
 // ClusterManagerConfig for making up cluster manager
@@ -237,6 +239,8 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 	}
 	// dynamic mode, should write file
 	// first, get all the files in the directory
+	// try to make dir if not exists
+	os.MkdirAll(cc.ClusterConfigPath, 0755)
 	files, err := ioutil.ReadDir(cc.ClusterConfigPath)
 	if err != nil {
 		return nil, err

@@ -3,26 +3,25 @@ package transfer
 import (
 	"encoding/json"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"syscall"
 	"testing"
 	"time"
 
-	"math/rand"
-
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
-	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
-	_ "mosn.io/mosn/pkg/stream/sofarpc"
+	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/integrate"
 	"mosn.io/mosn/test/util"
 )
 
 // client - mesh - mesh - server
-func forkTransferMesh(tc *integrate.TestCase) int {
+func forkTransferMesh(tc *integrate.XTestCase) int {
 	// Set a flag for the new process start process
 	os.Setenv("_MOSN_TEST_TRANSFER", "true")
 
@@ -40,14 +39,14 @@ func forkTransferMesh(tc *integrate.TestCase) int {
 	return pid
 }
 
-func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
+func startTransferMesh(t *testing.T, tc *integrate.XTestCase) {
 	rand.Seed(3)
 	server.GracefulTimeout = 5 * time.Second
 	types.TransferConnDomainSocket = "/tmp/mosn.sock"
 	types.TransferStatsDomainSocket = "/tmp/stats.sock"
 	types.TransferListenDomainSocket = "/tmp/listen.sock"
 	types.ReconfigureDomainSocket = "/tmp/reconfig.sock"
-	cfg := util.CreateMeshToMeshConfig(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.AppProtocol, tc.MeshProtocol, []string{tc.AppServer.Addr()}, true)
+	cfg := util.CreateXProtocolMesh(tc.ClientMeshAddr, tc.ServerMeshAddr, tc.SubProtocol, []string{tc.AppServer.Addr()}, false)
 
 	configPath := "/tmp/transfer.json"
 	os.Remove(configPath)
@@ -69,18 +68,20 @@ func startTransferMesh(t *testing.T, tc *integrate.TestCase) {
 	time.Sleep(40 * time.Second)
 }
 
-func startTransferServer(tc *integrate.TestCase) {
+func startTransferServer(tc *integrate.XTestCase) {
 	tc.AppServer.GoServe()
-	tc.DeferFinishCase(func() {
+	go func() {
+		<-tc.Finish
 		tc.AppServer.Close()
-	})
+		tc.Finish <- true
+	}()
 }
 
 func TestTransfer(t *testing.T) {
 
 	appaddr := "127.0.0.1:8080"
 
-	tc := integrate.NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, util.NewRPCServer(t, appaddr, util.Bolt1))
+	tc := integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
 
 	tc.ClientMeshAddr = "127.0.0.1:12101"
 	tc.ServerMeshAddr = "127.0.0.1:12102"

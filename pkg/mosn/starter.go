@@ -21,13 +21,11 @@ import (
 	"net"
 	"sync"
 
-	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
-	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/shm"
@@ -55,7 +53,7 @@ type Mosn struct {
 	wg             sync.WaitGroup
 	// for smooth upgrade. reconfigure
 	inheritListeners []net.Listener
-	reconfigure      net.Conn
+	listenSockConn   net.Conn
 }
 
 // NewMosn
@@ -66,12 +64,14 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
 
+	store.SetMosnConfig(c)
+
 	//get inherit fds
-	inheritListeners, reconfigure, err := server.GetInheritListeners()
+	inheritListeners, listenSockConn, err := server.GetInheritListeners()
 	if err != nil {
 		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
 	}
-	if reconfigure != nil {
+	if listenSockConn != nil {
 		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
 		// set Mosn Active_Reconfiguring
 		store.SetMosnState(store.Active_Reconfiguring)
@@ -91,24 +91,20 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		config:           c,
 		wg:               sync.WaitGroup{},
 		inheritListeners: inheritListeners,
-		reconfigure:      reconfigure,
+		listenSockConn:   listenSockConn,
 	}
 	mode := c.Mode()
 
 	if mode == v2.Xds {
-		servers := make([]v2.ServerConfig, 0, 1)
-		server := v2.ServerConfig{
-			DefaultLogPath:  "stdout",
-			DefaultLogLevel: "INFO",
+		c.Servers = []v2.ServerConfig{
+			{
+				DefaultLogPath:  "stdout",
+				DefaultLogLevel: "INFO",
+			},
 		}
-		servers = append(servers, server)
-		c.Servers = servers
 	} else {
-		if c.ClusterManager.Clusters == nil || len(c.ClusterManager.Clusters) == 0 {
-			if !c.ClusterManager.AutoDiscovery {
-				log.StartLogger.Fatalf("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
-			}
-
+		if len(c.ClusterManager.Clusters) == 0 && !c.ClusterManager.AutoDiscovery {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
 		}
 	}
 
@@ -154,33 +150,29 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 			srv = server.NewServer(sc, cmf, m.clustermanager)
 
 			//add listener
-			if serverConfig.Listeners == nil || len(serverConfig.Listeners) == 0 {
+			if len(serverConfig.Listeners) == 0 {
 				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
 			}
 
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
-
-				// parse routers from connection_manager filter and add it the routerManager
-				if routerConfig := configmanager.ParseRouterConfiguration(&lc.FilterChains[0]); routerConfig.RouterConfigName != "" {
-					m.routerManager.AddOrUpdateRouters(routerConfig)
-				}
-
-				var nfcf []api.NetworkFilterChainFactory
-				var sfcf []api.StreamFilterChainFactory
-
-				// Note: as we use fasthttp and net/http2.0, the IO we created in mosn should be disabled.
-				// when using UseOriginalDst, If it can’t find any matching virtual listeners
-				// it sends the request to the PassthroughCluster which connects to the destination directly.
-				// network filters
-				// network and stream filters
-				nfcf = configmanager.GetNetworkFilters(&lc.FilterChains[0])
-				sfcf = configmanager.GetStreamFilters(lc.StreamFilters)
-
-				_, err := srv.AddListener(lc, nfcf, sfcf)
+				// deprecated: keep compatible for route config in listener's connection_manager
+				deprecatedRouter, err := configmanager.ParseRouterConfiguration(&lc.FilterChains[0])
 				if err != nil {
+					log.StartLogger.Fatalf("[mosn] [NewMosn] compatible router: %v", err)
+				}
+				if deprecatedRouter.RouterConfigName != "" {
+					m.routerManager.AddOrUpdateRouters(deprecatedRouter)
+				}
+				if _, err := srv.AddListener(lc); err != nil {
 					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
+				}
+			}
+			// Add Router Config
+			for _, routerConfig := range serverConfig.Routers {
+				if routerConfig.RouterConfigName != "" {
+					m.routerManager.AddOrUpdateRouters(routerConfig)
 				}
 			}
 		}
@@ -206,11 +198,11 @@ func (m *Mosn) beforeStart() {
 		}
 
 		// notify old mosn to transfer connection
-		if _, err := m.reconfigure.Write([]byte{0}); err != nil {
+		if _, err := m.listenSockConn.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
 		}
 
-		m.reconfigure.Close()
+		m.listenSockConn.Close()
 
 		// transfer old mosn connections
 		utils.GoWithRecover(func() {
@@ -237,7 +229,7 @@ func (m *Mosn) beforeStart() {
 		configmanager.DumpConfigHandler()
 	}, nil)
 
-	// start reconfigure domain socket
+	// start reconfig domain socket
 	utils.GoWithRecover(func() {
 		server.ReconfigureHandler()
 	}, nil)

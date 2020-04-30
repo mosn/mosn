@@ -26,6 +26,7 @@ import (
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	xdsv2    "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -87,7 +88,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr: convertAddress(&xdsListener.Address),
+		Addr:                    convertAddress(&xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -95,6 +96,8 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 	if listenerConfig.Name == "virtual" {
 		return listenerConfig
 	}
+
+	listenerConfig.ListenerFilters = convertListenerFilters(xdsListener.GetListenerFilters())
 
 	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
 
@@ -126,12 +129,23 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			Hosts: convertClusterHosts(xdsCluster.GetHosts()),
 			Spec:  convertSpec(xdsCluster),
 			TLS:   convertTLS(xdsCluster.GetTlsContext()),
+			LbConfig: convertLbConfig(xdsCluster.LbConfig),
 		}
 
 		clusters = append(clusters, cluster)
 	}
 
 	return clusters
+}
+
+// TODO support more LB converter
+func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
+	switch config.(type) {
+	case *xdsv2.Cluster_LeastRequestLbConfig:
+		return &v2.LeastRequestLbConfig{ChoiceCount:config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
+	default:
+		return nil
+	}
 }
 
 func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.Host {
@@ -263,6 +277,37 @@ func convertAccessLogs(xdsListener *xdsapi.Listener) []v2.AccessLog {
 	return accessLogs
 }
 
+func convertListenerFilters(listenerFilter []xdslistener.ListenerFilter) []v2.Filter {
+	if listenerFilter == nil {
+		return nil
+	}
+
+	filters := make([]v2.Filter, 0)
+	for _, filter := range listenerFilter {
+		listenerfilter := convertListenerFilter(filter.GetName(), filter.GetTypedConfig())
+		if listenerfilter.Type != "" {
+			log.DefaultLogger.Debugf("add a new listener filter, %v", listenerfilter.Type)
+			filters = append(filters, listenerfilter)
+		}
+	}
+
+	return filters
+}
+
+func convertListenerFilter(name string, s *types.Any) v2.Filter {
+	filter := v2.Filter{}
+	switch name {
+	case v2.ORIGINALDST_LISTENER_FILTER:
+		// originaldst filter don't need filter.Config
+		filter.Type = name
+
+	default:
+		log.DefaultLogger.Errorf("not support %s listener filter.", name)
+	}
+
+	return filter
+}
+
 func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 	filters := make([]v2.Filter, 0)
 	name := networkFilter.GetName()
@@ -384,6 +429,9 @@ func convertStreamFaultInjectConfig(s *types.Struct) (map[string]interface{}, er
 }
 
 func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
+	if percent == nil {
+		return 0
+	}
 	switch percent.Denominator {
 	case xdstype.FractionalPercent_MILLION:
 		return percent.Numerator / 10000
@@ -503,9 +551,10 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 				UpstreamProtocol:   string(protocol.HTTP1),
 			}
 		} else {
+			// FIXME
 			proxyConfig = v2.Proxy{
-				DownstreamProtocol: string(protocol.SofaRPC),
-				UpstreamProtocol:   string(protocol.SofaRPC),
+				DownstreamProtocol: string(protocol.Xprotocol),
+				UpstreamProtocol:   string(protocol.Xprotocol),
 			}
 		}
 	} else if name == v2.X_PROXY {
@@ -556,7 +605,6 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 				log.DefaultLogger.Errorf("xds AddOrUpdateRouters error: %v", err)
 			}
 		}
-		filtersConfigParsed[v2.CONNECTION_MANAGER] = toMap(routerConfig)
 	} else {
 		log.DefaultLogger.Errorf("no router config found, filter name: %s", name)
 	}
@@ -951,6 +999,7 @@ func convertLbPolicy(xdsLbPolicy xdsapi.Cluster_LbPolicy) v2.LbType {
 	case xdsapi.Cluster_ROUND_ROBIN:
 		return v2.LB_ROUNDROBIN
 	case xdsapi.Cluster_LEAST_REQUEST:
+		return v2.LB_LEAST_REQUEST
 	case xdsapi.Cluster_RING_HASH:
 	case xdsapi.Cluster_RANDOM:
 		return v2.LB_RANDOM

@@ -26,6 +26,16 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+// StreamDirection represent the stream's direction
+type StreamDirection int
+
+// ServerStream = 1
+// ClientStream = 0
+const (
+	ServerStream StreamDirection = 1
+	ClientStream StreamDirection = 0
+)
+
 var FAILED = errors.New("FAILED")
 var EAGAIN = errors.New("AGAIN")
 

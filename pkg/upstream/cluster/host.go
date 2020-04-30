@@ -20,14 +20,15 @@ package cluster
 import (
 	"context"
 	"net"
-	"sync"
 	"sync/atomic"
+	"time"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/utils"
 )
 
 // simpleHost is an implement of types.Host and types.HostInfo
@@ -139,17 +140,36 @@ func (sh *simpleHost) Health() bool {
 }
 
 // net.Addr reuse for same address, valid in simple type
-var AddrStore *sync.Map = &sync.Map{}
+// Update DNS cache using asynchronous mode
+var AddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+	func(key interface{}) (interface{}, bool) {
+		addr, err := net.ResolveTCPAddr("tcp", key.(string))
+		if err == nil {
+			return addr, true
+		}
+		return nil, false
+	}, false)
 
 func GetOrCreateAddr(addrstr string) net.Addr {
-	if addr, ok := AddrStore.Load(addrstr); ok {
+
+	if addr, _ := AddrStore.Get(addrstr); addr != nil {
 		return addr.(net.Addr)
 	}
+
 	addr, err := net.ResolveTCPAddr("tcp", addrstr)
 	if err != nil {
 		log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
 		return nil
 	}
-	AddrStore.Store(addrstr, addr)
+
+	if addr.String() != addrstr {
+		// TODO support config or depends on DNS TTL for expire time
+		// now set default expire time == 100 s, Means that after 100 seconds, the new request will trigger domain resolve.
+		AddrStore.Set(addrstr, addr, 100*time.Second)
+	} else {
+		// if addrsstr isn't domain and don't set expire time
+		AddrStore.Set(addrstr, addr, utils.NeverExpire)
+	}
+
 	return addr
 }

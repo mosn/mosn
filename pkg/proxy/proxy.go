@@ -108,10 +108,13 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	if err == nil {
 		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
-		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
-		if xProxyExtendConfig.SubProtocol != "" {
+		var http2ExtendConfig v2.Http2ExtendConfig
+		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
 			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 			log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+		} else if err := json.Unmarshal([]byte(extJSON), &http2ExtendConfig); err == nil {
+			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyH2Stream, http2ExtendConfig.Http2UseStream)
+			log.DefaultLogger.Tracef("[proxy] extend config usehttp2stream = %v", http2ExtendConfig.Http2UseStream)
 		} else {
 			log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
 		}
@@ -205,7 +208,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 
 	p.readCallbacks.Connection().AddConnectionEventListener(p.downstreamListener)
 	if p.config.DownstreamProtocol != string(protocol.Auto) {
-		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, types.Protocol(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
+		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, types.ProtocolName(p.config.DownstreamProtocol), p.readCallbacks.Connection(), p)
 	}
 }
 

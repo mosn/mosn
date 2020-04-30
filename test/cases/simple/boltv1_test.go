@@ -1,3 +1,5 @@
+// +build MOSNTest
+
 package simple
 
 import (
@@ -6,19 +8,19 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/test/lib"
-	testlib_sofarpc "mosn.io/mosn/test/lib/sofarpc"
+	"mosn.io/mosn/test/lib/sofarpc"
 )
 
 func runSimpleClient(addr string) error {
-	cfg := testlib_sofarpc.CreateSimpleConfig(addr)
+	cfg := sofarpc.CreateSimpleConfig(addr)
 	// the simple server's response is:
 	// Header mosn-test-default: boltv1
 	// Content: default-boltv1
 	// we will set the client's verify
-	VefiyCfg := &testlib_sofarpc.VerifyConfig{
-		ExpectedStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
+	VefiyCfg := &sofarpc.VerifyConfig{
+		ExpectedStatus: bolt.ResponseStatusSuccess,
 		ExpectedHeader: map[string]string{
 			"mosn-test-default": "boltv1",
 		},
@@ -26,7 +28,7 @@ func runSimpleClient(addr string) error {
 	}
 	cfg.Verify = VefiyCfg.Verify
 	// create only one connection
-	clt := testlib_sofarpc.NewClient(cfg, 1)
+	clt := sofarpc.NewClient(cfg, 1)
 	// send a request, and verify the result
 	if !clt.SyncCall() {
 		return errors.New(fmt.Sprintf("client request %s is failed", addr))
@@ -37,13 +39,13 @@ func runSimpleClient(addr string) error {
 func TestSimpleBoltv1(t *testing.T) {
 	lib.Scenario(t, "Simple boltv1 proxy used mosn.", func() {
 		var mosn *lib.MosnOperator
-		var srv *testlib_sofarpc.MockServer
+		var srv *sofarpc.MockServer
 		lib.Setup(func() error {
 			// start mosn
 			mosn = lib.StartMosn(ConfigSimpleBoltv1)
 			// start a simple boltv1 server
 			// the address is same as config (mosn's cluster host address)
-			srv = testlib_sofarpc.NewMockServer("127.0.0.1:8080", nil)
+			srv = sofarpc.NewMockServer("127.0.0.1:8080", nil)
 			go srv.Start()
 			time.Sleep(time.Second) // wait server start
 			return nil
@@ -66,7 +68,7 @@ func TestSimpleBoltv1(t *testing.T) {
 				msg := fmt.Sprintf("server connection is not expected, %d, %d, %d", connTotal, connActive, connClose)
 				return errors.New(msg)
 			}
-			if !(srv.ServerStats.RequestStats() == 2 && srv.ServerStats.ResponseStats()[sofarpc.RESPONSE_STATUS_SUCCESS] == 2) {
+			if !(srv.ServerStats.RequestStats() == 2 && srv.ServerStats.ResponseStats()[int16(bolt.ResponseStatusSuccess)] == 2) {
 				msg := fmt.Sprintf("server request and response is not expected, %d, %d", srv.ServerStats.RequestStats(), srv.ServerStats.ResponseStats())
 				return errors.New(msg)
 			}
@@ -76,100 +78,98 @@ func TestSimpleBoltv1(t *testing.T) {
 }
 
 const ConfigSimpleBoltv1 = `{
-	"servers":[
-		{
-			"default_log_path":"stdout",
-			"default_log_level": "FATAL",
-			"listeners":[
-				{
-					"address":"127.0.0.1:2045",
-					"bind_port": true,
-					"log_path": "stdout",
-					"log_level": "FATAL",
-					"filter_chains": [{
-						"filters": [
-							{
-								"type": "proxy",
-								"config": {
-									"downstream_protocol": "SofaRpc",
-									"upstream_protocol": "SofaRpc",
-									"router_config_name":"router_to_mosn"
-								}
-							},
-							{
-								"type": "connection_manager",
-								"config": {
-									"router_config_name":"router_to_mosn",
-									"virtual_hosts":[{
-										"name":"mosn_hosts",
-										"domains": ["*"],
-										"routers": [
-											{
-												 "match":{"headers":[{"name":"service","value":".*"}]},
-												 "route":{"cluster_name":"mosn_cluster"}
-											}
-										]
-									}]
-								}
-							}
-						]
-					}]
-				},
-				{
-					"address":"127.0.0.1:2046",
-					"bind_port": true,
-					"log_path": "stdout",
-					"log_LEVEL": "FATAL",
-					"filter_chains": [{
-						"filters": [
-							{
-								"type": "proxy",
-								"config": {
-									"downstream_protocol": "SofaRpc",
-									"upstream_protocol": "SofaRpc",
-									"router_config_name":"router_to_server"
-								}
-							},
-							{
-								"type": "connection_manager",
-								"config": {
-									"router_config_name":"router_to_server",
-									"virtual_hosts":[{
-										"name":"server_hosts",
-										"domains": ["*"],
-										"routers": [
-											{
-												 "match":{"headers":[{"name":"service","value":".*"}]},
-												 "route":{"cluster_name":"server_cluster"}
-											}
-										]
-									}]
-								}
-							}
-						]
-					}]
-				}
-			]
-		}
-	],
-	"cluster_manager":{
-		"clusters":[
-			{
-				"name": "mosn_cluster",
-				"type": "SIMPLE",
-				"lb_type": "LB_RANDOM",
-				"hosts":[
-					{"address":"127.0.0.1:2046"}
-				]
-			},
-			{
-				"name": "server_cluster",
-				"type": "SIMPLE",
-				"lb_type": "LB_RANDOM",
-				"hosts":[
-					{"address":"127.0.0.1:8080"}
-				]
-			}
-		]
-	}
+        "servers":[
+                {
+                        "default_log_path":"stdout",
+                        "default_log_level": "DEBUG",
+                        "routers":[
+                                {
+                                        "router_config_name":"router_to_mosn",
+                                        "virtual_hosts":[{
+                                                 "name":"mosn_hosts",
+                                                 "domains": ["*"],
+                                                 "routers": [
+                                                        {
+                                                                "match":{"headers":[{"name":"service","value":".*"}]},
+                                                                "route":{"cluster_name":"mosn_cluster"}
+                                                        }
+                                                 ]
+                                        }]
+                                },
+                                {
+                                        "router_config_name":"router_to_server",
+                                        "virtual_hosts":[{
+                                                "name":"server_hosts",
+                                                "domains": ["*"],
+                                                "routers": [
+                                                        {
+                                                                "match":{"headers":[{"name":"service","value":".*"}]},
+                                                                "route":{"cluster_name":"server_cluster"}
+                                                        }
+                                                ]
+                                        }]
+                                }
+                        ],
+                        "listeners":[
+                                {
+                                        "address":"127.0.0.1:2045",
+                                        "bind_port": true,
+                                        "filter_chains": [{
+                                                "filters": [
+                                                        {
+                                                                "type": "proxy",
+                                                                "config": {
+                                                                        "downstream_protocol": "X",
+                                                                        "upstream_protocol": "X",
+									"extend_config": {
+										"sub_protocol": "bolt"
+									},
+                                                                        "router_config_name":"router_to_mosn"
+                                                                }
+                                                        }
+                                                ]
+                                        }]
+                                },
+                                {
+                                        "address":"127.0.0.1:2046",
+                                        "bind_port": true,
+                                        "filter_chains": [{
+                                                "filters": [
+                                                        {
+                                                                "type": "proxy",
+                                                                "config": {
+                                                                        "downstream_protocol": "X",
+                                                                        "upstream_protocol": "X",
+									"extend_config": {
+										"sub_protocol": "bolt"
+									},
+                                                                        "router_config_name":"router_to_server"
+                                                                }
+                                                        }
+                                                ]
+                                        }]
+                                }
+                        ]
+                }
+        ],
+        "cluster_manager":{
+                "clusters":[
+                        {
+                                "name": "mosn_cluster",
+                                "type": "SIMPLE",
+                                "lb_type": "LB_RANDOM",
+                                "hosts":[
+                                        {"address":"127.0.0.1:2046"}
+                                ]
+                        },
+                        {
+                                "name": "server_cluster",
+                                "type": "SIMPLE",
+                                "lb_type": "LB_RANDOM",
+                                "hosts":[
+                                        {"address":"127.0.0.1:8080"}
+                                ]
+                        }
+                ]
+        }
 }`

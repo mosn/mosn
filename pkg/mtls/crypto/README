@@ -1,60 +1,14 @@
 mtls/crypto/tls
 
-1. mtls/crypto/tls is based on Golang's standard library crypto/tls
+1. mtls/crypto/tls is based on Golang1.12.7's standard library crypto/tls
 2. Add transfer_tls.go that support smooth upgrade on TLS
 3. modify import paths
 4. Call TransferSetTLSInfo() to set transfer info when TLS handshake is successful
 
-diff Golang cyrpto/tls
-diff -N pkg/mtls/crypto/tls/   /usr/local/go/src/crypto/tls/
-diff -N pkg/mtls/crypto/tls/cipher_suites.go /usr/local/go/src/crypto/tls/cipher_suites.go
-18c18
-< 	"golang.org/x/crypto/chacha20poly1305"
----
-> 	"golang_org/x/crypto/chacha20poly1305"
-Common subdirectories: pkg/mtls/crypto/tls/cipherhw and /usr/local/go/src/crypto/tls/cipherhw
-diff -N pkg/mtls/crypto/tls/common.go /usr/local/go/src/crypto/tls/common.go
-9a10
-> 	"crypto/internal/cipherhw"
-21,22d21
-<
-< 	"mosn.io/mosn/pkg/mtls/crypto/tls/cipherhw"
-diff -N pkg/mtls/crypto/tls/conn.go /usr/local/go/src/crypto/tls/conn.go
-103,105d102
-<
-< 	// transfer tls conn
-< 	info *TransferTLSInfo
-diff -N pkg/mtls/crypto/tls/handshake_server.go /usr/local/go/src/crypto/tls/handshake_server.go
-108,109d107
-< 	TransferSetTLSInfo(hs)
-<
-diff -N pkg/mtls/crypto/tls/key_agreement.go /usr/local/go/src/crypto/tls/key_agreement.go
-20c20
-< 	"golang.org/x/crypto/curve25519"
----
-> 	"golang_org/x/crypto/curve25519"
-Common subdirectories: pkg/mtls/crypto/tls/testdata and /usr/local/go/src/crypto/tls/testdata
-Common subdirectories: pkg/mtls/crypto/tls/testenv and /usr/local/go/src/crypto/tls/testenv
-diff -N pkg/mtls/crypto/tls/tls_test.go /usr/local/go/src/crypto/tls/tls_test.go
-11a12
-> 	"internal/testenv"
-21,22d21
-<
-< 	"mosn.io/mosn/pkg/mtls/crypto/tls/testenv"
+add supports for tls1.3-gm
+see draft:https://datatracker.ietf.org/doc/draft-yang-tls-tls13-sm-suites/
 
-
-add supports for gm
-
-1. Assign ids to new gm cipher suites
-2. Add items into the global slice "cipherSuites"
-3. Add cipherSM4
-4. Add macSM3
-5. update tls testdata
-    a. build OpenSSL 1.1.0 from source and config with:
-        ./Configure enable-weak-ssl-ciphers enable-ssl3 enable-ssl3-method -static linux-x86_64
-    b. go to pkg/mtls/crypto/tls
-    c. go test -update ./...
-        if any test case fails due to 'Address already in use', one should ensure that no TIME_WAIT sockets on :24323 and re-run with: go test -update -run TestXXX
-6. run tls test
+run tls test
     a. go to pkg/mtls
     b. go test -v ./...
+

@@ -34,7 +34,6 @@ type ContentKey string
 
 var ProtocolsSupported = map[string]bool{
 	string(protocol.Auto):      true,
-	string(protocol.SofaRPC):   true,
 	string(protocol.HTTP1):     true,
 	string(protocol.HTTP2):     true,
 	string(protocol.Xprotocol): true,
@@ -206,23 +205,21 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.L
 	return lc
 }
 
-// ParseRouterConfiguration used to get virtualhosts from filter
-func ParseRouterConfiguration(c *v2.FilterChain) *v2.RouterConfiguration {
+func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error) {
 	routerConfiguration := &v2.RouterConfiguration{}
 	for _, f := range c.Filters {
 		if f.Type == v2.CONNECTION_MANAGER {
-
-			if data, err := json.Marshal(f.Config); err == nil {
-				if err := json.Unmarshal(data, routerConfiguration); err != nil {
-					log.StartLogger.Fatalf("[config] [parse router] Parsing Virtual Host Error: %v", err)
-				}
-			} else {
-				log.StartLogger.Fatalf("[config] [parse router] Parsing Virtual Host Error")
+			data, err := json.Marshal(f.Config)
+			if err != nil {
+				return nil, err
+			}
+			if err := json.Unmarshal(data, routerConfiguration); err != nil {
+				return nil, err
 			}
 		}
 	}
+	return routerConfiguration, nil
 
-	return routerConfiguration
 }
 
 func ParseServiceRegistry(src v2.ServiceRegistryInfo) {
@@ -251,6 +248,22 @@ func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 	return c
 }
 
+// GetListenerFilters returns a listener filter factory by filter.Type
+func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
+	var factories []api.ListenerFilterChainFactory
+
+	for _, c := range configs {
+		sfcc, err := api.CreateListenerFilterChainFactory(c.Type, c.Config)
+		if err != nil {
+			log.DefaultLogger.Errorf("[config] get listener filter failed, type: %s, error: %v", c.Type, err)
+			continue
+		}
+		factories = append(factories, sfcc)
+	}
+
+	return factories
+}
+
 // GetStreamFilters returns a stream filter factory by filter.Type
 func GetStreamFilters(configs []v2.Filter) []api.StreamFilterChainFactory {
 	var factories []api.StreamFilterChainFactory
@@ -276,7 +289,9 @@ func GetNetworkFilters(c *v2.FilterChain) []api.NetworkFilterChainFactory {
 			log.StartLogger.Errorf("[config] network filter create failed, type:%s, error: %v", f.Type, err)
 			continue
 		}
-		factories = append(factories, factory)
+		if factory != nil {
+			factories = append(factories, factory)
+		}
 	}
 	return factories
 }

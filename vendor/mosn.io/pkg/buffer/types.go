@@ -60,6 +60,26 @@ type IoBuffer interface {
 	// buffer becomes too large, Write will panic with ErrTooLarge.
 	WriteString(s string) (n int, err error)
 
+	// WriteByte appends the byte to the buffer, growing the buffer as
+	// needed. The return value n is the length of s; err is always nil. If the
+	// buffer becomes too large, Write will panic with ErrTooLarge.
+	WriteByte(p byte) error
+
+	// WriteUint16 appends the uint16 to the buffer, growing the buffer as
+	// needed. The return value n is the length of s; err is always nil. If the
+	// buffer becomes too large, Write will panic with ErrTooLarge.
+	WriteUint16(p uint16) error
+
+	// WriteUint32 appends the uint32 to the buffer, growing the buffer as
+	// needed. The return value n is the length of s; err is always nil. If the
+	// buffer becomes too large, Write will panic with ErrTooLarge.
+	WriteUint32(p uint32) error
+
+	// WriteUint64 appends the uint64 to the buffer, growing the buffer as
+	// needed. The return value n is the length of s; err is always nil. If the
+	// buffer becomes too large, Write will panic with ErrTooLarge.
+	WriteUint64(p uint64) error
+
 	// WriteTo writes data to w until the buffer is drained or an error occurs.
 	// The return value n is the number of bytes written; it always fits into an
 	// int, but it is int64 to match the io.WriterTo interface. Any error
@@ -114,4 +134,8 @@ type IoBuffer interface {
 
 	//SetEOF sets the IoBuffer EOF
 	SetEOF(eof bool)
+
+	Append(data []byte) error
+
+	CloseWithError(err error)
 }

@@ -22,7 +22,6 @@ import (
 	"runtime"
 	"time"
 
-	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mlog "mosn.io/mosn/pkg/log"
@@ -33,7 +32,7 @@ import (
 	"mosn.io/pkg/log"
 )
 
-// currently, only one server supported
+// GetServer currently, only one server supported
 func GetServer() Server {
 	if len(servers) == 0 {
 		log.DefaultLogger.Errorf("[server] Server is nil and hasn't been initiated at this time")
@@ -51,6 +50,7 @@ type server struct {
 	handler    types.ConnectionHandler
 }
 
+// NewConfig get Config by ServerConfig
 func NewConfig(c *v2.ServerConfig) *Config {
 	return &Config{
 		ServerName:      c.ServerName,
@@ -63,6 +63,7 @@ func NewConfig(c *v2.ServerConfig) *Config {
 	}
 }
 
+// NewServer get a new server
 func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.ClusterManager) Server {
 	if config != nil {
 		//graceful timeout setting
@@ -93,29 +94,27 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 	return server
 }
 
-func (srv *server) AddListener(lc *v2.Listener, networkFiltersFactories []api.NetworkFilterChainFactory,
-	streamFiltersFactories []api.StreamFilterChainFactory) (types.ListenerEventListener, error) {
+// add a listener to server handler
+func (srv *server) AddListener(lc *v2.Listener) (types.ListenerEventListener, error) {
 
-	return srv.handler.AddOrUpdateListener(lc, networkFiltersFactories, streamFiltersFactories)
+	return srv.handler.AddOrUpdateListener(lc)
 }
 
+// Start the server
 func (srv *server) Start() {
 	// TODO: handle main thread panic @wugou
 
 	srv.handler.StartListeners(nil)
 
-	for {
-		select {
-		case <-srv.stopChan:
-			return
-		}
-	}
+	<-srv.stopChan
 }
 
+// Restart the server
 func (srv *server) Restart() {
 	// TODO
 }
 
+// Close the server
 func (srv *server) Close() {
 	// stop listener and connections
 	srv.handler.StopListeners(nil, true)
@@ -123,28 +122,33 @@ func (srv *server) Close() {
 	close(srv.stopChan)
 }
 
+// Handler get server's handler
 func (srv *server) Handler() types.ConnectionHandler {
 	return srv.handler
 }
 
+// Stop the server
 func Stop() {
 	for _, server := range servers {
 		server.Close()
 	}
 }
 
+// StopAccept stops all listeners in servers
 func StopAccept() {
 	for _, server := range servers {
 		server.handler.StopListeners(nil, false)
 	}
 }
 
+// StopConnection stops all connections in servers
 func StopConnection() {
 	for _, server := range servers {
 		server.handler.StopConnection()
 	}
 }
 
+// ListListenersFile returns all server listener's fds
 func ListListenersFile() []*os.File {
 	var files []*os.File
 	for _, server := range servers {
@@ -153,19 +157,19 @@ func ListListenersFile() []*os.File {
 	return files
 }
 
-func WaitConnectionsDone(duration time.Duration) error {
+// WaitConnectionsDone Wait for all connections to be finished
+func WaitConnectionsDone(duration time.Duration) {
 	// one duration wait for connection to active close
 	// two duration wait for connection to transfer
 	// DefaultConnReadTimeout wait for read timeout
 	timeout := time.NewTimer(2*duration + 2*buffer.ConnReadTimeout)
 	StopConnection()
 	log.DefaultLogger.Infof("[server] StopConnection")
-	select {
-	case <-timeout.C:
-		return nil
-	}
+
+	<-timeout.C
 }
 
+// InitDefaultLogger init default logger
 func InitDefaultLogger(config *Config) {
 
 	var logPath string

@@ -40,6 +40,8 @@ type ServerConfig struct {
 	Processor int `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
+
+	Routers []*RouterConfiguration `json:"routers,omitempty"`
 }
 
 // ListenerType: Ingress or Egress
@@ -55,6 +57,7 @@ type ListenerConfig struct {
 	BindToPort            bool                `json:"bind_port,omitempty"`
 	UseOriginalDst        bool                `json:"use_original_dst,omitempty"`
 	AccessLogs            []AccessLog         `json:"access_logs,omitempty"`
+	ListenerFilters       []Filter            `json:"listener_filters,omitempty"`
 	FilterChains          []FilterChain       `json:"filter_chains,omitempty"` // only one filterchains at this time
 	StreamFilters         []Filter            `json:"stream_filters,omitempty"`
 	Inspector             bool                `json:"inspector,omitempty"`
@@ -70,6 +73,13 @@ type Listener struct {
 	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
 	InheritListener         *net.TCPListener `json:"-"`
 	Remain                  bool             `json:"-"`
+}
+
+func (l Listener) MarshalJSON() (b []byte, err error) {
+	if l.Addr != nil {
+		l.AddrConfig = l.Addr.String()
+	}
+	return json.Marshal(l.ListenerConfig)
 }
 
 // AccessLog for making up access log

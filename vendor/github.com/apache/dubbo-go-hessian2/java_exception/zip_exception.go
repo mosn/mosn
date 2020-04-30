@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ZipException represents an exception of the same name in java
 type ZipException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type ZipException struct {
 	Cause                Throwabler
 }
 
+// NewZipException is the constructor
 func NewZipException(detailMessage string) *ZipException {
 	return &ZipException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e ZipException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ZipException) JavaClassName() string {
 	return "java.util.zip.ZipException"
 }

@@ -39,7 +39,7 @@ type OriginalDstLoadBalancer struct {
 	host  map[string]types.Host
 }
 
-func newOriginalDstLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+func newOriginalDstLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	return &OriginalDstLoadBalancer{
 		hosts: hosts,
 		host:  make(map[string]types.Host),
@@ -106,12 +106,12 @@ func (lb *OriginalDstLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) i
 }
 
 type LBOriDstInfoImpl struct {
-	useHttpHeader bool
-	headerName    string
+	useHeader  bool
+	headerName string
 }
 
 func (info *LBOriDstInfoImpl) IsEnabled() bool {
-	return info.useHttpHeader
+	return info.useHeader
 }
 
 func (info *LBOriDstInfoImpl) GetHeader() string {
@@ -120,8 +120,8 @@ func (info *LBOriDstInfoImpl) GetHeader() string {
 
 func NewLBOriDstInfo(oridstCfg *v2.LBOriDstConfig) types.LBOriDstInfo {
 	dstInfo := &LBOriDstInfoImpl{
-		useHttpHeader: oridstCfg.UseHttpHeader,
-		headerName:    oridstCfg.HeaderName,
+		useHeader:  oridstCfg.UseHeader,
+		headerName: oridstCfg.HeaderName,
 	}
 
 	return dstInfo

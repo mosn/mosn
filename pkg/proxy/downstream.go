@@ -125,11 +125,15 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	proxyBuffers := proxyBuffersByContext(ctx)
 
+	// save downstream protocol
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proxy.serverStreamConn.Protocol())
+
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
+	stream.requestInfo.SetProtocol(proxy.serverStreamConn.Protocol())
 	stream.requestInfo.SetDownstreamLocalAddress(proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	stream.requestInfo.SetDownstreamRemoteAddress(proxy.readCallbacks.Connection().RemoteAddr())
@@ -304,7 +308,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
 		return
 	}
-
+	log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
 	s.resetReason = reason
 
 	s.sendNotify()
@@ -323,10 +327,7 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
-	if data != nil {
-		s.downstreamReqDataBuf = data.Clone()
-		data.Drain(data.Len())
-	}
+	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -492,7 +493,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 
 			// no oneway, skip types.Retry
-			phase = types.WaitNofity
+			phase = types.WaitNotify
 
 		// retry request
 		case types.Retry:
@@ -510,7 +511,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			phase++
 
 		// wait for upstreamRequest or reset
-		case types.WaitNofity:
+		case types.WaitNotify:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
 			}
@@ -626,22 +627,22 @@ func (s *downStream) matchRoute() {
 	s.snapshot, s.route = handlerChain.DoNextHandler()
 }
 
-func (s *downStream) convertProtocol() (dp, up types.Protocol) {
+func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {
 	dp = s.getDownstreamProtocol()
 	up = s.getUpstreamProtocol()
 	return
 }
 
-func (s *downStream) getDownstreamProtocol() (prot types.Protocol) {
+func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
 	if s.proxy.serverStreamConn == nil {
-		prot = types.Protocol(s.proxy.config.DownstreamProtocol)
+		prot = types.ProtocolName(s.proxy.config.DownstreamProtocol)
 	} else {
 		prot = s.proxy.serverStreamConn.Protocol()
 	}
 	return prot
 }
 
-func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
+func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
 	configProtocol := s.proxy.config.UpstreamProtocol
 
 	// if route exists upstream protocol, it will replace the proxy config's upstream protocol
@@ -653,7 +654,7 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.Protocol) {
 	if configProtocol == string(protocol.Auto) {
 		currentProtocol = s.getDownstreamProtocol()
 	} else {
-		currentProtocol = types.Protocol(configProtocol)
+		currentProtocol = types.ProtocolName(configProtocol)
 	}
 
 	return currentProtocol
@@ -712,11 +713,11 @@ func (s *downStream) chooseHost(endStream bool) {
 		s.sendHijackReply(types.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
 	}
+	s.requestInfo.OnUpstreamHostSelected(pool.Host())
+	s.requestInfo.SetUpstreamLocalAddress(pool.Host().AddressString())
 
-	s.requestInfo.OnUpstreamHostSelected(pool.GetHost())
-	s.requestInfo.SetUpstreamLocalAddress(pool.GetHost().AddressString())
+	parseProxyTimeout(s.context, &s.timeout, s.route, s.downstreamReqHeaders)
 
-	parseProxyTimeout(&s.timeout, s.route, s.downstreamReqHeaders)
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] timeout info: %+v", s.timeout)
 	}
@@ -751,6 +752,7 @@ func (s *downStream) receiveData(endStream bool) {
 	if s.processDone() {
 		return
 	}
+
 	data := s.downstreamReqDataBuf
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] receive data = %v", data)
@@ -1034,7 +1036,7 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 	// see if we need a retry
 	if reason != types.UpstreamGlobalTimeout &&
 		!s.downstreamResponseStarted && s.retryState != nil {
-		retryCheck := s.retryState.retry(nil, reason)
+		retryCheck := s.retryState.retry(s.context, nil, reason)
 
 		if retryCheck == api.ShouldRetry && s.setupRetry(true) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
@@ -1088,7 +1090,7 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 
 	// check retry
 	if s.retryState != nil {
-		retryCheck := s.retryState.retry(headers, "")
+		retryCheck := s.retryState.retry(s.context, headers, "")
 
 		if retryCheck == api.ShouldRetry && s.setupRetry(endStream) {
 			if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
@@ -1458,6 +1460,10 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 	if s.directResponse {
 		s.directResponse = false
+
+		// don't retry
+		s.retryState = nil
+
 		if s.oneway {
 			phase = types.Oneway
 		} else {

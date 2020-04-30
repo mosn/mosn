@@ -35,19 +35,18 @@ const cfgStr = `{
 										 "upstream_protocol": "SofaRpc",
 										 "router_config_name": "test_router"
 									 }
-								},
-								{
-									 "type": "connection_manager",
-									 "config": {
-										 "router_config_name": "test_router",
-										 "router_configs": "/tmp/routers/test_router/"
-									 }
 								}
 							]
 						}
 					 ],
 					 "stream_filters": [
 					 ]
+				}
+			],
+			"routers": [
+				{
+					"router_config_name": "test_router",
+					"router_configs": "/tmp/routers/test_router/"
 				}
 			]
 		}
@@ -74,6 +73,8 @@ const xdsSdsConfig = `{
       "global_log_roller": "time=1",
       "graceful_timeout": "30s",
       "processor": 2,
+      "routers": [
+      ],
       "listeners": [
         {
           "name": "egress_sofa_bolt",
@@ -99,13 +100,6 @@ const xdsSdsConfig = `{
                     "name": "proxy_config",
                     "router_config_name": "sofa_egress_bolt_router",
                     "upstream_protocol": "SofaRpc"
-                  }
-                },
-                {
-                  "type": "connection_manager",
-                  "config": {
-                    "router_config_name": "sofa_egress_bolt_router",
-                    "router_configs": "/tmp/mosn/routers/sofa_egress_bolt_router/"
                   }
                 }
               ]
@@ -204,13 +198,6 @@ const xdsSdsConfig = `{
                     "name": "proxy_config",
                     "router_config_name": "sofa_ingress_bolt_router",
                     "upstream_protocol": "SofaRpc"
-                  }
-                },
-                {
-                  "type": "connection_manager",
-                  "config": {
-                    "router_config_name": "sofa_ingress_bolt_router",
-                    "router_configs": "/tmp/mosn/routers/sofa_ingress_bolt_router/"
                   }
                 }
               ]

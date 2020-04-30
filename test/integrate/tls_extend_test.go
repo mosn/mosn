@@ -5,6 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+
 	"mosn.io/mosn/pkg/mosn"
 	mosntls "mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/mtls/certtool"
@@ -128,12 +131,14 @@ func (c *tlsExtendCase) Start(conf *testutil.ExtendVerifyConfig) {
 	serverMeshAddr := testutil.CurrentMeshAddr()
 	cfg := testutil.CreateTLSExtensionConfig(clientMeshAddr, serverMeshAddr, c.AppProtocol, c.MeshProtocol, []string{appAddr}, conf)
 	mesh := mosn.NewMosn(cfg)
-	mesh.Start()
-	c.DeferFinishCase(func() {
+	go mesh.Start()
+	go func() {
+		<-c.Finish
 		c.AppServer.Close()
 		mesh.Close()
-	})
-	time.Sleep(1 * time.Second) //wait server and mesh start
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
 }
 
 func TestTLSExtend(t *testing.T) {
@@ -154,18 +159,74 @@ func TestTLSExtend(t *testing.T) {
 		t.Errorf("register factory failed %v", err)
 		return
 	}
+	appaddr := "127.0.0.1:8080"
 	testCases := []*tlsExtendCase{
 		&tlsExtendCase{NewTestCase(t, protocol.HTTP1, protocol.HTTP1, testutil.NewHTTPServer(t, nil))},
 		&tlsExtendCase{NewTestCase(t, protocol.HTTP1, protocol.HTTP2, testutil.NewHTTPServer(t, nil))},
-		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.HTTP1, testutil.NewUpstreamHTTP2WithAnyPort(t, nil))},
-		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.HTTP2, testutil.NewUpstreamHTTP2WithAnyPort(t, nil))},
-
-		&tlsExtendCase{NewTestCase(t, protocol.SofaRPC, protocol.HTTP1, testutil.NewRPCServerWithAnyPort(t, testutil.Bolt1))},
-		&tlsExtendCase{NewTestCase(t, protocol.SofaRPC, protocol.HTTP2, testutil.NewRPCServerWithAnyPort(t, testutil.Bolt1))},
-		&tlsExtendCase{NewTestCase(t, protocol.SofaRPC, protocol.SofaRPC, testutil.NewRPCServerWithAnyPort(t, testutil.Bolt1))},
-
+		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.HTTP1, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
+		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.HTTP2, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
 		// protocol auto
-		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.Auto, testutil.NewUpstreamHTTP2WithAnyPort(t, nil))},
+		&tlsExtendCase{NewTestCase(t, protocol.HTTP2, protocol.Auto, testutil.NewUpstreamHTTP2(t, appaddr, nil))},
+	}
+	for i, tc := range testCases {
+		t.Logf("start case #%d\n", i)
+		tc.Start(extendConfig)
+		go tc.RunCase(1, 0)
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v tls extension test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, err)
+			}
+		case <-time.After(15 * time.Second):
+			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
+		}
+		tc.FinishCase()
+	}
+}
+
+type tlsXExtendCase struct {
+	*XTestCase
+}
+
+func (c *tlsXExtendCase) Start(conf *testutil.ExtendVerifyConfig) {
+	c.AppServer.GoServe()
+	appAddr := c.AppServer.Addr()
+	clientMeshAddr := testutil.CurrentMeshAddr()
+	c.ClientMeshAddr = clientMeshAddr
+	serverMeshAddr := testutil.CurrentMeshAddr()
+	cfg := testutil.CreateXprotocolTLSExtensionConfig(clientMeshAddr, serverMeshAddr, c.SubProtocol, []string{appAddr}, conf)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Finish
+		c.AppServer.Close()
+		mesh.Close()
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+func TestXTLSExtend(t *testing.T) {
+	// init extension
+	root := certtool.GetRootCA()
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM([]byte(root.CertPem))
+	cert, err := createCert()
+	if err != nil {
+		t.Error("create certificate failed")
+		return
+	}
+	factory := &tlsConfigHooksFactory{pool, cert}
+	extendConfig := &testutil.ExtendVerifyConfig{
+		ExtendType: "test",
+	}
+	// ignore already register error
+	mosntls.Register(extendConfig.ExtendType, factory)
+	appaddr := "127.0.0.1:8080"
+	testCases := []*tlsXExtendCase{
+		&tlsXExtendCase{NewXTestCase(t, bolt.ProtocolName, testutil.NewRPCServer(t, appaddr, bolt.ProtocolName))},
+		&tlsXExtendCase{NewXTestCase(t, dubbo.ProtocolName, testutil.NewRPCServer(t, appaddr, dubbo.ProtocolName))},
+		//TODO: boltv2, dubbo, tars
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)

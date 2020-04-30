@@ -8,12 +8,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/rpc"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/stream"
-	_ "mosn.io/mosn/pkg/stream/sofarpc" // register sofarpc
+	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -24,10 +25,13 @@ type receiver struct {
 }
 
 func (r *receiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	cmd := headers.(sofarpc.SofaRpcCmd)
-	r.Data.Header = cmd.Header()
-	resp := cmd.(rpc.RespStatus)
-	r.Data.Status = resp.RespStatus()
+	cmd := headers.(xprotocol.XRespFrame)
+	r.Data.Header = make(map[string]string)
+	cmd.GetHeader().Range(func(key, value string) bool {
+		r.Data.Header[key] = value
+		return true
+	})
+	r.Data.Status = cmd.GetStatusCode()
 	if data != nil {
 		r.Data.Data = data.Bytes()
 	}
@@ -70,7 +74,8 @@ func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
 	}
 	conn.AddConnectionEventListener(c)
 	c.conn = conn
-	client := stream.NewStreamClient(context.Background(), protocol.SofaRPC, conn, nil)
+	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(bolt.ProtocolName))
+	client := stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	if client == nil {
 		return nil, errors.New("protocol not registered")
 	}
@@ -78,7 +83,7 @@ func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
 	return c, nil
 }
 
-func (c *ConnClient) OnEvent(event types.ConnectionEvent) {
+func (c *ConnClient) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		c.isClosed = true
 		close(c.close)
@@ -86,7 +91,7 @@ func (c *ConnClient) OnEvent(event types.ConnectionEvent) {
 }
 
 func (c *ConnClient) Close() {
-	c.conn.Close(types.NoFlush, types.LocalClose)
+	c.conn.Close(api.NoFlush, api.LocalClose)
 }
 
 func (c *ConnClient) IsClosed() bool {

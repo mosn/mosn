@@ -38,7 +38,9 @@ var (
 	errVariableDuplicated   = "duplicate variable register, name: "
 	errPrefixDuplicated     = "duplicate prefix variable register, prefix: "
 	errUndefinedVariable    = "undefined variable, name: "
+	errInvalidContext       = "invalid context"
 	errNoVariablesInContext = "no variables found in context"
+	errSupportIndexedOnly   = "this operation only support indexed variable"
 	errGetterNotFound       = "getter function undefined, variable name: "
 	errSetterNotFound       = "setter function undefined, variable name: "
 )

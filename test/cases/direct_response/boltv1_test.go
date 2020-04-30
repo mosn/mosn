@@ -1,3 +1,5 @@
+// +build MOSNTest
+
 package directresp
 
 import (
@@ -5,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/test/lib"
-	testlib_sofarpc "mosn.io/mosn/test/lib/sofarpc"
+	sofarpc "mosn.io/mosn/test/lib/sofarpc"
 )
 
 func TestBoltv1DirectResponse(t *testing.T) {
@@ -22,13 +24,13 @@ func TestBoltv1DirectResponse(t *testing.T) {
 			mosn.Stop()
 		})
 		lib.Execute("get response from mosn", func() error {
-			cltVerify := &testlib_sofarpc.VerifyConfig{
-				ExpectedStatus: sofarpc.RESPONSE_STATUS_SUCCESS,
+			cltVerify := &sofarpc.VerifyConfig{
+				ExpectedStatus: bolt.ResponseStatusSuccess,
 			}
-			cfg := testlib_sofarpc.CreateSimpleConfig("127.0.0.1:2045")
+			cfg := sofarpc.CreateSimpleConfig("127.0.0.1:2045")
 			cfg.Verify = cltVerify.Verify
 
-			clt := testlib_sofarpc.NewClient(cfg, 1)
+			clt := sofarpc.NewClient(cfg, 1)
 			if !clt.SyncCall() {
 				return errors.New("client receive response unexpected")
 			}
@@ -42,7 +44,24 @@ const ConfigBoltv1 = `{
                 {
                         "default_log_path":"stdout",
                         "default_log_level": "FATAL",
-                         "listeners":[
+                        "routers": [
+                                {
+                                        "router_config_name":"router_direct",
+                                        "virtual_hosts":[{
+                                                "name":"mosn_hosts",
+                                                "domains": ["*"],
+                                                "routers": [
+                                                        {
+                                                                "match":{"headers":[{"name":"service","value":".*"}]},
+                                                                "direct_response": {
+                                                                        "status": 200
+                                                                }
+                                                        }
+                                                ]
+                                        }]
+                                }
+                        ],
+                        "listeners":[
                                 {
                                         "address":"127.0.0.1:2045",
                                         "bind_port": true,
@@ -53,27 +72,12 @@ const ConfigBoltv1 = `{
                                                         {
                                                                 "type": "proxy",
                                                                 "config": {
-                                                                        "downstream_protocol": "SofaRpc",
-                                                                        "upstream_protocol": "SofaRpc",
+                                                                        "downstream_protocol": "X",
+                                                                        "upstream_protocol": "X",
+									"extend_config": {
+										"sub_protocol": "bolt"
+									},
                                                                         "router_config_name":"router_direct"
-                                                                }
-                                                        },
-                                                        {
-                                                                "type": "connection_manager",
-                                                                "config": {
-                                                                        "router_config_name":"router_direct",
-                                                                        "virtual_hosts":[{
-                                                                                "name":"mosn_hosts",
-                                                                                "domains": ["*"],
-                                                                                "routers": [
-                                                                                        {
-                                                                                                 "match":{"headers":[{"name":"service","value":".*"}]},
-                                                                                                 "direct_response": {
-                                                                                                         "status": 200
-                                                                                                 }
-                                                                                        }
-                                                                                ]
-                                                                        }]
                                                                 }
                                                         }
                                                 ]

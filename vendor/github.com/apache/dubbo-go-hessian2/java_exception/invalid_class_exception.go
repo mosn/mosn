@@ -19,6 +19,7 @@ package java_exception
 
 import "fmt"
 
+// InvalidClassException represents an exception of the same name in java
 type InvalidClassException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -28,11 +29,13 @@ type InvalidClassException struct {
 	Cause                Throwabler
 }
 
+// NewInvalidClassException is the constructor
 func NewInvalidClassException(classname string, detailMessage string) *InvalidClassException {
 	return &InvalidClassException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{},
 		Classname: classname}
 }
 
+// Error output error message
 func (e InvalidClassException) Error() string {
 	if len(e.Classname) <= 0 {
 		return e.DetailMessage
@@ -41,6 +44,7 @@ func (e InvalidClassException) Error() string {
 
 }
 
+// JavaClassName  java fully qualified path
 func (InvalidClassException) JavaClassName() string {
 	return "java.io.InvalidClassException"
 }

@@ -25,7 +25,7 @@ import (
 
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/hpack"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 )
 
 var (

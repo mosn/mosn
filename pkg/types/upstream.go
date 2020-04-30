@@ -165,6 +165,9 @@ type ClusterInfo interface {
 
 	// LbOriDstInfo returns the load balancer oridst config
 	LbOriDstInfo() LBOriDstInfo
+
+	// Optional configuration for the load balancing algorithm selected by
+	LbConfig() v2.IsCluster_LbConfig
 }
 
 // ResourceManager manages different types of Resource
@@ -188,6 +191,8 @@ type Resource interface {
 	Increase()
 	Decrease()
 	Max() uint64
+	Cur() int64
+	UpdateCur(int64)
 }
 
 // HostStats defines a host's statistics information

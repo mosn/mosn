@@ -39,17 +39,38 @@ import (
 //	 Stream layer leverages protocol's ability to do binary-model conversation. In detail, Stream uses Protocols's encode/decode facade method and DecodeFilter to receive decode event call.
 //
 
-// ProtocolEngine is a protocols' facade used by Stream, it provides
-// auto protocol detection by the first byte recognition(called protocol code)
-type ProtocolEngine interface {
-	// Encoder is a encoder interface to extend various of protocols
-	Encoder
-	// Decoder is a decoder interface to extend various of protocols
-	Decoder
+type (
+	// MatchResult
+	MatchResult int
+	// ProtocolMatch recognize if the given data matches the protocol specification or not
+	ProtocolMatch func(data []byte) MatchResult
+)
 
-	// Register encoder and decoder for the specified protocol code
-	// TODO: use recognize interface instead of protocol code
-	Register(protocolCode byte, encoder Encoder, decoder Decoder) error
+const (
+	MatchFailed MatchResult = iota
+	MatchSuccess
+	MatchAgain
+)
+
+// TODO: Protocol and api.Protocol have the same name, maybe makes some ambiguity.
+
+// Protocol need to provides ability to convert mode-to-binary and vice-versa
+type Protocol interface {
+	// Encoder is the encoder implementation of the protocol
+	Encoder
+	// Decoder is the decoder implementation of the protocol
+	Decoder
+	// Name is the  name of the protocol
+	Name() ProtocolName
+}
+
+// ProtocolEngine is a protocols' facade used by Stream, it provides
+// auto protocol detection by the ProtocolMatch func
+type ProtocolEngine interface {
+	// Match use registered matchFunc to recognize corresponding protocol
+	Match(ctx context.Context, data IoBuffer) (ProtocolName, MatchResult)
+	// Register register encoder and decoder, which recognized by the matchFunc
+	Register(matchFunc ProtocolMatch, protocol ProtocolName) error
 }
 
 // Encoder is a encoder interface to extend various of protocols

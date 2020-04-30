@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ZoneRulesException represents an exception of the same name in java
 type ZoneRulesException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,17 @@ type ZoneRulesException struct {
 	Cause                Throwabler
 }
 
+// NewZoneRulesException is the constructor
 func NewZoneRulesException(detailMessage string) *ZoneRulesException {
 	return &ZoneRulesException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e ZoneRulesException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ZoneRulesException) JavaClassName() string {
 	return "java.time.zone.ZoneRulesException"
 }
