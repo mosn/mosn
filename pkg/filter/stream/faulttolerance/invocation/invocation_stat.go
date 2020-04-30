@@ -32,3 +32,11 @@ func (s *InvocationStat) Call(isException bool) {
 		atomic.AddInt64(&s.exceptionCount, 1)
 	}
 }
+
+func (s *InvocationStat) GetMeasureKey() string {
+	return s.GetMeasureKey()
+}
+
+func (s *InvocationStat) GetInvocationKey() string {
+	return s.GetInvocationKey()
+}
