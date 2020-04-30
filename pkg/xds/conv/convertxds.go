@@ -210,11 +210,13 @@ func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.H
 			MetaData: convertMeta(xdsHost.Metadata),
 		}
 
-		if weight := xdsHost.GetLoadBalancingWeight().GetValue(); weight < configmanager.MinHostWeight {
-			host.Weight = configmanager.MinHostWeight
+		weight := xdsHost.GetLoadBalancingWeight().GetValue()
+		if weight < configmanager.MinHostWeight {
+			weight = configmanager.MinHostWeight
 		} else if weight > configmanager.MaxHostWeight {
-			host.Weight = configmanager.MaxHostWeight
+			weight = configmanager.MaxHostWeight
 		}
+		host.Weight = weight
 
 		hosts = append(hosts, host)
 	}
@@ -780,15 +782,15 @@ func convertRouteMatch(xdsRouteMatch *xdsroute.RouteMatch) v2.RouterMatch {
 }
 
 /*
-func convertRuntime(xdsRuntime *xdscore.RuntimeUInt32) v2.RuntimeUInt32 {
-	if xdsRuntime == nil {
-		return v2.RuntimeUInt32{}
-	}
-	return v2.RuntimeUInt32{
-		DefaultValue: xdsRuntime.GetDefaultValue(),
-		RuntimeKey:   xdsRuntime.GetRuntimeKey(),
-	}
-}
+ func convertRuntime(xdsRuntime *xdscore.RuntimeUInt32) v2.RuntimeUInt32 {
+	 if xdsRuntime == nil {
+		 return v2.RuntimeUInt32{}
+	 }
+	 return v2.RuntimeUInt32{
+		 DefaultValue: xdsRuntime.GetDefaultValue(),
+		 RuntimeKey:   xdsRuntime.GetRuntimeKey(),
+	 }
+ }
 */
 
 func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
@@ -923,34 +925,34 @@ func convertRetryPolicy(xdsRetryPolicy *xdsroute.RetryPolicy) *v2.RetryPolicy {
 }
 
 /*
-func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) v2.RedirectAction {
-	if xdsRedirectAction == nil {
-		return v2.RedirectAction{}
-	}
-	return v2.RedirectAction{
-		HostRedirect: xdsRedirectAction.GetHostRedirect(),
-		PathRedirect: xdsRedirectAction.GetPathRedirect(),
-		ResponseCode: uint32(xdsRedirectAction.GetResponseCode()),
-	}
-}
+ func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) v2.RedirectAction {
+	 if xdsRedirectAction == nil {
+		 return v2.RedirectAction{}
+	 }
+	 return v2.RedirectAction{
+		 HostRedirect: xdsRedirectAction.GetHostRedirect(),
+		 PathRedirect: xdsRedirectAction.GetPathRedirect(),
+		 ResponseCode: uint32(xdsRedirectAction.GetResponseCode()),
+	 }
+ }
 */
 
 /*
-func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.VirtualCluster {
-	if xdsVirtualClusters == nil {
-		return nil
-	}
-	virtualClusters := make([]v2.VirtualCluster, 0, len(xdsVirtualClusters))
-	for _, xdsVirtualCluster := range xdsVirtualClusters {
-		virtualCluster := v2.VirtualCluster{
-			Pattern: xdsVirtualCluster.GetPattern(),
-			Name:    xdsVirtualCluster.GetName(),
-			Method:  xdsVirtualCluster.GetMethod().String(),
-		}
-		virtualClusters = append(virtualClusters, virtualCluster)
-	}
-	return virtualClusters
-}
+ func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.VirtualCluster {
+	 if xdsVirtualClusters == nil {
+		 return nil
+	 }
+	 virtualClusters := make([]v2.VirtualCluster, 0, len(xdsVirtualClusters))
+	 for _, xdsVirtualCluster := range xdsVirtualClusters {
+		 virtualCluster := v2.VirtualCluster{
+			 Pattern: xdsVirtualCluster.GetPattern(),
+			 Name:    xdsVirtualCluster.GetName(),
+			 Method:  xdsVirtualCluster.GetMethod().String(),
+		 }
+		 virtualClusters = append(virtualClusters, virtualCluster)
+	 }
+	 return virtualClusters
+ }
 */
 
 func convertAddress(xdsAddress *xdscore.Address) net.Addr {
@@ -1077,24 +1079,24 @@ func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.Ci
 }
 
 /*
-func convertOutlierDetection(xdsOutlierDetection *xdscluster.OutlierDetection) v2.OutlierDetection {
-	if xdsOutlierDetection == nil || xdsOutlierDetection.Size() == 0 {
-		return v2.OutlierDetection{}
-	}
-	return v2.OutlierDetection{
-		Consecutive5xx:                     xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
-		Interval:                           convertDuration(xdsOutlierDetection.GetInterval()),
-		BaseEjectionTime:                   convertDuration(xdsOutlierDetection.GetBaseEjectionTime()),
-		MaxEjectionPercent:                 xdsOutlierDetection.GetMaxEjectionPercent().GetValue(),
-		ConsecutiveGatewayFailure:          xdsOutlierDetection.GetEnforcingConsecutive_5Xx().GetValue(),
-		EnforcingConsecutive5xx:            xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
-		EnforcingConsecutiveGatewayFailure: xdsOutlierDetection.GetEnforcingConsecutiveGatewayFailure().GetValue(),
-		EnforcingSuccessRate:               xdsOutlierDetection.GetEnforcingSuccessRate().GetValue(),
-		SuccessRateMinimumHosts:            xdsOutlierDetection.GetSuccessRateMinimumHosts().GetValue(),
-		SuccessRateRequestVolume:           xdsOutlierDetection.GetSuccessRateRequestVolume().GetValue(),
-		SuccessRateStdevFactor:             xdsOutlierDetection.GetSuccessRateStdevFactor().GetValue(),
-	}
-}
+ func convertOutlierDetection(xdsOutlierDetection *xdscluster.OutlierDetection) v2.OutlierDetection {
+	 if xdsOutlierDetection == nil || xdsOutlierDetection.Size() == 0 {
+		 return v2.OutlierDetection{}
+	 }
+	 return v2.OutlierDetection{
+		 Consecutive5xx:                     xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
+		 Interval:                           convertDuration(xdsOutlierDetection.GetInterval()),
+		 BaseEjectionTime:                   convertDuration(xdsOutlierDetection.GetBaseEjectionTime()),
+		 MaxEjectionPercent:                 xdsOutlierDetection.GetMaxEjectionPercent().GetValue(),
+		 ConsecutiveGatewayFailure:          xdsOutlierDetection.GetEnforcingConsecutive_5Xx().GetValue(),
+		 EnforcingConsecutive5xx:            xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
+		 EnforcingConsecutiveGatewayFailure: xdsOutlierDetection.GetEnforcingConsecutiveGatewayFailure().GetValue(),
+		 EnforcingSuccessRate:               xdsOutlierDetection.GetEnforcingSuccessRate().GetValue(),
+		 SuccessRateMinimumHosts:            xdsOutlierDetection.GetSuccessRateMinimumHosts().GetValue(),
+		 SuccessRateRequestVolume:           xdsOutlierDetection.GetSuccessRateRequestVolume().GetValue(),
+		 SuccessRateStdevFactor:             xdsOutlierDetection.GetSuccessRateStdevFactor().GetValue(),
+	 }
+ }
 */
 
 func convertSpec(xdsCluster *xdsapi.Cluster) v2.ClusterSpecInfo {
