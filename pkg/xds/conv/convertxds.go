@@ -74,7 +74,12 @@ const (
 
 // todo add streamfilters parse
 func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
-	if !isSupport(xdsListener) {
+	// TODO support all filter
+	//if !isSupport(xdsListener) {
+	//	return nil
+	//}
+
+	if xdsListener == nil {
 		return nil
 	}
 
@@ -104,7 +109,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 
 	listenerConfig.ListenerFilters = convertListenerFilters(xdsListener.GetListenerFilters())
 
-	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
+	listenerConfig.FilterChains = convertFilterChains(xdsListener)
 
 	if listenerConfig.FilterChains != nil &&
 		len(listenerConfig.FilterChains) == 1 &&
@@ -484,9 +489,22 @@ func convertMixerConfig(s *any.Any) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func convertFilterChains(xdsFilterChains []*xdslistener.FilterChain) []v2.FilterChain {
+func convertFilterChains(xdsListener *xdsapi.Listener) []v2.FilterChain {
+	if xdsListener == nil {
+		return nil
+	}
+
+	xdsFilterChains := xdsListener.GetFilterChains()
+
 	if xdsFilterChains == nil {
 		return nil
+	}
+
+	useOriginalDst := false
+	for _, xl := range xdsListener.GetListenerFilters() {
+		if xl.Name == xdswellknown.OriginalDestination {
+			useOriginalDst = true
+		}
 	}
 
 	var xdsFilters []*xdslistener.Filter
@@ -512,7 +530,7 @@ func convertFilterChains(xdsFilterChains []*xdslistener.FilterChain) []v2.Filter
 	return []v2.FilterChain{{
 		FilterChainConfig: v2.FilterChainConfig{
 			FilterChainMatch: chainMatch,
-			Filters:          convertFilters(xdsFilters),
+			Filters:          convertFilters(useOriginalDst, xdsFilters),
 		},
 		TLSContexts: nil,
 	},
@@ -520,7 +538,7 @@ func convertFilterChains(xdsFilterChains []*xdslistener.FilterChain) []v2.Filter
 
 }
 
-func convertFilters(xdsFilters []*xdslistener.Filter) []v2.Filter {
+func convertFilters(useOriginalDst bool, xdsFilters []*xdslistener.Filter) []v2.Filter {
 	if xdsFilters == nil {
 		return nil
 	}
@@ -530,11 +548,15 @@ func convertFilters(xdsFilters []*xdslistener.Filter) []v2.Filter {
 	//todo support more Listener & One Listener support more Protocol
 	var oneFilter *xdslistener.Filter
 	for _, xdsFilter := range xdsFilters {
-		if xdsFilter.Name == xdswellknown.HTTPConnectionManager {
+
+		if xdsFilter.Name == xdswellknown.TCPProxy {
+			oneFilter = xdsFilter
+			if useOriginalDst {
+				break
+			}
+		} else if xdsFilter.Name == xdswellknown.HTTPConnectionManager {
 			oneFilter = xdsFilter
 			break
-		} else if xdsFilter.Name == xdswellknown.TCPProxy {
-			oneFilter = xdsFilter
 		}
 	}
 	filterMaps := convertFilterConfig(oneFilter)
