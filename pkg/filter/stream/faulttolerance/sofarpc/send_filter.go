@@ -5,7 +5,7 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/stream/faulttolerance/invocation"
-	"mosn.io/mosn/pkg/protocol/rpc/sofarpc"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/pkg/buffer"
 )
 
@@ -27,8 +27,8 @@ func (f *SendFilter) Append(ctx context.Context, headers api.HeaderMap, buf buff
 		return api.StreamFilterContinue
 	}
 
-	if _, ok := headers.(*sofarpc.BoltResponse); !ok {
-		if _, ok := headers.(*sofarpc.BoltRequest); !ok {
+	if _, ok := headers.(*bolt.ResponseHeader); !ok {
+		if _, ok := headers.(*bolt.RequestHeader); !ok {
 			return api.StreamFilterContinue
 		}
 	}
