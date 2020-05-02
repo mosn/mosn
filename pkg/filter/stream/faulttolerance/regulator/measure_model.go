@@ -2,6 +2,9 @@ package regulator
 
 import (
 	"fmt"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/filter/stream/faulttolerance/invocation"
+	"mosn.io/mosn/pkg/filter/stream/faulttolerance/util"
 	"sync"
 	"sync/atomic"
 )
@@ -29,110 +32,63 @@ func (m *MeasureModel) GetKey() string {
 	return m.key
 }
 
-func (m *MeasureModel) AddInvocationStat(stat *InvocationStat) {
+func (m *MeasureModel) AddInvocationStat(stat *invocation.InvocationStat) {
 	key := stat.GetInvocationKey()
 	if _, ok := m.stats.LoadOrStore(key, stat); !ok {
 		atomic.AddInt64(&m.count, 1)
 	}
 }
 
-func (m *MeasureModel) releaseInvocationStat(stat *InvocationStat) {
+func (m *MeasureModel) releaseInvocationStat(stat *invocation.InvocationStat) {
 	key := stat.GetInvocationKey()
 	m.stats.Delete(key)
 	atomic.AddInt64(&m.count, -1)
-	GetInvocationStatFactoryInstance().ReleaseInvocationStat(key)
+	invocation.GetInvocationStatFactoryInstance().ReleaseInvocationStat(key)
 }
 
-func (m *MeasureModel) Measure(rule *fault_tolerance_rule.FaultToleranceRule) {
-	if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.DEBUG {
-		tolerance_log.FaultToleranceLog.Debugf("[Tolerance][MeasureModel][%s] measure before, measureModel = %v", m.key, m)
-	}
-	snapshots := m.snapshotInvocations()
-	if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.DEBUG {
-		tolerance_log.FaultToleranceLog.Debugf("[Tolerance][MeasureModel][%s] get snapshots, measureModel = %v, snapshot = %v", m.key, m, snapshots)
-	}
-	ok, averageExceptionRate := m.calculateAverageExceptionRate(snapshots, rule.GetLeastWindowCount())
-	if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.DEBUG {
-		tolerance_log.FaultToleranceLog.Debugf("[Tolerance][MeasureModel][%s] get averageExceptionRate, ok = %v, averageExceptionRate = %v", m.key, ok, averageExceptionRate)
-	}
+func (m *MeasureModel) Measure(rule *v2.FaultToleranceFilterConfig) {
+	snapshots := m.snapshotInvocations(rule.RecoverTime)
+	ok, averageExceptionRate := m.calculateAverageExceptionRate(snapshots, rule.LeastWindowCount)
 	if !ok {
 		return
 	}
 	for _, snapshot := range snapshots {
 		call, _ := snapshot.GetCount()
-		if call >= rule.GetLeastWindowCount() {
+		if call >= rule.LeastWindowCount {
 			_, exceptionRate := snapshot.GetExceptionRate()
-			multiple := common.DivideFloat64(exceptionRate, averageExceptionRate)
-			if multiple >= rule.GetExceptionRateMultiple() {
-				if m.downgrade(snapshot, rule.GetMaxIpCount(), rule.GetMaxIpRatio()) {
-					m.report(snapshot)
-					if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.DEBUG {
-						tolerance_log.FaultToleranceLog.Debugf("[Tolerance][MeasureModel][%s] downgrade a snapshot, report, snapshot= %v", m.key, snapshot)
-					}
-				} else {
-					if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.DEBUG {
-						tolerance_log.FaultToleranceLog.Debugf("[Tolerance][MeasureModel][%s] downgrade failed, snapshot= %v", m.key, snapshot)
-					}
-				}
+			multiple := util.DivideFloat64(exceptionRate, averageExceptionRate)
+			if multiple >= rule.ExceptionRateMultiple {
+				m.downgrade(snapshot, rule.MaxIpCount)
 			}
 		}
 	}
 
 	m.updateInvocationSnapshots(snapshots)
-	if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.DEBUG {
-		tolerance_log.FaultToleranceLog.Debugf("[Tolerance][MeasureModel][%s] measure after", m.key)
-	}
 }
 
-func (m *MeasureModel) report(stat *InvocationStat) {
-	metrics := report.GetFaultToleranceMetricsManagerInstance().GetMetrics(stat.GetMetricsKey(), stat.GetAppName(), stat.GetAddress())
-	metrics.Report(stat.callCount, stat.exceptionCount)
-}
-
-func (m *MeasureModel) downgrade(snapshot *InvocationStat, maxIpCount int64, maxIpRatio float64) bool {
+func (m *MeasureModel) downgrade(snapshot *invocation.InvocationStat, maxIpCount int64) {
 	if m.count <= 0 {
-		return false
+		return
 	}
 	if m.downgradeCount+1 > maxIpCount {
-		return false
+		return
 	}
-	//if common.DivideInt64(m.downgradeCount+1, m.count) >= maxIpRatio {
-	//	return false
-	//}
-
 	key := snapshot.GetInvocationKey()
 	if value, ok := m.stats.Load(key); ok {
-		stat := value.(*InvocationStat)
-		strategy := fault_tolerance_strategy.GetStrategy()
-		if strategy == constant.FAULT_TOLERANCE_STRATEGY_ON {
-			stat.Downgrade()
-			m.downgradeCount++
-			if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.INFO {
-				tolerance_log.FaultToleranceLog.Infof("downgrade a address. stat = %v.", stat)
-			}
-			return true
-		} else if strategy == constant.FAULT_TOLERANCE_STRATEGY_MONITOR {
-			if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.INFO {
-				tolerance_log.FaultToleranceLog.Infof("monitor. downgrade a address. stat = %v.", stat)
-			}
-			return false
-		} else {
-			return false
-		}
+		stat := value.(*invocation.InvocationStat)
+		stat.Downgrade()
+		m.downgradeCount++
 	}
-	return false
 }
 
-func (m *MeasureModel) snapshotInvocations() []*InvocationStat {
-	snapshots := []*InvocationStat{}
+func (m *MeasureModel) snapshotInvocations(recoverTime int64) []*invocation.InvocationStat {
+	snapshots := []*invocation.InvocationStat{}
 	m.stats.Range(func(app, value interface{}) bool {
-		stat := value.(*InvocationStat)
-		//
+		stat := value.(*invocation.InvocationStat)
 		if !stat.IsHealthy() {
-			m.recover(stat)
+			m.recover(stat, recoverTime)
 			return true
 		}
-		//
 		if stat.GetCall() <= 0 {
 			if stat.AddUselessCycle() {
 				m.releaseInvocationStat(stat)
@@ -141,34 +97,33 @@ func (m *MeasureModel) snapshotInvocations() []*InvocationStat {
 		} else {
 			stat.RestUselessCycle()
 		}
-		//
-		snapshot := value.(*InvocationStat).Snapshot()
+		snapshot := value.(*invocation.InvocationStat).Snapshot()
 		snapshots = append(snapshots, snapshot)
 		return true
 	})
 	return snapshots
 }
 
-func (m *MeasureModel) recover(stat *InvocationStat) {
-	if downgradeTime := stat.downgradeTime; downgradeTime != 0 {
-		now := common.GetNowMS()
-		if now-stat.downgradeTime >= fault_tolerance_strategy.GetRecoveryTime() {
+func (m *MeasureModel) recover(stat *invocation.InvocationStat, recoverTime int64) {
+	if downgradeTime := stat.GetDowngradeTime(); downgradeTime != 0 {
+		now := util.GetNowMS()
+		if now-downgradeTime >= recoverTime {
 			stat.Recover()
 			m.downgradeCount--
 		}
 	}
 }
 
-func (m *MeasureModel) updateInvocationSnapshots(snapshots []*InvocationStat) {
+func (m *MeasureModel) updateInvocationSnapshots(snapshots []*invocation.InvocationStat) {
 	for _, snapshot := range snapshots {
 		if value, ok := m.stats.Load(snapshot.GetInvocationKey()); ok {
-			stat := value.(*InvocationStat)
+			stat := value.(*invocation.InvocationStat)
 			stat.Update(snapshot)
 		}
 	}
 }
 
-func (m *MeasureModel) calculateAverageExceptionRate(stats []*InvocationStat, leastWindowCount int64) (bool, float64) {
+func (m *MeasureModel) calculateAverageExceptionRate(stats []*invocation.InvocationStat, leastWindowCount int64) (bool, float64) {
 	var sumException int64
 	var sumCall int64
 	for _, stat := range stats {
@@ -180,12 +135,12 @@ func (m *MeasureModel) calculateAverageExceptionRate(stats []*InvocationStat, le
 	if sumCall == 0 {
 		return false, 0
 	}
-	return true, common.DivideInt64(sumException, sumCall)
+	return true, util.DivideInt64(sumException, sumCall)
 }
 
-func (m *MeasureModel) IsArrivalTime(config *fault_tolerance_rule.FaultToleranceRule) bool {
-	timeWindow := config.GetTimeWindow()
-	now := common.GetNowMS()
+func (m *MeasureModel) IsArrivalTime(config *v2.FaultToleranceFilterConfig) bool {
+	timeWindow := config.TimeWindow
+	now := util.GetNowMS()
 
 	if m.timeMeter == 0 {
 		m.timeMeter = now + timeWindow
@@ -193,9 +148,6 @@ func (m *MeasureModel) IsArrivalTime(config *fault_tolerance_rule.FaultTolerance
 	} else {
 		if now >= m.timeMeter {
 			m.timeMeter = now + timeWindow
-			if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.DEBUG {
-				tolerance_log.FaultToleranceLog.Debugf("[Tolerance][MeasureModel][%s] arrivalTime, measureModel = %v, config = %v", m.key, m, config)
-			}
 			return true
 		} else {
 			return false

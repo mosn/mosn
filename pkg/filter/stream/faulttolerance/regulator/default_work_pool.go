@@ -40,8 +40,6 @@ func (g *WorkGoroutine) Start() {
 
 func (g *WorkGoroutine) work() {
 	g.tasks.Range(func(key, value interface{}) bool {
-		app := g.getApp(key.(string))
-		config := fault_tolerance_rule.GetFaultToleranceStoreInstance().GetRule(app)
 		model := value.(*MeasureModel)
 		if model.IsArrivalTime(config) {
 			model.Measure(config)
@@ -94,9 +92,6 @@ func (w *DefaultWorkPool) Schedule(model *MeasureModel) {
 		if _, ok := w.workers.LoadOrStore(index, worker); !ok {
 			worker.Start()
 			w.workSize++
-			if tolerance_log.FaultToleranceLog.GetLogLevel() >= log.INFO {
-				tolerance_log.FaultToleranceLog.Infof("[Tolerance][WorkPool] start a work goroutine, w.workSize = %v", w.workSize)
-			}
 		} else {
 			worker.AddTask(model.GetKey(), model)
 		}
