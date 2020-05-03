@@ -9,6 +9,7 @@ type edfSchduler struct {
 	lock        sync.Mutex
 	items       PriorityQueue
 	currentTime float64
+	globalIndex int64   // globalIndex records the current logical time
 }
 
 func newEdfScheduler(cap int) *edfSchduler {
@@ -22,6 +23,7 @@ type edfEntry struct {
 	deadline float64
 	weight   float64
 	item     WeightItem
+	index    int64
 }
 
 type WeightItem interface {
@@ -35,10 +37,12 @@ type PriorityQueue []*edfEntry
 func (edf *edfSchduler) Add(item WeightItem, weight float64) {
 	edf.lock.Lock()
 	defer edf.lock.Unlock()
+	edf.globalIndex++
 	entry := edfEntry{
 		deadline: edf.currentTime + 1.0/weight,
 		weight:   weight,
 		item:     item,
+		index:    edf.globalIndex,
 	}
 	heap.Push(&edf.items, &entry)
 }
@@ -54,16 +58,27 @@ func (edf *edfSchduler) NextAndPush(weightFunc func(item WeightItem) float64) in
 	entry := heap.Pop(&edf.items).(*edfEntry)
 	edf.currentTime = entry.deadline
 	weight := weightFunc(entry.item)
-	// update the deadline and put into priorityQueue again
+	// update the index、deadline and put into priorityQueue again
+	edf.globalIndex++
 	entry.deadline = entry.deadline + 1.0/weight
 	entry.weight = weight
+	entry.index = edf.globalIndex
 	heap.Push(&edf.items, entry)
 	return entry.item
 }
 
-func (pq PriorityQueue) Len() int           { return len(pq) }
-func (pq PriorityQueue) Less(i, j int) bool { return pq[i].deadline < pq[j].deadline }
-func (pq PriorityQueue) Swap(i, j int)      { pq[i], pq[j] = pq[j], pq[i] }
+func (pq PriorityQueue) Len() int { return len(pq) }
+
+
+// Less make us always pop the ones with the smallest deadline
+//or the ones with a smaller index when the deadline is the same
+func (pq PriorityQueue) Less(i, j int) bool {
+	if pq[i].deadline == pq[j].deadline {
+		return pq[i].index < pq[j].index
+	}
+	return pq[i].deadline < pq[j].deadline
+}
+func (pq PriorityQueue) Swap(i, j int) { pq[i], pq[j] = pq[j], pq[i] }
 
 func (pq *PriorityQueue) Push(x interface{}) {
 	*pq = append(*pq, x.(*edfEntry))
