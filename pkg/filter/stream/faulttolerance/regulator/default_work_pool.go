@@ -41,8 +41,8 @@ func (g *WorkGoroutine) Start() {
 func (g *WorkGoroutine) work() {
 	g.tasks.Range(func(key, value interface{}) bool {
 		model := value.(*MeasureModel)
-		if model.IsArrivalTime(config) {
-			model.Measure(config)
+		if model.IsArrivalTime() {
+			model.Measure()
 		}
 		return true
 	})

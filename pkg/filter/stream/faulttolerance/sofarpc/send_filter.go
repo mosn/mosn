@@ -17,7 +17,8 @@ type SendFilter struct {
 
 func NewSendFilter(config *v2.FaultToleranceFilterConfig) *SendFilter {
 	filter := &SendFilter{
-		config: config,
+		config:            config,
+		invocationFactory: invocation.NewInvocationStatFactory(config),
 	}
 	return filter
 }

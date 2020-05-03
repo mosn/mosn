@@ -15,15 +15,17 @@ type MeasureModel struct {
 	count          int64
 	downgradeCount int64
 	timeMeter      int64
+	config         *v2.FaultToleranceFilterConfig
 }
 
-func NewMeasureModel(key string) *MeasureModel {
+func NewMeasureModel(key string, config *v2.FaultToleranceFilterConfig) *MeasureModel {
 	measureModel := &MeasureModel{
 		key:            key,
 		stats:          new(sync.Map),
 		count:          0,
 		downgradeCount: 0,
 		timeMeter:      0,
+		config:         config,
 	}
 	return measureModel
 }
@@ -46,19 +48,19 @@ func (m *MeasureModel) releaseInvocationStat(stat *invocation.InvocationStat) {
 	invocation.GetInvocationStatFactoryInstance().ReleaseInvocationStat(key)
 }
 
-func (m *MeasureModel) Measure(rule *v2.FaultToleranceFilterConfig) {
-	snapshots := m.snapshotInvocations(rule.RecoverTime)
-	ok, averageExceptionRate := m.calculateAverageExceptionRate(snapshots, rule.LeastWindowCount)
+func (m *MeasureModel) Measure() {
+	snapshots := m.snapshotInvocations(m.config.RecoverTime)
+	ok, averageExceptionRate := m.calculateAverageExceptionRate(snapshots, m.config.LeastWindowCount)
 	if !ok {
 		return
 	}
 	for _, snapshot := range snapshots {
 		call, _ := snapshot.GetCount()
-		if call >= rule.LeastWindowCount {
+		if call >= m.config.LeastWindowCount {
 			_, exceptionRate := snapshot.GetExceptionRate()
 			multiple := util.DivideFloat64(exceptionRate, averageExceptionRate)
-			if multiple >= rule.ExceptionRateMultiple {
-				m.downgrade(snapshot, rule.MaxIpCount)
+			if multiple >= m.config.ExceptionRateMultiple {
+				m.downgrade(snapshot, m.config.MaxIpCount)
 			}
 		}
 	}
@@ -138,8 +140,8 @@ func (m *MeasureModel) calculateAverageExceptionRate(stats []*invocation.Invocat
 	return true, util.DivideInt64(sumException, sumCall)
 }
 
-func (m *MeasureModel) IsArrivalTime(config *v2.FaultToleranceFilterConfig) bool {
-	timeWindow := config.TimeWindow
+func (m *MeasureModel) IsArrivalTime() bool {
+	timeWindow := m.config.TimeWindow
 	now := util.GetNowMS()
 
 	if m.timeMeter == 0 {
