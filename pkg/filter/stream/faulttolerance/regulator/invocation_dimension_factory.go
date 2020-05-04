@@ -1,4 +1,4 @@
-package invocation
+package regulator
 
 import (
 	"mosn.io/api"

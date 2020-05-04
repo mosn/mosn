@@ -1,15 +1,14 @@
-package invocation
+package regulator
 
 import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
 	"sync"
 )
 
 type InvocationStatFactory struct {
 	invocationStats *sync.Map
-	regulator       regulator.Regulator
+	regulator       Regulator
 }
 
 var invocationStatFactoryInstance *InvocationStatFactory
@@ -21,7 +20,7 @@ func GetInvocationStatFactoryInstance() *InvocationStatFactory {
 func NewInvocationStatFactory(config *v2.FaultToleranceFilterConfig) *InvocationStatFactory {
 	invocationStatFactory := &InvocationStatFactory{
 		invocationStats: new(sync.Map),
-		regulator:       regulator.NewDefaultRegulator(config),
+		regulator:       NewDefaultRegulator(config),
 	}
 	return invocationStatFactory
 }

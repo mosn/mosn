@@ -4,21 +4,21 @@ import (
 	"context"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/filter/stream/faulttolerance/invocation"
+	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/pkg/buffer"
 )
 
 type SendFilter struct {
 	config            *v2.FaultToleranceFilterConfig
-	invocationFactory *invocation.InvocationStatFactory
+	invocationFactory *regulator.InvocationStatFactory
 	handler           api.StreamSenderFilterHandler
 }
 
 func NewSendFilter(config *v2.FaultToleranceFilterConfig) *SendFilter {
 	filter := &SendFilter{
 		config:            config,
-		invocationFactory: invocation.NewInvocationStatFactory(config),
+		invocationFactory: regulator.NewInvocationStatFactory(config),
 	}
 	return filter
 }
@@ -34,7 +34,7 @@ func (f *SendFilter) Append(ctx context.Context, headers api.HeaderMap, buf buff
 		}
 	}
 
-	newDimension := invocation.GetNewDimensionFunc()
+	newDimension := regulator.GetNewDimensionFunc()
 	if newDimension == nil {
 		return api.StreamFilterContinue
 	}

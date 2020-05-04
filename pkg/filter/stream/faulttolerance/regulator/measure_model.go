@@ -3,7 +3,6 @@ package regulator
 import (
 	"fmt"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/filter/stream/faulttolerance/invocation"
 	"mosn.io/mosn/pkg/filter/stream/faulttolerance/util"
 	"sync"
 	"sync/atomic"
@@ -34,18 +33,18 @@ func (m *MeasureModel) GetKey() string {
 	return m.key
 }
 
-func (m *MeasureModel) AddInvocationStat(stat *invocation.InvocationStat) {
+func (m *MeasureModel) AddInvocationStat(stat *InvocationStat) {
 	key := stat.GetInvocationKey()
 	if _, ok := m.stats.LoadOrStore(key, stat); !ok {
 		atomic.AddInt64(&m.count, 1)
 	}
 }
 
-func (m *MeasureModel) releaseInvocationStat(stat *invocation.InvocationStat) {
+func (m *MeasureModel) releaseInvocationStat(stat *InvocationStat) {
 	key := stat.GetInvocationKey()
 	m.stats.Delete(key)
 	atomic.AddInt64(&m.count, -1)
-	invocation.GetInvocationStatFactoryInstance().ReleaseInvocationStat(key)
+	GetInvocationStatFactoryInstance().ReleaseInvocationStat(key)
 }
 
 func (m *MeasureModel) Measure() {
@@ -68,7 +67,7 @@ func (m *MeasureModel) Measure() {
 	m.updateInvocationSnapshots(snapshots)
 }
 
-func (m *MeasureModel) downgrade(snapshot *invocation.InvocationStat, maxIpCount int64) {
+func (m *MeasureModel) downgrade(snapshot *InvocationStat, maxIpCount int64) {
 	if m.count <= 0 {
 		return
 	}
@@ -77,16 +76,16 @@ func (m *MeasureModel) downgrade(snapshot *invocation.InvocationStat, maxIpCount
 	}
 	key := snapshot.GetInvocationKey()
 	if value, ok := m.stats.Load(key); ok {
-		stat := value.(*invocation.InvocationStat)
+		stat := value.(*InvocationStat)
 		stat.Downgrade()
 		m.downgradeCount++
 	}
 }
 
-func (m *MeasureModel) snapshotInvocations(recoverTime int64) []*invocation.InvocationStat {
-	snapshots := []*invocation.InvocationStat{}
+func (m *MeasureModel) snapshotInvocations(recoverTime int64) []*InvocationStat {
+	snapshots := []*InvocationStat{}
 	m.stats.Range(func(app, value interface{}) bool {
-		stat := value.(*invocation.InvocationStat)
+		stat := value.(*InvocationStat)
 		if !stat.IsHealthy() {
 			m.recover(stat, recoverTime)
 			return true
@@ -99,14 +98,14 @@ func (m *MeasureModel) snapshotInvocations(recoverTime int64) []*invocation.Invo
 		} else {
 			stat.RestUselessCycle()
 		}
-		snapshot := value.(*invocation.InvocationStat).Snapshot()
+		snapshot := value.(*InvocationStat).Snapshot()
 		snapshots = append(snapshots, snapshot)
 		return true
 	})
 	return snapshots
 }
 
-func (m *MeasureModel) recover(stat *invocation.InvocationStat, recoverTime int64) {
+func (m *MeasureModel) recover(stat *InvocationStat, recoverTime int64) {
 	if downgradeTime := stat.GetDowngradeTime(); downgradeTime != 0 {
 		now := util.GetNowMS()
 		if now-downgradeTime >= recoverTime {
@@ -116,16 +115,16 @@ func (m *MeasureModel) recover(stat *invocation.InvocationStat, recoverTime int6
 	}
 }
 
-func (m *MeasureModel) updateInvocationSnapshots(snapshots []*invocation.InvocationStat) {
+func (m *MeasureModel) updateInvocationSnapshots(snapshots []*InvocationStat) {
 	for _, snapshot := range snapshots {
 		if value, ok := m.stats.Load(snapshot.GetInvocationKey()); ok {
-			stat := value.(*invocation.InvocationStat)
+			stat := value.(*InvocationStat)
 			stat.Update(snapshot)
 		}
 	}
 }
 
-func (m *MeasureModel) calculateAverageExceptionRate(stats []*invocation.InvocationStat, leastWindowCount int64) (bool, float64) {
+func (m *MeasureModel) calculateAverageExceptionRate(stats []*InvocationStat, leastWindowCount int64) (bool, float64) {
 	var sumException int64
 	var sumCall int64
 	for _, stat := range stats {

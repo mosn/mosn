@@ -1,4 +1,4 @@
-package invocation
+package regulator
 
 type InvocationDimension interface {
 	GetInvocationKey() string
