@@ -36,11 +36,11 @@ func (s *InvocationStat) Call(isException bool) {
 }
 
 func (s *InvocationStat) GetMeasureKey() string {
-	return s.GetMeasureKey()
+	return s.dimension.GetMeasureKey()
 }
 
 func (s *InvocationStat) GetInvocationKey() string {
-	return s.GetInvocationKey()
+	return s.dimension.GetInvocationKey()
 }
 
 func (s *InvocationStat) GetCall() int64 {
