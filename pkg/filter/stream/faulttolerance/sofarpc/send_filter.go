@@ -41,11 +41,12 @@ func (f *SendFilter) Append(ctx context.Context, headers api.HeaderMap, buf buff
 
 	requestInfo := f.handler.RequestInfo()
 	host := requestInfo.UpstreamHost()
-	dimension := newDimension(requestInfo)
-	isException := f.IsException(requestInfo)
-	stat := f.invocationFactory.GetInvocationStat(&host, dimension)
-	stat.Call(isException)
-
+	if requestInfo != nil && host != nil {
+		dimension := newDimension(requestInfo)
+		isException := f.IsException(requestInfo)
+		stat := f.invocationFactory.GetInvocationStat(&host, dimension)
+		stat.Call(isException)
+	}
 	return api.StreamFilterContinue
 }
 
