@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"math"
+	"net"
 	"reflect"
 	"runtime/debug"
 	"strings"
@@ -70,13 +71,19 @@ func newStrictDnsCluster(clusterConfig v2.Cluster) types.Cluster {
 		dnsLookupFamily: clusterConfig.DnsLookupFamily,
 		respectDnsTTL:   clusterConfig.RespectDnsTTL,
 		resolveTargets:  []*ResolveTarget{},
-		dnsResolver:     network.NewDnsResolver(clusterConfig.DnsResolverFile, clusterConfig.DnsResolverPort),
 		mutex:           sync.Mutex{},
 	}
 
 	// set dnsRefreshRate
 	if clusterConfig.DnsRefreshRate != nil {
 		cluster.dnsRefreshRate = clusterConfig.DnsRefreshRate.Duration
+	}
+
+	// set resolve server
+	if clusterConfig.DnsResolverConfig.Servers != nil {
+		cluster.dnsResolver = network.NewDnsResolver(&clusterConfig.DnsResolverConfig)
+	} else {
+		cluster.dnsResolver = network.NewDnsResolverFromFile(clusterConfig.DnsResolverFile, clusterConfig.DnsResolverPort)
 	}
 
 	return cluster
@@ -127,13 +134,17 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 			hosts:            []types.Host{host},
 		}
 
+		rts = append(rts, rt)
+		// if address is already an ip, skip dns resolution
+		if net.ParseIP(rt.dnsAddress) != nil {
+			continue
+		}
 		utils.GoWithRecover(func() {
 			rt.StartResolve()
 		}, nil)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[upstream] [strict dns cluster] create a resolver for address: %s", rt.dnsAddress)
 		}
-		rts = append(rts, rt)
 	}
 	sdc.resolveTargets = rts
 }
@@ -188,18 +199,16 @@ func (sdc *strictDnsCluster) updateDynamicHosts(newHosts []types.Host, rt *Resol
 	// update current hosts in rt
 	rt.hosts = newHosts
 
-	// append hosts in other resolveTargets to newHosts
+	var allHosts []types.Host
+	// collect all hosts in resolve targets
 	for _, r := range sdc.resolveTargets {
-		if r.config == rt.config {
-			continue
-		}
 		for _, h := range r.hosts {
-			newHosts = append(newHosts, h)
+			allHosts = append(allHosts, h)
 		}
 	}
 
-	// compare newHosts and allHosts
-	hostNotChanged := hostEqual(&newHosts, &sdc.hostSet.allHosts)
+	// compare current hosts with allHosts
+	hostNotChanged := hostEqual(&allHosts, &sdc.hostSet.allHosts)
 	if !hostNotChanged {
 		for _, h := range newHosts {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {

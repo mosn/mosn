@@ -20,11 +20,13 @@ package network
 import (
 	"io/ioutil"
 	"testing"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 
 func TestDnsResolve(t *testing.T) {
-	dnsResolver := NewDnsResolver("", "")
+	dnsResolver := NewDnsResolverFromFile("", "")
 	if dnsResolver == nil {
 		 t.Error("create dns resolver failed")
 
@@ -40,9 +42,25 @@ func TestDnsResolve(t *testing.T) {
 	if err := ioutil.WriteFile(fileName, []byte(resolveConfig), 0644); err != nil {
 		t.Fatal(err)
 	}
-	dnsResolver = NewDnsResolver(fileName, "53")
+	dnsResolver = NewDnsResolverFromFile(fileName, "53")
 	res = dnsResolver.DnsResolve("www.baidu.com", "V4Only")
 	if res == nil {
 		t.Error("resolve dns failed")
+	}
+
+	config := &v2.DnsResolverConfig{
+		Servers:  []string{"114.114.114.114","8.8.8.8"},
+		Search:   nil,
+		Port:     "53",
+		Ndots:    0,
+		Timeout:  2,
+		Attempts: 0,
+	}
+
+	dnsResolver = NewDnsResolver(config)
+	for _, server := range dnsResolver.clientConfig.Servers {
+		if server != "114.114.114.114" && server != "8.8.8.8" {
+			t.Error("new dns resolver not from config")
+		}
 	}
 }

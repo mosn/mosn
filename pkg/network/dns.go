@@ -36,7 +36,6 @@ var DefaultResolverFile string = "/etc/resolv.conf"
 
 type DnsResolver struct {
 	clientConfig *dns.ClientConfig
-	resolverPort string
 	client       *dns.Client
 }
 
@@ -45,7 +44,22 @@ type DnsResponse struct {
 	Ttl     time.Duration
 }
 
-func NewDnsResolver(configFile string, resolverPort string) *DnsResolver {
+func NewDnsResolver(config *v2.DnsResolverConfig) *DnsResolver {
+	clientConfig := &dns.ClientConfig{
+		Servers:  config.Servers,
+		Search:   config.Search,
+		Port:     config.Port,
+		Ndots:    config.Ndots,
+		Timeout:  config.Timeout,
+		Attempts: config.Attempts,
+	}
+	if clientConfig.Port == "" {
+		clientConfig.Port = "53"
+	}
+	return newDnsResolver(clientConfig)
+}
+
+func NewDnsResolverFromFile(configFile string, resolverPort string) *DnsResolver {
 	var err error
 	var config *dns.ClientConfig
 	if configFile == "" {
@@ -62,6 +76,12 @@ func NewDnsResolver(configFile string, resolverPort string) *DnsResolver {
 		}
 		return nil
 	}
+	config.Port = resolverPort
+
+	return newDnsResolver(config)
+}
+
+func newDnsResolver(config *dns.ClientConfig) *DnsResolver {
 	return &DnsResolver{
 		clientConfig: config,
 		client: &dns.Client{
@@ -76,7 +96,6 @@ func NewDnsResolver(configFile string, resolverPort string) *DnsResolver {
 			TsigSecret:     nil,
 			SingleInflight: false,
 		},
-		resolverPort: resolverPort,
 	}
 }
 
@@ -99,10 +118,11 @@ func (dr *DnsResolver) DnsResolve(dnsAddr string, dnsLookupFamily v2.DnsLookupFa
 		//try from first server by default
 		for _, addr := range addrs {
 			msg.SetQuestion(addr, dnsQueryType)
-			r, _, err := dr.client.Exchange(msg, server+":"+dr.resolverPort)
+			r, _, err := dr.client.Exchange(msg, server+":"+dr.clientConfig.Port)
+
 			if err != nil {
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf("[network] [dns] resolve addr: %s failed, server: %s, err: %s", addr, server, err)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO{
+					log.DefaultLogger.Infof("[network] [dns] resolve addr: %s failed, server: %s, err: %s", addr, server, err)
 				}
 				if strings.Contains(err.Error(), "i/o timeout") {
 					break

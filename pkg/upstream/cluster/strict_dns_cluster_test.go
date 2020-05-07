@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"mosn.io/api"
+	"strings"
 	"testing"
 	"time"
 
@@ -61,7 +62,7 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 	snap := cluster.Snapshot()
 	hostSet := snap.HostSet().Hosts()
 	for _, host := range hostSet {
-		if host.AddressString() == host.Hostname() {
+		if strings.Contains(host.AddressString(), host.Hostname()) {
 			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
 		}
 	}
@@ -81,7 +82,27 @@ func TestDynamicClusterUpdateHosts(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	hostSet = cluster.Snapshot().HostSet().Hosts()
 	for _, host := range hostSet {
-		if host.AddressString() == host.Hostname() {
+		if strings.Contains(host.AddressString(), host.Hostname()) {
+			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
+		}
+	}
+
+	host = v2.Host{
+		HostConfig: v2.HostConfig{
+			Address:        "127.0.0.1:80",
+			Hostname:       "127.0.0.1",
+			Weight:         0,
+			MetaDataConfig: nil,
+			TLSDisable:     false,
+		},
+	}
+
+	h = NewSimpleHost(host, cluster.Snapshot().ClusterInfo())
+	hosts = []types.Host{h}
+	cluster.UpdateHosts(hosts)
+	hostSet = cluster.Snapshot().HostSet().Hosts()
+	for _, host := range hostSet {
+		if ! strings.Contains(host.AddressString(), host.Hostname()){
 			t.Errorf("[upstream][static_dns_cluster] Address %s not resolved.", host.AddressString())
 		}
 	}
