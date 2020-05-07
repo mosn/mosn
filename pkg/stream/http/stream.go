@@ -39,6 +39,7 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
@@ -758,8 +759,57 @@ func (s *serverStream) ReadDisable(disable bool) {
 	}
 }
 
+func testNeedGzip(s *serverStream) bool {
+	/*
+	 * test first for the most common case "gzip,...":
+	 *   MSIE:    "gzip, deflate"
+	 *   Firefox: "gzip,deflate"
+	 *   Chrome:  "gzip,deflate,sdch"
+	 *   Safari:  "gzip, deflate"
+	 *   Opera:   "gzip, deflate"
+	 */
+
+	var gzipCheck = map[string]bool{
+		"gzip":              true,
+		"gzip, deflate":     true,
+		"gzip , deflate":    true,
+		"gzip ,deflate":     true,
+		"gzip,deflate":      true,
+		"gzip,deflate,sdch": true,
+	}
+
+	// check gzip switch
+	if gzipSwitch, err := variable.GetVariableValue(s.ctx, types.VarProxyGzipSwitch); err != nil || gzipSwitch != "on" {
+		return false
+	}
+
+	response := s.response.Header
+	request := s.request.Header
+
+	// TODO use fasthttp.HeaderContentEncoding after upgrade fasthttp.
+	if string(response.Peek("Content-Encoding")) != "" || request.IsHead() {
+		return false
+	}
+
+	// TODO use fasthttp.HeaderAcceptEncoding after upgrade fasthttp.
+	ae := string(request.Peek("Accept-Encoding"))
+
+	if v, ok := gzipCheck[ae]; ok {
+		return v
+	}
+
+	return false
+}
+
 func (s *serverStream) doSend() {
-	if _, err := s.response.WriteTo(s.connection); err != nil {
+	var err error
+	if testNeedGzip(s) {
+		err = s.response.WriteGzip(bufio.NewWriter(s.connection))
+	} else {
+		_, err = s.response.WriteTo(s.connection)
+	}
+
+	if err != nil {
 		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send server response error: %+v", err)
 	} else {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
