@@ -54,10 +54,10 @@ type ClusterType string
 
 // Group of cluster type
 const (
-	STATIC_CLUSTER  ClusterType = "STATIC"
-	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
-	DYNAMIC_CLUSTER ClusterType = "DYNAMIC"
-	EDS_CLUSTER     ClusterType = "EDS"
+	STATIC_CLUSTER     ClusterType = "STATIC"
+	SIMPLE_CLUSTER     ClusterType = "SIMPLE"
+	STRICT_DNS_CLUSTER ClusterType = "STRICT_DNS"
+	EDS_CLUSTER        ClusterType = "EDS"
 )
 
 // LbType
@@ -65,9 +65,16 @@ type LbType string
 
 // Group of load balancer type
 const (
-	LB_RANDOM     LbType = "LB_RANDOM"
-	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
+	LB_RANDOM        LbType = "LB_RANDOM"
+	LB_ROUNDROBIN    LbType = "LB_ROUNDROBIN"
 	LB_LEAST_REQUEST LbType = "LB_LEAST_REQUEST"
+)
+
+type DnsLookupFamily string
+
+const (
+	V4Only DnsLookupFamily = "V4_ONLY"
+	V6Only DnsLookupFamily = "V6_ONLY"
 )
 
 // Cluster represents a cluster's information
@@ -87,6 +94,11 @@ type Cluster struct {
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
 	LbConfig             IsCluster_LbConfig  `json:"lbconfig,omitempty"`
+	DnsRefreshRate       *api.DurationConfig `json:"dns_refresh_rate,omitempty"`
+	RespectDnsTTL        bool                `json:"respect_dns_ttl,omitempty"`
+	DnsLookupFamily      DnsLookupFamily     `json:"dns_lookup_family,omitempty"`
+	DnsResolverFile      string              `json:"dns_resolver_file,omitempty"`
+	DnsResolverPort      string              `json:"dns_resolver_port,omitempty"`
 }
 
 // HealthCheck is a configuration of health check
