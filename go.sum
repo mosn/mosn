@@ -199,5 +199,5 @@ mosn.io/api v0.0.0-20200416082846-2e7ce9a85557 h1:dfkhSEeVvUV8D+6a9mcvxciexjhcuE
 mosn.io/api v0.0.0-20200416082846-2e7ce9a85557/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d h1:p5BKQJrfU67nkQciB3Bxh9SPpdT+oGBVLfOQxuwhUKQ=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
-mosn.io/pkg v0.0.0-20200424031850-d58c95786d4c h1:XJfjerVUY5UDM2zQDvABxMmm0t7epRmACBUeXakYNZQ=
-mosn.io/pkg v0.0.0-20200424031850-d58c95786d4c/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
+mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b h1:sLIM8d3bKnrOoqmB8C6WPw3mQ8qitqUujPTrNcZwfPw=
+mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=

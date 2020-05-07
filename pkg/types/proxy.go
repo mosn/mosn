@@ -39,7 +39,7 @@ const (
 	DownRecvTrailer
 	Oneway
 	Retry
-	WaitNofity
+	WaitNotify
 	UpFilter
 	UpRecvHeader
 	UpRecvData

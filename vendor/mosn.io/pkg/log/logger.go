@@ -366,11 +366,12 @@ func (l *Logger) startRotate() {
 		}
 		var interval time.Duration
 		// check need to rotate right now
-		if time.Now().Sub(l.create) > time.Duration(l.roller.MaxTime)*time.Second {
+		now := time.Now()
+		if now.Sub(l.create) > time.Duration(l.roller.MaxTime)*time.Second {
 			interval = 0
 		} else {
 			// caculate the next time need to rotate
-			interval = time.Duration(l.roller.MaxTime-(l.create.Unix()+int64(localOffset))%l.roller.MaxTime) * time.Second
+			interval = time.Duration(l.roller.MaxTime-(now.Unix()+int64(localOffset))%l.roller.MaxTime) * time.Second
 		}
 		doRotate(l, interval)
 	}, func(r interface{}) {
@@ -397,7 +398,7 @@ func doRotateFunc(l *Logger, interval time.Duration) {
 			go l.Reopen()
 
 			if interval == 0 { // recaculate interval
-				interval = time.Duration(l.roller.MaxTime-(l.create.Unix()+int64(localOffset))%l.roller.MaxTime) * time.Second
+				interval = time.Duration(l.roller.MaxTime-(now.Unix()+int64(localOffset))%l.roller.MaxTime) * time.Second
 			} else {
 				interval = time.Duration(l.roller.MaxTime) * time.Second
 			}

@@ -493,7 +493,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 
 			// no oneway, skip types.Retry
-			phase = types.WaitNofity
+			phase = types.WaitNotify
 
 		// retry request
 		case types.Retry:
@@ -511,7 +511,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			phase++
 
 		// wait for upstreamRequest or reset
-		case types.WaitNofity:
+		case types.WaitNotify:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
 			}
