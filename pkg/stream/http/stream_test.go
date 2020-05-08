@@ -23,6 +23,7 @@ import (
 	"net"
 
 	"bytes"
+	"context"
 	"fmt"
 
 	"github.com/valyala/fasthttp"
@@ -30,7 +31,9 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
+	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -98,7 +101,7 @@ func Test_header_capitalization(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
-			"Args": "Hello, world!",
+			"Args":                            "Hello, world!",
 		},
 	}
 
@@ -233,7 +236,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -266,6 +269,43 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 		t.Errorf("csc.CheckReasonError(true, types.OnConnect) got %v , want %v", res, types.StreamConnectionSuccessed)
 	}
 
+}
+
+func TestNeedGzip(t *testing.T) {
+	s := &serverStream{
+		stream: stream{
+			ctx:      variable.NewVariableContext(context.Background()),
+			response: &fasthttp.Response{},
+			request:  &fasthttp.Request{},
+		},
+	}
+
+	variable.SetVariableValue(s.ctx, types.VarProxyGzipSwitch, "on")
+
+	s.request.Header.Set("Accept-Encoding", "gzip")
+	needGzip := testNeedGzip(s)
+	if !needGzip {
+		t.Fatal("should be gzip")
+	}
+
+	s.request.Header.Set("Accept-Encoding", "gzip,deflate")
+	needGzip = testNeedGzip(s)
+	if !needGzip {
+		t.Fatal("should be gzip")
+	}
+
+	s.request.Header.Del("Accept-Encoding")
+	needGzip = testNeedGzip(s)
+	if needGzip {
+		t.Fatal("should be no gzip")
+	}
+
+	s.request.Header.Set("Accept-Encoding", "gzip,deflate")
+	s.response.Header.Set("Content-Encoding", "gzip")
+	needGzip = testNeedGzip(s)
+	if needGzip {
+		t.Fatal("should be no gzip")
+	}
 }
 
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
