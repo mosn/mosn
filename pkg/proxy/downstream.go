@@ -308,7 +308,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	if !atomic.CompareAndSwapUint32(&s.downstreamReset, 0, 1) {
 		return
 	}
-
+	log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
 	s.resetReason = reason
 
 	s.sendNotify()
@@ -493,7 +493,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			}
 
 			// no oneway, skip types.Retry
-			phase = types.WaitNofity
+			phase = types.WaitNotify
 
 		// retry request
 		case types.Retry:
@@ -511,7 +511,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			phase++
 
 		// wait for upstreamRequest or reset
-		case types.WaitNofity:
+		case types.WaitNotify:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
 			}
@@ -752,6 +752,7 @@ func (s *downStream) receiveData(endStream bool) {
 	if s.processDone() {
 		return
 	}
+
 	data := s.downstreamReqDataBuf
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] receive data = %v", data)
@@ -1459,6 +1460,10 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 	if s.directResponse {
 		s.directResponse = false
+
+		// don't retry
+		s.retryState = nil
+
 		if s.oneway {
 			phase = types.Oneway
 		} else {

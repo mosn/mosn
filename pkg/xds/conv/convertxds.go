@@ -26,6 +26,7 @@ import (
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	xdsv2    "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -128,12 +129,23 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			Hosts: convertClusterHosts(xdsCluster.GetHosts()),
 			Spec:  convertSpec(xdsCluster),
 			TLS:   convertTLS(xdsCluster.GetTlsContext()),
+			LbConfig: convertLbConfig(xdsCluster.LbConfig),
 		}
 
 		clusters = append(clusters, cluster)
 	}
 
 	return clusters
+}
+
+// TODO support more LB converter
+func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
+	switch config.(type) {
+	case *xdsv2.Cluster_LeastRequestLbConfig:
+		return &v2.LeastRequestLbConfig{ChoiceCount:config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
+	default:
+		return nil
+	}
 }
 
 func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.Host {
@@ -987,6 +999,7 @@ func convertLbPolicy(xdsLbPolicy xdsapi.Cluster_LbPolicy) v2.LbType {
 	case xdsapi.Cluster_ROUND_ROBIN:
 		return v2.LB_ROUNDROBIN
 	case xdsapi.Cluster_LEAST_REQUEST:
+		return v2.LB_LEAST_REQUEST
 	case xdsapi.Cluster_RING_HASH:
 	case xdsapi.Cluster_RANDOM:
 		return v2.LB_RANDOM

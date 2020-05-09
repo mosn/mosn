@@ -67,6 +67,7 @@ type LbType string
 const (
 	LB_RANDOM     LbType = "LB_RANDOM"
 	LB_ROUNDROBIN LbType = "LB_ROUNDROBIN"
+	LB_LEAST_REQUEST LbType = "LB_LEAST_REQUEST"
 )
 
 // Cluster represents a cluster's information
@@ -85,6 +86,7 @@ type Cluster struct {
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
+	LbConfig             IsCluster_LbConfig  `json:"lbconfig,omitempty"`
 }
 
 // HealthCheck is a configuration of health check

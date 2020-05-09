@@ -114,5 +114,4 @@ func getStreamType(pkg []byte) (byte, error) {
 		return CmdTypeUndefine, nil
 
 	}
-	return CmdTypeUndefine, nil
 }

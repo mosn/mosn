@@ -31,6 +31,7 @@ import (
 
 	gsyslog "github.com/hashicorp/go-syslog"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 var (
@@ -70,6 +71,8 @@ type Logger struct {
 	disable bool
 	// implementation elements
 	create          time.Time
+	once            sync.Once
+	stopRotate      chan struct{}
 	reopenChan      chan struct{}
 	closeChan       chan struct{}
 	writeBufferChan chan buffer.IoBuffer
@@ -134,6 +137,7 @@ func GetOrCreateLogger(output string, roller *Roller) (*Logger, error) {
 		writeBufferChan: make(chan buffer.IoBuffer, 500),
 		reopenChan:      make(chan struct{}),
 		closeChan:       make(chan struct{}),
+		stopRotate:      make(chan struct{}),
 		// writer and create will be setted in start()
 	}
 	err := lg.start()
@@ -187,6 +191,7 @@ func (l *Logger) start() error {
 					l.create = time.Now()
 				}
 				l.writer = file
+				l.once.Do(l.startRotate) // start rotate, only once
 			}
 		}
 	}
@@ -224,6 +229,7 @@ func (l *Logger) handler() {
 					buffer.PutIoBuffer(buf)
 				default:
 					l.stop()
+					close(l.stopRotate)
 					return
 				}
 			}
@@ -352,12 +358,36 @@ func (l *Logger) Fatalln(args ...interface{}) {
 	os.Exit(1)
 }
 
-func (l *Logger) Write(p []byte) (n int, err error) {
-	// default roller by daily
-	if !l.create.IsZero() {
+func (l *Logger) startRotate() {
+	utils.GoWithRecover(func() {
+		// roller not by time
+		if l.create.IsZero() {
+			return
+		}
+		var interval time.Duration
+		// check need to rotate right now
 		now := time.Now()
-		if (l.create.Unix()+int64(localOffset))/(l.roller.MaxTime) !=
-			(now.Unix()+int64(localOffset))/(l.roller.MaxTime) {
+		if now.Sub(l.create) > time.Duration(l.roller.MaxTime)*time.Second {
+			interval = 0
+		} else {
+			// caculate the next time need to rotate
+			interval = time.Duration(l.roller.MaxTime-(now.Unix()+int64(localOffset))%l.roller.MaxTime) * time.Second
+		}
+		doRotate(l, interval)
+	}, func(r interface{}) {
+		l.startRotate()
+	})
+}
+
+var doRotate func(l *Logger, interval time.Duration) = doRotateFunc
+
+func doRotateFunc(l *Logger, interval time.Duration) {
+	for {
+		select {
+		case <-l.stopRotate:
+			return
+		case <-time.After(interval):
+			now := time.Now()
 			// ignore the rename error, in case the l.output is deleted
 			if l.roller.MaxTime == defaultRotateTime {
 				os.Rename(l.output, l.output+"."+l.create.Format("2006-01-02"))
@@ -365,10 +395,18 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 				os.Rename(l.output, l.output+"."+l.create.Format("2006-01-02_15"))
 			}
 			l.create = now
-			//TODO: recover?
 			go l.Reopen()
+
+			if interval == 0 { // recaculate interval
+				interval = time.Duration(l.roller.MaxTime-(now.Unix()+int64(localOffset))%l.roller.MaxTime) * time.Second
+			} else {
+				interval = time.Duration(l.roller.MaxTime) * time.Second
+			}
 		}
 	}
+}
+
+func (l *Logger) Write(p []byte) (n int, err error) {
 	return l.writer.Write(p)
 }
 

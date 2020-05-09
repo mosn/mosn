@@ -32,8 +32,10 @@ type mockHost struct {
 	name       string
 	addr       string
 	meta       api.Metadata
+	w          uint32
 	healthFlag *uint64
 	types.Host
+	stats types.HostStats
 }
 
 func (h *mockHost) Hostname() string {
@@ -72,6 +74,13 @@ func (h *mockHost) SetHealthFlag(flag api.HealthFlag) {
 func (h *mockHost) HealthFlag() api.HealthFlag {
 	return api.HealthFlag(atomic.LoadUint64(h.healthFlag))
 }
+func (h *mockHost) HostStats() types.HostStats {
+	return h.stats
+}
+
+func (h *mockHost) Weight() uint32 {
+	return h.w
+}
 
 type ipPool struct {
 	idx int
@@ -92,6 +101,7 @@ func (pool *ipPool) MakeHosts(size int, meta api.Metadata) []types.Host {
 			meta: meta,
 		}
 		host.name = host.addr
+		host.stats = newHostStats(meta["cluster"], host.addr)
 		hosts[i] = host
 	}
 	return hosts
