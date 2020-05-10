@@ -5,7 +5,6 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/pkg/buffer"
 )
 
@@ -26,12 +25,6 @@ func NewSendFilter(config *v2.FaultToleranceFilterConfig) *SendFilter {
 func (f *SendFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	if !f.config.Enabled {
 		return api.StreamFilterContinue
-	}
-
-	if _, ok := headers.(*bolt.ResponseHeader); !ok {
-		if _, ok := headers.(*bolt.RequestHeader); !ok {
-			return api.StreamFilterContinue
-		}
 	}
 
 	newDimension := regulator.GetNewDimensionFunc()
