@@ -1,4 +1,4 @@
-package sofarpc
+package faulttolerance
 
 import (
 	"context"
