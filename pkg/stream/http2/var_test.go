@@ -42,11 +42,14 @@ func Test_get_prefixProtocolVar(t *testing.T) {
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP2)
 
 	actual, err := variable.GetProtocolResource(ctx, api.HEADER, headerName)
-	if err != nil {
-		t.Error(err)
-		t.FailNow()
-	}
-	if !assert.Equalf(t, expect, actual, "header value expect to be %s, but get %s") {
-		t.FailNow()
-	}
+	assert.NoErrorf(t, err, "get protocol header failed")
+	assert.Equalf(t, expect, actual, "header value expect to be %s, but get %s")
+
+	// test cookie
+	cookieName := "cookie_key"
+	expect = "cookie_value"
+	headers.Set("Cookie", "cookie_key=cookie_value; fake_cookie_key=fake_cookie_value;")
+	actual, err = variable.GetProtocolResource(ctx, api.COOKIE, cookieName)
+	assert.NoErrorf(t, err, "get protocol cookie failed")
+	assert.Equalf(t, expect, actual, "cookie value expect to be %s, but get %s")
 }

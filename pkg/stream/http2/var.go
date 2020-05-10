@@ -20,6 +20,7 @@ package http2
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -31,13 +32,18 @@ import (
 var (
 	headerName  = fmt.Sprintf("%s_%s", protocol.HTTP2, types.VarProtocolRequestHeader)
 	headerIndex = len(headerName)
+	cookieName  = fmt.Sprintf("%s_%s", protocol.HTTP2, types.VarProtocolCookie)
+	cookieIndex = len(cookieName)
 )
 
 func init() {
 	variable.RegisterPrefixVariable(headerName,
 		variable.NewBasicVariable(headerName, nil, headerGetter, nil, 0))
+	variable.RegisterPrefixVariable(cookieName,
+		variable.NewBasicVariable(cookieName, nil, cookieGetter, nil, 0))
 
 	variable.RegisterProtocolResource(protocol.HTTP2, api.HEADER, types.VarProtocolRequestHeader)
+	variable.RegisterProtocolResource(protocol.HTTP2, api.COOKIE, types.VarProtocolCookie)
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
@@ -56,4 +62,29 @@ func headerGetter(ctx context.Context, value *variable.IndexedValue, data interf
 	}
 
 	return header, nil
+}
+
+func cookieGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
+	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
+	if !ok {
+		return variable.ValueNotFound, nil
+	}
+	cookieKey, ok := data.(string)
+	if !ok {
+		return variable.ValueNotFound, nil
+	}
+
+	cookiePrefix := fmt.Sprintf("%s=", cookieKey[cookieIndex:])
+	cookieString, found := headers.Get("Cookie")
+	if !found {
+		return variable.ValueNotFound, nil
+	}
+
+	for _, cookieKV := range strings.Split(cookieString, ";") {
+		kv := strings.TrimSpace(cookieKV)
+		if strings.HasPrefix(kv, cookiePrefix) {
+			return strings.TrimSpace(strings.TrimPrefix(kv, cookiePrefix)), nil
+		}
+	}
+	return variable.ValueNotFound, nil
 }
