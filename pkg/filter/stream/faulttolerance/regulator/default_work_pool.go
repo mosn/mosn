@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"mosn.io/pkg/utils"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 )
@@ -46,15 +45,6 @@ func (g *WorkGoroutine) work() {
 		}
 		return true
 	})
-}
-
-func (g *WorkGoroutine) getApp(key string) string {
-	if index := strings.Index(key, "@"); index != -1 {
-		if app := key[:index]; app != "" {
-			return app
-		}
-	}
-	return key
 }
 
 type DefaultWorkPool struct {
