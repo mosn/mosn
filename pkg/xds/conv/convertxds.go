@@ -109,12 +109,14 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 
 	listenerConfig.ListenerFilters = convertListenerFilters(xdsListener.GetListenerFilters())
 
-	listenerConfig.FilterChains = convertFilterChains(xdsListener)
+	var rawSelectedFilters *xdslistener.Filter
+	listenerConfig.FilterChains, rawSelectedFilters = convertFilterChainsAndGetRawFilter(xdsListener)
 
 	if listenerConfig.FilterChains != nil &&
 		len(listenerConfig.FilterChains) == 1 &&
-		listenerConfig.FilterChains[0].Filters != nil {
-		listenerConfig.StreamFilters = convertStreamFilters(xdsListener.FilterChains[0].Filters[0])
+		listenerConfig.FilterChains[0].Filters != nil &&
+		rawSelectedFilters != nil {
+		listenerConfig.StreamFilters = convertStreamFilters(rawSelectedFilters)
 	}
 
 	return listenerConfig
@@ -489,15 +491,15 @@ func convertMixerConfig(s *any.Any) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func convertFilterChains(xdsListener *xdsapi.Listener) []v2.FilterChain {
+func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.FilterChain, *xdslistener.Filter) {
 	if xdsListener == nil {
-		return nil
+		return nil, nil
 	}
 
 	xdsFilterChains := xdsListener.GetFilterChains()
 
 	if xdsFilterChains == nil {
-		return nil
+		return nil, nil
 	}
 
 	useOriginalDst := false
@@ -527,23 +529,6 @@ func convertFilterChains(xdsListener *xdsapi.Listener) []v2.FilterChain {
 		}
 	}
 
-	return []v2.FilterChain{{
-		FilterChainConfig: v2.FilterChainConfig{
-			FilterChainMatch: chainMatch,
-			Filters:          convertFilters(useOriginalDst, xdsFilters),
-		},
-		TLSContexts: nil,
-	},
-	}
-
-}
-
-func convertFilters(useOriginalDst bool, xdsFilters []*xdslistener.Filter) []v2.Filter {
-	if xdsFilters == nil {
-		return nil
-	}
-
-	filters := make([]v2.Filter, 0, len(xdsFilters))
 	// A port supports only one protocol
 	//todo support more Listener & One Listener support more Protocol
 	var oneFilter *xdslistener.Filter
@@ -559,7 +544,26 @@ func convertFilters(useOriginalDst bool, xdsFilters []*xdslistener.Filter) []v2.
 			break
 		}
 	}
-	filterMaps := convertFilterConfig(oneFilter)
+
+	return []v2.FilterChain{{
+		FilterChainConfig: v2.FilterChainConfig{
+			FilterChainMatch: chainMatch,
+			Filters:          convertFilters(oneFilter),
+		},
+		TLSContexts: nil,
+	},
+	}, oneFilter
+
+}
+
+func convertFilters(xdsFilters *xdslistener.Filter) []v2.Filter {
+	if xdsFilters == nil {
+		return nil
+	}
+
+	filters := make([]v2.Filter, 0)
+
+	filterMaps := convertFilterConfig(xdsFilters)
 	for typeKey, configValue := range filterMaps {
 		filters = append(filters, v2.Filter{
 			typeKey,
