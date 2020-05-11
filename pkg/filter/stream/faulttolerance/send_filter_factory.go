@@ -42,6 +42,9 @@ func parseConfig(cfg map[string]interface{}) (*v2.FaultToleranceFilterConfig, er
 	if err := json.Unmarshal(data, ruleJson); err != nil {
 		return nil, err
 	}
+
+	fillDefaultValue(ruleJson)
+
 	if !isLegal(ruleJson) {
 		return nil, errors.New("config is illegal")
 	}
@@ -60,6 +63,7 @@ func parseConfig(cfg map[string]interface{}) (*v2.FaultToleranceFilterConfig, er
 		ExceptionRateMultiple: ruleJson.ExceptionRateMultiple,
 		MaxIpCount:            ruleJson.MaxIpCount,
 		MaxIpRatio:            ruleJson.MaxIpRatio,
+		RecoverTime:           ruleJson.RecoverTime,
 	}
 	return filterConfig, nil
 }
@@ -78,4 +82,22 @@ func isLegal(ruleJson *config.FaultToleranceRuleJson) bool {
 		return false
 	}
 	return true
+}
+
+func fillDefaultValue(ruleJson *config.FaultToleranceRuleJson) {
+	if ruleJson.TimeWindow == 0 {
+		ruleJson.TimeWindow = 10000
+	}
+	if ruleJson.ExceptionRateMultiple == 0 {
+		ruleJson.ExceptionRateMultiple = 5
+	}
+	if ruleJson.ExceptionTypes == nil {
+		ruleJson.ExceptionTypes = []string{"502", "503", "504"}
+	}
+	if ruleJson.MaxIpCount == 0 {
+		ruleJson.MaxIpCount = 1
+	}
+	if ruleJson.RecoverTime == 0 {
+		ruleJson.RecoverTime = 15 * 60000
+	}
 }
