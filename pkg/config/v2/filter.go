@@ -56,6 +56,7 @@ type FaultToleranceFilterConfig struct {
 	MaxIpCount            int64
 	MaxIpRatio            float64
 	RecoverTime           int64
+	TaskSize              int64
 }
 
 // Network Filter's Type

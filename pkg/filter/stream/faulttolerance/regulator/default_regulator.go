@@ -14,7 +14,7 @@ type DefaultRegulator struct {
 func NewDefaultRegulator(config *v2.FaultToleranceFilterConfig) *DefaultRegulator {
 	regulator := &DefaultRegulator{
 		measureModels: new(sync.Map),
-		workPool:      NewDefaultWorkPool(20),
+		workPool:      NewDefaultWorkPool(config.TaskSize),
 		config:        config,
 	}
 	return regulator

@@ -9,4 +9,5 @@ type FaultToleranceRuleJson struct {
 	MaxIpCount            int64    `json:"maxIpCount"`
 	MaxIpRatio            float64  `json:"maxIpRatio"`
 	RecoverTime           int64    `json:"recoverTime"`
+	TaskSize              int64    `json:"taskSize"`
 }

@@ -100,4 +100,7 @@ func fillDefaultValue(ruleJson *config.FaultToleranceRuleJson) {
 	if ruleJson.RecoverTime == 0 {
 		ruleJson.RecoverTime = 15 * 60000
 	}
+	if ruleJson.TaskSize == 0 {
+		ruleJson.TaskSize = 20
+	}
 }
