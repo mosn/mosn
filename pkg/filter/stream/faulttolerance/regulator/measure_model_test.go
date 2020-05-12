@@ -158,7 +158,10 @@ func buildTestInvocationStat(index string) *InvocationStat {
 }
 
 func initInvocationStatFactory() {
-	invocationStatFactory := NewInvocationStatFactory(nil)
+	config := &v2.FaultToleranceFilterConfig{
+		TaskSize: 10,
+	}
+	invocationStatFactory := NewInvocationStatFactory(config)
 	invocationStatFactoryInstance = invocationStatFactory
 }
 
