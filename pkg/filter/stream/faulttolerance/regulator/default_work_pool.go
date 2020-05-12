@@ -5,6 +5,7 @@ import (
 	"mosn.io/pkg/utils"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -49,7 +50,7 @@ func (g *WorkGoroutine) work() {
 
 type DefaultWorkPool struct {
 	size           int64
-	workSize       int64
+	index          int64
 	workers        *sync.Map
 	randomInstance *rand.Rand
 	lock           *sync.Mutex
@@ -65,14 +66,13 @@ func NewDefaultWorkPool(size int64) *DefaultWorkPool {
 	return workPool
 }
 
-func (w *DefaultWorkPool) random() string {
-	w.lock.Lock()
-	defer w.lock.Unlock()
-	return strconv.FormatInt(w.randomInstance.Int63n(w.size), 10)
+func (w *DefaultWorkPool) roundRobin() string {
+	index := atomic.AddInt64(&w.index, 1) % w.size
+	return strconv.FormatInt(index, 10)
 }
 
 func (w *DefaultWorkPool) Schedule(model *MeasureModel) {
-	index := w.random()
+	index := w.roundRobin()
 	if value, ok := w.workers.Load(index); ok {
 		worker := value.(*WorkGoroutine)
 		worker.AddTask(model.GetKey(), model)
@@ -81,7 +81,6 @@ func (w *DefaultWorkPool) Schedule(model *MeasureModel) {
 		worker.AddTask(model.GetKey(), model)
 		if _, ok := w.workers.LoadOrStore(index, worker); !ok {
 			worker.Start()
-			w.workSize++
 		} else {
 			worker.AddTask(model.GetKey(), model)
 		}

@@ -64,9 +64,12 @@ func Test_WorkPool(t *testing.T) {
 	time.Sleep(3 * time.Second)
 
 	//
-	if workPool.workSize != 10 {
+	if workPool.index == 135 {
+		t.Log("Test_WorkPool Succeed")
+	} else {
 		t.Error("Test_WorkPool Failed")
 	}
+	//
 	if value, ok := workPool.workers.Load("6"); ok {
 		worker := value.(*WorkGoroutine)
 		count := 0
