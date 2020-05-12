@@ -46,6 +46,11 @@ type simpleCluster struct {
 }
 
 func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
+	// TODO support original dst cluster
+	if clusterConfig.ClusterType == v2.ORIGINALDST_CLUSTER {
+		clusterConfig.LbType = v2.LB_ORIGINAL_DST
+	}
+
 	info := &clusterInfo{
 		name:                 clusterConfig.Name,
 		clusterType:          clusterConfig.ClusterType,
