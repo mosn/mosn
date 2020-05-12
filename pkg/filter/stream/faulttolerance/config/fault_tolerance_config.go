@@ -2,7 +2,7 @@ package config
 
 type FaultToleranceRuleJson struct {
 	Enabled               bool     `json:"enabled"`
-	ExceptionTypes        []string `json:"exceptionTypes"`
+	ExceptionTypes        []uint32 `json:"exceptionTypes"`
 	TimeWindow            int64    `json:"timeWindow"`
 	LeastWindowCount      int64    `json:"leastWindowCount"`
 	ExceptionRateMultiple float64  `json:"exceptionRateMultiple"`

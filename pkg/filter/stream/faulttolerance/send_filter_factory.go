@@ -7,7 +7,6 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/stream/faulttolerance/config"
-	"strconv"
 )
 
 func init() {
@@ -51,9 +50,7 @@ func parseConfig(cfg map[string]interface{}) (*v2.FaultToleranceFilterConfig, er
 
 	exceptionTypes := map[uint32]bool{}
 	for _, exceptionType := range ruleJson.ExceptionTypes {
-		if code, err := strconv.ParseUint(exceptionType, 10, 32); err == nil {
-			exceptionTypes[uint32(code)] = true
-		}
+		exceptionTypes[exceptionType] = true
 	}
 	filterConfig := &v2.FaultToleranceFilterConfig{
 		Enabled:               ruleJson.Enabled,
@@ -92,7 +89,7 @@ func fillDefaultValue(ruleJson *config.FaultToleranceRuleJson) {
 		ruleJson.ExceptionRateMultiple = 5
 	}
 	if ruleJson.ExceptionTypes == nil {
-		ruleJson.ExceptionTypes = []string{"502", "503", "504"}
+		ruleJson.ExceptionTypes = []uint32{502, 503, 504}
 	}
 	if ruleJson.MaxIpCount == 0 {
 		ruleJson.MaxIpCount = 1
