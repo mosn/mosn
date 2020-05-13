@@ -123,3 +123,111 @@ Hello MOSN, response from provider: 10.13.160.4:20880
 ```
 
 ![image](https://github.com/champly/mosn/blob/feature-istio-dubbo_adapter/examples/codes/dubbo/xds/img/result.png)
+
+## use katacoda
+
+[Get Started with Istio and Kubernetes](https://katacoda.com/courses/istio/deploy-istio-on-kubernetes)
+
+### install istio
+
+```shell
+curl -L https://istio.io/downloadIstio | sh -
+
+cd istio-1.5.3/bin
+
+./istioctl operator init
+
+./istioctl manifest apply --set profile=demo
+```
+
+wait `istio` compoment Running
+
+### run demo
+
+```shell
+kubectl create namespace dubbo-app
+
+kubectl apply -f https://raw.githubusercontent.com/champly/mosn/feature-istio-dubbo_adapter/examples/codes/dubbo/xds/provider/install.yaml
+```
+
+wait provider Running
+
+```shell
+master $ kubectl get pod -n dubbo-app -o wide
+NAME                        READY   STATUS    RESTARTS   AGE     IP           NODE     NOMINATED NODE   READINESS GATES
+provider-6df94955d8-2cqm9   2/2     Running   0          8m40s   10.40.0.11   node01   <none>           <none>
+provider-6df94955d8-wm96r   2/2     Running   0          8m40s   10.40.0.9    node01   <none>           <none>
+provider-6df94955d8-x6dpd   2/2     Running   0          8m40s   10.40.0.10   node01   <none>           <none>
+```
+
+Apply ServiceEntry
+
+```shell
+kubectl apply -f https://raw.githubusercontent.com/champly/mosn/feature-istio-dubbo_adapter/examples/codes/dubbo/xds/serviceentry.yaml
+```
+
+should replace ServiceEntry's endpoint info with provider's pod ip.
+
+```shell
+master $ kubectl get serviceentry dubbo-app-se -o yaml
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.istio.io/v1alpha3","kind":"ServiceEntry","metadata":{"annotations":{},"name":"dubbo-app-se","namespace":"default"},"spec":{"endpoints":[{"address":"10.13.160.40"},{"address":"10.13.160.93"},{"address":"10.13.160.4"}],"hosts":["dubbo-mosn.io.dubbo.DemoService-sayHello"],"location":"MESH_INTERNAL","ports":[{"name":"dubbo-app-se","number":20882,"protocol":"TCP"}],"resolution":"STATIC"}}
+  creationTimestamp: "2020-05-13T02:14:55Z"
+  generation: 2
+  name: dubbo-app-se
+  namespace: default
+  resourceVersion: "34859"
+  selfLink: /apis/networking.istio.io/v1beta1/namespaces/default/serviceentries/dubbo-app-se
+  uid: 899a6497-94bf-11ea-a55c-0242ac110013
+spec:
+  endpoints:
+  - address: 10.40.0.9
+  - address: 10.40.0.10
+  - address: 10.40.0.11
+  hosts:
+  - dubbo-mosn.io.dubbo.DemoService-sayHello
+  location: MESH_INTERNAL
+  ports:
+  - name: dubbo-app-se
+    number: 20882
+    protocol: TCP
+  resolution: STATIC
+```
+
+run consumer
+
+```shell
+kubectl apply -f https://raw.githubusercontent.com/champly/mosn/feature-istio-dubbo_adapter/examples/codes/dubbo/xds/consumer/install.yaml
+```
+
+wait consumer Running, look logs
+
+```shell
+master $ kubectl logs -f -n dubbo-app consumer-7659dfcff5-fxsgg -c consumer
+[13/05/20 02:17:08:843 UTC] main  INFO logger.LoggerFactory: using logger: org.apache.dubbo.common.logger.log4j.Log4jLoggerAdapter
+current port:20881
+[13/05/20 02:17:09:246 UTC] main  WARN config.AbstractConfig:  [DUBBO] There's no valid metadata config found, if you are using the simpli
+fied mode of registry url, please make sure you have a metadata address configured properly., dubbo version: 2.7.3, current host: 10.40.0.
+12
+[13/05/20 02:17:09:637 UTC] main  INFO transport.AbstractClient:  [DUBBO] Succeed connect to server /10.40.0.12:20881 from NettyClient 10.
+40.0.12 using dubbo version 2.7.3, channel is NettyChannel [channel=[id: 0x6613fb31, L:/10.40.0.12:58388 - R:/10.40.0.12:20881]], dubbo ve
+rsion: 2.7.3, current host: 10.40.0.12
+[13/05/20 02:17:09:637 UTC] main  INFO transport.AbstractClient:  [DUBBO] Start NettyClient consumer-7659dfcff5-fxsgg/10.40.0.12 connect t
+o the server /10.40.0.12:20881, dubbo version: 2.7.3, current host: 10.40.0.12
+[13/05/20 02:17:09:710 UTC] main  INFO config.AbstractConfig:  [DUBBO] Refer dubbo service mosn.io.dubbo.DemoService from url dubbo://127.
+0.0.1:20881/mosn.io.dubbo.DemoService?application=dubbo-examples-consumer&generic=false&interface=mosn.io.dubbo.DemoService&lazy=false&pid
+=1&qos.enable=false&register.ip=10.40.0.12&remote.application=&side=consumer&sticky=false, dubbo version: 2.7.3, current host: 10.40.0.12
+Hello MOSN, response from provider: 10.40.0.10:20880
+Hello MOSN, response from provider: 10.40.0.10:20880
+Hello MOSN, response from provider: 10.40.0.11:20880
+Hello MOSN, response from provider: 10.40.0.10:20880
+Hello MOSN, response from provider: 10.40.0.11:20880
+Hello MOSN, response from provider: 10.40.0.9:20880
+Hello MOSN, response from provider: 10.40.0.11:20880
+Hello MOSN, response from provider: 10.40.0.9:20880
+Hello MOSN, response from provider: 10.40.0.10:20880
+```

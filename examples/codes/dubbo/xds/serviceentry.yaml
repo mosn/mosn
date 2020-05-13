@@ -2,13 +2,13 @@
 apiVersion: networking.istio.io/v1alpha3
 kind: ServiceEntry
 metadata:
-  name: aabb-server
+  name: dubbo-app-se
 spec:
   hosts:
     - dubbo-mosn.io.dubbo.DemoService-sayHello
   ports:
     - number: 20882
-      name: aabb-server
+      name: dubbo-app-se
       protocol: TCP
   location: MESH_INTERNAL
   resolution: STATIC
