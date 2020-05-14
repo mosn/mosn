@@ -270,15 +270,22 @@ func knownFeatures(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	data, err := json.Marshal(featuregate.KnownFeatures())
-	if err != nil {
-		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "known features", err)
-		w.WriteHeader(500)
-		msg := fmt.Sprintf(errMsgFmt, "internal error")
-		fmt.Fprint(w, msg)
+	r.ParseForm()
+	if len(r.Form) == 0 {
+		data, err := json.Marshal(featuregate.KnownFeatures())
+		if err != nil {
+			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "known features", err)
+			w.WriteHeader(500)
+			msg := fmt.Sprintf(errMsgFmt, "internal error")
+			fmt.Fprint(w, msg)
+			return
+		}
+		w.Write(data)
 		return
 	}
-	w.Write(data)
+	// support only one feature
+	value := r.FormValue("key")
+	fmt.Fprintf(w, "%t", featuregate.Enabled(featuregate.Feature(value)))
 }
 
 type envResults struct {

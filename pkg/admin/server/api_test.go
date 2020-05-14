@@ -47,6 +47,23 @@ func TestKnownFeatures(t *testing.T) {
 	}
 }
 
+func TestSingleFeatureState(t *testing.T) {
+	r := httptest.NewRequest("GET", "http://127.0.0.1/api/v1/features?key=auto_config", nil)
+	w := httptest.NewRecorder()
+	knownFeatures(w, r)
+	resp := w.Result()
+	if resp.StatusCode != 200 {
+		t.Fatalf("response status got %d", resp.StatusCode)
+	}
+	b, err := ioutil.ReadAll(w.Body)
+	if err != nil {
+		t.Fatalf("response read error: %v", err)
+	}
+	if string(b) != "false" {
+		t.Fatalf("feature state is not expected: %s", string(b))
+	}
+}
+
 func TestGetEnv(t *testing.T) {
 	os.Setenv("t1", "test")
 	os.Setenv("t3", "")
