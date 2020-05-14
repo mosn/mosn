@@ -83,8 +83,12 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 	// Add common callbacks when create
 	// common callbacks should be registered and configured
 	for _, name := range cfg.CommonCallbacks {
-		if cb, ok := commonCallbacks[name]; ok {
-			hc.AddHostCheckCompleteCb(cb)
+		v, exists := commonCallbacks.Load(name)
+		if exists {
+			if cb, ok := v.(types.HealthCheckCb); ok {
+				hc.AddHostCheckCompleteCb(cb)
+			}
+
 		}
 	}
 	return hc

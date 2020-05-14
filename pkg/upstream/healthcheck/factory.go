@@ -18,6 +18,8 @@
 package healthcheck
 
 import (
+	"sync"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
@@ -26,7 +28,6 @@ var sessionFactories map[types.ProtocolName]types.HealthCheckSessionFactory
 
 func init() {
 	sessionFactories = make(map[types.ProtocolName]types.HealthCheckSessionFactory)
-	commonCallbacks = make(map[string]types.HealthCheckCb)
 }
 
 func RegisterSessionFactory(p types.ProtocolName, f types.HealthCheckSessionFactory) {
@@ -47,13 +48,13 @@ func CreateHealthCheck(cfg v2.HealthCheck) types.HealthChecker {
 
 // common callback is not related to specific cluster, which can be registered before cluster create
 // and bind to health checker by config
-var commonCallbacks map[string]types.HealthCheckCb
+var commonCallbacks sync.Map
 
 func RegisterCommonCallbacks(name string, cb types.HealthCheckCb) bool {
-	if _, ok := commonCallbacks[name]; ok {
-		// can not regitser same name
+	// can not regitser same name
+	_, loaded := commonCallbacks.LoadOrStore(name, cb)
+	if loaded {
 		return false
 	}
-	commonCallbacks[name] = cb
-	return false
+	return true
 }
