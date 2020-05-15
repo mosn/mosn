@@ -20,6 +20,8 @@ package xprotocol
 import (
 	"context"
 	"fmt"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/stream/connpool"
 	"strconv"
 
 	"mosn.io/mosn/pkg/log"
@@ -27,6 +29,10 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 )
+
+func init() {
+	connpool.RegisterProtoConnPoolFactory(protocol.Xprotocol)
+}
 
 // types.Stream
 // types.StreamSender

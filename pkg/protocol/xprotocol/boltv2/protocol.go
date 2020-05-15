@@ -182,3 +182,8 @@ func (proto *boltv2Protocol) Mapping(httpStatusCode uint32) uint32 {
 		return uint32(bolt.ResponseStatusUnknown)
 	}
 }
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *boltv2Protocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}

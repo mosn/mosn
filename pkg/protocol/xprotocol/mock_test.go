@@ -58,6 +58,11 @@ func (mp *mockProtocol) Mapping(httpStatusCode uint32) uint32 {
 	return 0
 }
 
+func (mp *mockProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+
 func mockMatcher(data []byte) types.MatchResult {
 	return types.MatchSuccess
 }

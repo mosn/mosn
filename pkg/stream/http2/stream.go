@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mosn.io/mosn/pkg/stream/connpool"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -42,6 +43,7 @@ import (
 )
 
 func init() {
+	connpool.RegisterProtoConnPoolFactory(protocol.HTTP2)
 	str.Register(protocol.HTTP2, &streamConnFactory{})
 }
 

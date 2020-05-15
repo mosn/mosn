@@ -233,7 +233,6 @@ const (
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
-	Protocol() api.Protocol
 
 	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
 
@@ -250,9 +249,6 @@ type ConnectionPool interface {
 
 	// Host get host
 	Host() Host
-
-	// UpdateHost is update host
-	UpdateHost(Host)
 }
 
 type PoolEventListener interface {

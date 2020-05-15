@@ -193,6 +193,7 @@ func TestClusterHealthCheck(t *testing.T) {
 
 // If a cluster adds/remove hosts via admin api, the health check should know it
 func TestHealthCheckWithDynamicCluster(t *testing.T) {
+	healthStore = sync.Map{}
 	var testServers []*healthCheckTestServer
 	results := make(map[string]int)
 	for i := 0; i < 3; i++ {
@@ -270,7 +271,7 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
 		if host.AddressString() == snew.hostConfig.Address {
-			t.Fatal("choose a unhealthy host:", host.Health())
+			t.Fatal("choose a unhealthy host:", host.AddressString(), host.Health(), time.Now())
 		}
 	}
 	// choose policy

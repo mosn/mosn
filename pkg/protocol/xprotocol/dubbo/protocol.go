@@ -119,3 +119,8 @@ func (proto *dubboProtocol) Mapping(httpStatusCode uint32) uint32 {
 	// not support
 	return 0
 }
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *dubboProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}

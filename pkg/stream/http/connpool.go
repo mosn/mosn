@@ -25,7 +25,6 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
@@ -33,11 +32,6 @@ import (
 )
 
 //const defaultIdleTimeout = time.Second * 60 // not used yet
-
-func init() {
-	network.RegisterNewPoolFactory(protocol.HTTP1, NewConnPool)
-	types.RegisterConnPoolFactory(protocol.HTTP1, true)
-}
 
 // types.ConnectionPool
 type connPool struct {
@@ -58,10 +52,6 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 		supportTLS: host.SupportTLS(),
 	}
 	pool.host.Store(host)
-
-	if pool.statReport {
-		pool.report()
-	}
 
 	return pool
 }

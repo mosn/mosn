@@ -163,7 +163,7 @@ func (p *mockConnPool) UpdateHost(h types.Host) {
 }
 
 func init() {
-	network.RegisterNewPoolFactory(mockProtocol, func(h types.Host) types.ConnectionPool {
+	network.RegisterNewPoolFactory(mockProtocol, func(protocol types.ProtocolName, h types.Host) types.ConnectionPool {
 		pool := &mockConnPool{
 			supportTLS: h.SupportTLS(),
 		}

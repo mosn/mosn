@@ -25,16 +25,10 @@ import (
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 )
-
-func init() {
-	network.RegisterNewPoolFactory(protocol.HTTP2, NewConnPool)
-	types.RegisterConnPoolFactory(protocol.HTTP2, true)
-}
 
 // types.ConnectionPool
 // activeClient used as connected client
@@ -81,10 +75,7 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
-func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
-
-	activeClient := func() *activeClient {
+func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types.PoolFailureReason) {
 		p.mux.Lock()
 		defer p.mux.Unlock()
 		if p.activeClient != nil && atomic.LoadUint32(&p.activeClient.goaway) == 1 {
@@ -93,12 +84,20 @@ func (p *connPool) NewStream(ctx context.Context,
 		if p.activeClient == nil {
 			p.activeClient = newActiveClient(ctx, p)
 		}
-		return p.activeClient
-	}()
+		if p.activeClient == nil {
+			return nil, types.ConnectionFailure
+		}
+
+		return p.activeClient, ""
+}
+
+func (p *connPool) NewStream(ctx context.Context,
+	receiver types.StreamReceiveListener, listener types.PoolEventListener) {
 
 	host := p.Host()
+	activeClient, reason := p.getAvailableClient(ctx)
 	if activeClient == nil {
-		listener.OnFailure(types.ConnectionFailure, host)
+		listener.OnFailure(reason, host)
 		return
 	}
 
@@ -113,7 +112,7 @@ func (p *connPool) NewStream(ctx context.Context,
 		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 		host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
+		streamEncoder := activeClient.client.NewStream(ctx, receiver)
 		streamEncoder.GetStream().AddEventListener(activeClient)
 
 		listener.OnReady(streamEncoder, host)

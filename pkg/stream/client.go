@@ -19,7 +19,6 @@ package stream
 
 import (
 	"context"
-
 	metrics "github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"

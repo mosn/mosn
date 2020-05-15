@@ -19,20 +19,17 @@ package xprotocol
 
 import (
 	"context"
-	"sync"
-	"sync/atomic"
-	"time"
-
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
 const (
@@ -40,11 +37,6 @@ const (
 	Connecting
 	Connected
 )
-
-func init() {
-	network.RegisterNewPoolFactory(protocol.Xprotocol, NewConnPool)
-	types.RegisterConnPoolFactory(protocol.Xprotocol, true)
-}
 
 // types.ConnectionPool
 // activeClient used as connected client
@@ -57,7 +49,7 @@ type connPool struct {
 }
 
 // NewConnPool
-func NewConnPool(host types.Host) types.ConnectionPool {
+func NewConnPool(protocol api.Protocol, host types.Host) types.ConnectionPool {
 	p := &connPool{
 		supportTLS: host.SupportTLS(),
 	}
