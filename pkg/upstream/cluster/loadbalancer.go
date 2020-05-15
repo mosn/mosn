@@ -106,6 +106,7 @@ func (lb *randomLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 type roundRobinLoadBalancer struct {
 	hosts   types.HostSet
 	rrIndex uint32
+	*EdfLoadBalancer
 }
 
 type roundRobinLoadBalancerFactory struct {
@@ -121,13 +122,20 @@ func (f *roundRobinLoadBalancerFactory) newRoundRobinLoadBalancer(info types.Clu
 	if len(hostsList) != 0 {
 		idx = f.rand.Uint32() % uint32(len(hostsList))
 	}
-	return &roundRobinLoadBalancer{
+	rrLB := &roundRobinLoadBalancer{
 		hosts:   hosts,
 		rrIndex: idx,
 	}
+	rrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, rrLB.unweightChooseHost, rrLB.hostWeight)
+	return rrLB
 }
 
-func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+func (lb *roundRobinLoadBalancer) hostWeight(item WeightItem) float64 {
+	host := item.(types.Host)
+	return float64(host.Weight())
+}
+
+func (lb *roundRobinLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
 	targets := lb.hosts.Hosts()
 	total := len(targets)
 	if total == 0 {
