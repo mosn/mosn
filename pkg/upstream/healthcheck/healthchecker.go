@@ -19,7 +19,6 @@ package healthcheck
 
 import (
 	"math/rand"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -34,13 +33,14 @@ const (
 	DefaultInterval = 15 * time.Second
 )
 
+// TODO: move healthcheck package to cluster package
+
 // healthChecker is a basic implementation of a health checker.
 // we use different implementations of types.Session to implement different health checker
 type healthChecker struct {
 	//
 	sessionConfig       map[string]interface{}
 	sessionFactory      types.HealthCheckSessionFactory
-	mutex               sync.Mutex
 	checkers            map[string]*sessionChecker
 	localProcessHealthy int64
 	hosts               []types.Host
@@ -76,7 +76,6 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 		rander:             rand.New(rand.NewSource(time.Now().UnixNano())),
 		hostCheckCallbacks: []types.HealthCheckCb{},
 		sessionFactory:     f,
-		mutex:              sync.Mutex{},
 		checkers:           make(map[string]*sessionChecker),
 		stats:              newHealthCheckStats(cfg.ServiceName),
 	}
@@ -94,9 +93,8 @@ func newHealthChecker(cfg v2.HealthCheck, f types.HealthCheckSessionFactory) typ
 	return hc
 }
 
+// only called in cluster, lock in cluster
 func (hc *healthChecker) Start() {
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
 	hc.start()
 }
 
@@ -108,9 +106,8 @@ func (hc *healthChecker) start() {
 
 }
 
+// only called in cluster, lock in cluster
 func (hc *healthChecker) Stop() {
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
 	hc.stop()
 }
 
@@ -124,10 +121,9 @@ func (hc *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 	hc.hostCheckCallbacks = append(hc.hostCheckCallbacks, cb)
 }
 
+// only called in cluster, lock in cluster
 // SetHealthCheckerHostSet reset the healthchecker's hosts
 func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
 	hc.stop()
 	hc.hosts = hostSet.Hosts()
 	hc.start()
