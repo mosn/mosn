@@ -28,7 +28,6 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/healthcheck"
-	"mosn.io/pkg/utils"
 )
 
 func NewCluster(clusterConfig v2.Cluster) types.Cluster {
@@ -107,9 +106,7 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 		info:    info,
 	})
 	if sc.healthChecker != nil {
-		utils.GoWithRecover(func() {
-			sc.healthChecker.SetHealthCheckerHostSet(hostSet)
-		}, nil)
+		sc.healthChecker.SetHealthCheckerHostSet(hostSet)
 	}
 
 }
