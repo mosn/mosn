@@ -256,11 +256,20 @@ func TestPrometheusFlatternKey(t *testing.T) {
 			input:  "listener_address:0.0.0.0:9529",
 			output: "listener_address:0_0_0_0:9529",
 		},
+		{
+			input:  "mosn data info=test flattern",
+			output: "mosn_data_info_test_flattern",
+		},
+		{
+			input:  "unexpected@data(1.2.3)",
+			output: "unexpected_data_1_2_3_",
+		},
 	}
 
 	for _, c := range testcase {
-		if flattenKey(c.input) != c.output {
-			t.Error("prometheus flattern key error:", c)
+		out := flattenKey(c.input)
+		if out != c.output {
+			t.Errorf("prometheus flattern key error, got %s, want %s", out, c.output)
 		}
 	}
 }
