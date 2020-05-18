@@ -34,6 +34,7 @@ main        // 编译完成的MOSN程序
 server.go   // 模拟的Http Server
 config.json // 非TLS的配置
 tls.json    // TLS配置
+mockrequest.sh // 模拟请求脚本
 ```
 
 ## 运行说明
