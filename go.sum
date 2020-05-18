@@ -24,8 +24,8 @@ github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af/go.mod h1:5Jv4cbFiHJM
 github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5/go.mod h1:SkGFH1ia65gfNATL8TAiHDNxPzPdmEL5uirI2Uyuz6c=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
-github.com/alibaba/sentinel-golang v0.0.0-20200421053610-f61c1098f11f h1:nJ07QrvBz6sZFui7HbMMNTWyKmo9n9RVPQNtYWYXQi4=
-github.com/alibaba/sentinel-golang v0.0.0-20200421053610-f61c1098f11f/go.mod h1:Z6upiM0F53B/Ci+RWpfaA473+HMC+59v1ta01CNWOMk=
+github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30 h1:mQ5mAFtFW8lNKx8DBZV+Ri3OpcDlIpEGrkUfS0NCrmI=
+github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30/go.mod h1:Z6upiM0F53B/Ci+RWpfaA473+HMC+59v1ta01CNWOMk=
 github.com/aliyun/alibaba-cloud-sdk-go v0.0.0-20190802083043-4cd0c391755e/go.mod h1:myCDvQSzCW+wB1WAlocEru4wMGJxy+vlxHdhegi1CDQ=
 github.com/aliyun/aliyun-oss-go-sdk v0.0.0-20190307165228-86c17b95fcd5/go.mod h1:T/Aws4fEfogEE9v+HPhhw+CntffsBHJ8nXQCwKr0/g8=
 github.com/apache/dubbo-go v0.1.2-0.20200224151332-dd1a3c24d656/go.mod h1:jKjRwql1YysttGXL9UtOoMaQ/alWQ/eVFKBTLq5+B/0=

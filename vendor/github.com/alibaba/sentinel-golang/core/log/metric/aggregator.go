@@ -1,14 +1,15 @@
 package metric
 
 import (
+	"sort"
+	"sync"
+	"time"
+
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/core/config"
 	"github.com/alibaba/sentinel-golang/core/stat"
 	"github.com/alibaba/sentinel-golang/logging"
 	"github.com/alibaba/sentinel-golang/util"
-	"sort"
-	"sync"
-	"time"
 )
 
 type metricTimeMap = map[uint64][]*base.MetricItem
@@ -57,6 +58,11 @@ func InitTask() (err error) {
 		}, logger)
 	})
 	return err
+}
+
+// StopTask stops the task.
+func StopTask() {
+	stopChan <- struct{}{}
 }
 
 func writeTaskLoop() {

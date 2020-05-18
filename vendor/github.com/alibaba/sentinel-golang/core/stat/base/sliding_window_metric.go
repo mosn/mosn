@@ -249,3 +249,55 @@ func (m *SlidingWindowMetric) metricItemFromBucket(w *bucketWrap) *base.MetricIt
 	}
 	return item
 }
+
+func (m *SlidingWindowMetric) MaxConcurrency() int64 {
+	now := util.CurrentTimeMillis()
+	start, end := m.getBucketStartRange(now)
+	satisfiedBuckets := m.real.ValuesConditional(now, func(ws uint64) bool {
+		return ws >= start && ws <= end
+	})
+	var maxConcurrency int64
+	for _, w := range satisfiedBuckets {
+		mb := w.value.Load()
+		if mb == nil {
+			logger.Error("Illegal state: current bucket value is nil when calculating max concurrency")
+			continue
+		}
+		counter, ok := mb.(*MetricBucket)
+		if !ok {
+			logger.Errorf("Failed to cast data value(%+v) to MetricBucket type", mb)
+			continue
+		}
+		v := counter.MaxConcurrency()
+		if v > maxConcurrency {
+			maxConcurrency = v
+		}
+	}
+	return maxConcurrency
+}
+
+func (m *SlidingWindowMetric) SecondMaxConcurrency() int64 {
+	end := util.CurrentTimeMillis()
+	start := end - 1000
+	satisfiedBuckets := m.real.ValuesConditional(end, func(ws uint64) bool {
+		return ws >= start && ws <= end
+	})
+	var maxConcurrency int64
+	for _, w := range satisfiedBuckets {
+		mb := w.value.Load()
+		if mb == nil {
+			logger.Error("Illegal state: current bucket value is nil when calculating max concurrency")
+			continue
+		}
+		counter, ok := mb.(*MetricBucket)
+		if !ok {
+			logger.Errorf("Failed to cast data value(%+v) to MetricBucket type", mb)
+			continue
+		}
+		v := counter.MaxConcurrency()
+		if v > maxConcurrency {
+			maxConcurrency = v
+		}
+	}
+	return maxConcurrency
+}

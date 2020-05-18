@@ -2,15 +2,16 @@ package config
 
 import (
 	"fmt"
-	"github.com/alibaba/sentinel-golang/logging"
-	"github.com/alibaba/sentinel-golang/util"
-	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
 	"sync"
+
+	"github.com/alibaba/sentinel-golang/logging"
+	"github.com/alibaba/sentinel-golang/util"
+	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
 var (

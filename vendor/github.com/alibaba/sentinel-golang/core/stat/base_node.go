@@ -1,9 +1,10 @@
 package stat
 
 import (
+	"sync/atomic"
+
 	"github.com/alibaba/sentinel-golang/core/base"
 	sbase "github.com/alibaba/sentinel-golang/core/stat/base"
-	"sync/atomic"
 )
 
 type BaseStatNode struct {
@@ -60,12 +61,23 @@ func (n *BaseStatNode) MinRT() float64 {
 	return float64(n.metric.MinRT())
 }
 
+// MaxConcurrency returns the max concurrency count of whole sliding window.
+func (n *BaseStatNode) MaxConcurrency() int64 {
+	return n.metric.MaxConcurrency()
+}
+
+// SecondMaxConcurrency returns the max concurrency count of latest second.
+func (n *BaseStatNode) SecondMaxConcurrency() int64 {
+	return n.metric.SecondMaxConcurrency()
+}
+
 func (n *BaseStatNode) CurrentGoroutineNum() int32 {
 	return atomic.LoadInt32(&(n.goroutineNum))
 }
 
 func (n *BaseStatNode) IncreaseGoroutineNum() {
 	atomic.AddInt32(&(n.goroutineNum), 1)
+	n.arr.UpdateMaxConcurrency(int64(n.CurrentGoroutineNum()))
 }
 
 func (n *BaseStatNode) DecreaseGoroutineNum() {

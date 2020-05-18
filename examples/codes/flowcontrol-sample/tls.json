@@ -55,7 +55,30 @@
 								}
 							}
 						]
-					}]
+					}],
+					"stream_filters": [
+						{
+							"type": "flowControlFilter",
+							"config": {
+								"global_switch": true,
+								"monitor": false,
+								"limit_key_type": "PATH",
+								"action": {
+									"status": 500,
+									"body": "blocked"
+								},
+								"rules": [
+									{
+										"resource": "/test",
+										"limitApp": "",
+										"grade": 1,
+										"count": 1,
+										"strategy": 0
+									}
+								]
+							}
+						}
+					]
 				},
 				{
 					"name":"clientListener",

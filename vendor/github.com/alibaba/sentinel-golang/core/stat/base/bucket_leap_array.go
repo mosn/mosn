@@ -2,11 +2,12 @@ package base
 
 import (
 	"fmt"
+	"sync/atomic"
+
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/logging"
 	"github.com/alibaba/sentinel-golang/util"
 	"github.com/pkg/errors"
-	"sync/atomic"
 )
 
 var logger = logging.GetDefaultLogger()
@@ -97,6 +98,29 @@ func (bla *BucketLeapArray) addCountWithTime(now uint64, event base.MetricEvent,
 		return
 	}
 	b.Add(event, count)
+}
+
+func (bla *BucketLeapArray) UpdateMaxConcurrency(count int64) {
+	curBucket, err := bla.data.currentBucket(bla)
+	if err != nil {
+		logger.Errorf("Failed to get current bucket, current ts=%d, err: %+v.", errors.WithStack(err))
+		return
+	}
+	if curBucket == nil {
+		logger.Error("Failed to add count: current bucket is nil")
+		return
+	}
+	mb := curBucket.value.Load()
+	if mb == nil {
+		logger.Error("Failed to add count: current bucket atomic value is nil")
+		return
+	}
+	b, ok := mb.(*MetricBucket)
+	if !ok {
+		logger.Error("Failed to add count: bucket data type error")
+		return
+	}
+	b.UpdateMaxConcurrency(count)
 }
 
 // Read method, need to adapt upper application

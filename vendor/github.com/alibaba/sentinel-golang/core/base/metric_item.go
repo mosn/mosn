@@ -13,17 +13,18 @@ const metricPartSeparator = "|"
 
 // MetricItem represents the data of metric log per line.
 type MetricItem struct {
-	Resource        string
-	Classification  int32
-	Timestamp       uint64
-	PassQps         uint64
-	BlockQps        uint64
-	MonitorBlockQps uint64
-	CompleteQps     uint64
-	ErrorQps        uint64
-	AvgRt           uint64
-	OccupiedPassQps uint64
-	Concurrency     uint32
+	Resource             string
+	Classification       int32
+	Timestamp            uint64
+	PassQps              uint64
+	BlockQps             uint64
+	MonitorBlockQps      uint64
+	CompleteQps          uint64
+	ErrorQps             uint64
+	AvgRt                uint64
+	OccupiedPassQps      uint64
+	Concurrency          uint32
+	SecondMaxConcurrency uint32
 }
 
 type MetricItemRetriever interface {
