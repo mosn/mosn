@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -38,6 +39,7 @@ func NewCluster(clusterConfig v2.Cluster) types.Cluster {
 // simpleCluster is an implementation of types.Cluster
 type simpleCluster struct {
 	info          *clusterInfo
+	mutex         sync.Mutex
 	healthChecker types.HealthChecker
 	lbInstance    types.LoadBalancer // load balancer used for this cluster
 	hostSet       *hostSet
@@ -98,6 +100,8 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	} else {
 		lb = NewLoadBalancer(info, hostSet)
 	}
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
 	sc.lbInstance = lb
 	sc.hostSet = hostSet
 	sc.snapshot.Store(&clusterSnapshot{
@@ -120,12 +124,16 @@ func (sc *simpleCluster) Snapshot() types.ClusterSnapshot {
 }
 
 func (sc *simpleCluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
 	if sc.healthChecker != nil {
 		sc.healthChecker.AddHostCheckCompleteCb(cb)
 	}
 }
 
 func (sc *simpleCluster) StopHealthChecking() {
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
 	if sc.healthChecker != nil {
 		sc.healthChecker.Stop()
 	}
