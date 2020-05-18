@@ -122,7 +122,7 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 		msg := fmt.Sprintf(errMsgFmt, "internal error")
 		fmt.Fprint(w, msg)
 	} else {
-		buf, err := json.Marshal(info)
+		buf, err := json.MarshalIndent(info, "", " ")
 		if err != nil {
 			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, parameters:%v, error: %v", "config dump", r.Form, err)
 			w.WriteHeader(500)
@@ -272,7 +272,7 @@ func knownFeatures(w http.ResponseWriter, r *http.Request) {
 	}
 	r.ParseForm()
 	if len(r.Form) == 0 {
-		data, err := json.Marshal(featuregate.KnownFeatures())
+		data, err := json.MarshalIndent(featuregate.KnownFeatures(), "", " ")
 		if err != nil {
 			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "known features", err)
 			w.WriteHeader(500)
@@ -319,7 +319,7 @@ func getEnv(w http.ResponseWriter, r *http.Request) {
 			results.Env[key] = v
 		}
 	}
-	data, err := json.Marshal(results)
+	data, err := json.MarshalIndent(results, "", " ")
 	if err != nil {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "get env", err)
 		w.WriteHeader(500)
