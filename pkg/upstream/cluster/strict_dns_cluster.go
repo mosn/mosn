@@ -23,6 +23,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -44,6 +45,7 @@ type strictDnsCluster struct {
 	resolveTargets  []*ResolveTarget
 	dnsRefreshRate  time.Duration
 	mutex           sync.Mutex
+	version 		uint64
 }
 
 var DefaultRefreshTimeout time.Duration = 20 * time.Second
@@ -103,6 +105,7 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 	sdc.mutex.Lock()
 	defer sdc.mutex.Unlock()
 	sdc.StopResolve()
+	atomic.AddUint64(&sdc.version, 1)
 
 	// before resolve, init hosts to origin unresolved address
 	sdc.simpleCluster.UpdateHosts(newHosts)
@@ -191,10 +194,15 @@ func hostEqual(hosts1, hosts2 *[]types.Host) bool {
 	return true
 }
 
-// combine hosts in current rt and other rt
+// get all hosts in current rt and other rt, do updating if hosts changed
 func (sdc *strictDnsCluster) updateDynamicHosts(newHosts []types.Host, rt *ResolveTarget) {
 	sdc.mutex.Lock()
 	defer sdc.mutex.Unlock()
+	// if sdc updated by UpdateHosts, skip updating
+	ver := atomic.LoadUint64(&sdc.version)
+	if ver != sdc.version {
+		return
+	}
 
 	// update current hosts in rt
 	rt.hosts = newHosts
@@ -242,23 +250,30 @@ func (rt *ResolveTarget) StartResolve() {
 	for {
 		select {
 		case <-rt.stop:
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s, ttl:%d", rt.dnsAddress)
-			}
-			return
-		case <-rt.timeout:
-			rt.resolveTimer.Stop()
-			// if timeout, start a new timer
-			rt.resolveTimer = utils.NewTimer(time.Second, rt.OnResolve)
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] timeout received when resolve dns address :%s", rt.dnsAddress)
-			}
-		case ttl := <-rt.dnsRefreshRate:
 			rt.resolveTimeout.Stop()
-			// next resolve timer
-			rt.resolveTimer = utils.NewTimer(ttl, rt.OnResolve)
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [strict dns cluster] start next resolve dns timer, address:%s, ttl:%d", rt.dnsAddress, ttl)
+			rt.resolveTimer.Stop()
+		default:
+			select {
+			case <-rt.stop:
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [strict dns cluster] stop resolve dns timer, address:%s, ttl:%d", rt.dnsAddress)
+				}
+				rt.resolveTimeout.Stop()
+				rt.resolveTimer.Stop()
+			case <-rt.timeout:
+				rt.resolveTimer.Stop()
+				// if timeout, start a new timer
+				rt.resolveTimer = utils.NewTimer(time.Second, rt.OnResolve)
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [strict dns cluster] timeout received when resolve dns address :%s", rt.dnsAddress)
+				}
+			case ttl := <-rt.dnsRefreshRate:
+				rt.resolveTimeout.Stop()
+				// next resolve timer
+				rt.resolveTimer = utils.NewTimer(ttl, rt.OnResolve)
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[upstream] [strict dns cluster] start next resolve dns timer, address:%s, ttl:%d", rt.dnsAddress, ttl)
+				}
 			}
 		}
 	}
