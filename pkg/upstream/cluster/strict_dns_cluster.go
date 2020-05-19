@@ -45,7 +45,7 @@ type strictDnsCluster struct {
 	resolveTargets  []*ResolveTarget
 	dnsRefreshRate  time.Duration
 	mutex           sync.Mutex
-	version 		uint64
+	version         uint64
 }
 
 var DefaultRefreshTimeout time.Duration = 20 * time.Second
@@ -64,6 +64,7 @@ type ResolveTarget struct {
 	timeout          chan bool
 	resolveCount     uint32
 	hosts            []types.Host
+	version          uint64
 }
 
 func newStrictDnsCluster(clusterConfig v2.Cluster) types.Cluster {
@@ -135,6 +136,7 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 			timeout:          make(chan bool),
 			strictDnsCluster: sdc,
 			hosts:            []types.Host{host},
+			version:          sdc.version,
 		}
 
 		rts = append(rts, rt)
@@ -200,7 +202,7 @@ func (sdc *strictDnsCluster) updateDynamicHosts(newHosts []types.Host, rt *Resol
 	defer sdc.mutex.Unlock()
 	// if sdc updated by UpdateHosts, skip updating
 	ver := atomic.LoadUint64(&sdc.version)
-	if ver != sdc.version {
+	if ver != rt.version {
 		return
 	}
 
