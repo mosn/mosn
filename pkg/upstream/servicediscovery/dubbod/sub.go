@@ -168,8 +168,15 @@ func unsubscribe(w http.ResponseWriter, r *http.Request) {
 	response(w, resp{Errno: succ, ErrMsg: "unsubscribe success"})
 }
 
-
+var dubboInterface2registerFlag = sync.Map{}
 func addRouteRule(servicePath string) error {
+	// if already route rule of this service is already added to router manager
+	// then skip
+	if _, ok := dubboInterface2registerFlag.Load(servicePath); ok {
+		return nil
+	}
+
+	dubboInterface2registerFlag.Store(servicePath, struct{}{})
 	return routerAdapter.GetRoutersMangerInstance().AddRoute(dubboRouterConfigName, "*", &v2.Router{
 		RouterConfig: v2.RouterConfig{
 			Match: v2.RouterMatch{
