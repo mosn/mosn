@@ -37,6 +37,7 @@ type FilterConfigFactory struct {
 
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewStreamFilter(context, f.Config)
+	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
 	callbacks.AddStreamSenderFilter(filter)
 }
 
@@ -69,6 +70,14 @@ func ParseStreamGzipFilter(cfg map[string]interface{}) (*v2.StreamGzip, error) {
 func checkValidConfig(cfg *v2.StreamGzip) error {
 	if cfg.GzipLevel < 0 || cfg.GzipLevel > 9 {
 		return errors.New("invalid gzip level, the values are in the range from 0 to 9.")
+	}
+
+	if cfg.GzipLevel == 0 {
+		cfg.GzipLevel = defaultGzipLevel
+	}
+
+	if cfg.ContentType == nil {
+		cfg.ContentType = []string{defaultContentType}
 	}
 
 	return nil

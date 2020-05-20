@@ -18,33 +18,123 @@
 package gzip
 
 import (
+	"compress/gzip"
 	"context"
 	"testing"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
+type mockSendHandler struct {
+	api.StreamSenderFilterHandler
+	downstreamRespDataBuf types.IoBuffer
+}
+
+func (f *mockSendHandler) SetResponseData(data types.IoBuffer) {
+	// data is the original data. do nothing
+	if f.downstreamRespDataBuf == data {
+		return
+	}
+	if f.downstreamRespDataBuf == nil {
+		f.downstreamRespDataBuf = buffer.NewIoBuffer(0)
+	}
+	f.downstreamRespDataBuf.Reset()
+	f.downstreamRespDataBuf.ReadFrom(data)
+}
+
+func (f *mockSendHandler) setData(data types.IoBuffer) {
+	f.downstreamRespDataBuf = data
+}
+
 func TestGzipNewStreamFilter(t *testing.T) {
-	// test disable
-	cfg := &v2.StreamGzip{}
+	rawbody := "123456"
+	cfg := &v2.StreamGzip{
+		ContentLength: uint32(len(rawbody)),
+		ContentType:   []string{defaultContentType},
+	}
+
+	f := NewStreamFilter(context.Background(), cfg)
+
+	sendHandler := &mockSendHandler{}
+
+	f.SetSenderFilterHandler(sendHandler)
+	reqHeaders := protocol.CommonHeader(map[string]string{
+		strAcceptEncoding: "gzip",
+	})
+
+	resGzipHeaders := protocol.CommonHeader(map[string]string{
+		strContentType:     defaultContentType,
+		strContentEncoding: "gzip",
+	})
+
+	resHeaders := protocol.CommonHeader(map[string]string{
+		strContentType: defaultContentType,
+	})
+
+	f.OnReceive(context.Background(), reqHeaders, nil, nil)
+
+	if !f.needGzip {
+		t.Error("client request need gzip.")
+	}
+
+	// check switch
 	ctx := variable.NewVariableContext(context.Background())
-	NewStreamFilter(ctx, cfg)
+	variable.SetVariableValue(ctx, types.VarProxyGzipSwitch, "off")
+	f.OnReceive(ctx, reqHeaders, nil, nil)
 
-	// check gzip switch
-	if gzipSwitch, err := variable.GetVariableValue(ctx, types.VarProxyGzipSwitch); err != nil || gzipSwitch != "off" {
-		t.Error("gzip should be disable.")
+	if f.needGzip {
+		t.Error("gzip switch off.")
 	}
 
-	// test enable gzip
-	cfg = &v2.StreamGzip{
-		GzipLevel: 2,
+	variable.SetVariableValue(ctx, types.VarProxyGzipSwitch, "on")
+	f.OnReceive(ctx, reqHeaders, nil, nil)
+	if !f.needGzip {
+		t.Error("gzip switch on.")
 	}
-	ctx = variable.NewVariableContext(context.Background())
-	NewStreamFilter(ctx, cfg)
-	if gzipSwitch, err := variable.GetVariableValue(ctx, types.VarProxyGzipSwitch); err != nil || gzipSwitch != "on" {
-		t.Error("gzip should be enable.")
+
+	// check responseHeader
+	body := buffer.NewIoBufferString(rawbody)
+	sendHandler.setData(body)
+	f.Append(context.Background(), resGzipHeaders, body, nil)
+
+	if body.String() != rawbody {
+		t.Error("response body alerady gziped, shouldn't gzip.")
+	}
+
+	// check content type
+	resHeaders.Del(strContentEncoding)
+	body = buffer.NewIoBufferString(rawbody)
+	sendHandler.setData(body)
+	f.Append(context.Background(), resHeaders, body, nil)
+
+	v, _ := resHeaders.Get(strContentEncoding)
+	if body.String() == rawbody || v != "gzip" {
+		t.Error("should gzip body.")
+	}
+
+	// check ungzip
+	gr, _ := gzip.NewReader(body)
+	buf := make([]byte, len(rawbody))
+	gr.Read(buf)
+	if string(buf) != rawbody {
+		t.Errorf("ungzip body error.")
+	}
+
+	// check gzip minsize
+	resHeaders.Del(strContentEncoding)
+	f.config.minCompressLen = uint32(len(rawbody) + 1)
+	body = buffer.NewIoBufferString(rawbody)
+	sendHandler.setData(body)
+	f.Append(context.Background(), resHeaders, body, nil)
+
+	v, _ = resHeaders.Get(strContentEncoding)
+	if body.String() != rawbody || v == "gzip" {
+		t.Error("should not gzip body.")
 	}
 }
