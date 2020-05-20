@@ -38,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	"mosn.io/mosn/pkg/xds"
 	"mosn.io/pkg/utils"
 )
