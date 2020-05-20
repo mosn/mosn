@@ -23,16 +23,17 @@ import (
 func init() {
 	Init()
 
-	monkey.Patch(zkreg.NewZkRegistry, func(url *dubbocommon.URL) (*zkreg.ZkRegistry, error){
-		return &zkreg.ZkRegistry{}, nil
+	monkey.Patch(zkreg.NewZkRegistry, func(url *dubbocommon.URL) (registry.Registry, error){
+		return &registry.BaseRegistry{}, nil
 	})
 
 	monkey.PatchInstanceMethod(reflect.TypeOf(&registry.BaseRegistry{}), "Register", func (r *registry.BaseRegistry, conf dubbocommon.URL) error {
 		return nil
 	})
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(&registry.BaseRegistry{}), "Subscribe", func( r *registry.BaseRegistry, url *dubbocommon.URL, notifyListener registry.NotifyListener) {
+	monkey.PatchInstanceMethod(reflect.TypeOf(&registry.BaseRegistry{}), "Subscribe", func( r *registry.BaseRegistry, url *dubbocommon.URL, notifyListener registry.NotifyListener) error {
 		// do nothing
+		return nil
 	})
 
 	cluster.NewClusterManagerSingleton(nil, nil)

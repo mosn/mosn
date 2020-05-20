@@ -18,15 +18,15 @@ package dubbod
 
 import (
 	"encoding/json"
-	"fmt"
-	"math/rand"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	routerAdapter "mosn.io/mosn/pkg/router"
 	"net/http"
 	"sync"
 
 	"github.com/mosn/binding"
+	dubboreg "github.com/mosn/registry/dubbo"
 	dubbocommon "github.com/mosn/registry/dubbo/common"
 	zkreg "github.com/mosn/registry/dubbo/zookeeper"
-	dubboreg "github.com/mosn/registry/dubbo"
 	"github.com/valyala/fasttemplate"
 )
 
@@ -36,9 +36,7 @@ var (
 	dubboRouterConfigName = "dubbo" // keep the same with the router config name in mosn_config.json
 )
 
-var (
-	mosnIP, mosnPort = "127.0.0.1", fmt.Sprint(rand.Int63n(30000)+1) // TODO, need to read from mosn config
-)
+var mosnIP = "127.0.0.1"
 
 const (
 	succ = iota
@@ -50,9 +48,9 @@ var registryClientCache = sync.Map{}
 
 func getRegistry(registryCacheKey string, role int, registryURL dubbocommon.URL) (dubboreg.Registry, error) {
 	// do not cache provider registry, or it may collide with the consumer registry
-	if role == dubbocommon.PROVIDER {
-		return zkreg.NewZkRegistry(&registryURL)
-	}
+	//if role == dubbocommon.PROVIDER {
+	//	return zkreg.NewZkRegistry(&registryURL)
+	//}
 
 	regInterface, ok := registryClientCache.Load(registryCacheKey)
 
@@ -91,3 +89,32 @@ func bind(r *http.Request, data interface{}) error {
 	return b.Bind(r, data)
 }
 
+var dubboInterface2registerFlag = sync.Map{}
+
+// add a router rule to router manager, avoid duplicate rules
+func addRouteRule(servicePath string) error {
+	// if already route rule of this service is already added to router manager
+	// then skip
+	if _, ok := dubboInterface2registerFlag.Load(servicePath); ok {
+		return nil
+	}
+
+	dubboInterface2registerFlag.Store(servicePath, struct{}{})
+	return routerAdapter.GetRoutersMangerInstance().AddRoute(dubboRouterConfigName, "*", &v2.Router{
+		RouterConfig: v2.RouterConfig{
+			Match: v2.RouterMatch{
+				Headers: []v2.HeaderMatcher{
+					{
+						Name:  "service", // use the xprotocol header field "service"
+						Value: servicePath,
+					},
+				},
+			},
+			Route: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterName: servicePath,
+				},
+			},
+		},
+	})
+}

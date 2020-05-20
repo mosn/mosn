@@ -17,6 +17,8 @@
 package dubbod
 
 import (
+	v2 "mosn.io/mosn/pkg/config/v2"
+	routerAdapter "mosn.io/mosn/pkg/router"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -48,3 +50,22 @@ func Init( /*port string, dubboLogPath string*/ ) {
 	initRouterManager()
 }
 
+// inject a router to router manager
+// which name is "dubbo"
+func initRouterManager() {
+	// this can also be put into mosn's config json file
+	err := routerAdapter.GetRoutersMangerInstance().AddOrUpdateRouters(&v2.RouterConfiguration{
+		RouterConfigurationConfig: v2.RouterConfigurationConfig{
+			RouterConfigName: dubboRouterConfigName,
+		},
+		VirtualHosts: []*v2.VirtualHost{
+			{
+				Name:    dubboRouterConfigName,
+				Domains: []string{"*"},
+			},
+		},
+	})
+	if err != nil {
+		log.DefaultLogger.Fatalf("auto write config when updated")
+	}
+}

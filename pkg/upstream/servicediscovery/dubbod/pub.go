@@ -22,7 +22,6 @@ import (
 	dubboconsts "github.com/mosn/registry/dubbo/common/constant"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 // publish a service to registry
@@ -72,8 +71,6 @@ func doPubUnPub(req pubReq, pub bool) error {
 
 	registryURL, err := dubbocommon.NewURL(registryPath,
 		dubbocommon.WithParams(url.Values{
-			dubboconsts.GROUP_KEY:            []string{req.Service.Group},
-			dubboconsts.ROLE_KEY:             []string{fmt.Sprint(dubbocommon.PROVIDER)},
 			dubboconsts.REGISTRY_KEY:         []string{req.Registry.Type},
 			dubboconsts.REGISTRY_TIMEOUT_KEY: []string{"5s"},
 		}),
@@ -99,10 +96,9 @@ func doPubUnPub(req pubReq, pub bool) error {
 	})
 	dubboURL, _ := dubbocommon.NewURL(dubboPath,
 		dubbocommon.WithParams(url.Values{
-			dubboconsts.ROLE_KEY:      []string{fmt.Sprint(dubbocommon.CONSUMER)},
+			dubboconsts.ROLE_KEY:      []string{fmt.Sprint(dubbocommon.PROVIDER)},
 			dubboconsts.GROUP_KEY:     []string{req.Service.Group},
 			dubboconsts.INTERFACE_KEY: []string{req.Service.Interface},
-			dubboconsts.TIMESTAMP_KEY: []string{fmt.Sprint(time.Now().Unix())},
 			dubboconsts.VERSION_KEY:   []string{req.Service.Version},
 		}),
 		dubbocommon.WithMethods(req.Service.Methods))

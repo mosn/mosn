@@ -23,7 +23,7 @@ make run
 2. use httpie to subscribe service:
 
 ```shell
-http --json post localhost:22222/pub registry:='{"type":"zookeeper", "addr" : "127.0.0.1:2181"}' service:='{"interface" : "com.ikurento.user", "methods" :["GetUser","GetProfile", "kkk"], "port" : "20000", "name" : "UserProvider", "group" : "", "version" : ""}' --verbose
+http --json post localhost:22222/pub registry:='{"type":"zookeeper", "addr" : "127.0.0.1:2181"}' service:='{"interface" : "com.ikurento.user.UserProvider", "methods" :["GetUser"], "port" : "20000", "group" : "", "version" : ""}' --verbose
 ```
 
 3. go to client dir, and run:
@@ -32,12 +32,4 @@ http --json post localhost:22222/pub registry:='{"type":"zookeeper", "addr" : "1
 make run
 ```
 
-
-### for subscribe a service
-
-http --json post localhost:22222/sub registry:='{"type":"zookeeper", "addr" : "127.0.0.1:2181"}' service:='{"interface" : "com.ikurento.user", "methods" :["GetUser"], "name" : "UserProvider", "group" : ""}' --verbose
-
-### for service publish
-
-http --json post localhost:22222/pub registry:='{"type":"zookeeper", "addr" : "127.0.0.1:2181"}' service:='{"interface" : "com.ikurento.user", "methods" :["GetUser","GetProfile", "kkk"], "port" : "20000", "name" : "UserProvider", "group" : "", "version" : ""}' --verbose
 
