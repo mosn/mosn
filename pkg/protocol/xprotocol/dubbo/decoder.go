@@ -29,7 +29,7 @@ import (
 )
 
 func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
-	// convert data to duboo frame
+	// convert data to dubbo frame
 	dataBytes := data.Bytes()
 	frame := &Frame{
 		Header: Header{
@@ -43,25 +43,17 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	// decode status
 	frame.Status = dataBytes[StatusIdx]
 	// decode request id
-	reqIdRaw := dataBytes[IdIdx:(IdIdx + IdLen)]
-	frame.Id = binary.BigEndian.Uint64(reqIdRaw)
+	reqIDRaw := dataBytes[IdIdx:(IdIdx + IdLen)]
+	frame.Id = binary.BigEndian.Uint64(reqIDRaw)
 	// decode data length
 	frame.DataLen = binary.BigEndian.Uint32(dataBytes[DataLenIdx:(DataLenIdx + DataLenSize)])
 
 	// decode event
-	eventBool := frame.Flag & (1 << 5)
-	if eventBool != 0 {
-		frame.Event = 1
-	} else {
-		frame.Event = 0
-	}
+	frame.IsEvent = (frame.Flag & (1 << 5)) != 0
+
 	// decode twoway
-	twoWayBool := frame.Flag & (1 << 6)
-	if twoWayBool != 0 {
-		frame.TwoWay = 1
-	} else {
-		frame.TwoWay = 0
-	}
+	frame.IsTwoWay = (frame.Flag & (1 << 6)) != 0
+
 	// decode direction
 	directionBool := frame.Flag & (1 << 7)
 	if directionBool != 0 {
@@ -79,7 +71,7 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	frame.content = buffer.NewIoBufferBytes(frame.payload)
 
 	// not heartbeat & is request
-	if frame.Event != 1 && frame.Direction == 1 {
+	if frame.IsEvent && frame.Direction == EventRequest {
 		// service aware
 		meta, err := getServiceAwareMeta(frame)
 		if err != nil {
