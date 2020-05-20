@@ -59,6 +59,7 @@ func (d *dubboHandler) IsAvailable(ctx context.Context, manager types.ClusterMan
 	} else {
 		clusterName = fmt.Sprintf(dubboClusterPre, dubboMosnProviderPort, subset, service, method)
 	}
+	// clusterName = d.Route().RouteRule().ClusterName()
 
 	snapshot := manager.GetClusterSnapshot(context.Background(), clusterName)
 	if snapshot == nil {

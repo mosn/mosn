@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"time"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/mosn/pkg/protocol"
@@ -81,11 +82,15 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	// not heartbeat & is request
 	if frame.Event != 1 && frame.Direction == 1 {
 		// service aware
-		meta, err := getServiceAwareMeta(frame)
+		meta, attachment, err := getServiceAwareMeta(frame)
 		if err != nil {
 			return nil, err
 		}
 		for k, v := range meta {
+			frame.Set(k, v)
+		}
+		frame.attachment = attachment
+		for k, v := range attachment {
 			frame.Set(k, v)
 		}
 	}
@@ -97,57 +102,113 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	return frame, nil
 }
 
-func getServiceAwareMeta(frame *Frame) (map[string]string, error) {
+func getServiceAwareMeta(frame *Frame) (map[string]string, map[string]string, error) {
 	meta := make(map[string]string)
 	if frame.SerializationId != 2 {
 		// not hessian , do not support
-		return meta, fmt.Errorf("[xprotocol][dubbo] not hessian,do not support")
+		return meta, nil, fmt.Errorf("[xprotocol][dubbo] not hessian,do not support")
 	}
-	decoder := hessian.NewDecoder(frame.payload[:])
-	var field interface{}
-	var err error
-	var ok bool
-	var str string
+	decoder := hessian.NewDecoderWithSkip(frame.payload[:])
+
+	var (
+		err                                                          error
+		ok                                                           bool
+		str                                                          string
+		dubboVersion, servicePath, serviceVersion, method, argsTypes interface{}
+		args                                                         []interface{}
+	)
 
 	// dubbo version + path + version + method
 	// get service name
-	field, err = decoder.Decode()
+	dubboVersion, err = decoder.Decode()
 	if err != nil {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode version fail")
+		return meta, nil, fmt.Errorf("[xprotocol][dubbo] decode version fail: %s", err)
 	}
-	str, ok = field.(string)
+	str, ok = dubboVersion.(string)
 	if !ok {
-		return meta, fmt.Errorf("[xprotocol][dubbo] service name version type error")
+		return meta, nil, fmt.Errorf("[xprotocol][dubbo] service name version type error")
 	}
 
-	field, err = decoder.Decode()
+	servicePath, err = decoder.Decode()
 	if err != nil {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode service fail")
+		return meta, nil, fmt.Errorf("[xprotocol][dubbo] decode service fail: %s", err)
 	}
-	str, ok = field.(string)
+	str, ok = servicePath.(string)
 	if !ok {
-		return meta, fmt.Errorf("[xprotocol][dubbo] service type error")
+		return meta, nil, fmt.Errorf("[xprotocol][dubbo] service type error")
 	}
 	meta[ServiceNameHeader] = str
 
 	// get method name
-	field, err = decoder.Decode()
+	serviceVersion, err = decoder.Decode()
 	if err != nil {
-		return nil, fmt.Errorf("[xprotocol][dubbo] decode method version fail")
+		return nil, nil, fmt.Errorf("[xprotocol][dubbo] decode method version fail: %s", err)
 	}
-	str, ok = field.(string)
+	str, ok = serviceVersion.(string)
 	if !ok {
-		return nil, fmt.Errorf("[xprotocol][dubbo] method version type fail")
+		return nil, nil, fmt.Errorf("[xprotocol][dubbo] method version type fail")
 	}
 
-	field, err = decoder.Decode()
+	method, err = decoder.Decode()
 	if err != nil {
-		return nil, fmt.Errorf("[xprotocol][dubbo] decode method fail")
+		return nil, nil, fmt.Errorf("[xprotocol][dubbo] decode method fail: %s", err)
 	}
-	str, ok = field.(string)
+	str, ok = method.(string)
 	if !ok {
-		return nil, fmt.Errorf("[xprotocol][dubbo] method type error")
+		return nil, nil, fmt.Errorf("[xprotocol][dubbo] method type error")
 	}
 	meta[MethodNameHeader] = str
-	return meta, nil
+
+	argsTypes, err = decoder.Decode()
+	if err != nil {
+		return nil, nil, fmt.Errorf("[xprotocol][dubbo] decode argsTypes fail: %s", err)
+	}
+
+	ats := hessian.DescRegex.FindAllString(argsTypes.(string), -1)
+	args = []interface{}{}
+	var arg interface{}
+	for i := 0; i < len(ats); i++ {
+		arg, err = decoder.Decode()
+		if err != nil {
+			return nil, nil, fmt.Errorf("[xprotocol][dubbo] decode args fail: %s", err)
+		}
+		args = append(args, arg)
+	}
+
+	attachmentObj, err := decoder.Decode()
+	if err != nil {
+		return nil, nil, fmt.Errorf("[xprotocol][dubbo] decode attachment fail: %s", err)
+	}
+	attachItf := attachmentObj.(map[interface{}]interface{})
+
+	encode := hessian.NewEncoder()
+	encode.Encode(attachItf)
+	attachmentBytes := encode.Buffer()
+	frame.attachmentLen = uint32(len(attachmentBytes))
+
+	attachment := ToMapStringString(attachItf)
+
+	// mock inject
+	attachment["mosn-inject"] = time.Now().Format("2006-01-02 15:04:05")
+
+	frame.attachment = attachment
+
+	return meta, attachment, nil
+}
+
+func ToMapStringString(origin map[interface{}]interface{}) map[string]string {
+	dest := make(map[string]string)
+	for k, v := range origin {
+		if kv, ok := k.(string); ok {
+			if v == nil {
+				dest[kv] = ""
+				continue
+			}
+
+			if vv, ok := v.(string); ok {
+				dest[kv] = vv
+			}
+		}
+	}
+	return dest
 }

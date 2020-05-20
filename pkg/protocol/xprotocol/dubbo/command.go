@@ -44,6 +44,10 @@ type Frame struct {
 
 	data    types.IoBuffer // wrapper of data
 	content types.IoBuffer // wrapper of payload
+
+	attachmentLen uint32
+
+	attachment map[string]string
 }
 
 // ~ XFrame
