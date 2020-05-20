@@ -20,6 +20,7 @@ package configmanager
 import (
 	"encoding/json"
 	"net"
+	"os"
 	"reflect"
 	"testing"
 
@@ -41,7 +42,7 @@ func TestMain(m *testing.M) {
 	RegisterConfigParsedListener(ParseCallbackKeyCluster, cb.ParsedCallback)
 	RegisterConfigParsedListener(ParseCallbackKeyServiceRgtInfo, cb.ParsedCallback)
 	RegisterConfigParsedListener(ParseCallbackKeyProcessor, cb.ParsedCallback)
-	m.Run()
+	os.Exit(m.Run())
 }
 
 var mockedFilterChains = `

@@ -30,7 +30,6 @@ require (
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/stretchr/testify v1.5.1
-	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0
 	github.com/valyala/fasttemplate v1.1.0
@@ -41,6 +40,8 @@ require (
 	google.golang.org/grpc v1.22.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
-	mosn.io/api v0.0.0-20200313100800-96f82cd67746
-	mosn.io/pkg v0.0.0-20200402102508-6d1b24c77225
+	mosn.io/api v0.0.0-20200416082846-2e7ce9a85557
+	mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
 )
+
+replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.6.9

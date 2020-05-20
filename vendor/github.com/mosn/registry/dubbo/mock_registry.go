@@ -19,10 +19,15 @@ package dubbo
 
 import (
 	"time"
+)
 
+import (
+	"go.uber.org/atomic"
+)
+
+import (
 	"github.com/mosn/registry/dubbo/common"
 	"github.com/mosn/registry/dubbo/common/logger"
-	"go.uber.org/atomic"
 )
 
 // MockRegistry ...
@@ -43,6 +48,11 @@ func NewMockRegistry(url *common.URL) (Registry, error) {
 
 // Register ...
 func (*MockRegistry) Register(url common.URL) error {
+	return nil
+}
+
+// UnRegister
+func (r *MockRegistry) UnRegister(conf common.URL) error {
 	return nil
 }
 
@@ -67,7 +77,7 @@ func (r *MockRegistry) subscribe(*common.URL) (Listener, error) {
 }
 
 // Subscribe ...
-func (r *MockRegistry) Subscribe(url *common.URL, notifyListener NotifyListener) {
+func (r *MockRegistry) Subscribe(url *common.URL, notifyListener NotifyListener) error {
 	go func() {
 		for {
 			if !r.IsAvailable() {
@@ -99,6 +109,12 @@ func (r *MockRegistry) Subscribe(url *common.URL, notifyListener NotifyListener)
 			}
 		}
 	}()
+	return nil
+}
+
+// UnSubscribe :
+func (r *MockRegistry) UnSubscribe(url *common.URL, notifyListener NotifyListener) error {
+	return nil
 }
 
 type listener struct {

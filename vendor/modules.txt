@@ -59,7 +59,7 @@ github.com/dubbogo/gost/runtime
 github.com/dubbogo/gost/sort
 github.com/dubbogo/gost/sync
 github.com/dubbogo/gost/time
-# github.com/envoyproxy/go-control-plane v0.6.9
+# github.com/envoyproxy/go-control-plane v0.6.9 => github.com/envoyproxy/go-control-plane v0.6.9
 github.com/envoyproxy/go-control-plane/envoy/api/v2
 github.com/envoyproxy/go-control-plane/envoy/api/v2/auth
 github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster
@@ -155,7 +155,7 @@ github.com/modern-go/reflect2
 github.com/mosn/binding
 github.com/mosn/binding/internal/bytesconv
 github.com/mosn/binding/internal/json
-# github.com/mosn/registry v0.0.0-20200520085447-f7d95ac43fee
+# github.com/mosn/registry v0.0.0-20200520094507-59c32ffb9fee
 github.com/mosn/registry/dubbo
 github.com/mosn/registry/dubbo/common
 github.com/mosn/registry/dubbo/common/constant
@@ -287,9 +287,9 @@ gopkg.in/yaml.v2
 # istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
 istio.io/api/mixer/v1
 istio.io/api/mixer/v1/config/client
-# mosn.io/api v0.0.0-20200313100800-96f82cd67746
+# mosn.io/api v0.0.0-20200416082846-2e7ce9a85557
 mosn.io/api
-# mosn.io/pkg v0.0.0-20200402102508-6d1b24c77225
+# mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
 mosn.io/pkg/buffer
 mosn.io/pkg/log
 mosn.io/pkg/utils

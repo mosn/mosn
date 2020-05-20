@@ -39,6 +39,8 @@ var (
 )
 
 const (
+	// max royate time is 24 hours
+	maxRotateHour = 24
 	// defaultRotateTime is 24 hours
 	defaultRotateTime = 24 * 60 * 60
 	// defaultRotateSize is 100 MB.
@@ -133,6 +135,9 @@ func ParseRoller(what string) (*Roller, error) {
 			value, err = strconv.Atoi(v[1])
 			if err != nil {
 				break
+			}
+			if value > maxRotateHour {
+				value = maxRotateHour
 			}
 			roller.MaxTime = int64(value) * 60 * 60
 		case directiveRotateSize:

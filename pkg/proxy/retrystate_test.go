@@ -18,6 +18,7 @@
 package proxy
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -98,7 +99,7 @@ func TestRetryState(t *testing.T) {
 		{headerOK, "", api.NoRetry},
 	}
 	for i, tc := range testcases {
-		if rs.retry(tc.Header, tc.Reason) != tc.Expected {
+		if rs.retry(context.Background(), tc.Header, tc.Reason) != tc.Expected {
 			t.Errorf("#%d retry state failed", i)
 		}
 	}
@@ -129,7 +130,7 @@ func TestRetryConnetionFailed(t *testing.T) {
 		{nil, types.StreamConnectionFailed, api.ShouldRetry},
 	}
 	for i, tc := range testcases {
-		if rs.retry(tc.Header, tc.Reason) != tc.Expected {
+		if rs.retry(context.Background(), tc.Header, tc.Reason) != tc.Expected {
 			t.Errorf("#%d retry state failed", i)
 		}
 	}
