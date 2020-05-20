@@ -20,8 +20,11 @@ package gzip
 import (
 	"compress/gzip"
 	"context"
+	"math/rand"
 	"testing"
+	"time"
 
+	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
@@ -137,4 +140,30 @@ func TestGzipNewStreamFilter(t *testing.T) {
 	if body.String() != rawbody || v == "gzip" {
 		t.Error("should not gzip body.")
 	}
+}
+
+func BenchmarkGzip(b *testing.B) {
+	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	for i := 0; i < b.N; i++ {
+		buf := randomString(rand.Intn(1024)+4096, rand)
+		outBuf := buffer.GetIoBuffer(len(buf) / 3)
+		_, err := fasthttp.WriteGzipLevel(outBuf, []byte(buf), defaultGzipLevel)
+		if err != nil {
+			b.Error("get variable failed:", err)
+		}
+	}
+}
+
+func randomString(n int, rand *rand.Rand) string {
+	b := randomBytes(n, rand)
+	return string(b)
+}
+
+func randomBytes(n int, rand *rand.Rand) []byte {
+	r := make([]byte, n)
+	if _, err := rand.Read(r); err != nil {
+		panic("rand.Read failed: " + err.Error())
+	}
+	return r
 }
