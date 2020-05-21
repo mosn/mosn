@@ -71,7 +71,7 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	frame.content = buffer.NewIoBufferBytes(frame.payload)
 
 	// not heartbeat & is request
-	if frame.IsEvent && frame.Direction == EventRequest {
+	if !frame.IsEvent && frame.Direction == EventRequest {
 		// service aware
 		meta, err := getServiceAwareMeta(frame)
 		if err != nil {
