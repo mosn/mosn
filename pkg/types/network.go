@@ -192,7 +192,7 @@ type ConnectionHandler interface {
 	// AddOrUpdateListener
 	// adds a listener into the ConnectionHandler or
 	// update a listener
-	AddOrUpdateListener(lc *v2.Listener, updateListenerFilter bool, updateNetworkFilter bool, updateStreamFilter bool) (ListenerEventListener, error)
+	AddOrUpdateListener(lc *v2.Listener) (ListenerEventListener, error)
 
 	//StartListeners starts all listeners the ConnectionHandler has
 	StartListeners(lctx context.Context)

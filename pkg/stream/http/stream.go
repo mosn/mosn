@@ -231,6 +231,13 @@ func (conn *clientStreamConnection) serve() {
 		s := conn.stream
 		buffers := httpBuffersByContext(s.ctx)
 		s.response = &buffers.clientResponse
+		request := &buffers.serverRequest
+
+		// Response.Read() skips reading body if set to true.
+		// Use it for reading HEAD responses.
+		if request.Header.IsHead() {
+			s.response.SkipBody = true
+		}
 
 		// 1. blocking read using fasthttp.Response.Read
 		err := s.response.Read(conn.br)
@@ -537,6 +544,11 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 		headers.SetMethod(http.MethodPost)
 	}
 
+	// clear 'Connection:close' header for keepalive connection with upstream
+	if headers.ConnectionClose() {
+		headers.Del("Connection")
+	}
+
 	removeInternalHeaders(headers, s.connection.conn.RemoteAddr())
 
 	// copy headers
@@ -697,9 +709,20 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 
 func (s *serverStream) endStream() {
 	resetConn := false
+
+	// Response.Write() skips writing body if set to true.
+	// Use it for writing HEAD responses.
+	if s.request.Header.IsHead() {
+		s.response.SkipBody = true
+	}
+
 	// check if we need close connection
 	if s.connection.close || s.request.Header.ConnectionClose() {
-		s.response.SetConnectionClose()
+		// should delete 'Connection:keepalive' header
+		if !s.response.ConnectionClose() {
+			s.response.Header.Del("Connection")
+			s.response.SetConnectionClose()
+		}
 		resetConn = true
 	} else if !s.request.Header.IsHTTP11() {
 		// Set 'Connection: keep-alive' response header for non-HTTP/1.1 request.

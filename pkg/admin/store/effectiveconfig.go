@@ -137,3 +137,27 @@ func Dump() ([]byte, error) {
 	defer mutex.RUnlock()
 	return json.Marshal(conf)
 }
+
+const (
+	CfgTypeMOSN     = "MOSN"
+	CfgTypeRouter   = "Router"
+	CfgTypeCluster  = "Cluster"
+	CfgTypeListener = "Listener"
+)
+
+func GetMOSNConfig(typ string) interface{} {
+	mutex.RLock()
+	defer mutex.RUnlock()
+	switch typ {
+	case CfgTypeMOSN:
+		return conf.MosnConfig
+	case CfgTypeRouter:
+		return conf.Routers
+	case CfgTypeCluster:
+		return conf.Cluster
+	case CfgTypeListener:
+		return conf.Listener
+	default:
+		return nil
+	}
+}

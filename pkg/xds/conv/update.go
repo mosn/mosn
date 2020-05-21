@@ -71,7 +71,7 @@ func ConvertAddOrUpdateListeners(listeners []*envoy_api_v2.Listener) {
 
 		log.DefaultLogger.Debugf("listenerAdapter.AddOrUpdateListener called, with mosn Listener:%+v", mosnListener)
 
-		if err := listenerAdapter.AddOrUpdateListener("", mosnListener, true, true, true); err == nil {
+		if err := listenerAdapter.AddOrUpdateListener("", mosnListener); err == nil {
 			log.DefaultLogger.Debugf("xds AddOrUpdateListener success,listener address = %s", mosnListener.Addr.String())
 			Stats.LdsUpdateSuccess.Inc(1)
 		} else {

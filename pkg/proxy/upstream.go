@@ -26,6 +26,7 @@ import (
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -105,7 +106,7 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 
 	r.endStream()
 
-	if code, err := protocol.MappingHeaderStatusCode(r.protocol, headers); err == nil {
+	if code, err := protocol.MappingHeaderStatusCode(r.downStream.context, r.protocol, headers); err == nil {
 		r.downStream.requestInfo.SetResponseCode(code)
 	}
 
@@ -279,10 +280,18 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	// start a upstream send
 	r.startTime = time.Now()
 
+	r.downStream.requestInfo.OnUpstreamHostSelected(host)
+	r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
+
+	if trace.IsEnabled() {
+		span := trace.SpanFromContext(r.downStream.context)
+		if span != nil {
+			span.InjectContext(r.downStream.downstreamReqHeaders, r.downStream.requestInfo)
+		}
+	}
+
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
 	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)
 
-	r.downStream.requestInfo.OnUpstreamHostSelected(host)
-	r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 	// todo: check if we get a reset on send headers
 }

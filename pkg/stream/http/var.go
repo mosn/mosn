@@ -19,33 +19,33 @@ package http
 
 import (
 	"context"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 	"strconv"
 
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/variable"
 )
 
 const (
-	VarRequestMethod = "http_request_method"
-	VarRequestLength = "http_request_length"
-
-	headerPrefix = "http_header_"
-	headerIndex  = len(headerPrefix)
-	argPrefix    = "http_arg_"
-	argIndex     = len(argPrefix)
-	cookiePrefix = "http_cookie_"
-	cookieIndex  = len(cookiePrefix)
+	headerIndex = len(types.VarPrefixHttpHeader)
+	argIndex    = len(types.VarPrefixHttpArg)
+	cookieIndex = len(types.VarPrefixHttpCookie)
 )
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewBasicVariable(VarRequestMethod, nil, requestMethodGetter, nil, 0),
-		variable.NewBasicVariable(VarRequestLength, nil, requestLengthGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(headerPrefix, nil, httpHeaderGetter, nil, 0),
-		variable.NewBasicVariable(argPrefix, nil, httpArgGetter, nil, 0),
-		variable.NewBasicVariable(cookiePrefix, nil, httpCookieGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpHeader, nil, httpHeaderGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpArg, nil, httpArgGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpCookie, nil, httpCookieGetter, nil, 0),
 	}
 )
 
@@ -59,6 +59,11 @@ func init() {
 	for idx := range prefixVariables {
 		variable.RegisterPrefixVariable(prefixVariables[idx].Name(), prefixVariables[idx])
 	}
+
+	// register protocol resource
+	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarHttpRequestPath)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarHttpRequestUri)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarHttpRequestArg)
 }
 
 func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -78,6 +83,26 @@ func requestLengthGetter(ctx context.Context, value *variable.IndexedValue, data
 	}
 
 	return strconv.Itoa(length), nil
+}
+
+func requestPathGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+
+	return string(request.URI().Path()), nil
+}
+
+func requestUriGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+
+	return string(request.Header.RequestURI()), nil
+}
+
+func requestArgGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+	return request.URI().QueryArgs().String(), nil
 }
 
 func httpHeaderGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

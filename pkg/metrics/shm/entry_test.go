@@ -24,9 +24,18 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestEntry(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := InitMetricsZone("TestEntry", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -66,6 +75,13 @@ func TestEntry(t *testing.T) {
 }
 
 func BenchmarkMultiEntry(b *testing.B) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := InitMetricsZone("TestMultiEntry", 10*1024*1024)
 	defer func() {
 		zone.Detach()

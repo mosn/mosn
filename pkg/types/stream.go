@@ -247,6 +247,12 @@ type ConnectionPool interface {
 	Shutdown()
 
 	Close()
+
+	// Host get host
+	Host() Host
+
+	// UpdateHost is update host
+	UpdateHost(Host)
 }
 
 type PoolEventListener interface {

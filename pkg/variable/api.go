@@ -22,6 +22,7 @@ import (
 	"errors"
 	"strings"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -52,10 +53,19 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 		}
 	}
 
+	// 3. find protocol resource variables
+	if v, e := GetProtocolResource(ctx, api.ProtocolResourceName(name)); e == nil {
+		return v, nil
+	}
+
 	return "", errors.New(errUndefinedVariable + name)
 }
 
 func SetVariableValue(ctx context.Context, name, value string) error {
+	if ctx == nil {
+		return errors.New(errInvalidContext)
+	}
+
 	// find built-in & indexed variables, prefix and non-indexed are not supported
 	if variable, ok := variables[name]; ok {
 		// 1.1 check indexed value

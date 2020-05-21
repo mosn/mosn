@@ -49,3 +49,7 @@ type Proxy struct {
 type XProxyExtendConfig struct {
 	SubProtocol string `json:"sub_protocol,omitempty"`
 }
+
+type Http2ExtendConfig struct {
+	Http2UseStream bool `json:"http2_use_stream,omitempty"`
+}

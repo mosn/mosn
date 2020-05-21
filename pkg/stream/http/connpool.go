@@ -20,6 +20,7 @@ package http
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"mosn.io/api"
@@ -42,7 +43,8 @@ func init() {
 type connPool struct {
 	MaxConn int
 
-	host types.Host
+	host       atomic.Value
+	supportTLS bool
 
 	statReport bool
 
@@ -53,8 +55,9 @@ type connPool struct {
 
 func NewConnPool(host types.Host) types.ConnectionPool {
 	pool := &connPool{
-		host: host,
+		supportTLS: host.SupportTLS(),
 	}
+	pool.host.Store(host)
 
 	if pool.statReport {
 		pool.report()
@@ -64,7 +67,7 @@ func NewConnPool(host types.Host) types.ConnectionPool {
 }
 
 func (p *connPool) SupportTLS() bool {
-	return p.host.SupportTLS()
+	return p.supportTLS
 }
 
 func (p *connPool) Protocol() types.ProtocolName {
@@ -75,56 +78,87 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
-//由 PROXY 调用
+func (p *connPool) Host() types.Host {
+	h := p.host.Load()
+	if host, ok := h.(types.Host); ok {
+		return host
+	}
+
+	return nil
+}
+
+func (p *connPool) UpdateHost(h types.Host) {
+	p.host.Store(h)
+}
+
+// NewStream Create a client stream and call's by proxy
 func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
+	host := p.Host()
 	c, reason := p.getAvailableClient(ctx)
 
 	if c == nil {
-		listener.OnFailure(reason, p.host)
+		listener.OnFailure(reason, host)
 		return
 	}
 
-	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, p.host)
-		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
+		listener.OnFailure(types.Overflow, host)
+		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
-		p.host.HostStats().UpstreamRequestTotal.Inc(1)
-		p.host.HostStats().UpstreamRequestActive.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
-		p.host.ClusterInfo().ResourceManager().Requests().Increase()
+		host.HostStats().UpstreamRequestTotal.Inc(1)
+		host.HostStats().UpstreamRequestActive.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
+		host.ClusterInfo().ResourceManager().Requests().Increase()
 
 		streamEncoder := c.client.NewStream(ctx, receiver)
 		streamEncoder.GetStream().AddEventListener(c)
-		listener.OnReady(streamEncoder, p.host)
+		listener.OnReady(streamEncoder, host)
 	}
 
 	return
 }
 
 func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types.PoolFailureReason) {
-	p.clientMux.Lock()
-	defer p.clientMux.Unlock()
 
+	p.clientMux.Lock()
+	host := p.Host()
 	n := len(p.availableClients)
+	// max conns is 0 means no limit
+	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
 	// no available client
 	if n == 0 {
-		// max conns is 0 means no limit
-		maxConns := p.host.ClusterInfo().ResourceManager().Connections().Max()
-		if maxConns == 0 || p.totalClientCount < maxConns {
+		atomic.AddUint64(&p.totalClientCount, 1)
+		if maxConns == 0 || atomic.LoadUint64(&p.totalClientCount) <= maxConns {
+			// Unlock immediately, allowing concurrent connections
+			p.clientMux.Unlock()
 			ac, reason := newActiveClient(ctx, p)
-			if ac != nil && reason == "" {
-				p.totalClientCount++
+			if ac == nil || reason != "" {
+				// To subtract a signed positive constant value c from x, do AddUint64(&x, ^uint64(c-1)).
+				atomic.AddUint64(&p.totalClientCount, ^uint64(0))
 			}
 			return ac, reason
 		} else {
-			p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-			p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+			// To subtract a signed positive constant value c from x, do AddUint64(&x, ^uint64(c-1)).
+			atomic.AddUint64(&p.totalClientCount, ^uint64(0))
+			p.clientMux.Unlock()
+			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 			return nil, types.Overflow
 		}
 	} else {
+		// Avoid concurrency problems with availableClients variables, such as len(totalClientCount)
+		defer p.clientMux.Unlock()
 		n--
+		usedConns := atomic.LoadUint64(&p.totalClientCount) - uint64(n)
+		// Only refuse extra connection, keepalive-connection is closed by timeout
+		if maxConns != 0 && usedConns > maxConns {
+			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+			return nil, types.Overflow
+		}
+
 		c := p.availableClients[n]
 		p.availableClients[n] = nil
 		p.availableClients = p.availableClients[:n]
@@ -142,19 +176,25 @@ func (p *connPool) Close() {
 }
 
 func (p *connPool) Shutdown() {
-	// TODO: http connpool do nothing for shutdown
+	p.clientMux.Lock()
+	defer p.clientMux.Unlock()
+
+	for _, client := range p.availableClients {
+		client.OnGoAway()
+	}
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
+	host := p.Host()
 	if event.IsClose() {
 
 		if client.closeWithActiveReq {
 			if event == api.LocalClose {
-				p.host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
+				host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
+				host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 			} else if event == api.RemoteClose {
-				p.host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
-				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+				host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+				host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 			}
 		}
 
@@ -162,7 +202,8 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 		p.clientMux.Lock()
 		defer p.clientMux.Unlock()
 
-		p.totalClientCount--
+		// To subtract a signed positive constant value c from x, do AddUint64(&x, ^uint64(c-1)).
+		atomic.AddUint64(&p.totalClientCount, ^uint64(0))
 
 		for i, c := range p.availableClients {
 			if c == client {
@@ -175,19 +216,20 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 		// set closed flag if not available
 		client.closed = true
 	} else if event == api.ConnectTimeout {
-		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
+		host.HostStats().UpstreamRequestTimeout.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		client.client.Close()
 	} else if event == api.ConnectFailed {
-		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
+		host.HostStats().UpstreamConnectionConFail.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
 	}
 }
 
 func (p *connPool) onStreamDestroy(client *activeClient) {
-	p.host.HostStats().UpstreamRequestActive.Dec(1)
-	p.host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
-	p.host.ClusterInfo().ResourceManager().Requests().Decrease()
+	host := p.Host()
+	host.HostStats().UpstreamRequestActive.Dec(1)
+	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
+	host.ClusterInfo().ResourceManager().Requests().Decrease()
 
 	// return to pool
 	p.clientMux.Lock()
@@ -198,16 +240,17 @@ func (p *connPool) onStreamDestroy(client *activeClient) {
 }
 
 func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetReason) {
+	host := p.Host()
 	if reason == types.StreamConnectionTermination || reason == types.StreamConnectionFailed {
-		p.host.HostStats().UpstreamRequestFailureEject.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestFailureEject.Inc(1)
+		host.HostStats().UpstreamRequestFailureEject.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestFailureEject.Inc(1)
 		client.closeWithActiveReq = true
 	} else if reason == types.StreamLocalReset {
-		p.host.HostStats().UpstreamRequestLocalReset.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestLocalReset.Inc(1)
+		host.HostStats().UpstreamRequestLocalReset.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestLocalReset.Inc(1)
 	} else if reason == types.StreamRemoteReset {
-		p.host.HostStats().UpstreamRequestRemoteReset.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestRemoteReset.Inc(1)
+		host.HostStats().UpstreamRequestRemoteReset.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestRemoteReset.Inc(1)
 	}
 }
 
@@ -220,7 +263,7 @@ func (p *connPool) report() {
 	utils.GoWithRecover(func() {
 		for {
 			p.clientMux.Lock()
-			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.host.AddressString(), len(p.availableClients), p.totalClientCount)
+			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.Host().AddressString(), len(p.availableClients), atomic.LoadUint64(&p.totalClientCount))
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}
@@ -245,7 +288,8 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 		pool: pool,
 	}
 
-	data := pool.host.CreateConnection(ctx)
+	host := pool.Host()
+	data := host.CreateConnection(ctx)
 	codecClient := pool.createStreamClient(ctx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
@@ -257,13 +301,13 @@ func newActiveClient(ctx context.Context, pool *connPool) (*activeClient, types.
 		return nil, types.ConnectionFailure
 	}
 
-	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
-	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
+	host.HostStats().UpstreamConnectionTotal.Inc(1)
+	host.HostStats().UpstreamConnectionActive.Inc(1)
+	host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
+	host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
 	// bytes total adds all connections data together
-	codecClient.SetConnectionCollector(pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal, pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
+	codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
 	return ac, ""
 }
