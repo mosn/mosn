@@ -43,7 +43,6 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	v1 "istio.io/api/mixer/v1"
 	"istio.io/api/mixer/v1/config/client"
-	"mosn.io/mosn/pkg/server"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/filter/stream/faultinject"
