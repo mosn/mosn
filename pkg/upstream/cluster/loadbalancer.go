@@ -138,17 +138,8 @@ func (lb *roundRobinLoadBalancer) hostWeight(item WeightItem) float64 {
 func (lb *roundRobinLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
 	targets := lb.hosts.Hosts()
 	total := len(targets)
-	if total == 0 {
-		return nil
-	}
-	for i := 0; i < total; i++ {
-		index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
-		host := targets[index]
-		if host.Health() {
-			return host
-		}
-	}
-	return nil
+	index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
+	return targets[index]
 }
 
 func (lb *roundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
