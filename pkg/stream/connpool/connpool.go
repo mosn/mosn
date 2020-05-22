@@ -51,9 +51,9 @@ type connpool struct {
 	// sub protocol of http is "", sub of http2 is ""
 	idleClients map[api.Protocol][]*activeClient
 
-	host          atomic.Value
-	supportTLS    bool
-	clientMux                 sync.Mutex
+	host       atomic.Value
+	supportTLS bool
+	clientMux  sync.Mutex
 
 	totalClientCount uint64 // total clients
 	protocol         api.Protocol
@@ -62,8 +62,8 @@ type connpool struct {
 // NewConnPool init a connection pool
 func NewConnPool(proto api.Protocol, host types.Host) types.ConnectionPool {
 	p := &connpool{
-		supportTLS: host.SupportTLS(),
-		protocol:   proto,
+		supportTLS:  host.SupportTLS(),
+		protocol:    proto,
 		idleClients: make(map[api.Protocol][]*activeClient),
 	}
 
@@ -171,27 +171,23 @@ func (p *connpool) Host() types.Host {
 }
 
 // NewStream Create a client stream and call's by proxy
-func (p *connpool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
-
+func (p *connpool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
 	host := p.Host()
 
 	subProtocol := getSubProtocol(ctx)
 	c, reason := p.getAvailableClient(ctx, subProtocol)
 	if c == nil {
-		listener.OnFailure(reason, host)
-		return
+		return reason, host, nil
 	}
 
 	if p.useAsyncConnect(p.protocol, subProtocol) && atomic.LoadUint32(&c.state) != Connected {
-		listener.OnFailure(types.ConnectionFailure, host)
-		return
+		return types.ConnectionFailure, host, nil
 	}
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, host)
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-		return
+		return types.Overflow, host, nil
 	}
 
 	if p.shouldMultiplex(subProtocol) {
@@ -201,19 +197,21 @@ func (p *connpool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	host.HostStats().UpstreamRequestTotal.Inc(1)
 	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 
-	var streamEncoder = c.client.NewStream(ctx, receiver)
+	var streamEncoder = c.codecClient.NewStream(ctx, receiver)
 
+	// FIXME one way
+	// is there any need to skip the metrics?
 	if receiver == nil {
-		goto LISTENER
+		return "", host, streamEncoder
 	}
 
 	streamEncoder.GetStream().AddEventListener(c)
+
 	host.HostStats().UpstreamRequestActive.Inc(1)
 	host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 	host.ClusterInfo().ResourceManager().Requests().Increase()
 
-LISTENER:
-	listener.OnReady(streamEncoder, host)
+	return "", host, streamEncoder
 }
 
 // getAvailableClient get a avail client
@@ -289,7 +287,7 @@ func (p *connpool) Close() {
 
 	for _, clients := range p.idleClients {
 		for _, c := range clients {
-			c.client.Close()
+			c.codecClient.Close()
 		}
 	}
 }
@@ -370,7 +368,7 @@ func (p *connpool) onConnectionEvent(client *activeClient, event api.ConnectionE
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		client.client.Close()
+		client.codecClient.Close()
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
@@ -419,16 +417,12 @@ func (p *connpool) onStreamReset(client *activeClient, reason types.StreamResetR
 	}
 }
 
-func (p *connpool) createStreamClient(context context.Context, connData types.CreateConnectionData) stream.Client {
-	return stream.NewStreamClient(context, p.protocol, connData.Connection, connData.Host)
-}
-
 // types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connpool
-	client             stream.Client
+	codecClient        stream.Client
 	host               types.CreateConnectionData
 	totalStream        uint64
 	closeWithActiveReq bool
@@ -467,11 +461,11 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
 	}
 
-	codecClient := p.createStreamClient(connCtx, data)
+	codecClient := stream.NewStreamClient(connCtx, p.protocol, data.Connection, data.Host)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
 
-	ac.client = codecClient
+	ac.codecClient = codecClient
 	ac.host = data
 
 	if subProtocol != "" {
@@ -486,7 +480,7 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 			ac.keepAlive = &keepAliveListener{
 				keepAlive: rpcKeepAlive,
 			}
-			ac.client.AddConnectionEventListener(ac.keepAlive)
+			ac.codecClient.AddConnectionEventListener(ac.keepAlive)
 		}
 	}
 
@@ -517,7 +511,7 @@ func (ac *activeClient) OnDestroyStream() {
 	if !ac.pool.shouldMultiplex(ac.subProtocol) && (!ac.closed && ac.shouldCloseConn) {
 		// HTTP1 && xprotocol ping pong
 		// xprotocol may also use ping pong now, so we need to close the conn
-		ac.client.Close()
+		ac.codecClient.Close()
 	}
 
 	ac.pool.onStreamDestroy(ac)
@@ -528,15 +522,15 @@ func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 
 	if !ac.pool.shouldMultiplex(ac.subProtocol) && reason == types.StreamLocalReset && !ac.closed {
 		// for http1 && xprotocol ping pong
-		log.DefaultLogger.Debugf("[stream] [http] stream local reset, blow client away also, Connection = %d",
-			ac.client.ConnID())
+		log.DefaultLogger.Debugf("[stream] [http] stream local reset, blow codecClient away also, Connection = %d",
+			ac.codecClient.ConnID())
 		ac.shouldCloseConn = true
 	}
 }
 
 // types.StreamConnectionEventListener
 func (ac *activeClient) OnGoAway() {
-	if ac.pool.shouldMultiplex(ac.subProtocol){
+	if ac.pool.shouldMultiplex(ac.subProtocol) {
 		atomic.StoreUint32(&ac.goaway, 1)
 	} else {
 		ac.shouldCloseConn = true

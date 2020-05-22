@@ -233,8 +233,7 @@ const (
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
-
-	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
+	NewStream(ctx context.Context, receiver StreamReceiveListener) (PoolFailureReason, Host, StreamSender)
 
 	// check host health and init host
 	CheckAndInit(ctx context.Context) bool
