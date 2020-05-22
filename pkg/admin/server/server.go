@@ -48,6 +48,8 @@ func init() {
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,
 		"/api/v1/plugin":          pluginApi,
+		"/api/v1/features":        knownFeatures,
+		"/api/v1/env":             getEnv,
 		"/":                       help,
 	}
 }
