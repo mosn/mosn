@@ -75,7 +75,7 @@ func (proto *tarsProtocol) Trigger(requestId uint64) xprotocol.XFrame {
 	return nil
 }
 
-func (proto *tarsProtocol) Reply(requestId uint64) xprotocol.XRespFrame {
+func (proto *tarsProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
 	// not support
 	return nil
 }
@@ -114,5 +114,4 @@ func getStreamType(pkg []byte) (byte, error) {
 		return CmdTypeUndefine, nil
 
 	}
-	return CmdTypeUndefine, nil
 }

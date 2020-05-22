@@ -27,6 +27,7 @@ import (
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	xdsv2    "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -74,7 +75,12 @@ const (
 
 // todo add streamfilters parse
 func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
-	if !isSupport(xdsListener) {
+	// TODO support all filter
+	//if !isSupport(xdsListener) {
+	//	return nil
+	//}
+
+	if xdsListener == nil {
 		return nil
 	}
 
@@ -104,12 +110,14 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 
 	listenerConfig.ListenerFilters = convertListenerFilters(xdsListener.GetListenerFilters())
 
-	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
+	var rawSelectedFilters *xdslistener.Filter
+	listenerConfig.FilterChains, rawSelectedFilters = convertFilterChainsAndGetRawFilter(xdsListener)
 
 	if listenerConfig.FilterChains != nil &&
 		len(listenerConfig.FilterChains) == 1 &&
-		listenerConfig.FilterChains[0].Filters != nil {
-		listenerConfig.StreamFilters = convertStreamFilters(xdsListener.FilterChains[0].Filters[0])
+		listenerConfig.FilterChains[0].Filters != nil &&
+		rawSelectedFilters != nil {
+		listenerConfig.StreamFilters = convertStreamFilters(rawSelectedFilters)
 	}
 
 	return listenerConfig
@@ -165,6 +173,7 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			Hosts: convertClusterHosts(xdsCluster.GetHosts()),
 			Spec:  convertSpec(xdsCluster),
 			TLS:   convertTLS(xdsCluster.GetTlsContext()),
+			LbConfig: convertLbConfig(xdsCluster.LbConfig),
 		}
 
 		if ass := xdsCluster.GetLoadAssignment(); ass != nil {
@@ -178,6 +187,16 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 	}
 
 	return clusters
+}
+
+// TODO support more LB converter
+func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
+	switch config.(type) {
+	case *xdsv2.Cluster_LeastRequestLbConfig:
+		return &v2.LeastRequestLbConfig{ChoiceCount:config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
+	default:
+		return nil
+	}
 }
 
 func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.Host {
@@ -486,9 +505,22 @@ func convertMixerConfig(s *any.Any) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func convertFilterChains(xdsFilterChains []*xdslistener.FilterChain) []v2.FilterChain {
+func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.FilterChain, *xdslistener.Filter) {
+	if xdsListener == nil {
+		return nil, nil
+	}
+
+	xdsFilterChains := xdsListener.GetFilterChains()
+
 	if xdsFilterChains == nil {
-		return nil
+		return nil, nil
+	}
+
+	useOriginalDst := false
+	for _, xl := range xdsListener.GetListenerFilters() {
+		if xl.Name == xdswellknown.OriginalDestination {
+			useOriginalDst = true
+		}
 	}
 
 	var xdsFilters []*xdslistener.Filter
@@ -511,35 +543,41 @@ func convertFilterChains(xdsFilterChains []*xdslistener.FilterChain) []v2.Filter
 		}
 	}
 
-	return []v2.FilterChain{{
-		FilterChainConfig: v2.FilterChainConfig{
-			FilterChainMatch: chainMatch,
-			Filters:          convertFilters(xdsFilters),
-		},
-		TLSContexts: nil,
-	},
-	}
-
-}
-
-func convertFilters(xdsFilters []*xdslistener.Filter) []v2.Filter {
-	if xdsFilters == nil {
-		return nil
-	}
-
-	filters := make([]v2.Filter, 0, len(xdsFilters))
 	// A port supports only one protocol
 	//todo support more Listener & One Listener support more Protocol
 	var oneFilter *xdslistener.Filter
 	for _, xdsFilter := range xdsFilters {
-		if xdsFilter.Name == xdswellknown.HTTPConnectionManager {
+
+		if xdsFilter.Name == xdswellknown.TCPProxy {
+			oneFilter = xdsFilter
+			if useOriginalDst {
+				break
+			}
+		} else if xdsFilter.Name == xdswellknown.HTTPConnectionManager {
 			oneFilter = xdsFilter
 			break
-		} else if xdsFilter.Name == xdswellknown.TCPProxy {
-			oneFilter = xdsFilter
 		}
 	}
-	filterMaps := convertFilterConfig(oneFilter)
+
+	return []v2.FilterChain{{
+		FilterChainConfig: v2.FilterChainConfig{
+			FilterChainMatch: chainMatch,
+			Filters:          convertFilters(oneFilter),
+		},
+		TLSContexts: nil,
+	},
+	}, oneFilter
+
+}
+
+func convertFilters(xdsFilters *xdslistener.Filter) []v2.Filter {
+	if xdsFilters == nil {
+		return nil
+	}
+
+	filters := make([]v2.Filter, 0)
+
+	filterMaps := convertFilterConfig(xdsFilters)
 	for typeKey, configValue := range filterMaps {
 		filters = append(filters, v2.Filter{
 			typeKey,
@@ -989,6 +1027,7 @@ func convertClusterType(xdsClusterType xdsapi.Cluster_DiscoveryType) v2.ClusterT
 	case xdsapi.Cluster_EDS:
 		return v2.EDS_CLUSTER
 	case xdsapi.Cluster_ORIGINAL_DST:
+		return v2.ORIGINALDST_CLUSTER
 	}
 	//log.DefaultLogger.Fatalf("unsupported cluster type: %s, exchange to SIMPLE_CLUSTER", xdsClusterType.String())
 	return v2.SIMPLE_CLUSTER
@@ -999,6 +1038,7 @@ func convertLbPolicy(xdsLbPolicy xdsapi.Cluster_LbPolicy) v2.LbType {
 	case xdsapi.Cluster_ROUND_ROBIN:
 		return v2.LB_ROUNDROBIN
 	case xdsapi.Cluster_LEAST_REQUEST:
+		return v2.LB_LEAST_REQUEST
 	case xdsapi.Cluster_RING_HASH:
 	case xdsapi.Cluster_RANDOM:
 		return v2.LB_RANDOM

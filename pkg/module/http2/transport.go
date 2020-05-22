@@ -31,8 +31,8 @@ import (
 	"time"
 
 	"golang.org/x/net/http/httpguts"
-	"golang.org/x/net/http2/hpack"
 	"golang.org/x/net/idna"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 )
 
 const (
@@ -1005,7 +1005,7 @@ func (cc *ClientConn) roundTrip(req *http.Request) (res *http.Response, gotErrAf
 	}
 
 	// we send: HEADERS{1}, CONTINUATION{0,} + DATA{0,} (DATA is
-	// sent by writeRequestBody below, along with any Trailers,
+	// sent by writeRequestBody below, along with any Trailer,
 	// again in form HEADERS{1}, CONTINUATION{0,})
 	hdrs, err := cc.encodeHeaders(req, requestedGzip, trailers, contentLen)
 	if err != nil {
@@ -1541,6 +1541,7 @@ func (cc *ClientConn) encodeTrailers(req *http.Request) ([]byte, error) {
 			cc.writeHeader(lowKey, v)
 		}
 	}
+
 	return cc.hbuf.Bytes(), nil
 }
 

@@ -18,6 +18,7 @@
 package conv
 
 import (
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -42,6 +43,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	v1 "istio.io/api/mixer/v1"
 	"istio.io/api/mixer/v1/config/client"
+	"mosn.io/mosn/pkg/server"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/filter/stream/faultinject"
@@ -60,7 +62,7 @@ func TestMain(m *testing.M) {
 		DefaultLogLevel: "FATAL",
 	})
 	server.NewServer(sc, &mockCMF{}, cm)
-	m.Run()
+	os.Exit(m.Run())
 }
 
 // messageToAny converts from proto message to proto Any
@@ -728,20 +730,20 @@ func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 }
 
 func Test_convertPerRouteConfig(t *testing.T) {
-	mixerFilterConfig := &client.ServiceConfig{
-		DisableReportCalls: false,
-		DisableCheckCalls:  true,
-		MixerAttributes: &v1.Attributes{
-			Attributes: map[string]*v1.Attributes_AttributeValue{
-				"test": &v1.Attributes_AttributeValue{
-					Value: &v1.Attributes_AttributeValue_StringValue{
-						StringValue: "test_value",
+	mixerFilterConfig := &client.HttpClientConfig{
+		ServiceConfigs: map[string]*client.ServiceConfig{v2.MIXER: &client.ServiceConfig{
+			MixerAttributes: &v1.Attributes{
+				Attributes: map[string]*v1.Attributes_AttributeValue{
+					"test": &v1.Attributes_AttributeValue{
+						Value: &v1.Attributes_AttributeValue_StringValue{
+							StringValue: "test_value",
+						},
 					},
 				},
 			},
 		},
+		},
 	}
-
 	mixerStruct := messageToAny(t, mixerFilterConfig)
 	fixedDelay := duration.Duration{Seconds: 1}
 	faultInjectConfig := &xdshttpfault.HTTPFault{
@@ -787,13 +789,19 @@ func Test_convertPerRouteConfig(t *testing.T) {
 	if mixerPer, ok := perRouteConfig[v2.MIXER]; !ok {
 		t.Error("no mixer config found")
 	} else {
-		// TODO: mixer config needs to fix
-		if rawMixer, ok := mixerPer.(client.HttpClientConfig); !ok {
-			t.Error("mixer config is not expected.")
-		} else {
-			if !reflect.DeepEqual(&rawMixer, mixerFilterConfig) {
-				t.Error("mixer config is not expected")
-			}
+		res := client.HttpClientConfig{}
+		jsonStr, err := json.Marshal(mixerPer.(map[string]interface{}))
+		if err != nil {
+			t.Errorf("mixer Marshal err: %v", err)
+		}
+
+		err = json.Unmarshal([]byte(jsonStr), &res)
+		if err != nil {
+			t.Errorf("mixer Unmarshal err: %v", err)
+		}
+
+		if !reflect.DeepEqual(&res, mixerFilterConfig) {
+			t.Error("mixer config is not expected")
 		}
 	}
 	if faultPer, ok := perRouteConfig[v2.FaultStream]; !ok {

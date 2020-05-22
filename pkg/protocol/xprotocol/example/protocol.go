@@ -101,7 +101,7 @@ func (proto *proto) Trigger(requestId uint64) xprotocol.XFrame {
 	return nil
 }
 
-func (proto *proto) Reply(requestId uint64) xprotocol.XRespFrame {
+func (proto *proto) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
 	// not supported for poc demo
 	return nil
 }

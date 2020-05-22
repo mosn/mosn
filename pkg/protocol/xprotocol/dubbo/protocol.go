@@ -95,14 +95,14 @@ func (proto *dubboProtocol) Trigger(requestId uint64) xprotocol.XFrame {
 	return nil
 }
 
-func (proto *dubboProtocol) Reply(requestId uint64) xprotocol.XRespFrame {
+func (proto *dubboProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
 	// TODO make readable
 	return &Frame{
 		Header: Header{
 			Magic:   MagicTag,
 			Flag:    0x22,
 			Status:  0x14,
-			Id:      requestId,
+			Id:      request.GetRequestId(),
 			DataLen: 0x02,
 		},
 		payload: []byte{0x4e, 0x4e},

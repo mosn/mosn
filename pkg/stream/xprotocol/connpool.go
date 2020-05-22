@@ -23,6 +23,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
@@ -49,27 +51,28 @@ func init() {
 // host is the upstream
 type connPool struct {
 	activeClients sync.Map //sub protocol -> activeClient
-	host          types.Host
-
-	mux sync.Mutex
+	host          atomic.Value
+	mux           sync.Mutex
+	supportTLS    bool
 }
 
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
 	p := &connPool{
-		host: host,
+		supportTLS: host.SupportTLS(),
 	}
+	p.host.Store(host)
 	return p
 }
 
 func (p *connPool) SupportTLS() bool {
-	return p.host.SupportTLS()
+	return p.supportTLS
 }
 
 func (p *connPool) init(client *activeClient, sub types.ProtocolName) {
 	utils.GoWithRecover(func() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.host.AddressString())
+			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.Host().AddressString())
 		}
 
 		p.mux.Lock()
@@ -82,6 +85,20 @@ func (p *connPool) init(client *activeClient, sub types.ProtocolName) {
 			p.activeClients.Delete(sub)
 		}
 	}, nil)
+}
+
+func (p *connPool) Host() types.Host {
+	h := p.host.Load()
+	if host, ok := h.(types.Host); ok {
+		return host
+	}
+
+	return nil
+}
+
+func (p *connPool) UpdateHost(h types.Host) {
+	// TODO: update tls support flag
+	p.host.Store(h)
 }
 
 func (p *connPool) CheckAndInit(ctx context.Context) bool {
@@ -119,26 +136,27 @@ func (p *connPool) NewStream(ctx context.Context,
 	subProtocol := getSubProtocol(ctx)
 
 	client, _ := p.activeClients.Load(subProtocol)
+	host := p.Host()
 
 	if client == nil {
-		listener.OnFailure(types.ConnectionFailure, p.host)
+		listener.OnFailure(types.ConnectionFailure, host)
 		return
 	}
 
 	activeClient := client.(*activeClient)
 	if atomic.LoadUint32(&activeClient.state) != Connected {
-		listener.OnFailure(types.ConnectionFailure, p.host)
+		listener.OnFailure(types.ConnectionFailure, host)
 		return
 	}
 
-	if !p.host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, p.host)
-		p.host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
+		listener.OnFailure(types.Overflow, host)
+		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 	} else {
 		atomic.AddUint64(&activeClient.totalStream, 1)
-		p.host.HostStats().UpstreamRequestTotal.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+		host.HostStats().UpstreamRequestTotal.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 
 		var streamEncoder types.StreamSender
 		// oneway
@@ -148,12 +166,12 @@ func (p *connPool) NewStream(ctx context.Context,
 			streamEncoder = activeClient.client.NewStream(ctx, responseDecoder)
 			streamEncoder.GetStream().AddEventListener(activeClient)
 
-			p.host.HostStats().UpstreamRequestActive.Inc(1)
-			p.host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
-			p.host.ClusterInfo().ResourceManager().Requests().Increase()
+			host.HostStats().UpstreamRequestActive.Inc(1)
+			host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
+			host.ClusterInfo().ResourceManager().Requests().Increase()
 		}
 
-		listener.OnReady(streamEncoder, p.host)
+		listener.OnReady(streamEncoder, host)
 	}
 
 	return
@@ -184,31 +202,32 @@ func (p *connPool) Shutdown() {
 }
 
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
+	host := p.Host()
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
 	if event.IsClose() {
-		p.host.HostStats().UpstreamConnectionClose.Inc(1)
-		p.host.HostStats().UpstreamConnectionActive.Dec(1)
+		host.HostStats().UpstreamConnectionClose.Inc(1)
+		host.HostStats().UpstreamConnectionActive.Dec(1)
 
-		p.host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+		host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
 
 		switch event {
 		case api.LocalClose:
-			p.host.HostStats().UpstreamConnectionLocalClose.Inc(1)
-			p.host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+			host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
 
 			if client.closeWithActiveReq {
-				p.host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-				p.host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
+				host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
+				host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
 			}
 
 		case api.RemoteClose:
-			p.host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
-			p.host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+			host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
 
 			if client.closeWithActiveReq {
-				p.host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
-				p.host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+				host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+				host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 
 			}
 		default:
@@ -218,32 +237,34 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 		p.activeClients.Delete(client.subProtocol)
 		p.mux.Unlock()
 	} else if event == api.ConnectTimeout {
-		p.host.HostStats().UpstreamRequestTimeout.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
+		host.HostStats().UpstreamRequestTimeout.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		client.client.Close()
 	} else if event == api.ConnectFailed {
-		p.host.HostStats().UpstreamConnectionConFail.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
+		host.HostStats().UpstreamConnectionConFail.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
 	}
 }
 
 func (p *connPool) onStreamDestroy(client *activeClient) {
-	p.host.HostStats().UpstreamRequestActive.Dec(1)
-	p.host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
-	p.host.ClusterInfo().ResourceManager().Requests().Decrease()
+	host := p.Host()
+	host.HostStats().UpstreamRequestActive.Dec(1)
+	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
+	host.ClusterInfo().ResourceManager().Requests().Decrease()
 }
 
 func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetReason) {
+	host := p.Host()
 	if reason == types.StreamConnectionTermination || reason == types.StreamConnectionFailed {
-		p.host.HostStats().UpstreamRequestFailureEject.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestFailureEject.Inc(1)
+		host.HostStats().UpstreamRequestFailureEject.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestFailureEject.Inc(1)
 		client.closeWithActiveReq = true
 	} else if reason == types.StreamLocalReset {
-		p.host.HostStats().UpstreamRequestLocalReset.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestLocalReset.Inc(1)
+		host.HostStats().UpstreamRequestLocalReset.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestLocalReset.Inc(1)
 	} else if reason == types.StreamRemoteReset {
-		p.host.HostStats().UpstreamRequestRemoteReset.Inc(1)
-		p.host.ClusterInfo().Stats().UpstreamRequestRemoteReset.Inc(1)
+		host.HostStats().UpstreamRequestRemoteReset.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestRemoteReset.Inc(1)
 	}
 }
 
@@ -282,7 +303,8 @@ func newActiveClient(ctx context.Context, subProtocol types.ProtocolName, pool *
 		pool:        pool,
 	}
 
-	data := pool.host.CreateConnection(ctx)
+	host := pool.Host()
+	data := host.CreateConnection(ctx)
 	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
 	connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
 	codecClient := pool.createStreamClient(connCtx, data)
@@ -294,16 +316,18 @@ func newActiveClient(ctx context.Context, subProtocol types.ProtocolName, pool *
 
 	// Add Keep Alive
 	// protocol is from onNewDetectStream
-	// TODO: support protocol convert
-
-	// TODO: support config
 	if subProtocol != "" {
-		rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second, 6)
-		rpcKeepAlive.StartIdleTimeout()
-		ac.keepAlive = &keepAliveListener{
-			keepAlive: rpcKeepAlive,
+		// check heartbeat enable, hack: judge trigger result of Heartbeater
+		proto := xprotocol.GetProtocol(subProtocol)
+		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+			// create keepalive
+			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second, 6)
+			rpcKeepAlive.StartIdleTimeout()
+			ac.keepAlive = &keepAliveListener{
+				keepAlive: rpcKeepAlive,
+			}
+			ac.client.AddConnectionEventListener(ac.keepAlive)
 		}
-		ac.client.AddConnectionEventListener(ac.keepAlive)
 	}
 
 	if err := ac.client.Connect(); err != nil {
@@ -311,13 +335,13 @@ func newActiveClient(ctx context.Context, subProtocol types.ProtocolName, pool *
 	}
 
 	// stats
-	pool.host.HostStats().UpstreamConnectionTotal.Inc(1)
-	pool.host.HostStats().UpstreamConnectionActive.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
-	pool.host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
+	host.HostStats().UpstreamConnectionTotal.Inc(1)
+	host.HostStats().UpstreamConnectionActive.Inc(1)
+	host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
+	host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
 	// bytes total adds all connections data together
-	codecClient.SetConnectionCollector(pool.host.ClusterInfo().Stats().UpstreamBytesReadTotal, pool.host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
+	codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
 	return ac
 }

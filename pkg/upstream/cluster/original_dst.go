@@ -39,7 +39,7 @@ type OriginalDstLoadBalancer struct {
 	host  map[string]types.Host
 }
 
-func newOriginalDstLoadBalancer(hosts types.HostSet) types.LoadBalancer {
+func newOriginalDstLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	return &OriginalDstLoadBalancer{
 		hosts: hosts,
 		host:  make(map[string]types.Host),

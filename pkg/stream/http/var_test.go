@@ -24,8 +24,10 @@ import (
 	"strconv"
 	"testing"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -57,7 +59,7 @@ func prepareRequest(t *testing.T, requestBytes []byte) context.Context {
 func Test_get_request_length_and_method(t *testing.T) {
 	ctx := prepareRequest(t, postRequestBytes)
 
-	requestLen, err := variable.GetVariableValue(ctx, VarRequestLength)
+	requestLen, err := variable.GetVariableValue(ctx, types.VarHttpRequestLength)
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
@@ -67,7 +69,7 @@ func Test_get_request_length_and_method(t *testing.T) {
 		t.Error("request length assert failed, expected:", expected, ", actual is: ", requestLen)
 	}
 
-	requestMethod, err := variable.GetVariableValue(ctx, VarRequestMethod)
+	requestMethod, err := variable.GetVariableValue(ctx, types.VarHttpRequestMethod)
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
@@ -113,6 +115,80 @@ func Test_get_cookie(t *testing.T) {
 	if actual != "shanghai" {
 		t.Error("request cookie assert failed, expected: shanghai, actual is: ", actual)
 	}
+}
+
+func Test_get_path(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	actual, err := variable.GetVariableValue(ctx, "http_request_path")
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+
+	want := "/info.htm"
+	if actual != want {
+		t.Errorf("request path assert failed, expected: %s, actual is: %s", want, actual)
+	}
+}
+
+func Test_get_uri(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	actual, err := variable.GetVariableValue(ctx, "http_request_uri")
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+
+	want := "/info.htm?type=foo&name=bar"
+	if actual != want {
+		t.Errorf("request uri assert failed, expected: %s, actual is: %s", want, actual)
+	}
+}
+
+func Test_get_allarg(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	actual, err := variable.GetVariableValue(ctx, "http_request_arg")
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+	want := "type=foo&name=bar"
+	if actual != want {
+		t.Errorf("request arg assert failed, expected: %s, actual is: %s", want, actual)
+	}
+}
+
+func Test_get_protocolResource(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+	actual, err := variable.GetProtocolResource(ctx, api.PATH)
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+	want := "/info.htm"
+	if actual != want {
+		t.Errorf("request arg assert failed, expected: %s, actual is: %s", want, actual)
+	}
+
+	actual, err = variable.GetProtocolResource(ctx, api.URI)
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+	want = "/info.htm?type=foo&name=bar"
+	if actual != want {
+		t.Errorf("request arg assert failed, expected: %s, actual is: %s", want, actual)
+	}
+
+	actual, err = variable.GetProtocolResource(ctx, api.ARG)
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+	want = "type=foo&name=bar"
+	if actual != want {
+		t.Errorf("request arg assert failed, expected: %s, actual is: %s", want, actual)
+	}
+
 }
 
 func prepareBenchmarkRequest(b *testing.B, requestBytes []byte) context.Context {

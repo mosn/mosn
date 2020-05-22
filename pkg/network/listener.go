@@ -27,6 +27,7 @@ import (
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
@@ -97,7 +98,7 @@ func (l *listener) Addr() net.Addr {
 func (l *listener) Start(lctx context.Context, restart bool) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("[network] [listener start] panic %v\n%s", r, string(debug.Stack()))
+			log.DefaultLogger.Alertf("listener.start", "[network] [listener start] panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 
@@ -117,7 +118,7 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 				log.DefaultLogger.Infof("[network] [listener start] %s restart listener ", l.name)
 				if err := l.listen(lctx); err != nil {
 					// TODO: notify listener callbacks
-					log.DefaultLogger.Errorf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
+					log.DefaultLogger.Alertf("listener.start", "[network] [listener start] [listen] %s listen failed, %v", l.name, err)
 					return true
 				}
 			default:
@@ -131,6 +132,8 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 				}
 			}
 			l.state = ListenerRunning
+			// add metrics for listener if bind port
+			metrics.AddListenerAddr(l.rawl.Addr().String())
 			return false
 		}()
 		if ignore {
@@ -150,7 +153,7 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 						if ope.Op == "accept" {
 							log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s %s closed", l.name, l.Addr())
 						} else {
-							log.DefaultLogger.Errorf("[network] [listener start] [accept] listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
+							log.DefaultLogger.Alertf("listener.accept", "[network] [listener start] [accept] listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
 						}
 						return
 					}

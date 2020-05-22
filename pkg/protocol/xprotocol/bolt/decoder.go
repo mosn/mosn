@@ -20,9 +20,10 @@ package bolt
 import (
 	"context"
 	"encoding/binary"
-	"fmt"
+	"strconv"
 
-	mbuffer "mosn.io/mosn/pkg/buffer"
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -49,44 +50,50 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	data.Drain(frameLen)
 
 	// 3. decode header
-	request := &Request{
-		RequestHeader: RequestHeader{
-			Protocol:   ProtocolCode,
-			CmdType:    CmdTypeRequest,
-			CmdCode:    binary.BigEndian.Uint16(bytes[2:4]),
-			Version:    bytes[4],
-			RequestId:  binary.BigEndian.Uint32(bytes[5:9]),
-			Codec:      bytes[9],
-			Timeout:    int32(binary.BigEndian.Uint32(bytes[10:14])),
-			ClassLen:   classLen,
-			HeaderLen:  headerLen,
-			ContentLen: contentLen,
-		},
-		rawData: mbuffer.GetBytesByContext(ctx, frameLen),
-	}
+	buf := bufferByContext(ctx)
+	request := &buf.request
+
+	cmdType := CmdTypeRequest
 	if oneway {
-		request.CmdType = CmdTypeRequestOneway
+		cmdType = CmdTypeRequestOneway
 	}
 
-	//4. copy data for io multiplexing
-	copy(*request.rawData, bytes)
-	request.Data = buffer.NewIoBufferBytes(*request.rawData)
+	request.RequestHeader = RequestHeader{
+		Protocol:   ProtocolCode,
+		CmdType:    cmdType,
+		CmdCode:    binary.BigEndian.Uint16(bytes[2:4]),
+		Version:    bytes[4],
+		RequestId:  binary.BigEndian.Uint32(bytes[5:9]),
+		Codec:      bytes[9],
+		Timeout:    int32(binary.BigEndian.Uint32(bytes[10:14])),
+		ClassLen:   classLen,
+		HeaderLen:  headerLen,
+		ContentLen: contentLen,
+	}
+	request.Data = buffer.GetIoBuffer(frameLen)
 
-	//5. process wrappers: Class, Header, Content, Data
+	// 4. set timeout to notify proxy
+	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(request.Timeout)))
+
+	//5. copy data for io multiplexing
+	request.Data.Write(bytes[:frameLen])
+	request.rawData = request.Data.Bytes()
+
+	//6. process wrappers: Class, Header, Content, Data
 	headerIndex := RequestHeaderLen + int(classLen)
 	contentIndex := headerIndex + int(headerLen)
 
-	request.rawMeta = (*request.rawData)[:RequestHeaderLen]
+	request.rawMeta = request.rawData[:RequestHeaderLen]
 	if classLen > 0 {
-		request.rawClass = (*request.rawData)[RequestHeaderLen:headerIndex]
+		request.rawClass = request.rawData[RequestHeaderLen:headerIndex]
 		request.Class = string(request.rawClass)
 	}
 	if headerLen > 0 {
-		request.rawHeader = (*request.rawData)[headerIndex:contentIndex]
-		err = decodeHeader(request.rawHeader, &request.Header)
+		request.rawHeader = request.rawData[headerIndex:contentIndex]
+		err = xprotocol.DecodeHeader(request.rawHeader, &request.Header)
 	}
 	if contentLen > 0 {
-		request.rawContent = (*request.rawData)[contentIndex:]
+		request.rawContent = request.rawData[contentIndex:]
 		request.Content = buffer.NewIoBufferBytes(request.rawContent)
 	}
 	return request, err
@@ -113,82 +120,44 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	data.Drain(frameLen)
 
 	// 3. decode header
-	response := &Response{
-		ResponseHeader: ResponseHeader{
-			Protocol:       ProtocolCode,
-			CmdType:        CmdTypeResponse,
-			CmdCode:        binary.BigEndian.Uint16(bytes[2:4]),
-			Version:        bytes[4],
-			RequestId:      binary.BigEndian.Uint32(bytes[5:9]),
-			Codec:          bytes[9],
-			ResponseStatus: binary.BigEndian.Uint16(bytes[10:12]),
-			ClassLen:       classLen,
-			HeaderLen:      headerLen,
-			ContentLen:     contentLen,
-		},
-		rawData: mbuffer.GetBytesByContext(ctx, frameLen),
+	buf := bufferByContext(ctx)
+	response := &buf.response
+
+	response.ResponseHeader = ResponseHeader{
+		Protocol:       ProtocolCode,
+		CmdType:        CmdTypeResponse,
+		CmdCode:        binary.BigEndian.Uint16(bytes[2:4]),
+		Version:        bytes[4],
+		RequestId:      binary.BigEndian.Uint32(bytes[5:9]),
+		Codec:          bytes[9],
+		ResponseStatus: binary.BigEndian.Uint16(bytes[10:12]),
+		ClassLen:       classLen,
+		HeaderLen:      headerLen,
+		ContentLen:     contentLen,
 	}
+	response.Data = buffer.GetIoBuffer(frameLen)
 
 	//TODO: test recycle by model, so we can recycle request/response models, headers also
 	//4. copy data for io multiplexing
-	copy(*response.rawData, bytes)
-
-	response.Data = buffer.NewIoBufferBytes(*response.rawData)
+	response.Data.Write(bytes[:frameLen])
+	response.rawData = response.Data.Bytes()
 
 	//5. process wrappers: Class, Header, Content, Data
 	headerIndex := ResponseHeaderLen + int(classLen)
 	contentIndex := headerIndex + int(headerLen)
 
-	response.rawMeta = (*response.rawData)[:ResponseHeaderLen]
+	response.rawMeta = response.rawData[:ResponseHeaderLen]
 	if classLen > 0 {
-		response.rawClass = (*response.rawData)[ResponseHeaderLen:headerIndex]
+		response.rawClass = response.rawData[ResponseHeaderLen:headerIndex]
 		response.Class = string(response.rawClass)
 	}
 	if headerLen > 0 {
-		response.rawHeader = (*response.rawData)[headerIndex:contentIndex]
-		err = decodeHeader(response.rawHeader, &response.Header)
+		response.rawHeader = response.rawData[headerIndex:contentIndex]
+		err = xprotocol.DecodeHeader(response.rawHeader, &response.Header)
 	}
 	if contentLen > 0 {
-		response.rawContent = (*response.rawData)[contentIndex:]
+		response.rawContent = response.rawData[contentIndex:]
 		response.Content = buffer.NewIoBufferBytes(response.rawContent)
 	}
 	return response, err
-}
-
-func decodeHeader(bytes []byte, h *xprotocol.Header) (err error) {
-	totalLen := len(bytes)
-	index := 0
-
-	for index < totalLen {
-		kv := xprotocol.BytesKV{}
-
-		// 1. read key
-		kv.Key, index, err = decodeStr(bytes, totalLen, index)
-		if err != nil {
-			return
-		}
-
-		// 2. read value
-		kv.Value, index, err = decodeStr(bytes, totalLen, index)
-		if err != nil {
-			return
-		}
-
-		// 3. kv append
-		h.Kvs = append(h.Kvs, kv)
-	}
-	return nil
-}
-
-func decodeStr(bytes []byte, totalLen, index int) (str []byte, newIndex int, err error) {
-	// 1. read str length
-	length := binary.BigEndian.Uint32(bytes[index:])
-	end := index + 4 + int(length)
-
-	if end > totalLen {
-		return nil, end, fmt.Errorf("decode bolt header failed, index %d, length %d, totalLen %d, bytes %v\n", index, length, totalLen, bytes)
-	}
-
-	// 2. read str value
-	return bytes[index+4 : end], end, nil
 }

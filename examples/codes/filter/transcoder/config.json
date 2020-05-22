@@ -3,6 +3,52 @@
     {
       "default_log_path": "stdout",
       "default_log_level": "DEBUG",
+      "routers":[
+      	{
+		 "router_config_name": "server_router",
+		 "virtual_hosts": [{
+			  "name": "serverHost",
+			  "domains": ["*"],
+			  "routers": [
+			  	{
+					"match": {
+						"headers": [
+							{
+								"name": "service",
+								"value": ".*"
+							}
+						]
+					},
+					"route": {
+						"cluster_name": "serverCluster"
+					}
+				}
+			  ]
+		 }]
+	},
+	{
+		"router_config_name": "client_router",
+		"virtual_hosts": [{
+			"name": "clientHost",
+			"domains": ["*"],
+			"routers": [
+			  	{
+					"match": {
+						"headers": [
+							{
+								"name": "service",
+								"value": ".*"
+							}
+						]
+					},
+					"route": {
+						"cluster_name": "clientCluster"
+					}
+				}
+			  ]
+		}]
+	}
+      ],
       "listeners": [
         {
           "name": "serverListener",
@@ -22,35 +68,6 @@
                     "extend_config": {
                       "sub_protocol": "bolt"
                     }
-                  }
-                },
-                {
-                  "type": "connection_manager",
-                  "config": {
-                    "router_config_name": "server_router",
-                    "virtual_hosts": [
-                      {
-                        "name": "serverHost",
-                        "domains": [
-                          "*"
-                        ],
-                        "routers": [
-                          {
-                            "match": {
-                              "headers": [
-                                {
-                                  "name": "service",
-                                  "value": ".*"
-                                }
-                              ]
-                            },
-                            "route": {
-                              "cluster_name": "serverCluster"
-                            }
-                          }
-                        ]
-                      }
-                    ]
                   }
                 }
               ]
@@ -75,35 +92,6 @@
                     "extend_config": {
                       "sub_protocol": "bolt"
                     }
-                  }
-                },
-                {
-                  "type": "connection_manager",
-                  "config": {
-                    "router_config_name": "client_router",
-                    "virtual_hosts": [
-                      {
-                        "name": "clientHost",
-                        "domains": [
-                          "*"
-                        ],
-                        "routers": [
-                          {
-                            "match": {
-                              "headers": [
-                                {
-                                  "name": "service",
-                                  "value": ".*"
-                                }
-                              ]
-                            },
-                            "route": {
-                              "cluster_name": "clientCluster"
-                            }
-                          }
-                        ]
-                      }
-                    ]
                   }
                 }
               ]

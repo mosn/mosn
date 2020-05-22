@@ -43,7 +43,7 @@
 							"cert_chain":"../certs/cert.pem",
 							"private_key":"../certs/key.pem",
 							"verify_client": true,
-							"ecdh_curves": "P256"
+							"require_client_cert": true
 						},
 						"filters": [
 							{
@@ -100,8 +100,6 @@
 					"ca_cert":"../certs/ca.pem",
 					"cert_chain":"../certs/cert.pem",
 					"private_key":"../certs/key.pem",
-					"verify_client": true,
-					"ecdh_curves": "P256",
 					"server_name": "127.0.0.1"
 				},
 				"hosts":[

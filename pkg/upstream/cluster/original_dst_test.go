@@ -90,7 +90,7 @@ func (h *Header) ByteSize() uint64 {
 func TestChooseHost(t *testing.T) {
 	// check use original dst
 	hostSet := &hostSet{}
-	orilb := newOriginalDstLoadBalancer(hostSet)
+	orilb := newOriginalDstLoadBalancer(nil, hostSet)
 	orihost := "127.0.0.1:8888"
 	oriRemoteAddr, _ := net.ResolveTCPAddr("", orihost)
 	ctx := mosnctx.WithValue(context.Background(), types.ContextOriRemoteAddr, oriRemoteAddr)

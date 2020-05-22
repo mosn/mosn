@@ -63,6 +63,8 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
+	header := protocol.CommonHeader{}
+	span.InjectContext(header, requestInfo)
 	ds.finishTracing()
 
 	span = trace.SpanFromContext(ctx)
@@ -70,6 +72,12 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 		t.Error("Span is nil")
 	}
 	mockSpan := span.(*mockSpan)
+	if v, _ := header.Get("test-inject"); v != "mock" {
+		t.Error("Span is not inject")
+	}
+	if !mockSpan.inject {
+		t.Error("Span is not inject")
+	}
 	if !mockSpan.finished {
 		t.Error("Span is not finish")
 	}
@@ -132,10 +140,11 @@ func TestDirectResponse(t *testing.T) {
 						route: tc.route,
 					},
 				},
-				clusterManager: &mockClusterManager{},
-				readCallbacks:  &mockReadFilterCallbacks{},
-				stats:          globalStats,
-				listenerStats:  newListenerStats("test"),
+				clusterManager:   &mockClusterManager{},
+				readCallbacks:    &mockReadFilterCallbacks{},
+				stats:            globalStats,
+				listenerStats:    newListenerStats("test"),
+				serverStreamConn: &mockServerConn{},
 			},
 			responseSender: tc.client,
 			requestInfo:    &network.RequestInfo{},
@@ -152,12 +161,13 @@ func TestDirectResponse(t *testing.T) {
 func TestOnewayHijack(t *testing.T) {
 	initGlobalStats()
 	proxy := &proxy{
-		config:         &v2.Proxy{},
-		routersWrapper: nil,
-		clusterManager: &mockClusterManager{},
-		readCallbacks:  &mockReadFilterCallbacks{},
-		stats:          globalStats,
-		listenerStats:  newListenerStats("test"),
+		config:           &v2.Proxy{},
+		routersWrapper:   nil,
+		clusterManager:   &mockClusterManager{},
+		readCallbacks:    &mockReadFilterCallbacks{},
+		stats:            globalStats,
+		listenerStats:    newListenerStats("test"),
+		serverStreamConn: &mockServerConn{},
 	}
 	s := newActiveStream(context.Background(), proxy, nil, nil)
 
@@ -292,9 +302,16 @@ func TestProcessError(t *testing.T) {
 	}
 
 	s = &downStream{}
-	s.receiverFiltersAgain = true
+	s.receiverFiltersAgainPhase = types.MatchRoute
 	p, e = s.processError(0)
 	if p != types.MatchRoute || e != types.ErrExit {
+		t.Errorf("TestprocessError Error")
+	}
+
+	s = &downStream{}
+	s.receiverFiltersAgainPhase = types.ChooseHost
+	p, e = s.processError(0)
+	if p != types.ChooseHost || e != types.ErrExit {
 		t.Errorf("TestprocessError Error")
 	}
 }
