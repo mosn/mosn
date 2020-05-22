@@ -66,9 +66,9 @@ type LbType string
 
 // Group of load balancer type
 const (
-	LB_RANDOM       LbType = "LB_RANDOM"
-	LB_ROUNDROBIN   LbType = "LB_ROUNDROBIN"
-	LB_ORIGINAL_DST LbType = "LB_ORIGINAL_DST"
+	LB_RANDOM        LbType = "LB_RANDOM"
+	LB_ROUNDROBIN    LbType = "LB_ROUNDROBIN"
+	LB_ORIGINAL_DST  LbType = "LB_ORIGINAL_DST"
 	LB_LEAST_REQUEST LbType = "LB_LEAST_REQUEST"
 )
 

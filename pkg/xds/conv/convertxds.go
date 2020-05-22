@@ -25,9 +25,9 @@ import (
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xdsv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
-	xdsv2    "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -170,9 +170,9 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Hosts: convertClusterHosts(xdsCluster.GetHosts()),
-			Spec:  convertSpec(xdsCluster),
-			TLS:   convertTLS(xdsCluster.GetTlsContext()),
+			Hosts:    convertClusterHosts(xdsCluster.GetHosts()),
+			Spec:     convertSpec(xdsCluster),
+			TLS:      convertTLS(xdsCluster.GetTlsContext()),
 			LbConfig: convertLbConfig(xdsCluster.LbConfig),
 		}
 
@@ -193,7 +193,7 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
 	switch config.(type) {
 	case *xdsv2.Cluster_LeastRequestLbConfig:
-		return &v2.LeastRequestLbConfig{ChoiceCount:config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
+		return &v2.LeastRequestLbConfig{ChoiceCount: config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
 	default:
 		return nil
 	}

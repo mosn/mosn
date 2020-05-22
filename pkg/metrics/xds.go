@@ -26,10 +26,10 @@ const XdsType = "xds"
 
 // metrics key in listener/proxy
 const (
-	CdsUpdateSuccessTotal    = "cds_update_success"
-	CdsUpdateRejectTotal    = "cds_update_reject"
-	LdsUpdateSuccessTotal    = "ls_update_success"
-	LdsUpdateRejectTotal    = "lds_update_reject"
+	CdsUpdateSuccessTotal = "cds_update_success"
+	CdsUpdateRejectTotal  = "cds_update_reject"
+	LdsUpdateSuccessTotal = "ls_update_success"
+	LdsUpdateRejectTotal  = "lds_update_reject"
 )
 
 // NewXdsStats returns a stats with namespace prefix proxy
@@ -39,4 +39,3 @@ func NewXdsStats() types.Metrics {
 	})
 	return metrics
 }
-
