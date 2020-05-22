@@ -781,22 +781,21 @@ func Test_convertPerRouteConfig(t *testing.T) {
 	}
 	perRouteConfig := convertPerRouteConfig(configs)
 	if len(perRouteConfig) != 2 {
-		// mixer will fatal
-		// t.Fatalf("want to get %d configs, but got %d", 2, len(perRouteConfig))
+		t.Fatalf("want to get %d configs, but got %d", 2, len(perRouteConfig))
 	}
-	// // verify
-	// if mixerPer, ok := perRouteConfig[v2.MIXER]; !ok {
-	// 	t.Error("no mixer config found")
-	// } else {
-	// 	// TODO: mixer config needs to fix
-	// 	if rawMixer, ok := mixerPer.(client.HttpClientConfig); !ok {
-	// 		t.Error("mixer config is not expected.")
-	// 	} else {
-	// 		if !reflect.DeepEqual(&rawMixer, mixerFilterConfig) {
-	// 			t.Error("mixer config is not expected")
-	// 		}
-	// 	}
-	// }
+	// verify
+	if mixerPer, ok := perRouteConfig[v2.MIXER]; !ok {
+		t.Error("no mixer config found")
+	} else {
+		// TODO: mixer config needs to fix
+		if rawMixer, ok := mixerPer.(client.HttpClientConfig); !ok {
+			t.Error("mixer config is not expected.")
+		} else {
+			if !reflect.DeepEqual(&rawMixer, mixerFilterConfig) {
+				t.Error("mixer config is not expected")
+			}
+		}
+	}
 	if faultPer, ok := perRouteConfig[v2.FaultStream]; !ok {
 		t.Error("no fault inject config found")
 	} else {
