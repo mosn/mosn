@@ -421,6 +421,10 @@ func (c *LbContext) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	return nil
 }
 
+func (c *LbContext) ConsistentHashCriteria() api.ConsistentHashCriteria {
+	return nil
+}
+
 func (c *LbContext) DownstreamConnection() net.Conn {
 	return c.conn.Connection().RawConn()
 }

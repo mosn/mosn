@@ -23,6 +23,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -832,5 +834,71 @@ func Test_convertPerRouteConfig(t *testing.T) {
 		}
 
 	}
+}
 
+func Test_convertHashPolicy(t *testing.T) {
+	xdsHashPolicy := []*xdsroute.RouteAction_HashPolicy{
+		{
+			PolicySpecifier: &xdsroute.RouteAction_HashPolicy_Header_{
+				Header: &xdsroute.RouteAction_HashPolicy_Header{
+					HeaderName: "header_name",
+				},
+			},
+		},
+	}
+
+	hp := convertHashPolicy(xdsHashPolicy)
+	if !assert.NotNilf(t, hp[0].Header, "hashPolicy header field should not be nil") {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, "header_name", hp[0].Header.Key,
+		"hashPolicy header field should be 'header_name'") {
+		t.FailNow()
+	}
+
+	xdsHashPolicy = []*xdsroute.RouteAction_HashPolicy{
+		{
+			PolicySpecifier: &xdsroute.RouteAction_HashPolicy_Cookie_{
+				Cookie: &xdsroute.RouteAction_HashPolicy_Cookie{
+					Name: "cookie_name",
+					Path: "cookie_path",
+					Ttl: &duration.Duration{
+						Seconds: 5,
+						Nanos:   0,
+					},
+				},
+			},
+		},
+	}
+
+	hp = convertHashPolicy(xdsHashPolicy)
+	if !assert.NotNilf(t, hp[0].HttpCookie, "hashPolicy HttpCookie field should not be nil") {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, "cookie_name", hp[0].HttpCookie.Name,
+		"hashPolicy HttpCookie Name field should be 'cookie_name'") {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, "cookie_path", hp[0].HttpCookie.Path,
+		"hashPolicy HttpCookie Path field should be 'cookie_path'") {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, 5*time.Second, hp[0].HttpCookie.TTL.Duration,
+		"hashPolicy HttpCookie TTL field should be '5s'") {
+		t.FailNow()
+	}
+
+	xdsHashPolicy = []*xdsroute.RouteAction_HashPolicy{
+		{
+			PolicySpecifier: &xdsroute.RouteAction_HashPolicy_ConnectionProperties_{
+				ConnectionProperties: &xdsroute.RouteAction_HashPolicy_ConnectionProperties{
+					SourceIp: true,
+				},
+			},
+		},
+	}
+	hp = convertHashPolicy(xdsHashPolicy)
+	if !assert.NotNilf(t, hp[0].SourceIP, "hashPolicy SourceIP field should not be nil") {
+		t.FailNow()
+	}
 }

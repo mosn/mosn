@@ -55,6 +55,10 @@ func (c *LbCtx) DownstreamCluster() types.ClusterInfo {
 	return c.cluster
 }
 
+func (c *LbCtx) ConsistentHashCriteria() api.ConsistentHashCriteria {
+	return nil
+}
+
 type Header struct {
 	v map[string]string
 }

@@ -52,6 +52,7 @@ type RouterActionConfig struct {
 	UpstreamProtocol        string               `json:"upstream_protocol,omitempty"`
 	ClusterHeader           string               `json:"cluster_header,omitempty"`
 	WeightedClusters        []WeightedCluster    `json:"weighted_clusters,omitempty"`
+	HashPolicy              []HashPolicy         `json:"hash_policy,omitempty"`
 	MetadataConfig          *MetadataConfig      `json:"metadata_match,omitempty"`
 	TimeoutConfig           api.DurationConfig   `json:"timeout,omitempty"`
 	RetryPolicy             *RetryPolicy         `json:"retry_policy,omitempty"`
@@ -61,6 +62,37 @@ type RouterActionConfig struct {
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
+}
+
+type HashPolicy struct {
+	Header     *HeaderHashPolicy     `json:"header,omitempty"`
+	HttpCookie *HttpCookieHashPolicy `json:"http_cookie,omitempty"`
+	SourceIP   *SourceIPHashPolicy   `json:"source_ip,omitempty"`
+}
+
+type HeaderHashPolicy struct {
+	Key string `json:"key,omitempty"`
+}
+
+func (m *HeaderHashPolicy) HashType() api.ConsistentHashType {
+	return api.Maglev
+}
+
+type HttpCookieHashPolicy struct {
+	Name string        `json:"name,omitempty"`
+	Path string        `json:"path,omitempty"`
+	TTL  api.DurationConfig `json:"ttl,omitempty"`
+}
+
+func (m *HttpCookieHashPolicy) HashType() api.ConsistentHashType {
+	return api.Maglev
+}
+
+type SourceIPHashPolicy struct {
+}
+
+func (m *SourceIPHashPolicy) HashType() api.ConsistentHashType {
+	return api.Maglev
 }
 
 type ClusterWeightConfig struct {

@@ -44,6 +44,7 @@ const (
 	ContextKeyH2Stream
 
 	ContextKeyDownStreamProtocol
+	ContextKeyDownStreamHeaders
 	ContextKeyEnd
 )
 

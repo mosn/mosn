@@ -20,6 +20,7 @@ package variable
 import (
 	"context"
 	"errors"
+	"fmt"
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
@@ -42,20 +43,20 @@ func RegisterProtocolResource(protocol types.ProtocolName, resource api.Protocol
 		return errors.New("protocol resource already exists, name: " + pr)
 	}
 
-	protocolVar[pr] = varname
+	protocolVar[pr] = fmt.Sprintf("%s_%s", protocol, varname)
 
 	return nil
 }
 
 // GetProtocolResource get URI,PATH,ARG var depends on ProtocolResourceName
-func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName) (string, error) {
+func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, data ...interface{}) (string, error) {
 	p, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(types.ProtocolName)
 	if !ok {
 		return "", errors.New("get ContextKeyDownStreamProtocol failed.")
 	}
 
 	if v, ok := protocolVar[convert(p, name)]; ok {
-		return GetVariableValue(ctx, v)
+		return GetVariableValue(ctx, v, fmt.Sprintf("%s_%s", p, data[0]))
 	} else {
 		return "", errors.New(errUnregisterProtocolResource + string(p))
 	}

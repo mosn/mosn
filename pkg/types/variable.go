@@ -47,6 +47,12 @@ const (
 	VarProxyHijackStatus  string = "proxy_hijack_status"
 )
 
+// [Protocol]: common
+const (
+	VarProtocolRequestHeader = "request_header_"
+	VarProtocolCookie        = "cookie_"
+)
+
 // [Protocol]: http
 const (
 	VarHttpRequestMethod = "http_request_method"
@@ -55,7 +61,13 @@ const (
 	VarHttpRequestPath   = "http_request_path"
 	VarHttpRequestArg    = "http_request_arg"
 
-	VarPrefixHttpHeader = "http_header_"
 	VarPrefixHttpArg    = "http_arg_"
-	VarPrefixHttpCookie = "http_cookie_"
+	VarPrefixHttpHeader = "Http1_request_header_"
+	VarPrefixHttpCookie = "Http1_cookie_"
+)
+
+// [Protocol]: http2
+const (
+	VarPrefixHttp2Header = "Http2_request_header_"
+	VarPrefixHttp2Cookie = "Http2_cookie_"
 )

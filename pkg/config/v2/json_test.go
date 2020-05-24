@@ -20,6 +20,7 @@ package v2
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net"
 	"os"
@@ -846,5 +847,76 @@ func TestListenerUnmarshal(t *testing.T) {
 	// if there is only addr config but no net.Addr, should be marshal addr config
 	if !strings.Contains(string(b), "0.0.0.0:8080") {
 		t.Fatalf("mashal json unexpected, got : %s", string(b))
+	}
+}
+
+func TestHashPolicyUnmarshal(t *testing.T) {
+	config := `{
+		"hash_policy": [{
+			"header": {"key":"header_key"}
+		}]
+	}`
+
+	headerConfig := &RouterActionConfig{}
+	err := json.Unmarshal([]byte(config), headerConfig)
+	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
+		t.FailNow()
+	}
+	if !assert.NotNilf(t, headerConfig.HashPolicy[0].Header,
+		"header should not be nil") {
+		t.FailNow()
+	}
+	header := headerConfig.HashPolicy[0].Header.Key
+	if !assert.Equalf(t, "header_key", header,
+		"header key should be header_key, get %s", header) {
+		t.FailNow()
+	}
+
+	config2 := `{
+		"hash_policy": [{
+			"http_cookie": {
+				"name": "name",
+				"path": "path",
+				"ttl": "5s"
+			}
+		}]
+	}`
+
+	cookieConfig := &RouterActionConfig{}
+	err = json.Unmarshal([]byte(config2), cookieConfig)
+	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
+		t.FailNow()
+	}
+	if !assert.NotNilf(t, cookieConfig.HashPolicy[0].HttpCookie,
+		"HttpCookie should not be nil") {
+		t.FailNow()
+	}
+	name := cookieConfig.HashPolicy[0].HttpCookie.Name
+	path := cookieConfig.HashPolicy[0].HttpCookie.Path
+	ttl := cookieConfig.HashPolicy[0].HttpCookie.TTL.Duration
+	if !assert.Equalf(t, "name", name, "cookie key should be name, get %s", name) {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, "path", path, "cookie path should be path, get %s", path) {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, 5*time.Second, ttl, "cookie ttl should be 5s, get %s", ttl) {
+		t.FailNow()
+	}
+
+	config3 := `{
+		"hash_policy": [{
+			"source_ip":{}
+		}]
+	}`
+
+	sourceIPConfig := &RouterActionConfig{}
+	err = json.Unmarshal([]byte(config3), sourceIPConfig)
+	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
+		t.FailNow()
+	}
+	if !assert.NotNilf(t, sourceIPConfig.HashPolicy[0].SourceIP,
+		"SourceIP should not be nil") {
+		t.FailNow()
 	}
 }

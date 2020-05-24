@@ -20,6 +20,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"net"
 	"sync/atomic"
 
 	"mosn.io/api"
@@ -27,6 +28,15 @@ import (
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
 )
+
+type mockHostSet struct {
+	types.HostSet
+	hosts []types.Host
+}
+
+func (hs *mockHostSet) Hosts() []types.Host {
+	return hs.hosts
+}
 
 type mockHost struct {
 	name       string
@@ -175,8 +185,13 @@ func init() {
 
 type mockLbContext struct {
 	types.LoadBalancerContext
-	mmc    api.MetadataMatchCriteria
-	header api.HeaderMap
+	mmc     api.MetadataMatchCriteria
+	header  api.HeaderMap
+	context context.Context
+	ch      api.ConsistentHashCriteria
+}
+type mockConn struct {
+	net.Conn
 }
 
 func newMockLbContext(m map[string]string) types.LoadBalancerContext {
@@ -200,11 +215,23 @@ func newMockLbContextWithHeader(m map[string]string, header types.HeaderMap) typ
 func (ctx *mockLbContext) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	return ctx.mmc
 }
-
 func (ctx *mockLbContext) DownstreamHeaders() types.HeaderMap {
 	return ctx.header
 }
-
 func (ctx *mockLbContext) DownstreamContext() context.Context {
-	return nil
+	return ctx.context
+}
+func (ctx *mockLbContext) ConsistentHashCriteria() api.ConsistentHashCriteria {
+	return ctx.ch
+}
+func (ctx *mockLbContext) DownstreamConnection() net.Conn {
+	return &mockConn{}
+}
+
+func (mc *mockConn) RemoteAddr() net.Addr {
+	return &net.TCPAddr{
+		IP:   net.IP([]byte{192, 168, 0, 100}),
+		Port: 8080,
+		Zone: "",
+	}
 }

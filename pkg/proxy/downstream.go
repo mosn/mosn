@@ -327,6 +327,7 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
+	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamHeaders, headers)
 	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 
@@ -1351,6 +1352,26 @@ func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
 		return s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
 	}
 
+	return nil
+}
+
+func (s *downStream) ConsistentHashCriteria() api.ConsistentHashCriteria {
+	c := s.proxy.routersWrapper.GetRoutersConfig()
+	for _, vh := range c.VirtualHosts {
+		for _, r := range vh.Routers {
+			for _, hp := range r.Route.HashPolicy {
+				if hp.Header != nil {
+					return hp.Header
+				}
+				if hp.HttpCookie != nil {
+					return hp.HttpCookie
+				}
+				if hp.SourceIP != nil {
+					return hp.SourceIP
+				}
+			}
+		}
+	}
 	return nil
 }
 

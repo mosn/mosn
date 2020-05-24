@@ -34,6 +34,7 @@ const (
 	WeightedRoundRobin LoadBalancerType = "LB_WEIGHTED_ROUNDROBIN"
 	ORIGINAL_DST       LoadBalancerType = "LB_ORIGINAL_DST"
 	LeastActiveRequest LoadBalancerType = "LB_LEAST_REQUEST"
+	Maglev             LoadBalancerType = "LB_MAGLEV"
 )
 
 // LoadBalancer is a upstream load balancer.
@@ -53,6 +54,9 @@ type LoadBalancerContext interface {
 
 	// MetadataMatchCriteria gets metadata match criteria used for selecting a subset of hosts
 	MetadataMatchCriteria() api.MetadataMatchCriteria
+
+	// MetadataMatchCriteria gets metadata match criteria used for selecting a subset of hosts
+	ConsistentHashCriteria() api.ConsistentHashCriteria
 
 	// DownstreamConnection returns the downstream connection.
 	DownstreamConnection() net.Conn
