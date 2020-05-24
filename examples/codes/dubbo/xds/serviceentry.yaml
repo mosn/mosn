@@ -5,7 +5,7 @@ metadata:
   name: dubbo-app-se
 spec:
   hosts:
-    - dubbo-mosn.io.dubbo.DemoService-sayHello
+    - mosn.io.dubbo.DemoService
   ports:
     - number: 20882
       name: dubbo-app-se
@@ -13,6 +13,6 @@ spec:
   location: MESH_INTERNAL
   resolution: STATIC
   endpoints:
-    - address: 10.13.160.40
-    - address: 10.13.160.93
-    - address: 10.13.160.4
+    - address: 10.13.141.102
+    - address: 10.13.141.78
+    - address: 10.13.141.190

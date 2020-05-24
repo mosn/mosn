@@ -15,7 +15,7 @@ func init() {
 }
 
 const (
-	dubboClusterPre = "outbound|%d|%s|dubbo-%s-%s"
+	dubboClusterPre = "outbound|%d|%s|%s"
 
 	// consumer  -> 127.0.0.1:20881(mosn-consumer)->provider:20882(mosn-provider)->127.0.0.1:20880
 	dubboPort             = 20880
@@ -41,10 +41,10 @@ func (d *dubboHandler) IsAvailable(ctx context.Context, manager types.ClusterMan
 	if !ok {
 		return nil, types.HandlerNotAvailable
 	}
-	method, ok := d.header.Get(dubbo.MethodNameHeader)
-	if !ok {
-		return nil, types.HandlerNotAvailable
-	}
+	// method, ok := d.header.Get(dubbo.MethodNameHeader)
+	// if !ok {
+	// 	return nil, types.HandlerNotAvailable
+	// }
 	// TODO: support through subset build cluster
 	var subset string
 
@@ -57,9 +57,8 @@ func (d *dubboHandler) IsAvailable(ctx context.Context, manager types.ClusterMan
 	if listenerPort == dubboMosnProviderPort {
 		clusterName = d.Route().RouteRule().ClusterName()
 	} else {
-		clusterName = fmt.Sprintf(dubboClusterPre, dubboMosnProviderPort, subset, service, method)
+		clusterName = fmt.Sprintf(dubboClusterPre, dubboMosnProviderPort, subset, service)
 	}
-	// clusterName = d.Route().RouteRule().ClusterName()
 
 	snapshot := manager.GetClusterSnapshot(context.Background(), clusterName)
 	if snapshot == nil {

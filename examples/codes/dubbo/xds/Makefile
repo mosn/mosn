@@ -1,5 +1,5 @@
 IMAGE_REPO 	 := "registry.cn-hangzhou.aliyuncs.com/sink-demo"
-MOSN_VERSION := "v0.0.1"
+MOSN_VERSION := "v0.0.2"
 VERSION 	 := "v0.0.1"
 
 build-consumer:
@@ -16,5 +16,8 @@ push:
 	docker push ${IMAGE_REPO}/dubbo-consumer:${VERSION}
 	docker push ${IMAGE_REPO}/dubbo-provider:${VERSION}
 	docker push ${IMAGE_REPO}/mosn:${MOSN_VERSION}
+
+push-mosn: build-mosn
+	docker push ${IMAGE_REPO}/mosn:${MOSN_VERSION}	
 
 build-push: build-consumer build-provider build-mosn push

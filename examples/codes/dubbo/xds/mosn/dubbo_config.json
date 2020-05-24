@@ -163,7 +163,7 @@
 				"hosts": [
 					{
 						"socket_address": {
-							"address": "istio-pilot.istio-system",
+							"address": "istiod.istio-system.svc",
 							"port_value": 15010
 						}
 					}
