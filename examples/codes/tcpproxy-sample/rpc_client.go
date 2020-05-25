@@ -19,7 +19,7 @@ import (
 
 type Client struct {
 	proto  types.ProtocolName
-	Client stream.Client
+	Client types.StreamClient
 	conn   types.ClientConnection
 	Id     uint64
 }
@@ -42,7 +42,7 @@ func NewClient(addr string, proto types.ProtocolName) *Client {
 }
 
 func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	fmt.Printf("[Xprotocol RPC Client] Receive Data:")
+	fmt.Printf("[Xprotocol RPC StreamClient] Receive Data:")
 	if cmd, ok := headers.(xprotocol.XFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
@@ -63,7 +63,7 @@ func (c *Client) Request() {
 	case bolt.ProtocolName:
 		request = bolt.NewRpcRequest(uint32(c.Id), protocol.CommonHeader(map[string]string{"service": "testSofa"}), nil)
 	default:
-		panic("unknown protocol, please complete the protocol-switch in Client.Request method")
+		panic("unknown protocol, please complete the protocol-switch in StreamClient.Request method")
 	}
 
 	requestEncoder.AppendHeaders(context.Background(), request.GetHeader(), true)

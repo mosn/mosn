@@ -52,7 +52,7 @@ type ConnClient struct {
 	//
 	isClosed bool
 	close    chan struct{}
-	client   stream.Client
+	client   types.StreamClient
 	conn     types.ClientConnection
 }
 

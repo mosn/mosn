@@ -91,6 +91,10 @@ func (p *connpool) useAsyncConnect(proto api.Protocol, subproto types.ProtocolNa
 	return false
 }
 
+func (p *connpool) Protocol() types.ProtocolName {
+	return p.protocol
+}
+
 func (p *connpool) shouldMultiplex(subproto types.ProtocolName) bool {
 	switch p.protocol {
 	case protocol.HTTP1:
@@ -170,34 +174,16 @@ func (p *connpool) Host() types.Host {
 	return nil
 }
 
-// NewStream Create a client stream and call's by proxy
-func (p *connpool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
+// StreamSender Create a client stream and call's by proxy
+func (p *connpool) StreamSender(ctx context.Context, receiver types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
 	host := p.Host()
 
-	subProtocol := getSubProtocol(ctx)
-	c, reason := p.getAvailableClient(ctx, subProtocol)
-	if c == nil {
+	c, reason := p.GetActiveClient(ctx, getSubProtocol(ctx))
+	if reason != "" {
 		return reason, host, nil
 	}
 
-	if p.useAsyncConnect(p.protocol, subProtocol) && atomic.LoadUint32(&c.state) != Connected {
-		return types.ConnectionFailure, host, nil
-	}
-
-	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-		return types.Overflow, host, nil
-	}
-
-	if p.shouldMultiplex(subProtocol) {
-		atomic.AddUint64(&c.totalStream, 1)
-	}
-
-	host.HostStats().UpstreamRequestTotal.Inc(1)
-	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
-
-	var streamEncoder = c.codecClient.NewStream(ctx, receiver)
+	var streamEncoder = c.StreamClient().NewStream(ctx, receiver)
 
 	// FIXME one way
 	// is there any need to skip the metrics?
@@ -214,9 +200,17 @@ func (p *connpool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	return "", host, streamEncoder
 }
 
-// getAvailableClient get a avail client
-func (p *connpool) getAvailableClient(ctx context.Context, subProtocol types.ProtocolName) (*activeClient, types.PoolFailureReason) {
+// GetActiveClient get a avail client
+func (p *connpool) GetActiveClient(ctx context.Context, subProtocol types.ProtocolName) (types.PooledClient, types.PoolFailureReason) {
 
+	host := p.Host()
+	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
+		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
+		return nil, types.Overflow
+	}
+
+	// FIXME, http1 加锁建连会有性能问题
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
@@ -226,59 +220,84 @@ func (p *connpool) getAvailableClient(ctx context.Context, subProtocol types.Pro
 		return p.idleClients[subProtocol][lastIdx], ""
 	}
 
-	host := p.Host()
 	n := len(p.idleClients[subProtocol])
 
 	// max conns is 0 means no limit
 	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
 	// no available client
+	var (
+		c *activeClient
+		reason types.PoolFailureReason
+	)
+
 	if n == 0 {
 		if maxConns == 0 || p.totalClientCount < maxConns {
-			ac, reason := p.newActiveClient(ctx, subProtocol)
-			if ac != nil && reason == "" {
+			c, reason = p.newActiveClient(ctx, subProtocol)
+			if c != nil && reason == "" {
 				p.totalClientCount++
 
 				if p.shouldMultiplex(subProtocol) {
 					// HTTP/2 && xprotocol
 					// should put this conn to pool
-					p.idleClients[subProtocol] = append(p.idleClients[subProtocol], ac)
+					p.idleClients[subProtocol] = append(p.idleClients[subProtocol], c)
 				}
 			}
 
-			return ac, reason
+			goto RET
 		} else {
 			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-			return nil, types.Overflow
+			c, reason = nil, types.Overflow
+
+			goto RET
 		}
 	} else {
 		var lastIdx = n - 1
 		if p.shouldMultiplex(subProtocol) {
 			// HTTP/2 && xprotocol
 			var reason types.PoolFailureReason
-			c := p.idleClients[subProtocol][lastIdx]
+			c = p.idleClients[subProtocol][lastIdx]
 			if c == nil || atomic.LoadUint32(&c.goaway) == 1 {
 				c, reason = p.newActiveClient(ctx, subProtocol)
 				if reason == "" && c != nil {
 					p.idleClients[subProtocol][lastIdx] = c
 				}
 			}
-			return c, reason
+
+			goto RET
 		} else {
 			// Only refuse extra connection, keepalive-connection is closed by timeout
 			usedConns := p.totalClientCount - uint64(n) + 1
 			if maxConns != 0 && usedConns > host.ClusterInfo().ResourceManager().Connections().Max() {
 				host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 				host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-				return nil, types.Overflow
+				c, reason = nil, types.Overflow
+				goto RET
 			}
 
-			c := p.idleClients[subProtocol][lastIdx]
+			c = p.idleClients[subProtocol][lastIdx]
 			p.idleClients[subProtocol][lastIdx] = nil
 			p.idleClients[subProtocol] = p.idleClients[subProtocol][:lastIdx]
-			return c, ""
+
+			goto RET
 		}
 	}
+
+RET:
+	if p.useAsyncConnect(p.protocol, subProtocol) && c != nil && atomic.LoadUint32(&c.state) != Connected {
+		return nil, types.ConnectionFailure
+	}
+
+	if c != nil && p.shouldMultiplex(subProtocol) {
+		atomic.AddUint64(&c.totalStream, 1)
+	}
+
+	if c != nil && reason == "" {
+		host.HostStats().UpstreamRequestTotal.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+	}
+
+	return c, reason
 }
 
 func (p *connpool) Close() {
@@ -287,7 +306,8 @@ func (p *connpool) Close() {
 
 	for _, clients := range p.idleClients {
 		for _, c := range clients {
-			c.codecClient.Close()
+			// c.codecClient.Close()
+			c.host.Connection.Close(api.NoFlush, api.LocalClose)
 		}
 	}
 }
@@ -311,80 +331,6 @@ func (p *connpool) Shutdown() {
 	}
 }
 
-func (p *connpool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
-	if p.protocol == protocol.HTTP2 {
-		log.DefaultLogger.Debugf("http2 connpool onConnectionEvent: %v", event)
-	}
-
-	host := p.Host()
-	// all protocol should report the following metrics
-	if client.closeWithActiveReq {
-		if event == api.LocalClose {
-			host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-			host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
-		} else if event == api.RemoteClose {
-			host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
-			host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
-		}
-	}
-
-	subProtocol := client.subProtocol
-	switch {
-	case event.IsClose():
-		if p.protocol == protocol.Xprotocol {
-			host.HostStats().UpstreamConnectionClose.Inc(1)
-			host.HostStats().UpstreamConnectionActive.Dec(1)
-			host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
-			host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
-
-			switch event {
-			case api.LocalClose:
-				host.HostStats().UpstreamConnectionLocalClose.Inc(1)
-				host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
-			case api.RemoteClose:
-				host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
-				host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
-			}
-		}
-		p.clientMux.Lock()
-
-		defer p.clientMux.Unlock()
-		p.totalClientCount--
-		for idx, c := range p.idleClients[subProtocol] {
-			if c == client {
-				// remove this element
-				lastIdx := len(p.idleClients[subProtocol]) - 1
-				// 	1. swap this with the last
-				p.idleClients[subProtocol][idx], p.idleClients[subProtocol][lastIdx] =
-					p.idleClients[subProtocol][lastIdx], p.idleClients[subProtocol][idx]
-				// 	2. set last to nil
-				p.idleClients[subProtocol][lastIdx] = nil
-				// 	3. remove the last
-				p.idleClients[subProtocol] = p.idleClients[subProtocol][:lastIdx]
-			}
-		}
-		client.closed = true
-
-	case event == api.ConnectTimeout:
-		host.HostStats().UpstreamRequestTimeout.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		client.codecClient.Close()
-	case event == api.ConnectFailed:
-		host.HostStats().UpstreamConnectionConFail.Inc(1)
-		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
-	}
-}
-
-func (p *connpool) onStreamDestroy(client *activeClient) {
-	host := p.Host()
-	host.HostStats().UpstreamRequestActive.Dec(1)
-	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
-	host.ClusterInfo().ResourceManager().Requests().Decrease()
-
-	// return to pool
-	p.putClientToPool(client)
-}
-
 // return client to pool
 func (p *connpool) putClientToPool(client *activeClient) {
 	subProto := client.subProtocol
@@ -401,28 +347,21 @@ func (p *connpool) putClientToPool(client *activeClient) {
 	}
 }
 
-func (p *connpool) onStreamReset(client *activeClient, reason types.StreamResetReason) {
-	host := p.Host()
-	switch reason {
-	case types.StreamConnectionTermination, types.StreamConnectionFailed:
-		host.HostStats().UpstreamRequestFailureEject.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestFailureEject.Inc(1)
-		client.closeWithActiveReq = true
-	case types.StreamLocalReset:
-		host.HostStats().UpstreamRequestLocalReset.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestLocalReset.Inc(1)
-	case types.StreamRemoteReset:
-		host.HostStats().UpstreamRequestRemoteReset.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestRemoteReset.Inc(1)
-	}
+// TODO
+/*
+type activeCodecClient struct {
+	codecClient types.StreamClient
+	activeClient *activeClient
 }
+ */
 
 // types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connpool
-	codecClient        stream.Client
+	// close connid 都可以从 host 中获取
+	codecClient        types.StreamClient
 	host               types.CreateConnectionData
 	totalStream        uint64
 	closeWithActiveReq bool
@@ -447,26 +386,28 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 	ac := &activeClient{
 		pool:        p,
 		subProtocol: subProtocol,
+		host:        p.Host().CreateConnection(ctx),
 	}
 
 	host := p.Host()
-	data := host.CreateConnection(ctx)
 	connCtx := ctx
 
 	if p.shouldMultiplex(subProtocol) {
-		connCtx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
+		connCtx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, ac.host.Connection.ID())
 	}
 
 	if len(subProtocol) > 0 {
 		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
 	}
 
-	codecClient := stream.NewStreamClient(connCtx, p.protocol, data.Connection, data.Host)
-	codecClient.AddConnectionEventListener(ac)
-	codecClient.SetStreamConnectionEventListener(ac)
+	codecClient := stream.NewStreamClient(connCtx, p.protocol, ac.host.Connection, host)
+	// this should be equal to
+	// ac.host.Connection.AddConnectionEventListener(ac)
+	codecClient.AddConnectionEventListener(ac) // ac.OnEvent
+
+	codecClient.SetStreamConnectionEventListener(ac) // ac.OnGoAway
 
 	ac.codecClient = codecClient
-	ac.host = data
 
 	if subProtocol != "" {
 		// Add Keep Alive
@@ -480,6 +421,8 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 			ac.keepAlive = &keepAliveListener{
 				keepAlive: rpcKeepAlive,
 			}
+			// this should be equal to
+			// ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
 			ac.codecClient.AddConnectionEventListener(ac.keepAlive)
 		}
 	}
@@ -501,29 +444,133 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 	return ac, ""
 }
 
+// Close return this client back to pool
+func (ac *activeClient) Close(err error) {
+	if err != nil {
+		ac.removeFromPool()
+		return
+	}
+
+	if !ac.pool.shouldMultiplex(ac.subProtocol) && (!ac.closed && ac.shouldCloseConn) {
+		// HTTP1 && xprotocol ping pong
+		// xprotocol may also use ping pong now, so we need to close the conn
+		// ac.codecClient.Close()
+		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
+	}
+
+	// return to pool
+	ac.pool.putClientToPool(ac)
+}
+
+// removeFromPool removes this client from connection pool
+func (ac *activeClient) removeFromPool() {
+	p := ac.pool
+	subProtocol := ac.subProtocol
+	p.clientMux.Lock()
+
+	defer p.clientMux.Unlock()
+	p.totalClientCount--
+	for idx, c := range p.idleClients[subProtocol] {
+		if c == ac {
+			// remove this element
+			lastIdx := len(p.idleClients[subProtocol]) - 1
+			// 	1. swap this with the last
+			p.idleClients[subProtocol][idx], p.idleClients[subProtocol][lastIdx] =
+				p.idleClients[subProtocol][lastIdx], p.idleClients[subProtocol][idx]
+			// 	2. set last to nil
+			p.idleClients[subProtocol][lastIdx] = nil
+			// 	3. remove the last
+			p.idleClients[subProtocol] = p.idleClients[subProtocol][:lastIdx]
+		}
+	}
+	ac.closed = true
+}
+
+func (ac *activeClient) StreamClient() types.StreamClient {
+	return ac.codecClient
+}
+
 // types.ConnectionEventListener
 func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
-	ac.pool.onConnectionEvent(ac, event)
+	p := ac.pool
+	if p.protocol == protocol.HTTP2 {
+		log.DefaultLogger.Debugf("http2 connpool onConnectionEvent: %v", event)
+	}
+
+	host := p.Host()
+	// all protocol should report the following metrics
+	if ac.closeWithActiveReq {
+		if event == api.LocalClose {
+			host.HostStats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionLocalCloseWithActiveRequest.Inc(1)
+		} else if event == api.RemoteClose {
+			host.HostStats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
+		}
+	}
+
+	switch {
+	case event.IsClose():
+		if p.protocol == protocol.Xprotocol {
+			host.HostStats().UpstreamConnectionClose.Inc(1)
+			host.HostStats().UpstreamConnectionActive.Dec(1)
+			host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+
+			switch event {
+			case api.LocalClose:
+				host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+				host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+			case api.RemoteClose:
+				host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+				host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+			}
+		}
+		ac.removeFromPool()
+
+	case event == api.ConnectTimeout:
+		host.HostStats().UpstreamRequestTimeout.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
+		// ac.codecClient.Close()
+		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
+	case event == api.ConnectFailed:
+		host.HostStats().UpstreamConnectionConFail.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
+	}
 }
 
 // types.StreamEventListener
 func (ac *activeClient) OnDestroyStream() {
-	if !ac.pool.shouldMultiplex(ac.subProtocol) && (!ac.closed && ac.shouldCloseConn) {
-		// HTTP1 && xprotocol ping pong
-		// xprotocol may also use ping pong now, so we need to close the conn
-		ac.codecClient.Close()
-	}
+	host := ac.pool.Host()
+	host.HostStats().UpstreamRequestActive.Dec(1)
+	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
+	host.ClusterInfo().ResourceManager().Requests().Decrease()
 
-	ac.pool.onStreamDestroy(ac)
+	ac.Close(nil)
 }
 
 func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
-	ac.pool.onStreamReset(ac, reason)
+	host := ac.pool.Host()
+	switch reason {
+	case types.StreamConnectionTermination, types.StreamConnectionFailed:
+		host.HostStats().UpstreamRequestFailureEject.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestFailureEject.Inc(1)
+		ac.closeWithActiveReq = true
+	case types.StreamLocalReset:
+		host.HostStats().UpstreamRequestLocalReset.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestLocalReset.Inc(1)
+	case types.StreamRemoteReset:
+		host.HostStats().UpstreamRequestRemoteReset.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestRemoteReset.Inc(1)
+	}
 
 	if !ac.pool.shouldMultiplex(ac.subProtocol) && reason == types.StreamLocalReset && !ac.closed {
 		// for http1 && xprotocol ping pong
+		// ac.codecClient.ConnID() = ac.host.Connection.ID()
 		log.DefaultLogger.Debugf("[stream] [http] stream local reset, blow codecClient away also, Connection = %d",
-			ac.codecClient.ConnID())
+			ac.host.Connection.ID())
+		//log.DefaultLogger.Debugf("[stream] [http] stream local reset, blow codecClient away also, Connection = %d",
+		//	ac.codecClient.ConnID())
 		ac.shouldCloseConn = true
 	}
 }

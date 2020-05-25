@@ -19,7 +19,7 @@ package types
 
 import (
 	"context"
-
+	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 )
@@ -60,7 +60,7 @@ import (
 //
 //   From an abstract perspective, stream represents a virtual process on underlying connection. To make stream interactive with connection, some intermediate object can be used.
 //	 StreamConnection is the core model to connect connection system to stream system. As a example, when proxy reads binary data from connection, it dispatches data to StreamConnection to do protocol decode.
-//   Specifically, ClientStreamConnection uses a NewStream to exchange StreamReceiveListener with StreamSender.
+//   Specifically, ClientStreamConnection uses a StreamSender to exchange StreamReceiveListener with StreamSender.
 //   Engine provides a callbacks(StreamSenderFilterHandler/StreamReceiverFilterHandler) to let filter interact with stream engine.
 // 	 As a example, a encoder filter stopped the encode process, it can continue it by StreamSenderFilterHandler.ContinueSending later. Actually, a filter engine is a encoder/decoder itself.
 //
@@ -71,7 +71,7 @@ import (
 //   |                                 |1                                                                           |
 //   |                                 |                                                                            |
 //   |                                 |*                                                                           |
-//   |                               Client                                                                         |
+//   |                               StreamClient                                                                         |
 //   |                                 |1                                                                           |
 //   | 	  EventListener   			   |				StreamEventListener											|
 //   |        *|                       |                       |*													|
@@ -202,7 +202,7 @@ type ServerStreamConnection interface {
 type ClientStreamConnection interface {
 	StreamConnection
 
-	// NewStream starts to create a new outgoing request stream and returns a sender to write data
+	// StreamSender starts to create a new outgoing request stream and returns a sender to write data
 	// responseReceiveListener supplies the response listener on decode event
 	// StreamSender supplies the sender to write request data
 	NewStream(ctx context.Context, responseReceiveListener StreamReceiveListener) StreamSender
@@ -231,9 +231,16 @@ const (
 	ConnectionFailure PoolFailureReason = "ConnectionFailure"
 )
 
+type PooledClient interface {
+	StreamEventListener
+
+	Close(err error)
+	StreamClient() StreamClient
+}
+
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
-	NewStream(ctx context.Context, receiver StreamReceiveListener) (PoolFailureReason, Host, StreamSender)
+	StreamSender(ctx context.Context, receiver StreamReceiveListener) (PoolFailureReason, Host, StreamSender)
 
 	// check host health and init host
 	CheckAndInit(ctx context.Context) bool
@@ -241,8 +248,12 @@ type ConnectionPool interface {
 	// SupportTLS represents the connection support tls or not
 	SupportTLS() bool
 
+	GetActiveClient(ctx context.Context, proto ProtocolName) (PooledClient, PoolFailureReason)
+
 	// Shutdown gracefully shuts down the connection pool without interrupting any active requests
 	Shutdown()
+
+	Protocol() ProtocolName
 
 	Close()
 
@@ -255,3 +266,25 @@ type PoolEventListener interface {
 
 	OnReady(sender StreamSender, host Host)
 }
+
+type StreamClient interface {
+	api.ConnectionEventListener
+	api.ReadFilter
+
+	ConnID() uint64
+
+	Connect() error
+
+	ActiveRequestsNum() int
+
+	NewStream(context context.Context, respDecoder StreamReceiveListener) StreamSender
+
+	SetConnectionCollector(read, write metrics.Counter)
+
+	AddConnectionEventListener(listener api.ConnectionEventListener)
+
+	SetStreamConnectionEventListener(listener StreamConnectionEventListener)
+
+	Close()
+}
+

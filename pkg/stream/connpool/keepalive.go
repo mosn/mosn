@@ -26,14 +26,13 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
-	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
 
 // StreamReceiver to receive keep alive response
 type xprotocolKeepAlive struct {
-	Codec     str.Client
+	Codec     types.StreamClient
 	Protocol  xprotocol.XProtocol
 	Timeout   time.Duration
 	Threshold uint32
@@ -50,7 +49,7 @@ type xprotocolKeepAlive struct {
 	mutex    sync.Mutex
 }
 
-func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Duration, thres uint32) types.KeepAlive {
+func NewKeepAlive(codec types.StreamClient, proto types.ProtocolName, timeout time.Duration, thres uint32) types.KeepAlive {
 	kp := &xprotocolKeepAlive{
 		Codec:        codec,
 		Protocol:     xprotocol.GetProtocol(proto),
