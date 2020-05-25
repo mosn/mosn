@@ -920,3 +920,62 @@ func TestHashPolicyUnmarshal(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func TestHashPolicyMarshal(t *testing.T) {
+	config := `{"hash_policy":[{"header":{"key":"header_key"}}],"timeout":"0s"}`
+
+	headerConfig := &RouterActionConfig{
+		HashPolicy: []HashPolicy{
+			{
+				Header: &HeaderHashPolicy{Key: "header_key"},
+			},
+		},
+	}
+	b, err := json.Marshal(headerConfig)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, config, string(b), "marshal hash policy expect to get %s, but get %s", config, string(b)) {
+		t.FailNow()
+	}
+
+	config2 := `{"hash_policy":[{"http_cookie":{"name":"name","path":"path","ttl":"5s"}}],"timeout":"0s"}`
+	cookieConfig := &RouterActionConfig{
+		HashPolicy: []HashPolicy{
+			{
+				HttpCookie: &HttpCookieHashPolicy{
+					Name: "name",
+					Path: "path",
+					TTL:  api.DurationConfig{5 * time.Second},
+				},
+			},
+		},
+	}
+	b, err = json.Marshal(cookieConfig)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, config2, string(b), "marshal hash policy expect to get %s, but get %s", config2, string(b)) {
+		t.FailNow()
+	}
+
+
+	config3 := `{"hash_policy":[{"source_ip":{}}],"timeout":"0s"}`
+	ipConfig := &RouterActionConfig{
+		HashPolicy: []HashPolicy{
+			{
+				SourceIP: &SourceIPHashPolicy{},
+			},
+		},
+	}
+	b, err = json.Marshal(ipConfig)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, config3, string(b), "marshal hash policy expect to get %s, but get %s", config3, string(b)) {
+		t.FailNow()
+	}
+}
