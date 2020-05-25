@@ -210,7 +210,7 @@ kubectl apply -f https://raw.githubusercontent.com/champly/mosn/feature-istio-du
 wait consumer Running, look logs
 
 ```shell
-master $ kubectl logs -f -n dubbo-app consumer-7659dfcff5-fxsgg -c consumer
+master $ kubectl logs -f -n dubbo-app `kubectl get pod -n dubbo-app -l app=consumer -o jsonpath='{ .items[*].metadata.name }'` -c consumer
 [13/05/20 02:17:08:843 UTC] main  INFO logger.LoggerFactory: using logger: org.apache.dubbo.common.logger.log4j.Log4jLoggerAdapter
 current port:20881
 [13/05/20 02:17:09:246 UTC] main  WARN config.AbstractConfig:  [DUBBO] There's no valid metadata config found, if you are using the simpli
