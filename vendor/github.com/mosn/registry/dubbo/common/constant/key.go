@@ -26,6 +26,7 @@ const (
 	VERSION_KEY            = "version"
 	INTERFACE_KEY          = "interface"
 	PATH_KEY               = "path"
+	PROTOCOL_KEY           = "protocol"
 	SERVICE_KEY            = "service"
 	METHODS_KEY            = "methods"
 	TIMEOUT_KEY            = "timeout"
@@ -40,6 +41,7 @@ const (
 	TOKEN_KEY              = "token"
 	LOCAL_ADDR             = "local-addr"
 	REMOTE_ADDR            = "remote-addr"
+	PATH_SEPARATOR         = "/"
 	DUBBO_KEY              = "dubbo"
 	RELEASE_KEY            = "release"
 	ANYHOST_KEY            = "anyhost"
@@ -77,6 +79,10 @@ const (
 	EXECUTE_REJECTED_EXECUTION_HANDLER_KEY = "execute.limit.rejected.handler"
 	PROVIDER_SHUTDOWN_FILTER               = "pshutdown"
 	CONSUMER_SHUTDOWN_FILTER               = "cshutdown"
+	SYNC_REPORT_KEY                        = "sync.report"
+	RETRY_PERIOD_KEY                       = "retry.period"
+	RETRY_TIMES_KEY                        = "retry.times"
+	CYCLE_REPORT_KEY                       = "cycle.report"
 )
 
 const (
@@ -180,9 +186,6 @@ const (
 	// ForceUseTag is the tag in attachment
 	ForceUseTag = "dubbo.force.tag"
 	Tagkey      = "dubbo.tag"
-
-	// Attachment key in context in invoker
-	AttachmentKey = "attachment"
 )
 
 const (
@@ -226,7 +229,6 @@ const (
 	KEY_SEPARATOR      = ":"
 	DEFAULT_PATH_TAG   = "metadata"
 	KEY_REVISON_PREFIX = "revision"
-	PATH_SEPARATOR     = "/"
 
 	// metadata service
 	METADATA_SERVICE_NAME = "org.apache.dubbo.metadata.MetadataService"

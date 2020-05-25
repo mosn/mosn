@@ -155,7 +155,7 @@ github.com/modern-go/reflect2
 github.com/mosn/binding
 github.com/mosn/binding/internal/bytesconv
 github.com/mosn/binding/internal/json
-# github.com/mosn/registry v0.0.0-20200520094507-59c32ffb9fee
+# github.com/mosn/registry v0.0.0-20200525020637-c9f41a59c378
 github.com/mosn/registry/dubbo
 github.com/mosn/registry/dubbo/common
 github.com/mosn/registry/dubbo/common/constant

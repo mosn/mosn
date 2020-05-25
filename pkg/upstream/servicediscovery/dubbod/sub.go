@@ -122,6 +122,9 @@ func doSubUnsub(req subReq, sub bool) error {
 		l, ok := dubboInterface2listener.Load(servicePath)
 		if ok {
 			err = reg.UnSubscribe(dubboURL, l.(*listener))
+			if err != nil {
+				return err
+			}
 		}
 
 		// NOTICE: router rule will remain in the router manager, but it's ok

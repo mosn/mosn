@@ -145,6 +145,10 @@ github.com/mosn/registry v0.0.0-20200520085447-f7d95ac43fee h1:fWybRcf4EpvB0Y6YH
 github.com/mosn/registry v0.0.0-20200520085447-f7d95ac43fee/go.mod h1:sO2+AtmZqId1+8FHeuSPkPBmuin66YFKuOU3yqh3zGo=
 github.com/mosn/registry v0.0.0-20200520094507-59c32ffb9fee h1:8vhSCW72oy+ti24CJD//MdaEAVQdcFd/I5JTKAYQ45M=
 github.com/mosn/registry v0.0.0-20200520094507-59c32ffb9fee/go.mod h1:sO2+AtmZqId1+8FHeuSPkPBmuin66YFKuOU3yqh3zGo=
+github.com/mosn/registry v0.0.0-20200525015655-b53f24ece408 h1:uB/sCZvJHs08kicJTa8IMIKw6ziKqMrbdZvTnLePziE=
+github.com/mosn/registry v0.0.0-20200525015655-b53f24ece408/go.mod h1:sO2+AtmZqId1+8FHeuSPkPBmuin66YFKuOU3yqh3zGo=
+github.com/mosn/registry v0.0.0-20200525020637-c9f41a59c378 h1:wF/7OW38gFyBwxEpTk/b33Cxtc8yG+wJDuOGRFgb7oY=
+github.com/mosn/registry v0.0.0-20200525020637-c9f41a59c378/go.mod h1:sO2+AtmZqId1+8FHeuSPkPBmuin66YFKuOU3yqh3zGo=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990 h1:XGyIUMubCxwBCv61model5C3jqZ5zeZwdaEMEi1WRQY=
 github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990/go.mod h1:6tc/4PknZeQi0fvRIINicyJZdxmhD6ceR9v5ih1XeEg=
