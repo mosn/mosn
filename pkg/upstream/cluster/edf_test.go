@@ -24,5 +24,9 @@ func Test(t *testing.T) {
 	assert.Equal(t, A, ele)
 	ele = edfScheduler.NextAndPush(weightFunc)
 	assert.Equal(t, C, ele)
+	ele = edfScheduler.NextAndPush(weightFunc)
+	assert.Equal(t, B, ele)
+	ele = edfScheduler.NextAndPush(weightFunc)
+	assert.Equal(t, A, ele)
 
 }
