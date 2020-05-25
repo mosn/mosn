@@ -55,7 +55,7 @@ kubectl create namespace dubbo-app
 ```
 
 ```shell
-kubectl apply -f provider/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/champly/mosn/feature-istio-dubbo_adapter/examples/codes/dubbo/xds/provider/install.yaml
 ```
 
 _if you replace with your IMAGE_REPO, you should modify the install.yaml_
@@ -65,7 +65,7 @@ _if you replace with your IMAGE_REPO, you should modify the install.yaml_
 get provider ip information
 
 ```shell
-$ kubectl get pods -n dubbo-app -o wide
+$ kubectl get pods -o wide -n dubbo-app -l app=provider
 NAME                        READY   STATUS    RESTARTS   AGE   IP             NODE            NOMINATED NODE   READINESS GATES
 provider-f489bcdc6-548nf    2/2     Running   0          37m   10.13.160.40   xxxxxxxxxxxxx   <none>           <none>
 provider-f489bcdc6-bhsnn    2/2     Running   0          37m   10.13.160.93   xxxxxxxxxxxxx   <none>           <none>
@@ -86,13 +86,16 @@ endpoints:
 create serviceentry
 
 ```shell
-kubectl apply -f serviceentry.yaml
+kubectl apply -f https://raw.githubusercontent.com/champly/mosn/feature-istio-dubbo_adapter/examples/codes/dubbo/xds/serviceentry.yaml
 ```
 
 ### start consumer
 
 ```shell
-kubectl apply -f consumer/install.yaml
+kubectl apply -f https://raw.githubusercontent.com/champly/mosn/feature-istio-dubbo_adapter/examples/codes/dubbo/xds/consumer/install.yaml
+
+
+kubectl get pods -o wide -n dubbo-app -l app=consumer
 ```
 
 _if you replace with your IMAGE_REPO, you should modify the install.yaml_
@@ -102,7 +105,7 @@ _if you replace with your IMAGE_REPO, you should modify the install.yaml_
 if it good well, you can get this result
 
 ```shell
-$ kubectl logs -f -n dubbo-app consumer-7659dfcff5-mxtfn -c consumer
+$ kubectl logs -f -n dubbo-app `kubectl get pod -n dubbo-app -l app=consumer -o jsonpath='{ .items[*].metadata.name }'` -c consumer
 [20/04/20 08:00:30:549 UTC] main  INFO logger.LoggerFactory: using logger: org.apache.dubbo.common.logger.log4j.Log4jLoggerAdapter
 current port:20881
 [20/04/20 08:00:30:818 UTC] main  WARN config.AbstractConfig:  [DUBBO] There's no valid metadata config found, if you are using the simplified mode of registry url, please make sure you have a metadata address configured properly., dubbo version: 2.7.3, current host: 10.13.160.70
