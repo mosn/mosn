@@ -126,6 +126,10 @@ type MetadataMatchCriteria interface {
 	MergeMatchCriteria(metadataMatches map[string]interface{}) MetadataMatchCriteria
 }
 
+type ConsistentHashCriteria interface {
+	HashType() ConsistentHashType
+}
+
 // PathMatchType defines the match pattern
 type PathMatchType uint32
 
@@ -136,6 +140,13 @@ const (
 	Exact
 	Regex
 	SofaHeader
+)
+
+// ConsistentHashType defines the consistent hash type
+type ConsistentHashType uint32
+
+const (
+	Maglev ConsistentHashType = iota
 )
 
 type PathMatchCriterion interface {
