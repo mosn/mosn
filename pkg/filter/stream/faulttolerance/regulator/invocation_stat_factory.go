@@ -18,11 +18,11 @@ func GetInvocationStatFactoryInstance() *InvocationStatFactory {
 }
 
 func NewInvocationStatFactory(config *v2.FaultToleranceFilterConfig) *InvocationStatFactory {
-	invocationStatFactory := &InvocationStatFactory{
+	invocationStatFactoryInstance = &InvocationStatFactory{
 		invocationStats: new(sync.Map),
 		regulator:       NewDefaultRegulator(config),
 	}
-	return invocationStatFactory
+	return invocationStatFactoryInstance
 }
 
 func (f *InvocationStatFactory) GetInvocationStat(host *api.HostInfo, dimension InvocationDimension) *InvocationStat {
