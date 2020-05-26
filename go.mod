@@ -6,9 +6,10 @@ require (
 	bou.ke/monkey v1.0.2
 	github.com/SkyAPM/go2sky v0.3.1-0.20200329092408-8b3e4d536d8d
 	github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
+	github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
 	github.com/apache/dubbo-go-hessian2 v1.5.0
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
-	github.com/envoyproxy/go-control-plane v0.6.9
+	github.com/envoyproxy/go-control-plane v0.8.0
 	github.com/gin-gonic/gin v1.6.2 // indirect
 	github.com/go-chi/chi v4.1.0+incompatible
 	github.com/gogo/googleapis v1.2.0 // indirect
@@ -22,7 +23,8 @@ require (
 	github.com/klauspost/compress v1.7.5 // indirect
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.14
-	github.com/mosn/binding v0.0.0-20200413084927-e28f981bfb20
+	github.com/miekg/dns v1.0.14
+	github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f
 	github.com/mosn/registry v0.0.0-20200526023644-724ef3b6e9d6
 	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
 	github.com/pkg/errors v0.9.1
@@ -33,9 +35,9 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0
 	github.com/valyala/fasttemplate v1.1.0
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
-	golang.org/x/sys v0.0.0-20200116001909-b77594299b42
+	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
+	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.22.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
