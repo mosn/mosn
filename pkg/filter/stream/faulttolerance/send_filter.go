@@ -28,13 +28,13 @@ func (f *SendFilter) Append(ctx context.Context, headers api.HeaderMap, buf buff
 	}
 
 	newDimension := regulator.GetNewDimensionFunc()
-	if newDimension == nil {
+	requestInfo := f.handler.RequestInfo()
+	if newDimension == nil || requestInfo == nil {
 		return api.StreamFilterContinue
 	}
 
-	requestInfo := f.handler.RequestInfo()
 	host := requestInfo.UpstreamHost()
-	if requestInfo != nil && host != nil {
+	if host != nil {
 		dimension := newDimension(requestInfo)
 		isException := f.IsException(requestInfo)
 		stat := f.invocationFactory.GetInvocationStat(&host, dimension)
