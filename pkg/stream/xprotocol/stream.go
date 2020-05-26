@@ -96,6 +96,8 @@ func (s *xStream) AppendData(context context.Context, data types.IoBuffer, endSt
 		log.Proxy.Debugf(s.ctx, "[stream] [xprotocol] appendData, direction = %d, requestId = %d", s.direction, s.id)
 	}
 
+	s.frame.SetData(data)
+
 	if endStream {
 		s.endStream()
 	}
@@ -127,14 +129,18 @@ func (s *xStream) endStream() {
 		// replace requestID
 		s.frame.SetRequestId(s.id)
 
+		// remove injected headers
+		if _, ok := s.frame.(xprotocol.ServiceAware); ok {
+			s.frame.GetHeader().Del(types.HeaderRPCService)
+			s.frame.GetHeader().Del(types.HeaderRPCMethod)
+		}
+
 		buf, err := s.sc.protocol.Encode(s.ctx, s.frame)
 		if err != nil {
 			log.Proxy.Errorf(s.ctx, "[stream] [xprotocol] encode error:%s, requestId = %v", err.Error(), s.id)
 			s.ResetStream(types.StreamLocalReset)
 			return
 		}
-
-		// TODO: header mutate support
 
 		err = s.sc.netConn.Write(buf)
 

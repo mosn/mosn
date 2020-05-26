@@ -25,6 +25,7 @@ import (
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xdsv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -74,7 +75,12 @@ const (
 
 // todo add streamfilters parse
 func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
-	if !isSupport(xdsListener) {
+	// TODO support all filter
+	//if !isSupport(xdsListener) {
+	//	return nil
+	//}
+
+	if xdsListener == nil {
 		return nil
 	}
 
@@ -104,12 +110,14 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 
 	listenerConfig.ListenerFilters = convertListenerFilters(xdsListener.GetListenerFilters())
 
-	listenerConfig.FilterChains = convertFilterChains(xdsListener.GetFilterChains())
+	var rawSelectedFilters *xdslistener.Filter
+	listenerConfig.FilterChains, rawSelectedFilters = convertFilterChainsAndGetRawFilter(xdsListener)
 
 	if listenerConfig.FilterChains != nil &&
 		len(listenerConfig.FilterChains) == 1 &&
-		listenerConfig.FilterChains[0].Filters != nil {
-		listenerConfig.StreamFilters = convertStreamFilters(xdsListener.FilterChains[0].Filters[0])
+		listenerConfig.FilterChains[0].Filters != nil &&
+		rawSelectedFilters != nil {
+		listenerConfig.StreamFilters = convertStreamFilters(rawSelectedFilters)
 	}
 
 	return listenerConfig
@@ -162,9 +170,10 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Hosts: convertClusterHosts(xdsCluster.GetHosts()),
-			Spec:  convertSpec(xdsCluster),
-			TLS:   convertTLS(xdsCluster.GetTlsContext()),
+			Hosts:    convertClusterHosts(xdsCluster.GetHosts()),
+			Spec:     convertSpec(xdsCluster),
+			TLS:      convertTLS(xdsCluster.GetTlsContext()),
+			LbConfig: convertLbConfig(xdsCluster.LbConfig),
 		}
 
 		if ass := xdsCluster.GetLoadAssignment(); ass != nil {
@@ -178,6 +187,16 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 	}
 
 	return clusters
+}
+
+// TODO support more LB converter
+func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
+	switch config.(type) {
+	case *xdsv2.Cluster_LeastRequestLbConfig:
+		return &v2.LeastRequestLbConfig{ChoiceCount: config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
+	default:
+		return nil
+	}
 }
 
 func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.Host {
@@ -210,11 +229,13 @@ func ConvertEndpointsConfig(xdsEndpoint *xdsendpoint.LocalityLbEndpoints) []v2.H
 			MetaData: convertMeta(xdsHost.Metadata),
 		}
 
-		if weight := xdsHost.GetLoadBalancingWeight().GetValue(); weight < configmanager.MinHostWeight {
-			host.Weight = configmanager.MinHostWeight
+		weight := xdsHost.GetLoadBalancingWeight().GetValue()
+		if weight < configmanager.MinHostWeight {
+			weight = configmanager.MinHostWeight
 		} else if weight > configmanager.MaxHostWeight {
-			host.Weight = configmanager.MaxHostWeight
+			weight = configmanager.MaxHostWeight
 		}
+		host.Weight = weight
 
 		hosts = append(hosts, host)
 	}
@@ -484,9 +505,22 @@ func convertMixerConfig(s *any.Any) (map[string]interface{}, error) {
 	return config, nil
 }
 
-func convertFilterChains(xdsFilterChains []*xdslistener.FilterChain) []v2.FilterChain {
+func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.FilterChain, *xdslistener.Filter) {
+	if xdsListener == nil {
+		return nil, nil
+	}
+
+	xdsFilterChains := xdsListener.GetFilterChains()
+
 	if xdsFilterChains == nil {
-		return nil
+		return nil, nil
+	}
+
+	useOriginalDst := false
+	for _, xl := range xdsListener.GetListenerFilters() {
+		if xl.Name == xdswellknown.OriginalDestination {
+			useOriginalDst = true
+		}
 	}
 
 	var xdsFilters []*xdslistener.Filter
@@ -509,35 +543,41 @@ func convertFilterChains(xdsFilterChains []*xdslistener.FilterChain) []v2.Filter
 		}
 	}
 
-	return []v2.FilterChain{{
-		FilterChainConfig: v2.FilterChainConfig{
-			FilterChainMatch: chainMatch,
-			Filters:          convertFilters(xdsFilters),
-		},
-		TLSContexts: nil,
-	},
-	}
-
-}
-
-func convertFilters(xdsFilters []*xdslistener.Filter) []v2.Filter {
-	if xdsFilters == nil {
-		return nil
-	}
-
-	filters := make([]v2.Filter, 0, len(xdsFilters))
 	// A port supports only one protocol
 	//todo support more Listener & One Listener support more Protocol
 	var oneFilter *xdslistener.Filter
 	for _, xdsFilter := range xdsFilters {
-		if xdsFilter.Name == xdswellknown.HTTPConnectionManager {
+
+		if xdsFilter.Name == xdswellknown.TCPProxy {
+			oneFilter = xdsFilter
+			if useOriginalDst {
+				break
+			}
+		} else if xdsFilter.Name == xdswellknown.HTTPConnectionManager {
 			oneFilter = xdsFilter
 			break
-		} else if xdsFilter.Name == xdswellknown.TCPProxy {
-			oneFilter = xdsFilter
 		}
 	}
-	filterMaps := convertFilterConfig(oneFilter)
+
+	return []v2.FilterChain{{
+		FilterChainConfig: v2.FilterChainConfig{
+			FilterChainMatch: chainMatch,
+			Filters:          convertFilters(oneFilter),
+		},
+		TLSContexts: nil,
+	},
+	}, oneFilter
+
+}
+
+func convertFilters(xdsFilters *xdslistener.Filter) []v2.Filter {
+	if xdsFilters == nil {
+		return nil
+	}
+
+	filters := make([]v2.Filter, 0)
+
+	filterMaps := convertFilterConfig(xdsFilters)
 	for typeKey, configValue := range filterMaps {
 		filters = append(filters, v2.Filter{
 			typeKey,
@@ -780,15 +820,15 @@ func convertRouteMatch(xdsRouteMatch *xdsroute.RouteMatch) v2.RouterMatch {
 }
 
 /*
-func convertRuntime(xdsRuntime *xdscore.RuntimeUInt32) v2.RuntimeUInt32 {
-	if xdsRuntime == nil {
-		return v2.RuntimeUInt32{}
-	}
-	return v2.RuntimeUInt32{
-		DefaultValue: xdsRuntime.GetDefaultValue(),
-		RuntimeKey:   xdsRuntime.GetRuntimeKey(),
-	}
-}
+ func convertRuntime(xdsRuntime *xdscore.RuntimeUInt32) v2.RuntimeUInt32 {
+	 if xdsRuntime == nil {
+		 return v2.RuntimeUInt32{}
+	 }
+	 return v2.RuntimeUInt32{
+		 DefaultValue: xdsRuntime.GetDefaultValue(),
+		 RuntimeKey:   xdsRuntime.GetRuntimeKey(),
+	 }
+ }
 */
 
 func convertHeaders(xdsHeaders []*xdsroute.HeaderMatcher) []v2.HeaderMatcher {
@@ -923,34 +963,34 @@ func convertRetryPolicy(xdsRetryPolicy *xdsroute.RetryPolicy) *v2.RetryPolicy {
 }
 
 /*
-func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) v2.RedirectAction {
-	if xdsRedirectAction == nil {
-		return v2.RedirectAction{}
-	}
-	return v2.RedirectAction{
-		HostRedirect: xdsRedirectAction.GetHostRedirect(),
-		PathRedirect: xdsRedirectAction.GetPathRedirect(),
-		ResponseCode: uint32(xdsRedirectAction.GetResponseCode()),
-	}
-}
+ func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) v2.RedirectAction {
+	 if xdsRedirectAction == nil {
+		 return v2.RedirectAction{}
+	 }
+	 return v2.RedirectAction{
+		 HostRedirect: xdsRedirectAction.GetHostRedirect(),
+		 PathRedirect: xdsRedirectAction.GetPathRedirect(),
+		 ResponseCode: uint32(xdsRedirectAction.GetResponseCode()),
+	 }
+ }
 */
 
 /*
-func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.VirtualCluster {
-	if xdsVirtualClusters == nil {
-		return nil
-	}
-	virtualClusters := make([]v2.VirtualCluster, 0, len(xdsVirtualClusters))
-	for _, xdsVirtualCluster := range xdsVirtualClusters {
-		virtualCluster := v2.VirtualCluster{
-			Pattern: xdsVirtualCluster.GetPattern(),
-			Name:    xdsVirtualCluster.GetName(),
-			Method:  xdsVirtualCluster.GetMethod().String(),
-		}
-		virtualClusters = append(virtualClusters, virtualCluster)
-	}
-	return virtualClusters
-}
+ func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.VirtualCluster {
+	 if xdsVirtualClusters == nil {
+		 return nil
+	 }
+	 virtualClusters := make([]v2.VirtualCluster, 0, len(xdsVirtualClusters))
+	 for _, xdsVirtualCluster := range xdsVirtualClusters {
+		 virtualCluster := v2.VirtualCluster{
+			 Pattern: xdsVirtualCluster.GetPattern(),
+			 Name:    xdsVirtualCluster.GetName(),
+			 Method:  xdsVirtualCluster.GetMethod().String(),
+		 }
+		 virtualClusters = append(virtualClusters, virtualCluster)
+	 }
+	 return virtualClusters
+ }
 */
 
 func convertAddress(xdsAddress *xdscore.Address) net.Addr {
@@ -987,6 +1027,7 @@ func convertClusterType(xdsClusterType xdsapi.Cluster_DiscoveryType) v2.ClusterT
 	case xdsapi.Cluster_EDS:
 		return v2.EDS_CLUSTER
 	case xdsapi.Cluster_ORIGINAL_DST:
+		return v2.ORIGINALDST_CLUSTER
 	}
 	//log.DefaultLogger.Fatalf("unsupported cluster type: %s, exchange to SIMPLE_CLUSTER", xdsClusterType.String())
 	return v2.SIMPLE_CLUSTER
@@ -997,6 +1038,7 @@ func convertLbPolicy(xdsLbPolicy xdsapi.Cluster_LbPolicy) v2.LbType {
 	case xdsapi.Cluster_ROUND_ROBIN:
 		return v2.LB_ROUNDROBIN
 	case xdsapi.Cluster_LEAST_REQUEST:
+		return v2.LB_LEAST_REQUEST
 	case xdsapi.Cluster_RING_HASH:
 	case xdsapi.Cluster_RANDOM:
 		return v2.LB_RANDOM
@@ -1077,24 +1119,24 @@ func convertCircuitBreakers(xdsCircuitBreaker *xdscluster.CircuitBreakers) v2.Ci
 }
 
 /*
-func convertOutlierDetection(xdsOutlierDetection *xdscluster.OutlierDetection) v2.OutlierDetection {
-	if xdsOutlierDetection == nil || xdsOutlierDetection.Size() == 0 {
-		return v2.OutlierDetection{}
-	}
-	return v2.OutlierDetection{
-		Consecutive5xx:                     xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
-		Interval:                           convertDuration(xdsOutlierDetection.GetInterval()),
-		BaseEjectionTime:                   convertDuration(xdsOutlierDetection.GetBaseEjectionTime()),
-		MaxEjectionPercent:                 xdsOutlierDetection.GetMaxEjectionPercent().GetValue(),
-		ConsecutiveGatewayFailure:          xdsOutlierDetection.GetEnforcingConsecutive_5Xx().GetValue(),
-		EnforcingConsecutive5xx:            xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
-		EnforcingConsecutiveGatewayFailure: xdsOutlierDetection.GetEnforcingConsecutiveGatewayFailure().GetValue(),
-		EnforcingSuccessRate:               xdsOutlierDetection.GetEnforcingSuccessRate().GetValue(),
-		SuccessRateMinimumHosts:            xdsOutlierDetection.GetSuccessRateMinimumHosts().GetValue(),
-		SuccessRateRequestVolume:           xdsOutlierDetection.GetSuccessRateRequestVolume().GetValue(),
-		SuccessRateStdevFactor:             xdsOutlierDetection.GetSuccessRateStdevFactor().GetValue(),
-	}
-}
+ func convertOutlierDetection(xdsOutlierDetection *xdscluster.OutlierDetection) v2.OutlierDetection {
+	 if xdsOutlierDetection == nil || xdsOutlierDetection.Size() == 0 {
+		 return v2.OutlierDetection{}
+	 }
+	 return v2.OutlierDetection{
+		 Consecutive5xx:                     xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
+		 Interval:                           convertDuration(xdsOutlierDetection.GetInterval()),
+		 BaseEjectionTime:                   convertDuration(xdsOutlierDetection.GetBaseEjectionTime()),
+		 MaxEjectionPercent:                 xdsOutlierDetection.GetMaxEjectionPercent().GetValue(),
+		 ConsecutiveGatewayFailure:          xdsOutlierDetection.GetEnforcingConsecutive_5Xx().GetValue(),
+		 EnforcingConsecutive5xx:            xdsOutlierDetection.GetConsecutive_5Xx().GetValue(),
+		 EnforcingConsecutiveGatewayFailure: xdsOutlierDetection.GetEnforcingConsecutiveGatewayFailure().GetValue(),
+		 EnforcingSuccessRate:               xdsOutlierDetection.GetEnforcingSuccessRate().GetValue(),
+		 SuccessRateMinimumHosts:            xdsOutlierDetection.GetSuccessRateMinimumHosts().GetValue(),
+		 SuccessRateRequestVolume:           xdsOutlierDetection.GetSuccessRateRequestVolume().GetValue(),
+		 SuccessRateStdevFactor:             xdsOutlierDetection.GetSuccessRateStdevFactor().GetValue(),
+	 }
+ }
 */
 
 func convertSpec(xdsCluster *xdsapi.Cluster) v2.ClusterSpecInfo {

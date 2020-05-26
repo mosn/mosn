@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/healthcheck"
-	"mosn.io/pkg/utils"
 )
 
 func NewCluster(clusterConfig v2.Cluster) types.Cluster {
@@ -39,6 +39,7 @@ func NewCluster(clusterConfig v2.Cluster) types.Cluster {
 // simpleCluster is an implementation of types.Cluster
 type simpleCluster struct {
 	info          *clusterInfo
+	mutex         sync.Mutex
 	healthChecker types.HealthChecker
 	lbInstance    types.LoadBalancer // load balancer used for this cluster
 	hostSet       *hostSet
@@ -46,6 +47,11 @@ type simpleCluster struct {
 }
 
 func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
+	// TODO support original dst cluster
+	if clusterConfig.ClusterType == v2.ORIGINALDST_CLUSTER {
+		clusterConfig.LbType = v2.LB_ORIGINAL_DST
+	}
+
 	info := &clusterInfo{
 		name:                 clusterConfig.Name,
 		clusterType:          clusterConfig.ClusterType,
@@ -68,7 +74,7 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 	// tls mng
 	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS)
 	if err != nil {
-		log.DefaultLogger.Errorf("[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
+		log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
 	}
 	info.tlsMng = mgr
 	cluster := &simpleCluster{
@@ -79,18 +85,11 @@ func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
 	cluster.snapshot.Store(&clusterSnapshot{
 		info:    info,
 		hostSet: hostSet,
-		lb:      NewLoadBalancer(info.lbType, hostSet),
+		lb:      NewLoadBalancer(info, hostSet),
 	})
 	if clusterConfig.HealthCheck.ServiceName != "" {
 		log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
 		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck)
-		cluster.healthChecker.AddHostCheckCompleteCb(func(host types.Host, changedState bool, isHealthy bool) {
-			if changedState {
-				log.DefaultLogger.Infof("[upstream] [cluster] host %s state change to %v", host.AddressString(), isHealthy)
-				cluster.hostSet.refreshHealthHost(host)
-			}
-		})
-
 	}
 	return cluster
 }
@@ -104,8 +103,10 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	if info.lbSubsetInfo.IsEnabled() {
 		lb = NewSubsetLoadBalancer(info, hostSet)
 	} else {
-		lb = NewLoadBalancer(info.lbType, hostSet)
+		lb = NewLoadBalancer(info, hostSet)
 	}
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
 	sc.lbInstance = lb
 	sc.hostSet = hostSet
 	sc.snapshot.Store(&clusterSnapshot{
@@ -114,9 +115,7 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 		info:    info,
 	})
 	if sc.healthChecker != nil {
-		utils.GoWithRecover(func() {
-			sc.healthChecker.SetHealthCheckerHostSet(hostSet)
-		}, nil)
+		sc.healthChecker.SetHealthCheckerHostSet(hostSet)
 	}
 
 }
@@ -130,12 +129,16 @@ func (sc *simpleCluster) Snapshot() types.ClusterSnapshot {
 }
 
 func (sc *simpleCluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
 	if sc.healthChecker != nil {
 		sc.healthChecker.AddHostCheckCompleteCb(cb)
 	}
 }
 
 func (sc *simpleCluster) StopHealthChecking() {
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
 	if sc.healthChecker != nil {
 		sc.healthChecker.Stop()
 	}
@@ -153,6 +156,13 @@ type clusterInfo struct {
 	lbOriDstInfo         types.LBOriDstInfo
 	tlsMng               types.TLSContextManager
 	connectTimeout       time.Duration
+	lbConfig             v2.IsCluster_LbConfig
+}
+
+func updateClusterResourceManager(ci types.ClusterInfo, rm types.ResourceManager) {
+	if c, ok := ci.(*clusterInfo); ok {
+		c.resourceManager = rm
+	}
 }
 
 func (ci *clusterInfo) Name() string {
@@ -197,6 +207,10 @@ func (ci *clusterInfo) ConnectTimeout() time.Duration {
 
 func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 	return ci.lbOriDstInfo
+}
+
+func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig {
+	return ci.lbConfig
 }
 
 type clusterSnapshot struct {

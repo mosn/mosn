@@ -44,9 +44,9 @@ func NewSubsetLoadBalancer(info *clusterInfo, hostSet *hostSet) types.LoadBalanc
 		hostSet: hostSet,
 	}
 	// create fallback
-	subsetLB.createFallbackSubset(subsetInfo.FallbackPolicy(), subsetInfo.DefaultSubset())
+	subsetLB.createFallbackSubset(info, subsetInfo.FallbackPolicy(), subsetInfo.DefaultSubset())
 	// create subsets
-	subsetLB.createSubsets(subsetInfo.SubsetKeys())
+	subsetLB.createSubsets(info, subsetInfo.SubsetKeys())
 	return subsetLB
 }
 
@@ -112,7 +112,7 @@ func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerC
 }
 
 // createSubsets creates the sslb.subSets
-func (sslb *subsetLoadBalancer) createSubsets(subSetKeys []types.SortedStringSetType) {
+func (sslb *subsetLoadBalancer) createSubsets(info *clusterInfo, subSetKeys []types.SortedStringSetType) {
 	hosts := sslb.hostSet.Hosts()
 	var subsSetCount int64 = 0
 	for _, host := range hosts {
@@ -126,7 +126,7 @@ func (sslb *subsetLoadBalancer) createSubsets(subSetKeys []types.SortedStringSet
 						return HostMatches(kvs, host)
 					})
 					subsSetCount += 1
-					entry.CreateLoadBalancer(sslb.lbType, subHostset)
+					entry.CreateLoadBalancer(info, subHostset)
 				}
 			}
 		}
@@ -135,7 +135,7 @@ func (sslb *subsetLoadBalancer) createSubsets(subSetKeys []types.SortedStringSet
 }
 
 // createFallbackSubset creates a LBSubsetEntryImpl as fallbackSubset
-func (sslb *subsetLoadBalancer) createFallbackSubset(policy types.FallBackPolicy, meta types.SubsetMetadata) {
+func (sslb *subsetLoadBalancer) createFallbackSubset(info *clusterInfo, policy types.FallBackPolicy, meta types.SubsetMetadata) {
 	hostSet := sslb.hostSet
 	switch policy {
 	case types.NoFallBack:
@@ -147,7 +147,7 @@ func (sslb *subsetLoadBalancer) createFallbackSubset(policy types.FallBackPolicy
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
 		}
-		sslb.fallbackSubset.CreateLoadBalancer(sslb.lbType, hostSet)
+		sslb.fallbackSubset.CreateLoadBalancer(info, hostSet)
 	case types.DefaultSubset:
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
@@ -155,7 +155,7 @@ func (sslb *subsetLoadBalancer) createFallbackSubset(policy types.FallBackPolicy
 		subHostset := hostSet.createSubset(func(host types.Host) bool {
 			return HostMatches(meta, host)
 		})
-		sslb.fallbackSubset.CreateLoadBalancer(sslb.lbType, subHostset)
+		sslb.fallbackSubset.CreateLoadBalancer(info, subHostset)
 	}
 }
 
@@ -260,8 +260,8 @@ func (entry *LBSubsetEntryImpl) Children() types.LbSubsetMap {
 	return entry.children
 }
 
-func (entry *LBSubsetEntryImpl) CreateLoadBalancer(lbType types.LoadBalancerType, hosts types.HostSet) {
-	lb := NewLoadBalancer(lbType, hosts)
+func (entry *LBSubsetEntryImpl) CreateLoadBalancer(info types.ClusterInfo, hosts types.HostSet) {
+	lb := NewLoadBalancer(info, hosts)
 	entry.lb = lb
 	entry.hostSet = hosts
 }

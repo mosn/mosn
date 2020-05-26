@@ -64,7 +64,7 @@ const cfgStr = `{
 	 }
 }`
 
-// apiType = "GRPC" Defined by const ApiConfigSource_GRPC ApiConfigSource_ApiType = 2 
+// apiType = "GRPC" Defined by const ApiConfigSource_GRPC ApiConfigSource_ApiType = 2
 // at the go-control-plane/envoy/api/v2/core/config_source.pb.go file.
 const xdsSdsConfig = `{
   "servers": [

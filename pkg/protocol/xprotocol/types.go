@@ -37,10 +37,10 @@ const (
 
 // Error def
 var (
-	AlreadyRegistered = "protocol code already registered."
-	UnknownType       = "unknown model type."
-	UnrecognizedCode  = "unrecognized protocol code."
-	NoProtocolCode    = "no protocol code found."
+	AlreadyRegistered = "protocol code already registered"
+	UnknownType       = "unknown model type"
+	UnrecognizedCode  = "unrecognized protocol code"
+	NoProtocolCode    = "no protocol code found"
 
 	ErrDupRegistered    = errors.New(AlreadyRegistered)
 	ErrUnknownType      = errors.New(UnknownType)
@@ -60,6 +60,8 @@ type XFrame interface {
 	GetHeader() types.HeaderMap
 
 	GetData() types.IoBuffer
+
+	SetData(data types.IoBuffer)
 }
 
 // XRespFrame expose response status code based on the XFrame
@@ -79,11 +81,6 @@ type Multiplexing interface {
 // HeartbeatPredicate provides the ability to judge if current frame is a heartbeat, which is usually used to make connection keepalive
 type HeartbeatPredicate interface {
 	IsHeartbeatFrame() bool
-}
-
-// TODO: confirm
-type HeaderMutator interface {
-	MutateHeader(bytes []byte) []byte
 }
 
 // ServiceAware provides the ability to get the most common info for rpc invocation: service name and method name
@@ -116,7 +113,7 @@ type Heartbeater interface {
 	Trigger(requestId uint64) XFrame
 
 	// Reply builds heartbeat command corresponding to the given requestID
-	Reply(requestId uint64) XRespFrame
+	Reply(request XFrame) XRespFrame
 }
 
 // Hijacker provides the ability to construct proper response command for xprotocol sub-protocols

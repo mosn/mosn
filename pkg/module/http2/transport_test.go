@@ -32,7 +32,7 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/net/http2/hpack"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 )
 
 var (
@@ -1429,7 +1429,7 @@ func testInvalidTrailer(t *testing.T, trailers headerType, wantErr error, writeT
 					endStream = false
 					send(oneHeader)
 				}
-				// Trailers:
+				// Trailer:
 				{
 					endStream = true
 					buf.Reset()
@@ -1678,7 +1678,7 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 	// so we need to leave room for those.
 	defaultBytes := headerListSizeForRequest(req)
 	padHeaders(t, req.Header, peerSize-defaultBytes, filler)
-	checkRoundTrip(req, nil, "Headers & Trailers under limit")
+	checkRoundTrip(req, nil, "Headers & Trailer under limit")
 
 	// Add enough header bytes to push us over peerSize.
 	req = newRequest()
@@ -1690,7 +1690,7 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 	req = newRequest()
 	req.Trailer = make(http.Header)
 	padHeaders(t, req.Trailer, peerSize+1, filler)
-	checkRoundTrip(req, errRequestHeaderListSize, "Trailers over limit")
+	checkRoundTrip(req, errRequestHeaderListSize, "Trailer over limit")
 
 	// Send headers with a single large value.
 	req = newRequest()

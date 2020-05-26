@@ -54,10 +54,11 @@ type ClusterType string
 
 // Group of cluster type
 const (
-	STATIC_CLUSTER  ClusterType = "STATIC"
-	SIMPLE_CLUSTER  ClusterType = "SIMPLE"
-	DYNAMIC_CLUSTER ClusterType = "DYNAMIC"
-	EDS_CLUSTER     ClusterType = "EDS"
+	STATIC_CLUSTER      ClusterType = "STATIC"
+	SIMPLE_CLUSTER      ClusterType = "SIMPLE"
+	DYNAMIC_CLUSTER     ClusterType = "DYNAMIC"
+	EDS_CLUSTER         ClusterType = "EDS"
+	ORIGINALDST_CLUSTER ClusterType = "ORIGINAL_DST"
 )
 
 // LbType
@@ -65,9 +66,10 @@ type LbType string
 
 // Group of load balancer type
 const (
-	LB_RANDOM       LbType = "LB_RANDOM"
-	LB_ROUNDROBIN   LbType = "LB_ROUNDROBIN"
-	LB_ORIGINAL_DST LbType = "LB_ORIGINAL_DST"
+	LB_RANDOM        LbType = "LB_RANDOM"
+	LB_ROUNDROBIN    LbType = "LB_ROUNDROBIN"
+	LB_ORIGINAL_DST  LbType = "LB_ORIGINAL_DST"
+	LB_LEAST_REQUEST LbType = "LB_LEAST_REQUEST"
 )
 
 // Cluster represents a cluster's information
@@ -86,6 +88,7 @@ type Cluster struct {
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
+	LbConfig             IsCluster_LbConfig  `json:"lbconfig,omitempty"`
 }
 
 // HealthCheck is a configuration of health check
@@ -257,6 +260,9 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 		data, err := json.MarshalIndent(cluster, "", " ")
 		if err != nil {
 			return nil, err
+		}
+		if len(fileName) > MaxFilePath {
+			fileName = fileName[:MaxFilePath]
 		}
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)

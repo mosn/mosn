@@ -39,7 +39,6 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -97,7 +96,7 @@ func (ch *connHandler) NumConnections() uint64 {
 // AddOrUpdateListener used to add or update listener
 // listener name is unique key to represent the listener
 // and listener with the same name must have the same configured address
-func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateListenerFilter bool, updateNetworkFilter bool, updateStreamFilter bool) (types.ListenerEventListener, error) {
+func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEventListener, error) {
 
 	var listenerName string
 	if lc.Name == "" {
@@ -131,24 +130,14 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateListenerFilter
 		rawConfig := al.listener.Config()
 		// FIXME: update log level need the pkg/logger support.
 
-		if updateListenerFilter {
-			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update listener filters")
-			al.listenerFiltersFactories = listenerFiltersFactories
-			rawConfig.ListenerFilters = lc.ListenerFilters
-		}
+		al.listenerFiltersFactories = listenerFiltersFactories
+		rawConfig.ListenerFilters = lc.ListenerFilters
+		al.networkFiltersFactories = networkFiltersFactories
+		rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
+		rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
 
-		if updateNetworkFilter {
-			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update network filters")
-			al.networkFiltersFactories = networkFiltersFactories
-			rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
-			rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
-		}
-
-		if updateStreamFilter {
-			log.DefaultLogger.Infof("[server] [AddOrUpdateListener] [update] update stream filters")
-			al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
-			rawConfig.StreamFilters = lc.StreamFilters
-		}
+		al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
+		rawConfig.StreamFilters = lc.StreamFilters
 
 		// tls update only take effects on new connections
 		// config changed
@@ -209,7 +198,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener, updateListenerFilter
 		}
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
-		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.AddrConfig)
+		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
+
 	}
 	admin.SetListenerConfig(listenerName, *al.listener.Config())
 	return al, nil
@@ -299,7 +289,7 @@ func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
 	for idx, l := range ch.listeners {
 		file, err := l.listener.ListenerFile()
 		if err != nil {
-			log.DefaultLogger.Errorf("[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
+			log.DefaultLogger.Alertf("listener.list", "[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
 		files[idx] = file
@@ -363,14 +353,14 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                 listener,
-		listenerFiltersFactories: listenerFiltersFactories,
-		networkFiltersFactories:  networkFiltersFactories,
 		conns:                    list.New(),
 		handler:                  handler,
 		stopChan:                 stopChan,
 		accessLogs:               accessLoggers,
 		updatedLabel:             false,
 		idleTimeout:              lc.ConnectionIdleTimeout,
+		networkFiltersFactories:  networkFiltersFactories,
+		listenerFiltersFactories: listenerFiltersFactories,
 	}
 	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
@@ -400,8 +390,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 func (al *activeListener) GoStart(lctx context.Context) {
 	utils.GoWithRecover(func() {
 		al.listener.Start(lctx, false)
-		// set listener addr metrics
-		metrics.AddListenerAddr(al.listener.Addr().String())
 	}, func(r interface{}) {
 		// TODO: add a times limit?
 		al.GoStart(lctx)

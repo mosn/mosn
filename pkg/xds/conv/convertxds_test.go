@@ -18,26 +18,13 @@
 package conv
 
 import (
-	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/duration"
-	"github.com/golang/protobuf/ptypes/wrappers"
-	"mosn.io/mosn/pkg/server"
+	"os"
 	"reflect"
 	"testing"
 	"time"
 
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
-	"github.com/gogo/protobuf/proto"
-	v1 "istio.io/api/mixer/v1"
-	"istio.io/api/mixer/v1/config/client"
-
-	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/filter/stream/faultinject"
-	"mosn.io/mosn/pkg/router"
-	"mosn.io/mosn/pkg/upstream/cluster"
-
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -48,7 +35,20 @@ import (
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
+	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
+	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/wrappers"
+	v1 "istio.io/api/mixer/v1"
+	"istio.io/api/mixer/v1/config/client"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
+	"mosn.io/mosn/pkg/filter/stream/faultinject"
+	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/server"
+	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
 func TestMain(m *testing.M) {
@@ -61,7 +61,7 @@ func TestMain(m *testing.M) {
 		DefaultLogLevel: "FATAL",
 	})
 	server.NewServer(sc, &mockCMF{}, cm)
-	m.Run()
+	os.Exit(m.Run())
 }
 
 // messageToAny converts from proto message to proto Any
@@ -72,6 +72,9 @@ func messageToAny(t *testing.T, msg proto.Message) *any.Any {
 		return nil
 	}
 	return s
+}
+
+type mockIdentifier struct {
 }
 
 // todo fill the unit test
@@ -92,6 +95,83 @@ func Test_convertEndpointsConfig(t *testing.T) {
 				},
 			},
 			want: []v2.Host{},
+		},
+		{
+			name: "case2",
+			args: args{
+				xdsEndpoint: &xdsendpoint.LocalityLbEndpoints{
+					LbEndpoints: []*xdsendpoint.LbEndpoint{
+						{
+							HostIdentifier: &xdsendpoint.LbEndpoint_Endpoint{
+								Endpoint: &xdsendpoint.Endpoint{
+									Address: &core.Address{
+										Address: &core.Address_SocketAddress{
+											SocketAddress: &core.SocketAddress{
+												Address:       "192.168.0.1",
+												Protocol:      core.SocketAddress_TCP,
+												PortSpecifier: &core.SocketAddress_PortValue{PortValue: 8080},
+											},
+										},
+									},
+								},
+							},
+							LoadBalancingWeight: &wrappers.UInt32Value{Value: 20},
+						},
+						{
+							HostIdentifier: &xdsendpoint.LbEndpoint_Endpoint{
+								Endpoint: &xdsendpoint.Endpoint{
+									Address: &core.Address{
+										Address: &core.Address_SocketAddress{
+											SocketAddress: &core.SocketAddress{
+												Address:       "192.168.0.2",
+												Protocol:      core.SocketAddress_TCP,
+												PortSpecifier: &core.SocketAddress_PortValue{PortValue: 8080},
+											},
+										},
+									},
+								},
+							},
+							LoadBalancingWeight: &wrappers.UInt32Value{Value: 0},
+						},
+						{
+							HostIdentifier: &xdsendpoint.LbEndpoint_Endpoint{
+								Endpoint: &xdsendpoint.Endpoint{
+									Address: &core.Address{
+										Address: &core.Address_SocketAddress{
+											SocketAddress: &core.SocketAddress{
+												Address:       "192.168.0.3",
+												Protocol:      core.SocketAddress_TCP,
+												PortSpecifier: &core.SocketAddress_PortValue{PortValue: 8080},
+											},
+										},
+									},
+								},
+							},
+							LoadBalancingWeight: &wrappers.UInt32Value{Value: 200},
+						},
+					},
+				},
+			},
+			want: []v2.Host{
+				{
+					HostConfig: v2.HostConfig{
+						Address: "192.168.0.1:8080",
+						Weight:  20,
+					},
+				},
+				{
+					HostConfig: v2.HostConfig{
+						Address: "192.168.0.2:8080",
+						Weight:  configmanager.MinHostWeight,
+					},
+				},
+				{
+					HostConfig: v2.HostConfig{
+						Address: "192.168.0.3:8080",
+						Weight:  configmanager.MaxHostWeight,
+					},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -554,7 +634,7 @@ func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 				Numerator:   100,
 				Denominator: xdstype.FractionalPercent_HUNDRED,
 			},
-			FaultDelaySecifier: &xdsfault.FaultDelay_FixedDelay{},
+			FaultDelaySecifier: &xdsfault.FaultDelay_FixedDelay{FixedDelay: &duration.Duration{Seconds: 0}},
 		},
 		Abort: &xdshttpfault.FaultAbort{
 			Percentage: &xdstype.FractionalPercent{
@@ -649,22 +729,22 @@ func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 }
 
 func Test_convertPerRouteConfig(t *testing.T) {
-	mixerFilterConfig := &client.ServiceConfig{
-		DisableReportCalls: false,
-		DisableCheckCalls:  true,
-		MixerAttributes: &v1.Attributes{
-			Attributes: map[string]*v1.Attributes_AttributeValue{
-				"test": &v1.Attributes_AttributeValue{
-					Value: &v1.Attributes_AttributeValue_StringValue{
-						StringValue: "test_value",
+	mixerFilterConfig := &client.HttpClientConfig{
+		ServiceConfigs: map[string]*client.ServiceConfig{v2.MIXER: &client.ServiceConfig{
+			MixerAttributes: &v1.Attributes{
+				Attributes: map[string]*v1.Attributes_AttributeValue{
+					"test": &v1.Attributes_AttributeValue{
+						Value: &v1.Attributes_AttributeValue_StringValue{
+							StringValue: "test_value",
+						},
 					},
 				},
 			},
 		},
+		},
 	}
-
 	mixerStruct := messageToAny(t, mixerFilterConfig)
-	fixedDelay := duration.Duration{}
+	fixedDelay := duration.Duration{Seconds: 1}
 	faultInjectConfig := &xdshttpfault.HTTPFault{
 		Delay: &xdsfault.FaultDelay{
 			Percentage: &xdstype.FractionalPercent{
@@ -708,13 +788,19 @@ func Test_convertPerRouteConfig(t *testing.T) {
 	if mixerPer, ok := perRouteConfig[v2.MIXER]; !ok {
 		t.Error("no mixer config found")
 	} else {
-		// TODO: mixer config needs to fix
-		if rawMixer, ok := mixerPer.(client.ServiceConfig); !ok {
+		res := client.HttpClientConfig{}
+		jsonStr, err := json.Marshal(mixerPer.(map[string]interface{}))
+		if err != nil {
+			t.Errorf("mixer Marshal err: %v", err)
+		}
+
+		err = json.Unmarshal([]byte(jsonStr), &res)
+		if err != nil {
+			t.Errorf("mixer Unmarshal err: %v", err)
+		}
+
+		if !reflect.DeepEqual(&res, mixerFilterConfig) {
 			t.Error("mixer config is not expected")
-		} else {
-			if !reflect.DeepEqual(&rawMixer, mixerFilterConfig) {
-				t.Error("mixer config is not expected")
-			}
 		}
 	}
 	if faultPer, ok := perRouteConfig[v2.FaultStream]; !ok {

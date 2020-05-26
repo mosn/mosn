@@ -60,13 +60,13 @@ func (subscribe *SdsSubscriber) Start() {
 	for {
 		sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
 		if err != nil {
-			log.DefaultLogger.Errorf("[sds][subscribe] convert sds config fail %v", err)
+			log.DefaultLogger.Alertf("sds.subscribe", "[sds][subscribe] convert sds config fail %v", err)
 			time.Sleep(SubscriberRetryPeriod)
 			continue
 		}
 		streamClient, err := subscribe.getSdsStreamClient(sdsStreamConfig)
 		if err != nil {
-			log.DefaultLogger.Errorf("[sds][subscribe] get sds stream client fail %v", err)
+			log.DefaultLogger.Alertf("sds.subscribe", "[sds][subscribe] get sds stream client fail %v", err)
 			time.Sleep(SubscriberRetryPeriod)
 			continue
 		}
@@ -97,7 +97,7 @@ func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *core.ConfigSource) (
 		if apiConfig.ApiConfigSource.GetApiType() == core.ApiConfigSource_GRPC {
 			grpcService := apiConfig.ApiConfigSource.GetGrpcServices()
 			if len(grpcService) != 1 {
-				log.DefaultLogger.Errorf("[xds] [sds subscriber] only support one grpc service,but get %v", len(grpcService))
+				log.DefaultLogger.Alertf("sds.subscribe", "[xds] [sds subscriber] only support one grpc service,but get %v", len(grpcService))
 				return nil, errors.New("unsupport sds config")
 			}
 			if grpcConfig, ok := grpcService[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_); ok {
@@ -126,7 +126,7 @@ func (subscribe *SdsSubscriber) sendRequestLoop(sdsStreamClient *SdsStreamClient
 			for {
 				err := subscribe.sendRequest(discoveryReq)
 				if err != nil {
-					log.DefaultLogger.Errorf("[xds] [sds subscriber] send sds request fail , resource name = %v", name)
+					log.DefaultLogger.Alertf("sds.subscribe", "[xds] [sds subscriber] send sds request fail , resource name = %v", name)
 					time.Sleep(1 * time.Second)
 					subscribe.reconnect()
 					continue
@@ -216,7 +216,7 @@ func (subscribe *SdsSubscriber) reconnect() {
 	for {
 		sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
 		if err != nil {
-			log.DefaultLogger.Errorf("[xds][sds subscriber] convert sds config fail %v", err)
+			log.DefaultLogger.Alertf("sds.subscribe", "[xds][sds subscriber] convert sds config fail %v", err)
 			time.Sleep(SubscriberRetryPeriod)
 			continue
 		}

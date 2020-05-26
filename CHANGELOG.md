@@ -1,5 +1,70 @@
 # Changelog
 
+## v0.12.0
+
+### New Features
+
+- Support Skywalking [@arugal](https://github.com/arugal)
+- Stream Filter adds a new phase of Receive Filter execution, which allows you to execute Receive Filter [@wangfakang](https://github.com/wangfakang) again after MOSN has finished routing Host
+- HTTP2 supports streaming  [@peacocktrain](https://github.com/peacocktrain) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- FeatureGate adds interface KnownFeatures to output current FeatureGate status [@nejisama](https://github.com/nejisama)
+- Provide a protocol-transparent way to obtain requested resources (PATH, URI, ARG), with the definition of resources defined by each protocol itself [@wangfakang](https://github.com/wangfakang)
+- New load balancing algorithm
+  - Support for ActiveRequest LB [@CodingSinger](https://github.com/CodingSinger)
+  - Support WRR LB  [@nejisama](https://github.com/nejisama)
+
+### Optimize
+
+- XProtocol protocol engine optimization [@neverhook](https://github.com/neverhook)
+  - Modifies the XProtocol heartbeat response interface to support the protocol's heartbeat response to return more information
+  - Optimize connpool for heartbeat triggering, only heartbeats will be triggered if the protocol for heartbeats is implemented
+- Dubbo library dependency version updated from v1.5.0-rc1 to v1.5.0 [@cch123](https://github.com/cch123)
+- API Adjustments, HostInfo added health check related interface [@wangfakang](https://github.com/wangfakang)
+- Optimize circuit breaking function  [@wangfakang](https://github.com/wangfakang)
+- Responsible for balanced selection logic simplification, Hosts of the same address multiplex the same health check mark [@nejisama](https://github.com/nejisama) [@cch123](https://github.com/cch123)
+- Optimize HTTP building logic and improve HTTP building performance [@wangfakang](https://github.com/wangfakang)
+- Log rotation logic triggered from writing logs, adjusted to timed trigger [@nejisama](https://github.com/nejisama)
+- Typo fixes [@xujianhai666](https://github.com/xujianhai666) [@candyleer](https://github.com/candyleer)
+
+### Bug Fix
+
+- Fix the xDS parsing fault injection configuration error  [@champly](https://github.com/champly)
+- Fix the request hold issue caused by the MOSN HTTP HEAD method [@wangfakang](https://github.com/wangfakang)
+- Fix a problem with missing StatusCode mappings in the XProtocol engine [@neverhook](https://github.com/neverhook)
+- Fix the bug for DirectReponse triggering retries [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+## v0.11.0
+
+### New features
+
+- Support the extension of Listener Filter, the transparent hijacking capability is implemented based on Listener Filter [@wangfakang](https://github.com/wangfakang)
+- New Set method for variable mechanism [@pxzero](https://github.com/pxzero)
+- Added automatic retry and exception handling when SDS Client fails [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Improve TraceLog and support injecting context [@nejisama](https://github.com/nejisama)
+
+### Refactoring
+
+- Refactored XProtocol Engine and reimplemented SOFARPC protocol [@neverhook](https://github.com/neverhook)
+  - Removed SOFARPC Healthcheck filter and changed to xprotocol's built-in heartbeat implementation
+  - Removed the original protocol conversion (protocol conv) support of the SOFARPC protocol, and added a new protocol conversion extension implementation capability based on stream filter
+  - xprotocol adds idle free and keepalive
+  - Protocol analysis and optimization
+- Modify the Encode method parameters of HTTP2 protocol [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Streamlined LDS interface parameters [@nejisama](https://github.com/nejisama)
+- Modified the routing configuration model, abandoned `connection_manager` [@nejisama](https://github.com/nejisama)
+
+### Optimization
+
+- Optimize Upstream dynamic domain name resolution mechanism [@wangfakang](https://github.com/wangfakang)
+- Optimized TLS encapsulation, added error log, and modified timeout period in compatibility mode [@nejisama](https://github.com/nejisama)
+- Optimize timeout setting, use variable mechanism to set timeout [@neverhook](https://github.com/neverhook)
+- Dubbo parsing library dependency upgraded to 1.5.0 [@cch123](https://github.com/cch123)
+- Reference path migration script adds OS adaptation [@taomaree](https://github.com/taomaree)
+
+### Bug fix
+
+- Fix the problem of losing query string during HTTP2 protocol forwarding [@champly](https://github.com/champly)
+
 ## v0.10.0
 
 ### New features
