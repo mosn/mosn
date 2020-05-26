@@ -21,6 +21,8 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
+	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
 
@@ -188,7 +190,35 @@ func Test_get_protocolResource(t *testing.T) {
 	if actual != want {
 		t.Errorf("request arg assert failed, expected: %s, actual is: %s", want, actual)
 	}
+}
 
+func Test_get_prefixProtocolVar(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+
+	cookieName := "zone"
+	expect := "shanghai"
+	actual, err := variable.GetProtocolResource(ctx, api.COOKIE,
+		fmt.Sprintf("%s%s", types.VarProtocolCookie, cookieName))
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, expect, actual, "cookie value expect to be %s, but get %s") {
+		t.FailNow()
+	}
+
+	headerName := "Content-Type"
+	expect = "text/plain"
+	actual, err = variable.GetProtocolResource(ctx, api.HEADER,
+		fmt.Sprintf("%s%s", types.VarProtocolRequestHeader, headerName))
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, expect, actual, "header value expect to be %s, but get %s") {
+		t.FailNow()
+	}
 }
 
 func prepareBenchmarkRequest(b *testing.B, requestBytes []byte) context.Context {

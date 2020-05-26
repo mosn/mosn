@@ -13,23 +13,13 @@ import (
 var (
 	headerName  = fmt.Sprintf("%s_%s", protocol.HTTP2, types.VarProtocolRequestHeader)
 	headerIndex = len(headerName)
-
-	cookieName  = fmt.Sprintf("%s_%s", protocol.HTTP2, types.VarProtocolCookie)
-	cookieIndex = len(headerName)
 )
 
 func init() {
 	variable.RegisterPrefixVariable(headerName,
 		variable.NewBasicVariable(headerName, nil, headerGetter, nil, 0))
-	variable.RegisterPrefixVariable(cookieName,
-		variable.NewBasicVariable(cookieName, nil, cookieGetter, nil, 0))
 
 	variable.RegisterProtocolResource(protocol.HTTP2, api.HEADER, types.VarProtocolRequestHeader)
-	variable.RegisterProtocolResource(protocol.HTTP2, api.COOKIE, types.VarProtocolCookie)
-}
-
-func cookieGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
-	return "", nil
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {
