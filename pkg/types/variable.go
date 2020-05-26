@@ -62,12 +62,4 @@ const (
 	VarHttpRequestArg    = "http_request_arg"
 
 	VarPrefixHttpArg    = "http_arg_"
-	VarPrefixHttpHeader = "Http1_request_header_"
-	VarPrefixHttpCookie = "Http1_cookie_"
-)
-
-// [Protocol]: http2
-const (
-	VarPrefixHttp2Header = "Http2_request_header_"
-	VarPrefixHttp2Cookie = "Http2_cookie_"
 )

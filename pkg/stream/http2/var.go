@@ -2,6 +2,7 @@ package http2
 
 import (
 	"context"
+	"fmt"
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
@@ -10,17 +11,21 @@ import (
 )
 
 var (
-	headerIndex = len(types.VarPrefixHttp2Header)
+	headerName  = fmt.Sprintf("%s_%s", protocol.HTTP2, types.VarProtocolRequestHeader)
+	headerIndex = len(headerName)
+
+	cookieName  = fmt.Sprintf("%s_%s", protocol.HTTP2, types.VarProtocolCookie)
+	cookieIndex = len(headerName)
 )
 
 func init() {
-	variable.RegisterPrefixVariable(types.VarPrefixHttp2Header,
-		variable.NewBasicVariable(types.VarPrefixHttp2Header, nil, headerGetter, nil, 0))
-	variable.RegisterPrefixVariable(types.VarPrefixHttp2Cookie,
-		variable.NewBasicVariable(types.VarPrefixHttp2Cookie, nil, cookieGetter, nil, 0))
+	variable.RegisterPrefixVariable(headerName,
+		variable.NewBasicVariable(headerName, nil, headerGetter, nil, 0))
+	variable.RegisterPrefixVariable(cookieName,
+		variable.NewBasicVariable(cookieName, nil, cookieGetter, nil, 0))
 
 	variable.RegisterProtocolResource(protocol.HTTP2, api.HEADER, types.VarProtocolRequestHeader)
-	variable.RegisterProtocolResource(protocol.HTTP2, api.COOKIE, types.VarPrefixHttpCookie)
+	variable.RegisterProtocolResource(protocol.HTTP2, api.COOKIE, types.VarProtocolCookie)
 }
 
 func cookieGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {

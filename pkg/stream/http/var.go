@@ -19,6 +19,7 @@ package http
 
 import (
 	"context"
+	"fmt"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 	"strconv"
@@ -31,12 +32,16 @@ const (
 	VarRequestMethod = "http_request_method"
 	VarRequestLength = "http_request_length"
 
-	argIndex    = len(types.VarPrefixHttpArg)
-	headerIndex = len(types.VarPrefixHttpHeader)
-	cookieIndex = len(types.VarPrefixHttpCookie)
+	argIndex = len(types.VarPrefixHttpArg)
 )
 
 var (
+	headerName  = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestHeader)
+	headerIndex = len(headerName)
+
+	cookieName  = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolCookie)
+	cookieIndex = len(cookieName)
+
 	builtinVariables = []variable.Variable{
 		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
@@ -46,9 +51,9 @@ var (
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(types.VarPrefixHttpHeader, nil, httpHeaderGetter, nil, 0),
+		variable.NewBasicVariable(headerName, nil, httpHeaderGetter, nil, 0),
 		variable.NewBasicVariable(types.VarPrefixHttpArg, nil, httpArgGetter, nil, 0),
-		variable.NewBasicVariable(types.VarPrefixHttpCookie, nil, httpCookieGetter, nil, 0),
+		variable.NewBasicVariable(cookieName, nil, httpCookieGetter, nil, 0),
 	}
 )
 
