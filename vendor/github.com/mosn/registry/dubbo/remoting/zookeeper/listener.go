@@ -22,19 +22,15 @@ import (
 	"strings"
 	"sync"
 	"time"
-)
 
-import (
 	"github.com/dubbogo/getty"
 	"github.com/dubbogo/go-zookeeper/zk"
-	perrors "github.com/pkg/errors"
-)
-
-import (
 	"github.com/mosn/registry/dubbo/common"
+
 	"github.com/mosn/registry/dubbo/common/constant"
 	"github.com/mosn/registry/dubbo/common/logger"
 	"github.com/mosn/registry/dubbo/remoting"
+	perrors "github.com/pkg/errors"
 )
 
 // ZkEventListener ...
@@ -314,7 +310,8 @@ func (l *ZkEventListener) valid() bool {
 	return l.client.ZkConnValid()
 }
 
-// Close ...
+// Close will let client listen exit
 func (l *ZkEventListener) Close() {
+	close(l.client.exit)
 	l.wg.Wait()
 }

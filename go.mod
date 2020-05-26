@@ -23,7 +23,7 @@ require (
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/mosn/binding v0.0.0-20200413084927-e28f981bfb20
-	github.com/mosn/registry v0.0.0-20200525020637-c9f41a59c378
+	github.com/mosn/registry v0.0.0-20200526023644-724ef3b6e9d6
 	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
@@ -36,7 +36,6 @@ require (
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
 	golang.org/x/sys v0.0.0-20200116001909-b77594299b42
-	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.22.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
