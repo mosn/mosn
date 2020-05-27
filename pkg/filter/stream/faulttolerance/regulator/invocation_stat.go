@@ -90,6 +90,7 @@ func (s *InvocationStat) Update(snapshot *InvocationStat) {
 
 func (s *InvocationStat) Downgrade() {
 	(*s.host).SetHealthFlag(api.FAILED_OUTLIER_CHECK)
+	s.downgradeTime = util.GetNowMS()
 }
 
 func (s *InvocationStat) Recover() {

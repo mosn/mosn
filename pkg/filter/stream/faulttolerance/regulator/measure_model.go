@@ -91,7 +91,8 @@ func (m *MeasureModel) snapshotInvocations(recoverTime int64) []*InvocationStat 
 			return true
 		}
 		if stat.GetCall() <= 0 {
-			if stat.AddUselessCycle() {
+			// don't release unhealth stat host
+			if stat.AddUselessCycle() && stat.IsHealthy() {
 				m.releaseInvocationStat(stat)
 			}
 			return true
