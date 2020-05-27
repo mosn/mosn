@@ -57,6 +57,25 @@ type connpool struct {
 
 	totalClientCount uint64 // total clients
 	protocol         api.Protocol
+
+	useDefaultCodec bool
+	heartBeatCreator func() types.KeepAlive
+}
+
+// TODO, merge this function with NewConnPool
+func NewConnPool2(proto api.Protocol, host types.Host, heartBeatCreator func() types.KeepAlive) types.ConnectionPool {
+	p := &connpool{
+		supportTLS:  host.SupportTLS(),
+		protocol:    proto,
+		idleClients: make(map[api.Protocol][]*activeClient),
+
+		useDefaultCodec : false,
+		heartBeatCreator: heartBeatCreator,
+	}
+
+	p.host.Store(host)
+
+	return p
 }
 
 // NewConnPool init a connection pool
@@ -65,6 +84,9 @@ func NewConnPool(proto api.Protocol, host types.Host) types.ConnectionPool {
 		supportTLS:  host.SupportTLS(),
 		protocol:    proto,
 		idleClients: make(map[api.Protocol][]*activeClient),
+
+		useDefaultCodec : true,
+		heartBeatCreator: nil,
 	}
 
 	p.host.Store(host)
@@ -114,7 +136,7 @@ func (p *connpool) CheckAndInit(ctx context.Context) bool {
 	subProtocol := getSubProtocol(ctx)
 
 	// set the pool's multiplex mode
-	p.shouldMultiplex(subProtocol)
+	// p.shouldMultiplex(subProtocol)
 
 	// get whether async connect or not
 	if !p.useAsyncConnect(p.protocol, subProtocol) {
@@ -174,8 +196,8 @@ func (p *connpool) Host() types.Host {
 	return nil
 }
 
-// StreamSender Create a client stream and call's by proxy
-func (p *connpool) StreamSender(ctx context.Context, receiver types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
+// NewStream Create a client stream and call's by proxy
+func (p *connpool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
 	host := p.Host()
 
 	c, reason := p.GetActiveClient(ctx, getSubProtocol(ctx))
@@ -183,21 +205,21 @@ func (p *connpool) StreamSender(ctx context.Context, receiver types.StreamReceiv
 		return reason, host, nil
 	}
 
-	var streamEncoder = c.StreamClient().NewStream(ctx, receiver)
+	var streamSender = c.StreamClient().NewStream(ctx, receiver)
 
 	// FIXME one way
 	// is there any need to skip the metrics?
 	if receiver == nil {
-		return "", host, streamEncoder
+		return "", host, streamSender
 	}
 
-	streamEncoder.GetStream().AddEventListener(c)
+	streamSender.GetStream().AddEventListener(c) // OnResetStream, OnDestroyStream
 
 	host.HostStats().UpstreamRequestActive.Inc(1)
 	host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 	host.ClusterInfo().ResourceManager().Requests().Increase()
 
-	return "", host, streamEncoder
+	return "", host, streamSender
 }
 
 // GetActiveClient get a avail client
@@ -347,21 +369,12 @@ func (p *connpool) putClientToPool(client *activeClient) {
 	}
 }
 
-// TODO
-/*
-type activeCodecClient struct {
-	codecClient types.StreamClient
-	activeClient *activeClient
-}
- */
-
 // types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connpool
-	// close connid 都可以从 host 中获取
-	codecClient        types.StreamClient
+	codecClient        types.StreamClient // only valid when pool.useDefaultCodec == true
 	host               types.CreateConnectionData
 	totalStream        uint64
 	closeWithActiveReq bool
@@ -400,30 +413,39 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
 	}
 
-	codecClient := stream.NewStreamClient(connCtx, p.protocol, ac.host.Connection, host)
 	// this should be equal to
-	// ac.host.Connection.AddConnectionEventListener(ac)
-	codecClient.AddConnectionEventListener(ac) // ac.OnEvent
+	// codecClient.AddConnectionEventListener(ac) // ac.OnEvent
+	ac.host.Connection.AddConnectionEventListener(ac)
 
-	codecClient.SetStreamConnectionEventListener(ac) // ac.OnGoAway
+	// http1, http2, xprotocol
+	// if user use connection pool without codec
+	// they can use the connection returned from activeClient.Conn()
+	if p.useDefaultCodec {
+		////////// codec client
+		codecClient := stream.NewStreamClient(connCtx, p.protocol, ac.host.Connection, host)
+		codecClient.SetStreamConnectionEventListener(ac) // ac.OnGoAway
+		ac.codecClient = codecClient
+		// bytes total adds all connections data together
+		codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
-	ac.codecClient = codecClient
+		if subProtocol != "" {
+			// Add Keep Alive
+			// protocol is from onNewDetectStream
+			// check heartbeat enable, hack: judge trigger result of Heartbeater
+			proto := xprotocol.GetProtocol(subProtocol)
+			if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+				// create keepalive
+				rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second, 6)
+				rpcKeepAlive.StartIdleTimeout()
 
-	if subProtocol != "" {
-		// Add Keep Alive
-		// protocol is from onNewDetectStream
-		// check heartbeat enable, hack: judge trigger result of Heartbeater
-		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
-			// create keepalive
-			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second, 6)
-			rpcKeepAlive.StartIdleTimeout()
-			ac.keepAlive = &keepAliveListener{
-				keepAlive: rpcKeepAlive,
+				ac.SetHeartBeater(rpcKeepAlive)
 			}
-			// this should be equal to
-			// ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
-			ac.codecClient.AddConnectionEventListener(ac.keepAlive)
+		}
+		////////// codec client
+	} else {
+		ac.codecClient = nil
+		if p.heartBeatCreator != nil {
+			ac.SetHeartBeater(p.heartBeatCreator())
 		}
 	}
 
@@ -439,15 +461,23 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 	host.ClusterInfo().Stats().UpstreamConnectionTotal.Inc(1)
 	host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
-	// bytes total adds all connections data together
-	codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 	return ac, ""
+}
+
+// Conn impl types.PooledClient
+func (ac *activeClient) Conn() api.Connection {
+	return ac.host.Connection
 }
 
 // Close return this client back to pool
 func (ac *activeClient) Close(err error) {
 	if err != nil {
-		ac.removeFromPool()
+		// if pool is not using multiplex mode
+		// this conn is not in the pool
+		if ac.pool.shouldMultiplex(ac.subProtocol) {
+			ac.removeFromPool()
+		}
+		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
 		return
 	}
 
@@ -582,6 +612,23 @@ func (ac *activeClient) OnGoAway() {
 	} else {
 		ac.shouldCloseConn = true
 	}
+}
+
+// SetHeartBeater set the heart beat for an active client
+func (ac *activeClient) SetHeartBeater(hb types.KeepAlive) {
+	// clear the previous keepAlive
+	if ac.keepAlive != nil {
+		ac.keepAlive.keepAlive.Stop()
+		ac.keepAlive = nil
+	}
+
+	ac.keepAlive = &keepAliveListener{
+		keepAlive: hb,
+	}
+
+	// this should be equal to
+	// ac.codecClient.AddConnectionEventListener(ac.keepAlive)
+	ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
 }
 
 func getSubProtocol(ctx context.Context) types.ProtocolName {

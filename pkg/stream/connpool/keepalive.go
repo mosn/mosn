@@ -65,6 +65,7 @@ func NewKeepAlive(codec types.StreamClient, proto types.ProtocolName, timeout ti
 	// register keepalive to connection event listener
 	// if connection is closed, keepalive should stop
 	kp.Codec.AddConnectionEventListener(kp)
+
 	return kp
 }
 
@@ -96,6 +97,8 @@ func (kp *xprotocolKeepAlive) SendKeepAlive() {
 	}
 }
 
+// startIdleTimeout starts the idle checker, if there are only heartbeat requests for a while,
+// we will free the idle always connection, stop keeps it alive.
 func (kp *xprotocolKeepAlive) StartIdleTimeout() {
 	kp.idleFree = newIdleFree()
 }
@@ -181,10 +184,10 @@ func (kp *xprotocolKeepAlive) OnDecodeError(ctx context.Context, err error, head
 type keepAliveTimeout struct {
 	ID        uint64
 	timer     *utils.Timer
-	KeepAlive types.KeepAlive
+	KeepAlive *xprotocolKeepAlive
 }
 
-func startTimeout(id uint64, keep types.KeepAlive) *keepAliveTimeout {
+func startTimeout(id uint64, keep *xprotocolKeepAlive) *keepAliveTimeout {
 	t := &keepAliveTimeout{
 		ID:        id,
 		KeepAlive: keep,

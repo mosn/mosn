@@ -236,11 +236,13 @@ type PooledClient interface {
 
 	Close(err error)
 	StreamClient() StreamClient
+
+	Conn() api.Connection
 }
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
-	StreamSender(ctx context.Context, receiver StreamReceiveListener) (PoolFailureReason, Host, StreamSender)
+	NewStream(ctx context.Context, receiver StreamReceiveListener) (PoolFailureReason, Host, StreamSender)
 
 	// check host health and init host
 	CheckAndInit(ctx context.Context) bool
