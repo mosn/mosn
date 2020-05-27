@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/SkyAPM/go2sky v0.3.1-0.20200329092408-8b3e4d536d8d
-	github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
+	github.com/TarsCloud/TarsGo v0.0.0-20190521041003-0022231bc5b2
 	github.com/apache/dubbo-go-hessian2 v1.5.0
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
