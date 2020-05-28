@@ -42,8 +42,8 @@ const (
 )
 
 const (
-	EventRequest  int = 1
-	EventResponse int = 0
+	EventRequest  int = 1 // request
+	EventResponse int = 0 // response
 )
 
 const (
