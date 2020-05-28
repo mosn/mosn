@@ -1,0 +1,20 @@
+# Build
+
+## normal
+
+pyinstaller -F plugin.py
+
+## container
+
+build docker image 
+
+```
+make build-image
+```
+
+Also you can used ``docker pull lypgcs/mosnpy:1.0`` for amd64
+
+build plugin 
+```
+make build
+```  
