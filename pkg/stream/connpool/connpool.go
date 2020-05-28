@@ -26,6 +26,8 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/test/util"
 	"mosn.io/pkg/utils"
 	"sync"
 	"sync/atomic"
@@ -59,18 +61,30 @@ type connpool struct {
 	protocol         api.Protocol
 
 	useDefaultCodec bool
-	heartBeatCreator func() types.KeepAlive
+	forceMultiplex  bool
+
+	autoReconWhenRemoteClose bool
+	autoReconWhenWriteErr    bool
+	autoReconWhenConnFail    bool
+	heartBeatCreator         func() types.KeepAlive
 }
 
 // TODO, merge this function with NewConnPool
-func NewConnPool2(proto api.Protocol, host types.Host, heartBeatCreator func() types.KeepAlive) types.ConnectionPool {
+func NewConnPool2(proto api.Protocol, hostAddr string, heartBeatCreator func() types.KeepAlive) types.ConnectionPool {
+	// use host addr as cluster name, for the count of metrics
+	cl := util.NewBasicCluster(hostAddr, []string{hostAddr})
+	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
+
 	p := &connpool{
 		supportTLS:  host.SupportTLS(),
 		protocol:    proto,
 		idleClients: make(map[api.Protocol][]*activeClient),
 
-		useDefaultCodec : false,
-		heartBeatCreator: heartBeatCreator,
+		useDefaultCodec:          false,
+		heartBeatCreator:         heartBeatCreator,
+		forceMultiplex:           true,
+		autoReconWhenRemoteClose: true,
+		autoReconWhenWriteErr:    true,
 	}
 
 	p.host.Store(host)
@@ -85,7 +99,7 @@ func NewConnPool(proto api.Protocol, host types.Host) types.ConnectionPool {
 		protocol:    proto,
 		idleClients: make(map[api.Protocol][]*activeClient),
 
-		useDefaultCodec : true,
+		useDefaultCodec:  true,
 		heartBeatCreator: nil,
 	}
 
@@ -248,7 +262,7 @@ func (p *connpool) GetActiveClient(ctx context.Context, subProtocol types.Protoc
 	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
 	// no available client
 	var (
-		c *activeClient
+		c      *activeClient
 		reason types.PoolFailureReason
 	)
 
@@ -354,15 +368,12 @@ func (p *connpool) Shutdown() {
 }
 
 // return client to pool
-func (p *connpool) putClientToPool(client *activeClient) {
+func (p *connpool) putClientToPoolLocked(client *activeClient) {
 	subProto := client.subProtocol
 	if p.shouldMultiplex(subProto) {
 		// do nothing
 		return
 	}
-
-	p.clientMux.Lock()
-	defer p.clientMux.Unlock()
 
 	if !client.closed {
 		p.idleClients[subProto] = append(p.idleClients[subProto], client)
@@ -373,9 +384,14 @@ func (p *connpool) putClientToPool(client *activeClient) {
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
-	pool               *connpool
-	codecClient        types.StreamClient // only valid when pool.useDefaultCodec == true
-	host               types.CreateConnectionData
+	pool        *connpool
+	codecClient types.StreamClient // only valid when pool.useDefaultCodec == true
+	host        types.CreateConnectionData
+
+	reconnectMux sync.RWMutex
+
+	wrappedConn *wrappedConn
+
 	totalStream        uint64
 	closeWithActiveReq bool
 
@@ -401,6 +417,12 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 		subProtocol: subProtocol,
 		host:        p.Host().CreateConnection(ctx),
 	}
+
+	wConn := wrappedConn{
+		conn: ac.host.Connection,
+		ac:   ac,
+	}
+	ac.wrappedConn = &wConn
 
 	host := p.Host()
 	connCtx := ctx
@@ -449,6 +471,7 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 		}
 	}
 
+	// TODO, reconnect here
 	if err := ac.host.Connection.Connect(); err != nil {
 		return nil, types.ConnectionFailure
 	}
@@ -466,7 +489,44 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 
 // Conn impl types.PooledClient
 func (ac *activeClient) Conn() api.Connection {
-	return ac.host.Connection
+	return ac.wrappedConn
+}
+
+// Reconnect triggers connection to reconnect
+func (ac *activeClient) Reconnect() error {
+
+	ac.wrappedConn.connHoldLock.Lock()
+	// responsible for create the new connection
+	// close previous conn
+	ac.wrappedConn.conn.Close(api.NoFlush, api.LocalClose)
+	// build new conn
+	// must create this new conn, the same conn can only be connected once
+	ac.host = ac.pool.Host().CreateConnection(context.Background())
+
+	// ====== event listeners
+	ac.host.Connection.AddConnectionEventListener(ac)
+	if ac.keepAlive != nil {
+		ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
+	}
+	// ====== event listeners
+
+	// connect the new connection
+	err := ac.host.Connection.Connect()
+	if err != nil {
+		ac.wrappedConn.connHoldLock.Unlock()
+		return err
+	}
+
+	ac.wrappedConn.conn = ac.host.Connection
+	ac.wrappedConn.connHoldLock.Unlock()
+
+	// FIXME, check whether here is a deadlock
+	ac.pool.clientMux.Lock()
+	defer ac.pool.clientMux.Unlock()
+	ac.pool.putClientToPoolLocked(ac)
+
+	return nil
+
 }
 
 // Close return this client back to pool
@@ -489,7 +549,10 @@ func (ac *activeClient) Close(err error) {
 	}
 
 	// return to pool
-	ac.pool.putClientToPool(ac)
+	ac.pool.clientMux.Lock()
+	defer ac.pool.clientMux.Unlock()
+
+	ac.pool.putClientToPoolLocked(ac)
 }
 
 // removeFromPool removes this client from connection pool
@@ -556,12 +619,20 @@ func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 				host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
 			}
 		}
-		ac.removeFromPool()
+
+		if event == api.RemoteClose && p.autoReconWhenRemoteClose {
+			// auto reconnect when remote close
+			// FIXME
+			if err := ac.Reconnect(); err != nil {
+				log.DefaultLogger.Warnf("retry failed after remote close : %v", err.Error())
+			}
+		} else {
+			ac.removeFromPool()
+		}
 
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		// ac.codecClient.Close()
 		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
