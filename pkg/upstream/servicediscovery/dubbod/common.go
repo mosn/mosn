@@ -18,6 +18,7 @@ package dubbod
 
 import (
 	"encoding/json"
+	"fmt"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	routerAdapter "mosn.io/mosn/pkg/router"
 	"net/http"
@@ -52,6 +53,7 @@ func getRegistry(registryCacheKey string, role int, registryURL dubbocommon.URL)
 	//	return zkreg.NewZkRegistry(&registryURL)
 	//}
 
+	registryCacheKey = registryCacheKey + "#" + fmt.Sprint(role)
 	regInterface, ok := registryClientCache.Load(registryCacheKey)
 
 	var (

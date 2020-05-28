@@ -20,6 +20,7 @@ import (
 	"fmt"
 	dubbocommon "github.com/mosn/registry/dubbo/common"
 	dubboconsts "github.com/mosn/registry/dubbo/common/constant"
+	"mosn.io/mosn/pkg/trace"
 	"net/http"
 	"net/url"
 )
@@ -73,6 +74,7 @@ func doPubUnPub(req pubReq, pub bool) error {
 		dubbocommon.WithParams(url.Values{
 			dubboconsts.REGISTRY_KEY:         []string{req.Registry.Type},
 			dubboconsts.REGISTRY_TIMEOUT_KEY: []string{"5s"},
+			dubboconsts.ROLE_KEY:      []string{fmt.Sprint(dubbocommon.PROVIDER)},
 		}),
 		dubbocommon.WithUsername(req.Registry.UserName),
 		dubbocommon.WithPassword(req.Registry.Password),
@@ -90,8 +92,8 @@ func doPubUnPub(req pubReq, pub bool) error {
 	}
 
 	var dubboPath = dubboPathTpl.ExecuteString(map[string]interface{}{
-		"ip":        mosnIP,
-		"port":      req.Service.Port,
+		"ip":        trace.GetIp(),
+		"port":      "2046",
 		"interface": req.Service.Interface,
 	})
 	dubboURL, _ := dubbocommon.NewURL(dubboPath,

@@ -45,7 +45,7 @@ type pubReq struct {
 	Service struct {
 		Interface string   `json:"interface" binding:"required"` // eg. com.mosn.service.DemoService
 		Methods   []string `json:"methods" binding:"required"`   // eg. GetUser,GetProfile,UpdateName
-		Port      string   `json:"port" binding:"numeric"`       // user service port, eg. 8080
+		// Port      string   `json:"port" binding:"numeric"`       // user service port, eg. 8080
 		Group     string   `json:"group"`                        // binding:"required"`
 		Version   string   `json:"version"`   // eg. 1.0.3
 	} `json:"service"`

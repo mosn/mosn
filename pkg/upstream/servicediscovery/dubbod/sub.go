@@ -72,6 +72,7 @@ func doSubUnsub(req subReq, sub bool) error {
 	registryURL, _ := dubbocommon.NewURL(registryPath,
 		dubbocommon.WithParams(url.Values{
 			dubboconsts.REGISTRY_TIMEOUT_KEY: []string{"5s"},
+			dubboconsts.ROLE_KEY:      []string{fmt.Sprint(dubbocommon.CONSUMER)},
 		}),
 		dubbocommon.WithUsername(req.Registry.UserName),
 		dubbocommon.WithPassword(req.Registry.Password),
