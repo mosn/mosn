@@ -46,7 +46,7 @@ func init() {
 	}
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
-	RegisterLBType(types.WeightedRoundRobin, newSmoothWeightedRRLoadBalancer)
+	RegisterLBType(types.WeightedRoundRobin, newWeightedRRLoadBalancer)
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
 }
 
@@ -152,78 +152,47 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 }
 
 /*
-SW (smoothWeightedRRLoadBalancer) is a struct that contains weighted items and provides methods to select a weighted item.
-It is used for the smooth weighted round-robin balancing algorithm. This algorithm is implemented in Nginx:
-https://github.com/phusion/nginx/commit/27e94984486058d73157038f7950a0a36ecc6e35.
-Algorithm is as follows: on each peer selection we increase current_weight
-of each eligible peer by its weight, select peer with greatest current_weight
-and reduce its current_weight by total number of weight points distributed
-among peers.
+ A round robin load balancer. When in weighted mode, EDF scheduling is used. When in not
+ weighted mode, simple RR index selection is used.
 */
-type smoothWeightedRRLoadBalancer struct {
-	hosts         types.HostSet
-	hostsWeighted []*hostSmoothWeighted
-	lock          sync.Mutex
+type WeightedRRLoadBalancer struct {
+	*EdfLoadBalancer
+	rrIndex uint32
 }
 
-type hostSmoothWeighted struct {
-	weight          int64
-	currentWeight   int64
-	effectiveWeight int64
+func newWeightedRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	rrLB := &WeightedRRLoadBalancer{
+	}
+	rrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, rrLB.unweightChooseHost, rrLB.hostWeight)
+	var idx uint32
+	hostsList := hosts.Hosts()
+	rrLB.mutex.Lock()
+	defer rrLB.mutex.Unlock()
+	if len(hostsList) != 0 {
+		idx = rrLB.rand.Uint32() % uint32(len(hostsList))
+	}
+	rrLB.rrIndex = idx
+	return rrLB
 }
 
-func newSmoothWeightedRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
-	smoothWRRLoadBalancer := &smoothWeightedRRLoadBalancer{
-		hosts:         hosts,
-		hostsWeighted: make([]*hostSmoothWeighted, len(hosts.Hosts())),
-	}
-	// iterate over all hosts to init host with Weighted
-	for idx, host := range hosts.Hosts() {
-		w := int64(host.Weight())
-		smoothWRRLoadBalancer.hostsWeighted[idx] = &hostSmoothWeighted{
-			effectiveWeight: w,
-			weight:          w,
-		}
-	}
-	return smoothWRRLoadBalancer
-}
-
-// smooth weighted round robin
-// O(n), traverse over all hosts
-func (lb *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	var totalWeight int64 = 0
-	var selectedHostWeighted *hostSmoothWeighted
-	var selectedHost types.Host
-	for idx, host := range lb.hosts.Hosts() {
-		if !host.Health() {
-			continue
-		}
-		hw := lb.hostsWeighted[idx]
-		atomic.AddInt64(&hw.currentWeight, atomic.LoadInt64(&hw.effectiveWeight))
-		totalWeight += atomic.LoadInt64(&hw.effectiveWeight)
-
-		if hw.effectiveWeight < hw.weight {
-			atomic.AddInt64(&hw.effectiveWeight, 1)
-		}
-
-		if selectedHostWeighted == nil || atomic.LoadInt64(&hw.currentWeight) > atomic.LoadInt64(&selectedHostWeighted.currentWeight) {
-			selectedHostWeighted = hw
-			selectedHost = host
-		}
-	}
-	//
-	if selectedHostWeighted != nil {
-		atomic.AddInt64(&selectedHostWeighted.currentWeight, -totalWeight)
-	}
-	return selectedHost
-}
-
-func (lb *smoothWeightedRRLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+func (lb *WeightedRRLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	return len(lb.hosts.Hosts()) > 0
 }
 
-func (lb *smoothWeightedRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+func (lb *WeightedRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
+}
+
+func (lb *WeightedRRLoadBalancer) hostWeight(item WeightItem) float64 {
+	host := item.(types.Host)
+	return float64(host.Weight())
+}
+// do unweighted (fast) selection
+func (lb *WeightedRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
+	targets := lb.hosts.Hosts()
+	total := len(targets)
+	index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
+	return targets[index]
 }
 
 const default_choice = 2
