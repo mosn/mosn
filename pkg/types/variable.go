@@ -49,17 +49,16 @@ const (
 
 // [Protocol]: common
 const (
-	VarProtocolRequestHeader = "request_header_"
-	VarProtocolCookie        = "cookie_"
+	VarProtocolRequestHeader    = "request_header_"
+	VarProtocolCookie           = "cookie_"
+	VarProtocolRequestPath      = "request_path"
+	VarProtocolRequestArgPrefix = "request_arg_"
+	VarProtocolRequestArg       = "request_arg"
+	VarProtocolRequestUri       = "request_uri"
 )
 
 // [Protocol]: http
 const (
 	VarHttpRequestMethod = "http_request_method"
 	VarHttpRequestLength = "http_request_length"
-	VarHttpRequestUri    = "http_request_uri"
-	VarHttpRequestPath   = "http_request_path"
-	VarHttpRequestArg    = "http_request_arg"
-
-	VarPrefixHttpArg    = "http_arg_"
 )

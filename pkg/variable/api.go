@@ -43,15 +43,18 @@ func GetVariableValue(ctx context.Context, name string, data ...interface{}) (st
 	}
 
 	// 2. find prefix variables
-	fullName, _:= data[0].(string)
+	if len(data) == 1 {
+		fullName, _ := data[0].(string)
+		name = fullName
+	}
 
 	for prefix, variable := range prefixVariables {
-		if strings.HasPrefix(fullName, prefix) {
+		if strings.HasPrefix(name, prefix) {
 			getter := variable.Getter()
 			if getter == nil {
 				return "", errors.New(errGetterNotFound + name)
 			}
-			return getter(ctx, nil, data[0])
+			return getter(ctx, nil, name)
 		}
 	}
 

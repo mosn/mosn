@@ -31,28 +31,30 @@ import (
 const (
 	VarRequestMethod = "http_request_method"
 	VarRequestLength = "http_request_length"
-
-	argIndex = len(types.VarPrefixHttpArg)
 )
 
 var (
-	headerName  = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestHeader)
-	headerIndex = len(headerName)
-
-	cookieName  = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolCookie)
-	cookieIndex = len(cookieName)
+	headerName    = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestHeader)
+	headerIndex   = len(headerName)
+	cookieName    = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolCookie)
+	cookieIndex   = len(cookieName)
+	pathName      = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestPath)
+	uriName       = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestUri)
+	argName       = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestArg)
+	argPrefixName = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestArgPrefix)
+	argIndex      = len(argPrefixName)
 
 	builtinVariables = []variable.Variable{
 		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
-		variable.NewBasicVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
-		variable.NewBasicVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
-		variable.NewBasicVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
+		variable.NewBasicVariable(uriName, nil, requestUriGetter, nil, 0),
+		variable.NewBasicVariable(pathName, nil, requestPathGetter, nil, 0),
+		variable.NewBasicVariable(argName, nil, requestArgGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
 		variable.NewBasicVariable(headerName, nil, httpHeaderGetter, nil, 0),
-		variable.NewBasicVariable(types.VarPrefixHttpArg, nil, httpArgGetter, nil, 0),
+		variable.NewBasicVariable(argPrefixName, nil, httpArgGetter, nil, 0),
 		variable.NewBasicVariable(cookieName, nil, httpCookieGetter, nil, 0),
 	}
 )
@@ -69,9 +71,9 @@ func init() {
 	}
 
 	// register protocol resource
-	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarHttpRequestPath)
-	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarHttpRequestUri)
-	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarHttpRequestArg)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarProtocolRequestPath)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarProtocolRequestUri)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarProtocolRequestArg)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.COOKIE, types.VarProtocolCookie)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.HEADER, types.VarProtocolRequestHeader)
 }
