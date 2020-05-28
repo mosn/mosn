@@ -161,18 +161,16 @@ type WRRLoadBalancer struct {
 }
 
 func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
-	rrLB := &WRRLoadBalancer{
+	wrrLB := &WRRLoadBalancer{
 	}
-	rrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, rrLB.unweightChooseHost, rrLB.hostWeight)
-	var idx uint32
+	wrrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
 	hostsList := hosts.Hosts()
-	rrLB.mutex.Lock()
-	defer rrLB.mutex.Unlock()
+	wrrLB.mutex.Lock()
+	defer wrrLB.mutex.Unlock()
 	if len(hostsList) != 0 {
-		idx = rrLB.rand.Uint32() % uint32(len(hostsList))
+		wrrLB.rrIndex = wrrLB.rand.Uint32() % uint32(len(hostsList))
 	}
-	rrLB.rrIndex = idx
-	return rrLB
+	return wrrLB
 }
 
 func (lb *WRRLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
@@ -187,6 +185,7 @@ func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 	host := item.(types.Host)
 	return float64(host.Weight())
 }
+
 // do unweighted (fast) selection
 func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
 	targets := lb.hosts.Hosts()
