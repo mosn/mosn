@@ -29,7 +29,7 @@ import (
 )
 
 func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
-	// convert data to duboo frame
+	// convert data to dubbo frame
 	dataBytes := data.Bytes()
 	frame := &Frame{
 		Header: Header{
