@@ -46,7 +46,7 @@ func init() {
 	}
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
-	RegisterLBType(types.WeightedRoundRobin, newWeightedRRLoadBalancer)
+	RegisterLBType(types.WeightedRoundRobin, newWRRLoadBalancer)
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
 }
 
@@ -155,13 +155,13 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
  A round robin load balancer. When in weighted mode, EDF scheduling is used. When in not
  weighted mode, simple RR index selection is used.
 */
-type WeightedRRLoadBalancer struct {
+type WRRLoadBalancer struct {
 	*EdfLoadBalancer
 	rrIndex uint32
 }
 
-func newWeightedRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
-	rrLB := &WeightedRRLoadBalancer{
+func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	rrLB := &WRRLoadBalancer{
 	}
 	rrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, rrLB.unweightChooseHost, rrLB.hostWeight)
 	var idx uint32
@@ -175,20 +175,20 @@ func newWeightedRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) type
 	return rrLB
 }
 
-func (lb *WeightedRRLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+func (lb *WRRLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	return len(lb.hosts.Hosts()) > 0
 }
 
-func (lb *WeightedRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+func (lb *WRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
 }
 
-func (lb *WeightedRRLoadBalancer) hostWeight(item WeightItem) float64 {
+func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 	host := item.(types.Host)
 	return float64(host.Weight())
 }
 // do unweighted (fast) selection
-func (lb *WeightedRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
+func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
 	targets := lb.hosts.Hosts()
 	total := len(targets)
 	index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
