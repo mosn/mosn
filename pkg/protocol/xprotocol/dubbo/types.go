@@ -47,8 +47,17 @@ const (
 )
 
 const (
-	ServiceNameHeader string = "service"
-	MethodNameHeader  string = "method"
+	FrameworkVersionNameHeader string = "dubbo"
+	ServiceNameHeader          string = "service"
+	MethodNameHeader           string = "method"
+	VersionNameHeader          string = "version"
+	GroupNameHeader            string = "group"
+	InterfaceNameHeader        string = "interface"
+)
+
+const (
+	EgressDubbo  string = "egress_dubbo"
+	IngressDubbo string = "ingress_dubbo"
 )
 
 const (
