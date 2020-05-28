@@ -28,8 +28,8 @@ import (
 type InvocationStat struct {
 	dimension      InvocationDimension
 	host           *api.HostInfo
-	callCount      int64
-	exceptionCount int64
+	callCount      uint64
+	exceptionCount uint64
 	uselessCycle   int32
 	downgradeTime  int64
 }
@@ -47,9 +47,9 @@ func NewInvocationStat(host *api.HostInfo, dimension InvocationDimension) *Invoc
 }
 
 func (s *InvocationStat) Call(isException bool) {
-	atomic.AddInt64(&s.callCount, 1)
+	atomic.AddUint64(&s.callCount, 1)
 	if isException {
-		atomic.AddInt64(&s.exceptionCount, 1)
+		atomic.AddUint64(&s.exceptionCount, 1)
 	}
 }
 
@@ -61,12 +61,12 @@ func (s *InvocationStat) GetInvocationKey() string {
 	return s.dimension.GetInvocationKey()
 }
 
-func (s *InvocationStat) GetCall() int64 {
-	return s.callCount
+func (s *InvocationStat) GetCall() uint64 {
+	return atomic.LoadUint64(&s.callCount)
 }
 
-func (s *InvocationStat) GetCount() (int64, int64) {
-	return s.callCount, s.exceptionCount
+func (s *InvocationStat) GetCount() (uint64, uint64) {
+	return atomic.LoadUint64(&s.callCount), atomic.LoadUint64(&s.exceptionCount)
 }
 
 func (s *InvocationStat) GetDowngradeTime() int64 {
@@ -83,17 +83,17 @@ func (s *InvocationStat) RestUselessCycle() {
 }
 
 func (s *InvocationStat) GetExceptionRate() (bool, float64) {
-	if s.callCount <= 0 {
+	if atomic.LoadUint64(&s.callCount) <= 0 {
 		return false, 0
 	}
-	return true, util.DivideInt64(s.exceptionCount, s.callCount)
+	return true, util.DivideInt64(int64(atomic.LoadUint64(&s.exceptionCount)), int64(atomic.LoadUint64(&s.callCount)))
 }
 
 func (s *InvocationStat) Snapshot() *InvocationStat {
 	return &InvocationStat{
 		dimension:      s.dimension,
 		host:           s.host,
-		callCount:      s.callCount,
+		callCount:      atomic.LoadUint64(&s.callCount),
 		exceptionCount: s.exceptionCount,
 		uselessCycle:   s.uselessCycle,
 		downgradeTime:  s.downgradeTime,
@@ -102,8 +102,9 @@ func (s *InvocationStat) Snapshot() *InvocationStat {
 
 func (s *InvocationStat) Update(snapshot *InvocationStat) {
 	call, exception := snapshot.GetCount()
-	atomic.AddInt64(&s.exceptionCount, -exception)
-	atomic.AddInt64(&s.callCount, -call)
+	// To subtract a signed positive constant value c from x, do AddUint64(&x, ^uint64(c-1)).
+	atomic.AddUint64(&s.exceptionCount, ^uint64(exception-1))
+	atomic.AddUint64(&s.callCount, ^uint64(call-1))
 }
 
 func (s *InvocationStat) Downgrade() {
@@ -112,8 +113,8 @@ func (s *InvocationStat) Downgrade() {
 }
 
 func (s *InvocationStat) Recover() {
-	s.exceptionCount = 0
-	s.callCount = 0
+	atomic.StoreUint64(&s.exceptionCount, 0)
+	atomic.StoreUint64(&s.callCount, 0)
 	s.uselessCycle = 0
 	s.downgradeTime = 0
 	if s.host != nil {
@@ -127,6 +128,6 @@ func (s *InvocationStat) IsHealthy() bool {
 
 func (s *InvocationStat) String() string {
 	str := fmt.Sprintf("host=%s, dimension=%s,callCount=%v,exceptionCount=%v,uselessCycle=%v, downgradeTime=%v",
-		(*s.host).AddressString(), s.dimension, s.callCount, s.exceptionCount, s.uselessCycle, s.downgradeTime)
+		(*s.host).AddressString(), s.dimension, atomic.LoadUint64(&s.callCount), atomic.LoadUint64(&s.exceptionCount), s.uselessCycle, s.downgradeTime)
 	return str
 }

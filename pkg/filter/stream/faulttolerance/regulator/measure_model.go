@@ -29,8 +29,8 @@ import (
 type MeasureModel struct {
 	key            string
 	stats          *sync.Map
-	count          int64
-	downgradeCount int64
+	count          uint64
+	downgradeCount uint64
 	timeMeter      int64
 	config         *v2.FaultToleranceFilterConfig
 }
@@ -54,14 +54,15 @@ func (m *MeasureModel) GetKey() string {
 func (m *MeasureModel) AddInvocationStat(stat *InvocationStat) {
 	key := stat.GetInvocationKey()
 	if _, ok := m.stats.LoadOrStore(key, stat); !ok {
-		atomic.AddInt64(&m.count, 1)
+		atomic.AddUint64(&m.count, 1)
 	}
 }
 
 func (m *MeasureModel) releaseInvocationStat(stat *InvocationStat) {
 	key := stat.GetInvocationKey()
 	m.stats.Delete(key)
-	atomic.AddInt64(&m.count, -1)
+	// To subtract a signed positive constant value c from x, do AddUint64(&x, ^uint64(c-1)).
+	atomic.AddUint64(&m.count, ^uint64(0))
 	GetInvocationStatFactoryInstance().ReleaseInvocationStat(key)
 }
 
@@ -73,7 +74,7 @@ func (m *MeasureModel) Measure() {
 	}
 	for _, snapshot := range snapshots {
 		call, _ := snapshot.GetCount()
-		if call >= m.config.LeastWindowCount {
+		if call >= uint64(m.config.LeastWindowCount) {
 			_, exceptionRate := snapshot.GetExceptionRate()
 			multiple := util.DivideFloat64(exceptionRate, averageExceptionRate)
 			if multiple >= m.config.ExceptionRateMultiple {
@@ -85,8 +86,8 @@ func (m *MeasureModel) Measure() {
 	m.updateInvocationSnapshots(snapshots)
 }
 
-func (m *MeasureModel) downgrade(snapshot *InvocationStat, maxIpCount int64) {
-	if m.count <= 0 {
+func (m *MeasureModel) downgrade(snapshot *InvocationStat, maxIpCount uint64) {
+	if atomic.LoadUint64(&m.count) <= 0 {
 		return
 	}
 	if m.downgradeCount+1 > maxIpCount {
@@ -144,10 +145,10 @@ func (m *MeasureModel) updateInvocationSnapshots(snapshots []*InvocationStat) {
 }
 
 func (m *MeasureModel) calculateAverageExceptionRate(stats []*InvocationStat, leastWindowCount int64) (bool, float64) {
-	var sumException int64
-	var sumCall int64
+	var sumException uint64
+	var sumCall uint64
 	for _, stat := range stats {
-		if call, exception := stat.GetCount(); call >= leastWindowCount {
+		if call, exception := stat.GetCount(); call >= uint64(leastWindowCount) {
 			sumException += exception
 			sumCall += call
 		}
@@ -155,7 +156,7 @@ func (m *MeasureModel) calculateAverageExceptionRate(stats []*InvocationStat, le
 	if sumCall == 0 {
 		return false, 0
 	}
-	return true, util.DivideInt64(sumException, sumCall)
+	return true, util.DivideInt64(int64(sumException), int64(sumCall))
 }
 
 func (m *MeasureModel) IsArrivalTime() bool {
@@ -177,6 +178,6 @@ func (m *MeasureModel) IsArrivalTime() bool {
 
 func (m *MeasureModel) String() string {
 	str := fmt.Sprintf("key=%s,count=%v,downgradeCount=%v,timeMeter=%v",
-		m.key, m.count, m.downgradeCount, m.timeMeter)
+		m.key, atomic.LoadUint64(&m.count), m.downgradeCount, m.timeMeter)
 	return str
 }

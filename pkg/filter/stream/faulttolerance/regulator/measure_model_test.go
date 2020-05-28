@@ -135,13 +135,13 @@ func assertStatExist(t *testing.T, model *MeasureModel, stat *InvocationStat, is
 	}
 }
 
-func callInvocationStat(stat *InvocationStat, totalCall int64, exceptionCall int64) {
+func callInvocationStat(stat *InvocationStat, totalCall uint64, exceptionCall uint64) {
 	healthyCount := totalCall - exceptionCall
-	var i int64
+	var i uint64
 	for i = 0; i < healthyCount; i++ {
 		stat.Call(false)
 	}
-	var j int64
+	var j uint64
 	for j = 0; j < exceptionCall; j++ {
 		stat.Call(true)
 	}
@@ -155,7 +155,7 @@ func assertStatHealthy(t *testing.T, stat *InvocationStat, isHealthy bool) {
 	}
 }
 
-func assertMeasureModelCount(t *testing.T, model *MeasureModel, count int64, downGradeCount int64) {
+func assertMeasureModelCount(t *testing.T, model *MeasureModel, count uint64, downGradeCount uint64) {
 	if model.count == count {
 		t.Log("assertMeasureModelCount Success")
 	} else {

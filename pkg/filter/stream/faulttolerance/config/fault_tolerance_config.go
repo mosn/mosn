@@ -23,7 +23,7 @@ type FaultToleranceRuleJson struct {
 	TimeWindow            int64    `json:"timeWindow"`
 	LeastWindowCount      int64    `json:"leastWindowCount"`
 	ExceptionRateMultiple float64  `json:"exceptionRateMultiple"`
-	MaxIpCount            int64    `json:"maxIpCount"`
+	MaxIpCount            uint64   `json:"maxIpCount"`
 	MaxIpRatio            float64  `json:"maxIpRatio"`
 	RecoverTime           int64    `json:"recoverTime"`
 	TaskSize              int64    `json:"taskSize"`
