@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -28,24 +29,40 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/healthcheck"
-	"mosn.io/pkg/utils"
 )
 
+// register cluster types
+var clusterFactories map[v2.ClusterType]func(v2.Cluster) types.Cluster
+
+func RegisterClusterType(clusterType v2.ClusterType, f func(v2.Cluster) types.Cluster) {
+	if clusterFactories == nil {
+		clusterFactories = make(map[v2.ClusterType]func(v2.Cluster) types.Cluster)
+	}
+	clusterFactories[clusterType] = f
+}
+
+func init() {
+	RegisterClusterType(v2.SIMPLE_CLUSTER, newSimpleCluster)
+}
+
 func NewCluster(clusterConfig v2.Cluster) types.Cluster {
-	// TODO: support cluster type registered
-	return newSimpleCluster(clusterConfig)
+	if f, ok := clusterFactories[clusterConfig.ClusterType]; ok {
+		return f(clusterConfig)
+	}
+	return clusterFactories[v2.SIMPLE_CLUSTER](clusterConfig)
 }
 
 // simpleCluster is an implementation of types.Cluster
 type simpleCluster struct {
 	info          *clusterInfo
+	mutex         sync.Mutex
 	healthChecker types.HealthChecker
 	lbInstance    types.LoadBalancer // load balancer used for this cluster
 	hostSet       *hostSet
 	snapshot      atomic.Value
 }
 
-func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
+func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	info := &clusterInfo{
 		name:                 clusterConfig.Name,
 		clusterType:          clusterConfig.ClusterType,
@@ -99,6 +116,8 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 	} else {
 		lb = NewLoadBalancer(info, hostSet)
 	}
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
 	sc.lbInstance = lb
 	sc.hostSet = hostSet
 	sc.snapshot.Store(&clusterSnapshot{
@@ -107,9 +126,7 @@ func (sc *simpleCluster) UpdateHosts(newHosts []types.Host) {
 		info:    info,
 	})
 	if sc.healthChecker != nil {
-		utils.GoWithRecover(func() {
-			sc.healthChecker.SetHealthCheckerHostSet(hostSet)
-		}, nil)
+		sc.healthChecker.SetHealthCheckerHostSet(hostSet)
 	}
 
 }
@@ -123,12 +140,16 @@ func (sc *simpleCluster) Snapshot() types.ClusterSnapshot {
 }
 
 func (sc *simpleCluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
 	if sc.healthChecker != nil {
 		sc.healthChecker.AddHostCheckCompleteCb(cb)
 	}
 }
 
 func (sc *simpleCluster) StopHealthChecking() {
+	sc.mutex.Lock()
+	defer sc.mutex.Unlock()
 	if sc.healthChecker != nil {
 		sc.healthChecker.Stop()
 	}

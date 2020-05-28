@@ -74,8 +74,8 @@ func (ctx *tlsContext) buildMatch() {
 	ctx.matches = matches
 }
 
-func (ctx *tlsContext) setServerConfig(tmpl tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks) {
-	tlsConfig := &tmpl
+func (ctx *tlsContext) setServerConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks) {
+	tlsConfig := tmpl.Clone()
 	// no certificate should be set no server tls config
 	if len(tlsConfig.Certificates) == 0 {
 		return
@@ -95,8 +95,8 @@ func (ctx *tlsContext) setServerConfig(tmpl tls.Config, cfg *v2.TLSConfig, hooks
 	ctx.buildMatch()
 }
 
-func (ctx *tlsContext) setClientConfig(tmpl tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks) {
-	tlsConfig := &tmpl
+func (ctx *tlsContext) setClientConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks) {
+	tlsConfig := tmpl.Clone()
 	tlsConfig.ServerName = cfg.ServerName
 	tlsConfig.VerifyPeerCertificate = hooks.ClientHandshakeVerify(tlsConfig)
 	if tlsConfig.VerifyPeerCertificate != nil {
@@ -189,9 +189,9 @@ func newTLSContext(cfg *v2.TLSConfig, secret *secretInfo) (*tlsContext, error) {
 
 	// needs copy template config
 	if len(tmpl.Certificates) > 0 {
-		ctx.setServerConfig(*tmpl, cfg, hooks)
+		ctx.setServerConfig(tmpl, cfg, hooks)
 	}
-	ctx.setClientConfig(*tmpl, cfg, hooks)
+	ctx.setClientConfig(tmpl, cfg, hooks)
 	return ctx, nil
 
 }
