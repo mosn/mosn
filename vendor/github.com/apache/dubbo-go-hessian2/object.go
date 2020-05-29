@@ -21,6 +21,7 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 import (
@@ -164,21 +165,23 @@ func (e *Encoder) encObject(v POJO) error {
 	structs := []reflect.Value{vv}
 	for len(structs) > 0 {
 		vv := structs[0]
+		vvt := vv.Type()
 		num = vv.NumField()
 		for i = 0; i < num; i++ {
+			tf := vvt.Field(i)
 			// skip unexported anonymous field
-			if vv.Type().Field(i).PkgPath != "" {
+			if tf.PkgPath != "" {
 				continue
 			}
 
 			// skip ignored field
-			if tag, _ := vv.Type().Field(i).Tag.Lookup(tagIdentifier); tag == `-` {
+			if tag, _ := tf.Tag.Lookup(tagIdentifier); tag == `-` {
 				continue
 			}
 
 			field := vv.Field(i)
-			if vv.Type().Field(i).Anonymous && field.Kind() == reflect.Struct {
-				structs = append(structs, vv.Field(i))
+			if tf.Anonymous && field.Kind() == reflect.Struct {
+				structs = append(structs, field)
 				continue
 			}
 
@@ -292,36 +295,71 @@ func (d *Decoder) decClassDef() (interface{}, error) {
 	return classInfo{javaName: clsName, fieldNameList: fieldList}, nil
 }
 
-func findField(name string, typ reflect.Type) ([]int, error) {
+type fieldInfo struct {
+	indexes []int
+	field   *reflect.StructField
+}
+
+// map[rType][fieldName]indexes
+var fieldIndexCache sync.Map
+
+func findFieldWithCache(name string, typ reflect.Type) ([]int, *reflect.StructField, error) {
+	typCache, _ := fieldIndexCache.Load(typ)
+	if typCache == nil {
+		typCache = &sync.Map{}
+		fieldIndexCache.Store(typ, typCache)
+	}
+
+	iindexes, existCache := typCache.(*sync.Map).Load(name)
+	if existCache && iindexes != nil {
+		finfo := iindexes.(*fieldInfo)
+		var err error
+		if len(finfo.indexes) == 0 {
+			err = perrors.Errorf("failed to find field %s", name)
+		}
+		return finfo.indexes, finfo.field, err
+	}
+
+	indexes, field, err := findField(name, typ)
+	typCache.(*sync.Map).Store(name, &fieldInfo{indexes: indexes, field: field})
+	return indexes, field, err
+}
+
+// findField find structField in rType
+//
+// return
+// 	indexes []int
+// 	field reflect.StructField
+// 	err error
+func findField(name string, typ reflect.Type) ([]int, *reflect.StructField, error) {
 	for i := 0; i < typ.NumField(); i++ {
 		// matching tag first, then lowerCamelCase, SameCase, lowerCase
 
 		typField := typ.Field(i)
 
-		if val, has := typField.Tag.Lookup(tagIdentifier); has && strings.Compare(val, name) == 0 {
-			return []int{i}, nil
-		}
+		tagVal, hasTag := typField.Tag.Lookup(tagIdentifier)
 
 		fieldName := typField.Name
-		switch {
-		case strings.Compare(lowerCamelCase(fieldName), name) == 0:
-			return []int{i}, nil
-		case strings.Compare(fieldName, name) == 0:
-			return []int{i}, nil
-		case strings.Compare(strings.ToLower(fieldName), name) == 0:
-			return []int{i}, nil
+		if hasTag && tagVal == name ||
+			fieldName == name ||
+			lowerCamelCase(fieldName) == name ||
+			strings.ToLower(fieldName) == name {
+
+			return []int{i}, &typField, nil
 		}
 
 		if typField.Anonymous && typField.Type.Kind() == reflect.Struct {
-			next, _ := findField(name, typField.Type)
+			next, field, _ := findField(name, typField.Type)
 			if len(next) > 0 {
-				pos := []int{i}
-				return append(pos, next...), nil
+				indexes := []int{i}
+				indexes = append(indexes, next...)
+
+				return indexes, field, nil
 			}
 		}
 	}
 
-	return []int{}, perrors.Errorf("failed to find field %s", name)
+	return []int{}, nil, perrors.Errorf("failed to find field %s", name)
 }
 
 func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, error) {
@@ -337,13 +375,13 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 	for i := 0; i < len(cls.fieldNameList); i++ {
 		fieldName := cls.fieldNameList[i]
 
-		index, err := findField(fieldName, typ)
+		index, fieldStruct, err := findFieldWithCache(fieldName, typ)
 		if err != nil {
 			return nil, perrors.Errorf("can not find field %s", fieldName)
 		}
 
 		// skip unexported anonymous field
-		if vv.Type().FieldByIndex(index).PkgPath != "" {
+		if fieldStruct.PkgPath != "" {
 			continue
 		}
 
@@ -483,7 +521,7 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 			}
 
 		default:
-			return nil, perrors.Errorf("unknown struct member type: %v %v", kind, typ.Name()+"."+typ.FieldByIndex(index).Name)
+			return nil, perrors.Errorf("unknown struct member type: %v %v", kind, typ.Name()+"."+fieldStruct.Name)
 		}
 	} // end for
 

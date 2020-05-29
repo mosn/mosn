@@ -227,7 +227,8 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 			}
 
 			for _, f := range ffs {
-				f.CreateFilterChain(p.context, stream)
+				// the ctx from stream
+				f.CreateFilterChain(ctx, stream)
 			}
 		}
 	}
@@ -255,6 +256,8 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 		return api.UpstreamOverflow
 	case types.StreamRemoteReset:
 		return api.UpstreamRemoteReset
+	case types.UpstreamGlobalTimeout, types.UpstreamPerTryTimeout:
+		return api.UpstreamRequestTimeout
 	}
 
 	return 0

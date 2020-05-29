@@ -142,7 +142,7 @@ func TestNewLBCluster(t *testing.T) {
 		ClusterType: v2.SIMPLE_CLUSTER,
 		LbType:      v2.LbType(headerKey), // same as lb type
 	}
-	c := newSimpleCluster(cfg)
+	c := newSimpleCluster(cfg).(*simpleCluster)
 	if c == nil || c.info == nil {
 		t.Fatal("create cluster failed")
 	}

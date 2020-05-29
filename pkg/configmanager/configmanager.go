@@ -210,6 +210,9 @@ func AddOrUpdateRouterConfig(routerConfig *v2.RouterConfiguration) {
 func addOrUpdateRouterConfig(routerConfig *v2.RouterConfiguration) bool {
 	configLock.Lock()
 	defer configLock.Unlock()
+	if routerConfig == nil {
+		return false
+	}
 	// support only one server
 	routers := config.Servers[0].Routers
 	for idx, rt := range routers {
@@ -226,6 +229,10 @@ func addOrUpdateRouterConfig(routerConfig *v2.RouterConfiguration) bool {
 func AddOrUpdateListener(listener *v2.Listener) {
 	configLock.Lock()
 	defer configLock.Unlock()
+
+	if listener == nil {
+		return
+	}
 
 	_, idx := findListener(listener.Name)
 	if idx == -1 {

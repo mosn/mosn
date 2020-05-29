@@ -759,6 +759,7 @@ func (s *serverStream) ReadDisable(disable bool) {
 }
 
 func (s *serverStream) doSend() {
+
 	if _, err := s.response.WriteTo(s.connection); err != nil {
 		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send server response error: %+v", err)
 	} else {

@@ -126,14 +126,20 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	proxyBuffers := proxyBuffersByContext(ctx)
 
 	// save downstream protocol
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proxy.serverStreamConn.Protocol())
+	// it should priority return real protocol name
+	proto := proxy.serverStreamConn.Protocol()
+	if proto == protocol.Xprotocol {
+		proto = types.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
+	}
+
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proto)
 
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
-	stream.requestInfo.SetProtocol(proxy.serverStreamConn.Protocol())
+	stream.requestInfo.SetProtocol(proto)
 	stream.requestInfo.SetDownstreamLocalAddress(proxy.readCallbacks.Connection().LocalAddr())
 	// todo: detect remote addr
 	stream.requestInfo.SetDownstreamRemoteAddress(proxy.readCallbacks.Connection().RemoteAddr())
@@ -1065,19 +1071,15 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 		// send err response if response not started
 		var code int
 
-		if reason == types.UpstreamGlobalTimeout || reason == types.UpstreamPerTryTimeout {
-			s.requestInfo.SetResponseFlag(api.UpstreamRequestTimeout)
-			code = types.TimeoutExceptionCode
-		} else {
-			reasonFlag := s.proxy.streamResetReasonToResponseFlag(reason)
-			s.requestInfo.SetResponseFlag(reasonFlag)
-			code = types.NoHealthUpstreamCode
-		}
+		reasonFlag := s.proxy.streamResetReasonToResponseFlag(reason)
+		s.requestInfo.SetResponseFlag(reasonFlag)
+		code = types.ConvertReasonToCode(reason)
 
 		if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
 			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
 			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
 		}
+
 		// clear reset flag
 		log.Proxy.Infof(s.context, "[proxy] [downstream] onUpstreamReset, send hijack, reason %v", reason)
 		atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)

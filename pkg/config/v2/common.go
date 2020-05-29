@@ -62,3 +62,5 @@ func configToMetadata(cfg *MetadataConfig) api.Metadata {
 var ErrDuplicateTLSConfig = errors.New("tls_context and tls_context_set can only exists one at the same time")
 
 var ErrDuplicateStaticAndDynamic = errors.New("only one of static config or dynamic config should be exists")
+
+const MaxFilePath = 128

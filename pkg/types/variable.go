@@ -45,6 +45,7 @@ const (
 	VarProxyTryTimeout    string = "proxy_try_timeout"
 	VarProxyGlobalTimeout string = "proxy_global_timeout"
 	VarProxyHijackStatus  string = "proxy_hijack_status"
+	VarProxyGzipSwitch    string = "proxy_gzip_switch"
 )
 
 // [Protocol]: http
