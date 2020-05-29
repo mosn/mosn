@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 
@@ -365,4 +366,36 @@ func BenchmarkPromSink_Filter(b *testing.B) {
 		}
 	})
 
+}
+
+func simpleFlattenKey(key string) string {
+	key = strings.Replace(key, " ", "_", -1)
+	key = strings.Replace(key, ".", "_", -1)
+	key = strings.Replace(key, "-", "_", -1)
+	key = strings.Replace(key, "=", "_", -1)
+	return key
+}
+
+func BenchmarkFlattenKey(b *testing.B) {
+	for _, key := range []string{
+		"simple",
+		"dot.replace",
+		"multi.dot.replace",
+		"equal=replace",
+		"blank replace",
+		"minus-replace",
+	} {
+		msg := fmt.Sprintf("benchkey:%s", key)
+		b.Run(msg, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				flattenKey(key)
+			}
+		})
+		replace_msg := fmt.Sprintf("bench_replace:%s", key)
+		b.Run(replace_msg, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				simpleFlattenKey(key)
+			}
+		})
+	}
 }
