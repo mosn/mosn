@@ -102,6 +102,7 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 		return nil, err
 	}
 	initOnce.Do(func() {
+		// TODO: can't support dynamically update at present, should be optimized
 		initSentinel(flowControlCfg.AppName, flowControlCfg.LogPath)
 	})
 	factory := &StreamFilterFactory{config: flowControlCfg}
