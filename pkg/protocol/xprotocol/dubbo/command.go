@@ -30,8 +30,8 @@ type Header struct {
 	Id      uint64
 	DataLen uint32
 
-	IsEvent         bool // 1 mean ping
-	IsTwoWay        bool // 1 mean req & resp pair
+	IsEvent         bool // true: heartbeat or readonly event
+	IsTwoWay        bool // true: send request and expect response, false: just request without response
 	Direction       int  // 1 mean req
 	SerializationId int  // 2 mean hessian
 	protocol.CommonHeader
