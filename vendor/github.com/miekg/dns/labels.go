@@ -16,7 +16,7 @@ func SplitDomainName(s string) (labels []string) {
 	fqdnEnd := 0 // offset of the final '.' or the length of the name
 	idx := Split(s)
 	begin := 0
-	if IsFqdn(s) {
+	if s[len(s)-1] == '.' {
 		fqdnEnd = len(s) - 1
 	} else {
 		fqdnEnd = len(s)
@@ -28,13 +28,16 @@ func SplitDomainName(s string) (labels []string) {
 	case 1:
 		// no-op
 	default:
-		for _, end := range idx[1:] {
+		end := 0
+		for i := 1; i < len(idx); i++ {
+			end = idx[i]
 			labels = append(labels, s[begin:end-1])
 			begin = end
 		}
 	}
 
-	return append(labels, s[begin:fqdnEnd])
+	labels = append(labels, s[begin:fqdnEnd])
+	return labels
 }
 
 // CompareDomainName compares the names s1 and s2 and
@@ -83,7 +86,7 @@ func CompareDomainName(s1, s2 string) (n int) {
 	return
 }
 
-// CountLabel counts the number of labels in the string s.
+// CountLabel counts the the number of labels in the string s.
 // s must be a syntactically valid domain name.
 func CountLabel(s string) (labels int) {
 	if s == "." {
@@ -126,23 +129,20 @@ func Split(s string) []int {
 // The bool end is true when the end of the string has been reached.
 // Also see PrevLabel.
 func NextLabel(s string, offset int) (i int, end bool) {
-	if s == "" {
-		return 0, true
-	}
+	quote := false
 	for i = offset; i < len(s)-1; i++ {
-		if s[i] != '.' {
-			continue
+		switch s[i] {
+		case '\\':
+			quote = !quote
+		default:
+			quote = false
+		case '.':
+			if quote {
+				quote = !quote
+				continue
+			}
+			return i + 1, false
 		}
-		j := i - 1
-		for j >= 0 && s[j] == '\\' {
-			j--
-		}
-
-		if (j-i)%2 == 0 {
-			continue
-		}
-
-		return i + 1, false
 	}
 	return i + 1, true
 }
@@ -152,38 +152,17 @@ func NextLabel(s string, offset int) (i int, end bool) {
 // The bool start is true when the start of the string has been overshot.
 // Also see NextLabel.
 func PrevLabel(s string, n int) (i int, start bool) {
-	if s == "" {
-		return 0, true
-	}
 	if n == 0 {
 		return len(s), false
 	}
-
-	l := len(s) - 1
-	if s[l] == '.' {
-		l--
+	lab := Split(s)
+	if lab == nil {
+		return 0, true
 	}
-
-	for ; l >= 0 && n > 0; l-- {
-		if s[l] != '.' {
-			continue
-		}
-		j := l - 1
-		for j >= 0 && s[j] == '\\' {
-			j--
-		}
-
-		if (j-l)%2 == 0 {
-			continue
-		}
-
-		n--
-		if n == 0 {
-			return l + 1, false
-		}
+	if n > len(lab) {
+		return 0, true
 	}
-
-	return 0, n > 1
+	return lab[len(lab)-n], false
 }
 
 // equal compares a and b while ignoring case. It returns true when equal otherwise false.

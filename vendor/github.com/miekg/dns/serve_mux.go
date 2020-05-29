@@ -1,6 +1,7 @@
 package dns
 
 import (
+	"strings"
 	"sync"
 )
 
@@ -35,9 +36,33 @@ func (mux *ServeMux) match(q string, t uint16) Handler {
 		return nil
 	}
 
-	q = CanonicalName(q)
-
 	var handler Handler
+
+	// TODO(tmthrgd): Once https://go-review.googlesource.com/c/go/+/137575
+	// lands in a go release, replace the following with strings.ToLower.
+	var sb strings.Builder
+	for i := 0; i < len(q); i++ {
+		c := q[i]
+		if !(c >= 'A' && c <= 'Z') {
+			continue
+		}
+
+		sb.Grow(len(q))
+		sb.WriteString(q[:i])
+
+		for ; i < len(q); i++ {
+			c := q[i]
+			if c >= 'A' && c <= 'Z' {
+				c += 'a' - 'A'
+			}
+
+			sb.WriteByte(c)
+		}
+
+		q = sb.String()
+		break
+	}
+
 	for off, end := 0, false; !end; off, end = NextLabel(q, off) {
 		if h, ok := mux.z[q[off:]]; ok {
 			if t != TypeDS {
@@ -65,7 +90,7 @@ func (mux *ServeMux) Handle(pattern string, handler Handler) {
 	if mux.z == nil {
 		mux.z = make(map[string]Handler)
 	}
-	mux.z[CanonicalName(pattern)] = handler
+	mux.z[Fqdn(pattern)] = handler
 	mux.m.Unlock()
 }
 
@@ -80,7 +105,7 @@ func (mux *ServeMux) HandleRemove(pattern string) {
 		panic("dns: invalid pattern " + pattern)
 	}
 	mux.m.Lock()
-	delete(mux.z, CanonicalName(pattern))
+	delete(mux.z, Fqdn(pattern))
 	mux.m.Unlock()
 }
 
