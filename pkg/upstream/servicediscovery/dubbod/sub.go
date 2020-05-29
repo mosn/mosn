@@ -36,7 +36,7 @@ func subscribe(w http.ResponseWriter, r *http.Request) {
 
 	err = doSubUnsub(req, true)
 	if err != nil {
-		response(w, resp{Errno: fail, ErrMsg: "unsubscribe fail, err: " + err.Error()})
+		response(w, resp{Errno: fail, ErrMsg: "subscribe fail, err: " + err.Error()})
 		return
 	}
 
