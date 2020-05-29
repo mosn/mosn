@@ -2,8 +2,6 @@ package flowcontrol
 
 import (
 	"context"
-	"os"
-	"runtime"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
@@ -14,22 +12,6 @@ import (
 
 // FlowControlFilterName is the flow control stream filter name.
 const FlowControlFilterName = "flowControlFilter"
-
-// the environment variables.
-const (
-	envKeySentinelLogDir   = "SENTINEL_LOG_DIR"
-	envValueSentinelLogDir = "/home/admin/logs/sentinel"
-)
-
-func init() {
-	if runtime.GOOS == "linux" {
-		os.Setenv(envKeySentinelLogDir, envValueSentinelLogDir)
-	}
-	err := sentinel.InitDefault()
-	if err != nil {
-		log.StartLogger.Fatalf("init sentinel failed, error: %v", err)
-	}
-}
 
 // StreamFilter represents the flow control stream filter.
 type StreamFilter struct {

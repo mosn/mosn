@@ -4,18 +4,35 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
+	"sync"
 
-	"mosn.io/mosn/pkg/types"
-
+	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 const defaultResponse = "current request is limited"
 
+// the environment variables.
+const (
+	// TODO: update log sentinel configurations more graceful.
+	envKeySentinelLogDir   = "SENTINEL_LOG_DIR"
+	envKeySentinelAppName  = "SENTINEL_APP_NAME"
+	defaultSentinelLogDir  = "/tmp/sentinel"
+	defaultSentinelAppName = "unknown"
+)
+
+var (
+	initOnce sync.Once
+)
+
 // Config represents the flow control configurations.
 type Config struct {
+	AppName      string                   `json:"app_name"`
+	LogPath      string                   `json:"log_path"`
 	GlobalSwitch bool                     `json:"global_switch"`
 	Monitor      bool                     `json:"monitor"`
 	KeyType      api.ProtocolResourceName `json:"limit_key_type"`
@@ -45,8 +62,19 @@ func (f *StreamFilterFactory) CreateFilterChain(context context.Context,
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 
+func initSentinel(appName, logPath string) {
+	os.Setenv(envKeySentinelAppName, appName)
+	os.Setenv(envKeySentinelLogDir, logPath)
+	err := sentinel.InitDefault()
+	if err != nil {
+		log.StartLogger.Errorf("init sentinel failed, error: %v", err)
+	}
+}
+
 func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	flowControlCfg := &Config{
+		AppName: defaultSentinelAppName,
+		LogPath: defaultSentinelLogDir,
 		Action: Action{
 			Status: types.LimitExceededCode,
 			Body:   defaultResponse,
@@ -73,6 +101,9 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 		log.DefaultLogger.Errorf("update rules failed")
 		return nil, err
 	}
+	initOnce.Do(func() {
+		initSentinel(flowControlCfg.AppName, flowControlCfg.LogPath)
+	})
 	factory := &StreamFilterFactory{config: flowControlCfg}
 	return factory, nil
 }

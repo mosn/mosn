@@ -65,6 +65,8 @@
             {
               "type": "flowControlFilter",
               "config": {
+                "app_name": "sample",
+                "log_path": "/tmp/sentinel",
                 "global_switch": true,
                 "monitor": false,
                 "limit_key_type": "PATH",
