@@ -42,6 +42,12 @@ type DelayInjectConfig struct {
 	DelayDurationConfig api.DurationConfig `json:"fixed_delay,omitempty"`
 }
 
+type StreamGzip struct {
+	GzipLevel     uint32   `json:"gzip_level,omitempty"`
+	ContentLength uint32   `json:"content_length,omitempty"`
+	ContentType   []string `json:"content_types,omitempty"`
+}
+
 // Listener Filter's Type
 const (
 	ORIGINALDST_LISTENER_FILTER = "original_dst"
@@ -63,6 +69,7 @@ const (
 	MIXER        = "mixer"
 	FaultStream  = "fault"
 	PayloadLimit = "payload_limit"
+	Gzip         = "gzip"
 )
 
 // HealthCheckFilter
