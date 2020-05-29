@@ -37,8 +37,6 @@ var (
 	dubboRouterConfigName = "dubbo" // keep the same with the router config name in mosn_config.json
 )
 
-var mosnIP = "127.0.0.1"
-
 const (
 	succ = iota
 	fail

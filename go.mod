@@ -7,7 +7,7 @@ require (
 	github.com/SkyAPM/go2sky v0.3.1-0.20200329092408-8b3e4d536d8d
 	github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
 	github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
-	github.com/apache/dubbo-go-hessian2 v1.5.0
+	github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d // perf: https://github.com/apache/dubbo-go-hessian2/pull/188
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/envoyproxy/go-control-plane v0.8.0
 	github.com/gin-gonic/gin v1.6.2 // indirect
@@ -38,6 +38,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
+	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.22.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
