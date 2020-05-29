@@ -46,10 +46,6 @@ const (
 var registryClientCache = sync.Map{}
 
 func getRegistry(registryCacheKey string, role int, registryURL dubbocommon.URL) (dubboreg.Registry, error) {
-	// do not cache provider registry, or it may collide with the consumer registry
-	//if role == dubbocommon.PROVIDER {
-	//	return zkreg.NewZkRegistry(&registryURL)
-	//}
 
 	registryCacheKey = registryCacheKey + "#" + fmt.Sprint(role)
 	regInterface, ok := registryClientCache.Load(registryCacheKey)

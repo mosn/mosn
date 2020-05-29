@@ -117,9 +117,6 @@ func doSubUnsub(req subReq, sub bool) error {
 			return err
 		}
 	} else {
-		// FIXME, dubbo go uses a url pointer to record the service listener
-		// so it will panic under the hood
-		// will fix after dubbo-go merged
 		l, ok := dubboInterface2listener.Load(servicePath)
 		if ok {
 			err = reg.UnSubscribe(dubboURL, l.(*listener))

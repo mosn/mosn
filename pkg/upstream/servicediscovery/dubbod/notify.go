@@ -34,11 +34,6 @@ func (l *listener) Notify(event *registry.ServiceEvent) {
 		addr        = event.Service.Ip + ":" + event.Service.Port
 	)
 
-	/*
-	FIXME, if there is need to load full provider list, then need to finish this logic, and overwrite the hosts in cluster manager
-	children, err := reg.(*zkreg.ZkRegistry).ZkClient().GetChildren(event.Service.Path + "/providers")
-	if err != nil {}
-	*/
 	switch event.Action {
 	case remoting.EventTypeAdd:
 		err = clusterAdapter.GetClusterMngAdapterInstance().TriggerHostAppend(clusterName, []v2.Host{
