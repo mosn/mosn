@@ -1,11 +1,29 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package regulator
 
 import (
-	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 func Test_IsArrivalTime(t *testing.T) {
@@ -117,13 +135,13 @@ func assertStatExist(t *testing.T, model *MeasureModel, stat *InvocationStat, is
 	}
 }
 
-func callInvocationStat(stat *InvocationStat, totalCall int64, exceptionCall int64) {
+func callInvocationStat(stat *InvocationStat, totalCall uint64, exceptionCall uint64) {
 	healthyCount := totalCall - exceptionCall
-	var i int64
+	var i uint64
 	for i = 0; i < healthyCount; i++ {
 		stat.Call(false)
 	}
-	var j int64
+	var j uint64
 	for j = 0; j < exceptionCall; j++ {
 		stat.Call(true)
 	}
@@ -137,7 +155,7 @@ func assertStatHealthy(t *testing.T, stat *InvocationStat, isHealthy bool) {
 	}
 }
 
-func assertMeasureModelCount(t *testing.T, model *MeasureModel, count int64, downGradeCount int64) {
+func assertMeasureModelCount(t *testing.T, model *MeasureModel, count uint64, downGradeCount uint64) {
 	if model.count == count {
 		t.Log("assertMeasureModelCount Success")
 	} else {

@@ -53,7 +53,7 @@ type FaultToleranceFilterConfig struct {
 	TimeWindow            int64
 	LeastWindowCount      int64
 	ExceptionRateMultiple float64
-	MaxIpCount            int64
+	MaxIpCount            uint64
 	MaxIpRatio            float64
 	RecoverTime           int64
 	TaskSize              int64
