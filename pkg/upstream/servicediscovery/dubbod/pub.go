@@ -18,11 +18,12 @@ package dubbod
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
+
 	dubbocommon "github.com/mosn/registry/dubbo/common"
 	dubboconsts "github.com/mosn/registry/dubbo/common/constant"
 	"mosn.io/mosn/pkg/trace"
-	"net/http"
-	"net/url"
 )
 
 // publish a service to registry
@@ -74,7 +75,7 @@ func doPubUnPub(req pubReq, pub bool) error {
 		dubbocommon.WithParams(url.Values{
 			dubboconsts.REGISTRY_KEY:         []string{req.Registry.Type},
 			dubboconsts.REGISTRY_TIMEOUT_KEY: []string{"5s"},
-			dubboconsts.ROLE_KEY:      []string{fmt.Sprint(dubbocommon.PROVIDER)},
+			dubboconsts.ROLE_KEY:             []string{fmt.Sprint(dubbocommon.PROVIDER)},
 		}),
 		dubbocommon.WithUsername(req.Registry.UserName),
 		dubbocommon.WithPassword(req.Registry.Password),

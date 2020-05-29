@@ -19,10 +19,11 @@ package dubbod
 import (
 	"encoding/json"
 	"fmt"
-	v2 "mosn.io/mosn/pkg/config/v2"
-	routerAdapter "mosn.io/mosn/pkg/router"
 	"net/http"
 	"sync"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
+	routerAdapter "mosn.io/mosn/pkg/router"
 
 	"github.com/mosn/binding"
 	dubboreg "github.com/mosn/registry/dubbo"
@@ -32,8 +33,8 @@ import (
 )
 
 var (
-	dubboPathTpl    = fasttemplate.New("dubbo://{{ip}}:{{port}}/{{interface}}", "{{", "}}")
-	registryPathTpl = fasttemplate.New("registry://{{addr}}", "{{", "}}")
+	dubboPathTpl          = fasttemplate.New("dubbo://{{ip}}:{{port}}/{{interface}}", "{{", "}}")
+	registryPathTpl       = fasttemplate.New("registry://{{addr}}", "{{", "}}")
 	dubboRouterConfigName = "dubbo" // keep the same with the router config name in mosn_config.json
 )
 
@@ -77,7 +78,6 @@ func response(w http.ResponseWriter, respBody interface{}) {
 
 	_, _ = w.Write(bodyBytes)
 }
-
 
 // bind the struct content from http.Request body/uri
 func bind(r *http.Request, data interface{}) error {

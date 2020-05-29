@@ -17,9 +17,10 @@
 package dubbod
 
 import (
+	"net/http"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	routerAdapter "mosn.io/mosn/pkg/router"
-	"net/http"
 
 	"github.com/go-chi/chi"
 	dubbologger "github.com/mosn/registry/dubbo/common/logger"

@@ -1,8 +1,15 @@
 package dubbod
 
 import (
-	"bou.ke/monkey"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"reflect"
+	"strings"
+	"testing"
+
+	"bou.ke/monkey"
 	"github.com/go-chi/chi"
 	registry "github.com/mosn/registry/dubbo"
 	dubbocommon "github.com/mosn/registry/dubbo/common"
@@ -12,26 +19,20 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	_ "mosn.io/mosn/pkg/upstream/cluster"
-	"net/http"
-	"net/http/httptest"
-	"net/url"
-	"reflect"
-	"strings"
-	"testing"
 )
 
 func init() {
 	Init()
 
-	monkey.Patch(zkreg.NewZkRegistry, func(url *dubbocommon.URL) (registry.Registry, error){
+	monkey.Patch(zkreg.NewZkRegistry, func(url *dubbocommon.URL) (registry.Registry, error) {
 		return &registry.BaseRegistry{}, nil
 	})
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(&registry.BaseRegistry{}), "Register", func (r *registry.BaseRegistry, conf dubbocommon.URL) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(&registry.BaseRegistry{}), "Register", func(r *registry.BaseRegistry, conf dubbocommon.URL) error {
 		return nil
 	})
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(&registry.BaseRegistry{}), "Subscribe", func( r *registry.BaseRegistry, url *dubbocommon.URL, notifyListener registry.NotifyListener) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(&registry.BaseRegistry{}), "Subscribe", func(r *registry.BaseRegistry, url *dubbocommon.URL, notifyListener registry.NotifyListener) error {
 		// do nothing
 		return nil
 	})
@@ -45,21 +46,10 @@ func TestNotify(t *testing.T) {
 	// the cluster should have 1 host
 	var l = listener{}
 	var event = registry.ServiceEvent{
-		Action  : remoting.EventTypeAdd,
-		Service : *dubbocommon.NewURLWithOptions(
+		Action: remoting.EventTypeAdd,
+		Service: *dubbocommon.NewURLWithOptions(
 			dubbocommon.WithParams(url.Values{
-				dubboconsts.INTERFACE_KEY : []string{"com.mosn.test.UserProvider"},
-			},
-		),
-	)}
-
-	l.Notify(&event)
-
-	event = registry.ServiceEvent{
-		Action  : remoting.EventTypeDel,
-		Service : *dubbocommon.NewURLWithOptions(
-			dubbocommon.WithParams(url.Values{
-				dubboconsts.INTERFACE_KEY : []string{"com.mosn.test.UserProvider"},
+				dubboconsts.INTERFACE_KEY: []string{"com.mosn.test.UserProvider"},
 			},
 			),
 		)}
@@ -67,10 +57,21 @@ func TestNotify(t *testing.T) {
 	l.Notify(&event)
 
 	event = registry.ServiceEvent{
-		Action  : remoting.EventTypeUpdate,
-		Service : *dubbocommon.NewURLWithOptions(
+		Action: remoting.EventTypeDel,
+		Service: *dubbocommon.NewURLWithOptions(
 			dubbocommon.WithParams(url.Values{
-				dubboconsts.INTERFACE_KEY : []string{"com.mosn.test.UserProvider"},
+				dubboconsts.INTERFACE_KEY: []string{"com.mosn.test.UserProvider"},
+			},
+			),
+		)}
+
+	l.Notify(&event)
+
+	event = registry.ServiceEvent{
+		Action: remoting.EventTypeUpdate,
+		Service: *dubbocommon.NewURLWithOptions(
+			dubbocommon.WithParams(url.Values{
+				dubboconsts.INTERFACE_KEY: []string{"com.mosn.test.UserProvider"},
 			},
 			),
 		)}

@@ -47,10 +47,10 @@ func (l *listener) Notify(event *registry.ServiceEvent) {
 			// call the cluster manager to add the host
 			err = clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterAndHostsAddOrUpdate(
 				v2.Cluster{
-					Name : clusterName,
-					ClusterType: v2.SIMPLE_CLUSTER,
-					LbType: v2.LB_RANDOM,
-					MaxRequestPerConn: 1024,
+					Name:                 clusterName,
+					ClusterType:          v2.SIMPLE_CLUSTER,
+					LbType:               v2.LB_RANDOM,
+					MaxRequestPerConn:    1024,
 					ConnBufferLimitBytes: 32768,
 				},
 				[]v2.Host{

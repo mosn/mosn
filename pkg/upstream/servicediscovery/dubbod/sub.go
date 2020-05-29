@@ -18,11 +18,12 @@ package dubbod
 
 import (
 	"fmt"
-	dubbocommon "github.com/mosn/registry/dubbo/common"
-	dubboconsts "github.com/mosn/registry/dubbo/common/constant"
 	"net/http"
 	"net/url"
 	"sync"
+
+	dubbocommon "github.com/mosn/registry/dubbo/common"
+	dubboconsts "github.com/mosn/registry/dubbo/common/constant"
 )
 
 // subscribe a service from registry
@@ -61,7 +62,6 @@ func unsubscribe(w http.ResponseWriter, r *http.Request) {
 	response(w, resp{Errno: succ, ErrMsg: "unsubscribe success"})
 }
 
-
 // map[string]registry.NotifyListener{}
 var dubboInterface2listener = sync.Map{}
 
@@ -72,7 +72,7 @@ func doSubUnsub(req subReq, sub bool) error {
 	registryURL, _ := dubbocommon.NewURL(registryPath,
 		dubbocommon.WithParams(url.Values{
 			dubboconsts.REGISTRY_TIMEOUT_KEY: []string{"5s"},
-			dubboconsts.ROLE_KEY:      []string{fmt.Sprint(dubbocommon.CONSUMER)},
+			dubboconsts.ROLE_KEY:             []string{fmt.Sprint(dubbocommon.CONSUMER)},
 		}),
 		dubbocommon.WithUsername(req.Registry.UserName),
 		dubbocommon.WithPassword(req.Registry.Password),
@@ -88,8 +88,8 @@ func doSubUnsub(req subReq, sub bool) error {
 		dubbocommon.WithPath(servicePath),
 		dubbocommon.WithProtocol("dubbo"), // this protocol is used to compare the url, must provide
 		dubbocommon.WithParams(url.Values{
-			dubboconsts.ROLE_KEY:      []string{fmt.Sprint(dubbocommon.CONSUMER)},
-			dubboconsts.GROUP_KEY:     []string{req.Service.Group},
+			dubboconsts.ROLE_KEY:  []string{fmt.Sprint(dubbocommon.CONSUMER)},
+			dubboconsts.GROUP_KEY: []string{req.Service.Group},
 		}),
 		dubbocommon.WithMethods(req.Service.Methods))
 
@@ -131,4 +131,3 @@ func doSubUnsub(req subReq, sub bool) error {
 	return nil
 
 }
-
