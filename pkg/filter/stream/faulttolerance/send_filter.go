@@ -32,10 +32,10 @@ type SendFilter struct {
 	handler           api.StreamSenderFilterHandler
 }
 
-func NewSendFilter(config *v2.FaultToleranceFilterConfig) *SendFilter {
+func NewSendFilter(config *v2.FaultToleranceFilterConfig, invocationStatFactory *regulator.InvocationStatFactory) *SendFilter {
 	filter := &SendFilter{
 		config:            config,
-		invocationFactory: regulator.NewInvocationStatFactory(config),
+		invocationFactory: invocationStatFactory,
 	}
 	return filter
 }
@@ -55,7 +55,7 @@ func (f *SendFilter) Append(ctx context.Context, headers api.HeaderMap, buf buff
 	if host != nil {
 		dimension := newDimension(requestInfo)
 		isException := f.IsException(requestInfo)
-		stat := f.invocationFactory.GetInvocationStat(&host, dimension)
+		stat := f.invocationFactory.GetInvocationStat(host, dimension)
 		stat.Call(isException)
 	}
 	return api.StreamFilterContinue

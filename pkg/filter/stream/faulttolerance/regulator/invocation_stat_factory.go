@@ -30,12 +30,16 @@ type InvocationStatFactory struct {
 }
 
 var invocationStatFactoryInstance *InvocationStatFactory
+var onceStatFactoryInstance = new(sync.Once)
 
-func GetInvocationStatFactoryInstance() *InvocationStatFactory {
+func GetInvocationStatFactoryInstance(config *v2.FaultToleranceFilterConfig) *InvocationStatFactory {
+	onceStatFactoryInstance.Do(func() {
+		invocationStatFactoryInstance = newInvocationStatFactory(config)
+	})
 	return invocationStatFactoryInstance
 }
 
-func NewInvocationStatFactory(config *v2.FaultToleranceFilterConfig) *InvocationStatFactory {
+func newInvocationStatFactory(config *v2.FaultToleranceFilterConfig) *InvocationStatFactory {
 	invocationStatFactoryInstance = &InvocationStatFactory{
 		invocationStats: new(sync.Map),
 		regulator:       NewDefaultRegulator(config),
@@ -43,7 +47,7 @@ func NewInvocationStatFactory(config *v2.FaultToleranceFilterConfig) *Invocation
 	return invocationStatFactoryInstance
 }
 
-func (f *InvocationStatFactory) GetInvocationStat(host *api.HostInfo, dimension InvocationDimension) *InvocationStat {
+func (f *InvocationStatFactory) GetInvocationStat(host api.HostInfo, dimension InvocationDimension) *InvocationStat {
 	key := dimension.GetInvocationKey()
 	if value, ok := f.invocationStats.Load(key); ok {
 		return value.(*InvocationStat)

@@ -57,7 +57,7 @@ func defaultDimensionFunc(info api.RequestInfo) InvocationDimension {
 	} else {
 		return &defaultDimension{
 			invocationKey: info.UpstreamHost().AddressString(),
-			measureKey:    info.RouteEntry().ClusterName(),
+			measureKey:    info.RouteEntry().ClusterName(), //todo the future may not be uniform
 		}
 	}
 }

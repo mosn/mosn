@@ -63,7 +63,7 @@ func (m *MeasureModel) releaseInvocationStat(stat *InvocationStat) {
 	m.stats.Delete(key)
 	// To subtract a signed positive constant value c from x, do AddUint64(&x, ^uint64(c-1)).
 	atomic.AddUint64(&m.count, ^uint64(0))
-	GetInvocationStatFactoryInstance().ReleaseInvocationStat(key)
+	GetInvocationStatFactoryInstance(nil).ReleaseInvocationStat(key)
 }
 
 func (m *MeasureModel) Measure() {

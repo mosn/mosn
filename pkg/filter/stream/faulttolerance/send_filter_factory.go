@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -32,11 +33,12 @@ func init() {
 }
 
 type SendFilterFactory struct {
-	config *v2.FaultToleranceFilterConfig
+	config            *v2.FaultToleranceFilterConfig
+	invocationFactory *regulator.InvocationStatFactory
 }
 
 func (f *SendFilterFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := NewSendFilter(f.config)
+	filter := NewSendFilter(f.config, f.invocationFactory)
 	callbacks.AddStreamSenderFilter(filter)
 }
 
@@ -44,8 +46,10 @@ func CreateSendFilterFactory(conf map[string]interface{}) (api.StreamFilterChain
 	if filterConfig, err := parseConfig(conf); err != nil {
 		return nil, err
 	} else {
+		invocationFactory := regulator.GetInvocationStatFactoryInstance(filterConfig)
 		return &SendFilterFactory{
-			config: filterConfig,
+			config:            filterConfig,
+			invocationFactory: invocationFactory,
 		}, nil
 	}
 }

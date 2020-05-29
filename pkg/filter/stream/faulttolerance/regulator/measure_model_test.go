@@ -128,7 +128,7 @@ func assertStatExist(t *testing.T, model *MeasureModel, stat *InvocationStat, is
 	} else {
 		t.Error("assertStatExist Failed")
 	}
-	if _, ok := GetInvocationStatFactoryInstance().invocationStats.Load(stat.GetInvocationKey()); ok == isExist {
+	if _, ok := GetInvocationStatFactoryInstance(nil).invocationStats.Load(stat.GetInvocationKey()); ok == isExist {
 		t.Log("assertStatExist Success")
 	} else {
 		t.Error("assertStatExist Failed")
@@ -171,7 +171,7 @@ func assertMeasureModelCount(t *testing.T, model *MeasureModel, count uint64, do
 func buildTestInvocationStat(index string) *InvocationStat {
 	dimension := NewMockInvocationDimension("invocationKey_"+index, "measureKey")
 	host := NewMockHostInfo()
-	stat := GetInvocationStatFactoryInstance().GetInvocationStat(&host, dimension)
+	stat := GetInvocationStatFactoryInstance(nil).GetInvocationStat(host, dimension)
 	return stat
 }
 
@@ -179,7 +179,7 @@ func initInvocationStatFactory() {
 	config := &v2.FaultToleranceFilterConfig{
 		TaskSize: 10,
 	}
-	invocationStatFactory := NewInvocationStatFactory(config)
+	invocationStatFactory := GetInvocationStatFactoryInstance(config)
 	invocationStatFactoryInstance = invocationStatFactory
 }
 
