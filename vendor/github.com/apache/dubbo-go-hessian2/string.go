@@ -217,32 +217,37 @@ func encString(b []byte, v string) []byte {
 // ::= 'S' b1 b0 <utf8-data>         # string of length 0-65535
 // ::= [x00-x1f] <utf8-data>         # string of length 0-31
 // ::= [x30-x34] <utf8-data>         # string of length 0-1023
-func (d *Decoder) getStringLength(tag byte) (int32, error) {
+func (d *Decoder) getStringLength(tag byte) (int, error) {
 	var (
 		err    error
-		buf    [2]byte
-		length int32
+		length int
 	)
 
 	switch {
 	case tag >= BC_STRING_DIRECT && tag <= STRING_DIRECT_MAX:
-		return int32(tag - 0x00), nil
+		return int(tag - 0x00), nil
 
 	case tag >= 0x30 && tag <= 0x33:
-		_, err = io.ReadFull(d.reader, buf[:1])
+		b, err := d.readByte()
 		if err != nil {
 			return -1, perrors.WithStack(err)
 		}
 
-		length = int32(tag-0x30)<<8 + int32(buf[0])
+		length = int(tag-0x30)<<8 + int(b)
 		return length, nil
 
 	case tag == BC_STRING_CHUNK || tag == BC_STRING:
-		_, err = io.ReadFull(d.reader, buf[:2])
+		b0, err := d.readByte()
 		if err != nil {
 			return -1, perrors.WithStack(err)
 		}
-		length = int32(buf[0])<<8 + int32(buf[1])
+
+		b1, err := d.readByte()
+		if err != nil {
+			return -1, perrors.WithStack(err)
+		}
+
+		length = int(b0)<<8 + int(b1)
 		return length, nil
 
 	default:
@@ -252,11 +257,10 @@ func (d *Decoder) getStringLength(tag byte) (int32, error) {
 
 func (d *Decoder) decString(flag int32) (string, error) {
 	var (
-		tag       byte
-		charTotal int32
-		last      bool
-		s         string
-		r         rune
+		tag      byte
+		chunkLen int
+		last     bool
+		s        string
 	)
 
 	if flag != TAG_READ {
@@ -311,24 +315,19 @@ func (d *Decoder) decString(flag int32) (string, error) {
 			last = true
 		}
 
-		l, err := d.getStringLength(tag)
+		charLen, err := d.getStringLength(tag)
 		if err != nil {
 			return s, perrors.WithStack(err)
 		}
-		charTotal = l
-		charCount := 0
-
-		runeData := make([]rune, charTotal)
-		runeIndex := 0
-
-		byteCount := 0
-		byteLen := 0
-		charLen := 0
+		chunkLen = charLen
+		bytesBuf := make([]byte, chunkLen<<2)
+		offset := 0
 
 		for {
-			if int32(charCount) == charTotal {
+			if chunkLen <= 0 {
 				if last {
-					return string(runeData[:runeIndex]), nil
+					b := bytesBuf[:offset]
+					return *(*string)(unsafe.Pointer(&b)), nil
 				}
 
 				b, _ := d.readByte()
@@ -343,21 +342,91 @@ func (d *Decoder) decString(flag int32) (string, error) {
 						last = true
 					}
 
-					l, err := d.getStringLength(b)
+					charLen, err = d.getStringLength(b)
 					if err != nil {
 						return s, perrors.WithStack(err)
 					}
-					charTotal += l
-					bs := make([]rune, charTotal)
-					copy(bs, runeData)
-					runeData = bs
 
+					if chunkLen < 0 {
+						chunkLen = 0
+					}
+					if charLen < 0 {
+						charLen = 0
+					}
+
+					chunkLen += charLen
+					remain, cap := len(bytesBuf)-offset, charLen<<2
+					if remain < cap {
+						grow := len(bytesBuf) + cap
+						bs := make([]byte, grow)
+						copy(bs, bytesBuf)
+						bytesBuf = bs
+					}
 				default:
 					return s, perrors.New("expect string tag")
 				}
 			}
 
-			r, charLen, byteLen, err = decodeUcs4Rune(d.reader)
+			if chunkLen > 0 {
+				nread, err := d.next(bytesBuf[offset : offset+chunkLen])
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					return s, perrors.WithStack(err)
+				}
+
+				// quickly detect the actual number of bytes
+				prev, i := offset, offset
+				for len := offset + nread; i < len; chunkLen-- {
+					ch := bytesBuf[i]
+					if ch < 0x80 {
+						i++
+					} else if (ch & 0xe0) == 0xc0 {
+						i += 2
+					} else if (ch & 0xf0) == 0xe0 {
+						i += 3
+					} else {
+						return s, perrors.Errorf("bad utf-8 encoding, offset=%d\n", offset+(i-prev))
+					}
+				}
+
+				// update byte offset
+				offset = offset + i - prev
+
+				if remain := offset - prev - nread; remain > 0 {
+					if remain == 1 {
+						ch, err := d.readByte()
+						if err != nil {
+							return s, perrors.WithStack(err)
+						}
+						bytesBuf[offset-1] = ch
+					} else {
+						var err error
+						if buffed := d.Buffered(); buffed < remain {
+							// trigger fill data if required
+							copy(bytesBuf[offset-remain:offset], d.peek(remain))
+							_, err = d.reader.Discard(remain)
+						} else {
+							// copy remaining bytes.
+							_, err = d.next(bytesBuf[offset-remain : offset])
+						}
+
+						if err != nil {
+							return s, perrors.WithStack(err)
+						}
+					}
+				}
+
+				// the expected length string has been processed.
+				if chunkLen <= 0 {
+					// we need to detect next chunk
+					continue
+				}
+			}
+
+			// decode byte
+			ch, err := d.readByte()
 			if err != nil {
 				if err == io.EOF {
 					break
@@ -365,14 +434,40 @@ func (d *Decoder) decString(flag int32) (string, error) {
 				return s, perrors.WithStack(err)
 			}
 
-			runeData[runeIndex] = r
-			runeIndex++
+			if ch < 0x80 {
+				bytesBuf[offset] = ch
+				offset++
+			} else if (ch & 0xe0) == 0xc0 {
+				ch1, err := d.readByte()
+				if err != nil {
+					return s, perrors.WithStack(err)
+				}
+				bytesBuf[offset] = ch
+				bytesBuf[offset+1] = ch1
+				offset += 2
+			} else if (ch & 0xf0) == 0xe0 {
+				var err error
+				if buffed := d.Buffered(); buffed < 2 {
+					// trigger fill data if required
+					copy(bytesBuf[offset+1:offset+3], d.peek(2))
+					_, err = d.reader.Discard(2)
+				} else {
+					_, err = d.next(bytesBuf[offset+1 : offset+3])
+				}
+				if err != nil {
+					return s, perrors.WithStack(err)
+				}
+				bytesBuf[offset] = ch
+				offset += 3
+			} else {
+				return s, perrors.Errorf("bad utf-8 encoding, offset=%d\n", offset)
+			}
 
-			charCount += charLen
-			byteCount += byteLen
+			chunkLen--
 		}
 
-		return string(runeData[:runeIndex]), nil
+		b := bytesBuf[:offset]
+		return *(*string)(unsafe.Pointer(&b)), nil
 	}
 
 	return s, perrors.Errorf("unknown string tag %#x\n", tag)
