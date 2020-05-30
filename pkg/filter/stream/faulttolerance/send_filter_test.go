@@ -19,6 +19,7 @@ package faulttolerance
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
 	"testing"
 	"time"
 
@@ -96,7 +97,7 @@ func TestAppendFilter(t *testing.T) {
 		ExceptionRateMultiple: 1,
 	}
 
-	f := NewSendFilter(cfg)
+	f := NewSendFilter(cfg, regulator.GetInvocationStatFactoryInstance())
 
 	addr1 := "127.0.0.1:80"
 	addr2 := "127.0.0.1:81"
