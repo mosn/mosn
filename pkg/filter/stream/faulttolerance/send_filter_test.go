@@ -97,7 +97,7 @@ func TestAppendFilter(t *testing.T) {
 		ExceptionRateMultiple: 1,
 	}
 
-	f := NewSendFilter(cfg, regulator.GetInvocationStatFactoryInstance())
+	f := NewSendFilter(cfg, regulator.NewInvocationStatFactory(cfg))
 
 	addr1 := "127.0.0.1:80"
 	addr2 := "127.0.0.1:81"
