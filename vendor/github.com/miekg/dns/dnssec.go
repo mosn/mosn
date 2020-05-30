@@ -67,6 +67,9 @@ var AlgorithmToString = map[uint8]string{
 	PRIVATEOID:       "PRIVATEOID",
 }
 
+// StringToAlgorithm is the reverse of AlgorithmToString.
+var StringToAlgorithm = reverseInt8(AlgorithmToString)
+
 // AlgorithmToHash is a map of algorithm crypto hash IDs to crypto.Hash's.
 var AlgorithmToHash = map[uint8]crypto.Hash{
 	RSAMD5:           crypto.MD5, // Deprecated in RFC 6725
@@ -98,6 +101,9 @@ var HashToString = map[uint8]string{
 	SHA384: "SHA384",
 	SHA512: "SHA512",
 }
+
+// StringToHash is a map of names to hash IDs.
+var StringToHash = reverseInt8(HashToString)
 
 // DNSKEY flag values.
 const (
@@ -141,8 +147,8 @@ func (k *DNSKEY) KeyTag() uint16 {
 	switch k.Algorithm {
 	case RSAMD5:
 		// Look at the bottom two bytes of the modules, which the last
-		// item in the pubkey.
-		// This algorithm has been deprecated, but keep this key-tag calculation.
+		// item in the pubkey. We could do this faster by looking directly
+		// at the base64 values. But I'm lazy.
 		modulus, _ := fromBase64([]byte(k.PublicKey))
 		if len(modulus) > 1 {
 			x := binary.BigEndian.Uint16(modulus[len(modulus)-2:])
@@ -200,7 +206,7 @@ func (k *DNSKEY) ToDS(h uint8) *DS {
 	wire = wire[:n]
 
 	owner := make([]byte, 255)
-	off, err1 := PackDomainName(CanonicalName(k.Hdr.Name), owner, 0, nil, false)
+	off, err1 := PackDomainName(strings.ToLower(k.Hdr.Name), owner, 0, nil, false)
 	if err1 != nil {
 		return nil
 	}
@@ -262,17 +268,16 @@ func (rr *RRSIG) Sign(k crypto.Signer, rrset []RR) error {
 		return ErrKey
 	}
 
-	h0 := rrset[0].Header()
 	rr.Hdr.Rrtype = TypeRRSIG
-	rr.Hdr.Name = h0.Name
-	rr.Hdr.Class = h0.Class
+	rr.Hdr.Name = rrset[0].Header().Name
+	rr.Hdr.Class = rrset[0].Header().Class
 	if rr.OrigTtl == 0 { // If set don't override
-		rr.OrigTtl = h0.Ttl
+		rr.OrigTtl = rrset[0].Header().Ttl
 	}
-	rr.TypeCovered = h0.Rrtype
-	rr.Labels = uint8(CountLabel(h0.Name))
+	rr.TypeCovered = rrset[0].Header().Rrtype
+	rr.Labels = uint8(CountLabel(rrset[0].Header().Name))
 
-	if strings.HasPrefix(h0.Name, "*") {
+	if strings.HasPrefix(rrset[0].Header().Name, "*") {
 		rr.Labels-- // wildcard, remove from label count
 	}
 
@@ -285,7 +290,7 @@ func (rr *RRSIG) Sign(k crypto.Signer, rrset []RR) error {
 	sigwire.Inception = rr.Inception
 	sigwire.KeyTag = rr.KeyTag
 	// For signing, lowercase this name
-	sigwire.SignerName = CanonicalName(rr.SignerName)
+	sigwire.SignerName = strings.ToLower(rr.SignerName)
 
 	// Create the desired binary blob
 	signdata := make([]byte, DefaultMsgSize)
@@ -318,9 +323,6 @@ func (rr *RRSIG) Sign(k crypto.Signer, rrset []RR) error {
 		}
 
 		rr.Signature = toBase64(signature)
-	case RSAMD5, DSA, DSANSEC3SHA1:
-		// See RFC 6944.
-		return ErrAlg
 	default:
 		h := hash.New()
 		h.Write(signdata)
@@ -399,7 +401,7 @@ func (rr *RRSIG) Verify(k *DNSKEY, rrset []RR) error {
 	if rr.Algorithm != k.Algorithm {
 		return ErrKey
 	}
-	if !strings.EqualFold(rr.SignerName, k.Hdr.Name) {
+	if strings.ToLower(rr.SignerName) != strings.ToLower(k.Hdr.Name) {
 		return ErrKey
 	}
 	if k.Protocol != 3 {
@@ -409,7 +411,10 @@ func (rr *RRSIG) Verify(k *DNSKEY, rrset []RR) error {
 	// IsRRset checked that we have at least one RR and that the RRs in
 	// the set have consistent type, class, and name. Also check that type and
 	// class matches the RRSIG record.
-	if h0 := rrset[0].Header(); h0.Class != rr.Hdr.Class || h0.Rrtype != rr.TypeCovered {
+	if rrset[0].Header().Class != rr.Hdr.Class {
+		return ErrRRset
+	}
+	if rrset[0].Header().Rrtype != rr.TypeCovered {
 		return ErrRRset
 	}
 
@@ -423,7 +428,7 @@ func (rr *RRSIG) Verify(k *DNSKEY, rrset []RR) error {
 	sigwire.Expiration = rr.Expiration
 	sigwire.Inception = rr.Inception
 	sigwire.KeyTag = rr.KeyTag
-	sigwire.SignerName = CanonicalName(rr.SignerName)
+	sigwire.SignerName = strings.ToLower(rr.SignerName)
 	// Create the desired binary blob
 	signeddata := make([]byte, DefaultMsgSize)
 	n, err := packSigWire(sigwire, signeddata)
@@ -558,19 +563,20 @@ func (k *DNSKEY) publicKeyRSA() *rsa.PublicKey {
 
 	pubkey := new(rsa.PublicKey)
 
-	var expo uint64
-	// The exponent of length explen is between keyoff and modoff.
-	for _, v := range keybuf[keyoff:modoff] {
+	expo := uint64(0)
+	for i := 0; i < int(explen); i++ {
 		expo <<= 8
-		expo |= uint64(v)
+		expo |= uint64(keybuf[keyoff+i])
 	}
 	if expo > 1<<31-1 {
 		// Larger exponent than supported by the crypto package.
 		return nil
 	}
-
 	pubkey.E = int(expo)
-	pubkey.N = new(big.Int).SetBytes(keybuf[modoff:])
+
+	pubkey.N = big.NewInt(0)
+	pubkey.N.SetBytes(keybuf[modoff:])
+
 	return pubkey
 }
 
@@ -595,8 +601,10 @@ func (k *DNSKEY) publicKeyECDSA() *ecdsa.PublicKey {
 			return nil
 		}
 	}
-	pubkey.X = new(big.Int).SetBytes(keybuf[:len(keybuf)/2])
-	pubkey.Y = new(big.Int).SetBytes(keybuf[len(keybuf)/2:])
+	pubkey.X = big.NewInt(0)
+	pubkey.X.SetBytes(keybuf[:len(keybuf)/2])
+	pubkey.Y = big.NewInt(0)
+	pubkey.Y.SetBytes(keybuf[len(keybuf)/2:])
 	return pubkey
 }
 
@@ -617,10 +625,10 @@ func (k *DNSKEY) publicKeyDSA() *dsa.PublicKey {
 	p, keybuf := keybuf[:size], keybuf[size:]
 	g, y := keybuf[:size], keybuf[size:]
 	pubkey := new(dsa.PublicKey)
-	pubkey.Parameters.Q = new(big.Int).SetBytes(q)
-	pubkey.Parameters.P = new(big.Int).SetBytes(p)
-	pubkey.Parameters.G = new(big.Int).SetBytes(g)
-	pubkey.Y = new(big.Int).SetBytes(y)
+	pubkey.Parameters.Q = big.NewInt(0).SetBytes(q)
+	pubkey.Parameters.P = big.NewInt(0).SetBytes(p)
+	pubkey.Parameters.G = big.NewInt(0).SetBytes(g)
+	pubkey.Y = big.NewInt(0).SetBytes(y)
 	return pubkey
 }
 
@@ -650,16 +658,15 @@ func rawSignatureData(rrset []RR, s *RRSIG) (buf []byte, err error) {
 	wires := make(wireSlice, len(rrset))
 	for i, r := range rrset {
 		r1 := r.copy()
-		h := r1.Header()
-		h.Ttl = s.OrigTtl
-		labels := SplitDomainName(h.Name)
+		r1.Header().Ttl = s.OrigTtl
+		labels := SplitDomainName(r1.Header().Name)
 		// 6.2. Canonical RR Form. (4) - wildcards
 		if len(labels) > int(s.Labels) {
 			// Wildcard
-			h.Name = "*." + strings.Join(labels[len(labels)-int(s.Labels):], ".") + "."
+			r1.Header().Name = "*." + strings.Join(labels[len(labels)-int(s.Labels):], ".") + "."
 		}
 		// RFC 4034: 6.2.  Canonical RR Form. (2) - domain name to lowercase
-		h.Name = CanonicalName(h.Name)
+		r1.Header().Name = strings.ToLower(r1.Header().Name)
 		// 6.2. Canonical RR Form. (3) - domain rdata to lowercase.
 		//   NS, MD, MF, CNAME, SOA, MB, MG, MR, PTR,
 		//   HINFO, MINFO, MX, RP, AFSDB, RT, SIG, PX, NXT, NAPTR, KX,
@@ -672,52 +679,52 @@ func rawSignatureData(rrset []RR, s *RRSIG) (buf []byte, err error) {
 		//	conversion.
 		switch x := r1.(type) {
 		case *NS:
-			x.Ns = CanonicalName(x.Ns)
+			x.Ns = strings.ToLower(x.Ns)
 		case *MD:
-			x.Md = CanonicalName(x.Md)
+			x.Md = strings.ToLower(x.Md)
 		case *MF:
-			x.Mf = CanonicalName(x.Mf)
+			x.Mf = strings.ToLower(x.Mf)
 		case *CNAME:
-			x.Target = CanonicalName(x.Target)
+			x.Target = strings.ToLower(x.Target)
 		case *SOA:
-			x.Ns = CanonicalName(x.Ns)
-			x.Mbox = CanonicalName(x.Mbox)
+			x.Ns = strings.ToLower(x.Ns)
+			x.Mbox = strings.ToLower(x.Mbox)
 		case *MB:
-			x.Mb = CanonicalName(x.Mb)
+			x.Mb = strings.ToLower(x.Mb)
 		case *MG:
-			x.Mg = CanonicalName(x.Mg)
+			x.Mg = strings.ToLower(x.Mg)
 		case *MR:
-			x.Mr = CanonicalName(x.Mr)
+			x.Mr = strings.ToLower(x.Mr)
 		case *PTR:
-			x.Ptr = CanonicalName(x.Ptr)
+			x.Ptr = strings.ToLower(x.Ptr)
 		case *MINFO:
-			x.Rmail = CanonicalName(x.Rmail)
-			x.Email = CanonicalName(x.Email)
+			x.Rmail = strings.ToLower(x.Rmail)
+			x.Email = strings.ToLower(x.Email)
 		case *MX:
-			x.Mx = CanonicalName(x.Mx)
+			x.Mx = strings.ToLower(x.Mx)
 		case *RP:
-			x.Mbox = CanonicalName(x.Mbox)
-			x.Txt = CanonicalName(x.Txt)
+			x.Mbox = strings.ToLower(x.Mbox)
+			x.Txt = strings.ToLower(x.Txt)
 		case *AFSDB:
-			x.Hostname = CanonicalName(x.Hostname)
+			x.Hostname = strings.ToLower(x.Hostname)
 		case *RT:
-			x.Host = CanonicalName(x.Host)
+			x.Host = strings.ToLower(x.Host)
 		case *SIG:
-			x.SignerName = CanonicalName(x.SignerName)
+			x.SignerName = strings.ToLower(x.SignerName)
 		case *PX:
-			x.Map822 = CanonicalName(x.Map822)
-			x.Mapx400 = CanonicalName(x.Mapx400)
+			x.Map822 = strings.ToLower(x.Map822)
+			x.Mapx400 = strings.ToLower(x.Mapx400)
 		case *NAPTR:
-			x.Replacement = CanonicalName(x.Replacement)
+			x.Replacement = strings.ToLower(x.Replacement)
 		case *KX:
-			x.Exchanger = CanonicalName(x.Exchanger)
+			x.Exchanger = strings.ToLower(x.Exchanger)
 		case *SRV:
-			x.Target = CanonicalName(x.Target)
+			x.Target = strings.ToLower(x.Target)
 		case *DNAME:
-			x.Target = CanonicalName(x.Target)
+			x.Target = strings.ToLower(x.Target)
 		}
 		// 6.2. Canonical RR Form. (5) - origTTL
-		wire := make([]byte, Len(r1)+1) // +1 to be safe(r)
+		wire := make([]byte, r1.len()+1) // +1 to be safe(r)
 		off, err1 := PackRR(r1, wire, 0, nil, false)
 		if err1 != nil {
 			return nil, err1
