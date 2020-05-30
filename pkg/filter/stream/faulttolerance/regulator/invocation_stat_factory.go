@@ -30,16 +30,12 @@ type InvocationStatFactory struct {
 }
 
 var invocationStatFactoryInstance *InvocationStatFactory
-var onceStatFactoryInstance = new(sync.Once)
 
-func GetInvocationStatFactoryInstance(config *v2.FaultToleranceFilterConfig) *InvocationStatFactory {
-	onceStatFactoryInstance.Do(func() {
-		invocationStatFactoryInstance = newInvocationStatFactory(config)
-	})
+func GetInvocationStatFactoryInstance() *InvocationStatFactory {
 	return invocationStatFactoryInstance
 }
 
-func newInvocationStatFactory(config *v2.FaultToleranceFilterConfig) *InvocationStatFactory {
+func NewInvocationStatFactory(config *v2.FaultToleranceFilterConfig) *InvocationStatFactory {
 	invocationStatFactoryInstance = &InvocationStatFactory{
 		invocationStats: new(sync.Map),
 		regulator:       NewDefaultRegulator(config),

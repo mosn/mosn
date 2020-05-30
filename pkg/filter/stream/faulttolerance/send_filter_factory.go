@@ -46,7 +46,7 @@ func CreateSendFilterFactory(conf map[string]interface{}) (api.StreamFilterChain
 	if filterConfig, err := parseConfig(conf); err != nil {
 		return nil, err
 	} else {
-		invocationFactory := regulator.GetInvocationStatFactoryInstance(filterConfig)
+		invocationFactory := regulator.NewInvocationStatFactory(filterConfig)
 		return &SendFilterFactory{
 			config:            filterConfig,
 			invocationFactory: invocationFactory,
