@@ -179,7 +179,7 @@ func initInvocationStatFactory() {
 	config := &v2.FaultToleranceFilterConfig{
 		TaskSize: 10,
 	}
-	invocationStatFactory := GetInvocationStatFactoryInstance()
+	invocationStatFactory := NewInvocationStatFactory(config)
 	invocationStatFactoryInstance = invocationStatFactory
 }
 
