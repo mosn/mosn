@@ -81,7 +81,7 @@ const (
 	MIXER          = "mixer"
 	FaultStream    = "fault"
 	PayloadLimit   = "payload_limit"
-  Gzip           = "gzip"
+	Gzip           = "gzip"
 	FaultTolerance = "fault_tolerance"
 )
 
