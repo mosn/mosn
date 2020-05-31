@@ -83,6 +83,7 @@ func parseConfig(cfg map[string]interface{}) (*v2.FaultToleranceFilterConfig, er
 		MaxIpCount:            ruleJson.MaxIpCount,
 		MaxIpRatio:            ruleJson.MaxIpRatio,
 		RecoverTime:           ruleJson.RecoverTime,
+		TaskSize:              ruleJson.TaskSize,
 	}
 	return filterConfig, nil
 }
@@ -109,6 +110,9 @@ func fillDefaultValue(ruleJson *config.FaultToleranceRuleJson) {
 	}
 	if ruleJson.ExceptionRateMultiple == 0 {
 		ruleJson.ExceptionRateMultiple = 5
+	}
+	if ruleJson.LeastWindowCount == 0 {
+		ruleJson.LeastWindowCount = 10
 	}
 	if ruleJson.ExceptionTypes == nil {
 		ruleJson.ExceptionTypes = []uint32{502, 503, 504}
