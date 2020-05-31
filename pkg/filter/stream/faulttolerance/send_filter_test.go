@@ -142,5 +142,4 @@ func TestAppendFilter(t *testing.T) {
 	if !host1.Health() {
 		t.Errorf("health status should recover,but got health status: %v", host1.Health())
 	}
-
 }
