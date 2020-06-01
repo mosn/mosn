@@ -17,6 +17,7 @@
 package dubbod
 
 import (
+	"fmt"
 	"net/http"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -28,9 +29,34 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-// init the http api for application when application bootstrap
+// Init set the pub port && api port
+// and init dubbo API service
+func Init(configAPIPort, configPubPort int) {
+	initGlobalVars(configAPIPort, configPubPort)
+	initAPI()
+}
+
+func initGlobalVars(configAPIPort, configPubPort int) {
+	if configAPIPort > 0 && configAPIPort < 65535 {
+		// valid port
+		apiPort = fmt.Sprint(configAPIPort)
+	} else {
+		log.DefaultLogger.Warnf("invalid dubbo api port: %v, will use default: %v", configAPIPort, apiPort)
+	}
+
+	if configPubPort > 0 && configAPIPort < 65535 {
+		// valid port
+		mosnPubPort = fmt.Sprint(configPubPort)
+	} else {
+		log.DefaultLogger.Fatalf("invalid dubbo pub port: %v, will use default: %v", configPubPort, mosnPubPort)
+	}
+}
+
+var apiPort = "22222" // default 22222
+
+// initAPI inits the http api for application when application bootstrap
 // for sub/pub
-func Init( /*port string, dubboLogPath string*/ ) {
+func initAPI() {
 	// 1. init router
 	r := chi.NewRouter()
 	r.Post("/sub", subscribe)
@@ -42,7 +68,7 @@ func Init( /*port string, dubboLogPath string*/ ) {
 
 	// FIXME make port configurable
 	utils.GoWithRecover(func() {
-		if err := http.ListenAndServe(":22222", r); err != nil {
+		if err := http.ListenAndServe(":"+apiPort, r); err != nil {
 			log.DefaultLogger.Infof("auto write config when updated")
 		}
 	}, nil)

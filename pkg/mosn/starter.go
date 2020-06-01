@@ -40,6 +40,7 @@ import (
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/pkg/xds"
 	"mosn.io/pkg/utils"
+	"mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 )
 
 // Mosn class which wrapper server
@@ -63,6 +64,8 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
+
+	initDubboRelatedConfig(c.Dubbo)
 
 	store.SetMosnConfig(c)
 
@@ -180,6 +183,12 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	}
 
 	return m
+}
+
+func initDubboRelatedConfig(dubbo v2.DubboConfig) {
+	if dubbo.Enable {
+		dubbod.Init(dubbo.APIPort, dubbo.ServerListenerPort)
+	}
 }
 
 // beforeStart prepares some actions before mosn start proxy listener
