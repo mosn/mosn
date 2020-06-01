@@ -16,7 +16,7 @@
 - Configure to get ADMIN API optimizations, add features and environment variable related ADMIN API [@nejisama](https://github.com/nejisama)
 - Update that triggers a health check when updating Host changed from asynchronous mode to synchronous mode [@nejisama](https://github.com/nejisama)
 - Updated the Dubbo library to optimize the performance of Dubbo Decode [@zonghaishang](https://github.com/zonghaishang)
-- Optimize Metrics output in Promuthes, using regularity to filter out illegal Key [@nejisama](https://github.com/nejisama)
+- Optimize Metrics output in Prometheus, using regularity to filter out illegal Key [@nejisama](https://github.com/nejisama)
 - Optimize MOSN's return status code [@wangfakang](https://github.com/wangfakang)
 
 ### Bug fix

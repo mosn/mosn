@@ -16,7 +16,7 @@
 + 配置获取 ADMIN API 优化，新增 Features 和环境变量相关 ADMIN API [@nejisama](https://github.com/nejisama)
 + 更新 Host 时触发健康检查的更新从异步模式修改为同步模式 [@nejisama](https://github.com/nejisama)
 + 更新了 Dubbo 库，优化了 Dubbo Decode 的性能 [@zonghaishang](https://github.com/zonghaishang)
-+ 优化 Metrics 在 Promuthes 中的输出，使用正则过滤非法的 Key [@nejisama](https://github.com/nejisama)
++ 优化 Metrics 在 Prometheus 中的输出，使用正则过滤非法的 Key [@nejisama](https://github.com/nejisama)
 + 优化 MOSN 的返回状态码 [@wangfakang](https://github.com/wangfakang)
 
 ### Bug 修复
