@@ -27,6 +27,7 @@ import (
 )
 
 func GetVariableValue(ctx context.Context, name string) (string, error) {
+	name = strings.ToLower(name)
 	// 1. find built-in variables
 	if variable, ok := variables[name]; ok {
 		// 1.1 check indexed value
@@ -65,6 +66,7 @@ func SetVariableValue(ctx context.Context, name, value string) error {
 	if ctx == nil {
 		return errors.New(errInvalidContext)
 	}
+	name = strings.ToLower(name)
 
 	// find built-in & indexed variables, prefix and non-indexed are not supported
 	if variable, ok := variables[name]; ok {
