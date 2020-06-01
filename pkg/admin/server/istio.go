@@ -17,7 +17,7 @@ const (
 	CDS_UPDATE_REJECT  = "cluster_manager.cds.update_rejected"
 	LDS_UPDATE_SUCCESS = "listener_manager.lds.update_success"
 	LDS_UPDATE_REJECT  = "listener_manager.lds.update_rejected"
-	SERVER_STATE = "server.state"
+	SERVER_STATE       = "server.state"
 )
 
 func statsForIstio(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +43,7 @@ func serverInfoForIstio(w http.ResponseWriter, r *http.Request) {
 	i := envoyControlPlaneAPI.ServerInfo{}
 	var err error
 	i.State, err = getIstioState()
-	if err != nil{
+	if err != nil {
 		log.DefaultLogger.Warnf("%v", err)
 		return
 	}

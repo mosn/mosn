@@ -132,11 +132,10 @@ const (
 
 type XdsStats struct {
 	CdsUpdateSuccess metrics.Counter
-	CdsUpdateReject metrics.Counter
+	CdsUpdateReject  metrics.Counter
 	LdsUpdateSuccess metrics.Counter
-	LdsUpdateReject metrics.Counter
+	LdsUpdateReject  metrics.Counter
 }
-
 
 func IsApplicationNodeType(nType string) bool {
 	switch NodeType(nType) {

@@ -99,8 +99,8 @@ var (
 				Usage:  "mosn log level, trace|debug|info|warning|error|critical|off",
 				EnvVar: "LOG_LEVEL",
 			}, cli.StringFlag{
-				Name:   "log-format, lf",
-				Usage:  "mosn log format, currently useless",
+				Name:  "log-format, lf",
+				Usage: "mosn log format, currently useless",
 			}, cli.StringSliceFlag{
 				Name:  "component-log-level, lc",
 				Usage: "mosn component format, currently useless",
