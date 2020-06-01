@@ -53,6 +53,18 @@ const (
 	ORIGINALDST_LISTENER_FILTER = "original_dst"
 )
 
+type FaultToleranceFilterConfig struct {
+	Enabled               bool `json:"enabled"`
+	ExceptionTypes        map[uint32]bool
+	TimeWindow            int64
+	LeastWindowCount      int64
+	ExceptionRateMultiple float64
+	MaxIpCount            uint64
+	MaxIpRatio            float64
+	RecoverTime           int64
+	TaskSize              int64
+}
+
 // Network Filter's Type
 const (
 	CONNECTION_MANAGER          = "connection_manager" // deprecated
@@ -66,10 +78,11 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER        = "mixer"
-	FaultStream  = "fault"
-	PayloadLimit = "payload_limit"
-	Gzip         = "gzip"
+	MIXER          = "mixer"
+	FaultStream    = "fault"
+	PayloadLimit   = "payload_limit"
+	Gzip           = "gzip"
+	FaultTolerance = "fault_tolerance"
 )
 
 // HealthCheckFilter
