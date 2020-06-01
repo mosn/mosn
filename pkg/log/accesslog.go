@@ -20,6 +20,8 @@ package log
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
@@ -145,11 +147,14 @@ func parseFormat(format string) ([]*logEntry, error) {
 					}
 
 					// var def ends, add variable
-					varEntry, err := variable.AddVariable(format[lastMark+1 : pos])
+					varName := format[lastMark+1 : pos]
+					varEntry, err := variable.AddVariable(strings.ToLower(varName))
 					if err != nil {
-						return nil, err
+						// if not match, use raw string
+						entries = append(entries, &logEntry{text: fmt.Sprintf("%%%s%%", varName)})
+					} else {
+						entries = append(entries, &logEntry{variable: varEntry})
 					}
-					entries = append(entries, &logEntry{variable: varEntry})
 				} else {
 					// ignore empty text
 					if pos > lastMark+1 {

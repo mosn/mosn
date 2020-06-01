@@ -29,10 +29,16 @@ const (
 	VarResponseCode             string = "response_code"
 	VarDuration                 string = "duration"
 	VarResponseFlag             string = "response_flag"
-	VarUpstreamLocalAddress     string = "upstream_local_address"
-	VarDownstreamLocalAddress   string = "downstream_local_address"
-	VarDownstreamRemoteAddress  string = "downstream_remote_address"
-	VarUpstreamHost             string = "upstream_host"
+	// compatible Envoy log variable
+	VarResponseFlags                  string = "response_flags"
+	VarUpstreamLocalAddress           string = "upstream_local_address"
+	VarDownstreamLocalAddress         string = "downstream_local_address"
+	VarDownstreamRemoteAddress        string = "downstream_remote_address"
+	VarUpstreamHost                   string = "upstream_host"
+	VarUpStreamTransportFailureReason string = "upstream_transport_failure_reason"
+	VarUpStreamCluster                string = "upstream_cluster"
+	VarRequestedServerName            string = "requested_server_name"
+	VarRouteName                      string = "route_name"
 
 	// ReqHeaderPrefix is the prefix of request header's formatter
 	VarPrefixReqHeader string = "request_header_"

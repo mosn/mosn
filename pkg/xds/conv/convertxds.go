@@ -147,6 +147,9 @@ func convertListenerFilter(name string, s *any.Any) v2.Filter {
 		// originaldst filter don't need filter.Config
 		filter.Type = name
 
+	case v2.Istio_ORIGINALDST_LISTENER_FILTER:
+		filter.Type = v2.ORIGINALDST_LISTENER_FILTER
+
 	default:
 		log.DefaultLogger.Errorf("not support %s listener filter.", name)
 	}

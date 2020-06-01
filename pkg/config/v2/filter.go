@@ -44,7 +44,8 @@ type DelayInjectConfig struct {
 
 // Listener Filter's Type
 const (
-	ORIGINALDST_LISTENER_FILTER = "original_dst"
+	ORIGINALDST_LISTENER_FILTER       = "original_dst"
+	Istio_ORIGINALDST_LISTENER_FILTER = "envoy.listener.original_dst"
 )
 
 // Network Filter's Type

@@ -17,7 +17,10 @@
 
 package variable
 
-import "context"
+import (
+	"context"
+	"strings"
+)
 
 // variable.Variable
 type BasicVariable struct {
@@ -70,7 +73,7 @@ func NewBasicVariable(name string, data interface{}, getter GetterFunc, setter S
 	return &BasicVariable{
 		getter: getter,
 		setter: setter,
-		name:   name,
+		name:   strings.ToLower(name),
 		data:   data,
 		flags:  flags,
 	}
@@ -82,7 +85,7 @@ func NewIndexedVariable(name string, data interface{}, getter GetterFunc, setter
 		BasicVariable: BasicVariable{
 			getter: getter,
 			setter: setter,
-			name:   name,
+			name:   strings.ToLower(name),
 			data:   data,
 			flags:  flags,
 		},
