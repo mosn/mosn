@@ -13,14 +13,6 @@ import (
 // FlowControlFilterName is the flow control stream filter name.
 const FlowControlFilterName = "flowControlFilter"
 
-func init() {
-	err := sentinel.InitDefault()
-	if err != nil {
-		log.DefaultLogger.Errorf("init sentinel failed")
-		panic(err)
-	}
-}
-
 // StreamFilter represents the flow control stream filter.
 type StreamFilter struct {
 	Entry      *base.SentinelEntry
