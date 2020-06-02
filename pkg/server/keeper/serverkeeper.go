@@ -165,7 +165,12 @@ func ExecuteShutdownCallbacks(signame string) (exitCode int) {
 		var errs []error
 
 		for _, cb := range shutdownCallbacks {
-			errs = append(errs, cb())
+			// If the callback is performing normally,
+			// err does not need to be saved to prevent
+			// the exit code from being non-zero
+			if err := cb(); err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		if len(errs) > 0 {
