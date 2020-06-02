@@ -33,6 +33,7 @@ const (
 	StreamFilterStop StreamFilterStatus = "Stop"
 
 	StreamFilterReMatchRoute StreamFilterStatus = "Retry Match Route"
+	StreamFilterReChooseHost StreamFilterStatus = "Retry Choose Host"
 )
 
 type StreamFilterBase interface {
@@ -130,6 +131,9 @@ type StreamReceiverFilterHandler interface {
 	SetRequestTrailers(trailers HeaderMap)
 
 	SetConvert(on bool)
+
+	// GetFilterCurrentPhase get current phase for filter
+	GetFilterCurrentPhase() FilterPhase
 }
 
 // StreamFilterChainFactory adds filter into callbacks
@@ -152,4 +156,5 @@ type FilterPhase int
 const (
 	BeforeRoute FilterPhase = iota
 	AfterRoute
+	AfterChooseHost
 )

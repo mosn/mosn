@@ -27,10 +27,12 @@ import (
 const (
 	MOSNComponentID = 5003
 	ErrorLog        = "Errors on upstream service"
+
+	SkyDriverName = "SkyWalking"
 )
 
 func init() {
-	trace.RegisterDriver("SkyWalking", NewSkyDriverImpl())
+	trace.RegisterDriver(SkyDriverName, NewSkyDriverImpl())
 }
 
 type holder struct {

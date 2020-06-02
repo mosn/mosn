@@ -22,6 +22,7 @@ import (
 	"errors"
 	"strings"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -50,6 +51,11 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 			}
 			return getter(ctx, nil, name)
 		}
+	}
+
+	// 3. find protocol resource variables
+	if v, e := GetProtocolResource(ctx, api.ProtocolResourceName(name)); e == nil {
+		return v, nil
 	}
 
 	return "", errors.New(errUndefinedVariable + name)

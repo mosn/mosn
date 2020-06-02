@@ -32,12 +32,14 @@ const (
 	DownFilter
 	MatchRoute
 	DownFilterAfterRoute
+	ChooseHost
+	DownFilterAfterChooseHost
 	DownRecvHeader
 	DownRecvData
 	DownRecvTrailer
 	Oneway
 	Retry
-	WaitNofity
+	WaitNotify
 	UpFilter
 	UpRecvHeader
 	UpRecvData

@@ -1,3 +1,5 @@
+// +build MOSNTest
+
 package directresp
 
 import (
