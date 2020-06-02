@@ -237,7 +237,12 @@ type PooledClient interface {
 	Close(err error)
 	StreamClient() StreamClient
 
-	Conn() api.Connection
+}
+
+// Connection simplified connection pool
+type Connection interface {
+	Write(buf ...buffer.IoBuffer) error
+	Close()
 }
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
