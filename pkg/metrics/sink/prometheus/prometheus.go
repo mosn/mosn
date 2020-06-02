@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"bytes"
@@ -289,11 +290,9 @@ func writeFloat(w types.IoBuffer, f float64) (int, error) {
 	}
 }
 
-// name regex [a-zA-Z_:][a-zA-Z0-9_:]*
+// Only [a-zA-Z0-9:_] are valid in metric names, any other characters should be sanitized to an underscore.
+var flattenRegexp = regexp.MustCompile("[^a-zA-Z0-9_:]")
+
 func flattenKey(key string) string {
-	key = strings.Replace(key, " ", "_", -1)
-	key = strings.Replace(key, ".", "_", -1)
-	key = strings.Replace(key, "-", "_", -1)
-	key = strings.Replace(key, "=", "_", -1)
-	return key
+	return flattenRegexp.ReplaceAllString(key, "_")
 }

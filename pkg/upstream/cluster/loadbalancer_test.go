@@ -112,7 +112,7 @@ func TestWRRLB(t *testing.T) {
 	// 1:2:3:4
 	hs := &hostSet{}
 	hs.setFinalHost(hosts)
-	lb := newSmoothWeightedRRLoadBalancer(nil, hs)
+	lb := newWRRLoadBalancer(nil, hs)
 	total := 1000000
 	runCase := func(subTotal int) {
 		results := map[string]int{}
@@ -161,7 +161,7 @@ func BenchmarkWRRLbSimple(b *testing.B) {
 	}
 	hs := &hostSet{}
 	hs.setFinalHost(hosts)
-	lb := newSmoothWeightedRRLoadBalancer(nil, hs)
+	lb := newWRRLoadBalancer(nil, hs)
 	b.Run("WRRSimple", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			lb.ChooseHost(nil)
@@ -206,7 +206,7 @@ func BenchmarkWRRLbMultiple(b *testing.B) {
 		}
 		hs := &hostSet{}
 		hs.setFinalHost(hosts)
-		lb := newSmoothWeightedRRLoadBalancer(nil, hs)
+		lb := newWRRLoadBalancer(nil, hs)
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				lb.ChooseHost(nil)
@@ -251,7 +251,7 @@ func BenchmarkWRRLbParallel(b *testing.B) {
 		}
 		hs := &hostSet{}
 		hs.setFinalHost(hosts)
-		lb := newSmoothWeightedRRLoadBalancer(nil, hs)
+		lb := newWRRLoadBalancer(nil, hs)
 		b.Run(tc.name, func(b *testing.B) {
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
