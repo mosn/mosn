@@ -26,7 +26,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func GetVariableValue(ctx context.Context, name string, data ...interface{}) (string, error) {
+func GetVariableValue(ctx context.Context, name string) (string, error) {
 	// 1. find built-in variables
 	if variable, ok := variables[name]; ok {
 		// 1.1 check indexed value
@@ -43,11 +43,6 @@ func GetVariableValue(ctx context.Context, name string, data ...interface{}) (st
 	}
 
 	// 2. find prefix variables
-	if len(data) == 1 {
-		fullName, _ := data[0].(string)
-		name = fullName
-	}
-
 	for prefix, variable := range prefixVariables {
 		if strings.HasPrefix(name, prefix) {
 			getter := variable.Getter()

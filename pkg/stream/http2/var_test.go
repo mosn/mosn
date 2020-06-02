@@ -2,7 +2,6 @@ package http2
 
 import (
 	"context"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -24,8 +23,7 @@ func Test_get_prefixProtocolVar(t *testing.T) {
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP2)
 
-	actual, err := variable.GetProtocolResource(ctx, api.HEADER,
-		fmt.Sprintf("%s%s", types.VarProtocolRequestHeader, headerName))
+	actual, err := variable.GetProtocolResource(ctx, api.HEADER, headerName)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()

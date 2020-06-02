@@ -56,12 +56,12 @@ func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, dat
 	}
 
 	if v, ok := protocolVar[convert(p, name)]; ok {
-		dataInput := []interface{}{}
+		// apend data behind if data exists
 		if len(data) == 1 {
-			dataInput = append(dataInput, fmt.Sprintf("%s_%s", p, data[0]))
+			v = fmt.Sprintf("%s%s", v, data[0])
 		}
 
-		return GetVariableValue(ctx, v, dataInput...)
+		return GetVariableValue(ctx, v)
 	} else {
 		return "", errors.New(errUnregisterProtocolResource + string(p))
 	}

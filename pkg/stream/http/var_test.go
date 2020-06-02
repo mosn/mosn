@@ -204,8 +204,7 @@ func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 
 	cookieName := "zone"
 	expect := "shanghai"
-	actual, err := variable.GetProtocolResource(ctx, api.COOKIE,
-		fmt.Sprintf("%s%s", types.VarProtocolCookie, cookieName))
+	actual, err := variable.GetProtocolResource(ctx, api.COOKIE, cookieName)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()
@@ -216,8 +215,7 @@ func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 
 	headerName := "Content-Type"
 	expect = "text/plain"
-	actual, err = variable.GetProtocolResource(ctx, api.HEADER,
-		fmt.Sprintf("%s%s", types.VarProtocolRequestHeader, headerName))
+	actual, err = variable.GetProtocolResource(ctx, api.HEADER, headerName)
 	if err != nil {
 		t.Error(err)
 		t.FailNow()

@@ -437,9 +437,7 @@ func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerC
 	switch info.(type) {
 	case *v2.HeaderHashPolicy:
 		headerKey := info.(*v2.HeaderHashPolicy).Key
-		protocolVarHeaderKey := fmt.Sprintf("%s%s", types.VarProtocolRequestHeader, headerKey)
-
-		headerValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.HEADER, protocolVarHeaderKey)
+		headerValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.HEADER, headerKey)
 
 		if err == nil {
 			hashString := fmt.Sprintf("%s:%s", headerKey, headerValue)
@@ -451,9 +449,7 @@ func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerC
 	case *v2.HttpCookieHashPolicy:
 		info := info.(*v2.HttpCookieHashPolicy)
 		cookieName := info.Name
-		protocolVarKey := fmt.Sprintf("%s%s", types.VarProtocolCookie, cookieName)
-
-		cookieValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.COOKIE, protocolVarKey)
+		cookieValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.COOKIE, cookieName)
 		if err == nil {
 			h := getHashByString(fmt.Sprintf("%s=%s", cookieName, cookieValue))
 			return h
