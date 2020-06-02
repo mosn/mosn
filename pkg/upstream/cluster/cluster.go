@@ -31,9 +31,25 @@ import (
 	"mosn.io/mosn/pkg/upstream/healthcheck"
 )
 
+// register cluster types
+var clusterFactories map[v2.ClusterType]func(v2.Cluster) types.Cluster
+
+func RegisterClusterType(clusterType v2.ClusterType, f func(v2.Cluster) types.Cluster) {
+	if clusterFactories == nil {
+		clusterFactories = make(map[v2.ClusterType]func(v2.Cluster) types.Cluster)
+	}
+	clusterFactories[clusterType] = f
+}
+
+func init() {
+	RegisterClusterType(v2.SIMPLE_CLUSTER, newSimpleCluster)
+}
+
 func NewCluster(clusterConfig v2.Cluster) types.Cluster {
-	// TODO: support cluster type registered
-	return newSimpleCluster(clusterConfig)
+	if f, ok := clusterFactories[clusterConfig.ClusterType]; ok {
+		return f(clusterConfig)
+	}
+	return clusterFactories[v2.SIMPLE_CLUSTER](clusterConfig)
 }
 
 // simpleCluster is an implementation of types.Cluster
@@ -46,12 +62,11 @@ type simpleCluster struct {
 	snapshot      atomic.Value
 }
 
-func newSimpleCluster(clusterConfig v2.Cluster) *simpleCluster {
+func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	// TODO support original dst cluster
 	if clusterConfig.ClusterType == v2.ORIGINALDST_CLUSTER {
 		clusterConfig.LbType = v2.LB_ORIGINAL_DST
 	}
-
 	info := &clusterInfo{
 		name:                 clusterConfig.Name,
 		clusterType:          clusterConfig.ClusterType,

@@ -120,6 +120,11 @@ func RegisterPOJO(o POJO) int {
 	pojoRegistry.Lock()
 	defer pojoRegistry.Unlock()
 
+	if goName, ok := pojoRegistry.j2g[o.JavaClassName()]; ok {
+		return pojoRegistry.registry[goName].index
+	}
+
+	// JavaClassName shouldn't equal to goName
 	if _, ok := pojoRegistry.registry[o.JavaClassName()]; ok {
 		return -1
 	}
