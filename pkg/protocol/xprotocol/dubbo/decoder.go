@@ -197,7 +197,7 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, 
 		if !matched && (listener == EgressDubbo || listener == IngressDubbo) {
 			field, err = decoder.Decode()
 			if err != nil {
-				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argsTypes error, %v", err)
+				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument types error, %v", err)
 			}
 
 			arguments := getArgumentCount(field.(string))
