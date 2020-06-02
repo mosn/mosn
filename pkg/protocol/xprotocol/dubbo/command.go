@@ -30,10 +30,10 @@ type Header struct {
 	Id      uint64
 	DataLen uint32
 
-	Event           int // 1 mean ping
-	TwoWay          int // 1 mean req & resp pair
-	Direction       int // 1 mean req
-	SerializationId int // 2 mean hessian
+	IsEvent         bool // true: heartbeat or readonly event
+	IsTwoWay        bool // true: send request and expect response, false: just request without response
+	Direction       int  // 1 mean req
+	SerializationId int  // 2 mean hessian
 	protocol.CommonHeader
 }
 
@@ -56,7 +56,7 @@ func (r *Frame) SetRequestId(id uint64) {
 }
 
 func (r *Frame) IsHeartbeatFrame() bool {
-	return r.Header.Event != 0
+	return r.Header.IsEvent
 }
 
 func (r *Frame) GetStreamType() xprotocol.StreamType {

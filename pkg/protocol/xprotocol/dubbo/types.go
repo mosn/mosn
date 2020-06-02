@@ -42,13 +42,22 @@ const (
 )
 
 const (
-	EventRequest  int = 1
-	EventResponse int = 0
+	EventRequest  int = 1 // request
+	EventResponse int = 0 // response
 )
 
 const (
-	ServiceNameHeader string = "service"
-	MethodNameHeader  string = "method"
+	FrameworkVersionNameHeader string = "dubbo"
+	ServiceNameHeader          string = "service"
+	MethodNameHeader           string = "method"
+	VersionNameHeader          string = "version"
+	GroupNameHeader            string = "group"
+	InterfaceNameHeader        string = "interface"
+)
+
+const (
+	EgressDubbo  string = "egress_dubbo"
+	IngressDubbo string = "ingress_dubbo"
 )
 
 const (
