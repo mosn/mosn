@@ -42,6 +42,113 @@ Use `go get -u mosn.io/mosn`, or you can git clone the repository to `$GOPATH/sr
 
 See our [contributor guide](CONTRIBUTING.md).
 
+## Working Groups
+
+MOSN currently includes the following working groups.
+
+- [Istio Working Group](https://github.com/mosn/community/blob/master/wg-istio.md)
+- [Dubbo Working Group](https://github.com/mosn/community/blob/master/wg-dubbo.md)
+
+Choose to join a working group that interests you and start your MOSN journey!
+
+## Partners
+
+Partners participate in MOSN co-development to make MOSN better.
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center"  valign="middle">
+        <a href="https://www.antfin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/antfin.png">
+        </a>
+      </td>
+      <td align="center"  valign="middle">
+        <a href="https://www.aliyun.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/aliyun.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.zhipin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/bosszhipin.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.dmall.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/duodian.png">
+        </a>
+      </td>
+      </tr><tr></tr>
+      <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.kanzhun.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/kanzhun.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+  </tbody>
+</table>
+</div>
+## End Users
+
+The MOSN users.
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center"  valign="middle">
+        <a href="https://www.tenxcloud.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tenxcloud.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.zhipin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/linkedcare.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.xiaobaoonline.com/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/xiaobao.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.wm-motor.com/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/weima.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.iqiyi.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/iqiyi.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.gaiaworks.cn" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/gaiya.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.tydic.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tianyuandike.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.terminus.io" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/terminus.png">
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
 ## Community
 
 See our community materials on <https://github.com/mosn/community>.
