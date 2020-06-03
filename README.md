@@ -92,9 +92,10 @@ Partners participate in MOSN co-development to make MOSN better.
   </tbody>
 </table>
 </div>
+
 ## End Users
 
-The MOSN users.
+The MOSN users. Please [leave a comment here](https://github.com/mosn/community/issues/8) to tell us your scenario to make MOSN better!
 
 <div>
 <table>
@@ -158,7 +159,6 @@ Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join
 <p align="center">
 <img src="https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ" width="150">
 </p>
-
 
 ## Landscapes
 

@@ -92,9 +92,10 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
   </tbody>
 </table>
 </div>
+
 ## 终端用户
 
-以下是 MOSN 的用户。
+以下是 MOSN 的用户。请在[此处](https://github.com/mosn/community/issues/8)登记并提供反馈来帮助 MOSN 做的更好。
 
 <div>
 <table>
