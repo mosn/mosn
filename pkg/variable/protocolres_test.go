@@ -34,9 +34,9 @@ const (
 func TestGetProtocolResource(t *testing.T) {
 	m := make(map[string]string)
 	httpKey := string(HTTP1) + "_" + types.VarProtocolRequestPath
-	dobboKey := string(Dubbo) + "_" + types.VarProtocolRequestPath
+	dubboKey := string(Dubbo) + "_" + types.VarProtocolRequestPath
 	m[httpKey] = "/http"
-	m[dobboKey] = "/dubbo"
+	m[dubboKey] = "/dubbo"
 
 	for k, _ := range m {
 		val := m[k]
