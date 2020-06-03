@@ -13,7 +13,7 @@ type Tree struct {
 	rangeEnd   map[int]uint64
 	leafCount  int
 	updateFunc SegmentTreeUpdateFunc
-	updateMux     sync.Mutex
+	updateMux  sync.Mutex
 }
 
 func (t *Tree) Leaf(index int) (*Node, error) {

@@ -19,10 +19,11 @@ package variable
 
 import (
 	"context"
+	"testing"
+
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
-	"testing"
 )
 
 const (

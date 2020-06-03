@@ -20,7 +20,6 @@ package v2
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"io/ioutil"
 	"net"
 	"os"
@@ -29,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 )
 
@@ -960,7 +960,6 @@ func TestHashPolicyMarshal(t *testing.T) {
 	if !assert.Equalf(t, config2, string(b), "marshal hash policy expect to get %s, but get %s", config2, string(b)) {
 		t.FailNow()
 	}
-
 
 	config3 := `{"hash_policy":[{"source_ip":{}}],"timeout":"0s"}`
 	ipConfig := &RouterActionConfig{

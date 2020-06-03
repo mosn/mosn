@@ -137,12 +137,12 @@ func Test_updateTree(t *testing.T) {
 	}
 
 	tree := NewTree(ns, f)
-	leaf, err  := tree.Leaf(3)
+	leaf, err := tree.Leaf(3)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if !assert.Equalf(t, 7, leaf.index, "leaf index should be 7")  {
+	if !assert.Equalf(t, 7, leaf.index, "leaf index should be 7") {
 		t.FailNow()
 	}
 

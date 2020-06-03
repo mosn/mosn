@@ -2,6 +2,9 @@ package http2
 
 import (
 	"context"
+	"net/http"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -9,8 +12,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
-	"net/http"
-	"testing"
 )
 
 func Test_get_prefixProtocolVar(t *testing.T) {

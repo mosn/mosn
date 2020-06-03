@@ -23,8 +23,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -43,6 +41,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/stretchr/testify/assert"
 	v1 "istio.io/api/mixer/v1"
 	"istio.io/api/mixer/v1/config/client"
 	v2 "mosn.io/mosn/pkg/config/v2"

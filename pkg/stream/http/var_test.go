@@ -22,10 +22,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"

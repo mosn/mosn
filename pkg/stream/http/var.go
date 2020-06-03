@@ -20,11 +20,11 @@ package http
 import (
 	"context"
 	"fmt"
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
 	"strconv"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
 

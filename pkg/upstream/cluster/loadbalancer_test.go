@@ -18,23 +18,21 @@
 package cluster
 
 import (
+	"context"
+	"fmt"
 	"math"
 	"math/rand"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
-
-	"context"
-	"fmt"
-	"reflect"
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // load should be balanced when node fails

@@ -79,8 +79,8 @@ func (m *HeaderHashPolicy) HashType() api.ConsistentHashType {
 }
 
 type HttpCookieHashPolicy struct {
-	Name string        `json:"name,omitempty"`
-	Path string        `json:"path,omitempty"`
+	Name string             `json:"name,omitempty"`
+	Path string             `json:"path,omitempty"`
 	TTL  api.DurationConfig `json:"ttl,omitempty"`
 }
 

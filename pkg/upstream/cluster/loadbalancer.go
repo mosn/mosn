@@ -28,14 +28,13 @@ import (
 	"time"
 
 	"github.com/dchest/siphash"
+	"github.com/trainyao/go-maglev"
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/segmenttree"
-	"mosn.io/mosn/pkg/variable"
-
-	"github.com/trainyao/go-maglev"
-	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // NewLoadBalancer can be register self defined type
@@ -172,8 +171,7 @@ type WRRLoadBalancer struct {
 }
 
 func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
-	wrrLB := &WRRLoadBalancer{
-	}
+	wrrLB := &WRRLoadBalancer{}
 	wrrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
 	hostsList := hosts.Hosts()
 	wrrLB.mutex.Lock()
