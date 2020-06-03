@@ -279,11 +279,6 @@ func (s *downStream) isRequestFailed() bool {
 
 func (s *downStream) writeLog() {
 
-	// disable for all access log
-	if log.DefaultDisableAccessLog {
-		return
-	}
-
 	defer func() {
 		if r := recover(); r != nil {
 			log.Proxy.Errorf(s.context, "[proxy] [downstream] writeLog panic %v, downstream %+v", r, s)
