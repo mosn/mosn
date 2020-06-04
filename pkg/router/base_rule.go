@@ -166,14 +166,16 @@ func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint
 		return false
 	}
 	// 2. match query parameters
-	var queryParams types.QueryParams
-	if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
-		queryParams = httpmosn.ParseQueryString(QueryString)
-	}
-	if len(queryParams) != 0 {
-		if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
-			return false
+	if len(rri.configQueryParameters) != 0 {
+		var queryParams types.QueryParams
+		if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
+			queryParams = httpmosn.ParseQueryString(QueryString)
+		}
+		if len(queryParams) != 0 {
+			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
+				log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
+				return false
+			}
 		}
 	}
 	return true
