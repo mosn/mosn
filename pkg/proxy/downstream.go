@@ -373,6 +373,10 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 	})
 }
 
+func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {
+	log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %+v[%d], proxyId = %d  ", types.PhaseName[phaseId], phaseId, proxyId)
+}
+
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
 	for i := 0; i <= int(types.End-types.InitPhase); i++ {
 		switch phase {
@@ -383,7 +387,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream filter before route
 		case types.DownFilter:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				s.printPhaseInfo(types.DownFilter, id)
 			}
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
@@ -395,7 +399,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// match route
 		case types.MatchRoute:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				s.printPhaseInfo(types.MatchRoute, id)
 			}
 			s.matchRoute()
 			if p, err := s.processError(id); err != nil {
@@ -406,7 +410,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream filter after route
 		case types.DownFilterAfterRoute:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				s.printPhaseInfo(types.DownFilterAfterRoute, id)
 			}
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
@@ -419,7 +423,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream choose host
 		case types.ChooseHost:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				s.printPhaseInfo(types.ChooseHost, id)
 			}
 
 			s.chooseHost(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
@@ -432,7 +436,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream filter after choose host
 		case types.DownFilterAfterChooseHost:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				s.printPhaseInfo(types.DownFilterAfterChooseHost, id)
 			}
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
 
@@ -445,7 +449,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.DownRecvHeader:
 			if s.downstreamReqHeaders != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
-					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+					s.printPhaseInfo(types.DownRecvHeader, id)
 				}
 				s.receiveHeaders(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
 
@@ -459,7 +463,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.DownRecvData:
 			if s.downstreamReqDataBuf != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
-					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+					s.printPhaseInfo(types.DownRecvData, id)
 				}
 				s.downstreamReqDataBuf.Count(1)
 				s.receiveData(s.downstreamReqTrailers == nil)
@@ -474,7 +478,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.DownRecvTrailer:
 			if s.downstreamReqTrailers != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
-					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+					s.printPhaseInfo(types.DownRecvTrailer, id)
 				}
 				s.receiveTrailers()
 
@@ -488,7 +492,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.Oneway:
 			if s.oneway {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
-					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+					s.printPhaseInfo(types.Oneway, id)
 				}
 				s.cleanStream()
 
@@ -504,7 +508,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// retry request
 		case types.Retry:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				s.printPhaseInfo(types.Retry, id)
 			}
 
 			if s.downstreamReqDataBuf != nil {
@@ -519,7 +523,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// wait for upstreamRequest or reset
 		case types.WaitNotify:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				s.printPhaseInfo(types.WaitNotify, id)
 			}
 			if p, err := s.waitNotify(id); err != nil {
 				return p
@@ -534,7 +538,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// upstream filter
 		case types.UpFilter:
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+				s.printPhaseInfo(types.UpFilter, id)
 			}
 			s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
 
@@ -558,7 +562,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			// send downstream response
 			if s.downstreamRespHeaders != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
-					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+					s.printPhaseInfo(types.UpRecvHeader, id)
 				}
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
@@ -572,7 +576,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.UpRecvData:
 			if s.downstreamRespDataBuf != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
-					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+					s.printPhaseInfo(types.UpRecvData, id)
 				}
 				s.upstreamRequest.receiveData(s.downstreamRespTrailers == nil)
 
@@ -586,7 +590,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		case types.UpRecvTrailer:
 			if s.downstreamRespTrailers != nil {
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
-					log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %d, proxyId = %d  ", phase, id)
+					s.printPhaseInfo(types.UpRecvTrailer, id)
 				}
 				s.upstreamRequest.receiveTrailers()
 
