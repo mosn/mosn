@@ -30,6 +30,7 @@ import (
 
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2"
@@ -164,8 +165,8 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection, s
 		serverCallbacks: serverCallbacks,
 	}
 
-	if b := mosnctx.Get(ctx, types.ContextKeyH2Stream); b != nil {
-		sc.useStream = b.(bool)
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+		sc.useStream = gcf.(v2.ProxyGeneralExtendConfig).Http2UseStream
 	}
 
 	// init first context
@@ -560,8 +561,8 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 		streamConnectionEventListener: clientCallbacks,
 	}
 
-	if b := mosnctx.Get(ctx, types.ContextKeyH2Stream); b != nil {
-		sc.useStream = b.(bool)
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+		sc.useStream = gcf.(v2.ProxyGeneralExtendConfig).Http2UseStream
 	}
 
 	// init first context

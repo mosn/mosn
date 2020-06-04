@@ -32,6 +32,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -393,8 +394,14 @@ func (conn *serverStreamConnection) serve() {
 
 		request.Header.DisableNormalizing()
 
+		// 0 is means no limit request body size
+		maxRequestBodySize := 0
+		if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+			maxRequestBodySize = gcf.(v2.ProxyGeneralExtendConfig).MaxRequestBodySize
+		}
+
 		// 2. blocking read using fasthttp.Request.Read
-		err := request.ReadLimitBody(conn.br, defaultMaxRequestBodySize)
+		err := request.ReadLimitBody(conn.br, maxRequestBodySize)
 		if err == nil {
 			// 3. 'Expect: 100-continue' request handling.
 			// See http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html for details.
@@ -403,7 +410,7 @@ func (conn *serverStreamConnection) serve() {
 				conn.conn.Write(buffer.NewIoBufferBytes(strResponseContinue))
 
 				// read request body
-				err = request.ContinueReadBody(conn.br, defaultMaxRequestBodySize)
+				err = request.ContinueReadBody(conn.br, maxRequestBodySize)
 
 				// remove 'Expect' header, so it would not be sent to the upstream
 				request.Header.Del("Expect")
