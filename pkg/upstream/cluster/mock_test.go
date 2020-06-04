@@ -188,7 +188,6 @@ type mockLbContext struct {
 	mmc     api.MetadataMatchCriteria
 	header  api.HeaderMap
 	context context.Context
-	ch      api.ConsistentHashCriteria
 }
 type mockConn struct {
 	net.Conn
@@ -221,9 +220,6 @@ func (ctx *mockLbContext) DownstreamHeaders() types.HeaderMap {
 func (ctx *mockLbContext) DownstreamContext() context.Context {
 	return ctx.context
 }
-func (ctx *mockLbContext) ConsistentHashCriteria() api.ConsistentHashCriteria {
-	return ctx.ch
-}
 func (ctx *mockLbContext) DownstreamConnection() net.Conn {
 	return &mockConn{}
 }
@@ -234,4 +230,13 @@ func (mc *mockConn) RemoteAddr() net.Addr {
 		Port: 8080,
 		Zone: "",
 	}
+}
+
+type mockClusterInfo struct {
+	name string
+	types.ClusterInfo
+}
+
+func (ci *mockClusterInfo) Name() string {
+	return ci.name
 }

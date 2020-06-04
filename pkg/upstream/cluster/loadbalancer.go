@@ -31,8 +31,10 @@ import (
 	"github.com/trainyao/go-maglev"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/segmenttree"
+	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -392,6 +394,7 @@ func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.Load
 
 	mgv := &maglevLoadBalancer{
 		hosts:           set,
+		clusterName:     info.Name(),
 		maglev:          table,
 		fallbackSegTree: tree,
 	}
@@ -401,6 +404,7 @@ func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.Load
 
 type maglevLoadBalancer struct {
 	hosts           types.HostSet
+	clusterName     string
 	maglev          *maglev.Table
 	fallbackSegTree *segmenttree.Tree
 }
@@ -411,12 +415,26 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		return nil
 	}
 
-	ch := context.ConsistentHashCriteria()
-	if ch == nil || ch.HashType() != api.Maglev {
+	routerName := mosnctx.Get(context.DownstreamContext(), types.ContextKeyProxyRouter).(string)
+	routerWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(routerName)
+	if routerWrapper == nil {
 		return nil
 	}
 
-	hash := lb.generateChooseHostHash(context, ch)
+	var hashPolicy *v2.HashPolicy
+	for _, vs := range routerWrapper.GetRoutersConfig().VirtualHosts {
+		for _, rt := range vs.Routers {
+			if rt.Route.ClusterName == lb.clusterName && len(rt.Route.HashPolicy) >= 1 {
+				hashPolicy = &rt.Route.HashPolicy[0]
+				break
+			}
+		}
+	}
+	if hashPolicy == nil {
+		return nil
+	}
+
+	hash := lb.generateChooseHostHash(context, hashPolicy)
 	index := lb.maglev.Lookup(hash)
 	chosen := lb.hosts.Hosts()[index]
 
@@ -425,16 +443,15 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		chosen = lb.chooseHostFromSegmentTree(index)
 	}
 
-	log.Proxy.Debugf(nil, "[lb][maglev] get index %d host %s %s",
+	log.Proxy.Debugf(context.DownstreamContext(), "[lb][maglev] get index %d host %s %s",
 		index, chosen.Hostname(), chosen.AddressString())
 
 	return chosen
 }
 
-func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerContext, info api.ConsistentHashCriteria) uint64 {
-	switch info.(type) {
-	case *v2.HeaderHashPolicy:
-		headerKey := info.(*v2.HeaderHashPolicy).Key
+func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerContext, hp *v2.HashPolicy) uint64 {
+	if hp.Header != nil {
+		headerKey := hp.Header.Key
 		headerValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.HEADER, headerKey)
 
 		if err == nil {
@@ -442,18 +459,21 @@ func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerC
 			hash := getHashByString(hashString)
 			return hash
 		}
-	case *v2.SourceIPHashPolicy:
+	}
+	if hp.SourceIP != nil {
 		return getHashByAddr(context.DownstreamConnection().RemoteAddr())
-	case *v2.HttpCookieHashPolicy:
-		info := info.(*v2.HttpCookieHashPolicy)
-		cookieName := info.Name
+	}
+	if hp.HttpCookie != nil {
+		cookieName := hp.HttpCookie.Name
 		cookieValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.COOKIE, cookieName)
 		if err == nil {
 			h := getHashByString(fmt.Sprintf("%s=%s", cookieName, cookieValue))
 			return h
 		}
-	default:
 	}
+
+	log.Proxy.Debugf(context.DownstreamContext(),
+		"[lb][maglev][choose host] get hash policy, but found empty config or value, using 0 index")
 
 	return 0
 }

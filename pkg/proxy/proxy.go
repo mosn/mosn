@@ -127,6 +127,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
+		proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyRouter, proxy.config.RouterConfigName)
 	} else {
 		log.DefaultLogger.Alertf("proxy.config", "[proxy] RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
 	}

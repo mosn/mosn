@@ -31,6 +31,7 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -308,13 +309,39 @@ func mockRequest(host types.Host, active bool, times int) {
 
 func Test_maglevLoadBalancer(t *testing.T) {
 	hostSet := getMockHostSet()
-	lb := newMaglevLoadBalancer(nil, hostSet)
+	clusterInfo := getMockClusterInfo()
+	lb := newMaglevLoadBalancer(clusterInfo, hostSet)
+
+	rc := &v2.RouterConfiguration{
+		VirtualHosts: []*v2.VirtualHost{
+			{
+				Routers: []v2.Router{
+					{RouterConfig: v2.RouterConfig{
+						Route: v2.RouteAction{
+							RouterActionConfig: v2.RouterActionConfig{
+								ClusterName: "mockClusterInfo",
+								HashPolicy: []v2.HashPolicy{
+									{Header: &v2.HeaderHashPolicy{Key: "header_key"}},
+								},
+							},
+						},
+					}},
+				},
+			},
+		},
+		RouterConfigurationConfig: v2.RouterConfigurationConfig{
+			RouterConfigName: "headerRouter",
+		},
+	}
+	err := router.GetRoutersMangerInstance().AddOrUpdateRouters(rc)
+	assert.NoErrorf(t, err, "add or update router failed, %+v", err)
 
 	testProtocol := types.ProtocolName("SomeProtocol")
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyRouter, "headerRouter")
+
 	lbctx := &mockLbContext{
 		context: ctx,
-		ch:      &v2.HeaderHashPolicy{Key: "header_key"},
 	}
 
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -328,7 +355,8 @@ func Test_maglevLoadBalancer(t *testing.T) {
 		hostsResult := []string{}
 		// query 5 times
 		for i := 0; i < 5; i++ {
-			hostsResult = append(hostsResult, lb.ChooseHost(lbctx).Hostname())
+			host := lb.ChooseHost(lbctx)
+			hostsResult = append(hostsResult, host.Hostname())
 		}
 		if !reflect.DeepEqual(expect, hostsResult) {
 			t.Errorf("hosts expect to be %+v, get %+v", expect, hostsResult)
@@ -345,21 +373,33 @@ func Test_maglevLoadBalancer(t *testing.T) {
 	})
 
 	// test cookie
-
 	cookieValue := variable.NewBasicVariable("SomeProtocol_cookie_", nil, cookieGetter, nil, 0)
 	variable.RegisterPrefixVariable(cookieValue.Name(), cookieValue)
 	variable.RegisterProtocolResource(testProtocol, api.COOKIE, types.VarProtocolCookie)
-	lbctx.ch = &v2.HttpCookieHashPolicy{
-		Name: "cookie_name",
-		Path: "cookie_path",
-		TTL:  api.DurationConfig{5 * time.Second},
+	rc.VirtualHosts[0].Routers[0].RouterConfig.Route.HashPolicy[0] = v2.HashPolicy{
+		HttpCookie: &v2.HttpCookieHashPolicy{
+			Name: "cookie_name",
+			Path: "cookie_path",
+			TTL:  api.DurationConfig{5 * time.Second},
+		},
 	}
+	rc.RouterConfigName = "cookieRouter"
+	lbctx.context = mosnctx.WithValue(ctx, types.ContextKeyProxyRouter, "cookieRouter")
+	err = router.GetRoutersMangerInstance().AddOrUpdateRouters(rc)
+	assert.NoErrorf(t, err, "add or update router failed, %+v", err)
+
 	testFunc([]string{
 		"host-0", "host-0", "host-0", "host-0", "host-0",
 	})
 
 	// test source IP
-	lbctx.ch = &v2.SourceIPHashPolicy{}
+	rc.VirtualHosts[0].Routers[0].RouterConfig.Route.HashPolicy[0] = v2.HashPolicy{
+		SourceIP: &v2.SourceIPHashPolicy{},
+	}
+	rc.RouterConfigName = "sourceIPRouter"
+	lbctx.context = mosnctx.WithValue(ctx, types.ContextKeyProxyRouter, "sourceIPRouter")
+	err = router.GetRoutersMangerInstance().AddOrUpdateRouters(rc)
+	assert.NoErrorf(t, err, "add or update router failed, %+v", err)
 	testFunc([]string{
 		"host-8", "host-8", "host-8", "host-8", "host-8",
 	})
@@ -417,5 +457,11 @@ func getMockHostSet() *mockHostSet {
 	}
 	return &mockHostSet{
 		hosts: hosts,
+	}
+}
+
+func getMockClusterInfo() *mockClusterInfo {
+	return &mockClusterInfo{
+		name: "mockClusterInfo",
 	}
 }

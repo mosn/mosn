@@ -1357,26 +1357,6 @@ func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	return nil
 }
 
-func (s *downStream) ConsistentHashCriteria() api.ConsistentHashCriteria {
-	c := s.proxy.routersWrapper.GetRoutersConfig()
-	for _, vh := range c.VirtualHosts {
-		for _, r := range vh.Routers {
-			for _, hp := range r.Route.HashPolicy {
-				if hp.Header != nil {
-					return hp.Header
-				}
-				if hp.HttpCookie != nil {
-					return hp.HttpCookie
-				}
-				if hp.SourceIP != nil {
-					return hp.SourceIP
-				}
-			}
-		}
-	}
-	return nil
-}
-
 func (s *downStream) DownstreamConnection() net.Conn {
 	return s.proxy.readCallbacks.Connection().RawConn()
 }

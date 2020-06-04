@@ -43,6 +43,8 @@ const (
 	ContextKeyVariables
 	ContextKeyH2Stream
 
+	ContextKeyProxyRouter
+
 	ContextKeyDownStreamProtocol
 	ContextKeyDownStreamHeaders
 	ContextKeyEnd

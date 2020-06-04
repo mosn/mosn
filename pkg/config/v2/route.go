@@ -74,25 +74,13 @@ type HeaderHashPolicy struct {
 	Key string `json:"key,omitempty"`
 }
 
-func (m *HeaderHashPolicy) HashType() api.ConsistentHashType {
-	return api.Maglev
-}
-
 type HttpCookieHashPolicy struct {
 	Name string             `json:"name,omitempty"`
 	Path string             `json:"path,omitempty"`
 	TTL  api.DurationConfig `json:"ttl,omitempty"`
 }
 
-func (m *HttpCookieHashPolicy) HashType() api.ConsistentHashType {
-	return api.Maglev
-}
-
 type SourceIPHashPolicy struct {
-}
-
-func (m *SourceIPHashPolicy) HashType() api.ConsistentHashType {
-	return api.Maglev
 }
 
 type ClusterWeightConfig struct {
