@@ -51,6 +51,13 @@ func DisableAllAccessLog() {
 	}
 }
 
+func EnableAllAccessLog() {
+	DefaultDisableAccessLog = false
+	for _, lg := range accessLogs {
+		lg.logger.Toggle(false)
+	}
+}
+
 // types.AccessLog
 type accesslog struct {
 	output  string
