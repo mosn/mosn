@@ -33,14 +33,17 @@ import (
 	xdsfal "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	xdsfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/fault/v2"
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
+	xdshttpgzip "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/gzip/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
+	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/gogo/protobuf/proto"
 	ptypes "github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/valyala/fasthttp"
 	v1 "istio.io/api/mixer/v1"
 	"istio.io/api/mixer/v1/config/client"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -833,4 +836,54 @@ func Test_convertPerRouteConfig(t *testing.T) {
 
 	}
 
+}
+
+// Test stream filters convert for envoy.gzip
+func Test_convertStreamFilter_Gzip(t *testing.T) {
+	gzipConfig := &xdshttpgzip.Gzip{
+		ContentLength:    &wrappers.UInt32Value{Value: 1024},
+		CompressionLevel: xdshttpgzip.Gzip_CompressionLevel_BEST,
+		ContentType:      []string{"test"},
+	}
+
+	gzipStruct := messageToAny(t, gzipConfig)
+	// empty types.Struct will makes a default empty filter
+	testCases := []struct {
+		config   *any.Any
+		expected *v2.StreamGzip
+	}{
+		{
+			config: gzipStruct,
+			expected: &v2.StreamGzip{
+				GzipLevel:     fasthttp.CompressBestCompression,
+				ContentLength: 1024,
+				ContentType:   []string{"test"},
+			},
+		},
+	}
+	for i, tc := range testCases {
+		convertFilter := convertStreamFilter(xdswellknown.Gzip, tc.config)
+		if convertFilter.Type != v2.Gzip {
+			t.Errorf("#%d convert to mosn stream filter not expected, want %s, got %s", i, v2.Gzip, convertFilter.Type)
+			continue
+		}
+		rawGzip := &v2.StreamGzip{}
+		b, _ := json.Marshal(convertFilter.Config)
+		if err := json.Unmarshal(b, rawGzip); err != nil {
+			t.Errorf("#%d unexpected config for fault", i)
+			continue
+		}
+
+		if tc.expected.GzipLevel != rawGzip.GzipLevel {
+			t.Errorf("#%d GzipLevel check unexpected", i)
+		}
+		if tc.expected.ContentLength != rawGzip.ContentLength {
+			t.Errorf("#%d ContentLength check unexpected", i)
+		}
+		for k, _ := range tc.expected.ContentType {
+			if tc.expected.ContentType[k] != rawGzip.ContentType[k] {
+				t.Errorf("#%d ContentType check unexpected", i)
+			}
+		}
+	}
 }

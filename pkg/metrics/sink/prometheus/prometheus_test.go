@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"testing"
 
@@ -256,11 +257,20 @@ func TestPrometheusFlatternKey(t *testing.T) {
 			input:  "listener_address:0.0.0.0:9529",
 			output: "listener_address:0_0_0_0:9529",
 		},
+		{
+			input:  "mosn data info=test flattern",
+			output: "mosn_data_info_test_flattern",
+		},
+		{
+			input:  "unexpected@data(1.2.3)",
+			output: "unexpected_data_1_2_3_",
+		},
 	}
 
 	for _, c := range testcase {
-		if flattenKey(c.input) != c.output {
-			t.Error("prometheus flattern key error:", c)
+		out := flattenKey(c.input)
+		if out != c.output {
+			t.Errorf("prometheus flattern key error, got %s, want %s", out, c.output)
 		}
 	}
 }
@@ -356,4 +366,36 @@ func BenchmarkPromSink_Filter(b *testing.B) {
 		}
 	})
 
+}
+
+func simpleFlattenKey(key string) string {
+	key = strings.Replace(key, " ", "_", -1)
+	key = strings.Replace(key, ".", "_", -1)
+	key = strings.Replace(key, "-", "_", -1)
+	key = strings.Replace(key, "=", "_", -1)
+	return key
+}
+
+func BenchmarkFlattenKey(b *testing.B) {
+	for _, key := range []string{
+		"simple",
+		"dot.replace",
+		"multi.dot.replace",
+		"equal=replace",
+		"blank replace",
+		"minus-replace",
+	} {
+		msg := fmt.Sprintf("benchkey:%s", key)
+		b.Run(msg, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				flattenKey(key)
+			}
+		})
+		replace_msg := fmt.Sprintf("bench_replace:%s", key)
+		b.Run(replace_msg, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				simpleFlattenKey(key)
+			}
+		})
+	}
 }

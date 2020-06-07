@@ -21,15 +21,23 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-
 	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"sync"
 )
 
+// Decoder is heavy and caches to improve performance.
+// Avoid allocating 4k memory every time you create an object
+var decodePool = &sync.Pool{
+	New: func() interface{} {
+		return hessian.NewCheapDecoderWithSkip([]byte{})
+	},
+}
+
 func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
-	// convert data to duboo frame
+	// convert data to dubbo frame
 	dataBytes := data.Bytes()
 	frame := &Frame{
 		Header: Header{
@@ -43,25 +51,17 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	// decode status
 	frame.Status = dataBytes[StatusIdx]
 	// decode request id
-	reqIdRaw := dataBytes[IdIdx:(IdIdx + IdLen)]
-	frame.Id = binary.BigEndian.Uint64(reqIdRaw)
+	reqIDRaw := dataBytes[IdIdx:(IdIdx + IdLen)]
+	frame.Id = binary.BigEndian.Uint64(reqIDRaw)
 	// decode data length
 	frame.DataLen = binary.BigEndian.Uint32(dataBytes[DataLenIdx:(DataLenIdx + DataLenSize)])
 
 	// decode event
-	eventBool := frame.Flag & (1 << 5)
-	if eventBool != 0 {
-		frame.Event = 1
-	} else {
-		frame.Event = 0
-	}
+	frame.IsEvent = (frame.Flag & (1 << 5)) != 0
+
 	// decode twoway
-	twoWayBool := frame.Flag & (1 << 6)
-	if twoWayBool != 0 {
-		frame.TwoWay = 1
-	} else {
-		frame.TwoWay = 0
-	}
+	frame.IsTwoWay = (frame.Flag & (1 << 6)) != 0
+
 	// decode direction
 	directionBool := frame.Flag & (1 << 7)
 	if directionBool != 0 {
@@ -79,9 +79,9 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	frame.content = buffer.NewIoBufferBytes(frame.payload)
 
 	// not heartbeat & is request
-	if frame.Event != 1 && frame.Direction == 1 {
+	if !frame.IsEvent && frame.Direction == EventRequest {
 		// service aware
-		meta, err := getServiceAwareMeta(frame)
+		meta, err := getServiceAwareMeta(ctx, frame)
 		if err != nil {
 			return nil, err
 		}
@@ -97,57 +97,184 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	return frame, nil
 }
 
-func getServiceAwareMeta(frame *Frame) (map[string]string, error) {
-	meta := make(map[string]string)
+func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, error) {
+	meta := make(map[string]string, 8)
 	if frame.SerializationId != 2 {
 		// not hessian , do not support
 		return meta, fmt.Errorf("[xprotocol][dubbo] not hessian,do not support")
 	}
-	decoder := hessian.NewDecoder(frame.payload[:])
-	var field interface{}
-	var err error
-	var ok bool
-	var str string
 
-	// dubbo version + path + version + method
+	decoder := decodePool.Get().(*hessian.Decoder)
+	decoder.Reset(frame.payload[:])
+
+	// Recycle decode
+	defer decodePool.Put(decoder)
+
+	var (
+		field            interface{}
+		err              error
+		ok               bool
+		frameworkVersion string
+		path             string
+		version          string
+		method           string
+	)
+
+	// framework version + path + version + method
 	// get service name
 	field, err = decoder.Decode()
 	if err != nil {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode version fail")
+		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version fail")
 	}
-	str, ok = field.(string)
+	frameworkVersion, ok = field.(string)
 	if !ok {
-		return meta, fmt.Errorf("[xprotocol][dubbo] service name version type error")
+		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version type error")
 	}
+	meta[FrameworkVersionNameHeader] = frameworkVersion
 
 	field, err = decoder.Decode()
 	if err != nil {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode service fail")
+		return meta, fmt.Errorf("[xprotocol][dubbo] decode service path fail")
 	}
-	str, ok = field.(string)
+	path, ok = field.(string)
 	if !ok {
-		return meta, fmt.Errorf("[xprotocol][dubbo] service type error")
+		return meta, fmt.Errorf("[xprotocol][dubbo] service path type error")
 	}
-	meta[ServiceNameHeader] = str
+	meta[ServiceNameHeader] = path
 
 	// get method name
 	field, err = decoder.Decode()
 	if err != nil {
 		return nil, fmt.Errorf("[xprotocol][dubbo] decode method version fail")
 	}
-	str, ok = field.(string)
-	if !ok {
-		return nil, fmt.Errorf("[xprotocol][dubbo] method version type fail")
+	// callback maybe return nil
+	if field != nil {
+		version, ok = field.(string)
+		if !ok {
+			return nil, fmt.Errorf("[xprotocol][dubbo] method version type fail")
+		}
 	}
+	meta[VersionNameHeader] = version
 
 	field, err = decoder.Decode()
 	if err != nil {
 		return nil, fmt.Errorf("[xprotocol][dubbo] decode method fail")
 	}
-	str, ok = field.(string)
+	method, ok = field.(string)
 	if !ok {
 		return nil, fmt.Errorf("[xprotocol][dubbo] method type error")
 	}
-	meta[MethodNameHeader] = str
+	meta[MethodNameHeader] = method
+
+	if ctx != nil {
+		listener := ctx.Value(types.ContextKeyListenerName)
+
+		var (
+			node    *Node
+			matched bool
+		)
+
+		// for better performance.
+		// If the ingress scenario is not using group,
+		// we can skip parsing attachment to improve performance
+		if listener == IngressDubbo {
+			if node, matched = DubboPubMetadata.Find(path, version); matched {
+				meta[ServiceNameHeader] = node.Service
+				meta[GroupNameHeader] = node.Group
+			}
+		} else if listener == EgressDubbo {
+			// for better performance.
+			// If the egress scenario is not using group,
+			// we can skip parsing attachment to improve performance
+			if node, matched = DubboSubMetadata.Find(path, version); matched {
+				meta[ServiceNameHeader] = node.Service
+				meta[GroupNameHeader] = node.Group
+			}
+		}
+
+		// decode the attachment to get the real service and group parameters
+		if !matched && (listener == EgressDubbo || listener == IngressDubbo) {
+			arguments := getArgumentCount(field.(string))
+			// we must skip all method arguments.
+			for i := 0; i < arguments; i++ {
+				_, err = decoder.Decode()
+				if err != nil {
+					return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument error, %v", err)
+				}
+			}
+
+			field, err = decoder.Decode()
+			if err != nil {
+				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo attachments error, %v", err)
+			}
+
+			if field != nil {
+				if origin, ok := field.(map[interface{}]interface{}); ok {
+					// we loop all attachments and check element type,
+					// we should only read string types.
+					for k, v := range origin {
+						if key, ok := k.(string); ok {
+							if val, ok := v.(string); ok {
+								meta[key] = val
+								// we should use interface value,
+								// convenient for us to do service discovery.
+								if key == InterfaceNameHeader {
+									meta[ServiceNameHeader] = val
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	return meta, nil
+}
+
+//  more unit test:
+// https://github.com/zonghaishang/dubbo/commit/e0fd702825a274379fb609229bdb06ca0586122e
+func getArgumentCount(desc string) int {
+	len := len(desc)
+	if len == 0 {
+		return 0
+	}
+
+	var args, next = 0, false
+	for _, ch := range desc {
+
+		// is array ?
+		if ch == '[' {
+			continue
+		}
+
+		// is object ?
+		if next && ch != ';' {
+			continue
+		}
+
+		switch ch {
+		case 'V', // void
+			'Z', // boolean
+			'B', // byte
+			'C', // char
+			'D', // double
+			'F', // float
+			'I', // int
+			'J', // long
+			'S': // short
+			args++
+		default:
+			// we found object
+			if ch == 'L' {
+				args++
+				next = true
+				// end of object ?
+			} else if ch == ';' {
+				next = false
+			}
+		}
+
+	}
+	return args
 }
