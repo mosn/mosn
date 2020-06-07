@@ -19,12 +19,13 @@ package router
 
 import (
 	"math/rand"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
@@ -39,6 +40,7 @@ type RouteRuleImplBase struct {
 	configQueryParameters []types.QueryParameterMatcher //TODO: not implement yet
 	// rewrite
 	prefixRewrite         string
+	regexRewrite          v2.RegexRewrite
 	hostRewrite           string
 	autoHostRewrite       bool // TODO: not implement yet
 	requestHeadersParser  *headerParser
@@ -65,6 +67,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		routerMatch:           route.Match,
 		configHeaders:         getRouterHeaders(route.Match.Headers),
 		prefixRewrite:         route.Route.PrefixRewrite,
+		regexRewrite:          route.Route.RegexRewrite,
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
@@ -180,15 +183,37 @@ func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint
 }
 
 func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedPath string) {
-	if len(rri.prefixRewrite) < 1 {
+
+	if len(rri.prefixRewrite) < 1 && len(rri.regexRewrite.Pattern.Regex) < 1 {
 		return
 	}
+
 	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
-		if strings.HasPrefix(path, matchedPath) {
-			headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-			headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
-			log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+
+		//If both prefix_rewrite and regex_rewrite are configured
+		//prefix rewrite by default
+		if len(rri.prefixRewrite) > 1 {
+			if strings.HasPrefix(path, matchedPath) {
+				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
+				headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
+				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+			}
+			return
 		}
+
+		// regex rewrite path if configured
+		if len(rri.regexRewrite.Pattern.Regex) > 1 {
+			reg := regexp.MustCompile(rri.regexRewrite.Pattern.Regex)
+			if reg.Match([]byte(path)) {
+				rewritedPath := reg.ReplaceAllString(path, rri.regexRewrite.Substitution)
+
+				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
+				headers.Set(protocol.MosnHeaderPathKey, rewritedPath)
+				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
+
+			}
+		}
+
 	}
 }
 

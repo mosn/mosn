@@ -56,6 +56,7 @@ type RouterActionConfig struct {
 	TimeoutConfig           api.DurationConfig   `json:"timeout,omitempty"`
 	RetryPolicy             *RetryPolicy         `json:"retry_policy,omitempty"`
 	PrefixRewrite           string               `json:"prefix_rewrite,omitempty"`
+	RegexRewrite            RegexRewrite         `json:"regex_rewrite,omitempty"`
 	HostRewrite             string               `json:"host_rewrite,omitempty"`
 	AutoHostRewrite         bool                 `json:"auto_host_rewrite,omitempty"`
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
@@ -73,6 +74,21 @@ type RetryPolicyConfig struct {
 	RetryOn            bool               `json:"retry_on,omitempty"`
 	RetryTimeoutConfig api.DurationConfig `json:"retry_timeout,omitempty"`
 	NumRetries         uint32             `json:"num_retries,omitempty"`
+}
+
+// RegexRewrite represents the regex rewrite parameters
+type RegexRewrite struct {
+	Pattern      PatternConfig `json:"pattern,omitempty"`
+	Substitution string        `json:"substitution,omitempty"`
+}
+
+type PatternConfig struct {
+	GoogleRe2 GoogleRe2Config `json:"google_re2,omitempty"`
+	Regex     string          `json:"regex,omitempty"`
+}
+
+type GoogleRe2Config struct {
+	MaxProgramSize uint32 `json:"max_program_size,omitempty"` // TODO: not implement yet
 }
 
 // Router, the list of routes that will be matched, in order, for incoming requests.
