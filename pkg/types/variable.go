@@ -62,4 +62,12 @@ const (
 const (
 	VarHttpRequestMethod = "http_request_method"
 	VarHttpRequestLength = "http_request_length"
+
+	// deprecated by adding protocol for prefix, use the const above instead
+	VarHttpRequestUri   = "http_request_uri"
+	VarHttpRequestPath  = "http_request_path"
+	VarHttpRequestArg   = "http_request_arg"
+	VarPrefixHttpHeader = "http_header_"
+	VarPrefixHttpArg    = "http_arg_"
+	VarPrefixHttpCookie = "http_cookie_"
 )
