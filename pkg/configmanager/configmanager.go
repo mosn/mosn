@@ -18,7 +18,7 @@
 package configmanager
 
 import (
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -413,4 +413,13 @@ func RmMqConsumers(key string) {
 	}
 
 	dump(true)
+}
+
+func IsDnsTypeCluster(clusterName string) bool {
+	for _, cluster := range config.ClusterManager.Clusters {
+		if cluster.ClusterType == v2.STRICT_DNS_CLUSTER || cluster.ClusterType == v2.LOGICAL_DNS_CLUSTER {
+			return true
+		}
+	}
+	return false
 }

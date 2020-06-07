@@ -54,10 +54,11 @@ type ClusterType string
 
 // Group of cluster type
 const (
-	STATIC_CLUSTER     ClusterType = "STATIC"
-	SIMPLE_CLUSTER     ClusterType = "SIMPLE"
-	STRICT_DNS_CLUSTER ClusterType = "STRICT_DNS"
-	EDS_CLUSTER        ClusterType = "EDS"
+	STATIC_CLUSTER      ClusterType = "STATIC"
+	SIMPLE_CLUSTER      ClusterType = "SIMPLE"
+	STRICT_DNS_CLUSTER  ClusterType = "STRICT_DNS"
+	LOGICAL_DNS_CLUSTER ClusterType = "LOGICAL_DNS" //TODO  not implement
+	EDS_CLUSTER         ClusterType = "EDS"
 )
 
 // LbType

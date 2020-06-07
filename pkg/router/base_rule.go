@@ -24,7 +24,8 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
@@ -40,7 +41,8 @@ type RouteRuleImplBase struct {
 	// rewrite
 	prefixRewrite         string
 	hostRewrite           string
-	autoHostRewrite       bool // TODO: not implement yet
+	autoHostRewrite       bool
+	autoHostRewriteHeader string
 	requestHeadersParser  *headerParser
 	responseHeadersParser *headerParser
 	// information
@@ -67,6 +69,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		prefixRewrite:         route.Route.PrefixRewrite,
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
+		autoHostRewriteHeader: route.Route.AutoHostRewriteHeader,
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		upstreamProtocol:      route.Route.UpstreamProtocol,
@@ -202,6 +205,12 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers api.HeaderMap, requ
 	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
 		headers.Set(protocol.IstioHeaderHostKey, rri.hostRewrite)
+	} else if rri.autoHostRewrite && configmanager.IsDnsTypeCluster(rri.ClusterName()) {
+		headers.Set(protocol.IstioHeaderHostKey, rri.ClusterName())
+	} else if len(rri.autoHostRewriteHeader) > 0 {
+		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
+			headers.Set(protocol.IstioHeaderHostKey, headerValue)
+		}
 	}
 }
 
