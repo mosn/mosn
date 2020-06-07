@@ -14,24 +14,31 @@ const (
 )
 
 type Table struct {
-	n             int
-	lookup        []int
-	offsets       []uint64
-	skips         []uint64
+	n      int
+	lookup []int
+	m      uint64
+
+	// currentOffsets saves the current offset of i index
+	currentOffsets []uint64
+	// skips saves the skips of i index
+	skips []uint64
+
+	// originOffsets saves the first currentOffsets
 	originOffsets []uint64
-	m             uint64
 }
 
 func New(names []string, m uint64) *Table {
 	offsets, skips := generateOffsetAndSkips(names, m)
 	t := &Table{
-		n: len(names),
-		skips:   skips,
-		offsets: offsets,
-		originOffsets: make([]uint64, len(names)),
-		m:       m,
+		n:              len(names),
+		skips:          skips,
+		currentOffsets: offsets,
+		originOffsets:  make([]uint64, len(names)),
+		m:              m,
 	}
-	copy(t.originOffsets, t.offsets)
+
+	// save first currentOffsets to originOffsets, for reset
+	copy(t.originOffsets, t.currentOffsets)
 	t.lookup = t.populate(m, nil)
 
 	return t
@@ -45,6 +52,7 @@ func (t *Table) Rebuild(dead []int) {
 	t.lookup = t.populate(t.m, dead)
 }
 
+// generateOffsetAndSkips generates the first offset and skip, which is used to generate hash sequence
 func generateOffsetAndSkips(names []string, M uint64) ([]uint64, []uint64) {
 	offsets := make([]uint64, len(names))
 	skips := make([]uint64, len(names))
@@ -60,7 +68,7 @@ func generateOffsetAndSkips(names []string, M uint64) ([]uint64, []uint64) {
 
 func (t *Table) populate(M uint64, dead []int) []int {
 	t.resetOffsets()
-	N := len(t.offsets)
+	N := len(t.currentOffsets)
 
 	entry := make([]int, M)
 	for j := range entry {
@@ -77,10 +85,10 @@ func (t *Table) populate(M uint64, dead []int) []int {
 			}
 
 			var c uint64
-			t.next(i, &c)
+			t.nextOffset(i, &c)
 
 			for entry[c] >= 0 {
-				t.next(i, &c)
+				t.nextOffset(i, &c)
 			}
 			entry[c] = i
 			n++
@@ -91,15 +99,17 @@ func (t *Table) populate(M uint64, dead []int) []int {
 	}
 }
 
-func (t *Table) next(i int, c *uint64) {
-	*c = t.offsets[i]
+// nextOffset generate next offset of i index, by adding skips[i]
+func (t *Table) nextOffset(i int, c *uint64) {
+	*c = t.currentOffsets[i]
 
-	t.offsets[i] += t.skips[i]
-	if t.offsets[i] >= t.m {
-		t.offsets[i] -= t.m
+	t.currentOffsets[i] += t.skips[i]
+	if t.currentOffsets[i] >= t.m {
+		t.currentOffsets[i] -= t.m
 	}
 }
 
+// resetOffsets reset originOffsets to current offset
 func (t *Table) resetOffsets() {
-	copy(t.offsets, t.originOffsets)
+	copy(t.currentOffsets, t.originOffsets)
 }

@@ -35,7 +35,7 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/stretchr/testify v1.5.1
 	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb // indirect
-	github.com/trainyao/go-maglev v0.0.0-20200522093939-ce154bb104cf
+	github.com/trainyao/go-maglev v0.0.0-20200607094625-c720d540c9cf
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0
 	github.com/valyala/fasttemplate v1.1.0

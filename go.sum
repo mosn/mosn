@@ -506,12 +506,14 @@ github.com/tent/http-link-go v0.0.0-20130702225549-ac974c61c2f9/go.mod h1:RHkNRt
 github.com/tevid/gohamcrest v1.1.1/go.mod h1:3UvtWlqm8j5JbwYZh80D/PVBt0mJ1eJiYgZMibh0H/k=
 github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb h1:ePtzxFvA6a1j9hB+mRFqq6sGxJf/z1j1Px+ihCUKshI=
 github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb/go.mod h1:XxO4hdhhrzAd+G4CjDqaOkd0hUzmtPR/d3EiBBMn/wc=
+github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
+github.com/toolkits/concurrent v0.0.0-20150624120057-a4371d70e3e3/go.mod h1:QDlpd3qS71vYtakd2hmdpqhJ9nwv6mD6A30bQ1BPBFE=
 github.com/trainyao/go-maglev v0.0.0-20170623041913-a123f15678dd h1:OvHHJBX9Ji8BMAObunki6p2ZY9uw+Hxl/7BSOtdLTTc=
 github.com/trainyao/go-maglev v0.0.0-20170623041913-a123f15678dd/go.mod h1:VBsRn0SDTltC3/SzN6SgXlQtmBk6U5sf0KW+eT+WMbc=
 github.com/trainyao/go-maglev v0.0.0-20200522093939-ce154bb104cf h1:Voh3xuZzTbe34pLY7Od7rJB97+5tC7giHpg7UPbXFmI=
 github.com/trainyao/go-maglev v0.0.0-20200522093939-ce154bb104cf/go.mod h1:VBsRn0SDTltC3/SzN6SgXlQtmBk6U5sf0KW+eT+WMbc=
-github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
-github.com/toolkits/concurrent v0.0.0-20150624120057-a4371d70e3e3/go.mod h1:QDlpd3qS71vYtakd2hmdpqhJ9nwv6mD6A30bQ1BPBFE=
+github.com/trainyao/go-maglev v0.0.0-20200607094625-c720d540c9cf h1:FoFxZl5OJJPQfGxG4YURJSU9yObC+IIUIGRsKQG9lH8=
+github.com/trainyao/go-maglev v0.0.0-20200607094625-c720d540c9cf/go.mod h1:VBsRn0SDTltC3/SzN6SgXlQtmBk6U5sf0KW+eT+WMbc=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/ugorji/go v1.1.7 h1:/68gy2h+1mWMrwZFeD1kQialdSzAb432dtpeJ42ovdo=
