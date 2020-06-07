@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
@@ -89,6 +89,25 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			retryOn:      route.Route.RetryPolicy.RetryOn,
 			retryTimeout: route.Route.RetryPolicy.RetryTimeout,
 			numRetries:   route.Route.RetryPolicy.NumRetries,
+		}
+	}
+	// add hash policy
+	if route.Route.HashPolicy != nil && len(route.Route.HashPolicy) >= 1 {
+		hp := route.Route.HashPolicy[0]
+		if hp.Header != nil {
+			base.policy.hashPolicy = &headerHashPolicyImpl{
+				key: hp.Header.Key,
+			}
+		}
+		if hp.HttpCookie != nil {
+			base.policy.hashPolicy = &httpCookieHashPolicyImpl{
+				name: hp.HttpCookie.Name,
+				path: hp.HttpCookie.Path,
+				ttl:  hp.HttpCookie.TTL,
+			}
+		}
+		if hp.SourceIP != nil {
+			base.policy.hashPolicy = &sourceIPHashPolicyImpl{}
 		}
 	}
 	// add direct repsonse rule

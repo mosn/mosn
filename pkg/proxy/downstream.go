@@ -30,7 +30,7 @@ import (
 
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -632,6 +632,8 @@ func (s *downStream) matchRoute() {
 		return
 	}
 	s.snapshot, s.route = handlerChain.DoNextHandler()
+	// save downstream route pointer to context
+	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamRouter, s.route)
 }
 
 func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {

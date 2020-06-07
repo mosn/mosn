@@ -18,25 +18,19 @@
 package cluster
 
 import (
-	"encoding/binary"
-	"fmt"
 	"math"
 	"math/rand"
-	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/dchest/siphash"
 	"github.com/trainyao/go-maglev"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/segmenttree"
-	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 )
 
 // NewLoadBalancer can be register self defined type
@@ -350,7 +344,7 @@ func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.Load
 	var tree *segmenttree.Tree
 	names := []string{}
 	for _, host := range set.Hosts() {
-		names = append(names, host.Hostname())
+		names = append(names, host.AddressString())
 	}
 	if len(names) != 0 {
 		table = maglev.New(names, maglev.SmallM)
@@ -394,7 +388,6 @@ func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.Load
 
 	mgv := &maglevLoadBalancer{
 		hosts:           set,
-		clusterName:     info.Name(),
 		maglev:          table,
 		fallbackSegTree: tree,
 	}
@@ -404,7 +397,6 @@ func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.Load
 
 type maglevLoadBalancer struct {
 	hosts           types.HostSet
-	clusterName     string
 	maglev          *maglev.Table
 	fallbackSegTree *segmenttree.Tree
 }
@@ -415,26 +407,12 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		return nil
 	}
 
-	routerName := mosnctx.Get(context.DownstreamContext(), types.ContextKeyProxyRouter).(string)
-	routerWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(routerName)
-	if routerWrapper == nil {
+	route, ok := mosnctx.Get(context.DownstreamContext(), types.ContextKeyDownStreamRouter).(api.Route)
+	if !ok {
 		return nil
 	}
 
-	var hashPolicy *v2.HashPolicy
-	for _, vs := range routerWrapper.GetRoutersConfig().VirtualHosts {
-		for _, rt := range vs.Routers {
-			if rt.Route.ClusterName == lb.clusterName && len(rt.Route.HashPolicy) >= 1 {
-				hashPolicy = &rt.Route.HashPolicy[0]
-				break
-			}
-		}
-	}
-	if hashPolicy == nil {
-		return nil
-	}
-
-	hash := lb.generateChooseHostHash(context, hashPolicy)
+	hash := route.RouteRule().Policy().HashPolicy().GenerateHash(context.DownstreamContext())
 	index := lb.maglev.Lookup(hash)
 	chosen := lb.hosts.Hosts()[index]
 
@@ -443,39 +421,10 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		chosen = lb.chooseHostFromSegmentTree(index)
 	}
 
-	log.Proxy.Debugf(context.DownstreamContext(), "[lb][maglev] get index %d host %s %s",
-		index, chosen.Hostname(), chosen.AddressString())
+	log.Proxy.Debugf(context.DownstreamContext(), "[lb][maglev] hash %d get index %d host %s",
+		hash, index, chosen.AddressString())
 
 	return chosen
-}
-
-func (lb *maglevLoadBalancer) generateChooseHostHash(context types.LoadBalancerContext, hp *v2.HashPolicy) uint64 {
-	if hp.Header != nil {
-		headerKey := hp.Header.Key
-		headerValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.HEADER, headerKey)
-
-		if err == nil {
-			hashString := fmt.Sprintf("%s:%s", headerKey, headerValue)
-			hash := getHashByString(hashString)
-			return hash
-		}
-	}
-	if hp.SourceIP != nil {
-		return getHashByAddr(context.DownstreamConnection().RemoteAddr())
-	}
-	if hp.HttpCookie != nil {
-		cookieName := hp.HttpCookie.Name
-		cookieValue, err := variable.GetProtocolResource(context.DownstreamContext(), api.COOKIE, cookieName)
-		if err == nil {
-			h := getHashByString(fmt.Sprintf("%s=%s", cookieName, cookieValue))
-			return h
-		}
-	}
-
-	log.Proxy.Debugf(context.DownstreamContext(),
-		"[lb][maglev][choose host] get hash policy, but found empty config or value, using 0 index")
-
-	return 0
 }
 
 func (lb *maglevLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
@@ -522,27 +471,4 @@ func (lb *maglevLoadBalancer) chooseHostFromSegmentTree(index int) types.Host {
 	}
 
 	return host
-}
-
-func getHashByAddr(addr net.Addr) (hash uint64) {
-	if tcpaddr, ok := addr.(*net.TCPAddr); ok {
-		if len(tcpaddr.IP) == 16 || len(tcpaddr.IP) == 4 {
-			var tmp uint32
-
-			if len(tcpaddr.IP) == 16 {
-				tmp = binary.BigEndian.Uint32(tcpaddr.IP[12:16])
-			} else {
-				tmp = binary.BigEndian.Uint32(tcpaddr.IP)
-			}
-			hash = uint64(tmp)
-
-			return
-		}
-	}
-
-	return getHashByString(fmt.Sprintf("%s", addr.String()))
-}
-
-func getHashByString(str string) uint64 {
-	return siphash.Hash(0xbeefcafebabedead, 0, []byte(str))
 }

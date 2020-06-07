@@ -22,8 +22,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace"
@@ -156,6 +158,31 @@ func TestDirectResponse(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 		tc.check(t, tc.client)
 	}
+}
+
+func TestSetDownstreamRouter(t *testing.T) {
+	s := &downStream{
+		context: context.Background(),
+		proxy: &proxy{
+			config: &v2.Proxy{},
+			routersWrapper: &mockRouterWrapper{
+				routers: &mockRouters{
+					route: &mockRoute{},
+				},
+			},
+			clusterManager:   &mockClusterManager{},
+			readCallbacks:    &mockReadFilterCallbacks{},
+			stats:            globalStats,
+			listenerStats:    newListenerStats("test"),
+			serverStreamConn: &mockServerConn{},
+		},
+		responseSender: &mockResponseSender{},
+		requestInfo:    &network.RequestInfo{},
+		snapshot:       &mockClusterSnapshot{},
+	}
+	s.matchRoute()
+	assert.NotNilf(t, mosnctx.Get(s.context, types.ContextKeyDownStreamRouter),
+		"downstream router in context should not be nil")
 }
 
 func TestOnewayHijack(t *testing.T) {

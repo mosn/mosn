@@ -240,3 +240,35 @@ type mockClusterInfo struct {
 func (ci *mockClusterInfo) Name() string {
 	return ci.name
 }
+
+type mockRoute struct {
+	api.Route
+}
+
+func (mr *mockRoute) RouteRule() api.RouteRule {
+	return &mockRouteRule{}
+}
+
+type mockRouteRule struct {
+	api.RouteRule
+}
+
+func (mp *mockRouteRule) Policy() api.Policy {
+	return &mockPolicy{}
+}
+
+type mockPolicy struct {
+	api.Policy
+}
+
+func (mp *mockPolicy) HashPolicy() api.HashPolicy {
+	return &mockHashPolicy{}
+}
+
+type mockHashPolicy struct {
+	api.HashPolicy
+}
+
+func (mhp *mockHashPolicy) GenerateHash(context context.Context) uint64 {
+	return 0
+}

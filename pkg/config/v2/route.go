@@ -64,25 +64,6 @@ type RouterActionConfig struct {
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
 }
 
-type HashPolicy struct {
-	Header     *HeaderHashPolicy     `json:"header,omitempty"`
-	HttpCookie *HttpCookieHashPolicy `json:"http_cookie,omitempty"`
-	SourceIP   *SourceIPHashPolicy   `json:"source_ip,omitempty"`
-}
-
-type HeaderHashPolicy struct {
-	Key string `json:"key,omitempty"`
-}
-
-type HttpCookieHashPolicy struct {
-	Name string             `json:"name,omitempty"`
-	Path string             `json:"path,omitempty"`
-	TTL  api.DurationConfig `json:"ttl,omitempty"`
-}
-
-type SourceIPHashPolicy struct {
-}
-
 type ClusterWeightConfig struct {
 	Name           string          `json:"name,omitempty"`
 	Weight         uint32          `json:"weight,omitempty"`
