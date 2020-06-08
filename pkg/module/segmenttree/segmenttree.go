@@ -22,6 +22,9 @@ import (
 	"sync"
 )
 
+// SegmentTreeUpdateFunc receive data of left-child node and right-child node
+// calculate and return the current node data
+// it can be implement by user and pass as param when creating segment tree
 type SegmentTreeUpdateFunc func(leftChildData, rightChildData interface{}) (currentNodeData interface{})
 
 type Tree struct {
@@ -51,11 +54,13 @@ func (t *Tree) Leaf(index int) (*Node, error) {
 	}, nil
 }
 
+// Update segment tree data
+// by saving current node data and calling updateFunc to update parent node data
 func (t *Tree) Update(n *Node) {
 	t.updateMux.Lock()
 	defer t.updateMux.Unlock()
 	index := n.index
-	// update current node
+	// update current node data
 	t.data[index] = n.Value
 
 	// find root index
@@ -141,7 +146,13 @@ func build(nodes []Node, updateFunc SegmentTreeUpdateFunc) ([]interface{}, map[i
 	return data, rangeStart, rangeEnd
 }
 
+// FindParent return the parent node of current node.
+// Root node return nil pointer for root has no parent.
 func (t *Tree) FindParent(currentNode *Node) *Node {
+	if currentNode.IsRoot() {
+		return nil
+	}
+
 	rootIndex := currentNode.index / 2
 	root := &Node{
 		Value:      t.data[rootIndex],

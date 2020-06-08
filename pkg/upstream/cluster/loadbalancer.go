@@ -339,6 +339,43 @@ func hostWeightsAreEqual(hosts []types.Host) bool {
 	return true
 }
 
+// newMaglevLoadBalancer return maglevLoadBalancer structure.
+//
+// In maglevLoadBalancer, there is a maglev table for consistence hash host choosing,
+// and a segment tree for fallback when maglev choose a unhealthy host.
+//
+// Here are some more information for how segment tree saving healthy host.
+// Segment tree's leaf nodes save the host's index, and non-leaf's nodes always save the
+// healthy host index of left & right sub-tree.
+//
+// For example, 4 hosts are in segment tree. When all hosts are healthy, segment tree data be like:
+//
+// ```plantuml
+// @startmindmap
+// * root-node(0)
+// ** node(0)
+// *** leaf-0(0)
+// *** leaf-1(1)
+// ** node(2)
+// *** leaf-2(2)
+// *** leaf-3(3)
+// @endmindmap
+// ```
+//
+// As shown, healthy host index are in quotes, reprecenting data saving in segment tree.
+// When host are not healthy(for example index 2), call tree's Update function and the tree will be like:
+//
+// ```plantuml
+// @startmindmap
+// * root-node(0)
+// ** node(0)
+// *** leaf-0(0)
+// *** leaf-1(1)
+// ** node(3)--node data is changed, always save healthy host index
+// *** leaf-2(2)--unhealthy
+// *** leaf-3(3)
+// @endmindmap
+// ```
 func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.LoadBalancer {
 	var table *maglev.Table
 	var tree *segmenttree.Tree
@@ -358,31 +395,7 @@ func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.Load
 				RangeEnd:   uint64(index+1) * step,
 			})
 		}
-		updateFunc := func(lv, rv interface{}) interface{} {
-			if lv != nil {
-				leftIndex, ok := lv.(int)
-				if !ok {
-					return nil
-				}
-				if set.Hosts()[leftIndex].Health() {
-					return leftIndex
-				}
-			}
-
-			if rv != nil {
-				rightIndex, ok := rv.(int)
-				if !ok {
-					return nil
-				}
-
-				if set.Hosts()[rightIndex].Health() {
-					return rightIndex
-				}
-			}
-
-			return nil
-		}
-
+		updateFunc := getSegmentTreeUpdateFunc(set)
 		tree = segmenttree.NewTree(nodes, updateFunc)
 	}
 
@@ -393,6 +406,39 @@ func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.Load
 	}
 
 	return mgv
+}
+
+// getSegmentTreeUpdateFunc return SegmentTreeUpdateFunc with loadbalancer logic.
+// Though this function, segment tree's non-leaf node's data save healthy host index of left & right sub-tree.
+//
+// When both left & right sub-tree are healthy, current node data is left sub-tree's data, for this function will
+// return right away when found sub-tree is healthy.
+// If both left and right sub-tree are unhealthy, current node data is nil.
+func getSegmentTreeUpdateFunc(set types.HostSet) segmenttree.SegmentTreeUpdateFunc {
+	return func(leftChildNodeValue, rightChildNodeValue interface{}) interface{} {
+		if leftChildNodeValue != nil {
+			leftIndex, ok := leftChildNodeValue.(int)
+			if !ok {
+				return nil
+			}
+			if set.Hosts()[leftIndex].Health() {
+				return leftIndex
+			}
+		}
+
+		if rightChildNodeValue != nil {
+			rightIndex, ok := rightChildNodeValue.(int)
+			if !ok {
+				return nil
+			}
+
+			if set.Hosts()[rightIndex].Health() {
+				return rightIndex
+			}
+		}
+
+		return nil
+	}
 }
 
 type maglevLoadBalancer struct {
@@ -442,14 +488,15 @@ func (lb *maglevLoadBalancer) chooseHostFromSegmentTree(index int) types.Host {
 
 	leaf, err := lb.fallbackSegTree.Leaf(index)
 	if err != nil {
-		log.DefaultLogger.Errorf("[proxy] [maglev] [segmenttree] find leaf of index %d failed, err:%+v", index, err)
+		log.DefaultLogger.Errorf("[proxy] [maglev] [segmenttree] find leaf of index %d failed, err:%+v",
+			index, err)
 		return nil
 	}
 
-	// update tree value when
+	// update tree value when host is not healthy
 	lb.fallbackSegTree.Update(leaf)
 
-	// leaf already unhealthy, find parent for it
+	// leaf already unhealthy, find healthy host by checking parent node healthy
 	leaf = lb.fallbackSegTree.FindParent(leaf)
 	var host types.Host
 	for {
