@@ -243,8 +243,8 @@ func (sc *streamConn) handleError(ctx context.Context, frame interface{}, err er
 	// valid request frame with positive requestID, send exception response in this case
 	if frame != nil {
 		if xframe, ok := frame.(xprotocol.XFrame); ok && (xframe.GetStreamType() == xprotocol.Request) {
-			if requestId := xframe.GetRequestId(); requestId >= 0 {
-
+			requestId := xframe.GetRequestId()
+			if (requestId > 0 && sc.protocol.PoolMode() == types.Multiplex) || sc.protocol.PoolMode() == types.PingPong {
 				// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
 				stream := sc.newServerStream(ctx, xframe)
 				stream.receiver = sc.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
