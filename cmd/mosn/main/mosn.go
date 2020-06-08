@@ -30,6 +30,9 @@ import (
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	_ "mosn.io/mosn/pkg/filter/network/tcpproxy"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
+	_ "mosn.io/mosn/pkg/filter/stream/faulttolerance"
+	_ "mosn.io/mosn/pkg/filter/stream/flowcontrol"
+	_ "mosn.io/mosn/pkg/filter/stream/gzip"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
 	_ "mosn.io/mosn/pkg/filter/stream/transcoder/http2bolt"
@@ -48,10 +51,13 @@ import (
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
+	_ "mosn.io/mosn/pkg/trace/skywalking"
+	_ "mosn.io/mosn/pkg/trace/skywalking/http"
 	_ "mosn.io/mosn/pkg/trace/sofa/http"
 	_ "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	_ "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/upstream/healthcheck"
+	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	_ "mosn.io/mosn/pkg/xds"
 )
 

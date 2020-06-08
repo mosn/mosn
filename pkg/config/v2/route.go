@@ -206,6 +206,9 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 		if err != nil {
 			return nil, err
 		}
+		if len(fileName) > MaxFilePath {
+			fileName = fileName[:MaxFilePath]
+		}
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)
 		fileName = path.Join(rc.RouterConfigPath, fileName)

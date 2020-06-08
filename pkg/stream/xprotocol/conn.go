@@ -274,7 +274,7 @@ func (sc *streamConn) handleFrame(ctx context.Context, frame xprotocol.XFrame) {
 func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame, oneway bool) {
 	// 1. heartbeat process
 	if frame.IsHeartbeatFrame() {
-		hbAck := sc.protocol.Reply(frame.GetRequestId())
+		hbAck := sc.protocol.Reply(frame)
 		hbAckData, err := sc.protocol.Encode(ctx, hbAck)
 		if err != nil {
 			sc.handleError(ctx, frame, err)

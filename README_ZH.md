@@ -1,4 +1,6 @@
-![MOSN Logo](https://raw.githubusercontent.com/mosn/community/master/icons/png/mosn-labeled-horizontal.png)
+<p align="center">
+<img src="https://raw.githubusercontent.com/mosn/community/master/icons/png/mosn-labeled-horizontal.png" width="350" title="MOSN Logo" alt="MOSN logo">
+</p>
 
 [![Build Status](https://travis-ci.com/mosn/mosn.svg?branch=master)](https://travis-ci.com/mosn/mosn)
 [![codecov](https://codecov.io/gh/mosn/mosn/branch/master/graph/badge.svg)](https://codecov.io/gh/mosn/mosn)
@@ -40,11 +42,128 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
 
 请参阅[贡献者指南](CONTRIBUTING_ZH.md)。
 
+## 工作组
+
+目前 MOSN 包含以下工作组：
+
+- [Istio 工作组](https://github.com/mosn/community/blob/master/wg-istio.md)
+- [Dubbo 工作组](https://github.com/mosn/community/blob/master/wg-dubbo.md)
+
+选择加入您感兴趣的工作组，开始您的 MOSN 之旅吧！
+
+## 合作伙伴
+
+合作伙伴参与 MOSN 合作开发，使 MOSN 变得更好。
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center"  valign="middle">
+        <a href="https://www.antfin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/antfin.png">
+        </a>
+      </td>
+      <td align="center"  valign="middle">
+        <a href="https://www.aliyun.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/aliyun.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.zhipin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/bosszhipin.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.dmall.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/duodian.png">
+        </a>
+      </td>
+      </tr><tr></tr>
+      <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.kanzhun.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/kanzhun.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+  </tbody>
+</table>
+</div>
+
+## 终端用户
+
+以下是 MOSN 的用户。请在[此处](https://github.com/mosn/community/issues/8)登记并提供反馈来帮助 MOSN 做的更好。
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center"  valign="middle">
+        <a href="https://www.tenxcloud.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tenxcloud.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.zhipin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/linkedcare.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.xiaobaoonline.com/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/xiaobao.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.wm-motor.com/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/weima.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.iqiyi.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/iqiyi.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.gaiaworks.cn" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/gaiya.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.tydic.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tianyuandike.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.terminus.io" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/terminus.png">
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
 ## 社区
 
 请访问 <https://github.com/mosn/community> 了解更多社区信息。
 
 使用钉钉扫描下面的二维码加入 MOSN 用户交流群。
 
-![MOSN 用户交流钉钉群二维码](https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ)
+<p align="center">
+<img src="https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ" width="150" title="MOSN用户交流群" alt="MOSN 用户交流群">
+</p>
 
+## Landscapes
+
+<p align="center">
+<img src="https://landscape.cncf.io/images/left-logo.svg" width="150"/>&nbsp;&nbsp;<img src="https://landscape.cncf.io/images/right-logo.svg" width="200"/>
+<br/><br/>
+MOSN enriches the <a href="https://landscape.cncf.io/landscape=observability-and-analysis&license=apache-license-2-0">CNCF CLOUD NATIVE Landscape.</a>
+</p>

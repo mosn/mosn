@@ -22,6 +22,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -152,7 +153,7 @@ func (f *testConfigHooksFactory) CreateConfigHooks(config map[string]interface{}
 
 func TestMain(m *testing.M) {
 	Register(testType, &testConfigHooksFactory{})
-	m.Run()
+	os.Exit(m.Run())
 }
 
 // TestTLSExtensionsVerifyClient tests server allow request with certificate's common name is client only

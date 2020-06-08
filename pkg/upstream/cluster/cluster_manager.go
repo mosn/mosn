@@ -87,13 +87,13 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	//Add cluster to cm
 	for _, cluster := range clusters {
 		if err := clusterManagerInstance.AddOrUpdatePrimaryCluster(cluster); err != nil {
-			log.DefaultLogger.Errorf("[upstream] [cluster manager] NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s, error: %v", cluster.Name, err)
+			log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: AddOrUpdatePrimaryCluster failure, cluster name = %s, error: %v", cluster.Name, err)
 		}
 	}
 	// Add cluster host
 	for clusterName, hosts := range clusterMap {
 		if err := clusterManagerInstance.UpdateClusterHosts(clusterName, hosts); err != nil {
-			log.DefaultLogger.Errorf("[upstream] [cluster manager] NewClusterManager: UpdateClusterHosts failure, cluster name = %s, error: %v", clusterName, err)
+			log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: UpdateClusterHosts failure, cluster name = %s, error: %v", clusterName, err)
 		}
 	}
 	return clusterManagerInstance
@@ -116,8 +116,19 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	ci, exists := cm.clustersMap.Load(clusterName)
 	if exists {
 		c := ci.(types.Cluster)
-		//FIXME: cluster info in hosts should be updated too
 		hosts := c.Snapshot().HostSet().Hosts()
+
+		newSnap := newCluster.Snapshot()
+
+		oldResourceManager := c.Snapshot().ClusterInfo().ResourceManager()
+		newResourceManager := newSnap.ClusterInfo().ResourceManager()
+
+		// sync oldResourceManager to new cluster ResourceManager
+		updateClusterResourceManager(newSnap.ClusterInfo(), oldResourceManager)
+
+		// sync newResourceManager value to oldResourceManager value
+		updateResourceValue(oldResourceManager, newResourceManager)
+
 		// update hosts, refresh
 		newCluster.UpdateHosts(hosts)
 		refreshHostsConfig(c)
@@ -354,6 +365,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						connectionPool.Store(addr, pool)
 					}
 				}()
+
 			}
 		}
 		if pool.CheckAndInit(balancerContext.DownstreamContext()) {

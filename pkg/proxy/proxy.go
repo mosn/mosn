@@ -108,10 +108,13 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	if err == nil {
 		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
-		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
-		if xProxyExtendConfig.SubProtocol != "" {
+		var http2ExtendConfig v2.Http2ExtendConfig
+		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
 			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 			log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+		} else if err := json.Unmarshal([]byte(extJSON), &http2ExtendConfig); err == nil {
+			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyH2Stream, http2ExtendConfig.Http2UseStream)
+			log.DefaultLogger.Tracef("[proxy] extend config usehttp2stream = %v", http2ExtendConfig.Http2UseStream)
 		} else {
 			log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
 		}
@@ -125,7 +128,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
 	} else {
-		log.DefaultLogger.Errorf("[proxy] RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
+		log.DefaultLogger.Alertf("proxy.config", "[proxy] RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
 	}
 
 	proxy.downstreamListener = &downstreamCallbacks{
@@ -151,7 +154,7 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 			} else {
 				size = buf.Len()
 			}
-			log.DefaultLogger.Errorf("[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
+			log.DefaultLogger.Alertf("proxy.auto", "[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
 			p.readCallbacks.Connection().Close(api.NoFlush, api.OnReadErrClose)
 			return api.Stop
 		}
@@ -224,7 +227,8 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 			}
 
 			for _, f := range ffs {
-				f.CreateFilterChain(p.context, stream)
+				// the ctx from stream
+				f.CreateFilterChain(ctx, stream)
 			}
 		}
 	}
@@ -252,6 +256,8 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 		return api.UpstreamOverflow
 	case types.StreamRemoteReset:
 		return api.UpstreamRemoteReset
+	case types.UpstreamGlobalTimeout, types.UpstreamPerTryTimeout:
+		return api.UpstreamRequestTimeout
 	}
 
 	return 0
