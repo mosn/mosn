@@ -41,15 +41,15 @@ type MOSNConfig struct {
 	Debug               PProfConfig     `json:"pprof,omitempty"`
 	Pid                 string          `json:"pid,omitempty"`    // pid file
 	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
-
-	Dubbo DubboConfig `json:"dubbo,omitempty"` // dubbo related config
+	Dubbo               DubboConfig     `json:"dubbo,omitempty"`  // dubbo related config
 }
 
 // DubboConfig is for dubbo related configs
 type DubboConfig struct {
-	Enable             bool `json:"enable"`
-	ServerListenerPort int  `json:"server_port"` // for server listener, must keep the same with server listener
-	APIPort            int  `json:"api_port"`    // for pub/sub/unpub/unsub api
+	Enable             bool   `json:"enable"`
+	ServerListenerPort int    `json:"server_port"` // for server listener, must keep the same with server listener
+	APIPort            int    `json:"api_port"`    // for pub/sub/unpub/unsub api
+	LogPath            string `json:"log_path"`    // dubbo service discovery log_path
 }
 
 // PProfConfig is used to start a pprof server for debug

@@ -31,12 +31,12 @@ import (
 
 // Init set the pub port && api port
 // and init dubbo API service
-func Init(configAPIPort, configPubPort int) {
-	initGlobalVars(configAPIPort, configPubPort)
+func Init(configAPIPort, configPubPort int, logPath string) {
+	initGlobalVars(configAPIPort, configPubPort, logPath)
 	initAPI()
 }
 
-func initGlobalVars(configAPIPort, configPubPort int) {
+func initGlobalVars(configAPIPort, configPubPort int, logFullPath string) {
 	if configAPIPort > 0 && configAPIPort < 65535 {
 		// valid port
 		apiPort = fmt.Sprint(configAPIPort)
@@ -44,15 +44,20 @@ func initGlobalVars(configAPIPort, configPubPort int) {
 		log.DefaultLogger.Warnf("invalid dubbo api port: %v, will use default: %v", configAPIPort, apiPort)
 	}
 
-	if configPubPort > 0 && configAPIPort < 65535 {
+	if configPubPort > 0 && configPubPort < 65535 {
 		// valid port
 		mosnPubPort = fmt.Sprint(configPubPort)
 	} else {
 		log.DefaultLogger.Fatalf("invalid dubbo pub port: %v, will use default: %v", configPubPort, mosnPubPort)
 	}
+
+	if len(logFullPath) > 0 {
+		logPath = logFullPath
+	}
 }
 
 var apiPort = "22222" // default 22222
+var logPath = "./dubbogo.log"
 
 // initAPI inits the http api for application when application bootstrap
 // for sub/pub

@@ -187,7 +187,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 func initDubboRelatedConfig(dubbo v2.DubboConfig) {
 	if dubbo.Enable {
-		dubbod.Init(dubbo.APIPort, dubbo.ServerListenerPort)
+		dubbod.Init(dubbo.APIPort, dubbo.ServerListenerPort, dubbo.LogPath)
 	}
 }
 
