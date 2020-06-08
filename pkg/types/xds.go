@@ -20,6 +20,7 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+
 	"github.com/golang/protobuf/jsonpb"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rcrowley/go-metrics"
@@ -50,11 +51,16 @@ type meta struct {
 	InterceptionMode TrafficInterceptionMode `json:"INTERCEPTION_MODE,omitempty"`
 }
 
-var defaultMeta = &meta{
-	IstioVersion:     "1.5.0",
-	Labels:           map[string]string{"istio": "ingressgateway"},
-	InterceptionMode: InterceptionRedirect,
-}
+var (
+	// IstioVersion adapt istio version
+	IstioVersion = "unknow"
+
+	defaultMeta = &meta{
+		IstioVersion:     IstioVersion,
+		Labels:           map[string]string{"istio": "ingressgateway"},
+		InterceptionMode: InterceptionRedirect,
+	}
+)
 
 var globalXdsInfo = &XdsInfo{}
 
