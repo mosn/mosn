@@ -22,9 +22,13 @@ const (
 )
 
 func statsForIstio(w http.ResponseWriter, r *http.Request) {
-	state, workersStarted, err := getIstioState()
+	state, err := getIstioState()
 	if err != nil {
 		log.DefaultLogger.Warnf("%v", err)
+	}
+	var workersStarted int
+	if state == envoyControlPlaneAPI.ServerInfo_LIVE {
+		workersStarted = 1
 	}
 
 	sb := bytes.NewBufferString("")
@@ -44,7 +48,7 @@ func statsForIstio(w http.ResponseWriter, r *http.Request) {
 func serverInfoForIstio(w http.ResponseWriter, r *http.Request) {
 	i := envoyControlPlaneAPI.ServerInfo{}
 	var err error
-	i.State, _, err = getIstioState()
+	i.State, err = getIstioState()
 	if err != nil {
 		log.DefaultLogger.Warnf("%v", err)
 		return
@@ -56,21 +60,19 @@ func serverInfoForIstio(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getIstioState() (envoyControlPlaneAPI.ServerInfo_State, int, error) {
+func getIstioState() (envoyControlPlaneAPI.ServerInfo_State, error) {
 	mosnState := store.GetMosnState()
-	var workersStarted int
 
 	switch mosnState {
 	case store.Active_Reconfiguring:
-		return envoyControlPlaneAPI.ServerInfo_PRE_INITIALIZING, workersStarted, nil
+		return envoyControlPlaneAPI.ServerInfo_PRE_INITIALIZING, nil
 	case store.Init:
-		return envoyControlPlaneAPI.ServerInfo_INITIALIZING, workersStarted, nil
+		return envoyControlPlaneAPI.ServerInfo_INITIALIZING, nil
 	case store.Running:
-		workersStarted = 1
-		return envoyControlPlaneAPI.ServerInfo_LIVE, workersStarted, nil
+		return envoyControlPlaneAPI.ServerInfo_LIVE, nil
 	case store.Passive_Reconfiguring:
-		return envoyControlPlaneAPI.ServerInfo_DRAINING, workersStarted, nil
+		return envoyControlPlaneAPI.ServerInfo_DRAINING, nil
 	}
 
-	return 0, workersStarted, fmt.Errorf("parse mosn state %v to istio state failed", mosnState)
+	return 0, fmt.Errorf("parse mosn state %v to istio state failed", mosnState)
 }
