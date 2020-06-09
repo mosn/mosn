@@ -211,6 +211,7 @@ func (p *connpool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	var streamSender = c.StreamClient().NewStream(ctx, receiver)
 
 	streamSender.GetStream().AddEventListener(c) // OnResetStream, OnDestroyStream
+
 	// FIXME one way
 	// is there any need to skip the metrics?
 	if receiver == nil {

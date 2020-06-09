@@ -125,6 +125,18 @@ func (s *xStream) endStream() {
 		if s.direction == stream.ServerStream {
 			s.DestroyStream()
 		}
+
+		if s.direction == stream.ClientStream {
+			// ping pong mode && one way
+			// should destroy stream after the request finished
+			// or else the upstream will not send any response
+			// and the stream will never be destroyed
+			if s.sc.protocol.PoolMode() == types.PingPong &&
+				s.frame != nil &&
+				s.frame.GetStreamType() == xprotocol.RequestOneWay {
+				s.DestroyStream()
+			}
+		}
 	}()
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
