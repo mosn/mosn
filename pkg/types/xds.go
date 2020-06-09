@@ -18,8 +18,12 @@
 package types
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
+	"os"
 
 	"github.com/golang/protobuf/jsonpb"
 	_struct "github.com/golang/protobuf/ptypes/struct"
@@ -30,7 +34,10 @@ import (
 	"strings"
 )
 
-const serviceMetaSeparator = ":"
+const (
+	serviceMetaSeparator = ":"
+	podLabelsSeparator   = "="
+)
 
 // XdsInfo The xds start parameters
 type XdsInfo struct {
@@ -60,6 +67,9 @@ var (
 		Labels:           map[string]string{"istio": "ingressgateway"},
 		InterceptionMode: InterceptionRedirect,
 	}
+
+	// IstioPodInfoPath Sidecar mountPath
+	IstioPodInfoPath = "/etc/istio/pod"
 )
 
 var globalXdsInfo = &XdsInfo{}
@@ -84,6 +94,30 @@ func InitXdsFlags(serviceCluster, serviceNode string, serviceMeta []string, labe
 			defaultMeta.Labels[keyValueSep[0]] = keyValueSep[1]
 		}
 	}
+
+	// Add pod labels into nodeInfo
+	podLabelsPath := fmt.Sprintf("%s/labels", IstioPodInfoPath)
+	if _, err := os.Stat(podLabelsPath); err == nil || os.IsExist(err) {
+		f, err := os.Open(podLabelsPath)
+		if err == nil {
+			defer f.Close()
+
+			br := bufio.NewReader(f)
+			for {
+				l, _, e := br.ReadLine()
+				if e == io.EOF {
+					break
+				}
+				// group="blue"
+				keyValueSep := strings.SplitN(strings.ReplaceAll(string(l), "\"", ""), podLabelsSeparator, 2)
+				if len(keyValueSep) != 2 {
+					continue
+				}
+				defaultMeta.Labels[keyValueSep[0]] = keyValueSep[1]
+			}
+		}
+	}
+
 	if len(serviceMeta) > 0 {
 		for _, keyValue := range serviceMeta {
 			keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
