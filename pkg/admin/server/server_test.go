@@ -74,6 +74,22 @@ func getStats(port uint32) (string, error) {
 	return string(b), nil
 }
 
+func getGlobalStats(port uint32) (string, error) {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/api/v1/stats_glob", port))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New(fmt.Sprintf("call admin api failed response status: %d, %s", resp.StatusCode, string(b)))
+	}
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
 func postUpdateLoggerLevel(port uint32, s string) (string, error) {
 	data := strings.NewReader(s)
 	url := fmt.Sprintf("http://localhost:%d/api/v1/update_loglevel", port)
@@ -228,6 +244,19 @@ func TestDumpStats(t *testing.T) {
 			t.Errorf("unexpected stats: %s\n", data)
 		}
 	}
+
+	stats1, _ := metrics.NewMetrics("downstream", map[string]string{"proxy": "global"})
+	stats1.Counter("ct1").Inc(1)
+	stats1.Gauge("gg2").Update(3)
+	expected_string := "ct1:1\ngg2:3\n"
+	if data, err := getGlobalStats(config.Port); err != nil {
+		t.Error(err)
+	} else {
+		if data != expected_string {
+			t.Errorf("unexpected stats: %s\n", data)
+		}
+	}
+
 	store.Reset()
 }
 
