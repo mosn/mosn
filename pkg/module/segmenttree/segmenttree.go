@@ -97,18 +97,21 @@ func (t *Tree) Update(n *Node) {
 		rightIndex = index
 		leftIndex = index - 1
 	}
-	parentIndex := leftIndex / 2
+	parentIndex := parentNodeIndex(leftIndex)
 
+	// update till root
 	for parentIndex > 0 {
 		t.data[parentIndex] = t.updateFunc(t.data[leftIndex], t.data[rightIndex])
 
+		// calculate next left/right index
 		leftIndex = parentIndex
-		rightIndex = leftIndex + 1
+		rightIndex = parentIndex + 1
 		if parentIndex%2 == 1 {
 			rightIndex = parentIndex
 			leftIndex = parentIndex - 1
 		}
-		parentIndex /= 2
+		// calculate next parentIndex
+		parentIndex = parentNodeIndex(parentIndex)
 	}
 }
 
@@ -146,24 +149,29 @@ func build(nodes []Node, updateFunc SegmentTreeUpdateFunc) (data []interface{}, 
 	rangeStart = make(map[int]uint64)
 	rangeEnd = make(map[int]uint64)
 
+	// put node data(leaf node data) to second half of data field
 	for i := 0; i < count; i++ {
 		data[count+i] = nodes[i].Value
 		rangeStart[count+i] = nodes[i].RangeStart
 		rangeEnd[count+i] = nodes[i].RangeEnd
 	}
 
+	// calculate non-leaf node data
+	// put it to first half of data field
 	n := 2*count - 1
 	for {
 		leftIndex := n - 1
 		rightIndex := n
-		rootIndex := leftIndex / 2
+		rootIndex := parentNodeIndex(leftIndex)
 
 		data[rootIndex] = updateFunc(data[leftIndex], data[rightIndex])
+		// find smallest rangeStart to be non-leaf node rangeStart
 		rangeStart[rootIndex] = rangeStart[leftIndex]
 		if rangeStart[rightIndex] < rangeStart[leftIndex] {
 			rangeStart[rootIndex] = rangeStart[rightIndex]
 		}
 
+		// find biggest rangeEnd to be non-leaf node rangeEnd
 		rangeEnd[rootIndex] = rangeEnd[leftIndex]
 		if rangeEnd[rightIndex] > rangeEnd[leftIndex] {
 			rangeEnd[rootIndex] = rangeEnd[rightIndex]
@@ -187,19 +195,24 @@ func (t *Tree) FindParent(currentNode *Node) *Node {
 		return nil
 	}
 
+	parentIndex := parentNodeIndex(currentNode.index)
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
-	rootIndex := currentNode.index / 2
 	root := &Node{
-		Value:      t.data[rootIndex],
-		index:      rootIndex,
-		RangeStart: t.rangeStart[rootIndex],
-		RangeEnd:   t.rangeEnd[rootIndex],
+		Value:      t.data[parentIndex],
+		index:      parentIndex,
+		RangeStart: t.rangeStart[parentIndex],
+		RangeEnd:   t.rangeEnd[parentIndex],
 	}
 	return root
 }
 
+// parentNodeIndex is half of currentNodeIndex
+// if currentNodeIndex is odd(right child), it still works(for int(7)/2 = int(3)).
+func parentNodeIndex(currentNodeIndex int) int {
+	return currentNodeIndex / 2
+}
+
 func (n *Node) IsRoot() bool {
-	// root node's index is 1
-	return n.index/2 == 0
+	return parentNodeIndex(n.index) == 0
 }
