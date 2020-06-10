@@ -18,12 +18,13 @@
 package conv
 
 import (
+	"bytes"
 	"fmt"
-
 	"net"
 	"strings"
 	"time"
 
+	udpa_type_v1 "github.com/cncf/udpa/go/udpa/type/v1"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -422,6 +423,13 @@ func convertStreamFilter(name string, s *any.Any) v2.Filter {
 				}
 			}
 		}
+	case v2.IstioStats:
+		m, err := convertUdpaTypedStructConfig(s)
+		if err != nil {
+			log.DefaultLogger.Errorf("convert %s config error: %v", name, err)
+		}
+		filter.Type = name
+		filter.Config = m
 	default:
 	}
 
@@ -558,6 +566,31 @@ func convertMixerConfig(s *any.Any) (map[string]interface{}, error) {
 
 	var config map[string]interface{}
 	err = json.Unmarshal([]byte(str), &config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
+func convertUdpaTypedStructConfig(s *any.Any) (map[string]interface{}, error) {
+	conf := udpa_type_v1.TypedStruct{}
+	err := ptypes.UnmarshalAny(s, &conf)
+	if err != nil {
+		return nil, err
+	}
+
+	config := map[string]interface{}{}
+	if conf.Value == nil || conf.Value.Fields == nil || conf.Value.Fields["configuration"] == nil {
+		return config, nil
+	}
+	jsonpbMarshaler := jsonp.Marshaler{}
+
+	buf := bytes.NewBuffer(nil)
+	err = jsonpbMarshaler.Marshal(buf, conf.Value.Fields["configuration"])
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(buf.Bytes(), &config)
 	if err != nil {
 		return nil, err
 	}

@@ -29,7 +29,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-const maxLabelCount = 10
+const maxLabelCount = 20
 
 var (
 	defaultStore          *store

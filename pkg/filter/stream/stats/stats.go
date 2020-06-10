@@ -1,0 +1,142 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package stats
+
+import (
+	"context"
+	"encoding/json"
+	"time"
+
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/pkg/buffer"
+)
+
+func init() {
+	api.RegisterStream(v2.IstioStats, CreateStatsFilterFactory)
+}
+
+// FilterConfigFactory filter config factory
+type FilterConfigFactory struct {
+	prefix  string
+	metrics []*metric
+}
+
+type statsFilter struct {
+	context               context.Context
+	receiverFilterHandler api.StreamReceiverFilterHandler
+	requestTotalSize      uint64
+
+	prefix  string
+	metrics []*metric
+}
+
+// newStatsFilter used to create new mixer filter
+func newStatsFilter(ctx context.Context, prefix string, metrics []*metric) *statsFilter {
+	filter := &statsFilter{
+		context: ctx,
+		prefix:  prefix,
+		metrics: metrics,
+	}
+	return filter
+}
+
+func (f *statsFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
+	if headers != nil {
+		f.requestTotalSize += headers.ByteSize()
+	}
+	if buf != nil {
+		f.requestTotalSize += uint64(buf.Len())
+	}
+	if trailers != nil {
+		f.requestTotalSize += trailers.ByteSize()
+	}
+
+	return api.StreamFilterContinue
+}
+
+func (f *statsFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
+	f.receiverFilterHandler = handler
+}
+
+func (f *statsFilter) OnDestroy() {}
+
+func (f *statsFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo) {
+	if reqHeaders == nil || respHeaders == nil || requestInfo == nil || len(f.metrics) == 0 {
+		return
+	}
+
+	attributes := ExtractAttributes(reqHeaders, respHeaders, requestInfo, f.requestTotalSize, time.Now())
+	for _, metric := range f.metrics {
+		stat, err := metric.Stat(attributes)
+		if err != nil {
+			log.DefaultLogger.Errorf("stats error: %s", err.Error())
+			continue
+		}
+		err = updateMetric(f.prefix, stat.Name, stat.Labels, stat.Value)
+		if err != nil {
+			log.DefaultLogger.Errorf("stats update error: %s", err.Error())
+			continue
+		}
+	}
+}
+
+// CreateFilterChain for create mixer filter
+func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
+	filter := newStatsFilter(context, f.prefix, f.metrics)
+	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
+	callbacks.AddStreamAccessLog(filter)
+}
+
+// CreateStatsFilterFactory for create mixer filter factory
+func CreateStatsFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	data, err := json.Marshal(conf)
+	if err != nil {
+		return nil, err
+	}
+	c := &StatsConfig{}
+	err = json.Unmarshal(data, &c)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(c.Metrics) == 0 {
+		c.Metrics = defaultMetricConfig
+	}
+
+	ms := make([]*metric, 0, len(c.Metrics))
+	for _, m := range c.Metrics {
+		metric, err := newMetric(&m)
+		if err != nil {
+			return nil, err
+		}
+		ms = append(ms, metric)
+	}
+	return &FilterConfigFactory{metrics: ms, prefix: c.StatPrefix}, nil
+}
+
+func updateMetric(prefix, name string, labels map[string]string, val int64) error {
+	met, err := metrics.NewMetrics(prefix, labels)
+	if err != nil {
+		return err
+	}
+	met.Counter(name).Inc(val)
+	return nil
+}

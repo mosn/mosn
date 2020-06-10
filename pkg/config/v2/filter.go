@@ -83,6 +83,7 @@ const (
 	PayloadLimit   = "payload_limit"
 	Gzip           = "gzip"
 	FaultTolerance = "fault_tolerance"
+	IstioStats     = "istio.stats"
 )
 
 // HealthCheckFilter
