@@ -533,6 +533,7 @@ func (al *activeListener) activeStreamSize() int {
 
 func (al *activeListener) OnClose() {}
 
+// PreStopHook used for graceful stop
 func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 	// before allowing you to stop listener,
 	// check that the preconditions are met.

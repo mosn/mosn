@@ -192,6 +192,15 @@ func OnProcessShutDown(cb func() error) {
 	shutdownCallbacks = append(shutdownCallbacks, cb)
 }
 
+// OnProcessShutDownFirst insert the callback func into the header
+func OnProcessShutDownFirst(cb func() error) {
+	var firstCallbacks []func() error
+	firstCallbacks = append(firstCallbacks, cb)
+	firstCallbacks = append(firstCallbacks, shutdownCallbacks...)
+	// replace current firstCallbacks
+	shutdownCallbacks = firstCallbacks
+}
+
 func AddSignalCallback(signal syscall.Signal, cb func()) {
 	signalCallback[signal] = append(signalCallback[signal], cb)
 }
