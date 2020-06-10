@@ -203,8 +203,10 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedP
 
 		// regex rewrite path if configured
 		if len(rri.regexRewrite.Pattern.Regex) > 1 {
-			reg := regexp.MustCompile(rri.regexRewrite.Pattern.Regex)
-			if reg.Match([]byte(path)) {
+			reg, err := regexp.Compile(rri.regexRewrite.Pattern.Regex)
+			if err != nil {
+				log.DefaultLogger.Errorf(RouterLogFormat, "routerule", "finalizePathHeader", "invalid regex:"+err.Error())
+			} else if reg.Match([]byte(path)) {
 				rewritedPath := reg.ReplaceAllString(path, rri.regexRewrite.Substitution)
 
 				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
