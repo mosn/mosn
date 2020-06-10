@@ -18,6 +18,7 @@
 package router
 
 import (
+	"context"
 	"math/rand"
 	"strings"
 	"sync"
@@ -25,11 +26,11 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
 type RouteRuleImplBase struct {
@@ -205,12 +206,17 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers api.HeaderMap, requ
 	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
 		headers.Set(protocol.IstioHeaderHostKey, rri.hostRewrite)
-	} else if rri.autoHostRewrite && configmanager.IsDnsTypeCluster(rri.ClusterName()) {
-		headers.Set(protocol.IstioHeaderHostKey, rri.ClusterName())
 	} else if len(rri.autoHostRewriteHeader) > 0 {
 		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
 			headers.Set(protocol.IstioHeaderHostKey, headerValue)
 		}
+	} else if rri.autoHostRewrite {
+
+		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.ClusterName())
+		if clusterSnapshot.ClusterInfo().ClusterType() == v2.LOGICAL_DNS_CLUSTER || clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER {
+			headers.Set(protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
+		}
+
 	}
 }
 
