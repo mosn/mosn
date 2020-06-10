@@ -243,26 +243,29 @@ func (ci *mockClusterInfo) Name() string {
 
 type mockRoute struct {
 	api.Route
+	routeRule api.RouteRule
 }
 
 func (mr *mockRoute) RouteRule() api.RouteRule {
-	return &mockRouteRule{}
+	return mr.routeRule
 }
 
 type mockRouteRule struct {
 	api.RouteRule
+	policy api.Policy
 }
 
 func (mp *mockRouteRule) Policy() api.Policy {
-	return &mockPolicy{}
+	return mp.policy
 }
 
 type mockPolicy struct {
 	api.Policy
+	hashPolicy api.HashPolicy
 }
 
 func (mp *mockPolicy) HashPolicy() api.HashPolicy {
-	return &mockHashPolicy{}
+	return mp.hashPolicy
 }
 
 type mockHashPolicy struct {

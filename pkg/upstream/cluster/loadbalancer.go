@@ -458,7 +458,12 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		return nil
 	}
 
-	hash := route.RouteRule().Policy().HashPolicy().GenerateHash(context.DownstreamContext())
+	hashPolicy := route.RouteRule().Policy().HashPolicy()
+	if hashPolicy == nil {
+		return nil
+	}
+
+	hash := hashPolicy.GenerateHash(context.DownstreamContext())
 	index := lb.maglev.Lookup(hash)
 	chosen := lb.hosts.Hosts()[index]
 
@@ -467,8 +472,13 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		chosen = lb.chooseHostFromSegmentTree(index)
 	}
 
-	log.Proxy.Debugf(context.DownstreamContext(), "[lb][maglev] hash %d get index %d host %s",
-		hash, index, chosen.AddressString())
+	if chosen == nil {
+		log.Proxy.Infof(context.DownstreamContext(), "[lb][maglev] hash %d get nil host, index: %d",
+			hash, index)
+	} else {
+		log.Proxy.Debugf(context.DownstreamContext(), "[lb][maglev] hash %d index %d get host %s",
+			hash, index, chosen.AddressString())
+	}
 
 	return chosen
 }
