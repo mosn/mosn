@@ -235,11 +235,11 @@ func (p *connpool) GetActiveClient(ctx context.Context, subProtocol types.Protoc
 		return nil, types.Overflow
 	}
 
-	// FIXME, http1 加锁建连会有性能问题
 	p.clientMux.Lock()
-	defer p.clientMux.Unlock()
 
 	if p.useAsyncConnect(p.protocol, subProtocol) && len(p.idleClients[subProtocol]) > 0 {
+		defer p.clientMux.Unlock()
+
 		// the client was inited in the CheckAndInit function
 		lastIdx := len(p.idleClients[subProtocol]) - 1
 		return p.idleClients[subProtocol][lastIdx], ""
@@ -257,19 +257,30 @@ func (p *connpool) GetActiveClient(ctx context.Context, subProtocol types.Protoc
 
 	if n == 0 {
 		if maxConns == 0 || p.totalClientCount < maxConns {
-			c, reason = p.newActiveClient(ctx, subProtocol)
-			if c != nil && reason == "" {
-				p.totalClientCount++
+			if p.shouldMultiplex(subProtocol) {
+				defer p.clientMux.Unlock()
+				c, reason = p.newActiveClient(ctx, subProtocol)
+				if c != nil && reason == "" {
+					p.totalClientCount++
 
-				if p.shouldMultiplex(subProtocol) {
 					// HTTP/2 && xprotocol
 					// should put this conn to pool
 					p.idleClients[subProtocol] = append(p.idleClients[subProtocol], c)
+				}
+			} else {
+				// connection not multiplex,
+				// so we can concurrently build connections here
+				p.clientMux.Unlock()
+				c, reason = p.newActiveClient(ctx, subProtocol)
+				if c != nil && reason == "" {
+					p.totalClientCount++
 				}
 			}
 
 			goto RET
 		} else {
+			p.clientMux.Unlock()
+
 			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
 			c, reason = nil, types.Overflow
@@ -277,6 +288,8 @@ func (p *connpool) GetActiveClient(ctx context.Context, subProtocol types.Protoc
 			goto RET
 		}
 	} else {
+		defer p.clientMux.Unlock()
+
 		var lastIdx = n - 1
 		if p.shouldMultiplex(subProtocol) {
 			// HTTP/2 && xprotocol
@@ -379,7 +392,6 @@ type activeClient struct {
 	host        types.CreateConnectionData
 
 	writeLock sync.RWMutex
-
 
 	totalStream        uint64
 	closeWithActiveReq bool
@@ -711,7 +723,7 @@ func (ac *activeClient) SetHeartBeater(hb stoppable) {
 
 	ac.keepAlive = &keepAliveListener{
 		keepAlive: hb,
-		conn : ac.host.Connection,
+		conn:      ac.host.Connection,
 	}
 
 	// this should be equal to
@@ -730,7 +742,6 @@ func getSubProtocol(ctx context.Context) types.ProtocolName {
 	return ""
 }
 
-
 type stoppable interface {
 	Stop()
 }
@@ -743,7 +754,14 @@ type keepAliveListener struct {
 	conn api.Connection
 }
 
+// OnEvent impl types.ConnectionEventListener
 func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
+	// currently there is two types of keepalive
+	// 1. the original xprotocol keepalive implementation
+	// 2. new keepalive implementation,
+	//	  user only need to provide a function to get the heartbeatdata
+	//    and the conpool will automatic send this data
+	//    when user detect hb fail, they should call the callback passed to GetKeepAliveData
 	if event == api.OnReadTimeout && l.keepAlive != nil {
 		if kp, ok := l.keepAlive.(types.KeepAlive); ok {
 			kp.SendKeepAlive()
