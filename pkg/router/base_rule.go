@@ -213,7 +213,7 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers api.HeaderMap, requ
 	} else if rri.autoHostRewrite {
 
 		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.ClusterName())
-		if clusterSnapshot.ClusterInfo().ClusterType() == v2.LOGICAL_DNS_CLUSTER || clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER {
+		if clusterSnapshot != nil && (clusterSnapshot.ClusterInfo().ClusterType() == v2.LOGICAL_DNS_CLUSTER || clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER) {
 			headers.Set(protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
 		}
 
