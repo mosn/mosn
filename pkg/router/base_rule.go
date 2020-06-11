@@ -106,9 +106,10 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 				ttl:  hp.HttpCookie.TTL,
 			}
 		}
-		if hp.SourceIP != nil {
-			base.policy.hashPolicy = &sourceIPHashPolicyImpl{}
-		}
+	}
+	// use source ip hash policy as default hash policy
+	if base.policy.hashPolicy == nil {
+		base.policy.hashPolicy = &sourceIPHashPolicyImpl{}
 	}
 	// add direct repsonse rule
 	if route.DirectResponse != nil {
