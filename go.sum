@@ -514,6 +514,8 @@ github.com/trainyao/go-maglev v0.0.0-20200522093939-ce154bb104cf h1:Voh3xuZzTbe3
 github.com/trainyao/go-maglev v0.0.0-20200522093939-ce154bb104cf/go.mod h1:VBsRn0SDTltC3/SzN6SgXlQtmBk6U5sf0KW+eT+WMbc=
 github.com/trainyao/go-maglev v0.0.0-20200607094625-c720d540c9cf h1:FoFxZl5OJJPQfGxG4YURJSU9yObC+IIUIGRsKQG9lH8=
 github.com/trainyao/go-maglev v0.0.0-20200607094625-c720d540c9cf/go.mod h1:VBsRn0SDTltC3/SzN6SgXlQtmBk6U5sf0KW+eT+WMbc=
+github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8 h1:o6jtI8/BV93ZCw681cNVMjyvLfnBboUP/lBOfmkb4Pg=
+github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8/go.mod h1:VBsRn0SDTltC3/SzN6SgXlQtmBk6U5sf0KW+eT+WMbc=
 github.com/tv42/httpunix v0.0.0-20150427012821-b75d8614f926/go.mod h1:9ESjWnEqriFuLhtthL60Sar/7RFoluCcXsuvEwTV5KM=
 github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGrc=
 github.com/ugorji/go v1.1.7 h1:/68gy2h+1mWMrwZFeD1kQialdSzAb432dtpeJ42ovdo=

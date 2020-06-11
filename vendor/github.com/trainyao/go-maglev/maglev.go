@@ -22,9 +22,6 @@ type Table struct {
 	currentOffsets []uint64
 	// skips saves the skips of i index
 	skips []uint64
-
-	// originOffsets saves the first currentOffsets
-	originOffsets []uint64
 }
 
 func New(names []string, m uint64) *Table {
@@ -33,12 +30,9 @@ func New(names []string, m uint64) *Table {
 		n:              len(names),
 		skips:          skips,
 		currentOffsets: offsets,
-		originOffsets:  make([]uint64, len(names)),
 		m:              m,
 	}
 
-	// save first currentOffsets to originOffsets, for reset
-	copy(t.originOffsets, t.currentOffsets)
 	t.lookup = t.populate(m, nil)
 
 	return t
@@ -46,10 +40,6 @@ func New(names []string, m uint64) *Table {
 
 func (t *Table) Lookup(key uint64) int {
 	return t.lookup[key%uint64(len(t.lookup))]
-}
-
-func (t *Table) Rebuild(dead []int) {
-	t.lookup = t.populate(t.m, dead)
 }
 
 // generateOffsetAndSkips generates the first offset and skip, which is used to generate hash sequence
@@ -67,7 +57,6 @@ func generateOffsetAndSkips(names []string, M uint64) ([]uint64, []uint64) {
 }
 
 func (t *Table) populate(M uint64, dead []int) []int {
-	t.resetOffsets()
 	N := len(t.currentOffsets)
 
 	entry := make([]int, M)
@@ -107,9 +96,4 @@ func (t *Table) nextOffset(i int, c *uint64) {
 	if t.currentOffsets[i] >= t.m {
 		t.currentOffsets[i] -= t.m
 	}
-}
-
-// resetOffsets reset originOffsets to current offset
-func (t *Table) resetOffsets() {
-	copy(t.currentOffsets, t.originOffsets)
 }

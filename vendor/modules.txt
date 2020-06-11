@@ -232,7 +232,7 @@ github.com/shirou/gopsutil/internal/common
 github.com/shirou/gopsutil/load
 # github.com/stretchr/testify v1.5.1
 github.com/stretchr/testify/assert
-# github.com/trainyao/go-maglev v0.0.0-20200607094625-c720d540c9cf
+# github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
 github.com/trainyao/go-maglev
 # github.com/ugorji/go/codec v1.1.7
 github.com/ugorji/go/codec
