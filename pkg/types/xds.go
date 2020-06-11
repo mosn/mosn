@@ -84,6 +84,11 @@ func InitXdsFlags(serviceCluster, serviceNode string, serviceMeta []string, labe
 			defaultMeta.Labels[keyValueSep[0]] = keyValueSep[1]
 		}
 	}
+
+	for k, v := range GetPodLabels() {
+		defaultMeta.Labels[k] = v
+	}
+
 	if len(serviceMeta) > 0 {
 		for _, keyValue := range serviceMeta {
 			keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
@@ -99,10 +104,8 @@ func InitXdsFlags(serviceCluster, serviceNode string, serviceMeta []string, labe
 				if i, e := strconv.ParseInt(keyValueSep[1], 10, 64); e == nil {
 					f.SetInt(i)
 				}
-
 			}
 		}
-
 	}
 
 	bs, _ := json.Marshal(defaultMeta)
