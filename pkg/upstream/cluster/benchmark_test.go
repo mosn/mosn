@@ -18,6 +18,7 @@
 package cluster
 
 import (
+	"os"
 	"testing"
 
 	"mosn.io/api"
@@ -28,7 +29,7 @@ import (
 
 func TestMain(m *testing.M) {
 	log.DefaultLogger.SetLogLevel(log.ERROR)
-	m.Run()
+	os.Exit(m.Run())
 }
 
 func BenchmarkHostConfig(b *testing.B) {
@@ -262,7 +263,7 @@ func BenchmarkRoundRobinLBWithUnhealthyHost(b *testing.B) {
 
 func BenchmarkLeastActiveRequestLB(b *testing.B) {
 	hostSet := &hostSet{}
-	hosts := makePool(10).MakeHosts(10, map[string]string{"cluster":""})
+	hosts := makePool(10).MakeHosts(10, map[string]string{"cluster": ""})
 	hostSet.setFinalHost(hosts)
 	lb := newleastActiveRequestLoadBalancer(nil, hostSet)
 	b.RunParallel(func(pb *testing.PB) {

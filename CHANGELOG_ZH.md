@@ -1,5 +1,66 @@
 # 更新日志
 
+## v0.13.0
+
+### 新功能
+
++ 支持 Strict DNS Cluster [@dengqian](https://github.com/dengqian)
++ 支持 GZip 处理的 Stream Filter [@wangfakang](https://github.com/wangfakang)
++ Dubbo 服务发现完成 Beta 版本 [@cch123](https://github.com/cch123)
++ 支持单机故障隔离的 Stream Filter [@NeGnail](https://github.com/NeGnail)
++ 集成 Sentinel 限流能力 [@ansiz](https://github.com/ansiz)
+
+### 优化
+
++ 优化 EDF LB 的实现，使用 EDF 重新实现 WRR LB [@CodingSinger](https://github.com/CodingSinger)
++ 配置获取 ADMIN API 优化，新增 Features 和环境变量相关 ADMIN API [@nejisama](https://github.com/nejisama)
++ 更新 Host 时触发健康检查的更新从异步模式修改为同步模式 [@nejisama](https://github.com/nejisama)
++ 更新了 Dubbo 库，优化了 Dubbo Decode 的性能 [@zonghaishang](https://github.com/zonghaishang)
++ 优化 Metrics 在 Prometheus 中的输出，使用正则过滤非法的 Key [@nejisama](https://github.com/nejisama)
++ 优化 MOSN 的返回状态码 [@wangfakang](https://github.com/wangfakang)
+
+### Bug 修复
+
++ 修复健康检查注册回调函数时的并发冲突问题 [@nejisama](https://github.com/nejisama)
++ 修复配置持久化函数没有正确处理空配置的错误 [@nejisama](https://github.com/nejisama)
++ 修复 ClusterName/RouterName 过长时，以文件形式 DUMP 会失败的问题 [@nejisama](https://github.com/nejisama)
++ 修复获取 XProtocol 协议时，无法正确获取协议的问题 [@wangfakang](https://github.com/wangfakang)
++ 修复创建 StreamFilter 时，获取的 context 错误的问题 [@wangfakang](https://github.com/wangfakang)
+
+
+## v0.12.0
+
+### 新功能
+
+- 支持 Skywalking [@arugal](https://github.com/arugal)
+- Stream Filter 新增了一个 Receive Filter 执行的阶段，可在 MOSN 路由选择完 Host 以后，再次执行 Receive Filter [@wangfakang](https://github.com/wangfakang)
+- HTTP2 支持流式 [@peacocktrain](https://github.com/peacocktrain) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- FeatureGate 新增接口 KnownFeatures，可输出当前 FeatureGate 状态 [@nejisama](https://github.com/nejisama)
+- 提供一种协议透明的方式获取请求资源（PATH、URI、ARG），对于资源的定义由各个协议自身定义 [@wangfakang](https://github.com/wangfakang)
+- 新增负载均衡算法
+  - 支持 ActiveRequest LB [@CodingSinger](https://github.com/CodingSinger)
+  - 支持 WRR LB [@nejisama](https://github.com/nejisama)
+
+### 优化
+
+- XProtocol 协议引擎优化 [@neverhook](https://github.com/neverhook)
+  - 修改 XProtocol 心跳响应接口，支持协议的心跳响应可返回更多的信息
+  - 优化 connpool 的心跳触发，只有实现了心跳的协议才会发心跳
+- Dubbo 库依赖版本从 v1.5.0-rc1 更新到 v1.5.0 [@cch123](https://github.com/cch123)
+- API 调整，HostInfo 新增健康检查相关的接口 [@wangfakang](https://github.com/wangfakang)
+- 熔断功能实现优化 [@wangfakang](https://github.com/wangfakang)
+- 负责均衡选择逻辑简化，同样地址的 Host 复用相同的健康检查标记 [@nejisama](https://github.com/nejisama) [@cch123](https://github.com/cch123)
+- 优化 HTTP 建连逻辑，提升 HTTP 建立性能 [@wangfakang](https://github.com/wangfakang)
+- 日志轮转逻辑从写日志触发，调整为定时触发 [@nejisama](https://github.com/nejisama)
+- typo 调整 [@xujianhai666](https://github.com/xujianhai666) [@candyleer](https://github.com/candyleer)
+
+### Bug 修复
+
+- 修复 xDS 解析故障注入配置的错误 [@champly](https://github.com/champly)
+- 修复 MOSN HTTP HEAD 方法导致的请求 Hold 问题 [@wangfakang](https://github.com/wangfakang)
+- 修复 XProtocol 引擎对于 StatusCode 映射缺失的问题 [@neverhook](https://github.com/neverhook)
+- 修复 DirectReponse 触发重试的 BUG [@taoyuanyuan](https://github.com/taoyuanyuan)
+
 ## v0.11.0
 
 ### 新功能
@@ -8,7 +69,7 @@
 - 变量机制新增 Set 方法 [@neverhook](https://github.com/neverhook)
 - 新增 SDS Client 失败时自动重试和异常处理 [@pxzero](https://github.com/pxzero)
 - 完善 TraceLog，支持注入 context[@taoyuanyuan](https://github.com/taoyuanyuan)
-- 新增 FeatureGate `auto_config`，当开启该Feature以后动态更新的配置会保存到启动配置中 [@nejisama](https://github.com/nejisama)
+- 新增 FeatureGate `auto_config`，当开启该 Feature 以后动态更新的配置会保存到启动配置中 [@nejisama](https://github.com/nejisama)
 
 ### 重构
 

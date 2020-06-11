@@ -195,6 +195,13 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 	// TODO
 }
 
+func (p *proxy) ActiveStreamSize() int {
+	if p.activeSteams == nil {
+		return 0
+	}
+	return p.activeSteams.Len()
+}
+
 func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 	p.readCallbacks = cb
 
@@ -227,7 +234,8 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 			}
 
 			for _, f := range ffs {
-				f.CreateFilterChain(p.context, stream)
+				// the ctx from stream
+				f.CreateFilterChain(ctx, stream)
 			}
 		}
 	}
@@ -255,6 +263,8 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 		return api.UpstreamOverflow
 	case types.StreamRemoteReset:
 		return api.UpstreamRemoteReset
+	case types.UpstreamGlobalTimeout, types.UpstreamPerTryTimeout:
+		return api.UpstreamRequestTimeout
 	}
 
 	return 0

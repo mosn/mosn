@@ -18,6 +18,7 @@
 package router
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -457,5 +458,5 @@ func TestInvalidConfig(t *testing.T) {
 
 func TestMain(m *testing.M) {
 	log.InitDefaultLogger("", log.DEBUG)
-	m.Run()
+	os.Exit(m.Run())
 }

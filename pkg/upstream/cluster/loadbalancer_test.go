@@ -20,10 +20,11 @@ package cluster
 import (
 	"math"
 	"math/rand"
-	"mosn.io/api"
 	"sync"
 	"testing"
 	"time"
+
+	"mosn.io/api"
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/types"
@@ -31,7 +32,7 @@ import (
 
 // load should be balanced when node fails
 func TestRandomLBWhenNodeFailBalanced(t *testing.T) {
-	defer func () {
+	defer func() {
 		// clear healthStore
 		healthStore = sync.Map{}
 	}()
@@ -70,7 +71,7 @@ func TestRandomLBWhenNodeFailBalanced(t *testing.T) {
 			if i == unhealthyIdx {
 				expected = 0.000
 			}
-			if math.Abs(rate-expected) > 0.03 { // no lock, have deviation 3% is acceptable
+			if math.Abs(rate-expected) > 0.1 { // no lock, have deviation 10% is acceptable
 				t.Errorf("%s request rate is %f, expected %f", addr, rate, expected)
 			}
 			t.Logf("%s request rate is %f, request count: %d", addr, rate, results[addr])
@@ -104,7 +105,7 @@ func TestWRRLB(t *testing.T) {
 	// 1:2:3:4
 	hs := &hostSet{}
 	hs.setFinalHost(hosts)
-	lb := newSmoothWeightedRRLoadBalancer(nil, hs)
+	lb := newWRRLoadBalancer(nil, hs)
 	total := 1000000
 	runCase := func(subTotal int) {
 		results := map[string]int{}
@@ -120,7 +121,7 @@ func TestWRRLB(t *testing.T) {
 			addr := hosts[i].AddressString()
 			rate := float64(results[addr]) / float64(subTotal)
 			expected := float64(i+1) / 10.0
-			if math.Abs(rate-expected) > 0.03 { // no lock, have deviation 3% is acceptable
+			if math.Abs(rate-expected) > 0.1 { // no lock, have deviation 10% is acceptable
 				t.Errorf("%s request rate is %f, expected %f", addr, rate, expected)
 			}
 			t.Logf("%s request rate is %f, request count: %d", addr, rate, results[addr])
@@ -153,7 +154,7 @@ func BenchmarkWRRLbSimple(b *testing.B) {
 	}
 	hs := &hostSet{}
 	hs.setFinalHost(hosts)
-	lb := newSmoothWeightedRRLoadBalancer(nil, hs)
+	lb := newWRRLoadBalancer(nil, hs)
 	b.Run("WRRSimple", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			lb.ChooseHost(nil)
@@ -198,7 +199,7 @@ func BenchmarkWRRLbMultiple(b *testing.B) {
 		}
 		hs := &hostSet{}
 		hs.setFinalHost(hosts)
-		lb := newSmoothWeightedRRLoadBalancer(nil, hs)
+		lb := newWRRLoadBalancer(nil, hs)
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				lb.ChooseHost(nil)
@@ -243,7 +244,7 @@ func BenchmarkWRRLbParallel(b *testing.B) {
 		}
 		hs := &hostSet{}
 		hs.setFinalHost(hosts)
-		lb := newSmoothWeightedRRLoadBalancer(nil, hs)
+		lb := newWRRLoadBalancer(nil, hs)
 		b.Run(tc.name, func(b *testing.B) {
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {

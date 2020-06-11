@@ -599,7 +599,7 @@ func TestDynamicSubsetHost(t *testing.T) {
 			},
 		},
 	}
-	cluster := newSimpleCluster(clusterConfig)
+	cluster := newSimpleCluster(clusterConfig).(*simpleCluster)
 	// create a subset
 	{
 		cluster.UpdateHosts([]types.Host{hostA})
