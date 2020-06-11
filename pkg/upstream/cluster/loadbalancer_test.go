@@ -343,31 +343,18 @@ func Test_segmentTreeFallback(t *testing.T) {
 	if !assert.Falsef(t, h, "Health() should be false") {
 		t.FailNow()
 	}
-	node, err := mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(8)
-	if err != nil {
-		t.Error(err)
-	}
-	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
 
-	host := mgv.(*maglevLoadBalancer).chooseHostFromSegmentTree(8)
-	if !assert.Equalf(t, "host-9", host.Hostname(), "host name should be 'host-9'") {
+	host := mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
+	if !assert.Equalf(t, "host-0", host.Hostname(), "host name should be 'host-0'") {
 		t.FailNow()
 	}
 
-	// set host-9 unhealthy
-	hostSet.hosts[9].SetHealthFlag(api.FAILED_ACTIVE_HC)
-	h = hostSet.hosts[9].Health()
-	if !assert.Falsef(t, h, "Health() should be false") {
-		t.FailNow()
-	}
-	node, err = mgv.(*maglevLoadBalancer).fallbackSegTree.Leaf(9)
-	if err != nil {
-		t.Error(err)
-	}
-	mgv.(*maglevLoadBalancer).fallbackSegTree.Update(node)
+	// set host-0, host1 unhealthy
+	hostSet.hosts[0].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet.hosts[1].SetHealthFlag(api.FAILED_ACTIVE_HC)
 
-	host = mgv.(*maglevLoadBalancer).chooseHostFromSegmentTree(8)
-	if !assert.Equalf(t, "host-6", host.Hostname(), "host name should be 'host-6'") {
+	host = mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
+	if !assert.Equalf(t, "host-2", host.Hostname(), "host name should be 'host-2'") {
 		t.FailNow()
 	}
 }
