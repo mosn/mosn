@@ -415,6 +415,11 @@ type activeClient struct {
 }
 
 func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClient, types.PoolFailureReason) {
+	// if pool is already destroyed, return
+	if atomic.LoadUint64(&p.destroyed) == 1 {
+		return nil, types.ConnectionFailure
+	}
+
 	ac := &activeClient{
 		pool:        p,
 		subProtocol: subProtocol,
@@ -471,6 +476,11 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 	if err := ac.host.Connection.Connect(); err != nil {
 		return nil, types.ConnectionFailure
 	} else {
+		if atomic.LoadUint64(&p.destroyed) == 1 {
+			// if destroyed, close the conn
+			ac.host.Connection.Close(api.NoFlush, api.LocalClose)
+		}
+
 		for _, rf := range ac.pool.readFilters {
 			ac.host.Connection.FilterManager().AddReadFilter(rf)
 		}
