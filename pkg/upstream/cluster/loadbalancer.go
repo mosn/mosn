@@ -363,9 +363,12 @@ func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.Load
 	}
 
 	maglevM := maglev.SmallM
-	// TODO add comment
-	if nameCount >= 60000 {
-		log.DefaultLogger.Infof("[lb][maglev] host count %d >= 60000, using maglev.BigM", nameCount)
+	// according to test, 30000 host with testing 1e8 times, hash distribution begins to go wrong,
+	// max=4855, mean=3333.3333333333335, peak-to-mean=1.4565
+	// so use BigM when host >= 30000
+	limit := 30000
+	if nameCount >= limit {
+		log.DefaultLogger.Infof("[lb][maglev] host count %d >= %d, using maglev.BigM", nameCount, limit)
 		maglevM = maglev.BigM
 	}
 
