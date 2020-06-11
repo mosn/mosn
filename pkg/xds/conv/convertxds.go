@@ -32,6 +32,7 @@ import (
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
+	xdshttpgzip "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/gzip/v2"
 	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
 	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	jsonp "github.com/golang/protobuf/jsonpb"
@@ -40,6 +41,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
@@ -371,7 +373,7 @@ func convertStreamFilter(name string, s *any.Any) v2.Filter {
 		if err != nil {
 			log.DefaultLogger.Errorf("convertMixerConfig error: %v", err)
 		}
-	case v2.FaultStream, IstioFault:
+	case v2.FaultStream, xdswellknown.Fault:
 		filter.Type = v2.FaultStream
 		// istio maybe do not contain this config, but have configs in router
 		// in this case, we create a fault inject filter that do nothing
@@ -385,6 +387,22 @@ func convertStreamFilter(name string, s *any.Any) v2.Filter {
 			filter.Config, err = convertStreamFaultInjectConfig(s)
 			if err != nil {
 				log.DefaultLogger.Errorf("convert fault inject config error: %v", err)
+			}
+		}
+	case v2.Gzip, xdswellknown.Gzip:
+		filter.Type = v2.Gzip
+		// istio maybe do not contain this config, but have configs in router
+		// in this case, we create a gzip filter that do nothing
+		if s == nil {
+			streamGzip := &v2.StreamGzip{}
+			filter.Config, err = makeJsonMap(streamGzip)
+			if err != nil {
+				log.DefaultLogger.Errorf("convert fault inject config error: %v", err)
+			}
+		} else { // common case
+			filter.Config, err = convertStreamGzipConfig(s)
+			if err != nil {
+				log.DefaultLogger.Errorf("convert gzip config error: %v", err)
 			}
 		}
 	case MosnPayloadLimit:
@@ -453,6 +471,47 @@ func convertStreamFaultInjectConfig(s *any.Any) (map[string]interface{}, error) 
 		Headers:         convertHeaders(faultConfig.GetHeaders()),
 	}
 	return makeJsonMap(streamFault)
+}
+
+func convertStreamGzipConfig(s *any.Any) (map[string]interface{}, error) {
+	gzipConfig := &xdshttpgzip.Gzip{}
+	if err := ptypes.UnmarshalAny(s, gzipConfig); err != nil {
+		return nil, err
+	}
+
+	// convert istio gzip for mosn
+	var minContentLength, level uint32
+	var contentType []string
+	switch gzipConfig.GetCompressionLevel() {
+	case xdshttpgzip.Gzip_CompressionLevel_BEST:
+		level = fasthttp.CompressBestCompression
+	case xdshttpgzip.Gzip_CompressionLevel_SPEED:
+		level = fasthttp.CompressBestSpeed
+	default:
+		level = fasthttp.CompressDefaultCompression
+	}
+
+	// TODO upgrade go-control-plane
+	// go-control-plane-0.9.5 should use bellow
+	//compressor := gzipConfig.GetCompressor()
+	//if compressor != nil {
+	//	if compressor.GetContentLength() != nil {
+	//		minContentLength = compressor.GetContentLength().GetValue()
+	//	}
+	//	contentType = compressor.GetContentType()
+	//}
+
+	if gzipConfig.GetContentLength() != nil {
+		minContentLength = gzipConfig.GetContentLength().GetValue()
+	}
+	contentType = gzipConfig.GetContentType()
+
+	streamGzip := &v2.StreamGzip{
+		GzipLevel:     level,
+		ContentLength: minContentLength,
+		ContentType:   contentType,
+	}
+	return makeJsonMap(streamGzip)
 }
 
 func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
@@ -1062,6 +1121,7 @@ func convertClusterType(xdsClusterType xdsapi.Cluster_DiscoveryType) v2.ClusterT
 	case xdsapi.Cluster_STATIC:
 		return v2.SIMPLE_CLUSTER
 	case xdsapi.Cluster_STRICT_DNS:
+		return v2.STRICT_DNS_CLUSTER
 	case xdsapi.Cluster_LOGICAL_DNS:
 	case xdsapi.Cluster_EDS:
 		return v2.EDS_CLUSTER

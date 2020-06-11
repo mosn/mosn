@@ -20,6 +20,7 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+
 	"github.com/golang/protobuf/jsonpb"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rcrowley/go-metrics"
@@ -50,11 +51,16 @@ type meta struct {
 	InterceptionMode TrafficInterceptionMode `json:"INTERCEPTION_MODE,omitempty"`
 }
 
-var defaultMeta = &meta{
-	IstioVersion:     "1.5.0",
-	Labels:           map[string]string{"istio": "ingressgateway"},
-	InterceptionMode: InterceptionRedirect,
-}
+var (
+	// IstioVersion adapt istio version
+	IstioVersion = "unknow"
+
+	defaultMeta = &meta{
+		IstioVersion:     IstioVersion,
+		Labels:           map[string]string{"istio": "ingressgateway"},
+		InterceptionMode: InterceptionRedirect,
+	}
+)
 
 var globalXdsInfo = &XdsInfo{}
 
@@ -78,6 +84,11 @@ func InitXdsFlags(serviceCluster, serviceNode string, serviceMeta []string, labe
 			defaultMeta.Labels[keyValueSep[0]] = keyValueSep[1]
 		}
 	}
+
+	for k, v := range GetPodLabels() {
+		defaultMeta.Labels[k] = v
+	}
+
 	if len(serviceMeta) > 0 {
 		for _, keyValue := range serviceMeta {
 			keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
@@ -93,10 +104,8 @@ func InitXdsFlags(serviceCluster, serviceNode string, serviceMeta []string, labe
 				if i, e := strconv.ParseInt(keyValueSep[1], 10, 64); e == nil {
 					f.SetInt(i)
 				}
-
 			}
 		}
-
 	}
 
 	bs, _ := json.Marshal(defaultMeta)

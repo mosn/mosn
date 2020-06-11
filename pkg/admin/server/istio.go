@@ -13,17 +13,22 @@ import (
 )
 
 const (
-	CDS_UPDATE_SUCCESS = "cluster_manager.cds.update_success"
-	CDS_UPDATE_REJECT  = "cluster_manager.cds.update_rejected"
-	LDS_UPDATE_SUCCESS = "listener_manager.lds.update_success"
-	LDS_UPDATE_REJECT  = "listener_manager.lds.update_rejected"
-	SERVER_STATE       = "server.state"
+	CDS_UPDATE_SUCCESS   = "cluster_manager.cds.update_success"
+	CDS_UPDATE_REJECT    = "cluster_manager.cds.update_rejected"
+	LDS_UPDATE_SUCCESS   = "listener_manager.lds.update_success"
+	LDS_UPDATE_REJECT    = "listener_manager.lds.update_rejected"
+	SERVER_STATE         = "server.state"
+	STAT_WORKERS_STARTED = "listener_manager.workers_started"
 )
 
 func statsForIstio(w http.ResponseWriter, r *http.Request) {
 	state, err := getIstioState()
 	if err != nil {
 		log.DefaultLogger.Warnf("%v", err)
+	}
+	var workersStarted int
+	if state == envoyControlPlaneAPI.ServerInfo_LIVE {
+		workersStarted = 1
 	}
 
 	sb := bytes.NewBufferString("")
@@ -32,6 +37,7 @@ func statsForIstio(w http.ResponseWriter, r *http.Request) {
 	sb.WriteString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_SUCCESS, conv.Stats.LdsUpdateSuccess.Count()))
 	sb.WriteString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_REJECT, conv.Stats.LdsUpdateReject.Count()))
 	sb.WriteString(fmt.Sprintf("%s: %d\n", SERVER_STATE, state))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", STAT_WORKERS_STARTED, workersStarted))
 	_, err = sb.WriteTo(w)
 
 	if err != nil {
