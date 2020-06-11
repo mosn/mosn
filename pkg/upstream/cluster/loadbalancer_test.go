@@ -345,33 +345,49 @@ func Test_segmentTreeFallback(t *testing.T) {
 	}
 
 	host := mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
-	if !assert.Equalf(t, "host-0", host.Hostname(), "host name should be 'host-0'") {
+	if !assert.Equalf(t, "host-7", host.Hostname(), "host name should be 'host-7'") {
 		t.FailNow()
 	}
 
 	// set host-0, host1 unhealthy
-	hostSet.hosts[0].SetHealthFlag(api.FAILED_ACTIVE_HC)
-	hostSet.hosts[1].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet.hosts[7].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet.hosts[6].SetHealthFlag(api.FAILED_ACTIVE_HC)
 
 	host = mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
-	if !assert.Equalf(t, "host-2", host.Hostname(), "host name should be 'host-2'") {
+	if !assert.Equalf(t, "host-5", host.Hostname(), "host name should be 'host-5'") {
 		t.FailNow()
 	}
+
+	// test all host is checked when fallback
+	// create a new host set first
+	hostSet = getMockHostSet()
+	// leave only host[9] healthy
+	for i := 0; i < 9; i++ {
+		hostSet.hosts[i].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	}
+	mgv = newMaglevLoadBalancer(nil, hostSet)
+	host = mgv.(*maglevLoadBalancer).chooseHostFromHostList(8)
+	// host-9 will finally be chosen
+	assert.Equalf(t, "host-9", host.Hostname(), "host name should be 'host-9'")
+	// assert other 9 hosts is checked healthy
+	assert.Equalf(t, 9, hostSet.healthCheckVisitedCount, "host name should be 'host-0'")
 }
 
 func getMockHostSet() *mockHostSet {
 	hosts := []types.Host{}
 	hostCount := 10
+	set := &mockHostSet{}
+
 	for i := 0; i < hostCount; i++ {
 		h := &mockHost{
-			name: fmt.Sprintf("host-%d", i),
-			addr: fmt.Sprintf("127.0.0.%d", i),
+			name:    fmt.Sprintf("host-%d", i),
+			addr:    fmt.Sprintf("127.0.0.%d", i),
+			hostSet: set,
 		}
 		hosts = append(hosts, h)
 	}
-	return &mockHostSet{
-		hosts: hosts,
-	}
+	set.hosts = hosts
+	return set
 }
 
 func getMockClusterInfo() *mockClusterInfo {

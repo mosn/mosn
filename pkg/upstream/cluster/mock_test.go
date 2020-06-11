@@ -31,7 +31,8 @@ import (
 
 type mockHostSet struct {
 	types.HostSet
-	hosts []types.Host
+	hosts                   []types.Host
+	healthCheckVisitedCount int
 }
 
 func (hs *mockHostSet) Hosts() []types.Host {
@@ -45,7 +46,8 @@ type mockHost struct {
 	w          uint32
 	healthFlag *uint64
 	types.Host
-	stats types.HostStats
+	stats   types.HostStats
+	hostSet types.HostSet
 }
 
 func (h *mockHost) Hostname() string {
@@ -63,6 +65,11 @@ func (h *mockHost) Metadata() api.Metadata {
 func (h *mockHost) Health() bool {
 	if h.healthFlag == nil {
 		h.healthFlag = GetHealthFlagPointer(h.addr)
+	}
+
+	// increase hostSet's health check visited count, for testing
+	if mhs, ok := h.hostSet.(*mockHostSet); ok {
+		mhs.healthCheckVisitedCount++
 	}
 	return atomic.LoadUint64(h.healthFlag) == 0
 }

@@ -377,8 +377,8 @@ func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.Load
 }
 
 type maglevLoadBalancer struct {
-	hosts           types.HostSet
-	maglev          *maglev.Table
+	hosts  types.HostSet
+	maglev *maglev.Table
 }
 
 func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
@@ -427,14 +427,27 @@ func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 
 // chooseHostFromHostList traverse host list to find a healthy host
 func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
-	for i, host := range lb.hosts.Hosts() {
-		if i == index {
-			continue
-		}
+	hostCount := len(lb.hosts.Hosts())
 
-		if host.Health() {
-			return host
+	// go left
+	counterIndex := index
+	for counterIndex > 0 {
+		counterIndex--
+
+		if lb.hosts.Hosts()[counterIndex].Health() {
+			return lb.hosts.Hosts()[counterIndex]
 		}
 	}
+
+	// go right
+	counterIndex = index
+	for counterIndex < hostCount-1 {
+		counterIndex++
+
+		if lb.hosts.Hosts()[counterIndex].Health() {
+			return lb.hosts.Hosts()[counterIndex]
+		}
+	}
+
 	return nil
 }
