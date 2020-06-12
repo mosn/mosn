@@ -9,6 +9,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	"sync/atomic"
 )
 
 // NewConn returns a simplified connpool
@@ -56,6 +57,46 @@ func (p *connpool) Write(buf ...buffer.IoBuffer) error {
 	}
 
 	return err
+}
+
+// Available current available to send request
+// WARNING, this api is only for msg
+// WARNING, dont use it any other scene
+func (p * connpool) Available() bool {
+	var subProto api.Protocol = ""
+
+	// if pool was destroyed
+	if atomic.LoadUint64(&p.destroyed) == 1 {
+		return false
+	}
+
+	// if there is no clients
+	if len(p.idleClients) == 0 {
+		return false
+	}
+
+	// if there is no client in such protocol
+	lastIdx := len(p.idleClients[subProto]) - 1
+	if lastIdx < 0 {
+		return false
+	}
+
+	// if the client was closed
+	if p.idleClients[subProto][lastIdx].closed {
+		return false
+	}
+
+	// if the client has gone away
+	if atomic.LoadUint32(&p.idleClients[subProto][lastIdx].goaway) == 1 {
+		return false
+	}
+
+	// if we are reconnecting
+	if atomic.LoadUint64(&p.idleClients[subProto][lastIdx].reconnectState) == connecting {
+		return false
+	}
+
+	return true
 }
 
 

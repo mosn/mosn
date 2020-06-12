@@ -243,6 +243,7 @@ type PooledClient interface {
 type Connection interface {
 	Write(buf ...buffer.IoBuffer) error
 	Close()
+	Available() bool
 }
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
