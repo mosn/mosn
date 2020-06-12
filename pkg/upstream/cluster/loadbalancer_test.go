@@ -19,7 +19,6 @@ package cluster
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"math/rand"
 	"sync"
@@ -304,7 +303,7 @@ func mockRequest(host types.Host, active bool, times int) {
 }
 
 func Test_maglevLoadBalancer(t *testing.T) {
-	hostSet := getMockHostSet()
+	hostSet := getMockHostSet(10)
 	clusterInfo := getMockClusterInfo()
 	lb := newMaglevLoadBalancer(clusterInfo, hostSet)
 
@@ -332,8 +331,8 @@ func Test_maglevLoadBalancer(t *testing.T) {
 		"chosen host address string should be 127.0.0.9")
 }
 
-func Test_segmentTreeFallback(t *testing.T) {
-	hostSet := getMockHostSet()
+func Test_maglevLoadBalancerFallback(t *testing.T) {
+	hostSet := getMockHostSet(10)
 
 	mgv := newMaglevLoadBalancer(nil, hostSet)
 
@@ -360,7 +359,7 @@ func Test_segmentTreeFallback(t *testing.T) {
 
 	// test all host is checked when fallback
 	// create a new host set first
-	hostSet = getMockHostSet()
+	hostSet = getMockHostSet(10)
 	// leave only host[9] healthy
 	for i := 0; i < 9; i++ {
 		hostSet.hosts[i].SetHealthFlag(api.FAILED_ACTIVE_HC)
@@ -372,24 +371,6 @@ func Test_segmentTreeFallback(t *testing.T) {
 	// assert other 9 hosts is checked healthy
 	assert.Equalf(t, 9, hostSet.healthCheckVisitedCount, "host name should be 'host-0'")
 }
-
-func getMockHostSet() *mockHostSet {
-	hosts := []types.Host{}
-	hostCount := 10
-	set := &mockHostSet{}
-
-	for i := 0; i < hostCount; i++ {
-		h := &mockHost{
-			name:    fmt.Sprintf("host-%d", i),
-			addr:    fmt.Sprintf("127.0.0.%d", i),
-			hostSet: set,
-		}
-		hosts = append(hosts, h)
-	}
-	set.hosts = hosts
-	return set
-}
-
 func getMockClusterInfo() *mockClusterInfo {
 	return &mockClusterInfo{
 		name: "mockClusterInfo",

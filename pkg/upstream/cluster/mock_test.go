@@ -39,6 +39,24 @@ func (hs *mockHostSet) Hosts() []types.Host {
 	return hs.hosts
 }
 
+func getMockHostSet(count int) *mockHostSet {
+	hosts := []types.Host{}
+	hostCount := count
+	set := &mockHostSet{}
+
+	for i := 0; i < hostCount; i++ {
+		h := &mockHost{
+			name:    fmt.Sprintf("host-%d", i),
+			addr:    fmt.Sprintf("127.0.0.%d", i),
+			hostSet: set,
+		}
+		hosts = append(hosts, h)
+	}
+	set.hosts = hosts
+	return set
+}
+
+
 type mockHost struct {
 	name       string
 	addr       string
