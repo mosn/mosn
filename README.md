@@ -42,15 +42,6 @@ Use `go get -u mosn.io/mosn`, or you can git clone the repository to `$GOPATH/sr
 
 See our [contributor guide](CONTRIBUTING.md).
 
-## Working Groups
-
-MOSN currently includes the following working groups.
-
-- [Istio Working Group](https://github.com/mosn/community/blob/master/wg-istio.md)
-- [Dubbo Working Group](https://github.com/mosn/community/blob/master/wg-dubbo.md)
-
-Choose to join a working group that interests you and start your MOSN journey!
-
 ## Partners
 
 Partners participate in MOSN co-development to make MOSN better.
@@ -146,6 +137,13 @@ The MOSN users. Please [leave a comment here](https://github.com/mosn/community/
         </a>
       </td>
     </tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.tuya.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tuya.png">
+        </a>
+      </td>
+    </tr>
   </tbody>
 </table>
 </div>
@@ -154,11 +152,19 @@ The MOSN users. Please [leave a comment here](https://github.com/mosn/community/
 
 See our community materials on <https://github.com/mosn/community>.
 
+Visit the [MOSN website](https://mosn.io/docs/community/) for more information on working groups, roadmap, community meetings, MOSN tutorials, and more.
+
 Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
 
 <p align="center">
 <img src="https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ" width="150">
 </p>
+## Community meeting
+
+MOSN community holds regular meetings.
+
+- [Wednesday 8:00 PM CST(Beijing)](https://ebay.zoom.com.cn/j/96285622161) every other week
+- [Meeting notes](https://docs.google.com/document/d/12lgyCW-GmlErr_ihvAO7tMmRe87i70bv2xqe4h2LUz4/edit?usp=sharing)
 
 ## Landscapes
 
