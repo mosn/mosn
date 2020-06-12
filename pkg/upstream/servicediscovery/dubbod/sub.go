@@ -79,7 +79,7 @@ func doSubUnsub(req subReq, sub bool) error {
 	)
 
 	servicePath := req.Service.Interface // com.mosn.test.UserService
-	reg, err := getRegistry(servicePath, dubbocommon.CONSUMER, registryURL)
+	reg, err := getRegistry(servicePath, dubbocommon.CONSUMER, &registryURL)
 	if err != nil {
 		return err
 	}
@@ -95,12 +95,12 @@ func doSubUnsub(req subReq, sub bool) error {
 
 	// register consumer to registry
 	if sub {
-		err = reg.Register(*dubboURL)
+		err = reg.Register(dubboURL)
 		if err != nil {
 			return err
 		}
 	} else {
-		err = reg.UnRegister(*dubboURL)
+		err = reg.UnRegister(dubboURL)
 		if err != nil {
 			return err
 		}
