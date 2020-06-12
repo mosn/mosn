@@ -46,7 +46,7 @@ const (
 // /com.test.cch.UserService --> zk client
 var registryClientCache = sync.Map{}
 
-func getRegistry(registryCacheKey string, role int, registryURL dubbocommon.URL) (dubboreg.Registry, error) {
+func getRegistry(registryCacheKey string, role int, registryURL *dubbocommon.URL) (dubboreg.Registry, error) {
 
 	registryCacheKey = registryCacheKey + "#" + fmt.Sprint(role)
 	regInterface, ok := registryClientCache.Load(registryCacheKey)
@@ -58,7 +58,7 @@ func getRegistry(registryCacheKey string, role int, registryURL dubbocommon.URL)
 
 	if !ok {
 		// init registry
-		reg, err = zkreg.NewZkRegistry(&registryURL)
+		reg, err = zkreg.NewZkRegistry(registryURL)
 		// store registry object to global cache
 		if err == nil {
 			registryClientCache.Store(registryCacheKey, reg)
