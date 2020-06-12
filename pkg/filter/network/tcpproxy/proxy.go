@@ -232,6 +232,11 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 	// TODO
 }
 
+func (p *proxy) ActiveStreamSize() int {
+	// TODO
+	return 0
+}
+
 type proxyConfig struct {
 	statPrefix         string
 	cluster            string

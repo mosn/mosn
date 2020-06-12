@@ -42,6 +42,114 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
 
 请参阅[贡献者指南](CONTRIBUTING_ZH.md)。
 
+## 工作组
+
+目前 MOSN 包含以下工作组：
+
+- [Istio 工作组](https://github.com/mosn/community/blob/master/wg-istio.md)
+- [Dubbo 工作组](https://github.com/mosn/community/blob/master/wg-dubbo.md)
+
+选择加入您感兴趣的工作组，开始您的 MOSN 之旅吧！
+
+## 合作伙伴
+
+合作伙伴参与 MOSN 合作开发，使 MOSN 变得更好。
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center"  valign="middle">
+        <a href="https://www.antfin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/antfin.png">
+        </a>
+      </td>
+      <td align="center"  valign="middle">
+        <a href="https://www.aliyun.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/aliyun.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.zhipin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/bosszhipin.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.dmall.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/duodian.png">
+        </a>
+      </td>
+      </tr><tr></tr>
+      <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.kanzhun.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/kanzhun.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+  </tbody>
+</table>
+</div>
+
+## 终端用户
+
+以下是 MOSN 的用户。请在[此处](https://github.com/mosn/community/issues/8)登记并提供反馈来帮助 MOSN 做的更好。
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center"  valign="middle">
+        <a href="https://www.tenxcloud.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tenxcloud.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.zhipin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/linkedcare.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.xiaobaoonline.com/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/xiaobao.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.wm-motor.com/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/weima.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.iqiyi.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/iqiyi.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.gaiaworks.cn" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/gaiya.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.tydic.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tianyuandike.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.terminus.io" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/terminus.png">
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
 ## 社区
 
 请访问 <https://github.com/mosn/community> 了解更多社区信息。
