@@ -56,7 +56,6 @@ func getMockHostSet(count int) *mockHostSet {
 	return set
 }
 
-
 type mockHost struct {
 	name       string
 	addr       string
