@@ -510,7 +510,7 @@ func (ac *activeClient) Reconnect() error {
 
 	defer atomic.CompareAndSwapUint64(&ac.reconnectState, connecting, notConnecting)
 
-	go func() {
+	utils.GoWithRecover(func() {
 		var (
 			err error
 			i   int
@@ -518,6 +518,16 @@ func (ac *activeClient) Reconnect() error {
 
 		// close previous conn
 		ac.host.Connection.Close(api.NoFlush, api.RemoteClose)
+
+		var (
+			backoffArr = []time.Duration{
+				time.Second,
+				time.Second * 2,
+				time.Second * 5,
+				time.Second * 10,
+			}
+			backoffIdx = 0
+		)
 
 		for ; i < ac.pool.reconnTryTimes; i++ {
 			if atomic.LoadUint64(&ac.pool.destroyed) == 1 {
@@ -531,6 +541,13 @@ func (ac *activeClient) Reconnect() error {
 			// connect the new connection
 			err = ac.host.Connection.Connect()
 			if err != nil {
+				// backoff logic
+				if backoffIdx >= len(backoffArr) {
+					backoffIdx = len(backoffArr) - 1
+				}
+
+				time.Sleep(backoffArr[backoffIdx])
+				backoffIdx++
 				continue
 			}
 
@@ -559,7 +576,9 @@ func (ac *activeClient) Reconnect() error {
 
 			break
 		}
-	}()
+	}, func(r interface{}) {
+		log.DefaultLogger.Warnf("[connpool] reconnect failed, %v, host: %v", r, ac.host.Host.AddressString())
+	})
 
 	return nil
 
@@ -726,7 +745,7 @@ func (ac *activeClient) OnGoAway() {
 // SetHeartBeater set the heart beat for an active client
 func (ac *activeClient) SetHeartBeater(hb stoppable) {
 	// clear the previous keepAlive
-	if ac.keepAlive != nil {
+	if ac.keepAlive != nil && ac.keepAlive.keepAlive != nil {
 		ac.keepAlive.keepAlive.Stop()
 		ac.keepAlive = nil
 	}

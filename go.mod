@@ -34,15 +34,11 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20200222125558-5a598a2470a0
-	golang.org/x/sys v0.0.0-20190804053845-51ab0e2deafa
-	golang.org/x/text v0.3.2 // indirect
-	google.golang.org/appengine v1.4.0 // indirect
 	github.com/valyala/fasttemplate v1.1.0
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
+	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/grpc v1.22.1
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect

@@ -3,6 +3,7 @@ package connpool
 import (
 	"context"
 	"errors"
+	"math"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
@@ -11,10 +12,15 @@ import (
 )
 
 // NewConn returns a simplified connpool
-func NewConn(hostAddr string, reconnectTryTimes int, heartBeatCreator func() KeepAlive2, readFilters []api.ReadFilter) types.Connection {
+func NewConn(hostAddr string, reconnectTryTimes int, heartBeatCreator func() KeepAlive2, readFilters []api.ReadFilter, autoReconnectWhenClose bool) types.Connection {
 	// use host addr as cluster name, for the count of metrics
 	cl := basicCluster(hostAddr, []string{hostAddr})
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
+
+	// if user configure this to -1, then retry is unlimited
+	if reconnectTryTimes == -1 {
+		reconnectTryTimes = math.MaxInt32
+	}
 
 	p := &connpool{
 		supportTLS:  host.SupportTLS(),
@@ -24,7 +30,7 @@ func NewConn(hostAddr string, reconnectTryTimes int, heartBeatCreator func() Kee
 		useDefaultCodec:        false,
 		heartBeatCreator:       heartBeatCreator,
 		forceMultiplex:         true,
-		autoReconnectWhenClose: true,
+		autoReconnectWhenClose: autoReconnectWhenClose,
 		reconnTryTimes:         reconnectTryTimes,
 		readFilters:            readFilters,
 	}

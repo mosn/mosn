@@ -146,7 +146,8 @@ func (p *mockConnPool) Shutdown() {
 func (p *mockConnPool) Close() {
 }
 
-func (p *mockConnPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
+func (p *mockConnPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
+	return "", nil, nil
 }
 
 func (p *mockConnPool) Host() types.Host {

@@ -27,7 +27,7 @@ func conpool() {
 	}
 	server.start()
 
-	pool := NewConn(server.addr, 100000, func() KeepAlive2 { return nil }, nil)
+	pool := NewConn(server.addr, 100000, func() KeepAlive2 { return nil }, nil, true)
 	for i := 0; i < 100; i++ {
 		//i := i
 		go func() {
