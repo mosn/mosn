@@ -441,6 +441,20 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 	// codecClient.AddConnectionEventListener(ac) // ac.OnEvent
 	ac.host.Connection.AddConnectionEventListener(ac)
 
+	// first connect to dest addr, then create stream client
+	if err := ac.host.Connection.Connect(); err != nil {
+		return nil, types.ConnectionFailure
+	} else {
+		if atomic.LoadUint64(&p.destroyed) == 1 {
+			// if destroyed, close the conn
+			ac.host.Connection.Close(api.NoFlush, api.LocalClose)
+		}
+
+		for _, rf := range ac.pool.readFilters {
+			ac.host.Connection.FilterManager().AddReadFilter(rf)
+		}
+	}
+
 	// http1, http2, xprotocol
 	// if user use connection pool without codec
 	// they can use the connection returned from activeClient.Conn()
@@ -473,18 +487,6 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 		}
 	}
 
-	if err := ac.host.Connection.Connect(); err != nil {
-		return nil, types.ConnectionFailure
-	} else {
-		if atomic.LoadUint64(&p.destroyed) == 1 {
-			// if destroyed, close the conn
-			ac.host.Connection.Close(api.NoFlush, api.LocalClose)
-		}
-
-		for _, rf := range ac.pool.readFilters {
-			ac.host.Connection.FilterManager().AddReadFilter(rf)
-		}
-	}
 
 	atomic.StoreUint32(&ac.state, Connected)
 
@@ -690,7 +692,8 @@ func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
+		// TODO do we need to close the connection here?
+		// ac.host.Connection.Close(api.NoFlush, api.LocalClose)
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
