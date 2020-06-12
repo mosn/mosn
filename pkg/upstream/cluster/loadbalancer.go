@@ -440,10 +440,7 @@ func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
 	}
 
 	// go right
-	counterIndex = index
-	for counterIndex < hostCount-1 {
-		counterIndex++
-
+	for counterIndex = index + 1; counterIndex < hostCount; counterIndex++ {
 		if lb.hosts.Hosts()[counterIndex].Health() {
 			return lb.hosts.Hosts()[counterIndex]
 		}
