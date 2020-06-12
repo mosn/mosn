@@ -419,3 +419,4 @@ func BenchmarkMaglevLBFallback(b *testing.B) {
 		_ = mgvLb.ChooseHost(lbctx)
 	}
 }
+
