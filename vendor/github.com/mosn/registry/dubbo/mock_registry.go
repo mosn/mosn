@@ -19,15 +19,10 @@ package dubbo
 
 import (
 	"time"
-)
 
-import (
-	"go.uber.org/atomic"
-)
-
-import (
 	"github.com/mosn/registry/dubbo/common"
 	"github.com/mosn/registry/dubbo/common/logger"
+	"go.uber.org/atomic"
 )
 
 // MockRegistry ...
@@ -47,12 +42,12 @@ func NewMockRegistry(url *common.URL) (Registry, error) {
 }
 
 // Register ...
-func (*MockRegistry) Register(url common.URL) error {
+func (*MockRegistry) Register(url *common.URL) error {
 	return nil
 }
 
 // UnRegister
-func (r *MockRegistry) UnRegister(conf common.URL) error {
+func (r *MockRegistry) UnRegister(conf *common.URL) error {
 	return nil
 }
 
