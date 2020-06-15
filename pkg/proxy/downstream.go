@@ -637,8 +637,6 @@ func (s *downStream) matchRoute() {
 		return
 	}
 	s.snapshot, s.route = handlerChain.DoNextHandler()
-	// save downstream route pointer to context
-	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamRouter, s.route)
 }
 
 func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {
@@ -1378,6 +1376,10 @@ func (s *downStream) DownstreamContext() context.Context {
 
 func (s *downStream) DownstreamCluster() types.ClusterInfo {
 	return s.cluster
+}
+
+func (s *downStream) DownstreamRoute() api.Route {
+	return s.route
 }
 
 func (s *downStream) giveStream() {

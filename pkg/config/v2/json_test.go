@@ -874,7 +874,7 @@ func TestHashPolicyUnmarshal(t *testing.T) {
 
 	config2 := `{
 		"hash_policy": [{
-			"http_cookie": {
+			"cookie": {
 				"name": "name",
 				"path": "path",
 				"ttl": "5s"
@@ -887,13 +887,13 @@ func TestHashPolicyUnmarshal(t *testing.T) {
 	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
 		t.FailNow()
 	}
-	if !assert.NotNilf(t, cookieConfig.HashPolicy[0].HttpCookie,
+	if !assert.NotNilf(t, cookieConfig.HashPolicy[0].Cookie,
 		"HttpCookie should not be nil") {
 		t.FailNow()
 	}
-	name := cookieConfig.HashPolicy[0].HttpCookie.Name
-	path := cookieConfig.HashPolicy[0].HttpCookie.Path
-	ttl := cookieConfig.HashPolicy[0].HttpCookie.TTL.Duration
+	name := cookieConfig.HashPolicy[0].Cookie.Name
+	path := cookieConfig.HashPolicy[0].Cookie.Path
+	ttl := cookieConfig.HashPolicy[0].Cookie.TTL.Duration
 	if !assert.Equalf(t, "name", name, "cookie key should be name, get %s", name) {
 		t.FailNow()
 	}
@@ -940,11 +940,11 @@ func TestHashPolicyMarshal(t *testing.T) {
 		t.FailNow()
 	}
 
-	config2 := `{"hash_policy":[{"http_cookie":{"name":"name","path":"path","ttl":"5s"}}],"timeout":"0s"}`
+	config2 := `{"hash_policy":[{"cookie":{"name":"name","path":"path","ttl":"5s"}}],"timeout":"0s"}`
 	cookieConfig := &RouterActionConfig{
 		HashPolicy: []HashPolicy{
 			{
-				HttpCookie: &HttpCookieHashPolicy{
+				Cookie: &CookieHashPolicy{
 					Name: "name",
 					Path: "path",
 					TTL:  api.DurationConfig{5 * time.Second},

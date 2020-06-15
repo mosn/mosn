@@ -30,18 +30,29 @@ import (
 )
 
 var (
-	headerName  = fmt.Sprintf("%s_%s", protocol.HTTP2, types.VarProtocolRequestHeader)
-	headerIndex = len(headerName)
-	cookieName  = fmt.Sprintf("%s_%s", protocol.HTTP2, types.VarProtocolCookie)
-	cookieIndex = len(cookieName)
+	headerIndex = len(types.VarPrefixHttp2Header)
+	cookieIndex = len(types.VarPrefixHttp2Cookie)
+
+	builtinVariables = []variable.Variable{}
+
+	prefixVariables = []variable.Variable{
+		variable.NewBasicVariable(types.VarPrefixHttp2Header, nil, headerGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttp2Cookie, nil, cookieGetter, nil, 0),
+	}
 )
 
 func init() {
-	variable.RegisterPrefixVariable(headerName,
-		variable.NewBasicVariable(headerName, nil, headerGetter, nil, 0))
-	variable.RegisterPrefixVariable(cookieName,
-		variable.NewBasicVariable(cookieName, nil, cookieGetter, nil, 0))
+	// register built-in variables
+	for idx := range builtinVariables {
+		variable.RegisterVariable(builtinVariables[idx])
+	}
 
+	// register prefix variables, like header_xxx/arg_xxx/cookie_xxx
+	for idx := range prefixVariables {
+		variable.RegisterPrefixVariable(prefixVariables[idx].Name(), prefixVariables[idx])
+	}
+
+	// register protocol resource
 	variable.RegisterProtocolResource(protocol.HTTP2, api.HEADER, types.VarProtocolRequestHeader)
 	variable.RegisterProtocolResource(protocol.HTTP2, api.COOKIE, types.VarProtocolCookie)
 }

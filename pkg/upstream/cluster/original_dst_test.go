@@ -55,6 +55,10 @@ func (c *LbCtx) DownstreamCluster() types.ClusterInfo {
 	return c.cluster
 }
 
+func (c *LbCtx) DownstreamRoute() api.Route {
+	return nil
+}
+
 type Header struct {
 	v map[string]string
 }

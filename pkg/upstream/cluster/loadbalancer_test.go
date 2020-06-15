@@ -315,9 +315,9 @@ func Test_maglevLoadBalancer(t *testing.T) {
 		},
 	}
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamRouter, mockRoute)
 	lbctx := &mockLbContext{
 		context: ctx,
+		route:   mockRoute,
 	}
 	// test empty hash policy return nil host
 	host := lb.ChooseHost(lbctx)

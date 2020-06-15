@@ -19,7 +19,6 @@ package http
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"mosn.io/api"
@@ -34,28 +33,22 @@ const (
 )
 
 var (
-	headerName    = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestHeader)
-	headerIndex   = len(headerName)
-	cookieName    = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolCookie)
-	cookieIndex   = len(cookieName)
-	pathName      = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestPath)
-	uriName       = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestUri)
-	argName       = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestArg)
-	argPrefixName = fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestArgPrefix)
-	argIndex      = len(argPrefixName)
+	headerIndex = len(types.VarPrefixHttpHeader)
+	cookieIndex = len(types.VarPrefixHttpCookie)
+	argIndex    = len(types.VarPrefixHttpArg)
 
 	builtinVariables = []variable.Variable{
 		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
-		variable.NewBasicVariable(uriName, nil, requestUriGetter, nil, 0),
-		variable.NewBasicVariable(pathName, nil, requestPathGetter, nil, 0),
-		variable.NewBasicVariable(argName, nil, requestArgGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(headerName, nil, httpHeaderGetter, nil, 0),
-		variable.NewBasicVariable(argPrefixName, nil, httpArgGetter, nil, 0),
-		variable.NewBasicVariable(cookieName, nil, httpCookieGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpHeader, nil, httpHeaderGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpArg, nil, httpArgGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpCookie, nil, httpCookieGetter, nil, 0),
 	}
 )
 

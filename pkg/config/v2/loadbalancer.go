@@ -33,16 +33,16 @@ type IsCluster_LbConfig interface {
 }
 
 type HashPolicy struct {
-	Header     *HeaderHashPolicy     `json:"header,omitempty"`
-	HttpCookie *HttpCookieHashPolicy `json:"http_cookie,omitempty"`
-	SourceIP   *SourceIPHashPolicy   `json:"source_ip,omitempty"`
+	Header   *HeaderHashPolicy   `json:"header,omitempty"`
+	Cookie   *CookieHashPolicy   `json:"cookie,omitempty"`
+	SourceIP *SourceIPHashPolicy `json:"source_ip,omitempty"`
 }
 
 type HeaderHashPolicy struct {
 	Key string `json:"key,omitempty"`
 }
 
-type HttpCookieHashPolicy struct {
+type CookieHashPolicy struct {
 	Name string             `json:"name,omitempty"`
 	Path string             `json:"path,omitempty"`
 	TTL  api.DurationConfig `json:"ttl,omitempty"`

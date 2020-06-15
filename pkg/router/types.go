@@ -182,7 +182,7 @@ func (hp *headerHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
 	return 0
 }
 
-type httpCookieHashPolicyImpl struct {
+type cookieHashPolicyImpl struct {
 	name string
 	// path and ttl field are used for generate cookie value,
 	// they are not being used currently.
@@ -195,7 +195,7 @@ type httpCookieHashPolicyImpl struct {
 // !!! please notice, in envoy or istio cookie may be generated if cookie value is not found,
 // MOSN does NOT implement this strategy yet. When cookie value is not found a
 // hash '0' will always be returned.
-func (hp *httpCookieHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
+func (hp *cookieHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
 	cookieName := hp.name
 	cookieValue, err := variable.GetProtocolResource(ctx, api.COOKIE, cookieName)
 	if err == nil {

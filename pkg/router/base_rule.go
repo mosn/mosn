@@ -99,11 +99,11 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 				key: hp.Header.Key,
 			}
 		}
-		if hp.HttpCookie != nil {
-			base.policy.hashPolicy = &httpCookieHashPolicyImpl{
-				name: hp.HttpCookie.Name,
-				path: hp.HttpCookie.Path,
-				ttl:  hp.HttpCookie.TTL,
+		if hp.Cookie != nil {
+			base.policy.hashPolicy = &cookieHashPolicyImpl{
+				name: hp.Cookie.Name,
+				path: hp.Cookie.Path,
+				ttl:  hp.Cookie.TTL,
 			}
 		}
 	}
