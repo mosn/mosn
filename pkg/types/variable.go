@@ -48,14 +48,25 @@ const (
 	VarProxyGzipSwitch    string = "proxy_gzip_switch"
 )
 
+// [Protocol]: common
+const (
+	VarProtocolRequestHeader    = "request_header_"
+	VarProtocolCookie           = "cookie_"
+	VarProtocolRequestPath      = "request_path"
+	VarProtocolRequestArgPrefix = "request_arg_"
+	VarProtocolRequestArg       = "request_arg"
+	VarProtocolRequestUri       = "request_uri"
+)
+
 // [Protocol]: http
 const (
 	VarHttpRequestMethod = "http_request_method"
 	VarHttpRequestLength = "http_request_length"
-	VarHttpRequestUri    = "http_request_uri"
-	VarHttpRequestPath   = "http_request_path"
-	VarHttpRequestArg    = "http_request_arg"
 
+	// deprecated by adding protocol for prefix, use the const above instead
+	VarHttpRequestUri   = "http_request_uri"
+	VarHttpRequestPath  = "http_request_path"
+	VarHttpRequestArg   = "http_request_arg"
 	VarPrefixHttpHeader = "http_header_"
 	VarPrefixHttpArg    = "http_arg_"
 	VarPrefixHttpCookie = "http_cookie_"

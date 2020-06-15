@@ -15,38 +15,42 @@
  * limitations under the License.
  */
 
-package v2
+package http
 
 import (
+	"testing"
+
 	"mosn.io/api"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
-type LeastRequestLbConfig struct {
-	ChoiceCount uint32
+func BenchmarkGetPrefixProtocolVarCookie(b *testing.B) {
+	ctx := prepareRequest(nil, getRequestBytes)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+
+	cookieName := "zone"
+
+	b.ResetTimer()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		_, _ = variable.GetProtocolResource(ctx, api.COOKIE, cookieName)
+	}
 }
 
-func (lbconfig *LeastRequestLbConfig) isCluster_LbConfig() {
-}
+func BenchmarkGetPrefixProtocolVarHeader(b *testing.B) {
+	ctx := prepareRequest(nil, getRequestBytes)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
 
-type IsCluster_LbConfig interface {
-	isCluster_LbConfig()
-}
+	headerName := "Content-Type"
 
-type HashPolicy struct {
-	Header     *HeaderHashPolicy     `json:"header,omitempty"`
-	HttpCookie *HttpCookieHashPolicy `json:"http_cookie,omitempty"`
-	SourceIP   *SourceIPHashPolicy   `json:"source_ip,omitempty"`
-}
+	b.ResetTimer()
+	b.ReportAllocs()
 
-type HeaderHashPolicy struct {
-	Key string `json:"key,omitempty"`
-}
-
-type HttpCookieHashPolicy struct {
-	Name string             `json:"name,omitempty"`
-	Path string             `json:"path,omitempty"`
-	TTL  api.DurationConfig `json:"ttl,omitempty"`
-}
-
-type SourceIPHashPolicy struct {
+	for i := 0; i < b.N; i++ {
+		_, _ = variable.GetProtocolResource(ctx, api.HEADER, headerName)
+	}
 }

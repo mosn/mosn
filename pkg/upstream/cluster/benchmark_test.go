@@ -18,11 +18,14 @@
 package cluster
 
 import (
+	"context"
+	"math/rand"
 	"os"
 	"testing"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -329,4 +332,90 @@ func BenchmarkSubsetLB(b *testing.B) {
 			}
 		})
 	})
+}
+
+func BenchmarkMaglevLB(b *testing.B) {
+	hostSet := getMockHostSet(20000)
+	mgvLb := newMaglevLoadBalancer(nil, hostSet)
+
+	testProtocol := types.ProtocolName("SomeProtocol")
+	mockRoute := &mockRoute{
+		routeRule: &mockRouteRule{
+			policy: &mockPolicy{
+				hashPolicy: &mockHashPolicy{},
+			},
+		},
+	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamRouter, mockRoute)
+	lbctx := &mockLbContext{
+		context: ctx,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = mgvLb.ChooseHost(lbctx)
+	}
+}
+
+func BenchmarkMaglevLBParallel(b *testing.B) {
+	hostSet := getMockHostSet(20000)
+	mgvLb := newMaglevLoadBalancer(nil, hostSet)
+
+	testProtocol := types.ProtocolName("SomeProtocol")
+	mockRoute := &mockRoute{
+		routeRule: &mockRouteRule{
+			policy: &mockPolicy{
+				hashPolicy: &mockHashPolicy{},
+			},
+		},
+	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamRouter, mockRoute)
+	lbctx := &mockLbContext{
+		context: ctx,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = mgvLb.ChooseHost(lbctx)
+		}
+	})
+}
+
+func BenchmarkMaglevLBFallback(b *testing.B) {
+	hostSet := getMockHostSet(20000)
+	mgvLb := newMaglevLoadBalancer(nil, hostSet)
+
+	// make sure 0 index hasn -> host-15748 is unhealthy, to ensure fallback
+	hostSet.Hosts()[15748].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	// randomly set 10000 of 20000 host unhealthy
+	rand.Seed(0)
+	for i := 0; i < 10000; i++ {
+		randIndex := rand.Intn(19999)
+		hostSet.Hosts()[randIndex].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	}
+
+	testProtocol := types.ProtocolName("SomeProtocol")
+	mockRoute := &mockRoute{
+		routeRule: &mockRouteRule{
+			policy: &mockPolicy{
+				hashPolicy: &mockHashPolicy{},
+			},
+		},
+	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamRouter, mockRoute)
+	lbctx := &mockLbContext{
+		context: ctx,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = mgvLb.ChooseHost(lbctx)
+	}
 }

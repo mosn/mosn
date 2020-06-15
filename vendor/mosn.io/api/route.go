@@ -17,7 +17,10 @@
 
 package api
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // Route is a route instance
 type Route interface {
@@ -65,6 +68,8 @@ type Policy interface {
 	RetryPolicy() RetryPolicy
 
 	ShadowPolicy() ShadowPolicy
+
+	HashPolicy() HashPolicy
 }
 
 // RetryCheckStatus type
@@ -141,4 +146,8 @@ const (
 type PathMatchCriterion interface {
 	MatchType() PathMatchType
 	Matcher() string
+}
+
+type HashPolicy interface {
+	GenerateHash(context context.Context) uint64
 }

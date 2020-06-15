@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 )
 
@@ -846,5 +847,134 @@ func TestListenerUnmarshal(t *testing.T) {
 	// if there is only addr config but no net.Addr, should be marshal addr config
 	if !strings.Contains(string(b), "0.0.0.0:8080") {
 		t.Fatalf("mashal json unexpected, got : %s", string(b))
+	}
+}
+
+func TestHashPolicyUnmarshal(t *testing.T) {
+	config := `{
+		"hash_policy": [{
+			"header": {"key":"header_key"}
+		}]
+	}`
+
+	headerConfig := &RouterActionConfig{}
+	err := json.Unmarshal([]byte(config), headerConfig)
+	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
+		t.FailNow()
+	}
+	if !assert.NotNilf(t, headerConfig.HashPolicy[0].Header,
+		"header should not be nil") {
+		t.FailNow()
+	}
+	header := headerConfig.HashPolicy[0].Header.Key
+	if !assert.Equalf(t, "header_key", header,
+		"header key should be header_key, get %s", header) {
+		t.FailNow()
+	}
+
+	config2 := `{
+		"hash_policy": [{
+			"http_cookie": {
+				"name": "name",
+				"path": "path",
+				"ttl": "5s"
+			}
+		}]
+	}`
+
+	cookieConfig := &RouterActionConfig{}
+	err = json.Unmarshal([]byte(config2), cookieConfig)
+	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
+		t.FailNow()
+	}
+	if !assert.NotNilf(t, cookieConfig.HashPolicy[0].HttpCookie,
+		"HttpCookie should not be nil") {
+		t.FailNow()
+	}
+	name := cookieConfig.HashPolicy[0].HttpCookie.Name
+	path := cookieConfig.HashPolicy[0].HttpCookie.Path
+	ttl := cookieConfig.HashPolicy[0].HttpCookie.TTL.Duration
+	if !assert.Equalf(t, "name", name, "cookie key should be name, get %s", name) {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, "path", path, "cookie path should be path, get %s", path) {
+		t.FailNow()
+	}
+	if !assert.Equalf(t, 5*time.Second, ttl, "cookie ttl should be 5s, get %s", ttl) {
+		t.FailNow()
+	}
+
+	config3 := `{
+		"hash_policy": [{
+			"source_ip":{}
+		}]
+	}`
+
+	sourceIPConfig := &RouterActionConfig{}
+	err = json.Unmarshal([]byte(config3), sourceIPConfig)
+	if !assert.NoErrorf(t, err, "error should be nil, get %+v", err) {
+		t.FailNow()
+	}
+	if !assert.NotNilf(t, sourceIPConfig.HashPolicy[0].SourceIP,
+		"SourceIP should not be nil") {
+		t.FailNow()
+	}
+}
+
+func TestHashPolicyMarshal(t *testing.T) {
+	config := `{"hash_policy":[{"header":{"key":"header_key"}}],"timeout":"0s"}`
+
+	headerConfig := &RouterActionConfig{
+		HashPolicy: []HashPolicy{
+			{
+				Header: &HeaderHashPolicy{Key: "header_key"},
+			},
+		},
+	}
+	b, err := json.Marshal(headerConfig)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, config, string(b), "marshal hash policy expect to get %s, but get %s", config, string(b)) {
+		t.FailNow()
+	}
+
+	config2 := `{"hash_policy":[{"http_cookie":{"name":"name","path":"path","ttl":"5s"}}],"timeout":"0s"}`
+	cookieConfig := &RouterActionConfig{
+		HashPolicy: []HashPolicy{
+			{
+				HttpCookie: &HttpCookieHashPolicy{
+					Name: "name",
+					Path: "path",
+					TTL:  api.DurationConfig{5 * time.Second},
+				},
+			},
+		},
+	}
+	b, err = json.Marshal(cookieConfig)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, config2, string(b), "marshal hash policy expect to get %s, but get %s", config2, string(b)) {
+		t.FailNow()
+	}
+
+	config3 := `{"hash_policy":[{"source_ip":{}}],"timeout":"0s"}`
+	ipConfig := &RouterActionConfig{
+		HashPolicy: []HashPolicy{
+			{
+				SourceIP: &SourceIPHashPolicy{},
+			},
+		},
+	}
+	b, err = json.Marshal(ipConfig)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, config3, string(b), "marshal hash policy expect to get %s, but get %s", config3, string(b)) {
+		t.FailNow()
 	}
 }
