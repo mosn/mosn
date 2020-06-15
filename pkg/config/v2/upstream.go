@@ -71,6 +71,7 @@ const (
 	LB_ROUNDROBIN    LbType = "LB_ROUNDROBIN"
 	LB_ORIGINAL_DST  LbType = "LB_ORIGINAL_DST"
 	LB_LEAST_REQUEST LbType = "LB_LEAST_REQUEST"
+	LB_MAGLEV        LbType = "LB_MAGLEV"
 )
 
 type DnsLookupFamily string

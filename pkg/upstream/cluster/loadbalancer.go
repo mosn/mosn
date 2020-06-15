@@ -23,8 +23,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/trainyao/go-maglev"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -48,6 +51,7 @@ func init() {
 	RegisterLBType(types.Random, newRandomLoadBalancer)
 	RegisterLBType(types.WeightedRoundRobin, newWRRLoadBalancer)
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
+	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 }
 
 func NewLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
@@ -161,8 +165,7 @@ type WRRLoadBalancer struct {
 }
 
 func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
-	wrrLB := &WRRLoadBalancer{
-	}
+	wrrLB := &WRRLoadBalancer{}
 	wrrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
 	hostsList := hosts.Hosts()
 	wrrLB.mutex.Lock()
@@ -332,4 +335,116 @@ func hostWeightsAreEqual(hosts []types.Host) bool {
 		}
 	}
 	return true
+}
+
+// newMaglevLoadBalancer return maglevLoadBalancer structure.
+//
+// In maglevLoadBalancer, there is a maglev table for consistence hash host choosing.
+// If the chosen host is unhealthy, maglevLoadBalancer will traverse host list to find a healthy host.
+func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.LoadBalancer {
+	names := []string{}
+	for _, host := range set.Hosts() {
+		names = append(names, host.AddressString())
+	}
+	mgv := &maglevLoadBalancer{
+		hosts: set,
+	}
+
+	nameCount := len(names)
+	// if host count > BigM, maglev table building will cross array boundary
+	// maglev lb will not work in this scenario
+	if nameCount >= maglev.BigM {
+		log.DefaultLogger.Errorf("[lb][maglev] host count too large, expect <= %d, get %d",
+			maglev.BigM, nameCount)
+		return mgv
+	}
+	if nameCount == 0 {
+		return mgv
+	}
+
+	maglevM := maglev.SmallM
+	// according to test, 30000 host with testing 1e8 times, hash distribution begins to go wrong,
+	// max=4855, mean=3333.3333333333335, peak-to-mean=1.4565
+	// so use BigM when host >= 30000
+	limit := 30000
+	if nameCount >= limit {
+		log.DefaultLogger.Infof("[lb][maglev] host count %d >= %d, using maglev.BigM", nameCount, limit)
+		maglevM = maglev.BigM
+	}
+
+	mgv.maglev = maglev.New(names, uint64(maglevM))
+	return mgv
+}
+
+type maglevLoadBalancer struct {
+	hosts  types.HostSet
+	maglev *maglev.Table
+}
+
+func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	// host empty, maglev info may be nil
+	if lb.maglev == nil {
+		return nil
+	}
+
+	route, ok := mosnctx.Get(context.DownstreamContext(), types.ContextKeyDownStreamRouter).(api.Route)
+	if !ok {
+		return nil
+	}
+
+	hashPolicy := route.RouteRule().Policy().HashPolicy()
+	if hashPolicy == nil {
+		return nil
+	}
+
+	hash := hashPolicy.GenerateHash(context.DownstreamContext())
+	index := lb.maglev.Lookup(hash)
+	chosen := lb.hosts.Hosts()[index]
+
+	// fallback
+	if !chosen.Health() {
+		chosen = lb.chooseHostFromHostList(index)
+	}
+
+	if chosen == nil {
+		log.Proxy.Infof(context.DownstreamContext(), "[lb][maglev] hash %d get nil host, index: %d",
+			hash, index)
+	} else {
+		log.Proxy.Debugf(context.DownstreamContext(), "[lb][maglev] hash %d index %d get host %s",
+			hash, index, chosen.AddressString())
+	}
+
+	return chosen
+}
+
+func (lb *maglevLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+	return lb.HostNum(metadata) > 0
+}
+
+func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+	return len(lb.hosts.Hosts())
+}
+
+// chooseHostFromHostList traverse host list to find a healthy host
+func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
+	hostCount := len(lb.hosts.Hosts())
+
+	// go left
+	counterIndex := index
+	for counterIndex > 0 {
+		counterIndex--
+
+		if lb.hosts.Hosts()[counterIndex].Health() {
+			return lb.hosts.Hosts()[counterIndex]
+		}
+	}
+
+	// go right
+	for counterIndex = index + 1; counterIndex < hostCount; counterIndex++ {
+		if lb.hosts.Hosts()[counterIndex].Health() {
+			return lb.hosts.Hosts()[counterIndex]
+		}
+	}
+
+	return nil
 }

@@ -64,6 +64,8 @@ github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
 github.com/cncf/udpa/go/udpa/annotations
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/dchest/siphash v1.2.1
+github.com/dchest/siphash
 # github.com/dubbogo/getty v1.3.4
 github.com/dubbogo/getty
 # github.com/dubbogo/go-zookeeper v1.0.0
@@ -189,7 +191,7 @@ github.com/modern-go/reflect2
 github.com/mosn/binding
 github.com/mosn/binding/internal/bytesconv
 github.com/mosn/binding/internal/json
-# github.com/mosn/registry v0.0.0-20200526023644-724ef3b6e9d6
+# github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
 github.com/mosn/registry/dubbo
 github.com/mosn/registry/dubbo/common
 github.com/mosn/registry/dubbo/common/constant
@@ -230,6 +232,8 @@ github.com/shirou/gopsutil/internal/common
 github.com/shirou/gopsutil/load
 # github.com/stretchr/testify v1.5.1
 github.com/stretchr/testify/assert
+# github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
+github.com/trainyao/go-maglev
 # github.com/ugorji/go/codec v1.1.7
 github.com/ugorji/go/codec
 # github.com/urfave/cli v1.20.0

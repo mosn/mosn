@@ -19,10 +19,11 @@ package variable
 
 import (
 	"context"
+	"testing"
+
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
-	"testing"
 )
 
 const (
@@ -32,8 +33,10 @@ const (
 
 func TestGetProtocolResource(t *testing.T) {
 	m := make(map[string]string)
-	m["http_request_path"] = "/http"
-	m["dubbo_request_path"] = "/dubbo"
+	httpKey := string(HTTP1) + "_" + types.VarProtocolRequestPath
+	dubboKey := string(Dubbo) + "_" + types.VarProtocolRequestPath
+	m[httpKey] = "/http"
+	m[dubboKey] = "/dubbo"
 
 	for k, _ := range m {
 		val := m[k]
@@ -44,7 +47,7 @@ func TestGetProtocolResource(t *testing.T) {
 	}
 
 	// register HTTP protocol resource var
-	RegisterProtocolResource(HTTP1, api.PATH, "http_request_path")
+	RegisterProtocolResource(HTTP1, api.PATH, types.VarProtocolRequestPath)
 
 	ctx := context.Background()
 
@@ -54,8 +57,8 @@ func TestGetProtocolResource(t *testing.T) {
 		t.Error(err)
 	}
 
-	if vv != m["http_request_path"] {
-		t.Errorf("get value not equal, expected: %s, acutal: %s", m["http_request_path"], vv)
+	if vv != m[httpKey] {
+		t.Errorf("get value not equal, expected: %s, acutal: %s", m[httpKey], vv)
 	}
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, Dubbo)

@@ -229,6 +229,15 @@ func TestAccessLogManage(t *testing.T) {
 			t.Fatal("some access log is enabled")
 		}
 	}
+
+	EnableAllAccessLog()
+	// verify all accesslog is enabled
+	for _, lg := range logs {
+		alg := lg.(*accesslog)
+		if alg.logger.Disable() {
+			t.Fatal("some access log is disabled")
+		}
+	}
 }
 
 func prepareLocalIpv4Ctx() context.Context {
