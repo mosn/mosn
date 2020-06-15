@@ -443,6 +443,11 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 
 	// first connect to dest addr, then create stream client
 	if err := ac.host.Connection.Connect(); err != nil {
+		if p.autoReconnectWhenClose {
+			// auto reconnect when the first connect failed
+			ac.Reconnect()
+		}
+
 		return nil, types.ConnectionFailure
 	} else {
 		if atomic.LoadUint64(&p.destroyed) == 1 {
@@ -543,6 +548,8 @@ func (ac *activeClient) Reconnect() error {
 			// connect the new connection
 			err = ac.host.Connection.Connect()
 			if err != nil {
+				log.DefaultLogger.Warnf("[connpool] reconnect failed %v times, host %v", i + 1, ac.host.Host.AddressString())
+
 				// backoff logic
 				if backoffIdx >= len(backoffArr) {
 					backoffIdx = len(backoffArr) - 1
@@ -552,6 +559,8 @@ func (ac *activeClient) Reconnect() error {
 				backoffIdx++
 				continue
 			}
+
+			log.DefaultLogger.Infof("[connpool] reconnect succeed after %v tries, host %v", i + 1, ac.host.Host.AddressString())
 
 			// if pool was destroyed, but connection was connected
 			// we need to close it
