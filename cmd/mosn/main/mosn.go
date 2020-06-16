@@ -29,6 +29,7 @@ import (
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	_ "mosn.io/mosn/pkg/filter/network/tcpproxy"
+	_ "mosn.io/mosn/pkg/filter/stream/dubbo"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
