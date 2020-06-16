@@ -1,16 +1,17 @@
-
-GOPATH := $(firstword $(subst :, , $(shell go env GOPATH)))
+GOPATH := $(shell go env GOPATH)
 #-------------------------------------------------------------------------------
 #fix cgo compile error
 export LC_ALL   = en_US.UTF-8
 export LANG     = en_US.UTF-8
 #-------------------------------------------------------------------------------
 
-GO          = ${GOROOT}/bin/go
+GOPATH ?= $(shell go env GOPATH)
+GOROOT ?= $(shell go env GOROOT)
+GO      = ${GOROOT}/bin/go
 
 #-------------------------------------------------------------------------------
 libpath=${subst :, ,$(GOPATH)}
-TARS2GO     := ${GOPATH}/bin/tars2go
+TARS2GO     := $(firstword $(subst :, , $(shell go env GOPATH)))/bin/tars2go
 J2GO_FLAG   := -outdir=vendor ${J2GO_FLAG} 
 #-------------------------------------------------------------------------------
 
@@ -71,6 +72,7 @@ clean:
 
 cleanall:
 	rm -vf $(DEPEND_TARS_H) $(DEPEND_TARS_CPP) $(DEPEND_TARS_OBJ) $(LOCAL_OBJ) $(HCE_H) $(HCE_CPP) $(TARGET) $(TARGETS) $(DEP_FILE) ${CLEANFILE} *.o .*.d.tmp .*.d gmon.out
+	rm -vf *$(TARGET)*.tgz
 
 HELP += $(HELP_CLEAN)
 HELP += $(HELP_CLEANALL)

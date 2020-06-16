@@ -26,10 +26,10 @@ import (
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	sds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	gopbtypes "github.com/gogo/protobuf/types"
+	ptypes "github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -141,7 +141,14 @@ func InitMockSdsServer(sdsUdsPath string, t *testing.T) {
 	}()
 }
 
+// SecretDiscoveryServiceServer is the server API for SecretDiscoveryService service.
+//type SecretDiscoveryServiceServer interface {
+//        DeltaSecrets(SecretDiscoveryService_DeltaSecretsServer) error
+//        StreamSecrets(SecretDiscoveryService_StreamSecretsServer) error
+//        FetchSecrets(context.Context, *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error)
+//}
 type fakeSdsServer struct {
+	sds.SecretDiscoveryServiceServer
 }
 
 func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSecretsServer) error {
@@ -160,11 +167,11 @@ func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSe
 	secret := &auth.Secret{
 		Name: "default",
 	}
-	ms, err := gopbtypes.MarshalAny(secret)
+	ms, err := ptypes.MarshalAny(secret)
 	if err != nil {
 		return err
 	}
-	resp.Resources = append(resp.Resources, *ms)
+	resp.Resources = append(resp.Resources, ms)
 	stream.Send(resp)
 	// keep alive for 5 second for client connection
 	time.Sleep(5 * time.Second)

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
@@ -48,6 +48,8 @@ func init() {
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,
 		"/api/v1/plugin":          pluginApi,
+		"/stats":                  statsForIstio,
+		"/server_info":            serverInfoForIstio,
 		"/api/v1/features":        knownFeatures,
 		"/api/v1/env":             getEnv,
 		"/":                       help,

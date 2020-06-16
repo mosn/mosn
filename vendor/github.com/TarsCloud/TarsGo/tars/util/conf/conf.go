@@ -1,8 +1,4 @@
 //Package conf implements parse the taf config.
-//
-//使用方法:
-//初始化之后使用obj.GetXXX("/taf/db<ip>")得到对应的数据结构.
-
 package conf
 
 import (
@@ -18,8 +14,8 @@ import (
 )
 
 const (
-	k_node = iota
-	k_leaf
+	node = iota
+	leaf
 )
 
 var (
@@ -53,11 +49,11 @@ func (e *elem) findChild(name string) (ret *elem, ok bool) {
 }
 
 func (e *elem) isNode() bool {
-	return e.kind == k_node
+	return e.kind == node
 }
 
 func (e *elem) isLeaf() bool {
-	return e.kind == k_leaf
+	return e.kind == leaf
 }
 
 func (e *elem) toString(h int) string {
@@ -103,7 +99,7 @@ func (e *elem) analysisPath(path string) []string {
 	return ret
 }
 
-//路径类似于/A/B/C或/A/B/C/
+// path like /A/B/C or /A/B/C/
 func (e *elem) getDomain(path string) ([]string, error) {
 	pathVec := e.analysisPath(path)
 	var domain []string
@@ -134,7 +130,7 @@ func (e *elem) getMap(path string) (map[string]string, error) {
 	return kvMap, nil
 }
 
-//路径类似于/A/B/C/<data>或/A/B/C<data>
+// path like /A/B/C/<data> or /A/B/C<data>
 func (e *elem) getValue(path string) (string, error) {
 	pathVec := e.analysisPath(path)
 	targetNode, err := e.getElem(pathVec)
@@ -144,37 +140,42 @@ func (e *elem) getValue(path string) (string, error) {
 	return targetNode.value, nil
 }
 
+//Conf struct for parse xml-like tars config file.
 type Conf struct {
 	content []byte
 	mutex   *sync.RWMutex
 	root    *elem
 }
 
-// New().InitFromFile()
+// New  news new Conf struct.
 func New() *Conf {
-	return &Conf{[]byte{}, new(sync.RWMutex), newElem(k_node, "root")}
+	return &Conf{[]byte{}, new(sync.RWMutex), newElem(node, "root")}
 }
 
+//NewConf new conf struct with the fileName.
 func NewConf(fileName string) (*Conf, error) {
-	c := &Conf{[]byte{}, new(sync.RWMutex), newElem(k_node, "root")}
+	c := &Conf{[]byte{}, new(sync.RWMutex), newElem(node, "root")}
 	if err := c.InitFromFile(fileName); err != nil {
 		return nil, err
 	}
 	return c, nil
 }
 
+//InitFromFile init the conf with the file.
 func (c *Conf) InitFromFile(fileName string) error {
 	content, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		return fmt.Errorf("read file %s rrror:%v", fileName, err)
+		return fmt.Errorf("read file %s error:%v", fileName, err)
 	}
 	return c.InitFromBytes(content)
 }
 
+//InitFromString inits Conf from string.
 func (c *Conf) InitFromString(content string) error {
 	return c.InitFromBytes(([]byte)(content))
 }
 
+//InitFromBytes inits the Conf with the []byte.
 func (c *Conf) InitFromBytes(content []byte) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -194,7 +195,9 @@ func (c *Conf) InitFromBytes(content []byte) error {
 			lineDecoder.Split(bufio.ScanLines)
 			for lineDecoder.Scan() {
 				line := strings.Trim(lineDecoder.Text(), whiteSpaceChars)
-				line = strings.SplitN(line, "#", 2)[0]
+				if len(line) > 0 && line[0] == '#' {
+					continue
+				}
 				kv := strings.SplitN(line, "=", 2)
 				if len(kv) != 2 {
 					continue
@@ -203,13 +206,13 @@ func (c *Conf) InitFromBytes(content []byte) error {
 				if k == "" {
 					continue
 				}
-				leaf := newElem(k_leaf, k)
+				leaf := newElem(leaf, k)
 				leaf.setValue(v)
 				currNode.addChild(k, leaf)
 			}
 		case xml.StartElement:
 			nodeName := token.(xml.StartElement).Name.Local
-			node := newElem(k_node, nodeName)
+			node := newElem(node, nodeName)
 			currNode.addChild(nodeName, node)
 			nodeStack = append(nodeStack, node)
 		case xml.EndElement:
@@ -223,6 +226,7 @@ func (c *Conf) InitFromBytes(content []byte) error {
 	return nil
 }
 
+//GetStringWithDef gets string from the given path with the default value.
 func (c *Conf) GetStringWithDef(path string, defVal string) string {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -233,10 +237,12 @@ func (c *Conf) GetStringWithDef(path string, defVal string) string {
 	return value
 }
 
+//GetString getString with the given path.
 func (c *Conf) GetString(path string) string {
 	return c.GetStringWithDef(path, "")
 }
 
+//GetIntWithDef gets int from the given path with the default value.
 func (c *Conf) GetIntWithDef(path string, defVal int) int {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -251,10 +257,12 @@ func (c *Conf) GetIntWithDef(path string, defVal int) int {
 	return iValue
 }
 
+//GetInt gets int from the given path.
 func (c *Conf) GetInt(path string) int {
 	return c.GetIntWithDef(path, 0)
 }
 
+//GetDomain gets domain from the given path.
 func (c *Conf) GetDomain(path string) []string {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -265,6 +273,7 @@ func (c *Conf) GetDomain(path string) []string {
 	return domain
 }
 
+//GetMap gets map[string]string from the given path.
 func (c *Conf) GetMap(path string) map[string]string {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -272,6 +281,37 @@ func (c *Conf) GetMap(path string) map[string]string {
 	return kvMap
 }
 
+//ToString returns  string of the Conf.
 func (c *Conf) ToString() string {
 	return c.root.toString(0)
+}
+
+// GetInt32WithDef get int32 value
+func (c *Conf) GetInt32WithDef(path string, defVal int32) int32 {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	value, err := c.root.getValue(path)
+	if err != nil {
+		return defVal
+	}
+	iValue, err := strconv.Atoi(value)
+	if err != nil {
+		return defVal
+	}
+	return int32(iValue)
+}
+
+// GetBoolWithDef get bool value
+func (c *Conf) GetBoolWithDef(path string, defVal bool) bool {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	value, err := c.root.getValue(path)
+	if err != nil {
+		return defVal
+	}
+	bValue, err := strconv.ParseBool(value)
+	if err != nil {
+		return defVal
+	}
+	return bValue
 }
