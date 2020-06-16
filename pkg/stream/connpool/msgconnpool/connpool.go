@@ -35,22 +35,16 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-// for reconnect
-const (
-	notConnecting = iota
-	connecting
-)
-
 // types.ConnectionPool
 type connpool struct {
-	idleClients []*activeClient
+	client *activeClient
 
 	host      types.Host
-	clientMux sync.Mutex
+	clientMux sync.RWMutex
 
 	autoReconnectWhenClose bool
 	heartBeatCreator       func() KeepAlive
-	reconnTryTimes         int
+	connTryTimes           int
 	readFilters            []api.ReadFilter
 
 	destroyed uint64
@@ -60,56 +54,10 @@ func (p *connpool) Host() types.Host {
 	return p.host
 }
 
-// GetActiveClient get a avail client
-func (p *connpool) GetActiveClient(ctx context.Context) (*activeClient, types.PoolFailureReason) {
-	p.clientMux.Lock()
-	defer p.clientMux.Unlock()
-
-	n := len(p.idleClients)
-
-	// no available client
-	var (
-		c      *activeClient
-		reason types.PoolFailureReason
-	)
-
-	if n == 0 {
-		c, reason = p.newActiveClientLocked(ctx)
-		// if the reason if connection failure
-		// will automatic reconnect, so we can save the active client
-		// to avoid concurrent reconnect
-		if c != nil {
-			// should put this conn to pool
-			p.idleClients = append(p.idleClients, c)
-		}
-
-		return c, reason
-	} else {
-
-		var lastIdx = n - 1
-		var reason types.PoolFailureReason
-		c = p.idleClients[lastIdx]
-		if c == nil {
-			c, reason = p.newActiveClientLocked(ctx)
-			if reason == "" && c != nil {
-				p.idleClients[lastIdx] = c
-			}
-		}
-
-		return c, reason
-	}
-}
-
 // Destroy the pool
 func (p *connpool) Destroy() {
 	atomic.StoreUint64(&p.destroyed, 1)
-
-	p.clientMux.Lock()
-	defer p.clientMux.Unlock()
-
-	for _, c := range p.idleClients {
-		c.host.Connection.Close(api.NoFlush, api.LocalClose)
-	}
+	p.client.host.Connection.Close(api.NoFlush, api.LocalClose)
 }
 
 // types.StreamEventListener
@@ -121,140 +69,146 @@ type activeClient struct {
 
 	keepAlive *keepAliveListener
 
-	reconnectState uint64 // for reconnect, connecting or notConnecting
+	reconnectLock sync.Mutex
+
+	reconnectBackoff    []time.Duration
+	connectTryTimes     int
 }
 
-func (p *connpool) newActiveClientLocked(ctx context.Context) (*activeClient, types.PoolFailureReason) {
-	// if pool is already destroyed, return
-	if atomic.LoadUint64(&p.destroyed) == 1 {
-		return nil, types.ConnectionFailure
-	}
+func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
+	//  all close event:
+	//  ce == LocalClose || ce == RemoteClose ||
+	//	ce == OnReadErrClose || ce == OnWriteErrClose || ce == OnWriteTimeout
+	switch event {
+	case api.RemoteClose:
+		goto RECONN
+	case api.OnReadErrClose, api.OnWriteErrClose, api.OnWriteTimeout,
+		api.ConnectTimeout, api.ConnectFailed, api.LocalClose:
+		// RemoteClose when read/write error
+		// LocalClose when there is a panic
+		// OnReadErrClose when read failed
+		goto RECONN
 
-	createConnData := p.Host().CreateConnection(ctx)
-	ac := &activeClient{
-		pool: p,
-		host: &createConnData,
-	}
-
-	ac.host.Connection.AddConnectionEventListener(ac)
-
-	// first connect to dest addr, then create stream client
-	if err := ac.host.Connection.Connect(); err != nil {
-		if p.autoReconnectWhenClose && atomic.LoadUint64(&p.destroyed) == 0 {
-			// auto reconnect when the first connect failed
-			log.DefaultLogger.Warnf("[connpool] reconnect due to first connect failed %v", ac.host.Host.AddressString())
-			ac.Reconnect()
-		}
-
-		return ac, types.ConnectionFailure
-	} else {
-		if atomic.LoadUint64(&p.destroyed) == 1 {
-			// if destroyed, close the conn
-			ac.host.Connection.Close(api.NoFlush, api.LocalClose)
-			return ac, types.ConnectionFailure
-		}
-
-		for _, rf := range ac.pool.readFilters {
-			ac.host.Connection.FilterManager().AddReadFilter(rf)
-		}
-	}
-
-	// if user use connection pool without codec
-	// they can use the connection returned from activeClient.Conn()
-	if p.heartBeatCreator != nil {
-		ac.SetHeartBeater(p.heartBeatCreator())
-	}
-
-	return ac, ""
-}
-
-// Reconnect triggers connection to reconnect
-func (ac *activeClient) Reconnect() {
-	if !atomic.CompareAndSwapUint64(&ac.reconnectState, notConnecting, connecting) {
+	default:
 		return
 	}
 
+RECONN:
+	if ac.pool.autoReconnectWhenClose {
+		// auto reconnect when close
+		log.DefaultLogger.Warnf("[connpool] reconnect after event : %v,  host : %v", event, ac)
+		ac.reconnect()
+	} else {
+		ac.removeFromPool()
+	}
+}
+
+// generate the client, and set it to the connpool
+func (p *connpool) initActiveClient() {
+	p.client = &activeClient{
+		pool: p,
+		reconnectBackoff: []time.Duration{
+			0, time.Second,
+			time.Second * 2,
+			time.Second * 5,
+			time.Second * 10,
+		},
+	}
+
+	p.client.initConnection()
+}
+
+func (ac *activeClient) initConnection() {
+	// build new conn
+	// must create this new conn, the same conn can only be connected once
+	createConnData := ac.pool.Host().CreateConnection(context.Background())
+
+	// event listener start
+	// createConnData.Connection.AddConnectionEventListener(ac)
+	createConnData.Connection.AddConnectionEventListener(ac)
+	// event listener end
+
+	// connect the new connection
+	err := createConnData.Connection.Connect()
+
+	if err != nil {
+		if ac.host == nil { // the first time
+			// atomic store, avoid partial write
+			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&ac.host)), unsafe.Pointer(&createConnData))
+			log.DefaultLogger.Warnf("[connpool] connect failed %v times, host : %p",
+				ac.connectTryTimes, ac.host.Host.AddressString())
+		} else {
+			log.DefaultLogger.Warnf("[connpool] reconnect failed %v times, ac : %p",
+				ac.connectTryTimes, ac)
+		}
+
+		return
+	}
+
+	// atomic store, avoid partial write
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&ac.host)), unsafe.Pointer(&createConnData))
+
+	log.DefaultLogger.Infof("[connpool] reconnect succeed after %v tries, host %v, ac %p, host: %v",
+		ac.connectTryTimes, ac.host.Host.AddressString(), ac, ac.host)
+
+	// if pool was destroyed, but connection was connected
+	// we need to close it
+	if atomic.LoadUint64(&ac.pool.destroyed) == 1 {
+		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
+		return
+	}
+
+	// read filters
+	for _, rf := range ac.pool.readFilters {
+		ac.host.Connection.FilterManager().AddReadFilter(rf)
+	}
+
+	// set the new heartbeat
+	ac.setHeartBeater(ac.pool.heartBeatCreator())
+
+	// clear retry times
+	ac.connectTryTimes = 0
+}
+
+// reconnect triggers connection to reconnect
+func (ac *activeClient) reconnect() {
 	if atomic.LoadUint64(&ac.pool.destroyed) == 1 {
 		return
 	}
 
+	if ac.connectTryTimes > ac.pool.connTryTimes {
+		log.DefaultLogger.Warnf("[connpool] retry time exceed pool config %", ac.pool.connTryTimes)
+		return
+	}
+
+	var idx = ac.connectTryTimes
+	if idx >= len(ac.reconnectBackoff) {
+		idx = len(ac.reconnectBackoff) - 1
+	}
+
 	utils.GoWithRecover(func() {
-		defer atomic.CompareAndSwapUint64(&ac.reconnectState, connecting, notConnecting)
-		var (
-			err error
-			i   int
-		)
+		time.Sleep(ac.reconnectBackoff[idx])
+		ac.reconnectLock.Lock()
+		defer ac.reconnectLock.Unlock()
+
+		if _, ok := ac.pool.isActive(); ok {
+			return
+		}
 
 		// close previous conn
-		ac.host.Connection.Close(api.NoFlush, api.RemoteClose)
+		// if ac.host != nil {
+			//ac.host.Connection.Close(api.NoFlush, api.LocalClose)
+		// }
 
-		var (
-			backoffArr = []time.Duration{
-				time.Second,
-				time.Second * 2,
-				time.Second * 5,
-				time.Second * 10,
-			}
-			backoffIdx = 0
-		)
+		ac.connectTryTimes++
 
-		for ; i < ac.pool.reconnTryTimes; i++ {
-			if atomic.LoadUint64(&ac.pool.destroyed) == 1 {
-				// if pool was exited, then stop
-				return
-			}
-			// build new conn
-			// must create this new conn, the same conn can only be connected once
-			createConnData := ac.pool.Host().CreateConnection(context.Background())
-
-
-			// connect the new connection
-			err = createConnData.Connection.Connect()
-			if err != nil {
-
-				// backoff logic
-				if backoffIdx >= len(backoffArr) {
-					backoffIdx = len(backoffArr) - 1
-				}
-
-				log.DefaultLogger.Warnf("[connpool] reconnect failed %v times, host %v, ac : %p, backoff : %v",
-					i+1, ac.host.Host.AddressString(), ac, backoffArr[backoffIdx])
-
-				time.Sleep(backoffArr[backoffIdx])
-				backoffIdx++
-				continue
-			}
-
-			// atomic store, avoid partial write
-			atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&ac.host)), unsafe.Pointer(&createConnData))
-
-			log.DefaultLogger.Infof("[connpool] reconnect succeed after %v tries, host %v, ac %p", i+1, ac.host.Host.AddressString(), ac)
-
-			// if pool was destroyed, but connection was connected
-			// we need to close it
-			if atomic.LoadUint64(&ac.pool.destroyed) == 1 {
-				ac.host.Connection.Close(api.NoFlush, api.LocalClose)
-				return
-			}
-
-			// ====== event listeners
-			ac.host.Connection.AddConnectionEventListener(ac)
-			if ac.keepAlive != nil {
-				ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
-			}
-
-			for _, rf := range ac.pool.readFilters {
-				ac.host.Connection.FilterManager().AddReadFilter(rf)
-			}
-
-			// set the new heartbeat
-			ac.SetHeartBeater(ac.pool.heartBeatCreator())
-
-			// ====== event listeners
-			// new conn should have read filters
-
-			break
+		if atomic.LoadUint64(&ac.pool.destroyed) == 1 {
+			// if pool was exited, then stop
+			return
 		}
+
+		ac.initConnection()
+
 	}, func(r interface{}) {
 		log.DefaultLogger.Warnf("[connpool] reconnect failed, %v, host: %v", r, ac.host.Host.AddressString())
 	})
@@ -267,55 +221,11 @@ func (ac *activeClient) removeFromPool() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
-	for idx, c := range p.idleClients {
-		if c == ac {
-			// remove this element
-			lastIdx := len(p.idleClients) - 1
-			// 	1. swap this with the last
-			p.idleClients[idx], p.idleClients[lastIdx] =
-				p.idleClients[lastIdx], p.idleClients[idx]
-			// 	2. set last to nil
-			p.idleClients[lastIdx] = nil
-			// 	3. remove the last
-			p.idleClients = p.idleClients[:lastIdx]
-		}
-	}
+	p.client = nil
 }
 
-// types.ConnectionEventListener
-func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
-	p := ac.pool
-
-	//  all close event:
-	//  ce == LocalClose || ce == RemoteClose ||
-	//	ce == OnReadErrClose || ce == OnWriteErrClose || ce == OnWriteTimeout
-	switch event {
-	case api.OnReadErrClose, api.OnWriteErrClose, api.RemoteClose, api.OnWriteTimeout, api.LocalClose:
-		// RemoteClose when read/write error
-		// LocalClose when there is a panic
-		// OnReadErrClose when read failed
-		log.DefaultLogger.Warnf("[connpool] reconnect after conn close, event : %v,  host : %v", event, ac.host.Host.AddressString())
-		goto RECONN
-
-	case api.ConnectTimeout:
-		log.DefaultLogger.Warnf("[connpool] reconnect after connect timeout, host : %v", ac.host.Host.AddressString())
-		goto RECONN
-	case api.ConnectFailed:
-		log.DefaultLogger.Warnf("[connpool] reconnect after connect failed, host : %v", ac.host.Host.AddressString())
-		goto RECONN
-	}
-
-RECONN:
-	if p.autoReconnectWhenClose && atomic.LoadUint64(&p.destroyed) == 0 {
-		// auto reconnect when close
-		ac.Reconnect()
-	} else {
-		ac.removeFromPool()
-	}
-}
-
-// SetHeartBeater set the heart beat for an active client
-func (ac *activeClient) SetHeartBeater(hb KeepAlive) {
+// setHeartBeater set the heart beat for an active client
+func (ac *activeClient) setHeartBeater(hb KeepAlive) {
 	// clear the previous keepAlive
 	if ac.keepAlive != nil && ac.keepAlive.keepAlive != nil {
 		ac.keepAlive.keepAlive.Stop()
@@ -342,10 +252,9 @@ type keepAliveListener struct {
 func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
 	if event == api.OnReadTimeout && l.keepAlive != nil {
 		heartbeatFailCreator := func() {
-			l.conn.Close(api.NoFlush, api.LocalClose)
+			l.conn.Close(api.NoFlush, api.OnReadErrClose)
 		}
 
-		// TODO, whether error should be handled
 		l.conn.Write(buffer.NewIoBufferBytes(l.keepAlive.GetKeepAliveData(heartbeatFailCreator)))
 	}
 }
@@ -363,71 +272,60 @@ type Connection interface {
 }
 
 // NewConn returns a simplified connpool
-func NewConn(hostAddr string, reconnectTryTimes int, heartBeatCreator func() KeepAlive, readFilters []api.ReadFilter, autoReconnectWhenClose bool) Connection {
+func NewConn(hostAddr string, connectTryTimes int, heartBeatCreator func() KeepAlive, readFilters []api.ReadFilter, autoReconnectWhenClose bool) Connection {
 	// use host addr as cluster name, for the count of metrics
 	cl := basicCluster(hostAddr, []string{hostAddr})
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
 
 	// if user configure this to -1, then retry is unlimited
-	if reconnectTryTimes == -1 {
-		reconnectTryTimes = math.MaxInt32
+	if connectTryTimes == -1 {
+		connectTryTimes = math.MaxInt32
 	}
 
 	p := &connpool{
-		idleClients: make([]*activeClient, 0, 1),
-		host:        host,
-
+		host:                   host,
 		heartBeatCreator:       heartBeatCreator,
 		autoReconnectWhenClose: autoReconnectWhenClose,
-		reconnTryTimes:         reconnectTryTimes,
+		connTryTimes:           connectTryTimes,
 		readFilters:            readFilters,
 	}
 
-	// trigger the client generation
-	p.GetActiveClient(context.Background())
+	p.initActiveClient()
 
 	return p
 }
 
+func (p * connpool) isActive() (*types.CreateConnectionData, bool) {
+	// if pool was destroyed
+	if atomic.LoadUint64(&p.destroyed) == 1 {
+		return nil, false
+	}
+
+	cli := p.client
+	// use atomic to load pointer, avoid partial pointer read
+	if cli == nil {
+		return nil, false
+	}
+
+	h := (*types.CreateConnectionData)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&cli.host))))
+	if h.Connection.State() != api.ConnActive {
+		return h, false
+	}
+	return h, true
+}
+
 // write to client
 func (p *connpool) Write(buf ...buffer.IoBuffer) error {
-	cli, reason := p.GetActiveClient(context.Background())
-	if reason != "" {
-		return errors.New("get client failed" + string(reason))
+	if h, ok := p.isActive(); ok {
+		return h.Connection.Write(buf...)
 	}
-
-	// use atomic to load pointer, avoid partial pointer read
-	h := (*types.CreateConnectionData)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&cli.host))))
-
-	err := h.Connection.Write(buf...)
-	if err != nil {
-		cli.Reconnect()
-	}
-
-	return err
+	return errors.New("[msgconnpool] connection not ready")
 }
 
 // Available current available to send request
-// WARNING, this api is only for msg
-// WARNING, dont use it any other scene
 func (p *connpool) Available() bool {
-	// if pool was destroyed
-	if atomic.LoadUint64(&p.destroyed) == 1 {
-		return false
-	}
-
-	// if there is no client
-	lastIdx := len(p.idleClients) - 1
-	if lastIdx < 0 {
-		return false
-	}
-
-	// if we are reconnecting
-	if atomic.LoadUint64(&p.idleClients[lastIdx].reconnectState) == connecting {
-		return false
-	}
-
-	return true
+	_, avail := p.isActive()
+	return avail
 }
 
 func basicCluster(name string, hosts []string) v2.Cluster {
