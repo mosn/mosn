@@ -50,6 +50,8 @@ const (
 
 // [Protocol]: common
 const (
+	VarProtocolRequestMethod    = "request_method"
+	VarProtocolRequestLength    = "request_length"
 	VarProtocolRequestHeader    = "request_header_"
 	VarProtocolCookie           = "cookie_"
 	VarProtocolRequestPath      = "request_path"
@@ -58,16 +60,30 @@ const (
 	VarProtocolRequestUri       = "request_uri"
 )
 
-// [Protocol]: http
+// [Protocol]: http1
 const (
-	VarHttpRequestMethod = "http_request_method"
-	VarHttpRequestLength = "http_request_length"
+	// the httpProtocolName value is protocol.HTTP1
+	httpProtocolName     = "Http1"
+	VarHttpRequestMethod = httpProtocolName + "_" + VarProtocolRequestMethod
+	VarHttpRequestLength = httpProtocolName + "_" + VarProtocolRequestLength
+	VarHttpRequestUri    = httpProtocolName + "_" + VarProtocolRequestUri
+	VarHttpRequestPath   = httpProtocolName + "_" + VarProtocolRequestPath
+	VarHttpRequestArg    = httpProtocolName + "_" + VarProtocolRequestArg
+	VarPrefixHttpHeader  = httpProtocolName + "_" + VarProtocolRequestHeader
+	VarPrefixHttpArg     = httpProtocolName + "_" + VarProtocolRequestArgPrefix
+	VarPrefixHttpCookie  = httpProtocolName + "_" + VarProtocolCookie
+)
 
-	// deprecated by adding protocol for prefix, use the const above instead
-	VarHttpRequestUri   = "http_request_uri"
-	VarHttpRequestPath  = "http_request_path"
-	VarHttpRequestArg   = "http_request_arg"
-	VarPrefixHttpHeader = "http_header_"
-	VarPrefixHttpArg    = "http_arg_"
-	VarPrefixHttpCookie = "http_cookie_"
+// [Protocol]: http2
+const (
+	// the http2ProtocolName value is protocol.HTTP2
+	http2ProtocolName     = "Http2"
+	VarHttp2RequestMethod = http2ProtocolName + "_" + VarProtocolRequestMethod
+	VarHttp2RequestLength = http2ProtocolName + "_" + VarProtocolRequestLength
+	VarHttp2RequestUri    = http2ProtocolName + "_" + VarProtocolRequestUri
+	VarHttp2RequestPath   = http2ProtocolName + "_" + VarProtocolRequestPath
+	VarHttp2RequestArg    = http2ProtocolName + "_" + VarProtocolRequestArg
+	VarPrefixHttp2Header  = http2ProtocolName + "_" + VarProtocolRequestHeader
+	VarPrefixHttp2Arg     = http2ProtocolName + "_" + VarProtocolRequestArgPrefix
+	VarPrefixHttp2Cookie  = http2ProtocolName + "_" + VarProtocolCookie
 )

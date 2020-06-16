@@ -1010,7 +1010,7 @@ func convertHashPolicy(hashPolicy []*xdsroute.RouteAction_HashPolicy) []v2.HashP
 
 		if cookieConfig := p.GetCookie(); cookieConfig != nil {
 			hpReturn = append(hpReturn, v2.HashPolicy{
-				HttpCookie: &v2.HttpCookieHashPolicy{
+				Cookie: &v2.CookieHashPolicy{
 					Name: cookieConfig.Name,
 					Path: cookieConfig.Path,
 					TTL: api.DurationConfig{

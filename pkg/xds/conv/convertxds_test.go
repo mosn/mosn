@@ -874,19 +874,19 @@ func Test_convertHashPolicy(t *testing.T) {
 	}
 
 	hp = convertHashPolicy(xdsHashPolicy)
-	if !assert.NotNilf(t, hp[0].HttpCookie, "hashPolicy HttpCookie field should not be nil") {
+	if !assert.NotNilf(t, hp[0].Cookie, "hashPolicy Cookie field should not be nil") {
 		t.FailNow()
 	}
-	if !assert.Equalf(t, "cookie_name", hp[0].HttpCookie.Name,
-		"hashPolicy HttpCookie Name field should be 'cookie_name'") {
+	if !assert.Equalf(t, "cookie_name", hp[0].Cookie.Name,
+		"hashPolicy Cookie Name field should be 'cookie_name'") {
 		t.FailNow()
 	}
-	if !assert.Equalf(t, "cookie_path", hp[0].HttpCookie.Path,
-		"hashPolicy HttpCookie Path field should be 'cookie_path'") {
+	if !assert.Equalf(t, "cookie_path", hp[0].Cookie.Path,
+		"hashPolicy Cookie Path field should be 'cookie_path'") {
 		t.FailNow()
 	}
-	if !assert.Equalf(t, 5*time.Second, hp[0].HttpCookie.TTL.Duration,
-		"hashPolicy HttpCookie TTL field should be '5s'") {
+	if !assert.Equalf(t, 5*time.Second, hp[0].Cookie.TTL.Duration,
+		"hashPolicy Cookie TTL field should be '5s'") {
 		t.FailNow()
 	}
 

@@ -66,6 +66,9 @@ type LoadBalancerContext interface {
 
 	// Downstream cluster info
 	DownstreamCluster() ClusterInfo
+
+	// Downstream route info
+	DownstreamRoute() api.Route
 }
 
 // LBSubsetEntry is a entry that stored in the subset hierarchy.

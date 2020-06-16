@@ -212,6 +212,7 @@ type mockLbContext struct {
 	mmc     api.MetadataMatchCriteria
 	header  api.HeaderMap
 	context context.Context
+	route   api.Route
 }
 type mockConn struct {
 	net.Conn
@@ -246,6 +247,10 @@ func (ctx *mockLbContext) DownstreamContext() context.Context {
 }
 func (ctx *mockLbContext) DownstreamConnection() net.Conn {
 	return &mockConn{}
+}
+
+func (ctx *mockLbContext) DownstreamRoute() api.Route {
+	return ctx.route
 }
 
 func (mc *mockConn) RemoteAddr() net.Addr {

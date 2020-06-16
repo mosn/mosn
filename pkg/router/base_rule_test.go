@@ -576,7 +576,7 @@ func TestParseHashPolicy(t *testing.T) {
 	// httpCookie
 	routerMock1.Route.HashPolicy = []v2.HashPolicy{
 		{
-			HttpCookie: &v2.HttpCookieHashPolicy{
+			Cookie: &v2.CookieHashPolicy{
 				Name: "cookie_name",
 				Path: "cookie_path",
 				TTL: api.DurationConfig{
@@ -587,7 +587,7 @@ func TestParseHashPolicy(t *testing.T) {
 	}
 	rb, err = NewRouteRuleImplBase(nil, routerMock1)
 	assert.NoErrorf(t, err, "new routerule impl failed %+v", err)
-	cookieHp, ok := rb.policy.hashPolicy.(*httpCookieHashPolicyImpl)
+	cookieHp, ok := rb.policy.hashPolicy.(*cookieHashPolicyImpl)
 	assert.Truef(t, ok, "hash policy should be httpCookieHashPolicyImpl type")
 	if ok {
 		assert.Equalf(t, "cookie_name", cookieHp.name,
@@ -624,7 +624,7 @@ func TestHashPolicy(t *testing.T) {
 	cookieValue := variable.NewBasicVariable("SomeProtocol_cookie_", nil, cookieGetter, nil, 0)
 	variable.RegisterPrefixVariable(cookieValue.Name(), cookieValue)
 	variable.RegisterProtocolResource(testProtocol, api.COOKIE, types.VarProtocolCookie)
-	cookieHp := httpCookieHashPolicyImpl{
+	cookieHp := cookieHashPolicyImpl{
 		name: "cookie_name",
 		path: "cookie_path",
 		ttl:  api.DurationConfig{5 * time.Second},

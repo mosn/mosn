@@ -181,7 +181,7 @@ func TestSetDownstreamRouter(t *testing.T) {
 		snapshot:       &mockClusterSnapshot{},
 	}
 	s.matchRoute()
-	assert.NotNilf(t, mosnctx.Get(s.context, types.ContextKeyDownStreamRouter),
+	assert.NotNilf(t, s.DownstreamRoute(),
 		"downstream router in context should not be nil")
 }
 

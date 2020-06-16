@@ -26,7 +26,6 @@ import (
 	"github.com/trainyao/go-maglev"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -381,14 +380,14 @@ type maglevLoadBalancer struct {
 	maglev *maglev.Table
 }
 
-func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+func (lb *maglevLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	// host empty, maglev info may be nil
 	if lb.maglev == nil {
 		return nil
 	}
 
-	route, ok := mosnctx.Get(context.DownstreamContext(), types.ContextKeyDownStreamRouter).(api.Route)
-	if !ok {
+	route := ctx.DownstreamRoute()
+	if route == nil || route.RouteRule() == nil {
 		return nil
 	}
 
@@ -397,7 +396,7 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 		return nil
 	}
 
-	hash := hashPolicy.GenerateHash(context.DownstreamContext())
+	hash := hashPolicy.GenerateHash(ctx.DownstreamContext())
 	index := lb.maglev.Lookup(hash)
 	chosen := lb.hosts.Hosts()[index]
 
@@ -407,10 +406,10 @@ func (lb *maglevLoadBalancer) ChooseHost(context types.LoadBalancerContext) type
 	}
 
 	if chosen == nil {
-		log.Proxy.Infof(context.DownstreamContext(), "[lb][maglev] hash %d get nil host, index: %d",
+		log.Proxy.Infof(ctx.DownstreamContext(), "[lb][maglev] hash %d get nil host, index: %d",
 			hash, index)
 	} else {
-		log.Proxy.Debugf(context.DownstreamContext(), "[lb][maglev] hash %d index %d get host %s",
+		log.Proxy.Debugf(ctx.DownstreamContext(), "[lb][maglev] hash %d index %d get host %s",
 			hash, index, chosen.AddressString())
 	}
 
