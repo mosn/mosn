@@ -27,4 +27,7 @@ const (
 	PATH ProtocolResourceName = "PATH"
 	// only arguments
 	ARG ProtocolResourceName = "ARG"
+
+	HEADER ProtocolResourceName = "header"
+	COOKIE ProtocolResourceName = "cookie"
 )

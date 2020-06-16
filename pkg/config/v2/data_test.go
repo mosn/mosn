@@ -64,6 +64,8 @@ const cfgStr = `{
 	 }
 }`
 
+// apiType = "GRPC" Defined by const ApiConfigSource_GRPC ApiConfigSource_ApiType = 2
+// at the go-control-plane/envoy/api/v2/core/config_source.pb.go file.
 const xdsSdsConfig = `{
   "servers": [
     {
@@ -143,7 +145,7 @@ const xdsSdsConfig = `{
                       "name": "default",
                       "sdsConfig": {
                         "apiConfigSource": {
-                          "apiType": "GRPC",
+                          "apiType": 2,
                           "grpcServices": [
                             {
                               "googleGrpc": {
@@ -167,7 +169,7 @@ const xdsSdsConfig = `{
                       "name": "ROOTCA",
                       "sdsConfig": {
                         "apiConfigSource": {
-                          "apiType": "GRPC",
+                          "apiType": 2,
                           "grpcServices": [
                             {
                               "googleGrpc": {
