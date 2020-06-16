@@ -391,8 +391,6 @@ func (conn *serverStreamConnection) serve() {
 		buffers := httpBuffersByContext(ctx)
 		request := &buffers.serverRequest
 
-		request.Header.DisableNormalizing()
-
 		// 2. blocking read using fasthttp.Request.Read
 		err := request.ReadLimitBody(conn.br, defaultMaxRequestBodySize)
 		if err == nil {
