@@ -2,15 +2,16 @@ package tars
 
 import "github.com/TarsCloud/TarsGo/tars/protocol/res/notifyf"
 
+//NotifyHelper is the helper struct for the Notify service.
 type NotifyHelper struct {
 	comm *Communicator
 	tn   *notifyf.Notify
 	tm   notifyf.ReportInfo
 }
 
+//SetNotifyInfo sets the notify server location for the Communicator.
 func (n *NotifyHelper) SetNotifyInfo(comm *Communicator, notify string, app string, server string, container string) {
 	n.comm = comm
-	n.comm.SetProperty("netthread", 1)
 	n.tn = new(notifyf.Notify)
 	comm.StringToProxy(notify, n.tn)
 	//TODO:params
@@ -30,16 +31,17 @@ func (n *NotifyHelper) SetNotifyInfo(comm *Communicator, notify string, app stri
 	}
 }
 
+//ReportNotifyInfo report the info to the notify server.
 func (n *NotifyHelper) ReportNotifyInfo(info string) {
 	n.tm.SMessage = info
 	TLOG.Debug(n.tm)
 	n.tn.ReportNotifyInfo(&n.tm)
 }
 
-func reportNotifyInfo(info string) {
+//ReportNotifyInfo report the info to the notify server.
+func ReportNotifyInfo(info string) {
 	ha := new(NotifyHelper)
 	comm := NewCommunicator()
-	comm.SetProperty("netthread", 1)
 	notify := GetServerConfig().notify
 	app := GetServerConfig().App
 	server := GetServerConfig().Server
