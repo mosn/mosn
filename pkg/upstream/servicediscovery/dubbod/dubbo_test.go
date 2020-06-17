@@ -28,7 +28,7 @@ func init() {
 		return &registry.BaseRegistry{}, nil
 	})
 
-	monkey.PatchInstanceMethod(reflect.TypeOf(&registry.BaseRegistry{}), "Register", func(r *registry.BaseRegistry, conf dubbocommon.URL) error {
+	monkey.PatchInstanceMethod(reflect.TypeOf(&registry.BaseRegistry{}), "Register", func(r *registry.BaseRegistry, conf *dubbocommon.URL) error {
 		return nil
 	})
 

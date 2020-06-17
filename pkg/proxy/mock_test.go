@@ -124,6 +124,10 @@ type mockClusterSnapshot struct {
 	types.ClusterSnapshot
 }
 
+func (mcs *mockClusterSnapshot) ClusterInfo() types.ClusterInfo {
+	return nil
+}
+
 type mockResponseSender struct {
 	// receive data
 	headers  api.HeaderMap

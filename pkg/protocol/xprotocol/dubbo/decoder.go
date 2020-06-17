@@ -21,11 +21,12 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"sync"
+
 	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	"sync"
 )
 
 // Decoder is heavy and caches to improve performance.
@@ -72,10 +73,11 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	// decode serializationId
 	frame.SerializationId = int(frame.Flag & 0x1f)
 
+	frameLen := HeaderLen + frame.DataLen
 	// decode payload
-	payload := make([]byte, frame.DataLen)
-	copy(payload, dataBytes[HeaderLen:HeaderLen+frame.DataLen])
-	frame.payload = payload
+	body := make([]byte, frameLen)
+	copy(body, dataBytes[:frameLen])
+	frame.payload = body[HeaderLen:]
 	frame.content = buffer.NewIoBufferBytes(frame.payload)
 
 	// not heartbeat & is request
@@ -90,10 +92,9 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 		}
 	}
 
-	frameLen := HeaderLen + int(frame.DataLen)
-	frame.rawData = dataBytes[:frameLen]
+	frame.rawData = body
 	frame.data = buffer.NewIoBufferBytes(frame.rawData)
-	data.Drain(frameLen)
+	data.Drain(int(frameLen))
 	return frame, nil
 }
 
@@ -194,6 +195,11 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, 
 
 		// decode the attachment to get the real service and group parameters
 		if !matched && (listener == EgressDubbo || listener == IngressDubbo) {
+			field, err = decoder.Decode()
+			if err != nil {
+				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument types error, %v", err)
+			}
+
 			arguments := getArgumentCount(field.(string))
 			// we must skip all method arguments.
 			for i := 0; i < arguments; i++ {

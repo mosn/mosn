@@ -10,6 +10,7 @@ require (
 	github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d // perf: https://github.com/apache/dubbo-go-hessian2/pull/188
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f
+	github.com/dchest/siphash v1.2.1
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/go-chi/chi v4.1.0+incompatible
 	github.com/gogo/protobuf v1.3.1
@@ -25,13 +26,15 @@ require (
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/miekg/dns v1.0.14
 	github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f
-	github.com/mosn/registry v0.0.0-20200526023644-724ef3b6e9d6
+	github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
 	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
 	github.com/stretchr/testify v1.5.1
+	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb // indirect
+	github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v1.2.0
 	github.com/valyala/fasttemplate v1.1.0
@@ -44,7 +47,7 @@ require (
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
-	mosn.io/api v0.0.0-20200416082846-2e7ce9a85557
+	mosn.io/api v0.0.0-20200615113625-8eedc8a88c20
 	mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
 )
 
