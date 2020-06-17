@@ -123,6 +123,9 @@ func CreateStatsFilterFactory(conf map[string]interface{}) (api.StreamFilterChai
 
 	ms := make([]*metric, 0, len(c.Metrics))
 	for _, m := range c.Metrics {
+		if len(m.Dimensions) > metrics.MaxLabelCount {
+			return nil, metrics.ErrLabelCountExceeded
+		}
 		metric, err := newMetric(&m)
 		if err != nil {
 			return nil, err
