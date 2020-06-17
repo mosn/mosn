@@ -98,6 +98,23 @@ func TestExtractAttributes(t *testing.T) {
 		{
 			args: args{
 				reqHeaders: protocol.CommonHeader{
+					"x-mosn-path":   "/path",
+					"x-mosn-host":   "host",
+					"x-mosn-method": "GET",
+				},
+				respHeaders: protocol.CommonHeader{},
+				requestInfo: &MockRequestInfo{
+					startTime: now,
+					endTime:   now,
+					protocol:  protocol.Auto,
+				},
+				requestTotalSize: 1,
+			},
+			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.method": "GET"},
+		},
+		{
+			args: args{
+				reqHeaders: protocol.CommonHeader{
 					utils.KIstioAttributeHeader: func() string {
 						b, _ := proto.Marshal(&v1.Attributes{
 							Attributes: map[string]*v1.Attributes_AttributeValue{

@@ -51,4 +51,11 @@ const (
 	KResponseTotalSize = "response.total_size"
 	// KResponseTime const string
 	KResponseTime = "response.time"
+
+	// KRequestPath const string
+	KRequestPath = "request.path"
+	// KRequestMethod const string
+	KRequestMethod = "request.method"
+	// KRequestHost const string
+	KRequestHost = "request.host"
 )

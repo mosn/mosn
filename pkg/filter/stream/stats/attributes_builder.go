@@ -121,6 +121,12 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		return e.requestInfo.Duration(), true
 	case utils.KResponseCode:
 		return int64(e.requestInfo.ResponseCode()), true
+	case utils.KRequestPath:
+		return e.reqHeaders.Get(protocol.MosnHeaderPathKey)
+	case utils.KRequestMethod:
+		return e.reqHeaders.Get(protocol.MosnHeaderMethod)
+	case utils.KRequestHost:
+		return e.reqHeaders.Get(protocol.MosnHeaderHostKey)
 	default:
 		if e.attributes == nil {
 			e.attributes = map[string]interface{}{}
