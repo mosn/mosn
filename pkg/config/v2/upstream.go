@@ -56,7 +56,6 @@ type ClusterType string
 const (
 	STATIC_CLUSTER      ClusterType = "STATIC"
 	SIMPLE_CLUSTER      ClusterType = "SIMPLE"
-	LOGICAL_DNS_CLUSTER ClusterType = "LOGICAL_DNS"
 	DYNAMIC_CLUSTER     ClusterType = "DYNAMIC"
 	EDS_CLUSTER         ClusterType = "EDS"
 	ORIGINALDST_CLUSTER ClusterType = "ORIGINAL_DST"
