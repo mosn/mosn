@@ -2,55 +2,82 @@ package msgconnpool
 
 import (
 	"fmt"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"net"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 
 	"github.com/stretchr/testify/assert"
 )
 
-type mockKeepalive struct {
-	// should record every heart beat frame callback
-	// should handle the heart beat frame response timeout
-	heartbeatFailCallback map[int]func()
-
+// myFilter implements 2 interfaces
+//    1. KeepAlive -> GetKeepAliveData + Stop + SaveHeartBeatFailCallback
+//    2. ReadFilter -> OnData
+type myFilter struct {
 	keepaliveFrameTimeout time.Duration
-
 	heartbeatTriggerCount int
+	failCallback          atomic.Value // func()
 }
 
-// GetKeepAliveData get the heartbeat frame
-//  according to the app level protocol
-func (kp *mockKeepalive) GetKeepAliveData(failCallback func()) []byte {
-	heartbeatFrameID := 1
-	kp.heartbeatFailCallback[heartbeatFrameID] = failCallback
+// ~ pool KeepAlive
+func (mf *myFilter) GetKeepAliveData() []byte {
+	mf.heartbeatTriggerCount++
 
-	time.AfterFunc(kp.keepaliveFrameTimeout, func(){
-		kp.heartbeatFrameTimeout(heartbeatFrameID)
+	time.AfterFunc(mf.keepaliveFrameTimeout, func() {
+		mf.heartbeatFrameFail()
 	})
 
-	kp.heartbeatTriggerCount++
-
-	return []byte("yes this is the heartbeat data" + fmt.Sprint(heartbeatFrameID))
+	return []byte("keepalive data")
 }
 
-func (kp *mockKeepalive) heartbeatFrameTimeout(frameID int) {
-	callback := kp.heartbeatFailCallback[frameID]
+// ~ pool KeepAlive
+func (mf *myFilter) Stop() {
+	mf.failCallback.Store(func() {})
+	// and stop all timers if any
+}
 
-	if callback != nil {
-		println("heartbeat frame timeout, callback")
+// ~ pool KeepAlive
+func (mf *myFilter) SaveHeartBeatFailCallback(callback func()) {
+	mf.failCallback.Store(callback)
+}
+
+// in OnData, after received keepalive packet
+func (mf *myFilter) heartbeatFrameSuccess(frameID int) {
+	// remove this frame from your stream map
+}
+
+func (mf *myFilter) heartbeatFrameFail() {
+	v := mf.failCallback.Load()
+	if callback, ok := v.(func()); ok && callback != nil {
 		callback()
-		delete(kp.heartbeatFailCallback, frameID)
 	}
 }
 
-func (kp *mockKeepalive) Stop() {
-	kp.heartbeatFailCallback = map[int]func(){}
+func (mf *myFilter) OnData(ioBuffer buffer.IoBuffer) api.FilterStatus {
+	// read from ioBuffer
+	// if frame.isHeartbeat {
+	//   1. decode from frame
+	frameID := 1
+	//   2. find keepalive object from myFilter and delete keepalive callback
+	mf.heartbeatFrameSuccess(frameID)
+	// if response error
+	// mf.mkp.heartbeatFrameFail()
+	//   3. done
+	fmt.Println("OnData from server", ioBuffer)
+	return api.Stop
 }
 
-func TestHeartBeatFail(t *testing.T) {
+func (mf *myFilter) OnNewConnection() api.FilterStatus {
+	return api.Continue
+}
+
+func (mf *myFilter) InitializeReadFilterCallbacks(callbacks api.ReadFilterCallbacks) {}
+
+func TestExampleHeartBeatSuccess(t *testing.T) {
 	// setup
 	buffer.ConnReadTimeout = time.Second * 2
 	// tear down
@@ -62,26 +89,68 @@ func TestHeartBeatFail(t *testing.T) {
 		addr: fmt.Sprint("127.0.0.1:10001"),
 	}
 
-	mkp := &mockKeepalive{
-		heartbeatFailCallback : make(map[int]func()),
-		keepaliveFrameTimeout : buffer.ConnReadTimeout - time.Second,
-	}
-	pool := NewConn(server.addr, -1, func() KeepAlive {
-		return mkp
-	}, nil, true)
-	server.startServer(false)
+	server.startServer(false, true)
 	defer server.stop()
-	// default read time out is 15 seconds
-	time.Sleep(buffer.ConnReadTimeout + time.Second * 5)
 
-	assert.Equal(t, pool.Available(), true)
-	assert.LessOrEqual(t, 0, mkp.heartbeatTriggerCount)
+	// keepalive object is connection level
+	// every connection should has a separate keepalive object
+	var previousKeepalive *myFilter
+	c := NewConn(server.addr, -1,
+		func() ([]api.ReadFilter, KeepAlive) {
+			var mf = &myFilter{
+				keepaliveFrameTimeout: time.Hour, // never timeout
+			}
+
+			previousKeepalive = mf
+
+			return []api.ReadFilter{mf}, mf
+		}, true)
+	defer c.Destroy()
+
+	// ensure the heartbeat is triggered by ReadTimeout
+	time.Sleep(buffer.ConnReadTimeout + time.Second*5)
+
+	assert.Less(t, 0, previousKeepalive.heartbeatTriggerCount)
+	fmt.Println("heart beat trigger count", previousKeepalive.heartbeatTriggerCount)
+}
+
+func TestHeartBeatTimeoutFail(t *testing.T) {
+	// setup
+	buffer.ConnReadTimeout = time.Second * 2
+	// tear down
+	defer func() {
+		buffer.ConnReadTimeout = types.DefaultConnReadTimeout
+	}()
+
+	server := tcpServer{
+		addr: fmt.Sprint("127.0.0.1:10001"),
+	}
+
+	server.startServer(false, false)
+	defer server.stop()
+
+	var previousKeepalive *myFilter
+	c := NewConn(server.addr, -1,
+		func() ([]api.ReadFilter, KeepAlive) {
+			mf := &myFilter{
+				keepaliveFrameTimeout: buffer.ConnReadTimeout - time.Second,
+			}
+			previousKeepalive = mf
+			return nil, mf
+		}, true)
+	defer c.Destroy()
+
+	// ensure the heart beat is triggered
+	time.Sleep(buffer.ConnReadTimeout + time.Second*5)
+
+	assert.Less(t, 0, previousKeepalive.heartbeatTriggerCount)
 }
 
 func TestReconnectTimesLimit(t *testing.T) {
 	invalidAddr := "127.0.0.1:12345"
 	tryTimes := 2
-	pool := NewConn(invalidAddr, tryTimes, func() KeepAlive { return nil }, nil, true)
+	pool := NewConn(invalidAddr, tryTimes, nil, true)
+	defer pool.Destroy()
 	time.Sleep(time.Second * 10)
 	poolReal := pool.(*connpool)
 	fmt.Println("retry for", poolReal.connTryTimes, "times")
@@ -94,15 +163,15 @@ func TestAutoReconnectAfterRemoteClose(t *testing.T) {
 		addr: fmt.Sprint("127.0.0.1:10001"),
 	}
 
-	pool := NewConn(server.addr, 100000, func() KeepAlive { return nil }, nil, true)
-	server.startServer(true)
+	pool := NewConn(server.addr, 100000, nil, true)
+	defer pool.Destroy()
+	server.startServer(true, false)
 	defer server.stop()
 
 	time.Sleep(time.Second * 5)
 	// the connection should be connected
-	assert.Equal(t, pool.Available(), true)
+	assert.Equal(t, pool.State(), Available)
 }
-
 
 type tcpServer struct {
 	listener net.Listener
@@ -121,7 +190,7 @@ func (s *tcpServer) stop() {
 	s.conns = nil
 }
 
-func (s *tcpServer) startServer(rejectFirstConn bool) {
+func (s *tcpServer) startServer(rejectFirstConn bool, writeData bool) {
 	var err error
 
 	s.listener, err = net.Listen("tcp", s.addr)
@@ -151,6 +220,9 @@ func (s *tcpServer) startServer(rejectFirstConn bool) {
 					}
 
 					buf = buf[:n]
+					if writeData {
+						c.Write([]byte("1"))
+					}
 				}
 			}()
 		}
