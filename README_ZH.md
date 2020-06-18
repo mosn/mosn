@@ -157,6 +157,7 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
 <p align="center">
 <img src="https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ" width="150" title="MOSN用户交流群" alt="MOSN 用户交流群">
 </p>
+
 ## 社区会议
 
 MOSN 社区定期召开社区会议。
