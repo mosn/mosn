@@ -90,7 +90,7 @@ func (f *statsFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHea
 			log.DefaultLogger.Errorf("stats error: %s", err.Error())
 			continue
 		}
-		err = updateMetric(f.prefix, stat.Name, stat.Labels, stat.Value)
+		err = updateMetric(stat.MetricType, f.prefix, stat.Name, stat.Labels, stat.Value)
 		if err != nil {
 			log.DefaultLogger.Errorf("stats update error: %s", err.Error())
 			continue
@@ -120,26 +120,30 @@ func CreateStatsFilterFactory(conf map[string]interface{}) (api.StreamFilterChai
 	if len(c.Metrics) == 0 {
 		c.Metrics = defaultMetricConfig
 	}
-
-	ms := make([]*metric, 0, len(c.Metrics))
-	for _, m := range c.Metrics {
-		if len(m.Dimensions) > metrics.MaxLabelCount {
-			return nil, metrics.ErrLabelCountExceeded
-		}
-		metric, err := newMetric(&m)
-		if err != nil {
-			return nil, err
-		}
-		ms = append(ms, metric)
+	if len(c.Definitions) == 0 {
+		c.Definitions = defaultMetricDefinition
 	}
+
+	ms, err := newMetrics(c.Metrics, c.Definitions)
+	if err != nil {
+		return nil, err
+	}
+
 	return &FilterConfigFactory{metrics: ms, prefix: c.StatPrefix}, nil
 }
 
-func updateMetric(prefix, name string, labels map[string]string, val int64) error {
+func updateMetric(mt MetricType, prefix, name string, labels map[string]string, val int64) error {
 	met, err := metrics.NewMetrics(prefix, labels)
 	if err != nil {
 		return err
 	}
-	met.Counter(name).Inc(val)
+	switch mt {
+	case MetricTypeCounter, "":
+		met.Counter(name).Inc(val)
+	case MetricTypeGauge:
+		met.Gauge(name).Update(val)
+	case MetricTypeHistogram:
+		met.Histogram(name).Update(val)
+	}
 	return nil
 }

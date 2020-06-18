@@ -90,17 +90,12 @@ func TestStatsFilterLog(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ms := make([]*metric, 0, len(defaultMetricConfig))
-			for _, m := range defaultMetricConfig {
-				metric, err := newMetric(&m)
-				if err != nil {
-					if err != nil {
-						t.Fatal(err)
-						return
-					}
-				}
-				ms = append(ms, metric)
+			ms, err := newMetrics(defaultMetricConfig, defaultMetricDefinition)
+			if err != nil {
+				t.Fatal(err)
+				return
 			}
+
 			filter := newStatsFilter(ctx, "istio", ms)
 			filter.OnReceive(ctx, tt.args.reqHeaders, tt.args.buf, tt.args.trailers)
 			filter.Log(ctx, tt.args.reqHeaders, tt.args.respHeaders, tt.args.requestInfo)
@@ -176,16 +171,10 @@ func BenchmarkStatsFilterLog(b *testing.B) {
 		},
 	}
 	for _, tt := range tests {
-		ms := make([]*metric, 0, len(defaultMetricConfig))
-		for _, m := range defaultMetricConfig {
-			metric, err := newMetric(&m)
-			if err != nil {
-				if err != nil {
-					b.Fatal(err)
-					return
-				}
-			}
-			ms = append(ms, metric)
+		ms, err := newMetrics(defaultMetricConfig, defaultMetricDefinition)
+		if err != nil {
+			b.Fatal(err)
+			return
 		}
 		filter := newStatsFilter(ctx, "istio", ms)
 		b.Run(tt.name, func(b *testing.B) {

@@ -27,8 +27,9 @@ import (
 
 func TestMetric(t *testing.T) {
 	type args struct {
-		conf *MetricConfig
-		bag  attribute.Bag
+		conf       *MetricConfig
+		definition *MetricDefinition
+		bag        attribute.Bag
 	}
 	tests := []struct {
 		name        string
@@ -44,6 +45,9 @@ func TestMetric(t *testing.T) {
 					Dimensions: map[string]string{
 						"k1": `"v1"`,
 					},
+				},
+				definition: &MetricDefinition{
+					Name:  "requests_total",
 					Value: `request.total_size | 0`,
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
@@ -56,10 +60,13 @@ func TestMetric(t *testing.T) {
 		{
 			args: args{
 				conf: &MetricConfig{
-					Name: "request_duration_milliseconds",
+					Name: "",
 					Dimensions: map[string]string{
 						"k1": `"v1"`,
 					},
+				},
+				definition: &MetricDefinition{
+					Name:  "request_duration_milliseconds",
 					Value: `response.duration | "0"`,
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
@@ -75,6 +82,9 @@ func TestMetric(t *testing.T) {
 					Dimensions: map[string]string{
 						"k1": `"v1"`,
 					},
+				},
+				definition: &MetricDefinition{
+					Name:  "want_error",
 					Value: `"hello"`,
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{}),
@@ -86,7 +96,10 @@ func TestMetric(t *testing.T) {
 				conf: &MetricConfig{
 					Name:       "test",
 					Dimensions: map[string]string{},
-					Value:      `response.duration | "0"`,
+				},
+				definition: &MetricDefinition{
+					Name:  "test",
+					Value: `response.duration | "0"`,
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
 					"response.duration": int64(time.Second),
@@ -101,6 +114,9 @@ func TestMetric(t *testing.T) {
 					Dimensions: map[string]string{
 						"response_duration": `response.duration | "0"`,
 					},
+				},
+				definition: &MetricDefinition{
+					Name:  "test",
 					Value: `200`,
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
@@ -116,6 +132,9 @@ func TestMetric(t *testing.T) {
 					Dimensions: map[string]string{
 						"response_code": `response.code | 200`,
 					},
+				},
+				definition: &MetricDefinition{
+					Name:  "test",
 					Value: `200`,
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
@@ -131,6 +150,9 @@ func TestMetric(t *testing.T) {
 					Dimensions: map[string]string{
 						"response_code": `response_code`,
 					},
+				},
+				definition: &MetricDefinition{
+					Name:  "test",
 					Value: `200`,
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{}),
@@ -142,7 +164,10 @@ func TestMetric(t *testing.T) {
 				conf: &MetricConfig{
 					Name:       "test",
 					Dimensions: map[string]string{},
-					Value:      `response_code`,
+				},
+				definition: &MetricDefinition{
+					Name:  "test",
+					Value: `response_code`,
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{}),
 			},
@@ -151,7 +176,7 @@ func TestMetric(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			metric, err := newMetric(tt.args.conf)
+			metric, err := newMetric(tt.args.conf, tt.args.definition)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newMetric() error = %v, wantErr %v", err, tt.wantErr)
 				return

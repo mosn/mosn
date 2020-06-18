@@ -23,28 +23,52 @@ import (
 
 	"mosn.io/mosn/pkg/cel"
 	"mosn.io/mosn/pkg/cel/attribute"
+	"mosn.io/mosn/pkg/metrics"
 )
 
 var compiler = cel.NewExpressionBuilder(attributemanifest, cel.CompatCEXL)
 
 type metric struct {
+	metricType MetricType
 	value      attribute.Expression
 	dimensions map[string]attribute.Expression
 	name       string
 }
 
 type Stat struct {
-	Name   string
-	Labels map[string]string
-	Value  int64
+	MetricType MetricType
+	Name       string
+	Labels     map[string]string
+	Value      int64
 }
 
-func newMetric(conf *MetricConfig) (*metric, error) {
+func newMetrics(confs []MetricConfig, definitions []MetricDefinition) ([]*metric, error) {
+	ms := make([]*metric, 0, len(confs)*len(definitions))
+	for _, definition := range definitions {
+		for _, metric := range confs {
+			if metric.Name != "" && metric.Name != definition.Name {
+				continue
+			}
+			if len(metric.Dimensions) > metrics.MaxLabelCount {
+				return nil, metrics.ErrLabelCountExceeded
+			}
+			metric, err := newMetric(&metric, &definition)
+			if err != nil {
+				return nil, err
+			}
+			ms = append(ms, metric)
+		}
+	}
+	return ms, nil
+}
+
+func newMetric(conf *MetricConfig, definition *MetricDefinition) (*metric, error) {
 	m := &metric{
-		name:       conf.Name,
+		metricType: definition.Type,
+		name:       definition.Name,
 		dimensions: map[string]attribute.Expression{},
 	}
-	expr, _, err := compiler.Compile(conf.Value)
+	expr, _, err := compiler.Compile(definition.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -91,8 +115,9 @@ func (m *metric) Stat(bag attribute.Bag) (*Stat, error) {
 	}
 
 	return &Stat{
-		Name:   m.name,
-		Labels: labels,
-		Value:  val,
+		MetricType: m.metricType,
+		Name:       m.name,
+		Labels:     labels,
+		Value:      val,
 	}, nil
 }
