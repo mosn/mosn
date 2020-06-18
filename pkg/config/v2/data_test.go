@@ -145,7 +145,7 @@ const xdsSdsConfig = `{
                       "name": "default",
                       "sdsConfig": {
                         "apiConfigSource": {
-                          "apiType": 2,
+                          "apiType": "GRPC",
                           "grpcServices": [
                             {
                               "googleGrpc": {
@@ -169,7 +169,7 @@ const xdsSdsConfig = `{
                       "name": "ROOTCA",
                       "sdsConfig": {
                         "apiConfigSource": {
-                          "apiType": 2,
+                          "apiType": "GRPC",
                           "grpcServices": [
                             {
                               "googleGrpc": {
