@@ -105,6 +105,8 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 			}
 		}
 		e.extracted[name] = nil
+	case utils.KRequestHeaders:
+		return e.reqHeaders, true
 	case utils.KResponseHeaders:
 		return e.respHeaders, true
 	case utils.KResponseTime:

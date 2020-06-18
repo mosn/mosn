@@ -52,6 +52,8 @@ const (
 	// KResponseTime const string
 	KResponseTime = "response.time"
 
+	// KRequestHeaders const string
+	KRequestHeaders = "request.headers"
 	// KRequestPath const string
 	KRequestPath = "request.path"
 	// KRequestMethod const string
