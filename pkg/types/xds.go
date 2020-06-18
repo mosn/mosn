@@ -18,9 +18,16 @@
 package types
 
 import (
-	"strings"
+	"bytes"
+	"encoding/json"
 
-	"github.com/gogo/protobuf/types"
+	"github.com/golang/protobuf/jsonpb"
+	_struct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/rcrowley/go-metrics"
+
+	"reflect"
+	"strconv"
+	"strings"
 )
 
 const serviceMetaSeparator = ":"
@@ -29,8 +36,31 @@ const serviceMetaSeparator = ":"
 type XdsInfo struct {
 	ServiceCluster string
 	ServiceNode    string
-	Metadata       *types.Struct
+	Metadata       *_struct.Struct
 }
+
+type meta struct {
+	// IstioVersion specifies the Istio version associated with the proxy
+	IstioVersion string `json:"ISTIO_VERSION,omitempty"`
+
+	// Labels specifies the set of workload instance (ex: k8s pod) labels associated with this node.
+	Labels map[string]string `json:"LABELS,omitempty"`
+
+	// InterceptionMode is the name of the metadata variable that carries info about
+	// traffic interception mode at the proxy
+	InterceptionMode TrafficInterceptionMode `json:"INTERCEPTION_MODE,omitempty"`
+}
+
+var (
+	// IstioVersion adapt istio version
+	IstioVersion = "unknow"
+
+	defaultMeta = &meta{
+		IstioVersion:     IstioVersion,
+		Labels:           map[string]string{"istio": "ingressgateway"},
+		InterceptionMode: InterceptionRedirect,
+	}
+)
 
 var globalXdsInfo = &XdsInfo{}
 
@@ -39,26 +69,88 @@ func GetGlobalXdsInfo() *XdsInfo {
 	return globalXdsInfo
 }
 
-// InitXdsFlags init globalXdsInfo
-func InitXdsFlags(serviceCluster, serviceNode string, serviceMeta []string) {
+func InitXdsFlags(serviceCluster, serviceNode string, serviceMeta []string, labels []string) {
 	globalXdsInfo.ServiceCluster = serviceCluster
 	globalXdsInfo.ServiceNode = serviceNode
-	globalXdsInfo.Metadata = &types.Struct{
-		Fields: map[string]*types.Value{},
+	globalXdsInfo.Metadata = &_struct.Struct{}
+
+	if len(labels) > 0 {
+		defaultMeta.Labels = make(map[string]string, len(labels))
+		for _, keyValue := range labels {
+			keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
+			if len(keyValueSep) != 2 {
+				continue
+			}
+			defaultMeta.Labels[keyValueSep[0]] = keyValueSep[1]
+		}
 	}
 
-	for _, keyValue := range serviceMeta {
-		keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
-		if len(keyValueSep) != 2 {
-			continue
-		}
-		key := keyValueSep[0]
-		value := keyValueSep[1]
+	for k, v := range GetPodLabels() {
+		defaultMeta.Labels[k] = v
+	}
 
-		globalXdsInfo.Metadata.Fields[key] = &types.Value{
-			Kind: &types.Value_StringValue{
-				StringValue: value,
-			},
+	if len(serviceMeta) > 0 {
+		for _, keyValue := range serviceMeta {
+			keyValueSep := strings.SplitN(keyValue, serviceMetaSeparator, 2)
+			if len(keyValueSep) != 2 {
+				continue
+			}
+
+			f := reflect.ValueOf(defaultMeta).Elem().FieldByName(keyValueSep[0])
+			switch f.Kind() {
+			case reflect.String:
+				f.SetString(keyValueSep[1])
+			case reflect.Int:
+				if i, e := strconv.ParseInt(keyValueSep[1], 10, 64); e == nil {
+					f.SetInt(i)
+				}
+			}
 		}
+	}
+
+	bs, _ := json.Marshal(defaultMeta)
+	_ = jsonpb.Unmarshal(bytes.NewReader(bs), globalXdsInfo.Metadata)
+}
+
+type TrafficInterceptionMode string
+
+const (
+	// InterceptionNone indicates that the workload is not using IPtables for traffic interception
+	InterceptionNone TrafficInterceptionMode = "NONE"
+
+	// InterceptionTproxy implies traffic intercepted by IPtables with TPROXY mode
+	InterceptionTproxy TrafficInterceptionMode = "TPROXY"
+
+	// InterceptionRedirect implies traffic intercepted by IPtables with REDIRECT mode
+	// This is our default mode
+	InterceptionRedirect TrafficInterceptionMode = "REDIRECT"
+)
+
+type NodeType string
+
+const (
+	// SidecarProxy type is used for sidecar proxies in the application containers
+	SidecarProxy NodeType = "sidecar"
+
+	// Router type is used for standalone proxies acting as L7/L4 routers
+	Router NodeType = "router"
+
+	// AllPortsLiteral is the string value indicating all ports
+	AllPortsLiteral = "*"
+)
+
+type XdsStats struct {
+	CdsUpdateSuccess metrics.Counter
+	CdsUpdateReject  metrics.Counter
+	LdsUpdateSuccess metrics.Counter
+	LdsUpdateReject  metrics.Counter
+}
+
+func IsApplicationNodeType(nType string) bool {
+	switch NodeType(nType) {
+	case SidecarProxy, Router:
+		return true
+	default:
+		return false
 	}
 }

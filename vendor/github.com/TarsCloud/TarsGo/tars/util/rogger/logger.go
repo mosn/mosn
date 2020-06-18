@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+//DEBUG loglevel
 const (
 	DEBUG LogLevel = iota
 	INFO
@@ -19,7 +20,7 @@ const (
 )
 
 var (
-	logLevel LogLevel = DEBUG
+	logLevel = DEBUG
 
 	logQueue  = make(chan *logValue, 10000)
 	loggerMap = make(map[string]*Logger)
@@ -31,10 +32,13 @@ var (
 	currDateDay  string
 )
 
+//Logger is the struct with name and wirter.
 type Logger struct {
 	name   string
 	writer LogWriter
 }
+
+//LogLevel is uint8 type
 type LogLevel uint8
 
 type logValue struct {
@@ -69,6 +73,7 @@ func init() {
 	go flushLog(true)
 }
 
+//String return turns the LogLevel to string.
 func (lv *LogLevel) String() string {
 	switch *lv {
 	case DEBUG:
@@ -97,10 +102,12 @@ func GetLogger(name string) *Logger {
 	return lg
 }
 
+//SetLevel sets the log level
 func SetLevel(level LogLevel) {
 	logLevel = level
 }
 
+//StringToLevel turns string to LogLevel
 func StringToLevel(level string) LogLevel {
 	switch level {
 	case "DEBUG":
@@ -116,10 +123,12 @@ func StringToLevel(level string) LogLevel {
 	}
 }
 
+//SetLogName sets the log name
 func (l *Logger) SetLogName(name string) {
 	l.name = name
 }
 
+//SetFileRoller sets the file rolled by size in MB, with max num of files.
 func (l *Logger) SetFileRoller(logpath string, num int, sizeMB int) error {
 	if err := os.MkdirAll(logpath, 0755); err != nil {
 		panic(err)
@@ -129,6 +138,7 @@ func (l *Logger) SetFileRoller(logpath string, num int, sizeMB int) error {
 	return nil
 }
 
+//IsConsoleWriter returns whether is consoleWriter or not.
 func (l *Logger) IsConsoleWriter() bool {
 	if reflect.TypeOf(l.writer) == reflect.TypeOf(&ConsoleWriter{}) {
 		return true
@@ -136,10 +146,12 @@ func (l *Logger) IsConsoleWriter() bool {
 	return false
 }
 
+//SetWriter sets the writer to the logger.
 func (l *Logger) SetWriter(w LogWriter) {
 	l.writer = w
 }
 
+//SetDayRoller sets the logger to rotate by day, with max num files.
 func (l *Logger) SetDayRoller(logpath string, num int) error {
 	if err := os.MkdirAll(logpath, 0755); err != nil {
 		return err
@@ -149,6 +161,7 @@ func (l *Logger) SetDayRoller(logpath string, num int) error {
 	return nil
 }
 
+//SetHourRoller sets the logger to rotate by hour, with max num files.
 func (l *Logger) SetHourRoller(logpath string, num int) error {
 	if err := os.MkdirAll(logpath, 0755); err != nil {
 		return err
@@ -158,38 +171,47 @@ func (l *Logger) SetHourRoller(logpath string, num int) error {
 	return nil
 }
 
+//SetConsole sets the logger with console writer.
 func (l *Logger) SetConsole() {
 	l.writer = &ConsoleWriter{}
 }
 
+//Debug logs interface in debug loglevel.
 func (l *Logger) Debug(v ...interface{}) {
 	l.writef(DEBUG, "", v)
 }
 
+//Info logs interface in Info loglevel.
 func (l *Logger) Info(v ...interface{}) {
 	l.writef(INFO, "", v)
 }
 
+//Warn logs interface in warning loglevel
 func (l *Logger) Warn(v ...interface{}) {
 	l.writef(WARN, "", v)
 }
 
+//Error logs interface in Error loglevel
 func (l *Logger) Error(v ...interface{}) {
 	l.writef(ERROR, "", v)
 }
 
+//Debugf logs interface in debug loglevel with formating string
 func (l *Logger) Debugf(format string, v ...interface{}) {
 	l.writef(DEBUG, format, v)
 }
 
+//Infof logs interface in Infof loglevel with formating string
 func (l *Logger) Infof(format string, v ...interface{}) {
 	l.writef(INFO, format, v)
 }
 
+//Warnf logs interface in warning loglevel with formating string
 func (l *Logger) Warnf(format string, v ...interface{}) {
 	l.writef(WARN, format, v)
 }
 
+//Errorf logs interface in Error loglevel with formating string
 func (l *Logger) Errorf(format string, v ...interface{}) {
 	l.writef(ERROR, format, v)
 }
@@ -212,9 +234,10 @@ func (l *Logger) writef(level LogLevel, format string, v []interface{}) {
 			}
 			fmt.Fprintf(buf, "%s:%d|", file, line)
 		}
+		
+		buf.WriteString(level.String())
+		buf.WriteByte('|')
 	}
-	buf.WriteString(level.String())
-	buf.WriteByte('|')
 
 	if format == "" {
 		fmt.Fprint(buf, v...)
@@ -227,6 +250,7 @@ func (l *Logger) writef(level LogLevel, format string, v []interface{}) {
 	logQueue <- &logValue{value: buf.Bytes(), writer: l.writer}
 }
 
+//FlushLogger flushs all log to disk.
 func FlushLogger() {
 	flushLog(false)
 }

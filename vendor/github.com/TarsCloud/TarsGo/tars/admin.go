@@ -2,9 +2,10 @@ package tars
 
 import (
 	"fmt"
-	"github.com/TarsCloud/TarsGo/tars/util/debug"
-	logger "github.com/TarsCloud/TarsGo/tars/util/rogger"
 	"strings"
+
+	debugutil "github.com/TarsCloud/TarsGo/tars/util/debug"
+	logger "github.com/TarsCloud/TarsGo/tars/util/rogger"
 )
 
 //Admin struct
@@ -13,18 +14,14 @@ type Admin struct {
 
 //Shutdown shutdown all servant by admin
 func (a *Admin) Shutdown() error {
-	for obj, s := range goSvrs {
-		TLOG.Debug("shutdown", obj)
-		//TODO
-		go s.Shutdown()
-	}
-	shutdown <- true
+	go graceShutdown()
 	return nil
 }
 
 //Notify handler for cmds from admin
 func (a *Admin) Notify(command string) (string, error) {
 	cmd := strings.Split(command, " ")
+	go ReportNotifyInfo("AdminServant::notify:" + cmd[0])
 	switch cmd[0] {
 	case "tars.viewversion":
 		return GetServerConfig().Version, nil
@@ -56,6 +53,9 @@ func (a *Admin) Notify(command string) (string, error) {
 
 	case "tars.connection":
 		return fmt.Sprintf("%s not support now!", command), nil
+	case "tars.gracerestart":
+		graceRestart()
+		return "restart gracefully!", nil
 	default:
 		if fn, ok := adminMethods[cmd[0]]; ok {
 			return fn(command)

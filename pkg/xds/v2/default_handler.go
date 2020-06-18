@@ -19,7 +19,10 @@ package v2
 
 import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/xds/conv"
 )
 
@@ -43,7 +46,10 @@ func HandleEnvoyListener(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse
 	log.DefaultLogger.Tracef("get lds resp,handle it")
 	listeners := client.handleListenersResp(resp)
 	log.DefaultLogger.Infof("get %d listeners from LDS", len(listeners))
+
 	conv.ConvertAddOrUpdateListeners(listeners)
+
+	AckResponse(client.StreamClient, resp)
 	if err := client.reqRoutes(client.StreamClient); err != nil {
 		log.DefaultLogger.Warnf("send thread request rds fail!auto retry next period")
 	}
@@ -55,6 +61,9 @@ func HandleEnvoyCluster(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse)
 	clusters := client.handleClustersResp(resp)
 	log.DefaultLogger.Infof("get %d clusters from CDS", len(clusters))
 	conv.ConvertUpdateClusters(clusters)
+
+	AckResponse(client.StreamClient, resp)
+
 	clusterNames := make([]string, 0)
 
 	for _, cluster := range clusters {
@@ -81,6 +90,8 @@ func HandleEnvoyClusterLoadAssignment(client *ADSClient, resp *envoy_api_v2.Disc
 	log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
 	conv.ConvertUpdateEndpoints(endpoints)
 
+	AckResponse(client.StreamClient, resp)
+
 	if err := client.reqListeners(client.StreamClient); err != nil {
 		log.DefaultLogger.Warnf("send thread request lds fail!auto retry next period")
 	}
@@ -92,4 +103,28 @@ func HandleEnvoyRouteConfiguration(client *ADSClient, resp *envoy_api_v2.Discove
 	routes := client.handleRoutesResp(resp)
 	log.DefaultLogger.Infof("get %d routes from RDS", len(routes))
 	conv.ConvertAddOrUpdateRouters(routes)
+
+	AckResponse(client.StreamClient, resp)
+}
+
+// AckResponse response resource nonce
+func AckResponse(streamClient ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient, resp *envoy_api_v2.DiscoveryResponse) {
+	err := streamClient.Send(&envoy_api_v2.DiscoveryRequest{
+		VersionInfo:   resp.VersionInfo,
+		ResourceNames: []string{},
+		TypeUrl:       resp.TypeUrl,
+		ResponseNonce: resp.Nonce,
+		ErrorDetail:   nil,
+		Node: &envoy_api_v2_core1.Node{
+			Id:       types.GetGlobalXdsInfo().ServiceNode,
+			Cluster:  types.GetGlobalXdsInfo().ServiceCluster,
+			Metadata: types.GetGlobalXdsInfo().Metadata,
+		},
+	})
+	if err != nil {
+		log.DefaultLogger.Errorf("ack listener fail: %v", err)
+		return
+	}
+
+	return
 }

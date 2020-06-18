@@ -24,14 +24,16 @@ package xds
 import (
 	"errors"
 	"fmt"
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/ptypes/duration"
+	"mosn.io/mosn/pkg/xds/conv"
 	"strings"
 	"sync"
 	"time"
 
 	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"github.com/gogo/protobuf/jsonpb"
-	"github.com/gogo/protobuf/types"
+
 	jsoniter "github.com/json-iterator/go"
 	mv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -45,7 +47,7 @@ type Client struct {
 	adsClient *v2.ADSClient
 }
 
-func duration2String(duration *types.Duration) string {
+func duration2String(duration *duration.Duration) string {
 	d := time.Duration(duration.Seconds)*time.Second + time.Duration(duration.Nanos)*time.Nanosecond
 	x := fmt.Sprintf("%.9f", d.Seconds())
 	x = strings.TrimSuffix(x, "000")
@@ -59,7 +61,7 @@ func UnmarshalResources(config *mv2.MOSNConfig) (dynamicResources *bootstrap.Boo
 	if len(config.RawDynamicResources) > 0 {
 		dynamicResources = &bootstrap.Bootstrap_DynamicResources{}
 		resources := map[string]jsoniter.RawMessage{}
-		err = json.Unmarshal([]byte(config.RawDynamicResources), &resources)
+		err = json.Unmarshal(config.RawDynamicResources, &resources)
 		if err != nil {
 			log.DefaultLogger.Errorf("fail to unmarshal dynamic_resources: %v", err)
 			return nil, nil, err
@@ -73,7 +75,7 @@ func UnmarshalResources(config *mv2.MOSNConfig) (dynamicResources *bootstrap.Boo
 				return nil, nil, err
 			}
 			if refreshDelayRaw, ok := adsConfig["refresh_delay"]; ok {
-				refreshDelay := types.Duration{}
+				refreshDelay := duration.Duration{}
 				err = json.Unmarshal([]byte(refreshDelayRaw), &refreshDelay)
 				if err != nil {
 					log.DefaultLogger.Errorf("fail to unmarshal refresh_delay: %v", err)
@@ -183,6 +185,8 @@ func UnmarshalResources(config *mv2.MOSNConfig) (dynamicResources *bootstrap.Boo
 // usually called when mosn start
 func (c *Client) Start(config *mv2.MOSNConfig) error {
 	log.DefaultLogger.Infof("xds client start")
+
+	conv.InitStats()
 
 	dynamicResources, staticResources, err := UnmarshalResources(config)
 	if err != nil {

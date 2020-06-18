@@ -20,8 +20,8 @@ package types
 import (
 	"net"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 )
 

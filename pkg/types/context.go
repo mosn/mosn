@@ -42,12 +42,13 @@ const (
 	ContextKeyTraceId
 	ContextKeyVariables
 	ContextKeyH2Stream
-
 	ContextKeyDownStreamProtocol
+	ContextKeyDownStreamHeaders
 	ContextKeyEnd
 )
 
 // GlobalProxyName represents proxy name for metrics
 const (
-	GlobalProxyName = "global"
+	GlobalProxyName       = "global"
+	GlobalShutdownTimeout = "GlobalShutdownTimeout"
 )

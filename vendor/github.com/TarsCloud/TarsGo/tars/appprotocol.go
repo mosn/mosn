@@ -13,6 +13,7 @@ const (
 	PACKAGE_ERROR
 )
 
+//TarsRequest parse full tars request from package
 func TarsRequest(rev []byte) (int, int) {
 	if len(rev) < 4 {
 		return 0, PACKAGE_LESS

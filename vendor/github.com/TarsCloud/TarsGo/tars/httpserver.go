@@ -2,10 +2,11 @@ package tars
 
 import (
 	"fmt"
-	"github.com/TarsCloud/TarsGo/tars/protocol/res/statf"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/TarsCloud/TarsGo/tars/protocol/res/statf"
 )
 
 var realIPHeader []string
@@ -14,10 +15,11 @@ func init() {
 	realIPHeader = []string{ // the order is important
 		"X-Real-Ip",
 		"X-Forwarded-For-Pound",
-		"X-Forwarded-For", //是一个列表，暂时全报吧
+		"X-Forwarded-For",
 	}
 }
 
+//TarsHttpConf is configuration for tars http server.
 type TarsHttpConf struct {
 	Container string
 	AppName   string
@@ -27,6 +29,7 @@ type TarsHttpConf struct {
 	SetId     string
 }
 
+//TarsHttpMux is http.ServeMux for tars http server.
 type TarsHttpMux struct {
 	http.ServeMux
 	cfg *TarsHttpConf
@@ -39,6 +42,7 @@ type httpStatInfo struct {
 	costTime   int64
 }
 
+//ServeHTTP is the server for the TarsHttpMux.
 func (mux *TarsHttpMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.RequestURI == "*" {
 		if r.ProtoAtLeast(1, 1) {
@@ -114,15 +118,18 @@ func (mux *TarsHttpMux) reportHttpStat(st *httpStatInfo) {
 	StatReport.pushBackMsg(info, true)
 }
 
+//SetConfig sets the cfg tho the TarsHttpMux.
 func (mux *TarsHttpMux) SetConfig(cfg *TarsHttpConf) {
 	mux.cfg = cfg
 }
 
+//TarsResponseWriter is http.ResponseWriter for tars.
 type TarsResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
 }
 
+//WriteHeader is used for write the http header with the http code.
 func (w *TarsResponseWriter) WriteHeader(code int) {
 	w.statusCode = code
 	w.ResponseWriter.WriteHeader(code)
