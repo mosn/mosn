@@ -15,6 +15,33 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 )
 
+func Test_paresClusterName(t *testing.T) {
+	type args struct {
+		clusterName string
+	}
+	tests := []struct {
+		name string
+		args args
+		want *clusterNameInfo
+	}{
+		{
+			args: args{""},
+			want: &clusterNameInfo{Kind: "", Version: "", Name: "", Namespace: "", Host: ""},
+		},
+		{
+			args: args{"outbound|12220|0.0.1|hellomeshfacade-poc-test-client.default.svc.cluster.local"},
+			want: &clusterNameInfo{Kind: "outbound", Version: "0.0.1", Name: "hellomeshfacade-poc-test-client", Namespace: "default", Host: "hellomeshfacade-poc-test-client.default.svc.cluster.local"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := paresClusterName(tt.args.clusterName); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("paresClusterName() = %#v, want %#v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestExtractAttributes(t *testing.T) {
 	now := time.Now()
 	type args struct {
@@ -110,7 +137,25 @@ func TestExtractAttributes(t *testing.T) {
 				},
 				requestTotalSize: 1,
 			},
-			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.method": "GET"},
+			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path", "request.method": "GET"},
+		},
+		{
+			args: args{
+				reqHeaders: protocol.CommonHeader{
+					"x-mosn-path":        "/path",
+					"x-mosn-querystring": "k1=v1&k2=v2",
+					"x-mosn-host":        "host",
+					"x-mosn-method":      "GET",
+				},
+				respHeaders: protocol.CommonHeader{},
+				requestInfo: &MockRequestInfo{
+					startTime: now,
+					endTime:   now,
+					protocol:  protocol.Auto,
+				},
+				requestTotalSize: 1,
+			},
+			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path?k1=v1&k2=v2", "request.method": "GET", "request.query_params": protocol.CommonHeader{"k1": "v1", "k2": "v2"}},
 		},
 		{
 			args: args{
@@ -151,13 +196,30 @@ func TestExtractAttributes(t *testing.T) {
 			},
 			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.service": "httpbin.default.svc.cluster.local", "destination.service.host": "httpbin.default.svc.cluster.local", "destination.service.name": "httpbin", "destination.service.namespace": "default", "destination.service.uid": "istio://default/services/httpbin", "source.uid": "kubernetes://sleep-7b9f8bfcd-2djx5.default"},
 		},
+		{
+			args: args{
+				reqHeaders: protocol.CommonHeader{
+					utils.KIstioAttributeHeader: `Cj8KGGRlc3RpbmF0aW9uLnNlcnZpY2UuaG9zdBIjEiFodHRwYmluLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwKPQoXZGVzdGluYXRpb24uc2VydmljZS51aWQSIhIgaXN0aW86Ly9kZWZhdWx0L3NlcnZpY2VzL2h0dHBiaW4KKgodZGVzdGluYXRpb24uc2VydmljZS5uYW1lc3BhY2USCRIHZGVmYXVsdAolChhkZXN0aW5hdGlvbi5zZXJ2aWNlLm5hbWUSCRIHaHR0cGJpbgo6Cgpzb3VyY2UudWlkEiwSKmt1YmVybmV0ZXM6Ly9zbGVlcC03YjlmOGJmY2QtMmRqeDUuZGVmYXVsdAo6ChNkZXN0aW5hdGlvbi5zZXJ2aWNlEiMSIWh0dHBiaW4uZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbA==`,
+				},
+				respHeaders: protocol.CommonHeader{},
+				requestInfo: &MockRequestInfo{
+					startTime: now,
+					endTime:   now,
+					routerRule: &MockRouteRule{
+						clusterName: "outbound|12220|0.0.1|hellomeshfacade-poc-test-client.default2.svc.cluster.local",
+					},
+				},
+				requestTotalSize: 1,
+			},
+			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.service.host": "hellomeshfacade-poc-test-client.default2.svc.cluster.local", "destination.service.name": "hellomeshfacade-poc-test-client", "destination.service.namespace": "default2", "context.reporter.kind": "outbound"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ExtractAttributes(tt.args.reqHeaders, tt.args.respHeaders, tt.args.requestInfo, tt.args.requestTotalSize, now)
 			for k, v := range tt.want {
 				if g, ok := got.Get(k); !ok || !reflect.DeepEqual(g, v) {
-					t.Errorf("ExtractAttributes() = \n%#v, want \n%#v", got, tt.want)
+					t.Errorf("ExtractAttributes() key %q = %v, want %v", k, g, v)
 				}
 			}
 		})
@@ -165,7 +227,6 @@ func TestExtractAttributes(t *testing.T) {
 }
 
 func Test_attributesToStringInterfaceMap(t *testing.T) {
-
 	type args struct {
 		attributes v1.Attributes
 	}
@@ -316,6 +377,51 @@ func Test_attributesToStringInterfaceMap(t *testing.T) {
 			}
 		})
 	}
+}
+
+type MockRouteRule struct {
+	clusterName        string
+	upstreamProtocol   string
+	globalTimeout      time.Duration
+	policy             api.Policy
+	perFilterConfig    map[string]interface{}
+	pathMatchCriterion api.PathMatchCriterion
+}
+
+func (r *MockRouteRule) ClusterName() string {
+	return r.clusterName
+}
+
+func (r *MockRouteRule) UpstreamProtocol() string {
+	return r.upstreamProtocol
+}
+
+func (r *MockRouteRule) GlobalTimeout() time.Duration {
+	return r.globalTimeout
+}
+
+func (r *MockRouteRule) Policy() api.Policy {
+	return r.policy
+}
+
+func (r *MockRouteRule) MetadataMatchCriteria(clusterName string) api.MetadataMatchCriteria {
+	return nil
+}
+
+func (r *MockRouteRule) PerFilterConfig() map[string]interface{} {
+	return r.perFilterConfig
+}
+
+func (r *MockRouteRule) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+
+}
+
+func (r *MockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+
+}
+
+func (r *MockRouteRule) PathMatchCriterion() api.PathMatchCriterion {
+	return r.pathMatchCriterion
 }
 
 // MockRequestInfo

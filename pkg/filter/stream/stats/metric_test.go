@@ -23,137 +23,222 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/cel/attribute"
+	"mosn.io/mosn/pkg/protocol"
 )
 
 func TestMetric(t *testing.T) {
 	type args struct {
-		conf       *MetricConfig
-		definition *MetricDefinition
+		conf       []*MetricConfig
+		definition []*MetricDefinition
 		bag        attribute.Bag
 	}
 	tests := []struct {
 		name        string
 		args        args
-		want        *Stat
+		want        []*Stat
 		wantErr     bool
 		wantStatErr bool
 	}{
 		{
 			args: args{
-				conf: &MetricConfig{
-					Name: "requests_total",
-					Dimensions: map[string]string{
-						"k1": `"v1"`,
+				conf: []*MetricConfig{
+					{
+						Name: "requests_total",
+						Dimensions: map[string]string{
+							"k1": `"v1"`,
+						},
 					},
 				},
-				definition: &MetricDefinition{
-					Name:  "requests_total",
-					Value: `request.total_size | 0`,
+				definition: []*MetricDefinition{
+					{
+						Name:  "requests_total",
+						Value: `request.total_size | 0`,
+					},
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
 					"request.total_size": int64(100),
 				}),
 			},
-			want: &Stat{Name: "requests_total", Labels: map[string]string{"k1": "v1"}, Value: 100},
+			want: []*Stat{{Name: "requests_total", Labels: map[string]string{"k1": "v1"}, Value: 100}},
+		},
+		{
+			args: args{
+				conf: []*MetricConfig{
+					{
+						Name:  "requests_total",
+						Match: `response.duration == "1s"`,
+						Dimensions: map[string]string{
+							"k1": `"v1"`,
+						},
+					},
+					{
+						Name:  "requests_total",
+						Match: `response.duration == "2s"`,
+						Dimensions: map[string]string{
+							"k2": `"v2"`,
+						},
+					},
+				},
+				definition: []*MetricDefinition{
+					{
+						Name:  "requests_total",
+						Value: `request.total_size | 0`,
+					},
+				},
+				bag: attribute.NewMutableBagForMap(map[string]interface{}{
+					"request.total_size": int64(100),
+					"response.duration":  time.Second,
+				}),
+			},
+			want: []*Stat{{Name: "requests_total", Labels: map[string]string{"k1": "v1"}, Value: 100}},
 		},
 
 		{
 			args: args{
-				conf: &MetricConfig{
-					Name: "",
-					Dimensions: map[string]string{
-						"k1": `"v1"`,
+				conf: []*MetricConfig{
+					{
+						Name: "requests_total",
+						Dimensions: map[string]string{
+							"k1": `"v1"`,
+							"k2": `"v2"`,
+						},
+					},
+					{
+						Name:         "",
+						TagsToRemove: []string{"k2"},
 					},
 				},
-				definition: &MetricDefinition{
-					Name:  "request_duration_milliseconds",
-					Value: `response.duration | "0"`,
+				definition: []*MetricDefinition{
+					{
+						Name:  "requests_total",
+						Value: `request.total_size | 0`,
+					},
+				},
+				bag: attribute.NewMutableBagForMap(map[string]interface{}{
+					"request.total_size": int64(100),
+				}),
+			},
+			want: []*Stat{{Name: "requests_total", Labels: map[string]string{"k1": "v1"}, Value: 100}},
+		},
+		{
+			args: args{
+				conf: []*MetricConfig{
+					{
+						Name: "",
+						Dimensions: map[string]string{
+							"k1": `"v1"`,
+						},
+					},
+				},
+				definition: []*MetricDefinition{
+					{
+						Name:  "request_duration_milliseconds",
+						Value: `response.duration | "0"`,
+					},
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
 					"response.duration": time.Second,
 				}),
 			},
-			want: &Stat{Name: "request_duration_milliseconds", Labels: map[string]string{"k1": "v1"}, Value: 1000},
+			want: []*Stat{{Name: "request_duration_milliseconds", Labels: map[string]string{"k1": "v1"}, Value: 1000}},
 		},
 		{
 			args: args{
-				conf: &MetricConfig{
-					Name: "want_error",
-					Dimensions: map[string]string{
-						"k1": `"v1"`,
+				conf: []*MetricConfig{
+					{
+						Name: "request_header",
+						Dimensions: map[string]string{
+							"header": `request.headers | emptyStringMap()`,
+						},
 					},
 				},
-				definition: &MetricDefinition{
-					Name:  "want_error",
-					Value: `"hello"`,
-				},
-				bag: attribute.NewMutableBagForMap(map[string]interface{}{}),
-			},
-			wantStatErr: true,
-		},
-		{
-			args: args{
-				conf: &MetricConfig{
-					Name:       "test",
-					Dimensions: map[string]string{},
-				},
-				definition: &MetricDefinition{
-					Name:  "test",
-					Value: `response.duration | "0"`,
+				definition: []*MetricDefinition{
+					{
+						Name:  "request_header",
+						Value: `1`,
+					},
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
-					"response.duration": int64(time.Second),
+					"request.headers": protocol.CommonHeader{"k1": "v1", "k2": "v2"},
 				}),
 			},
-			wantStatErr: true,
+			want: []*Stat{{Name: "request_header", Labels: map[string]string{"header": "k1 => v1, k2 => v2"}, Value: 1}},
 		},
 		{
 			args: args{
-				conf: &MetricConfig{
-					Name: "test",
-					Dimensions: map[string]string{
-						"response_duration": `response.duration | "0"`,
+				conf: []*MetricConfig{
+					{
+						Name: "",
+						Dimensions: map[string]string{
+							"k1": `"v1"`,
+						},
 					},
 				},
-				definition: &MetricDefinition{
-					Name:  "test",
-					Value: `200`,
+				definition: []*MetricDefinition{
+					{
+						Name:  "request_duration_milliseconds",
+						Value: `response.duration | "0"`,
+					},
+					{
+						Name:  "requests_total",
+						Value: `request.total_size | 0`,
+					},
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
-					"response.duration": int64(time.Second),
+					"response.duration":  time.Second,
+					"request.total_size": int64(100),
 				}),
 			},
-			wantStatErr: true,
+			want: []*Stat{{Name: "request_duration_milliseconds", Labels: map[string]string{"k1": "v1"}, Value: 1000}, {Name: "requests_total", Labels: map[string]string{"k1": "v1"}, Value: 100}},
 		},
 		{
 			args: args{
-				conf: &MetricConfig{
-					Name: "test",
-					Dimensions: map[string]string{
-						"response_code": `response.code | 200`,
+				conf: []*MetricConfig{
+					{
+						Name: "",
+						Dimensions: map[string]string{
+							"k1": `"v1"`,
+						},
+					},
+					{
+						Name: "requests_total",
+						Dimensions: map[string]string{
+							"k2": `"v2"`,
+						},
 					},
 				},
-				definition: &MetricDefinition{
-					Name:  "test",
-					Value: `200`,
+				definition: []*MetricDefinition{
+					{
+						Name:  "request_duration_milliseconds",
+						Value: `response.duration | "0"`,
+					},
+					{
+						Name:  "requests_total",
+						Value: `request.total_size | 0`,
+					},
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{
-					"response.code": int64(404),
+					"response.duration":  time.Second,
+					"request.total_size": int64(100),
 				}),
 			},
-			want: &Stat{Name: "test", Labels: map[string]string{"response_code": "404"}, Value: 200},
+			want: []*Stat{{Name: "request_duration_milliseconds", Labels: map[string]string{"k1": "v1"}, Value: 1000}, {Name: "requests_total", Labels: map[string]string{"k1": "v1", "k2": "v2"}, Value: 100}},
 		},
 		{
 			args: args{
-				conf: &MetricConfig{
-					Name: "test",
-					Dimensions: map[string]string{
-						"response_code": `response_code`,
+				conf: []*MetricConfig{
+					{
+						Name: "want_error",
+						Dimensions: map[string]string{
+							"k1": `"v1"`,
+						},
 					},
 				},
-				definition: &MetricDefinition{
-					Name:  "test",
-					Value: `200`,
+				definition: []*MetricDefinition{
+					{
+						Name:  "want_error",
+						Value: `"hello"`,
+					},
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{}),
 			},
@@ -161,13 +246,101 @@ func TestMetric(t *testing.T) {
 		},
 		{
 			args: args{
-				conf: &MetricConfig{
-					Name:       "test",
-					Dimensions: map[string]string{},
+				conf: []*MetricConfig{
+					{
+						Name:       "test",
+						Dimensions: map[string]string{},
+					},
 				},
-				definition: &MetricDefinition{
-					Name:  "test",
-					Value: `response_code`,
+				definition: []*MetricDefinition{
+					{
+						Name:  "test",
+						Value: `response.duration | "0"`,
+					},
+				},
+				bag: attribute.NewMutableBagForMap(map[string]interface{}{
+					"response.duration": int64(time.Second),
+				}),
+			},
+			wantStatErr: true,
+		},
+		{
+			args: args{
+				conf: []*MetricConfig{
+					{
+						Name: "test",
+						Dimensions: map[string]string{
+							"response_duration": `response.duration | "0"`,
+						},
+					},
+				},
+				definition: []*MetricDefinition{
+					{
+						Name:  "test",
+						Value: `200`,
+					},
+				},
+				bag: attribute.NewMutableBagForMap(map[string]interface{}{
+					"response.duration": int64(time.Second),
+				}),
+			},
+			wantStatErr: true,
+		},
+		{
+			args: args{
+				conf: []*MetricConfig{
+					{
+						Name: "test",
+						Dimensions: map[string]string{
+							"response_code": `response.code | 200`,
+						},
+					},
+				},
+				definition: []*MetricDefinition{
+					{
+						Name:  "test",
+						Value: `200`,
+					},
+				},
+				bag: attribute.NewMutableBagForMap(map[string]interface{}{
+					"response.code": int64(404),
+				}),
+			},
+			want: []*Stat{{Name: "test", Labels: map[string]string{"response_code": "404"}, Value: 200}},
+		},
+		{
+			args: args{
+				conf: []*MetricConfig{
+					{
+						Name: "test",
+						Dimensions: map[string]string{
+							"response_code": `response_code`,
+						},
+					},
+				},
+				definition: []*MetricDefinition{
+					{
+						Name:  "test",
+						Value: `200`,
+					},
+				},
+				bag: attribute.NewMutableBagForMap(map[string]interface{}{}),
+			},
+			wantErr: true,
+		},
+		{
+			args: args{
+				conf: []*MetricConfig{
+					{
+						Name:       "test",
+						Dimensions: map[string]string{},
+					},
+				},
+				definition: []*MetricDefinition{
+					{
+						Name:  "test",
+						Value: `response_code`,
+					},
 				},
 				bag: attribute.NewMutableBagForMap(map[string]interface{}{}),
 			},
@@ -176,7 +349,7 @@ func TestMetric(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			metric, err := newMetric(tt.args.conf, tt.args.definition)
+			metric, err := newMetrics(tt.args.conf, tt.args.definition)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("newMetric() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -190,7 +363,7 @@ func TestMetric(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Stat() got = %#v, want %v", got, tt.want)
+				t.Errorf("Stat() got = %#v, want %#v", got, tt.want)
 			}
 		})
 	}

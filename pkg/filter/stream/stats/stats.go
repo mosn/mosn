@@ -36,7 +36,7 @@ func init() {
 // FilterConfigFactory filter config factory
 type FilterConfigFactory struct {
 	prefix  string
-	metrics []*metric
+	metrics *Metrics
 }
 
 type statsFilter struct {
@@ -45,11 +45,11 @@ type statsFilter struct {
 	requestTotalSize      uint64
 
 	prefix  string
-	metrics []*metric
+	metrics *Metrics
 }
 
-// newStatsFilter used to create new mixer filter
-func newStatsFilter(ctx context.Context, prefix string, metrics []*metric) *statsFilter {
+// newStatsFilter used to create new stats filter
+func newStatsFilter(ctx context.Context, prefix string, metrics *Metrics) *statsFilter {
 	filter := &statsFilter{
 		context: ctx,
 		prefix:  prefix,
@@ -79,17 +79,17 @@ func (f *statsFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 func (f *statsFilter) OnDestroy() {}
 
 func (f *statsFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo) {
-	if reqHeaders == nil || respHeaders == nil || requestInfo == nil || len(f.metrics) == 0 {
+	if reqHeaders == nil || respHeaders == nil || requestInfo == nil || f.metrics == nil || len(f.metrics.definitions) == 0 {
 		return
 	}
 
 	attributes := ExtractAttributes(reqHeaders, respHeaders, requestInfo, f.requestTotalSize, time.Now())
-	for _, metric := range f.metrics {
-		stat, err := metric.Stat(attributes)
-		if err != nil {
-			log.DefaultLogger.Errorf("stats error: %s", err.Error())
-			continue
-		}
+	stats, err := f.metrics.Stat(attributes)
+	if err != nil {
+		log.DefaultLogger.Errorf("stats error: %s", err.Error())
+		return
+	}
+	for _, stat := range stats {
 		err = updateMetric(stat.MetricType, f.prefix, stat.Name, stat.Labels, stat.Value)
 		if err != nil {
 			log.DefaultLogger.Errorf("stats update error: %s", err.Error())
@@ -98,14 +98,14 @@ func (f *statsFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHea
 	}
 }
 
-// CreateFilterChain for create mixer filter
+// CreateFilterChain for create stats filter
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := newStatsFilter(context, f.prefix, f.metrics)
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 	callbacks.AddStreamAccessLog(filter)
 }
 
-// CreateStatsFilterFactory for create mixer filter factory
+// CreateStatsFilterFactory for create stats filter factory
 func CreateStatsFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	data, err := json.Marshal(conf)
 	if err != nil {
@@ -120,6 +120,7 @@ func CreateStatsFilterFactory(conf map[string]interface{}) (api.StreamFilterChai
 	if len(c.Metrics) == 0 {
 		c.Metrics = defaultMetricConfig
 	}
+
 	if len(c.Definitions) == 0 {
 		c.Definitions = defaultMetricDefinition
 	}

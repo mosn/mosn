@@ -33,7 +33,7 @@ func TestStatsFilterLog(t *testing.T) {
 	}
 	tests := []struct {
 		name   string
-		config []MetricConfig
+		config []*MetricConfig
 		args   args
 	}{
 		{
@@ -115,7 +115,7 @@ func BenchmarkStatsFilterLog(b *testing.B) {
 	}
 	tests := []struct {
 		name   string
-		config []MetricConfig
+		config []*MetricConfig
 		args   args
 	}{
 		{

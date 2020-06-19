@@ -19,20 +19,30 @@ package stats
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/cel"
 	"mosn.io/mosn/pkg/cel/attribute"
-	"mosn.io/mosn/pkg/metrics"
+)
+
+var (
+	errValueKind = fmt.Errorf("value type must be int64 or float64 or time.Duration")
+	errMatchKind = fmt.Errorf("match type must be of boolean")
 )
 
 var compiler = cel.NewExpressionBuilder(attributemanifest, cel.CompatCEXL)
 
-type metric struct {
-	metricType MetricType
-	value      attribute.Expression
-	dimensions map[string]attribute.Expression
-	name       string
+type Metrics struct {
+	overrides   []*override
+	definitions []*definition
+}
+
+type definition struct {
+	Name  string
+	Type  MetricType
+	Value attribute.Expression
 }
 
 type Stat struct {
@@ -42,82 +52,144 @@ type Stat struct {
 	Value      int64
 }
 
-func newMetrics(confs []MetricConfig, definitions []MetricDefinition) ([]*metric, error) {
-	ms := make([]*metric, 0, len(confs)*len(definitions))
-	for _, definition := range definitions {
-		for _, metric := range confs {
-			if metric.Name != "" && metric.Name != definition.Name {
-				continue
-			}
-			if len(metric.Dimensions) > metrics.MaxLabelCount {
-				return nil, metrics.ErrLabelCountExceeded
-			}
-			metric, err := newMetric(&metric, &definition)
+func newMetrics(confs []*MetricConfig, definitions []*MetricDefinition) (*Metrics, error) {
+	s := &Metrics{
+		definitions: make([]*definition, 0, len(definitions)),
+		overrides:   make([]*override, 0, len(confs)),
+	}
+	for _, d := range definitions {
+		expr, kind, err := compiler.Compile(d.Value)
+		if err != nil {
+			return nil, err
+		}
+		if kind != attribute.INT64 && kind != attribute.DOUBLE && kind != attribute.DURATION {
+			return nil, errValueKind
+		}
+		s.definitions = append(s.definitions, &definition{
+			Name:  d.Name,
+			Type:  d.Type,
+			Value: expr,
+		})
+	}
+
+	for _, conf := range confs {
+		o := &override{
+			Name:         conf.Name,
+			TagsToRemove: conf.TagsToRemove,
+		}
+		dimensions := map[string]attribute.Expression{}
+		for key, temp := range conf.Dimensions {
+			expr, _, err := compiler.Compile(temp)
 			if err != nil {
 				return nil, err
 			}
-			ms = append(ms, metric)
+			dimensions[key] = expr
 		}
+		o.Dimensions = dimensions
+
+		if conf.Match != "" {
+			expr, kind, err := compiler.Compile(conf.Match)
+			if err != nil {
+				return nil, err
+			}
+			if kind != attribute.BOOL {
+				return nil, errMatchKind
+			}
+			o.Match = expr
+		}
+
+		s.overrides = append(s.overrides, o)
 	}
-	return ms, nil
+	return s, nil
 }
 
-func newMetric(conf *MetricConfig, definition *MetricDefinition) (*metric, error) {
-	m := &metric{
-		metricType: definition.Type,
-		name:       definition.Name,
-		dimensions: map[string]attribute.Expression{},
-	}
-	expr, _, err := compiler.Compile(definition.Value)
-	if err != nil {
-		return nil, err
-	}
-	m.value = expr
-
-	for key, temp := range conf.Dimensions {
-		expr, _, err := compiler.Compile(temp)
+func (m *Metrics) Stat(bag attribute.Bag) ([]*Stat, error) {
+	ss := make([]*Stat, 0, len(m.definitions))
+	for _, def := range m.definitions {
+		value, err := def.Value.Evaluate(bag)
 		if err != nil {
 			return nil, err
 		}
-		m.dimensions[key] = expr
+		var val int64
+		switch t := value.(type) {
+		case int64:
+			val = t
+		case float64:
+			val = int64(t)
+		case time.Duration:
+			val = int64(t / time.Millisecond)
+		default:
+			return nil, errValueKind
+		}
+		s := &Stat{
+			MetricType: def.Type,
+			Name:       def.Name,
+			Labels:     map[string]string{},
+			Value:      val,
+		}
+
+		for _, over := range m.overrides {
+			err = over.Handle(bag, s)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		ss = append(ss, s)
 	}
-	return m, nil
+	return ss, nil
 }
 
-func (m *metric) Stat(bag attribute.Bag) (*Stat, error) {
-	value, err := m.value.Evaluate(bag)
-	if err != nil {
-		return nil, err
+type override struct {
+	Name         string
+	Match        attribute.Expression
+	Dimensions   map[string]attribute.Expression
+	TagsToRemove []string
+}
+
+func (o *override) Handle(bag attribute.Bag, stat *Stat) error {
+	if o.Name != "" && o.Name != stat.Name {
+		return nil
 	}
-	var val int64
-	switch t := value.(type) {
-	case int64:
-		val = t
-	case time.Duration:
-		val = int64(t / time.Millisecond)
-	default:
-		return nil, fmt.Errorf("is not int64 or time.Duration")
+	if o.Match != nil {
+		b, err := o.Match.Evaluate(bag)
+		if err != nil {
+			return err
+		}
+		switch t := b.(type) {
+		case bool:
+			if !t {
+				return nil
+			}
+		default:
+			return errMatchKind
+		}
 	}
 
-	labels := map[string]string{}
-	for key, expr := range m.dimensions {
-		v, err := expr.Evaluate(bag)
+	for key, dimension := range o.Dimensions {
+		v, err := dimension.Evaluate(bag)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		var str string
-		if s, ok := v.(string); ok {
+		switch s := v.(type) {
+		case string:
 			str = s
-		} else {
-			str = fmt.Sprint(v)
+		case api.HeaderMap:
+			strs := []string{}
+			s.Range(func(key, value string) bool {
+				strs = append(strs, strings.Join([]string{key, value}, " => "))
+				return true
+			})
+			str = strings.Join(strs, ", ")
+		default:
+			str = fmt.Sprint(s)
 		}
-		labels[key] = str
+		stat.Labels[key] = str
 	}
 
-	return &Stat{
-		MetricType: m.metricType,
-		Name:       m.name,
-		Labels:     labels,
-		Value:      val,
-	}, nil
+	for _, r := range o.TagsToRemove {
+		delete(stat.Labels, r)
+	}
+	return nil
 }

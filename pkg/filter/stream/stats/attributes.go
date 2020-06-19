@@ -41,9 +41,9 @@ type StatsConfig struct {
 	// Allows configuration of the time between calls out to for TCP metrics reporting. The default duration is 15s.
 	TcpReportingDuration time.Duration `json:"tcp_reporting_duration,omitempty"`
 	// Metric overrides.
-	Metrics []MetricConfig `json:"metrics"`
+	Metrics []*MetricConfig `json:"metrics"`
 	// Metric definitions.
-	Definitions []MetricDefinition `json:"definitions"`
+	Definitions []*MetricDefinition `json:"definitions"`
 }
 
 type MetricConfig struct {
@@ -175,13 +175,13 @@ var attributemanifest = map[string]attribute.Kind{
 
 // https://github.com/istio/proxy/pull/2414/files#diff-db83bcb3df7f25cfb88ff0a20bbd5540R82
 
-var defaultMetricConfig = []MetricConfig{
+var defaultMetricConfig = []*MetricConfig{
 	{
 		Name:       "",
 		Dimensions: defaultDimensions,
 	},
 }
-var defaultMetricDefinition = []MetricDefinition{
+var defaultMetricDefinition = []*MetricDefinition{
 	{
 		Name:  "requests_total",
 		Value: `request.total_size | 0`,

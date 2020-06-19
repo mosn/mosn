@@ -19,6 +19,7 @@ package stats
 
 import (
 	"encoding/base64"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -95,16 +96,13 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 			address := hostInfo.AddressString()
 			ip, port, ret := getIPPort(address)
 			if ret {
-				if e.extracted[utils.KDestinationIP] == nil {
-					e.extracted[utils.KDestinationIP] = []byte(ip)
-				}
-				if e.extracted[utils.KDestinationPort] == nil {
-					e.extracted[utils.KDestinationPort] = int64(port)
-				}
+				e.extracted[utils.KDestinationIP] = []byte(ip)
+				e.extracted[utils.KDestinationPort] = int64(port)
 				return e.extracted[name], true
 			}
 		}
-		e.extracted[name] = nil
+		e.extracted[utils.KDestinationIP] = nil
+		e.extracted[utils.KDestinationPort] = nil
 	case utils.KRequestHeaders:
 		return e.reqHeaders, true
 	case utils.KResponseHeaders:
@@ -125,10 +123,48 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		return int64(e.requestInfo.ResponseCode()), true
 	case utils.KRequestPath:
 		return e.reqHeaders.Get(protocol.MosnHeaderPathKey)
+	case utils.KRequestQueryParms:
+		query, ok := e.reqHeaders.Get(protocol.MosnHeaderQueryStringKey)
+		if ok && query != "" {
+			v, err := parseQuery(query)
+			if err == nil {
+				v := protocol.CommonHeader(v)
+				e.extracted[utils.KRequestQueryParms] = v
+				return e.extracted[name], true
+			}
+		}
+		e.extracted[utils.KRequestQueryParms] = nil
+	case utils.KRequestUrlPath:
+		path, ok := e.reqHeaders.Get(protocol.MosnHeaderPathKey)
+		if ok {
+			query, ok := e.reqHeaders.Get(protocol.MosnHeaderQueryStringKey)
+			if ok {
+				url := path + "?" + query
+				e.extracted[utils.KRequestUrlPath] = url
+				return e.extracted[name], true
+			}
+			e.extracted[utils.KRequestUrlPath] = path
+			return e.extracted[name], true
+		}
+		e.extracted[utils.KRequestUrlPath] = nil
 	case utils.KRequestMethod:
 		return e.reqHeaders.Get(protocol.MosnHeaderMethod)
 	case utils.KRequestHost:
 		return e.reqHeaders.Get(protocol.MosnHeaderHostKey)
+	case utils.KDestinationServiceHost, utils.KDestinationServiceName, utils.KDestinationServiceNamespace, utils.KContextReporterKind:
+		routeEntry := e.requestInfo.RouteEntry()
+		if routeEntry != nil {
+			clusterName := routeEntry.ClusterName()
+			if clusterName != "" {
+				info := paresClusterName(clusterName)
+				e.extracted[utils.KDestinationServiceHost] = info.Host
+				e.extracted[utils.KDestinationServiceName] = info.Name
+				e.extracted[utils.KDestinationServiceNamespace] = info.Namespace
+				e.extracted[utils.KContextReporterKind] = info.Kind
+				return e.extracted[name], true
+			}
+		}
+		fallthrough
 	default:
 		if e.attributes == nil {
 			e.attributes = map[string]interface{}{}
@@ -199,4 +235,72 @@ func attributesToStringInterfaceMap(out map[string]interface{}, attributes v1.At
 		}
 	}
 	return out
+}
+
+var outbound = "outbound"
+
+type clusterNameInfo struct {
+	Kind      string
+	Version   string
+	Name      string
+	Namespace string
+	Host      string
+}
+
+func paresClusterName(clusterName string) *clusterNameInfo {
+	c := &clusterNameInfo{}
+	items := strings.Split(clusterName, "|")
+	if len(items) == 4 {
+		c.Kind = items[0]
+		if outbound == c.Kind {
+			c.Version = items[2]
+		}
+		c.Host = items[3]
+		serviceItems := strings.SplitN(c.Host, ".", 3)
+		if len(serviceItems) == 3 {
+			c.Name = serviceItems[0]
+			c.Namespace = serviceItems[1]
+		}
+	}
+	return c
+}
+
+func parseQuery(query string) (m map[string]string, err error) {
+	m = map[string]string{}
+	for query != "" {
+		key := query
+		if i := strings.IndexAny(key, "&;"); i >= 0 {
+			key, query = key[:i], key[i+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		if i := strings.Index(key, "="); i >= 0 {
+			key, value = key[:i], key[i+1:]
+		}
+		key, err1 := url.QueryUnescape(key)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		// Only the first value is taken by default
+		if _, ok := m[key]; ok {
+			continue
+		}
+		value, err1 = url.QueryUnescape(value)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+
+		m[key] = value
+	}
+	return m, err
 }
