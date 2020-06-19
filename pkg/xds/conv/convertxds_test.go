@@ -38,7 +38,7 @@ import (
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
 	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	ptypes "github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"

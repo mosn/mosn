@@ -21,7 +21,7 @@ import (
 	"bytes"
 
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/jsonpb"
 )
 
 // TLSConfig is a configuration of tls context
