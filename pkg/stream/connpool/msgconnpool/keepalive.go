@@ -19,6 +19,7 @@ package msgconnpool
 import (
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
+	"sync/atomic"
 )
 
 // KeepAlive object for sending heartbeat
@@ -30,6 +31,7 @@ type KeepAlive interface {
 
 // keepAliveListener is a types.ConnectionEventListener
 type keepAliveListener struct {
+	stopped   uint64
 	keepAlive KeepAlive
 	conn      api.Connection
 }
@@ -37,7 +39,7 @@ type keepAliveListener struct {
 // OnEvent impl types.ConnectionEventListener
 func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
 	switch {
-	case event == api.OnReadTimeout && l.keepAlive != nil :
+	case event == api.OnReadTimeout && atomic.LoadUint64(&l.stopped) == 0:
 		l.conn.Write(buffer.NewIoBufferBytes(l.keepAlive.GetKeepAliveData()))
 	}
 }
