@@ -520,9 +520,9 @@ func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
 	}
 	switch percent.Denominator {
 	case xdstype.FractionalPercent_MILLION:
-		return percent.Numerator / 1000000
+		return percent.Numerator / 10000
 	case xdstype.FractionalPercent_TEN_THOUSAND:
-		return percent.Numerator / 1000
+		return percent.Numerator / 10
 	case xdstype.FractionalPercent_HUNDRED:
 		return percent.Numerator
 	}
@@ -1363,9 +1363,9 @@ func convertRuntimePercentage(percent *xdscore.RuntimeFractionalPercent) uint32 
 	}
 	switch percent.GetDefaultValue().GetDenominator() {
 	case xdstype.FractionalPercent_MILLION:
-		return percent.GetDefaultValue().GetNumerator() / 1000000
+		return percent.GetDefaultValue().GetNumerator() / 10000
 	case xdstype.FractionalPercent_TEN_THOUSAND:
-		return percent.GetDefaultValue().GetNumerator() / 1000
+		return percent.GetDefaultValue().GetNumerator() / 10
 	case xdstype.FractionalPercent_HUNDRED:
 		return percent.GetDefaultValue().GetNumerator()
 	default:
