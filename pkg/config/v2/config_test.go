@@ -25,6 +25,9 @@ import (
 	"strings"
 	"testing"
 
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	xdsbootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/golang/protobuf/jsonpb"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -296,4 +299,26 @@ func TestLoadSdsConfig(t *testing.T) {
 	if err := json.Unmarshal(content, cfg); err != nil {
 		t.Fatal("json unmarshal config failed, ", xdsSdsConfig, "", err)
 	}
+
+	staticResource := &xdsbootstrap.Bootstrap_StaticResources{}
+	jContent, err := cfg.RawStaticResources.MarshalJSON()
+	if err != nil {
+		t.Fatalf("parse pilot address fail: %v", err)
+	}
+
+	err = jsonpb.UnmarshalString(string(jContent), staticResource)
+	if err != nil {
+		t.Fatalf("unmarshal static resource fail %v", err)
+	}
+
+	if staticResource.Clusters[0].Name != "xds-grpc" {
+		t.Fatal("cluster name should be xds-grpc")
+	}
+
+	firstHost := staticResource.Clusters[0].Hosts[0]
+	hAddress := firstHost.Address.(*core.Address_SocketAddress)
+	if hAddress.SocketAddress.Address != "pilot.test" {
+		t.Fatal("parse pilot name fail")
+	}
+
 }
