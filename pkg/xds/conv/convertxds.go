@@ -520,9 +520,9 @@ func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
 	}
 	switch percent.Denominator {
 	case xdstype.FractionalPercent_MILLION:
-		return percent.Numerator / 10000
+		return percent.Numerator / 1000000
 	case xdstype.FractionalPercent_TEN_THOUSAND:
-		return percent.Numerator / 100
+		return percent.Numerator / 1000
 	case xdstype.FractionalPercent_HUNDRED:
 		return percent.Numerator
 	}
@@ -945,6 +945,7 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 			//
 			//ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteAction.GetResponseHeadersToAdd()),
 			//ResponseHeadersToRemove: xdsRouteAction.GetResponseHeadersToRemove(),
+			RequestMirrorPolicies: convertMirrorPolicy(xdsRouteAction),
 		},
 		MetadataMatch: convertMeta(xdsRouteAction.GetMetadataMatch()),
 		Timeout:       convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),
@@ -1336,4 +1337,38 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 
 	config.Status = true
 	return config
+}
+
+func convertMirrorPolicy(xdsRouteAction *xdsroute.RouteAction) *v2.RequestMirrorPolicy {
+	if xdsRouteAction.GetRequestMirrorPolicy() != nil {
+		return &v2.RequestMirrorPolicy{
+			Cluster: xdsRouteAction.GetRequestMirrorPolicy().GetCluster(),
+			Percent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicy().GetRuntimeFraction()),
+		}
+	}
+
+	if len(xdsRouteAction.GetRequestMirrorPolicies()) > 0 {
+		return &v2.RequestMirrorPolicy{
+			Cluster: xdsRouteAction.GetRequestMirrorPolicies()[0].GetCluster(),
+			Percent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicies()[0].GetRuntimeFraction()),
+		}
+	}
+
+	return nil
+}
+
+func convertRuntimePercentage(percent *xdscore.RuntimeFractionalPercent) uint32 {
+	if percent == nil {
+		return 0
+	}
+	switch percent.GetDefaultValue().GetDenominator() {
+	case xdstype.FractionalPercent_MILLION:
+		return percent.GetDefaultValue().GetNumerator() / 1000000
+	case xdstype.FractionalPercent_TEN_THOUSAND:
+		return percent.GetDefaultValue().GetNumerator() / 1000
+	case xdstype.FractionalPercent_HUNDRED:
+		return percent.GetDefaultValue().GetNumerator()
+	default:
+		return percent.GetDefaultValue().GetNumerator()
+	}
 }
