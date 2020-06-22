@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+//Parse pares string to struct Endpoint, like tcp -h 10.219.139.142 -p 19386 -t 60000
 func Parse(endpoint string) Endpoint {
 	//tcp -h 10.219.139.142 -p 19386 -t 60000
 	proto := endpoint[0:3]

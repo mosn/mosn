@@ -32,13 +32,13 @@ type Registry interface {
 	common.Node
 	//used for service provider calling , register services to registry
 	//And it is also used for service consumer calling , register services cared about ,for dubbo's admin monitoring.
-	Register(url common.URL) error
+	Register(url *common.URL) error
 
 	// UnRegister is required to support the contract:
 	// 1. If it is the persistent stored data of dynamic=false, the registration data can not be found, then the IllegalStateException is thrown, otherwise it is ignored.
 	// 2. Unregister according to the full url match.
 	// url Registration information , is not allowed to be empty, e.g: dubbo://10.20.153.10/org.apache.dubbo.foo.BarService?version=1.0.0&application=kylin
-	UnRegister(url common.URL) error
+	UnRegister(url *common.URL) error
 
 	//When creating new registry extension,pls select one of the following modes.
 	//Will remove in dubbogo version v1.1.0

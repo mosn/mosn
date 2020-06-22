@@ -19,13 +19,13 @@ package cluster
 
 import (
 	"context"
-	"mosn.io/api"
+	"net"
 	"testing"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
-	"net"
 )
 
 // LbCtx is a types.LoadBalancerContext implementation
@@ -53,6 +53,10 @@ func (c *LbCtx) DownstreamContext() context.Context {
 
 func (c *LbCtx) DownstreamCluster() types.ClusterInfo {
 	return c.cluster
+}
+
+func (c *LbCtx) DownstreamRoute() api.Route {
+	return nil
 }
 
 type Header struct {

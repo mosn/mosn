@@ -9,7 +9,9 @@ import (
 	proto "github.com/gogo/protobuf/proto"
 	github_com_gogo_protobuf_sortkeys "github.com/gogo/protobuf/sortkeys"
 	io "io"
+	_ "istio.io/gogo-genproto/googleapis/google/api"
 	math "math"
+	math_bits "math/bits"
 	reflect "reflect"
 	strings "strings"
 )
@@ -23,9 +25,28 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 // Determines the quotas used for individual requests.
+//
+// <!-- crd generation tags
+// +cue-gen:QuotaSpec:schema:istio.mixer.v1.config.client.QuotaSpec
+// +cue-gen:QuotaSpec:groupName:config.istio.io
+// +cue-gen:QuotaSpec:version:v1alpha2
+// +cue-gen:QuotaSpec:storageVersion
+// +cue-gen:QuotaSpec:annotations:helm.sh/resource-policy=keep
+// +cue-gen:QuotaSpec:labels:app=istio-mixer,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:QuotaSpec:subresource:status
+// +cue-gen:QuotaSpec:scope:Namespaced
+// +cue-gen:QuotaSpec:resource:categories=istio-io,apim-istio-io
+// -->
+//
+// <!-- go code generation tags
+// +kubetype-gen
+// +kubetype-gen:groupVersion=config.istio.io/v1alpha2
+// +genclient
+// +k8s:deepcopy-gen=true
+// -->
 type QuotaSpec struct {
 	// A list of Quota rules.
 	Rules []*QuotaRule `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
@@ -41,7 +62,7 @@ func (m *QuotaSpec) XXX_Unmarshal(b []byte) error {
 }
 func (m *QuotaSpec) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
+	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +100,7 @@ func (m *QuotaRule) XXX_Unmarshal(b []byte) error {
 }
 func (m *QuotaRule) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
+	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +138,7 @@ func (m *StringMatch) XXX_Unmarshal(b []byte) error {
 }
 func (m *StringMatch) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
+	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
 		return nil, err
 	}
@@ -183,85 +204,13 @@ func (m *StringMatch) GetRegex() string {
 	return ""
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*StringMatch) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _StringMatch_OneofMarshaler, _StringMatch_OneofUnmarshaler, _StringMatch_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*StringMatch) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*StringMatch_Exact)(nil),
 		(*StringMatch_Prefix)(nil),
 		(*StringMatch_Regex)(nil),
 	}
-}
-
-func _StringMatch_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*StringMatch)
-	// match_type
-	switch x := m.MatchType.(type) {
-	case *StringMatch_Exact:
-		_ = b.EncodeVarint(1<<3 | proto.WireBytes)
-		_ = b.EncodeStringBytes(x.Exact)
-	case *StringMatch_Prefix:
-		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
-		_ = b.EncodeStringBytes(x.Prefix)
-	case *StringMatch_Regex:
-		_ = b.EncodeVarint(3<<3 | proto.WireBytes)
-		_ = b.EncodeStringBytes(x.Regex)
-	case nil:
-	default:
-		return fmt.Errorf("StringMatch.MatchType has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _StringMatch_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*StringMatch)
-	switch tag {
-	case 1: // match_type.exact
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.MatchType = &StringMatch_Exact{x}
-		return true, err
-	case 2: // match_type.prefix
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.MatchType = &StringMatch_Prefix{x}
-		return true, err
-	case 3: // match_type.regex
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.MatchType = &StringMatch_Regex{x}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _StringMatch_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*StringMatch)
-	// match_type
-	switch x := m.MatchType.(type) {
-	case *StringMatch_Exact:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Exact)))
-		n += len(x.Exact)
-	case *StringMatch_Prefix:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Prefix)))
-		n += len(x.Prefix)
-	case *StringMatch_Regex:
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(len(x.Regex)))
-		n += len(x.Regex)
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 // Specifies a match clause to match Istio attributes
@@ -289,7 +238,7 @@ func (m *AttributeMatch) XXX_Unmarshal(b []byte) error {
 }
 func (m *AttributeMatch) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
+	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
 		return nil, err
 	}
@@ -312,7 +261,7 @@ type Quota struct {
 	// The quota name to charge
 	Quota string `protobuf:"bytes,1,opt,name=quota,proto3" json:"quota,omitempty"`
 	// The quota amount to charge
-	Charge int64 `protobuf:"varint,2,opt,name=charge,proto3" json:"charge,omitempty"`
+	Charge int32 `protobuf:"varint,2,opt,name=charge,proto3" json:"charge,omitempty"`
 }
 
 func (m *Quota) Reset()      { *m = Quota{} }
@@ -325,7 +274,7 @@ func (m *Quota) XXX_Unmarshal(b []byte) error {
 }
 func (m *Quota) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
+	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
 		return nil, err
 	}
@@ -345,10 +294,29 @@ var xxx_messageInfo_Quota proto.InternalMessageInfo
 
 // QuotaSpecBinding defines the binding between QuotaSpecs and one or more
 // IstioService.
+//
+// <!-- crd generation tags
+// +cue-gen:QuotaSpecBinding:schema:istio.mixer.v1.config.client.QuotaSpecBinding
+// +cue-gen:QuotaSpecBinding:groupName:config.istio.io
+// +cue-gen:QuotaSpecBinding:version:v1alpha2
+// +cue-gen:QuotaSpecBinding:storageVersion
+// +cue-gen:QuotaSpecBinding:annotations:helm.sh/resource-policy=keep
+// +cue-gen:QuotaSpecBinding:labels:app=istio-mixer,chart=istio,heritage=Tiller,release=istio
+// +cue-gen:QuotaSpecBinding:subresource:status
+// +cue-gen:QuotaSpecBinding:scope:Namespaced
+// +cue-gen:QuotaSpecBinding:resource:categories=istio-io,apim-istio-io
+// -->
+//
+// <!-- go code generation tags
+// +kubetype-gen
+// +kubetype-gen:groupVersion=config.istio.io/v1alpha2
+// +genclient
+// +k8s:deepcopy-gen=true
+// -->
 type QuotaSpecBinding struct {
-	// REQUIRED. One or more services to map the listed QuotaSpec onto.
+	// One or more services to map the listed QuotaSpec onto.
 	Services []*IstioService `protobuf:"bytes,1,rep,name=services,proto3" json:"services,omitempty"`
-	// REQUIRED. One or more QuotaSpec references that should be mapped to
+	// One or more QuotaSpec references that should be mapped to
 	// the specified service(s). The aggregate collection of match
 	// conditions defined in the QuotaSpecs should not overlap.
 	QuotaSpecs []*QuotaSpecBinding_QuotaSpecReference `protobuf:"bytes,2,rep,name=quota_specs,json=quotaSpecs,proto3" json:"quota_specs,omitempty"`
@@ -364,7 +332,7 @@ func (m *QuotaSpecBinding) XXX_Unmarshal(b []byte) error {
 }
 func (m *QuotaSpecBinding) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
+	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +353,7 @@ var xxx_messageInfo_QuotaSpecBinding proto.InternalMessageInfo
 // QuotaSpecReference uniquely identifies the QuotaSpec used in the
 // Binding.
 type QuotaSpecBinding_QuotaSpecReference struct {
-	// REQUIRED. The short name of the QuotaSpec. This is the resource
+	// The short name of the QuotaSpec. This is the resource
 	// name defined by the metadata name field.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
 	// Optional namespace of the QuotaSpec. Defaults to the value of the
@@ -403,7 +371,7 @@ func (m *QuotaSpecBinding_QuotaSpecReference) XXX_Unmarshal(b []byte) error {
 }
 func (m *QuotaSpecBinding_QuotaSpecReference) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	b = b[:cap(b)]
-	n, err := m.MarshalTo(b)
+	n, err := m.MarshalToSizedBuffer(b)
 	if err != nil {
 		return nil, err
 	}
@@ -435,47 +403,49 @@ func init() {
 func init() { proto.RegisterFile("mixer/v1/config/client/quota.proto", fileDescriptor_81777b5d047af315) }
 
 var fileDescriptor_81777b5d047af315 = []byte{
-	// 540 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x93, 0xcf, 0x6b, 0x13, 0x41,
-	0x14, 0xc7, 0x77, 0x12, 0x37, 0x98, 0x17, 0x91, 0x32, 0x94, 0xb2, 0x84, 0x32, 0x94, 0xad, 0x60,
-	0x15, 0xd9, 0xa5, 0x15, 0xa1, 0x28, 0x22, 0x8d, 0x58, 0x54, 0x10, 0x74, 0x7a, 0xf3, 0x52, 0x36,
-	0xdb, 0x97, 0xed, 0x60, 0xb2, 0xbb, 0xdd, 0x9d, 0x0d, 0xc9, 0xcd, 0x93, 0x27, 0x0f, 0xfe, 0x19,
-	0xfe, 0x29, 0x39, 0xe6, 0x98, 0xa3, 0xd9, 0x5c, 0x3c, 0xf6, 0x4f, 0x90, 0x9d, 0x99, 0xb4, 0x11,
-	0x35, 0xd4, 0xd3, 0xbe, 0xf7, 0xf6, 0x7d, 0xbe, 0xef, 0x07, 0x6f, 0xc0, 0x1d, 0x88, 0x11, 0x66,
-	0xfe, 0x70, 0xdf, 0x0f, 0x93, 0xb8, 0x27, 0x22, 0x3f, 0xec, 0x0b, 0x8c, 0xa5, 0x7f, 0x51, 0x24,
-	0x32, 0xf0, 0xd2, 0x2c, 0x91, 0x09, 0xdd, 0x16, 0xb9, 0x14, 0x89, 0xa7, 0x32, 0xbd, 0xe1, 0xbe,
-	0xa7, 0x33, 0x3d, 0x9d, 0xd9, 0xde, 0x8c, 0x92, 0x28, 0x51, 0x89, 0x7e, 0x65, 0x69, 0xa6, 0x7d,
-	0xef, 0x1f, 0xba, 0x39, 0x66, 0x43, 0x11, 0xa2, 0xce, 0x72, 0xdf, 0x42, 0xf3, 0x43, 0x55, 0xe8,
-	0x24, 0xc5, 0x90, 0x3e, 0x07, 0x3b, 0x2b, 0xfa, 0x98, 0x3b, 0x64, 0xa7, 0xbe, 0xd7, 0x3a, 0xb8,
-	0xef, 0xad, 0x2b, 0xeb, 0x29, 0x8e, 0x17, 0x7d, 0xe4, 0x9a, 0x72, 0xbf, 0x12, 0x23, 0x56, 0x05,
-	0x69, 0x07, 0xec, 0x41, 0x20, 0xc3, 0x73, 0x23, 0xf6, 0x68, 0xbd, 0xd8, 0x91, 0x94, 0x99, 0xe8,
-	0x16, 0x12, 0xdf, 0x55, 0x0c, 0xd7, 0x28, 0x7d, 0x06, 0x0d, 0xb5, 0x86, 0xdc, 0xa9, 0x29, 0x91,
-	0xdd, 0x9b, 0x74, 0x64, 0x10, 0x17, 0xa1, 0x75, 0x22, 0x33, 0x11, 0x47, 0x4a, 0x92, 0x6e, 0x81,
-	0x8d, 0xa3, 0x20, 0x94, 0x0e, 0xd9, 0x21, 0x7b, 0xcd, 0xd7, 0x16, 0xd7, 0x2e, 0x75, 0xa0, 0x91,
-	0x66, 0xd8, 0x13, 0x23, 0xa7, 0x66, 0x7e, 0x18, 0xbf, 0x22, 0x32, 0x8c, 0x70, 0xe4, 0xd4, 0x97,
-	0x84, 0x72, 0x3b, 0x77, 0x00, 0x54, 0x7b, 0xa7, 0x72, 0x9c, 0xa2, 0x3b, 0x21, 0x70, 0xf7, 0xf7,
-	0xee, 0xe9, 0x7b, 0x68, 0x84, 0xfd, 0xa0, 0xc8, 0xd1, 0xcc, 0x7e, 0xf8, 0x3f, 0xb3, 0x7b, 0x2f,
-	0x15, 0xfa, 0x2a, 0x96, 0xd9, 0x98, 0x1b, 0x9d, 0xf6, 0x19, 0xb4, 0x56, 0xc2, 0x74, 0x03, 0xea,
-	0x9f, 0x70, 0xac, 0x27, 0xe1, 0x95, 0x49, 0x5f, 0x80, 0x3d, 0x0c, 0xfa, 0x05, 0xaa, 0x21, 0x5a,
-	0x07, 0x0f, 0xd6, 0x57, 0x5c, 0xd9, 0x0b, 0xd7, 0xdc, 0xd3, 0xda, 0x21, 0x71, 0x9f, 0x80, 0xad,
-	0x56, 0x48, 0x37, 0xc1, 0x56, 0x4b, 0x34, 0x15, 0xb4, 0x43, 0xb7, 0xa0, 0x11, 0x9e, 0x07, 0x59,
-	0xa4, 0x8b, 0xd4, 0xb9, 0xf1, 0xdc, 0x2f, 0x35, 0xd8, 0xb8, 0x3a, 0xa2, 0x8e, 0x88, 0xcf, 0x44,
-	0x1c, 0xd1, 0x63, 0xb8, 0x6d, 0x2e, 0x6d, 0x79, 0x4e, 0x0f, 0xd7, 0xf7, 0xf4, 0xa6, 0xfa, 0x79,
-	0xa2, 0x11, 0x7e, 0xc5, 0xd2, 0x2e, 0xb4, 0x54, 0xf5, 0xd3, 0x3c, 0xc5, 0x70, 0x79, 0x07, 0x47,
-	0x37, 0xb8, 0x83, 0x95, 0x66, 0xae, 0x03, 0x1c, 0x7b, 0x98, 0x61, 0x1c, 0x22, 0x87, 0x8b, 0x65,
-	0x2c, 0x6f, 0x1f, 0x03, 0xfd, 0x33, 0x83, 0x52, 0xb8, 0x15, 0x07, 0x03, 0x34, 0x3b, 0x50, 0x36,
-	0xdd, 0x86, 0x66, 0xf5, 0xcd, 0xd3, 0x20, 0xd4, 0x5b, 0x68, 0xf2, 0xeb, 0x40, 0x27, 0x98, 0xcc,
-	0x99, 0x35, 0x9d, 0x33, 0x6b, 0x36, 0x67, 0xd6, 0xe5, 0x9c, 0x59, 0x9f, 0x4b, 0x46, 0xbe, 0x97,
-	0xcc, 0x9a, 0x94, 0x8c, 0x4c, 0x4b, 0x46, 0x66, 0x25, 0x23, 0x3f, 0x4a, 0x46, 0x7e, 0x96, 0xcc,
-	0xba, 0x2c, 0x19, 0xf9, 0xb6, 0x60, 0xd6, 0x74, 0xc1, 0xac, 0xd9, 0x82, 0x59, 0x1f, 0x77, 0xf5,
-	0x4c, 0x22, 0xf1, 0x83, 0x54, 0xf8, 0x7f, 0x7f, 0xbd, 0xdd, 0x86, 0x7a, 0xb6, 0x8f, 0x7f, 0x05,
-	0x00, 0x00, 0xff, 0xff, 0xb5, 0x3a, 0x59, 0xa6, 0x36, 0x04, 0x00, 0x00,
+	// 569 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x53, 0xc1, 0x6e, 0xd3, 0x4c,
+	0x10, 0xf6, 0x26, 0xbf, 0xa3, 0x3f, 0x13, 0x84, 0xaa, 0x55, 0x55, 0xac, 0xa8, 0x5a, 0x2a, 0x17,
+	0x89, 0x82, 0x90, 0xad, 0x16, 0x21, 0x55, 0x20, 0x84, 0x1a, 0x84, 0x04, 0x54, 0x48, 0xe0, 0xde,
+	0xb8, 0x54, 0xae, 0x33, 0x71, 0x56, 0x38, 0xb6, 0xbb, 0x5e, 0x47, 0xc9, 0x8d, 0x07, 0xe0, 0xc0,
+	0x85, 0x77, 0xe0, 0x51, 0x72, 0xcc, 0x31, 0xc7, 0xc6, 0xb9, 0x70, 0xec, 0x23, 0x20, 0xef, 0x3a,
+	0x6d, 0x10, 0x10, 0x95, 0x93, 0x3d, 0xb3, 0xdf, 0xf7, 0xcd, 0x37, 0xa3, 0x19, 0xb0, 0x07, 0x7c,
+	0x84, 0xc2, 0x1d, 0xee, 0xbb, 0x41, 0x12, 0xf7, 0x78, 0xe8, 0x06, 0x11, 0xc7, 0x58, 0xba, 0xe7,
+	0x79, 0x22, 0x7d, 0x27, 0x15, 0x89, 0x4c, 0xe8, 0x36, 0xcf, 0x24, 0x4f, 0x1c, 0x85, 0x74, 0x86,
+	0xfb, 0x8e, 0x46, 0x3a, 0x1a, 0xd9, 0xde, 0x0c, 0x93, 0x30, 0x51, 0x40, 0xb7, 0xfc, 0xd3, 0x9c,
+	0xf6, 0xdd, 0x30, 0x49, 0xc2, 0x08, 0x5d, 0x3f, 0xe5, 0x6e, 0x8f, 0x63, 0xd4, 0x3d, 0x3d, 0xc3,
+	0xbe, 0x3f, 0xe4, 0x89, 0xa8, 0x00, 0xf7, 0xfe, 0x52, 0x38, 0x43, 0x31, 0xe4, 0x01, 0x6a, 0x94,
+	0xfd, 0x16, 0x9a, 0x1f, 0x4a, 0x27, 0x27, 0x29, 0x06, 0xf4, 0x39, 0x98, 0x22, 0x8f, 0x30, 0xb3,
+	0xc8, 0x4e, 0x7d, 0xaf, 0x75, 0x70, 0xdf, 0x59, 0xe7, 0xcb, 0x51, 0x3c, 0x2f, 0x8f, 0xd0, 0xd3,
+	0x2c, 0xfb, 0x0b, 0xa9, 0xc4, 0xca, 0x24, 0xed, 0x80, 0x39, 0xf0, 0x65, 0xd0, 0xaf, 0xc4, 0x1e,
+	0xad, 0x17, 0x3b, 0x92, 0x52, 0xf0, 0xb3, 0x5c, 0xe2, 0xbb, 0x92, 0xe3, 0x69, 0x2a, 0x7d, 0x06,
+	0x0d, 0x35, 0xa7, 0xcc, 0xaa, 0x29, 0x91, 0xdd, 0x9b, 0x38, 0xaa, 0x28, 0x36, 0x42, 0xeb, 0x44,
+	0x0a, 0x1e, 0x87, 0x4a, 0x92, 0x6e, 0x81, 0x89, 0x23, 0x3f, 0x90, 0x16, 0xd9, 0x21, 0x7b, 0xcd,
+	0xd7, 0x86, 0xa7, 0x43, 0x6a, 0x41, 0x23, 0x15, 0xd8, 0xe3, 0x23, 0xab, 0x56, 0x3d, 0x54, 0x71,
+	0xc9, 0x10, 0x18, 0xe2, 0xc8, 0xaa, 0x2f, 0x19, 0x2a, 0xec, 0xdc, 0x02, 0x50, 0xf6, 0x4e, 0xe5,
+	0x38, 0x45, 0x7b, 0x42, 0xe0, 0xf6, 0xaf, 0xee, 0xe9, 0x7b, 0x68, 0x04, 0x91, 0x9f, 0x67, 0x58,
+	0xf5, 0x7e, 0xf8, 0x2f, 0xbd, 0x3b, 0x2f, 0x15, 0xf5, 0x55, 0x2c, 0xc5, 0xd8, 0xab, 0x74, 0xda,
+	0x5d, 0x68, 0xad, 0xa4, 0xe9, 0x06, 0xd4, 0x3f, 0xe1, 0x58, 0x77, 0xe2, 0x95, 0xbf, 0xf4, 0x05,
+	0x98, 0x43, 0x3f, 0xca, 0x51, 0x35, 0xd1, 0x3a, 0x78, 0xb0, 0xbe, 0xe2, 0xca, 0x5c, 0x3c, 0xcd,
+	0x7b, 0x5a, 0x3b, 0x24, 0xf6, 0x13, 0x30, 0xd5, 0x08, 0xe9, 0x26, 0x98, 0x6a, 0x88, 0x55, 0x05,
+	0x1d, 0xd0, 0x2d, 0x68, 0x04, 0x7d, 0x5f, 0x84, 0xba, 0x88, 0xe9, 0x55, 0x91, 0xfd, 0xad, 0x06,
+	0x1b, 0x57, 0x4b, 0xd4, 0xe1, 0x71, 0x97, 0xc7, 0x21, 0x3d, 0x86, 0xff, 0xab, 0x4d, 0x5b, 0xae,
+	0xd3, 0xc3, 0xf5, 0x9e, 0xde, 0x94, 0x8f, 0x27, 0x9a, 0xd2, 0xa9, 0x5f, 0x1c, 0xd5, 0xbc, 0x2b,
+	0x01, 0x1a, 0x42, 0x4b, 0x59, 0x38, 0xcd, 0x52, 0x0c, 0x96, 0xcb, 0x70, 0x74, 0x83, 0x65, 0x58,
+	0x71, 0x74, 0x9d, 0xf0, 0xb0, 0x87, 0x02, 0xe3, 0x65, 0x19, 0x38, 0x5f, 0x3e, 0x64, 0xed, 0x63,
+	0xa0, 0xbf, 0xc3, 0xe8, 0x1d, 0xf8, 0x2f, 0xf6, 0x07, 0xa8, 0xa7, 0xa1, 0x49, 0x2a, 0x41, 0xb7,
+	0xa1, 0x59, 0x7e, 0xb3, 0xd4, 0x0f, 0xf4, 0x50, 0x9a, 0xde, 0x75, 0xa2, 0xe3, 0x4f, 0xe6, 0xcc,
+	0x98, 0xce, 0x99, 0x31, 0x9b, 0x33, 0xe3, 0x72, 0xce, 0x8c, 0xcf, 0x05, 0x23, 0xdf, 0x0b, 0x66,
+	0x4c, 0x0a, 0x46, 0xa6, 0x05, 0x23, 0xb3, 0x82, 0x91, 0x8b, 0x82, 0x91, 0x1f, 0x05, 0x33, 0x2e,
+	0x0b, 0x46, 0xbe, 0x2e, 0x98, 0x31, 0x5d, 0x30, 0x63, 0xb6, 0x60, 0xc6, 0xc7, 0x5d, 0xdd, 0x1d,
+	0x4f, 0xd4, 0x89, 0xff, 0xf9, 0x98, 0xcf, 0x1a, 0xea, 0x8a, 0x1f, 0xff, 0x0c, 0x00, 0x00, 0xff,
+	0xff, 0x62, 0x43, 0x3c, 0x3e, 0x66, 0x04, 0x00, 0x00,
 }
 
 func (m *QuotaSpec) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -483,29 +453,36 @@ func (m *QuotaSpec) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *QuotaSpec) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QuotaSpec) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if len(m.Rules) > 0 {
-		for _, msg := range m.Rules {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintQuota(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.Rules) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Rules[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuota(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0xa
 		}
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *QuotaRule) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -513,41 +490,50 @@ func (m *QuotaRule) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *QuotaRule) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QuotaRule) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Match) > 0 {
-		for _, msg := range m.Match {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintQuota(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
 	if len(m.Quotas) > 0 {
-		for _, msg := range m.Quotas {
-			dAtA[i] = 0x12
-			i++
-			i = encodeVarintQuota(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.Quotas) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Quotas[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuota(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x12
 		}
 	}
-	return i, nil
+	if len(m.Match) > 0 {
+		for iNdEx := len(m.Match) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Match[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuota(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *StringMatch) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -555,48 +541,70 @@ func (m *StringMatch) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *StringMatch) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *StringMatch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if m.MatchType != nil {
-		nn1, err := m.MatchType.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		{
+			size := m.MatchType.Size()
+			i -= size
+			if _, err := m.MatchType.MarshalTo(dAtA[i:]); err != nil {
+				return 0, err
+			}
 		}
-		i += nn1
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *StringMatch_Exact) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
-	dAtA[i] = 0xa
-	i++
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *StringMatch_Exact) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.Exact)
+	copy(dAtA[i:], m.Exact)
 	i = encodeVarintQuota(dAtA, i, uint64(len(m.Exact)))
-	i += copy(dAtA[i:], m.Exact)
-	return i, nil
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
 }
 func (m *StringMatch_Prefix) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
-	dAtA[i] = 0x12
-	i++
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *StringMatch_Prefix) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.Prefix)
+	copy(dAtA[i:], m.Prefix)
 	i = encodeVarintQuota(dAtA, i, uint64(len(m.Prefix)))
-	i += copy(dAtA[i:], m.Prefix)
-	return i, nil
+	i--
+	dAtA[i] = 0x12
+	return len(dAtA) - i, nil
 }
 func (m *StringMatch_Regex) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
-	dAtA[i] = 0x1a
-	i++
+	return m.MarshalToSizedBuffer(dAtA[:m.Size()])
+}
+
+func (m *StringMatch_Regex) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	i -= len(m.Regex)
+	copy(dAtA[i:], m.Regex)
 	i = encodeVarintQuota(dAtA, i, uint64(len(m.Regex)))
-	i += copy(dAtA[i:], m.Regex)
-	return i, nil
+	i--
+	dAtA[i] = 0x1a
+	return len(dAtA) - i, nil
 }
 func (m *AttributeMatch) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -604,50 +612,53 @@ func (m *AttributeMatch) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *AttributeMatch) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *AttributeMatch) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
 	if len(m.Clause) > 0 {
 		keysForClause := make([]string, 0, len(m.Clause))
-		for k, _ := range m.Clause {
+		for k := range m.Clause {
 			keysForClause = append(keysForClause, string(k))
 		}
 		github_com_gogo_protobuf_sortkeys.Strings(keysForClause)
-		for _, k := range keysForClause {
-			dAtA[i] = 0xa
-			i++
-			v := m.Clause[string(k)]
-			msgSize := 0
+		for iNdEx := len(keysForClause) - 1; iNdEx >= 0; iNdEx-- {
+			v := m.Clause[string(keysForClause[iNdEx])]
+			baseI := i
 			if v != nil {
-				msgSize = v.Size()
-				msgSize += 1 + sovQuota(uint64(msgSize))
-			}
-			mapSize := 1 + len(k) + sovQuota(uint64(len(k))) + msgSize
-			i = encodeVarintQuota(dAtA, i, uint64(mapSize))
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintQuota(dAtA, i, uint64(len(k)))
-			i += copy(dAtA[i:], k)
-			if v != nil {
-				dAtA[i] = 0x12
-				i++
-				i = encodeVarintQuota(dAtA, i, uint64(v.Size()))
-				n2, err := v.MarshalTo(dAtA[i:])
-				if err != nil {
-					return 0, err
+				{
+					size, err := v.MarshalToSizedBuffer(dAtA[:i])
+					if err != nil {
+						return 0, err
+					}
+					i -= size
+					i = encodeVarintQuota(dAtA, i, uint64(size))
 				}
-				i += n2
+				i--
+				dAtA[i] = 0x12
 			}
+			i -= len(keysForClause[iNdEx])
+			copy(dAtA[i:], keysForClause[iNdEx])
+			i = encodeVarintQuota(dAtA, i, uint64(len(keysForClause[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+			i = encodeVarintQuota(dAtA, i, uint64(baseI-i))
+			i--
+			dAtA[i] = 0xa
 		}
 	}
-	return i, nil
+	return len(dAtA) - i, nil
 }
 
 func (m *Quota) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -655,28 +666,34 @@ func (m *Quota) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *Quota) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *Quota) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Quota) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintQuota(dAtA, i, uint64(len(m.Quota)))
-		i += copy(dAtA[i:], m.Quota)
-	}
 	if m.Charge != 0 {
-		dAtA[i] = 0x10
-		i++
 		i = encodeVarintQuota(dAtA, i, uint64(m.Charge))
+		i--
+		dAtA[i] = 0x10
 	}
-	return i, nil
+	if len(m.Quota) > 0 {
+		i -= len(m.Quota)
+		copy(dAtA[i:], m.Quota)
+		i = encodeVarintQuota(dAtA, i, uint64(len(m.Quota)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *QuotaSpecBinding) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -684,41 +701,50 @@ func (m *QuotaSpecBinding) Marshal() (dAtA []byte, err error) {
 }
 
 func (m *QuotaSpecBinding) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QuotaSpecBinding) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Services) > 0 {
-		for _, msg := range m.Services {
-			dAtA[i] = 0xa
-			i++
-			i = encodeVarintQuota(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
-			}
-			i += n
-		}
-	}
 	if len(m.QuotaSpecs) > 0 {
-		for _, msg := range m.QuotaSpecs {
-			dAtA[i] = 0x12
-			i++
-			i = encodeVarintQuota(dAtA, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(dAtA[i:])
-			if err != nil {
-				return 0, err
+		for iNdEx := len(m.QuotaSpecs) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.QuotaSpecs[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuota(dAtA, i, uint64(size))
 			}
-			i += n
+			i--
+			dAtA[i] = 0x12
 		}
 	}
-	return i, nil
+	if len(m.Services) > 0 {
+		for iNdEx := len(m.Services) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Services[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuota(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
 }
 
 func (m *QuotaSpecBinding_QuotaSpecReference) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
-	n, err := m.MarshalTo(dAtA)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
 	if err != nil {
 		return nil, err
 	}
@@ -726,33 +752,42 @@ func (m *QuotaSpecBinding_QuotaSpecReference) Marshal() (dAtA []byte, err error)
 }
 
 func (m *QuotaSpecBinding_QuotaSpecReference) MarshalTo(dAtA []byte) (int, error) {
-	var i int
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QuotaSpecBinding_QuotaSpecReference) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Name) > 0 {
-		dAtA[i] = 0xa
-		i++
-		i = encodeVarintQuota(dAtA, i, uint64(len(m.Name)))
-		i += copy(dAtA[i:], m.Name)
-	}
 	if len(m.Namespace) > 0 {
-		dAtA[i] = 0x12
-		i++
+		i -= len(m.Namespace)
+		copy(dAtA[i:], m.Namespace)
 		i = encodeVarintQuota(dAtA, i, uint64(len(m.Namespace)))
-		i += copy(dAtA[i:], m.Namespace)
+		i--
+		dAtA[i] = 0x12
 	}
-	return i, nil
+	if len(m.Name) > 0 {
+		i -= len(m.Name)
+		copy(dAtA[i:], m.Name)
+		i = encodeVarintQuota(dAtA, i, uint64(len(m.Name)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
 }
 
 func encodeVarintQuota(dAtA []byte, offset int, v uint64) int {
+	offset -= sovQuota(v)
+	base := offset
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
 	dAtA[offset] = uint8(v)
-	return offset + 1
+	return base
 }
 func (m *QuotaSpec) Size() (n int) {
 	if m == nil {
@@ -909,14 +944,7 @@ func (m *QuotaSpecBinding_QuotaSpecReference) Size() (n int) {
 }
 
 func sovQuota(x uint64) (n int) {
-	for {
-		n++
-		x >>= 7
-		if x == 0 {
-			break
-		}
-	}
-	return n
+	return (math_bits.Len64(x|1) + 6) / 7
 }
 func sozQuota(x uint64) (n int) {
 	return sovQuota(uint64((x << 1) ^ uint64((int64(x) >> 63))))
@@ -925,8 +953,13 @@ func (this *QuotaSpec) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForRules := "[]*QuotaRule{"
+	for _, f := range this.Rules {
+		repeatedStringForRules += strings.Replace(f.String(), "QuotaRule", "QuotaRule", 1) + ","
+	}
+	repeatedStringForRules += "}"
 	s := strings.Join([]string{`&QuotaSpec{`,
-		`Rules:` + strings.Replace(fmt.Sprintf("%v", this.Rules), "QuotaRule", "QuotaRule", 1) + `,`,
+		`Rules:` + repeatedStringForRules + `,`,
 		`}`,
 	}, "")
 	return s
@@ -935,9 +968,19 @@ func (this *QuotaRule) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForMatch := "[]*AttributeMatch{"
+	for _, f := range this.Match {
+		repeatedStringForMatch += strings.Replace(f.String(), "AttributeMatch", "AttributeMatch", 1) + ","
+	}
+	repeatedStringForMatch += "}"
+	repeatedStringForQuotas := "[]*Quota{"
+	for _, f := range this.Quotas {
+		repeatedStringForQuotas += strings.Replace(f.String(), "Quota", "Quota", 1) + ","
+	}
+	repeatedStringForQuotas += "}"
 	s := strings.Join([]string{`&QuotaRule{`,
-		`Match:` + strings.Replace(fmt.Sprintf("%v", this.Match), "AttributeMatch", "AttributeMatch", 1) + `,`,
-		`Quotas:` + strings.Replace(fmt.Sprintf("%v", this.Quotas), "Quota", "Quota", 1) + `,`,
+		`Match:` + repeatedStringForMatch + `,`,
+		`Quotas:` + repeatedStringForQuotas + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1017,9 +1060,19 @@ func (this *QuotaSpecBinding) String() string {
 	if this == nil {
 		return "nil"
 	}
+	repeatedStringForServices := "[]*IstioService{"
+	for _, f := range this.Services {
+		repeatedStringForServices += strings.Replace(fmt.Sprintf("%v", f), "IstioService", "IstioService", 1) + ","
+	}
+	repeatedStringForServices += "}"
+	repeatedStringForQuotaSpecs := "[]*QuotaSpecBinding_QuotaSpecReference{"
+	for _, f := range this.QuotaSpecs {
+		repeatedStringForQuotaSpecs += strings.Replace(fmt.Sprintf("%v", f), "QuotaSpecBinding_QuotaSpecReference", "QuotaSpecBinding_QuotaSpecReference", 1) + ","
+	}
+	repeatedStringForQuotaSpecs += "}"
 	s := strings.Join([]string{`&QuotaSpecBinding{`,
-		`Services:` + strings.Replace(fmt.Sprintf("%v", this.Services), "IstioService", "IstioService", 1) + `,`,
-		`QuotaSpecs:` + strings.Replace(fmt.Sprintf("%v", this.QuotaSpecs), "QuotaSpecBinding_QuotaSpecReference", "QuotaSpecBinding_QuotaSpecReference", 1) + `,`,
+		`Services:` + repeatedStringForServices + `,`,
+		`QuotaSpecs:` + repeatedStringForQuotaSpecs + `,`,
 		`}`,
 	}, "")
 	return s
@@ -1657,7 +1710,7 @@ func (m *Quota) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Charge |= int64(b&0x7F) << shift
+				m.Charge |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

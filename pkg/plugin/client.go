@@ -68,7 +68,6 @@ func newClient(name string, config *Config) (*Client, error) {
 		c.config = &Config{1, nil}
 	}
 
-
 	c.Check()
 	return c, nil
 }

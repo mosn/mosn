@@ -1,14 +1,18 @@
 package tars
 
 import (
-	"github.com/TarsCloud/TarsGo/tars/util/rogger"
 	"path/filepath"
+
+	"github.com/TarsCloud/TarsGo/tars/util/rogger"
 )
 
 // GetLogger Get a logger
 func GetLogger(name string) *rogger.Logger {
 	cfg, name := logName(name)
 	lg := rogger.GetLogger(name)
+	if cfg == nil {
+		return lg
+	}
 	logpath := filepath.Join(cfg.LogPath, cfg.App, cfg.Server)
 	lg.SetFileRoller(logpath, int(cfg.LogNum), int(cfg.LogSize))
 	return lg
@@ -16,6 +20,9 @@ func GetLogger(name string) *rogger.Logger {
 
 func logName(name string) (*serverConfig, string) {
 	cfg := GetServerConfig()
+	if cfg == nil {
+		return nil, name
+	}
 	if name == "" {
 		name = cfg.App + "." + cfg.Server
 	} else {
@@ -42,6 +49,7 @@ func GetHourLogger(name string, numHour int) *rogger.Logger {
 	return lg
 }
 
+//GetRemoteLogger returns a remote logger
 func GetRemoteLogger(name string) *rogger.Logger {
 	cfg := GetServerConfig()
 	lg := rogger.GetLogger(name)
@@ -49,7 +57,7 @@ func GetRemoteLogger(name string) *rogger.Logger {
 		return lg
 	}
 	remoteWriter := NewRemoteTimeWriter()
-	var set string = ""
+	var set string
 	if cfg.Enableset {
 		set = cfg.Setdivision
 	}

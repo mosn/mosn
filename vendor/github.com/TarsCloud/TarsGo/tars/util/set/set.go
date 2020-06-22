@@ -1,6 +1,4 @@
-//golang实现set功能
-//
-//获取长度不可靠
+//Package set implement
 package set
 
 import (
@@ -8,11 +6,13 @@ import (
 	"sync/atomic"
 )
 
+//Set struct
 type Set struct {
 	el     sync.Map
 	length int32
 }
 
+//NewSet news a set
 func NewSet(opt ...interface{}) *Set {
 	s := new(Set)
 	for _, o := range opt {
@@ -21,6 +21,7 @@ func NewSet(opt ...interface{}) *Set {
 	return s
 }
 
+//Add add an element to Set
 func (s *Set) Add(e interface{}) bool {
 	_, ok := s.el.LoadOrStore(e, s.length)
 	if !ok {
@@ -29,6 +30,7 @@ func (s *Set) Add(e interface{}) bool {
 	return ok
 }
 
+//Remove remove an element from set.
 func (s *Set) Remove(e interface{}) {
 	atomic.AddInt32(&s.length, -1)
 	//没有元素时重置为0
@@ -36,12 +38,16 @@ func (s *Set) Remove(e interface{}) {
 	s.el.Delete(e)
 }
 
+//Clear clear the set.
 func (s *Set) Clear() {
 	atomic.SwapInt32(&s.length, 0)
-	var newEl sync.Map
-	s.el = newEl
+	s.el.Range(func(key interface{}, value interface{}) bool {
+		s.el.Delete(key)
+		return true
+	})
 }
 
+//Slice init set from []interface.
 func (s *Set) Slice() (list []interface{}) {
 	s.el.Range(func(k, v interface{}) bool {
 		list = append(list, k)
@@ -50,10 +56,12 @@ func (s *Set) Slice() (list []interface{}) {
 	return list
 }
 
+//Len return the length of the set
 func (s *Set) Len() int32 {
 	return s.length
 }
 
+//Has indicates whether the set has the element.
 func (s *Set) Has(e interface{}) bool {
 	if _, ok := s.el.Load(e); ok {
 		return true
