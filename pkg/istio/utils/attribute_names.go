@@ -51,4 +51,26 @@ const (
 	KResponseTotalSize = "response.total_size"
 	// KResponseTime const string
 	KResponseTime = "response.time"
+
+	// KRequestHeaders const string
+	KRequestHeaders = "request.headers"
+	// KRequestPath const string
+	KRequestPath = "request.path"
+	// KRequestUrlPath const string
+	KRequestUrlPath = "request.url_path"
+	// KRequestQueryParms const string
+	KRequestQueryParms = "request.query_params"
+	// KRequestMethod const string
+	KRequestMethod = "request.method"
+	// KRequestHost const string
+	KRequestHost = "request.host"
+
+	// KDestinationServiceHost const string
+	KDestinationServiceHost = "destination.service.host"
+	// KDestinationServiceName const string
+	KDestinationServiceName = "destination.service.name"
+	// KDestinationServiceNamespace const string
+	KDestinationServiceNamespace = "destination.service.namespace"
+	// KContextReporterKind const string
+	KContextReporterKind = "context.reporter.kind"
 )
