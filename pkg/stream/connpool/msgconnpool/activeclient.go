@@ -69,8 +69,12 @@ func (ac *activeClient) setHeartBeater(kp KeepAlive) {
 func (ac *activeClient) clearHeartBeater() {
 	// clear the previous keepAlive
 	if ac.keepAlive != nil && ac.keepAlive.keepAlive != nil {
+		if !atomic.CompareAndSwapUint64(&ac.keepAlive.stopped, 0, 1) {
+			// this keepalive object is already stopped
+			return
+		}
+
 		ac.keepAlive.keepAlive.Stop()
-		ac.keepAlive = nil
 	}
 }
 
