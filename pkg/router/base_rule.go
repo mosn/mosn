@@ -50,6 +50,8 @@ type RouteRuleImplBase struct {
 	policy *policy
 	// direct response
 	directResponseRule *directResponseImpl
+	// request mirro
+	mirrorPolicies *mirrorImpl
 	// action
 	routerAction       v2.RouteAction
 	defaultCluster     *weightedClusterEntry // cluster name and metadata
@@ -57,6 +59,12 @@ type RouteRuleImplBase struct {
 	totalClusterWeight uint32
 	lock               sync.Mutex
 	randInstance       *rand.Rand
+}
+
+// TODO move to mosn.io/api
+type MirrorPolicies interface {
+	IsTrans() bool
+	Cluster() string
 }
 
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleImplBase, error) {
@@ -118,11 +126,24 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			body:   route.DirectResponse.Body,
 		}
 	}
+	// add mirror policies
+	if route.Route.RequestMirrorPolicies != nil {
+		base.mirrorPolicies = &mirrorImpl{
+			cluster:        route.Route.RequestMirrorPolicies.Cluster,
+			numberator:     int(route.Route.RequestMirrorPolicies.FractionalPercent.Numberator),
+			denominatorNum: int(route.Route.RequestMirrorPolicies.FractionalPercent.DenominatorNum),
+			rand:           rand.New(rand.NewSource(time.Now().UnixNano())),
+		}
+	}
 	return base, nil
 }
 
 func (rri *RouteRuleImplBase) DirectResponseRule() api.DirectResponseRule {
 	return rri.directResponseRule
+}
+
+func (rri *RouteRuleImplBase) MirrorPolicies() MirrorPolicies {
+	return rri.mirrorPolicies
 }
 
 // types.RouteRule
