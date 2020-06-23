@@ -1342,33 +1342,38 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 func convertMirrorPolicy(xdsRouteAction *xdsroute.RouteAction) *v2.RequestMirrorPolicy {
 	if xdsRouteAction.GetRequestMirrorPolicy() != nil {
 		return &v2.RequestMirrorPolicy{
-			Cluster: xdsRouteAction.GetRequestMirrorPolicy().GetCluster(),
-			Percent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicy().GetRuntimeFraction()),
+			Cluster:           xdsRouteAction.GetRequestMirrorPolicy().GetCluster(),
+			FractionalPercent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicy().GetRuntimeFraction()),
 		}
 	}
 
 	if len(xdsRouteAction.GetRequestMirrorPolicies()) > 0 {
 		return &v2.RequestMirrorPolicy{
-			Cluster: xdsRouteAction.GetRequestMirrorPolicies()[0].GetCluster(),
-			Percent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicies()[0].GetRuntimeFraction()),
+			Cluster:           xdsRouteAction.GetRequestMirrorPolicies()[0].GetCluster(),
+			FractionalPercent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicies()[0].GetRuntimeFraction()),
 		}
 	}
 
 	return nil
 }
 
-func convertRuntimePercentage(percent *xdscore.RuntimeFractionalPercent) uint32 {
+func convertRuntimePercentage(percent *xdscore.RuntimeFractionalPercent) *v2.Fractionalpercent {
 	if percent == nil {
-		return 0
+		return nil
+	}
+
+	result := &v2.Fractionalpercent{
+		Numberator: percent.GetDefaultValue().GetNumerator(),
 	}
 	switch percent.GetDefaultValue().GetDenominator() {
 	case xdstype.FractionalPercent_MILLION:
-		return percent.GetDefaultValue().GetNumerator() / 10000
+		result.DenominatorNum = 1000000
 	case xdstype.FractionalPercent_TEN_THOUSAND:
-		return percent.GetDefaultValue().GetNumerator() / 10
+		result.DenominatorNum = 1000
 	case xdstype.FractionalPercent_HUNDRED:
-		return percent.GetDefaultValue().GetNumerator()
+		result.DenominatorNum = 100
 	default:
-		return percent.GetDefaultValue().GetNumerator()
+		result.DenominatorNum = 100
 	}
+	return result
 }
