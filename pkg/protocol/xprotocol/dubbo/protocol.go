@@ -112,7 +112,7 @@ func (proto *dubboProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame
 
 // https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
 // hijacker
-func (proto *dubboProtocol) Hijack(statusCode uint32) xprotocol.XRespFrame {
+func (proto *dubboProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
 	responseStatus, ok := dubboStatusMap[int(statusCode)]
 	if !ok {
 		responseStatus = hessian.Response_SERVICE_ERROR
@@ -130,7 +130,7 @@ func (proto *dubboProtocol) Hijack(statusCode uint32) xprotocol.XRespFrame {
 			Magic:   MagicTag,
 			Flag:    0x02,
 			Status:  responseStatus,
-			Id:      1,
+			Id:      request.GetRequestId(),
 			DataLen: uint32(len(payload)),
 		},
 		payload: payload,
