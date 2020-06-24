@@ -17,6 +17,11 @@
 
 package dubbo
 
+import (
+	hessian "github.com/apache/dubbo-go-hessian2"
+	"mosn.io/mosn/pkg/types"
+)
+
 const (
 	ProtocolName = "dubbo"
 )
@@ -62,4 +67,34 @@ const (
 
 const (
 	ResponseStatusSuccess uint16 = 0x14 // 0x14 response status
+)
+
+var (
+	dubboStatusMsg = map[int]string{
+		types.CodecExceptionCode:    "0|codec exception",
+		types.UnknownCode:           "2|unknown",
+		types.DeserialExceptionCode: "3|deserial exception",
+		types.SuccessCode:           "200|success",
+		types.PermissionDeniedCode:  "403|permission denied",
+		types.RouterUnavailableCode: "404|router unavailable",
+		types.InternalErrorCode:     "500|internal error",
+		types.NoHealthUpstreamCode:  "502|no health upstream",
+		types.UpstreamOverFlowCode:  "503|upstream overflow",
+		types.TimeoutExceptionCode:  "504|timeout",
+		types.LimitExceededCode:     "509|limit exceeded",
+	}
+
+	dubboStatusMap = map[int]byte{
+		types.CodecExceptionCode:    hessian.Response_SERVICE_ERROR,
+		types.UnknownCode:           hessian.Response_SERVICE_ERROR,
+		types.DeserialExceptionCode: hessian.Response_SERVICE_ERROR,
+		types.SuccessCode:           hessian.Response_OK,
+		types.PermissionDeniedCode:  hessian.Response_SERVER_ERROR,
+		types.RouterUnavailableCode: hessian.Response_SERVICE_NOT_FOUND,
+		types.InternalErrorCode:     hessian.Response_SERVICE_ERROR,
+		types.NoHealthUpstreamCode:  hessian.Response_SERVICE_NOT_FOUND,
+		types.UpstreamOverFlowCode:  hessian.Response_BAD_REQUEST,
+		types.TimeoutExceptionCode:  hessian.Response_CLIENT_TIMEOUT,
+		types.LimitExceededCode:     hessian.Response_BAD_REQUEST,
+	}
 )
