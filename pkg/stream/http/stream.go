@@ -150,6 +150,14 @@ func (conn *streamConnection) Protocol() types.ProtocolName {
 func (conn *streamConnection) GoAway() {}
 
 func (conn *streamConnection) Read(p []byte) (n int, err error) {
+	// conn.bufChan <- nil Maybe caused panic error when connection closed.
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Infof("[stream] [http] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
+				conn.conn.ID(), conn.conn.LocalAddr(), conn.conn.RemoteAddr(), r)
+		}
+	}()
+
 	data, ok := <-conn.bufChan
 
 	// Connection close
