@@ -7,7 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.3.0
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/golang/mock v1.2.0
-	github.com/golang/protobuf v1.3.0
+	github.com/golang/protobuf v1.3.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.1
 	github.com/json-iterator/go v1.1.6 // indirect
@@ -17,7 +17,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/ugorji/go v1.1.4 // indirect
-	google.golang.org/grpc v1.20.1
+	google.golang.org/grpc v1.27.0
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2 // indirect
 )

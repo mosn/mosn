@@ -24,7 +24,7 @@ import (
 	"github.com/SkyAPM/go2sky/internal/tool"
 	"github.com/SkyAPM/go2sky/propagation"
 	"github.com/SkyAPM/go2sky/reporter/grpc/common"
-	v2 "github.com/SkyAPM/go2sky/reporter/grpc/language-agent-v2"
+	v3 "github.com/SkyAPM/go2sky/reporter/grpc/language-agent"
 )
 
 // SpanType is used to identify entry, exit and local
@@ -44,7 +44,7 @@ type Span interface {
 	SetOperationName(string)
 	GetOperationName() string
 	SetPeer(string)
-	SetSpanLayer(common.SpanLayer)
+	SetSpanLayer(v3.SpanLayer)
 	SetComponent(int32)
 	Tag(Tag, string)
 	Log(time.Time, ...string)
@@ -69,16 +69,15 @@ type defaultSpan struct {
 	EndTime       time.Time
 	OperationName string
 	Peer          string
-	Layer         common.SpanLayer
+	Layer         v3.SpanLayer
 	ComponentID   int32
 	Tags          []*common.KeyStringValuePair
-	Logs          []*v2.Log
+	Logs          []*v3.Log
 	IsError       bool
 	SpanType      SpanType
 }
 
 // For Span
-
 func (ds *defaultSpan) SetOperationName(name string) {
 	ds.OperationName = name
 }
@@ -91,7 +90,7 @@ func (ds *defaultSpan) SetPeer(peer string) {
 	ds.Peer = peer
 }
 
-func (ds *defaultSpan) SetSpanLayer(layer common.SpanLayer) {
+func (ds *defaultSpan) SetSpanLayer(layer v3.SpanLayer) {
 	ds.Layer = layer
 }
 
@@ -117,7 +116,7 @@ func (ds *defaultSpan) Log(time time.Time, ll ...string) {
 			}
 		}
 	}
-	ds.Logs = append(ds.Logs, &v2.Log{Time: tool.Millisecond(time), Data: data})
+	ds.Logs = append(ds.Logs, &v3.Log{Time: tool.Millisecond(time), Data: data})
 }
 
 func (ds *defaultSpan) Error(time time.Time, ll ...string) {

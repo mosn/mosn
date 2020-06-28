@@ -48,7 +48,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("create tracer error %v \n", err)
 	}
-	tracer.WaitUntilRegister()
 
 	sm, err := httpPlugin.NewServerMiddleware(tracer)
 	if err != nil {

@@ -26,7 +26,7 @@ import (
 	"github.com/SkyAPM/go2sky"
 	"github.com/SkyAPM/go2sky/internal/tool"
 	"github.com/SkyAPM/go2sky/propagation"
-	"github.com/SkyAPM/go2sky/reporter/grpc/common"
+	v3 "github.com/SkyAPM/go2sky/reporter/grpc/language-agent"
 )
 
 const (
@@ -84,7 +84,9 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return r.Header.Get(propagation.Header), nil
 	})
 	if err != nil {
-		h.next.ServeHTTP(w, r)
+		if h.next != nil {
+			h.next.ServeHTTP(w, r)
+		}
 		return
 	}
 	span.SetComponent(httpServerComponentID)
@@ -93,7 +95,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	span.Tag(go2sky.TagHTTPMethod, r.Method)
 	span.Tag(go2sky.TagURL, fmt.Sprintf("%s%s", r.Host, r.URL.Path))
-	span.SetSpanLayer(common.SpanLayer_Http)
+	span.SetSpanLayer(v3.SpanLayer_Http)
 
 	rww := &responseWriterWrapper{w: w, statusCode: 200}
 	defer func() {
@@ -104,7 +106,9 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		span.Tag(go2sky.TagStatusCode, strconv.Itoa(code))
 		span.End()
 	}()
-	h.next.ServeHTTP(rww, r.WithContext(ctx))
+	if h.next != nil {
+		h.next.ServeHTTP(rww, r.WithContext(ctx))
+	}
 }
 
 type responseWriterWrapper struct {

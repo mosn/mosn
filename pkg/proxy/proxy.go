@@ -230,7 +230,7 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 		if ok {
 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
+				log.Proxy.Debugf(stream.context, "[proxy] [downstream] %d stream filters in config", len(ffs))
 			}
 
 			for _, f := range ffs {

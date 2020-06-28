@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	bou.ke/monkey v1.0.2
-	github.com/SkyAPM/go2sky v0.3.1-0.20200329092408-8b3e4d536d8d
+	github.com/SkyAPM/go2sky v0.4.0
 	github.com/TarsCloud/TarsGo v0.0.0-20190521041003-0022231bc5b2
 	github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
 	github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d // perf: https://github.com/apache/dubbo-go-hessian2/pull/188
@@ -42,7 +42,6 @@ require (
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
-	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
