@@ -55,28 +55,7 @@ func (_obj *Notify) ReportServer(SServerName string, SThreadId string, SMessage 
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -119,28 +98,7 @@ func (_obj *Notify) ReportServerWithContext(ctx context.Context, SServerName str
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -184,28 +142,7 @@ func (_obj *Notify) NotifyServer(SServerName string, Level NOTIFYLEVEL, SMessage
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -248,28 +185,7 @@ func (_obj *Notify) NotifyServerWithContext(ctx context.Context, SServerName str
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -313,28 +229,7 @@ func (_obj *Notify) GetNotifyInfo(StKey *NotifyKey, StInfo *NotifyInfo, _opt ...
 		return ret, err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -377,28 +272,7 @@ func (_obj *Notify) GetNotifyInfoWithContext(ctx context.Context, StKey *NotifyK
 		return ret, err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -432,28 +306,7 @@ func (_obj *Notify) ReportNotifyInfo(Info *ReportInfo, _opt ...map[string]string
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -486,28 +339,7 @@ func (_obj *Notify) ReportNotifyInfoWithContext(ctx context.Context, Info *Repor
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -523,6 +355,29 @@ func (_obj *Notify) SetServant(s m.Servant) {
 func (_obj *Notify) TarsSetTimeout(t int) {
 	_obj.s.TarsSetTimeout(t)
 }
+func setMap(l int, res *requestf.ResponsePacket, ctx map[string]string, sts map[string]string) {
+	if l == 1 {
+		for k := range ctx {
+			delete(ctx, k)
+		}
+		for k, v := range res.Context {
+			ctx[k] = v
+		}
+	} else if l == 2 {
+		for k := range ctx {
+			delete(ctx, k)
+		}
+		for k, v := range res.Context {
+			ctx[k] = v
+		}
+		for k := range sts {
+			delete(sts, k)
+		}
+		for k, v := range res.Status {
+			sts[k] = v
+		}
+	}
+}
 
 type _impNotify interface {
 	ReportServer(SServerName string, SThreadId string, SMessage string) (err error)
@@ -537,125 +392,179 @@ type _impNotifyWithContext interface {
 	ReportNotifyInfo(ctx context.Context, Info *ReportInfo) (err error)
 }
 
-//Dispatch is used to call the server side implemnet for the method defined in the tars file. withContext shows using context or not.
-func (_obj *Notify) Dispatch(ctx context.Context, _val interface{}, req *requestf.RequestPacket, resp *requestf.ResponsePacket, withContext bool) (err error) {
+func reportServer(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
 	var length int32
 	var have bool
 	var ty byte
+	var SServerName string
+	err = _is.Read_string(&SServerName, 1, true)
+	if err != nil {
+		return err
+	}
+	var SThreadId string
+	err = _is.Read_string(&SThreadId, 2, true)
+	if err != nil {
+		return err
+	}
+	var SMessage string
+	err = _is.Read_string(&SMessage, 3, true)
+	if err != nil {
+		return err
+	}
+	if withContext == false {
+		_imp := _val.(_impNotify)
+		err = _imp.ReportServer(SServerName, SThreadId, SMessage)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impNotifyWithContext)
+		err = _imp.ReportServer(ctx, SServerName, SThreadId, SMessage)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+func notifyServer(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
+	var SServerName string
+	err = _is.Read_string(&SServerName, 1, true)
+	if err != nil {
+		return err
+	}
+	var Level NOTIFYLEVEL
+	err = _is.Read_int32((*int32)(&Level), 2, true)
+	if err != nil {
+		return err
+	}
+	var SMessage string
+	err = _is.Read_string(&SMessage, 3, true)
+	if err != nil {
+		return err
+	}
+	if withContext == false {
+		_imp := _val.(_impNotify)
+		err = _imp.NotifyServer(SServerName, Level, SMessage)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impNotifyWithContext)
+		err = _imp.NotifyServer(ctx, SServerName, Level, SMessage)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+func getNotifyInfo(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
+	var StKey NotifyKey
+	err = StKey.ReadBlock(_is, 1, true)
+	if err != nil {
+		return err
+	}
+	var StInfo NotifyInfo
+	if withContext == false {
+		_imp := _val.(_impNotify)
+		ret, err := _imp.GetNotifyInfo(&StKey, &StInfo)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impNotifyWithContext)
+		ret, err := _imp.GetNotifyInfo(ctx, &StKey, &StInfo)
+		if err != nil {
+			return err
+		}
+
+		err = _os.Write_int32(ret, 0)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = StInfo.WriteBlock(_os, 2)
+	if err != nil {
+		return err
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+func reportNotifyInfo(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
+	var Info ReportInfo
+	err = Info.ReadBlock(_is, 1, true)
+	if err != nil {
+		return err
+	}
+	if withContext == false {
+		_imp := _val.(_impNotify)
+		err = _imp.ReportNotifyInfo(&Info)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impNotifyWithContext)
+		err = _imp.ReportNotifyInfo(ctx, &Info)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+
+//Dispatch is used to call the server side implemnet for the method defined in the tars file. withContext shows using context or not.
+func (_obj *Notify) Dispatch(ctx context.Context, _val interface{}, req *requestf.RequestPacket, resp *requestf.ResponsePacket, withContext bool) (err error) {
 	_is := codec.NewReader(tools.Int8ToByte(req.SBuffer))
 	_os := codec.NewBuffer()
 	switch req.SFuncName {
 	case "reportServer":
-		var SServerName string
-		err = _is.Read_string(&SServerName, 1, true)
+		err := reportServer(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		var SThreadId string
-		err = _is.Read_string(&SThreadId, 2, true)
-		if err != nil {
-			return err
-		}
-		var SMessage string
-		err = _is.Read_string(&SMessage, 3, true)
-		if err != nil {
-			return err
-		}
-		if withContext == false {
-			_imp := _val.(_impNotify)
-			err = _imp.ReportServer(SServerName, SThreadId, SMessage)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impNotifyWithContext)
-			err = _imp.ReportServer(ctx, SServerName, SThreadId, SMessage)
-			if err != nil {
-				return err
-			}
 		}
 	case "notifyServer":
-		var SServerName string
-		err = _is.Read_string(&SServerName, 1, true)
+		err := notifyServer(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		var Level NOTIFYLEVEL
-		err = _is.Read_int32((*int32)(&Level), 2, true)
-		if err != nil {
-			return err
-		}
-		var SMessage string
-		err = _is.Read_string(&SMessage, 3, true)
-		if err != nil {
-			return err
-		}
-		if withContext == false {
-			_imp := _val.(_impNotify)
-			err = _imp.NotifyServer(SServerName, Level, SMessage)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impNotifyWithContext)
-			err = _imp.NotifyServer(ctx, SServerName, Level, SMessage)
-			if err != nil {
-				return err
-			}
 		}
 	case "getNotifyInfo":
-		var StKey NotifyKey
-		err = StKey.ReadBlock(_is, 1, true)
-		if err != nil {
-			return err
-		}
-		var StInfo NotifyInfo
-		if withContext == false {
-			_imp := _val.(_impNotify)
-			ret, err := _imp.GetNotifyInfo(&StKey, &StInfo)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impNotifyWithContext)
-			ret, err := _imp.GetNotifyInfo(ctx, &StKey, &StInfo)
-			if err != nil {
-				return err
-			}
-
-			err = _os.Write_int32(ret, 0)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = StInfo.WriteBlock(_os, 2)
+		err := getNotifyInfo(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
 		}
 	case "reportNotifyInfo":
-		var Info ReportInfo
-		err = Info.ReadBlock(_is, 1, true)
+		err := reportNotifyInfo(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		if withContext == false {
-			_imp := _val.(_impNotify)
-			err = _imp.ReportNotifyInfo(&Info)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impNotifyWithContext)
-			err = _imp.ReportNotifyInfo(ctx, &Info)
-			if err != nil {
-				return err
-			}
 		}
 
 	default:
@@ -682,8 +591,5 @@ func (_obj *Notify) Dispatch(ctx context.Context, _val interface{}, req *request
 		SResultDesc:  "",
 		Context:      _context,
 	}
-	_ = length
-	_ = have
-	_ = ty
 	return nil
 }

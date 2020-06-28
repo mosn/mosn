@@ -64,6 +64,8 @@ const cfgStr = `{
 	 }
 }`
 
+// apiType = "GRPC" Defined by const ApiConfigSource_GRPC ApiConfigSource_ApiType = 2
+// at the go-control-plane/envoy/api/v2/core/config_source.pb.go file.
 const xdsSdsConfig = `{
   "servers": [
     {
@@ -218,6 +220,56 @@ const xdsSdsConfig = `{
           "inspector": true
          }]
     }
-  ]
+  ],
+  "dynamic_resources": {
+    "ads_config": {
+      "api_type": "GRPC",
+      "grpc_services": [
+        {
+          "envoy_grpc": {
+            "cluster_name": "xds-grpc"
+          }
+        }
+      ]
+    }
+  },
+  "static_resources": {
+    "clusters": [
+      {
+        "name": "xds-grpc",
+        "type": "STRICT_DNS",
+        "connect_timeout": "10s",
+        "lb_policy": "ROUND_ROBIN",
+        "hosts": [
+          {
+            "socket_address": {"address": "pilot.test", "port_value": 15010}
+          }
+        ],
+        "circuit_breakers": {
+          "thresholds": [
+            {
+              "priority": "DEFAULT",
+              "max_connections": 100000,
+              "max_pending_requests": 100000,
+              "max_requests": 100000
+            },
+            {
+              "priority": "HIGH",
+              "max_connections": 100000,
+              "max_pending_requests": 100000,
+              "max_requests": 100000
+            }
+          ]
+        },
+        "upstream_connection_options": {
+          "tcp_keepalive": {
+            "keepalive_time": 300
+          }
+        },
+        "http2_protocol_options": { }
+      }
+    ]
+  }
+
 }
 `

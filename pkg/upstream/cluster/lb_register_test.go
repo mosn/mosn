@@ -135,6 +135,21 @@ func TestRegisterNewLB(t *testing.T) {
 	}
 }
 
+// test return maglevLoadBalancer type
+func TestMaglevLoadBalancer(t *testing.T) {
+	set := &mockHostSet{
+		hosts: []types.Host{
+			&mockHost{name: "host"},
+		},
+	}
+	lb := NewLoadBalancer(&clusterInfo{lbType: types.Maglev}, set)
+	if _, ok := lb.(*maglevLoadBalancer); !ok {
+		t.Errorf("lb type should be 'maglevLoadBalancer")
+		t.FailNow()
+
+	}
+}
+
 // Test Used in cluster
 func TestNewLBCluster(t *testing.T) {
 	cfg := v2.Cluster{
