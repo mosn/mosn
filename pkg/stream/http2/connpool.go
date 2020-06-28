@@ -156,7 +156,6 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 	} else if event == api.ConnectTimeout {
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		client.client.Close()
 	} else if event == api.ConnectFailed {
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
@@ -208,17 +207,18 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	host := pool.Host()
 	data := host.CreateConnection(ctx)
+	data.Connection.AddConnectionEventListener(ac)
+	if err := data.Connection.Connect(); err != nil {
+		log.DefaultLogger.Debugf("http2 underlying connection error: %v", err)
+		return nil
+	}
+
 	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
-	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient
 	ac.host = data
-
-	if err := ac.host.Connection.Connect(); err != nil {
-		return nil
-	}
 
 	host.HostStats().UpstreamConnectionTotal.Inc(1)
 	host.HostStats().UpstreamConnectionActive.Inc(1)

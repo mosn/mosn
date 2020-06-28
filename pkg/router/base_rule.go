@@ -94,6 +94,26 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			numRetries:   route.Route.RetryPolicy.NumRetries,
 		}
 	}
+	// add hash policy
+	if route.Route.HashPolicy != nil && len(route.Route.HashPolicy) >= 1 {
+		hp := route.Route.HashPolicy[0]
+		if hp.Header != nil {
+			base.policy.hashPolicy = &headerHashPolicyImpl{
+				key: hp.Header.Key,
+			}
+		}
+		if hp.Cookie != nil {
+			base.policy.hashPolicy = &cookieHashPolicyImpl{
+				name: hp.Cookie.Name,
+				path: hp.Cookie.Path,
+				ttl:  hp.Cookie.TTL,
+			}
+		}
+	}
+	// use source ip hash policy as default hash policy
+	if base.policy.hashPolicy == nil {
+		base.policy.hashPolicy = &sourceIPHashPolicyImpl{}
+	}
 	// add direct repsonse rule
 	if route.DirectResponse != nil {
 		base.directResponseRule = &directResponseImpl{

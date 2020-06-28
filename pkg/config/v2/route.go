@@ -52,6 +52,7 @@ type RouterActionConfig struct {
 	UpstreamProtocol        string               `json:"upstream_protocol,omitempty"`
 	ClusterHeader           string               `json:"cluster_header,omitempty"`
 	WeightedClusters        []WeightedCluster    `json:"weighted_clusters,omitempty"`
+	HashPolicy              []HashPolicy         `json:"hash_policy,omitempty"`
 	MetadataConfig          *MetadataConfig      `json:"metadata_match,omitempty"`
 	TimeoutConfig           api.DurationConfig   `json:"timeout,omitempty"`
 	RetryPolicy             *RetryPolicy         `json:"retry_policy,omitempty"`

@@ -35,21 +35,12 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
 
 ## 文档
 
-- [MOSN 官网](https://mosn.io)
+- [MOSN 官网](https://mosn.io/zh)
 - [MOSN 版本更新日志](CHANGELOG_ZH.md)
 
 ## 贡献
 
 请参阅[贡献者指南](CONTRIBUTING_ZH.md)。
-
-## 工作组
-
-目前 MOSN 包含以下工作组：
-
-- [Istio 工作组](https://github.com/mosn/community/blob/master/wg-istio.md)
-- [Dubbo 工作组](https://github.com/mosn/community/blob/master/wg-dubbo.md)
-
-选择加入您感兴趣的工作组，开始您的 MOSN 之旅吧！
 
 ## 合作伙伴
 
@@ -146,19 +137,33 @@ MOSN 作为一款开源的网络代理，具有以下核心功能：
         </a>
       </td>
     </tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.tuya.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tuya.png">
+        </a>
+      </td>
+    </tr>
   </tbody>
 </table>
 </div>
 
 ## 社区
 
-请访问 <https://github.com/mosn/community> 了解更多社区信息。
+请访问 [MOSN 官网](https://mosn.io/zh/docs/community)了解更多关于工作组、Roadmap、社区会议、MOSN 教程等信息。
 
 使用钉钉扫描下面的二维码加入 MOSN 用户交流群。
 
 <p align="center">
 <img src="https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ" width="150" title="MOSN用户交流群" alt="MOSN 用户交流群">
 </p>
+
+## 社区会议
+
+MOSN 社区定期召开社区会议。
+
+- [每双周三晚 8 点（北京时间）](https://ebay.zoom.com.cn/j/96285622161)
+- [会议纪要](https://docs.google.com/document/d/12lgyCW-GmlErr_ihvAO7tMmRe87i70bv2xqe4h2LUz4/edit?usp=sharing)
 
 ## Landscapes
 

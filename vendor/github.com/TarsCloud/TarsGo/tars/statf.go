@@ -10,11 +10,13 @@ import (
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/statf"
 )
 
+//StatInfo struct contains stat info' head and body.
 type StatInfo struct {
 	Head statf.StatMicMsgHead
 	Body statf.StatMicMsgBody
 }
 
+//StatFHelper is helper struct for stat reporting.
 type StatFHelper struct {
 	lStatInfo  *list.List
 	mStatInfo  map[statf.StatMicMsgHead]statf.StatMicMsgBody
@@ -27,6 +29,7 @@ type StatFHelper struct {
 	lStatInfoFromServer *list.List
 }
 
+//Init init the StatFHelper.
 func (s *StatFHelper) Init(comm *Communicator, node string) {
 	s.node = node
 	s.lStatInfo = list.New()
@@ -89,8 +92,9 @@ func (s *StatFHelper) addUpMsg(statList *list.List, fromServer bool) {
 	s.mlock.Unlock()
 }
 
+//Run runs the reporting
 func (s *StatFHelper) Run() {
-	loop := time.NewTicker(StatReportInterval)
+	loop := time.NewTicker(GetServerConfig().StatReportInterval)
 	for range loop.C {
 		s.addUpMsg(s.lStatInfo, false)
 		s.addUpMsg(s.lStatInfoFromServer, true)
@@ -108,26 +112,28 @@ func (s *StatFHelper) pushBackMsg(stStatInfo StatInfo, fromServer bool) {
 	}
 }
 
+//ReportMicMsg report the Statinfo ,from server shows whether it comes from server.
 func (s *StatFHelper) ReportMicMsg(stStatInfo StatInfo, fromServer bool) {
 	s.pushBackMsg(stStatInfo, fromServer)
 }
 
+//StatReport is global.
 var StatReport *StatFHelper
-var statInited = make(chan struct{},1)
+var statInited = make(chan struct{}, 1)
 
 func initReport() {
 	if GetClientConfig() == nil {
-		statInited<-struct{}{}
+		statInited <- struct{}{}
 		return
 	}
 	comm := NewCommunicator()
-	comm.SetProperty("netthread", 1)
 	StatReport = new(StatFHelper)
 	StatReport.Init(comm, GetClientConfig().stat)
-	statInited<-struct{}{}
+	statInited <- struct{}{}
 	go StatReport.Run()
 }
 
+//ReportStatBase is base method for report statitics.
 func ReportStatBase(head *statf.StatMicMsgHead, body *statf.StatMicMsgBody, FromServer bool) {
 	cfg := GetServerConfig()
 	statInfo := StatInfo{Head: *head, Body: *body}
@@ -136,6 +142,7 @@ func ReportStatBase(head *statf.StatMicMsgHead, body *statf.StatMicMsgBody, From
 	StatReport.ReportMicMsg(statInfo, FromServer)
 }
 
+//ReportStatFromClient report the statics from client.
 func ReportStatFromClient(msg *Message, succ int32, timeout int32, exec int32) {
 	cfg := GetServerConfig()
 	if cfg == nil {
@@ -155,7 +162,7 @@ func ReportStatFromClient(msg *Message, succ int32, timeout int32, exec int32) {
 	head.InterfaceName = msg.Req.SFuncName
 	sNames := strings.Split(msg.Req.SServantName, ".")
 	if len(sNames) < 2 {
-		TLOG.Debug("report err:servant name (%s) format error", msg.Req.SServantName)
+		TLOG.Debugf("report err:servant name (%s) format error", msg.Req.SServantName)
 		return
 	}
 	head.SlaveName = fmt.Sprintf("%s.%s", sNames[0], sNames[1])
@@ -186,6 +193,7 @@ func ReportStatFromClient(msg *Message, succ int32, timeout int32, exec int32) {
 	ReportStatBase(&head, &body, false)
 }
 
+//ReportStatFromServer reports statics from server side.
 func ReportStatFromServer(InterfaceName, MasterName string, ReturnValue int32, TotalRspTime int64) {
 	cfg := GetServerConfig()
 	var head statf.StatMicMsgHead
@@ -215,6 +223,7 @@ func ReportStatFromServer(InterfaceName, MasterName string, ReturnValue int32, T
 	ReportStatBase(&head, &body, true)
 }
 
+//ReportStat is same as ReportStatFromClient.
 func ReportStat(msg *Message, succ int32, timeout int32, exec int32) {
 	ReportStatFromClient(msg, succ, timeout, exec)
 }
