@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
@@ -90,6 +90,26 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			retryTimeout: route.Route.RetryPolicy.RetryTimeout,
 			numRetries:   route.Route.RetryPolicy.NumRetries,
 		}
+	}
+	// add hash policy
+	if route.Route.HashPolicy != nil && len(route.Route.HashPolicy) >= 1 {
+		hp := route.Route.HashPolicy[0]
+		if hp.Header != nil {
+			base.policy.hashPolicy = &headerHashPolicyImpl{
+				key: hp.Header.Key,
+			}
+		}
+		if hp.Cookie != nil {
+			base.policy.hashPolicy = &cookieHashPolicyImpl{
+				name: hp.Cookie.Name,
+				path: hp.Cookie.Path,
+				ttl:  hp.Cookie.TTL,
+			}
+		}
+	}
+	// use source ip hash policy as default hash policy
+	if base.policy.hashPolicy == nil {
+		base.policy.hashPolicy = &sourceIPHashPolicyImpl{}
 	}
 	// add direct repsonse rule
 	if route.DirectResponse != nil {
@@ -166,14 +186,16 @@ func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint
 		return false
 	}
 	// 2. match query parameters
-	var queryParams types.QueryParams
-	if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
-		queryParams = httpmosn.ParseQueryString(QueryString)
-	}
-	if len(queryParams) != 0 {
-		if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
-			return false
+	if len(rri.configQueryParameters) != 0 {
+		var queryParams types.QueryParams
+		if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
+			queryParams = httpmosn.ParseQueryString(QueryString)
+		}
+		if len(queryParams) != 0 {
+			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
+				log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
+				return false
+			}
 		}
 	}
 	return true
