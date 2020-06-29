@@ -24,8 +24,8 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	gometrics "github.com/rcrowley/go-metrics"
 
+	gometrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
@@ -159,7 +159,7 @@ func statsDumpProxyTotal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.DefaultLogger.Infof("[admin api]  [stats dump] stats dump")
-	w.WriteHeader(200)
+	w.WriteHeader(http.StatusOK)
 	m := metrics.GetProxyTotal()
 	all := ""
 	if m != nil {
@@ -173,8 +173,6 @@ func statsDumpProxyTotal(w http.ResponseWriter, r *http.Request) {
 				h := metric.Snapshot()
 				all += fmt.Sprintf("%s:%s\n", key+"_min", strconv.FormatInt(h.Min(), 10))
 				all += fmt.Sprintf("%s:%s\n", key+"_max", strconv.FormatInt(h.Max(), 10))
-			default:
-				return
 			}
 		})
 	}
