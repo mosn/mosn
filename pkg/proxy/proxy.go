@@ -108,13 +108,13 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	if err == nil {
 		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
-		var http2ExtendConfig v2.Http2ExtendConfig
+		var proxyGeneralExtendConfig v2.ProxyGeneralExtendConfig
 		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
 			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 			log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
-		} else if err := json.Unmarshal([]byte(extJSON), &http2ExtendConfig); err == nil {
-			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyH2Stream, http2ExtendConfig.Http2UseStream)
-			log.DefaultLogger.Tracef("[proxy] extend config usehttp2stream = %v", http2ExtendConfig.Http2UseStream)
+		} else if err := json.Unmarshal([]byte(extJSON), &proxyGeneralExtendConfig); err == nil {
+			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+			log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxyGeneralExtendConfig)
 		} else {
 			log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
 		}
