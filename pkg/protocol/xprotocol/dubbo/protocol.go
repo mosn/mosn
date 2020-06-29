@@ -113,23 +113,22 @@ func (proto *dubboProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame
 // https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
 // hijacker
 func (proto *dubboProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
-	responseStatus, ok := dubboStatusMap[int(statusCode)]
+	dubboStatus, ok := dubboMosnStatusMap[int(statusCode)]
 	if !ok {
-		responseStatus = hessian.Response_SERVICE_ERROR
-	}
-	msg, ok := dubboStatusMsg[int(statusCode)]
-	if !ok {
-		msg = fmt.Sprintf("%d status not define", statusCode)
+		dubboStatus = dubboStatusInfo{
+			Status: hessian.Response_SERVICE_ERROR,
+			Msg:    fmt.Sprintf("%d status not define", statusCode),
+		}
 	}
 
 	encoder := hessian.NewEncoder()
-	encoder.Encode(msg)
+	encoder.Encode(dubboStatus.Msg)
 	payload := encoder.Buffer()
 	return &Frame{
 		Header: Header{
 			Magic:   MagicTag,
 			Flag:    0x02,
-			Status:  responseStatus,
+			Status:  dubboStatus.Status,
 			Id:      request.GetRequestId(),
 			DataLen: uint32(len(payload)),
 		},

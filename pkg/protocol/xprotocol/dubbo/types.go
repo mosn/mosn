@@ -69,32 +69,23 @@ const (
 	ResponseStatusSuccess uint16 = 0x14 // 0x14 response status
 )
 
-var (
-	dubboStatusMsg = map[int]string{
-		types.CodecExceptionCode:    "0|codec exception",
-		types.UnknownCode:           "2|unknown",
-		types.DeserialExceptionCode: "3|deserial exception",
-		types.SuccessCode:           "200|success",
-		types.PermissionDeniedCode:  "403|permission denied",
-		types.RouterUnavailableCode: "404|router unavailable",
-		types.InternalErrorCode:     "500|internal error",
-		types.NoHealthUpstreamCode:  "502|no health upstream",
-		types.UpstreamOverFlowCode:  "503|upstream overflow",
-		types.TimeoutExceptionCode:  "504|timeout",
-		types.LimitExceededCode:     "509|limit exceeded",
-	}
+type dubboStatusInfo struct {
+	Status byte
+	Msg    string
+}
 
-	dubboStatusMap = map[int]byte{
-		types.CodecExceptionCode:    hessian.Response_SERVICE_ERROR,
-		types.UnknownCode:           hessian.Response_SERVICE_ERROR,
-		types.DeserialExceptionCode: hessian.Response_SERVICE_ERROR,
-		types.SuccessCode:           hessian.Response_OK,
-		types.PermissionDeniedCode:  hessian.Response_SERVER_ERROR,
-		types.RouterUnavailableCode: hessian.Response_SERVICE_NOT_FOUND,
-		types.InternalErrorCode:     hessian.Response_SERVICE_ERROR,
-		types.NoHealthUpstreamCode:  hessian.Response_SERVICE_NOT_FOUND,
-		types.UpstreamOverFlowCode:  hessian.Response_BAD_REQUEST,
-		types.TimeoutExceptionCode:  hessian.Response_CLIENT_TIMEOUT,
-		types.LimitExceededCode:     hessian.Response_BAD_REQUEST,
+var (
+	dubboMosnStatusMap = map[int]dubboStatusInfo{
+		types.CodecExceptionCode:    {Status: hessian.Response_SERVICE_ERROR, Msg: "0|codec exception"},
+		types.UnknownCode:           {Status: hessian.Response_SERVICE_ERROR, Msg: "2|unknown"},
+		types.DeserialExceptionCode: {Status: hessian.Response_SERVICE_ERROR, Msg: "3|deserial exception"},
+		types.SuccessCode:           {Status: hessian.Response_OK, Msg: "200|success"},
+		types.PermissionDeniedCode:  {Status: hessian.Response_SERVER_ERROR, Msg: "403|permission denied"},
+		types.RouterUnavailableCode: {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "404|router unavailable"},
+		types.InternalErrorCode:     {Status: hessian.Response_SERVICE_ERROR, Msg: "500|internal error"},
+		types.NoHealthUpstreamCode:  {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "502|no health upstream"},
+		types.UpstreamOverFlowCode:  {Status: hessian.Response_BAD_REQUEST, Msg: "503|upstream overflow"},
+		types.TimeoutExceptionCode:  {Status: hessian.Response_CLIENT_TIMEOUT, Msg: "504|timeout"},
+		types.LimitExceededCode:     {Status: hessian.Response_BAD_REQUEST, Msg: "509|limit exceeded"},
 	}
 )
