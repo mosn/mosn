@@ -59,6 +59,7 @@ type RouterActionConfig struct {
 	PrefixRewrite           string               `json:"prefix_rewrite,omitempty"`
 	HostRewrite             string               `json:"host_rewrite,omitempty"`
 	AutoHostRewrite         bool                 `json:"auto_host_rewrite,omitempty"`
+	AutoHostRewriteHeader   string               `json:"auto_host_rewrite_header,omitempty"`
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`

@@ -86,7 +86,7 @@ type proxy struct {
 	routersWrapper     types.RouterWrapper // wrapper used to point to the routers instance
 	serverStreamConn   types.ServerStreamConnection
 	context            context.Context
-	activeSteams       *list.List // downstream requests
+	activeStreams      *list.List // downstream requests
 	asMux              sync.RWMutex
 	stats              *Stats
 	listenerStats      *Stats
@@ -98,7 +98,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	proxy := &proxy{
 		config:         config,
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
-		activeSteams:   list.New(),
+		activeStreams:  list.New(),
 		stats:          globalStats,
 		context:        ctx,
 		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
@@ -108,13 +108,13 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	if err == nil {
 		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
 		var xProxyExtendConfig v2.XProxyExtendConfig
-		var http2ExtendConfig v2.Http2ExtendConfig
+		var proxyGeneralExtendConfig v2.ProxyGeneralExtendConfig
 		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
 			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 			log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
-		} else if err := json.Unmarshal([]byte(extJSON), &http2ExtendConfig); err == nil {
-			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyH2Stream, http2ExtendConfig.Http2UseStream)
-			log.DefaultLogger.Tracef("[proxy] extend config usehttp2stream = %v", http2ExtendConfig.Http2UseStream)
+		} else if err := json.Unmarshal([]byte(extJSON), &proxyGeneralExtendConfig); err == nil {
+			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+			log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxyGeneralExtendConfig)
 		} else {
 			log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
 		}
@@ -178,7 +178,7 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 		p.asMux.RLock()
 		defer p.asMux.RUnlock()
 
-		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEleNext {
+		for urEle := p.activeStreams.Front(); urEle != nil; urEle = urEleNext {
 			urEleNext = urEle.Next()
 
 			ds := urEle.Value.(*downStream)
@@ -196,10 +196,10 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 }
 
 func (p *proxy) ActiveStreamSize() int {
-	if p.activeSteams == nil {
+	if p.activeStreams == nil {
 		return 0
 	}
-	return p.activeSteams.Len()
+	return p.activeStreams.Len()
 }
 
 func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
@@ -241,7 +241,7 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 	}
 
 	p.asMux.Lock()
-	stream.element = p.activeSteams.PushBack(stream)
+	stream.element = p.activeStreams.PushBack(stream)
 	p.asMux.Unlock()
 
 	return stream
@@ -273,7 +273,7 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 func (p *proxy) deleteActiveStream(s *downStream) {
 	if s.element != nil {
 		p.asMux.Lock()
-		p.activeSteams.Remove(s.element)
+		p.activeStreams.Remove(s.element)
 		p.asMux.Unlock()
 		s.element = nil
 	}
