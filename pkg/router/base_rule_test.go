@@ -376,6 +376,61 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 			},
 			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "true"},
 		},
+
+		{
+			name: "case3",
+			args: args{
+				rri: &RouteRuleImplBase{
+					// defaultCluster: &weightedClusterEntry{
+					// 	clusterName: "case3Cluster",
+					// },
+					autoHostRewriteHeader: "realyHost",
+					requestHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+					},
+					vHost: &VirtualHostImpl{
+						globalRouteConfig: &configImpl{
+							requestHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				headers:     protocol.CommonHeader{"realyHost": "mosn.io.rewrited.host"},
+				requestInfo: nil,
+			},
+			want: protocol.CommonHeader{"realyHost": "mosn.io.rewrited.host", "authority": "mosn.io.rewrited.host", "level": "1,3", "route": "true", "global": "true"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

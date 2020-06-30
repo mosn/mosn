@@ -18,6 +18,7 @@
 package router
 
 import (
+	"context"
 	"math/rand"
 	"strings"
 	"sync"
@@ -29,6 +30,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
 type RouteRuleImplBase struct {
@@ -40,7 +42,8 @@ type RouteRuleImplBase struct {
 	// rewrite
 	prefixRewrite         string
 	hostRewrite           string
-	autoHostRewrite       bool // TODO: not implement yet
+	autoHostRewrite       bool
+	autoHostRewriteHeader string
 	requestHeadersParser  *headerParser
 	responseHeadersParser *headerParser
 	// information
@@ -67,6 +70,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		prefixRewrite:         route.Route.PrefixRewrite,
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
+		autoHostRewriteHeader: route.Route.AutoHostRewriteHeader,
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		upstreamProtocol:      route.Route.UpstreamProtocol,
@@ -224,6 +228,17 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers api.HeaderMap, requ
 	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
 		headers.Set(protocol.IstioHeaderHostKey, rri.hostRewrite)
+	} else if len(rri.autoHostRewriteHeader) > 0 {
+		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
+			headers.Set(protocol.IstioHeaderHostKey, headerValue)
+		}
+	} else if rri.autoHostRewrite {
+
+		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.routerAction.ClusterName)
+		if clusterSnapshot != nil && (clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER) {
+			headers.Set(protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
+		}
+
 	}
 }
 
