@@ -22,8 +22,6 @@ import (
 	"sort"
 	"strings"
 
-	"regexp"
-
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -212,15 +210,6 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 		vh, err := NewVirtualHostImpl(vhConfig)
 		if err != nil {
 			return nil, err
-		}
-
-		for _, route := range vhConfig.Routers {
-			if len(route.Route.RegexRewrite.Pattern.Regex) > 1 && len(route.Route.PrefixRewrite) == 0 {
-				_, err := regexp.Compile(route.Route.RegexRewrite.Pattern.Regex)
-				if err != nil {
-					log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "invalid regex:"+err.Error())
-				}
-			}
 		}
 
 		routers.virtualHosts = append(routers.virtualHosts, vh)

@@ -41,6 +41,7 @@ type RouteRuleImplBase struct {
 	// rewrite
 	prefixRewrite         string
 	regexRewrite          v2.RegexRewrite
+	regexPattern          *regexp.Regexp
 	hostRewrite           string
 	autoHostRewrite       bool // TODO: not implement yet
 	requestHeadersParser  *headerParser
@@ -81,6 +82,16 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		},
 		lock: sync.Mutex{},
 	}
+	//check and store regrex rewrite pattern
+	if len(route.Route.RegexRewrite.Pattern.Regex) > 1 && len(route.Route.PrefixRewrite) == 0 {
+		regexPattern, err := regexp.Compile(route.Route.RegexRewrite.Pattern.Regex)
+		if err != nil {
+			log.DefaultLogger.Errorf(RouterLogFormat, "routerule", "check regrex pattern failed.", "invalid regex:"+err.Error())
+			return nil, err
+		}
+		base.regexPattern = regexPattern
+	}
+
 	// add clusters
 	base.weightedClusters, base.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
 	if len(route.Route.MetadataMatch) > 0 {
@@ -223,16 +234,12 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedP
 
 		// regex rewrite path if configured
 		if len(rri.regexRewrite.Pattern.Regex) > 1 {
-			reg, err := regexp.Compile(rri.regexRewrite.Pattern.Regex)
-			if err != nil {
-				log.DefaultLogger.Errorf(RouterLogFormat, "routerule", "finalizePathHeader", "invalid regex:"+err.Error())
-			} else if reg.Match([]byte(path)) {
-				rewritedPath := reg.ReplaceAllString(path, rri.regexRewrite.Substitution)
+			if rri.regexPattern.Match([]byte(path)) {
+				rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 
 				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
 				headers.Set(protocol.MosnHeaderPathKey, rewritedPath)
 				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
-
 			}
 		}
 
