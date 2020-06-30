@@ -57,7 +57,7 @@ func newGO2SkyTracer(config map[string]interface{}) (t *go2sky.Tracer, err error
 			opts = append(opts, reporter.WithAuthentication(cfg.Authentication))
 		}
 		// tls
-		if cfg.TLS.CertFile != "" && cfg.TLS.ServerNameOverride != "" {
+		if cfg.TLS.CertFile != "" {
 			creds, err := credentials.NewClientTLSFromFile(cfg.TLS.CertFile, cfg.TLS.ServerNameOverride)
 			if err != nil {
 				return nil, err
