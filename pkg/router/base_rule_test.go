@@ -23,6 +23,7 @@ import (
 	"net"
 	goHttp "net/http"
 	"reflect"
+	"regexp"
 	"strconv"
 	"testing"
 	"time"
@@ -213,6 +214,11 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 			Substitution: "${2}/instance/${1}",
 		},
 	}
+
+	regexPattern, err := regexp.Compile(rri.regexRewrite.Pattern.Regex)
+	assert.NoErrorf(t, err, "check regrexp pattern failed %+v", err)
+	rri.regexPattern = regexPattern
+
 	type args struct {
 		headers     types.HeaderMap
 		matchedPath string
