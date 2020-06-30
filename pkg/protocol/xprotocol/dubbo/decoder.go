@@ -106,7 +106,7 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, 
 	}
 
 	decoder := decodePool.Get().(*hessian.Decoder)
-	decoder.Reset(frame.payload[:])
+	decoder.Reset(frame.payload)
 
 	// Recycle decode
 	defer decodePool.Put(decoder)

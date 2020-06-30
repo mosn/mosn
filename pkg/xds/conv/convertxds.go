@@ -1185,7 +1185,7 @@ func convertSubsetSelectors(xdsSubsetSelectors []*xdsapi.Cluster_LbSubsetConfig_
 }
 
 func convertHealthChecks(xdsHealthChecks []*xdscore.HealthCheck) v2.HealthCheck {
-	if xdsHealthChecks == nil || len(xdsHealthChecks) == 0 || xdsHealthChecks[0] == nil {
+	if len(xdsHealthChecks) == 0 || xdsHealthChecks[0] == nil {
 		return v2.HealthCheck{}
 	}
 
@@ -1302,7 +1302,7 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 				config.PrivateKey = cert.GetPrivateKey().GetFilename()
 			}
 		}
-	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
+	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); len(tlsCertSdsConfig) > 0 {
 		isSdsMode = true
 		if validationContext, ok := common.GetValidationContextType().(*xdsauth.CommonTlsContext_CombinedValidationContext); ok {
 			config.SdsConfig.CertificateConfig = &v2.SecretConfigWrapper{Config: tlsCertSdsConfig[0]}

@@ -212,9 +212,7 @@ func (sdc *strictDnsCluster) updateDynamicHosts(newHosts []types.Host, rt *Resol
 	var allHosts []types.Host
 	// collect all hosts in resolve targets
 	for _, r := range sdc.resolveTargets {
-		for _, h := range r.hosts {
-			allHosts = append(allHosts, h)
-		}
+		allHosts = append(allHosts, r.hosts...)
 	}
 
 	// compare current hosts with allHosts

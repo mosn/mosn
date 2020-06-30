@@ -426,9 +426,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	arc := newActiveRawConn(rawc, al)
 
 	// listener filter chain.
-	for _, lfcf := range al.listenerFiltersFactories {
-		arc.acceptedFilters = append(arc.acceptedFilters, lfcf)
-	}
+	arc.acceptedFilters = append(arc.acceptedFilters, al.listenerFiltersFactories...)
 
 	if useOriginalDst {
 		arc.useOriginalDst = true

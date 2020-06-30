@@ -81,9 +81,7 @@ func (a *AttributeCompressor) Compress(attributes *v1.Attributes, pb *v1.Compres
 	dict := newMessageDictionary(a.globalDict)
 	compressByDict(attributes, dict, pb)
 
-	for _, word := range dict.getWords() {
-		pb.Words = append(pb.Words, word)
-	}
+	pb.Words = append(pb.Words, dict.getWords()...)
 }
 
 // NewBatchCompressor return BatchCompressor
@@ -110,9 +108,7 @@ func (b *batchCompressor) Add(attributes *v1.Attributes) {
 // Finish the batch and create the batched report request
 func (b *batchCompressor) Finish() *v1.ReportRequest {
 	words := b.dict.getWords()
-	for _, word := range words {
-		b.report.DefaultWords = append(b.report.DefaultWords, word)
-	}
+	b.report.DefaultWords = append(b.report.DefaultWords, words...)
 	b.report.GlobalWordCount = uint32(len(b.globalDict.globalDict))
 
 	return &b.report

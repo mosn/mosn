@@ -175,14 +175,12 @@ func (ms *MStream) WriteTrailers() error {
 		tramap = *ms.Trailer
 	}
 	var trailers []string
-	if tramap != nil {
-		for k, _ := range tramap {
-			k = http.CanonicalHeaderKey(k)
-			if !httpguts.ValidTrailerHeader(k) {
-				tramap.Del(k)
-			} else {
-				trailers = append(trailers, k)
-			}
+	for k, _ := range tramap {
+		k = http.CanonicalHeaderKey(k)
+		if !httpguts.ValidTrailerHeader(k) {
+			tramap.Del(k)
+		} else {
+			trailers = append(trailers, k)
 		}
 	}
 
