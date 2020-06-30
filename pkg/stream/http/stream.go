@@ -423,9 +423,13 @@ func (conn *serverStreamConnection) serve() {
 			}
 		}
 		if err != nil {
-			// "read timeout with nothing read" is the error of returned by fasthttp v1.2.0
-			// if connection closed with nothing read.
-			if err != errConnClose && err != io.EOF && err.Error() != "read timeout with nothing read" {
+			// ErrNothingRead is returned that means just a keep-alive connection
+			// closing down either because the remote closed it or because
+			// or a read timeout on our side. Either way just close the connection
+			// and don't return any error response.
+			// Refer https://github.com/valyala/fasthttp/commit/598a52272abafde3c5bebd7cc1972d3bead7a1f7
+			_, errNothingRead := err.(fasthttp.ErrNothingRead)
+			if err != errConnClose && err != io.EOF && !errNothingRead {
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 

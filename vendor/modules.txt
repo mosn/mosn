@@ -50,6 +50,8 @@ github.com/alibaba/sentinel-golang/core/stat/base
 github.com/alibaba/sentinel-golang/core/system
 github.com/alibaba/sentinel-golang/logging
 github.com/alibaba/sentinel-golang/util
+# github.com/andybalholm/brotli v1.0.0
+github.com/andybalholm/brotli
 # github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d
 github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java_exception
@@ -165,12 +167,10 @@ github.com/jinzhu/copier
 github.com/json-iterator/go
 # github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9
 github.com/juju/errors
-# github.com/klauspost/compress v1.7.5
+# github.com/klauspost/compress v1.10.4
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
-# github.com/klauspost/cpuid v1.2.1
-github.com/klauspost/cpuid
 # github.com/leodido/go-urn v1.2.0
 github.com/leodido/go-urn
 # github.com/lyft/protoc-gen-validate v0.0.14
@@ -240,7 +240,7 @@ github.com/ugorji/go/codec
 github.com/urfave/cli
 # github.com/valyala/bytebufferpool v1.0.0
 github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v1.2.0
+# github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/stackless
@@ -269,7 +269,7 @@ golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
+# golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/http/httpguts
@@ -282,8 +282,9 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/trace
-# golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
+# golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.2
