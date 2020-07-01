@@ -336,6 +336,11 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 	}
 
 	for k, rri := range rris {
+
+		regexPattern, err := regexp.Compile(rri.regexRewrite.Pattern.Regex)
+		assert.NoErrorf(t, err, "check regrexp pattern failed %+v", err)
+		rri.regexPattern = regexPattern
+
 		tt, ok := testMap["case"+strconv.Itoa(k+1)]
 		if ok {
 			t.Run(tt.name, func(t *testing.T) {
