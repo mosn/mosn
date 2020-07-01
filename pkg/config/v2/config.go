@@ -41,7 +41,6 @@ type MOSNConfig struct {
 	Debug               PProfConfig     `json:"pprof,omitempty"`
 	Pid                 string          `json:"pid,omitempty"`    // pid file
 	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
-	Dubbo               DubboConfig     `json:"dubbo,omitempty"`  // dubbo related config
 }
 
 // DubboConfig is for dubbo related configs

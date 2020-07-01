@@ -47,7 +47,8 @@ type Proxy struct {
 
 // XProxyExtendConfig
 type XProxyExtendConfig struct {
-	SubProtocol string `json:"sub_protocol,omitempty"`
+	SubProtocol string      `json:"sub_protocol,omitempty"`
+	Dubbo       DubboConfig `json:"dubbo,omitempty"`
 }
 
 type Http2ExtendConfig struct {
