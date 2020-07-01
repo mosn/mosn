@@ -32,7 +32,7 @@ type subsetLoadBalancer struct {
 	stats          types.ClusterStats
 	subSets        types.LbSubsetMap  // final trie-like structure used to stored easily searched subset
 	fallbackSubset *LBSubsetEntryImpl // subset entry generated according to fallback policy
-	hostSet        *hostSetf
+	hostSet        *hostSet
 }
 
 func NewSubsetLoadBalancer(info *clusterInfo, hostSet *hostSet) types.LoadBalancer {
