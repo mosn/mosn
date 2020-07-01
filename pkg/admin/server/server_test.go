@@ -24,7 +24,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -295,7 +297,11 @@ func TestDumpStats(t *testing.T) {
 	if data, err := getGlobalStats(config.Port); err != nil {
 		t.Error(err)
 	} else {
-		if data != expected_string {
+		want := strings.Split(expected_string, "\n")
+		got := strings.Split(data, "\n")
+		sort.Strings(want)
+		sort.Strings(got)
+		if !reflect.DeepEqual(got, want) {
 			t.Errorf("unexpected stats: %s\n", data)
 		}
 	}
