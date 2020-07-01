@@ -54,10 +54,12 @@ type ClusterType string
 
 // Group of cluster type
 const (
-	STATIC_CLUSTER     ClusterType = "STATIC"
-	SIMPLE_CLUSTER     ClusterType = "SIMPLE"
-	STRICT_DNS_CLUSTER ClusterType = "STRICT_DNS"
-	EDS_CLUSTER        ClusterType = "EDS"
+	STATIC_CLUSTER      ClusterType = "STATIC"
+	SIMPLE_CLUSTER      ClusterType = "SIMPLE"
+	DYNAMIC_CLUSTER     ClusterType = "DYNAMIC"
+	EDS_CLUSTER         ClusterType = "EDS"
+	ORIGINALDST_CLUSTER ClusterType = "ORIGINAL_DST"
+	STRICT_DNS_CLUSTER  ClusterType = "STRICT_DNS"
 )
 
 // LbType
@@ -67,7 +69,9 @@ type LbType string
 const (
 	LB_RANDOM        LbType = "LB_RANDOM"
 	LB_ROUNDROBIN    LbType = "LB_ROUNDROBIN"
+	LB_ORIGINAL_DST  LbType = "LB_ORIGINAL_DST"
 	LB_LEAST_REQUEST LbType = "LB_LEAST_REQUEST"
+	LB_MAGLEV        LbType = "LB_MAGLEV"
 )
 
 type DnsLookupFamily string

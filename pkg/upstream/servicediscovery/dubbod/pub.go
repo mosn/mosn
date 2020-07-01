@@ -89,7 +89,7 @@ func doPubUnPub(req pubReq, pub bool) error {
 
 	// find registry from cache
 	registryCacheKey := req.Service.Interface
-	reg, err := getRegistry(registryCacheKey, dubbocommon.PROVIDER, registryURL)
+	reg, err := getRegistry(registryCacheKey, dubbocommon.PROVIDER, &registryURL)
 	if err != nil {
 		return err
 	}
@@ -110,10 +110,10 @@ func doPubUnPub(req pubReq, pub bool) error {
 
 	if pub {
 		// publish this service
-		return reg.Register(dubboURL)
+		return reg.Register(&dubboURL)
 	}
 
 	// unpublish this service
-	return reg.UnRegister(dubboURL)
+	return reg.UnRegister(&dubboURL)
 
 }

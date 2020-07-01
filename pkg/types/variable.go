@@ -45,17 +45,45 @@ const (
 	VarProxyTryTimeout    string = "proxy_try_timeout"
 	VarProxyGlobalTimeout string = "proxy_global_timeout"
 	VarProxyHijackStatus  string = "proxy_hijack_status"
+	VarProxyGzipSwitch    string = "proxy_gzip_switch"
 )
 
-// [Protocol]: http
+// [Protocol]: common
 const (
-	VarHttpRequestMethod = "http_request_method"
-	VarHttpRequestLength = "http_request_length"
-	VarHttpRequestUri    = "http_request_uri"
-	VarHttpRequestPath   = "http_request_path"
-	VarHttpRequestArg    = "http_request_arg"
+	VarProtocolRequestMethod    = "request_method"
+	VarProtocolRequestLength    = "request_length"
+	VarProtocolRequestHeader    = "request_header_"
+	VarProtocolCookie           = "cookie_"
+	VarProtocolRequestPath      = "request_path"
+	VarProtocolRequestArgPrefix = "request_arg_"
+	VarProtocolRequestArg       = "request_arg"
+	VarProtocolRequestUri       = "request_uri"
+)
 
-	VarPrefixHttpHeader = "http_header_"
-	VarPrefixHttpArg    = "http_arg_"
-	VarPrefixHttpCookie = "http_cookie_"
+// [Protocol]: http1
+const (
+	// the httpProtocolName value is protocol.HTTP1
+	httpProtocolName     = "Http1"
+	VarHttpRequestMethod = httpProtocolName + "_" + VarProtocolRequestMethod
+	VarHttpRequestLength = httpProtocolName + "_" + VarProtocolRequestLength
+	VarHttpRequestUri    = httpProtocolName + "_" + VarProtocolRequestUri
+	VarHttpRequestPath   = httpProtocolName + "_" + VarProtocolRequestPath
+	VarHttpRequestArg    = httpProtocolName + "_" + VarProtocolRequestArg
+	VarPrefixHttpHeader  = httpProtocolName + "_" + VarProtocolRequestHeader
+	VarPrefixHttpArg     = httpProtocolName + "_" + VarProtocolRequestArgPrefix
+	VarPrefixHttpCookie  = httpProtocolName + "_" + VarProtocolCookie
+)
+
+// [Protocol]: http2
+const (
+	// the http2ProtocolName value is protocol.HTTP2
+	http2ProtocolName     = "Http2"
+	VarHttp2RequestMethod = http2ProtocolName + "_" + VarProtocolRequestMethod
+	VarHttp2RequestLength = http2ProtocolName + "_" + VarProtocolRequestLength
+	VarHttp2RequestUri    = http2ProtocolName + "_" + VarProtocolRequestUri
+	VarHttp2RequestPath   = http2ProtocolName + "_" + VarProtocolRequestPath
+	VarHttp2RequestArg    = http2ProtocolName + "_" + VarProtocolRequestArg
+	VarPrefixHttp2Header  = http2ProtocolName + "_" + VarProtocolRequestHeader
+	VarPrefixHttp2Arg     = http2ProtocolName + "_" + VarProtocolRequestArgPrefix
+	VarPrefixHttp2Cookie  = http2ProtocolName + "_" + VarProtocolCookie
 )

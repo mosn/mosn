@@ -23,8 +23,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/trainyao/go-maglev"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -46,8 +48,9 @@ func init() {
 	}
 	RegisterLBType(types.RoundRobin, rrFactory.newRoundRobinLoadBalancer)
 	RegisterLBType(types.Random, newRandomLoadBalancer)
-	RegisterLBType(types.WeightedRoundRobin, newSmoothWeightedRRLoadBalancer)
+	RegisterLBType(types.WeightedRoundRobin, newWRRLoadBalancer)
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
+	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
 }
 
 func NewLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
@@ -152,78 +155,45 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 }
 
 /*
-SW (smoothWeightedRRLoadBalancer) is a struct that contains weighted items and provides methods to select a weighted item.
-It is used for the smooth weighted round-robin balancing algorithm. This algorithm is implemented in Nginx:
-https://github.com/phusion/nginx/commit/27e94984486058d73157038f7950a0a36ecc6e35.
-Algorithm is as follows: on each peer selection we increase current_weight
-of each eligible peer by its weight, select peer with greatest current_weight
-and reduce its current_weight by total number of weight points distributed
-among peers.
+ A round robin load balancer. When in weighted mode, EDF scheduling is used. When in not
+ weighted mode, simple RR index selection is used.
 */
-type smoothWeightedRRLoadBalancer struct {
-	hosts         types.HostSet
-	hostsWeighted []*hostSmoothWeighted
-	lock          sync.Mutex
+type WRRLoadBalancer struct {
+	*EdfLoadBalancer
+	rrIndex uint32
 }
 
-type hostSmoothWeighted struct {
-	weight          int64
-	currentWeight   int64
-	effectiveWeight int64
+func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	wrrLB := &WRRLoadBalancer{}
+	wrrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
+	hostsList := hosts.Hosts()
+	wrrLB.mutex.Lock()
+	defer wrrLB.mutex.Unlock()
+	if len(hostsList) != 0 {
+		wrrLB.rrIndex = wrrLB.rand.Uint32() % uint32(len(hostsList))
+	}
+	return wrrLB
 }
 
-func newSmoothWeightedRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
-	smoothWRRLoadBalancer := &smoothWeightedRRLoadBalancer{
-		hosts:         hosts,
-		hostsWeighted: make([]*hostSmoothWeighted, len(hosts.Hosts())),
-	}
-	// iterate over all hosts to init host with Weighted
-	for idx, host := range hosts.Hosts() {
-		w := int64(host.Weight())
-		smoothWRRLoadBalancer.hostsWeighted[idx] = &hostSmoothWeighted{
-			effectiveWeight: w,
-			weight:          w,
-		}
-	}
-	return smoothWRRLoadBalancer
-}
-
-// smooth weighted round robin
-// O(n), traverse over all hosts
-func (lb *smoothWeightedRRLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
-	var totalWeight int64 = 0
-	var selectedHostWeighted *hostSmoothWeighted
-	var selectedHost types.Host
-	for idx, host := range lb.hosts.Hosts() {
-		if !host.Health() {
-			continue
-		}
-		hw := lb.hostsWeighted[idx]
-		atomic.AddInt64(&hw.currentWeight, atomic.LoadInt64(&hw.effectiveWeight))
-		totalWeight += atomic.LoadInt64(&hw.effectiveWeight)
-
-		if hw.effectiveWeight < hw.weight {
-			atomic.AddInt64(&hw.effectiveWeight, 1)
-		}
-
-		if selectedHostWeighted == nil || atomic.LoadInt64(&hw.currentWeight) > atomic.LoadInt64(&selectedHostWeighted.currentWeight) {
-			selectedHostWeighted = hw
-			selectedHost = host
-		}
-	}
-	//
-	if selectedHostWeighted != nil {
-		atomic.AddInt64(&selectedHostWeighted.currentWeight, -totalWeight)
-	}
-	return selectedHost
-}
-
-func (lb *smoothWeightedRRLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+func (lb *WRRLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	return len(lb.hosts.Hosts()) > 0
 }
 
-func (lb *smoothWeightedRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+func (lb *WRRLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	return len(lb.hosts.Hosts())
+}
+
+func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
+	host := item.(types.Host)
+	return float64(host.Weight())
+}
+
+// do unweighted (fast) selection
+func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
+	targets := lb.hosts.Hosts()
+	total := len(targets)
+	index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
+	return targets[index]
 }
 
 const default_choice = 2
@@ -364,4 +334,116 @@ func hostWeightsAreEqual(hosts []types.Host) bool {
 		}
 	}
 	return true
+}
+
+// newMaglevLoadBalancer return maglevLoadBalancer structure.
+//
+// In maglevLoadBalancer, there is a maglev table for consistence hash host choosing.
+// If the chosen host is unhealthy, maglevLoadBalancer will traverse host list to find a healthy host.
+func newMaglevLoadBalancer(info types.ClusterInfo, set types.HostSet) types.LoadBalancer {
+	names := []string{}
+	for _, host := range set.Hosts() {
+		names = append(names, host.AddressString())
+	}
+	mgv := &maglevLoadBalancer{
+		hosts: set,
+	}
+
+	nameCount := len(names)
+	// if host count > BigM, maglev table building will cross array boundary
+	// maglev lb will not work in this scenario
+	if nameCount >= maglev.BigM {
+		log.DefaultLogger.Errorf("[lb][maglev] host count too large, expect <= %d, get %d",
+			maglev.BigM, nameCount)
+		return mgv
+	}
+	if nameCount == 0 {
+		return mgv
+	}
+
+	maglevM := maglev.SmallM
+	// according to test, 30000 host with testing 1e8 times, hash distribution begins to go wrong,
+	// max=4855, mean=3333.3333333333335, peak-to-mean=1.4565
+	// so use BigM when host >= 30000
+	limit := 30000
+	if nameCount >= limit {
+		log.DefaultLogger.Infof("[lb][maglev] host count %d >= %d, using maglev.BigM", nameCount, limit)
+		maglevM = maglev.BigM
+	}
+
+	mgv.maglev = maglev.New(names, uint64(maglevM))
+	return mgv
+}
+
+type maglevLoadBalancer struct {
+	hosts  types.HostSet
+	maglev *maglev.Table
+}
+
+func (lb *maglevLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Host {
+	// host empty, maglev info may be nil
+	if lb.maglev == nil {
+		return nil
+	}
+
+	route := ctx.DownstreamRoute()
+	if route == nil || route.RouteRule() == nil {
+		return nil
+	}
+
+	hashPolicy := route.RouteRule().Policy().HashPolicy()
+	if hashPolicy == nil {
+		return nil
+	}
+
+	hash := hashPolicy.GenerateHash(ctx.DownstreamContext())
+	index := lb.maglev.Lookup(hash)
+	chosen := lb.hosts.Hosts()[index]
+
+	// fallback
+	if !chosen.Health() {
+		chosen = lb.chooseHostFromHostList(index)
+	}
+
+	if chosen == nil {
+		log.Proxy.Infof(ctx.DownstreamContext(), "[lb][maglev] hash %d get nil host, index: %d",
+			hash, index)
+	} else {
+		log.Proxy.Debugf(ctx.DownstreamContext(), "[lb][maglev] hash %d index %d get host %s",
+			hash, index, chosen.AddressString())
+	}
+
+	return chosen
+}
+
+func (lb *maglevLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+	return lb.HostNum(metadata) > 0
+}
+
+func (lb *maglevLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+	return len(lb.hosts.Hosts())
+}
+
+// chooseHostFromHostList traverse host list to find a healthy host
+func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
+	hostCount := len(lb.hosts.Hosts())
+
+	// go left
+	counterIndex := index
+	for counterIndex > 0 {
+		counterIndex--
+
+		if lb.hosts.Hosts()[counterIndex].Health() {
+			return lb.hosts.Hosts()[counterIndex]
+		}
+	}
+
+	// go right
+	for counterIndex = index + 1; counterIndex < hostCount; counterIndex++ {
+		if lb.hosts.Hosts()[counterIndex].Health() {
+			return lb.hosts.Hosts()[counterIndex]
+		}
+	}
+
+	return nil
 }

@@ -232,6 +232,11 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 	// TODO
 }
 
+func (p *proxy) ActiveStreamSize() int {
+	// TODO
+	return 0
+}
+
 type proxyConfig struct {
 	statPrefix         string
 	cluster            string
@@ -436,4 +441,8 @@ func (c *LbContext) DownstreamContext() context.Context {
 
 func (c *LbContext) DownstreamCluster() types.ClusterInfo {
 	return c.cluster
+}
+
+func (c *LbContext) DownstreamRoute() api.Route {
+	return nil
 }
