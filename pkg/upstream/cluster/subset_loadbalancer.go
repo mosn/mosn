@@ -32,7 +32,7 @@ type subsetLoadBalancer struct {
 	stats          types.ClusterStats
 	subSets        types.LbSubsetMap  // final trie-like structure used to stored easily searched subset
 	fallbackSubset *LBSubsetEntryImpl // subset entry generated according to fallback policy
-	hostSet        *hostSet
+	hostSet        *hostSetf
 }
 
 func NewSubsetLoadBalancer(info *clusterInfo, hostSet *hostSet) types.LoadBalancer {
@@ -95,8 +95,8 @@ func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int 
 func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerContext) (types.Host, bool) {
 	metadata := ctx.MetadataMatchCriteria()
 	if metadata == nil || reflect.ValueOf(metadata).IsNil() {
-		if log.DefaultLogger.GetLogLevel() >= log.INFO {
-			log.DefaultLogger.Infof("[upstream] [subset lb] subset load balancer: context is nil")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: context is nil")
 		}
 		return nil, false
 	}
