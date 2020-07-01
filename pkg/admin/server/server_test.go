@@ -19,13 +19,9 @@ package server
 
 import (
 	"bufio"
-	rawjson "encoding/json"
 	"errors"
 	"fmt"
-	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
-	"github.com/golang/protobuf/jsonpb"
 	"io/ioutil"
-	"mosn.io/mosn/pkg/xds/conv"
 	"net/http"
 	"os"
 	"regexp"
@@ -34,12 +30,16 @@ import (
 	"testing"
 	"time"
 
+	rawjson "encoding/json"
+	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/store"
 	mv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/xds/conv"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
