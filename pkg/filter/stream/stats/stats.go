@@ -43,10 +43,12 @@ type FilterConfigFactory struct {
 type statsFilter struct {
 	context               context.Context
 	receiverFilterHandler api.StreamReceiverFilterHandler
-	requestTotalSize      uint64
 
 	prefix  string
 	metrics *Metrics
+
+	buf      buffer.IoBuffer
+	trailers api.HeaderMap
 }
 
 // newStatsFilter used to create new stats filter
@@ -60,16 +62,8 @@ func newStatsFilter(ctx context.Context, prefix string, metrics *Metrics) *stats
 }
 
 func (f *statsFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	if headers != nil {
-		f.requestTotalSize += headers.ByteSize()
-	}
-	if buf != nil {
-		f.requestTotalSize += uint64(buf.Len())
-	}
-	if trailers != nil {
-		f.requestTotalSize += trailers.ByteSize()
-	}
-
+	f.buf = buf
+	f.trailers = trailers
 	return api.StreamFilterContinue
 }
 
@@ -84,7 +78,7 @@ func (f *statsFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHea
 		return
 	}
 
-	attributes := extract.ExtractAttributes(reqHeaders, respHeaders, requestInfo, f.requestTotalSize, time.Now())
+	attributes := extract.ExtractAttributes(reqHeaders, respHeaders, requestInfo, f.buf, f.trailers, time.Now())
 	stats, err := f.metrics.Stat(attributes)
 	if err != nil {
 		log.DefaultLogger.Errorf("stats error: %s", err.Error())
