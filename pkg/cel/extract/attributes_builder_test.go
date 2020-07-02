@@ -1,4 +1,4 @@
-package stats
+package extract
 
 import (
 	"encoding/base64"

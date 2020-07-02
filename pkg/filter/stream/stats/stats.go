@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/cel/extract"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -83,7 +84,7 @@ func (f *statsFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHea
 		return
 	}
 
-	attributes := ExtractAttributes(reqHeaders, respHeaders, requestInfo, f.requestTotalSize, time.Now())
+	attributes := extract.ExtractAttributes(reqHeaders, respHeaders, requestInfo, f.requestTotalSize, time.Now())
 	stats, err := f.metrics.Stat(attributes)
 	if err != nil {
 		log.DefaultLogger.Errorf("stats error: %s", err.Error())

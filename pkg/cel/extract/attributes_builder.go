@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package stats
+package extract
 
 import (
 	"encoding/base64"
