@@ -42,6 +42,7 @@ type ExpressionBuilder struct {
 	mode     LanguageMode
 	provider *attributeProvider
 	env      *cel.Env
+	opt      cel.ProgramOption
 }
 
 // NewExpressionBuilder returns a new ExpressionBuilder
@@ -53,6 +54,7 @@ func NewExpressionBuilder(attributes map[string]attribute.Kind, mode LanguageMod
 		mode:     mode,
 		provider: provider,
 		env:      env,
+		opt:      ext.StandardOverloadsEnvOption(),
 	}
 }
 
@@ -96,7 +98,7 @@ func (e *ExpressionBuilder) Compile(text string) (attribute.Expression, attribut
 		return nil, typ, err
 	}
 
-	program, err := e.env.Program(checked, ext.StandardOverloads)
+	program, err := e.env.Program(checked, e.opt)
 	if err != nil {
 		return nil, typ, err
 	}

@@ -19,11 +19,14 @@ package cel
 
 import (
 	"net"
+	"net/mail"
+	"net/url"
 	"reflect"
 	"testing"
 	"time"
 
 	"mosn.io/mosn/pkg/cel/attribute"
+	"mosn.io/mosn/pkg/cel/ext"
 	"mosn.io/mosn/pkg/protocol"
 )
 
@@ -472,7 +475,7 @@ func TestMoreCases(t *testing.T) {
 				src: `ip("1.1.1.1")`,
 				bag: bag,
 			},
-			want:     []byte(net.IPv4(1, 1, 1, 1)),
+			want:     net.IPv4(1, 1, 1, 1),
 			wantKind: attribute.IP_ADDRESS,
 		},
 		{
@@ -496,7 +499,7 @@ func TestMoreCases(t *testing.T) {
 				src: `uri("https://test.local")`,
 				bag: bag,
 			},
-			want:     "https://test.local",
+			want:     &url.URL{Scheme: "https", Host: "test.local"},
 			wantKind: attribute.URI,
 		},
 		{
@@ -520,7 +523,7 @@ func TestMoreCases(t *testing.T) {
 				src: `email("test@test.local")`,
 				bag: bag,
 			},
-			want:     "test@test.local",
+			want:     &mail.Address{Address: "test@test.local"},
 			wantKind: attribute.EMAIL_ADDRESS,
 		},
 		{
@@ -544,7 +547,7 @@ func TestMoreCases(t *testing.T) {
 				src: `dnsName("test.local")`,
 				bag: bag,
 			},
-			want:     "test.local",
+			want:     &ext.DNSName{Name: "test.local"},
 			wantKind: attribute.DNS_NAME,
 		},
 		{
