@@ -106,7 +106,7 @@ func CreateStatsFilterFactory(conf map[string]interface{}) (api.StreamFilterChai
 	if err != nil {
 		return nil, err
 	}
-	c := &StatsConfig{}
+	c := StatsConfig{}
 	err = json.Unmarshal(data, &c)
 	if err != nil {
 		return nil, err
