@@ -25,6 +25,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/cel"
 	"mosn.io/mosn/pkg/cel/attribute"
+	"mosn.io/mosn/pkg/cel/extract"
 )
 
 var (
@@ -32,7 +33,7 @@ var (
 	errMatchKind = fmt.Errorf("match type must be of boolean")
 )
 
-var compiler = cel.NewExpressionBuilder(attributemanifest, cel.CompatCEXL)
+var compiler = cel.NewExpressionBuilder(extract.Attributemanifest, cel.CompatCEXL)
 
 type Metrics struct {
 	overrides   []*override

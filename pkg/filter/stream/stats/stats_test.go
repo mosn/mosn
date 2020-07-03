@@ -185,3 +185,207 @@ func BenchmarkStatsFilterLog(b *testing.B) {
 		})
 	}
 }
+
+// MockRequestInfo
+type MockRequestInfo struct {
+	protocol                 api.Protocol
+	startTime                time.Time
+	endTime                  time.Time
+	responseFlag             api.ResponseFlag
+	upstreamHost             api.HostInfo
+	requestReceivedDuration  time.Duration
+	requestFinishedDuration  time.Duration
+	responseReceivedDuration time.Duration
+	processTimeDuration      time.Duration
+	bytesSent                uint64
+	bytesReceived            uint64
+	responseCode             int
+	localAddress             string
+	downstreamLocalAddress   net.Addr
+	downstreamRemoteAddress  net.Addr
+	isHealthCheckRequest     bool
+	routerRule               api.RouteRule
+}
+
+func (r *MockRequestInfo) StartTime() time.Time {
+	return r.startTime
+}
+
+func (r *MockRequestInfo) SetStartTime() {
+	r.startTime = time.Now()
+}
+
+func (r *MockRequestInfo) RequestReceivedDuration() time.Duration {
+	return r.requestReceivedDuration
+}
+
+func (r *MockRequestInfo) SetRequestReceivedDuration(t time.Time) {
+	r.requestReceivedDuration = t.Sub(r.startTime)
+}
+
+func (r *MockRequestInfo) ResponseReceivedDuration() time.Duration {
+	return r.responseReceivedDuration
+}
+
+func (r *MockRequestInfo) SetResponseReceivedDuration(t time.Time) {
+	r.responseReceivedDuration = t.Sub(r.startTime)
+}
+
+func (r *MockRequestInfo) RequestFinishedDuration() time.Duration {
+	return r.requestFinishedDuration
+}
+
+func (r *MockRequestInfo) SetRequestFinishedDuration(t time.Time) {
+	r.requestFinishedDuration = t.Sub(r.startTime)
+
+}
+
+func (r *MockRequestInfo) ProcessTimeDuration() time.Duration {
+	return r.processTimeDuration
+}
+
+func (r *MockRequestInfo) SetProcessTimeDuration(d time.Duration) {
+	r.processTimeDuration = d
+}
+
+func (r *MockRequestInfo) BytesSent() uint64 {
+	return r.bytesSent
+}
+
+func (r *MockRequestInfo) SetBytesSent(bytesSent uint64) {
+	r.bytesSent = bytesSent
+}
+
+func (r *MockRequestInfo) BytesReceived() uint64 {
+	return r.bytesReceived
+}
+
+func (r *MockRequestInfo) SetBytesReceived(bytesReceived uint64) {
+	r.bytesReceived = bytesReceived
+}
+
+func (r *MockRequestInfo) Protocol() api.Protocol {
+	return r.protocol
+}
+
+func (r *MockRequestInfo) SetProtocol(p api.Protocol) {
+	r.protocol = p
+}
+
+func (r *MockRequestInfo) ResponseCode() int {
+	return r.responseCode
+}
+
+func (r *MockRequestInfo) SetResponseCode(code int) {
+	r.responseCode = code
+}
+
+func (r *MockRequestInfo) Duration() time.Duration {
+	return r.endTime.Sub(r.startTime)
+}
+
+func (r *MockRequestInfo) GetResponseFlag(flag api.ResponseFlag) bool {
+	return r.responseFlag&flag != 0
+}
+
+func (r *MockRequestInfo) SetResponseFlag(flag api.ResponseFlag) {
+	r.responseFlag |= flag
+}
+
+func (r *MockRequestInfo) UpstreamHost() api.HostInfo {
+	return r.upstreamHost
+}
+
+func (r *MockRequestInfo) OnUpstreamHostSelected(host api.HostInfo) {
+	r.upstreamHost = host
+}
+
+func (r *MockRequestInfo) UpstreamLocalAddress() string {
+	return r.localAddress
+}
+
+func (r *MockRequestInfo) SetUpstreamLocalAddress(addr string) {
+	r.localAddress = addr
+}
+
+func (r *MockRequestInfo) IsHealthCheck() bool {
+	return r.isHealthCheckRequest
+}
+
+func (r *MockRequestInfo) SetHealthCheck(isHc bool) {
+	r.isHealthCheckRequest = isHc
+}
+
+func (r *MockRequestInfo) DownstreamLocalAddress() net.Addr {
+	return r.downstreamLocalAddress
+}
+
+func (r *MockRequestInfo) SetDownstreamLocalAddress(addr net.Addr) {
+	r.downstreamLocalAddress = addr
+}
+
+func (r *MockRequestInfo) DownstreamRemoteAddress() net.Addr {
+	return r.downstreamRemoteAddress
+}
+
+func (r *MockRequestInfo) SetDownstreamRemoteAddress(addr net.Addr) {
+	r.downstreamRemoteAddress = addr
+}
+
+func (r *MockRequestInfo) RouteEntry() api.RouteRule {
+	return r.routerRule
+}
+
+func (r *MockRequestInfo) SetRouteEntry(routerRule api.RouteRule) {
+	r.routerRule = routerRule
+}
+
+type MockHostInfo struct {
+	hostname      string
+	metadata      api.Metadata
+	addressString string
+	weight        uint32
+	supportTLS    bool
+	healthFlag    api.HealthFlag
+	health        bool
+}
+
+func (h *MockHostInfo) Hostname() string {
+	return h.hostname
+}
+
+func (h *MockHostInfo) Metadata() api.Metadata {
+	return h.metadata
+}
+
+func (h *MockHostInfo) AddressString() string {
+	return h.addressString
+}
+
+func (h *MockHostInfo) Weight() uint32 {
+	return h.weight
+}
+
+func (h *MockHostInfo) SupportTLS() bool {
+	return h.supportTLS
+}
+
+func (h *MockHostInfo) ClearHealthFlag(flag api.HealthFlag) {
+
+}
+
+func (h *MockHostInfo) ContainHealthFlag(flag api.HealthFlag) bool {
+	return false
+}
+
+func (h *MockHostInfo) SetHealthFlag(flag api.HealthFlag) {
+
+}
+
+func (h *MockHostInfo) HealthFlag() api.HealthFlag {
+	return h.healthFlag
+}
+
+func (h *MockHostInfo) Health() bool {
+	return h.health
+}

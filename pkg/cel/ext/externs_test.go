@@ -19,47 +19,11 @@ package ext
 
 import (
 	"net"
+	"net/mail"
+	"net/url"
 	"reflect"
 	"testing"
 )
-
-func Test_externIP(t *testing.T) {
-	type args struct {
-		in string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
-	}{
-		{
-			args: args{
-				in: "1.0.0.0",
-			},
-			want: net.IPv4(1, 0, 0, 0),
-		},
-		{
-			args: args{
-				in: "0.0",
-			},
-			wantErr: true,
-			want:    []byte{},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := externIP(tt.args.in)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("externIP() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("externIP() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func Test_externDNSName(t *testing.T) {
 	type args struct {
@@ -68,14 +32,14 @@ func Test_externDNSName(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    string
+		want    *DNSName
 		wantErr bool
 	}{
 		{
 			args: args{
 				in: "test.local",
 			},
-			want: "test.local",
+			want: &DNSName{"test.local"},
 		},
 		{
 			args: args{
@@ -91,97 +55,8 @@ func Test_externDNSName(t *testing.T) {
 				t.Errorf("externDNSName() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got != tt.want {
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("externDNSName() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_externEmail(t *testing.T) {
-	type args struct {
-		in string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			args: args{
-				in: "test@test.local",
-			},
-			want: "test@test.local",
-		},
-		{
-			args: args{
-				in: "test.local",
-			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			args: args{
-				in: "@test.local",
-			},
-			want:    "",
-			wantErr: true,
-		},
-		{
-			args: args{
-				in: "test@test..local",
-			},
-			want:    "",
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := externEmail(tt.args.in)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("externEmail() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("externEmail() got = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_externURI(t *testing.T) {
-	type args struct {
-		in string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
-	}{
-		{
-			args: args{
-				in: "http://test.local",
-			},
-			want: "http://test.local",
-		},
-		{
-			args: args{
-				in: ":test.local",
-			},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := externURI(tt.args.in)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("externURI() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("externURI() got = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -475,7 +350,18 @@ func Test_externEmailEqual(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := externEmailEqual(tt.args.e1, tt.args.e2)
+			var (
+				got    bool
+				a1, a2 *mail.Address
+				err    error
+			)
+			a1, err = mail.ParseAddress(tt.args.e1)
+			if err == nil {
+				a2, err = mail.ParseAddress(tt.args.e2)
+				if err == nil {
+					got, err = externEmailEqual(a1, a2)
+				}
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("externEmailEqual() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -538,7 +424,19 @@ func Test_externURIEqual(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := externURIEqual(tt.args.u1, tt.args.u2)
+			var (
+				got    bool
+				a1, a2 *url.URL
+				err    error
+			)
+
+			a1, err = url.Parse(tt.args.u1)
+			if err == nil {
+				a2, err = url.Parse(tt.args.u2)
+				if err == nil {
+					got, err = externURIEqual(a1, a2)
+				}
+			}
 			if (err != nil) != tt.wantErr {
 				t.Errorf("externURIEqual() error = %v, wantErr %v", err, tt.wantErr)
 				return

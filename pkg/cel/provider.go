@@ -131,7 +131,7 @@ func (a *attributeProvider) newEnvironment() *cel.Env {
 	env, _ := cel.NewEnv(
 		cel.CustomTypeProvider(a),
 		cel.Declarations(declarations...),
-		cexlext.StandardFunctions,
+		cexlext.StandardFunctionsEnvOption(),
 		ext.Strings(),
 		cexlext.Macros)
 
