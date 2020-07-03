@@ -25,21 +25,17 @@ import (
 	"strings"
 
 	"golang.org/x/net/idna"
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/protocol"
 )
 
-// externIP creates an IP address
-func externIP(in string) ([]byte, error) {
-	if ip := net.ParseIP(in); ip != nil {
-		return ip, nil
-	}
-	return []byte{}, fmt.Errorf("could not convert %s to IP_ADDRESS", in)
+// externEmptyStringMap creates an string map
+func externEmptyStringMap() api.HeaderMap {
+	return protocol.CommonHeader{}
 }
 
 // externIPEqual compares two IP addresses for equality
-func externIPEqual(a []byte, b []byte) bool {
-	// net.IP is an alias for []byte, so these are safe to convert
-	ip1 := net.IP(a)
-	ip2 := net.IP(b)
+func externIPEqual(ip1, ip2 net.IP) bool {
 	return ip1.Equal(ip2)
 }
 
@@ -51,12 +47,12 @@ var externDNSNameProfile = idna.New(
 	idna.BidiRule())
 
 // externDNSName converts a string to a DNS name
-func externDNSName(in string) (string, error) {
+func externDNSName(in string) (*DNSName, error) {
 	s, err := externDNSNameProfile.ToUnicode(in)
 	if err != nil {
-		return "", fmt.Errorf("error converting '%s' to dns name: '%v'", in, err)
+		return nil, fmt.Errorf("error converting '%s' to dns name: '%v'", in, err)
 	}
-	return s, err
+	return &DNSName{s}, err
 }
 
 // This IDNA profile converts the string for lookup, which ends up canonicalizing the dns name, for the most
@@ -80,33 +76,15 @@ func externDNSNameEqual(n1 string, n2 string) (bool, error) {
 	return n1 == n2, nil
 }
 
-// externEmail converts a string to an email address
-func externEmail(in string) (string, error) {
-	_, err := mail.ParseAddress(in)
-	if err != nil {
-		return "", fmt.Errorf("error converting '%s' to e-mail: '%v'", in, err)
-	}
-	return in, nil
-}
-
 // externEmailEqual compares two email addresses for equality
-func externEmailEqual(e1 string, e2 string) (bool, error) {
-	a1, err := mail.ParseAddress(e1)
-	if err != nil {
-		return false, err
-	}
-
-	a2, err := mail.ParseAddress(e2)
-	if err != nil {
-		return false, err
-	}
+func externEmailEqual(a1, a2 *mail.Address) (bool, error) {
 
 	local1, domain1 := getEmailParts(a1.Address)
 	local2, domain2 := getEmailParts(a2.Address)
 
 	domainEq, err := externDNSNameEqual(domain1, domain2)
 	if err != nil {
-		return false, fmt.Errorf("error comparing e-mails '%s' and '%s': %v", e1, e2, err)
+		return false, fmt.Errorf("error comparing e-mails '%s' and '%s': %v", a1, a2, err)
 	}
 
 	if !domainEq {
@@ -116,25 +94,8 @@ func externEmailEqual(e1 string, e2 string) (bool, error) {
 	return local1 == local2, nil
 }
 
-// externURI converts a string to a URI
-func externURI(in string) (string, error) {
-	if _, err := url.Parse(in); err != nil {
-		return "", fmt.Errorf("error converting string to uri '%s': '%v'", in, err)
-	}
-	return in, nil
-}
-
 // externURIEqual compares two URIs for equality
-func externURIEqual(u1 string, u2 string) (bool, error) {
-	url1, err := url.Parse(u1)
-	if err != nil {
-		return false, fmt.Errorf("error converting string to uri '%s': '%v'", u1, err)
-	}
-
-	url2, err := url.Parse(u2)
-	if err != nil {
-		return false, fmt.Errorf("error converting string to uri '%s': '%v'", u2, err)
-	}
+func externURIEqual(url1, url2 *url.URL) (bool, error) {
 
 	// Try to apply as much normalization logic as possible.
 	scheme1 := strings.ToLower(url1.Scheme)

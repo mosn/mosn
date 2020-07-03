@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package stats
+package extract
 
 import (
 	"encoding/base64"
@@ -30,27 +30,30 @@ import (
 	"mosn.io/mosn/pkg/cel/attribute"
 	"mosn.io/mosn/pkg/istio/utils"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/pkg/buffer"
 )
 
-func ExtractAttributes(reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo, requestTotalSize uint64, now time.Time) attribute.Bag {
+func ExtractAttributes(reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo, buf buffer.IoBuffer, trailers api.HeaderMap, now time.Time) attribute.Bag {
 	return &extractAttributes{
-		reqHeaders:       reqHeaders,
-		respHeaders:      respHeaders,
-		requestInfo:      requestInfo,
-		requestTotalSize: requestTotalSize,
-		now:              now,
-		extracted:        map[string]interface{}{},
+		reqHeaders:  reqHeaders,
+		respHeaders: respHeaders,
+		requestInfo: requestInfo,
+		buf:         buf,
+		trailers:    trailers,
+		now:         now,
+		extracted:   map[string]interface{}{},
 	}
 }
 
 type extractAttributes struct {
-	reqHeaders       api.HeaderMap
-	respHeaders      api.HeaderMap
-	requestInfo      api.RequestInfo
-	requestTotalSize uint64
-	now              time.Time
-	attributes       map[string]interface{}
-	extracted        map[string]interface{}
+	reqHeaders  api.HeaderMap
+	respHeaders api.HeaderMap
+	requestInfo api.RequestInfo
+	buf         buffer.IoBuffer
+	trailers    api.HeaderMap
+	now         time.Time
+	attributes  map[string]interface{}
+	extracted   map[string]interface{}
 }
 
 func (e *extractAttributes) Get(name string) (interface{}, bool) {
@@ -114,7 +117,18 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 	case utils.KResponseBodySize:
 		return int64(e.requestInfo.BytesSent()), true
 	case utils.KRequestTotalSize:
-		return int64(e.requestTotalSize), true
+		var sum int64
+		if e.reqHeaders != nil {
+			sum += int64(e.reqHeaders.ByteSize())
+		}
+		if e.buf != nil {
+			sum += int64(e.buf.Len())
+		}
+		if e.trailers != nil {
+			sum += int64(e.trailers.ByteSize())
+		}
+		e.extracted[utils.KRequestTotalSize] = sum
+		return sum, true
 	case utils.KResponseTotalSize:
 		return int64(e.requestInfo.BytesSent() + e.respHeaders.ByteSize()), true
 	case utils.KResponseDuration:

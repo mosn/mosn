@@ -1,4 +1,4 @@
-package stats
+package extract
 
 import (
 	"encoding/base64"
@@ -13,6 +13,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/istio/utils"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/pkg/buffer"
 )
 
 func Test_paresClusterName(t *testing.T) {
@@ -44,11 +45,16 @@ func Test_paresClusterName(t *testing.T) {
 
 func TestExtractAttributes(t *testing.T) {
 	now := time.Now()
+	buf := buffer.GetIoBuffer(1)
+	buf.Reset()
+	buf.Append([]byte{1})
+	defer buffer.PutIoBuffer(buf)
 	type args struct {
-		reqHeaders       api.HeaderMap
-		respHeaders      api.HeaderMap
-		requestInfo      api.RequestInfo
-		requestTotalSize uint64
+		reqHeaders  api.HeaderMap
+		respHeaders api.HeaderMap
+		requestInfo api.RequestInfo
+		buf         buffer.IoBuffer
+		trailers    api.HeaderMap
 	}
 	tests := []struct {
 		name string
@@ -63,7 +69,7 @@ func TestExtractAttributes(t *testing.T) {
 					startTime: now,
 					endTime:   now,
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
 			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now},
 		},
@@ -79,7 +85,7 @@ func TestExtractAttributes(t *testing.T) {
 						addressString: "10.0.0.2:80",
 					},
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
 			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.ip": []byte{0x31, 0x30, 0x2e, 0x30, 0x2e, 0x30, 0x2e, 0x32}, "destination.port": int64(80), "origin.ip": []byte{0x31, 0x30, 0x2e, 0x30, 0x2e, 0x30, 0x2e, 0x31}},
 		},
@@ -92,7 +98,7 @@ func TestExtractAttributes(t *testing.T) {
 					endTime:   now,
 					protocol:  protocol.HTTP1,
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
 			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now},
 		},
@@ -105,7 +111,7 @@ func TestExtractAttributes(t *testing.T) {
 					endTime:   now,
 					protocol:  protocol.HTTP2,
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
 			want: map[string]interface{}{"context.protocol": "h2", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now},
 		},
@@ -118,7 +124,7 @@ func TestExtractAttributes(t *testing.T) {
 					endTime:   now,
 					protocol:  protocol.Auto,
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
 			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now},
 		},
@@ -135,9 +141,9 @@ func TestExtractAttributes(t *testing.T) {
 					endTime:   now,
 					protocol:  protocol.Auto,
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
-			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path", "request.method": "GET"},
+			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(48), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path", "request.method": "GET"},
 		},
 		{
 			args: args{
@@ -153,9 +159,9 @@ func TestExtractAttributes(t *testing.T) {
 					endTime:   now,
 					protocol:  protocol.Auto,
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
-			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path?k1=v1&k2=v2", "request.method": "GET", "request.query_params": protocol.CommonHeader{"k1": "v1", "k2": "v2"}},
+			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(77), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path?k1=v1&k2=v2", "request.method": "GET", "request.query_params": protocol.CommonHeader{"k1": "v1", "k2": "v2"}},
 		},
 		{
 			args: args{
@@ -178,9 +184,9 @@ func TestExtractAttributes(t *testing.T) {
 					startTime: now,
 					endTime:   now,
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
-			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "source.workload.name": "name"},
+			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(63), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "source.workload.name": "name"},
 		},
 		{
 			args: args{
@@ -192,9 +198,9 @@ func TestExtractAttributes(t *testing.T) {
 					startTime: now,
 					endTime:   now,
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
-			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.service": "httpbin.default.svc.cluster.local", "destination.service.host": "httpbin.default.svc.cluster.local", "destination.service.name": "httpbin", "destination.service.namespace": "default", "destination.service.uid": "istio://default/services/httpbin", "source.uid": "kubernetes://sleep-7b9f8bfcd-2djx5.default"},
+			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(463), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.service": "httpbin.default.svc.cluster.local", "destination.service.host": "httpbin.default.svc.cluster.local", "destination.service.name": "httpbin", "destination.service.namespace": "default", "destination.service.uid": "istio://default/services/httpbin", "source.uid": "kubernetes://sleep-7b9f8bfcd-2djx5.default"},
 		},
 		{
 			args: args{
@@ -209,14 +215,14 @@ func TestExtractAttributes(t *testing.T) {
 						clusterName: "outbound|12220|0.0.1|hellomeshfacade-poc-test-client.default2.svc.cluster.local",
 					},
 				},
-				requestTotalSize: 1,
+				buf: buf,
 			},
-			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.service.host": "hellomeshfacade-poc-test-client.default2.svc.cluster.local", "destination.service.name": "hellomeshfacade-poc-test-client", "destination.service.namespace": "default2", "context.reporter.kind": "outbound"},
+			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(463), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.service.host": "hellomeshfacade-poc-test-client.default2.svc.cluster.local", "destination.service.name": "hellomeshfacade-poc-test-client", "destination.service.namespace": "default2", "context.reporter.kind": "outbound"},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ExtractAttributes(tt.args.reqHeaders, tt.args.respHeaders, tt.args.requestInfo, tt.args.requestTotalSize, now)
+			got := ExtractAttributes(tt.args.reqHeaders, tt.args.respHeaders, tt.args.requestInfo, tt.args.buf, tt.args.trailers, now)
 			for k, v := range tt.want {
 				if g, ok := got.Get(k); !ok || !reflect.DeepEqual(g, v) {
 					t.Errorf("ExtractAttributes() key %q = %v, want %v", k, g, v)

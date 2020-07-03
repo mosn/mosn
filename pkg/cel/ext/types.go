@@ -19,7 +19,9 @@ package ext
 
 import (
 	"errors"
-	"fmt"
+	"net"
+	"net/mail"
+	"net/url"
 	"reflect"
 	"time"
 
@@ -33,7 +35,6 @@ import (
 	expr "google.golang.org/genproto/googleapis/api/expr/v1alpha1"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/cel/attribute"
-	"mosn.io/mosn/pkg/protocol"
 )
 
 func ConvertType(typ attribute.Kind) *expr.Type {
@@ -53,13 +54,13 @@ func ConvertType(typ attribute.Kind) *expr.Type {
 	case attribute.STRING_MAP:
 		return stringMapType
 	case attribute.IP_ADDRESS:
-		return decls.NewObjectType(ipAddressType)
+		return ipAddressValueTypeWrapper
 	case attribute.EMAIL_ADDRESS:
-		return decls.NewObjectType(emailAddressType)
+		return emailAddressValueTypeWrapper
 	case attribute.URI:
-		return decls.NewObjectType(uriType)
+		return uriValueTypeWrapper
 	case attribute.DNS_NAME:
-		return decls.NewObjectType(dnsType)
+		return dnsNameValueTypeWrapper
 	}
 	return &expr.Type{TypeKind: &expr.Type_Dyn{}}
 }
@@ -68,6 +69,7 @@ func RecoverType(typ *expr.Type) attribute.Kind {
 	if typ == nil {
 		return attribute.VALUE_TYPE_UNSPECIFIED
 	}
+
 	switch t := typ.TypeKind.(type) {
 	case *expr.Type_Primitive:
 		switch t.Primitive {
@@ -97,7 +99,7 @@ func RecoverType(typ *expr.Type) attribute.Kind {
 			return attribute.EMAIL_ADDRESS
 		case uriType:
 			return attribute.URI
-		case dnsType:
+		case dnsNameType:
 			return attribute.DNS_NAME
 		}
 
@@ -130,9 +132,38 @@ func ConvertValue(typ attribute.Kind, value interface{}) ref.Val {
 		sm := value.(api.HeaderMap)
 		return stringMapValue{headerMap: sm}
 	case attribute.IP_ADDRESS:
-		return wrapperValue{typ: typ, bytes: value.([]byte)}
-	case attribute.EMAIL_ADDRESS, attribute.URI, attribute.DNS_NAME:
-		return wrapperValue{typ: typ, s: value.(string)}
+		switch t := value.(type) {
+		case []byte:
+			return ipAddressValue{ip: t}
+		case net.IP:
+			return ipAddressValue{ip: t}
+		}
+	case attribute.EMAIL_ADDRESS:
+		switch t := value.(type) {
+		case string:
+			email, _ := mail.ParseAddress(t)
+			return emailAddressValue{email: email}
+		case *mail.Address:
+			return emailAddressValue{email: t}
+		}
+	case attribute.URI:
+		switch t := value.(type) {
+		case string:
+			uri, _ := url.Parse(t)
+			return uriValue{uri: uri}
+		case *url.URL:
+			return uriValue{uri: t}
+		}
+
+	case attribute.DNS_NAME:
+		switch t := value.(type) {
+		case string:
+			return dnsNameValue{dns: &DNSName{
+				Name: t,
+			}}
+		case *DNSName:
+			return dnsNameValue{dns: t}
+		}
 	}
 	return types.NewErr("cannot convert value %#v of type %q", value, typ)
 }
@@ -155,10 +186,8 @@ func RecoverValue(value ref.Val) (interface{}, error) {
 	case types.MapType:
 		size := value.(traits.Sizer).Size()
 		if size.Type() == types.IntType && size.Value().(int64) == 0 {
-			return emptyStringMap.headerMap, nil
+			return externEmptyStringMap(), nil
 		}
-		return value.Value(), nil
-	case wrapperType:
 		return value.Value(), nil
 	case types.ListType:
 		size := value.(traits.Sizer).Size()
@@ -166,8 +195,9 @@ func RecoverValue(value ref.Val) (interface{}, error) {
 			return []string{}, nil
 		}
 		return value.Value(), nil
+	default:
+		return value.Value(), nil
 	}
-	return nil, fmt.Errorf("failed to recover of type %s", value.Type())
 }
 
 var defaultValues = map[attribute.Kind]ref.Val{
@@ -177,11 +207,11 @@ var defaultValues = map[attribute.Kind]ref.Val{
 	attribute.BOOL:          types.Bool(false),
 	attribute.TIMESTAMP:     types.Timestamp{Timestamp: &timestamp.Timestamp{}},
 	attribute.DURATION:      types.Duration{Duration: &duration.Duration{}},
-	attribute.STRING_MAP:    emptyStringMap,
-	attribute.IP_ADDRESS:    wrapperValue{typ: attribute.IP_ADDRESS, bytes: []byte{}},
-	attribute.EMAIL_ADDRESS: wrapperValue{typ: attribute.EMAIL_ADDRESS, s: ""},
-	attribute.URI:           wrapperValue{typ: attribute.URI, s: ""},
-	attribute.DNS_NAME:      wrapperValue{typ: attribute.DNS_NAME, s: ""},
+	attribute.STRING_MAP:    stringMapValue{headerMap: externEmptyStringMap()},
+	attribute.IP_ADDRESS:    ipAddressValue{},
+	attribute.EMAIL_ADDRESS: emailAddressValue{},
+	attribute.URI:           uriValue{},
+	attribute.DNS_NAME:      dnsNameValue{},
 }
 
 func DefaultValue(typ attribute.Kind) ref.Val {
@@ -192,21 +222,7 @@ func DefaultValue(typ attribute.Kind) ref.Val {
 }
 
 var (
-	stringMapType = &expr.Type{TypeKind: &expr.Type_MapType_{MapType: &expr.Type_MapType{
-		KeyType:   &expr.Type{TypeKind: &expr.Type_Primitive{Primitive: expr.Type_STRING}},
-		ValueType: &expr.Type{TypeKind: &expr.Type_Primitive{Primitive: expr.Type_STRING}},
-	}}}
-	emptyStringMap = stringMapValue{headerMap: protocol.CommonHeader{}}
-
-	// domain specific types do not implement any of type traits for now
-	wrapperType = types.NewTypeValue("wrapper")
-)
-
-var (
-	ipAddressType    = "IPAddress"
-	emailAddressType = "EmailAddress"
-	uriType          = "Uri"
-	dnsType          = "DNSName"
+	stringMapType = decls.NewMapType(decls.String, decls.String)
 )
 
 type stringMapValue struct {
@@ -253,54 +269,247 @@ func (v stringMapValue) Size() ref.Val {
 	return types.NewErr("size not implemented on stringmaps")
 }
 
-type wrapperValue struct {
-	typ   attribute.Kind
-	bytes []byte
-	s     string
+var (
+	ipAddressType             = "IPAddress"
+	ipAddressValueType        = types.NewTypeValue(ipAddressType)
+	ipAddressValueTypeWrapper = decls.NewObjectType(ipAddressType)
+)
+
+type ipAddressValue struct {
+	ip net.IP
 }
 
-func (v wrapperValue) ConvertToNative(typeDesc reflect.Type) (interface{}, error) {
+func (v ipAddressValue) ConvertToNative(typeDesc reflect.Type) (interface{}, error) {
 	return nil, errors.New("cannot convert wrapper value to native types")
 }
-func (v wrapperValue) ConvertToType(typeValue ref.Type) ref.Val {
+func (v ipAddressValue) ConvertToType(typeValue ref.Type) ref.Val {
 	return types.NewErr("cannot convert wrapper value  to CEL types")
 }
-func (v wrapperValue) Equal(other ref.Val) ref.Val {
-	if other.Type() != wrapperType {
+func (v ipAddressValue) Equal(other ref.Val) ref.Val {
+	if other.Type() != ipAddressValueType {
 		return types.NewErr("cannot compare types")
 	}
-	w, ok := other.(wrapperValue)
+	w, ok := other.(ipAddressValue)
 	if !ok {
 		return types.NewErr("cannot compare types")
 	}
-	if v.typ != w.typ {
-		return types.NewErr("cannot compare %s and %s", v.typ, w.typ)
+	return types.Bool(externIPEqual(v.ip, w.ip))
+}
+func (v ipAddressValue) Type() ref.Type {
+	return ipAddressValueType
+}
+func (v ipAddressValue) Value() interface{} {
+	return v.ip
+}
+
+var (
+	emailAddressType             = "EmailAddress"
+	emailAddressValueType        = types.NewTypeValue(emailAddressType)
+	emailAddressValueTypeWrapper = decls.NewObjectType(emailAddressType)
+)
+
+type emailAddressValue struct {
+	email *mail.Address
+}
+
+func (v emailAddressValue) ConvertToNative(typeDesc reflect.Type) (interface{}, error) {
+	return nil, errors.New("cannot convert wrapper value to native types")
+}
+func (v emailAddressValue) ConvertToType(typeValue ref.Type) ref.Val {
+	return types.NewErr("cannot convert wrapper value  to CEL types")
+}
+func (v emailAddressValue) Equal(other ref.Val) ref.Val {
+	if other.Type() != emailAddressValueType {
+		return types.NewErr("cannot compare types")
 	}
-	var out bool
-	var err error
-	switch v.typ {
-	case attribute.IP_ADDRESS:
-		out = externIPEqual(v.bytes, w.bytes)
-	case attribute.DNS_NAME:
-		out, err = externDNSNameEqual(v.s, w.s)
-	case attribute.EMAIL_ADDRESS:
-		out, err = externEmailEqual(v.s, w.s)
-	case attribute.URI:
-		out, err = externURIEqual(v.s, w.s)
+	w, ok := other.(emailAddressValue)
+	if !ok {
+		return types.NewErr("cannot compare types")
 	}
+	b, err := externEmailEqual(v.email, w.email)
 	if err != nil {
 		return types.NewErr(err.Error())
 	}
-	return types.Bool(out)
+	return types.Bool(b)
 }
-func (v wrapperValue) Type() ref.Type {
-	return wrapperType
+func (v emailAddressValue) Type() ref.Type {
+	return emailAddressValueType
 }
-func (v wrapperValue) Value() interface{} {
-	switch v.typ {
-	case attribute.IP_ADDRESS:
-		return v.bytes
-	default:
-		return v.s
+func (v emailAddressValue) Value() interface{} {
+	return v.email
+}
+
+var (
+	uriType             = "Uri"
+	uriValueType        = types.NewTypeValue(uriType)
+	uriValueTypeWrapper = decls.NewObjectType(uriType)
+)
+
+type uriValue struct {
+	uri *url.URL
+}
+
+func (v uriValue) ConvertToNative(typeDesc reflect.Type) (interface{}, error) {
+	return nil, errors.New("cannot convert wrapper value to native types")
+}
+func (v uriValue) ConvertToType(typeValue ref.Type) ref.Val {
+	return types.NewErr("cannot convert wrapper value  to CEL types")
+}
+func (v uriValue) Equal(other ref.Val) ref.Val {
+	if other.Type() != uriValueType {
+		return types.NewErr("cannot compare types")
 	}
+	w, ok := other.(uriValue)
+	if !ok {
+		return types.NewErr("cannot compare types")
+	}
+	b, err := externURIEqual(v.uri, w.uri)
+	if err != nil {
+		return types.NewErr(err.Error())
+	}
+	return types.Bool(b)
 }
+func (v uriValue) Type() ref.Type {
+	return uriValueType
+}
+func (v uriValue) Value() interface{} {
+	return v.uri
+}
+
+type DNSName struct {
+	Name string
+}
+
+var (
+	dnsNameType             = "DNSName"
+	dnsNameValueType        = types.NewTypeValue(dnsNameType)
+	dnsNameValueTypeWrapper = decls.NewObjectType(dnsNameType)
+)
+
+type dnsNameValue struct {
+	dns *DNSName
+}
+
+func (v dnsNameValue) ConvertToNative(typeDesc reflect.Type) (interface{}, error) {
+	return nil, errors.New("cannot convert wrapper value to native types")
+}
+func (v dnsNameValue) ConvertToType(typeValue ref.Type) ref.Val {
+	return types.NewErr("cannot convert wrapper value  to CEL types")
+}
+func (v dnsNameValue) Equal(other ref.Val) ref.Val {
+	if other.Type() != dnsNameValueType {
+		return types.NewErr("cannot compare types")
+	}
+	w, ok := other.(dnsNameValue)
+	if !ok {
+		return types.NewErr("cannot compare types")
+	}
+	b, err := externDNSNameEqual(v.dns.Name, w.dns.Name)
+	if err != nil {
+		return types.NewErr(err.Error())
+	}
+	return types.Bool(b)
+}
+func (v dnsNameValue) Type() ref.Type {
+	return dnsNameValueType
+}
+func (v dnsNameValue) Value() interface{} {
+	return v.dns
+}
+
+func ConvertKind(v reflect.Type) *expr.Type {
+	switch v {
+	case boolType:
+		return decls.Bool
+	case intType, int32Type, int64Type:
+		return decls.Int
+	case float32Type, float64Type:
+		return decls.Double
+	case stringType:
+		return decls.String
+	case headerMapType:
+		return stringMapType
+	case timestampType:
+		return decls.Timestamp
+	case durationType:
+		return decls.Duration
+	case stringMapValueType:
+		return stringMapType
+	case ipAddressWrapperValueType:
+		return ipAddressValueTypeWrapper
+	case emailAddressWrapperValueType:
+		return emailAddressValueTypeWrapper
+	case uriWrapperValueType:
+		return uriValueTypeWrapper
+	case dnsNameWrapperValueType:
+		return dnsNameValueTypeWrapper
+	}
+	return decls.Null
+}
+
+var (
+	stringMapValueType = func() reflect.Type {
+		var r stringMapValue
+		return reflect.TypeOf(r)
+	}()
+	ipAddressWrapperValueType = func() reflect.Type {
+		var r net.IP
+		return reflect.TypeOf(r)
+	}()
+	emailAddressWrapperValueType = func() reflect.Type {
+		var r *mail.Address
+		return reflect.TypeOf(&r).Elem()
+	}()
+	uriWrapperValueType = func() reflect.Type {
+		var r *url.URL
+		return reflect.TypeOf(&r).Elem()
+	}()
+	dnsNameWrapperValueType = func() reflect.Type {
+		var r *DNSName
+		return reflect.TypeOf(&r).Elem()
+	}()
+	errType = func() reflect.Type {
+		var r error
+		return reflect.TypeOf(&r).Elem()
+	}()
+	headerMapType = func() reflect.Type {
+		var r api.HeaderMap
+		return reflect.TypeOf(&r).Elem()
+	}()
+	timestampType = func() reflect.Type {
+		var r time.Time
+		return reflect.TypeOf(r)
+	}()
+	durationType = func() reflect.Type {
+		var r time.Duration
+		return reflect.TypeOf(r)
+	}()
+	boolType = func() reflect.Type {
+		var r bool
+		return reflect.TypeOf(r)
+	}()
+	intType = func() reflect.Type {
+		var r int
+		return reflect.TypeOf(r)
+	}()
+	int32Type = func() reflect.Type {
+		var r int32
+		return reflect.TypeOf(r)
+	}()
+	int64Type = func() reflect.Type {
+		var r int64
+		return reflect.TypeOf(r)
+	}()
+	float32Type = func() reflect.Type {
+		var r float32
+		return reflect.TypeOf(r)
+	}()
+	float64Type = func() reflect.Type {
+		var r float64
+		return reflect.TypeOf(r)
+	}()
+	stringType = func() reflect.Type {
+		var r string
+		return reflect.TypeOf(r)
+	}()
+)
