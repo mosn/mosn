@@ -128,33 +128,37 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		// 1. try to get ALPN negotiated protocol
 		if conn, ok := sc.netConn.RawConn().(*mtls.TLSConn); ok {
 			name := conn.ConnectionState().NegotiatedProtocol
-			proto := xprotocol.GetProtocol(types.ProtocolName(name))
-			if proto == nil {
-				log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] negotiated protocol not exists: %s", name)
+			if name != "" {
+				proto := xprotocol.GetProtocol(types.ProtocolName(name))
+				if proto == nil {
+					log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] negotiated protocol not exists: %s", name)
+					// close conn
+					sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
+					return
+				}
+				sc.protocol = proto
+			}
+		}
+		// 2. tls ALPN prortocol not exists, try to recognize data
+		if sc.protocol == nil {
+			proto, result := sc.engine.Match(sc.ctx, buf)
+			switch result {
+			case types.MatchSuccess:
+				sc.protocol = proto.(xprotocol.XProtocol)
+			case types.MatchFailed:
+				// print error info
+				size := buf.Len()
+				if size > 10 {
+					size = 10
+				}
+				log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] engine match failed for magic :%v", buf.Bytes()[:size])
 				// close conn
 				sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
 				return
+			case types.MatchAgain:
+				// do nothing and return, wait for more data
+				return
 			}
-		}
-
-		// 2. recognize data
-		proto, result := sc.engine.Match(sc.ctx, buf)
-		switch result {
-		case types.MatchSuccess:
-			sc.protocol = proto.(xprotocol.XProtocol)
-		case types.MatchFailed:
-			// print error info
-			size := buf.Len()
-			if size > 10 {
-				size = 10
-			}
-			log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] engine match failed for magic :%v", buf.Bytes()[:size])
-			// close conn
-			sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
-			return
-		case types.MatchAgain:
-			// do nothing and return, wait for more data
-			return
 		}
 	}
 
