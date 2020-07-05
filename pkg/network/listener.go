@@ -23,6 +23,7 @@ import (
 	"os"
 	"runtime/debug"
 	"sync"
+	"syscall"
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
@@ -52,8 +53,10 @@ type listener struct {
 	listenerTag             uint64
 	perConnBufferLimitBytes uint32
 	useOriginalDst          bool
+	network                 string
 	cb                      types.ListenerEventListener
 	rawl                    *net.TCPListener
+	packetConn              net.PacketConn
 	config                  *v2.Listener
 	mutex                   sync.Mutex
 	// listener state indicates the listener's running state. The listener state effects if a listener binded to a port
@@ -69,6 +72,7 @@ func NewListener(lc *v2.Listener) types.Listener {
 		listenerTag:             lc.ListenerTag,
 		perConnBufferLimitBytes: lc.PerConnBufferLimitBytes,
 		useOriginalDst:          lc.UseOriginalDst,
+		network:                 lc.Network,
 		config:                  lc,
 	}
 
@@ -76,6 +80,11 @@ func NewListener(lc *v2.Listener) types.Listener {
 		//inherit old process's listener
 		l.rawl = lc.InheritListener
 	}
+
+	if lc.Network == "" {
+		l.network = "tcp"
+	}
+
 	return l
 }
 
@@ -133,40 +142,69 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 			}
 			l.state = ListenerRunning
 			// add metrics for listener if bind port
-			metrics.AddListenerAddr(l.rawl.Addr().String())
+			log.DefaultLogger.Errorf("listener network: %s, rawl:%p, packetconn:%p", l.network, l.rawl, l.packetConn)
+
+			if l.network == "tcp" {
+				metrics.AddListenerAddr(l.rawl.Addr().String())
+			} else {
+				metrics.AddListenerAddr(l.packetConn.(*net.UDPConn).LocalAddr().String()+".udp")
+			}
 			return false
 		}()
 		if ignore {
 			return
 		}
+		if l.network == "tcp" {
+			l.AcceptEventLoop(lctx)
+		} else {
+			l.ReadMsgEventLoop(lctx)
+		}
+	}
+}
 
-		for {
-			if err := l.accept(lctx); err != nil {
-				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-					log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s stop accepting connections by deadline", l.name)
-					return
-				} else if ope, ok := err.(*net.OpError); ok {
-					// not timeout error and not temporary, which means the error is non-recoverable
-					// stop accepting loop and log the event
-					if !(ope.Timeout() && ope.Temporary()) {
-						// accept error raised by sockets closing
-						if ope.Op == "accept" {
-							log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s %s closed", l.name, l.Addr())
-						} else {
-							log.DefaultLogger.Alertf("listener.accept", "[network] [listener start] [accept] listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
-						}
-						return
+func (l *listener) AcceptEventLoop(lctx context.Context) {
+	for {
+		if err := l.accept(lctx); err != nil {
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+				log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s stop accepting connections by deadline", l.name)
+				return
+			} else if ope, ok := err.(*net.OpError); ok {
+				// not timeout error and not temporary, which means the error is non-recoverable
+				// stop accepting loop and log the event
+				if !(ope.Timeout() && ope.Temporary()) {
+					// accept error raised by sockets closing
+					if ope.Op == "accept" {
+						log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s %s closed", l.name, l.Addr())
+					} else {
+						log.DefaultLogger.Alertf("listener.accept", "[network] [listener start] [accept] listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
 					}
-				} else {
-					log.DefaultLogger.Errorf("[network] [listener start] [accept] listener %s occurs unknown error while accepting:%s", l.name, err.Error())
+					return
 				}
+			} else {
+				log.DefaultLogger.Errorf("[network] [listener start] [accept] listener %s occurs unknown error while accepting:%s", l.name, err.Error())
 			}
 		}
 	}
 }
 
+func (l *listener) ReadMsgEventLoop(lctx context.Context) {
+	for i:=0; i<1; i++ {
+		utils.GoWithRecover(func() {
+			ReadMsgLoop(lctx, l, i)
+		}, func(r interface{}) {
+			l.ReadMsgEventLoop(lctx)
+		})
+	}
+}
+
 func (l *listener) Stop() error {
-	return l.rawl.SetDeadline(time.Now())
+	var err error
+	if l.network == "tcp" {
+		err = l.rawl.SetDeadline(time.Now())
+	} else {
+		err = l.packetConn.SetDeadline(time.Now())
+	}
+	return err
 }
 
 func (l *listener) ListenerTag() uint64 {
@@ -178,7 +216,14 @@ func (l *listener) SetListenerTag(tag uint64) {
 }
 
 func (l *listener) ListenerFile() (*os.File, error) {
-	return l.rawl.File()
+	if l.network != "udp" {
+		return l.rawl.File()
+	}
+	/*
+	else {
+		return l.packetConn.(*net.UDPConn).File()
+	}*/
+	return nil, nil
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {
@@ -209,22 +254,47 @@ func (l *listener) Close(lctx context.Context) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.state = ListenerStopped
+	log.DefaultLogger.Errorf("in closing listener, %s, %s", l.network, l.Addr())
 	if l.rawl != nil {
 		l.cb.OnClose()
 		return l.rawl.Close()
+	}
+	if l.packetConn != nil {
+		l.cb.OnClose()
+		return l.packetConn.Close()
 	}
 	return nil
 }
 
 func (l *listener) listen(lctx context.Context) error {
 	var err error
-
 	var rawl *net.TCPListener
-	if rawl, err = net.ListenTCP("tcp", l.localAddress.(*net.TCPAddr)); err != nil {
-		return err
+	var rconn net.PacketConn
+	lc := net.ListenConfig{
+		Control: func(network, address string, c syscall.RawConn) error {
+			return c.Control(func(fd uintptr) {
+				err := SetReusePort(int(fd))
+				if err != nil {
+					log.DefaultLogger.Errorf("[network] [udp setsockopt] %v", err)
+				}
+			})
+		},
 	}
-
-	l.rawl = rawl
+	if l.network == "tcp" {
+		if rawl, err = net.ListenTCP(l.network, l.localAddress.(*net.TCPAddr)); err != nil {
+			return err
+		}
+		// d, _ := rawl.File()
+		// log.DefaultLogger.Debugf("listen to fd:%d, addr:%s", d.Fd(), l.localAddress.String())
+		l.rawl = rawl
+	} else {
+		if rconn, err = lc.ListenPacket(context.Background(), l.network, l.localAddress.String()); err != nil {
+			return err
+		}
+		d, _ :=  rconn.(*net.UDPConn).File()
+		log.DefaultLogger.Debugf("listen to fd:%v, addr:%s", d.Fd(), l.localAddress.String())
+		l.packetConn = rconn
+	}
 
 	return nil
 }

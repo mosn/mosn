@@ -272,6 +272,17 @@ func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, sna
 	return host.CreateConnection(context.Background())
 }
 
+func (cm *clusterManager) UDPConnForCluster(lbCtx types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
+	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
+		return types.CreateConnectionData{}
+	}
+	host := snapshot.LoadBalancer().ChooseHost(lbCtx)
+	if host == nil {
+		return types.CreateConnectionData{}
+	}
+	return host.CreateUDPConnection(context.Background())
+}
+
 func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) types.ConnectionPool {
 	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager]  %s ConnPool For Cluster is nil", protocol)

@@ -572,7 +572,7 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 		xdsutil.StructToMessage(s, filterConfig)
 		log.DefaultLogger.Tracef("TCPProxy:filter config = %v,v1-config = %v", filterConfig, filterConfig.GetDeprecatedV1())
 
-		tcpProxyConfig := v2.TCPProxy{
+		tcpProxyConfig := v2.StreamProxy{
 			StatPrefix:         filterConfig.GetStatPrefix(),
 			Cluster:            filterConfig.GetCluster(),
 			IdleTimeout:        filterConfig.GetIdleTimeout(),
@@ -615,14 +615,14 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 	return filtersConfigParsed
 }
 
-func convertTCPRoute(deprecatedV1 *xdstcp.TcpProxy_DeprecatedV1) []*v2.TCPRoute {
+func convertTCPRoute(deprecatedV1 *xdstcp.TcpProxy_DeprecatedV1) []*v2.StreamRoute {
 	if deprecatedV1 == nil {
 		return nil
 	}
 
-	tcpRoutes := make([]*v2.TCPRoute, 0, len(deprecatedV1.Routes))
+	tcpRoutes := make([]*v2.StreamRoute, 0, len(deprecatedV1.Routes))
 	for _, router := range deprecatedV1.Routes {
-		tcpRoutes = append(tcpRoutes, &v2.TCPRoute{
+		tcpRoutes = append(tcpRoutes, &v2.StreamRoute{
 			Cluster:          router.GetCluster(),
 			SourceAddrs:      convertCidrRange(router.GetSourceIpList()),
 			DestinationAddrs: convertCidrRange(router.GetDestinationIpList()),

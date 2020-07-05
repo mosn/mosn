@@ -75,6 +75,7 @@ type connection struct {
 	transferCallbacks    func() bool
 	filterManager        api.FilterManager
 	idleEventListener    api.ConnectionEventListener
+	network              string
 
 	stopChan           chan struct{}
 	curWriteBufferData []buffer.IoBuffer
@@ -123,6 +124,7 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		writeBufferChan:  make(chan *[]buffer.IoBuffer, 8),
 		writeSchedChan:   make(chan bool, 1),
 		transferChan:     make(chan uint64),
+		network:          rawc.LocalAddr().Network(),
 		stats: &types.ConnectionStats{
 			ReadTotal:     metrics.NewCounter(),
 			ReadBuffered:  metrics.NewGauge(),
@@ -137,6 +139,18 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	// store fd
 	if val := mosnctx.Get(ctx, types.ContextKeyConnectionFd); val != nil {
 		conn.file = val.(*os.File)
+	}
+
+	log.DefaultLogger.Debugf("new server connection, network: %s", conn.network)
+
+	if conn.network == "udp" {
+		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+			buf := val.([]byte)
+			conn.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
+			conn.readBuffer.Write(buf)
+			conn.updateReadBufStats(int64(conn.readBuffer.Len()), int64(conn.readBuffer.Len()))
+			log.DefaultLogger.Debugf("new server connection udp accept buffer: %s", rawc.LocalAddr().String())
+		}
 	}
 
 	// transfer old mosn connection
@@ -166,6 +180,10 @@ func (c *connection) ID() uint64 {
 }
 
 func (c *connection) Start(lctx context.Context) {
+	// udp downstream connection do not use read/write loop
+	if c.network == "udp" && c.rawConnection.RemoteAddr() == nil {
+		return
+	}
 	c.startOnce.Do(func() {
 		if UseNetpollMode {
 			c.attachEventLoop(lctx)
@@ -232,11 +250,21 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 }
 
 func (c *connection) checkUseWriteLoop() bool {
-	tcpAddr, ok := c.remoteAddr.(*net.TCPAddr)
-	if !ok {
-		return false
+	var ip net.IP
+	if c.network == "tcp" {
+		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
+			ip = tcpAddr.IP
+		} else {
+			return false
+		}
+	} else {
+		if udpAddr, ok := c.remoteAddr.(*net.UDPAddr); ok {
+			ip = udpAddr.IP
+		} else {
+			return false
+		}
 	}
-	if tcpAddr.IP.IsLoopback() {
+	if ip.IsLoopback() {
 		log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
 			c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 		return true
@@ -313,6 +341,8 @@ func (c *connection) startReadLoop() {
 	var transferTime time.Time
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
+
+		log.DefaultLogger.Infof("[network] [read loop] time: %s", time.Now().String())
 		select {
 		case <-c.internalStopChan:
 			return
@@ -420,16 +450,30 @@ func (c *connection) transferWrite(id uint64) {
 	}
 }
 
+func (c *connection) setReadDeadline() {
+	if c.network == "tcp" {
+		c.rawConnection.SetReadDeadline(time.Now().Add(buffer.ConnReadTimeout))
+	} else {
+		c.rawConnection.SetReadDeadline(time.Now().Add(types.DefaultUDPIdleTimeout))
+	}
+}
+
 func (c *connection) doRead() (err error) {
 	if c.readBuffer == nil {
-		c.readBuffer = buffer.GetIoBuffer(DefaultBufferReadCapacity)
+		if c.network == "udp" {
+			// A UDP socket will Read up to the size of the receiving buffer and will discard the rest
+			c.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
+		} else {
+			c.readBuffer = buffer.GetIoBuffer(DefaultBufferReadCapacity)
+		}
 	}
 
 	var bytesRead int64
-
+	c.setReadDeadline()
 	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
-
+	log.DefaultLogger.Debugf("[network] [read loop] read len %d ", bytesRead)
 	if err != nil {
+		log.DefaultLogger.Infof("[network] [read loop] do read err: %v", err)
 		if atomic.LoadUint32(&c.closed) == 1 {
 			return err
 		}
@@ -452,12 +496,7 @@ func (c *connection) doRead() (err error) {
 			c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 	}
 
-	for _, cb := range c.bytesReadCallbacks {
-		cb(uint64(bytesRead))
-	}
-
-	c.onRead()
-	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Len()))
+	c.onRead(bytesRead)
 	return
 }
 
@@ -478,16 +517,27 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 	}
 }
 
-func (c *connection) onRead() {
+func (c *connection) OnRead(buf []byte) {
+	c.readBuffer.Write(buf)
+	bytesRead := len(buf)
+	c.onRead(int64(bytesRead))
+}
+
+func (c *connection) onRead(bytesRead int64) {
+	for _, cb := range c.bytesReadCallbacks {
+		cb(uint64(bytesRead))
+	}
+
 	if !c.readEnabled {
 		return
 	}
 
-	if c.readBuffer.Len() == 0 {
+	if c.rawConnection.RemoteAddr() != nil && c.readBuffer.Len() == 0 {
 		return
 	}
 
 	c.filterManager.OnRead()
+	c.updateReadBufStats(bytesRead, int64(c.readBuffer.Len()))
 }
 
 func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
@@ -539,6 +589,14 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 	return
 }
 
+func (c *connection) setWriteDeadline() {
+	if c.network == "tcp" {
+		c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
+	} else {
+		c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultUDPIdleTimeout))
+	}
+}
+
 func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	select {
 	case <-c.internalStopChan:
@@ -557,7 +615,7 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 
 		c.appendBuffer(buf)
 
-		c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
+		c.setWriteDeadline()
 		_, err = c.doWrite()
 	} else {
 		// trylock timeouted
@@ -626,7 +684,7 @@ func (c *connection) startWriteLoop() {
 				}
 			}
 
-			c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
+			c.setWriteDeadline()
 			_, err = c.doWrite()
 		}
 
@@ -683,7 +741,26 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		bytesSent, err = tlsConn.WriteTo(&buffers)
 	} else {
 		//todo: writev(runtime) has memroy leak.
-		bytesSent, err = buffers.WriteTo(c.rawConnection)
+		if c.network == "tcp" {
+			bytesSent, err = buffers.WriteTo(c.rawConnection)
+		} else {
+			var addr *net.UDPAddr
+			if c.RemoteAddr() != nil {
+				addr = c.RemoteAddr().(*net.UDPAddr)
+			} else {
+				addr = c.rawConnection.RemoteAddr().(*net.UDPAddr)
+			}
+			for _, buf := range c.ioBuffers {
+				var n int
+				if c.rawConnection.RemoteAddr() == nil {
+					n, err = c.rawConnection.(*net.UDPConn).WriteToUDP(buf.Bytes(), addr)
+				} else {
+					n, err = c.rawConnection.Write(buf.Bytes())
+				}
+				bytesSent += int64(n)
+				log.DefaultLogger.Debugf("do write to len:%d", buf.Len())
+			}
+		}
 	}
 	if err != nil {
 		return bytesSent, err
@@ -733,6 +810,7 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		}
 	}()
 
+	log.DefaultLogger.Errorf("[network] [close connection] %s", ccType)
 	if ccType == api.FlushWrite {
 		c.Write(buffer.NewIoBufferEOF())
 		return nil
@@ -763,6 +841,11 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		c.eventLoop.unregister(c.id)
 		// close copied fd
 		c.file.Close()
+	}
+
+	if c.RawConn().RemoteAddr() == nil {
+		key := GetProxyMapKey(c.localAddr.String(), c.remoteAddr.String())
+		DelUdpProxyMap(key)
 	}
 
 	c.rawConnection.Close()
@@ -941,6 +1024,11 @@ func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsM
 
 	conn.filterManager = newFilterManager(conn)
 
+	if conn.remoteAddr != nil {
+		log.DefaultLogger.Infof("remote addr: %s, network: %s", conn.remoteAddr.String(), conn.remoteAddr.Network())
+		conn.network = conn.remoteAddr.Network()
+	}
+
 	return conn
 }
 
@@ -955,7 +1043,7 @@ func (cc *clientConnection) Connect() (err error) {
 
 		addr := cc.RemoteAddr()
 		if addr != nil {
-			cc.rawConnection, err = net.DialTimeout("tcp", cc.RemoteAddr().String(), timeout)
+			cc.rawConnection, err = net.DialTimeout(cc.network, cc.RemoteAddr().String(), timeout)
 		} else {
 			err = errors.New("ClientConnection RemoteAddr is nil")
 		}
@@ -976,10 +1064,19 @@ func (cc *clientConnection) Connect() (err error) {
 			// ensure ioEnabled and UseNetpollMode
 			if UseNetpollMode {
 				// store fd
-				if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
-					cc.file, err = tc.File()
-					if err != nil {
-						return
+				if cc.network == "tcp" {
+					if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
+						cc.file, err = tc.File()
+						if err != nil {
+							return
+						}
+					}
+				} else if cc.network == "udp" {
+					if tc, ok := cc.rawConnection.(*net.UDPConn); ok {
+						cc.file, err = tc.File()
+						if err != nil {
+							return
+						}
 					}
 				}
 			}
@@ -999,7 +1096,7 @@ func (cc *clientConnection) Connect() (err error) {
 		}
 
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw tcp, remote address = %s ,event = %+v, error = %+v", cc.remoteAddr, event, err)
+			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw %s, remote address = %s ,event = %+v, error = %+v", cc.network, cc.remoteAddr, event, err)
 		}
 
 		for _, cccb := range cc.connCallbacks {

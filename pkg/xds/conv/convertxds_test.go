@@ -458,7 +458,7 @@ func Test_convertTCPRoute(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want []*v2.TCPRoute
+		want []*v2.StreamRoute
 	}{
 		{
 			name: "case1",
@@ -485,7 +485,7 @@ func Test_convertTCPRoute(t *testing.T) {
 					},
 				},
 			},
-			want: []*v2.TCPRoute{
+			want: []*v2.StreamRoute{
 				{
 					Cluster: "tcp",
 					DestinationAddrs: []v2.CidrRange{

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package tcpproxy
+package streamproxy
 
 import (
 	"mosn.io/api"

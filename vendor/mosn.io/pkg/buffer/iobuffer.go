@@ -215,7 +215,7 @@ func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 	conn, _ := r.(net.Conn)
 	if conn != nil {
 		// TODO: support configure
-		conn.SetReadDeadline(time.Now().Add(ConnReadTimeout))
+		// conn.SetReadDeadline(time.Now().Add(ConnReadTimeout))
 
 		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
 

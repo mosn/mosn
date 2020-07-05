@@ -70,6 +70,7 @@ const (
 	CONNECTION_MANAGER          = "connection_manager" // deprecated
 	DEFAULT_NETWORK_FILTER      = "proxy"
 	TCP_PROXY                   = "tcp_proxy"
+	UDP_PROXY                   = "udp_proxy"
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
 	RPC_PROXY                   = "rpc_proxy"
 	X_PROXY                     = "x_proxy"

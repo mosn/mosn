@@ -1,4 +1,4 @@
-package tcpproxy
+package streamproxy
 
 import (
 	"net"
@@ -20,6 +20,13 @@ func Test_IpRangeList_Contains(t *testing.T) {
 	if !ipRangeList.Contains(httpAddr) {
 		t.Errorf("test  ip range fail")
 	}
+	udpAddr := &net.UDPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: 80,
+	}
+	if !ipRangeList.Contains(udpAddr) {
+		t.Errorf("test  ip range fail")
+	}
 }
 
 func Test_ParsePortRangeList(t *testing.T) {
@@ -31,11 +38,25 @@ func Test_ParsePortRangeList(t *testing.T) {
 	if !prList.Contains(httpPort) {
 		t.Errorf("test http port fail")
 	}
+	udpPort := &net.UDPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: 80,
+	}
+	if !prList.Contains(udpPort) {
+		t.Errorf("test http port fail")
+	}
 	randomPort := &net.TCPAddr{
 		IP:   net.ParseIP("127.0.0.1"),
 		Port: 8083,
 	}
 	if !prList.Contains(randomPort) {
+		t.Errorf("test  port range fail")
+	}
+	randomUDPPort := &net.UDPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: 8083,
+	}
+	if !prList.Contains(randomUDPPort) {
 		t.Errorf("test  port range fail")
 	}
 }

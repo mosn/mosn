@@ -163,12 +163,35 @@ func ParseLogLevel(level string) log.Level {
 	return log.INFO
 }
 
+func GetAddrIp(addr net.Addr) net.IP {
+	if addr.Network() == "tcp" {
+		return addr.(*net.TCPAddr).IP
+	} else {
+		return addr.(*net.UDPAddr).IP
+	}
+}
+
+func GetAddrPort(addr net.Addr) int {
+	if addr.Network() == "tcp" {
+		return addr.(*net.TCPAddr).Port
+	} else {
+		return addr.(*net.UDPAddr).Port
+	}
+}
+
+
 // ParseListenerConfig
 func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.Listener {
 	if lc.AddrConfig == "" {
 		log.StartLogger.Fatalf("[config] [parse listener] Address is required in listener config")
 	}
-	addr, err := net.ResolveTCPAddr("tcp", lc.AddrConfig)
+	var addr net.Addr
+	var err error
+	if lc.Network == "tcp" {
+		addr, err = net.ResolveTCPAddr("tcp", lc.AddrConfig)
+	 } else {
+		addr, err = net.ResolveUDPAddr("udp", lc.AddrConfig)
+	}
 	if err != nil {
 		log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)
 	}
@@ -185,13 +208,14 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.L
 			log.StartLogger.Fatalf("[config] [parse listener] inheritListener not valid: %s", tl.Addr().String())
 		}
 
-		if addr.Port != ilAddr.Port {
+		if GetAddrPort(addr) != ilAddr.Port {
 			continue
 		}
 
-		if (addr.IP.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
-			(addr.IP.IsLoopback() && ilAddr.IP.IsLoopback()) ||
-			addr.IP.Equal(ilAddr.IP) {
+		ip := GetAddrIp(addr)
+		if (ip.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
+			(ip.IsLoopback() && ilAddr.IP.IsLoopback()) ||
+			ip.Equal(ilAddr.IP) {
 			log.StartLogger.Infof("[config] [parse listener] inherit listener addr: %s", lc.AddrConfig)
 			old = tl
 			inheritListeners[i] = nil

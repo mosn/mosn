@@ -19,6 +19,7 @@ package network
 
 import (
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/buffer"
 )
 
@@ -89,6 +90,7 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 		if !uf.initialized {
 			uf.initialized = true
 
+			log.DefaultLogger.Debugf("filter manager on new connection")
 			status := uf.filter.OnNewConnection()
 
 			if status == api.Stop {
@@ -99,6 +101,7 @@ func (fm *filterManager) onContinueReading(filter *activeReadFilter) {
 		buf := fm.conn.GetReadBuffer()
 
 		if buf != nil && buf.Len() > 0 {
+			log.DefaultLogger.Tracef("filter manager on data, len:%d", buf.Len())
 			status := uf.filter.OnData(buf)
 
 			if status == api.Stop {

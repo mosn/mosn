@@ -50,6 +50,7 @@ func (conn *connection) newIdleChecker(timeout time.Duration) {
 		conn:         conn,
 		maxIdleCount: getIdleCount(timeout),
 	}
+	log.DefaultLogger.Debugf("new idlechecker: maxIdleCount:%d, local addr:+%v", checker.maxIdleCount, conn.localAddr)
 	conn.AddConnectionEventListener(checker)
 }
 
@@ -77,7 +78,7 @@ func (c *idleChecker) OnEvent(event api.ConnectionEvent) {
 			return
 		}
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [server idle checker] connection idle %d times", atomic.LoadUint32(&c.idleCount))
+			log.DefaultLogger.Debugf("[network] [server idle checker] connection idle %d times, maxIdleCount:%d", atomic.LoadUint32(&c.idleCount), c.maxIdleCount)
 		}
 	} else {
 		atomic.StoreUint32(&c.idleCount, 1)

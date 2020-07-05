@@ -76,6 +76,10 @@ func (sh *simpleHost) Address() net.Addr {
 	return GetOrCreateAddr(sh.addressString)
 }
 
+func (sh *simpleHost) UDPAddress() net.Addr {
+	return GetOrCreateUDPAddr(sh.addressString)
+}
+
 func (sh *simpleHost) AddressString() string {
 	return sh.addressString
 }
@@ -111,6 +115,17 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 		tlsMng = sh.clusterInfo.TLSMng()
 	}
 	clientConn := network.NewClientConnection(nil, sh.clusterInfo.ConnectTimeout(), tlsMng, sh.Address(), nil)
+	clientConn.SetBufferLimit(sh.clusterInfo.ConnBufferLimitBytes())
+
+	return types.CreateConnectionData{
+		Connection: clientConn,
+		Host:       sh,
+	}
+}
+
+func (sh *simpleHost) CreateUDPConnection(context context.Context) types.CreateConnectionData {
+	log.DefaultLogger.Infof("creating udp connection")
+	clientConn := network.NewClientConnection(nil, sh.clusterInfo.ConnectTimeout(), nil, sh.UDPAddress(), nil)
 	clientConn.SetBufferLimit(sh.clusterInfo.ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
@@ -163,7 +178,6 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 	}
 
 	if addr.String() != addrstr {
-		// TODO support config or depends on DNS TTL for expire time
 		// now set default expire time == 100 s, Means that after 100 seconds, the new request will trigger domain resolve.
 		AddrStore.Set(addrstr, addr, 100*time.Second)
 	} else {
@@ -173,3 +187,37 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 
 	return addr
 }
+
+// store resolved UDP addr
+var UDPAddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+	func(key interface{}) (interface{}, bool) {
+		addr, err := net.ResolveUDPAddr("udp", key.(string))
+		if err == nil {
+			return addr, true
+		}
+		return nil, false
+	}, false)
+
+func GetOrCreateUDPAddr(addrstr string) net.Addr {
+
+	if addr, _ := UDPAddrStore.Get(addrstr); addr != nil {
+		return addr.(net.Addr)
+	}
+
+	addr, err := net.ResolveUDPAddr("udp", addrstr)
+	if err != nil {
+		log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
+		return nil
+	}
+
+	if addr.String() != addrstr {
+		// now set default expire time == 100 s, Means that after 100 seconds, the new request will trigger domain resolve.
+		UDPAddrStore.Set(addrstr, addr, 100*time.Second)
+	} else {
+		// if addrsstr isn't domain and don't set expire time
+		UDPAddrStore.Set(addrstr, addr, utils.NeverExpire)
+	}
+
+	return addr
+}
+

@@ -299,15 +299,15 @@ type HeaderMatcher struct {
 	Regex bool   `json:"regex,omitempty"`
 }
 
-// TCP Proxy Route
-type TCPRouteConfig struct {
+// Stream Proxy Route
+type StreamRouteConfig struct {
 	Cluster string   `json:"cluster,omitempty"`
 	Sources []string `json:"source_addrs,omitempty"`
 	Dests   []string `json:"destination_addrs,omitempty"`
 }
 
-// TCPRoute
-type TCPRoute struct {
+// StreamRoute
+type StreamRoute struct {
 	Cluster          string
 	SourceAddrs      []CidrRange
 	DestinationAddrs []CidrRange
