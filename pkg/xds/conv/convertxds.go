@@ -72,6 +72,8 @@ const (
 	IstioRouter      = "envoy.router"
 	IstioCors        = "envoy.cors"
 	MosnPayloadLimit = "mosn.payload_limit"
+
+	DefaultMirrorAmplification = 1
 )
 
 // todo add streamfilters parse
@@ -1340,10 +1342,12 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 }
 
 func convertMirrorPolicy(xdsRouteAction *xdsroute.RouteAction) *v2.RequestMirrorPolicy {
+
 	if xdsRouteAction.GetRequestMirrorPolicy() != nil {
 		return &v2.RequestMirrorPolicy{
 			Cluster:           xdsRouteAction.GetRequestMirrorPolicy().GetCluster(),
 			FractionalPercent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicy().GetRuntimeFraction()),
+			Amplification:     DefaultMirrorAmplification,
 		}
 	}
 
@@ -1351,6 +1355,7 @@ func convertMirrorPolicy(xdsRouteAction *xdsroute.RouteAction) *v2.RequestMirror
 		return &v2.RequestMirrorPolicy{
 			Cluster:           xdsRouteAction.GetRequestMirrorPolicies()[0].GetCluster(),
 			FractionalPercent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicies()[0].GetRuntimeFraction()),
+			Amplification:     DefaultMirrorAmplification,
 		}
 	}
 

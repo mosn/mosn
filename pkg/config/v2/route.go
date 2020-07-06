@@ -329,6 +329,7 @@ type RequestMirrorPolicy struct {
 	Cluster           string             `json:"cluster,omitempty"`
 	FractionalPercent *Fractionalpercent `json:"fractional_percent,omitempty"`
 	TraceSampled      bool               `json:"trace_sampled,omitempty"`
+	Amplification     int                `json:"amplification,omitempty"`
 }
 
 // Fractionalpercent fractional percent
