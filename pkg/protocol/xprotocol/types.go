@@ -119,7 +119,7 @@ type Heartbeater interface {
 // Hijacker provides the ability to construct proper response command for xprotocol sub-protocols
 type Hijacker interface {
 	// BuildResponse build response with given status code
-	Hijack(statusCode uint32) XRespFrame
+	Hijack(request XFrame, statusCode uint32) XRespFrame
 
 	// Mapping the http status code, which used by proxy framework into protocol-specific status
 	Mapping(httpStatusCode uint32) uint32
