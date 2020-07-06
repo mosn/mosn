@@ -58,6 +58,8 @@ const (
 	HTTPConnectionManager = "envoy.http_connection_manager"
 	// TCPProxy network filter
 	TCPProxy = "envoy.tcp_proxy"
+	// UDPProxy network filter
+	UDPProxy = "envoy.udp_proxy"
 	// RateLimit network filter
 	RateLimit = "envoy.ratelimit"
 	// MongoProxy network filter

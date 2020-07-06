@@ -23,7 +23,6 @@ import (
 	"os"
 	"runtime/debug"
 	"sync"
-	"syscall"
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
@@ -81,6 +80,10 @@ func NewListener(lc *v2.Listener) types.Listener {
 		l.rawl = lc.InheritListener
 	}
 
+	if lc.InheritPacketConn != nil {
+		l.packetConn = *lc.InheritPacketConn
+	}
+
 	if lc.Network == "" {
 		l.network = "tcp"
 	}
@@ -133,7 +136,7 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 			default:
 				// try start listener
 				//call listen if not inherit
-				if l.rawl == nil {
+				if l.rawl == nil && l.packetConn == nil {
 					if err := l.listen(lctx); err != nil {
 						// TODO: notify listener callbacks
 						log.StartLogger.Fatalf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
@@ -142,7 +145,6 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 			}
 			l.state = ListenerRunning
 			// add metrics for listener if bind port
-			log.DefaultLogger.Errorf("listener network: %s, rawl:%p, packetconn:%p", l.network, l.rawl, l.packetConn)
 
 			if l.network == "tcp" {
 				metrics.AddListenerAddr(l.rawl.Addr().String())
@@ -218,11 +220,10 @@ func (l *listener) SetListenerTag(tag uint64) {
 func (l *listener) ListenerFile() (*os.File, error) {
 	if l.network != "udp" {
 		return l.rawl.File()
-	}
-	/*
-	else {
+	} else {
 		return l.packetConn.(*net.UDPConn).File()
-	}*/
+	}
+
 	return nil, nil
 }
 
@@ -254,7 +255,6 @@ func (l *listener) Close(lctx context.Context) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.state = ListenerStopped
-	log.DefaultLogger.Errorf("in closing listener, %s, %s", l.network, l.Addr())
 	if l.rawl != nil {
 		l.cb.OnClose()
 		return l.rawl.Close()
@@ -270,29 +270,16 @@ func (l *listener) listen(lctx context.Context) error {
 	var err error
 	var rawl *net.TCPListener
 	var rconn net.PacketConn
-	lc := net.ListenConfig{
-		Control: func(network, address string, c syscall.RawConn) error {
-			return c.Control(func(fd uintptr) {
-				err := SetReusePort(int(fd))
-				if err != nil {
-					log.DefaultLogger.Errorf("[network] [udp setsockopt] %v", err)
-				}
-			})
-		},
-	}
+	lc := net.ListenConfig{}
 	if l.network == "tcp" {
 		if rawl, err = net.ListenTCP(l.network, l.localAddress.(*net.TCPAddr)); err != nil {
 			return err
 		}
-		// d, _ := rawl.File()
-		// log.DefaultLogger.Debugf("listen to fd:%d, addr:%s", d.Fd(), l.localAddress.String())
 		l.rawl = rawl
 	} else {
 		if rconn, err = lc.ListenPacket(context.Background(), l.network, l.localAddress.String()); err != nil {
 			return err
 		}
-		d, _ :=  rconn.(*net.UDPConn).File()
-		log.DefaultLogger.Debugf("listen to fd:%v, addr:%s", d.Fd(), l.localAddress.String())
 		l.packetConn = rconn
 	}
 

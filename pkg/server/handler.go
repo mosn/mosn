@@ -284,17 +284,14 @@ func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 }
 
 func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
-	// files := make([]*os.File, len(ch.listeners))
-	var files []*os.File
-	for _, l := range ch.listeners {
+	files := make([]*os.File, len(ch.listeners))
+	for i, l := range ch.listeners {
 		file, err := l.listener.ListenerFile()
 		if err != nil {
 			log.DefaultLogger.Alertf("listener.list", "[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
-		if l.listener.Addr().Network() == "tcp" {
-			files = append(files, file)
-		}
+		files[i] = file
 	}
 	return files
 }
@@ -764,7 +761,7 @@ func sendInheritListeners() (net.Conn, error) {
 	return uc, nil
 }
 
-func GetInheritListeners() ([]net.Listener, net.Conn, error) {
+func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.StartLogger.Errorf("[server] getInheritListeners panic %v", r)
@@ -772,7 +769,7 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	}()
 
 	if !isReconfigure() {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	syscall.Unlink(types.TransferListenDomainSocket)
@@ -780,7 +777,7 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	l, err := net.Listen("unix", types.TransferListenDomainSocket)
 	if err != nil {
 		log.StartLogger.Errorf("[server] InheritListeners net listen error: %v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	defer l.Close()
 
@@ -791,7 +788,7 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	uc, err := ul.AcceptUnix()
 	if err != nil {
 		log.StartLogger.Errorf("[server] InheritListeners Accept error :%v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	log.StartLogger.Infof("[server] Get InheritListeners Accept")
 
@@ -799,45 +796,53 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	oob := make([]byte, 1024)
 	_, oobn, _, _, err := uc.ReadMsgUnix(buf, oob)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	scms, err := unix.ParseSocketControlMessage(oob[0:oobn])
 	if err != nil {
 		log.StartLogger.Errorf("[server] ParseSocketControlMessage: %v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if len(scms) != 1 {
 		log.StartLogger.Errorf("[server] expected 1 SocketControlMessage; got scms = %#v", scms)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	gotFds, err := unix.ParseUnixRights(&scms[0])
 	if err != nil {
 		log.StartLogger.Errorf("[server] unix.ParseUnixRights: %v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	listeners := make([]net.Listener, len(gotFds))
+	var packetConn []net.PacketConn
 	for i := 0; i < len(gotFds); i++ {
 		fd := uintptr(gotFds[i])
 		file := os.NewFile(fd, "")
 		if file == nil {
 			log.StartLogger.Errorf("[server] create new file from fd %d failed", fd)
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		defer file.Close()
 
 		fileListener, err := net.FileListener(file)
 		if err != nil {
-			log.StartLogger.Errorf("[server] recover listener from fd %d failed: %s", fd, err)
-			return nil, nil, err
-		}
-		if listener, ok := fileListener.(*net.TCPListener); ok {
-			listeners[i] = listener
+			pc, err := net.FilePacketConn(file)
+			if err == nil {
+				packetConn = append(packetConn, pc)
+			} else {
+
+				log.StartLogger.Errorf("[server] recover listener from fd %d failed: %s", fd, err)
+				return nil, nil, nil, err
+			}
 		} else {
-			log.StartLogger.Errorf("[server] listener recovered from fd %d is not a tcp listener", fd)
-			return nil, nil, errors.New("not a tcp listener")
+			if listener, ok := fileListener.(*net.TCPListener); ok {
+				listeners[i] = listener
+			} else {
+				log.StartLogger.Errorf("[server] listener recovered from fd %d is not a tcp listener", fd)
+				return nil, nil, nil, errors.New("not a tcp listener")
+			}
 		}
 	}
 
-	return listeners, uc, nil
+	return listeners, packetConn, uc, nil
 }

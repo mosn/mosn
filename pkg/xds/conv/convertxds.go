@@ -24,9 +24,9 @@ import (
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xdsv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdsauth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	xdscluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
-	xdsv2    "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -126,9 +126,9 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Hosts: convertClusterHosts(xdsCluster.GetHosts()),
-			Spec:  convertSpec(xdsCluster),
-			TLS:   convertTLS(xdsCluster.GetTlsContext()),
+			Hosts:    convertClusterHosts(xdsCluster.GetHosts()),
+			Spec:     convertSpec(xdsCluster),
+			TLS:      convertTLS(xdsCluster.GetTlsContext()),
 			LbConfig: convertLbConfig(xdsCluster.LbConfig),
 		}
 
@@ -142,7 +142,7 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 func convertLbConfig(config interface{}) v2.IsCluster_LbConfig {
 	switch config.(type) {
 	case *xdsv2.Cluster_LeastRequestLbConfig:
-		return &v2.LeastRequestLbConfig{ChoiceCount:config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
+		return &v2.LeastRequestLbConfig{ChoiceCount: config.(*xdsv2.Cluster_LeastRequestLbConfig).ChoiceCount.GetValue()}
 	default:
 		return nil
 	}
@@ -567,19 +567,23 @@ func convertFilterConfig(name string, s *types.Struct) map[string]map[string]int
 			UpstreamProtocol:   string(protocol.Xprotocol),
 			ExtendConfig:       convertXProxyExtendConfig(filterConfig),
 		}
-	} else if name == xdsutil.TCPProxy {
+	} else if name == xdsutil.TCPProxy || name == xdsutil.UDPProxy {
 		filterConfig := &xdstcp.TcpProxy{}
 		xdsutil.StructToMessage(s, filterConfig)
 		log.DefaultLogger.Tracef("TCPProxy:filter config = %v,v1-config = %v", filterConfig, filterConfig.GetDeprecatedV1())
 
-		tcpProxyConfig := v2.StreamProxy{
+		streamProxyConfig := v2.StreamProxy{
 			StatPrefix:         filterConfig.GetStatPrefix(),
 			Cluster:            filterConfig.GetCluster(),
 			IdleTimeout:        filterConfig.GetIdleTimeout(),
 			MaxConnectAttempts: filterConfig.GetMaxConnectAttempts().GetValue(),
 			Routes:             convertTCPRoute(filterConfig.GetDeprecatedV1()),
 		}
-		filtersConfigParsed[v2.TCP_PROXY] = toMap(tcpProxyConfig)
+		if name == xdsutil.TCPProxy {
+			filtersConfigParsed[v2.TCP_PROXY] = toMap(streamProxyConfig)
+		} else {
+			filtersConfigParsed[v2.UDP_PROXY] = toMap(streamProxyConfig)
+		}
 
 		return filtersConfigParsed
 	} else if name == v2.MIXER {

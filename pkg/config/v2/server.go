@@ -73,6 +73,7 @@ type Listener struct {
 	ListenerScope           string           `json:"-"`
 	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
 	InheritListener         *net.TCPListener `json:"-"`
+	InheritPacketConn       *net.PacketConn  `json:"-"`
 	Remain                  bool             `json:"-"`
 }
 

@@ -342,7 +342,6 @@ func (c *connection) startReadLoop() {
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
 
-		log.DefaultLogger.Infof("[network] [read loop] time: %s", time.Now().String())
 		select {
 		case <-c.internalStopChan:
 			return
@@ -532,7 +531,7 @@ func (c *connection) onRead(bytesRead int64) {
 		return
 	}
 
-	if c.rawConnection.RemoteAddr() != nil && c.readBuffer.Len() == 0 {
+	if c.readBuffer.Len() == 0 {
 		return
 	}
 

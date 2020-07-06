@@ -66,7 +66,6 @@ func ReadMsgLoop(lctx context.Context, l *listener, id int) {
 		}
 
 		proxyKey := GetProxyMapKey(conn.LocalAddr().String(), rAddr.String())
-		log.DefaultLogger.Debugf("find privious connection")
 		if dc, ok := ProxyMap.Load(proxyKey); !ok {
 			fd, _ := conn.File()
 			clientConn, _ := net.FileConn(fd)
@@ -74,7 +73,6 @@ func ReadMsgLoop(lctx context.Context, l *listener, id int) {
 			log.DefaultLogger.Tracef("[network] [udp] recv from udp local:%s, remote:%s, len:%d, ind:%d", clientConn.LocalAddr().String(), rAddr.String(), n, id)
 			l.cb.OnAccept(clientConn, l.useOriginalDst, rAddr, nil, packet[:n])
 		} else {
-			log.DefaultLogger.Debugf("find privious connection")
 			c := dc.(api.Connection)
 			c.OnRead(packet[:n])
 		}
