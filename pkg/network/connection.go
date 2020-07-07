@@ -141,15 +141,12 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 		conn.file = val.(*os.File)
 	}
 
-	log.DefaultLogger.Debugf("new server connection, network: %s", conn.network)
-
 	if conn.network == "udp" {
 		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
 			conn.readBuffer.Write(buf)
 			conn.updateReadBufStats(int64(conn.readBuffer.Len()), int64(conn.readBuffer.Len()))
-			log.DefaultLogger.Debugf("new server connection udp accept buffer: %s", rawc.LocalAddr().String())
 		}
 	}
 
@@ -193,8 +190,8 @@ func (c *connection) Start(lctx context.Context) {
 	})
 }
 
-func (c *connection) SetIdleTimeout(d time.Duration) {
-	c.newIdleChecker(d)
+func (c *connection) SetIdleTimeout(readTimeout time.Duration, idleTimeout time.Duration) {
+	c.newIdleChecker(readTimeout, idleTimeout)
 }
 
 func (c *connection) attachEventLoop(lctx context.Context) {
@@ -341,7 +338,6 @@ func (c *connection) startReadLoop() {
 	var transferTime time.Time
 	for {
 		// exit loop asap. one receive & one default block will be optimized by go compiler
-
 		select {
 		case <-c.internalStopChan:
 			return
@@ -470,7 +466,7 @@ func (c *connection) doRead() (err error) {
 	var bytesRead int64
 	c.setReadDeadline()
 	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
-	log.DefaultLogger.Debugf("[network] [read loop] read len %d ", bytesRead)
+
 	if err != nil {
 		log.DefaultLogger.Infof("[network] [read loop] do read err: %v", err)
 		if atomic.LoadUint32(&c.closed) == 1 {
@@ -749,15 +745,15 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 			} else {
 				addr = c.rawConnection.RemoteAddr().(*net.UDPAddr)
 			}
+			n := 0
+			bytesSent = 0
 			for _, buf := range c.ioBuffers {
-				var n int
 				if c.rawConnection.RemoteAddr() == nil {
 					n, err = c.rawConnection.(*net.UDPConn).WriteToUDP(buf.Bytes(), addr)
 				} else {
 					n, err = c.rawConnection.Write(buf.Bytes())
 				}
 				bytesSent += int64(n)
-				log.DefaultLogger.Debugf("do write to len:%d", buf.Len())
 			}
 		}
 	}
@@ -809,7 +805,6 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		}
 	}()
 
-	log.DefaultLogger.Errorf("[network] [close connection] %s", ccType)
 	if ccType == api.FlushWrite {
 		c.Write(buffer.NewIoBufferEOF())
 		return nil

@@ -147,7 +147,7 @@ type Connection interface {
 
 	// SetIdleTimeout sets the timeout that will set the connnection to idle. mosn close idle connection
 	// if no idle timeout setted or a zero value for d means no idle connections.
-	SetIdleTimeout(d time.Duration)
+	SetIdleTimeout(readTimeout time.Duration, idleTimeout time.Duration)
 
 	// State returns the connection state
 	State() ConnState

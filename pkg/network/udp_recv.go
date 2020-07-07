@@ -48,21 +48,25 @@ func DelUdpProxyMap(key string) {
 	ProxyMap.Delete(key)
 }
 
-func ReadMsgLoop(lctx context.Context, l *listener, id int) {
+func ReadMsgLoop(lctx context.Context, l *listener) {
 	buf := buffer.GetBytes(UdpPacketMaxSize)
 	packet := *buf
 	defer buffer.PutBytes(buf)
 	conn := l.packetConn.(*net.UDPConn)
-	log.DefaultLogger.Tracef("[network] [udp] recv from udp loop index: %d", id)
 	for {
 		n, rAddr, err := conn.ReadFromUDP(packet)
+		log.DefaultLogger.Tracef("[network] [udp] recv from udp data: %s", packet[:n])
 		if err != nil {
+			if nerr, ok := err.(net.Error); ok && (nerr.Timeout() || nerr.Timeout()) {
+				log.DefaultLogger.Errorf("[network] [udp] recv from udp error: %v", err)
+				break
+			}
 			if strings.Contains(err.Error(), "use of closed network connection") {
 				log.DefaultLogger.Errorf("[network] [udp] recv from udp error: %v", err)
 				break
 			}
 			log.DefaultLogger.Errorf("[network] [udp] recv from udp error: %v", err)
-			break
+			continue
 		}
 
 		proxyKey := GetProxyMapKey(conn.LocalAddr().String(), rAddr.String())
@@ -70,7 +74,7 @@ func ReadMsgLoop(lctx context.Context, l *listener, id int) {
 			fd, _ := conn.File()
 			clientConn, _ := net.FileConn(fd)
 
-			log.DefaultLogger.Tracef("[network] [udp] recv from udp local:%s, remote:%s, len:%d, ind:%d", clientConn.LocalAddr().String(), rAddr.String(), n, id)
+			log.DefaultLogger.Tracef("[network] [udp] recv from udp local:%s, remote:%s, len:%d", clientConn.LocalAddr().String(), rAddr.String(), n)
 			l.cb.OnAccept(clientConn, l.useOriginalDst, rAddr, nil, packet[:n])
 		} else {
 			c := dc.(api.Connection)

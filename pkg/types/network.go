@@ -185,7 +185,7 @@ const (
 	DefaultConnWriteTimeout = 15 * time.Second
 	DefaultConnTryTimeout   = 60 * time.Second
 	DefaultIdleTimeout      = 90 * time.Second
-	DefaultUDPIdleTimeout   = 2 * time.Second
+	DefaultUDPIdleTimeout   = 5 * time.Second
 	DefaultUDPReadTimeout   = 1 * time.Second
 )
 

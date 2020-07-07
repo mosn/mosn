@@ -24,6 +24,7 @@ type StreamProxy struct {
 	StatPrefix         string         `json:"stat_prefix,omitempty"`
 	Cluster            string         `json:"cluster,omitempty"`
 	IdleTimeout        *time.Duration `json:"idle_timeout,omitempty"`
+	ReadTimeout        *time.Duration `json:"read_timeout,omitempty"`
 	MaxConnectAttempts uint32         `json:"max_connect_attempts,omitempty"`
 	Routes             []*StreamRoute `json:"routes,omitempty"`
 }

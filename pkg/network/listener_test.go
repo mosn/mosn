@@ -161,17 +161,18 @@ func TestUDPListenerStart(t *testing.T) {
 	if err := ln.Close(nil); err != nil {
 		t.Errorf("Close listener failed, %v", err)
 	}
-	time.Sleep(time.Second)
+	time.Sleep(3*time.Second)
 
 	if check(t) {
 		t.Error("listener closed, but still can be dial success")
 	}
 	// start, but not restart, will be failed
 	go ln.Start(nil, false)
-	time.Sleep(time.Second)
+	time.Sleep(2*time.Second)
 	if check(t) {
 		t.Error("listener start")
 	}
+	time.Sleep(100*time.Second)
 	// restart
 	go ln.Start(nil, true)
 	time.Sleep(time.Second)

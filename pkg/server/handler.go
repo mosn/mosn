@@ -42,6 +42,7 @@ import (
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
 
@@ -285,13 +286,13 @@ func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 
 func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
 	files := make([]*os.File, len(ch.listeners))
-	for i, l := range ch.listeners {
+	for idx, l := range ch.listeners {
 		file, err := l.listener.ListenerFile()
 		if err != nil {
 			log.DefaultLogger.Alertf("listener.list", "[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
-		files[i] = file
+		files[idx] = file
 	}
 	return files
 }
@@ -516,19 +517,21 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 var (
 	defaultIdleTimeout = types.DefaultIdleTimeout
 	defaultUDPIdleTimeout = types.DefaultUDPIdleTimeout
+	defaultConnReadTimeout = buffer.ConnReadTimeout
+	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
 )
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
 	if al.idleTimeout != nil {
-		conn.SetIdleTimeout(al.idleTimeout.Duration)
+		conn.SetIdleTimeout(defaultConnReadTimeout, al.idleTimeout.Duration)
 	} else {
 		// a nil idle timeout, we set a default one
 		// notice only server side connection set the default value
 		if conn.LocalAddr().Network() == "tcp" {
-			conn.SetIdleTimeout(defaultIdleTimeout)
+			conn.SetIdleTimeout(defaultConnReadTimeout, defaultIdleTimeout)
 		} else {
-			conn.SetIdleTimeout(defaultUDPIdleTimeout)
+			conn.SetIdleTimeout(defaultUDPReadTimeout, defaultUDPIdleTimeout)
 		}
 	}
 	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
@@ -680,6 +683,7 @@ func newActiveConnection(listener *activeListener, conn api.Connection) *activeC
 	})
 	ac.conn.AddBytesSentListener(func(bytesSent uint64) {
 
+		log.DefaultLogger.Debugf("update listener write bytes: %d", bytesSent)
 		if bytesSent > 0 {
 			listener.stats.DownstreamBytesWriteTotal.Inc(int64(bytesSent))
 		}
@@ -697,20 +701,11 @@ func (ac *activeConnection) OnEvent(event api.ConnectionEvent) {
 
 func sendInheritListeners() (net.Conn, error) {
 	lf := ListListenersFile()
-	// if lf == nil {
-	// 	return nil, errors.New("ListListenersFile() error")
-	// }
-
-	for _, f := range lf {
-		log.DefaultLogger.Debugf("[server] InheritListener listener fd: %d", f.Fd())
+	if lf == nil {
+		return nil, errors.New("ListListenersFile() error")
 	}
 
 	lsf, lerr := admin.ListServiceListenersFile()
-
-	for _, f := range lsf {
-		log.DefaultLogger.Debugf("[server] InheritListener admin fd: %d", f.Fd())
-	}
-
 	if lerr != nil {
 		return nil, errors.New("ListServiceListenersFile() error")
 	}

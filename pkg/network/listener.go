@@ -149,7 +149,7 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 			if l.network == "tcp" {
 				metrics.AddListenerAddr(l.rawl.Addr().String())
 			} else {
-				metrics.AddListenerAddr(l.packetConn.(*net.UDPConn).LocalAddr().String()+".udp")
+				metrics.AddListenerAddr(l.packetConn.(*net.UDPConn).LocalAddr().String() + ".udp")
 			}
 			return false
 		}()
@@ -190,13 +190,11 @@ func (l *listener) AcceptEventLoop(lctx context.Context) {
 }
 
 func (l *listener) ReadMsgEventLoop(lctx context.Context) {
-	for i:=0; i<1; i++ {
-		utils.GoWithRecover(func() {
-			ReadMsgLoop(lctx, l, i)
-		}, func(r interface{}) {
-			l.ReadMsgEventLoop(lctx)
-		})
-	}
+	utils.GoWithRecover(func() {
+		ReadMsgLoop(lctx, l)
+	}, func(r interface{}) {
+		l.ReadMsgEventLoop(lctx)
+	})
 }
 
 func (l *listener) Stop() error {
@@ -261,7 +259,8 @@ func (l *listener) Close(lctx context.Context) error {
 	}
 	if l.packetConn != nil {
 		l.cb.OnClose()
-		return l.packetConn.Close()
+		log.DefaultLogger.Infof("udp socket closed")
+		return l.packetConn.(*net.UDPConn).Close()
 	}
 	return nil
 }
@@ -270,13 +269,13 @@ func (l *listener) listen(lctx context.Context) error {
 	var err error
 	var rawl *net.TCPListener
 	var rconn net.PacketConn
-	lc := net.ListenConfig{}
 	if l.network == "tcp" {
 		if rawl, err = net.ListenTCP(l.network, l.localAddress.(*net.TCPAddr)); err != nil {
 			return err
 		}
 		l.rawl = rawl
 	} else {
+		lc := net.ListenConfig{}
 		if rconn, err = lc.ListenPacket(context.Background(), l.network, l.localAddress.String()); err != nil {
 			return err
 		}

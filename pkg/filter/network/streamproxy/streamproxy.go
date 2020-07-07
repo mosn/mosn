@@ -116,7 +116,7 @@ func (p *proxy) initializeUpstreamConnection() api.FilterStatus {
 
 	clusterSnapshot := p.clusterManager.GetClusterSnapshot(context.Background(), clusterName)
 
-	if reflect.ValueOf(clusterSnapshot).IsNil() {
+	if clusterSnapshot == nil || reflect.ValueOf(clusterSnapshot).IsNil() {
 		p.requestInfo.SetResponseFlag(api.NoRouteFound)
 		p.onInitFailure(NoRoute)
 
@@ -228,7 +228,8 @@ func (p *proxy) finalizeUpstreamConnectionStats() {
 func (p *proxy) onConnectionSuccess() {
 	// In udp proxy, each upstream connection needs a idle checker
 	if p.network == "udp" {
-		p.upstreamConnection.SetIdleTimeout(types.DefaultUDPIdleTimeout)
+		p.upstreamConnection.SetIdleTimeout(p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
+		log.DefaultLogger.Debugf("read timeout:%d, idle timeout:%d" ,p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
 	}
 	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())
 }
@@ -255,6 +256,7 @@ type proxyConfig struct {
 	statPrefix         string
 	cluster            string
 	idleTimeout        *time.Duration
+	readTimeout        *time.Duration
 	maxConnectAttempts uint32
 	routes             []*route
 }
@@ -267,10 +269,8 @@ func (ipList *IpRangeList) Contains(address net.Addr) bool {
 	var ip net.IP
 	if tcpAddr, ok := address.(*net.TCPAddr); ok {
 		ip = tcpAddr.IP
-	} else {
-		if udpAddr, ok1 := address.(*net.UDPAddr); ok1 {
-			ip = udpAddr.IP
-		}
+	} else if udpAddr, ok1 := address.(*net.UDPAddr); ok1 {
+		ip = udpAddr.IP
 	}
 	log.DefaultLogger.Tracef("IpRangeList check ip = %v,address = %v", ip, address)
 	if ip != nil {
@@ -374,8 +374,30 @@ func NewProxyConfig(config *v2.StreamProxy) ProxyConfig {
 		statPrefix:         config.StatPrefix,
 		cluster:            config.Cluster,
 		idleTimeout:        config.IdleTimeout,
+		readTimeout:        config.ReadTimeout,
 		maxConnectAttempts: config.MaxConnectAttempts,
 		routes:             routes,
+	}
+}
+
+func (pc *proxyConfig) GetIdleTimeout(network string) time.Duration {
+	log.DefaultLogger.Debugf("proxy config idletimeout:%d", *pc.idleTimeout)
+	if pc.idleTimeout != nil {
+		return *pc.idleTimeout
+	} else if network == "tcp" {
+		return types.DefaultIdleTimeout
+	} else {
+		return types.DefaultUDPIdleTimeout
+	}
+}
+
+func (pc *proxyConfig) GetReadTimeout(network string) time.Duration {
+	if pc.readTimeout != nil {
+		return *pc.readTimeout
+	} else if network == "tcp" {
+		return types.DefaultConnReadTimeout
+	} else {
+		return types.DefaultUDPReadTimeout
 	}
 }
 
