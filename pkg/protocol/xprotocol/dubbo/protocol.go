@@ -22,6 +22,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
@@ -109,13 +110,32 @@ func (proto *dubboProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame
 	}
 }
 
+// https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
 // hijacker
-func (proto *dubboProtocol) Hijack(statusCode uint32) xprotocol.XRespFrame {
-	// not support
-	return nil
+func (proto *dubboProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
+	dubboStatus, ok := dubboMosnStatusMap[int(statusCode)]
+	if !ok {
+		dubboStatus = dubboStatusInfo{
+			Status: hessian.Response_SERVICE_ERROR,
+			Msg:    fmt.Sprintf("%d status not define", statusCode),
+		}
+	}
+
+	encoder := hessian.NewEncoder()
+	encoder.Encode(dubboStatus.Msg)
+	payload := encoder.Buffer()
+	return &Frame{
+		Header: Header{
+			Magic:   MagicTag,
+			Flag:    0x02,
+			Status:  dubboStatus.Status,
+			Id:      request.GetRequestId(),
+			DataLen: uint32(len(payload)),
+		},
+		payload: payload,
+	}
 }
 
 func (proto *dubboProtocol) Mapping(httpStatusCode uint32) uint32 {
-	// not support
-	return 0
+	return httpStatusCode
 }
