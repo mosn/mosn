@@ -2,16 +2,20 @@ package tars
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/endpointf"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	"github.com/TarsCloud/TarsGo/tars/transport"
-	"sync"
-	"sync/atomic"
-	"time"
 )
+
+var reconnectMsg = "_reconnect_"
 
 // AdapterProxy : Adapter proxy
 type AdapterProxy struct {
@@ -23,6 +27,8 @@ type AdapterProxy struct {
 	sendCount  int32
 	status     bool
 	closed     bool
+
+	conf *transport.TarsClientConf
 }
 
 // New : Construct an adapter proxy
@@ -37,11 +43,12 @@ func (c *AdapterProxy) New(point *endpointf.EndpointF, comm *Communicator) error
 	conf := &transport.TarsClientConf{
 		Proto: proto,
 		//NumConnect:   netthread,
-		QueueLen:     ClientQueueLen,
-		IdleTimeout:  ClientIdleTimeout,
-		ReadTimeout:  ClientReadTimeout,
-		WriteTimeout: ClientWriteTimeout,
+		QueueLen:     comm.Client.ClientQueueLen,
+		IdleTimeout:  comm.Client.ClientIdleTimeout,
+		ReadTimeout:  comm.Client.ClientReadTimeout,
+		WriteTimeout: comm.Client.ClientWriteTimeout,
 	}
+	c.conf = conf
 	c.tarsClient = transport.NewTarsClient(fmt.Sprintf("%s:%d", point.Host, point.Port), c, conf)
 	c.status = true
 	go c.checkActive()
@@ -66,6 +73,10 @@ func (c *AdapterProxy) Recv(pkg []byte) {
 	err := packet.ReadFrom(codec.NewReader(pkg))
 	if err != nil {
 		TLOG.Error("decode packet error", err.Error())
+		return
+	}
+	if packet.IRequestId == 0 {
+		go c.onPush(&packet)
 		return
 	}
 	chIF, ok := c.resp.Load(packet.IRequestId)
@@ -118,7 +129,7 @@ func (c *AdapterProxy) reset() {
 }
 
 func (c *AdapterProxy) checkActive() {
-	loop := time.NewTicker(AdapterProxyTicker)
+	loop := time.NewTicker(c.comm.Client.AdapterProxyTicker)
 	count := 0 // Detect if a dead node recovers each minute
 	for range loop.C {
 		if c.closed {
@@ -128,7 +139,7 @@ func (c *AdapterProxy) checkActive() {
 		if c.failCount > c.sendCount/2 {
 			c.status = false
 		}
-		if !c.status && count > AdapterProxyResetCount {
+		if !c.status && count > c.comm.Client.AdapterProxyResetCount {
 			//TODO USE TAFPING INSTEAD
 			c.reset()
 			c.status = true
@@ -136,4 +147,14 @@ func (c *AdapterProxy) checkActive() {
 		}
 		count++
 	}
+}
+func (c *AdapterProxy) onPush(pkg *requestf.ResponsePacket) {
+	if pkg.SResultDesc == reconnectMsg {
+		TLOG.Infof("reconnect %s:%d", c.point.Host, c.point.Port)
+		oldClient := c.tarsClient
+		c.tarsClient = transport.NewTarsClient(fmt.Sprintf("%s:%d", c.point.Host, c.point.Port), c, c.conf)
+		ctx := context.Background()
+		oldClient.GraceClose(ctx) // grace shutdown
+	}
+	//TODO: support push msg
 }

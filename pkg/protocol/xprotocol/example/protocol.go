@@ -107,7 +107,7 @@ func (proto *proto) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
 }
 
 // Hijacker
-func (proto *proto) Hijack(statusCode uint32) xprotocol.XRespFrame {
+func (proto *proto) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
 	// not supported for poc demo
 	return nil
 }

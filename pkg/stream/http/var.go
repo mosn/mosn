@@ -19,21 +19,24 @@ package http
 
 import (
 	"context"
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
 	"strconv"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
 
 const (
-	headerIndex = len(types.VarPrefixHttpHeader)
-	argIndex    = len(types.VarPrefixHttpArg)
-	cookieIndex = len(types.VarPrefixHttpCookie)
+	VarRequestMethod = "http_request_method"
+	VarRequestLength = "http_request_length"
 )
 
 var (
+	headerIndex = len(types.VarPrefixHttpHeader)
+	cookieIndex = len(types.VarPrefixHttpCookie)
+	argIndex    = len(types.VarPrefixHttpArg)
+
 	builtinVariables = []variable.Variable{
 		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
@@ -61,9 +64,11 @@ func init() {
 	}
 
 	// register protocol resource
-	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarHttpRequestPath)
-	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarHttpRequestUri)
-	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarHttpRequestArg)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarProtocolRequestPath)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarProtocolRequestUri)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarProtocolRequestArg)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.COOKIE, types.VarProtocolCookie)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.HEADER, types.VarProtocolRequestHeader)
 }
 
 func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

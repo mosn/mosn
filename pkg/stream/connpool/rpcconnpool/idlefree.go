@@ -54,19 +54,22 @@ func (f *idleFree) CheckFree(id uint64) bool {
 	if maxIdleCount == 1 {
 		return true
 	}
-	if atomic.LoadUint64(&f.lastStreamID)+1 == id {
-		if atomic.AddUint32(&f.idleCount, 1) >= maxIdleCount {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[stream] [sofarpc] [keepalive] connections only have heartbeat for a while, close it")
-			}
-			return true
-		}
-	} else {
+	if atomic.LoadUint64(&f.lastStreamID)+1 != id {
 		atomic.StoreUint32(&f.idleCount, 1)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [sofarpc] [keepalive] last stream id: %d, current id: %d", f.lastStreamID, id)
 		}
+		atomic.StoreUint64(&f.lastStreamID, id)
+		return false
 	}
+
+	if atomic.AddUint32(&f.idleCount, 1) >= maxIdleCount {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [sofarpc] [keepalive] connections only have heartbeat for a while, close it")
+		}
+		return true
+	}
+
 	atomic.StoreUint64(&f.lastStreamID, id)
 	return false
 }

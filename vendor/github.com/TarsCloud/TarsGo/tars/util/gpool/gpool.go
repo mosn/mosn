@@ -1,11 +1,13 @@
 package gpool
 
+//Worker goroutine struct.
 type Worker struct {
 	WorkerQueue chan *Worker
 	JobChannel  chan Job
 	Stop        chan struct{}
 }
 
+//Start start gotoutine pool.
 func (w *Worker) Start() {
 	go func() {
 		var job Job
@@ -30,14 +32,17 @@ func newWorker(pool chan *Worker) *Worker {
 	}
 }
 
+//Job is a function for doing jobs.
 type Job func()
 
+//Pool is goroutine pool config.
 type Pool struct {
 	JobQueue    chan Job
 	WorkerQueue chan *Worker
 	stop        chan struct{}
 }
 
+//NewPool news gotouine pool
 func NewPool(numWorkers int, jobQueueLen int) *Pool {
 	jobQueue := make(chan Job, jobQueueLen)
 	workerQueue := make(chan *Worker, numWorkers)
@@ -51,6 +56,7 @@ func NewPool(numWorkers int, jobQueueLen int) *Pool {
 	return pool
 }
 
+//Start starts all workers
 func (p *Pool) Start() {
 	for i := 0; i < cap(p.WorkerQueue); i++ {
 		worker := newWorker(p.WorkerQueue)
@@ -80,6 +86,7 @@ func (p *Pool) dispatch() {
 	}
 }
 
+//Release release all workers
 func (p *Pool) Release() {
 	p.stop <- struct{}{}
 	<-p.stop

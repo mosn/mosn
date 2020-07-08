@@ -442,3 +442,7 @@ func (c *LbContext) DownstreamContext() context.Context {
 func (c *LbContext) DownstreamCluster() types.ClusterInfo {
 	return c.cluster
 }
+
+func (c *LbContext) DownstreamRoute() api.Route {
+	return nil
+}

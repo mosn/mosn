@@ -50,7 +50,7 @@ func (mp *mockProtocol) Reply(request XFrame) XRespFrame {
 }
 
 // Hijacker
-func (mp *mockProtocol) Hijack(statusCode uint32) XRespFrame {
+func (mp *mockProtocol) Hijack(request XFrame, statusCode uint32) XRespFrame {
 	return nil
 }
 

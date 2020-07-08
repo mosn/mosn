@@ -81,7 +81,7 @@ func (proto *tarsProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame 
 }
 
 // hijacker
-func (proto *tarsProtocol) Hijack(statusCode uint32) xprotocol.XRespFrame {
+func (proto *tarsProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
 	// not support
 	return nil
 }

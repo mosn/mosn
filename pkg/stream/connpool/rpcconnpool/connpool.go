@@ -222,7 +222,7 @@ func (p *connpool) GetActiveClient(ctx context.Context, subProtocol types.Protoc
 		reason types.PoolFailureReason
 	)
 
-	if n == 0 {
+	if n == 0 { // nolint: nestif
 		if maxConns == 0 || p.totalClientCount < maxConns {
 			if p.shouldMultiplex(subProtocol) {
 				defer p.clientMux.Unlock()
@@ -515,6 +515,8 @@ func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 			case api.RemoteClose:
 				host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
 				host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+			default:
+				// do nothing
 			}
 		}
 
@@ -530,6 +532,8 @@ func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
+	default:
+		// do nothing
 	}
 }
 

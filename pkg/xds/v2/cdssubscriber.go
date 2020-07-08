@@ -19,6 +19,7 @@ package v2
 
 import (
 	"errors"
+	"github.com/golang/protobuf/ptypes"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -41,8 +42,8 @@ func (c *ADSClient) reqClusters(streamClient ads.AggregatedDiscoveryService_Stre
 			Id:       types.GetGlobalXdsInfo().ServiceNode,
 			Cluster:  types.GetGlobalXdsInfo().ServiceCluster,
 			Metadata: types.GetGlobalXdsInfo().Metadata,
-		},
-	})
+		}})
+
 	if err != nil {
 		log.DefaultLogger.Infof("get clusters fail: %v", err)
 		return err
@@ -53,11 +54,11 @@ func (c *ADSClient) reqClusters(streamClient ads.AggregatedDiscoveryService_Stre
 func (c *ADSClient) handleClustersResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.Cluster {
 	clusters := make([]*envoy_api_v2.Cluster, 0, len(resp.Resources))
 	for _, res := range resp.Resources {
-		cluster := envoy_api_v2.Cluster{}
-		if err := cluster.Unmarshal(res.GetValue()); err != nil {
+		cluster := &envoy_api_v2.Cluster{}
+		if err := ptypes.UnmarshalAny(res, cluster); err != nil {
 			log.DefaultLogger.Errorf("ADSClient unmarshal cluster fail: %v", err)
 		}
-		clusters = append(clusters, &cluster)
+		clusters = append(clusters, cluster)
 	}
 	return clusters
 }

@@ -242,8 +242,6 @@ type ConnectionPool interface {
 	// SupportTLS represents the connection support tls or not
 	SupportTLS() bool
 
-	//GetActiveClient(ctx context.Context, proto ProtocolName) (PooledClient, PoolFailureReason)
-
 	// Shutdown gracefully shuts down the connection pool without interrupting any active requests
 	Shutdown()
 

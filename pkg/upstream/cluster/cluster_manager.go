@@ -29,6 +29,7 @@ import (
 	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 )
@@ -53,10 +54,13 @@ func refreshHostsConfig(c types.Cluster) {
 	}
 }
 
+const globalTLSMetrics = "global"
+
 // types.ClusterManager
 type clusterManager struct {
 	clustersMap      sync.Map
 	protocolConnPool sync.Map
+	tlsMetrics       *mtls.TLSStats
 	mux              sync.Mutex
 }
 
@@ -79,7 +83,9 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	if clusterManagerInstance.clusterManager != nil {
 		return clusterManagerInstance
 	}
-	clusterManagerInstance.clusterManager = &clusterManager{}
+	clusterManagerInstance.clusterManager = &clusterManager{
+		tlsMetrics: mtls.NewStats(globalTLSMetrics),
+	}
 	for k := range types.ConnPoolFactories {
 		clusterManagerInstance.protocolConnPool.Store(k, &sync.Map{})
 	}
@@ -349,6 +355,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				}
+				cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
 				func() {
 					// lock the load and delete
 					cm.mux.Lock()

@@ -3,6 +3,7 @@ package tars
 import (
 	s "github.com/TarsCloud/TarsGo/tars/model"
 	"sync"
+	"github.com/TarsCloud/TarsGo/tars/util/tools"
 )
 
 // ProxyPrx interface
@@ -45,13 +46,19 @@ func (c *Communicator) init() {
 			refreshEndpointInterval,
 			reportInterval,
 			AsyncInvokeTimeout,
+			ClientQueueLen,          
+			tools.ParseTimeOut(ClientIdleTimeout),       
+			tools.ParseTimeOut(ClientReadTimeout),	   
+			tools.ParseTimeOut(ClientWriteTimeout),    
+			ReqDefaultTimeout,       
+			ObjQueueMax , 
+			tools.ParseTimeOut(AdapterProxyTicker),
+			AdapterProxyResetCount, 
 		}
 	}
-	c.SetProperty("netthread", 2)
 	c.SetProperty("isclient", true)
 	c.SetProperty("enableset", false)
 	if GetServerConfig() != nil {
-		c.SetProperty("netthread", GetServerConfig().netThread)
 		c.SetProperty("notify", GetServerConfig().notify)
 		c.SetProperty("node", GetServerConfig().Node)
 		c.SetProperty("server", GetServerConfig().Server)
