@@ -193,6 +193,13 @@ func (s *downStream) cleanStream() {
 		return
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] cleanStream panic: %v, downstream: %+v, streamID: %d\n%s",
+				r, s, s.ID, string(debug.Stack()))
+		}
+	}()
+
 	s.requestInfo.SetRequestFinishedDuration(time.Now())
 
 	// reset corresponding upstream stream
