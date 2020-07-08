@@ -104,7 +104,7 @@ func (p *connPool) NewStream(ctx context.Context,
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-		return types.Overflow, nil, nil
+		return types.Overflow, host, nil
 	}
 
 	atomic.AddUint64(&activeClient.totalStream, 1)

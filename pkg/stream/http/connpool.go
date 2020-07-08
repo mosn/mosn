@@ -97,13 +97,13 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 	c, reason := p.getAvailableClient(ctx)
 
 	if reason != "" {
-		return reason, nil, nil
+		return reason, host, nil
 	}
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-		return types.Overflow, nil, nil
+		return types.Overflow, host, nil
 	}
 
 	host.HostStats().UpstreamRequestTotal.Inc(1)

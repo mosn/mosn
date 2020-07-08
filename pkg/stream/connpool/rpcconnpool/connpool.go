@@ -508,7 +508,7 @@ func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 			host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
 			host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
 
-			switch event {
+			switch event { // nolint: exhaustive
 			case api.LocalClose:
 				host.HostStats().UpstreamConnectionLocalClose.Inc(1)
 				host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
