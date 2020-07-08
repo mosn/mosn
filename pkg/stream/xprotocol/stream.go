@@ -21,7 +21,7 @@ import (
 	"context"
 	"fmt"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/stream/connpool"
+	rpcpool "mosn.io/mosn/pkg/stream/connpool/rpcconnpool"
 	"strconv"
 
 	"mosn.io/mosn/pkg/log"
@@ -31,7 +31,7 @@ import (
 )
 
 func init() {
-	connpool.RegisterProtoConnPoolFactory(protocol.Xprotocol)
+	rpcpool.RegisterProtoConnPoolFactory(protocol.Xprotocol)
 }
 
 // types.Stream

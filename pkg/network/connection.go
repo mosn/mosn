@@ -493,7 +493,7 @@ func (c *connection) onRead() {
 func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("[network] [write] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v ",
+			log.DefaultLogger.Errorf("[network] [write] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
 				c.id, c.LocalAddr(), c.RemoteAddr(), r)
 			err = types.ErrConnectionHasClosed
 		}

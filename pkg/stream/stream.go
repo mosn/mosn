@@ -20,7 +20,6 @@ type BaseStream struct {
 	state uint32
 }
 
-
 func (s *BaseStream) AddEventListener(streamCb types.StreamEventListener) {
 	s.Lock()
 	s.streamListeners = append(s.streamListeners, streamCb)
@@ -68,4 +67,3 @@ func (s *BaseStream) DestroyStream() {
 	}
 	atomic.StoreUint32(&s.state, streamStateDestroyed)
 }
-

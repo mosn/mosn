@@ -26,7 +26,7 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-// stream.StreamClient
+// types.StreamClient
 // types.ReadFilter
 // types.StreamConnectionEventListener
 type client struct {
@@ -111,7 +111,7 @@ func (c *client) SetStreamConnectionEventListener(listener types.StreamConnectio
 func (c *client) NewStream(context context.Context, respReceiver types.StreamReceiveListener) types.StreamSender {
 	// oneway
 	if respReceiver == nil {
-		log.DefaultLogger.Debugf("oneway client StreamSender")
+		log.DefaultLogger.Debugf("oneway client NewStream")
 		return c.ClientStreamConnection.NewStream(context, nil)
 	}
 

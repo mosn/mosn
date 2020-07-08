@@ -62,7 +62,6 @@ func (mp *mockProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
-
 func mockMatcher(data []byte) types.MatchResult {
 	return types.MatchSuccess
 }

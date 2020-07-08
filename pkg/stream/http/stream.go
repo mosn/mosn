@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"mosn.io/mosn/pkg/stream/connpool"
 	"net"
 	"net/http"
 	"strconv"
@@ -46,7 +45,6 @@ import (
 
 func init() {
 	str.Register(protocol.HTTP1, &streamConnFactory{})
-	connpool.RegisterProtoConnPoolFactory(protocol.HTTP1)
 }
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024

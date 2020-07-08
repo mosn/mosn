@@ -18,6 +18,10 @@ package connpool
 
 import (
 	"context"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
@@ -26,12 +30,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
-	"runtime/debug"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 // for xprotocol
@@ -39,12 +38,6 @@ const (
 	Init = iota
 	Connecting
 	Connected
-)
-
-// for reconnect
-const (
-	notConnecting = iota
-	connecting
 )
 
 // RegisterProtoConnPoolFactory register a protocol connection pool factory
@@ -66,14 +59,6 @@ type connpool struct {
 	totalClientCount uint64 // total clients
 	protocol         api.Protocol
 
-	useDefaultCodec bool
-	forceMultiplex  bool
-
-	autoReconnectWhenClose bool
-	heartBeatCreator       func() KeepAlive2
-	reconnTryTimes         int
-	readFilters            []api.ReadFilter
-
 	destroyed uint64
 }
 
@@ -83,9 +68,6 @@ func NewConnPool(proto api.Protocol, host types.Host) types.ConnectionPool {
 		supportTLS:  host.SupportTLS(),
 		protocol:    proto,
 		idleClients: make(map[api.Protocol][]*activeClient),
-
-		useDefaultCodec:  true,
-		heartBeatCreator: nil,
 	}
 
 	p.host.Store(host)
@@ -117,21 +99,7 @@ func (p *connpool) Protocol() types.ProtocolName {
 }
 
 func (p *connpool) shouldMultiplex(subproto types.ProtocolName) bool {
-	if p.forceMultiplex {
-		return true
-	}
-
-	switch p.protocol {
-	case protocol.HTTP1:
-		return false
-	case protocol.HTTP2:
-		return true
-	case protocol.Xprotocol:
-		if xprotocol.GetProtocol(subproto).PoolMode() == types.Multiplex {
-			return true
-		}
-	}
-	return false
+	return xprotocol.GetProtocol(subproto).PoolMode() == types.Multiplex
 }
 
 // CheckAndInit init the connection pool
@@ -187,7 +155,6 @@ func (p *connpool) CheckAndInit(ctx context.Context) bool {
 	}
 
 	return false
-
 }
 
 func (p *connpool) Host() types.Host {
@@ -208,7 +175,7 @@ func (p *connpool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 		return reason, host, nil
 	}
 
-	var streamSender = c.StreamClient().NewStream(ctx, receiver)
+	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
 	streamSender.GetStream().AddEventListener(c) // OnResetStream, OnDestroyStream
 
@@ -226,7 +193,7 @@ func (p *connpool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 }
 
 // GetActiveClient get a avail client
-func (p *connpool) GetActiveClient(ctx context.Context, subProtocol types.ProtocolName) (types.PooledClient, types.PoolFailureReason) {
+func (p *connpool) GetActiveClient(ctx context.Context, subProtocol types.ProtocolName) (*activeClient, types.PoolFailureReason) {
 
 	host := p.Host()
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
@@ -292,7 +259,6 @@ func (p *connpool) GetActiveClient(ctx context.Context, subProtocol types.Protoc
 
 		var lastIdx = n - 1
 		if p.shouldMultiplex(subProtocol) {
-			// HTTP/2 && xprotocol
 			var reason types.PoolFailureReason
 			c = p.idleClients[subProtocol][lastIdx]
 			if c == nil || atomic.LoadUint32(&c.goaway) == 1 {
@@ -345,18 +311,12 @@ func (p *connpool) Close() {
 
 	for _, clients := range p.idleClients {
 		for _, c := range clients {
-			// c.codecClient.Close()
 			c.host.Connection.Close(api.NoFlush, api.LocalClose)
 		}
 	}
 }
 
 func (p *connpool) Shutdown() {
-	//TODO: http2 connpool do nothing for shutdown ?
-	if p.protocol == protocol.HTTP2 {
-		return
-	}
-
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
@@ -373,8 +333,7 @@ func (p *connpool) Shutdown() {
 // return client to pool
 func (p *connpool) putClientToPoolLocked(client *activeClient) {
 	subProto := client.subProtocol
-	if p.shouldMultiplex(subProto) {
-		// do nothing
+	if p.shouldMultiplex(subProto) { // do nothing
 		return
 	}
 
@@ -388,15 +347,13 @@ func (p *connpool) putClientToPoolLocked(client *activeClient) {
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool        *connpool
-	codecClient types.StreamClient // only valid when pool.useDefaultCodec == true
+	codecClient types.StreamClient
 	host        types.CreateConnectionData
-
-	writeLock sync.RWMutex
 
 	totalStream        uint64
 	closeWithActiveReq bool
 
-	// -----http1 start, for ping pong mode
+	// -----http1 && ping pong mode
 	closed          bool
 	shouldCloseConn bool
 	// -----http1 end
@@ -410,8 +367,6 @@ type activeClient struct {
 	keepAlive   *keepAliveListener
 	state       uint32 // for async connection
 	// -----xprotocol end
-
-	reconnectState uint64 // for reconnect, connecting or notConnecting
 }
 
 func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClient, types.PoolFailureReason) {
@@ -437,61 +392,34 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
 	}
 
-	// this should be equal to
-	// codecClient.AddConnectionEventListener(ac) // ac.OnEvent
 	ac.host.Connection.AddConnectionEventListener(ac)
 
 	// first connect to dest addr, then create stream client
 	if err := ac.host.Connection.Connect(); err != nil {
-		if p.autoReconnectWhenClose {
-			// auto reconnect when the first connect failed
-			ac.Reconnect()
-		}
-
 		return nil, types.ConnectionFailure
-	} else {
-		if atomic.LoadUint64(&p.destroyed) == 1 {
-			// if destroyed, close the conn
-			ac.host.Connection.Close(api.NoFlush, api.LocalClose)
-		}
-
-		for _, rf := range ac.pool.readFilters {
-			ac.host.Connection.FilterManager().AddReadFilter(rf)
-		}
 	}
 
-	// http1, http2, xprotocol
-	// if user use connection pool without codec
-	// they can use the connection returned from activeClient.Conn()
-	if p.useDefaultCodec {
-		////////// codec client
-		codecClient := stream.NewStreamClient(connCtx, p.protocol, ac.host.Connection, host)
-		codecClient.SetStreamConnectionEventListener(ac) // ac.OnGoAway
-		ac.codecClient = codecClient
-		// bytes total adds all connections data together
-		codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
+	////////// codec client
+	codecClient := stream.NewStreamClient(connCtx, p.protocol, ac.host.Connection, host)
+	codecClient.SetStreamConnectionEventListener(ac) // ac.OnGoAway
+	ac.codecClient = codecClient
+	// bytes total adds all connections data together
+	codecClient.SetConnectionCollector(host.ClusterInfo().Stats().UpstreamBytesReadTotal, host.ClusterInfo().Stats().UpstreamBytesWriteTotal)
 
-		if subProtocol != "" {
-			// Add Keep Alive
-			// protocol is from onNewDetectStream
-			// check heartbeat enable, hack: judge trigger result of Heartbeater
-			proto := xprotocol.GetProtocol(subProtocol)
-			if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
-				// create keepalive
-				rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second, 6)
-				rpcKeepAlive.StartIdleTimeout()
+	if subProtocol != "" {
+		// Add Keep Alive
+		// protocol is from onNewDetectStream
+		// check heartbeat enable, hack: judge trigger result of Heartbeater
+		proto := xprotocol.GetProtocol(subProtocol)
+		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+			// create keepalive
+			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second, 6)
+			rpcKeepAlive.StartIdleTimeout()
 
-				ac.SetHeartBeater(rpcKeepAlive)
-			}
-		}
-		////////// codec client
-	} else {
-		ac.codecClient = nil
-		if p.heartBeatCreator != nil {
-			ac.SetHeartBeater(p.heartBeatCreator())
+			ac.SetHeartBeater(rpcKeepAlive)
 		}
 	}
-
+	////////// codec client
 
 	atomic.StoreUint32(&ac.state, Connected)
 
@@ -502,97 +430,6 @@ func (p *connpool) newActiveClient(ctx context.Context, subProtocol api.Protocol
 	host.ClusterInfo().Stats().UpstreamConnectionActive.Inc(1)
 
 	return ac, ""
-}
-
-// Reconnect triggers connection to reconnect
-func (ac *activeClient) Reconnect() error {
-	if !atomic.CompareAndSwapUint64(&ac.reconnectState, notConnecting, connecting) {
-		return nil
-	}
-
-	if atomic.LoadUint64(&ac.pool.destroyed) == 1 {
-		return nil
-	}
-	println(string(debug.Stack()))
-
-	defer atomic.CompareAndSwapUint64(&ac.reconnectState, connecting, notConnecting)
-
-	utils.GoWithRecover(func() {
-		var (
-			err error
-			i   int
-		)
-
-		// close previous conn
-		ac.host.Connection.Close(api.NoFlush, api.RemoteClose)
-
-		var (
-			backoffArr = []time.Duration{
-				time.Second,
-				time.Second * 2,
-				time.Second * 5,
-				time.Second * 10,
-			}
-			backoffIdx = 0
-		)
-
-		for ; i < ac.pool.reconnTryTimes; i++ {
-			if atomic.LoadUint64(&ac.pool.destroyed) == 1 {
-				// if pool was exited, then stop
-				return
-			}
-			// build new conn
-			// must create this new conn, the same conn can only be connected once
-			ac.host = ac.pool.Host().CreateConnection(context.Background())
-
-			// connect the new connection
-			err = ac.host.Connection.Connect()
-			if err != nil {
-				log.DefaultLogger.Warnf("[connpool] reconnect failed %v times, host %v", i + 1, ac.host.Host.AddressString())
-
-				// backoff logic
-				if backoffIdx >= len(backoffArr) {
-					backoffIdx = len(backoffArr) - 1
-				}
-
-				time.Sleep(backoffArr[backoffIdx])
-				backoffIdx++
-				continue
-			}
-
-			log.DefaultLogger.Infof("[connpool] reconnect succeed after %v tries, host %v", i + 1, ac.host.Host.AddressString())
-
-			// if pool was destroyed, but connection was connected
-			// we need to close it
-			if atomic.LoadUint64(&ac.pool.destroyed) == 1 {
-				ac.host.Connection.Close(api.NoFlush, api.LocalClose)
-				return
-			}
-
-			// ====== event listeners
-			ac.host.Connection.AddConnectionEventListener(ac)
-			if ac.keepAlive != nil {
-				ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
-			}
-
-			for _, rf := range ac.pool.readFilters {
-				ac.host.Connection.FilterManager().AddReadFilter(rf)
-			}
-
-			// set the new heartbeat
-			ac.SetHeartBeater(ac.pool.heartBeatCreator())
-
-			// ====== event listeners
-			// new conn should have read filters
-
-			break
-		}
-	}, func(r interface{}) {
-		log.DefaultLogger.Warnf("[connpool] reconnect failed, %v, host: %v", r, ac.host.Host.AddressString())
-	})
-
-	return nil
-
 }
 
 // Close return this client back to pool
@@ -608,13 +445,15 @@ func (ac *activeClient) Close(err error) {
 	}
 
 	if !ac.pool.shouldMultiplex(ac.subProtocol) && (!ac.closed && ac.shouldCloseConn) {
-		// HTTP1 && xprotocol ping pong
-		// xprotocol may also use ping pong now, so we need to close the conn
-		// ac.codecClient.Close()
+		// xprotocol ping pong
 		ac.host.Connection.Close(api.NoFlush, api.LocalClose)
 	}
 
 	// return to pool
+	if ac.pool.shouldMultiplex(ac.subProtocol) {
+		return
+	}
+
 	ac.pool.clientMux.Lock()
 	defer ac.pool.clientMux.Unlock()
 
@@ -645,16 +484,9 @@ func (ac *activeClient) removeFromPool() {
 	ac.closed = true
 }
 
-func (ac *activeClient) StreamClient() types.StreamClient {
-	return ac.codecClient
-}
-
 // types.ConnectionEventListener
 func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 	p := ac.pool
-	if p.protocol == protocol.HTTP2 {
-		log.DefaultLogger.Debugf("http2 connpool onConnectionEvent: %v", event)
-	}
 
 	host := p.Host()
 	// all protocol should report the following metrics
@@ -689,20 +521,12 @@ func (ac *activeClient) OnEvent(event api.ConnectionEvent) {
 		// RemoteClose when read/write error
 		// LocalClose when there is a panic
 		// OnReadErrClose when read failed
-		if p.autoReconnectWhenClose && atomic.LoadUint64(&p.destroyed) == 0 {
-			// auto reconnect when close
-			if err := ac.Reconnect(); err != nil {
-				log.DefaultLogger.Warnf("retry failed after remote close : %v", err.Error())
-			}
-		} else {
-			ac.removeFromPool()
-		}
+		ac.removeFromPool()
 
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		// TODO do we need to close the connection here?
-		// ac.host.Connection.Close(api.NoFlush, api.LocalClose)
+		ac.codecClient.Close()
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
@@ -735,12 +559,9 @@ func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 	}
 
 	if !ac.pool.shouldMultiplex(ac.subProtocol) && reason == types.StreamLocalReset && !ac.closed {
-		// for http1 && xprotocol ping pong
-		// ac.codecClient.ConnID() = ac.host.Connection.ID()
+		// for xprotocol ping pong
 		log.DefaultLogger.Debugf("[stream] [http] stream local reset, blow codecClient away also, Connection = %d",
 			ac.host.Connection.ID())
-		//log.DefaultLogger.Debugf("[stream] [http] stream local reset, blow codecClient away also, Connection = %d",
-		//	ac.codecClient.ConnID())
 		ac.shouldCloseConn = true
 	}
 }
@@ -755,7 +576,7 @@ func (ac *activeClient) OnGoAway() {
 }
 
 // SetHeartBeater set the heart beat for an active client
-func (ac *activeClient) SetHeartBeater(hb stoppable) {
+func (ac *activeClient) SetHeartBeater(hb types.KeepAlive) {
 	// clear the previous keepAlive
 	if ac.keepAlive != nil && ac.keepAlive.keepAlive != nil {
 		ac.keepAlive.keepAlive.Stop()
@@ -767,8 +588,6 @@ func (ac *activeClient) SetHeartBeater(hb stoppable) {
 		conn:      ac.host.Connection,
 	}
 
-	// this should be equal to
-	// ac.codecClient.AddConnectionEventListener(ac.keepAlive)
 	ac.host.Connection.AddConnectionEventListener(ac.keepAlive)
 }
 
@@ -783,44 +602,18 @@ func getSubProtocol(ctx context.Context) types.ProtocolName {
 	return ""
 }
 
-type stoppable interface {
-	Stop()
-}
-
 // ----------xprotocol only
 // keepAliveListener is a types.ConnectionEventListener
 type keepAliveListener struct {
-	keepAlive stoppable
-	//keepAlive  types.KeepAlive
-	conn api.Connection
+	keepAlive types.KeepAlive
+	conn      api.Connection
 }
 
 // OnEvent impl types.ConnectionEventListener
 func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
-	// currently there is two types of keepalive
-	// 1. the original xprotocol keepalive implementation
-	// 2. new keepalive implementation,
-	//	  user only need to provide a function to get the heartbeatdata
-	//    and the conpool will automatic send this data
-	//    when user detect hb fail, they should call the callback passed to GetKeepAliveData
 	if event == api.OnReadTimeout && l.keepAlive != nil {
-		if kp, ok := l.keepAlive.(types.KeepAlive); ok {
-			kp.SendKeepAlive()
-		} else if kp, ok := l.keepAlive.(KeepAlive2); ok {
-			heartbeatFailCreator := func() {
-				l.conn.Close(api.NoFlush, api.LocalClose)
-			}
-
-			// TODO, whether error should be handled
-			l.conn.Write(buffer.NewIoBufferBytes(kp.GetKeepAliveData(heartbeatFailCreator)))
-		}
+		l.keepAlive.SendKeepAlive()
 	}
 }
 
 // ----------xprotocol only
-
-type KeepAlive2 interface {
-	stoppable
-
-	GetKeepAliveData(failCallback func()) []byte
-}

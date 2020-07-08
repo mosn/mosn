@@ -19,6 +19,7 @@ package types
 
 import (
 	"context"
+
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
@@ -60,7 +61,7 @@ import (
 //
 //   From an abstract perspective, stream represents a virtual process on underlying connection. To make stream interactive with connection, some intermediate object can be used.
 //	 StreamConnection is the core model to connect connection system to stream system. As a example, when proxy reads binary data from connection, it dispatches data to StreamConnection to do protocol decode.
-//   Specifically, ClientStreamConnection uses a StreamSender to exchange StreamReceiveListener with StreamSender.
+//   Specifically, ClientStreamConnection uses a NewStream to exchange StreamReceiveListener with StreamSender.
 //   Engine provides a callbacks(StreamSenderFilterHandler/StreamReceiverFilterHandler) to let filter interact with stream engine.
 // 	 As a example, a encoder filter stopped the encode process, it can continue it by StreamSenderFilterHandler.ContinueSending later. Actually, a filter engine is a encoder/decoder itself.
 //
@@ -202,7 +203,7 @@ type ServerStreamConnection interface {
 type ClientStreamConnection interface {
 	StreamConnection
 
-	// StreamSender starts to create a new outgoing request stream and returns a sender to write data
+	// NewStream starts to create a new outgoing request stream and returns a sender to write data
 	// responseReceiveListener supplies the response listener on decode event
 	// StreamSender supplies the sender to write request data
 	NewStream(ctx context.Context, responseReceiveListener StreamReceiveListener) StreamSender
@@ -231,21 +232,6 @@ const (
 	ConnectionFailure PoolFailureReason = "ConnectionFailure"
 )
 
-type PooledClient interface {
-	StreamEventListener
-
-	Close(err error)
-	StreamClient() StreamClient
-
-}
-
-// Connection simplified connection pool
-type Connection interface {
-	Write(buf ...buffer.IoBuffer) error
-	Close()
-	Available() bool
-}
-
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
 	NewStream(ctx context.Context, receiver StreamReceiveListener) (PoolFailureReason, Host, StreamSender)
@@ -256,7 +242,7 @@ type ConnectionPool interface {
 	// SupportTLS represents the connection support tls or not
 	SupportTLS() bool
 
-	GetActiveClient(ctx context.Context, proto ProtocolName) (PooledClient, PoolFailureReason)
+	//GetActiveClient(ctx context.Context, proto ProtocolName) (PooledClient, PoolFailureReason)
 
 	// Shutdown gracefully shuts down the connection pool without interrupting any active requests
 	Shutdown()
@@ -295,4 +281,3 @@ type StreamClient interface {
 
 	Close()
 }
-
