@@ -49,6 +49,10 @@ func (h *mockHandler) OnNewConnection(ctx context.Context, conn api.Connection) 
 func (h *mockHandler) OnClose() {
 }
 
+func (h *mockHandler) PreStopHook(ctx context.Context) func() error {
+	return nil
+}
+
 const testAddress = "127.0.0.1:18080"
 
 func _createListener(address string) types.Listener {

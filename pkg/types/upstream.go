@@ -145,6 +145,9 @@ type ClusterInfo interface {
 	// Name returns the cluster name
 	Name() string
 
+	// ClusterType returns the cluster type
+	ClusterType() v2.ClusterType
+
 	// LbType returns the cluster's load balancer type
 	LbType() LoadBalancerType
 

@@ -76,28 +76,7 @@ func (_obj *Log) Logger(App string, Server string, File string, Format string, B
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -161,28 +140,7 @@ func (_obj *Log) LoggerWithContext(ctx context.Context, App string, Server strin
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -232,28 +190,7 @@ func (_obj *Log) LoggerbyInfo(Info *LogInfo, Buffer []string, _opt ...map[string
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -302,28 +239,7 @@ func (_obj *Log) LoggerbyInfoWithContext(ctx context.Context, Info *LogInfo, Buf
 		return err
 	}
 
-	if len(_opt) == 1 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-	} else if len(_opt) == 2 {
-		for k, _ := range _context {
-			delete(_context, k)
-		}
-		for k, v := range _resp.Context {
-			_context[k] = v
-		}
-		for k, _ := range _status {
-			delete(_status, k)
-		}
-		for k, v := range _resp.Status {
-			_status[k] = v
-		}
-
-	}
+	setMap(len(_opt), _resp, _context, _status)
 	_ = length
 	_ = have
 	_ = ty
@@ -339,6 +255,29 @@ func (_obj *Log) SetServant(s m.Servant) {
 func (_obj *Log) TarsSetTimeout(t int) {
 	_obj.s.TarsSetTimeout(t)
 }
+func setMap(l int, res *requestf.ResponsePacket, ctx map[string]string, sts map[string]string) {
+	if l == 1 {
+		for k := range ctx {
+			delete(ctx, k)
+		}
+		for k, v := range res.Context {
+			ctx[k] = v
+		}
+	} else if l == 2 {
+		for k := range ctx {
+			delete(ctx, k)
+		}
+		for k, v := range res.Context {
+			ctx[k] = v
+		}
+		for k := range sts {
+			delete(sts, k)
+		}
+		for k, v := range res.Status {
+			sts[k] = v
+		}
+	}
+}
 
 type _impLog interface {
 	Logger(App string, Server string, File string, Format string, Buffer []string) (err error)
@@ -349,126 +288,152 @@ type _impLogWithContext interface {
 	LoggerbyInfo(ctx context.Context, Info *LogInfo, Buffer []string) (err error)
 }
 
-//Dispatch is used to call the server side implemnet for the method defined in the tars file. withContext shows using context or not.
-func (_obj *Log) Dispatch(ctx context.Context, _val interface{}, req *requestf.RequestPacket, resp *requestf.ResponsePacket, withContext bool) (err error) {
+func logger(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
 	var length int32
 	var have bool
 	var ty byte
+	var App string
+	err = _is.Read_string(&App, 1, true)
+	if err != nil {
+		return err
+	}
+	var Server string
+	err = _is.Read_string(&Server, 2, true)
+	if err != nil {
+		return err
+	}
+	var File string
+	err = _is.Read_string(&File, 3, true)
+	if err != nil {
+		return err
+	}
+	var Format string
+	err = _is.Read_string(&Format, 4, true)
+	if err != nil {
+		return err
+	}
+	var Buffer []string
+	err, _, ty = _is.SkipToNoCheck(5, true)
+	if err != nil {
+		return err
+	}
+
+	if ty == codec.LIST {
+		err = _is.Read_int32(&length, 0, true)
+		if err != nil {
+			return err
+		}
+		Buffer = make([]string, length, length)
+		for i0, e0 := int32(0), length; i0 < e0; i0++ {
+
+			err = _is.Read_string(&Buffer[i0], 0, false)
+			if err != nil {
+				return err
+			}
+		}
+	} else if ty == codec.SIMPLE_LIST {
+		err = fmt.Errorf("not support simple_list type")
+		if err != nil {
+			return err
+		}
+	} else {
+		err = fmt.Errorf("require vector, but not")
+		if err != nil {
+			return err
+		}
+	}
+	if withContext == false {
+		_imp := _val.(_impLog)
+		err = _imp.Logger(App, Server, File, Format, Buffer)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impLogWithContext)
+		err = _imp.Logger(ctx, App, Server, File, Format, Buffer)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+func loggerbyInfo(ctx context.Context, _val interface{}, _os *codec.Buffer, _is *codec.Reader, withContext bool) (err error) {
+	var length int32
+	var have bool
+	var ty byte
+	var Info LogInfo
+	err = Info.ReadBlock(_is, 1, true)
+	if err != nil {
+		return err
+	}
+	var Buffer []string
+	err, _, ty = _is.SkipToNoCheck(2, true)
+	if err != nil {
+		return err
+	}
+
+	if ty == codec.LIST {
+		err = _is.Read_int32(&length, 0, true)
+		if err != nil {
+			return err
+		}
+		Buffer = make([]string, length, length)
+		for i1, e1 := int32(0), length; i1 < e1; i1++ {
+
+			err = _is.Read_string(&Buffer[i1], 0, false)
+			if err != nil {
+				return err
+			}
+		}
+	} else if ty == codec.SIMPLE_LIST {
+		err = fmt.Errorf("not support simple_list type")
+		if err != nil {
+			return err
+		}
+	} else {
+		err = fmt.Errorf("require vector, but not")
+		if err != nil {
+			return err
+		}
+	}
+	if withContext == false {
+		_imp := _val.(_impLog)
+		err = _imp.LoggerbyInfo(&Info, Buffer)
+		if err != nil {
+			return err
+		}
+	} else {
+		_imp := _val.(_impLogWithContext)
+		err = _imp.LoggerbyInfo(ctx, &Info, Buffer)
+		if err != nil {
+			return err
+		}
+	}
+
+	_ = length
+	_ = have
+	_ = ty
+	return nil
+}
+
+//Dispatch is used to call the server side implemnet for the method defined in the tars file. withContext shows using context or not.
+func (_obj *Log) Dispatch(ctx context.Context, _val interface{}, req *requestf.RequestPacket, resp *requestf.ResponsePacket, withContext bool) (err error) {
 	_is := codec.NewReader(tools.Int8ToByte(req.SBuffer))
 	_os := codec.NewBuffer()
 	switch req.SFuncName {
 	case "logger":
-		var App string
-		err = _is.Read_string(&App, 1, true)
+		err := logger(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		var Server string
-		err = _is.Read_string(&Server, 2, true)
-		if err != nil {
-			return err
-		}
-		var File string
-		err = _is.Read_string(&File, 3, true)
-		if err != nil {
-			return err
-		}
-		var Format string
-		err = _is.Read_string(&Format, 4, true)
-		if err != nil {
-			return err
-		}
-		var Buffer []string
-		err, have, ty = _is.SkipToNoCheck(5, true)
-		if err != nil {
-			return err
-		}
-
-		if ty == codec.LIST {
-			err = _is.Read_int32(&length, 0, true)
-			if err != nil {
-				return err
-			}
-			Buffer = make([]string, length, length)
-			for i0, e0 := int32(0), length; i0 < e0; i0++ {
-
-				err = _is.Read_string(&Buffer[i0], 0, false)
-				if err != nil {
-					return err
-				}
-			}
-		} else if ty == codec.SIMPLE_LIST {
-			err = fmt.Errorf("not support simple_list type")
-			if err != nil {
-				return err
-			}
-		} else {
-			err = fmt.Errorf("require vector, but not")
-			if err != nil {
-				return err
-			}
-		}
-		if withContext == false {
-			_imp := _val.(_impLog)
-			err = _imp.Logger(App, Server, File, Format, Buffer)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impLogWithContext)
-			err = _imp.Logger(ctx, App, Server, File, Format, Buffer)
-			if err != nil {
-				return err
-			}
 		}
 	case "loggerbyInfo":
-		var Info LogInfo
-		err = Info.ReadBlock(_is, 1, true)
+		err := loggerbyInfo(ctx, _val, _os, _is, withContext)
 		if err != nil {
 			return err
-		}
-		var Buffer []string
-		err, have, ty = _is.SkipToNoCheck(2, true)
-		if err != nil {
-			return err
-		}
-
-		if ty == codec.LIST {
-			err = _is.Read_int32(&length, 0, true)
-			if err != nil {
-				return err
-			}
-			Buffer = make([]string, length, length)
-			for i1, e1 := int32(0), length; i1 < e1; i1++ {
-
-				err = _is.Read_string(&Buffer[i1], 0, false)
-				if err != nil {
-					return err
-				}
-			}
-		} else if ty == codec.SIMPLE_LIST {
-			err = fmt.Errorf("not support simple_list type")
-			if err != nil {
-				return err
-			}
-		} else {
-			err = fmt.Errorf("require vector, but not")
-			if err != nil {
-				return err
-			}
-		}
-		if withContext == false {
-			_imp := _val.(_impLog)
-			err = _imp.LoggerbyInfo(&Info, Buffer)
-			if err != nil {
-				return err
-			}
-		} else {
-			_imp := _val.(_impLogWithContext)
-			err = _imp.LoggerbyInfo(ctx, &Info, Buffer)
-			if err != nil {
-				return err
-			}
 		}
 
 	default:
@@ -495,8 +460,5 @@ func (_obj *Log) Dispatch(ctx context.Context, _val interface{}, req *requestf.R
 		SResultDesc:  "",
 		Context:      _context,
 	}
-	_ = length
-	_ = have
-	_ = ty
 	return nil
 }

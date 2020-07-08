@@ -10,6 +10,7 @@ func r(b *Buffer) *Reader {
 	return NewReader(buf)
 }
 
+//TestUint8 tests the read and write of the uint8 type.
 func TestUint8(t *testing.T) {
 	for tag := 0; tag < 250; tag++ {
 		for i := 0; i <= math.MaxUint8; i++ {
@@ -30,6 +31,7 @@ func TestUint8(t *testing.T) {
 	}
 }
 
+//TestInt8 tests the read and write of the int8 type.
 func TestInt8(t *testing.T) {
 	for tag := 0; tag < 250; tag++ {
 		for i := math.MinInt8; i <= math.MaxInt8; i++ {
@@ -50,6 +52,7 @@ func TestInt8(t *testing.T) {
 	}
 }
 
+//TestUint16 tests the read and write of the int16 type.
 func TestUint16(t *testing.T) {
 	for tag := 0; tag < 250; tag += 10 {
 		for i := 0; i < math.MaxUint16; i++ {
@@ -70,6 +73,7 @@ func TestUint16(t *testing.T) {
 	}
 }
 
+//TestInt16 tests the read and write of the int16  type.
 func TestInt16(t *testing.T) {
 	for tag := 0; tag < 250; tag += 10 {
 		for i := math.MinInt16; i <= math.MaxInt16; i++ {
@@ -90,6 +94,7 @@ func TestInt16(t *testing.T) {
 	}
 }
 
+//TestInt16_2 tests the read and write of the int16  type.
 func TestInt16_2(t *testing.T) {
 	b := NewBuffer()
 	err := b.Write_int16(int16(-1), byte(0))
@@ -106,6 +111,7 @@ func TestInt16_2(t *testing.T) {
 	}
 }
 
+//TestInt32  tests the read and write of the int32  type.
 func TestInt32(t *testing.T) {
 	b := NewBuffer()
 	err := b.Write_int32(int32(-1), byte(10))
@@ -122,6 +128,7 @@ func TestInt32(t *testing.T) {
 	}
 }
 
+//TestInt32_2  tests the read and write of the int32  type.
 func TestInt32_2(t *testing.T) {
 	b := NewBuffer()
 	err := b.Write_int32(math.MinInt32, byte(10))
@@ -137,6 +144,8 @@ func TestInt32_2(t *testing.T) {
 		t.Error("no eq.")
 	}
 }
+
+//TestUint32  tests the read and write of the uint32  type.
 func TestUint32(t *testing.T) {
 	b := NewBuffer()
 	err := b.Write_uint32(uint32(0xffffffff), byte(10))
@@ -153,6 +162,7 @@ func TestUint32(t *testing.T) {
 	}
 }
 
+//TestInt64 tests the read and write of the int64  type.
 func TestInt64(t *testing.T) {
 	b := NewBuffer()
 	err := b.Write_int64(math.MinInt64, byte(10))
@@ -169,6 +179,7 @@ func TestInt64(t *testing.T) {
 	}
 }
 
+//TestSkipString tests skip the string.
 func TestSkipString(t *testing.T) {
 	b := NewBuffer()
 	for i := 0; i < 200; i++ {
@@ -190,6 +201,7 @@ func TestSkipString(t *testing.T) {
 	}
 }
 
+//TestSkipStruct tests skip struct.
 func TestSkipStruct(t *testing.T) {
 	b := NewBuffer()
 
@@ -215,6 +227,7 @@ func TestSkipStruct(t *testing.T) {
 	}
 }
 
+//TestSkipStruct2 tests skip struct.
 func TestSkipStruct2(t *testing.T) {
 	b := NewBuffer()
 
@@ -260,6 +273,7 @@ func TestSkipStruct2(t *testing.T) {
 	}
 }
 
+//BenchmarkUint32 benchmarks the write and read the uint32 type.
 func BenchmarkUint32(t *testing.B) {
 	b := NewBuffer()
 
@@ -284,6 +298,7 @@ func BenchmarkUint32(t *testing.B) {
 	}
 }
 
+//BenchmarkString benchmark the read and write the string.
 func BenchmarkString(t *testing.B) {
 	b := NewBuffer()
 

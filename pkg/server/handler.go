@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"mosn.io/mosn/pkg/metrics"
 	"net"
 	"os"
 	"strconv"
@@ -501,7 +502,56 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 	conn.Start(ctx)
 }
 
+func (al *activeListener) activeStreamSize() int {
+	listenerName := al.listener.Name()
+	s := metrics.NewListenerStats(listenerName)
+
+	return int(s.Counter(metrics.DownstreamRequestActive).Count())
+}
+
 func (al *activeListener) OnClose() {}
+
+// PreStopHook used for graceful stop
+func (al *activeListener) PreStopHook(ctx context.Context) func() error {
+	// before allowing you to stop listener,
+	// check that the preconditions are met.
+	// for example: whether all request queues are processed ?
+	return func() error {
+		var remainStream int
+		var waitedMilliseconds int64
+		if ctx != nil {
+			shutdownTimeout := ctx.Value(types.GlobalShutdownTimeout)
+			if shutdownTimeout != nil {
+				if timeout, err := strconv.ParseInt(shutdownTimeout.(string), 10, 64); err == nil {
+					current := time.Now()
+					// if there any stream being processed and without timeout,
+					// we try to wait for processing to complete, or wait for a timeout.
+					remainStream, waitedMilliseconds =
+						al.activeStreamSize(), Milliseconds(time.Since(current))
+					for ; remainStream > 0 && waitedMilliseconds <= timeout; remainStream, waitedMilliseconds =
+						al.activeStreamSize(), Milliseconds(time.Since(current)) {
+						// waiting for 10ms
+						time.Sleep(10 * time.Millisecond)
+						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+							log.DefaultLogger.Debugf("[activeListener] listener %s invoking stop hook, remaining stream count %d, waited time %dms",
+								al.listener.Name(), remainStream, waitedMilliseconds)
+						}
+					}
+				}
+			}
+		}
+
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[activeListener] listener %s pre stop hook complete, remaining stream count %d, waited time %dms",
+				al.listener.Name(), remainStream, waitedMilliseconds)
+		}
+
+		return nil
+	}
+}
+
+// compatible with go 1.12.x
+func Milliseconds(d time.Duration) int64 { return int64(d) / 1e6 }
 
 func (al *activeListener) removeConnection(ac *activeConnection) {
 	al.connsMux.Lock()

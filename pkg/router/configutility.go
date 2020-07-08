@@ -18,6 +18,7 @@
 package router
 
 import (
+	"mosn.io/mosn/pkg/protocol"
 	"regexp"
 	"sort"
 
@@ -42,6 +43,10 @@ func (cu *configUtility) MatchHeaders(requestHeaders api.HeaderMap, configHeader
 	for _, cfgHeaderData := range configHeaders {
 		cfgName := cfgHeaderData.Name.Get()
 		cfgValue := cfgHeaderData.Value
+		if cfgName == "method" {
+			cfgName = protocol.MosnHeaderMethod
+		}
+
 		// if a condition is not matched, return false
 		// all condition matched, return true
 		value, ok := requestHeaders.Get(cfgName)

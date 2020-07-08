@@ -252,11 +252,15 @@ func (p *proxy) ReadDisableDownstream(disable bool) {
 	// TODO
 }
 
+func (p *proxy) ActiveStreamSize() int {
+	// TODO
+	return 0
+}
+
 type proxyConfig struct {
 	statPrefix         string
 	cluster            string
 	idleTimeout        *time.Duration
-	readTimeout        *time.Duration
 	maxConnectAttempts uint32
 	routes             []*route
 }
@@ -374,7 +378,6 @@ func NewProxyConfig(config *v2.StreamProxy) ProxyConfig {
 		statPrefix:         config.StatPrefix,
 		cluster:            config.Cluster,
 		idleTimeout:        config.IdleTimeout,
-		readTimeout:        config.ReadTimeout,
 		maxConnectAttempts: config.MaxConnectAttempts,
 		routes:             routes,
 	}
@@ -392,9 +395,7 @@ func (pc *proxyConfig) GetIdleTimeout(network string) time.Duration {
 }
 
 func (pc *proxyConfig) GetReadTimeout(network string) time.Duration {
-	if pc.readTimeout != nil {
-		return *pc.readTimeout
-	} else if network == "tcp" {
+	if network == "tcp" {
 		return types.DefaultConnReadTimeout
 	} else {
 		return types.DefaultUDPReadTimeout
@@ -491,4 +492,8 @@ func (c *LbContext) DownstreamContext() context.Context {
 
 func (c *LbContext) DownstreamCluster() types.ClusterInfo {
 	return c.cluster
+}
+
+func (c *LbContext) DownstreamRoute() api.Route {
+	return nil
 }

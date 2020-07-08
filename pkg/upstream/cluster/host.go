@@ -178,8 +178,9 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 	}
 
 	if addr.String() != addrstr {
-		// now set default expire time == 100 s, Means that after 100 seconds, the new request will trigger domain resolve.
-		AddrStore.Set(addrstr, addr, 100*time.Second)
+		// TODO support config or depends on DNS TTL for expire time
+		// now set default expire time == 15 s, Means that after 15 seconds, the new request will trigger domain resolve.
+		AddrStore.Set(addrstr, addr, 15*time.Second)
 	} else {
 		// if addrsstr isn't domain and don't set expire time
 		AddrStore.Set(addrstr, addr, utils.NeverExpire)

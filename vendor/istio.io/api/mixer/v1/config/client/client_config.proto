@@ -21,6 +21,10 @@ import "mixer/v1/attributes.proto";
 import "mixer/v1/config/client/api_spec.proto";
 import "mixer/v1/config/client/quota.proto";
 
+// $schema: istio.mixer.v1.config.client.HTTPAPISpecBinding
+// $schema: istio.mixer.v1.config.client.HTTPAPISpec
+// $schema: istio.mixer.v1.config.client.QuotaSpecBinding
+// $schema: istio.mixer.v1.config.client.QuotaSpec
 // $title: Mixer Client
 // $description: Configuration state for the Mixer client library.
 // $location: https://istio.io/docs/reference/config/policy-and-telemetry/istio.mixer.v1.config.client
@@ -92,12 +96,15 @@ message ServiceConfig {
   // In case of a per-route override, per-route attributes take precedence
   // over the attributes supplied in the client configuration.
   //
-  // Forwarded attributes take precedence over the static Mixer attributes.
+  // Forwarded attributes take precedence over the static Mixer attributes,
+  // except in cases where there is clear configuration to ignore forwarded
+  // attributes. Gateways, for instance, should never use forwarded attributes.
+  //
   // The full order of application is as follows:
   // 1. static Mixer attributes from the filter config;
   // 2. static Mixer attributes from the route config;
-  // 3. forwarded attributes from the source filter config (if any);
-  // 4. forwarded attributes from the source route config (if any);
+  // 3. forwarded attributes from the source filter config (if any and not ignored);
+  // 4. forwarded attributes from the source route config (if any and not ignored);
   // 5. derived attributes from the request metadata.
   Attributes forward_attributes = 8;
 }
@@ -145,6 +152,18 @@ message TransportConfig {
   // includes the "source.ip" and "source.uid" attributes. These
   // attributes are consumed by the proxy in front of mixer.
   Attributes attributes_for_mixer_proxy = 8;
+
+  // When disable_report_batch is false, this value specifies the maximum number
+  // of requests that are batched in report. If left unspecified, the default value
+  // of report_batch_max_entries == 0 will use the hardcoded defaults of
+  // istio::mixerclient::ReportOptions.
+  uint32 report_batch_max_entries = 9;
+
+  // When disable_report_batch is false, this value specifies the maximum elapsed
+  // time a batched report will be sent after a user request is processed. If left
+  // unspecified, the default report_batch_max_time == 0 will use the hardcoded
+  // defaults of istio::mixerclient::ReportOptions.
+  google.protobuf.Duration report_batch_max_time = 10;
 }
 
 // Defines the client config for HTTP.
@@ -169,6 +188,12 @@ message HttpClientConfig {
   // Default attributes to forward to upstream. This typically
   // includes the "source.ip" and "source.uid" attributes.
   Attributes forward_attributes = 5;
+
+  // Whether or not to use attributes forwarded in the request headers to 
+  // create the attribute bag to send to mixer. For intra-mesh traffic,
+  // this should be set to "false". For ingress/egress gateways, this
+  // should be set to "true".
+  bool ignore_forwarded_attributes = 6;
 }
 
 // Defines the client config for TCP.

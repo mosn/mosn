@@ -24,11 +24,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"mosn.io/mosn/pkg/xds/conv"
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"golang.org/x/net/context"
@@ -79,11 +80,12 @@ func (c *XDSConfig) getAPISourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 		return nil, err
 	}
 	config.APIType = source.ApiType
-	if source.RefreshDelay == nil || source.RefreshDelay.Nanoseconds() <= 0 {
+	if source.RefreshDelay == nil || source.RefreshDelay.GetSeconds() <= 0 {
 		duration := time.Duration(time.Second * 10) // default refresh delay
 		config.RefreshDelay = &duration
 	} else {
-		config.RefreshDelay = source.RefreshDelay
+		duration := conv.ConvertDuration(source.RefreshDelay)
+		config.RefreshDelay = &duration
 	}
 
 	config.Services = make([]*ServiceConfig, 0, len(source.GrpcServices))
@@ -134,11 +136,12 @@ func (c *XDSConfig) loadClusters(staticResources *bootstrap.Bootstrap_StaticReso
 			log.DefaultLogger.Warnf("only random lbPoliy supported, convert to random")
 		}
 		config.LbPolicy = xdsapi.Cluster_RANDOM
-		if cluster.ConnectTimeout.Nanoseconds() <= 0 {
-			duration := time.Duration(time.Second * 10)
+		if cluster.ConnectTimeout.GetSeconds() <= 0 {
+			duration := time.Second * 10
 			config.ConnectTimeout = &duration // default connect timeout
 		} else {
-			config.ConnectTimeout = &cluster.ConnectTimeout
+			duration := conv.ConvertDuration(cluster.ConnectTimeout)
+			config.ConnectTimeout = &duration
 		}
 		config.Address = make([]string, 0, len(cluster.Hosts))
 		for _, host := range cluster.Hosts {
