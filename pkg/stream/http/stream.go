@@ -32,6 +32,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -150,6 +151,14 @@ func (conn *streamConnection) Protocol() types.ProtocolName {
 func (conn *streamConnection) GoAway() {}
 
 func (conn *streamConnection) Read(p []byte) (n int, err error) {
+	// conn.bufChan <- nil Maybe caused panic error when connection closed.
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Infof("[stream] [http] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
+				conn.conn.ID(), conn.conn.LocalAddr(), conn.conn.RemoteAddr(), r)
+		}
+	}()
+
 	data, ok := <-conn.bufChan
 
 	// Connection close
@@ -391,10 +400,14 @@ func (conn *serverStreamConnection) serve() {
 		buffers := httpBuffersByContext(ctx)
 		request := &buffers.serverRequest
 
-		request.Header.DisableNormalizing()
+		// 0 is means no limit request body size
+		maxRequestBodySize := 0
+		if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+			maxRequestBodySize = gcf.(v2.ProxyGeneralExtendConfig).MaxRequestBodySize
+		}
 
 		// 2. blocking read using fasthttp.Request.Read
-		err := request.ReadLimitBody(conn.br, defaultMaxRequestBodySize)
+		err := request.ReadLimitBody(conn.br, maxRequestBodySize)
 		if err == nil {
 			// 3. 'Expect: 100-continue' request handling.
 			// See http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html for details.
@@ -403,16 +416,20 @@ func (conn *serverStreamConnection) serve() {
 				conn.conn.Write(buffer.NewIoBufferBytes(strResponseContinue))
 
 				// read request body
-				err = request.ContinueReadBody(conn.br, defaultMaxRequestBodySize)
+				err = request.ContinueReadBody(conn.br, maxRequestBodySize)
 
 				// remove 'Expect' header, so it would not be sent to the upstream
 				request.Header.Del("Expect")
 			}
 		}
 		if err != nil {
-			// "read timeout with nothing read" is the error of returned by fasthttp v1.2.0
-			// if connection closed with nothing read.
-			if err != errConnClose && err != io.EOF && err.Error() != "read timeout with nothing read" {
+			// ErrNothingRead is returned that means just a keep-alive connection
+			// closing down either because the remote closed it or because
+			// or a read timeout on our side. Either way just close the connection
+			// and don't return any error response.
+			// Refer https://github.com/valyala/fasthttp/commit/598a52272abafde3c5bebd7cc1972d3bead7a1f7
+			_, errNothingRead := err.(fasthttp.ErrNothingRead)
+			if err != errConnClose && err != io.EOF && !errNothingRead {
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 
