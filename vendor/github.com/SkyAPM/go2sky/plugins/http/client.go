@@ -27,7 +27,7 @@ import (
 	v3 "github.com/SkyAPM/go2sky/reporter/grpc/language-agent"
 )
 
-const httpClientComponentID int32 = 2
+const componentIDGOHttpClient = 5005
 
 type ClientConfig struct {
 	name      string
@@ -100,7 +100,7 @@ func (t *transport) RoundTrip(req *http.Request) (res *http.Response, err error)
 		return t.delegated.RoundTrip(req)
 	}
 	defer span.End()
-	span.SetComponent(httpClientComponentID)
+	span.SetComponent(componentIDGOHttpClient)
 	for k, v := range t.extraTags {
 		span.Tag(go2sky.Tag(k), v)
 	}

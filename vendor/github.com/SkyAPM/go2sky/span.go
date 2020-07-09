@@ -157,3 +157,7 @@ const (
 	TagMQBroker        Tag = "mq.broker"
 	TagMQTopic         Tag = "mq.topic"
 )
+
+const (
+	ComponentIDHttpServer int32 = 49
+)

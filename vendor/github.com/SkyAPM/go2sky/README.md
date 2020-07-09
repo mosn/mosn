@@ -124,13 +124,7 @@ They are defined as constant in root package with prefix `Tag`.
 
 ## Plugins
 
-Plugins is integrated with specific framework, for instance, `net/http`, `gin` and etc. They
-are stored in `plugins` package.
-
- 1. [HTTP client/server example](plugins/http/example_http_test.go)
- 1. [gin example](plugins/gin/example_gin_test.go)
- 1. [go-resty example](plugins/http/example_go_resty_test.go)
-
+Go to go2sky-plugins repo to see all the plugins, [click here](https://github.com/SkyAPM/go2sky-plugins).
 
 # License
 Apache License 2.0. See [LICENSE](LICENSE) file for details.

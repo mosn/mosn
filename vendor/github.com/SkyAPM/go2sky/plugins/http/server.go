@@ -30,9 +30,10 @@ import (
 )
 
 const (
-	httpServerComponentID int32 = 49
-	errInvalidTracer            = tool.Error("invalid tracer")
+	errInvalidTracer = tool.Error("invalid tracer")
 )
+
+const componentIDGOHttpServer = 5004
 
 type handler struct {
 	tracer    *go2sky.Tracer
@@ -89,7 +90,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	span.SetComponent(httpServerComponentID)
+	span.SetComponent(componentIDGOHttpServer)
 	for k, v := range h.extraTags {
 		span.Tag(go2sky.Tag(k), v)
 	}
