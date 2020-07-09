@@ -42,6 +42,7 @@ type RouterConfigurationConfig struct {
 type RouterConfig struct {
 	Match           RouterMatch            `json:"match,omitempty"`
 	Route           RouteAction            `json:"route,omitempty"`
+	Redirect        *RedirectAction        `json:"redirect,omitempty"`
 	DirectResponse  *DirectResponseAction  `json:"direct_response,omitempty"`
 	MetadataConfig  *MetadataConfig        `json:"metadata,omitempty"`
 	PerFilterConfig map[string]interface{} `json:"per_filter_config,omitempty"`
@@ -278,6 +279,13 @@ type RouterMatch struct {
 	Path    string          `json:"path,omitempty"`    // Match request's Path with Exact Comparing
 	Regex   string          `json:"regex,omitempty"`   // Match request's Path with Regex Comparing
 	Headers []HeaderMatcher `json:"headers,omitempty"` // Match request's Headers
+}
+
+// RedirectAction represents the redirect response parameters
+type RedirectAction struct {
+	ResponseCode int    `json:"response_code,omitempty"`
+	PathRedirect string `json:"path_redirect,omitempty"`
+	HostRedirect string `json:"host_redirect,omitempty"`
 }
 
 // DirectResponseAction represents the direct response parameters

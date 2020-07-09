@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/url"
 	"reflect"
 	"runtime/debug"
 	"strconv"
@@ -29,6 +30,9 @@ import (
 	"time"
 
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
+
 	mbuffer "mosn.io/mosn/pkg/buffer"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -38,8 +42,6 @@ import (
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/utils"
 )
 
 // types.StreamEventListener
@@ -101,7 +103,7 @@ type downStream struct {
 
 	resetReason types.StreamResetReason
 
-	//filters
+	// filters
 	senderFilters             []*activeStreamSenderFilter
 	senderFiltersIndex        int
 	receiverFilters           []*activeStreamReceiverFilter
@@ -697,6 +699,28 @@ func (s *downStream) chooseHost(endStream bool) {
 		}
 		return
 	}
+	if rule := s.route.RedirectResponseRule(); rule != nil {
+		log.Proxy.Infof(s.context, "[proxy] [downstream] redirect response, proxyId = %d", s.ID)
+		currentHost, _ := s.downstreamReqHeaders.Get(types.HeaderHost)
+		currentPath, _ := s.downstreamReqHeaders.Get(types.HeaderPath)
+		currentQuery, _ := s.downstreamReqHeaders.Get(types.HeaderQueryString)
+		u := url.URL{
+			// TODO(knight42): check if current scheme is http, https or others?
+			Scheme:   "http",
+			Host:     rule.RedirectHost(),
+			Path:     rule.RedirectPath(),
+			RawQuery: currentQuery,
+		}
+		if len(u.Host) == 0 {
+			u.Host = currentHost
+		}
+		if len(u.Path) == 0 {
+			u.Path = currentPath
+		}
+		s.downstreamReqHeaders.Set("location", u.String())
+		s.sendHijackReply(rule.RedirectCode(), s.downstreamReqHeaders)
+		return
+	}
 	// not direct response, needs a cluster snapshot and route rule
 	if rule := s.route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
 		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route rule to init upstream")
@@ -741,7 +765,7 @@ func (s *downStream) chooseHost(endStream bool) {
 
 	s.retryState = newRetryState(s.route.RouteRule().Policy().RetryPolicy(), s.downstreamReqHeaders, s.cluster, prot)
 
-	//Build Request
+	// Build Request
 	proxyBuffers := proxyBuffersByContext(s.context)
 	s.upstreamRequest = &proxyBuffers.request
 	s.upstreamRequest.downStream = s
@@ -752,9 +776,9 @@ func (s *downStream) chooseHost(endStream bool) {
 
 func (s *downStream) receiveHeaders(endStream bool) {
 
-	//Modify request headers
+	// Modify request headers
 	s.route.RouteRule().FinalizeRequestHeaders(s.downstreamReqHeaders, s.requestInfo)
-	//Call upstream's append header method to build upstream's request
+	// Call upstream's append header method to build upstream's request
 	s.upstreamRequest.appendHeaders(endStream)
 
 	if endStream {
@@ -962,7 +986,7 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 func (s *downStream) appendHeaders(endStream bool) {
 	s.upstreamProcessDone = endStream
 	headers := s.convertHeader(s.downstreamRespHeaders)
-	//Currently, just log the error
+	// Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
 		log.Proxy.Errorf(s.context, "append headers error: %s", err)
 	}

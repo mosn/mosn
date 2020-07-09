@@ -19,12 +19,15 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	"mosn.io/api"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -53,6 +56,8 @@ type RouteRuleImplBase struct {
 	policy *policy
 	// direct response
 	directResponseRule *directResponseImpl
+	// redirect response
+	redirectResponseRule *redirectResponseImpl
 	// action
 	routerAction       v2.RouteAction
 	defaultCluster     *weightedClusterEntry // cluster name and metadata
@@ -122,11 +127,39 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			body:   route.DirectResponse.Body,
 		}
 	}
+	// add redirect repsonse rule
+	if route.Redirect != nil {
+		r := route.Redirect
+		rule := &redirectResponseImpl{
+			code: r.ResponseCode,
+			path: r.PathRedirect,
+			host: r.HostRedirect,
+		}
+		switch r.ResponseCode {
+		case 0:
+			// default to 301
+			rule.code = http.StatusMovedPermanently
+		case http.StatusMovedPermanently, http.StatusFound,
+			http.StatusSeeOther, http.StatusTemporaryRedirect,
+			http.StatusPermanentRedirect:
+			rule.code = r.ResponseCode
+		default:
+			return nil, fmt.Errorf("redirect code not supported yet: %d", rule.code)
+		}
+		base.redirectResponseRule = rule
+	}
 	return base, nil
 }
 
 func (rri *RouteRuleImplBase) DirectResponseRule() api.DirectResponseRule {
 	return rri.directResponseRule
+}
+
+func (rri *RouteRuleImplBase) RedirectResponseRule() api.RedirectResponseRule {
+	if rri.redirectResponseRule == nil {
+		return nil
+	}
+	return rri.redirectResponseRule
 }
 
 // types.RouteRule
