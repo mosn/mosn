@@ -87,8 +87,9 @@ func Test_dubboProtocol_Hijack(t *testing.T) {
 					Msg:    fmt.Sprintf("%d status not define", tt.args.statusCode),
 				}
 			}
+			expect.Msg = fmt.Sprintf("java exception:%s", expect.Msg)
 
-			if h.ResponseStatus != expect.Status && resp.Exception.Error() != expect.Msg {
+			if h.ResponseStatus != expect.Status || resp.Exception.Error() != expect.Msg {
 				t.Errorf("%s-> dubbo hijack response or exception fail, input{responseStatus:%d, msg:%s}, output:{responseStatus:%d, msg:%s}", tt.name, tt.args.statusCode, expect.Msg, h.ResponseStatus, resp.Exception.Error())
 			}
 		})
