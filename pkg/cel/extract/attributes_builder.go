@@ -113,6 +113,7 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 	case utils.KResponseTime:
 		return e.now, true
 	case utils.KRequestBodySize:
+		println("8888888888888888888", e.requestInfo.BytesReceived())
 		return int64(e.requestInfo.BytesReceived()), true
 	case utils.KResponseBodySize:
 		return int64(e.requestInfo.BytesSent()), true

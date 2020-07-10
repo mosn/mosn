@@ -18,6 +18,7 @@
 package cel
 
 import (
+	"context"
 	"net"
 	"net/mail"
 	"net/url"
@@ -29,6 +30,26 @@ import (
 	"mosn.io/mosn/pkg/cel/ext"
 	"mosn.io/mosn/pkg/protocol"
 )
+
+func TestMosnCtx(t *testing.T) {
+	compiler := NewExpressionBuilder(map[string]attribute.Kind{
+		"ctx": attribute.MOSN_CTX,
+	}, CompatCEXL)
+	expression, typ, err := compiler.Compile(`ctx.rewrite_request_url("xx")`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(typ)
+	bag := attribute.NewMutableBag(nil)
+
+	bag.Set("ctx", context.Background())
+	out, err := expression.Evaluate(bag)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(out)
+}
 
 func TestSample(t *testing.T) {
 	compiler := NewExpressionBuilder(map[string]attribute.Kind{

@@ -53,6 +53,8 @@ func init() {
 	check(RegisterSimpleFunction("emptyStringMap", externEmptyStringMap))
 	// Replace the default string match
 	check(RegisterFunction("matches_string", traits.MatcherType, regexp.MatchString))
+	// rewrite request url
+	check(RegisterSimpleFunctionBoth("rewrite_request_url", rewriteRequestUrl))
 }
 
 func check(err error) {
