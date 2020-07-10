@@ -164,18 +164,20 @@ func ParseLogLevel(level string) log.Level {
 }
 
 func GetAddrIp(addr net.Addr) net.IP {
-	if addr.Network() == "tcp" {
-		return addr.(*net.TCPAddr).IP
-	} else {
+	switch addr.Network() {
+	case "udp":
 		return addr.(*net.UDPAddr).IP
+	default:
+		return addr.(*net.TCPAddr).IP
 	}
 }
 
 func GetAddrPort(addr net.Addr) int {
-	if addr.Network() == "tcp" {
-		return addr.(*net.TCPAddr).Port
-	} else {
+	switch addr.Network() {
+	case "udp":
 		return addr.(*net.UDPAddr).Port
+	default:
+		return addr.(*net.TCPAddr).Port
 	}
 }
 
@@ -186,10 +188,11 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener, inher
 	}
 	var addr net.Addr
 	var err error
-	if lc.Network == "tcp" {
-		addr, err = net.ResolveTCPAddr("tcp", lc.AddrConfig)
-	} else {
+	switch lc.Network {
+	case "udp":
 		addr, err = net.ResolveUDPAddr("udp", lc.AddrConfig)
+	default:
+		addr, err = net.ResolveTCPAddr("tcp", lc.AddrConfig)
 	}
 	if err != nil {
 		log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)

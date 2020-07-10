@@ -27,6 +27,7 @@ import (
 	"os"
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -248,19 +249,21 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 func (c *connection) checkUseWriteLoop() bool {
 	var ip net.IP
-	if c.network == "tcp" {
-		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
-			ip = tcpAddr.IP
-		} else {
-			return false
-		}
-	} else {
+	switch c.network {
+	case "udp", "udp4", "udp6":
 		if udpAddr, ok := c.remoteAddr.(*net.UDPAddr); ok {
 			ip = udpAddr.IP
 		} else {
 			return false
 		}
+	default:
+		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
+			ip = tcpAddr.IP
+		} else {
+			return false
+		}
 	}
+
 	if ip.IsLoopback() {
 		log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
 			c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
@@ -455,10 +458,11 @@ func (c *connection) setReadDeadline() {
 
 func (c *connection) doRead() (err error) {
 	if c.readBuffer == nil {
-		if c.network == "udp" {
+		switch c.network {
+		case "udp", "udp4", "udp6":
 			// A UDP socket will Read up to the size of the receiving buffer and will discard the rest
 			c.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
-		} else {
+		default:
 			c.readBuffer = buffer.GetIoBuffer(DefaultBufferReadCapacity)
 		}
 	}
@@ -512,9 +516,10 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 	}
 }
 
-func (c *connection) OnRead(buf []byte) {
-	c.readBuffer.Write(buf)
-	bytesRead := len(buf)
+func (c *connection) OnRead(b buffer.IoBuffer) {
+	c.readBuffer = b
+	log.DefaultLogger.Debugf("on read data len:%d", c.readBuffer.Len())
+	bytesRead := b.Len()
 	c.onRead(int64(bytesRead))
 }
 
@@ -695,6 +700,9 @@ func (c *connection) startWriteLoop() {
 				c.Close(api.NoFlush, api.LocalClose)
 			}
 
+			if strings.Contains(err.Error(), "connection refused"){
+				c.Close(api.NoFlush, api.RemoteClose)
+			}
 			//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
 
 			return
@@ -827,6 +835,11 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		rawc.CloseRead()
 	}
 
+	if c.RawConn().RemoteAddr() == nil {
+		key := GetProxyMapKey(c.localAddr.String(), c.remoteAddr.String())
+		DelUdpProxyMap(key)
+	}
+
 	// wait for io loops exit, ensure single thread operate streams on the connection
 	// because close function must be called by one io loop thread, notify another loop here
 	close(c.internalStopChan)
@@ -835,11 +848,6 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		c.eventLoop.unregister(c.id)
 		// close copied fd
 		c.file.Close()
-	}
-
-	if c.RawConn().RemoteAddr() == nil {
-		key := GetProxyMapKey(c.localAddr.String(), c.remoteAddr.String())
-		DelUdpProxyMap(key)
 	}
 
 	c.rawConnection.Close()
@@ -1058,15 +1066,16 @@ func (cc *clientConnection) Connect() (err error) {
 			// ensure ioEnabled and UseNetpollMode
 			if UseNetpollMode {
 				// store fd
-				if cc.network == "tcp" {
-					if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
+				switch cc.network {
+				case "udp", "udp4", "udp6":
+					if tc, ok := cc.rawConnection.(*net.UDPConn); ok {
 						cc.file, err = tc.File()
 						if err != nil {
 							return
 						}
 					}
-				} else if cc.network == "udp" {
-					if tc, ok := cc.rawConnection.(*net.UDPConn); ok {
+				default:
+					if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
 						cc.file, err = tc.File()
 						if err != nil {
 							return

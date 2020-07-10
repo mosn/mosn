@@ -153,7 +153,7 @@ type Connection interface {
 	State() ConnState
 
 	// OnRead deals with data not read from doRead process
-	OnRead(buf []byte)
+	OnRead(buffer buffer.IoBuffer)
 }
 
 // ConnectionEvent type

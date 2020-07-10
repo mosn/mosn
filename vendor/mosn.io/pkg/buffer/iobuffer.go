@@ -193,6 +193,16 @@ func (b *ioBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
+func (b *ioBuffer) Grow(n int) error {
+	_, ok := b.tryGrowByReslice(n)
+
+	if !ok {
+		b.grow(n)
+	}
+
+	return nil
+}
+
 func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 	var m int
 

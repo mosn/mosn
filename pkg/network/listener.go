@@ -190,19 +190,22 @@ func (l *listener) AcceptEventLoop(lctx context.Context) {
 }
 
 func (l *listener) ReadMsgEventLoop(lctx context.Context) {
+	for i:=0; i<1; i++ {
 	utils.GoWithRecover(func() {
 		ReadMsgLoop(lctx, l)
 	}, func(r interface{}) {
 		l.ReadMsgEventLoop(lctx)
 	})
+	}
 }
 
 func (l *listener) Stop() error {
 	var err error
-	if l.network == "tcp" {
-		err = l.rawl.SetDeadline(time.Now())
-	} else {
+	switch l.network {
+	case "udp", "udp4", "udp6":
 		err = l.packetConn.SetDeadline(time.Now())
+	default:
+		err = l.rawl.SetDeadline(time.Now())
 	}
 	return err
 }
@@ -216,9 +219,10 @@ func (l *listener) SetListenerTag(tag uint64) {
 }
 
 func (l *listener) ListenerFile() (*os.File, error) {
-	if l.network != "udp" {
+	switch l.network {
+	case "udp", "udp4", "udp6":
 		return l.rawl.File()
-	} else {
+	default:
 		return l.packetConn.(*net.UDPConn).File()
 	}
 
@@ -259,7 +263,6 @@ func (l *listener) Close(lctx context.Context) error {
 	}
 	if l.packetConn != nil {
 		l.cb.OnClose()
-		log.DefaultLogger.Infof("udp socket closed")
 		return l.packetConn.(*net.UDPConn).Close()
 	}
 	return nil

@@ -104,10 +104,11 @@ func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 }
 
 func (p *proxy) getUpstreamConnection(ctx types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
-	if p.network == "tcp" {
-		return p.clusterManager.TCPConnForCluster(ctx, snapshot)
-	} else {
+	switch p.network {
+	case "udp", "udp4", "udp6":
 		return p.clusterManager.UDPConnForCluster(ctx, snapshot)
+	default:
+		return p.clusterManager.TCPConnForCluster(ctx, snapshot)
 	}
 }
 
@@ -194,12 +195,13 @@ func (p *proxy) onUpstreamEvent(event api.ConnectionEvent) {
 	switch event {
 	case api.RemoteClose:
 		p.finalizeUpstreamConnectionStats()
-		p.readCallbacks.Connection().Close(api.FlushWrite, api.LocalClose)
+		p.readCallbacks.Connection().Close(api.FlushWrite, api.RemoteClose)
 
 	case api.LocalClose:
+	case api.OnReadErrClose:
 		p.finalizeUpstreamConnectionStats()
 		// udp proxy upstream connection close first
-		if p.network == "udp" {
+		if strings.Contains(p.network, "udp") {
 			p.readCallbacks.Connection().Close(api.NoFlush, api.LocalClose)
 		}
 
@@ -227,9 +229,9 @@ func (p *proxy) finalizeUpstreamConnectionStats() {
 
 func (p *proxy) onConnectionSuccess() {
 	// In udp proxy, each upstream connection needs a idle checker
-	if p.network == "udp" {
+	if strings.Contains(p.network, "udp") {
 		p.upstreamConnection.SetIdleTimeout(p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
-		log.DefaultLogger.Debugf("read timeout:%d, idle timeout:%d" ,p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
+		log.DefaultLogger.Debugf("read timeout:%d, idle timeout:%d", p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
 	}
 	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())
 }
