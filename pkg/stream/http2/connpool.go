@@ -82,7 +82,7 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 }
 
 func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
+	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener, isMirror bool) {
 
 	activeClient := func() *activeClient {
 		p.mux.Lock()
@@ -116,7 +116,7 @@ func (p *connPool) NewStream(ctx context.Context,
 		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
 		streamEncoder.GetStream().AddEventListener(activeClient)
 
-		listener.OnReady(streamEncoder, host)
+		listener.OnReady(streamEncoder, host, isMirror)
 	}
 
 	return

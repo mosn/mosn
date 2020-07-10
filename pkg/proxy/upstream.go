@@ -34,12 +34,14 @@ import (
 // types.StreamReceiveListener
 // types.PoolEventListener
 type upstreamRequest struct {
-	proxy         *proxy
-	downStream    *downStream
-	protocol      types.ProtocolName
-	host          types.Host
-	requestSender types.StreamSender
-	connPool      types.ConnectionPool
+	proxy          *proxy
+	downStream     *downStream
+	protocol       types.ProtocolName
+	host           types.Host
+	requestSender  types.StreamSender
+	mirrorSender   types.StreamSender
+	connPool       types.ConnectionPool
+	mirrorConnPool types.ConnectionPool
 
 	// ~~~ upstream response buf
 	upstreamRespHeaders types.HeaderMap
@@ -49,6 +51,7 @@ type upstreamRequest struct {
 	dataSent     bool
 	trailerSent  bool
 	setupRetry   bool
+	isMirror     bool
 
 	// time at send upstream request
 	startTime time.Time
@@ -164,9 +167,13 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	r.sendComplete = endStream
 
 	if r.downStream.oneway {
-		r.connPool.NewStream(r.downStream.context, nil, r)
+		r.connPool.NewStream(r.downStream.context, nil, r, false)
 	} else {
-		r.connPool.NewStream(r.downStream.context, r, r)
+		r.connPool.NewStream(r.downStream.context, r, r, false)
+	}
+
+	if r.isMirror {
+		r.mirrorConnPool.NewStream(r.downStream.mirrorCtx, nil, r, true)
 	}
 }
 
@@ -268,30 +275,36 @@ func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.H
 	r.OnResetStream(resetReason)
 }
 
-func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
+func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host, isMirror bool) {
 	// debug message for upstream
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] connPool ready, proxyId = %v, host = %s", r.downStream.ID, host.AddressString())
 	}
 
-	r.requestSender = sender
-	r.host = host
-	r.requestSender.GetStream().AddEventListener(r)
-	// start a upstream send
-	r.startTime = time.Now()
-
-	r.downStream.requestInfo.OnUpstreamHostSelected(host)
-	r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
-
-	if trace.IsEnabled() {
-		span := trace.SpanFromContext(r.downStream.context)
-		if span != nil {
-			span.InjectContext(r.downStream.downstreamReqHeaders, r.downStream.requestInfo)
-		}
-	}
-
 	endStream := r.sendComplete && !r.dataSent && !r.trailerSent
-	r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)
+
+	if isMirror {
+		r.mirrorSender = sender
+		r.mirrorSender.AppendHeaders(r.downStream.mirrorCtx, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)
+	} else {
+		r.requestSender = sender
+		r.host = host
+		r.requestSender.GetStream().AddEventListener(r)
+		// start a upstream send
+		r.startTime = time.Now()
+
+		r.downStream.requestInfo.OnUpstreamHostSelected(host)
+		r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
+
+		if trace.IsEnabled() {
+			span := trace.SpanFromContext(r.downStream.context)
+			if span != nil {
+				span.InjectContext(r.downStream.downstreamReqHeaders, r.downStream.requestInfo)
+			}
+		}
+
+		r.requestSender.AppendHeaders(r.downStream.context, r.convertHeader(r.downStream.downstreamReqHeaders), endStream)
+	}
 
 	// todo: check if we get a reset on send headers
 }

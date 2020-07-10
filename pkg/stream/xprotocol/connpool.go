@@ -132,7 +132,7 @@ func (p *connPool) Protocol() types.ProtocolName {
 }
 
 func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
+	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener, isMirror bool) {
 	subProtocol := getSubProtocol(ctx)
 
 	client, _ := p.activeClients.Load(subProtocol)
@@ -171,7 +171,7 @@ func (p *connPool) NewStream(ctx context.Context,
 			host.ClusterInfo().ResourceManager().Requests().Increase()
 		}
 
-		listener.OnReady(streamEncoder, host)
+		listener.OnReady(streamEncoder, host, isMirror)
 	}
 
 	return

@@ -92,7 +92,7 @@ func (p *connPool) UpdateHost(h types.Host) {
 }
 
 // NewStream Create a client stream and call's by proxy
-func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
+func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener, isMirror bool) {
 	host := p.Host()
 	c, reason := p.getAvailableClient(ctx)
 
@@ -114,7 +114,7 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 
 		streamEncoder := c.client.NewStream(ctx, receiver)
 		streamEncoder.GetStream().AddEventListener(c)
-		listener.OnReady(streamEncoder, host)
+		listener.OnReady(streamEncoder, host, isMirror)
 	}
 
 	return

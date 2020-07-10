@@ -108,7 +108,8 @@ type downStream struct {
 	receiverFiltersIndex      int
 	receiverFiltersAgainPhase types.Phase
 
-	context context.Context
+	context   context.Context
+	mirrorCtx context.Context
 
 	// stream access logs
 	streamAccessLogs []api.AccessLog
