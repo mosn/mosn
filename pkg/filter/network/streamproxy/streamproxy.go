@@ -397,10 +397,11 @@ func (pc *proxyConfig) GetIdleTimeout(network string) time.Duration {
 }
 
 func (pc *proxyConfig) GetReadTimeout(network string) time.Duration {
-	if network == "tcp" {
-		return types.DefaultConnReadTimeout
-	} else {
+	switch network {
+	case "udp", "udp4", "udp6":
 		return types.DefaultUDPReadTimeout
+	default:
+		return types.DefaultConnReadTimeout
 	}
 }
 

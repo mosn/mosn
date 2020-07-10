@@ -19,7 +19,6 @@ package network
 
 import (
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/buffer"
 )
 

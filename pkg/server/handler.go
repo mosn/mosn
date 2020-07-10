@@ -405,12 +405,14 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	if !useOriginalDst {
 		if network.UseNetpollMode {
 			// store fd for further usage
-			if rawc.LocalAddr().Network() == "tcp" {
-				if tc, ok := rawc.(*net.TCPConn); ok {
+
+			switch rawc.LocalAddr().Network() {
+			case "udp", "udp4", "udp6":
+				if tc, ok := rawc.(*net.UDPConn); ok {
 					rawf, _ = tc.File()
 				}
-			} else {
-				if tc, ok := rawc.(*net.UDPConn); ok {
+			default:
+				if tc, ok := rawc.(*net.TCPConn); ok {
 					rawf, _ = tc.File()
 				}
 			}
@@ -567,21 +569,21 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 var (
 	defaultIdleTimeout = types.DefaultIdleTimeout
 	defaultUDPIdleTimeout = types.DefaultUDPIdleTimeout
-	defaultConnReadTimeout = buffer.ConnReadTimeout
 	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
 )
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
 	if al.idleTimeout != nil {
-		conn.SetIdleTimeout(defaultConnReadTimeout, al.idleTimeout.Duration)
+		conn.SetIdleTimeout(buffer.ConnReadTimeout, al.idleTimeout.Duration)
 	} else {
 		// a nil idle timeout, we set a default one
 		// notice only server side connection set the default value
-		if conn.LocalAddr().Network() == "tcp" {
-			conn.SetIdleTimeout(defaultConnReadTimeout, defaultIdleTimeout)
-		} else {
+		switch conn.LocalAddr().Network() {
+		case "udp", "udp4", "udp6":
 			conn.SetIdleTimeout(defaultUDPReadTimeout, defaultUDPIdleTimeout)
+		default:
+			conn.SetIdleTimeout(buffer.ConnReadTimeout, defaultIdleTimeout)
 		}
 	}
 	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)

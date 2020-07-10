@@ -145,21 +145,23 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 			}
 			l.state = ListenerRunning
 			// add metrics for listener if bind port
-
-			if l.network == "tcp" {
+			switch l.network {
+			case "udp", "udp4", "udp6":
+				metrics.AddListenerAddr(l.packetConn.(*net.UDPConn).LocalAddr().String() + l.network)
+			default:
 				metrics.AddListenerAddr(l.rawl.Addr().String())
-			} else {
-				metrics.AddListenerAddr(l.packetConn.(*net.UDPConn).LocalAddr().String() + ".udp")
 			}
+
 			return false
 		}()
 		if ignore {
 			return
 		}
-		if l.network == "tcp" {
-			l.AcceptEventLoop(lctx)
-		} else {
+		switch l.network {
+		case "udp", "udp4", "udp6":
 			l.ReadMsgEventLoop(lctx)
+		default:
+			l.AcceptEventLoop(lctx)
 		}
 	}
 }
@@ -190,13 +192,11 @@ func (l *listener) AcceptEventLoop(lctx context.Context) {
 }
 
 func (l *listener) ReadMsgEventLoop(lctx context.Context) {
-	for i:=0; i<1; i++ {
 	utils.GoWithRecover(func() {
 		ReadMsgLoop(lctx, l)
 	}, func(r interface{}) {
 		l.ReadMsgEventLoop(lctx)
 	})
-	}
 }
 
 func (l *listener) Stop() error {
@@ -221,9 +221,9 @@ func (l *listener) SetListenerTag(tag uint64) {
 func (l *listener) ListenerFile() (*os.File, error) {
 	switch l.network {
 	case "udp", "udp4", "udp6":
-		return l.rawl.File()
-	default:
 		return l.packetConn.(*net.UDPConn).File()
+	default:
+		return l.rawl.File()
 	}
 
 	return nil, nil
@@ -263,7 +263,7 @@ func (l *listener) Close(lctx context.Context) error {
 	}
 	if l.packetConn != nil {
 		l.cb.OnClose()
-		return l.packetConn.(*net.UDPConn).Close()
+		return l.packetConn.Close()
 	}
 	return nil
 }
@@ -272,17 +272,19 @@ func (l *listener) listen(lctx context.Context) error {
 	var err error
 	var rawl *net.TCPListener
 	var rconn net.PacketConn
-	if l.network == "tcp" {
-		if rawl, err = net.ListenTCP(l.network, l.localAddress.(*net.TCPAddr)); err != nil {
-			return err
-		}
-		l.rawl = rawl
-	} else {
+
+	switch l.network {
+	case "udp", "udp4", "udp6":
 		lc := net.ListenConfig{}
 		if rconn, err = lc.ListenPacket(context.Background(), l.network, l.localAddress.String()); err != nil {
 			return err
 		}
 		l.packetConn = rconn
+	default:
+		if rawl, err = net.ListenTCP(l.network, l.localAddress.(*net.TCPAddr)); err != nil {
+			return err
+		}
+		l.rawl = rawl
 	}
 
 	return nil

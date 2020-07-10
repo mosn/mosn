@@ -57,8 +57,6 @@ func ReadMsgLoop(lctx context.Context, l *listener) {
 		n, rAddr, err := conn.ReadFromUDP(buf.Bytes()[:buf.Cap()])
 		buf.Grow(n)
 
-		// log.DefaultLogger.Tracef("[network] [udp] recv from udp data: %s", buf.Bytes()[0:n])
-
 		if err != nil {
 			if nerr, ok := err.(net.Error); ok && (nerr.Timeout() || nerr.Timeout()) {
 				log.DefaultLogger.Errorf("[network] [udp] recv from udp error: %v", err)
@@ -75,9 +73,9 @@ func ReadMsgLoop(lctx context.Context, l *listener) {
 		proxyKey := GetProxyMapKey(conn.LocalAddr().String(), rAddr.String())
 		if dc, ok := ProxyMap.Load(proxyKey); !ok {
 			fd, _ := conn.File()
-			clientConn, _ := net.FileConn(fd)
+			clientConn, _ := net.FilePacketConn(fd)
 
-			l.cb.OnAccept(clientConn, l.useOriginalDst, rAddr, nil, buf.Bytes()[0:n])
+			l.cb.OnAccept(clientConn.(*net.UDPConn), l.useOriginalDst, rAddr, nil, buf.Bytes()[0:n])
 		} else {
 			c := dc.(api.Connection)
 			c.OnRead(buf)
