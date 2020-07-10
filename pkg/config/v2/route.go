@@ -283,9 +283,10 @@ type RouterMatch struct {
 
 // RedirectAction represents the redirect response parameters
 type RedirectAction struct {
-	ResponseCode int    `json:"response_code,omitempty"`
-	PathRedirect string `json:"path_redirect,omitempty"`
-	HostRedirect string `json:"host_redirect,omitempty"`
+	ResponseCode   int    `json:"response_code,omitempty"`
+	PathRedirect   string `json:"path_redirect,omitempty"`
+	HostRedirect   string `json:"host_redirect,omitempty"`
+	SchemeRedirect string `json:"scheme_redirect,omitempty"`
 }
 
 // DirectResponseAction represents the direct response parameters

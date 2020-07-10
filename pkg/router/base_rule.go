@@ -131,9 +131,9 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 	if route.Redirect != nil {
 		r := route.Redirect
 		rule := &redirectResponseImpl{
-			code: r.ResponseCode,
-			path: r.PathRedirect,
-			host: r.HostRedirect,
+			path:   r.PathRedirect,
+			host:   r.HostRedirect,
+			scheme: r.SchemeRedirect,
 		}
 		switch r.ResponseCode {
 		case 0:
@@ -144,7 +144,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			http.StatusPermanentRedirect:
 			rule.code = r.ResponseCode
 		default:
-			return nil, fmt.Errorf("redirect code not supported yet: %d", rule.code)
+			return nil, fmt.Errorf("redirect code not supported yet: %d", r.ResponseCode)
 		}
 		base.redirectResponseRule = rule
 	}

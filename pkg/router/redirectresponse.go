@@ -18,9 +18,10 @@
 package router
 
 type redirectResponseImpl struct {
-	code int
-	path string
-	host string
+	code   int
+	path   string
+	host   string
+	scheme string
 }
 
 func (rule *redirectResponseImpl) RedirectCode() int {
@@ -33,4 +34,8 @@ func (rule *redirectResponseImpl) RedirectPath() string {
 
 func (rule *redirectResponseImpl) RedirectHost() string {
 	return rule.host
+}
+
+func (rule *redirectResponseImpl) RedirectScheme() string {
+	return rule.scheme
 }

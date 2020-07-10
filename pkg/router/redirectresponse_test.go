@@ -76,6 +76,19 @@ func TestRedirectResponse(t *testing.T) {
 				host: "bar.com",
 			},
 		},
+		{
+			name: "scheme redirect",
+			redirectAction: &v2.RedirectAction{
+				ResponseCode:   http.StatusTemporaryRedirect,
+				PathRedirect:   "/foo",
+				SchemeRedirect: "https",
+			},
+			expectedRule: &redirectResponseImpl{
+				code:   http.StatusTemporaryRedirect,
+				path:   "/foo",
+				scheme: "https",
+			},
+		},
 	}
 
 	match := v2.RouterMatch{
@@ -104,6 +117,9 @@ func TestRedirectResponse(t *testing.T) {
 			expectedRule := tc.expectedRule
 			if rr == nil || reflect.ValueOf(rr).IsNil() {
 				t.Fatal("RedirectResponseRule is nil")
+			}
+			if rr.RedirectScheme() != expectedRule.RedirectScheme() {
+				t.Errorf("Unexpected scheme\nExpected: %s\nGot: %s", expectedRule.RedirectScheme(), rr.RedirectScheme())
 			}
 			if rr.RedirectHost() != expectedRule.RedirectHost() {
 				t.Errorf("Unexpected host\nExpected: %s\nGot: %s", expectedRule.RedirectHost(), rr.RedirectHost())

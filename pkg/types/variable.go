@@ -50,6 +50,7 @@ const (
 
 // [Protocol]: common
 const (
+	VarProtocolRequestScheme    = "request_scheme"
 	VarProtocolRequestMethod    = "request_method"
 	VarProtocolRequestLength    = "request_length"
 	VarProtocolRequestHeader    = "request_header_"
@@ -64,6 +65,7 @@ const (
 const (
 	// the httpProtocolName value is protocol.HTTP1
 	httpProtocolName     = "Http1"
+	VarHttpRequestScheme = httpProtocolName + "_" + VarProtocolRequestScheme
 	VarHttpRequestMethod = httpProtocolName + "_" + VarProtocolRequestMethod
 	VarHttpRequestLength = httpProtocolName + "_" + VarProtocolRequestLength
 	VarHttpRequestUri    = httpProtocolName + "_" + VarProtocolRequestUri

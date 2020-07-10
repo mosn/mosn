@@ -42,6 +42,7 @@ import (
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // types.StreamEventListener
@@ -677,6 +678,14 @@ func (s *downStream) getUpstreamProtocol() (currentProtocol types.ProtocolName) 
 	return currentProtocol
 }
 
+// getStringOr returns the first argument if it is not empty, otherwise the second.
+func getStringOr(s string, defVal string) string {
+	if len(s) != 0 {
+		return s
+	}
+	return defVal
+}
+
 func (s *downStream) chooseHost(endStream bool) {
 
 	s.downstreamRecvDone = endStream
@@ -699,28 +708,41 @@ func (s *downStream) chooseHost(endStream bool) {
 		}
 		return
 	}
+
 	if rule := s.route.RedirectResponseRule(); rule != nil {
 		log.Proxy.Infof(s.context, "[proxy] [downstream] redirect response, proxyId = %d", s.ID)
+		currentScheme, err := variable.GetVariableValue(s.context, types.VarHttpRequestScheme)
+		if err != nil {
+			log.Proxy.Errorf(s.context, "get scheme from var: %s", err)
+			s.sendHijackReply(500, s.downstreamReqHeaders)
+			return
+		}
 		currentHost, _ := s.downstreamReqHeaders.Get(types.HeaderHost)
 		currentPath, _ := s.downstreamReqHeaders.Get(types.HeaderPath)
 		currentQuery, _ := s.downstreamReqHeaders.Get(types.HeaderQueryString)
 		u := url.URL{
-			// TODO(knight42): check if current scheme is http, https or others?
-			Scheme:   "http",
-			Host:     rule.RedirectHost(),
-			Path:     rule.RedirectPath(),
+			Scheme:   getStringOr(rule.RedirectScheme(), currentScheme),
+			Host:     getStringOr(rule.RedirectHost(), currentHost),
+			Path:     getStringOr(rule.RedirectPath(), currentPath),
 			RawQuery: currentQuery,
 		}
-		if len(u.Host) == 0 {
-			u.Host = currentHost
-		}
-		if len(u.Path) == 0 {
-			u.Path = currentPath
+		if u.Scheme != currentScheme {
+			// The port in the host needs to be removed if:
+			// 1. original scheme is http and the port is explicitly set to 80
+			// 2. original scheme is https and the port is explicitly set to 443
+			host, port, err := net.SplitHostPort(u.Host)
+			if err == nil {
+				if (u.Scheme == "http" && port == "443") ||
+					(u.Scheme == "https" && port == "80") {
+					u.Host = host
+				}
+			}
 		}
 		s.downstreamReqHeaders.Set("location", u.String())
 		s.sendHijackReply(rule.RedirectCode(), s.downstreamReqHeaders)
 		return
 	}
+
 	// not direct response, needs a cluster snapshot and route rule
 	if rule := s.route.RouteRule(); rule == nil || reflect.ValueOf(rule).IsNil() {
 		log.Proxy.Warnf(s.context, "[proxy] [downstream] no route rule to init upstream")

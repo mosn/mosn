@@ -38,6 +38,7 @@ var (
 	argIndex    = len(types.VarPrefixHttpArg)
 
 	builtinVariables = []variable.Variable{
+		variable.NewBasicVariable(types.VarHttpRequestScheme, nil, requestSchemeGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
@@ -69,6 +70,11 @@ func init() {
 	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarProtocolRequestArg)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.COOKIE, types.VarProtocolCookie)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.HEADER, types.VarProtocolRequestHeader)
+}
+
+func requestSchemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	return string(buffers.serverRequest.URI().Scheme()), nil
 }
 
 func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
