@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	nethttp "net/http"
 	"net/url"
 	"reflect"
 	"runtime/debug"
@@ -711,10 +712,10 @@ func (s *downStream) chooseHost(endStream bool) {
 
 	if rule := s.route.RedirectResponseRule(); rule != nil {
 		log.Proxy.Infof(s.context, "[proxy] [downstream] redirect response, proxyId = %d", s.ID)
-		currentScheme, err := variable.GetVariableValue(s.context, types.VarHttpRequestScheme)
+		currentScheme, err := variable.GetProtocolResource(s.context, api.SCHEME)
 		if err != nil {
-			log.Proxy.Errorf(s.context, "get scheme from var: %s", err)
-			s.sendHijackReply(500, s.downstreamReqHeaders)
+			log.Proxy.Errorf(s.context, "get protocol resource scheme: %s", err)
+			s.sendHijackReply(nethttp.StatusInternalServerError, s.downstreamReqHeaders)
 			return
 		}
 		currentHost, _ := s.downstreamReqHeaders.Get(types.HeaderHost)

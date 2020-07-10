@@ -299,6 +299,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		URL, _ := url.Parse(URI)
 		h2s.Request.URL = URL
 
+		header.Set(protocol.MosnHeaderSchemeKey, scheme)
 		header.Set(protocol.MosnHeaderMethod, h2s.Request.Method)
 		header.Set(protocol.MosnHeaderHostKey, h2s.Request.Host)
 		header.Set(protocol.MosnHeaderPathKey, h2s.Request.URL.Path)

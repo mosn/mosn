@@ -80,6 +80,7 @@ const (
 const (
 	// the http2ProtocolName value is protocol.HTTP2
 	http2ProtocolName     = "Http2"
+	VarHttp2RequestScheme = http2ProtocolName + "_" + VarProtocolRequestScheme
 	VarHttp2RequestMethod = http2ProtocolName + "_" + VarProtocolRequestMethod
 	VarHttp2RequestLength = http2ProtocolName + "_" + VarProtocolRequestLength
 	VarHttp2RequestUri    = http2ProtocolName + "_" + VarProtocolRequestUri

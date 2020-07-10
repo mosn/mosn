@@ -65,6 +65,7 @@ func init() {
 	}
 
 	// register protocol resource
+	variable.RegisterProtocolResource(protocol.HTTP1, api.SCHEME, types.VarProtocolRequestScheme)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarProtocolRequestPath)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarProtocolRequestUri)
 	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarProtocolRequestArg)
