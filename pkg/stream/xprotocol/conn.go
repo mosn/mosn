@@ -228,6 +228,10 @@ func (sc *streamConn) Reset(reason types.StreamResetReason) {
 func (sc *streamConn) NewStream(ctx context.Context, receiver types.StreamReceiveListener) types.StreamSender {
 	clientStream := sc.newClientStream(ctx)
 
+	if amplification, ok := mosnctx.Get(ctx, types.ContextKeyMirrorAmplification).(int); ok && amplification > 1 {
+		clientStream.amplification = amplification
+	}
+
 	if receiver != nil {
 		clientStream.receiver = receiver
 

@@ -206,7 +206,11 @@ func (r *upstreamRequest) appendData(endStream bool) {
 	data := r.downStream.downstreamReqDataBuf
 	r.sendComplete = endStream
 	r.dataSent = true
-	r.requestSender.AppendData(r.downStream.context, r.convertData(data), endStream)
+	cdata := r.convertData(data)
+	r.requestSender.AppendData(r.downStream.context, cdata, endStream)
+	if r.isMirror {
+		r.mirrorSender.AppendData(r.downStream.mirrorCtx, cdata, endStream)
+	}
 }
 
 func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
@@ -238,6 +242,9 @@ func (r *upstreamRequest) appendTrailers() {
 	r.sendComplete = true
 	r.trailerSent = true
 	r.requestSender.AppendTrailers(r.downStream.context, trailers)
+	if r.isMirror {
+		r.mirrorSender.AppendTrailers(r.downStream.mirrorCtx, trailers)
+	}
 }
 
 func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
