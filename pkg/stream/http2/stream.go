@@ -299,7 +299,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		URL, _ := url.Parse(URI)
 		h2s.Request.URL = URL
 
-		header.Set(protocol.MosnHeaderSchemeKey, scheme)
+		header.Set(types.HeaderScheme, scheme)
 		header.Set(protocol.MosnHeaderMethod, h2s.Request.Method)
 		header.Set(protocol.MosnHeaderHostKey, h2s.Request.Host)
 		header.Set(protocol.MosnHeaderPathKey, h2s.Request.URL.Path)
@@ -436,6 +436,7 @@ type serverStream struct {
 func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error {
 	var rsp *http.Response
 
+	// --- do not pass internal headers to upstream
 	var status int
 	if value, _ := headers.Get(types.HeaderStatus); value != "" {
 		headers.Del(types.HeaderStatus)
@@ -443,6 +444,8 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap,
 	} else {
 		status = 200
 	}
+	headers.Del(types.HeaderScheme)
+	// ---
 
 	switch header := headers.(type) {
 	case *mhttp2.RspHeader:
