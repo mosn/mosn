@@ -288,7 +288,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 		receiver: receiver,
 	}
 	s.connection = conn
-	if amplification, ok := mosnctx.Get(ctx, types.ContextKeyMirrorAmplification).(int); ok && amplification > 1 {
+	if amplification, ok := mosnctx.Get(ctx, types.ContextKeyMirrorAmplification).(int); ok && amplification > 0 {
 		s.amplification = amplification
 	}
 
@@ -628,7 +628,7 @@ func (s *clientStream) doSend() (err error) {
 }
 
 func (s *clientStream) handleResponse() {
-	if s.response != nil {
+	if s.response != nil && s.receiver != nil {
 		header := mosnhttp.ResponseHeader{&s.response.Header, nil}
 
 		statusCode := header.StatusCode()
