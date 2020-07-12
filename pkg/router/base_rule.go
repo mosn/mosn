@@ -56,8 +56,8 @@ type RouteRuleImplBase struct {
 	policy *policy
 	// direct response
 	directResponseRule *directResponseImpl
-	// redirect response
-	redirectResponseRule *redirectResponseImpl
+	// redirect
+	redirectRule *redirectImpl
 	// action
 	routerAction       v2.RouteAction
 	defaultCluster     *weightedClusterEntry // cluster name and metadata
@@ -130,7 +130,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 	// add redirect repsonse rule
 	if route.Redirect != nil {
 		r := route.Redirect
-		rule := &redirectResponseImpl{
+		rule := &redirectImpl{
 			path:   r.PathRedirect,
 			host:   r.HostRedirect,
 			scheme: r.SchemeRedirect,
@@ -146,7 +146,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		default:
 			return nil, fmt.Errorf("redirect code not supported yet: %d", r.ResponseCode)
 		}
-		base.redirectResponseRule = rule
+		base.redirectRule = rule
 	}
 	return base, nil
 }
@@ -155,11 +155,11 @@ func (rri *RouteRuleImplBase) DirectResponseRule() api.DirectResponseRule {
 	return rri.directResponseRule
 }
 
-func (rri *RouteRuleImplBase) RedirectResponseRule() api.RedirectResponseRule {
-	if rri.redirectResponseRule == nil {
+func (rri *RouteRuleImplBase) RedirectRule() api.RedirectRule {
+	if rri.redirectRule == nil {
 		return nil
 	}
-	return rri.redirectResponseRule
+	return rri.redirectRule
 }
 
 // types.RouteRule

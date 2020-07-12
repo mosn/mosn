@@ -31,7 +31,7 @@ func TestRedirectResponse(t *testing.T) {
 	testCases := []struct {
 		name           string
 		redirectAction *v2.RedirectAction
-		expectedRule   api.RedirectResponseRule
+		expectedRule   api.RedirectRule
 		expectError    bool
 	}{
 		{
@@ -39,7 +39,7 @@ func TestRedirectResponse(t *testing.T) {
 			redirectAction: &v2.RedirectAction{
 				PathRedirect: "/bar",
 			},
-			expectedRule: &redirectResponseImpl{
+			expectedRule: &redirectImpl{
 				code: http.StatusMovedPermanently,
 				path: "/bar",
 			},
@@ -50,7 +50,7 @@ func TestRedirectResponse(t *testing.T) {
 				ResponseCode: http.StatusTemporaryRedirect,
 				HostRedirect: "foo.com",
 			},
-			expectedRule: &redirectResponseImpl{
+			expectedRule: &redirectImpl{
 				code: http.StatusTemporaryRedirect,
 				host: "foo.com",
 			},
@@ -70,7 +70,7 @@ func TestRedirectResponse(t *testing.T) {
 				PathRedirect: "/foo",
 				HostRedirect: "bar.com",
 			},
-			expectedRule: &redirectResponseImpl{
+			expectedRule: &redirectImpl{
 				code: http.StatusTemporaryRedirect,
 				path: "/foo",
 				host: "bar.com",
@@ -83,7 +83,7 @@ func TestRedirectResponse(t *testing.T) {
 				PathRedirect:   "/foo",
 				SchemeRedirect: "https",
 			},
-			expectedRule: &redirectResponseImpl{
+			expectedRule: &redirectImpl{
 				code:   http.StatusTemporaryRedirect,
 				path:   "/foo",
 				scheme: "https",
@@ -113,7 +113,7 @@ func TestRedirectResponse(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unexpected error: %s", err)
 			}
-			rr := rule.RedirectResponseRule()
+			rr := rule.RedirectRule()
 			expectedRule := tc.expectedRule
 			if rr == nil || reflect.ValueOf(rr).IsNil() {
 				t.Fatal("RedirectResponseRule is nil")

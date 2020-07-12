@@ -710,7 +710,7 @@ func (s *downStream) chooseHost(endStream bool) {
 		return
 	}
 
-	if rule := s.route.RedirectResponseRule(); rule != nil {
+	if rule := s.route.RedirectRule(); rule != nil {
 		log.Proxy.Infof(s.context, "[proxy] [downstream] redirect response, proxyId = %d", s.ID)
 		currentScheme, err := variable.GetProtocolResource(s.context, api.SCHEME)
 		if err != nil {

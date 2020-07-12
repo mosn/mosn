@@ -17,25 +17,25 @@
 
 package router
 
-type redirectResponseImpl struct {
+type redirectImpl struct {
 	code   int
 	path   string
 	host   string
 	scheme string
 }
 
-func (rule *redirectResponseImpl) RedirectCode() int {
+func (rule *redirectImpl) RedirectCode() int {
 	return rule.code
 }
 
-func (rule *redirectResponseImpl) RedirectPath() string {
+func (rule *redirectImpl) RedirectPath() string {
 	return rule.path
 }
 
-func (rule *redirectResponseImpl) RedirectHost() string {
+func (rule *redirectImpl) RedirectHost() string {
 	return rule.host
 }
 
-func (rule *redirectResponseImpl) RedirectScheme() string {
+func (rule *redirectImpl) RedirectScheme() string {
 	return rule.scheme
 }
