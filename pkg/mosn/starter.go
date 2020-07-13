@@ -39,6 +39,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/pkg/xds"
+	"mosn.io/mosn/pkg/xds/conv"
 	"mosn.io/pkg/utils"
 )
 
@@ -83,6 +84,10 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		if err := store.StartService(nil); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
 		}
+	}
+
+	if err := convertStaticResources(c); err != nil {
+		log.StartLogger.Fatalf("[mosn] [NewMosn] convert static resources failed, ", err)
 	}
 
 	initializeMetrics(c.Metrics)
@@ -349,6 +354,29 @@ func initializePlugin(log string) {
 		log = types.MosnLogBasePath
 	}
 	plugin.InitPlugin(log)
+}
+
+func convertStaticResources(c *v2.MOSNConfig) error {
+	_, staticResources, err := xds.UnmarshalResources(c)
+	if err != nil {
+		return err
+	}
+
+	var listeners []v2.Listener
+	for _, listener := range staticResources.Listeners {
+		listeners = append(listeners, *conv.ConvertListenerConfig(listener))
+	}
+	srv := v2.ServerConfig{
+		Listeners: listeners,
+	}
+	c.Servers = append(c.Servers, srv)
+
+	clusters := conv.ConvertClustersConfig(staticResources.Clusters)
+	for _, cls := range clusters {
+		c.ClusterManager.Clusters = append(c.ClusterManager.Clusters, *cls)
+	}
+
+	return nil
 }
 
 type clusterManagerFilter struct {
