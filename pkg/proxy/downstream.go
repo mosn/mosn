@@ -193,6 +193,13 @@ func (s *downStream) cleanStream() {
 		return
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] cleanStream panic: %v, downstream: %+v, streamID: %d\n%s",
+				r, s, s.ID, string(debug.Stack()))
+		}
+	}()
+
 	s.requestInfo.SetRequestFinishedDuration(time.Now())
 
 	// reset corresponding upstream stream
@@ -256,6 +263,9 @@ func (s *downStream) requestMetrics() {
 
 		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
+		s.proxy.stats.DownstreamUpdateRequestCode(s.requestInfo.ResponseCode())
+		s.proxy.listenerStats.DownstreamUpdateRequestCode(s.requestInfo.ResponseCode())
 
 		if s.isRequestFailed() {
 			s.proxy.stats.DownstreamRequestFailed.Inc(1)
@@ -351,7 +361,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 					r, s, id, s.ID, string(debug.Stack()))
 
 				if id == s.ID {
-					s.delete()
+					s.cleanStream()
 				}
 			}
 		}()
