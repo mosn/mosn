@@ -739,12 +739,6 @@ func (s *downStream) chooseHost(endStream bool) {
 
 	s.retryState = newRetryState(s.route.RouteRule().Policy().RetryPolicy(), s.downstreamReqHeaders, s.cluster, prot)
 
-	// s.route.RouteRule().Policy().HashPolicy()
-	mirrorPool, err := s.initializeUpstreamConnectionPoolMirror(s)
-	if err != nil {
-		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "initialize Upstream Connection Pool error, request can't be proxyed, error = %v", err)
-	}
-
 	//Build Request
 	proxyBuffers := proxyBuffersByContext(s.context)
 	s.upstreamRequest = &proxyBuffers.request
@@ -753,6 +747,29 @@ func (s *downStream) chooseHost(endStream bool) {
 	s.upstreamRequest.protocol = prot
 	s.upstreamRequest.connPool = pool
 
+	/*
+		mp := s.route.RouteRule().Policy().MirrorPolicy()
+		amplification, isMirror := mp.TransInfo()
+		if !isMirror {
+			return
+		}
+		mirrorPool, err := s.initializeUpstreamConnectionPoolMirror(s, mp.ClusterName())
+		if err != nil {
+			log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "initialize Mirror Upstream Connection Pool error, request can't be proxyed, error = %v", err)
+			return
+		}
+		s.upstreamRequest.mirrorConnPool = mirrorPool
+		s.upstreamRequest.isMirror = true
+		mirrorCtx := mosnctx.WithValue(mosnctx.Clone(s.context), types.ContextKeyBufferPoolCtx, nil)
+		mirrorCtx = mosnctx.WithValue(mirrorCtx, types.ContextKeyMirrorAmplification, amplification)
+		s.mirrorCtx = mirrorCtx
+	*/
+
+	mirrorPool, err := s.initializeUpstreamConnectionPoolMirror(s, "mirror")
+	if err != nil {
+		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "initialize Mirror Upstream Connection Pool error, request can't be proxyed, error = %v", err)
+		return
+	}
 	amplification := 5
 	s.upstreamRequest.mirrorConnPool = mirrorPool
 	s.upstreamRequest.isMirror = true
@@ -968,16 +985,16 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 	return connPool, nil
 }
 
-func (s *downStream) initializeUpstreamConnectionPoolMirror(lbCtx types.LoadBalancerContext) (types.ConnectionPool, error) {
+func (s *downStream) initializeUpstreamConnectionPoolMirror(lbCtx types.LoadBalancerContext, clusterName string) (types.ConnectionPool, error) {
 	var connPool types.ConnectionPool
 
 	currentProtocol := s.getUpstreamProtocol()
 
-	snapshot := s.proxy.clusterManager.GetClusterSnapshot(s.context, "mirror")
+	snapshot := s.proxy.clusterManager.GetClusterSnapshot(s.context, clusterName)
 	connPool = s.proxy.clusterManager.ConnPoolForCluster(lbCtx, snapshot, currentProtocol)
 
 	if connPool == nil {
-		return nil, fmt.Errorf("[proxy] [downstream] no healthy mirror upstream in cluster %s", s.cluster.Name())
+		return nil, fmt.Errorf("[proxy] [downstream] no healthy mirror upstream in cluster %s", clusterName)
 	}
 
 	// TODO: update upstream stats

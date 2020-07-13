@@ -61,12 +61,6 @@ type RouteRuleImplBase struct {
 	randInstance       *rand.Rand
 }
 
-// TODO move to mosn.io/api
-type MirrorPolicies interface {
-	IsTrans() bool
-	Cluster() string
-}
-
 func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleImplBase, error) {
 	base := &RouteRuleImplBase{
 		vHost:                 vHost,
@@ -128,12 +122,16 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 	}
 	// add mirror policies
 	if route.Route.RequestMirrorPolicies != nil {
-		base.mirrorPolicies = &mirrorImpl{
+		base.policy.mirrorPolicy = &mirrorImpl{
 			cluster:        route.Route.RequestMirrorPolicies.Cluster,
 			numberator:     int(route.Route.RequestMirrorPolicies.FractionalPercent.Numberator),
 			denominatorNum: int(route.Route.RequestMirrorPolicies.FractionalPercent.DenominatorNum),
 			rand:           rand.New(rand.NewSource(time.Now().UnixNano())),
+			amplification:  route.Route.RequestMirrorPolicies.Amplification,
 		}
+	}
+	if base.policy.mirrorPolicy == nil {
+		base.policy.mirrorPolicy = &mirrorImpl{}
 	}
 	return base, nil
 }
