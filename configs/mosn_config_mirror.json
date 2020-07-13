@@ -6,7 +6,7 @@
 			"listeners": [
 				{
 					"name": "egress_dubbo",
-					"address": "0.0.0.0:20881",
+					"address": "0.0.0.0:20885",
 					"bind_port": true,
 					"filter_chains": [
 						{
@@ -18,30 +18,6 @@
 										"downstream_protocol": "X",
 										"upstream_protocol": "X",
 										"router_config_name": "20882",
-										"extend_config": {
-											"sub_protocol": "dubbo"
-										}
-									}
-								}
-							]
-						}
-					]
-				},
-				{
-					"name": "ingress_dubbo",
-					"address": "0.0.0.0:20882",
-					"bind_port": true,
-					"log_path": "stdout",
-					"filter_chains": [
-						{
-							"tls_context": {},
-							"filters": [
-								{
-									"type": "proxy",
-									"config": {
-										"downstream_protocol": "X",
-										"upstream_protocol": "X",
-										"router_config_name": "dubbo_provider_router",
 										"extend_config": {
 											"sub_protocol": "dubbo"
 										}
@@ -148,7 +124,7 @@
 		"address": {
 			"socket_address": {
 				"address": "0.0.0.0",
-				"port_value": 34901
+				"port_value": 34902
 			}
 		}
 	},

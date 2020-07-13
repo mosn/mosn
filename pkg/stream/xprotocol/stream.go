@@ -147,11 +147,12 @@ func (s *xStream) endStream() {
 		if s.amplification > 1 {
 			b := buf.Clone()
 			for i := 0; i < s.amplification-1; i++ {
-				buf.Append(b.Bytes())
+				b.Append(buf.Bytes())
 			}
+			err = s.sc.netConn.Write(b)
+		} else {
+			err = s.sc.netConn.Write(buf)
 		}
-
-		err = s.sc.netConn.Write(buf)
 
 		if err != nil {
 			log.Proxy.Errorf(s.ctx, "[stream] [xprotocol] endStream, requestId = %v, error = %v", s.id, err)
