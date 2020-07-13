@@ -1343,13 +1343,14 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 
 func convertMirrorPolicy(xdsRouteAction *xdsroute.RouteAction) *v2.RequestMirrorPolicy {
 
-	if xdsRouteAction.GetRequestMirrorPolicy() != nil {
-		return &v2.RequestMirrorPolicy{
-			Cluster:           xdsRouteAction.GetRequestMirrorPolicy().GetCluster(),
-			FractionalPercent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicy().GetRuntimeFraction()),
-			Amplification:     DefaultMirrorAmplification,
-		}
-	}
+	// Deprecated: Do not use.
+	// if xdsRouteAction.GetRequestMirrorPolicy() != nil {
+	// 	return &v2.RequestMirrorPolicy{
+	// 		Cluster:           xdsRouteAction.GetRequestMirrorPolicy().GetCluster(),
+	// 		FractionalPercent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicy().GetRuntimeFraction()),
+	// 		Amplification:     DefaultMirrorAmplification,
+	// 	}
+	// }
 
 	if len(xdsRouteAction.GetRequestMirrorPolicies()) > 0 {
 		return &v2.RequestMirrorPolicy{
