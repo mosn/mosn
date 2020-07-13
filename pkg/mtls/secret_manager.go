@@ -18,12 +18,12 @@
 package mtls
 
 import (
+	"reflect"
 	"sync"
 	"sync/atomic"
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -78,11 +78,11 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 	if !ok {
 		// new a provider
 		p = &sdsProvider{
-			config: cfg,
 			info: &secretInfo{
 				Validation: v.pem,
 			},
 		}
+		p.config.Store(cfg)
 		v.certificates[certName] = p
 		// set a certificate callback
 		client := GetSdsClient(cfg.SdsConfig.CertificateConfig.Config)
@@ -91,8 +91,24 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig.Config, mng.setValidation)
 		log.DefaultLogger.Infof("[mtls] [sds provider] add a new sds provider %s", certName)
 	} else {
+		// try to update if config is changed
+		v := p.config.Load()
+		old, ok := v.(*v2.TLSConfig)
+		if ok {
+			if reflect.DeepEqual(old, cfg) { // nothing changed
+				return p
+			}
+		}
+		log.DefaultLogger.Infof("[mtls] [sds provider] update sds provider %s", certName)
+		// try to update provider
+		// update tls config
+		p.config.Store(cfg)
 		// update sds config
 		GetSdsClient(cfg.SdsConfig.CertificateConfig.Config)
+		// update secret
+		if p.info.full() {
+			p.update()
+		}
 	}
 
 	return p
@@ -121,7 +137,7 @@ func (mng *secretManager) setValidation(name string, secret *types.SdsSecret) {
 // do not support delete certificate for sds api
 type sdsProvider struct {
 	value  atomic.Value // stored tlsContext
-	config *v2.TLSConfig
+	config atomic.Value // store *v2.TLSConfig
 	info   *secretInfo
 }
 
@@ -144,26 +160,31 @@ func (p *sdsProvider) setCertificate(name string, secret *types.SdsSecret) {
 }
 
 func (p *sdsProvider) update() {
-	ctx, err := newTLSContext(p.config, p.info)
+	v := p.config.Load()
+	cfg, ok := v.(*v2.TLSConfig)
+	if !ok {
+		return
+	}
+	ctx, err := newTLSContext(cfg, p.info)
 	if err != nil {
-		log.DefaultLogger.Errorf("sds.update", "[mtls] [sds] update tls context failed: %v", err)
+		log.DefaultLogger.Alertf("sds.update", "[mtls] [sds] update tls context failed: %v", err)
 		return
 	}
 	p.value.Store(ctx)
 	log.DefaultLogger.Infof("[mtls] [sds] update tls context success")
 	// notify certificates updates
 	for _, cb := range sdsCallbacks {
-		cb(p.config)
+		cb(cfg)
 	}
 }
 
-func (p *sdsProvider) GetTLSConfig(client bool) *tls.Config {
+func (p *sdsProvider) GetTLSConfigContext(client bool) *types.TLSConfigContext {
 	v := p.value.Load()
 	ctx, ok := v.(*tlsContext)
 	if !ok {
 		return nil
 	}
-	return ctx.GetTLSConfig(client)
+	return ctx.GetTLSConfigContext(client)
 }
 
 func (p *sdsProvider) MatchedServerName(sn string) bool {

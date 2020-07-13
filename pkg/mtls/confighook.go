@@ -18,15 +18,22 @@
 package mtls
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"strings"
 
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
+	"mosn.io/mosn/pkg/types"
 )
 
-type defaultConfigHooks struct{}
+type defaultConfigHooks struct {
+}
 
 // DefaultConfigHooks returns the default config hooks implement
 func DefaultConfigHooks() ConfigHooks {
@@ -72,4 +79,46 @@ func (hook *defaultConfigHooks) ServerHandshakeVerify(cfg *tls.Config) func(rawC
 
 func (hook *defaultConfigHooks) ClientHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return nil
+}
+
+func (hook *defaultConfigHooks) GetClientAuth(cfg *v2.TLSConfig) tls.ClientAuthType {
+	if cfg.RequireClientCert && cfg.VerifyClient {
+		return tls.RequireAndVerifyClientCert
+	}
+	if cfg.VerifyClient {
+		return tls.VerifyClientCertIfGiven
+	}
+	if cfg.RequireClientCert {
+		return tls.RequestClientCert
+	}
+	return tls.NoClientCert
+}
+
+func (hook *defaultConfigHooks) GenerateHashValue(cfg *tls.Config) *types.HashValue {
+	buf := new(bytes.Buffer)
+	certs := cfg.Certificates
+	if len(certs) > 0 {
+		for _, c := range certs[0].Certificate {
+			buf.Write(c)
+		}
+	}
+	for _, proto := range cfg.NextProtos {
+		buf.WriteString(proto)
+	}
+	write := func(buf *bytes.Buffer, data interface{}) {
+		if err := binary.Write(buf, binary.LittleEndian, data); err != nil {
+			log.DefaultLogger.Errorf("write buffer error: %v", err)
+		}
+	}
+	for _, cipher := range cfg.CipherSuites {
+		write(buf, cipher)
+	}
+	for _, curve := range cfg.CurvePreferences {
+		write(buf, curve)
+	}
+	write(buf, cfg.MaxVersion)
+	write(buf, cfg.MinVersion)
+	write(buf, uint64(cfg.ClientAuth))
+	value := sha256.Sum256(buf.Bytes())
+	return types.NewHashValue(value)
 }
