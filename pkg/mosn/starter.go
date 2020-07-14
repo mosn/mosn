@@ -361,6 +361,9 @@ func convertStaticResources(c *v2.MOSNConfig) error {
 	if err != nil {
 		return err
 	}
+	if staticResources == nil {
+		return nil
+	}
 
 	var listeners []v2.Listener
 	for _, listener := range staticResources.Listeners {
