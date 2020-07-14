@@ -1065,9 +1065,10 @@ func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) *v2.Redir
 		return nil
 	}
 	return &v2.RedirectAction{
-		HostRedirect: xdsRedirectAction.GetHostRedirect(),
-		PathRedirect: xdsRedirectAction.GetPathRedirect(),
-		ResponseCode: int(xdsRedirectAction.GetResponseCode()),
+		SchemeRedirect: xdsRedirectAction.GetSchemeRedirect(),
+		HostRedirect:   xdsRedirectAction.GetHostRedirect(),
+		PathRedirect:   xdsRedirectAction.GetPathRedirect(),
+		ResponseCode:   int(xdsRedirectAction.GetResponseCode()),
 	}
 }
 
