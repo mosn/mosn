@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -34,6 +35,10 @@ import (
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+)
+
+var (
+	schemeValidator = regexp.MustCompile("^[a-z][a-z0-9.+-]*$")
 )
 
 type RouteRuleImplBase struct {
@@ -127,14 +132,24 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			body:   route.DirectResponse.Body,
 		}
 	}
-	// add redirect repsonse rule
+	// add redirect rule
 	if route.Redirect != nil {
 		r := route.Redirect
+
+		scheme := r.SchemeRedirect
+		if len(scheme) > 0 {
+			scheme = strings.ToLower(scheme)
+			if !schemeValidator.MatchString(scheme) {
+				return nil, fmt.Errorf("invalid scheme: %s", scheme)
+			}
+		}
+
 		rule := &redirectImpl{
 			path:   r.PathRedirect,
 			host:   r.HostRedirect,
-			scheme: r.SchemeRedirect,
+			scheme: scheme,
 		}
+
 		switch r.ResponseCode {
 		case 0:
 			// default to 301
