@@ -22,7 +22,6 @@ import "errors"
 // Header key types
 const (
 	HeaderStatus                   = "x-mosn-status"
-	HeaderScheme                   = "x-mosn-scheme"
 	HeaderMethod                   = "x-mosn-method"
 	HeaderHost                     = "x-mosn-host"
 	HeaderPath                     = "x-mosn-path"

@@ -65,7 +65,7 @@ func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interf
 	if !ok {
 		return variable.ValueNotFound, nil
 	}
-	scheme, ok := headers.Get(types.HeaderScheme)
+	scheme, ok := headers.Get(protocol.MosnHeaderScheme)
 	if !ok {
 		return variable.ValueNotFound, nil
 	}
