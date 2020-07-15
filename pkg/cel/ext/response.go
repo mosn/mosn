@@ -22,24 +22,11 @@ import (
 
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
-// rewrite request url
-func rewriteRequestUrl(ctx context.Context, dstUrl string) bool {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
-	if !ok {
-		return false
-	}
-
-	// TODO Add a set handler for request headers variable
-	headers.Set(protocol.MosnHeaderPathKey, dstUrl)
-	return true
-}
-
-func addRequestheader(ctx context.Context, key, val string) bool {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
+func addResponseheader(ctx context.Context, key, val string) bool {
+	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamRespHeaders).(api.HeaderMap)
 	if !ok {
 		return false
 	}
@@ -49,8 +36,8 @@ func addRequestheader(ctx context.Context, key, val string) bool {
 	return true
 }
 
-func delRequestheader(ctx context.Context, key string) bool {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
+func delResponseheader(ctx context.Context, key string) bool {
+	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamRespHeaders).(api.HeaderMap)
 	if !ok {
 		return false
 	}

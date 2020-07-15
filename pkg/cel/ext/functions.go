@@ -53,8 +53,18 @@ func init() {
 	check(RegisterSimpleFunction("emptyStringMap", externEmptyStringMap))
 	// Replace the default string match
 	check(RegisterFunction("matches_string", traits.MatcherType, regexp.MatchString))
+	// internal operation for MOSN
 	// rewrite request url
 	check(RegisterSimpleFunctionBoth("rewrite_request_url", rewriteRequestUrl))
+	// add request header
+	check(RegisterSimpleFunctionBoth("add_request_header", addRequestheader))
+	// del request header
+	check(RegisterSimpleFunctionBoth("del_request_header", delRequestheader))
+	// add reqponse header
+	check(RegisterSimpleFunctionBoth("add_response_header", addResponseheader))
+	// del response header
+	check(RegisterSimpleFunctionBoth("del_response_header", delResponseheader))
+
 }
 
 func check(err error) {

@@ -566,6 +566,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					s.printPhaseInfo(types.UpRecvHeader, id)
 				}
+
+				s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamRespHeaders, s.downstreamRespHeaders)
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
