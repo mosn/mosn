@@ -51,13 +51,13 @@ func BenchmarkHashValue(b *testing.B) {
 	hash2 := NewHashValue(sha256.Sum256(data))
 	b.Run("hash_equal", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			hash1.Equal(hash2)
+			_ = hash1.Equal(hash2)
 		}
 	})
 	// bench string
 	b.Run("hash_string", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			hash1.String()
+			_ = hash1.String()
 		}
 	})
 }
