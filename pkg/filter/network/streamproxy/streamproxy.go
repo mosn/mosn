@@ -231,7 +231,6 @@ func (p *proxy) onConnectionSuccess() {
 	// In udp proxy, each upstream connection needs a idle checker
 	if strings.Contains(p.network, "udp") {
 		p.upstreamConnection.SetIdleTimeout(p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
-		log.DefaultLogger.Debugf("read timeout:%d, idle timeout:%d", p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
 	}
 	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())
 }
