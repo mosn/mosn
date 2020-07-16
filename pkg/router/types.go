@@ -22,17 +22,17 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
 	"time"
 
 	"github.com/dchest/siphash"
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // [sub module] & [function] & msg
@@ -89,11 +89,18 @@ type RouteBase interface {
 	Matchable
 }
 
+//TODO move interface to mosn/api by me
+type MirrorPolicies interface {
+	IsMirror() bool
+	ClusterName() string
+}
+
 // Policy
 type policy struct {
 	retryPolicy  *retryPolicyImpl
 	shadowPolicy *shadowPolicyImpl //TODO: not implement yet
 	hashPolicy   api.HashPolicy
+	mirrorPolicy MirrorPolicies //TODO add interface to mosn/api by me
 }
 
 func (p *policy) RetryPolicy() api.RetryPolicy {
@@ -235,4 +242,22 @@ func getHashByAddr(addr net.Addr) (hash uint64) {
 
 func getHashByString(str string) uint64 {
 	return siphash.Hash(0xbeefcafebabedead, 0, []byte(str))
+}
+
+type mirrorImpl struct {
+	cluster        string
+	numberator     int
+	denominatorNum int
+	rand           *rand.Rand
+}
+
+func (m *mirrorImpl) IsMirror() (isTrans bool) {
+	if m.cluster == "" {
+		return false
+	}
+	return m.numberator <= (m.rand.Intn(m.denominatorNum) + 1)
+}
+
+func (m *mirrorImpl) ClusterName() string {
+	return m.cluster
 }

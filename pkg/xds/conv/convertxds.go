@@ -522,7 +522,7 @@ func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
 	case xdstype.FractionalPercent_MILLION:
 		return percent.Numerator / 10000
 	case xdstype.FractionalPercent_TEN_THOUSAND:
-		return percent.Numerator / 100
+		return percent.Numerator / 10
 	case xdstype.FractionalPercent_HUNDRED:
 		return percent.Numerator
 	}
@@ -945,6 +945,7 @@ func convertRouteAction(xdsRouteAction *xdsroute.RouteAction) v2.RouteAction {
 			//
 			//ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteAction.GetResponseHeadersToAdd()),
 			//ResponseHeadersToRemove: xdsRouteAction.GetResponseHeadersToRemove(),
+			RequestMirrorPolicies: convertMirrorPolicy(xdsRouteAction),
 		},
 		MetadataMatch: convertMeta(xdsRouteAction.GetMetadataMatch()),
 		Timeout:       convertTimeDurPoint2TimeDur(xdsRouteAction.GetTimeout()),
@@ -1336,4 +1337,45 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 
 	config.Status = true
 	return config
+}
+
+func convertMirrorPolicy(xdsRouteAction *xdsroute.RouteAction) *v2.RequestMirrorPolicy {
+
+	// Deprecated: Do not use.
+	// if xdsRouteAction.GetRequestMirrorPolicy() != nil {
+	// 	return &v2.RequestMirrorPolicy{
+	// 		Cluster:           xdsRouteAction.GetRequestMirrorPolicy().GetCluster(),
+	// 		FractionalPercent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicy().GetRuntimeFraction()),
+	// 	}
+	// }
+
+	if len(xdsRouteAction.GetRequestMirrorPolicies()) > 0 {
+		return &v2.RequestMirrorPolicy{
+			Cluster:           xdsRouteAction.GetRequestMirrorPolicies()[0].GetCluster(),
+			FractionalPercent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicies()[0].GetRuntimeFraction()),
+		}
+	}
+
+	return nil
+}
+
+func convertRuntimePercentage(percent *xdscore.RuntimeFractionalPercent) *v2.Fractionalpercent {
+	if percent == nil {
+		return nil
+	}
+
+	result := &v2.Fractionalpercent{
+		Numberator: percent.GetDefaultValue().GetNumerator(),
+	}
+	switch percent.GetDefaultValue().GetDenominator() {
+	case xdstype.FractionalPercent_MILLION:
+		result.DenominatorNum = 1000000
+	case xdstype.FractionalPercent_TEN_THOUSAND:
+		result.DenominatorNum = 1000
+	case xdstype.FractionalPercent_HUNDRED:
+		result.DenominatorNum = 100
+	default:
+		result.DenominatorNum = 100
+	}
+	return result
 }

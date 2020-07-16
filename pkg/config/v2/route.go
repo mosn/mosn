@@ -63,6 +63,7 @@ type RouterActionConfig struct {
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
+	RequestMirrorPolicies   *RequestMirrorPolicy `json:"request_mirror_policies,omitempty"`
 }
 
 type ClusterWeightConfig struct {
@@ -286,7 +287,7 @@ type DirectResponseAction struct {
 	Body       string `json:"body,omitempty"`
 }
 
-// WeightedCluster.
+// WeightedCluster ...
 // Multiple upstream clusters unsupport stream filter type:  healthcheckcan be specified for a given route.
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
@@ -301,14 +302,14 @@ type HeaderMatcher struct {
 	Regex bool   `json:"regex,omitempty"`
 }
 
-// TCP Proxy Route
+// TCPRouteConfig TCP Proxy Route
 type TCPRouteConfig struct {
 	Cluster string   `json:"cluster,omitempty"`
 	Sources []string `json:"source_addrs,omitempty"`
 	Dests   []string `json:"destination_addrs,omitempty"`
 }
 
-// TCPRoute
+// TCPRoute ...
 type TCPRoute struct {
 	Cluster          string
 	SourceAddrs      []CidrRange
@@ -317,9 +318,22 @@ type TCPRoute struct {
 	DestinationPort  string
 }
 
-// CidrRange
+// CidrRange ...
 type CidrRange struct {
 	Address string
 	Length  uint32
 	IpNet   *net.IPNet
+}
+
+// RequestMirrorPolicy mirror policy
+type RequestMirrorPolicy struct {
+	Cluster           string             `json:"cluster,omitempty"`
+	FractionalPercent *Fractionalpercent `json:"fractional_percent,omitempty"`
+	TraceSampled      bool               `json:"trace_sampled,omitempty"`
+}
+
+// Fractionalpercent fractional percent
+type Fractionalpercent struct {
+	Numberator     uint32 `json:"numberator,omitempty"`
+	DenominatorNum uint32 `json:"denominator_num,omitempty"`
 }

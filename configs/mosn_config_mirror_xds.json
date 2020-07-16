@@ -2,11 +2,11 @@
 	"servers": [
 		{
 			"default_log_path": "stdout",
-			"default_log_level": "DEBUG",
+			"default_log_level": "INFO",
 			"listeners": [
 				{
 					"name": "egress_dubbo",
-					"address": "0.0.0.0:20885",
+					"address": "0.0.0.0:20881",
 					"bind_port": true,
 					"filter_chains": [
 						{
@@ -28,10 +28,32 @@
 					],
 					"stream_filters": [
 						{
-							"type": "mirror",
-							"config": {
-								"amplification": 10
-							}
+							"type": "dubbo_demo",
+							"config": {}
+						}
+					]
+				},
+				{
+					"name": "ingress_dubbo",
+					"address": "0.0.0.0:20882",
+					"bind_port": true,
+					"log_path": "stdout",
+					"filter_chains": [
+						{
+							"tls_context": {},
+							"filters": [
+								{
+									"type": "proxy",
+									"config": {
+										"downstream_protocol": "X",
+										"upstream_protocol": "X",
+										"router_config_name": "dubbo_provider_router",
+										"extend_config": {
+											"sub_protocol": "dubbo"
+										}
+									}
+								}
+							]
 						}
 					]
 				}
@@ -62,40 +84,6 @@
 							]
 						}
 					]
-				},
-				{
-					"router_config_name": "20882",
-					"virtual_hosts": [
-						{
-							"name": "provider",
-							"domains": [
-								"*"
-							],
-							"routers": [
-								{
-									"match": {
-										"headers": [
-											{
-												"name": "service",
-												"value": ".*"
-											}
-										]
-									},
-									"route": {
-										"cluster_name": "dubbo_provider_cluster"
-									},
-									"request_mirror_policies": {
-										"cluster": "mirror",
-										"fractional_percent": {
-											"numberator": 100,
-											"denominator_num": 100
-										},
-										"amplification": 1
-									}
-								}
-							]
-						}
-					]
 				}
 			]
 		}
@@ -115,14 +103,14 @@
 				]
 			},
 			{
-				"Name": "mirror",
+				"Name": "dubbo_consumer_cluster2",
 				"type": "SIMPLE",
 				"lb_type": "LB_RANDOM",
 				"max_request_per_conn": 1024,
 				"conn_buffer_limit_bytes": 32768,
 				"hosts": [
 					{
-						"address": "127.0.0.1:20883"
+						"address": "10.12.210.41:20880"
 					}
 				]
 			}
@@ -132,7 +120,7 @@
 		"address": {
 			"socket_address": {
 				"address": "0.0.0.0",
-				"port_value": 34902
+				"port_value": 34901
 			}
 		}
 	},
@@ -146,5 +134,42 @@
 				}
 			}
 		]
+	},
+	"static_resources": {
+		"clusters": [
+			{
+				"name": "xds-grpc",
+				"type": "STRICT_DNS",
+				"connect_timeout": "10s",
+				"lb_policy": "RANDOM",
+				"hosts": [
+					{
+						"socket_address": {
+							"address": "127.0.0.1",
+							"port_value": 15010
+						}
+					}
+				],
+				"http2_protocol_options": {}
+			}
+		]
+	},
+	"dynamic_resources": {
+		"lds_config": {
+			"ads": {}
+		},
+		"cds_config": {
+			"ads": {}
+		},
+		"ads_config": {
+			"api_type": "GRPC",
+			"grpc_services": [
+				{
+					"envoy_grpc": {
+						"cluster_name": "xds-grpc"
+					}
+				}
+			]
+		}
 	}
 }

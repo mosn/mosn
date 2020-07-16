@@ -122,7 +122,7 @@ func AckResponse(streamClient ads.AggregatedDiscoveryService_StreamAggregatedRes
 		},
 	})
 	if err != nil {
-		log.DefaultLogger.Errorf("ack listener fail: %v", err)
+		log.DefaultLogger.Errorf("ack %s fail: %v", resp.TypeUrl, err)
 		return
 	}
 

@@ -53,6 +53,8 @@ type RouteRuleImplBase struct {
 	policy *policy
 	// direct response
 	directResponseRule *directResponseImpl
+	// request mirro
+	mirrorPolicies *mirrorImpl
 	// action
 	routerAction       v2.RouteAction
 	defaultCluster     *weightedClusterEntry // cluster name and metadata
@@ -122,11 +124,27 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			body:   route.DirectResponse.Body,
 		}
 	}
+	// add mirror policies
+	if route.Route.RequestMirrorPolicies != nil {
+		base.policy.mirrorPolicy = &mirrorImpl{
+			cluster:        route.Route.RequestMirrorPolicies.Cluster,
+			numberator:     int(route.Route.RequestMirrorPolicies.FractionalPercent.Numberator),
+			denominatorNum: int(route.Route.RequestMirrorPolicies.FractionalPercent.DenominatorNum),
+			rand:           rand.New(rand.NewSource(time.Now().UnixNano())),
+		}
+	}
+	if base.policy.mirrorPolicy == nil {
+		base.policy.mirrorPolicy = &mirrorImpl{}
+	}
 	return base, nil
 }
 
 func (rri *RouteRuleImplBase) DirectResponseRule() api.DirectResponseRule {
 	return rri.directResponseRule
+}
+
+func (rri *RouteRuleImplBase) MirrorPolicies() MirrorPolicies {
+	return rri.mirrorPolicies
 }
 
 // types.RouteRule

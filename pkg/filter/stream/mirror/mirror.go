@@ -15,6 +15,7 @@ import (
 )
 
 type mirror struct {
+	amplification  int
 	receiveHandler api.StreamReceiverFilterHandler
 
 	ctx      context.Context
@@ -64,7 +65,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 		currentProtocol := m.getUpstreamProtocol()
 
-		for i := 0; i < 10; i++ {
+		for i := 0; i < m.amplification; i++ {
 			connPool := clusterManager.ConnPoolForCluster(m, snap, currentProtocol)
 			connPool.NewStream(m.ctx, nil, m)
 		}
