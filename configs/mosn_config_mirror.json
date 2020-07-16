@@ -1,0 +1,148 @@
+{
+	"servers": [
+		{
+			"default_log_path": "stdout",
+			"default_log_level": "DEBUG",
+			"listeners": [
+				{
+					"name": "egress_dubbo",
+					"address": "0.0.0.0:20885",
+					"bind_port": true,
+					"filter_chains": [
+						{
+							"tls_context": {},
+							"filters": [
+								{
+									"type": "proxy",
+									"config": {
+										"downstream_protocol": "X",
+										"upstream_protocol": "X",
+										"router_config_name": "20882",
+										"extend_config": {
+											"sub_protocol": "dubbo"
+										}
+									}
+								}
+							]
+						}
+					],
+					"stream_filters": [
+						{
+							"type": "mirror",
+							"config": {}
+						}
+					]
+				}
+			],
+			"routers": [
+				{
+					"router_config_name": "dubbo_provider_router",
+					"virtual_hosts": [
+						{
+							"name": "provider",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"match": {
+										"headers": [
+											{
+												"name": "service",
+												"value": ".*"
+											}
+										]
+									},
+									"route": {
+										"cluster_name": "dubbo_provider_cluster"
+									}
+								}
+							]
+						}
+					]
+				},
+				{
+					"router_config_name": "20882",
+					"virtual_hosts": [
+						{
+							"name": "provider",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"match": {
+										"headers": [
+											{
+												"name": "service",
+												"value": ".*"
+											}
+										]
+									},
+									"route": {
+										"cluster_name": "dubbo_provider_cluster"
+									},
+									"request_mirror_policies": {
+										"cluster": "mirror",
+										"fractional_percent": {
+											"numberator": 100,
+											"denominator_num": 100
+										},
+										"amplification": 1
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"cluster_manager": {
+		"clusters": [
+			{
+				"Name": "dubbo_provider_cluster",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+				"max_request_per_conn": 1024,
+				"conn_buffer_limit_bytes": 32768,
+				"hosts": [
+					{
+						"address": "127.0.0.1:20880"
+					}
+				]
+			},
+			{
+				"Name": "mirror",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+				"max_request_per_conn": 1024,
+				"conn_buffer_limit_bytes": 32768,
+				"hosts": [
+					{
+						"address": "127.0.0.1:20883"
+					}
+				]
+			}
+		]
+	},
+	"admin": {
+		"address": {
+			"socket_address": {
+				"address": "0.0.0.0",
+				"port_value": 34902
+			}
+		}
+	},
+	"metrics": {
+		"shm_zone": "metrics",
+		"sinks": [
+			{
+				"type": "prometheus",
+				"config": {
+					"port": 15090
+				}
+			}
+		]
+	}
+}
