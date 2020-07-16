@@ -457,7 +457,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
 	}
-	if rawc.LocalAddr().Network() == "udp" {
+	if strings.Contains(rawc.LocalAddr().Network(), "udp") {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
@@ -496,7 +496,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	if conn.LocalAddr().Network() == "udp" {
+	if strings.Contains(conn.LocalAddr().Network(), "udp") {
 		network.SetUdpProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
 	}
 

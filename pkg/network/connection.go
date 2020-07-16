@@ -449,10 +449,11 @@ func (c *connection) transferWrite(id uint64) {
 }
 
 func (c *connection) setReadDeadline() {
-	if c.network == "tcp" {
-		c.rawConnection.SetReadDeadline(time.Now().Add(buffer.ConnReadTimeout))
-	} else {
+	switch c.network {
+	case "udp", "udp4", "udp6":
 		c.rawConnection.SetReadDeadline(time.Now().Add(types.DefaultUDPIdleTimeout))
+	default:
+		c.rawConnection.SetReadDeadline(time.Now().Add(buffer.ConnReadTimeout))
 	}
 }
 
@@ -590,10 +591,11 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 }
 
 func (c *connection) setWriteDeadline() {
-	if c.network == "tcp" {
-		c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
-	} else {
+	switch c.network {
+	case "udp", "udp4", "udp6":
 		c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultUDPIdleTimeout))
+	default:
+		c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
 	}
 }
 
@@ -744,7 +746,7 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		bytesSent, err = tlsConn.WriteTo(&buffers)
 	} else {
 		//todo: writev(runtime) has memroy leak.
-		if c.network == "tcp" {
+		if strings.Contains(c.network, "tcp") {
 			bytesSent, err = buffers.WriteTo(c.rawConnection)
 		} else {
 			var addr *net.UDPAddr
@@ -835,7 +837,7 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		rawc.CloseRead()
 	}
 
-	if c.RawConn().RemoteAddr() == nil {
+	if strings.Contains(c.network, "udp") && c.RawConn().RemoteAddr() == nil {
 		key := GetProxyMapKey(c.localAddr.String(), c.remoteAddr.String())
 		DelUdpProxyMap(key)
 	}

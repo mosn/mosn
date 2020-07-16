@@ -386,13 +386,12 @@ func NewProxyConfig(config *v2.StreamProxy) ProxyConfig {
 }
 
 func (pc *proxyConfig) GetIdleTimeout(network string) time.Duration {
-	log.DefaultLogger.Debugf("proxy config idletimeout:%d", *pc.idleTimeout)
 	if pc.idleTimeout != nil {
 		return *pc.idleTimeout
-	} else if network == "tcp" {
-		return types.DefaultIdleTimeout
-	} else {
+	} else if strings.Contains(network, "udp") {
 		return types.DefaultUDPIdleTimeout
+	} else {
+		return types.DefaultIdleTimeout
 	}
 }
 
