@@ -66,9 +66,8 @@ type accesslog struct {
 }
 
 type logEntry struct {
-	text     string
-	name     string
-	variable variable.Variable
+	text string
+	name string
 }
 
 func (le *logEntry) log(ctx context.Context, buf buffer.IoBuffer) {
@@ -153,14 +152,11 @@ func parseFormat(format string) ([]*logEntry, error) {
 					}
 
 					// var def ends, add variable
-					varEntry, err := variable.AddVariable(format[lastMark+1 : pos])
+					_, err := variable.AddVariable(format[lastMark+1 : pos])
 					if err != nil {
 						return nil, err
 					}
-					entries = append(entries, &logEntry{
-						variable: varEntry,
-						name:     format[lastMark+1 : pos],
-					})
+					entries = append(entries, &logEntry{name: format[lastMark+1 : pos]})
 				} else {
 					// ignore empty text
 					if pos > lastMark+1 {
