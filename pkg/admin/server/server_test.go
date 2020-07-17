@@ -97,16 +97,16 @@ func getGlobalStats(port uint32) (string, error) {
 	return string(b), nil
 }
 
-func getLoggerLevel(port uint32) ([]byte, error) {
-	url := fmt.Sprintf("http://localhost:%d/api/v1/get_loglevel", port)
+func getLoggerLevel() ([]byte, error) {
+	url := "http://localhost:8889/api/v1/get_loglevel"
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
-
+	err = errors.New("get logger info failed")
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.New("get logger info failed")
+		return nil, err
 	}
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -383,7 +383,7 @@ func TestGetLogger(t *testing.T) {
 	if err != nil {
 		t.Fatal("create logger failed")
 	}
-	logInfo, err := getLoggerLevel(config.Port)
+	logInfo, err := getLoggerLevel()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -412,8 +412,7 @@ func TestUpdateLogger(t *testing.T) {
 	if err != nil {
 		t.Fatal("create logger failed")
 	}
-
-	logInfo, err := getLoggerLevel(config.Port)
+	logInfo, err := getLoggerLevel()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -434,8 +433,7 @@ func TestUpdateLogger(t *testing.T) {
 	if logger.GetLogLevel() != log.ERROR {
 		t.Errorf("update logger success, but logger level is not expected: %v", logger.GetLogLevel())
 	}
-
-	logInfo, err = getLoggerLevel(config.Port)
+	logInfo, err = getLoggerLevel()
 	if err != nil {
 		t.Fatal(err)
 	}
