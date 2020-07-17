@@ -79,16 +79,16 @@ func (mng *serverContextManager) GetConfigForClient(info *tls.ClientHelloInfo) (
 			defaultProvider = provider
 		}
 		if provider.MatchedServerName(info.ServerName) {
-			return provider.GetTLSConfig(false), nil
+			return provider.GetTLSConfigContext(false).Config(), nil
 		}
 		if provider.MatchedALPN(info.SupportedProtos) {
-			return provider.GetTLSConfig(false), nil
+			return provider.GetTLSConfigContext(false).Config(), nil
 		}
 	}
 	if defaultProvider == nil {
 		return nil, ErrorNoCertConfigure
 	}
-	return defaultProvider.GetTLSConfig(false), nil
+	return defaultProvider.GetTLSConfigContext(false).Config(), nil
 }
 
 func (mng *serverContextManager) Conn(c net.Conn) (net.Conn, error) {
@@ -132,6 +132,16 @@ func (mng *serverContextManager) Enabled() bool {
 	return false
 }
 
+// The serverContextManager's HashValue is not used in mosn.
+// maybe we will use it later.
+func (mng *serverContextManager) HashValue() *types.HashValue {
+	if len(mng.providers) == 0 {
+		return nil
+	}
+	p := mng.providers[0]
+	return p.GetTLSConfigContext(false).HashValue()
+}
+
 type clientContextManager struct {
 	// client support only one certificate
 	provider types.TLSProvider
@@ -157,10 +167,19 @@ func (mng *clientContextManager) Conn(c net.Conn) (net.Conn, error) {
 		return c, nil
 	}
 	return &TLSConn{
-		tls.Client(c, mng.provider.GetTLSConfig(true)),
+		tls.Client(c, mng.provider.GetTLSConfigContext(true).Config()),
 	}, nil
 }
 
 func (mng *clientContextManager) Enabled() bool {
 	return mng.provider != nil && mng.provider.Ready()
+}
+
+// if the provider is not ready, the hash value returns nil.
+func (mng *clientContextManager) HashValue() *types.HashValue {
+	if mng.provider == nil {
+		return nil
+	}
+	return mng.provider.GetTLSConfigContext(true).HashValue()
+
 }
