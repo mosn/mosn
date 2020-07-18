@@ -41,6 +41,9 @@ type ClusterManager interface {
 	// Add Cluster health check callbacks
 	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) error
 
+	// GetAllClusters returns all cluster name in the cluster manager
+	GetAllClusters() []string
+
 	// Get, use to get the snapshot of a cluster
 	GetClusterSnapshot(context context.Context, cluster string) ClusterSnapshot
 
@@ -124,7 +127,11 @@ type Host interface {
 
 	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
+	// SetClusterInfo updates the host's cluster info
+	SetClusterInfo(info ClusterInfo)
 
+	// TLS HashValue effects the host support tls state
+	TLSHashValue() *HashValue
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
