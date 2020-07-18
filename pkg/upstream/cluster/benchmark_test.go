@@ -18,11 +18,15 @@
 package cluster
 
 import (
+	"context"
+	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -47,6 +51,40 @@ func BenchmarkHostConfig(b *testing.B) {
 			host.Config()
 		}
 	})
+}
+
+func BenchmarkAddOrUpdateCluster(b *testing.B) {
+	_createClusterManager()
+	adapter := GetClusterMngAdapterInstance()
+	// host count: 100, 500, 1000, 5000, 20000
+	for _, count := range []int{100, 500, 1000, 5000, 20000} {
+		pool := makePool(count)
+		hosts := make([]v2.Host, 0, count)
+		for i := 0; i < count; i++ {
+			h := v2.Host{
+				HostConfig: v2.HostConfig{
+					Address: pool.Get(),
+				},
+			}
+			hosts = append(hosts, h)
+		}
+		if err := adapter.UpdateClusterHosts("test1", hosts); err != nil {
+			b.Fatal("prepare cluster failed")
+		}
+		c := v2.Cluster{
+			Name:   "test1",
+			LbType: v2.LB_RANDOM,
+			TLS: v2.TLSConfig{
+				Status:       true,
+				InsecureSkip: true,
+			},
+		}
+		b.Run(fmt.Sprintf("update_count:%d", count), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				adapter.AddOrUpdatePrimaryCluster(c)
+			}
+		})
+	}
 }
 
 func BenchmarkUpdateClusterHosts(b *testing.B) {
@@ -329,4 +367,90 @@ func BenchmarkSubsetLB(b *testing.B) {
 			}
 		})
 	})
+}
+
+func BenchmarkMaglevLB(b *testing.B) {
+	hostSet := getMockHostSet(20000)
+	mgvLb := newMaglevLoadBalancer(nil, hostSet)
+
+	testProtocol := types.ProtocolName("SomeProtocol")
+	mockRoute := &mockRoute{
+		routeRule: &mockRouteRule{
+			policy: &mockPolicy{
+				hashPolicy: &mockHashPolicy{},
+			},
+		},
+	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	lbctx := &mockLbContext{
+		context: ctx,
+		route:   mockRoute,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = mgvLb.ChooseHost(lbctx)
+	}
+}
+
+func BenchmarkMaglevLBParallel(b *testing.B) {
+	hostSet := getMockHostSet(20000)
+	mgvLb := newMaglevLoadBalancer(nil, hostSet)
+
+	testProtocol := types.ProtocolName("SomeProtocol")
+	mockRoute := &mockRoute{
+		routeRule: &mockRouteRule{
+			policy: &mockPolicy{
+				hashPolicy: &mockHashPolicy{},
+			},
+		},
+	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	lbctx := &mockLbContext{
+		context: ctx,
+		route:   mockRoute,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_ = mgvLb.ChooseHost(lbctx)
+		}
+	})
+}
+
+func BenchmarkMaglevLBFallback(b *testing.B) {
+	hostSet := getMockHostSet(20000)
+	mgvLb := newMaglevLoadBalancer(nil, hostSet)
+
+	// make sure 0 index hasn -> host-15748 is unhealthy, to ensure fallback
+	hostSet.Hosts()[15748].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	// randomly set 10000 of 20000 host unhealthy
+	rand.Seed(0)
+	for i := 0; i < 10000; i++ {
+		randIndex := rand.Intn(19999)
+		hostSet.Hosts()[randIndex].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	}
+
+	testProtocol := types.ProtocolName("SomeProtocol")
+	mockRoute := &mockRoute{
+		routeRule: &mockRouteRule{
+			policy: &mockPolicy{
+				hashPolicy: &mockHashPolicy{},
+			},
+		},
+	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	lbctx := &mockLbContext{
+		context: ctx,
+		route:   mockRoute,
+	}
+
+	b.ResetTimer()
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = mgvLb.ChooseHost(lbctx)
+	}
 }

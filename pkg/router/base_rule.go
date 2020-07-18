@@ -18,17 +18,19 @@
 package router
 
 import (
+	"context"
 	"math/rand"
 	"strings"
 	"sync"
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
 type RouteRuleImplBase struct {
@@ -40,7 +42,8 @@ type RouteRuleImplBase struct {
 	// rewrite
 	prefixRewrite         string
 	hostRewrite           string
-	autoHostRewrite       bool // TODO: not implement yet
+	autoHostRewrite       bool
+	autoHostRewriteHeader string
 	requestHeadersParser  *headerParser
 	responseHeadersParser *headerParser
 	// information
@@ -67,6 +70,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		prefixRewrite:         route.Route.PrefixRewrite,
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
+		autoHostRewriteHeader: route.Route.AutoHostRewriteHeader,
 		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		upstreamProtocol:      route.Route.UpstreamProtocol,
@@ -90,6 +94,26 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			retryTimeout: route.Route.RetryPolicy.RetryTimeout,
 			numRetries:   route.Route.RetryPolicy.NumRetries,
 		}
+	}
+	// add hash policy
+	if route.Route.HashPolicy != nil && len(route.Route.HashPolicy) >= 1 {
+		hp := route.Route.HashPolicy[0]
+		if hp.Header != nil {
+			base.policy.hashPolicy = &headerHashPolicyImpl{
+				key: hp.Header.Key,
+			}
+		}
+		if hp.Cookie != nil {
+			base.policy.hashPolicy = &cookieHashPolicyImpl{
+				name: hp.Cookie.Name,
+				path: hp.Cookie.Path,
+				ttl:  hp.Cookie.TTL,
+			}
+		}
+	}
+	// use source ip hash policy as default hash policy
+	if base.policy.hashPolicy == nil {
+		base.policy.hashPolicy = &sourceIPHashPolicyImpl{}
 	}
 	// add direct repsonse rule
 	if route.DirectResponse != nil {
@@ -166,14 +190,16 @@ func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint
 		return false
 	}
 	// 2. match query parameters
-	var queryParams types.QueryParams
-	if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
-		queryParams = httpmosn.ParseQueryString(QueryString)
-	}
-	if len(queryParams) != 0 {
-		if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
-			return false
+	if len(rri.configQueryParameters) != 0 {
+		var queryParams types.QueryParams
+		if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
+			queryParams = httpmosn.ParseQueryString(QueryString)
+		}
+		if len(queryParams) != 0 {
+			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
+				log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
+				return false
+			}
 		}
 	}
 	return true
@@ -202,6 +228,17 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers api.HeaderMap, requ
 	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
 		headers.Set(protocol.IstioHeaderHostKey, rri.hostRewrite)
+	} else if len(rri.autoHostRewriteHeader) > 0 {
+		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
+			headers.Set(protocol.IstioHeaderHostKey, headerValue)
+		}
+	} else if rri.autoHostRewrite {
+
+		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.routerAction.ClusterName)
+		if clusterSnapshot != nil && (clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER) {
+			headers.Set(protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
+		}
+
 	}
 }
 

@@ -42,7 +42,7 @@ func init() {
 type connPool struct {
 	activeClient *activeClient
 	host         atomic.Value
-	supportTLS   bool
+	tlsHash      *types.HashValue
 
 	mux sync.Mutex
 }
@@ -50,14 +50,14 @@ type connPool struct {
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
 	pool := &connPool{
-		supportTLS: host.SupportTLS(),
+		tlsHash: host.TLSHashValue(),
 	}
 	pool.host.Store(host)
 	return pool
 }
 
-func (p *connPool) SupportTLS() bool {
-	return p.supportTLS
+func (p *connPool) TLSHashValue() *types.HashValue {
+	return p.tlsHash
 }
 
 func (p *connPool) Protocol() types.ProtocolName {
@@ -156,7 +156,6 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 	} else if event == api.ConnectTimeout {
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		client.client.Close()
 	} else if event == api.ConnectFailed {
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
@@ -208,17 +207,18 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	host := pool.Host()
 	data := host.CreateConnection(ctx)
+	data.Connection.AddConnectionEventListener(ac)
+	if err := data.Connection.Connect(); err != nil {
+		log.DefaultLogger.Debugf("http2 underlying connection error: %v", err)
+		return nil
+	}
+
 	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
-	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient
 	ac.host = data
-
-	if err := ac.host.Connection.Connect(); err != nil {
-		return nil
-	}
 
 	host.HostStats().UpstreamConnectionTotal.Inc(1)
 	host.HostStats().UpstreamConnectionActive.Inc(1)

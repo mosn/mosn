@@ -29,6 +29,7 @@ import (
 	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 )
@@ -53,10 +54,13 @@ func refreshHostsConfig(c types.Cluster) {
 	}
 }
 
+const globalTLSMetrics = "global"
+
 // types.ClusterManager
 type clusterManager struct {
 	clustersMap      sync.Map
 	protocolConnPool sync.Map
+	tlsMetrics       *mtls.TLSStats
 	mux              sync.Mutex
 }
 
@@ -79,7 +83,9 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	if clusterManagerInstance.clusterManager != nil {
 		return clusterManagerInstance
 	}
-	clusterManagerInstance.clusterManager = &clusterManager{}
+	clusterManagerInstance.clusterManager = &clusterManager{
+		tlsMetrics: mtls.NewStats(globalTLSMetrics),
+	}
 	for k := range types.ConnPoolFactories {
 		clusterManagerInstance.protocolConnPool.Store(k, &sync.Map{})
 	}
@@ -100,7 +106,7 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 }
 
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
-// if the same name cluster is already exists, we will keep the exists hosts, and use rcu to update it.
+// if the same name cluster is already exists, we will keep the exists hosts.
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	// new cluster
 	newCluster := NewCluster(cluster)
@@ -128,6 +134,9 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 
 		// sync newResourceManager value to oldResourceManager value
 		updateResourceValue(oldResourceManager, newResourceManager)
+		for _, host := range hosts {
+			host.SetClusterInfo(newSnap.ClusterInfo()) // update host cluster info
+		}
 
 		// update hosts, refresh
 		newCluster.UpdateHosts(hosts)
@@ -248,8 +257,17 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 	return nil
 }
 
+func (cm *clusterManager) GetAllClusters() []string {
+	var names []string
+	cm.clustersMap.Range(func(key, value interface{}) bool {
+		name, _ := key.(string)
+		names = append(names, name)
+		return true
+	})
+	return names
+}
+
 // GetClusterSnapshot returns cluster snap
-// do not needs PutClusterSnapshot any more
 func (cm *clusterManager) GetClusterSnapshot(ctx context.Context, clusterName string) types.ClusterSnapshot {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
@@ -345,10 +363,11 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		}
 		pool, loaded := loadOrStoreConnPool()
 		if loaded {
-			if pool.SupportTLS() != host.SupportTLS() {
+			if !pool.TLSHashValue().Equal(host.TLSHashValue()) {
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				}
+				cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
 				func() {
 					// lock the load and delete
 					cm.mux.Lock()
@@ -356,7 +375,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 					// recheck whether the pool is changed
 					if connPool, ok := connectionPool.Load(addr); ok {
 						pool = connPool.(types.ConnectionPool)
-						if pool.SupportTLS() == host.SupportTLS() {
+						if pool.TLSHashValue().Equal(host.TLSHashValue()) {
 							return
 						}
 						connectionPool.Delete(addr)

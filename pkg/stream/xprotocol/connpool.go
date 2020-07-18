@@ -53,20 +53,20 @@ type connPool struct {
 	activeClients sync.Map //sub protocol -> activeClient
 	host          atomic.Value
 	mux           sync.Mutex
-	supportTLS    bool
+	tlsHash       *types.HashValue
 }
 
 // NewConnPool
 func NewConnPool(host types.Host) types.ConnectionPool {
 	p := &connPool{
-		supportTLS: host.SupportTLS(),
+		tlsHash: host.TLSHashValue(),
 	}
 	p.host.Store(host)
 	return p
 }
 
-func (p *connPool) SupportTLS() bool {
-	return p.supportTLS
+func (p *connPool) TLSHashValue() *types.HashValue {
+	return p.tlsHash
 }
 
 func (p *connPool) init(client *activeClient, sub types.ProtocolName) {

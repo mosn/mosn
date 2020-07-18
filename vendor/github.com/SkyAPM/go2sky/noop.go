@@ -20,7 +20,7 @@ package go2sky
 import (
 	"time"
 
-	"github.com/SkyAPM/go2sky/reporter/grpc/common"
+	v3 "github.com/SkyAPM/go2sky/reporter/grpc/language-agent"
 )
 
 type NoopSpan struct {
@@ -36,7 +36,7 @@ func (*NoopSpan) GetOperationName() string {
 func (*NoopSpan) SetPeer(string) {
 }
 
-func (*NoopSpan) SetSpanLayer(common.SpanLayer) {
+func (*NoopSpan) SetSpanLayer(v3.SpanLayer) {
 }
 
 func (*NoopSpan) SetComponent(int32) {

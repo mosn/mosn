@@ -19,23 +19,29 @@ package server
 
 import (
 	"bufio"
-	rawjson "encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	rawjson "encoding/json"
+	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/store"
 	mv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/xds/conv"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -68,6 +74,22 @@ func getStats(port uint32) (string, error) {
 		return "", errors.New(fmt.Sprintf("call admin api failed response status: %d, %s", resp.StatusCode, string(b)))
 	}
 
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func getGlobalStats(port uint32) (string, error) {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/api/v1/stats_glob", port))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New(fmt.Sprintf("call admin api failed response status: %d, %s", resp.StatusCode, string(b)))
+	}
 	if err != nil {
 		return "", err
 	}
@@ -139,6 +161,45 @@ func getMosnState(port uint32) (pid int, state store.State, err error) {
 	stateInt, _ := strconv.Atoi(stateStr)
 	state = store.State(stateInt)
 	return pid, state, nil
+}
+
+func getMosnStateForIstio(port uint32) (state envoy_admin_v2alpha.ServerInfo_State, err error) {
+	url := fmt.Sprintf("http://localhost:%d/server_info", port)
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 0, errors.New("get mosn states for istio failed")
+	}
+
+	serverInfo := envoy_admin_v2alpha.ServerInfo{}
+	err = jsonpb.Unmarshal(resp.Body, &serverInfo)
+	if err != nil {
+		return 0, err
+	}
+
+	return serverInfo.GetState(), nil
+}
+
+func getStatsForIstio(port uint32) (statsInfo string, err error) {
+	url := fmt.Sprintf("http://localhost:%d/stats", port)
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New("get mosn stats for istio failed")
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
 
 type mockMOSNConfig struct {
@@ -228,7 +289,62 @@ func TestDumpStats(t *testing.T) {
 			t.Errorf("unexpected stats: %s\n", data)
 		}
 	}
+
+	stats1, _ := metrics.NewMetrics("downstream", map[string]string{"proxy": "global"})
+	stats1.Counter("ct1").Inc(1)
+	stats1.Gauge("gg2").Update(3)
+	expected_string := "ct1:1\ngg2:3\n"
+	if data, err := getGlobalStats(config.Port); err != nil {
+		t.Error(err)
+	} else {
+		want := strings.Split(expected_string, "\n")
+		got := strings.Split(data, "\n")
+		sort.Strings(want)
+		sort.Strings(got)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("unexpected stats: %s\n", data)
+		}
+	}
+
 	store.Reset()
+}
+
+func TestDumpStatsForIstio(t *testing.T) {
+	time.Sleep(time.Second)
+	server := Server{}
+	config := &mockMOSNConfig{
+		Name: "mock",
+		Port: 8889,
+	}
+	server.Start(config)
+	store.StartService(nil)
+	defer store.StopService()
+
+	time.Sleep(time.Second) //wait server start
+
+	conv.InitStats()
+	conv.Stats.CdsUpdateSuccess.Inc(1)
+	conv.Stats.CdsUpdateReject.Inc(2)
+	conv.Stats.LdsUpdateSuccess.Inc(3)
+	conv.Stats.LdsUpdateReject.Inc(4)
+
+	statsForIstio, err := getStatsForIstio(config.Port)
+	if err != nil {
+		t.Error("get stats for istio failed")
+	}
+
+	match, _ := regexp.MatchString(fmt.Sprintf("%s: %d\n", CDS_UPDATE_SUCCESS, 1), statsForIstio)
+	match2, _ := regexp.MatchString(fmt.Sprintf("%s: %d\n", CDS_UPDATE_REJECT, 2), statsForIstio)
+	match3, _ := regexp.MatchString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_SUCCESS, 3), statsForIstio)
+	match4, _ := regexp.MatchString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_REJECT, 4), statsForIstio)
+
+	if !match ||
+		!match2 ||
+		!match3 ||
+		!match4 {
+		t.Error("wrong stats for istio output", match, match2, match3, match4)
+	}
+	//store.Reset()
 }
 
 func TestUpdateLogger(t *testing.T) {
@@ -329,29 +445,102 @@ func TestGetState(t *testing.T) {
 	if err != nil {
 		t.Fatal("get mosn states failed")
 	}
+	stateForIstio, err := getMosnStateForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn states for istio failed")
+	}
+	stats, err := getStatsForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn stats for istio failed")
+	}
+
 	// reconfiguring
 	store.SetMosnState(store.Passive_Reconfiguring)
 	pid2, state2, err := getMosnState(config.Port)
 	if err != nil {
 		t.Fatal("get mosn states failed")
 	}
+	stateForIstio2, err := getMosnStateForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn states for istio failed")
+	}
+	stats2, err := getStatsForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn stats for istio failed")
+	}
+
 	// running
 	store.SetMosnState(store.Running)
 	pid3, state3, err := getMosnState(config.Port)
 	if err != nil {
 		t.Fatal("get mosn states failed")
 	}
+	stateForIstio3, err := getMosnStateForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn states for istio failed")
+	}
+	stats3, err := getStatsForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn stats for istio failed")
+	}
+
+	// active reconfiguring
+	store.SetMosnState(store.Active_Reconfiguring)
+	pid4, state4, err := getMosnState(config.Port)
+	if err != nil {
+		t.Fatal("get mosn states failed")
+	}
+	stateForIstio4, err := getMosnStateForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn states for istio failed")
+	}
+	stats4, err := getStatsForIstio(config.Port)
+	if err != nil {
+		t.Fatal("get mosn stats for istio failed")
+	}
+
 	// verify
 	curPid := os.Getpid()
 	if !(pid == curPid &&
 		pid2 == curPid &&
-		pid3 == curPid) {
-		t.Error("mosn pid is not expected", pid, pid2, pid3)
+		pid3 == curPid &&
+		pid4 == curPid) {
+		t.Error("mosn pid is not expected", pid, pid2, pid3, pid4)
 	}
 	if !(state == store.Init &&
 		state2 == store.Passive_Reconfiguring &&
-		state3 == store.Running) {
-		t.Error("mosn state is not expected", state, state2, state3)
+		state3 == store.Running &&
+		state4 == store.Active_Reconfiguring) {
+		t.Error("mosn state is not expected", state, state2, state3, state4)
+	}
+	if !(stateForIstio == envoy_admin_v2alpha.ServerInfo_INITIALIZING &&
+		stateForIstio2 == envoy_admin_v2alpha.ServerInfo_DRAINING &&
+		stateForIstio3 == envoy_admin_v2alpha.ServerInfo_LIVE &&
+		stateForIstio4 == envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING) {
+		t.Error("mosn state for istio is not expected", stateForIstio, stateForIstio2, stateForIstio3, stateForIstio4)
+	}
+	prefix := fmt.Sprintf("%s: ", SERVER_STATE)
+	stateMatched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_INITIALIZING), stats)
+	if err != nil {
+		t.Errorf("regex match err %v", err)
+	}
+	state2Matched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_DRAINING), stats2)
+	if err != nil {
+		t.Errorf("regex match err %v", err)
+	}
+	state3Matched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_LIVE), stats3)
+	if err != nil {
+		t.Errorf("regex match err %v", err)
+	}
+	state4Matched, err := regexp.MatchString(fmt.Sprintf("%s%d", prefix, envoy_admin_v2alpha.ServerInfo_PRE_INITIALIZING), stats4)
+	if err != nil {
+		t.Errorf("regex match err %v", err)
+	}
+	if !(stateMatched &&
+		state2Matched &&
+		state3Matched &&
+		state4Matched) {
+		t.Error("mosn state is not expected", state, state2, state3, state4)
 	}
 }
 
@@ -395,6 +584,8 @@ func TestHelpAPI(t *testing.T) {
 		"/api/v1/enable_log":      enableLogger,
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,
+		"/stats":                  statsForIstio,
+		"/server_info":            serverInfoForIstio,
 	}
 	time.Sleep(time.Second)
 	server := Server{}
@@ -427,7 +618,7 @@ func TestHelpAPI(t *testing.T) {
 		s := query(t, addr)
 		s = strings.TrimSuffix(s, "\n")
 		apis := strings.Split(s, "\n")[1:] // the first line is "support apis:"
-		if len(apis) != 6 {                // exclued "/"
+		if len(apis) != 8 {                // exclued "/"
 			t.Errorf("apis count is not expected: %v, length is %d", apis, len(apis))
 		}
 	}

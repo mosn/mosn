@@ -1,6 +1,6 @@
 # bou.ke/monkey v1.0.2
 bou.ke/monkey
-# github.com/SkyAPM/go2sky v0.3.1-0.20200329092408-8b3e4d536d8d
+# github.com/SkyAPM/go2sky v0.5.0
 github.com/SkyAPM/go2sky
 github.com/SkyAPM/go2sky/internal/idgen
 github.com/SkyAPM/go2sky/internal/tool
@@ -8,11 +8,11 @@ github.com/SkyAPM/go2sky/plugins/http
 github.com/SkyAPM/go2sky/propagation
 github.com/SkyAPM/go2sky/reporter
 github.com/SkyAPM/go2sky/reporter/grpc/common
-github.com/SkyAPM/go2sky/reporter/grpc/language-agent-v2
-github.com/SkyAPM/go2sky/reporter/grpc/register
+github.com/SkyAPM/go2sky/reporter/grpc/language-agent
+github.com/SkyAPM/go2sky/reporter/grpc/management
 # github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 github.com/StackExchange/wmi
-# github.com/TarsCloud/TarsGo v0.0.0-20181112071624-2d42457f2025
+# github.com/TarsCloud/TarsGo v0.0.0-20190521041003-0022231bc5b2
 github.com/TarsCloud/TarsGo/tars
 github.com/TarsCloud/TarsGo/tars/model
 github.com/TarsCloud/TarsGo/tars/protocol/codec
@@ -33,6 +33,7 @@ github.com/TarsCloud/TarsGo/tars/util/current
 github.com/TarsCloud/TarsGo/tars/util/debug
 github.com/TarsCloud/TarsGo/tars/util/endpoint
 github.com/TarsCloud/TarsGo/tars/util/gpool
+github.com/TarsCloud/TarsGo/tars/util/grace
 github.com/TarsCloud/TarsGo/tars/util/rogger
 github.com/TarsCloud/TarsGo/tars/util/rtimer
 github.com/TarsCloud/TarsGo/tars/util/set
@@ -49,6 +50,8 @@ github.com/alibaba/sentinel-golang/core/stat/base
 github.com/alibaba/sentinel-golang/core/system
 github.com/alibaba/sentinel-golang/logging
 github.com/alibaba/sentinel-golang/util
+# github.com/andybalholm/brotli v1.0.0
+github.com/andybalholm/brotli
 # github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d
 github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java_exception
@@ -56,8 +59,15 @@ github.com/apache/dubbo-go-hessian2/java_exception
 github.com/beorn7/perks/quantile
 # github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 github.com/c2h5oh/datasize
+# github.com/census-instrumentation/opencensus-proto v0.2.1
+github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1
+github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
+# github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f
+github.com/cncf/udpa/go/udpa/annotations
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
+# github.com/dchest/siphash v1.2.1
+github.com/dchest/siphash
 # github.com/dubbogo/getty v1.3.4
 github.com/dubbogo/getty
 # github.com/dubbogo/go-zookeeper v1.0.0
@@ -73,7 +83,9 @@ github.com/dubbogo/gost/runtime
 github.com/dubbogo/gost/sort
 github.com/dubbogo/gost/sync
 github.com/dubbogo/gost/time
-# github.com/envoyproxy/go-control-plane v0.8.0 => github.com/envoyproxy/go-control-plane v0.6.9
+# github.com/envoyproxy/go-control-plane v0.9.4 => github.com/envoyproxy/go-control-plane v0.9.4
+github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha
+github.com/envoyproxy/go-control-plane/envoy/annotations
 github.com/envoyproxy/go-control-plane/envoy/api/v2
 github.com/envoyproxy/go-control-plane/envoy/api/v2/auth
 github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster
@@ -86,16 +98,24 @@ github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/fault/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2
+github.com/envoyproxy/go-control-plane/envoy/config/filter/http/gzip/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2
+github.com/envoyproxy/go-control-plane/envoy/config/listener/v2
 github.com/envoyproxy/go-control-plane/envoy/config/metrics/v2
 github.com/envoyproxy/go-control-plane/envoy/config/overload/v2alpha
-github.com/envoyproxy/go-control-plane/envoy/config/ratelimit/v2
 github.com/envoyproxy/go-control-plane/envoy/config/trace/v2
+github.com/envoyproxy/go-control-plane/envoy/data/tap/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2
+github.com/envoyproxy/go-control-plane/envoy/service/tap/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/type
 github.com/envoyproxy/go-control-plane/envoy/type/matcher
-github.com/envoyproxy/go-control-plane/pkg/util
+github.com/envoyproxy/go-control-plane/envoy/type/metadata/v2
+github.com/envoyproxy/go-control-plane/envoy/type/tracing/v2
+github.com/envoyproxy/go-control-plane/pkg/conversion
+github.com/envoyproxy/go-control-plane/pkg/wellknown
+# github.com/envoyproxy/protoc-gen-validate v0.1.0
+github.com/envoyproxy/protoc-gen-validate/validate
 # github.com/go-chi/chi v4.1.0+incompatible
 github.com/go-chi/chi
 # github.com/go-ole/go-ole v1.2.4
@@ -108,10 +128,7 @@ github.com/go-playground/locales/currency
 github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.2.0
 github.com/go-playground/validator/v10
-# github.com/gogo/googleapis v1.2.0
-github.com/gogo/googleapis/google/api
-github.com/gogo/googleapis/google/rpc
-# github.com/gogo/protobuf v1.2.1
+# github.com/gogo/protobuf v1.3.1
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/proto
@@ -125,8 +142,10 @@ github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
+github.com/golang/protobuf/ptypes/empty
 github.com/golang/protobuf/ptypes/struct
 github.com/golang/protobuf/ptypes/timestamp
+github.com/golang/protobuf/ptypes/wrappers
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/google/uuid v1.1.1
@@ -148,12 +167,10 @@ github.com/jinzhu/copier
 github.com/json-iterator/go
 # github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9
 github.com/juju/errors
-# github.com/klauspost/compress v1.7.5
+# github.com/klauspost/compress v1.10.4
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
-# github.com/klauspost/cpuid v1.2.1
-github.com/klauspost/cpuid
 # github.com/leodido/go-urn v1.2.0
 github.com/leodido/go-urn
 # github.com/lyft/protoc-gen-validate v0.0.14
@@ -174,7 +191,7 @@ github.com/modern-go/reflect2
 github.com/mosn/binding
 github.com/mosn/binding/internal/bytesconv
 github.com/mosn/binding/internal/json
-# github.com/mosn/registry v0.0.0-20200526023644-724ef3b6e9d6
+# github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
 github.com/mosn/registry/dubbo
 github.com/mosn/registry/dubbo/common
 github.com/mosn/registry/dubbo/common/constant
@@ -196,7 +213,7 @@ github.com/pmezard/go-difflib/difflib
 github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
-# github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
+# github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
 github.com/prometheus/client_model/go
 # github.com/prometheus/common v0.6.0
 github.com/prometheus/common/expfmt
@@ -215,13 +232,15 @@ github.com/shirou/gopsutil/internal/common
 github.com/shirou/gopsutil/load
 # github.com/stretchr/testify v1.5.1
 github.com/stretchr/testify/assert
+# github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
+github.com/trainyao/go-maglev
 # github.com/ugorji/go/codec v1.1.7
 github.com/ugorji/go/codec
 # github.com/urfave/cli v1.20.0
 github.com/urfave/cli
 # github.com/valyala/bytebufferpool v1.0.0
 github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v1.2.0
+# github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/stackless
@@ -250,7 +269,7 @@ golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
+# golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/http/httpguts
@@ -263,8 +282,9 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/trace
-# golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
+# golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.2
@@ -272,10 +292,13 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64
+# google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.22.1
+# google.golang.org/grpc v1.28.0
 google.golang.org/grpc
+google.golang.org/grpc/attributes
+google.golang.org/grpc/backoff
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base
 google.golang.org/grpc/balancer/roundrobin
@@ -293,10 +316,15 @@ google.golang.org/grpc/internal
 google.golang.org/grpc/internal/backoff
 google.golang.org/grpc/internal/balancerload
 google.golang.org/grpc/internal/binarylog
+google.golang.org/grpc/internal/buffer
 google.golang.org/grpc/internal/channelz
 google.golang.org/grpc/internal/envconfig
+google.golang.org/grpc/internal/grpclog
 google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
+google.golang.org/grpc/internal/grpcutil
+google.golang.org/grpc/internal/resolver/dns
+google.golang.org/grpc/internal/resolver/passthrough
 google.golang.org/grpc/internal/syscall
 google.golang.org/grpc/internal/transport
 google.golang.org/grpc/keepalive
@@ -304,8 +332,6 @@ google.golang.org/grpc/metadata
 google.golang.org/grpc/naming
 google.golang.org/grpc/peer
 google.golang.org/grpc/resolver
-google.golang.org/grpc/resolver/dns
-google.golang.org/grpc/resolver/passthrough
 google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
@@ -314,10 +340,13 @@ google.golang.org/grpc/tap
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
-# istio.io/api v0.0.0-20190408162927-e9ab8d6a54a6
+# istio.io/api v0.0.0-20200227213531-891bf31f3c32
 istio.io/api/mixer/v1
 istio.io/api/mixer/v1/config/client
-# mosn.io/api v0.0.0-20200416082846-2e7ce9a85557
+# istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a
+istio.io/gogo-genproto/googleapis/google/api
+istio.io/gogo-genproto/googleapis/google/rpc
+# mosn.io/api v0.0.0-20200615113625-8eedc8a88c20
 mosn.io/api
 # mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
 mosn.io/pkg/buffer

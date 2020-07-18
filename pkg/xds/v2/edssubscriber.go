@@ -19,6 +19,7 @@ package v2
 
 import (
 	"errors"
+	"github.com/golang/protobuf/ptypes"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -53,11 +54,11 @@ func (c *ADSClient) reqEndpoints(streamClient ads.AggregatedDiscoveryService_Str
 func (c *ADSClient) handleEndpointsResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.ClusterLoadAssignment {
 	lbAssignments := make([]*envoy_api_v2.ClusterLoadAssignment, 0, len(resp.Resources))
 	for _, res := range resp.Resources {
-		lbAssignment := envoy_api_v2.ClusterLoadAssignment{}
-		if err := lbAssignment.Unmarshal(res.GetValue()); err != nil {
+		lbAssignment := &envoy_api_v2.ClusterLoadAssignment{}
+		if err := ptypes.UnmarshalAny(res, lbAssignment); err != nil {
 			log.DefaultLogger.Errorf("ADSClient unmarshal lbAssignment fail: %v", err)
 		}
-		lbAssignments = append(lbAssignments, &lbAssignment)
+		lbAssignments = append(lbAssignments, lbAssignment)
 	}
 	return lbAssignments
 }

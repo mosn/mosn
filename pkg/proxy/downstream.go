@@ -30,7 +30,7 @@ import (
 
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -193,6 +193,13 @@ func (s *downStream) cleanStream() {
 		return
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			log.Proxy.Errorf(s.context, "[proxy] [downstream] cleanStream panic: %v, downstream: %+v, streamID: %d\n%s",
+				r, s, s.ID, string(debug.Stack()))
+		}
+	}()
+
 	s.requestInfo.SetRequestFinishedDuration(time.Now())
 
 	// reset corresponding upstream stream
@@ -256,6 +263,9 @@ func (s *downStream) requestMetrics() {
 
 		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
+
+		s.proxy.stats.DownstreamUpdateRequestCode(s.requestInfo.ResponseCode())
+		s.proxy.listenerStats.DownstreamUpdateRequestCode(s.requestInfo.ResponseCode())
 
 		if s.isRequestFailed() {
 			s.proxy.stats.DownstreamRequestFailed.Inc(1)
@@ -334,6 +344,7 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
+	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamHeaders, headers)
 	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 
@@ -350,7 +361,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 					r, s, id, s.ID, string(debug.Stack()))
 
 				if id == s.ID {
-					s.delete()
+					s.cleanStream()
 				}
 			}
 		}()
@@ -1375,6 +1386,10 @@ func (s *downStream) DownstreamContext() context.Context {
 
 func (s *downStream) DownstreamCluster() types.ClusterInfo {
 	return s.cluster
+}
+
+func (s *downStream) DownstreamRoute() api.Route {
+	return s.route
 }
 
 func (s *downStream) giveStream() {

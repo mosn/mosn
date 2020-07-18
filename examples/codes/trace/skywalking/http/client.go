@@ -39,7 +39,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("create tracer error %v \n", err)
 	}
-	tracer.WaitUntilRegister()
 
 	client, err := httpPlugin.NewClient(tracer)
 	if err != nil {

@@ -70,8 +70,7 @@
     "config": {
       "reporter": "gRPC",
       "backend_service": "127.0.0.1:11800",
-      "service_name": "MOSN",
-      "with_register": true
+      "service_name": "MOSN"
     }
   },
   "admin": {
