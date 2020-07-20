@@ -38,11 +38,10 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
+	github.com/wasmerio/go-ext-wasm v0.3.1
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
-	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
-	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
