@@ -19,6 +19,7 @@ package extract
 
 import (
 	"encoding/base64"
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -71,7 +72,7 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		if addr != nil {
 			ip, _, ret := getIPPort(addr.String())
 			if ret {
-				v := []byte(ip)
+				v := net.ParseIP(ip)
 				e.extracted[utils.KOriginIP] = v
 				return v, true
 			}
@@ -99,7 +100,7 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 			address := hostInfo.AddressString()
 			ip, port, ret := getIPPort(address)
 			if ret {
-				e.extracted[utils.KDestinationIP] = []byte(ip)
+				e.extracted[utils.KDestinationIP] = net.ParseIP(ip)
 				e.extracted[utils.KDestinationPort] = int64(port)
 				return e.extracted[name], true
 			}
