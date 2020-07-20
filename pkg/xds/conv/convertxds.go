@@ -1294,9 +1294,13 @@ func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.Host {
 	}
 	hostsWithMetaData := make([]v2.Host, 0, len(xdsHosts))
 	for _, xdsHost := range xdsHosts {
+		address := convertAddress(xdsHost)
+		if address == nil {
+			continue
+		}
 		hostWithMetaData := v2.Host{
 			HostConfig: v2.HostConfig{
-				Address: convertAddress(xdsHost).String(),
+				Address: address.String(),
 			},
 		}
 		hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)

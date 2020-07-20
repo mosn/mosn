@@ -48,10 +48,7 @@
     "clusters": [{
         "name": "xds-grpc",
         "type": "STRICT_DNS",
-        "connect_timeout": {
-          "seconds": 10,
-          "nanos": 0
-        },
+        "connect_timeout": "10s",
         "lb_policy": "ROUND_ROBIN",
 
         "hosts": [{
@@ -88,9 +85,7 @@
       {
         "name": "zipkin",
         "type": "STRICT_DNS",
-        "connect_timeout": {
-          "seconds": 1
-        },
+        "connect_timeout": "1s",
         "lb_policy": "ROUND_ROBIN",
         "hosts": [{
           "socket_address": {

@@ -87,7 +87,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	}
 
 	if err := convertStaticResources(c); err != nil {
-		log.StartLogger.Fatalf("[mosn] [NewMosn] convert static resources failed, ", err)
+		log.StartLogger.Fatalf("[mosn] [NewMosn] convert static resources failed, %v", err)
 	}
 
 	initializeMetrics(c.Metrics)
@@ -159,7 +159,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
 			}
 
-			for idx, _ := range serverConfig.Listeners {
+			for idx := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
 				// deprecated: keep compatible for route config in listener's connection_manager
@@ -361,15 +361,20 @@ func convertStaticResources(c *v2.MOSNConfig) error {
 	if err != nil {
 		return err
 	}
+	if staticResources == nil {
+		return nil
+	}
 
-	var listeners []v2.Listener
-	for _, listener := range staticResources.Listeners {
-		listeners = append(listeners, *conv.ConvertListenerConfig(listener))
+	if len(staticResources.Listeners) != 0 {
+		var listeners []v2.Listener
+		for _, listener := range staticResources.Listeners {
+			listeners = append(listeners, *conv.ConvertListenerConfig(listener))
+		}
+		srv := v2.ServerConfig{
+			Listeners: listeners,
+		}
+		c.Servers = append(c.Servers, srv)
 	}
-	srv := v2.ServerConfig{
-		Listeners: listeners,
-	}
-	c.Servers = append(c.Servers, srv)
 
 	clusters := conv.ConvertClustersConfig(staticResources.Clusters)
 	for _, cls := range clusters {
