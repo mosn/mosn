@@ -35,6 +35,7 @@ import (
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttpgzip "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/gzip/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	xdshttpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
 	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -696,7 +697,12 @@ func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 		},
 	}
 	for i, tc := range testCases {
-		convertFilter := convertStreamFilter(IstioFault, tc.config)
+		filter := &xdshttpconnectionmanagerv2.HttpFilter{
+			ConfigType: &xdshttpconnectionmanagerv2.HttpFilter_TypedConfig{
+				TypedConfig: tc.config,
+			},
+		}
+		convertFilter := convertStreamFilter(IstioFault, filter)
 		if convertFilter.Type != v2.FaultStream {
 			t.Errorf("#%d convert to mosn stream filter not expected, want %s, got %s", i, v2.FaultStream, convertFilter.Type)
 			continue
@@ -929,7 +935,12 @@ func Test_convertStreamFilter_Gzip(t *testing.T) {
 		},
 	}
 	for i, tc := range testCases {
-		convertFilter := convertStreamFilter(xdswellknown.Gzip, tc.config)
+		filter := &xdshttpconnectionmanagerv2.HttpFilter{
+			ConfigType: &xdshttpconnectionmanagerv2.HttpFilter_TypedConfig{
+				TypedConfig: tc.config,
+			},
+		}
+		convertFilter := convertStreamFilter(xdswellknown.Gzip, filter)
 		if convertFilter.Type != v2.Gzip {
 			t.Errorf("#%d convert to mosn stream filter not expected, want %s, got %s", i, v2.Gzip, convertFilter.Type)
 			continue
