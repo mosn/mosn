@@ -49,6 +49,12 @@ func init() {
 	check(RegisterSimpleFunctionBoth("dnsName", externDNSName))
 	check(RegisterSimpleFunctionBoth("uri", url.Parse))
 	check(RegisterSimpleFunctionBoth("ip", net.ParseIP))
+	check(RegisterSimpleFunctionBoth("string", func(ip net.IP) string {
+		return ip.String()
+	}))
+	check(RegisterSimpleFunctionBoth("string", func(u *url.URL) string {
+		return u.String()
+	}))
 
 	check(RegisterSimpleFunction("emptyStringMap", externEmptyStringMap))
 	// Replace the default string match
@@ -122,19 +128,21 @@ func RegisterInstanceOverload(name string, operator string, fun interface{}) err
 var functionOverloads []*functions.Overload
 
 func RegisterSimpleFunctionBoth(name string, fun interface{}) error {
-	err := RegisterFunction(name, 0, fun)
+	operator := getFunctionTypeUniqueKey(name, fun)
+	err := RegisterFunction(operator, 0, fun)
 	if err != nil {
 		return err
 	}
-	return RegisterOverloadBoth(name, name, fun)
+	return RegisterOverloadBoth(name, operator, fun)
 }
 
 func RegisterSimpleFunction(name string, fun interface{}) error {
-	err := RegisterFunction(name, 0, fun)
+	operator := getFunctionTypeUniqueKey(name, fun)
+	err := RegisterFunction(operator, 0, fun)
 	if err != nil {
 		return err
 	}
-	return RegisterOverload(name, name, fun)
+	return RegisterOverload(name, operator, fun)
 }
 
 func RegisterFunction(operator string, trait int, fun interface{}) error {
@@ -187,6 +195,12 @@ func getDeclFunc(fun interface{}) (argTypes []*expr.Type, resultType *expr.Type,
 		argTypes = append(argTypes, param)
 	}
 	return argTypes, resultType, nil
+}
+
+func getFunctionTypeUniqueKey(name string, fun interface{}) string {
+	k := reflect.TypeOf(fun).String()
+	k = strings.ReplaceAll(k, " ", "_")
+	return name + "_" + k
 }
 
 func wrapFunc(fun interface{}) (interface{}, error) {
