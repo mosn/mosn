@@ -113,6 +113,7 @@ func BenchmarkDSL(b *testing.B) {
 	reqHeaders := protocol.CommonHeader(map[string]string{
 		protocol.MosnHeaderPathKey: "/dsl",
 		protocol.MosnHeaderHostKey: "dsl",
+		"dsl":                      "dsl",
 	})
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
