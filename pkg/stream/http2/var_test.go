@@ -57,7 +57,7 @@ func Test_get_prefixProtocolVar(t *testing.T) {
 func Test_get_scheme(t *testing.T) {
 	expect := "https"
 	headers := http2.NewHeaderMap(map[string][]string{})
-	headers.Set(types.HeaderScheme, expect)
+	headers.Set(protocol.MosnHeaderScheme, expect)
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, headers)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP2)
