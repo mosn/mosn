@@ -346,7 +346,7 @@ istio.io/api/mixer/v1/config/client
 # istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a
 istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
-# mosn.io/api v0.0.0-20200615113625-8eedc8a88c20
+# mosn.io/api v0.0.0-20200720094309-63de04640d4e
 mosn.io/api
 # mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
 mosn.io/pkg/buffer
