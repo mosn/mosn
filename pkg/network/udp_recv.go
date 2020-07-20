@@ -19,7 +19,6 @@ package network
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -37,7 +36,11 @@ var (
 )
 
 func GetProxyMapKey(raddr, laddr string) string {
-	return fmt.Sprintf("%s:%s", raddr, laddr)
+	var builder strings.Builder
+	builder.WriteString(raddr)
+	builder.WriteString(":")
+	builder.WriteString(laddr)
+	return builder.String()
 }
 
 func SetUdpProxyMap(key string, conn api.Connection) {
