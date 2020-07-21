@@ -142,7 +142,7 @@ func TestReRoute(t *testing.T) {
 	// stop the server and make a request, expected get a error response from mosn
 	httpServer.Close()
 	client = http.Client{Timeout: 5 * time.Second}
-	errResp, err := http.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
+	errResp, err := client.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
 	if err != nil {
 		t.Error("rerquest reroute mosn error: ", err)
 		return

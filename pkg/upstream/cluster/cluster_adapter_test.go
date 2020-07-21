@@ -227,6 +227,25 @@ func TestClusterManagerUpdateCluster(t *testing.T) {
 	if pool.Host().ClusterInfo().ResourceManager().Connections().Max() != uint64(maxc1) {
 		t.Fatal("update cluster resource failed")
 	}
+	if pool.Host().SupportTLS() {
+		t.Fatal("pool should not support tls")
+	}
+	// test cluster update tls context, the host tls context is updated too
+	GetClusterMngAdapterInstance().AddOrUpdatePrimaryCluster(v2.Cluster{
+		Name:   "test1",
+		LbType: v2.LB_RANDOM,
+		TLS: v2.TLSConfig{
+			Status:       true,
+			InsecureSkip: true,
+		},
+	})
+	// pool keeps snapshot
+	snapshot = GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
+	pool = GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
+	if !pool.Host().SupportTLS() {
+		t.Fatal("pool should support tls")
+	}
+
 }
 
 func TestClusterManagerRemoveCluster(t *testing.T) {
@@ -376,7 +395,8 @@ func TestConnPoolUpdateTLS(t *testing.T) {
 	})
 	snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
 	connPool1 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
-	if connPool1.SupportTLS() {
+	// hash value equals nil means not support tls
+	if !connPool1.TLSHashValue().Equal(nil) {
 		t.Fatal("conn pool support tls")
 	}
 	if err := GetClusterMngAdapterInstance().UpdateClusterHosts("test1", []v2.Host{
@@ -390,17 +410,17 @@ func TestConnPoolUpdateTLS(t *testing.T) {
 	}
 	snap2 := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
 	connPool2 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
-	if !connPool2.SupportTLS() {
+	if connPool2.TLSHashValue().Equal(nil) {
 		t.Fatal("conn pool does not support tls")
 	}
 	// disbale tls, connpool should will be changed
 	DisableClientSideTLS()
 	connPool3 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
 	// connpool should be changed, but old connpool should not be effected
-	if !connPool2.SupportTLS() {
+	if connPool2.TLSHashValue().Equal(nil) {
 		t.Fatal("old conn pool does not support tls")
 	}
-	if connPool3.SupportTLS() {
+	if !connPool3.TLSHashValue().Equal(nil) {
 		t.Fatal("conn pool support tls")
 	}
 
