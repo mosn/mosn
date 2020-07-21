@@ -22,7 +22,7 @@ import (
 
 // Test Redirect
 
-// Direct Response ignore upstream cluster information and route rule config
+// Redirect ignores upstream cluster information and route rule config
 func CreateRedirectMeshProxy(addr string, proto types.ProtocolName, redirect *v2.RedirectAction) *v2.MOSNConfig {
 	cmconfig := v2.ClusterManagerConfig{
 		Clusters: []v2.Cluster{

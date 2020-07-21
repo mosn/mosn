@@ -38,6 +38,7 @@ import (
 )
 
 var (
+	// https://tools.ietf.org/html/rfc3986#section-3.1
 	schemeValidator = regexp.MustCompile("^[a-z][a-z0-9.+-]*$")
 )
 
