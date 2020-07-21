@@ -53,7 +53,7 @@ type connpool struct {
 	idleClients map[api.Protocol][]*activeClient
 
 	host       atomic.Value
-	supportTLS bool
+	tlsHash       *types.HashValue
 	clientMux  sync.Mutex
 
 	totalClientCount uint64 // total clients
@@ -65,7 +65,7 @@ type connpool struct {
 // NewConnPool init a connection pool
 func NewConnPool(proto api.Protocol, host types.Host) types.ConnectionPool {
 	p := &connpool{
-		supportTLS:  host.SupportTLS(),
+		tlsHash: host.TLSHashValue(),
 		protocol:    proto,
 		idleClients: make(map[api.Protocol][]*activeClient),
 	}
@@ -75,9 +75,8 @@ func NewConnPool(proto api.Protocol, host types.Host) types.ConnectionPool {
 	return p
 }
 
-// SupportTLS get whether the pool supports TLS
-func (p *connpool) SupportTLS() bool {
-	return p.supportTLS
+func (p *connpool) TLSHashValue() *types.HashValue {
+	return p.tlsHash
 }
 
 // 1. default use async connect

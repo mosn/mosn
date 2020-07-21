@@ -106,7 +106,7 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 }
 
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
-// if the same name cluster is already exists, we will keep the exists hosts, and use rcu to update it.
+// if the same name cluster is already exists, we will keep the exists hosts.
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	// new cluster
 	newCluster := NewCluster(cluster)
@@ -134,6 +134,9 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 
 		// sync newResourceManager value to oldResourceManager value
 		updateResourceValue(oldResourceManager, newResourceManager)
+		for _, host := range hosts {
+			host.SetClusterInfo(newSnap.ClusterInfo()) // update host cluster info
+		}
 
 		// update hosts, refresh
 		newCluster.UpdateHosts(hosts)
@@ -255,7 +258,6 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 }
 
 // GetClusterSnapshot returns cluster snap
-// do not needs PutClusterSnapshot any more
 func (cm *clusterManager) GetClusterSnapshot(ctx context.Context, clusterName string) types.ClusterSnapshot {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
@@ -351,7 +353,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		}
 		pool, loaded := loadOrStoreConnPool()
 		if loaded {
-			if pool.SupportTLS() != host.SupportTLS() {
+			if !pool.TLSHashValue().Equal(host.TLSHashValue()) {
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				}
@@ -363,7 +365,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 					// recheck whether the pool is changed
 					if connPool, ok := connectionPool.Load(addr); ok {
 						pool = connPool.(types.ConnectionPool)
-						if pool.SupportTLS() == host.SupportTLS() {
+						if pool.TLSHashValue().Equal(host.TLSHashValue()) {
 							return
 						}
 						connectionPool.Delete(addr)

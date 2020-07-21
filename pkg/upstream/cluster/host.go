@@ -35,7 +35,7 @@ import (
 type simpleHost struct {
 	hostname      string
 	addressString string
-	clusterInfo   types.ClusterInfo
+	clusterInfo   atomic.Value // store types.ClusterInfo
 	stats         types.HostStats
 	metaData      api.Metadata
 	tlsDisable    bool
@@ -47,16 +47,17 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 	// clusterInfo should not be nil
 	// pre resolve address
 	GetOrCreateAddr(config.Address)
-	return &simpleHost{
+	h := &simpleHost{
 		hostname:      config.Hostname,
 		addressString: config.Address,
-		clusterInfo:   clusterInfo,
 		stats:         newHostStats(clusterInfo.Name(), config.Address),
 		metaData:      config.MetaData,
 		tlsDisable:    config.TLSDisable,
 		weight:        config.Weight,
 		healthFlags:   GetHealthFlagPointer(config.Address),
 	}
+	h.clusterInfo.Store(clusterInfo)
+	return h
 }
 
 // types.HostInfo Implement
@@ -69,7 +70,14 @@ func (sh *simpleHost) Metadata() api.Metadata {
 }
 
 func (sh *simpleHost) ClusterInfo() types.ClusterInfo {
-	return sh.clusterInfo
+	v := sh.clusterInfo.Load()
+	info, _ := v.(types.ClusterInfo)
+	return info
+
+}
+
+func (sh *simpleHost) SetClusterInfo(info types.ClusterInfo) {
+	sh.clusterInfo.Store(info)
 }
 
 func (sh *simpleHost) Address() net.Addr {
@@ -101,17 +109,24 @@ func (sh *simpleHost) Config() v2.Host {
 }
 
 func (sh *simpleHost) SupportTLS() bool {
-	return IsSupportTLS() && !sh.tlsDisable && sh.clusterInfo.TLSMng().Enabled()
+	return IsSupportTLS() && !sh.tlsDisable && sh.ClusterInfo().TLSMng().Enabled()
+}
+
+func (sh *simpleHost) TLSHashValue() *types.HashValue {
+	if !sh.SupportTLS() {
+		return nil
+	}
+	return sh.ClusterInfo().TLSMng().HashValue()
 }
 
 // types.Host Implement
 func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConnectionData {
 	var tlsMng types.TLSContextManager
 	if sh.SupportTLS() {
-		tlsMng = sh.clusterInfo.TLSMng()
+		tlsMng = sh.ClusterInfo().TLSMng()
 	}
-	clientConn := network.NewClientConnection(nil, sh.clusterInfo.ConnectTimeout(), tlsMng, sh.Address(), nil)
-	clientConn.SetBufferLimit(sh.clusterInfo.ConnBufferLimitBytes())
+	clientConn := network.NewClientConnection(nil, sh.ClusterInfo().ConnectTimeout(), tlsMng, sh.Address(), nil)
+	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
 		Connection: clientConn,

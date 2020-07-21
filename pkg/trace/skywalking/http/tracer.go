@@ -24,7 +24,7 @@ import (
 
 	"github.com/SkyAPM/go2sky"
 	"github.com/SkyAPM/go2sky/propagation"
-	"github.com/SkyAPM/go2sky/reporter/grpc/common"
+	language_agent "github.com/SkyAPM/go2sky/reporter/grpc/language-agent"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -36,19 +36,19 @@ import (
 
 var (
 	// MIME header key s. The canonicalization converts the first letter and any letter following a hyphen to upper case;
-	sw6Header = [2]string{propagation.Header, "Sw6"}
+	sw8Header = [2]string{propagation.Header, "Sw8"}
 )
 
 func init() {
 	trace.RegisterTracerBuilder(skywalking.SkyDriverName, protocol.HTTP1, NewHttpSkyTracer)
 }
 
-type httpSkyTracer struct {
-	*go2sky.Tracer
-}
-
 func NewHttpSkyTracer(_ map[string]interface{}) (types.Tracer, error) {
 	return &httpSkyTracer{}, nil
+}
+
+type httpSkyTracer struct {
+	*go2sky.Tracer
 }
 
 func (tracer *httpSkyTracer) SetGO2SkyTracer(t *go2sky.Tracer) {
@@ -64,13 +64,13 @@ func (tracer *httpSkyTracer) Start(ctx context.Context, request interface{}, _ t
 
 	// create entry span (downstream)
 	requestURI := string(header.RequestURI())
-	entry, nCtx, err := tracer.CreateEntrySpan(ctx, requestURI, func() (sw6 string, err error) {
-		for _, h := range sw6Header {
-			sw6, ok = header.Get(h)
+	entry, nCtx, err := tracer.CreateEntrySpan(ctx, requestURI, func() (sw8 string, err error) {
+		for _, h := range sw8Header {
+			sw8, ok = header.Get(h)
 			if ok {
-				// delete the sw6 header, otherwise the upstream service will receive two sw6 header
+				// delete the sw8 header, otherwise the upstream service will receive two sw8 header
 				header.Del(h)
-				return sw6, err
+				return sw8, err
 			}
 		}
 		return
@@ -82,27 +82,22 @@ func (tracer *httpSkyTracer) Start(ctx context.Context, request interface{}, _ t
 	entry.Tag(go2sky.TagHTTPMethod, string(header.Method()))
 	entry.Tag(go2sky.TagURL, string(header.Header())+requestURI)
 	entry.SetComponent(skywalking.MOSNComponentID)
-	entry.SetSpanLayer(common.SpanLayer_Http)
+	entry.SetSpanLayer(language_agent.SpanLayer_Http)
 
 	return httpSkySpan{
 		tracer: tracer,
 		ctx:    nCtx,
-		carrier: &spanCarrier{
-			entrySpan: entry,
+		carrier: &skywalking.SpanCarrier{
+			EntrySpan: entry,
 		},
 	}
-}
-
-type spanCarrier struct {
-	entrySpan go2sky.Span
-	exitSpan  go2sky.Span
 }
 
 type httpSkySpan struct {
 	skywalking.SkySpan
 	tracer  *httpSkyTracer
 	ctx     context.Context
-	carrier *spanCarrier
+	carrier *skywalking.SpanCarrier
 }
 
 func (h httpSkySpan) TraceId() string {
@@ -129,16 +124,16 @@ func (h httpSkySpan) InjectContext(requestHeaders types.HeaderMap, requestInfo a
 	}
 
 	exit.SetComponent(skywalking.MOSNComponentID)
-	exit.SetSpanLayer(common.SpanLayer_Http)
-	h.carrier.exitSpan = exit
+	exit.SetSpanLayer(language_agent.SpanLayer_Http)
+	h.carrier.ExitSpan = exit
 }
 
 func (h httpSkySpan) SetRequestInfo(requestInfo api.RequestInfo) {
 	responseCode := strconv.Itoa(requestInfo.ResponseCode())
 
 	// end exit span (upstream)
-	if h.carrier.exitSpan != nil {
-		exit := h.carrier.exitSpan
+	if h.carrier.ExitSpan != nil {
+		exit := h.carrier.ExitSpan
 		if requestInfo.ResponseCode() >= http.BadRequest {
 			exit.Error(time.Now(), skywalking.ErrorLog)
 		}
@@ -147,7 +142,7 @@ func (h httpSkySpan) SetRequestInfo(requestInfo api.RequestInfo) {
 	}
 
 	// entry span (downstream)
-	entry := h.carrier.entrySpan
+	entry := h.carrier.EntrySpan
 	if requestInfo.ResponseCode() >= http.BadRequest {
 		entry.Error(time.Now(), skywalking.ErrorLog)
 	}
@@ -156,5 +151,5 @@ func (h httpSkySpan) SetRequestInfo(requestInfo api.RequestInfo) {
 }
 
 func (h httpSkySpan) FinishSpan() {
-	h.carrier.entrySpan.End()
+	h.carrier.EntrySpan.End()
 }
