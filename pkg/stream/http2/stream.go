@@ -803,8 +803,6 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	var req *http.Request
 	var isReqHeader bool
 
-	headersIn.Del(protocol.MosnHeaderScheme)
-
 	// clone for retry
 	headersIn = headersIn.Clone()
 	switch header := headersIn.(type) {
@@ -819,6 +817,8 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	if _, ok := s.conn.RawConn().(*mtls.TLSConn); ok {
 		scheme = "https"
 	}
+
+	headersIn.Del(protocol.MosnHeaderScheme)
 
 	var method string
 	if m, ok := headersIn.Get(protocol.MosnHeaderMethod); ok {
