@@ -347,7 +347,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				pool := connPool.(types.ConnectionPool)
 				return pool, true
 			}
-			pool := factory(host)
+			pool := factory.CreatePool(host)
 			connectionPool.Store(addr, pool)
 			return pool, false
 		}
@@ -370,7 +370,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						}
 						connectionPool.Delete(addr)
 						pool.Shutdown()
-						pool = factory(host)
+						pool = factory.CreatePool(host)
 						connectionPool.Store(addr, pool)
 					}
 				}()

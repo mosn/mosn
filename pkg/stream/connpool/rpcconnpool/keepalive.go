@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package xprotocol
+package connpool
 
 import (
 	"context"
@@ -32,14 +32,15 @@ import (
 
 // StreamReceiver to receive keep alive response
 type xprotocolKeepAlive struct {
+	Threshold    uint32
+	timeoutCount uint32
+	Timeout      time.Duration
+
 	Codec     types.StreamClient
 	Protocol  xprotocol.XProtocol
-	Timeout   time.Duration
-	Threshold uint32
 	Callbacks []types.KeepAliveCallback
 	// runtime
-	timeoutCount uint32
-	idleFree     *idleFree
+	idleFree *idleFree
 	// stop channel will stop all keep alive action
 	once sync.Once
 	stop chan struct{}

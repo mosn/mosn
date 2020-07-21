@@ -33,7 +33,7 @@ type RPCClient struct {
 	t              *testing.T
 	ClientID       string
 	Protocol       types.ProtocolName //bolt1, bolt2
-	Codec          stream.Client
+	Codec          types.StreamClient
 	Waits          sync.Map
 	conn           types.ClientConnection
 	streamID       uint64

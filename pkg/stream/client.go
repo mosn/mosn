@@ -19,7 +19,6 @@ package stream
 
 import (
 	"context"
-
 	metrics "github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
@@ -27,7 +26,7 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-// stream.Client
+// types.StreamClient
 // types.ReadFilter
 // types.StreamConnectionEventListener
 type client struct {
@@ -41,7 +40,7 @@ type client struct {
 
 // NewStreamClient
 // Create a codecclient used as a client to send/receive stream in a connection
-func NewStreamClient(ctx context.Context, prot api.Protocol, connection types.ClientConnection, host types.Host) Client {
+func NewStreamClient(ctx context.Context, prot api.Protocol, connection types.ClientConnection, host types.Host) types.StreamClient {
 	client := &client{
 		Protocol:   prot,
 		Connection: connection,
@@ -64,7 +63,7 @@ func NewStreamClient(ctx context.Context, prot api.Protocol, connection types.Cl
 // NewBiDirectStreamClient
 // Create a bidirectional client used to realize bidirectional communication
 func NewBiDirectStreamClient(ctx context.Context, prot api.Protocol, connection types.ClientConnection, host types.Host,
-	serverCallbacks types.ServerStreamConnectionEventListener) Client {
+	serverCallbacks types.ServerStreamConnectionEventListener) types.StreamClient {
 	client := &client{
 		Protocol:   prot,
 		Connection: connection,
@@ -84,7 +83,7 @@ func NewBiDirectStreamClient(ctx context.Context, prot api.Protocol, connection 
 	return client
 }
 
-// Client
+// StreamClient
 func (c *client) ConnID() uint64 {
 	return c.Connection.ID()
 }

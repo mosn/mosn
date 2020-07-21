@@ -163,11 +163,24 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	}
 	r.sendComplete = endStream
 
+	var (
+		failReason types.PoolFailureReason
+		host types.Host
+		streamSender types.StreamSender
+	)
+
 	if r.downStream.oneway {
-		r.connPool.NewStream(r.downStream.context, nil, r)
+		failReason, host, streamSender = r.connPool.NewStream(r.downStream.context, nil)
 	} else {
-		r.connPool.NewStream(r.downStream.context, r, r)
+		failReason, host, streamSender = r.connPool.NewStream(r.downStream.context, r)
 	}
+
+	if failReason != "" {
+		r.onFailure(failReason, host)
+		return
+	}
+
+	r.onReady(streamSender, host)
 }
 
 func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap {
@@ -251,11 +264,10 @@ func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderM
 	return trailers
 }
 
-// types.PoolEventListener
-func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.Host) {
+func (r *upstreamRequest) onFailure(reason types.PoolFailureReason, host types.Host) {
 	var resetReason types.StreamResetReason
 
-	log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] OnFailure host:%s, reason:%v", host.AddressString(), reason)
+	log.Proxy.Errorf(r.downStream.context, "[proxy] [upstream] onFailure host:%s, reason:%v", host.AddressString(), reason)
 
 	switch reason {
 	case types.Overflow:
@@ -268,7 +280,7 @@ func (r *upstreamRequest) OnFailure(reason types.PoolFailureReason, host types.H
 	r.OnResetStream(resetReason)
 }
 
-func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
+func (r *upstreamRequest) onReady(sender types.StreamSender, host types.Host) {
 	// debug message for upstream
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(r.downStream.context, "[proxy] [upstream] connPool ready, proxyId = %v, host = %s", r.downStream.ID, host.AddressString())

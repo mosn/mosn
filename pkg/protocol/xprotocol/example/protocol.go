@@ -116,3 +116,8 @@ func (proto *proto) Mapping(httpStatusCode uint32) uint32 {
 	// not supported for poc demo
 	return 0
 }
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *proto) PoolMode() types.PoolMode {
+	return types.Multiplex
+}

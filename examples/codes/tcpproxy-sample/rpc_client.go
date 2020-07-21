@@ -19,7 +19,7 @@ import (
 
 type Client struct {
 	proto  types.ProtocolName
-	Client stream.Client
+	Client types.StreamClient
 	conn   types.ClientConnection
 	Id     uint64
 }
