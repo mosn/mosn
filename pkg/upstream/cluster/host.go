@@ -165,18 +165,35 @@ var AddrStore *utils.ExpiredMap = utils.NewExpiredMap(
 		return nil, false
 	}, false)
 
+// Record dns resolve failed
+var DnsFailed *utils.ExpiredMap = utils.NewExpiredMap(nil, false)
+
 func GetOrCreateAddr(addrstr string) net.Addr {
 
-	if addr, _ := AddrStore.Get(addrstr); addr != nil {
-		return addr.(net.Addr)
+	var addr net.Addr
+	var err error
+	var dnsInvalid bool
+
+	// Check DNS cache
+	if r, _ := AddrStore.Get(addrstr); r != nil {
+		return r.(net.Addr)
 	}
 
-	addr, err := net.ResolveTCPAddr("tcp", addrstr)
-	if err != nil {
-		log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
+	// Avoid DNS requests flood when DNS service fails
+	if _, dnsInvalid = DnsFailed.Get(addrstr); !dnsInvalid {
+		addr, err = net.ResolveTCPAddr("tcp", addrstr)
+		if err != nil {
+			// If a DNS query fails then don't sent to DNS within 3 seconds
+			DnsFailed.Set(addrstr, nil, 3*time.Second)
+			log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
+			return nil
+		}
+	} else {
+		log.DefaultLogger.Errorf("[upstream] resolve failed cache addr %s", addrstr)
 		return nil
 	}
 
+	// Save DNS cahce
 	if addr.String() != addrstr {
 		// TODO support config or depends on DNS TTL for expire time
 		// now set default expire time == 15 s, Means that after 15 seconds, the new request will trigger domain resolve.
