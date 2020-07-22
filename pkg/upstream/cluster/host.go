@@ -171,14 +171,12 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 	var err error
 
 	// Check DNS cache
-	if r, dnsInvalid := AddrStore.Get(addrstr); r != nil {
+	if r, _ := AddrStore.Get(addrstr); r != nil {
 		switch v := r.(type) {
 		case net.Addr:
 			return v
 		case error:
-			if dnsInvalid {
-				return nil
-			}
+			return nil
 		}
 	}
 
