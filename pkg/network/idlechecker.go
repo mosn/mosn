@@ -19,7 +19,6 @@ package network
 
 import (
 	"math"
-	"runtime/debug"
 	"sync/atomic"
 	"time"
 
@@ -83,7 +82,6 @@ func (c *idleChecker) OnEvent(event api.ConnectionEvent) {
 	} else {
 		atomic.StoreUint32(&c.idleCount, 1)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			debug.PrintStack()
 			log.DefaultLogger.Debugf("[network] [server idle checker] connection have read/write data before this read timeout: %d, %d, %d, %d",
 				atomic.LoadInt64(&c.lastRead),
 				read,

@@ -9,7 +9,7 @@ require (
 	github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
 	github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d // perf: https://github.com/apache/dubbo-go-hessian2/pull/188
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
-	github.com/davecgh/go-spew v1.1.1
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/siphash v1.2.1
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/gin-gonic/gin v1.6.2 // indirect

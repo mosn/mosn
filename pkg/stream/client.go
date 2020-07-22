@@ -138,7 +138,7 @@ func (c *client) OnGoAway() {
 // types.ConnectionEventListener
 // conn callbacks
 func (c *client) OnEvent(event api.ConnectionEvent) {
-	log.DefaultLogger.Debugf("client OnEvent %v, connected %v", event, c.ConnectedFlag)
+	log.DefaultLogger.Debugf("client {%s} OnEvent %v, connected %v", c.Host.Address(), event, c.ConnectedFlag)
 	switch event {
 	case api.Connected:
 		c.ConnectedFlag = true

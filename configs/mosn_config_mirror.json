@@ -2,7 +2,7 @@
 	"servers": [
 		{
 			"default_log_path": "stdout",
-			"default_log_level": "DEBUG",
+			"default_log_level": "INFO",
 			"listeners": [
 				{
 					"name": "egress_dubbo",
@@ -30,7 +30,7 @@
 						{
 							"type": "mirror",
 							"config": {
-								"amplification": 10
+								"amplification": 100
 							}
 						}
 					]
@@ -89,8 +89,7 @@
 										"fractional_percent": {
 											"numberator": 100,
 											"denominator_num": 100
-										},
-										"amplification": 1
+										}
 									}
 								}
 							]

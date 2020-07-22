@@ -46,8 +46,15 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 		m.ctx = mosnctx.WithValue(mosnctx.Clone(ctx), types.ContextKeyBufferPoolCtx, nil)
 		if headers != nil {
+			// nolint
 			if _, ok := headers.(xprotocol.XFrame); ok {
-				m.headers = headers
+				h := headers.Clone()
+				// nolint
+				if _, ok = h.(protocol.CommonHeader); ok {
+					log.DefaultLogger.Errorf("not support mirror, protocal {%v} must implement Clone function", mosnctx.Get(m.ctx, types.ContextKeyDownStreamProtocol))
+					return
+				}
+				m.headers = h
 			} else {
 				m.headers = headers.Clone()
 			}
