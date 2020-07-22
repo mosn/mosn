@@ -161,10 +161,6 @@ func (p *connpoolPingPong) putClientToPoolLocked(client *activeClientPingPong) {
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClientPingPong struct {
-	pool        *connpoolPingPong
-	codecClient types.StreamClient
-	host        types.CreateConnectionData
-
 	closeWithActiveReq bool
 
 	// -----http1 && ping pong mode
@@ -177,6 +173,10 @@ type activeClientPingPong struct {
 	keepAlive   *keepAliveListener
 	state       uint32 // for async connection
 	// -----xprotocol end
+
+	pool        *connpoolPingPong
+	codecClient types.StreamClient
+	host        types.CreateConnectionData
 }
 
 func (p *connpoolPingPong) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClientPingPong, types.PoolFailureReason) {

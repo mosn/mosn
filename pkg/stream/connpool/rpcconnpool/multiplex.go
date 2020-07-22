@@ -208,12 +208,8 @@ func (p *connpoolMultiplex) putClientToPoolLocked(_ *activeClientPingPong) {}
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClientMultiplex struct {
-	pool        *connpoolMultiplex
-	codecClient types.StreamClient
-	host        types.CreateConnectionData
-
-	totalStream        uint64
 	closeWithActiveReq bool
+	totalStream        uint64
 
 	// -----http2 start
 	goaway uint32
@@ -224,6 +220,10 @@ type activeClientMultiplex struct {
 	keepAlive   *keepAliveListener
 	state       uint32 // for async connection
 	// -----xprotocol end
+
+	pool        *connpoolMultiplex
+	codecClient types.StreamClient
+	host        types.CreateConnectionData
 }
 
 func (p *connpoolMultiplex) newActiveClientMultiplex(ctx context.Context, subProtocol api.Protocol) (*activeClientMultiplex, types.PoolFailureReason) {

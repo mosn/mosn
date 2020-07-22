@@ -198,7 +198,7 @@ func (p *mockConnPool) UpdateHost(h types.Host) {
 }
 
 func init() {
-	network.RegisterNewPoolFactory(mockProtocol, func(protocol types.ProtocolName, h types.Host) types.ConnectionPool {
+	network.RegisterNewPoolFactory(mockProtocol, func(protocol types.ProtocolName, subProto types.ProtocolName, h types.Host) types.ConnectionPool {
 		pool := &mockConnPool{
 			hashvalue: h.TLSHashValue(),
 		}
