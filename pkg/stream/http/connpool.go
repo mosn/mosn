@@ -54,7 +54,7 @@ type connPool struct {
 	totalClientCount uint64          // total clients
 }
 
-func NewConnPool(_ types.ProtocolName, host types.Host) types.ConnectionPool {
+func NewConnPool(_ types.ProtocolName, _ types.ProtocolName, host types.Host) types.ConnectionPool {
 	pool := &connPool{
 		tlsHash: host.TLSHashValue(),
 	}

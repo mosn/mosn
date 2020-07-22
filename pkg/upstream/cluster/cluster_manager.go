@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"reflect"
 	"sort"
 	"sync"
@@ -309,6 +310,8 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
 	}
 
+	// for pool to know, whether this is a multiplex or pingpong pool
+	subproto := getSubProtocol(balancerContext.DownstreamContext())
 	var pools [maxHostsCounts]types.ConnectionPool
 
 	try := clusterSnapshot.HostNum(balancerContext.MetadataMatchCriteria())
@@ -347,7 +350,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				pool := connPool.(types.ConnectionPool)
 				return pool, true
 			}
-			pool := factory.CreatePool(host)
+			pool := factory.CreatePool(host, subproto)
 			connectionPool.Store(addr, pool)
 			return pool, false
 		}
@@ -370,7 +373,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						}
 						connectionPool.Delete(addr)
 						pool.Shutdown()
-						pool = factory.CreatePool(host)
+						pool = factory.CreatePool(host, subproto)
 						connectionPool.Store(addr, pool)
 					}
 				}()
@@ -401,4 +404,15 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		}
 	}
 	return nil, errNoHealthyHost
+}
+
+func getSubProtocol(ctx context.Context) types.ProtocolName {
+	if ctx != nil {
+		if val := mosnctx.Get(ctx, types.ContextSubProtocol); val != nil {
+			if code, ok := val.(string); ok {
+				return types.ProtocolName(code)
+			}
+		}
+	}
+	return ""
 }

@@ -48,7 +48,7 @@ type connPool struct {
 }
 
 // NewConnPool
-func NewConnPool(_ types.ProtocolName, host types.Host) types.ConnectionPool {
+func NewConnPool(_ types.ProtocolName, _ types.ProtocolName, host types.Host) types.ConnectionPool {
 	pool := &connPool{
 		tlsHash: host.TLSHashValue(),
 	}
