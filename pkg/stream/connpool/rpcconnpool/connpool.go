@@ -62,15 +62,21 @@ func NewConnPool(proto api.Protocol, subProto types.ProtocolName, host types.Hos
 	p.host.Store(host)
 
 	var res types.ConnectionPool
-	if xprotocol.GetProtocol(subProto).PoolMode() == types.Multiplex {
+	switch xprotocol.GetProtocol(subProto).PoolMode() {
+	case types.Multiplex:
 		res = &connpoolMultiplex{
 			connpool:    p,
 			idleClients: make(map[api.Protocol][]*activeClientMultiplex),
 		}
-	} else {
+	case types.PingPong:
 		res = &connpoolPingPong{
 			connpool:    p,
 			idleClients: make(map[api.Protocol][]*activeClientPingPong),
+		}
+	default: // TCP proxy mode
+		res = &connpoolTCP{
+			connpool:    p,
+			idleClients: make(map[uint64][]*activeClientTCP),
 		}
 	}
 

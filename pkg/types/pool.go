@@ -6,4 +6,5 @@ type PoolMode int
 const (
 	PingPong PoolMode = iota
 	Multiplex
+	TCP
 )
