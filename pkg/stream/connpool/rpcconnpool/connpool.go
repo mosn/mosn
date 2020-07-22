@@ -41,6 +41,7 @@ func RegisterProtoConnPoolFactory(proto api.Protocol) {
 }
 
 // types.ConnectionPool
+// nolint
 type connpool struct {
 	host      atomic.Value
 	tlsHash   *types.HashValue

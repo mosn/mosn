@@ -201,12 +201,10 @@ func (p *connpoolMultiplex) Shutdown() {
 	}
 }
 
-// return client to pool
-func (p *connpoolMultiplex) putClientToPoolLocked(_ *activeClientPingPong) {}
-
 // types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
+// nolint: maligned
 type activeClientMultiplex struct {
 	closeWithActiveReq bool
 	totalStream        uint64
@@ -239,9 +237,8 @@ func (p *connpoolMultiplex) newActiveClientMultiplex(ctx context.Context, subPro
 	}
 
 	host := p.Host()
-	connCtx := ctx
 
-	connCtx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, ac.host.Connection.ID())
+	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, ac.host.Connection.ID())
 
 	if len(subProtocol) > 0 {
 		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
@@ -320,6 +317,7 @@ func (ac *activeClientMultiplex) removeFromPool() {
 }
 
 // types.ConnectionEventListener
+// nolint: dupl
 func (ac *activeClientMultiplex) OnEvent(event api.ConnectionEvent) {
 	p := ac.pool
 

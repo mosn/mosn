@@ -160,6 +160,7 @@ func (p *connpoolPingPong) putClientToPoolLocked(client *activeClientPingPong) {
 // types.StreamEventListener
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
+// nolint: maligned
 type activeClientPingPong struct {
 	closeWithActiveReq bool
 
@@ -281,6 +282,7 @@ func (ac *activeClientPingPong) removeFromPool() {
 }
 
 // types.ConnectionEventListener
+// nolint: dupl
 func (ac *activeClientPingPong) OnEvent(event api.ConnectionEvent) {
 	p := ac.pool
 
