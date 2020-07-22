@@ -751,7 +751,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	if endStream {
 		if conn.useStream {
 			stream.recData.CloseWithError(io.EOF)
-		} else {
+		} else if stream.receiver != nil {
 			stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailer)
 		}
 		if log.Proxy.GetLogLevel() >= log.DEBUG {

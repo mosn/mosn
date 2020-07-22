@@ -42,7 +42,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	go func() {
 		clusterManager := cluster.NewClusterManagerSingleton(nil, nil)
 
-		clusterName := "mirror"
+		clusterName := "http2_mirror"
 
 		m.ctx = mosnctx.WithValue(mosnctx.Clone(ctx), types.ContextKeyBufferPoolCtx, nil)
 		if headers != nil {
@@ -67,6 +67,10 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		}
 
 		snap := clusterManager.GetClusterSnapshot(ctx, clusterName)
+		if snap == nil {
+			log.DefaultLogger.Errorf("mirror cluster {%s} not found", clusterName)
+			return
+		}
 		m.cluster = snap.ClusterInfo()
 		m.clusterName = clusterName
 
