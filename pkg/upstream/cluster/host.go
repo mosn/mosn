@@ -189,7 +189,7 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 		return nil
 	}
 
-	// Save DNS cahce
+	// Save DNS cache
 	if addr.String() != addrstr {
 		// TODO support config or depends on DNS TTL for expire time
 		// now set default expire time == 15 s, Means that after 15 seconds, the new request will trigger domain resolve.
