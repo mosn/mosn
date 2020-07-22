@@ -124,7 +124,6 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 }
 
 func (sh *simpleHost) CreateUDPConnection(context context.Context) types.CreateConnectionData {
-	log.DefaultLogger.Infof("creating udp connection")
 	clientConn := network.NewClientConnection(nil, sh.clusterInfo.ConnectTimeout(), nil, sh.UDPAddress(), nil)
 	clientConn.SetBufferLimit(sh.clusterInfo.ConnBufferLimitBytes())
 
