@@ -82,7 +82,7 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 }
 
 func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
+	responseDecoder types.StreamReceiveListener, _ api.Connection) (types.PoolFailureReason, types.Host, types.StreamSender) {
 
 	activeClient := func() *activeClient {
 		p.mux.Lock()

@@ -19,7 +19,6 @@ package types
 
 import (
 	"context"
-
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
@@ -234,7 +233,7 @@ const (
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
-	NewStream(ctx context.Context, receiver StreamReceiveListener) (PoolFailureReason, Host, StreamSender)
+	NewStream(ctx context.Context, receiver StreamReceiveListener, downstreamConn api.Connection) (PoolFailureReason, Host, StreamSender)
 
 	// check host health and init host
 	CheckAndInit(ctx context.Context) bool

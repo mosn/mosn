@@ -7,12 +7,9 @@ import (
 
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/utils"
 )
 
 type connpoolTCP struct {
@@ -22,57 +19,16 @@ type connpoolTCP struct {
 
 // CheckAndInit init the connection pool
 func (p *connpoolTCP) CheckAndInit(ctx context.Context) bool {
-	subProtocol := getSubProtocol(ctx)
-
-	var client *activeClientTCP
-
-	connID := getConnID(ctx)
-	// async connect only support multiplex mode !!!
-	p.clientMux.Lock()
-	{
-		if len(p.idleClients[connID]) == 0 {
-			p.idleClients[connID] = []*activeClientTCP{{connID: connID, state: Init}} // fake client
-		}
-
-		clients := p.idleClients[connID]
-		lastIdx := len(clients) - 1
-		client = clients[lastIdx]
-	}
-	p.clientMux.Unlock()
-
-	if atomic.LoadUint32(&client.state) == Connected {
-		return true
-	}
-
-	// asynchronously connect to host
-	// if there is a bad host, directly connect it may hang our request
-	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) {
-		utils.GoWithRecover(func() {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.Host().AddressString())
-			}
-
-			p.clientMux.Lock()
-			defer p.clientMux.Unlock()
-			lastIdx := len(p.idleClients[connID]) - 1
-			client, _ := p.newActiveClientMultiplex(context.Background(), subProtocol)
-			if client != nil {
-				client.state = Connected
-				p.idleClients[connID][lastIdx] = client
-			} else {
-				delete(p.idleClients, connID)
-			}
-		}, nil)
-	}
-
-	return false
+	return true
 }
 
 // NewStream Create a client stream and call's by proxy
-func (p *connpoolTCP) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
+func (p *connpoolTCP) NewStream(ctx context.Context, receiver types.StreamReceiveListener, downstreamConn api.Connection) (types.PoolFailureReason, types.Host, types.StreamSender) {
 	host := p.Host()
 
 	c, reason := p.GetActiveClient(ctx, getSubProtocol(ctx))
+	c.downstreamConn = downstreamConn
+
 	if reason != "" {
 		return reason, host, nil
 	}
@@ -129,7 +85,7 @@ func (p *connpoolTCP) GetActiveClient(ctx context.Context, subProtocol types.Pro
 	if n == 0 { // nolint: nestif
 		if maxConns == 0 || p.totalClientCount < maxConns {
 			defer p.clientMux.Unlock()
-			c, reason = p.newActiveClientMultiplex(ctx, subProtocol)
+			c, reason = p.newActiveClientTCP(ctx, subProtocol)
 			if c != nil && reason == "" {
 				p.totalClientCount++
 
@@ -155,7 +111,7 @@ func (p *connpoolTCP) GetActiveClient(ctx context.Context, subProtocol types.Pro
 		var reason types.PoolFailureReason
 		c = p.idleClients[connID][lastIdx]
 		if c == nil || atomic.LoadUint32(&c.goaway) == 1 {
-			c, reason = p.newActiveClientMultiplex(ctx, subProtocol)
+			c, reason = p.newActiveClientTCP(ctx, subProtocol)
 			if reason == "" && c != nil {
 				p.idleClients[connID][lastIdx] = c
 			}
@@ -223,12 +179,13 @@ type activeClientTCP struct {
 	state       uint32 // for async connection
 	// -----xprotocol end
 
-	pool        *connpoolTCP
-	codecClient types.StreamClient
-	host        types.CreateConnectionData
+	pool           *connpoolTCP
+	codecClient    types.StreamClient
+	host           types.CreateConnectionData
+	downstreamConn api.Connection
 }
 
-func (p *connpoolTCP) newActiveClientMultiplex(ctx context.Context, subProtocol api.Protocol) (*activeClientTCP, types.PoolFailureReason) {
+func (p *connpoolTCP) newActiveClientTCP(ctx context.Context, subProtocol api.Protocol) (*activeClientTCP, types.PoolFailureReason) {
 	// if pool is already destroyed, return
 	if atomic.LoadUint64(&p.destroyed) == 1 {
 		return nil, types.ConnectionFailure
@@ -339,40 +296,46 @@ func (ac *activeClientTCP) OnEvent(event api.ConnectionEvent) {
 		}
 	}
 
+	var needCloseDownStream = false
 	switch {
 	case event.IsClose():
-		if p.protocol == protocol.Xprotocol {
-			host.HostStats().UpstreamConnectionClose.Inc(1)
-			host.HostStats().UpstreamConnectionActive.Dec(1)
-			host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
-			host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
+		host.HostStats().UpstreamConnectionClose.Inc(1)
+		host.HostStats().UpstreamConnectionActive.Dec(1)
+		host.ClusterInfo().Stats().UpstreamConnectionClose.Inc(1)
+		host.ClusterInfo().Stats().UpstreamConnectionActive.Dec(1)
 
-			switch event { // nolint: exhaustive
-			case api.LocalClose:
-				host.HostStats().UpstreamConnectionLocalClose.Inc(1)
-				host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
-			case api.RemoteClose:
-				host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
-				host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
-			default:
-				// do nothing
-			}
+		switch event { // nolint: exhaustive
+		case api.LocalClose:
+			host.HostStats().UpstreamConnectionLocalClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionLocalClose.Inc(1)
+		case api.RemoteClose:
+			host.HostStats().UpstreamConnectionRemoteClose.Inc(1)
+			host.ClusterInfo().Stats().UpstreamConnectionRemoteClose.Inc(1)
+		default:
+			// do nothing
 		}
 
 		// RemoteClose when read/write error
 		// LocalClose when there is a panic
 		// OnReadErrClose when read failed
 		ac.removeFromPool()
+		needCloseDownStream = true
 
 	case event == api.ConnectTimeout:
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
 		ac.codecClient.Close()
+		needCloseDownStream = true
 	case event == api.ConnectFailed:
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
+		needCloseDownStream = true
 	default:
 		// do nothing
+	}
+
+	if needCloseDownStream && ac.downstreamConn != nil {
+		ac.downstreamConn.Close(api.NoFlush, api.LocalClose)
 	}
 }
 

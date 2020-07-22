@@ -68,7 +68,7 @@ func (p *connpoolMultiplex) CheckAndInit(ctx context.Context) bool {
 }
 
 // NewStream Create a client stream and call's by proxy
-func (p *connpoolMultiplex) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
+func (p *connpoolMultiplex) NewStream(ctx context.Context, receiver types.StreamReceiveListener, _ api.Connection) (types.PoolFailureReason, types.Host, types.StreamSender) {
 	host := p.Host()
 
 	c, reason := p.GetActiveClient(ctx, getSubProtocol(ctx))
