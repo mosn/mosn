@@ -165,31 +165,29 @@ var AddrStore *utils.ExpiredMap = utils.NewExpiredMap(
 		return nil, false
 	}, false)
 
-// Record dns resolve failed
-var DnsFailed *utils.ExpiredMap = utils.NewExpiredMap(nil, false)
-
 func GetOrCreateAddr(addrstr string) net.Addr {
 
 	var addr net.Addr
 	var err error
-	var dnsInvalid bool
 
 	// Check DNS cache
-	if r, _ := AddrStore.Get(addrstr); r != nil {
-		return r.(net.Addr)
+	if r, dnsInvalid := AddrStore.Get(addrstr); r != nil {
+		switch v := r.(type) {
+		case net.Addr:
+			return v
+		case error:
+			if dnsInvalid {
+				return nil
+			}
+		}
 	}
 
-	// Avoid DNS requests flood when DNS service fails
-	if _, dnsInvalid = DnsFailed.Get(addrstr); !dnsInvalid {
-		addr, err = net.ResolveTCPAddr("tcp", addrstr)
-		if err != nil {
-			// If a DNS query fails then don't sent to DNS within 3 seconds
-			DnsFailed.Set(addrstr, nil, 3*time.Second)
-			log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
-			return nil
-		}
-	} else {
-		log.DefaultLogger.Errorf("[upstream] resolve failed cache addr %s", addrstr)
+	// Get DNS resolve
+	addr, err = net.ResolveTCPAddr("tcp", addrstr)
+	if err != nil {
+		// If a DNS query fails then don't sent to DNS within 15 seconds and avoid flood
+		AddrStore.Set(addrstr, err, 15*time.Second)
+		log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
 		return nil
 	}
 
