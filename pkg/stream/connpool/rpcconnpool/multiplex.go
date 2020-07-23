@@ -94,6 +94,7 @@ func (p *connpoolMultiplex) NewStream(ctx context.Context, receiver types.Stream
 }
 
 // GetActiveClient get a avail client
+// nolint: dupl
 func (p *connpoolMultiplex) GetActiveClient(ctx context.Context, subProtocol types.ProtocolName) (*activeClientMultiplex, types.PoolFailureReason) {
 
 	host := p.Host()

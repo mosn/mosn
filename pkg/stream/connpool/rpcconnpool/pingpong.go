@@ -51,6 +51,7 @@ func (p *connpoolPingPong) NewStream(ctx context.Context, receiver types.StreamR
 }
 
 // GetActiveClient get a avail client
+// nolint: dupl
 func (p *connpoolPingPong) GetActiveClient(ctx context.Context, subProtocol types.ProtocolName) (*activeClientPingPong, types.PoolFailureReason) {
 
 	host := p.Host()

@@ -180,7 +180,7 @@ func (p *mockConnPool) Shutdown() {
 func (p *mockConnPool) Close() {
 }
 
-func (p *mockConnPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
+func (p *mockConnPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, _ api.Connection) (types.PoolFailureReason, types.Host, types.StreamSender) {
 	return "", nil, nil
 }
 

@@ -2,6 +2,7 @@ package connpool
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"time"
 
@@ -22,16 +23,30 @@ func (p *connpoolTCP) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
+type downstreamCloseListener struct {
+	upstreamClient *activeClientTCP
+}
+
+var downstreamClosed = errors.New("downstream closed conn")
+
+func (d downstreamCloseListener) OnEvent(event api.ConnectionEvent) {
+	if event.IsClose() && d.upstreamClient != nil {
+		d.upstreamClient.Close(downstreamClosed)
+	}
+}
+
 // NewStream Create a client stream and call's by proxy
 func (p *connpoolTCP) NewStream(ctx context.Context, receiver types.StreamReceiveListener, downstreamConn api.Connection) (types.PoolFailureReason, types.Host, types.StreamSender) {
 	host := p.Host()
 
 	c, reason := p.GetActiveClient(ctx, getSubProtocol(ctx))
-	c.downstreamConn = downstreamConn
 
 	if reason != "" {
 		return reason, host, nil
 	}
+
+	c.downstreamConn = downstreamConn
+	downstreamConn.AddConnectionEventListener(downstreamCloseListener{upstreamClient: c})
 
 	var streamSender = c.codecClient.NewStream(ctx, receiver)
 
