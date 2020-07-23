@@ -53,6 +53,14 @@
 								}
 							]
 						}
+					],
+					"stream_filters": [
+						{
+							"type": "mirror",
+							"config": {
+								"amplification": 10
+							}
+						}
 					]
 				},
 				{

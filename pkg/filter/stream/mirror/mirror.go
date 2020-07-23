@@ -12,11 +12,15 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 type mirror struct {
 	amplification  int
 	receiveHandler api.StreamReceiverFilterHandler
+
+	dp api.Protocol
+	up api.Protocol
 
 	ctx      context.Context
 	headers  api.HeaderMap
@@ -39,13 +43,14 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 	// TODO if need mirror
 
-	go func() {
+	utils.GoWithRecover(func() {
 		clusterManager := cluster.NewClusterManagerSingleton(nil, nil)
 
-		clusterName := "http2_mirror"
+		clusterName := "http1_mirror"
 
 		m.ctx = mosnctx.WithValue(mosnctx.Clone(ctx), types.ContextKeyBufferPoolCtx, nil)
 		if headers != nil {
+			// ! xprotocol should reimplement Clone function, not use default, trans protocol.CommonHeader
 			// nolint
 			if _, ok := headers.(xprotocol.XFrame); ok {
 				h := headers.Clone()
@@ -56,6 +61,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 				}
 				m.headers = h
 			} else {
+				// ! http1 and http2 use default Clone function
 				m.headers = headers.Clone()
 			}
 		}
@@ -66,6 +72,8 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 			m.trailers = trailers.Clone()
 		}
 
+		m.dp, m.up = m.convertProtocol()
+
 		snap := clusterManager.GetClusterSnapshot(ctx, clusterName)
 		if snap == nil {
 			log.DefaultLogger.Errorf("mirror cluster {%s} not found", clusterName)
@@ -74,13 +82,16 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		m.cluster = snap.ClusterInfo()
 		m.clusterName = clusterName
 
-		currentProtocol := m.getUpstreamProtocol()
-
 		for i := 0; i < m.amplification; i++ {
-			connPool := clusterManager.ConnPoolForCluster(m, snap, currentProtocol)
-			connPool.NewStream(m.ctx, nil, m)
+			connPool := clusterManager.ConnPoolForCluster(m, snap, m.up)
+			if m.up == protocol.HTTP1 {
+				// ! http1 use fake receiver reduce connect
+				connPool.NewStream(m.ctx, &receiver{}, m)
+			} else {
+				connPool.NewStream(m.ctx, nil, m)
+			}
 		}
-	}()
+	}, nil)
 	return api.StreamFilterContinue
 }
 
@@ -170,41 +181,34 @@ func (m *mirror) sendDataOnce() {
 }
 
 func (m *mirror) coverHeader() types.HeaderMap {
-
-	dp, up := m.convertProtocol()
-
-	if dp != up {
-		convHeader, err := protocol.ConvertHeader(m.ctx, dp, up, m.headers)
+	if m.dp != m.up {
+		convHeader, err := protocol.ConvertHeader(m.ctx, m.dp, m.up, m.headers)
 		if err == nil {
 			return convHeader
 		}
-		log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert header from %s to %s failed, %s", dp, up, err.Error())
+		log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert header from %s to %s failed, %s", m.dp, m.up, err.Error())
 	}
 	return m.headers
 }
 
 func (m *mirror) converData() types.IoBuffer {
-	dp, up := m.convertProtocol()
-
-	if dp != up {
-		convData, err := protocol.ConvertData(m.ctx, dp, up, m.data)
+	if m.dp != m.up {
+		convData, err := protocol.ConvertData(m.ctx, m.dp, m.up, m.data)
 		if err == nil {
 			return convData
 		}
-		log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert data from %s to %s failed, %s", dp, up, err.Error())
+		log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert data from %s to %s failed, %s", m.dp, m.up, err.Error())
 	}
 	return m.data
 }
 
 func (m *mirror) convertTrailer() types.HeaderMap {
-	dp, up := m.convertProtocol()
-
-	if dp != up {
-		convTrailers, err := protocol.ConvertTrailer(m.ctx, dp, up, m.trailers)
+	if m.dp != m.up {
+		convTrailers, err := protocol.ConvertTrailer(m.ctx, m.dp, m.up, m.trailers)
 		if err == nil {
 			return convTrailers
 		}
-		log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert trailers from %s to %s failed, %s", dp, up, err.Error())
+		log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert trailers from %s to %s failed, %s", m.dp, m.up, err.Error())
 	}
 	return m.trailers
 }
