@@ -127,10 +127,9 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 	// add mirror policies
 	if route.Route.RequestMirrorPolicies != nil {
 		base.policy.mirrorPolicy = &mirrorImpl{
-			cluster:        route.Route.RequestMirrorPolicies.Cluster,
-			numberator:     int(route.Route.RequestMirrorPolicies.FractionalPercent.Numberator),
-			denominatorNum: int(route.Route.RequestMirrorPolicies.FractionalPercent.DenominatorNum),
-			rand:           rand.New(rand.NewSource(time.Now().UnixNano())),
+			cluster: route.Route.RequestMirrorPolicies.Cluster,
+			percent: int(route.Route.RequestMirrorPolicies.Percent),
+			rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
 		}
 	}
 	if base.policy.mirrorPolicy == nil {

@@ -245,17 +245,16 @@ func getHashByString(str string) uint64 {
 }
 
 type mirrorImpl struct {
-	cluster        string
-	numberator     int
-	denominatorNum int
-	rand           *rand.Rand
+	cluster string
+	percent int
+	rand    *rand.Rand
 }
 
 func (m *mirrorImpl) IsMirror() (isTrans bool) {
 	if m.cluster == "" {
 		return false
 	}
-	return m.numberator <= (m.rand.Intn(m.denominatorNum) + 1)
+	return m.percent <= (m.rand.Intn(100) + 1)
 }
 
 func (m *mirrorImpl) ClusterName() string {
