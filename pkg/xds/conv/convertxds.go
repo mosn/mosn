@@ -1351,31 +1351,27 @@ func convertMirrorPolicy(xdsRouteAction *xdsroute.RouteAction) *v2.RequestMirror
 
 	if len(xdsRouteAction.GetRequestMirrorPolicies()) > 0 {
 		return &v2.RequestMirrorPolicy{
-			Cluster:           xdsRouteAction.GetRequestMirrorPolicies()[0].GetCluster(),
-			FractionalPercent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicies()[0].GetRuntimeFraction()),
+			Cluster: xdsRouteAction.GetRequestMirrorPolicies()[0].GetCluster(),
+			Percent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicies()[0].GetRuntimeFraction()),
 		}
 	}
 
 	return nil
 }
 
-func convertRuntimePercentage(percent *xdscore.RuntimeFractionalPercent) *v2.Fractionalpercent {
+func convertRuntimePercentage(percent *xdscore.RuntimeFractionalPercent) uint32 {
 	if percent == nil {
-		return nil
+		return 0
 	}
 
-	result := &v2.Fractionalpercent{
-		Numberator: percent.GetDefaultValue().GetNumerator(),
-	}
-	switch percent.GetDefaultValue().GetDenominator() {
+	v := percent.GetDefaultValue()
+	switch v.GetDenominator() {
 	case xdstype.FractionalPercent_MILLION:
-		result.DenominatorNum = 1000000
+		return v.Numerator / 10000
 	case xdstype.FractionalPercent_TEN_THOUSAND:
-		result.DenominatorNum = 1000
+		return v.Numerator / 10
 	case xdstype.FractionalPercent_HUNDRED:
-		result.DenominatorNum = 100
-	default:
-		result.DenominatorNum = 100
+		return v.Numerator
 	}
-	return result
+	return v.Numerator
 }

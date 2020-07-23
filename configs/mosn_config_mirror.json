@@ -116,10 +116,7 @@
 									},
 									"request_mirror_policies": {
 										"cluster": "dubbo_mirror",
-										"fractional_percent": {
-											"numberator": 100,
-											"denominator_num": 100
-										}
+										"percent": 100
 									}
 								}
 							]
@@ -144,10 +141,7 @@
 									},
 									"request_mirror_policies": {
 										"cluster": "http1_mirror",
-										"fractional_percent": {
-											"numberator": 100,
-											"denominator_num": 100
-										}
+										"percent": 100
 									}
 								}
 							]
@@ -172,10 +166,7 @@
 									},
 									"request_mirror_policies": {
 										"cluster": "http2_mirror",
-										"fractional_percent": {
-											"numberator": 100,
-											"denominator_num": 100
-										}
+										"percent": 100
 									}
 								}
 							]

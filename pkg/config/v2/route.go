@@ -327,13 +327,7 @@ type CidrRange struct {
 
 // RequestMirrorPolicy mirror policy
 type RequestMirrorPolicy struct {
-	Cluster           string             `json:"cluster,omitempty"`
-	FractionalPercent *Fractionalpercent `json:"fractional_percent,omitempty"`
-	TraceSampled      bool               `json:"trace_sampled,omitempty"`
-}
-
-// Fractionalpercent fractional percent
-type Fractionalpercent struct {
-	Numberator     uint32 `json:"numberator,omitempty"`
-	DenominatorNum uint32 `json:"denominator_num,omitempty"`
+	Cluster      string `json:"cluster,omitempty"`
+	Percent      uint32 `json:"percent,omitempty"`
+	TraceSampled bool   `json:"trace_sampled,omitempty"`
 }
