@@ -1,5 +1,3 @@
-// +build !BabaSSL
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
@@ -31,6 +29,19 @@ type clientHandshakeState struct {
 	finishedHash finishedHash
 	masterSecret []byte
 	session      *ClientSessionState
+}
+
+func (c *Conn) chooseCiphersuitesFromConfig() []uint16 {
+	defaultCiphersuites := defaultCipherSuitesTLS13()
+	var result []uint16
+	for _, id := range c.config.CipherSuites {
+		for _, defaultSupportID := range defaultCiphersuites {
+			if id == defaultSupportID {
+				result = append(result, id)
+			}
+		}
+	}
+    return result
 }
 
 func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
@@ -121,7 +132,20 @@ NextCipherSuite:
 
 	var params ecdheParameters
 	if hello.supportedVersions[0] == VersionTLS13 {
-		hello.cipherSuites = append(hello.cipherSuites, defaultCipherSuitesTLS13()...)
+		var clientCiphersuites []uint16
+		if len(c.config.CipherSuites) == 0 {
+			// if we don't set any ciphersuites for tls1.3, then
+			// we use default ciphersuites
+			clientCiphersuites = defaultCipherSuitesTLS13()
+		} else {
+			clientCiphersuites = c.chooseCiphersuitesFromConfig()
+			if len(clientCiphersuites) == 0 {
+				return nil, nil, errors.New("tls: no tls1.3 support ciphersuites")
+			}
+		}
+
+		hello.cipherSuites = append(hello.cipherSuites, clientCiphersuites...)
+
 
 		curveID := config.curvePreferences()[0]
 		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
