@@ -141,9 +141,7 @@ NextCipherSuite:
 			clientCiphersuites = defaultCipherSuitesTLS13()
 		}
 
-
 		hello.cipherSuites = append(hello.cipherSuites, clientCiphersuites...)
-
 
 		curveID := config.curvePreferences()[0]
 		if _, ok := curveForCurveID(curveID); curveID != X25519 && !ok {
