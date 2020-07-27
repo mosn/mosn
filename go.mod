@@ -46,7 +46,7 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	mosn.io/api v0.0.0-20200615113625-8eedc8a88c20
-	mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
+	mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
