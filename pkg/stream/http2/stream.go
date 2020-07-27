@@ -299,6 +299,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		URL, _ := url.Parse(URI)
 		h2s.Request.URL = URL
 
+		header.Set(protocol.MosnHeaderScheme, scheme)
 		header.Set(protocol.MosnHeaderMethod, h2s.Request.Method)
 		header.Set(protocol.MosnHeaderHostKey, h2s.Request.Host)
 		header.Set(protocol.MosnHeaderPathKey, h2s.Request.URL.Path)
@@ -816,6 +817,8 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	if _, ok := s.conn.RawConn().(*mtls.TLSConn); ok {
 		scheme = "https"
 	}
+
+	headersIn.Del(protocol.MosnHeaderScheme)
 
 	var method string
 	if m, ok := headersIn.Get(protocol.MosnHeaderMethod); ok {

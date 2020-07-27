@@ -774,6 +774,8 @@ mosn.io/api v0.0.0-20200416082846-2e7ce9a85557 h1:dfkhSEeVvUV8D+6a9mcvxciexjhcuE
 mosn.io/api v0.0.0-20200416082846-2e7ce9a85557/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/api v0.0.0-20200615113625-8eedc8a88c20 h1:1+a89pM3mhVB4rWQDP2xjsm9chk8Cer5Y+U6r5WuVPY=
 mosn.io/api v0.0.0-20200615113625-8eedc8a88c20/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
+mosn.io/api v0.0.0-20200720094309-63de04640d4e h1:YRbZ40nR46tRe017jxbZxKpw97///XOxoKUAaEfb1e8=
+mosn.io/api v0.0.0-20200720094309-63de04640d4e/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d h1:p5BKQJrfU67nkQciB3Bxh9SPpdT+oGBVLfOQxuwhUKQ=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b h1:sLIM8d3bKnrOoqmB8C6WPw3mQ8qitqUujPTrNcZwfPw=

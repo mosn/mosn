@@ -46,7 +46,7 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
-	mosn.io/api v0.0.0-20200615113625-8eedc8a88c20
+	mosn.io/api v0.0.0-20200720094309-63de04640d4e
 	mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
 )
 
