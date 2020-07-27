@@ -37,6 +37,7 @@ func (s *downStream) runAppendFilters(p types.Phase, headers types.HeaderMap, da
 		case api.StreamFiltertermination:
 			s.cleanStream()
 			return
+		default:
 		}
 	}
 	s.senderFiltersIndex = 0
