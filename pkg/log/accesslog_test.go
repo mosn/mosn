@@ -137,6 +137,37 @@ func TestAccessLogWithCustomText(t *testing.T) {
 	}
 }
 
+func TestAccessLogWithPrefixVariables(t *testing.T) {
+	registerTestVarDefs()
+
+	format := "request header:%request_header_service% response header:%response_header_Server%"
+	logName := "/tmp/mosn_bench/test_access_log.log"
+	os.Remove(logName)
+	accessLog, err := NewAccessLog(logName, format)
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	ctx := prepareLocalIpv6Ctx()
+	accessLog.Log(ctx, nil, nil, nil)
+	time.Sleep(2 * time.Second)
+	f, err := os.Open(logName)
+	if err != nil {
+		t.Error("open accesslog error ", err)
+	}
+	b := make([]byte, 1024)
+	n, err := f.Read(b)
+	f.Close()
+	if err != nil {
+		t.Error("read accesslog error ", err)
+	}
+
+	if string(b)[0:n] != "request header:test response header:MOSN\n" {
+		t.Errorf("test accesslog error %s", string(b)[0:n])
+	}
+}
+
 func TestAccessLogWithEmptyVar(t *testing.T) {
 	registerTestVarDefs()
 
@@ -654,25 +685,25 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 }
 
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	headers := ctx.Value(requestHeaderMapKey).(api.HeaderMap)
+	headers := ctx.Value(requestHeaderMapKey).(map[string]string)
 
 	headerName := data.(string)
-	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
+	headerValue, ok := headers[headerName[reqHeaderIndex:]]
 	if !ok {
 		return variable.ValueNotFound, nil
 	}
 
-	return string(headerValue), nil
+	return headerValue, nil
 }
 
 func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	headers := ctx.Value(responseHeaderMapKey).(api.HeaderMap)
+	headers := ctx.Value(responseHeaderMapKey).(map[string]string)
 
 	headerName := data.(string)
-	headerValue, ok := headers.Get(headerName[respHeaderIndex:])
+	headerValue, ok := headers[headerName[respHeaderIndex:]]
 	if !ok {
 		return variable.ValueNotFound, nil
 	}
 
-	return string(headerValue), nil
+	return headerValue, nil
 }
