@@ -31,6 +31,7 @@ type staticProvider struct {
 func (p *staticProvider) Ready() bool {
 	return true
 }
+
 func (p *staticProvider) Empty() bool {
 	return p.tlsContext.server == nil
 }

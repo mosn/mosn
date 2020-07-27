@@ -19,35 +19,46 @@
 syntax = "proto3";
 
 option java_multiple_files = true;
-option java_package = "org.apache.skywalking.apm.network.language.agent";
+option java_package = "org.apache.skywalking.apm.network.common.v3";
 option csharp_namespace = "SkyWalking.NetworkProtocol";
 option go_package = "github.com/SkyAPM/go2sky/reporter/grpc/common";
 
-message UpstreamSegment {
-    repeated UniqueId globalTraceIds = 1;
-    bytes segment = 2; // the byte array of TraceSegmentObject
+message KeyStringValuePair {
+    string key = 1;
+    string value = 2;
 }
 
-enum SpanType {
-    Entry = 0;
-    Exit = 1;
-    Local = 2;
+message CPU {
+    double usagePercent = 2;
 }
 
-message UniqueId {
-    repeated int64 idParts = 1;
+// In most cases, detect point should be `server` or `client`.
+// Even in service mesh, this means `server`/`client` side sidecar
+// `proxy` is reserved only.
+enum DetectPoint {
+    client = 0;
+    server = 1;
+    proxy = 2;
 }
 
-enum RefType {
-    CrossProcess = 0;
-    CrossThread = 1;
+message Commands {
+    repeated Command commands = 1;
 }
 
-enum SpanLayer {
-    Unknown = 0;
-    Database = 1;
-    RPCFramework = 2;
-    Http = 3;
-    MQ = 4;
-    Cache = 5;
+message Command {
+    string command = 1;
+    repeated KeyStringValuePair args = 2;
+}
+
+enum ServiceType {
+    // An agent works inside the normal business application.
+    normal = 0;
+    // An agent works inside the database.
+    database = 1;
+    // An agent works inside the MQ.
+    mq = 2;
+    // An agent works inside the cache server.
+    cache = 3;
+    // An agent works inside the browser.
+    browser = 4;
 }

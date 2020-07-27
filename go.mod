@@ -4,13 +4,14 @@ go 1.12
 
 require (
 	bou.ke/monkey v1.0.2
-	github.com/SkyAPM/go2sky v0.3.1-0.20200329092408-8b3e4d536d8d
+	github.com/SkyAPM/go2sky v0.5.0
 	github.com/TarsCloud/TarsGo v0.0.0-20190521041003-0022231bc5b2
 	github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
 	github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d // perf: https://github.com/apache/dubbo-go-hessian2/pull/188
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/dchest/siphash v1.2.1
 	github.com/envoyproxy/go-control-plane v0.9.4
+	github.com/ghodss/yaml v1.0.0
 	github.com/gin-gonic/gin v1.6.2 // indirect
 	github.com/go-chi/chi v4.1.0+incompatible
 	github.com/gogo/googleapis v1.3.2 // indirect
@@ -41,12 +42,12 @@ require (
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
-	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
+	gopkg.in/yaml.v2 v2.2.8
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	mosn.io/api v0.0.0-20200720094309-63de04640d4e
-	mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
+	mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4

@@ -56,7 +56,6 @@ func TestTraceBuilderRegisterAndGet(t *testing.T) {
 	if tracer == nil {
 		t.Error("get tracer from driver failed")
 	}
-
 	if mockT, ok := tracer.(mockTracer); ok {
 		if mockT.Tracer == nil {
 			t.Errorf("no injection go2sky.Tracer")
