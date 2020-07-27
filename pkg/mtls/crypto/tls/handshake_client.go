@@ -41,7 +41,7 @@ func (c *Conn) chooseCiphersuitesFromConfig() []uint16 {
 			}
 		}
 	}
-    return result
+	return result
 }
 
 func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {

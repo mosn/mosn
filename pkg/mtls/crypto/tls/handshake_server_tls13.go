@@ -87,14 +87,14 @@ func (hs *serverHandshakeStateTLS13) chooseCiphersuitesFromConfig() []uint16 {
 		return defaultCiphersuites;
 	}
 	var result []uint16
-    for _, id := range hs.c.config.CipherSuites {
+	for _, id := range hs.c.config.CipherSuites {
 		for _, defaultSupportID := range defaultCiphersuites {
 			if id == defaultSupportID {
 				result = append(result, id)
 			}
 		}
 	}
-    return result
+	return result
 }
 
 func (hs *serverHandshakeStateTLS13) processClientHello() error {
