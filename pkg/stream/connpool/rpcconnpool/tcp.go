@@ -104,7 +104,6 @@ func (p *connpoolTCP) GetActiveClient(ctx context.Context, subProtocol types.Pro
 			if c != nil && reason == "" {
 				p.totalClientCount++
 
-				// HTTP/2 && xprotocol
 				// should put this conn to pool
 				p.idleClients[connID] = append(p.idleClients[connID], c)
 			}
@@ -183,10 +182,7 @@ type activeClientTCP struct {
 	closeWithActiveReq bool
 	totalStream        uint64
 	connID             uint64
-
-	// -----http2 start
-	goaway uint32
-	// -----http2 end
+	goaway             uint32
 
 	// -----xprotocol start
 	subProtocol types.ProtocolName
