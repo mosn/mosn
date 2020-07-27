@@ -132,17 +132,15 @@ NextCipherSuite:
 
 	var params ecdheParameters
 	if hello.supportedVersions[0] == VersionTLS13 {
-		var clientCiphersuites []uint16
-		if len(c.config.CipherSuites) == 0 {
-			// if we don't set any ciphersuites for tls1.3, then
-			// we use default ciphersuites
+		clientCiphersuites := c.chooseCiphersuitesFromConfig()
+		if len(clientCiphersuites) == 0 {
+			// if we can't choose any ciphersuite from config, then
+			// we use default ciphersuites, it's not a perfect way
+			// but for most situation, we just want to sudccess do
+			// handshake
 			clientCiphersuites = defaultCipherSuitesTLS13()
-		} else {
-			clientCiphersuites = c.chooseCiphersuitesFromConfig()
-			if len(clientCiphersuites) == 0 {
-				return nil, nil, errors.New("tls: no tls1.3 support ciphersuites")
-			}
 		}
+
 
 		hello.cipherSuites = append(hello.cipherSuites, clientCiphersuites...)
 
