@@ -124,7 +124,11 @@ type Host interface {
 
 	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
+	// SetClusterInfo updates the host's cluster info
+	SetClusterInfo(info ClusterInfo)
 
+	// TLS HashValue effects the host support tls state
+	TLSHashValue() *HashValue
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
@@ -138,6 +142,9 @@ type Host interface {
 type ClusterInfo interface {
 	// Name returns the cluster name
 	Name() string
+
+	// ClusterType returns the cluster type
+	ClusterType() v2.ClusterType
 
 	// LbType returns the cluster's load balancer type
 	LbType() LoadBalancerType

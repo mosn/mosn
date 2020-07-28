@@ -28,6 +28,7 @@ const (
 	// only arguments
 	ARG ProtocolResourceName = "ARG"
 
+	SCHEME ProtocolResourceName = "scheme"
 	HEADER ProtocolResourceName = "header"
 	COOKIE ProtocolResourceName = "cookie"
 )

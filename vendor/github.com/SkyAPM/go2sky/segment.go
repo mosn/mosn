@@ -18,25 +18,29 @@
 package go2sky
 
 import (
-	"fmt"
-	"strings"
 	"sync/atomic"
 
 	"github.com/SkyAPM/go2sky/internal/idgen"
 	"github.com/SkyAPM/go2sky/internal/tool"
 	"github.com/SkyAPM/go2sky/propagation"
 	"github.com/SkyAPM/go2sky/reporter/grpc/common"
-	v2 "github.com/SkyAPM/go2sky/reporter/grpc/language-agent-v2"
+	v3 "github.com/SkyAPM/go2sky/reporter/grpc/language-agent"
 )
 
-func newSegmentSpan(defaultSpan *defaultSpan, parentSpan segmentSpan) (s segmentSpan) {
+func newSegmentSpan(defaultSpan *defaultSpan, parentSpan segmentSpan) (s segmentSpan, err error) {
 	ssi := &segmentSpanImpl{
 		defaultSpan: *defaultSpan,
 	}
-	ssi.createSegmentContext(parentSpan)
+	err = ssi.createSegmentContext(parentSpan)
+	if err != nil {
+		return nil, err
+	}
 	if parentSpan == nil || !parentSpan.segmentRegister() {
 		rs := newSegmentRoot(ssi)
-		rs.createRootSegmentContext(parentSpan)
+		err = rs.createRootSegmentContext(parentSpan)
+		if err != nil {
+			return nil, err
+		}
 		s = rs
 	} else {
 		s = ssi
@@ -46,23 +50,15 @@ func newSegmentSpan(defaultSpan *defaultSpan, parentSpan segmentSpan) (s segment
 
 // SegmentContext is the context in a segment
 type SegmentContext struct {
-	TraceID         []int64
-	SegmentID       []int64
+	TraceID         string
+	SegmentID       string
 	SpanID          int32
 	ParentSpanID    int32
-	ParentSegmentID []int64
+	ParentSegmentID string
 	collect         chan<- ReportedSpan
 	refNum          *int32
 	spanIDGenerator *int32
 	FirstSpan       Span `json:"-"`
-}
-
-func (ctx SegmentContext) GetReadableGlobalTraceID() string {
-	ii := make([]string, len(ctx.TraceID))
-	for i, v := range ctx.TraceID {
-		ii[i] = fmt.Sprint(v)
-	}
-	return strings.Join(ii, ".")
 }
 
 // ReportedSpan is accessed by Reporter to load reported data
@@ -73,11 +69,11 @@ type ReportedSpan interface {
 	EndTime() int64
 	OperationName() string
 	Peer() string
-	SpanType() common.SpanType
-	SpanLayer() common.SpanLayer
+	SpanType() v3.SpanType
+	SpanLayer() v3.SpanLayer
 	IsError() bool
 	Tags() []*common.KeyStringValuePair
-	Logs() []*v2.Log
+	Logs() []*v3.Log
 	ComponentID() int32
 }
 
@@ -93,7 +89,6 @@ type segmentSpanImpl struct {
 }
 
 // For Span
-
 func (s *segmentSpanImpl) End() {
 	s.defaultSpan.End()
 	go func() {
@@ -127,11 +122,11 @@ func (s *segmentSpanImpl) Peer() string {
 	return s.defaultSpan.Peer
 }
 
-func (s *segmentSpanImpl) SpanType() common.SpanType {
-	return common.SpanType(s.defaultSpan.SpanType)
+func (s *segmentSpanImpl) SpanType() v3.SpanType {
+	return v3.SpanType(s.defaultSpan.SpanType)
 }
 
-func (s *segmentSpanImpl) SpanLayer() common.SpanLayer {
+func (s *segmentSpanImpl) SpanLayer() v3.SpanLayer {
 	return s.defaultSpan.Layer
 }
 
@@ -143,7 +138,7 @@ func (s *segmentSpanImpl) Tags() []*common.KeyStringValuePair {
 	return s.defaultSpan.Tags
 }
 
-func (s *segmentSpanImpl) Logs() []*v2.Log {
+func (s *segmentSpanImpl) Logs() []*v3.Log {
 	return s.defaultSpan.Logs
 }
 
@@ -167,13 +162,16 @@ func (s *segmentSpanImpl) segmentRegister() bool {
 	}
 }
 
-func (s *segmentSpanImpl) createSegmentContext(parent segmentSpan) {
+func (s *segmentSpanImpl) createSegmentContext(parent segmentSpan) (err error) {
 	if parent == nil {
 		s.SegmentContext = SegmentContext{}
 		if len(s.defaultSpan.Refs) > 0 {
 			s.TraceID = s.defaultSpan.Refs[0].TraceID
 		} else {
-			s.TraceID = idgen.GenerateGlobalID()
+			s.TraceID, err = idgen.GenerateGlobalID()
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		s.SegmentContext = parent.context()
@@ -184,6 +182,7 @@ func (s *segmentSpanImpl) createSegmentContext(parent segmentSpan) {
 	if s.SegmentContext.FirstSpan == nil {
 		s.SegmentContext.FirstSpan = s
 	}
+	return
 }
 
 type rootSegmentSpan struct {
@@ -200,12 +199,16 @@ func (rs *rootSegmentSpan) End() {
 	}()
 }
 
-func (rs *rootSegmentSpan) createRootSegmentContext(parent segmentSpan) {
-	rs.SegmentID = idgen.GenerateScopedGlobalID(int64(rs.tracer.instanceID))
+func (rs *rootSegmentSpan) createRootSegmentContext(parent segmentSpan) (err error) {
+	rs.SegmentID, err = idgen.GenerateGlobalID()
+	if err != nil {
+		return err
+	}
 	i := int32(0)
 	rs.spanIDGenerator = &i
 	rs.SpanID = i
 	rs.ParentSpanID = -1
+	return
 }
 
 func newSegmentRoot(segmentSpan *segmentSpanImpl) *rootSegmentSpan {

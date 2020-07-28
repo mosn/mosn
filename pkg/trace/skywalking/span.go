@@ -20,6 +20,7 @@ package skywalking
 import (
 	"time"
 
+	"github.com/SkyAPM/go2sky"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -31,7 +32,6 @@ const (
 	parentSpanID = "-1"
 )
 
-//
 var NoopSpan = noopSkySpan{}
 
 type SkySpan struct {
@@ -72,11 +72,16 @@ func (s noopSkySpan) TraceId() string {
 }
 
 func (s noopSkySpan) SetRequestInfo(_ api.RequestInfo) {
-
 }
 
 func (s noopSkySpan) FinishSpan() {
 }
 
 func (s noopSkySpan) InjectContext(_ types.HeaderMap, _ types.RequestInfo) {
+}
+
+// SpanCarrier save the entry span and exit span in one request
+type SpanCarrier struct {
+	EntrySpan go2sky.Span
+	ExitSpan  go2sky.Span
 }

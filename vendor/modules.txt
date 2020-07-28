@@ -1,6 +1,6 @@
 # bou.ke/monkey v1.0.2
 bou.ke/monkey
-# github.com/SkyAPM/go2sky v0.3.1-0.20200329092408-8b3e4d536d8d
+# github.com/SkyAPM/go2sky v0.5.0
 github.com/SkyAPM/go2sky
 github.com/SkyAPM/go2sky/internal/idgen
 github.com/SkyAPM/go2sky/internal/tool
@@ -8,8 +8,8 @@ github.com/SkyAPM/go2sky/plugins/http
 github.com/SkyAPM/go2sky/propagation
 github.com/SkyAPM/go2sky/reporter
 github.com/SkyAPM/go2sky/reporter/grpc/common
-github.com/SkyAPM/go2sky/reporter/grpc/language-agent-v2
-github.com/SkyAPM/go2sky/reporter/grpc/register
+github.com/SkyAPM/go2sky/reporter/grpc/language-agent
+github.com/SkyAPM/go2sky/reporter/grpc/management
 # github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 github.com/StackExchange/wmi
 # github.com/TarsCloud/TarsGo v0.0.0-20190521041003-0022231bc5b2
@@ -50,6 +50,8 @@ github.com/alibaba/sentinel-golang/core/stat/base
 github.com/alibaba/sentinel-golang/core/system
 github.com/alibaba/sentinel-golang/logging
 github.com/alibaba/sentinel-golang/util
+# github.com/andybalholm/brotli v1.0.0
+github.com/andybalholm/brotli
 # github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d
 github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java_exception
@@ -114,6 +116,8 @@ github.com/envoyproxy/go-control-plane/pkg/conversion
 github.com/envoyproxy/go-control-plane/pkg/wellknown
 # github.com/envoyproxy/protoc-gen-validate v0.1.0
 github.com/envoyproxy/protoc-gen-validate/validate
+# github.com/ghodss/yaml v1.0.0
+github.com/ghodss/yaml
 # github.com/go-chi/chi v4.1.0+incompatible
 github.com/go-chi/chi
 # github.com/go-ole/go-ole v1.2.4
@@ -165,12 +169,10 @@ github.com/jinzhu/copier
 github.com/json-iterator/go
 # github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9
 github.com/juju/errors
-# github.com/klauspost/compress v1.7.5
+# github.com/klauspost/compress v1.10.4
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
-# github.com/klauspost/cpuid v1.2.1
-github.com/klauspost/cpuid
 # github.com/leodido/go-urn v1.2.0
 github.com/leodido/go-urn
 # github.com/lyft/protoc-gen-validate v0.0.14
@@ -240,7 +242,7 @@ github.com/ugorji/go/codec
 github.com/urfave/cli
 # github.com/valyala/bytebufferpool v1.0.0
 github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v1.2.0
+# github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/stackless
@@ -269,7 +271,7 @@ golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/subtle
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh/terminal
-# golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
+# golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 golang.org/x/net/bpf
 golang.org/x/net/context
 golang.org/x/net/http/httpguts
@@ -282,8 +284,9 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/trace
-# golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
+# golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
 golang.org/x/sys/cpu
+golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.2
@@ -345,9 +348,9 @@ istio.io/api/mixer/v1/config/client
 # istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a
 istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
-# mosn.io/api v0.0.0-20200615113625-8eedc8a88c20
+# mosn.io/api v0.0.0-20200720094309-63de04640d4e
 mosn.io/api
-# mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
+# mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
 mosn.io/pkg/buffer
 mosn.io/pkg/log
 mosn.io/pkg/utils

@@ -19,6 +19,7 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"net"
 	goHttp "net/http"
@@ -486,6 +487,61 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 			},
 			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "true"},
 		},
+
+		{
+			name: "case3",
+			args: args{
+				rri: &RouteRuleImplBase{
+					// defaultCluster: &weightedClusterEntry{
+					// 	clusterName: "case3Cluster",
+					// },
+					autoHostRewriteHeader: "realyHost",
+					requestHeadersParser: &headerParser{
+						headersToAdd: []*headerPair{
+							{
+								headerName: &lowerCaseString{"level"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "1",
+								},
+							},
+							{
+								headerName: &lowerCaseString{"route"},
+								headerFormatter: &plainHeaderFormatter{
+									isAppend:    true,
+									staticValue: "true",
+								},
+							},
+						},
+					},
+					vHost: &VirtualHostImpl{
+						globalRouteConfig: &configImpl{
+							requestHeadersParser: &headerParser{
+								headersToAdd: []*headerPair{
+									{
+										headerName: &lowerCaseString{"level"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "3",
+										},
+									},
+									{
+										headerName: &lowerCaseString{"global"},
+										headerFormatter: &plainHeaderFormatter{
+											isAppend:    true,
+											staticValue: "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				headers:     protocol.CommonHeader{"realyHost": "mosn.io.rewrited.host"},
+				requestInfo: nil,
+			},
+			want: protocol.CommonHeader{"realyHost": "mosn.io.rewrited.host", "authority": "mosn.io.rewrited.host", "level": "1,3", "route": "true", "global": "true"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -765,4 +821,87 @@ func TestDefaultHashPolicy(t *testing.T) {
 	rb, err := NewRouteRuleImplBase(nil, routerMock1)
 	assert.NoErrorf(t, err, "err should be nil, but get %+v", err)
 	assert.IsTypef(t, rb.policy.HashPolicy(), &sourceIPHashPolicyImpl{}, "")
+}
+
+func TestRedirectRule(t *testing.T) {
+	testCases := []struct {
+		name           string
+		redirectAction *v2.RedirectAction
+		expected       *redirectImpl
+		expectErr      error
+	}{
+		{
+			name: "invalid response code",
+			redirectAction: &v2.RedirectAction{
+				ResponseCode: 400,
+				PathRedirect: "/foo",
+			},
+			expectErr: fmt.Errorf("redirect code not supported yet: 400"),
+		},
+		{
+			name: "invalid scheme",
+			redirectAction: &v2.RedirectAction{
+				SchemeRedirect: "1http",
+			},
+			expectErr: fmt.Errorf("invalid scheme: 1http"),
+		},
+		{
+			name: "path redirect",
+			redirectAction: &v2.RedirectAction{
+				PathRedirect: "/foo",
+			},
+			expected: &redirectImpl{
+				path: "/foo",
+				code: goHttp.StatusMovedPermanently,
+			},
+		},
+		{
+			name: "host redirect",
+			redirectAction: &v2.RedirectAction{
+				HostRedirect: "foo.com",
+				ResponseCode: goHttp.StatusTemporaryRedirect,
+			},
+			expected: &redirectImpl{
+				host: "foo.com",
+				code: goHttp.StatusTemporaryRedirect,
+			},
+		},
+		{
+			name: "scheme redirect",
+			redirectAction: &v2.RedirectAction{
+				SchemeRedirect: "https",
+			},
+			expected: &redirectImpl{
+				scheme: "https",
+				code:   goHttp.StatusMovedPermanently,
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			rb, err := NewRouteRuleImplBase(nil, &v2.Router{
+				RouterConfig: v2.RouterConfig{
+					Redirect: tc.redirectAction,
+				},
+			})
+			if tc.expectErr != nil {
+				if err == nil {
+					t.Errorf("Unexpected success")
+					return
+				}
+				if err.Error() != tc.expectErr.Error() {
+					t.Errorf("Expect error: %s\nGot: %s\n", tc.expectErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %s", err)
+				return
+			}
+			if !reflect.DeepEqual(rb.redirectRule, tc.expected) {
+				t.Errorf("Unexpected redirect rule\nExpected: %#v\nGot: %#v\n", *tc.expected, *rb.redirectRule)
+			}
+		})
+	}
 }

@@ -30,6 +30,7 @@ import (
 
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2"
@@ -164,8 +165,8 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection, s
 		serverCallbacks: serverCallbacks,
 	}
 
-	if b := mosnctx.Get(ctx, types.ContextKeyH2Stream); b != nil {
-		sc.useStream = b.(bool)
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+		sc.useStream = gcf.(v2.ProxyGeneralExtendConfig).Http2UseStream
 	}
 
 	// init first context
@@ -298,6 +299,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		URL, _ := url.Parse(URI)
 		h2s.Request.URL = URL
 
+		header.Set(protocol.MosnHeaderScheme, scheme)
 		header.Set(protocol.MosnHeaderMethod, h2s.Request.Method)
 		header.Set(protocol.MosnHeaderHostKey, h2s.Request.Host)
 		header.Set(protocol.MosnHeaderPathKey, h2s.Request.URL.Path)
@@ -562,8 +564,8 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 		streamConnectionEventListener: clientCallbacks,
 	}
 
-	if b := mosnctx.Get(ctx, types.ContextKeyH2Stream); b != nil {
-		sc.useStream = b.(bool)
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+		sc.useStream = gcf.(v2.ProxyGeneralExtendConfig).Http2UseStream
 	}
 
 	// init first context
@@ -815,6 +817,8 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	if _, ok := s.conn.RawConn().(*mtls.TLSConn); ok {
 		scheme = "https"
 	}
+
+	headersIn.Del(protocol.MosnHeaderScheme)
 
 	var method string
 	if m, ok := headersIn.Get(protocol.MosnHeaderMethod); ok {

@@ -31,9 +31,8 @@ import (
 	"mosn.io/mosn/pkg/trace/skywalking"
 )
 
-const header string = "1-MTU1NTY0NDg4Mjk2Nzg2ODAwMC4wLjU5NDYzNzUyMDYzMzg3NDkwODc=" +
-	"-NS4xNTU1NjQ0ODgyOTY3ODg5MDAwLjM3NzUyMjE1NzQ0Nzk0NjM3NTg=" +
-	"-1-2-3-I2NvbS5oZWxsby5IZWxsb1dvcmxk-Iy9yZXN0L2Fh-Iy9nYXRld2F5L2Nj"
+const header = "1-MWYyZDRiZjQ3YmY3MTFlYWI3OTRhY2RlNDgwMDExMjI=-MWU3YzIwNGE3YmY3MTFlYWI4NThhY2RlNDgwMDExMjI=" +
+	"-0-c2VydmljZQ==-aW5zdGFuY2U=-cHJvcGFnYXRpb24=-cHJvcGFnYXRpb246NTU2Ng=="
 
 func Test_httpSkyTraceStartAndFinish(t *testing.T) {
 	driver := skywalking.NewSkyDriverImpl()

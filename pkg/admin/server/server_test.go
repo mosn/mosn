@@ -19,27 +19,29 @@ package server
 
 import (
 	"bufio"
-	rawjson "encoding/json"
 	"errors"
 	"fmt"
-	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
-	"github.com/golang/protobuf/jsonpb"
 	"io/ioutil"
-	"mosn.io/mosn/pkg/xds/conv"
 	"net/http"
 	"os"
+	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	rawjson "encoding/json"
+	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/store"
 	mv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/xds/conv"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -72,6 +74,22 @@ func getStats(port uint32) (string, error) {
 		return "", errors.New(fmt.Sprintf("call admin api failed response status: %d, %s", resp.StatusCode, string(b)))
 	}
 
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func getGlobalStats(port uint32) (string, error) {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/api/v1/stats_glob", port))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New(fmt.Sprintf("call admin api failed response status: %d, %s", resp.StatusCode, string(b)))
+	}
 	if err != nil {
 		return "", err
 	}
@@ -271,6 +289,23 @@ func TestDumpStats(t *testing.T) {
 			t.Errorf("unexpected stats: %s\n", data)
 		}
 	}
+
+	stats1, _ := metrics.NewMetrics("downstream", map[string]string{"proxy": "global"})
+	stats1.Counter("ct1").Inc(1)
+	stats1.Gauge("gg2").Update(3)
+	expected_string := "ct1:1\ngg2:3\n"
+	if data, err := getGlobalStats(config.Port); err != nil {
+		t.Error(err)
+	} else {
+		want := strings.Split(expected_string, "\n")
+		got := strings.Split(data, "\n")
+		sort.Strings(want)
+		sort.Strings(got)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("unexpected stats: %s\n", data)
+		}
+	}
+
 	store.Reset()
 }
 
