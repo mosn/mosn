@@ -164,7 +164,6 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		base.redirectRule = rule
 	}
 
-	fmt.Println("route.Route.RequestMirrorPolicies:", route.RequestMirrorPolicies)
 	// add mirror policies
 	if route.RequestMirrorPolicies != nil {
 		base.policy.mirrorPolicy = &mirrorImpl{
