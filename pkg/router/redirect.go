@@ -15,20 +15,27 @@
  * limitations under the License.
  */
 
-package api
+package router
 
-type ProtocolResourceName string
+type redirectImpl struct {
+	code   int
+	path   string
+	host   string
+	scheme string
+}
 
-// protocol resource name
-const (
-	// full uri contains path + args
-	URI ProtocolResourceName = "URI"
-	// only path not contains args
-	PATH ProtocolResourceName = "PATH"
-	// only arguments
-	ARG ProtocolResourceName = "ARG"
+func (rule *redirectImpl) RedirectCode() int {
+	return rule.code
+}
 
-	SCHEME ProtocolResourceName = "scheme"
-	HEADER ProtocolResourceName = "header"
-	COOKIE ProtocolResourceName = "cookie"
-)
+func (rule *redirectImpl) RedirectPath() string {
+	return rule.path
+}
+
+func (rule *redirectImpl) RedirectHost() string {
+	return rule.host
+}
+
+func (rule *redirectImpl) RedirectScheme() string {
+	return rule.scheme
+}

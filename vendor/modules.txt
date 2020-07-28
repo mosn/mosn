@@ -116,6 +116,8 @@ github.com/envoyproxy/go-control-plane/pkg/conversion
 github.com/envoyproxy/go-control-plane/pkg/wellknown
 # github.com/envoyproxy/protoc-gen-validate v0.1.0
 github.com/envoyproxy/protoc-gen-validate/validate
+# github.com/ghodss/yaml v1.0.0
+github.com/ghodss/yaml
 # github.com/go-chi/chi v4.1.0+incompatible
 github.com/go-chi/chi
 # github.com/go-ole/go-ole v1.2.4
@@ -346,7 +348,7 @@ istio.io/api/mixer/v1/config/client
 # istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a
 istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
-# mosn.io/api v0.0.0-20200615113625-8eedc8a88c20
+# mosn.io/api v0.0.0-20200720094309-63de04640d4e
 mosn.io/api
 # mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
 mosn.io/pkg/buffer
