@@ -43,12 +43,14 @@ func prepareLocalIpv6Ctx() context.Context {
 	reqHeaders := map[string]string{
 		"service": "test",
 	}
-	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaders)
+	reqHeaderMap := newHeaderMap(reqHeaders)
+	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaderMap)
 
 	respHeaders := map[string]string{
 		"Server": "MOSN",
 	}
-	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaders)
+	respHeaderMap := newHeaderMap(respHeaders)
+	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaderMap)
 
 	requestInfo := newRequestInfo()
 	requestInfo.SetRequestReceivedDuration(time.Now())
@@ -338,7 +340,44 @@ func BenchmarkAccessLogParallel(b *testing.B) {
 	})
 }
 
-// mock_requestInfo
+type mock_HeaderMap struct {
+	headerMap map[string]string
+}
+
+func newHeaderMap(headers map[string]string) api.HeaderMap {
+	return &mock_HeaderMap{
+		headerMap: headers,
+	}
+}
+
+func (h *mock_HeaderMap) Get(key string) (string, bool) {
+	return h.headerMap[key], h.headerMap[key] != ""
+}
+
+func (h *mock_HeaderMap) Set(key, value string) {
+
+}
+
+func (h *mock_HeaderMap) Add(key, value string) {
+
+}
+
+func (h *mock_HeaderMap) Del(key string) {
+
+}
+
+func (h *mock_HeaderMap) Range(f func(key, value string) bool) {
+
+}
+
+func (h *mock_HeaderMap) Clone() api.HeaderMap {
+	return h
+}
+
+func (h *mock_HeaderMap) ByteSize() uint64 {
+	return 0
+}
+
 type mock_requestInfo struct {
 	protocol                 api.Protocol
 	startTime                time.Time
@@ -685,10 +724,10 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 }
 
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	headers := ctx.Value(requestHeaderMapKey).(map[string]string)
+	headers := ctx.Value(requestHeaderMapKey).(api.HeaderMap)
 
 	headerName := data.(string)
-	headerValue, ok := headers[headerName[reqHeaderIndex:]]
+	headerValue, ok := headers.Get(headerName[reqHeaderIndex:])
 	if !ok {
 		return variable.ValueNotFound, nil
 	}
@@ -697,10 +736,10 @@ func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, d
 }
 
 func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	headers := ctx.Value(responseHeaderMapKey).(map[string]string)
+	headers := ctx.Value(responseHeaderMapKey).(api.HeaderMap)
 
 	headerName := data.(string)
-	headerValue, ok := headers[headerName[respHeaderIndex:]]
+	headerValue, ok := headers.Get(headerName[respHeaderIndex:])
 	if !ok {
 		return variable.ValueNotFound, nil
 	}
