@@ -345,7 +345,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		tt, ok := testMap["case"+strconv.Itoa(k+1)]
 		if ok {
 			t.Run(tt.name, func(t *testing.T) {
-				rri.FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
+				rris[k].FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
 				if !reflect.DeepEqual(tt.args.headers, tt.want) {
 					t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
 				}
