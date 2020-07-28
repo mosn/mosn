@@ -86,7 +86,7 @@
 						{
 							"type": "mirror",
 							"config": {
-								"amplification": 10
+								"amplification": 20
 							}
 						}
 					]
@@ -116,7 +116,7 @@
 									},
 									"request_mirror_policies": {
 										"cluster": "dubbo_mirror",
-										"percent": 10
+										"percent": 30
 									}
 								}
 							]
