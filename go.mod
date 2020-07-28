@@ -44,7 +44,7 @@ require (
 	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.2.8 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	mosn.io/api v0.0.0-20200720094309-63de04640d4e
 	mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
