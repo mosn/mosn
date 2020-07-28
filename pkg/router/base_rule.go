@@ -267,6 +267,10 @@ func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint
 	return true
 }
 
+func (rri *RouteRuleImplBase) FinalizePathHeader(headers api.HeaderMap, matchedPath string) {
+	rri.finalizePathHeader(headers, matchedPath)
+}
+
 func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedPath string) {
 
 	if len(rri.prefixRewrite) < 1 && len(rri.regexRewrite.Pattern.Regex) < 1 {

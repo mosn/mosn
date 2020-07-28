@@ -90,8 +90,9 @@ type PatternConfig struct {
 	Regex     string          `json:"regex,omitempty"`
 }
 
+// TODO: not implement yet
 type GoogleRe2Config struct {
-	MaxProgramSize uint32 `json:"max_program_size,omitempty"` // TODO: not implement yet
+	MaxProgramSize uint32 `json:"max_program_size,omitempty"`
 }
 
 // Router, the list of routes that will be matched, in order, for incoming requests.
