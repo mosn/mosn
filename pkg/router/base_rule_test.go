@@ -342,10 +342,11 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		assert.NoErrorf(t, err, "check regrexp pattern failed %+v", err)
 		rri.regexPattern = regexPattern
 
+		ops := k
 		tt, ok := testMap["case"+strconv.Itoa(k+1)]
 		if ok {
 			t.Run(tt.name, func(t *testing.T) {
-				rris[k].FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
+				rris[ops].FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
 				if !reflect.DeepEqual(tt.args.headers, tt.want) {
 					t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
 				}
