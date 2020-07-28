@@ -2,11 +2,12 @@ package main
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
 	"io"
 	"net"
 	"net/http"
 
-	"github.com/champly/lib4go/security/md5"
 	"golang.org/x/net/http2"
 	"k8s.io/klog"
 )
@@ -38,11 +39,21 @@ func main() {
 
 				var buf bytes.Buffer
 				io.Copy(&buf, file)
-				klog.Infof("receive file success {%s}, md5 is :%s\n\n\n", header.Filename, md5.Encrypt(buf.String()))
+				klog.Infof("receive file success {%s}, md5 is :%s\n\n\n", header.Filename, Encrypt(buf.String()))
 				w.Write([]byte("ok"))
 			}),
 		})
 	}
+}
+
+func Encrypt(s string) string {
+	return hex.EncodeToString(EncryptBytes([]byte(s)))
+}
+
+func EncryptBytes(buffer []byte) []byte {
+	m := md5.New()
+	m.Write(buffer)
+	return m.Sum(nil)
 }
 
 // curl -v --http2-prior-knowledge http://localhost:8080 --form 'demo=@/Users/champly/Downloads/idc-test'
