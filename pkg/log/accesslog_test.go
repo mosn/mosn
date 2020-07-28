@@ -281,11 +281,15 @@ func prepareLocalIpv4Ctx() context.Context {
 		"service": "test",
 	}
 	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaders)
+	reqHeaderMap := newHeaderMap(reqHeaders)
+	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaderMap)
 
 	respHeaders := map[string]string{
 		"Server": "MOSN",
 	}
 	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaders)
+	respHeaderMap := newHeaderMap(respHeaders)
+	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaderMap)
 
 	requestInfo := newRequestInfo()
 	requestInfo.SetRequestReceivedDuration(time.Now())
