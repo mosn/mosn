@@ -233,7 +233,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedP
 		}
 
 		// regex rewrite path if configured
-		if len(rri.regexRewrite.Pattern.Regex) > 1 {
+		if len(rri.regexRewrite.Pattern.Regex) > 1 && rri.regexPattern != nil {
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
 				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
