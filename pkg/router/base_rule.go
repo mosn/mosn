@@ -19,7 +19,10 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
+	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -31,6 +34,11 @@ import (
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+)
+
+var (
+	// https://tools.ietf.org/html/rfc3986#section-3.1
+	schemeValidator = regexp.MustCompile("^[a-z][a-z0-9.+-]*$")
 )
 
 type RouteRuleImplBase struct {
@@ -53,8 +61,8 @@ type RouteRuleImplBase struct {
 	policy *policy
 	// direct response
 	directResponseRule *directResponseImpl
-	// request mirro
-	mirrorPolicies *mirrorImpl
+	// redirect
+	redirectRule *redirectImpl
 	// action
 	routerAction       v2.RouteAction
 	defaultCluster     *weightedClusterEntry // cluster name and metadata
@@ -124,11 +132,44 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			body:   route.DirectResponse.Body,
 		}
 	}
+	// add redirect rule
+	if route.Redirect != nil {
+		r := route.Redirect
+
+		scheme := r.SchemeRedirect
+		if len(scheme) > 0 {
+			scheme = strings.ToLower(scheme)
+			if !schemeValidator.MatchString(scheme) {
+				return nil, fmt.Errorf("invalid scheme: %s", scheme)
+			}
+		}
+
+		rule := &redirectImpl{
+			path:   r.PathRedirect,
+			host:   r.HostRedirect,
+			scheme: scheme,
+		}
+
+		switch r.ResponseCode {
+		case 0:
+			// default to 301
+			rule.code = http.StatusMovedPermanently
+		case http.StatusMovedPermanently, http.StatusFound,
+			http.StatusSeeOther, http.StatusTemporaryRedirect,
+			http.StatusPermanentRedirect:
+			rule.code = r.ResponseCode
+		default:
+			return nil, fmt.Errorf("redirect code not supported yet: %d", r.ResponseCode)
+		}
+		base.redirectRule = rule
+	}
+
+	fmt.Println("route.Route.RequestMirrorPolicies:", route.RequestMirrorPolicies)
 	// add mirror policies
-	if route.Route.RequestMirrorPolicies != nil {
+	if route.RequestMirrorPolicies != nil {
 		base.policy.mirrorPolicy = &mirrorImpl{
-			cluster: route.Route.RequestMirrorPolicies.Cluster,
-			percent: int(route.Route.RequestMirrorPolicies.Percent),
+			cluster: route.RequestMirrorPolicies.Cluster,
+			percent: int(route.RequestMirrorPolicies.Percent),
 			rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
 		}
 	}
@@ -142,8 +183,11 @@ func (rri *RouteRuleImplBase) DirectResponseRule() api.DirectResponseRule {
 	return rri.directResponseRule
 }
 
-func (rri *RouteRuleImplBase) MirrorPolicies() MirrorPolicies {
-	return rri.mirrorPolicies
+func (rri *RouteRuleImplBase) RedirectRule() api.RedirectRule {
+	if rri.redirectRule == nil {
+		return nil
+	}
+	return rri.redirectRule
 }
 
 // types.RouteRule

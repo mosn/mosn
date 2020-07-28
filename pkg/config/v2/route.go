@@ -40,11 +40,13 @@ type RouterConfigurationConfig struct {
 }
 
 type RouterConfig struct {
-	Match           RouterMatch            `json:"match,omitempty"`
-	Route           RouteAction            `json:"route,omitempty"`
-	DirectResponse  *DirectResponseAction  `json:"direct_response,omitempty"`
-	MetadataConfig  *MetadataConfig        `json:"metadata,omitempty"`
-	PerFilterConfig map[string]interface{} `json:"per_filter_config,omitempty"`
+	Match                 RouterMatch            `json:"match,omitempty"`
+	Route                 RouteAction            `json:"route,omitempty"`
+	Redirect              *RedirectAction        `json:"redirect,omitempty"`
+	DirectResponse        *DirectResponseAction  `json:"direct_response,omitempty"`
+	MetadataConfig        *MetadataConfig        `json:"metadata,omitempty"`
+	PerFilterConfig       map[string]interface{} `json:"per_filter_config,omitempty"`
+	RequestMirrorPolicies *RequestMirrorPolicy   `json:"request_mirror_policies,omitempty"`
 }
 
 type RouterActionConfig struct {
@@ -63,7 +65,6 @@ type RouterActionConfig struct {
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
-	RequestMirrorPolicies   *RequestMirrorPolicy `json:"request_mirror_policies,omitempty"`
 }
 
 type ClusterWeightConfig struct {
@@ -279,6 +280,14 @@ type RouterMatch struct {
 	Path    string          `json:"path,omitempty"`    // Match request's Path with Exact Comparing
 	Regex   string          `json:"regex,omitempty"`   // Match request's Path with Regex Comparing
 	Headers []HeaderMatcher `json:"headers,omitempty"` // Match request's Headers
+}
+
+// RedirectAction represents the redirect response parameters
+type RedirectAction struct {
+	ResponseCode   int    `json:"response_code,omitempty"`
+	PathRedirect   string `json:"path_redirect,omitempty"`
+	HostRedirect   string `json:"host_redirect,omitempty"`
+	SchemeRedirect string `json:"scheme_redirect,omitempty"`
 }
 
 // DirectResponseAction represents the direct response parameters

@@ -27,8 +27,11 @@ type Route interface {
 	// RouteRule returns the route rule
 	RouteRule() RouteRule
 
-	// DirectResponseRule returns direct response rile
+	// DirectResponseRule returns direct response rule
 	DirectResponseRule() DirectResponseRule
+
+	// RedirectRule returns redirect rule
+	RedirectRule() RedirectRule
 }
 
 // RouteRule defines parameters for a route
@@ -113,6 +116,18 @@ type DirectResponseRule interface {
 	StatusCode() int
 	// Body returns the response body string
 	Body() string
+}
+
+// RedirectRule contains redirect info
+type RedirectRule interface {
+	// RedirectCode returns the redirect repsonse status code
+	RedirectCode() int
+	// RedirectPath returns the path that will overwrite the current path
+	RedirectPath() string
+	// RedirectHost returns the host that will overwrite the current host
+	RedirectHost() string
+	// RedirectScheme returns the scheme that will overwrite the current scheme
+	RedirectScheme() string
 }
 
 type MetadataMatchCriterion interface {

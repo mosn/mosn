@@ -88,6 +88,8 @@ func reconfigure(start bool) {
 	n, err = listenSockConn.Read(buf[:])
 	if n != 1 {
 		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "new mosn start failed")
+		// Restore PID
+		keeper.WritePidFile()
 		return
 	}
 

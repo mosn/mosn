@@ -89,18 +89,12 @@ type RouteBase interface {
 	Matchable
 }
 
-//TODO move interface to mosn/api by me
-type MirrorPolicies interface {
-	IsMirror() bool
-	ClusterName() string
-}
-
 // Policy
 type policy struct {
 	retryPolicy  *retryPolicyImpl
 	shadowPolicy *shadowPolicyImpl //TODO: not implement yet
 	hashPolicy   api.HashPolicy
-	mirrorPolicy MirrorPolicies //TODO add interface to mosn/api by me
+	mirrorPolicy api.MirrorPolicy
 }
 
 func (p *policy) RetryPolicy() api.RetryPolicy {
@@ -113,6 +107,10 @@ func (p *policy) ShadowPolicy() api.ShadowPolicy {
 
 func (p *policy) HashPolicy() api.HashPolicy {
 	return p.hashPolicy
+}
+
+func (p *policy) MirrorPolicy() api.MirrorPolicy {
+	return p.mirrorPolicy
 }
 
 type retryPolicyImpl struct {
@@ -251,10 +249,10 @@ type mirrorImpl struct {
 }
 
 func (m *mirrorImpl) IsMirror() (isTrans bool) {
-	if m.cluster == "" {
+	if m.cluster == "" || m.percent == 0 {
 		return false
 	}
-	return m.percent <= (m.rand.Intn(100) + 1)
+	return m.percent > m.rand.Intn(100)
 }
 
 func (m *mirrorImpl) ClusterName() string {

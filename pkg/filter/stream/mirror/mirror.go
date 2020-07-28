@@ -39,14 +39,16 @@ func (m *mirror) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler
 }
 
 func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	// router := m.receiveHandler.Route().RouteRule().Policy().HashPolicy()
 
-	// TODO if need mirror
+	mirrorPolicy := m.receiveHandler.Route().RouteRule().Policy().MirrorPolicy()
+	if !mirrorPolicy.IsMirror() {
+		return api.StreamFilterContinue
+	}
+
+	clusterName := mirrorPolicy.ClusterName()
 
 	utils.GoWithRecover(func() {
 		clusterManager := cluster.NewClusterManagerSingleton(nil, nil)
-
-		clusterName := "http1_mirror"
 
 		m.ctx = mosnctx.WithValue(mosnctx.Clone(ctx), types.ContextKeyBufferPoolCtx, nil)
 		if headers != nil {

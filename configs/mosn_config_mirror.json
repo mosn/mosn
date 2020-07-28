@@ -116,7 +116,7 @@
 									},
 									"request_mirror_policies": {
 										"cluster": "dubbo_mirror",
-										"percent": 100
+										"percent": 10
 									}
 								}
 							]
