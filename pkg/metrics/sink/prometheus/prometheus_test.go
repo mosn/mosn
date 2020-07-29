@@ -221,6 +221,7 @@ func TestPrometheusHistogramMetrics(t *testing.T) {
 			t.Error("get metrics failed:", err)
 		}
 	}
+	defer resp.Body.Close()
 
 	body, _ := ioutil.ReadAll(resp.Body)
 
