@@ -811,8 +811,8 @@ func convertRoutes(xdsRoutes []*xdsroute.Route) []v2.Router {
 		} else if xdsRouteAction := xdsRoute.GetRedirect(); xdsRouteAction != nil {
 			route := v2.Router{
 				RouterConfig: v2.RouterConfig{
-					Match: convertRouteMatch(xdsRoute.GetMatch()),
-					//Redirect:  convertRedirectAction(xdsRouteAction),
+					Match:    convertRouteMatch(xdsRoute.GetMatch()),
+					Redirect: convertRedirectAction(xdsRouteAction),
 					//Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
@@ -1060,18 +1060,17 @@ func convertRetryPolicy(xdsRetryPolicy *xdsroute.RetryPolicy) *v2.RetryPolicy {
 	}
 }
 
-/*
- func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) v2.RedirectAction {
-	 if xdsRedirectAction == nil {
-		 return v2.RedirectAction{}
-	 }
-	 return v2.RedirectAction{
-		 HostRedirect: xdsRedirectAction.GetHostRedirect(),
-		 PathRedirect: xdsRedirectAction.GetPathRedirect(),
-		 ResponseCode: uint32(xdsRedirectAction.GetResponseCode()),
-	 }
- }
-*/
+func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) *v2.RedirectAction {
+	if xdsRedirectAction == nil {
+		return nil
+	}
+	return &v2.RedirectAction{
+		SchemeRedirect: xdsRedirectAction.GetSchemeRedirect(),
+		HostRedirect:   xdsRedirectAction.GetHostRedirect(),
+		PathRedirect:   xdsRedirectAction.GetPathRedirect(),
+		ResponseCode:   int(xdsRedirectAction.GetResponseCode()),
+	}
+}
 
 /*
  func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.VirtualCluster {

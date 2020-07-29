@@ -47,7 +47,7 @@ type Proxy struct {
 
 // XProxyExtendConfig
 type XProxyExtendConfig struct {
-	SubProtocol string      `json:"sub_protocol,omitempty"`
+	SubProtocol string `json:"sub_protocol,omitempty"`
 }
 
 // ProxyGeneralExtendConfig is a general config for proxy

@@ -19,10 +19,13 @@ package router
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"net"
 	goHttp "net/http"
 	"reflect"
+	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
@@ -201,19 +204,34 @@ func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
 }
 
 func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
+
+	//both prefix_rewrite and regex_rewrite are configured, prefix rewrite by default
 	rri := &RouteRuleImplBase{
 		prefixRewrite: "/abc/",
+		regexRewrite: v2.RegexRewrite{
+			Pattern: v2.PatternConfig{
+				Regex: "^/service/([^/]+)(/.*)$",
+			},
+			Substitution: "${2}/instance/${1}",
+		},
 	}
+
+	regexPattern, err := regexp.Compile(rri.regexRewrite.Pattern.Regex)
+	assert.NoErrorf(t, err, "check regrexp pattern failed %+v", err)
+	rri.regexPattern = regexPattern
+
 	type args struct {
 		headers     types.HeaderMap
 		matchedPath string
 	}
 
-	tests := []struct {
+	type testCase struct {
 		name string
 		args args
 		want types.HeaderMap
-	}{
+	}
+
+	tests := []testCase{
 		{
 			name: "case1",
 			args: args{
@@ -234,12 +252,106 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rri.finalizePathHeader(tt.args.headers, tt.args.matchedPath)
+			rri.FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
 			if !reflect.DeepEqual(tt.args.headers, tt.want) {
 				t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
 			}
 		})
 
+	}
+
+	//regex rewrite test
+	rris := []*RouteRuleImplBase{
+		{
+			regexRewrite: v2.RegexRewrite{
+				Pattern: v2.PatternConfig{
+					Regex: "^/service/([^/]+)(/.*)$",
+				},
+				Substitution: "${2}/instance/${1}",
+			},
+		},
+		{
+			regexRewrite: v2.RegexRewrite{
+				Pattern: v2.PatternConfig{
+					Regex: "one",
+				},
+				Substitution: "two",
+			},
+		},
+		{
+			regexRewrite: v2.RegexRewrite{
+				Pattern: v2.PatternConfig{
+					Regex: "^(.*?)one(.*)$",
+				},
+				Substitution: "${1}two${2}",
+			},
+		},
+		{
+			regexRewrite: v2.RegexRewrite{
+				Pattern: v2.PatternConfig{
+					Regex: "(?i)/xxx/",
+				},
+				Substitution: "/yyy/",
+			},
+		},
+	}
+
+	tests = []testCase{
+		{
+			name: "case1",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/service/foo/v1/api"},
+				matchedPath: "/service/foo/v1/api",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/v1/api/instance/foo", protocol.MosnOriginalHeaderPathKey: "/service/foo/v1/api"},
+		},
+		{
+			name: "case2",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+				matchedPath: "/xxx/one/yyy/one/zzz",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/two/zzz", protocol.MosnOriginalHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+		},
+		{
+			name: "case3",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+				matchedPath: "/xxx/one/yyy/one/zzz",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/one/zzz", protocol.MosnOriginalHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+		},
+		{
+			name: "case4",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/aaa/XxX/bbb"},
+				matchedPath: "/aaa/XxX/bbb",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/aaa/yyy/bbb", protocol.MosnOriginalHeaderPathKey: "/aaa/XxX/bbb"},
+		},
+	}
+
+	testMap := make(map[string]testCase)
+	for _, tt := range tests {
+		testMap[tt.name] = tt
+	}
+
+	for k, rri := range rris {
+
+		regexPattern, err := regexp.Compile(rri.regexRewrite.Pattern.Regex)
+		assert.NoErrorf(t, err, "check regrexp pattern failed %+v", err)
+		rri.regexPattern = regexPattern
+
+		ops := k
+		tt, ok := testMap["case"+strconv.Itoa(k+1)]
+		if ok {
+			t.Run(tt.name, func(t *testing.T) {
+				rris[ops].FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
+				if !reflect.DeepEqual(tt.args.headers, tt.want) {
+					t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
+				}
+			})
+		}
 	}
 }
 
@@ -710,4 +822,87 @@ func TestDefaultHashPolicy(t *testing.T) {
 	rb, err := NewRouteRuleImplBase(nil, routerMock1)
 	assert.NoErrorf(t, err, "err should be nil, but get %+v", err)
 	assert.IsTypef(t, rb.policy.HashPolicy(), &sourceIPHashPolicyImpl{}, "")
+}
+
+func TestRedirectRule(t *testing.T) {
+	testCases := []struct {
+		name           string
+		redirectAction *v2.RedirectAction
+		expected       *redirectImpl
+		expectErr      error
+	}{
+		{
+			name: "invalid response code",
+			redirectAction: &v2.RedirectAction{
+				ResponseCode: 400,
+				PathRedirect: "/foo",
+			},
+			expectErr: fmt.Errorf("redirect code not supported yet: 400"),
+		},
+		{
+			name: "invalid scheme",
+			redirectAction: &v2.RedirectAction{
+				SchemeRedirect: "1http",
+			},
+			expectErr: fmt.Errorf("invalid scheme: 1http"),
+		},
+		{
+			name: "path redirect",
+			redirectAction: &v2.RedirectAction{
+				PathRedirect: "/foo",
+			},
+			expected: &redirectImpl{
+				path: "/foo",
+				code: goHttp.StatusMovedPermanently,
+			},
+		},
+		{
+			name: "host redirect",
+			redirectAction: &v2.RedirectAction{
+				HostRedirect: "foo.com",
+				ResponseCode: goHttp.StatusTemporaryRedirect,
+			},
+			expected: &redirectImpl{
+				host: "foo.com",
+				code: goHttp.StatusTemporaryRedirect,
+			},
+		},
+		{
+			name: "scheme redirect",
+			redirectAction: &v2.RedirectAction{
+				SchemeRedirect: "https",
+			},
+			expected: &redirectImpl{
+				scheme: "https",
+				code:   goHttp.StatusMovedPermanently,
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			rb, err := NewRouteRuleImplBase(nil, &v2.Router{
+				RouterConfig: v2.RouterConfig{
+					Redirect: tc.redirectAction,
+				},
+			})
+			if tc.expectErr != nil {
+				if err == nil {
+					t.Errorf("Unexpected success")
+					return
+				}
+				if err.Error() != tc.expectErr.Error() {
+					t.Errorf("Expect error: %s\nGot: %s\n", tc.expectErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Errorf("Unexpected error: %s", err)
+				return
+			}
+			if !reflect.DeepEqual(rb.redirectRule, tc.expected) {
+				t.Errorf("Unexpected redirect rule\nExpected: %#v\nGot: %#v\n", *tc.expected, *rb.redirectRule)
+			}
+		})
+	}
 }

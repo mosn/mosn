@@ -60,10 +60,10 @@ func SetPid(pid string) {
 			pidFile = pid
 		}
 	}
-	writePidFile()
+	WritePidFile()
 }
 
-func writePidFile() (err error) {
+func WritePidFile() (err error) {
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
 	if err = ioutil.WriteFile(pidFile, pid, 0644); err != nil {

@@ -20,47 +20,8 @@
 package mtls
 
 import (
-	"crypto/x509"
-	"errors"
-
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 )
-
-// Support Protocols version
-const (
-	minProtocols uint16 = tls.VersionTLS10
-	maxProtocols uint16 = tls.VersionTLS13
-)
-
-// version string map
-var version = map[string]uint16{
-	"tls_auto": 0,
-	"tlsv1_0":  tls.VersionTLS10,
-	"tlsv1_1":  tls.VersionTLS11,
-	"tlsv1_2":  tls.VersionTLS12,
-	"tlsv1_3":  tls.VersionTLS13,
-}
-
-// Curves
-var (
-	defaultCurves = []tls.CurveID{
-		tls.X25519,
-		tls.CurveP256,
-	}
-	allCurves = map[string]tls.CurveID{
-		"x25519": tls.X25519,
-		"p256":   tls.CurveP256,
-		"p384":   tls.CurveP384,
-		"p521":   tls.CurveP521,
-	}
-)
-
-// ALPN
-var alpn = map[string]bool{
-	"h2":       true,
-	"http/1.1": true,
-	"sofa":     true,
-}
 
 // Ciphers
 var (
@@ -78,6 +39,9 @@ var (
 		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 		tls.TLS_SM4_GCM_SM3,
+		tls.TLS_CHACHA20_POLY1305_SHA256,
+		tls.TLS_AES_128_GCM_SHA256,
+		tls.TLS_AES_256_GCM_SHA384,
 	}
 	ciphersMap = map[string]uint16{
 		"ECDHE-ECDSA-AES256-GCM-SHA384":      tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
@@ -95,35 +59,8 @@ var (
 		"ECDHE-RSA-3DES-EDE-CBC-SHA":         tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
 		"RSA-3DES-EDE-CBC-SHA":               tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
 		"TLS_SM4_GCM_SM3":                    tls.TLS_SM4_GCM_SM3,
+		"TLS_CHACHA20_POLY1305_SHA256":       tls.TLS_CHACHA20_POLY1305_SHA256,
+		"TLS_AES_128_GCM_SHA256":             tls.TLS_AES_128_GCM_SHA256,
+		"TLS_AES_256_GCM_SHA384":             tls.TLS_AES_256_GCM_SHA384,
 	}
 )
-
-// ConfigHooks is a  set of functions used to make a tls config
-type ConfigHooks interface {
-	// GetCertificate returns the tls.Certificate by index.
-	// By default the index is the cert/key file path or cert/key pem string
-	GetCertificate(certIndex, keyIndex string) (tls.Certificate, error)
-	// GetX509Pool returns the x509.CertPool, which is a set of certificates.
-	// By default the index is the ca certificate file path or certificate pem string
-	GetX509Pool(caIndex string) (*x509.CertPool, error)
-	// ServerHandshakeVerify returns a function that used to set "VerifyPeerCertificate" defined in tls.Config.
-	// If it is returns nil, the normal certificate verification will be used.
-	// Notice that we set tls.Config.InsecureSkipVerify to make sure the "VerifyPeerCertificate" is called,
-	// so the ServerHandshakeVerify should verify the trusted ca if necessary.
-	// If the TLSConfig.RequireClientCert is false, the ServerHandshakeVerify will be ignored
-	ServerHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
-	// ClientHandshakeVerify returns a function that used to set "VerifyPeerCertificate" defined in tls.Config.
-	// If it is returns nil, the normal certificate verification will be used.
-	// Notice that we set tls.Config.InsecureSkipVerify to make sure the "VerifyPeerCertificate" is called,
-	// so the ClientHandshakeVerify should verify the trusted ca if necessary.
-	// If TLSConfig.InsecureSkip is true, the ClientHandshakeVerify will be ignored.
-	ClientHandshakeVerify(cfg *tls.Config) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
-}
-
-// ConfigHooksFactory creates ConfigHooks by config
-type ConfigHooksFactory interface {
-	CreateConfigHooks(config map[string]interface{}) ConfigHooks
-}
-
-// ErrorNoCertConfigure represents config has no certificate
-var ErrorNoCertConfigure = errors.New("no certificate config")

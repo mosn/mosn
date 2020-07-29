@@ -29,11 +29,11 @@ import (
 // Servers contains the listener, filter and so on
 // ClusterManager used to manage the upstream
 type MOSNConfig struct {
-	Servers            []ServerConfig       `json:"servers,omitempty"`              //server config
-	ClusterManager     ClusterManagerConfig `json:"cluster_manager,omitempty"`      //cluster config
+	Servers        []ServerConfig       `json:"servers,omitempty"`         //server config
+	ClusterManager ClusterManagerConfig `json:"cluster_manager,omitempty"` //cluster config
 
-	ServiceRegistry    ServiceRegistryInfo  `json:"service_registry,omitempty"`     //service registry config, used by service discovery module
-	ServiceRegistryExt json.RawMessage      `json:"service_registry_ext,omitempty"` // service registry auto extend config
+	ServiceRegistry    ServiceRegistryInfo `json:"service_registry,omitempty"`     //service registry config, used by service discovery module
+	ServiceRegistryExt json.RawMessage     `json:"service_registry_ext,omitempty"` // service registry auto extend config
 
 	//tracing config
 	Tracing             TracingConfig   `json:"tracing,omitempty"`

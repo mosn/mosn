@@ -19,27 +19,29 @@ package server
 
 import (
 	"bufio"
-	rawjson "encoding/json"
 	"errors"
 	"fmt"
-	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
-	"github.com/golang/protobuf/jsonpb"
 	"io/ioutil"
-	"mosn.io/mosn/pkg/xds/conv"
 	"net/http"
 	"os"
+	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	rawjson "encoding/json"
+	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/store"
 	mv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/xds/conv"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -295,7 +297,11 @@ func TestDumpStats(t *testing.T) {
 	if data, err := getGlobalStats(config.Port); err != nil {
 		t.Error(err)
 	} else {
-		if data != expected_string {
+		want := strings.Split(expected_string, "\n")
+		got := strings.Split(data, "\n")
+		sort.Strings(want)
+		sort.Strings(got)
+		if !reflect.DeepEqual(got, want) {
 			t.Errorf("unexpected stats: %s\n", data)
 		}
 	}

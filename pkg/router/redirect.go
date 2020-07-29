@@ -13,44 +13,29 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
  */
 
-syntax = "proto3";
+package router
 
-option java_multiple_files = true;
-option java_package = "org.apache.skywalking.apm.network.common";
-option csharp_namespace = "SkyWalking.NetworkProtocol";
-option go_package = "github.com/SkyAPM/go2sky/reporter/grpc/common";
-
-message KeyStringValuePair {
-    string key = 1;
-    string value = 2;
+type redirectImpl struct {
+	code   int
+	path   string
+	host   string
+	scheme string
 }
 
-message KeyIntValuePair {
-    string key = 1;
-    int32 value = 2;
+func (rule *redirectImpl) RedirectCode() int {
+	return rule.code
 }
 
-message CPU {
-    double usagePercent = 2;
+func (rule *redirectImpl) RedirectPath() string {
+	return rule.path
 }
 
-// In most cases, detect point should be `server` or `client`.
-// Even in service mesh, this means `server`/`client` side sidecar
-// `proxy` is reserved only.
-enum DetectPoint {
-    client = 0;
-    server = 1;
-    proxy = 2;
+func (rule *redirectImpl) RedirectHost() string {
+	return rule.host
 }
 
-message Commands {
-    repeated Command commands = 1;
-}
-
-message Command {
-    string command = 1;
-    repeated KeyStringValuePair args = 2;
+func (rule *redirectImpl) RedirectScheme() string {
+	return rule.scheme
 }

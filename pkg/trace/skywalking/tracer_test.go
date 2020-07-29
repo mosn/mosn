@@ -85,7 +85,6 @@ func Test_parseAndVerifySkyTracerConfig(t *testing.T) {
 				Reporter:       v2.GRPCReporter,
 				BackendService: "oap:11800",
 				ServiceName:    "normal",
-				WithRegister:   false,
 			},
 			wantErr: false,
 		},

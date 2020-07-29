@@ -44,14 +44,13 @@ type dubboConfig struct {
 
 /*
 	example config :
-	"service_registry_ext"
     "service_registry_ext" :  {
 		"dubbo" : {
 			"enable" : true,
 			"server_port" : 20080,
 			"api_port" : 10022,
 			"log_path" : "/tmp"
-		},
+		}
 	}
 */
 func init() {
