@@ -4,12 +4,13 @@ import (
 	"context"
 
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 var defaultAmplification = 1
 
 func init() {
-	api.RegisterStream("mirror", NewMirrorConfig)
+	api.RegisterStream(v2.Mirror, NewMirrorConfig)
 }
 
 func NewMirrorConfig(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {

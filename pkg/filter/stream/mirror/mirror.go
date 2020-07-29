@@ -8,7 +8,6 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
@@ -18,20 +17,19 @@ import (
 type mirror struct {
 	amplification  int
 	receiveHandler api.StreamReceiverFilterHandler
-
-	dp api.Protocol
-	up api.Protocol
-
-	ctx      context.Context
-	headers  api.HeaderMap
-	data     buffer.IoBuffer
-	trailers api.HeaderMap
-
-	clusterName string
-	cluster     types.ClusterInfo
-
-	sender types.StreamSender
-	host   types.Host
+	dp             api.Protocol
+	up             api.Protocol
+	ctx            context.Context
+	headers        api.HeaderMap
+	data           buffer.IoBuffer
+	trailers       api.HeaderMap
+	cHeaders       api.HeaderMap
+	cData          buffer.IoBuffer
+	cTrailers      api.HeaderMap
+	clusterName    string
+	cluster        types.ClusterInfo
+	sender         types.StreamSender
+	host           types.Host
 }
 
 func (m *mirror) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
@@ -39,6 +37,10 @@ func (m *mirror) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler
 }
 
 func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
+
+	if m.receiveHandler.Route() == nil || m.receiveHandler.Route().RouteRule() == nil {
+		return api.StreamFilterContinue
+	}
 
 	mirrorPolicy := m.receiveHandler.Route().RouteRule().Policy().MirrorPolicy()
 	if !mirrorPolicy.IsMirror() {
@@ -53,19 +55,13 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		m.ctx = mosnctx.WithValue(mosnctx.Clone(ctx), types.ContextKeyBufferPoolCtx, nil)
 		if headers != nil {
 			// ! xprotocol should reimplement Clone function, not use default, trans protocol.CommonHeader
+			h := headers.Clone()
 			// nolint
-			if _, ok := headers.(xprotocol.XFrame); ok {
-				h := headers.Clone()
-				// nolint
-				if _, ok = h.(protocol.CommonHeader); ok {
-					log.DefaultLogger.Errorf("not support mirror, protocal {%v} must implement Clone function", mosnctx.Get(m.ctx, types.ContextKeyDownStreamProtocol))
-					return
-				}
-				m.headers = h
-			} else {
-				// ! http1 and http2 use default Clone function
-				m.headers = headers.Clone()
+			if _, ok := h.(protocol.CommonHeader); ok {
+				log.DefaultLogger.Errorf("not support mirror, protocal {%v} must implement Clone function", mosnctx.Get(m.ctx, types.ContextKeyDownStreamProtocol))
+				return
 			}
+			m.headers = h
 		}
 		if buf != nil {
 			m.data = buf.Clone()
@@ -74,7 +70,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 			m.trailers = trailers.Clone()
 		}
 
-		m.dp, m.up = m.convertProtocol()
+		m.dp, m.up = m.getProtocol()
 
 		snap := clusterManager.GetClusterSnapshot(ctx, clusterName)
 		if snap == nil {
@@ -83,6 +79,9 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		}
 		m.cluster = snap.ClusterInfo()
 		m.clusterName = clusterName
+
+		// cover once
+		m.cover()
 
 		for i := 0; i < m.amplification; i++ {
 			connPool := clusterManager.ConnPoolForCluster(m, snap, m.up)
@@ -99,7 +98,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 func (m *mirror) OnDestroy() {}
 
-func (m *mirror) convertProtocol() (dp, up types.ProtocolName) {
+func (m *mirror) getProtocol() (dp, up types.ProtocolName) {
 	dp = m.getDownStreamProtocol()
 	up = m.getUpstreamProtocol()
 	return
@@ -166,51 +165,58 @@ func (m *mirror) OnReady(sender types.StreamSender, host types.Host) {
 func (m *mirror) sendDataOnce() {
 	endStream := m.data == nil && m.trailers == nil
 
-	m.sender.AppendHeaders(m.ctx, m.coverHeader(), endStream)
+	m.sender.AppendHeaders(m.ctx, m.cHeaders, endStream)
 
 	if endStream {
 		return
 	}
 
 	endStream = m.trailers == nil
-	m.sender.AppendData(m.ctx, m.converData(), endStream)
+	m.sender.AppendData(m.ctx, m.cData, endStream)
 
 	if endStream {
 		return
 	}
 
-	m.sender.AppendTrailers(m.ctx, m.convertTrailer())
+	m.sender.AppendTrailers(m.ctx, m.cTrailers)
+}
+
+func (m *mirror) cover() {
+	if m.dp == m.up {
+		m.cHeaders = m.headers
+		m.cData = m.data
+		m.cTrailers = m.trailers
+		return
+	}
+
+	m.cHeaders = m.coverHeader()
+	m.cData = m.converData()
+	m.cTrailers = m.convertTrailer()
 }
 
 func (m *mirror) coverHeader() types.HeaderMap {
-	if m.dp != m.up {
-		convHeader, err := protocol.ConvertHeader(m.ctx, m.dp, m.up, m.headers)
-		if err == nil {
-			return convHeader
-		}
-		log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert header from %s to %s failed, %s", m.dp, m.up, err.Error())
+	convHeader, err := protocol.ConvertHeader(m.ctx, m.dp, m.up, m.headers)
+	if err == nil {
+		return convHeader
 	}
+	log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert header from %s to %s failed, %s", m.dp, m.up, err.Error())
 	return m.headers
 }
 
 func (m *mirror) converData() types.IoBuffer {
-	if m.dp != m.up {
-		convData, err := protocol.ConvertData(m.ctx, m.dp, m.up, m.data)
-		if err == nil {
-			return convData
-		}
-		log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert data from %s to %s failed, %s", m.dp, m.up, err.Error())
+	convData, err := protocol.ConvertData(m.ctx, m.dp, m.up, m.data)
+	if err == nil {
+		return convData
 	}
+	log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert data from %s to %s failed, %s", m.dp, m.up, err.Error())
 	return m.data
 }
 
 func (m *mirror) convertTrailer() types.HeaderMap {
-	if m.dp != m.up {
-		convTrailers, err := protocol.ConvertTrailer(m.ctx, m.dp, m.up, m.trailers)
-		if err == nil {
-			return convTrailers
-		}
-		log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert trailers from %s to %s failed, %s", m.dp, m.up, err.Error())
+	convTrailers, err := protocol.ConvertTrailer(m.ctx, m.dp, m.up, m.trailers)
+	if err == nil {
+		return convTrailers
 	}
+	log.Proxy.Warnf(m.ctx, "[proxy] [upstream] [mirror] convert trailers from %s to %s failed, %s", m.dp, m.up, err.Error())
 	return m.trailers
 }
