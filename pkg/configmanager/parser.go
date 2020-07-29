@@ -165,8 +165,8 @@ func ParseLogLevel(level string) log.Level {
 
 // ParseListenerConfig
 func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.Listener {
-	addr := lc.Addr
-	if addr == nil {
+	addr, ok := lc.Addr.(*net.TCPAddr)
+	if !ok {
 		log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)
 	}
 	//try inherit legacy listener
