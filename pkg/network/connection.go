@@ -750,12 +750,7 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		case "tcp":
 			bytesSent, err = buffers.WriteTo(c.rawConnection)
 		case "udp":
-			var addr *net.UDPAddr
-			if c.RemoteAddr() != nil {
-				addr = c.RemoteAddr().(*net.UDPAddr)
-			} else {
-				addr = c.rawConnection.RemoteAddr().(*net.UDPAddr)
-			}
+			addr := c.RemoteAddr().(*net.UDPAddr)
 			n := 0
 			bytesSent = 0
 			for _, buf := range c.ioBuffers {

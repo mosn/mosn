@@ -60,10 +60,6 @@ func ReadMsgLoop(lctx context.Context, l *listener) {
 		buf.Grow(n)
 
 		if err != nil {
-			if nerr, ok := err.(net.Error); ok && (nerr.Timeout() || nerr.Timeout()) {
-				log.DefaultLogger.Errorf("[network] [udp] recv from udp error: %v", err)
-				break
-			}
 			if strings.Contains(err.Error(), "use of closed network connection") {
 				log.DefaultLogger.Errorf("[network] [udp] recv from udp error: %v", err)
 				break
@@ -84,4 +80,3 @@ func ReadMsgLoop(lctx context.Context, l *listener) {
 		}
 	}
 }
-

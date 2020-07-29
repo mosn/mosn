@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -222,16 +221,7 @@ func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 	l := cap(b.buf) - len(b.buf)
 
-	conn, _ := r.(net.Conn)
-	if conn != nil {
-		// TODO: support configure
-		// conn.SetReadDeadline(time.Now().Add(ConnReadTimeout))
-
-		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
-
-	} else {
-		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
-	}
+	m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
 
 	b.buf = b.buf[0 : len(b.buf)+m]
 	n = int64(m)

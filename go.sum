@@ -776,11 +776,15 @@ mosn.io/api v0.0.0-20200615113625-8eedc8a88c20 h1:1+a89pM3mhVB4rWQDP2xjsm9chk8Ce
 mosn.io/api v0.0.0-20200615113625-8eedc8a88c20/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/api v0.0.0-20200720094309-63de04640d4e h1:YRbZ40nR46tRe017jxbZxKpw97///XOxoKUAaEfb1e8=
 mosn.io/api v0.0.0-20200720094309-63de04640d4e/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
+mosn.io/api v0.0.0-20200729124336-c71e8f2074cb h1:vAW2reBi+FLg2zEUiLINwzJsaEyV/z8ssrC0hJnhprc=
+mosn.io/api v0.0.0-20200729124336-c71e8f2074cb/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d h1:p5BKQJrfU67nkQciB3Bxh9SPpdT+oGBVLfOQxuwhUKQ=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b h1:sLIM8d3bKnrOoqmB8C6WPw3mQ8qitqUujPTrNcZwfPw=
 mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 mosn.io/pkg v0.0.0-20200723115157-3842674e37c7 h1:+1msUotPauPpoQUmB4J2kN6fEZDBw/Bz7SgksUtes0k=
 mosn.io/pkg v0.0.0-20200723115157-3842674e37c7/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
+mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f h1:d7G+Dhw5GXnrnr8D5ArNFowL9F0hj2hMJD0OsPaGBMc=
+mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
