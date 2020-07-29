@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path"
 
 	"github.com/go-chi/chi"
 	dubbologger "github.com/mosn/registry/dubbo/common/logger"
@@ -30,10 +31,6 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-type conf struct {
-	C dubboConfig `json:"dubbo"`
-}
-
 // dubboConfig is for dubbo related configs
 type dubboConfig struct {
 	Enable             bool   `json:"enable"`
@@ -43,29 +40,31 @@ type dubboConfig struct {
 }
 
 /*
-	example config :
-    "service_registry_ext" :  {
-		"dubbo" : {
+example config :
+
+    "extend" :  [{
+		"type" : "dubbo_registry",
+		"config": {
 			"enable" : true,
 			"server_port" : 20080,
 			"api_port" : 10022,
 			"log_path" : "/tmp"
 		}
-	}
+	}]
 */
 func init() {
-	configmanager.RegisterConfigParsedListener(configmanager.ParseCallbackKeyServiceRgtExt,
+	configmanager.RegisterConfigExtendParsedListener("dubbo_registry",
 		func(data interface{}, _ bool) error {
 			if dataBytes, ok := data.(json.RawMessage); ok {
-				var conf conf
+				var conf dubboConfig
 				err := json.Unmarshal(dataBytes, &conf)
 				if err != nil {
 					log.DefaultLogger.Errorf("[dubbod] failed to parse dubbo registry config: %v", err.Error())
 					return err
 				}
 
-				if conf.C.Enable {
-					Init(conf.C.APIPort, conf.C.ServerListenerPort, conf.C.LogPath)
+				if conf.Enable {
+					Init(conf.APIPort, conf.ServerListenerPort, conf.LogPath)
 				}
 			}
 
@@ -114,7 +113,7 @@ func initAPI() {
 	r.Post("/pub", publish)
 	r.Post("/unpub", unpublish)
 
-	_ = dubbologger.InitLog(logPath)
+	_ = dubbologger.InitLog(path.Join(logPath, "dubbo.log"))
 
 	// FIXME make port configurable
 	utils.GoWithRecover(func() {

@@ -251,8 +251,8 @@ func (m *Mosn) Start() {
 	log.StartLogger.Infof("mosn parse registry info")
 	configmanager.ParseServiceRegistry(m.config.ServiceRegistry)
 
-	log.StartLogger.Infof("mosn parse registry info ext")
-	configmanager.ParseServiceRegistryExt(m.config.ServiceRegistryExt)
+	log.StartLogger.Infof("mosn parse extend config")
+	configmanager.ParseConfigExtend(m.config.Extend)
 
 	// beforestart starts transfer connection and non-proxy listeners
 	log.StartLogger.Infof("mosn prepare for start")
