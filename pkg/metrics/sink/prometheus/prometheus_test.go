@@ -155,21 +155,12 @@ func TestPrometheusHistogramMetrics(t *testing.T) {
 		action      testAction
 		actionValue int64
 	}{
-		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countInc, 1},
-		{"t1", map[string]string{"lbk1": "lbv1", "lbk2": "lbv2"}, "k1", countInc, 1},
-		{"t1", map[string]string{"lbk1": "lbv2"}, "k1", countInc, 1},
-		{"t1", map[string]string{"lbk1": "lbv1"}, "k1", countDec, 1},
-		{"t1", map[string]string{"lbk1": "lbv1"}, "k2", countInc, 1},
-		{"t1", map[string]string{"lbk1": "lbv1"}, "k3", gaugeUpdate, 1},
+
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 1},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 2},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 3},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 4},
-		{"t1", map[string]string{"lbk2": "lbv2"}, "k1", countInc, 1},
-		{"t1", map[string]string{"lbk2": "lbv2"}, "k2", countInc, 2},
-		{"t1", map[string]string{"lbk2": "lbv2"}, "k3", gaugeUpdate, 3},
 		{"t1", map[string]string{"lbk2": "lbv2"}, "k4", histogramUpdate, 2},
-		{"t2", map[string]string{"lbk1": "lbv1"}, "k1", countInc, 1},
 	}
 	wg := sync.WaitGroup{}
 	for i := range testCases {
