@@ -155,7 +155,6 @@ func TestPrometheusHistogramMetrics(t *testing.T) {
 		action      testAction
 		actionValue int64
 	}{
-
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 1},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 2},
 		{"t1", map[string]string{"lbk1": "lbv1"}, "k4", histogramUpdate, 3},
@@ -201,10 +200,12 @@ func TestPrometheusHistogramMetrics(t *testing.T) {
 
 	tc := http.Client{}
 
+	// nolint
 	resp, err := tc.Get("http://127.0.0.1:8088/metrics")
 	if err != nil {
 		// wait listener ready
 		time.Sleep(time.Second)
+		// nolint
 		resp, err = tc.Get("http://127.0.0.1:8088/metrics")
 
 		// still error

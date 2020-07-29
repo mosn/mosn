@@ -244,7 +244,7 @@ func builder(cfg map[string]interface{}) (types.MetricsSink, error) {
 	if len(promCfg.Percentiles) > 0 {
 		percentilesFloat := make([]float64, 0, len(promCfg.Percentiles))
 		for _, p := range promCfg.Percentiles {
-			// onlint
+			// nolint
 			if p > 100 {
 				return nil, fmt.Errorf("percentile {%d} must le 100", p)
 			}
