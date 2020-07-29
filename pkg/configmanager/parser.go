@@ -68,6 +68,7 @@ var configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
 const (
 	ParseCallbackKeyCluster        ContentKey = "clusters"
 	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
+	ParseCallbackKeyServiceRgtExt  ContentKey = "service_registry_ext"
 	ParseCallbackKeyProcessor      ContentKey = "processor"
 )
 
@@ -220,6 +221,17 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 	}
 	return routerConfiguration, nil
 
+}
+
+// extensible service registry
+// for various service registries, eg: dubbo, sofa ...
+func ParseServiceRegistryExt(src json.RawMessage) {
+	//trigger all callbacks
+	if cbs, ok := configParsedCBMaps[ParseCallbackKeyServiceRgtExt]; ok {
+		for _, cb := range cbs {
+			cb(src, true)
+		}
+	}
 }
 
 func ParseServiceRegistry(src v2.ServiceRegistryInfo) {

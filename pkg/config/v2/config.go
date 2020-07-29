@@ -29,9 +29,12 @@ import (
 // Servers contains the listener, filter and so on
 // ClusterManager used to manage the upstream
 type MOSNConfig struct {
-	Servers         []ServerConfig       `json:"servers,omitempty"`          //server config
-	ClusterManager  ClusterManagerConfig `json:"cluster_manager,omitempty"`  //cluster config
-	ServiceRegistry ServiceRegistryInfo  `json:"service_registry,omitempty"` //service registry config, used by service discovery module
+	Servers            []ServerConfig       `json:"servers,omitempty"`              //server config
+	ClusterManager     ClusterManagerConfig `json:"cluster_manager,omitempty"`      //cluster config
+
+	ServiceRegistry    ServiceRegistryInfo  `json:"service_registry,omitempty"`     //service registry config, used by service discovery module
+	ServiceRegistryExt json.RawMessage      `json:"service_registry_ext,omitempty"` // service registry auto extend config
+
 	//tracing config
 	Tracing             TracingConfig   `json:"tracing,omitempty"`
 	Metrics             MetricsConfig   `json:"metrics,omitempty"`
@@ -41,14 +44,6 @@ type MOSNConfig struct {
 	Debug               PProfConfig     `json:"pprof,omitempty"`
 	Pid                 string          `json:"pid,omitempty"`    // pid file
 	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
-}
-
-// DubboConfig is for dubbo related configs
-type DubboConfig struct {
-	Enable             bool   `json:"enable"`
-	ServerListenerPort int    `json:"server_port"` // for server listener, must keep the same with server listener
-	APIPort            int    `json:"api_port"`    // for pub/sub/unpub/unsub api
-	LogPath            string `json:"log_path"`    // dubbo service discovery log_path
 }
 
 // PProfConfig is used to start a pprof server for debug

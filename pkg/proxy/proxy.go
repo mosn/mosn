@@ -24,8 +24,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
-
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -114,8 +112,6 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
 			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 			log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
-			initDubboRelatedConfig(xProxyExtendConfig.Dubbo)
-			log.DefaultLogger.Tracef("[proxy] setup dubbo related api = %v", xProxyExtendConfig.Dubbo)
 		} else if err := json.Unmarshal([]byte(extJSON), &proxyGeneralExtendConfig); err == nil {
 			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 			log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxyGeneralExtendConfig)
@@ -140,12 +136,6 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 
 	return proxy
-}
-
-func initDubboRelatedConfig(dubbo v2.DubboConfig) {
-	if dubbo.Enable {
-		dubbod.Init(dubbo.APIPort, dubbo.ServerListenerPort, dubbo.LogPath)
-	}
 }
 
 func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
