@@ -522,7 +522,7 @@ func convertIstioPercentage(percent *xdstype.FractionalPercent) uint32 {
 	case xdstype.FractionalPercent_MILLION:
 		return percent.Numerator / 10000
 	case xdstype.FractionalPercent_TEN_THOUSAND:
-		return percent.Numerator / 10
+		return percent.Numerator / 100
 	case xdstype.FractionalPercent_HUNDRED:
 		return percent.Numerator
 	}
@@ -1368,7 +1368,7 @@ func convertRuntimePercentage(percent *xdscore.RuntimeFractionalPercent) uint32 
 	case xdstype.FractionalPercent_MILLION:
 		return v.Numerator / 10000
 	case xdstype.FractionalPercent_TEN_THOUSAND:
-		return v.Numerator / 10
+		return v.Numerator / 100
 	case xdstype.FractionalPercent_HUNDRED:
 		return v.Numerator
 	}
