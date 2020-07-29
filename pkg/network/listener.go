@@ -146,7 +146,7 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 			l.state = ListenerRunning
 			// add metrics for listener if bind port
 			switch l.network {
-			case "udp", "udp4", "udp6":
+			case "udp":
 				metrics.AddListenerAddr(l.packetConn.(*net.UDPConn).LocalAddr().String() + l.network)
 			default:
 				metrics.AddListenerAddr(l.rawl.Addr().String())
@@ -158,7 +158,7 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 			return
 		}
 		switch l.network {
-		case "udp", "udp4", "udp6":
+		case "udp":
 			l.ReadMsgEventLoop(lctx)
 		default:
 			l.AcceptEventLoop(lctx)
@@ -202,7 +202,7 @@ func (l *listener) ReadMsgEventLoop(lctx context.Context) {
 func (l *listener) Stop() error {
 	var err error
 	switch l.network {
-	case "udp", "udp4", "udp6":
+	case "udp":
 		err = l.packetConn.SetDeadline(time.Now())
 	default:
 		err = l.rawl.SetDeadline(time.Now())
@@ -220,7 +220,7 @@ func (l *listener) SetListenerTag(tag uint64) {
 
 func (l *listener) ListenerFile() (*os.File, error) {
 	switch l.network {
-	case "udp", "udp4", "udp6":
+	case "udp":
 		return l.packetConn.(*net.UDPConn).File()
 	default:
 		return l.rawl.File()
@@ -274,7 +274,7 @@ func (l *listener) listen(lctx context.Context) error {
 	var rconn net.PacketConn
 
 	switch l.network {
-	case "udp", "udp4", "udp6":
+	case "udp":
 		lc := net.ListenConfig{}
 		if rconn, err = lc.ListenPacket(context.Background(), l.network, l.localAddress.String()); err != nil {
 			return err

@@ -164,20 +164,24 @@ func ParseLogLevel(level string) log.Level {
 }
 
 func GetAddrIp(addr net.Addr) net.IP {
-	switch addr.Network() {
-	case "udp":
+	switch addr.(type) {
+	case *net.UDPAddr:
 		return addr.(*net.UDPAddr).IP
-	default:
+	case *net.TCPAddr:
 		return addr.(*net.TCPAddr).IP
+	default:
+		return nil
 	}
 }
 
 func GetAddrPort(addr net.Addr) int {
-	switch addr.Network() {
-	case "udp":
+	switch addr.(type) {
+	case *net.UDPAddr:
 		return addr.(*net.UDPAddr).Port
-	default:
+	case *net.TCPAddr:
 		return addr.(*net.TCPAddr).Port
+	default:
+		return 0
 	}
 }
 
@@ -188,73 +192,80 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener, inher
 	}
 	var addr net.Addr
 	var err error
+	var old *net.TCPListener
+	var old_pc *net.PacketConn
+	log.DefaultLogger.Infof("parsing listen config:%s", lc.Network)
+
+	if lc.Network == "" {
+		lc.Network = "tcp"
+	}
+
 	switch lc.Network {
 	case "udp":
 		addr, err = net.ResolveUDPAddr("udp", lc.AddrConfig)
-	default:
+		for i, il := range inheritPacketConn {
+			if il == nil {
+				continue
+			}
+			tl := il.(*net.UDPConn)
+			ilAddr, err := net.ResolveUDPAddr("udp", tl.LocalAddr().String())
+			if err != nil {
+				log.StartLogger.Fatalf("[config] [parse listener] inheritListener not valid: %s", tl.LocalAddr().String())
+			}
+
+			if GetAddrPort(addr) != ilAddr.Port {
+				continue
+			}
+
+			ip := GetAddrIp(addr)
+			if (ip.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
+				(ip.IsLoopback() && ilAddr.IP.IsLoopback()) ||
+				ip.Equal(ilAddr.IP) {
+				log.StartLogger.Infof("[config] [parse listener] inherit packetConn addr: %s", lc.AddrConfig)
+				old_pc = &il
+				inheritPacketConn[i] = nil
+				break
+			}
+		}
+
+	case "tcp":
 		addr, err = net.ResolveTCPAddr("tcp", lc.AddrConfig)
-	}
-	if err != nil {
-		log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)
-	}
-	//try inherit legacy listener
-	var old *net.TCPListener
-
-	for i, il := range inheritListeners {
-		if il == nil {
-			continue
-		}
-		tl := il.(*net.TCPListener)
-		ilAddr, err := net.ResolveTCPAddr("tcp", tl.Addr().String())
 		if err != nil {
-			log.StartLogger.Fatalf("[config] [parse listener] inheritListener not valid: %s", tl.Addr().String())
+			log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)
 		}
+		//try inherit legacy listener
+		for i, il := range inheritListeners {
+			if il == nil {
+				continue
+			}
+			tl := il.(*net.TCPListener)
+			ilAddr, err := net.ResolveTCPAddr("tcp", tl.Addr().String())
+			if err != nil {
+				log.StartLogger.Fatalf("[config] [parse listener] inheritListener not valid: %s", tl.Addr().String())
+			}
 
-		if GetAddrPort(addr) != ilAddr.Port {
-			continue
-		}
+			if GetAddrPort(addr) != ilAddr.Port {
+				continue
+			}
 
-		ip := GetAddrIp(addr)
-		if (ip.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
-			(ip.IsLoopback() && ilAddr.IP.IsLoopback()) ||
-			ip.Equal(ilAddr.IP) {
-			log.StartLogger.Infof("[config] [parse listener] inherit listener addr: %s", lc.AddrConfig)
-			old = tl
-			inheritListeners[i] = nil
-			break
+			ip := GetAddrIp(addr)
+			if (ip.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
+				(ip.IsLoopback() && ilAddr.IP.IsLoopback()) ||
+				ip.Equal(ilAddr.IP) {
+				log.StartLogger.Infof("[config] [parse listener] inherit listener addr: %s", lc.AddrConfig)
+				old = tl
+				inheritListeners[i] = nil
+				break
+			}
 		}
-	}
-
-	var old_pc net.PacketConn
-	for i, il := range inheritPacketConn {
-		if il == nil {
-			continue
-		}
-		tl := il.(*net.UDPConn)
-		ilAddr, err := net.ResolveUDPAddr("udp", tl.LocalAddr().String())
-		if err != nil {
-			log.StartLogger.Fatalf("[config] [parse listener] inheritListener not valid: %s", tl.LocalAddr().String())
-		}
-
-		if GetAddrPort(addr) != ilAddr.Port {
-			continue
-		}
-
-		ip := GetAddrIp(addr)
-		if (ip.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
-			(ip.IsLoopback() && ilAddr.IP.IsLoopback()) ||
-			ip.Equal(ilAddr.IP) {
-			log.StartLogger.Infof("[config] [parse listener] inherit packetConn addr: %s", lc.AddrConfig)
-			old_pc = il
-			inheritPacketConn[i] = nil
-			break
-		}
+	default:
+		// not supported
 	}
 
 	lc.Addr = addr
 	lc.PerConnBufferLimitBytes = 1 << 15
 	lc.InheritListener = old
-	lc.InheritPacketConn = &old_pc
+	lc.InheritPacketConn = old_pc
 	return lc
 }
 

@@ -227,20 +227,30 @@ var UDPAddrStore *utils.ExpiredMap = utils.NewExpiredMap(
 	}, false)
 
 func GetOrCreateUDPAddr(addrstr string) net.Addr {
+	var addr net.Addr
+	var err error
 
-	if addr, _ := UDPAddrStore.Get(addrstr); addr != nil {
-		return addr.(net.Addr)
+	// Check DNS cache
+	if r, _ := UDPAddrStore.Get(addrstr); r != nil {
+		switch v := r.(type) {
+		case net.Addr:
+			return v
+		case error:
+			return nil
+		}
 	}
 
-	addr, err := net.ResolveUDPAddr("udp", addrstr)
+	addr, err = net.ResolveUDPAddr("udp", addrstr)
 	if err != nil {
+		// If a DNS query fails then don't sent to DNS within 15 seconds and avoid flood
+		UDPAddrStore.Set(addrstr, err, 15*time.Second)
 		log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
 		return nil
 	}
 
 	if addr.String() != addrstr {
-		// now set default expire time == 100 s, Means that after 100 seconds, the new request will trigger domain resolve.
-		UDPAddrStore.Set(addrstr, addr, 100*time.Second)
+		// now set default expire time == 15 s, Means that after 15 seconds, the new request will trigger domain resolve.
+		UDPAddrStore.Set(addrstr, addr, 15*time.Second)
 	} else {
 		// if addrsstr isn't domain and don't set expire time
 		UDPAddrStore.Set(addrstr, addr, utils.NeverExpire)

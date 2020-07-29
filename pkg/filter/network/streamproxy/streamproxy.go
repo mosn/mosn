@@ -105,7 +105,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 
 func (p *proxy) getUpstreamConnection(ctx types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
 	switch p.network {
-	case "udp", "udp4", "udp6":
+	case "udp":
 		return p.clusterManager.UDPConnForCluster(ctx, snapshot)
 	default:
 		return p.clusterManager.TCPConnForCluster(ctx, snapshot)
@@ -197,11 +197,9 @@ func (p *proxy) onUpstreamEvent(event api.ConnectionEvent) {
 		p.finalizeUpstreamConnectionStats()
 		p.readCallbacks.Connection().Close(api.FlushWrite, api.RemoteClose)
 
-	case api.LocalClose:
-	case api.OnReadErrClose:
+	case api.LocalClose, api.OnReadErrClose:
 		p.finalizeUpstreamConnectionStats()
-		// udp proxy upstream connection close first
-		if strings.Contains(p.network, "udp") {
+		if p.network == "udp" {
 			p.readCallbacks.Connection().Close(api.NoFlush, api.LocalClose)
 		}
 
@@ -229,7 +227,7 @@ func (p *proxy) finalizeUpstreamConnectionStats() {
 
 func (p *proxy) onConnectionSuccess() {
 	// In udp proxy, each upstream connection needs a idle checker
-	if strings.Contains(p.network, "udp") {
+	if p.network == "udp" {
 		p.upstreamConnection.SetIdleTimeout(p.config.GetReadTimeout("udp"), p.config.GetIdleTimeout("udp"))
 	}
 	log.DefaultLogger.Debugf("new upstream connection %d created", p.upstreamConnection.ID())
@@ -272,11 +270,19 @@ type IpRangeList struct {
 
 func (ipList *IpRangeList) Contains(address net.Addr) bool {
 	var ip net.IP
-	if tcpAddr, ok := address.(*net.TCPAddr); ok {
-		ip = tcpAddr.IP
-	} else if udpAddr, ok1 := address.(*net.UDPAddr); ok1 {
-		ip = udpAddr.IP
+	switch address.Network() {
+	case "tcp":
+		if tcpAddr, ok := address.(*net.TCPAddr); ok {
+			ip = tcpAddr.IP
+		}
+	case "udp":
+		if udpAddr, ok1 := address.(*net.UDPAddr); ok1 {
+			ip = udpAddr.IP
+		}
+	default:
+		return false
 	}
+
 	log.DefaultLogger.Tracef("IpRangeList check ip = %v,address = %v", ip, address)
 	if ip != nil {
 		for _, cidrRange := range ipList.cidrRanges {
@@ -294,14 +300,19 @@ type PortRangeList struct {
 }
 
 func (pr *PortRangeList) Contains(address net.Addr) bool {
-	var port int
-	port = 0
-	if tcpAddr, ok := address.(*net.TCPAddr); ok {
-		port = tcpAddr.Port
-	} else {
+	var port = 0
+
+	switch address.Network() {
+	case "tcp":
+		if tcpAddr, ok := address.(*net.TCPAddr); ok {
+			port = tcpAddr.Port
+		}
+	case "udp":
 		if udpAddr, ok1 := address.(*net.UDPAddr); ok1 {
 			port = udpAddr.Port
 		}
+	default:
+		return false
 	}
 
 	if port != 0 {
@@ -387,16 +398,16 @@ func NewProxyConfig(config *v2.StreamProxy) ProxyConfig {
 func (pc *proxyConfig) GetIdleTimeout(network string) time.Duration {
 	if pc.idleTimeout != nil {
 		return *pc.idleTimeout
-	} else if strings.Contains(network, "udp") {
-		return types.DefaultUDPIdleTimeout
-	} else {
-		return types.DefaultIdleTimeout
 	}
+	if network == "udp" {
+		return types.DefaultUDPIdleTimeout
+	}
+	return types.DefaultIdleTimeout
 }
 
 func (pc *proxyConfig) GetReadTimeout(network string) time.Duration {
 	switch network {
-	case "udp", "udp4", "udp6":
+	case "udp":
 		return types.DefaultUDPReadTimeout
 	default:
 		return types.DefaultConnReadTimeout

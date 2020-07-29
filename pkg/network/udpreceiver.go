@@ -31,7 +31,6 @@ import (
 const UdpPacketMaxSize = 64 * 1024
 
 var (
-	bufPool  =  buffer.IoBufferPool{}
 	ProxyMap = sync.Map{}
 )
 
@@ -43,11 +42,11 @@ func GetProxyMapKey(raddr, laddr string) string {
 	return builder.String()
 }
 
-func SetUdpProxyMap(key string, conn api.Connection) {
+func SetUDPProxyMap(key string, conn api.Connection) {
 	ProxyMap.Store(key, conn)
 }
 
-func DelUdpProxyMap(key string) {
+func DelUDPProxyMap(key string) {
 	ProxyMap.Delete(key)
 }
 

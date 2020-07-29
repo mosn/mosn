@@ -250,7 +250,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 func (c *connection) checkUseWriteLoop() bool {
 	var ip net.IP
 	switch c.network {
-	case "udp", "udp4", "udp6":
+	case "udp":
 		if udpAddr, ok := c.remoteAddr.(*net.UDPAddr); ok {
 			ip = udpAddr.IP
 		} else {
@@ -450,8 +450,8 @@ func (c *connection) transferWrite(id uint64) {
 
 func (c *connection) setReadDeadline() {
 	switch c.network {
-	case "udp", "udp4", "udp6":
-		c.rawConnection.SetReadDeadline(time.Now().Add(types.DefaultUDPIdleTimeout))
+	case "udp":
+		c.rawConnection.SetReadDeadline(time.Now().Add(types.DefaultUDPReadTimeout))
 	default:
 		c.rawConnection.SetReadDeadline(time.Now().Add(buffer.ConnReadTimeout))
 	}
@@ -460,7 +460,7 @@ func (c *connection) setReadDeadline() {
 func (c *connection) doRead() (err error) {
 	if c.readBuffer == nil {
 		switch c.network {
-		case "udp", "udp4", "udp6":
+		case "udp":
 			// A UDP socket will Read up to the size of the receiving buffer and will discard the rest
 			c.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
 		default:
@@ -592,7 +592,7 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 
 func (c *connection) setWriteDeadline() {
 	switch c.network {
-	case "udp", "udp4", "udp6":
+	case "udp":
 		c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultUDPIdleTimeout))
 	default:
 		c.rawConnection.SetWriteDeadline(time.Now().Add(types.DefaultConnWriteTimeout))
@@ -702,7 +702,7 @@ func (c *connection) startWriteLoop() {
 				c.Close(api.NoFlush, api.LocalClose)
 			}
 
-			if strings.Contains(err.Error(), "connection refused"){
+			if c.network == "udp" && strings.Contains(err.Error(), "connection refused") {
 				c.Close(api.NoFlush, api.RemoteClose)
 			}
 			//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
@@ -746,9 +746,10 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		bytesSent, err = tlsConn.WriteTo(&buffers)
 	} else {
 		//todo: writev(runtime) has memroy leak.
-		if strings.Contains(c.network, "tcp") {
+		switch c.network {
+		case "tcp":
 			bytesSent, err = buffers.WriteTo(c.rawConnection)
-		} else {
+		case "udp":
 			var addr *net.UDPAddr
 			if c.RemoteAddr() != nil {
 				addr = c.RemoteAddr().(*net.UDPAddr)
@@ -762,6 +763,9 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 					n, err = c.rawConnection.(*net.UDPConn).WriteToUDP(buf.Bytes(), addr)
 				} else {
 					n, err = c.rawConnection.Write(buf.Bytes())
+				}
+				if err != nil {
+					break
 				}
 				bytesSent += int64(n)
 			}
@@ -837,9 +841,9 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		rawc.CloseRead()
 	}
 
-	if strings.Contains(c.network, "udp") && c.RawConn().RemoteAddr() == nil {
+	if c.network == "udp" && c.RawConn().RemoteAddr() == nil {
 		key := GetProxyMapKey(c.localAddr.String(), c.remoteAddr.String())
-		DelUdpProxyMap(key)
+		DelUDPProxyMap(key)
 	}
 
 	// wait for io loops exit, ensure single thread operate streams on the connection
@@ -1069,7 +1073,7 @@ func (cc *clientConnection) Connect() (err error) {
 			if UseNetpollMode {
 				// store fd
 				switch cc.network {
-				case "udp", "udp4", "udp6":
+				case "udp":
 					if tc, ok := cc.rawConnection.(*net.UDPConn); ok {
 						cc.file, err = tc.File()
 						if err != nil {

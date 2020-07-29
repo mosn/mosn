@@ -407,7 +407,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 			// store fd for further usage
 
 			switch rawc.LocalAddr().Network() {
-			case "udp", "udp4", "udp6":
+			case "udp":
 				if tc, ok := rawc.(*net.UDPConn); ok {
 					rawf, _ = tc.File()
 				}
@@ -457,7 +457,7 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
 	}
-	if strings.Contains(rawc.LocalAddr().Network(), "udp") {
+	if rawc.LocalAddr().Network() == "udp" {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
@@ -496,8 +496,8 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	if strings.Contains(conn.LocalAddr().Network(), "udp") {
-		network.SetUdpProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
+	if conn.LocalAddr().Network() == "udp" {
+		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
 	}
 
 	// start conn loops first
@@ -580,7 +580,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 		// a nil idle timeout, we set a default one
 		// notice only server side connection set the default value
 		switch conn.LocalAddr().Network() {
-		case "udp", "udp4", "udp6":
+		case "udp":
 			conn.SetIdleTimeout(defaultUDPReadTimeout, defaultUDPIdleTimeout)
 		default:
 			conn.SetIdleTimeout(buffer.ConnReadTimeout, defaultIdleTimeout)
@@ -860,7 +860,7 @@ func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 		return nil, nil, nil, err
 	}
 
-	listeners := make([]net.Listener, len(gotFds))
+	var listeners []net.Listener
 	var packetConn []net.PacketConn
 	for i := 0; i < len(gotFds); i++ {
 		fd := uintptr(gotFds[i])
@@ -883,7 +883,7 @@ func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 			}
 		} else {
 			if listener, ok := fileListener.(*net.TCPListener); ok {
-				listeners[i] = listener
+				listeners = append(listeners, listener)
 			} else {
 				log.StartLogger.Errorf("[server] listener recovered from fd %d is not a tcp listener", fd)
 				return nil, nil, nil, errors.New("not a tcp listener")
