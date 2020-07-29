@@ -19,15 +19,13 @@ package prometheus
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"sync"
 	"testing"
-
 	"time"
-
-	"fmt"
 
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/metrics"
@@ -95,8 +93,10 @@ func TestPrometheusMetrics(t *testing.T) {
 	wg.Wait()
 
 	sink := NewPromeSink(&promConfig{
-		Port:     8088,
-		Endpoint: "/metrics",
+		Port:             8088,
+		Endpoint:         "/metrics",
+		Percentiles:      []int{50, 90, 95, 99},
+		percentilesFloat: []float64{50, 90, 95, 99},
 		//DisableCollectProcess: true,
 		//DisableCollectGo:      true,
 	})
@@ -145,6 +145,22 @@ func TestPrometheusMetrics(t *testing.T) {
 
 	if !bytes.Contains(body, []byte("t1_k4_min{lbk2=\"lbv2\"} 2.0")) {
 		t.Error("t1_k4_min{lbk2=\"lbv2\"} metric not correct")
+	}
+
+	if !bytes.Contains(body, []byte(`t1_k4{lbk2="lbv2",percentile="P50"} 2.0`)) {
+		t.Error(`t1_k4{lbk2="lbv2",percentile="P50"} metric not correct`)
+	}
+
+	if !bytes.Contains(body, []byte(`t1_k4{lbk2="lbv2",percentile="P90"} 2.0`)) {
+		t.Error(`t1_k4{lbk2="lbv2",percentile="P90"} metric not correct`)
+	}
+
+	if !bytes.Contains(body, []byte(`t1_k4{lbk2="lbv2",percentile="P95"} 2.0`)) {
+		t.Error(`t1_k4{lbk2="lbv2",percentile="P95"} metric not correct`)
+	}
+
+	if !bytes.Contains(body, []byte(`t1_k4{lbk2="lbv2",percentile="P99"} 2.0`)) {
+		t.Error(`t1_k4{lbk2="lbv2",percentile="P99"} metric not correct`)
 	}
 }
 

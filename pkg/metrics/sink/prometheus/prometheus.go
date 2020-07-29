@@ -18,17 +18,16 @@
 package prometheus
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"regexp"
-	"strings"
-
-	"bytes"
 	"io"
 	"math"
+	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
@@ -60,14 +59,13 @@ func init() {
 
 // promConfig contains config for all PromSink
 type promConfig struct {
-	ExportUrl             string `json:"export_url"` // when this value is not nil, PromSink will work under the PUSHGATEWAY mode.
-	Port                  int    `json:"port"`       // pull mode attrs
-	Endpoint              string `json:"endpoint"`
-	DisableCollectProcess bool   `json:"disable_collect_process"`
-	DisableCollectGo      bool   `json:"disable_collect_go"`
-	Percentiles           []int  `json:"percentiles,omitempty"`
-
-	percentilesFloat []float64
+	ExportUrl             string    `json:"export_url"` // when this value is not nil, PromSink will work under the PUSHGATEWAY mode.
+	Port                  int       `json:"port"`       // pull mode attrs
+	Endpoint              string    `json:"endpoint"`
+	DisableCollectProcess bool      `json:"disable_collect_process"`
+	DisableCollectGo      bool      `json:"disable_collect_go"`
+	Percentiles           []int     `json:"percentiles,omitempty"`
+	percentilesFloat      []float64 // not config, trans with Percentiles
 }
 
 // promSink extract metrics from stats registry with specified interval
@@ -119,9 +117,7 @@ func (psink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 			case gometrics.Gauge:
 				psink.flushGauge(tracker, buf, flattenKey(prefix+name), suffix, float64(metric.Value()))
 			case gometrics.Histogram:
-				h := metric.Snapshot()
-				metric.Clear()
-				psink.flushHistogram(tracker, buf, flattenKey(prefix+name), suffix, h)
+				psink.flushHistogram(tracker, buf, flattenKey(prefix+name), suffix, metric.Snapshot())
 			}
 			buf.WriteTo(w)
 			buf.Reset()
