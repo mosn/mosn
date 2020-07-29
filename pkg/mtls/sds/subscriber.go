@@ -118,7 +118,11 @@ func (subscribe *SdsSubscriber) sendRequestLoop(sdsStreamClient *SdsStreamClient
 			return
 		case name := <-subscribe.reqQueue:
 			discoveryReq := &xdsapi.DiscoveryRequest{
+				VersionInfo:   "",
 				ResourceNames: []string{name},
+				TypeUrl:       "type.googleapis.com/envoy.api.v2.auth.Secret",
+				ResponseNonce: "",
+				ErrorDetail:   nil,
 				Node: &core.Node{
 					Id: subscribe.serviceNode,
 				},
@@ -156,6 +160,8 @@ func (subscribe *SdsSubscriber) receiveResponseLoop(sdsStreamClient *SdsStreamCl
 				continue
 			}
 			subscribe.handleSecretResp(resp)
+
+			ACKResponse(subscribe.sdsStreamClient, resp)
 		}
 	}
 }
@@ -230,4 +236,24 @@ func (subscribe *SdsSubscriber) reconnect() {
 		log.DefaultLogger.Infof("[xds] [sds subscriber] stream client reconnected")
 		break
 	}
+}
+
+func ACKResponse(client *SdsStreamClient, resp *xdsapi.DiscoveryResponse) {
+	err := client.streamSecretsClient.Send(&xdsapi.DiscoveryRequest{
+		VersionInfo:   resp.VersionInfo,
+		ResourceNames: []string{},
+		TypeUrl:       resp.TypeUrl,
+		ResponseNonce: resp.Nonce,
+		ErrorDetail:   nil,
+		Node: &core.Node{
+			Id: types.GetGlobalXdsInfo().ServiceNode,
+		},
+	})
+
+	if err != nil {
+		log.DefaultLogger.Errorf("ack secret fail: %v", err)
+		return
+	}
+
+	return
 }

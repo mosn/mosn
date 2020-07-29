@@ -23,17 +23,17 @@ import (
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-        _struct "github.com/golang/protobuf/ptypes/struct"
+	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"io/ioutil"
 	"path/filepath"
 	"testing"
 
-        xdsutil "github.com/envoyproxy/go-control-plane/pkg/conversion"
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	http_conn "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-        "github.com/golang/protobuf/proto"
+	xdsutil "github.com/envoyproxy/go-control-plane/pkg/conversion"
+	"github.com/golang/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
 	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -50,7 +50,7 @@ type effectiveConfig struct {
 	MOSNConfig interface{}            `json:"mosn_config,omitempty"`
 	Listener   map[string]v2.Listener `json:"listener,omitempty"`
 	Cluster    map[string]v2.Cluster  `json:"cluster,omitempty"`
-	Routers    map[string]v2.RouterConfiguration `josn:"routers,omitempty"`
+	Routers    map[string]v2.RouterConfiguration `json:"routers,omitempty"`
 }
 
 func handleListenersResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.Listener {
@@ -127,9 +127,9 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	}
 	var m effectiveConfig
 	err = json.Unmarshal(buf, &m)
-        if err != nil {
+	  if err != nil {
 		t.Fatal(err)
-        }
+	  }
 
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
@@ -148,9 +148,9 @@ func TestConfigAddAndUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	err = json.Unmarshal(buf, &m)
-        if err != nil {
+	  if err != nil {
 		t.Fatal(err)
-        }
+	  }
 
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
