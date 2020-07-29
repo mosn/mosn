@@ -7,7 +7,10 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
-var defaultAmplification = 1
+var (
+	defaultAmplification = 1
+	amplificationKey     = "amplification"
+)
 
 func init() {
 	api.RegisterStream(v2.Mirror, NewMirrorConfig)
@@ -18,7 +21,7 @@ func NewMirrorConfig(conf map[string]interface{}) (api.StreamFilterChainFactory,
 		Amplification: defaultAmplification,
 	}
 
-	if ampValue, ok := conf["amplification"]; ok {
+	if ampValue, ok := conf[amplificationKey]; ok {
 		if amp, ok := ampValue.(float64); ok && amp > 0 {
 			c.Amplification = int(amp)
 		}
