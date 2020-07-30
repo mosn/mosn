@@ -22,7 +22,7 @@ import (
 
 	"github.com/c2h5oh/datasize"
 	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/jsonpb"
 )
 
 // MOSNConfig make up mosn to start the mosn project
@@ -32,6 +32,7 @@ type MOSNConfig struct {
 	Servers         []ServerConfig       `json:"servers,omitempty"`          //server config
 	ClusterManager  ClusterManagerConfig `json:"cluster_manager,omitempty"`  //cluster config
 	ServiceRegistry ServiceRegistryInfo  `json:"service_registry,omitempty"` //service registry config, used by service discovery module
+
 	//tracing config
 	Tracing             TracingConfig   `json:"tracing,omitempty"`
 	Metrics             MetricsConfig   `json:"metrics,omitempty"`
@@ -41,6 +42,13 @@ type MOSNConfig struct {
 	Debug               PProfConfig     `json:"pprof,omitempty"`
 	Pid                 string          `json:"pid,omitempty"`    // pid file
 	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
+	Extend              []ExtendItem    `json:"extend,omitempty"` // extend config
+}
+
+// ExtendItem is used to extend the mosn config by user need
+type ExtendItem struct {
+	Type   string          `json:"type"`
+	Config json.RawMessage `json:"config"`
 }
 
 // PProfConfig is used to start a pprof server for debug

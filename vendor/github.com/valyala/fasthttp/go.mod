@@ -1,9 +1,12 @@
 module github.com/valyala/fasthttp
 
+go 1.11
+
 require (
-	github.com/klauspost/compress v1.4.0
-	github.com/klauspost/cpuid v0.0.0-20180405133222-e7e905edc00e // indirect
+	github.com/andybalholm/brotli v1.0.0
+	github.com/klauspost/compress v1.10.4
 	github.com/valyala/bytebufferpool v1.0.0
 	github.com/valyala/tcplisten v0.0.0-20161114210144-ceec8f93295a
-	golang.org/x/net v0.0.0-20180911220305-26e67e76b6c3
+	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
 )

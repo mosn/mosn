@@ -159,6 +159,7 @@ Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join
 <p align="center">
 <img src="https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ" width="150">
 </p>
+
 ## Community meeting
 
 MOSN community holds regular meetings.
