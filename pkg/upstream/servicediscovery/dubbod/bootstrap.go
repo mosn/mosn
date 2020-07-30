@@ -17,20 +17,95 @@
 package dubbod
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
-
-	v2 "mosn.io/mosn/pkg/config/v2"
-	routerAdapter "mosn.io/mosn/pkg/router"
+	"path"
 
 	"github.com/go-chi/chi"
 	dubbologger "github.com/mosn/registry/dubbo/common/logger"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
+	routerAdapter "mosn.io/mosn/pkg/router"
 	"mosn.io/pkg/utils"
 )
 
-// init the http api for application when application bootstrap
+// dubboConfig is for dubbo related configs
+type dubboConfig struct {
+	Enable             bool   `json:"enable"`
+	ServerListenerPort int    `json:"server_port"` // for server listener, must keep the same with server listener
+	APIPort            int    `json:"api_port"`    // for pub/sub/unpub/unsub api
+	LogPath            string `json:"log_path"`    // dubbo service discovery log_path
+}
+
+/*
+example config :
+
+    "extend" :  [{
+		"type" : "dubbo_registry",
+		"config": {
+			"enable" : true,
+			"server_port" : 20080,
+			"api_port" : 10022,
+			"log_path" : "/tmp"
+		}
+	}]
+*/
+func init() {
+	configmanager.RegisterConfigExtendParsedListener("dubbo_registry",
+		func(data interface{}, _ bool) error {
+			if dataBytes, ok := data.(json.RawMessage); ok {
+				var conf dubboConfig
+				err := json.Unmarshal(dataBytes, &conf)
+				if err != nil {
+					log.DefaultLogger.Errorf("[dubbod] failed to parse dubbo registry config: %v", err.Error())
+					return err
+				}
+
+				if conf.Enable {
+					Init(conf.APIPort, conf.ServerListenerPort, conf.LogPath)
+				}
+			}
+
+			return nil
+		},
+	)
+}
+
+// Init set the pub port && api port
+// and init dubbo API service
+func Init(configAPIPort, configPubPort int, logPath string) {
+	initGlobalVars(configAPIPort, configPubPort, logPath)
+	initAPI()
+}
+
+func initGlobalVars(configAPIPort, configPubPort int, logFullPath string) {
+	if configAPIPort > 0 && configAPIPort < 65535 {
+		// valid port
+		apiPort = fmt.Sprint(configAPIPort)
+	} else {
+		log.DefaultLogger.Warnf("invalid dubbo api port: %v, will use default: %v", configAPIPort, apiPort)
+	}
+
+	if configPubPort > 0 && configPubPort < 65535 {
+		// valid port
+		mosnPubPort = fmt.Sprint(configPubPort)
+	} else {
+		log.DefaultLogger.Fatalf("invalid dubbo pub port: %v, will use default: %v", configPubPort, mosnPubPort)
+	}
+
+	if len(logFullPath) > 0 {
+		logPath = logFullPath
+	}
+}
+
+var apiPort = "22222" // default 22222
+var logPath = "./dubbogo.log"
+
+// initAPI inits the http api for application when application bootstrap
 // for sub/pub
-func Init( /*port string, dubboLogPath string*/ ) {
+func initAPI() {
 	// 1. init router
 	r := chi.NewRouter()
 	r.Post("/sub", subscribe)
@@ -38,11 +113,11 @@ func Init( /*port string, dubboLogPath string*/ ) {
 	r.Post("/pub", publish)
 	r.Post("/unpub", unpublish)
 
-	_ = dubbologger.InitLog("./dubbogo.log")
+	_ = dubbologger.InitLog(path.Join(logPath, "dubbo.log"))
 
 	// FIXME make port configurable
 	utils.GoWithRecover(func() {
-		if err := http.ListenAndServe(":22222", r); err != nil {
+		if err := http.ListenAndServe(":"+apiPort, r); err != nil {
 			log.DefaultLogger.Infof("auto write config when updated")
 		}
 	}, nil)
