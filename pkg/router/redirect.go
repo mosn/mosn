@@ -1,5 +1,3 @@
-// +build dubbo
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -17,8 +15,27 @@
  * limitations under the License.
  */
 
-package dubbod
+package router
 
-func init() {
-	Init()
+type redirectImpl struct {
+	code   int
+	path   string
+	host   string
+	scheme string
+}
+
+func (rule *redirectImpl) RedirectCode() int {
+	return rule.code
+}
+
+func (rule *redirectImpl) RedirectPath() string {
+	return rule.path
+}
+
+func (rule *redirectImpl) RedirectHost() string {
+	return rule.host
+}
+
+func (rule *redirectImpl) RedirectScheme() string {
+	return rule.scheme
 }

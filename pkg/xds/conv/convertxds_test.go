@@ -18,6 +18,7 @@
 package conv
 
 import (
+	"net/http"
 	"os"
 	"reflect"
 	"testing"
@@ -625,6 +626,66 @@ func Test_convertHeadersToAdd(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := convertHeadersToAdd(tt.args.headerValueOption); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("convertHeadersToAdd(headerValueOption []*xdscore.HeaderValueOption) = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_convertRedirectAction(t *testing.T) {
+	testCases := []struct {
+		name     string
+		in       *xdsroute.RedirectAction
+		expected *v2.RedirectAction
+	}{
+		{
+			name: "host redirect",
+			in: &xdsroute.RedirectAction{
+				HostRedirect: "example.com",
+			},
+			expected: &v2.RedirectAction{
+				HostRedirect: "example.com",
+			},
+		},
+		{
+			name: "path redirect",
+			in: &xdsroute.RedirectAction{
+				PathRewriteSpecifier: &xdsroute.RedirectAction_PathRedirect{
+					PathRedirect: "/foo",
+				},
+			},
+			expected: &v2.RedirectAction{
+				PathRedirect: "/foo",
+			},
+		},
+		{
+			name: "scheme redirect",
+			in: &xdsroute.RedirectAction{
+				SchemeRewriteSpecifier: &xdsroute.RedirectAction_SchemeRedirect{
+					SchemeRedirect: "https",
+				},
+			},
+			expected: &v2.RedirectAction{
+				SchemeRedirect: "https",
+			},
+		},
+		{
+			name: "set redirect code",
+			in: &xdsroute.RedirectAction{
+				ResponseCode: http.StatusTemporaryRedirect,
+				HostRedirect: "example.com",
+			},
+			expected: &v2.RedirectAction{
+				HostRedirect: "example.com",
+				ResponseCode: http.StatusTemporaryRedirect,
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			got := convertRedirectAction(tc.in)
+			if !reflect.DeepEqual(got, tc.expected) {
+				t.Errorf("Unexpected redirect action\nExpected: %#v\nGot: %#v\n", tc.expected, got)
 			}
 		})
 	}

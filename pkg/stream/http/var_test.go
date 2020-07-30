@@ -58,6 +58,20 @@ func prepareRequest(t *testing.T, requestBytes []byte) context.Context {
 	return ctx
 }
 
+func Test_get_scheme(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	actual, err := variable.GetVariableValue(ctx, fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestScheme))
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+
+	want := "http"
+	if actual != want {
+		t.Errorf("request scheme assert failed, expected: %s, actual is: %s", want, actual)
+	}
+}
+
 func Test_get_request_length_and_method(t *testing.T) {
 	ctx := prepareRequest(t, postRequestBytes)
 
