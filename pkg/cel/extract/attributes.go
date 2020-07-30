@@ -117,4 +117,7 @@ var Attributemanifest = map[string]attribute.Kind{
 	"destination.workload.uid":       attribute.STRING,
 	"destination.workload.name":      attribute.STRING,
 	"destination.workload.namespace": attribute.STRING,
+
+	// MOSN internal
+	KContext: attribute.MOSN_CTX,
 }
