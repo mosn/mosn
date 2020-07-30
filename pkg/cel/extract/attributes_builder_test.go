@@ -87,7 +87,7 @@ func TestExtractAttributes(t *testing.T) {
 				},
 				buf: buf,
 			},
-			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.ip": []byte{0x31, 0x30, 0x2e, 0x30, 0x2e, 0x30, 0x2e, 0x32}, "destination.port": int64(80), "origin.ip": []byte{0x31, 0x30, 0x2e, 0x30, 0x2e, 0x30, 0x2e, 0x31}},
+			want: map[string]interface{}{"context.protocol": "http", "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "destination.ip": net.IPv4(10, 0, 0, 2), "destination.port": int64(80), "origin.ip": net.IPv4(10, 0, 0, 1)},
 		},
 		{
 			args: args{

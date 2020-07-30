@@ -44,6 +44,9 @@ const (
 	DURATION
 	// A map string -> string, typically used by headers.
 	STRING_MAP
+
+	// mosn context
+	MOSN_CTX
 )
 
 func (k Kind) String() string {
@@ -67,6 +70,7 @@ var KindName = map[Kind]string{
 	DNS_NAME:               "DNS_NAME",
 	DURATION:               "DURATION",
 	STRING_MAP:             "STRING_MAP",
+	MOSN_CTX:               "MOSN_CTX",
 }
 var KindValue = map[string]Kind{}
 
