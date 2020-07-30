@@ -46,6 +46,7 @@ func TestMutableBagForMap(t *testing.T) {
 	}
 
 	bag.Delete("key")
+
 	v, ok = bag.Get("key")
 	if ok || v != nil {
 		t.Fail()

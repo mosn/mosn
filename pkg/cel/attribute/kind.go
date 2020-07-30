@@ -17,35 +17,42 @@
 
 package attribute
 
+func init() {
+	for k, v := range KindName {
+		KindValue[v] = k
+	}
+}
+
+// cel type
 type Kind uint8
 
 const (
-	// Invalid, default value.
+	// Invalid, default value, VALUE_TYPE_UNSPECIFIED ...
 	VALUE_TYPE_UNSPECIFIED Kind = iota
-	// An undiscriminated variable-length string.
+	// An undiscriminated variable-length string, STRING ...
 	STRING
-	// An undiscriminated 64-bit signed integer.
+	// An undiscriminated 64-bit signed integer, INT64 ...
 	INT64
-	// An undiscriminated 64-bit floating-point value.
+	// An undiscriminated 64-bit floating-point value, DOUBLE ...
 	DOUBLE
-	// An undiscriminated boolean value.
+	// An undiscriminated boolean value, BOOL ...
 	BOOL
-	// A point in time.
+	// A point in time, TIMESTAMP ...
 	TIMESTAMP
-	// An IP address.
+	// An IP address, IP_ADDRESS ...
 	IP_ADDRESS
-	// An email address.
+	// An email address, EMAIL_ADDRESS ...
 	EMAIL_ADDRESS
-	// A URI.
+	// A URI, URI ...
 	URI
-	// A DNS name.
+	// A DNS name, DNS_NAME ...
 	DNS_NAME
-	// A span between two points in time.
+	// A span between two points in time, DURATION ...
 	DURATION
-	// A map string -> string, typically used by headers.
+	// A map string -> string, typically used by headers, STRING_MAP ...
 	STRING_MAP
 
-	// mosn context
+	// A MOSN context, MOSN_CTX ...
 	MOSN_CTX
 )
 
@@ -73,9 +80,3 @@ var KindName = map[Kind]string{
 	MOSN_CTX:               "MOSN_CTX",
 }
 var KindValue = map[string]Kind{}
-
-func init() {
-	for k, v := range KindName {
-		KindValue[v] = k
-	}
-}
