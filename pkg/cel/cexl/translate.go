@@ -91,6 +91,7 @@ func rewrite(cursor *astutil.Cursor) bool {
 	return true
 }
 
+// SourceCEXLToCEL is translate CEXL to CEL
 func SourceCEXLToCEL(src string) (string, error) {
 	node, err := parser.ParseExpr(src)
 	if err != nil {
