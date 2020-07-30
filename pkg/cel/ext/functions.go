@@ -73,12 +73,21 @@ func init() {
 
 }
 
+// function type's output parameter count.
+const (
+	paraZero  int = 0
+	paraOne   int = 1
+	paraTwo   int = 2
+	paraThree int = 3
+)
+
 func check(err error) {
 	if err == nil {
 		return
 	}
 	log.DefaultLogger.Warnf("%s", err)
 }
+
 func StandardFunctionsEnvOption() cel.EnvOption {
 	decl := []*expr.Decl{}
 	for name, fun := range declsFunc {
@@ -176,9 +185,9 @@ func getDeclFunc(fun interface{}) (argTypes []*expr.Type, resultType *expr.Type,
 	switch numOut {
 	default:
 		return nil, nil, fmt.Errorf("too many result")
-	case 0:
+	case paraZero:
 		return nil, nil, fmt.Errorf("result is required")
-	case 1, 2:
+	case paraOne, paraTwo:
 		resultType = ConvertKind(typ.Out(0))
 		if resultType == decls.Null {
 			return nil, nil, fmt.Errorf("the result of function %s is unspecified", typ.String())
@@ -369,7 +378,7 @@ func callInStrStrOutBoolWithErr(fn func(string, string) (bool, error)) functions
 
 func callInBoolStrStrOutString(fn func(bool, string, string) string) functions.FunctionOp {
 	return func(args ...ref.Val) ref.Val {
-		if len(args) != 3 {
+		if len(args) != paraThree {
 			return types.NoSuchOverloadErr()
 		}
 		vVal, ok := args[0].(types.Bool)
