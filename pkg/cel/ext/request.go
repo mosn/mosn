@@ -33,7 +33,7 @@ func rewriteRequestUrl(ctx context.Context, dstUrl string) bool {
 		return false
 	}
 
-	// TODO Add a set handler for request headers variable
+	// TODO Add a set handler for request headers variable...
 	headers.Set(protocol.MosnHeaderPathKey, dstUrl)
 	return true
 }
@@ -44,7 +44,7 @@ func addRequestheader(ctx context.Context, key, val string) bool {
 		return false
 	}
 
-	// TODO support append mode
+	// TODO support append mode...
 	headers.Set(key, val)
 	return true
 }
