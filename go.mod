@@ -50,5 +50,3 @@ require (
 	mosn.io/api v0.0.0-20200720094309-63de04640d4e
 	mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
 )
-
-replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
