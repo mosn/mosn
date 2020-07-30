@@ -22,7 +22,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mosn.io/mosn/pkg/proxy"
+	"mosn.io/mosn/pkg/metrics"
 	"net"
 	"os"
 	"strconv"
@@ -489,46 +489,11 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 	conn.Start(ctx)
 }
 
-type activeProxy map[*activeConnection][]proxy.Proxy
-
-// active proxy filters,
-// holds all the information about the connection
-var filters = make(activeProxy)
-
-func (p *activeProxy) activeProxy(activeConn *activeConnection) (proxy []proxy.Proxy) {
-	proxy, _ = filters[activeConn]
-	return proxy
-}
-
-func (p *activeProxy) appendProxy(activeConn *activeConnection, proxy proxy.Proxy) []proxy.Proxy {
-	filters[activeConn] = append(filters[activeConn], proxy)
-	return filters[activeConn]
-}
-
 func (al *activeListener) activeStreamSize() int {
-	if al.conns == nil || al.conns.Len() <= 0 {
-		return 0
-	}
-	var activeStream int
-	for conn := al.conns.Front(); conn != nil; conn = conn.Next() {
-		if activeConn, ok := conn.Value.(*activeConnection); ok {
-			proxyFilters := filters.activeProxy(activeConn)
-			if proxyFilters == nil {
-				for _, rf := range activeConn.conn.FilterManager().ListReadFilter() {
-					if proxy, isProxy := rf.(proxy.Proxy); isProxy {
-						proxyFilters = filters.appendProxy(activeConn, proxy)
-					}
-				}
-			}
-			if proxyFilters != nil {
-				for _, proxyFilter := range proxyFilters {
-					activeStream += proxyFilter.ActiveStreamSize()
-				}
-			}
-		}
-	}
+	listenerName := al.listener.Name()
+	s := metrics.NewListenerStats(listenerName)
 
-	return activeStream
+	return int(s.Counter(metrics.DownstreamRequestActive).Count())
 }
 
 func (al *activeListener) OnClose() {}

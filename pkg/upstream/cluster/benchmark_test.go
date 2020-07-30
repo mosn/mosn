@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"os"
 	"testing"
@@ -50,6 +51,40 @@ func BenchmarkHostConfig(b *testing.B) {
 			host.Config()
 		}
 	})
+}
+
+func BenchmarkAddOrUpdateCluster(b *testing.B) {
+	_createClusterManager()
+	adapter := GetClusterMngAdapterInstance()
+	// host count: 100, 500, 1000, 5000, 20000
+	for _, count := range []int{100, 500, 1000, 5000, 20000} {
+		pool := makePool(count)
+		hosts := make([]v2.Host, 0, count)
+		for i := 0; i < count; i++ {
+			h := v2.Host{
+				HostConfig: v2.HostConfig{
+					Address: pool.Get(),
+				},
+			}
+			hosts = append(hosts, h)
+		}
+		if err := adapter.UpdateClusterHosts("test1", hosts); err != nil {
+			b.Fatal("prepare cluster failed")
+		}
+		c := v2.Cluster{
+			Name:   "test1",
+			LbType: v2.LB_RANDOM,
+			TLS: v2.TLSConfig{
+				Status:       true,
+				InsecureSkip: true,
+			},
+		}
+		b.Run(fmt.Sprintf("update_count:%d", count), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				adapter.AddOrUpdatePrimaryCluster(c)
+			}
+		})
+	}
 }
 
 func BenchmarkUpdateClusterHosts(b *testing.B) {

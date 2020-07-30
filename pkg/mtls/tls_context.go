@@ -44,16 +44,16 @@ type tlsContext struct {
 	serverName string
 	ticket     string
 	matches    map[string]struct{}
-	client     *tls.Config
-	server     *tls.Config
+	client     *types.TLSConfigContext
+	server     *types.TLSConfigContext
 }
 
-func (ctx *tlsContext) buildMatch() {
-	if ctx.server == nil {
+func (ctx *tlsContext) buildMatch(tlsConfig *tls.Config) {
+	if tlsConfig == nil {
 		return
 	}
 	matches := make(map[string]struct{})
-	certs := ctx.server.Certificates
+	certs := tlsConfig.Certificates
 	for i := range certs {
 		cert := certs[i]
 		x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
@@ -67,7 +67,7 @@ func (ctx *tlsContext) buildMatch() {
 			matches[san] = struct{}{}
 		}
 	}
-	for _, protocol := range ctx.server.NextProtos {
+	for _, protocol := range tlsConfig.NextProtos {
 		matches[protocol] = struct{}{}
 	}
 	matches[ctx.serverName] = struct{}{}
@@ -80,19 +80,12 @@ func (ctx *tlsContext) setServerConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hook
 	if len(tlsConfig.Certificates) == 0 {
 		return
 	}
-	if !cfg.RequireClientCert {
-		tlsConfig.ClientAuth = tls.NoClientCert
-	} else {
-		if cfg.VerifyClient {
-			tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		} else {
-			tlsConfig.ClientAuth = tls.VerifyClientCertIfGiven
-		}
-	}
+	tlsConfig.ClientAuth = hooks.GetClientAuth(cfg)
 	tlsConfig.VerifyPeerCertificate = hooks.ServerHandshakeVerify(tlsConfig)
-	ctx.server = tlsConfig
+
+	ctx.server = types.NewTLSConfigContext(tlsConfig, hooks.GenerateHashValue)
 	// build matches
-	ctx.buildMatch()
+	ctx.buildMatch(tlsConfig)
 }
 
 func (ctx *tlsContext) setClientConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hooks ConfigHooks) {
@@ -107,7 +100,7 @@ func (ctx *tlsContext) setClientConfig(tmpl *tls.Config, cfg *v2.TLSConfig, hook
 		tlsConfig.InsecureSkipVerify = true
 		tlsConfig.VerifyPeerCertificate = nil
 	}
-	ctx.client = tlsConfig
+	ctx.client = types.NewTLSConfigContext(tlsConfig, hooks.GenerateHashValue)
 }
 
 func (ctx *tlsContext) MatchedServerName(sn string) bool {
@@ -140,14 +133,14 @@ func (ctx *tlsContext) MatchedALPN(protos []string) bool {
 	return false
 }
 
-func (ctx *tlsContext) GetTLSConfig(client bool) *tls.Config {
+func (ctx *tlsContext) GetTLSConfigContext(client bool) *types.TLSConfigContext {
 	if client {
-		return ctx.client.Clone()
+		return ctx.client
 	} else {
 		if ctx.server == nil {
 			return nil
 		}
-		return ctx.server.Clone()
+		return ctx.server
 	}
 }
 
