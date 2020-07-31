@@ -18,9 +18,11 @@
 package dubbo
 
 import (
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type Header struct {
@@ -84,4 +86,17 @@ func (r *Frame) SetData(data types.IoBuffer) {
 
 func (r *Frame) GetStatusCode() uint32 {
 	return uint32(r.Header.Status)
+}
+
+func (r *Frame) Clone() api.HeaderMap {
+	clone := &Frame{
+		rawData: make([]byte, len(r.rawData)),
+		payload: make([]byte, len(r.payload)),
+	}
+	clone.Header = r.Header
+	copy(clone.rawData, r.rawData)
+	copy(clone.payload, r.payload)
+	clone.data = buffer.NewIoBufferBytes(clone.rawData)
+	clone.content = buffer.NewIoBufferBytes(clone.payload)
+	return clone
 }

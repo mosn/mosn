@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -176,6 +175,18 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			return nil, fmt.Errorf("redirect code not supported yet: %d", r.ResponseCode)
 		}
 		base.redirectRule = rule
+	}
+
+	// add mirror policies
+	if route.RequestMirrorPolicies != nil {
+		base.policy.mirrorPolicy = &mirrorImpl{
+			cluster: route.RequestMirrorPolicies.Cluster,
+			percent: int(route.RequestMirrorPolicies.Percent),
+			rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		}
+	}
+	if base.policy.mirrorPolicy == nil {
+		base.policy.mirrorPolicy = &mirrorImpl{}
 	}
 	return base, nil
 }
