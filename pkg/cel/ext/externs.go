@@ -151,6 +151,7 @@ func externMatch(str string, pattern string) bool {
 	if strings.HasPrefix(pattern, "*") {
 		return strings.HasSuffix(str, pattern[1:])
 	}
+
 	return str == pattern
 }
 
