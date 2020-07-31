@@ -246,7 +246,7 @@ github.com/prometheus/common/model
 # github.com/prometheus/procfs v0.0.3
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
-# github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
+# github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 github.com/rcrowley/go-metrics
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
@@ -374,7 +374,9 @@ istio.io/api/mixer/v1/config/client
 # istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a
 istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
-# mosn.io/api v0.0.0-20200720094309-63de04640d4e
+# k8s.io/klog v1.0.0
+k8s.io/klog
+# mosn.io/api v0.0.0-20200728020814-8cdc3e8890f9
 mosn.io/api
 # mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
 mosn.io/pkg/buffer

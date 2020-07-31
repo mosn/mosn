@@ -73,12 +73,21 @@ func init() {
 
 }
 
+// function type's input or output parameter count.
+const (
+	paraZero  int = 0
+	paraOne   int = 1
+	paraTwo   int = 2
+	paraThree int = 3
+)
+
 func check(err error) {
 	if err == nil {
 		return
 	}
 	log.DefaultLogger.Warnf("%s", err)
 }
+
 func StandardFunctionsEnvOption() cel.EnvOption {
 	decl := []*expr.Decl{}
 	for name, fun := range declsFunc {
@@ -176,9 +185,9 @@ func getDeclFunc(fun interface{}) (argTypes []*expr.Type, resultType *expr.Type,
 	switch numOut {
 	default:
 		return nil, nil, fmt.Errorf("too many result")
-	case 0:
+	case paraZero:
 		return nil, nil, fmt.Errorf("result is required")
-	case 1, 2:
+	case paraOne, paraTwo:
 		resultType = ConvertKind(typ.Out(0))
 		if resultType == decls.Null {
 			return nil, nil, fmt.Errorf("the result of function %s is unspecified", typ.String())
@@ -245,15 +254,15 @@ func reflectWrapFunc(fun interface{}) (interface{}, error) {
 	switch numOut {
 	default:
 		return nil, fmt.Errorf("too many result")
-	case 0:
+	case paraZero:
 		return nil, fmt.Errorf("result is required")
-	case 2:
+	case paraTwo:
 		if !typ.Out(1).AssignableTo(errType) {
 			return nil, fmt.Errorf("last result must be error")
 		}
 		needErr = true
 		fallthrough
-	case 1:
+	case paraOne:
 		result = ConvertKind(typ.Out(0))
 		if result == decls.Null {
 			return nil, fmt.Errorf("the result of function %s is unspecified", typ.String())
@@ -284,7 +293,7 @@ func reflectWrapFunc(fun interface{}) (interface{}, error) {
 	}
 
 	switch numIn {
-	case 1:
+	case paraOne:
 		return functions.UnaryOp(func(value ref.Val) ref.Val {
 			val, err := RecoverValue(value)
 			if err != nil {
@@ -292,7 +301,7 @@ func reflectWrapFunc(fun interface{}) (interface{}, error) {
 			}
 			return funCall([]reflect.Value{reflect.ValueOf(val)})
 		}), nil
-	case 2:
+	case paraTwo:
 		return functions.BinaryOp(func(lhs ref.Val, rhs ref.Val) ref.Val {
 			lh, err := RecoverValue(lhs)
 			if err != nil {
@@ -304,7 +313,7 @@ func reflectWrapFunc(fun interface{}) (interface{}, error) {
 			}
 			return funCall([]reflect.Value{reflect.ValueOf(lh), reflect.ValueOf(rh)})
 		}), nil
-	case 0:
+	case paraZero:
 		return functions.FunctionOp(func(values ...ref.Val) ref.Val {
 			return funCall([]reflect.Value{})
 		}), nil
@@ -369,7 +378,7 @@ func callInStrStrOutBoolWithErr(fn func(string, string) (bool, error)) functions
 
 func callInBoolStrStrOutString(fn func(bool, string, string) string) functions.FunctionOp {
 	return func(args ...ref.Val) ref.Val {
-		if len(args) != 3 {
+		if len(args) != paraThree {
 			return types.NoSuchOverloadErr()
 		}
 		vVal, ok := args[0].(types.Bool)

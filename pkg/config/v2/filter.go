@@ -95,6 +95,7 @@ const (
 	FaultTolerance = "fault_tolerance"
 	IstioStats     = "istio.stats"
 	DSL            = "dsl"
+	Mirror         = "mirror"
 )
 
 // HealthCheckFilter

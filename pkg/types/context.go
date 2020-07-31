@@ -43,6 +43,8 @@ const (
 	ContextKeyVariables
 	ContextKeyProxyGeneralConfig
 	ContextKeyDownStreamProtocol
+	ContextKeyConfigDownStreamProtocol
+	ContextKeyConfigUpStreamProtocol
 	ContextKeyDownStreamHeaders
 	ContextKeyDownStreamRespHeaders
 	ContextKeyStreamFilterPhase

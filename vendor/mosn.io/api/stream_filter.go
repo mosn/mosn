@@ -31,6 +31,8 @@ const (
 	StreamFilterContinue StreamFilterStatus = "Continue"
 	// Do not iterate to next iterator.
 	StreamFilterStop StreamFilterStatus = "Stop"
+	// terminate request.
+	StreamFiltertermination StreamFilterStatus = "termination"
 
 	StreamFilterReMatchRoute StreamFilterStatus = "Retry Match Route"
 	StreamFilterReChooseHost StreamFilterStatus = "Retry Choose Host"

@@ -75,7 +75,7 @@ func TestSample(t *testing.T) {
 
 	t.Log(out)
 
-	expression, typ, err = compiler.Compile(`string(a.ip) == "1.1.1.1" && string(a.url) == "http://127.0.0.1"`)
+	expression, _, err = compiler.Compile(`string(a.ip) == "1.1.1.1" && string(a.url) == "http://127.0.0.1"`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestSample(t *testing.T) {
 	bag.Set("a.ip", net.IPv4(1, 1, 1, 1))
 	bag.Set("a.url", u)
 
-	out, err = expression.Evaluate(bag)
+	_, err = expression.Evaluate(bag)
 	if err != nil {
 		t.Fatal(err)
 	}
