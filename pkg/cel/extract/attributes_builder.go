@@ -210,6 +210,7 @@ func getIPPort(address string) (ip string, port int32, ret bool) {
 	if len(array) != 2 {
 		return
 	}
+
 	p, err := strconv.Atoi(array[1])
 	if err != nil {
 		return

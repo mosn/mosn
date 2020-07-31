@@ -341,13 +341,13 @@ func (r *MockRequestInfo) SetRouteEntry(routerRule api.RouteRule) {
 }
 
 type MockHostInfo struct {
-	hostname      string
-	metadata      api.Metadata
-	addressString string
-	weight        uint32
 	supportTLS    bool
-	healthFlag    api.HealthFlag
 	health        bool
+	weight        uint32
+	healthFlag    api.HealthFlag
+	metadata      api.Metadata
+	hostname      string
+	addressString string
 }
 
 func (h *MockHostInfo) Hostname() string {
