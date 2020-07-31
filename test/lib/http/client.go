@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mosn.io/api"
 	"net"
 	"net/http"
 	"sync/atomic"

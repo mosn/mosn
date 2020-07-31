@@ -137,6 +137,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	}
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proto)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigDownStreamProtocol, proxy.config.DownstreamProtocol)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigUpStreamProtocol, proxy.config.UpstreamProtocol)
 
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
