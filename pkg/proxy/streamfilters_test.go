@@ -29,6 +29,9 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
+
 )
 
 func init() {
@@ -160,6 +163,65 @@ func TestRunReiverFiltersStop(t *testing.T) {
 
 	if tc.filters[0].on != 1 || tc.filters[1].on != 1 || tc.filters[2].on != 0 {
 		t.Errorf("streamReceiveFilter is error")
+	}
+}
+
+func TestRunReiverFiltersTermination(t *testing.T) {
+	tc := struct {
+		filters []*mockStreamReceiverFilter
+	}{
+		filters: []*mockStreamReceiverFilter{
+			{
+				status: api.StreamFilterContinue,
+				phase:  api.AfterRoute,
+			},
+			{
+				status: api.StreamFiltertermination,
+				phase:  api.AfterRoute,
+			},
+			{
+				status: api.StreamFilterContinue,
+				phase:  api.AfterRoute,
+			},
+		},
+	}
+	s := &downStream{
+		context: context.Background(),
+		proxy: &proxy{
+			config: &v2.Proxy{},
+			routersWrapper: &mockRouterWrapper{
+				routers: &mockRouters{
+					route: &mockRoute{},
+				},
+			},
+			clusterManager:   &mockClusterManager{},
+			readCallbacks:    &mockReadFilterCallbacks{},
+			stats:            globalStats,
+			listenerStats:    newListenerStats("test"),
+			serverStreamConn: &mockServerConn{},
+		},
+		responseSender: &mockResponseSender{},
+		requestInfo:    &network.RequestInfo{},
+		snapshot:       &mockClusterSnapshot{},
+	}
+	for _, f := range tc.filters {
+		f.s = s
+		s.AddStreamReceiverFilter(f, f.phase)
+	}
+	// mock run
+	s.downstreamReqHeaders = protocol.CommonHeader{}
+	s.downstreamReqDataBuf = buffer.NewIoBuffer(0)
+	s.downstreamReqTrailers = protocol.CommonHeader{}
+	s.OnReceive(context.Background(), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+
+	time.Sleep(100 * time.Millisecond)
+
+	if tc.filters[0].on != 1 || tc.filters[1].on != 1 || tc.filters[2].on != 0 {
+		t.Errorf("streamReceiveFilter termination is error")
+	}
+
+	if s.downstreamCleaned != 1 {
+		t.Errorf("streamReceiveFilter termination is error")
 	}
 }
 
@@ -313,6 +375,60 @@ func TestRunSenderFiltersStop(t *testing.T) {
 
 	if tc.filters[0].on != 1 || tc.filters[1].on != 1 || tc.filters[2].on != 0 {
 		t.Errorf("streamSendFilter is error")
+	}
+}
+
+func TestRunSenderFiltersTermination(t *testing.T) {
+	tc := struct {
+		filters []*mockStreamSenderFilter
+	}{
+		filters: []*mockStreamSenderFilter{
+			{
+				status: api.StreamFilterContinue,
+			},
+			{
+				status: api.StreamFiltertermination,
+			},
+			{
+				status: api.StreamFilterContinue,
+			},
+		},
+	}
+	s := &downStream{
+		context: context.Background(),
+		proxy: &proxy{
+			config: &v2.Proxy{},
+			routersWrapper: &mockRouterWrapper{
+				routers: &mockRouters{
+					route: &mockRoute{},
+				},
+			},
+			clusterManager:   &mockClusterManager{},
+			readCallbacks:    &mockReadFilterCallbacks{},
+			stats:            globalStats,
+			listenerStats:    newListenerStats("test"),
+			serverStreamConn: &mockServerConn{},
+		},
+		responseSender: &mockResponseSender{},
+		requestInfo:    &network.RequestInfo{},
+		snapshot:       &mockClusterSnapshot{},
+	}
+	for _, f := range tc.filters {
+		f.s = s
+		s.AddStreamSenderFilter(f)
+	}
+
+	s.runAppendFilters(0, nil, nil, nil)
+	if s.downstreamRespHeaders == nil || s.downstreamRespDataBuf == nil {
+		t.Errorf("streamSendFilter SetResponse error")
+	}
+
+	if tc.filters[0].on != 1 || tc.filters[1].on != 1 || tc.filters[2].on != 0 {
+		t.Errorf("streamSendFilter is error")
+	}
+
+	if s.downstreamCleaned != 1 {
+		t.Errorf("streamSendFilter termination is error")
 	}
 }
 
