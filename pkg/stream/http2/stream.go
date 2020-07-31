@@ -710,8 +710,11 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		}
 
 		if endStream {
-			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
+			if stream.receiver == nil {
+				return
+			}
 
+			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
 			conn.mutex.Lock()
 			delete(conn.streams, id)
 			conn.mutex.Unlock()
@@ -752,7 +755,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	if endStream {
 		if conn.useStream {
 			stream.recData.CloseWithError(io.EOF)
-		} else {
+		} else if stream.receiver != nil {
 			stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailer)
 		}
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
