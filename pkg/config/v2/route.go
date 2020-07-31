@@ -338,5 +338,5 @@ type CidrRange struct {
 type RequestMirrorPolicy struct {
 	Cluster      string `json:"cluster,omitempty"`
 	Percent      uint32 `json:"percent,omitempty"`
-	TraceSampled bool   `json:"trace_sampled,omitempty"`
+	TraceSampled bool   `json:"trace_sampled,omitempty"` // TODO not implement
 }

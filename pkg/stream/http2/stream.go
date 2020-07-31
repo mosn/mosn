@@ -710,8 +710,11 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		}
 
 		if endStream {
-			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
+			if stream.receiver == nil {
+				return
+			}
 
+			stream.receiver.OnReceive(stream.ctx, header, nil, nil)
 			conn.mutex.Lock()
 			delete(conn.streams, id)
 			conn.mutex.Unlock()
