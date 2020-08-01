@@ -35,6 +35,7 @@ import (
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttpgzip "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/gzip/v2"
+	xdshttpconnectionmanagerv2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdstype "github.com/envoyproxy/go-control-plane/envoy/type"
 	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	jsonp "github.com/golang/protobuf/jsonpb"
@@ -87,6 +88,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 		return nil
 	}
 
+	address := convertAddress(xdsListener.Address)
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			Name:           xdsListener.GetName(),
@@ -94,8 +96,9 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			UseOriginalDst: xdsListener.GetUseOriginalDst().GetValue(),
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
+			AddrConfig:     address.String(),
 		},
-		Addr:                    convertAddress(xdsListener.Address),
+		Addr:                    address,
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -346,7 +349,7 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 		filterConfig := GetHTTPConnectionManager(networkFilter)
 
 		for _, filter := range filterConfig.GetHttpFilters() {
-			streamFilter := convertStreamFilter(filter.GetName(), filter.GetTypedConfig())
+			streamFilter := convertStreamFilter(filter.GetName(), filter)
 			if streamFilter.Type != "" {
 				log.DefaultLogger.Debugf("add a new stream filter, %v", streamFilter.Type)
 				filters = append(filters, streamFilter)
@@ -364,16 +367,26 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 	return filters
 }
 
-func convertStreamFilter(name string, s *any.Any) v2.Filter {
+func convertStreamFilter(name string, xdsfilter *xdshttpconnectionmanagerv2.HttpFilter) v2.Filter {
 	filter := v2.Filter{}
 	var err error
+
+	s := xdsfilter.GetTypedConfig()
 
 	switch name {
 	case v2.MIXER:
 		filter.Type = name
-		filter.Config, err = convertMixerConfig(s)
-		if err != nil {
-			log.DefaultLogger.Errorf("convertMixerConfig error: %v", err)
+		if s == nil {
+			// compatible with old configuration, istio may still use the old configuration
+			filter.Config = make(map[string]interface{})
+			for k, v := range xdsfilter.GetConfig().GetFields() {
+				filter.Config[k] = v
+			}
+		} else {
+			filter.Config, err = convertMixerConfig(s)
+			if err != nil {
+				log.DefaultLogger.Errorf("convertMixerConfig error: %v", err)
+			}
 		}
 	case v2.FaultStream, xdswellknown.Fault:
 		filter.Type = v2.FaultStream
@@ -1294,9 +1307,13 @@ func convertClusterHosts(xdsHosts []*xdscore.Address) []v2.Host {
 	}
 	hostsWithMetaData := make([]v2.Host, 0, len(xdsHosts))
 	for _, xdsHost := range xdsHosts {
+		address := convertAddress(xdsHost)
+		if address == nil {
+			continue
+		}
 		hostWithMetaData := v2.Host{
 			HostConfig: v2.HostConfig{
-				Address: convertAddress(xdsHost).String(),
+				Address: address.String(),
 			},
 		}
 		hostsWithMetaData = append(hostsWithMetaData, hostWithMetaData)
