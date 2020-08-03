@@ -14,8 +14,8 @@
               "tls_context": {},
               "filters": [
                 {
+                  "type": "udp_proxy",
                   "config": {
-                    "type": "udp_proxy",
                     "cluster": "serverCluster"
                   }
                 }
