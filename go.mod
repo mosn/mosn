@@ -9,6 +9,7 @@ require (
 	github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
 	github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d // perf: https://github.com/apache/dubbo-go-hessian2/pull/188
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/siphash v1.2.1
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/ghodss/yaml v1.0.0
@@ -32,7 +33,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
-	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
+	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 	github.com/stretchr/testify v1.5.1
 	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb // indirect
 	github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
@@ -42,11 +43,13 @@ require (
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
+	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.2.8 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
-	mosn.io/api v0.0.0-20200720094309-63de04640d4e
+	k8s.io/klog v1.0.0
+	mosn.io/api v0.0.0-20200728020814-8cdc3e8890f9
 	mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
 )
 

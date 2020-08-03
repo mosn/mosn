@@ -27,7 +27,7 @@ import (
 
 	gometrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -183,6 +183,17 @@ func statsDumpProxyTotal(w http.ResponseWriter, r *http.Request) {
 type LogLevelData struct {
 	LogPath  string `json:"log_path"`
 	LogLevel string `json:"log_level"`
+}
+
+func getLoggerInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "update log level", r.Method)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	lg := log.GetErrorLoggersInfo()
+	data, _ := json.Marshal(lg)
+	w.Write(data)
 }
 
 func updateLogLevel(w http.ResponseWriter, r *http.Request) {
