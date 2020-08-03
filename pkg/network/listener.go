@@ -159,14 +159,14 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 		}
 		switch l.network {
 		case "udp":
-			l.ReadMsgEventLoop(lctx)
+			l.readMsgEventLoop(lctx)
 		default:
-			l.AcceptEventLoop(lctx)
+			l.acceptEventLoop(lctx)
 		}
 	}
 }
 
-func (l *listener) AcceptEventLoop(lctx context.Context) {
+func (l *listener) acceptEventLoop(lctx context.Context) {
 	for {
 		if err := l.accept(lctx); err != nil {
 			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
@@ -191,11 +191,11 @@ func (l *listener) AcceptEventLoop(lctx context.Context) {
 	}
 }
 
-func (l *listener) ReadMsgEventLoop(lctx context.Context) {
+func (l *listener) readMsgEventLoop(lctx context.Context) {
 	utils.GoWithRecover(func() {
-		ReadMsgLoop(lctx, l)
+		readMsgLoop(lctx, l)
 	}, func(r interface{}) {
-		l.ReadMsgEventLoop(lctx)
+		l.readMsgEventLoop(lctx)
 	})
 }
 

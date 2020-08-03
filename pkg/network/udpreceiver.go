@@ -50,7 +50,7 @@ func DelUDPProxyMap(key string) {
 	ProxyMap.Delete(key)
 }
 
-func ReadMsgLoop(lctx context.Context, l *listener) {
+func readMsgLoop(lctx context.Context, l *listener) {
 	conn := l.packetConn.(*net.UDPConn)
 	buf := buffer.GetIoBuffer(UdpPacketMaxSize)
 	defer buffer.PutIoBuffer(buf)
