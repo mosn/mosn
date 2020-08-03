@@ -728,7 +728,7 @@ func convertFilterConfig(filter *xdslistener.Filter) map[string]map[string]inter
 		if err != nil {
 			log.DefaultLogger.Infof("[xds] [convert] Idletimeout is nil: %s", name)
 		}
-		tcpProxyConfig := v2.TCPProxy{
+		tcpProxyConfig := v2.StreamProxy{
 			StatPrefix:         filterConfig.GetStatPrefix(),
 			Cluster:            filterConfig.GetCluster(),
 			IdleTimeout:        &d,

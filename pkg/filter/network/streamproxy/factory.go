@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package tcpproxy
+package streamproxy
 
 import (
 	"context"
@@ -28,19 +28,27 @@ import (
 
 func init() {
 	api.RegisterNetwork(v2.TCP_PROXY, CreateTCPProxyFactory)
+	api.RegisterNetwork(v2.UDP_PROXY, CreateUDPProxyFactory)
 }
 
 type tcpProxyFilterConfigFactory struct {
-	Proxy *v2.TCPProxy
+	Proxy *v2.StreamProxy
+}
+type udpProxyFilterConfigFactory struct {
+	Proxy *v2.StreamProxy
+}
+func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
+	rf := NewProxy(context, f.Proxy, "tcp")
+	callbacks.AddReadFilter(rf)
 }
 
-func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
-	rf := NewProxy(context, f.Proxy)
+func (f *udpProxyFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
+	rf := NewProxy(context, f.Proxy, "udp")
 	callbacks.AddReadFilter(rf)
 }
 
 func CreateTCPProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
-	p, err := ParseTCPProxy(conf)
+	p, err := ParseStreamProxy(conf)
 	if err != nil {
 		return nil, err
 	}
@@ -49,9 +57,19 @@ func CreateTCPProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainF
 	}, nil
 }
 
-// ParseTCPProxy
-func ParseTCPProxy(cfg map[string]interface{}) (*v2.TCPProxy, error) {
-	proxy := &v2.TCPProxy{}
+func CreateUDPProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+	p, err := ParseStreamProxy(conf)
+	if err != nil {
+		return nil, err
+	}
+	return &udpProxyFilterConfigFactory{
+		Proxy: p,
+	}, nil
+}
+
+// ParseStreamProxy
+func ParseStreamProxy(cfg map[string]interface{}) (*v2.StreamProxy, error) {
+	proxy := &v2.StreamProxy{}
 	if data, err := json.Marshal(cfg); err == nil {
 		json.Unmarshal(data, proxy)
 	} else {
@@ -59,3 +77,4 @@ func ParseTCPProxy(cfg map[string]interface{}) (*v2.TCPProxy, error) {
 	}
 	return proxy, nil
 }
+
