@@ -115,7 +115,7 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	if len(fc.TLSConfigs) > 0 {
 		fc.TLSContexts = make([]TLSConfig, len(fc.TLSConfigs))
 		copy(fc.TLSContexts, fc.TLSConfigs)
-	} else {                     // no tls_context_set, use tls_context
+	} else { // no tls_context_set, use tls_context
 		if fc.TLSConfig == nil { // no tls_context, generate a default one
 			fc.TLSContexts = append(fc.TLSContexts, TLSConfig{})
 		} else { // use tls_context
