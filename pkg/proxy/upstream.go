@@ -20,9 +20,8 @@ package proxy
 import (
 	"container/list"
 	"context"
-	"time"
-
 	"sync/atomic"
+	"time"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"

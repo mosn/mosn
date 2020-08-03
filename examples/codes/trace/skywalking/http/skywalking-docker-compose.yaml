@@ -16,7 +16,7 @@
 version: '3.3'
 services:
   skywalking-oap:
-    image: apache/skywalking-oap-server:latest
+    image: apache/skywalking-oap-server:8.0.1-es7
     container_name: skywalking-oap
     restart: always
     ports:
@@ -25,7 +25,7 @@ services:
     environment:
       SW_STORAGE: h2
   skywalking-ui:
-    image: apache/skywalking-ui:latest
+    image: apache/skywalking-ui:8.0.1
     container_name: skywalking-ui
     depends_on:
       - skywalking-oap

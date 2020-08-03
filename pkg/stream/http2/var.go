@@ -33,7 +33,9 @@ var (
 	headerIndex = len(types.VarPrefixHttp2Header)
 	cookieIndex = len(types.VarPrefixHttp2Cookie)
 
-	builtinVariables = []variable.Variable{}
+	builtinVariables = []variable.Variable{
+		variable.NewBasicVariable(types.VarHttp2RequestScheme, nil, schemeGetter, nil, 0),
+	}
 
 	prefixVariables = []variable.Variable{
 		variable.NewBasicVariable(types.VarPrefixHttp2Header, nil, headerGetter, nil, 0),
@@ -53,8 +55,21 @@ func init() {
 	}
 
 	// register protocol resource
+	variable.RegisterProtocolResource(protocol.HTTP2, api.SCHEME, types.VarProtocolRequestScheme)
 	variable.RegisterProtocolResource(protocol.HTTP2, api.HEADER, types.VarProtocolRequestHeader)
 	variable.RegisterProtocolResource(protocol.HTTP2, api.COOKIE, types.VarProtocolCookie)
+}
+
+func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
+	if !ok {
+		return variable.ValueNotFound, nil
+	}
+	scheme, ok := headers.Get(protocol.MosnHeaderScheme)
+	if !ok {
+		return variable.ValueNotFound, nil
+	}
+	return scheme, nil
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {

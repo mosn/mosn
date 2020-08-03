@@ -106,7 +106,7 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 }
 
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
-// if the same name cluster is already exists, we will keep the exists hosts, and use rcu to update it.
+// if the same name cluster is already exists, we will keep the exists hosts.
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	// new cluster
 	newCluster := NewCluster(cluster)
@@ -134,6 +134,9 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 
 		// sync newResourceManager value to oldResourceManager value
 		updateResourceValue(oldResourceManager, newResourceManager)
+		for _, host := range hosts {
+			host.SetClusterInfo(newSnap.ClusterInfo()) // update host cluster info
+		}
 
 		// update hosts, refresh
 		newCluster.UpdateHosts(hosts)
@@ -255,7 +258,6 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 }
 
 // GetClusterSnapshot returns cluster snap
-// do not needs PutClusterSnapshot any more
 func (cm *clusterManager) GetClusterSnapshot(ctx context.Context, clusterName string) types.ClusterSnapshot {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
@@ -276,6 +278,17 @@ func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, sna
 		return types.CreateConnectionData{}
 	}
 	return host.CreateConnection(context.Background())
+}
+
+func (cm *clusterManager) UDPConnForCluster(lbCtx types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
+	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
+		return types.CreateConnectionData{}
+	}
+	host := snapshot.LoadBalancer().ChooseHost(lbCtx)
+	if host == nil {
+		return types.CreateConnectionData{}
+	}
+	return host.CreateUDPConnection(context.Background())
 }
 
 func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) types.ConnectionPool {
@@ -351,7 +364,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		}
 		pool, loaded := loadOrStoreConnPool()
 		if loaded {
-			if pool.SupportTLS() != host.SupportTLS() {
+			if !pool.TLSHashValue().Equal(host.TLSHashValue()) {
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				}
@@ -363,7 +376,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 					// recheck whether the pool is changed
 					if connPool, ok := connectionPool.Load(addr); ok {
 						pool = connPool.(types.ConnectionPool)
-						if pool.SupportTLS() == host.SupportTLS() {
+						if pool.TLSHashValue().Equal(host.TLSHashValue()) {
 							return
 						}
 						connectionPool.Delete(addr)

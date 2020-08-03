@@ -23,9 +23,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 
+	gometrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -150,10 +152,48 @@ func statsDump(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func statsDumpProxyTotal(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "stats dump", r.Method)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	log.DefaultLogger.Infof("[admin api]  [stats dump] stats dump")
+	w.WriteHeader(http.StatusOK)
+	m := metrics.GetProxyTotal()
+	all := ""
+	if m != nil {
+		m.Each(func(key string, i interface{}) {
+			switch metric := i.(type) {
+			case gometrics.Counter:
+				all += fmt.Sprintf("%s:%s\n", key, strconv.FormatInt(metric.Count(), 10))
+			case gometrics.Gauge:
+				all += fmt.Sprintf("%s:%s\n", key, strconv.FormatInt(metric.Value(), 10))
+			case gometrics.Histogram:
+				h := metric.Snapshot()
+				all += fmt.Sprintf("%s:%s\n", key+"_min", strconv.FormatInt(h.Min(), 10))
+				all += fmt.Sprintf("%s:%s\n", key+"_max", strconv.FormatInt(h.Max(), 10))
+			}
+		})
+	}
+	w.Write([]byte(all))
+}
+
 // update log level
 type LogLevelData struct {
 	LogPath  string `json:"log_path"`
 	LogLevel string `json:"log_level"`
+}
+
+func getLoggerInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "update log level", r.Method)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	lg := log.GetErrorLoggersInfo()
+	data, _ := json.Marshal(lg)
+	w.Write(data)
 }
 
 func updateLogLevel(w http.ResponseWriter, r *http.Request) {

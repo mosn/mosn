@@ -145,12 +145,16 @@ type Connection interface {
 	// SetTransferEventListener set a method will be called when connection transfer occur
 	SetTransferEventListener(listener func() bool)
 
-	// SetIdleTimeout sets the timeout that will set the connnection to idle. mosn close idle connection
-	// if no idle timeout setted or a zero value for d means no idle connections.
-	SetIdleTimeout(d time.Duration)
+	// SetIdleTimeout sets the timeout that will set the connnection to idle. At intervals of readTimeout,
+	// Connections can be closed after idle for idleTimeout/readTimeout checks. Mosn close idle connections
+	// if no idle timeout set，a zero value for idleTimeout means no idle connections.
+	SetIdleTimeout(readTimeout time.Duration, idleTimeout time.Duration)
 
 	// State returns the connection state
 	State() ConnState
+
+	// OnRead deals with data not read from doRead process
+	OnRead(buffer buffer.IoBuffer)
 }
 
 // ConnectionEvent type

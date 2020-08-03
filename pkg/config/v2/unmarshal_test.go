@@ -359,7 +359,57 @@ func TestTCPProxyUnmarshal(t *testing.T) {
 		]
 	}`
 	b := []byte(tcpproxy)
-	p := &TCPProxy{}
+	p := &StreamProxy{}
+	if err := json.Unmarshal(b, p); err != nil {
+		t.Error(err)
+		return
+	}
+	if len(p.Routes) != 1 {
+		t.Error("route failed")
+	} else {
+		r := p.Routes[0]
+		if !(r.Cluster == "test" &&
+			len(r.SourceAddrs) == 1 &&
+			r.SourceAddrs[0].Address == "127.0.0.1" &&
+			r.SourceAddrs[0].Length == 32 &&
+			len(r.DestinationAddrs) == 1 &&
+			r.DestinationAddrs[0].Address == "127.0.0.1" &&
+			r.DestinationAddrs[0].Length == 32 &&
+			r.SourcePort == "8080" &&
+			r.DestinationPort == "8080") {
+			t.Error("route failed")
+		}
+	}
+}
+
+func TestUDPProxyUnmarshal(t *testing.T) {
+	udpproxy := `{
+		"stat_prefix":"udp_proxy",
+		"cluster":"cluster",
+		"max_connect_attempts":1000,
+		"routes":[
+			{
+				"cluster": "test",
+				"SourceAddrs": [
+					{
+						"address":"127.0.0.1",
+						"length":32
+					}
+				],
+				"DestinationAddrs":[
+					{
+						"address":"127.0.0.1",
+						"length":32
+					}
+				],
+				"SourcePort":"8080",
+				"DestinationPort":"8080"
+			}
+		]
+	}`
+
+	b := []byte(udpproxy)
+	p := &StreamProxy{}
 	if err := json.Unmarshal(b, p); err != nil {
 		t.Error(err)
 		return

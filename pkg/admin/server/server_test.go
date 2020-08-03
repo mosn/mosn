@@ -19,27 +19,30 @@ package server
 
 import (
 	"bufio"
-	rawjson "encoding/json"
 	"errors"
 	"fmt"
-	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
-	"github.com/golang/protobuf/jsonpb"
 	"io/ioutil"
-	"mosn.io/mosn/pkg/xds/conv"
 	"net/http"
 	"os"
+	"reflect"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	rawjson "encoding/json"
+
+	envoy_admin_v2alpha "github.com/envoyproxy/go-control-plane/envoy/admin/v2alpha"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/store"
 	mv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
+	"mosn.io/mosn/pkg/xds/conv"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -78,6 +81,39 @@ func getStats(port uint32) (string, error) {
 	return string(b), nil
 }
 
+func getGlobalStats(port uint32) (string, error) {
+	resp, err := http.Get(fmt.Sprintf("http://localhost:%d/api/v1/stats_glob", port))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New(fmt.Sprintf("call admin api failed response status: %d, %s", resp.StatusCode, string(b)))
+	}
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
+func getLoggerLevel() ([]byte, error) {
+	url := "http://localhost:8889/api/v1/get_loglevel"
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	err = errors.New("get logger info failed")
+	if resp.StatusCode != http.StatusOK {
+		return nil, err
+	}
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
 func postUpdateLoggerLevel(port uint32, s string) (string, error) {
 	data := strings.NewReader(s)
 	url := fmt.Sprintf("http://localhost:%d/api/v1/update_loglevel", port)
@@ -271,6 +307,23 @@ func TestDumpStats(t *testing.T) {
 			t.Errorf("unexpected stats: %s\n", data)
 		}
 	}
+
+	stats1, _ := metrics.NewMetrics("downstream", map[string]string{"proxy": "global"})
+	stats1.Counter("ct1").Inc(1)
+	stats1.Gauge("gg2").Update(3)
+	expected_string := "ct1:1\ngg2:3\n"
+	if data, err := getGlobalStats(config.Port); err != nil {
+		t.Error(err)
+	} else {
+		want := strings.Split(expected_string, "\n")
+		got := strings.Split(data, "\n")
+		sort.Strings(want)
+		sort.Strings(got)
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("unexpected stats: %s\n", data)
+		}
+	}
+
 	store.Reset()
 }
 
@@ -312,6 +365,35 @@ func TestDumpStatsForIstio(t *testing.T) {
 	//store.Reset()
 }
 
+func TestGetLogger(t *testing.T) {
+	time.Sleep(time.Second)
+	server := Server{}
+	config := &mockMOSNConfig{
+		Name: "mock",
+		Port: 8889,
+	}
+	server.Start(config)
+	store.StartService(nil)
+	defer store.StopService()
+
+	time.Sleep(time.Second) //wait server start
+
+	logName := "/tmp/mosn_admin/test_admin.log"
+	_, err := log.GetOrCreateDefaultErrorLogger(logName, log.INFO)
+	if err != nil {
+		t.Fatal("create logger failed")
+	}
+	logInfo, err := getLoggerLevel()
+	if err != nil {
+		t.Fatal(err)
+	}
+	loggerMap := make(map[string]string)
+	json.Unmarshal(logInfo, &loggerMap)
+	if loggerMap[logName] != "INFO" {
+		t.Errorf("fail to get logger info, %+v", loggerMap)
+	}
+}
+
 func TestUpdateLogger(t *testing.T) {
 	time.Sleep(time.Second)
 	server := Server{}
@@ -330,6 +412,16 @@ func TestUpdateLogger(t *testing.T) {
 	if err != nil {
 		t.Fatal("create logger failed")
 	}
+	logInfo, err := getLoggerLevel()
+	if err != nil {
+		t.Fatal(err)
+	}
+	loggerMap := make(map[string]string)
+	json.Unmarshal(logInfo, &loggerMap)
+	if loggerMap[logName] != "INFO" {
+		t.Errorf("fail to get logger info, %+v", loggerMap)
+	}
+
 	// update logger
 	postData := `{
 		"log_path": "/tmp/mosn_admin/test_admin.log",
@@ -340,6 +432,15 @@ func TestUpdateLogger(t *testing.T) {
 	}
 	if logger.GetLogLevel() != log.ERROR {
 		t.Errorf("update logger success, but logger level is not expected: %v", logger.GetLogLevel())
+	}
+	logInfo, err = getLoggerLevel()
+	if err != nil {
+		t.Fatal(err)
+	}
+	loggerMap = make(map[string]string)
+	json.Unmarshal(logInfo, &loggerMap)
+	if loggerMap[logName] != "ERROR" {
+		t.Errorf("fail to change logger level, %+v", loggerMap)
 	}
 }
 
@@ -546,6 +647,7 @@ func TestHelpAPI(t *testing.T) {
 		"/api/v1/config_dump":     configDump,
 		"/api/v1/stats":           statsDump,
 		"/api/v1/update_loglevel": updateLogLevel,
+		"/api/v1/get_loglevel":    getLoggerInfo,
 		"/api/v1/enable_log":      enableLogger,
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,
@@ -583,7 +685,7 @@ func TestHelpAPI(t *testing.T) {
 		s := query(t, addr)
 		s = strings.TrimSuffix(s, "\n")
 		apis := strings.Split(s, "\n")[1:] // the first line is "support apis:"
-		if len(apis) != 8 {                // exclued "/"
+		if len(apis) != 9 {                // exclued "/"
 			t.Errorf("apis count is not expected: %v, length is %d", apis, len(apis))
 		}
 	}

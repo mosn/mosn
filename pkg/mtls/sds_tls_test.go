@@ -18,6 +18,7 @@
 package mtls
 
 import (
+	"fmt"
 	"io/ioutil"
 	"sync"
 	"testing"
@@ -35,9 +36,8 @@ func createSdsTLSConfig() *v2.TLSConfig {
 		getSdsClientFunc = getMockSdsClient
 	})
 	return &v2.TLSConfig{
-		Status:            true,
-		RequireClientCert: true,
-		VerifyClient:      false,
+		Status:       true,
+		VerifyClient: true,
 		SdsConfig: &v2.SdsConfig{
 			CertificateConfig: &v2.SecretConfigWrapper{
 				Config: &auth.SdsSecretConfig{
@@ -284,4 +284,37 @@ func TestSdsWithExtension(t *testing.T) {
 		}
 	}
 	certFail()
+}
+
+func TestSdsProviderUpdate(t *testing.T) {
+	resetTest()
+	cfg := createSdsTLSConfig()
+	prd := getOrCreateProvider(cfg)
+	if prd.Ready() {
+		t.Fatal("provider ready without certificate")
+	}
+	mockSetSecret()
+	if !prd.Ready() {
+		t.Fatal("provider note ready with certificate")
+	}
+	h1 := prd.GetTLSConfigContext(true).HashValue()
+	// try to get again
+	prd2 := getOrCreateProvider(cfg)
+	prdAddr := fmt.Sprintf("%p", prd)
+	prd2Addr := fmt.Sprintf("%p", prd2)
+	if prdAddr != prd2Addr {
+		t.Fatal("sds provider reuse failed")
+	}
+	// update tls config
+	cfg2 := createSdsTLSConfig()
+	cfg2.CipherSuites = "RSA-AES256-CBC-SHA:RSA-3DES-EDE-CBC-SHA"
+	prd3 := getOrCreateProvider(cfg2)
+	prd3Addr := fmt.Sprintf("%p", prd3)
+	if prdAddr != prd3Addr {
+		t.Fatal("sds provider reuse failed")
+	}
+	h2 := prd.GetTLSConfigContext(true).HashValue()
+	if h1 == h2 {
+		t.Fatal("update tls config failed")
+	}
 }

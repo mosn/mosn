@@ -147,7 +147,8 @@ func TestParseListenerConfig(t *testing.T) {
 	if err := json.Unmarshal([]byte(lnStr), lc); err != nil {
 		t.Fatalf("listener config init failed: %v", err)
 	}
-	ln := ParseListenerConfig(lc, inherit)
+	var inheritPacketConn []net.PacketConn
+	ln := ParseListenerConfig(lc, inherit,  inheritPacketConn)
 	if !(ln.Addr != nil &&
 		ln.Addr.String() == tcpListener.Addr().String() &&
 		ln.PerConnBufferLimitBytes == 1<<15 &&

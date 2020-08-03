@@ -35,7 +35,7 @@ import (
 type simpleHost struct {
 	hostname      string
 	addressString string
-	clusterInfo   types.ClusterInfo
+	clusterInfo   atomic.Value // store types.ClusterInfo
 	stats         types.HostStats
 	metaData      api.Metadata
 	tlsDisable    bool
@@ -47,16 +47,17 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 	// clusterInfo should not be nil
 	// pre resolve address
 	GetOrCreateAddr(config.Address)
-	return &simpleHost{
+	h := &simpleHost{
 		hostname:      config.Hostname,
 		addressString: config.Address,
-		clusterInfo:   clusterInfo,
 		stats:         newHostStats(clusterInfo.Name(), config.Address),
 		metaData:      config.MetaData,
 		tlsDisable:    config.TLSDisable,
 		weight:        config.Weight,
 		healthFlags:   GetHealthFlagPointer(config.Address),
 	}
+	h.clusterInfo.Store(clusterInfo)
+	return h
 }
 
 // types.HostInfo Implement
@@ -69,11 +70,22 @@ func (sh *simpleHost) Metadata() api.Metadata {
 }
 
 func (sh *simpleHost) ClusterInfo() types.ClusterInfo {
-	return sh.clusterInfo
+	v := sh.clusterInfo.Load()
+	info, _ := v.(types.ClusterInfo)
+	return info
+
+}
+
+func (sh *simpleHost) SetClusterInfo(info types.ClusterInfo) {
+	sh.clusterInfo.Store(info)
 }
 
 func (sh *simpleHost) Address() net.Addr {
 	return GetOrCreateAddr(sh.addressString)
+}
+
+func (sh *simpleHost) UDPAddress() net.Addr {
+	return GetOrCreateUDPAddr(sh.addressString)
 }
 
 func (sh *simpleHost) AddressString() string {
@@ -101,17 +113,34 @@ func (sh *simpleHost) Config() v2.Host {
 }
 
 func (sh *simpleHost) SupportTLS() bool {
-	return IsSupportTLS() && !sh.tlsDisable && sh.clusterInfo.TLSMng().Enabled()
+	return IsSupportTLS() && !sh.tlsDisable && sh.ClusterInfo().TLSMng().Enabled()
+}
+
+func (sh *simpleHost) TLSHashValue() *types.HashValue {
+	if !sh.SupportTLS() {
+		return nil
+	}
+	return sh.ClusterInfo().TLSMng().HashValue()
 }
 
 // types.Host Implement
 func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConnectionData {
 	var tlsMng types.TLSContextManager
 	if sh.SupportTLS() {
-		tlsMng = sh.clusterInfo.TLSMng()
+		tlsMng = sh.ClusterInfo().TLSMng()
 	}
-	clientConn := network.NewClientConnection(nil, sh.clusterInfo.ConnectTimeout(), tlsMng, sh.Address(), nil)
-	clientConn.SetBufferLimit(sh.clusterInfo.ConnBufferLimitBytes())
+	clientConn := network.NewClientConnection(nil, sh.ClusterInfo().ConnectTimeout(), tlsMng, sh.Address(), nil)
+	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
+
+	return types.CreateConnectionData{
+		Connection: clientConn,
+		Host:       sh,
+	}
+}
+
+func (sh *simpleHost) CreateUDPConnection(context context.Context) types.CreateConnectionData {
+	clientConn := network.NewClientConnection(nil, sh.ClusterInfo().ConnectTimeout(), nil, sh.UDPAddress(), nil)
+	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
 		Connection: clientConn,
@@ -152,16 +181,29 @@ var AddrStore *utils.ExpiredMap = utils.NewExpiredMap(
 
 func GetOrCreateAddr(addrstr string) net.Addr {
 
-	if addr, _ := AddrStore.Get(addrstr); addr != nil {
-		return addr.(net.Addr)
+	var addr net.Addr
+	var err error
+
+	// Check DNS cache
+	if r, _ := AddrStore.Get(addrstr); r != nil {
+		switch v := r.(type) {
+		case net.Addr:
+			return v
+		case error:
+			return nil
+		}
 	}
 
-	addr, err := net.ResolveTCPAddr("tcp", addrstr)
+	// Get DNS resolve
+	addr, err = net.ResolveTCPAddr("tcp", addrstr)
 	if err != nil {
+		// If a DNS query fails then don't sent to DNS within 15 seconds and avoid flood
+		AddrStore.Set(addrstr, err, 15*time.Second)
 		log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
 		return nil
 	}
 
+	// Save DNS cache
 	if addr.String() != addrstr {
 		// TODO support config or depends on DNS TTL for expire time
 		// now set default expire time == 15 s, Means that after 15 seconds, the new request will trigger domain resolve.
@@ -173,3 +215,47 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 
 	return addr
 }
+
+// store resolved UDP addr
+var UDPAddrStore *utils.ExpiredMap = utils.NewExpiredMap(
+	func(key interface{}) (interface{}, bool) {
+		addr, err := net.ResolveUDPAddr("udp", key.(string))
+		if err == nil {
+			return addr, true
+		}
+		return nil, false
+	}, false)
+
+func GetOrCreateUDPAddr(addrstr string) net.Addr {
+	var addr net.Addr
+	var err error
+
+	// Check DNS cache
+	if r, _ := UDPAddrStore.Get(addrstr); r != nil {
+		switch v := r.(type) {
+		case net.Addr:
+			return v
+		case error:
+			return nil
+		}
+	}
+
+	addr, err = net.ResolveUDPAddr("udp", addrstr)
+	if err != nil {
+		// If a DNS query fails then don't sent to DNS within 15 seconds and avoid flood
+		UDPAddrStore.Set(addrstr, err, 15*time.Second)
+		log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
+		return nil
+	}
+
+	if addr.String() != addrstr {
+		// now set default expire time == 15 s, Means that after 15 seconds, the new request will trigger domain resolve.
+		UDPAddrStore.Set(addrstr, addr, 15*time.Second)
+	} else {
+		// if addrsstr isn't domain and don't set expire time
+		UDPAddrStore.Set(addrstr, addr, utils.NeverExpire)
+	}
+
+	return addr
+}
+

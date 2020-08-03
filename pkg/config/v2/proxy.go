@@ -19,13 +19,13 @@ package v2
 
 import "time"
 
-// TCPProxy
-type TCPProxy struct {
+// StreamProxy
+type StreamProxy struct {
 	StatPrefix         string         `json:"stat_prefix,omitempty"`
 	Cluster            string         `json:"cluster,omitempty"`
 	IdleTimeout        *time.Duration `json:"idle_timeout,omitempty"`
 	MaxConnectAttempts uint32         `json:"max_connect_attempts,omitempty"`
-	Routes             []*TCPRoute    `json:"routes,omitempty"`
+	Routes             []*StreamRoute `json:"routes,omitempty"`
 }
 
 // WebSocketProxy
@@ -50,6 +50,8 @@ type XProxyExtendConfig struct {
 	SubProtocol string `json:"sub_protocol,omitempty"`
 }
 
-type Http2ExtendConfig struct {
-	Http2UseStream bool `json:"http2_use_stream,omitempty"`
+// ProxyGeneralExtendConfig is a general config for proxy
+type ProxyGeneralExtendConfig struct {
+	Http2UseStream     bool `json:"http2_use_stream,omitempty"`
+	MaxRequestBodySize int  `json:"max_request_body_size,omitempty"`
 }

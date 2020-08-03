@@ -22,17 +22,17 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"strings"
 	"time"
 
 	"github.com/dchest/siphash"
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // [sub module] & [function] & msg
@@ -94,6 +94,7 @@ type policy struct {
 	retryPolicy  *retryPolicyImpl
 	shadowPolicy *shadowPolicyImpl //TODO: not implement yet
 	hashPolicy   api.HashPolicy
+	mirrorPolicy api.MirrorPolicy
 }
 
 func (p *policy) RetryPolicy() api.RetryPolicy {
@@ -106,6 +107,10 @@ func (p *policy) ShadowPolicy() api.ShadowPolicy {
 
 func (p *policy) HashPolicy() api.HashPolicy {
 	return p.hashPolicy
+}
+
+func (p *policy) MirrorPolicy() api.MirrorPolicy {
+	return p.mirrorPolicy
 }
 
 type retryPolicyImpl struct {
@@ -235,4 +240,21 @@ func getHashByAddr(addr net.Addr) (hash uint64) {
 
 func getHashByString(str string) uint64 {
 	return siphash.Hash(0xbeefcafebabedead, 0, []byte(str))
+}
+
+type mirrorImpl struct {
+	cluster string
+	percent int
+	rand    *rand.Rand
+}
+
+func (m *mirrorImpl) IsMirror() (isTrans bool) {
+	if m.cluster == "" || m.percent == 0 {
+		return false
+	}
+	return m.percent > m.rand.Intn(100)
+}
+
+func (m *mirrorImpl) ClusterName() string {
+	return m.cluster
 }

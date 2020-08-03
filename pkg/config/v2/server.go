@@ -56,6 +56,7 @@ type ListenerConfig struct {
 	Type                  ListenerType        `json:"type,omitempty"`
 	AddrConfig            string              `json:"address,omitempty"`
 	BindToPort            bool                `json:"bind_port,omitempty"`
+	Network               string              `json:"network,omitempty"`
 	UseOriginalDst        bool                `json:"use_original_dst,omitempty"`
 	AccessLogs            []AccessLog         `json:"access_logs,omitempty"`
 	ListenerFilters       []Filter            `json:"listener_filters,omitempty"`
@@ -73,6 +74,7 @@ type Listener struct {
 	ListenerScope           string           `json:"-"`
 	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
 	InheritListener         *net.TCPListener `json:"-"`
+	InheritPacketConn       *net.PacketConn  `json:"-"`
 	Remain                  bool             `json:"-"`
 }
 
@@ -94,11 +96,23 @@ func (l *Listener) UnmarshalJSON(b []byte) error {
 	if l.AddrConfig == "" {
 		return ErrNoAddrListener
 	}
-	addr, err := net.ResolveTCPAddr("tcp", l.AddrConfig)
-	if err != nil {
-		return err
+	if l.Network == "" {
+		l.Network = "tcp" // default is tcp
 	}
-	l.Addr = addr
+	switch l.Network {
+	case "udp":
+		addr, err := net.ResolveUDPAddr("udp", l.AddrConfig)
+		if err != nil {
+			return err
+		}
+		l.Addr = addr
+	default: // tcp
+		addr, err := net.ResolveTCPAddr("tcp", l.AddrConfig)
+		if err != nil {
+			return err
+		}
+		l.Addr = addr
+	}
 	l.PerConnBufferLimitBytes = defaultBufferLimit
 	return nil
 }
