@@ -48,6 +48,16 @@ type StreamGzip struct {
 	ContentType   []string `json:"content_types,omitempty"`
 }
 
+// StreamDSL ...
+type StreamDSL struct {
+	Debug            bool   `json:"debug"` // TODO not implement
+	BeforeRouterDSL  string `json:"before_router_by_dsl"`
+	AfterRouterDSL   string `json:"after_router_by_dsl"`
+	AfterBalancerDSL string `json:"after_balancer_by_dsl"`
+	SendFilterDSL    string `json:"send_filter_by_dsl"`
+	LogDSL           string `json:"log_filter_by_dsl"`
+}
+
 // Listener Filter's Type
 const (
 	ORIGINALDST_LISTENER_FILTER = "original_dst"
@@ -84,6 +94,8 @@ const (
 	PayloadLimit   = "payload_limit"
 	Gzip           = "gzip"
 	FaultTolerance = "fault_tolerance"
+	IstioStats     = "istio.stats"
+	DSL            = "dsl"
 	Mirror         = "mirror"
 )
 
