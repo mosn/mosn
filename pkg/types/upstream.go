@@ -41,9 +41,6 @@ type ClusterManager interface {
 	// Add Cluster health check callbacks
 	AddClusterHealthCheckCallbacks(name string, cb HealthCheckCb) error
 
-	// GetAllClusters returns all cluster name in the cluster manager
-	GetAllClusters() []string
-
 	// Get, use to get the snapshot of a cluster
 	GetClusterSnapshot(context context.Context, cluster string) ClusterSnapshot
 

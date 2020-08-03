@@ -1,5 +1,3 @@
-// +build dubbo
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -17,8 +15,12 @@
  * limitations under the License.
  */
 
-package dubbod
+package attribute
 
-func init() {
-	Init()
+// Expression represents a precompiled expression that can be immediately evaluated.
+// It holds no cache and does not listen to any events. If the configuration changes, the CompiledExpression needs
+// to be discarded and created again.
+type Expression interface {
+	// Evaluate evaluates this compiled expression against the attribute bag.
+	Evaluate(bag Bag) (interface{}, error)
 }

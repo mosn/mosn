@@ -257,16 +257,6 @@ func (cm *clusterManager) RemoveClusterHosts(clusterName string, addrs []string)
 	return nil
 }
 
-func (cm *clusterManager) GetAllClusters() []string {
-	var names []string
-	cm.clustersMap.Range(func(key, value interface{}) bool {
-		name, _ := key.(string)
-		names = append(names, name)
-		return true
-	})
-	return names
-}
-
 // GetClusterSnapshot returns cluster snap
 func (cm *clusterManager) GetClusterSnapshot(ctx context.Context, clusterName string) types.ClusterSnapshot {
 	ci, ok := cm.clustersMap.Load(clusterName)
