@@ -15,12 +15,8 @@
               "filters": [
                 {
                   "config": {
-                    "cluster": "serverCluster",
-                    "routes": [
-                      {
-                        "cluster": "serverCluster"
-                      }
-                    ]
+                    "type": "udp_proxy",
+                    "cluster": "serverCluster"
                   }
                 }
               ]
