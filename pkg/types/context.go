@@ -46,6 +46,8 @@ const (
 	ContextKeyConfigDownStreamProtocol
 	ContextKeyConfigUpStreamProtocol
 	ContextKeyDownStreamHeaders
+	ContextKeyDownStreamRespHeaders
+	ContextKeyStreamFilterPhase
 	ContextKeyEnd
 )
 
