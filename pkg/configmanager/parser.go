@@ -165,6 +165,14 @@ func ParseLogLevel(level string) log.Level {
 
 // ParseListenerConfig
 func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.Listener {
+	// Listener Config maybe not generated from json string
+	if lc.Addr == nil {
+		addr, err := net.ResolveTCPAddr("tcp", lc.AddrConfig)
+		if err != nil {
+			log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)
+		}
+		lc.Addr = addr
+	}
 	addr, ok := lc.Addr.(*net.TCPAddr)
 	if !ok {
 		log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)

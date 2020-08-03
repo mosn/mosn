@@ -85,6 +85,8 @@ func (l Listener) MarshalJSON() (b []byte, err error) {
 
 var ErrNoAddrListener = errors.New("address is required in listener config")
 
+const defaultBufferLimit = 1 << 15
+
 func (l *Listener) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &l.ListenerConfig); err != nil {
 		return err
@@ -97,7 +99,7 @@ func (l *Listener) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	l.Addr = addr
-	l.PerConnBufferLimitBytes = 1 << 15
+	l.PerConnBufferLimitBytes = defaultBufferLimit
 	return nil
 }
 
