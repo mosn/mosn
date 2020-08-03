@@ -216,13 +216,16 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 					}
 
 					if err == io.EOF {
+						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+							log.DefaultLogger.Debugf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
+								c.id, c.RemoteAddr().String(), err)
+						}
 						c.Close(api.NoFlush, api.RemoteClose)
 					} else {
+						log.DefaultLogger.Errorf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
+							c.id, c.RemoteAddr().String(), err)
 						c.Close(api.NoFlush, api.OnReadErrClose)
 					}
-
-					log.DefaultLogger.Errorf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
-						c.id, c.RemoteAddr().String(), err)
 
 					return false
 				}
@@ -323,14 +326,19 @@ func (c *connection) scheduleWrite() {
 			_, err := c.doWrite()
 			if err != nil {
 				if err == io.EOF {
+					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+						log.DefaultLogger.Debugf("[network] [schedule write] Error on write. Connection = %d, Remote Address = %s, err = %s",
+							c.id, c.RemoteAddr().String(), err)
+					}
 					// remote conn closed
 					c.Close(api.NoFlush, api.RemoteClose)
 				} else {
 					// on non-timeout error
+					log.DefaultLogger.Errorf("[network] [schedule write] Error on write. Connection = %d, Remote Address = %s, err = %s",
+						c.id, c.RemoteAddr().String(), err)
 					c.Close(api.NoFlush, api.OnWriteErrClose)
 				}
-				log.DefaultLogger.Errorf("[network] [schedule write] Error on write. Connection = %d, Remote Address = %s, err = %s",
-					c.id, c.RemoteAddr().String(), err)
+
 			}
 
 		}
@@ -625,15 +633,20 @@ func (c *connection) writeDirectly(buf *[]buffer.IoBuffer) (err error) {
 	}
 
 	if err != nil {
-		log.DefaultLogger.Errorf("[network] [write directly] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
-			c.id, c.RemoteAddr().String(), err, c)
+
+		if err == buffer.EOF {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[network] [write directly] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
+					c.id, c.RemoteAddr().String(), err, c)
+			}
+			c.Close(api.NoFlush, api.LocalClose)
+		} else {
+			log.DefaultLogger.Errorf("[network] [write directly] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
+				c.id, c.RemoteAddr().String(), err, c)
+		}
 
 		if te, ok := err.(net.Error); ok && te.Timeout() {
 			c.Close(api.NoFlush, api.OnWriteTimeout)
-		}
-
-		if err == buffer.EOF {
-			c.Close(api.NoFlush, api.LocalClose)
 		}
 
 		//other write errs not close connection, beacause readbuffer may have unread data, wait for readloop close connection,
@@ -691,15 +704,20 @@ func (c *connection) startWriteLoop() {
 		}
 
 		if err != nil {
-			log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
-				c.id, c.RemoteAddr().String(), err, c)
+
+			if err == buffer.EOF {
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
+						c.id, c.RemoteAddr().String(), err, c)
+				}
+				c.Close(api.NoFlush, api.LocalClose)
+			} else {
+				log.DefaultLogger.Errorf("[network] [write loop] Error on write. Connection = %d, Remote Address = %s, err = %s, conn = %p",
+					c.id, c.RemoteAddr().String(), err, c)
+			}
 
 			if te, ok := err.(net.Error); ok && te.Timeout() {
 				c.Close(api.NoFlush, api.OnWriteTimeout)
-			}
-
-			if err == buffer.EOF {
-				c.Close(api.NoFlush, api.LocalClose)
 			}
 
 			if c.network == "udp" && strings.Contains(err.Error(), "connection refused") {
