@@ -48,7 +48,7 @@ type connPool struct {
 }
 
 // NewConnPool
-func NewConnPool(_ types.ProtocolName, host types.Host) types.ConnectionPool {
+func NewConnPool(_ types.ProtocolName, _ types.ProtocolName, host types.Host) types.ConnectionPool {
 	pool := &connPool{
 		tlsHash: host.TLSHashValue(),
 	}
@@ -82,7 +82,7 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 }
 
 func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
+	responseDecoder types.StreamReceiveListener, _ api.Connection) (types.PoolFailureReason, types.Host, types.StreamSender) {
 
 	activeClient := func() *activeClient {
 		p.mux.Lock()

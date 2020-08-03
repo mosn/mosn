@@ -170,9 +170,9 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	)
 
 	if r.downStream.oneway {
-		failReason, host, streamSender = r.connPool.NewStream(r.downStream.context, nil)
+		failReason, host, streamSender = r.connPool.NewStream(r.downStream.context, nil, r.downStream.proxy.readCallbacks.Connection())
 	} else {
-		failReason, host, streamSender = r.connPool.NewStream(r.downStream.context, r)
+		failReason, host, streamSender = r.connPool.NewStream(r.downStream.context, r, r.downStream.proxy.readCallbacks.Connection())
 	}
 
 	if failReason != "" {

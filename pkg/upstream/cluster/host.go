@@ -167,16 +167,29 @@ var AddrStore *utils.ExpiredMap = utils.NewExpiredMap(
 
 func GetOrCreateAddr(addrstr string) net.Addr {
 
-	if addr, _ := AddrStore.Get(addrstr); addr != nil {
-		return addr.(net.Addr)
+	var addr net.Addr
+	var err error
+
+	// Check DNS cache
+	if r, _ := AddrStore.Get(addrstr); r != nil {
+		switch v := r.(type) {
+		case net.Addr:
+			return v
+		case error:
+			return nil
+		}
 	}
 
-	addr, err := net.ResolveTCPAddr("tcp", addrstr)
+	// Get DNS resolve
+	addr, err = net.ResolveTCPAddr("tcp", addrstr)
 	if err != nil {
+		// If a DNS query fails then don't sent to DNS within 15 seconds and avoid flood
+		AddrStore.Set(addrstr, err, 15*time.Second)
 		log.DefaultLogger.Errorf("[upstream] resolve addr %s failed: %v", addrstr, err)
 		return nil
 	}
 
+	// Save DNS cache
 	if addr.String() != addrstr {
 		// TODO support config or depends on DNS TTL for expire time
 		// now set default expire time == 15 s, Means that after 15 seconds, the new request will trigger domain resolve.

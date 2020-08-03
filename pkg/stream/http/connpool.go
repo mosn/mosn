@@ -54,7 +54,7 @@ type connPool struct {
 	totalClientCount uint64          // total clients
 }
 
-func NewConnPool(_ types.ProtocolName, host types.Host) types.ConnectionPool {
+func NewConnPool(_ types.ProtocolName, _ types.ProtocolName, host types.Host) types.ConnectionPool {
 	pool := &connPool{
 		tlsHash: host.TLSHashValue(),
 	}
@@ -93,7 +93,7 @@ func (p *connPool) UpdateHost(h types.Host) {
 }
 
 // NewStream Create a client stream and call's by proxy
-func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.PoolFailureReason, types.Host, types.StreamSender) {
+func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, _ api.Connection) (types.PoolFailureReason, types.Host, types.StreamSender) {
 	host := p.Host()
 	c, reason := p.getAvailableClient(ctx)
 

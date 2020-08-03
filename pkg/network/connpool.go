@@ -14,7 +14,7 @@ type poolCreator struct {
 	createFunc  poolCreateFunc
 }
 
-type poolCreateFunc func(protocol types.ProtocolName, host types.Host) types.ConnectionPool
+type poolCreateFunc func(protocol types.ProtocolName, subProto types.ProtocolName, host types.Host) types.ConnectionPool
 
 var ConnNewPoolFactories map[types.ProtocolName]poolCreator
 
@@ -28,6 +28,6 @@ func RegisterNewPoolFactory(protocol types.ProtocolName, factory poolCreateFunc)
 }
 
 // CreatePool creates a pool for a host
-func (c poolCreator) CreatePool(host types.Host) types.ConnectionPool{
-	return c.createFunc(c.protocol, host)
+func (c poolCreator) CreatePool(host types.Host, subProtocol types.ProtocolName) types.ConnectionPool{
+	return c.createFunc(c.protocol, subProtocol, host)
 }
