@@ -1,9 +1,9 @@
-## Use MOSN as TCP Proxy
+## Use MOSN as UDP Proxy
 
 ## Introduction
 
-+ This sample project demonstrates how to configure MOSN as a TCP Proxy.
-+ When MOSN receives a TCP request, it will forwards it to the corresponding cluster according to the source address and 
++ This sample project demonstrates how to configure MOSN as a UDP Proxy.
++ When MOSN receives a UDP request, it will forwards it to the corresponding cluster according to the source address and 
 destination address of the request.
 
 ## Preparation
