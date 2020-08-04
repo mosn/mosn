@@ -32,6 +32,15 @@ var (
 	ErrNoLoggerFound = errors.New("no logger found in logger manager")
 )
 
+var levelMap = map[log.Level]string{
+	log.FATAL: "FATAL",
+	log.ERROR: "ERROR",
+	log.WARN:  "WARN",
+	log.INFO:  "INFO",
+	log.DEBUG: "DEBUG",
+	log.TRACE: "TRACE",
+}
+
 var errorLoggerManagerInstance *ErrorLoggerManager
 
 func init() {
@@ -58,6 +67,18 @@ type ErrorLoggerManager struct {
 	withLogLevelControl bool
 	logLevelControl     log.Level
 	managers            map[string]log.ErrorLogger
+}
+
+//GetAllErrorLogger returns all of ErrorLogger info
+func (mng *ErrorLoggerManager) GetAllErrorLogger() map[string]string {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+	loggers := make(map[string]string)
+	log.DefaultLogger.Infof("logger is %+v", mng.managers)
+	for key, lg := range mng.managers {
+		loggers[key] = levelMap[lg.GetLogLevel()]
+	}
+	return loggers
 }
 
 // GetOrCreateErrorLogger returns a ErrorLogger based on the output(p).
@@ -164,6 +185,11 @@ func InitDefaultLogger(output string, level log.Level) (err error) {
 	log.DefaultLogger = DefaultLogger
 	log.DefaultContextLogger = Proxy
 	return
+}
+
+//GetErrorLoggerInfo get the exists ErrorLogger
+func GetErrorLoggersInfo() map[string]string {
+	return errorLoggerManagerInstance.GetAllErrorLogger()
 }
 
 // UpdateErrorLoggerLevel updates the exists ErrorLogger's Level

@@ -21,36 +21,47 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
 // run stream append filters
-func (s *downStream) runAppendFilters(p types.Phase, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) bool {
+func (s *downStream) runAppendFilters(p types.Phase, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	for ; s.senderFiltersIndex < len(s.senderFilters); s.senderFiltersIndex++ {
 		f := s.senderFilters[s.senderFiltersIndex]
 
 		status := f.filter.Append(s.context, headers, data, trailers)
-		if status == api.StreamFilterStop {
-			return true
+		switch status {
+		case api.StreamFilterStop:
+			return
+		case api.StreamFiltertermination:
+			s.cleanStream()
+			return
+		default:
 		}
 	}
 	s.senderFiltersIndex = 0
-	return false
+	return
 }
 
 // run stream receive filters
-func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) bool {
+func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	for ; s.receiverFiltersIndex < len(s.receiverFilters); s.receiverFiltersIndex++ {
 		f := s.receiverFilters[s.receiverFiltersIndex]
 		if f.p != p {
 			continue
 		}
 
+		s.context = mosnctx.WithValue(s.context, types.ContextKeyStreamFilterPhase, p)
+
 		status := f.filter.OnReceive(s.context, headers, data, trailers)
 		switch status {
 		case api.StreamFilterStop:
-			return true
+			return
+		case api.StreamFiltertermination:
+			s.cleanStream()
+			return
 		case api.StreamFilterReMatchRoute:
 			// Retry only at the DownFilterAfterRoute phase
 			if p == types.DownFilterAfterRoute {
@@ -59,7 +70,7 @@ func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, d
 			} else {
 				s.receiverFiltersIndex++
 			}
-			return false
+			return
 		case api.StreamFilterReChooseHost:
 			// Retry only at the DownFilterAfterChooseHost phase
 			if p == types.DownFilterAfterChooseHost {
@@ -68,13 +79,13 @@ func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, d
 			} else {
 				s.receiverFiltersIndex++
 			}
-			return false
+			return
 		}
 
 	}
 
 	s.receiverFiltersIndex = 0
-	return false
+	return
 }
 
 type activeStreamFilter struct {

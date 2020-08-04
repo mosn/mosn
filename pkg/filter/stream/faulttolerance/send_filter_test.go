@@ -138,7 +138,7 @@ func TestAppendFilter(t *testing.T) {
 	}
 
 	// After cfg.RecoverTime, the host1 health should be recover
-	time.Sleep(time.Duration(cfg.RecoverTime/1000) * time.Second)
+	time.Sleep(time.Duration(cfg.RecoverTime/1000+1) * time.Second)
 	if !host1.Health() {
 		t.Errorf("health status should recover,but got health status: %v", host1.Health())
 	}

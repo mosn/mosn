@@ -648,10 +648,12 @@ func (s *clientStream) handleResponse() {
 		s.connection.stream = nil
 		s.connection.mutex.Unlock()
 
-		if hasData {
-			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
-		} else {
-			s.receiver.OnReceive(s.ctx, header, nil, nil)
+		if s.receiver != nil {
+			if hasData {
+				s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
+			} else {
+				s.receiver.OnReceive(s.ctx, header, nil, nil)
+			}
 		}
 
 		//TODO cannot recycle immediately, headers might be used by proxy logic

@@ -408,14 +408,14 @@ func Test_convertListenerConfig(t *testing.T) {
 							TypedConfig: accessLogFilterConfig,
 						},
 					}},
-					UseRemoteAddress:            NewBoolValue(false),
-					XffNumTrustedHops:           0,
-					SkipXffAppend:               false,
-					Via:                         "",
-					GenerateRequestId:           NewBoolValue(true),
-					ForwardClientCertDetails:    xdshttp.HttpConnectionManager_SANITIZE,
-					SetCurrentClientCertDetails: nil,
-					Proxy_100Continue:           false,
+					UseRemoteAddress:                           NewBoolValue(false),
+					XffNumTrustedHops:                          0,
+					SkipXffAppend:                              false,
+					Via:                                        "",
+					GenerateRequestId:                          NewBoolValue(true),
+					ForwardClientCertDetails:                   xdshttp.HttpConnectionManager_SANITIZE,
+					SetCurrentClientCertDetails:                nil,
+					Proxy_100Continue:                          false,
 					RepresentIpv4RemoteAddressAsIpv4MappedIpv6: false,
 				},
 				filterName: "envoy.http_connection_manager",
@@ -469,7 +469,7 @@ func Test_convertListenerConfig(t *testing.T) {
 				},
 			}
 
-			tt.want = `{"name":"0.0.0.0_80","access_logs":[{"log_path":"/dev/stdout"}],"listener_filters":[{"type":"original_dst"}],"filter_chains":[{"match":"\u003cnil\u003e","tls_context_set":[{}],"filters":[{"type":"proxy","config":{"downstream_protocol":"Http1","router_config_name":"80","upstream_protocol":"Http1"}},{"type":"connection_manager","config":{"router_config_name":"80","virtual_hosts":[{"domains":["istio-egressgateway.istio-system.svc.cluster.local","istio-egressgateway.istio-system.svc.cluster.local:80","istio-egressgateway.istio-system","istio-egressgateway.istio-system:80","istio-egressgateway.istio-system.svc.cluster","istio-egressgateway.istio-system.svc.cluster:80","istio-egressgateway.istio-system.svc","istio-egressgateway.istio-system.svc:80","172.19.3.204","172.19.3.204:80"],"name":"istio-egressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-egressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["istio-ingressgateway.istio-system.svc.cluster.local","istio-ingressgateway.istio-system.svc.cluster.local:80","istio-ingressgateway.istio-system","istio-ingressgateway.istio-system:80","istio-ingressgateway.istio-system.svc.cluster","istio-ingressgateway.istio-system.svc.cluster:80","istio-ingressgateway.istio-system.svc","istio-ingressgateway.istio-system.svc:80","172.19.8.101","172.19.8.101:80"],"name":"istio-ingressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-ingressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["nginx-ingress-lb.kube-system.svc.cluster.local","nginx-ingress-lb.kube-system.svc.cluster.local:80","nginx-ingress-lb.kube-system","nginx-ingress-lb.kube-system:80","nginx-ingress-lb.kube-system.svc.cluster","nginx-ingress-lb.kube-system.svc.cluster:80","nginx-ingress-lb.kube-system.svc","nginx-ingress-lb.kube-system.svc:80","172.19.6.192:80","172.19.8.101:80"],"name":"nginx-ingress-lb.kube-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]}]}}]}],"inspector":true}`
+			tt.want = `{"name":"0.0.0.0_80","address":"0.0.0.0:80", "access_logs":[{"log_path":"/dev/stdout"}],"listener_filters":[{"type":"original_dst"}],"filter_chains":[{"match":"\u003cnil\u003e","tls_context_set":[{}],"filters":[{"type":"proxy","config":{"downstream_protocol":"Http1","router_config_name":"80","upstream_protocol":"Http1"}},{"type":"connection_manager","config":{"router_config_name":"80","virtual_hosts":[{"domains":["istio-egressgateway.istio-system.svc.cluster.local","istio-egressgateway.istio-system.svc.cluster.local:80","istio-egressgateway.istio-system","istio-egressgateway.istio-system:80","istio-egressgateway.istio-system.svc.cluster","istio-egressgateway.istio-system.svc.cluster:80","istio-egressgateway.istio-system.svc","istio-egressgateway.istio-system.svc:80","172.19.3.204","172.19.3.204:80"],"name":"istio-egressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-egressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["istio-ingressgateway.istio-system.svc.cluster.local","istio-ingressgateway.istio-system.svc.cluster.local:80","istio-ingressgateway.istio-system","istio-ingressgateway.istio-system:80","istio-ingressgateway.istio-system.svc.cluster","istio-ingressgateway.istio-system.svc.cluster:80","istio-ingressgateway.istio-system.svc","istio-ingressgateway.istio-system.svc:80","172.19.8.101","172.19.8.101:80"],"name":"istio-ingressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-ingressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["nginx-ingress-lb.kube-system.svc.cluster.local","nginx-ingress-lb.kube-system.svc.cluster.local:80","nginx-ingress-lb.kube-system","nginx-ingress-lb.kube-system:80","nginx-ingress-lb.kube-system.svc.cluster","nginx-ingress-lb.kube-system.svc.cluster:80","nginx-ingress-lb.kube-system.svc","nginx-ingress-lb.kube-system.svc:80","172.19.6.192:80","172.19.8.101:80"],"name":"nginx-ingress-lb.kube-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]}]}}]}],"inspector":true}`
 			got := ConvertListenerConfig(listenerConfig)
 			want := &v2.Listener{}
 			err := json.Unmarshal([]byte(tt.want), want)
@@ -528,7 +528,7 @@ func Test_convertTCPRoute(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want []*v2.TCPRoute
+		want []*v2.StreamRoute
 	}{
 		{
 			name: "case1",
@@ -555,7 +555,7 @@ func Test_convertTCPRoute(t *testing.T) {
 					},
 				},
 			},
-			want: []*v2.TCPRoute{
+			want: []*v2.StreamRoute{
 				{
 					Cluster: "tcp",
 					DestinationAddrs: []v2.CidrRange{

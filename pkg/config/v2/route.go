@@ -24,6 +24,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"mosn.io/api"
@@ -40,12 +41,13 @@ type RouterConfigurationConfig struct {
 }
 
 type RouterConfig struct {
-	Match           RouterMatch            `json:"match,omitempty"`
-	Route           RouteAction            `json:"route,omitempty"`
-	Redirect        *RedirectAction        `json:"redirect,omitempty"`
-	DirectResponse  *DirectResponseAction  `json:"direct_response,omitempty"`
-	MetadataConfig  *MetadataConfig        `json:"metadata,omitempty"`
-	PerFilterConfig map[string]interface{} `json:"per_filter_config,omitempty"`
+	Match                 RouterMatch            `json:"match,omitempty"`
+	Route                 RouteAction            `json:"route,omitempty"`
+	Redirect              *RedirectAction        `json:"redirect,omitempty"`
+	DirectResponse        *DirectResponseAction  `json:"direct_response,omitempty"`
+	MetadataConfig        *MetadataConfig        `json:"metadata,omitempty"`
+	PerFilterConfig       map[string]interface{} `json:"per_filter_config,omitempty"`
+	RequestMirrorPolicies *RequestMirrorPolicy   `json:"request_mirror_policies,omitempty"`
 }
 
 type RouterActionConfig struct {
@@ -229,6 +231,7 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 		if len(fileName) > MaxFilePath {
 			fileName = fileName[:MaxFilePath]
 		}
+		fileName = strings.ReplaceAll(fileName, sep, "_")
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)
 		fileName = path.Join(rc.RouterConfigPath, fileName)
@@ -312,7 +315,7 @@ type DirectResponseAction struct {
 	Body       string `json:"body,omitempty"`
 }
 
-// WeightedCluster.
+// WeightedCluster ...
 // Multiple upstream clusters unsupport stream filter type:  healthcheckcan be specified for a given route.
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
@@ -327,15 +330,15 @@ type HeaderMatcher struct {
 	Regex bool   `json:"regex,omitempty"`
 }
 
-// TCP Proxy Route
-type TCPRouteConfig struct {
+// Stream Proxy Route
+type StreamRouteConfig struct {
 	Cluster string   `json:"cluster,omitempty"`
 	Sources []string `json:"source_addrs,omitempty"`
 	Dests   []string `json:"destination_addrs,omitempty"`
 }
 
-// TCPRoute
-type TCPRoute struct {
+// StreamRoute ...
+type StreamRoute struct {
 	Cluster          string
 	SourceAddrs      []CidrRange
 	DestinationAddrs []CidrRange
@@ -343,9 +346,16 @@ type TCPRoute struct {
 	DestinationPort  string
 }
 
-// CidrRange
+// CidrRange ...
 type CidrRange struct {
 	Address string
 	Length  uint32
 	IpNet   *net.IPNet
+}
+
+// RequestMirrorPolicy mirror policy
+type RequestMirrorPolicy struct {
+	Cluster      string `json:"cluster,omitempty"`
+	Percent      uint32 `json:"percent,omitempty"`
+	TraceSampled bool   `json:"trace_sampled,omitempty"` // TODO not implement
 }
