@@ -168,12 +168,13 @@ func TestClusterUnmarshal(t *testing.T) {
 	}
 }
 
-func TestListenerConfigUnmarshal(t *testing.T) {
+func TestListenerUnmarshal(t *testing.T) {
 	lc := `{
 		"name": "test",
-		"address": "127.0.0.1",
+		"address": "127.0.0.1:8080",
+		"type": "ingress",
+		"connection_idle_timeout": "90s",
 		"bind_port": true,
-		"use_original_dst":true,
 		"access_logs": [
 			{
 				"log_path":"stdout"
@@ -206,15 +207,16 @@ func TestListenerConfigUnmarshal(t *testing.T) {
 		"inspector": true
 	}`
 	b := []byte(lc)
-	ln := &ListenerConfig{}
+	ln := &Listener{}
 	if err := json.Unmarshal(b, ln); err != nil {
 		t.Error(err)
 		return
 	}
 	if !(ln.Name == "test" &&
-		ln.AddrConfig == "127.0.0.1" &&
+		ln.AddrConfig == "127.0.0.1:8080" &&
 		ln.BindToPort == true &&
-		ln.UseOriginalDst &&
+		ln.Type == INGRESS &&
+		ln.ConnectionIdleTimeout.Duration == 90*time.Second &&
 		ln.Inspector == true) {
 		t.Error("listener basic failed")
 	}
@@ -238,6 +240,13 @@ func TestListenerConfigUnmarshal(t *testing.T) {
 		if sf.Type != "test" {
 			t.Error("listener stream filter failed")
 		}
+	}
+	// verify addr
+	if ln.Addr == nil || ln.Addr.String() != "127.0.0.1:8080" {
+		t.Error("listener addr is not expected")
+	}
+	if ln.PerConnBufferLimitBytes != 1<<15 {
+		t.Error("listener buffer limit is not default value")
 	}
 }
 

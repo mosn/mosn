@@ -19,6 +19,7 @@ package v2
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
 
 	"mosn.io/api"
@@ -82,6 +83,38 @@ func (l Listener) MarshalJSON() (b []byte, err error) {
 		l.AddrConfig = l.Addr.String()
 	}
 	return json.Marshal(l.ListenerConfig)
+}
+
+var ErrNoAddrListener = errors.New("address is required in listener config")
+
+const defaultBufferLimit = 1 << 15
+
+func (l *Listener) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &l.ListenerConfig); err != nil {
+		return err
+	}
+	if l.AddrConfig == "" {
+		return ErrNoAddrListener
+	}
+	if l.Network == "" {
+		l.Network = "tcp" // default is tcp
+	}
+	switch l.Network {
+	case "udp":
+		addr, err := net.ResolveUDPAddr("udp", l.AddrConfig)
+		if err != nil {
+			return err
+		}
+		l.Addr = addr
+	default: // tcp
+		addr, err := net.ResolveTCPAddr("tcp", l.AddrConfig)
+		if err != nil {
+			return err
+		}
+		l.Addr = addr
+	}
+	l.PerConnBufferLimitBytes = defaultBufferLimit
+	return nil
 }
 
 // AccessLog for making up access log

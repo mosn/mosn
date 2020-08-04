@@ -24,6 +24,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"mosn.io/api"
@@ -230,6 +231,7 @@ func (rc RouterConfiguration) MarshalJSON() (b []byte, err error) {
 		if len(fileName) > MaxFilePath {
 			fileName = fileName[:MaxFilePath]
 		}
+		fileName = strings.ReplaceAll(fileName, sep, "_")
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)
 		fileName = path.Join(rc.RouterConfigPath, fileName)
