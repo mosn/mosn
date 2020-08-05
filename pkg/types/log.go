@@ -41,5 +41,6 @@ const (
 	ErrorKeyUpstreamConn        = ErrorModuleMosn + ErrorSubModuleProxy + "upstream_conn_failed"
 	ErrorKeyCodec               = ErrorModuleMosn + ErrorSubModuleProxy + "codec_error"
 	ErrorKeyHeartBeat           = ErrorModuleMosn + ErrorSubModuleProxy + "heartbeat_unknown"
+	ErrorKeyProxyPanic          = ErrorModuleMosn + ErrorSubModuleProxy + "panic"
 	// TODO: more keys
 )
