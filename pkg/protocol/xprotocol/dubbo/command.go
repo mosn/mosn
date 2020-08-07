@@ -81,7 +81,12 @@ func (r *Frame) GetData() types.IoBuffer {
 }
 
 func (r *Frame) SetData(data types.IoBuffer) {
+	if r.rawData != nil {
+		r.rawData = nil
+		r.data = nil
+	}
 	r.content = data
+	r.payload = data.Bytes()
 }
 
 func (r *Frame) GetStatusCode() uint32 {
