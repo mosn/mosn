@@ -39,10 +39,14 @@ func encodeFrame(ctx context.Context, frame *Frame) (types.IoBuffer, error) {
 		// 1.1 replace requestId
 		binary.BigEndian.PutUint64(frame.rawData[IdIdx:], frame.Id)
 
-		// hack: increase the buffer count to avoid premature recycle
-		frame.data.Count(1)
-		return frame.data, nil
+		// 1.2 check if content changed
+		if !frame.ContentChanged {
+			// hack: increase the buffer count to avoid premature recycle
+			frame.data.Count(1)
+			return frame.data, nil
+		}
 	}
+	// 2. slow-path, construct buffer from scratch
 
 	// alloc encode buffer
 	frameLen := int(HeaderLen + frame.DataLen)

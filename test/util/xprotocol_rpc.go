@@ -126,7 +126,7 @@ func (c *RPCClient) SendRequestWithData(in string) {
 		return
 	}
 	requestEncoder.AppendHeaders(context.Background(), frame.GetHeader(), false)
-	requestEncoder.AppendData(context.Background(), data, true)
+	requestEncoder.AppendData(context.Background(), frame.GetData(), true)
 	atomic.AddUint32(&c.requestCount, 1)
 	c.Waits.Store(streamID, streamID)
 }

@@ -46,6 +46,8 @@ type Frame struct {
 
 	data    types.IoBuffer // wrapper of data
 	content types.IoBuffer // wrapper of payload
+
+	ContentChanged bool
 }
 
 // ~ XFrame
@@ -81,12 +83,12 @@ func (r *Frame) GetData() types.IoBuffer {
 }
 
 func (r *Frame) SetData(data types.IoBuffer) {
-	if r.rawData != nil {
-		r.rawData = nil
-		r.data = nil
+	if r.content != data {
+		r.content = data
+		r.payload = data.Bytes()
+
+		r.ContentChanged = true
 	}
-	r.content = data
-	r.payload = data.Bytes()
 }
 
 func (r *Frame) GetStatusCode() uint32 {
