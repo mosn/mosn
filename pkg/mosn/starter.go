@@ -52,8 +52,9 @@ type Mosn struct {
 	xdsClient      *xds.Client
 	wg             sync.WaitGroup
 	// for smooth upgrade. reconfigure
-	inheritListeners []net.Listener
-	listenSockConn   net.Conn
+	inheritListeners  []net.Listener
+	inheritPacketConn []net.PacketConn
+	listenSockConn    net.Conn
 }
 
 // NewMosn
@@ -67,7 +68,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	store.SetMosnConfig(c)
 
 	//get inherit fds
-	inheritListeners, listenSockConn, err := server.GetInheritListeners()
+	inheritListeners, inheritPacketConn, listenSockConn, err := server.GetInheritListeners()
 	if err != nil {
 		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
 	}
@@ -88,10 +89,11 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeMetrics(c.Metrics)
 
 	m := &Mosn{
-		config:           c,
-		wg:               sync.WaitGroup{},
-		inheritListeners: inheritListeners,
-		listenSockConn:   listenSockConn,
+		config:            c,
+		wg:                sync.WaitGroup{},
+		inheritListeners:  inheritListeners,
+		inheritPacketConn: inheritPacketConn,
+		listenSockConn:    listenSockConn,
 	}
 	mode := c.Mode()
 
@@ -156,7 +158,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
-				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
+				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners, inheritPacketConn)
 				// deprecated: keep compatible for route config in listener's connection_manager
 				deprecatedRouter, err := configmanager.ParseRouterConfiguration(&lc.FilterChains[0])
 				if err != nil {

@@ -25,6 +25,7 @@ var basicConfigStr = `
 			"listeners": [
 				{
 					"name": "egress",
+					"address": "127.0.0.1:0",
 					"filter_chains": [
 						{}
 					],
@@ -39,6 +40,7 @@ var basicConfigStr = `
 				},
 				{
 					"name": "ingress",
+					"address": "127.0.0.1:0",
 					"filter_chains": [
 						{}	
 					]

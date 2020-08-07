@@ -28,12 +28,25 @@ import (
 )
 
 type mockEventListener struct {
+	recvStatus bool
+	stopChan   chan struct{}
+}
+
+func (e *mockEventListener) GetRecvStatus() bool {
+	return e.recvStatus
+}
+
+func (e *mockEventListener) SetRecvStatus(state bool) {
+	e.recvStatus = state
 }
 
 func (e *mockEventListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemoteAddr net.Addr, c chan api.Connection, buf []byte) {
+	e.recvStatus = true
+	rawc.Close()
 }
 
-func (e *mockEventListener) OnNewConnection(ctx context.Context, conn api.Connection) {}
+func (e *mockEventListener) OnNewConnection(ctx context.Context, conn api.Connection) {
+}
 
 func (e *mockEventListener) OnClose() {}
 
@@ -52,9 +65,10 @@ func TestListenerStart(t *testing.T) {
 		Addr:                    addr,
 	}
 	ln := NewListener(cfg)
-	ln.SetListenerCallbacks(&mockEventListener{})
+	el := &mockEventListener{}
+	ln.SetListenerCallbacks(el)
 	go ln.Start(nil, false) // start
-	time.Sleep(time.Second)
+	time.Sleep(3 * time.Second)
 	check := func(t *testing.T) bool {
 		conn, err := net.Dial("tcp", "127.0.0.1:10101")
 		if err != nil {
@@ -84,7 +98,7 @@ func TestListenerStart(t *testing.T) {
 	if err := ln.Close(nil); err != nil {
 		t.Errorf("Close listener failed, %v", err)
 	}
-	time.Sleep(time.Second)
+	time.Sleep(3 * time.Second)
 	if check(t) {
 		t.Error("listener closed, but still can be dial success")
 	}
@@ -101,4 +115,65 @@ func TestListenerStart(t *testing.T) {
 		t.Error("listener restart check failed")
 	}
 
+}
+
+func TestUDPListenerStart(t *testing.T) {
+	addr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:10101")
+	cfg := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			Name:       "test_listener",
+			BindToPort: true,
+			Network:    "udp",
+		},
+		PerConnBufferLimitBytes: 1024,
+		Addr:                    addr,
+	}
+	ln := NewListener(cfg)
+	el := &mockEventListener{}
+	ln.SetListenerCallbacks(el)
+	go ln.Start(nil, false) // start
+	time.Sleep(time.Second)
+
+	conn, _ := net.DialUDP("udp", nil, addr)
+	defer conn.Close()
+	check := func(t *testing.T) bool {
+		conn.Write([]byte("test"))
+		time.Sleep(time.Second)
+		res := el.GetRecvStatus()
+		el.SetRecvStatus(false)
+		return res
+	}
+	if !check(t) {
+		t.Errorf("udp listen accept failed")
+	}
+
+	// duplicate start, will be ignored, return directly
+	for i := 0; i < 10; i++ {
+		ch := make(chan struct{})
+		go func() {
+			ln.Start(nil, false)
+			close(ch)
+		}()
+		select {
+		case <-ch:
+		case <-time.After(500 * time.Millisecond):
+			t.Fatal("start not be ignored")
+		}
+	}
+
+	// close listener
+	if err := ln.Close(nil); err != nil {
+		t.Errorf("Close listener failed, %v", err)
+	}
+	time.Sleep(2*time.Second)
+	if check(t) {
+		t.Error("listener closed, but still can be dial success")
+	}
+
+	// start, but not restart, will be failed
+	go ln.Start(nil, false)
+	time.Sleep(2*time.Second)
+	if check(t) {
+		t.Error("listener start")
+	}
 }

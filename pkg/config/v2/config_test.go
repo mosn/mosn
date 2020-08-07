@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"testing"
 
@@ -147,6 +148,31 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 	if newTestConfig.ClusterManager.Clusters[0].LBSubSetConfig.FallBackPolicy != uint8(1) {
 		t.Error("new cluster config is not expected")
 	}
+}
+
+func TestClusterConfigWithSep(t *testing.T) {
+	testClusterPath := "/tmp/testcluster"
+	clusterName := "cluster/with/sep"
+	os.RemoveAll(testClusterPath)
+	cm := &ClusterManagerConfig{
+		ClusterManagerConfigJson: ClusterManagerConfigJson{
+			ClusterConfigPath: testClusterPath,
+		},
+		Clusters: []Cluster{
+			Cluster{
+				Name: clusterName,
+			},
+		},
+	}
+	if _, err := json.Marshal(cm); err != nil {
+		t.Fatal(err)
+	}
+	// expected a file exists
+	data, err := ioutil.ReadFile(path.Join(testClusterPath, "cluster_with_sep.json"))
+	if err != nil || !strings.Contains(string(data), clusterName) {
+		t.Fatalf("read cluster file failed, error: %v, data: %s", err, string(data))
+	}
+
 }
 
 func TestClusterConfigConflict(t *testing.T) {
