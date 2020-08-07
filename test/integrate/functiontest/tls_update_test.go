@@ -442,7 +442,7 @@ func TestXUpdateTLS_NoneToTLS(t *testing.T) {
 				if err != nil {
 					t.Errorf("request failed, case %d, protocol %v, error: %v", i, tc.Protocol, err)
 				}
-			case <-time.After(2 * time.Second):
+			case <-time.After(3 * time.Second):
 				t.Errorf("request hung up case %d, protocol %v", i, tc.Protocol)
 			}
 		}
