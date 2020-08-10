@@ -61,7 +61,7 @@ func readMsgLoop(lctx context.Context, l *listener) {
 
 		if err != nil {
 			// After SetDeadLine called in reconfigure process , timeout err will be returned
-			if nerr, ok := err.(net.Error); ok && (nerr.Timeout() || nerr.Timeout()) {
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
 				log.DefaultLogger.Errorf("[network] [udp] recv from udp error: %v", err)
 				break
 			}
