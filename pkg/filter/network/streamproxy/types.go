@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package tcpproxy
+package streamproxy
 
 import (
 	"mosn.io/api"
+	"time"
 )
 
 // Proxy
@@ -33,6 +34,10 @@ type Proxy interface {
 // ProxyConfig
 type ProxyConfig interface {
 	GetRouteFromEntries(connection api.Connection) string
+
+	GetIdleTimeout(network string) time.Duration
+
+	GetReadTimeout(network string) time.Duration
 }
 
 // UpstreamCallbacks for upstream's callbacks

@@ -19,6 +19,7 @@ package configmanager
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"reflect"
@@ -139,18 +140,20 @@ func TestParseListenerConfig(t *testing.T) {
 	var inherit []net.Listener
 	inherit = append(inherit, tcpListener)
 
-	lc := &v2.Listener{
-		ListenerConfig: v2.ListenerConfig{
-			AddrConfig: tcpListener.Addr().String(),
-		},
+	lnStr := fmt.Sprintf(`{
+		"address": "%s"
+	}`, tcpListener.Addr().String())
+	lc := &v2.Listener{}
+	if err := json.Unmarshal([]byte(lnStr), lc); err != nil {
+		t.Fatalf("listener config init failed: %v", err)
 	}
-	ln := ParseListenerConfig(lc, inherit)
+	var inheritPacketConn []net.PacketConn
+	ln := ParseListenerConfig(lc, inherit,  inheritPacketConn)
 	if !(ln.Addr != nil &&
 		ln.Addr.String() == tcpListener.Addr().String() &&
 		ln.PerConnBufferLimitBytes == 1<<15 &&
 		ln.InheritListener != nil) {
-		t.Error("listener parse unexpected")
-		t.Log(ln.Addr.String(), ln.InheritListener != nil)
+		t.Errorf("listener parse unexpected, listener: %+v", ln)
 	}
 	if inherit[0] != nil {
 		t.Error("no inherit listener")

@@ -19,6 +19,7 @@ package v2
 
 import (
 	"errors"
+	"os"
 
 	"mosn.io/api"
 )
@@ -64,3 +65,5 @@ var ErrDuplicateTLSConfig = errors.New("tls_context and tls_context_set can only
 var ErrDuplicateStaticAndDynamic = errors.New("only one of static config or dynamic config should be exists")
 
 const MaxFilePath = 128
+
+const sep = string(os.PathSeparator)
