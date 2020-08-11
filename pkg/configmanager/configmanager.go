@@ -18,6 +18,8 @@
 package configmanager
 
 import (
+	"encoding/json"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
@@ -139,55 +141,6 @@ func UpdateClusterManagerTLS(tls v2.TLSConfig) {
 	dump(true)
 }
 
-// AddPubInfo
-// called when add pub info received
-func AddPubInfo(pubInfoAdded map[string]string) {
-	configLock.Lock()
-	defer configLock.Unlock()
-	for srvName, srvData := range pubInfoAdded {
-		exist := false
-		srvPubInfo := v2.PublishInfo{
-			Pub: v2.PublishContent{
-				ServiceName: srvName,
-				PubData:     srvData,
-			},
-		}
-		for i := range config.ServiceRegistry.ServicePubInfo {
-			// rewrite cluster's info
-			if config.ServiceRegistry.ServicePubInfo[i].Pub.ServiceName == srvName {
-				config.ServiceRegistry.ServicePubInfo[i] = srvPubInfo
-				exist = true
-				break
-			}
-		}
-
-		if !exist {
-			config.ServiceRegistry.ServicePubInfo = append(config.ServiceRegistry.ServicePubInfo, srvPubInfo)
-		}
-	}
-
-	dump(true)
-}
-
-// DelPubInfo
-// called when delete publish info received
-func DelPubInfo(serviceName string) {
-	configLock.Lock()
-	defer configLock.Unlock()
-	dirty := false
-
-	for i, srvPubInfo := range config.ServiceRegistry.ServicePubInfo {
-		if srvPubInfo.Pub.ServiceName == serviceName {
-			//remove
-			config.ServiceRegistry.ServicePubInfo = append(config.ServiceRegistry.ServicePubInfo[:i], config.ServiceRegistry.ServicePubInfo[i+1:]...)
-			dirty = true
-			break
-		}
-	}
-
-	dump(dirty)
-}
-
 // AddClusterWithRouter is a wrapper of AddOrUpdateCluster and AddOrUpdateRoutersConfig
 // use this function to only dump config once
 func AddClusterWithRouter(clusters []v2.Cluster, routerConfig *v2.RouterConfiguration) {
@@ -258,173 +211,24 @@ func AddOrUpdateListener(listener *v2.Listener) {
 }
 
 // FIXME: all config should be changed to pointer instead of struct
-func UpdateFullConfig(listeners []v2.Listener, routers []*v2.RouterConfiguration, clusters []v2.Cluster) {
+func UpdateFullConfig(listeners []v2.Listener, routers []*v2.RouterConfiguration, clusters []v2.Cluster, extends map[string]json.RawMessage) {
 	configLock.Lock()
 	defer configLock.Unlock()
 
 	config.Servers[0].Listeners = listeners
 	config.Servers[0].Routers = routers
 	config.ClusterManager.Clusters = clusters
+	config.Extends = extends
 
 	dump(true)
 }
 
-// DEPRECATED: we will remove these functions, because we will use a general extendable field to instead of these fields.
-// TODO: The functions in this file is for service discovery, but the function implmentation is not general, should fix it
-
-// dumper provides basic operation with mosn elements, like 'cluster', to write back the config file with dynamic changes
-// biz logic operation, like 'clear all subscribe info', should be written in the bridge code, not in config module.
-//
-// changes dump flow :
-//
-// biz ops -> bridge module -> config module
-//
-//  dumped info load flow:
-//
-// 1. bridge module register key of interesting config(like 'cluster') into config module
-// 2. config parser invoke callback functions (if exists) of config key
-// 3. bridge module get biz info(like service subscribe/publish, application info) from callback invocations
-// 4. biz module(like confreg) get biz info from bridge module directly
-
-// ResetServiceRegistryInfo
-// called when reset service registry info received
-func ResetServiceRegistryInfo(appInfo v2.ApplicationInfo, subServiceList []string) {
-	configLock.Lock()
-	// reset service info
-	config.ServiceRegistry.ServiceAppInfo = v2.ApplicationInfo{
-		AntShareCloud:    appInfo.AntShareCloud,
-		DataCenter:       appInfo.DataCenter,
-		AppName:          appInfo.AppName,
-		DeployMode:       appInfo.DeployMode,
-		MasterSystem:     appInfo.MasterSystem,
-		CloudName:        appInfo.CloudName,
-		HostMachine:      appInfo.HostMachine,
-		InstanceId:       appInfo.InstanceId,
-		RegistryEndpoint: appInfo.RegistryEndpoint,
-		AccessKey:        appInfo.AccessKey,
-		SecretKey:        appInfo.SecretKey,
-	}
-
-	// reset servicePubInfo
-	config.ServiceRegistry.ServicePubInfo = []v2.PublishInfo{}
-	configLock.Unlock()
-
-	// delete subInfo / dynamic clusters
-	RemoveClusterConfig(subServiceList)
-}
-
-// AddMsgMeta
-// called when msg meta updated
-func AddMsgMeta(dataId, groupId string) {
+func UpdateExtendConfig(typ string, cfg json.RawMessage) {
 	configLock.Lock()
 	defer configLock.Unlock()
-	if config.ServiceRegistry.MsgMetaInfo == nil {
-		config.ServiceRegistry.MsgMetaInfo = make(map[string][]string)
+	if config.Extends == nil {
+		config.Extends = map[string]json.RawMessage{}
 	}
-
-	groupIds, ok := config.ServiceRegistry.MsgMetaInfo[dataId]
-	if !ok {
-		groupIds = make([]string, 0, 8)
-		config.ServiceRegistry.MsgMetaInfo[dataId] = groupIds
-	}
-
-	exist := false
-	for i := range groupIds {
-		if groupIds[i] == groupId {
-			exist = true
-			break
-		}
-	}
-
-	if !exist {
-		config.ServiceRegistry.MsgMetaInfo[dataId] = append(config.ServiceRegistry.MsgMetaInfo[dataId], groupId)
-	}
-
-	dump(true)
-}
-
-// DelMsgMeta
-// called when delete msg meta received
-func DelMsgMeta(dataId string) {
-	configLock.Lock()
-	defer configLock.Unlock()
-	dirty := false
-
-	if _, ok := config.ServiceRegistry.MsgMetaInfo[dataId]; ok {
-		delete(config.ServiceRegistry.MsgMetaInfo, dataId)
-		dirty = true
-	}
-
-	dump(dirty)
-}
-
-// UpdateMqClientKey update mq client registry info
-func UpdateMqClientKey(id, clientKey string, remove bool) {
-	configLock.Lock()
-	defer configLock.Unlock()
-	if config.ServiceRegistry.MqClientKey == nil {
-		config.ServiceRegistry.MqClientKey = make(map[string]string)
-	}
-
-	if remove {
-		delete(config.ServiceRegistry.MqClientKey, id)
-	} else {
-		config.ServiceRegistry.MqClientKey[id] = clientKey
-	}
-
-	dump(true)
-}
-
-// UpdteMqMeta update mq meta info
-func UpdateMqMeta(topic, meta string, remove bool) {
-	configLock.Lock()
-	defer configLock.Unlock()
-	if config.ServiceRegistry.MqMeta == nil {
-		config.ServiceRegistry.MqMeta = make(map[string]string)
-	}
-
-	if remove {
-		delete(config.ServiceRegistry.MqMeta, topic)
-	} else {
-		config.ServiceRegistry.MqMeta[topic] = meta
-	}
-
-	dump(true)
-}
-
-// SetMqConsumers update topic consumer list
-func SetMqConsumers(key string, consumers []string) {
-	configLock.Lock()
-	defer configLock.Unlock()
-
-	if config.ServiceRegistry.MqConsumers == nil {
-		config.ServiceRegistry.MqConsumers = make(map[string][]string)
-	}
-
-	if len(key) != 0 {
-		if len(consumers) != 0 {
-			config.ServiceRegistry.MqConsumers[key] = consumers
-			return
-		}
-
-		delete(config.ServiceRegistry.MqConsumers, key)
-	}
-
-	dump(true)
-}
-
-// RmMqConsumers remove topic consumer list
-func RmMqConsumers(key string) {
-	configLock.Lock()
-	defer configLock.Unlock()
-	if config.ServiceRegistry.MqConsumers == nil {
-		config.ServiceRegistry.MqConsumers = make(map[string][]string)
-		return
-	}
-
-	if len(key) != 0 {
-		delete(config.ServiceRegistry.MqConsumers, key)
-	}
-
+	config.Extends[typ] = cfg
 	dump(true)
 }

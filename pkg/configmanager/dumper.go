@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
@@ -64,13 +65,23 @@ func DumpConfig() {
 		configLock.Lock()
 		defer configLock.Unlock()
 		content, err := json.MarshalIndent(config, "", "  ")
-		if err == nil {
-			err = utils.WriteFileSafety(configPath, content, 0644)
+		if err != nil {
+			log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: %v", err)
+			return
 		}
+		// check if yaml
+		if yamlFormat(configPath) {
+			content, err = yaml.JSONToYAML(content)
+			if err != nil {
+				log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: %v", err)
+				return
+			}
+		}
+		err = utils.WriteFileSafety(configPath, content, 0644)
 
 		if err != nil {
-			log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: "+err.Error())
-			// add retry if dump failed
+			log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: %v", err.Error())
+			// add retry if write file  failed
 			setDump()
 		}
 	}
@@ -86,6 +97,7 @@ func DumpConfigHandler() {
 			DumpLock()
 			DumpConfig()
 			DumpUnlock()
+
 		}
 	})
 }

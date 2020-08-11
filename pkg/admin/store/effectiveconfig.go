@@ -31,6 +31,7 @@ type effectiveConfig struct {
 	Listener         map[string]v2.Listener            `json:"listener,omitempty"`
 	Cluster          map[string]v2.Cluster             `json:"cluster,omitempty"`
 	Routers          map[string]v2.RouterConfiguration `json:"routers,omitempty"`
+	ExtendConfigs    map[string]json.RawMessage        `json:"extends,omitempty"`
 	routerConfigPath map[string]string                 `json:"-"`
 }
 
@@ -53,6 +54,7 @@ func Reset() {
 	conf.Listener = make(map[string]v2.Listener)
 	conf.Cluster = make(map[string]v2.Cluster)
 	conf.Routers = make(map[string]v2.RouterConfiguration)
+	conf.ExtendConfigs = make(map[string]json.RawMessage)
 	conf.routerConfigPath = make(map[string]string)
 }
 
@@ -62,7 +64,6 @@ func SetMosnConfig(cfg *v2.MOSNConfig) {
 	conf.MosnConfig = &v2.MOSNConfig{}
 	*conf.MosnConfig = *cfg
 	// Clear the changed config
-	conf.MosnConfig.ServiceRegistry = v2.ServiceRegistryInfo{}
 	conf.MosnConfig.ClusterManager = v2.ClusterManagerConfig{}
 	conf.MosnConfig.Servers = []v2.ServerConfig{}
 	if len(cfg.Servers) > 0 {
@@ -130,6 +131,13 @@ func SetRouter(routerName string, router v2.RouterConfiguration) {
 	tryDump()
 }
 
+func SetExtend(typ string, cfg json.RawMessage) {
+	mutex.Lock()
+	defer mutex.Unlock()
+	conf.ExtendConfigs[typ] = cfg
+	tryDump()
+}
+
 // Dump
 // Dump all config
 func Dump() ([]byte, error) {
@@ -143,11 +151,19 @@ const (
 	CfgTypeRouter   = "Router"
 	CfgTypeCluster  = "Cluster"
 	CfgTypeListener = "Listener"
+	CfgTypeExtend   = "Extend"
 )
 
-func GetMOSNConfig(typ string) interface{} {
+func HandleMOSNConfig(typ string, handle func(interface{})) {
 	mutex.RLock()
 	defer mutex.RUnlock()
+	v := getMOSNConfig(typ)
+	if handle != nil {
+		handle(v)
+	}
+}
+
+func getMOSNConfig(typ string) interface{} {
 	switch typ {
 	case CfgTypeMOSN:
 		return conf.MosnConfig
@@ -157,6 +173,8 @@ func GetMOSNConfig(typ string) interface{} {
 		return conf.Cluster
 	case CfgTypeListener:
 		return conf.Listener
+	case CfgTypeExtend:
+		return conf.ExtendConfigs
 	default:
 		return nil
 	}

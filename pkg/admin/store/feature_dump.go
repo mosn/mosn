@@ -18,6 +18,7 @@
 package store
 
 import (
+	"encoding/json"
 	"sync/atomic"
 	"time"
 
@@ -63,9 +64,11 @@ func (f *ConfigAutoFeature) doDumpConfig() {
 	if atomic.CompareAndSwapUint32(&f.dump, 1, 0) {
 		mutex.Lock()
 		defer mutex.Unlock()
+		// FIXME: do not copy
 		var listeners []v2.Listener
 		var routers []*v2.RouterConfiguration
 		var clusters []v2.Cluster
+		var extends map[string]json.RawMessage
 		log.DefaultLogger.Debugf("try to dump full config")
 		// get listeners
 		for _, l := range conf.Listener {
@@ -82,7 +85,11 @@ func (f *ConfigAutoFeature) doDumpConfig() {
 			r.RouterConfigPath = routerPath
 			routers = append(routers, &r)
 		}
-		configmanager.UpdateFullConfig(listeners, routers, clusters)
+		// get extends
+		for k, v := range conf.ExtendConfigs {
+			extends[k] = v
+		}
+		configmanager.UpdateFullConfig(listeners, routers, clusters, extends)
 	}
 }
 

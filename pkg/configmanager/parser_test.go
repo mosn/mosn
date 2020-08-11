@@ -43,7 +43,6 @@ var cb testCallback
 
 func TestMain(m *testing.M) {
 	RegisterConfigParsedListener(ParseCallbackKeyCluster, cb.ParsedCallback)
-	RegisterConfigParsedListener(ParseCallbackKeyServiceRgtInfo, cb.ParsedCallback)
 	RegisterConfigParsedListener(ParseCallbackKeyProcessor, cb.ParsedCallback)
 	os.Exit(m.Run())
 }
@@ -188,14 +187,6 @@ func TestParseRouterConfig(t *testing.T) {
 	emptyRouter, err := ParseRouterConfiguration(noRouteFilterChain)
 	if err != nil || emptyRouter.RouterConfigName != "" {
 		t.Fatal("parse no router configuration failed")
-	}
-}
-
-func TestParseServiceRegistry(t *testing.T) {
-	cb.Count = 0
-	ParseServiceRegistry(v2.ServiceRegistryInfo{})
-	if cb.Count != 1 {
-		t.Error("no callback")
 	}
 }
 

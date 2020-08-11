@@ -264,13 +264,13 @@ func (m *Mosn) Start() {
 	}, nil)
 	// start mosn feature
 	featuregate.StartInit()
-	// TODO: remove it
-	//parse service registry info
-	log.StartLogger.Infof("mosn parse registry info")
-	configmanager.ParseServiceRegistry(m.config.ServiceRegistry)
-
 	log.StartLogger.Infof("mosn parse extend config")
-	configmanager.ParseConfigExtend(m.config.Extend)
+	for typ, cfg := range m.config.Extends {
+		if err := v2.ExtendConfigParsed(typ, cfg); err != nil {
+			log.StartLogger.Fatalf("mosn parse extend config failed, type: %s, error: %v", typ, err)
+		}
+		store.SetExtend(typ, cfg)
+	}
 
 	// beforestart starts transfer connection and non-proxy listeners
 	log.StartLogger.Infof("mosn prepare for start")

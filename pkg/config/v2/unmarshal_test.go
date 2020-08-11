@@ -431,29 +431,3 @@ func TestUDPProxyUnmarshal(t *testing.T) {
 		}
 	}
 }
-
-func TestServiceRegistryInfoUnmarshal(t *testing.T) {
-	sri := `{
-		"application": {
-			"ant_share_cloud":true
-		},
-		"publish_info":[
-			{
-				"service_name": "test",
-				"pub_data": "foo"
-			}
-		]
-	}`
-	b := []byte(sri)
-	info := &ServiceRegistryInfo{}
-	if err := json.Unmarshal(b, info); err != nil {
-		t.Error(err)
-		return
-	}
-	if !(info.ServiceAppInfo.AntShareCloud &&
-		len(info.ServicePubInfo) == 1 &&
-		info.ServicePubInfo[0].Pub.ServiceName == "test" &&
-		info.ServicePubInfo[0].Pub.PubData == "foo") {
-		t.Error("service registry info failed")
-	}
-}

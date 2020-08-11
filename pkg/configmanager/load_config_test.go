@@ -14,7 +14,7 @@ func TestYAMLConfigLoad(t *testing.T) {
 	}
 
 	for _, filename := range tests {
-		c := YAMLConfigLoad(filepath.Join("testdata", filename))
+		c := DefaultConfigLoad(filepath.Join("testdata", filename))
 		assert.NotNil(t, c)
 	}
 }

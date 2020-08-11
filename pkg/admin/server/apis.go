@@ -81,48 +81,57 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "only support one parameter")
 		return
 	}
-	var info interface{}
+	handle := func(info interface{}) {
+		if info == nil {
+			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, parameters:%v", "config dump", r.Form)
+			w.WriteHeader(500)
+			msg := fmt.Sprintf(errMsgFmt, "internal error")
+			fmt.Fprint(w, msg)
+		} else {
+			buf, _ := json.MarshalIndent(info, "", " ")
+			log.DefaultLogger.Infof("[admin api] [config dump] config dump, parameters:%v", r.Form)
+			w.WriteHeader(200)
+			w.Write(buf)
+		}
+	}
 	for key, param := range r.Form {
 		switch key {
 		case "mosnconfig":
-			info = store.GetMOSNConfig(store.CfgTypeMOSN)
+			store.HandleMOSNConfig(store.CfgTypeMOSN, handle)
 		case "allrouters":
-			info = store.GetMOSNConfig(store.CfgTypeRouter)
+			store.HandleMOSNConfig(store.CfgTypeRouter, handle)
 		case "allclusters":
-			info = store.GetMOSNConfig(store.CfgTypeCluster)
+			store.HandleMOSNConfig(store.CfgTypeCluster, handle)
 		case "alllisteners":
-			info = store.GetMOSNConfig(store.CfgTypeListener)
+			store.HandleMOSNConfig(store.CfgTypeListener, handle)
 		case "router":
-			v := store.GetMOSNConfig(store.CfgTypeRouter)
-			routerInfo, ok := v.(map[string]v2.RouterConfiguration)
-			if ok && len(param) > 0 {
-				info = routerInfo[param[0]]
-			}
+			store.HandleMOSNConfig(store.CfgTypeRouter, func(v interface{}) {
+				routerInfo, ok := v.(map[string]v2.RouterConfiguration)
+				if ok && len(param) > 0 {
+					handle(routerInfo[param[0]])
+				}
+			})
+
 		case "cluster":
-			v := store.GetMOSNConfig(store.CfgTypeCluster)
-			clusterInfo, ok := v.(map[string]v2.Cluster)
-			if ok && len(param) > 0 {
-				info = clusterInfo[param[0]]
-			}
+			store.HandleMOSNConfig(store.CfgTypeCluster, func(v interface{}) {
+				clusterInfo, ok := v.(map[string]v2.Cluster)
+				if ok && len(param) > 0 {
+					handle(clusterInfo[param[0]])
+				}
+			})
+
 		case "listener":
-			v := store.GetMOSNConfig(store.CfgTypeListener)
-			listenerInfo, ok := v.(map[string]v2.Listener)
-			if ok && len(param) > 0 {
-				info = listenerInfo[param[0]]
-			}
+			store.HandleMOSNConfig(store.CfgTypeListener, func(v interface{}) {
+				listenerInfo, ok := v.(map[string]v2.Listener)
+				if ok && len(param) > 0 {
+					handle(listenerInfo[param[0]])
+				}
+			})
+		default:
+			handle(nil)
 		}
 	}
-	if info == nil {
-		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, parameters:%v", "config dump", r.Form)
-		w.WriteHeader(500)
-		msg := fmt.Sprintf(errMsgFmt, "internal error")
-		fmt.Fprint(w, msg)
-	} else {
-		buf, _ := json.MarshalIndent(info, "", " ")
-		log.DefaultLogger.Infof("[admin api] [config dump] config dump, parameters:%v", r.Form)
-		w.WriteHeader(200)
-		w.Write(buf)
-	}
+
 }
 
 func statsDump(w http.ResponseWriter, r *http.Request) {

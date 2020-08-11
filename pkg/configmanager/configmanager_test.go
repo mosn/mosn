@@ -282,7 +282,7 @@ func TestUpdateFullConfig(t *testing.T) {
 		},
 	}
 
-	UpdateFullConfig(listeners, routers, clusters)
+	UpdateFullConfig(listeners, routers, clusters, nil)
 
 	srv := config.Servers[0]
 	if !(len(srv.Listeners) == 2 &&
@@ -319,50 +319,6 @@ func TestUpdateClusterManager(t *testing.T) {
 	}
 }
 
-func TestUpdateMqClientKey(t *testing.T) {
-	UpdateMqClientKey("hello", "ck", false)
-	if len(config.ServiceRegistry.MqClientKey) != 1 {
-		t.Errorf("len(config.ServiceRegistry.MqClientKey) != 1")
-	}
-
-	UpdateMqClientKey("hello", "", true)
-	if len(config.ServiceRegistry.MqClientKey) != 0 {
-		t.Errorf("len(config.ServiceRegistry.MqClientKey) != 0")
-	}
-}
-
-func TestUpdateMqMeta(t *testing.T) {
-	UpdateMqMeta("TP_TEST", "meta", false)
-	if len(config.ServiceRegistry.MqMeta) != 1 {
-		t.Errorf("len(config.ServiceRegistry.MqMeta) != 1")
-	}
-
-	UpdateMqMeta("TP_TEST", "meta", true)
-	if len(config.ServiceRegistry.MqMeta) != 0 {
-		t.Errorf("len(config.ServiceRegistry.MqMeta) != 0")
-	}
-}
-
-func TestSetMqConsumers(t *testing.T) {
-	SetMqConsumers("TP_TEST", []string{"cs1", "cs2", "cs3"})
-	if len(config.ServiceRegistry.MqConsumers) != 1 {
-		t.Errorf("len(config.ServiceRegistry.MqConsumers) != 1")
-	}
-
-	SetMqConsumers("TP_TEST", []string{})
-	if len(config.ServiceRegistry.MqConsumers) != 0 {
-		t.Errorf("len(config.ServiceRegistry.MqConsumers) != 0")
-	}
-}
-
-func TestRmMqConsumers(t *testing.T) {
-	SetMqConsumers("TP_TEST", []string{"cs1", "cs2", "cs3"})
-	RmMqConsumers("TP_TEST")
-	if len(config.ServiceRegistry.MqConsumers) != 0 {
-		t.Errorf("len(config.ServiceRegistry.MqConsumers) != 0")
-	}
-}
-
 // test avoid dead lock
 func TestUpdateConfigConcurrency(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
@@ -371,21 +327,10 @@ func TestUpdateConfigConcurrency(t *testing.T) {
 	wg := sync.WaitGroup{}
 	for _, fc := range []func(){
 		func() {
-			ResetServiceRegistryInfo(v2.ApplicationInfo{}, []string{})
-		},
-		func() {
 			AddOrUpdateClusterConfig([]v2.Cluster{})
 		},
 		func() {
 			RemoveClusterConfig([]string{})
-		},
-		func() {
-			AddPubInfo(map[string]string{
-				"key": "value",
-			})
-		},
-		func() {
-			DelPubInfo("key")
 		},
 		func() {
 			AddClusterWithRouter([]v2.Cluster{}, &v2.RouterConfiguration{})
@@ -394,7 +339,7 @@ func TestUpdateConfigConcurrency(t *testing.T) {
 			AddOrUpdateRouterConfig(&v2.RouterConfiguration{})
 		},
 		func() {
-			UpdateFullConfig([]v2.Listener{}, []*v2.RouterConfiguration{}, []v2.Cluster{})
+			UpdateFullConfig([]v2.Listener{}, []*v2.RouterConfiguration{}, []v2.Cluster{}, nil)
 		},
 		func() {
 			AddOrUpdateListener(&v2.Listener{})
@@ -403,24 +348,7 @@ func TestUpdateConfigConcurrency(t *testing.T) {
 			UpdateClusterManagerTLS(v2.TLSConfig{})
 		},
 		func() {
-			AddMsgMeta("data", "group")
-		},
-		func() {
-			DelMsgMeta("data")
-		},
-		func() {
-			UpdateMqClientKey("id", "key", false)
-			UpdateMqClientKey("id", "key", true)
-		},
-		func() {
-			UpdateMqMeta("topic", "meta", false)
-			UpdateMqMeta("topic", "meta", true)
-		},
-		func() {
-			SetMqConsumers("key", []string{})
-		},
-		func() {
-			RmMqConsumers("key")
+			UpdateExtendConfig("test", json.RawMessage(""))
 		},
 	} {
 		f := fc
