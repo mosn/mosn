@@ -115,10 +115,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				DefaultLogLevel: "INFO",
 			},
 		}
-	} else {
-		if len(c.ClusterManager.Clusters) == 0 && !c.ClusterManager.AutoDiscovery {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
-		}
 	}
 
 	srvNum := len(c.Servers)
@@ -136,9 +132,9 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	clusters, clusterMap := configmanager.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
 	if mode == v2.Xds {
-		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil)
+		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil, &c.ClusterManager.TLSContext)
 	} else {
-		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap)
+		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap, &c.ClusterManager.TLSContext)
 	}
 
 	// initialize the routerManager

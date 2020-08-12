@@ -386,6 +386,9 @@ func TestUpdateConfigConcurrency(t *testing.T) {
 			AddOrUpdateListener(&v2.Listener{})
 		},
 		func() {
+			UpdateClusterManagerTLS(v2.TLSConfig{})
+		},
+		func() {
 			AddMsgMeta("data", "group")
 		},
 		func() {

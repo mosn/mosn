@@ -61,7 +61,7 @@ func _createClusterManager() types.ClusterManager {
 	clusterManagerInstance.Destroy() // Destroy for test
 	return NewClusterManagerSingleton([]v2.Cluster{clusterConfig}, map[string][]v2.Host{
 		"test1": []v2.Host{host1, host2},
-	})
+	}, nil)
 }
 
 func TestClusterManagerFromConfig(t *testing.T) {
@@ -392,7 +392,7 @@ func TestConnPoolUpdateTLS(t *testing.T) {
 	clusterManagerInstance.Destroy() // Destroy for test
 	NewClusterManagerSingleton([]v2.Cluster{clusterConfig}, map[string][]v2.Host{
 		"test1": []v2.Host{host},
-	})
+	}, nil)
 	snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
 	connPool1 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
 	// hash value equals nil means not support tls
