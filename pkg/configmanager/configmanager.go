@@ -132,6 +132,13 @@ FoundCluster:
 	dump(true)
 }
 
+func UpdateClusterManagerTLS(tls v2.TLSConfig) {
+	configLock.Lock()
+	defer configLock.Unlock()
+	config.ClusterManager.TLSContext = tls
+	dump(true)
+}
+
 // AddPubInfo
 // called when add pub info received
 func AddPubInfo(pubInfoAdded map[string]string) {
