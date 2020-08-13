@@ -145,6 +145,10 @@ func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.Hea
 	f.activeStream.sendHijackReply(code, headers)
 }
 
+func (f *activeStreamReceiverFilter) SendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
+	f.activeStream.sendHijackReplyWithBody(code, headers, body)
+}
+
 func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 	atomic.StoreUint32(&f.activeStream.reuseBuffer, 0)
 	f.activeStream.noConvert = true
