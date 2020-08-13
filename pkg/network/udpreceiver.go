@@ -60,9 +60,15 @@ func readMsgLoop(lctx context.Context, l *listener) {
 		buf.Grow(n)
 
 		if err != nil {
-			if strings.Contains(err.Error(), "use of closed network connection") {
-				log.DefaultLogger.Errorf("[network] [udp] recv from udp error: %v", err)
-				break
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+				log.DefaultLogger.Infof("[network] [udp] listener %s stop receiving packets by deadline", l.name)
+				return
+			} else if ope, ok := err.(*net.OpError); ok {
+				// not timeout error and not temporary, which means the error is non-recoverable
+				if !(ope.Timeout() && ope.Temporary()) {
+					log.DefaultLogger.Alertf("listener.readMsgLoop", "[network] [udp] listener %s occurs non-recoverable error, stop listening and reading:%s", l.name, err.Error())
+					return
+				}
 			}
 			log.DefaultLogger.Errorf("[network] [udp] recv from udp error: %v", err)
 			continue
