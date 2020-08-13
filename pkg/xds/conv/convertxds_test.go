@@ -59,7 +59,7 @@ import (
 func TestMain(m *testing.M) {
 	// init
 	router.NewRouterManager()
-	cm := cluster.NewClusterManagerSingleton(nil, nil)
+	cm := cluster.NewClusterManagerSingleton(nil, nil, nil)
 	sc := server.NewConfig(&v2.ServerConfig{
 		ServerName:      "test_xds_server",
 		DefaultLogPath:  "stdout",
@@ -408,14 +408,14 @@ func Test_convertListenerConfig(t *testing.T) {
 							TypedConfig: accessLogFilterConfig,
 						},
 					}},
-					UseRemoteAddress:            NewBoolValue(false),
-					XffNumTrustedHops:           0,
-					SkipXffAppend:               false,
-					Via:                         "",
-					GenerateRequestId:           NewBoolValue(true),
-					ForwardClientCertDetails:    xdshttp.HttpConnectionManager_SANITIZE,
-					SetCurrentClientCertDetails: nil,
-					Proxy_100Continue:           false,
+					UseRemoteAddress:                           NewBoolValue(false),
+					XffNumTrustedHops:                          0,
+					SkipXffAppend:                              false,
+					Via:                                        "",
+					GenerateRequestId:                          NewBoolValue(true),
+					ForwardClientCertDetails:                   xdshttp.HttpConnectionManager_SANITIZE,
+					SetCurrentClientCertDetails:                nil,
+					Proxy_100Continue:                          false,
 					RepresentIpv4RemoteAddressAsIpv4MappedIpv6: false,
 				},
 				filterName: "envoy.http_connection_manager",
