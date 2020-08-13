@@ -21,7 +21,6 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
@@ -52,8 +51,6 @@ func (s *downStream) runReceiveFilters(p types.Phase, headers types.HeaderMap, d
 		if f.p != p {
 			continue
 		}
-
-		s.context = mosnctx.WithValue(s.context, types.ContextKeyStreamFilterPhase, p)
 
 		status := f.filter.OnReceive(s.context, headers, data, trailers)
 		switch status {
@@ -166,7 +163,7 @@ func (f *activeStreamReceiverFilter) GetFilterCurrentPhase() api.FilterPhase {
 	// default AfterRoute
 	p := api.AfterRoute
 
-	switch f.p {
+	switch f.activeStream.phase {
 	case types.DownFilter:
 		p = api.BeforeRoute
 	case types.DownFilterAfterRoute:
