@@ -232,7 +232,6 @@ func (m *Mosn) beforeStart() {
 		}
 	}
 
-
 	// start dump config process
 	utils.GoWithRecover(func() {
 		configmanager.DumpConfigHandler()
