@@ -225,6 +225,7 @@ func (m *Mosn) beforeStart() {
 			ln.Close()
 		}
 	}
+	//close legacy UDP listeners
 	for _, ln := range m.inheritPacketConn {
 		if ln != nil {
 			log.StartLogger.Infof("[mosn] [NewMosn] close useless legacy listener: %s", ln.LocalAddr().String())
