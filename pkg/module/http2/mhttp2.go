@@ -712,9 +712,9 @@ func (sc *MServerConn) closeStream(st *stream, err error) {
 	if sc.delStream(st.id) {
 		st.state = stateClosed
 		if st.isPushed() {
-			atomic.AddUint32(&sc.curPushedStreams, ^uint32(-(-1)-1))
+			atomic.AddUint32(&sc.curPushedStreams, ^uint32(0))
 		} else {
-			atomic.AddUint32(&sc.curClientStreams, ^uint32(-(-1)-1))
+			atomic.AddUint32(&sc.curClientStreams, ^uint32(0))
 		}
 	}
 }
