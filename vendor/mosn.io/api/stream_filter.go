@@ -119,7 +119,7 @@ type StreamReceiverFilterHandler interface {
 
 	// SendHijackReplyWithBody is called when the filter will response directly with body
 	SendHijackReplyWithBody(code int, headers HeaderMap, body string)
-	
+
 	// SendDirectRespoonse is call when the filter will response directly
 	SendDirectResponse(headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap)
 

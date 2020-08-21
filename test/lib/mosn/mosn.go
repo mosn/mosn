@@ -1,4 +1,4 @@
-package lib
+package mosn
 
 import (
 	"flag"
