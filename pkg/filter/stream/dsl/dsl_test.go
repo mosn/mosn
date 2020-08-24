@@ -55,7 +55,7 @@ func (f *mockReceiveHandler) GetFilterCurrentPhase() api.FilterPhase {
 	return p
 }
 
-func TestDSLNewStreamFilter(t *testing.T) {
+func TestDSLStreamFilter(t *testing.T) {
 	cfg := v2.StreamDSL{
 		BeforeRouterDSL:  "conditional((request.host == \"dsl\") && (request.headers[\"dsl\"] == \"dsl\"), ctx.rewrite_request_url(string(0)), ctx.rewrite_request_url(\"/xxx0\"))",
 		AfterRouterDSL:   "conditional((request.host == \"dsl\") && (request.headers[\"dsl\"] == \"dsl\"), ctx.rewrite_request_url(\"1\"), ctx.rewrite_request_url(\"/xxx1\"))",
@@ -66,10 +66,13 @@ func TestDSLNewStreamFilter(t *testing.T) {
 
 	dsl, err := checkDSL(cfg)
 	if err != nil {
-		t.Errorf("check dsl faied: %v", err)
+		t.Errorf("check dsl failed: %v", err)
 	}
 
 	f := NewDSLFilter(context.Background(), dsl)
+	if f == nil {
+		t.Error("create dsl filter failed!")
+	}
 
 	receiveHandler := &mockReceiveHandler{}
 
@@ -110,6 +113,45 @@ func TestDSLNewStreamFilter(t *testing.T) {
 		t.Error("DSL execute failed, at the Log phase")
 	}
 
+}
+
+func TestNewDSLStreamFilter(t *testing.T) {
+	m := map[string]interface{}{}
+	if _, err := CreateDSLFilterFactory(m); err != nil {
+		t.Errorf("Create DSL filter failed: %v", err)
+	}
+
+	// test check dsl
+	m["before_router_by_dsl"] = "conditional((request.host == \"dsl\") && (request.headers[\"dsl\"] == \"dsl\"), ctx.rewrite_request_url(string(0)), ctx.rewrite_request_url(\"/xxx0\"))"
+	cf, err := CreateDSLFilterFactory(m)
+	if cf == nil || err != nil {
+		t.Errorf("Create DSL filter cf failed: %v", err)
+	}
+	// test panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("CreateFilterChain should be panic when callback is nil!")
+		}
+	}()
+
+	cf.CreateFilterChain(nil, nil)
+
+	// test unknown function or variables
+	m["before_router_by_dsl"] = "conditional((request.unknown == \"dsl\"), unknown_function(string(0)), ctx.rewrite_request_url(\"/xxx0\"))"
+	if _, err := CreateDSLFilterFactory(m); err == nil {
+		t.Errorf("It should be failed when use invalid dsl.")
+	}
+
+	m["log_filter_by_dsl"] = "conditional((request.unknown == \"dsl\"), unknown_function(string(0)), ctx.rewrite_request_url(\"/xxx0\"))"
+	if _, err := CreateDSLFilterFactory(m); err == nil {
+		t.Errorf("It should be failed when use invalid dsl.")
+	}
+
+	// test unknown phase
+	m["unknown_by_dsl"] = "conditional((request.host == \"dsl\")), ctx.rewrite_request_url(string(0)), ctx.rewrite_request_url(\"xxx\"))"
+	if _, err := CreateDSLFilterFactory(m); err == nil {
+		t.Errorf("It should be failed when use invalid phase.")
+	}
 }
 
 func BenchmarkDSL(b *testing.B) {
