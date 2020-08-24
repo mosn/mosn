@@ -25,9 +25,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/cel/attribute"
 	"mosn.io/mosn/pkg/cel/extract"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
@@ -58,8 +56,7 @@ func (f *DSLFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf bu
 	parentBag := extract.ExtractAttributes(headers, nil, f.receiverFilterHandler.RequestInfo(), buf, trailers, time.Now())
 	bag := attribute.NewMutableBag(parentBag)
 	bag.Set(extract.KContext, ctx)
-	// TODO use f.receiverFilterHandler.GetFilterCurrentPhase
-	switch getCurrentPhase(ctx) {
+	switch f.receiverFilterHandler.GetFilterCurrentPhase() {
 	case api.BeforeRoute:
 		if f.dsl.BeforeRouterDSL != nil {
 			f.dsl.BeforeRouterDSL.Evaluate(bag)
@@ -121,25 +118,4 @@ func (f *DSLFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHeade
 	bag := attribute.NewMutableBag(parentBag)
 	bag.Set(extract.KContext, ctx)
 	f.dsl.LogDSL.Evaluate(bag)
-}
-
-func getCurrentPhase(ctx context.Context) api.FilterPhase {
-	// default AfterRoute
-	p := api.AfterRoute
-
-	if val := mosnctx.Get(ctx, types.ContextKeyStreamFilterPhase); val != nil {
-		if phase, ok := val.(types.Phase); ok {
-			switch phase {
-			case types.DownFilter:
-				p = api.BeforeRoute
-			case types.DownFilterAfterRoute:
-				p = api.AfterRoute
-			case types.DownFilterAfterChooseHost:
-				p = api.AfterChooseHost
-			}
-		}
-	}
-
-	return p
-
 }

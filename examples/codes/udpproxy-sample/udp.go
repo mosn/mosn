@@ -68,6 +68,8 @@ func main() {
 		return
 	}
 
+	fmt.Println("Listening on udp port 5300 ...")
+
 	conn := nc.(*net.UDPConn)
 	var packet = NewPacketInfo()
 	defer packet.Destroy()
