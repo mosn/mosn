@@ -97,6 +97,30 @@ func (c *mockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestIn
 	return
 }
 
+func (c *mockRouteRule) GlobalTimeout() time.Duration {
+	return 10^6 * time.Millisecond
+}
+
+func (c *mockRouteRule) Policy() api.Policy {
+	return &mockPolicy{}
+}
+
+type mockPolicy struct {
+	api.Policy
+}
+
+func (p *mockPolicy) RetryPolicy() api.RetryPolicy {
+	return &mockRetryPolicy{}
+}
+
+type mockRetryPolicy struct {
+	api.RetryPolicy
+}
+
+func (p *mockRetryPolicy) TryTimeout() time.Duration {
+	return time.Millisecond
+}
+
 type mockDirectRule struct {
 	status int
 	body   string
