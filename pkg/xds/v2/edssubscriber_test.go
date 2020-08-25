@@ -27,10 +27,10 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 )
 
-func Test_RdsHandler(t *testing.T) {
+func Test_EdsHandler(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			t.Errorf("TestRdsHandler error: %v \n %s", r, string(debug.Stack()))
+			t.Errorf("TestEdsHandler error: %v \n %s", r, string(debug.Stack()))
 		}
 	}()
 
@@ -43,17 +43,20 @@ func Test_RdsHandler(t *testing.T) {
 		RecvControlChan:   make(chan int),
 		StopChan:          make(chan int),
 	}
-	route := &envoy_api_v2.RouteConfiguration{
-		Name: "testroute",
-	}
 
-	routeAny, _ := ptypes.MarshalAny(route)
+	addr := "127.0.0.1"
+	port := 80
+	endpoints := &envoy_api_v2.ClusterLoadAssignment{
+		ClusterName: "test_cluster",
+		Endpoints:   endpoints(socketAddress(addr, port)),
+	}
+	endpointsAny, _ := ptypes.MarshalAny(endpoints)
 	resp := &envoy_api_v2.DiscoveryResponse{
-		TypeUrl:   EnvoyRouteConfiguration,
-		Resources: []*any.Any{routeAny},
+		TypeUrl:   EnvoyClusterLoadAssignment,
+		Resources: []*any.Any{endpointsAny},
 	}
 
-	if rds := adsClient.handleRoutesResp(resp); rds == nil || len(rds) != 1 {
-		t.Error("handleRoutesResp failed.")
+	if endpoints := adsClient.handleEndpointsResp(resp); endpoints == nil || len(endpoints) != 1 {
+		t.Error("handleEndpointsResp failed.")
 	}
 }

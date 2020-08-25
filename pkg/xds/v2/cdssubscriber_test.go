@@ -27,10 +27,10 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 )
 
-func Test_RdsHandler(t *testing.T) {
+func Test_CdsHandler(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			t.Errorf("TestRdsHandler error: %v \n %s", r, string(debug.Stack()))
+			t.Errorf("TestCdsHandler error: %v \n %s", r, string(debug.Stack()))
 		}
 	}()
 
@@ -43,17 +43,17 @@ func Test_RdsHandler(t *testing.T) {
 		RecvControlChan:   make(chan int),
 		StopChan:          make(chan int),
 	}
-	route := &envoy_api_v2.RouteConfiguration{
-		Name: "testroute",
-	}
 
-	routeAny, _ := ptypes.MarshalAny(route)
+	cluster := &envoy_api_v2.Cluster{
+		Name: "test_cluster",
+	}
+	clusterAny, _ := ptypes.MarshalAny(cluster)
 	resp := &envoy_api_v2.DiscoveryResponse{
-		TypeUrl:   EnvoyRouteConfiguration,
-		Resources: []*any.Any{routeAny},
+		TypeUrl:   EnvoyCluster,
+		Resources: []*any.Any{clusterAny},
 	}
 
-	if rds := adsClient.handleRoutesResp(resp); rds == nil || len(rds) != 1 {
-		t.Error("handleRoutesResp failed.")
+	if clusters := adsClient.handleClustersResp(resp); clusters == nil || len(clusters) != 1 {
+		t.Error("handleClustersResp failed.")
 	}
 }
