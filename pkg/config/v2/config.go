@@ -33,6 +33,9 @@ type MOSNConfig struct {
 	ClusterManager  ClusterManagerConfig `json:"cluster_manager,omitempty"`  //cluster config
 	ServiceRegistry ServiceRegistryInfo  `json:"service_registry,omitempty"` //service registry config, used by service discovery module
 
+	Graceful            bool            `json:"graceful,omitempty"` // graceful switch, default false
+	Pid                 string          `json:"pid,omitempty"`      // pid file
+
 	//tracing config
 	Tracing             TracingConfig   `json:"tracing,omitempty"`
 	Metrics             MetricsConfig   `json:"metrics,omitempty"`
@@ -40,9 +43,8 @@ type MOSNConfig struct {
 	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin            json.RawMessage `json:"admin,omitempty"`             // admin raw message
 	Debug               PProfConfig     `json:"pprof,omitempty"`
-	Pid                 string          `json:"pid,omitempty"`    // pid file
-	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
-	Extend              []ExtendItem    `json:"extend,omitempty"` // extend config
+	Plugin              PluginConfig    `json:"plugin,omitempty"`   // plugin config
+	Extend              []ExtendItem    `json:"extend,omitempty"`   // extend config
 }
 
 // ExtendItem is used to extend the mosn config by user need

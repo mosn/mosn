@@ -67,22 +67,32 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 	store.SetMosnConfig(c)
 
-	//get inherit fds
-	inheritListeners, inheritPacketConn, listenSockConn, err := server.GetInheritListeners()
-	if err != nil {
-		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
-	}
-	if listenSockConn != nil {
-		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
-		// set Mosn Active_Reconfiguring
-		store.SetMosnState(store.Active_Reconfiguring)
-		// parse MOSNConfig again
-		c = configmanager.Load(configmanager.GetConfigPath())
-	} else {
-		log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
-		// start init services
-		if err := store.StartService(nil); err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
+	var (
+		inheritListeners []net.Listener
+		inheritPacketConn []net.PacketConn
+		listenSockConn net.Conn
+		err error
+	)
+
+	// Only when graceful switch is on, we use the inherit listeners, packetconns, and sock conns
+	if c.Graceful {
+		//get inherit fds
+		inheritListeners, inheritPacketConn, listenSockConn, err = server.GetInheritListeners()
+		if err != nil {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+		}
+		if listenSockConn != nil {
+			log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
+			// set Mosn Active_Reconfiguring
+			store.SetMosnState(store.Active_Reconfiguring)
+			// parse MOSNConfig again
+			c = configmanager.Load(configmanager.GetConfigPath())
+		} else {
+			log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
+			// start init services
+			if err := store.StartService(nil); err != nil {
+				log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
+			}
 		}
 	}
 
