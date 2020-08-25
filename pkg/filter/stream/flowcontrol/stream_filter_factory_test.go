@@ -32,6 +32,31 @@ func TestStreamFilterFactory(t *testing.T) {
 	f, err := createRpcFlowControlFilterFactory(data)
 	assert.NotNil(t, f)
 	assert.Nil(t, err)
+
+	// invalidCfg
+	mockConfig = `{
+    "global_switch": false,
+    "monitor": false,
+    "limit_key_type": "unknown",
+    "action": {
+        "status": 0,
+        "body": ""
+    },
+    "rules": [
+        {
+            "resource": "/http",
+            "limitApp": "",
+            "grade": 1,
+            "count": 1,
+            "strategy": 0
+        }
+    ]
+}`
+	err = json.Unmarshal([]byte(mockConfig), &data)
+	assert.Nil(t, err)
+	f, err = createRpcFlowControlFilterFactory(data)
+	assert.Nil(t, f)
+	assert.NotNil(t, err)
 }
 
 func TestIsValidCfg(t *testing.T) {
