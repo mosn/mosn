@@ -41,6 +41,10 @@ func TestPluginClient(t *testing.T) {
 		t.Fatalf("TestNewPluginClient error:%v", err)
 	}
 	defer client.disable()
+	client1, err := testRegister(testname)
+	if client != client1 {
+		t.Fatalf("TestNewPluginClient error: client should equal client1")
+	}
 
 	if err := client.Check(); err != nil {
 		t.Fatalf("TestNewPluginClient error:%v", err)

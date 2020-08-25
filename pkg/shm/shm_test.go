@@ -89,6 +89,10 @@ func TestConsitency(t *testing.T) {
 		t.Error()
 	}
 
+	if span.Data() != uintptr(unsafe.Pointer(&(span.Origin())[0])) {
+		t.Error()
+	}
+
 	if err := Free(span); nil != err {
 		log.Fatalln(err)
 	}
