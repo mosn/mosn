@@ -42,6 +42,59 @@ func TestGetVariableValue_normal(t *testing.T) {
 	if vv != value {
 		t.Errorf("get value not equal, expected: %s, acutal: %s", value, vv)
 	}
+
+	// test AddVariable
+	if _, err := AddVariable(name); err != nil {
+		t.Errorf("AddVariable existed variable failed：%v", err)
+	}
+
+	// test prefix variable
+	name = "prefix_var_"
+	value = "prefix value"
+	RegisterPrefixVariable(name, NewBasicVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+		return value, nil
+	}, nil, 0))
+
+	vv, err = GetVariableValue(ctx, name)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if vv != value {
+		t.Errorf("get prefix variable value not equal, expected: %s, acutal: %s", value, vv)
+	}
+
+	// test AddVariable
+	if _, err := AddVariable(name); err != nil {
+		t.Errorf("AddVariable existed variable failed：%v", err)
+	}
+
+	name = "unknown"
+	if _, err := AddVariable(name); err == nil {
+		t.Error("AddVariable unknown variable failed")
+	}
+
+	//test variable noCacheable
+	name = "nocache"
+	value = "nocache Value"
+	RegisterVariable(NewIndexedVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+		return value, nil
+	}, BasicSetter, MOSN_VAR_FLAG_NOCACHEABLE))
+	ctx = NewVariableContext(context.Background())
+	err = SetVariableValue(ctx, name, value)
+	if err != nil {
+		t.Error(err)
+	}
+
+	vv, err = GetVariableValue(ctx, name)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if vv != value {
+		t.Errorf("get/set nocache variable value not equal, expected: %s, acutal: %s", value, vv)
+	}
+
 }
 
 func TestSetVariableValue_normal(t *testing.T) {
@@ -67,4 +120,5 @@ func TestSetVariableValue_normal(t *testing.T) {
 	if vv != value {
 		t.Errorf("get/set value not equal, expected: %s, acutal: %s", value, vv)
 	}
+
 }
