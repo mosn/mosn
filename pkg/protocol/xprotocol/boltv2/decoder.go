@@ -63,7 +63,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 		RequestHeader: bolt.RequestHeader{
 			Protocol:   ProtocolCode,
 			CmdType:    cmdType,
-			CmdCode:    binary.BigEndian.Uint16(bytes[2:4]),
+			CmdCode:    binary.BigEndian.Uint16(bytes[3:5]),
 			Version:    bytes[5],
 			RequestId:  binary.BigEndian.Uint32(bytes[6:10]),
 			Codec:      bytes[10],
