@@ -91,7 +91,7 @@ func (proto *boltv2Protocol) Encode(ctx context.Context, model interface{}) (typ
 
 func (proto *boltv2Protocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	if data.Len() >= LessLen {
-		cmdType := data.Bytes()[1]
+		cmdType := data.Bytes()[2]
 
 		switch cmdType {
 		case bolt.CmdTypeRequest:
