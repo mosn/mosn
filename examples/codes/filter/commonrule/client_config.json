@@ -1,30 +1,32 @@
 {
-	"close_graceful" : true,
-	"servers":[
+	"close_graceful": true,
+	"servers": [
 		{
-			"default_log_path":"stdout",
-			"listeners":[
+			"default_log_path": "stdout",
+			"listeners": [
 				{
-					"name":"clientListener",
+					"name": "clientListener",
 					"address": "127.0.0.1:2045",
 					"bind_port": true,
 					"log_path": "stdout",
-					"filter_chains": [{
-						"filters":[
-							{
-								"type": "proxy",
-								"config": {
-									"downstream_protocol": "Http1",
-									"upstream_protocol": "Http1",
-									"router_config_name":"client_router"
+					"filter_chains": [
+						{
+							"filters": [
+								{
+									"type": "proxy",
+									"config": {
+										"downstream_protocol": "Http1",
+										"upstream_protocol": "Http1",
+										"router_config_name": "client_router"
+									}
 								}
-							}
-						]
-					}],
-					"stream_filters":[
+							]
+						}
+					],
+					"stream_filters": [
 						{
 							"type": "commonrule",
-							"config":{
+							"config": {
 								"rule_configs": [
 									{
 										"enable": true,
@@ -68,33 +70,43 @@
 					]
 				}
 			],
-			"routers":[
+			"routers": [
 				{
-					"router_config_name":"client_router",
-					"virtual_hosts":[{
-						"name":"clientHost",
-						"domains": ["*"],
-						"routers": [
-							{
-								"match":{"prefix":"/"},
-								"route":{"cluster_name":"clientCluster"}
-							}
-						]
-					}]
+					"router_config_name": "client_router",
+					"virtual_hosts": [
+						{
+							"name": "clientHost",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"match": {
+										"prefix": "/"
+									},
+									"route": {
+										"cluster_name": "clientCluster"
+									}
+								}
+							]
+						}
+					]
 				}
-			]	
+			]
 		}
 	],
-	"cluster_manager":{
+	"cluster_manager": {
 		"clusters": [
 			{
 				"name": "clientCluster",
 				"type": "SIMPLE",
 				"lb_type": "LB_RANDOM",
 				"max_request_per_conn": 1024,
-				"conn_buffer_limit_bytes":32768,
-				"hosts":[
-					{"address":"127.0.0.1:2046"}
+				"conn_buffer_limit_bytes": 32768,
+				"hosts": [
+					{
+						"address": "127.0.0.1:2046"
+					}
 				]
 			}
 		]

@@ -15,20 +15,6 @@
 							}
 						]
 					}]
-				},
-				{
-					"router_config_name":"client_router",
-					"virtual_hosts":[{
-						"name":"clientHost",
-						"domains": ["*"],
-						"routers": [
-							{
-								"match":{"prefix":"/"},
-								"route":{"cluster_name":"clientCluster"}
-							}
-						]
-					}]
-
 				}
 			],
 			"listeners":[
@@ -79,23 +65,6 @@
 							}
 						}
 					]
-				},
-				{
-					"name":"clientListener",
-					"address": "127.0.0.1:2045",
-					"bind_port": true,
-					"filter_chains": [{
-						"filters": [
-							{
-								"type": "proxy",
-								"config": {
-									"downstream_protocol": "Http1",
-									"upstream_protocol": "Http1",
-									"router_config_name":"client_router"
-								}
-							}
-						]
-					}]
 				}
 			]
 		}
@@ -111,23 +80,6 @@
 				"hosts":[
 					{"address":"127.0.0.1:8080"}
 				]
-			},
-			{
-				"name": "clientCluster",
-				"type": "SIMPLE",
-				"lb_type": "LB_RANDOM",
-				"max_request_per_conn": 1024,
-				"conn_buffer_limit_bytes":32768,
-				"tls_context": {
-					"status": true,
-					"ca_cert":"../certs/ca.pem",
-					"cert_chain":"../certs/cert.pem",
-					"private_key":"../certs/key.pem",
-					"server_name": "127.0.0.1"
-				},
-				"hosts":[
-					{"address":"127.0.0.1:2046"}
-				]
 			}
 		]
 	},
@@ -135,7 +87,7 @@
 		"address": {
 			"socket_address": {
 				"address": "0.0.0.0",
-				"port_value": 34901
+				"port_value": 34902
 			}
 		}
 	}
