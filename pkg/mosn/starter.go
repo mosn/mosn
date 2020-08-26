@@ -242,10 +242,12 @@ func (m *Mosn) beforeStart() {
 		configmanager.DumpConfigHandler()
 	}, nil)
 
-	// start reconfig domain socket
-	utils.GoWithRecover(func() {
-		server.ReconfigureHandler()
-	}, nil)
+	if !m.config.CloseGraceful {
+		// start reconfig domain socket
+		utils.GoWithRecover(func() {
+			server.ReconfigureHandler()
+		}, nil)
+	}
 }
 
 // Start mosn's server
