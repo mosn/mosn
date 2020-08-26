@@ -1,4 +1,5 @@
 {
+	"close_graceful": true,
   "servers": [
     {
       "default_log_path": "stdout",

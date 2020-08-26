@@ -37,7 +37,8 @@ cd ${targetpath}
 ```
 main        // 编译完成的MOSN程序
 server.go   // 模拟的Http Server
-config.json // 非TLS的配置
+client_config.json // 非TLS的 client 端配置
+server_config.json // 非TLS的 server 端配置
 client      // 模拟的Http client
 ```
 
@@ -51,12 +52,17 @@ go run server.go
 
 ### 启动MOSN
 
-+ 使用config.json 运行非TLS加密的MOSN
++ 使用配置文件运行非TLS加密的MOSN
 
+启动 client 端:
 ```
-./main start -c config.json
+./main start -c client_config.json
 ```
 
+启动 server 端:
+```
+./main start -c server_config.json
+```
 
 ### 使用Client进行访问
 
