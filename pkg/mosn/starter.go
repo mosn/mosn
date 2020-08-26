@@ -67,11 +67,22 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 	store.SetMosnConfig(c)
 
-	//get inherit fds
-	inheritListeners, inheritPacketConn, listenSockConn, err := server.GetInheritListeners()
-	if err != nil {
-		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+	var (
+		inheritListeners  []net.Listener
+		inheritPacketConn []net.PacketConn
+		listenSockConn    net.Conn
+		err               error
+	)
+
+	// default is graceful mode, turn graceful off by set it to false
+	if !c.CloseGraceful {
+		//get inherit fds
+		inheritListeners, inheritPacketConn, listenSockConn, err = server.GetInheritListeners()
+		if err != nil {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+		}
 	}
+
 	if listenSockConn != nil {
 		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
 		// set Mosn Active_Reconfiguring
@@ -231,10 +242,12 @@ func (m *Mosn) beforeStart() {
 		configmanager.DumpConfigHandler()
 	}, nil)
 
-	// start reconfig domain socket
-	utils.GoWithRecover(func() {
-		server.ReconfigureHandler()
-	}, nil)
+	if !m.config.CloseGraceful {
+		// start reconfig domain socket
+		utils.GoWithRecover(func() {
+			server.ReconfigureHandler()
+		}, nil)
+	}
 }
 
 // Start mosn's server
