@@ -19,12 +19,14 @@ package configmanager
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"reflect"
 	"testing"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 )
 
@@ -148,7 +150,7 @@ func TestParseListenerConfig(t *testing.T) {
 		t.Fatalf("listener config init failed: %v", err)
 	}
 	var inheritPacketConn []net.PacketConn
-	ln := ParseListenerConfig(lc, inherit,  inheritPacketConn)
+	ln := ParseListenerConfig(lc, inherit, inheritPacketConn)
 	if !(ln.Addr != nil &&
 		ln.Addr.String() == tcpListener.Addr().String() &&
 		ln.PerConnBufferLimitBytes == 1<<15 &&
@@ -194,5 +196,118 @@ func TestParseServiceRegistry(t *testing.T) {
 	ParseServiceRegistry(v2.ServiceRegistryInfo{})
 	if cb.Count != 1 {
 		t.Error("no callback")
+	}
+}
+
+func TestParseServerConfig(t *testing.T) {
+	if c := ParseServerConfig(&v2.ServerConfig{
+		Processor: 0,
+	}); c.Processor == 0 {
+		t.Fatalf("process should be setted by runtime cpu number")
+	}
+	// set env
+	os.Setenv("GOMAXPROCS", "1")
+	// register cb
+	cb := 0
+	RegisterConfigParsedListener(ParseCallbackKeyProcessor, func(data interface{}, endParsing bool) error {
+		p := data.(int)
+		cb = p
+		return nil
+	})
+	_ = ParseServerConfig(&v2.ServerConfig{
+		Processor: 0,
+	})
+	if cb != 1 {
+		t.Fatal("processor callback should be called")
+	}
+
+}
+
+func TestGetListenerFilters(t *testing.T) {
+	api.RegisterListener("test1", func(cfg map[string]interface{}) (api.ListenerFilterChainFactory, error) {
+		return &struct {
+			api.ListenerFilterChainFactory
+		}{}, nil
+	})
+	api.RegisterListener("test_nil", func(cfg map[string]interface{}) (api.ListenerFilterChainFactory, error) {
+		return nil, nil
+	})
+	api.RegisterListener("test_error", func(cfg map[string]interface{}) (api.ListenerFilterChainFactory, error) {
+		return nil, errors.New("invalid factory create")
+	})
+	facs := GetListenerFilters([]v2.Filter{
+		{
+			Type: "test1",
+		},
+		{
+			Type: "test_error",
+		},
+		{
+			Type: "not registered",
+		},
+		{
+			Type: "test_nil",
+		},
+	})
+	if len(facs) != 1 {
+		t.Fatalf("expected got only one success factory, but got %d", len(facs))
+	}
+}
+
+func TestGetNetworkFilters(t *testing.T) {
+	api.RegisterNetwork("test_nil", func(cfg map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+		return nil, nil
+	})
+	api.RegisterNetwork("test1", func(cfg map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+		return &struct {
+			api.NetworkFilterChainFactory
+		}{}, nil
+	})
+	api.RegisterNetwork("test_error", func(cfg map[string]interface{}) (api.NetworkFilterChainFactory, error) {
+		return nil, errors.New("invalid factory create")
+	})
+	facs := GetNetworkFilters(&v2.FilterChain{
+		FilterChainConfig: v2.FilterChainConfig{
+			Filters: []v2.Filter{
+				{Type: "test1"},
+				{Type: "test_error"},
+				{Type: "not registered"},
+				{Type: "test_nil"},
+			},
+		},
+	})
+	if len(facs) != 1 {
+		t.Fatalf("expected got only one success factory, but got %d", len(facs))
+	}
+}
+
+func TestGetStreamFilters(t *testing.T) {
+	api.RegisterStream("test1", func(cfg map[string]interface{}) (api.StreamFilterChainFactory, error) {
+		return &struct {
+			api.StreamFilterChainFactory
+		}{}, nil
+	})
+	api.RegisterStream("test_nil", func(cfg map[string]interface{}) (api.StreamFilterChainFactory, error) {
+		return nil, nil
+	})
+	api.RegisterStream("test_error", func(cfg map[string]interface{}) (api.StreamFilterChainFactory, error) {
+		return nil, errors.New("invalid factory create")
+	})
+	facs := GetStreamFilters([]v2.Filter{
+		{
+			Type: "test1",
+		},
+		{
+			Type: "test_error",
+		},
+		{
+			Type: "not registered",
+		},
+		{
+			Type: "test_nil",
+		},
+	})
+	if len(facs) != 1 {
+		t.Fatalf("expected got only one success factory, but got %d", len(facs))
 	}
 }
