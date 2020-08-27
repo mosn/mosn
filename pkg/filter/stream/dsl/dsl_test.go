@@ -32,10 +32,27 @@ import (
 
 type mockReceiveHandler struct {
 	api.StreamReceiverFilterHandler
+	phase types.Phase
 }
 
 func (f *mockReceiveHandler) RequestInfo() api.RequestInfo {
 	return nil
+}
+
+func (f *mockReceiveHandler) GetFilterCurrentPhase() api.FilterPhase {
+	// default AfterRoute
+	p := api.AfterRoute
+
+	switch f.phase {
+	case types.DownFilter:
+		p = api.BeforeRoute
+	case types.DownFilterAfterRoute:
+		p = api.AfterRoute
+	case types.DownFilterAfterChooseHost:
+		p = api.AfterChooseHost
+	}
+
+	return p
 }
 
 func TestDSLNewStreamFilter(t *testing.T) {
@@ -71,7 +88,7 @@ func TestDSLNewStreamFilter(t *testing.T) {
 	phase := []types.Phase{types.DownFilter, types.DownFilterAfterRoute, types.DownFilterAfterChooseHost}
 	for k, p := range phase {
 
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterPhase, p)
+		receiveHandler.phase = p
 		f.OnReceive(ctx, reqHeaders, nil, nil)
 		if v, ok := reqHeaders.Get(protocol.MosnHeaderPathKey); !ok || v != strconv.Itoa(k) {
 			t.Errorf("DSL execute failed, index: %d, want: %s but: %s", k, strconv.Itoa(k), v)
@@ -118,8 +135,7 @@ func BenchmarkDSL(b *testing.B) {
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterPhase, types.DownFilter)
-
+	receiveHandler.phase = types.DownFilter
 	want := "0"
 	for i := 0; i < b.N; i++ {
 		f.OnReceive(ctx, reqHeaders, nil, nil)

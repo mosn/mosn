@@ -33,7 +33,8 @@ cd ${targetpath}
 ```
 main        // 编译完成的 Mosn 程序
 server.go   // 模拟的 Bolt Server
-config.json // 示例配置
+client_config.json // client 端示例配置
+server_config.json // server 端示例配置
 ```
 
 ## 运行说明
@@ -46,10 +47,16 @@ go run server.go
 
 ### 启动 MOSN
 
-+ 使用 config.json 配置文件运行 MOSN
++ 使用配置文件运行 MOSN
 
+启动 client 端:
 ```
-./main start -c config.json
+./main start -c client_config.json
+```
+
+启动 server 端:
+```
+./main start -c server_config.json
 ```
 
 ### 使用CURL进行验证

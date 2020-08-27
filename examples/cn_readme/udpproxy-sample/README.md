@@ -37,7 +37,7 @@ config.json   // 非TLS的配置
 
 ## 运行说明
 
-### 启动MOSN
++ 启动MOSN
 
 
 ```
@@ -56,5 +56,36 @@ config.json   // 非TLS的配置
 
   ```
   echo "hello world" | nc -4u localhost 5301
+  ```
+  
++ 输出
+
+  客户端将会收到发送的相同字符
+  
+  ```
+  ~ tiny$ echo "hello world" | nc -4u localhost 5301
+  hello world
+  ```
+  
+  UDP server端将会收到客户端发送的数据
+  
+  ```
+  udpproxy-sample tiny$ go run udp.go
+  Listening on udp port 5300 ...
+  Receive from 127.0.0.1:55373, len:12, data:hello world
+  ```
+
++ Mosn debug日志
+
+  Mosn 将会在收到一个新的客户端地址发送的数据，并且找不到关联的会话时创建一条UDP会话，
+  在5次空闲检查没有数据传输之后关闭这个UDP会话，因此我们在debug日志中会看到读超时相关的日志，
+  这是符合预期的。
+  
+  ```
+  2020-08-10 12:13:18,315 [INFO] [network] [read loop] do read err: read udp 127.0.0.1:55373->127.0.0.1:5300: i/o timeout
+  2020-08-10 12:13:19,320 [INFO] [network] [read loop] do read err: read udp 127.0.0.1:55373->127.0.0.1:5300: i/o timeout
+  2020-08-10 12:13:20,325 [INFO] [network] [read loop] do read err: read udp 127.0.0.1:55373->127.0.0.1:5300: i/o timeout
+  2020-08-10 12:13:21,326 [INFO] [network] [read loop] do read err: read udp 127.0.0.1:55373->127.0.0.1:5300: i/o timeout
+  2020-08-10 12:13:22,328 [INFO] [network] [read loop] do read err: read udp 127.0.0.1:55373->127.0.0.1:5300: i/o timeout
   ```
 

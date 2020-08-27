@@ -119,6 +119,8 @@ type downStream struct {
 	logDone          uint32
 
 	snapshot types.ClusterSnapshot
+
+	phase types.Phase
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
@@ -258,12 +260,16 @@ func (s *downStream) requestMetrics() {
 			processTime = requestReceivedNs + (streamDurationNs - responseReceivedNs)
 		}
 
+		s.proxy.stats.DownstreamProcessTime.Update(processTime)
 		s.proxy.stats.DownstreamProcessTimeTotal.Inc(processTime)
 
+		s.proxy.listenerStats.DownstreamProcessTime.Update(processTime)
 		s.proxy.listenerStats.DownstreamProcessTimeTotal.Inc(processTime)
 
+		s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
+		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
 		s.proxy.stats.DownstreamUpdateRequestCode(s.requestInfo.ResponseCode())
@@ -393,6 +399,8 @@ func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
 	for i := 0; i <= int(types.End-types.InitPhase); i++ {
+		s.phase = phase
+
 		switch phase {
 		// init phase
 		case types.InitPhase:
@@ -1535,10 +1543,14 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 		if s.oneway {
 			phase = types.Oneway
-		} else {
-			phase = types.UpFilter
+			err = types.ErrExit
+			return
 		}
-		err = types.ErrExit
+		if s.phase != types.UpFilter {
+			phase = types.UpFilter
+			err = types.ErrExit
+			return
+		}
 		return
 	}
 
