@@ -38,7 +38,7 @@ type mockHandler struct {
 func (h *mockHandler) OnAccept(rawc net.Conn, handOffRestoredDestinationConnections bool, oriRemoteAddr net.Addr, c chan api.Connection, buf []byte) {
 	ctx := context.Background()
 	conn := NewServerConnection(ctx, rawc, h.stopChan)
-	conn.SetIdleTimeout(3 * time.Second)
+	conn.SetIdleTimeout(buffer.ConnReadTimeout, 3 * time.Second)
 	h.OnNewConnection(ctx, conn)
 }
 
@@ -160,13 +160,13 @@ func TestIdleCheckerWithData(t *testing.T) {
 
 func TestGetIdleCount(t *testing.T) {
 	// teardown
-	if maxIdleCount := getIdleCount(100 * time.Second); maxIdleCount != 7 {
+	if maxIdleCount := getIdleCount(buffer.ConnReadTimeout, 100 * time.Second); maxIdleCount != 7 {
 		t.Error("set idle timeout unexpected:", maxIdleCount)
 	}
-	if maxIdleCount := getIdleCount(90 * time.Second); maxIdleCount != 6 {
+	if maxIdleCount := getIdleCount(buffer.ConnReadTimeout, 90 * time.Second); maxIdleCount != 6 {
 		t.Error("set idle timeout unexpected:", maxIdleCount)
 	}
-	if maxIdleCount := getIdleCount(0); maxIdleCount != 0 {
+	if maxIdleCount := getIdleCount(buffer.ConnReadTimeout, 0); maxIdleCount != 0 {
 		t.Error("set idle timeout unexpected:", maxIdleCount)
 	}
 }

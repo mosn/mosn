@@ -119,6 +119,8 @@ type downStream struct {
 	logDone          uint32
 
 	snapshot types.ClusterSnapshot
+
+	phase types.Phase
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
@@ -201,7 +203,7 @@ func (s *downStream) cleanStream() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] cleanStream panic: %v, downstream: %+v, streamID: %d\n%s",
+			log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] cleanStream panic: %v, downstream: %+v, streamID: %d\n%s",
 				r, s, s.ID, string(debug.Stack()))
 		}
 	}()
@@ -258,16 +260,12 @@ func (s *downStream) requestMetrics() {
 			processTime = requestReceivedNs + (streamDurationNs - responseReceivedNs)
 		}
 
-		s.proxy.stats.DownstreamProcessTime.Update(processTime)
 		s.proxy.stats.DownstreamProcessTimeTotal.Inc(processTime)
 
-		s.proxy.listenerStats.DownstreamProcessTime.Update(processTime)
 		s.proxy.listenerStats.DownstreamProcessTimeTotal.Inc(processTime)
 
-		s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
-		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
 		s.proxy.stats.DownstreamUpdateRequestCode(s.requestInfo.ResponseCode())
@@ -297,7 +295,7 @@ func (s *downStream) writeLog() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] writeLog panic %v, downstream %+v", r, s)
+			log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] writeLog panic %v, downstream %+v", r, s)
 		}
 	}()
 
@@ -363,7 +361,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 	pool.ScheduleAuto(func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Proxy.Errorf(s.context, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
+				log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
 					r, s, id, s.ID, string(debug.Stack()))
 
 				if id == s.ID {
@@ -397,6 +395,8 @@ func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
 	for i := 0; i <= int(types.End-types.InitPhase); i++ {
+		s.phase = phase
+
 		switch phase {
 		// init phase
 		case types.InitPhase:
@@ -582,6 +582,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					s.printPhaseInfo(types.UpRecvHeader, id)
 				}
+
+				s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamRespHeaders, s.downstreamRespHeaders)
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -921,7 +923,7 @@ func (s *downStream) onUpstreamRequestSent() {
 func (s *downStream) onResponseTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout() panic %v\n%s", r, string(debug.Stack()))
+			log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] onResponseTimeout() panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 	s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
@@ -973,7 +975,7 @@ func (s *downStream) setupPerReqTimeout() {
 func (s *downStream) onPerReqTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onPerReqTimeout() panic %v\n%s", r, string(debug.Stack()))
+			log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] onPerReqTimeout() panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 
@@ -1537,10 +1539,14 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 		if s.oneway {
 			phase = types.Oneway
-		} else {
-			phase = types.UpFilter
+			err = types.ErrExit
+			return
 		}
-		err = types.ErrExit
+		if s.phase != types.UpFilter {
+			phase = types.UpFilter
+			err = types.ErrExit
+			return
+		}
 		return
 	}
 

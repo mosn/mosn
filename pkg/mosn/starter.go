@@ -52,8 +52,9 @@ type Mosn struct {
 	xdsClient      *xds.Client
 	wg             sync.WaitGroup
 	// for smooth upgrade. reconfigure
-	inheritListeners []net.Listener
-	listenSockConn   net.Conn
+	inheritListeners  []net.Listener
+	inheritPacketConn []net.PacketConn
+	listenSockConn    net.Conn
 }
 
 // NewMosn
@@ -66,11 +67,22 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 	store.SetMosnConfig(c)
 
-	//get inherit fds
-	inheritListeners, listenSockConn, err := server.GetInheritListeners()
-	if err != nil {
-		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+	var (
+		inheritListeners  []net.Listener
+		inheritPacketConn []net.PacketConn
+		listenSockConn    net.Conn
+		err               error
+	)
+
+	// default is graceful mode, turn graceful off by set it to false
+	if !c.CloseGraceful {
+		//get inherit fds
+		inheritListeners, inheritPacketConn, listenSockConn, err = server.GetInheritListeners()
+		if err != nil {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+		}
 	}
+
 	if listenSockConn != nil {
 		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
 		// set Mosn Active_Reconfiguring
@@ -88,10 +100,11 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeMetrics(c.Metrics)
 
 	m := &Mosn{
-		config:           c,
-		wg:               sync.WaitGroup{},
-		inheritListeners: inheritListeners,
-		listenSockConn:   listenSockConn,
+		config:            c,
+		wg:                sync.WaitGroup{},
+		inheritListeners:  inheritListeners,
+		inheritPacketConn: inheritPacketConn,
+		listenSockConn:    listenSockConn,
 	}
 	mode := c.Mode()
 
@@ -156,7 +169,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
-				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
+				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners, inheritPacketConn)
 				// deprecated: keep compatible for route config in listener's connection_manager
 				deprecatedRouter, err := configmanager.ParseRouterConfiguration(&lc.FilterChains[0])
 				if err != nil {
@@ -229,10 +242,12 @@ func (m *Mosn) beforeStart() {
 		configmanager.DumpConfigHandler()
 	}, nil)
 
-	// start reconfig domain socket
-	utils.GoWithRecover(func() {
-		server.ReconfigureHandler()
-	}, nil)
+	if !m.config.CloseGraceful {
+		// start reconfig domain socket
+		utils.GoWithRecover(func() {
+			server.ReconfigureHandler()
+		}, nil)
+	}
 }
 
 // Start mosn's server

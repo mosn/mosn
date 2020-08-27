@@ -1,0 +1,69 @@
+{
+	"close_graceful": true,
+	"servers": [
+		{
+			"default_log_path": "stdout",
+			"listeners": [
+				{
+					"name": "serverListener",
+					"address": "127.0.0.1:2046",
+					"bind_port": true,
+					"log_path": "stdout",
+					"filter_chains": [
+						{
+							"filters": [
+								{
+									"type": "proxy",
+									"config": {
+										"downstream_protocol": "Http1",
+										"upstream_protocol": "Http1",
+										"router_config_name": "server_router"
+									}
+								}
+							]
+						}
+					]
+				}
+			],
+			"routers": [
+				{
+					"router_config_name": "server_router",
+					"virtual_hosts": [
+						{
+							"name": "serverHost",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"match": {
+										"prefix": "/"
+									},
+									"route": {
+										"cluster_name": "serverCluster"
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"cluster_manager": {
+		"clusters": [
+			{
+				"name": "serverCluster",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+				"max_request_per_conn": 1024,
+				"conn_buffer_limit_bytes": 32768,
+				"hosts": [
+					{
+						"address": "127.0.0.1:8080"
+					}
+				]
+			}
+		]
+	}
+}

@@ -21,7 +21,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"net"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -193,6 +192,16 @@ func (b *ioBuffer) Read(p []byte) (n int, err error) {
 	return
 }
 
+func (b *ioBuffer) Grow(n int) error {
+	_, ok := b.tryGrowByReslice(n)
+
+	if !ok {
+		b.grow(n)
+	}
+
+	return nil
+}
+
 func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 	var m int
 
@@ -212,16 +221,7 @@ func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 	l := cap(b.buf) - len(b.buf)
 
-	conn, _ := r.(net.Conn)
-	if conn != nil {
-		// TODO: support configure
-		conn.SetReadDeadline(time.Now().Add(ConnReadTimeout))
-
-		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
-
-	} else {
-		m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
-	}
+	m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
 
 	b.buf = b.buf[0 : len(b.buf)+m]
 	n = int64(m)
