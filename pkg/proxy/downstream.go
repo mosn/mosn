@@ -260,12 +260,16 @@ func (s *downStream) requestMetrics() {
 			processTime = requestReceivedNs + (streamDurationNs - responseReceivedNs)
 		}
 
+		s.proxy.stats.DownstreamProcessTime.Update(processTime)
 		s.proxy.stats.DownstreamProcessTimeTotal.Inc(processTime)
 
+		s.proxy.listenerStats.DownstreamProcessTime.Update(processTime)
 		s.proxy.listenerStats.DownstreamProcessTimeTotal.Inc(processTime)
 
+		s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
+		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
 		s.proxy.stats.DownstreamUpdateRequestCode(s.requestInfo.ResponseCode())
