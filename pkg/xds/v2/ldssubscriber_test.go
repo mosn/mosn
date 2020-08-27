@@ -23,14 +23,17 @@ import (
 	"testing"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	envoy_config_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 )
 
-func Test_RdsHandler(t *testing.T) {
+func Test_LdsHandler(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			t.Errorf("TestRdsHandler error: %v \n %s", r, string(debug.Stack()))
+			t.Errorf("TestLdsHandler error: %v \n %s", r, string(debug.Stack()))
 		}
 	}()
 
@@ -43,17 +46,37 @@ func Test_RdsHandler(t *testing.T) {
 		RecvControlChan:   make(chan int),
 		StopChan:          make(chan int),
 	}
-	route := &envoy_api_v2.RouteConfiguration{
-		Name: "testroute",
+
+	httpManager := &xdshttp.HttpConnectionManager{
+		RouteSpecifier: &envoy_config_v2.HttpConnectionManager_Rds{
+			Rds: &envoy_config_v2.Rds{
+				RouteConfigName: "test_route",
+			},
+		},
+	}
+	httpManagerAny, _ := ptypes.MarshalAny(httpManager)
+	filter := listener.Filter{
+		Name: "envoy.http_connection_manager",
+	}
+	filter.ConfigType = &listener.Filter_TypedConfig{TypedConfig: httpManagerAny}
+	listener := &envoy_api_v2.Listener{
+		Name: "test_listener",
+		FilterChains: []*listener.FilterChain{
+			{
+				Filters: []*listener.Filter{
+					&filter,
+				},
+			},
+		},
 	}
 
-	routeAny, _ := ptypes.MarshalAny(route)
+	listenerRes, _ := ptypes.MarshalAny(listener)
 	resp := &envoy_api_v2.DiscoveryResponse{
-		TypeUrl:   EnvoyRouteConfiguration,
-		Resources: []*any.Any{routeAny},
+		TypeUrl:   EnvoyListener,
+		Resources: []*any.Any{listenerRes},
 	}
 
-	if rds := adsClient.handleRoutesResp(resp); rds == nil || len(rds) != 1 {
-		t.Error("handleRoutesResp failed.")
+	if lds := adsClient.handleListenersResp(resp); lds == nil || len(lds) != 1 {
+		t.Error("handleListenersResp failed.")
 	}
 }

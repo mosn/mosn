@@ -15,45 +15,50 @@
  * limitations under the License.
  */
 
-package v2
+package protocol
 
 import (
-	"runtime/debug"
-	"sync"
+	"context"
 	"testing"
-
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 )
 
-func Test_RdsHandler(t *testing.T) {
+func TestBuffer(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
-			t.Errorf("TestRdsHandler error: %v \n %s", r, string(debug.Stack()))
+			t.Errorf("TestBuffer error: %v", r)
 		}
 	}()
 
-	xdsConfig := XDSConfig{}
-	adsClient := &ADSClient{
-		AdsConfig:         xdsConfig.ADSConfig,
-		StreamClientMutex: sync.RWMutex{},
-		StreamClient:      nil,
-		SendControlChan:   make(chan int),
-		RecvControlChan:   make(chan int),
-		StopChan:          make(chan int),
-	}
-	route := &envoy_api_v2.RouteConfiguration{
-		Name: "testroute",
+	buf := ProtocolBuffersByContext(context.Background())
+	if buf == nil {
+		t.Error("New buffer failed.")
 	}
 
-	routeAny, _ := ptypes.MarshalAny(route)
-	resp := &envoy_api_v2.DiscoveryResponse{
-		TypeUrl:   EnvoyRouteConfiguration,
-		Resources: []*any.Any{routeAny},
+	if d := buf.GetReqData(1024); d == nil {
+		t.Error("GetReqData failed.")
 	}
 
-	if rds := adsClient.handleRoutesResp(resp); rds == nil || len(rds) != 1 {
-		t.Error("handleRoutesResp failed.")
+	if d := buf.GetReqHeader(1024); d == nil {
+		t.Error("GetReqHeader failed.")
 	}
+
+	if d := buf.GetReqTailers(); d == nil {
+		t.Error("GetReqTailers failed.")
+	}
+
+	if d := buf.GetRspData(1024); d == nil {
+		t.Error("GetRspData failed.")
+	}
+
+	if d := buf.GetRspHeader(1024); d == nil {
+		t.Error("GetRspHeader failed.")
+	}
+
+	if d := buf.GetRspTailers(); d == nil {
+		t.Error("GetRspTailers failed.")
+	}
+
+	p := protocolBufferCtx{}
+	p.Reset(buf)
+
 }
