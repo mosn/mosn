@@ -21,7 +21,6 @@ import (
 	"context"
 	"net"
 	"os"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -108,12 +107,6 @@ func (l *listener) Addr() net.Addr {
 }
 
 func (l *listener) Start(lctx context.Context, restart bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.DefaultLogger.Alertf("listener.start", "[network] [listener start] panic %v\n%s", r, string(debug.Stack()))
-		}
-	}()
-
 	if l.bindToPort {
 		ignore := func() bool {
 			l.mutex.Lock()
