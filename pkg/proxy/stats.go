@@ -32,7 +32,9 @@ type Stats struct {
 	DownstreamRequestTotal      gometrics.Counter
 	DownstreamRequestActive     gometrics.Counter
 	DownstreamRequestReset      gometrics.Counter
+	DownstreamRequestTime       gometrics.Histogram
 	DownstreamRequestTimeTotal  gometrics.Counter
+	DownstreamProcessTime       gometrics.Histogram
 	DownstreamProcessTimeTotal  gometrics.Counter
 	DownstreamRequestFailed     gometrics.Counter
 	DownstreamRequest200Total   gometrics.Counter
@@ -70,7 +72,9 @@ func newStats(s types.Metrics) *Stats {
 		DownstreamRequestTotal:      s.Counter(metrics.DownstreamRequestTotal),
 		DownstreamRequestActive:     s.Counter(metrics.DownstreamRequestActive),
 		DownstreamRequestReset:      s.Counter(metrics.DownstreamRequestReset),
+		DownstreamRequestTime:       s.Histogram(metrics.DownstreamRequestTime),
 		DownstreamRequestTimeTotal:  s.Counter(metrics.DownstreamRequestTimeTotal),
+		DownstreamProcessTime:       s.Histogram(metrics.DownstreamProcessTime),
 		DownstreamProcessTimeTotal:  s.Counter(metrics.DownstreamProcessTimeTotal),
 		DownstreamRequestFailed:     s.Counter(metrics.DownstreamRequestFailed),
 		DownstreamRequest200Total:   s.Counter(metrics.DownstreamRequest200Total),
