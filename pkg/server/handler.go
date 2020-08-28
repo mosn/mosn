@@ -393,7 +393,7 @@ func (al *activeListener) GoStart(lctx context.Context) {
 		al.listener.Start(lctx, false)
 	}, func(r interface{}) {
 		// TODO: add a times limit?
-		log.DefaultLogger.Alertf("listener.start", "[network] [listener start] old listener panic")
+		log.DefaultLogger.Alertf("listener.start","[network] [listener start] old listener panic")
 		al.GoStart(lctx)
 	})
 }
