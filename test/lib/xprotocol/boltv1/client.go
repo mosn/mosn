@@ -1,63 +1,61 @@
-package http
+package boltv1
 
 import (
 	"context"
 	"errors"
 	"net"
-	"net/http"
 	"sync/atomic"
 	"time"
 
-	"github.com/valyala/fasthttp"
 	"mosn.io/api"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
-	mosnhttp "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt" // register bolt
 	"mosn.io/mosn/pkg/stream"
-	_ "mosn.io/mosn/pkg/stream/http" // register http1
+	_ "mosn.io/mosn/pkg/stream/xprotocol" // register xprotocol
 	mtypes "mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/lib"
 	"mosn.io/mosn/test/lib/types"
-	"mosn.io/mosn/test/lib/utils"
 	"mosn.io/pkg/buffer"
 )
 
 func init() {
-	lib.RegisterCreateClient("Http1", NewHttpClient)
+	lib.RegisterCreateClient("bolt", NewBoltClient)
 }
 
-// MockHttpClient use mosn http protocol and stream
-// control metrics and connection
-type MockHttpClient struct {
+// MockBoltClient use mosn xprotocol.bolt protocol and stream
+type MockBoltClient struct {
 	// config
-	config *HttpClientConfig
+	config *BoltClientConfig
 	// stats
 	stats *types.ClientStats
 	// connection pool
 	curConnNum uint32
 	maxConnNum uint32
-	connPool   chan *HttpConn
+	connPool   chan *BoltConn
 }
 
-func NewHttpClient(config interface{}) types.MockClient {
-	cfg, err := NewHttpClientConfig(config)
+func NewBoltClient(config interface{}) types.MockClient {
+	cfg, err := NewBoltClientConfig(config)
 	if err != nil {
-		log.DefaultLogger.Errorf("new http client config error: %v", err)
+		log.DefaultLogger.Errorf("new bolt client config error: %v", err)
 		return nil
 	}
 	if cfg.MaxConn == 0 {
 		cfg.MaxConn = 1
 	}
-	return &MockHttpClient{
+	return &MockBoltClient{
 		config:     cfg,
 		stats:      types.NewClientStats(),
 		maxConnNum: cfg.MaxConn,
-		connPool:   make(chan *HttpConn, cfg.MaxConn),
+		connPool:   make(chan *BoltConn, cfg.MaxConn),
 	}
 }
 
-func (c *MockHttpClient) SyncCall() bool {
+func (c *MockBoltClient) SyncCall() bool {
 	conn, err := c.getOrCreateConnection()
 	if err != nil {
 		log.DefaultLogger.Errorf("get connection from pool error: %v", err)
@@ -75,24 +73,24 @@ func (c *MockHttpClient) SyncCall() bool {
 		// TODO: support timeout verify
 	case nil:
 		status = c.config.Verify.Verify(resp)
-		c.stats.Records().RecordResponse(int16(resp.StatusCode))
 	default:
 		log.DefaultLogger.Errorf("unexpected error got: %v", err)
 	}
+	c.stats.Records().RecordResponse(resp.GetResponseStatus())
 	c.stats.Response(status)
 	return status
 }
 
 // TODO: implement it
-func (c *MockHttpClient) AsyncCall() {
+func (c *MockBoltClient) AsyncCall() {
 }
 
-func (c *MockHttpClient) Stats() types.ClientStatsReadOnly {
+func (c *MockBoltClient) Stats() types.ClientStatsReadOnly {
 	return c.stats
 }
 
 // Close will close all the connections
-func (c *MockHttpClient) Close() {
+func (c *MockBoltClient) Close() {
 	for {
 		select {
 		case conn := <-c.connPool:
@@ -106,7 +104,7 @@ func (c *MockHttpClient) Close() {
 }
 
 // connpool implementation
-func (c *MockHttpClient) getOrCreateConnection() (*HttpConn, error) {
+func (c *MockBoltClient) getOrCreateConnection() (*BoltConn, error) {
 	select {
 	case conn := <-c.connPool:
 		if !conn.IsClosed() {
@@ -134,7 +132,7 @@ func (c *MockHttpClient) getOrCreateConnection() (*HttpConn, error) {
 
 }
 
-func (c *MockHttpClient) releaseConnection(conn *HttpConn) {
+func (c *MockBoltClient) releaseConnection(conn *BoltConn) {
 	if conn.IsClosed() {
 		atomic.AddUint32(&c.curConnNum, ^uint32(0))
 		return
@@ -145,26 +143,20 @@ func (c *MockHttpClient) releaseConnection(conn *HttpConn) {
 	}
 }
 
-type Response struct {
-	StatusCode int
-	Header     map[string][]string
-	Body       []byte
-	Cost       time.Duration
-}
-
-type HttpConn struct {
+type BoltConn struct {
 	conn          mtypes.ClientConnection
 	stream        stream.Client
 	stop          chan struct{}
 	closeCallback func()
+	reqId         uint32
 }
 
-func NewConn(addr string, cb func()) (*HttpConn, error) {
+func NewConn(addr string, cb func()) (*BoltConn, error) {
 	remoteAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
-	hconn := &HttpConn{
+	hconn := &BoltConn{
 		stop:          make(chan struct{}),
 		closeCallback: cb,
 	}
@@ -174,7 +166,9 @@ func NewConn(addr string, cb func()) (*HttpConn, error) {
 	}
 	conn.AddConnectionEventListener(hconn)
 	hconn.conn = conn
-	s := stream.NewStreamClient(context.Background(), protocol.HTTP1, conn, nil)
+	ctx := context.Background()
+	ctx = mosnctx.WithValue(ctx, mtypes.ContextSubProtocol, string(bolt.ProtocolName))
+	s := stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	if s == nil {
 		return nil, errors.New("protocol not registered")
 	}
@@ -182,7 +176,7 @@ func NewConn(addr string, cb func()) (*HttpConn, error) {
 	return hconn, nil
 }
 
-func (c *HttpConn) OnEvent(event api.ConnectionEvent) {
+func (c *BoltConn) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		close(c.stop)
 		if c.closeCallback != nil {
@@ -191,11 +185,11 @@ func (c *HttpConn) OnEvent(event api.ConnectionEvent) {
 	}
 }
 
-func (c *HttpConn) Close() {
+func (c *BoltConn) Close() {
 	c.conn.Close(api.NoFlush, api.LocalClose)
 }
 
-func (c *HttpConn) IsClosed() bool {
+func (c *BoltConn) IsClosed() bool {
 	select {
 	case <-c.stop:
 		return true
@@ -204,8 +198,12 @@ func (c *HttpConn) IsClosed() bool {
 	}
 }
 
-func (c *HttpConn) AsyncSendRequest(receiver mtypes.StreamReceiveListener, req *RequestConfig) {
-	headers, body := req.BuildRequest()
+func (c *BoltConn) ReqID() uint32 {
+	return atomic.AddUint32(&c.reqId, 1)
+}
+
+func (c *BoltConn) AsyncSendRequest(receiver *receiver, req *RequestConfig) {
+	headers, body := req.BuildRequest(receiver.requestId)
 	ctx := context.Background()
 	encoder := c.stream.NewStream(ctx, receiver)
 	encoder.AppendHeaders(ctx, headers, body == nil)
@@ -219,13 +217,13 @@ var (
 	ErrRequestTimeout   = errors.New("sync call timeout")
 )
 
-func (c *HttpConn) SyncSendRequest(req *RequestConfig) (*Response, error) {
+func (c *BoltConn) SyncSendRequest(req *RequestConfig) (*Response, error) {
 	select {
 	case <-c.stop:
 		return nil, ErrClosedConnection
 	default:
 		ch := make(chan *Response)
-		r := newReceiver(ch)
+		r := newReceiver(c.ReqID(), ch)
 		c.AsyncSendRequest(r, req)
 		// set default timeout, if a timeout is configured, use it
 		timeout := 5 * time.Second
@@ -244,35 +242,53 @@ func (c *HttpConn) SyncSendRequest(req *RequestConfig) (*Response, error) {
 }
 
 type receiver struct {
-	data  *Response
-	start time.Time
-	ch    chan<- *Response // write only
+	requestId uint32
+	data      *Response
+	start     time.Time
+	ch        chan<- *Response // write only
 }
 
-func newReceiver(ch chan<- *Response) *receiver {
+func newReceiver(id uint32, ch chan<- *Response) *receiver {
 	return &receiver{
-		data:  &Response{},
-		start: time.Now(),
-		ch:    ch,
+		requestId: id,
+		data:      &Response{},
+		start:     time.Now(),
+		ch:        ch,
 	}
 }
 
 func (r *receiver) OnReceive(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, _ api.HeaderMap) {
 	r.data.Cost = time.Now().Sub(r.start)
-	cmd := headers.(mosnhttp.ResponseHeader).ResponseHeader
-	r.data.Header = utils.ReadFasthttpResponseHeaders(cmd)
-	r.data.StatusCode = cmd.StatusCode()
-	if data != nil {
-		r.data.Body = data.Bytes()
-	}
+	cmd := headers.(xprotocol.XRespFrame)
+	resp := cmd.(*bolt.Response)
+	r.data.Header = resp.ResponseHeader
+	r.data.Header.RequestId = r.requestId
+	r.data.Content = data
 	r.ch <- r.data
 }
 
 func (r *receiver) OnDecodeError(context context.Context, err error, _ api.HeaderMap) {
+	// build an error
 	r.data.Cost = time.Now().Sub(r.start)
-	header := &fasthttp.ResponseHeader{}
-	header.SetStatusCode(http.StatusInternalServerError)
-	header.Set("X-Mosn-Error", err.Error())
-	r.data.Header = utils.ReadFasthttpResponseHeaders(header)
+	r.data.Header = bolt.ResponseHeader{
+		Protocol:       bolt.ProtocolCode,
+		CmdType:        bolt.CmdTypeResponse,
+		CmdCode:        bolt.CmdCodeRpcResponse,
+		Version:        bolt.ProtocolVersion,
+		Codec:          bolt.Hessian2Serialize,
+		RequestId:      r.requestId,
+		ResponseStatus: bolt.ResponseStatusError,
+	}
+	r.data.Content = buffer.NewIoBufferString(err.Error())
 	r.ch <- r.data
+}
+
+type Response struct {
+	Header  bolt.ResponseHeader
+	Content buffer.IoBuffer
+	Cost    time.Duration
+}
+
+func (r *Response) GetResponseStatus() int16 {
+	return int16(r.Header.ResponseStatus)
 }
