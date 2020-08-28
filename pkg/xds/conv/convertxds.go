@@ -95,7 +95,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr:                    convertAddress(xdsListener.Address),
+		Addr: convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -471,6 +471,7 @@ func convertStreamFaultInjectConfig(s *any.Any) (map[string]interface{}, error) 
 					Duration: fixed_delay,
 				},
 			},
+			Delay: fixed_delay,
 		},
 		Abort: &v2.AbortInject{
 			Percent: abortPercent,

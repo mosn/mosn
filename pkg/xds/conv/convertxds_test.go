@@ -893,7 +893,7 @@ func Test_convertPerRouteConfig(t *testing.T) {
 			rawFault.UpstreamCluster == "testupstream" &&
 			len(rawFault.Headers) == 1 &&
 			reflect.DeepEqual(rawFault.Headers[0], expectedHeader)) {
-			t.Errorf("fault config is not expected, %v", rawFault)
+			t.Errorf("fault config is not expected, %+v, %+v, %v", rawFault.Abort, rawFault.Delay, rawFault)
 		}
 
 	}
