@@ -353,7 +353,7 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 		buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] receive response, requestId = %v", requestId)
+			log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] connection %d receive response, requestId = %v", sc.netConn.ID(), requestId)
 		}
 
 		clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
