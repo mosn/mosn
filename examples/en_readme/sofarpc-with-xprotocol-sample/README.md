@@ -36,8 +36,10 @@ cd ${targetpath}
 main        // compiled MOSN
 server.go   // Mocked SofaRpc Server
 client.go   // Mocked SofaRpc client
-config.json // Configure without TLS
-tls.json    // Configure with TLS
+client_config.json // Configure without TLS
+server_config.json // Configure without TLS
+tls_client_config.json    // Configure with TLS
+tls_server_config.json    // Configure with TLS
 ```
 
 ## Operation instructions
@@ -50,18 +52,29 @@ go run server.go
 
 ### Start MOSN
 
-+ Use config.json to run MOSN without TLS.
++ Use non-TLS configs to run MOSN without TLS.
 
+run client side:
 ```
-./main start -c config.json
-```
-
-+ Use tls.json to start SOFAMosb witht TLS.
-
-```
-./main start -c tls.json
+./main start -c client_config.json
 ```
 
+run server side:
+```
+./main start -c server_config.json
+```
+
++ Use TLS configs to start MOSN witht TLS.
+
+run client side:
+```
+./main start -c tls_client_config.json
+```
+
+run server side:
+```
+./main start -c tls_server_config.json
+```
 
 ### Start Client to send request
 
