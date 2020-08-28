@@ -1,8 +1,11 @@
 package faultinject
 
 import (
+	"context"
 	"testing"
 	"time"
+
+	"mosn.io/api"
 )
 
 func TestParseStreamFaultInjectFilter(t *testing.T) {
@@ -46,5 +49,28 @@ func TestParseStreamFaultInjectFilter(t *testing.T) {
 	}
 	if !(faultInject.Delay.Percent == 100 && faultInject.Delay.Delay == time.Second) {
 		t.Error("parse stream fault inject's delay unexpected")
+	}
+}
+
+type mockStreamFilterChainFactoryCallbacks struct {
+	api.StreamFilterChainFactoryCallbacks
+	rf api.StreamReceiverFilter
+	p  api.FilterPhase
+}
+
+func (m *mockStreamFilterChainFactoryCallbacks) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.FilterPhase) {
+	m.rf = filter
+	m.p = p
+}
+
+func TestFactory(t *testing.T) {
+	fac, err := CreateFaultInjectFilterFactory(map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("create factory failed: %v", err)
+	}
+	cb := &mockStreamFilterChainFactoryCallbacks{}
+	fac.CreateFilterChain(context.TODO(), cb)
+	if cb.rf == nil || cb.p != api.AfterRoute {
+		t.Fatalf("create filter chain failed")
 	}
 }

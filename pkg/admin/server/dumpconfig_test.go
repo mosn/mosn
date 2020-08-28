@@ -170,11 +170,4 @@ func TestDumpConfigWithParameters(t *testing.T) {
 			t.Fatalf("verify result error: %v, body: %s", err, string(b))
 		}
 	}
-	// test invalid parameters
-	r := httptest.NewRequest("GET", "http://127.0.0.1/api/v1/config_dump?invalid", nil)
-	w := httptest.NewRecorder()
-	configDump(w, r)
-	if w.Result().StatusCode != 500 {
-		t.Fatalf("response is not 500 ,got:%d", w.Result().StatusCode)
-	}
 }
