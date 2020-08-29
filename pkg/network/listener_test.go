@@ -54,8 +54,8 @@ func (e *mockEventListener) PreStopHook(ctx context.Context) func() error {
 	return nil
 }
 
-func TestListenerStart(t *testing.T) {
-	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:10101")
+
+func testBase(t *testing.T,addr net.Addr){
 	cfg := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			Name:       "test_listener",
@@ -70,7 +70,7 @@ func TestListenerStart(t *testing.T) {
 	go ln.Start(nil, false) // start
 	time.Sleep(3 * time.Second)
 	check := func(t *testing.T) bool {
-		conn, err := net.Dial("tcp", "127.0.0.1:10101")
+		conn, err := net.Dial(addr.Network(), addr.String())
 		if err != nil {
 			t.Logf("dial error: %v", err)
 			return false
@@ -114,66 +114,14 @@ func TestListenerStart(t *testing.T) {
 	if !check(t) {
 		t.Error("listener restart check failed")
 	}
-
 }
 
-func TestUDPListenerStart(t *testing.T) {
-	addr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:10101")
-	cfg := &v2.Listener{
-		ListenerConfig: v2.ListenerConfig{
-			Name:       "test_listener",
-			BindToPort: true,
-			Network:    "udp",
-		},
-		PerConnBufferLimitBytes: 1024,
-		Addr:                    addr,
-	}
-	ln := NewListener(cfg)
-	el := &mockEventListener{}
-	ln.SetListenerCallbacks(el)
-	go ln.Start(nil, false) // start
-	time.Sleep(time.Second)
+func TestListenerTCPStart(t *testing.T) {
+	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:10101")
+	testBase(t,addr)
+}
 
-	conn, _ := net.DialUDP("udp", nil, addr)
-	defer conn.Close()
-	check := func(t *testing.T) bool {
-		conn.Write([]byte("test"))
-		time.Sleep(time.Second)
-		res := el.GetRecvStatus()
-		el.SetRecvStatus(false)
-		return res
-	}
-	if !check(t) {
-		t.Errorf("udp listen accept failed")
-	}
-
-	// duplicate start, will be ignored, return directly
-	for i := 0; i < 10; i++ {
-		ch := make(chan struct{})
-		go func() {
-			ln.Start(nil, false)
-			close(ch)
-		}()
-		select {
-		case <-ch:
-		case <-time.After(500 * time.Millisecond):
-			t.Fatal("start not be ignored")
-		}
-	}
-
-	// close listener
-	if err := ln.Close(nil); err != nil {
-		t.Errorf("Close listener failed, %v", err)
-	}
-	time.Sleep(2*time.Second)
-	if check(t) {
-		t.Error("listener closed, but still can be dial success")
-	}
-
-	// start, but not restart, will be failed
-	go ln.Start(nil, false)
-	time.Sleep(2*time.Second)
-	if check(t) {
-		t.Error("listener start")
-	}
+func TestListenerUDSStart(t *testing.T) {
+	addr, _ := net.ResolveUnixAddr("unix", "/tmp/test.sock")
+	testBase(t,addr)
 }
