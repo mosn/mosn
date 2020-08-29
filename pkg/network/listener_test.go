@@ -59,6 +59,7 @@ func testBase(t *testing.T,addr net.Addr){
 	cfg := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			Name:       "test_listener",
+			Network: addr.Network(),
 			BindToPort: true,
 		},
 		PerConnBufferLimitBytes: 1024,

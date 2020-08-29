@@ -55,15 +55,10 @@ type listener struct {
 	useOriginalDst          bool
 	network                 string
 	cb                      types.ListenerEventListener
-<<<<<<< HEAD
-	rawl                    *net.TCPListener
 	packetConn              net.PacketConn
-=======
 	rawl                    net.Listener
->>>>>>> c20b3882... feat: add uds feature for listener
 	config                  *v2.Listener
 	mutex                   sync.Mutex
-	udsEnabled              bool
 	// listener state indicates the listener's running state. The listener state effects if a listener binded to a port
 	state ListenerState
 }
@@ -200,21 +195,16 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 }
 
 func (l *listener) Stop() error {
-<<<<<<< HEAD
 	var err error
 	switch l.network {
 	case "udp":
 		err = l.packetConn.SetDeadline(time.Now())
+	case "unix":
+		err = l.rawl.(*net.UnixListener).SetDeadline(time.Now())
 	default:
-		err = l.rawl.SetDeadline(time.Now())
+		err = l.rawl.(*net.TCPListener).SetDeadline(time.Now())
 	}
 	return err
-=======
-	if l.udsEnabled {
-		return 	l.rawl.(*net.UnixListener).SetDeadline(time.Now())
-	}
-	return l.rawl.(*net.TCPListener).SetDeadline(time.Now())
->>>>>>> c20b3882... feat: add uds feature for listener
 }
 
 func (l *listener) ListenerTag() uint64 {
@@ -226,21 +216,14 @@ func (l *listener) SetListenerTag(tag uint64) {
 }
 
 func (l *listener) ListenerFile() (*os.File, error) {
-<<<<<<< HEAD
 	switch l.network {
 	case "udp":
 		return l.packetConn.(*net.UDPConn).File()
+	case "unix":
+		return l.rawl.(*net.UnixListener).File()
 	default:
-		return l.rawl.File()
+		return l.rawl.(*net.TCPListener).File()
 	}
-
-	return nil, nil
-=======
-	if l.udsEnabled {
-		return 	l.rawl.(*net.UnixListener).File()
-	}
-	return l.rawl.(*net.TCPListener).File()
->>>>>>> c20b3882... feat: add uds feature for listener
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {
@@ -284,33 +267,12 @@ func (l *listener) Close(lctx context.Context) error {
 
 func (l *listener) listen(lctx context.Context) error {
 	var err error
-<<<<<<< HEAD
-	var rawl *net.TCPListener
+	var rawl net.Listener
 	var rconn net.PacketConn
-=======
+
 	if l.localAddress == nil {
 		return errors.New("listener local addr is nil")
 	}
-
-	var rawl net.Listener
-	if l.localAddress.Network() == "unix" {
-		// set uds flag
-		l.udsEnabled = true
-
-		err := syscall.Unlink(l.localAddress.String())
-		if err != nil{
-			log.DefaultLogger.Infof("failed to unlink path: %v", l.localAddress.String())
-		}
-		err = os.Chmod(l.localAddress.String(), os.ModePerm)
-		if err != nil {
-			log.DefaultLogger.Infof("failed to chmod perm to path: %v", l.localAddress.String())
-		}
-	}
-
-	if rawl, err = net.Listen(l.localAddress.Network(),l.localAddress.String()); err != nil {
-		return err
-	}
->>>>>>> c20b3882... feat: add uds feature for listener
 
 	switch l.network {
 	case "udp":
@@ -319,8 +281,18 @@ func (l *listener) listen(lctx context.Context) error {
 			return err
 		}
 		l.packetConn = rconn
+	case "unix":
+		err := syscall.Unlink(l.localAddress.String())
+		if err != nil {
+			log.DefaultLogger.Infof("failed to unlink path: %v", l.localAddress.String())
+		}
+		err = os.Chmod(l.localAddress.String(), os.ModePerm)
+		if err != nil {
+			log.DefaultLogger.Infof("failed to chmod perm to path: %v", l.localAddress.String())
+		}
+		fallthrough
 	default:
-		if rawl, err = net.ListenTCP(l.network, l.localAddress.(*net.TCPAddr)); err != nil {
+		if rawl, err = net.Listen(l.localAddress.Network(), l.localAddress.String()); err != nil {
 			return err
 		}
 		l.rawl = rawl
