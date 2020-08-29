@@ -115,6 +115,7 @@ func testBase(t *testing.T,addr net.Addr){
 	if !check(t) {
 		t.Error("listener restart check failed")
 	}
+	ln.Close(context.Background())
 }
 
 func TestListenerTCPStart(t *testing.T) {

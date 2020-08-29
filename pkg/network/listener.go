@@ -286,10 +286,6 @@ func (l *listener) listen(lctx context.Context) error {
 		if err != nil {
 			log.DefaultLogger.Infof("failed to unlink path: %v", l.localAddress.String())
 		}
-		err = os.Chmod(l.localAddress.String(), os.ModePerm)
-		if err != nil {
-			log.DefaultLogger.Infof("failed to chmod perm to path: %v", l.localAddress.String())
-		}
 		fallthrough
 	default:
 		if rawl, err = net.Listen(l.localAddress.Network(), l.localAddress.String()); err != nil {
