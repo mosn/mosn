@@ -155,6 +155,7 @@ func (subscribe *SdsSubscriber) receiveResponseLoop() {
 				subscribe.reconnect()
 				continue
 			}
+			log.DefaultLogger.Infof("[xds] [sds subscriber] received a repsonse")
 			subscribe.handleSecretResp(resp)
 		}
 	}

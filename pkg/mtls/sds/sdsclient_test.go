@@ -75,14 +75,16 @@ func Test_AddUpdateCallback(t *testing.T) {
 	time.Sleep(time.Second)
 	srv.Stop()
 	// send request
-	updatedChan := make(chan int)
+	updatedChan := make(chan int, 1) // do not block the update channel
+	log.DefaultLogger.Infof(" add update callback")
 	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SdsSecret) {
 		if name != "default" {
 			t.Errorf("name should same with config.name")
 		}
+		log.DefaultLogger.Infof("update callback is called")
 		updatedChan <- 1
 	})
-	time.Sleep(2 * time.Second)
+	time.Sleep(time.Second)
 	go func() {
 		err := srv.Start()
 		if !srv.started {
@@ -201,7 +203,7 @@ func (s *fakeSdsServer) Stop() {
 }
 
 func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSecretsServer) error {
-	log.DefaultLogger.Debugf("get stream secrets")
+	log.DefaultLogger.Infof("get stream secrets")
 	// wait for request
 	// for test just ignore
 	_, err := stream.Recv()
