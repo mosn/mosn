@@ -115,6 +115,7 @@ func (subscribe *SdsSubscriber) sendRequestLoop() {
 	for {
 		select {
 		case <-subscribe.sendStopChannel:
+			log.DefaultLogger.Errorf("[xds] [sds subscriber] send request loop closed")
 			return
 		case name := <-subscribe.reqQueue:
 			discoveryReq := &xdsapi.DiscoveryRequest{
@@ -141,6 +142,7 @@ func (subscribe *SdsSubscriber) receiveResponseLoop() {
 	for {
 		select {
 		case <-subscribe.receiveStopChannel:
+			log.DefaultLogger.Errorf("[xds] [sds subscriber]  receive response loop closed")
 			return
 		default:
 			if subscribe.sdsStreamClient == nil {

@@ -39,19 +39,6 @@ const (
 	SecretType = "type.googleapis.com/envoy.api.v2.auth.Secret"
 )
 
-func Test_GetSdsClient(t *testing.T) {
-	sdsUdsPath := "/tmp/sds1"
-	// mock sds server
-	srv := InitMockSdsServer(sdsUdsPath, t)
-	defer srv.Stop()
-	config := InitSdsSecertConfig(sdsUdsPath)
-	sdsClient := NewSdsClientSingleton(config)
-	if sdsClient == nil {
-		t.Errorf("get sds client fail")
-	}
-	CloseSdsClient()
-}
-
 func Test_AddUpdateCallback(t *testing.T) {
 	// init prepare
 	sdsUdsPath := "/tmp/sds2"
@@ -71,6 +58,7 @@ func Test_AddUpdateCallback(t *testing.T) {
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
 	}
+	defer CloseSdsClient()
 	// wait server start and stop makes reconnect
 	time.Sleep(time.Second)
 	srv.Stop()
@@ -112,6 +100,7 @@ func Test_DeleteUpdateCallback(t *testing.T) {
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
 	}
+	defer CloseSdsClient()
 	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SdsSecret) {})
 	err := sdsClient.DeleteUpdateCallback(config)
 	if err != nil {
@@ -208,6 +197,7 @@ func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSe
 	// for test just ignore
 	_, err := stream.Recv()
 	if err != nil {
+		log.DefaultLogger.Errorf("streamn receive error: %v", err)
 		return err
 	}
 	resp := &xdsapi.DiscoveryResponse{
@@ -220,12 +210,16 @@ func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSe
 	}
 	ms, err := ptypes.MarshalAny(secret)
 	if err != nil {
+		log.DefaultLogger.Errorf("marshal secret error: %v", err)
 		return err
 	}
 	resp.Resources = append(resp.Resources, ms)
-	stream.Send(resp)
-	// keep alive for 5 second for client connection
-	time.Sleep(5 * time.Second)
+	if err := stream.Send(resp); err != nil {
+		log.DefaultLogger.Errorf("send response error: %v", err)
+		return err
+	}
+	// keep alive for 3 second for client connection
+	time.Sleep(3 * time.Second)
 	return nil
 }
 
