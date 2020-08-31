@@ -208,7 +208,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
-						if c.readBuffer != nil && c.readBuffer.Len() == 0 {
+						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 {
 							c.readBuffer.Free()
 							c.readBuffer.Alloc(DefaultBufferReadCapacity)
 						}
@@ -386,7 +386,7 @@ func (c *connection) startReadLoop() {
 				err := c.doRead()
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
-						if c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
+						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
 							c.readBuffer.Free()
 							c.readBuffer.Alloc(DefaultBufferReadCapacity)
 						}

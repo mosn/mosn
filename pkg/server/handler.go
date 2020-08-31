@@ -496,7 +496,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	if conn.LocalAddr().Network() == "udp" {
+	if conn.LocalAddr().Network() == "udp" && conn.State() != api.ConnClosed {
 		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
 	}
 
