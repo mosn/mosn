@@ -1291,6 +1291,7 @@ func (s *downStream) doRetry() {
 		downStream: s,
 		proxy:      s.proxy,
 		connPool:   pool,
+		protocol:   s.getUpstreamProtocol(),
 	}
 
 	// if Data or Trailer exists, endStream should be false, else should be true
