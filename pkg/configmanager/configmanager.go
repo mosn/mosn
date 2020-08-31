@@ -213,6 +213,13 @@ func addOrUpdateRouterConfig(routerConfig *v2.RouterConfiguration) bool {
 	if routerConfig == nil {
 		return false
 	}
+
+	// easy for test (config.Servers maybe equals nil),
+	// for example, a registry push does not trigger the dump store
+	if config.Servers == nil {
+		return false
+	}
+
 	// support only one server
 	routers := config.Servers[0].Routers
 	for idx, rt := range routers {
