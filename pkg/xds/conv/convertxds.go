@@ -855,8 +855,19 @@ func convertRoutes(xdsRoutes []*xdsroute.Route) []v2.Router {
 			}
 			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.GetTypedPerFilterConfig())
 			routes = append(routes, route)
+		} else if xdsRouteAction := xdsRoute.GetDirectResponse(); xdsRouteAction != nil {
+			route := v2.Router{
+				RouterConfig: v2.RouterConfig{
+					Match:          convertRouteMatch(xdsRoute.GetMatch()),
+					DirectResponse: convertDirectResponseAction(xdsRouteAction),
+					//Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
+				},
+				Metadata: convertMeta(xdsRoute.GetMetadata()),
+			}
+			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.GetTypedPerFilterConfig())
+			routes = append(routes, route)
 		} else {
-			log.DefaultLogger.Errorf("unsupported route actin, just Route and Redirect support yet, ignore this route")
+			log.DefaultLogger.Errorf("unsupported route actin, just Route, Redirect and DirectResponse support yet, ignore this route")
 			continue
 		}
 	}
@@ -1105,6 +1116,22 @@ func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) *v2.Redir
 		HostRedirect:   xdsRedirectAction.GetHostRedirect(),
 		PathRedirect:   xdsRedirectAction.GetPathRedirect(),
 		ResponseCode:   int(xdsRedirectAction.GetResponseCode()),
+	}
+}
+
+func convertDirectResponseAction(xdsDirectResponseAction *xdsroute.DirectResponseAction) *v2.DirectResponseAction {
+	if xdsDirectResponseAction == nil {
+		return nil
+	}
+
+	var body string
+	if rawData := xdsDirectResponseAction.GetBody(); rawData != nil {
+		body = rawData.GetInlineString()
+	}
+
+	return &v2.DirectResponseAction{
+		StatusCode: int(xdsDirectResponseAction.GetStatus()),
+		Body:       body,
 	}
 }
 
