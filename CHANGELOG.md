@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.16.0
+
+### Optimization
+
++ Logger Roller supports the custom Roller [@wenxuwan](https://github.com/wenxuwan)
++ StreamFilter adds new api SendHijackReplyWithBody [@wenxuwan](https://github.com/wenxuwan)
++ The configuration adds option of turning off the smooth upgrade. If the smooth ugrade is turned off, different MOSN processes can exist on a host at the same time [@cch123](https://github.com/cch123)
++ Optimize the MOSN integration test framework and add more unit tests. [@nejisama](https://github.com/nejisama) [@wangfakang](https://github.com/wangfakang) [@taoyuanyuan](https://github.com/taoyuanyuan)
++ xDS Configuration supports DirectResponse route. [@wangfakang](https://github.com/wangfakang)
++ ClusterManager configuration adds new field TLSContext [@nejisama](https://github.com/nejisama)
+
+### Bug fixes
+
++ Fix the bug that UDP connection timeout during the smooth ugrade will casue an endless loop. [@dengqian](https://github.com/dengqian)
++ Fix the bug that call DirectResponse in the SendFilter will cause an endless loop. [@taoyuanyuan](https://github.com/taoyuanyuan)
++ Fix concurrency conflicts in HTTP2 stream counting. [@wenxuwan](https://github.com/wenxuwan)
++ Fix the bug that UDP connection read timeout cause data loss. [@dengqian](https://github.com/dengqian)
++ Fix the bug that the response StatusCode cannot be recorded correctly due to the loss of the protocol flag when doing a retry. [@dengqian](https://github.com/dengqian) 
++ Fix the protocol boltv2 decode error. [@nejisama](https://github.com/nejisama)
++ Fix the bug that listener cannot be restarted automactically when listener panic. [@alpha-baby](https://github.com/alpha-baby)
++ Fix the bug that NoCache flag is invalid in variable. [@wangfakang](https://github.com/wangfakang)
++ Fix concurrency conflicts in SDS reconnect. [@nejisama](https://github.com/nejisama)
+
 ## v0.15.0
 
 ### New Features
