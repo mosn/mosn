@@ -129,7 +129,7 @@ func (subscribe *SdsSubscriber) sendRequestLoop() {
 				if err != nil {
 					log.DefaultLogger.Alertf("sds.subscribe.request", "[xds] [sds subscriber] send sds request fail , resource name = %v", name)
 					time.Sleep(1 * time.Second)
-					subscribe.reconnect()
+					// subscribe.reconnect()
 					continue
 				}
 				break
@@ -165,7 +165,15 @@ func (subscribe *SdsSubscriber) receiveResponseLoop() {
 
 func (subscribe *SdsSubscriber) sendRequest(request *xdsapi.DiscoveryRequest) error {
 	log.DefaultLogger.Debugf("send sds request resource name = %v", request.ResourceNames)
-	return subscribe.sdsStreamClient.streamSecretsClient.Send(request)
+	clt := func() *SdsStreamClient {
+		subscribe.sdsStreamClientMutex.Lock()
+		defer subscribe.sdsStreamClientMutex.Unlock()
+		return subscribe.sdsStreamClient
+	}()
+	if clt == nil {
+		return errors.New("stream client has beend closed")
+	}
+	return clt.streamSecretsClient.Send(request)
 }
 
 func (subscribe *SdsSubscriber) handleSecretResp(response *xdsapi.DiscoveryResponse) {
