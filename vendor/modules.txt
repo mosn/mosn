@@ -140,6 +140,8 @@ github.com/gogo/protobuf/types
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
+# github.com/golang/mock v1.4.4
+github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.3.5
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/ptypes
