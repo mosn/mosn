@@ -59,7 +59,7 @@ import (
 func TestMain(m *testing.M) {
 	// init
 	router.NewRouterManager()
-	cm := cluster.NewClusterManagerSingleton(nil, nil)
+	cm := cluster.NewClusterManagerSingleton(nil, nil, nil)
 	sc := server.NewConfig(&v2.ServerConfig{
 		ServerName:      "test_xds_server",
 		DefaultLogPath:  "stdout",
@@ -691,6 +691,55 @@ func Test_convertRedirectAction(t *testing.T) {
 	}
 }
 
+func Test_convertDirectResponseAction(t *testing.T) {
+	testCases := []struct {
+		name     string
+		in       *xdsroute.DirectResponseAction
+		expected *v2.DirectResponseAction
+	}{
+		{
+			name: "directResponse with body",
+			in: &xdsroute.DirectResponseAction{
+				Status: 200,
+				Body: &core.DataSource{
+					Specifier: &core.DataSource_InlineString{
+						InlineString: "directResponse with body",
+					},
+				},
+			},
+			expected: &v2.DirectResponseAction{
+				StatusCode: 200,
+				Body:       "directResponse with body",
+			},
+		},
+		{
+			name: "directResponse no body",
+			in: &xdsroute.DirectResponseAction{
+				Status: 200,
+				Body: &core.DataSource{
+					Specifier: &core.DataSource_InlineString{
+						InlineString: "",
+					},
+				},
+			},
+			expected: &v2.DirectResponseAction{
+				StatusCode: 200,
+				Body:       "",
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			got := convertDirectResponseAction(tc.in)
+			if !reflect.DeepEqual(got, tc.expected) {
+				t.Errorf("Unexpected directResponse action\nExpected: %#v\nGot: %#v\n", tc.expected, got)
+			}
+		})
+	}
+}
+
+// Test stream filters convert for envoy.fault
 // Test stream filters convert for envoy.fault
 func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 	faultInjectConfig := &xdshttpfault.HTTPFault{
@@ -893,7 +942,7 @@ func Test_convertPerRouteConfig(t *testing.T) {
 			rawFault.UpstreamCluster == "testupstream" &&
 			len(rawFault.Headers) == 1 &&
 			reflect.DeepEqual(rawFault.Headers[0], expectedHeader)) {
-			t.Errorf("fault config is not expected, %v", rawFault)
+			t.Errorf("fault config is not expected, %+v, %+v, %v", rawFault.Abort, rawFault.Delay, rawFault)
 		}
 
 	}

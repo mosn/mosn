@@ -57,6 +57,12 @@ func TestSetMosnConfig(t *testing.T) {
 		t.Fatalf("the stored config contains dynamic configs: %v", conf.MosnConfig)
 	}
 
+	v := GetMOSNConfig(CfgTypeMOSN)
+	cfg := v.(*v2.MOSNConfig)
+	if !cfg.Metrics.StatsMatcher.RejectAll {
+		t.Fatalf("mosn config is not exepcted %+v", v)
+	}
+
 }
 
 func TestSetListenerConfig(t *testing.T) {
@@ -76,10 +82,12 @@ func TestSetListenerConfig(t *testing.T) {
 				},
 			},
 			expect: func() error {
-				if len(conf.Listener) != 1 && conf.Listener["test"].Name != "test" {
+				v := GetMOSNConfig(CfgTypeListener)
+				lns := v.(map[string]v2.Listener)
+				if len(lns) != 1 && lns["test"].Name != "test" {
 					return errors.New("listener add failed")
 				}
-				if len(conf.Listener["test"].FilterChains) != 0 {
+				if len(lns["test"].FilterChains) != 0 {
 					return errors.New("listener add failed, FilterChains should be empty")
 				}
 				return nil
@@ -115,10 +123,12 @@ func TestSetListenerConfig(t *testing.T) {
 				},
 			},
 			expect: func() error {
-				if len(conf.Listener) != 1 && conf.Listener["test"].Name != "test" {
+				v := GetMOSNConfig(CfgTypeListener)
+				lns := v.(map[string]v2.Listener)
+				if len(lns) != 1 && lns["test"].Name != "test" {
 					return errors.New("listener add failed")
 				}
-				if len(conf.Listener["test"].FilterChains) != 1 {
+				if len(lns["test"].FilterChains) != 1 {
 					return errors.New("listener add failed, FilterChains count should be one")
 				}
 				return nil
@@ -175,10 +185,12 @@ func TestSetClusterAndHosts(t *testing.T) {
 				},
 			},
 			expect: func() error {
-				if len(conf.Cluster) != 1 || len(conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].Hosts) != 1 {
+				v := GetMOSNConfig(CfgTypeCluster)
+				cs := v.(map[string]v2.Cluster)
+				if len(cs) != 1 || len(cs["outbound|9080||productpage.default.svc.cluster.local"].Hosts) != 1 {
 					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] not exists or empty")
 				}
-				hosts := conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].Hosts
+				hosts := cs["outbound|9080||productpage.default.svc.cluster.local"].Hosts
 				if hosts[0].Address != "172.16.1.154:9080" {
 					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] host address should be 172.16.1.154:9080, but got " + hosts[0].Address)
 				}
@@ -205,10 +217,12 @@ func TestSetClusterAndHosts(t *testing.T) {
 			},
 			hosts: map[string][]v2.Host{},
 			expect: func() error {
-				if len(conf.Cluster) != 1 {
+				v := GetMOSNConfig(CfgTypeCluster)
+				cs := v.(map[string]v2.Cluster)
+				if len(cs) != 1 {
 					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] not exists or empty")
 				}
-				lbType := conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].LbType
+				lbType := cs["outbound|9080||productpage.default.svc.cluster.local"].LbType
 				if lbType != v2.LB_RANDOM {
 					return errors.New(fmt.Sprintf("[outbound|9080||productpage.default.svc.cluster.local] lbType should be LB_RANDOM, but got %s", lbType))
 				}
@@ -266,10 +280,12 @@ func TestSetClusterAndHosts(t *testing.T) {
 				},
 			},
 			expect: func() error {
-				if len(conf.Cluster) != 1 || len(conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].Hosts) != 2 {
+				v := GetMOSNConfig(CfgTypeCluster)
+				cs := v.(map[string]v2.Cluster)
+				if len(cs) != 1 || len(cs["outbound|9080||productpage.default.svc.cluster.local"].Hosts) != 2 {
 					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] not exists or hosts number error")
 				}
-				hosts := conf.Cluster["outbound|9080||productpage.default.svc.cluster.local"].Hosts
+				hosts := cs["outbound|9080||productpage.default.svc.cluster.local"].Hosts
 				if hosts[0].Address != "172.16.1.154:9080" {
 					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] hosts[0] address should be 172.16.1.154:9080, but got " + hosts[0].Address)
 				}

@@ -85,7 +85,7 @@ type queryParameterMatcher struct {
 	name         string
 	value        string
 	isRegex      bool
-	regexPattern regexp.Regexp
+	regexPattern *regexp.Regexp
 }
 
 func (qpm *queryParameterMatcher) Matches(requestQueryParams types.QueryParams) bool {
@@ -96,6 +96,7 @@ func (qpm *queryParameterMatcher) Matches(requestQueryParams types.QueryParams) 
 	if qpm.isRegex {
 		return qpm.regexPattern.MatchString(requestQueryValue)
 	}
+	// why empty is true?
 	if qpm.value == "" {
 		return true
 	}

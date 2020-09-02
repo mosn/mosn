@@ -72,6 +72,11 @@ type ClusterManager interface {
 	// RemoveClusterHosts, remove the host by address string
 	RemoveClusterHosts(clusterName string, hosts []string) error
 
+	// TLSManager is used to cluster tls config
+	GetTLSManager() TLSContextManager
+	// UpdateTLSManager updates the tls manager which is used to cluster tls config
+	UpdateTLSManager(*v2.TLSConfig)
+
 	// Destroy the cluster manager
 	Destroy()
 }

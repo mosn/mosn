@@ -42,23 +42,39 @@ const (
 func Test_GetSdsClient(t *testing.T) {
 	sdsUdsPath := "/tmp/sds1"
 	// mock sds server
-	InitMockSdsServer(sdsUdsPath, t)
+	srv := InitMockSdsServer(sdsUdsPath, t)
+	defer srv.Stop()
 	config := InitSdsSecertConfig(sdsUdsPath)
 	sdsClient := NewSdsClientSingleton(config)
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
 	}
+	CloseSdsClient()
 }
 
 func Test_AddUpdateCallback(t *testing.T) {
+	// init prepare
 	sdsUdsPath := "/tmp/sds2"
+	SubscriberRetryPeriod = 500 * time.Millisecond
+	defer func() {
+		SubscriberRetryPeriod = 3 * time.Second
+	}()
+	callback := 0
+	SetSdsPostCallback(func() {
+		callback = 1
+	})
 	// mock sds server
-	InitMockSdsServer(sdsUdsPath, t)
+	srv := InitMockSdsServer(sdsUdsPath, t)
+	defer srv.Stop()
 	config := InitSdsSecertConfig(sdsUdsPath)
 	sdsClient := NewSdsClientSingleton(config)
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
 	}
+	// wait server start and stop makes reconnect
+	time.Sleep(time.Second)
+	srv.Stop()
+	// send request
 	updatedChan := make(chan int)
 	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SdsSecret) {
 		if name != "default" {
@@ -66,9 +82,19 @@ func Test_AddUpdateCallback(t *testing.T) {
 		}
 		updatedChan <- 1
 	})
+	time.Sleep(2 * time.Second)
+	go func() {
+		err := srv.Start()
+		if !srv.started {
+			t.Fatalf("%s start error: %v", sdsUdsPath, err)
+		}
+	}()
 	select {
 	case <-updatedChan:
-	case <-time.After(time.Second * 2):
+		if callback != 1 {
+			t.Fatalf("sds post callback unexpected")
+		}
+	case <-time.After(time.Second * 5):
 		t.Errorf("callback reponse timeout")
 	}
 }
@@ -76,7 +102,8 @@ func Test_AddUpdateCallback(t *testing.T) {
 func Test_DeleteUpdateCallback(t *testing.T) {
 	sdsUdsPath := "/tmp/sds3"
 	// mock sds server
-	InitMockSdsServer(sdsUdsPath, t)
+	srv := InitMockSdsServer(sdsUdsPath, t)
+	defer srv.Stop()
 	config := InitSdsSecertConfig(sdsUdsPath)
 	config.Name = "delete"
 	sdsClient := NewSdsClientSingleton(config)
@@ -120,25 +147,22 @@ func InitSdsSecertConfig(sdsUdsPath string) *auth.SdsSecretConfig {
 	return config
 }
 
-func InitMockSdsServer(sdsUdsPath string, t *testing.T) {
-	grpcOptions := []grpc.ServerOption{
-		grpc.MaxConcurrentStreams(10240),
-	}
-	fakeServer := fakeSdsServer{}
-	grpcWorkloadServer := grpc.NewServer(grpcOptions...)
-	fakeServer.register(grpcWorkloadServer)
-
-	var err error
-	grpcWorkloadListener, err := setUpUds(sdsUdsPath)
-	if err != nil {
-		t.Errorf("Sds mock grpc server for workload proxies failed to start: %v", err)
-	}
-
+func InitMockSdsServer(sdsUdsPath string, t *testing.T) *fakeSdsServer {
+	s := NewFakeSdsServer(sdsUdsPath)
 	go func() {
-		if err = grpcWorkloadServer.Serve(grpcWorkloadListener); err != nil {
-			t.Errorf("Sds mock grpc server for workload proxies failed to start: %v", err)
+		err := s.Start()
+		if !s.started {
+			t.Fatalf("server %s failed: %v", sdsUdsPath, err)
 		}
 	}()
+	return s
+}
+
+func NewFakeSdsServer(sdsUdsPath string) *fakeSdsServer {
+	return &fakeSdsServer{
+		sdsUdsPath: sdsUdsPath,
+	}
+
 }
 
 // SecretDiscoveryServiceServer is the server API for SecretDiscoveryService service.
@@ -149,6 +173,31 @@ func InitMockSdsServer(sdsUdsPath string, t *testing.T) {
 //}
 type fakeSdsServer struct {
 	sds.SecretDiscoveryServiceServer
+	server     *grpc.Server
+	sdsUdsPath string
+	started    bool
+}
+
+func (s *fakeSdsServer) Start() error {
+	grpcOptions := []grpc.ServerOption{
+		grpc.MaxConcurrentStreams(10240),
+	}
+	grpcWorkloadServer := grpc.NewServer(grpcOptions...)
+	s.register(grpcWorkloadServer)
+	s.server = grpcWorkloadServer
+	ln, err := setUpUds(s.sdsUdsPath)
+	if err != nil {
+		return err
+	}
+	s.started = true
+	err = s.server.Serve(ln)
+	return err
+}
+
+func (s *fakeSdsServer) Stop() {
+	if s.started {
+		s.server.Stop()
+	}
 }
 
 func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSecretsServer) error {
