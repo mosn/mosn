@@ -25,7 +25,7 @@ RPM_SRC_DIR     = ${RPM_TAR_NAME}-${RPM_VERSION}
 RPM_TAR_FILE    = ${RPM_SRC_DIR}.tar.gz
 
 ut-local:
-	go test -v `go list ./pkg/... | grep -v pkg/mtls/crypto/tls`
+	go test -gcflags=-l -v `go list ./pkg/... | grep -v pkg/mtls/crypto/tls`
 
 unit-test:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary

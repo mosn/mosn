@@ -368,7 +368,9 @@ func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
 			log.DefaultLogger.Errorf("[config] get listener filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
-		factories = append(factories, sfcc)
+		if sfcc != nil {
+			factories = append(factories, sfcc)
+		}
 	}
 
 	return factories
@@ -384,7 +386,9 @@ func GetStreamFilters(configs []v2.Filter) []api.StreamFilterChainFactory {
 			log.DefaultLogger.Errorf("[config] get stream filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
-		factories = append(factories, sfcc)
+		if sfcc != nil {
+			factories = append(factories, sfcc)
+		}
 	}
 
 	return factories

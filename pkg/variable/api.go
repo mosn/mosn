@@ -118,7 +118,7 @@ func getIndexedVariableValue(ctx context.Context, value *IndexedValue, index uin
 	}
 
 	value.data = vdata
-	if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == 1 {
+	if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == MOSN_VAR_FLAG_NOCACHEABLE {
 		value.noCacheable = true
 	}
 	return value.data, nil
@@ -129,6 +129,10 @@ func setFlushedVariableValue(ctx context.Context, index uint32, value string) er
 		if values, ok := variables.([]IndexedValue); ok {
 			variable := indexedVariables[index]
 			variableValue := &values[index]
+			// should check variable.Flags
+			if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == MOSN_VAR_FLAG_NOCACHEABLE {
+				variableValue.noCacheable = true
+			}
 
 			setter := variable.Setter()
 			if setter == nil {

@@ -305,6 +305,20 @@ func TestUpdateFullConfig(t *testing.T) {
 
 }
 
+func TestUpdateClusterManager(t *testing.T) {
+	cfg := []byte(`{
+		"cluster_managers":{}
+	}`)
+	mockInitConfig(t, cfg)
+	UpdateClusterManagerTLS(v2.TLSConfig{
+		Status: true,
+	})
+	// verify
+	if !config.ClusterManager.TLSContext.Status {
+		t.Fatalf("Cluster Manager TLS Context update failed")
+	}
+}
+
 func TestUpdateMqClientKey(t *testing.T) {
 	UpdateMqClientKey("hello", "ck", false)
 	if len(config.ServiceRegistry.MqClientKey) != 1 {
@@ -384,6 +398,9 @@ func TestUpdateConfigConcurrency(t *testing.T) {
 		},
 		func() {
 			AddOrUpdateListener(&v2.Listener{})
+		},
+		func() {
+			UpdateClusterManagerTLS(v2.TLSConfig{})
 		},
 		func() {
 			AddMsgMeta("data", "group")

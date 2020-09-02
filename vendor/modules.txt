@@ -50,10 +50,10 @@ github.com/alibaba/sentinel-golang/core/system
 github.com/alibaba/sentinel-golang/logging
 github.com/alibaba/sentinel-golang/util
 github.com/alibaba/sentinel-golang/core/stat/base
-# github.com/antlr/antlr4 v0.0.0-20200503195918-621b933c7a7f
-github.com/antlr/antlr4/runtime/Go/antlr
 # github.com/andybalholm/brotli v1.0.0
 github.com/andybalholm/brotli
+# github.com/antlr/antlr4 v0.0.0-20200503195918-621b933c7a7f
+github.com/antlr/antlr4/runtime/Go/antlr
 # github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d
 github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java_exception
@@ -65,8 +65,8 @@ github.com/c2h5oh/datasize
 github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
 github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1
 # github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f
-github.com/cncf/udpa/go/udpa/annotations
 github.com/cncf/udpa/go/udpa/type/v1
+github.com/cncf/udpa/go/udpa/annotations
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/dchest/siphash v1.2.1
@@ -134,43 +134,45 @@ github.com/go-playground/universal-translator
 # github.com/go-playground/validator/v10 v10.2.0
 github.com/go-playground/validator/v10
 # github.com/gogo/protobuf v1.3.1
-github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/proto
+github.com/gogo/protobuf/jsonpb
 github.com/gogo/protobuf/types
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
+# github.com/golang/mock v1.4.4
+github.com/golang/mock/gomock
 # github.com/golang/protobuf v1.3.5
-github.com/golang/protobuf/descriptor
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/ptypes
+github.com/golang/protobuf/ptypes/duration
+github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes/struct
-github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/any
-github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/empty
 github.com/golang/protobuf/ptypes/wrappers
 github.com/golang/protobuf/protoc-gen-go/descriptor
+github.com/golang/protobuf/descriptor
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/google/cel-go v0.5.1
 github.com/google/cel-go/cel
-github.com/google/cel-go/checker
 github.com/google/cel-go/checker/decls
-github.com/google/cel-go/common
 github.com/google/cel-go/common/debug
-github.com/google/cel-go/common/operators
-github.com/google/cel-go/common/overloads
-github.com/google/cel-go/common/packages
 github.com/google/cel-go/common/types
-github.com/google/cel-go/common/types/pb
 github.com/google/cel-go/common/types/ref
 github.com/google/cel-go/common/types/traits
 github.com/google/cel-go/ext
 github.com/google/cel-go/interpreter
+github.com/google/cel-go/common
+github.com/google/cel-go/common/operators
 github.com/google/cel-go/interpreter/functions
 github.com/google/cel-go/parser
+github.com/google/cel-go/checker
+github.com/google/cel-go/common/packages
+github.com/google/cel-go/common/types/pb
+github.com/google/cel-go/common/overloads
 github.com/google/cel-go/parser/gen
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
@@ -254,7 +256,8 @@ github.com/satori/go.uuid
 github.com/shirou/gopsutil/cpu
 github.com/shirou/gopsutil/load
 github.com/shirou/gopsutil/internal/common
-# github.com/stretchr/testify v1.5.1
+# github.com/stretchr/testify v1.6.0
+github.com/stretchr/testify/require
 github.com/stretchr/testify/assert
 # github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
 github.com/trainyao/go-maglev
@@ -294,12 +297,12 @@ golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
 # golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
-golang.org/x/net/http/httpguts
-golang.org/x/net/idna
 golang.org/x/net/http2
+golang.org/x/net/idna
+golang.org/x/net/http/httpguts
 golang.org/x/net/context
-golang.org/x/net/trace
 golang.org/x/net/http2/hpack
+golang.org/x/net/trace
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/internal/timeseries
@@ -307,21 +310,21 @@ golang.org/x/net/bpf
 golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
 # golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
-golang.org/x/sys/cpu
 golang.org/x/sys/unix
-golang.org/x/sys/windows
+golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
+golang.org/x/sys/windows
 # golang.org/x/text v0.3.2
+golang.org/x/text/width
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-golang.org/x/text/width
 golang.org/x/text/transform
 # golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5
 golang.org/x/tools/go/ast/astutil
 # google.golang.org/genproto v0.0.0-20200305110556-506484158171
-google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/expr/v1alpha1
+google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.28.0
 google.golang.org/grpc
@@ -368,15 +371,17 @@ google.golang.org/grpc/attributes
 gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/yaml.v2 v2.2.8
 gopkg.in/yaml.v2
+# gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+gopkg.in/yaml.v3
 # istio.io/api v0.0.0-20200227213531-891bf31f3c32
-istio.io/api/mixer/v1/config/client
 istio.io/api/mixer/v1
+istio.io/api/mixer/v1/config/client
 # istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a
-istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
+istio.io/gogo-genproto/googleapis/google/api
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# mosn.io/api v0.0.0-20200729124336-c71e8f2074cb
+# mosn.io/api v0.0.0-20200813123503-e552003ba74e
 mosn.io/api
 # mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
 mosn.io/pkg/buffer

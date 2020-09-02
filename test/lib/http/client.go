@@ -3,7 +3,6 @@ package http
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
 	"sync/atomic"
@@ -11,200 +10,133 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/http" // register http1
-	"mosn.io/mosn/pkg/types"
+	mtypes "mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/test/lib"
+	"mosn.io/mosn/test/lib/types"
+	"mosn.io/mosn/test/lib/utils"
+	"mosn.io/pkg/buffer"
 )
 
-type receiver struct {
-	Data  *Response
-	start time.Time
-	ch    chan<- *Response
+func init() {
+	lib.RegisterCreateClient("Http1", NewHttpClient)
 }
 
-func (r *receiver) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	cmd := headers.(mosnhttp.ResponseHeader)
-	r.Data.Header = cmd
-	if data != nil {
-		r.Data.Data = data.Bytes()
-	}
-	r.Data.Cost = time.Now().Sub(r.start)
-	r.ch <- r.Data
+// MockHttpClient use mosn http protocol and stream
+// control metrics and connection
+type MockHttpClient struct {
+	// config
+	config *HttpClientConfig
+	// stats
+	stats *types.ClientStats
+	// connection pool
+	curConnNum uint32
+	maxConnNum uint32
+	connPool   chan *HttpConn
 }
 
-func (r *receiver) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
-	header := &fasthttp.ResponseHeader{}
-	header.SetStatusCode(http.StatusInternalServerError)
-	header.Set("error_message", err.Error())
-	r.Data.Header = mosnhttp.ResponseHeader{
-		ResponseHeader: header,
-	}
-	r.Data.Cost = time.Now().Sub(r.start)
-	r.ch <- r.Data
-}
-
-type ConnClient struct {
-	MakeRequest MakeRequestFunc
-	SyncTimeout time.Duration
-	//
-	isClosed bool
-	close    chan struct{}
-	client   stream.Client
-	conn     types.ClientConnection
-}
-
-func NewConnClient(addr string, f MakeRequestFunc) (*ConnClient, error) {
-	remoteAddr, err := net.ResolveTCPAddr("tcp", addr)
+func NewHttpClient(config interface{}) types.MockClient {
+	cfg, err := NewHttpClientConfig(config)
 	if err != nil {
-		return nil, err
+		log.DefaultLogger.Errorf("new http client config error: %v", err)
+		return nil
 	}
-	c := &ConnClient{
-		MakeRequest: f,
-		close:       make(chan struct{}),
+	if cfg.MaxConn == 0 {
+		cfg.MaxConn = 1
 	}
-	conn := network.NewClientConnection(nil, 0, nil, remoteAddr, make(chan struct{}))
-	if err := conn.Connect(); err != nil {
-		return nil, err
-	}
-	conn.AddConnectionEventListener(c)
-	c.conn = conn
-	client := stream.NewStreamClient(context.Background(), protocol.HTTP1, conn, nil)
-	if client == nil {
-		return nil, errors.New("protocol not registered")
-	}
-	c.client = client
-	return c, nil
-}
-
-func (c *ConnClient) OnEvent(event api.ConnectionEvent) {
-	if event.IsClose() {
-		c.isClosed = true
-		close(c.close)
+	return &MockHttpClient{
+		config:     cfg,
+		stats:      types.NewClientStats(),
+		maxConnNum: cfg.MaxConn,
+		connPool:   make(chan *HttpConn, cfg.MaxConn),
 	}
 }
 
-func (c *ConnClient) Close() {
-	c.conn.Close(api.NoFlush, api.LocalClose)
-}
-
-func (c *ConnClient) IsClosed() bool {
-	return c.isClosed
-}
-
-func (c *ConnClient) sendRequest(receiver types.StreamReceiveListener, method string, header map[string]string, body []byte) {
-	ctx := context.Background()
-	streamEncoder := c.client.NewStream(ctx, receiver)
-	headers, data := c.MakeRequest(method, header, body)
-	streamEncoder.AppendHeaders(ctx, headers, data == nil)
-	if data != nil {
-		streamEncoder.AppendData(ctx, data, true)
+func (c *MockHttpClient) SyncCall() bool {
+	conn, err := c.getOrCreateConnection()
+	if err != nil {
+		log.DefaultLogger.Errorf("get connection from pool error: %v", err)
+		return false
 	}
-}
-
-func (c *ConnClient) SyncSend(method string, header map[string]string, body []byte) (*Response, error) {
-	select {
-	case <-c.close:
-		return nil, errors.New("closed connection client")
+	defer func() {
+		c.releaseConnection(conn)
+	}()
+	c.stats.Records().RecordRequest()
+	resp, err := conn.SyncSendRequest(c.config.Request)
+	status := false
+	switch err {
+	case ErrClosedConnection:
+	case ErrRequestTimeout:
+		// TODO: support timeout verify
+	case nil:
+		status = c.config.Verify.Verify(resp)
+		c.stats.Records().RecordResponse(int16(resp.StatusCode))
 	default:
-		ch := make(chan *Response)
-		r := &receiver{
-			Data:  &Response{},
-			start: time.Now(),
-			ch:    ch,
-		}
-		c.sendRequest(r, method, header, body)
-		// set default timeout, if a timeout is configured, use it
-		timeout := 5 * time.Second
-		if c.SyncTimeout > 0 {
-			timeout = c.SyncTimeout
-		}
-		// use timeout to make sure sync send will receive a result
+		log.DefaultLogger.Errorf("unexpected error got: %v", err)
+	}
+	c.stats.Response(status)
+	return status
+}
+
+// TODO: implement it
+func (c *MockHttpClient) AsyncCall() {
+}
+
+func (c *MockHttpClient) Stats() types.ClientStatsReadOnly {
+	return c.stats
+}
+
+// Close will close all the connections
+func (c *MockHttpClient) Close() {
+	for {
 		select {
-		case resp := <-ch:
-			return resp, nil
-		case <-time.After(timeout):
-			return nil, errors.New("sync call timeout")
+		case conn := <-c.connPool:
+			conn.Close()
+			c.releaseConnection(conn)
+		default:
+			return // no more connections
 		}
-
 	}
+
 }
 
-// TODO: Async client
-
-type ClientConfig struct {
-	Addr          string
-	MakeRequest   MakeRequestFunc
-	RequestMethod string
-	RequestHeader map[string]string
-	RequestBody   []byte
-	// request timeout is used for sync call
-	// if zero, we set default request time, 5 second
-	RequestTImeout time.Duration
-	// if Verify is nil, just expected returns success
-	Verify ResponseVerify
-}
-
-func CreateSimpleConfig(addr string) *ClientConfig {
-	return &ClientConfig{
-		Addr:          addr,
-		MakeRequest:   BuildHTTP1Request,
-		RequestMethod: http.MethodGet,
-		RequestHeader: map[string]string{},
-		RequestBody:   []byte("mosn-test-body"),
-	}
-}
-
-type Client struct {
-	Cfg *ClientConfig
-	// Stats
-	Stats *ClientStats
-	// conn pool
-	connNum  uint32
-	maxNum   uint32
-	connPool chan *ConnClient
-}
-
-func NewClient(cfg *ClientConfig, maxConnections uint32) *Client {
-	return &Client{
-		Cfg:      cfg,
-		Stats:    NewClientStats(),
-		maxNum:   maxConnections,
-		connPool: make(chan *ConnClient, maxConnections),
-	}
-}
-
-func (c *Client) getOrCreateConnection() (*ConnClient, error) {
+// connpool implementation
+func (c *MockHttpClient) getOrCreateConnection() (*HttpConn, error) {
 	select {
 	case conn := <-c.connPool:
 		if !conn.IsClosed() {
-			return conn, nil // return a not closed conn
+			return conn, nil
 		}
-		atomic.AddUint32(&c.connNum, ^uint32(0))
-		c.Stats.CloseConnection()
+		// got a closed connection, try to make a new one
+		atomic.AddUint32(&c.curConnNum, ^uint32(0))
 	default:
+		// try to make a new connection
 	}
-	if atomic.LoadUint32(&c.connNum) >= c.maxNum {
+	// connection is full, wait connection
+	// TODO: add timeout
+	if atomic.LoadUint32(&c.curConnNum) >= c.maxConnNum {
 		return <-c.connPool, nil
 	}
-	conn, err := NewConnClient(c.Cfg.Addr, c.Cfg.MakeRequest)
+	conn, err := NewConn(c.config.TargetAddr, func() {
+		c.stats.CloseConnection()
+	})
 	if err != nil {
 		return nil, err
 	}
-	if c.Cfg.RequestTImeout > 0 {
-		conn.SyncTimeout = c.Cfg.RequestTImeout
-	}
-	atomic.AddUint32(&c.connNum, 1)
-	c.Stats.ActiveConnection()
+	atomic.AddUint32(&c.curConnNum, 1)
+	c.stats.ActiveConnection()
 	return conn, nil
+
 }
 
-func (c *Client) release(conn *ConnClient) {
+func (c *MockHttpClient) releaseConnection(conn *HttpConn) {
 	if conn.IsClosed() {
-		atomic.AddUint32(&c.connNum, ^uint32(0))
-		c.Stats.CloseConnection()
+		atomic.AddUint32(&c.curConnNum, ^uint32(0))
 		return
 	}
 	select {
@@ -213,39 +145,134 @@ func (c *Client) release(conn *ConnClient) {
 	}
 }
 
-func (c *Client) SyncCall() bool {
-	conn, err := c.getOrCreateConnection()
-	if err != nil {
-		fmt.Println("get connection from pool error: ", err)
-		return false
-	}
-	defer func() {
-		c.release(conn)
-	}()
-	c.Stats.Request()
-	resp, err := conn.SyncSend(c.Cfg.RequestMethod, c.Cfg.RequestHeader, c.Cfg.RequestBody)
-	if err != nil {
-		fmt.Println("sync call failed: ", err)
-		return false
-	}
-	if c.Cfg.Verify == nil {
-		c.Cfg.Verify = DefaultVeirfy.Verify
-	}
-	ok := c.Cfg.Verify(resp)
-	c.Stats.Response(ok)
-	return ok
-
+type Response struct {
+	StatusCode int
+	Header     map[string][]string
+	Body       []byte
+	Cost       time.Duration
 }
 
-// Close All the connections
-func (c *Client) Close() {
-	for {
-		select {
-		case conn := <-c.connPool:
-			conn.Close()
-			c.release(conn)
-		default:
-			return // no more conn
+type HttpConn struct {
+	conn          mtypes.ClientConnection
+	stream        stream.Client
+	stop          chan struct{}
+	closeCallback func()
+}
+
+func NewConn(addr string, cb func()) (*HttpConn, error) {
+	remoteAddr, err := net.ResolveTCPAddr("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	hconn := &HttpConn{
+		stop:          make(chan struct{}),
+		closeCallback: cb,
+	}
+	conn := network.NewClientConnection(nil, time.Second, nil, remoteAddr, make(chan struct{}))
+	if err := conn.Connect(); err != nil {
+		return nil, err
+	}
+	conn.AddConnectionEventListener(hconn)
+	hconn.conn = conn
+	s := stream.NewStreamClient(context.Background(), protocol.HTTP1, conn, nil)
+	if s == nil {
+		return nil, errors.New("protocol not registered")
+	}
+	hconn.stream = s
+	return hconn, nil
+}
+
+func (c *HttpConn) OnEvent(event api.ConnectionEvent) {
+	if event.IsClose() {
+		close(c.stop)
+		if c.closeCallback != nil {
+			c.closeCallback()
 		}
 	}
+}
+
+func (c *HttpConn) Close() {
+	c.conn.Close(api.NoFlush, api.LocalClose)
+}
+
+func (c *HttpConn) IsClosed() bool {
+	select {
+	case <-c.stop:
+		return true
+	default:
+		return false
+	}
+}
+
+func (c *HttpConn) AsyncSendRequest(receiver mtypes.StreamReceiveListener, req *RequestConfig) {
+	headers, body := req.BuildRequest()
+	ctx := context.Background()
+	encoder := c.stream.NewStream(ctx, receiver)
+	encoder.AppendHeaders(ctx, headers, body == nil)
+	if body != nil {
+		encoder.AppendData(ctx, body, true)
+	}
+}
+
+var (
+	ErrClosedConnection = errors.New("send request on closed connection")
+	ErrRequestTimeout   = errors.New("sync call timeout")
+)
+
+func (c *HttpConn) SyncSendRequest(req *RequestConfig) (*Response, error) {
+	select {
+	case <-c.stop:
+		return nil, ErrClosedConnection
+	default:
+		ch := make(chan *Response)
+		r := newReceiver(ch)
+		c.AsyncSendRequest(r, req)
+		// set default timeout, if a timeout is configured, use it
+		timeout := 5 * time.Second
+		if req != nil && req.Timeout > 0 {
+			timeout = req.Timeout
+		}
+		timer := time.NewTimer(timeout)
+		select {
+		case resp := <-ch:
+			timer.Stop()
+			return resp, nil
+		case <-timer.C:
+			return nil, ErrRequestTimeout
+		}
+	}
+}
+
+type receiver struct {
+	data  *Response
+	start time.Time
+	ch    chan<- *Response // write only
+}
+
+func newReceiver(ch chan<- *Response) *receiver {
+	return &receiver{
+		data:  &Response{},
+		start: time.Now(),
+		ch:    ch,
+	}
+}
+
+func (r *receiver) OnReceive(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, _ api.HeaderMap) {
+	r.data.Cost = time.Now().Sub(r.start)
+	cmd := headers.(mosnhttp.ResponseHeader).ResponseHeader
+	r.data.Header = utils.ReadFasthttpResponseHeaders(cmd)
+	r.data.StatusCode = cmd.StatusCode()
+	if data != nil {
+		r.data.Body = data.Bytes()
+	}
+	r.ch <- r.data
+}
+
+func (r *receiver) OnDecodeError(context context.Context, err error, _ api.HeaderMap) {
+	r.data.Cost = time.Now().Sub(r.start)
+	header := &fasthttp.ResponseHeader{}
+	header.SetStatusCode(http.StatusInternalServerError)
+	header.Set("X-Mosn-Error", err.Error())
+	r.data.Header = utils.ReadFasthttpResponseHeaders(header)
+	r.ch <- r.data
 }

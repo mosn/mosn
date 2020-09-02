@@ -70,16 +70,10 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 	}
 	r.ParseForm()
 	if len(r.Form) == 0 {
-		if buf, err := store.Dump(); err == nil {
-			log.DefaultLogger.Infof("[admin api] [config dump] config dump")
-			w.WriteHeader(200)
-			w.Write(buf)
-		} else {
-			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "config dump", err)
-			w.WriteHeader(500)
-			msg := fmt.Sprintf(errMsgFmt, "internal error")
-			fmt.Fprint(w, msg)
-		}
+		buf, _ := store.Dump()
+		log.DefaultLogger.Infof("[admin api] [config dump] config dump")
+		w.WriteHeader(200)
+		w.Write(buf)
 		return
 	}
 	if len(r.Form) > 1 {
@@ -124,17 +118,10 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 		msg := fmt.Sprintf(errMsgFmt, "internal error")
 		fmt.Fprint(w, msg)
 	} else {
-		buf, err := json.MarshalIndent(info, "", " ")
-		if err != nil {
-			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, parameters:%v, error: %v", "config dump", r.Form, err)
-			w.WriteHeader(500)
-			msg := fmt.Sprintf(errMsgFmt, "internal error")
-			fmt.Fprint(w, msg)
-		} else {
-			log.DefaultLogger.Infof("[admin api] [config dump] config dump, parameters:%v", r.Form)
-			w.WriteHeader(200)
-			w.Write(buf)
-		}
+		buf, _ := json.MarshalIndent(info, "", " ")
+		log.DefaultLogger.Infof("[admin api] [config dump] config dump, parameters:%v", r.Form)
+		w.WriteHeader(200)
+		w.Write(buf)
 	}
 }
 
@@ -312,14 +299,7 @@ func knownFeatures(w http.ResponseWriter, r *http.Request) {
 	}
 	r.ParseForm()
 	if len(r.Form) == 0 {
-		data, err := json.MarshalIndent(featuregate.KnownFeatures(), "", " ")
-		if err != nil {
-			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "known features", err)
-			w.WriteHeader(500)
-			msg := fmt.Sprintf(errMsgFmt, "internal error")
-			fmt.Fprint(w, msg)
-			return
-		}
+		data, _ := json.MarshalIndent(featuregate.KnownFeatures(), "", " ")
 		w.Write(data)
 		return
 	}
@@ -359,13 +339,6 @@ func getEnv(w http.ResponseWriter, r *http.Request) {
 			results.Env[key] = v
 		}
 	}
-	data, err := json.MarshalIndent(results, "", " ")
-	if err != nil {
-		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "get env", err)
-		w.WriteHeader(500)
-		msg := fmt.Sprintf(errMsgFmt, "internal error")
-		fmt.Fprint(w, msg)
-		return
-	}
+	data, _ := json.MarshalIndent(results, "", " ")
 	w.Write(data)
 }

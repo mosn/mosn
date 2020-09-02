@@ -19,6 +19,7 @@ package server
 
 import (
 	"io/ioutil"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"reflect"
@@ -89,5 +90,108 @@ func TestGetEnv(t *testing.T) {
 	json.Unmarshal(b, out)
 	if !reflect.DeepEqual(out, expected) {
 		t.Fatalf("env got %s", string(b))
+	}
+}
+
+// Common Invalid Case
+func TestInvalidCommon(t *testing.T) {
+	teasCases := []struct {
+		Method             string
+		Url                string
+		ExpectedStatusCode int
+		Func               func(w http.ResponseWriter, r *http.Request)
+	}{
+		{
+			Method:             "POST",
+			Url:                "http://127.0.0.1/api/v1/config_dump",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               configDump,
+		},
+		{
+			Method:             "GET",
+			Url:                "http://127.0.0.1/api/v1/config_dump?mosnconfig&router",
+			ExpectedStatusCode: 400,
+			Func:               configDump,
+		},
+		{
+			Method:             "GET",
+			Url:                "http://127.0.0.1/api/v1/config_dump?invalid",
+			ExpectedStatusCode: 500,
+			Func:               configDump,
+		},
+		{
+			Method:             "POST",
+			Url:                "http://127.0.0.1/api/v1/stats",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               statsDump,
+		},
+		{
+			Method:             "POST",
+			Url:                "http://127.0.0.1/api/v1/stats_glob",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               statsDumpProxyTotal,
+		},
+		{
+			Method:             "POST",
+			Url:                "http://127.0.0.1/api/v1/get_loglevel",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               getLoggerInfo,
+		},
+		{
+			Method:             "GET",
+			Url:                "http://127.0.0.1/api/v1/update_loglevel",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               updateLogLevel,
+		},
+		{
+			Method:             "POST",
+			Url:                "http://127.0.0.1/api/v1/update_loglevel",
+			ExpectedStatusCode: http.StatusBadRequest,
+			Func:               updateLogLevel,
+		},
+		{
+			Method:             "GET",
+			Url:                "http://127.0.0.1/api/v1/enable_log",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               enableLogger,
+		},
+		{
+			Method:             "GET",
+			Url:                "http://127.0.0.1/api/v1/disable_log",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               disableLogger,
+		},
+		{
+			Method:             "POST",
+			Url:                "http://127.0.0.1/api/v1/state",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               getState,
+		},
+		{
+			Method:             "POST",
+			Url:                "http://127.0.0.1/api/v1/features",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               knownFeatures,
+		},
+		{
+			Method:             "POST",
+			Url:                "http://127.0.0.1/api/v1/env",
+			ExpectedStatusCode: http.StatusMethodNotAllowed,
+			Func:               getEnv,
+		},
+		{
+			Method:             "GET",
+			Url:                "http://127.0.0.1/api/v1/env",
+			ExpectedStatusCode: http.StatusBadRequest,
+			Func:               getEnv,
+		},
+	}
+	for idx, tc := range teasCases {
+		r := httptest.NewRequest(tc.Method, tc.Url, nil)
+		w := httptest.NewRecorder()
+		tc.Func(w, r)
+		if w.Result().StatusCode != tc.ExpectedStatusCode {
+			t.Fatalf("case %d response status code is %d, wanna: %d", idx, w.Result().StatusCode, tc.ExpectedStatusCode)
+		}
 	}
 }

@@ -67,11 +67,22 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 	store.SetMosnConfig(c)
 
-	//get inherit fds
-	inheritListeners, inheritPacketConn, listenSockConn, err := server.GetInheritListeners()
-	if err != nil {
-		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+	var (
+		inheritListeners  []net.Listener
+		inheritPacketConn []net.PacketConn
+		listenSockConn    net.Conn
+		err               error
+	)
+
+	// default is graceful mode, turn graceful off by set it to false
+	if !c.CloseGraceful {
+		//get inherit fds
+		inheritListeners, inheritPacketConn, listenSockConn, err = server.GetInheritListeners()
+		if err != nil {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+		}
 	}
+
 	if listenSockConn != nil {
 		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
 		// set Mosn Active_Reconfiguring
@@ -104,10 +115,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				DefaultLogLevel: "INFO",
 			},
 		}
-	} else {
-		if len(c.ClusterManager.Clusters) == 0 && !c.ClusterManager.AutoDiscovery {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
-		}
 	}
 
 	srvNum := len(c.Servers)
@@ -125,9 +132,9 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	clusters, clusterMap := configmanager.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
 	if mode == v2.Xds {
-		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil)
+		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil, &c.ClusterManager.TLSContext)
 	} else {
-		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap)
+		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap, &c.ClusterManager.TLSContext)
 	}
 
 	// initialize the routerManager
@@ -225,16 +232,25 @@ func (m *Mosn) beforeStart() {
 			ln.Close()
 		}
 	}
+	//close legacy UDP listeners
+	for _, ln := range m.inheritPacketConn {
+		if ln != nil {
+			log.StartLogger.Infof("[mosn] [NewMosn] close useless legacy listener: %s", ln.LocalAddr().String())
+			ln.Close()
+		}
+	}
 
 	// start dump config process
 	utils.GoWithRecover(func() {
 		configmanager.DumpConfigHandler()
 	}, nil)
 
-	// start reconfig domain socket
-	utils.GoWithRecover(func() {
-		server.ReconfigureHandler()
-	}, nil)
+	if !m.config.CloseGraceful {
+		// start reconfig domain socket
+		utils.GoWithRecover(func() {
+			server.ReconfigureHandler()
+		}, nil)
+	}
 }
 
 // Start mosn's server
