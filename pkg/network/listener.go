@@ -224,6 +224,7 @@ func (l *listener) ListenerFile() (*os.File, error) {
 	case "tcp":
 		return l.rawl.(*net.TCPListener).File()
 	}
+	return nil, errors.New("not support this network " + l.network)
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {
