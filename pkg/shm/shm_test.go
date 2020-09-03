@@ -45,13 +45,13 @@ func TestAtomic(t *testing.T) {
 
 	counter := (*uint32)(unsafe.Pointer(block))
 	expected := 10000
-	cpu := runtime.NumCPU()
+	cpu := runtime.GOMAXPROCS(-1)
 	wg := sync.WaitGroup{}
 
 	wg.Add(cpu)
 	for i := 0; i < cpu; i++ {
 		go func() {
-			for j := 0; j < expected/cpu; j++ {
+			for j := 0; j < expected; j++ {
 				atomic.AddUint32(counter, 1)
 			}
 			wg.Done()
@@ -60,8 +60,8 @@ func TestAtomic(t *testing.T) {
 
 	wg.Wait()
 
-	if *counter != uint32(expected) {
-		t.Errorf("counter error, expected %d, actual %d", 10000, *counter)
+	if *counter != uint32(expected*cpu) {
+		t.Errorf("counter error, expected %d, actual %d", expected*cpu, *counter)
 	}
 
 	if err := Free(span); nil != err {
