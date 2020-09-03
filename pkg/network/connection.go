@@ -259,6 +259,8 @@ func (c *connection) checkUseWriteLoop() bool {
 		} else {
 			return false
 		}
+	case "unix":
+		return true
 	default:
 		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
 			ip = tcpAddr.IP
@@ -765,6 +767,8 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 	} else {
 		//todo: writev(runtime) has memroy leak.
 		switch c.network {
+		case "unix":
+			fallthrough
 		case "tcp":
 			bytesSent, err = buffers.WriteTo(c.rawConnection)
 		case "udp":
@@ -1088,6 +1092,13 @@ func (cc *clientConnection) Connect() (err error) {
 				switch cc.network {
 				case "udp":
 					if tc, ok := cc.rawConnection.(*net.UDPConn); ok {
+						cc.file, err = tc.File()
+						if err != nil {
+							return
+						}
+					}
+				case "unix":
+					if tc, ok := cc.rawConnection.(*net.UnixConn); ok {
 						cc.file, err = tc.File()
 						if err != nil {
 							return

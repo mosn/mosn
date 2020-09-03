@@ -201,7 +201,7 @@ func (l *listener) Stop() error {
 		err = l.packetConn.SetDeadline(time.Now())
 	case "unix":
 		err = l.rawl.(*net.UnixListener).SetDeadline(time.Now())
-	default:
+	case "tcp":
 		err = l.rawl.(*net.TCPListener).SetDeadline(time.Now())
 	}
 	return err
@@ -221,7 +221,7 @@ func (l *listener) ListenerFile() (*os.File, error) {
 		return l.packetConn.(*net.UDPConn).File()
 	case "unix":
 		return l.rawl.(*net.UnixListener).File()
-	default:
+	case "tcp":
 		return l.rawl.(*net.TCPListener).File()
 	}
 }

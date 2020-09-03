@@ -88,6 +88,7 @@ func (sh *simpleHost) UDPAddress() net.Addr {
 	return GetOrCreateUDPAddr(sh.addressString)
 }
 
+
 func (sh *simpleHost) AddressString() string {
 	return sh.addressString
 }
