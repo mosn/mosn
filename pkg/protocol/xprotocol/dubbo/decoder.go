@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"runtime/debug"
 	"sync"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
@@ -98,8 +99,8 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	return frame, nil
 }
 
-func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, error) {
-	meta := make(map[string]string, 8)
+func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]string, err error) {
+	meta = make(map[string]string, 8)
 	if frame.SerializationId != 2 {
 		// not hessian , do not support
 		return meta, fmt.Errorf("[xprotocol][dubbo] not hessian,do not support")
@@ -113,7 +114,6 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, 
 
 	var (
 		field            interface{}
-		err              error
 		ok               bool
 		frameworkVersion string
 		path             string
@@ -195,6 +195,14 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, 
 
 		// decode the attachment to get the real service and group parameters
 		if !matched && (listener == EgressDubbo || listener == IngressDubbo) {
+
+			// decode arguments maybe panic, when dubbo payload have complex struct
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("decode arguments error :%v\n%s", r, debug.Stack())
+				}
+			}()
+
 			field, err = decoder.Decode()
 			if err != nil {
 				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument types error, %v", err)
