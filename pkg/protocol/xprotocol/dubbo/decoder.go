@@ -125,45 +125,45 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	// get service name
 	field, err = decoder.Decode()
 	if err != nil {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version fail")
+		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version fail: %v", err)
 	}
 	frameworkVersion, ok = field.(string)
 	if !ok {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version type error")
+		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version {%v} type error", field)
 	}
 	meta[FrameworkVersionNameHeader] = frameworkVersion
 
 	field, err = decoder.Decode()
 	if err != nil {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode service path fail")
+		return meta, fmt.Errorf("[xprotocol][dubbo] decode service path fail: %v", err)
 	}
 	path, ok = field.(string)
 	if !ok {
-		return meta, fmt.Errorf("[xprotocol][dubbo] service path type error")
+		return meta, fmt.Errorf("[xprotocol][dubbo] service path {%v} type error", field)
 	}
 	meta[ServiceNameHeader] = path
 
 	// get method name
 	field, err = decoder.Decode()
 	if err != nil {
-		return nil, fmt.Errorf("[xprotocol][dubbo] decode method version fail")
+		return nil, fmt.Errorf("[xprotocol][dubbo] decode method version fail: %v", err)
 	}
 	// callback maybe return nil
 	if field != nil {
 		version, ok = field.(string)
 		if !ok {
-			return nil, fmt.Errorf("[xprotocol][dubbo] method version type fail")
+			return nil, fmt.Errorf("[xprotocol][dubbo] method version {%v} type fail", field)
 		}
 	}
 	meta[VersionNameHeader] = version
 
 	field, err = decoder.Decode()
 	if err != nil {
-		return nil, fmt.Errorf("[xprotocol][dubbo] decode method fail")
+		return nil, fmt.Errorf("[xprotocol][dubbo] decode method fail: %v", err)
 	}
 	method, ok = field.(string)
 	if !ok {
-		return nil, fmt.Errorf("[xprotocol][dubbo] method type error")
+		return nil, fmt.Errorf("[xprotocol][dubbo] method {%v} type error", field)
 	}
 	meta[MethodNameHeader] = method
 
@@ -205,7 +205,7 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 
 			field, err = decoder.Decode()
 			if err != nil {
-				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument types error, %v", err)
+				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument types error: %v", err)
 			}
 
 			arguments := getArgumentCount(field.(string))
@@ -213,13 +213,13 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 			for i := 0; i < arguments; i++ {
 				_, err = decoder.Decode()
 				if err != nil {
-					return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument error, %v", err)
+					return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument error: %v", err)
 				}
 			}
 
 			field, err = decoder.Decode()
 			if err != nil {
-				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo attachments error, %v", err)
+				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo attachments error: %v", err)
 			}
 
 			if field != nil {
