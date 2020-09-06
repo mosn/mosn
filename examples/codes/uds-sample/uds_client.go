@@ -4,45 +4,37 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 )
 
-const (
-	MaxSize = 1024
-)
-
-var bufPool = sync.Pool{New: func() interface{} { return make([]byte, MaxSize) }}
-
+var clientBufPool = sync.Pool{New: func() interface{} { return make([]byte, 1024) }}
 
 func main() {
 
-	ls, err := net.Listen("unix", "/tmp/unix.sock")
+	conn, err := net.Dial("unix", "/tmp/client-proxy.sock")
 	if err != nil {
-		fmt.Printf("Failed to listen, %s", err)
+		fmt.Printf("Failed to connect, %s", err)
 		return
 	}
 
-	fmt.Println("Listening on uds model  ...")
-
+	req := "hello, MOSN"
 	for {
-		conn, err := ls.Accept()
+
+		_, err := conn.Write([]byte(req))
 		if err != nil {
-			fmt.Println("Could not accept connection , err:", err)
-			continue
-		}
-		buffer := bufPool.Get().([]byte)
-		_, err = conn.Read(buffer)
-		if err != nil {
-			fmt.Println("Read from upstream err:", err)
+			fmt.Println("Write to upstream err:", err)
 			conn.Close()
-			continue
+			return
 		}
-		echo := "echo: " + string(buffer)
-		_, err = conn.Write([]byte(echo))
-		bufPool.Put(buffer)
+		buffer := clientBufPool.Get().([]byte)
+		n, err := conn.Read(buffer)
+		clientBufPool.Put(buffer)
 		if err != nil {
 			fmt.Println("Write to upstream err:", err)
 			conn.Close()
 			continue
 		}
+		fmt.Println(string(buffer[:n]))
+		time.Sleep(time.Second)
 	}
 }

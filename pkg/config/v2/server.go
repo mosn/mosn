@@ -99,20 +99,20 @@ func (l *Listener) UnmarshalJSON(b []byte) error {
 	if l.Network == "" {
 		l.Network = "tcp" // default is tcp
 	}
+	var err error
+	var addr net.Addr
 	switch l.Network {
 	case "udp":
-		addr, err := net.ResolveUDPAddr("udp", l.AddrConfig)
-		if err != nil {
-			return err
-		}
-		l.Addr = addr
+		addr, err = net.ResolveUDPAddr("udp", l.AddrConfig)
+	case "unix":
+		addr, err = net.ResolveUnixAddr("unix", l.AddrConfig)
 	default: // tcp
-		addr, err := net.ResolveTCPAddr("tcp", l.AddrConfig)
-		if err != nil {
-			return err
-		}
-		l.Addr = addr
+		addr, err = net.ResolveTCPAddr("tcp", l.AddrConfig)
 	}
+	if err != nil {
+		return err
+	}
+	l.Addr = addr
 	l.PerConnBufferLimitBytes = defaultBufferLimit
 	return nil
 }
@@ -148,7 +148,7 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	if len(fc.TLSConfigs) > 0 {
 		fc.TLSContexts = make([]TLSConfig, len(fc.TLSConfigs))
 		copy(fc.TLSContexts, fc.TLSConfigs)
-	} else { // no tls_context_set, use tls_context
+	} else {                     // no tls_context_set, use tls_context
 		if fc.TLSConfig == nil { // no tls_context, generate a default one
 			fc.TLSContexts = append(fc.TLSContexts, TLSConfig{})
 		} else { // use tls_context

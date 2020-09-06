@@ -4,34 +4,6 @@
     {
       "default_log_path": "stdout",
       "default_log_level": "DEBUG",
-      "routers": [
-        {
-          "router_config_name": "server_router",
-          "virtual_hosts": [
-            {
-              "name": "serverHost",
-              "domains": [
-                "*"
-              ],
-              "routers": [
-                {
-                  "match": {
-                    "headers": [
-                      {
-                        "name": "service",
-                        "value": ".*"
-                      }
-                    ]
-                  },
-                  "route": {
-                    "cluster_name": "serverCluster"
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      ],
       "listeners": [
         {
           "name": "serverListener",
@@ -43,14 +15,14 @@
               "tls_context": {},
               "filters": [
                 {
-                  "type": "proxy",
+                  "type": "tcp_proxy",
                   "config": {
-                    "downstream_protocol": "X",
-                    "upstream_protocol": "X",
-                    "router_config_name": "server_router",
-                    "extend_config": {
-                      "sub_protocol": "dubbo"
-                    }
+                    "cluster": "serverCluster",
+                    "routes": [
+                      {
+                        "cluster": "serverCluster"
+                      }
+                    ]
                   }
                 }
               ]
@@ -70,7 +42,7 @@
         "conn_buffer_limit_bytes": 32768,
         "hosts": [
           {
-            "address": "127.0.0.1:20880"
+            "address": "/tmp/server-proxy.sock"
           }
         ]
       }

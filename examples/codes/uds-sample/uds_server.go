@@ -1,91 +1,57 @@
 package main
 
 import (
-	"context"
-	"errors"
 	"fmt"
-	"golang.org/x/sys/unix"
 	"net"
 	"sync"
 	"syscall"
 )
 
-// PacketInfo packet info
-type PacketInfo struct {
-	msg   []byte
-	start int
-	end   int
-}
-
 const (
-	udpPacketMaxSize = 64 * 1024
+	MaxSize = 1024
 )
 
-var bufPool = sync.Pool{New: func() interface{} { return make([]byte, udpPacketMaxSize) }}
-
-// NewPacketInfo new packet info
-func NewPacketInfo() *PacketInfo {
-	return &PacketInfo{
-		msg:   bufPool.Get().([]byte),
-		start: 0,
-		end:   0,
-	}
-}
-
-// Clear clear the packet
-func (packet *PacketInfo) Clear() {
-	packet.start = 0
-	packet.end = 0
-}
-
-// Destroy destroy packet
-func (packet *PacketInfo) Destroy() {
-	bufPool.Put(packet.msg)
-}
-
-// SetReusePort set reuseport sockopt
-func SetReusePort(fd int) error {
-	err := syscall.SetsockoptInt(fd, syscall.SOL_SOCKET, unix.SO_REUSEPORT, 1)
-	if err != nil {
-		msg := fmt.Sprintf("set reuseport %d failed: %v", fd, err)
-		return errors.New(msg)
-	}
-
-	return nil
-}
+var bufPool = sync.Pool{New: func() interface{} { return make([]byte, MaxSize) }}
 
 func main() {
-	lc := net.ListenConfig{
-		Control: func(network, address string, c syscall.RawConn) error {
-			return c.Control(func(fd uintptr) {
-				SetReusePort(int(fd))
-			})
-		},
-	}
-	nc, err := lc.ListenPacket(context.Background(), "udp", "127.0.0.1:5300")
+
+	path := "/tmp/server-proxy.sock"
+	syscall.Unlink(path)
+	ls, err := net.Listen("unix", path)
 	if err != nil {
 		fmt.Printf("Failed to listen, %s", err)
 		return
 	}
 
-	fmt.Println("Listening on udp port 5300 ...")
-
-	conn := nc.(*net.UDPConn)
-	var packet = NewPacketInfo()
-	defer packet.Destroy()
+	fmt.Println("Listening on uds model  ...")
 
 	for {
-		packet.Clear()
-		n, raddr, err := conn.ReadFromUDP(packet.msg)
+		c, err := ls.Accept()
 		if err != nil {
-			fmt.Println("Could not receive packets, err:", err)
+			fmt.Println("Could not accept connection , err:", err)
 			continue
 		}
-		packet.end = n
-		fmt.Printf("Receive from %s, len:%d, data:%s\n", raddr.String(), n, packet.msg[:n])
-		n, err = conn.WriteToUDP(packet.msg[packet.start:packet.end], raddr)
-		if err != nil {
-			fmt.Println("Write to upstream err:", err)
-		}
+
+		go func(conn net.Conn) {
+			for {
+				buffer := bufPool.Get().([]byte)
+				n, err := conn.Read(buffer)
+				if err != nil {
+					fmt.Println("Read from upstream err:", err)
+					conn.Close()
+					return
+				}
+				echo := "echo: " + string(buffer[:n])
+				_, err = conn.Write([]byte(echo))
+				bufPool.Put(buffer)
+				if err != nil {
+					fmt.Println("Write to upstream err:", err)
+					conn.Close()
+					return
+				}
+			}
+
+		}(c)
+
 	}
 }
