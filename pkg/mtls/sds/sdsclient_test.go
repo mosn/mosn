@@ -84,7 +84,7 @@ func Test_AddUpdateCallback(t *testing.T) {
 		if callback != 1 {
 			t.Fatalf("sds post callback unexpected")
 		}
-	case <-time.After(time.Second * 5):
+	case <-time.After(time.Second * 10):
 		t.Errorf("callback reponse timeout")
 	}
 }
