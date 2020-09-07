@@ -32,9 +32,4 @@ after_success:
   - bash <(curl -s https://codecov.io/bash)
 
 notifications:
-  email:
-    - junxiong.sjx@antfin.com
-    - lingtao.klt@antfin.com
-    - linzhengchun.lzc@alibaba-inc.com
-    - xiaojian.aoxiaojia@antfin.com
-    - xiaodong.dxd@antfin.com
+  email: false
