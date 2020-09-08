@@ -57,7 +57,7 @@ func TestSetMosnConfig(t *testing.T) {
 		t.Fatalf("the stored config contains dynamic configs: %v", conf.MosnConfig)
 	}
 
-	v := GetMOSNConfig(CfgTypeMOSN)
+	v := getMOSNConfig(CfgTypeMOSN)
 	cfg := v.(*v2.MOSNConfig)
 	if !cfg.Metrics.StatsMatcher.RejectAll {
 		t.Fatalf("mosn config is not exepcted %+v", v)
@@ -82,7 +82,7 @@ func TestSetListenerConfig(t *testing.T) {
 				},
 			},
 			expect: func() error {
-				v := GetMOSNConfig(CfgTypeListener)
+				v := getMOSNConfig(CfgTypeListener)
 				lns := v.(map[string]v2.Listener)
 				if len(lns) != 1 && lns["test"].Name != "test" {
 					return errors.New("listener add failed")
@@ -123,7 +123,7 @@ func TestSetListenerConfig(t *testing.T) {
 				},
 			},
 			expect: func() error {
-				v := GetMOSNConfig(CfgTypeListener)
+				v := getMOSNConfig(CfgTypeListener)
 				lns := v.(map[string]v2.Listener)
 				if len(lns) != 1 && lns["test"].Name != "test" {
 					return errors.New("listener add failed")
@@ -185,7 +185,7 @@ func TestSetClusterAndHosts(t *testing.T) {
 				},
 			},
 			expect: func() error {
-				v := GetMOSNConfig(CfgTypeCluster)
+				v := getMOSNConfig(CfgTypeCluster)
 				cs := v.(map[string]v2.Cluster)
 				if len(cs) != 1 || len(cs["outbound|9080||productpage.default.svc.cluster.local"].Hosts) != 1 {
 					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] not exists or empty")
@@ -217,7 +217,7 @@ func TestSetClusterAndHosts(t *testing.T) {
 			},
 			hosts: map[string][]v2.Host{},
 			expect: func() error {
-				v := GetMOSNConfig(CfgTypeCluster)
+				v := getMOSNConfig(CfgTypeCluster)
 				cs := v.(map[string]v2.Cluster)
 				if len(cs) != 1 {
 					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] not exists or empty")
@@ -280,7 +280,7 @@ func TestSetClusterAndHosts(t *testing.T) {
 				},
 			},
 			expect: func() error {
-				v := GetMOSNConfig(CfgTypeCluster)
+				v := getMOSNConfig(CfgTypeCluster)
 				cs := v.(map[string]v2.Cluster)
 				if len(cs) != 1 || len(cs["outbound|9080||productpage.default.svc.cluster.local"].Hosts) != 2 {
 					return errors.New("[outbound|9080||productpage.default.svc.cluster.local] not exists or hosts number error")
