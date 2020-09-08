@@ -19,12 +19,12 @@ package mosn
 
 import (
 	"encoding/json"
-	"testing"
-
 	"mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/router"
+	"testing"
+	"time"
 )
 
 // test compatible
@@ -177,7 +177,7 @@ func TestNewMosn(t *testing.T) {
 		if err := json.Unmarshal(content, cfg); err != nil {
 			t.Fatal(err)
 		}
-		NewMosn(cfg)
+		m := NewMosn(cfg)
 		routerMng := router.GetRoutersMangerInstance()
 		rw0 := routerMng.GetRouterWrapperByName("server_router")
 		if rw0 == nil {
@@ -193,5 +193,11 @@ func TestNewMosn(t *testing.T) {
 		if rcfg := rw1.GetRoutersConfig(); len(rcfg.VirtualHosts) != 1 {
 			t.Fatal("router config is not expected")
 		}
+
+		// start mosn
+		m.Start()
+		time.Sleep(time.Second * 3)
+		// stop mosn
+		m.Close()
 	}
 }
