@@ -30,6 +30,7 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mock"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
@@ -85,29 +86,24 @@ func TestProxyWithFilters(t *testing.T) {
 				// mock connPool.NewStream to call upstreamRequest.OnReady (see stream/xprotocol/connpool.go:NewStream)
 				pool.EXPECT().Host().DoAndReturn(func() types.Host {
 					h := mock.NewMockHost(ctrl)
-					h.EXPECT().HostStats().DoAndReturn(func() *types.HostStats {
+					h.EXPECT().HostStats().DoAndReturn(func() types.HostStats {
 						s := metrics.NewHostStats("mockhost", "mockhost")
-						return &types.HostStats{
+						return types.HostStats{
 							UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
 							UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
+							UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
+							UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
 						}
 					}).AnyTimes()
-					h.EXPECT().AddressString().Return("").AnyTimes()
+					h.EXPECT().AddressString().Return("mockhost").AnyTimes()
 					h.EXPECT().ClusterInfo().DoAndReturn(func() types.ClusterInfo {
 						return gomockClusterInfo(ctrl)
-					})
+					}).AnyTimes()
 					return h
 				}).AnyTimes()
 				pool.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ types.StreamReceiveListener, l types.PoolEventListener) {
-					encoder := mock.NewMockStreamSender(ctrl)
-					encoder.EXPECT().GetStream().DoAndReturn(func() types.Stream {
-						s := mock.NewMockStream(ctrl)
-						s.EXPECT().AddEventListener(gomock.Any())
-						return s
-					})
-					encoder.EXPECT().AppendHeaders(gomock.Any(), gomock.Any(), gomock.Any())
-					encoder.EXPECT().AppendData(gomock.Any(), gomock.Any(), gomock.Any())
-					encoder.EXPECT().AppendTrailers(gomock.Any(), gomock.Any())
+					// upstream encoder
+					encoder := gomockStreamSender(ctrl)
 					l.OnReady(encoder, pool.Host())
 				})
 				return pool
@@ -127,30 +123,7 @@ func TestProxyWithFilters(t *testing.T) {
 				// mock routers can be matched route if a header contains key service and values equals config name.
 				r.EXPECT().MatchRoute(gomock.Any(), gomock.Any()).DoAndReturn(func(headers api.HeaderMap, _ uint64) api.Route {
 					if sn, ok := headers.Get("service"); ok && sn == tn {
-						r := mock.NewMockRoute(ctrl)
-						// mock route rule returns cluster name : mock_cluster
-						r.EXPECT().RouteRule().DoAndReturn(func() api.RouteRule {
-							rule := mock.NewMockRouteRule(ctrl)
-							rule.EXPECT().ClusterName().Return("mock_cluster").AnyTimes()
-							rule.EXPECT().UpstreamProtocol().Return("").AnyTimes()
-							rule.EXPECT().GlobalTimeout().Return(3 * time.Second).AnyTimes()
-							rule.EXPECT().Policy().DoAndReturn(func() api.Policy {
-								p := mock.NewMockPolicy(ctrl)
-								p.EXPECT().RetryPolicy().DoAndReturn(func() api.RetryPolicy {
-									rp := mock.NewMockRetryPolicy(ctrl)
-									rp.EXPECT().RetryOn().Return(false).AnyTimes()
-									rp.EXPECT().TryTimeout().Return(time.Duration(0))
-									rp.EXPECT().NumRetries().Return(uint32(3)).AnyTimes()
-									return rp
-								}).AnyTimes()
-								return p
-							}).AnyTimes()
-							rule.EXPECT().FinalizeRequestHeaders(gomock.Any(), gomock.Any()).AnyTimes()
-							return rule
-						}).AnyTimes()
-						r.EXPECT().DirectResponseRule().Return(nil)
-						r.EXPECT().RedirectRule().Return(nil)
-						return r
+						return gomockRouteMatchCluster(ctrl, "mock_cluster")
 					}
 					return nil
 				}).AnyTimes()
@@ -161,14 +134,61 @@ func TestProxyWithFilters(t *testing.T) {
 		return rm
 	})
 
+	// filter call record
+	filterRecords := map[string]string{}
 	// mock stream filters
 	var factories []api.StreamFilterChainFactory
-	for _, ff := range []struct {
+	for _, fact := range []struct {
 		Phase            api.FilterPhase
 		ReceiveFilterGen func() api.StreamReceiverFilter
 		SenderFilterGen  func() api.StreamSenderFilter
-	}{} {
+	}{
+		{
+			Phase: api.BeforeRoute,
+			ReceiveFilterGen: func() api.StreamReceiverFilter {
+				return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, header api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
+					header.Set("service", "test_router")
+					h.SetRequestHeaders(header)
+				})
+			},
+		},
+		{
+			Phase: api.AfterRoute,
+			ReceiveFilterGen: func() api.StreamReceiverFilter {
+				return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, header api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
+					if h.GetFilterCurrentPhase() == api.AfterRoute {
+						filterRecords["after_route"] = "yes"
+					}
+				})
+			},
+		},
+		{
+			Phase: api.AfterChooseHost,
+			ReceiveFilterGen: func() api.StreamReceiverFilter {
+				return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, _ api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
+					if h.RequestInfo().RouteEntry() != nil {
+						filterRecords["route_cluster"] = h.RequestInfo().RouteEntry().ClusterName()
+					}
+					filterRecords["host"] = h.RequestInfo().UpstreamLocalAddress()
+				})
+			},
+		},
+		{
+			SenderFilterGen: func() api.StreamSenderFilter {
+				filter := mock.NewMockStreamSenderFilter(ctrl)
+				filter.EXPECT().OnDestroy().AnyTimes()
+				filter.EXPECT().SetSenderFilterHandler(gomock.Any()).AnyTimes()
+				filter.EXPECT().Append(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(_ context.Context, _ api.HeaderMap, data buffer.IoBuffer, _ api.HeaderMap) api.StreamFilterStatus {
+						filterRecords["response"] = data.String()
+						return api.StreamFilterContinue
+					})
+				return filter
+			},
+		},
+	} {
 		factory := mock.NewMockStreamFilterChainFactory(ctrl)
+		ff := fact // do a copy
 		factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, cb api.StreamFilterChainFactoryCallbacks) {
 			if ff.ReceiveFilterGen != nil {
 				cb.AddStreamReceiverFilter(ff.ReceiveFilterGen(), ff.Phase)
@@ -189,14 +209,6 @@ func TestProxyWithFilters(t *testing.T) {
 			sconn.EXPECT().Protocol().Return(types.ProtocolName("Http1")).AnyTimes()
 			return sconn
 		})
-
-	pv := NewProxy(ctx, &v2.Proxy{
-		Name:               "test",
-		DownstreamProtocol: "Http1",
-		UpstreamProtocol:   "Http1",
-		RouterConfigName:   "test_router",
-	})
-	proxy := pv.(*proxy)
 	// mock a span
 	monkey.Patch(trace.IsEnabled, func() bool {
 		return true
@@ -205,9 +217,11 @@ func TestProxyWithFilters(t *testing.T) {
 		sp := mock.NewMockSpan(ctrl)
 		sp.EXPECT().TraceId().Return("1").AnyTimes()
 		sp.EXPECT().SpanId().Return("1").AnyTimes()
+		sp.EXPECT().InjectContext(gomock.Any(), gomock.Any())
+		sp.EXPECT().SetRequestInfo(gomock.Any())
+		sp.EXPECT().FinishSpan()
 		return sp
 	}
-	var sender types.StreamSender
 	// mock connection and receive
 	cb := mock.NewMockReadFilterCallbacks(ctrl)
 	cb.EXPECT().Connection().DoAndReturn(func() api.Connection {
@@ -218,17 +232,71 @@ func TestProxyWithFilters(t *testing.T) {
 		conn.EXPECT().RemoteAddr().Return(nil).AnyTimes() // mock, no use
 		return conn
 	}).AnyTimes()
+	// mock response sender
+	sender := gomockStreamSender(ctrl)
+
+	// finish mock, start test
+	pv := NewProxy(ctx, &v2.Proxy{
+		Name:               "test",
+		DownstreamProtocol: "Http1",
+		UpstreamProtocol:   "Http1",
+		RouterConfigName:   "test_router",
+	})
+	proxy := pv.(*proxy)
 	pv.InitializeReadFilterCallbacks(cb)
 	ss := proxy.NewStreamDetect(ctx, sender, mockSpan())
 	downstream := ss.(*downStream)
-	headers := mock.NewMockHeaderMap(ctrl)
-	headers.EXPECT().Get("service").Return("test_router", true).AnyTimes()
-	headers.EXPECT().Get(types.HeaderTryTimeout).Return("", false).AnyTimes()
-	headers.EXPECT().Get(types.HeaderGlobalTimeout).Return("", false).AnyTimes()
+	headers := protocol.CommonHeader{}
 	trailer := mock.NewMockHeaderMap(ctrl)
-	downstream.OnReceive(ctx, headers, buffer.NewIoBuffer(0), trailer)
+	downstream.OnReceive(ctx, headers, buffer.NewIoBufferString("12345"), trailer)
+	// OnReceive is scheduled by goroutine pool, we needs wait a moment
+	time.Sleep(2 * time.Second)
+	// Verify OnReceive states
+	// requestInfo should contains information:
+	// 1. RouteEntry: RouteRule
+	// 2. Bytes Received: data len
+	// 3. Protocol: Http1
+	// stream filters called:
+	// 1. choose host: selected host & routerule.clustername
+	// 2. after route: test records
+	if !(downstream.requestInfo.RouteEntry() != nil &&
+		downstream.requestInfo.BytesReceived() == uint64(5) &&
+		downstream.requestInfo.Protocol() == api.Protocol("Http1")) {
+		t.Fatalf("after send request, the request info is not expected: %v, %v, %v",
+			downstream.requestInfo.RouteEntry() != nil,
+			downstream.requestInfo.BytesReceived(),
+			downstream.requestInfo.Protocol())
+	}
+	if !(filterRecords["route_cluster"] == "mock_cluster" &&
+		filterRecords["host"] == "mockhost" &&
+		filterRecords["after_route"] == "yes") {
+		t.Fatalf("the stream filter is not called what we want: %v", filterRecords)
+	}
 	// mock wait response
+	time.Sleep(300 * time.Millisecond)
+	upstreamRequest := downstream.upstreamRequest
 	// upstreamRequest.OnReceive ( see stream/xprotocol/conn.go: handleResponse)
-	// upstream.OnReceive()
-
+	upstreamRequest.OnReceive(context.Background(), protocol.CommonHeader{
+		types.HeaderStatus: "200",
+	}, buffer.NewIoBufferString("123"), trailer)
+	// wait givestream
+	time.Sleep(time.Second)
+	// Veirfy OnReceive response states
+	// stream filter calls
+	if filterRecords["response"] != "123" {
+		t.Fatalf("the sender stream filter is not called what we want: %v", filterRecords)
+	}
+	// request info verify
+	// 1. resposne size
+	// 2. status code
+	// 3. is request failed
+	if !(downstream.requestInfo.BytesSent() == uint64(3) &&
+		downstream.requestInfo.ResponseCode() == 200 &&
+		!downstream.isRequestFailed()) {
+		t.Fatalf("after receive response ,the request info is not expected: %v, %v, %v",
+			downstream.requestInfo.BytesSent(),
+			downstream.requestInfo.ResponseCode(),
+			downstream.isRequestFailed())
+	}
+	// TODO: more verify
 }

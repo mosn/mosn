@@ -22,10 +22,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/metrics"
-	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 )
@@ -272,27 +269,4 @@ type mockServerConn struct {
 
 func (s *mockServerConn) Protocol() api.Protocol {
 	return "mockProtocol"
-}
-
-// gomock func
-func gomockClusterInfo(ctrl *gomock.Controller) types.ClusterInfo {
-	info := mock.NewMockClusterInfo(ctrl)
-	info.EXPECT().Stats().DoAndReturn(func() *types.ClusterStats {
-		s := metrics.NewClusterStats("mockcluster")
-		return &types.ClusterStats{
-			UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
-			UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
-		}
-	})
-	info.EXPECT().ResourceManager().DoAndReturn(func() types.ResourceManager {
-		mng := mock.NewMockResourceManager(ctrl)
-		mng.EXPECT().Retries().DoAndReturn(func() types.Resource {
-			r := mock.NewMockResource(ctrl)
-			r.EXPECT().Increase().AnyTimes()
-			r.EXPECT().Decrease().AnyTimes()
-			return r
-		}).AnyTimes()
-		return mng
-	})
-	return info
 }
