@@ -261,7 +261,7 @@ func (c *connection) checkUseWriteLoop() bool {
 		}
 	case "unix":
 		return true
-	default:
+	case "tcp":
 		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
 			ip = tcpAddr.IP
 		} else {
@@ -473,7 +473,7 @@ func (c *connection) doRead() (err error) {
 		case "udp":
 			// A UDP socket will Read up to the size of the receiving buffer and will discard the rest
 			c.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
-		default:
+		default: // unix or tcp
 			c.readBuffer = buffer.GetIoBuffer(DefaultBufferReadCapacity)
 		}
 	}
@@ -768,7 +768,7 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 		//todo: writev(runtime) has memroy leak.
 		switch c.network {
 		case "unix":
-			fallthrough
+			bytesSent, err = buffers.WriteTo(c.rawConnection)
 		case "tcp":
 			bytesSent, err = buffers.WriteTo(c.rawConnection)
 		case "udp":

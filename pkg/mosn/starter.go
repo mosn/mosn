@@ -18,9 +18,6 @@
 package mosn
 
 import (
-	"net"
-	"sync"
-
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -40,6 +37,9 @@ import (
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/pkg/xds"
 	"mosn.io/pkg/utils"
+	"net"
+	"sync"
+	"syscall"
 )
 
 // Mosn class which wrapper server
@@ -316,6 +316,11 @@ func (m *Mosn) Close() {
 func Start(c *v2.MOSNConfig) {
 	//log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
 	Mosn := NewMosn(c)
+	keeper.AddSignalCallback(func() {
+		log.DefaultLogger.Infof("[mosn] [close] mosn closed by sys signal")
+		Mosn.Close()
+	}, syscall.SIGINT, syscall.SIGTERM)
+
 	Mosn.Start()
 	Mosn.wg.Wait()
 }

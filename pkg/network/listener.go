@@ -23,7 +23,6 @@ import (
 	"net"
 	"os"
 	"sync"
-	"syscall"
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
@@ -283,13 +282,12 @@ func (l *listener) listen(lctx context.Context) error {
 		}
 		l.packetConn = rconn
 	case "unix":
-		err := syscall.Unlink(l.localAddress.String())
-		if err != nil {
-			log.DefaultLogger.Infof("failed to unlink path: %v", l.localAddress.String())
+		if rawl, err = net.Listen("unix", l.localAddress.String()); err != nil {
+			return err
 		}
-		fallthrough
-	default:
-		if rawl, err = net.Listen(l.localAddress.Network(), l.localAddress.String()); err != nil {
+		l.rawl = rawl
+	case "tcp":
+		if rawl, err = net.Listen("tcp", l.localAddress.String()); err != nil {
 			return err
 		}
 		l.rawl = rawl

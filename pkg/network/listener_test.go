@@ -19,7 +19,9 @@ package network
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"net"
+	"syscall"
 	"testing"
 	"time"
 
@@ -54,18 +56,18 @@ func (e *mockEventListener) PreStopHook(ctx context.Context) func() error {
 	return nil
 }
 
-
-func testBase(t *testing.T,addr net.Addr){
+func testBase(t *testing.T, addr net.Addr) {
 	cfg := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			Name:       "test_listener",
-			Network: addr.Network(),
+			Network:    addr.Network(),
 			BindToPort: true,
 		},
 		PerConnBufferLimitBytes: 1024,
 		Addr:                    addr,
 	}
 	ln := NewListener(cfg)
+
 	el := &mockEventListener{}
 	ln.SetListenerCallbacks(el)
 	go ln.Start(nil, false) // start
@@ -120,10 +122,24 @@ func testBase(t *testing.T,addr net.Addr){
 
 func TestListenerTCPStart(t *testing.T) {
 	addr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:10101")
-	testBase(t,addr)
+	testBase(t, addr)
 }
 
 func TestListenerUDSStart(t *testing.T) {
 	addr, _ := net.ResolveUnixAddr("unix", "/tmp/test.sock")
-	testBase(t,addr)
+	testBase(t, addr)
+}
+
+func TestUDSToFileListener(t *testing.T) {
+	path := "/tmp/test1.sock"
+	syscall.Unlink(path)
+	l, _ := net.Listen("unix", path)
+	f, _ := l.(*net.UnixListener).File()
+	lc, err := net.FileListener(f)
+	if err != nil {
+		t.Errorf("convert to file listener failed, %v", err)
+	}
+	f1, _ := lc.(*net.UnixListener).File()
+	assert.Equal(t, f.Name(), f1.Name())
+	l.Close()
 }

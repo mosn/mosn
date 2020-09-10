@@ -568,7 +568,7 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 // defaultIdleTimeout represents the idle timeout if listener have no such configuration
 // we declared the defaultIdleTimeout reference to the types.DefaultIdleTimeout
 var (
-	defaultIdleTimeout = types.DefaultIdleTimeout
+	defaultIdleTimeout    = types.DefaultIdleTimeout
 	defaultUDPIdleTimeout = types.DefaultUDPIdleTimeout
 	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
 )
@@ -883,12 +883,8 @@ func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 				return nil, nil, nil, err
 			}
 		} else {
-			if listener, ok := fileListener.(*net.TCPListener); ok {
-				listeners = append(listeners, listener)
-			} else {
-				log.StartLogger.Errorf("[server] listener recovered from fd %d is not a tcp listener", fd)
-				return nil, nil, nil, errors.New("not a tcp listener")
-			}
+			// for tcp or unix listener
+			listeners = append(listeners, fileListener)
 		}
 	}
 

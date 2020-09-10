@@ -20,7 +20,9 @@ package v2
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
+	"strings"
 
 	"mosn.io/api"
 )
@@ -73,7 +75,7 @@ type Listener struct {
 	ListenerTag             uint64           `json:"-"`
 	ListenerScope           string           `json:"-"`
 	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
-	InheritListener         *net.TCPListener `json:"-"`
+	InheritListener         net.Listener `json:"-"`
 	InheritPacketConn       *net.PacketConn  `json:"-"`
 	Remain                  bool             `json:"-"`
 }
@@ -99,6 +101,7 @@ func (l *Listener) UnmarshalJSON(b []byte) error {
 	if l.Network == "" {
 		l.Network = "tcp" // default is tcp
 	}
+	l.Network = strings.ToLower(l.Network)
 	var err error
 	var addr net.Addr
 	switch l.Network {
@@ -106,8 +109,10 @@ func (l *Listener) UnmarshalJSON(b []byte) error {
 		addr, err = net.ResolveUDPAddr("udp", l.AddrConfig)
 	case "unix":
 		addr, err = net.ResolveUnixAddr("unix", l.AddrConfig)
-	default: // tcp
+	case "tcp":
 		addr, err = net.ResolveTCPAddr("tcp", l.AddrConfig)
+	default: // only support tcp,udp,unix
+		err = fmt.Errorf("unknown listen type: %s , only support tcp,udp,unix",  l.Network)
 	}
 	if err != nil {
 		return err
