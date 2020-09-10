@@ -22,7 +22,7 @@ type SdsSubscriber struct {
 	reqQueue             chan string
 	sdsConfig            *core.ConfigSource
 	sdsStreamClient      *SdsStreamClient
-	sdsStreamClientMutex sync.Mutex
+	sdsStreamClientMutex sync.RWMutex
 	sendStopChannel      chan int
 	receiveStopChannel   chan int
 	serviceNode          string
@@ -145,12 +145,16 @@ func (subscribe *SdsSubscriber) receiveResponseLoop() {
 			log.DefaultLogger.Errorf("[xds] [sds subscriber]  receive response loop closed")
 			return
 		default:
-			if subscribe.sdsStreamClient == nil {
+			subscribe.sdsStreamClientMutex.RLock()
+			clt := subscribe.sdsStreamClient
+			subscribe.sdsStreamClientMutex.RUnlock()
+
+			if clt == nil {
 				log.DefaultLogger.Infof("[xds] [sds subscriber] stream client closed, sleep 1s and wait for reconnect")
 				time.Sleep(time.Second)
 				continue
 			}
-			resp, err := subscribe.sdsStreamClient.streamSecretsClient.Recv()
+			resp, err := clt.streamSecretsClient.Recv()
 			if err != nil {
 				log.DefaultLogger.Infof("[xds] [sds subscriber] get resp timeout: %v, retry after 1s", err)
 				time.Sleep(time.Second)
@@ -165,11 +169,11 @@ func (subscribe *SdsSubscriber) receiveResponseLoop() {
 
 func (subscribe *SdsSubscriber) sendRequest(request *xdsapi.DiscoveryRequest) error {
 	log.DefaultLogger.Debugf("send sds request resource name = %v", request.ResourceNames)
-	clt := func() *SdsStreamClient {
-		subscribe.sdsStreamClientMutex.Lock()
-		defer subscribe.sdsStreamClientMutex.Unlock()
-		return subscribe.sdsStreamClient
-	}()
+
+	subscribe.sdsStreamClientMutex.RLock()
+	clt := subscribe.sdsStreamClient
+	subscribe.sdsStreamClientMutex.RUnlock()
+
 	if clt == nil {
 		return errors.New("stream client has beend closed")
 	}
