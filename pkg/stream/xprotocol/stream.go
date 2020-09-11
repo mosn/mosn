@@ -127,7 +127,7 @@ func (s *xStream) endStream() {
 		}
 
 		if s.direction == stream.ClientStream {
-			// ping pong mode && one way
+			// ping pong / tcp mode && one way
 			// should destroy stream after the request finished
 			// or else the upstream will not send any response
 			// and the stream will never be destroyed
