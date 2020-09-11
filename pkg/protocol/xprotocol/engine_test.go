@@ -10,7 +10,7 @@ import (
 
 func TestEngine(t *testing.T) {
 	var mockProto = &mockProtocol{}
-	err := RegisterProtocol("engine-proto",mockProto)
+	err := RegisterProtocol("engine-proto", mockProto)
 	assert.Nil(t, err)
 
 	err = RegisterMatcher("engine-proto", mockMatcher)

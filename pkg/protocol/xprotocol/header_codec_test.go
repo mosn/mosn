@@ -66,7 +66,7 @@ func TestCLone(t *testing.T) {
 
 	var hClone = h.Clone()
 	for k, v := range kv {
-		value, ok:= hClone.Get(k)
+		value, ok := hClone.Get(k)
 		assert.True(t, ok)
 		assert.Equal(t, value, v)
 	}
@@ -107,12 +107,11 @@ func TestHeaderSetGetDel(t *testing.T) {
 	v, _ = h.Get("kkk")
 	assert.Equal(t, v, "vvvv")
 
-
 	buf := buffer.NewIoBuffer(100)
 	assert.Equal(t, 0, buf.Len())
 
 	EncodeHeader(buf, h)
-	assert.Less(t,0, buf.Len())
+	assert.Less(t, 0, buf.Len())
 
 	assert.Equal(t, GetHeaderEncodeLength(h), buf.Len())
 

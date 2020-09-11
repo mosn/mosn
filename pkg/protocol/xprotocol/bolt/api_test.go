@@ -12,12 +12,12 @@ import (
 // decoded result should equal to request
 func TestEncodeDecode(t *testing.T) {
 	var (
-		ctx = context.TODO()
+		ctx            = context.TODO()
 		originalHeader = protocol.CommonHeader{
-			"k1" : "v1",
-			"k2" : "v2",
+			"k1": "v1",
+			"k2": "v2",
 		}
-		payload = "hello world"
+		payload   = "hello world"
 		requestID = uint32(111)
 	)
 
@@ -30,7 +30,7 @@ func TestEncodeDecode(t *testing.T) {
 	buf, err := encodeRequest(ctx, req)
 	assert.Nil(t, err)
 
-	cmd ,err := decodeRequest(ctx, buf, false)
+	cmd, err := decodeRequest(ctx, buf, false)
 	assert.Nil(t, err)
 
 	decodedReq, ok := cmd.(*Request)
@@ -44,7 +44,7 @@ func TestEncodeDecode(t *testing.T) {
 	}
 
 	// should equal to the original request
-	assert.Equal(t, decodedReq.GetData().String(),payload)
+	assert.Equal(t, decodedReq.GetData().String(), payload)
 	assert.Equal(t, decodedReq.GetRequestId(), uint64(requestID))
 	assert.Equal(t, decodedReq.CmdType, CmdTypeRequest)
 	assert.False(t, decodedReq.IsHeartbeatFrame())
@@ -55,9 +55,8 @@ func TestEncodeDecode(t *testing.T) {
 
 	newData := "new hello world"
 	decodedReq.SetData(buffer.NewIoBufferString(newData))
-	assert.Equal(t, newData,decodedReq.GetData().String())
+	assert.Equal(t, newData, decodedReq.GetData().String())
 	//////////// request part end
-
 
 	//////////// response part start
 	resp := NewRpcResponse(requestID, 0, originalHeader, buffer.NewIoBufferString(payload))

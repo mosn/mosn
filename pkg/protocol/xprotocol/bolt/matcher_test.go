@@ -10,7 +10,7 @@ func TestMatcher(t *testing.T) {
 	var testCases = []struct {
 		match []byte
 		types.MatchResult
-	} {
+	}{
 		{
 			[]byte{1},
 			types.MatchSuccess,
