@@ -302,7 +302,7 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener, inher
 			}
 			var tl *net.TCPListener
 			var ok bool
-			if tl, ok = il.(*net.TCPListener); ok {
+			if tl, ok = il.(*net.TCPListener); !ok {
 				continue
 			}
 			ilAddr, err := net.ResolveTCPAddr("tcp", tl.Addr().String())
