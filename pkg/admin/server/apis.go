@@ -28,6 +28,7 @@ import (
 	gometrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -70,7 +71,7 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 	}
 	r.ParseForm()
 	if len(r.Form) == 0 {
-		buf, _ := store.Dump()
+		buf, _ := configmanager.DumpJSON()
 		log.DefaultLogger.Infof("[admin api] [config dump] config dump")
 		w.WriteHeader(200)
 		w.Write(buf)
@@ -97,15 +98,15 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 	for key, param := range r.Form {
 		switch key {
 		case "mosnconfig":
-			store.HandleMOSNConfig(store.CfgTypeMOSN, handle)
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeMOSN, handle)
 		case "allrouters":
-			store.HandleMOSNConfig(store.CfgTypeRouter, handle)
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeRouter, handle)
 		case "allclusters":
-			store.HandleMOSNConfig(store.CfgTypeCluster, handle)
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeCluster, handle)
 		case "alllisteners":
-			store.HandleMOSNConfig(store.CfgTypeListener, handle)
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeListener, handle)
 		case "router":
-			store.HandleMOSNConfig(store.CfgTypeRouter, func(v interface{}) {
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeRouter, func(v interface{}) {
 				routerInfo, ok := v.(map[string]v2.RouterConfiguration)
 				if ok && len(param) > 0 {
 					handle(routerInfo[param[0]])
@@ -113,7 +114,7 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 			})
 
 		case "cluster":
-			store.HandleMOSNConfig(store.CfgTypeCluster, func(v interface{}) {
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeCluster, func(v interface{}) {
 				clusterInfo, ok := v.(map[string]v2.Cluster)
 				if ok && len(param) > 0 {
 					handle(clusterInfo[param[0]])
@@ -121,7 +122,7 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 			})
 
 		case "listener":
-			store.HandleMOSNConfig(store.CfgTypeListener, func(v interface{}) {
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeListener, func(v interface{}) {
 				listenerInfo, ok := v.(map[string]v2.Listener)
 				if ok && len(param) > 0 {
 					handle(listenerInfo[param[0]])

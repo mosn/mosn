@@ -65,7 +65,8 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
 
-	store.SetMosnConfig(c)
+	// set the mosn config finally
+	defer configmanager.SetMosnConfig(c)
 
 	var (
 		inheritListeners  []net.Listener
@@ -269,7 +270,7 @@ func (m *Mosn) Start() {
 		if err := v2.ExtendConfigParsed(typ, cfg); err != nil {
 			log.StartLogger.Fatalf("mosn parse extend config failed, type: %s, error: %v", typ, err)
 		}
-		store.SetExtend(typ, cfg)
+		configmanager.SetExtend(typ, cfg)
 	}
 
 	// beforestart starts transfer connection and non-proxy listeners

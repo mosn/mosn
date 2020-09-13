@@ -161,6 +161,23 @@ func TestParseListenerConfig(t *testing.T) {
 	}
 }
 
+func TestParseListenerUDP(t *testing.T) {
+	packetconn, err := net.ListenPacket("udp", "127.0.0.1:8080")
+	if err != nil {
+		t.Fatalf("listen packet error: %v", err)
+	}
+	ln := ParseListenerConfig(&v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			AddrConfig: "127.0.0.1:8080",
+			Network:    "udp",
+		},
+	}, nil, []net.PacketConn{packetconn})
+	if !(ln.Addr != nil &&
+		ln.InheritPacketConn != nil) {
+		t.Fatalf("parse udp listener failed: %+v", ln)
+	}
+}
+
 func TestParseRouterConfig(t *testing.T) {
 	filterStr := `{
 		"filters": [{

@@ -24,14 +24,18 @@ import (
 	"sync"
 
 	"github.com/ghodss/yaml"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
 var (
-	configPath     string
-	configLock     sync.Mutex
-	config         v2.MOSNConfig
+	// configPath stores the config file path
+	configPath string
+	// configLock controls the stored config
+	configLock sync.RWMutex
+	// conf keeps the mosn config
+	conf effectiveConfig
+	// configLoadFunc can be replaced by load config extension
 	configLoadFunc ConfigLoadFunc = DefaultConfigLoad
 )
 
@@ -74,10 +78,8 @@ func DefaultConfigLoad(path string) *v2.MOSNConfig {
 // Load config file and parse
 func Load(path string) *v2.MOSNConfig {
 	configPath, _ = filepath.Abs(path)
-	if cfg := configLoadFunc(path); cfg != nil {
-		config = *cfg
-	}
-	return &config
+	cfg := configLoadFunc(path)
+	return cfg
 }
 
 func yamlFormat(path string) bool {
