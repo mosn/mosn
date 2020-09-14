@@ -43,3 +43,8 @@ func (IllegalFormatWidthException) JavaClassName() string {
 func NewIllegalFormatWidthException(w int) *IllegalFormatWidthException {
 	return &IllegalFormatWidthException{W: w}
 }
+
+// equals to getStackTrace in java
+func (e IllegalFormatWidthException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

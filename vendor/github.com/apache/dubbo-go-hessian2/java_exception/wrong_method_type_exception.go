@@ -40,3 +40,8 @@ func (WrongMethodTypeException) JavaClassName() string {
 func NewWrongMethodTypeException(detailMessage string) *WrongMethodTypeException {
 	return &WrongMethodTypeException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e WrongMethodTypeException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

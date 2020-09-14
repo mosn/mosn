@@ -44,3 +44,8 @@ func (e UncheckedIOException) Error() string {
 func (UncheckedIOException) JavaClassName() string {
 	return "java.io.UncheckedIOException"
 }
+
+// equals to getStackTrace in java
+func (e UncheckedIOException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

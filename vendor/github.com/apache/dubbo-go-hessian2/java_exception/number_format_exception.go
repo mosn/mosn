@@ -40,3 +40,8 @@ func (e NumberFormatException) Error() string {
 func (NumberFormatException) JavaClassName() string {
 	return "java.lang.NumberFormatException"
 }
+
+// equals to getStackTrace in java
+func (e NumberFormatException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

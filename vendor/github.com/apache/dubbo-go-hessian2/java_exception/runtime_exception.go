@@ -40,3 +40,8 @@ func (e RuntimeException) Error() string {
 func (RuntimeException) JavaClassName() string {
 	return "java.lang.RuntimeException"
 }
+
+// equals to getStackTrace in java
+func (e RuntimeException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}
