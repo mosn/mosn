@@ -40,3 +40,8 @@ func (e InvalidPreferencesFormatException) Error() string {
 func (InvalidPreferencesFormatException) JavaClassName() string {
 	return "java.util.prefs.InvalidPreferencesFormatException"
 }
+
+// equals to getStackTrace in java
+func (e InvalidPreferencesFormatException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

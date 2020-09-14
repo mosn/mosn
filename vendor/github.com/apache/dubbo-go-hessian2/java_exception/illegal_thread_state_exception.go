@@ -40,3 +40,8 @@ func (e IllegalThreadStateException) Error() string {
 func (IllegalThreadStateException) JavaClassName() string {
 	return "java.lang.IllegalThreadStateException"
 }
+
+// equals to getStackTrace in java
+func (e IllegalThreadStateException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

@@ -40,3 +40,8 @@ func (e StreamCorruptedException) Error() string {
 func (StreamCorruptedException) JavaClassName() string {
 	return "java.io.StreamCorruptedException"
 }
+
+// equals to getStackTrace in java
+func (e StreamCorruptedException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

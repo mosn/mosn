@@ -40,3 +40,8 @@ func (e InputMismatchException) Error() string {
 func (InputMismatchException) JavaClassName() string {
 	return "java.util.InputMismatchException"
 }
+
+// equals to getStackTrace in java
+func (e InputMismatchException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

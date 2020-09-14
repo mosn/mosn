@@ -40,3 +40,8 @@ func (CompletionException) JavaClassName() string {
 func NewCompletionException(detailMessage string) *CompletionException {
 	return &CompletionException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e CompletionException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

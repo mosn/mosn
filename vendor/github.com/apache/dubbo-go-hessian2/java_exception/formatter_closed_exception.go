@@ -40,3 +40,8 @@ func (e FormatterClosedException) Error() string {
 func (FormatterClosedException) JavaClassName() string {
 	return "java.util.FormatterClosedException"
 }
+
+// equals to getStackTrace in java
+func (e FormatterClosedException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}
