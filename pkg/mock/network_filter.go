@@ -10,6 +10,7 @@ import (
 	api "mosn.io/api"
 	buffer "mosn.io/pkg/buffer"
 	reflect "reflect"
+	"sync"
 )
 
 // MockFilterManager is a mock of FilterManager interface
@@ -248,6 +249,15 @@ func NewMockReadFilterCallbacks(ctrl *gomock.Controller) *MockReadFilterCallback
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockReadFilterCallbacks) EXPECT() *MockReadFilterCallbacksMockRecorder {
 	return m.recorder
+}
+
+// JobChan return a job chan for serial
+func (m *MockReadFilterCallbacks) JobChan() chan func() {
+	return nil
+}
+
+func (m *MockReadFilterCallbacks) Once() sync.Once {
+	return sync.Once{}
 }
 
 // Connection mocks base method

@@ -20,6 +20,7 @@ package network
 import (
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
+	"sync"
 )
 
 type filterManager struct {
@@ -27,6 +28,8 @@ type filterManager struct {
 	downstreamFilters []api.WriteFilter
 	conn              api.Connection
 	host              api.HostInfo
+	jobChan chan func()
+	once sync.Once
 }
 
 func newFilterManager(conn api.Connection) api.FilterManager {
@@ -34,6 +37,7 @@ func newFilterManager(conn api.Connection) api.FilterManager {
 		conn:              conn,
 		upstreamFilters:   make([]*activeReadFilter, 0, 8),
 		downstreamFilters: make([]api.WriteFilter, 0, 8),
+		jobChan: make(chan func(), 2),
 	}
 }
 
@@ -131,6 +135,14 @@ type activeReadFilter struct {
 	filter        api.ReadFilter
 	filterManager *filterManager
 	initialized   bool
+}
+
+func (arf *activeReadFilter) JobChan() chan func() {
+	return arf.filterManager.jobChan
+}
+
+func (arf *activeReadFilter) Once() sync.Once {
+	return arf.filterManager.once
 }
 
 func (arf *activeReadFilter) Connection() api.Connection {

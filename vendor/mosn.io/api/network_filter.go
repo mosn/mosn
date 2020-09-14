@@ -19,6 +19,7 @@ package api
 
 import (
 	"context"
+	"sync"
 
 	"mosn.io/pkg/buffer"
 )
@@ -76,6 +77,12 @@ type WriteFilter interface {
 
 // ReadFilterCallbacks is called by read filter to talk to connection
 type ReadFilterCallbacks interface {
+
+	// for serial
+	Once() sync.Once
+	JobChan() chan func()
+	// for serial end
+
 	// Connection returns the connection triggered the callback
 	Connection() Connection
 

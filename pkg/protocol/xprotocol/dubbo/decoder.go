@@ -33,7 +33,7 @@ import (
 // Avoid allocating 4k memory every time you create an object
 var decodePool = &sync.Pool{
 	New: func() interface{} {
-		return hessian.NewCheapDecoderWithSkip([]byte{})
+		return hessian.NewDecoderWithSkip([]byte{})
 	},
 }
 
