@@ -32,11 +32,18 @@ import (
 
 // Decoder is heavy and caches to improve performance.
 // Avoid allocating 4k memory every time you create an object
-var decodePool = &sync.Pool{
-	New: func() interface{} {
-		return hessian.NewCheapDecoderWithSkip([]byte{})
-	},
-}
+var (
+	decodePoolCheap = &sync.Pool{
+		New: func() interface{} {
+			return hessian.NewCheapDecoderWithSkip([]byte{})
+		},
+	}
+	decodePool = &sync.Pool{
+		New: func() interface{} {
+			return hessian.NewDecoderWithSkip([]byte{})
+		},
+	}
+)
 
 func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
 	// convert data to dubbo frame
@@ -106,11 +113,24 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 		return meta, fmt.Errorf("[xprotocol][dubbo] not hessian,do not support")
 	}
 
-	decoder := decodePool.Get().(*hessian.Decoder)
+	// Recycle decode
+	var (
+		decoder *hessian.Decoder
+		deffunc func()
+	)
+
+	listener := ctx.Value(types.ContextKeyListenerName)
+	if listener == IngressDubbo || listener == EgressDubbo {
+		decoder = decodePool.Get().(*hessian.Decoder)
+		deffunc = func() { decodePool.Put(decoder) }
+	} else {
+		decoder = decodePoolCheap.Get().(*hessian.Decoder)
+		deffunc = func() { decodePoolCheap.Put(decoder) }
+	}
 	decoder.Reset(frame.payload[:])
 
 	// Recycle decode
-	defer decodePool.Put(decoder)
+	defer deffunc()
 
 	var (
 		field            interface{}
