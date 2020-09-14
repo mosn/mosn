@@ -22,6 +22,7 @@ import (
 	"errors"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -87,7 +88,7 @@ func NewListener(lc *v2.Listener) types.Listener {
 	if lc.Network == "" {
 		l.network = "tcp"
 	}
-
+	lc.Network = strings.ToLower(lc.Network)
 	return l
 }
 
