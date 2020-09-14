@@ -22,7 +22,7 @@ import (
 )
 
 func init() {
-	Init()
+	initAPI()
 
 	monkey.Patch(zkreg.NewZkRegistry, func(url *dubbocommon.URL) (registry.Registry, error) {
 		return &registry.BaseRegistry{}, nil
@@ -37,7 +37,7 @@ func init() {
 		return nil
 	})
 
-	cluster.NewClusterManagerSingleton(nil, nil)
+	cluster.NewClusterManagerSingleton(nil, nil, nil)
 
 }
 

@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path"
 	"reflect"
 	"strings"
 	"testing"
@@ -702,6 +703,34 @@ func TestRouterConfigConflict(t *testing.T) {
 	}
 }
 
+func TestRouterMarshalWithSep(t *testing.T) {
+	routerName := "router_config_name"
+	routerPath := path.Join("/tmp/routers_path", routerName)
+	vhWithSep := "test/vh/with/sep"
+	os.RemoveAll(routerPath)
+	rcfg := &RouterConfiguration{
+		VirtualHosts: []*VirtualHost{
+			&VirtualHost{
+				Name:    vhWithSep,
+				Domains: []string{"*"},
+			},
+		},
+		RouterConfigurationConfig: RouterConfigurationConfig{
+			RouterConfigName: routerName,
+			RouterConfigPath: routerPath,
+		},
+	}
+	if _, err := json.Marshal(rcfg); err != nil {
+		t.Fatal(err)
+	}
+	// verify
+	data, err := ioutil.ReadFile(path.Join(routerPath, "test_vh_with_sep.json"))
+	if err != nil || !strings.Contains(string(data), vhWithSep) {
+		t.Fatalf("read router file failed, error: %v, data: %s", err, string(data))
+	}
+
+}
+
 func TestRouterConfigDynamicModeParse(t *testing.T) {
 	routerPath := "/tmp/routers/test_routers"
 	os.RemoveAll(routerPath)
@@ -815,38 +844,8 @@ func TestListenerMarshal(t *testing.T) {
 		ln2.Name == "test_listener" &&
 		ln2.Type == INGRESS &&
 		ln2.Inspector == true &&
-		ln2.ConnectionIdleTimeout == nil &&
-		ln2.Addr == nil) {
+		ln2.ConnectionIdleTimeout == nil) {
 		t.Fatalf("listener config marshal unepxected, got :%v", ln2)
-	}
-}
-
-func TestListenerUnmarshal(t *testing.T) {
-	listenerConfig := `{
-		"name": "test_listener",
-		"type": "ingress",
-		"address": "0.0.0.0:8080",
-		"bind_port": true,
-		"connection_idle_timeout": "90s"
-	}`
-	ln := &Listener{}
-	if err := json.Unmarshal([]byte(listenerConfig), ln); err != nil {
-		t.Fatal(err)
-	}
-	if !(ln.AddrConfig == "0.0.0.0:8080" &&
-		ln.Name == "test_listener" &&
-		ln.Type == INGRESS &&
-		ln.BindToPort == true &&
-		ln.ConnectionIdleTimeout.Duration == 90*time.Second) {
-		t.Fatalf("json unmarshal failed, got: %v", ln)
-	}
-	b, err := json.Marshal(ln)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// if there is only addr config but no net.Addr, should be marshal addr config
-	if !strings.Contains(string(b), "0.0.0.0:8080") {
-		t.Fatalf("mashal json unexpected, got : %s", string(b))
 	}
 }
 
@@ -922,7 +921,7 @@ func TestHashPolicyUnmarshal(t *testing.T) {
 }
 
 func TestHashPolicyMarshal(t *testing.T) {
-	config := `{"hash_policy":[{"header":{"key":"header_key"}}],"timeout":"0s"}`
+	config := `{"hash_policy":[{"header":{"key":"header_key"}}],"timeout":"0s","regex_rewrite":{"pattern":{"google_re2":{}}}}`
 
 	headerConfig := &RouterActionConfig{
 		HashPolicy: []HashPolicy{
@@ -940,7 +939,7 @@ func TestHashPolicyMarshal(t *testing.T) {
 		t.FailNow()
 	}
 
-	config2 := `{"hash_policy":[{"cookie":{"name":"name","path":"path","ttl":"5s"}}],"timeout":"0s"}`
+	config2 := `{"hash_policy":[{"cookie":{"name":"name","path":"path","ttl":"5s"}}],"timeout":"0s","regex_rewrite":{"pattern":{"google_re2":{}}}}`
 	cookieConfig := &RouterActionConfig{
 		HashPolicy: []HashPolicy{
 			{
@@ -961,7 +960,7 @@ func TestHashPolicyMarshal(t *testing.T) {
 		t.FailNow()
 	}
 
-	config3 := `{"hash_policy":[{"source_ip":{}}],"timeout":"0s"}`
+	config3 := `{"hash_policy":[{"source_ip":{}}],"timeout":"0s","regex_rewrite":{"pattern":{"google_re2":{}}}}`
 	ipConfig := &RouterActionConfig{
 		HashPolicy: []HashPolicy{
 			{

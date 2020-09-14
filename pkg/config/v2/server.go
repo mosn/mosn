@@ -19,6 +19,7 @@ package v2
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
 
 	"mosn.io/api"
@@ -55,6 +56,7 @@ type ListenerConfig struct {
 	Type                  ListenerType        `json:"type,omitempty"`
 	AddrConfig            string              `json:"address,omitempty"`
 	BindToPort            bool                `json:"bind_port,omitempty"`
+	Network               string              `json:"network,omitempty"`
 	UseOriginalDst        bool                `json:"use_original_dst,omitempty"`
 	AccessLogs            []AccessLog         `json:"access_logs,omitempty"`
 	ListenerFilters       []Filter            `json:"listener_filters,omitempty"`
@@ -72,6 +74,7 @@ type Listener struct {
 	ListenerScope           string           `json:"-"`
 	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
 	InheritListener         *net.TCPListener `json:"-"`
+	InheritPacketConn       *net.PacketConn  `json:"-"`
 	Remain                  bool             `json:"-"`
 }
 
@@ -80,6 +83,38 @@ func (l Listener) MarshalJSON() (b []byte, err error) {
 		l.AddrConfig = l.Addr.String()
 	}
 	return json.Marshal(l.ListenerConfig)
+}
+
+var ErrNoAddrListener = errors.New("address is required in listener config")
+
+const defaultBufferLimit = 1 << 15
+
+func (l *Listener) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &l.ListenerConfig); err != nil {
+		return err
+	}
+	if l.AddrConfig == "" {
+		return ErrNoAddrListener
+	}
+	if l.Network == "" {
+		l.Network = "tcp" // default is tcp
+	}
+	switch l.Network {
+	case "udp":
+		addr, err := net.ResolveUDPAddr("udp", l.AddrConfig)
+		if err != nil {
+			return err
+		}
+		l.Addr = addr
+	default: // tcp
+		addr, err := net.ResolveTCPAddr("tcp", l.AddrConfig)
+		if err != nil {
+			return err
+		}
+		l.Addr = addr
+	}
+	l.PerConnBufferLimitBytes = defaultBufferLimit
+	return nil
 }
 
 // AccessLog for making up access log

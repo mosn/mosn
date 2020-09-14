@@ -119,8 +119,11 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	sender.AppendHeaders(ctx, hb.GetHeader(), true) // nolint: errcheck, gosec
 	// start a timer for request
 	kp.mutex.Lock()
+	defer kp.mutex.Unlock()
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
+	}
 	kp.requests[id] = startTimeout(id, kp)
-	kp.mutex.Unlock()
 }
 
 func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {

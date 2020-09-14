@@ -1,6 +1,7 @@
 package sds
 
 import (
+	"sync"
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -17,14 +18,15 @@ import (
 )
 
 type SdsSubscriber struct {
-	provider           types.SecretProvider
-	reqQueue           chan string
-	sdsConfig          *core.ConfigSource
-	sdsStreamClient    *SdsStreamClient
-	sendStopChannel    chan int
-	receiveStopChannel chan int
-	serviceNode        string
-	serviceCluster     string
+	provider             types.SecretProvider
+	reqQueue             chan string
+	sdsConfig            *core.ConfigSource
+	sdsStreamClient      *SdsStreamClient
+	sdsStreamClientMutex sync.RWMutex
+	sendStopChannel      chan int
+	receiveStopChannel   chan int
+	serviceNode          string
+	serviceCluster       string
 }
 
 type SdsStreamClient struct {
@@ -64,21 +66,19 @@ func (subscribe *SdsSubscriber) Start() {
 			time.Sleep(SubscriberRetryPeriod)
 			continue
 		}
-		streamClient, err := subscribe.getSdsStreamClient(sdsStreamConfig)
-		if err != nil {
+		if err := subscribe.getSdsStreamClient(sdsStreamConfig); err != nil {
 			log.DefaultLogger.Alertf("sds.subscribe.stream", "[sds][subscribe] get sds stream client fail %v", err)
 			time.Sleep(SubscriberRetryPeriod)
 			continue
 		}
 		log.DefaultLogger.Infof("[sds][subscribe] init sds stream client success")
-		subscribe.sdsStreamClient = streamClient
 		break
 	}
 	utils.GoWithRecover(func() {
-		subscribe.sendRequestLoop(subscribe.sdsStreamClient)
+		subscribe.sendRequestLoop()
 	}, nil)
 	utils.GoWithRecover(func() {
-		subscribe.receiveResponseLoop(subscribe.sdsStreamClient)
+		subscribe.receiveResponseLoop()
 	}, nil)
 }
 
@@ -111,10 +111,11 @@ func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *core.ConfigSource) (
 	return sdsStreamConfig, nil
 }
 
-func (subscribe *SdsSubscriber) sendRequestLoop(sdsStreamClient *SdsStreamClient) {
+func (subscribe *SdsSubscriber) sendRequestLoop() {
 	for {
 		select {
 		case <-subscribe.sendStopChannel:
+			log.DefaultLogger.Errorf("[xds] [sds subscriber] send request loop closed")
 			return
 		case name := <-subscribe.reqQueue:
 			discoveryReq := &xdsapi.DiscoveryRequest{
@@ -128,7 +129,7 @@ func (subscribe *SdsSubscriber) sendRequestLoop(sdsStreamClient *SdsStreamClient
 				if err != nil {
 					log.DefaultLogger.Alertf("sds.subscribe.request", "[xds] [sds subscriber] send sds request fail , resource name = %v", name)
 					time.Sleep(1 * time.Second)
-					subscribe.reconnect()
+					// subscribe.reconnect()
 					continue
 				}
 				break
@@ -137,24 +138,30 @@ func (subscribe *SdsSubscriber) sendRequestLoop(sdsStreamClient *SdsStreamClient
 	}
 }
 
-func (subscribe *SdsSubscriber) receiveResponseLoop(sdsStreamClient *SdsStreamClient) {
+func (subscribe *SdsSubscriber) receiveResponseLoop() {
 	for {
 		select {
 		case <-subscribe.receiveStopChannel:
+			log.DefaultLogger.Errorf("[xds] [sds subscriber]  receive response loop closed")
 			return
 		default:
-			if subscribe.sdsStreamClient == nil {
+			subscribe.sdsStreamClientMutex.RLock()
+			clt := subscribe.sdsStreamClient
+			subscribe.sdsStreamClientMutex.RUnlock()
+
+			if clt == nil {
 				log.DefaultLogger.Infof("[xds] [sds subscriber] stream client closed, sleep 1s and wait for reconnect")
 				time.Sleep(time.Second)
 				continue
 			}
-			resp, err := subscribe.sdsStreamClient.streamSecretsClient.Recv()
+			resp, err := clt.streamSecretsClient.Recv()
 			if err != nil {
 				log.DefaultLogger.Infof("[xds] [sds subscriber] get resp timeout: %v, retry after 1s", err)
 				time.Sleep(time.Second)
 				subscribe.reconnect()
 				continue
 			}
+			log.DefaultLogger.Infof("[xds] [sds subscriber] received a repsonse")
 			subscribe.handleSecretResp(resp)
 		}
 	}
@@ -162,7 +169,15 @@ func (subscribe *SdsSubscriber) receiveResponseLoop(sdsStreamClient *SdsStreamCl
 
 func (subscribe *SdsSubscriber) sendRequest(request *xdsapi.DiscoveryRequest) error {
 	log.DefaultLogger.Debugf("send sds request resource name = %v", request.ResourceNames)
-	return subscribe.sdsStreamClient.streamSecretsClient.Send(request)
+
+	subscribe.sdsStreamClientMutex.RLock()
+	clt := subscribe.sdsStreamClient
+	subscribe.sdsStreamClientMutex.RUnlock()
+
+	if clt == nil {
+		return errors.New("stream client has beend closed")
+	}
+	return clt.streamSecretsClient.Send(request)
 }
 
 func (subscribe *SdsSubscriber) handleSecretResp(response *xdsapi.DiscoveryResponse) {
@@ -177,9 +192,11 @@ func (subscribe *SdsSubscriber) handleSecretResp(response *xdsapi.DiscoveryRespo
 	}
 }
 
-func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamConfig) (*SdsStreamClient, error) {
+func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamConfig) error {
+	subscribe.sdsStreamClientMutex.Lock()
+	defer subscribe.sdsStreamClientMutex.Unlock()
 	if subscribe.sdsStreamClient != nil {
-		return subscribe.sdsStreamClient, nil
+		return nil
 	}
 	udsPath := "unix:" + sdsStreamConfig.sdsUdsPath
 	conn, err := grpc.Dial(
@@ -187,7 +204,7 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 		grpc.WithInsecure(),
 	)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	sdsServiceClient := v2.NewSecretDiscoveryServiceClient(conn)
 	sdsStreamClient := &SdsStreamClient{
@@ -199,20 +216,15 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 	streamSecretsClient, err := sdsServiceClient.StreamSecrets(ctx)
 	if err != nil {
 		conn.Close()
-		return nil, err
+		return err
 	}
 	sdsStreamClient.streamSecretsClient = streamSecretsClient
-	return sdsStreamClient, nil
+	subscribe.sdsStreamClient = sdsStreamClient
+	return nil
 }
 
 func (subscribe *SdsSubscriber) reconnect() {
-	subscribe.sdsStreamClient.cancel()
-	if subscribe.sdsStreamClient.conn != nil {
-		subscribe.sdsStreamClient.conn.Close()
-		subscribe.sdsStreamClient.conn = nil
-	}
-	subscribe.sdsStreamClient = nil
-	log.DefaultLogger.Infof("[xds] [sds subscriber] stream client closed")
+	subscribe.cleanSdsStreamClient()
 	for {
 		sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
 		if err != nil {
@@ -220,14 +232,26 @@ func (subscribe *SdsSubscriber) reconnect() {
 			time.Sleep(SubscriberRetryPeriod)
 			continue
 		}
-		sdsStreamClient, err := subscribe.getSdsStreamClient(sdsStreamConfig)
-		if err != nil {
+		if err := subscribe.getSdsStreamClient(sdsStreamConfig); err != nil {
 			log.DefaultLogger.Infof("[xds] [sds subscriber] stream client reconnect failed, retry after 1s")
 			time.Sleep(SubscriberRetryPeriod)
 			continue
 		}
-		subscribe.sdsStreamClient = sdsStreamClient
 		log.DefaultLogger.Infof("[xds] [sds subscriber] stream client reconnected")
 		break
 	}
+}
+
+func (subscribe *SdsSubscriber) cleanSdsStreamClient() {
+	subscribe.sdsStreamClientMutex.Lock()
+	defer subscribe.sdsStreamClientMutex.Unlock()
+	if subscribe.sdsStreamClient != nil {
+		subscribe.sdsStreamClient.cancel()
+		if subscribe.sdsStreamClient.conn != nil {
+			subscribe.sdsStreamClient.conn.Close()
+			subscribe.sdsStreamClient.conn = nil
+		}
+		subscribe.sdsStreamClient = nil
+	}
+	log.DefaultLogger.Infof("[xds] [sds subscriber] stream client closed")
 }

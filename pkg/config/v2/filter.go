@@ -48,6 +48,16 @@ type StreamGzip struct {
 	ContentType   []string `json:"content_types,omitempty"`
 }
 
+// StreamDSL ...
+type StreamDSL struct {
+	Debug            bool   `json:"debug"` // TODO not implement
+	BeforeRouterDSL  string `json:"before_router_by_dsl"`
+	AfterRouterDSL   string `json:"after_router_by_dsl"`
+	AfterBalancerDSL string `json:"after_balancer_by_dsl"`
+	SendFilterDSL    string `json:"send_filter_by_dsl"`
+	LogDSL           string `json:"log_filter_by_dsl"`
+}
+
 // Listener Filter's Type
 const (
 	ORIGINALDST_LISTENER_FILTER = "original_dst"
@@ -70,6 +80,7 @@ const (
 	CONNECTION_MANAGER          = "connection_manager" // deprecated
 	DEFAULT_NETWORK_FILTER      = "proxy"
 	TCP_PROXY                   = "tcp_proxy"
+	UDP_PROXY                   = "udp_proxy"
 	FAULT_INJECT_NETWORK_FILTER = "fault_inject"
 	RPC_PROXY                   = "rpc_proxy"
 	X_PROXY                     = "x_proxy"
@@ -83,6 +94,9 @@ const (
 	PayloadLimit   = "payload_limit"
 	Gzip           = "gzip"
 	FaultTolerance = "fault_tolerance"
+	IstioStats     = "istio.stats"
+	DSL            = "dsl"
+	Mirror         = "mirror"
 )
 
 // HealthCheckFilter
@@ -121,7 +135,7 @@ type StreamPayloadLimit struct {
 	HttpStatus    int32 `json:"http_status"`
 }
 
-func (f FaultInject) Marshal() (b []byte, err error) {
+func (f FaultInject) MarshalJSON() (b []byte, err error) {
 	f.FaultInjectConfig.DelayDurationConfig.Duration = time.Duration(f.DelayDuration)
 	return json.Marshal(f.FaultInjectConfig)
 }
@@ -147,7 +161,7 @@ type DelayInject struct {
 	Delay time.Duration `json:"-"`
 }
 
-func (d DelayInject) Marshal() (b []byte, err error) {
+func (d DelayInject) MarshalJSON() (b []byte, err error) {
 	d.DelayInjectConfig.DelayDurationConfig.Duration = d.Delay
 	return json.Marshal(d.DelayInjectConfig)
 }

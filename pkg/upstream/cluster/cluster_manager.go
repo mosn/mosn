@@ -25,6 +25,7 @@ import (
 	"reflect"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"mosn.io/mosn/pkg/admin/store"
@@ -62,6 +63,7 @@ type clusterManager struct {
 	clustersMap      sync.Map
 	protocolConnPool sync.Map
 	tlsMetrics       *mtls.TLSStats
+	tlsMng           atomic.Value // store types.TLSContextManager
 	mux              sync.Mutex
 }
 
@@ -78,15 +80,19 @@ func (singleton *clusterManagerSingleton) Destroy() {
 
 var clusterManagerInstance = &clusterManagerSingleton{}
 
-func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host) types.ClusterManager {
+func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, tls *v2.TLSConfig) types.ClusterManager {
 	clusterManagerInstance.instanceMutex.Lock()
 	defer clusterManagerInstance.instanceMutex.Unlock()
 	if clusterManagerInstance.clusterManager != nil {
 		return clusterManagerInstance
 	}
+
 	clusterManagerInstance.clusterManager = &clusterManager{
 		tlsMetrics: mtls.NewStats(globalTLSMetrics),
 	}
+	// set global tls
+	clusterManagerInstance.clusterManager.UpdateTLSManager(tls)
+	// add conn pool
 	for k := range types.ConnPoolFactories {
 		clusterManagerInstance.protocolConnPool.Store(k, &sync.Map{})
 	}
@@ -281,6 +287,17 @@ func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, sna
 	return host.CreateConnection(context.Background())
 }
 
+func (cm *clusterManager) UDPConnForCluster(lbCtx types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
+	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
+		return types.CreateConnectionData{}
+	}
+	host := snapshot.LoadBalancer().ChooseHost(lbCtx)
+	if host == nil {
+		return types.CreateConnectionData{}
+	}
+	return host.CreateUDPConnection(context.Background())
+}
+
 func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) types.ConnectionPool {
 	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager]  %s ConnPool For Cluster is nil", protocol)
@@ -291,6 +308,24 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 		log.DefaultLogger.Errorf("[upstream] [cluster manager] ConnPoolForCluster Failed; %v", err)
 	}
 	return pool
+}
+
+func (cm *clusterManager) GetTLSManager() types.TLSContextManager {
+	v := cm.tlsMng.Load()
+	tlsmng, _ := v.(types.TLSContextManager)
+	return tlsmng
+}
+
+func (cm *clusterManager) UpdateTLSManager(tls *v2.TLSConfig) {
+	if tls == nil {
+		tls = &v2.TLSConfig{} // use a disabled config instead
+	}
+	mng, err := mtls.NewTLSClientContextManager(tls)
+	if err != nil {
+		log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: Add TLS Manager failed, error: %v", err)
+		return
+	}
+	cm.tlsMng.Store(mng)
 }
 
 const (

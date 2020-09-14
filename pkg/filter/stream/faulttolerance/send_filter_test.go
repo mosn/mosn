@@ -138,8 +138,30 @@ func TestAppendFilter(t *testing.T) {
 	}
 
 	// After cfg.RecoverTime, the host1 health should be recover
-	time.Sleep(time.Duration(cfg.RecoverTime/1000) * time.Second)
+	time.Sleep(time.Duration(cfg.RecoverTime/1000+1) * time.Second)
 	if !host1.Health() {
 		t.Errorf("health status should recover,but got health status: %v", host1.Health())
 	}
+
+	// test IsException
+	if isException := f.IsException(info1); !isException {
+		t.Error("info1 should be isException")
+	}
+	if isException := f.IsException(info2); isException {
+		t.Error("info2 should not be isException")
+	}
+}
+
+func TestCreateSendFilterFactory(t *testing.T) {
+	m := map[string]interface{}{}
+	if f, err := CreateSendFilterFactory(m); err != nil || f == nil {
+		t.Errorf("CreateSendFilterFactory failed error: %v", err)
+	}
+
+	m["enabled"] = true
+	m["exceptionTypes"] = []uint32{502, 503}
+	if f, err := CreateSendFilterFactory(m); err != nil || f == nil {
+		t.Errorf("CreateSendFilterFactory failed error: %v", err)
+	}
+
 }

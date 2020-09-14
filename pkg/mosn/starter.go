@@ -52,8 +52,9 @@ type Mosn struct {
 	xdsClient      *xds.Client
 	wg             sync.WaitGroup
 	// for smooth upgrade. reconfigure
-	inheritListeners []net.Listener
-	listenSockConn   net.Conn
+	inheritListeners  []net.Listener
+	inheritPacketConn []net.PacketConn
+	listenSockConn    net.Conn
 }
 
 // NewMosn
@@ -66,11 +67,22 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 	store.SetMosnConfig(c)
 
-	//get inherit fds
-	inheritListeners, listenSockConn, err := server.GetInheritListeners()
-	if err != nil {
-		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+	var (
+		inheritListeners  []net.Listener
+		inheritPacketConn []net.PacketConn
+		listenSockConn    net.Conn
+		err               error
+	)
+
+	// default is graceful mode, turn graceful off by set it to false
+	if !c.CloseGraceful {
+		//get inherit fds
+		inheritListeners, inheritPacketConn, listenSockConn, err = server.GetInheritListeners()
+		if err != nil {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+		}
 	}
+
 	if listenSockConn != nil {
 		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
 		// set Mosn Active_Reconfiguring
@@ -88,10 +100,11 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeMetrics(c.Metrics)
 
 	m := &Mosn{
-		config:           c,
-		wg:               sync.WaitGroup{},
-		inheritListeners: inheritListeners,
-		listenSockConn:   listenSockConn,
+		config:            c,
+		wg:                sync.WaitGroup{},
+		inheritListeners:  inheritListeners,
+		inheritPacketConn: inheritPacketConn,
+		listenSockConn:    listenSockConn,
 	}
 	mode := c.Mode()
 
@@ -101,10 +114,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				DefaultLogPath:  "stdout",
 				DefaultLogLevel: "INFO",
 			},
-		}
-	} else {
-		if len(c.ClusterManager.Clusters) == 0 && !c.ClusterManager.AutoDiscovery {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
 		}
 	}
 
@@ -123,9 +132,9 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	clusters, clusterMap := configmanager.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
 	if mode == v2.Xds {
-		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil)
+		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil, &c.ClusterManager.TLSContext)
 	} else {
-		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap)
+		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap, &c.ClusterManager.TLSContext)
 	}
 
 	// initialize the routerManager
@@ -156,7 +165,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
-				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
+				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners, inheritPacketConn)
 				// deprecated: keep compatible for route config in listener's connection_manager
 				deprecatedRouter, err := configmanager.ParseRouterConfiguration(&lc.FilterChains[0])
 				if err != nil {
@@ -223,16 +232,25 @@ func (m *Mosn) beforeStart() {
 			ln.Close()
 		}
 	}
+	//close legacy UDP listeners
+	for _, ln := range m.inheritPacketConn {
+		if ln != nil {
+			log.StartLogger.Infof("[mosn] [NewMosn] close useless legacy listener: %s", ln.LocalAddr().String())
+			ln.Close()
+		}
+	}
 
 	// start dump config process
 	utils.GoWithRecover(func() {
 		configmanager.DumpConfigHandler()
 	}, nil)
 
-	// start reconfig domain socket
-	utils.GoWithRecover(func() {
-		server.ReconfigureHandler()
-	}, nil)
+	if !m.config.CloseGraceful {
+		// start reconfig domain socket
+		utils.GoWithRecover(func() {
+			server.ReconfigureHandler()
+		}, nil)
+	}
 }
 
 // Start mosn's server
@@ -250,6 +268,9 @@ func (m *Mosn) Start() {
 	//parse service registry info
 	log.StartLogger.Infof("mosn parse registry info")
 	configmanager.ParseServiceRegistry(m.config.ServiceRegistry)
+
+	log.StartLogger.Infof("mosn parse extend config")
+	configmanager.ParseConfigExtend(m.config.Extend)
 
 	// beforestart starts transfer connection and non-proxy listeners
 	log.StartLogger.Infof("mosn prepare for start")
