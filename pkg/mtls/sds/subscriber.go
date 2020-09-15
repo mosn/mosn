@@ -35,8 +35,9 @@ type SdsStreamClient struct {
 }
 
 type SdsStreamConfig struct {
-	sdsUdsPath string
-	statPrefix string
+	sdsClusterName string
+	sdsUdsPath     string
+	statPrefix     string
 }
 
 var (
@@ -100,7 +101,9 @@ func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *core.ConfigSource) (
 				log.DefaultLogger.Alertf("sds.subscribe.grpc", "[xds] [sds subscriber] only support one grpc service,but get %v", len(grpcService))
 				return nil, errors.New("unsupport sds config")
 			}
-			if grpcConfig, ok := grpcService[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_); ok {
+			if grpcConfig, ok := grpcService[0].TargetSpecifier.(*core.GrpcService_EnvoyGrpc_); ok {
+				sdsStreamConfig.sdsClusterName = grpcConfig.EnvoyGrpc.ClusterName
+			} else if grpcConfig, ok := grpcService[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_); ok {
 				sdsStreamConfig.sdsUdsPath = grpcConfig.GoogleGrpc.TargetUri
 				sdsStreamConfig.statPrefix = grpcConfig.GoogleGrpc.StatPrefix
 			} else {
@@ -181,7 +184,14 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 	if subscribe.sdsStreamClient != nil {
 		return subscribe.sdsStreamClient, nil
 	}
+
+	// TODO
+	// uds path should come from sdsClusterName,
+	// when sdsClusterName is empty, use sdsUdsPath instead.
 	udsPath := "unix:" + sdsStreamConfig.sdsUdsPath
+	if sdsStreamConfig.sdsClusterName != "" {
+		udsPath = "unix:/etc/istio/proxy/SDS"
+	}
 	conn, err := grpc.Dial(
 		udsPath,
 		grpc.WithInsecure(),

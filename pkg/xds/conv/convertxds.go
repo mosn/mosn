@@ -163,6 +163,12 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 	}
 	clusters := make([]*v2.Cluster, 0, len(xdsClusters))
 	for _, xdsCluster := range xdsClusters {
+		var tls v2.TLSConfig
+		if xdsCluster.GetTransportSocket() != nil {
+			tls, _ = convertSdsUpStreamConfig(xdsCluster.GetTransportSocket())
+		}else if xdsCluster.GetTlsContext() != nil {
+			tls = convertTLS(xdsCluster.GetTlsContext())
+		}
 		cluster := &v2.Cluster{
 			Name:                 xdsCluster.GetName(),
 			ClusterType:          convertClusterType(xdsCluster.GetType()),
@@ -175,7 +181,7 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
 			Hosts:    convertClusterHosts(xdsCluster.GetHosts()),
 			Spec:     convertSpec(xdsCluster),
-			TLS:      convertTLS(xdsCluster.GetTlsContext()),
+			TLS:      tls,
 			LbConfig: convertLbConfig(xdsCluster.LbConfig),
 		}
 
@@ -617,6 +623,7 @@ func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.Filt
 
 	var xdsFilters []*xdslistener.Filter
 	var chainMatch string
+	var tlsContext v2.TLSConfig
 
 	// todo Only one chain is supported now
 	// if listener.type == TCP, HTTPS, TLS, Mongo, Redis, MySQL
@@ -629,6 +636,13 @@ func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.Filt
 	for _, xdsFilterChain := range xdsFilterChains {
 		xdsFilters = append(xdsFilters, xdsFilterChain.GetFilters()...)
 
+		if xdsFilterChain.GetTransportSocket() != nil {
+			if tlsCtx, err := convertSdsDownStreamConfig(xdsFilterChain.GetTransportSocket()); err == nil {
+				tlsContext = tlsCtx
+			}
+		} else if xdsFilterChain.GetTlsContext() != nil {
+			tlsContext = convertTLS(xdsFilterChain.GetTlsContext())
+		}
 		//todo Distinguish between multiple filterChainMaths
 		if xdsFilterChain.GetFilterChainMatch() != nil {
 			chainMatch = xdsFilterChain.GetFilterChainMatch().String()
@@ -655,11 +669,32 @@ func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.Filt
 		FilterChainConfig: v2.FilterChainConfig{
 			FilterChainMatch: chainMatch,
 			Filters:          convertFilters(oneFilter),
+			TLSConfig:        &tlsContext,
 		},
-		TLSContexts: nil,
+		TLSContexts: []v2.TLSConfig{tlsContext},
 	},
 	}, oneFilter
 
+}
+
+func convertSdsDownStreamConfig(transportSocket *xdscore.TransportSocket) (v2.TLSConfig, error) {
+	downstreamTLSContext := &xdsauth.DownstreamTlsContext{}
+	err := ptypes.UnmarshalAny(transportSocket.GetTypedConfig(), downstreamTLSContext)
+	if err != nil {
+		return v2.TLSConfig{}, fmt.Errorf("format downstream tls config failed")
+	}
+
+	return convertTLS(downstreamTLSContext), nil
+}
+
+func convertSdsUpStreamConfig(transportSocket *xdscore.TransportSocket) (v2.TLSConfig, error) {
+	upstreamTLSContext := &xdsauth.UpstreamTlsContext{}
+	err := ptypes.UnmarshalAny(transportSocket.GetTypedConfig(), upstreamTLSContext)
+	if err != nil {
+		return v2.TLSConfig{}, fmt.Errorf("format upstream tls config failed")
+	}
+
+	return convertTLS(upstreamTLSContext), nil
 }
 
 func convertFilters(xdsFilters *xdslistener.Filter) []v2.Filter {
@@ -1314,12 +1349,14 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 		return config
 	}
 	if context, ok := xdsTLSContext.(*xdsauth.DownstreamTlsContext); ok {
+
 		if context.GetRequireClientCertificate() != nil {
 			config.VerifyClient = context.GetRequireClientCertificate().GetValue()
 		}
 		common = context.GetCommonTlsContext()
 		isDownstream = true
 	} else if context, ok := xdsTLSContext.(*xdsauth.UpstreamTlsContext); ok {
+
 		config.ServerName = context.GetSni()
 		common = context.GetCommonTlsContext()
 		isDownstream = false
@@ -1339,13 +1376,15 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
 		isSdsMode = true
 		if validationContext, ok := common.GetValidationContextType().(*xdsauth.CommonTlsContext_CombinedValidationContext); ok {
-			config.SdsConfig.CertificateConfig = &v2.SecretConfigWrapper{Config: tlsCertSdsConfig[0]}
-			config.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{Config: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()}
+			config.SdsConfig = &v2.SdsConfig{
+				CertificateConfig: &v2.SecretConfigWrapper{Config: tlsCertSdsConfig[0]},
+				ValidationConfig:  &v2.SecretConfigWrapper{Config: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()},
+			}
 		}
 	}
 
 	if common.GetValidationContext() != nil && common.GetValidationContext().GetTrustedCa() != nil {
-		config.CACert = common.GetValidationContext().GetTrustedCa().String()
+		config.CACert = common.GetValidationContext().GetTrustedCa().GetFilename()
 	}
 	if common.GetAlpnProtocols() != nil {
 		config.ALPN = strings.Join(common.GetAlpnProtocols(), ",")
