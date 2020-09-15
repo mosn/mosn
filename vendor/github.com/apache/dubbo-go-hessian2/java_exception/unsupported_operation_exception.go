@@ -40,3 +40,8 @@ func (e UnsupportedOperationException) Error() string {
 func (UnsupportedOperationException) JavaClassName() string {
 	return "java.lang.UnsupportedOperationException"
 }
+
+// equals to getStackTrace in java
+func (e UnsupportedOperationException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

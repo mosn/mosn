@@ -42,3 +42,8 @@ func (e OptionalDataException) Error() string {
 func (OptionalDataException) JavaClassName() string {
 	return "java.io.OptionalDataException"
 }
+
+// equals to getStackTrace in java
+func (e OptionalDataException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

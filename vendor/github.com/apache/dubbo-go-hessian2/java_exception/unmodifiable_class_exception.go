@@ -43,3 +43,8 @@ func (e UnmodifiableClassException) Error() string {
 func (UnmodifiableClassException) JavaClassName() string {
 	return "java.lang.instrument.UnmodifiableClassException"
 }
+
+// equals to getStackTrace in java
+func (e UnmodifiableClassException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}
