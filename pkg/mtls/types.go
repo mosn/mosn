@@ -21,7 +21,7 @@ import (
 	"crypto/x509"
 	"errors"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/types"
 )
@@ -57,9 +57,11 @@ var (
 
 // ALPN
 var alpn = map[string]bool{
-	"h2":       true,
-	"http/1.1": true,
-	"sofa":     true,
+	"h2":                  true,
+	"http/1.1":            true,
+	"sofa":                true,
+	"istio-peer-exchange": true, // todo should adjust istio-pilot
+	"istio":               true, // todo should adjust istio-pilot
 }
 
 // ConfigHooks is a  set of functions used to make a tls config

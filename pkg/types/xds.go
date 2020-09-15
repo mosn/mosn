@@ -20,6 +20,7 @@ package types
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 
 	"github.com/golang/protobuf/jsonpb"
 	_struct "github.com/golang/protobuf/ptypes/struct"
@@ -39,6 +40,26 @@ type XdsInfo struct {
 	Metadata       *_struct.Struct
 }
 
+// StringBool defines a boolean that is serialized as a string for legacy reasons
+type StringBool bool
+
+func (s StringBool) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%t"`, s)), nil
+}
+
+func (s *StringBool) UnmarshalJSON(data []byte) error {
+	pls, err := strconv.Unquote(string(data))
+	if err != nil {
+		return err
+	}
+	b, err := strconv.ParseBool(pls)
+	if err != nil {
+		return err
+	}
+	*s = StringBool(b)
+	return nil
+}
+
 type meta struct {
 	// IstioVersion specifies the Istio version associated with the proxy
 	IstioVersion string `json:"ISTIO_VERSION,omitempty"`
@@ -49,6 +70,17 @@ type meta struct {
 	// InterceptionMode is the name of the metadata variable that carries info about
 	// traffic interception mode at the proxy
 	InterceptionMode TrafficInterceptionMode `json:"INTERCEPTION_MODE,omitempty"`
+
+	// SdsTokenPath specifies the path of the SDS token used by the Envoy proxy.
+	// If not set, Pilot uses the default SDS token path.
+	SdsTokenPath string `json:"SDS_TOKEN_PATH,omitempty"`
+	// signifies whether this is an SDS enabled ingress controller, with an embedded node agent running
+	UserSds StringBool `json:"USER_SDS,omitempty"`
+	SdsBase string     `json:"BASE,omitempty"`
+	// SdsEnabled indicates if SDS is enabled or not. This is are set to "1" if true
+	SdsEnabled StringBool `json:"SDS,omitempty"`
+	// SdsTrustJwt indicates if SDS trust jwt is enabled or not. This is are set to "1" if true
+	SdsTrustJwt StringBool `json:"TRUSTJWT,omitempty"`
 }
 
 var (
@@ -59,6 +91,7 @@ var (
 		IstioVersion:     IstioVersion,
 		Labels:           map[string]string{"istio": "ingressgateway"},
 		InterceptionMode: InterceptionRedirect,
+		SdsEnabled:       true,
 	}
 )
 
