@@ -71,27 +71,28 @@ func getDump() bool {
 
 // DumpConfig writes the config into config path file
 func DumpConfig() {
-	if getDump() {
-		log.DefaultLogger.Debugf("[config] [dump] try to dump config")
-		content, err := transferConfig()
+	if !getDump() {
+		return
+	}
+	log.DefaultLogger.Debugf("[config] [dump] try to dump config")
+	content, err := transferConfig()
+	if err != nil {
+		log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: %v", err)
+		return
+	}
+	// check if yaml
+	if yamlFormat(configPath) {
+		content, err = yaml.JSONToYAML(content)
 		if err != nil {
-			log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: %v", err)
+			log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump yaml config failed, caused by: %v", err)
 			return
 		}
-		// check if yaml
-		if yamlFormat(configPath) {
-			content, err = yaml.JSONToYAML(content)
-			if err != nil {
-				log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump yaml config failed, caused by: %v", err)
-				return
-			}
-		}
-		err = utils.WriteFileSafety(configPath, content, 0644)
-		if err != nil {
-			log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: %v", err.Error())
-			// add retry if write file  failed
-			setDump()
-		}
+	}
+	err = utils.WriteFileSafety(configPath, content, 0644)
+	if err != nil {
+		log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: %v", err.Error())
+		// add retry if write file  failed
+		setDump()
 	}
 }
 
@@ -111,15 +112,15 @@ func transferConfig() ([]byte, error) {
 	defer configLock.RUnlock()
 
 	wait2dump := conf.MosnConfig
-	var listeners []v2.Listener
+	listeners := make([]v2.Listener, 0, len(conf.Listener))
 	for _, l := range conf.Listener {
 		listeners = append(listeners, l)
 	}
-	var clusters []v2.Cluster
+	clusters := make([]v2.Cluster, 0, len(conf.Cluster))
 	for _, c := range conf.Cluster {
 		clusters = append(clusters, c)
 	}
-	var routers []*v2.RouterConfiguration
+	routers := make([]*v2.RouterConfiguration, 0, len(conf.Routers))
 	// get routers, should set the original path
 	for name := range conf.Routers {
 		routerPath := conf.routerConfigPath[name]
