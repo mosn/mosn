@@ -115,11 +115,14 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 
 	// Recycle decode
 	var (
-		decoder *hessian.Decoder
-		deffunc func()
+		decoder  *hessian.Decoder
+		deffunc  func()
+		listener interface{}
 	)
 
-	listener := ctx.Value(types.ContextKeyListenerName)
+	if ctx != nil {
+		listener = ctx.Value(types.ContextKeyListenerName)
+	}
 	if listener == IngressDubbo || listener == EgressDubbo {
 		decoder = decodePool.Get().(*hessian.Decoder)
 		deffunc = func() { decodePool.Put(decoder) }
@@ -188,8 +191,6 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	meta[MethodNameHeader] = method
 
 	if ctx != nil {
-		listener := ctx.Value(types.ContextKeyListenerName)
-
 		var (
 			node    *Node
 			matched bool
