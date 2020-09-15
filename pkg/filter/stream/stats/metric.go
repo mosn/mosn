@@ -19,6 +19,7 @@ package stats
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -182,6 +183,9 @@ func (o *override) Handle(bag attribute.Bag, stat *Stat) error {
 				strs = append(strs, strings.Join([]string{key, value}, " => "))
 				return true
 			})
+			// Implementation of api.HeaderMap is uncertain, the order of range is not always stable,
+			// so it needs to be sorted.
+			sort.Strings(strs)
 			str = strings.Join(strs, ", ")
 		default:
 			str = fmt.Sprint(s)

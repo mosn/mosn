@@ -40,3 +40,8 @@ func (ConcurrentModificationException) JavaClassName() string {
 func NewConcurrentModificationException(detailMessage string) *ConcurrentModificationException {
 	return &ConcurrentModificationException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e ConcurrentModificationException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

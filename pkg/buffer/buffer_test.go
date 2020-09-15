@@ -91,3 +91,35 @@ func Test_BufferPool(t *testing.T) {
 
 	debug.SetGCPercent(100)
 }
+
+func Test_TransmitBufferPoolContext(t *testing.T) {
+	RegisterBuffer(&mock)
+	var null [10]int
+
+	// first
+	ctx1 := NewBufferPoolContext(context.Background())
+	buf1 := mock_BuffersByContext(ctx1)
+	for i := 0; i < 10; i++ {
+		buf1.m[i] = i
+	}
+
+	// second
+	ctx2 := NewBufferPoolContext(context.Background())
+	buf2 := mock_BuffersByContext(ctx2)
+	for i := 0; i < 10; i++ {
+		buf2.m[i] = i
+	}
+
+    TransmitBufferPoolContext(ctx2, ctx1)
+
+	bv := PoolContext(ctx2)
+	bv.Give()
+
+	if buf1.m != null {
+		t.Errorf("test bufferPool Error: Transmit failed")
+	}
+
+	if buf2.m != null {
+		t.Errorf("test bufferPool Error: Transmit failed")
+	}
+}

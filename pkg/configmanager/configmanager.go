@@ -132,6 +132,13 @@ FoundCluster:
 	dump(true)
 }
 
+func UpdateClusterManagerTLS(tls v2.TLSConfig) {
+	configLock.Lock()
+	defer configLock.Unlock()
+	config.ClusterManager.TLSContext = tls
+	dump(true)
+}
+
 // AddPubInfo
 // called when add pub info received
 func AddPubInfo(pubInfoAdded map[string]string) {
@@ -213,6 +220,13 @@ func addOrUpdateRouterConfig(routerConfig *v2.RouterConfiguration) bool {
 	if routerConfig == nil {
 		return false
 	}
+
+	// easy for test (config.Servers maybe equals nil),
+	// for example, a registry push does not trigger the dump store
+	if config.Servers == nil {
+		return false
+	}
+
 	// support only one server
 	routers := config.Servers[0].Routers
 	for idx, rt := range routers {

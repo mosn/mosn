@@ -188,6 +188,11 @@ const mosnConfig = `{
                                  "port_value": 34901
                          }
                  }
-         }
+         },
+	 "metrics": {
+		 "stats_matcher": {
+			 "reject_all": true
+		 }
+	 }
 
 }`

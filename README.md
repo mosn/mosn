@@ -53,7 +53,7 @@ Partners participate in MOSN co-development to make MOSN better.
     <tr>
       <td align="center"  valign="middle">
         <a href="https://www.antfin.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/antfin.png">
+          <img width="222px"  src="https://mosn.io/images/community/ant.png">
         </a>
       </td>
       <td align="center"  valign="middle">

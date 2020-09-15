@@ -40,3 +40,8 @@ func (e IOException) Error() string {
 func (IOException) JavaClassName() string {
 	return "java.io.IOException"
 }
+
+// equals to getStackTrace in java
+func (e IOException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}
