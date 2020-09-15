@@ -125,15 +125,12 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	}
 	if listener == IngressDubbo || listener == EgressDubbo {
 		decoder = decodePool.Get().(*hessian.Decoder)
-		deffunc = func() { decodePool.Put(decoder) }
+		defer decodePool.Put(decoder)
 	} else {
 		decoder = decodePoolCheap.Get().(*hessian.Decoder)
-		deffunc = func() { decodePoolCheap.Put(decoder) }
+		defer decodePoolCheap.Put(decoder)
 	}
 	decoder.Reset(frame.payload[:])
-
-	// Recycle decode
-	defer deffunc()
 
 	var (
 		field            interface{}
