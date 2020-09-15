@@ -147,24 +147,6 @@ func TestDumpWithTransExtension(t *testing.T) {
 
 }
 
-func TestAutoConfigIngore(t *testing.T) {
-	Reset()
-	called := false
-	RegisterTransferExtension(func(config *v2.MOSNConfig) {
-		called = true
-	})
-	feature.SetState(true)
-	// teaedown
-	defer func() {
-		RegisterTransferExtension(nil)
-		feature.SetState(false)
-	}()
-	transferConfig()
-	if called {
-		t.Fatalf("extension should be ignored if feature is enabled")
-	}
-}
-
 func TestYamlConfigDump(t *testing.T) {
 	Reset()
 	// mock config path

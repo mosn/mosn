@@ -35,11 +35,7 @@ func TestFeatureDump(t *testing.T) {
 		BaseFeatureSpec: featuregate.BaseFeatureSpec{
 			DefaultValue: true,
 		},
-		stop: make(chan struct{}),
 	}
-	defer func() {
-		close(f.stop) // stop test goroutines
-	}()
 	Reset()
 	createMosnConfig()
 	if cfg := Load(testConfigPath); cfg != nil {
@@ -61,7 +57,10 @@ func TestFeatureDump(t *testing.T) {
 			SetExtend(typ, ext)
 		}
 	}
-	f.InitFunc() // start init func,will set dump flags after 3s
+	f.InitFunc() // start init func
+	defer func() {
+		enableAutoWrite = false
+	}()
 	// update config
 	SetListenerConfig(v2.Listener{
 		ListenerConfig: v2.ListenerConfig{

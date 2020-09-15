@@ -87,7 +87,7 @@ func SetListenerConfig(listenerConfig v2.Listener) {
 	defer configLock.Unlock()
 	listenerName := listenerConfig.Name
 	conf.Listener[listenerName] = listenerConfig
-	setDump()
+	tryDump()
 }
 
 // SetClusterConfig update the cluster config when AddOrUpdateCluster
@@ -95,7 +95,7 @@ func SetClusterConfig(cluster v2.Cluster) {
 	configLock.Lock()
 	defer configLock.Unlock()
 	conf.Cluster[cluster.Name] = cluster
-	setDump()
+	tryDump()
 }
 
 // SetRemoveClusterConfig update the cluster config when DeleteCluster
@@ -103,7 +103,7 @@ func SetRemoveClusterConfig(clusterName string) {
 	configLock.Lock()
 	defer configLock.Unlock()
 	delete(conf.Cluster, clusterName)
-	setDump()
+	tryDump()
 }
 
 func SetHosts(clusterName string, hostConfigs []v2.Host) {
@@ -112,7 +112,7 @@ func SetHosts(clusterName string, hostConfigs []v2.Host) {
 	if cluster, ok := conf.Cluster[clusterName]; ok {
 		cluster.Hosts = hostConfigs
 		conf.Cluster[clusterName] = cluster
-		setDump()
+		tryDump()
 	}
 }
 
@@ -125,21 +125,21 @@ func SetRouter(router v2.RouterConfiguration) {
 	// clear the router's dynamic mode, so the dump api will show all routes in the router
 	router.RouterConfigPath = ""
 	conf.Routers[routerName] = router
-	setDump()
+	tryDump()
 }
 
 func SetExtend(typ string, cfg json.RawMessage) {
 	configLock.Lock()
 	defer configLock.Unlock()
 	conf.ExtendConfigs[typ] = cfg
-	setDump()
+	tryDump()
 }
 
 func SetClusterManagerTLS(tls v2.TLSConfig) {
 	configLock.Lock()
 	defer configLock.Unlock()
 	conf.MosnConfig.ClusterManager.TLSContext = tls
-	setDump()
+	tryDump()
 }
 
 // DumpJSON marshals the effectiveConfig to bytes

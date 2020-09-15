@@ -141,8 +141,7 @@ func transferConfig() ([]byte, error) {
 	wait2dump.ClusterManager.Clusters = clusters
 	wait2dump.ClusterManager.ClusterConfigPath = conf.clusterConfigPath
 	wait2dump.Extends = extends
-	// if feature.State() == false, means auto_config is disabled
-	if !feature.State() && transferExtensionFunc != nil {
+	if transferExtensionFunc != nil {
 		transferExtensionFunc(&wait2dump)
 	}
 	return json.MarshalIndent(wait2dump, "", "  ")

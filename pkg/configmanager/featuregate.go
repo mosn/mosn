@@ -18,44 +18,36 @@
 package configmanager
 
 import (
-	"time"
-
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/pkg/utils"
 )
 
 const ConfigAutoWrite featuregate.Feature = "auto_config"
 
+var enableAutoWrite bool = false
+var feature *ConfigAutoFeature
+
 // ConfigAutoFeature controls xDS update config will overwrite config file or not, default is not
 type ConfigAutoFeature struct {
 	featuregate.BaseFeatureSpec
-	stop chan struct{}
 }
 
 func (f *ConfigAutoFeature) InitFunc() {
-	utils.GoWithRecover(func() {
-		log.DefaultLogger.Infof("auto write config when updated")
-		for {
-			select {
-			case <-f.stop:
-				return
-			default:
-				setDump()
-				time.Sleep(3 * time.Second)
-			}
-		}
-	}, nil)
+	log.DefaultLogger.Infof("auto write config when updated")
+	enableAutoWrite = true
 }
-
-var feature *ConfigAutoFeature
 
 func init() {
 	feature = &ConfigAutoFeature{
 		BaseFeatureSpec: featuregate.BaseFeatureSpec{
 			DefaultValue: false,
 		},
-		stop: make(chan struct{}),
 	}
 	featuregate.AddFeatureSpec(ConfigAutoWrite, feature)
+}
+
+func tryDump() {
+	if enableAutoWrite {
+		setDump()
+	}
 }
