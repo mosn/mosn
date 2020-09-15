@@ -1104,7 +1104,7 @@ func (cc *clientConnection) Connect() (err error) {
 							return
 						}
 					}
-				default:
+				case "tcp":
 					if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
 						cc.file, err = tc.File()
 						if err != nil {

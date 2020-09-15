@@ -18,6 +18,10 @@
 package mosn
 
 import (
+	"net"
+	"sync"
+	"syscall"
+
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -37,9 +41,6 @@ import (
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/pkg/xds"
 	"mosn.io/pkg/utils"
-	"net"
-	"sync"
-	"syscall"
 )
 
 // Mosn class which wrapper server
