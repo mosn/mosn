@@ -116,7 +116,6 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	// Recycle decode
 	var (
 		decoder  *hessian.Decoder
-		deffunc  func()
 		listener interface{}
 	)
 
