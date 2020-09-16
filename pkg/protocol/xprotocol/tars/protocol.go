@@ -20,6 +20,7 @@ package tars
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
@@ -115,3 +116,13 @@ func getStreamType(pkg []byte) (byte, error) {
 
 	}
 }
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *tarsProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+func (proto *tarsProtocol) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
+}
+
