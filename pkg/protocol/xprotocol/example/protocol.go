@@ -121,3 +121,7 @@ func (proto *proto) Mapping(httpStatusCode uint32) uint32 {
 func (proto *proto) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
+
+func (proto *proto) HasRequestID() bool {
+	return true
+}

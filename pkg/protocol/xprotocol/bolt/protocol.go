@@ -192,3 +192,7 @@ func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 func (proto *boltProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
+
+func (proto *boltProtocol) HasRequestID() bool {
+	return true
+}

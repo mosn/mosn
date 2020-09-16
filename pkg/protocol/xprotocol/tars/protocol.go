@@ -120,3 +120,7 @@ func getStreamType(pkg []byte) (byte, error) {
 func (proto *tarsProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
+
+func (proto *tarsProtocol) HasRequestID() bool {
+	return true
+}

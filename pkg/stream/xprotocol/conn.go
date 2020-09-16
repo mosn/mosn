@@ -248,17 +248,19 @@ func (sc *streamConn) handleError(ctx context.Context, frame interface{}, err er
 	if frame != nil {
 		if xframe, ok := frame.(xprotocol.XFrame); ok && (xframe.GetStreamType() == xprotocol.Request) {
 			requestId := xframe.GetRequestId()
-			if (requestId > 0 && sc.protocol.PoolMode() == types.Multiplex) ||
-				sc.protocol.PoolMode() == types.PingPong || sc.protocol.PoolMode() == types.TCP {
-				// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
-				stream := sc.newServerStream(ctx, xframe)
-				stream.receiver = sc.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
-				stream.receiver.OnDecodeError(stream.ctx, err, xframe.GetHeader())
-				return
+			if requestId == 0 && sc.protocol.HasRequestID() {
+				goto CloseConn
 			}
+
+			// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
+			stream := sc.newServerStream(ctx, xframe)
+			stream.receiver = sc.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
+			stream.receiver.OnDecodeError(stream.ctx, err, xframe.GetHeader())
+			return
 		}
 	}
 
+CloseConn:
 	//protocol decode error, close the connection directly
 	addr := sc.netConn.RemoteAddr()
 	log.Proxy.Alertf(sc.ctx, types.ErrorKeyCodec, "error occurs while proceeding codec logic: %v. close connection, remote addr: %v", err, addr)
@@ -382,12 +384,10 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 	buffers := streamBuffersByContext(ctx)
 	clientStream := &buffers.clientStream
 
-	if sc.protocol.PoolMode() == types.PingPong || sc.protocol.PoolMode() == types.TCP {
-		// ping pong does not need a stream id
-		clientStream.id = 0
-	} else {
-		// multiplex needs a stream id
+	if sc.protocol.HasRequestID() {
 		clientStream.id = atomic.AddUint64(&sc.clientStreamId, 1)
+	} else {
+		clientStream.id = 0
 	}
 
 	clientStream.direction = stream.ClientStream

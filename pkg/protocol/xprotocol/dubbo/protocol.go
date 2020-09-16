@@ -144,3 +144,7 @@ func (proto *dubboProtocol) Mapping(httpStatusCode uint32) uint32 {
 func (proto *dubboProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
+
+func (proto *dubboProtocol) HasRequestID() bool {
+	return true
+}
