@@ -14,6 +14,8 @@ jobs:
       script: make coverage
     - stage: integrate
       script: make integrate
+    - stage: integrate-new
+      script: make integrate-new
     - stage: build
       script: make build
 #    - stage: deploy

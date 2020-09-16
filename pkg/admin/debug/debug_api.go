@@ -103,7 +103,7 @@ func DebugUpdateMosnConfig(w http.ResponseWriter, r *http.Request) {
 		w.Write(success)
 	case typeExtend:
 		ext := map[string]json.RawMessage{}
-		if err := json.Unmarshal(req.Config, ext); err != nil {
+		if err := json.Unmarshal(req.Config, &ext); err != nil {
 			invalid(string(req.Config))
 			return
 		}

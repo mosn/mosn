@@ -1,3 +1,5 @@
+// +build MOSNTest
+
 package autoconfig
 
 import (
@@ -14,7 +16,7 @@ func TestUpdateListener(t *testing.T) {
 	Scenario(t, "test update mosn listener config", func() {
 		var m *mosn.MosnOperator
 		Setup(func() {
-			m = mosn.StartMosn(ConfigSimpleMosnConfig, "-f", "auto_config=true")
+			m = mosn.StartMosn(listenerConfig, "-f", "auto_config=true")
 			Verify(m, NotNil)
 			time.Sleep(2 * time.Second) // wait mosn start
 		})
@@ -67,7 +69,7 @@ func TestUpdateListener(t *testing.T) {
 			Verify(err, Equal, nil)
 			// wait auto config dump
 			time.Sleep(4 * time.Second)
-			mcfg := m.LoadMosnConfig()
+			mcfg := m.LoadMosnConfig() // read config from files
 			var listener *v2.Listener
 			for _, ln := range mcfg.Servers[0].Listeners {
 				if ln.Name == "test_add" {
@@ -84,7 +86,7 @@ func TestUpdateListener(t *testing.T) {
 	})
 }
 
-const ConfigSimpleMosnConfig = `{
+const listenerConfig = `{
 	"servers":[
 		{
 			"default_log_path":"stdout",

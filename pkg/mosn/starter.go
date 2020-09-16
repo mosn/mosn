@@ -159,11 +159,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.clustermanager)
 
-			//add listener
-			if len(serverConfig.Listeners) == 0 {
-				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
-			}
-
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners, inheritPacketConn)

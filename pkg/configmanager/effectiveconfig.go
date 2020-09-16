@@ -42,6 +42,7 @@ func init() {
 		Listener:         make(map[string]v2.Listener),
 		Cluster:          make(map[string]v2.Cluster),
 		Routers:          make(map[string]v2.RouterConfiguration),
+		ExtendConfigs:    make(map[string]json.RawMessage),
 		routerConfigPath: make(map[string]string),
 	}
 }
