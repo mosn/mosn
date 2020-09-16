@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"sync/atomic"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/mosn/pkg/log"
@@ -145,6 +146,6 @@ func (proto *dubboProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
-func (proto *dubboProtocol) HasRequestID() bool {
-	return true
+func (proto *dubboProtocol) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
 }

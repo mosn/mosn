@@ -20,6 +20,7 @@ package tars
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 
 	"github.com/TarsCloud/TarsGo/tars"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
@@ -121,6 +122,6 @@ func (proto *tarsProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
-func (proto *tarsProtocol) HasRequestID() bool {
-	return true
+func (proto *tarsProtocol) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
 }

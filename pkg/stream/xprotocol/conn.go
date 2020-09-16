@@ -21,7 +21,6 @@ import (
 	"context"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"mosn.io/api"
@@ -50,10 +49,10 @@ type streamConn struct {
 
 	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
 
-	clientMutex     sync.RWMutex // client side fields
-	clientStreamId  uint64
-	clientStreams   map[uint64]*xStream
-	clientCallbacks types.StreamConnectionEventListener
+	clientMutex        sync.RWMutex // client side fields
+	clientStreamIDBase uint64
+	clientStreams      map[uint64]*xStream
+	clientCallbacks    types.StreamConnectionEventListener
 }
 
 func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -247,11 +246,6 @@ func (sc *streamConn) handleError(ctx context.Context, frame interface{}, err er
 	// valid request frame with positive requestID, send exception response in this case
 	if frame != nil {
 		if xframe, ok := frame.(xprotocol.XFrame); ok && (xframe.GetStreamType() == xprotocol.Request) {
-			requestId := xframe.GetRequestId()
-			if requestId == 0 && sc.protocol.HasRequestID() {
-				goto CloseConn
-			}
-
 			// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
 			stream := sc.newServerStream(ctx, xframe)
 			stream.receiver = sc.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
@@ -260,7 +254,6 @@ func (sc *streamConn) handleError(ctx context.Context, frame interface{}, err er
 		}
 	}
 
-CloseConn:
 	//protocol decode error, close the connection directly
 	addr := sc.netConn.RemoteAddr()
 	log.Proxy.Alertf(sc.ctx, types.ErrorKeyCodec, "error occurs while proceeding codec logic: %v. close connection, remote addr: %v", err, addr)
@@ -384,12 +377,7 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 	buffers := streamBuffersByContext(ctx)
 	clientStream := &buffers.clientStream
 
-	if sc.protocol.HasRequestID() {
-		clientStream.id = atomic.AddUint64(&sc.clientStreamId, 1)
-	} else {
-		clientStream.id = 0
-	}
-
+	clientStream.id = sc.protocol.GenerateRequestID(&sc.clientStreamIDBase)
 	clientStream.direction = stream.ClientStream
 	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, clientStream.id)
 	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
