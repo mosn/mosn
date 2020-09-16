@@ -119,6 +119,14 @@ func (s *xStream) endStream() {
 		if s.direction == stream.ServerStream {
 			s.DestroyStream()
 		}
+
+		if s.direction == stream.ClientStream {
+			// should call DestroyStream for oneway request
+			// or the OnDestroyStream will has no chance to be triggered
+			if s.frame != nil && s.frame.GetStreamType() == xprotocol.RequestOneWay {
+				s.DestroyStream()
+			}
+		}
 	}()
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
