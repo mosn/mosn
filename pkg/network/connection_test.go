@@ -102,7 +102,7 @@ func TestConnectTimeout(t *testing.T) {
 	timeout := time.Second
 
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", "2.2.2.2:22222")
-	conn := NewClientConnection(nil, timeout, nil, remoteAddr, nil)
+	conn := NewClientConnection(timeout, nil, remoteAddr, nil)
 	begin := time.Now()
 	err := conn.Connect()
 	if err == nil {
@@ -122,7 +122,7 @@ func TestConnectTimeout(t *testing.T) {
 }
 
 func TestClientConectionRemoteaddrIsNil(t *testing.T) {
-	conn := NewClientConnection(nil, 0, nil, nil, nil)
+	conn := NewClientConnection(0, nil, nil, nil)
 	err := conn.Connect()
 	if err == nil {
 		t.Errorf("connect should Failed")
@@ -177,7 +177,7 @@ func TestConnState(t *testing.T) {
 		t.Errorf("ConnState should be ConnClosed")
 	}
 
-	cc := NewClientConnection(nil, 0, nil, remoteAddr, nil)
+	cc := NewClientConnection(0, nil, remoteAddr, nil)
 	if cc.State() != api.ConnInit {
 		t.Errorf("ConnState should be ConnInit")
 	}

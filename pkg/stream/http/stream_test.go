@@ -44,7 +44,7 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+					conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -84,7 +84,7 @@ func Test_header_capitalization(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+					conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -98,7 +98,7 @@ func Test_header_capitalization(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
-			"Args":                            "Hello, world!",
+			"Args": "Hello, world!",
 		},
 	}
 
@@ -130,7 +130,7 @@ func Test_header_conflict(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+					conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -233,7 +233,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -252,7 +252,7 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 
 	csc := &clientStreamConnection{
 		streamConnection: streamConnection{
-			conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+			conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 		},
 	}
 

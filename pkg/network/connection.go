@@ -1015,13 +1015,12 @@ type clientConnection struct {
 }
 
 // NewClientConnection new client-side connection
-func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
+func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{
 		connection: connection{
 			id:               id,
-			localAddr:        sourceAddr,
 			remoteAddr:       remoteAddr,
 			stopChan:         stopChan,
 			readEnabled:      true,
@@ -1081,6 +1080,7 @@ func (cc *clientConnection) Connect() (err error) {
 		} else {
 			atomic.StoreUint32(&cc.connected, 1)
 			event = api.Connected
+			cc.localAddr = cc.rawConnection.LocalAddr()
 
 			// ensure ioEnabled and UseNetpollMode
 			if UseNetpollMode {
