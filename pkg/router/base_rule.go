@@ -80,7 +80,6 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		routerMatch:           route.Match,
 		configHeaders:         getRouterHeaders(route.Match.Headers),
 		prefixRewrite:         route.Route.PrefixRewrite,
-		regexRewrite:          route.Route.RegexRewrite,
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
 		autoHostRewriteHeader: route.Route.AutoHostRewriteHeader,
@@ -96,7 +95,8 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		lock: sync.Mutex{},
 	}
 	//check and store regrex rewrite pattern
-	if len(route.Route.RegexRewrite.Pattern.Regex) > 1 && len(route.Route.PrefixRewrite) == 0 {
+	if route.Route.RegexRewrite != nil && len(route.Route.RegexRewrite.Pattern.Regex) > 1 && len(route.Route.PrefixRewrite) == 0 {
+		base.regexRewrite = *route.Route.RegexRewrite
 		regexPattern, err := regexp.Compile(route.Route.RegexRewrite.Pattern.Regex)
 		if err != nil {
 			log.DefaultLogger.Errorf(RouterLogFormat, "routerule", "check regrex pattern failed.", "invalid regex:"+err.Error())
