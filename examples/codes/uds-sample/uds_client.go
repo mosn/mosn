@@ -19,7 +19,6 @@ func main() {
 
 	req := "hello, MOSN"
 	for {
-
 		_, err := conn.Write([]byte(req))
 		if err != nil {
 			fmt.Println("Write to upstream err:", err)
