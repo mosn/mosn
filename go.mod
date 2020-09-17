@@ -16,7 +16,7 @@ require (
 	github.com/go-chi/chi v4.1.0+incompatible
 	github.com/gogo/googleapis v1.3.2 // indirect
 	github.com/gogo/protobuf v1.3.1
-	github.com/golang/protobuf v1.3.5
+	github.com/golang/protobuf v1.4.2
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.9
 	github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9
@@ -29,6 +29,7 @@ require (
 	github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
 	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5 // indirect
+	github.com/openzipkin/zipkin-go v0.2.4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
@@ -42,9 +43,9 @@ require (
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
-	google.golang.org/grpc v1.28.0
+	google.golang.org/grpc v1.30.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
-	gopkg.in/yaml.v2 v2.2.8
+	gopkg.in/yaml.v2 v2.2.8 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	mosn.io/api v0.0.0-20200720094309-63de04640d4e
 	mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
