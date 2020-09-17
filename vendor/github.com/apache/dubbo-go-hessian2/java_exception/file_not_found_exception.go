@@ -40,3 +40,8 @@ func (e FileNotFoundException) Error() string {
 func (FileNotFoundException) JavaClassName() string {
 	return "java.io.FileNotFoundException"
 }
+
+// equals to getStackTrace in java
+func (e FileNotFoundException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

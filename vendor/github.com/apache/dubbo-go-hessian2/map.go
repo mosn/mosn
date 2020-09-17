@@ -113,14 +113,14 @@ func (e *Encoder) encMap(m interface{}) error {
 	value = UnpackPtrValue(value)
 	// check nil map
 	if value.Kind() == reflect.Ptr && !value.Elem().IsValid() {
-		e.buffer = encNull(e.buffer)
+		e.buffer = EncNull(e.buffer)
 		return nil
 	}
 
 	keys = value.MapKeys()
 	if len(keys) == 0 {
 		// fix: set nil for empty map
-		e.buffer = encNull(e.buffer)
+		e.buffer = EncNull(e.buffer)
 		return nil
 	}
 
@@ -268,9 +268,13 @@ func (d *Decoder) decMap(flag int32) (interface{}, error) {
 				if !ok {
 					return nil, perrors.Errorf("the type of map key must be string, but get %v", k)
 				}
-				fieldValue = instValue.FieldByName(fieldName)
-				if fieldValue.IsValid() {
-					fieldValue.Set(EnsureRawValue(v))
+				if instValue.Kind() == reflect.Map {
+					instValue.SetMapIndex(reflect.ValueOf(k), EnsureRawValue(v))
+				} else {
+					fieldValue = instValue.FieldByName(fieldName)
+					if fieldValue.IsValid() {
+						fieldValue.Set(EnsureRawValue(v))
+					}
 				}
 			}
 			_, err = d.readByte()
@@ -280,6 +284,9 @@ func (d *Decoder) decMap(flag int32) (interface{}, error) {
 			return inst, nil
 		} else {
 			m = make(map[interface{}]interface{})
+			classIndex := RegisterPOJOMapping(t, m)
+			d.appendClsDef(pojoRegistry.classInfoList[classIndex])
+
 			d.appendRefs(m)
 			for d.peekByte() != BC_END {
 				k, err = d.Decode()

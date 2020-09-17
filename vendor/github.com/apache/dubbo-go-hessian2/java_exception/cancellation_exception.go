@@ -40,3 +40,8 @@ func (e CancellationException) Error() string {
 func (CancellationException) JavaClassName() string {
 	return "java.util.concurrent.CancellationException"
 }
+
+// equals to getStackTrace in java
+func (e CancellationException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

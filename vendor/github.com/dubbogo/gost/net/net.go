@@ -38,6 +38,7 @@ func init() {
 	}
 }
 
+// GetLocalIP get local ip
 func GetLocalIP() (string, error) {
 	faces, err := net.Interfaces()
 	if err != nil {
@@ -144,4 +145,33 @@ func IsSameAddr(addr1, addr2 net.Addr) bool {
 	addr1s = strings.TrimPrefix(addr1s, ipv4prefix)
 	addr2s = strings.TrimPrefix(addr2s, ipv4prefix)
 	return addr1s == addr2s
+}
+
+// ListenOnTCPRandomPort a tcp server listening on a random port by tcp protocol
+func ListenOnTCPRandomPort(ip string) (*net.TCPListener, error) {
+	localAddr := net.TCPAddr{
+		IP:   net.IPv4zero,
+		Port: 0,
+	}
+	if len(ip) > 0 {
+		localAddr.IP = net.ParseIP(ip)
+	}
+
+	// on some containers, u can not bind an random port by the following clause.
+	// listener, err := net.Listen("tcp", ":0")
+
+	return net.ListenTCP("tcp4", &localAddr)
+}
+
+// ListenOnUDPRandomPort a udp endpoint listening on a random port
+func ListenOnUDPRandomPort(ip string) (*net.UDPConn, error) {
+	localAddr := net.UDPAddr{
+		IP:   net.IPv4zero,
+		Port: 0,
+	}
+	if len(ip) > 0 {
+		localAddr.IP = net.ParseIP(ip)
+	}
+
+	return net.ListenUDP("udp4", &localAddr)
 }

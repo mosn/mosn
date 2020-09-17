@@ -105,6 +105,12 @@ type XProtocol interface {
 	Heartbeater
 
 	Hijacker
+
+	PoolMode() types.PoolMode // configure this to use which connpool
+
+	// generate a request id for stream to combine stream request && response
+	// use connection param as base
+	GenerateRequestID(*uint64) uint64
 }
 
 // HeartbeatBuilder provides the ability to construct proper heartbeat command for xprotocol sub-protocols

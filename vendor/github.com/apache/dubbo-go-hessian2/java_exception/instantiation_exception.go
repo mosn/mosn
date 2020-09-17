@@ -40,3 +40,8 @@ func (e InstantiationException) Error() string {
 func (InstantiationException) JavaClassName() string {
 	return "java.lang.InstantiationException"
 }
+
+// equals to getStackTrace in java
+func (e InstantiationException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}
