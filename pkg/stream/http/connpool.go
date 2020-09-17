@@ -54,7 +54,7 @@ type connPool struct {
 	totalClientCount uint64          // total clients
 }
 
-func NewConnPool(host types.Host) types.ConnectionPool {
+func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 	pool := &connPool{
 		tlsHash: host.TLSHashValue(),
 	}
@@ -115,7 +115,7 @@ func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveLi
 
 	streamEncoder := c.client.NewStream(ctx, receiver)
 	streamEncoder.GetStream().AddEventListener(c)
-	return  host, streamEncoder, ""
+	return host, streamEncoder, ""
 }
 
 func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types.PoolFailureReason) {

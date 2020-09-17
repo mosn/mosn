@@ -48,7 +48,7 @@ type connPool struct {
 }
 
 // NewConnPool
-func NewConnPool(host types.Host) types.ConnectionPool {
+func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 	pool := &connPool{
 		tlsHash: host.TLSHashValue(),
 	}
@@ -114,7 +114,7 @@ func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamRe
 	streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
 	streamEncoder.GetStream().AddEventListener(activeClient)
 
-	return  host, streamEncoder, ""
+	return host, streamEncoder, ""
 }
 
 func (p *connPool) Close() {
