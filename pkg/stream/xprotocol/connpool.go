@@ -131,50 +131,46 @@ func (p *connPool) Protocol() types.ProtocolName {
 	return protocol.Xprotocol
 }
 
-func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
+func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	subProtocol := getSubProtocol(ctx)
 
 	client, _ := p.activeClients.Load(subProtocol)
 	host := p.Host()
 
 	if client == nil {
-		listener.OnFailure(types.ConnectionFailure, host)
-		return
+		return host, nil, types.ConnectionFailure
 	}
 
 	activeClient := client.(*activeClient)
 	if atomic.LoadUint32(&activeClient.state) != Connected {
-		listener.OnFailure(types.ConnectionFailure, host)
-		return
+		return host, nil, types.ConnectionFailure
 	}
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, host)
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-	} else {
-		atomic.AddUint64(&activeClient.totalStream, 1)
-		host.HostStats().UpstreamRequestTotal.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
-
-		var streamEncoder types.StreamSender
-		// oneway
-		if responseDecoder == nil {
-			streamEncoder = activeClient.client.NewStream(ctx, nil)
-		} else {
-			streamEncoder = activeClient.client.NewStream(ctx, responseDecoder)
-			streamEncoder.GetStream().AddEventListener(activeClient)
-
-			host.HostStats().UpstreamRequestActive.Inc(1)
-			host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
-			host.ClusterInfo().ResourceManager().Requests().Increase()
-		}
-
-		listener.OnReady(streamEncoder, host)
+		return host, nil, types.Overflow
 	}
 
-	return
+	atomic.AddUint64(&activeClient.totalStream, 1)
+	host.HostStats().UpstreamRequestTotal.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+
+	var streamEncoder types.StreamSender
+	// oneway
+	if responseDecoder == nil {
+		streamEncoder = activeClient.client.NewStream(ctx, nil)
+	} else {
+		streamEncoder = activeClient.client.NewStream(ctx, responseDecoder)
+		streamEncoder.GetStream().AddEventListener(activeClient)
+
+		host.HostStats().UpstreamRequestActive.Inc(1)
+		host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
+		host.ClusterInfo().ResourceManager().Requests().Increase()
+	}
+
+	return host, streamEncoder, ""
+
 }
 
 func (p *connPool) Close() {

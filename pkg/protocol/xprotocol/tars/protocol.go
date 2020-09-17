@@ -125,4 +125,3 @@ func (proto *tarsProtocol) PoolMode() types.PoolMode {
 func (proto *tarsProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }
-
