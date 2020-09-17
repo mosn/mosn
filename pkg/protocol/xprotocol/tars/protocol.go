@@ -115,3 +115,8 @@ func getStreamType(pkg []byte) (byte, error) {
 
 	}
 }
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *tarsProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}

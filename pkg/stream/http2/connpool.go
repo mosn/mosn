@@ -48,7 +48,7 @@ type connPool struct {
 }
 
 // NewConnPool
-func NewConnPool(host types.Host) types.ConnectionPool {
+func NewConnPool(_ types.ProtocolName, _ types.ProtocolName, host types.Host) types.ConnectionPool {
 	pool := &connPool{
 		tlsHash: host.TLSHashValue(),
 	}
@@ -82,7 +82,7 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 }
 
 func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
+	responseDecoder types.StreamReceiveListener, _ api.Connection) (types.PoolFailureReason, types.Host, types.StreamSender) {
 
 	activeClient := func() *activeClient {
 		p.mux.Lock()
@@ -98,28 +98,26 @@ func (p *connPool) NewStream(ctx context.Context,
 
 	host := p.Host()
 	if activeClient == nil {
-		listener.OnFailure(types.ConnectionFailure, host)
-		return
+		return types.ConnectionFailure, nil, nil
 	}
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, host)
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-	} else {
-		atomic.AddUint64(&activeClient.totalStream, 1)
-		host.HostStats().UpstreamRequestTotal.Inc(1)
-		host.HostStats().UpstreamRequestActive.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
-		host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
-		streamEncoder.GetStream().AddEventListener(activeClient)
-
-		listener.OnReady(streamEncoder, host)
+		return types.Overflow, host, nil
 	}
 
-	return
+	atomic.AddUint64(&activeClient.totalStream, 1)
+	host.HostStats().UpstreamRequestTotal.Inc(1)
+	host.HostStats().UpstreamRequestActive.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
+	host.ClusterInfo().ResourceManager().Requests().Increase()
+
+	streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
+	streamEncoder.GetStream().AddEventListener(activeClient)
+	return "", host, streamEncoder
+
 }
 
 func (p *connPool) Close() {
@@ -184,7 +182,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 	}
 }
 
-func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
+func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) types.StreamClient {
 	return str.NewStreamClient(context, protocol.HTTP2, connData.Connection, connData.Host)
 }
 
@@ -193,7 +191,7 @@ func (p *connPool) createStreamClient(context context.Context, connData types.Cr
 // types.StreamConnectionEventListener
 type activeClient struct {
 	pool               *connPool
-	client             str.Client
+	client             types.StreamClient
 	host               types.CreateConnectionData
 	closeWithActiveReq bool
 	totalStream        uint64

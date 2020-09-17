@@ -105,6 +105,8 @@ type XProtocol interface {
 	Heartbeater
 
 	Hijacker
+
+	PoolMode() types.PoolMode
 }
 
 // HeartbeatBuilder provides the ability to construct proper heartbeat command for xprotocol sub-protocols

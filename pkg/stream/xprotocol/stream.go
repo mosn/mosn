@@ -20,6 +20,8 @@ package xprotocol
 import (
 	"context"
 	"fmt"
+	"mosn.io/mosn/pkg/protocol"
+	rpcpool "mosn.io/mosn/pkg/stream/connpool/rpcconnpool"
 	"strconv"
 
 	"mosn.io/mosn/pkg/log"
@@ -27,6 +29,10 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 )
+
+func init() {
+	rpcpool.RegisterProtoConnPoolFactory(protocol.Xprotocol)
+}
 
 // types.Stream
 // types.StreamSender
@@ -118,6 +124,18 @@ func (s *xStream) endStream() {
 	defer func() {
 		if s.direction == stream.ServerStream {
 			s.DestroyStream()
+		}
+
+		if s.direction == stream.ClientStream {
+			// ping pong / tcp mode && one way
+			// should destroy stream after the request finished
+			// or else the upstream will not send any response
+			// and the stream will never be destroyed
+			if (s.sc.protocol.PoolMode() == types.PingPong || s.sc.protocol.PoolMode() == types.TCP) &&
+				s.frame != nil &&
+				s.frame.GetStreamType() == xprotocol.RequestOneWay {
+				s.DestroyStream()
+			}
 		}
 	}()
 

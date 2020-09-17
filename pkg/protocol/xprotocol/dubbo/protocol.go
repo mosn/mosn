@@ -139,3 +139,8 @@ func (proto *dubboProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) 
 func (proto *dubboProtocol) Mapping(httpStatusCode uint32) uint32 {
 	return httpStatusCode
 }
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *dubboProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}

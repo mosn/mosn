@@ -19,7 +19,7 @@ package types
 
 import (
 	"context"
-
+	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 )
@@ -71,7 +71,7 @@ import (
 //   |                                 |1                                                                           |
 //   |                                 |                                                                            |
 //   |                                 |*                                                                           |
-//   |                               Client                                                                         |
+//   |                               StreamClient                                                                         |
 //   |                                 |1                                                                           |
 //   | 	  EventListener   			   |				StreamEventListener											|
 //   |        *|                       |                       |*													|
@@ -233,9 +233,7 @@ const (
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
-	Protocol() api.Protocol
-
-	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
+	NewStream(ctx context.Context, receiver StreamReceiveListener, downstreamConn api.Connection) (PoolFailureReason, Host, StreamSender)
 
 	// check host health and init host
 	CheckAndInit(ctx context.Context) bool
@@ -247,17 +245,37 @@ type ConnectionPool interface {
 	// Shutdown gracefully shuts down the connection pool without interrupting any active requests
 	Shutdown()
 
+	Protocol() ProtocolName
+
 	Close()
 
 	// Host get host
 	Host() Host
-
-	// UpdateHost is update host
-	UpdateHost(Host)
 }
 
 type PoolEventListener interface {
 	OnFailure(reason PoolFailureReason, host Host)
 
 	OnReady(sender StreamSender, host Host)
+}
+
+type StreamClient interface {
+	api.ConnectionEventListener
+	api.ReadFilter
+
+	ConnID() uint64
+
+	Connect() error
+
+	ActiveRequestsNum() int
+
+	NewStream(context context.Context, respDecoder StreamReceiveListener) StreamSender
+
+	SetConnectionCollector(read, write metrics.Counter)
+
+	AddConnectionEventListener(listener api.ConnectionEventListener)
+
+	SetStreamConnectionEventListener(listener StreamConnectionEventListener)
+
+	Close()
 }

@@ -6,15 +6,28 @@ import (
 )
 
 func init() {
-	ConnNewPoolFactories = make(map[types.ProtocolName]connNewPool)
+	ConnNewPoolFactories = make(map[types.ProtocolName]poolCreator)
 }
 
-type connNewPool func(host types.Host) types.ConnectionPool
+type poolCreator struct {
+	protocol types.ProtocolName
+	createFunc  poolCreateFunc
+}
 
-var ConnNewPoolFactories map[types.ProtocolName]connNewPool
+type poolCreateFunc func(protocol types.ProtocolName, subProto types.ProtocolName, host types.Host) types.ConnectionPool
 
-func RegisterNewPoolFactory(protocol types.ProtocolName, factory connNewPool) {
+var ConnNewPoolFactories map[types.ProtocolName]poolCreator
+
+func RegisterNewPoolFactory(protocol types.ProtocolName, factory poolCreateFunc) {
 	//other
 	log.DefaultLogger.Infof("[network] [ register pool factory] register protocol: %v factory", protocol)
-	ConnNewPoolFactories[protocol] = factory
+	ConnNewPoolFactories[protocol] = poolCreator{
+		createFunc: factory,
+		protocol : protocol,
+	}
+}
+
+// CreatePool creates a pool for a host
+func (c poolCreator) CreatePool(host types.Host, subProtocol types.ProtocolName) types.ConnectionPool{
+	return c.createFunc(c.protocol, subProtocol, host)
 }

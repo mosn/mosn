@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package xprotocol
+package connpool
 
 import (
 	"context"
@@ -32,14 +32,15 @@ import (
 
 // StreamReceiver to receive keep alive response
 type xprotocolKeepAlive struct {
+	Threshold    uint32
+	timeoutCount uint32
+	Timeout      time.Duration
+
 	Codec     types.StreamClient
 	Protocol  xprotocol.XProtocol
-	Timeout   time.Duration
-	Threshold uint32
 	Callbacks []types.KeepAliveCallback
 	// runtime
-	timeoutCount uint32
-	idleFree     *idleFree
+	idleFree *idleFree
 	// stop channel will stop all keep alive action
 	once sync.Once
 	stop chan struct{}
@@ -61,6 +62,7 @@ func NewKeepAlive(codec types.StreamClient, proto types.ProtocolName, timeout ti
 		requests:     make(map[uint64]*keepAliveTimeout),
 		mutex:        sync.Mutex{},
 	}
+
 	// register keepalive to connection event listener
 	// if connection is closed, keepalive should stop
 	kp.Codec.AddConnectionEventListener(kp)
@@ -114,14 +116,11 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	}
 	// we send sofa rpc cmd as "header", but it maybe contains "body"
 	hb := kp.Protocol.Trigger(id)
-	sender.AppendHeaders(ctx, hb.GetHeader(), true)
+	sender.AppendHeaders(ctx, hb.GetHeader(), true) // nolint: errcheck, gosec
 	// start a timer for request
 	kp.mutex.Lock()
-	defer kp.mutex.Unlock()
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
-	}
 	kp.requests[id] = startTimeout(id, kp)
+	kp.mutex.Unlock()
 }
 
 func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
@@ -136,9 +135,6 @@ func (kp *xprotocolKeepAlive) HandleTimeout(id uint64) {
 		kp.mutex.Lock()
 		defer kp.mutex.Unlock()
 		if _, ok := kp.requests[id]; ok {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request timeout %d", kp.Codec.ConnID(), id)
-			}
 			delete(kp.requests, id)
 			atomic.AddUint32(&kp.timeoutCount, 1)
 			// close the connection, stop keep alive
@@ -158,9 +154,6 @@ func (kp *xprotocolKeepAlive) HandleSuccess(id uint64) {
 		kp.mutex.Lock()
 		defer kp.mutex.Unlock()
 		if timeout, ok := kp.requests[id]; ok {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request success %d", kp.Codec.ConnID(), id)
-			}
 			delete(kp.requests, id)
 			timeout.timer.Stop()
 			// reset the tiemout count
@@ -172,7 +165,7 @@ func (kp *xprotocolKeepAlive) HandleSuccess(id uint64) {
 
 func (kp *xprotocolKeepAlive) Stop() {
 	kp.once.Do(func() {
-		log.DefaultLogger.Infof("[stream] [xprotocol] [keepalive] connection %d stopped keepalive", kp.Codec.ConnID())
+		log.DefaultLogger.Infof("[stream] [sofarpc] [keepalive] connection %d stopped keepalive", kp.Codec.ConnID())
 		close(kp.stop)
 	})
 }
