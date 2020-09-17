@@ -592,6 +592,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
 	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
+	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 

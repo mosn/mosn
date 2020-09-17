@@ -713,9 +713,11 @@ func (mr *MockConnectionPoolMockRecorder) Protocol() *gomock.Call {
 }
 
 // NewStream mocks base method
-func (m *MockConnectionPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
+func (m *MockConnectionPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "NewStream", ctx, receiver, listener)
+	rets := m.ctrl.Call(m, "NewStream", ctx, receiver)
+	host, streamSender, failReason := rets[0].(types.Host), rets[1].(types.StreamSender), rets[2].(types.PoolFailureReason)
+	return host, streamSender, failReason
 }
 
 // NewStream indicates an expected call of NewStream
