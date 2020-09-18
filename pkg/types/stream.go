@@ -251,7 +251,4 @@ type ConnectionPool interface {
 
 	// Host get host
 	Host() Host
-
-	// UpdateHost is update host
-	UpdateHost(Host)
 }
