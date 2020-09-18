@@ -31,7 +31,6 @@ func main() {
 			fmt.Println("Could not accept connection , err:", err)
 			continue
 		}
-
 		go func(conn net.Conn) {
 			for {
 				buffer := bufPool.Get().([]byte)
