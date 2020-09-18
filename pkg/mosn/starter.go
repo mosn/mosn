@@ -317,10 +317,13 @@ func (m *Mosn) Close() {
 func Start(c *v2.MOSNConfig) {
 	//log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
 	Mosn := NewMosn(c)
+	// the signals SIGKILL and SIGSTOP may not be caught by a program,
+	// so we need other ways to ensure that resources are safely cleaned up
 	keeper.AddSignalCallback(func() {
 		log.DefaultLogger.Infof("[mosn] [close] mosn closed by sys signal")
 		Mosn.Close()
 	}, syscall.SIGINT, syscall.SIGTERM)
+
 
 	Mosn.Start()
 	Mosn.wg.Wait()
