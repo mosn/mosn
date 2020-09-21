@@ -65,6 +65,8 @@ func Test_AddUpdateCallback(t *testing.T) {
 	// wait server start and stop makes reconnect
 	time.Sleep(time.Second)
 	srv.Stop()
+	// wait server connection stop
+	time.Sleep(time.Second)
 	// send request
 	updatedChan := make(chan int, 1) // do not block the update channel
 	log.DefaultLogger.Infof(" add update callback")
