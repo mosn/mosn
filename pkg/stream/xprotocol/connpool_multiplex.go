@@ -46,7 +46,6 @@ type poolMultiplex struct {
 // NewPoolMultiplex generates a multiplex conn pool
 func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 	maxConns := p.Host().ClusterInfo().ResourceManager().Connections().Max()
-
 	if maxConns == 0 {
 		// default conn num should be 1
 		maxConns = 1
@@ -71,21 +70,30 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 			client.state = Connected
 			client.indexInPool = index
 			p.activeClients[index].Store(sub, client)
+
+			// if the pool is shutdown
+			// should destroy the client created after shutdown happened
+			if atomic.LoadInt64(&p.shutdown) == 1 {
+				p.Shutdown()
+			}
 		} else {
 			p.activeClients[index].Delete(sub)
 		}
+
 	}, nil)
 }
 
 // CheckAndInit init the connection pool
 func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
+	var clientIdx = getConnectionIDFromDownStreamCtx(ctx)
+	if clientIdx == invalidClientID {
+		clientIdx = atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
+		// set current client index to downstream context
+		// is this a bit hacking?
+		mosnctx.WithValue(ctx, types.ContextKeyConnectionPoolIndex, clientIdx)
+	}
+
 	var client *activeClientMultiplex
-	clientIdx := atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
-
-	// set current client index to downstream
-	// is this a bit hacking?
-	mosnctx.WithValue(ctx, types.ContextKeyConnectionPoolIndex, int(clientIdx))
-
 	subProtocol := getSubProtocol(ctx)
 
 	v, ok := p.activeClients[clientIdx].Load(subProtocol)
@@ -104,12 +112,6 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 
 	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) {
 		p.init(client, subProtocol, int(clientIdx))
-
-		// if the pool is shutdown
-		// should destroy the client created after shutdown happened
-		if atomic.LoadInt64(&p.shutdown) == 1 {
-			p.Shutdown()
-		}
 	}
 
 	return false
@@ -117,12 +119,22 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 
 // NewStream Create a client stream and call's by proxy
 func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
-	clientIdx := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex).(int)
+	var (
+		ok        bool
+		clientIdx int
+	)
+
+	clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
+	if clientIdx, ok = clientIdxInter.(int); !ok {
+		// this client is not inited
+		return p.Host(), nil, types.ConnectionFailure
+	}
+
 	subProtocol := getSubProtocol(ctx)
 
 	client, _ := p.activeClients[clientIdx].Load(subProtocol)
-	host := p.Host()
 
+	host := p.Host()
 	if client == nil {
 		return host, nil, types.ConnectionFailure
 	}
@@ -332,3 +344,14 @@ func (ac *activeClientMultiplex) OnResetStream(reason types.StreamResetReason) {
 
 // types.StreamConnectionEventListener
 func (ac *activeClientMultiplex) OnGoAway() {}
+
+const invalidClientID = -1
+
+func getConnectionIDFromDownStreamCtx(ctx context.Context) int64 {
+	clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
+	clientIdx, ok := clientIdxInter.(int64)
+	if !ok {
+		return invalidClientID
+	}
+	return clientIdx
+}
