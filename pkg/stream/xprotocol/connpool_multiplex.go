@@ -40,7 +40,7 @@ type poolMultiplex struct {
 	activeClients          []sync.Map
 	currentCheckAndInitIdx int64
 
-	shutdown int64 // pool is already shutdown
+	shutdown bool // pool is already shutdown
 }
 
 // NewPoolMultiplex generates a multiplex conn pool
@@ -65,17 +65,17 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 
 		p.clientMux.Lock()
 		defer p.clientMux.Unlock()
+
+		// if the pool is already shut down, do nothing directly return
+		if p.shutdown {
+			return
+		}
+
 		client, _ := p.newActiveClient(context.Background(), sub)
 		if client != nil {
 			client.state = Connected
 			client.indexInPool = index
 			p.activeClients[index].Store(sub, client)
-
-			// if the pool is shutdown
-			// should destroy the client created after shutdown happened
-			if atomic.LoadInt64(&p.shutdown) == 1 {
-				p.Shutdown()
-			}
 		} else {
 			p.activeClients[index].Delete(sub)
 		}
@@ -174,17 +174,26 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 
 // Shutdown stop the keepalive, so the connection will be idle after requests finished
 func (p *poolMultiplex) Shutdown() {
-	atomic.StoreInt64(&p.shutdown, 1)
-	for i := 0; i < len(p.activeClients); i++ {
-		f := func(k, v interface{}) bool {
-			ac, _ := v.(*activeClientMultiplex)
-			if ac.keepAlive != nil {
-				ac.keepAlive.keepAlive.Stop()
-			}
-			return true
+	utils.GoWithRecover(func() {
+		p.clientMux.Lock()
+		if p.shutdown {
+			return
 		}
-		p.activeClients[i].Range(f)
-	}
+		p.shutdown = true
+		p.clientMux.Unlock()
+
+		for i := 0; i < len(p.activeClients); i++ {
+			f := func(k, v interface{}) bool {
+				ac, _ := v.(*activeClientMultiplex)
+				if ac.keepAlive != nil {
+					ac.keepAlive.keepAlive.Stop()
+				}
+				return true
+			}
+			p.activeClients[i].Range(f)
+		}
+
+	}, nil)
 }
 
 func (p *poolMultiplex) createStreamClient(context context.Context, connData types.CreateConnectionData) stream.Client {
