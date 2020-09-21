@@ -85,12 +85,13 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 
 // CheckAndInit init the connection pool
 func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
-	var clientIdx = getConnectionIDFromDownStreamCtx(ctx)
-	if clientIdx == invalidClientID {
-		clientIdx = atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
-		// set current client index to downstream context
-		// is this a bit hacking?
-		mosnctx.WithValue(ctx, types.ContextKeyConnectionPoolIndex, clientIdx)
+	var clientIdx int64 = 0 // most use cases, there will only be 1 connection
+	if len(p.activeClients) > 1 {
+		if clientIdx = getConnectionIDFromDownStreamCtx(ctx); clientIdx == invalidClientID {
+			clientIdx = atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
+			// set current client index to downstream context
+			mosnctx.WithValue(ctx, types.ContextKeyConnectionPoolIndex, clientIdx)
+		}
 	}
 
 	var client *activeClientMultiplex
@@ -121,13 +122,15 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	var (
 		ok        bool
-		clientIdx int
+		clientIdx int64 = 0
 	)
 
-	clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
-	if clientIdx, ok = clientIdxInter.(int); !ok {
-		// this client is not inited
-		return p.Host(), nil, types.ConnectionFailure
+	if len(p.activeClients) > 1 {
+		clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
+		if clientIdx, ok = clientIdxInter.(int64); !ok {
+			// this client is not inited
+			return p.Host(), nil, types.ConnectionFailure
+		}
 	}
 
 	subProtocol := getSubProtocol(ctx)
