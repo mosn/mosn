@@ -286,14 +286,17 @@ func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 }
 
 func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
-	files := make([]*os.File, len(ch.listeners))
-	for idx, l := range ch.listeners {
+	files := make([]*os.File, 0)
+	for _, l := range ch.listeners {
+		if !l.listener.IsBindToPort() {
+			continue
+		}
 		file, err := l.listener.ListenerFile()
 		if err != nil {
 			log.DefaultLogger.Alertf("listener.list", "[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
-		files[idx] = file
+		files = append(files, file)
 	}
 	return files
 }
@@ -393,7 +396,7 @@ func (al *activeListener) GoStart(lctx context.Context) {
 		al.listener.Start(lctx, false)
 	}, func(r interface{}) {
 		// TODO: add a times limit?
-		log.DefaultLogger.Alertf("listener.start","[network] [listener start] old listener panic")
+		log.DefaultLogger.Alertf("listener.start", "[network] [listener start] old listener panic")
 		al.GoStart(lctx)
 	})
 }
@@ -568,7 +571,7 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 // defaultIdleTimeout represents the idle timeout if listener have no such configuration
 // we declared the defaultIdleTimeout reference to the types.DefaultIdleTimeout
 var (
-	defaultIdleTimeout = types.DefaultIdleTimeout
+	defaultIdleTimeout    = types.DefaultIdleTimeout
 	defaultUDPIdleTimeout = types.DefaultUDPIdleTimeout
 	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
 )

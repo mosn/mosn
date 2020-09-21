@@ -127,6 +127,9 @@ type Listener interface {
 
 	// Close closes listener, not closing connections
 	Close(lctx context.Context) error
+
+	// IsBindToPort
+	IsBindToPort() bool
 }
 
 // ListenerEventListener is a Callback invoked by a listener.

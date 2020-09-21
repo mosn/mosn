@@ -90,6 +90,10 @@ func NewListener(lc *v2.Listener) types.Listener {
 	return l
 }
 
+func (l *listener) IsBindToPort() bool {
+	return l.bindToPort
+}
+
 func (l *listener) Config() *v2.Listener {
 	return l.config
 }
