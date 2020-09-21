@@ -39,6 +39,8 @@ type poolMultiplex struct {
 	clientMux              sync.Mutex
 	activeClients          []sync.Map
 	currentCheckAndInitIdx int64
+
+	shutdown int64 // pool is already shutdown
 }
 
 // NewPoolMultiplex generates a multiplex conn pool
@@ -102,6 +104,12 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 
 	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) {
 		p.init(client, subProtocol, int(clientIdx))
+
+		// if the pool is shutdown
+		// should destroy the client created after shutdown happened
+		if atomic.LoadInt64(&p.shutdown) == 1 {
+			p.Shutdown()
+		}
 	}
 
 	return false
@@ -151,6 +159,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 
 // Shutdown stop the keepalive, so the connection will be idle after requests finished
 func (p *poolMultiplex) Shutdown() {
+	atomic.StoreInt64(&p.shutdown, 1)
 	for i := 0; i < len(p.activeClients); i++ {
 		f := func(k, v interface{}) bool {
 			ac, _ := v.(*activeClientMultiplex)
