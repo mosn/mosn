@@ -87,7 +87,7 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 	var clientIdx int64 = 0 // most use cases, there will only be 1 connection
 	if len(p.activeClients) > 1 {
-		if clientIdx = getConnectionIDFromDownStreamCtx(ctx); clientIdx == invalidClientID {
+		if clientIdx = getClientIDFromDownStreamCtx(ctx); clientIdx == invalidClientID {
 			clientIdx = atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
 			// set current client index to downstream context
 			mosnctx.WithValue(ctx, types.ContextKeyConnectionPoolIndex, clientIdx)
@@ -359,7 +359,7 @@ func (ac *activeClientMultiplex) OnGoAway() {}
 
 const invalidClientID = -1
 
-func getConnectionIDFromDownStreamCtx(ctx context.Context) int64 {
+func getClientIDFromDownStreamCtx(ctx context.Context) int64 {
 	clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
 	clientIdx, ok := clientIdxInter.(int64)
 	if !ok {
