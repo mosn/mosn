@@ -1,4 +1,4 @@
-name: reviewdog
+name: actions
 on: [pull_request]
 jobs:
   golangci-lint:
