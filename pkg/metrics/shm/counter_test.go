@@ -18,11 +18,19 @@
 package shm
 
 import (
+	"github.com/stretchr/testify/assert"
 	"testing"
 	"unsafe"
 
 	"mosn.io/mosn/pkg/types"
 )
+
+func TestCounterFunc(t *testing.T) {
+	f := NewShmCounterFunc("mosn_test")
+	m := f()
+	m.Inc(111)
+	assert.Equal(t, m.Count(), int64(111))
+}
 
 func TestCounter(t *testing.T) {
 	// just for test
@@ -39,26 +47,27 @@ func TestCounter(t *testing.T) {
 	}()
 
 	entry, err := defaultZone.alloc("TestCounter")
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.Nil(t, err)
+
 	// inc
 	counter := ShmCounter(unsafe.Pointer(&entry.value))
+	defer counter.Stop()
 	counter.Inc(5)
 
-	if counter.Count() != 5 {
-		t.Error("count ops failed")
-	}
+	assert.Equal(t, counter.Count(), int64(5))
 
 	// dec
 	counter.Dec(2)
-	if counter.Count() != 3 {
-		t.Error("count ops failed")
-	}
+	assert.Equal(t, counter.Count(), int64(3))
+
+	cs := counter.Snapshot()
+	assert.Equal(t, cs.Count(), int64(3))
 
 	// clear
 	counter.Clear()
+	assert.Equal(t, counter.Count(), int64(0))
 	if counter.Count() != 0 {
 		t.Error("count ops failed")
 	}
+
 }
