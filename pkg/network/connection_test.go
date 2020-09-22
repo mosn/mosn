@@ -21,11 +21,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"mosn.io/pkg/buffer"
 	"net"
 	"syscall"
 	"testing"
 	"time"
+
+	"mosn.io/pkg/buffer"
 
 	"mosn.io/api"
 )
@@ -211,44 +212,44 @@ func TestUDSWriteRead(t *testing.T) {
 	addr, _ := net.ResolveUnixAddr("unix", "/tmp/test1.sock")
 	syscall.Unlink(addr.String())
 	l, err := net.Listen(addr.Network(), addr.String())
+	if err != nil {
+		t.Fatalf("listen error %v", err)
+	}
+	defer l.Close()
+
 	go func() {
 		conn, _ := l.Accept()
 		read := make([]byte, 1024)
 		i, _ := conn.Read(read)
 		if i <= 0 {
-			t.Errorf("conn read error: %v", err)
+			t.Fatalf("conn read error: %v", err)
 		}
 		if _, err = conn.Write([]byte("hello,client")); err != nil {
-			t.Errorf("conn Write error: %v", err)
+			t.Fatalf("conn Write error: %v", err)
 		}
 
 	}()
-	if err != nil {
-		t.Logf("listen error %v", err)
-		return
-	}
+	time.Sleep(time.Second) // wait accept goroutine
 
 	cc := NewClientConnection(nil, 0, nil, addr, nil)
+	defer cc.Close(api.FlushWrite, api.RemoteClose)
 	// add read filter
 	filter := &testReadFilter{}
 	cc.FilterManager().AddReadFilter(filter)
-	cc.Start(context.Background())
 	if err := cc.Connect(); err != nil {
-		t.Errorf("conn Connect error: %v", err)
+		t.Fatalf("conn Connect error: %v", err)
 	}
 	if cc.State() != api.ConnActive {
-		t.Errorf("ConnState should be ConnActive")
+		t.Fatalf("ConnState should be ConnActive")
 	}
 	wb := buffer.GetIoBuffer(10)
 	wb.WriteString("hello,mosn")
 	if err := cc.Write(wb); err != nil {
-		t.Errorf("conn WriteString error: %v", err)
+		t.Fatalf("conn WriteString error: %v", err)
 	}
 	time.Sleep(time.Millisecond * 500)
-	cc.Close(api.FlushWrite, api.RemoteClose)
-	l.Close()
 	if filter.received <= 0 {
-		t.Errorf("conn can not received server's msg")
+		t.Fatalf("conn can not received server's msg")
 	}
 }
 
