@@ -101,11 +101,11 @@ func TestProxyWithFilters(t *testing.T) {
 					}).AnyTimes()
 					return h
 				}).AnyTimes()
-				pool.EXPECT().NewStream(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ types.StreamReceiveListener, l types.PoolEventListener) {
+				pool.EXPECT().NewStream(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 					// upstream encoder
 					encoder := gomockStreamSender(ctrl)
-					l.OnReady(encoder, pool.Host())
-				})
+					return pool.Host(), encoder, ""
+				}).AnyTimes()
 				return pool
 			}).AnyTimes()
 		return &cluster.MngAdapter{
