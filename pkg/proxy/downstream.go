@@ -660,15 +660,7 @@ func (s *downStream) matchRoute() {
 	// get router instance and do routing
 	routers := s.proxy.routersWrapper.GetRouters()
 	// do handler chain
-	handlerChain := router.CallMakeHandlerChain(s.context, headers, routers, s.proxy.clusterManager)
-	// handlerChain should never be nil
-	if handlerChain == nil {
-		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "no route to make handler chain, headers = %v", headers)
-		s.requestInfo.SetResponseFlag(api.NoRouteFound)
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
-		return
-	}
-	s.snapshot, s.route = handlerChain.DoNextHandler()
+	s.snapshot, s.route = router.DoRouteHandler(s.context, s.proxy.config.RouterHandlerName, headers, routers, s.proxy.clusterManager)
 }
 
 func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {

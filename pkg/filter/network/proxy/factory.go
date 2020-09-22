@@ -26,6 +26,7 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/proxy"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -68,6 +69,11 @@ func ParseProxyFilter(cfg map[string]interface{}) (*v2.Proxy, error) {
 		return nil, fmt.Errorf("invalid downstream protocol %s", proxyConfig.DownstreamProtocol)
 	} else if _, ok := configmanager.ProtocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
 		return nil, fmt.Errorf("invalid upstream protocol %s", proxyConfig.UpstreamProtocol)
+	}
+
+	// set default proxy router name
+	if proxyConfig.RouterHandlerName == "" {
+		proxyConfig.RouterHandlerName = types.DefaultRouteHandler
 	}
 
 	return proxyConfig, nil

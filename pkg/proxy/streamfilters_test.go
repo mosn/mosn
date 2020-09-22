@@ -31,7 +31,6 @@ import (
 	"mosn.io/pkg/buffer"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
-
 )
 
 func init() {
@@ -96,6 +95,7 @@ func TestRunReiverFilters(t *testing.T) {
 	for i, tc := range testCases {
 		s := &downStream{
 			proxy: &proxy{
+				config:         &v2.Proxy{},
 				routersWrapper: &mockRouterWrapper{},
 				clusterManager: &mockClusterManager{},
 			},
@@ -143,6 +143,7 @@ func TestRunReiverFiltersStop(t *testing.T) {
 	}
 	s := &downStream{
 		proxy: &proxy{
+			config:         &v2.Proxy{},
 			routersWrapper: &mockRouterWrapper{},
 			clusterManager: &mockClusterManager{},
 		},
@@ -257,6 +258,7 @@ func TestRunReiverFilterHandler(t *testing.T) {
 	for i, tc := range testCases {
 		s := &downStream{
 			proxy: &proxy{
+				config:         &v2.Proxy{},
 				routersWrapper: &mockRouterWrapper{},
 				clusterManager: &mockClusterManager{},
 			},
@@ -320,6 +322,7 @@ func TestRunSenderFilters(t *testing.T) {
 	for i, tc := range testCases {
 		s := &downStream{
 			proxy: &proxy{
+				config:         &v2.Proxy{},
 				routersWrapper: &mockRouterWrapper{},
 				clusterManager: &mockClusterManager{},
 			},
@@ -359,6 +362,7 @@ func TestRunSenderFiltersStop(t *testing.T) {
 	}
 	s := &downStream{
 		proxy: &proxy{
+			config:         &v2.Proxy{},
 			routersWrapper: &mockRouterWrapper{},
 			clusterManager: &mockClusterManager{},
 		},

@@ -25,7 +25,7 @@ import (
 
 type SofaRouteRuleImpl struct {
 	*RouteRuleImplBase
-	matchValue string
+	fastmatch string
 }
 
 func (srri *SofaRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
@@ -37,7 +37,7 @@ func (srri *SofaRouteRuleImpl) RouteRule() api.RouteRule {
 }
 
 func (srri *SofaRouteRuleImpl) Matcher() string {
-	return srri.matchValue
+	return srri.fastmatch
 }
 
 func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
@@ -45,14 +45,21 @@ func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
 }
 
 func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+	srri.RouteRuleImplBase.FinalizeRequestHeaders(headers, requestInfo)
 }
 
 func (srri *SofaRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if value, ok := headers.Get(types.SofaRouteMatchKey); ok {
-		if value == srri.matchValue || srri.matchValue == ".*" {
+	if srri.fastmatch == "" {
+		if srri.matchRoute(headers, randomValue) {
 			return srri
 		}
+	} else {
+		if value, ok := headers.Get(types.SofaRouteMatchKey); ok {
+			if value == srri.fastmatch || srri.fastmatch == ".*" {
+				return srri
+			}
+		}
 	}
-	log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "failed match", headers)
+	log.DefaultLogger.Debugf(RouterLogFormat, "sofa rotue rule", "failed match", headers)
 	return nil
 }

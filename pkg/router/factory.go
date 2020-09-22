@@ -29,7 +29,7 @@ import (
 
 func init() {
 	RegisterRouterRule(DefaultSofaRouterRuleFactory, 1)
-	RegisterMakeHandlerChain(DefaultMakeHandlerChain, 1)
+	RegisterMakeHandler(types.DefaultRouteHandler, DefaultMakeHandler, true)
 }
 
 var defaultRouterRuleFactoryOrder routerRuleFactoryOrder
@@ -46,58 +46,22 @@ func RegisterRouterRule(f RouterRuleFactory, order uint32) {
 }
 
 func DefaultSofaRouterRuleFactory(base *RouteRuleImplBase, headers []v2.HeaderMatcher) RouteBase {
-	for _, header := range headers {
-		if header.Name == types.SofaRouteMatchKey {
-			return &SofaRouteRuleImpl{
-				RouteRuleImplBase: base,
-				matchValue:        header.Value,
-			}
-		}
+	r := &SofaRouteRuleImpl{
+		RouteRuleImplBase: base,
 	}
-	return nil
-}
-
-var makeHandlerChainOrder handlerChainOrder
-
-func RegisterMakeHandlerChain(f MakeHandlerChain, order uint32) {
-	if makeHandlerChainOrder.order < order {
-		log.DefaultLogger.Infof(RouterLogFormat, "Extend", "RegisterHandlerChain", fmt.Sprintf("order is %d", order))
-		makeHandlerChainOrder.makeHandlerChain = f
-		makeHandlerChainOrder.order = order
-	} else {
-		msg := fmt.Sprintf("current register order is %d, order %d register failed", makeHandlerChainOrder.order, order)
-		log.DefaultLogger.Errorf(RouterLogFormat, "Extend", "RegisterHandlerChain", msg)
+	// compatible for simple sofa rule
+	if len(headers) == 1 && headers[0].Name == types.SofaRouteMatchKey {
+		r.fastmatch = headers[0].Value
 	}
+	return r
 }
 
-type simpleHandler struct {
-	route api.Route
+type makeHandlerFunc func(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) types.RouteHandler
+
+var makeHandler = &handlerFactories{
+	factories: map[string]makeHandlerFunc{},
 }
 
-func (h *simpleHandler) IsAvailable(ctx context.Context, manager types.ClusterManager) (types.ClusterSnapshot, types.HandlerStatus) {
-	if h.route == nil {
-		return nil, types.HandlerNotAvailable
-	}
-	clusterName := h.Route().RouteRule().ClusterName()
-	snapshot := manager.GetClusterSnapshot(context.Background(), clusterName)
-	return snapshot, types.HandlerAvailable
-}
-
-func (h *simpleHandler) Route() api.Route {
-	return h.route
-}
-
-func DefaultMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
-	var handlers []types.RouteHandler
-	if r := routers.MatchRoute(headers, 1); r != nil {
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(ctx, RouterLogFormat, "DefaultHandklerChain", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
-		}
-		handlers = append(handlers, &simpleHandler{route: r})
-	}
-	return NewRouteHandlerChain(ctx, clusterManager, handlers)
-}
-
-func CallMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
-	return makeHandlerChainOrder.makeHandlerChain(ctx, headers, routers, clusterManager)
+func RegisterMakeHandler(name string, f makeHandlerFunc, isDefault bool) {
+	makeHandler.add(name, f, isDefault)
 }
