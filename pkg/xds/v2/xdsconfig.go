@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"mosn.io/mosn/pkg/xds/conv"
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -37,6 +36,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/xds/conv"
 )
 
 //  Init parsed ds and clusters config for xds
@@ -206,7 +206,7 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	}
 
 	if tlsContext == nil || !featuregate.Enabled(featuregate.XdsMtlsEnable) {
-		conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
+		conn, err := grpc.Dial(endpoint, grpc.WithInsecure(), generateDialOption())
 		if err != nil {
 			log.DefaultLogger.Errorf("did not connect: %v", err)
 			return nil
@@ -220,7 +220,7 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 			log.DefaultLogger.Errorf("xds-grpc get tls creds fail: err= %v", err)
 			return nil
 		}
-		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds))
+		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds), generateDialOption())
 		if err != nil {
 			log.DefaultLogger.Errorf("did not connect: %v", err)
 			return nil
@@ -298,4 +298,15 @@ func (c *ADSConfig) closeADSStreamClient() {
 	}
 	c.StreamClient.Client = nil
 	c.StreamClient = nil
+}
+
+// if got
+// [xds] [ads client] get resp timeout: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (5193322 vs. 4194304), retry after 1s
+// this log, should change this size
+const xdsMaxRecvMsgSize = 4 * 1024 * 1024
+
+func generateDialOption() grpc.DialOption {
+	return grpc.WithDefaultCallOptions(
+		grpc.MaxCallRecvMsgSize(xdsMaxRecvMsgSize),
+	)
 }
