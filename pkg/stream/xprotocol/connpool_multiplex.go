@@ -175,12 +175,15 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 // Shutdown stop the keepalive, so the connection will be idle after requests finished
 func (p *poolMultiplex) Shutdown() {
 	utils.GoWithRecover(func() {
-		p.clientMux.Lock()
-		if p.shutdown {
-			return
+		{
+			p.clientMux.Lock()
+			if p.shutdown {
+				p.clientMux.Unlock()
+				return
+			}
+			p.shutdown = true
+			p.clientMux.Unlock()
 		}
-		p.shutdown = true
-		p.clientMux.Unlock()
 
 		for i := 0; i < len(p.activeClients); i++ {
 			f := func(k, v interface{}) bool {
