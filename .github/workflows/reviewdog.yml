@@ -1,4 +1,4 @@
-name: reviewdog
+name: actions
 on: [pull_request]
 jobs:
   golangci-lint:
@@ -33,3 +33,35 @@ jobs:
         with:
           token: a82c6fa7-3bd6-436d-b430-cc0b670a0794
           file: ./coverage.txt
+          
+          
+  integrate:
+    name: integrate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.12.7
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run Integrate tests.
+        run: make integrate
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.12.7
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run Build.
+        run: make build
+
