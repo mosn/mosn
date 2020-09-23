@@ -19,6 +19,7 @@ package context
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 
@@ -36,6 +37,32 @@ func init() {
 	}
 }
 
+func TestClone(t *testing.T) {
+	expected := "egress"
+	ctx := context.Background()
+
+	// set
+	ctx = WithValue(ctx, types.ContextKeyListenerType, expected)
+
+	// get
+	value := ctx.Value(types.ContextKeyListenerType)
+	listenerType, ok := value.(string);
+	assert.True(t,ok)
+	assert.Equal(t, listenerType, expected)
+
+	ctxNew := Clone(ctx)
+	// get
+	value = ctxNew.Value(types.ContextKeyListenerType)
+	listenerType, ok = value.(string)
+	assert.True(t, ok)
+	assert.Equal(t, listenerType, expected)
+
+	// clone std context
+	var ctxBaseNew = context.TODO()
+	ctxNew = Clone(ctxBaseNew)
+	assert.Equal(t, ctxNew, ctxBaseNew)
+}
+
 func TestSetGet(t *testing.T) {
 	expected := "egress"
 	ctx := context.Background()
@@ -45,14 +72,39 @@ func TestSetGet(t *testing.T) {
 
 	// get
 	value := ctx.Value(types.ContextKeyListenerType)
-	if listenerType, ok := value.(string); ok {
-		if listenerType != expected {
-			t.Errorf("get value error, expected %s, real %s", expected, listenerType)
-		}
-	} else {
-		t.Error("get value type error")
-	}
+	listenerType, ok := value.(string)
+	assert.True(t, ok)
+	assert.Equal(t, listenerType, expected)
 
+	// parent is valueCtx, withValue test
+	ctx2 := WithValue(ctx, types.ContextKeyConnectionID, "1")
+	connIDValue := ctx2.Value(types.ContextKeyConnectionID)
+	connID, ok := connIDValue.(string)
+	assert.True(t, ok)
+	assert.Equal(t, connID, "1")
+
+	// mosn context is different from the std context
+	//     if you add a k v in the child context
+	//     the parent context will also change
+	connIDValue = ctx.Value(types.ContextKeyConnectionID)
+	connID, ok = connIDValue.(string)
+	assert.True(t, ok)
+	assert.Equal(t, connID, "1")
+
+	// not context type key, should go to the other branch of ctx.Value()
+	var invalidKey = "ttt"
+	value = ctx.Value(invalidKey)
+	assert.Nil(t, value)
+
+	// another way to get
+	value = Get(ctx, types.ContextKeyListenerType)
+	listenerType, ok = value.(string)
+	assert.True(t, ok)
+	assert.Equal(t, listenerType, expected)
+
+	// std context
+	value = Get(context.TODO(), types.ContextKeyStreamID)
+	assert.Nil(t, value)
 }
 
 func BenchmarkCompatibleGet(b *testing.B) {

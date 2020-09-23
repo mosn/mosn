@@ -40,3 +40,8 @@ func (e NoSuchMethodException) Error() string {
 func (NoSuchMethodException) JavaClassName() string {
 	return "java.lang.NoSuchMethodException"
 }
+
+// equals to getStackTrace in java
+func (e NoSuchMethodException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

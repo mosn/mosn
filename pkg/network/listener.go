@@ -19,8 +19,10 @@ package network
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -53,8 +55,8 @@ type listener struct {
 	useOriginalDst          bool
 	network                 string
 	cb                      types.ListenerEventListener
-	rawl                    *net.TCPListener
 	packetConn              net.PacketConn
+	rawl                    net.Listener
 	config                  *v2.Listener
 	mutex                   sync.Mutex
 	// listener state indicates the listener's running state. The listener state effects if a listener binded to a port
@@ -86,8 +88,12 @@ func NewListener(lc *v2.Listener) types.Listener {
 	if lc.Network == "" {
 		l.network = "tcp"
 	}
-
+	lc.Network = strings.ToLower(lc.Network)
 	return l
+}
+
+func (l *listener) IsBindToPort() bool {
+	return l.bindToPort
 }
 
 func (l *listener) Config() *v2.Listener {
@@ -197,8 +203,10 @@ func (l *listener) Stop() error {
 	switch l.network {
 	case "udp":
 		err = l.packetConn.SetDeadline(time.Now())
-	default:
-		err = l.rawl.SetDeadline(time.Now())
+	case "unix":
+		err = l.rawl.(*net.UnixListener).SetDeadline(time.Now())
+	case "tcp":
+		err = l.rawl.(*net.TCPListener).SetDeadline(time.Now())
 	}
 	return err
 }
@@ -215,11 +223,12 @@ func (l *listener) ListenerFile() (*os.File, error) {
 	switch l.network {
 	case "udp":
 		return l.packetConn.(*net.UDPConn).File()
-	default:
-		return l.rawl.File()
+	case "unix":
+		return l.rawl.(*net.UnixListener).File()
+	case "tcp":
+		return l.rawl.(*net.TCPListener).File()
 	}
-
-	return nil, nil
+	return nil, errors.New("not support this network " + l.network)
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {
@@ -263,8 +272,12 @@ func (l *listener) Close(lctx context.Context) error {
 
 func (l *listener) listen(lctx context.Context) error {
 	var err error
-	var rawl *net.TCPListener
+	var rawl net.Listener
 	var rconn net.PacketConn
+
+	if l.localAddress == nil {
+		return errors.New("listener local addr is nil")
+	}
 
 	switch l.network {
 	case "udp":
@@ -273,8 +286,13 @@ func (l *listener) listen(lctx context.Context) error {
 			return err
 		}
 		l.packetConn = rconn
-	default:
-		if rawl, err = net.ListenTCP(l.network, l.localAddress.(*net.TCPAddr)); err != nil {
+	case "unix":
+		if rawl, err = net.Listen("unix", l.localAddress.String()); err != nil {
+			return err
+		}
+		l.rawl = rawl
+	case "tcp":
+		if rawl, err = net.Listen("tcp", l.localAddress.String()); err != nil {
 			return err
 		}
 		l.rawl = rawl

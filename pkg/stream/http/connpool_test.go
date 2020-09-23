@@ -108,7 +108,7 @@ func TestGetAvailableClient(t *testing.T) {
 		},
 	}
 	host := cluster.NewSimpleHost(hc, ci)
-	pool := NewConnPool(host).(*connPool)
+	pool := NewConnPool(context.TODO(), host).(*connPool)
 
 	wg := sync.WaitGroup{}
 	wg.Add(500)

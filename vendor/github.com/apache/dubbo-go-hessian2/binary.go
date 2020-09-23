@@ -26,6 +26,14 @@ import (
 	perrors "github.com/pkg/errors"
 )
 
+// binaryTag check whether the given tag is a binary tag
+func binaryTag(tag byte) bool {
+	return (tag >= BC_BINARY_DIRECT && tag <= INT_DIRECT_MAX) ||
+		(tag >= BC_BINARY_SHORT && tag <= byte(0x37)) ||
+		tag == BC_BINARY_CHUNK ||
+		tag == BC_BINARY
+}
+
 /////////////////////////////////////////
 // Binary, []byte
 /////////////////////////////////////////

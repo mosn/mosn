@@ -22,7 +22,7 @@ type SdsSubscriber struct {
 	reqQueue             chan string
 	sdsConfig            *core.ConfigSource
 	sdsStreamClient      *SdsStreamClient
-	sdsStreamClientMutex sync.Mutex
+	sdsStreamClientMutex sync.RWMutex
 	sendStopChannel      chan int
 	receiveStopChannel   chan int
 	serviceNode          string
@@ -115,6 +115,7 @@ func (subscribe *SdsSubscriber) sendRequestLoop() {
 	for {
 		select {
 		case <-subscribe.sendStopChannel:
+			log.DefaultLogger.Errorf("[xds] [sds subscriber] send request loop closed")
 			return
 		case name := <-subscribe.reqQueue:
 			discoveryReq := &xdsapi.DiscoveryRequest{
@@ -128,7 +129,7 @@ func (subscribe *SdsSubscriber) sendRequestLoop() {
 				if err != nil {
 					log.DefaultLogger.Alertf("sds.subscribe.request", "[xds] [sds subscriber] send sds request fail , resource name = %v", name)
 					time.Sleep(1 * time.Second)
-					subscribe.reconnect()
+					// subscribe.reconnect()
 					continue
 				}
 				break
@@ -141,20 +142,26 @@ func (subscribe *SdsSubscriber) receiveResponseLoop() {
 	for {
 		select {
 		case <-subscribe.receiveStopChannel:
+			log.DefaultLogger.Errorf("[xds] [sds subscriber]  receive response loop closed")
 			return
 		default:
-			if subscribe.sdsStreamClient == nil {
+			subscribe.sdsStreamClientMutex.RLock()
+			clt := subscribe.sdsStreamClient
+			subscribe.sdsStreamClientMutex.RUnlock()
+
+			if clt == nil {
 				log.DefaultLogger.Infof("[xds] [sds subscriber] stream client closed, sleep 1s and wait for reconnect")
 				time.Sleep(time.Second)
 				continue
 			}
-			resp, err := subscribe.sdsStreamClient.streamSecretsClient.Recv()
+			resp, err := clt.streamSecretsClient.Recv()
 			if err != nil {
 				log.DefaultLogger.Infof("[xds] [sds subscriber] get resp timeout: %v, retry after 1s", err)
 				time.Sleep(time.Second)
 				subscribe.reconnect()
 				continue
 			}
+			log.DefaultLogger.Infof("[xds] [sds subscriber] received a repsonse")
 			subscribe.handleSecretResp(resp)
 		}
 	}
@@ -162,7 +169,15 @@ func (subscribe *SdsSubscriber) receiveResponseLoop() {
 
 func (subscribe *SdsSubscriber) sendRequest(request *xdsapi.DiscoveryRequest) error {
 	log.DefaultLogger.Debugf("send sds request resource name = %v", request.ResourceNames)
-	return subscribe.sdsStreamClient.streamSecretsClient.Send(request)
+
+	subscribe.sdsStreamClientMutex.RLock()
+	clt := subscribe.sdsStreamClient
+	subscribe.sdsStreamClientMutex.RUnlock()
+
+	if clt == nil {
+		return errors.New("stream client has beend closed")
+	}
+	return clt.streamSecretsClient.Send(request)
 }
 
 func (subscribe *SdsSubscriber) handleSecretResp(response *xdsapi.DiscoveryResponse) {
