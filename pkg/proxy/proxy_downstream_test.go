@@ -248,8 +248,11 @@ func TestProxyWithFilters(t *testing.T) {
 	downstream := ss.(*downStream)
 	headers := protocol.CommonHeader{}
 	trailer := mock.NewMockHeaderMap(ctrl)
-	downstream.OnReceive(ctx, headers, buffer.NewIoBufferString("12345"), trailer)
-	// OnReceive is scheduled by goroutine pool, we needs wait a moment
+
+	// since the worker pool is removed
+	// OnReceive is a blocking function now
+	// so we should start a goroutine here to avoid block
+	go downstream.OnReceive(ctx, headers, buffer.NewIoBufferString("12345"), trailer)
 	time.Sleep(2 * time.Second)
 	// Verify OnReceive states
 	// requestInfo should contains information:

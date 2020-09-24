@@ -222,65 +222,59 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	csc.br = bufio.NewReader(csc)
 	csc.bw = bufio.NewWriter(csc)
 
-	utils.GoWithRecover(func() {
-		csc.serve()
-	}, nil)
-
 	return csc
 }
 
-func (conn *clientStreamConnection) serve() {
-	for {
-		select {
-		case <-conn.requestSent:
-		case <-conn.connClosed:
-			return
-		}
+func (conn *clientStreamConnection) processResponse() {
+	select {
+	case <-conn.connClosed:
+		return
+	default:
+	}
 
-		s := conn.stream
-		buffers := httpBuffersByContext(s.ctx)
-		s.response = &buffers.clientResponse
-		request := &buffers.serverRequest
+	s := conn.stream
+	buffers := httpBuffersByContext(s.ctx)
+	s.response = &buffers.clientResponse
+	request := &buffers.serverRequest
 
-		// Response.Read() skips reading body if set to true.
-		// Use it for reading HEAD responses.
-		if request.Header.IsHead() {
-			s.response.SkipBody = true
-		}
+	// Response.Read() skips reading body if set to true.
+	// Use it for reading HEAD responses.
+	if request.Header.IsHead() {
+		s.response.SkipBody = true
+	}
 
-		// 1. blocking read using fasthttp.Response.Read
-		err := s.response.Read(conn.br)
-		if err != nil {
-			if s != nil {
-				log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
-				reason := conn.resetReason
-				if reason == "" {
-					reason = types.StreamRemoteReset
-				}
-				s.ResetStream(reason)
+	// 1. blocking read using fasthttp.Response.Read
+	err := s.response.Read(conn.br)
+	if err != nil {
+		if s != nil {
+			log.Proxy.Errorf(s.connection.context, "[stream] [http] client stream connection wait response error: %s", err)
+			reason := conn.resetReason
+			if reason == "" {
+				reason = types.StreamRemoteReset
 			}
-			return
+			s.ResetStream(reason)
 		}
+		return
+	}
 
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
-		}
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.stream.ctx, "[stream] [http] receive response, requestId = %v", s.stream.id)
+	}
 
-		// 2. response processing
-		resetConn := false
-		if s.response.ConnectionClose() {
-			resetConn = true
-		}
+	// 2. response processing
+	resetConn := false
+	if s.response.ConnectionClose() {
+		resetConn = true
+	}
 
-		// 3. local reset if header 'Connection: close' exists
-		if resetConn {
-			// goaway the connpool
-			s.connection.streamConnectionEventListener.OnGoAway()
-		}
+	// 3. local reset if header 'Connection: close' exists
+	if resetConn {
+		// goaway the connpool
+		s.connection.streamConnectionEventListener.OnGoAway()
+	}
 
-		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-			s.handleResponse()
-		}
+	if atomic.LoadInt32(&s.readDisableCount) <= 0 {
+		s.handleResponse()
 	}
 }
 
@@ -476,11 +470,11 @@ func (conn *serverStreamConnection) serve() {
 			s.handleRequest()
 		}
 
-		// 5. wait for proxy done
+		// 5. check whether the conn is closed
 		select {
-		case <-s.responseDoneChan:
 		case <-conn.connClosed:
 			return
+		default:
 		}
 
 		conn.contextManager.Next()
@@ -610,7 +604,8 @@ func (s *clientStream) endStream() {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.stream.ctx, "[stream] [http] send client request, requestId = %v", s.stream.id)
 	}
-	s.connection.requestSent <- true
+
+	s.connection.processResponse()
 }
 
 func (s *clientStream) ReadDisable(disable bool) {
@@ -752,7 +747,6 @@ func (s *serverStream) endStream() {
 	defer s.DestroyStream()
 
 	s.doSend()
-	s.responseDoneChan <- true
 
 	if resetConn {
 		// close connection

@@ -391,16 +391,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 		}
 	}
 
-	// goroutine for proxy
-	if s.proxy.workerpool != nil {
-		// use the worker pool for current proxy
-		// NOTE: should this be configurable?
-		// eg, use config to control Schedule or to ScheduleAuto
-		s.proxy.workerpool.Schedule(task)
-	} else {
-		// use the global shared worker pool
-		pool.ScheduleAuto(task)
-	}
+	task()
 }
 
 func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {
