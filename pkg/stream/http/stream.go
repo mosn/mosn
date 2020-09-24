@@ -49,6 +49,7 @@ func init() {
 }
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024
+const defaultMaxHeaderSize = 4 * 1024
 
 var (
 	errConnClose = errors.New("connection closed")
@@ -219,7 +220,17 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 		requestSent:                   make(chan bool, 1),
 	}
 
-	csc.br = bufio.NewReader(csc)
+	// Per-connection buffer size for responses' reading.
+	// This also limits the maximum header size, default 4096.
+	maxResponseHeaderSize := 0
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+		maxResponseHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
+	}
+	if maxResponseHeaderSize <= 0 {
+		maxResponseHeaderSize = defaultMaxHeaderSize
+	}
+
+	csc.br = bufio.NewReaderSize(csc, maxResponseHeaderSize)
 	csc.bw = bufio.NewWriter(csc)
 
 	utils.GoWithRecover(func() {
@@ -364,10 +375,20 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 		serverStreamConnListener: callbacks,
 	}
 
+	// Per-connection buffer size for requests' reading.
+	// This also limits the maximum header size, default 4096.
+	maxRequestHeaderSize := 0
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+		maxRequestHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
+	}
+	if maxRequestHeaderSize <= 0 {
+		maxRequestHeaderSize = defaultMaxHeaderSize
+	}
+
 	// init first context
 	ssc.contextManager.Next()
 
-	ssc.br = bufio.NewReader(ssc)
+	ssc.br = bufio.NewReaderSize(ssc, maxRequestHeaderSize)
 	ssc.bw = bufio.NewWriter(ssc)
 
 	// Reset would not be called in server-side scene, so add listener for connection event
