@@ -54,7 +54,7 @@ type connPool struct {
 	totalClientCount uint64          // total clients
 }
 
-func NewConnPool(host types.Host) types.ConnectionPool {
+func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 	pool := &connPool{
 		tlsHash: host.TLSHashValue(),
 	}
@@ -93,32 +93,29 @@ func (p *connPool) UpdateHost(h types.Host) {
 }
 
 // NewStream Create a client stream and call's by proxy
-func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
+func (p *connPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	host := p.Host()
 	c, reason := p.getAvailableClient(ctx)
 
 	if c == nil {
-		listener.OnFailure(reason, host)
-		return
+		return host, nil, reason
 	}
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, host)
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-	} else {
-		host.HostStats().UpstreamRequestTotal.Inc(1)
-		host.HostStats().UpstreamRequestActive.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
-		host.ClusterInfo().ResourceManager().Requests().Increase()
-
-		streamEncoder := c.client.NewStream(ctx, receiver)
-		streamEncoder.GetStream().AddEventListener(c)
-		listener.OnReady(streamEncoder, host)
+		return host, nil, types.Overflow
 	}
 
-	return
+	host.HostStats().UpstreamRequestTotal.Inc(1)
+	host.HostStats().UpstreamRequestActive.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
+	host.ClusterInfo().ResourceManager().Requests().Increase()
+
+	streamEncoder := c.client.NewStream(ctx, receiver)
+	streamEncoder.GetStream().AddEventListener(c)
+	return host, streamEncoder, ""
 }
 
 func (p *connPool) getAvailableClient(ctx context.Context) (*activeClient, types.PoolFailureReason) {

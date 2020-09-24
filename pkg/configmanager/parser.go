@@ -19,10 +19,12 @@ package configmanager
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
@@ -222,6 +224,7 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener, inher
 	if lc.Network == "" {
 		lc.Network = "tcp"
 	}
+	lc.Network = strings.ToLower(lc.Network)
 	// Listener Config maybe not generated from json string
 	if lc.Addr == nil {
 		var addr net.Addr
@@ -229,8 +232,12 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener, inher
 		switch lc.Network {
 		case "udp":
 			addr, err = net.ResolveUDPAddr("udp", lc.AddrConfig)
-		default: // default tcp
+		case "unix":
+			addr, err = net.ResolveUnixAddr("unix", lc.AddrConfig)
+		case "tcp":
 			addr, err = net.ResolveTCPAddr("tcp", lc.AddrConfig)
+		default:
+			err = fmt.Errorf("unknown listen type: %s , only support tcp,udp,unix", lc.Network)
 		}
 		if err != nil {
 			log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)
@@ -238,7 +245,7 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener, inher
 		lc.Addr = addr
 	}
 
-	var old *net.TCPListener
+	var old net.Listener
 	var old_pc *net.PacketConn
 	addr := lc.Addr
 	// try inherit legacy listener or packet connection
@@ -262,19 +269,42 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener, inher
 			if (ip.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
 				(ip.IsLoopback() && ilAddr.IP.IsLoopback()) ||
 				ip.Equal(ilAddr.IP) {
-				log.StartLogger.Infof("[config] [parse listener] inherit packetConn addr: %s", lc.AddrConfig)
+				log.StartLogger.Infof("[config] [parse listener] [udp] inherit packetConn addr: %s", lc.AddrConfig)
 				old_pc = &il
 				inheritPacketConn[i] = nil
 				break
 			}
 		}
 
-	default: // default tcp
+	case "unix":
 		for i, il := range inheritListeners {
 			if il == nil {
 				continue
 			}
-			tl := il.(*net.TCPListener)
+
+			if _, ok := il.(*net.UnixListener); !ok {
+				continue
+			}
+			unixls := il.(*net.UnixListener)
+
+			path := unixls.Addr().String()
+			if addr.String() == path {
+				log.StartLogger.Infof("[config] [parse listener] [unix] inherit listener addr: %s", lc.AddrConfig)
+				old = unixls
+				inheritListeners[i] = nil
+			}
+		}
+	case "tcp":
+		// default tcp
+		for i, il := range inheritListeners {
+			if il == nil {
+				continue
+			}
+			var tl *net.TCPListener
+			var ok bool
+			if tl, ok = il.(*net.TCPListener); !ok {
+				continue
+			}
 			ilAddr, err := net.ResolveTCPAddr("tcp", tl.Addr().String())
 			if err != nil {
 				log.StartLogger.Fatalf("[config] [parse listener] inheritListener not valid: %s", tl.Addr().String())
@@ -288,7 +318,7 @@ func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener, inher
 			if (ip.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
 				(ip.IsLoopback() && ilAddr.IP.IsLoopback()) ||
 				ip.Equal(ilAddr.IP) {
-				log.StartLogger.Infof("[config] [parse listener] inherit listener addr: %s", lc.AddrConfig)
+				log.StartLogger.Infof("[config] [parse listener] [tcp] inherit listener addr: %s", lc.AddrConfig)
 				old = tl
 				inheritListeners[i] = nil
 				break

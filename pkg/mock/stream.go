@@ -713,15 +713,19 @@ func (mr *MockConnectionPoolMockRecorder) Protocol() *gomock.Call {
 }
 
 // NewStream mocks base method
-func (m *MockConnectionPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
+func (m *MockConnectionPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "NewStream", ctx, receiver, listener)
+	ret := m.ctrl.Call(m, "NewStream", ctx, receiver)
+	ret0, _ := ret[0].(types.Host)
+	ret1, _ := ret[1].(types.StreamSender)
+	ret2, _ := ret[2].(types.PoolFailureReason)
+	return ret0, ret1, ret2
 }
 
 // NewStream indicates an expected call of NewStream
-func (mr *MockConnectionPoolMockRecorder) NewStream(ctx, receiver, listener interface{}) *gomock.Call {
+func (mr *MockConnectionPoolMockRecorder) NewStream(ctx, receiver interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewStream", reflect.TypeOf((*MockConnectionPool)(nil).NewStream), ctx, receiver, listener)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewStream", reflect.TypeOf((*MockConnectionPool)(nil).NewStream), ctx, receiver)
 }
 
 // CheckAndInit mocks base method
@@ -788,63 +792,4 @@ func (m *MockConnectionPool) Host() types.Host {
 func (mr *MockConnectionPoolMockRecorder) Host() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Host", reflect.TypeOf((*MockConnectionPool)(nil).Host))
-}
-
-// UpdateHost mocks base method
-func (m *MockConnectionPool) UpdateHost(arg0 types.Host) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "UpdateHost", arg0)
-}
-
-// UpdateHost indicates an expected call of UpdateHost
-func (mr *MockConnectionPoolMockRecorder) UpdateHost(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHost", reflect.TypeOf((*MockConnectionPool)(nil).UpdateHost), arg0)
-}
-
-// MockPoolEventListener is a mock of PoolEventListener interface
-type MockPoolEventListener struct {
-	ctrl     *gomock.Controller
-	recorder *MockPoolEventListenerMockRecorder
-}
-
-// MockPoolEventListenerMockRecorder is the mock recorder for MockPoolEventListener
-type MockPoolEventListenerMockRecorder struct {
-	mock *MockPoolEventListener
-}
-
-// NewMockPoolEventListener creates a new mock instance
-func NewMockPoolEventListener(ctrl *gomock.Controller) *MockPoolEventListener {
-	mock := &MockPoolEventListener{ctrl: ctrl}
-	mock.recorder = &MockPoolEventListenerMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockPoolEventListener) EXPECT() *MockPoolEventListenerMockRecorder {
-	return m.recorder
-}
-
-// OnFailure mocks base method
-func (m *MockPoolEventListener) OnFailure(reason types.PoolFailureReason, host types.Host) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "OnFailure", reason, host)
-}
-
-// OnFailure indicates an expected call of OnFailure
-func (mr *MockPoolEventListenerMockRecorder) OnFailure(reason, host interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnFailure", reflect.TypeOf((*MockPoolEventListener)(nil).OnFailure), reason, host)
-}
-
-// OnReady mocks base method
-func (m *MockPoolEventListener) OnReady(sender types.StreamSender, host types.Host) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "OnReady", sender, host)
-}
-
-// OnReady indicates an expected call of OnReady
-func (mr *MockPoolEventListenerMockRecorder) OnReady(sender, host interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnReady", reflect.TypeOf((*MockPoolEventListener)(nil).OnReady), sender, host)
 }

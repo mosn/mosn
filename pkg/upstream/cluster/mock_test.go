@@ -180,7 +180,8 @@ func (p *mockConnPool) Shutdown() {
 func (p *mockConnPool) Close() {
 }
 
-func (p *mockConnPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener, listener types.PoolEventListener) {
+func (p *mockConnPool) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
+	return p.Host(), nil, ""
 }
 
 func (p *mockConnPool) Host() types.Host {
@@ -197,7 +198,7 @@ func (p *mockConnPool) UpdateHost(h types.Host) {
 }
 
 func init() {
-	network.RegisterNewPoolFactory(mockProtocol, func(h types.Host) types.ConnectionPool {
+	network.RegisterNewPoolFactory(mockProtocol, func(ctx context.Context, h types.Host) types.ConnectionPool {
 		pool := &mockConnPool{
 			hashvalue: h.TLSHashValue(),
 		}

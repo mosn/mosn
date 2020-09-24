@@ -20,6 +20,7 @@ package hessian
 import (
 	"encoding/binary"
 	"math"
+	"strconv"
 )
 
 import (
@@ -60,6 +61,38 @@ END:
 	bits := math.Float64bits(v)
 	return encByte(b, BC_DOUBLE, byte(bits>>56), byte(bits>>48), byte(bits>>40),
 		byte(bits>>32), byte(bits>>24), byte(bits>>16), byte(bits>>8), byte(bits))
+}
+
+func encFloat32(b []byte, v float32) []byte {
+	fv := float32(int32(v))
+	if fv == v {
+		iv := int32(v)
+		switch iv {
+		case 0:
+			return encByte(b, BC_DOUBLE_ZERO)
+		case 1:
+			return encByte(b, BC_DOUBLE_ONE)
+		}
+		if iv >= -0x80 && iv < 0x80 {
+			return encByte(b, BC_DOUBLE_BYTE, byte(iv))
+		} else if iv >= -0x8000 && iv < 0x8000 {
+			return encByte(b, BC_DOUBLE_SHORT, byte(iv>>8), byte(iv))
+		}
+
+		goto END
+	}
+
+END:
+	if float32(int32(v*1000)) == v*1000 {
+		iv := int32(v * 1000)
+		return encByte(b, BC_DOUBLE_MILL, byte(iv>>24), byte(iv>>16), byte(iv>>8), byte(iv))
+	} else {
+		str := strconv.FormatFloat(float64(v), 'f', -1, 32)
+		d, _ := strconv.ParseFloat(str, 64)
+		bits := math.Float64bits(d)
+		return encByte(b, BC_DOUBLE, byte(bits>>56), byte(bits>>48), byte(bits>>40),
+			byte(bits>>32), byte(bits>>24), byte(bits>>16), byte(bits>>8), byte(bits))
+	}
 }
 
 /////////////////////////////////////////

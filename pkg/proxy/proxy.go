@@ -91,6 +91,12 @@ type proxy struct {
 	stats              *Stats
 	listenerStats      *Stats
 	accessLogs         []api.AccessLog
+
+	// configure the proxy level worker pool
+	// eg. if we want the requests on one connection to keep serial,
+	// we only start one worker(goroutine) on this connection
+	// request will blocking wait for the previous to finish sending
+	workerpool mosnsync.WorkerPool
 }
 
 // NewProxy create proxy instance for given v2.Proxy config
@@ -103,6 +109,12 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		context:        ctx,
 		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
 	}
+
+	// proxy level worker pool config
+	if config.ConcurrencyNum > 0 {
+		proxy.workerpool = mosnsync.NewWorkerPool(config.ConcurrencyNum)
+	}
+	// proxy level worker pool config end
 
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
 	if err == nil {

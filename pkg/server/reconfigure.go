@@ -33,10 +33,10 @@ import (
 )
 
 func init() {
-	keeper.AddSignalCallback(syscall.SIGHUP, func() {
+	keeper.AddSignalCallback(func() {
 		// reload, fork new mosn
 		reconfigure(true)
-	})
+	}, syscall.SIGHUP)
 }
 
 var GracefulTimeout = time.Second * 30 //default 30s
