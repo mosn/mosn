@@ -207,6 +207,7 @@ func TestProxyWithFilters(t *testing.T) {
 			ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, value)
 			sconn := mock.NewMockServerStreamConnection(ctrl)
 			sconn.EXPECT().Protocol().Return(types.ProtocolName("Http1")).AnyTimes()
+			sconn.EXPECT().EnableWorkerPool().Return(true).AnyTimes()
 			return sconn
 		})
 	// mock a span
