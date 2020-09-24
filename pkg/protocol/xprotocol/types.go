@@ -108,6 +108,8 @@ type XProtocol interface {
 
 	PoolMode() types.PoolMode // configure this to use which connpool
 
+	EnableWorkerPool() bool
+
 	// generate a request id for stream to combine stream request && response
 	// use connection param as base
 	GenerateRequestID(*uint64) uint64

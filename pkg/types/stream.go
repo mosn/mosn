@@ -180,6 +180,9 @@ type StreamConnection interface {
 	// Protocol on the connection
 	Protocol() api.Protocol
 
+	// EnableWorkerPool means enable worker pool on downstream OnReceive
+	EnableWorkerPool() bool
+
 	// Active streams count
 	ActiveStreamsNum() int
 

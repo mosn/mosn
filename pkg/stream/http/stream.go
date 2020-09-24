@@ -148,6 +148,10 @@ func (conn *streamConnection) Protocol() types.ProtocolName {
 	return protocol.HTTP1
 }
 
+func (conn *streamConnection) EnableWorkerPool() bool {
+	return true
+}
+
 func (conn *streamConnection) GoAway() {}
 
 func (conn *streamConnection) Read(p []byte) (n int, err error) {
