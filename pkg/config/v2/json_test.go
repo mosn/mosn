@@ -921,7 +921,7 @@ func TestHashPolicyUnmarshal(t *testing.T) {
 }
 
 func TestHashPolicyMarshal(t *testing.T) {
-	config := `{"hash_policy":[{"header":{"key":"header_key"}}],"timeout":"0s","regex_rewrite":{"pattern":{"google_re2":{}}}}`
+	config := `{"hash_policy":[{"header":{"key":"header_key"}}],"timeout":"0s"}`
 
 	headerConfig := &RouterActionConfig{
 		HashPolicy: []HashPolicy{
@@ -939,7 +939,7 @@ func TestHashPolicyMarshal(t *testing.T) {
 		t.FailNow()
 	}
 
-	config2 := `{"hash_policy":[{"cookie":{"name":"name","path":"path","ttl":"5s"}}],"timeout":"0s","regex_rewrite":{"pattern":{"google_re2":{}}}}`
+	config2 := `{"hash_policy":[{"cookie":{"name":"name","path":"path","ttl":"5s"}}],"timeout":"0s"}`
 	cookieConfig := &RouterActionConfig{
 		HashPolicy: []HashPolicy{
 			{
@@ -960,7 +960,7 @@ func TestHashPolicyMarshal(t *testing.T) {
 		t.FailNow()
 	}
 
-	config3 := `{"hash_policy":[{"source_ip":{}}],"timeout":"0s","regex_rewrite":{"pattern":{"google_re2":{}}}}`
+	config3 := `{"hash_policy":[{"source_ip":{}}],"timeout":"0s"}`
 	ipConfig := &RouterActionConfig{
 		HashPolicy: []HashPolicy{
 			{
