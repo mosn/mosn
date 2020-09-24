@@ -18,7 +18,6 @@
 package xprotocol
 
 import (
-	"reflect"
 	"unsafe"
 )
 
@@ -141,6 +140,7 @@ func b2s(b []byte) string {
 //
 // Note it may break if string and/or slice header will change
 // in the future go versions.
+/*
 func s2b(s string) []byte {
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
 	bh := reflect.SliceHeader{
@@ -150,3 +150,4 @@ func s2b(s string) []byte {
 	}
 	return *(*[]byte)(unsafe.Pointer(&bh))
 }
+*/

@@ -127,6 +127,9 @@ type Listener interface {
 
 	// Close closes listener, not closing connections
 	Close(lctx context.Context) error
+
+	// IsBindToPort
+	IsBindToPort() bool
 }
 
 // ListenerEventListener is a Callback invoked by a listener.
@@ -229,21 +232,6 @@ type FilterChainFactory interface {
 	CreateNetworkFilterChain(conn api.Connection)
 
 	CreateListenerFilterChain(listener ListenerFilterManager)
-}
-
-// Addresses defines a group of network address
-type Addresses []net.Addr
-
-// Contains reports whether the specified network address is in the group.
-func (as Addresses) Contains(addr net.Addr) bool {
-	for _, one := range as {
-		// TODO: support port wildcard
-		if one.String() == addr.String() {
-			return true
-		}
-	}
-
-	return false
 }
 
 var (

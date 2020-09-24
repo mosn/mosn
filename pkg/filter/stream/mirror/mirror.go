@@ -85,12 +85,25 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 		for i := 0; i < m.amplification; i++ {
 			connPool := clusterAdapter.ConnPoolForCluster(m, snap, m.up)
+			var (
+				host         types.Host
+				streamSender types.StreamSender
+				failReason   types.PoolFailureReason
+			)
+
 			if m.up == protocol.HTTP1 {
 				// ! http1 use fake receiver reduce connect
-				connPool.NewStream(m.ctx, &receiver{}, m)
+				host, streamSender, failReason = connPool.NewStream(m.ctx, &receiver{})
 			} else {
-				connPool.NewStream(m.ctx, nil, m)
+				host, streamSender, failReason = connPool.NewStream(m.ctx, nil )
 			}
+
+			if failReason != "" {
+				m.OnFailure(failReason, host)
+				continue
+			}
+
+			m.OnReady(streamSender, host)
 		}
 	}, nil)
 	return api.StreamFilterContinue
