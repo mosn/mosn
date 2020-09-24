@@ -127,7 +127,6 @@ type streamConnection struct {
 	connClosed chan bool
 
 	br *bufio.Reader
-	bw *bufio.Writer
 }
 
 // types.StreamConnection
@@ -231,7 +230,6 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	}
 
 	csc.br = bufio.NewReaderSize(csc, maxResponseHeaderSize)
-	csc.bw = bufio.NewWriter(csc)
 
 	utils.GoWithRecover(func() {
 		csc.serve()
@@ -389,7 +387,6 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 	ssc.contextManager.Next()
 
 	ssc.br = bufio.NewReaderSize(ssc, maxRequestHeaderSize)
-	ssc.bw = bufio.NewWriter(ssc)
 
 	// Reset would not be called in server-side scene, so add listener for connection event
 	connection.AddConnectionEventListener(ssc)
