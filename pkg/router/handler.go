@@ -43,7 +43,7 @@ func (h *simpleHandler) Route() api.Route {
 	return h.route
 }
 
-func DefaultMakeHandler(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) types.RouteHandler {
+func DefaultMakeHandler(ctx context.Context, headers api.HeaderMap, routers types.Routers) types.RouteHandler {
 	r := routers.MatchRoute(headers, 1)
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(ctx, RouterLogFormat, "DefaultHandklerChain", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
@@ -56,7 +56,7 @@ func DefaultMakeHandler(ctx context.Context, headers api.HeaderMap, routers type
 
 func DoRouteHandler(ctx context.Context, name string, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) (types.ClusterSnapshot, api.Route) {
 	factory := makeHandler.get(name)
-	handler := factory(ctx, headers, routers, clusterManager)
+	handler := factory(ctx, headers, routers)
 	if handler == nil {
 		log.Proxy.Alertf(ctx, types.ErrorKeyRouteMatch, "no route to make handler chain, headers = %v", headers)
 		return nil, nil

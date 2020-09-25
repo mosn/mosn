@@ -66,7 +66,7 @@ func (h *mockHandler) IsAvailable(ctx context.Context, manager types.ClusterMana
 }
 
 func TestDoRouteHandlerExtend(t *testing.T) {
-	RegisterMakeHandler("test", func(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) types.RouteHandler {
+	RegisterMakeHandler("test", func(ctx context.Context, headers api.HeaderMap, routers types.Routers) types.RouteHandler {
 		return &mockHandler{
 			route: routers.MatchRoute(headers, 1),
 		}

@@ -56,12 +56,13 @@ func DefaultSofaRouterRuleFactory(base *RouteRuleImplBase, headers []v2.HeaderMa
 	return r
 }
 
-type makeHandlerFunc func(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) types.RouteHandler
+type makeHandlerFunc func(ctx context.Context, headers api.HeaderMap, routers types.Routers) types.RouteHandler
 
 var makeHandler = &handlerFactories{
 	factories: map[string]makeHandlerFunc{},
 }
 
 func RegisterMakeHandler(name string, f makeHandlerFunc, isDefault bool) {
+	log.DefaultLogger.Infof("regist a new handler maker, name is %s, is default: %t", name, isDefault)
 	makeHandler.add(name, f, isDefault)
 }
