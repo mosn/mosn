@@ -272,7 +272,7 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 
 func TestHeaderSize(t *testing.T) {
 	// Only request line, do not add the end of request '\r\n\r\n' identification.
-	requestSamll := []byte("HEAD / HTTP/1.1\r\nHost: test.com\r\nCookie: key=1234")
+	requestSmall := []byte("HEAD / HTTP/1.1\r\nHost: test.com\r\nCookie: key=1234")
 	requestLarge := []byte("HEAD / HTTP/1.1\r\nHost: test.com\r\nCookie: key=12345")
 	testAddr := "127.0.0.1:11345"
 	l, err := net.Listen("tcp", testAddr)
@@ -290,7 +290,7 @@ func TestHeaderSize(t *testing.T) {
 
 	connection := network.NewServerConnection(context.Background(), rawc, nil)
 	proxyGeneralExtendConfig := v2.ProxyGeneralExtendConfig{
-		MaxHeaderSize: len(requestSamll),
+		MaxHeaderSize: len(requestSmall),
 	}
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
@@ -300,8 +300,8 @@ func TestHeaderSize(t *testing.T) {
 	}
 
 	// test the header size is within the limit
-	buf := buffer.GetIoBuffer(len(requestSamll))
-	buf.Write(requestSamll)
+	buf := buffer.GetIoBuffer(len(requestSmall))
+	buf.Write(requestSmall)
 	ssc.Dispatch(buf)
 	// if it exceeds the limit size of the header, the connection is closed immediately
 	if connection.State() == api.ConnClosed {
