@@ -344,6 +344,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
 	}
 
+	// for pool to know, whether this is a multiplex or pingpong pool
 	var pools [maxHostsCounts]types.ConnectionPool
 
 	try := clusterSnapshot.HostNum(balancerContext.MetadataMatchCriteria())
@@ -382,7 +383,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				pool := connPool.(types.ConnectionPool)
 				return pool, true
 			}
-			pool := factory(host)
+			pool := factory(balancerContext.DownstreamContext(), host)
 			connectionPool.Store(addr, pool)
 			return pool, false
 		}
@@ -405,7 +406,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						}
 						connectionPool.Delete(addr)
 						pool.Shutdown()
-						pool = factory(host)
+						pool = factory(balancerContext.DownstreamContext(), host)
 						connectionPool.Store(addr, pool)
 					}
 				}()

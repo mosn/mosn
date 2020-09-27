@@ -40,3 +40,8 @@ func (e UnsupportedTemporalTypeException) Error() string {
 func (UnsupportedTemporalTypeException) JavaClassName() string {
 	return "java.time.temporal.UnsupportedTemporalTypeException"
 }
+
+// equals to getStackTrace in java
+func (e UnsupportedTemporalTypeException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

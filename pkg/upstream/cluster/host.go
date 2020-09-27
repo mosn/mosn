@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"context"
+	"errors"
 	"net"
 	"sync/atomic"
 	"time"
@@ -194,8 +195,15 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 		}
 	}
 
-	// Get DNS resolve
-	addr, err = net.ResolveTCPAddr("tcp", addrstr)
+	// resolve addr
+	if addr, err = net.ResolveTCPAddr("tcp", addrstr); err != nil {
+		// try to resolve addr by unix
+		addr, err = net.ResolveUnixAddr("unix", addrstr)
+		if err != nil{
+			err = errors.New("failed to resolve address in tcp and unix model")
+		}
+	}
+
 	if err != nil {
 		// If a DNS query fails then don't sent to DNS within 15 seconds and avoid flood
 		AddrStore.Set(addrstr, err, 15*time.Second)
@@ -204,6 +212,7 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 	}
 
 	// Save DNS cache
+	// Unix Domain Socket always satisfies `addr.String() == addrstr`
 	if addr.String() != addrstr {
 		// TODO support config or depends on DNS TTL for expire time
 		// now set default expire time == 15 s, Means that after 15 seconds, the new request will trigger domain resolve.
@@ -258,4 +267,3 @@ func GetOrCreateUDPAddr(addrstr string) net.Addr {
 
 	return addr
 }
-

@@ -40,3 +40,8 @@ func (e NotActiveException) Error() string {
 func (NotActiveException) JavaClassName() string {
 	return "java.io.NotActiveException"
 }
+
+// equals to getStackTrace in java
+func (e NotActiveException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

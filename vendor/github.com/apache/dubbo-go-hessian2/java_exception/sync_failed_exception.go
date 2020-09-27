@@ -40,3 +40,8 @@ func (e SyncFailedException) Error() string {
 func (SyncFailedException) JavaClassName() string {
 	return "java.io.SyncFailedException"
 }
+
+// equals to getStackTrace in java
+func (e SyncFailedException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

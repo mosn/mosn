@@ -98,7 +98,7 @@ func (c *mockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestIn
 }
 
 func (c *mockRouteRule) GlobalTimeout() time.Duration {
-	return 10^6 * time.Millisecond
+	return 10 ^ 6*time.Millisecond
 }
 
 func (c *mockRouteRule) Policy() api.Policy {

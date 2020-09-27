@@ -40,3 +40,8 @@ func (e InvalidPropertiesFormatException) Error() string {
 func (InvalidPropertiesFormatException) JavaClassName() string {
 	return "java.util.InvalidPropertiesFormatException"
 }
+
+// equals to getStackTrace in java
+func (e InvalidPropertiesFormatException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

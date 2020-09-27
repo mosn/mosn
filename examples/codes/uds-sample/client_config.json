@@ -1,0 +1,56 @@
+{
+  "close_graceful": true,
+  "servers": [
+    {
+      "default_log_path": "stdout",
+      "default_log_level": "DEBUG",
+      "listeners": [
+        {
+          "name": "clientListener",
+          "address": "/tmp/client-proxy.sock",
+          "bind_port": true,
+          "log_path": "stdout",
+          "network": "unix",
+          "filter_chains": [
+            {
+              "tls_context": {},
+              "filters": [
+                {
+                  "type": "tcp_proxy",
+                  "config": {
+                    "cluster": "clientCluster",
+                    "routes": [
+                      {
+                        "cluster": "clientCluster"
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cluster_manager": {
+    "clusters": [
+      {
+        "Name": "clientCluster",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "max_request_per_conn": 1024,
+        "conn_buffer_limit_bytes": 32768,
+        "hosts": [
+          {
+            "address": "127.0.0.1:2046"
+          }
+        ]
+      }
+    ]
+  },
+  "tracing": {
+    "enable": true,
+    "driver": "SOFATracer"
+  }
+}

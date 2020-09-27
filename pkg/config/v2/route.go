@@ -60,7 +60,7 @@ type RouterActionConfig struct {
 	TimeoutConfig           api.DurationConfig   `json:"timeout,omitempty"`
 	RetryPolicy             *RetryPolicy         `json:"retry_policy,omitempty"`
 	PrefixRewrite           string               `json:"prefix_rewrite,omitempty"`
-	RegexRewrite            RegexRewrite         `json:"regex_rewrite,omitempty"`
+	RegexRewrite            *RegexRewrite        `json:"regex_rewrite,omitempty"`
 	HostRewrite             string               `json:"host_rewrite,omitempty"`
 	AutoHostRewrite         bool                 `json:"auto_host_rewrite,omitempty"`
 	AutoHostRewriteHeader   string               `json:"auto_host_rewrite_header,omitempty"`

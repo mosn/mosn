@@ -40,3 +40,8 @@ func (e TimeoutException) Error() string {
 func (TimeoutException) JavaClassName() string {
 	return "java.util.concurrent.TimeoutException"
 }
+
+// equals to getStackTrace in java
+func (e TimeoutException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}
