@@ -1,5 +1,9 @@
 name: actions
-on: [pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 jobs:
   golangci-lint:
     name: runner / golangci-lint
@@ -29,7 +33,7 @@ jobs:
         run: make coverage
 
       - name: Upload Coverage report to CodeCov
-        uses: codecov/codecov-action@v1.0.0
+        uses: codecov/codecov-action@v1.0.13
         with:
           token: a82c6fa7-3bd6-436d-b430-cc0b670a0794
           file: ./coverage.txt
