@@ -12,7 +12,7 @@ var (
 	}
 )
 
-func init() {
+func Init() {
 	// variable must registry
 	for idx := range buildinVariables {
 		variable.RegisterVariable(buildinVariables[idx])

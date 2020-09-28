@@ -21,6 +21,9 @@ func init() {
 type factory struct{}
 
 func buildStream(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	// registry variable when dubbo filter enable
+	Init()
+
 	f := &factory{}
 
 	sskObj := conf[subsetKey]
