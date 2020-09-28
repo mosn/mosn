@@ -6,6 +6,7 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
@@ -56,10 +57,13 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
-	if ok {
-		// adapte dubbo service to http host
-		headers.Set(protocol.MosnHeaderHostKey, service)
+	if !ok {
+		log.DefaultLogger.Errorf("This filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
+		return api.StreamFilterStop
 	}
+
+	// adapte dubbo service to http host
+	headers.Set(protocol.MosnHeaderHostKey, service)
 	// because use http rule, so should add default path
 	headers.Set(protocol.MosnHeaderPathKey, "/")
 
@@ -68,8 +72,8 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	if stats != nil {
 		stats.RequestServiceInfo.Inc(1)
 
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyRouteService, service)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyRouteMethod, method) // nolint: ineffassign
+		mosnctx.WithValue(ctx, types.ContextKeyRouteService, service)
+		mosnctx.WithValue(ctx, types.ContextKeyRouteMethod, method)
 	}
 
 	for k, v := range types.GetPodLabels() {
@@ -86,7 +90,8 @@ func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	frame, ok := headers.(*dubbo.Frame)
 	if !ok {
-		return api.StreamFilterContinue
+		log.DefaultLogger.Errorf("This filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
+		return api.StreamFilterStop
 	}
 
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
@@ -98,7 +103,7 @@ func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buf
 		return api.StreamFilterContinue
 	}
 
-	if frame.GetStatusCode() == 20 {
+	if frame.GetStatusCode() == dubbo.RespStatusOK {
 		stats.ResponseSucc.Inc(1)
 	} else {
 		stats.ResponseFail.Inc(1)

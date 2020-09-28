@@ -46,6 +46,32 @@ const (
 	UnKnownCmdType       string = "unknown cmd type"
 )
 
+/*
+ * https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
+ * 20 - OK
+ * 30 - CLIENT_TIMEOUT
+ * 31 - SERVER_TIMEOUT
+ * 40 - BAD_REQUEST
+ * 50 - BAD_RESPONSE
+ * 60 - SERVICE_NOT_FOUND
+ * 70 - SERVICE_ERROR
+ * 80 - SERVER_ERROR
+ * 90 - CLIENT_ERROR
+ * 100 - SERVER_THREADPOOL_EXHAUSTED_ERROR
+ */
+const (
+	RespStatusOK                             = 20
+	RespStatusClientTimeout                  = 30
+	RespStatusServerTimeout                  = 31
+	RespStatusBadRequest                     = 40
+	RespStatusBadResponse                    = 50
+	RespStatusServiceNotFound                = 60
+	RespStatusServiceError                   = 70
+	RespStatusServerError                    = 80
+	RespStatusClientError                    = 90
+	RespStatusServerThreadpoolExhaustedError = 100
+)
+
 const (
 	EventRequest  int = 1 // request
 	EventResponse int = 0 // response

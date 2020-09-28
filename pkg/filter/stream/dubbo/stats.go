@@ -25,7 +25,7 @@ var (
 
 var (
 	l            sync.Mutex
-	statsFactory = make(map[string]*Stats, 20)
+	statsFactory = make(map[string]*Stats)
 )
 
 type Stats struct {
@@ -58,7 +58,7 @@ func getStats(listener, service, method string) *Stats {
 
 	mts, err := metrics.NewMetrics("mosn", lables)
 	if err != nil {
-		log.DefaultLogger.Errorf("create metrics fail: %v", err)
+		log.DefaultLogger.Errorf("create metrics fail: labels:%v, err: %v", lables, err)
 		statsFactory[key] = nil
 		return nil
 	}
