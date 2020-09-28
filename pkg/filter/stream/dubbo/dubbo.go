@@ -65,7 +65,7 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
 	if !ok {
 		log.DefaultLogger.Errorf("This filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
-		return api.StreamFilterStop
+		return api.StreamFiltertermination
 	}
 
 	// adapte dubbo service to http host
@@ -97,7 +97,7 @@ func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buf
 	frame, ok := headers.(*dubbo.Frame)
 	if !ok {
 		log.DefaultLogger.Errorf("This filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
-		return api.StreamFilterStop
+		return api.StreamFiltertermination
 	}
 
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
