@@ -69,7 +69,7 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 		stats.RequestServiceInfo.Inc(1)
 
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyRouteService, service)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyRouteMethod, method)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyRouteMethod, method) // nolint: ineffassign
 	}
 
 	for k, v := range types.GetPodLabels() {
@@ -79,7 +79,9 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	return api.StreamFilterContinue
 }
 
-func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {}
+func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
+	d.handler = handler
+}
 
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	frame, ok := headers.(*dubbo.Frame)
