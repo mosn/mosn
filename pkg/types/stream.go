@@ -235,7 +235,7 @@ const (
 type ConnectionPool interface {
 	Protocol() api.Protocol
 
-	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
+	NewStream(ctx context.Context, receiver StreamReceiveListener) (Host, StreamSender, PoolFailureReason)
 
 	// check host health and init host
 	CheckAndInit(ctx context.Context) bool
@@ -251,13 +251,4 @@ type ConnectionPool interface {
 
 	// Host get host
 	Host() Host
-
-	// UpdateHost is update host
-	UpdateHost(Host)
-}
-
-type PoolEventListener interface {
-	OnFailure(reason PoolFailureReason, host Host)
-
-	OnReady(sender StreamSender, host Host)
 }

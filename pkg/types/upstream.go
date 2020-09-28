@@ -57,6 +57,9 @@ type ClusterManager interface {
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
+	// Get or Create tcp conn pool for a cluster
+	UDPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
+
 	// ConnPoolForCluster used to get protocol related conn pool
 	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol api.Protocol) ConnectionPool
 
@@ -136,6 +139,9 @@ type Host interface {
 	TLSHashValue() *HashValue
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
+
+	// Create a udp connection for this host.
+	CreateUDPConnection(context context.Context) CreateConnectionData
 
 	// Address returns the host's Addr structure
 	Address() net.Addr

@@ -40,3 +40,8 @@ func (e DateTimeException) Error() string {
 func (DateTimeException) JavaClassName() string {
 	return "java.time.DateTimeException"
 }
+
+// equals to getStackTrace in java
+func (e DateTimeException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

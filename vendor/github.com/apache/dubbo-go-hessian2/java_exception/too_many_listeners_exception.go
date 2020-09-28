@@ -40,3 +40,8 @@ func (e TooManyListenersException) Error() string {
 func (TooManyListenersException) JavaClassName() string {
 	return "java.util.TooManyListenersException"
 }
+
+// equals to getStackTrace in java
+func (e TooManyListenersException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

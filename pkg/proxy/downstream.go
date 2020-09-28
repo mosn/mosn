@@ -119,6 +119,8 @@ type downStream struct {
 	logDone          uint32
 
 	snapshot types.ClusterSnapshot
+
+	phase types.Phase
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
@@ -137,6 +139,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	}
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proto)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigDownStreamProtocol, proxy.config.DownstreamProtocol)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigUpStreamProtocol, proxy.config.UpstreamProtocol)
 
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
@@ -256,12 +260,16 @@ func (s *downStream) requestMetrics() {
 			processTime = requestReceivedNs + (streamDurationNs - responseReceivedNs)
 		}
 
+		s.proxy.stats.DownstreamProcessTime.Update(processTime)
 		s.proxy.stats.DownstreamProcessTimeTotal.Inc(processTime)
 
+		s.proxy.listenerStats.DownstreamProcessTime.Update(processTime)
 		s.proxy.listenerStats.DownstreamProcessTimeTotal.Inc(processTime)
 
+		s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
+		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
 		s.proxy.stats.DownstreamUpdateRequestCode(s.requestInfo.ResponseCode())
@@ -353,8 +361,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 	}
 
 	id := s.ID
-	// goroutine for proxy
-	pool.ScheduleAuto(func() {
+	var task = func() {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
@@ -382,7 +389,18 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] directResponse %+v", s)
 			}
 		}
-	})
+	}
+
+	// goroutine for proxy
+	if s.proxy.workerpool != nil {
+		// use the worker pool for current proxy
+		// NOTE: should this be configurable?
+		// eg, use config to control Schedule or to ScheduleAuto
+		s.proxy.workerpool.Schedule(task)
+	} else {
+		// use the global shared worker pool
+		pool.ScheduleAuto(task)
+	}
 }
 
 func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {
@@ -391,6 +409,8 @@ func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
 	for i := 0; i <= int(types.End-types.InitPhase); i++ {
+		s.phase = phase
+
 		switch phase {
 		// init phase
 		case types.InitPhase:
@@ -576,6 +596,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					s.printPhaseInfo(types.UpRecvHeader, id)
 				}
+
+				s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamRespHeaders, s.downstreamRespHeaders)
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -1279,6 +1301,7 @@ func (s *downStream) doRetry() {
 		downStream: s,
 		proxy:      s.proxy,
 		connPool:   pool,
+		protocol:   s.getUpstreamProtocol(),
 	}
 
 	// if Data or Trailer exists, endStream should be false, else should be true
@@ -1531,10 +1554,14 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 		if s.oneway {
 			phase = types.Oneway
-		} else {
-			phase = types.UpFilter
+			err = types.ErrExit
+			return
 		}
-		err = types.ErrExit
+		if s.phase != types.UpFilter {
+			phase = types.UpFilter
+			err = types.ErrExit
+			return
+		}
 		return
 	}
 

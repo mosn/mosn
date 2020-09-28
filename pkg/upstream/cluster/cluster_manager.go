@@ -286,6 +286,17 @@ func (cm *clusterManager) TCPConnForCluster(lbCtx types.LoadBalancerContext, sna
 	return host.CreateConnection(context.Background())
 }
 
+func (cm *clusterManager) UDPConnForCluster(lbCtx types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
+	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
+		return types.CreateConnectionData{}
+	}
+	host := snapshot.LoadBalancer().ChooseHost(lbCtx)
+	if host == nil {
+		return types.CreateConnectionData{}
+	}
+	return host.CreateUDPConnection(context.Background())
+}
+
 func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) types.ConnectionPool {
 	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager]  %s ConnPool For Cluster is nil", protocol)
@@ -333,6 +344,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
 	}
 
+	// for pool to know, whether this is a multiplex or pingpong pool
 	var pools [maxHostsCounts]types.ConnectionPool
 
 	try := clusterSnapshot.HostNum(balancerContext.MetadataMatchCriteria())
@@ -371,7 +383,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				pool := connPool.(types.ConnectionPool)
 				return pool, true
 			}
-			pool := factory(host)
+			pool := factory(balancerContext.DownstreamContext(), host)
 			connectionPool.Store(addr, pool)
 			return pool, false
 		}
@@ -394,7 +406,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						}
 						connectionPool.Delete(addr)
 						pool.Shutdown()
-						pool = factory(host)
+						pool = factory(balancerContext.DownstreamContext(), host)
 						connectionPool.Store(addr, pool)
 					}
 				}()

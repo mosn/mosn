@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"runtime/debug"
 	"sync"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
@@ -31,11 +32,18 @@ import (
 
 // Decoder is heavy and caches to improve performance.
 // Avoid allocating 4k memory every time you create an object
-var decodePool = &sync.Pool{
-	New: func() interface{} {
-		return hessian.NewCheapDecoderWithSkip([]byte{})
-	},
-}
+var (
+	decodePoolCheap = &sync.Pool{
+		New: func() interface{} {
+			return hessian.NewCheapDecoderWithSkip([]byte{})
+		},
+	}
+	decodePool = &sync.Pool{
+		New: func() interface{} {
+			return hessian.NewDecoderWithSkip([]byte{})
+		},
+	}
+)
 
 func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
 	// convert data to dubbo frame
@@ -98,22 +106,33 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	return frame, nil
 }
 
-func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, error) {
-	meta := make(map[string]string, 8)
+func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]string, err error) {
+	meta = make(map[string]string, 8)
 	if frame.SerializationId != 2 {
 		// not hessian , do not support
 		return meta, fmt.Errorf("[xprotocol][dubbo] not hessian,do not support")
 	}
 
-	decoder := decodePool.Get().(*hessian.Decoder)
-	decoder.Reset(frame.payload[:])
-
 	// Recycle decode
-	defer decodePool.Put(decoder)
+	var (
+		decoder  *hessian.Decoder
+		listener interface{}
+	)
+
+	if ctx != nil {
+		listener = ctx.Value(types.ContextKeyListenerName)
+	}
+	if listener == IngressDubbo || listener == EgressDubbo {
+		decoder = decodePool.Get().(*hessian.Decoder)
+		defer decodePool.Put(decoder)
+	} else {
+		decoder = decodePoolCheap.Get().(*hessian.Decoder)
+		defer decodePoolCheap.Put(decoder)
+	}
+	decoder.Reset(frame.payload[:])
 
 	var (
 		field            interface{}
-		err              error
 		ok               bool
 		frameworkVersion string
 		path             string
@@ -125,51 +144,49 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, 
 	// get service name
 	field, err = decoder.Decode()
 	if err != nil {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version fail")
+		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version fail: %v", err)
 	}
 	frameworkVersion, ok = field.(string)
 	if !ok {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version type error")
+		return meta, fmt.Errorf("[xprotocol][dubbo] decode framework version {%v} type error", field)
 	}
 	meta[FrameworkVersionNameHeader] = frameworkVersion
 
 	field, err = decoder.Decode()
 	if err != nil {
-		return meta, fmt.Errorf("[xprotocol][dubbo] decode service path fail")
+		return meta, fmt.Errorf("[xprotocol][dubbo] decode service path fail: %v", err)
 	}
 	path, ok = field.(string)
 	if !ok {
-		return meta, fmt.Errorf("[xprotocol][dubbo] service path type error")
+		return meta, fmt.Errorf("[xprotocol][dubbo] service path {%v} type error", field)
 	}
 	meta[ServiceNameHeader] = path
 
 	// get method name
 	field, err = decoder.Decode()
 	if err != nil {
-		return nil, fmt.Errorf("[xprotocol][dubbo] decode method version fail")
+		return nil, fmt.Errorf("[xprotocol][dubbo] decode method version fail: %v", err)
 	}
 	// callback maybe return nil
 	if field != nil {
 		version, ok = field.(string)
 		if !ok {
-			return nil, fmt.Errorf("[xprotocol][dubbo] method version type fail")
+			return nil, fmt.Errorf("[xprotocol][dubbo] method version {%v} type fail", field)
 		}
 	}
 	meta[VersionNameHeader] = version
 
 	field, err = decoder.Decode()
 	if err != nil {
-		return nil, fmt.Errorf("[xprotocol][dubbo] decode method fail")
+		return nil, fmt.Errorf("[xprotocol][dubbo] decode method fail: %v", err)
 	}
 	method, ok = field.(string)
 	if !ok {
-		return nil, fmt.Errorf("[xprotocol][dubbo] method type error")
+		return nil, fmt.Errorf("[xprotocol][dubbo] method {%v} type error", field)
 	}
 	meta[MethodNameHeader] = method
 
 	if ctx != nil {
-		listener := ctx.Value(types.ContextKeyListenerName)
-
 		var (
 			node    *Node
 			matched bool
@@ -195,9 +212,17 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, 
 
 		// decode the attachment to get the real service and group parameters
 		if !matched && (listener == EgressDubbo || listener == IngressDubbo) {
+
+			// decode arguments maybe panic, when dubbo payload have complex struct
+			defer func() {
+				if r := recover(); r != nil {
+					err = fmt.Errorf("decode arguments error :%v\n%s", r, debug.Stack())
+				}
+			}()
+
 			field, err = decoder.Decode()
 			if err != nil {
-				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument types error, %v", err)
+				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument types error: %v", err)
 			}
 
 			arguments := getArgumentCount(field.(string))
@@ -205,13 +230,13 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (map[string]string, 
 			for i := 0; i < arguments; i++ {
 				_, err = decoder.Decode()
 				if err != nil {
-					return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument error, %v", err)
+					return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo argument error: %v", err)
 				}
 			}
 
 			field, err = decoder.Decode()
 			if err != nil {
-				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo attachments error, %v", err)
+				return nil, fmt.Errorf("[xprotocol][dubbo] decode dubbo attachments error: %v", err)
 			}
 
 			if field != nil {

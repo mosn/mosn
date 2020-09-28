@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/http/httpguts"
@@ -694,9 +695,9 @@ func (sc *MServerConn) newStream(id, pusherID uint32, state streamState) *stream
 	sc.setStream(id, st)
 
 	if st.isPushed() {
-		sc.curPushedStreams++
+		atomic.AddUint32(&sc.curPushedStreams, 1)
 	} else {
-		sc.curClientStreams++
+		atomic.AddUint32(&sc.curClientStreams, 1)
 	}
 
 	return st
@@ -711,9 +712,9 @@ func (sc *MServerConn) closeStream(st *stream, err error) {
 	if sc.delStream(st.id) {
 		st.state = stateClosed
 		if st.isPushed() {
-			sc.curPushedStreams--
+			atomic.AddUint32(&sc.curPushedStreams, ^uint32(0))
 		} else {
-			sc.curClientStreams--
+			atomic.AddUint32(&sc.curClientStreams, ^uint32(0))
 		}
 	}
 }

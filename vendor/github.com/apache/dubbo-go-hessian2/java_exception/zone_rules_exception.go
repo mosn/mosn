@@ -40,3 +40,8 @@ func (e ZoneRulesException) Error() string {
 func (ZoneRulesException) JavaClassName() string {
 	return "java.time.zone.ZoneRulesException"
 }
+
+// equals to getStackTrace in java
+func (e ZoneRulesException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

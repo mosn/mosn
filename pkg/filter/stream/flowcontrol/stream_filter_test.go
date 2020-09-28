@@ -21,6 +21,13 @@ const (
 )
 
 func TestStreamFilter(t *testing.T) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("TestStreamFilter error: %v", r)
+		}
+	}()
+
 	mockConfig := &Config{
 		GlobalSwitch: false,
 		Monitor:      false,
@@ -37,6 +44,7 @@ func TestStreamFilter(t *testing.T) {
 	}
 	// global switch disabled
 	sf := NewStreamFilter(&DefaultCallbacks{config: mockConfig})
+	sf.SetReceiveFilterHandler(nil)
 	status := sf.OnReceive(context.Background(), nil, nil, nil)
 	assert.Equal(t, api.StreamFilterContinue, status)
 
@@ -50,7 +58,7 @@ func TestStreamFilter(t *testing.T) {
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, HTTP1)
 
 	m := make(map[string]string)
-	m["http_request_path"] = "/http"
+	m["Http1_request_path"] = "/http"
 	m["dubbo_request_path"] = "/dubbo"
 	for k := range m {
 		// register test variable
@@ -59,7 +67,8 @@ func TestStreamFilter(t *testing.T) {
 				return m[k], nil
 			}, nil, 0))
 	}
-	variable.RegisterProtocolResource(HTTP1, api.PATH, "http_request_path")
+	variable.RegisterProtocolResource(HTTP1, api.PATH, "request_path")
 	status = sf.OnReceive(ctx, nil, nil, nil)
 	assert.NotEmpty(t, status)
+	sf.OnDestroy()
 }

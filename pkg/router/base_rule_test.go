@@ -24,6 +24,8 @@ import (
 	"net"
 	goHttp "net/http"
 	"reflect"
+	"regexp"
+	"strconv"
 	"testing"
 	"time"
 
@@ -202,19 +204,34 @@ func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
 }
 
 func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
+
+	//both prefix_rewrite and regex_rewrite are configured, prefix rewrite by default
 	rri := &RouteRuleImplBase{
 		prefixRewrite: "/abc/",
+		regexRewrite: v2.RegexRewrite{
+			Pattern: v2.PatternConfig{
+				Regex: "^/service/([^/]+)(/.*)$",
+			},
+			Substitution: "${2}/instance/${1}",
+		},
 	}
+
+	regexPattern, err := regexp.Compile(rri.regexRewrite.Pattern.Regex)
+	assert.NoErrorf(t, err, "check regrexp pattern failed %+v", err)
+	rri.regexPattern = regexPattern
+
 	type args struct {
 		headers     types.HeaderMap
 		matchedPath string
 	}
 
-	tests := []struct {
+	type testCase struct {
 		name string
 		args args
 		want types.HeaderMap
-	}{
+	}
+
+	tests := []testCase{
 		{
 			name: "case1",
 			args: args{
@@ -235,12 +252,106 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rri.finalizePathHeader(tt.args.headers, tt.args.matchedPath)
+			rri.FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
 			if !reflect.DeepEqual(tt.args.headers, tt.want) {
 				t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
 			}
 		})
 
+	}
+
+	//regex rewrite test
+	rris := []*RouteRuleImplBase{
+		{
+			regexRewrite: v2.RegexRewrite{
+				Pattern: v2.PatternConfig{
+					Regex: "^/service/([^/]+)(/.*)$",
+				},
+				Substitution: "${2}/instance/${1}",
+			},
+		},
+		{
+			regexRewrite: v2.RegexRewrite{
+				Pattern: v2.PatternConfig{
+					Regex: "one",
+				},
+				Substitution: "two",
+			},
+		},
+		{
+			regexRewrite: v2.RegexRewrite{
+				Pattern: v2.PatternConfig{
+					Regex: "^(.*?)one(.*)$",
+				},
+				Substitution: "${1}two${2}",
+			},
+		},
+		{
+			regexRewrite: v2.RegexRewrite{
+				Pattern: v2.PatternConfig{
+					Regex: "(?i)/xxx/",
+				},
+				Substitution: "/yyy/",
+			},
+		},
+	}
+
+	tests = []testCase{
+		{
+			name: "case1",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/service/foo/v1/api"},
+				matchedPath: "/service/foo/v1/api",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/v1/api/instance/foo", protocol.MosnOriginalHeaderPathKey: "/service/foo/v1/api"},
+		},
+		{
+			name: "case2",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+				matchedPath: "/xxx/one/yyy/one/zzz",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/two/zzz", protocol.MosnOriginalHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+		},
+		{
+			name: "case3",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+				matchedPath: "/xxx/one/yyy/one/zzz",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/one/zzz", protocol.MosnOriginalHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+		},
+		{
+			name: "case4",
+			args: args{
+				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/aaa/XxX/bbb"},
+				matchedPath: "/aaa/XxX/bbb",
+			},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/aaa/yyy/bbb", protocol.MosnOriginalHeaderPathKey: "/aaa/XxX/bbb"},
+		},
+	}
+
+	testMap := make(map[string]testCase)
+	for _, tt := range tests {
+		testMap[tt.name] = tt
+	}
+
+	for k, rri := range rris {
+
+		regexPattern, err := regexp.Compile(rri.regexRewrite.Pattern.Regex)
+		assert.NoErrorf(t, err, "check regrexp pattern failed %+v", err)
+		rri.regexPattern = regexPattern
+
+		ops := k
+		tt, ok := testMap["case"+strconv.Itoa(k+1)]
+		if ok {
+			t.Run(tt.name, func(t *testing.T) {
+				rris[ops].FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
+				if !reflect.DeepEqual(tt.args.headers, tt.want) {
+					t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
+				}
+			})
+		}
 	}
 }
 

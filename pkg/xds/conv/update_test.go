@@ -22,11 +22,14 @@ import (
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	xdsroute "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	xdshttpfault "github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	xdstcp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/conversion"
+	xdswellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/duration"
 	pstruct "github.com/golang/protobuf/ptypes/struct"
@@ -44,6 +47,11 @@ func messageToStruct(t *testing.T, msg proto.Message) *pstruct.Struct {
 }
 
 func Test_updateListener(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("TestUpdateListener error: %v", r)
+		}
+	}()
 	InitStats()
 
 	// no support access log register
@@ -277,6 +285,188 @@ func Test_updateListener(t *testing.T) {
 	lnCfg := ln.Config()
 	if len(lnCfg.StreamFilters) != 1 || lnCfg.StreamFilters[0].Type != v2.FaultStream {
 		t.Fatalf("listener stream filters config is : %v", lnCfg.StreamFilters)
+	}
+	// tcp proxy networker
+	filterName = xdswellknown.TCPProxy
+	tcpConfig := &xdstcp.TcpProxy{
+		StatPrefix: "tcp",
+		ClusterSpecifier: &xdstcp.TcpProxy_Cluster{
+			Cluster: "tcpCluster",
+		},
+	}
+
+	listenerConfig = &envoy_api_v2.Listener{
+		Name:    "0.0.0.0_80",
+		Address: &address,
+		FilterChains: []*xdslistener.FilterChain{
+			{
+				Filters: []*xdslistener.Filter{
+					{
+						Name: filterName,
+						ConfigType: &xdslistener.Filter_Config{
+							Config: messageToStruct(t, tcpConfig),
+						},
+					},
+				},
+			},
+		},
+		DeprecatedV1: &envoy_api_v2.Listener_DeprecatedV1{
+			BindToPort: NewBoolValue(false),
+		},
+		DrainType: envoy_api_v2.Listener_DEFAULT,
+	}
+	ConvertAddOrUpdateListeners([]*envoy_api_v2.Listener{listenerConfig})
+
+	ConvertDeleteListeners([]*envoy_api_v2.Listener{listenerConfig})
+}
+
+func Test_updateCluster(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("TestUpdateCluster error: %v", r)
+		}
+	}()
+
+	addrsConfig := &core.Address{
+		Address: &core.Address_SocketAddress{
+			SocketAddress: &core.SocketAddress{
+				Protocol: core.SocketAddress_TCP,
+				Address:  "localhost",
+				PortSpecifier: &core.SocketAddress_PortValue{
+					PortValue: 80,
+				},
+			},
+		},
+	}
+
+	ClusterConfig := &envoy_api_v2.Cluster{
+		Name:                 "addCluser",
+		ClusterDiscoveryType: &envoy_api_v2.Cluster_Type{Type: envoy_api_v2.Cluster_EDS},
+		EdsClusterConfig: &envoy_api_v2.Cluster_EdsClusterConfig{
+			EdsConfig: &core.ConfigSource{},
+		},
+		LbPolicy: envoy_api_v2.Cluster_ROUND_ROBIN,
+		Hosts:    []*core.Address{addrsConfig},
+	}
+
+	if mc := ConvertClustersConfig([]*envoy_api_v2.Cluster{ClusterConfig}); mc == nil {
+		t.Error("ConvertClustersConfig failed!")
+	}
+
+	ConvertUpdateClusters([]*envoy_api_v2.Cluster{ClusterConfig})
+	ConvertDeleteClusters([]*envoy_api_v2.Cluster{ClusterConfig})
+}
+
+func Test_ConvertAddOrUpdateRouters(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("TestConvertAddOrUpdateRouters error: %v", r)
+		}
+	}()
+	want := "addRoute"
+	routeConfig := &envoy_api_v2.RouteConfiguration{
+		Name: want,
+		VirtualHosts: []*xdsroute.VirtualHost{
+			{
+				Name: "istio-egressgateway.istio-system.svc.cluster.local:80",
+				Domains: []string{
+					"istio-egressgateway.istio-system.svc.cluster.local",
+					"istio-egressgateway.istio-system.svc:80",
+					"172.19.3.204",
+					"172.19.3.204:80",
+				},
+				Routes: []*xdsroute.Route{
+					{
+						Match: &xdsroute.RouteMatch{
+							PathSpecifier: &xdsroute.RouteMatch_Prefix{
+								Prefix: "/",
+							},
+						},
+						Action: &xdsroute.Route_Route{
+							Route: &xdsroute.RouteAction{
+								ClusterSpecifier: &xdsroute.RouteAction_Cluster{
+									Cluster: "outbound|80||istio-egressgateway.istio-system.svc.cluster.local",
+								},
+								ClusterNotFoundResponseCode: xdsroute.RouteAction_SERVICE_UNAVAILABLE,
+								MetadataMatch:               nil,
+								PrefixRewrite:               "",
+								HostRewriteSpecifier:        nil,
+								RetryPolicy:                 nil,
+								RequestMirrorPolicy:         nil,
+								Priority:                    core.RoutingPriority_DEFAULT,
+								MaxGrpcTimeout:              new(duration.Duration),
+							},
+						},
+						Metadata: nil,
+						Decorator: &xdsroute.Decorator{
+							Operation: "istio-egressgateway.istio-system.svc.cluster.local:80/*",
+						},
+						PerFilterConfig: nil,
+					},
+				},
+				RequireTls: xdsroute.VirtualHost_NONE,
+			},
+		},
+		ValidateClusters: NewBoolValue(false),
+	}
+	ConvertAddOrUpdateRouters([]*envoy_api_v2.RouteConfiguration{routeConfig})
+	routersMngIns := router.GetRoutersMangerInstance()
+	if routersMngIns == nil {
+		t.Error("get routerMngIns failed!")
+	}
+
+	if rn := routersMngIns.GetRouterWrapperByName(want); rn == nil {
+		t.Error("get routerMngIns failed!")
+	}
+}
+
+func Test_ConvertUpdateEndpoints(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("ConvertUpdateEndpoints error: %v", r)
+		}
+	}()
+	cluster := "addCluser"
+	ClusterConfig := &envoy_api_v2.Cluster{
+		Name:                 cluster,
+		ClusterDiscoveryType: &envoy_api_v2.Cluster_Type{Type: envoy_api_v2.Cluster_EDS},
+		EdsClusterConfig: &envoy_api_v2.Cluster_EdsClusterConfig{
+			EdsConfig: &core.ConfigSource{},
+		},
+		LbPolicy: envoy_api_v2.Cluster_ROUND_ROBIN,
+	}
+
+	if mc := ConvertClustersConfig([]*envoy_api_v2.Cluster{ClusterConfig}); mc == nil {
+		t.Error("ConvertClustersConfig failed!")
+	}
+
+	ConvertUpdateClusters([]*envoy_api_v2.Cluster{ClusterConfig})
+
+	CLAConfig := &envoy_api_v2.ClusterLoadAssignment{
+		ClusterName: cluster,
+		Endpoints: []*endpoint.LocalityLbEndpoints{{
+			LbEndpoints: []*endpoint.LbEndpoint{{
+				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+					Endpoint: &endpoint.Endpoint{
+						Address: &core.Address{
+							Address: &core.Address_SocketAddress{
+								SocketAddress: &core.SocketAddress{
+									Protocol: core.SocketAddress_TCP,
+									Address:  "127.0.0.1",
+									PortSpecifier: &core.SocketAddress_PortValue{
+										PortValue: 80,
+									},
+								},
+							},
+						},
+					},
+				},
+			}},
+		}},
+	}
+
+	if err := ConvertUpdateEndpoints([]*envoy_api_v2.ClusterLoadAssignment{CLAConfig}); err != nil {
+		t.Errorf("ConvertUpdateEndpoints failed: %v", err)
 	}
 
 }

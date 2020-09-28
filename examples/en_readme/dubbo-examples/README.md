@@ -35,7 +35,8 @@ cd ${targetpath}
 ```
 main        // compiled MOSN
 dubbo-examples/   // the code dir of Dubbo Java provider and consumer
-config.json // Configure without TLS
+client_config.json // Configure without TLS
+server_config.json // Configure without TLS
 run.sh     // the scripts of packaging and running Dubbo Java provider and consumer
 ```
 
@@ -49,13 +50,17 @@ sh run.sh server
 
 ### Start MOSN
 
-+ Use config.json to run MOSN without TLS.
++ Use non-TLS configs to run MOSN without TLS.
 
+run client side:
 ```
-./main start -c config.json
-
+./main start -c client_config.json
 ```
 
+run server side:
+```
+./main start -c server_config.json
+```
 
 ### Start Dubbo RPC consumer to send request
 

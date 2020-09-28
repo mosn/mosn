@@ -22,7 +22,7 @@ import (
 )
 
 func init() {
-	Init()
+	initAPI()
 
 	monkey.Patch(zkreg.NewZkRegistry, func(url *dubbocommon.URL) (registry.Registry, error) {
 		return &registry.BaseRegistry{}, nil
@@ -39,6 +39,7 @@ func init() {
 
 	cluster.NewClusterManagerSingleton(nil, nil, nil)
 
+	Init(12356, 13245, "./www.log")
 }
 
 func TestNotify(t *testing.T) {

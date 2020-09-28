@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -50,6 +49,8 @@ type RouteRuleImplBase struct {
 	configQueryParameters []types.QueryParameterMatcher //TODO: not implement yet
 	// rewrite
 	prefixRewrite         string
+	regexRewrite          v2.RegexRewrite
+	regexPattern          *regexp.Regexp
 	hostRewrite           string
 	autoHostRewrite       bool
 	autoHostRewriteHeader string
@@ -93,6 +94,17 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		},
 		lock: sync.Mutex{},
 	}
+	//check and store regrex rewrite pattern
+	if route.Route.RegexRewrite != nil && len(route.Route.RegexRewrite.Pattern.Regex) > 1 && len(route.Route.PrefixRewrite) == 0 {
+		base.regexRewrite = *route.Route.RegexRewrite
+		regexPattern, err := regexp.Compile(route.Route.RegexRewrite.Pattern.Regex)
+		if err != nil {
+			log.DefaultLogger.Errorf(RouterLogFormat, "routerule", "check regrex pattern failed.", "invalid regex:"+err.Error())
+			return nil, err
+		}
+		base.regexPattern = regexPattern
+	}
+
 	// add clusters
 	base.weightedClusters, base.totalClusterWeight = getWeightedClusterEntry(route.Route.WeightedClusters)
 	if len(route.Route.MetadataMatch) > 0 {
@@ -163,6 +175,18 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			return nil, fmt.Errorf("redirect code not supported yet: %d", r.ResponseCode)
 		}
 		base.redirectRule = rule
+	}
+
+	// add mirror policies
+	if route.RequestMirrorPolicies != nil {
+		base.policy.mirrorPolicy = &mirrorImpl{
+			cluster: route.RequestMirrorPolicies.Cluster,
+			percent: int(route.RequestMirrorPolicies.Percent),
+			rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		}
+	}
+	if base.policy.mirrorPolicy == nil {
+		base.policy.mirrorPolicy = &mirrorImpl{}
 	}
 	return base, nil
 }
@@ -254,16 +278,39 @@ func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint
 	return true
 }
 
+func (rri *RouteRuleImplBase) FinalizePathHeader(headers api.HeaderMap, matchedPath string) {
+	rri.finalizePathHeader(headers, matchedPath)
+}
+
 func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedPath string) {
-	if len(rri.prefixRewrite) < 1 {
+
+	if len(rri.prefixRewrite) < 1 && len(rri.regexRewrite.Pattern.Regex) < 1 {
 		return
 	}
+
 	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
-		if strings.HasPrefix(path, matchedPath) {
-			headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-			headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
-			log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+
+		//If both prefix_rewrite and regex_rewrite are configured
+		//prefix rewrite by default
+		if len(rri.prefixRewrite) > 1 {
+			if strings.HasPrefix(path, matchedPath) {
+				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
+				headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
+				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+			}
+			return
 		}
+
+		// regex rewrite path if configured
+		if len(rri.regexRewrite.Pattern.Regex) > 1 && rri.regexPattern != nil {
+			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
+			if rewritedPath != path {
+				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
+				headers.Set(protocol.MosnHeaderPathKey, rewritedPath)
+				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
+			}
+		}
+
 	}
 }
 
