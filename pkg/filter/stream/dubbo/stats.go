@@ -58,7 +58,9 @@ func getStats(listener, service, method string) *Stats {
 	}
 	if podSubsetKey != "" {
 		pl := types.GetPodLabels()
-		lables[subsetKey] = pl[podSubsetKey]
+		if pl[podSubsetKey] != "" {
+			lables[subsetKey] = pl[podSubsetKey]
+		}
 	}
 
 	mts, err := metrics.NewMetrics(metricPre, lables)

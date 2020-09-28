@@ -21,23 +21,8 @@ func init() {
 type factory struct{}
 
 func buildStream(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
-	// registry variable when dubbo filter enable
-	Init()
-
-	f := &factory{}
-
-	sskObj := conf[subsetKey]
-	if sskObj == nil {
-		return f, nil
-	}
-
-	ssk, ok := sskObj.(string)
-	if !ok {
-		return f, nil
-	}
-	podSubsetKey = ssk
-
-	return f, nil
+	Init(conf)
+	return &factory{}, nil
 }
 
 func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
@@ -76,8 +61,8 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	if stats != nil {
 		stats.RequestServiceInfo.Inc(1)
 
-		variable.SetVariableValue(ctx, types.VarDubboRequestService, service)
-		variable.SetVariableValue(ctx, types.VarDubboRequestMethod, method)
+		variable.SetVariableValue(ctx, VarDubboRequestService, service)
+		variable.SetVariableValue(ctx, VarDubboRequestMethod, method)
 	}
 
 	for k, v := range types.GetPodLabels() {
@@ -99,12 +84,12 @@ func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buf
 	}
 
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
-	service, err := variable.GetVariableValue(ctx, types.VarDubboRequestService)
+	service, err := variable.GetVariableValue(ctx, VarDubboRequestService)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request service info failed: %+v", err)
 		return api.StreamFilterContinue
 	}
-	method, err := variable.GetVariableValue(ctx, types.VarDubboRequestMethod)
+	method, err := variable.GetVariableValue(ctx, VarDubboRequestMethod)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request method info failed: %+v", err)
 		return api.StreamFilterContinue
