@@ -18,8 +18,9 @@
 package types
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInitXdsFlags(t *testing.T) {
@@ -41,7 +42,7 @@ func TestInitXdsFlags(t *testing.T) {
 		"Not_exist_key:1",
 		"not_exist_value",
 	}, []string{})
-	if !assert.Equal(t, 3, len(xdsInfo.Metadata.GetFields()), "serviceMeta len should be one") {
+	if !assert.Equal(t, 4, len(xdsInfo.Metadata.GetFields()), "serviceMeta len should be one") {
 		t.FailNow()
 	}
 	if !assert.Equal(t, "1.1", xdsInfo.Metadata.Fields["ISTIO_VERSION"].GetStringValue(), "serviceMeta len should be one") {
