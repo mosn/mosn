@@ -10,7 +10,13 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+)
+
+const (
+	dubboStreamService = "dubbo_stream_service"
+	dubboStreamMethod  = "dubbo_stream_method"
 )
 
 func init() {
@@ -72,8 +78,8 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	if stats != nil {
 		stats.RequestServiceInfo.Inc(1)
 
-		mosnctx.WithValue(ctx, types.ContextKeyRouteService, service)
-		mosnctx.WithValue(ctx, types.ContextKeyRouteMethod, method)
+		variable.SetVariableValue(ctx, dubboStreamService, service)
+		variable.SetVariableValue(ctx, dubboStreamMethod, method)
 	}
 
 	for k, v := range types.GetPodLabels() {
@@ -95,8 +101,16 @@ func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buf
 	}
 
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
-	service := mosnctx.Get(ctx, types.ContextKeyRouteService).(string)
-	method := mosnctx.Get(ctx, types.ContextKeyRouteMethod).(string)
+	service, err := variable.GetVariableValue(ctx, dubboStreamService)
+	if err != nil {
+		log.DefaultLogger.Warnf("Get request service info failed: %+v", err)
+		return api.StreamFilterContinue
+	}
+	method, err := variable.GetVariableValue(ctx, dubboStreamMethod)
+	if err != nil {
+		log.DefaultLogger.Warnf("Get request method info failed: %+v", err)
+		return api.StreamFilterContinue
+	}
 
 	stats := getStats(listener, service, method)
 	if stats == nil {
