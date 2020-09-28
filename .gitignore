@@ -9,3 +9,4 @@ mosnd
 main
 mosnd.md5
 mosn.pid
+pkg/filter/stream/dubbo/install/build/mosn

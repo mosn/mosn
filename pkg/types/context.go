@@ -49,6 +49,8 @@ const (
 	ContextKeyConfigUpStreamProtocol
 	ContextKeyDownStreamHeaders
 	ContextKeyDownStreamRespHeaders
+	ContextKeyRouteService
+	ContextKeyRouteMethod
 	ContextKeyEnd
 )
 
