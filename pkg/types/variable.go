@@ -59,6 +59,7 @@ const (
 	VarProtocolRequestArgPrefix = "request_arg_"
 	VarProtocolRequestArg       = "request_arg"
 	VarProtocolRequestUri       = "request_uri"
+	VarProtocolRequestService   = "request_service"
 )
 
 // [Protocol]: http1
@@ -89,4 +90,11 @@ const (
 	VarPrefixHttp2Header  = http2ProtocolName + "_" + VarProtocolRequestHeader
 	VarPrefixHttp2Arg     = http2ProtocolName + "_" + VarProtocolRequestArgPrefix
 	VarPrefixHttp2Cookie  = http2ProtocolName + "_" + VarProtocolCookie
+)
+
+// [Protocol]: dubbo
+const (
+	dubboProtocolName      = "Dubbo"
+	VarDubboRequestService = dubboProtocolName + "_" + VarProtocolRequestService
+	VarDubboRequestMethod  = dubboProtocolName + "_" + VarProtocolRequestMethod
 )

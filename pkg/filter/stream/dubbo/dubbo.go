@@ -14,11 +14,6 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-const (
-	dubboStreamService = "dubbo_stream_service"
-	dubboStreamMethod  = "dubbo_stream_method"
-)
-
 func init() {
 	api.RegisterStream(v2.DubboStream, buildStream)
 }
@@ -78,8 +73,8 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	if stats != nil {
 		stats.RequestServiceInfo.Inc(1)
 
-		variable.SetVariableValue(ctx, dubboStreamService, service)
-		variable.SetVariableValue(ctx, dubboStreamMethod, method)
+		variable.SetVariableValue(ctx, types.VarDubboRequestService, service)
+		variable.SetVariableValue(ctx, types.VarDubboRequestMethod, method)
 	}
 
 	for k, v := range types.GetPodLabels() {
@@ -101,12 +96,12 @@ func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buf
 	}
 
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
-	service, err := variable.GetVariableValue(ctx, dubboStreamService)
+	service, err := variable.GetVariableValue(ctx, types.VarDubboRequestService)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request service info failed: %+v", err)
 		return api.StreamFilterContinue
 	}
-	method, err := variable.GetVariableValue(ctx, dubboStreamMethod)
+	method, err := variable.GetVariableValue(ctx, types.VarDubboRequestMethod)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request method info failed: %+v", err)
 		return api.StreamFilterContinue
