@@ -21,10 +21,11 @@ var (
 	subsetKey   = "subset"
 
 	podSubsetKey = ""
+	metricPre    = "mosn"
 )
 
 var (
-	l            sync.Mutex
+	l            sync.RWMutex
 	statsFactory = make(map[string]*Stats)
 )
 
@@ -36,13 +37,17 @@ type Stats struct {
 
 func getStats(listener, service, method string) *Stats {
 	key := service + "-" + method
-	if s, ok := statsFactory[key]; ok {
+
+	l.RLock()
+	s, ok := statsFactory[key]
+	l.RUnlock()
+	if ok {
 		return s
 	}
 
 	l.Lock()
 	defer l.Unlock()
-	if s, ok := statsFactory[key]; ok {
+	if s, ok = statsFactory[key]; ok {
 		return s
 	}
 
@@ -56,14 +61,14 @@ func getStats(listener, service, method string) *Stats {
 		lables[subsetKey] = pl[podSubsetKey]
 	}
 
-	mts, err := metrics.NewMetrics("mosn", lables)
+	mts, err := metrics.NewMetrics(metricPre, lables)
 	if err != nil {
 		log.DefaultLogger.Errorf("create metrics fail: labels:%v, err: %v", lables, err)
 		statsFactory[key] = nil
 		return nil
 	}
 
-	s := &Stats{
+	s = &Stats{
 		RequestServiceInfo: mts.Counter(ServiceInfo),
 		ResponseSucc:       mts.Counter(ResponseSucc),
 		ResponseFail:       mts.Counter(ResponseFail),
