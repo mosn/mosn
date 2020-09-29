@@ -20,6 +20,6 @@ package hessian
 /////////////////////////////////////////
 // Null
 /////////////////////////////////////////
-func encNull(b []byte) []byte {
+func EncNull(b []byte) []byte {
 	return append(b, BC_NULL)
 }

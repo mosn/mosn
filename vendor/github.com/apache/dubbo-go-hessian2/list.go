@@ -29,6 +29,9 @@ import (
 import (
 	perrors "github.com/pkg/errors"
 )
+import (
+	"github.com/apache/dubbo-go-hessian2/java_exception"
+)
 
 var (
 	listTypeNameMapper = &sync.Map{}
@@ -46,6 +49,8 @@ var (
 		"date":             reflect.TypeOf(time.Time{}),
 		"object":           reflect.TypeOf([]Object{}).Elem(),
 		"java.lang.Object": reflect.TypeOf([]Object{}).Elem(),
+		// exception field StackTraceElement
+		"java.lang.StackTraceElement": reflect.TypeOf([]*java_exception.StackTraceElement{}).Elem(),
 	}
 )
 
@@ -279,6 +284,8 @@ func (d *Decoder) decList(flag int32) (interface{}, error) {
 		return d.readTypedList(tag)
 	case untypedListTag(tag):
 		return d.readUntypedList(tag)
+	case binaryTag(tag):
+		return d.decBinary(int32(tag))
 	default:
 		return nil, perrors.Errorf("error list tag: 0x%x", tag)
 	}

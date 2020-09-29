@@ -43,7 +43,7 @@ type Response struct {
 // NewResponse create a new Response
 func NewResponse(rspObj interface{}, exception error, attachments map[string]string) *Response {
 	if attachments == nil {
-		attachments = make(map[string]string)
+		attachments = make(map[string]string, 8)
 	}
 	return &Response{
 		RspObj:      rspObj,
@@ -140,7 +140,7 @@ func packResponse(header DubboHeader, ret interface{}) ([]byte, error) {
 	}
 
 	byteArray = encoder.Buffer()
-	byteArray = encNull(byteArray) // if not, "java client" will throw exception  "unexpected end of file"
+	byteArray = EncNull(byteArray) // if not, "java client" will throw exception  "unexpected end of file"
 	pkgLen := len(byteArray)
 	if pkgLen > int(DEFAULT_LEN) { // 8M
 		return nil, perrors.Errorf("Data length %d too large, max payload %d", pkgLen, DEFAULT_LEN)
@@ -339,7 +339,7 @@ var versionInt = make(map[string]int)
 // https://github.com/apache/dubbo/blob/dubbo-2.7.1/dubbo-common/src/main/java/org/apache/dubbo/common/Version.java#L96
 // isSupportResponseAttachment is for compatibility among some dubbo version
 func isSupportResponseAttachment(version string) bool {
-	if version == "" {
+	if len(version) == 0 {
 		return false
 	}
 
@@ -358,6 +358,9 @@ func isSupportResponseAttachment(version string) bool {
 }
 
 func version2Int(version string) int {
+	if len(version) == 0 {
+		return 0
+	}
 	var v = 0
 	varr := strings.Split(version, ".")
 	length := len(varr)

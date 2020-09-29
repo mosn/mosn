@@ -160,7 +160,13 @@ type HttpConn struct {
 }
 
 func NewConn(addr string, cb func()) (*HttpConn, error) {
-	remoteAddr, err := net.ResolveTCPAddr("tcp", addr)
+
+	var remoteAddr net.Addr
+	var err error
+	if remoteAddr, err = net.ResolveTCPAddr("tcp", addr); err != nil {
+		remoteAddr, err = net.ResolveUnixAddr("unix", addr)
+	}
+
 	if err != nil {
 		return nil, err
 	}

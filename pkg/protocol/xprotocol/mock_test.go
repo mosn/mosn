@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"sync/atomic"
 
 	"mosn.io/mosn/pkg/types"
 )
@@ -56,6 +57,18 @@ func (mp *mockProtocol) Hijack(request XFrame, statusCode uint32) XRespFrame {
 
 func (mp *mockProtocol) Mapping(httpStatusCode uint32) uint32 {
 	return 0
+}
+
+func (mp *mockProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+func (mp *mockProtocol) EnableWorkerPool() bool {
+	return true
+}
+
+func (mp *mockProtocol) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
 }
 
 func mockMatcher(data []byte) types.MatchResult {

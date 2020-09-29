@@ -286,14 +286,17 @@ func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 }
 
 func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
-	files := make([]*os.File, len(ch.listeners))
-	for idx, l := range ch.listeners {
+	files := make([]*os.File, 0)
+	for _, l := range ch.listeners {
+		if !l.listener.IsBindToPort() {
+			continue
+		}
 		file, err := l.listener.ListenerFile()
 		if err != nil {
 			log.DefaultLogger.Alertf("listener.list", "[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
-		files[idx] = file
+		files = append(files, file)
 	}
 	return files
 }
@@ -592,6 +595,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
 	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
+	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
@@ -883,12 +887,8 @@ func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 				return nil, nil, nil, err
 			}
 		} else {
-			if listener, ok := fileListener.(*net.TCPListener); ok {
-				listeners = append(listeners, listener)
-			} else {
-				log.StartLogger.Errorf("[server] listener recovered from fd %d is not a tcp listener", fd)
-				return nil, nil, nil, errors.New("not a tcp listener")
-			}
+			// for tcp or unix listener
+			listeners = append(listeners, fileListener)
 		}
 	}
 
