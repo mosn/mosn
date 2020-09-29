@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.17.0
+
+### Optimization
+
++ Optimize RWMutex for SDS StreamClient. [@nejisama](https://github.com/nejisama)
++ Update hessian2 v1.7.0 lib. [@cch123](https://github.com/cch123)
++ Proxy level support concurrency. [@cch123](https://github.com/cch123)
++ Optimize protocol layer togenerate reuqest id, NewStream result direct workflow replace with callbak workflow. [@cch123](https://github.com/cch123)
++ Extend xprotocol to multiplex implementations. [@cch123](https://github.com/cch123)
++ Add UDS feature for listener. [@CodingSinger](https://github.com/CodingSinger)
++ Add mock proxy for request. [@nejisama](https://github.com/nejisama)
++ Improve test coverage. [@cch123](https://github.com/cch123)
++ Optimization route regex config. [@wangfakang](https://github.com/wangfakang)
++ Add header max size configuration option, reduce signle connection unnecessary memory waste. [@wangfakang](https://github.com/wangfakang)
++ Add dubbo protocol use xDS httproute config filter. [@champly](https://github.com/champly)
+
+### Bug fixes
+
++ Fix TestAtomic Unit test happend panic when CPU have 12 core. [@alpha-baby](https://github.com/alpha-baby)
++ Fix README ant logo invalid address. [@wangfakang](https://github.com/wangfakang)
++ Fix accesslog unit test not read data from file. [@alpha-baby](https://github.com/alpha-baby)
++ Fix Dubbo protocol analysis attachment maybe panic. [@champly](https://github.com/champly)
++ Fix Listener conn raw is nil cause smooth restart failed. [@alpha-bady](https://github.com/alpha-baby)
++ Fix SDS unit test BUG. [@wangfakang](https://github.com/wangfakang)
+
 ## v0.16.0
 
 ### Optimization

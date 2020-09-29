@@ -1,5 +1,30 @@
 # 更新日志
 
+## v0.17.0
+
+### 优化
+
++ 优化 SDS Client 使用读写锁获取 [@nejisama](https://github.com/nejisama)
++ 更新 hessian2 v1.7.0 库 [@cch123](https://github.com/cch123)
++ 支持 Proxy 层级的并发 [@cch123](https://github.com/cch123)
++ 优化请求在协议层生成请求编号, NewStream 的结果由直接调用改为回调 [@cch123](https://github.com/cch123)
++ 扩展多协议多路复用实现 [@cch123](https://github.com/cch123)
++ 为 Listener 添加 UDS 功能 [@CodingSinger](https://github.com/CodingSinger)
++ 添加请求的 proxy mock 模块 [@nejisama](https://github.com/nejisama)
++ 提高代码测试覆盖率 [@cch123](https://github.com/cch123)
++ 优化路由的时候正则匹配 [@wangfakang](https://github.com/wangfakang)
++ 添加可以设置 Header 的大小，减少单连接不必要的内存浪费 [@wangfakang](https://github.com/wangfakang)
++ 添加在 Dubbo 协议下通过 xDS HTTP 配置进行转换的过滤器 [@champly](https://github.com/champly)
+
+### Bug 修复
+
++ 修复 TestAtomic 测试用例在 12 核心 CPU 下的异常问题 [@alpha-baby](https://github.com/alpha-baby)
++ 修复 README 蚂蚁 logo 地址失效的问题 [@wangfakang](https://github.com/wangfakang)
++ 修复日志单元测试没有读取文件内存作为测试数据的问题 [@alpha-baby](https://github.com/alpha-baby)
++ 修复 Dubbo 协议解析 attachment 异常的问题 [@champly](https://github.com/champly)
++ 修复在平滑重启的时候 Listener 连接为空导致重启失败的问题 [@alpha-bady](https://github.com/alpha-baby)
++ 修复 SDS 单元测试的 BUG [@wangfakang](https://github.com/wangfakang)
+
 ## v0.16.0
 
 ### 优化
