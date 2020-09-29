@@ -7,7 +7,7 @@
 + 优化 SDS Client 使用读写锁获取 [@nejisama](https://github.com/nejisama)
 + 更新 hessian2 v1.7.0 库 [@cch123](https://github.com/cch123)
 + 支持 Proxy 层级的并发 [@cch123](https://github.com/cch123)
-+ 优化请求在协议层生成请求编号, NewStream 的结果由直接调用改为回调 [@cch123](https://github.com/cch123)
++ 移动请求编号生成逻辑到协议层，优化 NewStream API [@cch123](https://github.com/cch123)
 + 扩展多协议多路复用实现 [@cch123](https://github.com/cch123)
 + 为 Listener 添加 UDS 功能 [@CodingSinger](https://github.com/CodingSinger)
 + 添加请求的 proxy mock 模块 [@nejisama](https://github.com/nejisama)

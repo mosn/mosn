@@ -7,7 +7,7 @@
 + Optimize RWMutex for SDS StreamClient. [@nejisama](https://github.com/nejisama)
 + Update hessian2 v1.7.0 lib. [@cch123](https://github.com/cch123)
 + Proxy level support concurrency. [@cch123](https://github.com/cch123)
-+ Optimize protocol layer togenerate reuqest id, NewStream result direct workflow replace with callbak workflow. [@cch123](https://github.com/cch123)
++ Move request id generation to protocol layer, NewStream API optimize. [@cch123](https://github.com/cch123)
 + Extend xprotocol to multiplex implementations. [@cch123](https://github.com/cch123)
 + Add UDS feature for listener. [@CodingSinger](https://github.com/CodingSinger)
 + Add mock proxy for request. [@nejisama](https://github.com/nejisama)
