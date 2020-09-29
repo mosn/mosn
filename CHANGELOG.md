@@ -13,7 +13,8 @@
 + Add mock proxy for request. [@nejisama](https://github.com/nejisama)
 + Improve test coverage. [@cch123](https://github.com/cch123)
 + Optimization route regex config. [@wangfakang](https://github.com/wangfakang)
-+ Add header max size configuration option, reduce signle connection unnecessary memory waste. [@wangfakang](https://github.com/wangfakang)
++ Add header max size configuration option [@wangfakang](https://github.com/wangfakang)
++ Optimization http situation buffer malloc. [@wangfakang](https://github.com/wangfakang)
 + Add dubbo protocol use xDS httproute config filter. [@champly](https://github.com/champly)
 
 ### Bug fixes

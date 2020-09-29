@@ -13,7 +13,8 @@
 + 添加请求的 proxy mock 模块 [@nejisama](https://github.com/nejisama)
 + 提高代码测试覆盖率 [@cch123](https://github.com/cch123)
 + 优化路由的时候正则匹配 [@wangfakang](https://github.com/wangfakang)
-+ 添加可以设置 Header 的大小，减少单连接不必要的内存浪费 [@wangfakang](https://github.com/wangfakang)
++ 新增最大 Header 大小限制的配置选项 [@wangfakang](https://github.com/wangfakang)
++ 优化 http 场景下的 buffer 申请 [@wangfakang](https://github.com/wangfakang)
 + 添加在 Dubbo 协议下通过 xDS HTTP 配置进行转换的过滤器 [@champly](https://github.com/champly)
 
 ### Bug 修复
