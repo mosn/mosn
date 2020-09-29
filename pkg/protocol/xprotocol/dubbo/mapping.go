@@ -21,15 +21,13 @@ func (m *dubboStatusMapping) MappingHeaderStatusCode(ctx context.Context, header
 	}
 	code := uint16(cmd.GetStatusCode())
 	switch code {
-	case 20:
+	case RespStatusOK:
 		return http.StatusOK, nil
-	case 30, 31:
+	case RespStatusClientTimeout, RespStatusServerTimeout:
 		return http.StatusGatewayTimeout, nil
-	case 40:
-		return http.StatusGatewayTimeout, nil
-	case 60:
+	case RespStatusServiceNotFound:
 		return http.StatusBadGateway, nil
-	case 100:
+	case RespStatusServerThreadpoolExhaustedError:
 		return http.StatusInsufficientStorage, nil
 	default:
 		return http.StatusInternalServerError, nil

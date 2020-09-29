@@ -37,7 +37,7 @@ func TestDubboStatusMapping_MappingHeaderStatusCode(t *testing.T) {
 
 	frame.Header.Status = 40
 	code, err = dubboStatusMapping.MappingHeaderStatusCode(nil, frame)
-	equal(t, code, 504)
+	equal(t, code, 500)
 	equal(t, err == nil, true)
 
 	frame.Header.Status = 60
