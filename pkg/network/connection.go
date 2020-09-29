@@ -1085,6 +1085,7 @@ func (cc *clientConnection) Connect() (err error) {
 		} else {
 			atomic.StoreUint32(&cc.connected, 1)
 			event = api.Connected
+			cc.localAddr = cc.rawConnection.LocalAddr()
 
 			// ensure ioEnabled and UseNetpollMode
 			if UseNetpollMode {

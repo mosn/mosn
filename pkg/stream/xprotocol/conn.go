@@ -206,6 +206,14 @@ func (sc *streamConn) Protocol() types.ProtocolName {
 	return protocol.Xprotocol
 }
 
+func(sc *streamConn) EnableWorkerPool() bool {
+	if sc.protocol == nil {
+		// multiple protocols
+		return true
+	}
+	return sc.protocol.EnableWorkerPool()
+}
+
 func (sc *streamConn) GoAway() {
 	// unsupported
 	// TODO: client-side conn pool go away

@@ -98,6 +98,7 @@ func TestRunReiverFilters(t *testing.T) {
 			proxy: &proxy{
 				routersWrapper: &mockRouterWrapper{},
 				clusterManager: &mockClusterManager{},
+				serverStreamConn: &mockServerConn{},
 			},
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
@@ -145,6 +146,7 @@ func TestRunReiverFiltersStop(t *testing.T) {
 		proxy: &proxy{
 			routersWrapper: &mockRouterWrapper{},
 			clusterManager: &mockClusterManager{},
+			serverStreamConn: &mockServerConn{},
 		},
 		requestInfo: &network.RequestInfo{},
 		notify:      make(chan struct{}, 1),
@@ -259,6 +261,7 @@ func TestRunReiverFilterHandler(t *testing.T) {
 			proxy: &proxy{
 				routersWrapper: &mockRouterWrapper{},
 				clusterManager: &mockClusterManager{},
+				serverStreamConn: &mockServerConn{},
 			},
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),

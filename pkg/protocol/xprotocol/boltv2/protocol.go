@@ -181,6 +181,10 @@ func (proto *boltv2Protocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
+func (proto *boltv2Protocol) EnableWorkerPool() bool {
+	return true
+}
+
 func (proto *boltv2Protocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }
