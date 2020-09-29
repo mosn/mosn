@@ -284,7 +284,7 @@ func TestHeaderSize(t *testing.T) {
 
 	rawc, err := net.Dial("tcp", testAddr)
 	if err != nil {
-		t.Logf("net.Dial error %v", err)
+		t.Errorf("net.Dial error %v", err)
 		return
 	}
 
@@ -310,7 +310,7 @@ func TestHeaderSize(t *testing.T) {
 
 	rawc, err = net.Dial("tcp", testAddr)
 	if err != nil {
-		t.Logf("net.Dial error %v", err)
+		t.Errorf("net.Dial error %v", err)
 		return
 	}
 	connection = network.NewServerConnection(context.Background(), rawc, nil)
