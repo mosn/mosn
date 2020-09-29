@@ -270,3 +270,7 @@ type mockServerConn struct {
 func (s *mockServerConn) Protocol() api.Protocol {
 	return "mockProtocol"
 }
+
+func (s *mockServerConn) EnableWorkerPool() bool {
+	return true
+}
