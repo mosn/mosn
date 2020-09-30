@@ -24,6 +24,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
@@ -202,10 +203,22 @@ func (l *listener) Stop() error {
 	var err error
 	switch l.network {
 	case "udp":
+		if l.packetConn == nil {
+			err = errors.New("invalid connection")
+			break
+		}
 		err = l.packetConn.SetDeadline(time.Now())
 	case "unix":
+		if l.rawl == nil {
+			err = syscall.EINVAL
+			break
+		}
 		err = l.rawl.(*net.UnixListener).SetDeadline(time.Now())
 	case "tcp":
+		if l.rawl == nil {
+			err = syscall.EINVAL
+			break
+		}
 		err = l.rawl.(*net.TCPListener).SetDeadline(time.Now())
 	}
 	return err
@@ -220,15 +233,28 @@ func (l *listener) SetListenerTag(tag uint64) {
 }
 
 func (l *listener) ListenerFile() (*os.File, error) {
+	err := errors.New("not support this network " + l.network)
 	switch l.network {
 	case "udp":
+		if l.packetConn == nil {
+			err = errors.New("invalid connection")
+			break
+		}
 		return l.packetConn.(*net.UDPConn).File()
 	case "unix":
+		if l.rawl == nil {
+			err = syscall.EINVAL
+			break
+		}
 		return l.rawl.(*net.UnixListener).File()
 	case "tcp":
+		if l.rawl == nil {
+			err = syscall.EINVAL
+			break
+		}
 		return l.rawl.(*net.TCPListener).File()
 	}
-	return nil, errors.New("not support this network " + l.network)
+	return nil, err
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {
