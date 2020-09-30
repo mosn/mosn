@@ -5,8 +5,7 @@
 ### New Features
 
 - Add header max size configuration option. [@wangfakang](https://github.com/wangfakang)
-- Add protocol impement choice whether need workerpool mode. And support workerpool mode concurrent configuration.
-  [@cch123](https://github.com/cch123)
+- Add protocol impement choice whether need workerpool mode. And support workerpool mode concurrent configuration. [@cch123](https://github.com/cch123)
 - Add UDS feature for listener. [@CodingSinger](https://github.com/CodingSinger)
 - Add dubbo protocol use xDS httproute config filter. [@champly](https://github.com/champly)
 
