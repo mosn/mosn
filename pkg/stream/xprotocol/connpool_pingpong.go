@@ -266,9 +266,6 @@ func (ac *activeClientPingPong) Close(err error) {
 		return
 	}
 
-	// xprotocol ping pong
-	ac.host.Connection.Close(api.NoFlush, api.LocalClose)
-
 	// return to pool
 	ac.pool.clientMux.Lock()
 	defer ac.pool.clientMux.Unlock()
