@@ -5,9 +5,9 @@
 ### 新功能
 
 - 新增最大 Header 大小限制的配置选项 [@wangfakang](https://github.com/wangfakang)
-- 支持 Proxy 层级的并发 [@cch123](https://github.com/cch123)
+- 支持协议实现时选择是否需要 workerpool 模式，在 workerpool 模式下，支持可配置的连接并发度
+  [@cch123](https://github.com/cch123)
 - Listener 配置新增对 UDS 的支持 [@CodingSinger](https://github.com/CodingSinger)
-- 为每个协议添加 work 池支持 [@cch123](https://github.com/cch123)
 - 添加在 Dubbo 协议下通过 xDS HTTP 配置进行转换的过滤器 [@champly](https://github.com/champly)
 
 ### 优化
@@ -23,7 +23,7 @@
 ### Bug 修复
 
 - 修复 README 蚂蚁 logo 地址失效的问题 [@wangfakang](https://github.com/wangfakang)
-- 修复当请求 header 太长被请求内容覆盖的问题 [@cch123](https://github.com/cch123)
+- 修复当请求 header 太长覆盖请求内容的问题 [@cch123](https://github.com/cch123)
 - 修复 Dubbo 协议解析 attachment 异常的问题 [@champly](https://github.com/champly)
 - 修复在平滑重启的时候 Listener 连接为空导致重启失败的问题 [@alpha-bady](https://github.com/alpha-baby)
 

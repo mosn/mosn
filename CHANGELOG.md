@@ -5,9 +5,9 @@
 ### New Features
 
 - Add header max size configuration option. [@wangfakang](https://github.com/wangfakang)
-- Proxy level support concurrency. [@cch123](https://github.com/cch123)
+- Add protocol impement choice whether need workerpool mode. And support workerpool mode concurrent configuration.
+  [@cch123](https://github.com/cch123)
 - Add UDS feature for listener. [@CodingSinger](https://github.com/CodingSinger)
-- Add worker pool switch for each protocol. [@cch123](https://github.com/cch123)
 - Add dubbo protocol use xDS httproute config filter. [@champly](https://github.com/champly)
 
 ### Optimization
@@ -23,7 +23,7 @@
 ### Bug fixes
 
 - Fix README ant logo invalid address. [@wangfakang](https://github.com/wangfakang)
-- Fix content override header when set a longer header to request header. [@cch123](https://github.com/cch123)
+- Fix header override content when set a longer header to request header. [@cch123](https://github.com/cch123)
 - Fix Dubbo protocol analysis attachment maybe panic. [@champly](https://github.com/champly)
 - Fix Listener conn raw is nil cause smooth restart failed. [@alpha-bady](https://github.com/alpha-baby)
 
