@@ -25,7 +25,6 @@
 - 修复 README 蚂蚁 logo 地址失效的问题 [@wangfakang](https://github.com/wangfakang)
 - 修复当请求 header 太长覆盖请求内容的问题 [@cch123](https://github.com/cch123)
 - 修复 Dubbo 协议解析 attachment 异常的问题 [@champly](https://github.com/champly)
-- 修复在平滑重启的时候 Listener 连接为空导致重启失败的问题 [@alpha-bady](https://github.com/alpha-baby)
 
 ## v0.16.0
 

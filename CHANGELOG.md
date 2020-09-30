@@ -24,7 +24,6 @@
 - Fix README ant logo invalid address. [@wangfakang](https://github.com/wangfakang)
 - Fix header override content when set a longer header to request header. [@cch123](https://github.com/cch123)
 - Fix Dubbo protocol analysis attachment maybe panic. [@champly](https://github.com/champly)
-- Fix Listener conn raw is nil cause smooth restart failed. [@alpha-bady](https://github.com/alpha-baby)
 
 ## v0.16.0
 
