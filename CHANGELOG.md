@@ -1,56 +1,81 @@
 # Changelog
 
+## v0.17.0
+
+### New Features
+
+- Add header max size configuration option. [@wangfakang](https://github.com/wangfakang)
+- Add protocol impement choice whether need workerpool mode. And support workerpool mode concurrent configuration. [@cch123](https://github.com/cch123)
+- Add UDS feature for listener. [@CodingSinger](https://github.com/CodingSinger)
+- Add dubbo protocol use xDS httproute config filter. [@champly](https://github.com/champly)
+
+### Optimization
+
+- Optimiza http situation buffer malloc. [@wangfakang](https://github.com/wangfakang)
+- Optimize RWMutex for SDS StreamClient. [@nejisama](https://github.com/nejisama)
+- Update hessian2 v1.7.0 lib. [@cch123](https://github.com/cch123)
+- Modify NewStream interface, use callback replace direct. [@cch123](https://github.com/cch123)
+- Refactor XProtocol connect pool, support pingpong mode, mutiplex mode and bind mode. [@cch123](https://github.com/cch123)
+- Optimize XProtocol mutiplex mode, support Host max connect configuration. [@cch123](https://github.com/cch123)
+- Optimize route regex config avoid dump unuse config. [@wangfakang](https://github.com/wangfakang)
+
+### Bug fixes
+
+- Fix README ant logo invalid address. [@wangfakang](https://github.com/wangfakang)
+- Fix header override content when set a longer header to request header. [@cch123](https://github.com/cch123)
+- Fix Dubbo protocol analysis attachment maybe panic. [@champly](https://github.com/champly)
+
 ## v0.16.0
 
 ### Optimization
 
-+ Logger Roller supports the custom Roller. [@wenxuwan](https://github.com/wenxuwan)
-+ Add a SendHijackReplyWithBody API for streamFilter. [@wenxuwan](https://github.com/wenxuwan)
-+ The configuration adds option of turning off the smooth upgrade. If the smooth upgrade is turned off, different instances of MOSN can be started on the same machine. [@cch123](https://github.com/cch123)
-+ Optimize the MOSN integration test framework and add more unit test cases. [@nejisama](https://github.com/nejisama) [@wangfakang](https://github.com/wangfakang) [@taoyuanyuan](https://github.com/taoyuanyuan)
-+ DirectResponse route configuration supports the update mode of XDS. [@wangfakang](https://github.com/wangfakang)
-+ Add a new field of TLSContext for clusterManager configuration. [@nejisama](https://github.com/nejisama)
+- Logger Roller supports the custom Roller. [@wenxuwan](https://github.com/wenxuwan)
+- Add a SendHijackReplyWithBody API for streamFilter. [@wenxuwan](https://github.com/wenxuwan)
+- The configuration adds option of turning off the smooth upgrade. If the smooth upgrade is turned off, different instances of MOSN can be started on the same machine. [@cch123](https://github.com/cch123)
+- Optimize the MOSN integration test framework and add more unit test cases. [@nejisama](https://github.com/nejisama) [@wangfakang](https://github.com/wangfakang) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- DirectResponse route configuration supports the update mode of XDS. [@wangfakang](https://github.com/wangfakang)
+- Add a new field of TLSContext for clusterManager configuration. [@nejisama](https://github.com/nejisama)
 
 ### Bug fixes
 
-+ Fix the bug that UDP connection timeout during the smooth upgrade will cause an endless loop. [@dengqian](https://github.com/dengqian)
-+ Fix the bug that call DirectResponse in the SendFilter will cause an endless loop. [@taoyuanyuan](https://github.com/taoyuanyuan)
-+ Fix concurrency conflicts in HTTP2 stream counting. [@wenxuwan](https://github.com/wenxuwan)
-+ Fix the bug that UDP connection read timeout cause data loss. [@dengqian](https://github.com/dengqian)
-+ Fix the bug that the response StatusCode cannot be recorded correctly due to the loss of the protocol flag when doing a retry. [@dengqian](https://github.com/dengqian)
-+ Fix the protocol boltv2 decode error. [@nejisama](https://github.com/nejisama)
-+ Fix the bug that listener cannot be restarted automatically when listener panic. [@alpha-baby](https://github.com/alpha-baby)
-+ Fix the bug that NoCache flag is invalid in variable. [@wangfakang](https://github.com/wangfakang)
-+ Fix concurrency conflicts in SDS reconnect. [@nejisama](https://github.com/nejisama)
+- Fix the bug that UDP connection timeout during the smooth upgrade will cause an endless loop. [@dengqian](https://github.com/dengqian)
+- Fix the bug that call DirectResponse in the SendFilter will cause an endless loop. [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Fix concurrency conflicts in HTTP2 stream counting. [@wenxuwan](https://github.com/wenxuwan)
+- Fix the bug that UDP connection read timeout cause data loss. [@dengqian](https://github.com/dengqian)
+- Fix the bug that the response StatusCode cannot be recorded correctly due to the loss of the protocol flag when doing a retry. [@dengqian](https://github.com/dengqian)
+- Fix the protocol boltv2 decode error. [@nejisama](https://github.com/nejisama)
+- Fix the bug that listener cannot be restarted automatically when listener panic. [@alpha-baby](https://github.com/alpha-baby)
+- Fix the bug that NoCache flag is invalid in variable. [@wangfakang](https://github.com/wangfakang)
+- Fix concurrency conflicts in SDS reconnect. [@nejisama](https://github.com/nejisama)
 
 ## v0.15.0
 
 ### New Features
 
-+ Routing Path Rewrite supports configuring the content of Rewrite by regular expression [@liangyuanpeng](https://github.com/liangyuanpeng)
-+ Configure new fields: Extended configuration fields, you can start the configuration by extending the configuration fields; Dubbo service discovery configuration via extended configuration fields [@cch123](https://github.com/cch123)
-+ New DSL feature for easy control of request processing behavior [@wangfakang](https://github.com/wangfakang)
-+ Extended implementation of StreamFilter with new traffic mirroring function [@champly](https://github.com/champly)
-+ Listener configuration adds UDP support [@dengqian](https://github.com/dengqian)
-+ Configuration format support YAML format parsing [@GLYASAI](https://github.com/GLYASAI)
-+ Routing support for HTTP redirect configuration [@knight42](https://github.com/knight42)
+- Routing Path Rewrite supports configuring the content of Rewrite by regular expression [@liangyuanpeng](https://github.com/liangyuanpeng)
+- Configure new fields: Extended configuration fields, you can start the configuration by extending the configuration fields; Dubbo service discovery configuration via extended configuration fields [@cch123](https://github.com/cch123)
+- New DSL feature for easy control of request processing behavior [@wangfakang](https://github.com/wangfakang)
+- Extended implementation of StreamFilter with new traffic mirroring function [@champly](https://github.com/champly)
+- Listener configuration adds UDP support [@dengqian](https://github.com/dengqian)
+- Configuration format support YAML format parsing [@GLYASAI](https://github.com/GLYASAI)
+- Routing support for HTTP redirect configuration [@knight42](https://github.com/knight42)
 
 ### Optimization
 
-+ Istio's stats filter for personalizing metrics based on matching criteria [@wzshiming](https://github.com/wzshiming)
-+ Metrics configuration support to configure the output percentage of the Histogram [@champly](https://github.com/champly)
-+ StreamFilter New state for aborting requests directly and not responding to clients [@taoyuanyuan](https://github.com/taoyuanyuan)
-+ XProtocol hijack response support carry body [@champly](https://github.com/champly)
-+ Apache SkyWalking upgrade to version 0.5.0 [arugal](https://github.com/arugal)
-+ Upstream Connection TLS State Determination Modification to support the determination of whether a connection needs to be re-established via a TLS-configured Hash [@nejisama](https://github.com/nejisama)
-+ Optimize DNS cache logic to prevent DNS flooding issues that can be caused when DNS fails [@wangfakang](https://github.com/wangfakang)
+- Istio's stats filter for personalizing metrics based on matching criteria [@wzshiming](https://github.com/wzshiming)
+- Metrics configuration support to configure the output percentage of the Histogram [@champly](https://github.com/champly)
+- StreamFilter New state for aborting requests directly and not responding to clients [@taoyuanyuan](https://github.com/taoyuanyuan)
+- XProtocol hijack response support carry body [@champly](https://github.com/champly)
+- Apache SkyWalking upgrade to version 0.5.0 [arugal](https://github.com/arugal)
+- Upstream Connection TLS State Determination Modification to support the determination of whether a connection needs to be re-established via a TLS-configured Hash [@nejisama](https://github.com/nejisama)
+- Optimize DNS cache logic to prevent DNS flooding issues that can be caused when DNS fails [@wangfakang](https://github.com/wangfakang)
 
 ### Bug fixes
 
-+ Fix the bug that XProtocol protocols determine protocol errors in scenarios with multiple protocols when TLS encryption is enabled [@nejisama](https://github.com/nejisama)
-+ Fix bug in AccessLog where variables of prefix match type don't work [@dengqian](https://github.com/dengqian)
-+ Fix bug where Listener configuration parsing is not handled correctly [@nejisama](https://github.com/nejisama)
-+ Fix Router/Cluster bug that fails to save when the Name field contains a path separator in the file persistence configuration type [@nejisama](https://github.com/nejisama)
+- Fix the bug that XProtocol protocols determine protocol errors in scenarios with multiple protocols when TLS encryption is enabled [@nejisama](https://github.com/nejisama)
+- Fix bug in AccessLog where variables of prefix match type don't work [@dengqian](https://github.com/dengqian)
+- Fix bug where Listener configuration parsing is not handled correctly [@nejisama](https://github.com/nejisama)
+- Fix Router/Cluster bug that fails to save when the Name field contains a path separator in the file persistence configuration type [@nejisama](https://github.com/nejisama)
 
 ## v0.14.0
 
@@ -125,12 +150,12 @@
 
 - Support Skywalking [@arugal](https://github.com/arugal)
 - Stream Filter adds a new phase of Receive Filter execution, which allows you to execute Receive Filter [@wangfakang](https://github.com/wangfakang) again after MOSN has finished routing Host
-- HTTP2 supports streaming  [@peacocktrain](https://github.com/peacocktrain) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- HTTP2 supports streaming [@peacocktrain](https://github.com/peacocktrain) [@taoyuanyuan](https://github.com/taoyuanyuan)
 - FeatureGate adds interface KnownFeatures to output current FeatureGate status [@nejisama](https://github.com/nejisama)
 - Provide a protocol-transparent way to obtain requested resources (PATH, URI, ARG), with the definition of resources defined by each protocol itself [@wangfakang](https://github.com/wangfakang)
 - New load balancing algorithm
   - Support for ActiveRequest LB [@CodingSinger](https://github.com/CodingSinger)
-  - Support WRR LB  [@nejisama](https://github.com/nejisama)
+  - Support WRR LB [@nejisama](https://github.com/nejisama)
 
 ### Optimize
 
@@ -139,7 +164,7 @@
   - Optimize connpool for heartbeat triggering, only heartbeats will be triggered if the protocol for heartbeats is implemented
 - Dubbo library dependency version updated from v1.5.0-rc1 to v1.5.0 [@cch123](https://github.com/cch123)
 - API Adjustments, HostInfo added health check related interface [@wangfakang](https://github.com/wangfakang)
-- Optimize circuit breaking function  [@wangfakang](https://github.com/wangfakang)
+- Optimize circuit breaking function [@wangfakang](https://github.com/wangfakang)
 - Responsible for balanced selection logic simplification, Hosts of the same address multiplex the same health check mark [@nejisama](https://github.com/nejisama) [@cch123](https://github.com/cch123)
 - Optimize HTTP building logic and improve HTTP building performance [@wangfakang](https://github.com/wangfakang)
 - Log rotation logic triggered from writing logs, adjusted to timed trigger [@nejisama](https://github.com/nejisama)
@@ -147,7 +172,7 @@
 
 ### Bug Fix
 
-- Fix the xDS parsing fault injection configuration error  [@champly](https://github.com/champly)
+- Fix the xDS parsing fault injection configuration error [@champly](https://github.com/champly)
 - Fix the request hold issue caused by the MOSN HTTP HEAD method [@wangfakang](https://github.com/wangfakang)
 - Fix a problem with missing StatusCode mappings in the XProtocol engine [@neverhook](https://github.com/neverhook)
 - Fix the bug for DirectReponse triggering retries [@taoyuanyuan](https://github.com/taoyuanyuan)
@@ -220,11 +245,11 @@
 
 ### New features
 
-+ Support variable mechanism, accesslog is modified to use variable mechanism to obtain information
+- Support variable mechanism, accesslog is modified to use variable mechanism to obtain information
 
 ## Refactoring
 
-+ Refactored package reference path for `sofastack.io/sofa-mosn` to `mosn.io/mosn`
+- Refactored package reference path for `sofastack.io/sofa-mosn` to `mosn.io/mosn`
 
 ### Bug fix
 
@@ -264,12 +289,12 @@
 - Reduced connections and request default memory allocation
 - Optimized machine list information storage in ConfigStore
 - Metrics optimization
-   - SOFARPC heartbeat requests are no longer recorded in Metrics
-   - Optimize shared memory mode for Metrics use
+  - SOFARPC heartbeat requests are no longer recorded in Metrics
+  - Optimize shared memory mode for Metrics use
 - Optimized profile reading, ignoring empty files and non-json files
 - Optimized the xDS client
-   - The xDS client is modified to start completely asynchronously without blocking the startup process
-   - Optimize xDS client disconnect retry logic
+  - The xDS client is modified to start completely asynchronously without blocking the startup process
+  - Optimize xDS client disconnect retry logic
 
 ### Bug fix
 
@@ -316,11 +341,11 @@
 ### Refactoring
 
 - Refactored upstream module
-   - Refactored the internal Cluster implementation structure
-   - Update Host implementation changed from delta update to full update to speed up update
-   - Refactored Snapshot implementation
-   - Optimized some memory usage
-   - Modified the parameters of some interface functions
+  - Refactored the internal Cluster implementation structure
+  - Update Host implementation changed from delta update to full update to speed up update
+  - Refactored Snapshot implementation
+  - Optimized some memory usage
+  - Modified the parameters of some interface functions
 - Refactored the implementation of Tracing and supports more extensions
 
 ### Optimization
@@ -348,7 +373,7 @@
 ### Refactoring
 
 - Refactored package import path
-   - Changed from `github.com/alipay/sofa-mosn` to `sofastack.io/sofa-mosn`
+  - Changed from `github.com/alipay/sofa-mosn` to `sofastack.io/sofa-mosn`
 
 ### Optimaztion
 
