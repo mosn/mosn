@@ -2,6 +2,7 @@
   "servers": [
     {
       "default_log_path": "stdout",
+      "default_log_level": "TRACE",
       "listeners": [
         {
           "name": "proxyListener",
@@ -15,10 +16,17 @@
                 {
                   "type": "tcp_proxy",
                   "config": {
-                    "cluster": "serverCluster",
                     "routes": [
                       {
-                        "cluster": "serverCluster"
+                        "cluster": "serverCluster",
+			"source_addrs": [
+			 {"address":"127.0.0.1","length":24}
+			],
+			"destination_addrs": [
+			{"address":"127.0.0.1","length":24}
+			],
+			"source_port":"1-65535",
+			"destination_port":"1-65535"
                       }
                     ]
                   }

@@ -330,27 +330,20 @@ type HeaderMatcher struct {
 	Regex bool   `json:"regex,omitempty"`
 }
 
-// Stream Proxy Route
-type StreamRouteConfig struct {
-	Cluster string   `json:"cluster,omitempty"`
-	Sources []string `json:"source_addrs,omitempty"`
-	Dests   []string `json:"destination_addrs,omitempty"`
-}
-
 // StreamRoute ...
 type StreamRoute struct {
-	Cluster          string
-	SourceAddrs      []CidrRange
-	DestinationAddrs []CidrRange
-	SourcePort       string
-	DestinationPort  string
+	Cluster          string      `json:"cluster,omitempty"`
+	SourceAddrs      []CidrRange `json:"source_addrs,omitempty"`
+	DestinationAddrs []CidrRange `json:"destination_addrs,omitempty"`
+	SourcePort       string      `json:"source_port,omitempty"`
+	DestinationPort  string      `json:"destination_port,omitempty"`
 }
 
 // CidrRange ...
 type CidrRange struct {
-	Address string
-	Length  uint32
-	IpNet   *net.IPNet
+	Address string     `json:"address,omitempty"`
+	Length  uint32     `json:"length,omitempty"`
+	IpNet   *net.IPNet `json:"-"`
 }
 
 // RequestMirrorPolicy mirror policy
