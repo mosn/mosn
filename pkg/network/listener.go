@@ -204,20 +204,17 @@ func (l *listener) Stop() error {
 	switch l.network {
 	case "udp":
 		if l.packetConn == nil {
-			err = errors.New("invalid connection")
-			break
+			return nil
 		}
 		err = l.packetConn.SetDeadline(time.Now())
 	case "unix":
 		if l.rawl == nil {
-			err = syscall.EINVAL
-			break
+			return nil
 		}
 		err = l.rawl.(*net.UnixListener).SetDeadline(time.Now())
 	case "tcp":
 		if l.rawl == nil {
-			err = syscall.EINVAL
-			break
+			return nil
 		}
 		err = l.rawl.(*net.TCPListener).SetDeadline(time.Now())
 	}
