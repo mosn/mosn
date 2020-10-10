@@ -229,7 +229,6 @@ func (l *listener) ListenerFile() (*os.File, error) {
 		return nil, syscall.EINVAL
 	}
 
-	err := errors.New("not support this network " + l.network)
 	switch l.network {
 	case "udp":
 		return l.packetConn.(*net.UDPConn).File()
@@ -238,7 +237,7 @@ func (l *listener) ListenerFile() (*os.File, error) {
 	case "tcp":
 		return l.rawl.(*net.TCPListener).File()
 	}
-	return nil, err
+	return nil, errors.New("not support this network " + l.network)
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {
