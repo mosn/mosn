@@ -200,22 +200,17 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 }
 
 func (l *listener) Stop() error {
+	if !l.bindToPort {
+		return nil
+	}
+
 	var err error
 	switch l.network {
 	case "udp":
-		if l.packetConn == nil {
-			return nil
-		}
 		err = l.packetConn.SetDeadline(time.Now())
 	case "unix":
-		if l.rawl == nil {
-			return nil
-		}
 		err = l.rawl.(*net.UnixListener).SetDeadline(time.Now())
 	case "tcp":
-		if l.rawl == nil {
-			return nil
-		}
 		err = l.rawl.(*net.TCPListener).SetDeadline(time.Now())
 	}
 	return err
@@ -230,25 +225,17 @@ func (l *listener) SetListenerTag(tag uint64) {
 }
 
 func (l *listener) ListenerFile() (*os.File, error) {
+	if !l.bindToPort {
+		return nil, syscall.EINVAL
+	}
+
 	err := errors.New("not support this network " + l.network)
 	switch l.network {
 	case "udp":
-		if l.packetConn == nil {
-			err = errors.New("invalid connection")
-			break
-		}
 		return l.packetConn.(*net.UDPConn).File()
 	case "unix":
-		if l.rawl == nil {
-			err = syscall.EINVAL
-			break
-		}
 		return l.rawl.(*net.UnixListener).File()
 	case "tcp":
-		if l.rawl == nil {
-			err = syscall.EINVAL
-			break
-		}
 		return l.rawl.(*net.TCPListener).File()
 	}
 	return nil, err
@@ -279,6 +266,10 @@ func (l *listener) UseOriginalDst() bool {
 }
 
 func (l *listener) Close(lctx context.Context) error {
+	if !l.bindToPort {
+		return nil
+	}
+
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.state = ListenerStopped
