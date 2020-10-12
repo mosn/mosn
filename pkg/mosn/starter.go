@@ -67,6 +67,16 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializePlugin(c.Plugin.LogBase)
 
 	store.SetMosnConfig(c)
+	mode := c.Mode()
+
+	if mode == v2.Xds {
+		c.Servers = []v2.ServerConfig{
+			{
+				DefaultLogPath:  "stdout",
+				DefaultLogLevel: "INFO",
+			},
+		}
+	}
 
 	var (
 		inheritListeners  []net.Listener
@@ -90,6 +100,13 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		store.SetMosnState(store.Active_Reconfiguring)
 		// parse MOSNConfig again
 		c = configmanager.Load(configmanager.GetConfigPath())
+		// get old mosn config
+		oldMosnConfig, err := server.GetInheritConfig()
+		if err != nil {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] GetInheritConfig failed, exit")
+		}
+		log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
+		addListenerToNewMosnConfig(c, oldMosnConfig)
 	} else {
 		log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 		// start init services
@@ -106,16 +123,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		inheritListeners:  inheritListeners,
 		inheritPacketConn: inheritPacketConn,
 		listenSockConn:    listenSockConn,
-	}
-	mode := c.Mode()
-
-	if mode == v2.Xds {
-		c.Servers = []v2.ServerConfig{
-			{
-				DefaultLogPath:  "stdout",
-				DefaultLogLevel: "INFO",
-			},
-		}
 	}
 
 	srvNum := len(c.Servers)
@@ -155,13 +162,19 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		var srv server.Server
 		if mode == v2.Xds {
 			srv = server.NewServer(sc, cmf, m.clustermanager)
+			for idx, _ := range serverConfig.Listeners {
+				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners, inheritPacketConn)
+				if _, err := srv.AddListener(lc); err != nil {
+					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener Mode: %s error:%s", mode, err.Error())
+				}
+			}
 		} else {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.clustermanager)
 
 			//add listener
 			if len(serverConfig.Listeners) == 0 {
-				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
+				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found, Mode: %s", mode)
 			}
 
 			for idx, _ := range serverConfig.Listeners {
@@ -170,13 +183,13 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				// deprecated: keep compatible for route config in listener's connection_manager
 				deprecatedRouter, err := configmanager.ParseRouterConfiguration(&lc.FilterChains[0])
 				if err != nil {
-					log.StartLogger.Fatalf("[mosn] [NewMosn] compatible router: %v", err)
+					log.StartLogger.Fatalf("[mosn] [NewMosn] compatible Mode: %s, router: %v", mode, err)
 				}
 				if deprecatedRouter.RouterConfigName != "" {
 					m.routerManager.AddOrUpdateRouters(deprecatedRouter)
 				}
 				if _, err := srv.AddListener(lc); err != nil {
-					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
+					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener Mode: %s, error:%s", mode, err.Error())
 				}
 			}
 			// Add Router Config
@@ -190,6 +203,39 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	}
 
 	return m
+}
+
+// addListenerToNewMosnConfig add Listeners to new MOSNConfig
+func addListenerToNewMosnConfig(newConfig *v2.MOSNConfig, oldConfig *store.EffectiveConfig) {
+	servers := make([]v2.ServerConfig, 0, 1)
+	var serv v2.ServerConfig
+	if len(newConfig.Servers) == 0 || newConfig.Servers == nil {
+		serv = v2.ServerConfig{
+			DefaultLogPath:  "stdout",
+			DefaultLogLevel: "INFO",
+		}
+	} else {
+		serv = newConfig.Servers[0]
+	}
+	servers = append(servers, serv)
+	newConfig.Servers = servers
+
+	if len(oldConfig.Listener) == 0 || oldConfig.Listener == nil {
+		return
+	}
+
+	for oldListenerName, oldListener := range oldConfig.Listener {
+		for _, newListener := range newConfig.Servers[0].Listeners {
+			if oldListenerName == newListener.Name {
+				continue
+			}
+		}
+		if !oldListener.BindToPort {
+			continue
+		}
+		log.StartLogger.Infof("[mosn] [NewMosn] AddListenerName: {%s}, ListenerAddr: {%v}", oldListenerName, oldListener.Addr)
+		newConfig.Servers[0].Listeners = append(newConfig.Servers[0].Listeners, oldListener)
+	}
 }
 
 // beforeStart prepares some actions before mosn start proxy listener

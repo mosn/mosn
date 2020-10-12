@@ -24,9 +24,9 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 )
 
-// effectiveConfig represents mosn's runtime config model
+// EffectiveConfig represents mosn's runtime config model
 // MOSNConfig is the original config when mosn start
-type effectiveConfig struct {
+type EffectiveConfig struct {
 	MosnConfig       *v2.MOSNConfig                    `json:"mosn_config,omitempty"`
 	Listener         map[string]v2.Listener            `json:"listener,omitempty"`
 	Cluster          map[string]v2.Cluster             `json:"cluster,omitempty"`
@@ -34,12 +34,12 @@ type effectiveConfig struct {
 	routerConfigPath map[string]string                 `json:"-"`
 }
 
-var conf effectiveConfig
+var conf EffectiveConfig
 var mutex sync.RWMutex
 
 func init() {
 
-	conf = effectiveConfig{
+	conf = EffectiveConfig{
 		Listener:         make(map[string]v2.Listener),
 		Cluster:          make(map[string]v2.Cluster),
 		Routers:          make(map[string]v2.RouterConfiguration),

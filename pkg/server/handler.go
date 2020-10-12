@@ -20,8 +20,10 @@ package server
 import (
 	"container/list"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mosn.io/mosn/pkg/metrics"
 	"net"
 	"os"
@@ -893,4 +895,54 @@ func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 	}
 
 	return listeners, packetConn, uc, nil
+}
+
+func GetInheritConfig() (*admin.EffectiveConfig, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.StartLogger.Errorf("[server] GetInheritConfig panic %v", r)
+		}
+	}()
+
+	syscall.Unlink(types.TransferMosnConfigDomainSocket)
+
+	l, err := net.Listen("unix", types.TransferMosnConfigDomainSocket)
+	if err != nil {
+		log.StartLogger.Errorf("[server] GetInheritConfig net listen error: %v", err)
+		return nil, err
+	}
+	defer l.Close()
+
+	log.StartLogger.Infof("[server] Get GetInheritConfig start")
+
+	ul := l.(*net.UnixListener)
+	ul.SetDeadline(time.Now().Add(time.Second * 10))
+	uc, err := ul.AcceptUnix()
+	if err != nil {
+		log.StartLogger.Errorf("[server] GetInheritConfig Accept error :%v", err)
+		return nil, err
+	}
+	defer uc.Close()
+	log.StartLogger.Infof("[server] Get GetInheritConfig Accept")
+	configData := make([]byte, 0)
+	buf := make([]byte, 1024)
+	for {
+		n, err := uc.Read(buf)
+		configData = append(configData, buf[:n]...)
+		if err != nil && err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+	}
+
+	// log.StartLogger.Infof("[server] inherit mosn config data: %v", string(configData))
+
+	oldConfig := admin.EffectiveConfig{}
+	err = json.Unmarshal(configData, &oldConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return &oldConfig, nil
 }

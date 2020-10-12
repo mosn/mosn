@@ -100,7 +100,7 @@ const (
 )
 
 func (c *MOSNConfig) Mode() Mode {
-	if len(c.Servers) > 0 {
+	if len(c.Servers) > 0 && c.ClusterManager.Clusters != nil && len(c.ClusterManager.Clusters) > 0 {
 		if len(c.RawStaticResources) == 0 || len(c.RawDynamicResources) == 0 {
 			return File
 		}

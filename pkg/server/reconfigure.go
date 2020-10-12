@@ -83,6 +83,10 @@ func reconfigure(start bool) {
 		return
 	}
 
+	if err = store.SendInheritConfig(); err != nil {
+		return
+	}
+
 	// Wait new mosn parse configuration
 	listenSockConn.SetReadDeadline(time.Now().Add(10 * time.Minute))
 	n, err = listenSockConn.Read(buf[:])
