@@ -57,11 +57,9 @@ var (
 
 // ALPN
 var alpn = map[string]bool{
-	"h2":                  true,
-	"http/1.1":            true,
-	"sofa":                true,
-	"istio-peer-exchange": true, // todo should adjust istio-pilot
-	"istio":               true, // todo should adjust istio-pilot
+	"h2":       true,
+	"http/1.1": true,
+	"sofa":     true,
 }
 
 // ConfigHooks is a  set of functions used to make a tls config

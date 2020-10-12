@@ -202,12 +202,10 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 		return nil
 	}
 
-	// todo should not hard code at here, should get from sds grpc cluster
-	udsPath := "unix:/etc/istio/proxy/SDS"
-
-	if sdsStreamConfig.sdsUdsPath != "" {
-		udsPath = "unix:" + sdsStreamConfig.sdsUdsPath
-	}
+	// TODO
+	// uds path should come from sds grpc cluster,
+	// when sds grpc cluster(sdsClusterName) is empty, uds path should get from sdsUdsPath
+	udsPath := "unix:" + sdsStreamConfig.sdsUdsPath
 
 	conn, err := grpc.Dial(
 		udsPath,
