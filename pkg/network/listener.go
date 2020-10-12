@@ -265,13 +265,14 @@ func (l *listener) UseOriginalDst() bool {
 }
 
 func (l *listener) Close(lctx context.Context) error {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+	l.state = ListenerStopped
+
 	if !l.bindToPort {
 		return nil
 	}
 
-	l.mutex.Lock()
-	defer l.mutex.Unlock()
-	l.state = ListenerStopped
 	if l.rawl != nil {
 		l.cb.OnClose()
 		return l.rawl.Close()
