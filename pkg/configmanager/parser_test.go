@@ -137,10 +137,16 @@ func TestParseListenerConfig(t *testing.T) {
 		t.Error(err)
 		return
 	}
+	unixListener, err := net.Listen("unix", "/tmp/parse.sock")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer unixListener.Close()
 	defer listener.Close()
 	tcpListener := listener.(*net.TCPListener)
 	var inherit []net.Listener
-	inherit = append(inherit, tcpListener)
+	inherit = append(inherit, tcpListener, unixListener)
 
 	lnStr := fmt.Sprintf(`{
 		"address": "%s"
@@ -157,8 +163,27 @@ func TestParseListenerConfig(t *testing.T) {
 		ln.InheritListener != nil) {
 		t.Errorf("listener parse unexpected, listener: %+v", ln)
 	}
-	if inherit[0] != nil {
-		t.Error("no inherit listener")
+
+	// test unix
+	lnStr = fmt.Sprintf(`{
+		"address": "%s"
+	}`, unixListener.Addr().String())
+	unixlc := &v2.Listener{
+	}
+	unixlc.Network = "unix"
+	if err := json.Unmarshal([]byte(lnStr), unixlc); err != nil {
+		t.Fatalf("listener config init failed: %v", err)
+	}
+
+
+	ln = ParseListenerConfig(unixlc, inherit, inheritPacketConn)
+
+	ll := unixListener.(*net.UnixListener)
+	if !(ln.Addr != nil &&
+		ln.Addr.String() == ll.Addr().String() &&
+		ln.PerConnBufferLimitBytes == 1<<15 &&
+		ln.InheritListener != nil) {
+		t.Errorf("listener parse unexpected, listener: %+v", ln)
 	}
 }
 

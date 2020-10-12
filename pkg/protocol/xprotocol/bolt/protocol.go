@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -186,4 +187,17 @@ func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 	default:
 		return uint32(ResponseStatusUnknown)
 	}
+}
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *boltProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+func (proto *boltProtocol) EnableWorkerPool() bool{
+	return true
+}
+
+func (proto *boltProtocol) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
 }

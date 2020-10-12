@@ -18,19 +18,21 @@
 package http
 
 import (
-	"testing"
-
-	"net"
-
 	"bytes"
+	"context"
 	"fmt"
+	"net"
+	"testing"
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -266,6 +268,64 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 		t.Errorf("csc.CheckReasonError(true, types.OnConnect) got %v , want %v", res, types.StreamConnectionSuccessed)
 	}
 
+}
+
+func TestHeaderSize(t *testing.T) {
+	// Only request line, do not add the end of request '\r\n\r\n' identification.
+	requestSmall := []byte("HEAD / HTTP/1.1\r\nHost: test.com\r\nCookie: key=1234")
+	requestLarge := []byte("HEAD / HTTP/1.1\r\nHost: test.com\r\nCookie: key=12345")
+	testAddr := "127.0.0.1:11345"
+	l, err := net.Listen("tcp", testAddr)
+	if err != nil {
+		t.Logf("listen error %v", err)
+		return
+	}
+	defer l.Close()
+
+	rawc, err := net.Dial("tcp", testAddr)
+	if err != nil {
+		t.Errorf("net.Dial error %v", err)
+		return
+	}
+
+	connection := network.NewServerConnection(context.Background(), rawc, nil)
+	proxyGeneralExtendConfig := v2.ProxyGeneralExtendConfig{
+		MaxHeaderSize: len(requestSmall),
+	}
+
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+	ssc := newServerStreamConnection(ctx, connection, nil)
+	if ssc == nil {
+		t.Errorf("newServerStreamConnection failed!")
+	}
+
+	// test the header size is within the limit
+	buf := buffer.GetIoBuffer(len(requestSmall))
+	buf.Write(requestSmall)
+	ssc.Dispatch(buf)
+	// if it exceeds the limit size of the header, the connection is closed immediately
+	if connection.State() == api.ConnClosed {
+		t.Errorf("requestSmall header size does not exceed limit!")
+	}
+
+	rawc, err = net.Dial("tcp", testAddr)
+	if err != nil {
+		t.Errorf("net.Dial error %v", err)
+		return
+	}
+	connection = network.NewServerConnection(context.Background(), rawc, nil)
+	ssc = newServerStreamConnection(ctx, connection, nil)
+	if ssc == nil {
+		t.Errorf("newServerStreamConnection failed!")
+	}
+
+	// test the header size exceeds the limit
+	buf = buffer.GetIoBuffer(len(requestLarge))
+	buf.Write(requestLarge)
+	ssc.Dispatch(buf)
+	if connection.State() != api.ConnClosed {
+		t.Errorf("requestLarge header size should exceed limit!")
+	}
 }
 
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {

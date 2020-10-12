@@ -361,8 +361,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 	}
 
 	id := s.ID
-	// goroutine for proxy
-	pool.ScheduleAuto(func() {
+	var task = func() {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
@@ -390,7 +389,26 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] directResponse %+v", s)
 			}
 		}
-	})
+	}
+
+	if s.proxy.serverStreamConn.EnableWorkerPool() {
+		// should enable workerpool
+		// goroutine for proxy
+		if s.proxy.workerpool != nil {
+			// use the worker pool for current proxy
+			// NOTE: should this be configurable?
+			// eg, use config to control Schedule or to ScheduleAuto
+			s.proxy.workerpool.Schedule(task)
+		} else {
+			// use the global shared worker pool
+			pool.ScheduleAuto(task)
+		}
+		return
+	}
+
+	task()
+	return
+
 }
 
 func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {

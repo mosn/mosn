@@ -259,7 +259,9 @@ func (c *connection) checkUseWriteLoop() bool {
 		} else {
 			return false
 		}
-	default:
+	case "unix":
+		return true
+	case "tcp":
 		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
 			ip = tcpAddr.IP
 		} else {
@@ -471,7 +473,7 @@ func (c *connection) doRead() (err error) {
 		case "udp":
 			// A UDP socket will Read up to the size of the receiving buffer and will discard the rest
 			c.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
-		default:
+		default: // unix or tcp
 			c.readBuffer = buffer.GetIoBuffer(DefaultBufferReadCapacity)
 		}
 	}
@@ -765,6 +767,8 @@ func (c *connection) doWriteIo() (bytesSent int64, err error) {
 	} else {
 		//todo: writev(runtime) has memroy leak.
 		switch c.network {
+		case "unix":
+			bytesSent, err = buffers.WriteTo(c.rawConnection)
 		case "tcp":
 			bytesSent, err = buffers.WriteTo(c.rawConnection)
 		case "udp":
@@ -1081,6 +1085,7 @@ func (cc *clientConnection) Connect() (err error) {
 		} else {
 			atomic.StoreUint32(&cc.connected, 1)
 			event = api.Connected
+			cc.localAddr = cc.rawConnection.LocalAddr()
 
 			// ensure ioEnabled and UseNetpollMode
 			if UseNetpollMode {
@@ -1093,7 +1098,14 @@ func (cc *clientConnection) Connect() (err error) {
 							return
 						}
 					}
-				default:
+				case "unix":
+					if tc, ok := cc.rawConnection.(*net.UnixConn); ok {
+						cc.file, err = tc.File()
+						if err != nil {
+							return
+						}
+					}
+				case "tcp":
 					if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
 						cc.file, err = tc.File()
 						if err != nil {

@@ -21,7 +21,6 @@ import (
 	"context"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"mosn.io/api"
@@ -50,10 +49,10 @@ type streamConn struct {
 
 	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
 
-	clientMutex     sync.RWMutex // client side fields
-	clientStreamId  uint64
-	clientStreams   map[uint64]*xStream
-	clientCallbacks types.StreamConnectionEventListener
+	clientMutex        sync.RWMutex // client side fields
+	clientStreamIDBase uint64
+	clientStreams      map[uint64]*xStream
+	clientCallbacks    types.StreamConnectionEventListener
 }
 
 func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -207,6 +206,14 @@ func (sc *streamConn) Protocol() types.ProtocolName {
 	return protocol.Xprotocol
 }
 
+func(sc *streamConn) EnableWorkerPool() bool {
+	if sc.protocol == nil {
+		// multiple protocols
+		return true
+	}
+	return sc.protocol.EnableWorkerPool()
+}
+
 func (sc *streamConn) GoAway() {
 	// unsupported
 	// TODO: client-side conn pool go away
@@ -247,14 +254,11 @@ func (sc *streamConn) handleError(ctx context.Context, frame interface{}, err er
 	// valid request frame with positive requestID, send exception response in this case
 	if frame != nil {
 		if xframe, ok := frame.(xprotocol.XFrame); ok && (xframe.GetStreamType() == xprotocol.Request) {
-			if requestId := xframe.GetRequestId(); requestId > 0 {
-
-				// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
-				stream := sc.newServerStream(ctx, xframe)
-				stream.receiver = sc.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
-				stream.receiver.OnDecodeError(stream.ctx, err, xframe.GetHeader())
-				return
-			}
+			// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
+			stream := sc.newServerStream(ctx, xframe)
+			stream.receiver = sc.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
+			stream.receiver.OnDecodeError(stream.ctx, err, xframe.GetHeader())
+			return
 		}
 	}
 
@@ -381,7 +385,7 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 	buffers := streamBuffersByContext(ctx)
 	clientStream := &buffers.clientStream
 
-	clientStream.id = atomic.AddUint64(&sc.clientStreamId, 1)
+	clientStream.id = sc.protocol.GenerateRequestID(&sc.clientStreamIDBase)
 	clientStream.direction = stream.ClientStream
 	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, clientStream.id)
 	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
