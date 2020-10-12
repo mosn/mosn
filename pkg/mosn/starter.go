@@ -370,7 +370,6 @@ func Start(c *v2.MOSNConfig) {
 		Mosn.Close()
 	}, syscall.SIGINT, syscall.SIGTERM)
 
-
 	Mosn.Start()
 	Mosn.wg.Wait()
 }

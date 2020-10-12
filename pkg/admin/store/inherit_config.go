@@ -36,7 +36,7 @@ func SendInheritConfig() error {
 		log.DefaultLogger.Errorf("[admin store] Write: %v", err)
 		return err
 	}
-	if n != len(configData){
+	if n != len(configData) {
 		log.DefaultLogger.Errorf("[server] Write = %d, want %d", n, len(configData))
 		return errors.New("write config data length error")
 	}

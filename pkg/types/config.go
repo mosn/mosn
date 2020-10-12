@@ -34,10 +34,10 @@ var (
 
 	MosnConfigPath = MosnBasePath + string(os.PathSeparator) + "conf"
 
-	ReconfigureDomainSocket    = MosnConfigPath + string(os.PathSeparator) + "reconfig.sock"
-	TransferConnDomainSocket   = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
-	TransferStatsDomainSocket  = MosnConfigPath + string(os.PathSeparator) + "stats.sock"
-	TransferListenDomainSocket = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
+	ReconfigureDomainSocket        = MosnConfigPath + string(os.PathSeparator) + "reconfig.sock"
+	TransferConnDomainSocket       = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
+	TransferStatsDomainSocket      = MosnConfigPath + string(os.PathSeparator) + "stats.sock"
+	TransferListenDomainSocket     = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
 	TransferMosnConfigDomainSocket = MosnConfigPath + string(os.PathSeparator) + "mosn_config.sock"
 )
 
