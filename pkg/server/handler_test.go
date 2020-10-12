@@ -30,7 +30,7 @@ func TestGetInheritConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			store.Reset()
 			createMosnConfig(tt.testConfigPath, tt.mosnConfig)
-			if cfg := configmanager.Load(tt.mosnConfig); cfg != nil {
+			if cfg := configmanager.Load(tt.testConfigPath); cfg != nil {
 				store.SetMosnConfig(cfg)
 				// init set
 				ln := cfg.Servers[0].Listeners[0]
