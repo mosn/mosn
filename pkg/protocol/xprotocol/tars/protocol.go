@@ -122,6 +122,10 @@ func (proto *tarsProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
+func (proto *tarsProtocol) EnableWorkerPool() bool {
+	return true
+}
+
 func (proto *tarsProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }

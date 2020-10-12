@@ -123,6 +123,10 @@ func (proto *proto) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
+func (proto *proto) EnableWorkerPool() bool {
+	return true
+}
+
 func (proto *proto) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }
