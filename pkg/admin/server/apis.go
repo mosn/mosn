@@ -96,6 +96,7 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	for key, param := range r.Form {
+		p := param
 		switch key {
 		case "mosnconfig":
 			configmanager.HandleMOSNConfig(configmanager.CfgTypeMOSN, handle)
@@ -108,24 +109,24 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 		case "router":
 			configmanager.HandleMOSNConfig(configmanager.CfgTypeRouter, func(v interface{}) {
 				routerInfo, ok := v.(map[string]v2.RouterConfiguration)
-				if ok && len(param) > 0 {
-					handle(routerInfo[param[0]])
+				if ok && len(p) > 0 {
+					handle(routerInfo[p[0]])
 				}
 			})
 
 		case "cluster":
 			configmanager.HandleMOSNConfig(configmanager.CfgTypeCluster, func(v interface{}) {
 				clusterInfo, ok := v.(map[string]v2.Cluster)
-				if ok && len(param) > 0 {
-					handle(clusterInfo[param[0]])
+				if ok && len(p) > 0 {
+					handle(clusterInfo[p[0]])
 				}
 			})
 
 		case "listener":
 			configmanager.HandleMOSNConfig(configmanager.CfgTypeListener, func(v interface{}) {
 				listenerInfo, ok := v.(map[string]v2.Listener)
-				if ok && len(param) > 0 {
-					handle(listenerInfo[param[0]])
+				if ok && len(p) > 0 {
+					handle(listenerInfo[p[0]])
 				}
 			})
 		default:
