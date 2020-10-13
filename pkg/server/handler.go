@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mosn.io/mosn/pkg/metrics"
 	"net"
 	"os"
 	"strconv"
@@ -40,6 +39,7 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -203,7 +203,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
 
 	}
-	admin.SetListenerConfig(listenerName, *al.listener.Config())
+	configmanager.SetListenerConfig(*al.listener.Config())
 	return al, nil
 }
 
