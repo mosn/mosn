@@ -20,8 +20,11 @@ package server
 import (
 	"container/list"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"net"
 	"os"
 	"strconv"
@@ -34,7 +37,6 @@ import (
 	"golang.org/x/sys/unix"
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
@@ -813,6 +815,43 @@ func sendInheritListeners() (net.Conn, error) {
 	return uc, nil
 }
 
+// SendInheritConfig send to new mosn using uinx dowmain socket
+func SendInheritConfig() error {
+	configData, err := configmanager.InheritMosnconfig()
+	if err != nil {
+		return err
+	}
+
+	var unixConn net.Conn
+	// retry 10 time
+	for i := 0; i < 10; i++ {
+		unixConn, err = net.DialTimeout("unix", types.TransferMosnconfigDomainSocket, 1*time.Second)
+		if err == nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	if err != nil {
+		log.DefaultLogger.Errorf("[server] SendInheritConfig Dial unix failed %v", err)
+		return err
+	}
+
+	uc := unixConn.(*net.UnixConn)
+	defer uc.Close()
+
+	n, err := uc.Write(configData)
+	if err != nil {
+		log.DefaultLogger.Errorf("[server] Write: %v", err)
+		return err
+	}
+	if n != len(configData) {
+		log.DefaultLogger.Errorf("[server] Write = %d, want %d", n, len(configData))
+		return errors.New("write mosnconfig data length error")
+	}
+
+	return nil
+}
+
 func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -893,4 +932,54 @@ func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 	}
 
 	return listeners, packetConn, uc, nil
+}
+
+func GetInheritConfig() (*v2.MOSNConfig, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.StartLogger.Errorf("[server] GetInheritConfig panic %v", r)
+		}
+	}()
+
+	syscall.Unlink(types.TransferMosnconfigDomainSocket)
+
+	l, err := net.Listen("unix", types.TransferMosnconfigDomainSocket)
+	if err != nil {
+		log.StartLogger.Errorf("[server] GetInheritConfig net listen error: %v", err)
+		return nil, err
+	}
+	defer l.Close()
+
+	log.StartLogger.Infof("[server] Get GetInheritConfig start")
+
+	ul := l.(*net.UnixListener)
+	ul.SetDeadline(time.Now().Add(time.Second * 10))
+	uc, err := ul.AcceptUnix()
+	if err != nil {
+		log.StartLogger.Errorf("[server] GetInheritConfig Accept error :%v", err)
+		return nil, err
+	}
+	defer uc.Close()
+	log.StartLogger.Infof("[server] Get GetInheritConfig Accept")
+	configData := make([]byte, 0)
+	buf := make([]byte, 1024)
+	for {
+		n, err := uc.Read(buf)
+		configData = append(configData, buf[:n]...)
+		if err != nil && err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+	}
+
+	// log.StartLogger.Infof("[server] inherit mosn config data: %v", string(configData))
+
+	oldConfig := &v2.MOSNConfig{}
+	err = json.Unmarshal(configData, oldConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	return oldConfig, nil
 }

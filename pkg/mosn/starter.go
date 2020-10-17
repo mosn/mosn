@@ -91,6 +91,17 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		store.SetMosnState(store.Active_Reconfiguring)
 		// parse MOSNConfig again
 		c = configmanager.Load(configmanager.GetConfigPath())
+		// inherit old mosn config
+		oldMosnConfig, err := server.GetInheritConfig()
+		if err != nil {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] GetInheritConfig failed, exit")
+		}
+		log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
+		if c.InheritOldMosnconfig {
+			c.Servers = oldMosnConfig.Servers
+			c.ClusterManager = oldMosnConfig.ClusterManager
+			c.Extends = oldMosnConfig.Extends
+		}
 	} else {
 		log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 		// start init services
@@ -319,7 +330,6 @@ func Start(c *v2.MOSNConfig) {
 		log.DefaultLogger.Infof("[mosn] [close] mosn closed by sys signal")
 		Mosn.Close()
 	}, syscall.SIGINT, syscall.SIGTERM)
-
 
 	Mosn.Start()
 	Mosn.wg.Wait()
