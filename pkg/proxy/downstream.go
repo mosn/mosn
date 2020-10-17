@@ -1369,9 +1369,9 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 		headers = protocol.CommonHeader(raw)
 	}
 	s.requestInfo.SetResponseCode(code)
-
-	headers.Set(types.HeaderStatus, strconv.Itoa(code))
-
+	status := strconv.Itoa(code)
+	headers.Set(types.HeaderStatus, status)
+	variable.SetVariableValue(s.context, types.HeaderStatus, status)
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = nil
@@ -1389,7 +1389,9 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	}
 	s.requestInfo.SetResponseCode(code)
 
-	headers.Set(types.HeaderStatus, strconv.Itoa(code))
+	status := strconv.Itoa(code)
+	headers.Set(types.HeaderStatus, status)
+	variable.SetVariableValue(s.context, types.HeaderStatus, status)
 
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers

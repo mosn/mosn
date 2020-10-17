@@ -22,6 +22,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"mosn.io/mosn/pkg/variable"
 	"net"
 	"net/http"
 	"strconv"
@@ -660,6 +661,7 @@ func (s *clientStream) handleResponse() {
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
 		header.Set(types.HeaderStatus, status)
+		variable.SetVariableValue(s.ctx, types.HeaderStatus, status)
 
 		hasData := true
 		if len(s.response.Body()) == 0 {
@@ -699,13 +701,25 @@ type serverStream struct {
 
 // types.StreamSender
 func (s *serverStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
+	var status string
+	var ok bool
 	switch headers := headersIn.(type) {
 	case mosnhttp.RequestHeader:
 		// hijack scene
-		if status, ok := headers.Get(types.HeaderStatus); ok {
+		if status, ok = headers.Get(types.HeaderStatus); !ok {
+			var err error
+			status, err = variable.GetVariableValue(context, types.HeaderStatus)
+			if err != nil {
+				return err
+			}
+		} else {
 			headers.Del(types.HeaderStatus)
-
-			statusCode, _ := strconv.Atoi(status)
+		}
+		if status != "" {
+			statusCode, err := strconv.Atoi(status)
+			if err != nil {
+				return err
+			}
 			s.response.SetStatusCode(statusCode)
 
 			removeInternalHeaders(headers, s.connection.conn.RemoteAddr())
@@ -714,11 +728,21 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 			headers.VisitAll(func(key, value []byte) {
 				s.response.Header.SetBytesKV(key, value)
 			})
-		}
-	case mosnhttp.ResponseHeader:
-		if status, ok := headers.Get(types.HeaderStatus); ok {
-			headers.Del(types.HeaderStatus)
 
+		}
+
+	case mosnhttp.ResponseHeader:
+		if status, ok = headers.Get(types.HeaderStatus); !ok {
+			var err error
+			status, err = variable.GetVariableValue(context, types.HeaderStatus)
+			if err != nil {
+				return err
+			}
+		} else {
+			headers.Del(types.HeaderStatus)
+		}
+
+		if status != "" {
 			statusCode, _ := strconv.Atoi(status)
 			headers.SetStatusCode(statusCode)
 		}

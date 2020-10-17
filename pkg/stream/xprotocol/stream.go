@@ -20,6 +20,7 @@ package xprotocol
 import (
 	"context"
 	"fmt"
+	"mosn.io/mosn/pkg/variable"
 	"strconv"
 
 	"mosn.io/mosn/pkg/log"
@@ -81,8 +82,18 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 }
 
 func (s *xStream) buildHijackResp(request xprotocol.XFrame, header types.HeaderMap) (xprotocol.XFrame, error) {
-	if status, ok := header.Get(types.HeaderStatus); ok {
+	status := ""
+	var ok bool
+	if status, ok = header.Get(types.HeaderStatus); ok {
 		header.Del(types.HeaderStatus)
+	} else {
+		var err error
+		status, err = variable.GetVariableValue(s.ctx, types.HeaderStatus)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if status != "" {
 		statusCode, _ := strconv.Atoi(status)
 		proto := s.sc.protocol
 		return proto.Hijack(request, proto.Mapping(uint32(statusCode))), nil

@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mosn.io/mosn/pkg/variable"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -441,12 +442,19 @@ type serverStream struct {
 func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error {
 	var rsp *http.Response
 
-	var status int
-	if value, _ := headers.Get(types.HeaderStatus); value != "" {
+	status := 200
+	var value string
+	if value, _ = headers.Get(types.HeaderStatus); value != "" {
 		headers.Del(types.HeaderStatus)
-		status, _ = strconv.Atoi(value)
 	} else {
-		status = 200
+		var err error
+		value, err = variable.GetVariableValue(ctx, types.HeaderStatus)
+		if err != nil {
+			return err
+		}
+	}
+	if value != "" {
+		status, _ = strconv.Atoi(value)
 	}
 
 	switch header := headers.(type) {
@@ -715,6 +723,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 
 		code := strconv.Itoa(rsp.StatusCode)
 		header.Set(types.HeaderStatus, code)
+		variable.SetVariableValue(ctx, types.HeaderStatus, code)
 
 		mbuffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
