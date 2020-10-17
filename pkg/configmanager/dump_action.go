@@ -147,3 +147,8 @@ func transferConfig() ([]byte, error) {
 	}
 	return json.MarshalIndent(wait2dump, "", "  ")
 }
+
+// InheritMosnconfig get old mosn configs
+func InheritMosnconfig() ([]byte, error) {
+	return transferConfig()
+}
