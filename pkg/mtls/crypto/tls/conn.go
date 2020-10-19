@@ -22,8 +22,7 @@ import (
 
 var outBufPool = sync.Pool{
 	New: func() interface{} {
-		buf := make([]byte, maxCiphertext+recordHeaderLen)
-		return &buf
+		return new([]byte)
 	},
 }
 
@@ -923,17 +922,21 @@ func (c *Conn) flush() (int, error) {
 // writeRecordLocked writes a TLS record with the given type and payload to the
 // connection and updates the record layer state.
 func (c *Conn) writeRecordLocked(typ recordType, data []byte) (int, error) {
-	var n int
-
 	bufPtr := outBufPool.Get().(*[]byte)
 	c.outBuf = *bufPtr
 
 	defer func() {
+		if len(c.outBuf) > len(*bufPtr) {
+			buf := c.outBuf
+			bufPtr = &buf
+		}
+
 		// return buffer to pool
 		outBufPool.Put(bufPtr)
 		c.outBuf = nil
 	}()
 
+	var n int
 	for len(data) > 0 {
 		m := len(data)
 		if maxPayload := c.maxPayloadSizeForWrite(typ); m > maxPayload {
