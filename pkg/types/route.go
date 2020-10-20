@@ -42,7 +42,7 @@ const (
 // Routers defines and manages all router
 type Routers interface {
 	// MatchRoute return first route with headers
-	MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route
+	MatchRoute(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route
 	// MatchAllRoutes returns all routes with headers
 	MatchAllRoutes(headers api.HeaderMap, randomValue uint64) []api.Route
 	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios

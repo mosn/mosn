@@ -49,7 +49,7 @@ func (r *mockRouteRule) ClusterName() string {
 	return ""
 }
 
-func (routers *mockRouters) MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route {
+func (routers *mockRouters) MatchRoute(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
 	if reflect.DeepEqual(headers, routers.header) {
 		return routers.r[0]
 	}

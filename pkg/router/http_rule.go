@@ -18,6 +18,8 @@
 package router
 
 import (
+	"context"
+	"mosn.io/mosn/pkg/variable"
 	"regexp"
 	"strings"
 
@@ -139,10 +141,11 @@ func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, re
 	rrei.finalizePathHeader(headers, rrei.regexStr)
 }
 
-func (rrei *RegexRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
+func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
 	if rrei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
-			if rrei.regexPattern.MatchString(headerPathValue) {
+		headerPathValue, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey)
+		if err == nil && headerPathValue != nil {
+			if rrei.regexPattern.MatchString(*headerPathValue) {
 				return rrei
 			}
 		}

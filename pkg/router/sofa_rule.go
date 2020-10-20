@@ -18,9 +18,11 @@
 package router
 
 import (
+	"context"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 type SofaRouteRuleImpl struct {
@@ -47,12 +49,16 @@ func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
 func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 }
 
-func (srri *SofaRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if value, ok := headers.Get(types.SofaRouteMatchKey); ok {
-		if value == srri.matchValue || srri.matchValue == ".*" {
+func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+	value, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, types.SofaRouteMatchKey)
+	if value != nil {
+		if *value == srri.matchValue || srri.matchValue == ".*" {
 			return srri
 		}
 	}
-	log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "failed match header: %v, value: %s", headers, srri.matchValue)
+	if err != nil {
+		log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "get from ctx error", err)
+	}
+	log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "failed match", headers)
 	return nil
 }

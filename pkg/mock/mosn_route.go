@@ -38,9 +38,9 @@ func (m *MockRouters) EXPECT() *MockRoutersMockRecorder {
 }
 
 // MatchRoute mocks base method
-func (m *MockRouters) MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route {
+func (m *MockRouters) MatchRoute(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MatchRoute", headers, randomValue)
+	ret := m.ctrl.Call(m, "MatchRoute", ctx, headers, randomValue)
 	ret0, _ := ret[0].(api.Route)
 	return ret0
 }

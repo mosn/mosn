@@ -18,6 +18,7 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -42,7 +43,7 @@ type routersImpl struct {
 	virtualHosts []types.VirtualHost
 }
 
-func (ri *routersImpl) MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route {
+func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
 	}
