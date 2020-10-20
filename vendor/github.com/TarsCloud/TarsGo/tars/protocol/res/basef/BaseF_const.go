@@ -7,6 +7,7 @@ package basef
 const (
 	TARSVERSION             int16 = 0x01
 	TUPVERSION              int16 = 0x03
+	JSONVERSION				int16 = 0x05
 	TARSNORMAL              int8  = 0x00
 	TARSONEWAY              int8  = 0x01
 	TARSSERVERSUCCESS       int32 = 0

@@ -18,7 +18,7 @@
 package tars
 
 import (
-	"github.com/TarsCloud/TarsGo/tars"
+	tarsprotocol "github.com/TarsCloud/TarsGo/tars/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
@@ -29,14 +29,14 @@ func init() {
 
 // predicate dubbo header len and compare magic number
 func tarsMatcher(data []byte) types.MatchResult {
-	pkgLen, status := tars.TarsRequest(data)
-	if pkgLen == 0 && status == tars.PACKAGE_LESS {
+	pkgLen, status := tarsprotocol.TarsRequest(data)
+	if pkgLen == 0 && status == tarsprotocol.PACKAGE_LESS {
 		return types.MatchAgain
 	}
-	if pkgLen == 0 && status == tars.PACKAGE_ERROR {
+	if pkgLen == 0 && status == tarsprotocol.PACKAGE_ERROR {
 		return types.MatchFailed
 	}
-	if status == tars.PACKAGE_FULL {
+	if status == tarsprotocol.PACKAGE_FULL {
 		return types.MatchSuccess
 	}
 	return types.MatchFailed

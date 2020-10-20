@@ -22,8 +22,8 @@ github.com/SkyAPM/go2sky v0.5.0/go.mod h1:TANzYw5EvIlTidGWvQxtvO87rM6C746HkM0xkW
 github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d h1:G0m3OIz70MZUWq3EgK3CesDbo8upS2Vm9/P3FtgI+Jk=
 github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d/go.mod h1:3eOhrUMpNV+6aFIbp5/iudMxNCF27Vw2OZgy4xEx0Fg=
-github.com/TarsCloud/TarsGo v1.1.1 h1:QsZucTcaYM2348kcSAcyxvHb9Xq+ZHmgdwG4b8J0ED4=
-github.com/TarsCloud/TarsGo v1.1.1/go.mod h1:wb3nK4nrl9BkqNA4c/3m3eAAbnH5ppJtA2ijGJqc9cs=
+github.com/TarsCloud/TarsGo v1.1.4 h1:h8Hch0oWX4hahh/ZWD2gVdKq5KbkbaE5PO2nQtq/hGI=
+github.com/TarsCloud/TarsGo v1.1.4/go.mod h1:jkslu43B0kZitq9ztCH6ZM6l4rCKGkMjdqEPjHoOdjc=
 github.com/Workiva/go-datastructures v1.0.50/go.mod h1:Z+F2Rca0qCsVYDS8z7bAGm8f3UkzuWYS/oBZz5a7VVA=
 github.com/abdullin/seq v0.0.0-20160510034733-d5467c17e7af/go.mod h1:5Jv4cbFiHJMsVxt52+i0Ha45fjshj6wxYr1r19tB9bw=
 github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5/go.mod h1:SkGFH1ia65gfNATL8TAiHDNxPzPdmEL5uirI2Uyuz6c=
