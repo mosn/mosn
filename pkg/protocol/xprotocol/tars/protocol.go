@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"github.com/TarsCloud/TarsGo/tars"
+	tarsprotocol "github.com/TarsCloud/TarsGo/tars/protocol"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -54,8 +54,8 @@ func (proto *tarsProtocol) Encode(ctx context.Context, model interface{}) (types
 }
 
 func (proto *tarsProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
-	_, status := tars.TarsRequest(data.Bytes())
-	if status == tars.PACKAGE_FULL {
+	_, status := tarsprotocol.TarsRequest(data.Bytes())
+	if status == tarsprotocol.PACKAGE_FULL {
 		streamType, err := getStreamType(data.Bytes())
 		switch streamType {
 		case CmdTypeRequest:
