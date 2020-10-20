@@ -27,8 +27,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
@@ -46,7 +46,7 @@ func refreshHostsConfig(c types.Cluster) {
 	for _, h := range hosts {
 		hostsConfig = append(hostsConfig, h.Config())
 	}
-	store.SetHosts(name, hostsConfig)
+	configmanager.SetHosts(name, hostsConfig)
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, len(hosts))
 	}
@@ -123,7 +123,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	// check update or new
 	clusterName := cluster.Name
 	// set config
-	store.SetClusterConfig(clusterName, cluster)
+	configmanager.SetClusterConfig(cluster)
 	// add or update
 	ci, exists := cm.clustersMap.Load(clusterName)
 	if exists {
@@ -190,7 +190,7 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 		c.StopHealthChecking()
 
 		cm.clustersMap.Delete(clusterName)
-		store.RemoveClusterConfig(clusterName)
+		configmanager.SetRemoveClusterConfig(clusterName)
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[upstream] [cluster manager] Remove Primary Cluster, Cluster Name = %s", clusterName)
 		}

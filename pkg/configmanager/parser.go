@@ -66,16 +66,11 @@ type ParsedCallback func(data interface{}, endParsing bool) error
 // basic config
 var configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
 
-// extend config parsed listener
-// for user defined configs in extend field
-var configExtendParsedCBMaps = make(map[string][]ParsedCallback)
-
 // Group of ContentKey
 // notes: configcontentkey equals to the key of config file
 const (
-	ParseCallbackKeyCluster        ContentKey = "clusters"
-	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
-	ParseCallbackKeyProcessor      ContentKey = "processor"
+	ParseCallbackKeyCluster   ContentKey = "clusters"
+	ParseCallbackKeyProcessor ContentKey = "processor"
 )
 
 // RegisterConfigParsedListener
@@ -89,32 +84,6 @@ func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 		log.StartLogger.Infof("[config] %s added to configParsedCBMaps", key)
 		cpc := []ParsedCallback{cb}
 		configParsedCBMaps[key] = cpc
-	}
-}
-
-// RegisterConfigExtendParsedListener used to do callback
-// when the extend config is parsed
-//
-// "extend" : [{
-//        "type" : "dubbo_registry",
-//        "config" : {},
-//    },{
-//        "type" : "sofa_registry",
-//        "config" : {},
-//    },{
-//        "type" :  "msg_broker",
-//        "config" : {}
-//    },{
-//        "type" :  "oh_very",
-//        "config" : "here can be a string"
-//  }]
-//
-func RegisterConfigExtendParsedListener(key string, cb ParsedCallback) {
-	if cbs, ok := configExtendParsedCBMaps[key]; ok {
-		configExtendParsedCBMaps[key] = append(cbs, cb)
-	} else {
-		log.StartLogger.Infof("[config] %s added to configParsedCBMaps", key)
-		configExtendParsedCBMaps[key] = []ParsedCallback{cb}
 	}
 }
 
@@ -346,29 +315,6 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 	}
 	return routerConfiguration, nil
 
-}
-
-// extensible service registry
-// for various service registries,
-//  eg: dubbo_registry, sofa_registry, msg_broker or any other user defined ...
-func ParseConfigExtend(itemList []v2.ExtendItem) {
-	// trigger all extend callbacks
-	for _, extConfig := range itemList {
-		if cbs, ok := configExtendParsedCBMaps[extConfig.Type]; ok {
-			for _, cb := range cbs {
-				cb(extConfig.Config, true)
-			}
-		}
-	}
-}
-
-func ParseServiceRegistry(src v2.ServiceRegistryInfo) {
-	//trigger all callbacks
-	if cbs, ok := configParsedCBMaps[ParseCallbackKeyServiceRgtInfo]; ok {
-		for _, cb := range cbs {
-			cb(src, true)
-		}
-	}
 }
 
 // ParseServerConfig

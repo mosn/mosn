@@ -23,23 +23,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 )
 
 func initStoreConfig() {
-	store.Reset()
-	store.SetMosnConfig(&v2.MOSNConfig{
+	configmanager.Reset()
+	configmanager.SetMosnConfig(&v2.MOSNConfig{
 		Tracing: v2.TracingConfig{
 			Enable: true,
 		},
 	})
-	store.SetRouter("test_router", v2.RouterConfiguration{
+	configmanager.SetRouter(v2.RouterConfiguration{
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: "test_router",
 		},
 	})
-	store.SetClusterConfig("test_cluster", v2.Cluster{
+	configmanager.SetClusterConfig(v2.Cluster{
 		Name: "test_cluster",
 		Hosts: []v2.Host{
 			{
@@ -49,8 +49,9 @@ func initStoreConfig() {
 			},
 		},
 	})
-	store.SetListenerConfig("test_listener", v2.Listener{
+	configmanager.SetListenerConfig(v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
+			Name:       "test_listener",
 			AddrConfig: "127.0.0.1:8080",
 		},
 	})
