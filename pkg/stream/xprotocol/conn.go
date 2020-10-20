@@ -20,7 +20,6 @@ package xprotocol
 import (
 	"context"
 	"strings"
-	"sync"
 	"time"
 
 	"mosn.io/api"
@@ -49,9 +48,8 @@ type streamConn struct {
 
 	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
 
-	clientMutex        sync.RWMutex // client side fields
 	clientStreamIDBase uint64
-	clientStreams      map[uint64]*xStream
+	clientStreams      *syncStreamMap
 	clientCallbacks    types.StreamConnectionEventListener
 }
 
@@ -94,7 +92,7 @@ func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbac
 	// client
 	if sc.clientCallbacks != nil {
 		// default client concurrency capacity: 8
-		sc.clientStreams = make(map[uint64]*xStream, 8)
+		sc.clientStreams = NewStreamMap(8)
 		// TODO: keepalive trigger
 	}
 
@@ -206,7 +204,7 @@ func (sc *streamConn) Protocol() types.ProtocolName {
 	return protocol.Xprotocol
 }
 
-func(sc *streamConn) EnableWorkerPool() bool {
+func (sc *streamConn) EnableWorkerPool() bool {
 	if sc.protocol == nil {
 		// multiple protocols
 		return true
@@ -220,20 +218,14 @@ func (sc *streamConn) GoAway() {
 }
 
 func (sc *streamConn) ActiveStreamsNum() int {
-	sc.clientMutex.RLock()
-	defer sc.clientMutex.RUnlock()
-
-	return len(sc.clientStreams)
+	return sc.clientStreams.Len()
 }
 
 func (sc *streamConn) Reset(reason types.StreamResetReason) {
-	sc.clientMutex.Lock()
-	defer sc.clientMutex.Unlock()
-
-	for _, stream := range sc.clientStreams {
+	sc.clientStreams.Range(func(key uint64, stream *xStream) {
 		stream.connReset = true
 		stream.ResetStream(reason)
-	}
+	})
 }
 
 func (sc *streamConn) NewStream(ctx context.Context, receiver types.StreamReceiveListener) types.StreamSender {
@@ -242,9 +234,7 @@ func (sc *streamConn) NewStream(ctx context.Context, receiver types.StreamReceiv
 	if receiver != nil {
 		clientStream.receiver = receiver
 
-		sc.clientMutex.Lock()
-		sc.clientStreams[clientStream.id] = clientStream
-		sc.clientMutex.Unlock()
+		sc.clientStreams.Store(clientStream.id, clientStream)
 	}
 
 	return clientStream
@@ -347,21 +337,19 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 	requestId := frame.GetRequestId()
 
 	// for client stream, remove stream on response read
-	sc.clientMutex.Lock()
-	defer sc.clientMutex.Unlock()
-
-	if clientStream, ok := sc.clientStreams[requestId]; ok {
-		delete(sc.clientStreams, requestId)
-
-		// transmit buffer ctx
-		buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
-
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] connection %d receive response, requestId = %v", sc.netConn.ID(), requestId)
-		}
-
-		clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
+	clientStream, ok := sc.clientStreams.LoadAndDelete(requestId)
+	if !ok {
+		return
 	}
+
+	// transmit buffer ctx
+	buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] connection %d receive response, requestId = %v", sc.netConn.ID(), requestId)
+	}
+
+	clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
 }
 
 func (sc *streamConn) newServerStream(ctx context.Context, frame xprotocol.XFrame) *xStream {

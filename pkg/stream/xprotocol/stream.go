@@ -161,9 +161,7 @@ func (s *xStream) GetStream() types.Stream {
 
 func (s *xStream) ResetStream(reason types.StreamResetReason) {
 	if s.direction == stream.ClientStream && !s.connReset {
-		s.sc.clientMutex.Lock()
-		delete(s.sc.clientStreams, s.id)
-		s.sc.clientMutex.Unlock()
+		s.sc.clientStreams.Delete(s.id)
 	}
 
 	s.BaseStream.ResetStream(reason)
