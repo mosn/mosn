@@ -24,8 +24,9 @@ import (
 	"testing"
 	"time"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"mosn.io/mosn/pkg/config/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -40,12 +41,34 @@ func createSdsTLSConfig() *v2.TLSConfig {
 		VerifyClient: true,
 		SdsConfig: &v2.SdsConfig{
 			CertificateConfig: &v2.SecretConfigWrapper{
-				Config: &auth.SdsSecretConfig{
+				Config: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
 					Name: "default",
 				},
 			},
 			ValidationConfig: &v2.SecretConfigWrapper{
-				Config: &auth.SdsSecretConfig{
+				Config: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
+					Name: "rootCA",
+				},
+			},
+		},
+	}
+}
+
+func createSdsTLSConfigDeprecated() *v2.TLSConfig {
+	testInit.Do(func() {
+		getSdsClientFunc = getMockSdsClient
+	})
+	return &v2.TLSConfig{
+		Status:       true,
+		VerifyClient: true,
+		SdsConfig: &v2.SdsConfig{
+			CertificateConfig: &v2.SecretConfigWrapper{
+				ConfigDeprecated: &envoy_api_v2_auth.SdsSecretConfig{
+					Name: "default",
+				},
+			},
+			ValidationConfig: &v2.SecretConfigWrapper{
+				ConfigDeprecated: &envoy_api_v2_auth.SdsSecretConfig{
 					Name: "rootCA",
 				},
 			},

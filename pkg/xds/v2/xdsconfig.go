@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
-	"mosn.io/mosn/pkg/xds/conv"
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -37,6 +36,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/xds/v2/conv"
 )
 
 //  Init parsed ds and clusters config for xds

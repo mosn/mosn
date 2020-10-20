@@ -19,18 +19,18 @@ package types
 
 import (
 	"crypto/sha256"
-	"github.com/stretchr/testify/assert"
 	"testing"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSecretConvert(t *testing.T) {
-	var sec = auth.Secret{
-		Name : "mosn",
+	var sec = envoy_api_v2_auth.Secret{
+		Name: "mosn",
 	}
 
-	sdsSec := SecretConvert(&sec)
+	sdsSec := SecretConvertDeprecated(&sec)
 	assert.Equal(t, sdsSec.Name, "mosn")
 }
 

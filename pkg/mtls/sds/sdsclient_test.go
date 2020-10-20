@@ -25,18 +25,17 @@ import (
 	"testing"
 	"time"
 
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	sds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v2"
 	ptypes "github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-)
-
-const (
-	SecretType = "type.googleapis.com/envoy.api.v2.auth.Secret"
 )
 
 func Test_AddUpdateCallback(t *testing.T) {
@@ -93,7 +92,6 @@ func Test_AddUpdateCallback(t *testing.T) {
 		t.Errorf("callback reponse timeout")
 	}
 }
-
 func Test_DeleteUpdateCallback(t *testing.T) {
 	sdsUdsPath := "/tmp/sds3"
 	// mock sds server
@@ -116,25 +114,25 @@ func Test_DeleteUpdateCallback(t *testing.T) {
 	}
 }
 
-func InitSdsSecertConfig(sdsUdsPath string) *auth.SdsSecretConfig {
-	gRPCConfig := &core.GrpcService_GoogleGrpc{
+func InitSdsSecertConfig(sdsUdsPath string) *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig {
+	gRPCConfig := &envoy_config_core_v3.GrpcService_GoogleGrpc{
 		TargetUri:  sdsUdsPath,
 		StatPrefix: "sds-prefix",
-		ChannelCredentials: &core.GrpcService_GoogleGrpc_ChannelCredentials{
-			CredentialSpecifier: &core.GrpcService_GoogleGrpc_ChannelCredentials_LocalCredentials{
-				LocalCredentials: &core.GrpcService_GoogleGrpc_GoogleLocalCredentials{},
+		ChannelCredentials: &envoy_config_core_v3.GrpcService_GoogleGrpc_ChannelCredentials{
+			CredentialSpecifier: &envoy_config_core_v3.GrpcService_GoogleGrpc_ChannelCredentials_LocalCredentials{
+				LocalCredentials: &envoy_config_core_v3.GrpcService_GoogleGrpc_GoogleLocalCredentials{},
 			},
 		},
 	}
-	config := &auth.SdsSecretConfig{
+	config := &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
 		Name: "default",
-		SdsConfig: &core.ConfigSource{
-			ConfigSourceSpecifier: &core.ConfigSource_ApiConfigSource{
-				ApiConfigSource: &core.ApiConfigSource{
-					ApiType: core.ApiConfigSource_GRPC,
-					GrpcServices: []*core.GrpcService{
+		SdsConfig: &envoy_config_core_v3.ConfigSource{
+			ConfigSourceSpecifier: &envoy_config_core_v3.ConfigSource_ApiConfigSource{
+				ApiConfigSource: &envoy_config_core_v3.ApiConfigSource{
+					ApiType: envoy_config_core_v3.ApiConfigSource_GRPC,
+					GrpcServices: []*envoy_config_core_v3.GrpcService{
 						{
-							TargetSpecifier: &core.GrpcService_GoogleGrpc_{
+							TargetSpecifier: &envoy_config_core_v3.GrpcService_GoogleGrpc_{
 								GoogleGrpc: gRPCConfig,
 							},
 						},
@@ -171,7 +169,7 @@ func NewFakeSdsServer(sdsUdsPath string) *fakeSdsServer {
 //        FetchSecrets(context.Context, *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error)
 //}
 type fakeSdsServer struct {
-	sds.SecretDiscoveryServiceServer
+	envoy_service_discovery_v2.SecretDiscoveryServiceServer
 	server     *grpc.Server
 	sdsUdsPath string
 	started    bool
@@ -199,7 +197,7 @@ func (s *fakeSdsServer) Stop() {
 	}
 }
 
-func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSecretsServer) error {
+func (s *fakeSdsServer) StreamSecrets(stream envoy_service_discovery_v2.SecretDiscoveryService_StreamSecretsServer) error {
 	log.DefaultLogger.Infof("get stream secrets")
 	// wait for request
 	// for test just ignore
@@ -208,12 +206,12 @@ func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSe
 		log.DefaultLogger.Errorf("streamn receive error: %v", err)
 		return err
 	}
-	resp := &xdsapi.DiscoveryResponse{
-		TypeUrl:     SecretType,
+	resp := &envoy_api_v2.DiscoveryResponse{
+		TypeUrl:     resource.SecretType,
 		VersionInfo: "0",
 		Nonce:       "0",
 	}
-	secret := &auth.Secret{
+	secret := &envoy_api_v2_auth.Secret{
 		Name: "default",
 	}
 	ms, err := ptypes.MarshalAny(secret)
@@ -231,13 +229,13 @@ func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSe
 	return nil
 }
 
-func (s *fakeSdsServer) FetchSecrets(ctx context.Context, discReq *xdsapi.DiscoveryRequest) (*xdsapi.DiscoveryResponse, error) {
+func (s *fakeSdsServer) FetchSecrets(ctx context.Context, discReq *envoy_api_v2.DiscoveryRequest) (*envoy_api_v2.DiscoveryResponse, error) {
 	// not implement
 	return nil, nil
 }
 
 func (s *fakeSdsServer) register(rpcs *grpc.Server) {
-	sds.RegisterSecretDiscoveryServiceServer(rpcs, s)
+	envoy_service_discovery_v2.RegisterSecretDiscoveryServiceServer(rpcs, s)
 }
 
 func setUpUds(udsPath string) (net.Listener, error) {
@@ -262,4 +260,115 @@ func setUpUds(udsPath string) (net.Listener, error) {
 	}
 
 	return udsListener, nil
+}
+
+//////
+///// Deprecated with xDS2
+/////
+
+func Test_AddUpdateCallbackDeprecated(t *testing.T) {
+	// init prepare
+	sdsUdsPath := "/tmp/sds2"
+	SubscriberRetryPeriod = 500 * time.Millisecond
+	defer func() {
+		SubscriberRetryPeriod = 3 * time.Second
+	}()
+	callback := 0
+	SetSdsPostCallback(func() {
+		callback = 1
+	})
+	// mock sds server
+	srv := InitMockSdsServer(sdsUdsPath, t)
+	defer srv.Stop()
+	config := InitSdsSecertConfigDeprecated(sdsUdsPath)
+	sdsClient := NewSdsClientSingletonDeprecated(config)
+	if sdsClient == nil {
+		t.Errorf("get sds client fail")
+	}
+
+	// Do not call CloseSdsClient(), because the 'SdsClient' is a global single object.
+	//defer CloseSdsClient()
+
+	// wait server start and stop makes reconnect
+	time.Sleep(time.Second)
+	srv.Stop()
+	// wait server connection stop
+	time.Sleep(time.Second)
+	// send request
+	updatedChan := make(chan int, 1) // do not block the update channel
+	log.DefaultLogger.Infof(" add update callback")
+	sdsClient.AddUpdateCallbackDeprecated(config, func(name string, secret *types.SdsSecret) {
+		if name != "default" {
+			t.Errorf("name should same with config.name")
+		}
+		log.DefaultLogger.Infof("update callback is called")
+		updatedChan <- 1
+	})
+	time.Sleep(time.Second)
+	go func() {
+		err := srv.Start()
+		if !srv.started {
+			t.Fatalf("%s start error: %v", sdsUdsPath, err)
+		}
+	}()
+	select {
+	case <-updatedChan:
+		if callback != 1 {
+			t.Fatalf("sds post callback unexpected")
+		}
+	case <-time.After(time.Second * 10):
+		t.Errorf("callback reponse timeout")
+	}
+}
+
+func Test_DeleteUpdateCallbackDeprecated(t *testing.T) {
+	sdsUdsPath := "/tmp/sds3"
+	// mock sds server
+	srv := InitMockSdsServer(sdsUdsPath, t)
+	defer srv.Stop()
+	config := InitSdsSecertConfigDeprecated(sdsUdsPath)
+	config.Name = "delete"
+	sdsClient := NewSdsClientSingletonDeprecated(config)
+	if sdsClient == nil {
+		t.Errorf("get sds client fail")
+	}
+
+	// Do not call CloseSdsClient(), because the 'SdsClient' is a global single object.
+	//defer CloseSdsClient()
+
+	sdsClient.AddUpdateCallbackDeprecated(config, func(name string, secret *types.SdsSecret) {})
+	err := sdsClient.DeleteUpdateCallbackDeprecated(config)
+	if err != nil {
+		t.Errorf("delete update callback fail")
+	}
+}
+
+func InitSdsSecertConfigDeprecated(sdsUdsPath string) *envoy_api_v2_auth.SdsSecretConfig {
+	gRPCConfig := &envoy_api_v2_core.GrpcService_GoogleGrpc{
+		TargetUri:  sdsUdsPath,
+		StatPrefix: "sds-prefix",
+		ChannelCredentials: &envoy_api_v2_core.GrpcService_GoogleGrpc_ChannelCredentials{
+			CredentialSpecifier: &envoy_api_v2_core.GrpcService_GoogleGrpc_ChannelCredentials_LocalCredentials{
+				LocalCredentials: &envoy_api_v2_core.GrpcService_GoogleGrpc_GoogleLocalCredentials{},
+			},
+		},
+	}
+	config := &envoy_api_v2_auth.SdsSecretConfig{
+		Name: "default",
+		SdsConfig: &envoy_api_v2_core.ConfigSource{
+			ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_ApiConfigSource{
+				ApiConfigSource: &envoy_api_v2_core.ApiConfigSource{
+					ApiType: envoy_api_v2_core.ApiConfigSource_GRPC,
+					GrpcServices: []*envoy_api_v2_core.GrpcService{
+						{
+							TargetSpecifier: &envoy_api_v2_core.GrpcService_GoogleGrpc_{
+								GoogleGrpc: gRPCConfig,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return config
 }

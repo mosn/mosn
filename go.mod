@@ -9,14 +9,14 @@ require (
 	github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
 	github.com/apache/dubbo-go-hessian2 v1.7.0
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
-	github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f
+	github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354
 	github.com/dchest/siphash v1.2.1
-	github.com/envoyproxy/go-control-plane v0.9.4
+	github.com/envoyproxy/go-control-plane v0.9.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-chi/chi v4.1.0+incompatible
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/mock v1.4.4
-	github.com/golang/protobuf v1.3.5
+	github.com/golang/protobuf v1.4.2
 	github.com/google/cel-go v0.5.1
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.9
@@ -50,4 +50,4 @@ require (
 	mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
 )
 
-replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
+replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.7

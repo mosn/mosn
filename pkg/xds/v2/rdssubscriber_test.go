@@ -49,7 +49,7 @@ func Test_RdsHandler(t *testing.T) {
 
 	routeAny, _ := ptypes.MarshalAny(route)
 	resp := &envoy_api_v2.DiscoveryResponse{
-		TypeUrl:   EnvoyRouteConfiguration,
+		TypeUrl:   EnvoyRoute,
 		Resources: []*any.Any{routeAny},
 	}
 

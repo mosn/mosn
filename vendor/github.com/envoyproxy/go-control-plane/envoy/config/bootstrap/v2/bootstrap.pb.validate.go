@@ -1078,6 +1078,16 @@ func (m *ClusterManager_OutlierDetection) Validate() error {
 
 	// no validation rules for EventLogPath
 
+	if v, ok := interface{}(m.GetEventService()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return ClusterManager_OutlierDetectionValidationError{
+				field:  "EventService",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	return nil
 }
 

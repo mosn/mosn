@@ -4,10 +4,10 @@ import (
 	"sync"
 	"time"
 
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	envoy_service_secret_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/juju/errors"
 	"golang.org/x/net/context"
@@ -20,7 +20,7 @@ import (
 type SdsSubscriber struct {
 	provider             types.SecretProvider
 	reqQueue             chan string
-	sdsConfig            *core.ConfigSource
+	sdsConfig            *envoy_config_core_v3.ConfigSource
 	sdsStreamClient      *SdsStreamClient
 	sdsStreamClientMutex sync.RWMutex
 	sendStopChannel      chan int
@@ -33,7 +33,7 @@ type SdsStreamClient struct {
 	sdsStreamConfig     *SdsStreamConfig
 	conn                *grpc.ClientConn
 	cancel              context.CancelFunc
-	streamSecretsClient v2.SecretDiscoveryService_StreamSecretsClient
+	streamSecretsClient envoy_service_secret_v3.SecretDiscoveryService_StreamSecretsClient
 }
 
 type SdsStreamConfig struct {
@@ -45,7 +45,7 @@ var (
 	SubscriberRetryPeriod = 3 * time.Second
 )
 
-func NewSdsSubscriber(provider types.SecretProvider, sdsConfig *core.ConfigSource, serviceNode string, serviceCluster string) *SdsSubscriber {
+func NewSdsSubscriber(provider types.SecretProvider, sdsConfig *envoy_config_core_v3.ConfigSource, serviceNode string, serviceCluster string) *SdsSubscriber {
 	return &SdsSubscriber{
 		provider:           provider,
 		reqQueue:           make(chan string, 10240),
@@ -91,16 +91,16 @@ func (subscribe *SdsSubscriber) SendSdsRequest(name string) {
 	subscribe.reqQueue <- name
 }
 
-func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *core.ConfigSource) (*SdsStreamConfig, error) {
+func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *envoy_config_core_v3.ConfigSource) (*SdsStreamConfig, error) {
 	sdsStreamConfig := &SdsStreamConfig{}
-	if apiConfig, ok := subscribe.sdsConfig.ConfigSourceSpecifier.(*core.ConfigSource_ApiConfigSource); ok {
-		if apiConfig.ApiConfigSource.GetApiType() == core.ApiConfigSource_GRPC {
+	if apiConfig, ok := subscribe.sdsConfig.ConfigSourceSpecifier.(*envoy_config_core_v3.ConfigSource_ApiConfigSource); ok {
+		if apiConfig.ApiConfigSource.GetApiType() == envoy_config_core_v3.ApiConfigSource_GRPC {
 			grpcService := apiConfig.ApiConfigSource.GetGrpcServices()
 			if len(grpcService) != 1 {
 				log.DefaultLogger.Alertf("sds.subscribe.grpc", "[xds] [sds subscriber] only support one grpc service,but get %v", len(grpcService))
 				return nil, errors.New("unsupport sds config")
 			}
-			if grpcConfig, ok := grpcService[0].TargetSpecifier.(*core.GrpcService_GoogleGrpc_); ok {
+			if grpcConfig, ok := grpcService[0].TargetSpecifier.(*envoy_config_core_v3.GrpcService_GoogleGrpc_); ok {
 				sdsStreamConfig.sdsUdsPath = grpcConfig.GoogleGrpc.TargetUri
 				sdsStreamConfig.statPrefix = grpcConfig.GoogleGrpc.StatPrefix
 			} else {
@@ -118,9 +118,9 @@ func (subscribe *SdsSubscriber) sendRequestLoop() {
 			log.DefaultLogger.Errorf("[xds] [sds subscriber] send request loop closed")
 			return
 		case name := <-subscribe.reqQueue:
-			discoveryReq := &xdsapi.DiscoveryRequest{
+			discoveryReq := &envoy_service_discovery_v3.DiscoveryRequest{
 				ResourceNames: []string{name},
-				Node: &core.Node{
+				Node: &envoy_config_core_v3.Node{
 					Id: subscribe.serviceNode,
 				},
 			}
@@ -167,7 +167,7 @@ func (subscribe *SdsSubscriber) receiveResponseLoop() {
 	}
 }
 
-func (subscribe *SdsSubscriber) sendRequest(request *xdsapi.DiscoveryRequest) error {
+func (subscribe *SdsSubscriber) sendRequest(request *envoy_service_discovery_v3.DiscoveryRequest) error {
 	log.DefaultLogger.Debugf("send sds request resource name = %v", request.ResourceNames)
 
 	subscribe.sdsStreamClientMutex.RLock()
@@ -180,10 +180,10 @@ func (subscribe *SdsSubscriber) sendRequest(request *xdsapi.DiscoveryRequest) er
 	return clt.streamSecretsClient.Send(request)
 }
 
-func (subscribe *SdsSubscriber) handleSecretResp(response *xdsapi.DiscoveryResponse) {
+func (subscribe *SdsSubscriber) handleSecretResp(response *envoy_service_discovery_v3.DiscoveryResponse) {
 	log.DefaultLogger.Debugf("handle secret response %v", response)
 	for _, res := range response.Resources {
-		secret := &auth.Secret{}
+		secret := &envoy_extensions_transport_sockets_tls_v3.Secret{}
 		ptypes.UnmarshalAny(res, secret)
 		subscribe.provider.SetSecret(secret.Name, secret)
 	}
@@ -206,7 +206,7 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 	if err != nil {
 		return err
 	}
-	sdsServiceClient := v2.NewSecretDiscoveryServiceClient(conn)
+	sdsServiceClient := envoy_service_secret_v3.NewSecretDiscoveryServiceClient(conn)
 	sdsStreamClient := &SdsStreamClient{
 		sdsStreamConfig: sdsStreamConfig,
 		conn:            conn,

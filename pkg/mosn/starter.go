@@ -50,7 +50,7 @@ type Mosn struct {
 	routerManager  types.RouterManager
 	config         *v2.MOSNConfig
 	adminServer    admin.Server
-	xdsClient      *xds.Client
+	xdsClient      xds.Client
 	wg             sync.WaitGroup
 	// for smooth upgrade. reconfigure
 	inheritListeners  []net.Listener
@@ -255,7 +255,8 @@ func (m *Mosn) Start() {
 	m.wg.Add(1)
 	// Start XDS if configured
 	log.StartLogger.Infof("mosn start xds client")
-	m.xdsClient = &xds.Client{}
+	// m.xdsClient = &xds.Client{}
+	m.xdsClient = xds.NewClient()
 	utils.GoWithRecover(func() {
 		m.xdsClient.Start(m.config)
 	}, nil)
@@ -319,7 +320,6 @@ func Start(c *v2.MOSNConfig) {
 		log.DefaultLogger.Infof("[mosn] [close] mosn closed by sys signal")
 		Mosn.Close()
 	}, syscall.SIGINT, syscall.SIGTERM)
-
 
 	Mosn.Start()
 	Mosn.wg.Wait()

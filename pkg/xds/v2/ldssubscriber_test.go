@@ -26,6 +26,7 @@ import (
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	envoy_config_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	xdshttp "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	wellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 )
@@ -56,7 +57,7 @@ func Test_LdsHandler(t *testing.T) {
 	}
 	httpManagerAny, _ := ptypes.MarshalAny(httpManager)
 	filter := listener.Filter{
-		Name: "envoy.http_connection_manager",
+		Name: wellknown.HTTPConnectionManager,
 	}
 	filter.ConfigType = &listener.Filter_TypedConfig{TypedConfig: httpManagerAny}
 	listener := &envoy_api_v2.Listener{

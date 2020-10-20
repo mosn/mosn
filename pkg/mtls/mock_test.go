@@ -23,8 +23,9 @@ import (
 	"net/http"
 	"testing"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"mosn.io/mosn/pkg/config/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls/certtool"
 	"mosn.io/mosn/pkg/types"
@@ -36,12 +37,11 @@ type mockSdsClient struct {
 
 var mockSdsClientInstance *mockSdsClient
 
-func (c *mockSdsClient) AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, f types.SdsUpdateCallbackFunc) error {
+func (c *mockSdsClient) AddUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig, f types.SdsUpdateCallbackFunc) error {
 	c.callback[sdsConfig.Name] = f
 	return nil
 }
-
-func (c *mockSdsClient) SetSecret(name string, secret *auth.Secret) {
+func (c *mockSdsClient) SetSecret(name string, secret *envoy_extensions_transport_sockets_tls_v3.Secret) {
 	// nothing
 }
 
@@ -51,11 +51,11 @@ func (c *mockSdsClient) setSecret(name string, secret *types.SdsSecret) {
 	}
 }
 
-func (c *mockSdsClient) DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error {
+func (c *mockSdsClient) DeleteUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) error {
 	return nil
 }
 
-func getMockSdsClient(cfg *auth.SdsSecretConfig) types.SdsClient {
+func getMockSdsClient(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClient {
 	if mockSdsClientInstance == nil {
 		mockSdsClientInstance = &mockSdsClient{
 			callback: make(map[string]types.SdsUpdateCallbackFunc),
@@ -201,4 +201,30 @@ func (c *certInfo) CreateCertConfig() (*v2.TLSConfig, error) {
 		CertChain:  secret.Certificate,
 		PrivateKey: secret.PrivateKey,
 	}, nil
+}
+
+//////
+///// Deprecated with xDS2
+/////
+
+func (c *mockSdsClient) AddUpdateCallbackDeprecated(sdsConfig *envoy_api_v2_auth.SdsSecretConfig, f types.SdsUpdateCallbackFunc) error {
+	c.callback[sdsConfig.Name] = f
+	return nil
+}
+
+func (c *mockSdsClient) SetSecretDeprecated(name string, secret *envoy_api_v2_auth.Secret) {
+	// nothing
+}
+
+func (c *mockSdsClient) DeleteUpdateCallbackDeprecated(sdsConfig *envoy_api_v2_auth.SdsSecretConfig) error {
+	return nil
+}
+
+func getMockSdsClientDeprecated(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClient {
+	if mockSdsClientInstance == nil {
+		mockSdsClientInstance = &mockSdsClient{
+			callback: make(map[string]types.SdsUpdateCallbackFunc),
+		}
+	}
+	return mockSdsClientInstance
 }

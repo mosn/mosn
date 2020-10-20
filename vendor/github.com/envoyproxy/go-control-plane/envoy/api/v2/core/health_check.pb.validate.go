@@ -266,6 +266,16 @@ func (m *HealthCheck) Validate() error {
 
 	// no validation rules for EventLogPath
 
+	if v, ok := interface{}(m.GetEventService()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return HealthCheckValidationError{
+				field:  "EventService",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
 	// no validation rules for AlwaysLogHealthCheckFailures
 
 	if v, ok := interface{}(m.GetTlsOptions()).(interface{ Validate() error }); ok {

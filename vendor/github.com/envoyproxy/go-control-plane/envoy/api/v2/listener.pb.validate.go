@@ -229,6 +229,21 @@ func (m *Listener) Validate() error {
 
 	// no validation rules for ReusePort
 
+	for idx, item := range m.GetAccessLog() {
+		_, _ = idx, item
+
+		if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ListenerValidationError{
+					field:  fmt.Sprintf("AccessLog[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
 	return nil
 }
 
@@ -479,7 +494,9 @@ type Listener_ConnectionBalanceConfig_ExactBalanceValidationError struct {
 func (e Listener_ConnectionBalanceConfig_ExactBalanceValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e Listener_ConnectionBalanceConfig_ExactBalanceValidationError) Reason() string { return e.reason }
+func (e Listener_ConnectionBalanceConfig_ExactBalanceValidationError) Reason() string {
+	return e.reason
+}
 
 // Cause function returns cause value.
 func (e Listener_ConnectionBalanceConfig_ExactBalanceValidationError) Cause() error { return e.cause }

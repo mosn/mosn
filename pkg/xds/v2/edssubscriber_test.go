@@ -52,7 +52,7 @@ func Test_EdsHandler(t *testing.T) {
 	}
 	endpointsAny, _ := ptypes.MarshalAny(endpoints)
 	resp := &envoy_api_v2.DiscoveryResponse{
-		TypeUrl:   EnvoyClusterLoadAssignment,
+		TypeUrl:   EnvoyEndpoint,
 		Resources: []*any.Any{endpointsAny},
 	}
 
