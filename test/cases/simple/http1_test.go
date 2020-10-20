@@ -3,76 +3,74 @@
 package simple
 
 import (
-	"errors"
-	"fmt"
-	"net/http"
 	"testing"
-	"time"
 
+	. "mosn.io/mosn/test/framework"
 	"mosn.io/mosn/test/lib"
-	testlib_http "mosn.io/mosn/test/lib/http"
+	"mosn.io/mosn/test/lib/http"
 )
 
-func runSimpleHttpClient(addr string) error {
-	cfg := testlib_http.CreateSimpleConfig(addr)
-	VefiyCfg := &testlib_http.VerifyConfig{
-		ExpectedStatus: http.StatusOK,
-		ExpectedHeader: map[string]string{
-			"mosn-test-default": "http1",
-		},
-		ExpectedBody: []byte("default-http1"),
-	}
-	cfg.Verify = VefiyCfg.Verify
-	// create only one connection
-	clt := testlib_http.NewClient(cfg, 1)
-	// send a request, and verify the result
-	if !clt.SyncCall() {
-		return errors.New(fmt.Sprintf("client request %s is failed", addr))
-	}
-	return nil
-}
-
 func TestSimpleHTTP1(t *testing.T) {
-	lib.Scenario(t, "Simple http1 proxy used mosn", func() {
-		var mosn *lib.MosnOperator
-		var srv *testlib_http.MockServer
-		lib.Setup(func() error {
-			mosn = lib.StartMosn(ConfigSimpleHTTP1)
-			srv = testlib_http.NewMockServer("127.0.0.1:8080", nil)
-			go srv.Start()
-			time.Sleep(time.Second)
-			return nil
+	Scenario(t, "simple http1 proxy used mosn", func() {
+		// servers is invalid in `Case`
+		_, servers := lib.InitMosn(ConfigSimpleHTTP1, lib.CreateConfig(MockHttpServerConfig))
+		Case("client-mosn-mosn-server", func() {
+			client := lib.CreateClient("Http1", &http.HttpClientConfig{
+				TargetAddr: "127.0.0.1:2045",
+				Verify: &http.VerifyConfig{
+					ExpectedStatusCode: 200,
+					ExpectedHeader: map[string][]string{
+						"mosn-test-default": []string{"http1"},
+					},
+					ExpectedBody: []byte("default-http1"),
+				},
+			})
+			Verify(client.SyncCall(), Equal, true)
+			stats := client.Stats()
+			Verify(stats.Requests(), Equal, 1)
+			Verify(stats.ExpectedResponseCount(), Equal, 1)
 		})
-		lib.TearDown(func() {
-			srv.Close()
-			mosn.Stop()
+		Case("client-mosn-server", func() {
+			client := lib.CreateClient("Http1", &http.HttpClientConfig{
+				TargetAddr: "127.0.0.1:2046",
+				Verify: &http.VerifyConfig{
+					ExpectedStatusCode: 200,
+					ExpectedHeader: map[string][]string{
+						"mosn-test-default": []string{"http1"},
+					},
+					ExpectedBody: []byte("default-http1"),
+				},
+			})
+			Verify(client.SyncCall(), Equal, true)
+			stats := client.Stats()
+			Verify(stats.Requests(), Equal, 1)
+			Verify(stats.ExpectedResponseCount(), Equal, 1)
+
 		})
-		lib.Execute("client-mosn-mosn-server", func() error {
-			return runSimpleHttpClient("127.0.0.1:2045")
-		})
-		lib.Execute("client-mosn-server", func() error {
-			return runSimpleHttpClient("127.0.0.1:2046")
-		})
-		lib.Verify(func() error {
-			connTotal, connActive, connClose := srv.ServerStats.ConnectionStats()
-			if !(connTotal == 1 && connActive == 1 && connClose == 0) {
-				msg := fmt.Sprintf("server connection is not expected %d, %d, %d", connTotal, connActive, connClose)
-				return errors.New(msg)
-			}
-			if !(srv.ServerStats.RequestStats() == 2 && srv.ServerStats.ResponseStats()[http.StatusOK] == 2) {
-				msg := fmt.Sprintf("server request and response is not expected %d, %d", srv.ServerStats.RequestStats(), srv.ServerStats.ResponseStats())
-				return errors.New(msg)
-			}
-			return nil
+		Case("server-verify", func() {
+			srv := servers[0]
+			stats := srv.Stats()
+			Verify(stats.ConnectionTotal(), Equal, 1)
+			Verify(stats.ConnectionActive(), Equal, 1)
+			Verify(stats.ConnectionClosed(), Equal, 0)
+			Verify(stats.Requests(), Equal, 2)
+
 		})
 	})
 }
+
+const MockHttpServerConfig = `{
+	"protocol":"Http1",
+	"config": {
+		"address": "127.0.0.1:8080"
+	}
+}`
 
 const ConfigSimpleHTTP1 = `{
         "servers":[
                 {
                         "default_log_path":"stdout",
-                        "default_log_level": "FATAL",
+                        "default_log_level": "ERROR",
                         "routers": [
                                 {
                                         "router_config_name":"router_to_mosn",
@@ -105,8 +103,6 @@ const ConfigSimpleHTTP1 = `{
                                 {
                                         "address":"127.0.0.1:2045",
                                         "bind_port": true,
-                                        "log_path": "stdout",
-                                        "log_level": "FATAL",
                                         "filter_chains": [{
                                                 "filters": [
                                                         {
@@ -123,8 +119,6 @@ const ConfigSimpleHTTP1 = `{
                                 {
                                         "address":"127.0.0.1:2046",
                                         "bind_port": true,
-                                        "log_path": "stdout",
-                                        "log_LEVEL": "FATAL",
                                         "filter_chains": [{
                                                 "filters": [
                                                         {

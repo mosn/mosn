@@ -41,3 +41,8 @@ func (UndeclaredThrowableException) JavaClassName() string {
 func NewUndeclaredThrowableException(detailMessage string) *UndeclaredThrowableException {
 	return &UndeclaredThrowableException{DetailMessage: detailMessage, UndeclaredThrowable: Throwable{}}
 }
+
+// equals to getStackTrace in java
+func (e UndeclaredThrowableException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

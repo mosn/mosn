@@ -48,7 +48,7 @@ type connPool struct {
 }
 
 // NewConnPool
-func NewConnPool(host types.Host) types.ConnectionPool {
+func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 	pool := &connPool{
 		tlsHash: host.TLSHashValue(),
 	}
@@ -81,9 +81,7 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
-func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
-
+func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	activeClient := func() *activeClient {
 		p.mux.Lock()
 		defer p.mux.Unlock()
@@ -98,28 +96,25 @@ func (p *connPool) NewStream(ctx context.Context,
 
 	host := p.Host()
 	if activeClient == nil {
-		listener.OnFailure(types.ConnectionFailure, host)
-		return
+		return host, nil, types.ConnectionFailure
 	}
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, host)
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-	} else {
-		atomic.AddUint64(&activeClient.totalStream, 1)
-		host.HostStats().UpstreamRequestTotal.Inc(1)
-		host.HostStats().UpstreamRequestActive.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
-		host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
-		streamEncoder.GetStream().AddEventListener(activeClient)
-
-		listener.OnReady(streamEncoder, host)
+		return host, nil, types.Overflow
 	}
 
-	return
+	atomic.AddUint64(&activeClient.totalStream, 1)
+	host.HostStats().UpstreamRequestTotal.Inc(1)
+	host.HostStats().UpstreamRequestActive.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
+	host.ClusterInfo().ResourceManager().Requests().Increase()
+	streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
+	streamEncoder.GetStream().AddEventListener(activeClient)
+
+	return host, streamEncoder, ""
 }
 
 func (p *connPool) Close() {

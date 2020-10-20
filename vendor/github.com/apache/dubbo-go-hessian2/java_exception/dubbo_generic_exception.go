@@ -42,3 +42,8 @@ func (e DubboGenericException) Error() string {
 func (DubboGenericException) JavaClassName() string {
 	return "com.alibaba.dubbo.rpc.service.GenericException"
 }
+
+// equals to getStackTrace in java
+func (e DubboGenericException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

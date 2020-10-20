@@ -9,13 +9,9 @@ servers:
           - filters:
               - type: proxy
                 config:
-                  downstream_protocol: SofaRpc
-                  upstream_protocol: SofaRpc
+                  downstream_protocol: Http1
+                  upstream_protocol: Http1
                   router_config_name: test_router
-              - type: connection_manager
-                config:
-                  router_config_name: test_router
-                  virtual_hosts: []
 cluster_manager:
   clusters:
     - name: example

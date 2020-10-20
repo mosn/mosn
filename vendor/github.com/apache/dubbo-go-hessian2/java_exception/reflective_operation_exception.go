@@ -40,3 +40,8 @@ func (e ReflectiveOperationException) Error() string {
 func (ReflectiveOperationException) JavaClassName() string {
 	return "java.lang.ReflectiveOperationException"
 }
+
+// equals to getStackTrace in java
+func (e ReflectiveOperationException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -79,6 +80,11 @@ func (proto *boltv2Protocol) Name() types.ProtocolName {
 
 func (proto *boltv2Protocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
 	switch frame := model.(type) {
+	case *bolt.Request, *bolt.Response:
+		// FIXME: makes sofarpc protocol common
+		// bolt and boltv2 can be handled success on a same connection
+		engine := xprotocol.GetProtocol(bolt.ProtocolName)
+		return engine.Encode(ctx, model)
 	case *Request:
 		return encodeRequest(ctx, frame)
 	case *Response:
@@ -90,8 +96,15 @@ func (proto *boltv2Protocol) Encode(ctx context.Context, model interface{}) (typ
 }
 
 func (proto *boltv2Protocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+	if data.Len() > 0 {
+		code := data.Bytes()[0]
+		if code == bolt.ProtocolCode { // protocol bolt
+			engine := xprotocol.GetProtocol(bolt.ProtocolName)
+			return engine.Decode(ctx, data)
+		}
+	}
 	if data.Len() >= LessLen {
-		cmdType := data.Bytes()[1]
+		cmdType := data.Bytes()[2]
 
 		switch cmdType {
 		case bolt.CmdTypeRequest:
@@ -110,36 +123,16 @@ func (proto *boltv2Protocol) Decode(ctx context.Context, data types.IoBuffer) (i
 }
 
 // heartbeater
+// boltv2 send bolt heartbeat
 func (proto *boltv2Protocol) Trigger(requestId uint64) xprotocol.XFrame {
-	return &Request{
-		RequestHeader: RequestHeader{
-			RequestHeader: bolt.RequestHeader{
-				Protocol:  ProtocolCode,
-				CmdType:   bolt.CmdTypeRequest,
-				CmdCode:   bolt.CmdCodeHeartbeat,
-				Version:   ProtocolVersion,
-				RequestId: uint32(requestId),
-				Codec:     bolt.Hessian2Serialize,
-				Timeout:   -1,
-			},
-		},
-	}
+	engine := xprotocol.GetProtocol(bolt.ProtocolName)
+	return engine.Trigger(requestId)
 }
 
+// boltv2 reply bolt heartbeat
 func (proto *boltv2Protocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
-	return &Response{
-		ResponseHeader: ResponseHeader{
-			ResponseHeader: bolt.ResponseHeader{
-				Protocol:       ProtocolCode,
-				CmdType:        bolt.CmdTypeResponse,
-				CmdCode:        bolt.CmdCodeHeartbeat,
-				Version:        ProtocolVersion,
-				RequestId:      uint32(request.GetRequestId()),
-				Codec:          bolt.Hessian2Serialize,
-				ResponseStatus: bolt.ResponseStatusSuccess,
-			},
-		},
-	}
+	engine := xprotocol.GetProtocol(bolt.ProtocolName)
+	return engine.Reply(request)
 }
 
 // hijacker
@@ -181,4 +174,17 @@ func (proto *boltv2Protocol) Mapping(httpStatusCode uint32) uint32 {
 	default:
 		return uint32(bolt.ResponseStatusUnknown)
 	}
+}
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *boltv2Protocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+func (proto *boltv2Protocol) EnableWorkerPool() bool {
+	return true
+}
+
+func (proto *boltv2Protocol) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
 }

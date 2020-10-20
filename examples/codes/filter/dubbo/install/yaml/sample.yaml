@@ -1,0 +1,135 @@
+apiVersion: networking.istio.io/v1beta1
+kind: WorkloadEntry
+metadata:
+  name: provider-1
+spec:
+  address: 10.13.160.75
+  ports:
+    dubbo-http: 20882
+  labels:
+    app: mosn.io.dubbo.DemoService
+    group: blue
+  weight: 10
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: WorkloadEntry
+metadata:
+  name: provider-2
+spec:
+  address: 10.13.160.54
+  ports:
+    dubbo-http: 20882
+  labels:
+    app: mosn.io.dubbo.DemoService
+    group: blue
+  weight: 20
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: WorkloadEntry
+metadata:
+  name: provider-3
+spec:
+  address: 10.13.160.53
+  ports:
+    dubbo-http: 20882
+  labels:
+    app: mosn.io.dubbo.DemoService
+    group: blue
+  weight: 20
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: WorkloadEntry
+metadata:
+  name: provider-4
+spec:
+  address: 10.13.160.76
+  ports:
+    dubbo-http: 20882
+  labels:
+    app: mosn.io.dubbo.DemoService
+    group: green
+  weight: 20
+
+---
+
+apiVersion: networking.istio.io/v1beta1
+kind: WorkloadEntry
+metadata:
+  name: provider-5
+spec:
+  address: 10.13.160.55
+  ports:
+    dubbo-http: 20882
+  labels:
+    app: mosn.io.dubbo.DemoService
+    group: green
+  weight: 20
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: dubbo-app-se
+spec:
+  hosts:
+    - mosn.io.dubbo.DemoService
+  ports:
+    - number: 20882
+      name: dubbo-http
+      protocol: HTTP
+  location: MESH_INTERNAL
+  resolution: STATIC
+  workloadSelector:
+    labels:
+      app: mosn.io.dubbo.DemoService
+
+###############################
+# proxy define
+###############################
+
+# ---
+# apiVersion: networking.istio.io/v1beta1
+# kind: WorkloadEntry
+# metadata:
+#   name: proxy-1
+# spec:
+#   address: 3.3.3.1
+#   ports:
+#     proxy: 20881
+#   labels:
+#     app: mosn.io.dubbo.proxy
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: WorkloadEntry
+metadata:
+  name: proxy-2
+spec:
+  address: 10.13.160.55
+  ports:
+    dubbo-px: 20880
+  labels:
+    app: mosn.io.dubbo.proxy
+
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: dubbo-proxy
+spec:
+  hosts:
+    - mosn.io.dubbo.proxy
+  ports:
+    - number: 20882
+      name: dubbo-px
+      protocol: TCP
+  location: MESH_INTERNAL
+  resolution: STATIC
+  workloadSelector:
+    labels:
+      app: mosn.io.dubbo.proxy

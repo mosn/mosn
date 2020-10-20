@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -81,12 +82,26 @@ func (proto *boltProtocol) Encode(ctx context.Context, model interface{}) (types
 	case *Response:
 		return encodeResponse(ctx, frame)
 	default:
-		log.Proxy.Errorf(ctx, "[protocol][bolt] encode with unknown command : %+v", model)
-		return nil, xprotocol.ErrUnknownType
+		// log.Proxy.Errorf(ctx, "[protocol][bolt] encode with unknown command : %+v", model)
+		// return nil, xprotocol.ErrUnknownType
+		// FIXME: makes sofarpc protocol common
+		// bolt and boltv2 can be handled success on a same connection
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(ctx, "[protocol][bolt] bolt maybe receive boltv2 encode")
+		}
+		engine := xprotocol.GetProtocol("boltv2")
+		return engine.Encode(ctx, model)
 	}
 }
 
 func (proto *boltProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+	if data.Len() > 0 {
+		code := data.Bytes()[0]
+		if code == 0x02 { // protocol boltv2
+			engine := xprotocol.GetProtocol("boltv2")
+			return engine.Decode(ctx, data)
+		}
+	}
 	if data.Len() >= LessLen {
 		cmdType := data.Bytes()[1]
 
@@ -172,4 +187,17 @@ func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 	default:
 		return uint32(ResponseStatusUnknown)
 	}
+}
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *boltProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+func (proto *boltProtocol) EnableWorkerPool() bool{
+	return true
+}
+
+func (proto *boltProtocol) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
 }
