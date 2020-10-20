@@ -172,12 +172,12 @@ func (mng *clientContextManager) Conn(c net.Conn) (net.Conn, error) {
 }
 
 func (mng *clientContextManager) Enabled() bool {
-	return mng.provider != nil && mng.provider.Ready()
+	return mng != nil && mng.provider != nil && mng.provider.Ready()
 }
 
 // if the provider is not ready, the hash value returns nil.
 func (mng *clientContextManager) HashValue() *types.HashValue {
-	if mng.provider == nil {
+	if mng == nil || mng.provider == nil {
 		return nil
 	}
 	return mng.provider.GetTLSConfigContext(true).HashValue()

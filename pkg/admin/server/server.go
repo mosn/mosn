@@ -45,6 +45,7 @@ func init() {
 		"/api/v1/stats":           statsDump,
 		"/api/v1/stats_glob":      statsDumpProxyTotal,
 		"/api/v1/update_loglevel": updateLogLevel,
+		"/api/v1/get_loglevel":    getLoggerInfo,
 		"/api/v1/enable_log":      enableLogger,
 		"/api/v1/disbale_log":     disableLogger,
 		"/api/v1/states":          getState,

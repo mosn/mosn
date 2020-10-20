@@ -40,3 +40,8 @@ func (EmptyStackException) JavaClassName() string {
 func NewEmptyStackException(detailMessage string) *EmptyStackException {
 	return &EmptyStackException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e EmptyStackException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

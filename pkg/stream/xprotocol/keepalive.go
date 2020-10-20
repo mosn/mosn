@@ -62,7 +62,6 @@ func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Durat
 		requests:     make(map[uint64]*keepAliveTimeout),
 		mutex:        sync.Mutex{},
 	}
-
 	// register keepalive to connection event listener
 	// if connection is closed, keepalive should stop
 	kp.Codec.AddConnectionEventListener(kp)
@@ -116,8 +115,11 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
 	kp.mutex.Lock()
+	defer kp.mutex.Unlock()
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
+	}
 	kp.requests[id] = startTimeout(id, kp)
-	kp.mutex.Unlock()
 }
 
 func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
@@ -132,6 +134,9 @@ func (kp *xprotocolKeepAlive) HandleTimeout(id uint64) {
 		kp.mutex.Lock()
 		defer kp.mutex.Unlock()
 		if _, ok := kp.requests[id]; ok {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request timeout %d", kp.Codec.ConnID(), id)
+			}
 			delete(kp.requests, id)
 			atomic.AddUint32(&kp.timeoutCount, 1)
 			// close the connection, stop keep alive
@@ -151,6 +156,9 @@ func (kp *xprotocolKeepAlive) HandleSuccess(id uint64) {
 		kp.mutex.Lock()
 		defer kp.mutex.Unlock()
 		if timeout, ok := kp.requests[id]; ok {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request success %d", kp.Codec.ConnID(), id)
+			}
 			delete(kp.requests, id)
 			timeout.timer.Stop()
 			// reset the tiemout count
@@ -162,7 +170,7 @@ func (kp *xprotocolKeepAlive) HandleSuccess(id uint64) {
 
 func (kp *xprotocolKeepAlive) Stop() {
 	kp.once.Do(func() {
-		log.DefaultLogger.Infof("[stream] [sofarpc] [keepalive] connection %d stopped keepalive", kp.Codec.ConnID())
+		log.DefaultLogger.Infof("[stream] [xprotocol] [keepalive] connection %d stopped keepalive", kp.Codec.ConnID())
 		close(kp.stop)
 	})
 }

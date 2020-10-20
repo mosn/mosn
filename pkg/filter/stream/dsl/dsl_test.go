@@ -32,13 +32,30 @@ import (
 
 type mockReceiveHandler struct {
 	api.StreamReceiverFilterHandler
+	phase types.Phase
 }
 
 func (f *mockReceiveHandler) RequestInfo() api.RequestInfo {
 	return nil
 }
 
-func TestDSLNewStreamFilter(t *testing.T) {
+func (f *mockReceiveHandler) GetFilterCurrentPhase() api.FilterPhase {
+	// default AfterRoute
+	p := api.AfterRoute
+
+	switch f.phase {
+	case types.DownFilter:
+		p = api.BeforeRoute
+	case types.DownFilterAfterRoute:
+		p = api.AfterRoute
+	case types.DownFilterAfterChooseHost:
+		p = api.AfterChooseHost
+	}
+
+	return p
+}
+
+func TestDSLStreamFilter(t *testing.T) {
 	cfg := v2.StreamDSL{
 		BeforeRouterDSL:  "conditional((request.host == \"dsl\") && (request.headers[\"dsl\"] == \"dsl\"), ctx.rewrite_request_url(string(0)), ctx.rewrite_request_url(\"/xxx0\"))",
 		AfterRouterDSL:   "conditional((request.host == \"dsl\") && (request.headers[\"dsl\"] == \"dsl\"), ctx.rewrite_request_url(\"1\"), ctx.rewrite_request_url(\"/xxx1\"))",
@@ -49,10 +66,13 @@ func TestDSLNewStreamFilter(t *testing.T) {
 
 	dsl, err := checkDSL(cfg)
 	if err != nil {
-		t.Errorf("check dsl faied: %v", err)
+		t.Errorf("check dsl failed: %v", err)
 	}
 
 	f := NewDSLFilter(context.Background(), dsl)
+	if f == nil {
+		t.Error("create dsl filter failed!")
+	}
 
 	receiveHandler := &mockReceiveHandler{}
 
@@ -71,7 +91,7 @@ func TestDSLNewStreamFilter(t *testing.T) {
 	phase := []types.Phase{types.DownFilter, types.DownFilterAfterRoute, types.DownFilterAfterChooseHost}
 	for k, p := range phase {
 
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterPhase, p)
+		receiveHandler.phase = p
 		f.OnReceive(ctx, reqHeaders, nil, nil)
 		if v, ok := reqHeaders.Get(protocol.MosnHeaderPathKey); !ok || v != strconv.Itoa(k) {
 			t.Errorf("DSL execute failed, index: %d, want: %s but: %s", k, strconv.Itoa(k), v)
@@ -93,6 +113,45 @@ func TestDSLNewStreamFilter(t *testing.T) {
 		t.Error("DSL execute failed, at the Log phase")
 	}
 
+}
+
+func TestNewDSLStreamFilter(t *testing.T) {
+	m := map[string]interface{}{}
+	if _, err := CreateDSLFilterFactory(m); err != nil {
+		t.Errorf("Create DSL filter failed: %v", err)
+	}
+
+	// test check dsl
+	m["before_router_by_dsl"] = "conditional((request.host == \"dsl\") && (request.headers[\"dsl\"] == \"dsl\"), ctx.rewrite_request_url(string(0)), ctx.rewrite_request_url(\"/xxx0\"))"
+	cf, err := CreateDSLFilterFactory(m)
+	if cf == nil || err != nil {
+		t.Errorf("Create DSL filter cf failed: %v", err)
+	}
+	// test panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("CreateFilterChain should be panic when callback is nil!")
+		}
+	}()
+
+	cf.CreateFilterChain(nil, nil)
+
+	// test unknown function or variables
+	m["before_router_by_dsl"] = "conditional((request.unknown == \"dsl\"), unknown_function(string(0)), ctx.rewrite_request_url(\"/xxx0\"))"
+	if _, err := CreateDSLFilterFactory(m); err == nil {
+		t.Errorf("It should be failed when use invalid dsl.")
+	}
+
+	m["log_filter_by_dsl"] = "conditional((request.unknown == \"dsl\"), unknown_function(string(0)), ctx.rewrite_request_url(\"/xxx0\"))"
+	if _, err := CreateDSLFilterFactory(m); err == nil {
+		t.Errorf("It should be failed when use invalid dsl.")
+	}
+
+	// test unknown phase
+	m["unknown_by_dsl"] = "conditional((request.host == \"dsl\")), ctx.rewrite_request_url(string(0)), ctx.rewrite_request_url(\"xxx\"))"
+	if _, err := CreateDSLFilterFactory(m); err == nil {
+		t.Errorf("It should be failed when use invalid phase.")
+	}
 }
 
 func BenchmarkDSL(b *testing.B) {
@@ -118,8 +177,7 @@ func BenchmarkDSL(b *testing.B) {
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterPhase, types.DownFilter)
-
+	receiveHandler.phase = types.DownFilter
 	want := "0"
 	for i := 0; i < b.N; i++ {
 		f.OnReceive(ctx, reqHeaders, nil, nil)

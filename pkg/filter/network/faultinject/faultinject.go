@@ -73,7 +73,7 @@ func (fi *faultInjector) tryInjectDelay() {
 		if atomic.CompareAndSwapUint32(&fi.delaying, 0, 1) {
 			utils.GoWithRecover(func() {
 				select {
-				case <-time.After(time.Duration(duration) * time.Millisecond):
+				case <-time.After(time.Duration(duration)):
 					atomic.StoreUint32(&fi.delaying, 0)
 					fi.readCallbacks.ContinueReading()
 				}

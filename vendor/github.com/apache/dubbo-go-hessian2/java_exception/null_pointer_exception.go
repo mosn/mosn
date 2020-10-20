@@ -40,3 +40,8 @@ func (e NullPointerException) Error() string {
 func (e NullPointerException) JavaClassName() string {
 	return "java.lang.NullPointerException"
 }
+
+// equals to getStackTrace in java
+func (e NullPointerException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

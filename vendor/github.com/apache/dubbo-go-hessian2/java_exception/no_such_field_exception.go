@@ -40,3 +40,8 @@ func (e NoSuchFieldException) Error() string {
 func (NoSuchFieldException) JavaClassName() string {
 	return "java.lang.NoSuchFieldException"
 }
+
+// equals to getStackTrace in java
+func (e NoSuchFieldException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

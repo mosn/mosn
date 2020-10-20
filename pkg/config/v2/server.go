@@ -19,7 +19,10 @@ package v2
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net"
+	"strings"
 
 	"mosn.io/api"
 )
@@ -55,6 +58,7 @@ type ListenerConfig struct {
 	Type                  ListenerType        `json:"type,omitempty"`
 	AddrConfig            string              `json:"address,omitempty"`
 	BindToPort            bool                `json:"bind_port,omitempty"`
+	Network               string              `json:"network,omitempty"`
 	UseOriginalDst        bool                `json:"use_original_dst,omitempty"`
 	AccessLogs            []AccessLog         `json:"access_logs,omitempty"`
 	ListenerFilters       []Filter            `json:"listener_filters,omitempty"`
@@ -71,7 +75,8 @@ type Listener struct {
 	ListenerTag             uint64           `json:"-"`
 	ListenerScope           string           `json:"-"`
 	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
-	InheritListener         *net.TCPListener `json:"-"`
+	InheritListener         net.Listener `json:"-"`
+	InheritPacketConn       *net.PacketConn  `json:"-"`
 	Remain                  bool             `json:"-"`
 }
 
@@ -80,6 +85,41 @@ func (l Listener) MarshalJSON() (b []byte, err error) {
 		l.AddrConfig = l.Addr.String()
 	}
 	return json.Marshal(l.ListenerConfig)
+}
+
+var ErrNoAddrListener = errors.New("address is required in listener config")
+
+const defaultBufferLimit = 1 << 15
+
+func (l *Listener) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &l.ListenerConfig); err != nil {
+		return err
+	}
+	if l.AddrConfig == "" {
+		return ErrNoAddrListener
+	}
+	if l.Network == "" {
+		l.Network = "tcp" // default is tcp
+	}
+	l.Network = strings.ToLower(l.Network)
+	var err error
+	var addr net.Addr
+	switch l.Network {
+	case "udp":
+		addr, err = net.ResolveUDPAddr("udp", l.AddrConfig)
+	case "unix":
+		addr, err = net.ResolveUnixAddr("unix", l.AddrConfig)
+	case "tcp":
+		addr, err = net.ResolveTCPAddr("tcp", l.AddrConfig)
+	default: // only support tcp,udp,unix
+		err = fmt.Errorf("unknown listen type: %s , only support tcp,udp,unix",  l.Network)
+	}
+	if err != nil {
+		return err
+	}
+	l.Addr = addr
+	l.PerConnBufferLimitBytes = defaultBufferLimit
+	return nil
 }
 
 // AccessLog for making up access log
@@ -113,7 +153,7 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	if len(fc.TLSConfigs) > 0 {
 		fc.TLSContexts = make([]TLSConfig, len(fc.TLSConfigs))
 		copy(fc.TLSContexts, fc.TLSConfigs)
-	} else { // no tls_context_set, use tls_context
+	} else {                     // no tls_context_set, use tls_context
 		if fc.TLSConfig == nil { // no tls_context, generate a default one
 			fc.TLSContexts = append(fc.TLSContexts, TLSConfig{})
 		} else { // use tls_context

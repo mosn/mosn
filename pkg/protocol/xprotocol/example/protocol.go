@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync/atomic"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -115,4 +116,17 @@ func (proto *proto) Hijack(request xprotocol.XFrame, statusCode uint32) xprotoco
 func (proto *proto) Mapping(httpStatusCode uint32) uint32 {
 	// not supported for poc demo
 	return 0
+}
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *proto) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+func (proto *proto) EnableWorkerPool() bool {
+	return true
+}
+
+func (proto *proto) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
 }

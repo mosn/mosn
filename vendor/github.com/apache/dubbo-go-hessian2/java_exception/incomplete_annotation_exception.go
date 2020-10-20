@@ -42,3 +42,8 @@ func (e IncompleteAnnotationException) Error() string {
 func (IncompleteAnnotationException) JavaClassName() string {
 	return "java.lang.annotation.IncompleteAnnotationException"
 }
+
+// equals to getStackTrace in java
+func (e IncompleteAnnotationException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

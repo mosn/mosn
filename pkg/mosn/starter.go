@@ -20,6 +20,7 @@ package mosn
 import (
 	"net"
 	"sync"
+	"syscall"
 
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
@@ -52,8 +53,9 @@ type Mosn struct {
 	xdsClient      *xds.Client
 	wg             sync.WaitGroup
 	// for smooth upgrade. reconfigure
-	inheritListeners []net.Listener
-	listenSockConn   net.Conn
+	inheritListeners  []net.Listener
+	inheritPacketConn []net.PacketConn
+	listenSockConn    net.Conn
 }
 
 // NewMosn
@@ -64,13 +66,25 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
 
-	store.SetMosnConfig(c)
+	// set the mosn config finally
+	defer configmanager.SetMosnConfig(c)
 
-	//get inherit fds
-	inheritListeners, listenSockConn, err := server.GetInheritListeners()
-	if err != nil {
-		log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+	var (
+		inheritListeners  []net.Listener
+		inheritPacketConn []net.PacketConn
+		listenSockConn    net.Conn
+		err               error
+	)
+
+	// default is graceful mode, turn graceful off by set it to false
+	if !c.CloseGraceful {
+		//get inherit fds
+		inheritListeners, inheritPacketConn, listenSockConn, err = server.GetInheritListeners()
+		if err != nil {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+		}
 	}
+
 	if listenSockConn != nil {
 		log.StartLogger.Infof("[mosn] [NewMosn] active reconfiguring")
 		// set Mosn Active_Reconfiguring
@@ -88,10 +102,11 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeMetrics(c.Metrics)
 
 	m := &Mosn{
-		config:           c,
-		wg:               sync.WaitGroup{},
-		inheritListeners: inheritListeners,
-		listenSockConn:   listenSockConn,
+		config:            c,
+		wg:                sync.WaitGroup{},
+		inheritListeners:  inheritListeners,
+		inheritPacketConn: inheritPacketConn,
+		listenSockConn:    listenSockConn,
 	}
 	mode := c.Mode()
 
@@ -101,10 +116,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 				DefaultLogPath:  "stdout",
 				DefaultLogLevel: "INFO",
 			},
-		}
-	} else {
-		if len(c.ClusterManager.Clusters) == 0 && !c.ClusterManager.AutoDiscovery {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] no cluster found and cluster manager doesn't support auto discovery")
 		}
 	}
 
@@ -123,9 +134,9 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	clusters, clusterMap := configmanager.ParseClusterConfig(c.ClusterManager.Clusters)
 	// create cluster manager
 	if mode == v2.Xds {
-		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil)
+		m.clustermanager = cluster.NewClusterManagerSingleton(nil, nil, &c.ClusterManager.TLSContext)
 	} else {
-		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap)
+		m.clustermanager = cluster.NewClusterManagerSingleton(clusters, clusterMap, &c.ClusterManager.TLSContext)
 	}
 
 	// initialize the routerManager
@@ -149,14 +160,9 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.clustermanager)
 
-			//add listener
-			if len(serverConfig.Listeners) == 0 {
-				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
-			}
-
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
-				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners)
+				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners, inheritPacketConn)
 				// deprecated: keep compatible for route config in listener's connection_manager
 				deprecatedRouter, err := configmanager.ParseRouterConfiguration(&lc.FilterChains[0])
 				if err != nil {
@@ -223,16 +229,25 @@ func (m *Mosn) beforeStart() {
 			ln.Close()
 		}
 	}
+	//close legacy UDP listeners
+	for _, ln := range m.inheritPacketConn {
+		if ln != nil {
+			log.StartLogger.Infof("[mosn] [NewMosn] close useless legacy listener: %s", ln.LocalAddr().String())
+			ln.Close()
+		}
+	}
 
 	// start dump config process
 	utils.GoWithRecover(func() {
 		configmanager.DumpConfigHandler()
 	}, nil)
 
-	// start reconfig domain socket
-	utils.GoWithRecover(func() {
-		server.ReconfigureHandler()
-	}, nil)
+	if !m.config.CloseGraceful {
+		// start reconfig domain socket
+		utils.GoWithRecover(func() {
+			server.ReconfigureHandler()
+		}, nil)
+	}
 }
 
 // Start mosn's server
@@ -246,13 +261,13 @@ func (m *Mosn) Start() {
 	}, nil)
 	// start mosn feature
 	featuregate.StartInit()
-	// TODO: remove it
-	//parse service registry info
-	log.StartLogger.Infof("mosn parse registry info")
-	configmanager.ParseServiceRegistry(m.config.ServiceRegistry)
-
 	log.StartLogger.Infof("mosn parse extend config")
-	configmanager.ParseConfigExtend(m.config.Extend)
+	for typ, cfg := range m.config.Extends {
+		if err := v2.ExtendConfigParsed(typ, cfg); err != nil {
+			log.StartLogger.Fatalf("mosn parse extend config failed, type: %s, error: %v", typ, err)
+		}
+		configmanager.SetExtend(typ, cfg)
+	}
 
 	// beforestart starts transfer connection and non-proxy listeners
 	log.StartLogger.Infof("mosn prepare for start")
@@ -298,6 +313,14 @@ func (m *Mosn) Close() {
 func Start(c *v2.MOSNConfig) {
 	//log.StartLogger.Infof("[mosn] [start] start by config : %+v", c)
 	Mosn := NewMosn(c)
+	// the signals SIGKILL and SIGSTOP may not be caught by a program,
+	// so we need other ways to ensure that resources are safely cleaned up
+	keeper.AddSignalCallback(func() {
+		log.DefaultLogger.Infof("[mosn] [close] mosn closed by sys signal")
+		Mosn.Close()
+	}, syscall.SIGINT, syscall.SIGTERM)
+
+
 	Mosn.Start()
 	Mosn.wg.Wait()
 }

@@ -18,87 +18,11 @@
 package sync
 
 import (
-	"fmt"
 	"runtime/debug"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/utils"
 )
-
-const (
-	maxRespwanTimes = 1 << 6
-)
-
-type shard struct {
-	index        int
-	respawnTimes uint32
-	jobChan      chan interface{}
-}
-
-type shardWorkerPool struct {
-	// workerFunc should never exit, always try to acquire jobs from jobs channel
-	workerFunc WorkerFunc
-	shards     []*shard
-	numShards  int
-}
-
-// NewShardWorkerPool creates a new shard worker pool.
-func NewShardWorkerPool(size int, numShards int, workerFunc WorkerFunc) (ShardWorkerPool, error) {
-	if size <= 0 {
-		return nil, fmt.Errorf("worker pool size too small: %d", size)
-	}
-	if size < numShards {
-		numShards = size
-	}
-	shardCap := size / numShards
-	shards := make([]*shard, numShards)
-	for i := range shards {
-		shards[i] = &shard{
-			index:   i,
-			jobChan: make(chan interface{}, shardCap),
-		}
-	}
-	return &shardWorkerPool{
-		workerFunc: workerFunc,
-		shards:     shards,
-		numShards:  numShards,
-	}, nil
-}
-
-func (pool *shardWorkerPool) Init() {
-	for i := range pool.shards {
-		pool.spawnWorker(pool.shards[i])
-	}
-}
-
-func (pool *shardWorkerPool) Shard(source uint32) uint32 {
-	return source % uint32(pool.numShards)
-}
-
-func (pool *shardWorkerPool) Offer(job ShardJob, block bool) {
-	// use shard to avoid excessive synchronization
-	i := pool.Shard(job.Source())
-	if block {
-		pool.shards[i].jobChan <- job
-	} else {
-		select {
-		case pool.shards[i].jobChan <- job:
-		default:
-			log.DefaultLogger.Errorf("[syncpool] jobChan over full")
-		}
-	}
-}
-
-func (pool *shardWorkerPool) spawnWorker(shard *shard) {
-	utils.GoWithRecover(func() {
-		pool.workerFunc(shard.index, shard.jobChan)
-	}, func(r interface{}) {
-		if shard.respawnTimes < maxRespwanTimes {
-			shard.respawnTimes++
-			pool.spawnWorker(shard)
-		}
-	})
-}
 
 type workerPool struct {
 	work chan func()

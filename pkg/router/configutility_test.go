@@ -19,11 +19,13 @@ package router
 
 import (
 	"reflect"
+	"regexp"
 	"sort"
 	"testing"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
@@ -214,4 +216,63 @@ func TestMetadataMatchCriteriaImplSort(t *testing.T) {
 			t.Error("sort unexpected")
 		}
 	}
+}
+
+// TODO: implement query match and FIXME
+func TestMatchQueryParams(t *testing.T) {
+	cu := &configUtility{}
+	qpm := []types.QueryParameterMatcher{
+		&queryParameterMatcher{
+			name:  "key",
+			value: "value",
+		},
+		&queryParameterMatcher{
+			name:         "regex",
+			regexPattern: regexp.MustCompile("[0-9]+"),
+			isRegex:      true,
+		},
+		&queryParameterMatcher{
+			name: "empty",
+		},
+	}
+	for idx, querys := range []struct {
+		params   types.QueryParams
+		expected bool
+	}{
+		{
+			params: types.QueryParams(map[string]string{
+				"key":   "value",
+				"regex": "12345",
+				"empty": "any",
+			}),
+			expected: true,
+		},
+		{
+			params: types.QueryParams(map[string]string{
+				"key":    "value",
+				"regex":  "12345",
+				"empty":  "",
+				"ignore": "key",
+			}),
+			expected: true,
+		},
+		{
+			params: types.QueryParams(map[string]string{
+				"key": "value",
+			}),
+			expected: false,
+		},
+		{
+			params: types.QueryParams(map[string]string{
+				"key":   "value",
+				"regex": "abc",
+			}),
+			expected: false,
+		},
+	} {
+		if cu.MatchQueryParams(querys.params, qpm) != querys.expected {
+			t.Fatalf("%d matched failed", idx)
+		}
+	}
+
 }

@@ -67,7 +67,10 @@ func TestRegisterRuleOrder(t *testing.T) {
 			order: 0,
 			check: func(rb RouteBase) bool {
 				_, ok := rb.(*SofaRouteRuleImpl)
-				return ok
+				if !ok {
+					return false
+				}
+				return rb.Matcher() == "test" && rb.MatchType() == api.SofaHeader
 			},
 		},
 		// Register higher order
