@@ -56,6 +56,7 @@ func NewMutableBagForMap(values map[string]interface{}) *MutableBag {
 		values: values,
 		parent: EmptyBag,
 	}
+
 	return mb
 }
 
@@ -65,13 +66,13 @@ func (mb *MutableBag) Get(name string) (interface{}, bool) {
 	if !b && mb.parent != nil {
 		r, b = mb.parent.Get(name)
 	}
+
 	return r, b
 }
 
 // Set creates an override for a named attribute.
 func (mb *MutableBag) Set(name string, value interface{}) {
 	mb.values[name] = value
-	return
 }
 
 // Delete removes a named item from the local state.

@@ -78,7 +78,6 @@ func externDNSNameEqual(n1 string, n2 string) (bool, error) {
 
 // externEmailEqual compares two email addresses for equality
 func externEmailEqual(a1, a2 *mail.Address) (bool, error) {
-
 	local1, domain1 := getEmailParts(a1.Address)
 	local2, domain2 := getEmailParts(a2.Address)
 
@@ -152,6 +151,7 @@ func externMatch(str string, pattern string) bool {
 	if strings.HasPrefix(pattern, "*") {
 		return strings.HasSuffix(str, pattern[1:])
 	}
+
 	return str == pattern
 }
 

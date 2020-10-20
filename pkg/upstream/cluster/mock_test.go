@@ -21,11 +21,11 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sort"
 	"sync/atomic"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -155,8 +155,8 @@ func makePool(size int) *ipPool {
 }
 
 type mockConnPool struct {
-	host       atomic.Value
-	supportTLS bool
+	host      atomic.Value
+	hashvalue *types.HashValue
 	types.ConnectionPool
 }
 
@@ -170,8 +170,8 @@ func (p *mockConnPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
-func (p *mockConnPool) SupportTLS() bool {
-	return p.supportTLS
+func (p *mockConnPool) TLSHashValue() *types.HashValue {
+	return p.hashvalue
 }
 
 func (p *mockConnPool) Shutdown() {
@@ -199,7 +199,7 @@ func (p *mockConnPool) UpdateHost(h types.Host) {
 func init() {
 	network.RegisterNewPoolFactory(mockProtocol, func(h types.Host) types.ConnectionPool {
 		pool := &mockConnPool{
-			supportTLS: h.SupportTLS(),
+			hashvalue: h.TLSHashValue(),
 		}
 		pool.host.Store(h)
 		return pool
@@ -218,10 +218,103 @@ type mockConn struct {
 	net.Conn
 }
 
+// NewMetadataMatchCriteriaImpl
+func NewMockMetadataMatchCriteriaImpl(metadataMatches map[string]string) *MockMetadataMatchCriteriaImpl {
+
+	metadataMatchCriteriaImpl := &MockMetadataMatchCriteriaImpl{}
+	metadataMatchCriteriaImpl.extractMetadataMatchCriteria(nil, metadataMatches)
+
+	return metadataMatchCriteriaImpl
+}
+
+// MetadataMatchCriteriaImpl class wrapper MatchCriteriaArray
+// which contains MatchCriteria in dictionary sorted
+type MockMetadataMatchCriteriaImpl struct {
+	MatchCriteriaArray []api.MetadataMatchCriterion
+}
+
+// MetadataMatchCriteria
+func (mmcti *MockMetadataMatchCriteriaImpl) MetadataMatchCriteria() []api.MetadataMatchCriterion {
+	return mmcti.MatchCriteriaArray
+}
+
+func (mmcti *MockMetadataMatchCriteriaImpl) Len() int {
+	return len(mmcti.MatchCriteriaArray)
+}
+
+func (mmcti *MockMetadataMatchCriteriaImpl) Less(i, j int) bool {
+	return mmcti.MatchCriteriaArray[i].MetadataKeyName() < mmcti.MatchCriteriaArray[j].MetadataKeyName()
+}
+
+func (mmcti *MockMetadataMatchCriteriaImpl) Swap(i, j int) {
+	mmcti.MatchCriteriaArray[i], mmcti.MatchCriteriaArray[j] = mmcti.MatchCriteriaArray[j],
+		mmcti.MatchCriteriaArray[i]
+}
+
+// Used to generate metadata match criteria from config
+func (mmcti *MockMetadataMatchCriteriaImpl) extractMetadataMatchCriteria(parent *MockMetadataMatchCriteriaImpl,
+	metadataMatches map[string]string) {
+
+	var mdMatchCriteria []api.MetadataMatchCriterion
+	// used to record key and its index for o(1) searching
+	var existingMap = make(map[string]uint32)
+
+	// get from parent
+	if nil != parent {
+		for _, v := range parent.MetadataMatchCriteria() {
+			existingMap[v.MetadataKeyName()] = uint32(len(mdMatchCriteria))
+			mdMatchCriteria = append(mdMatchCriteria, v)
+		}
+	}
+
+	// get from metadatamatch
+	for k, v := range metadataMatches {
+		mmci := &MockMetadataMatchCriterionImpl{
+			Name:  k,
+			Value: v,
+		}
+
+		if index, ok := existingMap[k]; ok {
+			// update value
+			mdMatchCriteria[index] = mmci
+		} else {
+			// append
+			mdMatchCriteria = append(mdMatchCriteria, mmci)
+		}
+	}
+
+	mmcti.MatchCriteriaArray = mdMatchCriteria
+	// sorting in lexically by name
+	sort.Sort(mmcti)
+}
+
+// MergeMatchCriteria
+// No usage currently
+func (mmcti *MockMetadataMatchCriteriaImpl) MergeMatchCriteria(metadataMatches map[string]interface{}) api.MetadataMatchCriteria {
+	return nil
+}
+
+// MetadataMatchCriterionImpl class contains the name and value of the metadata match criterion
+// Implement types.MetadataMatchCriterion
+type MockMetadataMatchCriterionImpl struct {
+	Name  string
+	Value string
+}
+
+// MetadataKeyName return name
+func (mmci *MockMetadataMatchCriterionImpl) MetadataKeyName() string {
+	return mmci.Name
+}
+
+// MetadataValue return value
+func (mmci *MockMetadataMatchCriterionImpl) MetadataValue() string {
+	return mmci.Value
+}
+
 func newMockLbContext(m map[string]string) types.LoadBalancerContext {
 	var mmc api.MetadataMatchCriteria
 	if m != nil {
-		mmc = router.NewMetadataMatchCriteriaImpl(m)
+		mmc = NewMockMetadataMatchCriteriaImpl(m)
 	}
 	return &mockLbContext{
 		mmc: mmc,
@@ -229,7 +322,7 @@ func newMockLbContext(m map[string]string) types.LoadBalancerContext {
 }
 
 func newMockLbContextWithHeader(m map[string]string, header types.HeaderMap) types.LoadBalancerContext {
-	mmc := router.NewMetadataMatchCriteriaImpl(m)
+	mmc := NewMockMetadataMatchCriteriaImpl(m)
 	return &mockLbContext{
 		mmc:    mmc,
 		header: header,

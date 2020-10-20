@@ -26,6 +26,8 @@ import (
 	"mosn.io/mosn/pkg/trace"
 )
 
+var mosnPubPort = "33333" // default
+
 // publish a service to registry
 func publish(w http.ResponseWriter, r *http.Request) {
 	var req pubReq
@@ -94,7 +96,7 @@ func doPubUnPub(req pubReq, pub bool) error {
 
 	var dubboPath = dubboPathTpl.ExecuteString(map[string]interface{}{
 		"ip":        trace.GetIp(),
-		"port":      "2046",
+		"port":      mosnPubPort,
 		"interface": req.Service.Interface,
 	})
 	dubboURL, _ := dubbocommon.NewURL(dubboPath,

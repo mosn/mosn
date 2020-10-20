@@ -310,13 +310,13 @@ func (rt *ResolveTarget) OnResolve() {
 		host := &simpleHost{
 			hostname:      rt.config.Hostname,
 			addressString: newAddr,
-			clusterInfo:   sdc.info,
 			stats:         stat,
 			metaData:      rt.config.MetaData,
 			tlsDisable:    rt.config.TLSDisable,
 			weight:        rt.config.Weight,
 			healthFlags:   GetHealthFlagPointer(newAddr),
 		}
+		host.clusterInfo.Store(sdc.info)
 		hosts = append(hosts, host)
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[upstream] [strict dns cluster] resolve dns result, address:%s, addr:%s, ttl:%.3f", rt.dnsAddress, newAddr, rsp.Ttl.Seconds())

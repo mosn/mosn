@@ -18,6 +18,7 @@
 package ext
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/mail"
@@ -39,6 +40,8 @@ import (
 
 func ConvertType(typ attribute.Kind) *expr.Type {
 	switch typ {
+	case attribute.MOSN_CTX:
+		return mosnCtxValueTypeWrapper
 	case attribute.STRING:
 		return decls.String
 	case attribute.INT64:
@@ -93,6 +96,8 @@ func RecoverType(typ *expr.Type) attribute.Kind {
 
 	case *expr.Type_MessageType:
 		switch t.MessageType {
+		case mosnCtxType:
+			return attribute.MOSN_CTX
 		case ipAddressType:
 			return attribute.IP_ADDRESS
 		case emailAddressType:
@@ -116,6 +121,8 @@ func RecoverType(typ *expr.Type) attribute.Kind {
 
 func ConvertValue(typ attribute.Kind, value interface{}) ref.Val {
 	switch typ {
+	case attribute.MOSN_CTX:
+		return &mosnCtx{value.(context.Context)}
 	case attribute.STRING, attribute.INT64, attribute.DOUBLE, attribute.BOOL:
 		return types.DefaultTypeAdapter.NativeToValue(value)
 	case attribute.TIMESTAMP:
@@ -170,6 +177,8 @@ func ConvertValue(typ attribute.Kind, value interface{}) ref.Val {
 
 func RecoverValue(value ref.Val) (interface{}, error) {
 	switch value.Type() {
+	case mosnCtxValueType:
+		return value.Value(), nil
 	case types.ErrType:
 		if err, ok := value.Value().(error); ok {
 			return nil, err
@@ -201,6 +210,7 @@ func RecoverValue(value ref.Val) (interface{}, error) {
 }
 
 var defaultValues = map[attribute.Kind]ref.Val{
+	attribute.MOSN_CTX:      &mosnCtx{Ctx: context.Background()},
 	attribute.STRING:        types.String(""),
 	attribute.INT64:         types.Int(0),
 	attribute.DOUBLE:        types.Double(0),
@@ -417,8 +427,49 @@ func (v dnsNameValue) Value() interface{} {
 	return v.dns
 }
 
+var (
+	mosnCtxType             = "mosnctx"
+	mosnCtxValueType        = types.NewTypeValue(mosnCtxType)
+	mosnCtxValueTypeWrapper = decls.NewObjectType(mosnCtxType)
+)
+
+type mosnCtx struct {
+	Ctx context.Context
+}
+
+func (mosnCtx) ConvertToNative(typeDesc reflect.Type) (interface{}, error) {
+	return nil, errors.New("cannot convert mosnCtx to native types")
+}
+
+func (mosnCtx) ConvertToType(typeValue ref.Type) ref.Val {
+	return types.NewErr("cannot convert mosnCtx to CEL types")
+}
+
+func (v *mosnCtx) Equal(other ref.Val) ref.Val {
+	if other.Type() != mosnCtxValueType {
+		return types.NewErr("connot compare types")
+	}
+
+	w, ok := other.(*mosnCtx)
+	if !ok {
+		return types.NewErr("connot compare types")
+	}
+
+	return types.Bool(w == v)
+}
+
+func (v mosnCtx) Type() ref.Type {
+	return mosnCtxValueType
+}
+
+func (v mosnCtx) Value() interface{} {
+	return v.Ctx
+}
+
 func ConvertKind(v reflect.Type) *expr.Type {
 	switch v {
+	case mosnCtxWrapperValueType:
+		return mosnCtxValueTypeWrapper
 	case boolType:
 		return decls.Bool
 	case intType, int32Type, int64Type:
@@ -448,6 +499,10 @@ func ConvertKind(v reflect.Type) *expr.Type {
 }
 
 var (
+	mosnCtxWrapperValueType = func() reflect.Type {
+		var r context.Context
+		return reflect.TypeOf(&r).Elem()
+	}()
 	stringMapValueType = func() reflect.Type {
 		var r stringMapValue
 		return reflect.TypeOf(r)

@@ -198,6 +198,19 @@ func GetAll() (metrics []types.Metrics) {
 	return
 }
 
+// GetProxyTotal returns proxy global metrics data
+func GetProxyTotal() (metrics types.Metrics) {
+	defaultStore.mutex.RLock()
+	defer defaultStore.mutex.RUnlock()
+	for _, m := range defaultStore.metrics {
+		name, _, _ := fullName(m.Type(), m.Labels())
+		if name == "downstream.proxy.global" {
+			return m
+		}
+	}
+	return nil
+}
+
 // ResetAll is only for test and internal usage. DO NOT use this if not sure.
 func ResetAll() {
 	defaultStore.mutex.Lock()

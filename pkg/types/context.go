@@ -41,9 +41,13 @@ const (
 	ContextKeyActiveSpan
 	ContextKeyTraceId
 	ContextKeyVariables
-	ContextKeyH2Stream
+	ContextKeyProxyGeneralConfig
 	ContextKeyDownStreamProtocol
+	ContextKeyConfigDownStreamProtocol
+	ContextKeyConfigUpStreamProtocol
 	ContextKeyDownStreamHeaders
+	ContextKeyDownStreamRespHeaders
+	ContextKeyStreamFilterPhase
 	ContextKeyEnd
 )
 

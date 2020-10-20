@@ -837,6 +837,7 @@ func convertRoutes(xdsRoutes []*xdsroute.Route) []v2.Router {
 					Match: convertRouteMatch(xdsRoute.GetMatch()),
 					Route: convertRouteAction(xdsRouteAction),
 					//Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
+					RequestMirrorPolicies: convertMirrorPolicy(xdsRouteAction),
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
 			}
@@ -845,8 +846,8 @@ func convertRoutes(xdsRoutes []*xdsroute.Route) []v2.Router {
 		} else if xdsRouteAction := xdsRoute.GetRedirect(); xdsRouteAction != nil {
 			route := v2.Router{
 				RouterConfig: v2.RouterConfig{
-					Match: convertRouteMatch(xdsRoute.GetMatch()),
-					//Redirect:  convertRedirectAction(xdsRouteAction),
+					Match:    convertRouteMatch(xdsRoute.GetMatch()),
+					Redirect: convertRedirectAction(xdsRouteAction),
 					//Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
 				},
 				Metadata: convertMeta(xdsRoute.GetMetadata()),
@@ -1094,18 +1095,17 @@ func convertRetryPolicy(xdsRetryPolicy *xdsroute.RetryPolicy) *v2.RetryPolicy {
 	}
 }
 
-/*
- func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) v2.RedirectAction {
-	 if xdsRedirectAction == nil {
-		 return v2.RedirectAction{}
-	 }
-	 return v2.RedirectAction{
-		 HostRedirect: xdsRedirectAction.GetHostRedirect(),
-		 PathRedirect: xdsRedirectAction.GetPathRedirect(),
-		 ResponseCode: uint32(xdsRedirectAction.GetResponseCode()),
-	 }
- }
-*/
+func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) *v2.RedirectAction {
+	if xdsRedirectAction == nil {
+		return nil
+	}
+	return &v2.RedirectAction{
+		SchemeRedirect: xdsRedirectAction.GetSchemeRedirect(),
+		HostRedirect:   xdsRedirectAction.GetHostRedirect(),
+		PathRedirect:   xdsRedirectAction.GetPathRedirect(),
+		ResponseCode:   int(xdsRedirectAction.GetResponseCode()),
+	}
+}
 
 /*
  func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.VirtualCluster {
@@ -1370,4 +1370,32 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 
 	config.Status = true
 	return config
+}
+
+func convertMirrorPolicy(xdsRouteAction *xdsroute.RouteAction) *v2.RequestMirrorPolicy {
+	if len(xdsRouteAction.GetRequestMirrorPolicies()) > 0 {
+		return &v2.RequestMirrorPolicy{
+			Cluster: xdsRouteAction.GetRequestMirrorPolicies()[0].GetCluster(),
+			Percent: convertRuntimePercentage(xdsRouteAction.GetRequestMirrorPolicies()[0].GetRuntimeFraction()),
+		}
+	}
+
+	return nil
+}
+
+func convertRuntimePercentage(percent *xdscore.RuntimeFractionalPercent) uint32 {
+	if percent == nil {
+		return 0
+	}
+
+	v := percent.GetDefaultValue()
+	switch v.GetDenominator() {
+	case xdstype.FractionalPercent_MILLION:
+		return v.Numerator / 10000
+	case xdstype.FractionalPercent_TEN_THOUSAND:
+		return v.Numerator / 100
+	case xdstype.FractionalPercent_HUNDRED:
+		return v.Numerator
+	}
+	return v.Numerator
 }

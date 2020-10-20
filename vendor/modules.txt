@@ -1,15 +1,15 @@
 # bou.ke/monkey v1.0.2
 bou.ke/monkey
-# github.com/SkyAPM/go2sky v0.3.1-0.20200329092408-8b3e4d536d8d
+# github.com/SkyAPM/go2sky v0.5.0
 github.com/SkyAPM/go2sky
 github.com/SkyAPM/go2sky/plugins/http
 github.com/SkyAPM/go2sky/reporter
 github.com/SkyAPM/go2sky/propagation
-github.com/SkyAPM/go2sky/reporter/grpc/common
+github.com/SkyAPM/go2sky/reporter/grpc/language-agent
 github.com/SkyAPM/go2sky/internal/idgen
 github.com/SkyAPM/go2sky/internal/tool
-github.com/SkyAPM/go2sky/reporter/grpc/language-agent-v2
-github.com/SkyAPM/go2sky/reporter/grpc/register
+github.com/SkyAPM/go2sky/reporter/grpc/common
+github.com/SkyAPM/go2sky/reporter/grpc/management
 # github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 github.com/StackExchange/wmi
 # github.com/TarsCloud/TarsGo v0.0.0-20190521041003-0022231bc5b2
@@ -52,6 +52,8 @@ github.com/alibaba/sentinel-golang/util
 github.com/alibaba/sentinel-golang/core/stat/base
 # github.com/antlr/antlr4 v0.0.0-20200503195918-621b933c7a7f
 github.com/antlr/antlr4/runtime/Go/antlr
+# github.com/andybalholm/brotli v1.0.0
+github.com/andybalholm/brotli
 # github.com/apache/dubbo-go-hessian2 v1.4.1-0.20200516085443-fa6429e4481d
 github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java_exception
@@ -63,8 +65,8 @@ github.com/c2h5oh/datasize
 github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
 github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1
 # github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f
-github.com/cncf/udpa/go/udpa/type/v1
 github.com/cncf/udpa/go/udpa/annotations
+github.com/cncf/udpa/go/udpa/type/v1
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/dchest/siphash v1.2.1
@@ -117,6 +119,8 @@ github.com/envoyproxy/go-control-plane/envoy/data/tap/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/type/metadata/v2
 # github.com/envoyproxy/protoc-gen-validate v0.1.0
 github.com/envoyproxy/protoc-gen-validate/validate
+# github.com/ghodss/yaml v1.0.0
+github.com/ghodss/yaml
 # github.com/go-chi/chi v4.1.0+incompatible
 github.com/go-chi/chi
 # github.com/go-ole/go-ole v1.2.4
@@ -137,36 +141,36 @@ github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 # github.com/golang/protobuf v1.3.5
+github.com/golang/protobuf/descriptor
 github.com/golang/protobuf/jsonpb
 github.com/golang/protobuf/ptypes
-github.com/golang/protobuf/ptypes/duration
-github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes/struct
+github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/any
+github.com/golang/protobuf/ptypes/timestamp
 github.com/golang/protobuf/ptypes/empty
 github.com/golang/protobuf/ptypes/wrappers
 github.com/golang/protobuf/protoc-gen-go/descriptor
-github.com/golang/protobuf/descriptor
 # github.com/golang/snappy v0.0.1
 github.com/golang/snappy
 # github.com/google/cel-go v0.5.1
 github.com/google/cel-go/cel
+github.com/google/cel-go/checker
 github.com/google/cel-go/checker/decls
+github.com/google/cel-go/common
 github.com/google/cel-go/common/debug
+github.com/google/cel-go/common/operators
+github.com/google/cel-go/common/overloads
+github.com/google/cel-go/common/packages
 github.com/google/cel-go/common/types
+github.com/google/cel-go/common/types/pb
 github.com/google/cel-go/common/types/ref
 github.com/google/cel-go/common/types/traits
 github.com/google/cel-go/ext
 github.com/google/cel-go/interpreter
-github.com/google/cel-go/common
-github.com/google/cel-go/common/operators
 github.com/google/cel-go/interpreter/functions
 github.com/google/cel-go/parser
-github.com/google/cel-go/checker
-github.com/google/cel-go/common/packages
-github.com/google/cel-go/common/types/pb
-github.com/google/cel-go/common/overloads
 github.com/google/cel-go/parser/gen
 # github.com/google/uuid v1.1.1
 github.com/google/uuid
@@ -187,12 +191,10 @@ github.com/jinzhu/copier
 github.com/json-iterator/go
 # github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9
 github.com/juju/errors
-# github.com/klauspost/compress v1.7.5
+# github.com/klauspost/compress v1.10.4
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
-# github.com/klauspost/cpuid v1.2.1
-github.com/klauspost/cpuid
 # github.com/leodido/go-urn v1.2.0
 github.com/leodido/go-urn
 # github.com/lyft/protoc-gen-validate v0.0.14
@@ -244,7 +246,7 @@ github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 # github.com/prometheus/procfs v0.0.3
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
-# github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563
+# github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
 github.com/rcrowley/go-metrics
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
@@ -262,7 +264,7 @@ github.com/ugorji/go/codec
 github.com/urfave/cli
 # github.com/valyala/bytebufferpool v1.0.0
 github.com/valyala/bytebufferpool
-# github.com/valyala/fasthttp v1.2.0
+# github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 github.com/valyala/fasthttp
 github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/stackless
@@ -291,9 +293,9 @@ golang.org/x/crypto/poly1305
 golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/ed25519
 golang.org/x/crypto/ed25519/internal/edwards25519
-# golang.org/x/net v0.0.0-20200301022130-244492dfa37a
-golang.org/x/net/idna
+# golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 golang.org/x/net/http/httpguts
+golang.org/x/net/idna
 golang.org/x/net/http2
 golang.org/x/net/context
 golang.org/x/net/trace
@@ -304,26 +306,28 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/bpf
 golang.org/x/net/internal/iana
 golang.org/x/net/internal/socket
-# golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527
+# golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
 golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+golang.org/x/sys/internal/unsafeheader
 # golang.org/x/text v0.3.2
-golang.org/x/text/width
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
+golang.org/x/text/width
 golang.org/x/text/transform
 # golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5
 golang.org/x/tools/go/ast/astutil
 # google.golang.org/genproto v0.0.0-20200305110556-506484158171
-google.golang.org/genproto/googleapis/api/expr/v1alpha1
 google.golang.org/genproto/googleapis/api/annotations
+google.golang.org/genproto/googleapis/api/expr/v1alpha1
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.28.0
 google.golang.org/grpc
 google.golang.org/grpc/credentials
 google.golang.org/grpc/connectivity
+google.golang.org/grpc/metadata
 google.golang.org/grpc/codes
 google.golang.org/grpc/status
 google.golang.org/grpc/backoff
@@ -347,7 +351,6 @@ google.golang.org/grpc/internal/resolver/dns
 google.golang.org/grpc/internal/resolver/passthrough
 google.golang.org/grpc/internal/transport
 google.golang.org/grpc/keepalive
-google.golang.org/grpc/metadata
 google.golang.org/grpc/naming
 google.golang.org/grpc/peer
 google.golang.org/grpc/resolver
@@ -371,9 +374,11 @@ istio.io/api/mixer/v1
 # istio.io/gogo-genproto v0.0.0-20190930162913-45029607206a
 istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
-# mosn.io/api v0.0.0-20200615113625-8eedc8a88c20
+# k8s.io/klog v1.0.0
+k8s.io/klog
+# mosn.io/api v0.0.0-20200728020814-8cdc3e8890f9
 mosn.io/api
-# mosn.io/pkg v0.0.0-20200428055827-06e02c6fbd6b
+# mosn.io/pkg v0.0.0-20200723115157-3842674e37c7
 mosn.io/pkg/buffer
 mosn.io/pkg/log
 mosn.io/pkg/utils

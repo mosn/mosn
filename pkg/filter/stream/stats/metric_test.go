@@ -363,7 +363,7 @@ func TestMetric(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Stat() got = %#v, want %#v", got, tt.want)
+				t.Errorf("Stat() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

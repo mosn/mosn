@@ -40,11 +40,13 @@ type RouterConfigurationConfig struct {
 }
 
 type RouterConfig struct {
-	Match           RouterMatch            `json:"match,omitempty"`
-	Route           RouteAction            `json:"route,omitempty"`
-	DirectResponse  *DirectResponseAction  `json:"direct_response,omitempty"`
-	MetadataConfig  *MetadataConfig        `json:"metadata,omitempty"`
-	PerFilterConfig map[string]interface{} `json:"per_filter_config,omitempty"`
+	Match                 RouterMatch            `json:"match,omitempty"`
+	Route                 RouteAction            `json:"route,omitempty"`
+	Redirect              *RedirectAction        `json:"redirect,omitempty"`
+	DirectResponse        *DirectResponseAction  `json:"direct_response,omitempty"`
+	MetadataConfig        *MetadataConfig        `json:"metadata,omitempty"`
+	PerFilterConfig       map[string]interface{} `json:"per_filter_config,omitempty"`
+	RequestMirrorPolicies *RequestMirrorPolicy   `json:"request_mirror_policies,omitempty"`
 }
 
 type RouterActionConfig struct {
@@ -57,8 +59,10 @@ type RouterActionConfig struct {
 	TimeoutConfig           api.DurationConfig   `json:"timeout,omitempty"`
 	RetryPolicy             *RetryPolicy         `json:"retry_policy,omitempty"`
 	PrefixRewrite           string               `json:"prefix_rewrite,omitempty"`
+	RegexRewrite            RegexRewrite         `json:"regex_rewrite,omitempty"`
 	HostRewrite             string               `json:"host_rewrite,omitempty"`
 	AutoHostRewrite         bool                 `json:"auto_host_rewrite,omitempty"`
+	AutoHostRewriteHeader   string               `json:"auto_host_rewrite_header,omitempty"`
 	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
@@ -74,6 +78,22 @@ type RetryPolicyConfig struct {
 	RetryOn            bool               `json:"retry_on,omitempty"`
 	RetryTimeoutConfig api.DurationConfig `json:"retry_timeout,omitempty"`
 	NumRetries         uint32             `json:"num_retries,omitempty"`
+}
+
+// RegexRewrite represents the regex rewrite parameters
+type RegexRewrite struct {
+	Pattern      PatternConfig `json:"pattern,omitempty"`
+	Substitution string        `json:"substitution,omitempty"`
+}
+
+type PatternConfig struct {
+	GoogleRe2 GoogleRe2Config `json:"google_re2,omitempty"`
+	Regex     string          `json:"regex,omitempty"`
+}
+
+// TODO: not implement yet
+type GoogleRe2Config struct {
+	MaxProgramSize uint32 `json:"max_program_size,omitempty"`
 }
 
 // Router, the list of routes that will be matched, in order, for incoming requests.
@@ -279,13 +299,21 @@ type RouterMatch struct {
 	Headers []HeaderMatcher `json:"headers,omitempty"` // Match request's Headers
 }
 
+// RedirectAction represents the redirect response parameters
+type RedirectAction struct {
+	ResponseCode   int    `json:"response_code,omitempty"`
+	PathRedirect   string `json:"path_redirect,omitempty"`
+	HostRedirect   string `json:"host_redirect,omitempty"`
+	SchemeRedirect string `json:"scheme_redirect,omitempty"`
+}
+
 // DirectResponseAction represents the direct response parameters
 type DirectResponseAction struct {
 	StatusCode int    `json:"status,omitempty"`
 	Body       string `json:"body,omitempty"`
 }
 
-// WeightedCluster.
+// WeightedCluster ...
 // Multiple upstream clusters unsupport stream filter type:  healthcheckcan be specified for a given route.
 // The request is routed to one of the upstream
 // clusters based on weights assigned to each cluster
@@ -300,14 +328,14 @@ type HeaderMatcher struct {
 	Regex bool   `json:"regex,omitempty"`
 }
 
-// TCP Proxy Route
+// TCPRouteConfig TCP Proxy Route
 type TCPRouteConfig struct {
 	Cluster string   `json:"cluster,omitempty"`
 	Sources []string `json:"source_addrs,omitempty"`
 	Dests   []string `json:"destination_addrs,omitempty"`
 }
 
-// TCPRoute
+// TCPRoute ...
 type TCPRoute struct {
 	Cluster          string
 	SourceAddrs      []CidrRange
@@ -316,9 +344,16 @@ type TCPRoute struct {
 	DestinationPort  string
 }
 
-// CidrRange
+// CidrRange ...
 type CidrRange struct {
 	Address string
 	Length  uint32
 	IpNet   *net.IPNet
+}
+
+// RequestMirrorPolicy mirror policy
+type RequestMirrorPolicy struct {
+	Cluster      string `json:"cluster,omitempty"`
+	Percent      uint32 `json:"percent,omitempty"`
+	TraceSampled bool   `json:"trace_sampled,omitempty"` // TODO not implement
 }

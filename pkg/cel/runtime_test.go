@@ -18,6 +18,7 @@
 package cel
 
 import (
+	"context"
 	"net"
 	"net/mail"
 	"net/url"
@@ -30,9 +31,31 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 )
 
+func TestMosnCtx(t *testing.T) {
+	compiler := NewExpressionBuilder(map[string]attribute.Kind{
+		"ctx": attribute.MOSN_CTX,
+	}, CompatCEXL)
+	expression, typ, err := compiler.Compile(`ctx.rewrite_request_url("xx")`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(typ)
+	bag := attribute.NewMutableBag(nil)
+
+	bag.Set("ctx", context.Background())
+	out, err := expression.Evaluate(bag)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(out)
+}
+
 func TestSample(t *testing.T) {
 	compiler := NewExpressionBuilder(map[string]attribute.Kind{
 		"source.header": attribute.STRING_MAP,
+		"a.ip":          attribute.IP_ADDRESS,
+		"a.url":         attribute.URI,
 	}, CompatCEXL)
 	expression, typ, err := compiler.Compile(`int(source.header["a"]) > 10 && source.header["b"] == "hello"`)
 	if err != nil {
@@ -51,6 +74,20 @@ func TestSample(t *testing.T) {
 	}
 
 	t.Log(out)
+
+	expression, _, err = compiler.Compile(`string(a.ip) == "1.1.1.1" && string(a.url) == "http://127.0.0.1"`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	u, _ := url.Parse("http://127.0.0.1")
+	bag.Set("a.ip", net.IPv4(1, 1, 1, 1))
+	bag.Set("a.url", u)
+
+	_, err = expression.Evaluate(bag)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestDuration(t *testing.T) {
