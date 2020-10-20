@@ -24,8 +24,10 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-var getSdsClientFunc func(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClient = sds.NewSdsClientSingleton
-var getSdsClientFuncDeprecated func(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientDeprecated = sds.NewSdsClientSingletonDeprecated
+var (
+	getSdsClientFunc           func(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClient = sds.NewSdsClientSingleton
+	getSdsClientFuncDeprecated func(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientDeprecated               = sds.NewSdsClientSingletonDeprecated
+)
 
 func GetSdsClient(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClient {
 	return getSdsClientFunc(cfg)
