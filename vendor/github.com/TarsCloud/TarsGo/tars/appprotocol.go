@@ -19,7 +19,7 @@ func TarsRequest(rev []byte) (int, int) {
 		return 0, PACKAGE_LESS
 	}
 	iHeaderLen := int(binary.BigEndian.Uint32(rev[0:4]))
-	if iHeaderLen < 4 || iHeaderLen > iMaxLength {
+	if iHeaderLen < 4 || iHeaderLen > svrCfg.MaxPackageLength {
 		return 0, PACKAGE_ERROR
 	}
 	if len(rev) < iHeaderLen {

@@ -99,7 +99,7 @@ func (mux *TarsHttpMux) reportHttpStat(st *httpStatInfo) {
 		_statInfo.SlaveSetArea = setList[1]
 		_statInfo.SlaveSetID = setList[2]
 		//被调也要加上set信息
-		_statInfo.SlaveName = fmt.Sprintf("http_client.%s%s%s", setList[0], setList[1], setList[2])
+		_statInfo.SlaveName = fmt.Sprintf("%s.%s%s%s", _statInfo.SlaveName, setList[0], setList[1], setList[2])
 	}
 
 	var _statBody = statf.StatMicMsgBody{}

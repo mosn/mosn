@@ -15,7 +15,7 @@ func saveFile(path string, filename string, content string) error {
 	return nil
 }
 
-//RConf struct for geting remote config.
+//RConf struct for getting remote config.
 type RConf struct {
 	app    string
 	server string

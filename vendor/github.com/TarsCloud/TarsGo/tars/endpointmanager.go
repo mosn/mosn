@@ -214,7 +214,9 @@ func (e *EndpointManager) findAndSetObj(q *queryf.QueryF) {
 		}
 	}
 	if (len(*activeEp)) > 0 {
-		e.pointsSet.Clear() // clean it first,then add back .this action must lead to add lock,but if don't clean may lead to leakage.it's better to use remove.
+		// clean it first,then add back .this action must lead to add lock,
+		// but if don't clean may lead to leakage.it's better to use remove.
+		e.pointsSet.Clear()
 		for _, ep := range *activeEp {
 			end := endpoint.Tars2endpoint(ep)
 			e.pointsSet.Add(end)

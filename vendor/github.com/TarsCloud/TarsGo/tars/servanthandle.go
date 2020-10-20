@@ -26,6 +26,10 @@ func addServantCommon(v dispatch, f interface{}, obj string, withContext bool) {
 		TLOG.Debug("servant obj name not found ", obj)
 		return
 	}
+	if v, ok := f.(destroyableImp); ok {
+		TLOG.Debugf("add destroyable obj %s", obj)
+		destroyableObjs = append(destroyableObjs, v)
+	}
 	TLOG.Debug("add:", cfg)
 	jp := NewTarsProtocol(v, f, withContext)
 	s := transport.NewTarsServer(jp, cfg)

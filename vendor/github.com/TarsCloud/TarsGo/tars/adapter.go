@@ -153,7 +153,9 @@ func (c *AdapterProxy) onPush(pkg *requestf.ResponsePacket) {
 		TLOG.Infof("reconnect %s:%d", c.point.Host, c.point.Port)
 		oldClient := c.tarsClient
 		c.tarsClient = transport.NewTarsClient(fmt.Sprintf("%s:%d", c.point.Host, c.point.Port), c, c.conf)
-		ctx := context.Background()
+
+		ctx, canf := context.WithTimeout(context.Background(), time.Millisecond*ClientIdleTimeout)
+		defer canf()
 		oldClient.GraceClose(ctx) // grace shutdown
 	}
 	//TODO: support push msg

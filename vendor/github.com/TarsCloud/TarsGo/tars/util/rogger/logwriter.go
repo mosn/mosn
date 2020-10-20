@@ -136,7 +136,6 @@ func (w *DateWriter) Write(v []byte) {
 		return
 	}
 
-	w.currFile.Write(v)
 	currDate := w.getCurrDate()
 	if w.currDate != currDate {
 		w.currDate = currDate
@@ -144,6 +143,8 @@ func (w *DateWriter) Write(v []byte) {
 		fullPath := filepath.Join(w.logpath, w.name+"_"+w.currDate+".log")
 		reOpenFile(fullPath, &w.currFile, &w.openTime)
 	}
+
+	w.currFile.Write(v)
 }
 
 //NeedPrefix shows whether needs prefix info for DateWriter or not.

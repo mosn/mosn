@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -28,6 +29,8 @@ type tcpHandler struct {
 	gpool       *gpool.Pool
 
 	conns sync.Map
+
+	isListenClosed int32
 }
 
 type connInfo struct {
@@ -89,6 +92,8 @@ func (h *tcpHandler) Handle() error {
 	cfg := h.conf
 	for {
 		if atomic.LoadInt32(&h.ts.isClosed) == 1 {
+			TLOG.Errorf("Close accept %s %d", h.conf.Address, os.Getpid())
+			atomic.StoreInt32(&h.isListenClosed, 1)
 			break
 		}
 		if cfg.AcceptTimeout > 0 {
@@ -108,7 +113,7 @@ func (h *tcpHandler) Handle() error {
 		go func(conn *net.TCPConn) {
 			fd, _ := conn.File()
 			key := fmt.Sprintf("%v", fd.Fd())
-			TLOG.Debugf("TCP accept: %s, fd: %s", conn.RemoteAddr(), key)
+			TLOG.Debugf("TCP accept: %s, %d, fd: %s", conn.RemoteAddr(), os.Getpid(), key)
 			conn.SetReadBuffer(cfg.TCPReadBuffer)
 			conn.SetWriteBuffer(cfg.TCPWriteBuffer)
 			conn.SetNoDelay(cfg.TCPNoDelay)
@@ -128,14 +133,21 @@ func (h *tcpHandler) Handle() error {
 func (h *tcpHandler) OnShutdown() {
 	// close listeners
 	h.lis.SetDeadline(time.Now())
+	if atomic.LoadInt32(&h.isListenClosed) == 1 {
+		h.sendCloseMsg()
+		atomic.StoreInt32(&h.isListenClosed, 2)
+	}
+}
+
+func (h *tcpHandler) sendCloseMsg() {
 	// send close-package
+	closeMsg := h.ts.svr.GetCloseMsg()
 	h.conns.Range(func(key, val interface{}) bool {
 		conn := val.(*connInfo)
 		conn.conn.SetReadDeadline(time.Now())
 		// send a reconnect-message
 		TLOG.Debugf("send close message to %v", conn.conn.RemoteAddr())
 		conn.writeLock.Lock()
-		closeMsg := h.ts.svr.GetCloseMsg()
 		conn.conn.Write(closeMsg)
 		conn.writeLock.Unlock()
 		return true
@@ -144,6 +156,18 @@ func (h *tcpHandler) OnShutdown() {
 
 //CloseIdles close all idle connections(no active package within n secnods)
 func (h *tcpHandler) CloseIdles(n int64) bool {
+	if atomic.LoadInt32(&h.isListenClosed) == 0 {
+		// hack: create new connection to avoid acceptTCP hanging
+		TLOG.Debugf("Hack msg to %s", h.conf.Address)
+		if conn, err := net.Dial("tcp", h.conf.Address); err == nil {
+			conn.Close()
+		}
+	}
+	if atomic.LoadInt32(&h.isListenClosed) == 1 {
+		h.sendCloseMsg()
+		atomic.StoreInt32(&h.isListenClosed, 2)
+	}
+
 	allClosed := true
 	h.conns.Range(func(key, val interface{}) bool {
 		conn := val.(*connInfo)
@@ -180,7 +204,6 @@ func (h *tcpHandler) recv(connSt *connInfo) {
 	var n int
 	var err error
 	for {
-		TLOG.Info("recv is closed: ", h.ts.isClosed)
 		if atomic.LoadInt32(&h.ts.isClosed) == 1 {
 			// set short deadline to clear connection buffer
 			conn.SetReadDeadline(time.Now().Add(time.Millisecond * 100))

@@ -15,4 +15,5 @@ type Servant interface {
 		context map[string]string,
 		Resp *requestf.ResponsePacket) error
 	TarsSetTimeout(t int)
+	//TarsSetHashCode(code int64) //add too many changes here
 }

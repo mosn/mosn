@@ -21,6 +21,14 @@ func GetClientConfig() *clientConfig {
 	return cltCfg
 }
 
+func (svrConf *serverConfig) GetConfig() string {
+	return GetServerConfig().config
+}
+
+func (svrConf *serverConfig) GetNotify() string {
+	return GetServerConfig().notify
+}
+
 type adapterConfig struct {
 	Endpoint endpoint.Endpoint
 	Protocol string
@@ -67,6 +75,8 @@ type serverConfig struct {
 	PropertyReportInterval time.Duration
 	StatReportInterval     time.Duration
 	MainLoopTicker         time.Duration
+	MaxPackageLength       int
+	GracedownTimeout       time.Duration
 }
 
 type clientConfig struct {

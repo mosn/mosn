@@ -36,18 +36,23 @@ func NewRemoteTimeWriter() *RemoteTimeWriter {
 //Sync2remote syncs the log buffer to remote.
 func (rw *RemoteTimeWriter) Sync2remote() {
 	maxLen := MaxlogOneTime
+	interval := time.Second
+	v := make([]string, 0, maxLen)
 	for {
-		size := len(rw.logs)
-		round := size / maxLen
-		left := size % maxLen
-		for i := 0; i < round && round != 0; i++ {
-			v := make([]string, 0, maxLen)
-			var log string
-			for j := 0; j < maxLen; j++ {
-				log = <-rw.logs
-				v = append(v, log)
+		select {
+		case log := <-rw.logs:
+			v = append(v, log)
+			if len(v) >= maxLen {
+				err := rw.sync2remote(v)
+				if err != nil {
+					TLOG.Error("sync to remote error")
+					rw.reportFailPtr.Report(len(v))
+				}
+				rw.reportSuccPtr.Report(len(v))
+				v = make([]string, 0, maxLen) //reset the slice after syncing log to remote
 			}
-			if len(v) != 0 {
+		case <-time.After(interval):
+			if len(v) > 0 {
 				err := rw.sync2remote(v)
 				if err != nil {
 					TLOG.Error("sync to remote error")
@@ -55,24 +60,7 @@ func (rw *RemoteTimeWriter) Sync2remote() {
 				}
 				rw.reportSuccPtr.Report(len(v))
 			}
-
 		}
-		v := make([]string, 0, maxLen)
-		var log string
-		for k := 0; k < left && left != 0; k++ {
-			log = <-rw.logs
-			v = append(v, log)
-
-		}
-		if len(v) != 0 {
-			err := rw.sync2remote(v)
-			if err != nil {
-				TLOG.Error("sync to remote error")
-				rw.reportFailPtr.Report(len(v))
-			}
-			rw.reportSuccPtr.Report(len(v))
-		}
-		time.Sleep(remoteLogInterval)
 	}
 }
 

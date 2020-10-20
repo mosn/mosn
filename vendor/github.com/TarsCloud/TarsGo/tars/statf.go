@@ -18,13 +18,12 @@ type StatInfo struct {
 
 //StatFHelper is helper struct for stat reporting.
 type StatFHelper struct {
-	lStatInfo  *list.List
-	mStatInfo  map[statf.StatMicMsgHead]statf.StatMicMsgBody
-	mStatCount map[statf.StatMicMsgHead]int
-	mlock      *sync.Mutex
-	comm       *Communicator
-	sf         *statf.StatF
-	node       string
+	lStatInfo *list.List
+	mStatInfo map[statf.StatMicMsgHead]statf.StatMicMsgBody
+	mlock     *sync.Mutex
+	comm      *Communicator
+	sf        *statf.StatF
+	node      string
 
 	lStatInfoFromServer *list.List
 }
@@ -36,7 +35,6 @@ func (s *StatFHelper) Init(comm *Communicator, node string) {
 	s.lStatInfoFromServer = list.New()
 	s.mlock = new(sync.Mutex)
 	s.mStatInfo = make(map[statf.StatMicMsgHead]statf.StatMicMsgBody)
-	s.mStatCount = make(map[statf.StatMicMsgHead]int)
 	s.comm = comm
 	s.sf = new(statf.StatF)
 	s.comm.StringToProxy(s.node, s.sf)
@@ -60,7 +58,6 @@ func (s *StatFHelper) addUpMsg(statList *list.List, fromServer bool) {
 			//body.WeightValue = (body.WeightValue + statInfo.Body.WeightValue)
 			//body.WeightCount = (body.WeightCount + statInfo.Body.WeightCount)
 			s.mStatInfo[statInfo.Head] = body
-			s.mStatCount[statInfo.Head]++
 		} else {
 			headMap := statInfo.Head
 			firstBody := statf.StatMicMsgBody{}
@@ -73,7 +70,6 @@ func (s *StatFHelper) addUpMsg(statList *list.List, fromServer bool) {
 			//firstBody.WeightValue = bodyList.WeightValue
 			//firstBody.WeightCount = bodyList.WeightCount
 			s.mStatInfo[headMap] = firstBody
-			s.mStatCount[headMap] = 1
 		}
 
 		n = e.Next()

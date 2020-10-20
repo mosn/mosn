@@ -36,6 +36,7 @@ func (n *NodeFHelper) KeepAlive(adapter string) {
 	if n.sf == nil {
 		return
 	}
+	n.si.Pid = int32(os.Getpid())
 	n.si.Adapter = adapter
 	_, err := n.sf.KeepAlive(&n.si)
 	if err != nil {

@@ -26,7 +26,8 @@ func RegisterClientFilter(f ClientFilter) {
 type Dispatch func(context.Context, interface{}, *requestf.RequestPacket, *requestf.ResponsePacket, bool) error
 
 //ServerFilter is used for add Filter for server dispatcher ,for implementing plugins like opentracing.
-type ServerFilter func(ctx context.Context, d Dispatch, f interface{}, req *requestf.RequestPacket, resp *requestf.ResponsePacket, withContext bool) (err error)
+type ServerFilter func(ctx context.Context, d Dispatch, f interface{},
+	req *requestf.RequestPacket, resp *requestf.ResponsePacket, withContext bool) (err error)
 
 //ClientFilter is used for filter request & response for client, for implementing plugins like opentracing
 type ClientFilter func(ctx context.Context, msg *Message, invoke Invoke, timeout time.Duration) (err error)

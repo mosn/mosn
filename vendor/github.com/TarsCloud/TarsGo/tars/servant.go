@@ -14,11 +14,13 @@ import (
 
 //ServantProxy is the struct for proxy servants.
 type ServantProxy struct {
-	sid     int32
-	name    string
-	comm    *Communicator
-	obj     *ObjectProxy
-	timeout int
+	sid      int32
+	name     string
+	comm     *Communicator
+	obj      *ObjectProxy
+	timeout  int
+	hashcode int64
+	isHash   bool
 }
 
 //Init init the ServantProxy struct.
@@ -39,6 +41,12 @@ func (s *ServantProxy) Init(comm *Communicator, objName string) {
 //TarsSetTimeout sets the timeout for client calling the server , which is in ms.
 func (s *ServantProxy) TarsSetTimeout(t int) {
 	s.timeout = t
+}
+
+//TarsSetHashCode sets the hash code for client calling the server , which is for Message hash code.
+func (s *ServantProxy) TarsSetHashCode(code int64) {
+	s.hashcode = code
+	s.isHash = true
 }
 
 //Tars_invoke is use for client inoking server.
@@ -64,6 +72,9 @@ func (s *ServantProxy) Tars_invoke(ctx context.Context, ctype byte,
 	}
 	msg := &Message{Req: &req, Ser: s, Obj: s.obj}
 	msg.Init()
+	if s.isHash {
+		msg.SetHashCode(s.hashcode)
+	}
 	var err error
 	if allFilters.cf != nil {
 		err = allFilters.cf(ctx, msg, s.obj.Invoke, time.Duration(s.timeout)*time.Millisecond)

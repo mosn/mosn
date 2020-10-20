@@ -86,13 +86,18 @@ func (ts *TarsServer) getHandler() (sh ServerHandler) {
 	return
 }
 
-//Serve listen and handle
+//Serve accepts incoming connections
 func (ts *TarsServer) Serve() error {
-	ts.handle = ts.getHandler()
-	if err := ts.handle.Listen(); err != nil {
-		return err
+	if ts.handle == nil {
+		panic("handle is nil")
 	}
 	return ts.handle.Handle()
+}
+
+//Listen listens on the network address
+func (ts *TarsServer) Listen() error {
+	ts.handle = ts.getHandler()
+	return ts.handle.Listen()
 }
 
 //Shutdown try to shutdown server gracefully.

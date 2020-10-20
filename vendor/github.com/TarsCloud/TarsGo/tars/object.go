@@ -56,6 +56,9 @@ func (obj *ObjectProxy) Invoke(ctx context.Context, msg *Message, timeout time.D
 		return fmt.Errorf("%s|%s|%d", "request timeout", msg.Req.SServantName, msg.Req.IRequestId)
 	case msg.Resp = <-readCh:
 		if msg.Resp.IRet != basef.TARSSERVERSUCCESS {
+			if msg.Resp.SResultDesc == "" {
+				return fmt.Errorf("basef error code %d", msg.Resp.IRet)
+			}
 			return errors.New(msg.Resp.SResultDesc)
 		}
 		TLOG.Debug("recv msg succ ", msg.Req.IRequestId)

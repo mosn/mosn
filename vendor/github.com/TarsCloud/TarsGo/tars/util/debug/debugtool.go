@@ -55,7 +55,8 @@ func DumpStack(all bool, logname string) {
 }
 
 //SigNotifyStack register os signals to be notified when to dumpstack
-//For example, SigNotifyStack(SIGUSR1, true, "stackinfo"), can dump all goroutine stack when received SIGUSR1 signal by "kill -USR1 pid"
+//For example, SigNotifyStack(SIGUSR1, true, "stackinfo"), can dump all goroutine stack
+//when received SIGUSR1 signal by "kill -USR1 pid"
 //sig: self defined os signals, like SIGUSR1 SIGUSR2 in linux and darwin but not supoorted in windows
 //all: true means dumping all running goroutine stack, else only dumping the one that calls the func
 //logname: prefix of the file's name, which is like logname.20060102-150405

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -40,6 +41,11 @@ var shutdownOnce sync.Once
 type adminFn func(string) (string, error)
 
 var adminMethods map[string]adminFn
+var destroyableObjs []destroyableImp
+
+type destroyableImp interface {
+	Destroy()
+}
 
 func init() {
 	tarsConfig = make(map[string]*transport.TarsServerConf)
@@ -48,13 +54,7 @@ func init() {
 	shutdown = make(chan bool, 1)
 	adminMethods = make(map[string]adminFn)
 	rogger.SetLevel(rogger.ERROR)
-	registerFlag()
-}
-
-var confPath string
-
-func registerFlag() {
-	flag.StringVar(&confPath, "config", "", "init config path")
+	Init()
 }
 
 //Init should run before GetServerConfig & GetClientConfig , or before run
@@ -64,19 +64,19 @@ func Init() {
 }
 
 func initConfig() {
-	if len(confPath) == 0 {
-		TLOG.Error("app config not found")
-		os.Exit(1)
+	confPath := flag.String("config", "", "init config path")
+	flag.Parse()
+	if len(*confPath) == 0 {
+		return
 	}
-	c, err := conf.NewConf(confPath)
+	c, err := conf.NewConf(*confPath)
 	if err != nil {
 		TLOG.Error("open app config fail")
-		os.Exit(1)
 	}
 	//Config.go
 	//Server
 	svrCfg = new(serverConfig)
-	if c.GetString("/tars/application<enableset>") == "Y" {
+	if strings.EqualFold(c.GetString("/tars/application<enableset>"), "Y") {
 		svrCfg.Enableset = true
 		svrCfg.Setdivision = c.GetString("/tars/application<setdivision>")
 	}
@@ -113,6 +113,7 @@ func initConfig() {
 	svrCfg.IdleTimeout = tools.ParseTimeOut(c.GetIntWithDef("/tars/application/server<idletimeout>", IdleTimeout))
 	svrCfg.ZombileTimeout = tools.ParseTimeOut(c.GetIntWithDef("/tars/application/server<zombiletimeout>", ZombileTimeout))
 	svrCfg.QueueCap = c.GetIntWithDef("/tars/application/server<queuecap>", QueueCap)
+	svrCfg.GracedownTimeout = tools.ParseTimeOut(c.GetIntWithDef("/tars/application/server<gracedowntimeout>", GracedownTimeout))
 
 	// add tcp config
 	svrCfg.TCPReadBuffer = c.GetIntWithDef("/tars/application/server<tcpreadbuffer>", TCPReadBuffer)
@@ -125,6 +126,7 @@ func initConfig() {
 	svrCfg.StatReportInterval = tools.ParseTimeOut(c.GetIntWithDef("/tars/application/server<statreportinterval>", StatReportInterval))
 	svrCfg.MainLoopTicker = tools.ParseTimeOut(c.GetIntWithDef("/tars/application/server<mainloopticker>", MainLoopTicker))
 
+	svrCfg.MaxPackageLength = c.GetIntWithDef("/tars/application/server<maxPackageLength>", iMaxLength)
 	//client
 	cltCfg = new(clientConfig)
 	cMap := c.GetMap("/tars/application/client")
@@ -214,11 +216,13 @@ func Run() {
 	ad := new(Admin)
 	AddServant(adf, ad, "AdminObj")
 
+	lisDone := &sync.WaitGroup{}
 	for _, obj := range objRunList {
 		if s, ok := httpSvrs[obj]; ok {
+			lisDone.Add(1)
 			go func(obj string) {
 				addr := s.Addr
-				TLOG.Info("http server starting %s %s", obj, addr)
+				TLOG.Infof("%s http server start on %s", obj, s.Addr)
 				if addr == "" {
 					teerDown(fmt.Errorf("empty addr for %s", obj))
 					return
@@ -228,6 +232,7 @@ func Run() {
 					teerDown(fmt.Errorf("start http server for %s failed: %v", obj, err))
 					return
 				}
+				lisDone.Done()
 				err = s.Serve(ln)
 				if err != nil {
 					TLOG.Infof("server stop: %v", err)
@@ -238,13 +243,18 @@ func Run() {
 
 		s := goSvrs[obj]
 		if s == nil {
-			TLOG.Debug("Obj not found", obj)
+			TLOG.Debug("Obj not found ", obj)
 			break
 		}
-		TLOG.Debug("Run", obj, s.GetConfig())
+		TLOG.Debugf("Run %s  %+v", obj, s.GetConfig())
+		lisDone.Add(1)
 		go func(obj string) {
-			err := s.Serve()
-			if err != nil {
+			if err := s.Listen(); err != nil {
+				teerDown(fmt.Errorf("listen obj for %s failed: %v", obj, err))
+				return
+			}
+			lisDone.Done()
+			if err := s.Serve(); err != nil {
 				teerDown(fmt.Errorf("server obj for %s failed: %v", obj, err))
 				return
 			}
@@ -252,6 +262,7 @@ func Run() {
 	}
 	go ReportNotifyInfo("restart")
 
+	lisDone.Wait()
 	if os.Getenv("GRACE_RESTART") == "1" {
 		ppid := os.Getppid()
 		TLOG.Infof("stop ppid %d", ppid)
@@ -276,7 +287,19 @@ func graceRestart() {
 		newEnvs = append(newEnvs, env)
 	}
 
-	files := []*os.File{os.Stdin, os.Stdout, os.Stderr}
+	// redirect stdout/stderr to logger
+	cfg := GetServerConfig()
+	var logfile *os.File
+	if cfg != nil {
+		GetLogger("")
+		logpath := filepath.Join(cfg.LogPath, cfg.App, cfg.Server, cfg.App+"."+cfg.Server+".log")
+		logfile, _ = os.OpenFile(logpath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0666)
+		TLOG.Debugf("redirect to %s %v", logpath, logfile)
+	}
+	if logfile == nil {
+		logfile = os.Stdout
+	}
+	files := []*os.File{os.Stdin, logfile, logfile}
 	for key, file := range grace.GetAllLisenFiles() {
 		fd := fmt.Sprint(file.Fd())
 		newFd := len(files)
@@ -304,28 +327,71 @@ func graceRestart() {
 }
 
 func graceShutdown() {
+	var wg sync.WaitGroup
+
 	atomic.StoreInt32(&isShudowning, 1)
 	pid := os.Getpid()
-	TLOG.Infof("grace shutdown start %d in %d seconds", pid, GracedownTimeout)
-	ctx, _ := context.WithTimeout(context.Background(), GracedownTimeout*time.Second)
+
+	var graceShutdownTimeout time.Duration
+	if atomic.LoadInt32(&isShutdownbyadmin) == 1 {
+		// shutdown by admin,we should need shorten the timeout
+		graceShutdownTimeout = tools.ParseTimeOut(GracedownTimeout)
+	} else {
+		graceShutdownTimeout = svrCfg.GracedownTimeout
+	}
+
+	TLOG.Infof("grace shutdown start %d in %v", pid, graceShutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), graceShutdownTimeout)
+
+	for _, obj := range destroyableObjs {
+		wg.Add(1)
+		go func(wg *sync.WaitGroup, obj destroyableImp) {
+			defer wg.Done()
+			obj.Destroy()
+			TLOG.Infof("grace Destroy succ %d", pid)
+		}(&wg, obj)
+	}
+
 	for _, obj := range objRunList {
 		if s, ok := httpSvrs[obj]; ok {
-			err := s.Shutdown(ctx)
-			if err == nil {
-				TLOG.Infof("grace shutdown %s succ %d", obj, pid)
-			} else {
-				TLOG.Infof("grace shutdown %s failed within %d seconds: %v", obj, GracedownTimeout, err)
-			}
+			wg.Add(1)
+			go func(s *http.Server, ctx context.Context, wg *sync.WaitGroup, objstr string) {
+				defer wg.Done()
+				err := s.Shutdown(ctx)
+				if err == nil {
+					TLOG.Infof("grace shutdown http %s succ %d", objstr, pid)
+				} else {
+					TLOG.Infof("grace shutdown http %s failed within %v : %v", objstr, graceShutdownTimeout, err)
+				}
+			}(s, ctx, &wg, obj)
 		}
+
 		if s, ok := goSvrs[obj]; ok {
-			err := s.Shutdown(ctx)
-			if err == nil {
-				TLOG.Infof("grace shutdown %s succ %d", obj, pid)
-			} else {
-				TLOG.Infof("grace shutdown %s failed within %d seconds: %v", obj, GracedownTimeout, err)
-			}
+			wg.Add(1)
+			go func(s *transport.TarsServer, ctx context.Context, wg *sync.WaitGroup, objstr string) {
+				defer wg.Done()
+				err := s.Shutdown(ctx)
+				if err == nil {
+					TLOG.Infof("grace shutdown tars %s succ %d", objstr, pid)
+				} else {
+					TLOG.Infof("grace shutdown tars %s failed within %v: %v", objstr, graceShutdownTimeout, err)
+				}
+			}(s, ctx, &wg, obj)
 		}
 	}
+
+	go func() {
+		wg.Wait()
+		cancel()
+	}()
+
+	select {
+	case <-ctx.Done():
+		TLOG.Infof("grace shutdown all succ within : %v", graceShutdownTimeout)
+	case <-time.After(graceShutdownTimeout):
+		TLOG.Infof("grace shutdown timeout within : %v", graceShutdownTimeout)
+	}
+
 	teerDown(nil)
 }
 

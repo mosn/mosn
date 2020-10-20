@@ -217,7 +217,7 @@ func (c *TarsClient) GraceClose(ctx context.Context) {
 			return
 		case <-tk.C:
 			TLOG.Debugf("wait grace invoke %d", c.conn.invokeNum)
-			if atomic.LoadInt32(&c.conn.invokeNum) <= 0 {
+			if atomic.LoadInt32(&c.conn.invokeNum) < 0 {
 				c.Close()
 				return
 			}
