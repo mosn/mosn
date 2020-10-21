@@ -69,14 +69,16 @@ func (c *MockBoltClient) SyncCall() bool {
 	status := false
 	switch err {
 	case ErrClosedConnection:
+		c.stats.Records().RecordResponse(2)
 	case ErrRequestTimeout:
 		// TODO: support timeout verify
+		c.stats.Records().RecordResponse(3)
 	case nil:
 		status = c.config.Verify.Verify(resp)
+		c.stats.Records().RecordResponse(resp.GetResponseStatus())
 	default:
 		log.DefaultLogger.Errorf("unexpected error got: %v", err)
 	}
-	c.stats.Records().RecordResponse(resp.GetResponseStatus())
 	c.stats.Response(status)
 	return status
 }

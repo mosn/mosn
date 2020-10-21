@@ -118,6 +118,11 @@ func (sh *simpleHost) SupportTLS() bool {
 }
 
 func (sh *simpleHost) TLSHashValue() *types.HashValue {
+	// check tls_disable config
+	if sh.tlsDisable {
+		return disableTLSHashValue
+	}
+	// check support tls, the sh.tlsDisable == false
 	if !sh.SupportTLS() {
 		return nil
 	}
@@ -199,7 +204,7 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 	if addr, err = net.ResolveTCPAddr("tcp", addrstr); err != nil {
 		// try to resolve addr by unix
 		addr, err = net.ResolveUnixAddr("unix", addrstr)
-		if err != nil{
+		if err != nil {
 			err = errors.New("failed to resolve address in tcp and unix model")
 		}
 	}
