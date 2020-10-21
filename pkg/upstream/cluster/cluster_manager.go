@@ -325,6 +325,7 @@ func (cm *clusterManager) UpdateTLSManager(tls *v2.TLSConfig) {
 		return
 	}
 	cm.tlsMng.Store(mng)
+	configmanager.SetClusterManagerTLS(*tls)
 }
 
 const (
