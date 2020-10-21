@@ -20,6 +20,7 @@ package log
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
@@ -152,11 +153,14 @@ func parseFormat(format string) ([]*logEntry, error) {
 					}
 
 					// var def ends, add variable
-					_, err := variable.AddVariable(format[lastMark+1 : pos])
+					varName := format[lastMark+1 : pos]
+					_, err := variable.AddVariable(varName)
 					if err != nil {
-						return nil, err
+						// adapte istio unknow fields
+						entries = append(entries, &logEntry{text: fmt.Sprintf("%%%s%%", varName)})
+					} else {
+						entries = append(entries, &logEntry{name: varName})
 					}
-					entries = append(entries, &logEntry{name: format[lastMark+1 : pos]})
 				} else {
 					// ignore empty text
 					if pos > lastMark+1 {
