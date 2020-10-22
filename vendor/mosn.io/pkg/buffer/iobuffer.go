@@ -43,7 +43,7 @@ var (
 	ErrTooLarge          = errors.New("io buffer: too large")
 	ErrNegativeCount     = errors.New("io buffer: negative count")
 	ErrInvalidWriteCount = errors.New("io buffer: invalid write count")
-	ConnReadTimeout      = 15 * time.Second
+	ConnReadTimeout      = 60 * time.Second
 )
 
 type pipe struct {
