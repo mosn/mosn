@@ -49,6 +49,11 @@ func IsSupportTLS() bool {
 // to represent the tls_disable.
 var disableTLSHashValue *types.HashValue
 
+// clientSideDisableHashValue represents the isDisableClientSideTLS is setted
+// if IsSupportTLS == false, returns this hash value.
+var clientSideDisableHashValue *types.HashValue
+
 func init() {
 	disableTLSHashValue = types.NewHashValue([sha256.Size]byte{0x00, 0x01, 0x02, 0x03})
+	clientSideDisableHashValue = types.NewHashValue([sha256.Size]byte{}) // all datas are 0x00
 }
