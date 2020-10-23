@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
+	_ "mosn.io/mosn/pkg/admin/debug"
 	_ "mosn.io/mosn/pkg/buffer"
 	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"

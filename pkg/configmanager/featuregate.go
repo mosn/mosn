@@ -17,39 +17,37 @@
 
 package configmanager
 
-import "mosn.io/mosn/pkg/config/v2"
+import (
+	"mosn.io/mosn/pkg/featuregate"
+	"mosn.io/mosn/pkg/log"
+)
 
-// Deprecated: these functions should not be called.
-// we keep these functions just for compatiable.
-// If dump config is needed, use featuregate: auto_config to dump automatically
-func AddOrUpdateClusterConfig(_ []v2.Cluster) {
-	setDump()
+const ConfigAutoWrite featuregate.Feature = "auto_config"
+
+var enableAutoWrite bool = false
+var feature *ConfigAutoFeature
+
+// ConfigAutoFeature controls xDS update config will overwrite config file or not, default is not
+type ConfigAutoFeature struct {
+	featuregate.BaseFeatureSpec
 }
 
-func RemoveClusterConfig(_ []string) {
-	setDump()
+func (f *ConfigAutoFeature) InitFunc() {
+	log.DefaultLogger.Infof("auto write config when updated")
+	enableAutoWrite = true
 }
 
-func DeleteClusterHost(_ string, _ string) {
-	setDump()
+func init() {
+	feature = &ConfigAutoFeature{
+		BaseFeatureSpec: featuregate.BaseFeatureSpec{
+			DefaultValue: false,
+		},
+	}
+	featuregate.AddFeatureSpec(ConfigAutoWrite, feature)
 }
 
-func AddOrUpdateClusterHost(_ string, _ v2.Host) {
-	setDump()
-}
-
-func UpdateClusterManagerTLS(_ v2.TLSConfig) {
-	setDump()
-}
-
-func AddClusterWithRouter(_ []v2.Cluster, _ *v2.RouterConfiguration) {
-	setDump()
-}
-
-func AddOrUpdateRouterConfig(_ *v2.RouterConfiguration) {
-	setDump()
-}
-
-func AddOrUpdateListener(_ *v2.Listener) {
-	setDump()
+func tryDump() {
+	if enableAutoWrite {
+		setDump()
+	}
 }
