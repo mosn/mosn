@@ -48,7 +48,7 @@ func TestUpdateHostTLSConfig(t *testing.T) {
 		Case("enable global tls", func() {
 			DisableTLS(t, false)
 			Verify(client.SyncCall(), Equal, false)
-			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(2))
+			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(1))
 		})
 	})
 }

@@ -74,13 +74,15 @@ func TestDisableTLSAndUpdateHostTLS(t *testing.T) {
 			err := m.UpdateConfig(34901, "cluster", config)
 			Verify(err, Equal, nil)
 			Verify(client.SyncCall(), Equal, true)
-			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(1))
+			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(0)) // non-tls to non-tls, no connection changed, but hash value should be changed.
 			DisableTLS(t, false)
 			Verify(client.SyncCall(), Equal, true) // changed to tls request
-			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(2))
+			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(1))
 		})
 		Case("disable and update again", func() {
 			DisableTLS(t, true)
+			Verify(client.SyncCall(), Equal, true)
+			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(2)) // tls to non-tls.
 			config := `{
 				"name": "mosn_cluster",
 				"type": "SIMPLE",
@@ -93,10 +95,10 @@ func TestDisableTLSAndUpdateHostTLS(t *testing.T) {
 			err := m.UpdateConfig(34901, "cluster", config)
 			Verify(err, Equal, nil)
 			Verify(client.SyncCall(), Equal, true)
-			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(3))
+			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(2)) // disable tls when global tls is turned off. hash value changed only.
 			DisableTLS(t, false)
 			Verify(client.SyncCall(), Equal, true)
-			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(3))
+			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(2)) // non-tls to non-tls
 		})
 	})
 }
