@@ -18,6 +18,8 @@
 package router
 
 import (
+	"context"
+	"mosn.io/mosn/pkg/variable"
 	"regexp"
 	"sort"
 
@@ -36,7 +38,7 @@ type configUtility struct {
 }
 
 // types.MatchHeaders
-func (cu *configUtility) MatchHeaders(requestHeaders api.HeaderMap, configHeaders []*types.HeaderData) bool {
+func (cu *configUtility) MatchHeaders(ctx context.Context, requestHeaders api.HeaderMap, configHeaders []*types.HeaderData) bool {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match header", requestHeaders)
 	}
@@ -49,16 +51,16 @@ func (cu *configUtility) MatchHeaders(requestHeaders api.HeaderMap, configHeader
 
 		// if a condition is not matched, return false
 		// all condition matched, return true
-		value, ok := requestHeaders.Get(cfgName)
-		if !ok {
+		value, err := variable.GetValueFromVariableAndLegacyHeader(ctx, requestHeaders, cfgName, false)
+		if err != nil || value == nil {
 			return false
 		}
 		if cfgHeaderData.IsRegex {
-			if !cfgHeaderData.RegexPattern.MatchString(value) {
+			if !cfgHeaderData.RegexPattern.MatchString(*value) {
 				return false
 			}
 		} else {
-			if cfgValue != value {
+			if cfgValue != *value {
 				return false
 			}
 		}

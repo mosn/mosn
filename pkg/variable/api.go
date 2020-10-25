@@ -26,12 +26,15 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func GetValueFromVariableAndLegacyHeader(ctx context.Context, headerMap api.HeaderMap, key string) (*string, error) {
+func GetValueFromVariableAndLegacyHeader(ctx context.Context, headerMap api.HeaderMap, key string, delete bool) (*string, error) {
 	value, ok := headerMap.Get(key)
 	if ok {
+		if delete {
+			headerMap.Del(key)
+		}
 		return &value, nil
 	}
-	value, err := GetVariableValue(ctx, types.SofaRouteMatchKey)
+	value, err := GetVariableValue(ctx, key)
 	if err == nil {
 		return &value, err
 	}

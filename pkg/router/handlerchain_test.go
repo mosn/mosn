@@ -55,14 +55,14 @@ func (routers *mockRouters) MatchRoute(ctx context.Context, headers api.HeaderMa
 	}
 	return nil
 }
-func (routers *mockRouters) MatchAllRoutes(headers api.HeaderMap, randomValue uint64) []api.Route {
+func (routers *mockRouters) MatchAllRoutes(ctx context.Context, headers api.HeaderMap, randomValue uint64) []api.Route {
 	if reflect.DeepEqual(headers, routers.header) {
 		return routers.r
 	}
 	return nil
 }
 
-func (routers *mockRouters) MatchRouteFromHeaderKV(headers api.HeaderMap, key, value string) api.Route {
+func (routers *mockRouters) MatchRouteFromHeaderKV(ctx context.Context, headers api.HeaderMap, key, value string) api.Route {
 	return nil
 }
 

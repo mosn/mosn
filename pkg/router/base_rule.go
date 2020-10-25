@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"mosn.io/mosn/pkg/variable"
 	"net/http"
 	"regexp"
 	"strings"
@@ -256,17 +257,18 @@ func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {
 }
 
 // matchRoute is a common matched for http
-func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint64) bool {
+func (rri *RouteRuleImplBase) matchRoute(ctx context.Context, headers api.HeaderMap, randomValue uint64) bool {
 	// 1. match headers' KV
-	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
+	if !ConfigUtilityInst.MatchHeaders(ctx, headers, rri.configHeaders) {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
 		return false
 	}
 	// 2. match query parameters
 	if len(rri.configQueryParameters) != 0 {
 		var queryParams types.QueryParams
-		if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
-			queryParams = httpmosn.ParseQueryString(QueryString)
+		QueryString, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderQueryStringKey, false)
+		if err == nil && QueryString != nil {
+			queryParams = httpmosn.ParseQueryString(*QueryString)
 		}
 		if len(queryParams) != 0 {
 			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {

@@ -305,12 +305,12 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		URL, _ := url.Parse(URI)
 		h2s.Request.URL = URL
 
-		header.Set(protocol.MosnHeaderScheme, scheme)
-		header.Set(protocol.MosnHeaderMethod, h2s.Request.Method)
-		header.Set(protocol.MosnHeaderHostKey, h2s.Request.Host)
-		header.Set(protocol.MosnHeaderPathKey, h2s.Request.URL.Path)
+		variable.SetVariableValue(ctx, protocol.MosnHeaderScheme, scheme)
+		variable.SetVariableValue(ctx, protocol.MosnHeaderMethod, h2s.Request.Method)
+		variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, h2s.Request.Host)
+		variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, h2s.Request.URL.Path)
 		if h2s.Request.URL.RawQuery != "" {
-			header.Set(protocol.MosnHeaderQueryStringKey, h2s.Request.URL.RawQuery)
+			variable.SetVariableValue(ctx, protocol.MosnHeaderQueryStringKey, h2s.Request.URL.RawQuery)
 		}
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -443,18 +443,13 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap,
 	var rsp *http.Response
 
 	status := 200
-	var value string
-	if value, _ = headers.Get(types.HeaderStatus); value != "" {
-		headers.Del(types.HeaderStatus)
-	} else {
-		var err error
-		value, err = variable.GetVariableValue(ctx, types.HeaderStatus)
-		if err != nil {
-			return err
-		}
+
+	value, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, types.HeaderStatus, true)
+	if err != nil {
+		return err
 	}
-	if value != "" {
-		status, _ = strconv.Atoi(value)
+	if value != nil && *value != "" {
+		status, _ = strconv.Atoi(*value)
 	}
 
 	switch header := headers.(type) {

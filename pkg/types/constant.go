@@ -17,7 +17,9 @@
 
 package types
 
-import "errors"
+import (
+	"errors"
+)
 
 // Header key types
 const (
@@ -39,7 +41,6 @@ const (
 	HeaderXprotocolRespIsException = "x-mosn-xprotocol-resp-is-exception"
 	HeaderXprotocolHeartbeat       = "x-protocol-heartbeat"
 )
-
 // Error messages
 const (
 	ChannelFullException = "Channel is full"

@@ -20,6 +20,7 @@ package router
 import (
 	"context"
 	"fmt"
+	"mosn.io/mosn/pkg/variable"
 	"sort"
 	"strings"
 
@@ -47,14 +48,14 @@ func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap, ra
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
 	}
-	virtualHost := ri.findVirtualHost(headers)
+	virtualHost := ri.findVirtualHost(ctx, headers)
 	if virtualHost == nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no virtual host found")
 		}
 		return nil
 	}
-	router := virtualHost.GetRouteFromEntries(headers, randomValue)
+	router := virtualHost.GetRouteFromEntries(ctx, headers, randomValue)
 	if router == nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no route found")
@@ -63,18 +64,18 @@ func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap, ra
 	return router
 }
 
-func (ri *routersImpl) MatchAllRoutes(headers api.HeaderMap, randomValue uint64) []api.Route {
+func (ri *routersImpl) MatchAllRoutes(ctx context.Context ,headers api.HeaderMap, randomValue uint64) []api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
 	}
-	virtualHost := ri.findVirtualHost(headers)
+	virtualHost := ri.findVirtualHost(ctx, headers)
 	if virtualHost == nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no virtual host found")
 		}
 		return nil
 	}
-	routers := virtualHost.GetAllRoutesFromEntries(headers, randomValue)
+	routers := virtualHost.GetAllRoutesFromEntries(ctx, headers, randomValue)
 	if len(routers) == 0 {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no route found")
@@ -83,11 +84,11 @@ func (ri *routersImpl) MatchAllRoutes(headers api.HeaderMap, randomValue uint64)
 	return routers
 }
 
-func (ri *routersImpl) MatchRouteFromHeaderKV(headers api.HeaderMap, key string, value string) api.Route {
+func (ri *routersImpl) MatchRouteFromHeaderKV(ctx context.Context, headers api.HeaderMap, key string, value string) api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
 	}
-	virtualHost := ri.findVirtualHost(headers)
+	virtualHost := ri.findVirtualHost(ctx, headers)
 	if virtualHost == nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no virtual host found")
@@ -169,7 +170,7 @@ func (ri *routersImpl) findWildcardVirtualHost(host string) int {
 	return -1
 }
 
-func (ri *routersImpl) findVirtualHost(headers api.HeaderMap) types.VirtualHost {
+func (ri *routersImpl) findVirtualHost(ctx context.Context, headers api.HeaderMap) types.VirtualHost {
 	// optimize, if there is only a default, use it
 	if len(ri.virtualHostsIndex) == 0 &&
 		len(ri.wildcardVirtualHostSuffixesIndex) == 0 &&
@@ -181,9 +182,12 @@ func (ri *routersImpl) findVirtualHost(headers api.HeaderMap) types.VirtualHost 
 	}
 	//we use domain in lowercase
 	key := strings.ToLower(protocol.MosnHeaderHostKey)
-	hostHeader, _ := headers.Get(key)
-	host := strings.ToLower(hostHeader)
-	index := ri.findVirtualHostIndex(host)
+	hostHeader, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, key, false)
+	index := -1
+	if err == nil && hostHeader != nil {
+		host := strings.ToLower(*hostHeader)
+		index = ri.findVirtualHostIndex(host)
+	}
 	if index == -1 {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "no virtual host found")

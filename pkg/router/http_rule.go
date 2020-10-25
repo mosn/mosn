@@ -57,12 +57,13 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, req
 	prri.finalizePathHeader(headers, prri.path)
 }
 
-func (prri *PathRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if prri.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+	if prri.matchRoute(ctx, headers, randomValue) {
+		headerPathValue, _ := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
+		if headerPathValue != nil {
 			// TODO: config to support case sensitive
 			// case insensitive
-			if strings.EqualFold(headerPathValue, prri.path) {
+			if strings.EqualFold(*headerPathValue, prri.path) {
 				return prri
 			}
 		}
@@ -101,10 +102,11 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, r
 	prei.finalizePathHeader(headers, prei.prefix)
 }
 
-func (prei *PrefixRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if prei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
-			if strings.HasPrefix(headerPathValue, prei.prefix) {
+func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+	if prei.matchRoute(nil, headers, randomValue) {
+		headerPathValue, _ := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
+		if headerPathValue != nil {
+			if strings.HasPrefix(*headerPathValue, prei.prefix) {
 				return prei
 			}
 		}
@@ -142,8 +144,8 @@ func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, re
 }
 
 func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
-	if rrei.matchRoute(headers, randomValue) {
-		headerPathValue, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey)
+	if rrei.matchRoute(nil, headers, randomValue) {
+		headerPathValue, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
 		if err == nil && headerPathValue != nil {
 			if rrei.regexPattern.MatchString(*headerPathValue) {
 				return rrei

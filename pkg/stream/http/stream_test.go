@@ -246,7 +246,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 				connection:       tt.fields.connection,
 				responseDoneChan: tt.fields.responseDoneChan,
 			}
-			s.handleRequest()
+			s.handleRequest(nil)
 		})
 	}
 }

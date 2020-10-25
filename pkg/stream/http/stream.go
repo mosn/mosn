@@ -496,7 +496,7 @@ func (conn *serverStreamConnection) serve() {
 		conn.mutex.Unlock()
 
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-			s.handleRequest()
+			s.handleRequest(ctx)
 		}
 
 		// 5. wait for proxy done
@@ -589,7 +589,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 		headers.Del("Connection")
 	}
 
-	removeInternalHeaders(headers, s.connection.conn.RemoteAddr())
+	removeInternalHeaders(context, headers, s.connection.conn.RemoteAddr())
 
 	// copy headers
 	headers.CopyTo(&s.request.Header)
@@ -702,19 +702,14 @@ type serverStream struct {
 // types.StreamSender
 func (s *serverStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
 	var status string
-	var ok bool
 	switch headers := headersIn.(type) {
 	case mosnhttp.RequestHeader:
 		// hijack scene
-		if status, ok = headers.Get(types.HeaderStatus); !ok {
-			var err error
-			status, err = variable.GetVariableValue(context, types.HeaderStatus)
-			if err != nil {
-				return err
-			}
-		} else {
-			headers.Del(types.HeaderStatus)
+		value, err := variable.GetValueFromVariableAndLegacyHeader(context, headers, types.HeaderStatus, true)
+		if err != nil {
+			return err
 		}
+		status = *value
 		if status != "" {
 			statusCode, err := strconv.Atoi(status)
 			if err != nil {
@@ -722,7 +717,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 			}
 			s.response.SetStatusCode(statusCode)
 
-			removeInternalHeaders(headers, s.connection.conn.RemoteAddr())
+			removeInternalHeaders(context, headers, s.connection.conn.RemoteAddr())
 
 			// need to echo all request headers for protocol convert
 			headers.VisitAll(func(key, value []byte) {
@@ -732,16 +727,12 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 		}
 
 	case mosnhttp.ResponseHeader:
-		if status, ok = headers.Get(types.HeaderStatus); !ok {
-			var err error
-			status, err = variable.GetVariableValue(context, types.HeaderStatus)
-			if err != nil {
-				return err
-			}
-		} else {
-			headers.Del(types.HeaderStatus)
-		}
 
+		value, err := variable.GetValueFromVariableAndLegacyHeader(context, headers, types.HeaderStatus, true)
+		if err != nil {
+			return err
+		}
+		status = *value
 		if status != "" {
 			statusCode, _ := strconv.Atoi(status)
 			headers.SetStatusCode(statusCode)
@@ -820,7 +811,7 @@ func (s *serverStream) ReadDisable(disable bool) {
 		newCount := atomic.AddInt32(&s.readDisableCount, -1)
 
 		if newCount <= 0 {
-			s.handleRequest()
+			s.handleRequest(nil)
 		}
 	}
 }
@@ -836,10 +827,10 @@ func (s *serverStream) doSend() {
 	}
 }
 
-func (s *serverStream) handleRequest() {
+func (s *serverStream) handleRequest(ctx context.Context) {
 	if s.request != nil {
 		// set non-header info in request-line, like method, uri
-		injectInternalHeaders(s.header, s.request.URI())
+		s.injectInternalHeaders(ctx)
 
 		hasData := true
 		if len(s.request.Body()) == 0 {
@@ -859,58 +850,61 @@ func (s *serverStream) GetStream() types.Stream {
 }
 
 // consider host, method, path are necessary, but check querystring
-func injectInternalHeaders(headers mosnhttp.RequestHeader, uri *fasthttp.URI) {
+func (s *serverStream) injectInternalHeaders(ctx context.Context) {
 	// 1. host
-	headers.Set(protocol.MosnHeaderHostKey, string(uri.Host()))
+	uri := s.request.URI()
+	variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, string(uri.Host()))
 	// 2. :authority
-	headers.Set(protocol.IstioHeaderHostKey, string(uri.Host()))
+	variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, string(uri.Host()))
+
 	// 3. method
-	headers.Set(protocol.MosnHeaderMethod, string(headers.Method()))
+	variable.SetVariableValue(ctx, protocol.MosnHeaderMethod, string(s.header.Method()))
+
 	// 4. path
-	headers.Set(protocol.MosnHeaderPathKey, string(uri.Path()))
+	variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, string(uri.Path()))
+
 	// 5. querystring
 	qs := uri.QueryString()
 	if len(qs) > 0 {
-		headers.Set(protocol.MosnHeaderQueryStringKey, string(qs))
+		variable.SetVariableValue(ctx, protocol.MosnHeaderQueryStringKey, string(qs))
 	}
 }
 
-func removeInternalHeaders(headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
+func removeInternalHeaders(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
 	// assemble uri
 	uri := ""
 
 	// path
-	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok && path != "" {
-		headers.Del(protocol.MosnHeaderPathKey)
-		uri += path
-	} else {
+	path, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, true)
+	if err != nil || path == nil {
 		uri += "/"
+	} else {
+		uri += *path
 	}
 
 	// querystring
-	queryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey)
-	if ok && queryString != "" {
-		headers.Del(protocol.MosnHeaderQueryStringKey)
-		uri += "?" + queryString
+	queryString, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderQueryStringKey, true)
+	if err == nil && queryString != nil && *queryString != "" {
+		uri += "?" + *queryString
 	}
 
 	headers.SetRequestURI(uri)
 
-	if method, ok := headers.Get(protocol.MosnHeaderMethod); ok {
-		headers.Del(protocol.MosnHeaderMethod)
-		headers.SetMethod(method)
+	method, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderMethod, true)
+	if err == nil && method != nil {
+		headers.SetMethod(*method)
 	}
 
-	if host, ok := headers.Get(protocol.MosnHeaderHostKey); ok {
-		headers.Del(protocol.MosnHeaderHostKey)
-		headers.SetHost(host)
+	host, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderHostKey, true)
+	if err == nil && host != nil {
+		headers.SetHost(*host)
 	} else {
 		headers.SetHost(remoteAddr.String())
 	}
 
-	if host, ok := headers.Get(protocol.IstioHeaderHostKey); ok {
-		headers.Del(protocol.IstioHeaderHostKey)
-		headers.SetHost(host)
+	host, err = variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.IstioHeaderHostKey, true)
+	if err == nil && host != nil {
+		headers.SetHost(*host)
 	}
 
 }

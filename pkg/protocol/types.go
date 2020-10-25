@@ -19,6 +19,7 @@ package protocol
 
 import (
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // ProtocolName type definition
@@ -46,6 +47,17 @@ const (
 	MosnHeaderMethod          = "x-mosn-method"
 	MosnOriginalHeaderPathKey = "x-mosn-original-path"
 )
+
+func init() {
+	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderDirection,nil,nil,variable.BasicSetter,0))
+	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderScheme,nil,nil,variable.BasicSetter,0))
+	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderHostKey,nil,nil,variable.BasicSetter,0))
+	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderPathKey,nil,nil,variable.BasicSetter,0))
+	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderQueryStringKey,nil,nil,variable.BasicSetter,0))
+	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderMethod,nil,nil,variable.BasicSetter,0))
+	variable.RegisterVariable(variable.NewIndexedVariable(MosnOriginalHeaderPathKey,nil,nil,variable.BasicSetter,0))
+
+}
 
 // Hseader with special meaning in istio
 // todo maybe use ":authority"
