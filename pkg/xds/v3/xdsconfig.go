@@ -31,6 +31,8 @@ import (
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	wellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -131,10 +133,15 @@ func (c *XDSConfig) loadClusters(staticResources *envoy_config_bootstrap_v3.Boot
 	for _, cluster := range staticResources.Clusters {
 		name := cluster.Name
 		config := ClusterConfig{}
-		// config.TlsContext = cluster.TlsContext
+
+		if cluster.TransportSocket.Name == wellknown.TransportSocketTls {
+			config.TlsContext = cluster.TransportSocket
+		}
+
 		if cluster.LbPolicy != envoy_config_cluster_v3.Cluster_RANDOM {
 			log.DefaultLogger.Warnf("only random lbPoliy supported, convert to random")
 		}
+
 		config.LbPolicy = envoy_config_cluster_v3.Cluster_RANDOM
 		if cluster.ConnectTimeout.GetSeconds() <= 0 {
 			duration := time.Second * 10
@@ -143,6 +150,11 @@ func (c *XDSConfig) loadClusters(staticResources *envoy_config_bootstrap_v3.Boot
 			duration := conv.ConvertDuration(cluster.ConnectTimeout)
 			config.ConnectTimeout = &duration
 		}
+
+		if len(cluster.LoadAssignment.Endpoints) == 0 {
+			log.DefaultLogger.Fatalf("xds v3 cluster.loadassignment is empty")
+		}
+
 		config.Address = make([]string, 0, len(cluster.LoadAssignment.GetEndpoints()[0].LbEndpoints))
 		for _, host := range cluster.LoadAssignment.GetEndpoints()[0].LbEndpoints {
 			endpoint := host.GetEndpoint()
@@ -185,8 +197,7 @@ func (c *ADSConfig) GetStreamClient() envoy_service_discovery_v3.AggregatedDisco
 		return nil
 	}
 	var endpoint string
-	var tlsContext *envoy_extensions_transport_sockets_tls_v3.UpstreamTlsContext
-
+	var tlsContext *envoy_config_core_v3.TransportSocket
 	for _, service := range c.Services {
 		if service.ClusterConfig == nil {
 			continue
@@ -242,7 +253,13 @@ func (c *ADSConfig) GetStreamClient() envoy_service_discovery_v3.AggregatedDisco
 	return streamClient
 }
 
-func (c *ADSConfig) getTLSCreds(tlsContext *envoy_extensions_transport_sockets_tls_v3.UpstreamTlsContext) (credentials.TransportCredentials, error) {
+func (c *ADSConfig) getTLSCreds(tlsContextConfig *envoy_config_core_v3.TransportSocket) (credentials.TransportCredentials, error) {
+
+	tlsContext := &envoy_extensions_transport_sockets_tls_v3.UpstreamTlsContext{}
+	if err := ptypes.UnmarshalAny(tlsContextConfig.GetTypedConfig(), tlsContext); err != nil {
+		return nil, err
+	}
+
 	if tlsContext.CommonTlsContext.GetValidationContext() == nil ||
 		tlsContext.CommonTlsContext.GetValidationContext().GetTrustedCa() == nil {
 		return nil, errors.New("can't find trusted ca ")
