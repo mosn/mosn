@@ -29,26 +29,18 @@ import (
 // Servers contains the listener, filter and so on
 // ClusterManager used to manage the upstream
 type MOSNConfig struct {
-	Servers         []ServerConfig       `json:"servers,omitempty"`          //server config
-	ClusterManager  ClusterManagerConfig `json:"cluster_manager,omitempty"`  //cluster config
-	ServiceRegistry ServiceRegistryInfo  `json:"service_registry,omitempty"` //service registry config, used by service discovery module
-
-	CloseGraceful       bool            `json:"close_graceful,omitempty"` // graceful switch, default false
-	Pid                 string          `json:"pid,omitempty"`            // pid file
-	Tracing             TracingConfig   `json:"tracing,omitempty"`        // tracing config
-	Metrics             MetricsConfig   `json:"metrics,omitempty"`
-	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
-	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
-	RawAdmin            json.RawMessage `json:"admin,omitempty"`             // admin raw message
-	Debug               PProfConfig     `json:"pprof,omitempty"`
-	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
-	Extend              []ExtendItem    `json:"extend,omitempty"` // extend config
-}
-
-// ExtendItem is used to extend the mosn config by user need
-type ExtendItem struct {
-	Type   string          `json:"type"`
-	Config json.RawMessage `json:"config"`
+	Servers             []ServerConfig             `json:"servers,omitempty"`         //server config
+	ClusterManager      ClusterManagerConfig       `json:"cluster_manager,omitempty"` //cluster config
+	CloseGraceful       bool                       `json:"close_graceful,omitempty"`  // graceful switch, default false
+	Tracing             TracingConfig              `json:"tracing,omitempty"`
+	Metrics             MetricsConfig              `json:"metrics,omitempty"`
+	RawDynamicResources json.RawMessage            `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
+	RawStaticResources  json.RawMessage            `json:"static_resources,omitempty"`  //static_resources raw message
+	RawAdmin            json.RawMessage            `json:"admin,omitempty"`             // admin raw message
+	Debug               PProfConfig                `json:"pprof,omitempty"`
+	Pid                 string                     `json:"pid,omitempty"`     // pid file
+	Plugin              PluginConfig               `json:"plugin,omitempty"`  // plugin config
+	Extends             map[string]json.RawMessage `json:"extends,omitempty"` // extend config
 }
 
 // PProfConfig is used to start a pprof server for debug

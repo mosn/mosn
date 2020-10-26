@@ -25,7 +25,7 @@ import (
 	"reflect"
 	"testing"
 
-	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/configmanager"
 )
 
 func TestKnownFeatures(t *testing.T) {
@@ -42,7 +42,7 @@ func TestKnownFeatures(t *testing.T) {
 	}
 	m := map[string]bool{}
 	json.Unmarshal(b, &m)
-	v, ok := m[string(store.ConfigAutoWrite)]
+	v, ok := m[string(configmanager.ConfigAutoWrite)]
 	if !ok || v {
 		t.Fatalf("features is not expected")
 	}
