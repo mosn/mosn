@@ -22,6 +22,8 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/variable"
+
 	"bou.ke/monkey"
 	"github.com/golang/mock/gomock"
 	"mosn.io/api"
@@ -60,7 +62,7 @@ func TestProxyWithFilters(t *testing.T) {
 	defer monkey.UnpatchAll()
 
 	// mock context from connection
-	ctx := context.Background()
+	ctx := variable.NewVariableContext(context.Background())
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
 
@@ -121,7 +123,7 @@ func TestProxyWithFilters(t *testing.T) {
 			rw.EXPECT().GetRouters().DoAndReturn(func() types.Routers {
 				r := mock.NewMockRouters(ctrl)
 				// mock routers can be matched route if a header contains key service and values equals config name.
-				r.EXPECT().MatchRoute(gomock.Any(), gomock.Any()).DoAndReturn(func(headers api.HeaderMap, _ uint64) api.Route {
+				r.EXPECT().MatchRoute(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, headers api.HeaderMap, _ uint64) api.Route {
 					if sn, ok := headers.Get("service"); ok && sn == tn {
 						return gomockRouteMatchCluster(ctrl, "mock_cluster")
 					}
