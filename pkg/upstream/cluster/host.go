@@ -119,7 +119,7 @@ func (sh *simpleHost) SupportTLS() bool {
 
 func (sh *simpleHost) TLSHashValue() *types.HashValue {
 	// check tls_disable config
-	if sh.tlsDisable {
+	if sh.tlsDisable || !sh.ClusterInfo().TLSMng().Enabled() {
 		return disableTLSHashValue
 	}
 	// check global tls

@@ -31,24 +31,30 @@ func TestUpdateHostTLSConfig(t *testing.T) {
 			Verify(client.SyncCall(), Equal, false)
 			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(1))
 		})
-		Case("update cluster, makes tls disable", func() {
+		Case("update router, route to another cluster which tls config is changed", func() {
 			config := `{
-				"name": "mosn_cluster",
-				"type": "SIMPLE",
-				"lb_type": "LB_RANDOM",
-				"hosts":[
-					{"address":"127.0.0.1:2046"}
-				]
+				"router_config_name":"router_to_mosn",
+				"virtual_hosts":[{
+					"name":"mosn_hosts",
+					"domains": ["*"],
+					"routers": [
+						{
+							"match":{"headers":[{"name":"service","value":".*"}]},
+							"route":{"cluster_name":"mosn_cluster_new"}
+						}
+					]
+				}]
+
 			}`
-			err := m.UpdateConfig(34901, "cluster", config)
+			err := m.UpdateConfig(34901, "router", config)
 			Verify(err, Equal, nil)
 			Verify(client.SyncCall(), Equal, false)
-			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(1))
+			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(2))
 		})
 		Case("enable global tls", func() {
 			DisableTLS(t, false)
 			Verify(client.SyncCall(), Equal, false)
-			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(1))
+			Verify(GetTLSConnpoolMetrics(t, m), Equal, int64(2))
 		})
 	})
 }
@@ -143,6 +149,14 @@ const hostTLSConfig = `{
 					"status": true,
 					"insecure_skip": true
 				},
+				"hosts":[
+					{"address":"127.0.0.1:2046"}
+				]
+			},
+			{
+				"name": "mosn_cluster_new",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
 				"hosts":[
 					{"address":"127.0.0.1:2046"}
 				]

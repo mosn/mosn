@@ -372,57 +372,45 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 
 		connectionPool := value.(*sync.Map)
 		// we cannot use sync.Map.LoadOrStore directly, becasue we do not want to new a connpool every time
-		loadOrStoreConnPool := func() (*clusterConnectionPool, bool) {
+		loadOrStoreConnPool := func() (types.ConnectionPool, bool) {
 			// avoid locking if it is already exists
 			if connPool, ok := connectionPool.Load(addr); ok {
-				pool := connPool.(*clusterConnectionPool)
+				pool := connPool.(types.ConnectionPool)
 				return pool, true
 			}
 			cm.mux.Lock()
 			defer cm.mux.Unlock()
 			if connPool, ok := connectionPool.Load(addr); ok {
-				pool := connPool.(*clusterConnectionPool)
+				pool := connPool.(types.ConnectionPool)
 				return pool, true
 			}
-			pool := createConnectionPool(balancerContext, host, factory)
+			pool := factory(balancerContext.DownstreamContext(), host)
 			connectionPool.Store(addr, pool)
 			return pool, false
 		}
 		pool, loaded := loadOrStoreConnPool()
 		if loaded {
 			if !pool.TLSHashValue().Equal(host.TLSHashValue()) {
-				// 1. if target status is tls. should do connections change:
-				// 1.1. non-tls to tls
-				// 1.2. tls config is changed
-				// 2. if target status is non-tls. should double check
-				// 2.1. tls to non-tls, should do connections change
-				// 2.2. non-tls to non-tls, no connections change, but should marks the hash value changed.
-				if !host.SupportTLS() && !pool.SupportTLS() {
-					// !host.SupportTLS means target status is non-tls
-					// !pool.SupportTLS means original status is non-tls
-					pool.UpdateTLSHashValue(host.TLSHashValue())
-				} else {
-					if log.DefaultLogger.GetLogLevel() >= log.INFO {
-						log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
-					}
-					cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
-					func() {
-						// lock the load and delete
-						cm.mux.Lock()
-						defer cm.mux.Unlock()
-						// recheck whether the pool is changed
-						if connPool, ok := connectionPool.Load(addr); ok {
-							pool = connPool.(*clusterConnectionPool)
-							if pool.TLSHashValue().Equal(host.TLSHashValue()) {
-								return
-							}
-							connectionPool.Delete(addr)
-							pool.Shutdown()
-							pool = createConnectionPool(balancerContext, host, factory)
-							connectionPool.Store(addr, pool)
-						}
-					}()
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				}
+				func() {
+					// lock the load and delete
+					cm.mux.Lock()
+					defer cm.mux.Unlock()
+					// recheck whether the pool is changed
+					if connPool, ok := connectionPool.Load(addr); ok {
+						pool = connPool.(types.ConnectionPool)
+						if pool.TLSHashValue().Equal(host.TLSHashValue()) {
+							return
+						}
+						connectionPool.Delete(addr)
+						pool.Shutdown()
+						pool = factory(balancerContext.DownstreamContext(), host)
+						connectionPool.Store(addr, pool)
+						cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
+					}
+				}()
 
 			}
 		}

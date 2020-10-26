@@ -19,7 +19,6 @@ package cluster
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"mosn.io/api"
@@ -514,8 +513,8 @@ func TestClusterManagerTLSUpdateTLS(t *testing.T) {
 	}
 	snap3 := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
 	connPool7 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap3, mockProtocol)
-	// connpool should not be changed, but hash value should be changed.
-	if !reflect.DeepEqual(connPool6, connPool7) || !connPool7.TLSHashValue().Equal(disableTLSHashValue) {
+	// connpool should be changed.
+	if !connPool7.TLSHashValue().Equal(disableTLSHashValue) {
 		t.Fatalf("conn pool should be changed to disableTLSHashValue")
 	}
 	EnableClientSideTLS()
