@@ -31,6 +31,7 @@ import (
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_extensions_access_loggers_file_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	envoy_extensions_filters_common_fault_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/common/fault/v3"
+	envoy_extensions_filters_http_compressor_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/compressor/v3"
 	envoy_extensions_filters_http_fault_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/fault/v3"
 	envoy_extensions_filters_http_gzip_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/gzip/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -1016,9 +1017,11 @@ func Test_convertHashPolicy(t *testing.T) {
 // Test stream filters convert for envoy.gzip
 func Test_convertStreamFilter_Gzip(t *testing.T) {
 	gzipConfig := &envoy_extensions_filters_http_gzip_v3.Gzip{
-		HiddenEnvoyDeprecatedContentLength: &wrappers.UInt32Value{Value: 1024},
-		CompressionLevel:                   envoy_extensions_filters_http_gzip_v3.Gzip_CompressionLevel_BEST,
-		HiddenEnvoyDeprecatedContentType:   []string{"test"},
+		CompressionLevel: envoy_extensions_filters_http_gzip_v3.Gzip_CompressionLevel_BEST,
+		Compressor: &envoy_extensions_filters_http_compressor_v3.Compressor{
+			ContentLength: &wrappers.UInt32Value{Value: 1024},
+			ContentType:   []string{"test"},
+		},
 	}
 
 	gzipStruct := messageToAny(t, gzipConfig)

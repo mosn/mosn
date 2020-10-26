@@ -953,7 +953,7 @@ func convertHeaders(xdsHeaders []*envoy_config_route_v3.HeaderMatcher) []v2.Head
 	headerMatchers := make([]v2.HeaderMatcher, 0, len(xdsHeaders))
 	for _, xdsHeader := range xdsHeaders {
 		headerMatcher := v2.HeaderMatcher{}
-		if xdsHeader.GetSafeRegexMatch().Regex != "" {
+		if xdsHeader.GetSafeRegexMatch() != nil && xdsHeader.GetSafeRegexMatch().Regex != "" {
 			headerMatcher.Name = xdsHeader.GetName()
 			headerMatcher.Value = xdsHeader.GetSafeRegexMatch().Regex
 			headerMatcher.Regex = true
