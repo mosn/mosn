@@ -29,7 +29,6 @@ import (
 	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	conversion "github.com/envoyproxy/go-control-plane/pkg/conversion"
 	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
@@ -166,7 +165,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	if listener, ok := m.Listener["0.0.0.0_9080"]; !ok {
 		t.Fatalf("listener[0.0.0.0_9080] is missing")
 	} else {
-		if listener.Name != "0.0.0.0_9080" || listener.BindToPort || len(listener.FilterChains) != 1 {
+		if listener.Name != "0.0.0.0_9080" || !listener.BindToPort || len(listener.FilterChains) != 1 {
 			t.Fatalf("error listener[0.0.0.0_9080] config: %v", listener)
 		}
 
@@ -227,7 +226,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	if listener, ok := m.Listener["0.0.0.0_9080"]; !ok {
 		t.Fatalf("listener[0.0.0.0_9080] is missing")
 	} else {
-		if listener.Name != "0.0.0.0_9080" || listener.BindToPort || len(listener.FilterChains) != 1 {
+		if listener.Name != "0.0.0.0_9080" || !listener.BindToPort || len(listener.FilterChains) != 1 {
 			t.Fatalf("error listener config: %v", listener)
 		}
 		if len(m.Routers) != 1 {
@@ -293,14 +292,9 @@ func loadXdsData2() {
 				},
 			},
 		},
-		HiddenEnvoyDeprecatedUseOriginalDst: &wrappers.BoolValue{Value: false},
-		DeprecatedV1: &envoy_config_listener_v3.Listener_DeprecatedV1{
-			BindToPort: &wrappers.BoolValue{Value: false},
-		},
 		FilterChains: []*envoy_config_listener_v3.FilterChain{
 			{
-				FilterChainMatch:                nil,
-				HiddenEnvoyDeprecatedTlsContext: &envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{},
+				FilterChainMatch: nil,
 				Filters: []*envoy_config_listener_v3.Filter{
 					{
 						Name: wellknown.HTTPConnectionManager,
@@ -356,13 +350,25 @@ func loadXdsData2() {
 	cluster := &envoy_config_cluster_v3.Cluster{
 		Name:     "outbound|9080||productpage.default.svc.cluster.local",
 		LbPolicy: envoy_config_cluster_v3.Cluster_ROUND_ROBIN,
-		HiddenEnvoyDeprecatedHosts: []*envoy_config_core_v3.Address{
-			{
-				Address: &envoy_config_core_v3.Address_SocketAddress{
-					SocketAddress: &envoy_config_core_v3.SocketAddress{
-						Address: "172.16.1.171",
-						PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
-							PortValue: 9080,
+		LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
+			Endpoints: []*envoy_config_endpoint_v3.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{
+						{
+							HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_config_endpoint_v3.Endpoint{
+									Address: &envoy_config_core_v3.Address{
+										Address: &envoy_config_core_v3.Address_SocketAddress{
+											SocketAddress: &envoy_config_core_v3.SocketAddress{
+												Address: "172.16.1.171",
+												PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+													PortValue: 9080,
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -389,14 +395,9 @@ func loadXdsData() {
 				},
 			},
 		},
-		HiddenEnvoyDeprecatedUseOriginalDst: &wrappers.BoolValue{Value: false},
-		DeprecatedV1: &envoy_config_listener_v3.Listener_DeprecatedV1{
-			BindToPort: &wrappers.BoolValue{Value: false},
-		},
 		FilterChains: []*envoy_config_listener_v3.FilterChain{
 			{
-				FilterChainMatch:                nil,
-				HiddenEnvoyDeprecatedTlsContext: &envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{},
+				FilterChainMatch: nil,
 				Filters: []*envoy_config_listener_v3.Filter{
 					{
 						Name: wellknown.HTTPConnectionManager,
@@ -441,13 +442,25 @@ func loadXdsData() {
 	cluster := &envoy_config_cluster_v3.Cluster{
 		Name:     "outbound|9080||productpage.default.svc.cluster.local",
 		LbPolicy: envoy_config_cluster_v3.Cluster_ROUND_ROBIN,
-		HiddenEnvoyDeprecatedHosts: []*envoy_config_core_v3.Address{
-			{
-				Address: &envoy_config_core_v3.Address_SocketAddress{
-					SocketAddress: &envoy_config_core_v3.SocketAddress{
-						Address: "172.16.1.171",
-						PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
-							PortValue: 9080,
+		LoadAssignment: &envoy_config_endpoint_v3.ClusterLoadAssignment{
+			Endpoints: []*envoy_config_endpoint_v3.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{
+						{
+							HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
+								Endpoint: &envoy_config_endpoint_v3.Endpoint{
+									Address: &envoy_config_core_v3.Address{
+										Address: &envoy_config_core_v3.Address_SocketAddress{
+											SocketAddress: &envoy_config_core_v3.SocketAddress{
+												Address: "172.16.1.171",
+												PortSpecifier: &envoy_config_core_v3.SocketAddress_PortValue{
+													PortValue: 9080,
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				},

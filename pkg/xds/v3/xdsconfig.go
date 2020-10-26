@@ -134,7 +134,7 @@ func (c *XDSConfig) loadClusters(staticResources *envoy_config_bootstrap_v3.Boot
 		name := cluster.Name
 		config := ClusterConfig{}
 
-		if cluster.TransportSocket.Name == wellknown.TransportSocketTls {
+		if cluster.TransportSocket != nil && cluster.TransportSocket.Name == wellknown.TransportSocketTls {
 			config.TlsContext = cluster.TransportSocket
 		}
 

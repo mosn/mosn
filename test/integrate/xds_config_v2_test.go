@@ -137,7 +137,7 @@ func TestConfigAddAndUpdateDeprecated(t *testing.T) {
 		t.Fatalf("should not have clusters")
 	}
 
-	loadXdsData()
+	loadXdsDataDeprecated()
 
 	buf, err = configmanager.DumpJSON()
 	if err != nil {
@@ -201,7 +201,7 @@ func TestConfigAddAndUpdateDeprecated(t *testing.T) {
 		}
 	}
 
-	loadXdsData2()
+	loadXdsData2Deprecated()
 
 	buf, err = configmanager.DumpJSON()
 	if err != nil {
@@ -368,6 +368,7 @@ func loadXdsData2Deprecated() {
 }
 
 func loadXdsDataDeprecated() {
+	conv.InitStats()
 	// Listeners
 	listener := &xdsapi.Listener{
 		Name: "0.0.0.0_9080",

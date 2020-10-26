@@ -921,14 +921,17 @@ func convertPerRouteConfig(xdsPerRouteConfig map[string]*any.Any) map[string]int
 }
 
 func convertRouteMatch(xdsRouteMatch *envoy_config_route_v3.RouteMatch) v2.RouterMatch {
-	return v2.RouterMatch{
+	rm := v2.RouterMatch{
 		Prefix: xdsRouteMatch.GetPrefix(),
 		Path:   xdsRouteMatch.GetPath(),
-		Regex:  xdsRouteMatch.GetSafeRegex().Regex,
 		//CaseSensitive: xdsRouteMatch.GetCaseSensitive().GetValue(),
 		//Runtime:       convertRuntime(xdsRouteMatch.GetRuntime()),
 		Headers: convertHeaders(xdsRouteMatch.GetHeaders()),
 	}
+	if xdsRouteMatch.GetSafeRegex() != nil {
+		rm.Regex = xdsRouteMatch.GetSafeRegex().Regex
+	}
+	return rm
 }
 
 /*
