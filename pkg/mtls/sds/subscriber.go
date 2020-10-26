@@ -262,8 +262,8 @@ func ACKResponse(client *SdsStreamClient, resp *xdsapi.DiscoveryResponse) {
 
 	if err != nil {
 		log.DefaultLogger.Errorf("ack secret fail: %v", err)
-		return
 	}
+
 	return
 }
 
