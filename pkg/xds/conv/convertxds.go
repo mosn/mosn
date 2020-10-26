@@ -644,6 +644,7 @@ func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.Filt
 		err := ptypes.UnmarshalAny(xdsFilterChain.GetTransportSocket().GetTypedConfig(), downstreamTLSContext)
 		if err != nil {
 			log.DefaultLogger.Errorf("failed to unmarshal downstream tls context: %v", err)
+			continue
 		}
 		tlsConfigs = append(tlsConfigs, convertTLS(downstreamTLSContext))
 	}
