@@ -119,6 +119,8 @@ type downStream struct {
 	logDone          uint32
 
 	snapshot types.ClusterSnapshot
+
+	phase types.Phase
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
@@ -137,6 +139,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	}
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proto)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigDownStreamProtocol, proxy.config.DownstreamProtocol)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigUpStreamProtocol, proxy.config.UpstreamProtocol)
 
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
@@ -199,7 +203,7 @@ func (s *downStream) cleanStream() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] cleanStream panic: %v, downstream: %+v, streamID: %d\n%s",
+			log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] cleanStream panic: %v, downstream: %+v, streamID: %d\n%s",
 				r, s, s.ID, string(debug.Stack()))
 		}
 	}()
@@ -295,7 +299,7 @@ func (s *downStream) writeLog() {
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] writeLog panic %v, downstream %+v", r, s)
+			log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] writeLog panic %v, downstream %+v", r, s)
 		}
 	}()
 
@@ -357,11 +361,10 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 	}
 
 	id := s.ID
-	// goroutine for proxy
-	pool.ScheduleAuto(func() {
+	var task = func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Proxy.Errorf(s.context, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
+				log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
 					r, s, id, s.ID, string(debug.Stack()))
 
 				if id == s.ID {
@@ -386,7 +389,26 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] directResponse %+v", s)
 			}
 		}
-	})
+	}
+
+	if s.proxy.serverStreamConn.EnableWorkerPool() {
+		// should enable workerpool
+		// goroutine for proxy
+		if s.proxy.workerpool != nil {
+			// use the worker pool for current proxy
+			// NOTE: should this be configurable?
+			// eg, use config to control Schedule or to ScheduleAuto
+			s.proxy.workerpool.Schedule(task)
+		} else {
+			// use the global shared worker pool
+			pool.ScheduleAuto(task)
+		}
+		return
+	}
+
+	task()
+	return
+
 }
 
 func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {
@@ -395,6 +417,8 @@ func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
 	for i := 0; i <= int(types.End-types.InitPhase); i++ {
+		s.phase = phase
+
 		switch phase {
 		// init phase
 		case types.InitPhase:
@@ -580,6 +604,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				if log.Proxy.GetLogLevel() >= log.DEBUG {
 					s.printPhaseInfo(types.UpRecvHeader, id)
 				}
+
+				s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamRespHeaders, s.downstreamRespHeaders)
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -919,7 +945,7 @@ func (s *downStream) onUpstreamRequestSent() {
 func (s *downStream) onResponseTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onResponseTimeout() panic %v\n%s", r, string(debug.Stack()))
+			log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] onResponseTimeout() panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 	s.cluster.Stats().UpstreamRequestTimeout.Inc(1)
@@ -971,7 +997,7 @@ func (s *downStream) setupPerReqTimeout() {
 func (s *downStream) onPerReqTimeout() {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Proxy.Errorf(s.context, "[proxy] [downstream] onPerReqTimeout() panic %v\n%s", r, string(debug.Stack()))
+			log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] onPerReqTimeout() panic %v\n%s", r, string(debug.Stack()))
 		}
 	}()
 
@@ -1283,6 +1309,7 @@ func (s *downStream) doRetry() {
 		downStream: s,
 		proxy:      s.proxy,
 		connPool:   pool,
+		protocol:   s.getUpstreamProtocol(),
 	}
 
 	// if Data or Trailer exists, endStream should be false, else should be true
@@ -1535,10 +1562,14 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 		if s.oneway {
 			phase = types.Oneway
-		} else {
-			phase = types.UpFilter
+			err = types.ErrExit
+			return
 		}
-		err = types.ErrExit
+		if s.phase != types.UpFilter {
+			phase = types.UpFilter
+			err = types.ErrExit
+			return
+		}
 		return
 	}
 

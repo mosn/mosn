@@ -25,6 +25,7 @@ package java_exception
 type Throwabler interface {
 	Error() string
 	JavaClassName() string
+	GetStackTrace() []StackTraceElement
 }
 
 ////////////////////////////
@@ -54,6 +55,11 @@ func (Throwable) JavaClassName() string {
 	return "java.lang.Throwable"
 }
 
+// equals to getStackTrace in java
+func (e Throwable) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}
+
 ////////////////////////////
 // Exception
 ////////////////////////////
@@ -79,15 +85,20 @@ func (Exception) JavaClassName() string {
 	return "java.lang.Exception"
 }
 
-////////////////////////////
+// equals to getStackTrace in java
+func (e Exception) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}
+
+/////////////////////////////
 // StackTraceElement
-////////////////////////////
+/////////////////////////////
 
 type StackTraceElement struct {
 	DeclaringClass string
 	MethodName     string
 	FileName       string
-	LineNumber     int
+	LineNumber     int32
 }
 
 //JavaClassName  java fully qualified path

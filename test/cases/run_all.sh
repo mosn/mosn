@@ -2,7 +2,7 @@
 function makebuild { 
 	OPWD=$(pwd)
 	cd ../../cmd/mosn/main
-	go build
+	go build -tags=mosn_debug
 	CPWD=$(pwd)
 	mv ./main "$OPWD/test_mosn"
 	echo $OPWD/test_mosn

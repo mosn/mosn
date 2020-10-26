@@ -40,3 +40,8 @@ func (e UTFDataFormatException) Error() string {
 func (UTFDataFormatException) JavaClassName() string {
 	return "java.io.UTFDataFormatException"
 }
+
+// equals to getStackTrace in java
+func (e UTFDataFormatException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

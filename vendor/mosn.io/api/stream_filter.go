@@ -31,6 +31,8 @@ const (
 	StreamFilterContinue StreamFilterStatus = "Continue"
 	// Do not iterate to next iterator.
 	StreamFilterStop StreamFilterStatus = "Stop"
+	// terminate request.
+	StreamFiltertermination StreamFilterStatus = "termination"
 
 	StreamFilterReMatchRoute StreamFilterStatus = "Retry Match Route"
 	StreamFilterReChooseHost StreamFilterStatus = "Retry Choose Host"
@@ -114,6 +116,9 @@ type StreamReceiverFilterHandler interface {
 
 	// SendHijackReply is called when the filter will response directly
 	SendHijackReply(code int, headers HeaderMap)
+
+	// SendHijackReplyWithBody is called when the filter will response directly with body
+	SendHijackReplyWithBody(code int, headers HeaderMap, body string)
 
 	// SendDirectRespoonse is call when the filter will response directly
 	SendDirectResponse(headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap)

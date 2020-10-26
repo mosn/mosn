@@ -55,6 +55,19 @@ func (f *mockSendHandler) setData(data types.IoBuffer) {
 	f.downstreamRespDataBuf = data
 }
 
+func TestCreateGzipFilterFactory(t *testing.T) {
+	m := map[string]interface{}{}
+	if f, err := CreateGzipFilterFactory(m); f == nil || err != nil {
+		t.Errorf("CreateGzipFilterFactory failed: %v.", err)
+	}
+
+	// invalid config
+	m["gzip_level"] = 10
+	if f, err := CreateGzipFilterFactory(m); f != nil || err == nil {
+		t.Error("CreateGzipFilterFactory failed.")
+	}
+}
+
 func TestGzipNewStreamFilter(t *testing.T) {
 	rawbody := "123456"
 	cfg := &v2.StreamGzip{

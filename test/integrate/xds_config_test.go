@@ -20,14 +20,15 @@ package integrate
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"testing"
+
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"io/ioutil"
-	"path/filepath"
-	"testing"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -35,7 +36,6 @@ import (
 	xdsutil "github.com/envoyproxy/go-control-plane/pkg/conversion"
 	"github.com/golang/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
-	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
@@ -47,9 +47,9 @@ import (
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type effectiveConfig struct {
-	MOSNConfig interface{}            `json:"mosn_config,omitempty"`
-	Listener   map[string]v2.Listener `json:"listener,omitempty"`
-	Cluster    map[string]v2.Cluster  `json:"cluster,omitempty"`
+	MOSNConfig interface{}                       `json:"mosn_config,omitempty"`
+	Listener   map[string]v2.Listener            `json:"listener,omitempty"`
+	Cluster    map[string]v2.Cluster             `json:"cluster,omitempty"`
 	Routers    map[string]v2.RouterConfiguration `json:"routers,omitempty"`
 }
 
@@ -116,20 +116,20 @@ func handleXdsData(mosnConfig *v2.MOSNConfig, xdsFiles []string) error {
 
 func TestConfigAddAndUpdate(t *testing.T) {
 	mosnConfig := configmanager.Load(filepath.Join("testdata", "envoy.json"))
-	admin.Reset()
-	admin.SetMosnConfig(mosnConfig)
+	configmanager.Reset()
+	configmanager.SetMosnConfig(mosnConfig)
 	Mosn := mosn.NewMosn(mosnConfig)
 	Mosn.Start()
 
-	buf, err := admin.Dump()
+	buf, err := configmanager.DumpJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
 	var m effectiveConfig
 	err = json.Unmarshal(buf, &m)
-	  if err != nil {
+	if err != nil {
 		t.Fatal(err)
-	  }
+	}
 
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
@@ -143,14 +143,14 @@ func TestConfigAddAndUpdate(t *testing.T) {
 
 	loadXdsData()
 
-	buf, err = admin.Dump()
+	buf, err = configmanager.DumpJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
 	err = json.Unmarshal(buf, &m)
-	  if err != nil {
+	if err != nil {
 		t.Fatal(err)
-	  }
+	}
 
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
@@ -207,7 +207,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 
 	loadXdsData2()
 
-	buf, err = admin.Dump()
+	buf, err = configmanager.DumpJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	}
 
 	Mosn.Close()
-	admin.Reset()
+	configmanager.Reset()
 }
 
 func loadXdsData2() {

@@ -60,7 +60,7 @@ import (
 func TestMain(m *testing.M) {
 	// init
 	router.NewRouterManager()
-	cm := cluster.NewClusterManagerSingleton(nil, nil)
+	cm := cluster.NewClusterManagerSingleton(nil, nil, nil)
 	sc := server.NewConfig(&v2.ServerConfig{
 		ServerName:      "test_xds_server",
 		DefaultLogPath:  "stdout",
@@ -409,14 +409,14 @@ func Test_convertListenerConfig(t *testing.T) {
 							TypedConfig: accessLogFilterConfig,
 						},
 					}},
-					UseRemoteAddress:            NewBoolValue(false),
-					XffNumTrustedHops:           0,
-					SkipXffAppend:               false,
-					Via:                         "",
-					GenerateRequestId:           NewBoolValue(true),
-					ForwardClientCertDetails:    xdshttp.HttpConnectionManager_SANITIZE,
-					SetCurrentClientCertDetails: nil,
-					Proxy_100Continue:           false,
+					UseRemoteAddress:                           NewBoolValue(false),
+					XffNumTrustedHops:                          0,
+					SkipXffAppend:                              false,
+					Via:                                        "",
+					GenerateRequestId:                          NewBoolValue(true),
+					ForwardClientCertDetails:                   xdshttp.HttpConnectionManager_SANITIZE,
+					SetCurrentClientCertDetails:                nil,
+					Proxy_100Continue:                          false,
 					RepresentIpv4RemoteAddressAsIpv4MappedIpv6: false,
 				},
 				filterName: "envoy.http_connection_manager",
@@ -507,7 +507,7 @@ func Test_convertListenerConfig(t *testing.T) {
 				},
 			}
 
-			tt.want = `{"name":"0.0.0.0_80","access_logs":[{"log_path":"/dev/stdout"}],"listener_filters":[{"type":"original_dst"}],"filter_chains":[{"match":"\u003cnil\u003e","tls_context_set":[{"status": true,"verify_client":false,"sds_source":{"CertificateConfig":{"name":"mosn-first-cert"},"ValidationConfig":{"name":"mosn-first-ca"}}},{"status": true,"verify_client":true,"sds_source":{"CertificateConfig":{"name":"mosn-second-cert"},"ValidationConfig":{"name":"mosn-second-ca"}}}],"filters":[{"type":"proxy","config":{"downstream_protocol":"Http1","router_config_name":"80","upstream_protocol":"Http1"}},{"type":"connection_manager","config":{"router_config_name":"80","virtual_hosts":[{"domains":["istio-egressgateway.istio-system.svc.cluster.local","istio-egressgateway.istio-system.svc.cluster.local:80","istio-egressgateway.istio-system","istio-egressgateway.istio-system:80","istio-egressgateway.istio-system.svc.cluster","istio-egressgateway.istio-system.svc.cluster:80","istio-egressgateway.istio-system.svc","istio-egressgateway.istio-system.svc:80","172.19.3.204","172.19.3.204:80"],"name":"istio-egressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-egressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["istio-ingressgateway.istio-system.svc.cluster.local","istio-ingressgateway.istio-system.svc.cluster.local:80","istio-ingressgateway.istio-system","istio-ingressgateway.istio-system:80","istio-ingressgateway.istio-system.svc.cluster","istio-ingressgateway.istio-system.svc.cluster:80","istio-ingressgateway.istio-system.svc","istio-ingressgateway.istio-system.svc:80","172.19.8.101","172.19.8.101:80"],"name":"istio-ingressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-ingressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["nginx-ingress-lb.kube-system.svc.cluster.local","nginx-ingress-lb.kube-system.svc.cluster.local:80","nginx-ingress-lb.kube-system","nginx-ingress-lb.kube-system:80","nginx-ingress-lb.kube-system.svc.cluster","nginx-ingress-lb.kube-system.svc.cluster:80","nginx-ingress-lb.kube-system.svc","nginx-ingress-lb.kube-system.svc:80","172.19.6.192:80","172.19.8.101:80"],"name":"nginx-ingress-lb.kube-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]}]}}]}],"inspector":true}`
+			tt.want = `{"name":"0.0.0.0_80","address":"0.0.0.0:80", "access_logs":[{"log_path":"/dev/stdout"}],"listener_filters":[{"type":"original_dst"}],"filter_chains":[{"match":"\u003cnil\u003e","tls_context_set":[{"status": true,"verify_client":false,"sds_source":{"CertificateConfig":{"name":"mosn-first-cert"},"ValidationConfig":{"name":"mosn-first-ca"}}},{"status": true,"verify_client":true,"sds_source":{"CertificateConfig":{"name":"mosn-second-cert"},"ValidationConfig":{"name":"mosn-second-ca"}}}],"filters":[{"type":"proxy","config":{"downstream_protocol":"Http1","router_config_name":"80","upstream_protocol":"Http1"}},{"type":"connection_manager","config":{"router_config_name":"80","virtual_hosts":[{"domains":["istio-egressgateway.istio-system.svc.cluster.local","istio-egressgateway.istio-system.svc.cluster.local:80","istio-egressgateway.istio-system","istio-egressgateway.istio-system:80","istio-egressgateway.istio-system.svc.cluster","istio-egressgateway.istio-system.svc.cluster:80","istio-egressgateway.istio-system.svc","istio-egressgateway.istio-system.svc:80","172.19.3.204","172.19.3.204:80"],"name":"istio-egressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-egressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["istio-ingressgateway.istio-system.svc.cluster.local","istio-ingressgateway.istio-system.svc.cluster.local:80","istio-ingressgateway.istio-system","istio-ingressgateway.istio-system:80","istio-ingressgateway.istio-system.svc.cluster","istio-ingressgateway.istio-system.svc.cluster:80","istio-ingressgateway.istio-system.svc","istio-ingressgateway.istio-system.svc:80","172.19.8.101","172.19.8.101:80"],"name":"istio-ingressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-ingressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["nginx-ingress-lb.kube-system.svc.cluster.local","nginx-ingress-lb.kube-system.svc.cluster.local:80","nginx-ingress-lb.kube-system","nginx-ingress-lb.kube-system:80","nginx-ingress-lb.kube-system.svc.cluster","nginx-ingress-lb.kube-system.svc.cluster:80","nginx-ingress-lb.kube-system.svc","nginx-ingress-lb.kube-system.svc:80","172.19.6.192:80","172.19.8.101:80"],"name":"nginx-ingress-lb.kube-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]}]}}]}],"inspector":true}`
 			got := ConvertListenerConfig(listenerConfig)
 			want := &v2.Listener{}
 			err := json.Unmarshal([]byte(tt.want), want)
@@ -566,7 +566,7 @@ func Test_convertTCPRoute(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want []*v2.TCPRoute
+		want []*v2.StreamRoute
 	}{
 		{
 			name: "case1",
@@ -593,7 +593,7 @@ func Test_convertTCPRoute(t *testing.T) {
 					},
 				},
 			},
-			want: []*v2.TCPRoute{
+			want: []*v2.StreamRoute{
 				{
 					Cluster: "tcp",
 					DestinationAddrs: []v2.CidrRange{
@@ -729,6 +729,55 @@ func Test_convertRedirectAction(t *testing.T) {
 	}
 }
 
+func Test_convertDirectResponseAction(t *testing.T) {
+	testCases := []struct {
+		name     string
+		in       *xdsroute.DirectResponseAction
+		expected *v2.DirectResponseAction
+	}{
+		{
+			name: "directResponse with body",
+			in: &xdsroute.DirectResponseAction{
+				Status: 200,
+				Body: &core.DataSource{
+					Specifier: &core.DataSource_InlineString{
+						InlineString: "directResponse with body",
+					},
+				},
+			},
+			expected: &v2.DirectResponseAction{
+				StatusCode: 200,
+				Body:       "directResponse with body",
+			},
+		},
+		{
+			name: "directResponse no body",
+			in: &xdsroute.DirectResponseAction{
+				Status: 200,
+				Body: &core.DataSource{
+					Specifier: &core.DataSource_InlineString{
+						InlineString: "",
+					},
+				},
+			},
+			expected: &v2.DirectResponseAction{
+				StatusCode: 200,
+				Body:       "",
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		tc := testCase
+		t.Run(tc.name, func(t *testing.T) {
+			got := convertDirectResponseAction(tc.in)
+			if !reflect.DeepEqual(got, tc.expected) {
+				t.Errorf("Unexpected directResponse action\nExpected: %#v\nGot: %#v\n", tc.expected, got)
+			}
+		})
+	}
+}
+
+// Test stream filters convert for envoy.fault
 // Test stream filters convert for envoy.fault
 func Test_convertStreamFilter_IsitoFault(t *testing.T) {
 	faultInjectConfig := &xdshttpfault.HTTPFault{
@@ -931,7 +980,7 @@ func Test_convertPerRouteConfig(t *testing.T) {
 			rawFault.UpstreamCluster == "testupstream" &&
 			len(rawFault.Headers) == 1 &&
 			reflect.DeepEqual(rawFault.Headers[0], expectedHeader)) {
-			t.Errorf("fault config is not expected, %v", rawFault)
+			t.Errorf("fault config is not expected, %+v, %+v, %v", rawFault.Abort, rawFault.Delay, rawFault)
 		}
 
 	}

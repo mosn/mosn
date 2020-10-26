@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"mosn.io/api"
@@ -94,6 +95,7 @@ type Cluster struct {
 	Spec                 ClusterSpecInfo     `json:"spec,omitempty"`
 	LBSubSetConfig       LBSubsetConfig      `json:"lb_subset_config,omitempty"`
 	LBOriDstConfig       LBOriDstConfig      `json:"original_dst_lb_config,omitempty"`
+	ClusterManagerTLS    bool                `json:"cluster_manager_tls,omitempty"`
 	TLS                  TLSConfig           `json:"tls_context,omitempty"`
 	Hosts                []Host              `json:"hosts,omitempty"`
 	ConnectTimeout       *api.DurationConfig `json:"connect_timeout,omitempty"`
@@ -214,12 +216,9 @@ type ClusterManagerConfig struct {
 }
 
 type ClusterManagerConfigJson struct {
-	// Note: consider to use standard configure
-	AutoDiscovery bool `json:"auto_discovery,omitempty"`
-	// Note: this is a hack method to realize cluster's  health check which push by registry
-	RegistryUseHealthCheck bool      `json:"registry_use_health_check,omitempty"`
-	ClusterConfigPath      string    `json:"clusters_configs,omitempty"`
-	ClustersJson           []Cluster `json:"clusters,omitempty"`
+	TLSContext        TLSConfig `json:"tls_context,omitempty"`
+	ClusterConfigPath string    `json:"clusters_configs,omitempty"`
+	ClustersJson      []Cluster `json:"clusters,omitempty"`
 }
 
 func (cc *ClusterManagerConfig) UnmarshalJSON(b []byte) error {
@@ -288,6 +287,7 @@ func (cc ClusterManagerConfig) MarshalJSON() (b []byte, err error) {
 		if len(fileName) > MaxFilePath {
 			fileName = fileName[:MaxFilePath]
 		}
+		fileName = strings.ReplaceAll(fileName, sep, "_")
 		fileName = fileName + ".json"
 		delete(allFiles, fileName)
 		fileName = path.Join(cc.ClusterConfigPath, fileName)

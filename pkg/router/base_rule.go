@@ -28,7 +28,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -81,7 +80,6 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		routerMatch:           route.Match,
 		configHeaders:         getRouterHeaders(route.Match.Headers),
 		prefixRewrite:         route.Route.PrefixRewrite,
-		regexRewrite:          route.Route.RegexRewrite,
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
 		autoHostRewriteHeader: route.Route.AutoHostRewriteHeader,
@@ -97,7 +95,8 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 		lock: sync.Mutex{},
 	}
 	//check and store regrex rewrite pattern
-	if len(route.Route.RegexRewrite.Pattern.Regex) > 1 && len(route.Route.PrefixRewrite) == 0 {
+	if route.Route.RegexRewrite != nil && len(route.Route.RegexRewrite.Pattern.Regex) > 1 && len(route.Route.PrefixRewrite) == 0 {
+		base.regexRewrite = *route.Route.RegexRewrite
 		regexPattern, err := regexp.Compile(route.Route.RegexRewrite.Pattern.Regex)
 		if err != nil {
 			log.DefaultLogger.Errorf(RouterLogFormat, "routerule", "check regrex pattern failed.", "invalid regex:"+err.Error())
@@ -176,6 +175,18 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 			return nil, fmt.Errorf("redirect code not supported yet: %d", r.ResponseCode)
 		}
 		base.redirectRule = rule
+	}
+
+	// add mirror policies
+	if route.RequestMirrorPolicies != nil {
+		base.policy.mirrorPolicy = &mirrorImpl{
+			cluster: route.RequestMirrorPolicies.Cluster,
+			percent: int(route.RequestMirrorPolicies.Percent),
+			rand:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		}
+	}
+	if base.policy.mirrorPolicy == nil {
+		base.policy.mirrorPolicy = &mirrorImpl{}
 	}
 	return base, nil
 }

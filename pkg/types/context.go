@@ -23,7 +23,9 @@ type ContextKey int
 // Context key types(built-in)
 const (
 	ContextKeyStreamID ContextKey = iota
+	ContextKeyConnection
 	ContextKeyConnectionID
+	ContextKeyConnectionPoolIndex
 	ContextKeyListenerPort
 	ContextKeyListenerName
 	ContextKeyListenerType
@@ -43,7 +45,10 @@ const (
 	ContextKeyVariables
 	ContextKeyProxyGeneralConfig
 	ContextKeyDownStreamProtocol
+	ContextKeyConfigDownStreamProtocol
+	ContextKeyConfigUpStreamProtocol
 	ContextKeyDownStreamHeaders
+	ContextKeyDownStreamRespHeaders
 	ContextKeyEnd
 )
 

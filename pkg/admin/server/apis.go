@@ -27,7 +27,8 @@ import (
 
 	gometrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -70,16 +71,10 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 	}
 	r.ParseForm()
 	if len(r.Form) == 0 {
-		if buf, err := store.Dump(); err == nil {
-			log.DefaultLogger.Infof("[admin api] [config dump] config dump")
-			w.WriteHeader(200)
-			w.Write(buf)
-		} else {
-			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "config dump", err)
-			w.WriteHeader(500)
-			msg := fmt.Sprintf(errMsgFmt, "internal error")
-			fmt.Fprint(w, msg)
-		}
+		buf, _ := configmanager.DumpJSON()
+		log.DefaultLogger.Infof("[admin api] [config dump] config dump")
+		w.WriteHeader(200)
+		w.Write(buf)
 		return
 	}
 	if len(r.Form) > 1 {
@@ -87,55 +82,58 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "only support one parameter")
 		return
 	}
-	var info interface{}
-	for key, param := range r.Form {
-		switch key {
-		case "mosnconfig":
-			info = store.GetMOSNConfig(store.CfgTypeMOSN)
-		case "allrouters":
-			info = store.GetMOSNConfig(store.CfgTypeRouter)
-		case "allclusters":
-			info = store.GetMOSNConfig(store.CfgTypeCluster)
-		case "alllisteners":
-			info = store.GetMOSNConfig(store.CfgTypeListener)
-		case "router":
-			v := store.GetMOSNConfig(store.CfgTypeRouter)
-			routerInfo, ok := v.(map[string]v2.RouterConfiguration)
-			if ok && len(param) > 0 {
-				info = routerInfo[param[0]]
-			}
-		case "cluster":
-			v := store.GetMOSNConfig(store.CfgTypeCluster)
-			clusterInfo, ok := v.(map[string]v2.Cluster)
-			if ok && len(param) > 0 {
-				info = clusterInfo[param[0]]
-			}
-		case "listener":
-			v := store.GetMOSNConfig(store.CfgTypeListener)
-			listenerInfo, ok := v.(map[string]v2.Listener)
-			if ok && len(param) > 0 {
-				info = listenerInfo[param[0]]
-			}
-		}
-	}
-	if info == nil {
-		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, parameters:%v", "config dump", r.Form)
-		w.WriteHeader(500)
-		msg := fmt.Sprintf(errMsgFmt, "internal error")
-		fmt.Fprint(w, msg)
-	} else {
-		buf, err := json.MarshalIndent(info, "", " ")
-		if err != nil {
-			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, parameters:%v, error: %v", "config dump", r.Form, err)
+	handle := func(info interface{}) {
+		if info == nil {
+			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, parameters:%v", "config dump", r.Form)
 			w.WriteHeader(500)
 			msg := fmt.Sprintf(errMsgFmt, "internal error")
 			fmt.Fprint(w, msg)
 		} else {
+			buf, _ := json.MarshalIndent(info, "", " ")
 			log.DefaultLogger.Infof("[admin api] [config dump] config dump, parameters:%v", r.Form)
 			w.WriteHeader(200)
 			w.Write(buf)
 		}
 	}
+	for key, param := range r.Form {
+		p := param
+		switch key {
+		case "mosnconfig":
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeMOSN, handle)
+		case "allrouters":
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeRouter, handle)
+		case "allclusters":
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeCluster, handle)
+		case "alllisteners":
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeListener, handle)
+		case "router":
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeRouter, func(v interface{}) {
+				routerInfo, ok := v.(map[string]v2.RouterConfiguration)
+				if ok && len(p) > 0 {
+					handle(routerInfo[p[0]])
+				}
+			})
+
+		case "cluster":
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeCluster, func(v interface{}) {
+				clusterInfo, ok := v.(map[string]v2.Cluster)
+				if ok && len(p) > 0 {
+					handle(clusterInfo[p[0]])
+				}
+			})
+
+		case "listener":
+			configmanager.HandleMOSNConfig(configmanager.CfgTypeListener, func(v interface{}) {
+				listenerInfo, ok := v.(map[string]v2.Listener)
+				if ok && len(p) > 0 {
+					handle(listenerInfo[p[0]])
+				}
+			})
+		default:
+			handle(nil)
+		}
+	}
+
 }
 
 func statsDump(w http.ResponseWriter, r *http.Request) {
@@ -183,6 +181,17 @@ func statsDumpProxyTotal(w http.ResponseWriter, r *http.Request) {
 type LogLevelData struct {
 	LogPath  string `json:"log_path"`
 	LogLevel string `json:"log_level"`
+}
+
+func getLoggerInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: invalid method: %s", "update log level", r.Method)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	lg := log.GetErrorLoggersInfo()
+	data, _ := json.Marshal(lg)
+	w.Write(data)
 }
 
 func updateLogLevel(w http.ResponseWriter, r *http.Request) {
@@ -301,14 +310,7 @@ func knownFeatures(w http.ResponseWriter, r *http.Request) {
 	}
 	r.ParseForm()
 	if len(r.Form) == 0 {
-		data, err := json.MarshalIndent(featuregate.KnownFeatures(), "", " ")
-		if err != nil {
-			log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "known features", err)
-			w.WriteHeader(500)
-			msg := fmt.Sprintf(errMsgFmt, "internal error")
-			fmt.Fprint(w, msg)
-			return
-		}
+		data, _ := json.MarshalIndent(featuregate.KnownFeatures(), "", " ")
 		w.Write(data)
 		return
 	}
@@ -348,13 +350,6 @@ func getEnv(w http.ResponseWriter, r *http.Request) {
 			results.Env[key] = v
 		}
 	}
-	data, err := json.MarshalIndent(results, "", " ")
-	if err != nil {
-		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: %v", "get env", err)
-		w.WriteHeader(500)
-		msg := fmt.Sprintf(errMsgFmt, "internal error")
-		fmt.Fprint(w, msg)
-		return
-	}
+	data, _ := json.MarshalIndent(results, "", " ")
 	w.Write(data)
 }

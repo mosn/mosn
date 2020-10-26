@@ -43,12 +43,14 @@ func prepareLocalIpv6Ctx() context.Context {
 	reqHeaders := map[string]string{
 		"service": "test",
 	}
-	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaders)
+	reqHeaderMap := newHeaderMap(reqHeaders)
+	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaderMap)
 
 	respHeaders := map[string]string{
 		"Server": "MOSN",
 	}
-	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaders)
+	respHeaderMap := newHeaderMap(respHeaders)
+	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaderMap)
 
 	requestInfo := newRequestInfo()
 	requestInfo.SetRequestReceivedDuration(time.Now())
@@ -81,16 +83,23 @@ func TestAccessLog(t *testing.T) {
 
 	ctx := prepareLocalIpv6Ctx()
 	accessLog.Log(ctx, nil, nil, nil)
-	l := "2018/12/14 18:08:33.054 1.329µs 2.00000227s 2048 2048 - 0 126.868µs false 0 127.0.0.1:23456 [2001:db8::68]:12200 127.0.0.1:53242 -\n"
+	//l := "2018/12/14 18:08:33.054 1.329µs 2.00000227s 2048 2048 - 0 126.868µs false 0 127.0.0.1:23456 [2001:db8::68]:12200 127.0.0.1:53242 -\n"
 	time.Sleep(2 * time.Second)
-	f, _ := os.Open(logName)
+	f, err := os.Open(logName)
+	if err != nil {
+		t.Errorf("open log file: %s error: %v", logName, err)
+	}
+	defer f.Close()
 	b := make([]byte, 1024)
 	_, err = f.Read(b)
-	f.Close()
+	if err != nil {
+		t.Errorf("read log file: %s, error: %v", logName, err)
+	}
 	if err != nil {
 		t.Errorf("test accesslog error")
 	}
-	ok, err := regexp.Match("\\d\\d\\d\\d/\\d\\d/\\d\\d .* .* .* 2048 2048 \\- 0 .* false 0 127.0.0.1:23456 \\[2001:db8::68\\]:12200 127.0.0.1:53242 \\-\n", []byte(l))
+	t.Logf("%v", string(b))
+	ok, err := regexp.Match("\\d\\d\\d\\d/\\d\\d/\\d\\d .* .* .* 2048 2048 \\- 0 .* false 0 127.0.0.1:23456 \\[2001:db8::68\\]:12200 127.0.0.1:53242 \\-\n", b)
 
 	if !ok {
 		t.Errorf("test accesslog error %v", err)
@@ -134,6 +143,37 @@ func TestAccessLogWithCustomText(t *testing.T) {
 
 	if string(b)[0:n] != "send request to upstream by local address 127.0.0.1:23456\n" {
 		t.Error("test accesslog error")
+	}
+}
+
+func TestAccessLogWithPrefixVariables(t *testing.T) {
+	registerTestVarDefs()
+
+	format := "request header:%request_header_service% response header:%response_header_Server%"
+	logName := "/tmp/mosn_bench/test_access_log.log"
+	os.Remove(logName)
+	accessLog, err := NewAccessLog(logName, format)
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	ctx := prepareLocalIpv6Ctx()
+	accessLog.Log(ctx, nil, nil, nil)
+	time.Sleep(2 * time.Second)
+	f, err := os.Open(logName)
+	if err != nil {
+		t.Error("open accesslog error ", err)
+	}
+	b := make([]byte, 1024)
+	n, err := f.Read(b)
+	f.Close()
+	if err != nil {
+		t.Error("read accesslog error ", err)
+	}
+
+	if string(b)[0:n] != "request header:test response header:MOSN\n" {
+		t.Errorf("test accesslog error %s", string(b)[0:n])
 	}
 }
 
@@ -248,11 +288,15 @@ func prepareLocalIpv4Ctx() context.Context {
 		"service": "test",
 	}
 	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaders)
+	reqHeaderMap := newHeaderMap(reqHeaders)
+	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaderMap)
 
 	respHeaders := map[string]string{
 		"Server": "MOSN",
 	}
 	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaders)
+	respHeaderMap := newHeaderMap(respHeaders)
+	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaderMap)
 
 	requestInfo := newRequestInfo()
 	requestInfo.SetRequestReceivedDuration(time.Now())
@@ -307,7 +351,44 @@ func BenchmarkAccessLogParallel(b *testing.B) {
 	})
 }
 
-// mock_requestInfo
+type mock_HeaderMap struct {
+	headerMap map[string]string
+}
+
+func newHeaderMap(headers map[string]string) api.HeaderMap {
+	return &mock_HeaderMap{
+		headerMap: headers,
+	}
+}
+
+func (h *mock_HeaderMap) Get(key string) (string, bool) {
+	return h.headerMap[key], h.headerMap[key] != ""
+}
+
+func (h *mock_HeaderMap) Set(key, value string) {
+
+}
+
+func (h *mock_HeaderMap) Add(key, value string) {
+
+}
+
+func (h *mock_HeaderMap) Del(key string) {
+
+}
+
+func (h *mock_HeaderMap) Range(f func(key, value string) bool) {
+
+}
+
+func (h *mock_HeaderMap) Clone() api.HeaderMap {
+	return h
+}
+
+func (h *mock_HeaderMap) ByteSize() uint64 {
+	return 0
+}
+
 type mock_requestInfo struct {
 	protocol                 api.Protocol
 	startTime                time.Time
@@ -581,7 +662,9 @@ func bytesReceivedGetter(ctx context.Context, value *variable.IndexedValue, data
 // get request's protocol type
 func protocolGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	info := ctx.Value(requestInfoKey).(api.RequestInfo)
-
+	if info.Protocol() == "" {
+		return variable.ValueNotFound, nil
+	}
 	return string(info.Protocol()), nil
 }
 
@@ -662,7 +745,7 @@ func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, d
 		return variable.ValueNotFound, nil
 	}
 
-	return string(headerValue), nil
+	return headerValue, nil
 }
 
 func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -674,5 +757,5 @@ func responseHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, 
 		return variable.ValueNotFound, nil
 	}
 
-	return string(headerValue), nil
+	return headerValue, nil
 }

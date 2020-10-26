@@ -42,7 +42,7 @@ type TLSConn struct {
 func (c *TLSConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
 	if err != nil && strings.Contains(err.Error(), "tls") {
-		log.DefaultLogger.Alertf(types.ErrorKeyTLSRead, "[mtls] tls connection read error: %v", err)
+		log.DefaultLogger.Alertf(types.ErrorKeyTLSRead, "[mtls] tls connection read error: %v, local address: %v, remote address: %v", err, c.Conn.LocalAddr(), c.Conn.RemoteAddr())
 	}
 	return n, err
 }
@@ -63,7 +63,7 @@ func (c *Conn) Peek() ([]byte, error) {
 	c.Conn.SetReadDeadline(time.Time{}) // clear read deadline
 	if err != nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[mtls] TLS Peek() error: %v", err)
+			log.DefaultLogger.Debugf("[mtls] TLS Peek() error: %v, local address: %v, remote address: %v", err, c.Conn.LocalAddr(), c.Conn.RemoteAddr())
 		}
 		return nil, err
 	}

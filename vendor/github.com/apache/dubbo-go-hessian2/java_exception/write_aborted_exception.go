@@ -42,3 +42,8 @@ func (e WriteAbortedException) Error() string {
 func (WriteAbortedException) JavaClassName() string {
 	return "java.io.WriteAbortedException"
 }
+
+// equals to getStackTrace in java
+func (e WriteAbortedException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

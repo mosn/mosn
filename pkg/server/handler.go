@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mosn.io/mosn/pkg/metrics"
 	"net"
 	"os"
 	"strconv"
@@ -40,9 +39,11 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )
 
@@ -202,7 +203,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
 
 	}
-	admin.SetListenerConfig(listenerName, *al.listener.Config())
+	configmanager.SetListenerConfig(*al.listener.Config())
 	return al, nil
 }
 
@@ -285,15 +286,17 @@ func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 }
 
 func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
-	files := make([]*os.File, len(ch.listeners))
-
-	for idx, l := range ch.listeners {
+	files := make([]*os.File, 0)
+	for _, l := range ch.listeners {
+		if !l.listener.IsBindToPort() {
+			continue
+		}
 		file, err := l.listener.ListenerFile()
 		if err != nil {
 			log.DefaultLogger.Alertf("listener.list", "[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
-		files[idx] = file
+		files = append(files, file)
 	}
 	return files
 }
@@ -393,6 +396,7 @@ func (al *activeListener) GoStart(lctx context.Context) {
 		al.listener.Start(lctx, false)
 	}, func(r interface{}) {
 		// TODO: add a times limit?
+		log.DefaultLogger.Alertf("listener.start", "[network] [listener start] old listener panic")
 		al.GoStart(lctx)
 	})
 }
@@ -405,8 +409,16 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	if !useOriginalDst {
 		if network.UseNetpollMode {
 			// store fd for further usage
-			if tc, ok := rawc.(*net.TCPConn); ok {
-				rawf, _ = tc.File()
+
+			switch rawc.LocalAddr().Network() {
+			case "udp":
+				if tc, ok := rawc.(*net.UDPConn); ok {
+					rawf, _ = tc.File()
+				}
+			default:
+				if tc, ok := rawc.(*net.TCPConn); ok {
+					rawf, _ = tc.File()
+				}
 			}
 		}
 		// if ch is not nil, the conn has been initialized in func transferNewConn
@@ -449,6 +461,9 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
 	}
+	if rawc.LocalAddr().Network() == "udp" {
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+	}
 	if oriRemoteAddr != nil {
 		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
 	}
@@ -483,6 +498,10 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
+	}
+
+	if conn.LocalAddr().Network() == "udp" && conn.State() != api.ConnClosed {
+		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
 	}
 
 	// start conn loops first
@@ -551,22 +570,32 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 
 // defaultIdleTimeout represents the idle timeout if listener have no such configuration
 // we declared the defaultIdleTimeout reference to the types.DefaultIdleTimeout
-var defaultIdleTimeout = types.DefaultIdleTimeout
+var (
+	defaultIdleTimeout    = types.DefaultIdleTimeout
+	defaultUDPIdleTimeout = types.DefaultUDPIdleTimeout
+	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
+)
 
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
 	if al.idleTimeout != nil {
-		conn.SetIdleTimeout(al.idleTimeout.Duration)
+		conn.SetIdleTimeout(buffer.ConnReadTimeout, al.idleTimeout.Duration)
 	} else {
 		// a nil idle timeout, we set a default one
 		// notice only server side connection set the default value
-		conn.SetIdleTimeout(defaultIdleTimeout)
+		switch conn.LocalAddr().Network() {
+		case "udp":
+			conn.SetIdleTimeout(defaultUDPReadTimeout, defaultUDPIdleTimeout)
+		default:
+			conn.SetIdleTimeout(buffer.ConnReadTimeout, defaultIdleTimeout)
+		}
 	}
 	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
 	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
+	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
@@ -711,6 +740,7 @@ func newActiveConnection(listener *activeListener, conn api.Connection) *activeC
 	})
 	ac.conn.AddBytesSentListener(func(bytesSent uint64) {
 
+		log.DefaultLogger.Debugf("update listener write bytes: %d", bytesSent)
 		if bytesSent > 0 {
 			listener.stats.DownstreamBytesWriteTotal.Inc(int64(bytesSent))
 		}
@@ -783,7 +813,7 @@ func sendInheritListeners() (net.Conn, error) {
 	return uc, nil
 }
 
-func GetInheritListeners() ([]net.Listener, net.Conn, error) {
+func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.StartLogger.Errorf("[server] getInheritListeners panic %v", r)
@@ -791,7 +821,7 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	}()
 
 	if !isReconfigure() {
-		return nil, nil, nil
+		return nil, nil, nil, nil
 	}
 
 	syscall.Unlink(types.TransferListenDomainSocket)
@@ -799,7 +829,7 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	l, err := net.Listen("unix", types.TransferListenDomainSocket)
 	if err != nil {
 		log.StartLogger.Errorf("[server] InheritListeners net listen error: %v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	defer l.Close()
 
@@ -810,7 +840,7 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	uc, err := ul.AcceptUnix()
 	if err != nil {
 		log.StartLogger.Errorf("[server] InheritListeners Accept error :%v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	log.StartLogger.Infof("[server] Get InheritListeners Accept")
 
@@ -818,45 +848,49 @@ func GetInheritListeners() ([]net.Listener, net.Conn, error) {
 	oob := make([]byte, 1024)
 	_, oobn, _, _, err := uc.ReadMsgUnix(buf, oob)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	scms, err := unix.ParseSocketControlMessage(oob[0:oobn])
 	if err != nil {
 		log.StartLogger.Errorf("[server] ParseSocketControlMessage: %v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	if len(scms) != 1 {
 		log.StartLogger.Errorf("[server] expected 1 SocketControlMessage; got scms = %#v", scms)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	gotFds, err := unix.ParseUnixRights(&scms[0])
 	if err != nil {
 		log.StartLogger.Errorf("[server] unix.ParseUnixRights: %v", err)
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	listeners := make([]net.Listener, len(gotFds))
+	var listeners []net.Listener
+	var packetConn []net.PacketConn
 	for i := 0; i < len(gotFds); i++ {
 		fd := uintptr(gotFds[i])
 		file := os.NewFile(fd, "")
 		if file == nil {
 			log.StartLogger.Errorf("[server] create new file from fd %d failed", fd)
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		defer file.Close()
 
 		fileListener, err := net.FileListener(file)
 		if err != nil {
-			log.StartLogger.Errorf("[server] recover listener from fd %d failed: %s", fd, err)
-			return nil, nil, err
-		}
-		if listener, ok := fileListener.(*net.TCPListener); ok {
-			listeners[i] = listener
+			pc, err := net.FilePacketConn(file)
+			if err == nil {
+				packetConn = append(packetConn, pc)
+			} else {
+
+				log.StartLogger.Errorf("[server] recover listener from fd %d failed: %s", fd, err)
+				return nil, nil, nil, err
+			}
 		} else {
-			log.StartLogger.Errorf("[server] listener recovered from fd %d is not a tcp listener", fd)
-			return nil, nil, errors.New("not a tcp listener")
+			// for tcp or unix listener
+			listeners = append(listeners, fileListener)
 		}
 	}
 
-	return listeners, uc, nil
+	return listeners, packetConn, uc, nil
 }
