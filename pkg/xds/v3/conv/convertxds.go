@@ -87,11 +87,10 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener) *v2.L
 
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name:           xdsListener.GetName(),
-			BindToPort:     convertBindToPort(xdsListener.GetDeprecatedV1()),
-			UseOriginalDst: xdsListener.GetHiddenEnvoyDeprecatedUseOriginalDst().GetValue(),
-			Inspector:      true,
-			AccessLogs:     convertAccessLogs(xdsListener),
+			Name:       xdsListener.GetName(),
+			BindToPort: true,
+			Inspector:  true,
+			AccessLogs: convertAccessLogs(xdsListener),
 		},
 		Addr:                    convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
@@ -100,6 +99,17 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener) *v2.L
 	for _, xl := range xdsListener.GetListenerFilters() {
 		if xl.Name == wellknown.OriginalDestination {
 			listenerConfig.UseOriginalDst = true
+
+			// Whether the listener should bind to the port. A listener that doesn't
+			// bind can only receive connections redirected from other listeners that
+			// set use_original_dst parameter to true. Default is true.
+			//
+			// This is deprecated in v2, all Listeners will bind to their port. An
+			// additional filter chain must be created for every original destination
+			// port this listener may redirect to in v2, with the original port
+			// specified in the FilterChainMatch destination_port field.
+			//
+			listenerConfig.BindToPort = false
 		}
 	}
 
@@ -170,10 +180,9 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
-			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
-			Hosts:    convertClusterHosts(xdsCluster.GetHiddenEnvoyDeprecatedHosts()),
+			// OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
 			Spec:     convertSpec(xdsCluster),
-			TLS:      convertTLS(xdsCluster.GetHiddenEnvoyDeprecatedTlsContext()),
+			TLS:      convertTLS(xdsCluster.GetTransportSocket()),
 			LbConfig: convertLbConfig(xdsCluster.LbConfig),
 		}
 
@@ -262,12 +271,12 @@ func isSupport(xdsListener *envoy_config_listener_v3.Listener) bool {
 	return true
 }
 
-func convertBindToPort(xdsDeprecatedV1 *envoy_config_listener_v3.Listener_DeprecatedV1) bool {
-	if xdsDeprecatedV1 == nil || xdsDeprecatedV1.GetBindToPort() == nil {
-		return true
-	}
-	return xdsDeprecatedV1.GetBindToPort().GetValue()
-}
+// func convertBindToPort(xdsDeprecatedV1 *envoy_config_listener_v3.Listener_DeprecatedV1) bool {
+//     if xdsDeprecatedV1 == nil || xdsDeprecatedV1.GetBindToPort() == nil {
+//         return true
+//     }
+//     return xdsDeprecatedV1.GetBindToPort().GetValue()
+// }
 
 // todo: more filter config support
 func convertAccessLogs(xdsListener *envoy_config_listener_v3.Listener) []v2.AccessLog {
@@ -510,11 +519,10 @@ func convertStreamGzipConfig(s *any.Any) (map[string]interface{}, error) {
 	//	contentType = compressor.GetContentType()
 	//}
 
-	if gzipConfig.GetHiddenEnvoyDeprecatedContentLength() != nil {
-		minContentLength = gzipConfig.GetHiddenEnvoyDeprecatedContentLength().GetValue()
+	if gzipConfig.GetCompressor() != nil {
+		minContentLength = gzipConfig.GetCompressor().GetContentLength().Value
+		contentType = gzipConfig.GetCompressor().GetContentType()
 	}
-	contentType = gzipConfig.GetHiddenEnvoyDeprecatedContentType()
-
 	streamGzip := &v2.StreamGzip{
 		GzipLevel:     level,
 		ContentLength: minContentLength,
@@ -722,7 +730,7 @@ func convertFilterConfig(filter *envoy_config_listener_v3.Filter) map[string]map
 		return nil
 	} else if name == v2.TCP_PROXY {
 		filterConfig := GetTcpProxy(filter)
-		log.DefaultLogger.Tracef("TCPProxy:filter config = %v,v1-config = %v", filterConfig, filterConfig.GetHiddenEnvoyDeprecatedDeprecatedV1())
+		log.DefaultLogger.Tracef("TCPProxy:filter config = %v", filterConfig)
 
 		d, err := ptypes.Duration(filterConfig.GetIdleTimeout())
 		if err != nil {
@@ -916,7 +924,7 @@ func convertRouteMatch(xdsRouteMatch *envoy_config_route_v3.RouteMatch) v2.Route
 	return v2.RouterMatch{
 		Prefix: xdsRouteMatch.GetPrefix(),
 		Path:   xdsRouteMatch.GetPath(),
-		Regex:  xdsRouteMatch.GetHiddenEnvoyDeprecatedRegex(),
+		Regex:  xdsRouteMatch.GetSafeRegex().Regex,
 		//CaseSensitive: xdsRouteMatch.GetCaseSensitive().GetValue(),
 		//Runtime:       convertRuntime(xdsRouteMatch.GetRuntime()),
 		Headers: convertHeaders(xdsRouteMatch.GetHeaders()),
@@ -942,9 +950,9 @@ func convertHeaders(xdsHeaders []*envoy_config_route_v3.HeaderMatcher) []v2.Head
 	headerMatchers := make([]v2.HeaderMatcher, 0, len(xdsHeaders))
 	for _, xdsHeader := range xdsHeaders {
 		headerMatcher := v2.HeaderMatcher{}
-		if xdsHeader.GetHiddenEnvoyDeprecatedRegexMatch() != "" {
+		if xdsHeader.GetSafeRegexMatch().Regex != "" {
 			headerMatcher.Name = xdsHeader.GetName()
-			headerMatcher.Value = xdsHeader.GetHiddenEnvoyDeprecatedRegexMatch()
+			headerMatcher.Value = xdsHeader.GetSafeRegexMatch().Regex
 			headerMatcher.Regex = true
 		} else {
 			headerMatcher.Name = xdsHeader.GetName()
@@ -1332,27 +1340,39 @@ func convertClusterHosts(xdsHosts []*envoy_config_core_v3.Address) []v2.Host {
 
 func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	var config v2.TLSConfig
-	var isDownstream bool
+	var isUpstream bool
 	var isSdsMode bool
 	var common *envoy_extensions_transport_sockets_tls_v3.CommonTlsContext
 
 	if xdsTLSContext == nil {
 		return config
 	}
-	if context, ok := xdsTLSContext.(*envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext); ok {
-		if context.GetRequireClientCertificate() != nil {
-			config.VerifyClient = context.GetRequireClientCertificate().GetValue()
-		}
-		common = context.GetCommonTlsContext()
-		isDownstream = true
-	} else if context, ok := xdsTLSContext.(*envoy_extensions_transport_sockets_tls_v3.UpstreamTlsContext); ok {
-		config.ServerName = context.GetSni()
-		common = context.GetCommonTlsContext()
-		isDownstream = false
+
+	ts, ok := xdsTLSContext.(*envoy_config_core_v3.TransportSocket)
+	if !ok {
+		return config
 	}
+
+	upTLSConext := &envoy_extensions_transport_sockets_tls_v3.UpstreamTlsContext{}
+	if err := ptypes.UnmarshalAny(ts.GetTypedConfig(), upTLSConext); err != nil {
+		config.ServerName = upTLSConext.GetSni()
+		common = upTLSConext.GetCommonTlsContext()
+		isUpstream = true
+	}
+	if !isUpstream {
+		dsTLSContext := &envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{}
+		if err := ptypes.UnmarshalAny(ts.GetTypedConfig(), dsTLSContext); err != nil {
+			if dsTLSContext.GetRequireClientCertificate() != nil {
+				config.VerifyClient = dsTLSContext.GetRequireClientCertificate().GetValue()
+			}
+			common = dsTLSContext.GetCommonTlsContext()
+		}
+	}
+
 	if common == nil {
 		return config
 	}
+
 	// Currently only a single certificate is supported
 	if common.GetTlsCertificates() != nil {
 		for _, cert := range common.GetTlsCertificates() {
@@ -1388,7 +1408,7 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 		config.MaxVersion = envoy_extensions_transport_sockets_tls_v3.TlsParameters_TlsProtocol_name[int32(param.GetTlsMaximumProtocolVersion())]
 	}
 
-	if !isSdsMode && isDownstream && (config.CertChain == "" || config.PrivateKey == "") {
+	if !isSdsMode && !isUpstream && (config.CertChain == "" || config.PrivateKey == "") {
 		log.DefaultLogger.Errorf("tls_certificates are required in downstream tls_context")
 		config.Status = false
 		return config

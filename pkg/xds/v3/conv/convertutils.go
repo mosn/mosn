@@ -46,16 +46,16 @@ func GetTcpProxy(filter *envoy_config_listener_v3.Filter) *envoy_extensions_filt
 func GetAccessLog(log *envoy_config_accesslog_v3.AccessLog) (*envoy_extensions_access_loggers_file_v3.FileAccessLog, error) {
 	al := &envoy_extensions_access_loggers_file_v3.FileAccessLog{}
 	switch log.ConfigType.(type) {
-	case *envoy_config_accesslog_v3.AccessLog_HiddenEnvoyDeprecatedConfig:
-		if err := conversion.StructToMessage(log.GetHiddenEnvoyDeprecatedConfig(), al); err != nil {
-			return nil, err
-		}
-
 	case *envoy_config_accesslog_v3.AccessLog_TypedConfig:
 		if err := ptypes.UnmarshalAny(log.GetTypedConfig(), al); err != nil {
 			return nil, err
 		}
+	case *envoy_config_accesslog_v3.AccessLog_HiddenEnvoyDeprecatedConfig:
+		if err := conversion.StructToMessage(log.GetHiddenEnvoyDeprecatedConfig(), al); err != nil {
+			return nil, err
+		}
 	}
+
 	return al, nil
 
 }
