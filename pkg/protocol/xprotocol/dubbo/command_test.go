@@ -1,6 +1,7 @@
 package dubbo
 
 import (
+	"context"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/pkg/buffer"
 	"reflect"
@@ -48,6 +49,21 @@ func TestFrame(t *testing.T) {
 	byteFrame, error := encodeFrame(nil, frame)
 	if error != nil || !reflect.DeepEqual(byteFrame.Bytes(), encodeData) {
 		t.Errorf("dubbo encode freame panic:%s", error)
+	}
+	//decode the byte data
+	want, err := decodeFrame(context.TODO(), buffer.NewIoBufferBytes(encodeData))
+	if err != nil {
+		t.Errorf("dubbo decode freame panic:%s", err)
+		return
+	}
+	wantFrame, ok := want.(*Frame)
+	if !ok {
+		t.Errorf("dubbo decode freame error")
+		return
+	}
+	//compare the content
+	if string(wantFrame.GetData().Bytes()) != "test" {
+		t.Errorf("dubbo decode freame error, data not equal")
 	}
 }
 
