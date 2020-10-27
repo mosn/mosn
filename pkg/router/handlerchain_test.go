@@ -140,7 +140,7 @@ func (h *mockStatusHandler) Route() api.Route {
 }
 
 func _TestMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
-	rs := routers.MatchAllRoutes(headers, 1)
+	rs := routers.MatchAllRoutes(ctx, headers, 1)
 	var handlers []types.RouteHandler
 	for _, r := range rs {
 		mockr := r.(*mockRouter)

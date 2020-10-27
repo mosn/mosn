@@ -18,6 +18,8 @@
 package router
 
 import (
+	"context"
+	"mosn.io/mosn/pkg/variable"
 	"regexp"
 	"testing"
 
@@ -44,6 +46,7 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 		{"/foo", "/", false},
 		{"/foo", "/test", false},
 	}
+	ctx := variable.NewVariableContext(context.Background())
 	for i, tc := range testCases {
 		route := &v2.Router{
 			RouterConfig: v2.RouterConfig{
@@ -61,7 +64,7 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			route.Match.Prefix,
 		}
 		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := rr.Match(headers, 1)
+		result := rr.Match(ctx, headers, 1)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
@@ -84,6 +87,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 		{"/test", "/Test", true},
 		{"/test", "/test/test", false},
 	}
+	ctx := variable.NewVariableContext(context.Background())
 	for i, tc := range testCases {
 		route := &v2.Router{
 			RouterConfig: v2.RouterConfig{
@@ -98,7 +102,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PathRouteRuleImpl{base, route.Match.Path}
 		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := rr.Match(headers, 1)
+		result := rr.Match(ctx, headers, 1)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
@@ -142,8 +146,9 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 			route.Match.Regex,
 			re,
 		}
+		ctx := variable.NewVariableContext(context.Background())
 		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := rr.Match(headers, 1)
+		result := rr.Match(ctx, headers, 1)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}

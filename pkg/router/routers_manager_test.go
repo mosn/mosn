@@ -24,6 +24,8 @@
 package router
 
 import (
+	"context"
+	"mosn.io/mosn/pkg/variable"
 	"strings"
 	"testing"
 
@@ -329,6 +331,7 @@ func Test_routersManager_AddRouter(t *testing.T) {
 	if err := routerManager.AddRoute("test_addrouter", "www.test.com", routeCfg); err != nil {
 		t.Fatal("add router failed", err)
 	}
+	ctx := variable.NewVariableContext(context.Background())
 	routers := rw.GetRouters()
 	// the wrapper can get the new router
 	header := protocol.CommonHeader(map[string]string{
@@ -337,10 +340,10 @@ func Test_routersManager_AddRouter(t *testing.T) {
 	header2 := protocol.CommonHeader(map[string]string{
 		strings.ToLower(protocol.MosnHeaderHostKey): "www.test.net",
 	})
-	if r := routers.MatchRouteFromHeaderKV(header, "service", "test"); r == nil {
+	if r := routers.MatchRouteFromHeaderKV(ctx, header, "service", "test"); r == nil {
 		t.Fatal("added route, but can not find it")
 	}
-	if r := routers.MatchRouteFromHeaderKV(header2, "service", "test"); r != nil {
+	if r := routers.MatchRouteFromHeaderKV(ctx, header2, "service", "test"); r != nil {
 		t.Fatal("not added route, but still find it")
 	}
 	// test config is expected changed
@@ -360,12 +363,13 @@ func Test_routersManager_AddRouter(t *testing.T) {
 	}
 	routersChanged := rw.GetRouters()
 	// the wrapper can get the new router
-	if r := routersChanged.MatchRouteFromHeaderKV(header2, "service", "test"); r == nil {
+	if r := routersChanged.MatchRouteFromHeaderKV(ctx, header2, "service", "test"); r == nil {
 		t.Fatal("added route, but can not find it")
 	}
 }
 
 func Test_routersManager_RemoveAllRouter(t *testing.T) {
+	ctx := variable.NewVariableContext(context.Background())
 	routerManager := NewRouterManager()
 	routerCfg := &v2.RouterConfiguration{
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
@@ -430,10 +434,10 @@ func Test_routersManager_RemoveAllRouter(t *testing.T) {
 	header2 := protocol.CommonHeader(map[string]string{
 		strings.ToLower(protocol.MosnHeaderHostKey): "www.test.net",
 	})
-	if r := routers.MatchRouteFromHeaderKV(header, "service", "test"); r != nil {
+	if r := routers.MatchRouteFromHeaderKV(ctx, header, "service", "test"); r != nil {
 		t.Fatal("remove route, but still can matched")
 	}
-	if r := routers.MatchRouteFromHeaderKV(header2, "service", "test"); r == nil {
+	if r := routers.MatchRouteFromHeaderKV(ctx, header2, "service", "test"); r == nil {
 		t.Fatal("route removed unexpected")
 	}
 	// test config is expected changed
@@ -453,7 +457,7 @@ func Test_routersManager_RemoveAllRouter(t *testing.T) {
 	}
 	routersChanged := rw.GetRouters()
 	// the wrapper can get the new router
-	if r := routersChanged.MatchRouteFromHeaderKV(header2, "service", "test"); r != nil {
+	if r := routersChanged.MatchRouteFromHeaderKV(ctx, header2, "service", "test"); r != nil {
 		t.Fatal("remove route, but still can matched")
 	}
 }

@@ -18,6 +18,8 @@
 package router
 
 import (
+	"context"
+	"mosn.io/mosn/pkg/variable"
 	"strings"
 	"testing"
 
@@ -95,6 +97,7 @@ func TestRouterOrder(t *testing.T) {
 			ClusterName: "regexp",
 		},
 	}
+	ctx := variable.NewVariableContext(context.Background())
 	// path "/foo1" match all of the router, the path router should be matched
 	// path "/foo11" match prefix and regexp router, the regexp router should be matched
 	// path "/foo" match prefix router only
@@ -115,7 +118,7 @@ func TestRouterOrder(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
 		})
-		rt := virtualHost.GetRouteFromEntries(headers, 1)
+		rt := virtualHost.GetRouteFromEntries(ctx, headers, 1)
 		if rt == nil || rt.RouteRule().ClusterName() != tc.clustername {
 			t.Errorf("#%d route unexpected result\n", i)
 		}
@@ -130,7 +133,7 @@ func TestRouterOrder(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
 		})
-		rt := prefixVirtualHost.GetRouteFromEntries(headers, 1)
+		rt := prefixVirtualHost.GetRouteFromEntries(ctx, headers, 1)
 		if rt == nil || rt.RouteRule().ClusterName() != "prefix" {
 			t.Errorf("#%d route unexpected result\n", i)
 		}
@@ -185,11 +188,12 @@ func TestAllRouter(t *testing.T) {
 		Domains: []string{"*"},
 		Routers: routers,
 	})
+	ctx := variable.NewVariableContext(context.Background())
 	for i, tc := range testCases {
 		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
 		})
-		rts := virtualHost.GetAllRoutesFromEntries(headers, 1)
+		rts := virtualHost.GetAllRoutesFromEntries(ctx, headers, 1)
 		if len(rts) != tc.matched {
 			t.Errorf("#%d route unexpected result\n", i)
 		}
