@@ -6,6 +6,7 @@ codecov:
     require_ci_to_pass: yes
 
   allow_coverage_offsets: true
+  max_report_age: off
 
 coverage:
   precision: 2
@@ -21,3 +22,6 @@ coverage:
       default:
         enabled: no
         if_not_found: success
+
+fixes:
+  - "/home/runner/work/mosn/mosn/::" # Correct paths

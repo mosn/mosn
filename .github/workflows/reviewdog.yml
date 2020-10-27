@@ -32,8 +32,11 @@ jobs:
       - name: Run Unit tests.
         run: make coverage
 
-      - name: Coverage
-        run: bash <(curl -s https://codecov.io/bash)
+      - name: Upload coverage to codecov.io
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt
           
   integrate:
     name: integrate
