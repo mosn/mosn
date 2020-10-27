@@ -831,8 +831,7 @@ func (s *serverStream) doSend() {
 func (s *serverStream) handleRequest(ctx context.Context) {
 	if s.request != nil {
 		// set non-header info in request-line, like method, uri
-		s.injectInternalHeaders(ctx)
-
+		injectInternalHeaders(ctx, s.header, s.request.URI())
 		hasData := true
 		if len(s.request.Body()) == 0 {
 			hasData = false
@@ -851,15 +850,14 @@ func (s *serverStream) GetStream() types.Stream {
 }
 
 // consider host, method, path are necessary, but check querystring
-func (s *serverStream) injectInternalHeaders(ctx context.Context) {
+func injectInternalHeaders(ctx context.Context, header mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 1. host
-	uri := s.request.URI()
 	variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, string(uri.Host()))
 	// 2. :authority
 	variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, string(uri.Host()))
 
 	// 3. method
-	variable.SetVariableValue(ctx, protocol.MosnHeaderMethod, string(s.header.Method()))
+	variable.SetVariableValue(ctx, protocol.MosnHeaderMethod, string(header.Method()))
 
 	// 4. path
 	variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, string(uri.Path()))

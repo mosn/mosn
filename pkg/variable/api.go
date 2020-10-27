@@ -36,7 +36,7 @@ func GetValueFromVariableAndLegacyHeader(ctx context.Context, headerMap api.Head
 	}
 	value, err := GetVariableValue(ctx, key)
 	if err == nil {
-		return &value, err
+		return &value, nil
 	}
 	return nil, err
 }
