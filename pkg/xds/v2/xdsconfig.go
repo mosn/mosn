@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/rand"
 	"time"
 
@@ -300,13 +301,11 @@ func (c *ADSConfig) closeADSStreamClient() {
 	c.StreamClient = nil
 }
 
-// if got
 // [xds] [ads client] get resp timeout: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (5193322 vs. 4194304), retry after 1s
-// this log, should change this size
-const xdsMaxRecvMsgSize = 4 * 1024 * 1024
-
+// https://github.com/istio/istio/blob/9686754643d0939c1f4dd0ee20443c51183f3589/pilot/pkg/bootstrap/server.go#L662
+// Istio xDS DiscoveryServer not set grpc MaxSendMsgSize. If this is not set, gRPC uses the default `math.MaxInt32`.
 func generateDialOption() grpc.DialOption {
 	return grpc.WithDefaultCallOptions(
-		grpc.MaxCallRecvMsgSize(xdsMaxRecvMsgSize),
+		grpc.MaxCallRecvMsgSize(math.MaxInt32),
 	)
 }
