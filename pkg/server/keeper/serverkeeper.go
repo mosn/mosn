@@ -115,7 +115,7 @@ func catchSignalsCrossPlatform() {
 	}, nil)
 }
 
-func executeSignalCallback(sig syscall.Signal){
+func executeSignalCallback(sig syscall.Signal) {
 	if cbs, ok := signalCallback[sig]; ok {
 		for _, cb := range cbs {
 			cb()
@@ -201,7 +201,7 @@ func OnProcessShutDownFirst(cb func() error) {
 	shutdownCallbacks = firstCallbacks
 }
 
-func AddSignalCallback(cb func(), signals ...syscall.Signal, ) {
+func AddSignalCallback(cb func(), signals ...syscall.Signal) {
 	for _, sig := range signals {
 		signalCallback[sig] = append(signalCallback[sig], cb)
 	}

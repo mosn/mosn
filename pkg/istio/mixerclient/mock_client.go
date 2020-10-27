@@ -20,7 +20,7 @@ package mixerclient
 import (
 	"time"
 
-	"istio.io/api/mixer/v1"
+	v1 "istio.io/api/mixer/v1"
 )
 
 type mockMixerClient struct {

@@ -2,11 +2,12 @@ package bolt
 
 import (
 	"context"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	"testing"
 )
 
 const content = "this is the content"

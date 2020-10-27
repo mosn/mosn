@@ -19,8 +19,9 @@ package commonrule
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/variable"
 	"strconv"
+
+	"mosn.io/mosn/pkg/variable"
 
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/api"

@@ -41,6 +41,7 @@ const (
 	HeaderXprotocolRespIsException = "x-mosn-xprotocol-resp-is-exception"
 	HeaderXprotocolHeartbeat       = "x-protocol-heartbeat"
 )
+
 // Error messages
 const (
 	ChannelFullException = "Channel is full"

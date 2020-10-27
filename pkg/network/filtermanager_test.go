@@ -8,16 +8,16 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-type testFilter struct{
-	read bool
-	write bool
-	init bool
+type testFilter struct {
+	read          bool
+	write         bool
+	init          bool
 	readCallbacks api.ReadFilterCallbacks
 }
 
 func (tf *testFilter) OnData(buffer types.IoBuffer) api.FilterStatus {
 	tf.read = true
- 	return api.Continue
+	return api.Continue
 }
 
 func (tf *testFilter) OnNewConnection() api.FilterStatus {
@@ -35,12 +35,10 @@ func (tf *testFilter) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) 
 	}
 }
 
-
 func (tf *testFilter) OnWrite(buf []buffer.IoBuffer) api.FilterStatus {
 	tf.write = true
 	return api.Continue
 }
-
 
 func Test_filtermgr(t *testing.T) {
 	conn := &connection{}
@@ -53,7 +51,7 @@ func Test_filtermgr(t *testing.T) {
 	fm.AddWriteFilter(tf)
 
 	lrf := fm.ListReadFilter()
-	if len(lrf) != 1 || lrf[0].(*testFilter) != tf{
+	if len(lrf) != 1 || lrf[0].(*testFilter) != tf {
 		t.Errorf("list readfilter error")
 		return
 	}
@@ -67,8 +65,8 @@ func Test_filtermgr(t *testing.T) {
 	fm.OnRead()
 	fm.OnWrite(nil)
 
-    if !tf.read || !tf.write || !tf.init  {
-    	t.Errorf("filtermgr error")
+	if !tf.read || !tf.write || !tf.init {
+		t.Errorf("filtermgr error")
 	}
 
 	if conn.readBuffer.Len() != 3 {

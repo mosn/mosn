@@ -6,13 +6,14 @@ package mock
 
 import (
 	context "context"
+	net "net"
+	reflect "reflect"
+	time "time"
+
 	gomock "github.com/golang/mock/gomock"
 	metrics "github.com/rcrowley/go-metrics"
 	api "mosn.io/api"
 	buffer "mosn.io/pkg/buffer"
-	net "net"
-	reflect "reflect"
-	time "time"
 )
 
 // MockConnection is a mock of Connection interface

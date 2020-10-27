@@ -18,9 +18,10 @@
 package shm
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"unsafe"
+
+	"github.com/stretchr/testify/assert"
 
 	"mosn.io/mosn/pkg/types"
 )

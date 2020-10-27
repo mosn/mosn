@@ -19,12 +19,13 @@ package router
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/variable"
 	"os"
 	"strings"
 	"testing"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 )

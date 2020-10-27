@@ -29,7 +29,7 @@ type subReq struct {
 		Interface string   `json:"interface" binding:"required"` // eg. com.mosn.service.DemoService
 		Methods   []string `json:"methods" binding:"required"`   // eg. GetUser,GetProfile,UpdateName
 		//Port      string   `json:"port" binding:"max=65535,min=1"` // user service port, eg. 8080
-		Group string `json:"group"`                   // binding:"required"`
+		Group string `json:"group"` // binding:"required"`
 	} `json:"service"`
 }
 
@@ -46,8 +46,8 @@ type pubReq struct {
 		Interface string   `json:"interface" binding:"required"` // eg. com.mosn.service.DemoService
 		Methods   []string `json:"methods" binding:"required"`   // eg. GetUser,GetProfile,UpdateName
 		// Port      string   `json:"port" binding:"numeric"`       // user service port, eg. 8080
-		Group     string   `json:"group"`                        // binding:"required"`
-		Version   string   `json:"version"`   // eg. 1.0.3
+		Group   string `json:"group"`   // binding:"required"`
+		Version string `json:"version"` // eg. 1.0.3
 	} `json:"service"`
 }
 

@@ -19,9 +19,10 @@ package router
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/variable"
 	"regexp"
 	"strings"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"

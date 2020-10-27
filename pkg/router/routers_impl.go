@@ -20,9 +20,10 @@ package router
 import (
 	"context"
 	"fmt"
-	"mosn.io/mosn/pkg/variable"
 	"sort"
 	"strings"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -64,7 +65,7 @@ func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap, ra
 	return router
 }
 
-func (ri *routersImpl) MatchAllRoutes(ctx context.Context ,headers api.HeaderMap, randomValue uint64) []api.Route {
+func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap, randomValue uint64) []api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
 	}

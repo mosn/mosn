@@ -1,9 +1,10 @@
 package bolt
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/types"
-	"testing"
 )
 
 func TestMatcher(t *testing.T) {

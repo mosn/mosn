@@ -23,11 +23,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mosn.io/mosn/pkg/variable"
 	"net/http"
 	"net/url"
 	"strconv"
 	"sync"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"

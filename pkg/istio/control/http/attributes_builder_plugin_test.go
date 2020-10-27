@@ -20,7 +20,7 @@ package http
 import (
 	"testing"
 
-	"istio.io/api/mixer/v1"
+	v1 "istio.io/api/mixer/v1"
 	"mosn.io/mosn/pkg/istio/utils"
 )
 

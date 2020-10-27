@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 func Test_getWeightedClusterEntryAndVerify(t *testing.T) {

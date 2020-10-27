@@ -6,10 +6,11 @@ package mock
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
-	api "mosn.io/api"
 	reflect "reflect"
 	time "time"
+
+	gomock "github.com/golang/mock/gomock"
+	api "mosn.io/api"
 )
 
 // MockRoute is a mock of Route interface

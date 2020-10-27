@@ -19,10 +19,11 @@ package xprotocol
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/variable"
 	"strings"
 	"sync"
 	"time"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"

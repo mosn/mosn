@@ -21,11 +21,12 @@ import (
 	"strings"
 	"sync"
 
+	"net"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
-	"net"
 )
 
 func init() {

@@ -5,9 +5,10 @@
 package mock
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	api "mosn.io/api"
-	reflect "reflect"
 )
 
 // MockHeaderMap is a mock of HeaderMap interface

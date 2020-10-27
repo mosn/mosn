@@ -2,11 +2,12 @@ package dubbo
 
 import (
 	"context"
+	"testing"
+
 	hessian "github.com/apache/dubbo-go-hessian2"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/pkg/buffer"
-	"testing"
 )
 
 // decoded result should equal to request

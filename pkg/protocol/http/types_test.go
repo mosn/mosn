@@ -18,8 +18,9 @@
 package http
 
 import (
-	"github.com/valyala/fasthttp"
 	"testing"
+
+	"github.com/valyala/fasthttp"
 )
 
 const MosnHeaderHostKey = "Mosn-Header-Host"

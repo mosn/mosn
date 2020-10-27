@@ -53,9 +53,9 @@ func (f *pluginFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf
 			body = buf.Bytes()
 		}
 		response, err := client.Call(&proto.Request{
-			Header: h,
-			Body:   body,
-			Trailer:t,
+			Header:  h,
+			Body:    body,
+			Trailer: t,
 		}, 10*time.Millisecond)
 		if err != nil {
 			log.DefaultLogger.Errorf("pluginfilter error:%v", err)

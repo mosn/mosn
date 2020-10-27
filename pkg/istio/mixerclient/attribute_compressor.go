@@ -20,7 +20,7 @@ package mixerclient
 import (
 	"time"
 
-	"istio.io/api/mixer/v1"
+	v1 "istio.io/api/mixer/v1"
 )
 
 // BatchCompressor is attribute batch compressor for report

@@ -88,7 +88,7 @@ func TestScheduleAuto(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		pool.ScheduleAuto(func() {
-			time.Sleep(10*time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 		})
 	}
 	time.Sleep(50 * time.Millisecond)
