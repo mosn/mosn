@@ -295,11 +295,11 @@ type VirtualHost struct {
 
 // RouterMatch represents the route matching parameters
 type RouterMatch struct {
-	Prefix    string            `json:"prefix,omitempty"`     // Match request's Path with Prefix Comparing
-	Path      string            `json:"path,omitempty"`       // Match request's Path with Exact Comparing
-	Regex     string            `json:"regex,omitempty"`      // Match request's Path with Regex Comparing
-	Headers   []HeaderMatcher   `json:"headers,omitempty"`    // Match request's Headers
-	Variables []VariableMatcher `json:"variables, omitempty"` // Match request's variable
+	Prefix    string            `json:"prefix,omitempty"`    // Match request's Path with Prefix Comparing
+	Path      string            `json:"path,omitempty"`      // Match request's Path with Exact Comparing
+	Regex     string            `json:"regex,omitempty"`     // Match request's Path with Regex Comparing
+	Headers   []HeaderMatcher   `json:"headers,omitempty"`   // Match request's Headers
+	Variables []VariableMatcher `json:"variables,omitempty"` // Match request's variable
 }
 
 // RedirectAction represents the redirect response parameters
