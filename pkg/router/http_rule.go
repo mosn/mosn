@@ -104,7 +104,7 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, r
 }
 
 func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
-	if prei.matchRoute(nil, headers, randomValue) {
+	if prei.matchRoute(ctx, headers, randomValue) {
 		headerPathValue, _ := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
 		if headerPathValue != nil {
 			if strings.HasPrefix(*headerPathValue, prei.prefix) {
@@ -145,7 +145,7 @@ func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, re
 }
 
 func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
-	if rrei.matchRoute(nil, headers, randomValue) {
+	if rrei.matchRoute(ctx, headers, randomValue) {
 		headerPathValue, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
 		if err == nil && headerPathValue != nil {
 			if rrei.regexPattern.MatchString(*headerPathValue) {

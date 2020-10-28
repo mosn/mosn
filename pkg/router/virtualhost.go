@@ -69,6 +69,8 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 			regexStr:          route.Match.Regex,
 			regexPattern:      regPattern,
 		}
+	} else if len(route.Match.Variables) > 0 {
+		router = &VariableRouteRuleImpl{}
 	} else {
 		if router = defaultRouterRuleFactoryOrder.factory(base, route.Match.Headers); router == nil {
 			log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", "create default router failed")
