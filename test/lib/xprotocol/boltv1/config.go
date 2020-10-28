@@ -155,7 +155,7 @@ func buildRequest(id uint32, header map[string]string, body []byte, timeout time
 	}
 	req := bolt.NewRpcRequest(id, protocol.CommonHeader(header), buf)
 	if timeout > 0 {
-		req.Timeout = int32(timeout.Milliseconds())
+		req.Timeout = int32(int64(timeout) / 1e6)
 	}
 	return req, req.Content
 }
