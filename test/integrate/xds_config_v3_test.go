@@ -165,7 +165,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	if listener, ok := m.Listener["0.0.0.0_9080"]; !ok {
 		t.Fatalf("listener[0.0.0.0_9080] is missing")
 	} else {
-		if listener.Name != "0.0.0.0_9080" || !listener.BindToPort || len(listener.FilterChains) != 1 {
+		if listener.Name != "0.0.0.0_9080" || listener.BindToPort || len(listener.FilterChains) != 1 {
 			t.Fatalf("error listener[0.0.0.0_9080] config: %v", listener)
 		}
 
@@ -226,7 +226,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	if listener, ok := m.Listener["0.0.0.0_9080"]; !ok {
 		t.Fatalf("listener[0.0.0.0_9080] is missing")
 	} else {
-		if listener.Name != "0.0.0.0_9080" || !listener.BindToPort || len(listener.FilterChains) != 1 {
+		if listener.Name != "0.0.0.0_9080" || listener.BindToPort || len(listener.FilterChains) != 1 {
 			t.Fatalf("error listener config: %v", listener)
 		}
 		if len(m.Routers) != 1 {
