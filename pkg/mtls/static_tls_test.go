@@ -19,6 +19,8 @@ package mtls
 
 import (
 	"io/ioutil"
+	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -525,5 +527,87 @@ func TestClientFallBack(t *testing.T) {
 	resp, err := MockClient(t, server.Addr, fallbackMng)
 	if !pass(resp, err) {
 		t.Fatalf("fallback request failed")
+	}
+}
+
+func TestReadError(t *testing.T) {
+	ci := &certInfo{"Cert1", "RSA", "www.example.com"}
+	ctx, _ := ci.CreateCertConfig()
+	filterChains := []v2.FilterChain{
+		{
+			TLSContexts: []v2.TLSConfig{
+				*ctx,
+			},
+		},
+	}
+	lc := &v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			FilterChains: filterChains,
+		},
+	}
+	ctxMng, err := NewTLSServerContextManager(lc)
+	if err != nil {
+		t.Fatalf("tls context manager error: %v", err)
+	}
+	addrch := make(chan string, 1)
+	resch := make(chan string, 1)
+	// mock a read loop
+	go func() {
+		ln, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatalf("listen failed: %v", err)
+		}
+		addrch <- ln.Addr().String()
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			tlsconn, err := ctxMng.Conn(conn)
+			if err != nil {
+				conn.Close()
+				resch <- "conn error: " + err.Error()
+				return
+			}
+			b := make([]byte, 100)
+			loop := 0
+		READLOOP:
+			for {
+				tlsconn.SetReadDeadline(time.Now().Add(2 * time.Second))
+				if _, err := tlsconn.Read(b); err != nil {
+					if te, ok := err.(net.Error); ok && te.Timeout() {
+						loop++
+						if loop < 100 {
+							continue READLOOP
+						} else {
+							resch <- "dead loop"
+							return
+						}
+					}
+					resch <- "conn read error: " + err.Error()
+					return
+				} else {
+					resch <- string(b)
+					return
+				}
+			}
+		}
+	}()
+	addr := <-addrch
+	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
+	if err != nil {
+		t.Fatalf("dial failed %v", err)
+	}
+	defer conn.Close()
+	// do not do handshake wait result
+	select {
+	case result := <-resch:
+		// if no fix in conn.go: c.Conn.GetConnectionState().HandshakeComplete check
+		// this should returns dead loop
+		if !strings.Contains(result, "tls: handshake is not completed") {
+			t.Fatalf("got result: %s", result)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatalf("wait result timeout")
 	}
 }
