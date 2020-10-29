@@ -496,5 +496,34 @@ func TestFallback(t *testing.T) {
 			t.Fatal("create tls client context without certificate success, expected failed")
 		}
 	})
+}
 
+func TestClientFallBack(t *testing.T) {
+	// A server not support tls
+	lc := &v2.Listener{}
+	ctxMng, err := NewTLSServerContextManager(lc)
+	if err != nil {
+		t.Fatalf("tls context manager error: %v", err)
+	}
+	server := MockServer{
+		Mng: ctxMng,
+		t:   t,
+	}
+	server.GoListenAndServe(t)
+	defer server.Close()
+	time.Sleep(time.Second) //wait server start
+	// A Client with fallback
+	fallbackConfig := &v2.TLSConfig{
+		Status:       true,
+		InsecureSkip: true,
+		Fallback:     true,
+	}
+	fallbackMng, err := NewTLSClientContextManager(fallbackConfig)
+	if err != nil {
+		t.Fatalf("tls context manager error: %v", err)
+	}
+	resp, err := MockClient(t, server.Addr, fallbackMng)
+	if !pass(resp, err) {
+		t.Fatalf("fallback request failed")
+	}
 }

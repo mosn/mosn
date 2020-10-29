@@ -145,6 +145,8 @@ func (mng *serverContextManager) HashValue() *types.HashValue {
 type clientContextManager struct {
 	// client support only one certificate
 	provider types.TLSProvider
+	// fallback
+	fallback bool
 }
 
 // NewTLSClientContextManager returns a types.TLSContextManager used in TLS Client
@@ -155,6 +157,7 @@ func NewTLSClientContextManager(cfg *v2.TLSConfig) (types.TLSContextManager, err
 	}
 	mng := &clientContextManager{
 		provider: provider,
+		fallback: cfg.Fallback,
 	}
 	return mng, nil
 }
@@ -166,8 +169,25 @@ func (mng *clientContextManager) Conn(c net.Conn) (net.Conn, error) {
 	if !mng.Enabled() {
 		return c, nil
 	}
+	// make tls connection and try handshake
+	tlsconn := tls.Client(c, mng.provider.GetTLSConfigContext(true).Config())
+	if err := tlsconn.Handshake(); err != nil {
+		if !mng.fallback {
+			return c, err // returns the original connection, which should be closed by the caller
+		}
+		// fallback to plaintext
+		log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
+			c.LocalAddr(), c.RemoteAddr(), err)
+		// handshake error, use plaintext connection as fallback
+		conn, err := net.DialTimeout("tcp", c.RemoteAddr().String(), types.DefaultConnectTimeout)
+		if err != nil {
+			return c, err // returns the original connection, which should be closed by the caller
+		}
+		return conn, nil
+	}
+
 	return &TLSConn{
-		tls.Client(c, mng.provider.GetTLSConfigContext(true).Config()),
+		tlsconn,
 	}, nil
 }
 

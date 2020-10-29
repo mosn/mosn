@@ -80,9 +80,8 @@ func MockClient(t *testing.T, addr string, cltMng types.TLSContextManager) (*htt
 	conn = c
 	if cltMng != nil {
 		req, _ = http.NewRequest("GET", "https://"+addr, nil)
-		conn, _ = cltMng.Conn(c)
-		tlsConn, _ := conn.(*TLSConn)
-		if err := tlsConn.Handshake(); err != nil {
+		conn, err = cltMng.Conn(c)
+		if err != nil {
 			return nil, fmt.Errorf("request tls handshake error %v", err)
 		}
 	} else {
