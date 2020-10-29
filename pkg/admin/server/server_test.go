@@ -305,7 +305,7 @@ func TestDumpStats(t *testing.T) {
 		t.Error(err)
 	} else {
 		if data != string(expected) {
-			t.Errorf("unexpected stats: %s\n", data)
+			t.Errorf("unexpected stats: %s, expected: %s\n", data, string(expected))
 		}
 	}
 

@@ -32,12 +32,8 @@ jobs:
       - name: Run Unit tests.
         run: make coverage
 
-      - name: Upload Coverage report to CodeCov
-        uses: codecov/codecov-action@v1.0.13
-        with:
-          token: a82c6fa7-3bd6-436d-b430-cc0b670a0794
-          file: ./coverage.txt
-          
+      - name: Coverage
+        run: bash <(curl -s https://codecov.io/bash)
           
   integrate:
     name: integrate
@@ -53,6 +49,21 @@ jobs:
 
       - name: Run Integrate tests.
         run: make integrate
+
+  integrate-new:
+    name: integrate-new
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.12.7
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run New Integrate
+        run: make integrate-new
 
   build:
     name: build

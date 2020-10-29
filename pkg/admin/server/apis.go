@@ -96,6 +96,7 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	for key, param := range r.Form {
+		p := param
 		switch key {
 		case "mosnconfig":
 			configmanager.HandleMOSNConfig(configmanager.CfgTypeMOSN, handle)
@@ -108,24 +109,24 @@ func configDump(w http.ResponseWriter, r *http.Request) {
 		case "router":
 			configmanager.HandleMOSNConfig(configmanager.CfgTypeRouter, func(v interface{}) {
 				routerInfo, ok := v.(map[string]v2.RouterConfiguration)
-				if ok && len(param) > 0 {
-					handle(routerInfo[param[0]])
+				if ok && len(p) > 0 {
+					handle(routerInfo[p[0]])
 				}
 			})
 
 		case "cluster":
 			configmanager.HandleMOSNConfig(configmanager.CfgTypeCluster, func(v interface{}) {
 				clusterInfo, ok := v.(map[string]v2.Cluster)
-				if ok && len(param) > 0 {
-					handle(clusterInfo[param[0]])
+				if ok && len(p) > 0 {
+					handle(clusterInfo[p[0]])
 				}
 			})
 
 		case "listener":
 			configmanager.HandleMOSNConfig(configmanager.CfgTypeListener, func(v interface{}) {
 				listenerInfo, ok := v.(map[string]v2.Listener)
-				if ok && len(param) > 0 {
-					handle(listenerInfo[param[0]])
+				if ok && len(p) > 0 {
+					handle(listenerInfo[p[0]])
 				}
 			})
 		default:
@@ -142,11 +143,28 @@ func statsDump(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.DefaultLogger.Infof("[admin api]  [stats dump] stats dump")
-	allMetrics := metrics.GetAll()
-	w.WriteHeader(200)
+	r.ParseForm()
+	if len(r.Form) == 0 {
+		allMetrics := metrics.GetAll()
+		w.WriteHeader(200)
+		sink := console.NewConsoleSink()
+		sink.Flush(w, allMetrics)
+		return
+	}
+	if len(r.Form) > 1 {
+		w.WriteHeader(400)
+		fmt.Fprintf(w, "only support one parameter")
+		return
+	}
+	key := r.FormValue("key")
+	m := metrics.GetMetricsFilter(key)
+	if m == nil {
+		w.WriteHeader(200)
+		fmt.Fprintf(w, "no metrics key: %s", key)
+		return
+	}
 	sink := console.NewConsoleSink()
-	sink.Flush(w, allMetrics)
-	return
+	sink.Flush(w, []types.Metrics{m})
 }
 
 func statsDumpProxyTotal(w http.ResponseWriter, r *http.Request) {

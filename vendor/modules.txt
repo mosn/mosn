@@ -12,32 +12,11 @@ github.com/SkyAPM/go2sky/reporter/grpc/language-agent
 github.com/SkyAPM/go2sky/reporter/grpc/management
 # github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d
 github.com/StackExchange/wmi
-# github.com/TarsCloud/TarsGo v0.0.0-20190521041003-0022231bc5b2
-github.com/TarsCloud/TarsGo/tars
-github.com/TarsCloud/TarsGo/tars/model
+# github.com/TarsCloud/TarsGo v1.1.4
+github.com/TarsCloud/TarsGo/tars/protocol
 github.com/TarsCloud/TarsGo/tars/protocol/codec
-github.com/TarsCloud/TarsGo/tars/protocol/res/adminf
 github.com/TarsCloud/TarsGo/tars/protocol/res/basef
-github.com/TarsCloud/TarsGo/tars/protocol/res/configf
-github.com/TarsCloud/TarsGo/tars/protocol/res/endpointf
-github.com/TarsCloud/TarsGo/tars/protocol/res/logf
-github.com/TarsCloud/TarsGo/tars/protocol/res/nodef
-github.com/TarsCloud/TarsGo/tars/protocol/res/notifyf
-github.com/TarsCloud/TarsGo/tars/protocol/res/propertyf
-github.com/TarsCloud/TarsGo/tars/protocol/res/queryf
 github.com/TarsCloud/TarsGo/tars/protocol/res/requestf
-github.com/TarsCloud/TarsGo/tars/protocol/res/statf
-github.com/TarsCloud/TarsGo/tars/transport
-github.com/TarsCloud/TarsGo/tars/util/conf
-github.com/TarsCloud/TarsGo/tars/util/current
-github.com/TarsCloud/TarsGo/tars/util/debug
-github.com/TarsCloud/TarsGo/tars/util/endpoint
-github.com/TarsCloud/TarsGo/tars/util/gpool
-github.com/TarsCloud/TarsGo/tars/util/grace
-github.com/TarsCloud/TarsGo/tars/util/rogger
-github.com/TarsCloud/TarsGo/tars/util/rtimer
-github.com/TarsCloud/TarsGo/tars/util/set
-github.com/TarsCloud/TarsGo/tars/util/tools
 # github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
 github.com/alibaba/sentinel-golang/api
 github.com/alibaba/sentinel-golang/core/base

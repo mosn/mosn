@@ -19,14 +19,15 @@ package http
 
 import (
 	"context"
+	"sync"
+	"testing"
+	"time"
+
 	metrics "github.com/rcrowley/go-metrics"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"sync"
-	"testing"
-	"time"
 )
 
 type fakeClusterInfo struct {
@@ -48,6 +49,10 @@ type fakeTLSContextManager struct {
 
 func (mg *fakeTLSContextManager) Enabled() bool {
 	return false
+}
+
+func (mg *fakeTLSContextManager) HashValue() *types.HashValue {
+	return nil
 }
 
 func (ci *fakeClusterInfo) TLSMng() types.TLSContextManager {

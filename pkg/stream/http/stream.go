@@ -734,7 +734,9 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 }
 
 func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
-	s.response.SetBody(data.Bytes())
+	// SetBodyRaw sets response body and could avoid copying it
+	// note: When it's actually sent to the network, it will copy the data once in Write func.
+	s.response.SetBodyRaw(data.Bytes())
 
 	if endStream {
 		s.endStream()
