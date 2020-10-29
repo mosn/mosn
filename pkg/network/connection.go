@@ -568,7 +568,18 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 
 	if !UseNetpollMode {
 		if c.useWriteLoop {
-			c.writeBufferChan <- &buffers
+			select {
+			case c.writeBufferChan <- &buffers:
+				return
+			default:
+			}
+
+			// fail after 60s
+			select {
+			case c.writeBufferChan <- &buffers:
+			case <-time.After(types.DefaultConnTryTimeout):
+				err = types.ErrWriteBufferChanTimeout
+			}
 		} else {
 			err = c.writeDirectly(&buffers)
 		}
