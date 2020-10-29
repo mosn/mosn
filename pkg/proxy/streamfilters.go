@@ -163,6 +163,10 @@ func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap,
 func (f *activeStreamReceiverFilter) TerminateStream(code int) bool {
 	s := f.activeStream
 	atomic.StoreUint32(&s.reuseBuffer, 0)
+
+	if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
+		return false
+	}
 	if s.downstreamRespHeaders != nil {
 		return false
 	}
@@ -172,8 +176,16 @@ func (f *activeStreamReceiverFilter) TerminateStream(code int) bool {
 	if f.id != s.ID {
 		return false
 	}
-	f.activeStream.sendHijackReply(code, f.activeStream.downstreamReqHeaders)
-	f.activeStream.sendNotify() // wake up proxy workflow
+	// stop timeout timer
+	if s.responseTimer != nil {
+		s.responseTimer.Stop()
+	}
+	if s.perRetryTimer != nil {
+		s.perRetryTimer.Stop()
+	}
+	// send hijacks response, request finished
+	s.sendHijackReply(code, f.activeStream.downstreamReqHeaders)
+	s.sendNotify() // wake up proxy workflow
 	return true
 }
 
