@@ -193,6 +193,8 @@ const (
 	DefaultIdleTimeout      = 90 * time.Second
 	DefaultUDPIdleTimeout   = 5 * time.Second
 	DefaultUDPReadTimeout   = 1 * time.Second
+
+	DefaultLocalConnWriteTimeout = 3 * time.Second
 )
 
 // ConnectionHandler contains the listeners for a mosn server
@@ -237,4 +239,5 @@ type FilterChainFactory interface {
 var (
 	ErrConnectionHasClosed = errors.New("connection has closed")
 	ErrWriteTryLockTimeout = errors.New("write trylock has timeout")
+	ErrWriteLocalConnTimeout = errors.New("write to local conn has timeout")
 )
