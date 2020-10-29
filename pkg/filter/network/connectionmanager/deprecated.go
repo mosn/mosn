@@ -1,7 +1,6 @@
 package connectionmanager
 
 import (
-	"fmt"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -9,9 +8,6 @@ import (
 
 func init() {
 	api.RegisterNetwork(v2.CONNECTION_MANAGER, CreateProxyFactory)
-	fmt.Printf("registry CONNECTION_MANAGER")
-	a := make(map[string]interface{})
-	api.CreateNetworkFilterChainFactory(v2.CONNECTION_MANAGER, a)
 }
 
 func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFactory, error) {
