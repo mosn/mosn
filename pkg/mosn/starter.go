@@ -66,7 +66,8 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
 
-	store.SetMosnConfig(c)
+	// set the mosn config finally
+	defer configmanager.SetMosnConfig(c)
 
 	var (
 		inheritListeners  []net.Listener
@@ -158,11 +159,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		} else {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.clustermanager)
-
-			//add listener
-			if len(serverConfig.Listeners) == 0 {
-				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
-			}
 
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
@@ -265,13 +261,13 @@ func (m *Mosn) Start() {
 	}, nil)
 	// start mosn feature
 	featuregate.StartInit()
-	// TODO: remove it
-	//parse service registry info
-	log.StartLogger.Infof("mosn parse registry info")
-	configmanager.ParseServiceRegistry(m.config.ServiceRegistry)
-
 	log.StartLogger.Infof("mosn parse extend config")
-	configmanager.ParseConfigExtend(m.config.Extend)
+	for typ, cfg := range m.config.Extends {
+		if err := v2.ExtendConfigParsed(typ, cfg); err != nil {
+			log.StartLogger.Fatalf("mosn parse extend config failed, type: %s, error: %v", typ, err)
+		}
+		configmanager.SetExtend(typ, cfg)
+	}
 
 	// beforestart starts transfer connection and non-proxy listeners
 	log.StartLogger.Infof("mosn prepare for start")

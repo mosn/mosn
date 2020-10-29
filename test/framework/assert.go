@@ -20,16 +20,16 @@ var (
 		require.NotNil(t, actual)
 	}
 	Less = func(t *testing.T, actual interface{}, expected ...interface{}) {
-		require.Less(t, expected[0], actual)
+		require.Less(t, actual, expected[0])
 	}
 	LessOrEqual = func(t *testing.T, actual interface{}, expected ...interface{}) {
-		require.LessOrEqual(t, expected[0], actual)
+		require.LessOrEqual(t, actual, expected[0])
 	}
 	Greater = func(t *testing.T, actual interface{}, expected ...interface{}) {
-		require.Greater(t, expected[0], actual)
+		require.Greater(t, actual, expected[0])
 	}
 	GreaterOrEqual = func(t *testing.T, actual interface{}, expected ...interface{}) {
-		require.GreaterOrEqual(t, expected[0], actual)
+		require.GreaterOrEqual(t, actual, expected[0])
 	}
 
 	// TODO: Add More

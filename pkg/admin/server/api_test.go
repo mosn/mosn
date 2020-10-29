@@ -18,6 +18,8 @@
 package server
 
 import (
+	"bytes"
+	rawjson "encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -25,7 +27,8 @@ import (
 	"reflect"
 	"testing"
 
-	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/configmanager"
+	"mosn.io/mosn/pkg/metrics"
 )
 
 func TestKnownFeatures(t *testing.T) {
@@ -42,7 +45,7 @@ func TestKnownFeatures(t *testing.T) {
 	}
 	m := map[string]bool{}
 	json.Unmarshal(b, &m)
-	v, ok := m[string(store.ConfigAutoWrite)]
+	v, ok := m[string(configmanager.ConfigAutoWrite)]
 	if !ok || v {
 		t.Fatalf("features is not expected")
 	}
@@ -90,6 +93,36 @@ func TestGetEnv(t *testing.T) {
 	json.Unmarshal(b, out)
 	if !reflect.DeepEqual(out, expected) {
 		t.Fatalf("env got %s", string(b))
+	}
+}
+
+func TestStatsDumpWithParameters(t *testing.T) {
+	// prepare data
+	m := metrics.NewTLSStats("global")
+	m.Counter("test").Inc(1)
+	defer func() {
+		metrics.ResetAll()
+	}()
+	r := httptest.NewRequest("GET", "http://127.0.0.1/api/v1/stats?key=mosn_tls.tls.global", nil)
+	w := httptest.NewRecorder()
+	statsDump(w, r)
+	resp := w.Result()
+	if resp.StatusCode != 200 {
+		t.Fatalf("response status got %d", resp.StatusCode)
+	}
+	b, err := ioutil.ReadAll(w.Body)
+	if err != nil {
+		t.Fatalf("response read error: %v", err)
+	}
+	expected, _ := rawjson.MarshalIndent(map[string]map[string]map[string]string{
+		"mosn_tls": {
+			"tls.global": {
+				"test": "1",
+			},
+		},
+	}, "", "\t")
+	if !bytes.Equal(b, expected) {
+		t.Fatalf("wanna %s, got %s", string(expected), string(b))
 	}
 }
 

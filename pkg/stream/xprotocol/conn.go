@@ -206,7 +206,7 @@ func (sc *streamConn) Protocol() types.ProtocolName {
 	return protocol.Xprotocol
 }
 
-func(sc *streamConn) EnableWorkerPool() bool {
+func (sc *streamConn) EnableWorkerPool() bool {
 	if sc.protocol == nil {
 		// multiple protocols
 		return true
@@ -348,20 +348,25 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 
 	// for client stream, remove stream on response read
 	sc.clientMutex.Lock()
-	defer sc.clientMutex.Unlock()
 
-	if clientStream, ok := sc.clientStreams[requestId]; ok {
-		delete(sc.clientStreams, requestId)
-
-		// transmit buffer ctx
-		buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
-
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] connection %d receive response, requestId = %v", sc.netConn.ID(), requestId)
-		}
-
-		clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
+	clientStream, ok := sc.clientStreams[requestId]
+	if !ok {
+		sc.clientMutex.Unlock()
+		return
 	}
+
+	// stream exists, delete it
+	delete(sc.clientStreams, requestId)
+	sc.clientMutex.Unlock()
+
+	// transmit buffer ctx
+	buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] connection %d receive response, requestId = %v", sc.netConn.ID(), requestId)
+	}
+
+	clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
 }
 
 func (sc *streamConn) newServerStream(ctx context.Context, frame xprotocol.XFrame) *xStream {

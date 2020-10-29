@@ -21,8 +21,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math/rand"
 	"net"
 	"testing"
+	"time"
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
@@ -328,6 +330,29 @@ func TestHeaderSize(t *testing.T) {
 	}
 }
 
+func TestAppendData(t *testing.T) {
+	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	responseBytes := randomBytes(t, rand.Intn(1024)+1024*1024*4, rand)
+	if responseBytes == nil || len(responseBytes) == 0 {
+		t.Fatal("randomBytes failed!")
+	}
+
+	buf := buffer.NewIoBufferBytes(responseBytes)
+
+	var s serverStream
+	var hb httpBuffers
+	s.stream = stream{
+		request:  &hb.serverRequest,
+		response: &hb.serverResponse,
+	}
+
+	s.AppendData(context.Background(), buf, false)
+
+	if bytes.Compare(s.response.Body(), responseBytes) != 0 {
+		t.Errorf("server AppendData failed")
+	}
+}
+
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
 	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
 
@@ -336,4 +361,13 @@ func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
 	}
 
 	return header
+}
+
+func randomBytes(t *testing.T, n int, rand *rand.Rand) []byte {
+	r := make([]byte, n)
+	if _, err := rand.Read(r); err != nil {
+		t.Fatal("randomBytes rand.Read failed: " + err.Error())
+		return nil
+	}
+	return r
 }

@@ -40,6 +40,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/store"
 	mv2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/xds/conv"
@@ -260,7 +261,8 @@ func TestDumpConfig(t *testing.T) {
 			Driver: "test",
 		},
 	}
-	store.SetMosnConfig(mcfg)
+	configmanager.SetMosnConfig(mcfg)
+	defer configmanager.Reset()
 
 	time.Sleep(time.Second) //wait server start
 
@@ -271,7 +273,6 @@ func TestDumpConfig(t *testing.T) {
 			t.Errorf("unexpected effectiveConfig: %s\n", data)
 		}
 	}
-	store.Reset()
 }
 
 func TestDumpStats(t *testing.T) {
@@ -304,7 +305,7 @@ func TestDumpStats(t *testing.T) {
 		t.Error(err)
 	} else {
 		if data != string(expected) {
-			t.Errorf("unexpected stats: %s\n", data)
+			t.Errorf("unexpected stats: %s, expected: %s\n", data, string(expected))
 		}
 	}
 
@@ -324,7 +325,7 @@ func TestDumpStats(t *testing.T) {
 		}
 	}
 
-	store.Reset()
+	configmanager.Reset()
 }
 
 func TestDumpStatsForIstio(t *testing.T) {
@@ -643,7 +644,7 @@ func TestRegisterNewAPI(t *testing.T) {
 func TestHelpAPI(t *testing.T) {
 	// reset
 	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
-		"/":                       help,
+		"/": help,
 		"/api/v1/config_dump":     configDump,
 		"/api/v1/stats":           statsDump,
 		"/api/v1/update_loglevel": updateLogLevel,

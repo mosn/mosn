@@ -43,7 +43,6 @@ var cb testCallback
 
 func TestMain(m *testing.M) {
 	RegisterConfigParsedListener(ParseCallbackKeyCluster, cb.ParsedCallback)
-	RegisterConfigParsedListener(ParseCallbackKeyServiceRgtInfo, cb.ParsedCallback)
 	RegisterConfigParsedListener(ParseCallbackKeyProcessor, cb.ParsedCallback)
 	os.Exit(m.Run())
 }
@@ -187,6 +186,23 @@ func TestParseListenerConfig(t *testing.T) {
 	}
 }
 
+func TestParseListenerUDP(t *testing.T) {
+	packetconn, err := net.ListenPacket("udp", "127.0.0.1:8080")
+	if err != nil {
+		t.Fatalf("listen packet error: %v", err)
+	}
+	ln := ParseListenerConfig(&v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			AddrConfig: "127.0.0.1:8080",
+			Network:    "udp",
+		},
+	}, nil, []net.PacketConn{packetconn})
+	if !(ln.Addr != nil &&
+		ln.InheritPacketConn != nil) {
+		t.Fatalf("parse udp listener failed: %+v", ln)
+	}
+}
+
 func TestParseRouterConfig(t *testing.T) {
 	filterStr := `{
 		"filters": [{
@@ -213,14 +229,6 @@ func TestParseRouterConfig(t *testing.T) {
 	emptyRouter, err := ParseRouterConfiguration(noRouteFilterChain)
 	if err != nil || emptyRouter.RouterConfigName != "" {
 		t.Fatal("parse no router configuration failed")
-	}
-}
-
-func TestParseServiceRegistry(t *testing.T) {
-	cb.Count = 0
-	ParseServiceRegistry(v2.ServiceRegistryInfo{})
-	if cb.Count != 1 {
-		t.Error("no callback")
 	}
 }
 

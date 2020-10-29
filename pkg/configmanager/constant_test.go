@@ -17,77 +17,97 @@
 
 package configmanager
 
-// some test constant defines
-var basicConfigStr = `
-{
-	"servers": [
-		{
-			"listeners": [
-				{
-					"name": "egress",
-					"address": "127.0.0.1:0",
-					"filter_chains": [
-						{}
-					],
-					"stream_filters": [
-						{
-							"type":"test",
-							"config": {
-								"version": "1.0"
-							}
-						}
-					]
-				},
-				{
-					"name": "ingress",
-					"address": "127.0.0.1:0",
-					"filter_chains": [
-						{}	
-					]
-				}
-			],
-			"routers": [
-				{
-					"router_config_name":"egress_router",
-					"virtual_hosts":[
-						{
-							"name": "egress",
-							"domains":["*"],
-							"routers": [
-								{
-									"match": {"prefix":"/"},
-									"route":{"cluster_name":"test1"}
-								}
-							]
-						}
-					]
-				},
-				{
-					"router_config_name":"ingress_router",
-					"virtual_hosts":[
-						{
-							"name": "ingress",									
-							"domains":["*"],
-							"routers": [
-								{
-									"match": {"prefix":"/"},
-									"route":{"cluster_name":"test1"}
-								}
-							]
-						}
-					]
-				}	
-			]
-		}
-	],
-	"cluster_manager":{
-		"clusters":[
-			{
-				"name": "test_cluster",
-				"type": "SIMPLE",
-				"lb_type": "LB_RANDOM",
-				"hosts": []
-			}
-		]
-	}
+import (
+	"fmt"
+	"io/ioutil"
+	"os"
+)
+
+const mosnConfig = `{
+        "servers": [
+                {
+                        "mosn_server_name": "test_mosn_server",
+                        "listeners": [
+                                {
+                                         "name": "test_mosn_listener",
+                                         "address": "127.0.0.1:8080",
+                                         "filter_chains": [
+                                                {
+                                                        "filters": [
+                                                                {
+                                                                         "type": "proxy",
+                                                                         "config": {
+                                                                                 "downstream_protocol": "X",
+                                                                                 "upstream_protocol": "X",
+										 "extend_config": {
+											 "sub_protocols":"bolt,boltv2"
+										 },
+                                                                                 "router_config_name": "test_router"
+                                                                         }
+                                                                }
+                                                        ]
+                                                }
+                                         ],
+                                         "stream_filters": [
+                                         ]
+                                }
+                        ],
+                        "routers": [
+                                {
+                                        "router_config_name": "test_router",
+                                        "router_configs": "/tmp/routers/test_router/"
+                                }
+                        ]
+                }
+         ],
+         "cluster_manager": {
+                 "clusters_configs": "/tmp/clusters"
+         },
+         "admin": {
+                 "address": {
+                         "socket_address": {
+                                 "address": "127.0.0.1",
+                                 "port_value": 34901
+                         }
+                 }
+         },
+         "metrics": {
+                 "stats_matcher": {
+                         "reject_all": true
+                 }
+         },
+	 "tracing": {
+		 "enable": true,
+		 "driver": "SOFATracer"
+	 },
+	 "pprof": {
+		 "debug": true,
+		 "port_value": 34902
+	 }
 }`
+
+const testConfigPath = "/tmp/mosn_admin.json"
+
+func createMosnConfig() {
+	routerPath := "/tmp/routers/test_router/"
+	clusterPath := "/tmp/clusters"
+
+	os.Remove(testConfigPath)
+	os.RemoveAll(clusterPath)
+	os.MkdirAll(clusterPath, 0755)
+	os.RemoveAll(routerPath)
+	os.MkdirAll(routerPath, 0755)
+
+	ioutil.WriteFile(testConfigPath, []byte(mosnConfig), 0644)
+	// write router
+	ioutil.WriteFile(fmt.Sprintf("%s/virtualhost_0.json", routerPath), []byte(`{
+                "name": "virtualhost_0"
+        }`), 0644)
+	// write cluster
+	ioutil.WriteFile(fmt.Sprintf("%s/cluster001.json", clusterPath), []byte(`{
+                "name": "cluster001",
+                "type": "SIMPLE",
+                "lb_type": "LB_RANDOM"
+        }`), 0644)
+
+}
