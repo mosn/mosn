@@ -17,7 +17,12 @@
 
 package cluster
 
-import "sync/atomic"
+import (
+	"crypto/sha256"
+	"sync/atomic"
+
+	"mosn.io/mosn/pkg/types"
+)
 
 // temporary implement:
 // control client side tls support without update config
@@ -35,4 +40,20 @@ func EnableClientSideTLS() {
 // default is support
 func IsSupportTLS() bool {
 	return atomic.LoadUint32(&isDisableClientSideTLS) == 0
+}
+
+// disableTLSHashValue represents the host config's tls_disable is setted
+// we use this hash value to distinguish the difference between nil and tls_disable
+// so we can find the config changed during the isDisableClientSideTLS.
+// Usually, the hash value is created by tls certificate info, so we create a simple hash value
+// to represent the tls_disable.
+var disableTLSHashValue *types.HashValue
+
+// clientSideDisableHashValue represents the isDisableClientSideTLS is setted
+// if IsSupportTLS == false, returns this hash value.
+var clientSideDisableHashValue *types.HashValue
+
+func init() {
+	disableTLSHashValue = types.NewHashValue([sha256.Size]byte{0x00, 0x01, 0x02, 0x03})
+	clientSideDisableHashValue = types.NewHashValue([sha256.Size]byte{}) // all datas are 0x00
 }
