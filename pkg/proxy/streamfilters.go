@@ -164,9 +164,6 @@ func (f *activeStreamReceiverFilter) TerminateStream(code int) bool {
 	s := f.activeStream
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 
-	if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
-		return false
-	}
 	if s.downstreamRespHeaders != nil {
 		return false
 	}
@@ -174,6 +171,9 @@ func (f *activeStreamReceiverFilter) TerminateStream(code int) bool {
 		return false
 	}
 	if f.id != s.ID {
+		return false
+	}
+	if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
 		return false
 	}
 	// stop timeout timer

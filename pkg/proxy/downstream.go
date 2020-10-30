@@ -930,9 +930,6 @@ func (s *downStream) onUpstreamRequestSent() {
 				func() {
 					atomic.StoreUint32(&s.reuseBuffer, 0)
 
-					if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
-						return
-					}
 					if s.downstreamRespHeaders != nil {
 						return
 					}
@@ -941,6 +938,9 @@ func (s *downStream) onUpstreamRequestSent() {
 						return
 					}
 					if ID != s.ID {
+						return
+					}
+					if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
 						return
 					}
 					s.onResponseTimeout()
@@ -986,9 +986,6 @@ func (s *downStream) setupPerReqTimeout() {
 			func() {
 				atomic.StoreUint32(&s.reuseBuffer, 0)
 
-				if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
-					return
-				}
 				if s.downstreamRespHeaders != nil {
 					return
 				}
@@ -997,6 +994,9 @@ func (s *downStream) setupPerReqTimeout() {
 					return
 				}
 				if ID != s.ID {
+					return
+				}
+				if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
 					return
 				}
 				s.onPerReqTimeout()
