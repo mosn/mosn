@@ -55,6 +55,10 @@ var (
 				EnvVar: "MOSN_CONFIG",
 				Value:  "configs/mosn_config.json",
 			}, cli.StringFlag{
+				Name:   "dynamic-config, d",
+				Usage:  "Load dynamic configuration from `FILE`",
+				EnvVar: "MOSN_DYNAMIC CONFIG",
+			}, cli.StringFlag{
 				Name:   "service-cluster, s",
 				Usage:  "sidecar service cluster",
 				EnvVar: "SERVICE_CLUSTER",
@@ -126,6 +130,7 @@ var (
 		},
 		Action: func(c *cli.Context) error {
 			configPath := c.String("config")
+			dyconfigPath := c.String("dynamic-config")
 			serviceCluster := c.String("service-cluster")
 			serviceNode := c.String("service-node")
 			serviceType := c.String("service-type")
@@ -138,6 +143,9 @@ var (
 
 			flagLogLevel := c.String("log-level")
 
+			if dyconfigPath != "" {
+				configmanager.SetDynamicConfigPath(dyconfigPath)
+			}
 			conf := configmanager.Load(configPath)
 			if mosnLogLevel, ok := flagToMosnLogLevel[flagLogLevel]; ok {
 				if mosnLogLevel == "OFF" {

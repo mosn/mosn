@@ -88,7 +88,12 @@ func DumpConfig() {
 			return
 		}
 	}
-	err = utils.WriteFileSafety(configPath, content, 0644)
+
+	confPath := configPath
+	if dyconfigPath != "" {
+		confPath = dyconfigPath
+	}
+	err = utils.WriteFileSafety(confPath, content, 0644)
 	if err != nil {
 		log.DefaultLogger.Alertf(types.ErrorKeyConfigDump, "dump config failed, caused by: %v", err.Error())
 		// add retry if write file  failed
