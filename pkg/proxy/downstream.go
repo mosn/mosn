@@ -1555,6 +1555,7 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	if s.directResponse {
+		variable.SetVariableValue(s.context, types.VarProxyIsDirectResponse, types.IsDirectResponse)
 		s.directResponse = false
 
 		// don't retry

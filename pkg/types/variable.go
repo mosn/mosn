@@ -42,10 +42,11 @@ const (
 
 // [Proxy]: internal communication
 const (
-	VarProxyTryTimeout    string = "proxy_try_timeout"
-	VarProxyGlobalTimeout string = "proxy_global_timeout"
-	VarProxyHijackStatus  string = "proxy_hijack_status"
-	VarProxyGzipSwitch    string = "proxy_gzip_switch"
+	VarProxyTryTimeout       string = "proxy_try_timeout"
+	VarProxyGlobalTimeout    string = "proxy_global_timeout"
+	VarProxyHijackStatus     string = "proxy_hijack_status"
+	VarProxyGzipSwitch       string = "proxy_gzip_switch"
+	VarProxyIsDirectResponse string = "proxy_direct_response"
 )
 
 // [Protocol]: common
