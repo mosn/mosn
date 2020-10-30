@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	MosnBasePath = "/Users/fujianhao3/Desktop/bak/mosn/.mydevCachefile/bak" + string(os.PathSeparator) + "home" + string(os.PathSeparator) +
+	MosnBasePath = string(os.PathSeparator) + "home" + string(os.PathSeparator) +
 		"admin" + string(os.PathSeparator) + "mosn"
 
 	MosnLogBasePath        = MosnBasePath + string(os.PathSeparator) + "logs"
