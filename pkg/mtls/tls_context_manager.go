@@ -132,16 +132,6 @@ func (mng *serverContextManager) Enabled() bool {
 	return false
 }
 
-// The serverContextManager's HashValue is not used in mosn.
-// maybe we will use it later.
-func (mng *serverContextManager) HashValue() *types.HashValue {
-	if len(mng.providers) == 0 {
-		return nil
-	}
-	p := mng.providers[0]
-	return p.GetTLSConfigContext(false).HashValue()
-}
-
 type clientContextManager struct {
 	// client support only one certificate
 	provider types.TLSProvider
@@ -150,7 +140,7 @@ type clientContextManager struct {
 }
 
 // NewTLSClientContextManager returns a types.TLSContextManager used in TLS Client
-func NewTLSClientContextManager(cfg *v2.TLSConfig) (types.TLSContextManager, error) {
+func NewTLSClientContextManager(cfg *v2.TLSConfig) (types.TLSClientContextManager, error) {
 	provider, err := NewProvider(cfg)
 	if err != nil {
 		return nil, err
@@ -172,18 +162,8 @@ func (mng *clientContextManager) Conn(c net.Conn) (net.Conn, error) {
 	// make tls connection and try handshake
 	tlsconn := tls.Client(c, mng.provider.GetTLSConfigContext(true).Config())
 	if err := tlsconn.Handshake(); err != nil {
-		if !mng.fallback {
-			return c, err // returns the original connection, which should be closed by the caller
-		}
-		// fallback to plaintext
-		log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
-			c.LocalAddr(), c.RemoteAddr(), err)
-		// handshake error, use plaintext connection as fallback
-		conn, err := net.DialTimeout("tcp", c.RemoteAddr().String(), types.DefaultConnectTimeout)
-		if err != nil {
-			return c, err // returns the original connection, which should be closed by the caller
-		}
-		return conn, nil
+		c.Close() // close the failed connection
+		return nil, err
 	}
 
 	return &TLSConn{
@@ -202,4 +182,8 @@ func (mng *clientContextManager) HashValue() *types.HashValue {
 	}
 	return mng.provider.GetTLSConfigContext(true).HashValue()
 
+}
+
+func (mng *clientContextManager) Fallback() bool {
+	return mng.fallback
 }
