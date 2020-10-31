@@ -47,7 +47,7 @@ func (c *TLSConn) Read(b []byte) (int, error) {
 		}
 		if !c.Conn.GetConnectionState().HandshakeComplete {
 			// wraps as a new error which makes the read error and do no retry
-			return n, errors.New("tls: handshake is not completed: %s" + err.Error())
+			return n, errors.New("tls: handshake is not completed: " + err.Error())
 		}
 	}
 	return n, err

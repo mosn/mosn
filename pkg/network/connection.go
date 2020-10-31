@@ -1093,53 +1093,53 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 	cc.localAddr = cc.rawConnection.LocalAddr()
 
 	// ensure ioEnabled and UseNetpollMode
-	if UseNetpollMode {
-		// store fd
-		switch cc.network {
-		case "udp":
-			if tc, ok := cc.rawConnection.(*net.UDPConn); ok {
-				cc.file, err = tc.File()
-				if err != nil {
-					return
-				}
-			}
-		case "unix":
-			if tc, ok := cc.rawConnection.(*net.UnixConn); ok {
-				cc.file, err = tc.File()
-				if err != nil {
-					return
-				}
-			}
-		case "tcp":
-			if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
-				cc.file, err = tc.File()
-				if err != nil {
-					return
-				}
-			}
+	if !UseNetpollMode {
+		return
+	}
+	// store fd
+	switch cc.network {
+	case "udp":
+		if tc, ok := cc.rawConnection.(*net.UDPConn); ok {
+			cc.file, err = tc.File()
+		}
+	case "unix":
+		if tc, ok := cc.rawConnection.(*net.UnixConn); ok {
+			cc.file, err = tc.File()
+		}
+	case "tcp":
+		if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
+			cc.file, err = tc.File()
 		}
 	}
 	return
 }
 
+func (cc *clientConnection) tryConnect() (event api.ConnectionEvent, err error) {
+	event, err = cc.connect()
+	if err != nil {
+		return event, err
+	}
+	if cc.tlsMng == nil {
+		return event, err
+	}
+	cc.rawConnection, err = cc.tlsMng.Conn(cc.rawConnection)
+	if err == nil {
+		return event, err
+	}
+	if !cc.tlsMng.Fallback() {
+		return api.ConnectFailed, err
+	}
+	log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
+		cc.localAddr, cc.remoteAddr, err)
+	return cc.connect()
+}
+
 func (cc *clientConnection) Connect() (err error) {
 	cc.connectOnce.Do(func() {
 		var event api.ConnectionEvent
-		event, err = cc.connect()
+		event, err = cc.tryConnect()
 		if err == nil {
-			// connected success, try to connect as tls
-			if cc.tlsMng != nil {
-				cc.rawConnection, err = cc.tlsMng.Conn(cc.rawConnection)
-				if err != nil && cc.tlsMng.Fallback() {
-					log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
-						cc.localAddr, cc.remoteAddr, err)
-					event, err = cc.connect()
-				}
-			}
-			// recheck error
-			if err == nil {
-				cc.Start(nil)
-			}
+			cc.Start(nil)
 		}
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw %s, remote address = %s ,event = %+v, error = %+v", cc.network, cc.remoteAddr, event, err)
