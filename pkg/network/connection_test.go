@@ -178,7 +178,7 @@ func testConnStateBase(addr net.Addr, t *testing.T) {
 		t.Errorf("ConnState should be ConnClosed")
 	}
 
-	cc := NewClientConnection(0, nil, remoteAddr, nil)
+	cc := NewClientConnection(0, nil, addr, nil)
 	if cc.State() != api.ConnInit {
 		t.Errorf("ConnState should be ConnInit")
 	}
@@ -231,7 +231,7 @@ func TestUDSWriteRead(t *testing.T) {
 	}()
 	time.Sleep(time.Second) // wait accept goroutine
 
-	cc := NewClientConnection(nil, 0, nil, addr, nil)
+	cc := NewClientConnection(0, nil, addr, nil)
 	defer cc.Close(api.FlushWrite, api.RemoteClose)
 	// add read filter
 	filter := &testReadFilter{}
