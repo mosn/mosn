@@ -530,6 +530,33 @@ func TestClientFallBack(t *testing.T) {
 	}
 }
 
+func TestHandshaketTimeout(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen error: %v", err)
+	}
+	addr := ln.Addr().String()
+	tlsConfig := &v2.TLSConfig{
+		Status:       true,
+		InsecureSkip: true,
+	}
+	cltMng, err := NewTLSClientContextManager(tlsConfig)
+	if err != nil {
+		t.Fatalf("tls context manager error: %v", err)
+	}
+	c, err := net.DialTimeout("tcp", addr, time.Second)
+	if err != nil {
+		t.Fatalf("dial failed: %v", err)
+	}
+	handshakeTimeout = time.Second
+	conn, err := cltMng.Conn(c)
+	if err == nil {
+		conn.Close()
+		t.Fatalf("expected connect failed, but success")
+	}
+	t.Logf("tls connect failed: %v", err)
+}
+
 func TestReadError(t *testing.T) {
 	ci := &certInfo{"Cert1", "RSA", "www.example.com"}
 	ctx, _ := ci.CreateCertConfig()

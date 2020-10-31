@@ -49,7 +49,7 @@ const (
 	NetBufferDefaultSize     = 0
 	NetBufferDefaultCapacity = 1 << 4
 
-	DefaultConnectTimeout = 3 * time.Second
+	DefaultConnectTimeout = 10 * time.Second
 )
 
 var idCounter uint64 = 1
