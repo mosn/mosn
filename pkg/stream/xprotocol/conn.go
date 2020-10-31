@@ -27,7 +27,6 @@ import (
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
@@ -124,40 +123,23 @@ func (sc *streamConn) CheckReasonError(connected bool, event api.ConnectionEvent
 func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	// match if multi protocol used
 	if sc.protocol == nil {
-		// 1. try to get ALPN negotiated protocol
-		if conn, ok := sc.netConn.RawConn().(*mtls.TLSConn); ok {
-			name := conn.ConnectionState().NegotiatedProtocol
-			if name != "" {
-				proto := xprotocol.GetProtocol(types.ProtocolName(name))
-				if proto == nil {
-					log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] negotiated protocol not exists: %s", name)
-					// close conn
-					sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
-					return
-				}
-				sc.protocol = proto
+		proto, result := sc.engine.Match(sc.ctx, buf)
+		switch result {
+		case types.MatchSuccess:
+			sc.protocol = proto.(xprotocol.XProtocol)
+		case types.MatchFailed:
+			// print error info
+			size := buf.Len()
+			if size > 10 {
+				size = 10
 			}
-		}
-		// 2. tls ALPN prortocol not exists, try to recognize data
-		if sc.protocol == nil {
-			proto, result := sc.engine.Match(sc.ctx, buf)
-			switch result {
-			case types.MatchSuccess:
-				sc.protocol = proto.(xprotocol.XProtocol)
-			case types.MatchFailed:
-				// print error info
-				size := buf.Len()
-				if size > 10 {
-					size = 10
-				}
-				log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] engine match failed for magic :%v", buf.Bytes()[:size])
-				// close conn
-				sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
-				return
-			case types.MatchAgain:
-				// do nothing and return, wait for more data
-				return
-			}
+			log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] engine match failed for magic :%v", buf.Bytes()[:size])
+			// close conn
+			sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
+			return
+		case types.MatchAgain:
+			// do nothing and return, wait for more data
+			return
 		}
 	}
 

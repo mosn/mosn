@@ -135,7 +135,7 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 	if sh.SupportTLS() {
 		tlsMng = sh.ClusterInfo().TLSMng()
 	}
-	clientConn := network.NewClientConnection(nil, sh.ClusterInfo().ConnectTimeout(), tlsMng, sh.Address(), nil)
+	clientConn := network.NewClientConnection(sh.ClusterInfo().ConnectTimeout(), tlsMng, sh.Address(), nil)
 	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{
@@ -145,7 +145,7 @@ func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConn
 }
 
 func (sh *simpleHost) CreateUDPConnection(context context.Context) types.CreateConnectionData {
-	clientConn := network.NewClientConnection(nil, sh.ClusterInfo().ConnectTimeout(), nil, sh.UDPAddress(), nil)
+	clientConn := network.NewClientConnection(sh.ClusterInfo().ConnectTimeout(), nil, sh.UDPAddress(), nil)
 	clientConn.SetBufferLimit(sh.ClusterInfo().ConnBufferLimitBytes())
 
 	return types.CreateConnectionData{

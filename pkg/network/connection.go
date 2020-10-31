@@ -1030,13 +1030,12 @@ type clientConnection struct {
 }
 
 // NewClientConnection new client-side connection
-func NewClientConnection(sourceAddr net.Addr, connectTimeout time.Duration, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
+func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{
 		connection: connection{
 			id:               id,
-			localAddr:        sourceAddr,
 			remoteAddr:       remoteAddr,
 			stopChan:         stopChan,
 			readEnabled:      true,
