@@ -61,7 +61,7 @@ func NewRPCClient(t *testing.T, id string, proto types.ProtocolName) *RPCClient 
 
 }
 
-func (c *RPCClient) connect(addr string, tlsMng types.TLSContextManager) error {
+func (c *RPCClient) connect(addr string, tlsMng types.TLSClientContextManager) error {
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
 	cc := network.NewClientConnection(0, tlsMng, remoteAddr, stopChan)
