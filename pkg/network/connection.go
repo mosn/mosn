@@ -49,7 +49,7 @@ const (
 	NetBufferDefaultSize     = 0
 	NetBufferDefaultCapacity = 1 << 4
 
-	DefaultConnectTimeout = 3 * time.Second
+	DefaultConnectTimeout = 10 * time.Second
 )
 
 var idCounter uint64 = 1
@@ -68,7 +68,7 @@ type connection struct {
 	localAddressRestored bool
 	bufferLimit          uint32 // todo: support soft buffer limit
 	rawConnection        net.Conn
-	tlsMng               types.TLSContextManager
+	tlsMng               types.TLSClientContextManager
 	closeWithFlush       bool
 	connCallbacks        []api.ConnectionEventListener
 	bytesReadCallbacks   []func(bytesRead uint64)
@@ -1030,7 +1030,7 @@ type clientConnection struct {
 }
 
 // NewClientConnection new client-side connection
-func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
+func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSClientContextManager, remoteAddr net.Addr, stopChan chan struct{}) types.ClientConnection {
 	id := atomic.AddUint64(&idCounter, 1)
 
 	conn := &clientConnection{
@@ -1067,78 +1067,81 @@ func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSContextMa
 	return conn
 }
 
+func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
+	timeout := cc.connectTimeout
+	if timeout == 0 {
+		timeout = DefaultConnectTimeout
+	}
+	addr := cc.RemoteAddr()
+	if addr == nil {
+		return api.ConnectFailed, errors.New("ClientConnection RemoteAddr is nil")
+	}
+	cc.rawConnection, err = net.DialTimeout(cc.network, cc.RemoteAddr().String(), timeout)
+	if err != nil {
+		if err == io.EOF {
+			// remote conn closed
+			event = api.RemoteClose
+		} else if err, ok := err.(net.Error); ok && err.Timeout() {
+			event = api.ConnectTimeout
+		} else {
+			event = api.ConnectFailed
+		}
+		return
+	}
+	atomic.StoreUint32(&cc.connected, 1)
+	event = api.Connected
+	cc.localAddr = cc.rawConnection.LocalAddr()
+
+	// ensure ioEnabled and UseNetpollMode
+	if !UseNetpollMode {
+		return
+	}
+	// store fd
+	switch cc.network {
+	case "udp":
+		if tc, ok := cc.rawConnection.(*net.UDPConn); ok {
+			cc.file, err = tc.File()
+		}
+	case "unix":
+		if tc, ok := cc.rawConnection.(*net.UnixConn); ok {
+			cc.file, err = tc.File()
+		}
+	case "tcp":
+		if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
+			cc.file, err = tc.File()
+		}
+	}
+	return
+}
+
+func (cc *clientConnection) tryConnect() (event api.ConnectionEvent, err error) {
+	event, err = cc.connect()
+	if err != nil {
+		return
+	}
+	if cc.tlsMng == nil {
+		return
+	}
+	cc.rawConnection, err = cc.tlsMng.Conn(cc.rawConnection)
+	if err == nil {
+		return
+	}
+	if !cc.tlsMng.Fallback() {
+		event = api.ConnectFailed
+		return
+	}
+	log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
+		cc.localAddr, cc.remoteAddr, err)
+	return cc.connect()
+}
+
 func (cc *clientConnection) Connect() (err error) {
 	cc.connectOnce.Do(func() {
 		var event api.ConnectionEvent
-
-		timeout := cc.connectTimeout
-		if timeout == 0 {
-			timeout = DefaultConnectTimeout
+		event, err = cc.tryConnect()
+		if err == nil {
+			cc.Start(context.TODO())
 		}
-
-		addr := cc.RemoteAddr()
-		if addr != nil {
-			cc.rawConnection, err = net.DialTimeout(cc.network, cc.RemoteAddr().String(), timeout)
-		} else {
-			err = errors.New("ClientConnection RemoteAddr is nil")
-		}
-
-		if err != nil {
-			if err == io.EOF {
-				// remote conn closed
-				event = api.RemoteClose
-			} else if err, ok := err.(net.Error); ok && err.Timeout() {
-				event = api.ConnectTimeout
-			} else {
-				event = api.ConnectFailed
-			}
-		} else {
-			atomic.StoreUint32(&cc.connected, 1)
-			event = api.Connected
-			cc.localAddr = cc.rawConnection.LocalAddr()
-
-			// ensure ioEnabled and UseNetpollMode
-			if UseNetpollMode {
-				// store fd
-				switch cc.network {
-				case "udp":
-					if tc, ok := cc.rawConnection.(*net.UDPConn); ok {
-						cc.file, err = tc.File()
-						if err != nil {
-							return
-						}
-					}
-				case "unix":
-					if tc, ok := cc.rawConnection.(*net.UnixConn); ok {
-						cc.file, err = tc.File()
-						if err != nil {
-							return
-						}
-					}
-				case "tcp":
-					if tc, ok := cc.rawConnection.(*net.TCPConn); ok {
-						cc.file, err = tc.File()
-						if err != nil {
-							return
-						}
-					}
-				}
-			}
-
-			if cc.tlsMng != nil {
-				// usually, the client tls manager will never returns an error
-				cc.rawConnection, err = cc.tlsMng.Conn(cc.rawConnection)
-
-			}
-
-			if err != nil {
-				event = api.ConnectFailed
-				cc.rawConnection.Close()
-			} else {
-				cc.Start(nil)
-			}
-		}
-
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw %s, remote address = %s ,event = %+v, error = %+v", cc.network, cc.remoteAddr, event, err)
 		}
@@ -1147,6 +1150,5 @@ func (cc *clientConnection) Connect() (err error) {
 			cccb.OnEvent(event)
 		}
 	})
-
 	return
 }

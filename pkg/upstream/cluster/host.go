@@ -131,7 +131,7 @@ func (sh *simpleHost) TLSHashValue() *types.HashValue {
 
 // types.Host Implement
 func (sh *simpleHost) CreateConnection(context context.Context) types.CreateConnectionData {
-	var tlsMng types.TLSContextManager
+	var tlsMng types.TLSClientContextManager
 	if sh.SupportTLS() {
 		tlsMng = sh.ClusterInfo().TLSMng()
 	}
