@@ -1086,7 +1086,7 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 		} else {
 			event = api.ConnectFailed
 		}
-		return event, err
+		return
 	}
 	atomic.StoreUint32(&cc.connected, 1)
 	event = api.Connected
@@ -1117,17 +1117,18 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 func (cc *clientConnection) tryConnect() (event api.ConnectionEvent, err error) {
 	event, err = cc.connect()
 	if err != nil {
-		return event, err
+		return
 	}
 	if cc.tlsMng == nil {
-		return event, err
+		return
 	}
 	cc.rawConnection, err = cc.tlsMng.Conn(cc.rawConnection)
 	if err == nil {
-		return event, err
+		return
 	}
 	if !cc.tlsMng.Fallback() {
-		return api.ConnectFailed, err
+		event = api.ConnectFailed
+		return
 	}
 	log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
 		cc.localAddr, cc.remoteAddr, err)
@@ -1139,7 +1140,7 @@ func (cc *clientConnection) Connect() (err error) {
 		var event api.ConnectionEvent
 		event, err = cc.tryConnect()
 		if err == nil {
-			cc.Start(nil)
+			cc.Start(context.TODO())
 		}
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[network] [client connection connect] connect raw %s, remote address = %s ,event = %+v, error = %+v", cc.network, cc.remoteAddr, event, err)
