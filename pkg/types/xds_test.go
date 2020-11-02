@@ -48,5 +48,7 @@ func TestInitXdsFlags(t *testing.T) {
 	if !assert.Equal(t, "1.1", xdsInfo.Metadata.Fields["ISTIO_VERSION"].GetStringValue(), "serviceMeta len should be one") {
 		t.FailNow()
 	}
-
+	if !assert.Equal(t, "Kubernetes", xdsInfo.Metadata.Fields["CLUSTER_ID"].GetStringValue(), "serviceMeta default specifying network is not Kubernetes") {
+		t.FailNow()
+	}
 }
