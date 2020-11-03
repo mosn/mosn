@@ -27,8 +27,6 @@ import (
 	"math/rand"
 	"time"
 
-	"mosn.io/mosn/pkg/xds/conv"
-
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
