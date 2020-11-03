@@ -51,7 +51,7 @@
 				"max_request_per_conn": 1024,
 				"conn_buffer_limit_bytes":32768,
 				"tls_context": {
-					"status": false,
+					"status": true,
 					"ca_cert": "../certs/ca.pem",
 					"cert_chain": "../certs/cert.pem",
 					"private_key": "../certs/key.pem",

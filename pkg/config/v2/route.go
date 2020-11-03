@@ -331,7 +331,7 @@ type HeaderMatcher struct {
 	Regex bool   `json:"regex,omitempty"`
 }
 
-// HeaderMatcher specifies a set of variables that the route should match on.
+// VariableMatcher specifies a set of variables that the route should match on.
 type VariableMatcher struct {
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`

@@ -40,7 +40,7 @@ func (vrri *VariableRouteRuleImpl) Match(ctx context.Context, headers api.Header
 		if err != nil {
 			continue
 		}
-		if value == v{
+		if value == v {
 			return vrri
 		}
 	}
