@@ -18,9 +18,11 @@
 package xprotocol
 
 import (
+	"context"
 	"log"
 	"runtime"
 	"testing"
+	"time"
 )
 
 func TestSpanLog(t *testing.T) {
@@ -29,7 +31,7 @@ func TestSpanLog(t *testing.T) {
 		log.Fatalln("create test tracer failed:", error)
 	}
 
-	span := &SofaRPCSpan{}
+	span := NewSpan(context.TODO(), time.Now())
 	span.log()
 }
 
@@ -39,7 +41,7 @@ func TestIngressSpanLog(t *testing.T) {
 		log.Fatalln("create test tracer failed:", error)
 	}
 
-	span := &SofaRPCSpan{}
+	span := NewSpan(context.TODO(), time.Now())
 	span.tags[DOWNSTEAM_HOST_ADDRESS] = "127.0.0.1:43"
 	span.tags[SPAN_TYPE] = "ingress"
 	span.log()
@@ -51,7 +53,7 @@ func TestEgressSpanLog(t *testing.T) {
 		log.Fatalln("create test tracer failed:", error)
 	}
 
-	span := &SofaRPCSpan{}
+	span := NewSpan(context.TODO(), time.Now())
 	span.tags[SPAN_TYPE] = "egress"
 	span.log()
 }
@@ -64,7 +66,7 @@ func BenchmarkSofaTracelog(b *testing.B) {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	for n := 0; n < b.N; n++ {
-		span := &SofaRPCSpan{}
+		span := NewSpan(context.TODO(), time.Now())
 		span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
 		span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
 		span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")
@@ -94,7 +96,7 @@ func BenchmarkSofaTracelogParallel(b *testing.B) {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			span := &SofaRPCSpan{}
+			span := NewSpan(context.TODO(), time.Now())
 			span.SetTag(TRACE_ID, "BenchmarkSofaTracer")
 			span.SetTag(PARENT_SPAN_ID, "BenchmarkSofaTracer")
 			span.SetTag(SERVICE_NAME, "BenchmarkSofaTracer")

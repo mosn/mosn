@@ -110,7 +110,7 @@ func Test_TransmitBufferPoolContext(t *testing.T) {
 		buf2.m[i] = i
 	}
 
-    TransmitBufferPoolContext(ctx2, ctx1)
+	TransmitBufferPoolContext(ctx2, ctx1)
 
 	bv := PoolContext(ctx2)
 	bv.Give()

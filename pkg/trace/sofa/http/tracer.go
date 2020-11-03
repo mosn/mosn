@@ -47,7 +47,7 @@ func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 }
 
 func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {
-	span := xprotocol.NewSpan(startTime)
+	span := xprotocol.NewSpan(ctx, startTime)
 
 	header, ok := request.(http.RequestHeader)
 	if !ok || header.RequestHeader == nil {

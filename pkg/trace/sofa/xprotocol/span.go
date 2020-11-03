@@ -18,19 +18,23 @@
 package xprotocol
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
+	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
 type SofaRPCSpan struct {
+	ctx           context.Context
 	startTime     time.Time
 	endTime       time.Time
 	tags          [TRACE_END]string
@@ -159,6 +163,21 @@ func (s *SofaRPCSpan) log() error {
 	printData.WriteString("\"mosn.duration\":")
 	printData.WriteString("\"" + s.tags[MOSN_PROCESS_TIME] + "\",")
 
+	printData.WriteString("\"mosn.duration.detail\":")
+	printData.WriteString("\"" + track.GetTrackCosts(s.ctx) + "\",")
+
+	if v, ok := mosnctx.Get(s.ctx, types.ContextKeyDownStreamDispatchTime).(time.Time); ok {
+		reqtime := v.Format("2006-01-02 15:04:05.000")
+		printData.WriteString("\"mosn.req.time\":")
+		printData.WriteString("\"" + reqtime + "\",")
+	}
+
+	if v, ok := mosnctx.Get(s.ctx, types.ContextKeyUpstreamDispatchTime).(time.Time); ok {
+		resptime := v.Format("2006-01-02 15:04:05.000")
+		printData.WriteString("\"mosn.resp.time\":")
+		printData.WriteString("\"" + resptime + "\",")
+	}
+
 	// Set status code. TODO can not get the result code if server throw an exception.
 
 	statusCode, _ := strconv.Atoi(s.tags[RESULT_STATUS])
@@ -241,8 +260,9 @@ func (s *SofaRPCSpan) log() error {
 	return nil
 }
 
-func NewSpan(startTime time.Time) *SofaRPCSpan {
+func NewSpan(ctx context.Context, startTime time.Time) *SofaRPCSpan {
 	return &SofaRPCSpan{
+		ctx:       ctx,
 		startTime: startTime,
 	}
 }

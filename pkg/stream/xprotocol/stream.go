@@ -21,10 +21,12 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -142,7 +144,9 @@ func (s *xStream) endStream() {
 			return
 		}
 
+		track.StartTrack(s.ctx, track.NetworkDataWrite, time.Now())
 		err = s.sc.netConn.Write(buf)
+		track.EndTrack(s.ctx, track.NetworkDataWrite, time.Now())
 
 		if err != nil {
 			log.Proxy.Errorf(s.ctx, "[stream] [xprotocol] endStream, requestId = %v, error = %v", s.id, err)

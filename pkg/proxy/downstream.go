@@ -42,6 +42,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -434,7 +435,10 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.DownFilter, id)
 			}
+
+			track.StartTrack(ctx, track.StreamFilterBeforeRoute, time.Now())
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+			track.EndTrack(ctx, track.StreamFilterBeforeRoute, time.Now())
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -446,7 +450,11 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.MatchRoute, id)
 			}
+
+			track.StartTrack(ctx, track.MatchRoute, time.Now())
 			s.matchRoute()
+			track.EndTrack(ctx, track.MatchRoute, time.Now())
+
 			if p, err := s.processError(id); err != nil {
 				return p
 			}
@@ -457,7 +465,10 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.DownFilterAfterRoute, id)
 			}
+
+			track.StartTrack(ctx, track.StreamFilterAfterRoute, time.Now())
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+			track.EndTrack(ctx, track.StreamFilterAfterRoute, time.Now())
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -471,7 +482,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				s.printPhaseInfo(types.ChooseHost, id)
 			}
 
+			track.StartTrack(ctx, track.LoadBalanceChooseHost, time.Now())
 			s.chooseHost(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
+			track.EndTrack(ctx, track.LoadBalanceChooseHost, time.Now())
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -483,7 +496,10 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.DownFilterAfterChooseHost, id)
 			}
+
+			track.StartTrack(ctx, track.StreamFilterAfterChooseHost, time.Now())
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+			track.EndTrack(ctx, track.StreamFilterAfterChooseHost, time.Now())
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -585,7 +601,10 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.UpFilter, id)
 			}
+
+			track.StartTrack(ctx, track.StreamSendFilter, time.Now())
 			s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
+			track.EndTrack(ctx, track.StreamSendFilter, time.Now())
 
 			if p, err := s.processError(id); err != nil {
 				return p

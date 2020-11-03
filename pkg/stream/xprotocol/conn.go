@@ -31,6 +31,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -52,6 +53,8 @@ type streamConn struct {
 	clientStreamIDBase uint64
 	clientStreams      map[uint64]*xStream
 	clientCallbacks    types.StreamConnectionEventListener
+
+	receivedTime time.Time
 }
 
 func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -142,7 +145,8 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 			return
 		}
 	}
-
+	// record the data (request/response) received time.
+	sc.receivedTime = time.Now()
 	// decode frames
 	for {
 		// 1. get stream-level ctx with bufferCtx
@@ -301,6 +305,11 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame,
 		}
 		serverStream.ctx = sc.ctxManager.InjectTrace(serverStream.ctx, span)
 	}
+	// add track info
+	serverStream.ctx = mosnctx.WithValue(serverStream.ctx, types.ContextKeyDownStreamDispatchTime, sc.receivedTime)
+	serverStream.ctx = track.InjectTrack(serverStream.ctx)
+	track.StartTrack(serverStream.ctx, track.ProtocolDecode, sc.receivedTime) // use the dispatch time as start time
+	track.EndTrack(serverStream.ctx, track.ProtocolDecode, time.Now())        // already finished decode
 
 	// 5. inject service info
 	if aware, ok := frame.(xprotocol.ServiceAware); ok {
@@ -340,6 +349,12 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 	// stream exists, delete it
 	delete(sc.clientStreams, requestId)
 	sc.clientMutex.Unlock()
+
+	// response dispatch time
+	// store to client stream ctx
+	clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyUpstreamDispatchTime, sc.receivedTime)
+	track.StartTrack(clientStream.ctx, track.ProtocolDecode, sc.receivedTime) // response start time
+	track.EndTrack(clientStream.ctx, track.ProtocolDecode, time.Now())
 
 	// transmit buffer ctx
 	buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
