@@ -17,7 +17,6 @@
 - 删除 `network.NewClientConnection` 方法冗余参数，删除 `streamConn` 结构体 `Dispatch` 方法 `ALPN` 检查 [@nejisama](https://github.com/nejisama)
 - `StreamReceiverFilterHandler` 增加 `TerminateStream` API，可在处理流的时候传入 HTTP code 异步关闭流 [@nejisama](https://github.com/nejisama)
 - client 端 TLS handshake 失败时增加降级逻辑 [@nejisama](https://github.com/nejisama)
-- `dubbo.Frame` struct 新增 `payload` 字段,`SetData` 设置 `payload` 字段保存编码后的 Frame [@lxd5866](https://github.com/lxd5866)
 - 修改 TLS hashvalue 计算方式 [@nejisama](https://github.com/nejisama)
 - 修正 disable_log admin api typo [@nejisama](https://github.com/nejisama)
 
@@ -29,6 +28,7 @@
 - 修复 `MOSNConfig.servers[].listeners[].bind_port` 设置为 `false` 时热重启出错 [@alpha-baby](https://github.com/alpha-baby)
 - 本地写 buffer 增加超时时间，避免本地写失败导致 goroutine 过多 OOM [@cch123](https://github.com/cch123)
 - 修复 TLS 超时导致死循环 [@nejisama](https://github.com/nejisama)
+- 修复 `dubbo.Frame` struct 使用 `SetData` 方法之后数据没有被修改的问题 [@lxd5866](https://github.com/lxd5866)
 
 ## v0.17.0
 
