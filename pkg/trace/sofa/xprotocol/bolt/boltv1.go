@@ -20,7 +20,7 @@ package bolt
 import (
 	"context"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	xproto "mosn.io/mosn/pkg/protocol/xprotocol"

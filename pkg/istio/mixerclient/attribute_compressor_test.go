@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/gogo/protobuf/jsonpb"
-	v1 "istio.io/api/mixer/v1"
+	"istio.io/api/mixer/v1"
 	"mosn.io/mosn/pkg/istio/utils"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"

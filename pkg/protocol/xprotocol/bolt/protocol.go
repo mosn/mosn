@@ -194,7 +194,7 @@ func (proto *boltProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
-func (proto *boltProtocol) EnableWorkerPool() bool {
+func (proto *boltProtocol) EnableWorkerPool() bool{
 	return true
 }
 

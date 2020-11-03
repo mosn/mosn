@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 func Test_IpRangeList_Contains(t *testing.T) {

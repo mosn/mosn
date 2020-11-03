@@ -19,10 +19,9 @@ package msgconnpool
 import (
 	"errors"
 	"math"
+	"mosn.io/mosn/pkg/log"
 	"sync"
 	"sync/atomic"
-
-	"mosn.io/mosn/pkg/log"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/upstream/cluster"

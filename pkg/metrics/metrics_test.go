@@ -1,9 +1,8 @@
 package metrics
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestDownstreamMetrics(t *testing.T) {

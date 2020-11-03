@@ -19,14 +19,13 @@ package rpc
 
 import (
 	"context"
+	"github.com/valyala/fasthttp"
 	"log"
+	"mosn.io/mosn/pkg/protocol/http"
 	"testing"
 	"time"
 
-	"github.com/valyala/fasthttp"
-	"mosn.io/mosn/pkg/protocol/http"
-
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
@@ -47,14 +46,14 @@ func TestSofaHttpTracerStartFinish(t *testing.T) {
 	span.FinishSpan()
 
 	sofa.Init("X", "./", "ingress", "egress")
-	span = tracer.Start(ctx, http.RequestHeader{RequestHeader: &fasthttp.RequestHeader{}}, time.Now())
+	span = tracer.Start(ctx, http.RequestHeader{RequestHeader : &fasthttp.RequestHeader{}}, time.Now())
 	span.SetTag(xprotocol.TRACE_ID, trace.IdGen().GenerateTraceId())
 	span.FinishSpan()
 
 	sofa.Init("X", "./", "ingress", "egress")
 	header := fasthttp.RequestHeader{}
 	header.Set(sofa.HTTP_RPC_ID_KEY, "123")
-	span = tracer.Start(ctx, http.RequestHeader{RequestHeader: &header}, time.Now())
+	span = tracer.Start(ctx, http.RequestHeader{RequestHeader : &header}, time.Now())
 	span.SetTag(xprotocol.TRACE_ID, trace.IdGen().GenerateTraceId())
 	span.FinishSpan()
 }

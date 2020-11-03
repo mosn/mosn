@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	jsoniter "github.com/json-iterator/go"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"github.com/json-iterator/go"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 

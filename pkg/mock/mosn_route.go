@@ -6,12 +6,11 @@ package mock
 
 import (
 	context "context"
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	api "mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	types "mosn.io/mosn/pkg/types"
+	reflect "reflect"
 )
 
 // MockRouters is a mock of Routers interface

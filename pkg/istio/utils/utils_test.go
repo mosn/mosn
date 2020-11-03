@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	v1 "istio.io/api/mixer/v1"
+	"istio.io/api/mixer/v1"
 )
 
 func TestFormatAttributesString(t *testing.T) {

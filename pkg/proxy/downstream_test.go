@@ -19,10 +19,9 @@ package proxy
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/variable"
 	"testing"
 	"time"
-
-	"mosn.io/mosn/pkg/variable"
 
 	"github.com/stretchr/testify/assert"
 
@@ -153,7 +152,7 @@ func TestDirectResponse(t *testing.T) {
 			},
 			responseSender: tc.client,
 			requestInfo:    &network.RequestInfo{},
-			context:        ctx,
+			context: ctx,
 		}
 		s.initStreamFilterChain()
 		// event call Receive Headers

@@ -18,9 +18,8 @@
 package types
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestInitXdsFlags(t *testing.T) {

@@ -146,7 +146,7 @@ func (proto *dubboProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
-func (proto *dubboProtocol) EnableWorkerPool() bool {
+func (proto *dubboProtocol) EnableWorkerPool() bool{
 	return true
 }
 

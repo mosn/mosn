@@ -2,11 +2,10 @@ package xprotocol
 
 import (
 	"context"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"testing"
 )
 
 func TestEngine(t *testing.T) {

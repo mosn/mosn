@@ -21,7 +21,7 @@ import (
 	"testing"
 	"time"
 
-	v1 "istio.io/api/mixer/v1"
+	"istio.io/api/mixer/v1"
 )
 
 func TestDisableBatch(t *testing.T) {

@@ -1,10 +1,9 @@
 package trace
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/types"
+	"testing"
 )
 
 func TestAPI(t *testing.T) {
@@ -29,3 +28,4 @@ func TestEnable(t *testing.T) {
 	Disable()
 	assert.False(t, IsEnabled())
 }
+

@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/featuregate"
 )
 

@@ -95,7 +95,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 				// ! http1 use fake receiver reduce connect
 				host, streamSender, failReason = connPool.NewStream(m.ctx, &receiver{})
 			} else {
-				host, streamSender, failReason = connPool.NewStream(m.ctx, nil)
+				host, streamSender, failReason = connPool.NewStream(m.ctx, nil )
 			}
 
 			if failReason != "" {

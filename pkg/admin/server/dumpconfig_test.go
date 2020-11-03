@@ -23,7 +23,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 )
 

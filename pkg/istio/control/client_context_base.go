@@ -18,8 +18,8 @@
 package control
 
 import (
-	v1 "istio.io/api/mixer/v1"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"istio.io/api/mixer/v1"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/istio/mixerclient"
 )
 

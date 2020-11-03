@@ -19,14 +19,13 @@ package xprotocol
 
 import (
 	"context"
-	"sync/atomic"
-
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
+	"sync/atomic"
 )
 
 func init() {

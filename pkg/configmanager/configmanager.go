@@ -17,7 +17,7 @@
 
 package configmanager
 
-import v2 "mosn.io/mosn/pkg/config/v2"
+import "mosn.io/mosn/pkg/config/v2"
 
 // Deprecated: these functions should not be called.
 // we keep these functions just for compatiable.

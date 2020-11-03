@@ -21,13 +21,12 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"mosn.io/mosn/pkg/variable"
 	"net/http"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
-
-	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"

@@ -21,7 +21,7 @@ import (
 	"runtime"
 	"sync"
 
-	v1 "istio.io/api/mixer/v1"
+	"istio.io/api/mixer/v1"
 	"mosn.io/pkg/utils"
 )
 

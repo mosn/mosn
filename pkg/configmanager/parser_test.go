@@ -28,7 +28,7 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 type testCallback struct {
@@ -168,11 +168,13 @@ func TestParseListenerConfig(t *testing.T) {
 	lnStr = fmt.Sprintf(`{
 		"address": "%s"
 	}`, unixListener.Addr().String())
-	unixlc := &v2.Listener{}
+	unixlc := &v2.Listener{
+	}
 	unixlc.Network = "unix"
 	if err := json.Unmarshal([]byte(lnStr), unixlc); err != nil {
 		t.Fatalf("listener config init failed: %v", err)
 	}
+
 
 	ln = ParseListenerConfig(unixlc, inherit, inheritPacketConn)
 

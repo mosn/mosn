@@ -2,13 +2,12 @@ package bolt
 
 import (
 	"context"
-	"net/http"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"net/http"
+	"testing"
 )
 
 func TestProto(t *testing.T) {

@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"istio.io/api/mixer/v1/config/client"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 )
 
 func TestHandlerReport(t *testing.T) {

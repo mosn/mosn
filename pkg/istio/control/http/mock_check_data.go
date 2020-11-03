@@ -19,7 +19,7 @@ package http
 
 import (
 	"github.com/gogo/protobuf/jsonpb"
-	v1 "istio.io/api/mixer/v1"
+	"istio.io/api/mixer/v1"
 )
 
 type mockCheckData struct {

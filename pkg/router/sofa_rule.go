@@ -19,7 +19,6 @@ package router
 
 import (
 	"context"
-
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"

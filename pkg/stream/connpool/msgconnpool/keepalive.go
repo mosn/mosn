@@ -17,10 +17,9 @@
 package msgconnpool
 
 import (
-	"sync/atomic"
-
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
+	"sync/atomic"
 )
 
 // KeepAlive object for sending heartbeat

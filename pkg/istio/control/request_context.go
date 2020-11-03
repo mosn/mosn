@@ -17,7 +17,7 @@
 
 package control
 
-import v1 "istio.io/api/mixer/v1"
+import "istio.io/api/mixer/v1"
 
 // RequestContext is the context to hold request data for both HTTP and TCP.
 type RequestContext struct {

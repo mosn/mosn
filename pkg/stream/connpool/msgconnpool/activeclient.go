@@ -136,6 +136,7 @@ func (ac *activeClient) initConnectionLocked(initReason string) {
 	// atomic store, avoid partial write
 	ac.connData.Store(&createConnData)
 
+
 	log.DefaultLogger.Infof("[connpool] connect succeed after %v tries, host: %v, connData: %v, init reason: %v",
 		ac.connectTryTimes, ac.pool.Host().AddressString(), ac.connData, initReason)
 
@@ -186,7 +187,7 @@ RECONNECT:
 		log.DefaultLogger.Warnf("[connpool] auto reconnect is closed, event : %v, connData : %v, clear heartbeat",
 			event, ac.connData)
 
-		utils.GoWithRecover(func() {
+		utils.GoWithRecover(func(){
 			ac.pool.connectingMux.Lock()
 			defer ac.pool.connectingMux.Unlock()
 			ac.clearHeartBeater() // ensure the previous heartbeat is cleared
