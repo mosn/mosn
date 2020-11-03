@@ -335,6 +335,8 @@ type HeaderMatcher struct {
 type VariableMatcher struct {
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
+	Regex string `json:"regex,omitempty"`
+	Model string `json:"model,omitempty"` // support && and || operator
 }
 
 // Stream Proxy Route

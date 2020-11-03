@@ -70,7 +70,13 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 			regexPattern:      regPattern,
 		}
 	} else if len(route.Match.Variables) > 0 {
-		router = &VariableRouteRuleImpl{}
+		variableRouter := &VariableRouteRuleImpl{
+			Variables: make([]*VariableMatchItem, len(route.Match.Variables)),
+		}
+		for i := range route.Match.Variables {
+			variableRouter.Variables[i] = ParseToVariableMatchItem(route.Match.Variables[i])
+		}
+		router = variableRouter
 	} else {
 		if router = defaultRouterRuleFactoryOrder.factory(base, route.Match.Headers); router == nil {
 			log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", "create default router failed")
