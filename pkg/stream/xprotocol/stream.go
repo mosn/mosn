@@ -20,8 +20,9 @@ package xprotocol
 import (
 	"context"
 	"fmt"
-	"mosn.io/mosn/pkg/variable"
 	"strconv"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"

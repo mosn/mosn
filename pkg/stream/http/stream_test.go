@@ -22,10 +22,11 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"mosn.io/mosn/pkg/variable"
 	"net"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
@@ -104,7 +105,7 @@ func Test_header_capitalization(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
-			"Args": "Hello, world!",
+			"Args":                            "Hello, world!",
 		},
 	}
 
@@ -244,7 +245,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

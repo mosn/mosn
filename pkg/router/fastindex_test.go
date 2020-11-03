@@ -20,10 +20,11 @@ package router
 import (
 	"context"
 	"fmt"
-	"mosn.io/mosn/pkg/variable"
 	"testing"
 
-	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/variable"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"

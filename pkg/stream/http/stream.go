@@ -22,13 +22,14 @@ import (
 	"context"
 	"errors"
 	"io"
-	"mosn.io/mosn/pkg/variable"
 	"net"
 	"net/http"
 	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
