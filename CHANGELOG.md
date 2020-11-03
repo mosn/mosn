@@ -5,7 +5,7 @@
 ### New Features
 
 - Add MOSN configure extension [@nejisama](https://github.com/nejisama)
-- Add MOSN configuraion tool [mosn/configure](https://github.com/mosn/configure), improve user configure experience [@cch123](https://github.com/cch123)
+- Add MOSN configuration tool [mosn/configure](https://github.com/mosn/configure), improve user configure experience [@cch123](https://github.com/cch123)
 
 ### Optimization
 
