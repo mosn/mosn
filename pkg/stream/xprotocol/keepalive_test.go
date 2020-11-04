@@ -144,7 +144,7 @@ func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
 	if testStats.success != 1 || testStats.timeout != 5 {
 		t.Error("keep alive handle status not expected", testStats)
 	}
-	if tc.KeepAlive.timeoutCount != 0 {
+	if tc.KeepAlive.heartbeatFailCount.Load() != 0 {
 		t.Error("timeout count not reset by success")
 	}
 
