@@ -293,7 +293,8 @@ func (s *downStream) requestMetrics() {
 	s.proxy.listenerStats.DownstreamRequestActive.Dec(1)
 }
 
-const mosnProcessFailed = api.NoHealthyUpstream | api.NoRouteFound | api.FaultInjected | api.RateLimited
+const mosnProcessFailed = api.NoHealthyUpstream | api.NoRouteFound |
+	api.FaultInjected | api.RateLimited | api.DownStreamTerminate | api.ReqEntityTooLarge
 
 // isRequestFailed marks request failed due to mosn process
 func (s *downStream) isRequestFailed() bool {
