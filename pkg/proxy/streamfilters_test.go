@@ -21,17 +21,14 @@ import (
 	"context"
 	"sync/atomic"
 	"testing"
-
 	"time"
 
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-
-	v2 "mosn.io/mosn/pkg/config/v2"
-
 )
 
 func init() {
@@ -102,6 +99,7 @@ func TestRunReiverFilters(t *testing.T) {
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
 		}
+		s.proxyStreamFilterManager.downStream = s
 		for _, f := range tc.filters {
 			f.s = s
 			s.AddStreamReceiverFilter(f, f.phase)
@@ -149,6 +147,7 @@ func TestRunReiverFiltersStop(t *testing.T) {
 		requestInfo: &network.RequestInfo{},
 		notify:      make(chan struct{}, 1),
 	}
+	s.proxyStreamFilterManager.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamReceiverFilter(f, f.phase)
@@ -204,6 +203,7 @@ func TestRunReiverFiltersTermination(t *testing.T) {
 		requestInfo:    &network.RequestInfo{},
 		snapshot:       &mockClusterSnapshot{},
 	}
+	s.proxyStreamFilterManager.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamReceiverFilter(f, f.phase)
@@ -263,6 +263,7 @@ func TestRunReiverFilterHandler(t *testing.T) {
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
 		}
+		s.proxyStreamFilterManager.downStream = s
 
 		s.context = context.Background()
 		for _, f := range tc.filters {
@@ -324,6 +325,7 @@ func TestRunSenderFilters(t *testing.T) {
 				clusterManager: &mockClusterManager{},
 			},
 		}
+		s.proxyStreamFilterManager.downStream = s
 		for _, f := range tc.filters {
 			f.s = s
 			s.AddStreamSenderFilter(f)
@@ -332,7 +334,7 @@ func TestRunSenderFilters(t *testing.T) {
 		s.downstreamRespDataBuf = buffer.NewIoBuffer(0)
 		s.downstreamRespTrailers = protocol.CommonHeader{}
 
-		s.runAppendFilters(0, nil, s.downstreamRespDataBuf, s.downstreamReqTrailers)
+		s.RunSenderFilter(context.TODO(), 0, nil, s.downstreamRespDataBuf, s.downstreamReqTrailers, nil)
 		for j, f := range tc.filters {
 			if f.on != 1 {
 				t.Errorf("#%d.%d stream filter is not called; On:%d", i, j, f.on)
@@ -363,12 +365,13 @@ func TestRunSenderFiltersStop(t *testing.T) {
 			clusterManager: &mockClusterManager{},
 		},
 	}
+	s.proxyStreamFilterManager.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamSenderFilter(f)
 	}
 
-	s.runAppendFilters(0, nil, nil, nil)
+	s.RunSenderFilter(context.TODO(), 0, nil, nil, nil, nil)
 	if s.downstreamRespHeaders == nil || s.downstreamRespDataBuf == nil {
 		t.Errorf("streamSendFilter SetResponse error")
 	}
@@ -413,12 +416,13 @@ func TestRunSenderFiltersTermination(t *testing.T) {
 		requestInfo:    &network.RequestInfo{},
 		snapshot:       &mockClusterSnapshot{},
 	}
+	s.proxyStreamFilterManager.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamSenderFilter(f)
 	}
 
-	s.runAppendFilters(0, nil, nil, nil)
+	s.RunSenderFilter(context.TODO(), 0, nil, nil, nil, nil)
 	if s.downstreamRespHeaders == nil || s.downstreamRespDataBuf == nil {
 		t.Errorf("streamSendFilter SetResponse error")
 	}

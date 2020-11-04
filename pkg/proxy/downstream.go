@@ -106,16 +106,11 @@ type downStream struct {
 	resetReason types.StreamResetReason
 
 	// filters
-	senderFilters             []*activeStreamSenderFilter
-	senderFiltersIndex        int
-	receiverFilters           []*activeStreamReceiverFilter
-	receiverFiltersIndex      int
-	receiverFiltersAgainPhase types.Phase
+	proxyStreamFilterManager
 
 	context context.Context
 
 	// stream access logs
-	streamAccessLogs []api.AccessLog
 	logDone          uint32
 
 	snapshot types.ClusterSnapshot
@@ -154,6 +149,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.context = ctx
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
+	stream.proxyStreamFilterManager.downStream = stream
 
 	// init receiverFiltersAgainPhase to InitPhase means that don't need run receiverfilter again.
 	stream.receiverFiltersAgainPhase = types.InitPhase
@@ -221,13 +217,7 @@ func (s *downStream) cleanStream() {
 	s.cleanUp()
 
 	// tell filters it's time to destroy
-	for _, ef := range s.senderFilters {
-		ef.filter.OnDestroy()
-	}
-
-	for _, ef := range s.receiverFilters {
-		ef.filter.OnDestroy()
-	}
+	s.proxyStreamFilterManager.OnDestroy()
 
 	// record metrics
 	s.requestMetrics()
@@ -310,11 +300,7 @@ func (s *downStream) writeLog() {
 	}
 
 	// per-stream access log
-	if s.streamAccessLogs != nil {
-		for _, al := range s.streamAccessLogs {
-			al.Log(s.context, s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
-		}
-	}
+	s.proxyStreamFilterManager.Log(s.context, s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 }
 
 func (s *downStream) delete() {
@@ -407,7 +393,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.DownFilter, id)
 			}
-			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+			s.RunReceiverFilter(s.context, api.FilterPhase(phase), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -430,7 +416,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.DownFilterAfterRoute, id)
 			}
-			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+			s.RunReceiverFilter(s.context, api.FilterPhase(phase), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -456,7 +442,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.DownFilterAfterChooseHost, id)
 			}
-			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
+			s.RunReceiverFilter(s.context, api.FilterPhase(phase), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -558,7 +544,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.UpFilter, id)
 			}
-			s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
+			s.RunSenderFilter(s.context, api.FilterPhase(phase), s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -1382,36 +1368,6 @@ func (s *downStream) setBufferLimit(bufferLimit uint32) {
 	s.bufferLimit = bufferLimit
 
 	// todo
-}
-
-func (s *downStream) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.FilterPhase) {
-	var phase types.Phase
-	switch p {
-	case api.BeforeRoute:
-		phase = types.DownFilter
-	case api.AfterRoute:
-		phase = types.DownFilterAfterRoute
-	case api.AfterChooseHost:
-		phase = types.DownFilterAfterChooseHost
-	default:
-		phase = types.DownFilterAfterRoute
-	}
-	sf := newActiveStreamReceiverFilter(s, filter, phase)
-	s.receiverFilters = append(s.receiverFilters, sf)
-}
-
-func (s *downStream) AddStreamSenderFilter(filter api.StreamSenderFilter) {
-	sf := newActiveStreamSenderFilter(s, filter)
-	s.senderFilters = append(s.senderFilters, sf)
-}
-
-func (s *downStream) AddStreamAccessLog(accessLog api.AccessLog) {
-	if s.proxy != nil {
-		if s.streamAccessLogs == nil {
-			s.streamAccessLogs = make([]api.AccessLog, 0)
-		}
-		s.streamAccessLogs = append(s.streamAccessLogs, accessLog)
-	}
 }
 
 // types.LoadBalancerContext
