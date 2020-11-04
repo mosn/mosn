@@ -88,7 +88,7 @@ func ConvertListenerConfig(xdsListener *envoy_config_listener_v3.Listener) *v2.L
 	listenerConfig := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			Name:       xdsListener.GetName(),
-			BindToPort: convertBindToPort(xdsListener),
+			BindToPort: convertBindToPort(xdsListener.GetDeprecatedV1()),
 			Inspector:  true,
 			AccessLogs: convertAccessLogs(xdsListener),
 		},
@@ -260,22 +260,11 @@ func isSupport(xdsListener *envoy_config_listener_v3.Listener) bool {
 	return true
 }
 
-// Whether the listener should bind to the port. A listener that doesn't
-// bind can only receive connections redirected from other listeners that
-// set use_original_dst parameter to true. Default is true.
-//
-// This is deprecated in v2, all Listeners will bind to their port. An
-// additional filter chain must be created for every original destination
-// port this listener may redirect to in v2, with the original port
-// specified in the FilterChainMatch destination_port field.
-//
-func convertBindToPort(xdsListener *envoy_config_listener_v3.Listener) bool {
-	for _, fc := range xdsListener.FilterChains {
-		if fc.FilterChainMatch != nil && fc.FilterChainMatch.GetDestinationPort() != nil {
-			return true
-		}
+func convertBindToPort(xdsDeprecatedV1 *envoy_config_listener_v3.Listener_DeprecatedV1) bool {
+	if xdsDeprecatedV1 == nil || xdsDeprecatedV1.GetBindToPort() == nil {
+		return true
 	}
-	return false
+	return xdsDeprecatedV1.BindToPort.GetValue()
 }
 
 // todo: more filter config support
