@@ -49,9 +49,6 @@ const (
 	ContextKeyConfigUpStreamProtocol
 	ContextKeyDownStreamHeaders
 	ContextKeyDownStreamRespHeaders
-	ContextKeyDownStreamDispatchTime
-	ContextKeyUpstreamDispatchTime
-	ContextKeyTrackTimes
 	ContextKeyEnd
 )
 

@@ -21,10 +21,17 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/buffer"
 )
 
 func TestTrackFromContext(t *testing.T) {
-	ctx := InjectTrack(context.Background())
+	ctx := buffer.NewBufferPoolContext(context.Background())
+	defer func() {
+		if c := buffer.PoolContext(ctx); c != nil {
+			c.Give()
+		}
+	}()
 	for _, ph := range []TrackPhase{
 		ProtocolDecode, StreamFilterBeforeRoute, MatchRoute,
 	} {
@@ -46,4 +53,22 @@ func TestTrackFromContext(t *testing.T) {
 		t.Fatalf("unexpected output: %s", s)
 	}
 	t.Logf("output is %s", s)
+}
+
+func TestTrackTime(t *testing.T) {
+	ctx := buffer.NewBufferPoolContext(context.Background())
+	defer func() {
+		if c := buffer.PoolContext(ctx); c != nil {
+			c.Give()
+		}
+	}()
+	t1, _ := time.Parse("2006-01-02 15:04:05", "2020-11-04 00:00:00")
+	t2, _ := time.Parse("2006-01-02 15:04:05", "2020-11-04 00:00:02")
+	SetRequestReceiveTime(ctx, t1)
+	SetResponseReceiveTime(ctx, t2)
+	if !(GetRequestReceiveTime(ctx).Equal(t1) &&
+		GetResponseReceiveTime(ctx).Equal(t2)) {
+		t.Fatalf("record time unexpected")
+	}
+
 }

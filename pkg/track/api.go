@@ -20,55 +20,63 @@ package track
 import (
 	"context"
 	"time"
-
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/types"
 )
 
-func InjectTrack(ctx context.Context) context.Context {
-	// track exists, do nothing
-	if TrackFromContext(ctx) != nil {
-		return ctx
-	}
-	return mosnctx.WithValue(ctx, types.ContextKeyTrackTimes, &Tracks{})
-}
-
-func TrackFromContext(ctx context.Context) *Tracks {
-	tracks := mosnctx.Get(ctx, types.ContextKeyTrackTimes)
-	if tk, ok := tracks.(*Tracks); ok {
-		return tk
-	}
-	return nil
-}
-
 func StartTrack(ctx context.Context, phase TrackPhase, track time.Time) {
-	t := TrackFromContext(ctx)
-	if t == nil {
-		return
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		tb.StartTrack(phase, track)
 	}
-	t.StartTrack(phase, track)
 }
 
 func EndTrack(ctx context.Context, phase TrackPhase, track time.Time) {
-	t := TrackFromContext(ctx)
-	if t == nil {
-		return
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		tb.EndTrack(phase, track)
 	}
-	t.EndTrack(phase, track)
 }
 
 func RangeCosts(ctx context.Context, f func(TrackPhase, TrackTime) bool) {
-	track := TrackFromContext(ctx)
-	if track == nil {
-		return
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		tb.RangeCosts(f)
 	}
-	track.RangeCosts(f)
+}
+
+func SetRequestReceiveTime(ctx context.Context, t time.Time) {
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		tb.RequestReceiveTime = t
+	}
+}
+
+func GetRequestReceiveTime(ctx context.Context) time.Time {
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		return tb.RequestReceiveTime
+	}
+	return time.Time{}
+}
+
+func SetResponseReceiveTime(ctx context.Context, t time.Time) {
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		tb.ResponseReceiveTime = t
+	}
+}
+
+func GetResponseReceiveTime(ctx context.Context) time.Time {
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		return tb.ResponseReceiveTime
+	}
+	return time.Time{}
 }
 
 func GetTrackCosts(ctx context.Context) string {
-	track := TrackFromContext(ctx)
-	if track == nil {
-		return ""
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		return tb.GetTrackCosts()
 	}
-	return track.GetTrackCosts()
+	return ""
 }

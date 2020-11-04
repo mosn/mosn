@@ -21,6 +21,7 @@ import (
 	"context"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"mosn.io/api"
@@ -55,6 +56,7 @@ type streamConn struct {
 	clientCallbacks    types.StreamConnectionEventListener
 
 	receivedTime time.Time
+	dispatchFull uint32
 }
 
 func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -146,7 +148,9 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		}
 	}
 	// record the data (request/response) received time.
-	sc.receivedTime = time.Now()
+	if atomic.CompareAndSwapUint32(&sc.dispatchFull, 0, 1) {
+		sc.receivedTime = time.Now()
+	}
 	// decode frames
 	for {
 		// 1. get stream-level ctx with bufferCtx
@@ -159,6 +163,8 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		if frame == nil && err == nil {
 			return
 		}
+
+		atomic.StoreUint32(&sc.dispatchFull, 0) // decode success or failed
 
 		// 2.2 handle error
 		if err != nil {
@@ -306,8 +312,7 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame,
 		serverStream.ctx = sc.ctxManager.InjectTrace(serverStream.ctx, span)
 	}
 	// add track info
-	serverStream.ctx = mosnctx.WithValue(serverStream.ctx, types.ContextKeyDownStreamDispatchTime, sc.receivedTime)
-	serverStream.ctx = track.InjectTrack(serverStream.ctx)
+	track.SetRequestReceiveTime(serverStream.ctx, sc.receivedTime)
 	track.StartTrack(serverStream.ctx, track.ProtocolDecode, sc.receivedTime) // use the dispatch time as start time
 	track.EndTrack(serverStream.ctx, track.ProtocolDecode, time.Now())        // already finished decode
 
@@ -352,7 +357,7 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 
 	// response dispatch time
 	// store to client stream ctx
-	clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyUpstreamDispatchTime, sc.receivedTime)
+	track.SetResponseReceiveTime(clientStream.ctx, sc.receivedTime)
 	track.StartTrack(clientStream.ctx, track.ProtocolDecode, sc.receivedTime) // response start time
 	track.EndTrack(clientStream.ctx, track.ProtocolDecode, time.Now())
 

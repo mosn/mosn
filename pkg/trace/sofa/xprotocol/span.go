@@ -24,7 +24,6 @@ import (
 	"strings"
 	"time"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
@@ -166,16 +165,14 @@ func (s *SofaRPCSpan) log() error {
 	printData.WriteString("\"mosn.duration.detail\":")
 	printData.WriteString("\"" + track.GetTrackCosts(s.ctx) + "\",")
 
-	if v, ok := mosnctx.Get(s.ctx, types.ContextKeyDownStreamDispatchTime).(time.Time); ok {
-		reqtime := v.Format("2006-01-02 15:04:05.000")
+	if reqtime := track.GetRequestReceiveTime(s.ctx); !reqtime.IsZero() {
 		printData.WriteString("\"mosn.req.time\":")
-		printData.WriteString("\"" + reqtime + "\",")
+		printData.WriteString("\"" + reqtime.Format("2006-01-02 15:04:05.000") + "\",")
 	}
 
-	if v, ok := mosnctx.Get(s.ctx, types.ContextKeyUpstreamDispatchTime).(time.Time); ok {
-		resptime := v.Format("2006-01-02 15:04:05.000")
+	if resptime := track.GetResponseReceiveTime(s.ctx); !resptime.IsZero() {
 		printData.WriteString("\"mosn.resp.time\":")
-		printData.WriteString("\"" + resptime + "\",")
+		printData.WriteString("\"" + resptime.Format("2006-01-02 15:04:05.000") + "\",")
 	}
 
 	// Set status code. TODO can not get the result code if server throw an exception.
