@@ -39,7 +39,14 @@ func init() {
 	}, syscall.SIGHUP)
 }
 
-var GracefulTimeout = time.Second * 30 //default 30s
+var (
+	GracefulTimeout            = time.Second * 30 //default 30s
+	enableInheritOldMosnconfig = false
+)
+
+func EnableInheritOldMosnconfig() {
+	enableInheritOldMosnconfig = true
+}
 
 func startNewMosn() error {
 	execSpec := &syscall.ProcAttr{
@@ -82,8 +89,10 @@ func reconfigure(start bool) {
 	if listenSockConn, err = sendInheritListeners(); err != nil {
 		return
 	}
-	if err = SendInheritConfig(); err != nil {
-		return
+	if enableInheritOldMosnconfig {
+		if err = SendInheritConfig(); err != nil {
+			return
+		}
 	}
 
 	// Wait new mosn parse configuration

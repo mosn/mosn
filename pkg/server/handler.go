@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"net"
 	"os"
 	"strconv"
@@ -37,6 +36,7 @@ import (
 	"golang.org/x/sys/unix"
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
@@ -817,12 +817,8 @@ func sendInheritListeners() (net.Conn, error) {
 
 // SendInheritConfig send to new mosn using uinx dowmain socket
 func SendInheritConfig() error {
-	configData, err := configmanager.InheritMosnconfig()
-	if err != nil {
-		return err
-	}
-
 	var unixConn net.Conn
+	var err error
 	// retry 10 time
 	for i := 0; i < 10; i++ {
 		unixConn, err = net.DialTimeout("unix", types.TransferMosnconfigDomainSocket, 1*time.Second)
@@ -833,6 +829,11 @@ func SendInheritConfig() error {
 	}
 	if err != nil {
 		log.DefaultLogger.Errorf("[server] SendInheritConfig Dial unix failed %v", err)
+		return err
+	}
+
+	configData, err := configmanager.InheritMosnconfig()
+	if err != nil {
 		return err
 	}
 
