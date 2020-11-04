@@ -395,6 +395,9 @@ func loadXdsData() {
 				},
 			},
 		},
+		DeprecatedV1: &envoy_config_listener_v3.Listener_DeprecatedV1{
+			BindToPort: &wrappers.BoolValue{Value: false},
+		},
 		FilterChains: []*envoy_config_listener_v3.FilterChain{
 			{
 				FilterChainMatch: nil,
