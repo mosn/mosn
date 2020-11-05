@@ -173,5 +173,12 @@ func ParseMixerFilter(cfg map[string]interface{}) (*v2.Mixer, error) {
 		return nil, err
 	}
 
+	// default configuration
+	if mixerFilter.Transport == nil {
+		mixerFilter.Transport = &client.TransportConfig{
+			ReportCluster: "mixer_server",
+		}
+	}
+
 	return mixerFilter, nil
 }
