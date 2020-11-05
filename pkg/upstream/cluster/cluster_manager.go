@@ -62,7 +62,7 @@ type clusterManager struct {
 	clustersMap      sync.Map
 	protocolConnPool sync.Map
 	tlsMetrics       *mtls.TLSStats
-	tlsMng           atomic.Value // store types.TLSContextManager
+	tlsMng           atomic.Value // store types.TLSClientContextManager
 	mux              sync.Mutex
 }
 
@@ -309,9 +309,9 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 	return pool
 }
 
-func (cm *clusterManager) GetTLSManager() types.TLSContextManager {
+func (cm *clusterManager) GetTLSManager() types.TLSClientContextManager {
 	v := cm.tlsMng.Load()
-	tlsmng, _ := v.(types.TLSContextManager)
+	tlsmng, _ := v.(types.TLSClientContextManager)
 	return tlsmng
 }
 

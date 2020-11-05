@@ -28,7 +28,7 @@ func NewClient(addr string, proto types.ProtocolName) *Client {
 	c := &Client{}
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
-	conn := network.NewClientConnection(nil, 0, nil, remoteAddr, stopChan)
+	conn := network.NewClientConnection(0, nil, remoteAddr, stopChan)
 	if err := conn.Connect(); err != nil {
 		fmt.Println(err)
 		return nil
