@@ -19,7 +19,6 @@ package track
 
 import (
 	"context"
-	"time"
 
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -47,15 +46,34 @@ func (ctx proxyBufferCtx) Reset(i interface{}) {
 
 type trackBuffer struct {
 	Tracks
-	RequestReceiveTime  time.Time
-	ResponseReceiveTime time.Time
 }
 
 func trackBufferByContext(ctx context.Context) *trackBuffer {
+	// if track is not enabled, returns nil means no track records
+	if !TrackEnabled() {
+		return nil
+	}
 	// add a check to avoid ctx is not initialized by buffer.NewBufferPoolContext
 	if val := mosnctx.Get(ctx, types.ContextKeyBufferPoolCtx); val == nil {
 		return nil
 	}
 	poolCtx := buffer.PoolContext(ctx)
 	return poolCtx.Find(&ins, nil).(*trackBuffer)
+}
+
+func TransmitBufferByContext(dst context.Context, src context.Context) {
+	dstTb := trackBufferByContext(dst)
+	if dstTb == nil {
+		return
+	}
+	srcTb := trackBufferByContext(src)
+	if srcTb == nil {
+		return
+	}
+	dstTb.Tracks.DataReceiveTimes = append(dstTb.Tracks.DataReceiveTimes, srcTb.Tracks.DataReceiveTimes...)
+	for p, data := range srcTb.datas {
+		if len(data.Costs) > 0 {
+			dstTb.datas[p].Costs = append(dstTb.datas[p].Costs, data.Costs...)
+		}
+	}
 }

@@ -28,19 +28,20 @@ type TrackTime struct {
 }
 
 type Tracks struct {
-	datas [MaxTrackPhase]TrackTime
+	datas            [MaxTrackPhase]TrackTime
+	DataReceiveTimes []time.Time
 }
 
-func (t *Tracks) StartTrack(phase TrackPhase, track time.Time) {
+func (t *Tracks) StartTrack(phase TrackPhase) {
 	if phase >= MaxTrackPhase || phase < 0 {
 		return
 	}
 	tk := t.datas[phase]
-	tk.P = track
+	tk.P = time.Now()
 	t.datas[phase] = tk
 }
 
-func (t *Tracks) EndTrack(phase TrackPhase, track time.Time) {
+func (t *Tracks) EndTrack(phase TrackPhase) {
 	if phase >= MaxTrackPhase || phase < 0 {
 		return
 	}
@@ -48,8 +49,16 @@ func (t *Tracks) EndTrack(phase TrackPhase, track time.Time) {
 	if tk.P.IsZero() {
 		return
 	}
-	tk.Costs = append(tk.Costs, track.Sub(tk.P))
+	tk.Costs = append(tk.Costs, time.Now().Sub(tk.P))
 	t.datas[phase] = tk
+}
+
+func (t *Tracks) AddDataReceived() {
+	t.DataReceiveTimes = append(t.DataReceiveTimes, time.Now())
+}
+
+func (t *Tracks) GetDataReceived() []time.Time {
+	return t.DataReceiveTimes
 }
 
 // RangeCosts ranges the tracks data by f.

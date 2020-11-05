@@ -35,8 +35,8 @@ func TestTrackFromContext(t *testing.T) {
 	for _, ph := range []TrackPhase{
 		ProtocolDecode, StreamFilterBeforeRoute, MatchRoute,
 	} {
-		StartTrack(ctx, ph, time.Now())
-		EndTrack(ctx, ph, time.Now())
+		StartTrack(ctx, ph)
+		EndTrack(ctx, ph)
 	}
 	RangeCosts(ctx, func(p TrackPhase, tk TrackTime) bool {
 		switch p {
@@ -55,20 +55,49 @@ func TestTrackFromContext(t *testing.T) {
 	t.Logf("output is %s", s)
 }
 
-func TestTrackTime(t *testing.T) {
-	ctx := buffer.NewBufferPoolContext(context.Background())
+func TestTrackTransmit(t *testing.T) {
+	dstCtx := buffer.NewBufferPoolContext(context.Background())
+	srcCtx := buffer.NewBufferPoolContext(context.Background())
 	defer func() {
-		if c := buffer.PoolContext(ctx); c != nil {
-			c.Give()
+		for _, ctx := range []context.Context{
+			dstCtx, srcCtx,
+		} {
+			if c := buffer.PoolContext(ctx); c != nil {
+				c.Give()
+			}
 		}
 	}()
-	t1, _ := time.Parse("2006-01-02 15:04:05", "2020-11-04 00:00:00")
-	t2, _ := time.Parse("2006-01-02 15:04:05", "2020-11-04 00:00:02")
-	SetRequestReceiveTime(ctx, t1)
-	SetResponseReceiveTime(ctx, t2)
-	if !(GetRequestReceiveTime(ctx).Equal(t1) &&
-		GetResponseReceiveTime(ctx).Equal(t2)) {
-		t.Fatalf("record time unexpected")
+	// set value
+	AddDataReceived(dstCtx)
+	for _, ph := range []TrackPhase{
+		ProtocolDecode, StreamFilterBeforeRoute, MatchRoute,
+	} {
+		StartTrack(dstCtx, ph)
+		EndTrack(dstCtx, ph)
 	}
-
+	time.Sleep(100 * time.Millisecond)
+	StartTrack(srcCtx, ProtocolDecode)
+	EndTrack(srcCtx, ProtocolDecode)
+	AddDataReceived(srcCtx)
+	// Transmit
+	TransmitBufferByContext(dstCtx, srcCtx)
+	// Verify
+	RangeCosts(dstCtx, func(p TrackPhase, tk TrackTime) bool {
+		switch p {
+		case ProtocolDecode:
+			if len(tk.Costs) != 2 {
+				t.Fatalf("%d phase is not setted", p)
+			}
+		case StreamFilterBeforeRoute, MatchRoute:
+			if len(tk.Costs) != 1 {
+				t.Fatalf("%d phase is not setted", p)
+			}
+		default:
+		}
+		return true
+	})
+	ts := GetDataReceived(dstCtx)
+	if len(ts) != 2 {
+		t.Fatalf("no data received")
+	}
 }

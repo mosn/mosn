@@ -436,9 +436,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				s.printPhaseInfo(types.DownFilter, id)
 			}
 
-			track.StartTrack(ctx, track.StreamFilterBeforeRoute, time.Now())
+			track.StartTrack(ctx, track.StreamFilterBeforeRoute)
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
-			track.EndTrack(ctx, track.StreamFilterBeforeRoute, time.Now())
+			track.EndTrack(ctx, track.StreamFilterBeforeRoute)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -451,9 +451,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				s.printPhaseInfo(types.MatchRoute, id)
 			}
 
-			track.StartTrack(ctx, track.MatchRoute, time.Now())
+			track.StartTrack(ctx, track.MatchRoute)
 			s.matchRoute()
-			track.EndTrack(ctx, track.MatchRoute, time.Now())
+			track.EndTrack(ctx, track.MatchRoute)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -466,9 +466,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				s.printPhaseInfo(types.DownFilterAfterRoute, id)
 			}
 
-			track.StartTrack(ctx, track.StreamFilterAfterRoute, time.Now())
+			track.StartTrack(ctx, track.StreamFilterAfterRoute)
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
-			track.EndTrack(ctx, track.StreamFilterAfterRoute, time.Now())
+			track.EndTrack(ctx, track.StreamFilterAfterRoute)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -482,9 +482,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				s.printPhaseInfo(types.ChooseHost, id)
 			}
 
-			track.StartTrack(ctx, track.LoadBalanceChooseHost, time.Now())
+			track.StartTrack(ctx, track.LoadBalanceChooseHost)
 			s.chooseHost(s.downstreamReqDataBuf == nil && s.downstreamReqTrailers == nil)
-			track.EndTrack(ctx, track.LoadBalanceChooseHost, time.Now())
+			track.EndTrack(ctx, track.LoadBalanceChooseHost)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -497,9 +497,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				s.printPhaseInfo(types.DownFilterAfterChooseHost, id)
 			}
 
-			track.StartTrack(ctx, track.StreamFilterAfterChooseHost, time.Now())
+			track.StartTrack(ctx, track.StreamFilterAfterChooseHost)
 			s.runReceiveFilters(phase, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers)
-			track.EndTrack(ctx, track.StreamFilterAfterChooseHost, time.Now())
+			track.EndTrack(ctx, track.StreamFilterAfterChooseHost)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -602,9 +602,9 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 				s.printPhaseInfo(types.UpFilter, id)
 			}
 
-			track.StartTrack(ctx, track.StreamSendFilter, time.Now())
+			track.StartTrack(ctx, track.StreamSendFilter)
 			s.runAppendFilters(phase, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers)
-			track.EndTrack(ctx, track.StreamSendFilter, time.Now())
+			track.EndTrack(ctx, track.StreamSendFilter)
 
 			if p, err := s.processError(id); err != nil {
 				return p

@@ -165,14 +165,17 @@ func (s *SofaRPCSpan) log() error {
 	printData.WriteString("\"mosn.duration.detail\":")
 	printData.WriteString("\"" + track.GetTrackCosts(s.ctx) + "\",")
 
-	if reqtime := track.GetRequestReceiveTime(s.ctx); !reqtime.IsZero() {
-		printData.WriteString("\"mosn.req.time\":")
-		printData.WriteString("\"" + reqtime.Format("2006-01-02 15:04:05.000") + "\",")
-	}
-
-	if resptime := track.GetResponseReceiveTime(s.ctx); !resptime.IsZero() {
-		printData.WriteString("\"mosn.resp.time\":")
-		printData.WriteString("\"" + resptime.Format("2006-01-02 15:04:05.000") + "\",")
+	times := track.GetDataReceived(s.ctx)
+	if len(times) > 0 {
+		timesbuffer := strings.Builder{}
+		timesbuffer.WriteString("[")
+		for _, ts := range times {
+			timesbuffer.WriteString(ts.Format("2006-01-02 15:04:05.000"))
+			timesbuffer.WriteString(",")
+		}
+		timesbuffer.WriteString("]")
+		printData.WriteString("\"mosn.datareceive.times\":")
+		printData.WriteString("\"" + timesbuffer.String() + "\",")
 	}
 
 	// Set status code. TODO can not get the result code if server throw an exception.

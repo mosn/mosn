@@ -53,7 +53,9 @@ func (conn *connection) newIdleChecker(readTimeout time.Duration, idleTimeout ti
 		conn:         conn,
 		maxIdleCount: getIdleCount(readTimeout, idleTimeout),
 	}
-	log.DefaultLogger.Debugf("new idlechecker: maxIdleCount:%d, conn:%d", checker.maxIdleCount, conn.id)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("new idlechecker: maxIdleCount:%d, conn:%d", checker.maxIdleCount, conn.id)
+	}
 	conn.AddConnectionEventListener(checker)
 }
 

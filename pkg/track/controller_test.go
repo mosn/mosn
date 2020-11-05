@@ -19,49 +19,33 @@ package track
 
 import (
 	"context"
-	"time"
+	"testing"
+
+	"mosn.io/mosn/pkg/buffer"
 )
 
-func StartTrack(ctx context.Context, phase TrackPhase) {
-	tb := trackBufferByContext(ctx)
-	if tb != nil {
-		tb.StartTrack(phase)
-	}
-}
+func TestControlTrack(t *testing.T) {
+	ctx := buffer.NewBufferPoolContext(context.Background())
+	defer EnableTrack()
+	// call this defer first
+	defer func() {
+		c := buffer.PoolContext(ctx)
+		if c == nil {
+			t.Fatalf("no context give")
+		}
+		c.Give()
+	}()
+	AddDataReceived(ctx)
+	StartTrack(ctx, ProtocolDecode)
+	EndTrack(ctx, ProtocolDecode)
+	DisableTrack()
+	// no more datas
+	AddDataReceived(ctx)
+	StartTrack(ctx, StreamFilterBeforeRoute)
+	EndTrack(ctx, StreamFilterBeforeRoute)
+	RangeCosts(ctx, func(_ TrackPhase, _ TrackTime) bool {
+		t.Fatalf("no data outputs")
+		return false
+	})
 
-func EndTrack(ctx context.Context, phase TrackPhase) {
-	tb := trackBufferByContext(ctx)
-	if tb != nil {
-		tb.EndTrack(phase)
-	}
-}
-
-func AddDataReceived(ctx context.Context) {
-	tb := trackBufferByContext(ctx)
-	if tb != nil {
-		tb.AddDataReceived()
-	}
-}
-
-func GetDataReceived(ctx context.Context) []time.Time {
-	tb := trackBufferByContext(ctx)
-	if tb != nil {
-		return tb.GetDataReceived()
-	}
-	return nil
-}
-
-func RangeCosts(ctx context.Context, f func(TrackPhase, TrackTime) bool) {
-	tb := trackBufferByContext(ctx)
-	if tb != nil {
-		tb.RangeCosts(f)
-	}
-}
-
-func GetTrackCosts(ctx context.Context) string {
-	tb := trackBufferByContext(ctx)
-	if tb != nil {
-		return tb.GetTrackCosts()
-	}
-	return ""
 }

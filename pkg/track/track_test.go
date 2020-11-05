@@ -39,8 +39,8 @@ func TestTrack(t *testing.T) {
 	}
 	interval := 100 * time.Millisecond // 100ms
 	for _, tc := range testcases {
-		track.EndTrack(tc.last, time.Now())
-		track.StartTrack(tc.current, time.Now())
+		track.EndTrack(tc.last)
+		track.StartTrack(tc.current)
 		time.Sleep(interval)
 	}
 	s := track.GetTrackCosts()
@@ -53,11 +53,11 @@ func TestTrack(t *testing.T) {
 func TestTrack2(t *testing.T) {
 	track := Tracks{}
 	// no protocol decode setted
-	track.EndTrack(ProtocolDecode, time.Now())
-	track.StartTrack(StreamSendFilter, time.Now())
-	track.EndTrack(StreamSendFilter, time.Now())
-	track.StartTrack(MaxServedField+1, time.Now())
-	track.EndTrack(MaxServedField+1, time.Now())
+	track.EndTrack(ProtocolDecode)
+	track.StartTrack(StreamSendFilter)
+	track.EndTrack(StreamSendFilter)
+	track.StartTrack(MaxServedField + 1)
+	track.EndTrack(MaxServedField + 1)
 	//
 	track.RangeCosts(func(phase TrackPhase, tk TrackTime) bool {
 		switch phase {
@@ -82,6 +82,6 @@ func TestTrack2(t *testing.T) {
 
 func BenchmarkTrack(b *testing.B) {
 	track := Tracks{}
-	track.StartTrack(MatchRoute, time.Now())
-	track.EndTrack(MatchRoute, time.Now())
+	track.StartTrack(MatchRoute)
+	track.EndTrack(MatchRoute)
 }

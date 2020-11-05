@@ -55,7 +55,6 @@ type streamConn struct {
 	clientStreams      map[uint64]*xStream
 	clientCallbacks    types.StreamConnectionEventListener
 
-	receivedTime time.Time
 	dispatchFull uint32
 }
 
@@ -147,10 +146,6 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 			return
 		}
 	}
-	// record the data (request/response) received time.
-	if atomic.CompareAndSwapUint32(&sc.dispatchFull, 0, 1) {
-		sc.receivedTime = time.Now()
-	}
 	// decode frames
 	for {
 		// 1. get stream-level ctx with bufferCtx
@@ -158,6 +153,12 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 
 		// 2. decode process
 		frame, err := sc.protocol.Decode(streamCtx, buf)
+
+		// record the data (request/response) received time.
+		if atomic.CompareAndSwapUint32(&sc.dispatchFull, 0, 1) {
+			track.AddDataReceived(streamCtx)
+			track.StartTrack(streamCtx, track.ProtocolDecode)
+		}
 
 		// 2.1 no enough data, break loop
 		if frame == nil && err == nil {
@@ -182,10 +183,13 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		// 2.3 handle frame
 		if frame != nil {
 			xframe, ok := frame.(xprotocol.XFrame)
+			// FIXME: Decode returns XFrame instead of interface{}
 			if !ok {
 				log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] conn %d, %v frame type not match : %T", sc.netConn.ID(), sc.netConn.RemoteAddr(), frame)
+				sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
 				return
 			}
+			track.EndTrack(streamCtx, track.ProtocolDecode)
 			sc.handleFrame(streamCtx, xframe)
 		}
 
@@ -311,10 +315,6 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame,
 		}
 		serverStream.ctx = sc.ctxManager.InjectTrace(serverStream.ctx, span)
 	}
-	// add track info
-	track.SetRequestReceiveTime(serverStream.ctx, sc.receivedTime)
-	track.StartTrack(serverStream.ctx, track.ProtocolDecode, sc.receivedTime) // use the dispatch time as start time
-	track.EndTrack(serverStream.ctx, track.ProtocolDecode, time.Now())        // already finished decode
 
 	// 5. inject service info
 	if aware, ok := frame.(xprotocol.ServiceAware); ok {
@@ -357,9 +357,7 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 
 	// response dispatch time
 	// store to client stream ctx
-	track.SetResponseReceiveTime(clientStream.ctx, sc.receivedTime)
-	track.StartTrack(clientStream.ctx, track.ProtocolDecode, sc.receivedTime) // response start time
-	track.EndTrack(clientStream.ctx, track.ProtocolDecode, time.Now())
+	track.TransmitBufferByContext(clientStream.ctx, ctx)
 
 	// transmit buffer ctx
 	buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
