@@ -47,7 +47,7 @@ func init() {
 		"/api/v1/update_loglevel": updateLogLevel,
 		"/api/v1/get_loglevel":    getLoggerInfo,
 		"/api/v1/enable_log":      enableLogger,
-		"/api/v1/disbale_log":     disableLogger,
+		"/api/v1/disable_log":     disableLogger,
 		"/api/v1/states":          getState,
 		"/api/v1/plugin":          pluginApi,
 		"/stats":                  statsForIstio,

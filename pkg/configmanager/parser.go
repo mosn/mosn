@@ -109,13 +109,14 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 				DefaultConnBufferLimitBytes)
 		}
 		if c.LBSubSetConfig.FallBackPolicy > 2 {
-			log.StartLogger.Fatalf("[config] [parse cluster] lb subset config 's fall back policy set error. " +
+			log.StartLogger.Errorf("[config] [parse cluster] lb subset config 's fall back policy set error. " +
 				"For 0, represent NO_FALLBACK" +
 				"For 1, represent ANY_ENDPOINT" +
 				"For 2, represent DEFAULT_SUBSET")
+			c.LBSubSetConfig.FallBackPolicy = 0
 		}
 		if _, ok := ProtocolsSupported[c.HealthCheck.Protocol]; !ok && c.HealthCheck.Protocol != "" {
-			log.StartLogger.Fatalf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
+			log.StartLogger.Errorf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
 		}
 		c.Hosts = parseHostConfig(c.Hosts)
 		clusterV2Map[c.Name] = c.Hosts

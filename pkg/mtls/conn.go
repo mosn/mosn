@@ -41,8 +41,14 @@ type TLSConn struct {
 
 func (c *TLSConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
-	if err != nil && strings.Contains(err.Error(), "tls") {
-		log.DefaultLogger.Alertf(types.ErrorKeyTLSRead, "[mtls] tls connection read error: %v, local address: %v, remote address: %v", err, c.Conn.LocalAddr(), c.Conn.RemoteAddr())
+	if err != nil {
+		if strings.Contains(err.Error(), "tls") {
+			log.DefaultLogger.Alertf(types.ErrorKeyTLSRead, "[mtls] tls connection read error: %v, local address: %v, remote address: %v", err, c.Conn.LocalAddr(), c.Conn.RemoteAddr())
+		}
+		if !c.Conn.GetConnectionState().HandshakeComplete {
+			// wraps as a new error which makes the read error and do no retry
+			return n, errors.New("tls: handshake is not completed: " + err.Error())
+		}
 	}
 	return n, err
 }

@@ -137,7 +137,7 @@ func postUpdateLoggerLevel(port uint32, s string) (string, error) {
 func postToggleLogger(port uint32, logger string, disable bool) (string, error) {
 	api := "enable_log" // enable
 	if disable {        //disable
-		api = "disbale_log"
+		api = "disable_log"
 	}
 	url := fmt.Sprintf("http://localhost:%d/api/v1/%s", port, api)
 	data := strings.NewReader(logger)
@@ -650,7 +650,7 @@ func TestHelpAPI(t *testing.T) {
 		"/api/v1/update_loglevel": updateLogLevel,
 		"/api/v1/get_loglevel":    getLoggerInfo,
 		"/api/v1/enable_log":      enableLogger,
-		"/api/v1/disbale_log":     disableLogger,
+		"/api/v1/disable_log":     disableLogger,
 		"/api/v1/states":          getState,
 		"/stats":                  statsForIstio,
 		"/server_info":            serverInfoForIstio,

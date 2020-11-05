@@ -81,7 +81,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		//get inherit fds
 		inheritListeners, inheritPacketConn, listenSockConn, err = server.GetInheritListeners()
 		if err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+			log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, exit")
 		}
 	}
 
@@ -264,9 +264,10 @@ func (m *Mosn) Start() {
 	log.StartLogger.Infof("mosn parse extend config")
 	for typ, cfg := range m.config.Extends {
 		if err := v2.ExtendConfigParsed(typ, cfg); err != nil {
-			log.StartLogger.Fatalf("mosn parse extend config failed, type: %s, error: %v", typ, err)
+			log.StartLogger.Errorf("mosn parse extend config failed, type: %s, error: %v", typ, err)
+		} else {
+			configmanager.SetExtend(typ, cfg)
 		}
-		configmanager.SetExtend(typ, cfg)
 	}
 
 	// beforestart starts transfer connection and non-proxy listeners
@@ -320,7 +321,6 @@ func Start(c *v2.MOSNConfig) {
 		Mosn.Close()
 	}, syscall.SIGINT, syscall.SIGTERM)
 
-
 	Mosn.Start()
 	Mosn.wg.Wait()
 }
@@ -336,7 +336,7 @@ func initializeTracing(config v2.TracingConfig) {
 		log.StartLogger.Infof("[mosn] [init tracing] enable tracing")
 		trace.Enable()
 	} else {
-		log.StartLogger.Infof("[mosn] [init tracing] disbale tracing")
+		log.StartLogger.Infof("[mosn] [init tracing] disable tracing")
 		trace.Disable()
 	}
 }
