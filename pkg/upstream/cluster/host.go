@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -203,9 +204,12 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 	// resolve addr
 	if addr, err = net.ResolveTCPAddr("tcp", addrstr); err != nil {
 		// try to resolve addr by unix
-		addr, err = net.ResolveUnixAddr("unix", addrstr)
-		if err != nil {
-			err = errors.New("failed to resolve address in tcp and unix model")
+		// as a UNIX-domain socket path specified after the “unix:” prefix.
+		if strings.HasSuffix(addrstr, "unix:") {
+			addr, err = net.ResolveUnixAddr("unix", addrstr)
+			if err != nil {
+				err = errors.New("failed to resolve address in tcp and unix model")
+			}
 		}
 	}
 
