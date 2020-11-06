@@ -42,3 +42,8 @@ func (MissingResourceException) JavaClassName() string {
 func NewMissingResourceException(detailMessage, classname, key string) *MissingResourceException {
 	return &MissingResourceException{DetailMessage: detailMessage, ClassName: classname, Key: key}
 }
+
+// equals to getStackTrace in java
+func (e MissingResourceException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

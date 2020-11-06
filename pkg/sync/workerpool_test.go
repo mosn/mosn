@@ -18,223 +18,57 @@
 package sync
 
 import (
-	"runtime"
-	"sync"
-	"sync/atomic"
 	"testing"
 
 	"time"
-
-	"mosn.io/mosn/pkg/log"
 )
 
-type TestJob struct {
-	i uint32
-}
-
-func (t *TestJob) Source() uint32 {
-	return t.i
-}
-
-// TestJobOrder test worker pool's event dispatch functionality, which should ensure the FIFO order
-func TestJobOrder(t *testing.T) {
-	log.InitDefaultLogger("stdout", log.DEBUG)
-	shardEvents := 512
-	wg := sync.WaitGroup{}
-
-	consumer := func(shard int, jobChan <-chan interface{}) {
-		prev := 0
-		count := 0
-
-		for job := range jobChan {
-			if testJob, ok := job.(*TestJob); ok {
-				if int(testJob.i) <= prev {
-					t.Errorf("unexpected event order, shard %d, prev %d, curr %d", shard, prev, testJob.i)
-					wg.Done()
-					return
-				}
-
-				prev = int(testJob.i)
-				count++
-
-				if count >= shardEvents {
-					wg.Done()
-					return
-				}
-			}
-		}
-
+func TestSchedule(t *testing.T) {
+	size := 5
+	pool := NewWorkerPool(size)
+	p := pool.(*workerPool)
+	for i := 0; i < 5; i++ {
+		pool.Schedule(func() {
+			time.Sleep(100 * time.Millisecond)
+		})
 	}
-
-	shardsNum := runtime.NumCPU()
-	// shard cap is 64
-	pool, _ := NewShardWorkerPool(shardsNum*64, shardsNum, consumer)
-	pool.Init()
-
-	// multi goroutine offer is not guaranteed FIFO order, because race condition may happen in Offer method
-	// so we let the producer and consumer to be one-to-one relation.
-	for i := 0; i < shardsNum; i++ {
-		wg.Add(1)
-		counter := uint32(i)
-		go func() {
-			for j := 0; j < shardEvents; j++ {
-				pool.Offer(&TestJob{i: atomic.AddUint32(&counter, uint32(shardsNum))}, true)
-			}
-		}()
+	now := time.Now()
+	pool.Schedule(func() {})
+	if time.Now().Before(now.Add(50 * time.Millisecond)) {
+		t.Errorf("Test Schedule() error, should wait for 20 millisecond")
 	}
-
-	wg.Wait()
-}
-
-func eventProcess(b *testing.B) {
-	shardEvents := 512
-	wg := sync.WaitGroup{}
-
-	consumer := func(shard int, jobChan <-chan interface{}) {
-		prev := 0
-		count := 0
-
-		for job := range jobChan {
-			if testJob, ok := job.(*TestJob); ok {
-				if int(testJob.i) <= prev {
-					b.Errorf("unexpected event order, shard %d, prev %d, curr %d", shard, prev, testJob.i)
-					wg.Done()
-					return
-				}
-
-				prev = int(testJob.i)
-				count++
-
-				if count >= shardEvents {
-					wg.Done()
-					return
-				}
-			}
-		}
-
-	}
-
-	shardsNum := runtime.NumCPU()
-	// shard cap is 64
-	pool, _ := NewShardWorkerPool(shardsNum*64, shardsNum, consumer)
-	pool.Init()
-
-	// multi goroutine offer is not guaranteed FIFO order, because race condition may happen in Offer method
-	// so we let the producer and consumer to be one-to-one relation.
-	for i := 0; i < shardsNum; i++ {
-		wg.Add(1)
-		counter := uint32(i)
-		go func() {
-			for j := 0; j < shardEvents; j++ {
-				pool.Offer(&TestJob{i: atomic.AddUint32(&counter, uint32(shardsNum))}, true)
-			}
-		}()
-	}
-
-	wg.Wait()
-}
-
-func BenchmarkShardWorkerPool(b *testing.B) {
-	log.InitDefaultLogger("stdout", log.ERROR)
-
-	for i := 0; i < b.N; i++ {
-		eventProcess(b)
+	if len(p.sem) != size {
+		t.Errorf("Test Schedule() error, should be 5")
 	}
 }
 
-// Implements from https://medium.com/capital-one-developers/building-an-unbounded-channel-in-go-789e175cd2cd
-func MakeInfinite() (chan<- interface{}, <-chan interface{}) {
-	in := make(chan interface{})
-	out := make(chan interface{})
-
-	go func() {
-		var inQueue []interface{}
-		outCh := func() chan interface{} {
-			if len(inQueue) == 0 {
-				return nil
-			}
-			return out
-		}
-
-		curVal := func() interface{} {
-			if len(inQueue) == 0 {
-				return nil
-			}
-			return inQueue[0]
-		}
-
-		for len(inQueue) > 0 || in != nil {
-			select {
-			case v, ok := <-in:
-				if !ok {
-					in = nil
-				} else {
-					inQueue = append(inQueue, v)
-				}
-			case outCh() <- curVal():
-				inQueue = inQueue[1:]
-			}
-		}
-		close(out)
-	}()
-	return in, out
-}
-
-func eventProcessWithUnboundedChannel(b *testing.B) {
-	shardEvents := 512
-	wg := sync.WaitGroup{}
-
-	consumer := func(shard int, jobChan <-chan interface{}) {
-		prev := 0
-		count := 0
-
-		for job := range jobChan {
-			if testJob, ok := job.(*TestJob); ok {
-				if int(testJob.i) <= prev {
-					b.Errorf("unexpected event order, shard %d, prev %d, curr %d", shard, prev, testJob.i)
-					wg.Done()
-					return
-				}
-
-				prev = int(testJob.i)
-				count++
-
-				if count >= shardEvents {
-					wg.Done()
-					return
-				}
-			}
-		}
-
+func TestScheduleAlways(t *testing.T) {
+	size := 5
+	pool := NewWorkerPool(size)
+	p := pool.(*workerPool)
+	for i := 0; i < 20; i++ {
+		pool.ScheduleAlways(func() {
+		})
+		time.Sleep(10 * time.Millisecond)
 	}
 
-	shardsNum := runtime.NumCPU()
-
-	// multi goroutine offer is not guaranteed FIFO order, because race condition may happen in Offer method
-	// so we let the producer and consumer to be one-to-one relation.
-	for i := 0; i < shardsNum; i++ {
-		wg.Add(1)
-		counter := uint32(i)
-		in, out := MakeInfinite()
-
-		go func() {
-			for j := 0; j < shardEvents; j++ {
-				in <- &TestJob{i: atomic.AddUint32(&counter, uint32(shardsNum))}
-			}
-		}()
-		go func(shard int) {
-			consumer(shard, out)
-		}(i)
+	t.Logf("Test ScheduleAlways p.sem is %d", len(p.sem))
+	if len(p.sem) == 1 {
+		t.Errorf("Test ScheduleAlways() error, should not be 1")
 	}
 
-	wg.Wait()
-}
-
-func BenchmarkUnboundChannel(b *testing.B) {
-	log.InitDefaultLogger("stdout", log.ERROR)
-
-	for i := 0; i < b.N; i++ {
-		eventProcessWithUnboundedChannel(b)
+	for i := 0; i < 5; i++ {
+		pool.ScheduleAlways(func() {
+			time.Sleep(100 * time.Millisecond)
+		})
+	}
+	now := time.Now()
+	pool.ScheduleAlways(func() {})
+	if time.Now().After(now.Add(50 * time.Millisecond)) {
+		t.Errorf("Test Schedule() error, should run it now")
+	}
+	if len(p.sem) != size {
+		t.Errorf("Test Schedule() error, should be 5")
 	}
 }
 
@@ -246,7 +80,7 @@ func TestScheduleAuto(t *testing.T) {
 		pool.ScheduleAuto(func() {
 			time.Sleep(time.Millisecond)
 		})
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 	if len(p.sem) != 1 {
 		t.Errorf("Test ScheduleAuto() error, should be 1, but get %d", len(p.sem))
@@ -254,10 +88,10 @@ func TestScheduleAuto(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		pool.ScheduleAuto(func() {
-			time.Sleep(time.Millisecond)
+			time.Sleep(10*time.Millisecond)
 		})
 	}
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	if len(p.sem) != 3 {
 		t.Errorf("Test ScheduleAuto() error, should be 3, but get %d", len(p.sem))
 	}
@@ -270,5 +104,17 @@ func TestScheduleAuto(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 	if len(p.sem) != size {
 		t.Errorf("Test ScheduleAuto() error, should be %d, but get %d", size, len(p.sem))
+	}
+}
+
+func TestPanic(t *testing.T) {
+	pool := NewWorkerPool(10)
+	p := pool.(*workerPool)
+	pool.ScheduleAlways(func() {
+		panic("hello")
+	})
+	time.Sleep(10 * time.Millisecond)
+	if len(p.sem) != 0 {
+		t.Errorf("Test ScheduleAuto() error, should be 0")
 	}
 }

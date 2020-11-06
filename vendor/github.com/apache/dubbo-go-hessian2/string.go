@@ -218,10 +218,7 @@ func encString(b []byte, v string) []byte {
 // ::= [x00-x1f] <utf8-data>         # string of length 0-31
 // ::= [x30-x34] <utf8-data>         # string of length 0-1023
 func (d *Decoder) getStringLength(tag byte) (int, error) {
-	var (
-		err    error
-		length int
-	)
+	var length int
 
 	switch {
 	case tag >= BC_STRING_DIRECT && tag <= STRING_DIRECT_MAX:
@@ -251,16 +248,15 @@ func (d *Decoder) getStringLength(tag byte) (int, error) {
 		return length, nil
 
 	default:
-		return -1, perrors.WithStack(err)
+		return -1, perrors.Errorf("string decode: unknown tag %b", tag)
 	}
 }
 
 func (d *Decoder) decString(flag int32) (string, error) {
 	var (
-		tag      byte
-		chunkLen int
-		last     bool
-		s        string
+		tag  byte
+		last bool
+		s    string
 	)
 
 	if flag != TAG_READ {
@@ -315,11 +311,10 @@ func (d *Decoder) decString(flag int32) (string, error) {
 			last = true
 		}
 
-		charLen, err := d.getStringLength(tag)
+		chunkLen, err := d.getStringLength(tag)
 		if err != nil {
 			return s, perrors.WithStack(err)
 		}
-		chunkLen = charLen
 		bytesBuf := make([]byte, chunkLen<<2)
 		offset := 0
 
@@ -342,20 +337,11 @@ func (d *Decoder) decString(flag int32) (string, error) {
 						last = true
 					}
 
-					charLen, err = d.getStringLength(b)
+					chunkLen, err = d.getStringLength(b)
 					if err != nil {
 						return s, perrors.WithStack(err)
 					}
-
-					if chunkLen < 0 {
-						chunkLen = 0
-					}
-					if charLen < 0 {
-						charLen = 0
-					}
-
-					chunkLen += charLen
-					remain, cap := len(bytesBuf)-offset, charLen<<2
+					remain, cap := len(bytesBuf)-offset, chunkLen<<2
 					if remain < cap {
 						grow := len(bytesBuf) + cap
 						bs := make([]byte, grow)
@@ -378,21 +364,123 @@ func (d *Decoder) decString(flag int32) (string, error) {
 
 				// quickly detect the actual number of bytes
 				prev, i := offset, offset
-				for len := offset + nread; i < len; chunkLen-- {
-					ch := bytesBuf[i]
+				len := offset + nread
+				copied := false
+				for r, r1 := len-1, len-2; i < len; chunkLen-- {
+					ch := bytesBuf[offset]
 					if ch < 0x80 {
 						i++
+						offset++
 					} else if (ch & 0xe0) == 0xc0 {
 						i += 2
+						offset += 2
 					} else if (ch & 0xf0) == 0xe0 {
+						// handle the 3-byte right edge
+						// case:
+						// 1. Expect 3 bytes, but the current byte is on the right
+						// 2. Expect 3 bytes, but the current byte is second to last to the right
+						if i == r {
+							bytesBuf[i+1], err = d.reader.ReadByte()
+							if err != nil {
+								return s, perrors.WithStack(err)
+							}
+							bytesBuf[i+2], err = d.reader.ReadByte()
+							if err != nil {
+								return s, perrors.WithStack(err)
+							}
+							nread += 2
+							len += 2
+						} else if i == r1 {
+							bytesBuf[i+2], err = d.reader.ReadByte()
+							if err != nil {
+								return s, perrors.WithStack(err)
+							}
+							nread++
+							len++
+						}
+
+						// we detect emoji first
+						c1 := ((uint32(ch) & 0x0f) << 12) + ((uint32(bytesBuf[i+1]) & 0x3f) << 6) + (uint32(bytesBuf[i+2]) & 0x3f)
+						if c1 >= 0xD800 && c1 <= 0xDBFF {
+
+							var (
+								c2  rune
+								n2  int
+								err error
+								ch0 byte
+							)
+
+							// more cache byte available
+							if i+3 < len {
+								ch0 = bytesBuf[i+3]
+							} else {
+								ch0, err = d.reader.ReadByte()
+								if err != nil {
+									return s, perrors.WithStack(err)
+								}
+								// update accumulates read bytes,
+								// because it reads more than thunk bytes
+								nread++
+								len++
+							}
+
+							if ch0 < 0x80 {
+								c2, n2 = rune(ch0), 1
+							} else if (ch0 & 0xe0) == 0xc0 {
+								var ch1 byte
+								if i+4 < len {
+									ch1 = bytesBuf[i+4]
+								} else {
+									// out of the chunk byte data
+									bytesBuf[i+4], err = d.reader.ReadByte()
+									ch1 = bytesBuf[i+4]
+									nread++
+									len++
+								}
+								c2, n2 = rune(((uint32(ch0)&0x1f)<<6)+(uint32(ch1)&0x3f)), 2
+							} else if (ch0 & 0xf0) == 0xe0 {
+								var ch1, ch2 byte
+								if i+5 < len {
+									ch1 = bytesBuf[i+4]
+									ch2 = bytesBuf[i+5]
+								} else {
+									ch1, err = d.reader.ReadByte()
+									if err != nil {
+										return s, perrors.WithStack(err)
+									}
+									ch2, err = d.reader.ReadByte()
+									len += 2
+									nread += 2
+								}
+								c := ((uint32(ch0) & 0x0f) << 12) + ((uint32(ch1) & 0x3f) << 6) + (uint32(ch2) & 0x3f)
+								c2, n2 = rune(c), 3
+							}
+
+							c := rune(c1-0xD800)<<10 + (c2 - 0xDC00) + 0x10000
+							n3 := utf8.EncodeRune(bytesBuf[i:], c)
+							if copied = n3 > 0 && n3 < /** front three byte */ 3+n2; copied {
+								// We need to move the bytes,
+								// for example, less bytes after decoding
+								offset = i + n3
+								copy(bytesBuf[offset:], bytesBuf[i+3+n2:len])
+							}
+
+							i += n2
+							chunkLen--
+						}
 						i += 3
+
+						// fix read the next byte index
+						if copied {
+							copied = false
+							continue
+						}
+
+						offset += 3
 					} else {
-						return s, perrors.Errorf("bad utf-8 encoding, offset=%d\n", offset+(i-prev))
+						return s, perrors.Errorf("bad utf-8 encoding")
 					}
 				}
-
-				// update byte offset
-				offset = offset + i - prev
 
 				if remain := offset - prev - nread; remain > 0 {
 					if remain == 1 {
@@ -457,7 +545,25 @@ func (d *Decoder) decString(flag int32) (string, error) {
 				if err != nil {
 					return s, perrors.WithStack(err)
 				}
+
 				bytesBuf[offset] = ch
+
+				// we detect emoji first
+				c1 := ((uint32(ch) & 0x0f) << 12) + ((uint32(bytesBuf[offset+1]) & 0x3f) << 6) + (uint32(bytesBuf[offset+2]) & 0x3f)
+				if c1 >= 0xD800 && c1 <= 0xDBFF {
+					c2, n2, err := decodeUcs2Rune(d.reader)
+					if err != nil {
+						return s, perrors.WithStack(err)
+					}
+
+					c := rune(c1-0xD800)<<10 + (c2 - 0xDC00) + 0x10000
+					utf8.EncodeRune(bytesBuf[offset:], c)
+
+					// update next rune
+					offset += n2
+					chunkLen--
+				}
+
 				offset += 3
 			} else {
 				return s, perrors.Errorf("bad utf-8 encoding, offset=%d\n", offset)

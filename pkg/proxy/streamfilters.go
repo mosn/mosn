@@ -132,6 +132,7 @@ type activeStreamReceiverFilter struct {
 	p types.Phase
 	activeStreamFilter
 	api.StreamReceiverFilter
+	id uint32
 }
 
 func newActiveStreamReceiverFilter(activeStream *downStream,
@@ -142,6 +143,7 @@ func newActiveStreamReceiverFilter(activeStream *downStream,
 		},
 		StreamReceiverFilter: filter,
 		p:                    p,
+		id:                   activeStream.ID,
 	}
 	filter.SetReceiveFilterHandler(f)
 
@@ -174,6 +176,10 @@ func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.Hea
 	f.activeStream.sendHijackReply(code, headers)
 }
 
+func (f *activeStreamReceiverFilter) SendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
+	f.activeStream.sendHijackReplyWithBody(code, headers, body)
+}
+
 func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 	atomic.StoreUint32(&f.activeStream.reuseBuffer, 0)
 	f.activeStream.noConvert = true
@@ -181,6 +187,35 @@ func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap,
 	f.activeStream.downstreamRespDataBuf = buf
 	f.activeStream.downstreamRespTrailers = trailers
 	f.activeStream.directResponse = true
+}
+
+func (f *activeStreamReceiverFilter) TerminateStream(code int) bool {
+	s := f.activeStream
+	atomic.StoreUint32(&s.reuseBuffer, 0)
+
+	if s.downstreamRespHeaders != nil {
+		return false
+	}
+	if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
+		return false
+	}
+	if f.id != s.ID {
+		return false
+	}
+	if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
+		return false
+	}
+	// stop timeout timer
+	if s.responseTimer != nil {
+		s.responseTimer.Stop()
+	}
+	if s.perRetryTimer != nil {
+		s.perRetryTimer.Stop()
+	}
+	// send hijacks response, request finished
+	s.sendHijackReply(code, f.activeStream.downstreamReqHeaders)
+	s.sendNotify() // wake up proxy workflow
+	return true
 }
 
 func (f *activeStreamReceiverFilter) SetConvert(on bool) {

@@ -117,8 +117,16 @@ type StreamReceiverFilterHandler interface {
 	// SendHijackReply is called when the filter will response directly
 	SendHijackReply(code int, headers HeaderMap)
 
+	// SendHijackReplyWithBody is called when the filter will response directly with body
+	SendHijackReplyWithBody(code int, headers HeaderMap, body string)
+
 	// SendDirectRespoonse is call when the filter will response directly
 	SendDirectResponse(headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap)
+
+	// TerminateStream can force terminate a request asynchronously.
+	// The response status code should be HTTP status code.
+	// If the request is already finished, returns false.
+	TerminateStream(code int) bool
 
 	// TODO: remove all of the following when proxy changed to single request @lieyuan
 	// StreamFilters will modified headers/data/trailer in different steps

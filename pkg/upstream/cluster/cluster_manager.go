@@ -24,10 +24,11 @@ import (
 	"reflect"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
@@ -45,7 +46,7 @@ func refreshHostsConfig(c types.Cluster) {
 	for _, h := range hosts {
 		hostsConfig = append(hostsConfig, h.Config())
 	}
-	store.SetHosts(name, hostsConfig)
+	configmanager.SetHosts(name, hostsConfig)
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, len(hosts))
 	}
@@ -61,6 +62,7 @@ type clusterManager struct {
 	clustersMap      sync.Map
 	protocolConnPool sync.Map
 	tlsMetrics       *mtls.TLSStats
+	tlsMng           atomic.Value // store types.TLSClientContextManager
 	mux              sync.Mutex
 }
 
@@ -77,15 +79,19 @@ func (singleton *clusterManagerSingleton) Destroy() {
 
 var clusterManagerInstance = &clusterManagerSingleton{}
 
-func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host) types.ClusterManager {
+func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v2.Host, tls *v2.TLSConfig) types.ClusterManager {
 	clusterManagerInstance.instanceMutex.Lock()
 	defer clusterManagerInstance.instanceMutex.Unlock()
 	if clusterManagerInstance.clusterManager != nil {
 		return clusterManagerInstance
 	}
+
 	clusterManagerInstance.clusterManager = &clusterManager{
 		tlsMetrics: mtls.NewStats(globalTLSMetrics),
 	}
+	// set global tls
+	clusterManagerInstance.clusterManager.UpdateTLSManager(tls)
+	// add conn pool
 	for k := range types.ConnPoolFactories {
 		clusterManagerInstance.protocolConnPool.Store(k, &sync.Map{})
 	}
@@ -117,7 +123,7 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	// check update or new
 	clusterName := cluster.Name
 	// set config
-	store.SetClusterConfig(clusterName, cluster)
+	configmanager.SetClusterConfig(cluster)
 	// add or update
 	ci, exists := cm.clustersMap.Load(clusterName)
 	if exists {
@@ -184,7 +190,7 @@ func (cm *clusterManager) RemovePrimaryCluster(clusterNames ...string) error {
 		c.StopHealthChecking()
 
 		cm.clustersMap.Delete(clusterName)
-		store.RemoveClusterConfig(clusterName)
+		configmanager.SetRemoveClusterConfig(clusterName)
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
 			log.DefaultLogger.Infof("[upstream] [cluster manager] Remove Primary Cluster, Cluster Name = %s", clusterName)
 		}
@@ -303,6 +309,25 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 	return pool
 }
 
+func (cm *clusterManager) GetTLSManager() types.TLSClientContextManager {
+	v := cm.tlsMng.Load()
+	tlsmng, _ := v.(types.TLSClientContextManager)
+	return tlsmng
+}
+
+func (cm *clusterManager) UpdateTLSManager(tls *v2.TLSConfig) {
+	if tls == nil {
+		tls = &v2.TLSConfig{} // use a disabled config instead
+	}
+	mng, err := mtls.NewTLSClientContextManager(tls)
+	if err != nil {
+		log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster manager] NewClusterManager: Add TLS Manager failed, error: %v", err)
+		return
+	}
+	cm.tlsMng.Store(mng)
+	configmanager.SetClusterManagerTLS(*tls)
+}
+
 const (
 	maxHostsCounts  = 3
 	maxTryConnTimes = 7
@@ -320,6 +345,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
 	}
 
+	// for pool to know, whether this is a multiplex or pingpong pool
 	var pools [maxHostsCounts]types.ConnectionPool
 
 	try := clusterSnapshot.HostNum(balancerContext.MetadataMatchCriteria())
@@ -358,7 +384,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				pool := connPool.(types.ConnectionPool)
 				return pool, true
 			}
-			pool := factory(host)
+			pool := factory(balancerContext.DownstreamContext(), host)
 			connectionPool.Store(addr, pool)
 			return pool, false
 		}
@@ -368,7 +394,6 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				}
-				cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
 				func() {
 					// lock the load and delete
 					cm.mux.Lock()
@@ -381,8 +406,9 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						}
 						connectionPool.Delete(addr)
 						pool.Shutdown()
-						pool = factory(host)
+						pool = factory(balancerContext.DownstreamContext(), host)
 						connectionPool.Store(addr, pool)
+						cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
 					}
 				}()
 

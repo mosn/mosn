@@ -100,5 +100,7 @@ func decodeStr(bytes []byte, totalLen, index int) (str []byte, newIndex int, err
 	}
 
 	// 2. read str value
-	return bytes[index+4 : end], end, nil
+	// should explicitly set capacity here,
+	// or the append on this return value will cause override on the next bytes
+	return bytes[index+4 : end : end], end, nil
 }

@@ -103,6 +103,10 @@ func (conn *streamConnection) Protocol() types.ProtocolName {
 	return protocol.HTTP2
 }
 
+func (conn *streamConnection) EnableWorkerPool() bool {
+	return true
+}
+
 func (conn *streamConnection) GoAway() {
 	// todo
 }

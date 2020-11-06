@@ -41,3 +41,8 @@ func (e MissingFormatWidthException) Error() string {
 func (MissingFormatWidthException) JavaClassName() string {
 	return "java.util.MissingFormatWidthException"
 }
+
+// equals to getStackTrace in java
+func (e MissingFormatWidthException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mosn.io/mosn/pkg/metrics"
 	"net"
 	"os"
 	"strconv"
@@ -40,6 +39,7 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
@@ -203,7 +203,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
 
 	}
-	admin.SetListenerConfig(listenerName, *al.listener.Config())
+	configmanager.SetListenerConfig(*al.listener.Config())
 	return al, nil
 }
 
@@ -286,14 +286,17 @@ func (ch *connHandler) StopListeners(lctx context.Context, close bool) error {
 }
 
 func (ch *connHandler) ListListenersFile(lctx context.Context) []*os.File {
-	files := make([]*os.File, len(ch.listeners))
-	for idx, l := range ch.listeners {
+	files := make([]*os.File, 0)
+	for _, l := range ch.listeners {
+		if !l.listener.IsBindToPort() {
+			continue
+		}
 		file, err := l.listener.ListenerFile()
 		if err != nil {
 			log.DefaultLogger.Alertf("listener.list", "[server] [conn handler] fail to get listener %s file descriptor: %v", l.listener.Name(), err)
 			return nil //stop reconfigure
 		}
-		files[idx] = file
+		files = append(files, file)
 	}
 	return files
 }
@@ -393,6 +396,7 @@ func (al *activeListener) GoStart(lctx context.Context) {
 		al.listener.Start(lctx, false)
 	}, func(r interface{}) {
 		// TODO: add a times limit?
+		log.DefaultLogger.Alertf("listener.start", "[network] [listener start] old listener panic")
 		al.GoStart(lctx)
 	})
 }
@@ -496,7 +500,7 @@ func (al *activeListener) OnNewConnection(ctx context.Context, conn api.Connecti
 		log.DefaultLogger.Debugf("[server] [listener] accept connection from %s, condId= %d, remote addr:%s", al.listener.Addr().String(), conn.ID(), conn.RemoteAddr().String())
 	}
 
-	if conn.LocalAddr().Network() == "udp" {
+	if conn.LocalAddr().Network() == "udp" && conn.State() != api.ConnClosed {
 		network.SetUDPProxyMap(network.GetProxyMapKey(conn.LocalAddr().String(), conn.RemoteAddr().String()), conn)
 	}
 
@@ -567,7 +571,7 @@ func (al *activeListener) removeConnection(ac *activeConnection) {
 // defaultIdleTimeout represents the idle timeout if listener have no such configuration
 // we declared the defaultIdleTimeout reference to the types.DefaultIdleTimeout
 var (
-	defaultIdleTimeout = types.DefaultIdleTimeout
+	defaultIdleTimeout    = types.DefaultIdleTimeout
 	defaultUDPIdleTimeout = types.DefaultUDPIdleTimeout
 	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
 )
@@ -591,6 +595,7 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
 	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
+	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
@@ -882,12 +887,8 @@ func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
 				return nil, nil, nil, err
 			}
 		} else {
-			if listener, ok := fileListener.(*net.TCPListener); ok {
-				listeners = append(listeners, listener)
-			} else {
-				log.StartLogger.Errorf("[server] listener recovered from fd %d is not a tcp listener", fd)
-				return nil, nil, nil, errors.New("not a tcp listener")
-			}
+			// for tcp or unix listener
+			listeners = append(listeners, fileListener)
 		}
 	}
 

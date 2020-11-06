@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"sync"
 
-	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -88,7 +88,7 @@ func (rm *routersManagerImpl) AddOrUpdateRouters(routerConfig *v2.RouterConfigur
 		log.DefaultLogger.Infof(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "add router: "+routerConfig.RouterConfigName)
 	}
 	// update admin stored config for admin api dump
-	store.SetRouter(routerConfig.RouterConfigName, *routerConfig)
+	configmanager.SetRouter(*routerConfig)
 	return nil
 }
 
@@ -133,7 +133,7 @@ func (rm *routersManagerImpl) AddRoute(routerConfigName, domain string, route *v
 		routersCfg = append(routersCfg, *route)
 		cfg.VirtualHosts[index].Routers = routersCfg
 		rw.routersConfig = cfg
-		store.SetRouter(routerConfigName, *cfg)
+		configmanager.SetRouter(*cfg)
 	}
 	return nil
 }
@@ -165,7 +165,7 @@ func (rm *routersManagerImpl) RemoveAllRoutes(routerConfigName, domain string) e
 		routersCfg := cfg.VirtualHosts[index].Routers
 		cfg.VirtualHosts[index].Routers = routersCfg[:0]
 		rw.routersConfig = cfg
-		store.SetRouter(routerConfigName, *cfg)
+		configmanager.SetRouter(*cfg)
 	}
 	return nil
 }

@@ -97,6 +97,7 @@ const (
 	IstioStats     = "istio.stats"
 	DSL            = "dsl"
 	Mirror         = "mirror"
+	DubboStream    = "dubbo_stream"
 )
 
 // HealthCheckFilter
@@ -135,7 +136,7 @@ type StreamPayloadLimit struct {
 	HttpStatus    int32 `json:"http_status"`
 }
 
-func (f FaultInject) Marshal() (b []byte, err error) {
+func (f FaultInject) MarshalJSON() (b []byte, err error) {
 	f.FaultInjectConfig.DelayDurationConfig.Duration = time.Duration(f.DelayDuration)
 	return json.Marshal(f.FaultInjectConfig)
 }
@@ -161,7 +162,7 @@ type DelayInject struct {
 	Delay time.Duration `json:"-"`
 }
 
-func (d DelayInject) Marshal() (b []byte, err error) {
+func (d DelayInject) MarshalJSON() (b []byte, err error) {
 	d.DelayInjectConfig.DelayDurationConfig.Duration = d.Delay
 	return json.Marshal(d.DelayInjectConfig)
 }

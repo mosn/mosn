@@ -396,7 +396,7 @@ func NewProxyConfig(config *v2.StreamProxy) ProxyConfig {
 }
 
 func (pc *proxyConfig) GetIdleTimeout(network string) time.Duration {
-	if pc.idleTimeout != nil {
+	if pc.idleTimeout != nil && *pc.idleTimeout > 0 {
 		return *pc.idleTimeout
 	}
 	if network == "udp" {

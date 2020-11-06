@@ -122,7 +122,7 @@ func (s *xStream) endStream() {
 	}()
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.ctx, "[stream] [xprotocol] endStream, direction = %d, requestId = %v", s.direction, s.id)
+		log.Proxy.Debugf(s.ctx, "[stream] [xprotocol] connection %d endStream, direction = %d, requestId = %v", s.sc.netConn.ID(), s.direction, s.id)
 	}
 
 	if s.frame != nil {

@@ -81,7 +81,12 @@ type downStream struct {
 	downstreamRespTrailers types.HeaderMap
 
 	// ~~~ state
-	// starts to send back downstream response, set on upstream response detected
+	// if upstreamResponseReceived == 1 means response is received
+	// 1. upstream response is received
+	// 2. timeout / terminate triggered
+	// the flag will be reset when do a retry
+	upstreamResponseReceived uint32
+	// starts to send back downstream response
 	downstreamResponseStarted bool
 	// downstream request received done
 	downstreamRecvDone bool
@@ -168,8 +173,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	// info message for new downstream
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		requestId := mosnctx.Get(stream.context, types.ContextKeyStreamID)
-		log.Proxy.Debugf(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestId, stream.oneway)
+		requestID := mosnctx.Get(stream.context, types.ContextKeyStreamID)
+		log.Proxy.Debugf(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestID, stream.oneway)
 	}
 	return stream
 }
@@ -250,12 +255,16 @@ func (s *downStream) requestMetrics() {
 			processTime = requestReceivedNs + (streamDurationNs - responseReceivedNs)
 		}
 
+		s.proxy.stats.DownstreamProcessTime.Update(processTime)
 		s.proxy.stats.DownstreamProcessTimeTotal.Inc(processTime)
 
+		s.proxy.listenerStats.DownstreamProcessTime.Update(processTime)
 		s.proxy.listenerStats.DownstreamProcessTimeTotal.Inc(processTime)
 
+		s.proxy.stats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.stats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
+		s.proxy.listenerStats.DownstreamRequestTime.Update(streamDurationNs)
 		s.proxy.listenerStats.DownstreamRequestTimeTotal.Inc(streamDurationNs)
 
 		s.proxy.stats.DownstreamUpdateRequestCode(s.requestInfo.ResponseCode())
@@ -343,8 +352,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 	}
 
 	id := s.ID
-	// goroutine for proxy
-	pool.ScheduleAuto(func() {
+	var task = func() {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
@@ -372,11 +380,30 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 				log.Proxy.Debugf(s.context, "[proxy] [downstream] directResponse %+v", s)
 			}
 		}
-	})
+	}
+
+	if s.proxy.serverStreamConn.EnableWorkerPool() {
+		// should enable workerpool
+		// goroutine for proxy
+		if s.proxy.workerpool != nil {
+			// use the worker pool for current proxy
+			// NOTE: should this be configurable?
+			// eg, use config to control Schedule or to ScheduleAuto
+			s.proxy.workerpool.Schedule(task)
+		} else {
+			// use the global shared worker pool
+			pool.ScheduleAuto(task)
+		}
+		return
+	}
+
+	task()
+	return
+
 }
 
-func (s *downStream) printPhaseInfo(phaseId types.Phase, proxyId uint32) {
-	log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %+v[%d], proxyId = %d  ", types.PhaseName[phaseId], phaseId, proxyId)
+func (s *downStream) printPhaseInfo(phaseID types.Phase, proxyID uint32) {
+	log.Proxy.Debugf(s.context, "[proxy] [downstream] enter phase %+v[%d], proxyId = %d  ", types.PhaseName[phaseID], phaseID, proxyID)
 }
 
 func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) types.Phase {
@@ -899,6 +926,9 @@ func (s *downStream) onUpstreamRequestSent() {
 					if ID != s.ID {
 						return
 					}
+					if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
+						return
+					}
 					s.onResponseTimeout()
 				})
 		}
@@ -950,6 +980,9 @@ func (s *downStream) setupPerReqTimeout() {
 					return
 				}
 				if ID != s.ID {
+					return
+				}
+				if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
 					return
 				}
 				s.onPerReqTimeout()
@@ -1027,9 +1060,8 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 	if dp != up {
 		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
 			return convHeader
-		} else {
-			log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
+		log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
 	}
 	return headers
 }
@@ -1057,9 +1089,8 @@ func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 	if dp != up {
 		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
 			return convData
-		} else {
-			log.Proxy.Warnf(s.context, "[proxy] [downstream] convert data from %s to %s failed, %s", up, dp, err.Error())
 		}
+		log.Proxy.Warnf(s.context, "[proxy] [downstream] convert data from %s to %s failed, %s", up, dp, err.Error())
 	}
 	return data
 }
@@ -1082,9 +1113,8 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 	if dp != up {
 		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
 			return convTrailer
-		} else {
-			log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
+		log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
 	}
 	return trailers
 }
@@ -1249,6 +1279,8 @@ func (s *downStream) setupRetry(endStream bool) bool {
 		s.perRetryTimer = nil
 	}
 
+	atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 1, 0)
+
 	return true
 }
 
@@ -1273,6 +1305,7 @@ func (s *downStream) doRetry() {
 		downStream: s,
 		proxy:      s.proxy,
 		connPool:   pool,
+		protocol:   s.getUpstreamProtocol(),
 	}
 
 	// if Data or Trailer exists, endStream should be false, else should be true

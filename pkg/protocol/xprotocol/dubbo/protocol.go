@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"sync/atomic"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/mosn/pkg/log"
@@ -138,4 +139,17 @@ func (proto *dubboProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) 
 
 func (proto *dubboProtocol) Mapping(httpStatusCode uint32) uint32 {
 	return httpStatusCode
+}
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *dubboProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+func (proto *dubboProtocol) EnableWorkerPool() bool{
+	return true
+}
+
+func (proto *dubboProtocol) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
 }

@@ -95,6 +95,7 @@ func TestRunReiverFilters(t *testing.T) {
 			proxy: &proxy{
 				routersWrapper: &mockRouterWrapper{},
 				clusterManager: &mockClusterManager{},
+				serverStreamConn: &mockServerConn{},
 			},
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
@@ -143,6 +144,7 @@ func TestRunReiverFiltersStop(t *testing.T) {
 		proxy: &proxy{
 			routersWrapper: &mockRouterWrapper{},
 			clusterManager: &mockClusterManager{},
+			serverStreamConn: &mockServerConn{},
 		},
 		requestInfo: &network.RequestInfo{},
 		notify:      make(chan struct{}, 1),
@@ -259,6 +261,7 @@ func TestRunReiverFilterHandler(t *testing.T) {
 			proxy: &proxy{
 				routersWrapper: &mockRouterWrapper{},
 				clusterManager: &mockClusterManager{},
+				serverStreamConn: &mockServerConn{},
 			},
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
@@ -460,9 +463,8 @@ func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.
 	}
 	if f.status == api.StreamFilterReMatchRoute || f.status == api.StreamFilterReChooseHost {
 		return api.StreamFilterContinue
-	} else {
-		return f.status
 	}
+	return f.status
 }
 
 func (f *mockStreamReceiverFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {

@@ -18,19 +18,23 @@
 package http
 
 import (
-	"testing"
-
-	"net"
-
 	"bytes"
+	"context"
 	"fmt"
+	"math/rand"
+	"net"
+	"testing"
+	"time"
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -44,7 +48,7 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+					conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -84,7 +88,7 @@ func Test_header_capitalization(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+					conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -98,7 +102,7 @@ func Test_header_capitalization(t *testing.T) {
 		{
 			protocol.MosnHeaderQueryStringKey: queryString,
 			protocol.MosnHeaderPathKey:        path,
-			"Args":                            "Hello, world!",
+			"Args": "Hello, world!",
 		},
 	}
 
@@ -130,7 +134,7 @@ func Test_header_conflict(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+					conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -233,7 +237,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -252,7 +256,7 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 
 	csc := &clientStreamConnection{
 		streamConnection: streamConnection{
-			conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+			conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 		},
 	}
 
@@ -268,6 +272,87 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 
 }
 
+func TestHeaderSize(t *testing.T) {
+	// Only request line, do not add the end of request '\r\n\r\n' identification.
+	requestSmall := []byte("HEAD / HTTP/1.1\r\nHost: test.com\r\nCookie: key=1234")
+	requestLarge := []byte("HEAD / HTTP/1.1\r\nHost: test.com\r\nCookie: key=12345")
+	testAddr := "127.0.0.1:11345"
+	l, err := net.Listen("tcp", testAddr)
+	if err != nil {
+		t.Logf("listen error %v", err)
+		return
+	}
+	defer l.Close()
+
+	rawc, err := net.Dial("tcp", testAddr)
+	if err != nil {
+		t.Errorf("net.Dial error %v", err)
+		return
+	}
+
+	connection := network.NewServerConnection(context.Background(), rawc, nil)
+	proxyGeneralExtendConfig := v2.ProxyGeneralExtendConfig{
+		MaxHeaderSize: len(requestSmall),
+	}
+
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+	ssc := newServerStreamConnection(ctx, connection, nil)
+	if ssc == nil {
+		t.Errorf("newServerStreamConnection failed!")
+	}
+
+	// test the header size is within the limit
+	buf := buffer.GetIoBuffer(len(requestSmall))
+	buf.Write(requestSmall)
+	ssc.Dispatch(buf)
+	// if it exceeds the limit size of the header, the connection is closed immediately
+	if connection.State() == api.ConnClosed {
+		t.Errorf("requestSmall header size does not exceed limit!")
+	}
+
+	rawc, err = net.Dial("tcp", testAddr)
+	if err != nil {
+		t.Errorf("net.Dial error %v", err)
+		return
+	}
+	connection = network.NewServerConnection(context.Background(), rawc, nil)
+	ssc = newServerStreamConnection(ctx, connection, nil)
+	if ssc == nil {
+		t.Errorf("newServerStreamConnection failed!")
+	}
+
+	// test the header size exceeds the limit
+	buf = buffer.GetIoBuffer(len(requestLarge))
+	buf.Write(requestLarge)
+	ssc.Dispatch(buf)
+	if connection.State() != api.ConnClosed {
+		t.Errorf("requestLarge header size should exceed limit!")
+	}
+}
+
+func TestAppendData(t *testing.T) {
+	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	responseBytes := randomBytes(t, rand.Intn(1024)+1024*1024*4, rand)
+	if responseBytes == nil || len(responseBytes) == 0 {
+		t.Fatal("randomBytes failed!")
+	}
+
+	buf := buffer.NewIoBufferBytes(responseBytes)
+
+	var s serverStream
+	var hb httpBuffers
+	s.stream = stream{
+		request:  &hb.serverRequest,
+		response: &hb.serverResponse,
+	}
+
+	s.AppendData(context.Background(), buf, false)
+
+	if bytes.Compare(s.response.Body(), responseBytes) != 0 {
+		t.Errorf("server AppendData failed")
+	}
+}
+
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
 	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
 
@@ -276,4 +361,13 @@ func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
 	}
 
 	return header
+}
+
+func randomBytes(t *testing.T, n int, rand *rand.Rand) []byte {
+	r := make([]byte, n)
+	if _, err := rand.Read(r); err != nil {
+		t.Fatal("randomBytes rand.Read failed: " + err.Error())
+		return nil
+	}
+	return r
 }

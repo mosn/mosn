@@ -35,10 +35,10 @@ func TestIsSupportTLS(t *testing.T) {
 	//
 	DisableClientSideTLS()
 	if IsSupportTLS() {
-		t.Error("disbale tls, should not support tls any more")
+		t.Error("disable tls, should not support tls any more")
 	}
 	EnableClientSideTLS()
 	if !IsSupportTLS() {
-		t.Error("set disbale is false, still support tls")
+		t.Error("set disable is false, still support tls")
 	}
 }

@@ -83,16 +83,23 @@ func TestAccessLog(t *testing.T) {
 
 	ctx := prepareLocalIpv6Ctx()
 	accessLog.Log(ctx, nil, nil, nil)
-	l := "2018/12/14 18:08:33.054 1.329µs 2.00000227s 2048 2048 - 0 126.868µs false 0 127.0.0.1:23456 [2001:db8::68]:12200 127.0.0.1:53242 -\n"
+	//l := "2018/12/14 18:08:33.054 1.329µs 2.00000227s 2048 2048 - 0 126.868µs false 0 127.0.0.1:23456 [2001:db8::68]:12200 127.0.0.1:53242 -\n"
 	time.Sleep(2 * time.Second)
-	f, _ := os.Open(logName)
+	f, err := os.Open(logName)
+	if err != nil {
+		t.Errorf("open log file: %s error: %v", logName, err)
+	}
+	defer f.Close()
 	b := make([]byte, 1024)
 	_, err = f.Read(b)
-	f.Close()
+	if err != nil {
+		t.Errorf("read log file: %s, error: %v", logName, err)
+	}
 	if err != nil {
 		t.Errorf("test accesslog error")
 	}
-	ok, err := regexp.Match("\\d\\d\\d\\d/\\d\\d/\\d\\d .* .* .* 2048 2048 \\- 0 .* false 0 127.0.0.1:23456 \\[2001:db8::68\\]:12200 127.0.0.1:53242 \\-\n", []byte(l))
+	t.Logf("%v", string(b))
+	ok, err := regexp.Match("\\d\\d\\d\\d/\\d\\d/\\d\\d .* .* .* 2048 2048 \\- 0 .* false 0 127.0.0.1:23456 \\[2001:db8::68\\]:12200 127.0.0.1:53242 \\-\n", b)
 
 	if !ok {
 		t.Errorf("test accesslog error %v", err)
@@ -203,7 +210,7 @@ func TestAccessLogDisable(t *testing.T) {
 
 	DefaultDisableAccessLog = true
 	format := types.DefaultAccessLogFormat
-	logName := "/tmp/mosn_accesslog/disbale_access.log"
+	logName := "/tmp/mosn_accesslog/disable_access.log"
 	os.Remove(logName)
 	accessLog, err := NewAccessLog(logName, format)
 	if err != nil {
@@ -211,7 +218,7 @@ func TestAccessLogDisable(t *testing.T) {
 	}
 
 	ctx := prepareLocalIpv6Ctx()
-	// try write disbale access log nothing happened
+	// try write disable access log nothing happened
 	accessLog.Log(ctx, nil, nil, nil)
 	time.Sleep(time.Second)
 	if b, err := ioutil.ReadFile(logName); err != nil || len(b) > 0 {
@@ -655,7 +662,9 @@ func bytesReceivedGetter(ctx context.Context, value *variable.IndexedValue, data
 // get request's protocol type
 func protocolGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	info := ctx.Value(requestInfoKey).(api.RequestInfo)
-
+	if info.Protocol() == "" {
+		return variable.ValueNotFound, nil
+	}
 	return string(info.Protocol()), nil
 }
 

@@ -77,6 +77,7 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 		lbOriDstInfo:         NewLBOriDstInfo(&clusterConfig.LBOriDstConfig), // new oridst load balancer info
 		lbType:               types.LoadBalancerType(clusterConfig.LbType),
 		resourceManager:      NewResourceManager(clusterConfig.CirBreThresholds),
+		clusterManagerTLS:    clusterConfig.ClusterManagerTLS,
 	}
 
 	// set ConnectTimeout
@@ -87,11 +88,13 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	}
 
 	// tls mng
-	mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS)
-	if err != nil {
-		log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
+	if !info.clusterManagerTLS {
+		mgr, err := mtls.NewTLSClientContextManager(&clusterConfig.TLS)
+		if err != nil {
+			log.DefaultLogger.Alertf("cluster.config", "[upstream] [cluster] [new cluster] create tls context manager failed, %v", err)
+		}
+		info.tlsMng = mgr
 	}
-	info.tlsMng = mgr
 	cluster := &simpleCluster{
 		info: info,
 	}
@@ -169,7 +172,8 @@ type clusterInfo struct {
 	stats                types.ClusterStats
 	lbSubsetInfo         types.LBSubsetInfo
 	lbOriDstInfo         types.LBOriDstInfo
-	tlsMng               types.TLSContextManager
+	clusterManagerTLS    bool
+	tlsMng               types.TLSClientContextManager
 	connectTimeout       time.Duration
 	lbConfig             v2.IsCluster_LbConfig
 }
@@ -208,7 +212,10 @@ func (ci *clusterInfo) ResourceManager() types.ResourceManager {
 	return ci.resourceManager
 }
 
-func (ci *clusterInfo) TLSMng() types.TLSContextManager {
+func (ci *clusterInfo) TLSMng() types.TLSClientContextManager {
+	if ci.clusterManagerTLS {
+		return clusterManagerInstance.GetTLSManager()
+	}
 	return ci.tlsMng
 }
 

@@ -19,27 +19,12 @@ package router
 
 import (
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
-func SofaRouterFactory(headers []v2.HeaderMatcher) RouteBase {
-	for _, header := range headers {
-		if header.Name == types.SofaRouteMatchKey {
-			return &SofaRouteRuleImpl{
-				matchName:  header.Name,
-				matchValue: header.Value,
-			}
-		}
-	}
-	log.DefaultLogger.Errorf(RouterLogFormat, "sofa router factory", "create failed", headers)
-	return nil
-}
-
 type SofaRouteRuleImpl struct {
 	*RouteRuleImplBase
-	matchName  string
 	matchValue string
 }
 
@@ -68,6 +53,6 @@ func (srri *SofaRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) 
 			return srri
 		}
 	}
-	log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "failed match", headers)
+	log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "failed match header: %v, value: %s", headers, srri.matchValue)
 	return nil
 }

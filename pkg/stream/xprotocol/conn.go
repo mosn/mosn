@@ -21,14 +21,12 @@ import (
 	"context"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
@@ -50,10 +48,10 @@ type streamConn struct {
 
 	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
 
-	clientMutex     sync.RWMutex // client side fields
-	clientStreamId  uint64
-	clientStreams   map[uint64]*xStream
-	clientCallbacks types.StreamConnectionEventListener
+	clientMutex        sync.RWMutex // client side fields
+	clientStreamIDBase uint64
+	clientStreams      map[uint64]*xStream
+	clientCallbacks    types.StreamConnectionEventListener
 }
 
 func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -125,40 +123,23 @@ func (sc *streamConn) CheckReasonError(connected bool, event api.ConnectionEvent
 func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	// match if multi protocol used
 	if sc.protocol == nil {
-		// 1. try to get ALPN negotiated protocol
-		if conn, ok := sc.netConn.RawConn().(*mtls.TLSConn); ok {
-			name := conn.ConnectionState().NegotiatedProtocol
-			if name != "" {
-				proto := xprotocol.GetProtocol(types.ProtocolName(name))
-				if proto == nil {
-					log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] negotiated protocol not exists: %s", name)
-					// close conn
-					sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
-					return
-				}
-				sc.protocol = proto
+		proto, result := sc.engine.Match(sc.ctx, buf)
+		switch result {
+		case types.MatchSuccess:
+			sc.protocol = proto.(xprotocol.XProtocol)
+		case types.MatchFailed:
+			// print error info
+			size := buf.Len()
+			if size > 10 {
+				size = 10
 			}
-		}
-		// 2. tls ALPN prortocol not exists, try to recognize data
-		if sc.protocol == nil {
-			proto, result := sc.engine.Match(sc.ctx, buf)
-			switch result {
-			case types.MatchSuccess:
-				sc.protocol = proto.(xprotocol.XProtocol)
-			case types.MatchFailed:
-				// print error info
-				size := buf.Len()
-				if size > 10 {
-					size = 10
-				}
-				log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] engine match failed for magic :%v", buf.Bytes()[:size])
-				// close conn
-				sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
-				return
-			case types.MatchAgain:
-				// do nothing and return, wait for more data
-				return
-			}
+			log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] engine match failed for magic :%v", buf.Bytes()[:size])
+			// close conn
+			sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
+			return
+		case types.MatchAgain:
+			// do nothing and return, wait for more data
+			return
 		}
 	}
 
@@ -207,6 +188,14 @@ func (sc *streamConn) Protocol() types.ProtocolName {
 	return protocol.Xprotocol
 }
 
+func (sc *streamConn) EnableWorkerPool() bool {
+	if sc.protocol == nil {
+		// multiple protocols
+		return true
+	}
+	return sc.protocol.EnableWorkerPool()
+}
+
 func (sc *streamConn) GoAway() {
 	// unsupported
 	// TODO: client-side conn pool go away
@@ -247,14 +236,11 @@ func (sc *streamConn) handleError(ctx context.Context, frame interface{}, err er
 	// valid request frame with positive requestID, send exception response in this case
 	if frame != nil {
 		if xframe, ok := frame.(xprotocol.XFrame); ok && (xframe.GetStreamType() == xprotocol.Request) {
-			if requestId := xframe.GetRequestId(); requestId > 0 {
-
-				// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
-				stream := sc.newServerStream(ctx, xframe)
-				stream.receiver = sc.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
-				stream.receiver.OnDecodeError(stream.ctx, err, xframe.GetHeader())
-				return
-			}
+			// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
+			stream := sc.newServerStream(ctx, xframe)
+			stream.receiver = sc.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
+			stream.receiver.OnDecodeError(stream.ctx, err, xframe.GetHeader())
+			return
 		}
 	}
 
@@ -344,20 +330,25 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 
 	// for client stream, remove stream on response read
 	sc.clientMutex.Lock()
-	defer sc.clientMutex.Unlock()
 
-	if clientStream, ok := sc.clientStreams[requestId]; ok {
-		delete(sc.clientStreams, requestId)
-
-		// transmit buffer ctx
-		buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
-
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] receive response, requestId = %v", requestId)
-		}
-
-		clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
+	clientStream, ok := sc.clientStreams[requestId]
+	if !ok {
+		sc.clientMutex.Unlock()
+		return
 	}
+
+	// stream exists, delete it
+	delete(sc.clientStreams, requestId)
+	sc.clientMutex.Unlock()
+
+	// transmit buffer ctx
+	buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] connection %d receive response, requestId = %v", sc.netConn.ID(), requestId)
+	}
+
+	clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
 }
 
 func (sc *streamConn) newServerStream(ctx context.Context, frame xprotocol.XFrame) *xStream {
@@ -381,7 +372,7 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 	buffers := streamBuffersByContext(ctx)
 	clientStream := &buffers.clientStream
 
-	clientStream.id = atomic.AddUint64(&sc.clientStreamId, 1)
+	clientStream.id = sc.protocol.GenerateRequestID(&sc.clientStreamIDBase)
 	clientStream.direction = stream.ClientStream
 	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, clientStream.id)
 	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))

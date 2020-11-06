@@ -168,7 +168,7 @@ func TestUpdateLoggerConfig(t *testing.T) {
 		t.Fatal("disable logger failed")
 	} else {
 		if !logger.Logger.Disable() {
-			t.Fatal("disbale logger failed")
+			t.Fatal("disable logger failed")
 		}
 	}
 	if ok := ToggleLogger(logName, false); !ok {

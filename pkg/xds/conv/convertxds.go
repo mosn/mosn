@@ -95,7 +95,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr:                    convertAddress(xdsListener.Address),
+		Addr: convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -471,6 +471,7 @@ func convertStreamFaultInjectConfig(s *any.Any) (map[string]interface{}, error) 
 					Duration: fixed_delay,
 				},
 			},
+			Delay: fixed_delay,
 		},
 		Abort: &v2.AbortInject{
 			Percent: abortPercent,
@@ -854,8 +855,19 @@ func convertRoutes(xdsRoutes []*xdsroute.Route) []v2.Router {
 			}
 			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.GetTypedPerFilterConfig())
 			routes = append(routes, route)
+		} else if xdsRouteAction := xdsRoute.GetDirectResponse(); xdsRouteAction != nil {
+			route := v2.Router{
+				RouterConfig: v2.RouterConfig{
+					Match:          convertRouteMatch(xdsRoute.GetMatch()),
+					DirectResponse: convertDirectResponseAction(xdsRouteAction),
+					//Decorator: v2.Decorator(xdsRoute.GetDecorator().String()),
+				},
+				Metadata: convertMeta(xdsRoute.GetMetadata()),
+			}
+			route.PerFilterConfig = convertPerRouteConfig(xdsRoute.GetTypedPerFilterConfig())
+			routes = append(routes, route)
 		} else {
-			log.DefaultLogger.Errorf("unsupported route actin, just Route and Redirect support yet, ignore this route")
+			log.DefaultLogger.Errorf("unsupported route actin, just Route, Redirect and DirectResponse support yet, ignore this route")
 			continue
 		}
 	}
@@ -1107,6 +1119,22 @@ func convertRedirectAction(xdsRedirectAction *xdsroute.RedirectAction) *v2.Redir
 	}
 }
 
+func convertDirectResponseAction(xdsDirectResponseAction *xdsroute.DirectResponseAction) *v2.DirectResponseAction {
+	if xdsDirectResponseAction == nil {
+		return nil
+	}
+
+	var body string
+	if rawData := xdsDirectResponseAction.GetBody(); rawData != nil {
+		body = rawData.GetInlineString()
+	}
+
+	return &v2.DirectResponseAction{
+		StatusCode: int(xdsDirectResponseAction.GetStatus()),
+		Body:       body,
+	}
+}
+
 /*
  func convertVirtualClusters(xdsVirtualClusters []*xdsroute.VirtualCluster) []v2.VirtualCluster {
 	 if xdsVirtualClusters == nil {
@@ -1162,7 +1190,6 @@ func convertClusterType(xdsClusterType xdsapi.Cluster_DiscoveryType) v2.ClusterT
 	case xdsapi.Cluster_ORIGINAL_DST:
 		return v2.ORIGINALDST_CLUSTER
 	}
-	//log.DefaultLogger.Fatalf("unsupported cluster type: %s, exchange to SIMPLE_CLUSTER", xdsClusterType.String())
 	return v2.SIMPLE_CLUSTER
 }
 
@@ -1181,7 +1208,6 @@ func convertLbPolicy(xdsLbPolicy xdsapi.Cluster_LbPolicy) v2.LbType {
 	case xdsapi.Cluster_RING_HASH:
 		return v2.LB_MAGLEV
 	}
-	//log.DefaultLogger.Fatalf("unsupported lb policy: %s, exchange to LB_RANDOM", xdsLbPolicy.String())
 	return v2.LB_RANDOM
 }
 

@@ -53,7 +53,7 @@ Partners participate in MOSN co-development to make MOSN better.
     <tr>
       <td align="center"  valign="middle">
         <a href="https://www.antfin.com" target="_blank">
-          <img width="222px"  src="https://mosn.io/images/community/antfin.png">
+          <img width="222px"  src="https://mosn.io/images/community/ant.png">
         </a>
       </td>
       <td align="center"  valign="middle">
@@ -157,7 +157,7 @@ Visit the [MOSN website](https://mosn.io/docs/community/) for more information o
 Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
 
 <p align="center">
-<img src="https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ" width="150">
+<img src="https://gw.alipayobjects.com/mdn/sofastack/afts/img/A*mARcS51zn2QAAAAAAAAAAAAAARQnAQ" width="150">
 </p>
 
 ## Community meeting
@@ -174,4 +174,3 @@ MOSN community holds regular meetings.
 <br/><br/>
 MOSN enriches the <a href="https://landscape.cncf.io/landscape=observability-and-analysis&license=apache-license-2-0">CNCF CLOUD NATIVE Landscape.</a>
 </p>
-

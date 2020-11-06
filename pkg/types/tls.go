@@ -48,16 +48,23 @@ func (v *HashValue) String() string {
 	return v.value
 }
 
-// TLSContextManager manages the listener/cluster's tls config
+// TLSContextManager manages the listener tls config
 type TLSContextManager interface {
 	// Conn handles the connection, makes a connection as tls connection
 	// or keep it as a non-tls connection
 	Conn(net.Conn) (net.Conn, error)
 	// Enabled returns true means the context manager can make a connection as tls connection
 	Enabled() bool
+}
+
+// TLSClientContextManager manages the cluster tls config
+type TLSClientContextManager interface {
+	TLSContextManager
 	// HashValue returns the tls context manager's config hash value
 	// If tls enabled is false, the hash value returns nil.
 	HashValue() *HashValue
+	// Fallback represents the config fallback
+	Fallback() bool
 }
 
 // TLSConfigContext contains a tls.Config and a HashValue represents the tls.Config

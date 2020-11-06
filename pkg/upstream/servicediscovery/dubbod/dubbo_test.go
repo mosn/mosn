@@ -37,8 +37,9 @@ func init() {
 		return nil
 	})
 
-	cluster.NewClusterManagerSingleton(nil, nil)
+	cluster.NewClusterManagerSingleton(nil, nil, nil)
 
+	Init(12356, 13245, "./www.log")
 }
 
 func TestNotify(t *testing.T) {

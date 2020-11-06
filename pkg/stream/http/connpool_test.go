@@ -19,14 +19,15 @@ package http
 
 import (
 	"context"
+	"sync"
+	"testing"
+	"time"
+
 	metrics "github.com/rcrowley/go-metrics"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"sync"
-	"testing"
-	"time"
 )
 
 type fakeClusterInfo struct {
@@ -50,7 +51,15 @@ func (mg *fakeTLSContextManager) Enabled() bool {
 	return false
 }
 
-func (ci *fakeClusterInfo) TLSMng() types.TLSContextManager {
+func (mg *fakeTLSContextManager) HashValue() *types.HashValue {
+	return nil
+}
+
+func (mg *fakeTLSContextManager) Fallback() bool {
+	return false
+}
+
+func (ci *fakeClusterInfo) TLSMng() types.TLSClientContextManager {
 	return &fakeTLSContextManager{}
 }
 
@@ -108,7 +117,7 @@ func TestGetAvailableClient(t *testing.T) {
 		},
 	}
 	host := cluster.NewSimpleHost(hc, ci)
-	pool := NewConnPool(host).(*connPool)
+	pool := NewConnPool(context.TODO(), host).(*connPool)
 
 	wg := sync.WaitGroup{}
 	wg.Add(500)
