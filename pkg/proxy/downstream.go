@@ -1060,8 +1060,9 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 	if dp != up {
 		if convHeader, err := protocol.ConvertHeader(s.context, up, dp, headers); err == nil {
 			return convHeader
+		} else {
+			log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
 		}
-		log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
 	}
 	return headers
 }
@@ -1089,8 +1090,9 @@ func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 	if dp != up {
 		if convData, err := protocol.ConvertData(s.context, up, dp, data); err == nil {
 			return convData
+		} else {
+			log.Proxy.Warnf(s.context, "[proxy] [downstream] convert data from %s to %s failed, %s", up, dp, err.Error())
 		}
-		log.Proxy.Warnf(s.context, "[proxy] [downstream] convert data from %s to %s failed, %s", up, dp, err.Error())
 	}
 	return data
 }
@@ -1113,8 +1115,9 @@ func (s *downStream) convertTrailer(trailers types.HeaderMap) types.HeaderMap {
 	if dp != up {
 		if convTrailer, err := protocol.ConvertTrailer(s.context, up, dp, trailers); err == nil {
 			return convTrailer
+		} else {
+			log.Proxy.Warnf(s.context, "[proxy] [downstream] convert trailer from %s to %s failed, %s", up, dp, err.Error())
 		}
-		log.Proxy.Warnf(s.context, "[proxy] [downstream] convert header from %s to %s failed, %s", up, dp, err.Error())
 	}
 	return trailers
 }
