@@ -105,7 +105,7 @@ func TestConnectTimeout(t *testing.T) {
 	timeout := time.Second
 
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", "2.2.2.2:22222")
-	conn := NewClientConnection(nil, timeout, nil, remoteAddr, nil)
+	conn := NewClientConnection(timeout, nil, remoteAddr, nil)
 	begin := time.Now()
 	err := conn.Connect()
 	if err == nil {
@@ -125,7 +125,7 @@ func TestConnectTimeout(t *testing.T) {
 }
 
 func TestClientConectionRemoteaddrIsNil(t *testing.T) {
-	conn := NewClientConnection(nil, 0, nil, nil, nil)
+	conn := NewClientConnection(0, nil, nil, nil)
 	err := conn.Connect()
 	if err == nil {
 		t.Errorf("connect should Failed")
@@ -178,7 +178,7 @@ func testConnStateBase(addr net.Addr, t *testing.T) {
 		t.Errorf("ConnState should be ConnClosed")
 	}
 
-	cc := NewClientConnection(nil, 0, nil, addr, nil)
+	cc := NewClientConnection(0, nil, addr, nil)
 	if cc.State() != api.ConnInit {
 		t.Errorf("ConnState should be ConnInit")
 	}
@@ -231,7 +231,7 @@ func TestUDSWriteRead(t *testing.T) {
 	}()
 	time.Sleep(time.Second) // wait accept goroutine
 
-	cc := NewClientConnection(nil, 0, nil, addr, nil)
+	cc := NewClientConnection(0, nil, addr, nil)
 	defer cc.Close(api.FlushWrite, api.RemoteClose)
 	// add read filter
 	filter := &testReadFilter{}

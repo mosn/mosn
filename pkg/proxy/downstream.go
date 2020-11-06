@@ -81,7 +81,12 @@ type downStream struct {
 	downstreamRespTrailers types.HeaderMap
 
 	// ~~~ state
-	// starts to send back downstream response, set on upstream response detected
+	// if upstreamResponseReceived == 1 means response is received
+	// 1. upstream response is received
+	// 2. timeout / terminate triggered
+	// the flag will be reset when do a retry
+	upstreamResponseReceived uint32
+	// starts to send back downstream response
 	downstreamResponseStarted bool
 	// downstream request received done
 	downstreamRecvDone bool
@@ -935,6 +940,9 @@ func (s *downStream) onUpstreamRequestSent() {
 					if ID != s.ID {
 						return
 					}
+					if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
+						return
+					}
 					s.onResponseTimeout()
 				})
 		}
@@ -986,6 +994,9 @@ func (s *downStream) setupPerReqTimeout() {
 					return
 				}
 				if ID != s.ID {
+					return
+				}
+				if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
 					return
 				}
 				s.onPerReqTimeout()
@@ -1284,6 +1295,8 @@ func (s *downStream) setupRetry(endStream bool) bool {
 		s.perRetryTimer.Stop()
 		s.perRetryTimer = nil
 	}
+
+	atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 1, 0)
 
 	return true
 }
