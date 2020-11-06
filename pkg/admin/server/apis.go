@@ -143,11 +143,28 @@ func statsDump(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	log.DefaultLogger.Infof("[admin api]  [stats dump] stats dump")
-	allMetrics := metrics.GetAll()
-	w.WriteHeader(200)
+	r.ParseForm()
+	if len(r.Form) == 0 {
+		allMetrics := metrics.GetAll()
+		w.WriteHeader(200)
+		sink := console.NewConsoleSink()
+		sink.Flush(w, allMetrics)
+		return
+	}
+	if len(r.Form) > 1 {
+		w.WriteHeader(400)
+		fmt.Fprintf(w, "only support one parameter")
+		return
+	}
+	key := r.FormValue("key")
+	m := metrics.GetMetricsFilter(key)
+	if m == nil {
+		w.WriteHeader(200)
+		fmt.Fprintf(w, "no metrics key: %s", key)
+		return
+	}
 	sink := console.NewConsoleSink()
-	sink.Flush(w, allMetrics)
-	return
+	sink.Flush(w, []types.Metrics{m})
 }
 
 func statsDumpProxyTotal(w http.ResponseWriter, r *http.Request) {
@@ -270,7 +287,7 @@ func disableLogger(w http.ResponseWriter, r *http.Request) {
 	if !log.ToggleLogger(string(loggerPath), true) {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: enbale %s logger failed", "disable logger", string(loggerPath))
 		w.WriteHeader(http.StatusBadRequest) // 400
-		msg := fmt.Sprintf(errMsgFmt, "disbale logger failed")
+		msg := fmt.Sprintf(errMsgFmt, "disable logger failed")
 		fmt.Fprint(w, msg)
 		return
 	}

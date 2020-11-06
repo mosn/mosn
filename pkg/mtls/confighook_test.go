@@ -81,7 +81,7 @@ func (hook *testConfigHooks) verifyPeerCertificate(roots *x509.CertPool, certs [
 		return err
 	}
 	if leaf.Subject.CommonName != hook.PassCommonName {
-		return errors.New("common name miss match")
+		return errors.New("tls: common name miss match")
 	}
 	return nil
 }

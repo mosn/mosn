@@ -235,6 +235,7 @@ type FilterChainFactory interface {
 }
 
 var (
-	ErrConnectionHasClosed = errors.New("connection has closed")
-	ErrWriteTryLockTimeout = errors.New("write trylock has timeout")
+	ErrConnectionHasClosed    = errors.New("connection has closed")
+	ErrWriteTryLockTimeout    = errors.New("write trylock has timeout")
+	ErrWriteBufferChanTimeout = errors.New("writeBufferChan has timeout")
 )

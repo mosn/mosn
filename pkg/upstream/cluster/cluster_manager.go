@@ -62,7 +62,7 @@ type clusterManager struct {
 	clustersMap      sync.Map
 	protocolConnPool sync.Map
 	tlsMetrics       *mtls.TLSStats
-	tlsMng           atomic.Value // store types.TLSContextManager
+	tlsMng           atomic.Value // store types.TLSClientContextManager
 	mux              sync.Mutex
 }
 
@@ -309,9 +309,9 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 	return pool
 }
 
-func (cm *clusterManager) GetTLSManager() types.TLSContextManager {
+func (cm *clusterManager) GetTLSManager() types.TLSClientContextManager {
 	v := cm.tlsMng.Load()
-	tlsmng, _ := v.(types.TLSContextManager)
+	tlsmng, _ := v.(types.TLSClientContextManager)
 	return tlsmng
 }
 
@@ -325,6 +325,7 @@ func (cm *clusterManager) UpdateTLSManager(tls *v2.TLSConfig) {
 		return
 	}
 	cm.tlsMng.Store(mng)
+	configmanager.SetClusterManagerTLS(*tls)
 }
 
 const (
@@ -393,7 +394,6 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				}
-				cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
 				func() {
 					// lock the load and delete
 					cm.mux.Lock()
@@ -408,6 +408,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						pool.Shutdown()
 						pool = factory(balancerContext.DownstreamContext(), host)
 						connectionPool.Store(addr, pool)
+						cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
 					}
 				}()
 

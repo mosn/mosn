@@ -210,7 +210,7 @@ func TestAccessLogDisable(t *testing.T) {
 
 	DefaultDisableAccessLog = true
 	format := types.DefaultAccessLogFormat
-	logName := "/tmp/mosn_accesslog/disbale_access.log"
+	logName := "/tmp/mosn_accesslog/disable_access.log"
 	os.Remove(logName)
 	accessLog, err := NewAccessLog(logName, format)
 	if err != nil {
@@ -218,7 +218,7 @@ func TestAccessLogDisable(t *testing.T) {
 	}
 
 	ctx := prepareLocalIpv6Ctx()
-	// try write disbale access log nothing happened
+	// try write disable access log nothing happened
 	accessLog.Log(ctx, nil, nil, nil)
 	time.Sleep(time.Second)
 	if b, err := ioutil.ReadFile(logName); err != nil || len(b) > 0 {
