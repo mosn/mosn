@@ -76,7 +76,7 @@ func (kp *xprotocolKeepAlive) loadAndDelete(key uint64) (val *keepAliveTimeout, 
 }
 
 // NewKeepAlive creates a keepalive object
-func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Duration, thres uint32) types.KeepAlive {
+func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Duration) types.KeepAlive {
 	kp := &xprotocolKeepAlive{
 		Codec:     codec,
 		Protocol:  xprotocol.GetProtocol(proto),

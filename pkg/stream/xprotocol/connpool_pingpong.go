@@ -220,7 +220,7 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 		proto := xprotocol.GetProtocol(subProtocol)
 		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
-			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second, 6)
+			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
 
 			ac.SetHeartBeater(rpcKeepAlive)

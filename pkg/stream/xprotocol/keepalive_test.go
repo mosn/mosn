@@ -53,7 +53,7 @@ type testCase struct {
 	Server    *mockServer
 }
 
-func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint32) *testCase {
+func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase {
 	// start a mock server
 	srv, err := newMockServer(srvTimeout)
 	if err != nil {
@@ -84,7 +84,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 		t.Fatal("codec is nil")
 	}
 	// start a keep alive
-	keepAlive := NewKeepAlive(codec, bolt.ProtocolName, keepTimeout, thres)
+	keepAlive := NewKeepAlive(codec, bolt.ProtocolName, keepTimeout)
 	keepAlive.StartIdleTimeout()
 	return &testCase{
 		KeepAlive: keepAlive.(*xprotocolKeepAlive),
@@ -94,7 +94,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration, thres uint
 }
 
 func TestKeepAlive(t *testing.T) {
-	tc := newTestCase(t, 0, time.Second, 6)
+	tc := newTestCase(t, 0, time.Second)
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
@@ -110,7 +110,7 @@ func TestKeepAlive(t *testing.T) {
 }
 
 func TestKeepAliveTimeout(t *testing.T) {
-	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond, 6)
+	tc := newTestCase(t, 50*time.Millisecond, 10*time.Millisecond)
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
@@ -127,7 +127,7 @@ func TestKeepAliveTimeout(t *testing.T) {
 }
 
 func TestKeepAliveTimeoutAndSuccess(t *testing.T) {
-	tc := newTestCase(t, 150*time.Millisecond, 20*time.Millisecond, 6)
+	tc := newTestCase(t, 150*time.Millisecond, 20*time.Millisecond)
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
@@ -159,7 +159,7 @@ func TestKeepAliveIdleFree(t *testing.T) {
 		maxIdleCount = 0
 		log.DefaultLogger.SetLogLevel(log.INFO)
 	}()
-	tc := newTestCase(t, 0, time.Second, 6)
+	tc := newTestCase(t, 0, time.Second)
 	defer tc.Server.Close()
 	testStats := &testStats{}
 	tc.KeepAlive.AddCallback(testStats.Record)
@@ -189,7 +189,7 @@ func TestKeepAliveIdleFreeWithData(t *testing.T) {
 		maxIdleCount = 0
 		log.DefaultLogger.SetLogLevel(log.INFO)
 	}()
-	tc := newTestCase(t, 0, time.Second, 6)
+	tc := newTestCase(t, 0, time.Second)
 	defer tc.Server.Close()
 	ch := make(chan struct{})
 	wg := sync.WaitGroup{}
