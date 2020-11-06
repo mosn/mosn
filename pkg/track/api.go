@@ -22,6 +22,13 @@ import (
 	"time"
 )
 
+func Begin(ctx context.Context) {
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		tb.Begin()
+	}
+}
+
 func StartTrack(ctx context.Context, phase TrackPhase) {
 	tb := trackBufferByContext(ctx)
 	if tb != nil {
@@ -36,21 +43,6 @@ func EndTrack(ctx context.Context, phase TrackPhase) {
 	}
 }
 
-func AddDataReceived(ctx context.Context) {
-	tb := trackBufferByContext(ctx)
-	if tb != nil {
-		tb.AddDataReceived()
-	}
-}
-
-func GetDataReceived(ctx context.Context) []time.Time {
-	tb := trackBufferByContext(ctx)
-	if tb != nil {
-		return tb.GetDataReceived()
-	}
-	return nil
-}
-
 func RangeCosts(ctx context.Context, f func(TrackPhase, TrackTime) bool) {
 	tb := trackBufferByContext(ctx)
 	if tb != nil {
@@ -58,10 +50,25 @@ func RangeCosts(ctx context.Context, f func(TrackPhase, TrackTime) bool) {
 	}
 }
 
+func VisitTimestamp(ctx context.Context, f func(TimestampPhase, time.Time) bool) {
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		tb.VisitTimestamp(f)
+	}
+}
+
 func GetTrackCosts(ctx context.Context) string {
 	tb := trackBufferByContext(ctx)
 	if tb != nil {
 		return tb.GetTrackCosts()
+	}
+	return ""
+}
+
+func StreamTimestamp(ctx context.Context) string {
+	tb := trackBufferByContext(ctx)
+	if tb != nil {
+		return tb.StreamTimestamp()
 	}
 	return ""
 }

@@ -21,7 +21,6 @@ import (
 	"context"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"mosn.io/api"
@@ -54,8 +53,6 @@ type streamConn struct {
 	clientStreamIDBase uint64
 	clientStreams      map[uint64]*xStream
 	clientCallbacks    types.StreamConnectionEventListener
-
-	dispatchFull uint32
 }
 
 func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbacks types.StreamConnectionEventListener,
@@ -148,24 +145,21 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	}
 	// decode frames
 	for {
+		if buf.Len() == 0 {
+			return
+		}
 		// 1. get stream-level ctx with bufferCtx
 		streamCtx := sc.ctxManager.Get()
 
+		track.Begin(streamCtx)
+		track.StartTrack(streamCtx, track.ProtocolDecode)
 		// 2. decode process
 		frame, err := sc.protocol.Decode(streamCtx, buf)
-
-		// record the data (request/response) received time.
-		if atomic.CompareAndSwapUint32(&sc.dispatchFull, 0, 1) {
-			track.AddDataReceived(streamCtx)
-			track.StartTrack(streamCtx, track.ProtocolDecode)
-		}
 
 		// 2.1 no enough data, break loop
 		if frame == nil && err == nil {
 			return
 		}
-
-		atomic.StoreUint32(&sc.dispatchFull, 0) // decode success or failed
 
 		// 2.2 handle error
 		if err != nil {
@@ -357,7 +351,7 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 
 	// response dispatch time
 	// store to client stream ctx
-	track.TransmitBufferByContext(clientStream.ctx, ctx)
+	track.BindRequestAndResponse(clientStream.ctx, ctx)
 
 	// transmit buffer ctx
 	buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)

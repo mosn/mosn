@@ -19,6 +19,7 @@ package track
 
 import (
 	"context"
+	"regexp"
 	"testing"
 	"time"
 
@@ -68,7 +69,7 @@ func TestTrackTransmit(t *testing.T) {
 		}
 	}()
 	// set value
-	AddDataReceived(dstCtx)
+	Begin(dstCtx)
 	for _, ph := range []TrackPhase{
 		ProtocolDecode, StreamFilterBeforeRoute, MatchRoute,
 	} {
@@ -78,9 +79,9 @@ func TestTrackTransmit(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	StartTrack(srcCtx, ProtocolDecode)
 	EndTrack(srcCtx, ProtocolDecode)
-	AddDataReceived(srcCtx)
+	Begin(srcCtx)
 	// Transmit
-	TransmitBufferByContext(dstCtx, srcCtx)
+	BindRequestAndResponse(dstCtx, srcCtx)
 	// Verify
 	RangeCosts(dstCtx, func(p TrackPhase, tk TrackTime) bool {
 		switch p {
@@ -96,8 +97,30 @@ func TestTrackTransmit(t *testing.T) {
 		}
 		return true
 	})
-	ts := GetDataReceived(dstCtx)
-	if len(ts) != 2 {
-		t.Fatalf("no data received")
+	var expectReqTime time.Time
+	var expectRespTime time.Time
+	VisitTimestamp(dstCtx, func(p TimestampPhase, tm time.Time) bool {
+		if tm.IsZero() {
+			t.Fatalf("%d phase time is zero", p)
+		}
+		switch p {
+		case RequestStartTimestamp:
+			expectReqTime = tm
+		case ResponseStartTimestamp:
+			expectRespTime = tm
+		default:
+		}
+		return true
+	})
+	if expectReqTime.IsZero() || expectRespTime.IsZero() || expectRespTime.Sub(expectReqTime) < 0 {
+		t.Fatalf("request and response time is not bind success, reqtime: %v, resp time: %v", expectReqTime, expectRespTime)
 	}
+	// timestamp wrapper
+	s := StreamTimestamp(dstCtx)
+	exp := regexp.MustCompile(`\[.+?,.+?\]`)
+	if !exp.MatchString(s) {
+		t.Fatalf("unexpected output timestamp: %s", s)
+	}
+	t.Logf("output is %s, reqtime: %v, resptime: %v", s, expectReqTime, expectRespTime)
+
 }

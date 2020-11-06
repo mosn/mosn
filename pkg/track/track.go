@@ -28,8 +28,14 @@ type TrackTime struct {
 }
 
 type Tracks struct {
-	datas            [MaxTrackPhase]TrackTime
-	DataReceiveTimes []time.Time
+	datas [MaxTrackPhase]TrackTime
+	times [MaxTimestampPhase]time.Time
+}
+
+func (t *Tracks) Begin() {
+	if t.times[TrackStartTimestamp].IsZero() {
+		t.times[TrackStartTimestamp] = time.Now()
+	}
 }
 
 func (t *Tracks) StartTrack(phase TrackPhase) {
@@ -53,14 +59,6 @@ func (t *Tracks) EndTrack(phase TrackPhase) {
 	t.datas[phase] = tk
 }
 
-func (t *Tracks) AddDataReceived() {
-	t.DataReceiveTimes = append(t.DataReceiveTimes, time.Now())
-}
-
-func (t *Tracks) GetDataReceived() []time.Time {
-	return t.DataReceiveTimes
-}
-
 // RangeCosts ranges the tracks data by f.
 // if f returns false, terminate the range
 func (t *Tracks) RangeCosts(f func(TrackPhase, TrackTime) bool) {
@@ -73,7 +71,17 @@ func (t *Tracks) RangeCosts(f func(TrackPhase, TrackTime) bool) {
 	}
 }
 
-// GetTrackCosts is a wrapper for tracks, only get strings to reserved fields
+func (t *Tracks) VisitTimestamp(f func(TimestampPhase, time.Time) bool) {
+	for i := range t.times {
+		phase := TimestampPhase(i)
+		timestamp := t.times[i]
+		if !f(phase, timestamp) {
+			return
+		}
+	}
+}
+
+// GetTrackCosts is a wrapper for tracks.RangeCosts, only get strings to reserved fields
 // if a extends fields added, use RangeCosts
 // [][][]...[]
 func (t *Tracks) GetTrackCosts() string {
@@ -92,5 +100,28 @@ func (t *Tracks) GetTrackCosts() string {
 		buf.WriteString("]")
 		return true
 	})
+	return buf.String()
+}
+
+// StreamTimestamp is a wrapper for tracks.VisitTimestamp, get request and response timestamp
+func (t *Tracks) StreamTimestamp() string {
+	var buf strings.Builder
+	buf.WriteString("[")
+	t.VisitTimestamp(func(p TimestampPhase, tm time.Time) bool {
+		switch p {
+		case RequestStartTimestamp:
+			if !tm.IsZero() {
+				buf.WriteString(tm.Format("2006-01-02 15:04:05.000"))
+			}
+			buf.WriteString(",")
+		case ResponseStartTimestamp:
+			if !tm.IsZero() {
+				buf.WriteString(tm.Format("2006-01-02 15:04:05.000"))
+			}
+		default:
+		}
+		return true
+	})
+	buf.WriteString("]")
 	return buf.String()
 }

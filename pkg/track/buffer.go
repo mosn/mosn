@@ -46,34 +46,39 @@ func (ctx proxyBufferCtx) Reset(i interface{}) {
 
 type trackBuffer struct {
 	Tracks
+	disabled bool
 }
 
 func trackBufferByContext(ctx context.Context) *trackBuffer {
-	// if track is not enabled, returns nil means no track records
-	if !TrackEnabled() {
-		return nil
-	}
 	// add a check to avoid ctx is not initialized by buffer.NewBufferPoolContext
 	if val := mosnctx.Get(ctx, types.ContextKeyBufferPoolCtx); val == nil {
 		return nil
 	}
 	poolCtx := buffer.PoolContext(ctx)
-	return poolCtx.Find(&ins, nil).(*trackBuffer)
+	tb := poolCtx.Find(&ins, nil).(*trackBuffer)
+	// once the track enabled is false, the track is disabled.
+	if !TrackEnabled() {
+		tb.disabled = true
+	}
+	// if track is not enabled, returns nil means no track records
+	if tb.disabled {
+		return nil
+	}
+	return tb
 }
 
-func TransmitBufferByContext(dst context.Context, src context.Context) {
-	dstTb := trackBufferByContext(dst)
-	if dstTb == nil {
+func BindRequestAndResponse(req context.Context, resp context.Context) {
+	reqTb := trackBufferByContext(req)
+	respTb := trackBufferByContext(resp)
+	if reqTb == nil || respTb == nil {
 		return
 	}
-	srcTb := trackBufferByContext(src)
-	if srcTb == nil {
-		return
-	}
-	dstTb.Tracks.DataReceiveTimes = append(dstTb.Tracks.DataReceiveTimes, srcTb.Tracks.DataReceiveTimes...)
-	for p, data := range srcTb.datas {
-		if len(data.Costs) > 0 {
-			dstTb.datas[p].Costs = append(dstTb.datas[p].Costs, data.Costs...)
+	for p, tk := range respTb.datas {
+		reqTb.datas[p].P = tk.P
+		if len(tk.Costs) > 0 {
+			reqTb.datas[p].Costs = append(reqTb.datas[p].Costs, tk.Costs...)
 		}
 	}
+	reqTb.times[RequestStartTimestamp] = reqTb.times[TrackStartTimestamp]
+	reqTb.times[ResponseStartTimestamp] = respTb.times[TrackStartTimestamp]
 }

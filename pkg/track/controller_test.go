@@ -35,14 +35,14 @@ func TestControlTrack(t *testing.T) {
 		}
 		c.Give()
 	}()
-	AddDataReceived(ctx)
+	Begin(ctx)
 	StartTrack(ctx, ProtocolDecode)
 	EndTrack(ctx, ProtocolDecode)
 	DisableTrack()
 	// no more datas
-	AddDataReceived(ctx)
 	StartTrack(ctx, StreamFilterBeforeRoute)
 	EndTrack(ctx, StreamFilterBeforeRoute)
+	EnableTrack()
 	RangeCosts(ctx, func(_ TrackPhase, _ TrackTime) bool {
 		t.Fatalf("no data outputs")
 		return false

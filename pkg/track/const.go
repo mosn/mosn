@@ -34,5 +34,15 @@ const (
 	NetworkDataWrite // request and response
 	StreamSendFilter
 	// some extends fields
+	// max phase
 	MaxTrackPhase TrackPhase = 15
+)
+
+type TimestampPhase int
+
+const (
+	TrackStartTimestamp TimestampPhase = iota
+	RequestStartTimestamp
+	ResponseStartTimestamp
+	MaxTimestampPhase
 )
