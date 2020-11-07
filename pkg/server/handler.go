@@ -147,6 +147,18 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		rawConfig.FilterChains[0].TLSConfig = lc.FilterChains[0].TLSConfig
 		rawConfig.FilterChains[0].TLSConfigs = lc.FilterChains[0].TLSConfigs
 		rawConfig.Inspector = lc.Inspector
+
+		// use global mtls config
+		if mtls.IsGlobalMTLS() {
+			if rawConfig.Type == "ingress" {
+				rawConfig.FilterChains[0].TLSContexts[0] = mtls.GlobalMTLS.ServerTLSContext
+				rawConfig.FilterChains[0].TLSConfig = &mtls.GlobalMTLS.ServerTLSContext
+			}
+			if rawConfig.Type == "egress" {
+				rawConfig.FilterChains[0].TLSContexts[0] = v2.TLSConfig{}
+			}
+		}
+
 		mgr, err := mtls.NewTLSServerContextManager(rawConfig)
 		if err != nil {
 			log.DefaultLogger.Errorf("[server] [conn handler] [update listener] create tls context manager failed, %v", err)

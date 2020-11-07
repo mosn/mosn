@@ -19,6 +19,7 @@ package main
 
 import (
 	"fmt"
+	"mosn.io/mosn/pkg/mtls"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -139,6 +140,10 @@ var (
 			flagLogLevel := c.String("log-level")
 
 			conf := configmanager.Load(configPath)
+
+			// init global mtls
+			mtls.GlobalMTLS = conf.GlobalMTLS
+
 			if mosnLogLevel, ok := flagToMosnLogLevel[flagLogLevel]; ok {
 				if mosnLogLevel == "OFF" {
 					log.GetErrorLoggerManagerInstance().Disable()

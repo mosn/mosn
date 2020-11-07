@@ -43,6 +43,15 @@ type MOSNConfig struct {
 	Debug               PProfConfig     `json:"pprof,omitempty"`
 	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
 	Extend              []ExtendItem    `json:"extend,omitempty"` // extend config
+
+	// global mtls config
+	GlobalMTLS GlobalMTLSConfig `json:"global_mtls"`
+}
+
+// ExtendItem is used to set global mtls context
+type GlobalMTLSConfig struct {
+	ClientTLSContext TLSConfig `json:"client_tls_context"`
+	ServerTLSContext TLSConfig `json:"server_tls_context"`
 }
 
 // ExtendItem is used to extend the mosn config by user need
