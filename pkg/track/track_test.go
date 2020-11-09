@@ -81,7 +81,15 @@ func TestTrack2(t *testing.T) {
 }
 
 func BenchmarkTrack(b *testing.B) {
-	track := Tracks{}
-	track.StartTrack(MatchRoute)
-	track.EndTrack(MatchRoute)
+	for i := 0; i < b.N; i++ {
+		track := &Tracks{}
+		for _, p := range []TrackPhase{
+			ProtocolDecode, StreamFilterBeforeRoute, MatchRoute, StreamFilterAfterRoute, LoadBalanceChooseHost,
+			StreamFilterAfterChooseHost, NetworkDataWrite, ProtocolDecode, StreamSendFilter, NetworkDataWrite,
+		} {
+
+			track.StartTrack(p)
+			track.EndTrack(p)
+		}
+	}
 }

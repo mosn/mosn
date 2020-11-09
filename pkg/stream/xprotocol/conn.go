@@ -151,8 +151,10 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		// 1. get stream-level ctx with bufferCtx
 		streamCtx := sc.ctxManager.Get()
 
-		track.Begin(streamCtx)
-		track.StartTrack(streamCtx, track.ProtocolDecode)
+		tracks := track.TrackBufferByContext(streamCtx).Tracks
+
+		tracks.Begin()
+		tracks.StartTrack(track.ProtocolDecode)
 		// 2. decode process
 		frame, err := sc.protocol.Decode(streamCtx, buf)
 
@@ -183,7 +185,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 				sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
 				return
 			}
-			track.EndTrack(streamCtx, track.ProtocolDecode)
+			tracks.EndTrack(track.ProtocolDecode)
 			sc.handleFrame(streamCtx, xframe)
 		}
 

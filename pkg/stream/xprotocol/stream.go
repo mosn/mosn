@@ -143,9 +143,11 @@ func (s *xStream) endStream() {
 			return
 		}
 
-		track.StartTrack(s.ctx, track.NetworkDataWrite)
+		tracks := track.TrackBufferByContext(s.ctx).Tracks
+
+		tracks.StartTrack(track.NetworkDataWrite)
 		err = s.sc.netConn.Write(buf)
-		track.EndTrack(s.ctx, track.NetworkDataWrite)
+		tracks.EndTrack(track.NetworkDataWrite)
 
 		if err != nil {
 			log.Proxy.Errorf(s.ctx, "[stream] [xprotocol] endStream, requestId = %v, error = %v", s.id, err)

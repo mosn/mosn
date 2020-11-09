@@ -26,6 +26,7 @@ import (
 
 func TestControlTrack(t *testing.T) {
 	ctx := buffer.NewBufferPoolContext(context.Background())
+	tb := TrackBufferByContext(ctx)
 	defer EnableTrack()
 	// call this defer first
 	defer func() {
@@ -35,15 +36,16 @@ func TestControlTrack(t *testing.T) {
 		}
 		c.Give()
 	}()
-	Begin(ctx)
-	StartTrack(ctx, ProtocolDecode)
-	EndTrack(ctx, ProtocolDecode)
+	tb.Begin()
+	tb.StartTrack(ProtocolDecode)
+	tb.EndTrack(ProtocolDecode)
 	DisableTrack()
-	// no more datas
-	StartTrack(ctx, StreamFilterBeforeRoute)
-	EndTrack(ctx, StreamFilterBeforeRoute)
+	// no more datas if get tb again
+	tb = TrackBufferByContext(ctx)
+	tb.StartTrack(StreamFilterBeforeRoute)
+	tb.EndTrack(StreamFilterBeforeRoute)
 	EnableTrack()
-	RangeCosts(ctx, func(_ TrackPhase, _ TrackTime) bool {
+	tb.RangeCosts(func(_ TrackPhase, _ TrackTime) bool {
 		t.Fatalf("no data outputs")
 		return false
 	})

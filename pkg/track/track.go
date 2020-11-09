@@ -28,18 +28,22 @@ type TrackTime struct {
 }
 
 type Tracks struct {
-	datas [MaxTrackPhase]TrackTime
-	times [MaxTimestampPhase]time.Time
+	datas    [MaxTrackPhase]TrackTime
+	times    [MaxTimestampPhase]time.Time
+	disabled bool
 }
 
 func (t *Tracks) Begin() {
+	if t.disabled {
+		return
+	}
 	if t.times[TrackStartTimestamp].IsZero() {
 		t.times[TrackStartTimestamp] = time.Now()
 	}
 }
 
 func (t *Tracks) StartTrack(phase TrackPhase) {
-	if phase >= MaxTrackPhase || phase < 0 {
+	if t.disabled || phase >= MaxTrackPhase || phase <= NoTrack {
 		return
 	}
 	tk := t.datas[phase]
@@ -48,7 +52,7 @@ func (t *Tracks) StartTrack(phase TrackPhase) {
 }
 
 func (t *Tracks) EndTrack(phase TrackPhase) {
-	if phase >= MaxTrackPhase || phase < 0 {
+	if t.disabled || phase >= MaxTrackPhase || phase <= NoTrack {
 		return
 	}
 	tk := t.datas[phase]
@@ -62,6 +66,9 @@ func (t *Tracks) EndTrack(phase TrackPhase) {
 // RangeCosts ranges the tracks data by f.
 // if f returns false, terminate the range
 func (t *Tracks) RangeCosts(f func(TrackPhase, TrackTime) bool) {
+	if t.disabled {
+		return
+	}
 	for i := range t.datas {
 		phase := TrackPhase(i)
 		track := t.datas[i]
@@ -72,6 +79,9 @@ func (t *Tracks) RangeCosts(f func(TrackPhase, TrackTime) bool) {
 }
 
 func (t *Tracks) VisitTimestamp(f func(TimestampPhase, time.Time) bool) {
+	if t.disabled {
+		return
+	}
 	for i := range t.times {
 		phase := TimestampPhase(i)
 		timestamp := t.times[i]

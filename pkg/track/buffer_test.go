@@ -28,6 +28,7 @@ import (
 
 func TestTrackFromContext(t *testing.T) {
 	ctx := buffer.NewBufferPoolContext(context.Background())
+	tb := TrackBufferByContext(ctx).Tracks
 	defer func() {
 		if c := buffer.PoolContext(ctx); c != nil {
 			c.Give()
@@ -36,10 +37,10 @@ func TestTrackFromContext(t *testing.T) {
 	for _, ph := range []TrackPhase{
 		ProtocolDecode, StreamFilterBeforeRoute, MatchRoute,
 	} {
-		StartTrack(ctx, ph)
-		EndTrack(ctx, ph)
+		tb.StartTrack(ph)
+		tb.EndTrack(ph)
 	}
-	RangeCosts(ctx, func(p TrackPhase, tk TrackTime) bool {
+	tb.RangeCosts(func(p TrackPhase, tk TrackTime) bool {
 		switch p {
 		case ProtocolDecode, StreamFilterBeforeRoute, MatchRoute:
 			if len(tk.Costs) != 1 {
@@ -49,7 +50,7 @@ func TestTrackFromContext(t *testing.T) {
 		}
 		return true
 	})
-	s := GetTrackCosts(ctx)
+	s := tb.GetTrackCosts()
 	if !outexp.MatchString(s) {
 		t.Fatalf("unexpected output: %s", s)
 	}
@@ -59,6 +60,8 @@ func TestTrackFromContext(t *testing.T) {
 func TestTrackTransmit(t *testing.T) {
 	dstCtx := buffer.NewBufferPoolContext(context.Background())
 	srcCtx := buffer.NewBufferPoolContext(context.Background())
+	dstTb := TrackBufferByContext(dstCtx).Tracks
+	srcTb := TrackBufferByContext(srcCtx).Tracks
 	defer func() {
 		for _, ctx := range []context.Context{
 			dstCtx, srcCtx,
@@ -69,21 +72,21 @@ func TestTrackTransmit(t *testing.T) {
 		}
 	}()
 	// set value
-	Begin(dstCtx)
+	dstTb.Begin()
 	for _, ph := range []TrackPhase{
 		ProtocolDecode, StreamFilterBeforeRoute, MatchRoute,
 	} {
-		StartTrack(dstCtx, ph)
-		EndTrack(dstCtx, ph)
+		dstTb.StartTrack(ph)
+		dstTb.EndTrack(ph)
 	}
 	time.Sleep(100 * time.Millisecond)
-	StartTrack(srcCtx, ProtocolDecode)
-	EndTrack(srcCtx, ProtocolDecode)
-	Begin(srcCtx)
+	srcTb.StartTrack(ProtocolDecode)
+	srcTb.EndTrack(ProtocolDecode)
+	srcTb.Begin()
 	// Transmit
 	BindRequestAndResponse(dstCtx, srcCtx)
 	// Verify
-	RangeCosts(dstCtx, func(p TrackPhase, tk TrackTime) bool {
+	dstTb.RangeCosts(func(p TrackPhase, tk TrackTime) bool {
 		switch p {
 		case ProtocolDecode:
 			if len(tk.Costs) != 2 {
@@ -99,7 +102,7 @@ func TestTrackTransmit(t *testing.T) {
 	})
 	var expectReqTime time.Time
 	var expectRespTime time.Time
-	VisitTimestamp(dstCtx, func(p TimestampPhase, tm time.Time) bool {
+	dstTb.VisitTimestamp(func(p TimestampPhase, tm time.Time) bool {
 		if tm.IsZero() {
 			t.Fatalf("%d phase time is zero", p)
 		}
@@ -116,11 +119,63 @@ func TestTrackTransmit(t *testing.T) {
 		t.Fatalf("request and response time is not bind success, reqtime: %v, resp time: %v", expectReqTime, expectRespTime)
 	}
 	// timestamp wrapper
-	s := StreamTimestamp(dstCtx)
+	s := dstTb.StreamTimestamp()
 	exp := regexp.MustCompile(`\[.+?,.+?\]`)
 	if !exp.MatchString(s) {
 		t.Fatalf("unexpected output timestamp: %s", s)
 	}
 	t.Logf("output is %s, reqtime: %v, resptime: %v", s, expectReqTime, expectRespTime)
 
+}
+
+func TestBufferReuse(t *testing.T) {
+	bkg := context.Background()
+	ctx := buffer.NewBufferPoolContext(bkg)
+	tb := TrackBufferByContext(ctx)
+	for _, p := range []TrackPhase{
+		ProtocolDecode, StreamFilterBeforeRoute, MatchRoute, StreamFilterAfterRoute, LoadBalanceChooseHost,
+		StreamFilterAfterChooseHost, NetworkDataWrite, ProtocolDecode, StreamSendFilter, NetworkDataWrite,
+	} {
+
+		tb.StartTrack(p)
+		tb.EndTrack(p)
+	}
+	if c := buffer.PoolContext(ctx); c != nil {
+		c.Give()
+	}
+	// a new context, all datas should be cleaned
+	ctx2 := buffer.NewBufferPoolContext(bkg)
+	tb2 := TrackBufferByContext(ctx2)
+	tb2.RangeCosts(func(p TrackPhase, tt TrackTime) bool {
+		if !(tt.P.IsZero() &&
+			len(tt.Costs) == 0) {
+			t.Fatalf("%d is not cleaned", p)
+		}
+		return true
+	})
+	tb2.VisitTimestamp(func(p TimestampPhase, tm time.Time) bool {
+		if !tm.IsZero() {
+			t.Fatalf("%d is not cleaned", p)
+		}
+		return true
+	})
+}
+
+func BenchmarkTrackAPI(b *testing.B) {
+	bkg := context.Background()
+	for i := 0; i < b.N; i++ {
+		ctx := buffer.NewBufferPoolContext(bkg)
+		tb := TrackBufferByContext(ctx).Tracks
+		for _, p := range []TrackPhase{
+			ProtocolDecode, StreamFilterBeforeRoute, MatchRoute, StreamFilterAfterRoute, LoadBalanceChooseHost,
+			StreamFilterAfterChooseHost, NetworkDataWrite, ProtocolDecode, StreamSendFilter, NetworkDataWrite,
+		} {
+
+			tb.StartTrack(p)
+			tb.EndTrack(p)
+		}
+		if c := buffer.PoolContext(ctx); c != nil {
+			c.Give()
+		}
+	}
 }

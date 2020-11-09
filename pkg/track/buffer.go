@@ -19,6 +19,7 @@ package track
 
 import (
 	"context"
+	"time"
 
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -29,47 +30,55 @@ func init() {
 	buffer.RegisterBuffer(&ins)
 }
 
-var ins = proxyBufferCtx{}
+var ins = trackBufferCtx{}
 
-type proxyBufferCtx struct {
+type trackBufferCtx struct {
 	buffer.TempBufferCtx
 }
 
-func (ctx proxyBufferCtx) New() interface{} {
-	return new(trackBuffer)
+func (ctx trackBufferCtx) New() interface{} {
+	return &TrackBuffer{
+		Tracks: &Tracks{},
+	}
 }
 
-func (ctx proxyBufferCtx) Reset(i interface{}) {
-	buf, _ := i.(*trackBuffer)
-	*buf = trackBuffer{}
+type TrackBuffer struct {
+	*Tracks
 }
 
-type trackBuffer struct {
-	Tracks
-	disabled bool
+func (ctx trackBufferCtx) Reset(i interface{}) {
+	buf, _ := i.(*TrackBuffer)
+	buf.disabled = false
+	for i := range buf.times {
+		buf.times[i] = time.Time{}
+	}
+	for i := range buf.datas {
+		buf.datas[i].P = time.Time{}
+		buf.datas[i].Costs = buf.datas[i].Costs[:0]
+	}
 }
 
-func trackBufferByContext(ctx context.Context) *trackBuffer {
+func TrackBufferByContext(ctx context.Context) *TrackBuffer {
 	// add a check to avoid ctx is not initialized by buffer.NewBufferPoolContext
 	if val := mosnctx.Get(ctx, types.ContextKeyBufferPoolCtx); val == nil {
-		return nil
+		return &TrackBuffer{
+			Tracks: &Tracks{
+				disabled: true,
+			},
+		}
 	}
 	poolCtx := buffer.PoolContext(ctx)
-	tb := poolCtx.Find(&ins, nil).(*trackBuffer)
+	tb := poolCtx.Find(&ins, nil).(*TrackBuffer)
 	// once the track enabled is false, the track is disabled.
 	if !TrackEnabled() {
 		tb.disabled = true
-	}
-	// if track is not enabled, returns nil means no track records
-	if tb.disabled {
-		return nil
 	}
 	return tb
 }
 
 func BindRequestAndResponse(req context.Context, resp context.Context) {
-	reqTb := trackBufferByContext(req)
-	respTb := trackBufferByContext(resp)
+	reqTb := TrackBufferByContext(req)
+	respTb := TrackBufferByContext(resp)
 	if reqTb == nil || respTb == nil {
 		return
 	}
