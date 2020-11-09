@@ -35,6 +35,19 @@ func init() {
 	initWorkerPool(nil, false)
 }
 
+type statusConverter func(status api.StreamFilterStatus) api.StreamFilterStatus
+
+func statusConverterDirectReturn(status api.StreamFilterStatus) api.StreamFilterStatus {
+	return status
+}
+
+func statusConverterConvert(status api.StreamFilterStatus) api.StreamFilterStatus {
+	if status == api.StreamFilterReMatchRoute || status == api.StreamFilterReChooseHost {
+		return api.StreamFilterContinue
+	}
+	return status
+}
+
 // StreamReceiverFilter
 // MOSN receive a request, run StreamReceiverFilters, and send request to upstream
 func TestRunReiverFilters(t *testing.T) {
@@ -47,6 +60,7 @@ func TestRunReiverFilters(t *testing.T) {
 				{
 					status: api.StreamFilterContinue,
 					phase:  api.BeforeRoute,
+					sc:     statusConverterConvert,
 				},
 				// this filter like fault inject filter matched condition
 				// in fault inject, it will call ContinueReceiving/SendHijackReply
@@ -54,6 +68,7 @@ func TestRunReiverFilters(t *testing.T) {
 				{
 					status: api.StreamFilterStop,
 					phase:  api.BeforeRoute,
+					sc:     statusConverterConvert,
 				},
 			},
 		},
@@ -63,10 +78,12 @@ func TestRunReiverFilters(t *testing.T) {
 				{
 					status: api.StreamFilterContinue,
 					phase:  api.BeforeRoute,
+					sc:     statusConverterConvert,
 				},
 				{
 					status: api.StreamFilterReMatchRoute,
 					phase:  api.AfterRoute,
+					sc:     statusConverterConvert,
 				},
 				// to prevent proxy. if a real stream filter returns all stop,
 				// it should call SendHijackReply, or the stream will be hung up
@@ -74,6 +91,7 @@ func TestRunReiverFilters(t *testing.T) {
 				{
 					status: api.StreamFilterStop,
 					phase:  api.AfterRoute,
+					sc:     statusConverterConvert,
 				},
 			},
 		},
@@ -82,10 +100,12 @@ func TestRunReiverFilters(t *testing.T) {
 				{
 					status: api.StreamFilterReMatchRoute,
 					phase:  api.AfterRoute,
+					sc:     statusConverterConvert,
 				},
 				{
 					status: api.StreamFilterStop,
 					phase:  api.AfterRoute,
+					sc:     statusConverterConvert,
 				},
 			},
 		},
@@ -93,8 +113,8 @@ func TestRunReiverFilters(t *testing.T) {
 	for i, tc := range testCases {
 		s := &downStream{
 			proxy: &proxy{
-				routersWrapper: &mockRouterWrapper{},
-				clusterManager: &mockClusterManager{},
+				routersWrapper:   &mockRouterWrapper{},
+				clusterManager:   &mockClusterManager{},
 				serverStreamConn: &mockServerConn{},
 			},
 			requestInfo: &network.RequestInfo{},
@@ -129,21 +149,24 @@ func TestRunReiverFiltersStop(t *testing.T) {
 			{
 				status: api.StreamFilterReMatchRoute,
 				phase:  api.AfterRoute,
+				sc:     statusConverterConvert,
 			},
 			{
 				status: api.StreamFilterStop,
 				phase:  api.AfterRoute,
+				sc:     statusConverterConvert,
 			},
 			{
 				status: api.StreamFilterContinue,
 				phase:  api.AfterRoute,
+				sc:     statusConverterConvert,
 			},
 		},
 	}
 	s := &downStream{
 		proxy: &proxy{
-			routersWrapper: &mockRouterWrapper{},
-			clusterManager: &mockClusterManager{},
+			routersWrapper:   &mockRouterWrapper{},
+			clusterManager:   &mockClusterManager{},
 			serverStreamConn: &mockServerConn{},
 		},
 		requestInfo: &network.RequestInfo{},
@@ -175,14 +198,17 @@ func TestRunReiverFiltersTermination(t *testing.T) {
 			{
 				status: api.StreamFilterContinue,
 				phase:  api.AfterRoute,
+				sc:     statusConverterConvert,
 			},
 			{
 				status: api.StreamFiltertermination,
 				phase:  api.AfterRoute,
+				sc:     statusConverterConvert,
 			},
 			{
 				status: api.StreamFilterContinue,
 				phase:  api.AfterRoute,
+				sc:     statusConverterConvert,
 			},
 		},
 	}
@@ -236,10 +262,12 @@ func TestRunReiverFilterHandler(t *testing.T) {
 				{
 					status: api.StreamFilterContinue,
 					phase:  api.BeforeRoute,
+					sc:     statusConverterConvert,
 				},
 				{
 					status: api.StreamFilterStop,
 					phase:  api.BeforeRoute,
+					sc:     statusConverterConvert,
 				},
 			},
 		},
@@ -248,10 +276,12 @@ func TestRunReiverFilterHandler(t *testing.T) {
 				{
 					status: api.StreamFilterReMatchRoute,
 					phase:  api.AfterRoute,
+					sc:     statusConverterConvert,
 				},
 				{
 					status: api.StreamFilterStop,
 					phase:  api.AfterRoute,
+					sc:     statusConverterConvert,
 				},
 			},
 		},
@@ -259,8 +289,8 @@ func TestRunReiverFilterHandler(t *testing.T) {
 	for i, tc := range testCases {
 		s := &downStream{
 			proxy: &proxy{
-				routersWrapper: &mockRouterWrapper{},
-				clusterManager: &mockClusterManager{},
+				routersWrapper:   &mockRouterWrapper{},
+				clusterManager:   &mockClusterManager{},
 				serverStreamConn: &mockServerConn{},
 			},
 			requestInfo: &network.RequestInfo{},
@@ -285,6 +315,53 @@ func TestRunReiverFilterHandler(t *testing.T) {
 			if f.currentPhase != f.phase {
 				t.Errorf("#%d.%d stream filter phase want: %d but got: %d", i, j, f.phase, f.currentPhase)
 			}
+		}
+	}
+}
+
+func Test_proxyStreamFilterManager_RunReceiverFilter(t *testing.T) {
+	testCases := []struct {
+		filters    []*mockStreamReceiverFilter
+		phase      api.FilterPhase
+		againPhase types.Phase
+	}{
+		{
+			filters: []*mockStreamReceiverFilter{
+				{
+					status: api.StreamFilterReMatchRoute,
+					phase:  api.FilterPhase(types.DownFilterAfterRoute),
+					sc:     statusConverterDirectReturn,
+				},
+			},
+			phase:      api.FilterPhase(types.DownFilterAfterRoute),
+			againPhase: types.MatchRoute,
+		},
+		{
+			filters: []*mockStreamReceiverFilter{
+				{
+					status: api.StreamFilterReChooseHost,
+					phase:  api.AfterChooseHost,
+					sc:     statusConverterDirectReturn,
+				},
+			},
+			phase:      api.FilterPhase(types.DownFilterAfterChooseHost),
+			againPhase: types.ChooseHost,
+		},
+	}
+	for i, tc := range testCases {
+		p := proxyStreamFilterManager{
+			downStream: &downStream{
+				ID: 0,
+			},
+		}
+		for _, filter := range tc.filters {
+			p.AddStreamReceiverFilter(filter, filter.phase)
+		}
+		p.RunReceiverFilter(context.TODO(), tc.phase,
+			protocol.CommonHeader{}, buffer.NewIoBuffer(0), protocol.CommonHeader{}, nil)
+		if p.receiverFiltersAgainPhase != tc.againPhase {
+			t.Errorf("testCase i=%v, proxyStreamFilterManager.RunReceiverFilter AgainPhase want: %v but got %v",
+				i, tc.againPhase, p.receiverFiltersAgainPhase)
 		}
 	}
 }
@@ -451,6 +528,7 @@ type mockStreamReceiverFilter struct {
 	// mock for test
 	phase api.FilterPhase
 	s     *downStream
+	sc    statusConverter
 }
 
 func (f *mockStreamReceiverFilter) OnDestroy() {}
@@ -461,10 +539,7 @@ func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.
 	if f.status == api.StreamFilterStop {
 		atomic.StoreUint32(&f.s.downstreamCleaned, 1)
 	}
-	if f.status == api.StreamFilterReMatchRoute || f.status == api.StreamFilterReChooseHost {
-		return api.StreamFilterContinue
-	}
-	return f.status
+	return f.sc(f.status)
 }
 
 func (f *mockStreamReceiverFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
