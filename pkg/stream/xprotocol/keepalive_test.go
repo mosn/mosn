@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -107,6 +108,32 @@ func TestKeepAlive(t *testing.T) {
 	if testStats.success != 5 {
 		t.Error("keep alive handle success not enough", testStats)
 	}
+}
+
+// when tick count more than 1, should send heart beat every tickCount intervals
+func TestKeepAliveTickMore(t *testing.T) {
+	tc := newTestCase(t, 0*time.Millisecond, 50* time.Millisecond)
+	defer tc.Server.Close()
+	defer RefreshKeepaliveConfig(DefaultKeepaliveConfig)
+
+	RefreshKeepaliveConfig(KeepaliveConfig{
+		TickCountIfFail:  1,
+		TickCountIfSucc:  2,
+		FailCountToClose: 6,
+	})
+
+	testStats := &testStats{}
+	tc.KeepAlive.AddCallback(testStats.Record)
+
+	// should tick 10 times, and success = 10 / tickCountIfSucc = 5
+	for i := 0; i < 10; i++ {
+		tc.KeepAlive.SendKeepAlive()
+		time.Sleep(80 * time.Millisecond)
+	}
+
+	// wait all response
+	time.Sleep(time.Second)
+	assert.Equal(t, int(testStats.success), 10/2)
 }
 
 func TestKeepAliveTimeout(t *testing.T) {
