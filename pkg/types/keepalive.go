@@ -30,6 +30,9 @@ type KeepAlive interface {
 	HandleSuccess(id uint64)
 	AddCallback(cb KeepAliveCallback)
 	Stop()
+
+	// ResetTick reset the tick count for keep alive
+	ResetTick()
 }
 
 type KeepAliveStatus int

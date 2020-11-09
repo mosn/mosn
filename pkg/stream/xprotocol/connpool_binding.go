@@ -92,6 +92,10 @@ func (p *poolBinding) NewStream(ctx context.Context, receiver types.StreamReceiv
 	host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
 	host.ClusterInfo().ResourceManager().Requests().Increase()
 
+	if c.keepAlive != nil && c.keepAlive.keepAlive != nil {
+		c.keepAlive.keepAlive.ResetTick()
+	}
+
 	return host, streamSender, ""
 }
 

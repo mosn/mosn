@@ -169,6 +169,10 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 		host.ClusterInfo().ResourceManager().Requests().Increase()
 	}
 
+	if activeClient.keepAlive != nil && activeClient.keepAlive.keepAlive != nil {
+		activeClient.keepAlive.keepAlive.ResetTick()
+	}
+
 	return host, streamEncoder, ""
 }
 
