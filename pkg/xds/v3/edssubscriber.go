@@ -36,7 +36,7 @@ func (c *ADSClient) reqEndpoints(streamClient envoy_service_discovery_v3.Aggrega
 		VersionInfo:   "",
 		ResourceNames: clusterNames,
 		TypeUrl:       EnvoyEndpoint,
-		ResponseNonce: "",
+		ResponseNonce: GetResponseNonceWithType(EnvoyEndpoint),
 		ErrorDetail:   nil,
 		Node: &envoy_config_core_v3.Node{
 			Id:       types.GetGlobalXdsInfo().ServiceNode,

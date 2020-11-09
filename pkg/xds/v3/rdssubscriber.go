@@ -43,7 +43,7 @@ func (c *ADSClient) reqRoutes(streamClient envoy_service_discovery_v3.Aggregated
 		VersionInfo:   "",
 		ResourceNames: routerNames,
 		TypeUrl:       EnvoyRoute,
-		ResponseNonce: "",
+		ResponseNonce: GetResponseNonceWithType(EnvoyRoute),
 		ErrorDetail:   nil,
 		Node: &envoy_config_core_v3.Node{
 			Id:       types.GetGlobalXdsInfo().ServiceNode,

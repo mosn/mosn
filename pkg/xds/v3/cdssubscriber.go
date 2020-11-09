@@ -36,7 +36,7 @@ func (c *ADSClient) reqClusters(streamClient envoy_service_discovery_v3.Aggregat
 		VersionInfo:   "",
 		ResourceNames: []string{},
 		TypeUrl:       EnvoyCluster,
-		ResponseNonce: "",
+		ResponseNonce: GetResponseNonceWithType(EnvoyCluster),
 		ErrorDetail:   nil,
 		Node: &envoy_config_core_v3.Node{
 			Id:       types.GetGlobalXdsInfo().ServiceNode,

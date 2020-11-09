@@ -36,7 +36,7 @@ func (c *ADSClient) reqListeners(streamClient envoy_service_discovery_v3.Aggrega
 		VersionInfo:   "",
 		ResourceNames: []string{},
 		TypeUrl:       EnvoyListener,
-		ResponseNonce: "",
+		ResponseNonce: GetResponseNonceWithType(EnvoyListener),
 		ErrorDetail:   nil,
 		Node: &envoy_config_core_v3.Node{
 			Id:       types.GetGlobalXdsInfo().ServiceNode,

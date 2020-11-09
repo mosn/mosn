@@ -18,6 +18,8 @@
 package v3
 
 import (
+	"sync"
+
 	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -33,6 +35,11 @@ const (
 	EnvoyCluster  = resource.ClusterType
 	EnvoyEndpoint = resource.EndpointType
 	EnvoyRoute    = resource.RouteType
+)
+
+var (
+	responseNonceMap map[string]string
+	mutex            sync.Mutex
 )
 
 func init() {
@@ -108,8 +115,26 @@ func HandleEnvoyRoute(client *ADSClient, resp *envoy_service_discovery_v3.Discov
 	AckResponse(client.StreamClient, resp)
 }
 
+// GetResponseNonceWithType get response nonce with request type
+func GetResponseNonceWithType(reqType string) string {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	if responseNonceMap == nil {
+		return ""
+	}
+	return responseNonceMap[reqType]
+}
+
 // AckResponse response resource nonce
 func AckResponse(streamClient envoy_service_discovery_v3.AggregatedDiscoveryService_StreamAggregatedResourcesClient, resp *envoy_service_discovery_v3.DiscoveryResponse) {
+	mutex.Lock()
+	if responseNonceMap == nil {
+		responseNonceMap = make(map[string]string, 10)
+	}
+	responseNonceMap[resp.TypeUrl] = resp.Nonce
+	mutex.Unlock()
+
 	err := streamClient.Send(&envoy_service_discovery_v3.DiscoveryRequest{
 		VersionInfo:   resp.VersionInfo,
 		ResourceNames: []string{},
