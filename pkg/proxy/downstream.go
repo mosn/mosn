@@ -420,7 +420,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.DownFilter, id)
 			}
-			s.RunReceiverFilter(s.context, api.FilterPhase(phase), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
+			s.RunReceiverFilter(s.context, api.BeforeRoute, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -443,7 +443,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.DownFilterAfterRoute, id)
 			}
-			s.RunReceiverFilter(s.context, api.FilterPhase(phase), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
+			s.RunReceiverFilter(s.context, api.AfterRoute, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -469,7 +469,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
 				s.printPhaseInfo(types.DownFilterAfterChooseHost, id)
 			}
-			s.RunReceiverFilter(s.context, api.FilterPhase(phase), s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
+			s.RunReceiverFilter(s.context, api.AfterChooseHost, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p

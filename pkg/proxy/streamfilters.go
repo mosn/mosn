@@ -39,20 +39,9 @@ func (manager *proxyStreamFilterManager) AddStreamSenderFilter(filter api.Stream
 	manager.DefaultStreamFilterManagerImpl.AddStreamSenderFilter(sf)
 }
 
-func (manager *proxyStreamFilterManager) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.FilterPhase) {
-	var phase types.Phase
-	switch p {
-	case api.BeforeRoute:
-		phase = types.DownFilter
-	case api.AfterRoute:
-		phase = types.DownFilterAfterRoute
-	case api.AfterChooseHost:
-		phase = types.DownFilterAfterChooseHost
-	default:
-		phase = types.DownFilterAfterRoute
-	}
-	sf := newActiveStreamReceiverFilter(manager.downStream, filter, phase)
-	manager.DefaultStreamFilterManagerImpl.AddStreamReceiverFilter(sf, api.FilterPhase(phase))
+func (manager *proxyStreamFilterManager) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.FilterPhase) {
+	sf := newActiveStreamReceiverFilter(manager.downStream, filter, types.Phase(phase))
+	manager.DefaultStreamFilterManagerImpl.AddStreamReceiverFilter(sf, phase)
 }
 
 func (manager *proxyStreamFilterManager) AddStreamAccessLog(accessLog api.AccessLog) {
@@ -61,11 +50,11 @@ func (manager *proxyStreamFilterManager) AddStreamAccessLog(accessLog api.Access
 	}
 }
 
-func (manager *proxyStreamFilterManager) RunReceiverFilter(ctx context.Context, p api.FilterPhase,
+func (manager *proxyStreamFilterManager) RunReceiverFilter(ctx context.Context, phase api.FilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler filter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
-	return manager.DefaultStreamFilterManagerImpl.RunReceiverFilter(ctx, p, headers, data, trailers,
+	return manager.DefaultStreamFilterManagerImpl.RunReceiverFilter(ctx, phase, headers, data, trailers,
 		func(status api.StreamFilterStatus) filter.StreamFilterChainStatus {
 			switch status {
 			case api.StreamFilterStop:
@@ -74,15 +63,15 @@ func (manager *proxyStreamFilterManager) RunReceiverFilter(ctx context.Context, 
 				manager.downStream.cleanStream()
 				return filter.StreamFilterChainReset
 			case api.StreamFilterReMatchRoute:
-				// Retry only at the DownFilterAfterRoute phase
-				if types.Phase(p) == types.DownFilterAfterRoute {
+				// Retry only at the AfterRoute phase
+				if phase == api.AfterRoute {
 					// FiltersIndex is not increased until no retry is required
 					manager.receiverFiltersAgainPhase = types.MatchRoute
 					return filter.StreamFilterChainStop
 				}
 			case api.StreamFilterReChooseHost:
-				// Retry only at the DownFilterAfterChooseHost phase
-				if types.Phase(p) == types.DownFilterAfterChooseHost {
+				// Retry only at the AfterChooseHost phase
+				if phase == api.AfterChooseHost {
 					// FiltersIndex is not increased until no retry is required
 					manager.receiverFiltersAgainPhase = types.ChooseHost
 					return filter.StreamFilterChainStop
