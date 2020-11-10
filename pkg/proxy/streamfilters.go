@@ -36,12 +36,12 @@ type proxyStreamFilterManager struct {
 
 func (manager *proxyStreamFilterManager) AddStreamSenderFilter(filter api.StreamSenderFilter) {
 	sf := newActiveStreamSenderFilter(manager.downStream, filter)
-	manager.DefaultStreamFilterManagerImpl.AddStreamSenderFilter(sf)
+	manager.DefaultStreamFilterManagerImpl.AddStreamSenderFilterWithPhase(sf)
 }
 
 func (manager *proxyStreamFilterManager) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.FilterPhase) {
 	sf := newActiveStreamReceiverFilter(manager.downStream, filter, types.Phase(phase))
-	manager.DefaultStreamFilterManagerImpl.AddStreamReceiverFilter(sf, phase)
+	manager.DefaultStreamFilterManagerImpl.AddStreamReceiverFilterWithPhase(sf)
 }
 
 func (manager *proxyStreamFilterManager) AddStreamAccessLog(accessLog api.AccessLog) {
@@ -139,7 +139,7 @@ func newActiveStreamReceiverFilter(activeStream *downStream,
 	return f
 }
 
-func (f *activeStreamReceiverFilter) CheckPhase(phase api.FilterPhase) bool {
+func (f *activeStreamReceiverFilter) ValidatePhase(phase api.FilterPhase) bool {
 	return api.FilterPhase(f.p) == phase
 }
 
@@ -280,7 +280,7 @@ func newActiveStreamSenderFilter(activeStream *downStream,
 	return f
 }
 
-func (f *activeStreamSenderFilter) CheckPhase(phase api.FilterPhase) bool {
+func (f *activeStreamSenderFilter) ValidatePhase(phase api.FilterPhase) bool {
 	return true
 }
 

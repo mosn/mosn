@@ -329,11 +329,11 @@ func Test_proxyStreamFilterManager_RunReceiverFilter(t *testing.T) {
 			filters: []*mockStreamReceiverFilter{
 				{
 					status: api.StreamFilterReMatchRoute,
-					phase:  api.FilterPhase(types.DownFilterAfterRoute),
+					phase:  api.AfterRoute,
 					sc:     statusConverterDirectReturn,
 				},
 			},
-			phase:      api.FilterPhase(types.DownFilterAfterRoute),
+			phase:      api.AfterRoute,
 			againPhase: types.MatchRoute,
 		},
 		{
@@ -344,7 +344,7 @@ func Test_proxyStreamFilterManager_RunReceiverFilter(t *testing.T) {
 					sc:     statusConverterDirectReturn,
 				},
 			},
-			phase:      api.FilterPhase(types.DownFilterAfterChooseHost),
+			phase:      api.AfterChooseHost,
 			againPhase: types.ChooseHost,
 		},
 	}

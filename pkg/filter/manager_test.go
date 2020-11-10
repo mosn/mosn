@@ -35,7 +35,7 @@ func (m *mockStreamFilter1) OnReceive(ctx context.Context, headers api.HeaderMap
 func (m *mockStreamFilter1) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 }
 
-func (m *mockStreamFilter1) CheckPhase(phase api.FilterPhase) bool {
+func (m *mockStreamFilter1) ValidatePhase(phase api.FilterPhase) bool {
 	return int(phase) == 101
 }
 
@@ -61,7 +61,7 @@ func (m *mockStreamFilter2) OnReceive(ctx context.Context, headers api.HeaderMap
 func (m *mockStreamFilter2) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 }
 
-func (m *mockStreamFilter2) CheckPhase(phase api.FilterPhase) bool {
+func (m *mockStreamFilter2) ValidatePhase(phase api.FilterPhase) bool {
 	return int(phase) == 102
 }
 

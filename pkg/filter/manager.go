@@ -66,7 +66,7 @@ type StreamFilterManager interface {
 // StreamReceiverFilterWithPhase combines the StreamReceiverFilter with its Phase.
 type StreamReceiverFilterWithPhase interface {
 	api.StreamReceiverFilter
-	CheckPhase(phase api.FilterPhase) bool
+	ValidatePhase(phase api.FilterPhase) bool
 }
 
 // StreamReceiverFilterWithPhaseImpl is the default implementation of StreamReceiverFilterWithPhase.
@@ -100,15 +100,15 @@ func (s *StreamReceiverFilterWithPhaseImpl) SetReceiveFilterHandler(handler api.
 	s.filter.SetReceiveFilterHandler(handler)
 }
 
-// CheckPhase checks the current phase.
-func (s *StreamReceiverFilterWithPhaseImpl) CheckPhase(phase api.FilterPhase) bool {
+// ValidatePhase checks the current phase.
+func (s *StreamReceiverFilterWithPhaseImpl) ValidatePhase(phase api.FilterPhase) bool {
 	return s.phase == phase
 }
 
 // StreamSenderFilterWithPhase combines the StreamSenderFilter which its Phase.
 type StreamSenderFilterWithPhase interface {
 	api.StreamSenderFilter
-	CheckPhase(phase api.FilterPhase) bool
+	ValidatePhase(phase api.FilterPhase) bool
 }
 
 // StreamSenderFilterWithPhaseImpl is default implementation of StreamSenderFilterWithPhase.
@@ -141,8 +141,8 @@ func (s *StreamSenderFilterWithPhaseImpl) SetSenderFilterHandler(handler api.Str
 	s.filter.SetSenderFilterHandler(handler)
 }
 
-// CheckPhase checks the current phase.
-func (s *StreamSenderFilterWithPhaseImpl) CheckPhase(phase api.FilterPhase) bool {
+// ValidatePhase checks the current phase.
+func (s *StreamSenderFilterWithPhaseImpl) ValidatePhase(phase api.FilterPhase) bool {
 	return true
 }
 
@@ -160,13 +160,21 @@ type DefaultStreamFilterManagerImpl struct {
 // AddStreamSenderFilter registers senderFilters.
 func (d *DefaultStreamFilterManagerImpl) AddStreamSenderFilter(filter api.StreamSenderFilter) {
 	f := NewStreamSenderFilterWithPhaseImpl(filter, UndefinedFilterPhase)
-	d.senderFilters = append(d.senderFilters, f)
+	d.AddStreamSenderFilterWithPhase(f)
+}
+
+func (d *DefaultStreamFilterManagerImpl) AddStreamSenderFilterWithPhase(filter StreamSenderFilterWithPhase) {
+	d.senderFilters = append(d.senderFilters, filter)
 }
 
 // AddStreamReceiverFilter registers receiver filters.
 func (d *DefaultStreamFilterManagerImpl) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.FilterPhase) {
 	f := NewStreamReceiverFilterWithPhaseImpl(filter, p)
-	d.receiverFilters = append(d.receiverFilters, f)
+	d.AddStreamReceiverFilterWithPhase(f)
+}
+
+func (d *DefaultStreamFilterManagerImpl) AddStreamReceiverFilterWithPhase(filter StreamReceiverFilterWithPhase) {
+	d.receiverFilters = append(d.receiverFilters, filter)
 }
 
 // AddStreamAccessLog registers access logger.
@@ -186,7 +194,7 @@ func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, 
 
 	for ; d.receiverFiltersIndex < len(d.receiverFilters); d.receiverFiltersIndex++ {
 		filter := d.receiverFilters[d.receiverFiltersIndex]
-		if !filter.CheckPhase(phase) {
+		if !filter.ValidatePhase(phase) {
 			continue
 		}
 
@@ -223,7 +231,7 @@ func (d *DefaultStreamFilterManagerImpl) RunSenderFilter(ctx context.Context, ph
 
 	for ; d.senderFiltersIndex < len(d.senderFilters); d.senderFiltersIndex++ {
 		filter := d.senderFilters[d.senderFiltersIndex]
-		if !filter.CheckPhase(phase) {
+		if !filter.ValidatePhase(phase) {
 			continue
 		}
 
