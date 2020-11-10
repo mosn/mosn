@@ -233,11 +233,6 @@ func (kp *xprotocolKeepAlive) Stop() {
 	})
 }
 
-// ResetTick resets the tick, so the count start from 0 again
-func (kp *xprotocolKeepAlive) ResetTick() {
-	kp.tickCount.Store(0)
-}
-
 // StreamReceiver Implementation
 // we just needs to make sure we can receive a response, do not care the data we received
 func (kp *xprotocolKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
