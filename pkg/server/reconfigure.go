@@ -91,6 +91,7 @@ func reconfigure(start bool) {
 	}
 	if enableInheritOldMosnconfig {
 		if err = SendInheritConfig(); err != nil {
+			listenSockConn.Close()
 			return
 		}
 	}

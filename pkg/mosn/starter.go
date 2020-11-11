@@ -21,6 +21,7 @@ import (
 	"net"
 	"sync"
 	"syscall"
+	"time"
 
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
@@ -216,7 +217,8 @@ func (m *Mosn) beforeStart() {
 		if err := store.StartService(m.inheritListeners); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
 		}
-
+		// wait old mosn send mosnconfig
+		time.Sleep(time.Second * 11)
 		// notify old mosn to transfer connection
 		if _, err := m.listenSockConn.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
