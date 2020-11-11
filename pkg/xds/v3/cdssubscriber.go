@@ -32,11 +32,13 @@ func (c *ADSClient) reqClusters(streamClient envoy_service_discovery_v3.Aggregat
 	if streamClient == nil {
 		return errors.New("stream client is nil")
 	}
+
+	rs := getResponseRequestInfo(EnvoyCluster)
 	err := streamClient.Send(&envoy_service_discovery_v3.DiscoveryRequest{
-		VersionInfo:   "",
-		ResourceNames: []string{},
+		VersionInfo:   rs.VersionInfo,
+		ResourceNames: rs.ResourceNames,
 		TypeUrl:       EnvoyCluster,
-		ResponseNonce: GetResponseNonceWithType(EnvoyCluster),
+		ResponseNonce: rs.ResponseNonce,
 		ErrorDetail:   nil,
 		Node: &envoy_config_core_v3.Node{
 			Id:       types.GetGlobalXdsInfo().ServiceNode,

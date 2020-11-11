@@ -77,3 +77,9 @@ type StreamClient struct {
 
 // TypeURLHandleFunc is a function that used to parse ads type url data
 type TypeURLHandleFunc func(client *ADSClient, resp *envoy_service_discovery_v3.DiscoveryResponse)
+
+type responseInfo struct {
+	ResponseNonce string
+	VersionInfo   string
+	ResourceNames []string
+}

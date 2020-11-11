@@ -18,6 +18,7 @@
 package conv
 
 import (
+	"errors"
 	"fmt"
 
 	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -167,6 +168,22 @@ func ConvertUpdateEndpoints(loadAssignments []*envoy_config_endpoint_v3.ClusterL
 	for _, loadAssignment := range loadAssignments {
 		clusterName := loadAssignment.ClusterName
 
+		if len(loadAssignment.Endpoints) == 0 {
+			clusterMngAdapter := clusterAdapter.GetClusterMngAdapterInstance()
+			if clusterMngAdapter == nil {
+				log.DefaultLogger.Errorf("xds client update Error: clusterMngAdapter nil , hosts is empty")
+				return errors.New("xds client update Error: clusterMngAdapter nil , hosts is empty")
+			}
+
+			if err := clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterHostUpdate(clusterName, nil); err != nil {
+				log.DefaultLogger.Errorf("xds client update Error = %s, hosts are is empty", err.Error())
+				errGlobal = fmt.Errorf("xds client update Error = %s, hosts are is empty", err.Error())
+			} else {
+				log.DefaultLogger.Debugf("xds client update host success,hosts is empty")
+			}
+			continue
+		}
+
 		for _, endpoints := range loadAssignment.Endpoints {
 			hosts := ConvertEndpointsConfig(endpoints)
 			log.DefaultLogger.Debugf("xds client update endpoints: cluster: %s, priority: %d", loadAssignment.ClusterName, endpoints.Priority)
@@ -177,7 +194,7 @@ func ConvertUpdateEndpoints(loadAssignments []*envoy_config_endpoint_v3.ClusterL
 			clusterMngAdapter := clusterAdapter.GetClusterMngAdapterInstance()
 			if clusterMngAdapter == nil {
 				log.DefaultLogger.Errorf("xds client update Error: clusterMngAdapter nil , hosts are %+v", hosts)
-				errGlobal = fmt.Errorf("xds client update Error: clusterMngAdapter nil , hosts are %+v", hosts)
+				return fmt.Errorf("xds client update Error: clusterMngAdapter nil , hosts are %+v", hosts)
 			}
 
 			if err := clusterAdapter.GetClusterMngAdapterInstance().TriggerClusterHostUpdate(clusterName, hosts); err != nil {
