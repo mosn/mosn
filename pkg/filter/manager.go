@@ -6,7 +6,6 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 )
 
 // UndefinedFilterPhase undefined filter phase, used for senderFilter.
@@ -71,33 +70,17 @@ type StreamReceiverFilterWithPhase interface {
 
 // StreamReceiverFilterWithPhaseImpl is the default implementation of StreamReceiverFilterWithPhase.
 type StreamReceiverFilterWithPhaseImpl struct {
-	filter api.StreamReceiverFilter
-	phase  api.FilterPhase
+	api.StreamReceiverFilter
+	phase api.FilterPhase
 }
 
 // NewStreamReceiverFilterWithPhaseImpl returns a StreamReceiverFilterWithPhaseImpl struct..
 func NewStreamReceiverFilterWithPhaseImpl(
 	f api.StreamReceiverFilter, p api.FilterPhase) *StreamReceiverFilterWithPhaseImpl {
 	return &StreamReceiverFilterWithPhaseImpl{
-		filter: f,
-		phase:  p,
+		StreamReceiverFilter: f,
+		phase:                p,
 	}
-}
-
-// OnDestroy destroys the StreamReceiverFilter.
-func (s *StreamReceiverFilterWithPhaseImpl) OnDestroy() {
-	s.filter.OnDestroy()
-}
-
-// OnReceive invokes the StreamReceiverFilter.
-func (s *StreamReceiverFilterWithPhaseImpl) OnReceive(ctx context.Context,
-	headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	return s.filter.OnReceive(ctx, headers, buf, trailers)
-}
-
-// SetReceiveFilterHandler sets the filterHandler for StreamReceiverFilter.
-func (s *StreamReceiverFilterWithPhaseImpl) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
-	s.filter.SetReceiveFilterHandler(handler)
 }
 
 // ValidatePhase checks the current phase.
@@ -113,32 +96,16 @@ type StreamSenderFilterWithPhase interface {
 
 // StreamSenderFilterWithPhaseImpl is default implementation of StreamSenderFilterWithPhase.
 type StreamSenderFilterWithPhaseImpl struct {
-	filter api.StreamSenderFilter
-	phase  api.FilterPhase
+	api.StreamSenderFilter
+	phase api.FilterPhase
 }
 
 // NewStreamSenderFilterWithPhaseImpl returns a new StreamSenderFilterWithPhaseImpl.
 func NewStreamSenderFilterWithPhaseImpl(f api.StreamSenderFilter, p api.FilterPhase) *StreamSenderFilterWithPhaseImpl {
 	return &StreamSenderFilterWithPhaseImpl{
-		filter: f,
-		phase:  p,
+		StreamSenderFilter: f,
+		phase:              p,
 	}
-}
-
-// OnDestroy destroys the StreamSenderFilter.
-func (s *StreamSenderFilterWithPhaseImpl) OnDestroy() {
-	s.filter.OnDestroy()
-}
-
-// Append invokes the StreamSenderFilter.
-func (s *StreamSenderFilterWithPhaseImpl) Append(ctx context.Context,
-	headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	return s.filter.Append(ctx, headers, buf, trailers)
-}
-
-// SetSenderFilterHandler set the filterHandler of StreamSenderFilter.
-func (s *StreamSenderFilterWithPhaseImpl) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
-	s.filter.SetSenderFilterHandler(handler)
 }
 
 // ValidatePhase checks the current phase.
