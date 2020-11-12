@@ -19,6 +19,7 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"mosn.io/mosn/pkg/types"
@@ -225,7 +226,7 @@ func upstreamClusterGetter(ctx context.Context, value *variable.IndexedValue, da
 	if stream.cluster != nil {
 		return stream.cluster.Name(), nil
 	}
-	return variable.ValueNotFound, nil
+	return variable.ValueNotFound, errors.New("not found clustername")
 }
 
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

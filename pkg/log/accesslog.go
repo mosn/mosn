@@ -20,7 +20,6 @@ package log
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
@@ -37,6 +36,8 @@ var (
 	ErrLogFormatUndefined = errors.New("access log format undefined")
 	ErrEmptyVarDef        = errors.New("access log format error: empty variable definition")
 	ErrUnclosedVarDef     = errors.New("access log format error: unclosed variable definition")
+
+	UnknowDefaultValue = "-"
 )
 
 const AccessLogLen = 1 << 8
@@ -157,7 +158,7 @@ func parseFormat(format string) ([]*logEntry, error) {
 					_, err := variable.AddVariable(varName)
 					if err != nil {
 						// adapte istio unknow fields
-						entries = append(entries, &logEntry{text: fmt.Sprintf("%%%s%%", varName)})
+						entries = append(entries, &logEntry{text: UnknowDefaultValue})
 					} else {
 						entries = append(entries, &logEntry{name: varName})
 					}
