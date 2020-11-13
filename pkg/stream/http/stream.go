@@ -124,6 +124,7 @@ type streamConnection struct {
 	resetReason       types.StreamResetReason
 
 	bufChan    chan buffer.IoBuffer
+	endRead    chan struct{}
 	connClosed chan bool
 
 	br *bufio.Reader
@@ -140,7 +141,7 @@ func (sc *streamConnection) Dispatch(buffer buffer.IoBuffer) {
 
 	for buffer.Len() > 0 {
 		sc.bufChan <- buffer
-		<-sc.bufChan
+		<-sc.endRead
 	}
 }
 
@@ -181,7 +182,7 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 
 	n = copy(p, data.Bytes())
 	data.Drain(n)
-	conn.bufChan <- nil
+	conn.endRead <- nil
 	return
 }
 
@@ -216,6 +217,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 			context:    ctx,
 			conn:       connection,
 			bufChan:    make(chan buffer.IoBuffer),
+			endRead:    make(chan struct{}),
 			connClosed: make(chan bool, 1),
 		},
 		connectionEventListener:       connCallbacks,
@@ -348,6 +350,7 @@ func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.C
 
 func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
 	close(conn.bufChan)
+	close(conn.endRead)
 	close(conn.connClosed)
 	conn.resetReason = reason
 }
@@ -371,6 +374,7 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 			context:    ctx,
 			conn:       connection,
 			bufChan:    make(chan buffer.IoBuffer),
+			endRead:    make(chan struct{}),
 			connClosed: make(chan bool, 1),
 		},
 		contextManager:           str.NewContextManager(ctx),
@@ -411,6 +415,7 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		close(conn.bufChan)
+		close(conn.endRead)
 		close(conn.connClosed)
 	}
 }
@@ -540,6 +545,9 @@ func (conn *serverStreamConnection) CheckReasonError(connected bool, event api.C
 
 func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
 	close(conn.bufChan)
+	close(conn.endRead)
+	close(conn.connClosed)
+	conn.resetReason = reason
 }
 
 // types.Stream
