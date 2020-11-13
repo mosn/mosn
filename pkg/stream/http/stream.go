@@ -182,7 +182,7 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 
 	n = copy(p, data.Bytes())
 	data.Drain(n)
-	conn.endRead <- nil
+	conn.endRead <- struct{}{}
 	return
 }
 
