@@ -23,10 +23,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mosn.io/mosn/pkg/trace"
 	"net/http"
 	"net/url"
 	"strconv"
 	"sync"
+	"time"
 
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
@@ -43,28 +45,28 @@ import (
 )
 
 func init() {
-	str.Register(protocol.HTTP2, &streamConnFactory{})
+	str.Register(protocol.HTTP2, &StreamConnFactory{})
 }
 
-type streamConnFactory struct{}
+type StreamConnFactory struct{}
 
-func (f *streamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
+func (f *StreamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(context, connection, clientCallbacks)
 }
 
-func (f *streamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
+func (f *StreamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(context, connection, serverCallbacks)
 }
 
-func (f *streamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
+func (f *StreamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
 }
 
-func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
+func (f *StreamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	var size int
 	var again bool
 	if len(magic) >= len(http2.ClientPreface) {
@@ -413,7 +415,16 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	conn.streams[stream.id] = stream
 	conn.mutex.Unlock()
 
-	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
+	var span types.Span
+	if trace.IsEnabled() {
+		// try build trace span
+		tracer := trace.Tracer(protocol.HTTP2)
+		if tracer != nil {
+			span = tracer.Start(ctx, h2s.Request, time.Now())
+		}
+	}
+
+	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, span)
 
 	return stream, nil
 }

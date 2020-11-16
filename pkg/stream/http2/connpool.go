@@ -39,7 +39,7 @@ func init() {
 // types.ConnectionPool
 // activeClient used as connected client
 // host is the upstream
-type connPool struct {
+type ConnPool struct {
 	activeClient *activeClient
 	host         atomic.Value
 	tlsHash      *types.HashValue
@@ -49,22 +49,22 @@ type connPool struct {
 
 // NewConnPool
 func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
-	pool := &connPool{
+	pool := &ConnPool{
 		tlsHash: host.TLSHashValue(),
 	}
 	pool.host.Store(host)
 	return pool
 }
 
-func (p *connPool) TLSHashValue() *types.HashValue {
+func (p *ConnPool) TLSHashValue() *types.HashValue {
 	return p.tlsHash
 }
 
-func (p *connPool) Protocol() types.ProtocolName {
+func (p *ConnPool) Protocol() types.ProtocolName {
 	return protocol.HTTP2
 }
 
-func (p *connPool) Host() types.Host {
+func (p *ConnPool) Host() types.Host {
 	h := p.host.Load()
 	if host, ok := h.(types.Host); ok {
 		return host
@@ -73,15 +73,15 @@ func (p *connPool) Host() types.Host {
 	return nil
 }
 
-func (p *connPool) UpdateHost(h types.Host) {
+func (p *ConnPool) UpdateHost(h types.Host) {
 	p.host.Store(h)
 }
 
-func (p *connPool) CheckAndInit(ctx context.Context) bool {
+func (p *ConnPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
-func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
+func (p *ConnPool) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	activeClient := func() *activeClient {
 		p.mux.Lock()
 		defer p.mux.Unlock()
@@ -117,18 +117,18 @@ func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamRe
 	return host, streamEncoder, ""
 }
 
-func (p *connPool) Close() {
+func (p *ConnPool) Close() {
 	activeClient := p.activeClient
 	if activeClient != nil {
 		activeClient.client.Close()
 	}
 }
 
-func (p *connPool) Shutdown() {
+func (p *ConnPool) Shutdown() {
 	//TODO: http2 connpool do nothing for shutdown
 }
 
-func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
+func (p *ConnPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
 	log.DefaultLogger.Debugf("http2 connPool onConnectionEvent: %v", event)
 	host := p.Host()
@@ -157,14 +157,14 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 	}
 }
 
-func (p *connPool) onStreamDestroy(client *activeClient) {
+func (p *ConnPool) onStreamDestroy(client *activeClient) {
 	host := p.Host()
 	host.HostStats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().Stats().UpstreamRequestActive.Dec(1)
 	host.ClusterInfo().ResourceManager().Requests().Decrease()
 }
 
-func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetReason) {
+func (p *ConnPool) onStreamReset(client *activeClient, reason types.StreamResetReason) {
 	host := p.Host()
 	if reason == types.StreamConnectionTermination || reason == types.StreamConnectionFailed {
 		host.HostStats().UpstreamRequestFailureEject.Inc(1)
@@ -179,7 +179,7 @@ func (p *connPool) onStreamReset(client *activeClient, reason types.StreamResetR
 	}
 }
 
-func (p *connPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
+func (p *ConnPool) createStreamClient(context context.Context, connData types.CreateConnectionData) str.Client {
 	return str.NewStreamClient(context, protocol.HTTP2, connData.Connection, connData.Host)
 }
 
@@ -187,7 +187,7 @@ func (p *connPool) createStreamClient(context context.Context, connData types.Cr
 // types.ConnectionEventListener
 // types.StreamConnectionEventListener
 type activeClient struct {
-	pool               *connPool
+	pool               *ConnPool
 	client             str.Client
 	host               types.CreateConnectionData
 	closeWithActiveReq bool
@@ -195,7 +195,7 @@ type activeClient struct {
 	goaway             uint32
 }
 
-func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
+func newActiveClient(ctx context.Context, pool *ConnPool) *activeClient {
 	ac := &activeClient{
 		pool: pool,
 	}
