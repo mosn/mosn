@@ -197,6 +197,8 @@ func TestLazyFlush(t *testing.T) {
 
 	histogram := metrics.Histogram("histogram")
 	histogram.Count()
+
+	metrics.UnregisterAll()
 }
 
 func BenchmarkNewMetrics_SameLabels(b *testing.B) {
