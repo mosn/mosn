@@ -6,13 +6,11 @@ import (
 	"testing"
 
 	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
-	"github.com/valyala/fasthttp"
-	"gotest.tools/assert"
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/protocol/http"
+	"github.com/stretchr/testify/assert"
 )
 
-var exampleConfig = `
+func TestExtractorExtract(t *testing.T) {
+	exampleConfig := `
 {
    "providers": {
       "provider1": {
@@ -83,7 +81,6 @@ var exampleConfig = `
 }
 `
 
-func TestExtractorExtract(t *testing.T) {
 	var config jwtauthnv3.JwtAuthentication
 	if err := json.Unmarshal([]byte(exampleConfig), &config); err != nil {
 		t.Errorf("unmarshal exampleConfig to config(jwtauthnv3.JwtAuthentication): %v", err)
@@ -98,25 +95,25 @@ func TestExtractorExtract(t *testing.T) {
 	extractor := NewExtractor(providers)
 
 	t.Run("not token in the request headers", func(t *testing.T) {
-		headers := emptyHeaderMap()
+		headers := newHeaders()
 		tokens := extractor.Extract(headers, "")
 		assert.Equal(t, len(tokens), 0)
 	})
 
 	t.Run("the token in the wrong header.", func(t *testing.T) {
-		headers := addHeaderMap("wrong-token-header", "jwt_token")
+		headers := addHeader("wrong-token-header", "jwt_token")
 		tokens := extractor.Extract(headers, "")
 		assert.Equal(t, len(tokens), 0)
 	})
 
 	t.Run("the token in the wrong query parameter.", func(t *testing.T) {
-		headers := emptyHeaderMap()
+		headers := newHeaders()
 		tokens := extractor.Extract(headers, "wrong_token=jwt_token")
 		assert.Equal(t, len(tokens), 0)
 	})
 
 	t.Run("extracting token from the default header location: 'Authorization'", func(t *testing.T) {
-		headers := addHeaderMap("Authorization", "Bearer jwt_token")
+		headers := addHeader("Authorization", "Bearer jwt_token")
 		tokens := extractor.Extract(headers, "")
 		assert.Equal(t, len(tokens), 1)
 
@@ -138,7 +135,7 @@ func TestExtractorExtract(t *testing.T) {
 	})
 
 	t.Run("extracting token from the default query parameter: 'access_token'", func(t *testing.T) {
-		headers := emptyHeaderMap()
+		headers := newHeaders()
 		requestArg := "access_token=jwt_token"
 		tokens := extractor.Extract(headers, requestArg)
 		assert.Equal(t, len(tokens), 1)
@@ -156,7 +153,7 @@ func TestExtractorExtract(t *testing.T) {
 	})
 
 	t.Run("extracting token from the custom header location: 'token-header'", func(t *testing.T) {
-		headers := addHeaderMap("token-header", "jwt_token")
+		headers := addHeader("token-header", "jwt_token")
 		tokens := extractor.Extract(headers, "")
 		assert.Equal(t, len(tokens), 1)
 
@@ -178,13 +175,13 @@ func TestExtractorExtract(t *testing.T) {
 	})
 
 	t.Run("extracting token from the custom header: 'prefix-header'. value prefix doesn't match. It has to be either 'AAA' or 'AAABBB'.", func(t *testing.T) {
-		headers := addHeaderMap("prefix-header", "jwt_token")
+		headers := addHeader("prefix-header", "jwt_token")
 		tokens := extractor.Extract(headers, "")
 		assert.Equal(t, len(tokens), 0)
 	})
 
 	t.Run("extracting token from the custom header: 'prefix-header'. The value matches both prefix values: 'AAA' or 'AAABBB'.", func(t *testing.T) {
-		headers := addHeaderMap("prefix-header", "AAABBBjwt_token")
+		headers := addHeader("prefix-header", "AAABBBjwt_token")
 		tokens := extractor.Extract(headers, "")
 		assert.Equal(t, len(tokens), 2)
 
@@ -202,7 +199,7 @@ func TestExtractorExtract(t *testing.T) {
 	})
 
 	t.Run("extracting token from the custom header: 'prefix-header'. The value is found after the 'CCCDDD', then between the '=' and the ','.", func(t *testing.T) {
-		headers := addHeaderMap("prefix-header", "AAABBBjwt_token")
+		headers := addHeader("prefix-header", "AAABBBjwt_token")
 		tokens := extractor.Extract(headers, "")
 		assert.Equal(t, len(tokens), 2)
 
@@ -220,7 +217,7 @@ func TestExtractorExtract(t *testing.T) {
 	})
 
 	t.Run("extracting token from the custom query parameter: 'token_param'.", func(t *testing.T) {
-		headers := emptyHeaderMap()
+		headers := newHeaders()
 		requestArg := "token_param=jwt_token"
 		tokens := extractor.Extract(headers, requestArg)
 		assert.Equal(t, len(tokens), 1)
@@ -238,7 +235,7 @@ func TestExtractorExtract(t *testing.T) {
 	})
 
 	t.Run("extracting multiple tokens.", func(t *testing.T) {
-		headers := addHeaderMap("token-header", "token2")
+		headers := addHeader("token-header", "token2")
 		headers.Add("authorization", "Bearer token1")
 		headers.Add("prefix-header", "AAAtoken5")
 		requestArg := "token_param=token3&access_token=token4"
@@ -259,7 +256,7 @@ func TestExtractorExtract(t *testing.T) {
 	})
 
 	t.Run("selected extraction of multiple tokens.", func(t *testing.T) {
-		headers := addHeaderMap("token-header", "token2")
+		headers := addHeader("token-header", "token2")
 		headers.Add("authorization", "Bearer token1")
 		headers.Add("prefix-header", "AAAtoken5")
 		requestArg := "token_param=token3&access_token=token4"
@@ -274,7 +271,7 @@ func TestExtractorExtract(t *testing.T) {
 		assert.Equal(t, tokens[1].Token(), "token4")
 
 		provider.FromHeaders = append(provider.FromHeaders, &jwtauthnv3.JwtHeader{
-			Name: "prefix-header",
+			Name:        "prefix-header",
 			ValuePrefix: "AAA",
 		})
 		provider.FromParams = append(provider.FromParams, "token_param")
@@ -284,18 +281,4 @@ func TestExtractorExtract(t *testing.T) {
 		assert.Equal(t, tokens[0].Token(), "token5")
 		assert.Equal(t, tokens[1].Token(), "token3")
 	})
-}
-
-func emptyHeaderMap() api.HeaderMap {
-	return &http.RequestHeader{
-		RequestHeader: &fasthttp.RequestHeader{},
-	}
-}
-
-func addHeaderMap(k, v string) api.HeaderMap {
-	header := &http.RequestHeader{
-		RequestHeader: &fasthttp.RequestHeader{},
-	}
-	header.Add(k, v)
-	return header
 }
