@@ -156,7 +156,7 @@ func (s *metrics) Counter(key string) gometrics.Counter {
 	construct := func() gometrics.Counter {
 		return s.registry.GetOrRegister(key, shm.NewShmCounterFunc(s.fullName(key))).(gometrics.Counter)
 	}
-	if !LazyFlushMetrics {
+	if LazyFlushMetrics {
 		counter, _ := NewLazyCounter(construct)
 		return counter
 	}

@@ -183,9 +183,9 @@ func TestExclusionKeys(t *testing.T) {
 }
 
 func TestLazyFlush(t *testing.T) {
-	FlushMosnMetrics = true
+	LazyFlushMetrics = true
 	defer func() {
-		FlushMosnMetrics = false
+		LazyFlushMetrics = false
 	}()
 
 	metrics, _ := NewMetrics("lazy", map[string]string{"lk": "lv"})
