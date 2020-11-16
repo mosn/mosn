@@ -32,8 +32,13 @@ const (
 	StateCode    = "mosn_state_code"
 )
 
-// FlushMosnMetrics marks output mosn information metrics or not, default is false
-var FlushMosnMetrics bool
+var (
+	// FlushMosnMetrics marks output mosn information metrics or not, default is false
+	FlushMosnMetrics bool
+
+	// LazyFlushMetrics marks flush data with lazy mode
+	LazyFlushMetrics bool
+)
 
 // NewMosnMetrics returns the basic metrics for mosn
 // export the function for extension
