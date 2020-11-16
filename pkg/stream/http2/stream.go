@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mosn.io/mosn/pkg/trace"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -40,6 +39,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	mhttp2 "mosn.io/mosn/pkg/protocol/http2"
 	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
@@ -48,24 +48,29 @@ func init() {
 	str.Register(protocol.HTTP2, &StreamConnFactory{})
 }
 
+// StreamConnFactory StreamConnFactory for http2
 type StreamConnFactory struct{}
 
+// CreateClientStream create client stream
 func (f *StreamConnFactory) CreateClientStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener, connCallbacks api.ConnectionEventListener) types.ClientStreamConnection {
 	return newClientStreamConnection(context, connection, clientCallbacks)
 }
 
+// CreateServerStream create server stream
 func (f *StreamConnFactory) CreateServerStream(context context.Context, connection api.Connection,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 	return newServerStreamConnection(context, connection, serverCallbacks)
 }
 
+// CreateBiDirectStream create BiDirectStream
 func (f *StreamConnFactory) CreateBiDirectStream(context context.Context, connection types.ClientConnection,
 	clientCallbacks types.StreamConnectionEventListener,
 	serverCallbacks types.ServerStreamConnectionEventListener) types.ClientStreamConnection {
 	return nil
 }
 
+// ProtocolMatch test if protocol match
 func (f *StreamConnFactory) ProtocolMatch(context context.Context, prot string, magic []byte) error {
 	var size int
 	var again bool
@@ -79,12 +84,11 @@ func (f *StreamConnFactory) ProtocolMatch(context context.Context, prot string, 
 	if bytes.Equal(magic[:size], []byte(http2.ClientPreface[:size])) {
 		if again {
 			return str.EAGAIN
-		} else {
-			return nil
 		}
-	} else {
-		return str.FAILED
+		return nil
 	}
+	return str.FAILED
+
 }
 
 // types.DecodeFilter

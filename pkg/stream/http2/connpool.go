@@ -36,8 +36,7 @@ func init() {
 	types.RegisterConnPoolFactory(protocol.HTTP2, true)
 }
 
-// types.ConnectionPool
-// activeClient used as connected client
+// ConnPool activeClient used as connected client
 // host is the upstream
 type ConnPool struct {
 	activeClient *activeClient
@@ -47,7 +46,7 @@ type ConnPool struct {
 	mux sync.Mutex
 }
 
-// NewConnPool
+// NewConnPool newConnPool
 func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 	pool := &ConnPool{
 		tlsHash: host.TLSHashValue(),
@@ -56,14 +55,17 @@ func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 	return pool
 }
 
+// TLSHashValue return tlsHash
 func (p *ConnPool) TLSHashValue() *types.HashValue {
 	return p.tlsHash
 }
 
+// Protocol return protocol (Http2)
 func (p *ConnPool) Protocol() types.ProtocolName {
 	return protocol.HTTP2
 }
 
+// Host return host
 func (p *ConnPool) Host() types.Host {
 	h := p.host.Load()
 	if host, ok := h.(types.Host); ok {
@@ -73,14 +75,17 @@ func (p *ConnPool) Host() types.Host {
 	return nil
 }
 
+// UpdateHost updateHost
 func (p *ConnPool) UpdateHost(h types.Host) {
 	p.host.Store(h)
 }
 
+// CheckAndInit always return true
 func (p *ConnPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
+// NewStream new stream
 func (p *ConnPool) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	activeClient := func() *activeClient {
 		p.mux.Lock()
@@ -117,13 +122,14 @@ func (p *ConnPool) NewStream(ctx context.Context, responseDecoder types.StreamRe
 	return host, streamEncoder, ""
 }
 
+// Close close activeClient
 func (p *ConnPool) Close() {
 	activeClient := p.activeClient
 	if activeClient != nil {
 		activeClient.client.Close()
 	}
 }
-
+// Shutdown http2 connpool do nothing for shutdown
 func (p *ConnPool) Shutdown() {
 	//TODO: http2 connpool do nothing for shutdown
 }
