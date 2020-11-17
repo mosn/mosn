@@ -20,5 +20,5 @@ func NewJwksFetcher() JwksFetcher {
 
 func (j *jwksFetcher) Fetch(uri *envoy_config_core_v3.HttpUri) (*jwk.Set, error) {
 	// Check if cluster is configured, fail the request if not.
-	return nil, nil
+	return jwk.Fetch(uri.GetUri())
 }
