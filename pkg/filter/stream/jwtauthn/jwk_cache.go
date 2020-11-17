@@ -28,7 +28,24 @@ type JwksData interface {
 }
 
 // NewJwksCache creates a new JwksCache.
-func NewJwksCache(config *jwtauthnv3.JwtAuthentication) JwksCache {
+func NewJwksCache(providers map[string]*jwtauthnv3.JwtProvider) JwksCache {
+	issuer2JwksData := make(map[string]JwksData)
+	provider2JwksData := make(map[string]JwksData)
+	for name, provider := range providers {
+		provider2JwksData[name] = NewJwksData(provider)
+		if _, ok := issuer2JwksData[provider.GetIssuer()]; !ok {
+			issuer2JwksData[provider.GetIssuer()] = provider2JwksData[name]
+		}
+	}
+
+	return &jwksCache{
+		issuer2JwksData:   issuer2JwksData,
+		provider2JwksData: provider2JwksData,
+	}
+}
+
+// NewJwksCacheDeprecated creates a new JwksCache.
+func NewJwksCacheDeprecated(config *jwtauthnv3.JwtAuthentication) JwksCache {
 	issuer2JwksData := make(map[string]JwksData)
 	provider2JwksData := make(map[string]JwksData)
 	for name, provider := range config.Providers {

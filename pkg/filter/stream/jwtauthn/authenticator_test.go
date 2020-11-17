@@ -63,7 +63,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		for i := 0; i < 10; i++ {
 			err := auth.Verify(headers, tokens)
 			if err != nil {
@@ -91,7 +91,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		if err != nil {
 			t.Error(err)
@@ -111,7 +111,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrInvalidToken, err)
 	})
@@ -125,7 +125,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtNotFound, err)
 	})
@@ -139,7 +139,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtBadFormat, err)
 	})
@@ -153,7 +153,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtNotFound, err)
 	})
@@ -167,7 +167,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtAudienceNotAllowed, err)
 	})
@@ -181,7 +181,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtExpired, err)
 	})
@@ -195,7 +195,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtNotYetValid, err)
 	})
@@ -217,7 +217,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwksNoValidKeys, err)
 	})
@@ -231,7 +231,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtAudienceNotAllowed, err)
 	})
@@ -247,7 +247,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtUnknownIssuer, err)
 	})
@@ -261,7 +261,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(nil, ErrJwksFetch).Times(1)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwksFetch, err)
 	})
@@ -277,7 +277,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Nil(t, err)
 		_, exists := headers.Get("sec-istio-auth-userinfo")
@@ -306,7 +306,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Nil(t, err)
 		_, exists := headers.Get("a")
@@ -327,7 +327,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher = NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth = newAuthenticator(config, jwksFetcher)
+		auth = newAuthenticatorDeprecated(config, jwksFetcher)
 		err = auth.Verify(headers, tokens)
 		assert.Nil(t, err)
 		_, exists = headers.Get("a")
@@ -380,7 +380,7 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(2)
 
-		auth := newAuthenticator(config, jwksFetcher)
+		auth := newAuthenticatorDeprecated(config, jwksFetcher)
 		err := auth.Verify(headers, tokens)
 		assert.Nil(t, err)
 		_, exists := headers.Get("Authorization")

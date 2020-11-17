@@ -29,9 +29,17 @@ type authenticator struct {
 	jwtPayload string
 }
 
-func newAuthenticator(config *jwtauthnv3.JwtAuthentication, fetcher JwksFetcher) Authenticator {
+func newAuthenticator(provider string, jwksCache JwksCache, fetcher JwksFetcher, allowFail, allowMissing bool) Authenticator {
 	return &authenticator{
-		jwksCache: NewJwksCache(config),
+		provider:  provider,
+		jwksCache: jwksCache,
+		fetcher:   fetcher,
+	}
+}
+
+func newAuthenticatorDeprecated(config *jwtauthnv3.JwtAuthentication, fetcher JwksFetcher) Authenticator {
+	return &authenticator{
+		jwksCache: NewJwksCacheDeprecated(config),
 		fetcher:   fetcher,
 	}
 }
@@ -102,6 +110,10 @@ func (a *authenticator) startVerify() error {
 
 	// Only one remote jwks will be fetched, verify will not continue util it is completed.
 	if remoteJwks := a.jwksData.GetJwtProvider().GetRemoteJwks(); remoteJwks != nil {
+		if a.fetcher == nil {
+			a.fetcher = NewJwksFetcher()
+		}
+
 		jwks, err := a.fetcher.Fetch(remoteJwks.HttpUri)
 		if err != nil {
 			log.DefaultLogger.Errorf("fetch jwks: %v", err)
@@ -135,14 +147,14 @@ func (a *authenticator) verifyKey() error {
 	}
 
 	provider := a.jwksData.GetJwtProvider()
-	// Forward the payload
-	if provider.ForwardPayloadHeader != "" {
-		a.headers.Add(strings.ToLower(provider.ForwardPayloadHeader), a.jwtPayload)
-	}
-
 	if !provider.Forward {
 		// Remove JWT from headers.
 		a.currToken.RemoveJwt(a.headers)
+	}
+
+	// Forward the payload
+	if provider.ForwardPayloadHeader != "" {
+		a.headers.Add(strings.ToLower(provider.ForwardPayloadHeader), a.jwtPayload)
 	}
 
 	if provider.PayloadInMetadata != "" {

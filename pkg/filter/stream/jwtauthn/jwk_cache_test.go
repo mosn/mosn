@@ -40,7 +40,7 @@ func TestJwksCache(t *testing.T) {
 		RemoteJwks: remoteJwks,
 	}
 
-	cache := NewJwksCache(&config)
+	cache := NewJwksCacheDeprecated(&config)
 
 	t.Run("findByIssuer", func(t *testing.T) {
 		assert.NotNil(t, cache.FindByIssuer("https://example.com"))
@@ -59,7 +59,7 @@ func TestJwksCache(t *testing.T) {
 			Seconds: 1,
 		}
 
-		cache := NewJwksCache(&config)
+		cache := NewJwksCacheDeprecated(&config)
 		jwks := cache.FindByIssuer("https://example.com")
 		assert.Nil(t, jwks.GetJwksObj())
 
@@ -83,7 +83,7 @@ func TestJwksCache(t *testing.T) {
 			},
 		}
 
-		cache := NewJwksCache(&config)
+		cache := NewJwksCacheDeprecated(&config)
 		jwks := cache.FindByIssuer("https://example.com")
 		assert.NotNil(t, jwks.GetJwksObj())
 		assert.False(t, jwks.IsExpired())
@@ -99,7 +99,7 @@ func TestJwksCache(t *testing.T) {
 			},
 		}
 
-		cache := NewJwksCache(&config)
+		cache := NewJwksCacheDeprecated(&config)
 		jwks := cache.FindByIssuer("https://example.com")
 		assert.Nil(t, jwks.GetJwksObj())
 	})

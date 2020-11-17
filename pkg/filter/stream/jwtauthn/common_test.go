@@ -1,13 +1,18 @@
 package jwtauthn
 
 import (
+	"encoding/json"
+
+	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
+	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol/http"
 )
 
 // publicKey is a good public key.
-var publicKey =`
+var publicKey = `
 {
   "keys": [
     {
@@ -75,7 +80,6 @@ var nonExpiringToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczo
 // {"iss":"https://example.com","sub":"test@example.com","aud":"example_service","exp":1205005587}
 var expiredToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2V4YW1wbGUuY29tIiwic3ViIjoidGVzdEBleGFtcGxlLmNvbSIsImV4cCI6MTIwNTAwNTU4NywiYXVkIjoiZXhhbXBsZV9zZXJ2aWNlIn0.izDa6aHNgbsbeRzucE0baXIP7SXOrgopYQALLFAsKq_N0GvOyqpAZA9nwCAhqCkeKWcL-9gbQe3XJa0KN3FPa2NbW4ChenIjmf2QYXOuOQaDu9QRTdHEY2Y4mRy6DiTZAsBHWGA71_cLX-rzTSO_8aC8eIqdHo898oJw3E8ISKdryYjayb9X3wtF6KLgNomoD9_nqtOkliuLElD8grO0qHKI1xQurGZNaoeyiV1AdwgX_5n3SmQTacVN0WcSgk6YJRZG6VE8PjxZP9bEameBmbSB0810giKRpdTU1-RJtjq6aCSTD4CYXtW38T5uko4V-S4zifK3BXeituUTebkgoA"
 
-
 // {"iss":"https://example.com","sub":"test@example.com","aud":"example_service","nbf":9223372036854775807}
 var notYetValidToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2V4YW1wbGUuY29tIiwic3ViIjoidGVzdEBleGFtcGxlLmNvbSIsImF1ZCI6ImV4YW1wbGVfc2VydmljZSIsIm5iZiI6OTIyMzM3MjAzNjg1NDc3NTgwN30K.izDa6aHNgbsbeRzucE0baXIP7SXOrgopYQALLFAsKq_N0GvOyqpAZA9nwCAhqCkeKWcL-9gbQe3XJa0KN3FPa2NbW4ChenIjmf2QYXOuOQaDu9QRTdHEY2Y4mRy6DiTZAsBHWGA71_cLX-rzTSO_8aC8eIqdHo898oJw3E8ISKdryYjayb9X3wtF6KLgNomoD9_nqtOkliuLElD8grO0qHKI1xQurGZNaoeyiV1AdwgX_5n3SmQTacVN0WcSgk6YJRZG6VE8PjxZP9bEameBmbSB0810giKRpdTU1-RJtjq6aCSTD4CYXtW38T5uko4V-S4zifK3BXeituUTebkgoA"
 
@@ -85,10 +89,14 @@ var invalidAudToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczov
 // {"iss":"https://other.com","sub":"test@other.com","aud":"other_service","exp":2001001001}
 var otherGoodToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjYyYTkzNTEyYzllZTRjN2Y4MDY3YjVhMjE2ZGFkZTI3NjNkMzJhNDciLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJvdGhlcl9zZXJ2aWNlIiwiZXhwIjoyMDAxMDAxMDAxLCJpc3MiOiJodHRwczovL290aGVyLmNvbSIsInN1YiI6InRlc3RAb3RoZXIuY29tIn0.YGgYFjYObwjLqjqRkEU1u1MY3s959ttgpXIFKHWwe-fp1phnQj7kyS8p6scmibnpuy7PWnLklRzu4TbLVbUpfmyrkDprjBrHB6mriLpXt8-7trwPAWKmpG2fKybB_iz7Uj9Qsy4XjbNBpw_c3VBapifc2e9qcPb2U6SfJVYL0ixyTpIhdQnZufvnk3cBpsF3TCQK0WQULS4-5vucYry1SmnwJLKdYX4sLF23dTFS_IFNHPjP46Mk0s-8qud9KCVssk_fUu7fVksTOkXOXSNzAcqlNOAbAfGaiT-32wZHMTmJzasvuyRZ1uHKLnxgb-mF9eUcjsFpeLpSLtDivaq9uQ"
 
-func newHeaders() api.HeaderMap {
-	return &http.RequestHeader{
+func newHeaders(headers ...[2]string) api.HeaderMap {
+	res := &http.RequestHeader{
 		RequestHeader: &fasthttp.RequestHeader{},
 	}
+	for _, header := range headers {
+		res.Set(header[0], header[1])
+	}
+	return res
 }
 
 func addHeader(k, v string) api.HeaderMap {
@@ -97,4 +105,34 @@ func addHeader(k, v string) api.HeaderMap {
 	}
 	header.Add(k, v)
 	return header
+}
+
+func getExampleConfig() (*jwtauthnv3.JwtAuthentication, error) {
+	var config jwtauthnv3.JwtAuthentication
+	if err := json.Unmarshal([]byte(exampleConfig), &config); err != nil {
+		return nil, err
+	}
+	provider := config.Providers[providerName]
+	remoteJwks := &jwtauthnv3.RemoteJwks{}
+	remoteJwks.HttpUri = &envoy_config_core_v3.HttpUri{
+		Uri: "https://pubkey_server/pubkey_path",
+		Timeout: &duration.Duration{
+			Seconds: 5,
+		},
+		HttpUpstreamType: &envoy_config_core_v3.HttpUri_Cluster{
+			Cluster: "pubkey_cluster",
+		},
+	}
+	remoteJwks.CacheDuration = &duration.Duration{
+		Seconds: 600,
+	}
+	provider.JwksSourceSpecifier = &jwtauthnv3.JwtProvider_RemoteJwks{
+		RemoteJwks: remoteJwks,
+	}
+
+	config.Rules[0].Requires.RequiresType = &jwtauthnv3.JwtRequirement_ProviderName{
+		ProviderName: "example_provider",
+	}
+
+	return &config, nil
 }
