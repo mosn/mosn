@@ -120,7 +120,7 @@ func TestRunReiverFilters(t *testing.T) {
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
 		}
-		s.proxyStreamFilterManager.downStream = s
+		s.streamFilterManager.downStream = s
 		for _, f := range tc.filters {
 			f.s = s
 			s.AddStreamReceiverFilter(f, f.phase)
@@ -172,7 +172,7 @@ func TestRunReiverFiltersStop(t *testing.T) {
 		requestInfo: &network.RequestInfo{},
 		notify:      make(chan struct{}, 1),
 	}
-	s.proxyStreamFilterManager.downStream = s
+	s.streamFilterManager.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamReceiverFilter(f, f.phase)
@@ -231,7 +231,7 @@ func TestRunReiverFiltersTermination(t *testing.T) {
 		requestInfo:    &network.RequestInfo{},
 		snapshot:       &mockClusterSnapshot{},
 	}
-	s.proxyStreamFilterManager.downStream = s
+	s.streamFilterManager.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamReceiverFilter(f, f.phase)
@@ -296,7 +296,7 @@ func TestRunReiverFilterHandler(t *testing.T) {
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
 		}
-		s.proxyStreamFilterManager.downStream = s
+		s.streamFilterManager.downStream = s
 
 		s.context = context.Background()
 		for _, f := range tc.filters {
@@ -322,7 +322,7 @@ func TestRunReiverFilterHandler(t *testing.T) {
 func Test_proxyStreamFilterManager_RunReceiverFilter(t *testing.T) {
 	testCases := []struct {
 		filters    []*mockStreamReceiverFilter
-		phase      api.FilterPhase
+		phase      api.ReceiverFilterPhase
 		againPhase types.Phase
 	}{
 		{
@@ -349,7 +349,7 @@ func Test_proxyStreamFilterManager_RunReceiverFilter(t *testing.T) {
 		},
 	}
 	for i, tc := range testCases {
-		p := proxyStreamFilterManager{
+		p := streamFilterManager{
 			downStream: &downStream{
 				ID: 0,
 			},
@@ -360,7 +360,7 @@ func Test_proxyStreamFilterManager_RunReceiverFilter(t *testing.T) {
 		p.RunReceiverFilter(context.TODO(), tc.phase,
 			protocol.CommonHeader{}, buffer.NewIoBuffer(0), protocol.CommonHeader{}, nil)
 		if p.receiverFiltersAgainPhase != tc.againPhase {
-			t.Errorf("testCase i=%v, proxyStreamFilterManager.RunReceiverFilter AgainPhase want: %v but got %v",
+			t.Errorf("testCase i=%v, streamFilterManager.RunReceiverFilter AgainPhase want: %v but got %v",
 				i, tc.againPhase, p.receiverFiltersAgainPhase)
 		}
 	}
@@ -405,7 +405,7 @@ func TestRunSenderFilters(t *testing.T) {
 				clusterManager: &mockClusterManager{},
 			},
 		}
-		s.proxyStreamFilterManager.downStream = s
+		s.streamFilterManager.downStream = s
 		for _, f := range tc.filters {
 			f.s = s
 			s.AddStreamSenderFilter(f, api.BeforeSend)
@@ -414,7 +414,7 @@ func TestRunSenderFilters(t *testing.T) {
 		s.downstreamRespDataBuf = buffer.NewIoBuffer(0)
 		s.downstreamRespTrailers = protocol.CommonHeader{}
 
-		s.RunSenderFilter(context.TODO(), 0, nil, s.downstreamRespDataBuf, s.downstreamReqTrailers, nil)
+		s.RunSenderFilter(context.TODO(), api.BeforeSend, nil, s.downstreamRespDataBuf, s.downstreamReqTrailers, nil)
 		for j, f := range tc.filters {
 			if f.on != 1 {
 				t.Errorf("#%d.%d stream filter is not called; On:%d", i, j, f.on)
@@ -445,13 +445,13 @@ func TestRunSenderFiltersStop(t *testing.T) {
 			clusterManager: &mockClusterManager{},
 		},
 	}
-	s.proxyStreamFilterManager.downStream = s
+	s.streamFilterManager.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamSenderFilter(f, api.BeforeSend)
 	}
 
-	s.RunSenderFilter(context.TODO(), 0, nil, nil, nil, nil)
+	s.RunSenderFilter(context.TODO(), api.BeforeSend, nil, nil, nil, nil)
 	if s.downstreamRespHeaders == nil || s.downstreamRespDataBuf == nil {
 		t.Errorf("streamSendFilter SetResponse error")
 	}
@@ -496,13 +496,13 @@ func TestRunSenderFiltersTermination(t *testing.T) {
 		requestInfo:    &network.RequestInfo{},
 		snapshot:       &mockClusterSnapshot{},
 	}
-	s.proxyStreamFilterManager.downStream = s
+	s.streamFilterManager.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamSenderFilter(f, api.BeforeSend)
 	}
 
-	s.RunSenderFilter(context.TODO(), 0, nil, nil, nil, nil)
+	s.RunSenderFilter(context.TODO(), api.BeforeSend, nil, nil, nil, nil)
 	if s.downstreamRespHeaders == nil || s.downstreamRespDataBuf == nil {
 		t.Errorf("streamSendFilter SetResponse error")
 	}

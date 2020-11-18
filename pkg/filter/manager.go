@@ -1,4 +1,20 @@
-// Package filter implements the filter extension of mosn
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package filter
 
 import (
@@ -8,19 +24,16 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-// UndefinedFilterPhase undefined filter phase, used for senderFilter.
-const UndefinedFilterPhase api.FilterPhase = 99999
-
 // StreamFilterChainStatus determines the running status of filter chain.
 type StreamFilterChainStatus int
 
 const (
 	// StreamFilterChainContinue continues running the filter chain.
-	StreamFilterChainContinue StreamFilterChainStatus = 0
+	StreamFilterChainContinue StreamFilterChainStatus = iota
 	// StreamFilterChainStop stops running the filter chain, next time should retry the current filter.
-	StreamFilterChainStop StreamFilterChainStatus = 1
+	StreamFilterChainStop
 	// StreamFilterChainReset stops running the filter chain and reset index, next time should run the first filter.
-	StreamFilterChainReset StreamFilterChainStatus = 2
+	StreamFilterChainReset
 )
 
 // StreamFilterStatusHandler converts api.StreamFilterStatus to StreamFilterChainStatus.
@@ -46,12 +59,12 @@ type StreamFilterManager interface {
 	api.StreamFilterChainFactoryCallbacks
 
 	// invoke the receiver filter chain.
-	RunReceiverFilter(ctx context.Context, phase api.FilterPhase,
+	RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 		headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 		statusHandler StreamFilterStatusHandler) api.StreamFilterStatus
 
 	// invoke the sender filter chain.
-	RunSenderFilter(ctx context.Context, phase api.FilterPhase,
+	RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
 		headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 		statusHandler StreamFilterStatusHandler) api.StreamFilterStatus
 
@@ -65,18 +78,18 @@ type StreamFilterManager interface {
 // StreamReceiverFilterWithPhase combines the StreamReceiverFilter with its Phase.
 type StreamReceiverFilterWithPhase interface {
 	api.StreamReceiverFilter
-	ValidatePhase(phase api.FilterPhase) bool
+	ValidatePhase(phase api.ReceiverFilterPhase) bool
 }
 
 // StreamReceiverFilterWithPhaseImpl is the default implementation of StreamReceiverFilterWithPhase.
 type StreamReceiverFilterWithPhaseImpl struct {
 	api.StreamReceiverFilter
-	phase api.FilterPhase
+	phase api.ReceiverFilterPhase
 }
 
-// NewStreamReceiverFilterWithPhaseImpl returns a StreamReceiverFilterWithPhaseImpl struct..
-func NewStreamReceiverFilterWithPhaseImpl(
-	f api.StreamReceiverFilter, p api.FilterPhase) *StreamReceiverFilterWithPhaseImpl {
+// NewStreamReceiverFilterWithPhase returns a StreamReceiverFilterWithPhaseImpl struct..
+func NewStreamReceiverFilterWithPhase(
+	f api.StreamReceiverFilter, p api.ReceiverFilterPhase) *StreamReceiverFilterWithPhaseImpl {
 	return &StreamReceiverFilterWithPhaseImpl{
 		StreamReceiverFilter: f,
 		phase:                p,
@@ -84,24 +97,24 @@ func NewStreamReceiverFilterWithPhaseImpl(
 }
 
 // ValidatePhase checks the current phase.
-func (s *StreamReceiverFilterWithPhaseImpl) ValidatePhase(phase api.FilterPhase) bool {
+func (s *StreamReceiverFilterWithPhaseImpl) ValidatePhase(phase api.ReceiverFilterPhase) bool {
 	return s.phase == phase
 }
 
 // StreamSenderFilterWithPhase combines the StreamSenderFilter which its Phase.
 type StreamSenderFilterWithPhase interface {
 	api.StreamSenderFilter
-	ValidatePhase(phase api.FilterPhase) bool
+	ValidatePhase(phase api.SenderFilterPhase) bool
 }
 
 // StreamSenderFilterWithPhaseImpl is default implementation of StreamSenderFilterWithPhase.
 type StreamSenderFilterWithPhaseImpl struct {
 	api.StreamSenderFilter
-	phase api.FilterPhase
+	phase api.SenderFilterPhase
 }
 
 // NewStreamSenderFilterWithPhaseImpl returns a new StreamSenderFilterWithPhaseImpl.
-func NewStreamSenderFilterWithPhaseImpl(f api.StreamSenderFilter, p api.FilterPhase) *StreamSenderFilterWithPhaseImpl {
+func NewStreamSenderFilterWithPhase(f api.StreamSenderFilter, p api.SenderFilterPhase) *StreamSenderFilterWithPhaseImpl {
 	return &StreamSenderFilterWithPhaseImpl{
 		StreamSenderFilter: f,
 		phase:              p,
@@ -109,8 +122,8 @@ func NewStreamSenderFilterWithPhaseImpl(f api.StreamSenderFilter, p api.FilterPh
 }
 
 // ValidatePhase checks the current phase.
-func (s *StreamSenderFilterWithPhaseImpl) ValidatePhase(phase api.FilterPhase) bool {
-	return true
+func (s *StreamSenderFilterWithPhaseImpl) ValidatePhase(phase api.SenderFilterPhase) bool {
+	return s.phase == phase
 }
 
 // DefaultStreamFilterManagerImpl is default implementation of the StreamFilterManager.
@@ -125,23 +138,15 @@ type DefaultStreamFilterManagerImpl struct {
 }
 
 // AddStreamSenderFilter registers senderFilters.
-func (d *DefaultStreamFilterManagerImpl) AddStreamSenderFilter(filter api.StreamSenderFilter) {
-	f := NewStreamSenderFilterWithPhaseImpl(filter, UndefinedFilterPhase)
-	d.AddStreamSenderFilterWithPhase(f)
-}
-
-func (d *DefaultStreamFilterManagerImpl) AddStreamSenderFilterWithPhase(filter StreamSenderFilterWithPhase) {
-	d.senderFilters = append(d.senderFilters, filter)
+func (d *DefaultStreamFilterManagerImpl) AddStreamSenderFilter(filter api.StreamSenderFilter, p api.SenderFilterPhase) {
+	f := NewStreamSenderFilterWithPhase(filter, p)
+	d.senderFilters = append(d.senderFilters, f)
 }
 
 // AddStreamReceiverFilter registers receiver filters.
-func (d *DefaultStreamFilterManagerImpl) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.FilterPhase) {
-	f := NewStreamReceiverFilterWithPhaseImpl(filter, p)
-	d.AddStreamReceiverFilterWithPhase(f)
-}
-
-func (d *DefaultStreamFilterManagerImpl) AddStreamReceiverFilterWithPhase(filter StreamReceiverFilterWithPhase) {
-	d.receiverFilters = append(d.receiverFilters, filter)
+func (d *DefaultStreamFilterManagerImpl) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.ReceiverFilterPhase) {
+	f := NewStreamReceiverFilterWithPhase(filter, p)
+	d.receiverFilters = append(d.receiverFilters, f)
 }
 
 // AddStreamAccessLog registers access logger.
@@ -150,7 +155,7 @@ func (d *DefaultStreamFilterManagerImpl) AddStreamAccessLog(accessLog api.Access
 }
 
 // RunReceiverFilter invokes the receiver filter chain.
-func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, phase api.FilterPhase,
+func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler StreamFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
 	if statusHandler == nil {
@@ -187,7 +192,7 @@ func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, 
 }
 
 // RunSenderFilter invokes the sender filter chain.
-func (d *DefaultStreamFilterManagerImpl) RunSenderFilter(ctx context.Context, phase api.FilterPhase,
+func (d *DefaultStreamFilterManagerImpl) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler StreamFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
 	if statusHandler == nil {

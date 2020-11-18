@@ -27,30 +27,30 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-type proxyStreamFilterManager struct {
+type streamFilterManager struct {
 	downStream                *downStream
 	receiverFiltersAgainPhase types.Phase
 
 	filter.DefaultStreamFilterManagerImpl
 }
 
-func (manager *proxyStreamFilterManager) AddStreamSenderFilter(filter api.StreamSenderFilter) {
+func (manager *streamFilterManager) AddStreamSenderFilter(filter api.StreamSenderFilter, phase api.SenderFilterPhase) {
 	sf := newActiveStreamSenderFilter(manager.downStream, filter)
-	manager.DefaultStreamFilterManagerImpl.AddStreamSenderFilterWithPhase(sf)
+	manager.DefaultStreamFilterManagerImpl.AddStreamSenderFilter(sf, phase)
 }
 
-func (manager *proxyStreamFilterManager) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.FilterPhase) {
+func (manager *streamFilterManager) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.ReceiverFilterPhase) {
 	sf := newActiveStreamReceiverFilter(manager.downStream, filter, types.Phase(phase))
-	manager.DefaultStreamFilterManagerImpl.AddStreamReceiverFilterWithPhase(sf)
+	manager.DefaultStreamFilterManagerImpl.AddStreamReceiverFilter(sf, phase)
 }
 
-func (manager *proxyStreamFilterManager) AddStreamAccessLog(accessLog api.AccessLog) {
+func (manager *streamFilterManager) AddStreamAccessLog(accessLog api.AccessLog) {
 	if manager.downStream.proxy != nil {
 		manager.DefaultStreamFilterManagerImpl.AddStreamAccessLog(accessLog)
 	}
 }
 
-func (manager *proxyStreamFilterManager) RunReceiverFilter(ctx context.Context, phase api.FilterPhase,
+func (manager *streamFilterManager) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler filter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
@@ -81,7 +81,7 @@ func (manager *proxyStreamFilterManager) RunReceiverFilter(ctx context.Context, 
 		})
 }
 
-func (manager *proxyStreamFilterManager) RunSenderFilter(ctx context.Context, phase api.FilterPhase,
+func (manager *streamFilterManager) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler filter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
@@ -118,7 +118,6 @@ func (f *activeStreamFilter) RequestInfo() types.RequestInfo {
 // types.StreamReceiverFilter
 // types.StreamReceiverFilterHandler
 type activeStreamReceiverFilter struct {
-	p types.Phase
 	activeStreamFilter
 	api.StreamReceiverFilter
 	id uint32
@@ -131,16 +130,11 @@ func newActiveStreamReceiverFilter(activeStream *downStream,
 			activeStream: activeStream,
 		},
 		StreamReceiverFilter: filter,
-		p:                    p,
 		id:                   activeStream.ID,
 	}
 	filter.SetReceiveFilterHandler(f)
 
 	return f
-}
-
-func (f *activeStreamReceiverFilter) ValidatePhase(phase api.FilterPhase) bool {
-	return api.FilterPhase(f.p) == phase
 }
 
 func (f *activeStreamReceiverFilter) AppendHeaders(headers types.HeaderMap, endStream bool) {
@@ -278,10 +272,6 @@ func newActiveStreamSenderFilter(activeStream *downStream,
 	filter.SetSenderFilterHandler(f)
 
 	return f
-}
-
-func (f *activeStreamSenderFilter) ValidatePhase(phase api.FilterPhase) bool {
-	return true
 }
 
 func (f *activeStreamSenderFilter) GetResponseHeaders() types.HeaderMap {
