@@ -58,6 +58,8 @@ func (manager *streamFilterManager) RunReceiverFilter(ctx context.Context, phase
 		func(status api.StreamFilterStatus) {
 			switch status {
 			case api.StreamFiltertermination:
+				// no reuse buffer
+				atomic.StoreUint32(&manager.downStream.reuseBuffer, 0)
 				manager.downStream.cleanStream()
 			case api.StreamFilterReMatchRoute:
 				// Retry only at the AfterRoute phase
@@ -82,6 +84,8 @@ func (manager *streamFilterManager) RunSenderFilter(ctx context.Context, phase a
 	return manager.DefaultStreamFilterManagerImpl.RunSenderFilter(ctx, phase, headers, data, trailers,
 		func(status api.StreamFilterStatus) {
 			if status == api.StreamFiltertermination {
+				// no reuse buffer
+				atomic.StoreUint32(&manager.downStream.reuseBuffer, 0)
 				manager.downStream.cleanStream()
 			}
 		})

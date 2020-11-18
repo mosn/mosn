@@ -151,6 +151,11 @@ func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, 
 
 		filterStatus = filter.OnReceive(ctx, headers, data, trailers)
 
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("DefaultStreamFilterManagerImpl.RunReceiverFilter phase: %v, index: %v, status: %v",
+				phase, d.receiverFiltersIndex, filterStatus)
+		}
+
 		if statusHandler != nil {
 			statusHandler(filterStatus)
 		}
@@ -184,6 +189,11 @@ func (d *DefaultStreamFilterManagerImpl) RunSenderFilter(ctx context.Context, ph
 		}
 
 		filterStatus = filter.Append(ctx, headers, data, trailers)
+
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("DefaultStreamFilterManagerImpl.RunSenderFilter, phase: %v, index: %v, status: %v",
+				phase, d.senderFiltersIndex, filterStatus)
+		}
 
 		if statusHandler != nil {
 			statusHandler(filterStatus)
