@@ -20,9 +20,9 @@ package trace
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"net"
 	"os"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -31,13 +31,19 @@ import (
 var (
 	TraceIDGeneratorUpperBound uint32 = 8000
 	TraceIDGeneratorLowerBound uint32 = 1000
-	OSPid                      int
-	traceid                    uint32
-	LocalIp                    string
+
+	MaxPid = 0xffff
+
+	OSPid   int
+	traceid uint32
+	LocalIp string
 )
 
 func init() {
 	OSPid = os.Getpid()
+	if OSPid > MaxPid {
+		OSPid &= MaxPid
+	}
 	LocalIp, _ = getLocalIp()
 }
 
@@ -82,10 +88,11 @@ func (tc *TraceIDGenerator) GetHexIP() []byte {
 
 // generate new traceid
 func (tc *TraceIDGenerator) AppendBytes(d []byte) []byte {
-	d = append(d, tc.hexip...)
-	d = strconv.AppendInt(d, unixMilli(), 10)
-	d = strconv.AppendInt(d, int64(GetNextTraceID()), 10)
-	d = strconv.AppendInt(d, int64(OSPid), 10)
+	// ip(8) + timestap(13) + countid(5) + pid(4)
+	d = append(d, tc.hexip...)                                       // 8 byte
+	d = append(d, []byte(fmt.Sprintf("%013d", unixMilli()))...)      // 13 byte
+	d = append(d, []byte(fmt.Sprintf("%04de", GetNextTraceID()))...) // 5 byte
+	d = append(d, []byte(fmt.Sprintf("%04x", OSPid))...)             // 4 byte
 	return d
 }
 
