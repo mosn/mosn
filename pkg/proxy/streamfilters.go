@@ -194,7 +194,7 @@ func (f *activeStreamReceiverFilter) SetConvert(on bool) {
 }
 
 // GetFilterCurrentPhase get current phase for filter
-func (f *activeStreamReceiverFilter) GetFilterCurrentPhase() api.FilterPhase {
+func (f *activeStreamReceiverFilter) GetFilterCurrentPhase() api.ReceiverFilterPhase {
 	// default AfterRoute
 	p := api.AfterRoute
 

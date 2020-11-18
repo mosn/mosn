@@ -39,7 +39,7 @@ func (f *mockReceiveHandler) RequestInfo() api.RequestInfo {
 	return nil
 }
 
-func (f *mockReceiveHandler) GetFilterCurrentPhase() api.FilterPhase {
+func (f *mockReceiveHandler) GetFilterCurrentPhase() api.ReceiverFilterPhase {
 	// default AfterRoute
 	p := api.AfterRoute
 

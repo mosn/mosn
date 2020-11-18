@@ -139,7 +139,7 @@ func TestProxyWithFilters(t *testing.T) {
 	// mock stream filters
 	var factories []api.StreamFilterChainFactory
 	for _, fact := range []struct {
-		Phase            api.FilterPhase
+		Phase            api.ReceiverFilterPhase
 		ReceiveFilterGen func() api.StreamReceiverFilter
 		SenderFilterGen  func() api.StreamSenderFilter
 	}{
@@ -194,7 +194,7 @@ func TestProxyWithFilters(t *testing.T) {
 				cb.AddStreamReceiverFilter(ff.ReceiveFilterGen(), ff.Phase)
 			}
 			if ff.SenderFilterGen != nil {
-				cb.AddStreamSenderFilter(ff.SenderFilterGen())
+				cb.AddStreamSenderFilter(ff.SenderFilterGen(), api.BeforeSend)
 			}
 		})
 		factories = append(factories, factory)

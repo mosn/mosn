@@ -329,7 +329,7 @@ func TestRunSenderFilters(t *testing.T) {
 		}
 		for _, f := range tc.filters {
 			f.s = s
-			s.AddStreamSenderFilter(f)
+			s.AddStreamSenderFilter(f, api.BeforeSend)
 		}
 		// mock run
 		s.downstreamRespDataBuf = buffer.NewIoBuffer(0)
@@ -368,7 +368,7 @@ func TestRunSenderFiltersStop(t *testing.T) {
 	}
 	for _, f := range tc.filters {
 		f.s = s
-		s.AddStreamSenderFilter(f)
+		s.AddStreamSenderFilter(f, api.BeforeSend)
 	}
 
 	s.runAppendFilters(0, nil, nil, nil)
@@ -418,7 +418,7 @@ func TestRunSenderFiltersTermination(t *testing.T) {
 	}
 	for _, f := range tc.filters {
 		f.s = s
-		s.AddStreamSenderFilter(f)
+		s.AddStreamSenderFilter(f, api.BeforeSend)
 	}
 
 	s.runAppendFilters(0, nil, nil, nil)
@@ -441,11 +441,11 @@ type mockStreamReceiverFilter struct {
 	// api called count
 	on int
 	// current phase
-	currentPhase api.FilterPhase
+	currentPhase api.ReceiverFilterPhase
 	// returns status
 	status api.StreamFilterStatus
 	// mock for test
-	phase api.FilterPhase
+	phase api.ReceiverFilterPhase
 	s     *downStream
 }
 
