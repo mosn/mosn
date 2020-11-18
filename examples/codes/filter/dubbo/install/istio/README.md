@@ -3,22 +3,22 @@
 ## download istioctl
 
 ```shell
-$ curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.6.10 sh -
+$ curl -L https://istio.io/downloadIstio | ISTIO_VERSION=1.7.3 sh -
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
 100   107  100   107    0     0     58      0  0:00:01  0:00:01 --:--:--    58
 100  3896  100  3896    0     0   1683      0  0:00:02  0:00:02 --:--:-- 3804k
-Downloading istio-1.6.10 from https://github.com/istio/istio/releases/download/1.6.10/istio-1.6.10-osx.tar.gz ...
-Istio 1.6.10 Download Complete!
+Downloading istio-1.7.3 from https://github.com/istio/istio/releases/download/1.7.3/istio-1.7.3-osx.tar.gz ...
+Istio 1.7.3 Download Complete!
 
-Istio has been successfully downloaded into the istio-1.6.10 folder on your system.
+Istio has been successfully downloaded into the istio-1.7.3 folder on your system.
 
 Next Steps:
 See https://istio.io/docs/setup/kubernetes/install/ to add Istio to your Kubernetes cluster.
 
 To configure the istioctl client tool for your workstation,
-add the /tmp/istio-1.6.10/bin directory to your environment path variable with:
-	 export PATH="$PATH:/tmp/istio-1.6.10/bin"
+add the /tmp/istio-1.7.3/bin directory to your environment path variable with:
+	 export PATH="$PATH:/tmp/istio-1.7.3/bin"
 
 Begin the Istio pre-installation verification check by running:
 	 istioctl verify-install
@@ -29,9 +29,9 @@ Need more information? Visit https://istio.io/docs/setup/kubernetes/install/
 ## install
 
 ```shell
-$ ./istio-1.6.10/bin/istioctl manifest apply --set profile=minimal --set values.global.jwtPolicy=first-party-jwt --set addonComponents.grafana.enabled=false --set addonComponents.istiocoredns.enabled=false --set addonComponents.kiali.enabled=true --set addonComponents.prometheus.enabled=false --set addonComponents.tracing.enabled=false --set components.pilot.hub=docker.io/istio --set components.pilot.k8s.resources.requests.cpu=4000m --set components.pilot.k8s.resources.requests.memory=8Gi --set meshConfig.defaultConfig.binaryPath=/usr/local/bin/mosn --set meshConfig.defaultConfig.customConfigFile=/etc/istio/mosn/mosn_config_dubbo_xds.json --set meshConfig.defaultConfig.statusPort=15021 --set values.sidecarInjectorWebhook.rewriteAppHTTPProbe=false --set values.global.hub=symcn.tencentcloudcr.com/symcn --set values.global.proxy.logLevel=info --set values.kiali.hub=symcn.tencentcloudcr.com/symcn
+$ ./istio-1.7.3/bin/istioctl install --set profile=minimal --set values.global.jwtPolicy=first-party-jwt --set addonComponents.grafana.enabled=false --set addonComponents.istiocoredns.enabled=false --set addonComponents.kiali.enabled=true --set addonComponents.prometheus.enabled=false --set addonComponents.tracing.enabled=false --set components.pilot.hub=docker.io/istio --set components.pilot.k8s.resources.requests.cpu=4000m --set components.pilot.k8s.resources.requests.memory=8Gi --set meshConfig.defaultConfig.binaryPath=/usr/local/bin/mosn --set meshConfig.defaultConfig.customConfigFile=/etc/istio/mosn/mosn_config_dubbo_xds.json --set meshConfig.defaultConfig.statusPort=15021 --set values.sidecarInjectorWebhook.rewriteAppHTTPProbe=false --set values.global.hub=symcn.tencentcloudcr.com/symcn --set values.global.proxy.logLevel=info --set values.kiali.hub=symcn.tencentcloudcr.com/symcn --set values.global.proxy.autoInject=disabled
 Detected that your cluster does not support third party JWT authentication. Falling back to less secure first party JWT. See https://istio.io/docs/ops/best-practices/security/#configure-third-party-service-account-tokens for details.
-! global.mtls.auto is deprecated; use meshConfig.enableAutoMtls instead
+! addonComponents.kiali.enabled is deprecated; use the samples/addons/ deployments instead
 ✔ Istio core installed
 ✔ Istiod installed
 ✔ Addons installed
@@ -41,86 +41,7 @@ Detected that your cluster does not support third party JWT authentication. Fall
 
 if already install istioctl
 
-> istioctl manifest apply --set profile=minimal --set values.global.jwtPolicy=first-party-jwt --set addonComponents.grafana.enabled=false --set addonComponents.istiocoredns.enabled=false --set addonComponents.kiali.enabled=true --set addonComponents.prometheus.enabled=false --set addonComponents.tracing.enabled=false --set components.pilot.hub=docker.io/istio --set meshConfig.defaultConfig.binaryPath=/usr/local/bin/mosn --set meshConfig.defaultConfig.customConfigFile=/etc/istio/mosn/mosn_config_dubbo_xds.json --set meshConfig.defaultConfig.statusPort=15021 --set values.sidecarInjectorWebhook.rewriteAppHTTPProbe=false --set values.global.proxy.logLevel=info
-
-## modify configmap
-
-```shell
-kubectl edit configmap -n istio-system istio-sidecar-injector
-```
-
-- modify `data.config.policy`: disabled
-
-- delete `data.config.template.initContainers`
-
-- add `data.config.template.containers.env`, such as: MOSN_ZK_ADDRESS
-
-**finally result**
-
-```yaml
-apiVersion: v1
-data:
-  config: |-
-    # modify
-    policy: disabled
-    alwaysInjectSelector:
-      []
-    neverInjectSelector:
-      []
-    injectedAnnotations:
-
-    template: |
-      rewriteAppHTTPProbe: {{ valueOrDefault .Values.sidecarInjectorWebhook.rewriteAppHTTPProbe false }}
-      # initContainers delete
-      containers:
-      - name: istio-proxy
-      {{- if contains "/" (annotation .ObjectMeta `sidecar.istio.io/proxyImage` .Values.global.proxy.image) }}
-        image: "{{ annotation .ObjectMeta `sidecar.istio.io/proxyImage` .Values.global.proxy.image }}"
-      {{- else }}
-        image: "{{ .Values.global.hub }}/{{ .Values.global.proxy.image }}:{{ .Values.global.tag }}"
-      {{- end }}
-        ports:
-        - containerPort: 15090
-          protocol: TCP
-          name: http-envoy-prom
-        args:
-        - proxy
-        - sidecar
-        - --domain
-        - $(POD_NAMESPACE).svc.{{ .Values.global.proxy.clusterDomain }}
-        - --serviceCluster
-        {{ if ne "" (index .ObjectMeta.Labels "app") -}}
-        - "{{ index .ObjectMeta.Labels `app` }}.$(POD_NAMESPACE)"
-        {{ else -}}
-        - "{{ valueOrDefault .DeploymentMeta.Name `istio-proxy` }}.{{ valueOrDefault .DeploymentMeta.Namespace `default` }}"
-        {{ end -}}
-        - --proxyLogLevel={{ annotation .ObjectMeta `sidecar.istio.io/logLevel` .Values.global.proxy.logLevel}}
-        - --proxyComponentLogLevel={{ annotation .ObjectMeta `sidecar.istio.io/componentLogLevel` .Values.global.proxy.componentLogLevel}}
-      {{- if .Values.global.sts.servicePort }}
-        - --stsPort={{ .Values.global.sts.servicePort }}
-      {{- end }}
-      {{- if .Values.global.trustDomain }}
-        - --trust-domain={{ .Values.global.trustDomain }}
-      {{- end }}
-      {{- if .Values.global.logAsJson }}
-        - --log_as_json
-      {{- end }}
-      {{- if gt .ProxyConfig.Concurrency 0 }}
-        - --concurrency
-        - "{{ .ProxyConfig.Concurrency }}"
-      {{- end -}}
-      {{- if .Values.global.proxy.lifecycle }}
-        lifecycle:
-          {{ toYaml .Values.global.proxy.lifecycle | indent 4 }}
-        {{- end }}
-        env:
-        # add env MOSN_ZK_ADDRESS
-        - name: MOSN_ZK_ADDRESS
-          value: 127.0.0.1:2181
-        - name: JWT_POLICY
-          value: {{ .Values.global.jwtPolicy }}
-......
-```
+> istioctl install --set profile=minimal --set values.global.jwtPolicy=first-party-jwt --set addonComponents.grafana.enabled=false --set addonComponents.istiocoredns.enabled=false --set addonComponents.kiali.enabled=true --set addonComponents.prometheus.enabled=false --set addonComponents.tracing.enabled=false --set components.pilot.hub=docker.io/istio --set components.pilot.k8s.resources.requests.cpu=4000m --set components.pilot.k8s.resources.requests.memory=8Gi --set meshConfig.defaultConfig.binaryPath=/usr/local/bin/mosn --set meshConfig.defaultConfig.customConfigFile=/etc/istio/mosn/mosn_config_dubbo_xds.json --set meshConfig.defaultConfig.statusPort=15021 --set values.sidecarInjectorWebhook.rewriteAppHTTPProbe=false --set values.global.hub=symcn.tencentcloudcr.com/symcn --set values.global.proxy.logLevel=info --set values.kiali.hub=symcn.tencentcloudcr.com/symcn --set values.global.proxy.autoInject=disabled
 
 ## kiali config
 
@@ -133,96 +54,108 @@ kubectl create secret generic kiali -n istio-system --from-literal=username=admi
 ### uninstall istio component
 
 ```shell
-$ istioctl manifest generate --set profile=demo | kubectl delete -f -
-clusterrole.rbac.authorization.k8s.io "kiali" deleted
-clusterrole.rbac.authorization.k8s.io "kiali-viewer" deleted
-clusterrolebinding.rbac.authorization.k8s.io "kiali" deleted
-configmap "kiali" deleted
-secret "kiali" deleted
-deployment.apps "kiali" deleted
-service "kiali" deleted
-serviceaccount "kiali-service-account" deleted
-clusterrole.rbac.authorization.k8s.io "istiod-istio-system" deleted
-clusterrole.rbac.authorization.k8s.io "istio-reader-istio-system" deleted
-clusterrolebinding.rbac.authorization.k8s.io "istio-reader-istio-system" deleted
-clusterrolebinding.rbac.authorization.k8s.io "istiod-pilot-istio-system" deleted
-serviceaccount "istio-reader-service-account" deleted
-serviceaccount "istiod-service-account" deleted
-validatingwebhookconfiguration.admissionregistration.k8s.io "istiod-istio-system" deleted
-customresourcedefinition.apiextensions.k8s.io "httpapispecs.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "httpapispecbindings.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "quotaspecs.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "quotaspecbindings.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "destinationrules.networking.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "envoyfilters.networking.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "gateways.networking.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "serviceentries.networking.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "sidecars.networking.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "virtualservices.networking.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "workloadentries.networking.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "attributemanifests.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "handlers.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "instances.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "rules.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "clusterrbacconfigs.rbac.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "rbacconfigs.rbac.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "serviceroles.rbac.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "servicerolebindings.rbac.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "authorizationpolicies.security.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "peerauthentications.security.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "requestauthentications.security.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "adapters.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "templates.config.istio.io" deleted
-customresourcedefinition.apiextensions.k8s.io "istiooperators.install.istio.io" deleted
-deployment.apps "istio-egressgateway" deleted
-poddisruptionbudget.policy "istio-egressgateway" deleted
-service "istio-egressgateway" deleted
-serviceaccount "istio-egressgateway-service-account" deleted
-deployment.apps "istio-ingressgateway" deleted
-poddisruptionbudget.policy "istio-ingressgateway" deleted
-role.rbac.authorization.k8s.io "istio-ingressgateway-sds" deleted
-rolebinding.rbac.authorization.k8s.io "istio-ingressgateway-sds" deleted
-service "istio-ingressgateway" deleted
-serviceaccount "istio-ingressgateway-service-account" deleted
-configmap "istio" deleted
-deployment.apps "istiod" deleted
-configmap "istio-sidecar-injector" deleted
-mutatingwebhookconfiguration.admissionregistration.k8s.io "istio-sidecar-injector" deleted
-poddisruptionbudget.policy "istiod" deleted
-service "istiod" deleted
-Error from server (NotFound): error when deleting "STDIN": configmaps "istio-grafana-configuration-dashboards-istio-mesh-dashboard" not found
-Error from server (NotFound): error when deleting "STDIN": configmaps "istio-grafana-configuration-dashboards-istio-performance-dashboard" not found
-Error from server (NotFound): error when deleting "STDIN": configmaps "istio-grafana-configuration-dashboards-istio-service-dashboard" not found
-Error from server (NotFound): error when deleting "STDIN": configmaps "istio-grafana-configuration-dashboards-istio-workload-dashboard" not found
-Error from server (NotFound): error when deleting "STDIN": configmaps "istio-grafana-configuration-dashboards-mixer-dashboard" not found
-Error from server (NotFound): error when deleting "STDIN": configmaps "istio-grafana-configuration-dashboards-pilot-dashboard" not found
-Error from server (NotFound): error when deleting "STDIN": configmaps "istio-grafana" not found
-Error from server (NotFound): error when deleting "STDIN": deployments.apps "grafana" not found
-Error from server (NotFound): error when deleting "STDIN": peerauthentications.security.istio.io "grafana-ports-mtls-disabled" not found
-Error from server (NotFound): error when deleting "STDIN": services "grafana" not found
-Error from server (NotFound): error when deleting "STDIN": clusterroles.rbac.authorization.k8s.io "prometheus-istio-system" not found
-Error from server (NotFound): error when deleting "STDIN": clusterrolebindings.rbac.authorization.k8s.io "prometheus-istio-system" not found
-Error from server (NotFound): error when deleting "STDIN": configmaps "prometheus" not found
-Error from server (NotFound): error when deleting "STDIN": deployments.apps "prometheus" not found
-Error from server (NotFound): error when deleting "STDIN": services "prometheus" not found
-Error from server (NotFound): error when deleting "STDIN": serviceaccounts "prometheus" not found
-Error from server (NotFound): error when deleting "STDIN": deployments.apps "istio-tracing" not found
-Error from server (NotFound): error when deleting "STDIN": services "jaeger-query" not found
-Error from server (NotFound): error when deleting "STDIN": services "jaeger-collector" not found
-Error from server (NotFound): error when deleting "STDIN": services "jaeger-collector-headless" not found
-Error from server (NotFound): error when deleting "STDIN": services "jaeger-agent" not found
-Error from server (NotFound): error when deleting "STDIN": services "zipkin" not found
-Error from server (NotFound): error when deleting "STDIN": services "tracing" not found
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io metadata-exchange-1.4)
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io stats-filter-1.4)
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io metadata-exchange-1.5)
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io tcp-metadata-exchange-1.5)
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io stats-filter-1.5)
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io tcp-stats-filter-1.5)
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io metadata-exchange-1.6)
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io tcp-metadata-exchange-1.6)
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io stats-filter-1.6)
-Error from server (NotFound): error when deleting "STDIN": the server could not find the requested resource (delete envoyfilters.networking.istio.io tcp-stats-filter-1.6)
+$ istioctl x uninstall --purge
+All Istio resources will be pruned from the cluster
+Proceed? (y/N) y
+  Removed HorizontalPodAutoscaler:istio-system:istiod.
+  Removed PodDisruptionBudget:istio-system:istiod.
+  Removed Deployment:istio-system:istiod.
+  Removed Deployment:istio-system:kiali.
+  Removed Service:istio-system:istiod.
+  Removed Service:istio-system:kiali.
+  Removed ConfigMap:istio-system:istio.
+  Removed ConfigMap:istio-system:istio-sidecar-injector.
+  Removed ConfigMap:istio-system:kiali.
+  Removed ServiceAccount:istio-system:istio-reader-service-account.
+  Removed ServiceAccount:istio-system:istiod-service-account.
+  Removed ServiceAccount:istio-system:kiali-service-account.
+  Removed RoleBinding:istio-system:istiod-istio-system.
+  Removed Role:istio-system:istiod-istio-system.
+  Removed EnvoyFilter:istio-system:metadata-exchange-1.6.
+  Removed EnvoyFilter:istio-system:metadata-exchange-1.7.
+  Removed EnvoyFilter:istio-system:stats-filter-1.6.
+  Removed EnvoyFilter:istio-system:stats-filter-1.7.
+  Removed EnvoyFilter:istio-system:tcp-metadata-exchange-1.6.
+  Removed EnvoyFilter:istio-system:tcp-metadata-exchange-1.7.
+  Removed EnvoyFilter:istio-system:tcp-stats-filter-1.6.
+  Removed EnvoyFilter:istio-system:tcp-stats-filter-1.7.
+  Removed MutatingWebhookConfiguration::istio-sidecar-injector.
+  Removed ValidatingWebhookConfiguration::istiod-istio-system.
+  Removed ClusterRole::istio-reader-istio-system.
+  Removed ClusterRole::istiod-istio-system.
+  Removed ClusterRole::kiali.
+  Removed ClusterRole::kiali-viewer.
+  Removed ClusterRoleBinding::istio-reader-istio-system.
+  Removed ClusterRoleBinding::istiod-pilot-istio-system.
+  Removed ClusterRoleBinding::kiali.
+object: MutatingWebhookConfiguration::istio-sidecar-injector is not being deleted because it no longer exists
+  Removed MutatingWebhookConfiguration::istio-sidecar-injector.
+object: ValidatingWebhookConfiguration::istiod-istio-system is not being deleted because it no longer exists
+  Removed ValidatingWebhookConfiguration::istiod-istio-system.
+  Removed CustomResourceDefinition::adapters.config.istio.io.
+  Removed CustomResourceDefinition::attributemanifests.config.istio.io.
+  Removed CustomResourceDefinition::authorizationpolicies.security.istio.io.
+  Removed CustomResourceDefinition::destinationrules.networking.istio.io.
+  Removed CustomResourceDefinition::envoyfilters.networking.istio.io.
+  Removed CustomResourceDefinition::gateways.networking.istio.io.
+  Removed CustomResourceDefinition::handlers.config.istio.io.
+  Removed CustomResourceDefinition::httpapispecbindings.config.istio.io.
+  Removed CustomResourceDefinition::httpapispecs.config.istio.io.
+  Removed CustomResourceDefinition::instances.config.istio.io.
+  Removed CustomResourceDefinition::istiooperators.install.istio.io.
+  Removed CustomResourceDefinition::peerauthentications.security.istio.io.
+  Removed CustomResourceDefinition::quotaspecbindings.config.istio.io.
+  Removed CustomResourceDefinition::quotaspecs.config.istio.io.
+  Removed CustomResourceDefinition::requestauthentications.security.istio.io.
+  Removed CustomResourceDefinition::rules.config.istio.io.
+  Removed CustomResourceDefinition::serviceentries.networking.istio.io.
+  Removed CustomResourceDefinition::sidecars.networking.istio.io.
+  Removed CustomResourceDefinition::templates.config.istio.io.
+  Removed CustomResourceDefinition::virtualservices.networking.istio.io.
+  Removed CustomResourceDefinition::workloadentries.networking.istio.io.
+object: CustomResourceDefinition::adapters.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::adapters.config.istio.io.
+object: CustomResourceDefinition::attributemanifests.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::attributemanifests.config.istio.io.
+object: CustomResourceDefinition::authorizationpolicies.security.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::authorizationpolicies.security.istio.io.
+object: CustomResourceDefinition::destinationrules.networking.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::destinationrules.networking.istio.io.
+object: CustomResourceDefinition::envoyfilters.networking.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::envoyfilters.networking.istio.io.
+object: CustomResourceDefinition::gateways.networking.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::gateways.networking.istio.io.
+object: CustomResourceDefinition::handlers.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::handlers.config.istio.io.
+object: CustomResourceDefinition::httpapispecbindings.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::httpapispecbindings.config.istio.io.
+object: CustomResourceDefinition::httpapispecs.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::httpapispecs.config.istio.io.
+object: CustomResourceDefinition::instances.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::instances.config.istio.io.
+object: CustomResourceDefinition::istiooperators.install.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::istiooperators.install.istio.io.
+object: CustomResourceDefinition::peerauthentications.security.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::peerauthentications.security.istio.io.
+object: CustomResourceDefinition::quotaspecbindings.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::quotaspecbindings.config.istio.io.
+object: CustomResourceDefinition::quotaspecs.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::quotaspecs.config.istio.io.
+object: CustomResourceDefinition::requestauthentications.security.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::requestauthentications.security.istio.io.
+object: CustomResourceDefinition::rules.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::rules.config.istio.io.
+object: CustomResourceDefinition::serviceentries.networking.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::serviceentries.networking.istio.io.
+object: CustomResourceDefinition::sidecars.networking.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::sidecars.networking.istio.io.
+object: CustomResourceDefinition::templates.config.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::templates.config.istio.io.
+object: CustomResourceDefinition::virtualservices.networking.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::virtualservices.networking.istio.io.
+object: CustomResourceDefinition::workloadentries.networking.istio.io is not being deleted because it no longer exists
+  Removed CustomResourceDefinition::workloadentries.networking.istio.io.
+✔ Uninstall complete
 ```
 
 ### delete config

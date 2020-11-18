@@ -37,7 +37,7 @@ func (f *filterChainFactory) CreateFilterChain(context context.Context, callback
 	transcodeFilter := newTranscodeFilter(context, f.cfg)
 	if transcodeFilter != nil {
 		callbacks.AddStreamReceiverFilter(transcodeFilter, api.AfterRoute)
-		callbacks.AddStreamSenderFilter(transcodeFilter)
+		callbacks.AddStreamSenderFilter(transcodeFilter, api.BeforeSend)
 	}
 }
 
