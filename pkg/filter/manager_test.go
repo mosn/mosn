@@ -113,17 +113,6 @@ func TestDefaultStreamFilterManagerImpl_OnDestroy(t *testing.T) {
 	}
 }
 
-func TestDefaultStreamFilterManagerImpl_RunSenderFilter(t *testing.T) {
-	senderFilterPhase := api.SenderFilterPhase(999)
-	d := &DefaultStreamFilterManagerImpl{}
-	d.AddStreamSenderFilter(&mockStreamFilter{api.StreamFilterContinue, api.StreamFilterContinue}, senderFilterPhase)
-	d.AddStreamSenderFilter(&mockStreamFilter{api.StreamFilterContinue, api.StreamFilterContinue}, senderFilterPhase)
-	d.RunSenderFilter(context.TODO(), senderFilterPhase, nil, nil, nil, nil)
-	if appendCount != 2 {
-		t.Error("DefaultStreamFilterManagerImpl.RunSenderFilter failed")
-	}
-}
-
 func TestDefaultStreamFilterManagerImpl_RunReceiverFilter(t *testing.T) {
 	tests := []struct {
 		receiverFilters []*mockStreamFilter
@@ -188,7 +177,7 @@ func TestDefaultStreamFilterManagerImpl_RunReceiverFilter(t *testing.T) {
 	}
 }
 
-func TestDefaultStreamFilterManagerImpl_RunSenderFilter1(t *testing.T) {
+func TestDefaultStreamFilterManagerImpl_RunSenderFilter(t *testing.T) {
 	tests := []struct {
 		senderFilters []*mockStreamFilter
 		wantStatus      api.StreamFilterStatus

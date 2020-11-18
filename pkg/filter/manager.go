@@ -28,7 +28,6 @@ import (
 // StreamFilterStatusHandler allow users to deal with the filter status.
 type StreamFilterStatusHandler func(status api.StreamFilterStatus)
 
-
 // StreamFilterManager manages the lifecycle of streamFilters.
 type StreamFilterManager interface {
 	// register StreamSenderFilter, StreamReceiverFilter and AccessLog.
@@ -89,7 +88,7 @@ type StreamSenderFilterWithPhaseImpl struct {
 	phase api.SenderFilterPhase
 }
 
-// NewStreamSenderFilterWithPhaseImpl returns a new StreamSenderFilterWithPhaseImpl.
+// NewStreamSenderFilterWithPhase returns a new StreamSenderFilterWithPhaseImpl.
 func NewStreamSenderFilterWithPhase(f api.StreamSenderFilter, p api.SenderFilterPhase) *StreamSenderFilterWithPhaseImpl {
 	return &StreamSenderFilterWithPhaseImpl{
 		StreamSenderFilter: f,
@@ -134,7 +133,6 @@ func (d *DefaultStreamFilterManagerImpl) AddStreamAccessLog(accessLog api.Access
 func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler StreamFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
-
 	filterStatus = api.StreamFilterContinue
 
 	for ; d.receiverFiltersIndex < len(d.receiverFilters); d.receiverFiltersIndex++ {
@@ -169,7 +167,6 @@ func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, 
 func (d *DefaultStreamFilterManagerImpl) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler StreamFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
-
 	filterStatus = api.StreamFilterContinue
 
 	for ; d.senderFiltersIndex < len(d.senderFilters); d.senderFiltersIndex++ {
@@ -187,12 +184,10 @@ func (d *DefaultStreamFilterManagerImpl) RunSenderFilter(ctx context.Context, ph
 		switch filterStatus {
 		case api.StreamFilterContinue:
 			continue
-		case api.StreamFilterStop:
-		case api.StreamFiltertermination:
+		case api.StreamFilterStop, api.StreamFiltertermination:
 			d.senderFiltersIndex = 0
 			return
-		case api.StreamFilterReMatchRoute:
-		case api.StreamFilterReChooseHost:
+		case api.StreamFilterReMatchRoute, api.StreamFilterReChooseHost:
 			log.DefaultLogger.Errorf("DefaultStreamFilterManagerImpl.RunSenderFilter filter return invalid status: %v", filterStatus)
 			d.senderFiltersIndex = 0
 			return
