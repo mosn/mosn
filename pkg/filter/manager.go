@@ -21,37 +21,13 @@ import (
 	"context"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
-// StreamFilterChainStatus determines the running status of filter chain.
-type StreamFilterChainStatus int
+// StreamFilterStatusHandler allow users to deal with the filter status.
+type StreamFilterStatusHandler func(status api.StreamFilterStatus)
 
-const (
-	// StreamFilterChainContinue continues running the filter chain.
-	StreamFilterChainContinue StreamFilterChainStatus = iota
-	// StreamFilterChainStop stops running the filter chain, next time should retry the current filter.
-	StreamFilterChainStop
-	// StreamFilterChainReset stops running the filter chain and reset index, next time should run the first filter.
-	StreamFilterChainReset
-)
-
-// StreamFilterStatusHandler converts api.StreamFilterStatus to StreamFilterChainStatus.
-type StreamFilterStatusHandler func(status api.StreamFilterStatus) StreamFilterChainStatus
-
-// DefaultStreamFilterStatusHandler is the default implementation of StreamFilterStatusHandler.
-func DefaultStreamFilterStatusHandler(status api.StreamFilterStatus) StreamFilterChainStatus {
-	switch status {
-	case api.StreamFilterContinue:
-		return StreamFilterChainContinue
-	case api.StreamFilterStop:
-		return StreamFilterChainReset
-	case api.StreamFiltertermination:
-		return StreamFilterChainReset
-	}
-
-	return StreamFilterChainContinue
-}
 
 // StreamFilterManager manages the lifecycle of streamFilters.
 type StreamFilterManager interface {
@@ -87,7 +63,7 @@ type StreamReceiverFilterWithPhaseImpl struct {
 	phase api.ReceiverFilterPhase
 }
 
-// NewStreamReceiverFilterWithPhase returns a StreamReceiverFilterWithPhaseImpl struct..
+// NewStreamReceiverFilterWithPhase returns a StreamReceiverFilterWithPhaseImpl struct.
 func NewStreamReceiverFilterWithPhase(
 	f api.StreamReceiverFilter, p api.ReceiverFilterPhase) *StreamReceiverFilterWithPhaseImpl {
 	return &StreamReceiverFilterWithPhaseImpl{
@@ -158,9 +134,6 @@ func (d *DefaultStreamFilterManagerImpl) AddStreamAccessLog(accessLog api.Access
 func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler StreamFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
-	if statusHandler == nil {
-		statusHandler = DefaultStreamFilterStatusHandler
-	}
 
 	filterStatus = api.StreamFilterContinue
 
@@ -172,17 +145,18 @@ func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, 
 
 		filterStatus = filter.OnReceive(ctx, headers, data, trailers)
 
-		chainStatus := statusHandler(filterStatus)
-		switch chainStatus {
-		case StreamFilterChainContinue:
+		if statusHandler != nil {
+			statusHandler(filterStatus)
+		}
+
+		switch filterStatus {
+		case api.StreamFilterContinue:
 			continue
-		case StreamFilterChainStop:
-			return
-		case StreamFilterChainReset:
+		case api.StreamFilterStop, api.StreamFiltertermination:
 			d.receiverFiltersIndex = 0
 			return
-		default:
-			continue
+		case api.StreamFilterReMatchRoute, api.StreamFilterReChooseHost:
+			return
 		}
 	}
 
@@ -195,9 +169,6 @@ func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, 
 func (d *DefaultStreamFilterManagerImpl) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler StreamFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
-	if statusHandler == nil {
-		statusHandler = DefaultStreamFilterStatusHandler
-	}
 
 	filterStatus = api.StreamFilterContinue
 
@@ -209,17 +180,22 @@ func (d *DefaultStreamFilterManagerImpl) RunSenderFilter(ctx context.Context, ph
 
 		filterStatus = filter.Append(ctx, headers, data, trailers)
 
-		chainStatus := statusHandler(filterStatus)
-		switch chainStatus {
-		case StreamFilterChainContinue:
+		if statusHandler != nil {
+			statusHandler(filterStatus)
+		}
+
+		switch filterStatus {
+		case api.StreamFilterContinue:
 			continue
-		case StreamFilterChainStop:
+		case api.StreamFilterStop:
+		case api.StreamFiltertermination:
+			d.senderFiltersIndex = 0
 			return
-		case StreamFilterChainReset:
-			d.receiverFiltersIndex = 0
+		case api.StreamFilterReMatchRoute:
+		case api.StreamFilterReChooseHost:
+			log.DefaultLogger.Errorf("DefaultStreamFilterManagerImpl.RunSenderFilter filter return invalid status: %v", filterStatus)
+			d.senderFiltersIndex = 0
 			return
-		default:
-			continue
 		}
 	}
 

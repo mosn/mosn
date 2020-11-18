@@ -55,29 +55,23 @@ func (manager *streamFilterManager) RunReceiverFilter(ctx context.Context, phase
 	statusHandler filter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
 	return manager.DefaultStreamFilterManagerImpl.RunReceiverFilter(ctx, phase, headers, data, trailers,
-		func(status api.StreamFilterStatus) filter.StreamFilterChainStatus {
+		func(status api.StreamFilterStatus) {
 			switch status {
-			case api.StreamFilterStop:
-				return filter.StreamFilterChainReset
 			case api.StreamFiltertermination:
 				manager.downStream.cleanStream()
-				return filter.StreamFilterChainReset
 			case api.StreamFilterReMatchRoute:
 				// Retry only at the AfterRoute phase
 				if phase == api.AfterRoute {
 					// FiltersIndex is not increased until no retry is required
 					manager.receiverFiltersAgainPhase = types.MatchRoute
-					return filter.StreamFilterChainStop
 				}
 			case api.StreamFilterReChooseHost:
 				// Retry only at the AfterChooseHost phase
 				if phase == api.AfterChooseHost {
 					// FiltersIndex is not increased until no retry is required
 					manager.receiverFiltersAgainPhase = types.ChooseHost
-					return filter.StreamFilterChainStop
 				}
 			}
-			return filter.StreamFilterChainContinue
 		})
 }
 
@@ -86,15 +80,9 @@ func (manager *streamFilterManager) RunSenderFilter(ctx context.Context, phase a
 	statusHandler filter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
 	return manager.DefaultStreamFilterManagerImpl.RunSenderFilter(ctx, phase, headers, data, trailers,
-		func(status api.StreamFilterStatus) filter.StreamFilterChainStatus {
-			switch status {
-			case api.StreamFilterStop:
-				return filter.StreamFilterChainReset
-			case api.StreamFiltertermination:
+		func(status api.StreamFilterStatus) {
+			if status == api.StreamFiltertermination {
 				manager.downStream.cleanStream()
-				return filter.StreamFilterChainReset
-			default:
-				return filter.StreamFilterChainContinue
 			}
 		})
 }
