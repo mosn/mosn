@@ -40,7 +40,7 @@ func (manager *streamFilterManager) AddStreamSenderFilter(filter api.StreamSende
 }
 
 func (manager *streamFilterManager) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.ReceiverFilterPhase) {
-	sf := newActiveStreamReceiverFilter(manager.downStream, filter, types.Phase(phase))
+	sf := newActiveStreamReceiverFilter(manager.downStream, filter)
 	manager.DefaultStreamFilterManagerImpl.AddStreamReceiverFilter(sf, phase)
 }
 
@@ -112,7 +112,7 @@ type activeStreamReceiverFilter struct {
 }
 
 func newActiveStreamReceiverFilter(activeStream *downStream,
-	filter api.StreamReceiverFilter, p types.Phase) *activeStreamReceiverFilter {
+	filter api.StreamReceiverFilter) *activeStreamReceiverFilter {
 	f := &activeStreamReceiverFilter{
 		activeStreamFilter: activeStreamFilter{
 			activeStream: activeStream,

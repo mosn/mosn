@@ -72,20 +72,18 @@ func TestDefaultStreamFilterManagerImpl_AddStreamAccessLog(t *testing.T) {
 }
 
 func TestDefaultStreamFilterManagerImpl_AddStreamReceiverFilter(t *testing.T) {
-	receiverFilterPhase := api.ReceiverFilterPhase(999)
 	d := &DefaultStreamFilterManagerImpl{}
-	d.AddStreamReceiverFilter(&mockStreamFilter{api.StreamFilterContinue, api.StreamFilterContinue}, receiverFilterPhase)
-	d.AddStreamReceiverFilter(&mockStreamFilter{api.StreamFilterContinue, api.StreamFilterContinue}, receiverFilterPhase)
+	d.AddStreamReceiverFilter(&mockStreamFilter{onReceiveReturn: api.StreamFilterContinue}, api.BeforeRoute)
+	d.AddStreamReceiverFilter(&mockStreamFilter{onReceiveReturn: api.StreamFilterContinue}, api.BeforeRoute)
 	if len(d.receiverFilters) != 2 {
 		t.Errorf("DefaultStreamFilterManagerImpl.AddStreamReceiverFilter failed, len: %v", len(d.receiverFilters))
 	}
 }
 
 func TestDefaultStreamFilterManagerImpl_AddStreamSenderFilter(t *testing.T) {
-	senderFilterPhase := api.SenderFilterPhase(999)
 	d := &DefaultStreamFilterManagerImpl{}
-	d.AddStreamSenderFilter(&mockStreamFilter{api.StreamFilterContinue, api.StreamFilterContinue}, senderFilterPhase)
-	d.AddStreamSenderFilter(&mockStreamFilter{api.StreamFilterContinue, api.StreamFilterContinue}, senderFilterPhase)
+	d.AddStreamSenderFilter(&mockStreamFilter{appendReturn: api.StreamFilterContinue}, api.BeforeSend)
+	d.AddStreamSenderFilter(&mockStreamFilter{appendReturn: api.StreamFilterContinue}, api.BeforeSend)
 	if len(d.senderFilters) != 2 {
 		t.Errorf("DefaultStreamFilterManagerImpl.AddStreamSenderFilter failed, len: %v", len(d.senderFilters))
 	}
@@ -102,11 +100,9 @@ func TestDefaultStreamFilterManagerImpl_Log(t *testing.T) {
 }
 
 func TestDefaultStreamFilterManagerImpl_OnDestroy(t *testing.T) {
-	receiverFilterPhase := api.ReceiverFilterPhase(998)
-	senderFilterPhase := api.SenderFilterPhase(999)
 	d := &DefaultStreamFilterManagerImpl{}
-	d.AddStreamReceiverFilter(&mockStreamFilter{api.StreamFilterContinue, api.StreamFilterContinue}, receiverFilterPhase)
-	d.AddStreamSenderFilter(&mockStreamFilter{api.StreamFilterContinue, api.StreamFilterContinue}, senderFilterPhase)
+	d.AddStreamReceiverFilter(&mockStreamFilter{onReceiveReturn: api.StreamFilterContinue}, api.BeforeRoute)
+	d.AddStreamSenderFilter(&mockStreamFilter{appendReturn: api.StreamFilterContinue}, api.BeforeSend)
 	d.OnDestroy()
 	if destroyCount != 2 {
 		t.Errorf("DefaultStreamFilterManagerImpl.OnDestroy failed, destroyCount: %v", destroyCount)

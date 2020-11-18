@@ -52,8 +52,12 @@ type StreamFilterManager interface {
 
 // StreamReceiverFilterWithPhase combines the StreamReceiverFilter with its Phase.
 type StreamReceiverFilterWithPhase interface {
+
+	// StreamReceiverFilter interface.
 	api.StreamReceiverFilter
-	ValidatePhase(phase api.ReceiverFilterPhase) bool
+
+	// GetPhase return the working phase of current filter.
+	GetPhase() api.ReceiverFilterPhase
 }
 
 // StreamReceiverFilterWithPhaseImpl is the default implementation of StreamReceiverFilterWithPhase.
@@ -71,15 +75,19 @@ func NewStreamReceiverFilterWithPhase(
 	}
 }
 
-// ValidatePhase checks the current phase.
-func (s *StreamReceiverFilterWithPhaseImpl) ValidatePhase(phase api.ReceiverFilterPhase) bool {
-	return s.phase == phase
+// GetPhase return the working phase of current filter.
+func (s *StreamReceiverFilterWithPhaseImpl) GetPhase() api.ReceiverFilterPhase {
+	return s.phase
 }
 
 // StreamSenderFilterWithPhase combines the StreamSenderFilter which its Phase.
 type StreamSenderFilterWithPhase interface {
+
+	// StreamSenderFilter interface
 	api.StreamSenderFilter
-	ValidatePhase(phase api.SenderFilterPhase) bool
+
+	// GetPhase return the working phase of current filter.
+	GetPhase() api.SenderFilterPhase
 }
 
 // StreamSenderFilterWithPhaseImpl is default implementation of StreamSenderFilterWithPhase.
@@ -96,9 +104,9 @@ func NewStreamSenderFilterWithPhase(f api.StreamSenderFilter, p api.SenderFilter
 	}
 }
 
-// ValidatePhase checks the current phase.
-func (s *StreamSenderFilterWithPhaseImpl) ValidatePhase(phase api.SenderFilterPhase) bool {
-	return s.phase == phase
+// GetPhase return the working phase of current filter.
+func (s *StreamSenderFilterWithPhaseImpl) GetPhase() api.SenderFilterPhase {
+	return s.phase
 }
 
 // DefaultStreamFilterManagerImpl is default implementation of the StreamFilterManager.
@@ -137,7 +145,7 @@ func (d *DefaultStreamFilterManagerImpl) RunReceiverFilter(ctx context.Context, 
 
 	for ; d.receiverFiltersIndex < len(d.receiverFilters); d.receiverFiltersIndex++ {
 		filter := d.receiverFilters[d.receiverFiltersIndex]
-		if !filter.ValidatePhase(phase) {
+		if phase != filter.GetPhase() {
 			continue
 		}
 
@@ -171,7 +179,7 @@ func (d *DefaultStreamFilterManagerImpl) RunSenderFilter(ctx context.Context, ph
 
 	for ; d.senderFiltersIndex < len(d.senderFilters); d.senderFiltersIndex++ {
 		filter := d.senderFilters[d.senderFiltersIndex]
-		if !filter.ValidatePhase(phase) {
+		if phase != filter.GetPhase() {
 			continue
 		}
 
