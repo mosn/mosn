@@ -28,7 +28,7 @@ func buildStream(conf map[string]interface{}) (api.StreamFilterChainFactory, err
 func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := buildDubboFilter(ctx)
 	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
-	callbacks.AddStreamSenderFilter(filter)
+	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
 type dubboFilter struct {

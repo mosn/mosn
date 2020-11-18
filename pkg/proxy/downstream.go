@@ -1420,7 +1420,7 @@ func (s *downStream) setBufferLimit(bufferLimit uint32) {
 	// todo
 }
 
-func (s *downStream) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.FilterPhase) {
+func (s *downStream) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.ReceiverFilterPhase) {
 	var phase types.Phase
 	switch p {
 	case api.BeforeRoute:
@@ -1436,7 +1436,7 @@ func (s *downStream) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p 
 	s.receiverFilters = append(s.receiverFilters, sf)
 }
 
-func (s *downStream) AddStreamSenderFilter(filter api.StreamSenderFilter) {
+func (s *downStream) AddStreamSenderFilter(filter api.StreamSenderFilter, p api.SenderFilterPhase) {
 	sf := newActiveStreamSenderFilter(s, filter)
 	s.senderFilters = append(s.senderFilters, sf)
 }
