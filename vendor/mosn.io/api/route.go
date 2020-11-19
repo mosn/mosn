@@ -158,6 +158,7 @@ const (
 	Exact
 	Regex
 	SofaHeader
+	Variable
 )
 
 type PathMatchCriterion interface {
