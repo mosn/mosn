@@ -17,11 +17,11 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-type SdsSubscriber struct {
-	provider             types.SecretProvider
+type SdsSubscriberV3 struct {
+	provider             types.SecretProviderV3
 	reqQueue             chan string
 	sdsConfig            *envoy_config_core_v3.ConfigSource
-	sdsStreamClient      *SdsStreamClient
+	sdsStreamClient      *SdsStreamClientV3
 	sdsStreamClientMutex sync.RWMutex
 	sendStopChannel      chan int
 	receiveStopChannel   chan int
@@ -29,14 +29,14 @@ type SdsSubscriber struct {
 	serviceCluster       string
 }
 
-type SdsStreamClient struct {
-	sdsStreamConfig     *SdsStreamConfig
+type SdsStreamClientV3 struct {
+	sdsStreamConfig     *SdsStreamConfigV3
 	conn                *grpc.ClientConn
 	cancel              context.CancelFunc
 	streamSecretsClient envoy_service_secret_v3.SecretDiscoveryService_StreamSecretsClient
 }
 
-type SdsStreamConfig struct {
+type SdsStreamConfigV3 struct {
 	sdsUdsPath string
 	statPrefix string
 }
@@ -45,8 +45,8 @@ var (
 	SubscriberRetryPeriod = 3 * time.Second
 )
 
-func NewSdsSubscriber(provider types.SecretProvider, sdsConfig *envoy_config_core_v3.ConfigSource, serviceNode string, serviceCluster string) *SdsSubscriber {
-	return &SdsSubscriber{
+func NewSdsSubscriberV3(provider types.SecretProviderV3, sdsConfig *envoy_config_core_v3.ConfigSource, serviceNode string, serviceCluster string) *SdsSubscriberV3 {
+	return &SdsSubscriberV3{
 		provider:           provider,
 		reqQueue:           make(chan string, 10240),
 		sdsConfig:          sdsConfig,
@@ -58,7 +58,7 @@ func NewSdsSubscriber(provider types.SecretProvider, sdsConfig *envoy_config_cor
 	}
 }
 
-func (subscribe *SdsSubscriber) Start() {
+func (subscribe *SdsSubscriberV3) Start() {
 	for {
 		sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
 		if err != nil {
@@ -82,17 +82,17 @@ func (subscribe *SdsSubscriber) Start() {
 	}, nil)
 }
 
-func (subscribe *SdsSubscriber) Stop() {
+func (subscribe *SdsSubscriberV3) Stop() {
 	close(subscribe.sendStopChannel)
 	close(subscribe.receiveStopChannel)
 }
 
-func (subscribe *SdsSubscriber) SendSdsRequest(name string) {
+func (subscribe *SdsSubscriberV3) SendSdsRequest(name string) {
 	subscribe.reqQueue <- name
 }
 
-func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *envoy_config_core_v3.ConfigSource) (*SdsStreamConfig, error) {
-	sdsStreamConfig := &SdsStreamConfig{}
+func (subscribe *SdsSubscriberV3) convertSdsConfig(sdsConfig *envoy_config_core_v3.ConfigSource) (*SdsStreamConfigV3, error) {
+	sdsStreamConfig := &SdsStreamConfigV3{}
 	if apiConfig, ok := subscribe.sdsConfig.ConfigSourceSpecifier.(*envoy_config_core_v3.ConfigSource_ApiConfigSource); ok {
 		if apiConfig.ApiConfigSource.GetApiType() == envoy_config_core_v3.ApiConfigSource_GRPC {
 			grpcService := apiConfig.ApiConfigSource.GetGrpcServices()
@@ -111,7 +111,7 @@ func (subscribe *SdsSubscriber) convertSdsConfig(sdsConfig *envoy_config_core_v3
 	return sdsStreamConfig, nil
 }
 
-func (subscribe *SdsSubscriber) sendRequestLoop() {
+func (subscribe *SdsSubscriberV3) sendRequestLoop() {
 	for {
 		select {
 		case <-subscribe.sendStopChannel:
@@ -138,7 +138,7 @@ func (subscribe *SdsSubscriber) sendRequestLoop() {
 	}
 }
 
-func (subscribe *SdsSubscriber) receiveResponseLoop() {
+func (subscribe *SdsSubscriberV3) receiveResponseLoop() {
 	for {
 		select {
 		case <-subscribe.receiveStopChannel:
@@ -167,7 +167,7 @@ func (subscribe *SdsSubscriber) receiveResponseLoop() {
 	}
 }
 
-func (subscribe *SdsSubscriber) sendRequest(request *envoy_service_discovery_v3.DiscoveryRequest) error {
+func (subscribe *SdsSubscriberV3) sendRequest(request *envoy_service_discovery_v3.DiscoveryRequest) error {
 	log.DefaultLogger.Debugf("send sds request resource name = %v", request.ResourceNames)
 
 	subscribe.sdsStreamClientMutex.RLock()
@@ -180,7 +180,7 @@ func (subscribe *SdsSubscriber) sendRequest(request *envoy_service_discovery_v3.
 	return clt.streamSecretsClient.Send(request)
 }
 
-func (subscribe *SdsSubscriber) handleSecretResp(response *envoy_service_discovery_v3.DiscoveryResponse) {
+func (subscribe *SdsSubscriberV3) handleSecretResp(response *envoy_service_discovery_v3.DiscoveryResponse) {
 	log.DefaultLogger.Debugf("handle secret response %v", response)
 	for _, res := range response.Resources {
 		secret := &envoy_extensions_transport_sockets_tls_v3.Secret{}
@@ -192,7 +192,7 @@ func (subscribe *SdsSubscriber) handleSecretResp(response *envoy_service_discove
 	}
 }
 
-func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamConfig) error {
+func (subscribe *SdsSubscriberV3) getSdsStreamClient(sdsStreamConfig *SdsStreamConfigV3) error {
 	subscribe.sdsStreamClientMutex.Lock()
 	defer subscribe.sdsStreamClientMutex.Unlock()
 	if subscribe.sdsStreamClient != nil {
@@ -207,7 +207,7 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 		return err
 	}
 	sdsServiceClient := envoy_service_secret_v3.NewSecretDiscoveryServiceClient(conn)
-	sdsStreamClient := &SdsStreamClient{
+	sdsStreamClient := &SdsStreamClientV3{
 		sdsStreamConfig: sdsStreamConfig,
 		conn:            conn,
 	}
@@ -223,7 +223,7 @@ func (subscribe *SdsSubscriber) getSdsStreamClient(sdsStreamConfig *SdsStreamCon
 	return nil
 }
 
-func (subscribe *SdsSubscriber) reconnect() {
+func (subscribe *SdsSubscriberV3) reconnect() {
 	subscribe.cleanSdsStreamClient()
 	for {
 		sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
@@ -242,7 +242,7 @@ func (subscribe *SdsSubscriber) reconnect() {
 	}
 }
 
-func (subscribe *SdsSubscriber) cleanSdsStreamClient() {
+func (subscribe *SdsSubscriberV3) cleanSdsStreamClient() {
 	subscribe.sdsStreamClientMutex.Lock()
 	defer subscribe.sdsStreamClientMutex.Unlock()
 	if subscribe.sdsStreamClient != nil {

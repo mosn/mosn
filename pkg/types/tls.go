@@ -119,17 +119,17 @@ type SdsSecret struct {
 
 type SdsUpdateCallbackFunc func(name string, secret *SdsSecret)
 
-type SdsClient interface {
+type SdsClientV3 interface {
 	AddUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig, callback SdsUpdateCallbackFunc) error
 	DeleteUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) error
-	SecretProvider
+	SecretProviderV3
 }
 
-type SecretProvider interface {
+type SecretProviderV3 interface {
 	SetSecret(name string, secret *envoy_extensions_transport_sockets_tls_v3.Secret)
 }
 
-func SecretConvert(raw *envoy_extensions_transport_sockets_tls_v3.Secret) *SdsSecret {
+func SecretConvertV3(raw *envoy_extensions_transport_sockets_tls_v3.Secret) *SdsSecret {
 	secret := &SdsSecret{
 		Name: raw.Name,
 	}
@@ -150,17 +150,17 @@ func SecretConvert(raw *envoy_extensions_transport_sockets_tls_v3.Secret) *SdsSe
 ///// Deprecated with xDS v2
 /////
 
-type SdsClientDeprecated interface {
-	AddUpdateCallbackDeprecated(sdsConfig *envoy_api_v2_auth.SdsSecretConfig, callback SdsUpdateCallbackFunc) error
-	DeleteUpdateCallbackDeprecated(sdsConfig *envoy_api_v2_auth.SdsSecretConfig) error
-	SecretProviderDeprecated
+type SdsClientV2 interface {
+	AddUpdateCallback(sdsConfig *envoy_api_v2_auth.SdsSecretConfig, callback SdsUpdateCallbackFunc) error
+	DeleteUpdateCallback(sdsConfig *envoy_api_v2_auth.SdsSecretConfig) error
+	SecretProviderV2
 }
 
-type SecretProviderDeprecated interface {
-	SetSecretDeprecated(name string, secret *envoy_api_v2_auth.Secret)
+type SecretProviderV2 interface {
+	SetSecret(name string, secret *envoy_api_v2_auth.Secret)
 }
 
-func SecretConvertDeprecated(raw *envoy_api_v2_auth.Secret) *SdsSecret {
+func SecretConvertV2(raw *envoy_api_v2_auth.Secret) *SdsSecret {
 	secret := &SdsSecret{
 		Name: raw.Name,
 	}

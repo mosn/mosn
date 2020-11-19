@@ -25,14 +25,14 @@ import (
 )
 
 var (
-	getSdsClientFunc           func(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClient = sds.NewSdsClientSingleton
-	getSdsClientFuncDeprecated func(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientDeprecated               = sds.NewSdsClientSingletonDeprecated
+	getSdsClientFuncV3 func(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClientV3 = sds.NewSdsClientSingletonV3
+	getSdsClientFuncV2 func(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientV2                         = sds.NewSdsClientSingletonV2
 )
 
-func GetSdsClient(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClient {
-	return getSdsClientFunc(cfg)
+func GetSdsClientV3(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClientV3 {
+	return getSdsClientFuncV3(cfg)
 }
 
-func GetSdsClientDeprecated(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientDeprecated {
-	return getSdsClientFuncDeprecated(cfg)
+func GetSdsClientV2(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientV2 {
+	return getSdsClientFuncV2(cfg)
 }

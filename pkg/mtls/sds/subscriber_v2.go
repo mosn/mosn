@@ -21,11 +21,11 @@ import (
 ///// Deprecated with xDS v2
 /////
 
-type SdsSubscriberDeprecated struct {
-	provider             types.SecretProviderDeprecated
+type SdsSubscriberV2 struct {
+	provider             types.SecretProviderV2
 	reqQueue             chan string
 	sdsConfig            *envoy_api_v2_core.ConfigSource
-	sdsStreamClient      *SdsStreamClientDeprecated
+	sdsStreamClient      *SdsStreamClientV2
 	sdsStreamClientMutex sync.RWMutex
 	sendStopChannel      chan int
 	receiveStopChannel   chan int
@@ -33,20 +33,20 @@ type SdsSubscriberDeprecated struct {
 	serviceCluster       string
 }
 
-type SdsStreamClientDeprecated struct {
-	sdsStreamConfig     *SdsStreamConfigDeprecated
+type SdsStreamClientV2 struct {
+	sdsStreamConfig     *SdsStreamConfigV2
 	conn                *grpc.ClientConn
 	cancel              context.CancelFunc
 	streamSecretsClient envoy_service_discovery_v2.SecretDiscoveryService_StreamSecretsClient
 }
 
-type SdsStreamConfigDeprecated struct {
+type SdsStreamConfigV2 struct {
 	sdsUdsPath string
 	statPrefix string
 }
 
-func NewSdsSubscriberDeprecated(provider types.SecretProviderDeprecated, sdsConfig *envoy_api_v2_core.ConfigSource, serviceNode string, serviceCluster string) *SdsSubscriberDeprecated {
-	return &SdsSubscriberDeprecated{
+func NewSdsSubscriberV2(provider types.SecretProviderV2, sdsConfig *envoy_api_v2_core.ConfigSource, serviceNode string, serviceCluster string) *SdsSubscriberV2 {
+	return &SdsSubscriberV2{
 		provider:           provider,
 		reqQueue:           make(chan string, 10240),
 		sdsConfig:          sdsConfig,
@@ -58,7 +58,7 @@ func NewSdsSubscriberDeprecated(provider types.SecretProviderDeprecated, sdsConf
 	}
 }
 
-func (subscribe *SdsSubscriberDeprecated) Start() {
+func (subscribe *SdsSubscriberV2) Start() {
 	for {
 		sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
 		if err != nil {
@@ -82,17 +82,17 @@ func (subscribe *SdsSubscriberDeprecated) Start() {
 	}, nil)
 }
 
-func (subscribe *SdsSubscriberDeprecated) Stop() {
+func (subscribe *SdsSubscriberV2) Stop() {
 	close(subscribe.sendStopChannel)
 	close(subscribe.receiveStopChannel)
 }
 
-func (subscribe *SdsSubscriberDeprecated) SendSdsRequest(name string) {
+func (subscribe *SdsSubscriberV2) SendSdsRequest(name string) {
 	subscribe.reqQueue <- name
 }
 
-func (subscribe *SdsSubscriberDeprecated) convertSdsConfig(sdsConfig *envoy_api_v2_core.ConfigSource) (*SdsStreamConfigDeprecated, error) {
-	sdsStreamConfig := &SdsStreamConfigDeprecated{}
+func (subscribe *SdsSubscriberV2) convertSdsConfig(sdsConfig *envoy_api_v2_core.ConfigSource) (*SdsStreamConfigV2, error) {
+	sdsStreamConfig := &SdsStreamConfigV2{}
 	if apiConfig, ok := subscribe.sdsConfig.ConfigSourceSpecifier.(*envoy_api_v2_core.ConfigSource_ApiConfigSource); ok {
 		if apiConfig.ApiConfigSource.GetApiType() == envoy_api_v2_core.ApiConfigSource_GRPC {
 			grpcService := apiConfig.ApiConfigSource.GetGrpcServices()
@@ -111,7 +111,7 @@ func (subscribe *SdsSubscriberDeprecated) convertSdsConfig(sdsConfig *envoy_api_
 	return sdsStreamConfig, nil
 }
 
-func (subscribe *SdsSubscriberDeprecated) sendRequestLoop() {
+func (subscribe *SdsSubscriberV2) sendRequestLoop() {
 	for {
 		select {
 		case <-subscribe.sendStopChannel:
@@ -138,7 +138,7 @@ func (subscribe *SdsSubscriberDeprecated) sendRequestLoop() {
 	}
 }
 
-func (subscribe *SdsSubscriberDeprecated) receiveResponseLoop() {
+func (subscribe *SdsSubscriberV2) receiveResponseLoop() {
 	for {
 		select {
 		case <-subscribe.receiveStopChannel:
@@ -167,7 +167,7 @@ func (subscribe *SdsSubscriberDeprecated) receiveResponseLoop() {
 	}
 }
 
-func (subscribe *SdsSubscriberDeprecated) sendRequest(request *envoy_api_v2.DiscoveryRequest) error {
+func (subscribe *SdsSubscriberV2) sendRequest(request *envoy_api_v2.DiscoveryRequest) error {
 	log.DefaultLogger.Debugf("send sds request resource name = %v", request.ResourceNames)
 
 	subscribe.sdsStreamClientMutex.RLock()
@@ -180,19 +180,19 @@ func (subscribe *SdsSubscriberDeprecated) sendRequest(request *envoy_api_v2.Disc
 	return clt.streamSecretsClient.Send(request)
 }
 
-func (subscribe *SdsSubscriberDeprecated) handleSecretResp(response *envoy_api_v2.DiscoveryResponse) {
+func (subscribe *SdsSubscriberV2) handleSecretResp(response *envoy_api_v2.DiscoveryResponse) {
 	log.DefaultLogger.Debugf("handle secret response %v", response)
 	for _, res := range response.Resources {
 		secret := &envoy_api_v2_auth.Secret{}
 		ptypes.UnmarshalAny(res, secret)
-		subscribe.provider.SetSecretDeprecated(secret.Name, secret)
+		subscribe.provider.SetSecret(secret.Name, secret)
 	}
 	if sdsPostCallback != nil {
 		sdsPostCallback()
 	}
 }
 
-func (subscribe *SdsSubscriberDeprecated) getSdsStreamClient(sdsStreamConfig *SdsStreamConfigDeprecated) error {
+func (subscribe *SdsSubscriberV2) getSdsStreamClient(sdsStreamConfig *SdsStreamConfigV2) error {
 	subscribe.sdsStreamClientMutex.Lock()
 	defer subscribe.sdsStreamClientMutex.Unlock()
 	if subscribe.sdsStreamClient != nil {
@@ -207,7 +207,7 @@ func (subscribe *SdsSubscriberDeprecated) getSdsStreamClient(sdsStreamConfig *Sd
 		return err
 	}
 	sdsServiceClient := envoy_service_discovery_v2.NewSecretDiscoveryServiceClient(conn)
-	sdsStreamClient := &SdsStreamClientDeprecated{
+	sdsStreamClient := &SdsStreamClientV2{
 		sdsStreamConfig: sdsStreamConfig,
 		conn:            conn,
 	}
@@ -223,7 +223,7 @@ func (subscribe *SdsSubscriberDeprecated) getSdsStreamClient(sdsStreamConfig *Sd
 	return nil
 }
 
-func (subscribe *SdsSubscriberDeprecated) reconnect() {
+func (subscribe *SdsSubscriberV2) reconnect() {
 	subscribe.cleanSdsStreamClient()
 	for {
 		sdsStreamConfig, err := subscribe.convertSdsConfig(subscribe.sdsConfig)
@@ -242,7 +242,7 @@ func (subscribe *SdsSubscriberDeprecated) reconnect() {
 	}
 }
 
-func (subscribe *SdsSubscriberDeprecated) cleanSdsStreamClient() {
+func (subscribe *SdsSubscriberV2) cleanSdsStreamClient() {
 	subscribe.sdsStreamClientMutex.Lock()
 	defer subscribe.sdsStreamClientMutex.Unlock()
 	if subscribe.sdsStreamClient != nil {

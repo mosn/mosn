@@ -30,7 +30,7 @@ func TestSecretConvert(t *testing.T) {
 		Name: "mosn",
 	}
 
-	sdsSec := SecretConvertDeprecated(&sec)
+	sdsSec := SecretConvertV2(&sec)
 	assert.Equal(t, sdsSec.Name, "mosn")
 }
 

@@ -32,9 +32,9 @@ import (
 
 var testInit sync.Once
 
-func createSdsTLSConfig() *v2.TLSConfig {
+func createSdsTLSConfigV3() *v2.TLSConfig {
 	testInit.Do(func() {
-		getSdsClientFunc = getMockSdsClient
+		getSdsClientFuncV3 = getMockSdsClientV3
 	})
 	return &v2.TLSConfig{
 		Status:       true,
@@ -54,9 +54,9 @@ func createSdsTLSConfig() *v2.TLSConfig {
 	}
 }
 
-func createSdsTLSConfigDeprecated() *v2.TLSConfig {
+func createSdsTLSConfigV2() *v2.TLSConfig {
 	testInit.Do(func() {
-		getSdsClientFunc = getMockSdsClient
+		getSdsClientFuncV2 = getMockSdsClientV2
 	})
 	return &v2.TLSConfig{
 		Status:       true,
@@ -81,7 +81,7 @@ func resetTest() {
 		validations: make(map[string]*validation),
 	}
 	sdsCallbacks = []func(*v2.TLSConfig){}
-	mockSdsClientInstance = &mockSdsClient{
+	mockSdsClientInstance = &mockSdsClientV3{
 		callback: make(map[string]types.SdsUpdateCallbackFunc),
 	}
 }
@@ -115,7 +115,7 @@ func mockSetSecret() *secretInfo {
 // after the certificate is setted, support tls request
 func TestSimpleSdsTLS(t *testing.T) {
 	resetTest()
-	cfg := createSdsTLSConfig()
+	cfg := createSdsTLSConfigV3()
 	filterChains := []v2.FilterChain{
 		{
 			TLSContexts: []v2.TLSConfig{
@@ -204,7 +204,7 @@ func TestSimpleSdsTLS(t *testing.T) {
 // If the client request tls with certificate, the server will verify the client's certificate
 func TestSdsWithExtension(t *testing.T) {
 	resetTest()
-	cfg := createSdsTLSConfig()
+	cfg := createSdsTLSConfigV3()
 	// Add extension
 	cfg.Type = testType
 	extendVerify := map[string]interface{}{
@@ -311,7 +311,7 @@ func TestSdsWithExtension(t *testing.T) {
 
 func TestSdsProviderUpdate(t *testing.T) {
 	resetTest()
-	cfg := createSdsTLSConfig()
+	cfg := createSdsTLSConfigV3()
 	prd := getOrCreateProvider(cfg)
 	if prd.Ready() {
 		t.Fatal("provider ready without certificate")
@@ -329,7 +329,7 @@ func TestSdsProviderUpdate(t *testing.T) {
 		t.Fatal("sds provider reuse failed")
 	}
 	// update tls config
-	cfg2 := createSdsTLSConfig()
+	cfg2 := createSdsTLSConfigV3()
 	cfg2.CipherSuites = "RSA-AES256-CBC-SHA:RSA-3DES-EDE-CBC-SHA"
 	prd3 := getOrCreateProvider(cfg2)
 	prd3Addr := fmt.Sprintf("%p", prd3)

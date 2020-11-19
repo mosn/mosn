@@ -28,52 +28,54 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-type SdsClientImpl struct {
+type SdsClientImplV3 struct {
 	SdsConfigMap   map[string]*envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig
 	SdsCallbackMap map[string]types.SdsUpdateCallbackFunc
 	updatedLock    sync.Mutex
-	sdsSubscriber  *SdsSubscriber
+	sdsSubscriber  *SdsSubscriberV3
 }
 
-var sdsClient *SdsClientImpl
-var sdsClientLock sync.Mutex
-var sdsPostCallback func() = nil
+var (
+	sdsClientV3     *SdsClientImplV3
+	sdsClientLock   sync.Mutex
+	sdsPostCallback func() = nil
+)
 
 var ErrSdsClientNotInit = errors.New("sds client not init")
 
-// NewSdsClientSingleton use by tls module , when get sds config from xds
-func NewSdsClientSingleton(config *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClient {
+// NewSdsClientSingletonV3 use by tls module , when get sds config from xds
+func NewSdsClientSingletonV3(config *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClientV3 {
 	sdsClientLock.Lock()
 	defer sdsClientLock.Unlock()
-	if sdsClient != nil {
+	if sdsClientV3 != nil {
 		// update sds config
-		sdsClient.sdsSubscriber.sdsConfig = config.SdsConfig
-		return sdsClient
+		sdsClientV3.sdsSubscriber.sdsConfig = config.SdsConfig
+		return sdsClientV3
 	}
 
-	sdsClient = &SdsClientImpl{
+	sdsClientV3 = &SdsClientImplV3{
 		SdsConfigMap:   make(map[string]*envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig),
 		SdsCallbackMap: make(map[string]types.SdsUpdateCallbackFunc),
 	}
 	// For Istio , sds config should be the same
 	// So we use first sds config to init sds subscriber
-	sdsClient.sdsSubscriber = NewSdsSubscriber(sdsClient, config.SdsConfig, types.GetGlobalXdsInfo().ServiceNode, types.GetGlobalXdsInfo().ServiceCluster)
-	utils.GoWithRecover(sdsClient.sdsSubscriber.Start, nil)
-	return sdsClient
+	sdsClientV3.sdsSubscriber = NewSdsSubscriberV3(sdsClientV3, config.SdsConfig, types.GetGlobalXdsInfo().ServiceNode, types.GetGlobalXdsInfo().ServiceCluster)
+	utils.GoWithRecover(sdsClientV3.sdsSubscriber.Start, nil)
+	return sdsClientV3
 }
 
-// CloseSdsClient used only mosn exit
-func CloseSdsClient() {
+// CloseSdsClientV3 used only mosn exit
+func CloseSdsClientV3() {
 	sdsClientLock.Lock()
 	defer sdsClientLock.Unlock()
-	if sdsClient != nil && sdsClient.sdsSubscriber != nil {
-		sdsClient.sdsSubscriber.Stop()
-		sdsClient.sdsSubscriber = nil
-		sdsClient = nil
+	if sdsClientV3 != nil && sdsClientV3.sdsSubscriber != nil {
+		sdsClientV3.sdsSubscriber.Stop()
+		sdsClientV3.sdsSubscriber = nil
+		sdsClientV3 = nil
 	}
 }
 
-func (client *SdsClientImpl) AddUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig, callback types.SdsUpdateCallbackFunc) error {
+func (client *SdsClientImplV3) AddUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig, callback types.SdsUpdateCallbackFunc) error {
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
 	client.SdsConfigMap[sdsConfig.Name] = sdsConfig
@@ -83,7 +85,7 @@ func (client *SdsClientImpl) AddUpdateCallback(sdsConfig *envoy_extensions_trans
 }
 
 // DeleteUpdateCallback ...
-func (client *SdsClientImpl) DeleteUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) error {
+func (client *SdsClientImplV3) DeleteUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) error {
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
 	delete(client.SdsConfigMap, sdsConfig.Name)
@@ -92,12 +94,12 @@ func (client *SdsClientImpl) DeleteUpdateCallback(sdsConfig *envoy_extensions_tr
 }
 
 // SetSecret invoked when sds subscriber get secret response
-func (client *SdsClientImpl) SetSecret(name string, secret *envoy_extensions_transport_sockets_tls_v3.Secret) {
+func (client *SdsClientImplV3) SetSecret(name string, secret *envoy_extensions_transport_sockets_tls_v3.Secret) {
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
 	if fc, ok := client.SdsCallbackMap[name]; ok {
 		log.DefaultLogger.Debugf("[xds] [sds client],set secret = %v", name)
-		mosnSecret := types.SecretConvert(secret)
+		mosnSecret := types.SecretConvertV3(secret)
 		fc(name, mosnSecret)
 	}
 }
@@ -111,37 +113,37 @@ func SetSdsPostCallback(fc func()) {
 ///// Deprecated with xDS v2
 /////
 
-type SdsClientImplDeprecated struct {
+type SdsClientImplV2 struct {
 	SdsConfigMap   map[string]*envoy_api_v2_auth.SdsSecretConfig
 	SdsCallbackMap map[string]types.SdsUpdateCallbackFunc
 	updatedLock    sync.Mutex
-	sdsSubscriber  *SdsSubscriberDeprecated
+	sdsSubscriber  *SdsSubscriberV2
 }
 
-var sdsClientDeprecated *SdsClientImplDeprecated
+var sdsClientV2 *SdsClientImplV2
 
-// NewSdsClientSingletonDeprecated use by tls module , when get sds config from xds
-func NewSdsClientSingletonDeprecated(config *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientDeprecated {
+// NewSdsClientSingletonV2 use by tls module , when get sds config from xds
+func NewSdsClientSingletonV2(config *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientV2 {
 	sdsClientLock.Lock()
 	defer sdsClientLock.Unlock()
-	if sdsClientDeprecated != nil {
+	if sdsClientV2 != nil {
 		// update sds config
-		sdsClientDeprecated.sdsSubscriber.sdsConfig = config.SdsConfig
-		return sdsClientDeprecated
+		sdsClientV2.sdsSubscriber.sdsConfig = config.SdsConfig
+		return sdsClientV2
 	}
 
-	sdsClientDeprecated = &SdsClientImplDeprecated{
+	sdsClientV2 = &SdsClientImplV2{
 		SdsConfigMap:   make(map[string]*envoy_api_v2_auth.SdsSecretConfig),
 		SdsCallbackMap: make(map[string]types.SdsUpdateCallbackFunc),
 	}
 	// For Istio , sds config should be the same
 	// So we use first sds config to init sds subscriber
-	sdsClientDeprecated.sdsSubscriber = NewSdsSubscriberDeprecated(sdsClientDeprecated, config.SdsConfig, types.GetGlobalXdsInfo().ServiceNode, types.GetGlobalXdsInfo().ServiceCluster)
-	utils.GoWithRecover(sdsClientDeprecated.sdsSubscriber.Start, nil)
-	return sdsClientDeprecated
+	sdsClientV2.sdsSubscriber = NewSdsSubscriberV2(sdsClientV2, config.SdsConfig, types.GetGlobalXdsInfo().ServiceNode, types.GetGlobalXdsInfo().ServiceCluster)
+	utils.GoWithRecover(sdsClientV2.sdsSubscriber.Start, nil)
+	return sdsClientV2
 }
 
-func (client *SdsClientImplDeprecated) AddUpdateCallbackDeprecated(sdsConfig *envoy_api_v2_auth.SdsSecretConfig, callback types.SdsUpdateCallbackFunc) error {
+func (client *SdsClientImplV2) AddUpdateCallback(sdsConfig *envoy_api_v2_auth.SdsSecretConfig, callback types.SdsUpdateCallbackFunc) error {
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
 	client.SdsConfigMap[sdsConfig.Name] = sdsConfig
@@ -150,8 +152,8 @@ func (client *SdsClientImplDeprecated) AddUpdateCallbackDeprecated(sdsConfig *en
 	return nil
 }
 
-// DeleteUpdateCallbackDeprecated ...
-func (client *SdsClientImplDeprecated) DeleteUpdateCallbackDeprecated(sdsConfig *envoy_api_v2_auth.SdsSecretConfig) error {
+// DeleteUpdateCallback ...
+func (client *SdsClientImplV2) DeleteUpdateCallback(sdsConfig *envoy_api_v2_auth.SdsSecretConfig) error {
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
 	delete(client.SdsConfigMap, sdsConfig.Name)
@@ -159,13 +161,13 @@ func (client *SdsClientImplDeprecated) DeleteUpdateCallbackDeprecated(sdsConfig 
 	return nil
 }
 
-// SetSecretDeprecated invoked when sds subscriber get secret response
-func (client *SdsClientImplDeprecated) SetSecretDeprecated(name string, secret *envoy_api_v2_auth.Secret) {
+// SetSecret invoked when sds subscriber get secret response
+func (client *SdsClientImplV2) SetSecret(name string, secret *envoy_api_v2_auth.Secret) {
 	client.updatedLock.Lock()
 	defer client.updatedLock.Unlock()
 	if fc, ok := client.SdsCallbackMap[name]; ok {
 		log.DefaultLogger.Debugf("[xds] [sds client],set secret = %v", name)
-		mosnSecret := types.SecretConvertDeprecated(secret)
+		mosnSecret := types.SecretConvertV2(secret)
 		fc(name, mosnSecret)
 	}
 }
