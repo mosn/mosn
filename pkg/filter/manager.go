@@ -19,11 +19,125 @@ package filter
 
 import (
 	"context"
+	"errors"
+	"sync"
 
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
+
+type StreamFilterChainConfig = []v2.Filter
+
+// StreamFilterChainFactoryWrapper combine the StreamFilterChainFactory (type: []api.StreamFilterChainFactory)
+// with its config (type: []v2.Filter).
+type StreamFilterChainFactoryWrapper interface {
+
+	// CreateFilterChain call 'CreateFilterChain' method for each api.StreamFilterChainFactory.
+	CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks)
+
+	// GetConfig return raw config of the StreamFilterChainFactory.
+	GetConfig() StreamFilterChainConfig
+}
+
+// NewStreamFilterChainFactoryWrapper return a StreamFilterChainFactoryWrapperImpl struct.
+func NewStreamFilterChainFactoryWrapper(config StreamFilterChainConfig) StreamFilterChainFactoryWrapper {
+	return &StreamFilterChainFactoryWrapperImpl{
+		factories: configmanager.GetStreamFilters(config),
+		config:    config,
+	}
+}
+
+// StreamFilterChainFactoryWrapperImpl is implementation of interface StreamFilterChainFactoryWrapper.
+type StreamFilterChainFactoryWrapperImpl struct {
+	mux       sync.Mutex
+	factories []api.StreamFilterChainFactory
+	config    StreamFilterChainConfig
+}
+
+// CreateFilterChain call 'CreateFilterChain' method for each api.StreamFilterChainFactory.
+func (s *StreamFilterChainFactoryWrapperImpl) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
+	for _, factory := range s.factories {
+		factory.CreateFilterChain(context, callbacks)
+	}
+}
+
+// GetConfig return raw config of the StreamFilterChainFactory.
+func (s *StreamFilterChainFactoryWrapperImpl) GetConfig() StreamFilterChainConfig {
+	return s.config
+}
+
+// StreamFilterChainFactoryManager manager the config of all StreamFilterChainFactorys
+// each StreamFilterChainFactory is bound to a key, which is the listenerName by now.
+type StreamFilterChainFactoryManager interface {
+
+	// AddOrUpdateStreamFilterChain map the key to streamFilter chain config
+	AddOrUpdateStreamFilterChain(key string, config StreamFilterChainConfig) error
+
+	// GetStreamFilterChainFactoryByKey return StreamFilterChainFactoryWrapper indexed by key
+	GetStreamFilterChainFactoryByKey(key string) StreamFilterChainFactoryWrapper
+}
+
+var (
+	someSingleton                           sync.Mutex
+	streamFilterChainFactoryManagerInstance *StreamFilterChainFactoryManagerImpl
+)
+
+// GetStreamFilterChainFactoryManager return a singleton of StreamFilterChainFactoryManager
+func GetStreamFilterChainFactoryManager() StreamFilterChainFactoryManager {
+	someSingleton.Lock()
+	defer someSingleton.Unlock()
+
+	if streamFilterChainFactoryManagerInstance == nil {
+		streamFilterChainFactoryManagerInstance = &StreamFilterChainFactoryManagerImpl{
+			streamFilterChainMap: sync.Map{},
+		}
+	}
+
+	return streamFilterChainFactoryManagerInstance
+}
+
+// StreamFilterChainFactoryManagerImpl is an implementation of interface StreamFilterChainFactoryManager
+type StreamFilterChainFactoryManagerImpl struct {
+	streamFilterChainMap sync.Map
+}
+
+// AddOrUpdateStreamFilterChain map the key to streamFilter chain config
+func (s *StreamFilterChainFactoryManagerImpl) AddOrUpdateStreamFilterChain(key string, config StreamFilterChainConfig) error {
+	if v, ok := s.streamFilterChainMap.Load(key); ok {
+		factoryWrapper, ok := v.(*StreamFilterChainFactoryWrapperImpl)
+		if !ok {
+			log.DefaultLogger.Errorf("StreamFilterChainFactoryManagerImpl.AddOrUpdateStreamFilterChain unexpected object in map")
+			return errors.New("unexpected object in map")
+		}
+		factories := configmanager.GetStreamFilters(config)
+		factoryWrapper.mux.Lock()
+		factoryWrapper.factories = factories
+		factoryWrapper.config = config
+		factoryWrapper.mux.Unlock()
+		log.DefaultLogger.Infof("StreamFilterChainFactoryManagerImpl.AddOrUpdateStreamFilterChain update filter chain key: %v", key)
+	} else {
+		factoryWrapper := NewStreamFilterChainFactoryWrapper(config)
+		s.streamFilterChainMap.Store(key, factoryWrapper)
+		log.DefaultLogger.Infof("StreamFilterChainFactoryManagerImpl.AddOrUpdateStreamFilterChain add filter chain key: %v", key)
+	}
+	return nil
+}
+
+// GetStreamFilterChainFactoryByKey return StreamFilterChainFactoryWrapper indexed by key
+func (s *StreamFilterChainFactoryManagerImpl) GetStreamFilterChainFactoryByKey(key string) StreamFilterChainFactoryWrapper {
+	if v, ok := s.streamFilterChainMap.Load(key); ok {
+		factoryWrapper, ok := v.(StreamFilterChainFactoryWrapper)
+		if !ok {
+			log.DefaultLogger.Errorf("StreamFilterChainFactoryManagerImpl.GetStreamFilterChainFactoryByKey unexpected object in map")
+			return nil
+		}
+		return factoryWrapper
+	}
+	return nil
+}
 
 // StreamFilterStatusHandler allow users to deal with the filter status.
 type StreamFilterStatusHandler func(status api.StreamFilterStatus)

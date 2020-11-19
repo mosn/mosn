@@ -22,13 +22,13 @@ import (
 	"context"
 	"runtime"
 	"sync"
-	"sync/atomic"
 
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/filter"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/protocol"
@@ -77,20 +77,21 @@ func initGlobalStats() {
 // types.ReadFilter
 // types.ServerStreamConnectionEventListener
 type proxy struct {
-	config             *v2.Proxy
-	clusterManager     types.ClusterManager
-	readCallbacks      api.ReadFilterCallbacks
-	upstreamConnection types.ClientConnection
-	downstreamListener api.ConnectionEventListener
-	clusterName        string
-	routersWrapper     types.RouterWrapper // wrapper used to point to the routers instance
-	serverStreamConn   types.ServerStreamConnection
-	context            context.Context
-	activeStreams      *list.List // downstream requests
-	asMux              sync.RWMutex
-	stats              *Stats
-	listenerStats      *Stats
-	accessLogs         []api.AccessLog
+	config                   *v2.Proxy
+	clusterManager           types.ClusterManager
+	readCallbacks            api.ReadFilterCallbacks
+	upstreamConnection       types.ClientConnection
+	downstreamListener       api.ConnectionEventListener
+	clusterName              string
+	routersWrapper           types.RouterWrapper // wrapper used to point to the routers instance
+	serverStreamConn         types.ServerStreamConnection
+	context                  context.Context
+	activeStreams            *list.List // downstream requests
+	asMux                    sync.RWMutex
+	stats                    *Stats
+	listenerStats            *Stats
+	accessLogs               []api.AccessLog
+	streamFilterChainFactory filter.StreamFilterChainFactoryWrapper
 
 	// configure the proxy level worker pool
 	// eg. if we want the requests on one connection to keep serial,
@@ -146,6 +147,8 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	proxy.downstreamListener = &downstreamCallbacks{
 		proxy: proxy,
 	}
+
+	proxy.streamFilterChainFactory = filter.GetStreamFilterChainFactoryManager().GetStreamFilterChainFactoryByKey(listenerName)
 
 	return proxy
 }
@@ -236,20 +239,8 @@ func (p *proxy) OnGoAway() {}
 func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
 
-	if value := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); value != nil {
-		ff := value.(*atomic.Value)
-		ffs, ok := ff.Load().([]api.StreamFilterChainFactory)
-		if ok {
-
-			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(stream.context, "[proxy] [downstream] %d stream filters in config", len(ffs))
-			}
-
-			for _, f := range ffs {
-				// the ctx from stream
-				f.CreateFilterChain(ctx, stream)
-			}
-		}
+	if p.streamFilterChainFactory != nil {
+		p.streamFilterChainFactory.CreateFilterChain(ctx, stream)
 	}
 
 	p.asMux.Lock()
