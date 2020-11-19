@@ -19,6 +19,7 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"strconv"
 
 	"mosn.io/mosn/pkg/types"
@@ -43,10 +44,13 @@ var (
 		variable.NewBasicVariable(types.VarResponseCode, nil, responseCodeGetter, nil, 0),
 		variable.NewBasicVariable(types.VarDuration, nil, durationGetter, nil, 0),
 		variable.NewBasicVariable(types.VarResponseFlag, nil, responseFlagGetter, nil, 0),
+		variable.NewBasicVariable(types.VarResponseFlags, nil, responseFlagGetter, nil, 0),
 		variable.NewBasicVariable(types.VarUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
 		variable.NewBasicVariable(types.VarDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
 		variable.NewBasicVariable(types.VarDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
 		variable.NewBasicVariable(types.VarUpstreamHost, nil, upstreamHostGetter, nil, 0),
+		variable.NewBasicVariable(types.VarUpstreamTransportFailureReason, nil, upstreamTransportFailureReasonGetter, nil, 0),
+		variable.NewBasicVariable(types.VarUpstreamCluster, nil, upstreamClusterGetter, nil, 0),
 
 		variable.NewIndexedVariable(types.VarProxyTryTimeout, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.VarProxyGlobalTimeout, nil, nil, variable.BasicSetter, 0),
@@ -206,6 +210,23 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 	}
 
 	return variable.ValueNotFound, nil
+}
+
+func upstreamTransportFailureReasonGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	proxyBuffers := proxyBuffersByContext(ctx)
+	info := proxyBuffers.info
+
+	return info.GetResponseFlagResult(), nil
+}
+
+func upstreamClusterGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	proxyBuffers := proxyBuffersByContext(ctx)
+	stream := proxyBuffers.stream
+
+	if stream.cluster != nil {
+		return stream.cluster.Name(), nil
+	}
+	return variable.ValueNotFound, errors.New("not found clustername")
 }
 
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
