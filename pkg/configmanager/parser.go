@@ -21,13 +21,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"os"
 	"runtime"
-	"strconv"
 	"strings"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 )
@@ -320,11 +318,7 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
-	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
-		c.Processor = n
-	} else if c.Processor == 0 {
-		c.Processor = runtime.NumCPU()
-	}
+	c.Processor = runtime.GOMAXPROCS(0)
 
 	// trigger processor callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
