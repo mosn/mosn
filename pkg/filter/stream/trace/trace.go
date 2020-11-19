@@ -31,7 +31,7 @@ import (
 )
 
 type TraceFilter struct {
-	context context.Context
+	context context.Context // variable scenarios need to be used.
 	trace   *v2.StreamTrace
 }
 

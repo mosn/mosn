@@ -58,7 +58,7 @@ type StreamDSL struct {
 	LogDSL           string `json:"log_filter_by_dsl"`
 }
 
-// Trace ...
+// StreamTrace ...
 type StreamTrace struct {
 	Disable                bool   `json:"disable"` // TODO supprot variable
 	TracerIgnoreSpellcheck bool   `json:"tracer_ignore_spellcheck"`

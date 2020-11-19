@@ -28,7 +28,7 @@ import (
 
 func TestCreateTraceFilterFactory(t *testing.T) {
 	m := map[string]interface{}{}
-	if f, err := CreateTraceFilterFactory(m); f == nil || err != nil {
+	if _, err := CreateTraceFilterFactory(m); err != nil {
 		t.Errorf("CreateTraceFilterFactory failed: %v.", err)
 	}
 }
@@ -63,7 +63,7 @@ func TestGzipNewStreamFilter(t *testing.T) {
 		t.Error("get trace id failed form arg.")
 	}
 
-	// test trace id from arg and header
+	// test trace id from arg or header
 	reqHeaders = protocol.CommonHeader(map[string]string{
 		f.trace.TracerTraceidHeader: headertid,
 		pathPrefix:                  "/p?" + f.trace.TracerTraceidArg + "=" + argtid,
@@ -84,7 +84,7 @@ func TestGzipNewStreamFilter(t *testing.T) {
 		t.Error("get trace id failed form header when argid is invalid.")
 	}
 
-	// test rpc id
+	// test the scenario when rpcid already exists
 	rpcid := "0.1"
 	reqHeaders = protocol.CommonHeader(map[string]string{
 		f.trace.TracerRpcidHeader: rpcid,
@@ -94,7 +94,7 @@ func TestGzipNewStreamFilter(t *testing.T) {
 		t.Error("get rpcid failed.")
 	}
 
-	// test rpc id
+	// test rpcid is ""
 	rpcid = ""
 	reqHeaders = protocol.CommonHeader(map[string]string{
 		f.trace.TracerRpcidHeader: rpcid,

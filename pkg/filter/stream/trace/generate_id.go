@@ -88,7 +88,7 @@ func (tc *TraceIDGenerator) GetHexIP() []byte {
 
 // generate new traceid
 func (tc *TraceIDGenerator) AppendBytes(d []byte) []byte {
-	// ip(8) + timestap(13) + countid(5) + pid(4)
+	// ip(8) + timestamp(13) + countid(4+1) + pid(4)
 	d = append(d, tc.hexip...)                                       // 8 byte
 	d = append(d, []byte(fmt.Sprintf("%013d", unixMilli()))...)      // 13 byte
 	d = append(d, []byte(fmt.Sprintf("%04de", GetNextTraceID()))...) // 5 byte
