@@ -118,7 +118,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 	listenerFiltersFactories = configmanager.GetListenerFilters(lc.ListenerFilters)
 	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
 
-	filter.GetStreamFilterChainFactoryManager().AddOrUpdateStreamFilterChain(listenerName, lc.StreamFilters)
+	filter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
 
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {

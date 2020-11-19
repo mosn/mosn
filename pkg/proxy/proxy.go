@@ -81,17 +81,17 @@ type proxy struct {
 	clusterManager           types.ClusterManager
 	readCallbacks            api.ReadFilterCallbacks
 	upstreamConnection       types.ClientConnection
-	downstreamListener       api.ConnectionEventListener
-	clusterName              string
-	routersWrapper           types.RouterWrapper // wrapper used to point to the routers instance
-	serverStreamConn         types.ServerStreamConnection
-	context                  context.Context
-	activeStreams            *list.List // downstream requests
-	asMux                    sync.RWMutex
-	stats                    *Stats
-	listenerStats            *Stats
-	accessLogs               []api.AccessLog
-	streamFilterChainFactory filter.StreamFilterChainFactoryWrapper
+	downstreamListener  api.ConnectionEventListener
+	clusterName         string
+	routersWrapper      types.RouterWrapper // wrapper used to point to the routers instance
+	serverStreamConn    types.ServerStreamConnection
+	context             context.Context
+	activeStreams       *list.List // downstream requests
+	asMux               sync.RWMutex
+	stats               *Stats
+	listenerStats       *Stats
+	accessLogs          []api.AccessLog
+	streamFilterFactory filter.StreamFilterFactory
 
 	// configure the proxy level worker pool
 	// eg. if we want the requests on one connection to keep serial,
@@ -148,7 +148,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		proxy: proxy,
 	}
 
-	proxy.streamFilterChainFactory = filter.GetStreamFilterChainFactoryManager().GetStreamFilterChainFactoryByKey(listenerName)
+	proxy.streamFilterFactory = filter.GetStreamFilterManager().GetStreamFilterFactory(listenerName)
 
 	return proxy
 }
@@ -239,8 +239,8 @@ func (p *proxy) OnGoAway() {}
 func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
 
-	if p.streamFilterChainFactory != nil {
-		p.streamFilterChainFactory.CreateFilterChain(ctx, stream)
+	if p.streamFilterFactory != nil {
+		p.streamFilterFactory.CreateFilterChain(ctx, stream)
 	}
 
 	p.asMux.Lock()

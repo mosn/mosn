@@ -62,54 +62,54 @@ func (m mockStreamAccessLog) Log(ctx context.Context, reqHeaders api.HeaderMap, 
 	logCount++
 }
 
-func TestDefaultStreamFilterManagerImpl_AddStreamAccessLog(t *testing.T) {
-	d := &DefaultStreamFilterManagerImpl{}
+func TestDefaultStreamFilterChainImpl_AddStreamAccessLog(t *testing.T) {
+	d := &DefaultStreamFilterChainImpl{}
 	d.AddStreamAccessLog(mockStreamAccessLog{})
 	d.AddStreamAccessLog(mockStreamAccessLog{})
 	if len(d.streamAccessLogs) != 2 {
-		t.Errorf("DefaultStreamFilterManagerImpl.AddStreamAccessLog failed, len: %v", len(d.streamAccessLogs))
+		t.Errorf("DefaultStreamFilterChainImpl.AddStreamAccessLog failed, len: %v", len(d.streamAccessLogs))
 	}
 }
 
-func TestDefaultStreamFilterManagerImpl_AddStreamReceiverFilter(t *testing.T) {
-	d := &DefaultStreamFilterManagerImpl{}
+func TestDefaultStreamFilterChainImpl_AddStreamReceiverFilter(t *testing.T) {
+	d := &DefaultStreamFilterChainImpl{}
 	d.AddStreamReceiverFilter(&mockStreamFilter{onReceiveReturn: api.StreamFilterContinue}, api.BeforeRoute)
 	d.AddStreamReceiverFilter(&mockStreamFilter{onReceiveReturn: api.StreamFilterContinue}, api.BeforeRoute)
 	if len(d.receiverFilters) != 2 {
-		t.Errorf("DefaultStreamFilterManagerImpl.AddStreamReceiverFilter failed, len: %v", len(d.receiverFilters))
+		t.Errorf("DefaultStreamFilterChainImpl.AddStreamReceiverFilter failed, len: %v", len(d.receiverFilters))
 	}
 }
 
-func TestDefaultStreamFilterManagerImpl_AddStreamSenderFilter(t *testing.T) {
-	d := &DefaultStreamFilterManagerImpl{}
+func TestDefaultStreamFilterChainImpl_AddStreamSenderFilter(t *testing.T) {
+	d := &DefaultStreamFilterChainImpl{}
 	d.AddStreamSenderFilter(&mockStreamFilter{appendReturn: api.StreamFilterContinue}, api.BeforeSend)
 	d.AddStreamSenderFilter(&mockStreamFilter{appendReturn: api.StreamFilterContinue}, api.BeforeSend)
 	if len(d.senderFilters) != 2 {
-		t.Errorf("DefaultStreamFilterManagerImpl.AddStreamSenderFilter failed, len: %v", len(d.senderFilters))
+		t.Errorf("DefaultStreamFilterChainImpl.AddStreamSenderFilter failed, len: %v", len(d.senderFilters))
 	}
 }
 
-func TestDefaultStreamFilterManagerImpl_Log(t *testing.T) {
-	d := &DefaultStreamFilterManagerImpl{}
+func TestDefaultStreamFilterChainImpl_Log(t *testing.T) {
+	d := &DefaultStreamFilterChainImpl{}
 	d.AddStreamAccessLog(mockStreamAccessLog{})
 	d.AddStreamAccessLog(mockStreamAccessLog{})
 	d.Log(context.TODO(), nil, nil, nil)
 	if logCount != 2 {
-		t.Error("DefaultStreamFilterManagerImpl.Log failed")
+		t.Error("DefaultStreamFilterChainImpl.Log failed")
 	}
 }
 
-func TestDefaultStreamFilterManagerImpl_OnDestroy(t *testing.T) {
-	d := &DefaultStreamFilterManagerImpl{}
+func TestDefaultStreamFilterChainImpl_OnDestroy(t *testing.T) {
+	d := &DefaultStreamFilterChainImpl{}
 	d.AddStreamReceiverFilter(&mockStreamFilter{onReceiveReturn: api.StreamFilterContinue}, api.BeforeRoute)
 	d.AddStreamSenderFilter(&mockStreamFilter{appendReturn: api.StreamFilterContinue}, api.BeforeSend)
 	d.OnDestroy()
 	if destroyCount != 2 {
-		t.Errorf("DefaultStreamFilterManagerImpl.OnDestroy failed, destroyCount: %v", destroyCount)
+		t.Errorf("DefaultStreamFilterChainImpl.OnDestroy failed, destroyCount: %v", destroyCount)
 	}
 }
 
-func TestDefaultStreamFilterManagerImpl_RunReceiverFilter(t *testing.T) {
+func TestDefaultStreamFilterChainImpl_RunReceiverFilter(t *testing.T) {
 	tests := []struct {
 		receiverFilters []*mockStreamFilter
 		wantStatus      api.StreamFilterStatus
@@ -158,7 +158,7 @@ func TestDefaultStreamFilterManagerImpl_RunReceiverFilter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			d := &DefaultStreamFilterManagerImpl{}
+			d := &DefaultStreamFilterChainImpl{}
 			for _, filter := range tt.receiverFilters {
 				d.AddStreamReceiverFilter(filter, api.BeforeRoute)
 			}
@@ -173,7 +173,7 @@ func TestDefaultStreamFilterManagerImpl_RunReceiverFilter(t *testing.T) {
 	}
 }
 
-func TestDefaultStreamFilterManagerImpl_RunSenderFilter(t *testing.T) {
+func TestDefaultStreamFilterChainImpl_RunSenderFilter(t *testing.T) {
 	tests := []struct {
 		senderFilters []*mockStreamFilter
 		wantStatus      api.StreamFilterStatus
@@ -222,7 +222,7 @@ func TestDefaultStreamFilterManagerImpl_RunSenderFilter(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
-			d := &DefaultStreamFilterManagerImpl{}
+			d := &DefaultStreamFilterChainImpl{}
 			for _, filter := range tt.senderFilters {
 				d.AddStreamSenderFilter(filter, api.BeforeSend)
 			}

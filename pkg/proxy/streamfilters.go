@@ -31,22 +31,22 @@ type streamFilterManager struct {
 	downStream                *downStream
 	receiverFiltersAgainPhase types.Phase
 
-	filter.DefaultStreamFilterManagerImpl
+	filter.DefaultStreamFilterChainImpl
 }
 
 func (manager *streamFilterManager) AddStreamSenderFilter(filter api.StreamSenderFilter, phase api.SenderFilterPhase) {
 	sf := newActiveStreamSenderFilter(manager.downStream, filter)
-	manager.DefaultStreamFilterManagerImpl.AddStreamSenderFilter(sf, phase)
+	manager.DefaultStreamFilterChainImpl.AddStreamSenderFilter(sf, phase)
 }
 
 func (manager *streamFilterManager) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.ReceiverFilterPhase) {
 	sf := newActiveStreamReceiverFilter(manager.downStream, filter)
-	manager.DefaultStreamFilterManagerImpl.AddStreamReceiverFilter(sf, phase)
+	manager.DefaultStreamFilterChainImpl.AddStreamReceiverFilter(sf, phase)
 }
 
 func (manager *streamFilterManager) AddStreamAccessLog(accessLog api.AccessLog) {
 	if manager.downStream.proxy != nil {
-		manager.DefaultStreamFilterManagerImpl.AddStreamAccessLog(accessLog)
+		manager.DefaultStreamFilterChainImpl.AddStreamAccessLog(accessLog)
 	}
 }
 
@@ -54,7 +54,7 @@ func (manager *streamFilterManager) RunReceiverFilter(ctx context.Context, phase
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler filter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
-	return manager.DefaultStreamFilterManagerImpl.RunReceiverFilter(ctx, phase, headers, data, trailers,
+	return manager.DefaultStreamFilterChainImpl.RunReceiverFilter(ctx, phase, headers, data, trailers,
 		func(status api.StreamFilterStatus) {
 			switch status {
 			case api.StreamFiltertermination:
@@ -81,7 +81,7 @@ func (manager *streamFilterManager) RunSenderFilter(ctx context.Context, phase a
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler filter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
-	return manager.DefaultStreamFilterManagerImpl.RunSenderFilter(ctx, phase, headers, data, trailers,
+	return manager.DefaultStreamFilterChainImpl.RunSenderFilter(ctx, phase, headers, data, trailers,
 		func(status api.StreamFilterStatus) {
 			if status == api.StreamFiltertermination {
 				// no reuse buffer
