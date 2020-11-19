@@ -204,7 +204,7 @@ func (c *certInfo) CreateCertConfig() (*v2.TLSConfig, error) {
 }
 
 //////
-///// Deprecated with xDS2
+///// Deprecated with xDS v2
 /////
 
 func (c *mockSdsClient) AddUpdateCallbackDeprecated(sdsConfig *envoy_api_v2_auth.SdsSecretConfig, f types.SdsUpdateCallbackFunc) error {

@@ -108,7 +108,7 @@ func SetSdsPostCallback(fc func()) {
 }
 
 //////
-///// Deprecated with xDS2
+///// Deprecated with xDS v2
 /////
 
 type SdsClientImplDeprecated struct {

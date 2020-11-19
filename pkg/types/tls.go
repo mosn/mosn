@@ -147,7 +147,7 @@ func SecretConvert(raw *envoy_extensions_transport_sockets_tls_v3.Secret) *SdsSe
 }
 
 //////
-///// Deprecated with xDS2
+///// Deprecated with xDS v2
 /////
 
 type SdsClientDeprecated interface {

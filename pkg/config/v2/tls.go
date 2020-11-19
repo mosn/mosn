@@ -70,6 +70,7 @@ func (sc *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
 	err1 := jsonpb.Unmarshal(bytes.NewReader(b), secretConfigV3)
 	if err1 == nil {
 		sc.Config = secretConfigV3
+		// first Unmarshal with v3, if no err will return fast.
 		return nil
 	}
 
@@ -77,8 +78,11 @@ func (sc *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
 	err2 := jsonpb.Unmarshal(bytes.NewBuffer(b), secretConfigV2)
 	if err2 == nil {
 		sc.ConfigDeprecated = secretConfigV2
+		// try UnmarshalJSON with v2, if no err will return fast.
 		return nil
 	}
+
+	// neither of v2 and v3
 	return fmt.Errorf("Unmarshal SdsSecretConfig with V3 failed: {%s}, with V2 failed: {%s}", err1, err2)
 }
 

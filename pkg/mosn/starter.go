@@ -255,7 +255,6 @@ func (m *Mosn) Start() {
 	m.wg.Add(1)
 	// Start XDS if configured
 	log.StartLogger.Infof("mosn start xds client")
-	// m.xdsClient = &xds.Client{}
 	m.xdsClient = xds.NewClient()
 	utils.GoWithRecover(func() {
 		m.xdsClient.Start(m.config)

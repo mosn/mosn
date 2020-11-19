@@ -267,7 +267,7 @@ func setUpUds(udsPath string) (net.Listener, error) {
 }
 
 //////
-///// Deprecated with xDS2
+///// Deprecated with xDS v2
 /////
 
 func Test_AddUpdateCallbackDeprecated(t *testing.T) {
