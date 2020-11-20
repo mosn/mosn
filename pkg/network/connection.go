@@ -575,7 +575,7 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 			}
 
 			// fail after 60s
-			t := time.NewTicker(types.DefaultConnTryTimeout)
+			t := time.NewTimer(types.DefaultConnTryTimeout)
 			select {
 			case c.writeBufferChan <- &buffers:
 				t.Stop()
