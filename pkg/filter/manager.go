@@ -55,7 +55,7 @@ func NewStreamFilterFactory(config StreamFilterConfig) StreamFilterFactory {
 // StreamFilterFactoryImpl is an implementation of interface StreamFilterFactory.
 type StreamFilterFactoryImpl struct {
 	mux       sync.Mutex
-	factories atomic.Value  // actual type: []api.StreamFilterChainFactory
+	factories atomic.Value // actual type: []api.StreamFilterChainFactory
 	config    StreamFilterConfig
 }
 

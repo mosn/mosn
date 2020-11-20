@@ -26,10 +26,74 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-var destroyCount = 0
-var onReceiveCount = 0
-var appendCount = 0
-var logCount = 0
+func init() {
+	api.RegisterStream("testStreamFilter", CreateMockStreamFilterFactory)
+}
+
+var (
+	destroyCount           = 0
+	onReceiveCount         = 0
+	appendCount            = 0
+	logCount               = 0
+	createFilterChainCount = 0
+)
+
+func CreateMockStreamFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	return &mockStreamFilterFactory{}, nil
+}
+
+type mockStreamFilterFactory struct{}
+
+func (m *mockStreamFilterFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
+	createFilterChainCount++
+}
+
+func TestStreamFilterManager(t *testing.T) {
+	manager := GetStreamFilterManager()
+	configWith2Filter := StreamFilterConfig{
+		{Type: "testStreamFilter", Config: nil},
+		{Type: "testStreamFilter", Config: nil},
+	}
+	manager.AddOrUpdateStreamFilterConfig("key", configWith2Filter)
+	v := manager.GetStreamFilterFactory("key")
+	if factory, ok := v.(*StreamFilterFactoryImpl); ok {
+		if len(factory.factories.Load().([]api.StreamFilterChainFactory)) != 2 {
+			t.Errorf("manager config factory len != 2")
+		}
+	} else {
+		t.Errorf("manager unexpected object type")
+	}
+
+	configWith3Filter := StreamFilterConfig{
+		{Type: "testStreamFilter", Config: nil},
+		{Type: "testStreamFilter", Config: nil},
+		{Type: "testStreamFilter", Config: nil},
+	}
+	manager.AddOrUpdateStreamFilterConfig("key", configWith3Filter)
+	v = manager.GetStreamFilterFactory("key")
+	if factory, ok := v.(*StreamFilterFactoryImpl); ok {
+		if len(factory.factories.Load().([]api.StreamFilterChainFactory)) != 3 {
+			t.Errorf("manager config factory len != 3")
+		}
+	} else {
+		t.Errorf("manager unexpected object type")
+	}
+}
+
+func TestStreamFilterFactory(t *testing.T) {
+	configWith2Filter := StreamFilterConfig{
+		{Type: "testStreamFilter", Config: nil},
+		{Type: "testStreamFilter", Config: nil},
+	}
+	factory := NewStreamFilterFactory(configWith2Filter)
+	if len(factory.GetConfig()) != 2 {
+		t.Errorf("factory len != 2")
+	}
+	factory.CreateFilterChain(context.TODO(), nil)
+	if createFilterChainCount != 2 {
+		t.Errorf("createFilterChainCount=%v, want=2", createFilterChainCount)
+	}
+}
 
 type mockStreamFilter struct {
 	appendReturn    api.StreamFilterStatus
@@ -176,8 +240,8 @@ func TestDefaultStreamFilterChainImpl_RunReceiverFilter(t *testing.T) {
 func TestDefaultStreamFilterChainImpl_RunSenderFilter(t *testing.T) {
 	tests := []struct {
 		senderFilters []*mockStreamFilter
-		wantStatus      api.StreamFilterStatus
-		wantIndex       int
+		wantStatus    api.StreamFilterStatus
+		wantIndex     int
 	}{
 		{
 			[]*mockStreamFilter{
