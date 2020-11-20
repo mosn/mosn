@@ -42,7 +42,12 @@ var ProtocolsSupported = map[string]bool{
 	string(protocol.Xprotocol): true,
 }
 
-var AutoSetMaxProcs bool
+var (
+	AutoSetMaxProcs string
+
+	SetModeAuto   = "AUTO"
+	SetModeManual = "MANUAL"
+)
 
 const (
 	MinHostWeight               = uint32(1)
@@ -323,7 +328,7 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
-	if AutoSetMaxProcs {
+	if strings.EqualFold(AutoSetMaxProcs, SetModeAuto) {
 		maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
 		c.Processor = runtime.GOMAXPROCS(0)
 	} else {

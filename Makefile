@@ -7,7 +7,7 @@ PROJECT_NAME    = mosn.io/mosn
 
 ISTIO_VERSION   = 1.5.2
 
-AUTO_SET_MAX_PROCS = false
+AUTO_SET_MAX_PROCS = "MANUAL"
 
 SCRIPT_DIR      = $(shell pwd)/etc/script
 

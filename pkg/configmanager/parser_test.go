@@ -232,9 +232,9 @@ func TestParseRouterConfig(t *testing.T) {
 }
 
 func TestParseServerConfigWithAutoProc(t *testing.T) {
-	AutoSetMaxProcs = true
+	AutoSetMaxProcs = SetModeAuto
 	defer func() {
-		AutoSetMaxProcs = false
+		AutoSetMaxProcs = SetModeManual
 	}()
 
 	if c := ParseServerConfig(&v2.ServerConfig{
