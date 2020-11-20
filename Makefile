@@ -7,6 +7,8 @@ PROJECT_NAME    = mosn.io/mosn
 
 ISTIO_VERSION   = 1.5.2
 
+AUTO_SET_MAX_PROCS = false
+
 SCRIPT_DIR      = $(shell pwd)/etc/script
 
 MAJOR_VERSION   = $(shell cat VERSION)
@@ -68,6 +70,7 @@ build-local:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
 	CGO_ENABLED=0 go build\
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/types.IstioVersion=${ISTIO_VERSION}" \
+		-X ${PROJECT_NAME}/pkg/configmanager.AutoSetMaxProcs=${AUTO_SET_MAX_PROCS} \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
 	mkdir -p build/bundles/${MAJOR_VERSION}/binary
@@ -80,6 +83,7 @@ build-linux32:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
 	CGO_ENABLED=0 env GOOS=linux GOARCH=386 go build\
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/types.IstioVersion=${ISTIO_VERSION}" \
+		-X ${PROJECT_NAME}/pkg/configmanager.AutoSetMaxProcs=${AUTO_SET_MAX_PROCS} \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
 	mkdir -p build/bundles/${MAJOR_VERSION}/binary
@@ -92,6 +96,7 @@ build-linux64:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
 	CGO_ENABLED=0 env GOOS=linux GOARCH=amd64 go build\
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/types.IstioVersion=${ISTIO_VERSION}" \
+		-X ${PROJECT_NAME}/pkg/configmanager.AutoSetMaxProcs=${AUTO_SET_MAX_PROCS} \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
 	mkdir -p build/bundles/${MAJOR_VERSION}/binary

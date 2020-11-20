@@ -21,14 +21,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"reflect"
 	"runtime"
 	"testing"
 
-	"go.uber.org/automaxprocs/maxprocs"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 )
@@ -233,7 +231,12 @@ func TestParseRouterConfig(t *testing.T) {
 	}
 }
 
-func TestParseServerConfig(t *testing.T) {
+func TestParseServerConfigWithAutoProc(t *testing.T) {
+	AutoSetMaxProcs = true
+	defer func() {
+		AutoSetMaxProcs = false
+	}()
+
 	if c := ParseServerConfig(&v2.ServerConfig{
 		Processor: 0,
 	}); c.Processor == 0 {
@@ -241,8 +244,6 @@ func TestParseServerConfig(t *testing.T) {
 	}
 	// set env
 	nc := runtime.NumCPU()
-	os.Setenv("GOMAXPROCS", fmt.Sprintf("%d", nc))
-	maxprocs.Set(maxprocs.Logger(log.Printf))
 	// register cb
 	cb := 0
 	RegisterConfigParsedListener(ParseCallbackKeyProcessor, func(data interface{}, endParsing bool) error {
@@ -255,6 +256,29 @@ func TestParseServerConfig(t *testing.T) {
 	})
 	if cb != nc {
 		t.Fatalf("processor callback should be called, cb:%d, numcpu:%d", cb, nc)
+	}
+}
+
+func TestParseServerConfig(t *testing.T) {
+	if c := ParseServerConfig(&v2.ServerConfig{
+		Processor: 0,
+	}); c.Processor == 0 {
+		t.Fatalf("process should be setted by runtime cpu number")
+	}
+	// set env
+	os.Setenv("GOMAXPROCS", "1")
+	// register cb
+	cb := 0
+	RegisterConfigParsedListener(ParseCallbackKeyProcessor, func(data interface{}, endParsing bool) error {
+		p := data.(int)
+		cb = p
+		return nil
+	})
+	_ = ParseServerConfig(&v2.ServerConfig{
+		Processor: 0,
+	})
+	if cb != 1 {
+		t.Fatal("processor callback should be called")
 	}
 }
 

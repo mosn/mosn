@@ -21,9 +21,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"runtime"
+	"strconv"
 	"strings"
 
+	"go.uber.org/automaxprocs/maxprocs"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -38,6 +41,8 @@ var ProtocolsSupported = map[string]bool{
 	string(protocol.HTTP2):     true,
 	string(protocol.Xprotocol): true,
 }
+
+var AutoSetMaxProcs bool
 
 const (
 	MinHostWeight               = uint32(1)
@@ -318,7 +323,18 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
-	c.Processor = runtime.GOMAXPROCS(0)
+	if AutoSetMaxProcs {
+		maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+		c.Processor = runtime.GOMAXPROCS(0)
+	} else {
+		if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+			c.Processor = n
+		} else if c.Processor == 0 {
+			c.Processor = runtime.NumCPU()
+		}
+
+		runtime.GOMAXPROCS(c.Processor)
+	}
 
 	// trigger processor callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
