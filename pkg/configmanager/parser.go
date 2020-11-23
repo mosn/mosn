@@ -322,8 +322,9 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 	setMaxProcsWithProcessor(c.Processor)
-
+	// get GOMAXPROCS value
 	c.Processor = runtime.GOMAXPROCS(0)
+
 	// trigger processor callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
 		for _, cb := range cbs {
@@ -334,6 +335,11 @@ func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 }
 
 func setMaxProcsWithProcessor(procs interface{}) {
+	// env variable has the highest priority.
+	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+		runtime.GOMAXPROCS(n)
+		return
+	}
 	if procs == nil {
 		runtime.GOMAXPROCS(runtime.NumCPU())
 		return
@@ -341,9 +347,7 @@ func setMaxProcsWithProcessor(procs interface{}) {
 
 	intfunc := func(p int) {
 		// use manual setting
-		if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
-			p = n
-		} else if p == 0 || p > runtime.NumCPU() {
+		if p < 1 || p > runtime.NumCPU() {
 			p = runtime.NumCPU()
 		}
 		runtime.GOMAXPROCS(p)
@@ -371,7 +375,7 @@ func setMaxProcsWithProcessor(procs interface{}) {
 	case int:
 		intfunc(processor)
 	default:
-		panic("unsupport serverconfig processor type, must be int or string.")
+		log.StartLogger.Fatalf("unsupport serverconfig processor type, must be int or string.")
 	}
 }
 
