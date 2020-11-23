@@ -55,10 +55,10 @@ func TestParseStreamFaultInjectFilter(t *testing.T) {
 type mockStreamFilterChainFactoryCallbacks struct {
 	api.StreamFilterChainFactoryCallbacks
 	rf api.StreamReceiverFilter
-	p  api.FilterPhase
+	p  api.ReceiverFilterPhase
 }
 
-func (m *mockStreamFilterChainFactoryCallbacks) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.FilterPhase) {
+func (m *mockStreamFilterChainFactoryCallbacks) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.ReceiverFilterPhase) {
 	m.rf = filter
 	m.p = p
 }
