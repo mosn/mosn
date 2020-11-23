@@ -321,7 +321,7 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
-	SetMaxProcsWithProcessor(c.Processor)
+	setMaxProcsWithProcessor(c.Processor)
 
 	c.Processor = runtime.GOMAXPROCS(0)
 	// trigger processor callbacks
@@ -333,28 +333,43 @@ func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 	return c
 }
 
-// SetMaxProcsWithProcessor set GOMAXPROCS with processor
-func SetMaxProcsWithProcessor(procs interface{}) {
-	switch processor := procs.(type) {
-	case string:
-		if strings.EqualFold(processor, "auto") {
-			// auto config with real cpu core or limit cpu core
-			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
-		} else {
-			runtime.GOMAXPROCS(runtime.NumCPU())
-		}
-	case int:
+func setMaxProcsWithProcessor(procs interface{}) {
+	if procs == nil {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+		return
+	}
+
+	intfunc := func(p int) {
 		// use manual setting
 		if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
-			processor = n
-		} else if processor == 0 {
-			processor = runtime.NumCPU()
-		} else {
-			if processor >= runtime.NumCPU() {
-				processor = runtime.NumCPU()
-			}
+			p = n
+		} else if p == 0 || p > runtime.NumCPU() {
+			p = runtime.NumCPU()
 		}
-		runtime.GOMAXPROCS(processor)
+		runtime.GOMAXPROCS(p)
+	}
+
+	strfunc := func(p string) {
+		if strings.EqualFold(p, "auto") {
+			// auto config with real cpu core or limit cpu core
+			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+			return
+		}
+
+		pi, err := strconv.Atoi(p)
+		if err != nil {
+			log.DefaultLogger.Warnf("[configuration] server.processor is not stringnumber, use auto config.")
+			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+			return
+		}
+		intfunc(pi)
+	}
+
+	switch processor := procs.(type) {
+	case string:
+		strfunc(processor)
+	case int:
+		intfunc(processor)
 	default:
 		panic("unsupport serverconfig processor type, must be int or string.")
 	}
