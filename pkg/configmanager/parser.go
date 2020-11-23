@@ -347,7 +347,8 @@ func setMaxProcsWithProcessor(procs interface{}) {
 
 	intfunc := func(p int) {
 		// use manual setting
-		if p < 1 || p > runtime.NumCPU() {
+		// no judge p > runtime.NumCPU(), because some situation maybe need this, such as multi io
+		if p < 1 {
 			p = runtime.NumCPU()
 		}
 		runtime.GOMAXPROCS(p)
