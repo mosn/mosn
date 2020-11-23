@@ -322,8 +322,6 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 	setMaxProcsWithProcessor(c.Processor)
-	// get GOMAXPROCS value
-	c.Processor = runtime.GOMAXPROCS(0)
 
 	// trigger processor callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
