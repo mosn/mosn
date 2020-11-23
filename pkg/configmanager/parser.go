@@ -321,21 +321,9 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
-	if strings.EqualFold(c.SetMaxProcsMode, "auto") {
-		// auto config with real cpu core, or limit cpu core
-		maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
-		c.Processor = runtime.GOMAXPROCS(0)
-	} else {
-		// use manual setting
-		if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
-			c.Processor = n
-		} else if c.Processor == 0 {
-			c.Processor = runtime.NumCPU()
-		}
+	SetMaxProcsWithProcessor(c.Processor)
 
-		runtime.GOMAXPROCS(c.Processor)
-	}
-
+	c.Processor = runtime.GOMAXPROCS(0)
 	// trigger processor callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
 		for _, cb := range cbs {
@@ -343,6 +331,33 @@ func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 		}
 	}
 	return c
+}
+
+// SetMaxProcsWithProcessor set GOMAXPROCS with processor
+func SetMaxProcsWithProcessor(procs interface{}) {
+	switch processor := procs.(type) {
+	case string:
+		if strings.EqualFold(processor, "auto") {
+			// auto config with real cpu core or limit cpu core
+			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+		} else {
+			runtime.GOMAXPROCS(runtime.NumCPU())
+		}
+	case int:
+		// use manual setting
+		if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+			processor = n
+		} else if processor == 0 {
+			processor = runtime.NumCPU()
+		} else {
+			if processor >= runtime.NumCPU() {
+				processor = runtime.NumCPU()
+			}
+		}
+		runtime.GOMAXPROCS(processor)
+	default:
+		panic("unsupport serverconfig processor type, must be int or string.")
+	}
 }
 
 // GetListenerFilters returns a listener filter factory by filter.Type

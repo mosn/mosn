@@ -3,7 +3,7 @@
         {
             "default_log_path": "stdout",
             "default_log_level": "DEBUG",
-            "set_max_procs_mode": "auto",
+            "processor": "auto",
             "listeners": [
                 {
                     "name": "GrpcListener",
