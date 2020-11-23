@@ -57,7 +57,7 @@ func NewConfig(c *v2.ServerConfig) *Config {
 		LogLevel:        configmanager.ParseLogLevel(c.DefaultLogLevel),
 		LogRoller:       c.GlobalLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
-		Processor:       c.Processor.(int),
+		Processor:       c.Processor,
 		UseNetpollMode:  c.UseNetpollMode,
 	}
 }
