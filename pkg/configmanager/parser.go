@@ -322,13 +322,12 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
 	setMaxProcsWithProcessor(c.Processor)
-	// get GOMAXPROCS value
-	c.Processor = runtime.GOMAXPROCS(0)
 
+	process := runtime.GOMAXPROCS(0)
 	// trigger processor callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
 		for _, cb := range cbs {
-			cb(c.Processor, true)
+			cb(process, true)
 		}
 	}
 	return c
@@ -347,7 +346,8 @@ func setMaxProcsWithProcessor(procs interface{}) {
 
 	intfunc := func(p int) {
 		// use manual setting
-		if p < 1 || p > runtime.NumCPU() {
+		// no judge p > runtime.NumCPU(), because some situation maybe need this, such as multi io
+		if p < 1 {
 			p = runtime.NumCPU()
 		}
 		runtime.GOMAXPROCS(p)
