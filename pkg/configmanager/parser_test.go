@@ -232,13 +232,9 @@ func TestParseRouterConfig(t *testing.T) {
 }
 
 func TestParseServerConfigWithAutoProc(t *testing.T) {
-	AutoSetMaxProcs = SetModeAuto
-	defer func() {
-		AutoSetMaxProcs = SetModeManual
-	}()
-
 	if c := ParseServerConfig(&v2.ServerConfig{
-		Processor: 0,
+		Processor:       0,
+		SetMaxProcsMode: "auto",
 	}); c.Processor == 0 {
 		t.Fatalf("process should be setted by runtime cpu number")
 	}
