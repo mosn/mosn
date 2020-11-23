@@ -232,11 +232,6 @@ func TestParseRouterConfig(t *testing.T) {
 }
 
 func TestParseServerConfigWithAutoProc(t *testing.T) {
-	if c := ParseServerConfig(&v2.ServerConfig{
-		Processor: "auto",
-	}); c.Processor == 0 {
-		t.Fatalf("process should be setted by runtime cpu number")
-	}
 	// set env
 	nc := runtime.NumCPU()
 	// register cb
@@ -247,7 +242,7 @@ func TestParseServerConfigWithAutoProc(t *testing.T) {
 		return nil
 	})
 	_ = ParseServerConfig(&v2.ServerConfig{
-		Processor: 0,
+		Processor: "auto",
 	})
 	if cb != nc {
 		t.Fatalf("processor callback should be called, cb:%d, numcpu:%d", cb, nc)
@@ -255,11 +250,6 @@ func TestParseServerConfigWithAutoProc(t *testing.T) {
 }
 
 func TestParseServerConfig(t *testing.T) {
-	if c := ParseServerConfig(&v2.ServerConfig{
-		Processor: 0,
-	}); c.Processor == 0 {
-		t.Fatalf("process should be setted by runtime cpu number")
-	}
 	// set env
 	os.Setenv("GOMAXPROCS", "1")
 	// register cb
