@@ -24,10 +24,11 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 type testCallback struct {
@@ -167,13 +168,11 @@ func TestParseListenerConfig(t *testing.T) {
 	lnStr = fmt.Sprintf(`{
 		"address": "%s"
 	}`, unixListener.Addr().String())
-	unixlc := &v2.Listener{
-	}
+	unixlc := &v2.Listener{}
 	unixlc.Network = "unix"
 	if err := json.Unmarshal([]byte(lnStr), unixlc); err != nil {
 		t.Fatalf("listener config init failed: %v", err)
 	}
-
 
 	ln = ParseListenerConfig(unixlc, inherit, inheritPacketConn)
 
@@ -232,6 +231,29 @@ func TestParseRouterConfig(t *testing.T) {
 	}
 }
 
+func TestParseServerConfigWithAutoProc(t *testing.T) {
+	if c := ParseServerConfig(&v2.ServerConfig{
+		Processor: "auto",
+	}); c.Processor == 0 {
+		t.Fatalf("process should be setted by runtime cpu number")
+	}
+	// set env
+	nc := runtime.NumCPU()
+	// register cb
+	cb := 0
+	RegisterConfigParsedListener(ParseCallbackKeyProcessor, func(data interface{}, endParsing bool) error {
+		p := data.(int)
+		cb = p
+		return nil
+	})
+	_ = ParseServerConfig(&v2.ServerConfig{
+		Processor: 0,
+	})
+	if cb != nc {
+		t.Fatalf("processor callback should be called, cb:%d, numcpu:%d", cb, nc)
+	}
+}
+
 func TestParseServerConfig(t *testing.T) {
 	if c := ParseServerConfig(&v2.ServerConfig{
 		Processor: 0,
@@ -253,7 +275,6 @@ func TestParseServerConfig(t *testing.T) {
 	if cb != 1 {
 		t.Fatal("processor callback should be called")
 	}
-
 }
 
 func TestGetListenerFilters(t *testing.T) {
