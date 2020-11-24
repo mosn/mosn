@@ -20,6 +20,7 @@ package proxy
 import (
 	"container/list"
 	"context"
+	"mosn.io/mosn/pkg/streamfilter"
 	"runtime"
 	"sync"
 
@@ -28,7 +29,6 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/filter"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/protocol"
@@ -91,7 +91,7 @@ type proxy struct {
 	stats               *Stats
 	listenerStats       *Stats
 	accessLogs          []api.AccessLog
-	streamFilterFactory filter.StreamFilterFactory
+	streamFilterFactory streamfilter.StreamFilterFactory
 
 	// configure the proxy level worker pool
 	// eg. if we want the requests on one connection to keep serial,
@@ -148,7 +148,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		proxy: proxy,
 	}
 
-	proxy.streamFilterFactory = filter.GetStreamFilterManager().GetStreamFilterFactory(listenerName)
+	proxy.streamFilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(listenerName)
 
 	return proxy
 }

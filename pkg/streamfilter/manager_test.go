@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package filter
+package streamfilter
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func (m *mockStreamFilterFactory) CreateFilterChain(context context.Context, cal
 
 func TestStreamFilterManager(t *testing.T) {
 	manager := GetStreamFilterManager()
-	configWith2Filter := StreamFilterConfig{
+	configWith2Filter := StreamFiltersConfig{
 		{Type: "testStreamFilter", Config: nil},
 		{Type: "testStreamFilter", Config: nil},
 	}
@@ -64,7 +64,7 @@ func TestStreamFilterManager(t *testing.T) {
 		t.Errorf("manager unexpected object type")
 	}
 
-	configWith3Filter := StreamFilterConfig{
+	configWith3Filter := StreamFiltersConfig{
 		{Type: "testStreamFilter", Config: nil},
 		{Type: "testStreamFilter", Config: nil},
 		{Type: "testStreamFilter", Config: nil},
@@ -81,7 +81,7 @@ func TestStreamFilterManager(t *testing.T) {
 }
 
 func TestStreamFilterFactory(t *testing.T) {
-	configWith2Filter := StreamFilterConfig{
+	configWith2Filter := StreamFiltersConfig{
 		{Type: "testStreamFilter", Config: nil},
 		{Type: "testStreamFilter", Config: nil},
 	}
