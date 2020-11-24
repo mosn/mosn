@@ -575,12 +575,13 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 			}
 
 			// fail after 60s
-			t := time.NewTimer(types.DefaultConnTryTimeout)
+			t := acquireTimer(types.DefaultConnTryTimeout)
 			select {
 			case c.writeBufferChan <- &buffers:
-				t.Stop()
+				releaseTimer(t)
 			case <-t.C:
 				err = types.ErrWriteBufferChanTimeout
+				releaseTimer(t)
 			}
 		} else {
 			err = c.writeDirectly(&buffers)
