@@ -57,13 +57,13 @@ type Routers interface {
 
 // RouterManager is a manager for all routers' config
 type RouterManager interface {
-	// AddRoutersSet adds router config when generated
+	// AddOrUpdateRouters used to add or update router
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
-
+	// GetRouterWrapperByName returns a router wrapper from manager
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
-
+	// AddRoute adds a single router rule into specified virtualhost(by domain)
 	AddRoute(routerConfigName, domain string, route *v2.Router) error
-
+	// RemoveAllRoutes clear all of the specified virtualhost's routes
 	RemoveAllRoutes(routerConfigName, domain string) error
 }
 

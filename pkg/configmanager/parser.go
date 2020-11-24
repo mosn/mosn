@@ -26,8 +26,9 @@ import (
 	"strconv"
 	"strings"
 
+	"go.uber.org/automaxprocs/maxprocs"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 )
@@ -320,19 +321,62 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
-	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
-		c.Processor = n
-	} else if c.Processor == 0 {
-		c.Processor = runtime.NumCPU()
-	}
+	setMaxProcsWithProcessor(c.Processor)
 
+	process := runtime.GOMAXPROCS(0)
 	// trigger processor callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
 		for _, cb := range cbs {
-			cb(c.Processor, true)
+			cb(process, true)
 		}
 	}
 	return c
+}
+
+func setMaxProcsWithProcessor(procs interface{}) {
+	// env variable has the highest priority.
+	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+		runtime.GOMAXPROCS(n)
+		return
+	}
+	if procs == nil {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+		return
+	}
+
+	intfunc := func(p int) {
+		// use manual setting
+		// no judge p > runtime.NumCPU(), because some situation maybe need this, such as multi io
+		if p < 1 {
+			p = runtime.NumCPU()
+		}
+		runtime.GOMAXPROCS(p)
+	}
+
+	strfunc := func(p string) {
+		if strings.EqualFold(p, "auto") {
+			// auto config with real cpu core or limit cpu core
+			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+			return
+		}
+
+		pi, err := strconv.Atoi(p)
+		if err != nil {
+			log.DefaultLogger.Warnf("[configuration] server.processor is not stringnumber, use auto config.")
+			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+			return
+		}
+		intfunc(pi)
+	}
+
+	switch processor := procs.(type) {
+	case string:
+		strfunc(processor)
+	case int:
+		intfunc(processor)
+	default:
+		log.StartLogger.Fatalf("unsupport serverconfig processor type, must be int or string.")
+	}
 }
 
 // GetListenerFilters returns a listener filter factory by filter.Type
