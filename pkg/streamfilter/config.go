@@ -19,12 +19,13 @@ package streamfilter
 
 import (
 	"encoding/json"
-	"github.com/ghodss/yaml"
 	"io/ioutil"
+	"path/filepath"
+
+	"github.com/ghodss/yaml"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"path/filepath"
 )
 
 // StreamFiltersConfig is the stream filter config array.
@@ -43,11 +44,13 @@ func LoadAndRegisterStreamFilters(path string) {
 		log.DefaultLogger.Errorf("[streamfilter] LoadAndRegisterStreamFilters fail to resolve abs path, err: %v", err)
 		return
 	}
-	content, err := ioutil.ReadFile(absPath)
+
+	content, err := ioutil.ReadFile(filepath.Clean(absPath))
 	if err != nil {
 		log.DefaultLogger.Errorf("[streamfilter] LoadAndRegisterStreamFilters load config failed, error: %v", err)
 		return
 	}
+
 	fileExt := filepath.Ext(path)
 	if fileExt == ".yaml" || fileExt == ".yml" {
 		bytes, err := yaml.YAMLToJSON(content)
@@ -57,9 +60,11 @@ func LoadAndRegisterStreamFilters(path string) {
 		}
 		content = bytes
 	}
+
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[streamfilter] LoadAndRegisterStreamFilters load config from file: %v", absPath)
 	}
+
 	ParseAndRegisterStreamFilters(content)
 }
 
@@ -68,12 +73,15 @@ func ParseAndRegisterStreamFilters(config []byte) {
 	type fullConfig struct {
 		SF []StreamFilters `json:"stream_filters,omitempty"`
 	}
+
 	var mc fullConfig
+
 	err := json.Unmarshal(config, &mc)
 	if err != nil {
 		log.DefaultLogger.Errorf("[streamfilter] ParseAndRegisterStreamFilters unmarshal err: %v", err)
 		return
 	}
+
 	RegisterStreamFilters(mc.SF)
 }
 
@@ -84,13 +92,16 @@ func RegisterStreamFilters(configs []StreamFilters) {
 			log.DefaultLogger.Errorf("[streamfilter] RegisterStreamFilters empty name")
 			continue
 		}
-		if config.Filters == nil || len(config.Filters) <= 0 {
+
+		if config.Filters == nil || len(config.Filters) == 0 {
 			log.DefaultLogger.Errorf("[streamfilter] RegisterStreamFilters empty filters")
 			continue
 		}
+
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[streamfilter] RegisterStreamFilters name: %v, config: %v", config.Name, config.Filters)
 		}
+
 		err := GetStreamFilterManager().AddOrUpdateStreamFilterConfig(config.Name, config.Filters)
 		if err != nil {
 			log.DefaultLogger.Errorf("[streamfilter] RegisterStreamFilters internal err: %v", err)
@@ -108,6 +119,7 @@ func GetStreamFilters(configs []v2.Filter) []api.StreamFilterChainFactory {
 			log.DefaultLogger.Errorf("[config] get stream filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
+
 		if sfcc != nil {
 			factories = append(factories, sfcc)
 		}

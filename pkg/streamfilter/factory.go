@@ -42,6 +42,7 @@ func NewStreamFilterFactory(config StreamFiltersConfig) StreamFilterFactory {
 		config: config,
 	}
 	wrapper.factories.Store(GetStreamFilters(config))
+
 	return wrapper
 }
 

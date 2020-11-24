@@ -27,12 +27,12 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/filter"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
@@ -137,7 +137,7 @@ func TestProxyWithFilters(t *testing.T) {
 	// filter call record
 	filterRecords := map[string]string{}
 	// mock stream filters
-	monkey.Patch(filter.GetStreamFilterManager, func() filter.StreamFilterManager {
+	monkey.Patch(streamfilter.GetStreamFilterManager, func() streamfilter.StreamFilterManager {
 		factory := mock.NewMockStreamFilterFactory(ctrl)
 		factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 			for _, fact := range []struct {

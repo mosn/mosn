@@ -24,6 +24,9 @@ import (
 	"mosn.io/mosn/pkg/log"
 )
 
+// ErrUnexpected indicate unexpected object type in sync.Map.
+var ErrUnexpected = errors.New("unexpected object in map")
+
 // StreamFilterManager manager the config of all StreamFilterChainFactorys,
 // each StreamFilterChainFactory is bound to a key, which is the listenerName by now.
 type StreamFilterManager interface {
@@ -65,13 +68,16 @@ func (s *StreamFilterManagerImpl) AddOrUpdateStreamFilterConfig(key string, conf
 		factoryWrapper, ok := v.(*StreamFilterFactoryImpl)
 		if !ok {
 			log.DefaultLogger.Errorf("StreamFilterManagerImpl.AddOrUpdateStreamFilterConfig unexpected object in map")
-			return errors.New("unexpected object in map")
+			return ErrUnexpected
 		}
+
 		factories := GetStreamFilters(config)
+
 		factoryWrapper.mux.Lock()
 		factoryWrapper.factories.Store(factories)
 		factoryWrapper.config = config
 		factoryWrapper.mux.Unlock()
+
 		log.DefaultLogger.Infof("StreamFilterManagerImpl.AddOrUpdateStreamFilterConfig update filter chain key: %v", key)
 	} else {
 		factoryWrapper := NewStreamFilterFactory(config)
@@ -89,6 +95,7 @@ func (s *StreamFilterManagerImpl) GetStreamFilterFactory(key string) StreamFilte
 			log.DefaultLogger.Errorf("StreamFilterManagerImpl.GetStreamFilterFactory unexpected object in map")
 			return nil
 		}
+
 		return factoryWrapper
 	}
 	return nil
