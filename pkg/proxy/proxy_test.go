@@ -10,10 +10,10 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/filter"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -115,12 +115,12 @@ func TestNewProxyRequest(t *testing.T) {
 		return ctx
 	}
 	callCreateFilterChain := false
-	monkey.Patch(filter.GetStreamFilterManager, func() filter.StreamFilterManager {
-		factory := mock.NewMockStreamFilterFactory(ctrl)
+	monkey.Patch(streamfilter.GetStreamFilterManager, func() streamfilter.StreamFilterManager {
+		factory := streamfilter.NewMockStreamFilterFactory(ctrl)
 		factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).Do(func(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 			callCreateFilterChain = true
 		}).AnyTimes()
-		filterManager := mock.NewMockStreamFilterManager(ctrl)
+		filterManager := streamfilter.NewMockStreamFilterManager(ctrl)
 		filterManager.EXPECT().GetStreamFilterFactory(gomock.Any()).Return(factory).AnyTimes()
 		return filterManager
 	})

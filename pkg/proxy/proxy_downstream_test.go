@@ -138,7 +138,7 @@ func TestProxyWithFilters(t *testing.T) {
 	filterRecords := map[string]string{}
 	// mock stream filters
 	monkey.Patch(streamfilter.GetStreamFilterManager, func() streamfilter.StreamFilterManager {
-		factory := mock.NewMockStreamFilterFactory(ctrl)
+		factory := streamfilter.NewMockStreamFilterFactory(ctrl)
 		factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 			for _, fact := range []struct {
 				Phase            api.ReceiverFilterPhase
@@ -198,7 +198,7 @@ func TestProxyWithFilters(t *testing.T) {
 				}
 			}
 		})
-		filterManager := mock.NewMockStreamFilterManager(ctrl)
+		filterManager := streamfilter.NewMockStreamFilterManager(ctrl)
 		filterManager.EXPECT().GetStreamFilterFactory(gomock.Any()).Return(factory).AnyTimes()
 		return filterManager
 	})
