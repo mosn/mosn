@@ -353,24 +353,6 @@ func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
 	return factories
 }
 
-// GetStreamFilters returns a stream filter factory by filter.Type
-func GetStreamFilters(configs []v2.Filter) []api.StreamFilterChainFactory {
-	var factories []api.StreamFilterChainFactory
-
-	for _, c := range configs {
-		sfcc, err := api.CreateStreamFilterChainFactory(c.Type, c.Config)
-		if err != nil {
-			log.DefaultLogger.Errorf("[config] get stream filter failed, type: %s, error: %v", c.Type, err)
-			continue
-		}
-		if sfcc != nil {
-			factories = append(factories, sfcc)
-		}
-	}
-
-	return factories
-}
-
 // GetNetworkFilters returns a network filter factory by filter.Type
 func GetNetworkFilters(c *v2.FilterChain) []api.NetworkFilterChainFactory {
 	var factories []api.NetworkFilterChainFactory

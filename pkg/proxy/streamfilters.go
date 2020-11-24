@@ -19,10 +19,10 @@ package proxy
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/streamfilter"
 	"sync/atomic"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/filter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
@@ -31,7 +31,7 @@ type streamFilterManager struct {
 	downStream                *downStream
 	receiverFiltersAgainPhase types.Phase
 
-	filter.DefaultStreamFilterChainImpl
+	streamfilter.DefaultStreamFilterChainImpl
 }
 
 func (manager *streamFilterManager) AddStreamSenderFilter(filter api.StreamSenderFilter, phase api.SenderFilterPhase) {
@@ -52,7 +52,7 @@ func (manager *streamFilterManager) AddStreamAccessLog(accessLog api.AccessLog) 
 
 func (manager *streamFilterManager) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
-	statusHandler filter.StreamFilterStatusHandler) api.StreamFilterStatus {
+	statusHandler streamfilter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
 	return manager.DefaultStreamFilterChainImpl.RunReceiverFilter(ctx, phase, headers, data, trailers,
 		func(status api.StreamFilterStatus) {
@@ -79,7 +79,7 @@ func (manager *streamFilterManager) RunReceiverFilter(ctx context.Context, phase
 
 func (manager *streamFilterManager) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
-	statusHandler filter.StreamFilterStatusHandler) api.StreamFilterStatus {
+	statusHandler streamfilter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
 	return manager.DefaultStreamFilterChainImpl.RunSenderFilter(ctx, phase, headers, data, trailers,
 		func(status api.StreamFilterStatus) {
