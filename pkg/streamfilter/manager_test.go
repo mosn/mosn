@@ -80,18 +80,6 @@ func TestStreamFilterManager(t *testing.T) {
 	}
 }
 
-func TestStreamFilterFactory(t *testing.T) {
-	configWith2Filter := StreamFiltersConfig{
-		{Type: "testStreamFilter", Config: nil},
-		{Type: "testStreamFilter", Config: nil},
-	}
-	factory := NewStreamFilterFactory(configWith2Filter)
-	factory.CreateFilterChain(context.TODO(), nil)
-	if createFilterChainCount != 2 {
-		t.Errorf("createFilterChainCount=%v, want=2", createFilterChainCount)
-	}
-}
-
 type mockStreamFilter struct {
 	appendReturn    api.StreamFilterStatus
 	onReceiveReturn api.StreamFilterStatus

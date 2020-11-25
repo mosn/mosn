@@ -94,7 +94,7 @@ type downStream struct {
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
 	upstreamProcessDone bool
-	// don't convert headers, data and trailers.  e.g. activeStreamReceiverFilter.Appendxx
+	// don't convert headers, data and trailers.  e.g. streamReceiverFilterHandler.Appendxx
 	noConvert bool
 	// direct response.  e.g. sendHijack
 	directResponse bool

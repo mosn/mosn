@@ -35,13 +35,15 @@ type streamFilterChain struct {
 }
 
 func (sfc *streamFilterChain) AddStreamSenderFilter(filter api.StreamSenderFilter, phase api.SenderFilterPhase) {
-	sf := newActiveStreamSenderFilter(sfc.downStream, filter)
-	sfc.DefaultStreamFilterChainImpl.AddStreamSenderFilter(sf, phase)
+	handler := newStreamSenderFilterHandler(sfc.downStream, filter)
+	filter.SetSenderFilterHandler(handler)
+	sfc.DefaultStreamFilterChainImpl.AddStreamSenderFilter(filter, phase)
 }
 
 func (sfc *streamFilterChain) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.ReceiverFilterPhase) {
-	sf := newActiveStreamReceiverFilter(sfc.downStream, filter)
-	sfc.DefaultStreamFilterChainImpl.AddStreamReceiverFilter(sf, phase)
+	handler := newStreamReceiverFilterHandler(sfc.downStream, filter)
+	filter.SetReceiveFilterHandler(handler)
+	sfc.DefaultStreamFilterChainImpl.AddStreamReceiverFilter(filter, phase)
 }
 
 func (sfc *streamFilterChain) AddStreamAccessLog(accessLog api.AccessLog) {
@@ -91,71 +93,69 @@ func (sfc *streamFilterChain) RunSenderFilter(ctx context.Context, phase api.Sen
 		})
 }
 
-type activeStreamFilter struct {
+type streamFilterHandlerBase struct {
 	activeStream *downStream
 }
 
-func (f *activeStreamFilter) Connection() api.Connection {
+func (f *streamFilterHandlerBase) Connection() api.Connection {
 	return f.activeStream.proxy.readCallbacks.Connection()
 }
 
-func (f *activeStreamFilter) Route() types.Route {
+func (f *streamFilterHandlerBase) Route() types.Route {
 	return f.activeStream.route
 }
 
-func (f *activeStreamFilter) RequestInfo() types.RequestInfo {
+func (f *streamFilterHandlerBase) RequestInfo() types.RequestInfo {
 	return f.activeStream.requestInfo
 }
 
-// types.StreamReceiverFilter
-// types.StreamReceiverFilterHandler
-type activeStreamReceiverFilter struct {
-	activeStreamFilter
-	api.StreamReceiverFilter
-	id uint32
+type streamReceiverFilterHandler struct {
+	streamFilterHandlerBase
+
+	filter api.StreamReceiverFilter
+	id     uint32
 }
 
-func newActiveStreamReceiverFilter(activeStream *downStream,
-	filter api.StreamReceiverFilter) *activeStreamReceiverFilter {
-	f := &activeStreamReceiverFilter{
-		activeStreamFilter: activeStreamFilter{
+func newStreamReceiverFilterHandler(activeStream *downStream, filter api.StreamReceiverFilter) *streamReceiverFilterHandler {
+	f := &streamReceiverFilterHandler{
+		streamFilterHandlerBase: streamFilterHandlerBase{
 			activeStream: activeStream,
 		},
-		StreamReceiverFilter: filter,
-		id:                   activeStream.ID,
+		filter: filter,
+		id:     activeStream.ID,
 	}
 	filter.SetReceiveFilterHandler(f)
 
 	return f
 }
 
-func (f *activeStreamReceiverFilter) AppendHeaders(headers types.HeaderMap, endStream bool) {
+func (f *streamReceiverFilterHandler) AppendHeaders(headers types.HeaderMap, endStream bool) {
 	f.activeStream.downstreamRespHeaders = headers
 	f.activeStream.noConvert = true
 	f.activeStream.appendHeaders(endStream)
 }
 
-func (f *activeStreamReceiverFilter) AppendData(buf types.IoBuffer, endStream bool) {
+func (f *streamReceiverFilterHandler) AppendData(buf types.IoBuffer, endStream bool) {
 	f.activeStream.downstreamRespDataBuf = buf
 	f.activeStream.noConvert = true
 	f.activeStream.appendData(endStream)
 }
 
-func (f *activeStreamReceiverFilter) AppendTrailers(trailers types.HeaderMap) {
+func (f *streamReceiverFilterHandler) AppendTrailers(trailers types.HeaderMap) {
 	f.activeStream.downstreamRespTrailers = trailers
 	f.activeStream.noConvert = true
 	f.activeStream.appendTrailers()
 }
 
-func (f *activeStreamReceiverFilter) SendHijackReply(code int, headers types.HeaderMap) {
+func (f *streamReceiverFilterHandler) SendHijackReply(code int, headers types.HeaderMap) {
 	f.activeStream.sendHijackReply(code, headers)
 }
 
-func (f *activeStreamReceiverFilter) SendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
+func (f *streamReceiverFilterHandler) SendHijackReplyWithBody(code int, headers types.HeaderMap, body string) {
 	f.activeStream.sendHijackReplyWithBody(code, headers, body)
 }
 
-func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
+func (f *streamReceiverFilterHandler) SendDirectResponse(headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 	atomic.StoreUint32(&f.activeStream.reuseBuffer, 0)
 	f.activeStream.noConvert = true
 	f.activeStream.downstreamRespHeaders = headers
@@ -164,7 +164,7 @@ func (f *activeStreamReceiverFilter) SendDirectResponse(headers types.HeaderMap,
 	f.activeStream.directResponse = true
 }
 
-func (f *activeStreamReceiverFilter) TerminateStream(code int) bool {
+func (f *streamReceiverFilterHandler) TerminateStream(code int) bool {
 	s := f.activeStream
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 
@@ -193,12 +193,12 @@ func (f *activeStreamReceiverFilter) TerminateStream(code int) bool {
 	return true
 }
 
-func (f *activeStreamReceiverFilter) SetConvert(on bool) {
+func (f *streamReceiverFilterHandler) SetConvert(on bool) {
 	f.activeStream.noConvert = !on
 }
 
 // GetFilterCurrentPhase get current phase for filter
-func (f *activeStreamReceiverFilter) GetFilterCurrentPhase() api.ReceiverFilterPhase {
+func (f *streamReceiverFilterHandler) GetFilterCurrentPhase() api.ReceiverFilterPhase {
 	// default AfterRoute
 	p := api.AfterRoute
 
@@ -215,17 +215,17 @@ func (f *activeStreamReceiverFilter) GetFilterCurrentPhase() api.ReceiverFilterP
 }
 
 // TODO: remove all of the following when proxy changed to single request @lieyuan
-func (f *activeStreamReceiverFilter) GetRequestHeaders() types.HeaderMap {
+func (f *streamReceiverFilterHandler) GetRequestHeaders() types.HeaderMap {
 	return f.activeStream.downstreamReqHeaders
 }
-func (f *activeStreamReceiverFilter) SetRequestHeaders(headers types.HeaderMap) {
+func (f *streamReceiverFilterHandler) SetRequestHeaders(headers types.HeaderMap) {
 	f.activeStream.downstreamReqHeaders = headers
 }
-func (f *activeStreamReceiverFilter) GetRequestData() types.IoBuffer {
+func (f *streamReceiverFilterHandler) GetRequestData() types.IoBuffer {
 	return f.activeStream.downstreamReqDataBuf
 }
 
-func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
+func (f *streamReceiverFilterHandler) SetRequestData(data types.IoBuffer) {
 	// data is the original data. do nothing
 	if f.activeStream.downstreamReqDataBuf == data {
 		return
@@ -237,48 +237,45 @@ func (f *activeStreamReceiverFilter) SetRequestData(data types.IoBuffer) {
 	f.activeStream.downstreamReqDataBuf.ReadFrom(data)
 }
 
-func (f *activeStreamReceiverFilter) GetRequestTrailers() types.HeaderMap {
+func (f *streamReceiverFilterHandler) GetRequestTrailers() types.HeaderMap {
 	return f.activeStream.downstreamReqTrailers
 }
 
-func (f *activeStreamReceiverFilter) SetRequestTrailers(trailers types.HeaderMap) {
+func (f *streamReceiverFilterHandler) SetRequestTrailers(trailers types.HeaderMap) {
 	f.activeStream.downstreamReqTrailers = trailers
 }
 
 // types.StreamSenderFilterHandler
-type activeStreamSenderFilter struct {
-	activeStreamFilter
+type streamSenderFilterHandler struct {
+	streamFilterHandlerBase
 
-	api.StreamSenderFilter
+	filter api.StreamSenderFilter
 }
 
-func newActiveStreamSenderFilter(activeStream *downStream,
-	filter api.StreamSenderFilter) *activeStreamSenderFilter {
-	f := &activeStreamSenderFilter{
-		activeStreamFilter: activeStreamFilter{
+func newStreamSenderFilterHandler(activeStream *downStream, filter api.StreamSenderFilter) *streamSenderFilterHandler {
+	f := &streamSenderFilterHandler{
+		streamFilterHandlerBase: streamFilterHandlerBase{
 			activeStream: activeStream,
 		},
-		StreamSenderFilter: filter,
+		filter: filter,
 	}
-
-	filter.SetSenderFilterHandler(f)
 
 	return f
 }
 
-func (f *activeStreamSenderFilter) GetResponseHeaders() types.HeaderMap {
+func (f *streamSenderFilterHandler) GetResponseHeaders() types.HeaderMap {
 	return f.activeStream.downstreamRespHeaders
 }
 
-func (f *activeStreamSenderFilter) SetResponseHeaders(headers types.HeaderMap) {
+func (f *streamSenderFilterHandler) SetResponseHeaders(headers types.HeaderMap) {
 	f.activeStream.downstreamRespHeaders = headers
 }
 
-func (f *activeStreamSenderFilter) GetResponseData() types.IoBuffer {
+func (f *streamSenderFilterHandler) GetResponseData() types.IoBuffer {
 	return f.activeStream.downstreamRespDataBuf
 }
 
-func (f *activeStreamSenderFilter) SetResponseData(data types.IoBuffer) {
+func (f *streamSenderFilterHandler) SetResponseData(data types.IoBuffer) {
 	// data is the original data. do nothing
 	if f.activeStream.downstreamRespDataBuf == data {
 		return
@@ -290,10 +287,10 @@ func (f *activeStreamSenderFilter) SetResponseData(data types.IoBuffer) {
 	f.activeStream.downstreamRespDataBuf.ReadFrom(data)
 }
 
-func (f *activeStreamSenderFilter) GetResponseTrailers() types.HeaderMap {
+func (f *streamSenderFilterHandler) GetResponseTrailers() types.HeaderMap {
 	return f.activeStream.downstreamRespTrailers
 }
 
-func (f *activeStreamSenderFilter) SetResponseTrailers(trailers types.HeaderMap) {
+func (f *streamSenderFilterHandler) SetResponseTrailers(trailers types.HeaderMap) {
 	f.activeStream.downstreamRespTrailers = trailers
 }

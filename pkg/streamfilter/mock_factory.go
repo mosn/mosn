@@ -46,16 +46,14 @@ func (mr *MockStreamFilterFactoryMockRecorder) CreateFilterChain(context, callba
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFilterChain", reflect.TypeOf((*MockStreamFilterFactory)(nil).CreateFilterChain), context, callbacks)
 }
 
-// GetConfig mocks base method.
-func (m *MockStreamFilterFactory) GetConfig() StreamFiltersConfig {
+// UpdateFactory mocks base method.
+func (m *MockStreamFilterFactory) UpdateFactory(config StreamFiltersConfig) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConfig")
-	ret0, _ := ret[0].(StreamFiltersConfig)
-	return ret0
+	m.ctrl.Call(m, "UpdateFactory", config)
 }
 
-// GetConfig indicates an expected call of GetConfig.
-func (mr *MockStreamFilterFactoryMockRecorder) GetConfig() *gomock.Call {
+// UpdateFactory indicates an expected call of UpdateFactory.
+func (mr *MockStreamFilterFactoryMockRecorder) UpdateFactory(config interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConfig", reflect.TypeOf((*MockStreamFilterFactory)(nil).GetConfig))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFactory", reflect.TypeOf((*MockStreamFilterFactory)(nil).UpdateFactory), config)
 }
