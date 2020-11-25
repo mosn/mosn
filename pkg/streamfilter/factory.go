@@ -19,49 +19,51 @@ package streamfilter
 
 import (
 	"context"
-	"sync"
 	"sync/atomic"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
 )
 
-// StreamFilterFactory combine the StreamFilterChainFactory (type: []api.StreamFilterChainFactory)
-// with its config (type: []v2.Filter).
+// StreamFilterFactory is a wrapper of type []api.StreamFilterChainFactory.
 type StreamFilterFactory interface {
 
 	// CreateFilterChain call 'CreateFilterChain' method for each api.StreamFilterChainFactory.
 	CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks)
 
-	// GetConfig return raw config of the StreamFilterChainFactory.
-	GetConfig() StreamFiltersConfig
+	// UpdateFactory update factory according to config.
+	UpdateFactory(config StreamFiltersConfig)
 }
 
 // NewStreamFilterFactory return a StreamFilterFactoryImpl struct.
 func NewStreamFilterFactory(config StreamFiltersConfig) StreamFilterFactory {
-	wrapper := &StreamFilterFactoryImpl{
-		config: config,
-	}
-	wrapper.factories.Store(GetStreamFilters(config))
+	factory := &StreamFilterFactoryImpl{}
 
-	return wrapper
+	sff := createStreamFilterFactoryFromConfig(config)
+	factory.factories.Store(sff)
+
+	return factory
 }
 
 // StreamFilterFactoryImpl is an implementation of interface StreamFilterFactory.
 type StreamFilterFactoryImpl struct {
-	mux       sync.Mutex
 	factories atomic.Value // actual type: []api.StreamFilterChainFactory
-	config    StreamFiltersConfig
 }
 
 // CreateFilterChain call 'CreateFilterChain' method for each api.StreamFilterChainFactory.
 func (s *StreamFilterFactoryImpl) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
-	factories := s.factories.Load().([]api.StreamFilterChainFactory)
-	for _, factory := range factories {
-		factory.CreateFilterChain(context, callbacks)
+	factories, ok := s.factories.Load().([]api.StreamFilterChainFactory)
+	if !ok {
+		for _, factory := range factories {
+			factory.CreateFilterChain(context, callbacks)
+		}
+	} else {
+		log.DefaultLogger.Errorf("[streamfilter] CreateFilterChain unexpected object type in atomic.Value")
 	}
 }
 
-// GetConfig return raw config of the StreamFilterChainFactory.
-func (s *StreamFilterFactoryImpl) GetConfig() StreamFiltersConfig {
-	return s.config
+// UpdateFactory update factory according to config.
+func (s *StreamFilterFactoryImpl) UpdateFactory(config StreamFiltersConfig) {
+	sff := createStreamFilterFactoryFromConfig(config)
+	s.factories.Store(sff)
 }

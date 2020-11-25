@@ -27,6 +27,13 @@ import (
 // ErrUnexpected indicate unexpected object type in sync.Map.
 var ErrUnexpected = errors.New("unexpected object in map")
 
+var streamFilterManagerInstance StreamFilterManager = &StreamFilterManagerImpl{}
+
+// GetStreamFilterManager return a global singleton of StreamFilterManager.
+func GetStreamFilterManager() StreamFilterManager {
+	return streamFilterManagerInstance
+}
+
 // StreamFilterManager manager the config of all StreamFilterChainFactorys,
 // each StreamFilterChainFactory is bound to a key, which is the listenerName by now.
 type StreamFilterManager interface {
@@ -38,25 +45,6 @@ type StreamFilterManager interface {
 	GetStreamFilterFactory(key string) StreamFilterFactory
 }
 
-var (
-	streamFilterManagerSingleton sync.Mutex
-	streamFilterManagerInstance  *StreamFilterManagerImpl
-)
-
-// GetStreamFilterManager return a singleton of StreamFilterManager.
-func GetStreamFilterManager() StreamFilterManager {
-	streamFilterManagerSingleton.Lock()
-	defer streamFilterManagerSingleton.Unlock()
-
-	if streamFilterManagerInstance == nil {
-		streamFilterManagerInstance = &StreamFilterManagerImpl{
-			streamFilterChainMap: sync.Map{},
-		}
-	}
-
-	return streamFilterManagerInstance
-}
-
 // StreamFilterManagerImpl is an implementation of interface StreamFilterManager.
 type StreamFilterManagerImpl struct {
 	streamFilterChainMap sync.Map
@@ -65,24 +53,19 @@ type StreamFilterManagerImpl struct {
 // AddOrUpdateStreamFilterConfig map the key to streamFilter chain config.
 func (s *StreamFilterManagerImpl) AddOrUpdateStreamFilterConfig(key string, config StreamFiltersConfig) error {
 	if v, ok := s.streamFilterChainMap.Load(key); ok {
-		factoryWrapper, ok := v.(*StreamFilterFactoryImpl)
+		factory, ok := v.(StreamFilterFactory)
 		if !ok {
-			log.DefaultLogger.Errorf("StreamFilterManagerImpl.AddOrUpdateStreamFilterConfig unexpected object in map")
+			log.DefaultLogger.Errorf("[streamfilter] AddOrUpdateStreamFilterConfig unexpected object in map")
 			return ErrUnexpected
 		}
 
-		factories := GetStreamFilters(config)
+		factory.UpdateFactory(config)
 
-		factoryWrapper.mux.Lock()
-		factoryWrapper.factories.Store(factories)
-		factoryWrapper.config = config
-		factoryWrapper.mux.Unlock()
-
-		log.DefaultLogger.Infof("StreamFilterManagerImpl.AddOrUpdateStreamFilterConfig update filter chain key: %v", key)
+		log.DefaultLogger.Infof("[streamfilter] AddOrUpdateStreamFilterConfig update filter chain key: %v", key)
 	} else {
-		factoryWrapper := NewStreamFilterFactory(config)
-		s.streamFilterChainMap.Store(key, factoryWrapper)
-		log.DefaultLogger.Infof("StreamFilterManagerImpl.AddOrUpdateStreamFilterConfig add filter chain key: %v", key)
+		factory := NewStreamFilterFactory(config)
+		s.streamFilterChainMap.LoadOrStore(key, factory)
+		log.DefaultLogger.Infof("[streamfilter] AddOrUpdateStreamFilterConfig add filter chain key: %v", key)
 	}
 	return nil
 }
@@ -92,11 +75,13 @@ func (s *StreamFilterManagerImpl) GetStreamFilterFactory(key string) StreamFilte
 	if v, ok := s.streamFilterChainMap.Load(key); ok {
 		factoryWrapper, ok := v.(StreamFilterFactory)
 		if !ok {
-			log.DefaultLogger.Errorf("StreamFilterManagerImpl.GetStreamFilterFactory unexpected object in map")
+			log.DefaultLogger.Errorf("[streamfilter] GetStreamFilterFactory unexpected object in map")
 			return nil
 		}
 
 		return factoryWrapper
 	}
+
+	log.DefaultLogger.Errorf("[streamfilter] GetStreamFilterFactory stream filter factory not found in map, name: %v", key)
 	return nil
 }

@@ -22,7 +22,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"mosn.io/mosn/pkg/streamfilter"
 	"net"
 	"os"
 	"strconv"
@@ -43,6 +42,7 @@ import (
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
@@ -117,8 +117,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 	var networkFiltersFactories []api.NetworkFilterChainFactory
 	listenerFiltersFactories = configmanager.GetListenerFilters(lc.ListenerFilters)
 	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
-
-	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
 
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
@@ -203,6 +201,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
 
 	}
+
+	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
+
 	configmanager.SetListenerConfig(*al.listener.Config())
 	return al, nil
 }
@@ -334,20 +335,20 @@ func (ch *connHandler) StopConnection() {
 
 // ListenerEventListener
 type activeListener struct {
-	listener                    types.Listener
-	listenerFiltersFactories    []api.ListenerFilterChainFactory
-	networkFiltersFactories     []api.NetworkFilterChainFactory
-	listenIP                    string
-	listenPort                  int
-	conns                       *list.List
-	connsMux                    sync.RWMutex
-	handler                     *connHandler
-	stopChan                    chan struct{}
-	stats                       *listenerStats
-	accessLogs                  []api.AccessLog
-	updatedLabel                bool
-	idleTimeout                 *api.DurationConfig
-	tlsMng                      types.TLSContextManager
+	listener                 types.Listener
+	listenerFiltersFactories []api.ListenerFilterChainFactory
+	networkFiltersFactories  []api.NetworkFilterChainFactory
+	listenIP                 string
+	listenPort               int
+	conns                    *list.List
+	connsMux                 sync.RWMutex
+	handler                  *connHandler
+	stopChan                 chan struct{}
+	stats                    *listenerStats
+	accessLogs               []api.AccessLog
+	updatedLabel             bool
+	idleTimeout              *api.DurationConfig
+	tlsMng                   types.TLSContextManager
 }
 
 func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers []api.AccessLog,

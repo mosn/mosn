@@ -104,25 +104,31 @@ func RegisterStreamFilters(configs []StreamFilters) {
 
 		err := GetStreamFilterManager().AddOrUpdateStreamFilterConfig(config.Name, config.Filters)
 		if err != nil {
-			log.DefaultLogger.Errorf("[streamfilter] RegisterStreamFilters internal err: %v", err)
+			log.DefaultLogger.Errorf("[streamfilter] RegisterStreamFilters AddOrUpdate config %v failed, err: %v", config.Name, err)
 		}
 	}
 }
 
-// GetStreamFilters returns a stream filter factory by filter.Type.
-func GetStreamFilters(configs []v2.Filter) []api.StreamFilterChainFactory {
+func createStreamFilterFactoryFromConfig(configs []v2.Filter) []api.StreamFilterChainFactory {
 	var factories []api.StreamFilterChainFactory
 
 	for _, c := range configs {
 		sfcc, err := api.CreateStreamFilterChainFactory(c.Type, c.Config)
 		if err != nil {
-			log.DefaultLogger.Errorf("[config] get stream filter failed, type: %s, error: %v", c.Type, err)
+			log.DefaultLogger.Errorf("[streamfilter] get stream filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
 
-		if sfcc != nil {
-			factories = append(factories, sfcc)
+		if sfcc == nil {
+			log.DefaultLogger.Errorf("[streamfilter] createStreamFilterFactoryFromConfig api call return nil factory")
+			continue
 		}
+
+		factories = append(factories, sfcc)
+	}
+
+	if factories == nil {
+		log.DefaultLogger.Warnf("[streamfilter] createStreamFilterFactoryFromConfig return nil factories")
 	}
 
 	return factories

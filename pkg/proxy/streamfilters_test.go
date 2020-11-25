@@ -100,7 +100,7 @@ func TestRunReiverFilters(t *testing.T) {
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
 		}
-		s.streamFilterManager.downStream = s
+		s.streamFilterChain.downStream = s
 		for _, f := range tc.filters {
 			f.s = s
 			s.AddStreamReceiverFilter(f, f.phase)
@@ -149,7 +149,7 @@ func TestRunReiverFiltersStop(t *testing.T) {
 		requestInfo: &network.RequestInfo{},
 		notify:      make(chan struct{}, 1),
 	}
-	s.streamFilterManager.downStream = s
+	s.streamFilterChain.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamReceiverFilter(f, f.phase)
@@ -205,7 +205,7 @@ func TestRunReiverFiltersTermination(t *testing.T) {
 		requestInfo:    &network.RequestInfo{},
 		snapshot:       &mockClusterSnapshot{},
 	}
-	s.streamFilterManager.downStream = s
+	s.streamFilterChain.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamReceiverFilter(f, f.phase)
@@ -266,7 +266,7 @@ func TestRunReiverFilterHandler(t *testing.T) {
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
 		}
-		s.streamFilterManager.downStream = s
+		s.streamFilterChain.downStream = s
 
 		s.context = context.Background()
 		for _, f := range tc.filters {
@@ -328,7 +328,7 @@ func TestRunSenderFilters(t *testing.T) {
 				clusterManager: &mockClusterManager{},
 			},
 		}
-		s.streamFilterManager.downStream = s
+		s.streamFilterChain.downStream = s
 		for _, f := range tc.filters {
 			f.s = s
 			s.AddStreamSenderFilter(f, api.BeforeSend)
@@ -368,7 +368,7 @@ func TestRunSenderFiltersStop(t *testing.T) {
 			clusterManager: &mockClusterManager{},
 		},
 	}
-	s.streamFilterManager.downStream = s
+	s.streamFilterChain.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamSenderFilter(f, api.BeforeSend)
@@ -419,7 +419,7 @@ func TestRunSenderFiltersTermination(t *testing.T) {
 		requestInfo:    &network.RequestInfo{},
 		snapshot:       &mockClusterSnapshot{},
 	}
-	s.streamFilterManager.downStream = s
+	s.streamFilterChain.downStream = s
 	for _, f := range tc.filters {
 		f.s = s
 		s.AddStreamSenderFilter(f, api.BeforeSend)

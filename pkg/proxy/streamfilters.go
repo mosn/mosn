@@ -19,74 +19,74 @@ package proxy
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/streamfilter"
 	"sync/atomic"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
-type streamFilterManager struct {
+type streamFilterChain struct {
 	downStream                *downStream
 	receiverFiltersAgainPhase types.Phase
 
 	streamfilter.DefaultStreamFilterChainImpl
 }
 
-func (manager *streamFilterManager) AddStreamSenderFilter(filter api.StreamSenderFilter, phase api.SenderFilterPhase) {
-	sf := newActiveStreamSenderFilter(manager.downStream, filter)
-	manager.DefaultStreamFilterChainImpl.AddStreamSenderFilter(sf, phase)
+func (sfc *streamFilterChain) AddStreamSenderFilter(filter api.StreamSenderFilter, phase api.SenderFilterPhase) {
+	sf := newActiveStreamSenderFilter(sfc.downStream, filter)
+	sfc.DefaultStreamFilterChainImpl.AddStreamSenderFilter(sf, phase)
 }
 
-func (manager *streamFilterManager) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.ReceiverFilterPhase) {
-	sf := newActiveStreamReceiverFilter(manager.downStream, filter)
-	manager.DefaultStreamFilterChainImpl.AddStreamReceiverFilter(sf, phase)
+func (sfc *streamFilterChain) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.ReceiverFilterPhase) {
+	sf := newActiveStreamReceiverFilter(sfc.downStream, filter)
+	sfc.DefaultStreamFilterChainImpl.AddStreamReceiverFilter(sf, phase)
 }
 
-func (manager *streamFilterManager) AddStreamAccessLog(accessLog api.AccessLog) {
-	if manager.downStream.proxy != nil {
-		manager.DefaultStreamFilterChainImpl.AddStreamAccessLog(accessLog)
+func (sfc *streamFilterChain) AddStreamAccessLog(accessLog api.AccessLog) {
+	if sfc.downStream.proxy != nil {
+		sfc.DefaultStreamFilterChainImpl.AddStreamAccessLog(accessLog)
 	}
 }
 
-func (manager *streamFilterManager) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
+func (sfc *streamFilterChain) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler streamfilter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
-	return manager.DefaultStreamFilterChainImpl.RunReceiverFilter(ctx, phase, headers, data, trailers,
+	return sfc.DefaultStreamFilterChainImpl.RunReceiverFilter(ctx, phase, headers, data, trailers,
 		func(status api.StreamFilterStatus) {
 			switch status {
 			case api.StreamFiltertermination:
 				// no reuse buffer
-				atomic.StoreUint32(&manager.downStream.reuseBuffer, 0)
-				manager.downStream.cleanStream()
+				atomic.StoreUint32(&sfc.downStream.reuseBuffer, 0)
+				sfc.downStream.cleanStream()
 			case api.StreamFilterReMatchRoute:
 				// Retry only at the AfterRoute phase
 				if phase == api.AfterRoute {
 					// FiltersIndex is not increased until no retry is required
-					manager.receiverFiltersAgainPhase = types.MatchRoute
+					sfc.receiverFiltersAgainPhase = types.MatchRoute
 				}
 			case api.StreamFilterReChooseHost:
 				// Retry only at the AfterChooseHost phase
 				if phase == api.AfterChooseHost {
 					// FiltersIndex is not increased until no retry is required
-					manager.receiverFiltersAgainPhase = types.ChooseHost
+					sfc.receiverFiltersAgainPhase = types.ChooseHost
 				}
 			}
 		})
 }
 
-func (manager *streamFilterManager) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
+func (sfc *streamFilterChain) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
 	statusHandler streamfilter.StreamFilterStatusHandler) api.StreamFilterStatus {
 
-	return manager.DefaultStreamFilterChainImpl.RunSenderFilter(ctx, phase, headers, data, trailers,
+	return sfc.DefaultStreamFilterChainImpl.RunSenderFilter(ctx, phase, headers, data, trailers,
 		func(status api.StreamFilterStatus) {
 			if status == api.StreamFiltertermination {
 				// no reuse buffer
-				atomic.StoreUint32(&manager.downStream.reuseBuffer, 0)
-				manager.downStream.cleanStream()
+				atomic.StoreUint32(&sfc.downStream.reuseBuffer, 0)
+				sfc.downStream.cleanStream()
 			}
 		})
 }

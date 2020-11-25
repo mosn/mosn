@@ -86,9 +86,6 @@ func TestStreamFilterFactory(t *testing.T) {
 		{Type: "testStreamFilter", Config: nil},
 	}
 	factory := NewStreamFilterFactory(configWith2Filter)
-	if len(factory.GetConfig()) != 2 {
-		t.Errorf("factory len != 2")
-	}
 	factory.CreateFilterChain(context.TODO(), nil)
 	if createFilterChainCount != 2 {
 		t.Errorf("createFilterChainCount=%v, want=2", createFilterChainCount)

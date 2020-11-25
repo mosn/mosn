@@ -111,7 +111,7 @@ type downStream struct {
 	resetReason types.StreamResetReason
 
 	// filters
-	streamFilterManager
+	streamFilterChain
 
 	context context.Context
 
@@ -154,7 +154,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.context = ctx
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
-	stream.streamFilterManager.downStream = stream
+	stream.streamFilterChain.downStream = stream
 
 	// init receiverFiltersAgainPhase to InitPhase means that don't need run receiverfilter again.
 	stream.receiverFiltersAgainPhase = types.InitPhase
@@ -222,7 +222,7 @@ func (s *downStream) cleanStream() {
 	s.cleanUp()
 
 	// tell filters it's time to destroy
-	s.streamFilterManager.OnDestroy()
+	s.streamFilterChain.OnDestroy()
 
 	// record metrics
 	s.requestMetrics()
@@ -309,7 +309,7 @@ func (s *downStream) writeLog() {
 	}
 
 	// per-stream access log
-	s.streamFilterManager.Log(s.context, s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
+	s.streamFilterChain.Log(s.context, s.downstreamReqHeaders, s.downstreamRespHeaders, s.requestInfo)
 }
 
 func (s *downStream) delete() {
@@ -427,7 +427,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream filter before route
 		case types.DownFilter:
 			s.printPhaseInfo(phase, id)
-			s.streamFilterManager.RunReceiverFilter(s.context, api.BeforeRoute, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
+			s.streamFilterChain.RunReceiverFilter(s.context, api.BeforeRoute, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -446,7 +446,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream filter after route
 		case types.DownFilterAfterRoute:
 			s.printPhaseInfo(phase, id)
-			s.streamFilterManager.RunReceiverFilter(s.context, api.AfterRoute, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
+			s.streamFilterChain.RunReceiverFilter(s.context, api.AfterRoute, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -467,7 +467,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream filter after choose host
 		case types.DownFilterAfterChooseHost:
 			s.printPhaseInfo(phase, id)
-			s.streamFilterManager.RunReceiverFilter(s.context, api.AfterChooseHost, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
+			s.streamFilterChain.RunReceiverFilter(s.context, api.AfterChooseHost, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -554,7 +554,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// upstream filter
 		case types.UpFilter:
 			s.printPhaseInfo(phase, id)
-			s.streamFilterManager.RunSenderFilter(s.context, api.BeforeSend, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers, nil)
+			s.streamFilterChain.RunSenderFilter(s.context, api.BeforeSend, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers, nil)
 
 			if p, err := s.processError(id); err != nil {
 				return p
