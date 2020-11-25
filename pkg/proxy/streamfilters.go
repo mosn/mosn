@@ -27,6 +27,7 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
+// proxy-specified implementation of interface StreamFilterChain.
 type streamFilterChain struct {
 	downStream                *downStream
 	receiverFiltersAgainPhase types.Phase
