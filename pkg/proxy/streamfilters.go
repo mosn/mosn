@@ -35,13 +35,13 @@ type streamFilterChain struct {
 }
 
 func (sfc *streamFilterChain) AddStreamSenderFilter(filter api.StreamSenderFilter, phase api.SenderFilterPhase) {
-	handler := newStreamSenderFilterHandler(sfc.downStream, filter)
+	handler := newStreamSenderFilterHandler(sfc.downStream)
 	filter.SetSenderFilterHandler(handler)
 	sfc.DefaultStreamFilterChainImpl.AddStreamSenderFilter(filter, phase)
 }
 
 func (sfc *streamFilterChain) AddStreamReceiverFilter(filter api.StreamReceiverFilter, phase api.ReceiverFilterPhase) {
-	handler := newStreamReceiverFilterHandler(sfc.downStream, filter)
+	handler := newStreamReceiverFilterHandler(sfc.downStream)
 	filter.SetReceiveFilterHandler(handler)
 	sfc.DefaultStreamFilterChainImpl.AddStreamReceiverFilter(filter, phase)
 }
@@ -93,6 +93,7 @@ func (sfc *streamFilterChain) RunSenderFilter(ctx context.Context, phase api.Sen
 		})
 }
 
+// implement api.StreamFilterHandler.
 type streamFilterHandlerBase struct {
 	activeStream *downStream
 }
@@ -109,22 +110,20 @@ func (f *streamFilterHandlerBase) RequestInfo() types.RequestInfo {
 	return f.activeStream.requestInfo
 }
 
+// implement api.StreamReceiverFilterHandler.
 type streamReceiverFilterHandler struct {
 	streamFilterHandlerBase
 
-	filter api.StreamReceiverFilter
 	id     uint32
 }
 
-func newStreamReceiverFilterHandler(activeStream *downStream, filter api.StreamReceiverFilter) *streamReceiverFilterHandler {
+func newStreamReceiverFilterHandler(activeStream *downStream) *streamReceiverFilterHandler {
 	f := &streamReceiverFilterHandler{
 		streamFilterHandlerBase: streamFilterHandlerBase{
 			activeStream: activeStream,
 		},
-		filter: filter,
 		id:     activeStream.ID,
 	}
-	filter.SetReceiveFilterHandler(f)
 
 	return f
 }
@@ -245,19 +244,16 @@ func (f *streamReceiverFilterHandler) SetRequestTrailers(trailers types.HeaderMa
 	f.activeStream.downstreamReqTrailers = trailers
 }
 
-// types.StreamSenderFilterHandler
+// implement api.StreamSenderFilterHandler.
 type streamSenderFilterHandler struct {
 	streamFilterHandlerBase
-
-	filter api.StreamSenderFilter
 }
 
-func newStreamSenderFilterHandler(activeStream *downStream, filter api.StreamSenderFilter) *streamSenderFilterHandler {
+func newStreamSenderFilterHandler(activeStream *downStream) *streamSenderFilterHandler {
 	f := &streamSenderFilterHandler{
 		streamFilterHandlerBase: streamFilterHandlerBase{
 			activeStream: activeStream,
 		},
-		filter: filter,
 	}
 
 	return f

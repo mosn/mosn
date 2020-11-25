@@ -18,21 +18,34 @@
 package streamfilter
 
 import (
+	"context"
 	"testing"
+
+	"bou.ke/monkey"
+	"github.com/golang/mock/gomock"
+	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/mock"
 )
 
 func TestStreamFilterFactory(t *testing.T) {
-	//configWith2Filter := StreamFiltersConfig{
-	//	{Type: "testStreamFilter", Config: nil},
-	//	{Type: "testStreamFilter", Config: nil},
-	//}
-	//factory := NewStreamFilterFactory(configWith2Filter)
-	//factory.CreateFilterChain(context.TODO(), nil)
-	//if createFilterChainCount != 2 {
-	//	t.Errorf("createFilterChainCount=%v, want=2", createFilterChainCount)
-	//}
-	//
-	//monkey.Patch(createStreamFilterFactoryFromConfig(gomock.Any()), func(configs []v2.Filter) []api.StreamFilterChainFactory{
-	//
-	//})
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
+
+	createFilterChainCount := 0
+
+	monkey.Patch(createStreamFilterFactoryFromConfig, func(configs []v2.Filter) []api.StreamFilterChainFactory {
+		sfcf := mock.NewMockStreamFilterChainFactory(ctrl)
+		sfcf.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).Do(func(context.Context, api.StreamFilterChainFactoryCallbacks) {
+			createFilterChainCount++
+		}).AnyTimes()
+		return []api.StreamFilterChainFactory{sfcf, sfcf}
+	})
+
+	factory := NewStreamFilterFactory(nil)
+	factory.CreateFilterChain(context.TODO(), nil)
+	if createFilterChainCount != 2 {
+		t.Errorf("createFilterChainCount=%v, want=2", createFilterChainCount)
+	}
 }

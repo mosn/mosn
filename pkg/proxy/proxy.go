@@ -238,7 +238,7 @@ func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.Stream
 	stream := newActiveStream(ctx, p, responseSender, span)
 
 	if p.streamFilterFactory != nil {
-		p.streamFilterFactory.CreateFilterChain(ctx, stream)
+		p.streamFilterFactory.CreateFilterChain(ctx, stream.getStreamFilterChainRegisterCallback())
 	}
 
 	p.asMux.Lock()

@@ -53,7 +53,7 @@ type StreamFilterFactoryImpl struct {
 // CreateFilterChain call 'CreateFilterChain' method for each api.StreamFilterChainFactory.
 func (s *StreamFilterFactoryImpl) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	factories, ok := s.factories.Load().([]api.StreamFilterChainFactory)
-	if !ok {
+	if ok {
 		for _, factory := range factories {
 			factory.CreateFilterChain(context, callbacks)
 		}

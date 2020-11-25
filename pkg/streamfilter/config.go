@@ -109,9 +109,7 @@ func RegisterStreamFilters(configs []StreamFilters) {
 	}
 }
 
-func createStreamFilterFactoryFromConfig(configs []v2.Filter) []api.StreamFilterChainFactory {
-	var factories []api.StreamFilterChainFactory
-
+func createStreamFilterFactoryFromConfig(configs []v2.Filter) (factories []api.StreamFilterChainFactory) {
 	for _, c := range configs {
 		sfcc, err := api.CreateStreamFilterChainFactory(c.Type, c.Config)
 		if err != nil {

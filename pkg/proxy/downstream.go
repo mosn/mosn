@@ -654,6 +654,11 @@ func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {
 	return
 }
 
+// used for adding stream filters.
+func (s *downStream) getStreamFilterChainRegisterCallback() api.StreamFilterChainFactoryCallbacks {
+	return &s.streamFilterChain
+}
+
 func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
 	if s.proxy.serverStreamConn == nil {
 		prot = types.ProtocolName(s.proxy.config.DownstreamProtocol)
