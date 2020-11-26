@@ -38,7 +38,6 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/router"
-	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
@@ -110,10 +109,8 @@ type downStream struct {
 	resetReason types.StreamResetReason
 
 	// stream filter chain
-	streamFilterChain           *streamFilterChain
+	streamFilterChain           streamFilterChain
 	receiverFiltersAgainPhase   types.Phase
-	receiverFilterStatusHandler streamfilter.StreamReceiverFilterStatusHandler
-	senderFilterStatusHandler   streamfilter.StreamSenderFilterStatusHandler
 
 	context context.Context
 
@@ -180,38 +177,36 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 }
 
 func (s *downStream) initStreamFilterChain() {
-	s.streamFilterChain = &streamFilterChain{
-		downStream: s,
-	}
+	s.streamFilterChain.downStream = s
 	s.receiverFiltersAgainPhase = types.InitPhase
+}
 
-	s.receiverFilterStatusHandler = func(phase api.ReceiverFilterPhase, status api.StreamFilterStatus) {
-		switch status {
-		case api.StreamFiltertermination:
-			// no reuse buffer
-			atomic.StoreUint32(&s.reuseBuffer, 0)
-			s.cleanStream()
-		case api.StreamFilterReMatchRoute:
-			// Retry only at the AfterRoute phase
-			if phase == api.AfterRoute {
-				// FiltersIndex is not increased until no retry is required
-				s.receiverFiltersAgainPhase = types.MatchRoute
-			}
-		case api.StreamFilterReChooseHost:
-			// Retry only at the AfterChooseHost phase
-			if phase == api.AfterChooseHost {
-				// FiltersIndex is not increased until no retry is required
-				s.receiverFiltersAgainPhase = types.ChooseHost
-			}
+func (s *downStream) receiverFilterStatusHandler(phase api.ReceiverFilterPhase, status api.StreamFilterStatus) {
+	switch status {
+	case api.StreamFiltertermination:
+		// no reuse buffer
+		atomic.StoreUint32(&s.reuseBuffer, 0)
+		s.cleanStream()
+	case api.StreamFilterReMatchRoute:
+		// Retry only at the AfterRoute phase
+		if phase == api.AfterRoute {
+			// FiltersIndex is not increased until no retry is required
+			s.receiverFiltersAgainPhase = types.MatchRoute
+		}
+	case api.StreamFilterReChooseHost:
+		// Retry only at the AfterChooseHost phase
+		if phase == api.AfterChooseHost {
+			// FiltersIndex is not increased until no retry is required
+			s.receiverFiltersAgainPhase = types.ChooseHost
 		}
 	}
+}
 
-	s.senderFilterStatusHandler = func(phase api.SenderFilterPhase, status api.StreamFilterStatus) {
-		if status == api.StreamFiltertermination {
-			// no reuse buffer
-			atomic.StoreUint32(&s.reuseBuffer, 0)
-			s.cleanStream()
-		}
+func (s *downStream) senderFilterStatusHandler(phase api.SenderFilterPhase, status api.StreamFilterStatus) {
+	if status == api.StreamFiltertermination {
+		// no reuse buffer
+		atomic.StoreUint32(&s.reuseBuffer, 0)
+		s.cleanStream()
 	}
 }
 
@@ -696,7 +691,7 @@ func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {
 
 // used for adding stream filters.
 func (s *downStream) getStreamFilterChainRegisterCallback() api.StreamFilterChainFactoryCallbacks {
-	return s.streamFilterChain
+	return &s.streamFilterChain
 }
 
 func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {
