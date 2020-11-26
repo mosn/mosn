@@ -79,6 +79,7 @@ func (s *SofaRPCSpan) SetRequestInfo(reqinfo types.RequestInfo) {
 	}
 	s.tags[RESULT_STATUS] = strconv.Itoa(reqinfo.ResponseCode())
 	s.tags[MOSN_PROCESS_TIME] = reqinfo.ProcessTimeDuration().String()
+	s.tags[MOSN_PROCESS_FAIL] = strconv.FormatBool(reqinfo.GetResponseFlag(types.MosnProcessFailedFlags))
 }
 
 func (s *SofaRPCSpan) Tag(key uint64) string {
