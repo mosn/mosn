@@ -104,14 +104,14 @@ func DebugUpdateMosnConfig(w http.ResponseWriter, r *http.Request) {
 		log.DefaultLogger.Infof("update cluster config success")
 		w.Write(success)
 	case typeExtend:
-		ext := map[string]json.RawMessage{}
+		ext := []v2.ExtendConfig{}
 		if err := json.Unmarshal(req.Config, &ext); err != nil {
 			invalid(string(req.Config))
 			return
 		}
 		// just update config
-		for typ, c := range ext {
-			configmanager.SetExtend(typ, c)
+		for _, c := range ext {
+			configmanager.SetExtend(c.Type, c.Config)
 		}
 		log.DefaultLogger.Infof("update extend config success")
 		w.Write(success)
