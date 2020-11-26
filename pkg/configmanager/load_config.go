@@ -33,7 +33,7 @@ var (
 	// configPath stores the config file path
 	configPath string
 	// dyconfigPath stores another config file path in which only cluster,listener,router will be loaded
-	dyconfigPath   string
+	dyconfigPath string
 	// configLock controls the stored config
 	configLock sync.RWMutex
 	// conf keeps the mosn config
@@ -118,47 +118,54 @@ func checkUpdateFromDyconfig(conf *v2.MOSNConfig) {
 				conf.ClusterManager.Clusters = append(conf.ClusterManager.Clusters, cluster)
 			}
 		}
-		if len(conf.Servers) == 0 || len(cfg.Servers) == 0 {
+		if len(cfg.Servers) == 0 {
 			log.StartLogger.Fatalf("[config] no server found in config file %s", dyconfigPath)
 		}
 		// update listeners
-		l = len(conf.Servers[0].Listeners)
-		for _, listener := range cfg.Servers[0].Listeners {
-			found := false
-			for i := 0; i < l; i++ {
-				if listener.Name == conf.Servers[0].Listeners[i].Name {
-					log.StartLogger.Debugf("[config] [load dyconfig] lisntener %s updated\n", listener.Name)
-					conf.Servers[0].Listeners[i] = listener
-					found = true
-					break
+		if len(conf.Servers) > 0 {
+			for _, listener := range cfg.Servers[0].Listeners {
+				found := false
+				for i := 0; i < len(conf.Servers[0].Listeners); i++ {
+					if listener.Name == conf.Servers[0].Listeners[i].Name {
+						log.StartLogger.Debugf("[config] [load dyconfig] lisntener %s updated\n", listener.Name)
+						conf.Servers[0].Listeners[i] = listener
+						found = true
+						break
+					}
+				}
+				if !found {
+					log.StartLogger.Debugf("[config] [load dyconfig] listener %s added\n", listener.Name)
+					conf.Servers[0].Listeners = append(conf.Servers[0].Listeners, listener)
 				}
 			}
-			if !found {
-				log.StartLogger.Debugf("[config] [load dyconfig] lisntener %s added\n", listener.Name)
-				conf.Servers[0].Listeners = append(conf.Servers[0].Listeners, listener)
-			}
+		} else {
+			conf.Servers[0].Listeners = cfg.Servers[0].Listeners
 		}
+
 		//update routers
-		l = len(conf.Servers[0].Routers)
-		for _, router := range cfg.Servers[0].Routers {
-			found := false
-			for i := 0; i < l; i++ {
-				if router.RouterConfigName == conf.Servers[0].Routers[i].RouterConfigName {
-					log.StartLogger.Debugf("[config] [load dyconfig] router %s updated\n", router.RouterConfigName)
-					conf.Servers[0].Routers[i] = router
-					found = true
-					break
+		if len(cfg.Servers) > 0 {
+			for _, router := range cfg.Servers[0].Routers {
+				found := false
+				for i := 0; i < len(conf.Servers[0].Routers); i++ {
+					if router.RouterConfigName == conf.Servers[0].Routers[i].RouterConfigName {
+						log.StartLogger.Debugf("[config] [load dyconfig] router %s updated\n", router.RouterConfigName)
+						conf.Servers[0].Routers[i] = router
+						found = true
+						break
+					}
+				}
+				if !found {
+					log.StartLogger.Infof("[config] [load dyconfig] router %s added\n", router.RouterConfigName)
+					conf.Servers[0].Routers = append(conf.Servers[0].Routers, router)
 				}
 			}
-			if !found {
-				log.StartLogger.Infof("[config] [load dyconfig] router %s added\n", router.RouterConfigName)
-				conf.Servers[0].Routers = append(conf.Servers[0].Routers, router)
-			}
+		} else {
+			conf.Servers[0].Routers = cfg.Servers[0].Routers
 		}
 	}
 }
+
 // Load config file and parse
 func SetDynamicConfigPath(path string) {
 	dyconfigPath, _ = filepath.Abs(path)
 }
-
