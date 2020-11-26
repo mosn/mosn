@@ -18,7 +18,6 @@
 package proxy
 
 import (
-	"context"
 	"sync/atomic"
 
 	"mosn.io/api"
@@ -30,7 +29,6 @@ import (
 // proxy-specified implementation of interface StreamFilterChain.
 type streamFilterChain struct {
 	downStream                *downStream
-	receiverFiltersAgainPhase types.Phase
 
 	streamfilter.DefaultStreamFilterChainImpl
 }
@@ -51,47 +49,6 @@ func (sfc *streamFilterChain) AddStreamAccessLog(accessLog api.AccessLog) {
 	if sfc.downStream.proxy != nil {
 		sfc.DefaultStreamFilterChainImpl.AddStreamAccessLog(accessLog)
 	}
-}
-
-func (sfc *streamFilterChain) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
-	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
-	statusHandler streamfilter.StreamFilterStatusHandler) api.StreamFilterStatus {
-
-	return sfc.DefaultStreamFilterChainImpl.RunReceiverFilter(ctx, phase, headers, data, trailers,
-		func(status api.StreamFilterStatus) {
-			switch status {
-			case api.StreamFiltertermination:
-				// no reuse buffer
-				atomic.StoreUint32(&sfc.downStream.reuseBuffer, 0)
-				sfc.downStream.cleanStream()
-			case api.StreamFilterReMatchRoute:
-				// Retry only at the AfterRoute phase
-				if phase == api.AfterRoute {
-					// FiltersIndex is not increased until no retry is required
-					sfc.receiverFiltersAgainPhase = types.MatchRoute
-				}
-			case api.StreamFilterReChooseHost:
-				// Retry only at the AfterChooseHost phase
-				if phase == api.AfterChooseHost {
-					// FiltersIndex is not increased until no retry is required
-					sfc.receiverFiltersAgainPhase = types.ChooseHost
-				}
-			}
-		})
-}
-
-func (sfc *streamFilterChain) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
-	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
-	statusHandler streamfilter.StreamFilterStatusHandler) api.StreamFilterStatus {
-
-	return sfc.DefaultStreamFilterChainImpl.RunSenderFilter(ctx, phase, headers, data, trailers,
-		func(status api.StreamFilterStatus) {
-			if status == api.StreamFiltertermination {
-				// no reuse buffer
-				atomic.StoreUint32(&sfc.downStream.reuseBuffer, 0)
-				sfc.downStream.cleanStream()
-			}
-		})
 }
 
 // implement api.StreamFilterHandler.

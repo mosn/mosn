@@ -31,9 +31,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/utils"
-
 	mbuffer "mosn.io/mosn/pkg/buffer"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -41,14 +38,16 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 // types.StreamEventListener
 // types.StreamReceiveListener
-// types.FilterChainFactoryCallbacks
 // Downstream stream, as a controller to handle downstream and upstream proxy flow
 type downStream struct {
 	ID      uint32
@@ -110,13 +109,16 @@ type downStream struct {
 
 	resetReason types.StreamResetReason
 
-	// filters
-	streamFilterChain
+	// stream filter chain
+	streamFilterChain           *streamFilterChain
+	receiverFiltersAgainPhase   types.Phase
+	receiverFilterStatusHandler streamfilter.StreamReceiverFilterStatusHandler
+	senderFilterStatusHandler   streamfilter.StreamSenderFilterStatusHandler
 
 	context context.Context
 
 	// stream access logs
-	logDone          uint32
+	logDone uint32
 
 	snapshot types.ClusterSnapshot
 
@@ -154,10 +156,8 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	stream.context = ctx
 	stream.reuseBuffer = 1
 	stream.notify = make(chan struct{}, 1)
-	stream.streamFilterChain.downStream = stream
 
-	// init receiverFiltersAgainPhase to InitPhase means that don't need run receiverfilter again.
-	stream.receiverFiltersAgainPhase = types.InitPhase
+	stream.initStreamFilterChain()
 
 	if responseSender == nil || reflect.ValueOf(responseSender).IsNil() {
 		stream.oneway = true
@@ -177,6 +177,42 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 		log.Proxy.Debugf(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestID, stream.oneway)
 	}
 	return stream
+}
+
+func (s *downStream) initStreamFilterChain() {
+	s.streamFilterChain = &streamFilterChain{
+		downStream: s,
+	}
+	s.receiverFiltersAgainPhase = types.InitPhase
+
+	s.receiverFilterStatusHandler = func(phase api.ReceiverFilterPhase, status api.StreamFilterStatus) {
+		switch status {
+		case api.StreamFiltertermination:
+			// no reuse buffer
+			atomic.StoreUint32(&s.reuseBuffer, 0)
+			s.cleanStream()
+		case api.StreamFilterReMatchRoute:
+			// Retry only at the AfterRoute phase
+			if phase == api.AfterRoute {
+				// FiltersIndex is not increased until no retry is required
+				s.receiverFiltersAgainPhase = types.MatchRoute
+			}
+		case api.StreamFilterReChooseHost:
+			// Retry only at the AfterChooseHost phase
+			if phase == api.AfterChooseHost {
+				// FiltersIndex is not increased until no retry is required
+				s.receiverFiltersAgainPhase = types.ChooseHost
+			}
+		}
+	}
+
+	s.senderFilterStatusHandler = func(phase api.SenderFilterPhase, status api.StreamFilterStatus) {
+		if status == api.StreamFiltertermination {
+			// no reuse buffer
+			atomic.StoreUint32(&s.reuseBuffer, 0)
+			s.cleanStream()
+		}
+	}
 }
 
 // downstream's lifecycle ends normally
@@ -427,7 +463,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream filter before route
 		case types.DownFilter:
 			s.printPhaseInfo(phase, id)
-			s.streamFilterChain.RunReceiverFilter(s.context, api.BeforeRoute, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
+			s.streamFilterChain.RunReceiverFilter(s.context, api.BeforeRoute,
+				s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, s.receiverFilterStatusHandler)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -446,7 +483,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream filter after route
 		case types.DownFilterAfterRoute:
 			s.printPhaseInfo(phase, id)
-			s.streamFilterChain.RunReceiverFilter(s.context, api.AfterRoute, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
+			s.streamFilterChain.RunReceiverFilter(s.context, api.AfterRoute,
+				s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, s.receiverFilterStatusHandler)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -467,7 +505,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// downstream filter after choose host
 		case types.DownFilterAfterChooseHost:
 			s.printPhaseInfo(phase, id)
-			s.streamFilterChain.RunReceiverFilter(s.context, api.AfterChooseHost, s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, nil)
+			s.streamFilterChain.RunReceiverFilter(s.context, api.AfterChooseHost,
+				s.downstreamReqHeaders, s.downstreamReqDataBuf, s.downstreamReqTrailers, s.receiverFilterStatusHandler)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -554,7 +593,8 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 		// upstream filter
 		case types.UpFilter:
 			s.printPhaseInfo(phase, id)
-			s.streamFilterChain.RunSenderFilter(s.context, api.BeforeSend, s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers, nil)
+			s.streamFilterChain.RunSenderFilter(s.context, api.BeforeSend,
+				s.downstreamRespHeaders, s.downstreamRespDataBuf, s.downstreamRespTrailers, s.senderFilterStatusHandler)
 
 			if p, err := s.processError(id); err != nil {
 				return p
@@ -656,7 +696,7 @@ func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {
 
 // used for adding stream filters.
 func (s *downStream) getStreamFilterChainRegisterCallback() api.StreamFilterChainFactoryCallbacks {
-	return &s.streamFilterChain
+	return s.streamFilterChain
 }
 
 func (s *downStream) getDownstreamProtocol() (prot types.ProtocolName) {

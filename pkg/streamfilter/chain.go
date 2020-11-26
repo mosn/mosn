@@ -25,8 +25,11 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-// StreamFilterStatusHandler allow users to deal with the filter status.
-type StreamFilterStatusHandler func(status api.StreamFilterStatus)
+// StreamReceiverFilterStatusHandler allow users to deal with the receiver filter status.
+type StreamReceiverFilterStatusHandler func(phase api.ReceiverFilterPhase, status api.StreamFilterStatus)
+
+// StreamSenderFilterStatusHandler allow users to deal with the sender filter status.
+type StreamSenderFilterStatusHandler func(phase api.SenderFilterPhase, status api.StreamFilterStatus)
 
 // StreamFilterChain manages the lifecycle of streamFilters.
 type StreamFilterChain interface {
@@ -36,12 +39,12 @@ type StreamFilterChain interface {
 	// invoke the receiver filter chain.
 	RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 		headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
-		statusHandler StreamFilterStatusHandler) api.StreamFilterStatus
+		statusHandler StreamReceiverFilterStatusHandler) api.StreamFilterStatus
 
 	// invoke the sender filter chain.
 	RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
 		headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
-		statusHandler StreamFilterStatusHandler) api.StreamFilterStatus
+		statusHandler StreamSenderFilterStatusHandler) api.StreamFilterStatus
 
 	// invoke all access log.
 	Log(ctx context.Context, reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo)
@@ -81,7 +84,7 @@ func (d *DefaultStreamFilterChainImpl) AddStreamAccessLog(accessLog api.AccessLo
 // RunReceiverFilter invokes the receiver filter chain.
 func (d *DefaultStreamFilterChainImpl) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
-	statusHandler StreamFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
+	statusHandler StreamReceiverFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
 	filterStatus = api.StreamFilterContinue
 
 	for ; d.receiverFiltersIndex < len(d.receiverFilters); d.receiverFiltersIndex++ {
@@ -98,7 +101,7 @@ func (d *DefaultStreamFilterChainImpl) RunReceiverFilter(ctx context.Context, ph
 		}
 
 		if statusHandler != nil {
-			statusHandler(filterStatus)
+			statusHandler(phase, filterStatus)
 		}
 
 		switch filterStatus {
@@ -120,7 +123,7 @@ func (d *DefaultStreamFilterChainImpl) RunReceiverFilter(ctx context.Context, ph
 // RunSenderFilter invokes the sender filter chain.
 func (d *DefaultStreamFilterChainImpl) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
 	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
-	statusHandler StreamFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
+	statusHandler StreamSenderFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
 	filterStatus = api.StreamFilterContinue
 
 	for ; d.senderFiltersIndex < len(d.senderFilters); d.senderFiltersIndex++ {
@@ -137,7 +140,7 @@ func (d *DefaultStreamFilterChainImpl) RunSenderFilter(ctx context.Context, phas
 		}
 
 		if statusHandler != nil {
-			statusHandler(filterStatus)
+			statusHandler(phase, filterStatus)
 		}
 
 		switch filterStatus {

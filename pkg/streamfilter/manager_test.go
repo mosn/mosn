@@ -213,7 +213,7 @@ func TestDefaultStreamFilterChainImpl_RunReceiverFilter(t *testing.T) {
 			}
 			gotFilterStatus := d.RunReceiverFilter(context.TODO(), api.BeforeRoute,
 				protocol.CommonHeader{}, buffer.NewIoBuffer(0), protocol.CommonHeader{},
-				func(status api.StreamFilterStatus) {}) // do nothing for coverage
+				func(phase api.ReceiverFilterPhase, status api.StreamFilterStatus) {}) // do nothing for coverage
 			if gotFilterStatus != tt.wantStatus || d.receiverFiltersIndex != tt.wantIndex {
 				t.Errorf("RunReceiverFilter() = %v, want %v; index = %v, want %v",
 					gotFilterStatus, tt.wantStatus, d.receiverFiltersIndex, tt.wantIndex)
@@ -277,7 +277,7 @@ func TestDefaultStreamFilterChainImpl_RunSenderFilter(t *testing.T) {
 			}
 			gotFilterStatus := d.RunSenderFilter(context.TODO(), api.BeforeSend,
 				protocol.CommonHeader{}, buffer.NewIoBuffer(0), protocol.CommonHeader{},
-				func(status api.StreamFilterStatus) {}) // do nothing for coverage
+				func(phase api.SenderFilterPhase, status api.StreamFilterStatus) {}) // do nothing for coverage
 			if gotFilterStatus != tt.wantStatus || d.senderFiltersIndex != tt.wantIndex {
 				t.Errorf("RunSenderFilter() = %v, want %v; index = %v, want %v",
 					gotFilterStatus, tt.wantStatus, d.senderFiltersIndex, tt.wantIndex)
