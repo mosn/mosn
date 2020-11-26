@@ -35,7 +35,7 @@ type streamFilterChain struct {
 
 func (sfc *streamFilterChain) init(s *downStream) {
 	sfc.downStream = s
-	sfc.DefaultStreamFilterChainImpl = streamfilter.NewDefaultStreamFilterChain()
+	sfc.DefaultStreamFilterChainImpl = streamfilter.GetDefaultStreamFilterChain()
 }
 
 func (sfc *streamFilterChain) AddStreamSenderFilter(filter api.StreamSenderFilter, phase api.SenderFilterPhase) {
@@ -62,7 +62,7 @@ func (sfc *streamFilterChain) destroy() {
 	sfc.DefaultStreamFilterChainImpl.OnDestroy()
 
 	// reset fields
-	streamfilter.ResetStreamFilterChain(sfc.DefaultStreamFilterChainImpl)
+	streamfilter.PutStreamFilterChain(sfc.DefaultStreamFilterChainImpl)
 	sfc.downStream = nil
 	sfc.DefaultStreamFilterChainImpl = nil
 }

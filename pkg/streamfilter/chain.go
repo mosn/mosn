@@ -75,14 +75,14 @@ var streamFilterChainPool = sync.Pool{
 	},
 }
 
-// NewDefaultStreamFilterChain return a pool-cached DefaultStreamFilterChainImpl.
-func NewDefaultStreamFilterChain() *DefaultStreamFilterChainImpl {
+// GetDefaultStreamFilterChain return a pool-cached DefaultStreamFilterChainImpl.
+func GetDefaultStreamFilterChain() *DefaultStreamFilterChainImpl {
 	chain := streamFilterChainPool.Get().(*DefaultStreamFilterChainImpl)
 	return chain
 }
 
-// ResetStreamFilterChain reset DefaultStreamFilterChainImpl and return it to pool.
-func ResetStreamFilterChain(chain *DefaultStreamFilterChainImpl) {
+// PutStreamFilterChain reset DefaultStreamFilterChainImpl and return it to pool.
+func PutStreamFilterChain(chain *DefaultStreamFilterChainImpl) {
 	chain.senderFilters = chain.senderFilters[:0]
 	chain.senderFiltersPhase = chain.senderFiltersPhase[:0]
 	chain.senderFiltersIndex = 0
