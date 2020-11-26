@@ -25,11 +25,14 @@ func TestUpdateExtend(t *testing.T) {
 			t := strings.Contains(string(content), "test_extend")
 			Verify(t, Equal, true)
 			// update
-			config := `{
-				"new_test": {
-					"new_test":"new_test"
+			config := `[
+				{
+					"type": "new_test",
+					"config": {
+						"new_test":"new_test"
+					}
 				}
-			}`
+			]`
 			err = m.UpdateConfig(34901, "extend", config)
 			Verify(err, Equal, nil)
 			// wait auto config dump
@@ -50,11 +53,14 @@ const extendConfig = `{
 		}
 	],
 	"cluster_manager": {},
-	"extends": {
-		"test_extend":{
-			"test":"test"
+	"extends": [
+		{
+			"type": "test_extend",
+			"config": {
+				 "test":"test"
+			}
 		}
-	},
+	],
 	"admin": {
 		"address": {
 			"socket_address": {
