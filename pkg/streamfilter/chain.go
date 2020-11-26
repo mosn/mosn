@@ -19,6 +19,7 @@ package streamfilter
 
 import (
 	"context"
+	"sync"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
@@ -55,25 +56,56 @@ type StreamFilterChain interface {
 
 // DefaultStreamFilterChainImpl is default implementation of the StreamFilterChain.
 type DefaultStreamFilterChainImpl struct {
-	senderFilters      []StreamSenderFilterWithPhase
+	// use two slice to avoid the allocation of small object
+	senderFilters      []api.StreamSenderFilter
+	senderFiltersPhase []api.SenderFilterPhase
 	senderFiltersIndex int
 
-	receiverFilters      []StreamReceiverFilterWithPhase
+	// use two slice to avoid the allocation of small object
+	receiverFilters      []api.StreamReceiverFilter
+	receiverFiltersPhase []api.ReceiverFilterPhase
 	receiverFiltersIndex int
 
 	streamAccessLogs []api.AccessLog
 }
 
+var streamFilterChainPool = sync.Pool{
+	New: func() interface{} {
+		return &DefaultStreamFilterChainImpl{}
+	},
+}
+
+// NewDefaultStreamFilterChain return a pool-cached DefaultStreamFilterChainImpl.
+func NewDefaultStreamFilterChain() *DefaultStreamFilterChainImpl {
+	chain := streamFilterChainPool.Get().(*DefaultStreamFilterChainImpl)
+	return chain
+}
+
+// ResetStreamFilterChain reset DefaultStreamFilterChainImpl and return it to pool.
+func ResetStreamFilterChain(chain *DefaultStreamFilterChainImpl) {
+	chain.senderFilters = chain.senderFilters[:0]
+	chain.senderFiltersPhase = chain.senderFiltersPhase[:0]
+	chain.senderFiltersIndex = 0
+
+	chain.receiverFilters = chain.receiverFilters[:0]
+	chain.receiverFiltersPhase = chain.receiverFiltersPhase[:0]
+	chain.receiverFiltersIndex = 0
+
+	chain.streamAccessLogs = chain.streamAccessLogs[:0]
+
+	streamFilterChainPool.Put(chain)
+}
+
 // AddStreamSenderFilter registers senderFilters.
 func (d *DefaultStreamFilterChainImpl) AddStreamSenderFilter(filter api.StreamSenderFilter, p api.SenderFilterPhase) {
-	f := NewStreamSenderFilterWithPhase(filter, p)
-	d.senderFilters = append(d.senderFilters, f)
+	d.senderFilters = append(d.senderFilters, filter)
+	d.senderFiltersPhase = append(d.senderFiltersPhase, p)
 }
 
 // AddStreamReceiverFilter registers receiver filters.
 func (d *DefaultStreamFilterChainImpl) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.ReceiverFilterPhase) {
-	f := NewStreamReceiverFilterWithPhase(filter, p)
-	d.receiverFilters = append(d.receiverFilters, f)
+	d.receiverFilters = append(d.receiverFilters, filter)
+	d.receiverFiltersPhase = append(d.receiverFiltersPhase, p)
 }
 
 // AddStreamAccessLog registers access logger.
@@ -89,7 +121,8 @@ func (d *DefaultStreamFilterChainImpl) RunReceiverFilter(ctx context.Context, ph
 
 	for ; d.receiverFiltersIndex < len(d.receiverFilters); d.receiverFiltersIndex++ {
 		filter := d.receiverFilters[d.receiverFiltersIndex]
-		if phase != filter.GetPhase() {
+		p := d.receiverFiltersPhase[d.receiverFiltersIndex]
+		if phase != p {
 			continue
 		}
 
@@ -128,7 +161,8 @@ func (d *DefaultStreamFilterChainImpl) RunSenderFilter(ctx context.Context, phas
 
 	for ; d.senderFiltersIndex < len(d.senderFilters); d.senderFiltersIndex++ {
 		filter := d.senderFilters[d.senderFiltersIndex]
-		if phase != filter.GetPhase() {
+		p := d.senderFiltersPhase[d.senderFiltersIndex]
+		if phase != p {
 			continue
 		}
 

@@ -30,7 +30,12 @@ import (
 type streamFilterChain struct {
 	downStream                *downStream
 
-	streamfilter.DefaultStreamFilterChainImpl
+	*streamfilter.DefaultStreamFilterChainImpl
+}
+
+func (sfc *streamFilterChain) init(s *downStream) {
+	sfc.downStream = s
+	sfc.DefaultStreamFilterChainImpl = streamfilter.NewDefaultStreamFilterChain()
 }
 
 func (sfc *streamFilterChain) AddStreamSenderFilter(filter api.StreamSenderFilter, phase api.SenderFilterPhase) {
@@ -49,6 +54,17 @@ func (sfc *streamFilterChain) AddStreamAccessLog(accessLog api.AccessLog) {
 	if sfc.downStream.proxy != nil {
 		sfc.DefaultStreamFilterChainImpl.AddStreamAccessLog(accessLog)
 	}
+}
+
+// the stream filter chain are not allowed to be used anymore after calling this func
+func (sfc *streamFilterChain) destroy() {
+	// filter destroy
+	sfc.DefaultStreamFilterChainImpl.OnDestroy()
+
+	// reset fields
+	streamfilter.ResetStreamFilterChain(sfc.DefaultStreamFilterChainImpl)
+	sfc.downStream = nil
+	sfc.DefaultStreamFilterChainImpl = nil
 }
 
 // implement api.StreamFilterHandler.

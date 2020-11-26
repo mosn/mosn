@@ -177,7 +177,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 }
 
 func (s *downStream) initStreamFilterChain() {
-	s.streamFilterChain.downStream = s
+	s.streamFilterChain.init(s)
 	s.receiverFiltersAgainPhase = types.InitPhase
 }
 
@@ -252,9 +252,6 @@ func (s *downStream) cleanStream() {
 	// clean up timers
 	s.cleanUp()
 
-	// tell filters it's time to destroy
-	s.streamFilterChain.OnDestroy()
-
 	// record metrics
 	s.requestMetrics()
 
@@ -263,6 +260,10 @@ func (s *downStream) cleanStream() {
 
 	// write access log
 	s.writeLog()
+
+	// tell filters it's time to destroy
+	// after this func call, we should never touch the s.streamFilterChain
+	s.streamFilterChain.destroy()
 
 	// delete stream reference
 	s.delete()
