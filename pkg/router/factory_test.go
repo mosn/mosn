@@ -30,7 +30,7 @@ type mockRouteBase struct {
 	*RouteRuleImplBase
 }
 
-func (r *mockRouteBase) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+func (r *mockRouteBase) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	return nil
 }
 func (r *mockRouteBase) Matcher() string {

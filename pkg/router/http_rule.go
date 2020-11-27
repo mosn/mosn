@@ -58,8 +58,8 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, req
 	prri.finalizePathHeader(headers, prri.path)
 }
 
-func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
-	if prri.matchRoute(ctx, headers, randomValue) {
+func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	if prri.matchRoute(ctx, headers) {
 		headerPathValue, _ := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
 		if headerPathValue != nil {
 			// TODO: config to support case sensitive
@@ -103,8 +103,8 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, r
 	prei.finalizePathHeader(headers, prei.prefix)
 }
 
-func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
-	if prei.matchRoute(ctx, headers, randomValue) {
+func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	if prei.matchRoute(ctx, headers) {
 		headerPathValue, _ := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
 		if headerPathValue != nil {
 			if strings.HasPrefix(*headerPathValue, prei.prefix) {
@@ -144,8 +144,8 @@ func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, re
 	rrei.finalizePathHeader(headers, rrei.regexStr)
 }
 
-func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
-	if rrei.matchRoute(ctx, headers, randomValue) {
+func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	if rrei.matchRoute(ctx, headers) {
 		headerPathValue, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
 		if err == nil && headerPathValue != nil {
 			if rrei.regexPattern.MatchString(*headerPathValue) {

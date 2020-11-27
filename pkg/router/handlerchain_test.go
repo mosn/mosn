@@ -49,13 +49,13 @@ func (r *mockRouteRule) ClusterName() string {
 	return ""
 }
 
-func (routers *mockRouters) MatchRoute(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+func (routers *mockRouters) MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route {
 	if reflect.DeepEqual(headers, routers.header) {
 		return routers.r[0]
 	}
 	return nil
 }
-func (routers *mockRouters) MatchAllRoutes(ctx context.Context, headers api.HeaderMap, randomValue uint64) []api.Route {
+func (routers *mockRouters) MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route {
 	if reflect.DeepEqual(headers, routers.header) {
 		return routers.r
 	}
@@ -140,7 +140,7 @@ func (h *mockStatusHandler) Route() api.Route {
 }
 
 func _TestMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
-	rs := routers.MatchAllRoutes(ctx, headers, 1)
+	rs := routers.MatchAllRoutes(ctx, headers)
 	var handlers []types.RouteHandler
 	for _, r := range rs {
 		mockr := r.(*mockRouter)

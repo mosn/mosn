@@ -123,7 +123,7 @@ func TestProxyWithFilters(t *testing.T) {
 			rw.EXPECT().GetRouters().DoAndReturn(func() types.Routers {
 				r := mock.NewMockRouters(ctrl)
 				// mock routers can be matched route if a header contains key service and values equals config name.
-				r.EXPECT().MatchRoute(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, headers api.HeaderMap, _ uint64) api.Route {
+				r.EXPECT().MatchRoute(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, headers api.HeaderMap) api.Route {
 					if sn, ok := headers.Get("service"); ok && sn == tn {
 						return gomockRouteMatchCluster(ctrl, "mock_cluster")
 					}

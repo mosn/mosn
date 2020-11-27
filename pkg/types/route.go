@@ -42,9 +42,9 @@ const (
 // Routers defines and manages all router
 type Routers interface {
 	// MatchRoute return first route with headers
-	MatchRoute(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route
+	MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route
 	// MatchAllRoutes returns all routes with headers
-	MatchAllRoutes(ctx context.Context, headers api.HeaderMap, randomValue uint64) []api.Route
+	MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route
 	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	// header is used to find virtual host
 	MatchRouteFromHeaderKV(ctx context.Context,headers api.HeaderMap, key, value string) api.Route
@@ -95,9 +95,9 @@ type VirtualHost interface {
 	Name() string
 
 	// GetRouteFromEntries returns a Route matched the condition
-	GetRouteFromEntries(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route
+	GetRouteFromEntries(ctx context.Context, headers api.HeaderMap) api.Route
 	// GetAllRoutesFromEntries returns all Route matched the condition
-	GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap, randomValue uint64) []api.Route
+	GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap) []api.Route
 	// GetRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	GetRouteFromHeaderKV(key, value string) api.Route
 	// AddRoute adds a new route into virtual host

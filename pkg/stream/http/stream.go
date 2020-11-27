@@ -497,7 +497,7 @@ func (conn *serverStreamConnection) serve() {
 		conn.mutex.Unlock()
 
 		if atomic.LoadInt32(&s.readDisableCount) <= 0 {
-			s.handleRequest(ctx)
+			s.handleRequest(s.stream.ctx)
 		}
 
 		// 5. wait for proxy done
@@ -590,7 +590,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 		headers.Del("Connection")
 	}
 
-	removeInternalHeaders(context, headers, s.connection.conn.RemoteAddr())
+	fillRequestHeaders(context, headers, s.connection.conn.RemoteAddr())
 
 	// copy headers
 	headers.CopyTo(&s.request.Header)
@@ -718,7 +718,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 			}
 			s.response.SetStatusCode(statusCode)
 
-			removeInternalHeaders(context, headers, s.connection.conn.RemoteAddr())
+			fillRequestHeaders(context, headers, s.connection.conn.RemoteAddr())
 
 			// need to echo all request headers for protocol convert
 			headers.VisitAll(func(key, value []byte) {
@@ -812,7 +812,7 @@ func (s *serverStream) ReadDisable(disable bool) {
 		newCount := atomic.AddInt32(&s.readDisableCount, -1)
 
 		if newCount <= 0 {
-			s.handleRequest(nil)
+			s.handleRequest(s.ctx)
 		}
 	}
 }
@@ -869,7 +869,7 @@ func injectInternalHeaders(ctx context.Context, header mosnhttp.RequestHeader, u
 	}
 }
 
-func removeInternalHeaders(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
+func fillRequestHeaders(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
 	// assemble uri
 	uri := ""
 

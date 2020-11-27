@@ -174,10 +174,10 @@ func TestDefaultMatch(t *testing.T) {
 			strings.ToLower(protocol.MosnHeaderHostKey): tc,
 			"service": "test",
 		})
-		if routers.MatchRoute(ctx, headers, 1) == nil {
+		if routers.MatchRoute(ctx, headers) == nil {
 			t.Errorf("#%d not matched\n", i)
 		}
-		if routers.MatchAllRoutes(ctx, headers, 1) == nil {
+		if routers.MatchAllRoutes(ctx, headers) == nil {
 			t.Errorf("#%d not matched\n", i)
 		}
 	}
@@ -198,10 +198,10 @@ func TestDomainMatch(t *testing.T) {
 		strings.ToLower(protocol.MosnHeaderHostKey): "www.sofa-mosn.test",
 		"service": "test",
 	})
-	if routers.MatchRoute(ctx, headers, 1) == nil {
+	if routers.MatchRoute(ctx, headers) == nil {
 		t.Error("domain match failed")
 	}
-	if routers.MatchAllRoutes(ctx, headers, 1) == nil {
+	if routers.MatchAllRoutes(ctx, headers) == nil {
 		t.Error("domain match failed")
 	}
 	//not matched
@@ -218,10 +218,10 @@ func TestDomainMatch(t *testing.T) {
 			strings.ToLower(protocol.MosnHeaderHostKey): tc,
 			"service": "test",
 		})
-		if routers.MatchRoute(ctx, headers, 1) != nil {
+		if routers.MatchRoute(ctx, headers) != nil {
 			t.Errorf("#%d expected not matched, but match a router", i)
 		}
-		if routers.MatchAllRoutes(ctx, headers, 1) != nil {
+		if routers.MatchAllRoutes(ctx, headers) != nil {
 			t.Errorf("#%d expected not matched, but match a router", i)
 		}
 	}
@@ -275,10 +275,10 @@ func TestWildcardMatch(t *testing.T) {
 				"service": "test",
 			})
 
-			if routers.MatchRoute(ctx, headers, 1) == nil {
+			if routers.MatchRoute(ctx, headers) == nil {
 				t.Errorf("%s expected matched: #%d, but return nil\n", match, i)
 			}
-			if routers.MatchAllRoutes(ctx, headers, 1) == nil {
+			if routers.MatchAllRoutes(ctx, headers) == nil {
 				t.Errorf("%s expected matched: #%d, but return nil\n", match, i)
 			}
 		}
@@ -287,10 +287,10 @@ func TestWildcardMatch(t *testing.T) {
 				strings.ToLower(protocol.MosnHeaderHostKey): unmatch,
 				"service": "test",
 			})
-			if routers.MatchRoute(ctx, headers, 1) != nil {
+			if routers.MatchRoute(ctx, headers) != nil {
 				t.Errorf("%s expected unmatched: #%d, but matched\n", unmatch, i)
 			}
-			if routers.MatchAllRoutes(ctx, headers, 1) != nil {
+			if routers.MatchAllRoutes(ctx, headers) != nil {
 				t.Errorf("%s expected unmatched: #%d, but matched\n", unmatch, i)
 			}
 		}
@@ -327,7 +327,7 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 		route := routers.MatchRoute(ctx, protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderHostKey): tc.Domain,
 			"service": "test",
-		}), 1)
+		}))
 		if route == nil {
 			t.Errorf("%s match failed\n", tc.Domain)
 			continue

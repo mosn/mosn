@@ -107,23 +107,23 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 
 }
 
-func (vh *VirtualHostImpl) GetRouteFromEntries(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+func (vh *VirtualHostImpl) GetRouteFromEntries(ctx context.Context, headers api.HeaderMap) api.Route {
 	vh.mutex.RLock()
 	defer vh.mutex.RUnlock()
 	for _, route := range vh.routes {
-		if routeEntry := route.Match(ctx, headers, randomValue); routeEntry != nil {
+		if routeEntry := route.Match(ctx, headers); routeEntry != nil {
 			return routeEntry
 		}
 	}
 	return nil
 }
 
-func (vh *VirtualHostImpl) GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap, randomValue uint64) []api.Route {
+func (vh *VirtualHostImpl) GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap) []api.Route {
 	vh.mutex.RLock()
 	defer vh.mutex.RUnlock()
 	var routes []api.Route
 	for _, route := range vh.routes {
-		if r := route.Match(ctx, headers, randomValue); r != nil {
+		if r := route.Match(ctx, headers); r != nil {
 			routes = append(routes, r)
 		}
 	}

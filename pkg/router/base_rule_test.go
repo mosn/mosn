@@ -186,7 +186,7 @@ func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
 		RequestHeader: &fasthttp.RequestHeader{},
 	}
 	headers.Set(protocol.MosnHeaderMethod, "POST")
-	match := routeRuleBase.matchRoute(nil, headers, 1)
+	match := routeRuleBase.matchRoute(nil, headers)
 	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
 		t.FailNow()
 	}
@@ -197,7 +197,7 @@ func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
 	}
 	headerHttp2 := http2.NewReqHeader(http2Request)
 	headerHttp2.Set(protocol.MosnHeaderMethod, http2Request.Method)
-	match = routeRuleBase.matchRoute(nil, headerHttp2, 1)
+	match = routeRuleBase.matchRoute(nil, headerHttp2)
 	if !assert.Truef(t, match, "match http2 method failed, result should be true, get %+v", match) {
 		t.FailNow()
 	}

@@ -89,7 +89,7 @@ func (h *simpleHandler) Route() api.Route {
 
 func DefaultMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
 	var handlers []types.RouteHandler
-	if r := routers.MatchRoute(ctx, headers, 1); r != nil {
+	if r := routers.MatchRoute(ctx, headers); r != nil {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, RouterLogFormat, "DefaultHandklerChain", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
 		}

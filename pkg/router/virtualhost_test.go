@@ -119,7 +119,7 @@ func TestRouterOrder(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
 		})
-		rt := virtualHost.GetRouteFromEntries(ctx, headers, 1)
+		rt := virtualHost.GetRouteFromEntries(ctx, headers)
 		if rt == nil || rt.RouteRule().ClusterName() != tc.clustername {
 			t.Errorf("#%d route unexpected result\n", i)
 		}
@@ -134,7 +134,7 @@ func TestRouterOrder(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
 		})
-		rt := prefixVirtualHost.GetRouteFromEntries(ctx, headers, 1)
+		rt := prefixVirtualHost.GetRouteFromEntries(ctx, headers)
 		if rt == nil || rt.RouteRule().ClusterName() != "prefix" {
 			t.Errorf("#%d route unexpected result\n", i)
 		}
@@ -194,7 +194,7 @@ func TestAllRouter(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{
 			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
 		})
-		rts := virtualHost.GetAllRoutesFromEntries(ctx, headers, 1)
+		rts := virtualHost.GetAllRoutesFromEntries(ctx, headers)
 		if len(rts) != tc.matched {
 			t.Errorf("#%d route unexpected result\n", i)
 		}

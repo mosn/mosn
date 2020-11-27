@@ -67,7 +67,7 @@ func TestVariableRouteRuleImpl(t *testing.T) {
 		ctx := variable.NewVariableContext(context.Background())
 		rr := &VariableRouteRuleImpl{base, variables}
 		variable.SetVariableValue(ctx, tc.name, tc.value)
-		result := rr.Match(ctx, protocol.CommonHeader(map[string]string{}), 1)
+		result := rr.Match(ctx, protocol.CommonHeader(map[string]string{}))
 		assert.EqualValuesf(t, result != nil, tc.expected, "#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		if result != nil {
 			assert.EqualValuesf(t, api.Variable, result.RouteRule().PathMatchCriterion().MatchType(), "#%d match type is not expected", i)

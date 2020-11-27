@@ -22,8 +22,6 @@ import (
 	"regexp"
 	"sort"
 
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -52,16 +50,16 @@ func (cu *configUtility) MatchHeaders(ctx context.Context, requestHeaders api.He
 
 		// if a condition is not matched, return false
 		// all condition matched, return true
-		value, err := variable.GetValueFromVariableAndLegacyHeader(ctx, requestHeaders, cfgName, false)
-		if err != nil || value == nil {
+		value, exist := requestHeaders.Get(cfgName)
+		if !exist {
 			return false
 		}
 		if cfgHeaderData.IsRegex {
-			if !cfgHeaderData.RegexPattern.MatchString(*value) {
+			if !cfgHeaderData.RegexPattern.MatchString(value) {
 				return false
 			}
 		} else {
-			if cfgValue != *value {
+			if cfgValue != value {
 				return false
 			}
 		}

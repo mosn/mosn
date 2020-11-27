@@ -28,8 +28,6 @@ import (
 	"strconv"
 	"sync"
 
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
 	v2 "mosn.io/mosn/pkg/config/v2"

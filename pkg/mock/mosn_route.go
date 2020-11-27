@@ -37,31 +37,31 @@ func (m *MockRouters) EXPECT() *MockRoutersMockRecorder {
 }
 
 // MatchRoute mocks base method
-func (m *MockRouters) MatchRoute(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+func (m *MockRouters) MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MatchRoute", ctx, headers, randomValue)
+	ret := m.ctrl.Call(m, "MatchRoute", ctx, headers)
 	ret0, _ := ret[0].(api.Route)
 	return ret0
 }
 
 // MatchRoute indicates an expected call of MatchRoute
-func (mr *MockRoutersMockRecorder) MatchRoute(ctx, headers, randomValue interface{}) *gomock.Call {
+func (mr *MockRoutersMockRecorder) MatchRoute(ctx, headers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MatchRoute", reflect.TypeOf((*MockRouters)(nil).MatchRoute), ctx, headers, randomValue)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MatchRoute", reflect.TypeOf((*MockRouters)(nil).MatchRoute), ctx, headers)
 }
 
 // MatchAllRoutes mocks base method
-func (m *MockRouters) MatchAllRoutes(ctx context.Context, headers api.HeaderMap, randomValue uint64) []api.Route {
+func (m *MockRouters) MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MatchAllRoutes", ctx, headers, randomValue)
+	ret := m.ctrl.Call(m, "MatchAllRoutes", ctx, headers)
 	ret0, _ := ret[0].([]api.Route)
 	return ret0
 }
 
 // MatchAllRoutes indicates an expected call of MatchAllRoutes
-func (mr *MockRoutersMockRecorder) MatchAllRoutes(ctx, headers, randomValue interface{}) *gomock.Call {
+func (mr *MockRoutersMockRecorder) MatchAllRoutes(ctx, headers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MatchAllRoutes", reflect.TypeOf((*MockRouters)(nil).MatchAllRoutes), ctx, headers, randomValue)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MatchAllRoutes", reflect.TypeOf((*MockRouters)(nil).MatchAllRoutes), ctx, headers)
 }
 
 // MatchRouteFromHeaderKV mocks base method
@@ -326,31 +326,31 @@ func (mr *MockVirtualHostMockRecorder) Name() *gomock.Call {
 }
 
 // GetRouteFromEntries mocks base method
-func (m *MockVirtualHost) GetRouteFromEntries(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+func (m *MockVirtualHost) GetRouteFromEntries(ctx context.Context, headers api.HeaderMap) api.Route {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRouteFromEntries", ctx, headers, randomValue)
+	ret := m.ctrl.Call(m, "GetRouteFromEntries", ctx, headers)
 	ret0, _ := ret[0].(api.Route)
 	return ret0
 }
 
 // GetRouteFromEntries indicates an expected call of GetRouteFromEntries
-func (mr *MockVirtualHostMockRecorder) GetRouteFromEntries(ctx, headers, randomValue interface{}) *gomock.Call {
+func (mr *MockVirtualHostMockRecorder) GetRouteFromEntries(ctx, headers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouteFromEntries", reflect.TypeOf((*MockVirtualHost)(nil).GetRouteFromEntries), ctx, headers, randomValue)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouteFromEntries", reflect.TypeOf((*MockVirtualHost)(nil).GetRouteFromEntries), ctx, headers)
 }
 
 // GetAllRoutesFromEntries mocks base method
-func (m *MockVirtualHost) GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap, randomValue uint64) []api.Route {
+func (m *MockVirtualHost) GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap) []api.Route {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAllRoutesFromEntries", ctx, headers, randomValue)
+	ret := m.ctrl.Call(m, "GetAllRoutesFromEntries", ctx, headers)
 	ret0, _ := ret[0].([]api.Route)
 	return ret0
 }
 
 // GetAllRoutesFromEntries indicates an expected call of GetAllRoutesFromEntries
-func (mr *MockVirtualHostMockRecorder) GetAllRoutesFromEntries(ctx, headers, randomValue interface{}) *gomock.Call {
+func (mr *MockVirtualHostMockRecorder) GetAllRoutesFromEntries(ctx, headers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllRoutesFromEntries", reflect.TypeOf((*MockVirtualHost)(nil).GetAllRoutesFromEntries), ctx, headers, randomValue)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllRoutesFromEntries", reflect.TypeOf((*MockVirtualHost)(nil).GetAllRoutesFromEntries), ctx, headers)
 }
 
 // GetRouteFromHeaderKV mocks base method

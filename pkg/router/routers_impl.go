@@ -45,7 +45,7 @@ type routersImpl struct {
 	virtualHosts []types.VirtualHost
 }
 
-func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
 	}
@@ -56,7 +56,7 @@ func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap, ra
 		}
 		return nil
 	}
-	router := virtualHost.GetRouteFromEntries(ctx, headers, randomValue)
+	router := virtualHost.GetRouteFromEntries(ctx, headers)
 	if router == nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no route found")
@@ -65,7 +65,7 @@ func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap, ra
 	return router
 }
 
-func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap, randomValue uint64) []api.Route {
+func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
 	}
@@ -76,7 +76,7 @@ func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap
 		}
 		return nil
 	}
-	routers := virtualHost.GetAllRoutesFromEntries(ctx, headers, randomValue)
+	routers := virtualHost.GetAllRoutesFromEntries(ctx, headers)
 	if len(routers) == 0 {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no route found")

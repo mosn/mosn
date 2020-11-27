@@ -41,7 +41,7 @@ func (vrri *VariableRouteRuleImpl) MatchType() api.PathMatchType {
 func (vrri *VariableRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 }
 
-func (vrri *VariableRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+func (vrri *VariableRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	result := true
 	walkVarName := ""
 	for _, v := range vrri.Variables {

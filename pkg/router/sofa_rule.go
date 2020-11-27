@@ -49,7 +49,7 @@ func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
 func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
 }
 
-func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap, randomValue uint64) api.Route {
+func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	value, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, types.SofaRouteMatchKey, false)
 	if value != nil {
 		if *value == srri.matchValue || srri.matchValue == ".*" {

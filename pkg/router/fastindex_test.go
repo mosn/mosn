@@ -137,7 +137,7 @@ func BenchmarkGetSofaRouter(b *testing.B) {
 	ctx := variable.NewVariableContext(context.Background())
 	b.Run("common", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			if route := vh.GetRouteFromEntries(ctx, headers, 1); route == nil || route.RouteRule().ClusterName() != expected {
+			if route := vh.GetRouteFromEntries(ctx, headers); route == nil || route.RouteRule().ClusterName() != expected {
 				b.Errorf("route match is not expected, route: %v", route)
 			}
 		}
