@@ -80,7 +80,7 @@ func (tracer *httpSkyTracer) Start(ctx context.Context, request interface{}, _ t
 		return skywalking.NoopSpan
 	}
 	entry.Tag(go2sky.TagHTTPMethod, string(header.Method()))
-	entry.Tag(go2sky.TagURL, string(header.Header())+requestURI)
+	entry.Tag(go2sky.TagURL, string(header.Host())+requestURI)
 	entry.SetComponent(skywalking.MOSNComponentID)
 	entry.SetSpanLayer(language_agent.SpanLayer_Http)
 
