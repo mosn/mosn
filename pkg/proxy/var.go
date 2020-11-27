@@ -205,7 +205,7 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 	proxyBuffers := proxyBuffersByContext(ctx)
 	info := proxyBuffers.info
 
-	if info.UpstreamHost() != nil {
+	if info.UpstreamHost() != nil && info.UpstreamHost().Hostname() != "" {
 		return info.UpstreamHost().Hostname(), nil
 	}
 

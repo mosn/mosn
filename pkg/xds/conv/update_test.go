@@ -345,8 +345,9 @@ func Test_updateCluster(t *testing.T) {
 		EdsClusterConfig: &envoy_api_v2.Cluster_EdsClusterConfig{
 			EdsConfig: &core.ConfigSource{},
 		},
-		LbPolicy: envoy_api_v2.Cluster_ROUND_ROBIN,
-		Hosts:    []*core.Address{addrsConfig},
+		LbPolicy:       envoy_api_v2.Cluster_ROUND_ROBIN,
+		Hosts:          []*core.Address{addrsConfig},
+		ConnectTimeout: &duration.Duration{Seconds: 1},
 	}
 
 	if mc := ConvertClustersConfig([]*envoy_api_v2.Cluster{ClusterConfig}); mc == nil {
