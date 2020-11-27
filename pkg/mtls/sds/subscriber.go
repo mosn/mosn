@@ -249,9 +249,25 @@ func (subscribe *SdsSubscriber) reconnect() {
 }
 
 func ACKResponse(client *SdsStreamClient, resp *xdsapi.DiscoveryResponse) {
+	// get secret names
+	secretNames := make([]string, 0)
+	for _, resource := range resp.Resources {
+		if resource == nil {
+			continue
+		}
+
+		secret := &auth.Secret{}
+		if err := ptypes.UnmarshalAny(resource, secret); err != nil {
+			log.DefaultLogger.Errorf("fail to extract secret name: %v", err)
+			continue
+		}
+
+		secretNames = append(secretNames, secret.GetName())
+	}
+
 	err := client.streamSecretsClient.Send(&xdsapi.DiscoveryRequest{
 		VersionInfo:   resp.VersionInfo,
-		ResourceNames: []string{},
+		ResourceNames: secretNames,
 		TypeUrl:       resp.TypeUrl,
 		ResponseNonce: resp.Nonce,
 		ErrorDetail:   nil,
