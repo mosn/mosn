@@ -3,7 +3,6 @@ package proxy
 import (
 	"context"
 	"strings"
-	"sync/atomic"
 	"testing"
 
 	"bou.ke/monkey"
@@ -14,6 +13,7 @@ import (
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -114,6 +114,16 @@ func TestNewProxyRequest(t *testing.T) {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
 		return ctx
 	}
+	callCreateFilterChain := false
+	monkey.Patch(streamfilter.GetStreamFilterManager, func() streamfilter.StreamFilterManager {
+		factory := streamfilter.NewMockStreamFilterFactory(ctrl)
+		factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).Do(func(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
+			callCreateFilterChain = true
+		}).AnyTimes()
+		filterManager := streamfilter.NewMockStreamFilterManager(ctrl)
+		filterManager.EXPECT().GetStreamFilterFactory(gomock.Any()).Return(factory).AnyTimes()
+		return filterManager
+	})
 	pv := NewProxy(genctx(), &v2.Proxy{
 		Name:               "test",
 		DownstreamProtocol: "Http1",
@@ -130,18 +140,7 @@ func TestNewProxyRequest(t *testing.T) {
 	monkey.Patch(trace.IsEnabled, func() bool {
 		return true
 	})
-	callCreateFilterChain := false
-	factory := mock.NewMockStreamFilterChainFactory(ctrl)
-	factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ api.StreamFilterChainFactoryCallbacks) {
-		callCreateFilterChain = true
-	}).AnyTimes()
-	value := new(atomic.Value)
-	value.Store([]api.StreamFilterChainFactory{
-		factory,
-	})
-	//
 	monkey.Patch(stream.CreateServerStreamConnection, func(ctx context.Context, _ types.ProtocolName, _ api.Connection, proxy types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, value)
 		sconn := mock.NewMockServerStreamConnection(ctrl)
 		sconn.EXPECT().Dispatch(gomock.Any()).DoAndReturn(func(_ buffer.IoBuffer) {
 			// sender is nil == oneway request
