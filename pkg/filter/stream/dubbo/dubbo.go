@@ -26,16 +26,16 @@ func buildStream(conf map[string]interface{}) (api.StreamFilterChainFactory, err
 }
 
 func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := NewDubboFilter(ctx)
+	filter := buildDubboFilter(ctx)
 	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
-	callbacks.AddStreamSenderFilter(filter)
+	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
 type dubboFilter struct {
 	handler api.StreamReceiverFilterHandler
 }
 
-func NewDubboFilter(ctx context.Context) *dubboFilter {
+func buildDubboFilter(ctx context.Context) *dubboFilter {
 	return &dubboFilter{}
 }
 
@@ -47,7 +47,7 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
 	if !ok {
-		log.DefaultLogger.Errorf("This filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
+		log.DefaultLogger.Errorf("%s is empty, may be the protocol is not dubbo", dubbo.ServiceNameHeader)
 		return api.StreamFiltertermination
 	}
 
@@ -77,12 +77,6 @@ func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 }
 
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	frame, ok := headers.(*dubbo.Frame)
-	if !ok {
-		log.DefaultLogger.Errorf("This filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
-		return api.StreamFiltertermination
-	}
-
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 	service, err := variable.GetVariableValue(ctx, VarDubboRequestService)
 	if err != nil {
@@ -100,7 +94,16 @@ func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buf
 		return api.StreamFilterContinue
 	}
 
-	if frame.GetStatusCode() == dubbo.RespStatusOK {
+	var isSuccess bool
+	switch frame := headers.(type) {
+	case *dubbo.Frame:
+		isSuccess = frame.GetStatusCode() == dubbo.RespStatusOK
+	default:
+		log.DefaultLogger.Errorf("this filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
+		return api.StreamFiltertermination
+	}
+
+	if isSuccess {
 		stats.ResponseSucc.Inc(1)
 	} else {
 		stats.ResponseFail.Inc(1)

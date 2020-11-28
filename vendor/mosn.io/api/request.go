@@ -53,6 +53,8 @@ const (
 	RateLimited ResponseFlag = 0x800
 	// payload limit
 	ReqEntityTooLarge ResponseFlag = 0x1000
+	// downstream terminated
+	DownStreamTerminate ResponseFlag = 0x2000
 )
 
 // RequestInfo has information for a request, include the basic information,

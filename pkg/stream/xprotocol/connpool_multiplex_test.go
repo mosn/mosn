@@ -2,6 +2,10 @@ package xprotocol
 
 import (
 	"context"
+	"sync"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -10,12 +14,24 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"sync"
-	"testing"
-	"time"
 )
 
 const testClientNum = 10
+
+func TestNewMultiplex(t *testing.T) {
+	cl := basisxDSCluster("localhost:8888", []string{"localhost:8888"})
+	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
+
+	p := connpool{
+		protocol: protocol.Xprotocol,
+		tlsHash:  &types.HashValue{},
+	}
+	p.host.Store(host)
+	if NewPoolMultiplex(&p) == nil {
+		// Will not executed this.
+		t.Errorf("build multiplex failed")
+	}
+}
 
 func TestConnpoolMultiplexCheckAndInit(t *testing.T) {
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
@@ -137,6 +153,28 @@ func basicCluster(name string, hosts []string) v2.Cluster {
 		CirBreThresholds: v2.CircuitBreakers{
 			Thresholds: []v2.Thresholds{
 				{MaxConnections: 10}, // this config should be read by the pool
+			},
+		},
+	}
+}
+
+func basisxDSCluster(name string, hosts []string) v2.Cluster {
+	var vhosts []v2.Host
+	for _, addr := range hosts {
+		vhosts = append(vhosts, v2.Host{
+			HostConfig: v2.HostConfig{
+				Address: addr,
+			},
+		})
+	}
+	return v2.Cluster{
+		Name:        name,
+		ClusterType: v2.SIMPLE_CLUSTER,
+		LbType:      v2.LB_ROUNDROBIN,
+		Hosts:       vhosts,
+		CirBreThresholds: v2.CircuitBreakers{
+			Thresholds: []v2.Thresholds{
+				{MaxConnections: 4294967295}, // 4294967295 is math.MaxUint32
 			},
 		},
 	}
