@@ -1,5 +1,28 @@
 # 更新日志
 
+## v0.19.0
+
+### 新功能
+
+- 适配 Istio 的日志格式 [@champly](https://github.com/champly)
+- 为 GOMAXPROCS 自动识别容器运行时核心数 [@champly](https://github.com/champly)
+- 支持指定 Istio cluster 的网络 [@champly](https://github.com/champly)
+
+### 优化
+
+- 更通用的 Filter 扩展机制 [@antJack](https://github.com/antJack)
+- 优化 dubbo filter [@champly](https://github.com/champly)
+
+### Bug 修复
+
+- 修复 getAPISourceEndpoint 空指针问题 [@dylandee](https://github.com/dylandee)
+- 修复压力测试时，内存快速增加的问题 [@champly](https://github.com/champly)
+- 修复没有转换 xDS cluster 的 ConnectTimeout 参数的问题 [@dengqian](https://github.com/dengqian)
+- 修复 upstreamHostGetter 方法获取到错误的 Hostname 的问题 [@dengqian](https://github.com/dengqian)
+- 修复在 upstream 的 OnReadErrClose 事件上，未正确关闭 tcp_proxy 客户端连接的问题 [@dengqian](https://github.com/dengqian)
+- 修复 HTTP2 直接响应没有正确地设置 `Content-length` 的问题 [@wangfakang](https://github.com/wangfakang)
+- 修复 mixer filter 缺少默认配置，导致空指针问题 [@glyasai](https://github.com/glyasai)
+
 ## v0.18.0
 
 ### 新功能

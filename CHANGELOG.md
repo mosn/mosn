@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.19.0
+
+### New Features
+
+- Adapt to Istio's log format [@champly](https://github.com/champly)
+- Automatically identify the number of CPU cores for GOMAXPROCS when MOSN is running on the container [@champly](https://github.com/champly)
+- Allow specifying network for cluster [@champly](https://github.com/champly)
+
+### Optimization
+
+- More general Filter extension mechanism [@antJack](https://github.com/antJack)
+- Optimization dubbo filter [@champly](https://github.com/champly)
+
+### Bug fixes
+
+- Fix the nil pointer reference in getAPISourceEndpoint [@dylandee](https://github.com/dylandee)
+- Fix heap increase fast in stress testing [@champly](https://github.com/champly)
+- Fix the ConnectTimeout parameter of xDS cluster is not converted [@dengqian](https://github.com/dengqian)
+- Fix the upstreamHostGetter method gets the wrong hostname [@dengqian](https://github.com/dengqian)
+- Fix tcp_proxy client connection not closed properly on upstream event OnReadErrClose [@dengqian](https://github.com/dengqian)
+- Fix HTTP2 direct response not setting `Content-length` correctly [@wangfakang](https://github.com/wangfakang)
+- Fix the lack of default configuration of mixer filter, resulting in a nil pointer reference [@glyasai](https://github.com/glyasai)
+
 ## v0.18.0
 
 ### New Features
