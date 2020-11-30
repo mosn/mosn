@@ -33,6 +33,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes/duration"
 	pstruct "github.com/golang/protobuf/ptypes/struct"
+	"google.golang.org/protobuf/types/known/durationpb"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
@@ -346,6 +347,7 @@ func Test_updateCluster(t *testing.T) {
 		},
 		LbPolicy:                   envoy_config_cluster_v3.Cluster_ROUND_ROBIN,
 		HiddenEnvoyDeprecatedHosts: []*envoy_config_core_v3.Address{addrsConfig},
+		ConnectTimeout:             &durationpb.Duration{Seconds: 1},
 	}
 
 	if mc := ConvertClustersConfig([]*envoy_config_cluster_v3.Cluster{ClusterConfig}); mc == nil {

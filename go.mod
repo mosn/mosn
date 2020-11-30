@@ -43,6 +43,7 @@ require (
 	golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5
 	google.golang.org/genproto v0.0.0-20200305110556-506484158171
 	google.golang.org/grpc v1.28.0
+	google.golang.org/protobuf v1.23.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0

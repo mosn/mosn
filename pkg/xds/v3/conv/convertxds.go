@@ -169,6 +169,7 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
+			ConnectTimeout:       &api.DurationConfig{Duration: convertTimeDurPoint2TimeDur(xdsCluster.GetConnectTimeout())},
 			// OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
 			Spec:     convertSpec(xdsCluster),
 			TLS:      convertTLS(xdsCluster.GetTransportSocket()),
