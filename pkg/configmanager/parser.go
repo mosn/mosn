@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
@@ -374,8 +375,10 @@ func setMaxProcsWithProcessor(procs interface{}) {
 		strfunc(processor)
 	case int:
 		intfunc(processor)
+	case float64:
+		intfunc(int(processor))
 	default:
-		log.StartLogger.Fatalf("unsupport serverconfig processor type, must be int or string.")
+		log.StartLogger.Fatalf("unsupport serverconfig processor type %v, must be int or string.", reflect.TypeOf(procs))
 	}
 }
 
