@@ -47,7 +47,7 @@ func NewRequestHandler(serviceContext *ServiceContext) RequestHandler {
 // * extract more report attributes
 // * make a Report call.
 func (h *requestHandler) Report(checkData CheckData, reportData ReportData) {
-	if h.serviceContext != nil && h.serviceContext.serviceConfig.DisableReportCalls {
+	if h.serviceContext != nil && h.serviceContext.serviceConfig != nil && h.serviceContext.serviceConfig.DisableReportCalls {
 		return
 	}
 	h.addForwardAttributes(checkData)
