@@ -118,11 +118,12 @@ func checkUpdateFromDyconfig(conf *v2.MOSNConfig) {
 				conf.ClusterManager.Clusters = append(conf.ClusterManager.Clusters, cluster)
 			}
 		}
+		// server config should not be empty in dynamic config
 		if len(cfg.Servers) == 0 {
 			log.StartLogger.Fatalf("[config] no server found in config file %s", dyconfigPath)
 		}
-		// update listeners
 		if len(conf.Servers) > 0 {
+			// update listeners
 			for _, listener := range cfg.Servers[0].Listeners {
 				found := false
 				for i := 0; i < len(conf.Servers[0].Listeners); i++ {
@@ -138,12 +139,7 @@ func checkUpdateFromDyconfig(conf *v2.MOSNConfig) {
 					conf.Servers[0].Listeners = append(conf.Servers[0].Listeners, listener)
 				}
 			}
-		} else {
-			conf.Servers[0].Listeners = cfg.Servers[0].Listeners
-		}
-
-		//update routers
-		if len(cfg.Servers) > 0 {
+			// update routers
 			for _, router := range cfg.Servers[0].Routers {
 				found := false
 				for i := 0; i < len(conf.Servers[0].Routers); i++ {
@@ -160,7 +156,7 @@ func checkUpdateFromDyconfig(conf *v2.MOSNConfig) {
 				}
 			}
 		} else {
-			conf.Servers[0].Routers = cfg.Servers[0].Routers
+			conf.Servers = append(conf.Servers, cfg.Servers[0])
 		}
 	}
 }
