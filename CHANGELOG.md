@@ -11,7 +11,7 @@
 ### Optimization
 
 - More general Filter extension mechanism [@antJack](https://github.com/antJack)
-- Optimization dubbo filter [@champly](https://github.com/champly)
+- Dubbo filter optimization [@champly](https://github.com/champly)
 
 ### Bug fixes
 
