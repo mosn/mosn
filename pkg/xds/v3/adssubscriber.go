@@ -95,7 +95,13 @@ func (adsClient *ADSClient) receiveThread() {
 				continue
 			}
 			typeURL := resp.TypeUrl
-			HandleTypeURL(typeURL, adsClient, resp)
+
+			/*
+			 * If xDS resource too big, Istio may be have write timeout error when use sync, such as:
+			 *		2020-12-01T09:17:29.354132Z	info	ads	Timeout writing sidecar~10.49.18.38~no-project-aabb-gz01a-blue-67cb764fcb-8dq4t.dmall-inner~dmall-inner.svc.cluster.local-39
+			 * So, will use async
+			 */
+			go HandleTypeURL(typeURL, adsClient, resp)
 		}
 	}
 }
