@@ -9,8 +9,11 @@
 - Increase the maximum number of connections limit [@champly](https://github.com/champly)
 - When AccessLog fails to obtain variables, use "-" instead [@champly](https://github.com/champly)
 - MaxProcs supports configuring automatic recognition based on CPU usage limits [@champly](https://github.com/champly)
-- Refactored the StreamFilter framework. The network filter can reuse the stream filter framework [@antJack](https://github.com/antJack)
 - Allow specifying network for cluster [@champly](https://github.com/champly)
+
+### Refactoring
+
+- Refactored the StreamFilter framework. The network filter can reuse the stream filter framework [@antJack](https://github.com/antJack)
 
 ### Bug fixes
 

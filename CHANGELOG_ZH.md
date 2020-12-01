@@ -9,8 +9,11 @@
 - 增加最大连接数限制 [@champly](https://github.com/champly)
 - AccessLog 获取变量失败时，使用”-”代替 [@champly](https://github.com/champly)
 - MaxProcs 支持配置基于 CPU 使用限制自动识别 [@champly](https://github.com/champly)
-- 重构了 StreamFilter 框架，减少 streamfilter 框架与 proxy 的耦合，支持其他 network filter 可复用 stream filter 框架 [@antJack](https://github.com/antJack)
 - 支持指定 Istio cluster 的网络 [@champly](https://github.com/champly)
+
+### 重构
+
+- 重构了 StreamFilter 框架，减少 streamfilter 框架与 proxy 的耦合，支持其他 network filter 可复用 stream filter 框架 [@antJack](https://github.com/antJack)
 
 ### Bug 修复
 
