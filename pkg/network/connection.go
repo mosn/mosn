@@ -575,9 +575,11 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 			}
 
 			// fail after 60s
+			t := time.NewTimer(types.DefaultConnTryTimeout)
 			select {
 			case c.writeBufferChan <- &buffers:
-			case <-time.After(types.DefaultConnTryTimeout):
+				t.Stop()
+			case <-t.C:
 				err = types.ErrWriteBufferChanTimeout
 			}
 		} else {
@@ -700,7 +702,7 @@ func (c *connection) startWriteLoop() {
 			c.appendBuffer(buf)
 
 			//todo: dynamic set loop nums
-			OUTER:
+		OUTER:
 			for i := 0; i < 10; i++ {
 				select {
 				case buf, ok := <-c.writeBufferChan:

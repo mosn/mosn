@@ -42,6 +42,7 @@ import (
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
@@ -114,10 +115,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 	// set listener filter , network filter and stream filter
 	var listenerFiltersFactories []api.ListenerFilterChainFactory
 	var networkFiltersFactories []api.NetworkFilterChainFactory
-	var streamFiltersFactories []api.StreamFilterChainFactory
 	listenerFiltersFactories = configmanager.GetListenerFilters(lc.ListenerFilters)
 	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
-	streamFiltersFactories = configmanager.GetStreamFilters(lc.StreamFilters)
 
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
@@ -138,7 +137,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		rawConfig.FilterChains[0].FilterChainMatch = lc.FilterChains[0].FilterChainMatch
 		rawConfig.FilterChains[0].Filters = lc.FilterChains[0].Filters
 
-		al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 		rawConfig.StreamFilters = lc.StreamFilters
 
 		// tls update only take effects on new connections
@@ -194,7 +192,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		l := network.NewListener(lc)
 
 		var err error
-		al, err = newActiveListener(l, lc, als, listenerFiltersFactories, networkFiltersFactories, streamFiltersFactories, ch, listenerStopChan)
+		al, err = newActiveListener(l, lc, als, listenerFiltersFactories, networkFiltersFactories, ch, listenerStopChan)
 		if err != nil {
 			return al, err
 		}
@@ -203,6 +201,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
 
 	}
+
+	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
+
 	configmanager.SetListenerConfig(*al.listener.Config())
 	return al, nil
 }
@@ -334,26 +335,25 @@ func (ch *connHandler) StopConnection() {
 
 // ListenerEventListener
 type activeListener struct {
-	listener                    types.Listener
-	listenerFiltersFactories    []api.ListenerFilterChainFactory
-	networkFiltersFactories     []api.NetworkFilterChainFactory
-	streamFiltersFactoriesStore atomic.Value // store []api.StreamFilterChainFactory
-	listenIP                    string
-	listenPort                  int
-	conns                       *list.List
-	connsMux                    sync.RWMutex
-	handler                     *connHandler
-	stopChan                    chan struct{}
-	stats                       *listenerStats
-	accessLogs                  []api.AccessLog
-	updatedLabel                bool
-	idleTimeout                 *api.DurationConfig
-	tlsMng                      types.TLSContextManager
+	listener                 types.Listener
+	listenerFiltersFactories []api.ListenerFilterChainFactory
+	networkFiltersFactories  []api.NetworkFilterChainFactory
+	listenIP                 string
+	listenPort               int
+	conns                    *list.List
+	connsMux                 sync.RWMutex
+	handler                  *connHandler
+	stopChan                 chan struct{}
+	stats                    *listenerStats
+	accessLogs               []api.AccessLog
+	updatedLabel             bool
+	idleTimeout              *api.DurationConfig
+	tlsMng                   types.TLSContextManager
 }
 
 func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers []api.AccessLog,
 	listenerFiltersFactories []api.ListenerFilterChainFactory,
-	networkFiltersFactories []api.NetworkFilterChainFactory, streamFiltersFactories []api.StreamFilterChainFactory,
+	networkFiltersFactories []api.NetworkFilterChainFactory,
 	handler *connHandler, stopChan chan struct{}) (*activeListener, error) {
 	al := &activeListener{
 		listener:                 listener,
@@ -366,7 +366,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		networkFiltersFactories:  networkFiltersFactories,
 		listenerFiltersFactories: listenerFiltersFactories,
 	}
-	al.streamFiltersFactoriesStore.Store(streamFiltersFactories)
 
 	listenPort := 0
 	var listenIP string
@@ -452,7 +451,6 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, &al.streamFiltersFactoriesStore)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
 	if rawf != nil {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)

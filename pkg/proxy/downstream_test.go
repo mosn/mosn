@@ -151,6 +151,7 @@ func TestDirectResponse(t *testing.T) {
 			responseSender: tc.client,
 			requestInfo:    &network.RequestInfo{},
 		}
+		s.initStreamFilterChain()
 		// event call Receive Headers
 		// trigger direct response
 		s.OnReceive(context.Background(), protocol.CommonHeader{}, buffer.NewIoBuffer(1), nil)
@@ -180,6 +181,7 @@ func TestSetDownstreamRouter(t *testing.T) {
 		requestInfo:    &network.RequestInfo{},
 		snapshot:       &mockClusterSnapshot{},
 	}
+	s.initStreamFilterChain()
 	s.matchRoute()
 	assert.NotNilf(t, s.DownstreamRoute(),
 		"downstream router in context should not be nil")

@@ -138,7 +138,7 @@ func (rm *routersManagerImpl) AddRoute(routerConfigName, domain string, route *v
 	return nil
 }
 
-// RemoceAllRoutes clear all of the specified virtualhost's routes
+// RemoveAllRoutes clear all of the specified virtualhost's routes
 func (rm *routersManagerImpl) RemoveAllRoutes(routerConfigName, domain string) error {
 	if v, ok := rm.routersWrapperMap.Load(routerConfigName); ok {
 		rw, ok := v.(*RoutersWrapper)

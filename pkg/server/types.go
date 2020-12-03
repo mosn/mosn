@@ -20,7 +20,7 @@ package server
 import (
 	"time"
 
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -31,7 +31,6 @@ type Config struct {
 	LogLevel        log.Level
 	LogRoller       string
 	GracefulTimeout time.Duration
-	Processor       int
 	UseNetpollMode  bool
 }
 

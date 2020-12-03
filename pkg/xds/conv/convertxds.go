@@ -172,6 +172,7 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
+			ConnectTimeout:       &api.DurationConfig{convertTimeDurPoint2TimeDur(xdsCluster.GetConnectTimeout())},
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
 			Hosts:    convertClusterHosts(xdsCluster.GetHosts()),
 			Spec:     convertSpec(xdsCluster),
