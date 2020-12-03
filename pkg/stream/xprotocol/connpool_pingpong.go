@@ -32,11 +32,14 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+// poolPingPong is used for ping pong protocol such as http
+// which must keep reading connection, and wait for the upstream to response before sending the next request
 type poolPingPong struct {
 	*connpool
 
-	clientMux   sync.Mutex
-	idleClients map[api.Protocol][]*activeClientPingPong
+	totalClientCount uint64 // total clients
+	clientMux        sync.Mutex
+	idleClients      map[api.Protocol][]*activeClientPingPong
 }
 
 // NewPoolPingPong generates a connection pool which uses p pingpong protocol

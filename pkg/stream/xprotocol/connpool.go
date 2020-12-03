@@ -43,10 +43,9 @@ const (
 // types.ConnectionPool
 // nolint
 type connpool struct {
-	host             atomic.Value
-	tlsHash          *types.HashValue
-	totalClientCount uint64 // total clients
-	protocol         api.Protocol
+	host     atomic.Value
+	tlsHash  *types.HashValue
+	protocol api.Protocol
 }
 
 // NewConnPool init a connection pool
