@@ -1,6 +1,11 @@
 package integrate
 
 import (
+	"fmt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	"testing"
 	"time"
 
@@ -129,4 +134,49 @@ func TestProtocolHttp1(t *testing.T) {
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
+}
+
+func (c *XTestCase) StartXAuto(tls bool) {
+	c.AppServer.GoServe()
+	appAddr := c.AppServer.Addr()
+	clientMeshAddr := util.CurrentMeshAddr()
+	c.ClientMeshAddr = clientMeshAddr
+	serverMeshAddr := util.CurrentMeshAddr()
+	subProtocol := fmt.Sprintf("%s,%s,%s,%s",
+		dubbo.ProtocolName, bolt.ProtocolName, boltv2.ProtocolName, tars.ProtocolName)
+	cfg := util.CreateMeshToMeshConfigWithSub(clientMeshAddr, serverMeshAddr, protocol.Auto, protocol.Auto, types.ProtocolName(subProtocol), []string{appAddr}, tls)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Finish
+		c.AppServer.Close()
+		mesh.Close()
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+func TestXAuto(t *testing.T) {
+
+	appaddr := "127.0.0.1:20880"
+	testCases := []*XTestCase{
+		NewXTestCase(t, dubbo.ProtocolName, util.NewRPCServer(t, appaddr, dubbo.ProtocolName)),
+		NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
+		NewXTestCase(t, tars.ProtocolName, util.NewRPCServer(t, appaddr, tars.ProtocolName)),
+	}
+	for i, tc := range testCases {
+		t.Logf("start case #%d\n", i)
+		tc.StartXAuto(false)
+		go tc.RunCase(5, 0)
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, err)
+			}
+		case <-time.After(15 * time.Second):
+			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
+		}
+		tc.FinishCase()
+	}
+
 }
