@@ -17,6 +17,7 @@
 
 package java_exception
 
+// IllegalThreadStateException represents an exception of the same name in java
 type IllegalThreadStateException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type IllegalThreadStateException struct {
 	Cause                Throwabler
 }
 
+// NewIllegalThreadStateException is the constructor
 func NewIllegalThreadStateException(detailMessage string) *IllegalThreadStateException {
 	return &IllegalThreadStateException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IllegalThreadStateException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalThreadStateException) JavaClassName() string {
 	return "java.lang.IllegalThreadStateException"
+}
+
+// equals to getStackTrace in java
+func (e IllegalThreadStateException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

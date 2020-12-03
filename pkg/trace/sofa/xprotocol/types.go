@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
@@ -57,6 +58,7 @@ const (
 const (
 	MOSN_PROCESS_TIME = 60 + iota
 	MOSN_TLS_STATE
+	TLSCipherSuite
 )
 
 type SubProtocolDelegate func(ctx context.Context, frame xprotocol.XFrame, span types.Span)

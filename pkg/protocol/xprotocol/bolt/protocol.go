@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync/atomic"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -81,12 +82,26 @@ func (proto *boltProtocol) Encode(ctx context.Context, model interface{}) (types
 	case *Response:
 		return encodeResponse(ctx, frame)
 	default:
-		log.Proxy.Errorf(ctx, "[protocol][bolt] encode with unknown command : %+v", model)
-		return nil, xprotocol.ErrUnknownType
+		// log.Proxy.Errorf(ctx, "[protocol][bolt] encode with unknown command : %+v", model)
+		// return nil, xprotocol.ErrUnknownType
+		// FIXME: makes sofarpc protocol common
+		// bolt and boltv2 can be handled success on a same connection
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(ctx, "[protocol][bolt] bolt maybe receive boltv2 encode")
+		}
+		engine := xprotocol.GetProtocol("boltv2")
+		return engine.Encode(ctx, model)
 	}
 }
 
 func (proto *boltProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+	if data.Len() > 0 {
+		code := data.Bytes()[0]
+		if code == 0x02 { // protocol boltv2
+			engine := xprotocol.GetProtocol("boltv2")
+			return engine.Decode(ctx, data)
+		}
+	}
 	if data.Len() >= LessLen {
 		cmdType := data.Bytes()[1]
 
@@ -115,28 +130,28 @@ func (proto *boltProtocol) Trigger(requestId uint64) xprotocol.XFrame {
 			CmdCode:   CmdCodeHeartbeat,
 			Version:   1,
 			RequestId: uint32(requestId),
-			Codec:     Hessian2Serialize, //todo: read default codec from config
+			Codec:     Hessian2Serialize,
 			Timeout:   -1,
 		},
 	}
 }
 
-func (proto *boltProtocol) Reply(requestId uint64) xprotocol.XRespFrame {
+func (proto *boltProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,
 			CmdType:        CmdTypeResponse,
 			CmdCode:        CmdCodeHeartbeat,
 			Version:        ProtocolVersion,
-			RequestId:      uint32(requestId),
-			Codec:          Hessian2Serialize, //todo: read default codec from config
+			RequestId:      uint32(request.GetRequestId()),
+			Codec:          Hessian2Serialize,
 			ResponseStatus: ResponseStatusSuccess,
 		},
 	}
 }
 
 // Hijacker
-func (proto *boltProtocol) Hijack(statusCode uint32) xprotocol.XRespFrame {
+func (proto *boltProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,
@@ -172,4 +187,17 @@ func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 	default:
 		return uint32(ResponseStatusUnknown)
 	}
+}
+
+// PoolMode returns whether pingpong or multiplex
+func (proto *boltProtocol) PoolMode() types.PoolMode {
+	return types.Multiplex
+}
+
+func (proto *boltProtocol) EnableWorkerPool() bool{
+	return true
+}
+
+func (proto *boltProtocol) GenerateRequestID(streamID *uint64) uint64 {
+	return atomic.AddUint64(streamID, 1)
 }

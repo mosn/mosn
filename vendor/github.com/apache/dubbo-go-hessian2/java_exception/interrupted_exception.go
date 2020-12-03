@@ -20,7 +20,7 @@ package java_exception
 ////////////////////////////
 // InterruptedException
 ////////////////////////////
-
+// InterruptedException represents an exception of the same name in java
 type InterruptedException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -29,14 +29,22 @@ type InterruptedException struct {
 	Cause                Throwabler
 }
 
+// NewInterruptedException is the constructor
 func NewInterruptedException(detailMessage string) *InterruptedException {
 	return &InterruptedException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e InterruptedException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (InterruptedException) JavaClassName() string {
 	return "java.lang.InterruptedException"
+}
+
+// equals to getStackTrace in java
+func (e InterruptedException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

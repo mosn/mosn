@@ -19,6 +19,7 @@ package java_exception
 
 import "fmt"
 
+// IllegalFormatConversionException represents an exception of the same name in java
 type IllegalFormatConversionException struct {
 	SerialVersionUID     int64
 	C                    string
@@ -29,13 +30,22 @@ type IllegalFormatConversionException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e IllegalFormatConversionException) Error() string {
 	return fmt.Sprintf("%v != %v", e.C, e.Arg.Name)
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalFormatConversionException) JavaClassName() string {
 	return "java.util.IllegalFormatConversionException"
 }
+
+// NewIllegalFormatConversionException is the constructor
 func NewIllegalFormatConversionException(detailMessage string) *IllegalFormatConversionException {
 	return &IllegalFormatConversionException{DetailMessage: detailMessage}
+}
+
+// equals to getStackTrace in java
+func (e IllegalFormatConversionException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

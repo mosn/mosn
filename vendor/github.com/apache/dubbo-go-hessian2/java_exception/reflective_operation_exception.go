@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ReflectiveOperationException represents an exception of the same name in java
 type ReflectiveOperationException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type ReflectiveOperationException struct {
 	Cause                Throwabler
 }
 
+// NewReflectiveOperationException is the constructor
 func NewReflectiveOperationException(detailMessage string) *ReflectiveOperationException {
 	return &ReflectiveOperationException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e ReflectiveOperationException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ReflectiveOperationException) JavaClassName() string {
 	return "java.lang.ReflectiveOperationException"
+}
+
+// equals to getStackTrace in java
+func (e ReflectiveOperationException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

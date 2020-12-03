@@ -17,6 +17,7 @@
 
 package java_exception
 
+// EnumConstantNotPresentException represents an exception of the same name in java
 type EnumConstantNotPresentException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -27,14 +28,22 @@ type EnumConstantNotPresentException struct {
 	Cause                Throwabler
 }
 
+// NewEnumConstantNotPresentException is the constructor
 func NewEnumConstantNotPresentException(detailMessage string) *EnumConstantNotPresentException {
 	return &EnumConstantNotPresentException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e EnumConstantNotPresentException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (EnumConstantNotPresentException) JavaClassName() string {
 	return "java.lang.EnumConstantNotPresentException"
+}
+
+// equals to getStackTrace in java
+func (e EnumConstantNotPresentException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

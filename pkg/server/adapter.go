@@ -87,15 +87,14 @@ func ResetAdapter() {
 // AddOrUpdateListener used to:
 // Add and start listener when listener doesn't exist
 // Update listener when listener already exist
-func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Listener,
-      updateListenerFilter bool, updateNetworkFilter bool, updateStreamFilter bool) error {
+func (adapter *ListenerAdapter) AddOrUpdateListener(serverName string, lc *v2.Listener) error {
 
 	connHandler := adapter.findHandler(serverName)
 	if connHandler == nil {
 		return fmt.Errorf("AddOrUpdateListener error, servername = %s not found", serverName)
 	}
 
-	listener, err := connHandler.AddOrUpdateListener(lc, updateListenerFilter,updateNetworkFilter, updateStreamFilter)
+	listener, err := connHandler.AddOrUpdateListener(lc)
 	if err != nil {
 		return fmt.Errorf("connHandler.AddOrUpdateListener called error: %s", err.Error())
 	}
@@ -154,7 +153,7 @@ func (adapter *ListenerAdapter) UpdateListenerTLS(serverName string, listenerNam
 			},
 		}
 
-		if _, err := connHandler.AddOrUpdateListener(&cfg, false, false, false); err != nil {
+		if _, err := connHandler.AddOrUpdateListener(&cfg); err != nil {
 			return fmt.Errorf("connHandler.UpdateListenerTLS called error, server:%s, error: %s", serverName, err.Error())
 		}
 		return nil

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// DuplicateFormatFlagsException represents an exception of the same name in java
 type DuplicateFormatFlagsException struct {
 	SerialVersionUID     int64
 	Flags                string
@@ -26,6 +27,7 @@ type DuplicateFormatFlagsException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e DuplicateFormatFlagsException) Error() string {
 	if e.DetailMessage == "" {
 		return "flags=" + e.Flags
@@ -35,9 +37,17 @@ func (e DuplicateFormatFlagsException) Error() string {
 
 }
 
+// JavaClassName  java fully qualified path
 func (DuplicateFormatFlagsException) JavaClassName() string {
 	return "java.util.DuplicateFormatFlagsException"
 }
+
+// NewDuplicateFormatFlagsException is the constructor
 func NewDuplicateFormatFlagsException(detailMessage string) *DuplicateFormatFlagsException {
 	return &DuplicateFormatFlagsException{DetailMessage: detailMessage}
+}
+
+// equals to getStackTrace in java
+func (e DuplicateFormatFlagsException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

@@ -152,15 +152,15 @@ func TestClusterHealthCheck(t *testing.T) {
 	// choose fallback
 	for i := 0; i < 100; i++ {
 		host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
-		if host.AddressString() == testServers[0].hostConfig.Address {
-			t.Fatal("choose a unhealthy host")
+		if host == nil || host.AddressString() == testServers[0].hostConfig.Address {
+			t.Fatal("choose an unhealthy host")
 		}
 	}
 	// choose policy
 	for i := 0; i < 100; i++ {
 		host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
-		if host.AddressString() == testServers[0].hostConfig.Address {
-			t.Fatal("choose a unhealthy host")
+		if host == nil || host.AddressString() == testServers[0].hostConfig.Address {
+			t.Fatal("choose an unhealthy host")
 		}
 	}
 	// clear result, restart server and waits, new server will be choosed again
@@ -201,6 +201,7 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 		results[s.hostConfig.Address] = 0
 	}
 	log.DefaultLogger.SetLogLevel(log.INFO)
+	defer log.DefaultLogger.SetLogLevel(log.ERROR)
 	cluster := createHealthCheckCluster(testServers)
 	// choose host and add new host concurrency
 	// new host should be choosed after add
@@ -276,7 +277,7 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
 		if host.AddressString() == snew.hostConfig.Address {
-			t.Fatal("choose a unhealthy host:", host.Health())
+			t.Fatal("choose an unhealthy host:", host.Health())
 		}
 	}
 	var delHosts []types.Host // host after deleted
@@ -290,11 +291,17 @@ func TestHealthCheckWithDynamicCluster(t *testing.T) {
 	// choose fallback
 	for i := 0; i < 100; i++ {
 		host := cluster.Snapshot().LoadBalancer().ChooseHost(nil)
+		if host == nil {
+			t.Fatal("cannot found a healthy host")
+		}
 		results[host.AddressString()] = results[host.AddressString()] + 1
 	}
 	// choose policy
 	for i := 0; i < 100; i++ {
 		host := cluster.Snapshot().LoadBalancer().ChooseHost(ctx)
+		if host == nil {
+			t.Fatal("cannot found a healthy host")
+		}
 		results[host.AddressString()] = results[host.AddressString()] + 1
 	}
 	// the removed one should not not be choosed

@@ -22,9 +22,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"strings"
 	"testing"
 
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	xdsbootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
+	"github.com/golang/protobuf/jsonpb"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -146,6 +150,31 @@ func TestClusterConfigDynamicModeParse(t *testing.T) {
 	}
 }
 
+func TestClusterConfigWithSep(t *testing.T) {
+	testClusterPath := "/tmp/testcluster"
+	clusterName := "cluster/with/sep"
+	os.RemoveAll(testClusterPath)
+	cm := &ClusterManagerConfig{
+		ClusterManagerConfigJson: ClusterManagerConfigJson{
+			ClusterConfigPath: testClusterPath,
+		},
+		Clusters: []Cluster{
+			Cluster{
+				Name: clusterName,
+			},
+		},
+	}
+	if _, err := json.Marshal(cm); err != nil {
+		t.Fatal(err)
+	}
+	// expected a file exists
+	data, err := ioutil.ReadFile(path.Join(testClusterPath, "cluster_with_sep.json"))
+	if err != nil || !strings.Contains(string(data), clusterName) {
+		t.Fatalf("read cluster file failed, error: %v, data: %s", err, string(data))
+	}
+
+}
+
 func TestClusterConfigConflict(t *testing.T) {
 	mosnConfig := `{
 		"cluster_manager": {
@@ -185,6 +214,61 @@ func TestAdminConfig(t *testing.T) {
 	}
 	if cfg.GetAdmin() == nil {
 		t.Error("no admin config got")
+	}
+	if cfg.Mode() != File {
+		t.Fatalf("config mode is %d", cfg.Mode())
+	}
+}
+
+func TestMosnXdsMode(t *testing.T) {
+	mosnConfig := `{
+		 "dynamic_resources": {
+			 "ads_config": {
+				 "api_type": "GRPC",
+				 "grpc_services": [
+				 	{
+						"envoy_grpc": {
+							"cluster_name": "xds-grpc"
+						}
+					}
+				 ]
+			 }
+		 },
+		 "static_resources": {
+			 "clusters": [
+			 	{
+					"name": "xds-grpc",
+					"type": "STRICT_DNS",
+					"lb_policy": "ROUND_ROBIN",
+					"hosts": []
+				}
+			 ]
+		 }
+	}`
+	cfg := &MOSNConfig{}
+	if err := json.Unmarshal([]byte(mosnConfig), cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Mode() != Xds {
+		t.Fatalf("config mode is %d", cfg.Mode())
+	}
+}
+
+func TestMosnMixMode(t *testing.T) {
+	mosnConfig := `{
+		"servers": [
+			{}
+		],
+		"dynamic_resources": {
+		},
+		"static_resources": {}
+	}`
+	cfg := &MOSNConfig{}
+	if err := json.Unmarshal([]byte(mosnConfig), cfg); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Mode() != Mix {
+		t.Fatalf("config mode is %d", cfg.Mode())
 	}
 }
 
@@ -296,4 +380,26 @@ func TestLoadSdsConfig(t *testing.T) {
 	if err := json.Unmarshal(content, cfg); err != nil {
 		t.Fatal("json unmarshal config failed, ", xdsSdsConfig, "", err)
 	}
+
+	staticResource := &xdsbootstrap.Bootstrap_StaticResources{}
+	jContent, err := cfg.RawStaticResources.MarshalJSON()
+	if err != nil {
+		t.Fatalf("parse pilot address fail: %v", err)
+	}
+
+	err = jsonpb.UnmarshalString(string(jContent), staticResource)
+	if err != nil {
+		t.Fatalf("unmarshal static resource fail %v", err)
+	}
+
+	if staticResource.Clusters[0].Name != "xds-grpc" {
+		t.Fatal("cluster name should be xds-grpc")
+	}
+
+	firstHost := staticResource.Clusters[0].Hosts[0]
+	hAddress := firstHost.Address.(*core.Address_SocketAddress)
+	if hAddress.SocketAddress.Address != "pilot.test" {
+		t.Fatal("parse pilot name fail")
+	}
+
 }

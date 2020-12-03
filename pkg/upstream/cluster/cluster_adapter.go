@@ -30,7 +30,7 @@ type MngAdapter struct {
 }
 
 var adapterInstance = &MngAdapter{
-	ClusterManager: clusterMangerInstance,
+	ClusterManager: clusterManagerInstance,
 }
 
 func GetClusterMngAdapterInstance() *MngAdapter {

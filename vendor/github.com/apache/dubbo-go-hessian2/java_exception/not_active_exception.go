@@ -17,6 +17,7 @@
 
 package java_exception
 
+// NotActiveException represents an exception of the same name in java
 type NotActiveException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type NotActiveException struct {
 	Cause                Throwabler
 }
 
+// NewNotActiveException is the constructor
 func NewNotActiveException(detailMessage string) *NotActiveException {
 	return &NotActiveException{DetailMessage: detailMessage}
 }
 
+// Error output error message
 func (e NotActiveException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (NotActiveException) JavaClassName() string {
 	return "java.io.NotActiveException"
+}
+
+// equals to getStackTrace in java
+func (e NotActiveException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

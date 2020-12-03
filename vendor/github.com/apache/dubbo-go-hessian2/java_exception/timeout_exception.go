@@ -17,6 +17,7 @@
 
 package java_exception
 
+// TimeoutException represents an exception of the same name in java
 type TimeoutException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type TimeoutException struct {
 	Cause                Throwabler
 }
 
+// NewTimeoutException is the constructor
 func NewTimeoutException(detailMessage string) *TimeoutException {
 	return &TimeoutException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e TimeoutException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (TimeoutException) JavaClassName() string {
 	return "java.util.concurrent.TimeoutException"
+}
+
+// equals to getStackTrace in java
+func (e TimeoutException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

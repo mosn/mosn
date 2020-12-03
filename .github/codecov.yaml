@@ -1,0 +1,23 @@
+# To validate:
+#   cat codecov.yml | curl --data-binary @- https://codecov.io/validate
+
+codecov:
+  notify:
+    require_ci_to_pass: yes
+
+  allow_coverage_offsets: true
+
+coverage:
+  precision: 2
+  round: down
+  range: "50...75"
+
+  status:
+    project:
+      default:
+        threshold: 1
+    # Disable patch since it is noisy and not correct
+    patch:
+      default:
+        enabled: no
+        if_not_found: success

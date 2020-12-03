@@ -97,6 +97,30 @@ func (c *mockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestIn
 	return
 }
 
+func (c *mockRouteRule) GlobalTimeout() time.Duration {
+	return 10 ^ 6*time.Millisecond
+}
+
+func (c *mockRouteRule) Policy() api.Policy {
+	return &mockPolicy{}
+}
+
+type mockPolicy struct {
+	api.Policy
+}
+
+func (p *mockPolicy) RetryPolicy() api.RetryPolicy {
+	return &mockRetryPolicy{}
+}
+
+type mockRetryPolicy struct {
+	api.RetryPolicy
+}
+
+func (p *mockRetryPolicy) TryTimeout() time.Duration {
+	return time.Millisecond
+}
+
 type mockDirectRule struct {
 	status int
 	body   string
@@ -122,6 +146,10 @@ func (m *mockClusterManager) PutClusterSnapshot(snapshot types.ClusterSnapshot) 
 
 type mockClusterSnapshot struct {
 	types.ClusterSnapshot
+}
+
+func (mcs *mockClusterSnapshot) ClusterInfo() types.ClusterInfo {
+	return nil
 }
 
 type mockResponseSender struct {
@@ -192,7 +220,7 @@ func (tracer *mockTracer) Start(ctx context.Context, request interface{}, startT
 }
 
 type mockSpan struct {
-	inject bool
+	inject   bool
 	finished bool
 }
 
@@ -233,4 +261,16 @@ func (s *mockSpan) InjectContext(requestHeaders types.HeaderMap, requestInfo typ
 
 func (s *mockSpan) SpawnChild(operationName string, startTime time.Time) types.Span {
 	return nil
+}
+
+type mockServerConn struct {
+	types.ServerStreamConnection
+}
+
+func (s *mockServerConn) Protocol() api.Protocol {
+	return "mockProtocol"
+}
+
+func (s *mockServerConn) EnableWorkerPool() bool {
+	return true
 }

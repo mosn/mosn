@@ -17,6 +17,7 @@
 
 package java_exception
 
+// WriteAbortedException represents an exception of the same name in java
 type WriteAbortedException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -26,15 +27,23 @@ type WriteAbortedException struct {
 	Cause                Throwabler
 }
 
+// NewWriteAbortedException is the constructor
 func NewWriteAbortedException(detailMessage string, detail Throwabler) *WriteAbortedException {
 	return &WriteAbortedException{DetailMessage: detailMessage, StackTrace: nil,
 		Detail: detail}
 }
 
+// Error output error message
 func (e WriteAbortedException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (WriteAbortedException) JavaClassName() string {
 	return "java.io.WriteAbortedException"
+}
+
+// equals to getStackTrace in java
+func (e WriteAbortedException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

@@ -22,7 +22,27 @@ import (
 )
 
 var (
-	ErrExit = errors.New("downstream process completed")
+	ErrExit          = errors.New("downstream process completed")
+	IsDirectResponse = "true"
+	PhaseName        = []string{
+		InitPhase:                 "InitPhase",
+		DownFilter:                "DownFilter",
+		MatchRoute:                "MatchRoute",
+		DownFilterAfterRoute:      "DownFilterAfterRoute",
+		ChooseHost:                "ChooseHost",
+		DownFilterAfterChooseHost: "DownFilterAfterChooseHost",
+		DownRecvHeader:            "DownRecvHeader",
+		DownRecvData:              "DownRecvData",
+		DownRecvTrailer:           "DownRecvTrailer",
+		Oneway:                    "Oneway",
+		Retry:                     "Retry",
+		WaitNotify:                "WaitNotify",
+		UpFilter:                  "UpFilter",
+		UpRecvHeader:              "UpRecvHeader",
+		UpRecvData:                "UpRecvData",
+		UpRecvTrailer:             "UpRecvTrailer",
+		End:                       "End",
+	}
 )
 
 type Phase int
@@ -32,12 +52,14 @@ const (
 	DownFilter
 	MatchRoute
 	DownFilterAfterRoute
+	ChooseHost
+	DownFilterAfterChooseHost
 	DownRecvHeader
 	DownRecvData
 	DownRecvTrailer
 	Oneway
 	Retry
-	WaitNofity
+	WaitNotify
 	UpFilter
 	UpRecvHeader
 	UpRecvData

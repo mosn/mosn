@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -18,12 +19,13 @@ import (
 // ResponseHeader instance MUST NOT be used from concurrently running
 // goroutines.
 type ResponseHeader struct {
-	noCopy noCopy
+	noCopy noCopy //nolint:unused,structcheck
 
 	disableNormalizing   bool
 	noHTTP11             bool
 	connectionClose      bool
 	noDefaultContentType bool
+	noDefaultDate        bool
 
 	statusCode         int
 	contentLength      int
@@ -46,7 +48,7 @@ type ResponseHeader struct {
 // RequestHeader instance MUST NOT be used from concurrently running
 // goroutines.
 type RequestHeader struct {
-	noCopy noCopy
+	noCopy noCopy //nolint:unused,structcheck
 
 	disableNormalizing bool
 	noHTTP11           bool
@@ -55,7 +57,6 @@ type RequestHeader struct {
 	// These two fields have been moved close to other bool fields
 	// for reducing RequestHeader object size.
 	cookiesCollected bool
-	rawHeadersParsed bool
 
 	contentLength      int
 	contentLengthBytes []byte
@@ -71,11 +72,9 @@ type RequestHeader struct {
 
 	cookies []argsKV
 
-	rawHeaders []byte
-
 	// stores an immutable copy of headers as they were received from the
 	// wire.
-	rawHeadersCopy []byte
+	rawHeaders []byte
 }
 
 // SetContentRange sets 'Content-Range: bytes startPos-endPos/contentLength'
@@ -99,8 +98,6 @@ func (h *ResponseHeader) SetContentRange(startPos, endPos, contentLength int) {
 //     * If startPos is negative, then 'bytes=-startPos' value is set.
 //     * If endPos is negative, then 'bytes=startPos-' value is set.
 func (h *RequestHeader) SetByteRange(startPos, endPos int) {
-	h.parseRawHeaders()
-
 	b := h.bufKV.value[:0]
 	b = append(b, strBytes...)
 	b = append(b, '=')
@@ -157,19 +154,16 @@ func (h *ResponseHeader) ResetConnectionClose() {
 
 // ConnectionClose returns true if 'Connection: close' header is set.
 func (h *RequestHeader) ConnectionClose() bool {
-	h.parseRawHeaders()
 	return h.connectionClose
 }
 
 // SetConnectionClose sets 'Connection: close' header.
 func (h *RequestHeader) SetConnectionClose() {
-	// h.parseRawHeaders() isn't called for performance reasons.
 	h.connectionClose = true
 }
 
 // ResetConnectionClose clears 'Connection: close' header if it exists.
 func (h *RequestHeader) ResetConnectionClose() {
-	h.parseRawHeaders()
 	if h.connectionClose {
 		h.connectionClose = false
 		h.h = delAllArgsBytes(h.h, strConnection)
@@ -178,13 +172,12 @@ func (h *RequestHeader) ResetConnectionClose() {
 
 // ConnectionUpgrade returns true if 'Connection: Upgrade' header is set.
 func (h *ResponseHeader) ConnectionUpgrade() bool {
-	return hasHeaderValue(h.Peek("Connection"), strUpgrade)
+	return hasHeaderValue(h.Peek(HeaderConnection), strUpgrade)
 }
 
 // ConnectionUpgrade returns true if 'Connection: Upgrade' header is set.
 func (h *RequestHeader) ConnectionUpgrade() bool {
-	h.parseRawHeaders()
-	return hasHeaderValue(h.Peek("Connection"), strUpgrade)
+	return hasHeaderValue(h.Peek(HeaderConnection), strUpgrade)
 }
 
 // PeekCookie is able to returns cookie by a given key from response.
@@ -244,16 +237,12 @@ func (h *ResponseHeader) mustSkipContentLength() bool {
 // It may be negative:
 // -1 means Transfer-Encoding: chunked.
 func (h *RequestHeader) ContentLength() int {
-	if h.ignoreBody() {
-		return 0
-	}
 	return h.realContentLength()
 }
 
 // realContentLength returns the actual Content-Length set in the request,
 // including positive lengths for GET/HEAD requests.
 func (h *RequestHeader) realContentLength() int {
-	h.parseRawHeaders()
 	return h.contentLength
 }
 
@@ -261,7 +250,6 @@ func (h *RequestHeader) realContentLength() int {
 //
 // Negative content-length sets 'Transfer-Encoding: chunked' header.
 func (h *RequestHeader) SetContentLength(contentLength int) {
-	h.parseRawHeaders()
 	h.contentLength = contentLength
 	if contentLength >= 0 {
 		h.contentLengthBytes = AppendUint(h.contentLengthBytes[:0], contentLength)
@@ -314,19 +302,16 @@ func (h *ResponseHeader) SetServerBytes(server []byte) {
 
 // ContentType returns Content-Type header value.
 func (h *RequestHeader) ContentType() []byte {
-	h.parseRawHeaders()
 	return h.contentType
 }
 
 // SetContentType sets Content-Type header value.
 func (h *RequestHeader) SetContentType(contentType string) {
-	h.parseRawHeaders()
 	h.contentType = append(h.contentType[:0], contentType...)
 }
 
 // SetContentTypeBytes sets Content-Type header value.
 func (h *RequestHeader) SetContentTypeBytes(contentType []byte) {
-	h.parseRawHeaders()
 	h.contentType = append(h.contentType[:0], contentType...)
 }
 
@@ -334,8 +319,6 @@ func (h *RequestHeader) SetContentTypeBytes(contentType []byte) {
 // 'multipart/form-data; boundary=...'
 // where ... is substituted by the given boundary.
 func (h *RequestHeader) SetMultipartFormBoundary(boundary string) {
-	h.parseRawHeaders()
-
 	b := h.bufKV.value[:0]
 	b = append(b, strMultipartFormData...)
 	b = append(b, ';', ' ')
@@ -351,8 +334,6 @@ func (h *RequestHeader) SetMultipartFormBoundary(boundary string) {
 // 'multipart/form-data; boundary=...'
 // where ... is substituted by the given boundary.
 func (h *RequestHeader) SetMultipartFormBoundaryBytes(boundary []byte) {
-	h.parseRawHeaders()
-
 	b := h.bufKV.value[:0]
 	b = append(b, strMultipartFormData...)
 	b = append(b, ';', ' ')
@@ -408,50 +389,31 @@ func (h *RequestHeader) MultipartFormBoundary() []byte {
 
 // Host returns Host header value.
 func (h *RequestHeader) Host() []byte {
-	if len(h.host) > 0 {
-		return h.host
-	}
-	if !h.rawHeadersParsed {
-		// fast path without employing full headers parsing.
-		host := peekRawHeader(h.rawHeaders, strHost)
-		if len(host) > 0 {
-			h.host = append(h.host[:0], host...)
-			return h.host
-		}
-	}
-
-	// slow path.
-	h.parseRawHeaders()
 	return h.host
 }
 
 // SetHost sets Host header value.
 func (h *RequestHeader) SetHost(host string) {
-	h.parseRawHeaders()
 	h.host = append(h.host[:0], host...)
 }
 
 // SetHostBytes sets Host header value.
 func (h *RequestHeader) SetHostBytes(host []byte) {
-	h.parseRawHeaders()
 	h.host = append(h.host[:0], host...)
 }
 
 // UserAgent returns User-Agent header value.
 func (h *RequestHeader) UserAgent() []byte {
-	h.parseRawHeaders()
 	return h.userAgent
 }
 
 // SetUserAgent sets User-Agent header value.
 func (h *RequestHeader) SetUserAgent(userAgent string) {
-	h.parseRawHeaders()
 	h.userAgent = append(h.userAgent[:0], userAgent...)
 }
 
 // SetUserAgentBytes sets User-Agent header value.
 func (h *RequestHeader) SetUserAgentBytes(userAgent []byte) {
-	h.parseRawHeaders()
 	h.userAgent = append(h.userAgent[:0], userAgent...)
 }
 
@@ -643,6 +605,7 @@ func (h *ResponseHeader) DisableNormalizing() {
 func (h *ResponseHeader) Reset() {
 	h.disableNormalizing = false
 	h.noDefaultContentType = false
+	h.noDefaultDate = false
 	h.resetSkipNormalize()
 }
 
@@ -685,7 +648,6 @@ func (h *RequestHeader) resetSkipNormalize() {
 	h.cookiesCollected = false
 
 	h.rawHeaders = h.rawHeaders[:0]
-	h.rawHeadersParsed = false
 }
 
 // CopyTo copies all the headers to dst.
@@ -696,6 +658,7 @@ func (h *ResponseHeader) CopyTo(dst *ResponseHeader) {
 	dst.noHTTP11 = h.noHTTP11
 	dst.connectionClose = h.connectionClose
 	dst.noDefaultContentType = h.noDefaultContentType
+	dst.noDefaultDate = h.noDefaultDate
 
 	dst.statusCode = h.statusCode
 	dst.contentLength = h.contentLength
@@ -725,8 +688,6 @@ func (h *RequestHeader) CopyTo(dst *RequestHeader) {
 	dst.cookies = copyArgs(dst.cookies, h.cookies)
 	dst.cookiesCollected = h.cookiesCollected
 	dst.rawHeaders = append(dst.rawHeaders[:0], h.rawHeaders...)
-	dst.rawHeadersParsed = h.rawHeadersParsed
-	dst.rawHeadersCopy = append(dst.rawHeadersCopy[:0], h.rawHeadersCopy...)
 }
 
 // VisitAll calls f for each header.
@@ -771,7 +732,6 @@ func (h *ResponseHeader) VisitAllCookie(f func(key, value []byte)) {
 //
 // f must not retain references to key and/or value after returning.
 func (h *RequestHeader) VisitAllCookie(f func(key, value []byte)) {
-	h.parseRawHeaders()
 	h.collectCookies()
 	visitArgs(h.cookies, f)
 }
@@ -783,7 +743,6 @@ func (h *RequestHeader) VisitAllCookie(f func(key, value []byte)) {
 //
 // To get the headers in order they were received use VisitAllInOrder.
 func (h *RequestHeader) VisitAll(f func(key, value []byte)) {
-	h.parseRawHeaders()
 	host := h.Host()
 	if len(host) > 0 {
 		f(strHost, host)
@@ -819,7 +778,6 @@ func (h *RequestHeader) VisitAll(f func(key, value []byte)) {
 // This function is slightly slower than VisitAll because it has to reparse the
 // raw headers to get the order.
 func (h *RequestHeader) VisitAllInOrder(f func(key, value []byte)) {
-	h.parseRawHeaders()
 	var s headerScanner
 	s.b = h.rawHeaders
 	s.disableNormalizing = h.disableNormalizing
@@ -845,16 +803,16 @@ func (h *ResponseHeader) DelBytes(key []byte) {
 
 func (h *ResponseHeader) del(key []byte) {
 	switch string(key) {
-	case "Content-Type":
+	case HeaderContentType:
 		h.contentType = h.contentType[:0]
-	case "Server":
+	case HeaderServer:
 		h.server = h.server[:0]
-	case "Set-Cookie":
+	case HeaderSetCookie:
 		h.cookies = h.cookies[:0]
-	case "Content-Length":
+	case HeaderContentLength:
 		h.contentLength = 0
 		h.contentLengthBytes = h.contentLengthBytes[:0]
-	case "Connection":
+	case HeaderConnection:
 		h.connectionClose = false
 	}
 	h.h = delAllArgsBytes(h.h, key)
@@ -862,14 +820,12 @@ func (h *ResponseHeader) del(key []byte) {
 
 // Del deletes header with the given key.
 func (h *RequestHeader) Del(key string) {
-	h.parseRawHeaders()
 	k := getHeaderKeyBytes(&h.bufKV, key, h.disableNormalizing)
 	h.del(k)
 }
 
 // DelBytes deletes header with the given key.
 func (h *RequestHeader) DelBytes(key []byte) {
-	h.parseRawHeaders()
 	h.bufKV.key = append(h.bufKV.key[:0], key...)
 	normalizeHeaderKey(h.bufKV.key, h.disableNormalizing)
 	h.del(h.bufKV.key)
@@ -877,18 +833,18 @@ func (h *RequestHeader) DelBytes(key []byte) {
 
 func (h *RequestHeader) del(key []byte) {
 	switch string(key) {
-	case "Host":
+	case HeaderHost:
 		h.host = h.host[:0]
-	case "Content-Type":
+	case HeaderContentType:
 		h.contentType = h.contentType[:0]
-	case "User-Agent":
+	case HeaderUserAgent:
 		h.userAgent = h.userAgent[:0]
-	case "Cookie":
+	case HeaderCookie:
 		h.cookies = h.cookies[:0]
-	case "Content-Length":
+	case HeaderContentLength:
 		h.contentLength = 0
 		h.contentLengthBytes = h.contentLengthBytes[:0]
-	case "Connection":
+	case HeaderConnection:
 		h.connectionClose = false
 	}
 	h.h = delAllArgsBytes(h.h, key)
@@ -964,30 +920,30 @@ func (h *ResponseHeader) SetBytesKV(key, value []byte) {
 // key is in canonical form.
 func (h *ResponseHeader) SetCanonical(key, value []byte) {
 	switch string(key) {
-	case "Content-Type":
+	case HeaderContentType:
 		h.SetContentTypeBytes(value)
-	case "Server":
+	case HeaderServer:
 		h.SetServerBytes(value)
-	case "Set-Cookie":
+	case HeaderSetCookie:
 		var kv *argsKV
 		h.cookies, kv = allocArg(h.cookies)
 		kv.key = getCookieKey(kv.key, value)
 		kv.value = append(kv.value[:0], value...)
-	case "Content-Length":
+	case HeaderContentLength:
 		if contentLength, err := parseContentLength(value); err == nil {
 			h.contentLength = contentLength
 			h.contentLengthBytes = append(h.contentLengthBytes[:0], value...)
 		}
-	case "Connection":
+	case HeaderConnection:
 		if bytes.Equal(strClose, value) {
 			h.SetConnectionClose()
 		} else {
 			h.ResetConnectionClose()
 			h.h = setArgBytes(h.h, key, value, argsHasValue)
 		}
-	case "Transfer-Encoding":
+	case HeaderTransferEncoding:
 		// Transfer-Encoding is managed automatically.
-	case "Date":
+	case HeaderDate:
 		// Date is managed automatically.
 	default:
 		h.h = setArgBytes(h.h, key, value, argsHasValue)
@@ -1003,7 +959,6 @@ func (h *ResponseHeader) SetCookie(cookie *Cookie) {
 
 // SetCookie sets 'key: value' cookies.
 func (h *RequestHeader) SetCookie(key, value string) {
-	h.parseRawHeaders()
 	h.collectCookies()
 	h.cookies = setArg(h.cookies, key, value, argsHasValue)
 }
@@ -1056,7 +1011,6 @@ func (h *ResponseHeader) DelCookieBytes(key []byte) {
 
 // DelCookie removes cookie under the given key.
 func (h *RequestHeader) DelCookie(key string) {
-	h.parseRawHeaders()
 	h.collectCookies()
 	h.cookies = delAllArgs(h.cookies, key)
 }
@@ -1073,7 +1027,6 @@ func (h *ResponseHeader) DelAllCookies() {
 
 // DelAllCookies removes all the cookies from request headers.
 func (h *RequestHeader) DelAllCookies() {
-	h.parseRawHeaders()
 	h.collectCookies()
 	h.cookies = h.cookies[:0]
 }
@@ -1147,30 +1100,29 @@ func (h *RequestHeader) SetBytesKV(key, value []byte) {
 // SetCanonical sets the given 'key: value' header assuming that
 // key is in canonical form.
 func (h *RequestHeader) SetCanonical(key, value []byte) {
-	h.parseRawHeaders()
 	switch string(key) {
-	case "Host":
+	case HeaderHost:
 		h.SetHostBytes(value)
-	case "Content-Type":
+	case HeaderContentType:
 		h.SetContentTypeBytes(value)
-	case "User-Agent":
+	case HeaderUserAgent:
 		h.SetUserAgentBytes(value)
-	case "Cookie":
+	case HeaderCookie:
 		h.collectCookies()
 		h.cookies = parseRequestCookies(h.cookies, value)
-	case "Content-Length":
+	case HeaderContentLength:
 		if contentLength, err := parseContentLength(value); err == nil {
 			h.contentLength = contentLength
 			h.contentLengthBytes = append(h.contentLengthBytes[:0], value...)
 		}
-	case "Connection":
+	case HeaderConnection:
 		if bytes.Equal(strClose, value) {
 			h.SetConnectionClose()
 		} else {
 			h.ResetConnectionClose()
 			h.h = setArgBytes(h.h, key, value, argsHasValue)
 		}
-	case "Transfer-Encoding":
+	case HeaderTransferEncoding:
 		// Transfer-Encoding is managed automatically.
 	default:
 		h.h = setArgBytes(h.h, key, value, argsHasValue)
@@ -1217,18 +1169,18 @@ func (h *RequestHeader) PeekBytes(key []byte) []byte {
 
 func (h *ResponseHeader) peek(key []byte) []byte {
 	switch string(key) {
-	case "Content-Type":
+	case HeaderContentType:
 		return h.ContentType()
-	case "Server":
+	case HeaderServer:
 		return h.Server()
-	case "Connection":
+	case HeaderConnection:
 		if h.ConnectionClose() {
 			return strClose
 		}
 		return peekArgBytes(h.h, key)
-	case "Content-Length":
+	case HeaderContentLength:
 		return h.contentLengthBytes
-	case "Set-Cookie":
+	case HeaderSetCookie:
 		return appendResponseCookieBytes(nil, h.cookies)
 	default:
 		return peekArgBytes(h.h, key)
@@ -1236,27 +1188,25 @@ func (h *ResponseHeader) peek(key []byte) []byte {
 }
 
 func (h *RequestHeader) peek(key []byte) []byte {
-	h.parseRawHeaders()
 	switch string(key) {
-	case "Host":
+	case HeaderHost:
 		return h.Host()
-	case "Content-Type":
+	case HeaderContentType:
 		return h.ContentType()
-	case "User-Agent":
+	case HeaderUserAgent:
 		return h.UserAgent()
-	case "Connection":
+	case HeaderConnection:
 		if h.ConnectionClose() {
 			return strClose
 		}
 		return peekArgBytes(h.h, key)
-	case "Content-Length":
+	case HeaderContentLength:
 		return h.contentLengthBytes
-	case "Cookie":
+	case HeaderCookie:
 		if h.cookiesCollected {
 			return appendRequestCookieBytes(nil, h.cookies)
-		} else {
-			return peekArgBytes(h.h, key)
 		}
+		return peekArgBytes(h.h, key)
 	default:
 		return peekArgBytes(h.h, key)
 	}
@@ -1264,14 +1214,12 @@ func (h *RequestHeader) peek(key []byte) []byte {
 
 // Cookie returns cookie for the given key.
 func (h *RequestHeader) Cookie(key string) []byte {
-	h.parseRawHeaders()
 	h.collectCookies()
 	return peekArgStr(h.cookies, key)
 }
 
 // CookieBytes returns cookie for the given key.
 func (h *RequestHeader) CookieBytes(key []byte) []byte {
-	h.parseRawHeaders()
 	h.collectCookies()
 	return peekArgBytes(h.cookies, key)
 }
@@ -1284,7 +1232,7 @@ func (h *ResponseHeader) Cookie(cookie *Cookie) bool {
 	if v == nil {
 		return false
 	}
-	cookie.ParseBytes(v)
+	cookie.ParseBytes(v) //nolint:errcheck
 	return true
 }
 
@@ -1310,7 +1258,11 @@ func (h *ResponseHeader) tryRead(r *bufio.Reader, n int) error {
 	h.resetSkipNormalize()
 	b, err := r.Peek(n)
 	if len(b) == 0 {
-		// treat all errors on the first byte read as EOF
+		// Return ErrTimeout on any timeout.
+		if x, ok := err.(interface{ Timeout() bool }); ok && x.Timeout() {
+			return ErrTimeout
+		}
+		// treat all other errors on the first byte read as EOF
 		if n == 1 || err == io.EOF {
 			return io.EOF
 		}
@@ -1396,9 +1348,10 @@ func (h *RequestHeader) tryRead(r *bufio.Reader, n int) error {
 			}
 		}
 
+		// n == 1 on the first read for the request.
 		if n == 1 {
 			// We didn't read a single byte.
-			return errNothingRead
+			return ErrNothingRead{err}
 		}
 
 		return fmt.Errorf("error when reading request headers: %s", err)
@@ -1436,7 +1389,7 @@ func isOnlyCRLF(b []byte) bool {
 	return true
 }
 
-func init() {
+func updateServerDate() {
 	refreshServerDate()
 	go func() {
 		for {
@@ -1446,7 +1399,10 @@ func init() {
 	}()
 }
 
-var serverDate atomic.Value
+var (
+	serverDate     atomic.Value
+	serverDateOnce sync.Once // serverDateOnce.Do(updateServerDate)
+)
 
 func refreshServerDate() {
 	b := AppendHTTPDate(nil, time.Now())
@@ -1493,13 +1449,20 @@ func (h *ResponseHeader) AppendBytes(dst []byte) []byte {
 	if len(server) != 0 {
 		dst = appendHeaderLine(dst, strServer, server)
 	}
-	dst = appendHeaderLine(dst, strDate, serverDate.Load().([]byte))
+
+	if !h.noDefaultDate {
+		serverDateOnce.Do(updateServerDate)
+		dst = appendHeaderLine(dst, strDate, serverDate.Load().([]byte))
+	}
 
 	// Append Content-Type only for non-zero responses
 	// or if it is explicitly set.
 	// See https://github.com/valyala/fasthttp/issues/28 .
 	if h.ContentLength() != 0 || len(h.contentType) > 0 {
-		dst = appendHeaderLine(dst, strContentType, h.ContentType())
+		contentType := h.ContentType()
+		if len(contentType) > 0 {
+			dst = appendHeaderLine(dst, strContentType, contentType)
+		}
 	}
 
 	if len(h.contentLengthBytes) > 0 {
@@ -1508,7 +1471,7 @@ func (h *ResponseHeader) AppendBytes(dst []byte) []byte {
 
 	for i, n := 0, len(h.h); i < n; i++ {
 		kv := &h.h[i]
-		if !bytes.Equal(kv.key, strDate) {
+		if h.noDefaultDate || !bytes.Equal(kv.key, strDate) {
 			dst = appendHeaderLine(dst, kv.key, kv.value)
 		}
 	}
@@ -1561,7 +1524,7 @@ func (h *RequestHeader) Header() []byte {
 //
 // The slice is not safe to use after the handler returns.
 func (h *RequestHeader) RawHeaders() []byte {
-	return h.rawHeadersCopy
+	return h.rawHeaders
 }
 
 // String returns request header representation.
@@ -1572,17 +1535,12 @@ func (h *RequestHeader) String() string {
 // AppendBytes appends request header representation to dst and returns
 // the extended dst.
 func (h *RequestHeader) AppendBytes(dst []byte) []byte {
-	// there is no need in h.parseRawHeaders() here - raw headers are specially handled below.
 	dst = append(dst, h.Method()...)
 	dst = append(dst, ' ')
 	dst = append(dst, h.RequestURI()...)
 	dst = append(dst, ' ')
 	dst = append(dst, strHTTP11...)
 	dst = append(dst, strCRLF...)
-
-	if !h.rawHeadersParsed && len(h.rawHeaders) > 0 {
-		return append(dst, h.rawHeaders...)
-	}
 
 	userAgent := h.UserAgent()
 	if len(userAgent) > 0 {
@@ -1595,17 +1553,14 @@ func (h *RequestHeader) AppendBytes(dst []byte) []byte {
 	}
 
 	contentType := h.ContentType()
-	if !h.ignoreBody() {
-		if len(contentType) == 0 {
-			contentType = strPostArgsContentType
-		}
+	if len(contentType) == 0 && !h.ignoreBody() {
+		contentType = strPostArgsContentType
+	}
+	if len(contentType) > 0 {
 		dst = appendHeaderLine(dst, strContentType, contentType)
-
-		if len(h.contentLengthBytes) > 0 {
-			dst = appendHeaderLine(dst, strContentLength, h.contentLengthBytes)
-		}
-	} else if len(contentType) > 0 {
-		dst = appendHeaderLine(dst, strContentType, contentType)
+	}
+	if len(h.contentLengthBytes) > 0 {
+		dst = appendHeaderLine(dst, strContentLength, h.contentLengthBytes)
 	}
 
 	for i, n := 0, len(h.h); i < n; i++ {
@@ -1659,22 +1614,14 @@ func (h *RequestHeader) parse(buf []byte) (int, error) {
 		return 0, err
 	}
 
-	var n int
-	var rawHeaders []byte
-	rawHeaders, n, err = readRawHeaders(h.rawHeaders[:0], buf[m:])
+	h.rawHeaders, _, err = readRawHeaders(h.rawHeaders[:0], buf[m:])
 	if err != nil {
 		return 0, err
 	}
-	h.rawHeadersCopy = append(h.rawHeadersCopy[:0], rawHeaders...)
-	if !h.ignoreBody() || h.noHTTP11 {
-		n, err = h.parseHeaders(buf[m:])
-		if err != nil {
-			return 0, err
-		}
-		h.rawHeaders = append(h.rawHeaders[:0], buf[m:m+n]...)
-		h.rawHeadersParsed = true
-	} else {
-		h.rawHeaders = rawHeaders
+	var n int
+	n, err = h.parseHeaders(buf[m:])
+	if err != nil {
+		return 0, err
 	}
 	return m + n, nil
 }
@@ -1776,7 +1723,7 @@ func peekRawHeader(buf, key []byte) []byte {
 func readRawHeaders(dst, buf []byte) ([]byte, int, error) {
 	n := bytes.IndexByte(buf, '\n')
 	if n < 0 {
-		return nil, 0, errNeedMore
+		return dst[:0], 0, errNeedMore
 	}
 	if (n == 1 && buf[0] == '\r') || n == 0 {
 		// empty headers
@@ -1790,7 +1737,7 @@ func readRawHeaders(dst, buf []byte) ([]byte, int, error) {
 		b = b[m:]
 		m = bytes.IndexByte(b, '\n')
 		if m < 0 {
-			return nil, 0, errNeedMore
+			return dst, 0, errNeedMore
 		}
 		m++
 		n += m
@@ -1890,6 +1837,13 @@ func (h *RequestHeader) parseHeaders(buf []byte) (int, error) {
 	var err error
 	for s.next() {
 		if len(s.key) > 0 {
+			// Spaces between the header key and colon are not allowed.
+			// See RFC 7230, Section 3.2.4.
+			if bytes.IndexByte(s.key, ' ') != -1 || bytes.IndexByte(s.key, '\t') != -1 {
+				err = fmt.Errorf("invalid header key %q", s.key)
+				continue
+			}
+
 			switch s.key[0] | 0x20 {
 			case 'h':
 				if caseInsensitiveCompare(s.key, strHost) {
@@ -1908,7 +1862,11 @@ func (h *RequestHeader) parseHeaders(buf []byte) (int, error) {
 				}
 				if caseInsensitiveCompare(s.key, strContentLength) {
 					if h.contentLength != -1 {
-						if h.contentLength, err = parseContentLength(s.value); err != nil {
+						var nerr error
+						if h.contentLength, nerr = parseContentLength(s.value); nerr != nil {
+							if err == nil {
+								err = nerr
+							}
 							h.contentLength = -2
 						} else {
 							h.contentLengthBytes = append(h.contentLengthBytes[:0], s.value...)
@@ -1937,9 +1895,12 @@ func (h *RequestHeader) parseHeaders(buf []byte) (int, error) {
 		}
 		h.h = appendArgBytes(h.h, s.key, s.value, argsHasValue)
 	}
-	if s.err != nil {
+	if s.err != nil && err == nil {
+		err = s.err
+	}
+	if err != nil {
 		h.connectionClose = true
-		return 0, s.err
+		return 0, err
 	}
 
 	if h.contentLength < 0 {
@@ -1951,17 +1912,6 @@ func (h *RequestHeader) parseHeaders(buf []byte) (int, error) {
 		h.connectionClose = !hasHeaderValue(v, strKeepAlive)
 	}
 	return s.hLen, nil
-}
-
-func (h *RequestHeader) parseRawHeaders() {
-	if h.rawHeadersParsed {
-		return
-	}
-	h.rawHeadersParsed = true
-	if len(h.rawHeaders) == 0 {
-		return
-	}
-	h.parseHeaders(h.rawHeaders)
 }
 
 func (h *RequestHeader) collectCookies() {
@@ -2005,9 +1955,24 @@ type headerScanner struct {
 	hLen int
 
 	disableNormalizing bool
+
+	// by checking whether the next line contains a colon or not to tell
+	// it's a header entry or a multi line value of current header entry.
+	// the side effect of this operation is that we know the index of the
+	// next colon and new line, so this can be used during next iteration,
+	// instead of find them again.
+	nextColon   int
+	nextNewLine int
+
+	initialized bool
 }
 
 func (s *headerScanner) next() bool {
+	if !s.initialized {
+		s.nextColon = -1
+		s.nextNewLine = -1
+		s.initialized = true
+	}
 	bLen := len(s.b)
 	if bLen >= 2 && s.b[0] == '\r' && s.b[1] == '\n' {
 		s.b = s.b[2:]
@@ -2019,7 +1984,27 @@ func (s *headerScanner) next() bool {
 		s.hLen++
 		return false
 	}
-	n := bytes.IndexByte(s.b, ':')
+	var n int
+	if s.nextColon >= 0 {
+		n = s.nextColon
+		s.nextColon = -1
+	} else {
+		n = bytes.IndexByte(s.b, ':')
+
+		// There can't be a \n inside the header name, check for this.
+		x := bytes.IndexByte(s.b, '\n')
+		if x < 0 {
+			// A header name should always at some point be followed by a \n
+			// even if it's the one that terminates the header block.
+			s.err = errNeedMore
+			return false
+		}
+		if x < n {
+			// There was a \n before the :
+			s.err = errInvalidName
+			return false
+		}
+	}
 	if n < 0 {
 		s.err = errNeedMore
 		return false
@@ -2029,14 +2014,51 @@ func (s *headerScanner) next() bool {
 	n++
 	for len(s.b) > n && s.b[n] == ' ' {
 		n++
+		// the newline index is a relative index, and lines below trimed `s.b` by `n`,
+		// so the relative newline index also shifted forward. it's safe to decrease
+		// to a minus value, it means it's invalid, and will find the newline again.
+		s.nextNewLine--
 	}
 	s.hLen += n
 	s.b = s.b[n:]
-	n = bytes.IndexByte(s.b, '\n')
+	if s.nextNewLine >= 0 {
+		n = s.nextNewLine
+		s.nextNewLine = -1
+	} else {
+		n = bytes.IndexByte(s.b, '\n')
+	}
 	if n < 0 {
 		s.err = errNeedMore
 		return false
 	}
+	isMultiLineValue := false
+	for {
+		if n+1 >= len(s.b) {
+			break
+		}
+		if s.b[n+1] != ' ' && s.b[n+1] != '\t' {
+			break
+		}
+		d := bytes.IndexByte(s.b[n+1:], '\n')
+		if d <= 0 {
+			break
+		} else if d == 1 && s.b[n+1] == '\r' {
+			break
+		}
+		e := n + d + 1
+		if c := bytes.IndexByte(s.b[n+1:e], ':'); c >= 0 {
+			s.nextColon = c
+			s.nextNewLine = d - c - 1
+			break
+		}
+		isMultiLineValue = true
+		n = e
+	}
+	if n >= len(s.b) {
+		s.err = errNeedMore
+		return false
+	}
+	oldB := s.b
 	s.value = s.b[:n]
 	s.hLen += n + 1
 	s.b = s.b[n+1:]
@@ -2048,6 +2070,9 @@ func (s *headerScanner) next() bool {
 		n--
 	}
 	s.value = s.value[:n]
+	if isMultiLineValue {
+		s.value, s.b, s.hLen = normalizeHeaderValue(s.value, oldB, s.hLen)
+	}
 	return true
 }
 
@@ -2116,6 +2141,52 @@ func getHeaderKeyBytes(kv *argsKV, key string, disableNormalizing bool) []byte {
 	return kv.key
 }
 
+func normalizeHeaderValue(ov, ob []byte, headerLength int) (nv, nb []byte, nhl int) {
+	nv = ov
+	length := len(ov)
+	if length <= 0 {
+		return
+	}
+	write := 0
+	shrunk := 0
+	lineStart := false
+	for read := 0; read < length; read++ {
+		c := ov[read]
+		if c == '\r' || c == '\n' {
+			shrunk++
+			if c == '\n' {
+				lineStart = true
+			}
+			continue
+		} else if lineStart && c == '\t' {
+			c = ' '
+		} else {
+			lineStart = false
+		}
+		nv[write] = c
+		write++
+	}
+
+	nv = nv[:write]
+	copy(ob[write:], ob[write+shrunk:])
+
+	// Check if we need to skip \r\n or just \n
+	skip := 0
+	if ob[write] == '\r' {
+		if ob[write+1] == '\n' {
+			skip += 2
+		} else {
+			skip++
+		}
+	} else if ob[write] == '\n' {
+		skip++
+	}
+
+	nb = ob[write+skip : len(ob)-shrunk]
+	nhl = headerLength - shrunk
+	return
+}
+
 func normalizeHeaderKey(b []byte, disableNormalizing bool) {
 	if disableNormalizing {
 		return
@@ -2172,9 +2243,15 @@ func AppendNormalizedHeaderKeyBytes(dst, key []byte) []byte {
 
 var (
 	errNeedMore    = errors.New("need more data: cannot find trailing lf")
+	errInvalidName = errors.New("invalid header name")
 	errSmallBuffer = errors.New("small read buffer. Increase ReadBufferSize")
-	errNothingRead = errors.New("read timeout with nothing read")
 )
+
+// ErrNothingRead is returned when a keep-alive connection is closed,
+// either because the remote closed it or because of a read timeout.
+type ErrNothingRead struct {
+	error
+}
 
 // ErrSmallBuffer is returned when the provided buffer size is too small
 // for reading request and/or response headers.

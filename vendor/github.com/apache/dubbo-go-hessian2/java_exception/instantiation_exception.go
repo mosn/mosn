@@ -17,6 +17,7 @@
 
 package java_exception
 
+// InstantiationException represents an exception of the same name in java
 type InstantiationException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type InstantiationException struct {
 	Cause                Throwabler
 }
 
+// NewInstantiationException is the constructor
 func NewInstantiationException(detailMessage string) *InstantiationException {
 	return &InstantiationException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e InstantiationException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (InstantiationException) JavaClassName() string {
 	return "java.lang.InstantiationException"
+}
+
+// equals to getStackTrace in java
+func (e InstantiationException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

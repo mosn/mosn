@@ -23,6 +23,7 @@ import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"github.com/golang/protobuf/ptypes"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/xds/v2/rds"
@@ -60,11 +61,11 @@ func (c *ADSClient) reqRoutes(streamClient ads.AggregatedDiscoveryService_Stream
 func (c *ADSClient) handleRoutesResp(resp *envoy_api_v2.DiscoveryResponse) []*envoy_api_v2.RouteConfiguration {
 	routes := make([]*envoy_api_v2.RouteConfiguration, 0, len(resp.Resources))
 	for _, res := range resp.Resources {
-		route := envoy_api_v2.RouteConfiguration{}
-		if err := route.Unmarshal(res.GetValue()); err != nil {
+		route := &envoy_api_v2.RouteConfiguration{}
+		if err := ptypes.UnmarshalAny(res, route); err != nil {
 			log.DefaultLogger.Errorf("ADSClient unmarshal route fail: %v", err)
 		}
-		routes = append(routes, &route)
+		routes = append(routes, route)
 	}
 	return routes
 }

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// NumberFormatException represents an exception of the same name in java
 type NumberFormatException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type NumberFormatException struct {
 	Cause                Throwabler
 }
 
+// NewNumberFormatException is the constructor
 func NewNumberFormatException(detailMessage string) *NumberFormatException {
 	return &NumberFormatException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e NumberFormatException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (NumberFormatException) JavaClassName() string {
 	return "java.lang.NumberFormatException"
+}
+
+// equals to getStackTrace in java
+func (e NumberFormatException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

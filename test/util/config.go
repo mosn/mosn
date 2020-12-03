@@ -118,7 +118,7 @@ func CreateXProtocolMesh(clientaddr string, serveraddr string, subProtocol types
 	upstreamCluster := "upstream"
 	downstreamRouters := []v2.Router{
 		NewPrefixRouter(downstreamCluster, "/"),
-		NewHeaderRouter(upstreamCluster, ".*"),
+		NewHeaderRouter(downstreamCluster, ".*"),
 	}
 	clientChains := []v2.FilterChain{
 		NewXProtocolFilterChain("xprotocol_test_router_config_name", subProtocol, downstreamRouters),
@@ -254,10 +254,10 @@ func CreateTCPProxyConfig(meshaddr string, hosts []string, isRouteEntryMode bool
 	if isRouteEntryMode {
 		cluster = ""
 	}
-	tcpConfig := v2.TCPProxy{
+	tcpConfig := v2.StreamProxy{
 		Cluster: cluster,
-		Routes: []*v2.TCPRoute{
-			&v2.TCPRoute{
+		Routes: []*v2.StreamRoute{
+			&v2.StreamRoute{
 				Cluster:          "cluster",
 				SourceAddrs:      []v2.CidrRange{v2.CidrRange{Address: "127.0.0.1", Length: 24}},
 				DestinationAddrs: []v2.CidrRange{v2.CidrRange{Address: "127.0.0.1", Length: 24}},

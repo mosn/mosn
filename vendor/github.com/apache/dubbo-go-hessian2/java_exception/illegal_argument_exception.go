@@ -17,6 +17,7 @@
 
 package java_exception
 
+// IllegalArgumentException represents an exception of the same name in java
 type IllegalArgumentException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type IllegalArgumentException struct {
 	Cause                Throwabler
 }
 
+// NewIllegalArgumentException is the constructor
 func NewIllegalArgumentException(detailMessage string) *IllegalArgumentException {
 	return &IllegalArgumentException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IllegalArgumentException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalArgumentException) JavaClassName() string {
 	return "java.lang.IllegalArgumentException"
+}
+
+// equals to getStackTrace in java
+func (e IllegalArgumentException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

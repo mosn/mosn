@@ -32,6 +32,15 @@ var (
 	ErrNoLoggerFound = errors.New("no logger found in logger manager")
 )
 
+var levelMap = map[log.Level]string{
+	log.FATAL: "FATAL",
+	log.ERROR: "ERROR",
+	log.WARN:  "WARN",
+	log.INFO:  "INFO",
+	log.DEBUG: "DEBUG",
+	log.TRACE: "TRACE",
+}
+
 var errorLoggerManagerInstance *ErrorLoggerManager
 
 func init() {
@@ -52,7 +61,24 @@ func init() {
 // ErrorLoggerManager manages error log can be updated dynamicly
 type ErrorLoggerManager struct {
 	mutex    sync.Mutex
-	managers map[string]log.ErrorLogger
+	disabled bool
+	// if logLevelControl is set, it's the lowest log level over MOSN
+	// for example: WARN level will limit DEBUG level to be WARN, when creating logger
+	withLogLevelControl bool
+	logLevelControl     log.Level
+	managers            map[string]log.ErrorLogger
+}
+
+//GetAllErrorLogger returns all of ErrorLogger info
+func (mng *ErrorLoggerManager) GetAllErrorLogger() map[string]string {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+	loggers := make(map[string]string)
+	log.DefaultLogger.Infof("logger is %+v", mng.managers)
+	for key, lg := range mng.managers {
+		loggers[key] = levelMap[lg.GetLogLevel()]
+	}
+	return loggers
 }
 
 // GetOrCreateErrorLogger returns a ErrorLogger based on the output(p).
@@ -67,19 +93,71 @@ func (mng *ErrorLoggerManager) GetOrCreateErrorLogger(p string, level log.Level,
 	if f == nil {
 		return nil, ErrNoLoggerFound
 	}
+
+	// if logLevelControl log level is higher than level input
+	// use logLevelControl to limit log level
+	if mng.withLogLevelControl && mng.logLevelControl < level {
+		level = mng.logLevelControl
+	}
+
 	lg, err := f(p, level)
 	if err != nil {
 		return nil, err
 	}
 	mng.managers[p] = lg
+
+	if mng.disabled {
+		lg.Toggle(true)
+	}
+
 	return lg, nil
+}
+
+func (mng *ErrorLoggerManager) SetLogLevelControl(level log.Level) {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+	// save logLevelControl
+	mng.withLogLevelControl = true
+	mng.logLevelControl = level
+}
+
+func (mng *ErrorLoggerManager) DisableLogLevelControl() {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+
+	mng.withLogLevelControl = false
+	mng.logLevelControl = log.RAW
 }
 
 func (mng *ErrorLoggerManager) SetAllErrorLoggerLevel(level log.Level) {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
+	// check logLevelControl
+	if mng.withLogLevelControl && mng.logLevelControl < level {
+		level = mng.logLevelControl
+	}
 	for _, lg := range mng.managers {
 		lg.SetLogLevel(level)
+	}
+}
+
+func (mng *ErrorLoggerManager) Disable() {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+
+	mng.disabled = true
+	for _, lg := range mng.managers {
+		lg.Toggle(true)
+	}
+}
+
+func (mng *ErrorLoggerManager) Enable() {
+	mng.mutex.Lock()
+	defer mng.mutex.Unlock()
+
+	mng.disabled = false
+	for _, lg := range mng.managers {
+		lg.Toggle(false)
 	}
 }
 
@@ -93,6 +171,7 @@ func GetOrCreateDefaultErrorLogger(p string, level log.Level) (log.ErrorLogger, 
 	return errorLoggerManagerInstance.GetOrCreateErrorLogger(p, level, DefaultCreateErrorLoggerFunc)
 }
 
+// InitDefaultLogger inits a default logger
 func InitDefaultLogger(output string, level log.Level) (err error) {
 	DefaultLogger, err = GetOrCreateDefaultErrorLogger(output, level)
 	if err != nil {
@@ -106,6 +185,11 @@ func InitDefaultLogger(output string, level log.Level) (err error) {
 	log.DefaultLogger = DefaultLogger
 	log.DefaultContextLogger = Proxy
 	return
+}
+
+//GetErrorLoggerInfo get the exists ErrorLogger
+func GetErrorLoggersInfo() map[string]string {
+	return errorLoggerManagerInstance.GetAllErrorLogger()
 }
 
 // UpdateErrorLoggerLevel updates the exists ErrorLogger's Level

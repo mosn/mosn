@@ -17,6 +17,7 @@
 
 package java_exception
 
+// IOException represents an exception of the same name in java
 type IOException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type IOException struct {
 	Cause                Throwabler
 }
 
+// NewIOException is the constructor
 func NewIOException(detailMessage string) *IOException {
 	return &IOException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IOException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (IOException) JavaClassName() string {
 	return "java.io.IOException"
+}
+
+// equals to getStackTrace in java
+func (e IOException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

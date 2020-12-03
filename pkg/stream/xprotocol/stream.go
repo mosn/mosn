@@ -65,7 +65,7 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 
 	// hijack process
 	if s.direction == stream.ServerStream && frame.GetStreamType() == xprotocol.Request {
-		s.frame, err = s.buildHijackResp(headers)
+		s.frame, err = s.buildHijackResp(frame, headers)
 		if err != nil {
 			return
 		}
@@ -80,12 +80,12 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 	return
 }
 
-func (s *xStream) buildHijackResp(header types.HeaderMap) (xprotocol.XFrame, error) {
+func (s *xStream) buildHijackResp(request xprotocol.XFrame, header types.HeaderMap) (xprotocol.XFrame, error) {
 	if status, ok := header.Get(types.HeaderStatus); ok {
 		header.Del(types.HeaderStatus)
 		statusCode, _ := strconv.Atoi(status)
 		proto := s.sc.protocol
-		return proto.Hijack(proto.Mapping(uint32(statusCode))), nil
+		return proto.Hijack(request, proto.Mapping(uint32(statusCode))), nil
 	}
 
 	return nil, types.ErrNoStatusCodeForHijack
@@ -95,6 +95,8 @@ func (s *xStream) AppendData(context context.Context, data types.IoBuffer, endSt
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.ctx, "[stream] [xprotocol] appendData, direction = %d, requestId = %d", s.direction, s.id)
 	}
+
+	s.frame.SetData(data)
 
 	if endStream {
 		s.endStream()
@@ -120,12 +122,18 @@ func (s *xStream) endStream() {
 	}()
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.ctx, "[stream] [xprotocol] endStream, direction = %d, requestId = %v", s.direction, s.id)
+		log.Proxy.Debugf(s.ctx, "[stream] [xprotocol] connection %d endStream, direction = %d, requestId = %v", s.sc.netConn.ID(), s.direction, s.id)
 	}
 
 	if s.frame != nil {
 		// replace requestID
 		s.frame.SetRequestId(s.id)
+
+		// remove injected headers
+		if _, ok := s.frame.(xprotocol.ServiceAware); ok {
+			s.frame.GetHeader().Del(types.HeaderRPCService)
+			s.frame.GetHeader().Del(types.HeaderRPCMethod)
+		}
 
 		buf, err := s.sc.protocol.Encode(s.ctx, s.frame)
 		if err != nil {
@@ -133,8 +141,6 @@ func (s *xStream) endStream() {
 			s.ResetStream(types.StreamLocalReset)
 			return
 		}
-
-		// TODO: header mutate support
 
 		err = s.sc.netConn.Write(buf)
 

@@ -18,6 +18,8 @@
 package proxy
 
 import (
+	"context"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
@@ -51,10 +53,10 @@ func newRetryState(retryPolicy api.RetryPolicy,
 	return rs
 }
 
-func (r *retryState) retry(headers api.HeaderMap, reason types.StreamResetReason) api.RetryCheckStatus {
+func (r *retryState) retry(ctx context.Context, headers api.HeaderMap, reason types.StreamResetReason) api.RetryCheckStatus {
 	r.reset()
 
-	check := r.shouldRetry(headers, reason)
+	check := r.shouldRetry(ctx, headers, reason)
 
 	if check != 0 {
 		return check
@@ -66,14 +68,14 @@ func (r *retryState) retry(headers api.HeaderMap, reason types.StreamResetReason
 	return 0
 }
 
-func (r *retryState) shouldRetry(headers api.HeaderMap, reason types.StreamResetReason) api.RetryCheckStatus {
+func (r *retryState) shouldRetry(ctx context.Context, headers api.HeaderMap, reason types.StreamResetReason) api.RetryCheckStatus {
 	if r.retiesRemaining == 0 {
 		return api.NoRetry
 	}
 
 	r.retiesRemaining--
 
-	if !r.doRetryCheck(headers, reason) {
+	if !r.doRetryCheck(ctx, headers, reason) {
 		return api.NoRetry
 	}
 
@@ -86,7 +88,7 @@ func (r *retryState) shouldRetry(headers api.HeaderMap, reason types.StreamReset
 	return api.ShouldRetry
 }
 
-func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamResetReason) bool {
+func (r *retryState) doRetryCheck(ctx context.Context, headers types.HeaderMap, reason types.StreamResetReason) bool {
 	if reason == types.StreamOverflow {
 		return false
 	}
@@ -95,7 +97,7 @@ func (r *retryState) doRetryCheck(headers types.HeaderMap, reason types.StreamRe
 		// TODO: add retry policy to decide retry or not. use default policy now
 		if headers != nil {
 			// default policy , mapping all headers to http status code
-			code, err := protocol.MappingHeaderStatusCode(r.upstreamProtocol, headers)
+			code, err := protocol.MappingHeaderStatusCode(ctx, r.upstreamProtocol, headers)
 			if err == nil {
 				// todo: support config?
 				return code >= http.InternalServerError

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ObjectStreamException represents an exception of the same name in java
 type ObjectStreamException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type ObjectStreamException struct {
 	Cause                Throwabler
 }
 
+// NewObjectStreamException is the constructor
 func NewObjectStreamException(detailMessage string) *ObjectStreamException {
 	return &ObjectStreamException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e ObjectStreamException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ObjectStreamException) JavaClassName() string {
 	return "java.io.ObjectStreamException"
+}
+
+// equals to getStackTrace in java
+func (e ObjectStreamException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
@@ -211,6 +211,7 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		routers.virtualHosts = append(routers.virtualHosts, vh)
 		vh.globalRouteConfig = configImpl
 		for _, domain := range vhConfig.Domains {

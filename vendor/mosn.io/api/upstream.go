@@ -17,6 +17,16 @@
 
 package api
 
+// HealthFlag type
+type HealthFlag int
+
+const (
+	// The host is currently failing active health checks.
+	FAILED_ACTIVE_HC HealthFlag = 0x1
+	// The host is currently considered an outlier and has been ejected.
+	FAILED_OUTLIER_CHECK HealthFlag = 0x02
+)
+
 // HostInfo defines a host's basic information
 type HostInfo interface {
 	// Hostname returns the host's name
@@ -34,6 +44,21 @@ type HostInfo interface {
 	// SupportTLS returns whether the host support tls connections or not
 	// If returns true, means support tls connection
 	SupportTLS() bool
+
+	// ClearHealthFlag clear the input flag
+	ClearHealthFlag(flag HealthFlag)
+
+	// ContainHealthFlag checks whether the heatlhy state contains the flag
+	ContainHealthFlag(flag HealthFlag) bool
+
+	// SetHealthFlag set the input flag
+	SetHealthFlag(flag HealthFlag)
+
+	// HealthFlag returns the current healthy flag
+	HealthFlag() HealthFlag
+
+	// Health checks whether the host is healthy or not
+	Health() bool
 
 	// TODO: add deploy locality
 }

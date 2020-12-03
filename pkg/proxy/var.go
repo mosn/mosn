@@ -19,68 +19,50 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"strconv"
+
+	"mosn.io/mosn/pkg/types"
 
 	"mosn.io/mosn/pkg/variable"
 )
 
-// The identification of a request info's content
 const (
-	VarStartTime                string = "start_time"
-	VarRequestReceivedDuration  string = "request_received_duration"
-	VarResponseReceivedDuration string = "response_received_duration"
-	VarRequestFinishedDuration  string = "request_finished_duration"
-	VarBytesSent                string = "bytes_sent"
-	VarBytesReceived            string = "bytes_received"
-	VarProtocol                 string = "protocol"
-	VarResponseCode             string = "response_code"
-	VarDuration                 string = "duration"
-	VarResponseFlag             string = "response_flag"
-	VarUpstreamLocalAddress     string = "upstream_local_address"
-	VarDownstreamLocalAddress   string = "downstream_local_address"
-	VarDownstreamRemoteAddress  string = "downstream_remote_address"
-	VarUpstreamHost             string = "upstream_host"
-
-	// ReqHeaderPrefix is the prefix of request header's formatter
-	reqHeaderPrefix string = "request_header_"
-	reqHeaderIndex         = len(reqHeaderPrefix)
-	// RespHeaderPrefix is the prefix of response header's formatter
-	respHeaderPrefix string = "response_header_"
-	respHeaderIndex         = len(respHeaderPrefix)
-)
-
-// internal communication
-const (
-	VarTryTimeout    string = "proxy_try_timeout"
-	VarGlobalTimeout string = "proxy_global_timeout"
-	VarHijackStatus  string = "proxy_hijack_status"
+	reqHeaderIndex  = len(types.VarPrefixReqHeader)
+	respHeaderIndex = len(types.VarPrefixRespHeader)
 )
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewBasicVariable(VarStartTime, nil, startTimeGetter, nil, 0),
-		variable.NewBasicVariable(VarRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
-		variable.NewBasicVariable(VarResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
-		variable.NewBasicVariable(VarRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
-		variable.NewBasicVariable(VarBytesSent, nil, bytesSentGetter, nil, 0),
-		variable.NewBasicVariable(VarBytesReceived, nil, bytesReceivedGetter, nil, 0),
-		variable.NewBasicVariable(VarProtocol, nil, protocolGetter, nil, 0),
-		variable.NewBasicVariable(VarResponseCode, nil, responseCodeGetter, nil, 0),
-		variable.NewBasicVariable(VarDuration, nil, durationGetter, nil, 0),
-		variable.NewBasicVariable(VarResponseFlag, nil, responseFlagGetter, nil, 0),
-		variable.NewBasicVariable(VarUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
-		variable.NewBasicVariable(VarDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
-		variable.NewBasicVariable(VarDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
-		variable.NewBasicVariable(VarUpstreamHost, nil, upstreamHostGetter, nil, 0),
+		variable.NewBasicVariable(types.VarStartTime, nil, startTimeGetter, nil, 0),
+		variable.NewBasicVariable(types.VarRequestReceivedDuration, nil, receivedDurationGetter, nil, 0),
+		variable.NewBasicVariable(types.VarResponseReceivedDuration, nil, responseReceivedDurationGetter, nil, 0),
+		variable.NewBasicVariable(types.VarRequestFinishedDuration, nil, requestFinishedDurationGetter, nil, 0),
+		variable.NewBasicVariable(types.VarBytesSent, nil, bytesSentGetter, nil, 0),
+		variable.NewBasicVariable(types.VarBytesReceived, nil, bytesReceivedGetter, nil, 0),
+		variable.NewBasicVariable(types.VarProtocol, nil, protocolGetter, nil, 0),
+		variable.NewBasicVariable(types.VarResponseCode, nil, responseCodeGetter, nil, 0),
+		variable.NewBasicVariable(types.VarDuration, nil, durationGetter, nil, 0),
+		variable.NewBasicVariable(types.VarResponseFlag, nil, responseFlagGetter, nil, 0),
+		variable.NewBasicVariable(types.VarResponseFlags, nil, responseFlagGetter, nil, 0),
+		variable.NewBasicVariable(types.VarUpstreamLocalAddress, nil, upstreamLocalAddressGetter, nil, 0),
+		variable.NewBasicVariable(types.VarDownstreamLocalAddress, nil, downstreamLocalAddressGetter, nil, 0),
+		variable.NewBasicVariable(types.VarDownstreamRemoteAddress, nil, downstreamRemoteAddressGetter, nil, 0),
+		variable.NewBasicVariable(types.VarUpstreamHost, nil, upstreamHostGetter, nil, 0),
+		variable.NewBasicVariable(types.VarUpstreamTransportFailureReason, nil, upstreamTransportFailureReasonGetter, nil, 0),
+		variable.NewBasicVariable(types.VarUpstreamCluster, nil, upstreamClusterGetter, nil, 0),
 
-		variable.NewIndexedVariable(VarTryTimeout, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(VarGlobalTimeout, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(VarHijackStatus, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(types.VarProxyTryTimeout, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(types.VarProxyGlobalTimeout, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(types.VarProxyHijackStatus, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(types.VarProxyGzipSwitch, nil, nil, variable.BasicSetter, 0),
+
+		variable.NewIndexedVariable(types.VarProxyIsDirectResponse, nil, nil, variable.BasicSetter, 0),
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(reqHeaderPrefix, nil, requestHeaderMapGetter, nil, 0),
-		variable.NewBasicVariable(respHeaderPrefix, nil, responseHeaderMapGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixReqHeader, nil, requestHeaderMapGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixRespHeader, nil, responseHeaderMapGetter, nil, 0),
 	}
 )
 
@@ -225,11 +207,28 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 	proxyBuffers := proxyBuffersByContext(ctx)
 	info := proxyBuffers.info
 
-	if info.UpstreamHost() != nil {
+	if info.UpstreamHost() != nil && info.UpstreamHost().Hostname() != "" {
 		return info.UpstreamHost().Hostname(), nil
 	}
 
 	return variable.ValueNotFound, nil
+}
+
+func upstreamTransportFailureReasonGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	proxyBuffers := proxyBuffersByContext(ctx)
+	info := proxyBuffers.info
+
+	return info.GetResponseFlagResult(), nil
+}
+
+func upstreamClusterGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	proxyBuffers := proxyBuffersByContext(ctx)
+	stream := proxyBuffers.stream
+
+	if stream.cluster != nil {
+		return stream.cluster.Name(), nil
+	}
+	return variable.ValueNotFound, errors.New("not found clustername")
 }
 
 func requestHeaderMapGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

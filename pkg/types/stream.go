@@ -180,6 +180,9 @@ type StreamConnection interface {
 	// Protocol on the connection
 	Protocol() api.Protocol
 
+	// EnableWorkerPool means enable worker pool on downstream OnReceive
+	EnableWorkerPool() bool
+
 	// Active streams count
 	ActiveStreamsNum() int
 
@@ -235,22 +238,20 @@ const (
 type ConnectionPool interface {
 	Protocol() api.Protocol
 
-	NewStream(ctx context.Context, receiver StreamReceiveListener, listener PoolEventListener)
+	NewStream(ctx context.Context, receiver StreamReceiveListener) (Host, StreamSender, PoolFailureReason)
 
 	// check host health and init host
 	CheckAndInit(ctx context.Context) bool
 
-	// SupportTLS represents the connection support tls or not
-	SupportTLS() bool
+	// TLSHashValue returns the TLS Config's HashValue.
+	// If HashValue is changed, the connection pool will changed.
+	TLSHashValue() *HashValue
 
 	// Shutdown gracefully shuts down the connection pool without interrupting any active requests
 	Shutdown()
 
 	Close()
-}
 
-type PoolEventListener interface {
-	OnFailure(reason PoolFailureReason, host Host)
-
-	OnReady(sender StreamSender, host Host)
+	// Host get host
+	Host() Host
 }

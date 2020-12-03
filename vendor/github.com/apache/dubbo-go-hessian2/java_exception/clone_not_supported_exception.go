@@ -21,6 +21,7 @@ package java_exception
 // CloneNotSupportedException
 ////////////////////////////
 
+// CloneNotSupportedException represents an exception of the same name in java
 type CloneNotSupportedException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -29,14 +30,22 @@ type CloneNotSupportedException struct {
 	Cause                Throwabler
 }
 
+// NewCloneNotSupportedException is the constructor
 func NewCloneNotSupportedException(detailMessage string) *CloneNotSupportedException {
 	return &CloneNotSupportedException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e CloneNotSupportedException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (CloneNotSupportedException) JavaClassName() string {
 	return "java.lang.CloneNotSupportedException"
+}
+
+// equals to getStackTrace in java
+func (e CloneNotSupportedException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

@@ -3,6 +3,23 @@
       "log_base": "/tmp/"
   },
   "servers": [{
+    "routers":[
+      {
+        "router_config_name": "client_router",
+        "virtual_hosts": [{
+           "name": "clientHost",
+           "domains": ["*"],
+           "routers": [{
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster_name": "clientCluster"
+              }
+           }]
+        }]
+      }
+    ],
     "listeners": [{
       "name": "clientListener",
       "address": "127.0.0.1:2045",
@@ -17,26 +34,7 @@
             "upstream_protocol": "Http1",
             "router_config_name": "client_router"
           }
-        },
-          {
-            "type": "connection_manager",
-            "config": {
-              "router_config_name": "client_router",
-              "virtual_hosts": [{
-                "name": "clientHost",
-                "domains": ["*"],
-                "routers": [{
-                  "match": {
-                    "prefix": "/"
-                  },
-                  "route": {
-                    "cluster_name": "clientCluster"
-                  }
-                }]
-              }]
-            }
-          }
-        ]
+        }]
       }],
       "stream_filters": [{
         "type": "pluginfilter"

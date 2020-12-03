@@ -19,14 +19,17 @@ package network
 
 import (
 	"context"
+	"errors"
 	"net"
 	"os"
-	"runtime/debug"
+	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
@@ -51,8 +54,10 @@ type listener struct {
 	listenerTag             uint64
 	perConnBufferLimitBytes uint32
 	useOriginalDst          bool
+	network                 string
 	cb                      types.ListenerEventListener
-	rawl                    *net.TCPListener
+	packetConn              net.PacketConn
+	rawl                    net.Listener
 	config                  *v2.Listener
 	mutex                   sync.Mutex
 	// listener state indicates the listener's running state. The listener state effects if a listener binded to a port
@@ -68,6 +73,7 @@ func NewListener(lc *v2.Listener) types.Listener {
 		listenerTag:             lc.ListenerTag,
 		perConnBufferLimitBytes: lc.PerConnBufferLimitBytes,
 		useOriginalDst:          lc.UseOriginalDst,
+		network:                 lc.Network,
 		config:                  lc,
 	}
 
@@ -75,7 +81,20 @@ func NewListener(lc *v2.Listener) types.Listener {
 		//inherit old process's listener
 		l.rawl = lc.InheritListener
 	}
+
+	if lc.InheritPacketConn != nil {
+		l.packetConn = *lc.InheritPacketConn
+	}
+
+	if lc.Network == "" {
+		l.network = "tcp"
+	}
+	lc.Network = strings.ToLower(lc.Network)
 	return l
+}
+
+func (l *listener) IsBindToPort() bool {
+	return l.bindToPort
 }
 
 func (l *listener) Config() *v2.Listener {
@@ -95,12 +114,6 @@ func (l *listener) Addr() net.Addr {
 }
 
 func (l *listener) Start(lctx context.Context, restart bool) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.DefaultLogger.Errorf("[network] [listener start] panic %v\n%s", r, string(debug.Stack()))
-		}
-	}()
-
 	if l.bindToPort {
 		ignore := func() bool {
 			l.mutex.Lock()
@@ -117,13 +130,13 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 				log.DefaultLogger.Infof("[network] [listener start] %s restart listener ", l.name)
 				if err := l.listen(lctx); err != nil {
 					// TODO: notify listener callbacks
-					log.DefaultLogger.Errorf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
+					log.DefaultLogger.Alertf("listener.start", "[network] [listener start] [listen] %s listen failed, %v", l.name, err)
 					return true
 				}
 			default:
 				// try start listener
 				//call listen if not inherit
-				if l.rawl == nil {
+				if l.rawl == nil && l.packetConn == nil {
 					if err := l.listen(lctx); err != nil {
 						// TODO: notify listener callbacks
 						log.StartLogger.Fatalf("[network] [listener start] [listen] %s listen failed, %v", l.name, err)
@@ -131,39 +144,76 @@ func (l *listener) Start(lctx context.Context, restart bool) {
 				}
 			}
 			l.state = ListenerRunning
+			// add metrics for listener if bind port
+			switch l.network {
+			case "udp":
+				metrics.AddListenerAddr(l.packetConn.(*net.UDPConn).LocalAddr().String() + l.network)
+			default:
+				metrics.AddListenerAddr(l.rawl.Addr().String())
+			}
+
 			return false
 		}()
 		if ignore {
 			return
 		}
+		switch l.network {
+		case "udp":
+			l.readMsgEventLoop(lctx)
+		default:
+			l.acceptEventLoop(lctx)
+		}
+	}
+}
 
-		for {
-			if err := l.accept(lctx); err != nil {
-				if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
-					log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s stop accepting connections by deadline", l.name)
-					return
-				} else if ope, ok := err.(*net.OpError); ok {
-					// not timeout error and not temporary, which means the error is non-recoverable
-					// stop accepting loop and log the event
-					if !(ope.Timeout() && ope.Temporary()) {
-						// accept error raised by sockets closing
-						if ope.Op == "accept" {
-							log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s %s closed", l.name, l.Addr())
-						} else {
-							log.DefaultLogger.Errorf("[network] [listener start] [accept] listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
-						}
-						return
+func (l *listener) acceptEventLoop(lctx context.Context) {
+	for {
+		if err := l.accept(lctx); err != nil {
+			if nerr, ok := err.(net.Error); ok && nerr.Timeout() {
+				log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s stop accepting connections by deadline", l.name)
+				return
+			} else if ope, ok := err.(*net.OpError); ok {
+				// not timeout error and not temporary, which means the error is non-recoverable
+				// stop accepting loop and log the event
+				if !(ope.Timeout() && ope.Temporary()) {
+					// accept error raised by sockets closing
+					if ope.Op == "accept" {
+						log.DefaultLogger.Infof("[network] [listener start] [accept] listener %s %s closed", l.name, l.Addr())
+					} else {
+						log.DefaultLogger.Alertf("listener.accept", "[network] [listener start] [accept] listener %s occurs non-recoverable error, stop listening and accepting:%s", l.name, err.Error())
 					}
-				} else {
-					log.DefaultLogger.Errorf("[network] [listener start] [accept] listener %s occurs unknown error while accepting:%s", l.name, err.Error())
+					return
 				}
+			} else {
+				log.DefaultLogger.Errorf("[network] [listener start] [accept] listener %s occurs unknown error while accepting:%s", l.name, err.Error())
 			}
 		}
 	}
 }
 
+func (l *listener) readMsgEventLoop(lctx context.Context) {
+	utils.GoWithRecover(func() {
+		readMsgLoop(lctx, l)
+	}, func(r interface{}) {
+		l.readMsgEventLoop(lctx)
+	})
+}
+
 func (l *listener) Stop() error {
-	return l.rawl.SetDeadline(time.Now())
+	if !l.bindToPort {
+		return nil
+	}
+
+	var err error
+	switch l.network {
+	case "udp":
+		err = l.packetConn.SetDeadline(time.Now())
+	case "unix":
+		err = l.rawl.(*net.UnixListener).SetDeadline(time.Now())
+	case "tcp":
+		err = l.rawl.(*net.TCPListener).SetDeadline(time.Now())
+	}
+	return err
 }
 
 func (l *listener) ListenerTag() uint64 {
@@ -175,7 +225,19 @@ func (l *listener) SetListenerTag(tag uint64) {
 }
 
 func (l *listener) ListenerFile() (*os.File, error) {
-	return l.rawl.File()
+	if !l.bindToPort {
+		return nil, syscall.EINVAL
+	}
+
+	switch l.network {
+	case "udp":
+		return l.packetConn.(*net.UDPConn).File()
+	case "unix":
+		return l.rawl.(*net.UnixListener).File()
+	case "tcp":
+		return l.rawl.(*net.TCPListener).File()
+	}
+	return nil, errors.New("not support this network " + l.network)
 }
 
 func (l *listener) PerConnBufferLimitBytes() uint32 {
@@ -206,22 +268,49 @@ func (l *listener) Close(lctx context.Context) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.state = ListenerStopped
+
+	if !l.bindToPort {
+		return nil
+	}
+
 	if l.rawl != nil {
 		l.cb.OnClose()
 		return l.rawl.Close()
+	}
+	if l.packetConn != nil {
+		l.cb.OnClose()
+		return l.packetConn.Close()
 	}
 	return nil
 }
 
 func (l *listener) listen(lctx context.Context) error {
 	var err error
+	var rawl net.Listener
+	var rconn net.PacketConn
 
-	var rawl *net.TCPListener
-	if rawl, err = net.ListenTCP("tcp", l.localAddress.(*net.TCPAddr)); err != nil {
-		return err
+	if l.localAddress == nil {
+		return errors.New("listener local addr is nil")
 	}
 
-	l.rawl = rawl
+	switch l.network {
+	case "udp":
+		lc := net.ListenConfig{}
+		if rconn, err = lc.ListenPacket(context.Background(), l.network, l.localAddress.String()); err != nil {
+			return err
+		}
+		l.packetConn = rconn
+	case "unix":
+		if rawl, err = net.Listen("unix", l.localAddress.String()); err != nil {
+			return err
+		}
+		l.rawl = rawl
+	case "tcp":
+		if rawl, err = net.Listen("tcp", l.localAddress.String()); err != nil {
+			return err
+		}
+		l.rawl = rawl
+	}
 
 	return nil
 }

@@ -1,0 +1,52 @@
+admin:
+  access_log_path: /tmp/envoy-access.log
+  address:
+    socket_address:
+      address: 127.0.0.1
+      port_value: 20235
+node:
+  id: id
+  cluster: unknown
+  metadata:
+    # these two must come together and they need to be set
+    NODE_UID: pod.ns
+    NODE_NAMESPACE: ns
+dynamic_resources:
+  lds_config: { ads: {} }
+  ads_config:
+    api_type: GRPC
+    grpc_services:
+      - envoy_grpc:
+          cluster_name: xds
+static_resources:
+  clusters:
+    - name: xds
+      http2_protocol_options: {}
+      connect_timeout: 5s
+      type: STATIC
+      hosts:
+        - socket_address:
+            address: 127.0.0.1
+            port_value: 20238
+    - name: "outbound|||svc.ns3"
+      connect_timeout: 5s
+      type: STATIC
+      hosts:
+        - socket_address:
+            address: 127.0.0.1
+            port_value: 20233
+    - name: "inbound|||backend"
+      connect_timeout: 5s
+      type: STATIC
+      hosts:
+        - socket_address:
+            address: 127.0.0.1
+            port_value: 20237
+    - name: "outbound|9091||mixer_server"
+      http2_protocol_options: {}
+      connect_timeout: 5s
+      type: STATIC
+      hosts:
+        - socket_address:
+            address: 127.0.0.1
+            port_value: 20236

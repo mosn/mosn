@@ -32,6 +32,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -48,6 +49,7 @@ func init() {
 }
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024
+const defaultMaxHeaderSize = 4 * 1024
 
 var (
 	errConnClose = errors.New("connection closed")
@@ -125,7 +127,6 @@ type streamConnection struct {
 	connClosed chan bool
 
 	br *bufio.Reader
-	bw *bufio.Writer
 }
 
 // types.StreamConnection
@@ -147,9 +148,21 @@ func (conn *streamConnection) Protocol() types.ProtocolName {
 	return protocol.HTTP1
 }
 
+func (conn *streamConnection) EnableWorkerPool() bool {
+	return true
+}
+
 func (conn *streamConnection) GoAway() {}
 
 func (conn *streamConnection) Read(p []byte) (n int, err error) {
+	// conn.bufChan <- nil Maybe caused panic error when connection closed.
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Infof("[stream] [http] connection has closed. Connection = %d, Local Address = %+v, Remote Address = %+v, err = %+v",
+				conn.conn.ID(), conn.conn.LocalAddr(), conn.conn.RemoteAddr(), r)
+		}
+	}()
+
 	data, ok := <-conn.bufChan
 
 	// Connection close
@@ -210,8 +223,17 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 		requestSent:                   make(chan bool, 1),
 	}
 
-	csc.br = bufio.NewReader(csc)
-	csc.bw = bufio.NewWriter(csc)
+	// Per-connection buffer size for responses' reading.
+	// This also limits the maximum header size, default 4096.
+	maxResponseHeaderSize := 0
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+		maxResponseHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
+	}
+	if maxResponseHeaderSize <= 0 {
+		maxResponseHeaderSize = defaultMaxHeaderSize
+	}
+
+	csc.br = bufio.NewReaderSize(csc, maxResponseHeaderSize)
 
 	utils.GoWithRecover(func() {
 		csc.serve()
@@ -231,6 +253,13 @@ func (conn *clientStreamConnection) serve() {
 		s := conn.stream
 		buffers := httpBuffersByContext(s.ctx)
 		s.response = &buffers.clientResponse
+		request := &buffers.serverRequest
+
+		// Response.Read() skips reading body if set to true.
+		// Use it for reading HEAD responses.
+		if request.Header.IsHead() {
+			s.response.SkipBody = true
+		}
 
 		// 1. blocking read using fasthttp.Response.Read
 		err := s.response.Read(conn.br)
@@ -348,11 +377,20 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 		serverStreamConnListener: callbacks,
 	}
 
+	// Per-connection buffer size for requests' reading.
+	// This also limits the maximum header size, default 4096.
+	maxRequestHeaderSize := 0
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+		maxRequestHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
+	}
+	if maxRequestHeaderSize <= 0 {
+		maxRequestHeaderSize = defaultMaxHeaderSize
+	}
+
 	// init first context
 	ssc.contextManager.Next()
 
-	ssc.br = bufio.NewReader(ssc)
-	ssc.bw = bufio.NewWriter(ssc)
+	ssc.br = bufio.NewReaderSize(ssc, maxRequestHeaderSize)
 
 	// Reset would not be called in server-side scene, so add listener for connection event
 	connection.AddConnectionEventListener(ssc)
@@ -384,10 +422,14 @@ func (conn *serverStreamConnection) serve() {
 		buffers := httpBuffersByContext(ctx)
 		request := &buffers.serverRequest
 
-		request.Header.DisableNormalizing()
+		// 0 is means no limit request body size
+		maxRequestBodySize := 0
+		if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+			maxRequestBodySize = gcf.(v2.ProxyGeneralExtendConfig).MaxRequestBodySize
+		}
 
 		// 2. blocking read using fasthttp.Request.Read
-		err := request.ReadLimitBody(conn.br, defaultMaxRequestBodySize)
+		err := request.ReadLimitBody(conn.br, maxRequestBodySize)
 		if err == nil {
 			// 3. 'Expect: 100-continue' request handling.
 			// See http://www.w3.org/Protocols/rfc2616/rfc2616-sec8.html for details.
@@ -396,16 +438,20 @@ func (conn *serverStreamConnection) serve() {
 				conn.conn.Write(buffer.NewIoBufferBytes(strResponseContinue))
 
 				// read request body
-				err = request.ContinueReadBody(conn.br, defaultMaxRequestBodySize)
+				err = request.ContinueReadBody(conn.br, maxRequestBodySize)
 
 				// remove 'Expect' header, so it would not be sent to the upstream
 				request.Header.Del("Expect")
 			}
 		}
 		if err != nil {
-			// "read timeout with nothing read" is the error of returned by fasthttp v1.2.0
-			// if connection closed with nothing read.
-			if err != errConnClose && err != io.EOF && err.Error() != "read timeout with nothing read" {
+			// ErrNothingRead is returned that means just a keep-alive connection
+			// closing down either because the remote closed it or because
+			// or a read timeout on our side. Either way just close the connection
+			// and don't return any error response.
+			// Refer https://github.com/valyala/fasthttp/commit/598a52272abafde3c5bebd7cc1972d3bead7a1f7
+			_, errNothingRead := err.(fasthttp.ErrNothingRead)
+			if err != errConnClose && err != io.EOF && !errNothingRead {
 				// write error response
 				conn.conn.Write(buffer.NewIoBufferBytes(strErrorResponse))
 
@@ -537,6 +583,11 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 		headers.SetMethod(http.MethodPost)
 	}
 
+	// clear 'Connection:close' header for keepalive connection with upstream
+	if headers.ConnectionClose() {
+		headers.Del("Connection")
+	}
+
 	removeInternalHeaders(headers, s.connection.conn.RemoteAddr())
 
 	// copy headers
@@ -619,10 +670,12 @@ func (s *clientStream) handleResponse() {
 		s.connection.stream = nil
 		s.connection.mutex.Unlock()
 
-		if hasData {
-			s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
-		} else {
-			s.receiver.OnReceive(s.ctx, header, nil, nil)
+		if s.receiver != nil {
+			if hasData {
+				s.receiver.OnReceive(s.ctx, header, buffer.NewIoBufferBytes(s.response.Body()), nil)
+			} else {
+				s.receiver.OnReceive(s.ctx, header, nil, nil)
+			}
 		}
 
 		//TODO cannot recycle immediately, headers might be used by proxy logic
@@ -681,7 +734,9 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 }
 
 func (s *serverStream) AppendData(context context.Context, data buffer.IoBuffer, endStream bool) error {
-	s.response.SetBody(data.Bytes())
+	// SetBodyRaw sets response body and could avoid copying it
+	// note: When it's actually sent to the network, it will copy the data once in Write func.
+	s.response.SetBodyRaw(data.Bytes())
 
 	if endStream {
 		s.endStream()
@@ -697,9 +752,20 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers types.He
 
 func (s *serverStream) endStream() {
 	resetConn := false
+
+	// Response.Write() skips writing body if set to true.
+	// Use it for writing HEAD responses.
+	if s.request.Header.IsHead() {
+		s.response.SkipBody = true
+	}
+
 	// check if we need close connection
 	if s.connection.close || s.request.Header.ConnectionClose() {
-		s.response.SetConnectionClose()
+		// should delete 'Connection:keepalive' header
+		if !s.response.ConnectionClose() {
+			s.response.Header.Del("Connection")
+			s.response.SetConnectionClose()
+		}
 		resetConn = true
 	} else if !s.request.Header.IsHTTP11() {
 		// Set 'Connection: keep-alive' response header for non-HTTP/1.1 request.
@@ -736,6 +802,7 @@ func (s *serverStream) ReadDisable(disable bool) {
 }
 
 func (s *serverStream) doSend() {
+
 	if _, err := s.response.WriteTo(s.connection); err != nil {
 		log.Proxy.Errorf(s.stream.ctx, "[stream] [http] send server response error: %+v", err)
 	} else {

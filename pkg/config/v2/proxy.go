@@ -19,13 +19,13 @@ package v2
 
 import "time"
 
-// TCPProxy
-type TCPProxy struct {
+// StreamProxy
+type StreamProxy struct {
 	StatPrefix         string         `json:"stat_prefix,omitempty"`
 	Cluster            string         `json:"cluster,omitempty"`
 	IdleTimeout        *time.Duration `json:"idle_timeout,omitempty"`
 	MaxConnectAttempts uint32         `json:"max_connect_attempts,omitempty"`
-	Routes             []*TCPRoute    `json:"routes,omitempty"`
+	Routes             []*StreamRoute `json:"routes,omitempty"`
 }
 
 // WebSocketProxy
@@ -43,9 +43,21 @@ type Proxy struct {
 	RouterConfigName   string                 `json:"router_config_name,omitempty"`
 	ValidateClusters   bool                   `json:"validate_clusters,omitempty"`
 	ExtendConfig       map[string]interface{} `json:"extend_config,omitempty"`
+
+	// proxy level concurrency config,
+	// concurrency num = worker num in worker pool per connection
+	// if concurrency num == 0, use global worker pool
+	ConcurrencyNum int `json:"concurrency_num,omitempty"`
 }
 
 // XProxyExtendConfig
 type XProxyExtendConfig struct {
 	SubProtocol string `json:"sub_protocol,omitempty"`
+}
+
+// ProxyGeneralExtendConfig is a general config for proxy
+type ProxyGeneralExtendConfig struct {
+	Http2UseStream     bool `json:"http2_use_stream,omitempty"`
+	MaxRequestBodySize int  `json:"max_request_body_size,omitempty"`
+	MaxHeaderSize      int  `json:"max_header_size,omitempty"`
 }

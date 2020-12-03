@@ -17,6 +17,7 @@
 
 package java_exception
 
+// InvalidObjectException represents an exception of the same name in java
 type InvalidObjectException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type InvalidObjectException struct {
 	Cause                Throwabler
 }
 
+// NewInvalidObjectException is the constructor
 func NewInvalidObjectException(detailMessage string) *InvalidObjectException {
 	return &InvalidObjectException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e InvalidObjectException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (InvalidObjectException) JavaClassName() string {
 	return "java.io.InvalidObjectException"
+}
+
+// equals to getStackTrace in java
+func (e InvalidObjectException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

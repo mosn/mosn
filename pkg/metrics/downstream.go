@@ -41,6 +41,20 @@ const (
 	DownstreamProcessTime        = "process_time"
 	DownstreamProcessTimeTotal   = "process_time_total"
 	DownstreamRequestFailed      = "request_failed"
+	DownstreamRequest200Total    = "request_200_total"
+	DownstreamRequest206Total    = "request_206_total"
+	DownstreamRequest302Total    = "request_302_total"
+	DownstreamRequest304Total    = "request_304_total"
+	DownstreamRequest400Total    = "request_400_total"
+	DownstreamRequest403Total    = "request_403_total"
+	DownstreamRequest404Total    = "request_404_total"
+	DownstreamRequest416Total    = "request_416_total"
+	DownstreamRequest499Total    = "request_499_total"
+	DownstreamRequest500Total    = "request_500_total"
+	DownstreamRequest502Total    = "request_502_total"
+	DownstreamRequest503Total    = "request_503_total"
+	DownstreamRequest504Total    = "request_504_total"
+	DownstreamRequestOtherTotal  = "request_other_code"
 )
 
 // NewProxyStats returns a stats with namespace prefix proxy

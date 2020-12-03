@@ -20,7 +20,7 @@ package java_exception
 ////////////////////////////
 // LambdaConversionException
 ////////////////////////////
-
+// LambdaConversionException represents an exception of the same name in java
 type LambdaConversionException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -29,14 +29,22 @@ type LambdaConversionException struct {
 	Cause                Throwabler
 }
 
+// NewLambdaConversionException is the constructor
 func NewLambdaConversionException(detailMessage string) *LambdaConversionException {
 	return &LambdaConversionException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e LambdaConversionException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (LambdaConversionException) JavaClassName() string {
 	return "java.lang.invoke.LambdaConversionException"
+}
+
+// equals to getStackTrace in java
+func (e LambdaConversionException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

@@ -5,7 +5,7 @@ echo "" > coverage.txt
 
 for d in $(go list ./pkg/...); do
     echo "--------Run test package: $d"
-    go test -v -coverprofile=profile.out -covermode=atomic $d
+    go test -gcflags=-l -v -coverprofile=profile.out -covermode=atomic $d
     echo "--------Finish test package: $d"
     if [ -f profile.out ]; then
         cat profile.out >> coverage.txt

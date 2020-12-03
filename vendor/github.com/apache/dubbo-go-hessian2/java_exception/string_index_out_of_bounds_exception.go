@@ -17,6 +17,7 @@
 
 package java_exception
 
+// StringIndexOutOfBoundsException represents an exception of the same name in java
 type StringIndexOutOfBoundsException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type StringIndexOutOfBoundsException struct {
 	Cause                Throwabler
 }
 
+// NewStringIndexOutOfBoundsException is the constructor
 func NewStringIndexOutOfBoundsException(detailMessage string) *StringIndexOutOfBoundsException {
 	return &StringIndexOutOfBoundsException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e StringIndexOutOfBoundsException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (StringIndexOutOfBoundsException) JavaClassName() string {
 	return "java.lang.StringIndexOutOfBoundsException"
+}
+
+// equals to getStackTrace in java
+func (e StringIndexOutOfBoundsException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

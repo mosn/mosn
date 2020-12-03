@@ -17,6 +17,7 @@
 
 package java_exception
 
+// MissingResourceException represents an exception of the same name in java
 type MissingResourceException struct {
 	ClassName            string
 	Key                  string
@@ -27,13 +28,22 @@ type MissingResourceException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e MissingResourceException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (MissingResourceException) JavaClassName() string {
 	return "java.util.MissingResourceException"
 }
+
+// NewMissingResourceException is the constructor
 func NewMissingResourceException(detailMessage, classname, key string) *MissingResourceException {
 	return &MissingResourceException{DetailMessage: detailMessage, ClassName: classname, Key: key}
+}
+
+// equals to getStackTrace in java
+func (e MissingResourceException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

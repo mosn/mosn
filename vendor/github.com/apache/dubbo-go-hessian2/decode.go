@@ -50,14 +50,53 @@ func NewDecoder(b []byte) *Decoder {
 	return &Decoder{reader: bufio.NewReader(bytes.NewReader(b)), typeRefs: &TypeRefs{records: map[string]bool{}}}
 }
 
+// NewDecoder generate a decoder instance
+func NewDecoderSize(b []byte, size int) *Decoder {
+	return &Decoder{reader: bufio.NewReaderSize(bytes.NewReader(b), size), typeRefs: &TypeRefs{records: map[string]bool{}}}
+}
+
 // NewDecoder generate a decoder instance with skip
 func NewDecoderWithSkip(b []byte) *Decoder {
 	return &Decoder{reader: bufio.NewReader(bytes.NewReader(b)), typeRefs: &TypeRefs{records: map[string]bool{}}, isSkip: true}
 }
 
+// NewCheapDecoderWithSkip generate a decoder instance with skip,
+// only for cache pool, before decode Reset should be called.
+// For example, with pooling use, will effectively improve performance
+//
+//	var hessianPool = &sync.Pool{
+//		New: func() interface{} {
+//			return hessian.NewCheapDecoderWithSkip([]byte{})
+//		},
+//	}
+//
+//	decoder := hessianPool.Get().(*hessian.Decoder)
+//	fill decode data
+//	decoder.Reset(data[:])
+//  decode anything ...
+//	hessianPool.Put(decoder)
+func NewCheapDecoderWithSkip(b []byte) *Decoder {
+	return &Decoder{reader: bufio.NewReader(bytes.NewReader(b)), isSkip: true}
+}
+
 /////////////////////////////////////////
 // utilities
 /////////////////////////////////////////
+
+func (d *Decoder) Reset(b []byte) *Decoder {
+	// reuse reader buf, avoid allocate
+	d.reader.Reset(bytes.NewReader(b))
+	d.typeRefs = &TypeRefs{records: map[string]bool{}}
+
+	if d.refs != nil {
+		d.refs = nil
+	}
+	if d.classInfoList != nil {
+		d.classInfoList = nil
+	}
+
+	return d
+}
 
 // peek a byte
 func (d *Decoder) peekByte() byte {
@@ -149,6 +188,8 @@ func (d *Decoder) decType() (string, error) {
 func (d *Decoder) Decode() (interface{}, error) {
 	return EnsureInterface(d.DecodeValue())
 }
+
+func (d *Decoder) Buffered() int { return d.reader.Buffered() }
 
 // DecodeValue parse hessian data, the return value maybe a reflection value when it's a map, list, object, or ref.
 func (d *Decoder) DecodeValue() (interface{}, error) {

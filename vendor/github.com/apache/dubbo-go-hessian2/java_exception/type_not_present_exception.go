@@ -17,6 +17,7 @@
 
 package java_exception
 
+// TypeNotPresentException represents an exception of the same name in java
 type TypeNotPresentException struct {
 	TypeName             string
 	SerialVersionUID     int64
@@ -26,13 +27,22 @@ type TypeNotPresentException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e TypeNotPresentException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (TypeNotPresentException) JavaClassName() string {
 	return "java.lang.TypeNotPresentException"
 }
+
+// NewTypeNotPresentException is the constructor
 func NewTypeNotPresentException(typeName string, detailMessage string) *TypeNotPresentException {
 	return &TypeNotPresentException{TypeName: typeName, DetailMessage: detailMessage}
+}
+
+// equals to getStackTrace in java
+func (e TypeNotPresentException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

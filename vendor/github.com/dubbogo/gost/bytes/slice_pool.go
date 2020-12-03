@@ -17,14 +17,9 @@
 
 package gxbytes
 
-import (
-	"sync"
-)
-
 const (
 	minShift = 6
 	maxShift = 18
-	errSlot  = -1
 )
 
 var (
@@ -36,98 +31,45 @@ func init() {
 }
 
 // SlicePool is []byte pools
+// Deprecated
 type SlicePool struct {
-	minShift int
-	minSize  int
-	maxSize  int
-
-	pool []*sliceSlot
-}
-
-type sliceSlot struct {
-	defaultSize int
-	pool        sync.Pool
+	BytesPool
 }
 
 // newSlicePool returns SlicePool
+// Deprecated
+// instead by NewBytesPool
 func NewSlicePool() *SlicePool {
+	sizes := make([]int, 0, maxShift-minShift+1)
+	for i := minShift; i <= maxShift; i++ {
+		sizes = append(sizes, 1<<uint(i))
+	}
 	p := &SlicePool{
-		minShift: minShift,
-		minSize:  1 << minShift,
-		maxSize:  1 << maxShift,
+		*NewBytesPool(sizes),
 	}
-	for i := 0; i <= maxShift-minShift; i++ {
-		slab := &sliceSlot{
-			defaultSize: 1 << (uint)(i+minShift),
-		}
-		p.pool = append(p.pool, slab)
-	}
-
 	return p
-}
-
-func (p *SlicePool) slot(size int) int {
-	if size > p.maxSize {
-		return errSlot
-	}
-	slot := 0
-	shift := 0
-	if size > p.minSize {
-		size--
-		for size > 0 {
-			size = size >> 1
-			shift++
-		}
-		slot = shift - p.minShift
-	}
-
-	return slot
-}
-
-func newSlice(size int) []byte {
-	return make([]byte, size)
 }
 
 // Get returns *[]byte from SlicePool
 func (p *SlicePool) Get(size int) *[]byte {
-	slot := p.slot(size)
-	if slot == errSlot {
-		b := newSlice(size)
-		return &b
-	}
-	v := p.pool[slot].pool.Get()
-	if v == nil {
-		b := newSlice(p.pool[slot].defaultSize)
-		b = b[0:size]
-		return &b
-	}
-	b := v.(*[]byte)
-	*b = (*b)[0:size]
-	return b
+	return p.AcquireBytes(size)
 }
 
 // Put returns *[]byte to SlicePool
-func (p *SlicePool) Put(buf *[]byte) {
-	if buf == nil {
-		return
-	}
-	size := cap(*buf)
-	slot := p.slot(size)
-	if slot == errSlot {
-		return
-	}
-	if size != int(p.pool[slot].defaultSize) {
-		return
-	}
-	p.pool[slot].pool.Put(buf)
+func (p *SlicePool) Put(bufp *[]byte) {
+	p.ReleaseBytes(bufp)
 }
 
 // GetBytes returns *[]byte from SlicePool
+// Deprecated
+// instead by AcquireBytes
 func GetBytes(size int) *[]byte {
 	return defaultSlicePool.Get(size)
 }
 
 // PutBytes Put *[]byte to SlicePool
+// Deprecated
+// instead by ReleaseBytes
 func PutBytes(buf *[]byte) {
 	defaultSlicePool.Put(buf)
 }

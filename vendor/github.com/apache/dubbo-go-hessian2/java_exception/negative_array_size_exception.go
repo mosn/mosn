@@ -17,6 +17,7 @@
 
 package java_exception
 
+// NegativeArraySizeException represents an exception of the same name in java
 type NegativeArraySizeException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type NegativeArraySizeException struct {
 	Cause                Throwabler
 }
 
+// NewNegativeArraySizeException is the constructor
 func NewNegativeArraySizeException(detailMessage string) *NegativeArraySizeException {
 	return &NegativeArraySizeException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e NegativeArraySizeException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (NegativeArraySizeException) JavaClassName() string {
 	return "java.lang.NegativeArraySizeException"
+}
+
+// equals to getStackTrace in java
+func (e NegativeArraySizeException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

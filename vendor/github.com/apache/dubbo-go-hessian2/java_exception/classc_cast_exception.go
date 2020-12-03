@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ClassCastException represents an exception of the same name in java
 type ClassCastException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type ClassCastException struct {
 	Cause                Throwabler
 }
 
+// NewClassCastException is the constructor
 func NewClassCastException(detailMessage string) *ClassCastException {
 	return &ClassCastException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e ClassCastException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ClassCastException) JavaClassName() string {
 	return "java.lang.ClassCastException"
+}
+
+// equals to getStackTrace in java
+func (e ClassCastException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

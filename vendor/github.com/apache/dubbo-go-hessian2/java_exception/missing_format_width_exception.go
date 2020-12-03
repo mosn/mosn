@@ -17,6 +17,7 @@
 
 package java_exception
 
+// MissingFormatWidthException represents an exception of the same name in java
 type MissingFormatWidthException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -26,14 +27,22 @@ type MissingFormatWidthException struct {
 	S                    string
 }
 
+// NewMissingFormatWidthException is the constructor
 func NewMissingFormatWidthException(s string) *MissingFormatWidthException {
 	return &MissingFormatWidthException{S: s, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e MissingFormatWidthException) Error() string {
 	return e.S
 }
 
+// JavaClassName  java fully qualified path
 func (MissingFormatWidthException) JavaClassName() string {
 	return "java.util.MissingFormatWidthException"
+}
+
+// equals to getStackTrace in java
+func (e MissingFormatWidthException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

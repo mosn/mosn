@@ -17,6 +17,7 @@
 
 package java_exception
 
+// NoSuchFieldException represents an exception of the same name in java
 type NoSuchFieldException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type NoSuchFieldException struct {
 	Cause                Throwabler
 }
 
+// NewNoSuchFieldException is the constructor
 func NewNoSuchFieldException(detailMessage string) *NoSuchFieldException {
 	return &NoSuchFieldException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e NoSuchFieldException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (NoSuchFieldException) JavaClassName() string {
 	return "java.lang.NoSuchFieldException"
+}
+
+// equals to getStackTrace in java
+func (e NoSuchFieldException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

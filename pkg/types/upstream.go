@@ -57,6 +57,9 @@ type ClusterManager interface {
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
+	// Get or Create tcp conn pool for a cluster
+	UDPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
+
 	// ConnPoolForCluster used to get protocol related conn pool
 	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol api.Protocol) ConnectionPool
 
@@ -68,6 +71,11 @@ type ClusterManager interface {
 
 	// RemoveClusterHosts, remove the host by address string
 	RemoveClusterHosts(clusterName string, hosts []string) error
+
+	// TLSManager is used to cluster tls config
+	GetTLSManager() TLSClientContextManager
+	// UpdateTLSManager updates the tls manager which is used to cluster tls config
+	UpdateTLSManager(*v2.TLSConfig)
 
 	// Destroy the cluster manager
 	Destroy()
@@ -113,20 +121,7 @@ type HostPredicate func(Host) bool
 type HostSet interface {
 	// Hosts returns all hosts that make up the set at the current time.
 	Hosts() []Host
-
-	// HealthyHosts returns all healthy hosts
-	HealthyHosts() []Host
 }
-
-// HealthFlag type
-type HealthFlag int
-
-const (
-	// The host is currently failing active health checks.
-	FAILED_ACTIVE_HC HealthFlag = 0x1
-	// The host is currently considered an outlier and has been ejected.
-	FAILED_OUTLIER_CHECK HealthFlag = 0x02
-)
 
 // Host is an upstream host
 type Host interface {
@@ -137,24 +132,16 @@ type Host interface {
 
 	// ClusterInfo returns the cluster info
 	ClusterInfo() ClusterInfo
+	// SetClusterInfo updates the host's cluster info
+	SetClusterInfo(info ClusterInfo)
 
+	// TLS HashValue effects the host support tls state
+	TLSHashValue() *HashValue
 	// Create a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
-	// ClearHealthFlag clear the input flag
-	ClearHealthFlag(flag HealthFlag)
-
-	// ContainHealthFlag checks whether the heatlhy state contains the flag
-	ContainHealthFlag(flag HealthFlag) bool
-
-	// SetHealthFlag set the input flag
-	SetHealthFlag(flag HealthFlag)
-
-	// HealthFlag returns the current healthy flag
-	HealthFlag() HealthFlag
-
-	// Health checks whether the host is healthy or not
-	Health() bool
+	// Create a udp connection for this host.
+	CreateUDPConnection(context context.Context) CreateConnectionData
 
 	// Address returns the host's Addr structure
 	Address() net.Addr
@@ -166,6 +153,9 @@ type Host interface {
 type ClusterInfo interface {
 	// Name returns the cluster name
 	Name() string
+
+	// ClusterType returns the cluster type
+	ClusterType() v2.ClusterType
 
 	// LbType returns the cluster's load balancer type
 	LbType() LoadBalancerType
@@ -183,7 +173,7 @@ type ClusterInfo interface {
 	ResourceManager() ResourceManager
 
 	// TLSMng returns the tls manager
-	TLSMng() TLSContextManager
+	TLSMng() TLSClientContextManager
 
 	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo
@@ -193,6 +183,9 @@ type ClusterInfo interface {
 
 	// LbOriDstInfo returns the load balancer oridst config
 	LbOriDstInfo() LBOriDstInfo
+
+	// Optional configuration for the load balancing algorithm selected by
+	LbConfig() v2.IsCluster_LbConfig
 }
 
 // ResourceManager manages different types of Resource
@@ -216,6 +209,8 @@ type Resource interface {
 	Increase()
 	Decrease()
 	Max() uint64
+	Cur() int64
+	UpdateCur(int64)
 }
 
 // HostStats defines a host's statistics information

@@ -39,6 +39,7 @@ const (
 // Host key for routing in MOSN Header
 const (
 	MosnHeaderDirection       = "x-mosn-direction" // for protocol convert
+	MosnHeaderScheme          = "x-mosn-scheme"
 	MosnHeaderHostKey         = "x-mosn-host"
 	MosnHeaderPathKey         = "x-mosn-path"
 	MosnHeaderQueryStringKey  = "x-mosn-querystring"

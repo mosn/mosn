@@ -17,6 +17,7 @@
 
 package java_exception
 
+// AnnotationTypeMismatchException represents an exception of the same name in java
 type AnnotationTypeMismatchException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -27,14 +28,22 @@ type AnnotationTypeMismatchException struct {
 	Cause                Throwabler
 }
 
+// NewAnnotationTypeMismatchException is the constructor
 func NewAnnotationTypeMismatchException(detailMessage string) *AnnotationTypeMismatchException {
 	return &AnnotationTypeMismatchException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e AnnotationTypeMismatchException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (AnnotationTypeMismatchException) JavaClassName() string {
 	return "java.lang.annotation.AnnotationTypeMismatchException"
+}
+
+// equals to getStackTrace in java
+func (e AnnotationTypeMismatchException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

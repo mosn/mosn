@@ -19,6 +19,7 @@ package java_exception
 
 import "fmt"
 
+// IllegalFormatFlagsException represents an exception of the same name in java
 type IllegalFormatFlagsException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -28,14 +29,22 @@ type IllegalFormatFlagsException struct {
 	Flags                string
 }
 
+// NewIllegalFormatFlagsException is the constructor
 func NewIllegalFormatFlagsException(flags string) *IllegalFormatFlagsException {
 	return &IllegalFormatFlagsException{Flags: flags, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IllegalFormatFlagsException) Error() string {
 	return fmt.Sprintf("Flags = '%s'", e.Flags)
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalFormatFlagsException) JavaClassName() string {
 	return "java.util.IllegalFormatFlagsException"
+}
+
+// equals to getStackTrace in java
+func (e IllegalFormatFlagsException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

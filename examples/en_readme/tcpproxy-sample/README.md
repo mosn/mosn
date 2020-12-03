@@ -1,9 +1,9 @@
-## Use SOFAMosn as TCP Proxy
+## Use MOSN as TCP Proxy
 
 ## Introduction
 
-+ This sample project demonstrates how to configure SOFAMosn as a TCP Proxy.
-+ When SOFAMosn receives a TCP request, it will forwards it to the corresponding cluster according to the source address and 
++ This sample project demonstrates how to configure MOSN as a TCP Proxy.
++ When MOSN receives a TCP request, it will forwards it to the corresponding cluster according to the source address and 
 destination address of the request.
 
 ## Preparation
@@ -31,7 +31,7 @@ cd ${targetpath}
 ## Catelog
 
 ```
-main          // compiled SOFAMosn
+main          // compiled MOSN
 http.go       // Mocked Http Server
 rpc_server.go // Mocked RPC Server
 rpc_client.go // Mocked RPC Client
@@ -41,7 +41,7 @@ config.json   // Configure without TLS
 
 ## Operation instructions
 
-### Start SOFAMosn
+### Start MOSN
 
 ```
 ./main start -c config.json

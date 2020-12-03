@@ -21,6 +21,7 @@ import (
 	"io"
 	"reflect"
 	"strings"
+	"sync"
 )
 
 import (
@@ -116,7 +117,7 @@ func (e *Encoder) encObject(v POJO) error {
 	vv = UnpackPtr(vv)
 	// check nil pointer
 	if !vv.IsValid() {
-		e.buffer = encNull(e.buffer)
+		e.buffer = EncNull(e.buffer)
 		return nil
 	}
 
@@ -160,18 +161,37 @@ func (e *Encoder) encObject(v POJO) error {
 		e.buffer = encString(e.buffer, v.(POJOEnum).String())
 		return nil
 	}
-	num = vv.NumField()
-	for i = 0; i < num; i++ {
-		// skip unexported anonymous field
-		if vv.Type().Field(i).PkgPath != "" {
-			continue
+
+	structs := []reflect.Value{vv}
+	for len(structs) > 0 {
+		vv := structs[0]
+		vvt := vv.Type()
+		num = vv.NumField()
+		for i = 0; i < num; i++ {
+			tf := vvt.Field(i)
+			// skip unexported anonymous field
+			if tf.PkgPath != "" {
+				continue
+			}
+
+			// skip ignored field
+			if tag, _ := tf.Tag.Lookup(tagIdentifier); tag == `-` {
+				continue
+			}
+
+			field := vv.Field(i)
+			if tf.Anonymous && field.Kind() == reflect.Struct {
+				structs = append(structs, field)
+				continue
+			}
+
+			if err = e.Encode(field.Interface()); err != nil {
+				fieldName := field.Type().String()
+				return perrors.Wrapf(err, "failed to encode field: %s, %+v", fieldName, field.Interface())
+			}
 		}
 
-		field := vv.Field(i)
-		if err = e.Encode(field.Interface()); err != nil {
-			fieldName := field.Type().String()
-			return perrors.Wrapf(err, "failed to encode field: %s, %+v", fieldName, field.Interface())
-		}
+		structs = structs[1:]
 	}
 
 	return nil
@@ -275,27 +295,71 @@ func (d *Decoder) decClassDef() (interface{}, error) {
 	return classInfo{javaName: clsName, fieldNameList: fieldList}, nil
 }
 
-func findField(name string, typ reflect.Type) (int, error) {
+type fieldInfo struct {
+	indexes []int
+	field   *reflect.StructField
+}
+
+// map[rType][fieldName]indexes
+var fieldIndexCache sync.Map
+
+func findFieldWithCache(name string, typ reflect.Type) ([]int, *reflect.StructField, error) {
+	typCache, _ := fieldIndexCache.Load(typ)
+	if typCache == nil {
+		typCache = &sync.Map{}
+		fieldIndexCache.Store(typ, typCache)
+	}
+
+	iindexes, existCache := typCache.(*sync.Map).Load(name)
+	if existCache && iindexes != nil {
+		finfo := iindexes.(*fieldInfo)
+		var err error
+		if len(finfo.indexes) == 0 {
+			err = perrors.Errorf("failed to find field %s", name)
+		}
+		return finfo.indexes, finfo.field, err
+	}
+
+	indexes, field, err := findField(name, typ)
+	typCache.(*sync.Map).Store(name, &fieldInfo{indexes: indexes, field: field})
+	return indexes, field, err
+}
+
+// findField find structField in rType
+//
+// return
+// 	indexes []int
+// 	field reflect.StructField
+// 	err error
+func findField(name string, typ reflect.Type) ([]int, *reflect.StructField, error) {
 	for i := 0; i < typ.NumField(); i++ {
 		// matching tag first, then lowerCamelCase, SameCase, lowerCase
 
-		if val, has := typ.Field(i).Tag.Lookup(tagIdentifier); has && strings.Compare(val, name) == 0 {
-			return i, nil
+		typField := typ.Field(i)
+
+		tagVal, hasTag := typField.Tag.Lookup(tagIdentifier)
+
+		fieldName := typField.Name
+		if hasTag && tagVal == name ||
+			fieldName == name ||
+			lowerCamelCase(fieldName) == name ||
+			strings.ToLower(fieldName) == name {
+
+			return []int{i}, &typField, nil
 		}
 
-		fieldName := typ.Field(i).Name
-		switch {
-		case strings.Compare(lowerCamelCase(fieldName), name) == 0:
-			return i, nil
-		case strings.Compare(fieldName, name) == 0:
-			return i, nil
-		case strings.Compare(strings.ToLower(fieldName), name) == 0:
-			return i, nil
-		}
+		if typField.Anonymous && typField.Type.Kind() == reflect.Struct {
+			next, field, _ := findField(name, typField.Type)
+			if len(next) > 0 {
+				indexes := []int{i}
+				indexes = append(indexes, next...)
 
+				return indexes, field, nil
+			}
+		}
 	}
 
-	return 0, perrors.Errorf("failed to find field %s", name)
+	return []int{}, nil, perrors.Errorf("failed to find field %s", name)
 }
 
 func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, error) {
@@ -311,17 +375,18 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 	for i := 0; i < len(cls.fieldNameList); i++ {
 		fieldName := cls.fieldNameList[i]
 
-		index, err := findField(fieldName, typ)
+		index, fieldStruct, err := findFieldWithCache(fieldName, typ)
 		if err != nil {
-			return nil, perrors.Errorf("can not find field %s", fieldName)
-		}
-
-		// skip unexported anonymous field
-		if vv.Type().Field(index).PkgPath != "" {
+			d.DecodeValue()
 			continue
 		}
 
-		field := vv.Field(index)
+		// skip unexported anonymous field
+		if fieldStruct.PkgPath != "" {
+			continue
+		}
+
+		field := vv.FieldByIndex(index)
 		if !field.CanSet() {
 			return nil, perrors.Errorf("decInstance CanSet false for field %s", fieldName)
 		}
@@ -331,8 +396,8 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 
 		// unpack pointer to enable value setting
 		fldRawValue := UnpackPtrValue(field)
-
 		kind := fldTyp.Kind()
+
 		switch kind {
 		case reflect.String:
 			str, err := d.decString(TAG_READ)
@@ -457,7 +522,7 @@ func (d *Decoder) decInstance(typ reflect.Type, cls classInfo) (interface{}, err
 			}
 
 		default:
-			return nil, perrors.Errorf("unknown struct member type: %v %v", kind, typ.Name()+"."+typ.Field(index).Name)
+			return nil, perrors.Errorf("unknown struct member type: %v %v", kind, typ.Name()+"."+fieldStruct.Name)
 		}
 	} // end for
 
@@ -482,6 +547,10 @@ func (d *Decoder) getStructDefByIndex(idx int) (reflect.Type, classInfo, error) 
 	cls = d.classInfoList[idx]
 	s, ok = getStructInfo(cls.javaName)
 	if !ok {
+		// exception
+		if s, ok = checkAndGetException(cls); ok {
+			return s.typ, cls, nil
+		}
 		if !d.isSkip {
 			err = perrors.Errorf("can not find go type name %s in registry", cls.javaName)
 		}
@@ -515,11 +584,19 @@ func (d *Decoder) decEnum(javaName string, flag int32) (JavaEnum, error) {
 
 // skip this object
 func (d *Decoder) skip(cls classInfo) error {
-	if len(cls.fieldNameList) < 1 {
+	len := len(cls.fieldNameList)
+	if len < 1 {
 		return nil
 	}
-	_, err := d.DecodeValue()
-	return err
+
+	for i := 0; i < len; i++ {
+		// skip class fields.
+		if _, err := d.DecodeValue(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (d *Decoder) decObject(flag int32) (interface{}, error) {
@@ -550,9 +627,7 @@ func (d *Decoder) decObject(flag int32) (interface{}, error) {
 		cls, _ = clsDef.(classInfo)
 		//add to slice
 		d.appendClsDef(cls)
-		if c, ok := GetSerializer(cls.javaName); ok {
-			return c.DecObject(d)
-		}
+
 		return d.DecodeValue()
 
 	case tag == BC_OBJECT:
@@ -572,6 +647,10 @@ func (d *Decoder) decObject(flag int32) (interface{}, error) {
 			return d.decEnum(cls.javaName, TAG_READ)
 		}
 
+		if c, ok := GetSerializer(cls.javaName); ok {
+			return c.DecObject(d, typ, cls)
+		}
+
 		return d.decInstance(typ, cls)
 
 	case BC_OBJECT_DIRECT <= tag && tag <= (BC_OBJECT_DIRECT+OBJECT_DIRECT_MAX):
@@ -584,6 +663,10 @@ func (d *Decoder) decObject(flag int32) (interface{}, error) {
 		}
 		if typ.Implements(javaEnumType) {
 			return d.decEnum(cls.javaName, TAG_READ)
+		}
+
+		if c, ok := GetSerializer(cls.javaName); ok {
+			return c.DecObject(d, typ, cls)
 		}
 
 		return d.decInstance(typ, cls)

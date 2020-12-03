@@ -68,8 +68,29 @@ const (
 	SuccessCode           = 200
 	PermissionDeniedCode  = 403
 	RouterUnavailableCode = 404
+	InternalErrorCode     = 500
 	NoHealthUpstreamCode  = 502
 	UpstreamOverFlowCode  = 503
 	TimeoutExceptionCode  = 504
 	LimitExceededCode     = 509
 )
+
+var reason2code = map[StreamResetReason]int{
+	StreamConnectionSuccessed: SuccessCode,
+	UpstreamGlobalTimeout:     TimeoutExceptionCode,
+	UpstreamPerTryTimeout:     TimeoutExceptionCode,
+	StreamOverflow:            UpstreamOverFlowCode,
+	StreamRemoteReset:         NoHealthUpstreamCode,
+	UpstreamReset:             NoHealthUpstreamCode,
+	StreamLocalReset:          NoHealthUpstreamCode,
+	StreamConnectionFailed:    NoHealthUpstreamCode,
+}
+
+// ConvertReasonToCode is convert the reason to a spec code.
+func ConvertReasonToCode(reason StreamResetReason) int {
+	if code, ok := reason2code[reason]; ok {
+		return code
+	}
+
+	return InternalErrorCode
+}

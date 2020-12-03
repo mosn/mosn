@@ -1,9 +1,9 @@
-## Use SOFAMosn as SOFARPC Proxy
+## Use MOSN as SOFARPC Proxy
 
 ## Introduction
 
-+ This sample project demonstrates how to configure SOFAMosn as a SOFARPC Proxy.
-+ For the convenience of demonstration, SOFAMosn listens to two ports, one forwards the client request,
++ This sample project demonstrates how to configure MOSN as a SOFARPC Proxy.
++ For the convenience of demonstration, MOSN listens to two ports, one forwards the client request,
  and one forwards to the server after receiving the request.
 
 ## Preparation
@@ -33,11 +33,13 @@ cd ${targetpath}
 ## Catelog
 
 ```
-main        // compiled SOFAMosn
+main        // compiled MOSN
 server.go   // Mocked SofaRpc Server
 client.go   // Mocked SofaRpc client
-config.json // Configure without TLS
-tls.json    // Configure with TLS
+client_config.json // Configure without TLS
+server_config.json // Configure without TLS
+tls_client_config.json    // Configure with TLS
+tls_server_config.json    // Configure with TLS
 ```
 
 ## Operation instructions
@@ -48,20 +50,31 @@ tls.json    // Configure with TLS
 go run server.go
 ```
 
-### Start SOFAMosn
+### Start MOSN
 
-+ Use config.json to run SOFAMosn without TLS.
++ Use non-TLS configs to run MOSN without TLS.
 
+run client side:
 ```
-./main start -c config.json
-```
-
-+ Use tls.json to start SOFAMosb witht TLS.
-
-```
-./main start -c tls.json
+./main start -c client_config.json
 ```
 
+run server side:
+```
+./main start -c server_config.json
+```
+
++ Use TLS configs to start MOSN witht TLS.
+
+run client side:
+```
+./main start -c tls_client_config.json
+```
+
+run server side:
+```
+./main start -c tls_server_config.json
+```
 
 ### Start Client to send request
 

@@ -17,6 +17,7 @@
 
 package java_exception
 
+//UTFDataFormatException represents an exception of the same name in java
 type UTFDataFormatException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type UTFDataFormatException struct {
 	Cause                Throwabler
 }
 
+// NewUTFDataFormatException is the constructor
 func NewUTFDataFormatException(detailMessage string) *UTFDataFormatException {
 	return &UTFDataFormatException{DetailMessage: detailMessage}
 }
 
+//Error output error message
 func (e UTFDataFormatException) Error() string {
 	return e.DetailMessage
 }
 
+//JavaClassName  java fully qualified path
 func (UTFDataFormatException) JavaClassName() string {
 	return "java.io.UTFDataFormatException"
+}
+
+// equals to getStackTrace in java
+func (e UTFDataFormatException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

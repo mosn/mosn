@@ -33,6 +33,7 @@ import (
 	"github.com/apache/dubbo-go-hessian2/java_exception"
 )
 
+// Response dubbo response
 type Response struct {
 	RspObj      interface{}
 	Exception   error
@@ -42,7 +43,7 @@ type Response struct {
 // NewResponse create a new Response
 func NewResponse(rspObj interface{}, exception error, attachments map[string]string) *Response {
 	if attachments == nil {
-		attachments = make(map[string]string)
+		attachments = make(map[string]string, 8)
 	}
 	return &Response{
 		RspObj:      rspObj,
@@ -51,6 +52,7 @@ func NewResponse(rspObj interface{}, exception error, attachments map[string]str
 	}
 }
 
+// EnsureResponse check body type, make sure it's a Response or package it as a Response
 func EnsureResponse(body interface{}) *Response {
 	if res, ok := body.(*Response); ok {
 		return res
@@ -138,7 +140,7 @@ func packResponse(header DubboHeader, ret interface{}) ([]byte, error) {
 	}
 
 	byteArray = encoder.Buffer()
-	byteArray = encNull(byteArray) // if not, "java client" will throw exception  "unexpected end of file"
+	byteArray = EncNull(byteArray) // if not, "java client" will throw exception  "unexpected end of file"
 	pkgLen := len(byteArray)
 	if pkgLen > int(DEFAULT_LEN) { // 8M
 		return nil, perrors.Errorf("Data length %d too large, max payload %d", pkgLen, DEFAULT_LEN)
@@ -199,11 +201,16 @@ func unpackResponseBody(decoder *Decoder, resp interface{}) error {
 				return perrors.WithStack(err)
 			}
 			if v, ok := attachments.(map[interface{}]interface{}); ok {
-				atta := ToMapStringString(v)
-				response.Attachments = atta
+				response.Attachments = ToMapStringString(v)
 			} else {
 				return perrors.Errorf("get wrong attachments: %+v", attachments)
 			}
+		}
+
+		// If the return value is nil,
+		// we should consider it normal
+		if rsp == nil {
+			return nil
 		}
 
 		return perrors.WithStack(ReflectResponse(rsp, response.RspObj))
@@ -332,7 +339,7 @@ var versionInt = make(map[string]int)
 // https://github.com/apache/dubbo/blob/dubbo-2.7.1/dubbo-common/src/main/java/org/apache/dubbo/common/Version.java#L96
 // isSupportResponseAttachment is for compatibility among some dubbo version
 func isSupportResponseAttachment(version string) bool {
-	if version == "" {
+	if len(version) == 0 {
 		return false
 	}
 
@@ -351,6 +358,9 @@ func isSupportResponseAttachment(version string) bool {
 }
 
 func version2Int(version string) int {
+	if len(version) == 0 {
+		return 0
+	}
 	var v = 0
 	varr := strings.Split(version, ".")
 	length := len(varr)

@@ -19,13 +19,17 @@ package configmanager
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"runtime"
 	"strconv"
+	"strings"
 
+	"go.uber.org/automaxprocs/maxprocs"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 )
@@ -61,14 +65,14 @@ func RegisterProtocolParser(key string) bool {
 // alias for closure func(data interface{}, endParsing bool) error
 type ParsedCallback func(data interface{}, endParsing bool) error
 
+// basic config
 var configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
 
 // Group of ContentKey
 // notes: configcontentkey equals to the key of config file
 const (
-	ParseCallbackKeyCluster        ContentKey = "clusters"
-	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
-	ParseCallbackKeyProcessor      ContentKey = "processor"
+	ParseCallbackKeyCluster   ContentKey = "clusters"
+	ParseCallbackKeyProcessor ContentKey = "processor"
 )
 
 // RegisterConfigParsedListener
@@ -107,13 +111,14 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 				DefaultConnBufferLimitBytes)
 		}
 		if c.LBSubSetConfig.FallBackPolicy > 2 {
-			log.StartLogger.Fatalf("[config] [parse cluster] lb subset config 's fall back policy set error. " +
+			log.StartLogger.Errorf("[config] [parse cluster] lb subset config 's fall back policy set error. " +
 				"For 0, represent NO_FALLBACK" +
 				"For 1, represent ANY_ENDPOINT" +
 				"For 2, represent DEFAULT_SUBSET")
+			c.LBSubSetConfig.FallBackPolicy = 0
 		}
 		if _, ok := ProtocolsSupported[c.HealthCheck.Protocol]; !ok && c.HealthCheck.Protocol != "" {
-			log.StartLogger.Fatalf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
+			log.StartLogger.Errorf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
 		}
 		c.Hosts = parseHostConfig(c.Hosts)
 		clusterV2Map[c.Name] = c.Hosts
@@ -163,45 +168,138 @@ func ParseLogLevel(level string) log.Level {
 	return log.INFO
 }
 
+func GetAddrIp(addr net.Addr) net.IP {
+	switch addr.(type) {
+	case *net.UDPAddr:
+		return addr.(*net.UDPAddr).IP
+	case *net.TCPAddr:
+		return addr.(*net.TCPAddr).IP
+	default:
+		return nil
+	}
+}
+
+func GetAddrPort(addr net.Addr) int {
+	switch addr.(type) {
+	case *net.UDPAddr:
+		return addr.(*net.UDPAddr).Port
+	case *net.TCPAddr:
+		return addr.(*net.TCPAddr).Port
+	default:
+		return 0
+	}
+}
+
 // ParseListenerConfig
-func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener) *v2.Listener {
-	if lc.AddrConfig == "" {
-		log.StartLogger.Fatalf("[config] [parse listener] Address is required in listener config")
+func ParseListenerConfig(lc *v2.Listener, inheritListeners []net.Listener, inheritPacketConn []net.PacketConn) *v2.Listener {
+	log.DefaultLogger.Infof("parsing listen config:%s", lc.Network)
+	if lc.Network == "" {
+		lc.Network = "tcp"
 	}
-	addr, err := net.ResolveTCPAddr("tcp", lc.AddrConfig)
-	if err != nil {
-		log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)
-	}
-	//try inherit legacy listener
-	var old *net.TCPListener
-
-	for i, il := range inheritListeners {
-		if il == nil {
-			continue
+	lc.Network = strings.ToLower(lc.Network)
+	// Listener Config maybe not generated from json string
+	if lc.Addr == nil {
+		var addr net.Addr
+		var err error
+		switch lc.Network {
+		case "udp":
+			addr, err = net.ResolveUDPAddr("udp", lc.AddrConfig)
+		case "unix":
+			addr, err = net.ResolveUnixAddr("unix", lc.AddrConfig)
+		case "tcp":
+			addr, err = net.ResolveTCPAddr("tcp", lc.AddrConfig)
+		default:
+			err = fmt.Errorf("unknown listen type: %s , only support tcp,udp,unix", lc.Network)
 		}
-		tl := il.(*net.TCPListener)
-		ilAddr, err := net.ResolveTCPAddr("tcp", tl.Addr().String())
 		if err != nil {
-			log.StartLogger.Fatalf("[config] [parse listener] inheritListener not valid: %s", tl.Addr().String())
+			log.StartLogger.Fatalf("[config] [parse listener] Address not valid: %v", lc.AddrConfig)
+		}
+		lc.Addr = addr
+	}
+
+	var old net.Listener
+	var old_pc *net.PacketConn
+	addr := lc.Addr
+	// try inherit legacy listener or packet connection
+	switch lc.Network {
+	case "udp":
+		for i, il := range inheritPacketConn {
+			if il == nil {
+				continue
+			}
+			tl := il.(*net.UDPConn)
+			ilAddr, err := net.ResolveUDPAddr("udp", tl.LocalAddr().String())
+			if err != nil {
+				log.StartLogger.Fatalf("[config] [parse listener] inheritListener not valid: %s", tl.LocalAddr().String())
+			}
+
+			if GetAddrPort(addr) != ilAddr.Port {
+				continue
+			}
+
+			ip := GetAddrIp(addr)
+			if (ip.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
+				(ip.IsLoopback() && ilAddr.IP.IsLoopback()) ||
+				ip.Equal(ilAddr.IP) {
+				log.StartLogger.Infof("[config] [parse listener] [udp] inherit packetConn addr: %s", lc.AddrConfig)
+				old_pc = &il
+				inheritPacketConn[i] = nil
+				break
+			}
 		}
 
-		if addr.Port != ilAddr.Port {
-			continue
-		}
+	case "unix":
+		for i, il := range inheritListeners {
+			if il == nil {
+				continue
+			}
 
-		if (addr.IP.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
-			(addr.IP.IsLoopback() && ilAddr.IP.IsLoopback()) ||
-			addr.IP.Equal(ilAddr.IP) {
-			log.StartLogger.Infof("[config] [parse listener] inherit listener addr: %s", lc.AddrConfig)
-			old = tl
-			inheritListeners[i] = nil
-			break
+			if _, ok := il.(*net.UnixListener); !ok {
+				continue
+			}
+			unixls := il.(*net.UnixListener)
+
+			path := unixls.Addr().String()
+			if addr.String() == path {
+				log.StartLogger.Infof("[config] [parse listener] [unix] inherit listener addr: %s", lc.AddrConfig)
+				old = unixls
+				inheritListeners[i] = nil
+			}
+		}
+	case "tcp":
+		// default tcp
+		for i, il := range inheritListeners {
+			if il == nil {
+				continue
+			}
+			var tl *net.TCPListener
+			var ok bool
+			if tl, ok = il.(*net.TCPListener); !ok {
+				continue
+			}
+			ilAddr, err := net.ResolveTCPAddr("tcp", tl.Addr().String())
+			if err != nil {
+				log.StartLogger.Fatalf("[config] [parse listener] inheritListener not valid: %s", tl.Addr().String())
+			}
+
+			if GetAddrPort(addr) != ilAddr.Port {
+				continue
+			}
+
+			ip := GetAddrIp(addr)
+			if (ip.IsUnspecified() && ilAddr.IP.IsUnspecified()) ||
+				(ip.IsLoopback() && ilAddr.IP.IsLoopback()) ||
+				ip.Equal(ilAddr.IP) {
+				log.StartLogger.Infof("[config] [parse listener] [tcp] inherit listener addr: %s", lc.AddrConfig)
+				old = tl
+				inheritListeners[i] = nil
+				break
+			}
 		}
 	}
 
-	lc.Addr = addr
-	lc.PerConnBufferLimitBytes = 1 << 15
 	lc.InheritListener = old
+	lc.InheritPacketConn = old_pc
 	return lc
 }
 
@@ -222,30 +320,66 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 
 }
 
-func ParseServiceRegistry(src v2.ServiceRegistryInfo) {
-	//trigger all callbacks
-	if cbs, ok := configParsedCBMaps[ParseCallbackKeyServiceRgtInfo]; ok {
-		for _, cb := range cbs {
-			cb(src, true)
-		}
-	}
-}
-
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
-	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
-		c.Processor = n
-	} else if c.Processor == 0 {
-		c.Processor = runtime.NumCPU()
-	}
+	setMaxProcsWithProcessor(c.Processor)
 
+	process := runtime.GOMAXPROCS(0)
 	// trigger processor callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
 		for _, cb := range cbs {
-			cb(c.Processor, true)
+			cb(process, true)
 		}
 	}
 	return c
+}
+
+func setMaxProcsWithProcessor(procs interface{}) {
+	// env variable has the highest priority.
+	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+		runtime.GOMAXPROCS(n)
+		return
+	}
+	if procs == nil {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+		return
+	}
+
+	intfunc := func(p int) {
+		// use manual setting
+		// no judge p > runtime.NumCPU(), because some situation maybe need this, such as multi io
+		if p < 1 {
+			p = runtime.NumCPU()
+		}
+		runtime.GOMAXPROCS(p)
+	}
+
+	strfunc := func(p string) {
+		if strings.EqualFold(p, "auto") {
+			// auto config with real cpu core or limit cpu core
+			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+			return
+		}
+
+		pi, err := strconv.Atoi(p)
+		if err != nil {
+			log.DefaultLogger.Warnf("[configuration] server.processor is not stringnumber, use auto config.")
+			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+			return
+		}
+		intfunc(pi)
+	}
+
+	switch processor := procs.(type) {
+	case string:
+		strfunc(processor)
+	case int:
+		intfunc(processor)
+	case float64:
+		intfunc(int(processor))
+	default:
+		log.StartLogger.Fatalf("unsupport serverconfig processor type %v, must be int or string.", reflect.TypeOf(procs))
+	}
 }
 
 // GetListenerFilters returns a listener filter factory by filter.Type
@@ -258,23 +392,9 @@ func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
 			log.DefaultLogger.Errorf("[config] get listener filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
-		factories = append(factories, sfcc)
-	}
-
-	return factories
-}
-
-// GetStreamFilters returns a stream filter factory by filter.Type
-func GetStreamFilters(configs []v2.Filter) []api.StreamFilterChainFactory {
-	var factories []api.StreamFilterChainFactory
-
-	for _, c := range configs {
-		sfcc, err := api.CreateStreamFilterChainFactory(c.Type, c.Config)
-		if err != nil {
-			log.DefaultLogger.Errorf("[config] get stream filter failed, type: %s, error: %v", c.Type, err)
-			continue
+		if sfcc != nil {
+			factories = append(factories, sfcc)
 		}
-		factories = append(factories, sfcc)
 	}
 
 	return factories

@@ -24,6 +24,7 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -42,6 +43,10 @@ func (cu *configUtility) MatchHeaders(requestHeaders api.HeaderMap, configHeader
 	for _, cfgHeaderData := range configHeaders {
 		cfgName := cfgHeaderData.Name.Get()
 		cfgValue := cfgHeaderData.Value
+		if cfgName == "method" {
+			cfgName = protocol.MosnHeaderMethod
+		}
+
 		// if a condition is not matched, return false
 		// all condition matched, return true
 		value, ok := requestHeaders.Get(cfgName)
@@ -80,7 +85,7 @@ type queryParameterMatcher struct {
 	name         string
 	value        string
 	isRegex      bool
-	regexPattern regexp.Regexp
+	regexPattern *regexp.Regexp
 }
 
 func (qpm *queryParameterMatcher) Matches(requestQueryParams types.QueryParams) bool {
@@ -91,6 +96,7 @@ func (qpm *queryParameterMatcher) Matches(requestQueryParams types.QueryParams) 
 	if qpm.isRegex {
 		return qpm.regexPattern.MatchString(requestQueryValue)
 	}
+	// why empty is true?
 	if qpm.value == "" {
 		return true
 	}

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// NoSuchElementException represents an exception of the same name in java
 type NoSuchElementException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,13 +26,22 @@ type NoSuchElementException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e NoSuchElementException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (NoSuchElementException) JavaClassName() string {
 	return "java.util.NoSuchElementException"
 }
+
+// NewNoSuchElementException is the constructor
 func NewNoSuchElementException(detailMessage string) *NoSuchElementException {
 	return &NoSuchElementException{DetailMessage: detailMessage}
+}
+
+// equals to getStackTrace in java
+func (e NoSuchElementException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

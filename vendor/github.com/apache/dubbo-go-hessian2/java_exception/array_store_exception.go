@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ArrayStoreException represents an exception of the same name in java
 type ArrayStoreException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type ArrayStoreException struct {
 	Cause                Throwabler
 }
 
+// NewArrayStoreException is the constructor
 func NewArrayStoreException(detailMessage string) *ArrayStoreException {
 	return &ArrayStoreException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e ArrayStoreException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ArrayStoreException) JavaClassName() string {
 	return "java.lang.ArrayStoreException"
+}
+
+// equals to getStackTrace in java
+func (e ArrayStoreException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

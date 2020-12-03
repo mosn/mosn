@@ -97,7 +97,8 @@ func getArgType(v interface{}) string {
 	case map[interface{}]interface{}:
 		// return  "java.util.HashMap"
 		return "java.util.Map"
-
+	case POJOEnum:
+		return v.(POJOEnum).JavaClassName()
 	//  Serialized tags for complex types
 	default:
 		t := reflect.TypeOf(v)
@@ -234,10 +235,13 @@ func packRequest(service Service, header DubboHeader, req interface{}) ([]byte, 
 	}
 
 	request.Attachments[PATH_KEY] = service.Path
-	request.Attachments[GROUP_KEY] = service.Group
-	request.Attachments[INTERFACE_KEY] = service.Interface
 	request.Attachments[VERSION_KEY] = service.Version
-
+	if len(service.Group) > 0 {
+		request.Attachments[GROUP_KEY] = service.Group
+	}
+	if len(service.Interface) > 0 {
+		request.Attachments[INTERFACE_KEY] = service.Interface
+	}
 	if service.Timeout != 0 {
 		request.Attachments[TIMEOUT_KEY] = strconv.Itoa(int(service.Timeout / time.Millisecond))
 	}
@@ -331,9 +335,13 @@ func unpackRequestBody(decoder *Decoder, reqObj interface{}) error {
 }
 
 func ToMapStringString(origin map[interface{}]interface{}) map[string]string {
-	dest := make(map[string]string)
+	dest := make(map[string]string, len(origin))
 	for k, v := range origin {
 		if kv, ok := k.(string); ok {
+			if v == nil {
+				dest[kv] = ""
+				continue
+			}
 			if vv, ok := v.(string); ok {
 				dest[kv] = vv
 			}

@@ -19,6 +19,7 @@ package java_exception
 
 import "fmt"
 
+// MissingFormatArgumentException represents an exception of the same name in java
 type MissingFormatArgumentException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -28,14 +29,22 @@ type MissingFormatArgumentException struct {
 	S                    string
 }
 
+// NewMissingFormatArgumentException is the constructor
 func NewMissingFormatArgumentException(s string) *MissingFormatArgumentException {
 	return &MissingFormatArgumentException{S: s, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e MissingFormatArgumentException) Error() string {
 	return fmt.Sprintf("Format specifier '%s'", e.S)
 }
 
+// JavaClassName  java fully qualified path
 func (MissingFormatArgumentException) JavaClassName() string {
 	return "java.util.MissingFormatArgumentException"
+}
+
+// equals to getStackTrace in java
+func (e MissingFormatArgumentException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

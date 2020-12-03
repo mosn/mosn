@@ -34,7 +34,8 @@ cd ${targetpath}
 ```
 main        // compiled MOSN
 server.go   // Mocked Bolt Server
-config.json // Configure 
+client_config.json // Configure 
+server_config.json // Configure 
 ```
 
 ## Operation instructions
@@ -47,10 +48,16 @@ go run server.go
 
 ### Start MOSN
 
-+ Use config.json to run MOSN.
++ Use non-TLS configs to run MOSN without TLS.
 
+run client side:
 ```
-./main start -c config.json
+./main start -c client_config.json
+```
+
+run server side:
+```
+./main start -c server_config.json
 ```
 
 ### Use CURL for verification

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// IllformedLocaleException represents an exception of the same name in java
 type IllformedLocaleException struct {
 	_errIdx              int
 	SerialVersionUID     int64
@@ -26,13 +27,22 @@ type IllformedLocaleException struct {
 	Cause                Throwabler
 }
 
+// Error output error message
 func (e IllformedLocaleException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (IllformedLocaleException) JavaClassName() string {
 	return "java.util.IllformedLocaleException"
 }
+
+// NewIllformedLocaleException is the constructor
 func NewIllformedLocaleException(detailMessage string) *IllformedLocaleException {
 	return &IllformedLocaleException{DetailMessage: detailMessage}
+}
+
+// equals to getStackTrace in java
+func (e IllformedLocaleException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

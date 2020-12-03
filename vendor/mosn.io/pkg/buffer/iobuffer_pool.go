@@ -33,7 +33,7 @@ type IoBufferPool struct {
 func (p *IoBufferPool) take(size int) (buf IoBuffer) {
 	v := p.pool.Get()
 	if v == nil {
-		buf = NewIoBuffer(size)
+		buf = newIoBuffer(size)
 	} else {
 		buf = v.(IoBuffer)
 		buf.Alloc(size)
@@ -53,6 +53,11 @@ func GetIoBuffer(size int) IoBuffer {
 	return ibPool.take(size)
 }
 
+// NewIoBuffer is an alias for GetIoBuffer
+func NewIoBuffer(size int) IoBuffer {
+	return GetIoBuffer(size)
+}
+
 // PutIoBuffer returns IoBuffer to pool
 func PutIoBuffer(buf IoBuffer) error {
 	count := buf.Count(-1)
@@ -60,6 +65,9 @@ func PutIoBuffer(buf IoBuffer) error {
 		return nil
 	} else if count < 0 {
 		return errors.New("PutIoBuffer duplicate")
+	}
+	if p, _ := buf.(*pipe); p != nil {
+		buf = p.IoBuffer
 	}
 	ibPool.give(buf)
 	return nil

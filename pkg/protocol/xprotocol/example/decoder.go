@@ -21,7 +21,6 @@ import (
 	"context"
 	"encoding/binary"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -50,7 +49,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, e
 	}
 
 	//4. copy data for io multiplexing
-	request.Payload = *buffer.GetBytesByContext(ctx, int(payloadLen))
+	request.Payload = make([]byte, int(payloadLen))
 	copy(request.Payload, bytes[RequestHeaderLen:])
 
 	return request, err
@@ -84,7 +83,7 @@ func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, 
 	}
 
 	//4. copy data for io multiplexing
-	response.Payload = *buffer.GetBytesByContext(ctx, int(payloadLen))
+	response.Payload = make([]byte, int(payloadLen))
 	copy(response.Payload, bytes[ResponseHeaderLen:])
 
 	return response, nil

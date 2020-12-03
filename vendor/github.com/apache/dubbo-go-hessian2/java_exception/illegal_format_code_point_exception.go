@@ -19,6 +19,7 @@ package java_exception
 
 import "fmt"
 
+// IllegalFormatCodePointException represents an exception of the same name in java
 type IllegalFormatCodePointException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -28,14 +29,22 @@ type IllegalFormatCodePointException struct {
 	C                    int32
 }
 
+// NewIllegalFormatCodePointException is the constructor
 func NewIllegalFormatCodePointException(c int32) *IllegalFormatCodePointException {
 	return &IllegalFormatCodePointException{C: c, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e IllegalFormatCodePointException) Error() string {
 	return fmt.Sprintf("Code point = %#x", e.C)
 }
 
+// JavaClassName  java fully qualified path
 func (IllegalFormatCodePointException) JavaClassName() string {
 	return "java.util.IllegalFormatCodePointException"
+}
+
+// equals to getStackTrace in java
+func (e IllegalFormatCodePointException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

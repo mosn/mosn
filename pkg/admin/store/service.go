@@ -128,36 +128,40 @@ func StartService(inheritListeners []net.Listener) error {
 			// set metrics
 			metrics.AddListenerAddr(s.Addr)
 			log.StartLogger.Infof("[admin store] [start service] start service %s on %s", s.name, ln.Addr().String())
-			s.Serve(ln)
+
+			err := s.Serve(ln)
+			if err != nil {
+				log.StartLogger.Warnf("[admin store] [start service] start serve failed : %s %s %s", s.name, ln.Addr().String(), err.Error())
+			}
+
 		}, nil)
 	}
 	return nil
 }
 
 func StopService() {
+	cleanSerivce(func(s *service) {
+		utils.GoWithRecover(func() {
+			s.Shutdown(context.Background())
+			log.DefaultLogger.Infof("[admin store] [stop service] %s", s.name)
+		}, nil)
+	})
+}
+
+// CloseService close the services directly
+func CloseService() {
+	cleanSerivce(func(s *service) {
+		s.Close()
+	})
+}
+
+func cleanSerivce(clean func(s *service)) {
 	for _, srv := range services {
 		s := srv
 		if s.exit != nil {
 			s.exit()
 		}
-		utils.GoWithRecover(func() {
-			s.Shutdown(context.Background())
-			log.DefaultLogger.Infof("[admin store] [stop service] %s", s.name)
-		}, nil)
-	}
-	services = services[:0]
-	listeners = listeners[:0]
-	log.DefaultLogger.Infof("[admin store] [stop service] clear all stored services")
-}
-
-// CloseService close the services directly
-func CloseService() {
-	for _, srv := range services {
-		if srv.exit != nil {
-			srv.exit()
-		}
-		srv.Close()
-		log.DefaultLogger.Infof("[admin store] [stop service] %s", srv.name)
+		clean(s)
 	}
 	services = services[:0]
 	listeners = listeners[:0]

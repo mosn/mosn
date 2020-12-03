@@ -17,6 +17,7 @@
 
 package java_exception
 
+// RuntimeException represents an exception of the same name in java
 type RuntimeException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type RuntimeException struct {
 	Cause                Throwabler
 }
 
+// NewRuntimeException is the constructor
 func NewRuntimeException(detailMessage string) *RuntimeException {
 	return &RuntimeException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e RuntimeException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (RuntimeException) JavaClassName() string {
 	return "java.lang.RuntimeException"
+}
+
+// equals to getStackTrace in java
+func (e RuntimeException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

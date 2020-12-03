@@ -18,7 +18,6 @@
 package xprotocol
 
 import (
-	"reflect"
 	"unsafe"
 )
 
@@ -31,6 +30,8 @@ type BytesKV struct {
 // Header consists of multi key-value pair in byte slice formation. This could reduce the cost of []byte to string for protocol codec.
 type Header struct {
 	Kvs []BytesKV
+
+	Changed bool
 }
 
 // ~ HeaderMap
@@ -45,6 +46,8 @@ func (h *Header) Get(Key string) (Value string, ok bool) {
 }
 
 func (h *Header) Set(Key string, Value string) {
+	h.Changed = true
+
 	for i, n := 0, len(h.Kvs); i < n; i++ {
 		kv := &h.Kvs[i]
 		if Key == string(kv.Key) {
@@ -67,6 +70,8 @@ func (h *Header) Del(Key string) {
 	for i, n := 0, len(h.Kvs); i < n; i++ {
 		kv := &h.Kvs[i]
 		if Key == string(kv.Key) {
+			h.Changed = true
+
 			tmp := *kv
 			copy(h.Kvs[i:], h.Kvs[i+1:])
 			n--
@@ -135,6 +140,7 @@ func b2s(b []byte) string {
 //
 // Note it may break if string and/or slice header will change
 // in the future go versions.
+/*
 func s2b(s string) []byte {
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
 	bh := reflect.SliceHeader{
@@ -144,3 +150,4 @@ func s2b(s string) []byte {
 	}
 	return *(*[]byte)(unsafe.Pointer(&bh))
 }
+*/

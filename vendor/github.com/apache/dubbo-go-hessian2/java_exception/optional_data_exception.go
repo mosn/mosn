@@ -17,6 +17,7 @@
 
 package java_exception
 
+// OptionalDataException represents an exception of the same name in java
 type OptionalDataException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -27,14 +28,22 @@ type OptionalDataException struct {
 	Length               int
 }
 
+// NewOptionalDataException is the constructor
 func NewOptionalDataException(eof bool, length int) *OptionalDataException {
 	return &OptionalDataException{Eof: eof, Length: length}
 }
 
+// Error output error message
 func (e OptionalDataException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (OptionalDataException) JavaClassName() string {
 	return "java.io.OptionalDataException"
+}
+
+// equals to getStackTrace in java
+func (e OptionalDataException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

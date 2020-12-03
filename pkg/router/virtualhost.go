@@ -146,6 +146,7 @@ func (vh *VirtualHostImpl) RemoveAllRoutes() {
 	return
 }
 
+// NewVirtualHostImpl convert mosn VirtualHost config to actual virtual host object
 func NewVirtualHostImpl(virtualHost *v2.VirtualHost) (*VirtualHostImpl, error) {
 	vhImpl := &VirtualHostImpl{
 		virtualHostName:       virtualHost.Name,

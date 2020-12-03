@@ -17,6 +17,7 @@
 
 package java_exception
 
+// CancellationException represents an exception of the same name in java
 type CancellationException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type CancellationException struct {
 	Cause                Throwabler
 }
 
+// NewCancellationException is the constructor
 func NewCancellationException(detailMessage string) *CancellationException {
 	return &CancellationException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e CancellationException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (CancellationException) JavaClassName() string {
 	return "java.util.concurrent.CancellationException"
+}
+
+// equals to getStackTrace in java
+func (e CancellationException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

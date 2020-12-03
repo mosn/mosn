@@ -18,6 +18,8 @@
 package tls
 
 import (
+	"bytes"
+	"io"
 	"net"
 
 	gotls "crypto/tls"
@@ -63,18 +65,16 @@ func TransferTLSConn(conn net.Conn, info *TransferTLSInfo) *Conn {
 	}
 
 	if info.RawInput != nil {
-		c.rawInput = c.in.newBlock()
-		c.rawInput.data = info.RawInput
+		c.rawInput = *bytes.NewBuffer(info.RawInput)
 		info.RawInput = nil
 	}
 
 	if info.Input != nil {
-		c.input = c.in.newBlock()
-		c.input.data = info.Input
+		c.input = *bytes.NewReader(info.Input)
 		info.Input = nil
 	}
 
-	c.handshakeComplete = true
+	c.handshakeStatus = 1
 	c.info = info
 
 	return c
@@ -87,8 +87,13 @@ func TransferSetTLSInfo(hs serverHandshakeState) {
 	info.Vers = c.vers
 	info.CipherSuite = c.cipherSuite
 	info.MasterSecret = hs.masterSecret
-	info.ClientRandom = hs.clientHello.random
-	info.ServerRandom = hs.hello.random
+	if hs.clientHello != nil {
+		info.ClientRandom = hs.clientHello.random
+	}
+
+	if hs.hello != nil {
+		info.ServerRandom = hs.hello.random
+	}
 
 	c.info = info
 }
@@ -143,12 +148,16 @@ func (c *Conn) GetTLSInfo() *TransferTLSInfo {
 
 	c.info.InSeq = c.in.seq
 	c.info.OutSeq = c.out.seq
-	if c.rawInput != nil {
-		c.info.RawInput = c.rawInput.data
+	if c.rawInput.Len() != 0 {
+		tmpBuf := bytes.NewBuffer(make([]byte, c.rawInput.Len()))
+		io.Copy(tmpBuf, &c.rawInput)
+		c.info.RawInput = tmpBuf.Next(tmpBuf.Len())
 	}
 
-	if c.input != nil {
-		c.info.Input = c.input.data[c.input.off:]
+	if c.input.Len() != 0 {
+		tmpBuf := bytes.NewBuffer(make([]byte, c.input.Len()))
+		io.Copy(tmpBuf, &c.input)
+		c.info.Input = tmpBuf.Next(tmpBuf.Len())
 	}
 
 	return c.info
@@ -160,10 +169,15 @@ func (c *Conn) GetConnectionState() gotls.ConnectionState {
 	defer c.handshakeMutex.Unlock()
 
 	var state gotls.ConnectionState
-	state.HandshakeComplete = c.handshakeComplete
+	if c.handshakeComplete() {
+		state.HandshakeComplete = true
+	} else {
+		state.HandshakeComplete = false
+	}
+
 	state.ServerName = c.serverName
 
-	if c.handshakeComplete {
+	if c.handshakeComplete() {
 		state.Version = c.vers
 		state.NegotiatedProtocol = c.clientProtocol
 		state.DidResume = c.didResume

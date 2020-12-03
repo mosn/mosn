@@ -29,12 +29,12 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-const maxLabelCount = 10
+const MaxLabelCount = 20
 
 var (
 	defaultStore          *store
 	defaultMatcher        *metricsMatcher
-	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
+	ErrLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", MaxLabelCount)
 )
 
 // stats memory store
@@ -83,8 +83,8 @@ func SetStatsMatcher(all bool, exclusionLabels, exclusionKeys []string) {
 // NewMetrics returns a metrics
 // Same (type + labels) pair will leading to the same Metrics instance
 func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
-	if len(labels) > maxLabelCount {
-		return nil, errLabelCountExceeded
+	if len(labels) > MaxLabelCount {
+		return nil, ErrLabelCountExceeded
 	}
 
 	defaultStore.mutex.Lock()
@@ -196,6 +196,26 @@ func GetAll() (metrics []types.Metrics) {
 		metrics = append(metrics, m)
 	}
 	return
+}
+
+// filter is type.labels
+// see example in `GetProxyTotal`
+func GetMetricsFilter(filter string) (metrics types.Metrics) {
+	defaultStore.mutex.RLock()
+	defer defaultStore.mutex.RUnlock()
+	for _, m := range defaultStore.metrics {
+		name, _, _ := fullName(m.Type(), m.Labels())
+		if name == filter {
+			return m
+		}
+	}
+	return nil
+
+}
+
+// GetProxyTotal returns proxy global metrics data
+func GetProxyTotal() (metrics types.Metrics) {
+	return GetMetricsFilter("downstream.proxy.global")
 }
 
 // ResetAll is only for test and internal usage. DO NOT use this if not sure.

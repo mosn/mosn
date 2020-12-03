@@ -26,6 +26,7 @@ import (
 
 	gometrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/metrics/shm"
+	"mosn.io/mosn/pkg/types"
 )
 
 func gcPause() time.Duration {
@@ -59,6 +60,13 @@ func TestGCPause(t *testing.T) {
 
 	//------------------------------------------
 
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := shm.InitMetricsZone("testGCPause", entries*256)
 	defer func() {
 		zone.Detach()

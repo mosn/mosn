@@ -24,9 +24,17 @@ import (
 
 	gometrics "github.com/rcrowley/go-metrics"
 	"mosn.io/mosn/pkg/metrics/shm"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestGetAll(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := shm.InitMetricsZone("TestGetAll", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -45,6 +53,13 @@ func TestGetAll(t *testing.T) {
 }
 
 func TestExclusionLabels(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := shm.InitMetricsZone("TestExclusionLabels", 10*1024)
 	defer func() {
 		zone.Detach()
@@ -117,6 +132,13 @@ func TestExclusionLabels(t *testing.T) {
 }
 
 func TestExclusionKeys(t *testing.T) {
+	// just for test
+	originPath := types.MosnConfigPath
+	types.MosnConfigPath = "."
+
+	defer func() {
+		types.MosnConfigPath = originPath
+	}()
 	zone := shm.InitMetricsZone("TestExclusionKeys", 10*1024)
 	defer func() {
 		zone.Detach()

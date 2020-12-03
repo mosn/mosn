@@ -1,109 +1,77 @@
 package http
 
 import (
+	"encoding/json"
 	"net"
 	"net/http"
 	"sync"
+
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/test/lib"
+	"mosn.io/mosn/test/lib/types"
 )
 
-// StatsListener implements a net.Listener for http.Server
-type StatsListener struct {
-	listener net.Listener
-	// stats
-	*ConnStats
+func init() {
+	lib.RegisterCreateServer("Http1", NewHTTPServer)
 }
 
-func NewStatsListener(ln net.Listener) *StatsListener {
-	return &StatsListener{
-		listener:  ln,
-		ConnStats: &ConnStats{},
-	}
-}
+type MockHttpServer struct {
+	mutex sync.Mutex
+	addr  string
+	mux   map[string]func(http.ResponseWriter, *http.Request)
+	stats *types.ServerStats
 
-func (sl *StatsListener) Accept() (net.Conn, error) {
-	conn, err := sl.listener.Accept()
-	if err != nil {
-		return conn, err
-	}
-	sl.ConnStats.ActiveConnection()
-	statsConn := &StatsConn{
-		Conn: conn,
-		cb: func() {
-			sl.ConnStats.CloseConnection()
-		},
-	}
-	return statsConn, nil
-}
-
-func (sl *StatsListener) Close() error {
-	return sl.listener.Close()
-}
-
-func (sl *StatsListener) Addr() net.Addr {
-	return sl.listener.Addr()
-}
-
-type StatsConn struct {
-	net.Conn
-	cb func()
-}
-
-func (conn *StatsConn) Close() error {
-	err := conn.Conn.Close()
-	if err == nil {
-		conn.cb()
-	}
-	return err
-}
-
-type MockServer struct {
-	*http.Server
-	*ServerStats
-	Addr     string
-	Mux      map[string]func(http.ResponseWriter, *http.Request)
+	// running state
+	server   *http.Server
 	listener *StatsListener
-	lock     sync.Mutex
 }
 
-func NewMockServer(addr string, f ServeFunc) *MockServer {
-	srv := &MockServer{
-		Server: &http.Server{},
-		Addr:   addr,
-		Mux:    make(map[string]func(http.ResponseWriter, *http.Request)),
-		lock:   sync.Mutex{},
-		// Stats and listener in init in Start()
+func NewHTTPServer(config interface{}) types.MockServer {
+	cfg, err := NewHttpServerConfig(config)
+	if err != nil {
+		log.DefaultLogger.Errorf("new http server config error: %v", err)
+		return nil
 	}
-	// Register Mux
-	if f == nil {
-		f = DefaultHTTPServe.Serve
+	if len(cfg.Configs) == 0 { // use default config
+		cfg.Configs = map[string]*ResonseConfig{
+			"/": &ResonseConfig{
+				Condition: nil, // always matched true
+				CommonBuilder: &ResponseBuilder{
+					StatusCode: http.StatusOK,
+					Header: map[string][]string{
+						"mosn-test-default": []string{"http1"},
+					},
+					Body: json.RawMessage("default-http1"),
+				},
+				ErrorBuilder: &ResponseBuilder{
+					StatusCode: http.StatusInternalServerError, // 500
+					Body:       json.RawMessage("condition is not matched"),
+				},
+			},
+		}
+
 	}
-	f(srv)
-	return srv
+	s := &MockHttpServer{
+		addr:   cfg.Addr,
+		mux:    make(map[string]func(http.ResponseWriter, *http.Request)),
+		stats:  types.NewServerStats(),
+		server: &http.Server{},
+	}
+	for pattern, c := range cfg.Configs {
+		s.mux[pattern] = c.ServeHTTP
+	}
+	return s
 }
 
-func (srv *MockServer) HandleFunc(pattern string, handler func(http.ResponseWriter, *http.Request)) {
-	srv.Mux[pattern] = handler
-}
-
-type ResponseWriterWrapper struct {
-	http.ResponseWriter
-	stats *ServerStats
-}
-
-func (w *ResponseWriterWrapper) WriteHeader(code int) {
-	w.stats.Response(int16(code))
-	w.ResponseWriter.WriteHeader(code)
-}
-
-// A wrapper of ServerHTTP
-func (srv *MockServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	srv.ServerStats.Request()
+// Wrap a http server so we can get the metrics info
+func (s *MockHttpServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// receive a request
+	s.stats.Records().RecordRequest()
 	ww := &ResponseWriterWrapper{
 		ResponseWriter: w,
-		stats:          srv.ServerStats,
+		stats:          s.stats,
 	}
-	// path
-	handler, ok := srv.Mux[r.URL.Path]
+	handler, ok := s.mux[r.URL.Path]
 	if !ok {
 		ww.WriteHeader(http.StatusNotFound)
 		return
@@ -111,22 +79,33 @@ func (srv *MockServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler(ww, r)
 }
 
-func (srv *MockServer) Start() {
-	srv.lock.Lock()
-	if srv.listener != nil {
-		srv.lock.Unlock()
+func (s *MockHttpServer) Start() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if s.listener != nil {
 		return
 	}
-	ln, err := net.Listen("tcp", srv.Addr)
+	ln, err := net.Listen("tcp", s.addr)
 	if err != nil {
-		panic(err)
+		log.DefaultLogger.Fatalf("listen %s failed", s.addr)
 	}
-	srv.listener = NewStatsListener(ln)
-	srv.ServerStats = NewServerStats(srv.listener.ConnStats)
-	srv.lock.Unlock()
+	s.listener = NewStatsListener(ln, s.stats)
+
 	// register http server
 	mux := &http.ServeMux{}
-	mux.HandleFunc("/", srv.ServeHTTP)
-	srv.Handler = mux
-	srv.Serve(srv.listener)
+	mux.HandleFunc("/", s.ServeHTTP) // use mock server http
+	s.server.Handler = mux
+	go s.server.Serve(s.listener)
+
+}
+
+func (s *MockHttpServer) Stop() {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.server.Close()
+	s.listener = nil
+}
+
+func (s *MockHttpServer) Stats() types.ServerStatsReadOnly {
+	return s.stats
 }

@@ -17,6 +17,7 @@
 
 package java_exception
 
+// BrokenBarrierException represents an exception of the same name in java
 type BrokenBarrierException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type BrokenBarrierException struct {
 	Cause                Throwabler
 }
 
+// NewBrokenBarrierException is the constructor
 func NewBrokenBarrierException(detailMessage string) *BrokenBarrierException {
 	return &BrokenBarrierException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e BrokenBarrierException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (BrokenBarrierException) JavaClassName() string {
 	return "java.util.concurrent.BrokenBarrierException"
+}
+
+// equals to getStackTrace in java
+func (e BrokenBarrierException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

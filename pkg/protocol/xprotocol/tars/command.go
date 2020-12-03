@@ -57,6 +57,10 @@ func (r *Request) GetData() types.IoBuffer {
 	return r.data
 }
 
+func (r *Request) SetData(data types.IoBuffer) {
+	r.data = data
+}
+
 type Response struct {
 	cmd     *requestf.ResponsePacket
 	rawData []byte         // raw data
@@ -88,6 +92,10 @@ func (r *Response) GetHeader() types.HeaderMap {
 
 func (r *Response) GetData() types.IoBuffer {
 	return r.data
+}
+
+func (r *Response) SetData(data types.IoBuffer) {
+	r.data = data
 }
 
 func (r *Response) GetStatusCode() uint32 {

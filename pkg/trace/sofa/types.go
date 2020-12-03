@@ -11,7 +11,7 @@ const (
 	TRACER_ID_KEY           = "rpc_trace_context.sofaTraceId"
 	CALLER_IP_KEY           = "rpc_trace_context.sofaCallerIp"
 	CALLER_ZONE_KEY         = "rpc_trace_context.sofaCallerZone"
-	APP_NAME                = "app"
+	APP_NAME                = "rpc_trace_context.sofaCallerApp"
 	SOFA_TRACE_BAGGAGE_DATA = "rpc_trace_context.sofaPenAttrs"
 	// http key
 	HTTP_RPC_ID_KEY    = "SOFA-RpcId"

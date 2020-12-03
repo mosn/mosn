@@ -17,6 +17,7 @@
 
 package java_exception
 
+// UnsupportedTemporalTypeException represents an exception of the same name in java
 type UnsupportedTemporalTypeException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -25,14 +26,22 @@ type UnsupportedTemporalTypeException struct {
 	Cause                Throwabler
 }
 
+// NewUnsupportedTemporalTypeException is the constructor
 func NewUnsupportedTemporalTypeException(detailMessage string) *UnsupportedTemporalTypeException {
 	return &UnsupportedTemporalTypeException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}}
 }
 
+// Error output error message
 func (e UnsupportedTemporalTypeException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (UnsupportedTemporalTypeException) JavaClassName() string {
 	return "java.time.temporal.UnsupportedTemporalTypeException"
+}
+
+// equals to getStackTrace in java
+func (e UnsupportedTemporalTypeException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
@@ -43,11 +43,17 @@ func init() {
 	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
 		"/api/v1/config_dump":     configDump,
 		"/api/v1/stats":           statsDump,
+		"/api/v1/stats_glob":      statsDumpProxyTotal,
 		"/api/v1/update_loglevel": updateLogLevel,
+		"/api/v1/get_loglevel":    getLoggerInfo,
 		"/api/v1/enable_log":      enableLogger,
-		"/api/v1/disbale_log":     disableLogger,
+		"/api/v1/disable_log":     disableLogger,
 		"/api/v1/states":          getState,
 		"/api/v1/plugin":          pluginApi,
+		"/stats":                  statsForIstio,
+		"/server_info":            serverInfoForIstio,
+		"/api/v1/features":        knownFeatures,
+		"/api/v1/env":             getEnv,
 		"/":                       help,
 	}
 }

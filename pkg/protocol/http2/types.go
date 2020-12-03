@@ -62,6 +62,9 @@ func NewRspHeader(rsp *http.Response) *RspHeader {
 // Get value of key
 func (h *HeaderMap) Get(key string) (value string, ok bool) {
 	value = h.H.Get(key)
+	if value == "" {
+		return value, false
+	}
 
 	return value, true
 }

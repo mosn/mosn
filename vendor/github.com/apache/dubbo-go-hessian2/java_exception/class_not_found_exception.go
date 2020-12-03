@@ -17,6 +17,7 @@
 
 package java_exception
 
+// ClassNotFoundException represents an exception of the same name in java
 type ClassNotFoundException struct {
 	SerialVersionUID     int64
 	DetailMessage        string
@@ -26,14 +27,22 @@ type ClassNotFoundException struct {
 	Ex                   Throwabler
 }
 
+// NewClassNotFoundException is the constructor
 func NewClassNotFoundException(detailMessage string, ex Throwabler) *ClassNotFoundException {
 	return &ClassNotFoundException{DetailMessage: detailMessage, StackTrace: []StackTraceElement{}, Ex: ex}
 }
 
+// Error output error message
 func (e ClassNotFoundException) Error() string {
 	return e.DetailMessage
 }
 
+// JavaClassName  java fully qualified path
 func (ClassNotFoundException) JavaClassName() string {
 	return "java.lang.ClassNotFoundException"
+}
+
+// equals to getStackTrace in java
+func (e ClassNotFoundException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
 }
