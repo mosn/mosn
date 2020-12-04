@@ -54,14 +54,18 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 	if subProtocolMatchers == nil {
 		return stream.FAILED
 	}
+	again := false
 	for _, matcher := range subProtocolMatchers {
 		result := matcher(magic)
 		if result == types.MatchSuccess {
 			return nil
 		}
 		if result == types.MatchAgain {
-			return stream.EAGAIN
+			again = true
 		}
+	}
+	if again {
+		return stream.EAGAIN
 	}
 	return stream.FAILED
 

@@ -100,7 +100,7 @@ func TestProtocolHttp2(t *testing.T) {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte("helloworld"))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte("helloworldhelloworldhelloworld"))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
@@ -129,7 +129,7 @@ func TestProtocolHttp1(t *testing.T) {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
-	magic = "PPPPPPP"
+	magic = "PPPPPPPPPPPPPPPPPPPPP"
 	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
@@ -178,5 +178,34 @@ func TestXAuto(t *testing.T) {
 		}
 		tc.FinishCase()
 	}
+}
 
+func TestXProtocol(t *testing.T) {
+	var prot types.ProtocolName
+	var magic []byte
+	var err error
+
+	magic = []byte{0xda, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", magic)
+	if prot != protocol.Xprotocol {
+		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
+	}
+
+	magic = []byte{0x1}
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", magic)
+	if prot != protocol.Xprotocol {
+		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
+	}
+
+	magic = []byte{0x00, 0x00, 0x00, 0x05, 0x00}
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", magic)
+	if prot != protocol.Xprotocol {
+		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
+	}
+
+	str := "PPPPPPPPPPPPPPPPPPPPP"
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(str))
+	if err != stream.FAILED {
+		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
+	}
 }
