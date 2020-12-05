@@ -89,10 +89,12 @@ func reconfigure(start bool) {
 	if listenSockConn, err = sendInheritListeners(); err != nil {
 		return
 	}
+	// 0 means success, not 0 means failure
+	var reponseFlag uint8 = 0
 	if enableInheritOldMosnconfig {
 		if err = SendInheritConfig(); err != nil {
 			listenSockConn.Close()
-			return
+			reponseFlag = 1
 		}
 	}
 
@@ -100,6 +102,11 @@ func reconfigure(start bool) {
 	listenSockConn.SetReadDeadline(time.Now().Add(10 * time.Minute))
 	n, err = listenSockConn.Read(buf[:])
 	if n != 1 {
+		reponseFlag = 2
+	}
+
+	// ack new mosn
+	if _, err := listenSockConn.Write([]byte{reponseFlag}); err != nil {
 		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "new mosn start failed")
 		// Restore PID
 		keeper.WritePidFile()

@@ -99,6 +99,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 			// inherit old mosn config
 			oldMosnConfig, err := server.GetInheritConfig()
 			if err != nil {
+				listenSockConn.Close()
 				log.StartLogger.Fatalf("[mosn] [NewMosn] GetInheritConfig failed, exit")
 			}
 			log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
@@ -217,11 +218,21 @@ func (m *Mosn) beforeStart() {
 		if err := store.StartService(m.inheritListeners); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
 		}
-		// wait old mosn send mosnconfig
-		time.Sleep(time.Second * 11)
 		// notify old mosn to transfer connection
 		if _, err := m.listenSockConn.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
+		}
+		// wait old mosn ack
+		m.listenSockConn.SetReadDeadline(time.Now().Add(1 * time.Minute))
+		var buf [1]byte
+		n, err := m.listenSockConn.Read(buf[:])
+		if err != nil || n != 1 {
+			// buf[0] 0 means success, not 0 means failure
+			if buf[0] != 0 {
+				// old mosn  reponse error code
+				log.StartLogger.Fatalf("[mosn] [NewMosn] ack graceful failed, exit, error: %v n: %v, receive reponse code is : %v", err, n, buf[0])
+			}
+			log.StartLogger.Fatalf("[mosn] [NewMosn] ack graceful failed, exit, error: %v n: %v, buf[0]: %v", err, n, buf[0])
 		}
 
 		m.listenSockConn.Close()
