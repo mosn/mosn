@@ -114,6 +114,31 @@ func TestStreamConnectionDispatch(t *testing.T) {
 	}
 }
 
+func BenchmarkStreamConnection_Dispatch(b *testing.B) {
+	streamConnectionMocked := &streamConnection{
+		bufChan:    make(chan buffer.IoBuffer),
+		endRead:    make(chan struct{}),
+		connClosed: make(chan bool, 1),
+	}
+	streamConnectionMocked.br = bufio.NewReaderSize(streamConnectionMocked, defaultMaxHeaderSize)
+	httpTestResponse := "HTTP/1.1 200 OK\r\nDate: Fri, 13 Nov 2020 09:27:39 GMT\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 12\r\n\r\nhello world!"
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		go streamConnectionMocked.Dispatch(buffer.NewIoBufferString(httpTestResponse))
+
+		response := fasthttp.AcquireResponse()
+		// wait Dispatch ready
+		time.Sleep(time.Second)
+		err := response.Read(streamConnectionMocked.br)
+		if err != nil {
+			b.Fatalf("http reponse read error: %v", err)
+		}
+	}
+	b.StopTimer()
+
+}
+
 func Test_header_capitalization(t *testing.T) {
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:12200")
 
