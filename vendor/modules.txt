@@ -73,6 +73,8 @@ github.com/cncf/udpa/go/udpa/type/v1
 github.com/davecgh/go-spew/spew
 # github.com/dchest/siphash v1.2.1
 github.com/dchest/siphash
+# github.com/dgrijalva/jwt-go v3.2.0+incompatible
+github.com/dgrijalva/jwt-go
 # github.com/dubbogo/getty v1.3.4
 github.com/dubbogo/getty
 # github.com/dubbogo/go-zookeeper v1.0.0

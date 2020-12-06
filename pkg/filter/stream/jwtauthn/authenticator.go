@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 )
@@ -18,10 +17,12 @@ type Authenticator interface {
 }
 
 type authenticator struct {
-	provider   string
-	jwksCache  JwksCache
-	jwksData   JwksData
-	fetcher    JwksFetcher
+	provider                string
+	jwksCache               JwksCache
+	jwksData                JwksData
+	allowFail, allowMissing bool
+	fetcher                 JwksFetcher
+
 	tokens     []JwtLocation
 	currToken  JwtLocation
 	headers    api.HeaderMap
@@ -31,37 +32,62 @@ type authenticator struct {
 
 func newAuthenticator(provider string, jwksCache JwksCache, fetcher JwksFetcher, allowFail, allowMissing bool) Authenticator {
 	return &authenticator{
-		provider:  provider,
-		jwksCache: jwksCache,
-		fetcher:   fetcher,
+		provider:     provider,
+		jwksCache:    jwksCache,
+		fetcher:      fetcher,
+		allowFail:    allowFail,
+		allowMissing: allowMissing,
 	}
 }
 
-func newAuthenticatorDeprecated(config *jwtauthnv3.JwtAuthentication, fetcher JwksFetcher) Authenticator {
-	return &authenticator{
-		jwksCache: NewJwksCacheDeprecated(config),
-		fetcher:   fetcher,
-	}
-}
-
-func (a authenticator) Verify(headers api.HeaderMap, tokens []JwtLocation) error {
+func (a *authenticator) Verify(headers api.HeaderMap, tokens []JwtLocation) error {
 	log.DefaultLogger.Infof("JWT authentication starts, tokens size=%d", len(tokens))
 	if len(tokens) == 0 {
-		return ErrJwtNotFound
+		return a.done(ErrJwtNotFound)
 	}
 
 	a.tokens = tokens
 	a.headers = headers
 
-	err := a.startVerify()
+	return a.startVerify()
+}
+
+func (a *authenticator) name() string {
+	if a.provider != "" {
+		optional := ""
+		if a.allowMissing {
+			optional = "-OPTIONAL"
+		}
+		return a.provider + optional
+	}
+	if a.allowFail {
+		return "_IS_ALLOW_FALED_"
+	}
+	if a.allowMissing {
+		return "_IS_ALLOW_MISSING_"
+	}
+	return "_UNKNOWN_"
+}
+
+func (a *authenticator) done(err error) error {
+	log.DefaultLogger.Debugf("%s: JWT token verification completed with: %v", a.name(), err)
+
+	// if on allow missing or failed this should verify all tokens, otherwise stop on ok.
 	if len(a.tokens) == 0 {
+		a.tokens = nil // clear tokens
+		if a.allowFail {
+			return nil
+		} else if a.allowMissing && err == ErrJwtNotFound {
+			return nil
+		}
 		return err
 	}
-	if err == nil {
-		_ = a.Verify(headers, a.tokens)
+
+	if err == nil && !a.allowFail && !a.allowMissing {
 		return nil
 	}
-	return a.Verify(headers, a.tokens)
+
+	return a.startVerify()
 }
 
 func (a *authenticator) startVerify() error {
@@ -70,7 +96,7 @@ func (a *authenticator) startVerify() error {
 
 	jwtToken, parts, err := new(jwt.Parser).ParseUnverified(a.currToken.Token(), &jwt.StandardClaims{})
 	if err != nil {
-		return ErrJwtBadFormat
+		return a.done(ErrJwtBadFormat)
 	}
 	a.jwtPayload = parts[1]
 	claims := jwtToken.Claims.(*jwt.StandardClaims)
@@ -78,17 +104,17 @@ func (a *authenticator) startVerify() error {
 	log.DefaultLogger.Debugf("Verifying JWT token of issuer: %s", claims.Issuer)
 	// Check if token extracted from the location contains the issuer specified by config.
 	if !a.currToken.IsIssuerSpecified(claims.Issuer) {
-		return ErrJwtUnknownIssuer
+		return a.done(ErrJwtUnknownIssuer)
 	}
 
 	// Check "exp" claim.
 	if claims.ExpiresAt > 0 && claims.ExpiresAt < time.Now().Unix() {
-		return ErrJwtExpired
+		return a.done(ErrJwtExpired)
 	}
 
 	// Check "nbf" claim.
 	if claims.NotBefore > time.Now().Unix() {
-		return ErrJwtNotYetValid
+		return a.done(ErrJwtNotYetValid)
 	}
 
 	// Check the issuer is configured or not.
@@ -100,12 +126,12 @@ func (a *authenticator) startVerify() error {
 
 	// Check if audience is allowed
 	if !a.jwksData.AreAudiencesAllowed(claims.Audience) {
-		return ErrJwtAudienceNotAllowed
+		return a.done(ErrJwtAudienceNotAllowed)
 	}
 
 	jwksObj := a.jwksData.GetJwksObj()
 	if jwksObj != nil && !a.jwksData.IsExpired() {
-		return a.verifyKey()
+		return a.done(a.verifyKey())
 	}
 
 	// Only one remote jwks will be fetched, verify will not continue util it is completed.
@@ -117,14 +143,14 @@ func (a *authenticator) startVerify() error {
 		jwks, err := a.fetcher.Fetch(remoteJwks.HttpUri)
 		if err != nil {
 			log.DefaultLogger.Errorf("fetch jwks: %v", err)
-			return ErrJwksFetch
+			return a.done(ErrJwksFetch)
 		}
 		a.jwksData.SetRemoteJwks(jwks)
-		return a.verifyKey()
+		return a.done(a.verifyKey())
 	}
 
 	// No valid keys for this issuer. This may happen as a result of incorrect local JWKS configuration.
-	return ErrJwksNoValidKeys
+	return a.done(ErrJwksNoValidKeys)
 }
 
 func (a *authenticator) verifyKey() error {

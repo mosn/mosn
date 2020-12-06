@@ -1,43 +1,24 @@
 package jwtauthn
 
 import (
-	"encoding/json"
 	"testing"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	"github.com/golang/mock/gomock"
-	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/lestrrat/go-jwx/jwk"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAuthenticatorVerify(t *testing.T) {
 	getConfig := func() *jwtauthnv3.JwtAuthentication {
-		var config jwtauthnv3.JwtAuthentication
-		if err := json.Unmarshal([]byte(exampleConfig), &config); err != nil {
-			t.Errorf("unmarshal exampleConfig to config(jwtauthnv3.JwtAuthentication): %v", err)
+		config, err := getExampleConfig()
+		if err != nil {
+			t.Errorf("get example config: %v", err)
 			t.FailNow()
 		}
-		provider := config.Providers[providerName]
-		remoteJwks := &jwtauthnv3.RemoteJwks{}
-		remoteJwks.HttpUri = &envoy_config_core_v3.HttpUri{
-			Uri: "https://pubkey_server/pubkey_path",
-			Timeout: &duration.Duration{
-				Seconds: 5,
-			},
-			HttpUpstreamType: &envoy_config_core_v3.HttpUri_Cluster{
-				Cluster: "pubkey_cluster",
-			},
-		}
-		remoteJwks.CacheDuration = &duration.Duration{
-			Seconds: 600,
-		}
-		provider.JwksSourceSpecifier = &jwtauthnv3.JwtProvider_RemoteJwks{
-			RemoteJwks: remoteJwks,
-		}
-
-		return &config
+		return config
 	}
 
 	getExtractor := func(config *jwtauthnv3.JwtAuthentication) Extractor {
@@ -63,7 +44,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		for i := 0; i < 10; i++ {
 			err := auth.Verify(headers, tokens)
 			if err != nil {
@@ -91,7 +73,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		if err != nil {
 			t.Error(err)
@@ -111,7 +94,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrInvalidToken, err)
 	})
@@ -125,7 +109,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtNotFound, err)
 	})
@@ -139,7 +124,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtBadFormat, err)
 	})
@@ -153,7 +139,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtNotFound, err)
 	})
@@ -167,7 +154,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtAudienceNotAllowed, err)
 	})
@@ -181,7 +169,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtExpired, err)
 	})
@@ -195,7 +184,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtNotYetValid, err)
 	})
@@ -205,8 +195,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		config := getConfig()
 		provider := config.Providers[providerName]
 		provider.JwksSourceSpecifier = &jwtauthnv3.JwtProvider_LocalJwks{
-			LocalJwks: &envoy_config_core_v3.DataSource{
-				Specifier: &envoy_config_core_v3.DataSource_InlineString{
+			LocalJwks: &envoycorev3.DataSource{
+				Specifier: &envoycorev3.DataSource_InlineString{
 					InlineString: "invalid",
 				},
 			},
@@ -217,7 +207,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwksNoValidKeys, err)
 	})
@@ -231,7 +222,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtAudienceNotAllowed, err)
 	})
@@ -247,7 +239,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwtUnknownIssuer, err)
 	})
@@ -261,7 +254,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(nil, ErrJwksFetch).Times(1)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Equal(t, ErrJwksFetch, err)
 	})
@@ -277,7 +271,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Nil(t, err)
 		_, exists := headers.Get("sec-istio-auth-userinfo")
@@ -306,7 +301,8 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator(providerName, jwksCache, jwksFetcher, false, false)
 		err := auth.Verify(headers, tokens)
 		assert.Nil(t, err)
 		_, exists := headers.Get("a")
@@ -325,9 +321,9 @@ func TestAuthenticatorVerify(t *testing.T) {
 		tokens = extractor.Extract(headers, "")
 
 		jwksFetcher = NewMockJwksFetcher(ctrl)
-		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
+		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(0)
 
-		auth = newAuthenticatorDeprecated(config, jwksFetcher)
+		auth = newAuthenticator(providerName, jwksCache, jwksFetcher, true, false)
 		err = auth.Verify(headers, tokens)
 		assert.Nil(t, err)
 		_, exists = headers.Get("a")
@@ -340,34 +336,37 @@ func TestAuthenticatorVerify(t *testing.T) {
 
 	t.Run("Allow failed authenticator will verify all tokens.", func(t *testing.T) {
 		config := getConfig()
-		provider := &jwtauthnv3.JwtProvider{}
-		remoteJwks := &jwtauthnv3.RemoteJwks{}
-		remoteJwks.HttpUri = &envoy_config_core_v3.HttpUri{
-			Uri: "https://pubkey_server/pubkey_path",
-			Timeout: &duration.Duration{
-				Seconds: 5,
-			},
-			HttpUpstreamType: &envoy_config_core_v3.HttpUri_Cluster{
-				Cluster: "pubkey_cluster",
-			},
-		}
-		remoteJwks.CacheDuration = &duration.Duration{
-			Seconds: 600,
-		}
-		provider.JwksSourceSpecifier = &jwtauthnv3.JwtProvider_RemoteJwks{
-			RemoteJwks: remoteJwks,
-		}
-		provider.Issuer = "https://other.com"
-		provider.Audiences = append(provider.Audiences, "other_service")
-		provider.FromHeaders = append(provider.FromHeaders, &jwtauthnv3.JwtHeader{
-			Name:        "expired-auth",
-			ValuePrefix: "Bearer ",
-		})
-		provider.FromHeaders = append(provider.FromHeaders, &jwtauthnv3.JwtHeader{
-			Name:        "other-auth",
-			ValuePrefix: "Bearer ",
-		})
-		config.Providers["other_provider"] = provider
+		otherProviderConfig := `
+{
+  "issuer": "https://other.com",
+  "audiences": [
+	"other_service"
+  ],
+  "from_headers": [
+	{
+	   "name": "expired-auth",
+	   "value_prefix": "Bearer "
+	},
+    {
+	   "name": "other-auth",
+	   "value_prefix": "Bearer "
+	}
+  ],
+  "remote_jwks": {
+	"http_uri": {
+	  "uri": "https://pubkey_server/pubkey_path",
+	  "cluster": "pubkey_cluster",
+	  "timeout": "5s"
+	},
+	"cache_duration": "600s"
+  },
+  "forward_payload_header": "sec-istio-auth-userinfo"
+}
+`
+		var provider jwtauthnv3.JwtProvider
+		err := jsonpb.UnmarshalString(otherProviderConfig, &provider)
+		assert.Nil(t, err)
+		config.Providers["other_provider"] = &provider
 
 		headers := newHeaders()
 		headers.Add("Authorization", "Bearer "+goodToken)
@@ -380,8 +379,9 @@ func TestAuthenticatorVerify(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil).Times(2)
 
-		auth := newAuthenticatorDeprecated(config, jwksFetcher)
-		err := auth.Verify(headers, tokens)
+		jwksCache := NewJwksCache(config.Providers)
+		auth := newAuthenticator("", jwksCache, jwksFetcher, true, true)
+		err = auth.Verify(headers, tokens)
 		assert.Nil(t, err)
 		_, exists := headers.Get("Authorization")
 		assert.False(t, exists)

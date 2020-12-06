@@ -18,15 +18,13 @@ type Matcher interface {
 
 // NewMatcher creates a new Matcher.
 func NewMatcher(rule *jwtauthnv3.RequirementRule) Matcher {
-	switch t := rule.GetMatch().PathSpecifier.(type) {
+	switch rule.GetMatch().PathSpecifier.(type) {
 	case *envoy_config_route_v3.RouteMatch_Prefix:
 		return newPrefixMatcher(rule)
 
-	case *envoy_config_route_v3.RouteMatch_Path:
-		return newPathMatcher(rule)
 	default:
-		_ = t
-		panic("not reach")
+		// *envoy_config_route_v3.RouteMatch_Path
+		return newPathMatcher(rule)
 	}
 }
 

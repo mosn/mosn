@@ -1,11 +1,8 @@
 package jwtauthn
 
 import (
-	"encoding/json"
-
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
-	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol/http"
@@ -40,28 +37,36 @@ var providerName = "example_provider"
 // A good config.
 var exampleConfig = `
 {
-	"providers": {
-       "example_provider": {
-          "issuer": "https://example.com",
-          "audiences": [
-             "example_service",
-             "http://example_service1",
-             "https://example_service2/"
-          ],
-          "forward_payload_header": "sec-istio-auth-userinfo"
-       }
-    },
-	"rules": [
-       {
-          "match": {
-             "path": "/"
-          },
-          "requires": {
-             "provider_name": "example_provider"
-          }
-       }
-    ],
-    "bypass_cors_preflight": true
+  "providers": {
+    "example_provider": {
+      "issuer": "https://example.com",
+      "audiences": [
+        "example_service",
+        "http://example_service1",
+        "https://example_service2/"
+      ],
+      "remote_jwks": {
+        "http_uri": {
+          "uri": "https://pubkey_server/pubkey_path",
+          "cluster": "pubkey_cluster",
+          "timeout": "5s"
+        },
+        "cache_duration": "600s"
+      },
+      "forward_payload_header": "sec-istio-auth-userinfo"
+    }
+  },
+  "rules": [
+    {
+      "match": {
+        "path": "/"
+      },
+      "requires": {
+        "provider_name": "example_provider"
+      }
+    }
+  ],
+  "bypass_cors_preflight": true
 }
 `
 
@@ -109,30 +114,8 @@ func addHeader(k, v string) api.HeaderMap {
 
 func getExampleConfig() (*jwtauthnv3.JwtAuthentication, error) {
 	var config jwtauthnv3.JwtAuthentication
-	if err := json.Unmarshal([]byte(exampleConfig), &config); err != nil {
+	if err := jsonpb.UnmarshalString(exampleConfig, &config); err != nil {
 		return nil, err
 	}
-	provider := config.Providers[providerName]
-	remoteJwks := &jwtauthnv3.RemoteJwks{}
-	remoteJwks.HttpUri = &envoy_config_core_v3.HttpUri{
-		Uri: "https://pubkey_server/pubkey_path",
-		Timeout: &duration.Duration{
-			Seconds: 5,
-		},
-		HttpUpstreamType: &envoy_config_core_v3.HttpUri_Cluster{
-			Cluster: "pubkey_cluster",
-		},
-	}
-	remoteJwks.CacheDuration = &duration.Duration{
-		Seconds: 600,
-	}
-	provider.JwksSourceSpecifier = &jwtauthnv3.JwtProvider_RemoteJwks{
-		RemoteJwks: remoteJwks,
-	}
-
-	config.Rules[0].Requires.RequiresType = &jwtauthnv3.JwtRequirement_ProviderName{
-		ProviderName: "example_provider",
-	}
-
 	return &config, nil
 }

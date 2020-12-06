@@ -44,23 +44,6 @@ func NewJwksCache(providers map[string]*jwtauthnv3.JwtProvider) JwksCache {
 	}
 }
 
-// NewJwksCacheDeprecated creates a new JwksCache.
-func NewJwksCacheDeprecated(config *jwtauthnv3.JwtAuthentication) JwksCache {
-	issuer2JwksData := make(map[string]JwksData)
-	provider2JwksData := make(map[string]JwksData)
-	for name, provider := range config.Providers {
-		provider2JwksData[name] = NewJwksData(provider)
-		if _, ok := issuer2JwksData[provider.GetIssuer()]; !ok {
-			issuer2JwksData[provider.GetIssuer()] = provider2JwksData[name]
-		}
-	}
-
-	return &jwksCache{
-		issuer2JwksData:   issuer2JwksData,
-		provider2JwksData: provider2JwksData,
-	}
-}
-
 // NewJwksData creates a new JwksData.
 func NewJwksData(provider *jwtauthnv3.JwtProvider) JwksData {
 	jwksData := &jwksData{
@@ -123,6 +106,9 @@ func (j *jwksData) IsExpired() bool {
 }
 
 func (j *jwksData) AreAudiencesAllowed(aud string) bool {
+	if len(j.provider.Audiences) == 0 {
+		return true
+	}
 	for _, audience := range j.provider.Audiences {
 		if aud == audience {
 			return true

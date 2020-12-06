@@ -40,7 +40,7 @@ func (f *filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	// TODO(huangrh): define a struct for request.
 
 	// Verify the JWT token
-	verifier := f.config.FindVerifier(headers, requestArg)
+	verifier := f.config.FindVerifier(headers, requestArg, requestPath)
 	if verifier == nil {
 		return api.StreamFilterContinue
 	}

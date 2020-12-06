@@ -9,22 +9,26 @@ import (
 type FilterConfig interface {
 	BypassCorsPreflightRequest() bool
 	// Finds the matcher that matched the request
-	FindVerifier(headers api.HeaderMap, requestPath string) Verifier
+	FindVerifier(headers api.HeaderMap, requestArg, requestPath string) Verifier
 }
 
 // NewFilterConfig creates a new filter config.
-func NewFilterConfig(config *jwtauthnv3.JwtAuthentication) FilterConfig {
+func NewFilterConfig(config *jwtauthnv3.JwtAuthentication) (FilterConfig, error) {
 	var rulePairs []*MatcherVerifierPair
 	for _, rule := range config.Rules {
+		verifier, err := NewVerifier(rule.Requires, config.Providers, nil, nil)
+		if err != nil {
+			return nil, err
+		}
 		rulePairs = append(rulePairs, &MatcherVerifierPair{
 			matcher:  NewMatcher(rule),
-			verifier: NewVerifier(rule.Requires, config.Providers, nil),
+			verifier: verifier,
 		})
 	}
 	return &filterConfig{
 		config:    config,
 		rulePairs: rulePairs,
-	}
+	}, nil
 }
 
 // MatcherVerifierPair is a pair of matcher and Verifier.
@@ -42,7 +46,7 @@ func (f *filterConfig) BypassCorsPreflightRequest() bool {
 	return f.config.BypassCorsPreflight
 }
 
-func (f *filterConfig) FindVerifier(headers api.HeaderMap, requestPath string) Verifier {
+func (f *filterConfig) FindVerifier(headers api.HeaderMap, requestArg, requestPath string) Verifier {
 	for _, rulePair := range f.rulePairs {
 		if !rulePair.matcher.Matches(headers, requestPath) {
 			continue

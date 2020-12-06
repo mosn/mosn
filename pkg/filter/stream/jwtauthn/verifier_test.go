@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoycorev3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes/duration"
@@ -28,7 +28,8 @@ func TestProviderVerifier(t *testing.T) {
 		jwksFetcher := NewMockJwksFetcher(ctrl)
 		jwksFetcher.EXPECT().Fetch(gomock.Any()).Return(jwks, nil)
 
-		verifier := NewVerifier(config.Rules[0].Requires, config.Providers, jwksFetcher)
+		verifier, err := NewVerifier(config.Rules[0].Requires, config.Providers, nil, jwksFetcher)
+		assert.Nil(t, err)
 
 		headers := newHeaders(
 			[2]string{"Authorization", "Bearer " + goodToken},
@@ -47,7 +48,11 @@ func TestProviderVerifier(t *testing.T) {
 			t.FailNow()
 		}
 
-		verifier := NewVerifier(config.Rules[0].Requires, config.Providers, nil)
+		verifier, err := NewVerifier(config.Rules[0].Requires, config.Providers, nil, nil)
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+			t.FailNow()
+		}
 
 		headers := newHeaders([2]string{"sec-istio-auth-userinfo", ""})
 		err = verifier.Verify(headers, "")
@@ -100,12 +105,12 @@ func TestProviderVerifier(t *testing.T) {
 		}
 		provider := config.Providers[providerName]
 		remoteJwks := &jwtauthnv3.RemoteJwks{}
-		remoteJwks.HttpUri = &envoy_config_core_v3.HttpUri{
+		remoteJwks.HttpUri = &envoycorev3.HttpUri{
 			Uri: "https://pubkey_server/pubkey_path",
 			Timeout: &duration.Duration{
 				Seconds: 5,
 			},
-			HttpUpstreamType: &envoy_config_core_v3.HttpUri_Cluster{
+			HttpUpstreamType: &envoycorev3.HttpUri_Cluster{
 				Cluster: "pubkey_cluster",
 			},
 		}
@@ -120,12 +125,12 @@ func TestProviderVerifier(t *testing.T) {
 			ProviderName: "other_provider",
 		}
 
-		verifier := NewVerifier(config.Rules[0].Requires, config.Providers, nil)
+		verifier, err := NewVerifier(config.Rules[0].Requires, config.Providers, nil, nil)
 
 		headers := newHeaders(
 			[2]string{"Authorization", "Bearer " + goodToken},
 		)
-		err := verifier.Verify(headers, "")
+		err = verifier.Verify(headers, "")
 		assert.Equal(t, ErrJwtUnknownIssuer, err)
 		_, exists := headers.Get("other-auth-userinfo")
 		assert.False(t, exists)
