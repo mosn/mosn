@@ -65,11 +65,11 @@ func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interf
 	if !ok {
 		return variable.ValueNotFound, nil
 	}
-	scheme, ok := headers.Get(protocol.MosnHeaderScheme)
-	if !ok {
+	scheme, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderScheme, false)
+	if err != nil || scheme == nil {
 		return variable.ValueNotFound, nil
 	}
-	return scheme, nil
+	return *scheme, nil
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {

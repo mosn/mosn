@@ -109,8 +109,8 @@ type downStream struct {
 	resetReason types.StreamResetReason
 
 	// stream filter chain
-	streamFilterChain           streamFilterChain
-	receiverFiltersAgainPhase   types.Phase
+	streamFilterChain         streamFilterChain
+	receiverFiltersAgainPhase types.Phase
 
 	context context.Context
 
@@ -400,7 +400,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 		for i := 0; i < 10; i++ {
 			s.cleanNotify()
 
-			phase = s.receive(ctx, id, phase)
+			phase = s.receive(s.context, id, phase)
 			switch phase {
 			case types.End:
 				return
@@ -761,9 +761,17 @@ func (s *downStream) chooseHost(endStream bool) {
 			s.sendHijackReply(nethttp.StatusInternalServerError, s.downstreamReqHeaders)
 			return
 		}
-		currentHost, _ := s.downstreamReqHeaders.Get(types.HeaderHost)
-		currentPath, _ := s.downstreamReqHeaders.Get(types.HeaderPath)
-		currentQuery, _ := s.downstreamReqHeaders.Get(types.HeaderQueryString)
+		getValueFunc := func(key string, defaultVal string) string {
+			val, err := variable.GetValueFromVariableAndLegacyHeader(s.context, s.downstreamReqHeaders, key, false)
+			if err != nil || val == nil {
+				return defaultVal
+			}
+			return *val
+		}
+		currentHost := getValueFunc(types.HeaderHost, "")
+		currentPath := getValueFunc(types.HeaderPath, "")
+		currentQuery := getValueFunc(types.HeaderQueryString, "")
+
 		u := url.URL{
 			Scheme:   getStringOr(rule.RedirectScheme(), currentScheme),
 			Host:     getStringOr(rule.RedirectHost(), currentHost),

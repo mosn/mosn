@@ -840,9 +840,9 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	headersIn.Del(protocol.MosnHeaderScheme)
 
 	var method string
-	if m, ok := headersIn.Get(protocol.MosnHeaderMethod); ok {
-		headersIn.Del(protocol.MosnHeaderMethod)
-		method = m
+	m, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headersIn, protocol.MosnHeaderMethod, true)
+	if err == nil && m != nil {
+		method = *m
 	} else {
 		if endStream {
 			method = http.MethodGet
@@ -852,9 +852,9 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	}
 
 	var host string
-	if h, ok := headersIn.Get(protocol.MosnHeaderHostKey); ok {
-		headersIn.Del(protocol.MosnHeaderHostKey)
-		host = h
+	h, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headersIn, protocol.MosnHeaderHostKey, true)
+	if err == nil && h != nil {
+		host = *h
 	} else if h, ok := headersIn.Get("Host"); ok {
 		host = h
 	} else {
@@ -862,14 +862,16 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	}
 
 	var query string
-	if q, ok := headersIn.Get(protocol.MosnHeaderQueryStringKey); ok {
-		headersIn.Del(protocol.MosnHeaderQueryStringKey)
-		query = q
+	q, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headersIn, protocol.MosnHeaderQueryStringKey, true)
+	if err == nil && q != nil {
+		query = *q
 	}
 
 	var URL *url.URL
-	if path, ok := headersIn.Get(protocol.MosnHeaderPathKey); ok {
-		headersIn.Del(protocol.MosnHeaderPathKey)
+	var path string
+	p, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headersIn, protocol.MosnHeaderPathKey, true)
+	if err == nil && p != nil {
+		path = *p
 		if query != "" {
 			URI := fmt.Sprintf(scheme+"://%s%s?%s", req.Host, path, query)
 			URL, _ = url.Parse(URI)
