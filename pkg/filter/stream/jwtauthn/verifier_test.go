@@ -126,6 +126,10 @@ func TestProviderVerifier(t *testing.T) {
 		}
 
 		verifier, err := NewVerifier(config.Rules[0].Requires, config.Providers, nil, nil)
+		if err != nil {
+			t.Errorf("create verifyer: %v", err)
+			t.FailNow()
+		}
 
 		headers := newHeaders(
 			[2]string{"Authorization", "Bearer " + goodToken},

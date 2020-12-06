@@ -1,8 +1,7 @@
 package jwtauthn
 
 import (
-	"encoding/json"
-	"sort"
+	"github.com/golang/protobuf/jsonpb"
 	"testing"
 
 	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
@@ -82,7 +81,7 @@ func TestExtractorExtract(t *testing.T) {
 `
 
 	var config jwtauthnv3.JwtAuthentication
-	if err := json.Unmarshal([]byte(exampleConfig), &config); err != nil {
+	if err := jsonpb.UnmarshalString(exampleConfig, &config); err != nil {
 		t.Errorf("unmarshal exampleConfig to config(jwtauthnv3.JwtAuthentication): %v", err)
 		t.FailNow()
 	}
@@ -115,7 +114,7 @@ func TestExtractorExtract(t *testing.T) {
 	t.Run("extracting token from the default header location: 'Authorization'", func(t *testing.T) {
 		headers := addHeader("Authorization", "Bearer jwt_token")
 		tokens := extractor.Extract(headers, "")
-		assert.Equal(t, len(tokens), 1)
+		assert.Equal(t, 1, len(tokens))
 
 		// Only the issue1 is using default header location.
 		assert.Equal(t, tokens[0].Token(), "jwt_token")
@@ -138,7 +137,7 @@ func TestExtractorExtract(t *testing.T) {
 		headers := newHeaders()
 		requestArg := "access_token=jwt_token"
 		tokens := extractor.Extract(headers, requestArg)
-		assert.Equal(t, len(tokens), 1)
+		assert.Equal(t, 1, len(tokens))
 
 		// Only the issue1 is using default header location.
 		assert.Equal(t, tokens[0].Token(), "jwt_token")
@@ -155,23 +154,23 @@ func TestExtractorExtract(t *testing.T) {
 	t.Run("extracting token from the custom header location: 'token-header'", func(t *testing.T) {
 		headers := addHeader("token-header", "jwt_token")
 		tokens := extractor.Extract(headers, "")
-		assert.Equal(t, len(tokens), 1)
+		assert.Equal(t, 1, len(tokens))
 
 		// Only the issue1 is using default header location.
-		assert.Equal(t, tokens[0].Token(), "jwt_token")
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer2"), true)
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer4"), true)
+		assert.Equal(t, "jwt_token", tokens[0].Token())
+		assert.True(t, tokens[0].IsIssuerSpecified("issuer2"))
+		assert.True(t, tokens[0].IsIssuerSpecified("issuer4"))
 
 		// Other issuers are using custom locations
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer1"), false)
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer3"), false)
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer5"), false)
-		assert.Equal(t, tokens[0].IsIssuerSpecified("unknown_issuer"), false)
+		assert.False(t, tokens[0].IsIssuerSpecified("issuer1"))
+		assert.False(t, tokens[0].IsIssuerSpecified("issuer3"))
+		assert.False(t, tokens[0].IsIssuerSpecified("issuer5"))
+		assert.False(t, tokens[0].IsIssuerSpecified("unknown_issuer"))
 
 		// Test token remove
 		tokens[0].RemoveJwt(headers)
 		_, ok := headers.Get(authorization)
-		assert.Equal(t, ok, false)
+		assert.False(t, ok)
 	})
 
 	t.Run("extracting token from the custom header: 'prefix-header'. value prefix doesn't match. It has to be either 'AAA' or 'AAABBB'.", func(t *testing.T) {
@@ -183,15 +182,17 @@ func TestExtractorExtract(t *testing.T) {
 	t.Run("extracting token from the custom header: 'prefix-header'. The value matches both prefix values: 'AAA' or 'AAABBB'.", func(t *testing.T) {
 		headers := addHeader("prefix-header", "AAABBBjwt_token")
 		tokens := extractor.Extract(headers, "")
-		assert.Equal(t, len(tokens), 2)
+		assert.Equal(t, 2, len(tokens))
 
 		// Match issuer 5 with map key as: prefix-header + AAA
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer5"), true)
-		assert.Equal(t, tokens[0].Token(), "BBBjwt_token")
+		issuer5 := getTokenByIssuer(tokens, "issuer5")
+		assert.NotNil(t, issuer5)
+		assert.Equal(t, "BBBjwt_token", issuer5.Token())
 
 		// Match issuer 6 with map key as: prefix-header + AAABBB which is after AAA
-		assert.Equal(t, tokens[1].IsIssuerSpecified("issuer6"), true)
-		assert.Equal(t, tokens[1].Token(), "jwt_token")
+		issuer6 := getTokenByIssuer(tokens, "issuer6")
+		assert.NotNil(t, issuer6)
+		assert.Equal(t, "jwt_token", issuer6.Token())
 
 		tokens[0].RemoveJwt(headers)
 		_, ok := headers.Get(authorization)
@@ -201,15 +202,17 @@ func TestExtractorExtract(t *testing.T) {
 	t.Run("extracting token from the custom header: 'prefix-header'. The value is found after the 'CCCDDD', then between the '=' and the ','.", func(t *testing.T) {
 		headers := addHeader("prefix-header", "AAABBBjwt_token")
 		tokens := extractor.Extract(headers, "")
-		assert.Equal(t, len(tokens), 2)
+		assert.Equal(t, 2, len(tokens))
 
 		// Match issuer 5 with map key as: prefix-header + AAA
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer5"), true)
-		assert.Equal(t, tokens[0].Token(), "BBBjwt_token")
+		issuer5 := getTokenByIssuer(tokens, "issuer5")
+		assert.NotNil(t, issuer5)
+		assert.Equal(t, "BBBjwt_token", issuer5.Token())
 
 		// Match issuer 6 with map key as: prefix-header + AAABBB which is after AAA
-		assert.Equal(t, tokens[1].IsIssuerSpecified("issuer6"), true)
-		assert.Equal(t, tokens[1].Token(), "jwt_token")
+		issuer6 := getTokenByIssuer(tokens, "issuer6")
+		assert.NotNil(t, issuer6)
+		assert.Equal(t, "jwt_token", issuer6.Token())
 
 		tokens[0].RemoveJwt(headers)
 		_, ok := headers.Get(authorization)
@@ -220,18 +223,18 @@ func TestExtractorExtract(t *testing.T) {
 		headers := newHeaders()
 		requestArg := "token_param=jwt_token"
 		tokens := extractor.Extract(headers, requestArg)
-		assert.Equal(t, len(tokens), 1)
+		assert.Equal(t, 1, len(tokens))
 
 		// Both issuer3 and issuer4 have specified this custom query location.
-		assert.Equal(t, tokens[0].Token(), "jwt_token")
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer3"), true)
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer4"), true)
+		assert.Equal(t, "jwt_token", tokens[0].Token())
+		assert.True(t, tokens[0].IsIssuerSpecified("issuer3"))
+		assert.True(t, tokens[0].IsIssuerSpecified("issuer4"))
 
 		// Other issuers are using custom locations
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer1"), false)
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer2"), false)
-		assert.Equal(t, tokens[0].IsIssuerSpecified("issuer5"), false)
-		assert.Equal(t, tokens[0].IsIssuerSpecified("unknown_issuer"), false)
+		assert.False(t, tokens[0].IsIssuerSpecified("issuer1"))
+		assert.False(t, tokens[0].IsIssuerSpecified("issuer2"))
+		assert.False(t, tokens[0].IsIssuerSpecified("issuer5"))
+		assert.False(t, tokens[0].IsIssuerSpecified("unknown_issuer"))
 	})
 
 	t.Run("extracting multiple tokens.", func(t *testing.T) {
@@ -242,17 +245,11 @@ func TestExtractorExtract(t *testing.T) {
 		tokens := extractor.Extract(headers, requestArg)
 		assert.Equal(t, len(tokens), 5)
 
-		var tokenStrs []string
-		for _, token := range tokens {
-			tokenStrs = append(tokenStrs, token.Token())
-		}
-		sort.Strings(tokenStrs)
-
-		assert.Equal(t, tokenStrs[0], "token1")
-		assert.Equal(t, tokenStrs[1], "token2")
-		assert.Equal(t, tokenStrs[2], "token3")
-		assert.Equal(t, tokenStrs[3], "token4")
-		assert.Equal(t, tokenStrs[4], "token5")
+		assert.NotNil(t, getTokenByToken(tokens, "token1"))
+		assert.NotNil(t, getTokenByToken(tokens, "token2"))
+		assert.NotNil(t, getTokenByToken(tokens, "token3"))
+		assert.NotNil(t, getTokenByToken(tokens, "token4"))
+		assert.NotNil(t, getTokenByToken(tokens, "token5"))
 	})
 
 	t.Run("selected extraction of multiple tokens.", func(t *testing.T) {
@@ -281,4 +278,22 @@ func TestExtractorExtract(t *testing.T) {
 		assert.Equal(t, tokens[0].Token(), "token5")
 		assert.Equal(t, tokens[1].Token(), "token3")
 	})
+}
+
+func getTokenByIssuer(tokens []JwtLocation, issuer string) JwtLocation {
+	for _, token := range tokens {
+		if token.IsIssuerSpecified(issuer) {
+			return token
+		}
+	}
+	return nil
+}
+
+func getTokenByToken(tokens []JwtLocation, tokenStr string) JwtLocation {
+	for _, token := range tokens {
+		if token.Token() == tokenStr {
+			return token
+		}
+	}
+	return nil
 }
