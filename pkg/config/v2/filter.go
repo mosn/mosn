@@ -58,6 +58,18 @@ type StreamDSL struct {
 	LogDSL           string `json:"log_filter_by_dsl"`
 }
 
+// StreamDataer ...
+type MetaDataer struct {
+	MetaKey string                 `json:"meta_data_key,omitempty"`
+	Config  map[string]interface{} `json:"config,omitempty"`
+}
+
+// StreamMetadata ...
+type StreamMetadata struct {
+	Disable     bool         `json:"disable"`
+	MetaDataers []MetaDataer `json:"metadataers,omitempty"`
+}
+
 // Listener Filter's Type
 const (
 	ORIGINALDST_LISTENER_FILTER = "original_dst"
@@ -98,6 +110,7 @@ const (
 	DSL            = "dsl"
 	Mirror         = "mirror"
 	DubboStream    = "dubbo_stream"
+	Metadata       = "metadata"
 )
 
 // HealthCheckFilter
