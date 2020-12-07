@@ -89,7 +89,6 @@ func reconfigure(start bool) {
 	if listenSockConn, err = sendInheritListeners(); err != nil {
 		return
 	}
-	// 0 means success, not 0 means failure
 
 	if enableInheritOldMosnconfig {
 		if err = SendInheritConfig(); err != nil {
