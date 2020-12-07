@@ -66,9 +66,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
-	if c.InheritOldMosnconfig {
-		server.EnableInheritOldMosnconfig()
-	}
+	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// set the mosn config finally
 	defer configmanager.SetMosnConfig(c)
@@ -223,15 +221,10 @@ func (m *Mosn) beforeStart() {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
 		}
 		// wait old mosn ack
-		m.listenSockConn.SetReadDeadline(time.Now().Add(1 * time.Minute))
+		m.listenSockConn.SetReadDeadline(time.Now().Add(3 * time.Second))
 		var buf [1]byte
 		n, err := m.listenSockConn.Read(buf[:])
-		if err != nil || n != 1 {
-			// buf[0] 0 means success, not 0 means failure
-			if buf[0] != 0 {
-				// old mosn  reponse error code
-				log.StartLogger.Fatalf("[mosn] [NewMosn] ack graceful failed, exit, error: %v n: %v, receive reponse code is : %v", err, n, buf[0])
-			}
+		if n != 1 {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] ack graceful failed, exit, error: %v n: %v, buf[0]: %v", err, n, buf[0])
 		}
 

@@ -44,8 +44,8 @@ var (
 	enableInheritOldMosnconfig = false
 )
 
-func EnableInheritOldMosnconfig() {
-	enableInheritOldMosnconfig = true
+func EnableInheritOldMosnconfig(enable bool) {
+	enableInheritOldMosnconfig = enable
 }
 
 func startNewMosn() error {
@@ -90,11 +90,14 @@ func reconfigure(start bool) {
 		return
 	}
 	// 0 means success, not 0 means failure
-	var reponseFlag uint8 = 0
+
 	if enableInheritOldMosnconfig {
 		if err = SendInheritConfig(); err != nil {
 			listenSockConn.Close()
-			reponseFlag = 1
+			log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "[old mosn] [SendInheritConfig] new mosn start failed")
+			// Restore PID
+			keeper.WritePidFile()
+			return
 		}
 	}
 
@@ -102,12 +105,15 @@ func reconfigure(start bool) {
 	listenSockConn.SetReadDeadline(time.Now().Add(10 * time.Minute))
 	n, err = listenSockConn.Read(buf[:])
 	if n != 1 {
-		reponseFlag = 2
+		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "[old mosn] [read ack] new mosn start failed")
+		// Restore PID
+		keeper.WritePidFile()
+		return
 	}
 
 	// ack new mosn
-	if _, err := listenSockConn.Write([]byte{reponseFlag}); err != nil {
-		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "new mosn start failed")
+	if _, err := listenSockConn.Write([]byte{0}); err != nil {
+		log.DefaultLogger.Alertf(types.ErrorKeyReconfigure, "[old mosn] [write ack] new mosn start failed")
 		// Restore PID
 		keeper.WritePidFile()
 		return
