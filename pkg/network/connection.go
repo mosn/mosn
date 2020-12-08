@@ -483,7 +483,9 @@ func (c *connection) doRead() (err error) {
 	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
 
 	if err != nil {
-		log.DefaultLogger.Infof("[network] [read loop] do read err: %v", err)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[network] [read loop] do read err: %v", err)
+		}
 		if atomic.LoadUint32(&c.closed) == 1 {
 			return err
 		}
