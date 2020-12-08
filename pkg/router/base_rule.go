@@ -259,7 +259,9 @@ func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {
 func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint64) bool {
 	// 1. match headers' KV
 	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
+		}
 		return false
 	}
 	// 2. match query parameters
@@ -270,7 +272,9 @@ func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint
 		}
 		if len(queryParams) != 0 {
 			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
-				log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
+				}
 				return false
 			}
 		}
@@ -296,7 +300,9 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedP
 			if strings.HasPrefix(path, matchedPath) {
 				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
 				headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
-				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+				}
 			}
 			return
 		}
@@ -307,7 +313,9 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedP
 			if rewritedPath != path {
 				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
 				headers.Set(protocol.MosnHeaderPathKey, rewritedPath)
-				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
+				}
 			}
 		}
 

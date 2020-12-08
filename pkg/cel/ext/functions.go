@@ -85,7 +85,7 @@ func check(err error) {
 	if err == nil {
 		return
 	}
-	log.DefaultLogger.Warnf("%s", err)
+	log.DefaultLogger.Warnf("cel ext check error: %v", err)
 }
 
 func StandardFunctionsEnvOption() cel.EnvOption {

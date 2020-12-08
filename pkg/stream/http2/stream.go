@@ -338,7 +338,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		}
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("http2 server receive data: %d", id)
+			log.Proxy.Debugf(ctx, "http2 server receive data: %d", id)
 		}
 
 		if _, err = stream.recData.Write(data); err != nil {
@@ -365,7 +365,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 			stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailer)
 		}
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Infof("http2 server stream end %d", id)
+			log.Proxy.Debugf(stream.ctx, "http2 server stream end %d", id)
 		}
 	}
 
@@ -508,7 +508,9 @@ func (s *serverStream) AppendTrailers(context context.Context, trailers api.Head
 
 func (s *serverStream) ResetStream(reason types.StreamResetReason) {
 	// on stream reset
-	log.Proxy.Warnf(s.ctx, "http2 server reset stream id = %d, error = %v", s.id, reason)
+	if log.Proxy.GetLogLevel() >= log.WARN {
+		log.Proxy.Warnf(s.ctx, "http2 server reset stream id = %d, error = %v", s.id, reason)
+	}
 	if s.sc.useStream && s.recData != nil {
 		s.recData.CloseWithError(io.EOF)
 	}
@@ -686,7 +688,9 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	if lastStream != 0 {
 		conn.lastStream = lastStream
 		conn.streamConnectionEventListener.OnGoAway()
-		log.DefaultLogger.Debugf("http2 client recevice goaway lastStremID = %d", conn.lastStream)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("http2 client recevice goaway lastStremID = %d", conn.lastStream)
+		}
 		return
 	}
 
@@ -763,7 +767,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 			stream.receiver.OnReceive(stream.ctx, stream.header, stream.recData, stream.trailer)
 		}
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Infof("http2 client stream receive end %d", id)
+			log.DefaultLogger.Debugf("http2 client stream receive end %d", id)
 		}
 		conn.mutex.Lock()
 		delete(conn.streams, id)
@@ -970,7 +974,9 @@ func (s *clientStream) GetStream() types.Stream {
 func (s *clientStream) ResetStream(reason types.StreamResetReason) {
 	// reset by goaway, support retry.
 	if s.sc.lastStream > 0 && s.id > s.sc.lastStream {
-		log.DefaultLogger.Warnf("http2 client reset by goaway, retry it, lastStream = %d, streamId = %d", s.sc.lastStream, s.id)
+		if log.DefaultLogger.GetLogLevel() >= log.WARN {
+			log.DefaultLogger.Warnf("http2 client reset by goaway, retry it, lastStream = %d, streamId = %d", s.sc.lastStream, s.id)
+		}
 		reason = types.StreamConnectionFailed
 	}
 	switch reason {
