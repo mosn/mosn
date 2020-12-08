@@ -373,14 +373,14 @@ github.com/modern-go/reflect2 v1.0.1 h1:9f412s+6RmYXLWZSEzVVgPGK7C2PphHj5RJrvfx9
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
 github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f h1:To7Bf1S4r0iuIKJkpTFFTDRa/PfCUTouqjD4uWr2oL8=
 github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f/go.mod h1:V3v+y3rlpXDKXBld0Jvz2I3p3gHp8BE6NToiQUuLC7g=
+github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0 h1:GuQmLdUJpCfcfIGQDZJB8cpS165L16JeqcBdCn4K7xM=
+github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0/go.mod h1:JlOHLcQTwc0Gvi2DZfQ2hMAj6Z73lQhkRrsxuawL9uE=
 github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91 h1:hOO8gWLcAoWZM6dZmPmfs0ZYmjKxmdwiwJiYRCfQc18=
 github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91/go.mod h1:sO2+AtmZqId1+8FHeuSPkPBmuin66YFKuOU3yqh3zGo=
 github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f/go.mod h1:ZdcZmHo+o7JKHSa8/e818NopupXU1YMK5fe1lsApnBw=
 github.com/nacos-group/nacos-sdk-go v0.0.0-20190723125407-0242d42e3dbb/go.mod h1:CEkSvEpoveoYjA81m4HNeYQ0sge0LFGKSEqO3JKHllo=
-github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990 h1:XGyIUMubCxwBCv61model5C3jqZ5zeZwdaEMEi1WRQY=
-github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990/go.mod h1:6tc/4PknZeQi0fvRIINicyJZdxmhD6ceR9v5ih1XeEg=
 github.com/nicolai86/scaleway-sdk v1.10.2-0.20180628010248-798f60e20bb2/go.mod h1:TLb2Sg7HQcgGdloNxkrmtgDNR9uVYF3lfdFIN4Ro6Sk=
 github.com/oklog/run v0.0.0-20180308005104-6934b124db28/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/run v1.0.0 h1:Ru7dDtJNOyC66gQ5dQmaCa0qIsAUFY3sFpK1Xk8igrw=

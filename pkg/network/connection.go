@@ -586,7 +586,7 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 			err = c.writeDirectly(&buffers)
 		}
 	} else {
-		if atomic.LoadUint32(&c.connected) == 1 {
+		if atomic.LoadUint32(&c.connected) != 1 {
 			return fmt.Errorf("can note schedule write on the un-connected connection %d", c.id)
 		}
 

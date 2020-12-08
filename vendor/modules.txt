@@ -198,6 +198,8 @@ github.com/modern-go/reflect2
 github.com/mosn/binding
 github.com/mosn/binding/internal/bytesconv
 github.com/mosn/binding/internal/json
+# github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0
+github.com/mosn/easygo/netpoll
 # github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
 github.com/mosn/registry/dubbo
 github.com/mosn/registry/dubbo/common
@@ -208,8 +210,6 @@ github.com/mosn/registry/dubbo/config_center/parser
 github.com/mosn/registry/dubbo/remoting
 github.com/mosn/registry/dubbo/remoting/zookeeper
 github.com/mosn/registry/dubbo/zookeeper
-# github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
-github.com/neverhook/easygo/netpoll
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
 # github.com/pkg/errors v0.9.1

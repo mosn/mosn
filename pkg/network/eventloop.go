@@ -18,12 +18,12 @@
 package network
 
 import (
-	"errors"
+	"mosn.io/mosn/pkg/log"
 	"runtime"
 	"sync"
 	"sync/atomic"
 
-	"github.com/neverhook/easygo/netpoll"
+	"github.com/mosn/easygo/netpoll"
 	mosnsync "mosn.io/mosn/pkg/sync"
 )
 
@@ -38,21 +38,21 @@ var (
 	rrCounter                 uint32
 	poolSize                  uint32 = 1 //uint32(runtime.NumCPU())
 	eventLoopPool                    = make([]*eventLoop, poolSize)
-	errEventAlreadyRegistered        = errors.New("event already registered")
+	// errEventAlreadyRegistered        = errors.New("event already registered")
 )
 
 func init() {
-	//for i := range eventLoopPool {
-	//	poller, err := netpoll.New(nil)
-	//	if err != nil {
-	//		log.Fatalln("create poller failed, caused by ", err)
-	//	}
-	//
-	//	eventLoopPool[i] = &eventLoop{
-	//		poller: poller,
-	//		conn:   make(map[uint64]*connEvent), //TODO init size
-	//	}
-	//}
+	for i := range eventLoopPool {
+		poller, err := netpoll.New(nil)
+		if err != nil {
+			log.DefaultLogger.Fatalf("create poller failed, caused by %v", err)
+		}
+
+		eventLoopPool[i] = &eventLoop{
+			poller: poller,
+			conn:   make(map[uint64]*connEvent), //TODO init size
+		}
+	}
 }
 
 func attach() *eventLoop {
@@ -145,6 +145,8 @@ func (el *eventLoop) registerWrite(conn *connection, handler *connEventHandler) 
 
 func (el *eventLoop) unregister(id uint64) {
 
+	el.mu.Lock()
+	defer el.mu.Unlock()
 	if event, ok := el.conn[id]; ok {
 		if event.read != nil {
 			el.poller.Stop(event.read)
@@ -154,34 +156,32 @@ func (el *eventLoop) unregister(id uint64) {
 			el.poller.Stop(event.write)
 		}
 
-		el.mu.Lock()
 		delete(el.conn, id)
-		el.mu.Unlock()
 	}
 
 }
 
 func (el *eventLoop) unregisterRead(id uint64) {
+	el.mu.Lock()
+	defer el.mu.Unlock()
 	if event, ok := el.conn[id]; ok {
 		if event.read != nil {
 			el.poller.Stop(event.read)
 		}
 
-		el.mu.Lock()
 		delete(el.conn, id)
-		el.mu.Unlock()
 	}
 }
 
 func (el *eventLoop) unregisterWrite(id uint64) {
+	el.mu.Lock()
+	defer el.mu.Unlock()
 	if event, ok := el.conn[id]; ok {
 		if event.write != nil {
 			el.poller.Stop(event.write)
 		}
 
-		el.mu.Lock()
 		delete(el.conn, id)
-		el.mu.Unlock()
 	}
 }
 
