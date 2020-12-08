@@ -56,5 +56,6 @@ func ParseJWTAuthnFilter(cfg map[string]interface{}) (*jwtauthnv3.JwtAuthenticat
 	if err := jsonpb.Unmarshal(bytes.NewReader(data), filterConfig); err != nil {
 		return nil, err
 	}
-	return filterConfig, nil
+
+	return filterConfig, filterConfig.Validate()
 }
