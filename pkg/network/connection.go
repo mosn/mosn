@@ -270,8 +270,10 @@ func (c *connection) checkUseWriteLoop() bool {
 	}
 
 	if ip.IsLoopback() {
-		log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
-			c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[network] [check use writeloop] Connection = %d, Local Address = %+v, Remote Address = %+v",
+				c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
+		}
 		return true
 	}
 	return false
@@ -483,7 +485,6 @@ func (c *connection) doRead() (err error) {
 	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
 
 	if err != nil {
-		log.DefaultLogger.Infof("[network] [read loop] do read err: %v", err)
 		if atomic.LoadUint32(&c.closed) == 1 {
 			return err
 		}
@@ -529,7 +530,6 @@ func (c *connection) updateReadBufStats(bytesRead int64, bytesBufSize int64) {
 
 func (c *connection) OnRead(b buffer.IoBuffer) {
 	c.readBuffer = b
-	log.DefaultLogger.Debugf("on read data len:%d", c.readBuffer.Len())
 	bytesRead := b.Len()
 	c.onRead(int64(bytesRead))
 }
@@ -1062,7 +1062,6 @@ func NewClientConnection(connectTimeout time.Duration, tlsMng types.TLSClientCon
 	conn.filterManager = newFilterManager(conn)
 
 	if conn.remoteAddr != nil {
-		log.DefaultLogger.Infof("remote addr: %s, network: %s", conn.remoteAddr.String(), conn.remoteAddr.Network())
 		conn.network = conn.remoteAddr.Network()
 	}
 

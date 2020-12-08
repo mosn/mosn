@@ -116,9 +116,7 @@ func (sdc *strictDnsCluster) UpdateHosts(newHosts []types.Host) {
 	for _, host := range newHosts {
 		addr, port := getHostPortFromAddr(host.AddressString())
 		if addr == "" {
-			if log.DefaultLogger.GetLogLevel() >= log.ERROR {
-				log.DefaultLogger.Errorf("[upstream] [strict_dns_cluster] config address format error: %s", host.AddressString())
-			}
+			log.DefaultLogger.Errorf("[upstream] [strict_dns_cluster] config address format error: %s", host.AddressString())
 			continue
 		}
 		// default port: 80
@@ -239,9 +237,7 @@ func (rt *ResolveTarget) StopResolve() {
 func (rt *ResolveTarget) StartResolve() {
 	defer func() {
 		if r := recover(); r != nil {
-			if log.DefaultLogger.GetLogLevel() >= log.ERROR {
-				log.DefaultLogger.Errorf("[upstream] [strict_dns_cluster] [resolver] panic %v\n%s", r, string(debug.Stack()))
-			}
+			log.DefaultLogger.Errorf("[upstream] [strict_dns_cluster] [resolver] panic %v\n%s", r, string(debug.Stack()))
 		}
 		rt.resolveTimer.Stop()
 		rt.resolveTimeout.Stop()

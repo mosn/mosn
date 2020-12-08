@@ -377,8 +377,10 @@ func (ac *activeClientPingPong) OnResetStream(reason types.StreamResetReason) {
 
 	if reason == types.StreamLocalReset && !ac.closed {
 		// for xprotocol ping pong
-		log.DefaultLogger.Debugf("[stream] [pingpong] stream local reset, blow codecClient away also, Connection = %d",
-			ac.host.Connection.ID())
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [pingpong] stream local reset, blow codecClient away also, Connection = %d",
+				ac.host.Connection.ID())
+		}
 		ac.shouldCloseConn = true
 	}
 }

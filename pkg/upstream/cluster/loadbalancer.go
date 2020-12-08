@@ -298,8 +298,8 @@ func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 
 func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
 	lb := &EdfLoadBalancer{
-		hosts:                  hosts,
-		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
+		hosts: hosts,
+		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
 		unweightChooseHostFunc: unWeightChoose,
 		hostWeightFunc:         hostWeightFunc,
 	}
@@ -406,11 +406,15 @@ func (lb *maglevLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.Ho
 	}
 
 	if chosen == nil {
-		log.Proxy.Infof(ctx.DownstreamContext(), "[lb][maglev] hash %d get nil host, index: %d",
-			hash, index)
+		if log.Proxy.GetLogLevel() >= log.INFO {
+			log.Proxy.Infof(ctx.DownstreamContext(), "[lb][maglev] hash %d get nil host, index: %d",
+				hash, index)
+		}
 	} else {
-		log.Proxy.Debugf(ctx.DownstreamContext(), "[lb][maglev] hash %d index %d get host %s",
-			hash, index, chosen.AddressString())
+		if log.Proxy.GetLogLevel() >= log.DEBUG {
+			log.Proxy.Debugf(ctx.DownstreamContext(), "[lb][maglev] hash %d index %d get host %s",
+				hash, index, chosen.AddressString())
+		}
 	}
 
 	return chosen
