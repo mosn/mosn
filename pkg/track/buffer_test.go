@@ -40,7 +40,7 @@ func TestTrackFromContext(t *testing.T) {
 		tb.StartTrack(ph)
 		tb.EndTrack(ph)
 	}
-	tb.RangeCosts(func(p TrackPhase, tk TrackTime) bool {
+	tb.Range(func(p TrackPhase, tk TrackTime) bool {
 		switch p {
 		case ProtocolDecode, StreamFilterBeforeRoute, MatchRoute:
 			if len(tk.Costs) != 1 {
@@ -86,7 +86,7 @@ func TestTrackTransmit(t *testing.T) {
 	// Transmit
 	BindRequestAndResponse(dstCtx, srcCtx)
 	// Verify
-	dstTb.RangeCosts(func(p TrackPhase, tk TrackTime) bool {
+	dstTb.Range(func(p TrackPhase, tk TrackTime) bool {
 		switch p {
 		case ProtocolDecode:
 			if len(tk.Costs) != 2 {
@@ -119,7 +119,7 @@ func TestTrackTransmit(t *testing.T) {
 		t.Fatalf("request and response time is not bind success, reqtime: %v, resp time: %v", expectReqTime, expectRespTime)
 	}
 	// timestamp wrapper
-	s := dstTb.StreamTimestamp()
+	s := dstTb.GetTrackTimestamp()
 	exp := regexp.MustCompile(`\[.+?,.+?\]`)
 	if !exp.MatchString(s) {
 		t.Fatalf("unexpected output timestamp: %s", s)
@@ -146,10 +146,14 @@ func TestBufferReuse(t *testing.T) {
 	// a new context, all datas should be cleaned
 	ctx2 := buffer.NewBufferPoolContext(bkg)
 	tb2 := TrackBufferByContext(ctx2)
-	tb2.RangeCosts(func(p TrackPhase, tt TrackTime) bool {
+	tb2.Range(func(p TrackPhase, tt TrackTime) bool {
+		if p > MaxServedField {
+			return false
+		}
 		if !(tt.P.IsZero() &&
-			len(tt.Costs) == 0) {
-			t.Fatalf("%d is not cleaned", p)
+			len(tt.Costs) == 0 &&
+			cap(tt.Costs) > 0) {
+			t.Fatalf("%d is not reused correctlly, len: %d, cap: %d", p, len(tt.Costs), cap(tt.Costs))
 		}
 		return true
 	})

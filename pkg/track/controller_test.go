@@ -45,7 +45,7 @@ func TestControlTrack(t *testing.T) {
 	tb.StartTrack(StreamFilterBeforeRoute)
 	tb.EndTrack(StreamFilterBeforeRoute)
 	EnableTrack()
-	tb.RangeCosts(func(_ TrackPhase, _ TrackTime) bool {
+	tb.Range(func(_ TrackPhase, _ TrackTime) bool {
 		t.Fatalf("no data outputs")
 		return false
 	})

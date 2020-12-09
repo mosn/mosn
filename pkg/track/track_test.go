@@ -59,7 +59,7 @@ func TestTrack2(t *testing.T) {
 	track.StartTrack(MaxServedField + 1)
 	track.EndTrack(MaxServedField + 1)
 	//
-	track.RangeCosts(func(phase TrackPhase, tk TrackTime) bool {
+	track.Range(func(phase TrackPhase, tk TrackTime) bool {
 		switch phase {
 		case ProtocolDecode:
 			if len(tk.Costs) > 0 {

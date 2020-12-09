@@ -22,8 +22,6 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -59,14 +57,6 @@ func (ctx trackBufferCtx) Reset(i interface{}) {
 }
 
 func TrackBufferByContext(ctx context.Context) *TrackBuffer {
-	// add a check to avoid ctx is not initialized by buffer.NewBufferPoolContext
-	if val := mosnctx.Get(ctx, types.ContextKeyBufferPoolCtx); val == nil {
-		return &TrackBuffer{
-			Tracks: &Tracks{
-				disabled: true,
-			},
-		}
-	}
 	poolCtx := buffer.PoolContext(ctx)
 	tb := poolCtx.Find(&ins, nil).(*TrackBuffer)
 	// once the track enabled is false, the track is disabled.

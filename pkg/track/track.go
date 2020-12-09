@@ -46,9 +46,7 @@ func (t *Tracks) StartTrack(phase TrackPhase) {
 	if t.disabled || phase >= MaxTrackPhase || phase <= NoTrack {
 		return
 	}
-	tk := t.datas[phase]
-	tk.P = time.Now()
-	t.datas[phase] = tk
+	t.datas[phase].P = time.Now()
 }
 
 func (t *Tracks) EndTrack(phase TrackPhase) {
@@ -59,13 +57,13 @@ func (t *Tracks) EndTrack(phase TrackPhase) {
 	if tk.P.IsZero() {
 		return
 	}
-	tk.Costs = append(tk.Costs, time.Now().Sub(tk.P))
+	tk.Costs = append(tk.Costs, time.Since(tk.P))
 	t.datas[phase] = tk
 }
 
-// RangeCosts ranges the tracks data by f.
+// Range ranges the tracks data by f.
 // if f returns false, terminate the range
-func (t *Tracks) RangeCosts(f func(TrackPhase, TrackTime) bool) {
+func (t *Tracks) Range(f func(TrackPhase, TrackTime) bool) {
 	if t.disabled {
 		return
 	}
@@ -91,12 +89,12 @@ func (t *Tracks) VisitTimestamp(f func(TimestampPhase, time.Time) bool) {
 	}
 }
 
-// GetTrackCosts is a wrapper for tracks.RangeCosts, only get strings to reserved fields
-// if a extends fields added, use RangeCosts
+// GetTrackCosts is a wrapper for tracks.Range, only get strings to reserved fields
+// if a extends fields added, use Range
 // [][][]...[]
 func (t *Tracks) GetTrackCosts() string {
 	var buf strings.Builder
-	t.RangeCosts(func(phase TrackPhase, track TrackTime) bool {
+	t.Range(func(phase TrackPhase, track TrackTime) bool {
 		if phase > MaxServedField {
 			return false
 		}
@@ -113,8 +111,8 @@ func (t *Tracks) GetTrackCosts() string {
 	return buf.String()
 }
 
-// StreamTimestamp is a wrapper for tracks.VisitTimestamp, get request and response timestamp
-func (t *Tracks) StreamTimestamp() string {
+// GetTrackTimestamp is a wrapper for tracks.VisitTimestamp, get request and response timestamp
+func (t *Tracks) GetTrackTimestamp() string {
 	var buf strings.Builder
 	buf.WriteString("[")
 	t.VisitTimestamp(func(p TimestampPhase, tm time.Time) bool {

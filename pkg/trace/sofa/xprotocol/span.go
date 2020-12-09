@@ -168,7 +168,7 @@ func (s *SofaRPCSpan) log() error {
 	printData.WriteString("\"" + tracks.GetTrackCosts() + "\",")
 
 	printData.WriteString("\"mosn.data.timestamp\":")
-	printData.WriteString("\"" + tracks.StreamTimestamp() + "\",")
+	printData.WriteString("\"" + tracks.GetTrackTimestamp() + "\",")
 
 	// Set status code. TODO can not get the result code if server throw an exception.
 
