@@ -20,6 +20,7 @@ package metadata
 import (
 	"context"
 	"runtime/debug"
+	"strings"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
@@ -73,7 +74,13 @@ func (f *MetadataFilter) buildMetadater(ctx context.Context, headers api.HeaderM
 		if v, err := driver.BuildMetadata(ctx, headers, buf, trailers); err != nil {
 			log.Proxy.Errorf(ctx, "[stream filter] [metadata] buildMetadater() err: %v", err)
 		} else {
-			headers.Set(metadataPrefix+key, v)
+
+			if f.metadataers.caseSensitive {
+				headers.Set(metadataPrefix+key, v)
+			} else {
+				headers.Set(strings.ToLower(metadataPrefix+key), strings.ToLower(v))
+
+			}
 		}
 	}
 }

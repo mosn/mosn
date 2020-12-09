@@ -31,8 +31,9 @@ func init() {
 
 // FilterConfigFactory filter config factory
 type FilterConfigFactory struct {
-	drivers map[string]Driver
-	disable bool
+	disable       bool
+	caseSensitive bool
+	drivers       map[string]Driver
 }
 
 // CreateFilterChain for create metadata filter
@@ -64,5 +65,5 @@ func CreateMetadataFilterFactory(conf map[string]interface{}) (api.StreamFilterC
 		}
 	}
 
-	return &FilterConfigFactory{drivers: drivers, disable: cfg.Disable}, nil
+	return &FilterConfigFactory{disable: cfg.Disable, caseSensitive: cfg.CaseSensitive, drivers: drivers}, nil
 }

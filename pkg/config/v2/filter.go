@@ -58,7 +58,7 @@ type StreamDSL struct {
 	LogDSL           string `json:"log_filter_by_dsl"`
 }
 
-// StreamDataer ...
+// MetaDataer ...
 type MetaDataer struct {
 	MetaKey string                 `json:"meta_data_key,omitempty"`
 	Config  map[string]interface{} `json:"config,omitempty"`
@@ -66,8 +66,9 @@ type MetaDataer struct {
 
 // StreamMetadata ...
 type StreamMetadata struct {
-	Disable     bool         `json:"disable"`
-	MetaDataers []MetaDataer `json:"metadataers,omitempty"`
+	Disable       bool         `json:"disable"`
+	CaseSensitive bool         `json:"case_sensitive"`
+	MetaDataers   []MetaDataer `json:"metadataers,omitempty"`
 }
 
 // Listener Filter's Type

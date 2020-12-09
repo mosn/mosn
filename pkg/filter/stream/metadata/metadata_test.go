@@ -116,6 +116,7 @@ func BenchmarkMetadata(b *testing.B) {
 
 func mockConfig() (map[string]interface{}, error) {
 	mockConfig := `{"disable": false,
+     "case_sensitive": true,
      "metadataers":[
          {
              "meta_data_key":"IDC",
