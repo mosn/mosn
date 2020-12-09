@@ -228,7 +228,7 @@ func (ep *Epoll) Mod(fd int, events EpollEvent) (err error) {
 }
 
 const (
-	maxWaitEventsBegin = 1024
+	maxWaitEventsBegin = 10240
 	maxWaitEventsStop  = 32768
 )
 

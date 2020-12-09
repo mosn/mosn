@@ -18,10 +18,12 @@
 package network
 
 import (
-	"mosn.io/mosn/pkg/log"
+	"os"
 	"runtime"
 	"sync"
 	"sync/atomic"
+
+	"mosn.io/mosn/pkg/log"
 
 	"github.com/mosn/easygo/netpoll"
 	mosnsync "mosn.io/mosn/pkg/sync"
@@ -35,22 +37,26 @@ var (
 	readPool  = mosnsync.NewWorkerPool(runtime.NumCPU())
 	writePool = mosnsync.NewWorkerPool(runtime.NumCPU())
 
-	rrCounter                 uint32
-	poolSize                  uint32 = 1 //uint32(runtime.NumCPU())
-	eventLoopPool                    = make([]*eventLoop, poolSize)
+	rrCounter     uint32
+	poolSize      uint32 = 1 //uint32(runtime.NumCPU())
+	eventLoopPool        = make([]*eventLoop, poolSize)
 	// errEventAlreadyRegistered        = errors.New("event already registered")
 )
 
 func init() {
 	for i := range eventLoopPool {
-		poller, err := netpoll.New(nil)
+		poller, err := netpoll.New(&netpoll.Config{
+			OnWaitError: func(err error){
+				log.DefaultLogger.Errorf("ON_WAIT error %v", err)
+			},
+		})
 		if err != nil {
 			log.DefaultLogger.Fatalf("create poller failed, caused by %v", err)
 		}
 
 		eventLoopPool[i] = &eventLoop{
 			poller: poller,
-			conn:   make(map[uint64]*connEvent), //TODO init size
+			conn:   make(map[*connection]*connEvent), //TODO init size
 		}
 	}
 }
@@ -75,29 +81,29 @@ type eventLoop struct {
 
 	poller netpoll.Poller
 
-	conn map[uint64]*connEvent
+	conn map[*connection]*connEvent
 }
 
 func (el *eventLoop) register(conn *connection, handler *connEventHandler) error {
 	// handle read
-	read, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
+	read, err := netpoll.HandleFile(conn.rawConnection, conn.file, netpoll.EventRead|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
 
 	// handle write
-	write, err := netpoll.HandleFile(conn.file, netpoll.EventWrite|netpoll.EventOneShot)
+	write, err := netpoll.HandleFile(conn.rawConnection, conn.file, netpoll.EventWrite|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
 
 	// register with wrapper
-	el.poller.Start(read, el.readWrapper(read, handler))
+	el.poller.Start(read, el.readWrapper(conn, read, handler))
 	el.poller.Start(write, el.writeWrapper(write, handler))
 
 	el.mu.Lock()
 	//store
-	el.conn[conn.id] = &connEvent{
+	el.conn[conn] = &connEvent{
 		read:  read,
 		write: write,
 	}
@@ -106,18 +112,32 @@ func (el *eventLoop) register(conn *connection, handler *connEventHandler) error
 }
 
 func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) error {
+	runtime.SetFinalizer(conn.file, func(f *os.File) {
+		log.DefaultLogger.Errorf("GC happen on connection file %+v, conn: %+v\n", f, conn)
+	})
 	// handle read
-	read, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
+	read, err := netpoll.HandleFile(conn.rawConnection, conn.file, netpoll.EventRead|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
 
+	log.DefaultLogger.Errorf("register read for conn %+v", conn.RemoteAddr())
 	// register
-	el.poller.Start(read, el.readWrapper(read, handler))
 
+	// 为什么关闭的连接没有把注册进 ep 的 fd 清除掉
+	// el.poller.Stop(read)
 	el.mu.Lock()
+
+	// el.poller.Stop(read)
+	err = el.poller.Start(read, el.readWrapper(conn, read, handler))
+	if err != nil {
+		log.DefaultLogger.Errorf("failed to start poller %v, conn : %+v", err, conn.RemoteAddr())
+	} else {
+		log.DefaultLogger.Errorf("success register read for conn %+v", conn.RemoteAddr())
+	}
+
 	//store
-	el.conn[conn.id] = &connEvent{
+	el.conn[conn] = &connEvent{
 		read: read,
 	}
 	el.mu.Unlock()
@@ -126,7 +146,7 @@ func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) e
 
 func (el *eventLoop) registerWrite(conn *connection, handler *connEventHandler) error {
 	// handle write
-	write, err := netpoll.HandleFile(conn.file, netpoll.EventWrite|netpoll.EventOneShot)
+	write, err := netpoll.HandleFile(conn.rawConnection, conn.file, netpoll.EventWrite|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
@@ -136,14 +156,14 @@ func (el *eventLoop) registerWrite(conn *connection, handler *connEventHandler) 
 
 	el.mu.Lock()
 	//store
-	el.conn[conn.id] = &connEvent{
+	el.conn[conn] = &connEvent{
 		write: write,
 	}
 	el.mu.Unlock()
 	return nil
 }
 
-func (el *eventLoop) unregister(id uint64) {
+func (el *eventLoop) unregister(id *connection) {
 
 	el.mu.Lock()
 	defer el.mu.Unlock()
@@ -161,19 +181,27 @@ func (el *eventLoop) unregister(id uint64) {
 
 }
 
-func (el *eventLoop) unregisterRead(id uint64) {
+func (el *eventLoop) unregisterRead(id *connection) {
 	el.mu.Lock()
 	defer el.mu.Unlock()
+	log.DefaultLogger.Errorf("unregister read for conn : %+v", id.RemoteAddr())
 	if event, ok := el.conn[id]; ok {
 		if event.read != nil {
-			el.poller.Stop(event.read)
+			err := el.poller.Stop(event.read)
+			if err != nil {
+				log.DefaultLogger.Errorf("fail to unregister read for conn : %+v, err : %v, desc : %+v", id.RemoteAddr(), err, event.read)
+			} else {
+				log.DefaultLogger.Errorf("success to unregister read for conn : %+v", id.RemoteAddr())
+			}
 		}
 
 		delete(el.conn, id)
+	} else {
+		log.DefaultLogger.Errorf("fail to unregister read for conn : %+v", id.RemoteAddr())
 	}
 }
 
-func (el *eventLoop) unregisterWrite(id uint64) {
+func (el *eventLoop) unregisterWrite(id *connection) {
 	el.mu.Lock()
 	defer el.mu.Unlock()
 	if event, ok := el.conn[id]; ok {
@@ -185,11 +213,11 @@ func (el *eventLoop) unregisterWrite(id uint64) {
 	}
 }
 
-func (el *eventLoop) readWrapper(desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
+func (el *eventLoop) readWrapper(conn *connection, desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
 	return func(e netpoll.Event) {
+		log.DefaultLogger.Errorf("readWrapper event %v, fd : %v, desc : %+v, conn : %+v", e, desc.Fd(), desc, desc.C.RemoteAddr())
 		// No more calls will be made for conn until we call epoll.Resume().
 		if e&netpoll.EventReadHup != 0 {
-			el.poller.Stop(desc)
 			if !handler.onHup() {
 				return
 			}
@@ -198,7 +226,11 @@ func (el *eventLoop) readWrapper(desc *netpoll.Desc, handler *connEventHandler) 
 			if !handler.onRead() {
 				return
 			}
-			el.poller.Resume(desc)
+			err := el.poller.Resume(desc)
+			if err != nil {
+				log.DefaultLogger.Errorf("readWrapper RESUME err : %v, desc : %+v, conn : %+v", err, desc, desc.C.RemoteAddr())
+				handler.onHup()
+			}
 		})
 	}
 }

@@ -14,14 +14,16 @@ type filer interface {
 // Desc is a network connection within netpoll descriptor.
 // It's methods are not goroutine safe.
 type Desc struct {
+	C net.Conn
 	file  *os.File
 	event Event
 	pfd   uintptr
 }
 
 // NewDesc creates descriptor from custom fd.
-func NewDesc(fd uintptr, ev Event) *Desc {
+func NewDesc(conn net.Conn, fd uintptr, ev Event) *Desc {
 	return &Desc{
+		C: conn,
 		file:  os.NewFile(fd, ""),
 		event: ev,
 		pfd:   fd,
@@ -34,7 +36,7 @@ func (h *Desc) Close() error {
 }
 
 func (h *Desc) Fd() int {
-	return int(h.pfd)
+	return int(h.file.Fd())
 }
 
 // Must is a helper that wraps a call to a function returning (*Desc, error).
@@ -103,8 +105,8 @@ func Handle(conn net.Conn, event Event) (*Desc, error) {
 // Handle creates new Desc with given file and event.
 // Returned descriptor could be used as argument to Start(), Resume() and
 // Stop() methods of some Poller implementation.
-func HandleFile(file *os.File, event Event) (*Desc, error) {
-	desc := NewDesc(file.Fd(), event)
+func HandleFile(conn net.Conn, file *os.File, event Event) (*Desc, error) {
+	desc := NewDesc(conn, file.Fd(), event)
 
 	// Set the file back to non blocking mode since conn.File() sets underlying
 	// os.File to blocking mode. This is useful to get conn.Set{Read}Deadline

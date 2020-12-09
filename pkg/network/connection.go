@@ -26,6 +26,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"runtime"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -178,6 +179,7 @@ func (c *connection) ID() uint64 {
 }
 
 func (c *connection) Start(lctx context.Context) {
+	log.DefaultLogger.Errorf("start connection c : %+v", c.RemoteAddr(), c.file.Fd())
 	// udp downstream connection do not use read/write loop
 	if c.network == "udp" && c.rawConnection.RemoteAddr() == nil {
 		return
@@ -198,6 +200,9 @@ func (c *connection) SetIdleTimeout(readTimeout time.Duration, idleTimeout time.
 func (c *connection) attachEventLoop(lctx context.Context) {
 	// Choose one event loop to register, the implement is platform-dependent(epoll for linux and kqueue for bsd)
 	c.eventLoop = attach()
+	runtime.SetFinalizer(c.rawConnection, func(c net.Conn) {
+		log.DefaultLogger.Errorf("GC happen on connection %+v\n", c)
+	})
 
 	// Register read only, write is supported now because it is more complex than read.
 	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
@@ -852,8 +857,17 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 
 	if ccType == api.FlushWrite {
 		c.Write(buffer.NewIoBufferEOF())
+		if c.eventLoop != nil {
+			// unregister events while connection close
+			c.eventLoop.unregisterRead(c)
+			// close copied fd
+			c.file.Close()
+		} else {
+			panic("oh no")
+		}
 		return nil
 	}
+
 
 	if !atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
 		return nil
@@ -864,13 +878,22 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		return nil
 	}
 
-	// shutdown read first
-	if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[network] [close connection] Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
-		}
-		rawc.CloseRead()
+	if c.eventLoop != nil {
+		// unregister events while connection close
+		c.eventLoop.unregisterRead(c)
+		// close copied fd
+		c.file.Close()
+	} else {
+		panic("oh no")
 	}
+
+	// shutdown read first
+		if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[network] [close connection] Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
+			}
+			rawc.CloseRead()
+		}
 
 	if c.network == "udp" && c.RawConn().RemoteAddr() == nil {
 		key := GetProxyMapKey(c.localAddr.String(), c.remoteAddr.String())
@@ -880,12 +903,6 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 	// wait for io loops exit, ensure single thread operate streams on the connection
 	// because close function must be called by one io loop thread, notify another loop here
 	close(c.internalStopChan)
-	if c.eventLoop != nil {
-		// unregister events while connection close
-		c.eventLoop.unregister(c.id)
-		// close copied fd
-		c.file.Close()
-	}
 
 	c.rawConnection.Close()
 
