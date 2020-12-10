@@ -1,13 +1,12 @@
 package integrate
 
 import (
-	"fmt"
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-	"mosn.io/mosn/pkg/protocol/xprotocol/boltv2"
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
-	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mosn"
@@ -142,9 +141,7 @@ func (c *XTestCase) StartXAuto(tls bool) {
 	clientMeshAddr := util.CurrentMeshAddr()
 	c.ClientMeshAddr = clientMeshAddr
 	serverMeshAddr := util.CurrentMeshAddr()
-	subProtocol := fmt.Sprintf("%s,%s,%s,%s",
-		dubbo.ProtocolName, bolt.ProtocolName, boltv2.ProtocolName, tars.ProtocolName)
-	cfg := util.CreateMeshToMeshConfigWithSub(clientMeshAddr, serverMeshAddr, protocol.Auto, protocol.Auto, types.ProtocolName(subProtocol), []string{appAddr}, tls)
+	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, protocol.Auto, protocol.Auto, []string{appAddr}, tls)
 	mesh := mosn.NewMosn(cfg)
 	go mesh.Start()
 	go func() {

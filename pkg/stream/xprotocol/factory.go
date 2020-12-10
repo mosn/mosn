@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"mosn.io/api"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
@@ -55,9 +56,10 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 		return stream.FAILED
 	}
 	again := false
-	for _, matcher := range subProtocolMatchers {
+	for subProtocolName, matcher := range subProtocolMatchers {
 		result := matcher(magic)
 		if result == types.MatchSuccess {
+			mosnctx.WithValue(context, types.ContextSubProtocol, string(subProtocolName))
 			return nil
 		}
 		if result == types.MatchAgain {
