@@ -202,7 +202,7 @@ func (b *ioBuffer) Grow(n int) error {
 	return nil
 }
 
-func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
+func (b *ioBuffer) ReadOnce(r io.Reader) (n int, err error) {
 	var m int
 
 	if b.off > 0 && b.off >= len(b.buf) {
@@ -224,7 +224,7 @@ func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 	m, err = r.Read(b.buf[len(b.buf):cap(b.buf)])
 
 	b.buf = b.buf[0 : len(b.buf)+m]
-	n = int64(m)
+	n = int(m)
 
 	// Not enough space anywhere, we need to allocate.
 	if l == m {

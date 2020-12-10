@@ -52,8 +52,8 @@ func (ep poller) Start(desc *Desc, cb CallbackFn) error {
 }
 
 // Stop implements Poller.Stop() method.
-func (ep poller) Stop(desc *Desc) error {
-	return ep.Del(desc.Fd())
+func (ep poller) Stop(fd int) error {
+	return ep.Del(fd)
 }
 
 // Resume implements Poller.Resume() method.

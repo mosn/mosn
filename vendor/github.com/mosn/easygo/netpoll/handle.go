@@ -32,11 +32,12 @@ func NewDesc(conn net.Conn, fd uintptr, ev Event) *Desc {
 
 // Close closes underlying file.
 func (h *Desc) Close() error {
-	return h.file.Close()
+	return nil
+	//return h.file.Close()
 }
 
 func (h *Desc) Fd() int {
-	return int(h.file.Fd())
+	return int(h.pfd)
 }
 
 // Must is a helper that wraps a call to a function returning (*Desc, error).

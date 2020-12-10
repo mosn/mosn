@@ -24,6 +24,7 @@ require (
 	github.com/juju/loggo v0.0.0-20190526231331-6e530bcce5d8 // indirect
 	github.com/juju/testing v0.0.0-20191001232224-ce9dec17d28b // indirect
 	github.com/lyft/protoc-gen-validate v0.0.14
+	github.com/mailru/easygo v0.0.0-20190618140210-3c14a0dc985f // indirect
 	github.com/miekg/dns v1.0.14
 	github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f
 	github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0

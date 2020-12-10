@@ -148,7 +148,7 @@ type Poller interface {
 	// Stop removes desc from the observation list.
 	//
 	// Note that it does not call desc.Close().
-	Stop(*Desc) error
+	Stop(int) error
 
 	// Resume enables observation of desc.
 	//

@@ -107,6 +107,8 @@ type connection struct {
 	tryMutex     *utils.Mutex
 	needTransfer bool
 	useWriteLoop bool
+
+	ev *connEvent
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
@@ -483,9 +485,17 @@ func (c *connection) doRead() (err error) {
 		}
 	}
 
-	var bytesRead int64
+	var bytesRead int
 	c.setReadDeadline()
+	/*
+		if UseNetpollMode {
+			var buf = make([]byte, 80960)
+			bytesRead, err = syscall.Read(c.ev.read.Fd(), buf)
+			c.readBuffer.Read(buf[:bytesRead])
+		} else {
+	*/
 	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
+	//}
 
 	if err != nil {
 		log.DefaultLogger.Infof("[network] [read loop] do read err: %v", err)
@@ -511,7 +521,7 @@ func (c *connection) doRead() (err error) {
 			c.id, c.rawConnection.LocalAddr(), c.RemoteAddr())
 	}
 
-	c.onRead(bytesRead)
+	c.onRead(int64(bytesRead))
 	return
 }
 
@@ -857,17 +867,8 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 
 	if ccType == api.FlushWrite {
 		c.Write(buffer.NewIoBufferEOF())
-		if c.eventLoop != nil {
-			// unregister events while connection close
-			c.eventLoop.unregisterRead(c)
-			// close copied fd
-			c.file.Close()
-		} else {
-			panic("oh no")
-		}
 		return nil
 	}
-
 
 	if !atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
 		return nil
@@ -878,22 +879,14 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		return nil
 	}
 
-	if c.eventLoop != nil {
-		// unregister events while connection close
-		c.eventLoop.unregisterRead(c)
-		// close copied fd
-		c.file.Close()
-	} else {
-		panic("oh no")
-	}
-
 	// shutdown read first
-		if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[network] [close connection] Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
-			}
-			rawc.CloseRead()
+	if rawc, ok := c.rawConnection.(*net.TCPConn); ok {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[network] [close connection] Close TCP Conn, Remote Address is = %s, eventType is = %s", rawc.RemoteAddr(), eventType)
 		}
+		//err := rawc.CloseRead()
+		//log.DefaultLogger.Errorf("[network] [close read] Close conn : %v, err : %v", c.RemoteAddr(), err, c.file.Fd())
+	}
 
 	if c.network == "udp" && c.RawConn().RemoteAddr() == nil {
 		key := GetProxyMapKey(c.localAddr.String(), c.remoteAddr.String())
@@ -903,11 +896,25 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 	// wait for io loops exit, ensure single thread operate streams on the connection
 	// because close function must be called by one io loop thread, notify another loop here
 	close(c.internalStopChan)
+	if c.eventLoop != nil {
+		// unregister events while connection close
+		c.eventLoop.unregisterRead(c)
+		// close copied fd
+		c.file.Close()
+	} else {
+		//panic("oh no")
+	}
 
-	c.rawConnection.Close()
+	log.DefaultLogger.Errorf("[network] [before close raw conn] Close conn : %v, err : %v", c.RemoteAddr(), int(c.file.Fd()))
+	err := c.rawConnection.Close()
+	log.DefaultLogger.Errorf("[network] [close raw conn] Close conn : %v, err : %v", c.RemoteAddr(), err, int(c.file.Fd()))
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[network] [close connection] Close connection %d, event %s, type %s", c.id, eventType, ccType)
+		log.DefaultLogger.Debugf("[network] [close connection] Close connection %v, %d, event %s, type %s", c.RemoteAddr(), c.id, eventType, ccType)
+	}
+
+	if eventType == api.OnReadErrClose {
+		log.DefaultLogger.Errorf("stack for ReadErrClose", string(debug.Stack()))
 	}
 
 	c.updateReadBufStats(0, 0)

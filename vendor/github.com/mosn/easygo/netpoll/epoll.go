@@ -214,8 +214,8 @@ func (ep *Epoll) Mod(fd int, events EpollEvent) (err error) {
 		Fd:     int32(fd),
 	}
 
-	ep.mu.RLock()
-	defer ep.mu.RUnlock()
+	ep.mu.Lock()
+	defer ep.mu.Unlock()
 
 	if ep.closed {
 		return ErrClosed
