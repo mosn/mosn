@@ -76,7 +76,7 @@ func newMosnApp(startCmd *cli.Command) *cli.App {
 	app.Name = "mosn"
 	app.Version = Version
 	app.Compiled = time.Now()
-	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Financial"
+	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Group"
 	app.Usage = "MOSN is modular observable smart netstub."
 	app.Flags = cmdStart.Flags
 
