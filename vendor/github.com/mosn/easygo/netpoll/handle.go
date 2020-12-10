@@ -22,7 +22,6 @@ type Desc struct {
 // NewDesc creates descriptor from custom fd.
 func NewDesc(fd uintptr, ev Event) *Desc {
 	return &Desc{
-		file:  os.NewFile(fd, ""),
 		event: ev,
 		pfd:   fd,
 	}
@@ -30,7 +29,10 @@ func NewDesc(fd uintptr, ev Event) *Desc {
 
 // Close closes underlying file.
 func (h *Desc) Close() error {
-	return h.file.Close()
+	if h.file != nil {
+		return h.file.Close()
+	}
+	return nil
 }
 
 func (h *Desc) Fd() int {

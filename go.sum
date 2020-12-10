@@ -375,6 +375,10 @@ github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f h1:To7Bf1S4r0iuIKJkpT
 github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f/go.mod h1:V3v+y3rlpXDKXBld0Jvz2I3p3gHp8BE6NToiQUuLC7g=
 github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0 h1:GuQmLdUJpCfcfIGQDZJB8cpS165L16JeqcBdCn4K7xM=
 github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0/go.mod h1:JlOHLcQTwc0Gvi2DZfQ2hMAj6Z73lQhkRrsxuawL9uE=
+github.com/mosn/easygo v0.0.0-20201210061801-746445aa9fe5 h1:AGYUwDh3jsveHiL3FPfWqBf5BN6m72zSSeYYwnELGVk=
+github.com/mosn/easygo v0.0.0-20201210061801-746445aa9fe5/go.mod h1:JlOHLcQTwc0Gvi2DZfQ2hMAj6Z73lQhkRrsxuawL9uE=
+github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827 h1:if2FJYhGEqXRGkRbG9sKGYfp37NI+Ch/C6lr11jkCv8=
+github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827/go.mod h1:JlOHLcQTwc0Gvi2DZfQ2hMAj6Z73lQhkRrsxuawL9uE=
 github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91 h1:hOO8gWLcAoWZM6dZmPmfs0ZYmjKxmdwiwJiYRCfQc18=
 github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91/go.mod h1:sO2+AtmZqId1+8FHeuSPkPBmuin66YFKuOU3yqh3zGo=
 github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=

@@ -26,7 +26,7 @@ require (
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/miekg/dns v1.0.14
 	github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f
-	github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0
+	github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827
 	github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0

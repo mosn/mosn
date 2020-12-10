@@ -198,7 +198,7 @@ github.com/modern-go/reflect2
 github.com/mosn/binding
 github.com/mosn/binding/internal/bytesconv
 github.com/mosn/binding/internal/json
-# github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0
+# github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827
 github.com/mosn/easygo/netpoll
 # github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
 github.com/mosn/registry/dubbo
