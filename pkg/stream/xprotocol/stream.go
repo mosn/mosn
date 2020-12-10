@@ -25,6 +25,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -142,7 +143,11 @@ func (s *xStream) endStream() {
 			return
 		}
 
+		tracks := track.TrackBufferByContext(s.ctx).Tracks
+
+		tracks.StartTrack(track.NetworkDataWrite)
 		err = s.sc.netConn.Write(buf)
+		tracks.EndTrack(track.NetworkDataWrite)
 
 		if err != nil {
 			log.Proxy.Errorf(s.ctx, "[stream] [xprotocol] endStream, requestId = %v, error = %v", s.id, err)

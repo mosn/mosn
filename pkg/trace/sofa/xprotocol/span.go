@@ -18,6 +18,7 @@
 package xprotocol
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -26,11 +27,13 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
+	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
 type SofaRPCSpan struct {
+	ctx           context.Context
 	startTime     time.Time
 	endTime       time.Time
 	tags          [TRACE_END]string
@@ -162,6 +165,14 @@ func (s *SofaRPCSpan) log() error {
 	printData.WriteString("\"mosn.duration\":")
 	printData.WriteString("\"" + s.tags[MOSN_PROCESS_TIME] + "\",")
 
+	tracks := track.TrackBufferByContext(s.ctx).Tracks
+
+	printData.WriteString("\"mosn.duration.detail\":")
+	printData.WriteString("\"" + tracks.GetTrackCosts() + "\",")
+
+	printData.WriteString("\"mosn.data.timestamp\":")
+	printData.WriteString("\"" + tracks.GetTrackTimestamp() + "\",")
+
 	// Set status code. TODO can not get the result code if server throw an exception.
 
 	statusCode, _ := strconv.Atoi(s.tags[RESULT_STATUS])
@@ -244,8 +255,9 @@ func (s *SofaRPCSpan) log() error {
 	return nil
 }
 
-func NewSpan(startTime time.Time) *SofaRPCSpan {
+func NewSpan(ctx context.Context, startTime time.Time) *SofaRPCSpan {
 	return &SofaRPCSpan{
+		ctx:       ctx,
 		startTime: startTime,
 	}
 }
