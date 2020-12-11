@@ -159,6 +159,16 @@ func (c *XDSConfig) loadClusters(staticResources *envoy_config_bootstrap_v3.Boot
 		config.Address = make([]string, 0, len(cluster.LoadAssignment.GetEndpoints()[0].LbEndpoints))
 		for _, host := range cluster.LoadAssignment.GetEndpoints()[0].LbEndpoints {
 			endpoint := host.GetEndpoint()
+
+			// Istio 1.8+ use istio-agent proxy request Istiod
+			if endpoint.Address.GetPipe() != nil {
+				config.PipePath = endpoint.Address.GetPipe().Path
+				break
+			}
+
+			if endpoint.Address.GetSocketAddress() == nil {
+				log.DefaultLogger.Fatalf("xds v3 cluster.loadassignment pipe and socket both empty")
+			}
 			if port, ok := endpoint.Address.GetSocketAddress().PortSpecifier.(*envoy_config_core_v3.SocketAddress_PortValue); ok {
 				newAddress := fmt.Sprintf("%s:%d", endpoint.Address.GetSocketAddress().Address, port.PortValue)
 				config.Address = append(config.Address, newAddress)
@@ -166,7 +176,6 @@ func (c *XDSConfig) loadClusters(staticResources *envoy_config_bootstrap_v3.Boot
 				log.DefaultLogger.Warnf("only PortValue supported")
 				continue
 			}
-
 		}
 		c.Clusters[name] = &config
 	}
@@ -191,12 +200,46 @@ func (c *ADSConfig) GetStreamClient() envoy_service_discovery_v3.AggregatedDisco
 		return c.StreamClient.Client
 	}
 
-	sc := &StreamClient{}
+	sc := &StreamClient{
+		Conn: c.buildClient(),
+	}
 
+	if sc.Conn == nil {
+		return nil
+	}
+	client := envoy_service_discovery_v3.NewAggregatedDiscoveryServiceClient(sc.Conn)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	sc.Cancel = cancel
+	streamClient, err := client.StreamAggregatedResources(ctx)
+	if err != nil {
+		log.DefaultLogger.Infof("fail to create stream client: %v", err)
+		if sc.Conn != nil {
+			sc.Conn.Close()
+		}
+		return nil
+	}
+	sc.Client = streamClient
+	c.StreamClient = sc
+	return streamClient
+}
+
+func (c *ADSConfig) buildClient() *grpc.ClientConn {
 	if c.Services == nil {
 		log.DefaultLogger.Errorf("no available ads service")
 		return nil
 	}
+
+	if c.Services[0].ClusterConfig.PipePath != "" {
+		conn, err := grpc.Dial(c.Services[0].ClusterConfig.PipePath, grpc.WithInsecure(), generateDialOption())
+		if err != nil {
+			log.DefaultLogger.Errorf("did not connect: %v", err)
+			return nil
+		}
+		log.DefaultLogger.Infof("mosn estab grpc connection to pilot with pipe %s", c.Services[0].ClusterConfig.PipePath)
+		return conn
+	}
+
 	var endpoint string
 	var tlsContext *envoy_config_core_v3.TransportSocket
 	for _, service := range c.Services {
@@ -220,38 +263,23 @@ func (c *ADSConfig) GetStreamClient() envoy_service_discovery_v3.AggregatedDisco
 			log.DefaultLogger.Errorf("did not connect: %v", err)
 			return nil
 		}
-		log.DefaultLogger.Infof("mosn estab grpc connection to pilot at %v", endpoint)
-		sc.Conn = conn
-	} else {
-		// Grpc with mTls support
-		creds, err := c.getTLSCreds(tlsContext)
-		if err != nil {
-			log.DefaultLogger.Errorf("xds-grpc get tls creds fail: err= %v", err)
-			return nil
-		}
-		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds), generateDialOption())
-		if err != nil {
-			log.DefaultLogger.Errorf("did not connect: %v", err)
-			return nil
-		}
-		log.DefaultLogger.Infof("mosn estab grpc connection to pilot at %v", endpoint)
-		sc.Conn = conn
+		log.DefaultLogger.Infof("mosn estab grpc connection to pilot with address at %v", endpoint)
+		return conn
 	}
-	client := envoy_service_discovery_v3.NewAggregatedDiscoveryServiceClient(sc.Conn)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	sc.Cancel = cancel
-	streamClient, err := client.StreamAggregatedResources(ctx)
+	// Grpc with mTls support
+	creds, err := c.getTLSCreds(tlsContext)
 	if err != nil {
-		log.DefaultLogger.Infof("fail to create stream client: %v", err)
-		if sc.Conn != nil {
-			sc.Conn.Close()
-		}
+		log.DefaultLogger.Errorf("xds-grpc get tls creds fail: err= %v", err)
 		return nil
 	}
-	sc.Client = streamClient
-	c.StreamClient = sc
-	return streamClient
+	conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds), generateDialOption())
+	if err != nil {
+		log.DefaultLogger.Errorf("did not connect: %v", err)
+		return nil
+	}
+	log.DefaultLogger.Infof("mosn estab grpc connection to pilot with address and mTls at %v", endpoint)
+	return conn
 }
 
 func (c *ADSConfig) getTLSCreds(tlsContextConfig *envoy_config_core_v3.TransportSocket) (credentials.TransportCredentials, error) {
