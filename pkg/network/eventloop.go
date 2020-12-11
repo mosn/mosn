@@ -32,8 +32,8 @@ var (
 	UseNetpollMode = false
 
 	// read/write goroutine pool
-	readPool  = mosnsync.NewWorkerPool(runtime.NumCPU())
-	writePool = mosnsync.NewWorkerPool(runtime.NumCPU())
+	readPool  = mosnsync.NewWorkerPool(2 * runtime.NumCPU())
+	writePool = mosnsync.NewWorkerPool(2* runtime.NumCPU())
 
 	rrCounter                 uint32
 	poolSize                  uint32 = 1 //uint32(runtime.NumCPU())
@@ -92,7 +92,7 @@ func (el *eventLoop) register(conn *connection, handler *connEventHandler) error
 	}
 
 	// register with wrapper
-	el.poller.Start(read, el.readWrapper(read, handler))
+	el.poller.Start(read, el.readWrapper(conn, read, handler))
 	el.poller.Start(write, el.writeWrapper(write, handler))
 
 	el.mu.Lock()
@@ -113,7 +113,11 @@ func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) e
 	}
 
 	// register
-	el.poller.Start(read, el.readWrapper(read, handler))
+	err = el.poller.Start(read, el.readWrapper(conn, read, handler))
+	if err != nil {
+		log.DefaultLogger.Errorf("[network] registerRead failed err : %v, addr: %v", err, conn.RemoteAddr())
+		return err
+	}
 
 	el.mu.Lock()
 	//store
@@ -166,7 +170,10 @@ func (el *eventLoop) unregisterRead(id uint64) {
 	defer el.mu.Unlock()
 	if event, ok := el.conn[id]; ok {
 		if event.read != nil {
-			el.poller.Stop(event.read)
+			err := el.poller.Stop(event.read)
+			if err != nil {
+				log.DefaultLogger.Errorf("[unregisterRead] failed, %v", err)
+			}
 		}
 
 		delete(el.conn, id)
@@ -185,11 +192,10 @@ func (el *eventLoop) unregisterWrite(id uint64) {
 	}
 }
 
-func (el *eventLoop) readWrapper(desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
+func (el *eventLoop) readWrapper(conn *connection, desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
 	return func(e netpoll.Event) {
 		// No more calls will be made for conn until we call epoll.Resume().
 		if e&netpoll.EventReadHup != 0 {
-			el.poller.Stop(desc)
 			if !handler.onHup() {
 				return
 			}
@@ -198,7 +204,10 @@ func (el *eventLoop) readWrapper(desc *netpoll.Desc, handler *connEventHandler) 
 			if !handler.onRead() {
 				return
 			}
-			el.poller.Resume(desc)
+			err := el.poller.Resume(desc)
+			if err != nil {
+				log.DefaultLogger.Errorf("RESUME failed, err : %v, desc : %v, addr : %v", err, desc, conn.RemoteAddr())
+			}
 		})
 	}
 }
