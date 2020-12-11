@@ -4,6 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
@@ -95,7 +99,7 @@ func TestProtocolHttp2(t *testing.T) {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
-	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte("helloworld"))
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte("helloworldhelloworldhelloworld"))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
@@ -124,8 +128,80 @@ func TestProtocolHttp1(t *testing.T) {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
 
-	magic = "PPPPPPP"
+	magic = "PPPPPPPPPPPPPPPPPPPPP"
 	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(magic))
+	if err != stream.FAILED {
+		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
+	}
+}
+
+func (c *XTestCase) StartXAuto(tls bool) {
+	c.AppServer.GoServe()
+	appAddr := c.AppServer.Addr()
+	clientMeshAddr := util.CurrentMeshAddr()
+	c.ClientMeshAddr = clientMeshAddr
+	serverMeshAddr := util.CurrentMeshAddr()
+	cfg := util.CreateMeshToMeshConfig(clientMeshAddr, serverMeshAddr, protocol.Auto, protocol.Auto, []string{appAddr}, tls)
+	mesh := mosn.NewMosn(cfg)
+	go mesh.Start()
+	go func() {
+		<-c.Finish
+		c.AppServer.Close()
+		mesh.Close()
+		c.Finish <- true
+	}()
+	time.Sleep(5 * time.Second) //wait server and mesh start
+}
+
+func TestXAuto(t *testing.T) {
+
+	appaddr := "127.0.0.1:20880"
+	testCases := []*XTestCase{
+		NewXTestCase(t, dubbo.ProtocolName, util.NewRPCServer(t, appaddr, dubbo.ProtocolName)),
+		NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
+		NewXTestCase(t, tars.ProtocolName, util.NewRPCServer(t, appaddr, tars.ProtocolName)),
+	}
+	for i, tc := range testCases {
+		t.Logf("start case #%d\n", i)
+		tc.StartXAuto(false)
+		go tc.RunCase(5, 0)
+		select {
+		case err := <-tc.C:
+			if err != nil {
+				t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v test failed, error: %v\n", i, tc.AppProtocol, tc.MeshProtocol, err)
+			}
+		case <-time.After(15 * time.Second):
+			t.Errorf("[ERROR MESSAGE] #%d %v to mesh %v hang\n", i, tc.AppProtocol, tc.MeshProtocol)
+		}
+		tc.FinishCase()
+	}
+}
+
+func TestXProtocol(t *testing.T) {
+	var prot types.ProtocolName
+	var magic []byte
+	var err error
+
+	magic = []byte{0xda, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", magic)
+	if prot != protocol.Xprotocol {
+		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
+	}
+
+	magic = []byte{0x1}
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", magic)
+	if prot != protocol.Xprotocol {
+		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
+	}
+
+	magic = []byte{0x00, 0x00, 0x00, 0x05, 0x00}
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", magic)
+	if prot != protocol.Xprotocol {
+		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
+	}
+
+	str := "PPPPPPPPPPPPPPPPPPPPP"
+	prot, err = stream.SelectStreamFactoryProtocol(nil, "", []byte(str))
 	if err != stream.FAILED {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
