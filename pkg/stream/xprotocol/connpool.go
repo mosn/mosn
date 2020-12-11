@@ -19,13 +19,14 @@ package xprotocol
 
 import (
 	"context"
+	"sync/atomic"
+
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
-	"sync/atomic"
 )
 
 func init() {
@@ -53,7 +54,7 @@ type connpool struct {
 func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 	p := &connpool{
 		tlsHash:  host.TLSHashValue(),
-		protocol: getProtocol(ctx),
+		protocol: protocol.Xprotocol,
 	}
 	p.host.Store(host)
 
@@ -95,17 +96,6 @@ func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
 	if event == api.OnReadTimeout && l.keepAlive != nil {
 		l.keepAlive.SendKeepAlive()
 	}
-}
-
-func getProtocol(ctx context.Context) types.ProtocolName {
-	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyConfigUpStreamProtocol); val != nil {
-			if code, ok := val.(string); ok {
-				return types.ProtocolName(code)
-			}
-		}
-	}
-	return ""
 }
 
 func getSubProtocol(ctx context.Context) types.ProtocolName {
