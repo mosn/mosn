@@ -18,10 +18,10 @@
 package network
 
 import (
-	"mosn.io/mosn/pkg/log"
 	"runtime"
-	"sync"
 	"sync/atomic"
+
+	"mosn.io/mosn/pkg/log"
 
 	"github.com/mosn/easygo/netpoll"
 	mosnsync "mosn.io/mosn/pkg/sync"
@@ -33,11 +33,11 @@ var (
 
 	// read/write goroutine pool
 	readPool  = mosnsync.NewWorkerPool(2 * runtime.NumCPU())
-	writePool = mosnsync.NewWorkerPool(2* runtime.NumCPU())
+	writePool = mosnsync.NewWorkerPool(2 * runtime.NumCPU())
 
-	rrCounter                 uint32
-	poolSize                  uint32 = 1 //uint32(runtime.NumCPU())
-	eventLoopPool                    = make([]*eventLoop, poolSize)
+	rrCounter     uint32
+	poolSize      uint32 = 1 //uint32(runtime.NumCPU())
+	eventLoopPool        = make([]*eventLoop, poolSize)
 	// errEventAlreadyRegistered        = errors.New("event already registered")
 )
 
@@ -50,7 +50,6 @@ func init() {
 
 		eventLoopPool[i] = &eventLoop{
 			poller: poller,
-			conn:   make(map[uint64]*connEvent), //TODO init size
 		}
 	}
 }
@@ -71,11 +70,7 @@ type connEventHandler struct {
 }
 
 type eventLoop struct {
-	mu sync.Mutex
-
 	poller netpoll.Poller
-
-	conn map[uint64]*connEvent
 }
 
 func (el *eventLoop) register(conn *connection, handler *connEventHandler) error {
@@ -95,13 +90,11 @@ func (el *eventLoop) register(conn *connection, handler *connEventHandler) error
 	el.poller.Start(read, el.readWrapper(conn, read, handler))
 	el.poller.Start(write, el.writeWrapper(write, handler))
 
-	el.mu.Lock()
 	//store
-	el.conn[conn.id] = &connEvent{
+	conn.ev = &connEvent{
 		read:  read,
 		write: write,
 	}
-	el.mu.Unlock()
 	return nil
 }
 
@@ -119,12 +112,10 @@ func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) e
 		return err
 	}
 
-	el.mu.Lock()
 	//store
-	el.conn[conn.id] = &connEvent{
+	conn.ev = &connEvent{
 		read: read,
 	}
-	el.mu.Unlock()
 	return nil
 }
 
@@ -138,57 +129,42 @@ func (el *eventLoop) registerWrite(conn *connection, handler *connEventHandler) 
 	// register
 	el.poller.Start(write, el.writeWrapper(write, handler))
 
-	el.mu.Lock()
 	//store
-	el.conn[conn.id] = &connEvent{
+	conn.ev = &connEvent{
 		write: write,
 	}
-	el.mu.Unlock()
 	return nil
 }
 
-func (el *eventLoop) unregister(id uint64) {
-
-	el.mu.Lock()
-	defer el.mu.Unlock()
-	if event, ok := el.conn[id]; ok {
-		if event.read != nil {
-			el.poller.Stop(event.read)
+func (el *eventLoop) unregister(conn *connection) {
+	if conn.ev != nil {
+		err := el.poller.Stop(conn.ev.read)
+		if err != nil {
+			log.DefaultLogger.Errorf("[unregister] unreg read failed, %v", err)
 		}
 
-		if event.write != nil {
-			el.poller.Stop(event.write)
+		err = el.poller.Stop(conn.ev.write)
+		if err != nil {
+			log.DefaultLogger.Errorf("[unregister] unreg write failed, %v", err)
 		}
-
-		delete(el.conn, id)
-	}
-
-}
-
-func (el *eventLoop) unregisterRead(id uint64) {
-	el.mu.Lock()
-	defer el.mu.Unlock()
-	if event, ok := el.conn[id]; ok {
-		if event.read != nil {
-			err := el.poller.Stop(event.read)
-			if err != nil {
-				log.DefaultLogger.Errorf("[unregisterRead] failed, %v", err)
-			}
-		}
-
-		delete(el.conn, id)
 	}
 }
 
-func (el *eventLoop) unregisterWrite(id uint64) {
-	el.mu.Lock()
-	defer el.mu.Unlock()
-	if event, ok := el.conn[id]; ok {
-		if event.write != nil {
-			el.poller.Stop(event.write)
+func (el *eventLoop) unregisterRead(conn *connection) {
+	if conn.ev != nil {
+		err := el.poller.Stop(conn.ev.read)
+		if err != nil {
+			log.DefaultLogger.Errorf("[unregisterRead] failed, %v", err)
 		}
+	}
+}
 
-		delete(el.conn, id)
+func (el *eventLoop) unregisterWrite(conn *connection) {
+	if conn.ev != nil {
+		err := el.poller.Stop(conn.ev.write)
+		if err != nil {
+			log.DefaultLogger.Errorf("[unregisterWrite] failed, %v", err)
+		}
 	}
 }
 
@@ -204,6 +180,7 @@ func (el *eventLoop) readWrapper(conn *connection, desc *netpoll.Desc, handler *
 			if !handler.onRead() {
 				return
 			}
+
 			err := el.poller.Resume(desc)
 			if err != nil {
 				log.DefaultLogger.Errorf("RESUME failed, err : %v, desc : %v, addr : %v", err, desc, conn.RemoteAddr())

@@ -105,6 +105,9 @@ type connection struct {
 	tryMutex     *utils.Mutex
 	needTransfer bool
 	useWriteLoop bool
+
+	// netpoll related
+	ev *connEvent
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
@@ -863,7 +866,7 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 	close(c.internalStopChan)
 	if c.eventLoop != nil {
 		// unregister events while connection close
-		c.eventLoop.unregisterRead(c.id)
+		c.eventLoop.unregisterRead(c)
 		// close copied fd
 		err := c.file.Close()
 		if err != nil {
