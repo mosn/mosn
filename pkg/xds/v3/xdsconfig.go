@@ -162,7 +162,7 @@ func (c *XDSConfig) loadClusters(staticResources *envoy_config_bootstrap_v3.Boot
 
 			// Istio 1.8+ use istio-agent proxy request Istiod
 			if endpoint.Address.GetPipe() != nil {
-				config.PipePath = endpoint.Address.GetPipe().Path
+				config.Address = []string{fmt.Sprintf("unix://%s", endpoint.Address.GetPipe().Path)}
 				break
 			}
 
@@ -228,16 +228,6 @@ func (c *ADSConfig) buildClient() *grpc.ClientConn {
 	if c.Services == nil {
 		log.DefaultLogger.Errorf("no available ads service")
 		return nil
-	}
-
-	if c.Services[0].ClusterConfig.PipePath != "" {
-		conn, err := grpc.Dial(c.Services[0].ClusterConfig.PipePath, grpc.WithInsecure(), generateDialOption())
-		if err != nil {
-			log.DefaultLogger.Errorf("did not connect: %v", err)
-			return nil
-		}
-		log.DefaultLogger.Infof("mosn estab grpc connection to pilot with pipe %s", c.Services[0].ClusterConfig.PipePath)
-		return conn
 	}
 
 	var endpoint string

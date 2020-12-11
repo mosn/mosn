@@ -41,7 +41,6 @@ type ClusterConfig struct {
 	Address        []string
 	ConnectTimeout *time.Duration
 	TlsContext     *envoy_config_core_v3.TransportSocket
-	PipePath       string
 }
 
 // ADSConfig contains ADS config from dynamic resources
