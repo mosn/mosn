@@ -182,7 +182,7 @@ func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
 		t.FailNow()
 	}
 
-	headers := http.RequestHeader{
+	headers := &http.RequestHeader{
 		RequestHeader: &fasthttp.RequestHeader{},
 	}
 	headers.Set(protocol.MosnHeaderMethod, "POST")

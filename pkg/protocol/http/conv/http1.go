@@ -46,14 +46,14 @@ func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 
 		switch direction {
 		case protocol.Request:
-			headerImpl := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
+			headerImpl := &http.RequestHeader{&fasthttp.RequestHeader{}, nil}
 			// copy headers
 			for k, v := range header {
 				headerImpl.Set(k, v)
 			}
 			return headerImpl, nil
 		case protocol.Response:
-			headerImpl := http.ResponseHeader{&fasthttp.ResponseHeader{}, nil}
+			headerImpl := &http.ResponseHeader{&fasthttp.ResponseHeader{}, nil}
 			// copy headers
 			for k, v := range header {
 				headerImpl.Set(k, v)
@@ -77,7 +77,7 @@ type http2common struct{}
 
 func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	switch header := headerMap.(type) {
-	case http.RequestHeader:
+	case *http.RequestHeader:
 		cheader := make(map[string]string, header.Len())
 
 		// copy headers
@@ -88,7 +88,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 		cheader[protocol.MosnHeaderDirection] = protocol.Request
 
 		return protocol.CommonHeader(cheader), nil
-	case http.ResponseHeader:
+	case *http.ResponseHeader:
 		cheader := make(map[string]string, header.Len())
 
 		// copy headers

@@ -46,7 +46,7 @@ func Test_http2bolt_Accept(t1 *testing.T) {
 			name: "http header",
 			args: args{
 				ctx:      context.Background(),
-				headers:  http.RequestHeader{RequestHeader: &fasthttp.RequestHeader{}},
+				headers:  &http.RequestHeader{RequestHeader: &fasthttp.RequestHeader{}},
 				buf:      buffer.NewIoBufferString("Test_http2bolt_Accept"),
 				trailers: nil,
 			},
@@ -202,7 +202,7 @@ func buildHttpRequestHeaders(args map[string]string) http.RequestHeader {
 	return http.RequestHeader{RequestHeader: header}
 }
 
-func buildHttpResponseHeaders(status int, args map[string]string) http.ResponseHeader {
+func buildHttpResponseHeaders(status int, args map[string]string) *http.ResponseHeader {
 	header := &fasthttp.ResponseHeader{}
 
 	for key, value := range args {
@@ -211,7 +211,7 @@ func buildHttpResponseHeaders(status int, args map[string]string) http.ResponseH
 
 	header.SetStatusCode(status)
 
-	return http.ResponseHeader{ResponseHeader: header}
+	return &http.ResponseHeader{ResponseHeader: header}
 }
 
 func checkHeadersEqual(left, right types.HeaderMap) bool {
@@ -232,9 +232,9 @@ func checkHeadersEqual(left, right types.HeaderMap) bool {
 	statusEqual := true
 
 	switch left.(type) {
-	case http.ResponseHeader:
-		leftHttpResp := left.(http.ResponseHeader)
-		rightHttpResp := right.(http.ResponseHeader)
+	case *http.ResponseHeader:
+		leftHttpResp := left.(*http.ResponseHeader)
+		rightHttpResp := right.(*http.ResponseHeader)
 
 		statusEqual = leftHttpResp.StatusCode() == rightHttpResp.StatusCode()
 	}

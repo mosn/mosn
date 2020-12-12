@@ -35,7 +35,7 @@ func init() {
 type http2bolt struct{}
 
 func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
-	_, ok := headers.(http.RequestHeader)
+	_, ok := headers.(*http.RequestHeader)
 	return ok
 }
 
@@ -62,5 +62,5 @@ func (t *http2bolt) TranscodingResponse(ctx context.Context, headers types.Heade
 		targetResponse.SetStatusCode(http.InternalServerError)
 	}
 
-	return http.ResponseHeader{ResponseHeader: &targetResponse.Header}, buf, trailers, nil
+	return &http.ResponseHeader{ResponseHeader: &targetResponse.Header}, buf, trailers, nil
 }
