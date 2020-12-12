@@ -112,7 +112,7 @@ func (h RequestHeader) Get(key string) (string, bool) {
 }
 
 // Set key-value pair in header map, the previous pair will be replaced if exists
-func (h RequestHeader) Set(key string, value string) {
+func (h *RequestHeader) Set(key string, value string) {
 	h.RequestHeader.Set(key, value)
 	if value == "" {
 		if h.EmptyValueHeaders == nil {
@@ -158,7 +158,7 @@ func (h RequestHeader) Clone() types.HeaderMap {
 			copyEmptyMap[k] = v
 		}
 	}
-	return RequestHeader{copy, copyEmptyMap}
+	return &RequestHeader{copy, copyEmptyMap}
 }
 
 func (h RequestHeader) ByteSize() (size uint64) {
@@ -193,7 +193,7 @@ func (h ResponseHeader) Get(key string) (string, bool) {
 }
 
 // Set key-value pair in header map, the previous pair will be replaced if exists
-func (h ResponseHeader) Set(key string, value string) {
+func (h *ResponseHeader) Set(key string, value string) {
 	h.ResponseHeader.Set(key, value)
 	if value == "" {
 		if h.EmptyValueHeaders == nil {
@@ -239,7 +239,7 @@ func (h ResponseHeader) Clone() types.HeaderMap {
 			copyEmptyMap[k] = v
 		}
 	}
-	return ResponseHeader{copy, copyEmptyMap}
+	return &ResponseHeader{copy, copyEmptyMap}
 }
 
 func (h ResponseHeader) ByteSize() (size uint64) {

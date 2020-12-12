@@ -21,7 +21,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
+	"mosn.io/api"
 )
 
 func TestRequestHeader_Add(t *testing.T) {
@@ -57,5 +59,37 @@ func TestResponseHeader_Add(t *testing.T) {
 	output := header.String()
 	if !strings.Contains(output, "value-one") || !strings.Contains(output, "value-two") {
 		t.Errorf("ResponseHeader.String not contains all header values")
+	}
+}
+
+func TestHeaderSetEmptyKey(t *testing.T) {
+	tests := []struct {
+		name   string
+		header api.HeaderMap
+	}{
+		{
+			name:   "request header",
+			header: &ResponseHeader{&fasthttp.ResponseHeader{}, nil},
+		},
+		{
+			name:   "response header",
+			header: &RequestHeader{&fasthttp.RequestHeader{}, nil},
+		},
+	}
+
+	key := "foobar"
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.header.Set(key, "")
+
+			// value is "", key exists
+			value, exists := tc.header.Get(key)
+			assert.True(t, exists)
+			assert.Equal(t, "", value)
+
+			tc.header.Del(key)
+			_, exists = tc.header.Get(key)
+			assert.False(t, exists)
+		})
 	}
 }
