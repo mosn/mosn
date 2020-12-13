@@ -71,6 +71,7 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 		}
 	} else if len(route.Match.Variables) > 0 {
 		variableRouter := &VariableRouteRuleImpl{
+			RouteRuleImplBase: base,
 			Variables: make([]*VariableMatchItem, len(route.Match.Variables)),
 		}
 		for i := range route.Match.Variables {

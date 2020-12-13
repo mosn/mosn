@@ -11,6 +11,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/test/lib/utils"
 	"mosn.io/pkg/buffer"
@@ -99,7 +100,7 @@ type ResponseBuilder struct {
 	// The response header
 	Header map[string][]string `json:"header"`
 	// The repsonse body content
-	Body json.RawMessage `json:"body"`
+	Body string `json:"body"`
 }
 
 func (b *ResponseBuilder) Build(w http.ResponseWriter) (int, error) {
@@ -114,7 +115,7 @@ func (b *ResponseBuilder) Build(w http.ResponseWriter) (int, error) {
 	}
 	// WriteHeader should be called after Header.Set/Add
 	w.WriteHeader(b.StatusCode)
-	return w.Write(b.Body)
+	return w.Write([]byte(b.Body))
 }
 
 type HttpClientConfig struct {
@@ -149,16 +150,18 @@ func (c *RequestConfig) BuildRequest() (api.HeaderMap, buffer.IoBuffer) {
 	if c == nil {
 		return buildRequest("GET", nil, nil)
 	}
-	method := c.Method
 	if c.Method == "" {
-		method = "GET"
+		c.Method = "GET"
 	}
+	method := c.Method
 	return buildRequest(method, c.Header, c.Body)
 }
 
 func buildRequest(method string, header map[string][]string, body []byte) (api.HeaderMap, buffer.IoBuffer) {
 	fh := &fasthttp.RequestHeader{}
 	fh.SetMethod(method)
+	// to simulate pkg/stream/http/stream.go injectInternalHeaders
+	fh.Set(protocol.MosnHeaderMethod,method)
 	h := mosnhttp.RequestHeader{
 		RequestHeader: fh,
 	}
