@@ -171,11 +171,6 @@ func (el *eventLoop) unregisterWrite(conn *connection) {
 func (el *eventLoop) readWrapper(conn *connection, desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
 	return func(e netpoll.Event) {
 		// No more calls will be made for conn until we call epoll.Resume().
-		if e&netpoll.EventReadHup != 0 {
-			if !handler.onHup() {
-				return
-			}
-		}
 		readPool.Schedule(func() {
 			if !handler.onRead() {
 				return
