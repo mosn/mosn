@@ -53,7 +53,7 @@ func (c *ADSClient) reqRoutes(streamClient envoy_service_discovery_v3.Aggregated
 		},
 	})
 	if err != nil {
-		log.DefaultLogger.Infof("get routers fail: %v", err)
+		log.DefaultLogger.Errorf("get routers fail: %v", err)
 		return err
 	}
 	return nil

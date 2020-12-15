@@ -33,6 +33,9 @@ func (c *ADSClient) reqEndpoints(streamClient envoy_service_discovery_v3.Aggrega
 		return errors.New("stream client is nil")
 	}
 	rs := getResponseRequestInfo(EnvoyEndpoint)
+	if len(rs.ResourceNames) == 0 {
+		rs.ResourceNames = clusterNames
+	}
 	err := streamClient.Send(&envoy_service_discovery_v3.DiscoveryRequest{
 		VersionInfo:   rs.VersionInfo,
 		ResourceNames: rs.ResourceNames,
@@ -46,7 +49,7 @@ func (c *ADSClient) reqEndpoints(streamClient envoy_service_discovery_v3.Aggrega
 		},
 	})
 	if err != nil {
-		log.DefaultLogger.Infof("get endpoints fail: %v", err)
+		log.DefaultLogger.Errorf("get endpoints fail: %v", err)
 		return err
 	}
 	return nil

@@ -46,7 +46,7 @@ func (c *ADSClient) reqListeners(streamClient envoy_service_discovery_v3.Aggrega
 		},
 	})
 	if err != nil {
-		log.DefaultLogger.Infof("get listener fail: %v", err)
+		log.DefaultLogger.Errorf("get listener fail: %v", err)
 		return err
 	}
 	return nil
