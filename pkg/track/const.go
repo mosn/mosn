@@ -41,8 +41,11 @@ const (
 type TimestampPhase int
 
 const (
-	TrackStartTimestamp TimestampPhase = iota
-	RequestStartTimestamp
+	RequestStartTimestamp TimestampPhase = iota
 	ResponseStartTimestamp
 	MaxTimestampPhase
 )
+
+// TrackStartTimestamp is an alias for RequestStartTimestamp
+// we think a mosn stream is begin when a request received
+const TrackStartTimestamp TimestampPhase = RequestStartTimestamp
