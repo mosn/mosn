@@ -48,7 +48,7 @@ require (
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
 	mosn.io/api v0.0.0-20201117130017-91d17c14b8af
-	mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
+	mosn.io/pkg v0.0.0-20201216080543-e35fb5fa9398
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4

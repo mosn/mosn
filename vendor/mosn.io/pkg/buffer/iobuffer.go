@@ -202,7 +202,7 @@ func (b *ioBuffer) Grow(n int) error {
 	return nil
 }
 
-func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
+func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, readAgain bool, err error) {
 	var m int
 
 	if b.off > 0 && b.off >= len(b.buf) {
@@ -228,10 +228,11 @@ func (b *ioBuffer) ReadOnce(r io.Reader) (n int64, err error) {
 
 	// Not enough space anywhere, we need to allocate.
 	if l == m {
+		readAgain = true
 		b.copy(AutoExpand)
 	}
 
-	return n, err
+	return n, readAgain, err
 }
 
 func (b *ioBuffer) ReadFrom(r io.Reader) (n int64, err error) {

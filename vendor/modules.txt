@@ -368,7 +368,7 @@ istio.io/gogo-genproto/googleapis/google/rpc
 k8s.io/klog
 # mosn.io/api v0.0.0-20201117130017-91d17c14b8af
 mosn.io/api
-# mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
+# mosn.io/pkg v0.0.0-20201216080543-e35fb5fa9398
 mosn.io/pkg/buffer
 mosn.io/pkg/log
 mosn.io/pkg/utils

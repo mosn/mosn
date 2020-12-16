@@ -42,7 +42,9 @@ type IoBuffer interface {
 	// the buffer as needed. The return value n is the number of bytes read. Any
 	// error except io.EOF encountered during the read is also returned. If the
 	// buffer becomes too large, ReadFrom will panic with ErrTooLarge.
-	ReadOnce(r io.Reader) (n int64, err error)
+	// when you run ReadOnce in read loop, you don't need to judge readAgain is true or false
+	// you should call ReadOnce until readAgain returns false if you rely on some epoll triggered read action
+	ReadOnce(r io.Reader) (n int64, readAgain bool, err error)
 
 	// ReadFrom reads data from r until EOF and appends it to the buffer, growing
 	// the buffer as needed. The return value n is the number of bytes read. Any

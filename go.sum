@@ -373,10 +373,6 @@ github.com/modern-go/reflect2 v1.0.1 h1:9f412s+6RmYXLWZSEzVVgPGK7C2PphHj5RJrvfx9
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
 github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f h1:To7Bf1S4r0iuIKJkpTFFTDRa/PfCUTouqjD4uWr2oL8=
 github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f/go.mod h1:V3v+y3rlpXDKXBld0Jvz2I3p3gHp8BE6NToiQUuLC7g=
-github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0 h1:GuQmLdUJpCfcfIGQDZJB8cpS165L16JeqcBdCn4K7xM=
-github.com/mosn/easygo v0.0.0-20201208040250-27b5582505b0/go.mod h1:JlOHLcQTwc0Gvi2DZfQ2hMAj6Z73lQhkRrsxuawL9uE=
-github.com/mosn/easygo v0.0.0-20201210061801-746445aa9fe5 h1:AGYUwDh3jsveHiL3FPfWqBf5BN6m72zSSeYYwnELGVk=
-github.com/mosn/easygo v0.0.0-20201210061801-746445aa9fe5/go.mod h1:JlOHLcQTwc0Gvi2DZfQ2hMAj6Z73lQhkRrsxuawL9uE=
 github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827 h1:if2FJYhGEqXRGkRbG9sKGYfp37NI+Ch/C6lr11jkCv8=
 github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827/go.mod h1:JlOHLcQTwc0Gvi2DZfQ2hMAj6Z73lQhkRrsxuawL9uE=
 github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91 h1:hOO8gWLcAoWZM6dZmPmfs0ZYmjKxmdwiwJiYRCfQc18=
@@ -710,7 +706,7 @@ mosn.io/api v0.0.0-20201117130017-91d17c14b8af h1:NK8bxCdw2xsgJ2R0eM6hSq+0GoeQhW
 mosn.io/api v0.0.0-20201117130017-91d17c14b8af/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d h1:p5BKQJrfU67nkQciB3Bxh9SPpdT+oGBVLfOQxuwhUKQ=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
-mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f h1:d7G+Dhw5GXnrnr8D5ArNFowL9F0hj2hMJD0OsPaGBMc=
-mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
+mosn.io/pkg v0.0.0-20201216080543-e35fb5fa9398 h1:HdNwc/bIhq0OanPEaduiQ0Ibqfrn8Ii5ugaXOvqnlcM=
+mosn.io/pkg v0.0.0-20201216080543-e35fb5fa9398/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
