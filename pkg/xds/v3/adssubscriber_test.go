@@ -28,6 +28,8 @@ import (
 	envoy_config_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/golang/protobuf/ptypes/duration"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/xds/v3/conv"
 )
 
 func Test_Client(t *testing.T) {
@@ -36,6 +38,9 @@ func Test_Client(t *testing.T) {
 			t.Errorf("TestxDSClient error: %v \n %s", r, string(debug.Stack()))
 		}
 	}()
+
+	cluster.NewClusterManagerSingleton(nil, nil, nil)
+	conv.InitStats()
 
 	xdsConfig := XDSConfig{}
 	clusterName := "xds-cluster"
