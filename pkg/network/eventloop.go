@@ -38,7 +38,6 @@ var (
 	rrCounter     uint32
 	poolSize      uint32 = 1 //uint32(runtime.NumCPU())
 	eventLoopPool        = make([]*eventLoop, poolSize)
-	// errEventAlreadyRegistered        = errors.New("event already registered")
 )
 
 func init() {
@@ -73,31 +72,6 @@ type eventLoop struct {
 	poller netpoll.Poller
 }
 
-func (el *eventLoop) register(conn *connection, handler *connEventHandler) error {
-	// handle read
-	read, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
-	if err != nil {
-		return err
-	}
-
-	// handle write
-	write, err := netpoll.HandleFile(conn.file, netpoll.EventWrite|netpoll.EventOneShot)
-	if err != nil {
-		return err
-	}
-
-	// register with wrapper
-	el.poller.Start(read, el.readWrapper(conn, read, handler))
-	el.poller.Start(write, el.writeWrapper(write, handler))
-
-	//store
-	conn.ev = &connEvent{
-		read:  read,
-		write: write,
-	}
-	return nil
-}
-
 func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) error {
 	// handle read
 	read, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
@@ -119,37 +93,6 @@ func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) e
 	return nil
 }
 
-func (el *eventLoop) registerWrite(conn *connection, handler *connEventHandler) error {
-	// handle write
-	write, err := netpoll.HandleFile(conn.file, netpoll.EventWrite|netpoll.EventOneShot)
-	if err != nil {
-		return err
-	}
-
-	// register
-	el.poller.Start(write, el.writeWrapper(write, handler))
-
-	//store
-	conn.ev = &connEvent{
-		write: write,
-	}
-	return nil
-}
-
-func (el *eventLoop) unregister(conn *connection) {
-	if conn.ev != nil {
-		err := el.poller.Stop(conn.ev.read)
-		if err != nil {
-			log.DefaultLogger.Errorf("[unregister] unreg read failed, %v", err)
-		}
-
-		err = el.poller.Stop(conn.ev.write)
-		if err != nil {
-			log.DefaultLogger.Errorf("[unregister] unreg write failed, %v", err)
-		}
-	}
-}
-
 func (el *eventLoop) unregisterRead(conn *connection) {
 	if conn.ev != nil {
 		err := el.poller.Stop(conn.ev.read)
@@ -159,45 +102,19 @@ func (el *eventLoop) unregisterRead(conn *connection) {
 	}
 }
 
-func (el *eventLoop) unregisterWrite(conn *connection) {
-	if conn.ev != nil {
-		err := el.poller.Stop(conn.ev.write)
-		if err != nil {
-			log.DefaultLogger.Errorf("[unregisterWrite] failed, %v", err)
-		}
-	}
-}
-
 func (el *eventLoop) readWrapper(conn *connection, desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
 	return func(e netpoll.Event) {
 		// No more calls will be made for conn until we call epoll.Resume().
 		readPool.Schedule(func() {
+
 			if !handler.onRead() {
 				return
 			}
 
 			err := el.poller.Resume(desc)
 			if err != nil {
-				log.DefaultLogger.Errorf("RESUME failed, err : %v, desc : %v, addr : %v", err, desc, conn.RemoteAddr())
+				log.DefaultLogger.Errorf("RESUME failed, err : %v, desc : %v, raddr : %v, laddr : %v", err, desc, conn.RemoteAddr(), conn.LocalAddr())
 			}
-		})
-	}
-}
-
-func (el *eventLoop) writeWrapper(desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
-	return func(e netpoll.Event) {
-		// No more calls will be made for conn until we call epoll.Resume().
-		if e&netpoll.EventWriteHup != 0 {
-			el.poller.Stop(desc)
-			if !handler.onHup() {
-				return
-			}
-		}
-		writePool.ScheduleAlways(func() {
-			if !handler.onWrite() {
-				return
-			}
-			el.poller.Resume(desc)
 		})
 	}
 }
