@@ -206,7 +206,21 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	err := c.eventLoop.registerRead(c, &connEventHandler{
 		onRead: func() bool {
 			if c.readEnabled {
-				err := c.doRead()
+				var (
+					err error
+					readAgain = true
+				)
+
+				for readAgain {
+					readAgain, err = c.doRead()
+					if err != nil {
+						break
+					}
+
+					if c.tlsMng == nil {
+						break
+					}
+				}
 
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
@@ -388,7 +402,7 @@ func (c *connection) startReadLoop() {
 		case <-c.readEnabledChan:
 		default:
 			if c.readEnabled {
-				err := c.doRead()
+				_, err := c.doRead()
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
 						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
@@ -470,7 +484,7 @@ func (c *connection) setReadDeadline() {
 	}
 }
 
-func (c *connection) doRead() (err error) {
+func (c *connection) doRead() (readAgain bool, err error) {
 	if c.readBuffer == nil {
 		switch c.network {
 		case "udp":
@@ -481,24 +495,24 @@ func (c *connection) doRead() (err error) {
 		}
 	}
 
-	var bytesRead int64
+	var	bytesRead int64
 	c.setReadDeadline()
-	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
+	bytesRead, readAgain, err = c.readBuffer.ReadOnce(c.rawConnection)
 
 	if err != nil {
 		log.DefaultLogger.Infof("[network] [read loop] do read err: %v", err)
 		if atomic.LoadUint32(&c.closed) == 1 {
-			return err
+			return readAgain, err
 		}
 		if te, ok := err.(net.Error); ok && te.Timeout() {
 			for _, cb := range c.connCallbacks {
 				cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
 			}
 			if bytesRead == 0 {
-				return err
+				return readAgain, err
 			}
 		} else if err != io.EOF {
-			return err
+			return readAgain, err
 		}
 	}
 
