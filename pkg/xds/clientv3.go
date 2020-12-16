@@ -27,6 +27,7 @@ import (
 
 	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/duration"
 	jsoniter "github.com/json-iterator/go"

@@ -30,9 +30,13 @@ import (
 	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_config_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	envoy_extensions_filters_network_http_connection_manager_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	wellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -42,13 +46,50 @@ import (
 	"mosn.io/mosn/pkg/xds/v3/conv"
 )
 
+const connectionManager = "envoy.filters.network.http_connection_manager"
+
+var (
+	typeFactoryMapping = map[string]func() proto.Message{
+		connectionManager: func() proto.Message {
+			return &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager{}
+		},
+	}
+)
+
 //  Init parsed ds and clusters config for xds
 func (c *XDSConfig) Init(dynamicResources *envoy_config_bootstrap_v3.Bootstrap_DynamicResources, staticResources *envoy_config_bootstrap_v3.Bootstrap_StaticResources) error {
-	err := c.loadClusters(staticResources)
+	if staticResources == nil {
+		log.DefaultLogger.Errorf("StaticResources is null")
+		err := errors.New("null point exception")
+		return err
+	}
+	err := staticResources.Validate()
+	if err != nil {
+		log.DefaultLogger.Errorf("Invalid StaticResources")
+		return err
+	}
+
+	err = c.loadStaticResource(staticResources)
 	if err != nil {
 		return err
 	}
 	err = c.loadADSConfig(dynamicResources)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *XDSConfig) loadStaticResource(staticResources *envoy_config_bootstrap_v3.Bootstrap_StaticResources) error {
+	err := c.loadClusters(staticResources.Clusters)
+	if err != nil {
+		return err
+	}
+	err = c.loadLisener(staticResources.Listeners)
+	if err != nil {
+		return err
+	}
+	err = c.loadRoutes(staticResources.Listeners)
 	if err != nil {
 		return err
 	}
@@ -119,19 +160,14 @@ func (c *XDSConfig) getAPISourceEndpoint(source *envoy_config_core_v3.ApiConfigS
 	return config, nil
 }
 
-func (c *XDSConfig) loadClusters(staticResources *envoy_config_bootstrap_v3.Bootstrap_StaticResources) error {
-	if staticResources == nil {
-		log.DefaultLogger.Errorf("StaticResources is null")
-		err := errors.New("null point exception")
-		return err
+func (c *XDSConfig) loadClusters(clusters []*envoy_config_cluster_v3.Cluster) error {
+	if len(clusters) == 0 {
+		return errors.New("static_resources cluster is empty")
 	}
-	err := staticResources.Validate()
-	if err != nil {
-		log.DefaultLogger.Errorf("Invalid StaticResources")
-		return err
-	}
+	conv.ConvertUpdateClusters(clusters)
+
 	c.Clusters = make(map[string]*ClusterConfig)
-	for _, cluster := range staticResources.Clusters {
+	for _, cluster := range clusters {
 		name := cluster.Name
 		config := ClusterConfig{}
 
@@ -178,6 +214,53 @@ func (c *XDSConfig) loadClusters(staticResources *envoy_config_bootstrap_v3.Boot
 			}
 		}
 		c.Clusters[name] = &config
+	}
+	return nil
+}
+
+func (c *XDSConfig) loadLisener(listeners []*envoy_config_listener_v3.Listener) error {
+	conv.ConvertAddOrUpdateListeners(listeners)
+	return nil
+}
+
+func (c *XDSConfig) loadRoutes(listeners []*envoy_config_listener_v3.Listener) error {
+	if len(listeners) == 0 {
+		return nil
+	}
+	routes := make([]*envoy_config_route_v3.RouteConfiguration, 0, len(listeners))
+	for _, listener := range listeners {
+		if len(listener.FilterChains) == 0 {
+			continue
+		}
+		for _, fc := range listener.FilterChains {
+			if len(fc.Filters) == 0 {
+				continue
+			}
+			for _, filter := range fc.Filters {
+				if factory, exist := typeFactoryMapping[filter.Name]; exist {
+					typedConfig := factory()
+					if err := ptypes.UnmarshalAny(filter.GetTypedConfig(), typedConfig); err != nil {
+						return err
+					}
+					switch typedConfig.(type) {
+					case *envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager:
+						manager := typedConfig.(*envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager)
+						if routerConfig := manager.GetRouteConfig(); routerConfig != nil {
+							routes = append(routes, routerConfig)
+						}
+					default:
+						log.DefaultLogger.Warnf("cannot handle route config type, listener: %s, name: %s",
+							listener.Name, filter.Name)
+					}
+				} else {
+					log.DefaultLogger.Warnf("cannot handle route type, listener: %s, filter: %s",
+						listener.Name, filter.Name)
+				}
+			}
+		}
+	}
+	if len(routes) > 0 {
+		conv.ConvertAddOrUpdateRouters(routes)
 	}
 	return nil
 }
