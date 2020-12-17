@@ -21,9 +21,9 @@ import (
 	"runtime"
 	"sync/atomic"
 
-	"mosn.io/mosn/pkg/log"
-
 	"github.com/mosn/easygo/netpoll"
+	atomicex "go.uber.org/atomic"
+	"mosn.io/mosn/pkg/log"
 	mosnsync "mosn.io/mosn/pkg/sync"
 )
 
@@ -58,14 +58,13 @@ func attach() *eventLoop {
 }
 
 type connEvent struct {
-	read  *netpoll.Desc
-	write *netpoll.Desc
+	readDesc *netpoll.Desc
+	stopped  atomicex.Bool // default is 0/false
 }
 
 type connEventHandler struct {
-	onHup   func() bool
-	onRead  func() bool
-	onWrite func() bool
+	onHup  func() bool
+	onRead func() bool
 }
 
 type eventLoop struct {
@@ -74,47 +73,55 @@ type eventLoop struct {
 
 func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) error {
 	// handle read
-	read, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
+	desc, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
 
+	// store should happen before register
+	// if conn Close happen immediately after poller.Start
+	// the conn.ev is nil, so this connection fd will not be removed from epfd
+	conn.ev = &connEvent{
+		readDesc: desc,
+	}
+
+	readCallback := func(e netpoll.Event) {
+		// No more calls will be made for conn until we call epoll.Resume().
+		readPool.ScheduleAuto(func() {
+			if !handler.onRead() {
+				return
+			}
+
+			// if conn is closed by local already
+			if conn.ev.stopped.Load() {
+				return
+			}
+
+			err := el.poller.Resume(conn.ev.readDesc)
+			if err != nil {
+				log.DefaultLogger.Errorf("RESUME failed, err : %v, desc : %v, raddr : %v, laddr : %v", err,
+					desc, conn.RemoteAddr(), conn.LocalAddr())
+			}
+		})
+	}
+
 	// register
-	err = el.poller.Start(read, el.readWrapper(conn, read, handler))
+	err = el.poller.Start(desc, readCallback)
+
 	if err != nil {
 		log.DefaultLogger.Errorf("[network] registerRead failed err : %v, addr: %v", err, conn.RemoteAddr())
 		return err
 	}
 
-	//store
-	conn.ev = &connEvent{
-		read: read,
-	}
 	return nil
 }
 
 func (el *eventLoop) unregisterRead(conn *connection) {
 	if conn.ev != nil {
-		err := el.poller.Stop(conn.ev.read)
+		conn.ev.stopped.Store(true)
+		err := el.poller.Stop(conn.ev.readDesc)
 		if err != nil {
 			log.DefaultLogger.Errorf("[unregisterRead] failed, %v", err)
 		}
-	}
-}
-
-func (el *eventLoop) readWrapper(conn *connection, desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
-	return func(e netpoll.Event) {
-		// No more calls will be made for conn until we call epoll.Resume().
-		readPool.Schedule(func() {
-
-			if !handler.onRead() {
-				return
-			}
-
-			err := el.poller.Resume(desc)
-			if err != nil {
-				log.DefaultLogger.Errorf("RESUME failed, err : %v, desc : %v, raddr : %v, laddr : %v", err, desc, conn.RemoteAddr(), conn.LocalAddr())
-			}
-		})
 	}
 }

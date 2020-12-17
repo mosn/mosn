@@ -254,7 +254,7 @@ github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/stackless
 # github.com/valyala/fasttemplate v1.1.0
 github.com/valyala/fasttemplate
-# go.uber.org/atomic v1.6.0
+# go.uber.org/atomic v1.7.0
 go.uber.org/atomic
 # go.uber.org/automaxprocs v1.3.0
 go.uber.org/automaxprocs/internal/cgroups

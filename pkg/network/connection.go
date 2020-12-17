@@ -207,7 +207,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 		onRead: func() bool {
 			if c.readEnabled {
 				var (
-					err error
+					err       error
 					readAgain = true
 				)
 
@@ -311,57 +311,6 @@ func (c *connection) startRWLoop(lctx context.Context) {
 			c.Close(api.NoFlush, api.LocalClose)
 		})
 	}
-}
-
-func (c *connection) scheduleWrite() {
-	writePool.ScheduleAlways(func() {
-		defer func() { <-c.writeSchedChan }()
-
-		for len(c.writeBufferChan) > 0 {
-			// at least 1 buffer need to avoid all chan-recv missed by select.default option
-			c.appendBuffer(<-c.writeBufferChan)
-
-			//todo: dynamic set loop nums
-			//slots := len(c.writeBufferChan)
-			//if slots < 10 {
-			//	slots = 10
-			//}
-
-			//if len(c.writeBufferChan) < 10 {
-			//	runtime.Gosched()
-			//}
-
-			for i := 0; i < 10; i++ {
-				select {
-				case buf, ok := <-c.writeBufferChan:
-					if !ok {
-						return
-					}
-					c.appendBuffer(buf)
-				default:
-				}
-			}
-
-			_, err := c.doWrite()
-			if err != nil {
-				if err == io.EOF {
-					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-						log.DefaultLogger.Debugf("[network] [schedule write] Error on write. Connection = %d, Remote Address = %s, err = %s",
-							c.id, c.RemoteAddr().String(), err)
-					}
-					// remote conn closed
-					c.Close(api.NoFlush, api.RemoteClose)
-				} else {
-					// on non-timeout error
-					log.DefaultLogger.Errorf("[network] [schedule write] Error on write. Connection = %d, Remote Address = %s, err = %s",
-						c.id, c.RemoteAddr().String(), err)
-					c.Close(api.NoFlush, api.OnWriteErrClose)
-				}
-
-			}
-
-		}
-	})
 }
 
 func (c *connection) startReadLoop() {
@@ -495,7 +444,7 @@ func (c *connection) doRead() (readAgain bool, err error) {
 		}
 	}
 
-	var	bytesRead int64
+	var bytesRead int64
 	c.setReadDeadline()
 	bytesRead, readAgain, err = c.readBuffer.ReadOnce(c.rawConnection)
 
