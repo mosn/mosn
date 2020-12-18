@@ -50,7 +50,7 @@ const connectionManager = "envoy.filters.network.http_connection_manager"
 
 var (
 	typeFactoryMapping = map[string]func() proto.Message{
-		connectionManager: func() proto.Message {
+		wellknown.TCPProxy: func() proto.Message {
 			return &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager{}
 		},
 	}

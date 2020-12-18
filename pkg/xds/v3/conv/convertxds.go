@@ -718,7 +718,7 @@ func convertFilterConfig(filter *envoy_config_listener_v3.Filter) map[string]map
 		//	ExtendConfig:       convertXProxyExtendConfig(filterConfig),
 		//}
 		return nil
-	} else if name == v2.TCP_PROXY {
+	} else if name == wellknown.TCPProxy {
 		filterConfig := GetTcpProxy(filter)
 		log.DefaultLogger.Tracef("TCPProxy:filter config = %v", filterConfig)
 
