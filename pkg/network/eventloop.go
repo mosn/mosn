@@ -32,8 +32,7 @@ var (
 	UseNetpollMode = false
 
 	// read/write goroutine pool
-	readPool  = mosnsync.NewWorkerPool(2 * runtime.NumCPU())
-	writePool = mosnsync.NewWorkerPool(2 * runtime.NumCPU())
+	readPool  = mosnsync.NewWorkerPool(4 * runtime.NumCPU())
 
 	rrCounter     uint32
 	poolSize      uint32 = 1 //uint32(runtime.NumCPU())

@@ -100,14 +100,15 @@ type connection struct {
 	closed    uint32
 	connected uint32
 	startOnce sync.Once
-	eventLoop *eventLoop
 
 	tryMutex     *utils.Mutex
 	needTransfer bool
 	useWriteLoop bool
 
-	// netpoll related
-	ev *connEvent
+	// eventloop related
+	eventLoop        *eventLoop
+	ev               *connEvent
+	readTimeoutTimer *utils.Timer
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
@@ -201,11 +202,20 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	// Choose one event loop to register, the implement is platform-dependent(epoll for linux and kqueue for bsd)
 	c.eventLoop = attach()
 
+	// create a new timer and bind it to connection
+	c.readTimeoutTimer = utils.NewTimer(buffer.ConnReadTimeout, func() {
+		for _, cb := range c.connCallbacks {
+			cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
+		}
+	})
+
 	// Register read only, write is supported now because it is more complex than read.
 	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
 	err := c.eventLoop.registerRead(c, &connEventHandler{
 		onRead: func() bool {
 			if c.readEnabled {
+				c.readTimeoutTimer.Stop()
+
 				var (
 					err       error
 					readAgain = true
@@ -222,29 +232,36 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 					}
 				}
 
-				if err != nil {
-					if te, ok := err.(net.Error); ok && te.Timeout() {
-						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 {
-							c.readBuffer.Free()
-							c.readBuffer.Alloc(DefaultBufferReadCapacity)
-						}
-						return true
-					}
-
-					if err == io.EOF {
-						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-							log.DefaultLogger.Debugf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
-								c.id, c.RemoteAddr().String(), err)
-						}
-						c.Close(api.NoFlush, api.RemoteClose)
-					} else {
-						log.DefaultLogger.Errorf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
-							c.id, c.RemoteAddr().String(), err)
-						c.Close(api.NoFlush, api.OnReadErrClose)
-					}
-
-					return false
+				// reset read timeout timer
+				// mainly for heartbeat request
+				if err == nil {
+					// read err is nil, start timer
+					c.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
+					return true
 				}
+
+				// err != nil
+				if te, ok := err.(net.Error); ok && te.Timeout() {
+					if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 {
+						c.readBuffer.Free()
+						c.readBuffer.Alloc(DefaultBufferReadCapacity)
+					}
+					return true
+				}
+
+				if err == io.EOF {
+					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+						log.DefaultLogger.Debugf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
+							c.id, c.RemoteAddr().String(), err)
+					}
+					c.Close(api.NoFlush, api.RemoteClose)
+				} else {
+					log.DefaultLogger.Errorf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
+						c.id, c.RemoteAddr().String(), err)
+					c.Close(api.NoFlush, api.OnReadErrClose)
+				}
+
+				return false
 			} else {
 				select {
 				case <-c.readEnabledChan:
@@ -264,6 +281,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	if err != nil {
 		log.DefaultLogger.Errorf("[network] [event loop] [register] conn %d register read failed:%s", c.id, err.Error())
 		c.Close(api.NoFlush, api.LocalClose)
+		return
 	}
 }
 
@@ -835,6 +853,8 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 		if err != nil {
 			log.DefaultLogger.Errorf("[network] [close connection] error, %v", err)
 		}
+
+		c.readTimeoutTimer.Stop()
 	}
 
 	c.rawConnection.Close()
