@@ -61,15 +61,11 @@ func init() {
 }
 
 func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
-	if !ok {
+	scheme, err := variable.GetVariableValue(ctx, protocol.MosnHeaderScheme)
+	if err != nil || scheme == "" {
 		return variable.ValueNotFound, nil
 	}
-	scheme, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderScheme, false)
-	if err != nil || scheme == nil {
-		return variable.ValueNotFound, nil
-	}
-	return *scheme, nil
+	return scheme, nil
 }
 
 func headerGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (s string, err error) {

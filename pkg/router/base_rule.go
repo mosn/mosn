@@ -266,9 +266,9 @@ func (rri *RouteRuleImplBase) matchRoute(ctx context.Context, headers api.Header
 	// 2. match query parameters
 	if len(rri.configQueryParameters) != 0 {
 		var queryParams types.QueryParams
-		QueryString, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderQueryStringKey, false)
-		if err == nil && QueryString != nil {
-			queryParams = httpmosn.ParseQueryString(*QueryString)
+		QueryString, err := variable.GetVariableValue(ctx,  protocol.MosnHeaderQueryStringKey)
+		if err == nil && QueryString != "" {
+			queryParams = httpmosn.ParseQueryString(QueryString)
 		}
 		if len(queryParams) != 0 {
 			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {

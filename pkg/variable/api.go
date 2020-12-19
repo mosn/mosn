@@ -26,21 +26,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func GetValueFromVariableAndLegacyHeader(ctx context.Context, headerMap api.HeaderMap, key string, delete bool) (*string, error) {
-	value, ok := headerMap.Get(key)
-	if ok {
-		if delete {
-			headerMap.Del(key)
-		}
-		return &value, nil
-	}
-	value, err := GetVariableValue(ctx, key)
-	if err == nil {
-		return &value, nil
-	}
-	return nil, err
-}
-
 func GetVariableValue(ctx context.Context, name string) (string, error) {
 	// 1. find built-in variables
 	if variable, ok := variables[name]; ok {

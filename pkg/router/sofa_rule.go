@@ -19,10 +19,10 @@ package router
 
 import (
 	"context"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 )
 
 type SofaRouteRuleImpl struct {
@@ -50,14 +50,11 @@ func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, req
 }
 
 func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
-	value, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, types.SofaRouteMatchKey, false)
-	if value != nil {
-		if *value == srri.matchValue || srri.matchValue == ".*" {
+	value, _ := headers.Get(types.SofaRouteMatchKey)
+	if value != "" {
+		if value == srri.matchValue || srri.matchValue == ".*" {
 			return srri
 		}
-	}
-	if err != nil {
-		log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "get from ctx error", err)
 	}
 	log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "failed match", headers)
 	return nil

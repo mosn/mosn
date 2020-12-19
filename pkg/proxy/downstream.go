@@ -762,11 +762,11 @@ func (s *downStream) chooseHost(endStream bool) {
 			return
 		}
 		getValueFunc := func(key string, defaultVal string) string {
-			val, err := variable.GetValueFromVariableAndLegacyHeader(s.context, s.downstreamReqHeaders, key, false)
-			if err != nil || val == nil {
+			val, err := variable.GetVariableValue(s.context, key)
+			if err != nil || val == "" {
 				return defaultVal
 			}
-			return *val
+			return val
 		}
 		currentHost := getValueFunc(types.HeaderHost, "")
 		currentPath := getValueFunc(types.HeaderPath, "")
@@ -829,7 +829,7 @@ func (s *downStream) chooseHost(endStream bool) {
 	s.requestInfo.OnUpstreamHostSelected(pool.Host())
 	s.requestInfo.SetUpstreamLocalAddress(pool.Host().AddressString())
 
-	parseProxyTimeout(s.context, &s.timeout, s.route, s.downstreamReqHeaders)
+	parseProxyTimeout(s.context, &s.timeout, s.route)
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] timeout info: %+v", s.timeout)
@@ -1378,7 +1378,6 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	}
 	s.requestInfo.SetResponseCode(code)
 	status := strconv.Itoa(code)
-	headers.Set(types.HeaderStatus, status)
 	variable.SetVariableValue(s.context, types.HeaderStatus, status)
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
@@ -1398,7 +1397,6 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	s.requestInfo.SetResponseCode(code)
 
 	status := strconv.Itoa(code)
-	headers.Set(types.HeaderStatus, status)
 	variable.SetVariableValue(s.context, types.HeaderStatus, status)
 
 	atomic.StoreUint32(&s.reuseBuffer, 0)

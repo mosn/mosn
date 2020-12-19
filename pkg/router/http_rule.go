@@ -60,11 +60,11 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, req
 
 func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if prri.matchRoute(ctx, headers) {
-		headerPathValue, _ := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
-		if headerPathValue != nil {
+		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+		if err != nil && headerPathValue != "" {
 			// TODO: config to support case sensitive
 			// case insensitive
-			if strings.EqualFold(*headerPathValue, prri.path) {
+			if strings.EqualFold(headerPathValue, prri.path) {
 				return prri
 			}
 		}
@@ -105,9 +105,9 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, r
 
 func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if prei.matchRoute(ctx, headers) {
-		headerPathValue, _ := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
-		if headerPathValue != nil {
-			if strings.HasPrefix(*headerPathValue, prei.prefix) {
+		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+		if err == nil && headerPathValue != "" {
+			if strings.HasPrefix(headerPathValue, prei.prefix) {
 				return prei
 			}
 		}
@@ -146,9 +146,9 @@ func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, re
 
 func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if rrei.matchRoute(ctx, headers) {
-		headerPathValue, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, protocol.MosnHeaderPathKey, false)
-		if err == nil && headerPathValue != nil {
-			if rrei.regexPattern.MatchString(*headerPathValue) {
+		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+		if err == nil && headerPathValue != "" {
+			if rrei.regexPattern.MatchString(headerPathValue) {
 				return rrei
 			}
 		}

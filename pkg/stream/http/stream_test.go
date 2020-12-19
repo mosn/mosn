@@ -72,7 +72,11 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 	}
 
 	ctx := variable.NewVariableContext(context.Background())
+	url := &fasthttp.URI{}
+	url.SetPath(path)
+	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
 		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error, uri:%s", string(ClientStreamsMocked[i].request.Header.RequestURI()))
@@ -113,7 +117,11 @@ func Test_header_capitalization(t *testing.T) {
 		"/pic?name=biz&passwd=bar",
 	}
 	ctx := variable.NewVariableContext(context.Background())
+	url := &fasthttp.URI{}
+	url.SetPath(path)
+	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
 		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
@@ -160,7 +168,11 @@ func Test_header_conflict(t *testing.T) {
 	}
 
 	ctx := variable.NewVariableContext(context.Background())
+	url := &fasthttp.URI{}
+	url.SetPath(path)
+	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
 		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
@@ -188,10 +200,10 @@ func Test_internal_header(t *testing.T) {
 	uri.SetPath("/first")
 
 	ctx := variable.NewVariableContext(context.Background())
-	injectInternalHeaders(ctx, header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 
 	// mock request send
-	fillRequestHeaders(ctx, header, remoteAddr)
+	fillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("first request header sent:", header)
 
@@ -207,9 +219,9 @@ func Test_internal_header(t *testing.T) {
 	uri.SetPath("/second")
 	uri.SetQueryString("meaning=less")
 
-	injectInternalHeaders(ctx, header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 	// mock request send
-	fillRequestHeaders(ctx, header, remoteAddr)
+	fillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("second request header sent:", header)
 
@@ -223,9 +235,9 @@ func Test_internal_header(t *testing.T) {
 	uri.SetHost("third.test.com")
 	uri.SetPath("/third")
 
-	injectInternalHeaders(ctx, header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 	// mock request send
-	fillRequestHeaders(ctx, header, remoteAddr)
+	fillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("third request header sent:", header)
 

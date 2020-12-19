@@ -443,13 +443,11 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap,
 
 	status := 200
 
-	value, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headers, types.HeaderStatus, true)
-	if err != nil {
+	value, err := variable.GetVariableValue(ctx, types.HeaderStatus)
+	if err != nil || value == "" {
 		return err
 	}
-	if value != nil && *value != "" {
-		status, _ = strconv.Atoi(*value)
-	}
+	status, _ = strconv.Atoi(value)
 
 	switch header := headers.(type) {
 	case *mhttp2.RspHeader:
@@ -716,7 +714,6 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		header := mhttp2.NewRspHeader(rsp)
 
 		code := strconv.Itoa(rsp.StatusCode)
-		header.Set(types.HeaderStatus, code)
 		variable.SetVariableValue(ctx, types.HeaderStatus, code)
 
 		mbuffer.TransmitBufferPoolContext(stream.ctx, ctx)
@@ -840,10 +837,8 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	headersIn.Del(protocol.MosnHeaderScheme)
 
 	var method string
-	m, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headersIn, protocol.MosnHeaderMethod, true)
-	if err == nil && m != nil {
-		method = *m
-	} else {
+	method, err := variable.GetVariableValue(ctx, protocol.MosnHeaderMethod)
+	if err != nil || method != "" {
 		if endStream {
 			method = http.MethodGet
 		} else {
@@ -852,9 +847,9 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	}
 
 	var host string
-	h, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headersIn, protocol.MosnHeaderHostKey, true)
-	if err == nil && h != nil {
-		host = *h
+	h, err := variable.GetVariableValue(ctx, protocol.MosnHeaderHostKey)
+	if err == nil && h != "" {
+		host = h
 	} else if h, ok := headersIn.Get("Host"); ok {
 		host = h
 	} else {
@@ -862,16 +857,12 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	}
 
 	var query string
-	q, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headersIn, protocol.MosnHeaderQueryStringKey, true)
-	if err == nil && q != nil {
-		query = *q
-	}
+	query, err = variable.GetVariableValue(ctx, protocol.MosnHeaderQueryStringKey)
 
 	var URL *url.URL
 	var path string
-	p, err := variable.GetValueFromVariableAndLegacyHeader(ctx, headersIn, protocol.MosnHeaderPathKey, true)
-	if err == nil && p != nil {
-		path = *p
+	path, err = variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+	if err == nil && path != "" {
 		if query != "" {
 			URI := fmt.Sprintf(scheme+"://%s%s?%s", req.Host, path, query)
 			URL, _ = url.Parse(URI)

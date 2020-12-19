@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"reflect"
@@ -13,6 +14,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/mosn/test/lib/utils"
 	"mosn.io/pkg/buffer"
 )
@@ -146,22 +148,22 @@ type RequestConfig struct {
 	Timeout time.Duration       `json:"timeout"` // request timeout
 }
 
-func (c *RequestConfig) BuildRequest() (api.HeaderMap, buffer.IoBuffer) {
+func (c *RequestConfig) BuildRequest(ctx context.Context) (api.HeaderMap, buffer.IoBuffer) {
 	if c == nil {
-		return buildRequest("GET", nil, nil)
+		return buildRequest(nil, "GET", nil, nil)
 	}
 	if c.Method == "" {
 		c.Method = "GET"
 	}
 	method := c.Method
-	return buildRequest(method, c.Header, c.Body)
+	return buildRequest(ctx, method, c.Header, c.Body)
 }
 
-func buildRequest(method string, header map[string][]string, body []byte) (api.HeaderMap, buffer.IoBuffer) {
+func buildRequest(ctx context.Context, method string, header map[string][]string, body []byte) (api.HeaderMap, buffer.IoBuffer) {
 	fh := &fasthttp.RequestHeader{}
 	fh.SetMethod(method)
 	// to simulate pkg/stream/http/stream.go injectInternalHeaders
-	fh.Set(protocol.MosnHeaderMethod,method)
+	variable.SetVariableValue(ctx, protocol.MosnHeaderMethod, method)
 	h := mosnhttp.RequestHeader{
 		RequestHeader: fh,
 	}

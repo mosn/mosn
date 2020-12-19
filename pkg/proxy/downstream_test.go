@@ -105,7 +105,7 @@ func TestDirectResponse(t *testing.T) {
 				if client.headers == nil {
 					t.Fatal("want to receive a header response")
 				}
-				if code, err := variable.GetValueFromVariableAndLegacyHeader(ctx, client.headers, types.HeaderStatus, false); err != nil || *code != "500" {
+				if code, err := variable.GetVariableValue(ctx, types.HeaderStatus); err != nil || code != "500" {
 					t.Error("response status code not expected")
 				}
 			},
@@ -123,7 +123,7 @@ func TestDirectResponse(t *testing.T) {
 				if client.headers == nil {
 					t.Fatal("want to receive a header response")
 				}
-				if code, err := variable.GetValueFromVariableAndLegacyHeader(ctx, client.headers, types.HeaderStatus, false); err != nil || *code != "400" {
+				if code, err := variable.GetVariableValue(ctx, types.HeaderStatus); err != nil || code != "400" {
 					t.Error("response status code not expected")
 				}
 				if client.data == nil {

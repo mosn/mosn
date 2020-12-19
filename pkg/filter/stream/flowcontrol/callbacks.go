@@ -53,7 +53,6 @@ func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.Hea
 // AfterBlock sends response directly.
 func (dc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 	status := strconv.Itoa(dc.config.Action.Status)
-	headers.Set(types.HeaderStatus, status)
 	variable.SetVariableValue(ctx, types.HeaderStatus, status)
 	filter.handler.SendDirectResponse(headers, buffer.NewIoBufferString(dc.config.Action.Body), trailers)
 }

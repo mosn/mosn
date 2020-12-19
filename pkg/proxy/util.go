@@ -29,7 +29,7 @@ import (
 
 var bitSize64 = 1 << 6
 
-func parseProxyTimeout(ctx context.Context, timeout *Timeout, route types.Route, headers types.HeaderMap) {
+func parseProxyTimeout(ctx context.Context, timeout *Timeout, route types.Route) {
 	if route != nil {
 		timeout.GlobalTimeout = route.RouteRule().GlobalTimeout()
 		timeout.TryTimeout = route.RouteRule().Policy().RetryPolicy().TryTimeout()
@@ -37,19 +37,6 @@ func parseProxyTimeout(ctx context.Context, timeout *Timeout, route types.Route,
 
 	// todo: check global timeout in request headers
 	// todo: check per try timeout in request headers
-
-	if tto, ok := headers.Get(types.HeaderTryTimeout); ok {
-		if trytimeout, err := strconv.ParseInt(tto, 10, bitSize64); err == nil {
-			timeout.TryTimeout = time.Duration(trytimeout) * time.Millisecond
-		}
-	}
-
-	if gto, ok := headers.Get(types.HeaderGlobalTimeout); ok {
-		if globaltimeout, err := strconv.ParseInt(gto, 10, bitSize64); err == nil {
-			timeout.GlobalTimeout = time.Duration(globaltimeout) * time.Millisecond
-		}
-	}
-
 	// check variable, GetVariableValue will return error if value was not set
 	if tto, err := variable.GetVariableValue(ctx, types.VarProxyTryTimeout); err == nil {
 		if trytimeout, err := strconv.ParseInt(tto, 10, bitSize64); err == nil {
