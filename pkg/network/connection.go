@@ -1088,7 +1088,6 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 	}
 
 	cc.rawConnection, err = dialer.Dial("tcp", cc.RemoteAddr().String())
-	//cc.rawConnection, err = net.DialTimeout(cc.network, cc.RemoteAddr().String(), timeout)
 	if err != nil {
 		if err == io.EOF {
 			// remote conn closed
