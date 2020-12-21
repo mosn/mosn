@@ -162,6 +162,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		rawConfig.UseOriginalDst = lc.UseOriginalDst
 		al.listener.SetUseOriginalDst(lc.UseOriginalDst)
 		al.idleTimeout = lc.ConnectionIdleTimeout
+		al.transparent = lc.Transparent
 
 		al.listener.SetConfig(rawConfig)
 
@@ -344,6 +345,7 @@ type activeListener struct {
 	streamFiltersFactoriesStore atomic.Value // store []api.StreamFilterChainFactory
 	listenIP                    string
 	listenPort                  int
+	transparent                 bool
 	conns                       *list.List
 	connsMux                    sync.RWMutex
 	handler                     *connHandler
@@ -367,6 +369,7 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		accessLogs:               accessLoggers,
 		updatedLabel:             false,
 		idleTimeout:              lc.ConnectionIdleTimeout,
+		transparent:              lc.Transparent,
 		networkFiltersFactories:  networkFiltersFactories,
 		listenerFiltersFactories: listenerFiltersFactories,
 	}
@@ -628,8 +631,18 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 }
 
 func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
-	arc.originalDstIP = ip
-	arc.originalDstPort = port
+	if arc.activeListener.transparent {
+		dst := strings.Split(arc.rawc.LocalAddr().String(), ":")
+		dstIp := dst[0]
+		dstPortStr := dst[1]
+		dstPort, _ := strconv.Atoi(dstPortStr)
+
+		arc.originalDstIP = dstIp
+		arc.originalDstPort = dstPort
+	} else {
+		arc.originalDstIP = ip
+		arc.originalDstPort = port
+	}
 	arc.oriRemoteAddr, _ = net.ResolveTCPAddr("", ip+":"+strconv.Itoa(port))
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[server] [conn] conn set origin addr:%s:%d", ip, port)
@@ -650,6 +663,9 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 			localListener = lst
 		}
 
+		if arc.activeListener.transparent && lst.listenPort == arc.originalDstPort {
+			localListener = lst
+		}
 	}
 
 	var ch chan api.Connection

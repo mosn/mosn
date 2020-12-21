@@ -68,6 +68,7 @@ type connection struct {
 	localAddressRestored bool
 	bufferLimit          uint32 // todo: support soft buffer limit
 	rawConnection        net.Conn
+	mark                 uint32
 	tlsMng               types.TLSClientContextManager
 	closeWithFlush       bool
 	connCallbacks        []api.ConnectionEventListener
@@ -1077,7 +1078,17 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 	if addr == nil {
 		return api.ConnectFailed, errors.New("ClientConnection RemoteAddr is nil")
 	}
-	cc.rawConnection, err = net.DialTimeout(cc.network, cc.RemoteAddr().String(), timeout)
+
+	dialer := &net.Dialer{
+		Timeout:   timeout,
+	}
+
+	if cc.mark != 0 {
+		dialer.Control = SockMarkControl
+	}
+
+	cc.rawConnection, err = dialer.Dial("tcp", cc.RemoteAddr().String())
+	//cc.rawConnection, err = net.DialTimeout(cc.network, cc.RemoteAddr().String(), timeout)
 	if err != nil {
 		if err == io.EOF {
 			// remote conn closed
@@ -1152,4 +1163,8 @@ func (cc *clientConnection) Connect() (err error) {
 		}
 	})
 	return
+}
+
+func (cc *clientConnection) SetMark(mark uint32) {
+	cc.mark = mark
 }
