@@ -376,3 +376,22 @@ func getMockClusterInfo() *mockClusterInfo {
 		name: "mockClusterInfo",
 	}
 }
+
+func TestReqRRChooseHost(t *testing.T) {
+	hosts := createHostsetWithStats(exampleHostConfigs(), "test")
+	balancer := NewLoadBalancer(&clusterInfo{lbType: types.RequestRoundRobin}, hosts)
+	ctx := newMockLbContextWithCtx(nil, mosnctx.WithValue(context.Background(),  types.ContextKeyRoundRobinIndex, nil))
+
+	// RR when use
+	for i:=0; i<len(hosts.allHosts); i++ {
+		host := balancer.ChooseHost(ctx)
+		assert.Equal(t, host, hosts.allHosts[i])
+	}
+
+	ctx0 := newMockLbContextWithCtx(nil, mosnctx.WithValue(context.Background(),  types.ContextKeyRoundRobinIndex, nil))
+	ctx1 := newMockLbContextWithCtx(nil, mosnctx.WithValue(context.Background(),  types.ContextKeyRoundRobinIndex, nil))
+	host := balancer.ChooseHost(ctx0)
+	host1 := balancer.ChooseHost(ctx1)
+	assert.Equal(t, host, host1)
+
+}

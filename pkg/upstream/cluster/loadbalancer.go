@@ -26,6 +26,7 @@ import (
 	"github.com/trainyao/go-maglev"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -51,6 +52,7 @@ func init() {
 	RegisterLBType(types.WeightedRoundRobin, newWRRLoadBalancer)
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
+	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
 }
 
 func NewLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
@@ -446,4 +448,48 @@ func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
 	}
 
 	return nil
+}
+
+type reqRoundRobinLoadBalancer struct {
+	hosts    types.HostSet
+}
+
+func newReqRoundRobinLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	return &reqRoundRobinLoadBalancer{
+		hosts: hosts,
+	}
+}
+
+func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	targets := lb.hosts.Hosts()
+	total := len(targets)
+	if total == 0 {
+		return nil
+	}
+	ctx := context.DownstreamContext()
+	index := mosnctx.Get(ctx, types.ContextKeyRoundRobinIndex)
+	ind := 0
+	if index != nil {
+		if i, ok := index.(int); ok {
+			ind = i + 1
+		}
+	}
+	for i := ind; i < ind + total; i++ {
+		id := i % total
+		if targets[id].Health() {
+			log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", targets[id].AddressString())
+			mosnctx.WithValue(ctx, types.ContextKeyRoundRobinIndex, id)
+			return targets[id]
+		}
+	}
+
+	return nil
+}
+
+func (lb *reqRoundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+	return len(lb.hosts.Hosts()) > 0
+}
+
+func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+	return len(lb.hosts.Hosts())
 }
