@@ -142,6 +142,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	// initialize the routerManager
 	m.routerManager = router.NewRouterManager()
 
+	// TODO: Remove Servers, support only one server
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
 		//server config
@@ -152,6 +153,8 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 		// init default log
 		server.InitDefaultLogger(sc)
+		// set use optimize local write mode or not, default is false
+		network.SetOptimizeLocalWrite(serverConfig.OptimizeLocalWrite)
 
 		var srv server.Server
 		if mode == v2.Xds {
