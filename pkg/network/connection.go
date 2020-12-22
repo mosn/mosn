@@ -109,6 +109,7 @@ type connection struct {
 	eventLoop        *eventLoop
 	ev               *connEvent
 	readTimeoutTimer *utils.Timer
+	readBufferMux    sync.Mutex
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
@@ -204,8 +205,19 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 	// create a new timer and bind it to connection
 	c.readTimeoutTimer = utils.NewTimer(buffer.ConnReadTimeout, func() {
+		c.readBufferMux.Lock()
+		defer c.readBufferMux.Unlock()
+
 		for _, cb := range c.connCallbacks {
 			cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
+		}
+
+		// shrink read buffer
+		// this shrink logic may happen concurrent with read callback
+		// so we should protect this under readBufferMux
+		if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
+			c.readBuffer.Free()
+			c.readBuffer.Alloc(DefaultBufferReadCapacity)
 		}
 	})
 
@@ -214,6 +226,11 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	err := c.eventLoop.registerRead(c, &connEventHandler{
 		onRead: func() bool {
 			if c.readEnabled {
+				// read buffer is used during the doRead and timeout process
+				// we should protect it from concurrent access from the timer
+				c.readBufferMux.Lock()
+				defer c.readBufferMux.Unlock()
+
 				c.readTimeoutTimer.Stop()
 
 				var (
@@ -242,7 +259,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 				// err != nil
 				if te, ok := err.(net.Error); ok && te.Timeout() {
-					if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 {
+					if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
 						c.readBuffer.Free()
 						c.readBuffer.Alloc(DefaultBufferReadCapacity)
 					}
