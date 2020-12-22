@@ -64,7 +64,8 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			routuRule,
 			route.Match.Prefix,
 		}
-		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
+		headers := protocol.CommonHeader(map[string]string{})
+		variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
@@ -102,7 +103,8 @@ func TestPathRouteRuleImpl(t *testing.T) {
 		}
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PathRouteRuleImpl{base, route.Match.Path}
-		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
+		headers := protocol.CommonHeader(map[string]string{})
+		variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
@@ -148,7 +150,8 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 			re,
 		}
 		ctx := variable.NewVariableContext(context.Background())
-		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
+		headers := protocol.CommonHeader(map[string]string{})
+		variable.SetVariableValue(ctx,protocol.MosnHeaderPathKey,tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)

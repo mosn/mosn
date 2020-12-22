@@ -61,7 +61,7 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, req
 func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if prri.matchRoute(ctx, headers) {
 		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
-		if err != nil && headerPathValue != "" {
+		if err == nil && headerPathValue != "" {
 			// TODO: config to support case sensitive
 			// case insensitive
 			if strings.EqualFold(headerPathValue, prri.path) {
