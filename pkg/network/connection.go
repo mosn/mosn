@@ -1087,7 +1087,7 @@ func (cc *clientConnection) connect() (event api.ConnectionEvent, err error) {
 		dialer.Control = SockMarkControl
 	}
 
-	cc.rawConnection, err = dialer.Dial("tcp", cc.RemoteAddr().String())
+	cc.rawConnection, err = dialer.Dial(cc.network, cc.RemoteAddr().String())
 	if err != nil {
 		if err == io.EOF {
 			// remote conn closed

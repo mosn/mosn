@@ -38,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
+	"mosn.io/mosn/pkg/filter/listener/transparent"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
@@ -455,6 +456,10 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 	}
 
+	if al.transparent {
+		arc.acceptedFilters = append(arc.acceptedFilters, transparent.NewTransparentProxy())
+	}
+
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
@@ -631,18 +636,9 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 }
 
 func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
-	if arc.activeListener.transparent {
-		dst := strings.Split(arc.rawc.LocalAddr().String(), ":")
-		dstIp := dst[0]
-		dstPortStr := dst[1]
-		dstPort, _ := strconv.Atoi(dstPortStr)
+	arc.originalDstIP = ip
+	arc.originalDstPort = port
 
-		arc.originalDstIP = dstIp
-		arc.originalDstPort = dstPort
-	} else {
-		arc.originalDstIP = ip
-		arc.originalDstPort = port
-	}
 	arc.oriRemoteAddr, _ = net.ResolveTCPAddr("", ip+":"+strconv.Itoa(port))
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[server] [conn] conn set origin addr:%s:%d", ip, port)
@@ -660,10 +656,6 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 		}
 
 		if lst.listenPort == arc.originalDstPort && lst.listenIP == "0.0.0.0" {
-			localListener = lst
-		}
-
-		if arc.activeListener.transparent && lst.listenPort == arc.originalDstPort {
 			localListener = lst
 		}
 	}

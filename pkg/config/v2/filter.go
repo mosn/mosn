@@ -61,6 +61,7 @@ type StreamDSL struct {
 // Listener Filter's Type
 const (
 	ORIGINALDST_LISTENER_FILTER = "original_dst"
+	TRANSPARENT_LISTENER_FILTER = "transparent_proxy"
 )
 
 type FaultToleranceFilterConfig struct {
