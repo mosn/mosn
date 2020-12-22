@@ -198,6 +198,8 @@ github.com/modern-go/reflect2
 github.com/mosn/binding
 github.com/mosn/binding/internal/bytesconv
 github.com/mosn/binding/internal/json
+# github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827
+github.com/mosn/easygo/netpoll
 # github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
 github.com/mosn/registry/dubbo
 github.com/mosn/registry/dubbo/common
@@ -208,8 +210,6 @@ github.com/mosn/registry/dubbo/config_center/parser
 github.com/mosn/registry/dubbo/remoting
 github.com/mosn/registry/dubbo/remoting/zookeeper
 github.com/mosn/registry/dubbo/zookeeper
-# github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
-github.com/neverhook/easygo/netpoll
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
 # github.com/pkg/errors v0.9.1
@@ -254,7 +254,7 @@ github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/stackless
 # github.com/valyala/fasttemplate v1.1.0
 github.com/valyala/fasttemplate
-# go.uber.org/atomic v1.6.0
+# go.uber.org/atomic v1.7.0
 go.uber.org/atomic
 # go.uber.org/multierr v1.5.0
 go.uber.org/multierr
@@ -301,7 +301,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5
+# golang.org/x/tools v0.0.0-20191125144606-a911d9008d1f
 golang.org/x/tools/go/ast/astutil
 # google.golang.org/genproto v0.0.0-20200305110556-506484158171
 google.golang.org/genproto/googleapis/api/annotations
@@ -364,7 +364,7 @@ istio.io/gogo-genproto/googleapis/google/rpc
 k8s.io/klog
 # mosn.io/api v0.0.0-20201104063430-1abb4764d12a
 mosn.io/api
-# mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
+# mosn.io/pkg v0.0.0-20201222032942-30acc9dd603c
 mosn.io/pkg/buffer
 mosn.io/pkg/log
 mosn.io/pkg/utils

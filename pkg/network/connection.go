@@ -20,7 +20,6 @@ package network
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"math/rand"
 	"net"
@@ -101,11 +100,15 @@ type connection struct {
 	closed    uint32
 	connected uint32
 	startOnce sync.Once
-	eventLoop *eventLoop
 
 	tryMutex     *utils.Mutex
 	needTransfer bool
 	useWriteLoop bool
+
+	// eventloop related
+	eventLoop        *eventLoop
+	ev               *connEvent
+	readTimeoutTimer *utils.Timer
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
@@ -199,36 +202,66 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	// Choose one event loop to register, the implement is platform-dependent(epoll for linux and kqueue for bsd)
 	c.eventLoop = attach()
 
+	// create a new timer and bind it to connection
+	c.readTimeoutTimer = utils.NewTimer(buffer.ConnReadTimeout, func() {
+		for _, cb := range c.connCallbacks {
+			cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
+		}
+	})
+
 	// Register read only, write is supported now because it is more complex than read.
 	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
 	err := c.eventLoop.registerRead(c, &connEventHandler{
 		onRead: func() bool {
 			if c.readEnabled {
-				err := c.doRead()
+				c.readTimeoutTimer.Stop()
 
-				if err != nil {
-					if te, ok := err.(net.Error); ok && te.Timeout() {
-						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 {
-							c.readBuffer.Free()
-							c.readBuffer.Alloc(DefaultBufferReadCapacity)
-						}
-						return true
+				var (
+					err       error
+					readAgain = true
+				)
+
+				for readAgain {
+					readAgain, err = c.doRead()
+					if err != nil {
+						break
 					}
 
-					if err == io.EOF {
-						if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-							log.DefaultLogger.Debugf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
-								c.id, c.RemoteAddr().String(), err)
-						}
-						c.Close(api.NoFlush, api.RemoteClose)
-					} else {
-						log.DefaultLogger.Errorf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
-							c.id, c.RemoteAddr().String(), err)
-						c.Close(api.NoFlush, api.OnReadErrClose)
+					if c.tlsMng == nil {
+						break
 					}
-
-					return false
 				}
+
+				// reset read timeout timer
+				// mainly for heartbeat request
+				if err == nil {
+					// read err is nil, start timer
+					c.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
+					return true
+				}
+
+				// err != nil
+				if te, ok := err.(net.Error); ok && te.Timeout() {
+					if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 {
+						c.readBuffer.Free()
+						c.readBuffer.Alloc(DefaultBufferReadCapacity)
+					}
+					return true
+				}
+
+				if err == io.EOF {
+					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+						log.DefaultLogger.Debugf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
+							c.id, c.RemoteAddr().String(), err)
+					}
+					c.Close(api.NoFlush, api.RemoteClose)
+				} else {
+					log.DefaultLogger.Errorf("[network] [event loop] [onRead] Error on read. Connection = %d, Remote Address = %s, err = %s",
+						c.id, c.RemoteAddr().String(), err)
+					c.Close(api.NoFlush, api.OnReadErrClose)
+				}
+
+				return false
 			} else {
 				select {
 				case <-c.readEnabledChan:
@@ -239,7 +272,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 		},
 
 		onHup: func() bool {
-			log.DefaultLogger.Errorf("[network] [event loop] [onHup] ReadHup error. Connection = %d, Remote Address = %s", c.id, c.RemoteAddr().String())
+			log.DefaultLogger.Errorf("[network] [event loop] [onHup] ReadHup error. Connection = %d, Remote Address = %s", c.id, c.RemoteAddr().String(), c.file.Fd())
 			c.Close(api.NoFlush, api.RemoteClose)
 			return false
 		},
@@ -247,6 +280,8 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 	if err != nil {
 		log.DefaultLogger.Errorf("[network] [event loop] [register] conn %d register read failed:%s", c.id, err.Error())
+		c.Close(api.NoFlush, api.LocalClose)
+		return
 	}
 }
 
@@ -298,57 +333,6 @@ func (c *connection) startRWLoop(lctx context.Context) {
 	}
 }
 
-func (c *connection) scheduleWrite() {
-	writePool.ScheduleAlways(func() {
-		defer func() { <-c.writeSchedChan }()
-
-		for len(c.writeBufferChan) > 0 {
-			// at least 1 buffer need to avoid all chan-recv missed by select.default option
-			c.appendBuffer(<-c.writeBufferChan)
-
-			//todo: dynamic set loop nums
-			//slots := len(c.writeBufferChan)
-			//if slots < 10 {
-			//	slots = 10
-			//}
-
-			//if len(c.writeBufferChan) < 10 {
-			//	runtime.Gosched()
-			//}
-
-			for i := 0; i < 10; i++ {
-				select {
-				case buf, ok := <-c.writeBufferChan:
-					if !ok {
-						return
-					}
-					c.appendBuffer(buf)
-				default:
-				}
-			}
-
-			_, err := c.doWrite()
-			if err != nil {
-				if err == io.EOF {
-					if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-						log.DefaultLogger.Debugf("[network] [schedule write] Error on write. Connection = %d, Remote Address = %s, err = %s",
-							c.id, c.RemoteAddr().String(), err)
-					}
-					// remote conn closed
-					c.Close(api.NoFlush, api.RemoteClose)
-				} else {
-					// on non-timeout error
-					log.DefaultLogger.Errorf("[network] [schedule write] Error on write. Connection = %d, Remote Address = %s, err = %s",
-						c.id, c.RemoteAddr().String(), err)
-					c.Close(api.NoFlush, api.OnWriteErrClose)
-				}
-
-			}
-
-		}
-	})
-}
-
 func (c *connection) startReadLoop() {
 	var transferTime time.Time
 	for {
@@ -387,7 +371,7 @@ func (c *connection) startReadLoop() {
 		case <-c.readEnabledChan:
 		default:
 			if c.readEnabled {
-				err := c.doRead()
+				_, err := c.doRead()
 				if err != nil {
 					if te, ok := err.(net.Error); ok && te.Timeout() {
 						if c.network == "tcp" && c.readBuffer != nil && c.readBuffer.Len() == 0 && c.readBuffer.Cap() > DefaultBufferReadCapacity {
@@ -469,7 +453,7 @@ func (c *connection) setReadDeadline() {
 	}
 }
 
-func (c *connection) doRead() (err error) {
+func (c *connection) doRead() (readAgain bool, err error) {
 	if c.readBuffer == nil {
 		switch c.network {
 		case "udp":
@@ -482,21 +466,21 @@ func (c *connection) doRead() (err error) {
 
 	var bytesRead int64
 	c.setReadDeadline()
-	bytesRead, err = c.readBuffer.ReadOnce(c.rawConnection)
+	bytesRead, readAgain, err = c.readBuffer.ReadOnce(c.rawConnection)
 
 	if err != nil {
 		if atomic.LoadUint32(&c.closed) == 1 {
-			return err
+			return readAgain, err
 		}
 		if te, ok := err.(net.Error); ok && te.Timeout() {
 			for _, cb := range c.connCallbacks {
 				cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
 			}
 			if bytesRead == 0 {
-				return err
+				return readAgain, err
 			}
 		} else if err != io.EOF {
-			return err
+			return readAgain, err
 		}
 	}
 
@@ -566,48 +550,29 @@ func (c *connection) Write(buffers ...buffer.IoBuffer) (err error) {
 		return nil
 	}
 
-	if !UseNetpollMode {
-		if c.useWriteLoop {
-			select {
-			case c.writeBufferChan <- &buffers:
-				return
-			default:
-			}
+	if UseNetpollMode {
+		err = c.writeDirectly(&buffers)
+		return
+	}
 
-			// fail after 60s
-			t := acquireTimer(types.DefaultConnTryTimeout)
-			select {
-			case c.writeBufferChan <- &buffers:
-			case <-t.C:
-				err = types.ErrWriteBufferChanTimeout
-			}
-			releaseTimer(t)
-		} else {
-			err = c.writeDirectly(&buffers)
-		}
-	} else {
-		if atomic.LoadUint32(&c.connected) == 1 {
-			return fmt.Errorf("can note schedule write on the un-connected connection %d", c.id)
-		}
-
-		// Start schedule if not started
+	// non netpoll mode
+	if c.useWriteLoop {
 		select {
-		case c.writeSchedChan <- true:
-			c.scheduleWrite()
+		case c.writeBufferChan <- &buffers:
+			return
 		default:
 		}
 
-	wait:
-		// we use for-loop with select:c.writeSchedChan to avoid chan-send blocking
-		// 'c.writeBufferChan <- &buffers' might block if write goroutine costs much time on 'doWriteIo'
-		for {
-			select {
-			case c.writeBufferChan <- &buffers:
-				break wait
-			case c.writeSchedChan <- true:
-				c.scheduleWrite()
-			}
+		// fail after 60s
+		t := acquireTimer(types.DefaultConnTryTimeout)
+		select {
+		case c.writeBufferChan <- &buffers:
+		case <-t.C:
+			err = types.ErrWriteBufferChanTimeout
 		}
+		releaseTimer(t)
+	} else {
+		err = c.writeDirectly(&buffers)
 	}
 
 	return
@@ -881,9 +846,14 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 	close(c.internalStopChan)
 	if c.eventLoop != nil {
 		// unregister events while connection close
-		c.eventLoop.unregister(c.id)
+		c.eventLoop.unregisterRead(c)
 		// close copied fd
-		c.file.Close()
+		err := c.file.Close()
+		if err != nil {
+			log.DefaultLogger.Errorf("[network] [close connection] error, %v", err)
+		}
+
+		c.readTimeoutTimer.Stop()
 	}
 
 	c.rawConnection.Close()
