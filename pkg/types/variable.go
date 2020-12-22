@@ -46,6 +46,7 @@ const (
 	VarProxyGlobalTimeout string = "proxy_global_timeout"
 	VarProxyHijackStatus  string = "proxy_hijack_status"
 	VarProxyGzipSwitch    string = "proxy_gzip_switch"
+	VarProxyUpstreamIndex string = "upstream_index"
 )
 
 // [Protocol]: common

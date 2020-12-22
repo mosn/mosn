@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"math/rand"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -26,9 +27,9 @@ import (
 	"github.com/trainyao/go-maglev"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // NewLoadBalancer can be register self defined type
@@ -467,18 +468,19 @@ func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContex
 		return nil
 	}
 	ctx := context.DownstreamContext()
-	index := mosnctx.Get(ctx, types.ContextKeyRoundRobinIndex)
 	ind := 0
-	if index != nil {
-		if i, ok := index.(int); ok {
+	if index, err := variable.GetVariableValue(ctx, types.VarProxyUpstreamIndex); err == nil {
+		if i, err := strconv.Atoi(index); err == nil {
 			ind = i + 1
 		}
 	}
-	for i := ind; i < ind + total; i++ {
+	for i := ind; i < total; i++ {
 		id := i % total
 		if targets[id].Health() {
-			log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", targets[id].AddressString())
-			mosnctx.WithValue(ctx, types.ContextKeyRoundRobinIndex, id)
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", targets[id].AddressString())
+			}
+			variable.SetVariableValue(ctx, types.VarProxyUpstreamIndex, strconv.Itoa(id))
 			return targets[id]
 		}
 	}
