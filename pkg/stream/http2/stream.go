@@ -713,8 +713,9 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 	if rsp != nil {
 		header := mhttp2.NewRspHeader(rsp)
 
+		// set header-status into stream ctx
 		code := strconv.Itoa(rsp.StatusCode)
-		variable.SetVariableValue(ctx, types.HeaderStatus, code)
+		variable.SetVariableValue(stream.ctx, types.HeaderStatus, code)
 
 		mbuffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
@@ -834,11 +835,10 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 		scheme = "https"
 	}
 
-	headersIn.Del(protocol.MosnHeaderScheme)
 
 	var method string
 	method, err := variable.GetVariableValue(ctx, protocol.MosnHeaderMethod)
-	if err != nil || method != "" {
+	if err != nil || method == "" {
 		if endStream {
 			method = http.MethodGet
 		} else {
