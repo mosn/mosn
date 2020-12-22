@@ -221,7 +221,9 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 					log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "duplicate default virtualhost")
 					return nil, ErrDuplicateVirtualHost
 				}
-				log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add route matcher default virtual host")
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add route matcher default virtual host")
+				}
 				routers.defaultVirtualHostIndex = index
 			} else if len(domain) > 1 && "*" == domain[:1] {
 				m, ok := routers.wildcardVirtualHostSuffixesIndex[len(domain)-1]
@@ -237,14 +239,18 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 					return nil, ErrDuplicateVirtualHost
 				}
 				m[wildcard] = index
-				log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router domain: "+domain)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router domain: "+domain)
+				}
 			} else {
 				if _, ok := routers.virtualHostsIndex[domain]; ok {
 					log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "only unique values for domains are permitted, domain:"+domain)
 					return nil, ErrDuplicateVirtualHost
 				}
 				routers.virtualHostsIndex[domain] = index
-				log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router domain: "+domain)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router domain: "+domain)
+				}
 			}
 		}
 	}

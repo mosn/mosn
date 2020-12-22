@@ -17,7 +17,11 @@
 
 package types
 
-import "errors"
+import (
+	"errors"
+
+	"mosn.io/api"
+)
 
 // Header key types
 const (
@@ -94,3 +98,9 @@ func ConvertReasonToCode(reason StreamResetReason) int {
 
 	return InternalErrorCode
 }
+
+// ResponseFlags sets
+const (
+	MosnProcessFailedFlags = api.NoHealthyUpstream | api.NoRouteFound | api.UpstreamLocalReset |
+		api.FaultInjected | api.RateLimited | api.DownStreamTerminate | api.ReqEntityTooLarge
+)

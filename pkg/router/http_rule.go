@@ -65,7 +65,9 @@ func (prri *PathRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) 
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "path route rule", "failed match", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "path route rule", "failed match", headers)
+	}
 	return nil
 }
 
@@ -107,7 +109,9 @@ func (prei *PrefixRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "prefxi route rule", "failed match", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "prefxi route rule", "failed match", headers)
+	}
 	return nil
 }
 
@@ -147,6 +151,8 @@ func (rrei *RegexRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64)
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "regex route rule", "failed match", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "regex route rule", "failed match", headers)
+	}
 	return nil
 }

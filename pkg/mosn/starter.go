@@ -282,11 +282,12 @@ func (m *Mosn) Start() {
 	// start mosn feature
 	featuregate.StartInit()
 	log.StartLogger.Infof("mosn parse extend config")
-	for typ, cfg := range m.config.Extends {
-		if err := v2.ExtendConfigParsed(typ, cfg); err != nil {
-			log.StartLogger.Errorf("mosn parse extend config failed, type: %s, error: %v", typ, err)
+	// Notice: executed extends parsed in config order.
+	for _, cfg := range m.config.Extends {
+		if err := v2.ExtendConfigParsed(cfg.Type, cfg.Config); err != nil {
+			log.StartLogger.Errorf("mosn parse extend config failed, type: %s, error: %v", cfg.Type, err)
 		} else {
-			configmanager.SetExtend(typ, cfg)
+			configmanager.SetExtend(cfg.Type, cfg.Config)
 		}
 	}
 
