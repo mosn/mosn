@@ -638,7 +638,6 @@ func newActiveRawConn(rawc net.Conn, activeListener *activeListener) *activeRawC
 func (arc *activeRawConn) SetOriginalAddr(ip string, port int) {
 	arc.originalDstIP = ip
 	arc.originalDstPort = port
-
 	arc.oriRemoteAddr, _ = net.ResolveTCPAddr("", ip+":"+strconv.Itoa(port))
 	if log.DefaultLogger.GetLogLevel() >= log.INFO {
 		log.DefaultLogger.Infof("[server] [conn] conn set origin addr:%s:%d", ip, port)
