@@ -279,8 +279,11 @@ func TestProxyWithFilters(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 	upstreamRequest := downstream.upstreamRequest
 	// upstreamRequest.OnReceive ( see stream/xprotocol/conn.go: handleResponse)
-	upstreamRequest.OnReceive(context.Background(), protocol.CommonHeader{
-		types.HeaderStatus: "200",
+
+	upstreamRequest.downStream.context = variable.NewVariableContext(upstreamRequest.downStream.context)
+	variable.SetVariableValue(upstreamRequest.downStream.context, types.HeaderStatus, "200")
+
+	upstreamRequest.OnReceive(ctx, protocol.CommonHeader{
 	}, buffer.NewIoBufferString("123"), trailer)
 	// wait givestream
 	time.Sleep(time.Second)
