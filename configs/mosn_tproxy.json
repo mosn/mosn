@@ -22,7 +22,13 @@
 					"name":"Listener_16000",
 					"address": "127.0.0.1:16000",
                     "bind_port": true,
-                    "transparent": true,
+					"transparent": true,
+					"listener_filters": [
+						{
+							"type": "transparent_proxy",
+							"config":{}
+						}
+					],
 					"filter_chains": [
                         {}
                     ]

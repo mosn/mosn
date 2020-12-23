@@ -38,7 +38,6 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
-	"mosn.io/mosn/pkg/filter/listener/transparent"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
@@ -163,8 +162,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		rawConfig.UseOriginalDst = lc.UseOriginalDst
 		al.listener.SetUseOriginalDst(lc.UseOriginalDst)
 		al.idleTimeout = lc.ConnectionIdleTimeout
-		al.transparent = lc.Transparent
-
 		al.listener.SetConfig(rawConfig)
 
 		// set update label to true, do not start the listener again
@@ -346,7 +343,6 @@ type activeListener struct {
 	streamFiltersFactoriesStore atomic.Value // store []api.StreamFilterChainFactory
 	listenIP                    string
 	listenPort                  int
-	transparent                 bool
 	conns                       *list.List
 	connsMux                    sync.RWMutex
 	handler                     *connHandler
@@ -370,7 +366,6 @@ func newActiveListener(listener types.Listener, lc *v2.Listener, accessLoggers [
 		accessLogs:               accessLoggers,
 		updatedLabel:             false,
 		idleTimeout:              lc.ConnectionIdleTimeout,
-		transparent:              lc.Transparent,
 		networkFiltersFactories:  networkFiltersFactories,
 		listenerFiltersFactories: listenerFiltersFactories,
 	}
@@ -454,10 +449,6 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		arc.useOriginalDst = true
 		// TODO remove it when Istio deprecate UseOriginalDst.
 		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
-	}
-
-	if al.transparent {
-		arc.acceptedFilters = append(arc.acceptedFilters, transparent.NewTransparentProxy())
 	}
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
