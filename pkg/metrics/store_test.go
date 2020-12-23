@@ -187,6 +187,7 @@ func TestLazyFlush(t *testing.T) {
 	defer func() {
 		LazyFlushMetrics = false
 	}()
+	defaultStore.matcher.rejectAll = false
 
 	metrics, _ := NewMetrics("lazy", map[string]string{"lk": "lv"})
 	counter := metrics.Counter("counter")
@@ -206,8 +207,8 @@ func TestLazyFlush(t *testing.T) {
 	histogram := metrics.Histogram("histogram")
 	var hn int64 = 200
 	histogram.Update(hn)
-	if histogram.Count() != hn {
-		t.Errorf("histograme get %d not %d", histogram.Count(), hn)
+	if histogram.Count() != 1 {
+		t.Errorf("histograme get %d not %d", histogram.Count(), 1)
 	}
 
 	metrics.UnregisterAll()
