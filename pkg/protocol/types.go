@@ -48,6 +48,12 @@ const (
 	MosnOriginalHeaderPathKey = "x-mosn-original-path"
 )
 
+// Hseader with special meaning in istio
+// todo maybe use ":authority"
+const (
+	IstioHeaderHostKey = "authority"
+)
+
 func init() {
 	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderDirection, nil, nil, variable.BasicSetter, 0))
 	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderScheme, nil, nil, variable.BasicSetter, 0))
@@ -56,13 +62,8 @@ func init() {
 	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderQueryStringKey, nil, nil, variable.BasicSetter, 0))
 	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderMethod, nil, nil, variable.BasicSetter, 0))
 	variable.RegisterVariable(variable.NewIndexedVariable(MosnOriginalHeaderPathKey, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(IstioHeaderHostKey, nil, nil, variable.BasicSetter, 0))
 }
-
-// Hseader with special meaning in istio
-// todo maybe use ":authority"
-const (
-	IstioHeaderHostKey = "authority"
-)
 
 // TODO: move CommonHeader to common, not only in protocol
 

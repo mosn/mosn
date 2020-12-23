@@ -574,8 +574,7 @@ type clientStream struct {
 
 // types.StreamSender
 func (s *clientStream) AppendHeaders(context context.Context, headersIn types.HeaderMap, endStream bool) error {
-	// clone for retry case
-	headers := headersIn.Clone().(mosnhttp.RequestHeader)
+	headers := headersIn.(mosnhttp.RequestHeader)
 
 	// TODO: protocol convert in pkg/protocol
 	//if the request contains body, use "POST" as default, the http request method will be setted by MosnHeaderMethod
@@ -590,7 +589,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 		headers.Del("Connection")
 	}
 
-	fillRequestHeadersFromCtxVar(context, headers, s.connection.conn.RemoteAddr())
+	FillRequestHeadersFromCtxVar(context, headers, s.connection.conn.RemoteAddr())
 
 	// copy headers
 	s.request.Header = *headers.RequestHeader
@@ -715,7 +714,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 			}
 			s.response.SetStatusCode(statusCode)
 
-			fillRequestHeadersFromCtxVar(context, headers, s.connection.conn.RemoteAddr())
+			FillRequestHeadersFromCtxVar(context, headers, s.connection.conn.RemoteAddr())
 
 			// need to echo all request headers for protocol convert
 			headers.VisitAll(func(key, value []byte) {
@@ -865,7 +864,7 @@ func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.Reques
 	}
 }
 
-func fillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
+func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
 	// assemble uri
 	uri := ""
 

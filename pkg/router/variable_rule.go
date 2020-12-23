@@ -55,7 +55,7 @@ func (vrri *VariableRouteRuleImpl) MatchType() api.PathMatchType {
 	return api.Variable
 }
 
-func (vrri *VariableRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (vrri *VariableRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 }
 
 func (vrri *VariableRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {

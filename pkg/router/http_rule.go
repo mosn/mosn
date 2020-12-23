@@ -53,9 +53,9 @@ func (prri *PathRouteRuleImpl) MatchType() api.PathMatchType {
 
 // types.RouteRule
 // override Base
-func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	prri.finalizeRequestHeaders(headers, requestInfo)
-	prri.finalizePathHeader(headers, prri.path)
+func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	prri.finalizeRequestHeaders(ctx, headers, requestInfo)
+	prri.finalizePathHeader(ctx, headers, prri.path)
 }
 
 func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
@@ -98,9 +98,9 @@ func (prei *PrefixRouteRuleImpl) MatchType() api.PathMatchType {
 
 // types.RouteRule
 // override Base
-func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	prei.finalizeRequestHeaders(headers, requestInfo)
-	prei.finalizePathHeader(headers, prei.prefix)
+func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	prei.finalizeRequestHeaders(ctx, headers, requestInfo)
+	prei.finalizePathHeader(ctx, headers, prei.prefix)
 }
 
 func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
@@ -139,9 +139,9 @@ func (rrei *RegexRouteRuleImpl) MatchType() api.PathMatchType {
 	return api.Regex
 }
 
-func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rrei.finalizeRequestHeaders(headers, requestInfo)
-	rrei.finalizePathHeader(headers, rrei.regexStr)
+func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	rrei.finalizeRequestHeaders(ctx, headers, requestInfo)
+	rrei.finalizePathHeader(ctx, headers, rrei.regexStr)
 }
 
 func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {

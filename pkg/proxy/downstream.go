@@ -851,7 +851,7 @@ func (s *downStream) chooseHost(endStream bool) {
 func (s *downStream) receiveHeaders(endStream bool) {
 
 	// Modify request headers
-	s.route.RouteRule().FinalizeRequestHeaders(s.downstreamReqHeaders, s.requestInfo)
+	s.route.RouteRule().FinalizeRequestHeaders(s.context, s.downstreamReqHeaders, s.requestInfo)
 	// Call upstream's append header method to build upstream's request
 	s.upstreamRequest.appendHeaders(endStream)
 
@@ -1227,7 +1227,7 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 
 	// directResponse for no route should be nil
 	if s.route != nil {
-		s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
+		s.route.RouteRule().FinalizeResponseHeaders(s.context, headers, s.requestInfo)
 	}
 
 	if endStream {

@@ -203,7 +203,7 @@ func Test_internal_header(t *testing.T) {
 	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 
 	// mock request send
-	fillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
+	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("first request header sent:", header)
 
@@ -221,7 +221,7 @@ func Test_internal_header(t *testing.T) {
 
 	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 	// mock request send
-	fillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
+	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("second request header sent:", header)
 
@@ -237,7 +237,7 @@ func Test_internal_header(t *testing.T) {
 
 	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 	// mock request send
-	fillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
+	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("third request header sent:", header)
 

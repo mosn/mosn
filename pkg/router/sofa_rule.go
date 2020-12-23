@@ -46,7 +46,7 @@ func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
 	return api.SofaHeader
 }
 
-func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 }
 
 func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {

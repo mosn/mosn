@@ -266,7 +266,7 @@ func (rri *RouteRuleImplBase) matchRoute(ctx context.Context, headers api.Header
 	// 2. match query parameters
 	if len(rri.configQueryParameters) != 0 {
 		var queryParams types.QueryParams
-		QueryString, err := variable.GetVariableValue(ctx,  protocol.MosnHeaderQueryStringKey)
+		QueryString, err := variable.GetVariableValue(ctx, protocol.MosnHeaderQueryStringKey)
 		if err == nil && QueryString != "" {
 			queryParams = httpmosn.ParseQueryString(QueryString)
 		}
@@ -280,24 +280,26 @@ func (rri *RouteRuleImplBase) matchRoute(ctx context.Context, headers api.Header
 	return true
 }
 
-func (rri *RouteRuleImplBase) FinalizePathHeader(headers api.HeaderMap, matchedPath string) {
-	rri.finalizePathHeader(headers, matchedPath)
+func (rri *RouteRuleImplBase) FinalizePathHeader(ctx context.Context, headers api.HeaderMap, matchedPath string) {
+	rri.finalizePathHeader(ctx, headers, matchedPath)
 }
 
-func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedPath string) {
+func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers api.HeaderMap, matchedPath string) {
 
 	if len(rri.prefixRewrite) < 1 && len(rri.regexRewrite.Pattern.Regex) < 1 {
 		return
 	}
 
-	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+	path, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+	if err == nil && path != "" {
 
 		//If both prefix_rewrite and regex_rewrite are configured
 		//prefix rewrite by default
 		if len(rri.prefixRewrite) > 1 {
 			if strings.HasPrefix(path, matchedPath) {
+				// origin path need to save in the header
 				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-				headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
+				variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
 				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
 			}
 			return
@@ -308,7 +310,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedP
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
 				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-				headers.Set(protocol.MosnHeaderPathKey, rewritedPath)
+				variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, rewritedPath)
 				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
 			}
 		}
@@ -316,31 +318,29 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedP
 	}
 }
 
-func (rri *RouteRuleImplBase) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rri.finalizeRequestHeaders(headers, requestInfo)
+func (rri *RouteRuleImplBase) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	rri.finalizeRequestHeaders(ctx, headers, requestInfo)
 }
 
-func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
-		headers.Set(protocol.IstioHeaderHostKey, rri.hostRewrite)
+		variable.SetVariableValue(ctx, protocol.IstioHeaderHostKey, rri.hostRewrite)
 	} else if len(rri.autoHostRewriteHeader) > 0 {
 		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
-			headers.Set(protocol.IstioHeaderHostKey, headerValue)
+			variable.SetVariableValue(ctx, protocol.IstioHeaderHostKey, headerValue)
 		}
 	} else if rri.autoHostRewrite {
-
 		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.routerAction.ClusterName)
 		if clusterSnapshot != nil && (clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER) {
-			headers.Set(protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
+			variable.SetVariableValue(ctx, protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
 		}
-
 	}
 }
 
-func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (rri *RouteRuleImplBase) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
