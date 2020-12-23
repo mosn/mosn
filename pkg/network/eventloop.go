@@ -52,6 +52,11 @@ func init() {
 	}
 }
 
+// SetNetpollMode set the netpoll mode
+func SetNetpollMode(enable bool) {
+	UseNetpollMode = enable
+}
+
 func attach() *eventLoop {
 	return eventLoopPool[atomic.AddUint32(&rrCounter, 1)%poolSize]
 }

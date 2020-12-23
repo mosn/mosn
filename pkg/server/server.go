@@ -71,8 +71,8 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 			GracefulTimeout = config.GracefulTimeout
 		}
 
-		network.UseNetpollMode = config.UseNetpollMode
 		if config.UseNetpollMode {
+			network.UseNetpollMode = config.UseNetpollMode
 			log.DefaultLogger.Infof("[server] [reconfigure] [new server] Netpoll mode enabled.")
 		}
 	}
