@@ -18,16 +18,19 @@
 package transparent
 
 import (
+	"fmt"
 	"net"
-	"strings"
-	"strconv"
 )
 
 func getOriginalAddr(conn net.Conn) (string, int, error) {
-	dst := strings.Split(conn.LocalAddr().String(), ":")
-	dstIp := dst[0]
-	dstPortStr := dst[1]
-	dstPort, err := strconv.Atoi(dstPortStr)
+	tc, ok := conn.(*net.TCPConn)
+	if !ok {
+		return "", 0, fmt.Errorf("transport proxy only support tcp")
+	}
 
-	return dstIp, dstPort, err
+	oriDst, _ := tc.LocalAddr().(*net.TCPAddr)
+	dstIP := oriDst.IP.String()
+	dstPort := oriDst.Port
+
+	return dstIP, dstPort, nil
 }
