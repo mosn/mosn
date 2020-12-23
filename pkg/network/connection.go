@@ -205,12 +205,12 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 	// create a new timer and bind it to connection
 	c.readTimeoutTimer = utils.NewTimer(buffer.ConnReadTimeout, func() {
-		c.readBufferMux.Lock()
-		defer c.readBufferMux.Unlock()
-
 		for _, cb := range c.connCallbacks {
 			cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
 		}
+
+		c.readBufferMux.Lock()
+		defer c.readBufferMux.Unlock()
 
 		// shrink read buffer
 		// this shrink logic may happen concurrent with read callback
