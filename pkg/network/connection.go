@@ -250,7 +250,19 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	}
 }
 
+var OptimizeLocalWrite = false
+
+func SetOptimizeLocalWrite(b bool) {
+	OptimizeLocalWrite = b
+}
+
 func (c *connection) checkUseWriteLoop() bool {
+	// if OptimizeLocalWrite is false, connection just use write directly.
+	// if OptimizeLocalWrite is true, and connection remote address is loopback
+	// connection will start a goroutine for write
+	if !OptimizeLocalWrite {
+		return false
+	}
 	var ip net.IP
 	switch c.network {
 	case "udp":
@@ -260,7 +272,7 @@ func (c *connection) checkUseWriteLoop() bool {
 			return false
 		}
 	case "unix":
-		return true
+		return false
 	case "tcp":
 		if tcpAddr, ok := c.remoteAddr.(*net.TCPAddr); ok {
 			ip = tcpAddr.IP
