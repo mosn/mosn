@@ -23,7 +23,6 @@
 					"address": "127.0.0.1:16000",
                     "bind_port": true,
                     "transparent": true,
-                    "use_original_dst": true,
 					"filter_chains": [
                         {}
                     ]
