@@ -106,10 +106,12 @@ type connection struct {
 	useWriteLoop bool
 
 	// eventloop related
-	eventLoop        *eventLoop
-	ev               *connEvent
-	readTimeoutTimer *utils.Timer
-	readBufferMux    sync.Mutex
+	poll struct {
+		eventLoop        *eventLoop
+		ev               *connEvent
+		readTimeoutTimer *utils.Timer
+		readBufferMux    sync.Mutex
+	}
 }
 
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
@@ -201,16 +203,16 @@ func (c *connection) SetIdleTimeout(readTimeout time.Duration, idleTimeout time.
 
 func (c *connection) attachEventLoop(lctx context.Context) {
 	// Choose one event loop to register, the implement is platform-dependent(epoll for linux and kqueue for bsd)
-	c.eventLoop = attach()
+	c.poll.eventLoop = attach()
 
 	// create a new timer and bind it to connection
-	c.readTimeoutTimer = utils.NewTimer(buffer.ConnReadTimeout, func() {
+	c.poll.readTimeoutTimer = utils.NewTimer(buffer.ConnReadTimeout, func() {
 		for _, cb := range c.connCallbacks {
 			cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
 		}
 
-		c.readBufferMux.Lock()
-		defer c.readBufferMux.Unlock()
+		c.poll.readBufferMux.Lock()
+		defer c.poll.readBufferMux.Unlock()
 
 		// shrink read buffer
 		// this shrink logic may happen concurrent with read callback
@@ -223,15 +225,15 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 	// Register read only, write is supported now because it is more complex than read.
 	// We need to write our own code based on syscall.write to deal with the EAGAIN and writable epoll event
-	err := c.eventLoop.registerRead(c, &connEventHandler{
+	err := c.poll.eventLoop.registerRead(c, &connEventHandler{
 		onRead: func() bool {
 			if c.readEnabled {
 				// read buffer is used during the doRead and timeout process
 				// we should protect it from concurrent access from the timer
-				c.readBufferMux.Lock()
-				defer c.readBufferMux.Unlock()
+				c.poll.readBufferMux.Lock()
+				defer c.poll.readBufferMux.Unlock()
 
-				c.readTimeoutTimer.Stop()
+				c.poll.readTimeoutTimer.Stop()
 
 				var (
 					err       error
@@ -253,7 +255,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 				// mainly for heartbeat request
 				if err == nil {
 					// read err is nil, start timer
-					c.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
+					c.poll.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
 					return true
 				}
 
@@ -861,16 +863,16 @@ func (c *connection) Close(ccType api.ConnectionCloseType, eventType api.Connect
 	// wait for io loops exit, ensure single thread operate streams on the connection
 	// because close function must be called by one io loop thread, notify another loop here
 	close(c.internalStopChan)
-	if c.eventLoop != nil {
+	if c.poll.eventLoop != nil {
 		// unregister events while connection close
-		c.eventLoop.unregisterRead(c)
+		c.poll.eventLoop.unregisterRead(c)
 		// close copied fd
 		err := c.file.Close()
 		if err != nil {
 			log.DefaultLogger.Errorf("[network] [close connection] error, %v", err)
 		}
 
-		c.readTimeoutTimer.Stop()
+		c.poll.readTimeoutTimer.Stop()
 	}
 
 	c.rawConnection.Close()

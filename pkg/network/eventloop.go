@@ -80,7 +80,7 @@ func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) e
 	// store should happen before register
 	// if conn Close happen immediately after poller.Start
 	// the conn.ev is nil, so this connection fd will not be removed from epfd
-	conn.ev = &connEvent{
+	conn.poll.ev = &connEvent{
 		readDesc: desc,
 	}
 
@@ -92,11 +92,11 @@ func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) e
 			}
 
 			// if conn is closed by local already
-			if conn.ev.stopped.Load() {
+			if conn.poll.ev.stopped.Load() {
 				return
 			}
 
-			err := el.poller.Resume(conn.ev.readDesc)
+			err := el.poller.Resume(conn.poll.ev.readDesc)
 			if err != nil {
 				log.DefaultLogger.Errorf("RESUME failed, err : %v, desc : %v, raddr : %v, laddr : %v", err,
 					desc, conn.RemoteAddr(), conn.LocalAddr())
@@ -116,9 +116,9 @@ func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) e
 }
 
 func (el *eventLoop) unregisterRead(conn *connection) {
-	if conn.ev != nil {
-		conn.ev.stopped.Store(true)
-		err := el.poller.Stop(conn.ev.readDesc)
+	if conn.poll.ev != nil {
+		conn.poll.ev.stopped.Store(true)
+		err := el.poller.Stop(conn.poll.ev.readDesc)
 		if err != nil {
 			log.DefaultLogger.Errorf("[unregisterRead] failed, %v", err)
 		}
