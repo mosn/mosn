@@ -350,6 +350,7 @@ func initializeMetrics(config v2.MetricsConfig) {
 	// set metrics package
 	statsMatcher := config.StatsMatcher
 	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
+	metrics.SetMetricsFeature(config.FlushMosn, config.LazyFlush)
 	// create sinks
 	for _, cfg := range config.SinkConfigs {
 		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)

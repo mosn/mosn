@@ -190,13 +190,25 @@ func TestLazyFlush(t *testing.T) {
 
 	metrics, _ := NewMetrics("lazy", map[string]string{"lk": "lv"})
 	counter := metrics.Counter("counter")
-	counter.Count()
+	var cn int64 = 10
+	counter.Inc(cn)
+	if counter.Count() != cn {
+		t.Errorf("counter get %d not %d", counter.Count(), cn)
+	}
 
 	gauge := metrics.Gauge("gauge")
-	gauge.Value()
+	var gn int64 = 100
+	gauge.Update(gn)
+	if gauge.Value() != gn {
+		t.Errorf("gauge get %d not %d", gauge.Value(), cn)
+	}
 
 	histogram := metrics.Histogram("histogram")
-	histogram.Count()
+	var hn int64 = 200
+	histogram.Update(hn)
+	if histogram.Count() != hn {
+		t.Errorf("histograme get %d not %d", histogram.Count(), hn)
+	}
 
 	metrics.UnregisterAll()
 }

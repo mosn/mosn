@@ -71,3 +71,9 @@ func SetStateCode(code int64) {
 func AddListenerAddr(addr string) {
 	NewMosnMetrics().Gauge(ListenerAddr + addr).Update(1)
 }
+
+// SetMetricsFeature enabled metrics feature
+func SetMetricsFeature(flushMosn, lazyFlush bool) {
+	FlushMosnMetrics = flushMosn
+	LazyFlushMetrics = lazyFlush
+}

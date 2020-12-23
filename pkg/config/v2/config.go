@@ -63,6 +63,8 @@ type MetricsConfig struct {
 	StatsMatcher StatsMatcher      `json:"stats_matcher"`
 	ShmZone      string            `json:"shm_zone"`
 	ShmSize      datasize.ByteSize `json:"shm_size"`
+	FlushMosn    bool              `json:"flush_mosn"`
+	LazyFlush    bool              `json:"lazy_flush"`
 }
 
 // PluginConfig for plugin config
