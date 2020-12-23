@@ -73,7 +73,7 @@ type ClusterManager interface {
 	RemoveClusterHosts(clusterName string, hosts []string) error
 
 	// TLSManager is used to cluster tls config
-	GetTLSManager() TLSContextManager
+	GetTLSManager() TLSClientContextManager
 	// UpdateTLSManager updates the tls manager which is used to cluster tls config
 	UpdateTLSManager(*v2.TLSConfig)
 
@@ -173,7 +173,7 @@ type ClusterInfo interface {
 	ResourceManager() ResourceManager
 
 	// TLSMng returns the tls manager
-	TLSMng() TLSContextManager
+	TLSMng() TLSClientContextManager
 
 	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo

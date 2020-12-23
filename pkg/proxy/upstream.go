@@ -102,6 +102,9 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 	if r.downStream.processDone() || r.setupRetry {
 		return
 	}
+	if !atomic.CompareAndSwapUint32(&r.downStream.upstreamResponseReceived, 0, 1) {
+		return
+	}
 
 	r.endStream()
 

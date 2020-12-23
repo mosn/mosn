@@ -55,7 +55,11 @@ func (mg *fakeTLSContextManager) HashValue() *types.HashValue {
 	return nil
 }
 
-func (ci *fakeClusterInfo) TLSMng() types.TLSContextManager {
+func (mg *fakeTLSContextManager) Fallback() bool {
+	return false
+}
+
+func (ci *fakeClusterInfo) TLSMng() types.TLSClientContextManager {
 	return &fakeTLSContextManager{}
 }
 

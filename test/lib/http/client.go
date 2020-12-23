@@ -174,7 +174,7 @@ func NewConn(addr string, cb func()) (*HttpConn, error) {
 		stop:          make(chan struct{}),
 		closeCallback: cb,
 	}
-	conn := network.NewClientConnection(nil, time.Second, nil, remoteAddr, make(chan struct{}))
+	conn := network.NewClientConnection(time.Second, nil, remoteAddr, make(chan struct{}))
 	if err := conn.Connect(); err != nil {
 		return nil, err
 	}

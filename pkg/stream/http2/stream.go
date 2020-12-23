@@ -39,6 +39,7 @@ import (
 	mhttp2 "mosn.io/mosn/pkg/protocol/http2"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 
@@ -522,6 +523,14 @@ func (s *serverStream) GetStream() types.Stream {
 }
 
 func (s *serverStream) endStream() {
+	if s.h2s.SendData != nil {
+		// Need to reset the 'Content-Length' response header when it's a direct response.
+		isDirectResponse, _ := variable.GetVariableValue(s.ctx, types.VarProxyIsDirectResponse)
+		if isDirectResponse == types.IsDirectResponse {
+			s.h2s.Response.Header.Set("Content-Length", strconv.Itoa(s.h2s.SendData.Len()))
+		}
+	}
+
 	_, err := s.sc.protocol.Encode(s.ctx, s.h2s)
 
 	s.sc.mutex.Lock()

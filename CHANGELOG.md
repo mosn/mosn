@@ -1,5 +1,62 @@
 # Changelog
 
+## v0.19.0
+
+### Optimization
+
+- Use the latest TLS memory optimization scheme [@cch123](https://github.com/cch123)
+- Proxy log optimization to reduce memory escape [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Increase the maximum number of connections limit [@champly](https://github.com/champly)
+- When AccessLog fails to obtain variables, use "-" instead [@champly](https://github.com/champly)
+- MaxProcs supports configuring automatic recognition based on CPU usage limits [@champly](https://github.com/champly)
+- Allow specifying network for cluster [@champly](https://github.com/champly)
+
+### Refactoring
+
+- Refactored the StreamFilter framework. The network filter can reuse the stream filter framework [@antJack](https://github.com/antJack)
+
+### Bug fixes
+
+- Fix HTTP Trace get URL error [@wzshiming](https://github.com/wzshiming)
+- Fix the ConnectTimeout parameter of xDS cluster is not converted [@dengqian](https://github.com/dengqian)
+- Fix the upstreamHostGetter method gets the wrong hostname [@dengqian](https://github.com/dengqian)
+- Fix tcp proxy close the connection abnormally [@dengqian](https://github.com/dengqian)
+- Fix the lack of default configuration of mixer filter, resulting in a nil pointer reference [@glyasai](https://github.com/glyasai)
+- Fix HTTP2 direct response not setting `Content-length` correctly [@wangfakang](https://github.com/wangfakang)
+- Fix the nil pointer reference in getAPISourceEndpoint [@dylandee](https://github.com/dylandee)
+- Fix memory increase caused by too many Timer applications when Write is piled up [@champly](https://github.com/champly)
+- Fix the problem of missing stats when Dubbo Filter receives an illegal response [@champly](https://github.com/champly)
+
+## v0.18.0
+
+### New Features
+
+- Add MOSN configure extension [@nejisama](https://github.com/nejisama)
+- Add MOSN configuration tool [mosn/configure](https://github.com/mosn/configure), improve user configure experience [@cch123](https://github.com/cch123)
+
+### Optimization
+
+- Avoid copying http response body [@wangfakang](https://github.com/wangfakang)
+- Upgrade `github.com/TarsCloud/TarsGo` package, to v1.1.4 [@champly](https://github.com/champly)
+- Add test for various connpool [@cch123](https://github.com/cch123)
+- Use sync.Pool to reduce memory cost by TLS connection outBuf [@cch123](https://github.com/cch123)
+- Reduce xprotocol lock area [@cch123](https://github.com/cch123)
+- Remove useless parameter of `network.NewClientConnection` method, remove ALPN detection in `Dispatch` method of struct `streamConn` [@nejisama](https://github.com/nejisama)
+- Add `TerminateStream` API to `StreamReceiverFilterHandler`, with which stream can be reset during handling [@nejisama](https://github.com/nejisama)
+- Add client TLS fallback [@nejisama](https://github.com/nejisama)
+- Fix TLS HashValue in host [@nejisama](https://github.com/nejisama)
+- Fix disable_log admin api typo [@nejisama](https://github.com/nejisama)
+
+### Bug fixes
+
+- Fix `go mod tidy` failing [@champly](https://github.com/champly)
+- Fix `ResourceExhausted: grpc: received message larger than max` when MOSN receive > 4M XDS messages [@champly](https://github.com/champly) 
+- Fix fault tolerance unit-test [@wangfakang](https://github.com/wangfakang)
+- Fix MOSN reconfig fails when `MOSNConfig.servers[].listeners[].bind_port` is `false` [@alpha-baby](https://github.com/alpha-baby)
+- Set timeout for local write buffer send, avoid goroutine leak [@cch123](https://github.com/cch123)
+- Fix deadloop when TLS timeout [@nejisama](https://github.com/nejisama)
+- Fix data isn't modified by `SetData` method in `dubbo.Frame` struct [@lxd5866](https://github.com/lxd5866)
+
 ## v0.17.0
 
 ### New Features

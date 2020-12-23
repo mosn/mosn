@@ -18,7 +18,9 @@
 package network
 
 import (
+	"fmt"
 	"net"
+	"strconv"
 	"time"
 
 	"mosn.io/api"
@@ -137,6 +139,10 @@ func (r *RequestInfo) Duration() time.Duration {
 
 func (r *RequestInfo) GetResponseFlag(flag api.ResponseFlag) bool {
 	return r.responseFlag&flag != 0
+}
+
+func (r *RequestInfo) GetResponseFlagResult() string {
+	return fmt.Sprintf("0x%s", strconv.FormatInt(int64(r.responseCode), 16))
 }
 
 func (r *RequestInfo) SetResponseFlag(flag api.ResponseFlag) {

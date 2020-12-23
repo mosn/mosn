@@ -287,7 +287,7 @@ func disableLogger(w http.ResponseWriter, r *http.Request) {
 	if !log.ToggleLogger(string(loggerPath), true) {
 		log.DefaultLogger.Alertf(types.ErrorKeyAdmin, "api: %s, error: enbale %s logger failed", "disable logger", string(loggerPath))
 		w.WriteHeader(http.StatusBadRequest) // 400
-		msg := fmt.Sprintf(errMsgFmt, "disbale logger failed")
+		msg := fmt.Sprintf(errMsgFmt, "disable logger failed")
 		fmt.Fprint(w, msg)
 		return
 	}
