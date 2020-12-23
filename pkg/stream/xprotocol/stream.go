@@ -134,12 +134,6 @@ func (s *xStream) endStream() {
 		// replace requestID
 		s.frame.SetRequestId(s.id)
 
-		// remove injected headers
-		if _, ok := s.frame.(xprotocol.ServiceAware); ok {
-			s.frame.GetHeader().Del(types.HeaderRPCService)
-			s.frame.GetHeader().Del(types.HeaderRPCMethod)
-		}
-
 		buf, err := s.sc.protocol.Encode(s.ctx, s.frame)
 		if err != nil {
 			log.Proxy.Errorf(s.ctx, "[stream] [xprotocol] encode error:%s, requestId = %v", err.Error(), s.id)
