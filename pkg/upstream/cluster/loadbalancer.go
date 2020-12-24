@@ -479,6 +479,7 @@ func newReqRoundRobinLoadBalancer(info types.ClusterInfo, hosts types.HostSet) t
 	}
 }
 
+// request round robin load balancer choose host start from index 0 every single context, and round robin when reentry
 func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
 	targets := lb.hosts.Hosts()
 	total := len(targets)
