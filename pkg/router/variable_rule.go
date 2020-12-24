@@ -61,32 +61,32 @@ func (vrri *VariableRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, h
 func (vrri *VariableRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	result := true
 	walkVarName := ""
+	lastMode := AND
 	for _, v := range vrri.Variables {
-		stepRes := false
 		walkVarName = v.name
+		curStepRes := false
 		actual, _ := variable.GetVariableValue(ctx, v.name)
 		if v.value != nil {
-			stepRes = *v.value == actual
+			curStepRes = *v.value == actual
 		}
 
 		if v.regexPattern != nil {
-			stepRes = v.regexPattern.MatchString(actual)
+			curStepRes = v.regexPattern.MatchString(actual)
 		}
-
-		if stepRes {
+		// AND 则需要与上之前的结果
+		if lastMode == AND {
+			result = result && curStepRes
+		}else{
+			// 上一步mode是or,则重新计算结果
+			result = curStepRes
+		}
+		if result {
 			if v.model == OR {
 				// fast abort when match the current variable
-				result = true
-				break
-			}
-		} else {
-			if v.model == AND {
-				// fast abort when not match current variable
-				result = false
 				break
 			}
 		}
-
+		lastMode = v.model
 	}
 
 	if result {

@@ -29,7 +29,7 @@ import (
 	"testing"
 )
 
-func TestVariableRouteRuleImpl(t *testing.T) {
+func TestVariableRouteRuleImpl1(t *testing.T) {
 	variable.RegisterVariable(variable.NewIndexedVariable("header", nil, nil, variable.BasicSetter, 0))
 	variable.RegisterVariable(variable.NewIndexedVariable("method", nil, nil, variable.BasicSetter, 0))
 	variable.RegisterVariable(variable.NewIndexedVariable("uri", nil, nil, variable.BasicSetter, 0))
@@ -42,10 +42,11 @@ func TestVariableRouteRuleImpl(t *testing.T) {
 	}{
 		{"header", "test", true},
 		{"header", "/test/test", false},
-		{"method", "test", true},
+		{"method", "test", false},
 		{"uri", "/1234", true},
 		{"uri", "/abc", false},
 	}
+	// header == test || (method == test && regex.MatchString(uri)) || uri == /1234
 	route := &v2.Router{
 		RouterConfig: v2.RouterConfig{
 			Match: v2.RouterMatch{
@@ -58,12 +59,16 @@ func TestVariableRouteRuleImpl(t *testing.T) {
 					{
 						Name:  "method",
 						Value: "test",
-						Model: "or",
+						Model: "and",
 					},
 					{
 						Name:  "uri",
 						Regex: "/[0-9]+",
-						Model: "and",
+						Model: "or",
+					},
+					{
+						Name:  "uri",
+						Value: "/1234",
 					},
 				},
 			},
@@ -85,13 +90,82 @@ func TestVariableRouteRuleImpl(t *testing.T) {
 		rr := &VariableRouteRuleImpl{base, variables}
 		variable.SetVariableValue(ctx, tc.name, tc.value)
 		result := rr.Match(ctx, protocol.CommonHeader(map[string]string{}))
-		assert.EqualValuesf(t, result != nil, tc.expected, "#%d want matched %v, but get matched %v\n", i, tc.expected, result)
+		assert.EqualValuesf(t, result != nil, tc.expected, "#%d want matched %v, but get matched %v\n", i, tc.expected, result != nil)
 		if result != nil {
 			assert.EqualValuesf(t, api.Variable, result.RouteRule().PathMatchCriterion().MatchType(), "#%d match type is not expected", i)
 		}
 	}
 }
 
+func TestVariableRouteRuleImpl2(t *testing.T) {
+	variable.RegisterVariable(variable.NewIndexedVariable("header", nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable("method", nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable("uri", nil, nil, variable.BasicSetter, 0))
+
+	virtualHostImpl := &VirtualHostImpl{virtualHostName: "test"}
+	testCases := []struct {
+		names    []string
+		values   []string
+		expected bool
+	}{
+		{[]string{"header", "method"}, []string{"test", "test1"}, true},
+		{[]string{"header", "method"}, []string{"/test/test", "test1"}, false},
+		{[]string{"header", "method"}, []string{"test", "test2"}, false},
+		{[]string{"header", "uri"}, []string{"test3", "/1234"}, true},
+		{[]string{"uri"}, []string{"/33"}, true},
+	}
+	// (header == test && method == test) || regex.MatchString(uri)) || uri == /1234
+	route := &v2.Router{
+		RouterConfig: v2.RouterConfig{
+			Match: v2.RouterMatch{
+				Variables: []v2.VariableMatcher{
+					{
+						Name:  "header",
+						Value: "test",
+						Model: "and",
+					},
+					{
+						Name:  "method",
+						Value: "test1",
+						Model: "or",
+					},
+					{
+						Name:  "uri",
+						Regex: "/[0-9]+",
+						Model: "or",
+					},
+					{
+						Name:  "uri",
+						Value: "/1234",
+					},
+				},
+			},
+			Route: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterName: "test",
+				},
+			},
+		},
+	}
+	for i, tc := range testCases {
+		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
+		variables := make([]*VariableMatchItem, len(route.Match.Variables))
+		for i := range route.Match.Variables {
+			variables[i] = ParseToVariableMatchItem(route.Match.Variables[i])
+		}
+
+		ctx := variable.NewVariableContext(context.Background())
+		rr := &VariableRouteRuleImpl{base, variables}
+		for i := 0; i < len(tc.names); i++ {
+			variable.SetVariableValue(ctx, tc.names[i], tc.values[i])
+		}
+		result := rr.Match(ctx, protocol.CommonHeader(map[string]string{}))
+		assert.EqualValuesf(t, result != nil, tc.expected, "#%d want matched %v, but get matched %v\n", i, tc.expected, result != nil)
+		if result != nil {
+			assert.EqualValuesf(t, api.Variable, result.RouteRule().PathMatchCriterion().MatchType(), "#%d match type is not expected", i)
+		}
+	}
+}
 func TestParseToVariableMatchItem(t *testing.T) {
 	s := func(s string) *string { return &s }
 	reg, _ := regexp.Compile("/[0-9]+")
