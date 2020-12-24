@@ -716,7 +716,9 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.rri.FinalizeResponseHeaders(tt.args.headers, tt.args.requestInfo)
+			ctx := variable.NewVariableContext(context.Background())
+			tt.args.rri.FinalizeResponseHeaders(ctx, tt.args.headers, tt.args.requestInfo)
+			fillHeadersFromCtx(ctx, tt.args.headers)
 			if !reflect.DeepEqual(tt.args.headers, tt.want) {
 				t.Errorf("(rri *RouteRuleImplBase) FinalizeResponseHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
 			}

@@ -93,7 +93,7 @@ func (r *mockRouteRule) UpstreamProtocol() string {
 	return ""
 }
 
-func (c *mockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (c *mockRouteRule) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	return
 }
 
