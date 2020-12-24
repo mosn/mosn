@@ -221,6 +221,11 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 			c.readBuffer.Free()
 			c.readBuffer.Alloc(DefaultBufferReadCapacity)
 		}
+
+		// if connection is not closed, timer should be reset
+		if !c.poll.ev.stopped.Load() {
+			c.poll.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
+		}
 	})
 
 	// Register read only, write is supported now because it is more complex than read.
@@ -265,6 +270,9 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 						c.readBuffer.Free()
 						c.readBuffer.Alloc(DefaultBufferReadCapacity)
 					}
+
+					// should reset timer
+					c.poll.readTimeoutTimer.Reset(buffer.ConnReadTimeout)
 					return true
 				}
 
