@@ -473,7 +473,7 @@ func (conn *serverStreamConnection) serve() {
 		}
 		s.connection = conn
 		s.responseDoneChan = make(chan bool, 1)
-		s.header = mosnhttp.RequestHeader{&s.request.Header, nil}
+		s.header = mosnhttp.RequestHeader{&s.request.Header}
 
 		var span types.Span
 		if trace.IsEnabled() {
@@ -654,7 +654,7 @@ func (s *clientStream) doSend() (err error) {
 
 func (s *clientStream) handleResponse() {
 	if s.response != nil {
-		header := mosnhttp.ResponseHeader{&s.response.Header, nil}
+		header := mosnhttp.ResponseHeader{&s.response.Header}
 
 		statusCode := header.StatusCode()
 		status := strconv.Itoa(statusCode)

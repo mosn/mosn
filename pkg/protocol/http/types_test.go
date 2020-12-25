@@ -33,7 +33,7 @@ func TestRequestHeader(t *testing.T) {
 		}
 	}()
 
-	header := RequestHeader{&fasthttp.RequestHeader{}, nil}
+	header := RequestHeader{&fasthttp.RequestHeader{}}
 
 	header.Set(MosnHeaderHostKey, "test")
 	if v, ok := header.Get(MosnHeaderHostKey); !ok || v != "test" {
@@ -69,12 +69,20 @@ func TestRequestHeader(t *testing.T) {
 		return true
 	})
 
-	// test set empty header
-	h2.Set(MosnHeaderEmptyKey, "")
-	if v, ok := header.Get(MosnHeaderEmptyKey); ok || v != "" {
+}
+
+func TestEmptyValueForRequestHeader(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("TestCommonHeader error: %v", r)
+		}
+	}()
+	header := RequestHeader{&fasthttp.RequestHeader{}}
+
+	header.Set(MosnHeaderEmptyKey, "")
+	if v, ok := header.Get(MosnHeaderEmptyKey); !ok || v != "" {
 		t.Errorf("Set empty header failed: %v %v", v, ok)
 	}
-
 }
 
 func TestResponseHeader(t *testing.T) {
@@ -84,7 +92,7 @@ func TestResponseHeader(t *testing.T) {
 		}
 	}()
 
-	header := ResponseHeader{&fasthttp.ResponseHeader{}, nil}
+	header := ResponseHeader{&fasthttp.ResponseHeader{}}
 
 	header.Set(MosnHeaderContentTypeKey, "test")
 	if v, ok := header.Get(MosnHeaderContentTypeKey); !ok || v != "test" {
@@ -119,5 +127,19 @@ func TestResponseHeader(t *testing.T) {
 	h2.Set(MosnHeaderHostKey, "")
 	if _, ok := header.Get(MosnHeaderHostKey); ok {
 		t.Error("Set empty header failed.")
+	}
+}
+
+func TestEmptyValueForResponseHeader(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("TestCommonHeader error: %v", r)
+		}
+	}()
+	header := ResponseHeader{&fasthttp.ResponseHeader{}}
+
+	header.Set(MosnHeaderEmptyKey, "")
+	if v, ok := header.Get(MosnHeaderEmptyKey); !ok || v != "" {
+		t.Errorf("Set empty header failed: %v %v", v, ok)
 	}
 }
