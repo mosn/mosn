@@ -299,7 +299,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 		},
 
 		onHup: func() bool {
-			log.DefaultLogger.Errorf("[network] [event loop] [onHup] ReadHup error. Connection = %d, Remote Address = %s", c.id, c.RemoteAddr().String(), c.file.Fd())
+			log.DefaultLogger.Errorf("[network] [event loop] [onHup] ReadHup error. Connection = %d, Remote Address = %s", c.id, c.RemoteAddr().String())
 			c.Close(api.NoFlush, api.RemoteClose)
 			return false
 		},

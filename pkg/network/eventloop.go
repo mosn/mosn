@@ -18,6 +18,7 @@
 package network
 
 import (
+	"os"
 	"runtime"
 	"sync/atomic"
 
@@ -49,6 +50,13 @@ func init() {
 		eventLoopPool[i] = &eventLoop{
 			poller: poller,
 		}
+	}
+}
+
+func init() {
+	if os.Getenv("NETPOLL") == "on" {
+		log.DefaultLogger.Infof("[network] set netpoll to true by env")
+		SetNetpollMode(true)
 	}
 }
 

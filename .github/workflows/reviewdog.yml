@@ -50,6 +50,21 @@ jobs:
       - name: Run Integrate tests.
         run: make integrate
 
+  integrate-netpoll:
+    name: integrate-netpoll
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.12.7
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run Integrate tests.
+        run: make integrate-netpoll
+
   integrate-new:
     name: integrate-new
     runs-on: ubuntu-latest
