@@ -592,7 +592,7 @@ func (s *clientStream) AppendHeaders(context context.Context, headersIn types.He
 	FillRequestHeadersFromCtxVar(context, headers, s.connection.conn.RemoteAddr())
 
 	// copy headers
-	s.request.Header = *headers.RequestHeader
+	headers.CopyTo(&s.request.Header)
 
 	if endStream {
 		s.endStream()
