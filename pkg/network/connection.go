@@ -109,7 +109,7 @@ type connection struct {
 	poll struct {
 		eventLoop        *eventLoop
 		ev               *connEvent
-		readTimeoutTimer *utils.Timer
+		readTimeoutTimer *time.Timer
 		readBufferMux    sync.Mutex
 	}
 }
@@ -206,7 +206,7 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 	c.poll.eventLoop = attach()
 
 	// create a new timer and bind it to connection
-	c.poll.readTimeoutTimer = utils.NewTimer(buffer.ConnReadTimeout, func() {
+	c.poll.readTimeoutTimer = time.AfterFunc(buffer.ConnReadTimeout, func() {
 		for _, cb := range c.connCallbacks {
 			cb.OnEvent(api.OnReadTimeout) // run read timeout callback, for keep alive if configured
 		}
@@ -240,20 +240,18 @@ func (c *connection) attachEventLoop(lctx context.Context) {
 
 				c.poll.readTimeoutTimer.Stop()
 
-				var (
-					err       error
-					readAgain = true
-				)
-
-				for readAgain {
-					readAgain, err = c.doRead()
+				var err error
+				for {
+					_, err = c.doRead()
 					if err != nil {
 						break
 					}
 
-					if c.tlsMng == nil {
-						break
+					if c, ok := c.rawConnection.(*mtls.TLSConn); ok && c.Conn.HasMoreData() {
+						continue
 					}
+
+					break
 				}
 
 				// reset read timeout timer

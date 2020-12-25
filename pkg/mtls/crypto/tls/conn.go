@@ -26,6 +26,10 @@ var outBufPool = sync.Pool{
 	},
 }
 
+func (c *Conn) HasMoreData() bool {
+	return c.rawInput.Len() > 0 || c.input.Len() > 0
+}
+
 // A Conn represents a secured connection.
 // It implements the net.Conn interface.
 type Conn struct {
