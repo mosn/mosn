@@ -23,10 +23,9 @@ import (
 	"testing"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func newTestSimpleRouter(name string) v2.Router {

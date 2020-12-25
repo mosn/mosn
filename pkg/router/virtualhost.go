@@ -23,7 +23,7 @@ import (
 	"sync"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -72,7 +72,7 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 	} else if len(route.Match.Variables) > 0 {
 		variableRouter := &VariableRouteRuleImpl{
 			RouteRuleImplBase: base,
-			Variables: make([]*VariableMatchItem, len(route.Match.Variables)),
+			Variables:         make([]*VariableMatchItem, len(route.Match.Variables)),
 		}
 		for i := range route.Match.Variables {
 			variableRouter.Variables[i] = ParseToVariableMatchItem(route.Match.Variables[i])

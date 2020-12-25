@@ -28,9 +28,8 @@ import (
 	"testing"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/variable"
 )
 
 var routerConfig = `{

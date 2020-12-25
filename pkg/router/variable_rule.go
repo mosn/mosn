@@ -19,12 +19,13 @@ package router
 
 import (
 	"context"
+	"regexp"
+	"strings"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/variable"
-	"regexp"
-	"strings"
 )
 
 type Model string
@@ -76,7 +77,7 @@ func (vrri *VariableRouteRuleImpl) Match(ctx context.Context, headers api.Header
 		// AND 则需要与上之前的结果
 		if lastMode == AND {
 			result = result && curStepRes
-		}else{
+		} else {
 			// 上一步mode是or,则重新计算结果
 			result = curStepRes
 		}

@@ -22,11 +22,10 @@ import (
 	"regexp"
 	"strings"
 
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/variable"
 )
 
 type PathRouteRuleImpl struct {

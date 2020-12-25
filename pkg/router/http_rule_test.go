@@ -151,7 +151,7 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 		}
 		ctx := variable.NewVariableContext(context.Background())
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx,protocol.MosnHeaderPathKey,tc.headerpath)
+		variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)

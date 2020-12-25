@@ -115,8 +115,7 @@ func TestRouterOrder(t *testing.T) {
 		Routers: []v2.Router{pathrouter, regrouter, prefixrouter},
 	})
 	for i, tc := range testCases {
-		headers := protocol.CommonHeader(map[string]string{
-		})
+		headers := protocol.CommonHeader(map[string]string{})
 		variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, tc.path)
 		rt := virtualHost.GetRouteFromEntries(ctx, headers)
 		if rt == nil || rt.RouteRule().ClusterName() != tc.clustername {
@@ -130,8 +129,7 @@ func TestRouterOrder(t *testing.T) {
 		Routers: []v2.Router{prefixrouter, regrouter, pathrouter},
 	})
 	for i, tc := range testCases {
-		headers := protocol.CommonHeader(map[string]string{
-		})
+		headers := protocol.CommonHeader(map[string]string{})
 		variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, tc.path)
 		rt := prefixVirtualHost.GetRouteFromEntries(ctx, headers)
 		if rt == nil || rt.RouteRule().ClusterName() != "prefix" {
@@ -190,8 +188,7 @@ func TestAllRouter(t *testing.T) {
 	})
 	ctx := variable.NewVariableContext(context.Background())
 	for i, tc := range testCases {
-		headers := protocol.CommonHeader(map[string]string{
-		})
+		headers := protocol.CommonHeader(map[string]string{})
 		variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, tc.path)
 		rts := virtualHost.GetAllRoutesFromEntries(ctx, headers)
 		if len(rts) != tc.matched {
