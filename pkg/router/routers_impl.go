@@ -49,7 +49,7 @@ func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap) ap
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", headers)
 	}
-	virtualHost := ri.findVirtualHost(ctx, headers)
+	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRoute", "no virtual host found")
@@ -69,7 +69,7 @@ func (ri *routersImpl) MatchAllRoutes(ctx context.Context, headers api.HeaderMap
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", headers)
 	}
-	virtualHost := ri.findVirtualHost(ctx, headers)
+	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchAllRoutes", "no virtual host found")
@@ -89,7 +89,7 @@ func (ri *routersImpl) MatchRouteFromHeaderKV(ctx context.Context, headers api.H
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", headers)
 	}
-	virtualHost := ri.findVirtualHost(ctx, headers)
+	virtualHost := ri.findVirtualHost(ctx)
 	if virtualHost == nil {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "MatchRouteFromHeaderKV", "no virtual host found")
@@ -171,7 +171,7 @@ func (ri *routersImpl) findWildcardVirtualHost(host string) int {
 	return -1
 }
 
-func (ri *routersImpl) findVirtualHost(ctx context.Context, headers api.HeaderMap) types.VirtualHost {
+func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
 	// optimize, if there is only a default, use it
 	if len(ri.virtualHostsIndex) == 0 &&
 		len(ri.wildcardVirtualHostSuffixesIndex) == 0 &&
