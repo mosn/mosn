@@ -21,7 +21,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"mosn.io/mosn/pkg/variable"
 	"net/http"
 	"regexp"
 	"strings"
@@ -35,6 +34,7 @@ import (
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/variable"
 )
 
 var (

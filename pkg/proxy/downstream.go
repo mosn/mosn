@@ -829,7 +829,7 @@ func (s *downStream) chooseHost(endStream bool) {
 	s.requestInfo.OnUpstreamHostSelected(pool.Host())
 	s.requestInfo.SetUpstreamLocalAddress(pool.Host().AddressString())
 
-	parseProxyTimeout(s.context, &s.timeout, s.route)
+	parseProxyTimeout(s.context, &s.timeout, s.route, s.downstreamReqHeaders)
 
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] timeout info: %+v", s.timeout)
