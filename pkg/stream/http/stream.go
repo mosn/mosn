@@ -704,10 +704,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 	case mosnhttp.RequestHeader:
 		// hijack scene
 		status, err := variable.GetVariableValue(context, types.HeaderStatus)
-		if err != nil {
-			return err
-		}
-		if status != "" {
+		if err == nil && status != "" {
 			statusCode, err := strconv.Atoi(status)
 			if err != nil {
 				return err
@@ -726,10 +723,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 	case mosnhttp.ResponseHeader:
 
 		status, err := variable.GetVariableValue(context, types.HeaderStatus)
-		if err != nil {
-			return err
-		}
-		if status != "" {
+		if err == nil && status != "" {
 			statusCode, _ := strconv.Atoi(status)
 			headers.SetStatusCode(statusCode)
 		}

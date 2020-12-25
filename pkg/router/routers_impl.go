@@ -183,7 +183,7 @@ func (ri *routersImpl) findVirtualHost(ctx context.Context, headers api.HeaderMa
 	}
 	//we use domain in lowercase
 	key := strings.ToLower(protocol.MosnHeaderHostKey)
-	hostHeader, err := variable.GetVariableValue(ctx,  key)
+	hostHeader, err := variable.GetVariableValue(ctx, key)
 	index := -1
 	if err == nil && hostHeader != "" {
 		host := strings.ToLower(hostHeader)

@@ -134,7 +134,7 @@ func (f *streamFaultInjectFilter) OnReceive(ctx context.Context, headers api.Hea
 	//if !f.downstreamNodes() {
 	//	return api.StreamHeadersFilterContinue
 	//}
-	if !router.ConfigUtilityInst.MatchHeaders(ctx, headers, f.config.headers) {
+	if !router.ConfigUtilityInst.MatchHeaders(headers, f.config.headers) {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] header is not matched, request headers: %v, config headers: %v", headers, f.config.headers)
 		}

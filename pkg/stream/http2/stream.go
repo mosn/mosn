@@ -441,13 +441,14 @@ type serverStream struct {
 func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap, endStream bool) error {
 	var rsp *http.Response
 
-	status := 200
+	var status int
 
 	value, err := variable.GetVariableValue(ctx, types.HeaderStatus)
 	if err != nil || value == "" {
-		return err
+		status = 200
+	} else {
+		status, _ = strconv.Atoi(value)
 	}
-	status, _ = strconv.Atoi(value)
 
 	switch header := headers.(type) {
 	case *mhttp2.RspHeader:
@@ -714,8 +715,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		header := mhttp2.NewRspHeader(rsp)
 
 		// set header-status into stream ctx
-		code := strconv.Itoa(rsp.StatusCode)
-		variable.SetVariableValue(stream.ctx, types.HeaderStatus, code)
+		variable.SetVariableValue(stream.ctx, types.HeaderStatus, strconv.Itoa(rsp.StatusCode))
 
 		mbuffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
@@ -834,7 +834,6 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	if _, ok := s.conn.RawConn().(*mtls.TLSConn); ok {
 		scheme = "https"
 	}
-
 
 	var method string
 	method, err := variable.GetVariableValue(ctx, protocol.MosnHeaderMethod)

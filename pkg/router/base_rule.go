@@ -259,7 +259,7 @@ func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {
 // matchRoute is a common matched for http
 func (rri *RouteRuleImplBase) matchRoute(ctx context.Context, headers api.HeaderMap) bool {
 	// 1. match headers' KV
-	if !ConfigUtilityInst.MatchHeaders(ctx, headers, rri.configHeaders) {
+	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
 		log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
 		return false
 	}

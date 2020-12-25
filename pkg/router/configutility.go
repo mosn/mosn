@@ -18,7 +18,6 @@
 package router
 
 import (
-	"context"
 	"regexp"
 	"sort"
 
@@ -37,7 +36,7 @@ type configUtility struct {
 }
 
 // types.MatchHeaders
-func (cu *configUtility) MatchHeaders(ctx context.Context, requestHeaders api.HeaderMap, configHeaders []*types.HeaderData) bool {
+func (cu *configUtility) MatchHeaders(requestHeaders api.HeaderMap, configHeaders []*types.HeaderData) bool {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf(RouterLogFormat, "config utility", "try match header", requestHeaders)
 	}

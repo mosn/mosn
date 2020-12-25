@@ -56,6 +56,6 @@ func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap)
 			return srri
 		}
 	}
-	log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "failed match", headers)
+	log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "failed match header: %v, value: %s", headers, srri.matchValue)
 	return nil
 }

@@ -76,8 +76,7 @@ func (f *commmonRuleFilter) OnReceive(ctx context.Context, headers api.HeaderMap
 	if f.RuleEngineFactory.invoke(headers) {
 		return api.StreamFilterContinue
 	}
-	status := strconv.Itoa(types.LimitExceededCode)
-	variable.SetVariableValue(ctx, types.HeaderStatus, status)
+	variable.SetVariableValue(ctx, types.HeaderStatus, strconv.Itoa(types.LimitExceededCode))
 	f.handler.AppendHeaders(headers, true)
 	return api.StreamFilterStop
 }

@@ -35,8 +35,6 @@ func parseProxyTimeout(ctx context.Context, timeout *Timeout, route types.Route)
 		timeout.TryTimeout = route.RouteRule().Policy().RetryPolicy().TryTimeout()
 	}
 
-	// todo: check global timeout in context
-	// todo: check per try timeout in context
 	// check variable, GetVariableValue will return error if value was not set
 	if tto, err := variable.GetVariableValue(ctx, types.VarProxyTryTimeout); err == nil {
 		if trytimeout, err := strconv.ParseInt(tto, 10, bitSize64); err == nil {
