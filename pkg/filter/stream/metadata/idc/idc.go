@@ -33,8 +33,6 @@ func init() {
 	metadata.RegisterDriver("IDC", &IdcDriver{})
 }
 
-var defaultIdcEnvNameList = []string{"ALIPAY_APP_IDC", "ALIPAY_LOCATION", "Sigma_Site"}
-
 type IdcConfig struct {
 	IdcEnvNameList []string `json:"idc_env_name_list,omitempty"`
 }
@@ -55,7 +53,7 @@ func (d *IdcDriver) Init(cfg map[string]interface{}) error {
 	}
 
 	if len(ic.IdcEnvNameList) == 0 {
-		ic.IdcEnvNameList = defaultIdcEnvNameList
+		return errors.New("need set idc env list via idc_env_name_list config")
 	}
 
 	for _, name := range ic.IdcEnvNameList {

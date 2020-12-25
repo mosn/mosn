@@ -33,8 +33,6 @@ func init() {
 	metadata.RegisterDriver("ZONE", &ZoneDriver{})
 }
 
-var defaultZoneEnvNameList = []string{"ALIPAY_ZONE", "ALIPAY_APP_ZONE"}
-
 type ZoneConfig struct {
 	ZoneEnvNameList []string `json:"zone_env_name_list,omitempty"`
 }
@@ -55,7 +53,7 @@ func (d *ZoneDriver) Init(cfg map[string]interface{}) error {
 	}
 
 	if len(ic.ZoneEnvNameList) == 0 {
-		ic.ZoneEnvNameList = defaultZoneEnvNameList
+		return errors.New("need set zone env list via zone_env_name_list config")
 	}
 
 	for _, name := range ic.ZoneEnvNameList {
