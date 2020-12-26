@@ -10,7 +10,6 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	fmt.Println()
 
 	w.Header().Set("Content-Type", "text/plain")
-	w.Header().Set("Connection", "close")
 
 	fmt.Fprintf(w, "Method: %s\n", r.Method)
 	fmt.Fprintf(w, "Protocol: %s\n", r.Proto)
