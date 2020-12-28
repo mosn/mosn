@@ -31,6 +31,8 @@ import (
 var (
 	// defaultRoller is roller by one day
 	defaultRoller = Roller{MaxTime: defaultRotateTime, Handler: rollerHandler}
+	// globalNotifications are used to send notify when defaultRollter is updated
+	globalNotifications = make([]chan<- bool, 0, 8)
 
 	// lumberjacks maps log filenames to the logger
 	// that is being used to keep them rolled/maintained.
@@ -102,6 +104,19 @@ func (l Roller) GetLogWriter() io.Writer {
 	return lj
 }
 
+func registeNofify(ch chan bool) {
+	globalNotifications = append(globalNotifications, ch)
+}
+
+func sendNotify() {
+	for _, ch := range globalNotifications {
+		select {
+		case ch <- true:
+		default:
+		}
+	}
+}
+
 // InitDefaultRoller
 func InitGlobalRoller(roller string) error {
 	r, err := ParseRoller(roller)
@@ -109,6 +124,9 @@ func InitGlobalRoller(roller string) error {
 		return err
 	}
 	defaultRoller = *r
+
+	sendNotify()
+
 	return nil
 }
 
@@ -125,12 +143,34 @@ func DefaultRoller() *Roller {
 }
 
 func rollerHandler(l *LoggerInfo) {
-	// ignore the rename error, in case the l.output is deleted
+	var filename string
+	// file roller
 	if l.LogRoller.MaxTime == defaultRotateTime {
-		os.Rename(l.FileName, l.FileName+"."+l.CreateTime.Format("2006-01-02"))
+		filename = l.FileName + "." + l.CreateTime.Format("2006-01-02")
 	} else {
-		os.Rename(l.FileName, l.FileName+"."+l.CreateTime.Format("2006-01-02_15"))
+		filename = l.FileName + "." + l.CreateTime.Format("2006-01-02_15")
 	}
+
+	name := filename
+	maxGeneration := defaultRotateKeep
+	if l.LogRoller.MaxBackups > 0 {
+		maxGeneration = l.LogRoller.MaxBackups
+	}
+	// if rollerFile exists, add a generational name
+	for generation := 0; generation <= maxGeneration; {
+		_, err := os.Stat(name)
+		// if os.Stat returns an error, maybe the file is not exists
+		// or have some permissions problems, try to write file
+		if err != nil {
+			filename = name
+
+			break
+		}
+		generation++
+		name = filename + "." + strconv.Itoa(generation)
+	}
+	// ignore the rename error, in case the l.output is deleted
+	_ = os.Rename(l.FileName, filename)
 }
 
 // ParseRoller parses roller contents out of c.

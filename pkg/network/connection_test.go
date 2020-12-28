@@ -152,7 +152,7 @@ func (r *zeroReadConn) LocalAddr() net.Addr {
 func TestIoBufferZeroRead(t *testing.T) {
 	conn := &connection{}
 	conn.rawConnection = &zeroReadConn{}
-	_, err := conn.doRead()
+	err := conn.doRead()
 	if err != io.EOF {
 		t.Errorf("error should be io.EOF")
 	}

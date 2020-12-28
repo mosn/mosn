@@ -35,8 +35,6 @@ import (
 )
 
 var (
-	// localOffset is offset in seconds east of UTC
-	_, localOffset = time.Now().Zone()
 	// error
 	ErrReopenUnsupported = errors.New("reopen unsupported")
 
@@ -72,6 +70,7 @@ type Logger struct {
 	// implementation elements
 	create          time.Time
 	once            sync.Once
+	rollerUpdate    chan bool
 	stopRotate      chan struct{}
 	reopenChan      chan struct{}
 	closeChan       chan struct{}
@@ -133,8 +132,11 @@ func GetOrCreateLogger(output string, roller *Roller) (*Logger, error) {
 		return lg.(*Logger), nil
 	}
 
+	notify := make(chan bool, 1)
 	if roller == nil {
 		roller = &defaultRoller
+		// use defaultRoller, add a notify
+		registeNofify(notify)
 	}
 
 	if roller.Handler == nil {
@@ -148,6 +150,7 @@ func GetOrCreateLogger(output string, roller *Roller) (*Logger, error) {
 		reopenChan:      make(chan struct{}),
 		closeChan:       make(chan struct{}),
 		stopRotate:      make(chan struct{}),
+		rollerUpdate:    notify,
 		// writer and create will be setted in start()
 	}
 	err := lg.start()
@@ -368,6 +371,12 @@ func (l *Logger) Fatalln(args ...interface{}) {
 	os.Exit(1)
 }
 
+func (l *Logger) calculateInterval(now time.Time) time.Duration {
+	// caculate the next time need to rotate
+	_, localOffset := now.Zone()
+	return time.Duration(l.roller.MaxTime-(now.Unix()+int64(localOffset))%l.roller.MaxTime) * time.Second
+}
+
 func (l *Logger) startRotate() {
 	utils.GoWithRecover(func() {
 		// roller not by time
@@ -380,8 +389,7 @@ func (l *Logger) startRotate() {
 		if now.Sub(l.create) > time.Duration(l.roller.MaxTime)*time.Second {
 			interval = 0
 		} else {
-			// caculate the next time need to rotate
-			interval = time.Duration(l.roller.MaxTime-(now.Unix()+int64(localOffset))%l.roller.MaxTime) * time.Second
+			interval = l.calculateInterval(now)
 		}
 		doRotate(l, interval)
 	}, func(r interface{}) {
@@ -392,11 +400,21 @@ func (l *Logger) startRotate() {
 var doRotate func(l *Logger, interval time.Duration) = doRotateFunc
 
 func doRotateFunc(l *Logger, interval time.Duration) {
+	timer := time.NewTimer(interval)
 	for {
 		select {
 		case <-l.stopRotate:
 			return
-		case <-time.After(interval):
+		case <-l.rollerUpdate:
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			now := time.Now()
+			interval = l.calculateInterval(now)
+		case <-timer.C:
 			now := time.Now()
 			info := LoggerInfo{FileName: l.output, CreateTime: l.create}
 			info.LogRoller = *l.roller
@@ -404,12 +422,13 @@ func doRotateFunc(l *Logger, interval time.Duration) {
 			l.create = now
 			go l.Reopen()
 
-			if interval == 0 { // recaculate interval
-				interval = time.Duration(l.roller.MaxTime-(now.Unix()+int64(localOffset))%l.roller.MaxTime) * time.Second
+			if interval == 0 { // recalculate interval
+				interval = l.calculateInterval(now)
 			} else {
 				interval = time.Duration(l.roller.MaxTime) * time.Second
 			}
 		}
+		timer.Reset(interval)
 	}
 }
 

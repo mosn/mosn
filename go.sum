@@ -682,5 +682,7 @@ mosn.io/api v0.0.0-20201104063430-1abb4764d12a/go.mod h1:aAbHvga8yPUz1fidG1Xdsc9
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 mosn.io/pkg v0.0.0-20201222032942-30acc9dd603c h1:CEUdOG2JkNMGgEITfdz1E0/irCTSEprZdSKt7op6BB4=
 mosn.io/pkg v0.0.0-20201222032942-30acc9dd603c/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
+mosn.io/pkg v0.0.0-20201228070559-80e9ae937bd5 h1:nVeJnKSFcRxqFMyNjgbW5IltdBTdw/45856gAuPVs5g=
+mosn.io/pkg v0.0.0-20201228070559-80e9ae937bd5/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
