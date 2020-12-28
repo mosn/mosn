@@ -41,11 +41,8 @@
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "X",
-									"upstream_protocol": "X",
-									"extend_config": {
-										"sub_protocol": "bolt"
-									},
+									"downstream_protocol": "Auto",
+									"upstream_protocol": "Auto",
 									"router_config_name":"server_router"
 								}
 							}
@@ -68,11 +65,8 @@
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "X",
-									"upstream_protocol": "X",
-									"extend_config": {
-										"sub_protocol": "bolt"
-									},
+									"downstream_protocol": "Auto",
+									"upstream_protocol": "Auto",
 									"router_config_name":"client_router"
 								}
 							}

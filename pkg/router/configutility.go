@@ -49,8 +49,8 @@ func (cu *configUtility) MatchHeaders(requestHeaders api.HeaderMap, configHeader
 
 		// if a condition is not matched, return false
 		// all condition matched, return true
-		value, ok := requestHeaders.Get(cfgName)
-		if !ok {
+		value, exist := requestHeaders.Get(cfgName)
+		if !exist {
 			return false
 		}
 		if cfgHeaderData.IsRegex {

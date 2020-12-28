@@ -420,6 +420,10 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 				if tc, ok := rawc.(*net.UDPConn); ok {
 					rawf, _ = tc.File()
 				}
+			case "unix":
+				if tc, ok := rawc.(*net.UnixConn); ok {
+					rawf, _ = tc.File()
+				}
 			default:
 				if tc, ok := rawc.(*net.TCPConn); ok {
 					rawf, _ = tc.File()

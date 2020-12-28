@@ -99,13 +99,18 @@ func doPubUnPub(req pubReq, pub bool) error {
 		"port":      mosnPubPort,
 		"interface": req.Service.Interface,
 	})
+	urlValues := url.Values{
+		dubboconsts.ROLE_KEY:      []string{fmt.Sprint(dubbocommon.PROVIDER)},
+		dubboconsts.INTERFACE_KEY: []string{req.Service.Interface},
+	}
+	if req.Service.Group != "" {
+		urlValues.Set(dubboconsts.GROUP_KEY, req.Service.Group)
+	}
+	if req.Service.Version != "" {
+		urlValues.Set(dubboconsts.VERSION_KEY, req.Service.Version)
+	}
 	dubboURL, _ := dubbocommon.NewURL(dubboPath,
-		dubbocommon.WithParams(url.Values{
-			dubboconsts.ROLE_KEY:      []string{fmt.Sprint(dubbocommon.PROVIDER)},
-			dubboconsts.GROUP_KEY:     []string{req.Service.Group},
-			dubboconsts.INTERFACE_KEY: []string{req.Service.Interface},
-			dubboconsts.VERSION_KEY:   []string{req.Service.Version},
-		}),
+		dubbocommon.WithParams(urlValues),
 		dubbocommon.WithMethods(req.Service.Methods))
 
 	if pub {
