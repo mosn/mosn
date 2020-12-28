@@ -750,10 +750,23 @@ func (m *MockClusterInfo) Name() string {
 	return ret0
 }
 
+// Name mocks base method.
+func (m *MockClusterInfo) Mark() uint32 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Mark")
+	ret0, _ := ret[0].(uint32)
+	return ret0
+}
+
 // Name indicates an expected call of Name.
 func (mr *MockClusterInfoMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockClusterInfo)(nil).Name))
+}
+
+func (mr *MockClusterInfoMockRecorder) Mark() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mark", reflect.TypeOf((*MockClusterInfo)(nil).Mark))
 }
 
 // ClusterType mocks base method.

@@ -89,6 +89,7 @@ type Cluster struct {
 	SubType              string              `json:"sub_type,omitempty"` //not used yet
 	LbType               LbType              `json:"lb_type,omitempty"`
 	MaxRequestPerConn    uint32              `json:"max_request_per_conn,omitempty"`
+	Mark                 uint32              `json:"mark,omitempty"`
 	ConnBufferLimitBytes uint32              `json:"conn_buffer_limit_bytes,omitempty"`
 	CirBreThresholds     CircuitBreakers     `json:"circuit_breakers,omitempty"`
 	HealthCheck          HealthCheck         `json:"health_check,omitempty"`
