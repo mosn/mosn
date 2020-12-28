@@ -43,12 +43,31 @@ type poolMultiplex struct {
 	shutdown bool // pool is already shutdown
 }
 
+var (
+	defaultMaxConn         = 1
+	connNumberLimit uint64 = 65535 // port limit
+)
+
+func isValidMaxNum(maxConns uint64) bool {
+	return maxConns > 0 && maxConns < connNumberLimit
+}
+
+// SetDefaultMaxConnNumPerHostPortForMuxPool set the max connections for each host:port
+// users could use this function or cluster threshold config to configure connection no.
+func SetDefaultMaxConnNumPerHostPortForMuxPool(maxConns int) {
+	if isValidMaxNum(uint64(maxConns)) {
+		defaultMaxConn = maxConns
+	}
+}
+
 // NewPoolMultiplex generates a multiplex conn pool
 func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 	maxConns := p.Host().ClusterInfo().ResourceManager().Connections().Max()
-	if maxConns == 0 {
-		// default conn num should be 1
-		maxConns = 1
+	// the cluster threshold config has higher privilege than global config
+	// if a valid number is provided, should use it
+	if !isValidMaxNum(maxConns) {
+		// override maxConns by default max conns
+		maxConns = uint64(defaultMaxConn)
 	}
 
 	return &poolMultiplex{
