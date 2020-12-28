@@ -234,22 +234,8 @@ type FilterChainFactory interface {
 	CreateListenerFilterChain(listener ListenerFilterManager)
 }
 
-// Addresses defines a group of network address
-type Addresses []net.Addr
-
-// Contains reports whether the specified network address is in the group.
-func (as Addresses) Contains(addr net.Addr) bool {
-	for _, one := range as {
-		// TODO: support port wildcard
-		if one.String() == addr.String() {
-			return true
-		}
-	}
-
-	return false
-}
-
 var (
-	ErrConnectionHasClosed = errors.New("connection has closed")
-	ErrWriteTryLockTimeout = errors.New("write trylock has timeout")
+	ErrConnectionHasClosed    = errors.New("connection has closed")
+	ErrWriteTryLockTimeout    = errors.New("write trylock has timeout")
+	ErrWriteBufferChanTimeout = errors.New("writeBufferChan has timeout")
 )

@@ -1,10 +1,17 @@
 package mosn
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
+	"strings"
 	"syscall"
+
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 )
 
 type MosnOperator struct {
@@ -21,12 +28,16 @@ func NewMosnOperator(binpath, cfgpath string) *MosnOperator {
 	return operator
 }
 
-func (op *MosnOperator) Start() error {
+func (op *MosnOperator) Start(params ...string) error {
 	spec := &syscall.ProcAttr{
 		Env:   os.Environ(),
 		Files: append([]uintptr{os.Stdin.Fd(), os.Stdout.Fd(), os.Stderr.Fd()}),
 	}
-	pid, err := syscall.ForkExec(op.binPath, []string{op.binPath, "start", "-c", op.configPath}, spec)
+	defaultParams := []string{op.binPath, "start", "-c", op.configPath}
+	if len(params) > 0 {
+		defaultParams = append(defaultParams, params...)
+	}
+	pid, err := syscall.ForkExec(op.binPath, defaultParams, spec)
 	if err != nil {
 		return err
 	}
@@ -44,9 +55,57 @@ func (op *MosnOperator) Restart() error {
 	return nil
 }
 
+func (op *MosnOperator) UpdateConfig(port int, typ string, config string) error {
+	// test case, do not care about performance
+	body := fmt.Sprintf(`{
+		"type": "%s",
+		"config": %s
+	}`, typ, config)
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("http://127.0.0.1:%d/debug/update_config", port), strings.NewReader(body))
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("request failed")
+	}
+	return nil
+}
+
+func (op *MosnOperator) GetMosnConfig(port int, params string) ([]byte, error) {
+	if len(params) > 0 {
+		params = "?" + params
+	}
+	req := fmt.Sprintf("http://127.0.0.1:%d/api/v1/config_dump%s", port, params)
+	resp, err := http.Get(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
+}
+
+func (op *MosnOperator) GetMosnMetrics(port int, key string) ([]byte, error) {
+	if len(key) > 0 {
+		key = "?key=" + key
+	}
+	req := fmt.Sprintf("http://127.0.0.1:%d/api/v1/stats%s", port, key)
+	resp, err := http.Get(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
+}
+
+func (op *MosnOperator) LoadMosnConfig() *v2.MOSNConfig {
+	return configmanager.Load(op.configPath)
+}
+
 var binPath = flag.String("m", "", "-m={mosn_binary_path}")
 
-func StartMosn(cfgStr string) *MosnOperator {
+func StartMosn(cfgStr string, params ...string) *MosnOperator {
 	flag.Parse()
 	if *binPath == "" {
 		fmt.Println("no mosn specified")
@@ -57,7 +116,7 @@ func StartMosn(cfgStr string) *MosnOperator {
 		os.Exit(1)
 	}
 	mosn := NewMosnOperator(*binPath, TempTestConfig)
-	if err := mosn.Start(); err != nil {
+	if err := mosn.Start(params...); err != nil {
 		fmt.Println("mosn started failed: ", err)
 		os.Exit(1)
 	}

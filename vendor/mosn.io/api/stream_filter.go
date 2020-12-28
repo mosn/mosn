@@ -123,6 +123,11 @@ type StreamReceiverFilterHandler interface {
 	// SendDirectRespoonse is call when the filter will response directly
 	SendDirectResponse(headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap)
 
+	// TerminateStream can force terminate a request asynchronously.
+	// The response status code should be HTTP status code.
+	// If the request is already finished, returns false.
+	TerminateStream(code int) bool
+
 	// TODO: remove all of the following when proxy changed to single request @lieyuan
 	// StreamFilters will modified headers/data/trailer in different steps
 	// for example, maybe modify headers in on receive data
@@ -138,7 +143,7 @@ type StreamReceiverFilterHandler interface {
 	SetConvert(on bool)
 
 	// GetFilterCurrentPhase get current phase for filter
-	GetFilterCurrentPhase() FilterPhase
+	GetFilterCurrentPhase() ReceiverFilterPhase
 }
 
 // StreamFilterChainFactory adds filter into callbacks
@@ -148,18 +153,24 @@ type StreamFilterChainFactory interface {
 
 // StreamFilterChainFactoryCallbacks is called in StreamFilterChainFactory
 type StreamFilterChainFactoryCallbacks interface {
-	AddStreamSenderFilter(filter StreamSenderFilter)
+	AddStreamSenderFilter(filter StreamSenderFilter, p SenderFilterPhase)
 
-	AddStreamReceiverFilter(filter StreamReceiverFilter, p FilterPhase)
+	AddStreamReceiverFilter(filter StreamReceiverFilter, p ReceiverFilterPhase)
 
 	// add access log per stream
 	AddStreamAccessLog(accessLog AccessLog)
 }
 
-type FilterPhase int
+type ReceiverFilterPhase int
 
 const (
-	BeforeRoute FilterPhase = iota
+	BeforeRoute ReceiverFilterPhase = iota
 	AfterRoute
 	AfterChooseHost
+)
+
+type SenderFilterPhase int
+
+const (
+	BeforeSend SenderFilterPhase = iota
 )

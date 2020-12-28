@@ -50,6 +50,25 @@ type xprotocolKeepAlive struct {
 	mutex    sync.Mutex
 }
 
+func (kp *xprotocolKeepAlive) store(key uint64, val *keepAliveTimeout) {
+	kp.mutex.Lock()
+	defer kp.mutex.Unlock()
+
+	kp.requests[key] = val
+}
+
+func (kp *xprotocolKeepAlive) loadAndDelete(key uint64) (val *keepAliveTimeout, loaded bool) {
+	kp.mutex.Lock()
+	defer kp.mutex.Unlock()
+
+	v, ok := kp.requests[key]
+	if ok {
+		delete(kp.requests, key)
+	}
+
+	return v, ok
+}
+
 func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Duration, thres uint32) types.KeepAlive {
 	kp := &xprotocolKeepAlive{
 		Codec:        codec,
@@ -114,12 +133,10 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	hb := kp.Protocol.Trigger(id)
 	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
-	kp.mutex.Lock()
-	defer kp.mutex.Unlock()
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
 	}
-	kp.requests[id] = startTimeout(id, kp)
+	kp.store(id, startTimeout(id, kp))
 }
 
 func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
@@ -131,20 +148,20 @@ func (kp *xprotocolKeepAlive) HandleTimeout(id uint64) {
 	case <-kp.stop:
 		return
 	default:
-		kp.mutex.Lock()
-		defer kp.mutex.Unlock()
-		if _, ok := kp.requests[id]; ok {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request timeout %d", kp.Codec.ConnID(), id)
-			}
-			delete(kp.requests, id)
-			atomic.AddUint32(&kp.timeoutCount, 1)
-			// close the connection, stop keep alive
-			if kp.timeoutCount >= kp.Threshold {
-				kp.Codec.Close()
-			}
-			kp.runCallback(types.KeepAliveTimeout)
+		if _, ok := kp.loadAndDelete(id); !ok {
+			return
 		}
+
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request timeout %d", kp.Codec.ConnID(), id)
+		}
+
+		atomic.AddUint32(&kp.timeoutCount, 1)
+		// close the connection, stop keep alive
+		if kp.timeoutCount >= kp.Threshold {
+			kp.Codec.Close()
+		}
+		kp.runCallback(types.KeepAliveTimeout)
 	}
 }
 
@@ -153,18 +170,19 @@ func (kp *xprotocolKeepAlive) HandleSuccess(id uint64) {
 	case <-kp.stop:
 		return
 	default:
-		kp.mutex.Lock()
-		defer kp.mutex.Unlock()
-		if timeout, ok := kp.requests[id]; ok {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request success %d", kp.Codec.ConnID(), id)
-			}
-			delete(kp.requests, id)
-			timeout.timer.Stop()
-			// reset the tiemout count
-			atomic.StoreUint32(&kp.timeoutCount, 0)
-			kp.runCallback(types.KeepAliveSuccess)
+		timeout, ok := kp.loadAndDelete(id)
+		if !ok {
+			return
 		}
+
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request success %d", kp.Codec.ConnID(), id)
+		}
+
+		timeout.timer.Stop()
+		// reset the tiemout count
+		atomic.StoreUint32(&kp.timeoutCount, 0)
+		kp.runCallback(types.KeepAliveSuccess)
 	}
 }
 

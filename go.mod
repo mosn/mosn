@@ -5,7 +5,7 @@ go 1.12
 require (
 	bou.ke/monkey v1.0.2
 	github.com/SkyAPM/go2sky v0.5.0
-	github.com/TarsCloud/TarsGo v0.0.0-20190521041003-0022231bc5b2
+	github.com/TarsCloud/TarsGo v1.1.4
 	github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
 	github.com/apache/dubbo-go-hessian2 v1.7.0
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
@@ -37,16 +37,17 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
+	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
-	golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5
+	golang.org/x/tools v0.0.0-20191125144606-a911d9008d1f
 	google.golang.org/genproto v0.0.0-20200305110556-506484158171
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
-	mosn.io/api v0.0.0-20200813123503-e552003ba74e
+	mosn.io/api v0.0.0-20201224034710-d1de63647a2e
 	mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
 )
 

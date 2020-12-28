@@ -19,7 +19,6 @@ package server
 
 import (
 	"os"
-	"runtime"
 	"time"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -58,7 +57,6 @@ func NewConfig(c *v2.ServerConfig) *Config {
 		LogLevel:        configmanager.ParseLogLevel(c.DefaultLogLevel),
 		LogRoller:       c.GlobalLogRoller,
 		GracefulTimeout: c.GracefulTimeout.Duration,
-		Processor:       c.Processor,
 		UseNetpollMode:  c.UseNetpollMode,
 	}
 }
@@ -76,8 +74,6 @@ func NewServer(config *Config, cmFilter types.ClusterManagerFilter, clMng types.
 			log.DefaultLogger.Infof("[server] [reconfigure] [new server] Netpoll mode enabled.")
 		}
 	}
-
-	runtime.GOMAXPROCS(config.Processor)
 
 	keeper.OnProcessShutDown(log.CloseAll)
 

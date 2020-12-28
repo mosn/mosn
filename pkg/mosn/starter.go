@@ -21,6 +21,7 @@ import (
 	"net"
 	"sync"
 	"syscall"
+	"time"
 
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
@@ -65,8 +66,10 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
+	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
-	store.SetMosnConfig(c)
+	// set the mosn config finally
+	defer configmanager.SetMosnConfig(c)
 
 	var (
 		inheritListeners  []net.Listener
@@ -80,7 +83,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		//get inherit fds
 		inheritListeners, inheritPacketConn, listenSockConn, err = server.GetInheritListeners()
 		if err != nil {
-			log.StartLogger.Fatalf("[mosn] [NewMosn] getInheritListeners failed, exit")
+			log.StartLogger.Errorf("[mosn] [NewMosn] getInheritListeners failed, exit")
 		}
 	}
 
@@ -90,6 +93,18 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		store.SetMosnState(store.Active_Reconfiguring)
 		// parse MOSNConfig again
 		c = configmanager.Load(configmanager.GetConfigPath())
+		if c.InheritOldMosnconfig {
+			// inherit old mosn config
+			oldMosnConfig, err := server.GetInheritConfig()
+			if err != nil {
+				listenSockConn.Close()
+				log.StartLogger.Fatalf("[mosn] [NewMosn] GetInheritConfig failed, exit")
+			}
+			log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
+			c.Servers = oldMosnConfig.Servers
+			c.ClusterManager = oldMosnConfig.ClusterManager
+			c.Extends = oldMosnConfig.Extends
+		}
 	} else {
 		log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 		// start init services
@@ -159,11 +174,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 			//initialize server instance
 			srv = server.NewServer(sc, cmf, m.clustermanager)
 
-			//add listener
-			if len(serverConfig.Listeners) == 0 {
-				log.StartLogger.Fatalf("[mosn] [NewMosn] no listener found")
-			}
-
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], inheritListeners, inheritPacketConn)
@@ -206,10 +216,16 @@ func (m *Mosn) beforeStart() {
 		if err := store.StartService(m.inheritListeners); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
 		}
-
 		// notify old mosn to transfer connection
 		if _, err := m.listenSockConn.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
+		}
+		// wait old mosn ack
+		m.listenSockConn.SetReadDeadline(time.Now().Add(3 * time.Second))
+		var buf [1]byte
+		n, err := m.listenSockConn.Read(buf[:])
+		if n != 1 {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] ack graceful failed, exit, error: %v n: %v, buf[0]: %v", err, n, buf[0])
 		}
 
 		m.listenSockConn.Close()
@@ -265,13 +281,14 @@ func (m *Mosn) Start() {
 	}, nil)
 	// start mosn feature
 	featuregate.StartInit()
-	// TODO: remove it
-	//parse service registry info
-	log.StartLogger.Infof("mosn parse registry info")
-	configmanager.ParseServiceRegistry(m.config.ServiceRegistry)
-
 	log.StartLogger.Infof("mosn parse extend config")
-	configmanager.ParseConfigExtend(m.config.Extend)
+	for typ, cfg := range m.config.Extends {
+		if err := v2.ExtendConfigParsed(typ, cfg); err != nil {
+			log.StartLogger.Errorf("mosn parse extend config failed, type: %s, error: %v", typ, err)
+		} else {
+			configmanager.SetExtend(typ, cfg)
+		}
+	}
 
 	// beforestart starts transfer connection and non-proxy listeners
 	log.StartLogger.Infof("mosn prepare for start")
@@ -324,7 +341,6 @@ func Start(c *v2.MOSNConfig) {
 		Mosn.Close()
 	}, syscall.SIGINT, syscall.SIGTERM)
 
-
 	Mosn.Start()
 	Mosn.wg.Wait()
 }
@@ -340,7 +356,7 @@ func initializeTracing(config v2.TracingConfig) {
 		log.StartLogger.Infof("[mosn] [init tracing] enable tracing")
 		trace.Enable()
 	} else {
-		log.StartLogger.Infof("[mosn] [init tracing] disbale tracing")
+		log.StartLogger.Infof("[mosn] [init tracing] disable tracing")
 		trace.Disable()
 	}
 }

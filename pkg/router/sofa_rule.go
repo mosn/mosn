@@ -18,6 +18,8 @@
 package router
 
 import (
+	"context"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -44,22 +46,23 @@ func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
 	return api.SofaHeader
 }
 
-func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	srri.RouteRuleImplBase.FinalizeRequestHeaders(headers, requestInfo)
+func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	srri.RouteRuleImplBase.FinalizeRequestHeaders(ctx, headers, requestInfo)
 }
 
-func (srri *SofaRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
+func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if srri.fastmatch == "" {
-		if srri.matchRoute(headers, randomValue) {
+		if srri.matchRoute(ctx, headers) {
 			return srri
 		}
 	} else {
-		if value, ok := headers.Get(types.SofaRouteMatchKey); ok {
+		value, _ := headers.Get(types.SofaRouteMatchKey)
+		if value != "" {
 			if value == srri.fastmatch || srri.fastmatch == ".*" {
 				return srri
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "sofa rotue rule", "failed match", headers)
+	log.Proxy.Debugf(ctx, RouterLogFormat, "sofa rotue rule", "failed match, macther %s", srri.fastmatch)
 	return nil
 }

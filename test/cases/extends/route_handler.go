@@ -15,7 +15,7 @@ type extendHandler struct {
 }
 
 func (h *extendHandler) IsAvailable(ctx context.Context, manager types.ClusterManager) (types.ClusterSnapshot, types.HandlerStatus) {
-	rs := h.routers.MatchAllRoutes(h.headers, 0)
+	rs := h.routers.MatchAllRoutes(ctx, h.headers)
 	for _, r := range rs {
 		name := r.RouteRule().ClusterName()
 		snap := manager.GetClusterSnapshot(ctx, name)

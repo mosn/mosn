@@ -63,6 +63,10 @@ func (mp *mockProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
+func (mp *mockProtocol) EnableWorkerPool() bool {
+	return true
+}
+
 func (mp *mockProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }

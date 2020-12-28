@@ -97,6 +97,7 @@ const (
 	IstioStats     = "istio.stats"
 	DSL            = "dsl"
 	Mirror         = "mirror"
+	DubboStream    = "dubbo_stream"
 )
 
 // HealthCheckFilter

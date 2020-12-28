@@ -6,39 +6,40 @@ package mock
 
 import (
 	context "context"
+	net "net"
+	reflect "reflect"
+	time "time"
+
 	gomock "github.com/golang/mock/gomock"
 	api "mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	types "mosn.io/mosn/pkg/types"
-	net "net"
-	reflect "reflect"
-	time "time"
 )
 
-// MockClusterManager is a mock of ClusterManager interface
+// MockClusterManager is a mock of ClusterManager interface.
 type MockClusterManager struct {
 	ctrl     *gomock.Controller
 	recorder *MockClusterManagerMockRecorder
 }
 
-// MockClusterManagerMockRecorder is the mock recorder for MockClusterManager
+// MockClusterManagerMockRecorder is the mock recorder for MockClusterManager.
 type MockClusterManagerMockRecorder struct {
 	mock *MockClusterManager
 }
 
-// NewMockClusterManager creates a new mock instance
+// NewMockClusterManager creates a new mock instance.
 func NewMockClusterManager(ctrl *gomock.Controller) *MockClusterManager {
 	mock := &MockClusterManager{ctrl: ctrl}
 	mock.recorder = &MockClusterManagerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClusterManager) EXPECT() *MockClusterManagerMockRecorder {
 	return m.recorder
 }
 
-// AddOrUpdatePrimaryCluster mocks base method
+// AddOrUpdatePrimaryCluster mocks base method.
 func (m *MockClusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddOrUpdatePrimaryCluster", cluster)
@@ -46,13 +47,13 @@ func (m *MockClusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error
 	return ret0
 }
 
-// AddOrUpdatePrimaryCluster indicates an expected call of AddOrUpdatePrimaryCluster
+// AddOrUpdatePrimaryCluster indicates an expected call of AddOrUpdatePrimaryCluster.
 func (mr *MockClusterManagerMockRecorder) AddOrUpdatePrimaryCluster(cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddOrUpdatePrimaryCluster", reflect.TypeOf((*MockClusterManager)(nil).AddOrUpdatePrimaryCluster), cluster)
 }
 
-// AddClusterHealthCheckCallbacks mocks base method
+// AddClusterHealthCheckCallbacks mocks base method.
 func (m *MockClusterManager) AddClusterHealthCheckCallbacks(name string, cb types.HealthCheckCb) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddClusterHealthCheckCallbacks", name, cb)
@@ -60,13 +61,13 @@ func (m *MockClusterManager) AddClusterHealthCheckCallbacks(name string, cb type
 	return ret0
 }
 
-// AddClusterHealthCheckCallbacks indicates an expected call of AddClusterHealthCheckCallbacks
+// AddClusterHealthCheckCallbacks indicates an expected call of AddClusterHealthCheckCallbacks.
 func (mr *MockClusterManagerMockRecorder) AddClusterHealthCheckCallbacks(name, cb interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddClusterHealthCheckCallbacks", reflect.TypeOf((*MockClusterManager)(nil).AddClusterHealthCheckCallbacks), name, cb)
 }
 
-// GetClusterSnapshot mocks base method
+// GetClusterSnapshot mocks base method.
 func (m *MockClusterManager) GetClusterSnapshot(context context.Context, cluster string) types.ClusterSnapshot {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterSnapshot", context, cluster)
@@ -74,25 +75,25 @@ func (m *MockClusterManager) GetClusterSnapshot(context context.Context, cluster
 	return ret0
 }
 
-// GetClusterSnapshot indicates an expected call of GetClusterSnapshot
+// GetClusterSnapshot indicates an expected call of GetClusterSnapshot.
 func (mr *MockClusterManagerMockRecorder) GetClusterSnapshot(context, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterSnapshot", reflect.TypeOf((*MockClusterManager)(nil).GetClusterSnapshot), context, cluster)
 }
 
-// PutClusterSnapshot mocks base method
+// PutClusterSnapshot mocks base method.
 func (m *MockClusterManager) PutClusterSnapshot(arg0 types.ClusterSnapshot) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "PutClusterSnapshot", arg0)
 }
 
-// PutClusterSnapshot indicates an expected call of PutClusterSnapshot
+// PutClusterSnapshot indicates an expected call of PutClusterSnapshot.
 func (mr *MockClusterManagerMockRecorder) PutClusterSnapshot(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutClusterSnapshot", reflect.TypeOf((*MockClusterManager)(nil).PutClusterSnapshot), arg0)
 }
 
-// UpdateClusterHosts mocks base method
+// UpdateClusterHosts mocks base method.
 func (m *MockClusterManager) UpdateClusterHosts(cluster string, hosts []v2.Host) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateClusterHosts", cluster, hosts)
@@ -100,13 +101,13 @@ func (m *MockClusterManager) UpdateClusterHosts(cluster string, hosts []v2.Host)
 	return ret0
 }
 
-// UpdateClusterHosts indicates an expected call of UpdateClusterHosts
+// UpdateClusterHosts indicates an expected call of UpdateClusterHosts.
 func (mr *MockClusterManagerMockRecorder) UpdateClusterHosts(cluster, hosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterHosts", reflect.TypeOf((*MockClusterManager)(nil).UpdateClusterHosts), cluster, hosts)
 }
 
-// AppendClusterHosts mocks base method
+// AppendClusterHosts mocks base method.
 func (m *MockClusterManager) AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AppendClusterHosts", clusterName, hostConfigs)
@@ -114,13 +115,13 @@ func (m *MockClusterManager) AppendClusterHosts(clusterName string, hostConfigs 
 	return ret0
 }
 
-// AppendClusterHosts indicates an expected call of AppendClusterHosts
+// AppendClusterHosts indicates an expected call of AppendClusterHosts.
 func (mr *MockClusterManagerMockRecorder) AppendClusterHosts(clusterName, hostConfigs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendClusterHosts", reflect.TypeOf((*MockClusterManager)(nil).AppendClusterHosts), clusterName, hostConfigs)
 }
 
-// TCPConnForCluster mocks base method
+// TCPConnForCluster mocks base method.
 func (m *MockClusterManager) TCPConnForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TCPConnForCluster", balancerContext, snapshot)
@@ -128,13 +129,13 @@ func (m *MockClusterManager) TCPConnForCluster(balancerContext types.LoadBalance
 	return ret0
 }
 
-// TCPConnForCluster indicates an expected call of TCPConnForCluster
+// TCPConnForCluster indicates an expected call of TCPConnForCluster.
 func (mr *MockClusterManagerMockRecorder) TCPConnForCluster(balancerContext, snapshot interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TCPConnForCluster", reflect.TypeOf((*MockClusterManager)(nil).TCPConnForCluster), balancerContext, snapshot)
 }
 
-// UDPConnForCluster mocks base method
+// UDPConnForCluster mocks base method.
 func (m *MockClusterManager) UDPConnForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UDPConnForCluster", balancerContext, snapshot)
@@ -142,13 +143,13 @@ func (m *MockClusterManager) UDPConnForCluster(balancerContext types.LoadBalance
 	return ret0
 }
 
-// UDPConnForCluster indicates an expected call of UDPConnForCluster
+// UDPConnForCluster indicates an expected call of UDPConnForCluster.
 func (mr *MockClusterManagerMockRecorder) UDPConnForCluster(balancerContext, snapshot interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UDPConnForCluster", reflect.TypeOf((*MockClusterManager)(nil).UDPConnForCluster), balancerContext, snapshot)
 }
 
-// ConnPoolForCluster mocks base method
+// ConnPoolForCluster mocks base method.
 func (m *MockClusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol api.Protocol) types.ConnectionPool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ConnPoolForCluster", balancerContext, snapshot, protocol)
@@ -156,13 +157,13 @@ func (m *MockClusterManager) ConnPoolForCluster(balancerContext types.LoadBalanc
 	return ret0
 }
 
-// ConnPoolForCluster indicates an expected call of ConnPoolForCluster
+// ConnPoolForCluster indicates an expected call of ConnPoolForCluster.
 func (mr *MockClusterManagerMockRecorder) ConnPoolForCluster(balancerContext, snapshot, protocol interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConnPoolForCluster", reflect.TypeOf((*MockClusterManager)(nil).ConnPoolForCluster), balancerContext, snapshot, protocol)
 }
 
-// RemovePrimaryCluster mocks base method
+// RemovePrimaryCluster mocks base method.
 func (m *MockClusterManager) RemovePrimaryCluster(clusters ...string) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
@@ -174,13 +175,13 @@ func (m *MockClusterManager) RemovePrimaryCluster(clusters ...string) error {
 	return ret0
 }
 
-// RemovePrimaryCluster indicates an expected call of RemovePrimaryCluster
+// RemovePrimaryCluster indicates an expected call of RemovePrimaryCluster.
 func (mr *MockClusterManagerMockRecorder) RemovePrimaryCluster(clusters ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemovePrimaryCluster", reflect.TypeOf((*MockClusterManager)(nil).RemovePrimaryCluster), clusters...)
 }
 
-// ClusterExist mocks base method
+// ClusterExist mocks base method.
 func (m *MockClusterManager) ClusterExist(clusterName string) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterExist", clusterName)
@@ -188,13 +189,13 @@ func (m *MockClusterManager) ClusterExist(clusterName string) bool {
 	return ret0
 }
 
-// ClusterExist indicates an expected call of ClusterExist
+// ClusterExist indicates an expected call of ClusterExist.
 func (mr *MockClusterManagerMockRecorder) ClusterExist(clusterName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterExist", reflect.TypeOf((*MockClusterManager)(nil).ClusterExist), clusterName)
 }
 
-// RemoveClusterHosts mocks base method
+// RemoveClusterHosts mocks base method.
 func (m *MockClusterManager) RemoveClusterHosts(clusterName string, hosts []string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RemoveClusterHosts", clusterName, hosts)
@@ -202,74 +203,74 @@ func (m *MockClusterManager) RemoveClusterHosts(clusterName string, hosts []stri
 	return ret0
 }
 
-// RemoveClusterHosts indicates an expected call of RemoveClusterHosts
+// RemoveClusterHosts indicates an expected call of RemoveClusterHosts.
 func (mr *MockClusterManagerMockRecorder) RemoveClusterHosts(clusterName, hosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveClusterHosts", reflect.TypeOf((*MockClusterManager)(nil).RemoveClusterHosts), clusterName, hosts)
 }
 
-// GetTLSManager mocks base method
-func (m *MockClusterManager) GetTLSManager() types.TLSContextManager {
+// GetTLSManager mocks base method.
+func (m *MockClusterManager) GetTLSManager() types.TLSClientContextManager {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTLSManager")
-	ret0, _ := ret[0].(types.TLSContextManager)
+	ret0, _ := ret[0].(types.TLSClientContextManager)
 	return ret0
 }
 
-// GetTLSManager indicates an expected call of GetTLSManager
+// GetTLSManager indicates an expected call of GetTLSManager.
 func (mr *MockClusterManagerMockRecorder) GetTLSManager() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTLSManager", reflect.TypeOf((*MockClusterManager)(nil).GetTLSManager))
 }
 
-// UpdateTLSManager mocks base method
+// UpdateTLSManager mocks base method.
 func (m *MockClusterManager) UpdateTLSManager(arg0 *v2.TLSConfig) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "UpdateTLSManager", arg0)
 }
 
-// UpdateTLSManager indicates an expected call of UpdateTLSManager
+// UpdateTLSManager indicates an expected call of UpdateTLSManager.
 func (mr *MockClusterManagerMockRecorder) UpdateTLSManager(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTLSManager", reflect.TypeOf((*MockClusterManager)(nil).UpdateTLSManager), arg0)
 }
 
-// Destroy mocks base method
+// Destroy mocks base method.
 func (m *MockClusterManager) Destroy() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Destroy")
 }
 
-// Destroy indicates an expected call of Destroy
+// Destroy indicates an expected call of Destroy.
 func (mr *MockClusterManagerMockRecorder) Destroy() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Destroy", reflect.TypeOf((*MockClusterManager)(nil).Destroy))
 }
 
-// MockClusterSnapshot is a mock of ClusterSnapshot interface
+// MockClusterSnapshot is a mock of ClusterSnapshot interface.
 type MockClusterSnapshot struct {
 	ctrl     *gomock.Controller
 	recorder *MockClusterSnapshotMockRecorder
 }
 
-// MockClusterSnapshotMockRecorder is the mock recorder for MockClusterSnapshot
+// MockClusterSnapshotMockRecorder is the mock recorder for MockClusterSnapshot.
 type MockClusterSnapshotMockRecorder struct {
 	mock *MockClusterSnapshot
 }
 
-// NewMockClusterSnapshot creates a new mock instance
+// NewMockClusterSnapshot creates a new mock instance.
 func NewMockClusterSnapshot(ctrl *gomock.Controller) *MockClusterSnapshot {
 	mock := &MockClusterSnapshot{ctrl: ctrl}
 	mock.recorder = &MockClusterSnapshotMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClusterSnapshot) EXPECT() *MockClusterSnapshotMockRecorder {
 	return m.recorder
 }
 
-// HostSet mocks base method
+// HostSet mocks base method.
 func (m *MockClusterSnapshot) HostSet() types.HostSet {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HostSet")
@@ -277,13 +278,13 @@ func (m *MockClusterSnapshot) HostSet() types.HostSet {
 	return ret0
 }
 
-// HostSet indicates an expected call of HostSet
+// HostSet indicates an expected call of HostSet.
 func (mr *MockClusterSnapshotMockRecorder) HostSet() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostSet", reflect.TypeOf((*MockClusterSnapshot)(nil).HostSet))
 }
 
-// ClusterInfo mocks base method
+// ClusterInfo mocks base method.
 func (m *MockClusterSnapshot) ClusterInfo() types.ClusterInfo {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterInfo")
@@ -291,13 +292,13 @@ func (m *MockClusterSnapshot) ClusterInfo() types.ClusterInfo {
 	return ret0
 }
 
-// ClusterInfo indicates an expected call of ClusterInfo
+// ClusterInfo indicates an expected call of ClusterInfo.
 func (mr *MockClusterSnapshotMockRecorder) ClusterInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInfo", reflect.TypeOf((*MockClusterSnapshot)(nil).ClusterInfo))
 }
 
-// LoadBalancer mocks base method
+// LoadBalancer mocks base method.
 func (m *MockClusterSnapshot) LoadBalancer() types.LoadBalancer {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LoadBalancer")
@@ -305,13 +306,13 @@ func (m *MockClusterSnapshot) LoadBalancer() types.LoadBalancer {
 	return ret0
 }
 
-// LoadBalancer indicates an expected call of LoadBalancer
+// LoadBalancer indicates an expected call of LoadBalancer.
 func (mr *MockClusterSnapshotMockRecorder) LoadBalancer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadBalancer", reflect.TypeOf((*MockClusterSnapshot)(nil).LoadBalancer))
 }
 
-// IsExistsHosts mocks base method
+// IsExistsHosts mocks base method.
 func (m *MockClusterSnapshot) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsExistsHosts", metadata)
@@ -319,13 +320,13 @@ func (m *MockClusterSnapshot) IsExistsHosts(metadata api.MetadataMatchCriteria) 
 	return ret0
 }
 
-// IsExistsHosts indicates an expected call of IsExistsHosts
+// IsExistsHosts indicates an expected call of IsExistsHosts.
 func (mr *MockClusterSnapshotMockRecorder) IsExistsHosts(metadata interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsExistsHosts", reflect.TypeOf((*MockClusterSnapshot)(nil).IsExistsHosts), metadata)
 }
 
-// HostNum mocks base method
+// HostNum mocks base method.
 func (m *MockClusterSnapshot) HostNum(metadata api.MetadataMatchCriteria) int {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HostNum", metadata)
@@ -333,36 +334,36 @@ func (m *MockClusterSnapshot) HostNum(metadata api.MetadataMatchCriteria) int {
 	return ret0
 }
 
-// HostNum indicates an expected call of HostNum
+// HostNum indicates an expected call of HostNum.
 func (mr *MockClusterSnapshotMockRecorder) HostNum(metadata interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostNum", reflect.TypeOf((*MockClusterSnapshot)(nil).HostNum), metadata)
 }
 
-// MockCluster is a mock of Cluster interface
+// MockCluster is a mock of Cluster interface.
 type MockCluster struct {
 	ctrl     *gomock.Controller
 	recorder *MockClusterMockRecorder
 }
 
-// MockClusterMockRecorder is the mock recorder for MockCluster
+// MockClusterMockRecorder is the mock recorder for MockCluster.
 type MockClusterMockRecorder struct {
 	mock *MockCluster
 }
 
-// NewMockCluster creates a new mock instance
+// NewMockCluster creates a new mock instance.
 func NewMockCluster(ctrl *gomock.Controller) *MockCluster {
 	mock := &MockCluster{ctrl: ctrl}
 	mock.recorder = &MockClusterMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockCluster) EXPECT() *MockClusterMockRecorder {
 	return m.recorder
 }
 
-// Snapshot mocks base method
+// Snapshot mocks base method.
 func (m *MockCluster) Snapshot() types.ClusterSnapshot {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Snapshot")
@@ -370,72 +371,72 @@ func (m *MockCluster) Snapshot() types.ClusterSnapshot {
 	return ret0
 }
 
-// Snapshot indicates an expected call of Snapshot
+// Snapshot indicates an expected call of Snapshot.
 func (mr *MockClusterMockRecorder) Snapshot() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Snapshot", reflect.TypeOf((*MockCluster)(nil).Snapshot))
 }
 
-// UpdateHosts mocks base method
+// UpdateHosts mocks base method.
 func (m *MockCluster) UpdateHosts(arg0 []types.Host) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "UpdateHosts", arg0)
 }
 
-// UpdateHosts indicates an expected call of UpdateHosts
+// UpdateHosts indicates an expected call of UpdateHosts.
 func (mr *MockClusterMockRecorder) UpdateHosts(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHosts", reflect.TypeOf((*MockCluster)(nil).UpdateHosts), arg0)
 }
 
-// AddHealthCheckCallbacks mocks base method
+// AddHealthCheckCallbacks mocks base method.
 func (m *MockCluster) AddHealthCheckCallbacks(cb types.HealthCheckCb) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AddHealthCheckCallbacks", cb)
 }
 
-// AddHealthCheckCallbacks indicates an expected call of AddHealthCheckCallbacks
+// AddHealthCheckCallbacks indicates an expected call of AddHealthCheckCallbacks.
 func (mr *MockClusterMockRecorder) AddHealthCheckCallbacks(cb interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddHealthCheckCallbacks", reflect.TypeOf((*MockCluster)(nil).AddHealthCheckCallbacks), cb)
 }
 
-// StopHealthChecking mocks base method
+// StopHealthChecking mocks base method.
 func (m *MockCluster) StopHealthChecking() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "StopHealthChecking")
 }
 
-// StopHealthChecking indicates an expected call of StopHealthChecking
+// StopHealthChecking indicates an expected call of StopHealthChecking.
 func (mr *MockClusterMockRecorder) StopHealthChecking() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StopHealthChecking", reflect.TypeOf((*MockCluster)(nil).StopHealthChecking))
 }
 
-// MockHostSet is a mock of HostSet interface
+// MockHostSet is a mock of HostSet interface.
 type MockHostSet struct {
 	ctrl     *gomock.Controller
 	recorder *MockHostSetMockRecorder
 }
 
-// MockHostSetMockRecorder is the mock recorder for MockHostSet
+// MockHostSetMockRecorder is the mock recorder for MockHostSet.
 type MockHostSetMockRecorder struct {
 	mock *MockHostSet
 }
 
-// NewMockHostSet creates a new mock instance
+// NewMockHostSet creates a new mock instance.
 func NewMockHostSet(ctrl *gomock.Controller) *MockHostSet {
 	mock := &MockHostSet{ctrl: ctrl}
 	mock.recorder = &MockHostSetMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockHostSet) EXPECT() *MockHostSetMockRecorder {
 	return m.recorder
 }
 
-// Hosts mocks base method
+// Hosts mocks base method.
 func (m *MockHostSet) Hosts() []types.Host {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Hosts")
@@ -443,36 +444,36 @@ func (m *MockHostSet) Hosts() []types.Host {
 	return ret0
 }
 
-// Hosts indicates an expected call of Hosts
+// Hosts indicates an expected call of Hosts.
 func (mr *MockHostSetMockRecorder) Hosts() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hosts", reflect.TypeOf((*MockHostSet)(nil).Hosts))
 }
 
-// MockHost is a mock of Host interface
+// MockHost is a mock of Host interface.
 type MockHost struct {
 	ctrl     *gomock.Controller
 	recorder *MockHostMockRecorder
 }
 
-// MockHostMockRecorder is the mock recorder for MockHost
+// MockHostMockRecorder is the mock recorder for MockHost.
 type MockHostMockRecorder struct {
 	mock *MockHost
 }
 
-// NewMockHost creates a new mock instance
+// NewMockHost creates a new mock instance.
 func NewMockHost(ctrl *gomock.Controller) *MockHost {
 	mock := &MockHost{ctrl: ctrl}
 	mock.recorder = &MockHostMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockHost) EXPECT() *MockHostMockRecorder {
 	return m.recorder
 }
 
-// Hostname mocks base method
+// Hostname mocks base method.
 func (m *MockHost) Hostname() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Hostname")
@@ -480,13 +481,13 @@ func (m *MockHost) Hostname() string {
 	return ret0
 }
 
-// Hostname indicates an expected call of Hostname
+// Hostname indicates an expected call of Hostname.
 func (mr *MockHostMockRecorder) Hostname() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Hostname", reflect.TypeOf((*MockHost)(nil).Hostname))
 }
 
-// Metadata mocks base method
+// Metadata mocks base method.
 func (m *MockHost) Metadata() api.Metadata {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Metadata")
@@ -494,13 +495,13 @@ func (m *MockHost) Metadata() api.Metadata {
 	return ret0
 }
 
-// Metadata indicates an expected call of Metadata
+// Metadata indicates an expected call of Metadata.
 func (mr *MockHostMockRecorder) Metadata() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metadata", reflect.TypeOf((*MockHost)(nil).Metadata))
 }
 
-// AddressString mocks base method
+// AddressString mocks base method.
 func (m *MockHost) AddressString() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddressString")
@@ -508,13 +509,13 @@ func (m *MockHost) AddressString() string {
 	return ret0
 }
 
-// AddressString indicates an expected call of AddressString
+// AddressString indicates an expected call of AddressString.
 func (mr *MockHostMockRecorder) AddressString() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddressString", reflect.TypeOf((*MockHost)(nil).AddressString))
 }
 
-// Weight mocks base method
+// Weight mocks base method.
 func (m *MockHost) Weight() uint32 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Weight")
@@ -522,13 +523,13 @@ func (m *MockHost) Weight() uint32 {
 	return ret0
 }
 
-// Weight indicates an expected call of Weight
+// Weight indicates an expected call of Weight.
 func (mr *MockHostMockRecorder) Weight() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Weight", reflect.TypeOf((*MockHost)(nil).Weight))
 }
 
-// SupportTLS mocks base method
+// SupportTLS mocks base method.
 func (m *MockHost) SupportTLS() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SupportTLS")
@@ -536,25 +537,25 @@ func (m *MockHost) SupportTLS() bool {
 	return ret0
 }
 
-// SupportTLS indicates an expected call of SupportTLS
+// SupportTLS indicates an expected call of SupportTLS.
 func (mr *MockHostMockRecorder) SupportTLS() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SupportTLS", reflect.TypeOf((*MockHost)(nil).SupportTLS))
 }
 
-// ClearHealthFlag mocks base method
+// ClearHealthFlag mocks base method.
 func (m *MockHost) ClearHealthFlag(flag api.HealthFlag) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ClearHealthFlag", flag)
 }
 
-// ClearHealthFlag indicates an expected call of ClearHealthFlag
+// ClearHealthFlag indicates an expected call of ClearHealthFlag.
 func (mr *MockHostMockRecorder) ClearHealthFlag(flag interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearHealthFlag", reflect.TypeOf((*MockHost)(nil).ClearHealthFlag), flag)
 }
 
-// ContainHealthFlag mocks base method
+// ContainHealthFlag mocks base method.
 func (m *MockHost) ContainHealthFlag(flag api.HealthFlag) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainHealthFlag", flag)
@@ -562,25 +563,25 @@ func (m *MockHost) ContainHealthFlag(flag api.HealthFlag) bool {
 	return ret0
 }
 
-// ContainHealthFlag indicates an expected call of ContainHealthFlag
+// ContainHealthFlag indicates an expected call of ContainHealthFlag.
 func (mr *MockHostMockRecorder) ContainHealthFlag(flag interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainHealthFlag", reflect.TypeOf((*MockHost)(nil).ContainHealthFlag), flag)
 }
 
-// SetHealthFlag mocks base method
+// SetHealthFlag mocks base method.
 func (m *MockHost) SetHealthFlag(flag api.HealthFlag) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetHealthFlag", flag)
 }
 
-// SetHealthFlag indicates an expected call of SetHealthFlag
+// SetHealthFlag indicates an expected call of SetHealthFlag.
 func (mr *MockHostMockRecorder) SetHealthFlag(flag interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetHealthFlag", reflect.TypeOf((*MockHost)(nil).SetHealthFlag), flag)
 }
 
-// HealthFlag mocks base method
+// HealthFlag mocks base method.
 func (m *MockHost) HealthFlag() api.HealthFlag {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HealthFlag")
@@ -588,13 +589,13 @@ func (m *MockHost) HealthFlag() api.HealthFlag {
 	return ret0
 }
 
-// HealthFlag indicates an expected call of HealthFlag
+// HealthFlag indicates an expected call of HealthFlag.
 func (mr *MockHostMockRecorder) HealthFlag() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HealthFlag", reflect.TypeOf((*MockHost)(nil).HealthFlag))
 }
 
-// Health mocks base method
+// Health mocks base method.
 func (m *MockHost) Health() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Health")
@@ -602,13 +603,13 @@ func (m *MockHost) Health() bool {
 	return ret0
 }
 
-// Health indicates an expected call of Health
+// Health indicates an expected call of Health.
 func (mr *MockHostMockRecorder) Health() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Health", reflect.TypeOf((*MockHost)(nil).Health))
 }
 
-// HostStats mocks base method
+// HostStats mocks base method.
 func (m *MockHost) HostStats() types.HostStats {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HostStats")
@@ -616,13 +617,13 @@ func (m *MockHost) HostStats() types.HostStats {
 	return ret0
 }
 
-// HostStats indicates an expected call of HostStats
+// HostStats indicates an expected call of HostStats.
 func (mr *MockHostMockRecorder) HostStats() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostStats", reflect.TypeOf((*MockHost)(nil).HostStats))
 }
 
-// ClusterInfo mocks base method
+// ClusterInfo mocks base method.
 func (m *MockHost) ClusterInfo() types.ClusterInfo {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterInfo")
@@ -630,25 +631,25 @@ func (m *MockHost) ClusterInfo() types.ClusterInfo {
 	return ret0
 }
 
-// ClusterInfo indicates an expected call of ClusterInfo
+// ClusterInfo indicates an expected call of ClusterInfo.
 func (mr *MockHostMockRecorder) ClusterInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInfo", reflect.TypeOf((*MockHost)(nil).ClusterInfo))
 }
 
-// SetClusterInfo mocks base method
+// SetClusterInfo mocks base method.
 func (m *MockHost) SetClusterInfo(info types.ClusterInfo) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetClusterInfo", info)
 }
 
-// SetClusterInfo indicates an expected call of SetClusterInfo
+// SetClusterInfo indicates an expected call of SetClusterInfo.
 func (mr *MockHostMockRecorder) SetClusterInfo(info interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClusterInfo", reflect.TypeOf((*MockHost)(nil).SetClusterInfo), info)
 }
 
-// TLSHashValue mocks base method
+// TLSHashValue mocks base method.
 func (m *MockHost) TLSHashValue() *types.HashValue {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TLSHashValue")
@@ -656,13 +657,13 @@ func (m *MockHost) TLSHashValue() *types.HashValue {
 	return ret0
 }
 
-// TLSHashValue indicates an expected call of TLSHashValue
+// TLSHashValue indicates an expected call of TLSHashValue.
 func (mr *MockHostMockRecorder) TLSHashValue() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TLSHashValue", reflect.TypeOf((*MockHost)(nil).TLSHashValue))
 }
 
-// CreateConnection mocks base method
+// CreateConnection mocks base method.
 func (m *MockHost) CreateConnection(context context.Context) types.CreateConnectionData {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateConnection", context)
@@ -670,13 +671,13 @@ func (m *MockHost) CreateConnection(context context.Context) types.CreateConnect
 	return ret0
 }
 
-// CreateConnection indicates an expected call of CreateConnection
+// CreateConnection indicates an expected call of CreateConnection.
 func (mr *MockHostMockRecorder) CreateConnection(context interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConnection", reflect.TypeOf((*MockHost)(nil).CreateConnection), context)
 }
 
-// CreateUDPConnection mocks base method
+// CreateUDPConnection mocks base method.
 func (m *MockHost) CreateUDPConnection(context context.Context) types.CreateConnectionData {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateUDPConnection", context)
@@ -684,13 +685,13 @@ func (m *MockHost) CreateUDPConnection(context context.Context) types.CreateConn
 	return ret0
 }
 
-// CreateUDPConnection indicates an expected call of CreateUDPConnection
+// CreateUDPConnection indicates an expected call of CreateUDPConnection.
 func (mr *MockHostMockRecorder) CreateUDPConnection(context interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUDPConnection", reflect.TypeOf((*MockHost)(nil).CreateUDPConnection), context)
 }
 
-// Address mocks base method
+// Address mocks base method.
 func (m *MockHost) Address() net.Addr {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Address")
@@ -698,13 +699,13 @@ func (m *MockHost) Address() net.Addr {
 	return ret0
 }
 
-// Address indicates an expected call of Address
+// Address indicates an expected call of Address.
 func (mr *MockHostMockRecorder) Address() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Address", reflect.TypeOf((*MockHost)(nil).Address))
 }
 
-// Config mocks base method
+// Config mocks base method.
 func (m *MockHost) Config() v2.Host {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Config")
@@ -712,36 +713,36 @@ func (m *MockHost) Config() v2.Host {
 	return ret0
 }
 
-// Config indicates an expected call of Config
+// Config indicates an expected call of Config.
 func (mr *MockHostMockRecorder) Config() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Config", reflect.TypeOf((*MockHost)(nil).Config))
 }
 
-// MockClusterInfo is a mock of ClusterInfo interface
+// MockClusterInfo is a mock of ClusterInfo interface.
 type MockClusterInfo struct {
 	ctrl     *gomock.Controller
 	recorder *MockClusterInfoMockRecorder
 }
 
-// MockClusterInfoMockRecorder is the mock recorder for MockClusterInfo
+// MockClusterInfoMockRecorder is the mock recorder for MockClusterInfo.
 type MockClusterInfoMockRecorder struct {
 	mock *MockClusterInfo
 }
 
-// NewMockClusterInfo creates a new mock instance
+// NewMockClusterInfo creates a new mock instance.
 func NewMockClusterInfo(ctrl *gomock.Controller) *MockClusterInfo {
 	mock := &MockClusterInfo{ctrl: ctrl}
 	mock.recorder = &MockClusterInfoMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClusterInfo) EXPECT() *MockClusterInfoMockRecorder {
 	return m.recorder
 }
 
-// Name mocks base method
+// Name mocks base method.
 func (m *MockClusterInfo) Name() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Name")
@@ -749,13 +750,13 @@ func (m *MockClusterInfo) Name() string {
 	return ret0
 }
 
-// Name indicates an expected call of Name
+// Name indicates an expected call of Name.
 func (mr *MockClusterInfoMockRecorder) Name() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockClusterInfo)(nil).Name))
 }
 
-// ClusterType mocks base method
+// ClusterType mocks base method.
 func (m *MockClusterInfo) ClusterType() v2.ClusterType {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterType")
@@ -763,13 +764,13 @@ func (m *MockClusterInfo) ClusterType() v2.ClusterType {
 	return ret0
 }
 
-// ClusterType indicates an expected call of ClusterType
+// ClusterType indicates an expected call of ClusterType.
 func (mr *MockClusterInfoMockRecorder) ClusterType() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterType", reflect.TypeOf((*MockClusterInfo)(nil).ClusterType))
 }
 
-// LbType mocks base method
+// LbType mocks base method.
 func (m *MockClusterInfo) LbType() types.LoadBalancerType {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LbType")
@@ -777,13 +778,13 @@ func (m *MockClusterInfo) LbType() types.LoadBalancerType {
 	return ret0
 }
 
-// LbType indicates an expected call of LbType
+// LbType indicates an expected call of LbType.
 func (mr *MockClusterInfoMockRecorder) LbType() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LbType", reflect.TypeOf((*MockClusterInfo)(nil).LbType))
 }
 
-// ConnBufferLimitBytes mocks base method
+// ConnBufferLimitBytes mocks base method.
 func (m *MockClusterInfo) ConnBufferLimitBytes() uint32 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ConnBufferLimitBytes")
@@ -791,13 +792,13 @@ func (m *MockClusterInfo) ConnBufferLimitBytes() uint32 {
 	return ret0
 }
 
-// ConnBufferLimitBytes indicates an expected call of ConnBufferLimitBytes
+// ConnBufferLimitBytes indicates an expected call of ConnBufferLimitBytes.
 func (mr *MockClusterInfoMockRecorder) ConnBufferLimitBytes() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConnBufferLimitBytes", reflect.TypeOf((*MockClusterInfo)(nil).ConnBufferLimitBytes))
 }
 
-// MaxRequestsPerConn mocks base method
+// MaxRequestsPerConn mocks base method.
 func (m *MockClusterInfo) MaxRequestsPerConn() uint32 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MaxRequestsPerConn")
@@ -805,13 +806,13 @@ func (m *MockClusterInfo) MaxRequestsPerConn() uint32 {
 	return ret0
 }
 
-// MaxRequestsPerConn indicates an expected call of MaxRequestsPerConn
+// MaxRequestsPerConn indicates an expected call of MaxRequestsPerConn.
 func (mr *MockClusterInfoMockRecorder) MaxRequestsPerConn() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MaxRequestsPerConn", reflect.TypeOf((*MockClusterInfo)(nil).MaxRequestsPerConn))
 }
 
-// Stats mocks base method
+// Stats mocks base method.
 func (m *MockClusterInfo) Stats() types.ClusterStats {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Stats")
@@ -819,13 +820,13 @@ func (m *MockClusterInfo) Stats() types.ClusterStats {
 	return ret0
 }
 
-// Stats indicates an expected call of Stats
+// Stats indicates an expected call of Stats.
 func (mr *MockClusterInfoMockRecorder) Stats() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stats", reflect.TypeOf((*MockClusterInfo)(nil).Stats))
 }
 
-// ResourceManager mocks base method
+// ResourceManager mocks base method.
 func (m *MockClusterInfo) ResourceManager() types.ResourceManager {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResourceManager")
@@ -833,27 +834,27 @@ func (m *MockClusterInfo) ResourceManager() types.ResourceManager {
 	return ret0
 }
 
-// ResourceManager indicates an expected call of ResourceManager
+// ResourceManager indicates an expected call of ResourceManager.
 func (mr *MockClusterInfoMockRecorder) ResourceManager() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResourceManager", reflect.TypeOf((*MockClusterInfo)(nil).ResourceManager))
 }
 
-// TLSMng mocks base method
-func (m *MockClusterInfo) TLSMng() types.TLSContextManager {
+// TLSMng mocks base method.
+func (m *MockClusterInfo) TLSMng() types.TLSClientContextManager {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TLSMng")
-	ret0, _ := ret[0].(types.TLSContextManager)
+	ret0, _ := ret[0].(types.TLSClientContextManager)
 	return ret0
 }
 
-// TLSMng indicates an expected call of TLSMng
+// TLSMng indicates an expected call of TLSMng.
 func (mr *MockClusterInfoMockRecorder) TLSMng() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TLSMng", reflect.TypeOf((*MockClusterInfo)(nil).TLSMng))
 }
 
-// LbSubsetInfo mocks base method
+// LbSubsetInfo mocks base method.
 func (m *MockClusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LbSubsetInfo")
@@ -861,13 +862,13 @@ func (m *MockClusterInfo) LbSubsetInfo() types.LBSubsetInfo {
 	return ret0
 }
 
-// LbSubsetInfo indicates an expected call of LbSubsetInfo
+// LbSubsetInfo indicates an expected call of LbSubsetInfo.
 func (mr *MockClusterInfoMockRecorder) LbSubsetInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LbSubsetInfo", reflect.TypeOf((*MockClusterInfo)(nil).LbSubsetInfo))
 }
 
-// ConnectTimeout mocks base method
+// ConnectTimeout mocks base method.
 func (m *MockClusterInfo) ConnectTimeout() time.Duration {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ConnectTimeout")
@@ -875,13 +876,13 @@ func (m *MockClusterInfo) ConnectTimeout() time.Duration {
 	return ret0
 }
 
-// ConnectTimeout indicates an expected call of ConnectTimeout
+// ConnectTimeout indicates an expected call of ConnectTimeout.
 func (mr *MockClusterInfoMockRecorder) ConnectTimeout() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConnectTimeout", reflect.TypeOf((*MockClusterInfo)(nil).ConnectTimeout))
 }
 
-// LbOriDstInfo mocks base method
+// LbOriDstInfo mocks base method.
 func (m *MockClusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LbOriDstInfo")
@@ -889,13 +890,13 @@ func (m *MockClusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 	return ret0
 }
 
-// LbOriDstInfo indicates an expected call of LbOriDstInfo
+// LbOriDstInfo indicates an expected call of LbOriDstInfo.
 func (mr *MockClusterInfoMockRecorder) LbOriDstInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LbOriDstInfo", reflect.TypeOf((*MockClusterInfo)(nil).LbOriDstInfo))
 }
 
-// LbConfig mocks base method
+// LbConfig mocks base method.
 func (m *MockClusterInfo) LbConfig() v2.IsCluster_LbConfig {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "LbConfig")
@@ -903,36 +904,36 @@ func (m *MockClusterInfo) LbConfig() v2.IsCluster_LbConfig {
 	return ret0
 }
 
-// LbConfig indicates an expected call of LbConfig
+// LbConfig indicates an expected call of LbConfig.
 func (mr *MockClusterInfoMockRecorder) LbConfig() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LbConfig", reflect.TypeOf((*MockClusterInfo)(nil).LbConfig))
 }
 
-// MockResourceManager is a mock of ResourceManager interface
+// MockResourceManager is a mock of ResourceManager interface.
 type MockResourceManager struct {
 	ctrl     *gomock.Controller
 	recorder *MockResourceManagerMockRecorder
 }
 
-// MockResourceManagerMockRecorder is the mock recorder for MockResourceManager
+// MockResourceManagerMockRecorder is the mock recorder for MockResourceManager.
 type MockResourceManagerMockRecorder struct {
 	mock *MockResourceManager
 }
 
-// NewMockResourceManager creates a new mock instance
+// NewMockResourceManager creates a new mock instance.
 func NewMockResourceManager(ctrl *gomock.Controller) *MockResourceManager {
 	mock := &MockResourceManager{ctrl: ctrl}
 	mock.recorder = &MockResourceManagerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockResourceManager) EXPECT() *MockResourceManagerMockRecorder {
 	return m.recorder
 }
 
-// Connections mocks base method
+// Connections mocks base method.
 func (m *MockResourceManager) Connections() types.Resource {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Connections")
@@ -940,13 +941,13 @@ func (m *MockResourceManager) Connections() types.Resource {
 	return ret0
 }
 
-// Connections indicates an expected call of Connections
+// Connections indicates an expected call of Connections.
 func (mr *MockResourceManagerMockRecorder) Connections() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Connections", reflect.TypeOf((*MockResourceManager)(nil).Connections))
 }
 
-// PendingRequests mocks base method
+// PendingRequests mocks base method.
 func (m *MockResourceManager) PendingRequests() types.Resource {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PendingRequests")
@@ -954,13 +955,13 @@ func (m *MockResourceManager) PendingRequests() types.Resource {
 	return ret0
 }
 
-// PendingRequests indicates an expected call of PendingRequests
+// PendingRequests indicates an expected call of PendingRequests.
 func (mr *MockResourceManagerMockRecorder) PendingRequests() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PendingRequests", reflect.TypeOf((*MockResourceManager)(nil).PendingRequests))
 }
 
-// Requests mocks base method
+// Requests mocks base method.
 func (m *MockResourceManager) Requests() types.Resource {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Requests")
@@ -968,13 +969,13 @@ func (m *MockResourceManager) Requests() types.Resource {
 	return ret0
 }
 
-// Requests indicates an expected call of Requests
+// Requests indicates an expected call of Requests.
 func (mr *MockResourceManagerMockRecorder) Requests() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Requests", reflect.TypeOf((*MockResourceManager)(nil).Requests))
 }
 
-// Retries mocks base method
+// Retries mocks base method.
 func (m *MockResourceManager) Retries() types.Resource {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Retries")
@@ -982,36 +983,36 @@ func (m *MockResourceManager) Retries() types.Resource {
 	return ret0
 }
 
-// Retries indicates an expected call of Retries
+// Retries indicates an expected call of Retries.
 func (mr *MockResourceManagerMockRecorder) Retries() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Retries", reflect.TypeOf((*MockResourceManager)(nil).Retries))
 }
 
-// MockResource is a mock of Resource interface
+// MockResource is a mock of Resource interface.
 type MockResource struct {
 	ctrl     *gomock.Controller
 	recorder *MockResourceMockRecorder
 }
 
-// MockResourceMockRecorder is the mock recorder for MockResource
+// MockResourceMockRecorder is the mock recorder for MockResource.
 type MockResourceMockRecorder struct {
 	mock *MockResource
 }
 
-// NewMockResource creates a new mock instance
+// NewMockResource creates a new mock instance.
 func NewMockResource(ctrl *gomock.Controller) *MockResource {
 	mock := &MockResource{ctrl: ctrl}
 	mock.recorder = &MockResourceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockResource) EXPECT() *MockResourceMockRecorder {
 	return m.recorder
 }
 
-// CanCreate mocks base method
+// CanCreate mocks base method.
 func (m *MockResource) CanCreate() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CanCreate")
@@ -1019,37 +1020,37 @@ func (m *MockResource) CanCreate() bool {
 	return ret0
 }
 
-// CanCreate indicates an expected call of CanCreate
+// CanCreate indicates an expected call of CanCreate.
 func (mr *MockResourceMockRecorder) CanCreate() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CanCreate", reflect.TypeOf((*MockResource)(nil).CanCreate))
 }
 
-// Increase mocks base method
+// Increase mocks base method.
 func (m *MockResource) Increase() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Increase")
 }
 
-// Increase indicates an expected call of Increase
+// Increase indicates an expected call of Increase.
 func (mr *MockResourceMockRecorder) Increase() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Increase", reflect.TypeOf((*MockResource)(nil).Increase))
 }
 
-// Decrease mocks base method
+// Decrease mocks base method.
 func (m *MockResource) Decrease() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Decrease")
 }
 
-// Decrease indicates an expected call of Decrease
+// Decrease indicates an expected call of Decrease.
 func (mr *MockResourceMockRecorder) Decrease() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Decrease", reflect.TypeOf((*MockResource)(nil).Decrease))
 }
 
-// Max mocks base method
+// Max mocks base method.
 func (m *MockResource) Max() uint64 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Max")
@@ -1057,13 +1058,13 @@ func (m *MockResource) Max() uint64 {
 	return ret0
 }
 
-// Max indicates an expected call of Max
+// Max indicates an expected call of Max.
 func (mr *MockResourceMockRecorder) Max() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Max", reflect.TypeOf((*MockResource)(nil).Max))
 }
 
-// Cur mocks base method
+// Cur mocks base method.
 func (m *MockResource) Cur() int64 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Cur")
@@ -1071,83 +1072,83 @@ func (m *MockResource) Cur() int64 {
 	return ret0
 }
 
-// Cur indicates an expected call of Cur
+// Cur indicates an expected call of Cur.
 func (mr *MockResourceMockRecorder) Cur() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cur", reflect.TypeOf((*MockResource)(nil).Cur))
 }
 
-// UpdateCur mocks base method
+// UpdateCur mocks base method.
 func (m *MockResource) UpdateCur(arg0 int64) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "UpdateCur", arg0)
 }
 
-// UpdateCur indicates an expected call of UpdateCur
+// UpdateCur indicates an expected call of UpdateCur.
 func (mr *MockResourceMockRecorder) UpdateCur(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCur", reflect.TypeOf((*MockResource)(nil).UpdateCur), arg0)
 }
 
-// MockSimpleCluster is a mock of SimpleCluster interface
+// MockSimpleCluster is a mock of SimpleCluster interface.
 type MockSimpleCluster struct {
 	ctrl     *gomock.Controller
 	recorder *MockSimpleClusterMockRecorder
 }
 
-// MockSimpleClusterMockRecorder is the mock recorder for MockSimpleCluster
+// MockSimpleClusterMockRecorder is the mock recorder for MockSimpleCluster.
 type MockSimpleClusterMockRecorder struct {
 	mock *MockSimpleCluster
 }
 
-// NewMockSimpleCluster creates a new mock instance
+// NewMockSimpleCluster creates a new mock instance.
 func NewMockSimpleCluster(ctrl *gomock.Controller) *MockSimpleCluster {
 	mock := &MockSimpleCluster{ctrl: ctrl}
 	mock.recorder = &MockSimpleClusterMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSimpleCluster) EXPECT() *MockSimpleClusterMockRecorder {
 	return m.recorder
 }
 
-// UpdateHosts mocks base method
+// UpdateHosts mocks base method.
 func (m *MockSimpleCluster) UpdateHosts(newHosts []types.Host) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "UpdateHosts", newHosts)
 }
 
-// UpdateHosts indicates an expected call of UpdateHosts
+// UpdateHosts indicates an expected call of UpdateHosts.
 func (mr *MockSimpleClusterMockRecorder) UpdateHosts(newHosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHosts", reflect.TypeOf((*MockSimpleCluster)(nil).UpdateHosts), newHosts)
 }
 
-// MockClusterConfigFactoryCb is a mock of ClusterConfigFactoryCb interface
+// MockClusterConfigFactoryCb is a mock of ClusterConfigFactoryCb interface.
 type MockClusterConfigFactoryCb struct {
 	ctrl     *gomock.Controller
 	recorder *MockClusterConfigFactoryCbMockRecorder
 }
 
-// MockClusterConfigFactoryCbMockRecorder is the mock recorder for MockClusterConfigFactoryCb
+// MockClusterConfigFactoryCbMockRecorder is the mock recorder for MockClusterConfigFactoryCb.
 type MockClusterConfigFactoryCbMockRecorder struct {
 	mock *MockClusterConfigFactoryCb
 }
 
-// NewMockClusterConfigFactoryCb creates a new mock instance
+// NewMockClusterConfigFactoryCb creates a new mock instance.
 func NewMockClusterConfigFactoryCb(ctrl *gomock.Controller) *MockClusterConfigFactoryCb {
 	mock := &MockClusterConfigFactoryCb{ctrl: ctrl}
 	mock.recorder = &MockClusterConfigFactoryCbMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClusterConfigFactoryCb) EXPECT() *MockClusterConfigFactoryCbMockRecorder {
 	return m.recorder
 }
 
-// UpdateClusterConfig mocks base method
+// UpdateClusterConfig mocks base method.
 func (m *MockClusterConfigFactoryCb) UpdateClusterConfig(configs []v2.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateClusterConfig", configs)
@@ -1155,36 +1156,36 @@ func (m *MockClusterConfigFactoryCb) UpdateClusterConfig(configs []v2.Cluster) e
 	return ret0
 }
 
-// UpdateClusterConfig indicates an expected call of UpdateClusterConfig
+// UpdateClusterConfig indicates an expected call of UpdateClusterConfig.
 func (mr *MockClusterConfigFactoryCbMockRecorder) UpdateClusterConfig(configs interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterConfig", reflect.TypeOf((*MockClusterConfigFactoryCb)(nil).UpdateClusterConfig), configs)
 }
 
-// MockClusterHostFactoryCb is a mock of ClusterHostFactoryCb interface
+// MockClusterHostFactoryCb is a mock of ClusterHostFactoryCb interface.
 type MockClusterHostFactoryCb struct {
 	ctrl     *gomock.Controller
 	recorder *MockClusterHostFactoryCbMockRecorder
 }
 
-// MockClusterHostFactoryCbMockRecorder is the mock recorder for MockClusterHostFactoryCb
+// MockClusterHostFactoryCbMockRecorder is the mock recorder for MockClusterHostFactoryCb.
 type MockClusterHostFactoryCbMockRecorder struct {
 	mock *MockClusterHostFactoryCb
 }
 
-// NewMockClusterHostFactoryCb creates a new mock instance
+// NewMockClusterHostFactoryCb creates a new mock instance.
 func NewMockClusterHostFactoryCb(ctrl *gomock.Controller) *MockClusterHostFactoryCb {
 	mock := &MockClusterHostFactoryCb{ctrl: ctrl}
 	mock.recorder = &MockClusterHostFactoryCbMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClusterHostFactoryCb) EXPECT() *MockClusterHostFactoryCbMockRecorder {
 	return m.recorder
 }
 
-// UpdateClusterHost mocks base method
+// UpdateClusterHost mocks base method.
 func (m *MockClusterHostFactoryCb) UpdateClusterHost(cluster string, hosts []v2.Host) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateClusterHost", cluster, hosts)
@@ -1192,83 +1193,83 @@ func (m *MockClusterHostFactoryCb) UpdateClusterHost(cluster string, hosts []v2.
 	return ret0
 }
 
-// UpdateClusterHost indicates an expected call of UpdateClusterHost
+// UpdateClusterHost indicates an expected call of UpdateClusterHost.
 func (mr *MockClusterHostFactoryCbMockRecorder) UpdateClusterHost(cluster, hosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterHost", reflect.TypeOf((*MockClusterHostFactoryCb)(nil).UpdateClusterHost), cluster, hosts)
 }
 
-// MockClusterManagerFilter is a mock of ClusterManagerFilter interface
+// MockClusterManagerFilter is a mock of ClusterManagerFilter interface.
 type MockClusterManagerFilter struct {
 	ctrl     *gomock.Controller
 	recorder *MockClusterManagerFilterMockRecorder
 }
 
-// MockClusterManagerFilterMockRecorder is the mock recorder for MockClusterManagerFilter
+// MockClusterManagerFilterMockRecorder is the mock recorder for MockClusterManagerFilter.
 type MockClusterManagerFilterMockRecorder struct {
 	mock *MockClusterManagerFilter
 }
 
-// NewMockClusterManagerFilter creates a new mock instance
+// NewMockClusterManagerFilter creates a new mock instance.
 func NewMockClusterManagerFilter(ctrl *gomock.Controller) *MockClusterManagerFilter {
 	mock := &MockClusterManagerFilter{ctrl: ctrl}
 	mock.recorder = &MockClusterManagerFilterMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClusterManagerFilter) EXPECT() *MockClusterManagerFilterMockRecorder {
 	return m.recorder
 }
 
-// OnCreated mocks base method
+// OnCreated mocks base method.
 func (m *MockClusterManagerFilter) OnCreated(cccb types.ClusterConfigFactoryCb, chcb types.ClusterHostFactoryCb) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "OnCreated", cccb, chcb)
 }
 
-// OnCreated indicates an expected call of OnCreated
+// OnCreated indicates an expected call of OnCreated.
 func (mr *MockClusterManagerFilterMockRecorder) OnCreated(cccb, chcb interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnCreated", reflect.TypeOf((*MockClusterManagerFilter)(nil).OnCreated), cccb, chcb)
 }
 
-// MockRegisterUpstreamUpdateMethodCb is a mock of RegisterUpstreamUpdateMethodCb interface
+// MockRegisterUpstreamUpdateMethodCb is a mock of RegisterUpstreamUpdateMethodCb interface.
 type MockRegisterUpstreamUpdateMethodCb struct {
 	ctrl     *gomock.Controller
 	recorder *MockRegisterUpstreamUpdateMethodCbMockRecorder
 }
 
-// MockRegisterUpstreamUpdateMethodCbMockRecorder is the mock recorder for MockRegisterUpstreamUpdateMethodCb
+// MockRegisterUpstreamUpdateMethodCbMockRecorder is the mock recorder for MockRegisterUpstreamUpdateMethodCb.
 type MockRegisterUpstreamUpdateMethodCbMockRecorder struct {
 	mock *MockRegisterUpstreamUpdateMethodCb
 }
 
-// NewMockRegisterUpstreamUpdateMethodCb creates a new mock instance
+// NewMockRegisterUpstreamUpdateMethodCb creates a new mock instance.
 func NewMockRegisterUpstreamUpdateMethodCb(ctrl *gomock.Controller) *MockRegisterUpstreamUpdateMethodCb {
 	mock := &MockRegisterUpstreamUpdateMethodCb{ctrl: ctrl}
 	mock.recorder = &MockRegisterUpstreamUpdateMethodCbMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockRegisterUpstreamUpdateMethodCb) EXPECT() *MockRegisterUpstreamUpdateMethodCbMockRecorder {
 	return m.recorder
 }
 
-// TriggerClusterUpdate mocks base method
+// TriggerClusterUpdate mocks base method.
 func (m *MockRegisterUpstreamUpdateMethodCb) TriggerClusterUpdate(clusterName string, hosts []v2.Host) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "TriggerClusterUpdate", clusterName, hosts)
 }
 
-// TriggerClusterUpdate indicates an expected call of TriggerClusterUpdate
+// TriggerClusterUpdate indicates an expected call of TriggerClusterUpdate.
 func (mr *MockRegisterUpstreamUpdateMethodCbMockRecorder) TriggerClusterUpdate(clusterName, hosts interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TriggerClusterUpdate", reflect.TypeOf((*MockRegisterUpstreamUpdateMethodCb)(nil).TriggerClusterUpdate), clusterName, hosts)
 }
 
-// GetClusterNameByServiceName mocks base method
+// GetClusterNameByServiceName mocks base method.
 func (m *MockRegisterUpstreamUpdateMethodCb) GetClusterNameByServiceName(serviceName string) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterNameByServiceName", serviceName)
@@ -1276,36 +1277,36 @@ func (m *MockRegisterUpstreamUpdateMethodCb) GetClusterNameByServiceName(service
 	return ret0
 }
 
-// GetClusterNameByServiceName indicates an expected call of GetClusterNameByServiceName
+// GetClusterNameByServiceName indicates an expected call of GetClusterNameByServiceName.
 func (mr *MockRegisterUpstreamUpdateMethodCbMockRecorder) GetClusterNameByServiceName(serviceName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterNameByServiceName", reflect.TypeOf((*MockRegisterUpstreamUpdateMethodCb)(nil).GetClusterNameByServiceName), serviceName)
 }
 
-// MockLBSubsetInfo is a mock of LBSubsetInfo interface
+// MockLBSubsetInfo is a mock of LBSubsetInfo interface.
 type MockLBSubsetInfo struct {
 	ctrl     *gomock.Controller
 	recorder *MockLBSubsetInfoMockRecorder
 }
 
-// MockLBSubsetInfoMockRecorder is the mock recorder for MockLBSubsetInfo
+// MockLBSubsetInfoMockRecorder is the mock recorder for MockLBSubsetInfo.
 type MockLBSubsetInfoMockRecorder struct {
 	mock *MockLBSubsetInfo
 }
 
-// NewMockLBSubsetInfo creates a new mock instance
+// NewMockLBSubsetInfo creates a new mock instance.
 func NewMockLBSubsetInfo(ctrl *gomock.Controller) *MockLBSubsetInfo {
 	mock := &MockLBSubsetInfo{ctrl: ctrl}
 	mock.recorder = &MockLBSubsetInfoMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockLBSubsetInfo) EXPECT() *MockLBSubsetInfoMockRecorder {
 	return m.recorder
 }
 
-// IsEnabled mocks base method
+// IsEnabled mocks base method.
 func (m *MockLBSubsetInfo) IsEnabled() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsEnabled")
@@ -1313,13 +1314,13 @@ func (m *MockLBSubsetInfo) IsEnabled() bool {
 	return ret0
 }
 
-// IsEnabled indicates an expected call of IsEnabled
+// IsEnabled indicates an expected call of IsEnabled.
 func (mr *MockLBSubsetInfoMockRecorder) IsEnabled() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsEnabled", reflect.TypeOf((*MockLBSubsetInfo)(nil).IsEnabled))
 }
 
-// FallbackPolicy mocks base method
+// FallbackPolicy mocks base method.
 func (m *MockLBSubsetInfo) FallbackPolicy() types.FallBackPolicy {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FallbackPolicy")
@@ -1327,13 +1328,13 @@ func (m *MockLBSubsetInfo) FallbackPolicy() types.FallBackPolicy {
 	return ret0
 }
 
-// FallbackPolicy indicates an expected call of FallbackPolicy
+// FallbackPolicy indicates an expected call of FallbackPolicy.
 func (mr *MockLBSubsetInfoMockRecorder) FallbackPolicy() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FallbackPolicy", reflect.TypeOf((*MockLBSubsetInfo)(nil).FallbackPolicy))
 }
 
-// DefaultSubset mocks base method
+// DefaultSubset mocks base method.
 func (m *MockLBSubsetInfo) DefaultSubset() types.SubsetMetadata {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DefaultSubset")
@@ -1341,13 +1342,13 @@ func (m *MockLBSubsetInfo) DefaultSubset() types.SubsetMetadata {
 	return ret0
 }
 
-// DefaultSubset indicates an expected call of DefaultSubset
+// DefaultSubset indicates an expected call of DefaultSubset.
 func (mr *MockLBSubsetInfoMockRecorder) DefaultSubset() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DefaultSubset", reflect.TypeOf((*MockLBSubsetInfo)(nil).DefaultSubset))
 }
 
-// SubsetKeys mocks base method
+// SubsetKeys mocks base method.
 func (m *MockLBSubsetInfo) SubsetKeys() []types.SortedStringSetType {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SubsetKeys")
@@ -1355,36 +1356,36 @@ func (m *MockLBSubsetInfo) SubsetKeys() []types.SortedStringSetType {
 	return ret0
 }
 
-// SubsetKeys indicates an expected call of SubsetKeys
+// SubsetKeys indicates an expected call of SubsetKeys.
 func (mr *MockLBSubsetInfoMockRecorder) SubsetKeys() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubsetKeys", reflect.TypeOf((*MockLBSubsetInfo)(nil).SubsetKeys))
 }
 
-// MockLBOriDstInfo is a mock of LBOriDstInfo interface
+// MockLBOriDstInfo is a mock of LBOriDstInfo interface.
 type MockLBOriDstInfo struct {
 	ctrl     *gomock.Controller
 	recorder *MockLBOriDstInfoMockRecorder
 }
 
-// MockLBOriDstInfoMockRecorder is the mock recorder for MockLBOriDstInfo
+// MockLBOriDstInfoMockRecorder is the mock recorder for MockLBOriDstInfo.
 type MockLBOriDstInfoMockRecorder struct {
 	mock *MockLBOriDstInfo
 }
 
-// NewMockLBOriDstInfo creates a new mock instance
+// NewMockLBOriDstInfo creates a new mock instance.
 func NewMockLBOriDstInfo(ctrl *gomock.Controller) *MockLBOriDstInfo {
 	mock := &MockLBOriDstInfo{ctrl: ctrl}
 	mock.recorder = &MockLBOriDstInfoMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockLBOriDstInfo) EXPECT() *MockLBOriDstInfoMockRecorder {
 	return m.recorder
 }
 
-// IsEnabled mocks base method
+// IsEnabled mocks base method.
 func (m *MockLBOriDstInfo) IsEnabled() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsEnabled")
@@ -1392,13 +1393,13 @@ func (m *MockLBOriDstInfo) IsEnabled() bool {
 	return ret0
 }
 
-// IsEnabled indicates an expected call of IsEnabled
+// IsEnabled indicates an expected call of IsEnabled.
 func (mr *MockLBOriDstInfoMockRecorder) IsEnabled() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsEnabled", reflect.TypeOf((*MockLBOriDstInfo)(nil).IsEnabled))
 }
 
-// GetHeader mocks base method
+// GetHeader mocks base method.
 func (m *MockLBOriDstInfo) GetHeader() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHeader")
@@ -1406,7 +1407,7 @@ func (m *MockLBOriDstInfo) GetHeader() string {
 	return ret0
 }
 
-// GetHeader indicates an expected call of GetHeader
+// GetHeader indicates an expected call of GetHeader.
 func (mr *MockLBOriDstInfoMockRecorder) GetHeader() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeader", reflect.TypeOf((*MockLBOriDstInfo)(nil).GetHeader))

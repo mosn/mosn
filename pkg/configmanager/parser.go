@@ -22,10 +22,12 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
 
+	"go.uber.org/automaxprocs/maxprocs"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -66,16 +68,11 @@ type ParsedCallback func(data interface{}, endParsing bool) error
 // basic config
 var configParsedCBMaps = make(map[ContentKey][]ParsedCallback)
 
-// extend config parsed listener
-// for user defined configs in extend field
-var configExtendParsedCBMaps = make(map[string][]ParsedCallback)
-
 // Group of ContentKey
 // notes: configcontentkey equals to the key of config file
 const (
-	ParseCallbackKeyCluster        ContentKey = "clusters"
-	ParseCallbackKeyServiceRgtInfo ContentKey = "service_registry"
-	ParseCallbackKeyProcessor      ContentKey = "processor"
+	ParseCallbackKeyCluster   ContentKey = "clusters"
+	ParseCallbackKeyProcessor ContentKey = "processor"
 )
 
 // RegisterConfigParsedListener
@@ -89,32 +86,6 @@ func RegisterConfigParsedListener(key ContentKey, cb ParsedCallback) {
 		log.StartLogger.Infof("[config] %s added to configParsedCBMaps", key)
 		cpc := []ParsedCallback{cb}
 		configParsedCBMaps[key] = cpc
-	}
-}
-
-// RegisterConfigExtendParsedListener used to do callback
-// when the extend config is parsed
-//
-// "extend" : [{
-//        "type" : "dubbo_registry",
-//        "config" : {},
-//    },{
-//        "type" : "sofa_registry",
-//        "config" : {},
-//    },{
-//        "type" :  "msg_broker",
-//        "config" : {}
-//    },{
-//        "type" :  "oh_very",
-//        "config" : "here can be a string"
-//  }]
-//
-func RegisterConfigExtendParsedListener(key string, cb ParsedCallback) {
-	if cbs, ok := configExtendParsedCBMaps[key]; ok {
-		configExtendParsedCBMaps[key] = append(cbs, cb)
-	} else {
-		log.StartLogger.Infof("[config] %s added to configParsedCBMaps", key)
-		configExtendParsedCBMaps[key] = []ParsedCallback{cb}
 	}
 }
 
@@ -140,13 +111,14 @@ func ParseClusterConfig(clusters []v2.Cluster) ([]v2.Cluster, map[string][]v2.Ho
 				DefaultConnBufferLimitBytes)
 		}
 		if c.LBSubSetConfig.FallBackPolicy > 2 {
-			log.StartLogger.Fatalf("[config] [parse cluster] lb subset config 's fall back policy set error. " +
+			log.StartLogger.Errorf("[config] [parse cluster] lb subset config 's fall back policy set error. " +
 				"For 0, represent NO_FALLBACK" +
 				"For 1, represent ANY_ENDPOINT" +
 				"For 2, represent DEFAULT_SUBSET")
+			c.LBSubSetConfig.FallBackPolicy = 0
 		}
 		if _, ok := ProtocolsSupported[c.HealthCheck.Protocol]; !ok && c.HealthCheck.Protocol != "" {
-			log.StartLogger.Fatalf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
+			log.StartLogger.Errorf("[config] [parse cluster] unsupported health check protocol: %v", c.HealthCheck.Protocol)
 		}
 		c.Hosts = parseHostConfig(c.Hosts)
 		clusterV2Map[c.Name] = c.Hosts
@@ -348,44 +320,66 @@ func ParseRouterConfiguration(c *v2.FilterChain) (*v2.RouterConfiguration, error
 
 }
 
-// extensible service registry
-// for various service registries,
-//  eg: dubbo_registry, sofa_registry, msg_broker or any other user defined ...
-func ParseConfigExtend(itemList []v2.ExtendItem) {
-	// trigger all extend callbacks
-	for _, extConfig := range itemList {
-		if cbs, ok := configExtendParsedCBMaps[extConfig.Type]; ok {
-			for _, cb := range cbs {
-				cb(extConfig.Config, true)
-			}
-		}
-	}
-}
-
-func ParseServiceRegistry(src v2.ServiceRegistryInfo) {
-	//trigger all callbacks
-	if cbs, ok := configParsedCBMaps[ParseCallbackKeyServiceRgtInfo]; ok {
-		for _, cb := range cbs {
-			cb(src, true)
-		}
-	}
-}
-
 // ParseServerConfig
 func ParseServerConfig(c *v2.ServerConfig) *v2.ServerConfig {
-	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
-		c.Processor = n
-	} else if c.Processor == 0 {
-		c.Processor = runtime.NumCPU()
-	}
+	setMaxProcsWithProcessor(c.Processor)
 
+	process := runtime.GOMAXPROCS(0)
 	// trigger processor callbacks
 	if cbs, ok := configParsedCBMaps[ParseCallbackKeyProcessor]; ok {
 		for _, cb := range cbs {
-			cb(c.Processor, true)
+			cb(process, true)
 		}
 	}
 	return c
+}
+
+func setMaxProcsWithProcessor(procs interface{}) {
+	// env variable has the highest priority.
+	if n, _ := strconv.Atoi(os.Getenv("GOMAXPROCS")); n > 0 && n <= runtime.NumCPU() {
+		runtime.GOMAXPROCS(n)
+		return
+	}
+	if procs == nil {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+		return
+	}
+
+	intfunc := func(p int) {
+		// use manual setting
+		// no judge p > runtime.NumCPU(), because some situation maybe need this, such as multi io
+		if p < 1 {
+			p = runtime.NumCPU()
+		}
+		runtime.GOMAXPROCS(p)
+	}
+
+	strfunc := func(p string) {
+		if strings.EqualFold(p, "auto") {
+			// auto config with real cpu core or limit cpu core
+			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+			return
+		}
+
+		pi, err := strconv.Atoi(p)
+		if err != nil {
+			log.DefaultLogger.Warnf("[configuration] server.processor is not stringnumber, use auto config.")
+			maxprocs.Set(maxprocs.Logger(log.DefaultLogger.Infof))
+			return
+		}
+		intfunc(pi)
+	}
+
+	switch processor := procs.(type) {
+	case string:
+		strfunc(processor)
+	case int:
+		intfunc(processor)
+	case float64:
+		intfunc(int(processor))
+	default:
+		log.StartLogger.Fatalf("unsupport serverconfig processor type %v, must be int or string.", reflect.TypeOf(procs))
+	}
 }
 
 // GetListenerFilters returns a listener filter factory by filter.Type
@@ -396,24 +390,6 @@ func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
 		sfcc, err := api.CreateListenerFilterChainFactory(c.Type, c.Config)
 		if err != nil {
 			log.DefaultLogger.Errorf("[config] get listener filter failed, type: %s, error: %v", c.Type, err)
-			continue
-		}
-		if sfcc != nil {
-			factories = append(factories, sfcc)
-		}
-	}
-
-	return factories
-}
-
-// GetStreamFilters returns a stream filter factory by filter.Type
-func GetStreamFilters(configs []v2.Filter) []api.StreamFilterChainFactory {
-	var factories []api.StreamFilterChainFactory
-
-	for _, c := range configs {
-		sfcc, err := api.CreateStreamFilterChainFactory(c.Type, c.Config)
-		if err != nil {
-			log.DefaultLogger.Errorf("[config] get stream filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
 		if sfcc != nil {

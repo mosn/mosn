@@ -25,12 +25,12 @@ const (
 	ContextKeyStreamID ContextKey = iota
 	ContextKeyConnection
 	ContextKeyConnectionID
+	ContextKeyConnectionPoolIndex
 	ContextKeyListenerPort
 	ContextKeyListenerName
 	ContextKeyListenerType
 	ContextKeyListenerStatsNameSpace
 	ContextKeyNetworkFilterChainFactories
-	ContextKeyStreamFilterChainFactories
 	ContextKeyBufferPoolCtx
 	ContextKeyAccessLogs
 	ContextOriRemoteAddr

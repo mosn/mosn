@@ -25,7 +25,6 @@ import (
 	"github.com/go-chi/chi"
 	dubbologger "github.com/mosn/registry/dubbo/common/logger"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	routerAdapter "mosn.io/mosn/pkg/router"
 	"mosn.io/pkg/utils"
@@ -41,36 +40,28 @@ type dubboConfig struct {
 
 /*
 example config :
-
-    "extend" :  [{
-		"type" : "dubbo_registry",
-		"config": {
-			"enable" : true,
-			"server_port" : 20080,
-			"api_port" : 10022,
-			"log_path" : "/tmp"
-		}
-	}]
+   "extends": {
+	   "dubbo_registry": {
+		    "enable" : true,
+		    "server_port" : 20080,
+		    "api_port" : 10022,
+		    "log_path" : "/tmp"
+	   }
+   }
 */
 func init() {
-	configmanager.RegisterConfigExtendParsedListener("dubbo_registry",
-		func(data interface{}, _ bool) error {
-			if dataBytes, ok := data.(json.RawMessage); ok {
-				var conf dubboConfig
-				err := json.Unmarshal(dataBytes, &conf)
-				if err != nil {
-					log.DefaultLogger.Errorf("[dubbod] failed to parse dubbo registry config: %v", err.Error())
-					return err
-				}
-
-				if conf.Enable {
-					Init(conf.APIPort, conf.ServerListenerPort, conf.LogPath)
-				}
-			}
-
-			return nil
-		},
-	)
+	v2.RegisterParseExtendConfig("dubbo_registry", func(config json.RawMessage) error {
+		var conf dubboConfig
+		err := json.Unmarshal(config, &conf)
+		if err != nil {
+			log.DefaultLogger.Errorf("[dubbod] failed to parse dubbo registry config: %v", err.Error())
+			return err
+		}
+		if conf.Enable {
+			Init(conf.APIPort, conf.ServerListenerPort, conf.LogPath)
+		}
+		return nil
+	})
 }
 
 // Init set the pub port && api port

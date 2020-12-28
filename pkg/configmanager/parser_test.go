@@ -24,6 +24,7 @@ import (
 	"net"
 	"os"
 	"reflect"
+	"runtime"
 	"testing"
 
 	"mosn.io/api"
@@ -43,7 +44,6 @@ var cb testCallback
 
 func TestMain(m *testing.M) {
 	RegisterConfigParsedListener(ParseCallbackKeyCluster, cb.ParsedCallback)
-	RegisterConfigParsedListener(ParseCallbackKeyServiceRgtInfo, cb.ParsedCallback)
 	RegisterConfigParsedListener(ParseCallbackKeyProcessor, cb.ParsedCallback)
 	os.Exit(m.Run())
 }
@@ -168,13 +168,11 @@ func TestParseListenerConfig(t *testing.T) {
 	lnStr = fmt.Sprintf(`{
 		"address": "%s"
 	}`, unixListener.Addr().String())
-	unixlc := &v2.Listener{
-	}
+	unixlc := &v2.Listener{}
 	unixlc.Network = "unix"
 	if err := json.Unmarshal([]byte(lnStr), unixlc); err != nil {
 		t.Fatalf("listener config init failed: %v", err)
 	}
-
 
 	ln = ParseListenerConfig(unixlc, inherit, inheritPacketConn)
 
@@ -184,6 +182,23 @@ func TestParseListenerConfig(t *testing.T) {
 		ln.PerConnBufferLimitBytes == 1<<15 &&
 		ln.InheritListener != nil) {
 		t.Errorf("listener parse unexpected, listener: %+v", ln)
+	}
+}
+
+func TestParseListenerUDP(t *testing.T) {
+	packetconn, err := net.ListenPacket("udp", "127.0.0.1:8080")
+	if err != nil {
+		t.Fatalf("listen packet error: %v", err)
+	}
+	ln := ParseListenerConfig(&v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			AddrConfig: "127.0.0.1:8080",
+			Network:    "udp",
+		},
+	}, nil, []net.PacketConn{packetconn})
+	if !(ln.Addr != nil &&
+		ln.InheritPacketConn != nil) {
+		t.Fatalf("parse udp listener failed: %+v", ln)
 	}
 }
 
@@ -216,20 +231,25 @@ func TestParseRouterConfig(t *testing.T) {
 	}
 }
 
-func TestParseServiceRegistry(t *testing.T) {
-	cb.Count = 0
-	ParseServiceRegistry(v2.ServiceRegistryInfo{})
-	if cb.Count != 1 {
-		t.Error("no callback")
+func TestParseServerConfigWithAutoProc(t *testing.T) {
+	// set env
+	nc := runtime.NumCPU()
+	// register cb
+	cb := 0
+	RegisterConfigParsedListener(ParseCallbackKeyProcessor, func(data interface{}, endParsing bool) error {
+		p := data.(int)
+		cb = p
+		return nil
+	})
+	_ = ParseServerConfig(&v2.ServerConfig{
+		Processor: "auto",
+	})
+	if cb != nc {
+		t.Fatalf("processor callback should be called, cb:%d, numcpu:%d", cb, nc)
 	}
 }
 
 func TestParseServerConfig(t *testing.T) {
-	if c := ParseServerConfig(&v2.ServerConfig{
-		Processor: 0,
-	}); c.Processor == 0 {
-		t.Fatalf("process should be setted by runtime cpu number")
-	}
 	// set env
 	os.Setenv("GOMAXPROCS", "1")
 	// register cb
@@ -245,7 +265,6 @@ func TestParseServerConfig(t *testing.T) {
 	if cb != 1 {
 		t.Fatal("processor callback should be called")
 	}
-
 }
 
 func TestGetListenerFilters(t *testing.T) {
@@ -299,37 +318,6 @@ func TestGetNetworkFilters(t *testing.T) {
 				{Type: "not registered"},
 				{Type: "test_nil"},
 			},
-		},
-	})
-	if len(facs) != 1 {
-		t.Fatalf("expected got only one success factory, but got %d", len(facs))
-	}
-}
-
-func TestGetStreamFilters(t *testing.T) {
-	api.RegisterStream("test1", func(cfg map[string]interface{}) (api.StreamFilterChainFactory, error) {
-		return &struct {
-			api.StreamFilterChainFactory
-		}{}, nil
-	})
-	api.RegisterStream("test_nil", func(cfg map[string]interface{}) (api.StreamFilterChainFactory, error) {
-		return nil, nil
-	})
-	api.RegisterStream("test_error", func(cfg map[string]interface{}) (api.StreamFilterChainFactory, error) {
-		return nil, errors.New("invalid factory create")
-	})
-	facs := GetStreamFilters([]v2.Filter{
-		{
-			Type: "test1",
-		},
-		{
-			Type: "test_error",
-		},
-		{
-			Type: "not registered",
-		},
-		{
-			Type: "test_nil",
 		},
 	})
 	if len(facs) != 1 {

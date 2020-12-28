@@ -39,8 +39,9 @@ type ServerConfig struct {
 	//graceful shutdown config
 	GracefulTimeout api.DurationConfig `json:"graceful_timeout,omitempty"`
 
-	//go processor number
-	Processor int `json:"processor,omitempty"`
+	// int go processor number
+	// string set auto means use real cpu core or limit cpu core
+	Processor interface{} `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
 

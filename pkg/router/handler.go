@@ -44,7 +44,7 @@ func (h *simpleHandler) Route() api.Route {
 }
 
 func DefaultMakeHandler(ctx context.Context, headers api.HeaderMap, routers types.Routers) types.RouteHandler {
-	r := routers.MatchRoute(headers, 1)
+	r := routers.MatchRoute(ctx, headers)
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(ctx, RouterLogFormat, "DefaultHandklerChain", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
 	}

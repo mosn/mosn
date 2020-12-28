@@ -1,6 +1,7 @@
 package extract
 
 import (
+	"context"
 	"encoding/base64"
 	"net"
 	"reflect"
@@ -418,11 +419,11 @@ func (r *MockRouteRule) PerFilterConfig() map[string]interface{} {
 	return r.perFilterConfig
 }
 
-func (r *MockRouteRule) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (r *MockRouteRule) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 
 }
 
-func (r *MockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (r *MockRouteRule) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 
 }
 

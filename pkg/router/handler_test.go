@@ -30,7 +30,7 @@ import (
 func TestDoRouteHandler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	routers := mock.NewMockRouters(ctrl)
-	routers.EXPECT().MatchRoute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ api.HeaderMap, _ uint64) api.Route {
+	routers.EXPECT().MatchRoute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ api.HeaderMap) api.Route {
 		route := mock.NewMockRoute(ctrl)
 		route.EXPECT().RouteRule().DoAndReturn(func() api.RouteRule {
 			rule := mock.NewMockRouteRule(ctrl)
@@ -68,12 +68,12 @@ func (h *mockHandler) IsAvailable(ctx context.Context, manager types.ClusterMana
 func TestDoRouteHandlerExtend(t *testing.T) {
 	RegisterMakeHandler("test", func(ctx context.Context, headers api.HeaderMap, routers types.Routers) types.RouteHandler {
 		return &mockHandler{
-			route: routers.MatchRoute(headers, 1),
+			route: routers.MatchRoute(ctx, headers),
 		}
 	}, false)
 	ctrl := gomock.NewController(t)
 	routers := mock.NewMockRouters(ctrl)
-	routers.EXPECT().MatchRoute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ api.HeaderMap, _ uint64) api.Route {
+	routers.EXPECT().MatchRoute(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ api.HeaderMap) api.Route {
 		route := mock.NewMockRoute(ctrl)
 		return route
 	}).AnyTimes()

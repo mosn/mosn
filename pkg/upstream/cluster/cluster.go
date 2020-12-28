@@ -173,7 +173,7 @@ type clusterInfo struct {
 	lbSubsetInfo         types.LBSubsetInfo
 	lbOriDstInfo         types.LBOriDstInfo
 	clusterManagerTLS    bool
-	tlsMng               types.TLSContextManager
+	tlsMng               types.TLSClientContextManager
 	connectTimeout       time.Duration
 	lbConfig             v2.IsCluster_LbConfig
 }
@@ -212,7 +212,7 @@ func (ci *clusterInfo) ResourceManager() types.ResourceManager {
 	return ci.resourceManager
 }
 
-func (ci *clusterInfo) TLSMng() types.TLSContextManager {
+func (ci *clusterInfo) TLSMng() types.TLSClientContextManager {
 	if ci.clusterManagerTLS {
 		return clusterManagerInstance.GetTLSManager()
 	}

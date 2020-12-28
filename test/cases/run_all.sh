@@ -8,7 +8,7 @@ function makebuild {
 	cp ../../cmd/mosn/main/* $OPWD/tmpmain
 	# GO BUILD 
 	cd $OPWD/tmpmain
-	go build -o main
+	go build -tags=mosn_debug -o main
 	mv ./main "$OPWD/test_mosn"
 	rm -rf $OPWD/tmpmain
 	echo $OPWD/test_mosn

@@ -18,10 +18,11 @@
 package router
 
 import (
+	"context"
 	"testing"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -29,7 +30,7 @@ type mockRouteBase struct {
 	*RouteRuleImplBase
 }
 
-func (r *mockRouteBase) Match(headers api.HeaderMap, randomValue uint64) api.Route {
+func (r *mockRouteBase) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	return nil
 }
 func (r *mockRouteBase) Matcher() string {

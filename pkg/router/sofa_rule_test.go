@@ -18,6 +18,7 @@
 package router
 
 import (
+	"context"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -46,7 +47,8 @@ func TestSofaRouteRuleSimple(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	mheader := mock.NewMockHeaderMap(ctrl)
 	mheader.EXPECT().Get(types.SofaRouteMatchKey).Return("any value", true).AnyTimes()
-	if sofaroute.Match(mheader, 0) == nil {
+	ctx := context.Background()
+	if sofaroute.Match(ctx, mheader) == nil {
 		t.Fatalf("sofa route rule  fast match failed")
 	}
 }
@@ -82,14 +84,15 @@ func TestSofaRouteRuleHeaderMatch(t *testing.T) {
 	headerMatched := mock.NewMockHeaderMap(ctrl)
 	headerMatched.EXPECT().Get("key1").Return("value1", true).AnyTimes()
 	headerMatched.EXPECT().Get("key2").Return("value2", true).AnyTimes()
-	if sofaroute.Match(headerMatched, 0) == nil {
+	ctx := context.Background()
+	if sofaroute.Match(ctx, headerMatched) == nil {
 		t.Fatalf("sofa route rule matched header failed")
 	}
 	// header matched failed
 	headerNotMatched := mock.NewMockHeaderMap(ctrl)
 	headerNotMatched.EXPECT().Get("key1").Return("value1", true).AnyTimes()
 	headerNotMatched.EXPECT().Get("key2").Return("", false).AnyTimes()
-	if sofaroute.Match(headerNotMatched, 0) != nil {
+	if sofaroute.Match(ctx, headerNotMatched) != nil {
 		t.Fatalf("sofa route rule matched success, but expected not")
 	}
 

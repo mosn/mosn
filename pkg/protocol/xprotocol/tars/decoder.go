@@ -20,7 +20,7 @@ package tars
 import (
 	"context"
 
-	"github.com/TarsCloud/TarsGo/tars"
+	tarsprotocol "github.com/TarsCloud/TarsGo/tars/protocol"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	"github.com/juju/errors"
@@ -30,8 +30,8 @@ import (
 )
 
 func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
-	frameLen, status := tars.TarsRequest(data.Bytes())
-	if status != tars.PACKAGE_FULL {
+	frameLen, status := tarsprotocol.TarsRequest(data.Bytes())
+	if status != tarsprotocol.PACKAGE_FULL {
 		return nil, errors.New("tars request status fail")
 	}
 	req := &Request{
@@ -58,8 +58,8 @@ func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, e
 }
 
 func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
-	frameLen, status := tars.TarsRequest(data.Bytes())
-	if status != tars.PACKAGE_FULL {
+	frameLen, status := tarsprotocol.TarsRequest(data.Bytes())
+	if status != tarsprotocol.PACKAGE_FULL {
 		return nil, errors.New("tars request status fail")
 	}
 	resp := &Response{}

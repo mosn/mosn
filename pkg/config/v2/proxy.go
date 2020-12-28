@@ -60,4 +60,5 @@ type XProxyExtendConfig struct {
 type ProxyGeneralExtendConfig struct {
 	Http2UseStream     bool `json:"http2_use_stream,omitempty"`
 	MaxRequestBodySize int  `json:"max_request_body_size,omitempty"`
+	MaxHeaderSize      int  `json:"max_header_size,omitempty"`
 }

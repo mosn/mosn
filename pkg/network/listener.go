@@ -24,6 +24,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
@@ -199,6 +200,10 @@ func (l *listener) readMsgEventLoop(lctx context.Context) {
 }
 
 func (l *listener) Stop() error {
+	if !l.bindToPort {
+		return nil
+	}
+
 	var err error
 	switch l.network {
 	case "udp":
@@ -220,6 +225,10 @@ func (l *listener) SetListenerTag(tag uint64) {
 }
 
 func (l *listener) ListenerFile() (*os.File, error) {
+	if !l.bindToPort {
+		return nil, syscall.EINVAL
+	}
+
 	switch l.network {
 	case "udp":
 		return l.packetConn.(*net.UDPConn).File()
@@ -259,6 +268,11 @@ func (l *listener) Close(lctx context.Context) error {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.state = ListenerStopped
+
+	if !l.bindToPort {
+		return nil
+	}
+
 	if l.rawl != nil {
 		l.cb.OnClose()
 		return l.rawl.Close()

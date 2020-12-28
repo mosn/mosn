@@ -2,8 +2,9 @@ mtls/crypto/tls
 
 1. mtls/crypto/tls is based on Golang1.12.7's standard library crypto/tls
 2. Add transfer_tls.go that support smooth upgrade on TLS
-3. modify import paths
+3. Modify import paths
 4. Call TransferSetTLSInfo() to set transfer info when TLS handshake is successful
+5. Reuse tls Conn's outBuf to reduce memory in large number of idle connection
 
 add supports for tls1.3-gm
 see draft:https://datatracker.ietf.org/doc/draft-yang-tls-tls13-sm-suites/
@@ -11,4 +12,3 @@ see draft:https://datatracker.ietf.org/doc/draft-yang-tls-tls13-sm-suites/
 run tls test
     a. go to pkg/mtls
     b. go test -v ./...
-

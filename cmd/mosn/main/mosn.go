@@ -24,12 +24,14 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
+	_ "mosn.io/mosn/pkg/admin/debug"
 	_ "mosn.io/mosn/pkg/buffer"
 	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	_ "mosn.io/mosn/pkg/filter/network/streamproxy"
 	_ "mosn.io/mosn/pkg/filter/stream/dsl"
+	_ "mosn.io/mosn/pkg/filter/stream/dubbo"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	_ "mosn.io/mosn/pkg/filter/stream/faulttolerance"
 	_ "mosn.io/mosn/pkg/filter/stream/flowcontrol"
@@ -79,7 +81,7 @@ func newMosnApp(startCmd *cli.Command) *cli.App {
 	app.Name = "mosn"
 	app.Version = Version
 	app.Compiled = time.Now()
-	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Financial"
+	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Group"
 	app.Usage = "MOSN is modular observable smart netstub."
 	app.Flags = cmdStart.Flags
 

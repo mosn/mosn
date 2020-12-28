@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -36,19 +37,32 @@ import (
 type poolMultiplex struct {
 	*connpool
 
-	clientMux     sync.Mutex
-	activeClients sync.Map
+	clientMux              sync.Mutex
+	activeClients          []sync.Map
+	currentCheckAndInitIdx int64
+
+	shutdown bool // pool is already shutdown
 }
 
 // NewPoolMultiplex generates a multiplex conn pool
 func NewPoolMultiplex(p *connpool) types.ConnectionPool {
+	maxConns := p.Host().ClusterInfo().ResourceManager().Connections().Max()
+
+	// xDS cluster if not limit max connection will recv:
+	// max_connections:{value:4294967295}  max_pending_requests:{value:4294967295}  max_requests:{value:4294967295}  max_retries:{value:4294967295}
+	// if not judge max, will oom
+	if maxConns == 0 || maxConns >= math.MaxUint32 {
+		// default conn num should be 1
+		maxConns = 1
+	}
+
 	return &poolMultiplex{
 		connpool:      p,
-		activeClients: sync.Map{},
+		activeClients: make([]sync.Map, maxConns),
 	}
 }
 
-func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolName) {
+func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolName, index int) {
 	utils.GoWithRecover(func() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[stream] [sofarpc] [connpool] init host %s", p.Host().AddressString())
@@ -56,27 +70,43 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 
 		p.clientMux.Lock()
 		defer p.clientMux.Unlock()
+
+		// if the pool is already shut down, do nothing directly return
+		if p.shutdown {
+			return
+		}
+
 		client, _ := p.newActiveClient(context.Background(), sub)
 		if client != nil {
 			client.state = Connected
-			p.activeClients.Store(sub, client)
+			client.indexInPool = index
+			p.activeClients[index].Store(sub, client)
 		} else {
-			p.activeClients.Delete(sub)
+			p.activeClients[index].Delete(sub)
 		}
+
 	}, nil)
 }
 
 // CheckAndInit init the connection pool
 func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
-	var client *activeClientMultiplex
+	var clientIdx int64 = 0 // most use cases, there will only be 1 connection
+	if len(p.activeClients) > 1 {
+		if clientIdx = getClientIDFromDownStreamCtx(ctx); clientIdx == invalidClientID {
+			clientIdx = atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
+			// set current client index to downstream context
+			mosnctx.WithValue(ctx, types.ContextKeyConnectionPoolIndex, clientIdx)
+		}
+	}
 
+	var client *activeClientMultiplex
 	subProtocol := getSubProtocol(ctx)
 
-	v, ok := p.activeClients.Load(subProtocol)
+	v, ok := p.activeClients[clientIdx].Load(subProtocol)
 	if !ok {
 		fakeclient := &activeClientMultiplex{}
 		fakeclient.state = Init
-		v, _ := p.activeClients.LoadOrStore(subProtocol, fakeclient)
+		v, _ := p.activeClients[clientIdx].LoadOrStore(subProtocol, fakeclient)
 		client = v.(*activeClientMultiplex)
 	} else {
 		client = v.(*activeClientMultiplex)
@@ -87,7 +117,7 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 	}
 
 	if atomic.CompareAndSwapUint32(&client.state, Init, Connecting) {
-		p.init(client, subProtocol)
+		p.init(client, subProtocol, int(clientIdx))
 	}
 
 	return false
@@ -95,11 +125,24 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 
 // NewStream Create a client stream and call's by proxy
 func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
+	var (
+		ok        bool
+		clientIdx int64 = 0
+	)
+
+	if len(p.activeClients) > 1 {
+		clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
+		if clientIdx, ok = clientIdxInter.(int64); !ok {
+			// this client is not inited
+			return p.Host(), nil, types.ConnectionFailure
+		}
+	}
+
 	subProtocol := getSubProtocol(ctx)
 
-	client, _ := p.activeClients.Load(subProtocol)
-	host := p.Host()
+	client, _ := p.activeClients[clientIdx].Load(subProtocol)
 
+	host := p.Host()
 	if client == nil {
 		return host, nil, types.ConnectionFailure
 	}
@@ -136,14 +179,29 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 
 // Shutdown stop the keepalive, so the connection will be idle after requests finished
 func (p *poolMultiplex) Shutdown() {
-	f := func(k, v interface{}) bool {
-		ac, _ := v.(*activeClientMultiplex)
-		if ac.keepAlive != nil {
-			ac.keepAlive.keepAlive.Stop()
+	utils.GoWithRecover(func() {
+		{
+			p.clientMux.Lock()
+			if p.shutdown {
+				p.clientMux.Unlock()
+				return
+			}
+			p.shutdown = true
+			p.clientMux.Unlock()
 		}
-		return true
-	}
-	p.activeClients.Range(f)
+
+		for i := 0; i < len(p.activeClients); i++ {
+			f := func(k, v interface{}) bool {
+				ac, _ := v.(*activeClientMultiplex)
+				if ac.keepAlive != nil {
+					ac.keepAlive.keepAlive.Stop()
+				}
+				return true
+			}
+			p.activeClients[i].Range(f)
+		}
+
+	}, nil)
 }
 
 func (p *poolMultiplex) createStreamClient(context context.Context, connData types.CreateConnectionData) stream.Client {
@@ -200,15 +258,17 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 }
 
 func (p *poolMultiplex) Close() {
-	f := func(k, v interface{}) bool {
-		ac, _ := v.(*activeClientMultiplex)
-		if ac.codecClient != nil {
-			ac.codecClient.Close()
+	for i := 0; i < len(p.activeClients); i++ {
+		f := func(k, v interface{}) bool {
+			ac, _ := v.(*activeClientMultiplex)
+			if ac.codecClient != nil {
+				ac.codecClient.Close()
+			}
+			return true
 		}
-		return true
-	}
 
-	p.activeClients.Range(f)
+		p.activeClients[i].Range(f)
+	}
 }
 
 func (p *poolMultiplex) onConnectionEvent(ac *activeClientMultiplex, event api.ConnectionEvent) {
@@ -244,7 +304,7 @@ func (p *poolMultiplex) onConnectionEvent(ac *activeClientMultiplex, event api.C
 			// do nothing
 		}
 		p.clientMux.Lock()
-		p.activeClients.Delete(ac.subProtocol)
+		p.activeClients[ac.indexInPool].Delete(ac.subProtocol)
 		p.clientMux.Unlock()
 	} else if event == api.ConnectTimeout {
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
@@ -267,6 +327,7 @@ type activeClientMultiplex struct {
 	keepAlive          *keepAliveListener
 	state              uint32 // for async connection
 	pool               *poolMultiplex
+	indexInPool        int
 	codecClient        stream.Client
 	host               types.CreateConnectionData
 }
@@ -303,3 +364,14 @@ func (ac *activeClientMultiplex) OnResetStream(reason types.StreamResetReason) {
 
 // types.StreamConnectionEventListener
 func (ac *activeClientMultiplex) OnGoAway() {}
+
+const invalidClientID = -1
+
+func getClientIDFromDownStreamCtx(ctx context.Context) int64 {
+	clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
+	clientIdx, ok := clientIdxInter.(int64)
+	if !ok {
+		return invalidClientID
+	}
+	return clientIdx
+}

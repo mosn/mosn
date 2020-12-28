@@ -146,6 +146,10 @@ func (proto *dubboProtocol) PoolMode() types.PoolMode {
 	return types.Multiplex
 }
 
+func (proto *dubboProtocol) EnableWorkerPool() bool{
+	return true
+}
+
 func (proto *dubboProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }

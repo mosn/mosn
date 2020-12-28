@@ -60,7 +60,7 @@ type RouterActionConfig struct {
 	TimeoutConfig           api.DurationConfig   `json:"timeout,omitempty"`
 	RetryPolicy             *RetryPolicy         `json:"retry_policy,omitempty"`
 	PrefixRewrite           string               `json:"prefix_rewrite,omitempty"`
-	RegexRewrite            RegexRewrite         `json:"regex_rewrite,omitempty"`
+	RegexRewrite            *RegexRewrite        `json:"regex_rewrite,omitempty"`
 	HostRewrite             string               `json:"host_rewrite,omitempty"`
 	AutoHostRewrite         bool                 `json:"auto_host_rewrite,omitempty"`
 	AutoHostRewriteHeader   string               `json:"auto_host_rewrite_header,omitempty"`
@@ -295,10 +295,11 @@ type VirtualHost struct {
 
 // RouterMatch represents the route matching parameters
 type RouterMatch struct {
-	Prefix  string          `json:"prefix,omitempty"`  // Match request's Path with Prefix Comparing
-	Path    string          `json:"path,omitempty"`    // Match request's Path with Exact Comparing
-	Regex   string          `json:"regex,omitempty"`   // Match request's Path with Regex Comparing
-	Headers []HeaderMatcher `json:"headers,omitempty"` // Match request's Headers
+	Prefix    string            `json:"prefix,omitempty"`    // Match request's Path with Prefix Comparing
+	Path      string            `json:"path,omitempty"`      // Match request's Path with Exact Comparing
+	Regex     string            `json:"regex,omitempty"`     // Match request's Path with Regex Comparing
+	Headers   []HeaderMatcher   `json:"headers,omitempty"`   // Match request's Headers
+	Variables []VariableMatcher `json:"variables,omitempty"` // Match request's variable
 }
 
 // RedirectAction represents the redirect response parameters
@@ -328,6 +329,14 @@ type HeaderMatcher struct {
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
 	Regex bool   `json:"regex,omitempty"`
+}
+
+// VariableMatcher specifies a set of variables that the route should match on.
+type VariableMatcher struct {
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
+	Regex string `json:"regex,omitempty"`
+	Model string `json:"model,omitempty"` // support && and || operator
 }
 
 // Stream Proxy Route

@@ -22,7 +22,7 @@ type ResponsePacket struct {
 	Context      map[string]string `json:"context"`
 }
 
-func (st *ResponsePacket) resetDefault() {
+func (st *ResponsePacket) ResetDefault() {
 	st.CPacketType = 0
 	st.IMessageType = 0
 	st.IRet = 0
@@ -34,7 +34,7 @@ func (st *ResponsePacket) ReadFrom(_is *codec.Reader) error {
 	var length int32
 	var have bool
 	var ty byte
-	st.resetDefault()
+	st.ResetDefault()
 
 	err = _is.Read_int16(&st.IVersion, 1, true)
 	if err != nil {
@@ -61,7 +61,7 @@ func (st *ResponsePacket) ReadFrom(_is *codec.Reader) error {
 		return err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(6, true)
+	err, have, ty = _is.SkipToNoCheck(6, true)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (st *ResponsePacket) ReadFrom(_is *codec.Reader) error {
 		}
 	}
 
-	err, _ = _is.SkipTo(codec.MAP, 7, true)
+	err, have = _is.SkipTo(codec.MAP, 7, true)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (st *ResponsePacket) ReadFrom(_is *codec.Reader) error {
 func (st *ResponsePacket) ReadBlock(_is *codec.Reader, tag byte, require bool) error {
 	var err error
 	var have bool
-	st.resetDefault()
+	st.ResetDefault()
 
 	err, have = _is.SkipTo(codec.STRUCT_BEGIN, tag, require)
 	if err != nil {
