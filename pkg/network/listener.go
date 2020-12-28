@@ -318,7 +318,7 @@ func (l *listener) listen(lctx context.Context) error {
 				return err
 			}
 			var controlError error
-			rawConn.Control(func(fd uintptr) {
+			if err := rawConn.Control(func(fd uintptr) {
 				if err = syscall.SetsockoptInt(int(fd), SOL_IP, IP_TRANSPARENT, 1); err != nil {
 					controlError = fmt.Errorf(
 						"failed to set socket opt IP_TRANSPARENT for listener %s: %s",
@@ -326,7 +326,13 @@ func (l *listener) listen(lctx context.Context) error {
 					)
 					log.DefaultLogger.Errorf(controlError.Error())
 				}
-			})
+			}); err != nil {
+				return err
+			}
+
+			if controlError != nil {
+				return controlError
+			}
 		}
 		l.rawl = rawl
 	}

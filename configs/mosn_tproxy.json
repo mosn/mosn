@@ -42,8 +42,8 @@
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "Http1",
-									"upstream_protocol": "Http1",
+									"downstream_protocol": "Auto",
+									"upstream_protocol": "Auto",
 									"router_config_name":"server_router"
 								}
 							}
@@ -59,8 +59,8 @@
 							{
 								"type": "proxy",
 								"config": {
-									"downstream_protocol": "Http1",
-									"upstream_protocol": "Http1",
+									"downstream_protocol": "Auto",
+									"upstream_protocol": "Auto",
 									"router_config_name":"server_router"
 								}
 							}
@@ -77,7 +77,7 @@
 				"type": "SIMPLE",
 				"lb_type": "LB_RANDOM",
                 "max_request_per_conn": 1024,
-                "mark": 66,
+                "mark": 68,
 				"conn_buffer_limit_bytes":32768,
 				"hosts":[
 					{"address":"180.101.49.11:80"}

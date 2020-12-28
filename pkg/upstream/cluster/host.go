@@ -59,6 +59,7 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 		healthFlags:   GetHealthFlagPointer(config.Address),
 	}
 	h.clusterInfo.Store(clusterInfo)
+	network.GetOrCreateAddrMark(config.Address, clusterInfo.Mark())
 	return h
 }
 
