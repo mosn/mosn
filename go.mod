@@ -26,8 +26,8 @@ require (
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/miekg/dns v1.0.14
 	github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f
+	github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827
 	github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
-	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
@@ -48,8 +48,8 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
-	mosn.io/api v0.0.0-20201117130017-91d17c14b8af
-	mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
+	mosn.io/api v0.0.0-20201224034710-d1de63647a2e
+	mosn.io/pkg v0.0.0-20201228090327-daaf86502a50
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
