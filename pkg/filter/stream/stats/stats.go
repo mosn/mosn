@@ -78,7 +78,7 @@ func (f *statsFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHea
 		return
 	}
 
-	attributes := extract.ExtractAttributes(reqHeaders, respHeaders, requestInfo, f.buf, f.trailers, time.Now())
+	attributes := extract.ExtractAttributes(ctx, reqHeaders, respHeaders, requestInfo, f.buf, f.trailers, time.Now())
 	stats, err := f.metrics.Stat(attributes)
 	if err != nil {
 		log.DefaultLogger.Errorf("stats error: %s", err.Error())
