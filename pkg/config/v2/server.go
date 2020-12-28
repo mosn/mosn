@@ -72,13 +72,13 @@ type ListenerConfig struct {
 // Listener contains the listener's information
 type Listener struct {
 	ListenerConfig
-	Addr                    net.Addr         `json:"-"`
-	ListenerTag             uint64           `json:"-"`
-	ListenerScope           string           `json:"-"`
-	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
-	InheritListener         net.Listener `json:"-"`
-	InheritPacketConn       *net.PacketConn  `json:"-"`
-	Remain                  bool             `json:"-"`
+	Addr                    net.Addr        `json:"-"`
+	ListenerTag             uint64          `json:"-"`
+	ListenerScope           string          `json:"-"`
+	PerConnBufferLimitBytes uint32          `json:"-"` // do not support config
+	InheritListener         net.Listener    `json:"-"`
+	InheritPacketConn       *net.PacketConn `json:"-"`
+	Remain                  bool            `json:"-"`
 }
 
 func (l Listener) MarshalJSON() (b []byte, err error) {
@@ -113,7 +113,7 @@ func (l *Listener) UnmarshalJSON(b []byte) error {
 	case "tcp":
 		addr, err = net.ResolveTCPAddr("tcp", l.AddrConfig)
 	default: // only support tcp,udp,unix
-		err = fmt.Errorf("unknown listen type: %s , only support tcp,udp,unix",  l.Network)
+		err = fmt.Errorf("unknown listen type: %s , only support tcp,udp,unix", l.Network)
 	}
 	if err != nil {
 		return err
