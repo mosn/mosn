@@ -414,7 +414,7 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 
 func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
-		reason := types.StreamConnectionFailed
+		var reason types.StreamResetReason
 		switch event {
 		case api.RemoteClose:
 			reason = types.UpstreamReset
