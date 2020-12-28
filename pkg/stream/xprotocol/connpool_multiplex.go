@@ -44,24 +44,29 @@ type poolMultiplex struct {
 }
 
 var (
-	defaultMaxConn = 1
+	defaultMaxConn         = 1
 	connNumberLimit uint64 = 65535 // port limit
 )
 
-// SetMaxConnNumPerHostPortForMuxPool set the max connections for each host:port
-// this is only used inside ant group, so please don't delete it
-// open source users should use cluster threshold config to configure connection no.
-func SetMaxConnNumPerHostPortForMuxPool(maxConns int) {
-	defaultMaxConn = maxConns
+func isValidMaxNum(maxConns uint64) bool {
+	return maxConns > 0 && maxConns < connNumberLimit
+}
+
+// SetDefaultMaxConnNumPerHostPortForMuxPool set the max connections for each host:port
+// users could use this function or cluster threshold config to configure connection no.
+func SetDefaultMaxConnNumPerHostPortForMuxPool(maxConns int) {
+	if isValidMaxNum(uint64(maxConns)) {
+		defaultMaxConn = maxConns
+	}
 }
 
 // NewPoolMultiplex generates a multiplex conn pool
 func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 	maxConns := p.Host().ClusterInfo().ResourceManager().Connections().Max()
-	// the cluster threshold config has high privilege than global config
+	// the cluster threshold config has higher privilege than global config
 	// if a valid number is provided, should use it
-	if maxConns == 0 || maxConns >= connNumberLimit {
-		// set to default conn num
+	if !isValidMaxNum(maxConns) {
+		// override maxConns by default max conns
 		maxConns = uint64(defaultMaxConn)
 	}
 
