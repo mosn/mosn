@@ -24,17 +24,13 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // rewrite request url
 func rewriteRequestUrl(ctx context.Context, dstUrl string) bool {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
-	if !ok {
-		return false
-	}
-
 	// TODO Add a set handler for request headers variable...
-	headers.Set(protocol.MosnHeaderPathKey, dstUrl)
+	variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, dstUrl)
 	return true
 }
 

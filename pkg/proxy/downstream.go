@@ -109,8 +109,8 @@ type downStream struct {
 	resetReason types.StreamResetReason
 
 	// stream filter chain
-	streamFilterChain           streamFilterChain
-	receiverFiltersAgainPhase   types.Phase
+	streamFilterChain         streamFilterChain
+	receiverFiltersAgainPhase types.Phase
 
 	context context.Context
 
@@ -400,7 +400,7 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 		for i := 0; i < 10; i++ {
 			s.cleanNotify()
 
-			phase = s.receive(ctx, id, phase)
+			phase = s.receive(s.context, id, phase)
 			switch phase {
 			case types.End:
 				return
@@ -761,9 +761,17 @@ func (s *downStream) chooseHost(endStream bool) {
 			s.sendHijackReply(nethttp.StatusInternalServerError, s.downstreamReqHeaders)
 			return
 		}
-		currentHost, _ := s.downstreamReqHeaders.Get(types.HeaderHost)
-		currentPath, _ := s.downstreamReqHeaders.Get(types.HeaderPath)
-		currentQuery, _ := s.downstreamReqHeaders.Get(types.HeaderQueryString)
+		getValueFunc := func(key string, defaultVal string) string {
+			val, err := variable.GetVariableValue(s.context, key)
+			if err != nil || val == "" {
+				return defaultVal
+			}
+			return val
+		}
+		currentHost := getValueFunc(types.HeaderHost, "")
+		currentPath := getValueFunc(types.HeaderPath, "")
+		currentQuery := getValueFunc(types.HeaderQueryString, "")
+
 		u := url.URL{
 			Scheme:   getStringOr(rule.RedirectScheme(), currentScheme),
 			Host:     getStringOr(rule.RedirectHost(), currentHost),
@@ -843,7 +851,7 @@ func (s *downStream) chooseHost(endStream bool) {
 func (s *downStream) receiveHeaders(endStream bool) {
 
 	// Modify request headers
-	s.route.RouteRule().FinalizeRequestHeaders(s.downstreamReqHeaders, s.requestInfo)
+	s.route.RouteRule().FinalizeRequestHeaders(s.context, s.downstreamReqHeaders, s.requestInfo)
 	// Call upstream's append header method to build upstream's request
 	s.upstreamRequest.appendHeaders(endStream)
 
@@ -1219,7 +1227,7 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 
 	// directResponse for no route should be nil
 	if s.route != nil {
-		s.route.RouteRule().FinalizeResponseHeaders(headers, s.requestInfo)
+		s.route.RouteRule().FinalizeResponseHeaders(s.context, headers, s.requestInfo)
 	}
 
 	if endStream {
@@ -1369,9 +1377,8 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 		headers = protocol.CommonHeader(raw)
 	}
 	s.requestInfo.SetResponseCode(code)
-
-	headers.Set(types.HeaderStatus, strconv.Itoa(code))
-
+	status := strconv.Itoa(code)
+	variable.SetVariableValue(s.context, types.HeaderStatus, status)
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = nil
@@ -1389,7 +1396,8 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	}
 	s.requestInfo.SetResponseCode(code)
 
-	headers.Set(types.HeaderStatus, strconv.Itoa(code))
+	status := strconv.Itoa(code)
+	variable.SetVariableValue(s.context, types.HeaderStatus, status)
 
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers

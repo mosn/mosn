@@ -26,6 +26,8 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/variable"
+
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -69,8 +71,13 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 		"/pic?name=biz&passwd=bar",
 	}
 
+	ctx := variable.NewVariableContext(context.Background())
+	url := &fasthttp.URI{}
+	url.SetPath(path)
+	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		ClientStreamsMocked[i].AppendHeaders(nil, convertHeader(headers[i]), false)
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
+		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error, uri:%s", string(ClientStreamsMocked[i].request.Header.RequestURI()))
 		}
@@ -109,9 +116,13 @@ func Test_header_capitalization(t *testing.T) {
 	wantedURI := []string{
 		"/pic?name=biz&passwd=bar",
 	}
-
+	ctx := variable.NewVariableContext(context.Background())
+	url := &fasthttp.URI{}
+	url.SetPath(path)
+	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		ClientStreamsMocked[i].AppendHeaders(nil, convertHeader(headers[i]), false)
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
+		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
 		}
@@ -156,8 +167,13 @@ func Test_header_conflict(t *testing.T) {
 		"/pic?name=biz&passwd=bar",
 	}
 
+	ctx := variable.NewVariableContext(context.Background())
+	url := &fasthttp.URI{}
+	url.SetPath(path)
+	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		ClientStreamsMocked[i].AppendHeaders(nil, convertHeader(headers[i]), false)
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
+		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
 		}
@@ -183,10 +199,11 @@ func Test_internal_header(t *testing.T) {
 	uri.SetHost("first.test.com")
 	uri.SetPath("/first")
 
-	injectInternalHeaders(header, uri)
+	ctx := variable.NewVariableContext(context.Background())
+	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 
 	// mock request send
-	removeInternalHeaders(header, remoteAddr)
+	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("first request header sent:", header)
 
@@ -195,14 +212,16 @@ func Test_internal_header(t *testing.T) {
 	uri.Reset()
 
 	// mock second request arrive, with query string
+	ctx = variable.NewVariableContext(context.Background())
+
 	header.SetMethod("GET")
 	uri.SetHost("second.test.com")
 	uri.SetPath("/second")
 	uri.SetQueryString("meaning=less")
 
-	injectInternalHeaders(header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 	// mock request send
-	removeInternalHeaders(header, remoteAddr)
+	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("second request header sent:", header)
 
@@ -210,14 +229,15 @@ func Test_internal_header(t *testing.T) {
 	header.Reset()
 	uri.Reset()
 
+	ctx = variable.NewVariableContext(context.Background())
 	// mock third request arrive, with no query string
 	header.SetMethod("GET")
 	uri.SetHost("third.test.com")
 	uri.SetPath("/third")
 
-	injectInternalHeaders(header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 	// mock request send
-	removeInternalHeaders(header, remoteAddr)
+	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("third request header sent:", header)
 
@@ -246,7 +266,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 				connection:       tt.fields.connection,
 				responseDoneChan: tt.fields.responseDoneChan,
 			}
-			s.handleRequest()
+			s.handleRequest(nil)
 		})
 	}
 }

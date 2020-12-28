@@ -185,27 +185,27 @@ func (mr *MockRouteRuleMockRecorder) PerFilterConfig() *gomock.Call {
 }
 
 // FinalizeRequestHeaders mocks base method
-func (m *MockRouteRule) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (m *MockRouteRule) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FinalizeRequestHeaders", headers, requestInfo)
+	m.ctrl.Call(m, "FinalizeRequestHeaders", ctx, headers, requestInfo)
 }
 
 // FinalizeRequestHeaders indicates an expected call of FinalizeRequestHeaders
-func (mr *MockRouteRuleMockRecorder) FinalizeRequestHeaders(headers, requestInfo interface{}) *gomock.Call {
+func (mr *MockRouteRuleMockRecorder) FinalizeRequestHeaders(ctx, headers, requestInfo interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeRequestHeaders", reflect.TypeOf((*MockRouteRule)(nil).FinalizeRequestHeaders), headers, requestInfo)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeRequestHeaders", reflect.TypeOf((*MockRouteRule)(nil).FinalizeRequestHeaders), ctx, headers, requestInfo)
 }
 
 // FinalizeResponseHeaders mocks base method
-func (m *MockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (m *MockRouteRule) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FinalizeResponseHeaders", headers, requestInfo)
+	m.ctrl.Call(m, "FinalizeResponseHeaders", ctx, headers, requestInfo)
 }
 
 // FinalizeResponseHeaders indicates an expected call of FinalizeResponseHeaders
-func (mr *MockRouteRuleMockRecorder) FinalizeResponseHeaders(headers, requestInfo interface{}) *gomock.Call {
+func (mr *MockRouteRuleMockRecorder) FinalizeResponseHeaders(ctx, headers, requestInfo interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeResponseHeaders", reflect.TypeOf((*MockRouteRule)(nil).FinalizeResponseHeaders), headers, requestInfo)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeResponseHeaders", reflect.TypeOf((*MockRouteRule)(nil).FinalizeResponseHeaders), ctx, headers, requestInfo)
 }
 
 // PathMatchCriterion mocks base method

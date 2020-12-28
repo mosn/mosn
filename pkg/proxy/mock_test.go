@@ -54,7 +54,7 @@ type mockRouters struct {
 	route api.Route
 }
 
-func (r *mockRouters) MatchRoute(types.HeaderMap, uint64) types.Route {
+func (r *mockRouters) MatchRoute(context.Context, types.HeaderMap) types.Route {
 	if r.route != nil {
 		return r.route
 	}
@@ -93,7 +93,7 @@ func (r *mockRouteRule) UpstreamProtocol() string {
 	return ""
 }
 
-func (c *mockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (c *mockRouteRule) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	return
 }
 

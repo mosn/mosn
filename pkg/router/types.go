@@ -80,7 +80,7 @@ type weightedClusterEntry struct {
 }
 
 type Matchable interface {
-	Match(headers api.HeaderMap, randomValue uint64) api.Route
+	Match(ctx context.Context, headers api.HeaderMap) api.Route
 }
 
 type RouteBase interface {
