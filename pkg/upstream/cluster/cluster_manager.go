@@ -332,8 +332,26 @@ func (cm *clusterManager) UpdateTLSManager(tls *v2.TLSConfig) {
 
 const (
 	maxHostsCounts  = 3
-	maxTryConnTimes = 7
+	intervalStep    = 5
+	maxTryConnTimes = 15
 )
+
+var tryConnTimes = [maxTryConnTimes]time.Duration{}
+
+func init() {
+	index := 0
+	// total duration is 535ms
+	for _, interval := range []time.Duration{
+		2 * time.Millisecond,
+		5 * time.Millisecond,
+		100 * time.Millisecond,
+	} {
+		for i := 0; i < intervalStep; i++ {
+			tryConnTimes[index] = interval
+			index++
+		}
+	}
+}
 
 var (
 	errNilHostChoose   = errors.New("cluster snapshot choose host is nil")
@@ -422,10 +440,8 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		pools[i] = pool
 	}
 
-	// perhaps the first request, wait for tcp handshaking. total wait time is 1ms + 10ms + (100ms * 5)
-	waitTime := time.Millisecond
+	// perhaps the first request, wait for tcp handshaking.
 	for t := 0; t < maxTryConnTimes; t++ {
-		time.Sleep(waitTime)
 		for i := 0; i < try; i++ {
 			if pools[i] == nil {
 				continue
@@ -434,10 +450,8 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				return pools[i], nil
 			}
 		}
-		// max wait time is 100 * time.Millisecond
-		if waitTime < 100*time.Millisecond {
-			waitTime *= 10
-		}
+		waitTime := tryConnTimes[t]
+		time.Sleep(waitTime)
 	}
 	return nil, errNoHealthyHost
 }

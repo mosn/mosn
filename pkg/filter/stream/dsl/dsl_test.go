@@ -28,6 +28,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 type mockReceiveHandler struct {
@@ -39,7 +40,7 @@ func (f *mockReceiveHandler) RequestInfo() api.RequestInfo {
 	return nil
 }
 
-func (f *mockReceiveHandler) GetFilterCurrentPhase() api.FilterPhase {
+func (f *mockReceiveHandler) GetFilterCurrentPhase() api.ReceiverFilterPhase {
 	// default AfterRoute
 	p := api.AfterRoute
 
@@ -88,12 +89,14 @@ func TestDSLStreamFilter(t *testing.T) {
 	})
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
+	ctx = variable.NewVariableContext(ctx)
 	phase := []types.Phase{types.DownFilter, types.DownFilterAfterRoute, types.DownFilterAfterChooseHost}
 	for k, p := range phase {
 
 		receiveHandler.phase = p
 		f.OnReceive(ctx, reqHeaders, nil, nil)
-		if v, ok := reqHeaders.Get(protocol.MosnHeaderPathKey); !ok || v != strconv.Itoa(k) {
+		// should fetch rewrite path from ctx
+		if v, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey); err != nil || v != strconv.Itoa(k) {
 			t.Errorf("DSL execute failed, index: %d, want: %s but: %s", k, strconv.Itoa(k), v)
 		}
 

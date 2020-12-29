@@ -186,7 +186,7 @@ func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
 		RequestHeader: &fasthttp.RequestHeader{},
 	}
 	headers.Set(protocol.MosnHeaderMethod, "POST")
-	match := routeRuleBase.matchRoute(headers, 1)
+	match := routeRuleBase.matchRoute(nil, headers)
 	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
 		t.FailNow()
 	}
@@ -197,7 +197,7 @@ func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
 	}
 	headerHttp2 := http2.NewReqHeader(http2Request)
 	headerHttp2.Set(protocol.MosnHeaderMethod, http2Request.Method)
-	match = routeRuleBase.matchRoute(headerHttp2, 1)
+	match = routeRuleBase.matchRoute(nil, headerHttp2)
 	if !assert.Truef(t, match, "match http2 method failed, result should be true, get %+v", match) {
 		t.FailNow()
 	}
@@ -252,7 +252,11 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rri.FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
+			ctx := variable.NewVariableContext(context.Background())
+			path, _ := tt.args.headers.Get(protocol.MosnHeaderPathKey)
+			variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, path)
+			rri.FinalizePathHeader(ctx, tt.args.headers, tt.args.matchedPath)
+			fillHeadersFromCtx(ctx, tt.args.headers)
 			if !reflect.DeepEqual(tt.args.headers, tt.want) {
 				t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
 			}
@@ -346,12 +350,27 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		tt, ok := testMap["case"+strconv.Itoa(k+1)]
 		if ok {
 			t.Run(tt.name, func(t *testing.T) {
-				rris[ops].FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
+				ctx := variable.NewVariableContext(context.Background())
+				path, _ := tt.args.headers.Get(protocol.MosnHeaderPathKey)
+				variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, path)
+				rris[ops].FinalizePathHeader(ctx, tt.args.headers, tt.args.matchedPath)
+				fillHeadersFromCtx(ctx, tt.args.headers)
 				if !reflect.DeepEqual(tt.args.headers, tt.want) {
 					t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
 				}
 			})
 		}
+	}
+}
+
+func fillHeadersFromCtx(ctx context.Context, header api.HeaderMap) {
+	path, _ := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+	if path != "" {
+		header.Set(protocol.MosnHeaderPathKey, path)
+	}
+	host, _ := variable.GetVariableValue(ctx, protocol.IstioHeaderHostKey)
+	if host != "" {
+		header.Set(protocol.IstioHeaderHostKey, host)
 	}
 }
 
@@ -544,9 +563,12 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 			want: protocol.CommonHeader{"realyHost": "mosn.io.rewrited.host", "authority": "mosn.io.rewrited.host", "level": "1,3", "route": "true", "global": "true"},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.rri.FinalizeRequestHeaders(tt.args.headers, tt.args.requestInfo)
+			ctx := variable.NewVariableContext(context.Background())
+			tt.args.rri.FinalizeRequestHeaders(ctx, tt.args.headers, tt.args.requestInfo)
+			fillHeadersFromCtx(ctx, tt.args.headers)
 			if !reflect.DeepEqual(tt.args.headers, tt.want) {
 				t.Errorf("(rri *RouteRuleImplBase) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
 			}
@@ -694,7 +716,9 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.rri.FinalizeResponseHeaders(tt.args.headers, tt.args.requestInfo)
+			ctx := variable.NewVariableContext(context.Background())
+			tt.args.rri.FinalizeResponseHeaders(ctx, tt.args.headers, tt.args.requestInfo)
+			fillHeadersFromCtx(ctx, tt.args.headers)
 			if !reflect.DeepEqual(tt.args.headers, tt.want) {
 				t.Errorf("(rri *RouteRuleImplBase) FinalizeResponseHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
 			}

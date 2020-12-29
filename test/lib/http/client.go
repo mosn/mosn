@@ -17,6 +17,7 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/http" // register http1
 	mtypes "mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/mosn/test/lib"
 	"mosn.io/mosn/test/lib/types"
 	"mosn.io/mosn/test/lib/utils"
@@ -211,10 +212,11 @@ func (c *HttpConn) IsClosed() bool {
 }
 
 func (c *HttpConn) AsyncSendRequest(receiver mtypes.StreamReceiveListener, req *RequestConfig) {
-	headers, body := req.BuildRequest()
-	ctx := context.Background()
+	ctx := variable.NewVariableContext(context.Background())
+	headers, body := req.BuildRequest(ctx)
 	encoder := c.stream.NewStream(ctx, receiver)
 	encoder.AppendHeaders(ctx, headers, body == nil)
+
 	if body != nil {
 		encoder.AppendData(ctx, body, true)
 	}

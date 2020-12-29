@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
@@ -82,8 +84,11 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 }
 
 func (s *xStream) buildHijackResp(request xprotocol.XFrame, header types.HeaderMap) (xprotocol.XFrame, error) {
-	if status, ok := header.Get(types.HeaderStatus); ok {
-		header.Del(types.HeaderStatus)
+	status, err := variable.GetVariableValue(s.ctx, types.HeaderStatus)
+	if err != nil {
+		return nil, err
+	}
+	if status != "" {
 		statusCode, _ := strconv.Atoi(status)
 		proto := s.sc.protocol
 		return proto.Hijack(request, proto.Mapping(uint32(statusCode))), nil
@@ -129,12 +134,6 @@ func (s *xStream) endStream() {
 	if s.frame != nil {
 		// replace requestID
 		s.frame.SetRequestId(s.id)
-
-		// remove injected headers
-		if _, ok := s.frame.(xprotocol.ServiceAware); ok {
-			s.frame.GetHeader().Del(types.HeaderRPCService)
-			s.frame.GetHeader().Del(types.HeaderRPCMethod)
-		}
 
 		buf, err := s.sc.protocol.Encode(s.ctx, s.frame)
 		if err != nil {

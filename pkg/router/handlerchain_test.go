@@ -23,7 +23,7 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
@@ -49,20 +49,20 @@ func (r *mockRouteRule) ClusterName() string {
 	return ""
 }
 
-func (routers *mockRouters) MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route {
+func (routers *mockRouters) MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route {
 	if reflect.DeepEqual(headers, routers.header) {
 		return routers.r[0]
 	}
 	return nil
 }
-func (routers *mockRouters) MatchAllRoutes(headers api.HeaderMap, randomValue uint64) []api.Route {
+func (routers *mockRouters) MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route {
 	if reflect.DeepEqual(headers, routers.header) {
 		return routers.r
 	}
 	return nil
 }
 
-func (routers *mockRouters) MatchRouteFromHeaderKV(headers api.HeaderMap, key, value string) api.Route {
+func (routers *mockRouters) MatchRouteFromHeaderKV(ctx context.Context, headers api.HeaderMap, key, value string) api.Route {
 	return nil
 }
 
@@ -140,7 +140,7 @@ func (h *mockStatusHandler) Route() api.Route {
 }
 
 func _TestMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
-	rs := routers.MatchAllRoutes(headers, 1)
+	rs := routers.MatchAllRoutes(ctx, headers)
 	var handlers []types.RouteHandler
 	for _, r := range rs {
 		mockr := r.(*mockRouter)

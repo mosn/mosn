@@ -38,7 +38,7 @@ type FilterConfigFactory struct {
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewStreamFilter(context, f.Config)
 	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
-	callbacks.AddStreamSenderFilter(filter)
+	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
 func CreateGzipFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {

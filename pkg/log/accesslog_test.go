@@ -47,7 +47,7 @@ func prepareLocalIpv6Ctx() context.Context {
 	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaderMap)
 
 	respHeaders := map[string]string{
-		"Server": "MOSN",
+		"server": "MOSN",
 	}
 	respHeaderMap := newHeaderMap(respHeaders)
 	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaderMap)
@@ -149,7 +149,7 @@ func TestAccessLogWithCustomText(t *testing.T) {
 func TestAccessLogWithPrefixVariables(t *testing.T) {
 	registerTestVarDefs()
 
-	format := "request header:%request_header_service% response header:%response_header_Server%"
+	format := "request header:%request_header_service% response header:%response_header_server%"
 	logName := "/tmp/mosn_bench/test_access_log.log"
 	os.Remove(logName)
 	accessLog, err := NewAccessLog(logName, format)
@@ -292,7 +292,7 @@ func prepareLocalIpv4Ctx() context.Context {
 	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaderMap)
 
 	respHeaders := map[string]string{
-		"Server": "MOSN",
+		"server": "MOSN",
 	}
 	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaders)
 	respHeaderMap := newHeaderMap(respHeaders)

@@ -46,14 +46,14 @@ func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 
 		switch direction {
 		case protocol.Request:
-			headerImpl := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
+			headerImpl := http.RequestHeader{&fasthttp.RequestHeader{}}
 			// copy headers
 			for k, v := range header {
 				headerImpl.Set(k, v)
 			}
 			return headerImpl, nil
 		case protocol.Response:
-			headerImpl := http.ResponseHeader{&fasthttp.ResponseHeader{}, nil}
+			headerImpl := http.ResponseHeader{&fasthttp.ResponseHeader{}}
 			// copy headers
 			for k, v := range header {
 				headerImpl.Set(k, v)

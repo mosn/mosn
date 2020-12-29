@@ -10,3 +10,4 @@ main
 mosnd.md5
 mosn.pid
 examples/codes/filter/dubbo/install/build/mosn
+configs/mosn_shm_metrics

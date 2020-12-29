@@ -94,7 +94,7 @@ func (c *XDSConfig) getAPISourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 		t := service.TargetSpecifier
 		if target, ok := t.(*core.GrpcService_EnvoyGrpc_); ok {
 			serviceConfig := ServiceConfig{}
-			if service.Timeout == nil || (serviceConfig.Timeout.Seconds() <= 0 && serviceConfig.Timeout.Nanoseconds() <= 0) {
+			if service.Timeout == nil || (service.Timeout.Seconds <= 0 && service.Timeout.Nanos <= 0) {
 				duration := time.Duration(time.Second) // default connection timeout
 				serviceConfig.Timeout = &duration
 			} else {
