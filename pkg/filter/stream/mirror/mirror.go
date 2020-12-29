@@ -124,7 +124,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		}
 	}, nil)
 	if m.broadcast {
-		m.receiveHandler.SendHijackReply(200, m.headers)
+		m.receiveHandler.SendHijackReply(types.SuccessCode, m.headers)
 		return api.StreamFilterStop
 	}
 	return api.StreamFilterContinue
