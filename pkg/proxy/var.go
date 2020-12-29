@@ -56,7 +56,6 @@ var (
 		variable.NewIndexedVariable(types.VarProxyGlobalTimeout, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.VarProxyHijackStatus, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.VarProxyGzipSwitch, nil, nil, variable.BasicSetter, 0),
-
 		variable.NewIndexedVariable(types.VarProxyIsDirectResponse, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.HeaderStatus, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.HeaderMethod, nil, nil, variable.BasicSetter, 0),

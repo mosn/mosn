@@ -330,6 +330,14 @@ func newMockLbContextWithHeader(m map[string]string, header types.HeaderMap) typ
 	}
 }
 
+func newMockLbContextWithCtx(m map[string]string, ctx context.Context) types.LoadBalancerContext {
+	mmc := NewMockMetadataMatchCriteriaImpl(m)
+	return &mockLbContext{
+		mmc:     mmc,
+		context: ctx,
+	}
+}
+
 func (ctx *mockLbContext) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	return ctx.mmc
 }

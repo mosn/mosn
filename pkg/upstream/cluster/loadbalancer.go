@@ -19,6 +19,7 @@ package cluster
 
 import (
 	"math/rand"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -28,6 +29,7 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // NewLoadBalancer can be register self defined type
@@ -51,6 +53,25 @@ func init() {
 	RegisterLBType(types.WeightedRoundRobin, newWRRLoadBalancer)
 	RegisterLBType(types.LeastActiveRequest, newleastActiveRequestLoadBalancer)
 	RegisterLBType(types.Maglev, newMaglevLoadBalancer)
+	RegisterLBType(types.RequestRoundRobin, newReqRoundRobinLoadBalancer)
+
+	registerVariables()
+}
+
+var (
+	VarProxyUpstreamIndex = "upstream_index"
+)
+
+var (
+	buildinVariables = []variable.Variable{
+		variable.NewIndexedVariable(VarProxyUpstreamIndex, nil, nil, variable.BasicSetter, 0),
+	}
+)
+
+func registerVariables() {
+	for idx := range buildinVariables {
+		variable.RegisterVariable(buildinVariables[idx])
+	}
 }
 
 func NewLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
@@ -450,4 +471,50 @@ func (lb *maglevLoadBalancer) chooseHostFromHostList(index int) types.Host {
 	}
 
 	return nil
+}
+
+type reqRoundRobinLoadBalancer struct {
+	hosts types.HostSet
+}
+
+func newReqRoundRobinLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
+	return &reqRoundRobinLoadBalancer{
+		hosts: hosts,
+	}
+}
+
+// request round robin load balancer choose host start from index 0 every single context, and round robin when reentry
+func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.Host {
+	targets := lb.hosts.Hosts()
+	total := len(targets)
+	if total == 0 {
+		return nil
+	}
+	ctx := context.DownstreamContext()
+	ind := 0
+	if index, err := variable.GetVariableValue(ctx, VarProxyUpstreamIndex); err == nil {
+		if i, err := strconv.Atoi(index); err == nil {
+			ind = i + 1
+		}
+	}
+	for id := ind; id < total; id++ {
+		if targets[id].Health() {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", targets[id].AddressString())
+			}
+			variable.SetVariableValue(ctx, VarProxyUpstreamIndex, strconv.Itoa(id))
+			return targets[id]
+		}
+	}
+	variable.SetVariableValue(ctx, VarProxyUpstreamIndex, strconv.Itoa(total))
+
+	return nil
+}
+
+func (lb *reqRoundRobinLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
+	return len(lb.hosts.Hosts()) > 0
+}
+
+func (lb *reqRoundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+	return len(lb.hosts.Hosts())
 }
