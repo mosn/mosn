@@ -27,6 +27,7 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
@@ -93,10 +94,11 @@ func TestRunReiverFilters(t *testing.T) {
 	for i, tc := range testCases {
 		s := &downStream{
 			proxy: &proxy{
-				config:           &v2.Proxy{},
-				routersWrapper:   &mockRouterWrapper{},
-				clusterManager:   &mockClusterManager{},
-				serverStreamConn: &mockServerConn{},
+				config:              &v2.Proxy{},
+				routersWrapper:      &mockRouterWrapper{},
+				clusterManager:      &mockClusterManager{},
+				serverStreamConn:    &mockServerConn{},
+				routeHandlerFactory: router.DefaultMakeHandler,
 			},
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
@@ -143,10 +145,11 @@ func TestRunReiverFiltersStop(t *testing.T) {
 	}
 	s := &downStream{
 		proxy: &proxy{
-			config:           &v2.Proxy{},
-			routersWrapper:   &mockRouterWrapper{},
-			clusterManager:   &mockClusterManager{},
-			serverStreamConn: &mockServerConn{},
+			config:              &v2.Proxy{},
+			routersWrapper:      &mockRouterWrapper{},
+			clusterManager:      &mockClusterManager{},
+			serverStreamConn:    &mockServerConn{},
+			routeHandlerFactory: router.DefaultMakeHandler,
 		},
 		requestInfo: &network.RequestInfo{},
 		notify:      make(chan struct{}, 1),
@@ -197,11 +200,12 @@ func TestRunReiverFiltersTermination(t *testing.T) {
 					route: &mockRoute{},
 				},
 			},
-			clusterManager:   &mockClusterManager{},
-			readCallbacks:    &mockReadFilterCallbacks{},
-			stats:            globalStats,
-			listenerStats:    newListenerStats("test"),
-			serverStreamConn: &mockServerConn{},
+			clusterManager:      &mockClusterManager{},
+			readCallbacks:       &mockReadFilterCallbacks{},
+			stats:               globalStats,
+			listenerStats:       newListenerStats("test"),
+			serverStreamConn:    &mockServerConn{},
+			routeHandlerFactory: router.DefaultMakeHandler,
 		},
 		responseSender: &mockResponseSender{},
 		requestInfo:    &network.RequestInfo{},
@@ -261,10 +265,11 @@ func TestRunReiverFilterHandler(t *testing.T) {
 	for i, tc := range testCases {
 		s := &downStream{
 			proxy: &proxy{
-				config:           &v2.Proxy{},
-				routersWrapper:   &mockRouterWrapper{},
-				clusterManager:   &mockClusterManager{},
-				serverStreamConn: &mockServerConn{},
+				config:              &v2.Proxy{},
+				routersWrapper:      &mockRouterWrapper{},
+				clusterManager:      &mockClusterManager{},
+				serverStreamConn:    &mockServerConn{},
+				routeHandlerFactory: router.DefaultMakeHandler,
 			},
 			requestInfo: &network.RequestInfo{},
 			notify:      make(chan struct{}, 1),
@@ -327,9 +332,10 @@ func TestRunSenderFilters(t *testing.T) {
 	for i, tc := range testCases {
 		s := &downStream{
 			proxy: &proxy{
-				config:         &v2.Proxy{},
-				routersWrapper: &mockRouterWrapper{},
-				clusterManager: &mockClusterManager{},
+				config:              &v2.Proxy{},
+				routersWrapper:      &mockRouterWrapper{},
+				clusterManager:      &mockClusterManager{},
+				routeHandlerFactory: router.DefaultMakeHandler,
 			},
 		}
 		s.initStreamFilterChain()
@@ -368,9 +374,10 @@ func TestRunSenderFiltersStop(t *testing.T) {
 	}
 	s := &downStream{
 		proxy: &proxy{
-			config:         &v2.Proxy{},
-			routersWrapper: &mockRouterWrapper{},
-			clusterManager: &mockClusterManager{},
+			config:              &v2.Proxy{},
+			routersWrapper:      &mockRouterWrapper{},
+			clusterManager:      &mockClusterManager{},
+			routeHandlerFactory: router.DefaultMakeHandler,
 		},
 	}
 	s.initStreamFilterChain()

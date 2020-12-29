@@ -46,7 +46,7 @@ func (h *simpleHandler) Route() api.Route {
 func DefaultMakeHandler(ctx context.Context, headers api.HeaderMap, routers types.Routers) types.RouteHandler {
 	r := routers.MatchRoute(ctx, headers)
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(ctx, RouterLogFormat, "DefaultHandklerChain", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
+		log.Proxy.Debugf(ctx, RouterLogFormat, "DefaultMakeHandler", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
 	}
 	return &simpleHandler{
 		route: r,
@@ -54,11 +54,13 @@ func DefaultMakeHandler(ctx context.Context, headers api.HeaderMap, routers type
 
 }
 
-func DoRouteHandler(ctx context.Context, name string, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) (types.ClusterSnapshot, api.Route) {
-	factory := makeHandler.get(name)
+// MakeHandlerFunc creates a router handler for mosn
+type MakeHandlerFunc func(ctx context.Context, headers api.HeaderMap, routers types.Routers) types.RouteHandler
+
+func (factory MakeHandlerFunc) DoRouteHandler(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) (types.ClusterSnapshot, api.Route) {
 	handler := factory(ctx, headers, routers)
 	if handler == nil {
-		log.Proxy.Alertf(ctx, types.ErrorKeyRouteMatch, "no route to make handler chain, headers = %v", headers)
+		log.Proxy.Alertf(ctx, types.ErrorKeyRouteMatch, "no route to make handler, routers name = %v", headers)
 		return nil, nil
 	}
 	snapshot, status := handler.IsAvailable(ctx, clusterManager)
@@ -66,7 +68,7 @@ func DoRouteHandler(ctx context.Context, name string, headers api.HeaderMap, rou
 	case types.HandlerAvailable:
 		return snapshot, handler.Route()
 	default:
-		log.Proxy.Warnf(ctx, RouterLogFormat, name, "matched failed", status)
+		log.Proxy.Warnf(ctx, RouterLogFormat, "DoRouteHandler", "matched failed", status)
 		return nil, nil
 	}
 }

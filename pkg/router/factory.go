@@ -18,10 +18,8 @@
 package router
 
 import (
-	"context"
 	"fmt"
 
-	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -56,13 +54,15 @@ func DefaultSofaRouterRuleFactory(base *RouteRuleImplBase, headers []v2.HeaderMa
 	return r
 }
 
-type makeHandlerFunc func(ctx context.Context, headers api.HeaderMap, routers types.Routers) types.RouteHandler
-
 var makeHandler = &handlerFactories{
-	factories: map[string]makeHandlerFunc{},
+	factories: map[string]MakeHandlerFunc{},
 }
 
-func RegisterMakeHandler(name string, f makeHandlerFunc, isDefault bool) {
+func RegisterMakeHandler(name string, f MakeHandlerFunc, isDefault bool) {
 	log.DefaultLogger.Infof("regist a new handler maker, name is %s, is default: %t", name, isDefault)
 	makeHandler.add(name, f, isDefault)
+}
+
+func GetMakeHandlerFunc(name string) MakeHandlerFunc {
+	return makeHandler.get(name)
 }

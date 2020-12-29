@@ -37,7 +37,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
@@ -673,7 +672,7 @@ func (s *downStream) matchRoute() {
 	// get router instance and do routing
 	routers := s.proxy.routersWrapper.GetRouters()
 	// do handler chain
-	s.snapshot, s.route = router.DoRouteHandler(s.context, s.proxy.config.RouterHandlerName, headers, routers, s.proxy.clusterManager)
+	s.snapshot, s.route = s.proxy.routeHandlerFactory.DoRouteHandler(s.context, headers, routers, s.proxy.clusterManager)
 }
 
 func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {

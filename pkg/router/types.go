@@ -168,11 +168,11 @@ type routerRuleFactoryOrder struct {
 // if name is matched failed, use default factory
 type handlerFactories struct {
 	mutex          sync.RWMutex
-	factories      map[string]makeHandlerFunc
-	defaultFactory makeHandlerFunc
+	factories      map[string]MakeHandlerFunc
+	defaultFactory MakeHandlerFunc
 }
 
-func (f *handlerFactories) add(name string, h makeHandlerFunc, isDefault bool) {
+func (f *handlerFactories) add(name string, h MakeHandlerFunc, isDefault bool) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 	f.factories[name] = h
@@ -181,7 +181,7 @@ func (f *handlerFactories) add(name string, h makeHandlerFunc, isDefault bool) {
 	}
 }
 
-func (f *handlerFactories) get(name string) makeHandlerFunc {
+func (f *handlerFactories) get(name string) MakeHandlerFunc {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
 	if h, ok := f.factories[name]; ok {

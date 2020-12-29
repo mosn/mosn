@@ -46,7 +46,8 @@ func TestDoRouteHandler(t *testing.T) {
 	})
 	headers := mock.NewMockHeaderMap(ctrl)
 	// match default
-	snap, route := DoRouteHandler(context.Background(), "", headers, routers, cm)
+	f := GetMakeHandlerFunc("")
+	snap, route := f.DoRouteHandler(context.Background(), headers, routers, cm)
 	if !(snap != nil &&
 		route != nil) {
 		t.Fatal("do route handler failed")
@@ -79,7 +80,8 @@ func TestDoRouteHandlerExtend(t *testing.T) {
 	}).AnyTimes()
 	cm := mock.NewMockClusterManager(ctrl)
 	headers := mock.NewMockHeaderMap(ctrl)
-	_, route := DoRouteHandler(context.Background(), "test", headers, routers, cm)
+	f := GetMakeHandlerFunc("test")
+	_, route := f.DoRouteHandler(context.Background(), headers, routers, cm)
 	if route == nil {
 		t.Fatal("do route handler failed")
 	}

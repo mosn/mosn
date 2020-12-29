@@ -90,6 +90,7 @@ type proxy struct {
 	listenerStats       *Stats
 	accessLogs          []api.AccessLog
 	streamFilterFactory streamfilter.StreamFilterFactory
+	routeHandlerFactory router.MakeHandlerFunc
 
 	// configure the proxy level worker pool
 	// eg. if we want the requests on one connection to keep serial,
@@ -147,6 +148,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 
 	proxy.streamFilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(listenerName)
+	proxy.routeHandlerFactory = router.GetMakeHandlerFunc(proxy.config.RouterHandlerName)
 
 	return proxy
 }
