@@ -153,7 +153,14 @@ func (s *metrics) Counter(key string) gometrics.Counter {
 		return gometrics.NilCounter{}
 	}
 
-	return s.registry.GetOrRegister(key, shm.NewShmCounterFunc(s.fullName(key))).(gometrics.Counter)
+	construct := func() gometrics.Counter {
+		return s.registry.GetOrRegister(key, shm.NewShmCounterFunc(s.fullName(key))).(gometrics.Counter)
+	}
+	if LazyFlushMetrics {
+		counter, _ := NewLazyCounter(construct)
+		return counter
+	}
+	return construct()
 }
 
 func (s *metrics) Gauge(key string) gometrics.Gauge {
@@ -162,7 +169,14 @@ func (s *metrics) Gauge(key string) gometrics.Gauge {
 		return gometrics.NilGauge{}
 	}
 
-	return s.registry.GetOrRegister(key, shm.NewShmGaugeFunc(s.fullName(key))).(gometrics.Gauge)
+	construct := func() gometrics.Gauge {
+		return s.registry.GetOrRegister(key, shm.NewShmGaugeFunc(s.fullName(key))).(gometrics.Gauge)
+	}
+	if LazyFlushMetrics {
+		gauge, _ := NewLazyGauge(construct)
+		return gauge
+	}
+	return construct()
 }
 
 func (s *metrics) Histogram(key string) gometrics.Histogram {
@@ -171,8 +185,15 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 		return gometrics.NilHistogram{}
 	}
 
-	// TODO: notice the histogram only keeps 100 values as we set
-	return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
+	construct := func() gometrics.Histogram {
+		// TODO: notice the histogram only keeps 100 values as we set
+		return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
+	}
+	if LazyFlushMetrics {
+		histogram, _ := NewLazyHistogram(construct)
+		return histogram
+	}
+	return construct()
 }
 
 func (s *metrics) Each(f func(string, interface{})) {

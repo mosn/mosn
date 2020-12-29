@@ -100,7 +100,9 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 			valueMap[value] = router
 		}
 		vh.mutex.Unlock()
-		log.DefaultLogger.Infof(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule")
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule")
+		}
 	} else {
 		log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule failed")
 	}

@@ -64,7 +64,9 @@ func (f *streamPayloadLimitFilter) ReadPerRouteConfig(cfg map[string]interface{}
 	}
 	if payloadLimit, ok := cfg[v2.PayloadLimit]; ok {
 		if config, ok := parseStreamPayloadLimitConfig(payloadLimit); ok {
-			log.DefaultLogger.Errorf("use router config to replace stream filter config, config: %v", payloadLimit)
+			if log.DefaultLogger.GetLogLevel() >= log.INFO {
+				log.DefaultLogger.Infof("use router config to replace stream filter config, config: %v", payloadLimit)
+			}
 			f.config = config
 		}
 	}

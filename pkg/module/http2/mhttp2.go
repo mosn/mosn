@@ -456,7 +456,9 @@ func (sc *MServerConn) HandleFrame(ctx context.Context, f Frame) (*MStream, []by
 }
 
 func (sc *MServerConn) HandleError(ctx context.Context, f Frame, err error) {
-	log.DefaultLogger.Warnf("[Server Conn] [Handler Err] handler frame：%v error：%v", f, err)
+	if log.DefaultLogger.GetLogLevel() >= log.WARN {
+		log.DefaultLogger.Warnf("[Server Conn] [Handler Err] handler frame：%v error：%v", f, err)
+	}
 }
 
 // processHeaders processes Headers Frame
@@ -947,7 +949,9 @@ func (sc *MServerConn) startGracefulShutdownInternal() {
 
 func (sc *MServerConn) resetStream(se StreamError) error {
 	if st := sc.getStream(se.StreamID); st != nil {
-		log.DefaultLogger.Warnf("[Mserver Conn] streamId %d send RestFrame ", se.StreamID)
+		if log.DefaultLogger.GetLogLevel() >= log.WARN {
+			log.DefaultLogger.Warnf("[Mserver Conn] streamId %d send RestFrame ", se.StreamID)
+		}
 		st.resetQueued = true
 
 		buf := buffer.NewIoBuffer(frameHeaderLen + 8)
@@ -1277,7 +1281,9 @@ func (cc *MClientConn) newStream() *clientStream {
 }
 
 func (cc *MClientConn) HandleError(ctx context.Context, streamId uint32, err error, buffer buffer.IoBuffer) {
-	log.DefaultLogger.Warnf("[Stream Client] Stream ID %d, err %v", streamId, err)
+	if log.DefaultLogger.GetLogLevel() >= log.WARN {
+		log.DefaultLogger.Warnf("[Stream Client] Stream ID %d, err %v", streamId, err)
+	}
 	serr := StreamError{
 		StreamID: streamId,
 		Code:     ErrCodeCancel,
@@ -1698,7 +1704,9 @@ func (cc *MClientConn) processGoAway(f *GoAwayFrame) (uint32, error) {
 
 func (sc *MClientConn) resetStream(se StreamError) error {
 	if st := sc.streamByID(se.StreamID, true); st != nil {
-		log.DefaultLogger.Warnf("[Mclient Conn] streamId %d send ResetFrame ", se.StreamID)
+		if log.DefaultLogger.GetLogLevel() >= log.WARN {
+			log.DefaultLogger.Warnf("[Mclient Conn] streamId %d send ResetFrame ", se.StreamID)
+		}
 		buf := buffer.NewIoBuffer(frameHeaderLen + 8)
 		sc.Framer.startWrite(buf, FrameRSTStream, 0, se.StreamID)
 		sc.Framer.writeUint32(buf, uint32(se.Code))

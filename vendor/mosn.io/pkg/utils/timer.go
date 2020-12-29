@@ -44,3 +44,14 @@ func (t *Timer) Stop() {
 
 	t.innerTimer.Stop()
 }
+
+func (t *Timer) Reset(d time.Duration) bool {
+	if t == nil {
+		return false
+	}
+	// already stopped
+	if atomic.LoadInt32(&t.stopped) == 1 {
+		return false
+	}
+	return t.innerTimer.Reset(d)
+}

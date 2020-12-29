@@ -186,7 +186,7 @@ func Test_header_conflict(t *testing.T) {
 
 func Test_internal_header(t *testing.T) {
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:12200")
-	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
+	header := http.RequestHeader{&fasthttp.RequestHeader{}}
 	uri := fasthttp.AcquireURI()
 
 	// headers.Get return
@@ -374,7 +374,7 @@ func TestAppendData(t *testing.T) {
 }
 
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
-	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
+	header := http.RequestHeader{&fasthttp.RequestHeader{}}
 
 	for k, v := range payload {
 		header.Set(k, v)

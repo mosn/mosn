@@ -161,6 +161,7 @@ func (f *streamReceiverFilterHandler) TerminateStream(code int) bool {
 		s.perRetryTimer.Stop()
 	}
 	// send hijacks response, request finished
+	s.requestInfo.SetResponseFlag(api.DownStreamTerminate)
 	s.sendHijackReply(code, f.activeStream.downstreamReqHeaders)
 	s.sendNotify() // wake up proxy workflow
 	return true

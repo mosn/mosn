@@ -128,7 +128,7 @@ func transferConfig() ([]byte, error) {
 		r.RouterConfigPath = routerPath
 		routers = append(routers, &r)
 	}
-	extends := make(map[string]json.RawMessage, len(conf.ExtendConfigs))
+	extends := make([]v2.ExtendConfig, len(conf.ExtendConfigs))
 	for k, v := range conf.ExtendConfigs {
 		extends[k] = v
 	}
@@ -146,4 +146,9 @@ func transferConfig() ([]byte, error) {
 		transferExtensionFunc(&wait2dump)
 	}
 	return json.MarshalIndent(wait2dump, "", "  ")
+}
+
+// InheritMosnconfig get old mosn configs
+func InheritMosnconfig() ([]byte, error) {
+	return transferConfig()
 }

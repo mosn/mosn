@@ -21,6 +21,7 @@ import (
 	"net"
 	"sync"
 	"syscall"
+	"time"
 
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
@@ -65,6 +66,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
+	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// set the mosn config finally
 	defer configmanager.SetMosnConfig(c)
@@ -91,6 +93,18 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		store.SetMosnState(store.Active_Reconfiguring)
 		// parse MOSNConfig again
 		c = configmanager.Load(configmanager.GetConfigPath())
+		if c.InheritOldMosnconfig {
+			// inherit old mosn config
+			oldMosnConfig, err := server.GetInheritConfig()
+			if err != nil {
+				listenSockConn.Close()
+				log.StartLogger.Fatalf("[mosn] [NewMosn] GetInheritConfig failed, exit")
+			}
+			log.StartLogger.Debugf("[mosn] [NewMosn] old mosn config: %v", oldMosnConfig)
+			c.Servers = oldMosnConfig.Servers
+			c.ClusterManager = oldMosnConfig.ClusterManager
+			c.Extends = oldMosnConfig.Extends
+		}
 	} else {
 		log.StartLogger.Infof("[mosn] [NewMosn] new mosn created")
 		// start init services
@@ -142,6 +156,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	// initialize the routerManager
 	m.routerManager = router.NewRouterManager()
 
+	// TODO: Remove Servers, support only one server
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
 		//server config
@@ -152,6 +167,8 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 		// init default log
 		server.InitDefaultLogger(sc)
+		// set use optimize local write mode or not, default is false
+		network.SetOptimizeLocalWrite(serverConfig.OptimizeLocalWrite)
 
 		var srv server.Server
 		if mode == v2.Xds {
@@ -202,10 +219,16 @@ func (m *Mosn) beforeStart() {
 		if err := store.StartService(m.inheritListeners); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] start service failed: %v,  exit", err)
 		}
-
 		// notify old mosn to transfer connection
 		if _, err := m.listenSockConn.Write([]byte{0}); err != nil {
 			log.StartLogger.Fatalf("[mosn] [NewMosn] graceful failed, exit")
+		}
+		// wait old mosn ack
+		m.listenSockConn.SetReadDeadline(time.Now().Add(3 * time.Second))
+		var buf [1]byte
+		n, err := m.listenSockConn.Read(buf[:])
+		if n != 1 {
+			log.StartLogger.Fatalf("[mosn] [NewMosn] ack graceful failed, exit, error: %v n: %v, buf[0]: %v", err, n, buf[0])
 		}
 
 		m.listenSockConn.Close()
@@ -262,11 +285,12 @@ func (m *Mosn) Start() {
 	// start mosn feature
 	featuregate.StartInit()
 	log.StartLogger.Infof("mosn parse extend config")
-	for typ, cfg := range m.config.Extends {
-		if err := v2.ExtendConfigParsed(typ, cfg); err != nil {
-			log.StartLogger.Errorf("mosn parse extend config failed, type: %s, error: %v", typ, err)
+	// Notice: executed extends parsed in config order.
+	for _, cfg := range m.config.Extends {
+		if err := v2.ExtendConfigParsed(cfg.Type, cfg.Config); err != nil {
+			log.StartLogger.Errorf("mosn parse extend config failed, type: %s, error: %v", cfg.Type, err)
 		} else {
-			configmanager.SetExtend(typ, cfg)
+			configmanager.SetExtend(cfg.Type, cfg.Config)
 		}
 	}
 
@@ -350,6 +374,7 @@ func initializeMetrics(config v2.MetricsConfig) {
 	// set metrics package
 	statsMatcher := config.StatsMatcher
 	metrics.SetStatsMatcher(statsMatcher.RejectAll, statsMatcher.ExclusionLabels, statsMatcher.ExclusionKeys)
+	metrics.SetMetricsFeature(config.FlushMosn, config.LazyFlush)
 	// create sinks
 	for _, cfg := range config.SinkConfigs {
 		_, err := sink.CreateMetricsSink(cfg.Type, cfg.Config)

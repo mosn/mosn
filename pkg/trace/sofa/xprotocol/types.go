@@ -59,6 +59,7 @@ const (
 	MOSN_PROCESS_TIME = 60 + iota
 	MOSN_TLS_STATE
 	TLSCipherSuite
+	MOSN_PROCESS_FAIL
 )
 
 type SubProtocolDelegate func(ctx context.Context, frame xprotocol.XFrame, span types.Span)
