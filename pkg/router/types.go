@@ -190,6 +190,13 @@ func (f *handlerFactories) get(name string) MakeHandlerFunc {
 	return f.defaultFactory
 }
 
+func (f *handlerFactories) exists(name string) bool {
+	f.mutex.RLock()
+	defer f.mutex.RUnlock()
+	_, ok := f.factories[name]
+	return ok
+}
+
 type headerHashPolicyImpl struct {
 	key string
 }

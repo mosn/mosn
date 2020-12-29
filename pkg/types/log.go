@@ -31,6 +31,7 @@ const (
 // error keys
 const (
 	ErrorKeyAdmin        string = ErrorModuleMosn + ErrorSubModuleAdmin + "admin_failed"
+	ErrorKeyConfigParse         = ErrorModuleMosn + ErrorSubModuleCommon + "config_parse_error"
 	ErrorKeyConfigDump          = ErrorModuleMosn + ErrorSubModuleCommon + "config_dump_failed"
 	ErrorKeyReconfigure         = ErrorModuleMosn + ErrorSubModuleCommon + "reconfigure_failed"
 	ErrorKeyTLSFallback         = ErrorModuleMosn + ErrorSubModuleCommon + "tls_fallback"

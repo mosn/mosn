@@ -63,6 +63,8 @@ func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap)
 			}
 		}
 	}
-	log.Proxy.Debugf(ctx, RouterLogFormat, "sofa rotue rule", "failed match, macther %s", srri.fastmatch)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(ctx, RouterLogFormat, "sofa rotue rule", "failed match, macther %s", srri.fastmatch)
+	}
 	return nil
 }

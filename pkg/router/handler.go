@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"mosn.io/api"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -60,7 +61,8 @@ type MakeHandlerFunc func(ctx context.Context, headers api.HeaderMap, routers ty
 func (factory MakeHandlerFunc) DoRouteHandler(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) (types.ClusterSnapshot, api.Route) {
 	handler := factory(ctx, headers, routers)
 	if handler == nil {
-		log.Proxy.Alertf(ctx, types.ErrorKeyRouteMatch, "no route to make handler, routers name = %v", headers)
+		lname := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+		log.Proxy.Errorf(ctx, RouterLogFormat, "DoRouteHandler", "create handler failed", lname)
 		return nil, nil
 	}
 	snapshot, status := handler.IsAvailable(ctx, clusterManager)

@@ -66,3 +66,7 @@ func RegisterMakeHandler(name string, f MakeHandlerFunc, isDefault bool) {
 func GetMakeHandlerFunc(name string) MakeHandlerFunc {
 	return makeHandler.get(name)
 }
+
+func MakeHandlerFuncExists(name string) bool {
+	return makeHandler.exists(name)
+}
