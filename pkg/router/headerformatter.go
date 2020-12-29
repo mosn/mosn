@@ -27,7 +27,9 @@ import (
 func getHeaderFormatter(value string, append bool) headerFormatter {
 	// TODO: variable headers would be support very soon
 	if strings.Index(value, "%") != -1 {
-		log.DefaultLogger.Warnf("variable headers not support yet, skip, value: %s", value)
+		if log.DefaultLogger.GetLogLevel() >= log.WARN {
+			log.DefaultLogger.Warnf("variable headers not support yet, skip, value: %s", value)
+		}
 		return nil
 	}
 	return &plainHeaderFormatter{

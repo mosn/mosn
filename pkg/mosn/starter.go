@@ -156,6 +156,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	// initialize the routerManager
 	m.routerManager = router.NewRouterManager()
 
+	// TODO: Remove Servers, support only one server
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare
 		//server config
@@ -166,6 +167,8 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 		// init default log
 		server.InitDefaultLogger(sc)
+		// set use optimize local write mode or not, default is false
+		network.SetOptimizeLocalWrite(serverConfig.OptimizeLocalWrite)
 
 		var srv server.Server
 		if mode == v2.Xds {
@@ -282,11 +285,12 @@ func (m *Mosn) Start() {
 	// start mosn feature
 	featuregate.StartInit()
 	log.StartLogger.Infof("mosn parse extend config")
-	for typ, cfg := range m.config.Extends {
-		if err := v2.ExtendConfigParsed(typ, cfg); err != nil {
-			log.StartLogger.Errorf("mosn parse extend config failed, type: %s, error: %v", typ, err)
+	// Notice: executed extends parsed in config order.
+	for _, cfg := range m.config.Extends {
+		if err := v2.ExtendConfigParsed(cfg.Type, cfg.Config); err != nil {
+			log.StartLogger.Errorf("mosn parse extend config failed, type: %s, error: %v", cfg.Type, err)
 		} else {
-			configmanager.SetExtend(typ, cfg)
+			configmanager.SetExtend(cfg.Type, cfg.Config)
 		}
 	}
 

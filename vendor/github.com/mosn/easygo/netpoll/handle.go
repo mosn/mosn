@@ -16,20 +16,27 @@ type filer interface {
 type Desc struct {
 	file  *os.File
 	event Event
+	pfd   uintptr
 }
 
 // NewDesc creates descriptor from custom fd.
 func NewDesc(fd uintptr, ev Event) *Desc {
-	return &Desc{os.NewFile(fd, ""), ev}
+	return &Desc{
+		event: ev,
+		pfd:   fd,
+	}
 }
 
 // Close closes underlying file.
 func (h *Desc) Close() error {
-	return h.file.Close()
+	if h.file != nil {
+		return h.file.Close()
+	}
+	return nil
 }
 
-func (h *Desc) fd() int {
-	return int(h.file.Fd())
+func (h *Desc) Fd() int {
+	return int(h.pfd)
 }
 
 // Must is a helper that wraps a call to a function returning (*Desc, error).
@@ -88,7 +95,7 @@ func Handle(conn net.Conn, event Event) (*Desc, error) {
 	//
 	// See https://golang.org/pkg/net/#TCPConn.File
 	// See /usr/local/go/src/net/net.go: conn.File()
-	if err = setNonblock(desc.fd(), true); err != nil {
+	if err = setNonblock(desc.Fd(), true); err != nil {
 		return nil, os.NewSyscallError("setnonblock", err)
 	}
 
@@ -107,7 +114,7 @@ func HandleFile(file *os.File, event Event) (*Desc, error) {
 	//
 	// See https://golang.org/pkg/net/#TCPConn.File
 	// See /usr/local/go/src/net/net.go: conn.File()
-	if err := setNonblock(desc.fd(), true); err != nil {
+	if err := setNonblock(desc.Fd(), true); err != nil {
 		return nil, os.NewSyscallError("setnonblock", err)
 	}
 

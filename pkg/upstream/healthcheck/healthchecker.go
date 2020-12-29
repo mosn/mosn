@@ -181,7 +181,9 @@ func (hc *healthChecker) getCheckInterval() time.Duration {
 func (hc *healthChecker) incHealthy(host types.Host, changed bool) {
 	hc.stats.success.Inc(1)
 	if changed {
-		log.DefaultLogger.Infof("[upstream] [health check] host %s is healthy", host.AddressString())
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [health check] host %s is healthy", host.AddressString())
+		}
 		atomic.AddInt64(&hc.localProcessHealthy, 1)
 	}
 	hc.runCallbacks(host, changed, true)
@@ -191,7 +193,9 @@ func (hc *healthChecker) decHealthy(host types.Host, reason types.FailureType, c
 	hc.stats.failure.Inc(1)
 	if changed {
 		// hc.localProcessHealthy--
-		log.DefaultLogger.Infof("[upstream] [health check] host %s is unhealthy", host.AddressString())
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [health check] host %s is unhealthy", host.AddressString())
+		}
 		atomic.AddInt64(&hc.localProcessHealthy, ^int64(0))
 	}
 	switch reason {
