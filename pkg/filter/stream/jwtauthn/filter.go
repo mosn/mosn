@@ -21,7 +21,9 @@ func newJwtAuthnFilter(config FilterConfig) *filter {
 }
 
 func (f *filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	log.DefaultLogger.Debugf("call jwt_authn filter")
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("call jwt_authn filter")
+	}
 
 	// TODO(huangrh): bypass
 

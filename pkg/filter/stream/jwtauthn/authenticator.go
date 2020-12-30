@@ -41,7 +41,9 @@ func newAuthenticator(provider string, jwksCache JwksCache, fetcher JwksFetcher,
 }
 
 func (a *authenticator) Verify(headers api.HeaderMap, tokens []JwtLocation) error {
-	log.DefaultLogger.Infof("JWT authentication starts, tokens size=%d", len(tokens))
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Infof("JWT authentication starts, tokens size=%d", len(tokens))
+	}
 	if len(tokens) == 0 {
 		return a.done(ErrJwtNotFound)
 	}
@@ -70,7 +72,9 @@ func (a *authenticator) name() string {
 }
 
 func (a *authenticator) done(err error) error {
-	log.DefaultLogger.Debugf("%s: JWT token verification completed with: %v", a.name(), err)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("%s: JWT token verification completed with: %v", a.name(), err)
+	}
 
 	// if on allow missing or failed this should verify all tokens, otherwise stop on ok.
 	if len(a.tokens) == 0 {
@@ -101,7 +105,9 @@ func (a *authenticator) startVerify() error {
 	a.jwtPayload = parts[1]
 	claims := jwtToken.Claims.(*jwt.StandardClaims)
 
-	log.DefaultLogger.Debugf("Verifying JWT token of issuer: %s", claims.Issuer)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("Verifying JWT token of issuer: %s", claims.Issuer)
+	}
 	// Check if token extracted from the location contains the issuer specified by config.
 	if !a.currToken.IsIssuerSpecified(claims.Issuer) {
 		return a.done(ErrJwtUnknownIssuer)
