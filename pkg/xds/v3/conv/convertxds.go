@@ -609,6 +609,7 @@ func convertFilterChainsAndGetRawFilter(xdsListener *envoy_config_listener_v3.Li
 
 	var xdsFilters []*envoy_config_listener_v3.Filter
 	var chainMatch string
+	var tlsConfigs []v2.TLSConfig
 
 	// todo Only one chain is supported now
 	// if listener.type == TCP, HTTPS, TLS, Mongo, Redis, MySQL
@@ -625,6 +626,18 @@ func convertFilterChainsAndGetRawFilter(xdsListener *envoy_config_listener_v3.Li
 		if xdsFilterChain.GetFilterChainMatch() != nil {
 			chainMatch = xdsFilterChain.GetFilterChainMatch().String()
 		}
+
+		// collect tls configs
+		if (xdsFilterChain.GetTransportSocket() == nil) || (xdsFilterChain.GetTransportSocket().GetTypedConfig() == nil) {
+			continue
+		}
+		downstreamTLSContext := &envoy_extensions_transport_sockets_tls_v3.DownstreamTlsContext{}
+		err := ptypes.UnmarshalAny(xdsFilterChain.GetTransportSocket().GetTypedConfig(), downstreamTLSContext)
+		if err != nil {
+			log.DefaultLogger.Errorf("failed to unmarshal downstream tls context: %v", err)
+			continue
+		}
+		tlsConfigs = append(tlsConfigs, convertTLS(downstreamTLSContext))
 	}
 
 	// A port supports only one protocol
@@ -648,7 +661,7 @@ func convertFilterChainsAndGetRawFilter(xdsListener *envoy_config_listener_v3.Li
 			FilterChainMatch: chainMatch,
 			Filters:          convertFilters(oneFilter),
 		},
-		TLSContexts: nil,
+		TLSContexts: tlsConfigs,
 	},
 	}, oneFilter
 
@@ -1372,8 +1385,10 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
 		isSdsMode = true
 		if validationContext, ok := common.GetValidationContextType().(*envoy_extensions_transport_sockets_tls_v3.CommonTlsContext_CombinedValidationContext); ok {
-			config.SdsConfig.CertificateConfig = &v2.SecretConfigWrapper{ConfigV3: tlsCertSdsConfig[0]}
-			config.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{ConfigV3: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()}
+			config.SdsConfig = &v2.SdsConfig{
+				CertificateConfig: &v2.SecretConfigWrapper{ConfigV3: tlsCertSdsConfig[0]},
+				ValidationConfig:  &v2.SecretConfigWrapper{ConfigV3: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()},
+			}
 		}
 	}
 

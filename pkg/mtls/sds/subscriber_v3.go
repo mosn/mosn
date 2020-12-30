@@ -4,10 +4,12 @@ import (
 	"sync"
 	"time"
 
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	envoy_service_secret_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
+	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/juju/errors"
 	"golang.org/x/net/context"
@@ -119,9 +121,15 @@ func (subscribe *SdsSubscriberV3) sendRequestLoop() {
 			return
 		case name := <-subscribe.reqQueue:
 			discoveryReq := &envoy_service_discovery_v3.DiscoveryRequest{
+				VersionInfo:   "",
 				ResourceNames: []string{name},
+				TypeUrl:       resource.SecretType,
+				ResponseNonce: "",
+				ErrorDetail:   nil,
 				Node: &envoy_config_core_v3.Node{
-					Id: subscribe.serviceNode,
+					Id:       subscribe.serviceNode,
+					Cluster:  types.GetGlobalXdsInfo().ServiceCluster,
+					Metadata: types.GetGlobalXdsInfo().Metadata,
 				},
 			}
 			for {
@@ -163,6 +171,8 @@ func (subscribe *SdsSubscriberV3) receiveResponseLoop() {
 			}
 			log.DefaultLogger.Infof("[xds] [sds subscriber] received a repsonse")
 			subscribe.handleSecretResp(resp)
+
+			ACKResponseV3(subscribe.sdsStreamClient, resp)
 		}
 	}
 }
@@ -254,4 +264,38 @@ func (subscribe *SdsSubscriberV3) cleanSdsStreamClient() {
 		subscribe.sdsStreamClient = nil
 	}
 	log.DefaultLogger.Infof("[xds] [sds subscriber] stream client closed")
+}
+
+func ACKResponseV3(client *SdsStreamClientV3, resp *envoy_service_discovery_v3.DiscoveryResponse) {
+	// get secret names
+	secretNames := make([]string, 0)
+	for _, resource := range resp.Resources {
+		if resource == nil {
+			continue
+		}
+
+		secret := &envoy_api_v2_auth.Secret{}
+		if err := ptypes.UnmarshalAny(resource, secret); err != nil {
+			log.DefaultLogger.Errorf("fail to extract secret name: %v", err)
+			continue
+		}
+
+		secretNames = append(secretNames, secret.GetName())
+	}
+
+	err := client.streamSecretsClient.Send(&envoy_service_discovery_v3.DiscoveryRequest{
+		VersionInfo:   resp.VersionInfo,
+		ResourceNames: secretNames,
+		TypeUrl:       resp.TypeUrl,
+		ErrorDetail:   nil,
+		Node: &envoy_config_core_v3.Node{
+			Id:       types.GetGlobalXdsInfo().ServiceNode,
+			Cluster:  types.GetGlobalXdsInfo().ServiceCluster,
+			Metadata: types.GetGlobalXdsInfo().Metadata,
+		},
+	})
+
+	if err != nil {
+		log.DefaultLogger.Errorf("ack secret fail: %v", err)
+	}
 }

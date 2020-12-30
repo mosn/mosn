@@ -46,7 +46,7 @@ type effectiveConfigDeprecated struct {
 	MOSNConfig interface{}                       `json:"mosn_config,omitempty"`
 	Listener   map[string]v2.Listener            `json:"listener,omitempty"`
 	Cluster    map[string]v2.Cluster             `json:"cluster,omitempty"`
-	Routers    map[string]v2.RouterConfiguration `josn:"routers,omitempty"`
+	Routers    map[string]v2.RouterConfiguration `json:"routers,omitempty"`
 }
 
 func handleListenersRespDeprecated(msg *xdsapi.DiscoveryResponse) []*xdsapi.Listener {
