@@ -27,7 +27,7 @@ import (
 
 type SofaRouteRuleImpl struct {
 	*RouteRuleImplBase
-	fastmatch string
+	fastmatch string // compatible field
 }
 
 func (srri *SofaRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
@@ -56,6 +56,7 @@ func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap)
 			return srri
 		}
 	} else {
+		// compatible for old version.
 		value, _ := headers.Get(types.SofaRouteMatchKey)
 		if value != "" {
 			if value == srri.fastmatch || srri.fastmatch == ".*" {

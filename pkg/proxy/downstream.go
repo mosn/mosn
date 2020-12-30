@@ -671,7 +671,7 @@ func (s *downStream) matchRoute() {
 
 	// get router instance and do routing
 	routers := s.proxy.routersWrapper.GetRouters()
-	// do handler chain
+	// call route handler to get route info
 	s.snapshot, s.route = s.proxy.routeHandlerFactory.DoRouteHandler(s.context, headers, routers, s.proxy.clusterManager)
 }
 

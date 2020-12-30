@@ -59,7 +59,7 @@ var makeHandler = &handlerFactories{
 }
 
 func RegisterMakeHandler(name string, f MakeHandlerFunc, isDefault bool) {
-	log.DefaultLogger.Infof("regist a new handler maker, name is %s, is default: %t", name, isDefault)
+	log.DefaultLogger.Infof("register a new handler maker, name is %s, is default: %t", name, isDefault)
 	makeHandler.add(name, f, isDefault)
 }
 
