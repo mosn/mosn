@@ -199,9 +199,7 @@ func (p *proxy) onUpstreamEvent(event api.ConnectionEvent) {
 
 	case api.LocalClose, api.OnReadErrClose:
 		p.finalizeUpstreamConnectionStats()
-		if p.network == "udp" {
-			p.readCallbacks.Connection().Close(api.NoFlush, api.LocalClose)
-		}
+		p.readCallbacks.Connection().Close(api.NoFlush, api.LocalClose)
 
 	case api.OnConnect:
 	case api.Connected:

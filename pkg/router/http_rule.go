@@ -18,12 +18,14 @@
 package router
 
 import (
+	"context"
 	"regexp"
 	"strings"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/variable"
 )
 
 type PathRouteRuleImpl struct {
@@ -50,14 +52,15 @@ func (prri *PathRouteRuleImpl) MatchType() api.PathMatchType {
 
 // types.RouteRule
 // override Base
-func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	prri.finalizeRequestHeaders(headers, requestInfo)
-	prri.finalizePathHeader(headers, prri.path)
+func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	prri.finalizeRequestHeaders(ctx, headers, requestInfo)
+	prri.finalizePathHeader(ctx, headers, prri.path)
 }
 
-func (prri *PathRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if prri.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	if prri.matchRoute(ctx, headers) {
+		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+		if err == nil && headerPathValue != "" {
 			// TODO: config to support case sensitive
 			// case insensitive
 			if strings.EqualFold(headerPathValue, prri.path) {
@@ -65,7 +68,9 @@ func (prri *PathRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) 
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "path route rule", "failed match", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "path route rule", "failed match", headers)
+	}
 	return nil
 }
 
@@ -94,20 +99,23 @@ func (prei *PrefixRouteRuleImpl) MatchType() api.PathMatchType {
 
 // types.RouteRule
 // override Base
-func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	prei.finalizeRequestHeaders(headers, requestInfo)
-	prei.finalizePathHeader(headers, prei.prefix)
+func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	prei.finalizeRequestHeaders(ctx, headers, requestInfo)
+	prei.finalizePathHeader(ctx, headers, prei.prefix)
 }
 
-func (prei *PrefixRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if prei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	if prei.matchRoute(ctx, headers) {
+		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+		if err == nil && headerPathValue != "" {
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
 				return prei
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "prefxi route rule", "failed match", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "prefxi route rule", "failed match", headers)
+	}
 	return nil
 }
 
@@ -134,19 +142,22 @@ func (rrei *RegexRouteRuleImpl) MatchType() api.PathMatchType {
 	return api.Regex
 }
 
-func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rrei.finalizeRequestHeaders(headers, requestInfo)
-	rrei.finalizePathHeader(headers, rrei.regexStr)
+func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	rrei.finalizeRequestHeaders(ctx, headers, requestInfo)
+	rrei.finalizePathHeader(ctx, headers, rrei.regexStr)
 }
 
-func (rrei *RegexRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if rrei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	if rrei.matchRoute(ctx, headers) {
+		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+		if err == nil && headerPathValue != "" {
 			if rrei.regexPattern.MatchString(headerPathValue) {
 				return rrei
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "regex route rule", "failed match", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "regex route rule", "failed match", headers)
+	}
 	return nil
 }

@@ -42,12 +42,12 @@ const (
 // Routers defines and manages all router
 type Routers interface {
 	// MatchRoute return first route with headers
-	MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route
+	MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route
 	// MatchAllRoutes returns all routes with headers
-	MatchAllRoutes(headers api.HeaderMap, randomValue uint64) []api.Route
+	MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route
 	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	// header is used to find virtual host
-	MatchRouteFromHeaderKV(headers api.HeaderMap, key, value string) api.Route
+	MatchRouteFromHeaderKV(ctx context.Context,headers api.HeaderMap, key, value string) api.Route
 	// AddRoute adds a route into virtual host, find virtual host by domain
 	// returns the virtualhost index, -1 means no virtual host found
 	AddRoute(domain string, route *v2.Router) int
@@ -57,13 +57,13 @@ type Routers interface {
 
 // RouterManager is a manager for all routers' config
 type RouterManager interface {
-	// AddRoutersSet adds router config when generated
+	// AddOrUpdateRouters used to add or update router
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
-
+	// GetRouterWrapperByName returns a router wrapper from manager
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
-
+	// AddRoute adds a single router rule into specified virtualhost(by domain)
 	AddRoute(routerConfigName, domain string, route *v2.Router) error
-
+	// RemoveAllRoutes clear all of the specified virtualhost's routes
 	RemoveAllRoutes(routerConfigName, domain string) error
 }
 
@@ -95,9 +95,9 @@ type VirtualHost interface {
 	Name() string
 
 	// GetRouteFromEntries returns a Route matched the condition
-	GetRouteFromEntries(headers api.HeaderMap, randomValue uint64) api.Route
+	GetRouteFromEntries(ctx context.Context, headers api.HeaderMap) api.Route
 	// GetAllRoutesFromEntries returns all Route matched the condition
-	GetAllRoutesFromEntries(headers api.HeaderMap, randomValue uint64) []api.Route
+	GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap) []api.Route
 	// GetRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	GetRouteFromHeaderKV(key, value string) api.Route
 	// AddRoute adds a new route into virtual host

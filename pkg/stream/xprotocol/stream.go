@@ -22,9 +22,12 @@ import (
 	"fmt"
 	"strconv"
 
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -81,8 +84,11 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 }
 
 func (s *xStream) buildHijackResp(request xprotocol.XFrame, header types.HeaderMap) (xprotocol.XFrame, error) {
-	if status, ok := header.Get(types.HeaderStatus); ok {
-		header.Del(types.HeaderStatus)
+	status, err := variable.GetVariableValue(s.ctx, types.HeaderStatus)
+	if err != nil {
+		return nil, err
+	}
+	if status != "" {
 		statusCode, _ := strconv.Atoi(status)
 		proto := s.sc.protocol
 		return proto.Hijack(request, proto.Mapping(uint32(statusCode))), nil
@@ -129,12 +135,6 @@ func (s *xStream) endStream() {
 		// replace requestID
 		s.frame.SetRequestId(s.id)
 
-		// remove injected headers
-		if _, ok := s.frame.(xprotocol.ServiceAware); ok {
-			s.frame.GetHeader().Del(types.HeaderRPCService)
-			s.frame.GetHeader().Del(types.HeaderRPCMethod)
-		}
-
 		buf, err := s.sc.protocol.Encode(s.ctx, s.frame)
 		if err != nil {
 			log.Proxy.Errorf(s.ctx, "[stream] [xprotocol] encode error:%s, requestId = %v", err.Error(), s.id)
@@ -142,7 +142,11 @@ func (s *xStream) endStream() {
 			return
 		}
 
+		tracks := track.TrackBufferByContext(s.ctx).Tracks
+
+		tracks.StartTrack(track.NetworkDataWrite)
 		err = s.sc.netConn.Write(buf)
+		tracks.EndTrack(track.NetworkDataWrite)
 
 		if err != nil {
 			log.Proxy.Errorf(s.ctx, "[stream] [xprotocol] endStream, requestId = %v, error = %v", s.id, err)

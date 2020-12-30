@@ -29,6 +29,7 @@ import (
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // load should be balanced when node fails
@@ -375,4 +376,23 @@ func getMockClusterInfo() *mockClusterInfo {
 	return &mockClusterInfo{
 		name: "mockClusterInfo",
 	}
+}
+
+func TestReqRRChooseHost(t *testing.T) {
+	hosts := createHostsetWithStats(exampleHostConfigs(), "test")
+	balancer := NewLoadBalancer(&clusterInfo{lbType: types.RequestRoundRobin}, hosts)
+
+	ctx := newMockLbContextWithCtx(nil, variable.NewVariableContext(context.Background()))
+	// RR when use
+	for i := 0; i < len(hosts.allHosts); i++ {
+		host := balancer.ChooseHost(ctx)
+		assert.Equal(t, host, hosts.allHosts[i])
+	}
+
+	ctx0 := newMockLbContextWithCtx(nil, variable.NewVariableContext(context.Background()))
+	ctx1 := newMockLbContextWithCtx(nil, variable.NewVariableContext(context.Background()))
+	host := balancer.ChooseHost(ctx0)
+	host1 := balancer.ChooseHost(ctx1)
+	assert.Equal(t, host, host1)
+
 }

@@ -34,10 +34,11 @@ var (
 
 	MosnConfigPath = MosnBasePath + string(os.PathSeparator) + "conf"
 
-	ReconfigureDomainSocket    = MosnConfigPath + string(os.PathSeparator) + "reconfig.sock"
-	TransferConnDomainSocket   = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
-	TransferStatsDomainSocket  = MosnConfigPath + string(os.PathSeparator) + "stats.sock"
-	TransferListenDomainSocket = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
+	ReconfigureDomainSocket        = MosnConfigPath + string(os.PathSeparator) + "reconfig.sock"
+	TransferConnDomainSocket       = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
+	TransferStatsDomainSocket      = MosnConfigPath + string(os.PathSeparator) + "stats.sock"
+	TransferListenDomainSocket     = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
+	TransferMosnconfigDomainSocket = MosnConfigPath + string(os.PathSeparator) + "mosnconfig.sock"
 )
 
 func InitDefaultPath(path string) {
@@ -70,6 +71,7 @@ func InitDefaultPath(path string) {
 	TransferConnDomainSocket = MosnConfigPath + string(os.PathSeparator) + "conn.sock"
 	TransferStatsDomainSocket = MosnConfigPath + string(os.PathSeparator) + "stats.sock"
 	TransferListenDomainSocket = MosnConfigPath + string(os.PathSeparator) + "listen.sock"
+	TransferMosnconfigDomainSocket = MosnConfigPath + string(os.PathSeparator) + "mosnconfig.sock"
 
 end:
 	os.MkdirAll(MosnLogBasePath, 0755)

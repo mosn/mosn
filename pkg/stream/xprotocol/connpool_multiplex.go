@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -46,7 +47,11 @@ type poolMultiplex struct {
 // NewPoolMultiplex generates a multiplex conn pool
 func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 	maxConns := p.Host().ClusterInfo().ResourceManager().Connections().Max()
-	if maxConns == 0 {
+
+	// xDS cluster if not limit max connection will recv:
+	// max_connections:{value:4294967295}  max_pending_requests:{value:4294967295}  max_requests:{value:4294967295}  max_retries:{value:4294967295}
+	// if not judge max, will oom
+	if maxConns == 0 || maxConns >= math.MaxUint32 {
 		// default conn num should be 1
 		maxConns = 1
 	}
@@ -227,7 +232,7 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 		proto := xprotocol.GetProtocol(subProtocol)
 		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
-			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second, 6)
+			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
 			ac.keepAlive = &keepAliveListener{
 				keepAlive: rpcKeepAlive,

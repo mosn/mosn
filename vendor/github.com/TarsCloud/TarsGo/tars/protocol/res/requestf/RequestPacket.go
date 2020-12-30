@@ -23,7 +23,7 @@ type RequestPacket struct {
 	Status       map[string]string `json:"status"`
 }
 
-func (st *RequestPacket) resetDefault() {
+func (st *RequestPacket) ResetDefault() {
 	st.CPacketType = 0
 	st.IMessageType = 0
 	st.SServantName = ""
@@ -37,7 +37,7 @@ func (st *RequestPacket) ReadFrom(_is *codec.Reader) error {
 	var length int32
 	var have bool
 	var ty byte
-	st.resetDefault()
+	st.ResetDefault()
 
 	err = _is.Read_int16(&st.IVersion, 1, true)
 	if err != nil {
@@ -69,7 +69,7 @@ func (st *RequestPacket) ReadFrom(_is *codec.Reader) error {
 		return err
 	}
 
-	err, _, ty = _is.SkipToNoCheck(7, true)
+	err, have, ty = _is.SkipToNoCheck(7, true)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func (st *RequestPacket) ReadFrom(_is *codec.Reader) error {
 		return err
 	}
 
-	err, _ = _is.SkipTo(codec.MAP, 9, true)
+	err, have = _is.SkipTo(codec.MAP, 9, true)
 	if err != nil {
 		return err
 	}
@@ -150,6 +150,7 @@ func (st *RequestPacket) ReadFrom(_is *codec.Reader) error {
 	if err != nil {
 		return err
 	}
+
 	st.Status = make(map[string]string)
 	for i2, e2 := int32(0), length; i2 < e2; i2++ {
 		var k2 string
@@ -178,7 +179,7 @@ func (st *RequestPacket) ReadFrom(_is *codec.Reader) error {
 func (st *RequestPacket) ReadBlock(_is *codec.Reader, tag byte, require bool) error {
 	var err error
 	var have bool
-	st.resetDefault()
+	st.ResetDefault()
 
 	err, have = _is.SkipTo(codec.STRUCT_BEGIN, tag, require)
 	if err != nil {
@@ -240,14 +241,17 @@ func (st *RequestPacket) WriteTo(_os *codec.Buffer) error {
 	if err != nil {
 		return err
 	}
+
 	err = _os.WriteHead(codec.BYTE, 0)
 	if err != nil {
 		return err
 	}
+
 	err = _os.Write_int32(int32(len(st.SBuffer)), 0)
 	if err != nil {
 		return err
 	}
+
 	err = _os.Write_slice_int8(st.SBuffer)
 	if err != nil {
 		return err
@@ -262,10 +266,12 @@ func (st *RequestPacket) WriteTo(_os *codec.Buffer) error {
 	if err != nil {
 		return err
 	}
+
 	err = _os.Write_int32(int32(len(st.Context)), 0)
 	if err != nil {
 		return err
 	}
+
 	for k3, v3 := range st.Context {
 
 		err = _os.Write_string(k3, 0)
@@ -283,10 +289,12 @@ func (st *RequestPacket) WriteTo(_os *codec.Buffer) error {
 	if err != nil {
 		return err
 	}
+
 	err = _os.Write_int32(int32(len(st.Status)), 0)
 	if err != nil {
 		return err
 	}
+
 	for k4, v4 := range st.Status {
 
 		err = _os.Write_string(k4, 0)
@@ -318,4 +326,14 @@ func (st *RequestPacket) WriteBlock(_os *codec.Buffer, tag byte) error {
 		return err
 	}
 	return nil
+}
+
+// AddMessageType add message type t to message
+func (st *RequestPacket) AddMessageType(t int32) {
+	st.IMessageType = st.IMessageType | t
+}
+
+// HasMessageType check whether message contain type t
+func (st *RequestPacket) HasMessageType(t int32) bool {
+	return st.IMessageType&t != 0
 }

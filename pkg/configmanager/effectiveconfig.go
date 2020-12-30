@@ -32,7 +32,7 @@ type effectiveConfig struct {
 	Listener          map[string]v2.Listener            `json:"listener,omitempty"`
 	Cluster           map[string]v2.Cluster             `json:"cluster,omitempty"`
 	Routers           map[string]v2.RouterConfiguration `json:"routers,omitempty"`
-	ExtendConfigs     map[string]json.RawMessage        `json:"extends,omitempty"`
+	ExtendConfigs     []v2.ExtendConfig                 `json:"extends,omitempty"`
 	clusterConfigPath string                            `json:"-"`
 	routerConfigPath  map[string]string                 `json:"-"`
 }
@@ -42,7 +42,7 @@ func init() {
 		Listener:         make(map[string]v2.Listener),
 		Cluster:          make(map[string]v2.Cluster),
 		Routers:          make(map[string]v2.RouterConfiguration),
-		ExtendConfigs:    make(map[string]json.RawMessage),
+		ExtendConfigs:    []v2.ExtendConfig{},
 		routerConfigPath: make(map[string]string),
 	}
 }
@@ -54,7 +54,7 @@ func Reset() {
 	conf.Listener = make(map[string]v2.Listener)
 	conf.Cluster = make(map[string]v2.Cluster)
 	conf.Routers = make(map[string]v2.RouterConfiguration)
-	conf.ExtendConfigs = make(map[string]json.RawMessage)
+	conf.ExtendConfigs = []v2.ExtendConfig{}
 	conf.routerConfigPath = make(map[string]string)
 }
 
@@ -132,7 +132,21 @@ func SetRouter(router v2.RouterConfiguration) {
 func SetExtend(typ string, cfg json.RawMessage) {
 	configLock.Lock()
 	defer configLock.Unlock()
-	conf.ExtendConfigs[typ] = cfg
+	found := false
+	for idx, ext := range conf.ExtendConfigs {
+		if ext.Type == typ {
+			ext.Config = cfg
+			conf.ExtendConfigs[idx] = ext
+			found = true
+			break
+		}
+	}
+	if !found {
+		conf.ExtendConfigs = append(conf.ExtendConfigs, v2.ExtendConfig{
+			Type:   typ,
+			Config: cfg,
+		})
+	}
 	tryDump()
 }
 

@@ -18,11 +18,12 @@
 package router
 
 import (
+	"context"
 	"regexp"
 	"sync"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -68,6 +69,15 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 			regexStr:          route.Match.Regex,
 			regexPattern:      regPattern,
 		}
+	} else if len(route.Match.Variables) > 0 {
+		variableRouter := &VariableRouteRuleImpl{
+			RouteRuleImplBase: base,
+			Variables:         make([]*VariableMatchItem, len(route.Match.Variables)),
+		}
+		for i := range route.Match.Variables {
+			variableRouter.Variables[i] = ParseToVariableMatchItem(route.Match.Variables[i])
+		}
+		router = variableRouter
 	} else {
 		if router = defaultRouterRuleFactoryOrder.factory(base, route.Match.Headers); router == nil {
 			log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", "create default router failed")
@@ -90,7 +100,9 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 			valueMap[value] = router
 		}
 		vh.mutex.Unlock()
-		log.DefaultLogger.Infof(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule")
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule")
+		}
 	} else {
 		log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", "add a new route rule failed")
 	}
@@ -98,23 +110,23 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 
 }
 
-func (vh *VirtualHostImpl) GetRouteFromEntries(headers api.HeaderMap, randomValue uint64) api.Route {
+func (vh *VirtualHostImpl) GetRouteFromEntries(ctx context.Context, headers api.HeaderMap) api.Route {
 	vh.mutex.RLock()
 	defer vh.mutex.RUnlock()
 	for _, route := range vh.routes {
-		if routeEntry := route.Match(headers, randomValue); routeEntry != nil {
+		if routeEntry := route.Match(ctx, headers); routeEntry != nil {
 			return routeEntry
 		}
 	}
 	return nil
 }
 
-func (vh *VirtualHostImpl) GetAllRoutesFromEntries(headers api.HeaderMap, randomValue uint64) []api.Route {
+func (vh *VirtualHostImpl) GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap) []api.Route {
 	vh.mutex.RLock()
 	defer vh.mutex.RUnlock()
 	var routes []api.Route
 	for _, route := range vh.routes {
-		if r := route.Match(headers, randomValue); r != nil {
+		if r := route.Match(ctx, headers); r != nil {
 			routes = append(routes, r)
 		}
 	}

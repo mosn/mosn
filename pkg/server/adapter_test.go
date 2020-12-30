@@ -65,7 +65,7 @@ func baseListenerConfig(addrStr string, name string) *v2.Listener {
 				},
 			}, //no stream filters parsed, but the config still exists for test
 		},
-		Addr:                    addr,
+		Addr: addr,
 		PerConnBufferLimitBytes: 1 << 15,
 	}
 }
@@ -169,7 +169,7 @@ func TestLDS(t *testing.T) {
 			StreamFilters: []v2.Filter{}, // stream filter will not be updated
 			Inspector:     true,
 		},
-		Addr:                    listenerConfig.Addr, // addr should not be changed
+		Addr: listenerConfig.Addr, // addr should not be changed
 		PerConnBufferLimitBytes: 1 << 10,
 	}
 
@@ -220,52 +220,6 @@ func TestLDS(t *testing.T) {
 	if conn, err := net.DialTimeout("tcp", addrStr, time.Second); err == nil {
 		conn.Close()
 		t.Fatal("listener closed, dial should be failed")
-	}
-}
-
-func TestUpdateTLS(t *testing.T) {
-	setup()
-	defer tearDown()
-
-	addrStr := "127.0.0.1:8081"
-	name := "listener2"
-	listenerConfig := baseListenerConfig(addrStr, name)
-
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig); err != nil {
-		t.Fatalf("add a new listener failed %v", err)
-	}
-	time.Sleep(time.Second) // wait listener start
-	tlsCfg := v2.TLSConfig{
-		Status: false,
-	}
-	// tls handleshake success
-	dialer := &net.Dialer{
-		Timeout: time.Second,
-	}
-	if conn, err := tls.DialWithDialer(dialer, "tcp", addrStr, &tls.Config{
-		InsecureSkipVerify: true,
-	}); err != nil {
-		t.Fatal("dial tls failed", err)
-	} else {
-		conn.Close()
-	}
-	if err := GetListenerAdapterInstance().UpdateListenerTLS(testServerName, name, false, []v2.TLSConfig{tlsCfg}); err != nil {
-		t.Fatalf("update tls listener failed %v", err)
-	}
-	handler := listenerAdapterInstance.defaultConnHandler.(*connHandler)
-	newLn := handler.FindListenerByName(name)
-	cfg := newLn.Config()
-	// verify tls changed
-	if !(reflect.DeepEqual(cfg.FilterChains[0].TLSContexts[0], tlsCfg) &&
-		cfg.Inspector == false) {
-		t.Fatal("update tls config not expected")
-	}
-	// tls handshake should be failed, because tls is changed to false
-	if conn, err := tls.DialWithDialer(dialer, "tcp", addrStr, &tls.Config{
-		InsecureSkipVerify: true,
-	}); err == nil {
-		conn.Close()
-		t.Fatal("listener should not be support tls any more")
 	}
 }
 

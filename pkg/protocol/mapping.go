@@ -22,6 +22,8 @@ import (
 	"errors"
 	"strconv"
 
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
@@ -57,8 +59,8 @@ func MappingHeaderStatusCode(ctx context.Context, p api.Protocol, headers api.He
 type httpMapping struct{}
 
 func (m *httpMapping) MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error) {
-	status, ok := headers.Get(types.HeaderStatus)
-	if !ok {
+	status, err := variable.GetVariableValue(ctx, types.HeaderStatus)
+	if err != nil {
 		return 0, errors.New("headers have no status code")
 	}
 	return strconv.Atoi(status)

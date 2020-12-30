@@ -143,17 +143,20 @@ func (c *RequestConfig) BuildRequest(id uint32) (api.HeaderMap, buffer.IoBuffer)
 	if c == nil {
 		return buildRequest(id, map[string]string{
 			"service": "mosn-test-default-service", // must have service
-		}, nil)
+		}, nil, -1)
 	}
-	return buildRequest(id, c.Header, c.Body)
+	return buildRequest(id, c.Header, c.Body, c.Timeout)
 }
 
-func buildRequest(id uint32, header map[string]string, body []byte) (api.HeaderMap, buffer.IoBuffer) {
+func buildRequest(id uint32, header map[string]string, body []byte, timeout time.Duration) (api.HeaderMap, buffer.IoBuffer) {
 	var buf buffer.IoBuffer
 	if len(body) > 0 {
 		buf = buffer.NewIoBufferBytes(body)
 	}
 	req := bolt.NewRpcRequest(id, protocol.CommonHeader(header), buf)
+	if timeout > 0 {
+		req.Timeout = int32(int64(timeout) / 1e6)
+	}
 	return req, req.Content
 }
 

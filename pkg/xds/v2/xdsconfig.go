@@ -23,8 +23,8 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"math/rand"
-	"mosn.io/mosn/pkg/xds/conv"
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -37,6 +37,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/xds/conv"
 )
 
 //  Init parsed ds and clusters config for xds
@@ -93,7 +94,7 @@ func (c *XDSConfig) getAPISourceEndpoint(source *core.ApiConfigSource) (*ADSConf
 		t := service.TargetSpecifier
 		if target, ok := t.(*core.GrpcService_EnvoyGrpc_); ok {
 			serviceConfig := ServiceConfig{}
-			if service.Timeout == nil || (serviceConfig.Timeout.Seconds() <= 0 && serviceConfig.Timeout.Nanoseconds() <= 0) {
+			if service.Timeout == nil || (service.Timeout.Seconds <= 0 && service.Timeout.Nanos <= 0) {
 				duration := time.Duration(time.Second) // default connection timeout
 				serviceConfig.Timeout = &duration
 			} else {
@@ -206,7 +207,7 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 	}
 
 	if tlsContext == nil || !featuregate.Enabled(featuregate.XdsMtlsEnable) {
-		conn, err := grpc.Dial(endpoint, grpc.WithInsecure())
+		conn, err := grpc.Dial(endpoint, grpc.WithInsecure(), generateDialOption())
 		if err != nil {
 			log.DefaultLogger.Errorf("did not connect: %v", err)
 			return nil
@@ -220,7 +221,7 @@ func (c *ADSConfig) GetStreamClient() ads.AggregatedDiscoveryService_StreamAggre
 			log.DefaultLogger.Errorf("xds-grpc get tls creds fail: err= %v", err)
 			return nil
 		}
-		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds))
+		conn, err := grpc.Dial(endpoint, grpc.WithTransportCredentials(creds), generateDialOption())
 		if err != nil {
 			log.DefaultLogger.Errorf("did not connect: %v", err)
 			return nil
@@ -298,4 +299,13 @@ func (c *ADSConfig) closeADSStreamClient() {
 	}
 	c.StreamClient.Client = nil
 	c.StreamClient = nil
+}
+
+// [xds] [ads client] get resp timeout: rpc error: code = ResourceExhausted desc = grpc: received message larger than max (5193322 vs. 4194304), retry after 1s
+// https://github.com/istio/istio/blob/9686754643d0939c1f4dd0ee20443c51183f3589/pilot/pkg/bootstrap/server.go#L662
+// Istio xDS DiscoveryServer not set grpc MaxSendMsgSize. If this is not set, gRPC uses the default `math.MaxInt32`.
+func generateDialOption() grpc.DialOption {
+	return grpc.WithDefaultCallOptions(
+		grpc.MaxCallRecvMsgSize(math.MaxInt32),
+	)
 }

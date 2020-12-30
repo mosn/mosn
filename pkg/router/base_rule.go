@@ -34,6 +34,7 @@ import (
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/variable"
 )
 
 var (
@@ -256,21 +257,26 @@ func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {
 }
 
 // matchRoute is a common matched for http
-func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint64) bool {
+func (rri *RouteRuleImplBase) matchRoute(ctx context.Context, headers api.HeaderMap) bool {
 	// 1. match headers' KV
 	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
+		}
 		return false
 	}
 	// 2. match query parameters
 	if len(rri.configQueryParameters) != 0 {
 		var queryParams types.QueryParams
-		if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
+		QueryString, err := variable.GetVariableValue(ctx, protocol.MosnHeaderQueryStringKey)
+		if err == nil && QueryString != "" {
 			queryParams = httpmosn.ParseQueryString(QueryString)
 		}
 		if len(queryParams) != 0 {
 			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
-				log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
+				}
 				return false
 			}
 		}
@@ -278,25 +284,29 @@ func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint
 	return true
 }
 
-func (rri *RouteRuleImplBase) FinalizePathHeader(headers api.HeaderMap, matchedPath string) {
-	rri.finalizePathHeader(headers, matchedPath)
+func (rri *RouteRuleImplBase) FinalizePathHeader(ctx context.Context, headers api.HeaderMap, matchedPath string) {
+	rri.finalizePathHeader(ctx, headers, matchedPath)
 }
 
-func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedPath string) {
+func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers api.HeaderMap, matchedPath string) {
 
 	if len(rri.prefixRewrite) < 1 && len(rri.regexRewrite.Pattern.Regex) < 1 {
 		return
 	}
 
-	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+	path, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+	if err == nil && path != "" {
 
 		//If both prefix_rewrite and regex_rewrite are configured
 		//prefix rewrite by default
 		if len(rri.prefixRewrite) > 1 {
 			if strings.HasPrefix(path, matchedPath) {
+				// origin path need to save in the header
 				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-				headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
-				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+				variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+				}
 			}
 			return
 		}
@@ -306,39 +316,39 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedP
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
 				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-				headers.Set(protocol.MosnHeaderPathKey, rewritedPath)
-				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
+				variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, rewritedPath)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
+				}
 			}
 		}
 
 	}
 }
 
-func (rri *RouteRuleImplBase) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rri.finalizeRequestHeaders(headers, requestInfo)
+func (rri *RouteRuleImplBase) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	rri.finalizeRequestHeaders(ctx, headers, requestInfo)
 }
 
-func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
-		headers.Set(protocol.IstioHeaderHostKey, rri.hostRewrite)
+		variable.SetVariableValue(ctx, protocol.IstioHeaderHostKey, rri.hostRewrite)
 	} else if len(rri.autoHostRewriteHeader) > 0 {
 		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
-			headers.Set(protocol.IstioHeaderHostKey, headerValue)
+			variable.SetVariableValue(ctx, protocol.IstioHeaderHostKey, headerValue)
 		}
 	} else if rri.autoHostRewrite {
-
 		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.routerAction.ClusterName)
 		if clusterSnapshot != nil && (clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER) {
-			headers.Set(protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
+			variable.SetVariableValue(ctx, protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
 		}
-
 	}
 }
 
-func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (rri *RouteRuleImplBase) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.responseHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)

@@ -39,7 +39,7 @@ type SendFilterFactory struct {
 
 func (f *SendFilterFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewSendFilter(f.config, f.invocationFactory)
-	callbacks.AddStreamSenderFilter(filter)
+	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
 func CreateSendFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
