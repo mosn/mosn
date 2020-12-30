@@ -27,7 +27,7 @@ import (
 
 type SofaRouteRuleImpl struct {
 	*RouteRuleImplBase
-	matchValue string
+	fastmatch string // compatible field
 }
 
 func (srri *SofaRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
@@ -39,7 +39,7 @@ func (srri *SofaRouteRuleImpl) RouteRule() api.RouteRule {
 }
 
 func (srri *SofaRouteRuleImpl) Matcher() string {
-	return srri.matchValue
+	return srri.fastmatch
 }
 
 func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
@@ -47,15 +47,25 @@ func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
 }
 
 func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	srri.RouteRuleImplBase.FinalizeRequestHeaders(ctx, headers, requestInfo)
 }
 
 func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
-	value, _ := headers.Get(types.SofaRouteMatchKey)
-	if value != "" {
-		if value == srri.matchValue || srri.matchValue == ".*" {
+	if srri.fastmatch == "" {
+		if srri.matchRoute(ctx, headers) {
 			return srri
 		}
+	} else {
+		// compatible for old version.
+		value, _ := headers.Get(types.SofaRouteMatchKey)
+		if value != "" {
+			if value == srri.fastmatch || srri.fastmatch == ".*" {
+				return srri
+			}
+		}
 	}
-	log.DefaultLogger.Errorf(RouterLogFormat, "sofa rotue rule", "failed match header: %v, value: %s", headers, srri.matchValue)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(ctx, RouterLogFormat, "sofa rotue rule", "failed match, macther %s", srri.fastmatch)
+	}
 	return nil
 }

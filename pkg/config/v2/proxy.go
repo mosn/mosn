@@ -41,6 +41,7 @@ type Proxy struct {
 	DownstreamProtocol string                 `json:"downstream_protocol,omitempty"`
 	UpstreamProtocol   string                 `json:"upstream_protocol,omitempty"`
 	RouterConfigName   string                 `json:"router_config_name,omitempty"`
+	RouterHandlerName  string                 `json:"router_handler_name,omitempty"`
 	ValidateClusters   bool                   `json:"validate_clusters,omitempty"`
 	ExtendConfig       map[string]interface{} `json:"extend_config,omitempty"`
 

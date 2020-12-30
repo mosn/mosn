@@ -37,7 +37,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
@@ -694,16 +693,8 @@ func (s *downStream) matchRoute() {
 
 	// get router instance and do routing
 	routers := s.proxy.routersWrapper.GetRouters()
-	// do handler chain
-	handlerChain := router.CallMakeHandlerChain(s.context, headers, routers, s.proxy.clusterManager)
-	// handlerChain should never be nil
-	if handlerChain == nil {
-		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "no route to make handler chain, headers = %v", headers)
-		s.requestInfo.SetResponseFlag(api.NoRouteFound)
-		s.sendHijackReply(types.RouterUnavailableCode, headers)
-		return
-	}
-	s.snapshot, s.route = handlerChain.DoNextHandler()
+	// call route handler to get route info
+	s.snapshot, s.route = s.proxy.routeHandlerFactory.DoRouteHandler(s.context, headers, routers, s.proxy.clusterManager)
 }
 
 func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {

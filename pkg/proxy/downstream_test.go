@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/variable"
 
 	"github.com/stretchr/testify/assert"
@@ -145,11 +146,12 @@ func TestDirectResponse(t *testing.T) {
 						route: tc.route,
 					},
 				},
-				clusterManager:   &mockClusterManager{},
-				readCallbacks:    &mockReadFilterCallbacks{},
-				stats:            globalStats,
-				listenerStats:    newListenerStats("test"),
-				serverStreamConn: &mockServerConn{},
+				clusterManager:      &mockClusterManager{},
+				readCallbacks:       &mockReadFilterCallbacks{},
+				stats:               globalStats,
+				listenerStats:       newListenerStats("test"),
+				serverStreamConn:    &mockServerConn{},
+				routeHandlerFactory: router.DefaultMakeHandler,
 			},
 			responseSender: tc.client,
 			requestInfo:    &network.RequestInfo{},
@@ -175,11 +177,12 @@ func TestSetDownstreamRouter(t *testing.T) {
 					route: &mockRoute{},
 				},
 			},
-			clusterManager:   &mockClusterManager{},
-			readCallbacks:    &mockReadFilterCallbacks{},
-			stats:            globalStats,
-			listenerStats:    newListenerStats("test"),
-			serverStreamConn: &mockServerConn{},
+			clusterManager:      &mockClusterManager{},
+			readCallbacks:       &mockReadFilterCallbacks{},
+			stats:               globalStats,
+			listenerStats:       newListenerStats("test"),
+			serverStreamConn:    &mockServerConn{},
+			routeHandlerFactory: router.DefaultMakeHandler,
 		},
 		responseSender: &mockResponseSender{},
 		requestInfo:    &network.RequestInfo{},
@@ -194,13 +197,14 @@ func TestSetDownstreamRouter(t *testing.T) {
 func TestOnewayHijack(t *testing.T) {
 	initGlobalStats()
 	proxy := &proxy{
-		config:           &v2.Proxy{},
-		routersWrapper:   nil,
-		clusterManager:   &mockClusterManager{},
-		readCallbacks:    &mockReadFilterCallbacks{},
-		stats:            globalStats,
-		listenerStats:    newListenerStats("test"),
-		serverStreamConn: &mockServerConn{},
+		config:              &v2.Proxy{},
+		routersWrapper:      nil,
+		clusterManager:      &mockClusterManager{},
+		readCallbacks:       &mockReadFilterCallbacks{},
+		stats:               globalStats,
+		listenerStats:       newListenerStats("test"),
+		serverStreamConn:    &mockServerConn{},
+		routeHandlerFactory: router.DefaultMakeHandler,
 	}
 	s := newActiveStream(context.Background(), proxy, nil, nil)
 

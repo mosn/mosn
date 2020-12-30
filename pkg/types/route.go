@@ -77,6 +77,8 @@ const (
 	HandlerStop
 )
 
+const DefaultRouteHandler = "default"
+
 // RouteHandler is an external check handler for a route
 type RouteHandler interface {
 	// IsAvailable returns HandlerStatus represents the handler will be used/not used/stop next handler check
