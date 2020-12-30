@@ -27,7 +27,7 @@ func matchHeaders(requestHeaders api.HeaderMap, configHeaders []*routev3.HeaderM
 }
 
 func matchHeader(requestHeaders api.HeaderMap, configHeader *routev3.HeaderMatcher) bool {
-	rHeaderValue, exists := requestHeaders.Get("Abc")
+	rHeaderValue, exists := requestHeaders.Get(configHeader.GetName())
 
 	if !exists {
 		return configHeader.InvertMatch && configHeader.GetPresentMatch()

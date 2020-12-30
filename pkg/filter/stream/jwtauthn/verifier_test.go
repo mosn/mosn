@@ -33,7 +33,6 @@ func TestProviderVerifier(t *testing.T) {
 
 		headers := newHeaders(
 			[2]string{"Authorization", "Bearer " + goodToken},
-			//[2]string{"sec-istio-auth-userinfo", ""},
 		)
 		err = verifier.Verify(headers, "")
 		assert.Nil(t, err)
@@ -54,11 +53,9 @@ func TestProviderVerifier(t *testing.T) {
 			t.FailNow()
 		}
 
-		headers := newHeaders([2]string{"sec-istio-auth-userinfo", ""})
+		headers := newHeaders()
 		err = verifier.Verify(headers, "")
 		assert.Equal(t, ErrJwtNotFound, err)
-		_, exists := headers.Get("sec-istio-auth-userinfo")
-		assert.False(t, exists)
 	})
 
 	t.Run("JWT must be issued by the provider specified in the requirement.", func(t *testing.T) {

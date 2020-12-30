@@ -34,7 +34,7 @@ type Extractor interface {
 	Extract(headers api.HeaderMap, requestArg string) []JwtLocation
 }
 
-// HeaderMap value type to store prefix and issuers that specified this header.
+// HeaderLocationSpec value type to store prefix and issuers that specified this header.
 type HeaderLocationSpec struct {
 	// The header name.
 	headerName string
@@ -56,7 +56,7 @@ func (h *HeaderLocationSpec) addIssuer(issuer string) {
 	h.specifiedIssuers[issuer] = struct{}{}
 }
 
-// ParamMap value type to store issuers that specified this header.
+// ParamLocationSpec value type to store issuers that specified this header.
 type ParamLocationSpec struct {
 	// Issuers that specified this param.
 	specifiedIssuers map[string]struct{}
@@ -207,12 +207,14 @@ type JwtParamLocation struct {
 
 // newJwtParamLocation creates a new jwtHeaderLocation.
 func newJwtParamLocation(token string, issuers map[string]struct{}) JwtLocation {
-	jpl := &JwtParamLocation{
-	}
+	jpl := &JwtParamLocation{}
 	jpl.token = token
 	jpl.issuers = issuers
 	return jpl
 }
 
+// RemoveJwt removes JWT from parameter
 func (j *JwtParamLocation) RemoveJwt(headers api.HeaderMap) {
+	// TODO(huangrh): remove JWT from parameter.
+	return
 }

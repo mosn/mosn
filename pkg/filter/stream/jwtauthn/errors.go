@@ -2,6 +2,7 @@ package jwtauthn
 
 import "errors"
 
+// sentinal errors
 var (
 	ErrInvalidToken          = errors.New("invalid token")
 	ErrJwtNotFound           = errors.New("jwt token not found")

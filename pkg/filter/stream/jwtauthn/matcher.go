@@ -51,7 +51,7 @@ func newBaseMatcher(rule *jwtauthnv3.RequirementRule) *baseMatcher {
 func (p *baseMatcher) matchRoutes(headers api.HeaderMap, requestPath string) bool {
 	matchs := matchHeaders(headers, p.headers)
 	if len(p.queryParameters) > 0 {
-
+		// TODO(huangrh): suppurt query parameters
 	}
 	return matchs
 }

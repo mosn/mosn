@@ -27,10 +27,6 @@ func TestMatchPrefix(t *testing.T) {
 	assert.False(t, matcher.Matches(nil, "/no"))
 }
 
-func TestMatchSafeRegex(t *testing.T) {
-	// TODO(huangrh)
-}
-
 func TestMatchPath(t *testing.T) {
 	rule := &jwtauthnv3.RequirementRule{
 		Match: &routev3.RouteMatch{
@@ -52,33 +48,25 @@ func TestMatchPath(t *testing.T) {
 	assert.False(t, matcher.Matches(nil, "/matching"))
 }
 
-func TestMatchQuery(t *testing.T) {
-	// TODO(huangrh)
-}
-
 func TestMatchHeader(t *testing.T) {
 	rule := &jwtauthnv3.RequirementRule{
 		Match: &routev3.RouteMatch{
 			PathSpecifier: &routev3.RouteMatch_Prefix{
-				Prefix: "/match",
+				Prefix: "/",
 			},
 			Headers: []*routev3.HeaderMatcher{
 				{
-					Name: "Abc",
+					Name:                 "Abc",
+					HeaderMatchSpecifier: &routev3.HeaderMatcher_ExactMatch{},
 				},
 			},
 		},
 	}
 
 	matcher := NewMatcher(rule)
-	// TODO(huangrh): why api.HeaderMap considers header with empty value is not exists?
-	//assert.True(t, matcher.Matches(newHeaders([2]string{"Abc", ""}), "/"))
-	//assert.True(t, matcher.Matches(newHeaders([2]string{"Abc", "some"}, [2]string{"b", ""}), "/"))
+	assert.True(t, matcher.Matches(newHeaders([2]string{"Abc", ""}), "/"))
+	assert.True(t, matcher.Matches(newHeaders([2]string{"Abc", "some"}, [2]string{"b", ""}), "/"))
 	assert.False(t, matcher.Matches(newHeaders([2]string{"Abcd", ""}), "/"))
 	assert.False(t, matcher.Matches(nil, "/"))
 	assert.False(t, matcher.Matches(newHeaders([2]string{"", ""}), "/"))
-}
-
-func TestMatchPathAndHeader(t *testing.T) {
-	// TODO(huangrh)
 }
