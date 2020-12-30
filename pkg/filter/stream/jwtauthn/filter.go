@@ -30,7 +30,7 @@ func (f *filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	requestArg, err := variable.GetVariableValue(ctx, types.VarHttpRequestArg)
 	if err != nil {
 		log.DefaultLogger.Errorf("[jwt_authn filter] get query parameter: %v", err)
-		return api.StreamFilterStop
+		return api.StreamFilterContinue
 	}
 
 	requestPath, err := variable.GetVariableValue(ctx, types.VarHttpRequestPath)
@@ -38,8 +38,6 @@ func (f *filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		log.DefaultLogger.Errorf("[jwt_authn filter] get path: %v", err)
 		return api.StreamFilterStop
 	}
-
-	// TODO(huangrh): define a struct for request.
 
 	// Verify the JWT token
 	verifier := f.config.FindVerifier(headers, requestArg, requestPath)

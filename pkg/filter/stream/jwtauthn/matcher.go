@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"strings"
 
-	envoy_config_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	"mosn.io/api"
@@ -19,11 +18,11 @@ type Matcher interface {
 // NewMatcher creates a new Matcher.
 func NewMatcher(rule *jwtauthnv3.RequirementRule) Matcher {
 	switch rule.GetMatch().PathSpecifier.(type) {
-	case *envoy_config_route_v3.RouteMatch_Prefix:
+	case *routev3.RouteMatch_Prefix:
 		return newPrefixMatcher(rule)
 
 	default:
-		// *envoy_config_route_v3.RouteMatch_Path
+		// *routev3.RouteMatch_Path
 		return newPathMatcher(rule)
 	}
 }

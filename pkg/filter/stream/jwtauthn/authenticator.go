@@ -26,7 +26,6 @@ type authenticator struct {
 	tokens     []JwtLocation
 	currToken  JwtLocation
 	headers    api.HeaderMap
-	jwt        *jwt.Token
 	jwtPayload string
 }
 
@@ -81,7 +80,8 @@ func (a *authenticator) done(err error) error {
 		a.tokens = nil // clear tokens
 		if a.allowFail {
 			return nil
-		} else if a.allowMissing && err == ErrJwtNotFound {
+		}
+		if a.allowMissing && err == ErrJwtNotFound {
 			return nil
 		}
 		return err
@@ -168,7 +168,7 @@ func (a *authenticator) verifyKey() error {
 
 		keys := a.jwksData.GetJwksObj().LookupKeyID(kid)
 		if len(keys) == 0 {
-			return nil, fmt.Errorf("unable to find key %q", kid)
+			return nil, fmt.Errorf("unable to find key %s", kid)
 		}
 		key := keys[0]
 

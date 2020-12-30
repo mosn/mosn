@@ -216,5 +216,4 @@ func newJwtParamLocation(token string, issuers map[string]struct{}) JwtLocation 
 // RemoveJwt removes JWT from parameter
 func (j *JwtParamLocation) RemoveJwt(headers api.HeaderMap) {
 	// TODO(huangrh): remove JWT from parameter.
-	return
 }
