@@ -29,7 +29,6 @@ import (
 
 // rewrite request url
 func rewriteRequestUrl(ctx context.Context, dstUrl string) bool {
-	// TODO Add a set handler for request headers variable...
 	variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, dstUrl)
 	return true
 }
