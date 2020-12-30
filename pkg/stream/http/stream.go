@@ -126,6 +126,7 @@ type streamConnection struct {
 	resetReason       types.StreamResetReason
 
 	bufChan    chan buffer.IoBuffer
+	endRead    chan struct{}
 	connClosed chan bool
 
 	br *bufio.Reader
@@ -142,7 +143,7 @@ func (sc *streamConnection) Dispatch(buffer buffer.IoBuffer) {
 
 	for buffer.Len() > 0 {
 		sc.bufChan <- buffer
-		<-sc.bufChan
+		<-sc.endRead
 	}
 }
 
@@ -183,7 +184,7 @@ func (conn *streamConnection) Read(p []byte) (n int, err error) {
 
 	n = copy(p, data.Bytes())
 	data.Drain(n)
-	conn.bufChan <- nil
+	conn.endRead <- struct{}{}
 	return
 }
 
@@ -196,6 +197,13 @@ func (conn *streamConnection) Write(p []byte) (n int, err error) {
 
 	err = conn.conn.Write(buf)
 	return
+}
+
+func (conn *streamConnection) Reset(reason types.StreamResetReason) {
+	close(conn.bufChan)
+	close(conn.endRead)
+	close(conn.connClosed)
+	conn.resetReason = reason
 }
 
 // types.ClientStreamConnection
@@ -218,6 +226,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 			context:    ctx,
 			conn:       connection,
 			bufChan:    make(chan buffer.IoBuffer),
+			endRead:    make(chan struct{}),
 			connClosed: make(chan bool, 1),
 		},
 		connectionEventListener:       connCallbacks,
@@ -348,12 +357,6 @@ func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.C
 	return reason, true
 }
 
-func (conn *clientStreamConnection) Reset(reason types.StreamResetReason) {
-	close(conn.bufChan)
-	close(conn.connClosed)
-	conn.resetReason = reason
-}
-
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
@@ -373,6 +376,7 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 			context:    ctx,
 			conn:       connection,
 			bufChan:    make(chan buffer.IoBuffer),
+			endRead:    make(chan struct{}),
 			connClosed: make(chan bool, 1),
 		},
 		contextManager:           str.NewContextManager(ctx),
@@ -412,8 +416,14 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 
 func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
-		close(conn.bufChan)
-		close(conn.connClosed)
+		var reason types.StreamResetReason
+		switch event {
+		case api.RemoteClose:
+			reason = types.UpstreamReset
+		default:
+			reason = types.StreamConnectionTermination
+		}
+		conn.Reset(reason)
 	}
 }
 
@@ -538,10 +548,6 @@ func (conn *serverStreamConnection) CheckReasonError(connected bool, event api.C
 
 	}
 	return reason, true
-}
-
-func (conn *serverStreamConnection) Reset(reason types.StreamResetReason) {
-	close(conn.bufChan)
 }
 
 // types.Stream
