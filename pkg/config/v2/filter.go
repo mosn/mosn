@@ -58,6 +58,17 @@ type StreamDSL struct {
 	LogDSL           string `json:"log_filter_by_dsl"`
 }
 
+// StreamTrace ...
+type StreamTrace struct {
+	Disable                bool   `json:"disable"` // TODO supprot variable
+	TracerIgnoreSpellcheck bool   `json:"tracer_ignore_spellcheck"`
+	TracerIgnoreSize       bool   `json:"tracer_ignore_size"`
+	TracerTraceidArg       string `json:"tracer_traceid_arg"`
+	TracerTraceidHeader    string `json:"tracer_traceid_header"`
+	TracerRpcidHeader      string `json:"tracer_rpcid_header"`
+	TracerIpPart           string `json:"tracer_ip_part"`
+}
+
 // Listener Filter's Type
 const (
 	ORIGINALDST_LISTENER_FILTER = "original_dst"
@@ -98,6 +109,7 @@ const (
 	DSL            = "dsl"
 	Mirror         = "mirror"
 	DubboStream    = "dubbo_stream"
+	Trace          = "trace"
 )
 
 // HealthCheckFilter
