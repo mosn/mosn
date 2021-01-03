@@ -1,5 +1,44 @@
 # 更新日志
 
+## v0.20.0
+
+### 优化
+
+- 优化 TCP 地址解析失败默认解析 UDS 地址的问题，地址解析前添加前缀判断 [@wangfakang](https://github.com/wangfakang)
+- 将 extend 配置的结构更改为 slice，使其可以保持配置顺序 [@nejisama](https://github.com/nejisama)
+- 优化连接池获取的尝试间隔 [@nejisama](https://github.com/nejisama)
+- 支持通过全局配置关闭循环写模式 [@nejisama](https://github.com/nejisama)
+- 优化协议自动识别的配置示例和测试用例 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 用更高效的变量机制替换请求头 [@CodingSinger](https://github.com/CodingSinger)
+- 将 WriteBufferChan 的定时器池化以降低负载 [@cch123](https://github.com/cch123)
+- 减少日志内存逃逸 [@nejisama](https://github.com/nejisama)
+- 添加 MOSN 处理失败的监控信息 [@nejisama](https://github.com/nejisama)
+- 新增读完成channel [@alpha-baby](https://github.com/alpha-baby)
+
+### 重构
+
+- 使用的 Go 版本升级到 1.14.13 [@nejisama](https://github.com/nejisama)
+- 重构路由，支持路由 Handler 配置 [@nejisama](https://github.com/nejisama)
+
+### Bug 修复
+
+- 修复 doubbo 版本升级至 2.7.3 之后 Provider 不可用的问题 [@cadeeper](https://github.com/cadeeper)
+- 修复 netpoll 模式不支持 UDS 的问题  [@wangfakang](https://github.com/wangfakang)
+- 修复当无法接收响应时跟踪时间不能正确记录的错误 [@nejisama](https://github.com/nejisama)
+
+### 新功能
+
+- 支持新旧 MOSN 之间通过 UDS 转移配置，解决 MOSN 使用 XDS 获取配置无法平滑升级的问题 [@alpha-baby](https://github.com/alpha-baby)
+- 协议自动识别支持 XProtocol [@cadeeper](https://github.com/cadeeper)
+- 支持配置 XProtocol 的 keepalive 参数 [@cch123](https://github.com/cch123)
+- 支持更详细的用时追踪 [@nejisama](https://github.com/nejisama)
+- 支持度量指标懒加载的方式，以解决服务数目过多 metrics 空间占用过大的问题 [@champly](https://github.com/champly)
+- 添加设置 XProtocol 连接池大小默认值的函数 [@cch123](https://github.com/cch123)
+- 支持 netpoll 模式 [@cch123](https://github.com/cch123)
+- 支持广播功能 [@dengqian](https://github.com/dengqian)
+- 支持从 LDS 响应中获取 tls 配置 [@wZH-CN](https://github.com/wZH-CN)
+- 添加更多种类的响应标志 [@nejisama](https://github.com/nejisama)
+
 ## v0.19.0
 
 ### 优化

@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.20.0
+
+### Optimization
+
+- Add uds address prefix check before UDS resolution when TCP address resolution fails [@wangfakang](https://github.com/wangfakang)
+- Change Extend config from map to slice，so that it keeps the configuration order [@nejisama](https://github.com/nejisama)
+- Optimized the try interval for connection pool acquisition [@nejisama](https://github.com/nejisama)
+- Support turning off write loop mode by global configuration [@nejisama](https://github.com/nejisama)
+- Optimize auto protocol configs and test cases [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Replace the headers with more efficient variables [@CodingSinger](https://github.com/CodingSinger)
+- Pool the writeBufferChan timer because of high load [@cch123](https://github.com/cch123)
+- Reduce log memory escapes [@nejisama](https://github.com/nejisama)
+- Add trace information for MOSN failed processing [@nejisama](https://github.com/nejisama)
+- New read done channel [@alpha-baby](https://github.com/alpha-baby)
+
+### Refactoring
+
+- Upgrade to golang 1.14.13 [@nejisama](https://github.com/nejisama)
+- Refactor router to support router Handler configuration [@nejisama](https://github.com/nejisama)
+
+### Bug fixes
+
+- Fix the bug no provider available occurred after dubbo2.7.3 [@cadeeper](https://github.com/cadeeper)
+- Fix the bug netpoll mode does not support UDS [@wangfakang](https://github.com/wangfakang)
+- Fix the bug that track time is not record correctly when the response cannot be received [@nejisama](https://github.com/nejisama)
+
+### New Features
+
+- Support old Mosn transfer configuration to new Mosn through UDS to solve the issue that Mosn in XDS mode cannot be smoothly upgraded [@alpha-baby](https://github.com/alpha-baby)
+- Automatic protocol identification supports the identification of XProtocol [@cadeeper](https://github.com/cadeeper)
+- Support configuration of the keepalive parameters for XProtocol [@cch123](https://github.com/cch123)
+- Support more detailed time tracking [@nejisama](https://github.com/nejisama)
+- Support metrics lazy registration to optimiz metrics memory when number of service in cluster is too large [@champly](https://github.com/champly)
+- Add setter function for default Xprotocol multiplex connection pool size [@cch123](https://github.com/cch123)
+- Support netpoll [@cch123](https://github.com/cch123)
+- Support broadcast [@dengqian](https://github.com/dengqian)
+- Support get tls configurations from LDS response [@wZH-CN](https://github.com/wZH-CN)
+- Add more types of response flags [@nejisama](https://github.com/nejisama)
+
 ## v0.19.0
 
 ### Optimization
