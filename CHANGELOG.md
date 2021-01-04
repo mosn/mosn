@@ -5,26 +5,26 @@
 ### Optimization
 
 - Add uds address prefix check before UDS resolution when TCP address resolution fails [@wangfakang](https://github.com/wangfakang)
-- Change Extend config from map to slice，so that it keeps the configuration order [@nejisama](https://github.com/nejisama)
 - Optimized the try interval for connection pool acquisition [@nejisama](https://github.com/nejisama)
 - Support turning off write loop mode by global configuration [@nejisama](https://github.com/nejisama)
 - Optimize auto protocol configs and test cases [@taoyuanyuan](https://github.com/taoyuanyuan)
 - Replace the headers with more efficient variables [@CodingSinger](https://github.com/CodingSinger)
 - Pool the writeBufferChan timer because of high load [@cch123](https://github.com/cch123)
-- Reduce log memory escapes [@nejisama](https://github.com/nejisama)
-- Add trace information for MOSN failed processing [@nejisama](https://github.com/nejisama)
-- New read done channel [@alpha-baby](https://github.com/alpha-baby)
+- Add trace information for MOSN processing failure in TraceLog [@nejisama](https://github.com/nejisama)
+- New read done channel in HTTP protocol processing [@alpha-baby](https://github.com/alpha-baby)
+- Enhance logger rotator [@nejisama](https://github.com/nejisama)
 
 ### Refactoring
 
 - Upgrade to golang 1.14.13 [@nejisama](https://github.com/nejisama)
-- Refactor router to support router Handler configuration [@nejisama](https://github.com/nejisama)
+- Refactor router chain extension mode to the route handler extension mode, support different router handler configuration [@nejisama](https://github.com/nejisama)
+- Refactor MOSN extended configuration, support load config according to configuration order [@nejisama](https://github.com/nejisama)
 
 ### Bug fixes
 
 - Fix the bug no provider available occurred after dubbo2.7.3 [@cadeeper](https://github.com/cadeeper)
-- Fix the bug netpoll mode does not support UDS [@wangfakang](https://github.com/wangfakang)
-- Fix the bug that track time is not record correctly when the response cannot be received [@nejisama](https://github.com/nejisama)
+- Fix the bug that UDS connections were treated as TCP connections in netpoll mode [@wangfakang](https://github.com/wangfakang)
+- Fix the problem that the HTTP Header cannot be obtained correctly when it is set to an empty value [@ianwoolf](https://github.com/ianwoolf)
 
 ### New Features
 
@@ -37,7 +37,7 @@
 - Support netpoll [@cch123](https://github.com/cch123)
 - Support broadcast [@dengqian](https://github.com/dengqian)
 - Support get tls configurations from LDS response [@wZH-CN](https://github.com/wZH-CN)
-- Add more types of response flags [@nejisama](https://github.com/nejisama)
+- Add ACK response for SDS [@wZH-CN](https://github.com/wZH-CN)
 
 ## v0.19.0
 
