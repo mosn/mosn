@@ -4,13 +4,13 @@
 
 ### Optimization
 
-- Add uds address prefix check before UDS resolution when TCP address resolution fails [@wangfakang](https://github.com/wangfakang)
-- Optimized the try interval for connection pool acquisition [@nejisama](https://github.com/nejisama)
-- Support turning off write loop mode by global configuration [@nejisama](https://github.com/nejisama)
-- Optimize auto protocol configs and test cases [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Add UDS address prefix check before UDS resolution when TCP address resolution fails [@wangfakang](https://github.com/wangfakang)
+- Optimized the retrial interval for connection pool acquisition [@nejisama](https://github.com/nejisama)
+- Add global switch for write loop mode [@nejisama](https://github.com/nejisama)
+- Optimize auto protocol matching and add test cases [@taoyuanyuan](https://github.com/taoyuanyuan)
 - Replace the headers with more efficient variables [@CodingSinger](https://github.com/CodingSinger)
-- Pool the writeBufferChan timer because of high load [@cch123](https://github.com/cch123)
-- Add trace information for MOSN processing failure in TraceLog [@nejisama](https://github.com/nejisama)
+- Pool the writeBufferChan timer to reduce overhead [@cch123](https://github.com/cch123)
+- Add MOSN failure detail info into TraceLog [@nejisama](https://github.com/nejisama)
 - New read done channel in HTTP protocol processing [@alpha-baby](https://github.com/alpha-baby)
 - Enhance logger rotator [@nejisama](https://github.com/nejisama)
 
@@ -32,8 +32,8 @@
 - Automatic protocol identification supports the identification of XProtocol [@cadeeper](https://github.com/cadeeper)
 - Support configuration of the keepalive parameters for XProtocol [@cch123](https://github.com/cch123)
 - Support more detailed time tracking [@nejisama](https://github.com/nejisama)
-- Support metrics lazy registration to optimiz metrics memory when number of service in cluster is too large [@champly](https://github.com/champly)
-- Add setter function for default Xprotocol multiplex connection pool size [@cch123](https://github.com/cch123)
+- Support metrics lazy registration to optimize metrics memory when number of service in cluster is too large [@champly](https://github.com/champly)
+- Add setter function for default XProtocol multiplex connection pool size [@cch123](https://github.com/cch123)
 - Support netpoll [@cch123](https://github.com/cch123)
 - Support broadcast [@dengqian](https://github.com/dengqian)
 - Support get tls configurations from LDS response [@wZH-CN](https://github.com/wZH-CN)
