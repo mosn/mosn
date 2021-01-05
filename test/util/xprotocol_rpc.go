@@ -125,10 +125,10 @@ func (c *RPCClient) SendRequestWithData(in string) {
 		c.t.Errorf("unsupport protocol")
 		return
 	}
+	c.Waits.Store(streamID, streamID)
 	requestEncoder.AppendHeaders(context.Background(), frame.GetHeader(), false)
 	requestEncoder.AppendData(context.Background(), data, true)
 	atomic.AddUint32(&c.requestCount, 1)
-	c.Waits.Store(streamID, streamID)
 }
 
 func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
