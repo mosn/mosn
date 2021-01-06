@@ -217,12 +217,12 @@ func (c *Conn) SetALPN(alpn string) {
 // it's useful in netpoll mode, because user can safely
 // reregister the fd to netpoll without worrying unread data in tls buffer
 func (c *Conn) HasMoreData() bool {
-	return c.rawInput.Len() > 0 || c.input.Len() > 0
+	return c.rawInput.Len() > 0 || c.input.Len() > 0 || c.hand.Len() > 0
 }
 
 // ShrinkReadBuffer tries to safely shrink the read buffer(conn.rawInput) of tls connection
 func (c *Conn) ShrinkReadBuffer() {
-	if c.input.Len() == 0 && c.rawInput.Len() == 0 {
-		c.rawInput = *bytes.NewBuffer(make([]byte, 0, bytes.MinRead*2))
+	if !c.HasMoreData() {
+		c.rawInput = *bytes.NewBuffer(make([]byte, 0, bytes.MinRead))
 	}
 }
