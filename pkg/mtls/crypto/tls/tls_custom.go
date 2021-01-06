@@ -219,3 +219,10 @@ func (c *Conn) SetALPN(alpn string) {
 func (c *Conn) HasMoreData() bool {
 	return c.rawInput.Len() > 0 || c.input.Len() > 0
 }
+
+// ShrinkReadBuffer tries to safely shrink the read buffer(conn.rawInput) of tls connection
+func (c *Conn) ShrinkReadBuffer() {
+	if c.input.Len() == 0 && c.rawInput.Len() == 0 {
+		c.rawInput = *bytes.NewBuffer(make([]byte, 0, bytes.MinRead*2))
+	}
+}
