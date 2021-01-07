@@ -59,7 +59,7 @@ func MappingHeaderStatusCode(ctx context.Context, p api.Protocol, headers api.He
 type httpMapping struct{}
 
 func (m *httpMapping) MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error) {
-	status, err := variable.GetVariableValue(ctx, types.HeaderStatus)
+	status, err := variable.GetVariableValue(ctx, types.VarHeaderStatus)
 	if err != nil {
 		return 0, errors.New("headers have no status code")
 	}

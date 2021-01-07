@@ -22,14 +22,13 @@ import (
 
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
 
 // rewrite request url
 func rewriteRequestUrl(ctx context.Context, dstUrl string) bool {
-	variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, dstUrl)
+	variable.SetVariableValue(ctx, types.VarPath, dstUrl)
 	return true
 }
 

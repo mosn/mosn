@@ -787,9 +787,9 @@ func (s *downStream) chooseHost(endStream bool) {
 			}
 			return val
 		}
-		currentHost := getValueFunc(types.HeaderHost, "")
-		currentPath := getValueFunc(types.HeaderPath, "")
-		currentQuery := getValueFunc(types.HeaderQueryString, "")
+		currentHost := getValueFunc(types.VarHost, "")
+		currentPath := getValueFunc(types.VarPath, "")
+		currentQuery := getValueFunc(types.VarQueryString, "")
 
 		u := url.URL{
 			Scheme:   getStringOr(rule.RedirectScheme(), currentScheme),
@@ -1413,7 +1413,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	}
 	s.requestInfo.SetResponseCode(code)
 	status := strconv.Itoa(code)
-	variable.SetVariableValue(s.context, types.HeaderStatus, status)
+	variable.SetVariableValue(s.context, types.VarHeaderStatus, status)
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = nil
@@ -1432,7 +1432,7 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	s.requestInfo.SetResponseCode(code)
 
 	status := strconv.Itoa(code)
-	variable.SetVariableValue(s.context, types.HeaderStatus, status)
+	variable.SetVariableValue(s.context, types.VarHeaderStatus, status)
 
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers

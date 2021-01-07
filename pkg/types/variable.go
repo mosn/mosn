@@ -52,6 +52,16 @@ const (
 	VarProxyHijackStatus     string = "proxy_hijack_status"
 	VarProxyGzipSwitch       string = "proxy_gzip_switch"
 	VarProxyIsDirectResponse string = "proxy_direct_response"
+	VarDirection             string = "var-direction"
+	VarScheme                string = "var-scheme"
+	VarHost                  string = "var-host"
+	VarPath                  string = "var-path"
+	VarQueryString           string = "var-querystring"
+	VarMethod                string = "var-method"
+	VarIstioHeaderHost       string = "authority"
+	VarHeaderStatus          string = "x-mosn-status"
+	VarHeaderRPCService      string = "x-mosn-rpc-service"
+	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
 )
 
 // [Protocol]: common

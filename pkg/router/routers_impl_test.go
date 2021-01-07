@@ -25,6 +25,7 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
 
@@ -171,7 +172,7 @@ func TestDefaultMatch(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{
 			"service": "test",
 		})
-		variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, tc)
+		variable.SetVariableValue(ctx, types.VarHost, tc)
 		if routers.MatchRoute(ctx, headers) == nil {
 			t.Errorf("#%d not matched\n", i)
 		}
@@ -195,7 +196,7 @@ func TestDomainMatch(t *testing.T) {
 	headers := protocol.CommonHeader(map[string]string{
 		"service": "test",
 	})
-	variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, "www.sofa-mosn.test")
+	variable.SetVariableValue(ctx, types.VarHost, "www.sofa-mosn.test")
 	if routers.MatchRoute(ctx, headers) == nil {
 		t.Error("domain match failed")
 	}
@@ -215,7 +216,7 @@ func TestDomainMatch(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{
 			"service": "test",
 		})
-		variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, tc)
+		variable.SetVariableValue(ctx, types.VarHost, tc)
 		if routers.MatchRoute(ctx, headers) != nil {
 			t.Errorf("#%d expected not matched, but match a router", i)
 		}
@@ -271,7 +272,7 @@ func TestWildcardMatch(t *testing.T) {
 			headers := protocol.CommonHeader(map[string]string{
 				"service": "test",
 			})
-			variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, match)
+			variable.SetVariableValue(ctx, types.VarHost, match)
 			if routers.MatchRoute(ctx, headers) == nil {
 				t.Errorf("%s expected matched: #%d, but return nil\n", match, i)
 			}
@@ -283,7 +284,7 @@ func TestWildcardMatch(t *testing.T) {
 			headers := protocol.CommonHeader(map[string]string{
 				"service": "test",
 			})
-			variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, unmatch)
+			variable.SetVariableValue(ctx, types.VarHost, unmatch)
 			if routers.MatchRoute(ctx, headers) != nil {
 				t.Errorf("%s expected unmatched: #%d, but matched\n", unmatch, i)
 			}
@@ -321,7 +322,7 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 	}
 	ctx := variable.NewVariableContext(context.Background())
 	for _, tc := range testCases {
-		variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, tc.Domain)
+		variable.SetVariableValue(ctx, types.VarHost, tc.Domain)
 		route := routers.MatchRoute(ctx, protocol.CommonHeader(map[string]string{
 			"service": "test",
 		}))

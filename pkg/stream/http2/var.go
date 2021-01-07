@@ -61,7 +61,7 @@ func init() {
 }
 
 func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	scheme, err := variable.GetVariableValue(ctx, protocol.MosnHeaderScheme)
+	scheme, err := variable.GetVariableValue(ctx, types.VarScheme)
 	if err != nil || scheme == "" {
 		return variable.ValueNotFound, nil
 	}

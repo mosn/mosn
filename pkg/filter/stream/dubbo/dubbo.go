@@ -7,7 +7,6 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
@@ -52,9 +51,9 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	}
 
 	// adapte dubbo service to http host
-	variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, service)
+	variable.SetVariableValue(ctx, types.VarHost, service)
 	// because use http rule, so should add default path
-	variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, "/")
+	variable.SetVariableValue(ctx, types.VarPath, "/")
 
 	method, _ := headers.Get(dubbo.MethodNameHeader)
 	stats := getStats(listener, service, method)

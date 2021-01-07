@@ -42,8 +42,8 @@ func TestParseProxyTimeout(t *testing.T) {
 		t.Errorf("parseProxyTimeout error")
 	}
 
-	headers.Set(types.HeaderGlobalTimeout, "1000")
-	headers.Set(types.HeaderTryTimeout, "100")
+	headers.Set(types.MosnHeaderGlobalTimeout, "1000")
+	headers.Set(types.MosnHeaderTryTimeout, "100")
 	parseProxyTimeout(ctx, &to, nil, headers)
 	if to.TryTimeout != 100*time.Millisecond || to.GlobalTimeout != 1000*time.Millisecond {
 		t.Errorf("parseProxyTimeout error")

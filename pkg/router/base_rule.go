@@ -30,7 +30,6 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
@@ -268,7 +267,7 @@ func (rri *RouteRuleImplBase) matchRoute(ctx context.Context, headers api.Header
 	// 2. match query parameters
 	if len(rri.configQueryParameters) != 0 {
 		var queryParams types.QueryParams
-		QueryString, err := variable.GetVariableValue(ctx, protocol.MosnHeaderQueryStringKey)
+		QueryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
 		if err == nil && QueryString != "" {
 			queryParams = httpmosn.ParseQueryString(QueryString)
 		}
@@ -294,7 +293,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 		return
 	}
 
-	path, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+	path, err := variable.GetVariableValue(ctx, types.VarPath)
 	if err == nil && path != "" {
 
 		//If both prefix_rewrite and regex_rewrite are configured
@@ -302,8 +301,8 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 		if len(rri.prefixRewrite) > 1 {
 			if strings.HasPrefix(path, matchedPath) {
 				// origin path need to save in the header
-				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-				variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
+				headers.Set(types.MosnHeaderOriginalPath, path)
+				variable.SetVariableValue(ctx, types.VarPath, rri.prefixRewrite+path[len(matchedPath):])
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
 				}
@@ -315,8 +314,8 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 		if len(rri.regexRewrite.Pattern.Regex) > 1 && rri.regexPattern != nil {
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
-				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-				variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, rewritedPath)
+				headers.Set(types.MosnHeaderOriginalPath, path)
+				variable.SetVariableValue(ctx, types.VarPath, rewritedPath)
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
 				}
@@ -335,15 +334,15 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, header
 	rri.vHost.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
-		variable.SetVariableValue(ctx, protocol.IstioHeaderHostKey, rri.hostRewrite)
+		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, rri.hostRewrite)
 	} else if len(rri.autoHostRewriteHeader) > 0 {
 		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
-			variable.SetVariableValue(ctx, protocol.IstioHeaderHostKey, headerValue)
+			variable.SetVariableValue(ctx, types.VarIstioHeaderHost, headerValue)
 		}
 	} else if rri.autoHostRewrite {
 		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.routerAction.ClusterName)
 		if clusterSnapshot != nil && (clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER) {
-			variable.SetVariableValue(ctx, protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
+			variable.SetVariableValue(ctx, types.VarIstioHeaderHost, requestInfo.UpstreamHost().Hostname())
 		}
 	}
 }

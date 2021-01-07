@@ -666,7 +666,7 @@ func (s *clientStream) handleResponse() {
 		statusCode := header.StatusCode()
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
-		variable.SetVariableValue(s.ctx, types.HeaderStatus, status)
+		variable.SetVariableValue(s.ctx, types.VarHeaderStatus, status)
 
 		hasData := true
 		if len(s.response.Body()) == 0 {
@@ -709,7 +709,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 	switch headers := headersIn.(type) {
 	case mosnhttp.RequestHeader:
 		// hijack scene
-		status, err := variable.GetVariableValue(context, types.HeaderStatus)
+		status, err := variable.GetVariableValue(context, types.VarHeaderStatus)
 		if err == nil && status != "" {
 			statusCode, err := strconv.Atoi(status)
 			if err != nil {
@@ -728,7 +728,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 
 	case mosnhttp.ResponseHeader:
 
-		status, err := variable.GetVariableValue(context, types.HeaderStatus)
+		status, err := variable.GetVariableValue(context, types.VarHeaderStatus)
 		if err == nil && status != "" {
 			statusCode, _ := strconv.Atoi(status)
 			headers.SetStatusCode(statusCode)
@@ -847,20 +847,20 @@ func (s *serverStream) GetStream() types.Stream {
 // consider host, method, path are necessary, but check querystring
 func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 1. host
-	variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, string(uri.Host()))
+	variable.SetVariableValue(ctx, types.VarHost, string(uri.Host()))
 	// 2. :authority
-	variable.SetVariableValue(ctx, protocol.MosnHeaderHostKey, string(uri.Host()))
+	variable.SetVariableValue(ctx, types.VarHost, string(uri.Host()))
 
 	// 3. method
-	variable.SetVariableValue(ctx, protocol.MosnHeaderMethod, string(header.Method()))
+	variable.SetVariableValue(ctx, types.VarMethod, string(header.Method()))
 
 	// 4. path
-	variable.SetVariableValue(ctx, protocol.MosnHeaderPathKey, string(uri.Path()))
+	variable.SetVariableValue(ctx, types.VarPath, string(uri.Path()))
 
 	// 5. querystring
 	qs := uri.QueryString()
 	if len(qs) > 0 {
-		variable.SetVariableValue(ctx, protocol.MosnHeaderQueryStringKey, string(qs))
+		variable.SetVariableValue(ctx, types.VarQueryString, string(qs))
 	}
 }
 
@@ -869,7 +869,7 @@ func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestH
 	uri := ""
 
 	// path
-	path, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+	path, err := variable.GetVariableValue(ctx, types.VarPath)
 	if err != nil || path == "" {
 		uri += "/"
 	} else {
@@ -877,26 +877,26 @@ func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestH
 	}
 
 	// querystring
-	queryString, err := variable.GetVariableValue(ctx, protocol.MosnHeaderQueryStringKey)
+	queryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
 	if err == nil && queryString != "" {
 		uri += "?" + queryString
 	}
 
 	headers.SetRequestURI(uri)
 
-	method, err := variable.GetVariableValue(ctx, protocol.MosnHeaderMethod)
+	method, err := variable.GetVariableValue(ctx, types.VarMethod)
 	if err == nil && method != "" {
 		headers.SetMethod(method)
 	}
 
-	host, err := variable.GetVariableValue(ctx, protocol.MosnHeaderHostKey)
+	host, err := variable.GetVariableValue(ctx, types.VarHost)
 	if err == nil && host != "" {
 		headers.SetHost(host)
 	} else {
 		headers.SetHost(remoteAddr.String())
 	}
 
-	host, err = variable.GetVariableValue(ctx, protocol.IstioHeaderHostKey)
+	host, err = variable.GetVariableValue(ctx, types.VarIstioHeaderHost)
 	if err == nil && host != "" {
 		headers.SetHost(host)
 	}

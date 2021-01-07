@@ -238,7 +238,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/"},
 				matchedPath: "/",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/", protocol.MosnOriginalHeaderPathKey: "/"},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/", types.MosnHeaderOriginalPath: "/"},
 		},
 		{
 			name: "case2",
@@ -246,7 +246,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/index/page/"},
 				matchedPath: "/index/",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/page/", protocol.MosnOriginalHeaderPathKey: "/index/page/"},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/page/", types.MosnHeaderOriginalPath: "/index/page/"},
 		},
 	}
 
@@ -307,7 +307,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/service/foo/v1/api"},
 				matchedPath: "/service/foo/v1/api",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/v1/api/instance/foo", protocol.MosnOriginalHeaderPathKey: "/service/foo/v1/api"},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/v1/api/instance/foo", types.MosnHeaderOriginalPath: "/service/foo/v1/api"},
 		},
 		{
 			name: "case2",
@@ -315,7 +315,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/one/yyy/one/zzz"},
 				matchedPath: "/xxx/one/yyy/one/zzz",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/two/zzz", protocol.MosnOriginalHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/two/zzz", types.MosnHeaderOriginalPath: "/xxx/one/yyy/one/zzz"},
 		},
 		{
 			name: "case3",
@@ -323,7 +323,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/one/yyy/one/zzz"},
 				matchedPath: "/xxx/one/yyy/one/zzz",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/one/zzz", protocol.MosnOriginalHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/one/zzz", types.MosnHeaderOriginalPath: "/xxx/one/yyy/one/zzz"},
 		},
 		{
 			name: "case4",
@@ -331,7 +331,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/aaa/XxX/bbb"},
 				matchedPath: "/aaa/XxX/bbb",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/aaa/yyy/bbb", protocol.MosnOriginalHeaderPathKey: "/aaa/XxX/bbb"},
+			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/aaa/yyy/bbb", types.MosnHeaderOriginalPath: "/aaa/XxX/bbb"},
 		},
 	}
 

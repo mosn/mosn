@@ -19,6 +19,7 @@ package protocol
 
 import (
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
 
@@ -37,32 +38,15 @@ const (
 	Response = "Response"
 )
 
-// Host key for routing in MOSN Header
-const (
-	MosnHeaderDirection       = "x-mosn-direction" // for protocol convert
-	MosnHeaderScheme          = "x-mosn-scheme"
-	MosnHeaderHostKey         = "x-mosn-host"
-	MosnHeaderPathKey         = "x-mosn-path"
-	MosnHeaderQueryStringKey  = "x-mosn-querystring"
-	MosnHeaderMethod          = "x-mosn-method"
-	MosnOriginalHeaderPathKey = "x-mosn-original-path"
-)
-
-// Hseader with special meaning in istio
-// todo maybe use ":authority"
-const (
-	IstioHeaderHostKey = "authority"
-)
-
 func init() {
-	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderDirection, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderScheme, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderHostKey, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderPathKey, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderQueryStringKey, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(MosnHeaderMethod, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(MosnOriginalHeaderPathKey, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(IstioHeaderHostKey, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarDirection, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarScheme, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarHost, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarPath, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarQueryString, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarMethod, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarOriginalHeaderPath, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarIstioHeaderHost, nil, nil, variable.BasicSetter, 0))
 }
 
 // TODO: move CommonHeader to common, not only in protocol
