@@ -12,8 +12,8 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/mosn/test/lib/utils"
 	"mosn.io/pkg/buffer"
@@ -163,7 +163,7 @@ func buildRequest(ctx context.Context, method string, header map[string][]string
 	fh := &fasthttp.RequestHeader{}
 	fh.SetMethod(method)
 	// to simulate pkg/stream/http/stream.go injectInternalHeaders
-	variable.SetVariableValue(ctx, protocol.MosnHeaderMethod, method)
+	variable.SetVariableValue(ctx, types.VarMethod, method)
 	h := mosnhttp.RequestHeader{
 		RequestHeader: fh,
 	}
