@@ -39,14 +39,13 @@ const (
 )
 
 func init() {
-	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarDirection, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarScheme, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarHost, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarPath, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarQueryString, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarMethod, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarOriginalHeaderPath, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(types.MosnVarIstioHeaderHost, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarDirection, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarScheme, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHost, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarPath, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarQueryString, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarMethod, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarIstioHeaderHost, nil, nil, variable.BasicSetter, 0))
 }
 
 // TODO: move CommonHeader to common, not only in protocol

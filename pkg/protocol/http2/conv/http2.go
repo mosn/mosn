@@ -24,6 +24,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func init() {
@@ -36,8 +37,6 @@ type common2http struct{}
 func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
 		cheader := make(map[string]string, len(header))
-
-		delete(header, protocol.MosnHeaderDirection)
 
 		// copy headers
 		for k, v := range header {
@@ -72,7 +71,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 		return nil, errors.New("header type not supported")
 	}
 
-	headers.Set(protocol.MosnHeaderDirection, direction)
+	variable.SetVariableValue(ctx, types.VarDirection, direction)
 	return headers, nil
 }
 
