@@ -25,9 +25,9 @@ import (
 
 // MOSN Header keys
 const (
-	MosnHeaderGlobalTimeout = "x-mosn-global-timeout"
-	MosnHeaderTryTimeout    = "x-mosn-try-timeout"
-	MosnHeaderOriginalPath  = "x-mosn-original-path"
+	HeaderGlobalTimeout = "x-mosn-global-timeout"
+	HeaderTryTimeout    = "x-mosn-try-timeout"
+	HeaderOriginalPath  = "x-mosn-original-path"
 )
 
 // Error messages

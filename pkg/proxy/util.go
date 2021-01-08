@@ -38,13 +38,13 @@ func parseProxyTimeout(ctx context.Context, timeout *Timeout, route types.Route,
 	// todo: check global timeout in request headers
 	// todo: check per try timeout in request headers
 
-	if tto, ok := headers.Get(types.MosnHeaderTryTimeout); ok {
+	if tto, ok := headers.Get(types.HeaderTryTimeout); ok {
 		if trytimeout, err := strconv.ParseInt(tto, 10, bitSize64); err == nil {
 			timeout.TryTimeout = time.Duration(trytimeout) * time.Millisecond
 		}
 	}
 
-	if gto, ok := headers.Get(types.MosnHeaderGlobalTimeout); ok {
+	if gto, ok := headers.Get(types.HeaderGlobalTimeout); ok {
 		if globaltimeout, err := strconv.ParseInt(gto, 10, bitSize64); err == nil {
 			timeout.GlobalTimeout = time.Duration(globaltimeout) * time.Millisecond
 		}

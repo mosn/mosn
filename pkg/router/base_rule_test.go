@@ -267,7 +267,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 					types.VarPath: "/abc/",
 				},
 				headers: protocol.CommonHeader{
-					types.MosnHeaderOriginalPath: "/",
+					types.HeaderOriginalPath: "/",
 				},
 			},
 		},
@@ -282,7 +282,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 					types.VarPath: "/abc/page/",
 				},
 				headers: protocol.CommonHeader{
-					types.MosnHeaderOriginalPath: "/index/page/",
+					types.HeaderOriginalPath: "/index/page/",
 				},
 			},
 		},
@@ -350,7 +350,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				},
 
 				headers: protocol.CommonHeader{
-					types.MosnHeaderOriginalPath: "/service/foo/v1/api",
+					types.HeaderOriginalPath: "/service/foo/v1/api",
 				},
 			},
 		},
@@ -366,7 +366,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 				},
 
 				headers: protocol.CommonHeader{
-					types.MosnHeaderOriginalPath: "/xxx/one/yyy/one/zzz",
+					types.HeaderOriginalPath: "/xxx/one/yyy/one/zzz",
 				},
 			},
 		},
@@ -381,7 +381,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 					types.VarPath: "/xxx/two/yyy/one/zzz",
 				},
 				headers: protocol.CommonHeader{
-					types.MosnHeaderOriginalPath: "/xxx/one/yyy/one/zzz",
+					types.HeaderOriginalPath: "/xxx/one/yyy/one/zzz",
 				},
 			},
 		},
@@ -396,7 +396,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 					types.VarPath: "/aaa/yyy/bbb",
 				},
 				headers: protocol.CommonHeader{
-					types.MosnHeaderOriginalPath: "/aaa/XxX/bbb",
+					types.HeaderOriginalPath: "/aaa/XxX/bbb",
 				},
 			},
 		},

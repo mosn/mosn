@@ -58,10 +58,6 @@ var (
 		variable.NewIndexedVariable(types.VarProxyGzipSwitch, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.VarProxyIsDirectResponse, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.VarHeaderStatus, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(types.VarMethod, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(types.VarHost, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(types.VarPath, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(types.VarQueryString, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.VarHeaderRPCMethod, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.VarHeaderRPCService, nil, nil, variable.BasicSetter, 0),
 	}
