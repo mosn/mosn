@@ -383,6 +383,8 @@ github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827 h1:if2FJYhGEqXRGkRbG9s
 github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827/go.mod h1:JlOHLcQTwc0Gvi2DZfQ2hMAj6Z73lQhkRrsxuawL9uE=
 github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91 h1:hOO8gWLcAoWZM6dZmPmfs0ZYmjKxmdwiwJiYRCfQc18=
 github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91/go.mod h1:sO2+AtmZqId1+8FHeuSPkPBmuin66YFKuOU3yqh3zGo=
+github.com/mosn/registry v0.0.0-20210108061200-d7b63bc1904b h1:s2vkxxG2b9n0jPWGWEOhXkoe24I9UuzvZM5ILHvy7RU=
+github.com/mosn/registry v0.0.0-20210108061200-d7b63bc1904b/go.mod h1:sO2+AtmZqId1+8FHeuSPkPBmuin66YFKuOU3yqh3zGo=
 github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f/go.mod h1:ZdcZmHo+o7JKHSa8/e818NopupXU1YMK5fe1lsApnBw=
