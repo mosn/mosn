@@ -19,9 +19,13 @@ package streamfilter
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"plugin"
 	"sync/atomic"
 
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -66,4 +70,33 @@ func (s *StreamFilterFactoryImpl) CreateFilterChain(context context.Context, cal
 func (s *StreamFilterFactoryImpl) UpdateFactory(config StreamFiltersConfig) {
 	sff := createStreamFilterFactoryFromConfig(config)
 	s.factories.Store(sff)
+}
+
+func CreateFactoryByPlugin(pluginCfgMap map[string]interface{}, factoryConfig map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	pluginCfgData, err := json.Marshal(pluginCfgMap)
+	if err != nil {
+		return nil, err
+	}
+	pluginConfig := &v2.StreamFilterGoPluginConfig{}
+	err = json.Unmarshal(pluginCfgData, pluginConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	p, err := plugin.Open(pluginConfig.SoPath)
+	if err != nil {
+		return nil, err
+	}
+	if pluginConfig.FactoryMethod == "" {
+		pluginConfig.FactoryMethod = "CreateFilterFactory"
+	}
+	f, err := p.Lookup(pluginConfig.FactoryMethod)
+	if err != nil {
+		return nil, err
+	}
+	function, ok := f.(func(conf map[string]interface{}) (api.StreamFilterChainFactory, error))
+	if !ok {
+		return nil, errors.New("failed to get correct factory method")
+	}
+	return function(factoryConfig)
 }

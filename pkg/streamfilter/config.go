@@ -110,18 +110,38 @@ func RegisterStreamFilters(configs []StreamFilters) {
 }
 
 func createStreamFilterFactoryFromConfig(configs []v2.Filter) (factories []api.StreamFilterChainFactory) {
+	var sfcc api.StreamFilterChainFactory
+	var err error
 	for _, c := range configs {
-		sfcc, err := api.CreateStreamFilterChainFactory(c.Type, c.Config)
+		val, ok := c.Config["plugin"]
+		if ok {
+			goPluginFilterConfig, convert := val.(map[string]interface{})
+			if !convert {
+				log.DefaultLogger.Errorf("[streamfilter] covert plugin config to map failed, plugin: %+v", val)
+				continue
+			}
+			var filterFactoryConfig map[string]interface{}
+			configVal, ok := c.Config["config"]
+			convert = false
+			if ok {
+				filterFactoryConfig, convert = configVal.(map[string]interface{})
+			}
+			if !convert {
+				filterFactoryConfig = make(map[string]interface{})
+			}
+			// create factory by so file
+			sfcc, err = CreateFactoryByPlugin(goPluginFilterConfig, filterFactoryConfig)
+		} else {
+			sfcc, err = api.CreateStreamFilterChainFactory(c.Type, c.Config)
+		}
 		if err != nil {
 			log.DefaultLogger.Errorf("[streamfilter] get stream filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
-
 		if sfcc == nil {
 			log.DefaultLogger.Errorf("[streamfilter] createStreamFilterFactoryFromConfig api call return nil factory")
 			continue
 		}
-
 		factories = append(factories, sfcc)
 	}
 

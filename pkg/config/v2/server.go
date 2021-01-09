@@ -170,6 +170,11 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type StreamFilterGoPluginConfig struct {
+	SoPath        string `json:"so_path"`
+	FactoryMethod string `json:"factory_method"`
+}
+
 // Filter is a config to make up a filter
 type Filter struct {
 	Type   string                 `json:"type,omitempty"`

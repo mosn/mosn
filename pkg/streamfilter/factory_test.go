@@ -19,6 +19,7 @@ package streamfilter
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"bou.ke/monkey"
@@ -47,5 +48,21 @@ func TestStreamFilterFactory(t *testing.T) {
 	factory.CreateFilterChain(context.TODO(), nil)
 	if createFilterChainCount != 2 {
 		t.Errorf("createFilterChainCount=%v, want=2", createFilterChainCount)
+	}
+}
+
+func TestCreateFactoryByPlugin(t *testing.T) {
+	config := &v2.StreamFilterGoPluginConfig{
+		SoPath:        "simple_so.so",
+		FactoryMethod: "",
+	}
+	data, _ := json.Marshal(config)
+
+	configMap := make(map[string]interface{})
+	_ = json.Unmarshal(data, &configMap)
+	factory, err := CreateFactoryByPlugin(configMap, map[string]interface{}{})
+	if err != nil || factory == nil {
+		t.Errorf("CreateFactoryByPlugin failed, err: %v, factory: %v", err, factory)
+		return
 	}
 }
