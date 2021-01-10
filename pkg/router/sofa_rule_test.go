@@ -40,7 +40,7 @@ func TestSofaRouteRuleSimple(t *testing.T) {
 			Value: ".*",
 		},
 	}
-	sofaroute := DefaultSofaRouterRuleFactory(base, headers)
+	sofaroute := CreateSofaRule(base, headers)
 	if sofaroute.Matcher() != ".*" {
 		t.Fatalf("sofa route rule should be fast match mode")
 	}
@@ -75,7 +75,7 @@ func TestSofaRouteRuleHeaderMatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create base route failed: %v", err)
 	}
-	sofaroute := DefaultSofaRouterRuleFactory(base, route.Match.Headers)
+	sofaroute := CreateSofaRule(base, route.Match.Headers)
 	if sofaroute.Matcher() != "" {
 		t.Fatalf("sofa route rule should not be fast match mode")
 	}

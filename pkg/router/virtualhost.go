@@ -79,10 +79,9 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 		}
 		router = variableRouter
 	} else {
-		if router = defaultRouterRuleFactoryOrder.factory(base, route.Match.Headers); router == nil {
-			log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", "create default router failed")
-			return ErrRouterFactory
-		}
+
+		router = CreateSofaRule(base, route.Match.Headers)
+
 	}
 	if router != nil {
 		vh.mutex.Lock()

@@ -44,7 +44,6 @@ var (
 	ErrNoRouters            = errors.New("routers is nil")
 	ErrDuplicateVirtualHost = errors.New("duplicate domain virtual host")
 	ErrUnexpected           = errors.New("an unexpected error occurs")
-	ErrRouterFactory        = errors.New("default router factory create router failed")
 )
 
 type headerFormatter interface {

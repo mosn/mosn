@@ -21,10 +21,12 @@ import (
 	"context"
 
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
+// SofaRule supports only simple headers match. and use fastmatch for compatible old mode
 type SofaRouteRuleImpl struct {
 	*RouteRuleImplBase
 	fastmatch string // compatible field
@@ -68,4 +70,15 @@ func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap)
 		log.Proxy.Debugf(ctx, RouterLogFormat, "sofa rotue rule", "failed match, macther %s", srri.fastmatch)
 	}
 	return nil
+}
+
+func CreateSofaRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher) RouteBase {
+	r := &SofaRouteRuleImpl{
+		RouteRuleImplBase: base,
+	}
+	// compatible for simple sofa rule
+	if len(headers) == 1 && headers[0].Name == types.SofaRouteMatchKey {
+		r.fastmatch = headers[0].Value
+	}
+	return r
 }
