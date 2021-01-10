@@ -45,8 +45,8 @@ type RouteRuleImplBase struct {
 	// match
 	vHost                 *VirtualHostImpl
 	routerMatch           v2.RouterMatch
-	configHeaders         []*types.HeaderData
-	configQueryParameters []types.QueryParameterMatcher //TODO: not implement yet
+	configHeaders         types.HeaderMatcher
+	configQueryParameters types.QueryParameterMatcher //TODO: not implement yet
 	// rewrite
 	prefixRewrite         string
 	regexRewrite          v2.RegexRewrite
@@ -78,7 +78,7 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 	base := &RouteRuleImplBase{
 		vHost:                 vHost,
 		routerMatch:           route.Match,
-		configHeaders:         getRouterHeaders(route.Match.Headers),
+		configHeaders:         CreateHTTPHeaderMatcher(route.Match.Headers),
 		prefixRewrite:         route.Route.PrefixRewrite,
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
@@ -258,21 +258,21 @@ func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {
 // matchRoute is a common matched for http
 func (rri *RouteRuleImplBase) matchRoute(ctx context.Context, headers api.HeaderMap) bool {
 	// 1. match headers' KV
-	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
+	if !rri.configHeaders.Matches(ctx, headers) {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
 		}
 		return false
 	}
 	// 2. match query parameters
-	if len(rri.configQueryParameters) != 0 {
+	if rri.configQueryParameters != nil {
 		var queryParams types.QueryParams
 		QueryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
 		if err == nil && QueryString != "" {
 			queryParams = httpmosn.ParseQueryString(QueryString)
 		}
 		if len(queryParams) != 0 {
-			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
+			if !rri.configQueryParameters.Matches(ctx, queryParams) {
 				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 					log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
 				}

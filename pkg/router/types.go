@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -54,24 +53,8 @@ type headerFormatter interface {
 }
 
 type headerPair struct {
-	headerName      *lowerCaseString
+	headerName      string // should to be lower string
 	headerFormatter headerFormatter
-}
-
-type lowerCaseString struct {
-	str string
-}
-
-func (lcs *lowerCaseString) Lower() {
-	lcs.str = strings.ToLower(lcs.str)
-}
-
-func (lcs *lowerCaseString) Equal(rhs types.LowerCaseString) bool {
-	return lcs.str == rhs.Get()
-}
-
-func (lcs *lowerCaseString) Get() string {
-	return lcs.str
 }
 
 type weightedClusterEntry struct {

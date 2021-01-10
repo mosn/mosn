@@ -19,7 +19,6 @@ package types
 
 import (
 	"context"
-	"regexp"
 	"time"
 
 	"mosn.io/api"
@@ -47,7 +46,7 @@ type Routers interface {
 	MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route
 	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	// header is used to find virtual host
-	MatchRouteFromHeaderKV(ctx context.Context,headers api.HeaderMap, key, value string) api.Route
+	MatchRouteFromHeaderKV(ctx context.Context, headers api.HeaderMap, key, value string) api.Route
 	// AddRoute adds a route into virtual host, find virtual host by domain
 	// returns the virtualhost index, -1 means no virtual host found
 	AddRoute(domain string, route *v2.Router) int
@@ -118,35 +117,14 @@ type QueryParams map[string]string
 
 // QueryParameterMatcher match request's query parameter
 type QueryParameterMatcher interface {
-	// Matches returns true if a match for this QueryParameterMatcher exists in request_query_params.
-	Matches(requestQueryParams QueryParams) bool
+	// Matches check whether the query parameters specified in the config are present in a request.
+	// If all the query params (and values) in the query parameter matcher are found in the query_params, return true.
+	Matches(ctx context.Context, requestQueryParams QueryParams) bool
 }
 
-// HeaderData defines headers data.
-// An empty header value allows for matching to be only based on header presence.
-// Regex is an opt-in. Unless explicitly mentioned, the header values will be used for
-// exact string matching.
-type HeaderData struct {
-	Name         LowerCaseString
-	Value        string
-	IsRegex      bool
-	RegexPattern *regexp.Regexp
-}
-
-// ConfigUtility is utility routines for loading route configuration and matching runtime request headers.
-type ConfigUtility interface {
-	// MatchHeaders check whether the headers specified in the config are present in a request.
-	// If all the headers (and values) in the config_headers are found in the request_headers, return true.
-	MatchHeaders(requestHeaders map[string]string, configHeaders []*HeaderData) bool
-
-	// MatchQueryParams check whether the query parameters specified in the config are present in a request.
-	// If all the query params (and values) in the config_params are found in the query_params, return true.
-	MatchQueryParams(queryParams QueryParams, configQueryParams []QueryParameterMatcher) bool
-}
-
-// LowerCaseString is a string wrapper
-type LowerCaseString interface {
-	Lower()
-	Equal(rhs LowerCaseString) bool
-	Get() string
+// HeaderMatcher match request's headers
+type HeaderMatcher interface {
+	// Matches  check whether the headers specified in the config are present in a request.
+	// If all the headers (and values) in the header matcher  are found in the request_headers, return true.
+	Matches(ctx context.Context, requestHeaders api.HeaderMap) bool
 }
