@@ -446,7 +446,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 			name: "case1",
 			args: args{
 				rri: &RouteRuleImplBase{
-					hostRewrite: "www.xxx.com",
+					hostRewrite: "mosn.io",
 					requestHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
@@ -511,7 +511,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 			},
 			want: &finalizeResult{
 				variables: map[string]string{
-					types.VarIstioHeaderHost: "www.xxx.com",
+					types.VarIstioHeaderHost: "mosn.io",
 				},
 				headers: protocol.CommonHeader{
 					"host":  "xxx.default.svc.cluster.local",
