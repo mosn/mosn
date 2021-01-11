@@ -30,10 +30,10 @@ func TestMapping(t *testing.T) {
 		t.Error("no register type")
 	}
 
-	variable.RegisterVariable(variable.NewIndexedVariable(types.HeaderStatus,nil,nil,variable.BasicSetter,0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHeaderStatus, nil, nil, variable.BasicSetter, 0))
 	ctx1 := variable.NewVariableContext(context.Background())
 
-	variable.SetVariableValue(ctx1, types.HeaderStatus, "200")
+	variable.SetVariableValue(ctx1, types.VarHeaderStatus, "200")
 	ctx2 := variable.NewVariableContext(context.Background())
 	testcases := []struct {
 		ctx      context.Context

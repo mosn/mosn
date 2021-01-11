@@ -14,6 +14,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/istio/utils"
 	"mosn.io/mosn/pkg/protocol"
+	mtypes "mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
@@ -61,15 +62,15 @@ func TestExtractAttributes(t *testing.T) {
 	}
 
 	ctx1 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx1, protocol.MosnHeaderPathKey, "/path")
-	variable.SetVariableValue(ctx1, protocol.MosnHeaderHostKey, "host")
-	variable.SetVariableValue(ctx1, protocol.MosnHeaderMethod, "GET")
+	variable.SetVariableValue(ctx1, mtypes.VarPath, "/path")
+	variable.SetVariableValue(ctx1, mtypes.VarHost, "host")
+	variable.SetVariableValue(ctx1, mtypes.VarMethod, "GET")
 
 	ctx2 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx2, protocol.MosnHeaderPathKey, "/path")
-	variable.SetVariableValue(ctx2, protocol.MosnHeaderHostKey, "host")
-	variable.SetVariableValue(ctx2, protocol.MosnHeaderMethod, "GET")
-	variable.SetVariableValue(ctx2, protocol.MosnHeaderQueryStringKey, "k1=v1&k2=v2")
+	variable.SetVariableValue(ctx2, mtypes.VarPath, "/path")
+	variable.SetVariableValue(ctx2, mtypes.VarHost, "host")
+	variable.SetVariableValue(ctx2, mtypes.VarMethod, "GET")
+	variable.SetVariableValue(ctx2, mtypes.VarQueryString, "k1=v1&k2=v2")
 
 	tests := []struct {
 		name string

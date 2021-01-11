@@ -24,7 +24,7 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
 
@@ -59,7 +59,7 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, heade
 
 func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if prri.matchRoute(ctx, headers) {
-		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+		headerPathValue, err := variable.GetVariableValue(ctx, types.VarPath)
 		if err == nil && headerPathValue != "" {
 			// TODO: config to support case sensitive
 			// case insensitive
@@ -106,7 +106,7 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, hea
 
 func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if prei.matchRoute(ctx, headers) {
-		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+		headerPathValue, err := variable.GetVariableValue(ctx, types.VarPath)
 		if err == nil && headerPathValue != "" {
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
 				return prei
@@ -149,7 +149,7 @@ func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, head
 
 func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if rrei.matchRoute(ctx, headers) {
-		headerPathValue, err := variable.GetVariableValue(ctx, protocol.MosnHeaderPathKey)
+		headerPathValue, err := variable.GetVariableValue(ctx, types.VarPath)
 		if err == nil && headerPathValue != "" {
 			if rrei.regexPattern.MatchString(headerPathValue) {
 				return rrei

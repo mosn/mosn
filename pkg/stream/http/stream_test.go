@@ -61,12 +61,7 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 
 	path := "/pic"
 
-	headers := []protocol.CommonHeader{
-		{
-			protocol.MosnHeaderQueryStringKey: queryString,
-			protocol.MosnHeaderPathKey:        path,
-		},
-	}
+	headers := http.RequestHeader{&fasthttp.RequestHeader{}}
 
 	wantedURI := []string{
 		"/pic?name=biz&passwd=bar",
@@ -77,9 +72,9 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 	url.SetPath(path)
 	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
-		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
-		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
+		injectCtxVarFromProtocolHeaders(ctx, headers, url)
+		ClientStreamsMocked[i].AppendHeaders(ctx, headers, false)
+		if string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error, uri:%s", string(ClientStreamsMocked[i].request.Header.RequestURI()))
 		}
 	}
@@ -169,9 +164,7 @@ func Test_header_capitalization(t *testing.T) {
 
 	headers := []protocol.CommonHeader{
 		{
-			protocol.MosnHeaderQueryStringKey: queryString,
-			protocol.MosnHeaderPathKey:        path,
-			"Args":                            "Hello, world!",
+			"Args": "Hello, world!",
 		},
 	}
 
@@ -219,9 +212,7 @@ func Test_header_conflict(t *testing.T) {
 
 	headers := []protocol.CommonHeader{
 		{
-			protocol.MosnHeaderQueryStringKey: queryString,
-			protocol.MosnHeaderPathKey:        path,
-			"Method":                          "com.alipay.test.rpc.sample",
+			"Method": "com.alipay.test.rpc.sample",
 		},
 	}
 
@@ -319,7 +310,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

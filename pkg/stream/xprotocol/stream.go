@@ -84,7 +84,7 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 }
 
 func (s *xStream) buildHijackResp(request xprotocol.XFrame, header types.HeaderMap) (xprotocol.XFrame, error) {
-	status, err := variable.GetVariableValue(s.ctx, types.HeaderStatus)
+	status, err := variable.GetVariableValue(s.ctx, types.VarHeaderStatus)
 	if err != nil {
 		return nil, err
 	}

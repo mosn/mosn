@@ -19,10 +19,11 @@ package xprotocol
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/variable"
 	"strings"
 	"sync"
 	"time"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"
@@ -318,8 +319,8 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame,
 		serviceName := aware.GetServiceName()
 		methodName := aware.GetMethodName()
 
-		variable.SetVariableValue(ctx, types.HeaderRPCService, serviceName)
-		variable.SetVariableValue(ctx, types.HeaderRPCMethod, methodName)
+		variable.SetVariableValue(ctx, types.VarHeaderRPCService, serviceName)
+		variable.SetVariableValue(ctx, types.VarHeaderRPCMethod, methodName)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] frame service aware, requestId = %v, serviceName = %v , methodName = %v", serverStream.id, serviceName, methodName)

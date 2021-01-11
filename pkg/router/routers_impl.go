@@ -28,7 +28,6 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -181,11 +180,10 @@ func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
 		}
 		return ri.virtualHosts[ri.defaultVirtualHostIndex]
 	}
-	//we use domain in lowercase
-	key := strings.ToLower(protocol.MosnHeaderHostKey)
-	hostHeader, err := variable.GetVariableValue(ctx, key)
+	hostHeader, err := variable.GetVariableValue(ctx, types.VarHost)
 	index := -1
 	if err == nil && hostHeader != "" {
+		//we use domain in lowercase
 		host := strings.ToLower(hostHeader)
 		index = ri.findVirtualHostIndex(host)
 	}

@@ -50,7 +50,7 @@ type xprotocolKeepAlive struct {
 	stop chan struct{}
 
 	// mutex protects the request map
-	mutex    sync.Mutex
+	mutex sync.Mutex
 	// requests records all running request
 	// a request is handled once: response or timeout
 	requests map[uint64]*keepAliveTimeout
@@ -163,12 +163,12 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 
 	// we send sofa rpc cmd as "header", but it maybe contains "body"
 	hb := kp.Protocol.Trigger(id)
+	kp.store(id, startTimeout(id, kp)) // store request before send, in case receive response too quick but not data in store
 	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
 	}
-	kp.store(id, startTimeout(id, kp))
 }
 
 func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
