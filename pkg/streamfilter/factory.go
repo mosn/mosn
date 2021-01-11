@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"plugin"
+	"reflect"
 	"sync/atomic"
 
 	"mosn.io/api"
@@ -94,7 +95,8 @@ func CreateFactoryByPlugin(pluginCfgMap map[string]interface{}, factoryConfig ma
 	if err != nil {
 		return nil, err
 	}
-	function, ok := f.(func(conf map[string]interface{}) (api.StreamFilterChainFactory, error))
+	log.DefaultLogger.Infof("%+v %+v",pluginConfig,reflect.TypeOf(f))
+	function, ok := f.(func( map[string]interface{}) (api.StreamFilterChainFactory, error))
 	if !ok {
 		return nil, errors.New("failed to get correct factory method")
 	}

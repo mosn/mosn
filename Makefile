@@ -41,6 +41,9 @@ coverage:
 integrate-local:
 	GO111MODULE=off go test -p 1 -v ./test/integrate/...
 
+integrate-plugin-local:
+	@cd ./test/plugin && bash run_all.sh
+
 integrate-local-netpoll:
 	GO111MODULE=off NETPOLL=on go test -p 1 -v ./test/integrate/...
 
@@ -59,6 +62,7 @@ integrate-framework:
 integrate-new:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make integrate-framework
+	docker run --rm -v $(GOPATH):/go -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make integrate-plugin-local
 
 build:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
