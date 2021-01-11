@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	s2 "mosn.io/mosn/pkg/streamfilter"
 )
@@ -49,9 +50,6 @@ func TestCreateFactoryByPluginWrongMethod(t *testing.T) {
 
 	configMap := make(map[string]interface{})
 	_ = json.Unmarshal(data, &configMap)
-	factory, err := s2.CreateFactoryByPlugin(configMap, map[string]interface{}{})
-	if err != nil || factory == nil {
-		t.Errorf("CreateFactoryByPlugin failed, err: %v, factory: %v", err, factory)
-		return
-	}
+	_, err := s2.CreateFactoryByPlugin(configMap, map[string]interface{}{})
+	assert.Equalf(t, true, err != nil,"expect get err, but err is nil")
 }

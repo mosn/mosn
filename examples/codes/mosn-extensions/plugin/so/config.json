@@ -39,7 +39,9 @@
 						{
 							"type":"loadso",
 							"config": {
-								"so_path":"./simple_so.so",
+								"plugin": {
+									"so_path":"./simple_so.so"
+								},
 								"config": {
 									"User":"admin"
 								}
