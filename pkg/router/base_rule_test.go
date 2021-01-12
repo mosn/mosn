@@ -30,13 +30,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -157,49 +154,6 @@ func TestWeightedClusterSelect(t *testing.T) {
 
 		}
 		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
-	}
-}
-
-func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
-	route := &v2.Router{
-		RouterConfig: v2.RouterConfig{
-			Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{
-				{
-					Name:  "method",
-					Value: "POST",
-				},
-			}},
-			Route: v2.RouteAction{
-				RouterActionConfig: v2.RouterActionConfig{
-					ClusterName: "test",
-				},
-			},
-		},
-	}
-
-	routeRuleBase, err := NewRouteRuleImplBase(nil, route)
-	if !assert.NoErrorf(t, err, "new route rule impl failed, err should be nil, get %+v", err) {
-		t.FailNow()
-	}
-
-	headers := http.RequestHeader{
-		RequestHeader: &fasthttp.RequestHeader{},
-	}
-	ctx := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx, types.VarMethod, "POST")
-	match := routeRuleBase.matchRoute(ctx, headers)
-	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
-		t.FailNow()
-	}
-
-	http2Request := &goHttp.Request{
-		Method: "POST",
-		Header: goHttp.Header{},
-	}
-	headerHttp2 := http2.NewReqHeader(http2Request)
-	match = routeRuleBase.matchRoute(ctx, headerHttp2)
-	if !assert.Truef(t, match, "match http2 method failed, result should be true, get %+v", match) {
-		t.FailNow()
 	}
 }
 

@@ -55,7 +55,7 @@ type KeyValueData struct {
 	Value StringMatch
 }
 
-func NewKeyValueData(header v2.HeaderMatcher) *KeyValueData {
+func NewKeyValueData(header v2.HeaderMatcher) (*KeyValueData, error) {
 	kvData := &KeyValueData{
 		Name: header.Name,
 		Value: StringMatch{
@@ -64,10 +64,14 @@ func NewKeyValueData(header v2.HeaderMatcher) *KeyValueData {
 		},
 	}
 	if header.Regex {
-		// if regex is invalid, expected a panic and started failed.
-		kvData.Value.RegexPattern = regexp.MustCompile(header.Value)
+		p, err := regexp.Compile(header.Value)
+		if err != nil {
+			log.DefaultLogger.Errorf("parse route header macther config failed, ignore it, error: %v", err)
+			return nil, err
+		}
+		kvData.Value.RegexPattern = p
 	}
-	return kvData
+	return kvData, nil
 }
 
 // commonHeaderMatcherImpl implements a simple types.HeaderMacther
@@ -95,7 +99,9 @@ func (m commonHeaderMatcherImpl) Matches(_ context.Context, headers api.HeaderMa
 func CreateCommonHeaderMatcher(headers []v2.HeaderMatcher) types.HeaderMatcher {
 	hm := make(commonHeaderMatcherImpl, 0, len(headers))
 	for _, header := range headers {
-		hm = append(hm, NewKeyValueData(header))
+		if kv, err := NewKeyValueData(header); err == nil {
+			hm = append(hm, kv)
+		}
 	}
 	return hm
 }
@@ -135,14 +141,18 @@ func CreateHTTPHeaderMatcher(headers []v2.HeaderMatcher) types.HeaderMatcher {
 		case "method":
 			matcher.variables[types.VarMethod] = header.Value
 		default:
-			matcher.headers = append(matcher.headers, NewKeyValueData(header))
+			if kv, err := NewKeyValueData(header); err == nil {
+				matcher.headers = append(matcher.headers, kv)
+			}
 		}
 	}
 	return matcher
 
 }
 
+// TODO: support query params match
 // queryParameterMatcherImpl implements a types.QueryParamsMatcher
+// nolint: unused
 type queryParameterMatcherImpl []*KeyValueData
 
 func (m queryParameterMatcherImpl) Matches(ctx context.Context, queryParams types.QueryParams) bool {

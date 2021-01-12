@@ -271,18 +271,11 @@ func TestHTTPHeaderMatch(t *testing.T) {
 				Regex: true,
 			},
 		}
-		// catch panic
-		defer func() {
-			isPanic := false
-			if err := recover(); err != nil {
-				isPanic = true
-			}
-			if !isPanic {
-				t.Errorf("no panic when config is inavlid")
-			}
-		}()
-		// expected a panic
-		_ = CreateHTTPHeaderMatcher(headersConfig)
+		matcher := CreateHTTPHeaderMatcher(headersConfig)
+		mimpl := matcher.(*httpHeaderMatcherImpl)
+		if len(mimpl.headers) != 0 {
+			t.Errorf("invalid regexkey should be ignored")
+		}
 	})
 	t.Run("http method test", func(t *testing.T) {
 		headersConfig := []v2.HeaderMatcher{
@@ -343,7 +336,9 @@ func TestMatchQueryParams(t *testing.T) {
 		},
 	}
 	for _, c := range configs {
-		qpm = append(qpm, NewKeyValueData(c))
+		if kv, err := NewKeyValueData(c); err == nil {
+			qpm = append(qpm, kv)
+		}
 	}
 	for idx, querys := range []struct {
 		params   types.QueryParams

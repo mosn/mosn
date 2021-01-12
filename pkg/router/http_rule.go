@@ -23,13 +23,55 @@ import (
 	"strings"
 
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
 
-type PathRouteRuleImpl struct {
+type BaseHTTPRouteRule struct {
 	*RouteRuleImplBase
+	configHeaders         types.HeaderMatcher
+	configQueryParameters types.QueryParameterMatcher //TODO: not implement yet
+}
+
+func NewBaseHTTPRouteRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher) *BaseHTTPRouteRule {
+	return &BaseHTTPRouteRule{
+		RouteRuleImplBase: base,
+		configHeaders:     CreateHTTPHeaderMatcher(headers),
+	}
+}
+
+func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.HeaderMap) bool {
+	// 1. match headers' KV
+	if !rri.configHeaders.Matches(ctx, headers) {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
+		}
+		return false
+	}
+	// 2. match query parameters
+	if rri.configQueryParameters != nil {
+		var queryParams types.QueryParams
+		QueryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
+		if err == nil && QueryString != "" {
+			queryParams = httpmosn.ParseQueryString(QueryString)
+		}
+		if len(queryParams) != 0 {
+			if !rri.configQueryParameters.Matches(ctx, queryParams) {
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
+				}
+				return false
+			}
+		}
+	}
+	return true
+}
+
+type PathRouteRuleImpl struct {
+	*BaseHTTPRouteRule
 	path string
 }
 
@@ -76,7 +118,7 @@ func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap)
 
 // PrefixRouteRuleImpl used to "match path" with "prefix match"
 type PrefixRouteRuleImpl struct {
-	*RouteRuleImplBase
+	*BaseHTTPRouteRule
 	prefix string
 }
 
@@ -121,7 +163,7 @@ func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMa
 
 // RegexRouteRuleImpl used to "match path" with "regex match"
 type RegexRouteRuleImpl struct {
-	*RouteRuleImplBase
+	*BaseHTTPRouteRule
 	regexStr     string
 	regexPattern *regexp.Regexp
 }

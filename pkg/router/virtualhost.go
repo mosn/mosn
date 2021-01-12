@@ -50,12 +50,12 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 	var router RouteBase
 	if route.Match.Prefix != "" {
 		router = &PrefixRouteRuleImpl{
-			RouteRuleImplBase: base,
+			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
 			prefix:            route.Match.Prefix,
 		}
 	} else if route.Match.Path != "" {
 		router = &PathRouteRuleImpl{
-			RouteRuleImplBase: base,
+			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
 			path:              route.Match.Path,
 		}
 	} else if route.Match.Regex != "" {
@@ -65,7 +65,7 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 			return err
 		}
 		router = &RegexRouteRuleImpl{
-			RouteRuleImplBase: base,
+			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
 			regexStr:          route.Match.Regex,
 			regexPattern:      regPattern,
 		}
@@ -80,7 +80,7 @@ func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
 		router = variableRouter
 	} else {
 
-		router = CreateSofaRule(base, route.Match.Headers)
+		router = CreateRPCRule(base, route.Match.Headers)
 
 	}
 	if router != nil {
