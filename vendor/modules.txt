@@ -215,7 +215,7 @@ github.com/mosn/binding/internal/bytesconv
 github.com/mosn/binding/internal/json
 # github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827
 github.com/mosn/easygo/netpoll
-# github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
+# github.com/mosn/registry v0.0.0-20210108061200-d7b63bc1904b
 github.com/mosn/registry/dubbo
 github.com/mosn/registry/dubbo/common
 github.com/mosn/registry/dubbo/common/constant
