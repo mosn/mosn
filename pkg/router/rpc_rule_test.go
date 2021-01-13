@@ -36,7 +36,7 @@ func TestRPCRouteRuleSimple(t *testing.T) {
 	}
 	headers := []v2.HeaderMatcher{
 		{
-			Name:  types.SofaRouteMatchKey,
+			Name:  types.RPCRouteMatchKey,
 			Value: ".*",
 		},
 	}
@@ -46,7 +46,7 @@ func TestRPCRouteRuleSimple(t *testing.T) {
 	}
 	ctrl := gomock.NewController(t)
 	mheader := mock.NewMockHeaderMap(ctrl)
-	mheader.EXPECT().Get(types.SofaRouteMatchKey).Return("any value", true).AnyTimes()
+	mheader.EXPECT().Get(types.RPCRouteMatchKey).Return("any value", true).AnyTimes()
 	ctx := context.Background()
 	if rpcroute.Match(ctx, mheader) == nil {
 		t.Fatalf("sofa route rule  fast match failed")

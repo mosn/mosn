@@ -30,12 +30,11 @@ import (
 type RouterType string
 
 const (
-	GlobalTimeout                  = 60 * time.Second
-	DefaultRouteTimeout            = 15 * time.Second
-	SofaRouteMatchKey              = "service"
-	RouterMetadataKey              = "filter_metadata"
-	RouterMetadataKeyLb            = "mosn.lb"
-	SofaRouterType      RouterType = "sofa"
+	GlobalTimeout       = 60 * time.Second
+	DefaultRouteTimeout = 15 * time.Second
+	RPCRouteMatchKey    = "service"
+	RouterMetadataKey   = "filter_metadata"
+	RouterMetadataKeyLb = "mosn.lb"
 )
 
 // Routers defines and manages all router

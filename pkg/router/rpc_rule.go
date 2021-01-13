@@ -46,7 +46,7 @@ func (srri *RPCRouteRuleImpl) Matcher() string {
 }
 
 func (srri *RPCRouteRuleImpl) MatchType() api.PathMatchType {
-	return api.SofaHeader
+	return api.RPCHeader
 }
 
 func (srri *RPCRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
@@ -60,7 +60,7 @@ func (srri *RPCRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) 
 		}
 	} else {
 		// compatible for old version.
-		value, _ := headers.Get(types.SofaRouteMatchKey)
+		value, _ := headers.Get(types.RPCRouteMatchKey)
 		if value != "" {
 			if value == srri.fastmatch || srri.fastmatch == ".*" {
 				return srri
@@ -78,7 +78,7 @@ func CreateRPCRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher) RouteBas
 		RouteRuleImplBase: base,
 	}
 	// compatible for simple sofa rule
-	if len(headers) == 1 && headers[0].Name == types.SofaRouteMatchKey {
+	if len(headers) == 1 && headers[0].Name == types.RPCRouteMatchKey {
 		r.fastmatch = headers[0].Value
 	} else {
 		r.configHeaders = CreateCommonHeaderMatcher(headers)
