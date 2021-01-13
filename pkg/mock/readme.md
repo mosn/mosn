@@ -6,5 +6,5 @@ https://github.com/golang/mock
 
 mock gen example:
 
-> mockgen ../types/stream.go -package=mock > stream.go
+> mockgen -source=../types/stream.go -package=mock > stream.go
 

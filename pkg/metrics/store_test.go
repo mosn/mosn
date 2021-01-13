@@ -182,6 +182,38 @@ func TestExclusionKeys(t *testing.T) {
 	}
 }
 
+func TestLazyFlush(t *testing.T) {
+	LazyFlushMetrics = true
+	defer func() {
+		LazyFlushMetrics = false
+	}()
+	defaultStore.matcher.rejectAll = false
+
+	metrics, _ := NewMetrics("lazy", map[string]string{"lk": "lv"})
+	counter := metrics.Counter("counter")
+	var cn int64 = 10
+	counter.Inc(cn)
+	if counter.Count() != cn {
+		t.Errorf("counter get %d not %d", counter.Count(), cn)
+	}
+
+	gauge := metrics.Gauge("gauge")
+	var gn int64 = 100
+	gauge.Update(gn)
+	if gauge.Value() != gn {
+		t.Errorf("gauge get %d not %d", gauge.Value(), cn)
+	}
+
+	histogram := metrics.Histogram("histogram")
+	var hn int64 = 200
+	histogram.Update(hn)
+	if histogram.Count() != 1 {
+		t.Errorf("histograme get %d not %d", histogram.Count(), 1)
+	}
+
+	metrics.UnregisterAll()
+}
+
 func BenchmarkNewMetrics_SameLabels(b *testing.B) {
 	ResetAll()
 	total := b.N

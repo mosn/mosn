@@ -234,7 +234,7 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 		proto := xprotocol.GetProtocol(subProtocol)
 		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
-			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second, 6)
+			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
 			ac.keepAlive = &keepAliveListener{
 				keepAlive: rpcKeepAlive,

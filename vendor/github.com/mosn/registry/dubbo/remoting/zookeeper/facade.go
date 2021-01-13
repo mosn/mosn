@@ -19,29 +19,25 @@ package zookeeper
 
 import (
 	"sync"
-)
-import (
+
 	"github.com/dubbogo/getty"
+	"github.com/mosn/registry/dubbo/common"
+	"github.com/mosn/registry/dubbo/common/logger"
 	perrors "github.com/pkg/errors"
 )
 
-import (
-	"github.com/mosn/registry/dubbo/common"
-	"github.com/mosn/registry/dubbo/common/logger"
-)
-
-type zkClientFacade interface {
+type ZkClientFacade interface {
 	ZkClient() *ZookeeperClient
 	SetZkClient(*ZookeeperClient)
 	ZkClientLock() *sync.Mutex
-	WaitGroup() *sync.WaitGroup //for wait group control, zk client listener & zk client container
-	Done() chan struct{}        //for zk client control
+	WaitGroup() *sync.WaitGroup // for wait group control, zk client listener & zk client container
+	Done() chan struct{}        // for zk client control
 	RestartCallBack() bool
-	common.Node
+	GetUrl() common.URL
 }
 
-// HandleClientRestart ...
-func HandleClientRestart(r zkClientFacade) {
+// HandleClientRestart keeps the connection between client and server
+func HandleClientRestart(r ZkClientFacade) {
 	var (
 		err error
 
@@ -78,10 +74,8 @@ LOOP:
 				err = ValidateZookeeperClient(r, WithZkName(zkName))
 				logger.Infof("ZkProviderRegistry.validateZookeeperClient(zkAddr{%s}) = error{%#v}",
 					zkAddress, perrors.WithStack(err))
-				if err == nil {
-					if r.RestartCallBack() {
-						break
-					}
+				if err == nil && r.RestartCallBack() {
+					break
 				}
 				failTimes++
 				if MaxFailTimes <= failTimes {

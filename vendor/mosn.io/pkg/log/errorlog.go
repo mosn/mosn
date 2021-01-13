@@ -17,9 +17,7 @@
 
 package log
 
-import (
-	"mosn.io/pkg/utils"
-)
+import "mosn.io/pkg/utils"
 
 var DefaultLogger ErrorLogger
 

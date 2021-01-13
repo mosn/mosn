@@ -36,6 +36,7 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/faulttolerance"
 	_ "mosn.io/mosn/pkg/filter/stream/flowcontrol"
 	_ "mosn.io/mosn/pkg/filter/stream/gzip"
+	_ "mosn.io/mosn/pkg/filter/stream/jwtauthn"
 	_ "mosn.io/mosn/pkg/filter/stream/mirror"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
@@ -81,7 +82,7 @@ func newMosnApp(startCmd *cli.Command) *cli.App {
 	app.Name = "mosn"
 	app.Version = Version
 	app.Compiled = time.Now()
-	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Financial"
+	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Group"
 	app.Usage = "MOSN is modular observable smart netstub."
 	app.Flags = cmdStart.Flags
 

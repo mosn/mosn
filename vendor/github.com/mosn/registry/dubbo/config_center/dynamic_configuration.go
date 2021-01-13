@@ -19,13 +19,8 @@ package config_center
 
 import (
 	"time"
-)
 
-import (
 	gxset "github.com/dubbogo/gost/container/set"
-)
-
-import (
 	"github.com/mosn/registry/dubbo/common"
 	"github.com/mosn/registry/dubbo/config_center/parser"
 )

@@ -22,6 +22,7 @@ const (
 )
 
 const (
+	PORT_KEY               = "port"
 	GROUP_KEY              = "group"
 	VERSION_KEY            = "version"
 	INTERFACE_KEY          = "interface"
@@ -45,6 +46,7 @@ const (
 	DUBBO_KEY              = "dubbo"
 	RELEASE_KEY            = "release"
 	ANYHOST_KEY            = "anyhost"
+	SSL_ENABLED_KEY        = "ssl-enabled"
 )
 
 const (
@@ -79,6 +81,7 @@ const (
 	EXECUTE_REJECTED_EXECUTION_HANDLER_KEY = "execute.limit.rejected.handler"
 	PROVIDER_SHUTDOWN_FILTER               = "pshutdown"
 	CONSUMER_SHUTDOWN_FILTER               = "cshutdown"
+	PID_KEY                                = "pid"
 	SYNC_REPORT_KEY                        = "sync.report"
 	RETRY_PERIOD_KEY                       = "retry.period"
 	RETRY_TIMES_KEY                        = "retry.times"
@@ -95,6 +98,11 @@ const (
 	ROLE_KEY             = "registry.role"
 	REGISTRY_DEFAULT_KEY = "registry.default"
 	REGISTRY_TIMEOUT_KEY = "registry.timeout"
+	REGISTRY_LABEL_KEY   = "label"
+	PREFERRED_KEY        = "preferred"
+	ZONE_KEY             = "zone"
+	ZONE_FORCE_KEY       = "zone.force"
+	REGISTRY_TTL_KEY     = "registry.ttl"
 )
 
 const (
@@ -125,6 +133,7 @@ const (
 	CONFIG_CLUSTER_KEY    = "config.cluster"
 	CONFIG_CHECK_KEY      = "config.check"
 	CONFIG_TIMEOUT_KET    = "config.timeout"
+	CONFIG_LOG_DIR_KEY    = "config.logDir"
 	CONFIG_VERSION_KEY    = "configVersion"
 	COMPATIBLE_CONFIG_KEY = "compatible_config"
 )
@@ -155,6 +164,17 @@ const (
 	NACOS_CATEGORY_KEY           = "category"
 	NACOS_PROTOCOL_KEY           = "protocol"
 	NACOS_PATH_KEY               = "path"
+	NACOS_NAMESPACE_ID           = "namespaceId"
+	NACOS_PASSWORD               = "password"
+	NACOS_USERNAME               = "username"
+)
+
+const (
+	ZOOKEEPER_KEY = "zookeeper"
+)
+
+const (
+	ETCDV3_KEY = "etcdv3"
 )
 
 const (
@@ -173,6 +193,9 @@ const (
 	HealthCheckRouterName = "health_check"
 	// TagRouterName Specify the name of TagRouter
 	TagRouterName = "tag"
+	// TagRouterRuleSuffix Specify tag router suffix
+	TagRouterRuleSuffix  = ".tag-router"
+	RemoteApplicationKey = "remote.application"
 	// ConditionRouterRuleSuffix Specify condition router suffix
 	ConditionRouterRuleSuffix = ".condition-router"
 
@@ -182,10 +205,20 @@ const (
 	RouterEnabled = "enabled"
 	// Priority Priority key in router module
 	RouterPriority = "priority"
-
+	// RouterScope Scope key in router module
+	RouterScope = "scope"
+	// RouterApplicationScope Scope key in router module
+	RouterApplicationScope = "application"
+	// RouterServiceScope Scope key in router module
+	RouterServiceScope = "service"
+	// RouterRuleKey defines the key of the router, service's/application's name
+	RouterRuleKey = "key"
 	// ForceUseTag is the tag in attachment
 	ForceUseTag = "dubbo.force.tag"
 	Tagkey      = "dubbo.tag"
+
+	// Attachment key in context in invoker
+	AttachmentKey = "attachment"
 )
 
 const (
@@ -257,7 +290,19 @@ const (
 )
 
 // service discovery
-
 const (
-	NACOS_GROUP = "nacos.group"
+	SUBSCRIBED_SERVICE_NAMES_KEY               = "subscribed-services"
+	PROVIDER_BY                                = "provided-by"
+	EXPORTED_SERVICES_REVISION_PROPERTY_NAME   = "dubbo.exported-services.revision"
+	SUBSCRIBED_SERVICES_REVISION_PROPERTY_NAME = "dubbo.subscribed-services.revision"
+	SERVICE_INSTANCE_SELECTOR                  = "service-instance-selector"
+	METADATA_STORAGE_TYPE_PROPERTY_NAME        = "dubbo.metadata.storage-type"
+	DEFAULT_METADATA_STORAGE_TYPE              = "local"
+	SERVICE_INSTANCE_ENDPOINTS                 = "dubbo.endpoints"
+	METADATA_SERVICE_PREFIX                    = "dubbo.metadata-service."
+	METADATA_SERVICE_URL_PARAMS_PROPERTY_NAME  = METADATA_SERVICE_PREFIX + "url-params"
+	METADATA_SERVICE_URLS_PROPERTY_NAME        = METADATA_SERVICE_PREFIX + "urls"
+
+	// SERVICE_DISCOVERY_KEY indicate which service discovery instance will be used
+	SERVICE_DISCOVERY_KEY = "service_discovery"
 )

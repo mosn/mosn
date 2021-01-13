@@ -18,7 +18,7 @@ function makebuild {
 echo "build mosn binary"
 bin=$(makebuild)
 echo "run test cases"
-go test -tags MOSNTest -failfast -v -p 1 ./... -args -m=$bin
+GO111MODULE=off go test -tags MOSNTest -failfast -v -p 1 ./... -args -m=$bin
 code=$?
 rm -f ./test_mosn
 if [[ $code -eq 0 ]]; then

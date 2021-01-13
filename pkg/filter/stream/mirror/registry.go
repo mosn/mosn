@@ -10,6 +10,7 @@ import (
 var (
 	defaultAmplification = 1
 	amplificationKey     = "amplification"
+	broadcastKey         = "broadcast"
 )
 
 func init() {
@@ -26,14 +27,21 @@ func NewMirrorConfig(conf map[string]interface{}) (api.StreamFilterChainFactory,
 			c.Amplification = int(amp)
 		}
 	}
+	if broadcast, ok := conf[broadcastKey]; ok {
+		c.BroadCast = broadcast.(bool)
+	}
 	return c, nil
 }
 
 type config struct {
-	Amplification int `json:"amplification,omitempty"`
+	Amplification int  `json:"amplification,omitempty"`
+	BroadCast     bool `json:"broadcast,omitempty"`
 }
 
 func (c *config) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
-	m := &mirror{amplification: c.Amplification}
+	m := &mirror{
+		amplification: c.Amplification,
+		broadcast:     c.BroadCast,
+	}
 	callbacks.AddStreamReceiverFilter(m, api.AfterRoute)
 }

@@ -66,13 +66,13 @@ func TestConvertHeader(t *testing.T) {
 		{
 			common,
 			mockProtocol,
-			CommonHeader{types.HeaderStatus: "200"},
+			CommonHeader{},
 			nil,
 		},
 		{
 			common,
 			mockProtocol,
-			CommonHeader{types.HeaderStatus: "200"},
+			CommonHeader{},
 			nil,
 		},
 	}
@@ -103,7 +103,7 @@ func TestConvertHeader(t *testing.T) {
 		{
 			"unknown",
 			mockProtocol,
-			CommonHeader{types.HeaderStatus: "200"},
+			CommonHeader{},
 			nil,
 		},
 	}

@@ -17,27 +17,17 @@
 
 package types
 
-import "errors"
+import (
+	"errors"
 
-// Header key types
+	"mosn.io/api"
+)
+
+// MOSN Header keys
 const (
-	HeaderStatus                   = "x-mosn-status"
-	HeaderMethod                   = "x-mosn-method"
-	HeaderHost                     = "x-mosn-host"
-	HeaderPath                     = "x-mosn-path"
-	HeaderQueryString              = "x-mosn-querystring"
-	HeaderStreamID                 = "x-mosn-streamid"
-	HeaderGlobalTimeout            = "x-mosn-global-timeout"
-	HeaderTryTimeout               = "x-mosn-try-timeout"
-	HeaderException                = "x-mosn-exception"
-	HeaderStremEnd                 = "x-mosn-endstream"
-	HeaderRPCService               = "x-mosn-rpc-service"
-	HeaderRPCMethod                = "x-mosn-rpc-method"
-	HeaderXprotocolSubProtocol     = "x-mosn-xprotocol-sub-protocol"
-	HeaderXprotocolStreamId        = "x-mosn-xprotocol-stream-id"
-	HeaderXprotocolRespStatus      = "x-mosn-xprotocol-resp-status"
-	HeaderXprotocolRespIsException = "x-mosn-xprotocol-resp-is-exception"
-	HeaderXprotocolHeartbeat       = "x-protocol-heartbeat"
+	HeaderGlobalTimeout = "x-mosn-global-timeout"
+	HeaderTryTimeout    = "x-mosn-try-timeout"
+	HeaderOriginalPath  = "x-mosn-original-path"
 )
 
 // Error messages
@@ -94,3 +84,9 @@ func ConvertReasonToCode(reason StreamResetReason) int {
 
 	return InternalErrorCode
 }
+
+// ResponseFlags sets
+const (
+	MosnProcessFailedFlags = api.NoHealthyUpstream | api.NoRouteFound | api.UpstreamLocalReset |
+		api.FaultInjected | api.RateLimited | api.DownStreamTerminate | api.ReqEntityTooLarge
+)

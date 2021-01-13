@@ -90,6 +90,7 @@ type proxy struct {
 	listenerStats       *Stats
 	accessLogs          []api.AccessLog
 	streamFilterFactory streamfilter.StreamFilterFactory
+	routeHandlerFactory router.MakeHandlerFunc
 
 	// configure the proxy level worker pool
 	// eg. if we want the requests on one connection to keep serial,
@@ -117,17 +118,25 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
 	if err == nil {
-		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
+		if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+			log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
+		}
 		var xProxyExtendConfig v2.XProxyExtendConfig
 		var proxyGeneralExtendConfig v2.ProxyGeneralExtendConfig
 		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
 			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
-			log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+			}
 		} else if err := json.Unmarshal([]byte(extJSON), &proxyGeneralExtendConfig); err == nil {
 			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
-			log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxyGeneralExtendConfig)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxyGeneralExtendConfig)
+			}
 		} else {
-			log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
+			}
 		}
 	} else {
 		log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
@@ -147,6 +156,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 
 	proxy.streamFilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(listenerName)
+	proxy.routeHandlerFactory = router.GetMakeHandlerFunc(proxy.config.RouterHandlerName)
 
 	return proxy
 }
@@ -171,7 +181,9 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 			p.readCallbacks.Connection().Close(api.NoFlush, api.OnReadErrClose)
 			return api.Stop
 		}
-		log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
+		}
 		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
 	}
 	p.serverStreamConn.Dispatch(buf)

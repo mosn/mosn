@@ -11,6 +11,7 @@ require (
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f
 	github.com/dchest/siphash v1.2.1
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-chi/chi v4.1.0+incompatible
@@ -23,11 +24,13 @@ require (
 	github.com/juju/errors v0.0.0-20190930114154-d42613fe1ab9
 	github.com/juju/loggo v0.0.0-20190526231331-6e530bcce5d8 // indirect
 	github.com/juju/testing v0.0.0-20191001232224-ce9dec17d28b // indirect
+	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
+	github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/miekg/dns v1.0.14
 	github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f
-	github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
-	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
+	github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827
+	github.com/mosn/registry v0.0.0-20210108061200-d7b63bc1904b
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
@@ -37,6 +40,7 @@ require (
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
+	go.uber.org/atomic v1.7.0
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
@@ -47,8 +51,8 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
-	mosn.io/api v0.0.0-20201117130017-91d17c14b8af
-	mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
+	mosn.io/api v0.0.0-20210113033009-f24f4e59b2bc
+	mosn.io/pkg v0.0.0-20201228090327-daaf86502a50
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4

@@ -57,10 +57,10 @@ type RouteRule interface {
 	PerFilterConfig() map[string]interface{}
 
 	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
-	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)
+	FinalizeRequestHeaders(ctx context.Context, headers HeaderMap, requestInfo RequestInfo)
 
 	// FinalizeResponseHeaders do potentially destructive header transforms on response headers prior to forwarding
-	FinalizeResponseHeaders(headers HeaderMap, requestInfo RequestInfo)
+	FinalizeResponseHeaders(ctx context.Context, headers HeaderMap, requestInfo RequestInfo)
 
 	// PathMatchCriterion returns the route's PathMatchCriterion
 	PathMatchCriterion() PathMatchCriterion
@@ -157,7 +157,7 @@ const (
 	Prefix
 	Exact
 	Regex
-	SofaHeader
+	RPCHeader
 	Variable
 )
 
