@@ -108,6 +108,9 @@ func TestDownClose(t *testing.T) {
 	sConnI.Close(api.NoFlush, api.LocalClose)
 	// should close the client stream conn
 	assert.Nil(t, pInst.idleClients[sConnI.ID()])
+
+	// close of pool should not panic
+	pInst.Close()
 }
 
 func TestUpperClose(t *testing.T) {
@@ -151,4 +154,8 @@ func TestUpperClose(t *testing.T) {
 	pInst.idleClients[sConnI.ID()].Close(errors.New("closeclose"))
 	assert.Nil(t, pInst.idleClients[sConnI.ID()])
 	assert.Equal(t, sConnI.State(), api.ConnClosed)
+
+	// client has already closed
+	// close the connpool should not panic
+	pInst.Close()
 }
