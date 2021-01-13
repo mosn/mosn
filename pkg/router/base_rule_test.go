@@ -157,52 +157,6 @@ func TestWeightedClusterSelect(t *testing.T) {
 	}
 }
 
-// FIXME
-/*
-func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
-	route := &v2.Router{
-		RouterConfig: v2.RouterConfig{
-			Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{
-				{
-					Name:  "method",
-					Value: "POST",
-				},
-			}},
-			Route: v2.RouteAction{
-				RouterActionConfig: v2.RouterActionConfig{
-					ClusterName: "test",
-				},
-			},
-		},
-	}
-
-	routeRuleBase, err := NewRouteRuleImplBase(nil, route)
-	if !assert.NoErrorf(t, err, "new route rule impl failed, err should be nil, get %+v", err) {
-		t.FailNow()
-	}
-
-	headers := http.RequestHeader{
-		RequestHeader: &fasthttp.RequestHeader{},
-	}
-	headers.Set(protocol.MosnHeaderMethod, "POST")
-	match := routeRuleBase.matchRoute(nil, headers)
-	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
-		t.FailNow()
-	}
-
-	http2Request := &goHttp.Request{
-		Method: "POST",
-		Header: goHttp.Header{},
-	}
-	headerHttp2 := http2.NewReqHeader(http2Request)
-	headerHttp2.Set(protocol.MosnHeaderMethod, http2Request.Method)
-	match = routeRuleBase.matchRoute(nil, headerHttp2)
-	if !assert.Truef(t, match, "match http2 method failed, result should be true, get %+v", match) {
-		t.FailNow()
-	}
-}
-*/
-
 type finalizeResult struct {
 	variables map[string]string // the variables should be setted
 	headers   api.HeaderMap
@@ -450,14 +404,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 					requestHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
@@ -469,14 +423,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 						requestHeadersParser: &headerParser{
 							headersToAdd: []*headerPair{
 								{
-									headerName: &lowerCaseString{"level"},
+									headerName: "level",
 									headerFormatter: &plainHeaderFormatter{
 										isAppend:    true,
 										staticValue: "2",
 									},
 								},
 								{
-									headerName: &lowerCaseString{"vhost"},
+									headerName: "vhost",
 									headerFormatter: &plainHeaderFormatter{
 										isAppend:    true,
 										staticValue: "true",
@@ -488,14 +442,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 							requestHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
@@ -528,14 +482,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 					requestHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
@@ -548,14 +502,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 							requestHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
@@ -588,14 +542,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 					requestHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
@@ -608,14 +562,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 							requestHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
@@ -672,61 +626,61 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 					responseHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
 								},
 							},
 						},
-						headersToRemove: []*lowerCaseString{{"status"}, {"username"}},
+						headersToRemove: []string{"status", "username"},
 					},
 					vHost: &VirtualHostImpl{
 						responseHeadersParser: &headerParser{
 							headersToAdd: []*headerPair{
 								{
-									headerName: &lowerCaseString{"level"},
+									headerName: "level",
 									headerFormatter: &plainHeaderFormatter{
 										isAppend:    true,
 										staticValue: "2",
 									},
 								},
 								{
-									headerName: &lowerCaseString{"vhost"},
+									headerName: "vhost",
 									headerFormatter: &plainHeaderFormatter{
 										isAppend:    true,
 										staticValue: "true",
 									},
 								},
 							},
-							headersToRemove: []*lowerCaseString{{"ver"}},
+							headersToRemove: []string{"ver"},
 						},
 						globalRouteConfig: &configImpl{
 							responseHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
 										},
 									},
 								},
-								headersToRemove: []*lowerCaseString{{"x-mosn"}},
+								headersToRemove: []string{"x-mosn"},
 							},
 						},
 					},
@@ -743,42 +697,42 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 					responseHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
 								},
 							},
 						},
-						headersToRemove: []*lowerCaseString{{"status"}, {"username"}},
+						headersToRemove: []string{"status", "username"},
 					},
 					vHost: &VirtualHostImpl{
 						globalRouteConfig: &configImpl{
 							responseHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
 										},
 									},
 								},
-								headersToRemove: []*lowerCaseString{{"x-mosn"}},
+								headersToRemove: []string{"x-mosn"},
 							},
 						},
 					},

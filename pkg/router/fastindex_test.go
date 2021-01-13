@@ -37,7 +37,7 @@ func createRoutersCfg(cnt int) []v2.Router {
 				Match: v2.RouterMatch{
 					Headers: []v2.HeaderMatcher{
 						{
-							Name:  types.SofaRouteMatchKey,
+							Name:  types.RPCRouteMatchKey,
 							Value: fmt.Sprintf("service#%d", i),
 						},
 					},
@@ -71,7 +71,7 @@ func TestFastIndexRouteFromHeaderKV(t *testing.T) {
 	for i := 0; i < routersCnt; i++ {
 		value := fmt.Sprintf("service#%d", i)
 		expected := fmt.Sprintf("cluster#%d", i)
-		if route := vh.GetRouteFromHeaderKV(types.SofaRouteMatchKey, value); route == nil || route.RouteRule().ClusterName() != expected {
+		if route := vh.GetRouteFromHeaderKV(types.RPCRouteMatchKey, value); route == nil || route.RouteRule().ClusterName() != expected {
 			t.Errorf("#%d route match is not expected, route: %v", i, route)
 		}
 	}
@@ -101,7 +101,7 @@ func TestMatchRouteFromHeaderKV(t *testing.T) {
 		value := fmt.Sprintf("service#%d", i)
 		expected := fmt.Sprintf("cluster#%d", i)
 		// use header to find virtual host, in this case only have default virtualhost, header can be nil
-		if route := routers.MatchRouteFromHeaderKV(ctx, nil, types.SofaRouteMatchKey, value); route == nil || route.RouteRule().ClusterName() != expected {
+		if route := routers.MatchRouteFromHeaderKV(ctx, nil, types.RPCRouteMatchKey, value); route == nil || route.RouteRule().ClusterName() != expected {
 			t.Errorf("#%d route match is not expected, route: %v", i, route)
 		}
 	}
@@ -125,13 +125,13 @@ func BenchmarkGetSofaRouter(b *testing.B) {
 	expected := fmt.Sprintf("cluster#%d", 3000)
 	b.Run("kv", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			if route := vh.GetRouteFromHeaderKV(types.SofaRouteMatchKey, value); route == nil || route.RouteRule().ClusterName() != expected {
+			if route := vh.GetRouteFromHeaderKV(types.RPCRouteMatchKey, value); route == nil || route.RouteRule().ClusterName() != expected {
 				b.Errorf("route match is not expected, route: %v", route)
 			}
 		}
 	})
 	headers := protocol.CommonHeader(map[string]string{
-		types.SofaRouteMatchKey: value,
+		types.RPCRouteMatchKey: value,
 	})
 	ctx := variable.NewVariableContext(context.Background())
 	b.Run("common", func(b *testing.B) {

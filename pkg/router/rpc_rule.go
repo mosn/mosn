@@ -21,43 +21,46 @@ import (
 	"context"
 
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
-type SofaRouteRuleImpl struct {
+// SofaRule supports only simple headers match. and use fastmatch for compatible old mode
+type RPCRouteRuleImpl struct {
 	*RouteRuleImplBase
-	fastmatch string // compatible field
+	configHeaders types.HeaderMatcher
+	fastmatch     string // compatible field
 }
 
-func (srri *SofaRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
+func (srri *RPCRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
 	return srri
 }
 
-func (srri *SofaRouteRuleImpl) RouteRule() api.RouteRule {
+func (srri *RPCRouteRuleImpl) RouteRule() api.RouteRule {
 	return srri
 }
 
-func (srri *SofaRouteRuleImpl) Matcher() string {
+func (srri *RPCRouteRuleImpl) Matcher() string {
 	return srri.fastmatch
 }
 
-func (srri *SofaRouteRuleImpl) MatchType() api.PathMatchType {
-	return api.SofaHeader
+func (srri *RPCRouteRuleImpl) MatchType() api.PathMatchType {
+	return api.RPCHeader
 }
 
-func (srri *SofaRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (srri *RPCRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	srri.RouteRuleImplBase.FinalizeRequestHeaders(ctx, headers, requestInfo)
 }
 
-func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+func (srri *RPCRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if srri.fastmatch == "" {
-		if srri.matchRoute(ctx, headers) {
+		if srri.configHeaders.Matches(ctx, headers) {
 			return srri
 		}
 	} else {
 		// compatible for old version.
-		value, _ := headers.Get(types.SofaRouteMatchKey)
+		value, _ := headers.Get(types.RPCRouteMatchKey)
 		if value != "" {
 			if value == srri.fastmatch || srri.fastmatch == ".*" {
 				return srri
@@ -68,4 +71,17 @@ func (srri *SofaRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap)
 		log.Proxy.Debugf(ctx, RouterLogFormat, "sofa rotue rule", "failed match, macther %s", srri.fastmatch)
 	}
 	return nil
+}
+
+func CreateRPCRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher) RouteBase {
+	r := &RPCRouteRuleImpl{
+		RouteRuleImplBase: base,
+	}
+	// compatible for simple sofa rule
+	if len(headers) == 1 && headers[0].Name == types.RPCRouteMatchKey {
+		r.fastmatch = headers[0].Value
+	} else {
+		r.configHeaders = CreateCommonHeaderMatcher(headers)
+	}
+	return r
 }

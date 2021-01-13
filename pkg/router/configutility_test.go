@@ -18,14 +18,16 @@
 package router
 
 import (
+	"context"
 	"reflect"
-	"regexp"
 	"sort"
 	"testing"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
@@ -163,7 +165,7 @@ func Test_NewConfigImpl(t *testing.T) {
 				requestHeadersParser: &headerParser{
 					headersToAdd: []*headerPair{
 						{
-							headerName: &lowerCaseString{"level"},
+							headerName: "level",
 							headerFormatter: &plainHeaderFormatter{
 								isAppend:    false,
 								staticValue: "1",
@@ -174,14 +176,14 @@ func Test_NewConfigImpl(t *testing.T) {
 				responseHeadersParser: &headerParser{
 					headersToAdd: []*headerPair{
 						{
-							headerName: &lowerCaseString{"random"},
+							headerName: "random",
 							headerFormatter: &plainHeaderFormatter{
 								isAppend:    false,
 								staticValue: "123456",
 							},
 						},
 					},
-					headersToRemove: []*lowerCaseString{{"status"}},
+					headersToRemove: []string{"status"},
 				},
 			},
 		},
@@ -218,22 +220,125 @@ func TestMetadataMatchCriteriaImplSort(t *testing.T) {
 	}
 }
 
-// TODO: implement query match and FIXME
+func TestHTTPHeaderMatch(t *testing.T) {
+	t.Run("simple http header match", func(t *testing.T) {
+		headersConfig := []v2.HeaderMatcher{
+			{
+				Name:  "test-key",
+				Value: "test-value",
+			},
+			{
+				Name:  "key2",
+				Value: "value2",
+			},
+		}
+		// request headers must contains all of kvs
+		// request header can contains kv not in the config
+		matcher := CreateHTTPHeaderMatcher(headersConfig)
+		for idx, c := range []struct {
+			requestHeader map[string]string
+			matched       bool
+		}{
+			{map[string]string{"test-key": "test-value", "key2": "value2"}, true},
+			{map[string]string{"test-key": "test-value", "key2": "value2", "more": "more"}, true},
+			{map[string]string{"test-key": "test-value"}, false},
+			{map[string]string{"key2": "value2"}, false},
+			{map[string]string{"test-key": "test-value2", "key2": "value2"}, false},
+		} {
+			if matcher.Matches(context.Background(), protocol.CommonHeader(c.requestHeader)) != c.matched {
+				t.Errorf("No. %d case test failed", idx)
+			}
+		}
+	})
+	t.Run("regex header macth", func(t *testing.T) {
+		headersConfig := []v2.HeaderMatcher{
+			{
+				Name:  "regexkey",
+				Value: ".*",
+				Regex: true,
+			},
+		}
+		matcher := CreateHTTPHeaderMatcher(headersConfig)
+		if !matcher.Matches(context.Background(), protocol.CommonHeader(map[string]string{"regexkey": "any"})) {
+			t.Errorf("regex header match failed")
+		}
+	})
+	t.Run("invalid regex header config", func(t *testing.T) {
+		headersConfig := []v2.HeaderMatcher{
+			{
+				Name:  "regexkey",
+				Value: "a)", // invalid regexp
+				Regex: true,
+			},
+		}
+		matcher := CreateHTTPHeaderMatcher(headersConfig)
+		mimpl := matcher.(*httpHeaderMatcherImpl)
+		if len(mimpl.headers) != 0 {
+			t.Errorf("invalid regexkey should be ignored")
+		}
+	})
+	t.Run("http method test", func(t *testing.T) {
+		headersConfig := []v2.HeaderMatcher{
+			{
+				Name:  "method",
+				Value: "POST",
+			},
+			{
+				Name:  "common-key",
+				Value: "common-value",
+			},
+		}
+		ctx := variable.NewVariableContext(context.Background())
+		variable.SetVariableValue(ctx, types.VarMethod, "POST")
+		matcher := CreateHTTPHeaderMatcher(headersConfig)
+		for idx, c := range []struct {
+			requestHeader map[string]string
+			ctx           context.Context
+			matched       bool
+		}{
+			{
+				// method in request header will be ignored.
+				requestHeader: map[string]string{"common-key": "common-value", "method": "POST"},
+				ctx:           context.Background(),
+				matched:       false,
+			},
+			{
+				requestHeader: map[string]string{"common-key": "common-value"},
+				// method should be setted in the variables by the protocol stream modules
+				ctx:     ctx,
+				matched: true,
+			},
+			{
+				requestHeader: map[string]string{"method": "POST"},
+				ctx:           ctx, // only method matched, but headers not
+				matched:       false,
+			},
+		} {
+			if matcher.Matches(c.ctx, protocol.CommonHeader(c.requestHeader)) != c.matched {
+				t.Errorf("No. %d case test failed", idx)
+			}
+		}
+	})
+}
+
+// TODO: support query match in routers
 func TestMatchQueryParams(t *testing.T) {
-	cu := &configUtility{}
-	qpm := []types.QueryParameterMatcher{
-		&queryParameterMatcher{
-			name:  "key",
-			value: "value",
+	qpm := queryParameterMatcherImpl{}
+	configs := []v2.HeaderMatcher{
+		{
+			Name:  "key",
+			Value: "value",
 		},
-		&queryParameterMatcher{
-			name:         "regex",
-			regexPattern: regexp.MustCompile("[0-9]+"),
-			isRegex:      true,
+		{
+			Name:  "regex",
+			Value: "[0-9]+",
+			Regex: true,
 		},
-		&queryParameterMatcher{
-			name: "empty",
-		},
+	}
+	for _, c := range configs {
+		if kv, err := NewKeyValueData(c); err == nil {
+			qpm = append(qpm, kv)
+		}
 	}
 	for idx, querys := range []struct {
 		params   types.QueryParams
@@ -270,9 +375,8 @@ func TestMatchQueryParams(t *testing.T) {
 			expected: false,
 		},
 	} {
-		if cu.MatchQueryParams(querys.params, qpm) != querys.expected {
+		if qpm.Matches(context.Background(), querys.params) != querys.expected {
 			t.Fatalf("%d matched failed", idx)
 		}
 	}
-
 }

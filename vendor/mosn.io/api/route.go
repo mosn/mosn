@@ -157,7 +157,7 @@ const (
 	Prefix
 	Exact
 	Regex
-	SofaHeader
+	RPCHeader
 	Variable
 )
 

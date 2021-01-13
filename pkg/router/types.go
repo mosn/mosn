@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -45,7 +44,6 @@ var (
 	ErrNoRouters            = errors.New("routers is nil")
 	ErrDuplicateVirtualHost = errors.New("duplicate domain virtual host")
 	ErrUnexpected           = errors.New("an unexpected error occurs")
-	ErrRouterFactory        = errors.New("default router factory create router failed")
 )
 
 type headerFormatter interface {
@@ -54,24 +52,8 @@ type headerFormatter interface {
 }
 
 type headerPair struct {
-	headerName      *lowerCaseString
+	headerName      string // should to be lower string
 	headerFormatter headerFormatter
-}
-
-type lowerCaseString struct {
-	str string
-}
-
-func (lcs *lowerCaseString) Lower() {
-	lcs.str = strings.ToLower(lcs.str)
-}
-
-func (lcs *lowerCaseString) Equal(rhs types.LowerCaseString) bool {
-	return lcs.str == rhs.Get()
-}
-
-func (lcs *lowerCaseString) Get() string {
-	return lcs.str
 }
 
 type weightedClusterEntry struct {

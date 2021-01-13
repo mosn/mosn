@@ -18,40 +18,12 @@
 package router
 
 import (
-	"fmt"
-
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	RegisterRouterRule(DefaultSofaRouterRuleFactory, 1)
 	RegisterMakeHandler(types.DefaultRouteHandler, DefaultMakeHandler, true)
-}
-
-var defaultRouterRuleFactoryOrder routerRuleFactoryOrder
-
-func RegisterRouterRule(f RouterRuleFactory, order uint32) {
-	if defaultRouterRuleFactoryOrder.order < order {
-		log.DefaultLogger.Infof(RouterLogFormat, "Extend", "RegisterRouterRule", fmt.Sprintf("order is %d", order))
-		defaultRouterRuleFactoryOrder.factory = f
-		defaultRouterRuleFactoryOrder.order = order
-	} else {
-		msg := fmt.Sprintf("current register order is %d, order %d register failed", defaultRouterRuleFactoryOrder.order, order)
-		log.DefaultLogger.Errorf(RouterLogFormat, "Extend", "RegisterRouterRule", msg)
-	}
-}
-
-func DefaultSofaRouterRuleFactory(base *RouteRuleImplBase, headers []v2.HeaderMatcher) RouteBase {
-	r := &SofaRouteRuleImpl{
-		RouteRuleImplBase: base,
-	}
-	// compatible for simple sofa rule
-	if len(headers) == 1 && headers[0].Name == types.SofaRouteMatchKey {
-		r.fastmatch = headers[0].Value
-	}
-	return r
 }
 
 var makeHandler = &handlerFactories{

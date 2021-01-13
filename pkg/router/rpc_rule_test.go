@@ -27,7 +27,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func TestSofaRouteRuleSimple(t *testing.T) {
+func TestRPCRouteRuleSimple(t *testing.T) {
 	route := &v2.Router{}
 	vh := &VirtualHostImpl{}
 	base, err := NewRouteRuleImplBase(vh, route)
@@ -36,19 +36,19 @@ func TestSofaRouteRuleSimple(t *testing.T) {
 	}
 	headers := []v2.HeaderMatcher{
 		{
-			Name:  types.SofaRouteMatchKey,
+			Name:  types.RPCRouteMatchKey,
 			Value: ".*",
 		},
 	}
-	sofaroute := DefaultSofaRouterRuleFactory(base, headers)
-	if sofaroute.Matcher() != ".*" {
+	rpcroute := CreateRPCRule(base, headers)
+	if rpcroute.Matcher() != ".*" {
 		t.Fatalf("sofa route rule should be fast match mode")
 	}
 	ctrl := gomock.NewController(t)
 	mheader := mock.NewMockHeaderMap(ctrl)
-	mheader.EXPECT().Get(types.SofaRouteMatchKey).Return("any value", true).AnyTimes()
+	mheader.EXPECT().Get(types.RPCRouteMatchKey).Return("any value", true).AnyTimes()
 	ctx := context.Background()
-	if sofaroute.Match(ctx, mheader) == nil {
+	if rpcroute.Match(ctx, mheader) == nil {
 		t.Fatalf("sofa route rule  fast match failed")
 	}
 }
@@ -75,8 +75,8 @@ func TestSofaRouteRuleHeaderMatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create base route failed: %v", err)
 	}
-	sofaroute := DefaultSofaRouterRuleFactory(base, route.Match.Headers)
-	if sofaroute.Matcher() != "" {
+	rpcroute := CreateRPCRule(base, route.Match.Headers)
+	if rpcroute.Matcher() != "" {
 		t.Fatalf("sofa route rule should not be fast match mode")
 	}
 	ctrl := gomock.NewController(t)
@@ -85,14 +85,14 @@ func TestSofaRouteRuleHeaderMatch(t *testing.T) {
 	headerMatched.EXPECT().Get("key1").Return("value1", true).AnyTimes()
 	headerMatched.EXPECT().Get("key2").Return("value2", true).AnyTimes()
 	ctx := context.Background()
-	if sofaroute.Match(ctx, headerMatched) == nil {
+	if rpcroute.Match(ctx, headerMatched) == nil {
 		t.Fatalf("sofa route rule matched header failed")
 	}
 	// header matched failed
 	headerNotMatched := mock.NewMockHeaderMap(ctrl)
 	headerNotMatched.EXPECT().Get("key1").Return("value1", true).AnyTimes()
 	headerNotMatched.EXPECT().Get("key2").Return("", false).AnyTimes()
-	if sofaroute.Match(ctx, headerNotMatched) != nil {
+	if rpcroute.Match(ctx, headerNotMatched) != nil {
 		t.Fatalf("sofa route rule matched success, but expected not")
 	}
 

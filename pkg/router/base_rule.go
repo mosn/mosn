@@ -30,7 +30,6 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/pkg/variable"
@@ -43,10 +42,8 @@ var (
 
 type RouteRuleImplBase struct {
 	// match
-	vHost                 *VirtualHostImpl
-	routerMatch           v2.RouterMatch
-	configHeaders         []*types.HeaderData
-	configQueryParameters []types.QueryParameterMatcher //TODO: not implement yet
+	vHost       *VirtualHostImpl
+	routerMatch v2.RouterMatch
 	// rewrite
 	prefixRewrite         string
 	regexRewrite          v2.RegexRewrite
@@ -78,7 +75,6 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 	base := &RouteRuleImplBase{
 		vHost:                 vHost,
 		routerMatch:           route.Match,
-		configHeaders:         getRouterHeaders(route.Match.Headers),
 		prefixRewrite:         route.Route.PrefixRewrite,
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
@@ -253,34 +249,6 @@ func (rri *RouteRuleImplBase) MetadataMatchCriteria(clusterName string) api.Meta
 
 func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {
 	return rri.perFilterConfig
-}
-
-// matchRoute is a common matched for http
-func (rri *RouteRuleImplBase) matchRoute(ctx context.Context, headers api.HeaderMap) bool {
-	// 1. match headers' KV
-	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
-		}
-		return false
-	}
-	// 2. match query parameters
-	if len(rri.configQueryParameters) != 0 {
-		var queryParams types.QueryParams
-		QueryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
-		if err == nil && QueryString != "" {
-			queryParams = httpmosn.ParseQueryString(QueryString)
-		}
-		if len(queryParams) != 0 {
-			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
-				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-					log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
-				}
-				return false
-			}
-		}
-	}
-	return true
 }
 
 func (rri *RouteRuleImplBase) FinalizePathHeader(ctx context.Context, headers api.HeaderMap, matchedPath string) {
