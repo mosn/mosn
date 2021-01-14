@@ -1219,11 +1219,6 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 		s.requestInfo.SetResponseFlag(reasonFlag)
 		code = types.ConvertReasonToCode(reason)
 
-		if s.upstreamRequest != nil && s.upstreamRequest.host != nil {
-			s.upstreamRequest.host.HostStats().UpstreamResponseFailed.Inc(1)
-			s.upstreamRequest.host.ClusterInfo().Stats().UpstreamResponseFailed.Inc(1)
-		}
-
 		// clear reset flag
 		if log.Proxy.GetLogLevel() >= log.INFO {
 			log.Proxy.Infof(s.context, "[proxy] [downstream] onUpstreamReset, send hijack, reason %v", reason)
