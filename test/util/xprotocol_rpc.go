@@ -5,14 +5,15 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"github.com/apache/thrift/lib/go/thrift"
 	"math"
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"net"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/apache/thrift/lib/go/thrift"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/basef"

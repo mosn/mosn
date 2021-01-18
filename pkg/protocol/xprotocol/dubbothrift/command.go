@@ -18,12 +18,13 @@
 package dubbothrift
 
 import (
+	"strconv"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	"strconv"
 )
 
 type Header struct {

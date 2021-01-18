@@ -21,12 +21,13 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"runtime/debug"
+	"strconv"
+
 	"github.com/apache/thrift/lib/go/thrift"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	"runtime/debug"
-	"strconv"
 )
 
 func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {

@@ -1,12 +1,13 @@
 package integrate
 
 import (
+	"testing"
+	"time"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
-	"testing"
-	"time"
 
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/test/util"

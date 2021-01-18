@@ -2,9 +2,10 @@ package dubbothrift
 
 import (
 	"context"
+	"testing"
+
 	"github.com/apache/thrift/lib/go/thrift"
 	"mosn.io/mosn/pkg/protocol"
-	"testing"
 
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"

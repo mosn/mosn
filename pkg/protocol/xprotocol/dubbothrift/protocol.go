@@ -21,9 +21,10 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"mosn.io/mosn/pkg/protocol"
 	"strconv"
 	"sync/atomic"
+
+	"mosn.io/mosn/pkg/protocol"
 
 	"github.com/apache/thrift/lib/go/thrift"
 	"mosn.io/pkg/buffer"

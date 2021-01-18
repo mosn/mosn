@@ -19,6 +19,7 @@ package dubbothrift
 
 import (
 	"bytes"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )

@@ -4,11 +4,12 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io/ioutil"
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"net"
 	"net/http"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
