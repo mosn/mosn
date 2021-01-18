@@ -18,17 +18,26 @@
 package xprotocol
 
 import (
+	"container/list"
 	"errors"
+	"math"
 
 	"mosn.io/mosn/pkg/protocol"
 
 	"mosn.io/mosn/pkg/types"
 )
 
+type SortedProtocolMatch struct {
+	ProtocolName types.ProtocolName
+	Matcher      types.ProtocolMatch
+	order        int
+}
+
 var (
-	protocolMap = make(map[types.ProtocolName]XProtocol)
-	matcherMap  = make(map[types.ProtocolName]types.ProtocolMatch)
-	mappingMap  = make(map[types.ProtocolName]protocol.HTTPMapping)
+	protocolMap       = make(map[types.ProtocolName]XProtocol)
+	matcherMap        = make(map[types.ProtocolName]types.ProtocolMatch)
+	sortedMatcherList = list.New()
+	mappingMap        = make(map[types.ProtocolName]protocol.HTTPMapping)
 )
 
 // RegisterProtocol register the protocol to factory
@@ -57,6 +66,27 @@ func RegisterMatcher(name types.ProtocolName, matcher types.ProtocolMatch) error
 	}
 
 	matcherMap[name] = matcher
+	sortedMatcherList.PushBack(SortedProtocolMatch{name, matcher, math.MaxInt64})
+	return nil
+}
+
+// RegisterMatcher register the matcher of the protocol into factory.
+// Order defines the sort order for the matcher. Lower values have higher priority
+func RegisterMatcherWithOrder(name types.ProtocolName, matcher types.ProtocolMatch, order int) error {
+	// check name conflict
+	_, ok := matcherMap[name]
+	if ok {
+		return errors.New("duplicate matcher register:" + string(name))
+	}
+	matcherMap[name] = matcher
+	//sort list by order
+	for e := sortedMatcherList.Front(); e != nil; e = e.Next() {
+		if order <= e.Value.(SortedProtocolMatch).order {
+			sortedMatcherList.InsertBefore(SortedProtocolMatch{name, matcher, order}, e)
+			return nil
+		}
+	}
+	sortedMatcherList.PushBack(SortedProtocolMatch{name, matcher, order})
 	return nil
 }
 
@@ -66,8 +96,8 @@ func GetMatcher(name types.ProtocolName) types.ProtocolMatch {
 }
 
 //GetMatchers return all matchers that was registered
-func GetMatchers() map[types.ProtocolName]types.ProtocolMatch {
-	return matcherMap
+func GetMatchers() *list.List {
+	return sortedMatcherList
 }
 
 // RegisterMapping register the HTTP status code mapping function of the protocol into factory

@@ -1,12 +1,12 @@
 package integrate
 
 import (
-	"testing"
-	"time"
-
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+	"testing"
+	"time"
 
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/test/util"
@@ -42,6 +42,7 @@ func TestXProxy(t *testing.T) {
 		NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
 		NewXTestCase(t, dubbo.ProtocolName, util.NewRPCServer(t, appaddr, dubbo.ProtocolName)),
 		NewXTestCase(t, tars.ProtocolName, util.NewRPCServer(t, appaddr, tars.ProtocolName)),
+		NewXTestCase(t, dubbothrift.ProtocolName, util.NewRPCServer(t, appaddr, dubbothrift.ProtocolName)),
 		//TODO: boltv2
 	}
 	for i, tc := range testCases {

@@ -2,6 +2,7 @@ package integrate
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"testing"
 	"time"
 
@@ -159,9 +160,10 @@ func TestXAuto(t *testing.T) {
 
 	appaddr := "127.0.0.1:20880"
 	testCases := []*XTestCase{
-		NewXTestCase(t, dubbo.ProtocolName, util.NewRPCServer(t, appaddr, dubbo.ProtocolName)),
-		NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
-		NewXTestCase(t, tars.ProtocolName, util.NewRPCServer(t, appaddr, tars.ProtocolName)),
+		//NewXTestCase(t, dubbo.ProtocolName, util.NewRPCServer(t, appaddr, dubbo.ProtocolName)),
+		//NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
+		NewXTestCase(t, dubbothrift.ProtocolName, util.NewRPCServer(t, appaddr, dubbothrift.ProtocolName)),
+		//NewXTestCase(t, tars.ProtocolName, util.NewRPCServer(t, appaddr, tars.ProtocolName)),
 	}
 	for i, tc := range testCases {
 		t.Logf("start case #%d\n", i)
