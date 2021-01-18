@@ -5,6 +5,7 @@ import (
 	"github.com/apache/thrift/lib/go/thrift"
 	"mosn.io/mosn/pkg/protocol"
 	"reflect"
+	"strconv"
 	"testing"
 
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -29,6 +30,7 @@ func TestFrame(t *testing.T) {
 	frame.SetData(buffer.NewIoBufferBytes(baseContent))
 
 	frame.Set(ServiceNameHeader, "com.pkg.test.TestService")
+	frame.Set(MessageTypeNameHeader, strconv.Itoa(int(thrift.CALL)))
 
 	if frame.GetRequestId() != 1 {
 		t.Errorf("thrift method GetRequestId error")
