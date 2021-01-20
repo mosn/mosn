@@ -207,7 +207,7 @@ func TestXProtocol(t *testing.T) {
 		t.Errorf("[ERROR MESSAGE] error sub protocol")
 	}
 
-	magic = []byte{0x00, 0x00, 0x00, 0x05, 0x00}
+	magic = []byte{0x00, 0x00, 0x00, 0x06, 0x10, 0x01}
 	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic)
 	if prot != protocol.Xprotocol {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
