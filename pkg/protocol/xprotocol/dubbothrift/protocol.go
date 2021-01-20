@@ -67,7 +67,7 @@ func (proto *thriftProtocol) Encode(ctx context.Context, model interface{}) (typ
 			return encodeResponse(ctx, frame)
 		}
 	}
-	log.Proxy.Errorf(ctx, "[protocol][tirhft] encode with unknown command : %+v", model)
+	log.Proxy.Errorf(ctx, "[protocol][thrift] encode with unknown command : %+v", model)
 	return nil, xprotocol.ErrUnknownType
 }
 

@@ -26,7 +26,7 @@ import (
 
 func init() {
 	//thrift must match before tars
-	xprotocol.RegisterMatcherWithOrder(ProtocolName, thriftMatcher, 100)
+	xprotocol.RegisterMatcher(ProtocolName, thriftMatcher)
 }
 
 // predicate thrift header len and compare magic number

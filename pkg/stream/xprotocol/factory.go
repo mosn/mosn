@@ -56,11 +56,10 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 		return stream.FAILED
 	}
 	again := false
-	for e := subProtocolMatchers.Front(); e != nil; e = e.Next() {
-		orderedMatcher := e.Value.(xprotocol.SortedProtocolMatch)
-		result := orderedMatcher.Matcher(magic)
+	for subProtocolName, matcher := range subProtocolMatchers {
+		result := matcher(magic)
 		if result == types.MatchSuccess {
-			mosnctx.WithValue(context, types.ContextSubProtocol, string(orderedMatcher.ProtocolName))
+			mosnctx.WithValue(context, types.ContextSubProtocol, string(subProtocolName))
 			return nil
 		}
 		if result == types.MatchAgain {

@@ -29,15 +29,27 @@ func init() {
 
 // predicate dubbo header len and compare magic number
 func tarsMatcher(data []byte) types.MatchResult {
-	pkgLen, status := tarsprotocol.TarsRequest(data)
-	if pkgLen == 0 && status == tarsprotocol.PACKAGE_LESS {
+
+	if len(data) < MessageSizeLen+IVersionLen {
 		return types.MatchAgain
 	}
-	if pkgLen == 0 && status == tarsprotocol.PACKAGE_ERROR {
-		return types.MatchFailed
-	}
-	if status == tarsprotocol.PACKAGE_FULL {
-		return types.MatchSuccess
+	//check iVersion first.Both requestPackage and responsePackage has iVersion field
+	//protocol defines: https://tarscloud.github.io/TarsDocs/base/tars-protocol.html#main-chapter-2
+	//iVersion:
+	//		const short TARSVERSION  = 0x01;
+	//    	const short TUPVERSION  = 0x03;
+	// 4 bit tag (1) + 4 bit type (0) + 8 bit data
+	if data[IVersionHeaderIdx] == 16 && (data[iVersionDataIdx] == 1 || data[iVersionDataIdx] == 3) {
+		pkgLen, status := tarsprotocol.TarsRequest(data)
+		if pkgLen == 0 && status == tarsprotocol.PACKAGE_LESS {
+			return types.MatchAgain
+		}
+		if pkgLen == 0 && status == tarsprotocol.PACKAGE_ERROR {
+			return types.MatchFailed
+		}
+		if status == tarsprotocol.PACKAGE_FULL {
+			return types.MatchSuccess
+		}
 	}
 	return types.MatchFailed
 }
