@@ -9,10 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
-
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 
 	"golang.org/x/net/http2"
