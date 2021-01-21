@@ -69,7 +69,6 @@ func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err
 	tTransport := thrift.NewStreamTransportR(dataBuf)
 	defer tTransport.Close()
 	tProtocol := thrift.NewTBinaryProtocolTransport(tTransport)
-	defer tProtocol.Flush(ctx)
 
 	meta := make(map[string]string)
 
