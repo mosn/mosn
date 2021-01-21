@@ -121,6 +121,8 @@ type downStream struct {
 	snapshot types.ClusterSnapshot
 
 	phase types.Phase
+
+	sequential bool
 }
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span types.Span) *downStream {
@@ -373,32 +375,23 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 
 func (s *downStream) OnDestroyStream() {}
 
-// types.StreamReceiveListener
-func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	s.downstreamReqHeaders = headers
-	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamHeaders, headers)
-	s.downstreamReqDataBuf = data
-	s.downstreamReqTrailers = trailers
-	s.tracks = track.TrackBufferByContext(ctx).Tracks
-
-	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive headers:%+v, data:%+v, trailers:%+v", headers, data, trailers)
-	}
-
+func (s *downStream) stateMachineExecutor(cleanStream bool, startPhase types.Phase) func() {
 	id := s.ID
 	var task = func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
-					r, s, id, s.ID, string(debug.Stack()))
+		if cleanStream {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
+						r, s, id, s.ID, string(debug.Stack()))
 
-				if id == s.ID {
-					s.cleanStream()
+					if id == s.ID {
+						s.cleanStream()
+					}
 				}
-			}
-		}()
+			}()
+		}
 
-		phase := types.InitPhase
+		phase := startPhase
 		for i := 0; i < 10; i++ {
 			s.cleanNotify()
 
@@ -421,6 +414,30 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 			}
 		}
 	}
+
+	return task
+}
+
+// types.StreamReceiveListener
+func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+	s.downstreamReqHeaders = headers
+	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamHeaders, headers)
+	s.downstreamReqDataBuf = data
+	s.downstreamReqTrailers = trailers
+	s.tracks = track.TrackBufferByContext(ctx).Tracks
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive headers:%+v, data:%+v, trailers:%+v", headers, data, trailers)
+	}
+
+	var cleanStream bool
+	if s.sequential {
+		cleanStream = false
+	} else {
+		cleanStream = true
+	}
+
+	var task = s.stateMachineExecutor(cleanStream, types.InitPhase)
 
 	if s.proxy.serverStreamConn.EnableWorkerPool() {
 		// should enable workerpool
@@ -593,6 +610,11 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 
 		// wait for upstreamRequest or reset
 		case types.WaitNotify:
+			if s.sequential {
+				phase = types.End
+				continue
+			}
+
 			s.printPhaseInfo(phase, id)
 			if p, err := s.waitNotify(id); err != nil {
 				return p
