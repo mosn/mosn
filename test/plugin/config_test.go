@@ -18,7 +18,6 @@
 package plugin
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,11 +30,7 @@ func TestCreateFactoryByPlugin(t *testing.T) {
 		SoPath:        "simple_so.so",
 		FactoryMethod: "CreateFilterFactory",
 	}
-	data, _ := json.Marshal(config)
-
-	configMap := make(map[string]interface{})
-	_ = json.Unmarshal(data, &configMap)
-	factory, err := s2.CreateFactoryByPlugin(configMap, map[string]interface{}{})
+	factory, err := s2.CreateFactoryByPlugin(config, map[string]interface{}{})
 	if err != nil || factory == nil {
 		t.Errorf("CreateFactoryByPlugin failed, err: %v, factory: %v", err, factory)
 		return
@@ -46,10 +41,6 @@ func TestCreateFactoryByPluginWrongMethod(t *testing.T) {
 		SoPath:        "simple_so.so",
 		FactoryMethod: "CreateFilterFactory1",
 	}
-	data, _ := json.Marshal(config)
-
-	configMap := make(map[string]interface{})
-	_ = json.Unmarshal(data, &configMap)
-	_, err := s2.CreateFactoryByPlugin(configMap, map[string]interface{}{})
+	_, err := s2.CreateFactoryByPlugin(config, map[string]interface{}{})
 	assert.Equalf(t, true, err != nil,"expect get err, but err is nil")
 }

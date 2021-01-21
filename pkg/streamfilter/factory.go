@@ -19,7 +19,6 @@ package streamfilter
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"plugin"
 	"sync/atomic"
@@ -72,17 +71,10 @@ func (s *StreamFilterFactoryImpl) UpdateFactory(config StreamFiltersConfig) {
 	s.factories.Store(sff)
 }
 
-func CreateFactoryByPlugin(pluginCfgMap map[string]interface{}, factoryConfig map[string]interface{}) (api.StreamFilterChainFactory, error) {
-	pluginCfgData, err := json.Marshal(pluginCfgMap)
-	if err != nil {
-		return nil, err
+func CreateFactoryByPlugin(pluginConfig *v2.StreamFilterGoPluginConfig, factoryConfig map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	if pluginConfig.SoPath == "" {
+		return nil, errors.New("so file path could not be found")
 	}
-	pluginConfig := &v2.StreamFilterGoPluginConfig{}
-	err = json.Unmarshal(pluginCfgData, pluginConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	p, err := plugin.Open(pluginConfig.SoPath)
 	if err != nil {
 		return nil, err
@@ -94,7 +86,7 @@ func CreateFactoryByPlugin(pluginCfgMap map[string]interface{}, factoryConfig ma
 	if err != nil {
 		return nil, err
 	}
-	function, ok := f.(func( map[string]interface{}) (api.StreamFilterChainFactory, error))
+	function, ok := f.(func(map[string]interface{}) (api.StreamFilterChainFactory, error))
 	if !ok {
 		return nil, errors.New("failed to get correct factory method")
 	}

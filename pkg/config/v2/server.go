@@ -160,7 +160,7 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	if len(fc.TLSConfigs) > 0 {
 		fc.TLSContexts = make([]TLSConfig, len(fc.TLSConfigs))
 		copy(fc.TLSContexts, fc.TLSConfigs)
-	} else { // no tls_context_set, use tls_context
+	} else {                     // no tls_context_set, use tls_context
 		if fc.TLSConfig == nil { // no tls_context, generate a default one
 			fc.TLSContexts = append(fc.TLSContexts, TLSConfig{})
 		} else { // use tls_context
@@ -177,8 +177,9 @@ type StreamFilterGoPluginConfig struct {
 
 // Filter is a config to make up a filter
 type Filter struct {
-	Type   string                 `json:"type,omitempty"`
-	Config map[string]interface{} `json:"config,omitempty"`
+	Type           string                     `json:"type,omitempty"`
+	GoPluginConfig *StreamFilterGoPluginConfig `json:"go_plugin_config"`
+	Config         map[string]interface{}     `json:"config,omitempty"`
 }
 
 type FilterChainConfig struct {
