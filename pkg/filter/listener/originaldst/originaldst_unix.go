@@ -1,3 +1,5 @@
+// +build darwin linux
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -15,22 +17,46 @@
  * limitations under the License.
  */
 
-package server
+package originaldst
 
 import (
+	"errors"
+	"fmt"
+	"net"
 	"syscall"
-	"time"
 
-	"mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/log"
 )
 
-func init() {
-	keeper.AddSignalCallback(func() {
-		// reload, fork new mosn
-		reconfigure(true)
-	}, syscall.SIGHUP)
+// OriginDST, option for syscall.GetsockoptIPv6Mreq
+const (
+	SO_ORIGINAL_DST      = 80
+	IP6T_SO_ORIGINAL_DST = 80
+)
+
+func getOriginalAddr(conn net.Conn) ([]byte, int, error) {
+	tc := conn.(*net.TCPConn)
+
+	f, err := tc.File()
+	if err != nil {
+		log.DefaultLogger.Errorf("[originaldst] get conn file error, err: %v", err)
+		return nil, 0, errors.New("conn has error")
+	}
+	defer f.Close()
+
+	fd := int(f.Fd())
+	addr, err := syscall.GetsockoptIPv6Mreq(fd, syscall.IPPROTO_IP, SO_ORIGINAL_DST)
+
+	if err := syscall.SetNonblock(fd, true); err != nil {
+		return nil, 0, fmt.Errorf("setnonblock %v", err)
+	}
+
+	p0 := int(addr.Multiaddr[2])
+	p1 := int(addr.Multiaddr[3])
+
+	port := p0*256 + p1
+
+	ip := addr.Multiaddr[4:8]
+
+	return ip, port, nil
 }
-
-var (
-	GracefulTimeout = time.Second * 30 //default 30s
-)

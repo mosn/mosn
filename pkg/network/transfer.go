@@ -29,7 +29,6 @@ import (
 	"syscall"
 	"time"
 
-	"golang.org/x/sys/unix"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
@@ -341,50 +340,6 @@ func transferSendType(uc *net.UnixConn, file *os.File) error {
 	}
 	// transfer read, send FD
 	return transferSendFD(uc, file)
-}
-
-func transferSendFD(uc *net.UnixConn, file *os.File) error {
-	buf := make([]byte, 1)
-	// transfer read
-	buf[0] = 0
-	if file == nil {
-		return errors.New("transferSendFD conn is nil")
-	}
-	defer file.Close()
-	rights := syscall.UnixRights(int(file.Fd()))
-	n, oobn, err := uc.WriteMsgUnix(buf, rights, nil)
-	if err != nil {
-		return fmt.Errorf("WriteMsgUnix: %v", err)
-	}
-	if n != len(buf) || oobn != len(rights) {
-		return fmt.Errorf("WriteMsgUnix = %d, %d; want 1, %d", n, oobn, len(rights))
-	}
-	return nil
-}
-
-func transferRecvFD(oob []byte) (net.Conn, error) {
-	scms, err := unix.ParseSocketControlMessage(oob)
-	if err != nil {
-		return nil, fmt.Errorf("ParseSocketControlMessage: %v", err)
-	}
-	if len(scms) != 1 {
-		return nil, fmt.Errorf("expected 1 SocketControlMessage; got scms = %#v", scms)
-	}
-	scm := scms[0]
-	gotFds, err := unix.ParseUnixRights(&scm)
-	if err != nil {
-		return nil, fmt.Errorf("unix.ParseUnixRights: %v", err)
-	}
-	if len(gotFds) != 1 {
-		return nil, fmt.Errorf("wanted 1 fd; got %#v", gotFds)
-	}
-	f := os.NewFile(uintptr(gotFds[0]), "fd-from-old")
-	defer f.Close()
-	conn, err := net.FileConn(f)
-	if err != nil {
-		return nil, fmt.Errorf("FileConn error :%v", gotFds)
-	}
-	return conn, nil
 }
 
 func transferRecvType(uc *net.UnixConn) (net.Conn, error) {

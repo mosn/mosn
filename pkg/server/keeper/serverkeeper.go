@@ -78,44 +78,10 @@ func catchSignals() {
 }
 
 func catchSignalsCrossPlatform() {
-	utils.GoWithRecover(func() {
-		sigchan := make(chan os.Signal, 1)
-		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP,
-			syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGINT)
-
-		for sig := range sigchan {
-			log.DefaultLogger.Debugf("signal %s received!", sig)
-			switch sig {
-			case syscall.SIGQUIT:
-				// quit
-				for _, f := range onProcessExit {
-					f() // only perform important cleanup actions
-				}
-				os.Exit(0)
-			case syscall.SIGTERM:
-				// stop to quit
-				exitCode := ExecuteShutdownCallbacks("SIGTERM")
-				for _, f := range onProcessExit {
-					f() // only perform important cleanup actions
-				}
-				//Stop()
-				executeSignalCallback(syscall.SIGTERM)
-				os.Exit(exitCode)
-			case syscall.SIGUSR1:
-				// reopen
-				log.Reopen()
-			case syscall.SIGUSR2:
-				// do nothing
-			case syscall.SIGHUP:
-				executeSignalCallback(syscall.SIGHUP)
-			case syscall.SIGINT:
-				executeSignalCallback(syscall.SIGINT)
-			}
-		}
-	}, nil)
+	utils.GoWithRecover(doCatchSignal, nil)
 }
 
-func executeSignalCallback(sig syscall.Signal){
+func executeSignalCallback(sig syscall.Signal) {
 	if cbs, ok := signalCallback[sig]; ok {
 		for _, cb := range cbs {
 			cb()
@@ -201,7 +167,7 @@ func OnProcessShutDownFirst(cb func() error) {
 	shutdownCallbacks = firstCallbacks
 }
 
-func AddSignalCallback(cb func(), signals ...syscall.Signal, ) {
+func AddSignalCallback(cb func(), signals ...syscall.Signal) {
 	for _, sig := range signals {
 		signalCallback[sig] = append(signalCallback[sig], cb)
 	}
