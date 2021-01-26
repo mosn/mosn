@@ -21,7 +21,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"

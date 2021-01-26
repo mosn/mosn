@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestParseProxyFilter(t *testing.T) {
@@ -24,6 +25,7 @@ func TestParseProxyFilter(t *testing.T) {
 	}
 	proxy, _ := ParseProxyFilter(m)
 	if !(proxy.Name == "proxy" &&
+		proxy.RouterHandlerName == types.DefaultRouteHandler &&
 		proxy.DownstreamProtocol == string(protocol.Xprotocol) &&
 		proxy.UpstreamProtocol == string(protocol.HTTP2) && proxy.RouterConfigName == "test_router") {
 		t.Error("parse proxy filter failed")

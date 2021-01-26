@@ -40,3 +40,8 @@ func (e ClassCastException) Error() string {
 func (ClassCastException) JavaClassName() string {
 	return "java.lang.ClassCastException"
 }
+
+// equals to getStackTrace in java
+func (e ClassCastException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

@@ -40,3 +40,8 @@ func (e NegativeArraySizeException) Error() string {
 func (NegativeArraySizeException) JavaClassName() string {
 	return "java.lang.NegativeArraySizeException"
 }
+
+// equals to getStackTrace in java
+func (e NegativeArraySizeException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

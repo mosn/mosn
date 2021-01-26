@@ -24,17 +24,17 @@ import (
 
 	"github.com/SkyAPM/go2sky/propagation"
 	"github.com/valyala/fasthttp"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/trace/skywalking"
 )
 
-const header string = "1-MTU1NTY0NDg4Mjk2Nzg2ODAwMC4wLjU5NDYzNzUyMDYzMzg3NDkwODc=" +
-	"-NS4xNTU1NjQ0ODgyOTY3ODg5MDAwLjM3NzUyMjE1NzQ0Nzk0NjM3NTg=" +
-	"-1-2-3-I2NvbS5oZWxsby5IZWxsb1dvcmxk-Iy9yZXN0L2Fh-Iy9nYXRld2F5L2Nj"
+const header = "1-MWYyZDRiZjQ3YmY3MTFlYWI3OTRhY2RlNDgwMDExMjI=-MWU3YzIwNGE3YmY3MTFlYWI4NThhY2RlNDgwMDExMjI=" +
+	"-0-c2VydmljZQ==-aW5zdGFuY2U=-cHJvcGFnYXRpb24=-cHJvcGFnYXRpb246NTU2Ng=="
 
-func TestHttpSkyTracerStartFinish(t *testing.T) {
+func Test_httpSkyTraceStartAndFinish(t *testing.T) {
 	driver := skywalking.NewSkyDriverImpl()
 	driver.Register(protocol.HTTP1, NewHttpSkyTracer)
 
@@ -49,49 +49,133 @@ func TestHttpSkyTracerStartFinish(t *testing.T) {
 		t.Error("get tracer from driver failed")
 	}
 
-	// case 1: normal
-	request := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
-	request.SetRequestURI("/test")
-	request.SetHost("127.0.0.1:80")
-	request.SetMethod("GET")
-	request.Add(propagation.Header, header)
-
-	requestInfo := network.NewRequestInfo()
-	requestInfo.SetResponseCode(500)
-	requestInfo.SetUpstreamLocalAddress("127.0.0.1:81")
-
-	ctx := context.Background()
-	s := tracer.Start(ctx, request, time.Now())
-	s.InjectContext(request, requestInfo)
-	s.SetRequestInfo(requestInfo)
-	s.FinishSpan()
-
-	sw6, ok := request.Get(propagation.Header)
-	if !ok {
-		t.Error("the request header was not injected into the upstream service")
+	type args struct {
+		requestFunc     func() interface{}
+		requestInfoFunc func() api.RequestInfo
+		context         context.Context
 	}
-	if sw6 == header {
-		t.Error("the request header for the downstream service injection was not removed")
+	tests := []struct {
+		name         string
+		args         args
+		wantNoopSpan bool
+		wantHeader   bool
+	}{
+		{
+			name: "normal",
+			args: args{
+				requestFunc: func() interface{} {
+					re := http.RequestHeader{
+						&fasthttp.RequestHeader{},
+					}
+					re.SetRequestURI("/test")
+					re.SetHost("127.0.0.1:80")
+					re.SetMethod("GET")
+					re.Add(propagation.Header, header)
+					return re
+				},
+				requestInfoFunc: func() api.RequestInfo {
+					reqInfo := network.NewRequestInfo()
+					reqInfo.SetResponseCode(500)
+					reqInfo.SetUpstreamLocalAddress("127.0.0.1:81")
+					return reqInfo
+				},
+				context: context.Background(),
+			},
+			wantNoopSpan: false,
+			wantHeader:   true,
+		},
+		{
+			name: "create entry span error1",
+			args: args{
+				requestFunc: func() interface{} {
+					re := http.RequestHeader{
+						&fasthttp.RequestHeader{},
+					}
+					re.SetRequestURI("/test")
+					re.SetHost("127.0.0.1:80")
+					re.SetMethod("GET")
+					re.Add(propagation.Header, header)
+					return re
+				},
+				requestInfoFunc: func() api.RequestInfo {
+					reqInfo := network.NewRequestInfo()
+					reqInfo.SetResponseCode(500)
+					reqInfo.SetUpstreamLocalAddress("127.0.0.1:81")
+					return reqInfo
+				},
+			},
+			wantNoopSpan: true,
+		},
+		{
+			name: "create entry span error2",
+			args: args{
+				requestFunc: func() interface{} {
+					return context.Background()
+				},
+				requestInfoFunc: func() api.RequestInfo {
+					reqInfo := network.NewRequestInfo()
+					reqInfo.SetResponseCode(500)
+					reqInfo.SetUpstreamLocalAddress("127.0.0.1:81")
+					return reqInfo
+				},
+				context: context.Background(),
+			},
+			wantNoopSpan: true,
+		},
+		{
+			name: "create exit span error",
+			args: args{
+				requestFunc: func() interface{} {
+					re := http.RequestHeader{
+						&fasthttp.RequestHeader{},
+					}
+					re.SetRequestURI("/test")
+					re.SetHost("127.0.0.1:80")
+					re.SetMethod("GET")
+					re.Add(propagation.Header, header)
+					return re
+				},
+				requestInfoFunc: func() api.RequestInfo {
+					reqInfo := network.NewRequestInfo()
+					reqInfo.SetResponseCode(500)
+					reqInfo.SetUpstreamLocalAddress("")
+					return reqInfo
+				},
+				context: context.Background(),
+			},
+			wantNoopSpan: false,
+		},
 	}
 
-	// case 2: create entry span error
-	s = tracer.Start(nil, request, time.Now())
-	if s != skywalking.NoopSpan {
-		t.Error("parameter errors were not handled correctly")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			downStreamRequest := tt.args.requestFunc()
+
+			s := tracer.Start(tt.args.context, downStreamRequest, time.Now())
+
+			upStreamRequest := http.RequestHeader{
+				&fasthttp.RequestHeader{},
+			}
+			requestInfo := tt.args.requestInfoFunc()
+			s.InjectContext(upStreamRequest, requestInfo)
+
+			s.SetRequestInfo(requestInfo)
+			s.FinishSpan()
+
+			if tt.wantNoopSpan && s != skywalking.NoopSpan {
+				t.Error("parameter errors were not handled correctly")
+			}
+			if !tt.wantNoopSpan && s == skywalking.NoopSpan {
+				t.Errorf("not consistent with expected data")
+			}
+
+			_, ok := upStreamRequest.Get(propagation.Header)
+			if tt.wantHeader && !ok {
+				t.Error("the request header was not injected into the upstream service")
+			}
+			if !tt.wantHeader && ok {
+				t.Errorf("not consistent with expected data")
+			}
+		})
 	}
-
-	// case 3: create exit span
-	requestInfo.SetUpstreamLocalAddress("")
-	s = tracer.Start(ctx, request, time.Now())
-	s.InjectContext(request, requestInfo)
-	s.SetRequestInfo(requestInfo)
-	s.FinishSpan()
-
-	// case 4: create span error
-	s = tracer.Start(ctx, ctx, time.Now())
-	if s != skywalking.NoopSpan {
-		t.Error("parameter errors were not handled correctly")
-	}
-
-	time.Sleep(time.Second)
 }

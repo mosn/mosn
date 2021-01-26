@@ -19,22 +19,31 @@ package http
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/types"
 	"strconv"
 
+	"mosn.io/api"
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
 
 const (
-	headerIndex = len(types.VarPrefixHttpHeader)
-	argIndex    = len(types.VarPrefixHttpArg)
-	cookieIndex = len(types.VarPrefixHttpCookie)
+	VarRequestMethod = "http_request_method"
+	VarRequestLength = "http_request_length"
 )
 
 var (
+	headerIndex = len(types.VarPrefixHttpHeader)
+	cookieIndex = len(types.VarPrefixHttpCookie)
+	argIndex    = len(types.VarPrefixHttpArg)
+
 	builtinVariables = []variable.Variable{
+		variable.NewBasicVariable(types.VarHttpRequestScheme, nil, requestSchemeGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
@@ -54,6 +63,19 @@ func init() {
 	for idx := range prefixVariables {
 		variable.RegisterPrefixVariable(prefixVariables[idx].Name(), prefixVariables[idx])
 	}
+
+	// register protocol resource
+	variable.RegisterProtocolResource(protocol.HTTP1, api.SCHEME, types.VarProtocolRequestScheme)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarProtocolRequestPath)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarProtocolRequestUri)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarProtocolRequestArg)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.COOKIE, types.VarProtocolCookie)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.HEADER, types.VarProtocolRequestHeader)
+}
+
+func requestSchemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	return string(buffers.serverRequest.URI().Scheme()), nil
 }
 
 func requestMethodGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -73,6 +95,26 @@ func requestLengthGetter(ctx context.Context, value *variable.IndexedValue, data
 	}
 
 	return strconv.Itoa(length), nil
+}
+
+func requestPathGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+
+	return string(request.URI().Path()), nil
+}
+
+func requestUriGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+
+	return string(request.Header.RequestURI()), nil
+}
+
+func requestArgGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
+	return request.URI().QueryArgs().String(), nil
 }
 
 func httpHeaderGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

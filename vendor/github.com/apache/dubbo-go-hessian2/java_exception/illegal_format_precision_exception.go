@@ -43,3 +43,8 @@ func (e IllegalFormatPrecisionException) Error() string {
 func (IllegalFormatPrecisionException) JavaClassName() string {
 	return "java.util.IllegalFormatPrecisionException"
 }
+
+// equals to getStackTrace in java
+func (e IllegalFormatPrecisionException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

@@ -40,3 +40,8 @@ func (RejectedExecutionException) JavaClassName() string {
 func NewRejectedExecutionException(detailMessage string) *RejectedExecutionException {
 	return &RejectedExecutionException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e RejectedExecutionException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

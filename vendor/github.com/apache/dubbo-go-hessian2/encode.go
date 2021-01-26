@@ -61,13 +61,13 @@ func (e *Encoder) Append(buf []byte) {
 // Encode If @v can not be encoded, the return value is nil. At present only struct may can not be encoded.
 func (e *Encoder) Encode(v interface{}) error {
 	if v == nil {
-		e.buffer = encNull(e.buffer)
+		e.buffer = EncNull(e.buffer)
 		return nil
 	}
 
 	switch val := v.(type) {
 	case nil:
-		e.buffer = encNull(e.buffer)
+		e.buffer = EncNull(e.buffer)
 		return nil
 
 	case bool:
@@ -105,14 +105,14 @@ func (e *Encoder) Encode(v interface{}) error {
 
 	case time.Time:
 		if ZeroDate == val {
-			e.buffer = encNull(e.buffer)
+			e.buffer = EncNull(e.buffer)
 		} else {
 			e.buffer = encDateInMs(e.buffer, &val)
 			// e.buffer = encDateInMimute(v.(time.Time), e.buffer)
 		}
 
 	case float32:
-		e.buffer = encFloat(e.buffer, float64(val))
+		e.buffer = encFloat32(e.buffer, val)
 
 	case float64:
 		e.buffer = encFloat(e.buffer, val)
@@ -138,7 +138,7 @@ func (e *Encoder) Encode(v interface{}) error {
 			vv := reflect.ValueOf(v)
 			vv = UnpackPtr(vv)
 			if !vv.IsValid() {
-				e.buffer = encNull(e.buffer)
+				e.buffer = EncNull(e.buffer)
 				return nil
 			}
 			if vv.Type().String() == "time.Time" {

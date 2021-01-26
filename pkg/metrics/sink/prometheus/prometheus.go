@@ -18,16 +18,16 @@
 package prometheus
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"strings"
-
-	"bytes"
 	"io"
 	"math"
+	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/gogo/protobuf/proto"
@@ -59,13 +59,13 @@ func init() {
 
 // promConfig contains config for all PromSink
 type promConfig struct {
-	ExportUrl string `json:"export_url"` // when this value is not nil, PromSink will work under the PUSHGATEWAY mode.
-
-	Port     int    `json:"port"` // pull mode attrs
-	Endpoint string `json:"endpoint"`
-
-	DisableCollectProcess bool `json:"disable_collect_process"`
-	DisableCollectGo      bool `json:"disable_collect_go"`
+	ExportUrl             string    `json:"export_url"` // when this value is not nil, PromSink will work under the PUSHGATEWAY mode.
+	Port                  int       `json:"port"`       // pull mode attrs
+	Endpoint              string    `json:"endpoint"`
+	DisableCollectProcess bool      `json:"disable_collect_process"`
+	DisableCollectGo      bool      `json:"disable_collect_go"`
+	Percentiles           []int     `json:"percentiles,omitempty"`
+	percentilesFloat      []float64 // not config, trans with Percentiles
 }
 
 // promSink extract metrics from stats registry with specified interval
@@ -130,7 +130,16 @@ func (psink *promSink) flushHistogram(tracker map[string]bool, buf types.IoBuffe
 	psink.flushGauge(tracker, buf, name+"_min", labels, float64(snapshot.Min()))
 	// max
 	psink.flushGauge(tracker, buf, name+"_max", labels, float64(snapshot.Max()))
-	// TODO: flush P90 P95 P99 if configured
+	// flush P90 P95 P99 percentiles
+	if len(psink.config.Percentiles) == 0 {
+		return
+	}
+	ps := snapshot.Percentiles(psink.config.percentilesFloat)
+	if len(ps) == len(psink.config.Percentiles) {
+		for i, p := range psink.config.Percentiles {
+			psink.flushGauge(tracker, buf, name, fmt.Sprintf("%s,percentile=\"P%d\"", labels, p), ps[i])
+		}
+	}
 }
 
 func (psink *promSink) flushGauge(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {
@@ -232,6 +241,18 @@ func builder(cfg map[string]interface{}) (types.MetricsSink, error) {
 		}
 	}
 
+	if len(promCfg.Percentiles) > 0 {
+		percentilesFloat := make([]float64, 0, len(promCfg.Percentiles))
+		for _, p := range promCfg.Percentiles {
+			// nolint
+			if p > 100 {
+				return nil, fmt.Errorf("percentile {%d} must le 100", p)
+			}
+			percentilesFloat = append(percentilesFloat, float64(p)/100)
+		}
+		promCfg.percentilesFloat = percentilesFloat
+	}
+
 	return NewPromeSink(promCfg), nil
 }
 
@@ -289,11 +310,9 @@ func writeFloat(w types.IoBuffer, f float64) (int, error) {
 	}
 }
 
-// name regex [a-zA-Z_:][a-zA-Z0-9_:]*
+// Only [a-zA-Z0-9:_] are valid in metric names, any other characters should be sanitized to an underscore.
+var flattenRegexp = regexp.MustCompile("[^a-zA-Z0-9_:]")
+
 func flattenKey(key string) string {
-	key = strings.Replace(key, " ", "_", -1)
-	key = strings.Replace(key, ".", "_", -1)
-	key = strings.Replace(key, "-", "_", -1)
-	key = strings.Replace(key, "=", "_", -1)
-	return key
+	return flattenRegexp.ReplaceAllString(key, "_")
 }

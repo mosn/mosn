@@ -40,3 +40,8 @@ func (NoSuchElementException) JavaClassName() string {
 func NewNoSuchElementException(detailMessage string) *NoSuchElementException {
 	return &NoSuchElementException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e NoSuchElementException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

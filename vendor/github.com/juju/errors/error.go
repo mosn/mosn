@@ -159,7 +159,7 @@ func (unformatter) Format() { /* break the fmt.Formatter interface */ }
 // frames above the call.
 func (e *Err) SetLocation(callDepth int) {
 	_, file, line, _ := runtime.Caller(callDepth + 1)
-	e.file = trimGoPath(file)
+	e.file = trimSourcePath(file)
 	e.line = line
 }
 

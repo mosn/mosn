@@ -42,16 +42,130 @@ Use `go get -u mosn.io/mosn`, or you can git clone the repository to `$GOPATH/sr
 
 See our [contributor guide](CONTRIBUTING.md).
 
+## Partners
+
+Partners participate in MOSN co-development to make MOSN better.
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center"  valign="middle">
+        <a href="https://www.antfin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/ant.png">
+        </a>
+      </td>
+      <td align="center"  valign="middle">
+        <a href="https://www.aliyun.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/aliyun.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.zhipin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/bosszhipin.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.dmall.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/duodian.png">
+        </a>
+      </td>
+      </tr><tr></tr>
+      <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.kanzhun.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/kanzhun.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+  </tbody>
+</table>
+</div>
+
+## End Users
+
+The MOSN users. Please [leave a comment here](https://github.com/mosn/community/issues/8) to tell us your scenario to make MOSN better!
+
+<div>
+<table>
+  <tbody>
+  <tr></tr>
+    <tr>
+      <td align="center"  valign="middle">
+        <a href="https://www.tenxcloud.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tenxcloud.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.zhipin.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/linkedcare.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.xiaobaoonline.com/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/xiaobao.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.wm-motor.com/" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/weima.png">
+        </a>
+      </td>
+    </tr>
+    <tr></tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.iqiyi.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/iqiyi.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.gaiaworks.cn" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/gaiya.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.tydic.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tianyuandike.png">
+        </a>
+      </td>
+      <td align="center" valign="middle">
+        <a href="https://www.terminus.io" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/terminus.png">
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" valign="middle">
+        <a href="https://www.tuya.com" target="_blank">
+          <img width="222px"  src="https://mosn.io/images/community/tuya.png">
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
 ## Community
 
 See our community materials on <https://github.com/mosn/community>.
 
+Visit the [MOSN website](https://mosn.io/docs/community/) for more information on working groups, roadmap, community meetings, MOSN tutorials, and more.
+
 Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join the MOSN user group.
 
 <p align="center">
-<img src="https://gw.alipayobjects.com/mdn/rms_91f3e6/afts/img/A*NyEzRp3Xq28AAAAAAAAAAABkARQnAQ" width="150">
+<img src="https://github.com/mosn/assets/blob/master/qrcode.jpg?raw=true" width="200">
 </p>
 
+## Community meeting
+
+MOSN community holds regular meetings.
+
+- [Wednesday 8:00 PM CST(Beijing)](https://ebay.zoom.com.cn/j/96285622161) every other week
+- [Meeting notes](https://docs.google.com/document/d/12lgyCW-GmlErr_ihvAO7tMmRe87i70bv2xqe4h2LUz4/edit?usp=sharing)
 
 ## Landscapes
 
@@ -60,4 +174,3 @@ Scan the QR code below with [DingTalk(钉钉)](https://www.dingtalk.com) to join
 <br/><br/>
 MOSN enriches the <a href="https://landscape.cncf.io/landscape=observability-and-analysis&license=apache-license-2-0">CNCF CLOUD NATIVE Landscape.</a>
 </p>
-

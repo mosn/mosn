@@ -43,3 +43,8 @@ func (e IllegalFormatCodePointException) Error() string {
 func (IllegalFormatCodePointException) JavaClassName() string {
 	return "java.util.IllegalFormatCodePointException"
 }
+
+// equals to getStackTrace in java
+func (e IllegalFormatCodePointException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

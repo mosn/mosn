@@ -30,6 +30,9 @@ type Proxy interface {
 	ReadDisableUpstream(disable bool)
 
 	ReadDisableDownstream(disable bool)
+
+	// active stream size
+	ActiveStreamSize() int
 }
 
 // UpstreamCallbacks

@@ -164,3 +164,36 @@ func TestUpdateHostLabels(t *testing.T) {
 		}
 	}
 }
+
+func TestClusterUseClusterManagerTLS(t *testing.T) {
+	clusterManagerInstance.Destroy()
+	NewClusterManagerSingleton(nil, nil, nil)
+	clusterConfig := v2.Cluster{
+		Name:              "test_cluster",
+		LbType:            v2.LB_RANDOM,
+		ClusterManagerTLS: true,
+	}
+	c := NewCluster(clusterConfig)
+	snap := c.Snapshot()
+	if mng := snap.ClusterInfo().TLSMng(); mng.Enabled() {
+		t.Fatal("tls should not enabled")
+	}
+	// update tls mananger
+	clusterManagerInstance.UpdateTLSManager(&v2.TLSConfig{
+		Status:       true,
+		InsecureSkip: true,
+	})
+	if mng := snap.ClusterInfo().TLSMng(); !mng.Enabled() {
+		t.Fatal("tls should enabled")
+	}
+	// config without manager tls
+	clusterConfig2 := v2.Cluster{
+		Name:   "test_cluster",
+		LbType: v2.LB_RANDOM,
+	}
+	c2 := NewCluster(clusterConfig2)
+	if mng := c2.Snapshot().ClusterInfo().TLSMng(); mng.Enabled() {
+		t.Fatal("tls should not enabled")
+	}
+
+}

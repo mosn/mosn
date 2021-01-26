@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"sync"
 
-	"mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -74,7 +74,9 @@ func (rm *routersManagerImpl) AddOrUpdateRouters(routerConfig *v2.RouterConfigur
 		rw.routers = routers
 		rw.routersConfig = routerConfig
 		rw.mux.Unlock()
-		log.DefaultLogger.Infof(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "update router: "+routerConfig.RouterConfigName)
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "update router: "+routerConfig.RouterConfigName)
+		}
 	} else {
 		// adds new router
 		// if a routerConfig with no routes, it is a valid config
@@ -85,10 +87,12 @@ func (rm *routersManagerImpl) AddOrUpdateRouters(routerConfig *v2.RouterConfigur
 			routers:       routers,
 			routersConfig: routerConfig,
 		})
-		log.DefaultLogger.Infof(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "add router: "+routerConfig.RouterConfigName)
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof(RouterLogFormat, "routers_manager", "AddOrUpdateRouters", "add router: "+routerConfig.RouterConfigName)
+		}
 	}
 	// update admin stored config for admin api dump
-	store.SetRouter(routerConfig.RouterConfigName, *routerConfig)
+	configmanager.SetRouter(*routerConfig)
 	return nil
 }
 
@@ -133,12 +137,12 @@ func (rm *routersManagerImpl) AddRoute(routerConfigName, domain string, route *v
 		routersCfg = append(routersCfg, *route)
 		cfg.VirtualHosts[index].Routers = routersCfg
 		rw.routersConfig = cfg
-		store.SetRouter(routerConfigName, *cfg)
+		configmanager.SetRouter(*cfg)
 	}
 	return nil
 }
 
-// RemoceAllRoutes clear all of the specified virtualhost's routes
+// RemoveAllRoutes clear all of the specified virtualhost's routes
 func (rm *routersManagerImpl) RemoveAllRoutes(routerConfigName, domain string) error {
 	if v, ok := rm.routersWrapperMap.Load(routerConfigName); ok {
 		rw, ok := v.(*RoutersWrapper)
@@ -165,7 +169,7 @@ func (rm *routersManagerImpl) RemoveAllRoutes(routerConfigName, domain string) e
 		routersCfg := cfg.VirtualHosts[index].Routers
 		cfg.VirtualHosts[index].Routers = routersCfg[:0]
 		rw.routersConfig = cfg
-		store.SetRouter(routerConfigName, *cfg)
+		configmanager.SetRouter(*cfg)
 	}
 	return nil
 }

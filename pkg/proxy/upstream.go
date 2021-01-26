@@ -20,9 +20,8 @@ package proxy
 import (
 	"container/list"
 	"context"
-	"time"
-
 	"sync/atomic"
+	"time"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -103,10 +102,13 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 	if r.downStream.processDone() || r.setupRetry {
 		return
 	}
+	if !atomic.CompareAndSwapUint32(&r.downStream.upstreamResponseReceived, 0, 1) {
+		return
+	}
 
 	r.endStream()
 
-	if code, err := protocol.MappingHeaderStatusCode(r.protocol, headers); err == nil {
+	if code, err := protocol.MappingHeaderStatusCode(r.downStream.context, r.protocol, headers); err == nil {
 		r.downStream.requestInfo.SetResponseCode(code)
 	}
 
@@ -163,11 +165,24 @@ func (r *upstreamRequest) appendHeaders(endStream bool) {
 	}
 	r.sendComplete = endStream
 
+	var (
+		host         types.Host
+		streamSender types.StreamSender
+		failReason   types.PoolFailureReason
+	)
+
 	if r.downStream.oneway {
-		r.connPool.NewStream(r.downStream.context, nil, r)
+		host, streamSender, failReason = r.connPool.NewStream(r.downStream.context, nil)
 	} else {
-		r.connPool.NewStream(r.downStream.context, r, r)
+		host, streamSender, failReason = r.connPool.NewStream(r.downStream.context, r)
 	}
+
+	if failReason != "" {
+		r.OnFailure(failReason, host)
+		return
+	}
+
+	r.OnReady(streamSender, host)
 }
 
 func (r *upstreamRequest) convertHeader(headers types.HeaderMap) types.HeaderMap {
@@ -214,7 +229,9 @@ func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
 		if convData, err := protocol.ConvertData(r.downStream.context, dp, up, data); err == nil {
 			return convData
 		} else {
-			log.Proxy.Warnf(r.downStream.context, "[proxy] [upstream] convert data from %s to %s failed, %s", dp, up, err.Error())
+			if log.Proxy.GetLogLevel() >= log.WARN {
+				log.Proxy.Warnf(r.downStream.context, "[proxy] [upstream] convert data from %s to %s failed, %s", dp, up, err.Error())
+			}
 		}
 	}
 	return data
@@ -245,7 +262,9 @@ func (r *upstreamRequest) convertTrailer(trailers types.HeaderMap) types.HeaderM
 		if convTrailer, err := protocol.ConvertTrailer(r.downStream.context, dp, up, trailers); err == nil {
 			return convTrailer
 		} else {
-			log.Proxy.Warnf(r.downStream.context, "[proxy] [upstream] convert header from %s to %s failed, %s", dp, up, err.Error())
+			if log.Proxy.GetLogLevel() >= log.WARN {
+				log.Proxy.Warnf(r.downStream.context, "[proxy] [upstream] convert header from %s to %s failed, %s", dp, up, err.Error())
+			}
 		}
 	}
 	return trailers

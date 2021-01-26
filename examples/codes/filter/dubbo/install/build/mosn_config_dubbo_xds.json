@@ -1,0 +1,182 @@
+{
+    "servers": [
+        {
+            "default_log_path": "stdout",
+            "default_log_level": "DEBUG",
+            "listeners": [
+                {
+                    "name": "outbound_listener",
+                    "address": "0.0.0.0:20881",
+                    "bind_port": true,
+                    "access_logs": [
+                        {
+                            "log_path": "stdout",
+                            "log_format": "[%start_time%] %request_received_duration% %response_received_duration% %bytes_sent% %bytes_received% %protocol% %response_code% %duration% %response_flag% %response_code% %upstream_local_address% %downstream_local_address% %downstream_remote_address% %upstream_host% %upstream_transport_failure_reason% %upstream_cluster%"
+                        }
+                    ],
+                    "filter_chains": [
+                        {
+                            "tls_context": {},
+                            "filters": [
+                                {
+                                    "type": "proxy",
+                                    "config": {
+                                        "downstream_protocol": "X",
+                                        "upstream_protocol": "X",
+                                        "router_config_name": "20882",
+                                        "extend_config": {
+                                            "sub_protocol": "dubbo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "stream_filters": [
+                        {
+                            "type": "dubbo_stream",
+                            "config": {
+                                "subset": "group"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "inbound_listener",
+                    "address": "0.0.0.0:20882",
+                    "bind_port": true,
+                    "log_path": "stdout",
+                    "filter_chains": [
+                        {
+                            "tls_context": {},
+                            "filters": [
+                                {
+                                    "type": "proxy",
+                                    "config": {
+                                        "downstream_protocol": "X",
+                                        "upstream_protocol": "X",
+                                        "router_config_name": "dubbo_provider_router",
+                                        "extend_config": {
+                                            "sub_protocol": "dubbo"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "stream_filters": [
+                        {
+                            "type": "dubbo_stream",
+                            "config": {
+                                "subset": "group"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "routers": [
+                {
+                    "router_config_name": "dubbo_provider_router",
+                    "virtual_hosts": [
+                        {
+                            "name": "provider",
+                            "domains": ["*"],
+                            "routers": [
+                                {
+                                    "match": {
+                                        "headers": [
+                                            {
+                                                "name": "service",
+                                                "value": ".*"
+                                            }
+                                        ]
+                                    },
+                                    "route": {
+                                        "cluster_name": "dubbo_provider_cluster"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "cluster_manager": {
+        "clusters": [
+            {
+                "name": "dubbo_provider_cluster",
+                "type": "SIMPLE",
+                "lb_type": "LB_RANDOM",
+                "max_request_per_conn": 1024,
+                "conn_buffer_limit_bytes": 32768,
+                "hosts": [
+                    {
+                        "address": "127.0.0.1:20880"
+                    }
+                ]
+            }
+        ]
+    },
+    "metrics": {
+        "sinks": [
+            {
+                "type": "prometheus",
+                "config": {
+                    "port": 15090,
+                    "endpoint": "/stats/prometheus",
+                    "percentiles": [50, 90, 95, 96, 99]
+                }
+            }
+        ]
+    },
+    "admin": {
+        "address": {
+            "socket_address": {
+                "address": "0.0.0.0",
+                "port_value": "15000"
+            }
+        }
+    },
+    "static_resources": {
+        "clusters": [
+            {
+                "name": "xds-grpc",
+                "type": "STRICT_DNS",
+                "connect_timeout": "10s",
+                "lb_policy": "RANDOM",
+                "hosts": [
+                    {
+                        "socket_address": {
+                            "address": "istiod.istio-system.svc",
+                            "port_value": 15010
+                        }
+                    }
+                ],
+                "http2_protocol_options": {}
+            }
+        ]
+    },
+    "dynamic_resources": {
+        "lds_config": {
+            "ads": {}
+        },
+        "cds_config": {
+            "ads": {}
+        },
+        "ads_config": {
+            "api_type": "GRPC",
+            "grpc_services": [
+                {
+                    "envoy_grpc": {
+                        "cluster_name": "xds-grpc"
+                    }
+                }
+            ],
+            "refresh_delay": {
+                "seconds": 20
+            }
+        }
+    }
+}
+

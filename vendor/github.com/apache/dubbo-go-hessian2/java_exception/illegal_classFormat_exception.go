@@ -40,3 +40,8 @@ func (e IllegalClassFormatException) Error() string {
 func (IllegalClassFormatException) JavaClassName() string {
 	return "java.lang.instrument.IllegalClassFormatException"
 }
+
+// equals to getStackTrace in java
+func (e IllegalClassFormatException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

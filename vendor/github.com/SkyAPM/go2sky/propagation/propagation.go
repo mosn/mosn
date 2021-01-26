@@ -31,9 +31,9 @@ import (
 )
 
 const (
-	Header     string = "sw6"
+	Header     string = "sw8"
+	headerLen  int    = 8
 	splitToken string = "-"
-	idToken    string = "."
 )
 
 var (
@@ -51,27 +51,23 @@ type Injector func(header string) error
 
 // SpanContext defines propagation specification of SkyWalking
 type SpanContext struct {
-	TraceID                 []int64
-	ParentSegmentID         []int64
-	ParentSpanID            int32
-	ParentServiceInstanceID int32
-	EntryServiceInstanceID  int32
-	NetworkAddressID        int32
-	EntryEndpointID         int32
-	ParentEndpointID        int32
-	Sample                  int8
-	NetworkAddress          string
-	EntryEndpoint           string
-	ParentEndpoint          string
+	TraceID               string `json:"trace_id"`
+	ParentSegmentID       string `json:"parent_segment_id"`
+	ParentService         string `json:"parent_service"`
+	ParentServiceInstance string `json:"parent_service_instance"`
+	ParentEndpoint        string `json:"parent_endpoint"`
+	AddressUsedAtClient   string `json:"address_used_at_client"`
+	ParentSpanID          int32  `json:"parent_span_id"`
+	Sample                int8   `json:"sample"`
 }
 
 // DecodeSW6 converts string header to SpanContext
-func (tc *SpanContext) DecodeSW6(header string) error {
+func (tc *SpanContext) DecodeSW8(header string) error {
 	if header == "" {
 		return errEmptyHeader
 	}
 	hh := strings.Split(header, splitToken)
-	if len(hh) < 7 {
+	if len(hh) < headerLen {
 		return errors.WithMessagef(errInsufficientHeaderEntities, "header string: %s", header)
 	}
 	sample, err := strconv.ParseInt(hh[0], 10, 8)
@@ -79,11 +75,11 @@ func (tc *SpanContext) DecodeSW6(header string) error {
 		return errors.Errorf("str to int8 error %s", hh[0])
 	}
 	tc.Sample = int8(sample)
-	tc.TraceID, err = stringConvertGlobalID(hh[1])
+	tc.TraceID, err = decodeBase64(hh[1])
 	if err != nil {
 		return errors.Wrap(err, "trace id parse error")
 	}
-	tc.ParentSegmentID, err = stringConvertGlobalID(hh[2])
+	tc.ParentSegmentID, err = decodeBase64(hh[2])
 	if err != nil {
 		return errors.Wrap(err, "parent segment id parse error")
 	}
@@ -91,64 +87,37 @@ func (tc *SpanContext) DecodeSW6(header string) error {
 	if err != nil {
 		return errors.Wrap(err, "parent span id parse error")
 	}
-	tc.ParentServiceInstanceID, err = stringConvertInt32(hh[4])
+	tc.ParentService, err = decodeBase64(hh[4])
 	if err != nil {
-		return errors.Wrap(err, "parent service instance id parse error")
+		return errors.Wrap(err, "parent service parse error")
 	}
-	tc.EntryServiceInstanceID, err = stringConvertInt32(hh[5])
+	tc.ParentServiceInstance, err = decodeBase64(hh[5])
 	if err != nil {
-		return errors.Wrap(err, "entry service instance id parse error")
+		return errors.Wrap(err, "parent service instance parse error")
 	}
-	tc.NetworkAddress, tc.NetworkAddressID, err = decodeBase64(hh[6])
-	if err != nil {
-		return errors.Wrap(err, "network address parse error")
-	}
-	if len(hh) < 9 {
-		return nil
-	}
-	tc.EntryEndpoint, tc.EntryEndpointID, err = decodeBase64(hh[7])
-	if err != nil {
-		return errors.Wrap(err, "entry endpoint parse error")
-	}
-	tc.ParentEndpoint, tc.ParentEndpointID, err = decodeBase64(hh[8])
+	tc.ParentEndpoint, err = decodeBase64(hh[6])
 	if err != nil {
 		return errors.Wrap(err, "parent endpoint parse error")
+	}
+	tc.AddressUsedAtClient, err = decodeBase64(hh[7])
+	if err != nil {
+		return errors.Wrap(err, "network address parse error")
 	}
 	return nil
 }
 
 // EncodeSW6 converts SpanContext to string header
-func (tc *SpanContext) EncodeSW6() string {
+func (tc *SpanContext) EncodeSW8() string {
 	return strings.Join([]string{
 		fmt.Sprint(tc.Sample),
-		globalIDConvertString(tc.TraceID),
-		globalIDConvertString(tc.ParentSegmentID),
+		encodeBase64(tc.TraceID),
+		encodeBase64(tc.ParentSegmentID),
 		fmt.Sprint(tc.ParentSpanID),
-		fmt.Sprint(tc.ParentServiceInstanceID),
-		fmt.Sprint(tc.EntryServiceInstanceID),
-		encodeCompressedField(tc.NetworkAddressID, tc.NetworkAddress),
-		encodeCompressedField(tc.EntryEndpointID, tc.EntryEndpoint),
-		encodeCompressedField(tc.ParentEndpointID, tc.ParentEndpoint),
+		encodeBase64(tc.ParentService),
+		encodeBase64(tc.ParentServiceInstance),
+		encodeBase64(tc.ParentEndpoint),
+		encodeBase64(tc.AddressUsedAtClient),
 	}, "-")
-}
-
-func stringConvertGlobalID(str string) ([]int64, error) {
-	idStr, err := base64.StdEncoding.DecodeString(str)
-	if err != nil {
-		return nil, errors.Wrapf(err, "decode id error %s", str)
-	}
-	ss := strings.Split(string(idStr), idToken)
-	if len(ss) < 3 {
-		return nil, errors.Errorf("decode id entities error %s", string(idStr))
-	}
-	ii := make([]int64, len(ss))
-	for i, s := range ss {
-		ii[i], err = strconv.ParseInt(s, 0, 64)
-		if err != nil {
-			return nil, errors.Wrapf(err, "convert id error convert id entities to int32 error %s", s)
-		}
-	}
-	return ii, nil
 }
 
 func stringConvertInt32(str string) (int32, error) {
@@ -156,33 +125,14 @@ func stringConvertInt32(str string) (int32, error) {
 	return int32(i), err
 }
 
-func decodeBase64(str string) (string, int32, error) {
+func decodeBase64(str string) (string, error) {
 	ret, err := base64.StdEncoding.DecodeString(str)
 	if err != nil {
-		return "", 0, err
+		return "", err
 	}
-	retStr := string(ret)
-	if strings.HasPrefix(retStr, "#") {
-		return retStr[1:], 0, nil
-	}
-	i, err := strconv.ParseInt(retStr, 0, 32)
-	if err != nil {
-		return "", 0, err
-	}
-	return "", int32(i), nil
+	return string(ret), nil
 }
 
-func globalIDConvertString(id []int64) string {
-	ii := make([]string, len(id))
-	for i, v := range id {
-		ii[i] = fmt.Sprint(v)
-	}
-	return base64.StdEncoding.EncodeToString([]byte(strings.Join(ii, ".")))
-}
-
-func encodeCompressedField(id int32, text string) string {
-	if id != 0 {
-		return base64.StdEncoding.EncodeToString([]byte(fmt.Sprint(id)))
-	}
-	return base64.StdEncoding.EncodeToString([]byte("#" + text))
+func encodeBase64(str string) string {
+	return base64.StdEncoding.EncodeToString([]byte(str))
 }

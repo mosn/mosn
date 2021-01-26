@@ -40,3 +40,8 @@ func (MalformedParameterizedTypeException) JavaClassName() string {
 func NewMalformedParameterizedTypeException(detailMessage string) *MalformedParameterizedTypeException {
 	return &MalformedParameterizedTypeException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e MalformedParameterizedTypeException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

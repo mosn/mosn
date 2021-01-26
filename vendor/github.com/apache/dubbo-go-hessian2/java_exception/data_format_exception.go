@@ -40,3 +40,8 @@ func (e DataFormatException) Error() string {
 func (DataFormatException) JavaClassName() string {
 	return "java.util.zip.DataFormatException"
 }
+
+// equals to getStackTrace in java
+func (e DataFormatException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

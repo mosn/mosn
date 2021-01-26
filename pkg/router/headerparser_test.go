@@ -28,14 +28,14 @@ import (
 func Test_headerParser_evaluateHeaders(t *testing.T) {
 	parser := &headerParser{
 		headersToAdd: []*headerPair{&headerPair{
-			headerName: &lowerCaseString{"level"},
+			headerName: "level",
 			headerFormatter: &plainHeaderFormatter{
 				isAppend:    false,
 				staticValue: "1",
 			},
 		},
 		},
-		headersToRemove: []*lowerCaseString{&lowerCaseString{"status"}},
+		headersToRemove: []string{"status"},
 	}
 	type args struct {
 		headers     types.HeaderMap

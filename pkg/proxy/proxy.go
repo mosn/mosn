@@ -22,7 +22,6 @@ import (
 	"context"
 	"runtime"
 	"sync"
-	"sync/atomic"
 
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/api"
@@ -34,6 +33,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/streamfilter"
 	mosnsync "mosn.io/mosn/pkg/sync"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
@@ -77,20 +77,26 @@ func initGlobalStats() {
 // types.ReadFilter
 // types.ServerStreamConnectionEventListener
 type proxy struct {
-	config             *v2.Proxy
-	clusterManager     types.ClusterManager
-	readCallbacks      api.ReadFilterCallbacks
-	upstreamConnection types.ClientConnection
-	downstreamListener api.ConnectionEventListener
-	clusterName        string
-	routersWrapper     types.RouterWrapper // wrapper used to point to the routers instance
-	serverStreamConn   types.ServerStreamConnection
-	context            context.Context
-	activeSteams       *list.List // downstream requests
-	asMux              sync.RWMutex
-	stats              *Stats
-	listenerStats      *Stats
-	accessLogs         []api.AccessLog
+	config              *v2.Proxy
+	clusterManager      types.ClusterManager
+	readCallbacks       api.ReadFilterCallbacks
+	downstreamListener  api.ConnectionEventListener
+	routersWrapper      types.RouterWrapper // wrapper used to point to the routers instance
+	serverStreamConn    types.ServerStreamConnection
+	context             context.Context
+	activeStreams       *list.List // downstream requests
+	asMux               sync.RWMutex
+	stats               *Stats
+	listenerStats       *Stats
+	accessLogs          []api.AccessLog
+	streamFilterFactory streamfilter.StreamFilterFactory
+	routeHandlerFactory router.MakeHandlerFunc
+
+	// configure the proxy level worker pool
+	// eg. if we want the requests on one connection to keep serial,
+	// we only start one worker(goroutine) on this connection
+	// request will blocking wait for the previous to finish sending
+	workerpool mosnsync.WorkerPool
 }
 
 // NewProxy create proxy instance for given v2.Proxy config
@@ -98,22 +104,39 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	proxy := &proxy{
 		config:         config,
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
-		activeSteams:   list.New(),
+		activeStreams:  list.New(),
 		stats:          globalStats,
 		context:        ctx,
 		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
 	}
 
+	// proxy level worker pool config
+	if config.ConcurrencyNum > 0 {
+		proxy.workerpool = mosnsync.NewWorkerPool(config.ConcurrencyNum)
+	}
+	// proxy level worker pool config end
+
 	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
 	if err == nil {
-		log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
+		if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+			log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
+		}
 		var xProxyExtendConfig v2.XProxyExtendConfig
-		json.Unmarshal([]byte(extJSON), &xProxyExtendConfig)
-		if xProxyExtendConfig.SubProtocol != "" {
+		var proxyGeneralExtendConfig v2.ProxyGeneralExtendConfig
+		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
 			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
-			log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
+			}
+		} else if err := json.Unmarshal([]byte(extJSON), &proxyGeneralExtendConfig); err == nil {
+			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxyGeneralExtendConfig)
+			}
 		} else {
-			log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
+			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+				log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
+			}
 		}
 	} else {
 		log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
@@ -125,12 +148,15 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
 		proxy.routersWrapper = routersWrapper
 	} else {
-		log.DefaultLogger.Errorf("[proxy] RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
+		log.DefaultLogger.Alertf("proxy.config", "[proxy] RouterConfigName:%s doesn't exit", proxy.config.RouterConfigName)
 	}
 
 	proxy.downstreamListener = &downstreamCallbacks{
 		proxy: proxy,
 	}
+
+	proxy.streamFilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(listenerName)
+	proxy.routeHandlerFactory = router.GetMakeHandlerFunc(proxy.config.RouterHandlerName)
 
 	return proxy
 }
@@ -151,11 +177,13 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 			} else {
 				size = buf.Len()
 			}
-			log.DefaultLogger.Errorf("[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
+			log.DefaultLogger.Alertf("proxy.auto", "[proxy] Protocol Auto error magic :%v", buf.Bytes()[:size])
 			p.readCallbacks.Connection().Close(api.NoFlush, api.OnReadErrClose)
 			return api.Stop
 		}
-		log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
+		}
 		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
 	}
 	p.serverStreamConn.Dispatch(buf)
@@ -175,7 +203,7 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 		p.asMux.RLock()
 		defer p.asMux.RUnlock()
 
-		for urEle := p.activeSteams.Front(); urEle != nil; urEle = urEleNext {
+		for urEle := p.activeStreams.Front(); urEle != nil; urEle = urEleNext {
 			urEleNext = urEle.Next()
 
 			ds := urEle.Value.(*downStream)
@@ -190,6 +218,13 @@ func (p *proxy) ReadDisableUpstream(disable bool) {
 
 func (p *proxy) ReadDisableDownstream(disable bool) {
 	// TODO
+}
+
+func (p *proxy) ActiveStreamSize() int {
+	if p.activeStreams == nil {
+		return 0
+	}
+	return p.activeStreams.Len()
 }
 
 func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
@@ -214,23 +249,12 @@ func (p *proxy) OnGoAway() {}
 func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
 
-	if value := mosnctx.Get(p.context, types.ContextKeyStreamFilterChainFactories); value != nil {
-		ff := value.(*atomic.Value)
-		ffs, ok := ff.Load().([]api.StreamFilterChainFactory)
-		if ok {
-
-			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(stream.context, "[proxy][downstream] %d stream filters in config", len(ffs))
-			}
-
-			for _, f := range ffs {
-				f.CreateFilterChain(p.context, stream)
-			}
-		}
+	if p.streamFilterFactory != nil {
+		p.streamFilterFactory.CreateFilterChain(ctx, stream.getStreamFilterChainRegisterCallback())
 	}
 
 	p.asMux.Lock()
-	stream.element = p.activeSteams.PushBack(stream)
+	stream.element = p.activeStreams.PushBack(stream)
 	p.asMux.Unlock()
 
 	return stream
@@ -252,6 +276,8 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 		return api.UpstreamOverflow
 	case types.StreamRemoteReset:
 		return api.UpstreamRemoteReset
+	case types.UpstreamGlobalTimeout, types.UpstreamPerTryTimeout:
+		return api.UpstreamRequestTimeout
 	}
 
 	return 0
@@ -260,7 +286,7 @@ func (p *proxy) streamResetReasonToResponseFlag(reason types.StreamResetReason) 
 func (p *proxy) deleteActiveStream(s *downStream) {
 	if s.element != nil {
 		p.asMux.Lock()
-		p.activeSteams.Remove(s.element)
+		p.activeStreams.Remove(s.element)
 		p.asMux.Unlock()
 		s.element = nil
 	}

@@ -40,3 +40,8 @@ func (e ObjectStreamException) Error() string {
 func (ObjectStreamException) JavaClassName() string {
 	return "java.io.ObjectStreamException"
 }
+
+// equals to getStackTrace in java
+func (e ObjectStreamException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

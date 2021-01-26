@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"context"
+
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -58,7 +59,7 @@ func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 }
 
 func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime time.Time) types.Span {
-	span := NewSpan(startTime)
+	span := NewSpan(ctx, startTime)
 
 	xframe, ok := frame.(xprotocol.XFrame)
 	if !ok || xframe == nil {

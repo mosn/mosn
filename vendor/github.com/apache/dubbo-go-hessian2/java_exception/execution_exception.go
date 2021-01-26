@@ -40,3 +40,8 @@ func (e ExecutionException) Error() string {
 func (ExecutionException) JavaClassName() string {
 	return "java.util.concurrent.ExecutionException"
 }
+
+// equals to getStackTrace in java
+func (e ExecutionException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

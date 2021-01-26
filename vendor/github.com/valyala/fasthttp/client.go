@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -96,6 +97,30 @@ func DoDeadline(req *Request, resp *Response, deadline time.Time) error {
 	return defaultClient.DoDeadline(req, resp, deadline)
 }
 
+// DoRedirects performs the given http request and fills the given http response,
+// following up to maxRedirectsCount redirects. When the redirect count exceeds
+// maxRedirectsCount, ErrTooManyRedirects is returned.
+//
+// Request must contain at least non-zero RequestURI with full url (including
+// scheme and host) or non-zero Host header + RequestURI.
+//
+// Client determines the server to be requested in the following order:
+//
+//   - from RequestURI if it contains full url with scheme and host;
+//   - from Host header otherwise.
+//
+// Response is ignored if resp is nil.
+//
+// ErrNoFreeConns is returned if all DefaultMaxConnsPerHost connections
+// to the requested host are busy.
+//
+// It is recommended obtaining req and resp via AcquireRequest
+// and AcquireResponse in performance-critical code.
+func DoRedirects(req *Request, resp *Response, maxRedirectsCount int) error {
+	_, _, err := doRequestFollowRedirects(req, resp, req.URI().String(), maxRedirectsCount, &defaultClient)
+	return err
+}
+
 // Get returns the status code and body of url.
 //
 // The contents of dst will be replaced by the body and returned, if the dst
@@ -152,7 +177,7 @@ var defaultClient Client
 //
 // It is safe calling Client methods from concurrently running goroutines.
 type Client struct {
-	noCopy noCopy
+	noCopy noCopy //nolint:unused,structcheck
 
 	// Client name. Used in User-Agent request header.
 	//
@@ -192,6 +217,11 @@ type Client struct {
 	// By default idle connections are closed
 	// after DefaultMaxIdleConnDuration.
 	MaxIdleConnDuration time.Duration
+
+	// Keep-alive connections are closed after this duration.
+	//
+	// By default connection duration is unlimited.
+	MaxConnDuration time.Duration
 
 	// Maximum number of attempts for idempotent calls
 	//
@@ -244,6 +274,25 @@ type Client struct {
 	//     * content-type -> Content-Type
 	//     * cONTENT-lenGTH -> Content-Length
 	DisableHeaderNamesNormalizing bool
+
+	// Path values are sent as-is without normalization
+	//
+	// Disabled path normalization may be useful for proxying incoming requests
+	// to servers that are expecting paths to be forwarded as-is.
+	//
+	// By default path values are normalized, i.e.
+	// extra slashes are removed, special characters are encoded.
+	DisablePathNormalizing bool
+
+	// Maximum duration for waiting for a free connection.
+	//
+	// By default will not waiting, return ErrNoFreeConns immediately
+	MaxConnWaitTimeout time.Duration
+
+	// RetryIf controls whether a retry should be attempted after an error.
+	//
+	// By default will use isIdempotent function
+	RetryIf RetryIfFunc
 
 	mLock sync.Mutex
 	m     map[string]*HostClient
@@ -357,6 +406,30 @@ func (c *Client) DoDeadline(req *Request, resp *Response, deadline time.Time) er
 	return clientDoDeadline(req, resp, deadline, c)
 }
 
+// DoRedirects performs the given http request and fills the given http response,
+// following up to maxRedirectsCount redirects. When the redirect count exceeds
+// maxRedirectsCount, ErrTooManyRedirects is returned.
+//
+// Request must contain at least non-zero RequestURI with full url (including
+// scheme and host) or non-zero Host header + RequestURI.
+//
+// Client determines the server to be requested in the following order:
+//
+//   - from RequestURI if it contains full url with scheme and host;
+//   - from Host header otherwise.
+//
+// Response is ignored if resp is nil.
+//
+// ErrNoFreeConns is returned if all DefaultMaxConnsPerHost connections
+// to the requested host are busy.
+//
+// It is recommended obtaining req and resp via AcquireRequest
+// and AcquireResponse in performance-critical code.
+func (c *Client) DoRedirects(req *Request, resp *Response, maxRedirectsCount int) error {
+	_, _, err := doRequestFollowRedirects(req, resp, req.URI().String(), maxRedirectsCount, c)
+	return err
+}
+
 // Do performs the given http request and fills the given http response.
 //
 // Request must contain at least non-zero RequestURI with full url (including
@@ -378,6 +451,10 @@ func (c *Client) DoDeadline(req *Request, resp *Response, deadline time.Time) er
 // and AcquireResponse in performance-critical code.
 func (c *Client) Do(req *Request, resp *Response) error {
 	uri := req.URI()
+	if uri == nil {
+		return ErrorInvalidURI
+	}
+
 	host := uri.Host()
 
 	isTLS := false
@@ -415,6 +492,7 @@ func (c *Client) Do(req *Request, resp *Response) error {
 			TLSConfig:                     c.TLSConfig,
 			MaxConns:                      c.MaxConnsPerHost,
 			MaxIdleConnDuration:           c.MaxIdleConnDuration,
+			MaxConnDuration:               c.MaxConnDuration,
 			MaxIdemponentCallAttempts:     c.MaxIdemponentCallAttempts,
 			ReadBufferSize:                c.ReadBufferSize,
 			WriteBufferSize:               c.WriteBufferSize,
@@ -422,6 +500,9 @@ func (c *Client) Do(req *Request, resp *Response) error {
 			WriteTimeout:                  c.WriteTimeout,
 			MaxResponseBodySize:           c.MaxResponseBodySize,
 			DisableHeaderNamesNormalizing: c.DisableHeaderNamesNormalizing,
+			DisablePathNormalizing:        c.DisablePathNormalizing,
+			MaxConnWaitTimeout:            c.MaxConnWaitTimeout,
+			RetryIf:                       c.RetryIf,
 		}
 		m[string(host)] = hc
 		if len(m) == 1 {
@@ -489,6 +570,11 @@ const DefaultMaxIdemponentCallAttempts = 5
 //   - foobar.com:8080
 type DialFunc func(addr string) (net.Conn, error)
 
+// RetryIfFunc signature of retry if function
+//
+// Request argument passed to RetryIfFunc, if there are any request errors.
+type RetryIfFunc func(request *Request) bool
+
 // HostClient balances http requests among hosts listed in Addr.
 //
 // HostClient may be used for balancing load among multiple upstream hosts.
@@ -500,7 +586,7 @@ type DialFunc func(addr string) (net.Conn, error)
 //
 // It is safe calling HostClient methods from concurrently running goroutines.
 type HostClient struct {
-	noCopy noCopy
+	noCopy noCopy //nolint:unused,structcheck
 
 	// Comma-separated list of upstream HTTP server host addresses,
 	// which are passed to Dial in a round-robin manner.
@@ -613,12 +699,32 @@ type HostClient struct {
 	//     * cONTENT-lenGTH -> Content-Length
 	DisableHeaderNamesNormalizing bool
 
+	// Path values are sent as-is without normalization
+	//
+	// Disabled path normalization may be useful for proxying incoming requests
+	// to servers that are expecting paths to be forwarded as-is.
+	//
+	// By default path values are normalized, i.e.
+	// extra slashes are removed, special characters are encoded.
+	DisablePathNormalizing bool
+
+	// Maximum duration for waiting for a free connection.
+	//
+	// By default will not waiting, return ErrNoFreeConns immediately
+	MaxConnWaitTimeout time.Duration
+
+	// RetryIf controls whether a retry should be attempted after an error.
+	//
+	// By default will use isIdempotent function
+	RetryIf RetryIfFunc
+
 	clientName  atomic.Value
 	lastUseTime uint32
 
 	connsLock  sync.Mutex
 	connsCount int
 	conns      []*clientConn
+	connsWait  *wantConnQueue
 
 	addrsLock sync.Mutex
 	addrs     []string
@@ -705,7 +811,7 @@ type clientDoer interface {
 func clientGetURL(dst []byte, url string, c clientDoer) (statusCode int, body []byte, err error) {
 	req := AcquireRequest()
 
-	statusCode, body, err = doRequestFollowRedirects(req, dst, url, c)
+	statusCode, body, err = doRequestFollowRedirectsBuffer(req, dst, url, c)
 
 	ReleaseRequest(req)
 	return statusCode, body, err
@@ -745,7 +851,7 @@ func clientGetURLDeadline(dst []byte, url string, deadline time.Time, c clientDo
 	// concurrent requests, since timed out requests on client side
 	// usually continue execution on the host.
 	go func() {
-		statusCodeCopy, bodyCopy, errCopy := doRequestFollowRedirects(req, dst, url, c)
+		statusCodeCopy, bodyCopy, errCopy := doRequestFollowRedirectsBuffer(req, dst, url, c)
 		ch <- clientURLResponse{
 			statusCode: statusCodeCopy,
 			body:       bodyCopy,
@@ -777,79 +883,77 @@ func clientPostURL(dst []byte, url string, postArgs *Args, c clientDoer) (status
 	req.Header.SetMethodBytes(strPost)
 	req.Header.SetContentTypeBytes(strPostArgsContentType)
 	if postArgs != nil {
-		postArgs.WriteTo(req.BodyWriter())
+		if _, err := postArgs.WriteTo(req.BodyWriter()); err != nil {
+			return 0, nil, err
+		}
 	}
 
-	statusCode, body, err = doRequestFollowRedirects(req, dst, url, c)
+	statusCode, body, err = doRequestFollowRedirectsBuffer(req, dst, url, c)
 
 	ReleaseRequest(req)
 	return statusCode, body, err
 }
 
 var (
-	errMissingLocation  = errors.New("missing Location header for http redirect")
-	errTooManyRedirects = errors.New("too many redirects detected when doing the request")
+	// ErrMissingLocation is returned by clients when the Location header is missing on
+	// an HTTP response with a redirect status code.
+	ErrMissingLocation = errors.New("missing Location header for http redirect")
+	// ErrTooManyRedirects is returned by clients when the number of redirects followed
+	// exceed the max count.
+	ErrTooManyRedirects = errors.New("too many redirects detected when doing the request")
+
+	// HostClients are only able to follow redirects to the same protocol.
+	ErrHostClientRedirectToDifferentScheme = errors.New("HostClient can't follow redirects to a different protocol, please use Client instead")
 )
 
-const maxRedirectsCount = 16
+const defaultMaxRedirectsCount = 16
 
-func doRequestFollowRedirects(req *Request, dst []byte, url string, c clientDoer) (statusCode int, body []byte, err error) {
+func doRequestFollowRedirectsBuffer(req *Request, dst []byte, url string, c clientDoer) (statusCode int, body []byte, err error) {
 	resp := AcquireResponse()
 	bodyBuf := resp.bodyBuffer()
 	resp.keepBodyBuffer = true
 	oldBody := bodyBuf.B
 	bodyBuf.B = dst
-	scheme := req.uri.Scheme()
-	req.schemaUpdate = false
 
-	redirectsCount := 0
-	for {
-		// In case redirect to different scheme
-		if redirectsCount > 0 && !bytes.Equal(scheme, req.uri.Scheme()) {
-			if strings.HasPrefix(url, string(strHTTPS)) {
-				req.isTLS = true
-				req.uri.SetSchemeBytes(strHTTPS)
-			} else {
-				req.isTLS = false
-				req.uri.SetSchemeBytes(strHTTP)
-			}
-			scheme = req.uri.Scheme()
-			req.schemaUpdate = true
-		}
-
-		req.parsedURI = false
-		req.Header.host = req.Header.host[:0]
-		req.SetRequestURI(url)
-
-		if err = c.Do(req, resp); err != nil {
-			break
-		}
-		statusCode = resp.Header.StatusCode()
-		if statusCode != StatusMovedPermanently &&
-			statusCode != StatusFound &&
-			statusCode != StatusSeeOther &&
-			statusCode != StatusTemporaryRedirect &&
-			statusCode != StatusPermanentRedirect {
-			break
-		}
-
-		redirectsCount++
-		if redirectsCount > maxRedirectsCount {
-			err = errTooManyRedirects
-			break
-		}
-		location := resp.Header.peek(strLocation)
-		if len(location) == 0 {
-			err = errMissingLocation
-			break
-		}
-		url = getRedirectURL(url, location)
-	}
+	statusCode, body, err = doRequestFollowRedirects(req, resp, url, defaultMaxRedirectsCount, c)
 
 	body = bodyBuf.B
 	bodyBuf.B = oldBody
 	resp.keepBodyBuffer = false
 	ReleaseResponse(resp)
+
+	return statusCode, body, err
+}
+
+func doRequestFollowRedirects(req *Request, resp *Response, url string, maxRedirectsCount int, c clientDoer) (statusCode int, body []byte, err error) {
+	redirectsCount := 0
+
+	for {
+		req.SetRequestURI(url)
+		if err := req.parseURI(); err != nil {
+			return 0, nil, err
+		}
+
+		if err = c.Do(req, resp); err != nil {
+			break
+		}
+		statusCode = resp.Header.StatusCode()
+		if !StatusCodeIsRedirect(statusCode) {
+			break
+		}
+
+		redirectsCount++
+		if redirectsCount > maxRedirectsCount {
+			err = ErrTooManyRedirects
+			break
+		}
+		location := resp.Header.peek(strLocation)
+		if len(location) == 0 {
+			err = ErrMissingLocation
+			break
+		}
+		url = getRedirectURL(url, location)
+	}
 
 	return statusCode, body, err
 }
@@ -861,6 +965,15 @@ func getRedirectURL(baseURL string, location []byte) string {
 	redirectURL := u.String()
 	ReleaseURI(u)
 	return redirectURL
+}
+
+// StatusCodeIsRedirect returns true if the status code indicates a redirect.
+func StatusCodeIsRedirect(statusCode int) bool {
+	return statusCode == StatusMovedPermanently ||
+		statusCode == StatusFound ||
+		statusCode == StatusSeeOther ||
+		statusCode == StatusTemporaryRedirect ||
+		statusCode == StatusPermanentRedirect
 }
 
 var (
@@ -961,6 +1074,30 @@ func (c *HostClient) DoDeadline(req *Request, resp *Response, deadline time.Time
 	return clientDoDeadline(req, resp, deadline, c)
 }
 
+// DoRedirects performs the given http request and fills the given http response,
+// following up to maxRedirectsCount redirects. When the redirect count exceeds
+// maxRedirectsCount, ErrTooManyRedirects is returned.
+//
+// Request must contain at least non-zero RequestURI with full url (including
+// scheme and host) or non-zero Host header + RequestURI.
+//
+// Client determines the server to be requested in the following order:
+//
+//   - from RequestURI if it contains full url with scheme and host;
+//   - from Host header otherwise.
+//
+// Response is ignored if resp is nil.
+//
+// ErrNoFreeConns is returned if all DefaultMaxConnsPerHost connections
+// to the requested host are busy.
+//
+// It is recommended obtaining req and resp via AcquireRequest
+// and AcquireResponse in performance-critical code.
+func (c *HostClient) DoRedirects(req *Request, resp *Response, maxRedirectsCount int) error {
+	_, _, err := doRequestFollowRedirects(req, resp, req.URI().String(), maxRedirectsCount, c)
+	return err
+}
+
 func clientDoTimeout(req *Request, resp *Response, timeout time.Duration, c clientDoer) error {
 	deadline := time.Now().Add(timeout)
 	return clientDoDeadline(req, resp, deadline, c)
@@ -985,9 +1122,11 @@ func clientDoDeadline(req *Request, resp *Response, deadline time.Time, c client
 	req.copyToSkipBody(reqCopy)
 	swapRequestBody(req, reqCopy)
 	respCopy := AcquireResponse()
-	// Not calling resp.copyToSkipBody(respCopy) here to avoid
-	// unexpected messing with headers
-	respCopy.SkipBody = resp.SkipBody
+	if resp != nil {
+		// Not calling resp.copyToSkipBody(respCopy) here to avoid
+		// unexpected messing with headers
+		respCopy.SkipBody = resp.SkipBody
+	}
 
 	// Note that the request continues execution on ErrTimeout until
 	// client-specific ReadTimeout exceeds. This helps limiting load
@@ -997,35 +1136,48 @@ func clientDoDeadline(req *Request, resp *Response, deadline time.Time, c client
 	// concurrent requests, since timed out requests on client side
 	// usually continue execution on the host.
 
-	var cleanup int32
+	var mu sync.Mutex
+	var timedout bool
+
 	go func() {
+		reqCopy.timeout = timeout
 		errDo := c.Do(reqCopy, respCopy)
-		if atomic.LoadInt32(&cleanup) == 1 {
-			ReleaseResponse(respCopy)
-			ReleaseRequest(reqCopy)
-			errorChPool.Put(chv)
-		} else {
-			ch <- errDo
+		mu.Lock()
+		{
+			if !timedout {
+				if resp != nil {
+					respCopy.copyToSkipBody(resp)
+					swapResponseBody(resp, respCopy)
+				}
+				swapRequestBody(reqCopy, req)
+				ch <- errDo
+			}
 		}
+		mu.Unlock()
+
+		ReleaseResponse(respCopy)
+		ReleaseRequest(reqCopy)
 	}()
 
 	tc := AcquireTimer(timeout)
 	var err error
 	select {
 	case err = <-ch:
-		if resp != nil {
-			respCopy.copyToSkipBody(resp)
-			swapResponseBody(resp, respCopy)
-		}
-		swapRequestBody(reqCopy, req)
-		ReleaseResponse(respCopy)
-		ReleaseRequest(reqCopy)
-		errorChPool.Put(chv)
 	case <-tc.C:
-		atomic.StoreInt32(&cleanup, 1)
-		err = ErrTimeout
+		mu.Lock()
+		{
+			timedout = true
+			err = ErrTimeout
+		}
+		mu.Unlock()
 	}
 	ReleaseTimer(tc)
+
+	select {
+	case <-ch:
+	default:
+	}
+	errorChPool.Put(chv)
 
 	return err
 }
@@ -1053,7 +1205,12 @@ func (c *HostClient) Do(req *Request, resp *Response) error {
 	if maxAttempts <= 0 {
 		maxAttempts = DefaultMaxIdemponentCallAttempts
 	}
+	isRequestRetryable := isIdempotent
+	if c.RetryIf != nil {
+		isRequestRetryable = c.RetryIf
+	}
 	attempts := 0
+	hasBodyStream := req.IsBodyStream()
 
 	atomic.AddInt32(&c.pendingRequests, 1)
 	for {
@@ -1062,7 +1219,10 @@ func (c *HostClient) Do(req *Request, resp *Response) error {
 			break
 		}
 
-		if !isIdempotent(req) {
+		if hasBodyStream {
+			break
+		}
+		if !isRequestRetryable(req) {
 			// Retry non-idempotent requests if the server closes
 			// the connection before sending the response.
 			//
@@ -1124,23 +1284,25 @@ func (c *HostClient) doNonNilReqResp(req *Request, resp *Response) (bool, error)
 		panic("BUG: resp cannot be nil")
 	}
 
+	if c.IsTLS != bytes.Equal(req.uri.Scheme(), strHTTPS) {
+		return false, ErrHostClientRedirectToDifferentScheme
+	}
+
 	atomic.StoreUint32(&c.lastUseTime, uint32(time.Now().Unix()-startTimeUnix))
 
 	// Free up resources occupied by response before sending the request,
 	// so the GC may reclaim these resources (e.g. response body).
-	resp.Reset()
 
-	// If we detected a redirect to another schema
-	if req.schemaUpdate {
-		c.IsTLS = bytes.Equal(req.URI().Scheme(), strHTTPS)
-		c.Addr = addMissingPort(string(req.Host()), c.IsTLS)
-		c.addrIdx = 0
-		c.addrs = nil
-		req.schemaUpdate = false
-		req.SetConnectionClose()
+	// backing up SkipBody in case it was set explicitly
+	customSkipBody := resp.SkipBody
+	resp.Reset()
+	resp.SkipBody = customSkipBody
+
+	if c.DisablePathNormalizing {
+		req.URI().DisablePathNormalizing = true
 	}
 
-	cc, err := c.acquireConn()
+	cc, err := c.acquireConn(req.timeout)
 	if err != nil {
 		return false, err
 	}
@@ -1166,7 +1328,7 @@ func (c *HostClient) doNonNilReqResp(req *Request, resp *Response) (bool, error)
 
 	userAgentOld := req.Header.UserAgent()
 	if len(userAgentOld) == 0 {
-		req.Header.userAgent = c.getClientName()
+		req.Header.userAgent = append(req.Header.userAgent[:0], c.getClientName()...)
 	}
 	bw := c.acquireWriter(conn)
 	err = req.Write(bw)
@@ -1195,7 +1357,7 @@ func (c *HostClient) doNonNilReqResp(req *Request, resp *Response) (bool, error)
 		}
 	}
 
-	if !req.Header.IsGet() && req.Header.IsHead() {
+	if customSkipBody || req.Header.IsHead() {
 		resp.SkipBody = true
 	}
 	if c.DisableHeaderNamesNormalizing {
@@ -1229,9 +1391,6 @@ var (
 	// see this error.
 	ErrNoFreeConns = errors.New("no free connections available to host")
 
-	// ErrTimeout is returned from timed out calls.
-	ErrTimeout = errors.New("timeout")
-
 	// ErrConnectionClosed may be returned from client methods if the server
 	// closes connection before returning the first response byte.
 	//
@@ -1243,14 +1402,34 @@ var (
 		"Make sure the server returns 'Connection: close' response header before closing the connection")
 )
 
+type timeoutError struct {
+}
+
+func (e *timeoutError) Error() string {
+	return "timeout"
+}
+
+// Only implement the Timeout() function of the net.Error interface.
+// This allows for checks like:
+//
+//   if x, ok := err.(interface{ Timeout() bool }); ok && x.Timeout() {
+func (e *timeoutError) Timeout() bool {
+	return true
+}
+
+var (
+	// ErrTimeout is returned from timed out calls.
+	ErrTimeout = &timeoutError{}
+)
+
+// SetMaxConns sets up the maximum number of connections which may be established to all hosts listed in Addr.
 func (c *HostClient) SetMaxConns(newMaxConns int) {
 	c.connsLock.Lock()
 	c.MaxConns = newMaxConns
 	c.connsLock.Unlock()
 }
 
-func (c *HostClient) acquireConn() (*clientConn, error) {
-	var cc *clientConn
+func (c *HostClient) acquireConn(reqTimeout time.Duration) (cc *clientConn, err error) {
 	createConn := false
 	startCleaner := false
 
@@ -1282,7 +1461,47 @@ func (c *HostClient) acquireConn() (*clientConn, error) {
 		return cc, nil
 	}
 	if !createConn {
-		return nil, ErrNoFreeConns
+		if c.MaxConnWaitTimeout <= 0 {
+			return nil, ErrNoFreeConns
+		}
+
+		// reqTimeout    c.MaxConnWaitTimeout   wait duration
+		//     d1                 d2            min(d1, d2)
+		//  0(not set)            d2            d2
+		//     d1            0(don't wait)      0(don't wait)
+		//  0(not set)            d2            d2
+		timeout := c.MaxConnWaitTimeout
+		timeoutOverridden := false
+		// reqTimeout == 0 means not set
+		if reqTimeout > 0 && reqTimeout < timeout {
+			timeout = reqTimeout
+			timeoutOverridden = true
+		}
+
+		// wait for a free connection
+		tc := AcquireTimer(timeout)
+		defer ReleaseTimer(tc)
+
+		w := &wantConn{
+			ready: make(chan struct{}, 1),
+		}
+		defer func() {
+			if err != nil {
+				w.cancel(c, err)
+			}
+		}()
+
+		c.queueForIdle(w)
+
+		select {
+		case <-w.ready:
+			return w.conn, w.err
+		case <-tc.C:
+			if timeoutOverridden {
+				return nil, ErrTimeout
+			}
+			return nil, ErrNoFreeConns
+		}
 	}
 
 	if startCleaner {
@@ -1297,6 +1516,33 @@ func (c *HostClient) acquireConn() (*clientConn, error) {
 	cc = acquireClientConn(conn)
 
 	return cc, nil
+}
+
+func (c *HostClient) queueForIdle(w *wantConn) {
+	c.connsLock.Lock()
+	defer c.connsLock.Unlock()
+	if c.connsWait == nil {
+		c.connsWait = &wantConnQueue{}
+	}
+	c.connsWait.clearFront()
+	c.connsWait.pushBack(w)
+}
+
+func (c *HostClient) dialConnFor(w *wantConn) {
+	conn, err := c.dialHostHard()
+
+	if err != nil {
+		w.tryDeliver(nil, err)
+		c.decConnsCount()
+		return
+	}
+
+	cc := acquireClientConn(conn)
+	delivered := w.tryDeliver(cc, nil)
+	if !delivered {
+		// not delivered, return idle connection
+		c.releaseConn(cc)
+	}
 }
 
 func (c *HostClient) connsCleaner() {
@@ -1362,9 +1608,30 @@ func (c *HostClient) closeConn(cc *clientConn) {
 }
 
 func (c *HostClient) decConnsCount() {
+	if c.MaxConnWaitTimeout <= 0 {
+		c.connsLock.Lock()
+		c.connsCount--
+		c.connsLock.Unlock()
+		return
+	}
+
 	c.connsLock.Lock()
-	c.connsCount--
-	c.connsLock.Unlock()
+	defer c.connsLock.Unlock()
+	dialed := false
+	if q := c.connsWait; q != nil && q.len() > 0 {
+		for q.len() > 0 {
+			w := q.popFront()
+			if w.waiting() {
+				go c.dialConnFor(w)
+				dialed = true
+				break
+			}
+		}
+	}
+	if !dialed {
+		c.connsCount--
+	}
+
 }
 
 func acquireClientConn(conn net.Conn) *clientConn {
@@ -1388,9 +1655,29 @@ var clientConnPool sync.Pool
 
 func (c *HostClient) releaseConn(cc *clientConn) {
 	cc.lastUseTime = time.Now()
+	if c.MaxConnWaitTimeout <= 0 {
+		c.connsLock.Lock()
+		c.conns = append(c.conns, cc)
+		c.connsLock.Unlock()
+		return
+	}
+
+	// try to deliver an idle connection to a *wantConn
 	c.connsLock.Lock()
-	c.conns = append(c.conns, cc)
-	c.connsLock.Unlock()
+	defer c.connsLock.Unlock()
+	delivered := false
+	if q := c.connsWait; q != nil && q.len() > 0 {
+		for q.len() > 0 {
+			w := q.popFront()
+			if w.waiting() {
+				delivered = w.tryDeliver(cc, nil)
+				break
+			}
+		}
+	}
+	if !delivered {
+		c.conns = append(c.conns, cc)
+	}
 }
 
 func (c *HostClient) acquireWriter(conn net.Conn) *bufio.Writer {
@@ -1433,34 +1720,7 @@ func newClientTLSConfig(c *tls.Config, addr string) *tls.Config {
 	if c == nil {
 		c = &tls.Config{}
 	} else {
-		// TODO: substitute this with c.Clone() after go1.8 becomes mainstream :)
-		c = &tls.Config{
-			Rand:              c.Rand,
-			Time:              c.Time,
-			Certificates:      c.Certificates,
-			NameToCertificate: c.NameToCertificate,
-			GetCertificate:    c.GetCertificate,
-			RootCAs:           c.RootCAs,
-			NextProtos:        c.NextProtos,
-			ServerName:        c.ServerName,
-
-			// Do not copy ClientAuth, since it is server-related stuff
-			// Do not copy ClientCAs, since it is server-related stuff
-
-			InsecureSkipVerify: c.InsecureSkipVerify,
-			CipherSuites:       c.CipherSuites,
-
-			// Do not copy PreferServerCipherSuites - this is server stuff
-
-			SessionTicketsDisabled: c.SessionTicketsDisabled,
-
-			// Do not copy SessionTicketKey - this is server stuff
-
-			ClientSessionCache: c.ClientSessionCache,
-			MinVersion:         c.MinVersion,
-			MaxVersion:         c.MaxVersion,
-			CurvePreferences:   c.CurvePreferences,
-		}
+		c = c.Clone()
 	}
 
 	if c.ClientSessionCache == nil {
@@ -1523,7 +1783,7 @@ func (c *HostClient) dialHostHard() (conn net.Conn, err error) {
 	for n > 0 {
 		addr := c.nextAddr()
 		tlsConfig := c.cachedTLSConfig(addr)
-		conn, err = dialAddr(addr, c.Dial, c.DialDualStack, c.IsTLS, tlsConfig)
+		conn, err = dialAddr(addr, c.Dial, c.DialDualStack, c.IsTLS, tlsConfig, c.WriteTimeout)
 		if err == nil {
 			return conn, nil
 		}
@@ -1554,7 +1814,44 @@ func (c *HostClient) cachedTLSConfig(addr string) *tls.Config {
 	return cfg
 }
 
-func dialAddr(addr string, dial DialFunc, dialDualStack, isTLS bool, tlsConfig *tls.Config) (net.Conn, error) {
+// ErrTLSHandshakeTimeout indicates there is a timeout from tls handshake.
+var ErrTLSHandshakeTimeout = errors.New("tls handshake timed out")
+
+var timeoutErrorChPool sync.Pool
+
+func tlsClientHandshake(rawConn net.Conn, tlsConfig *tls.Config, timeout time.Duration) (net.Conn, error) {
+	tc := AcquireTimer(timeout)
+	defer ReleaseTimer(tc)
+
+	var ch chan error
+	chv := timeoutErrorChPool.Get()
+	if chv == nil {
+		chv = make(chan error)
+	}
+	ch = chv.(chan error)
+	defer timeoutErrorChPool.Put(chv)
+
+	conn := tls.Client(rawConn, tlsConfig)
+
+	go func() {
+		ch <- conn.Handshake()
+	}()
+
+	select {
+	case <-tc.C:
+		rawConn.Close()
+		<-ch
+		return nil, ErrTLSHandshakeTimeout
+	case err := <-ch:
+		if err != nil {
+			rawConn.Close()
+			return nil, err
+		}
+		return conn, nil
+	}
+}
+
+func dialAddr(addr string, dial DialFunc, dialDualStack, isTLS bool, tlsConfig *tls.Config, timeout time.Duration) (net.Conn, error) {
 	if dial == nil {
 		if dialDualStack {
 			dial = DialDualStack
@@ -1570,8 +1867,12 @@ func dialAddr(addr string, dial DialFunc, dialDualStack, isTLS bool, tlsConfig *
 	if conn == nil {
 		panic("BUG: DialFunc returned (nil, nil)")
 	}
-	if isTLS {
-		conn = tls.Client(conn, tlsConfig)
+	_, isTLSAlready := conn.(*tls.Conn)
+	if isTLS && !isTLSAlready {
+		if timeout == 0 {
+			return tls.Client(conn, tlsConfig), nil
+		}
+		return tlsClientHandshake(conn, tlsConfig, timeout)
 	}
 	return conn, nil
 }
@@ -1600,7 +1901,138 @@ func addMissingPort(addr string, isTLS bool) string {
 	if isTLS {
 		port = 443
 	}
-	return fmt.Sprintf("%s:%d", addr, port)
+	return net.JoinHostPort(addr, strconv.Itoa(port))
+}
+
+// A wantConn records state about a wanted connection
+// (that is, an active call to getConn).
+// The conn may be gotten by dialing or by finding an idle connection,
+// or a cancellation may make the conn no longer wanted.
+// These three options are racing against each other and use
+// wantConn to coordinate and agree about the winning outcome.
+//
+// inspired by net/http/transport.go
+type wantConn struct {
+	ready chan struct{}
+	mu    sync.Mutex // protects conn, err, close(ready)
+	conn  *clientConn
+	err   error
+}
+
+// waiting reports whether w is still waiting for an answer (connection or error).
+func (w *wantConn) waiting() bool {
+	select {
+	case <-w.ready:
+		return false
+	default:
+		return true
+	}
+}
+
+// tryDeliver attempts to deliver conn, err to w and reports whether it succeeded.
+func (w *wantConn) tryDeliver(conn *clientConn, err error) bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.conn != nil || w.err != nil {
+		return false
+	}
+	w.conn = conn
+	w.err = err
+	if w.conn == nil && w.err == nil {
+		panic("fasthttp: internal error: misuse of tryDeliver")
+	}
+	close(w.ready)
+	return true
+}
+
+// cancel marks w as no longer wanting a result (for example, due to cancellation).
+// If a connection has been delivered already, cancel returns it with c.releaseConn.
+func (w *wantConn) cancel(c *HostClient, err error) {
+	w.mu.Lock()
+	if w.conn == nil && w.err == nil {
+		close(w.ready) // catch misbehavior in future delivery
+	}
+
+	conn := w.conn
+	w.conn = nil
+	w.err = err
+	w.mu.Unlock()
+
+	if conn != nil {
+		c.releaseConn(conn)
+	}
+}
+
+// A wantConnQueue is a queue of wantConns.
+//
+// inspired by net/http/transport.go
+type wantConnQueue struct {
+	// This is a queue, not a deque.
+	// It is split into two stages - head[headPos:] and tail.
+	// popFront is trivial (headPos++) on the first stage, and
+	// pushBack is trivial (append) on the second stage.
+	// If the first stage is empty, popFront can swap the
+	// first and second stages to remedy the situation.
+	//
+	// This two-stage split is analogous to the use of two lists
+	// in Okasaki's purely functional queue but without the
+	// overhead of reversing the list when swapping stages.
+	head    []*wantConn
+	headPos int
+	tail    []*wantConn
+}
+
+// len returns the number of items in the queue.
+func (q *wantConnQueue) len() int {
+	return len(q.head) - q.headPos + len(q.tail)
+}
+
+// pushBack adds w to the back of the queue.
+func (q *wantConnQueue) pushBack(w *wantConn) {
+	q.tail = append(q.tail, w)
+}
+
+// popFront removes and returns the wantConn at the front of the queue.
+func (q *wantConnQueue) popFront() *wantConn {
+	if q.headPos >= len(q.head) {
+		if len(q.tail) == 0 {
+			return nil
+		}
+		// Pick up tail as new head, clear tail.
+		q.head, q.headPos, q.tail = q.tail, 0, q.head[:0]
+	}
+
+	w := q.head[q.headPos]
+	q.head[q.headPos] = nil
+	q.headPos++
+	return w
+}
+
+// peekFront returns the wantConn at the front of the queue without removing it.
+func (q *wantConnQueue) peekFront() *wantConn {
+
+	if q.headPos < len(q.head) {
+		return q.head[q.headPos]
+	}
+	if len(q.tail) > 0 {
+		return q.tail[0]
+	}
+	return nil
+
+}
+
+// cleanFront pops any wantConns that are no longer waiting from the head of the
+// queue, reporting whether any were popped.
+func (q *wantConnQueue) clearFront() (cleaned bool) {
+	for {
+		w := q.peekFront()
+		if w == nil || w.waiting() {
+			return cleaned
+		}
+		q.popFront()
+		cleaned = true
+	}
 }
 
 // PipelineClient pipelines requests over a limited set of concurrent
@@ -1616,7 +2048,7 @@ func addMissingPort(addr string, isTLS bool) string {
 // It is safe calling PipelineClient methods from concurrently running
 // goroutines.
 type PipelineClient struct {
-	noCopy noCopy
+	noCopy noCopy //nolint:unused,structcheck
 
 	// Address of the host to connect to.
 	Addr string
@@ -1696,7 +2128,7 @@ type PipelineClient struct {
 }
 
 type pipelineConnClient struct {
-	noCopy noCopy
+	noCopy noCopy //nolint:unused,structcheck
 
 	Addr                string
 	MaxPendingRequests  int
@@ -1978,7 +2410,7 @@ func (c *pipelineConnClient) init() {
 
 func (c *pipelineConnClient) worker() error {
 	tlsConfig := c.cachedTLSConfig()
-	conn, err := dialAddr(c.Addr, c.Dial, c.DialDualStack, c.IsTLS, tlsConfig)
+	conn, err := dialAddr(c.Addr, c.Dial, c.DialDualStack, c.IsTLS, tlsConfig, c.WriteTimeout)
 	if err != nil {
 		return err
 	}

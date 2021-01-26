@@ -41,3 +41,8 @@ func (e UnknownFormatFlagsException) Error() string {
 func (UnknownFormatFlagsException) JavaClassName() string {
 	return "java.util.UnknownFormatFlagsException"
 }
+
+// equals to getStackTrace in java
+func (e UnknownFormatFlagsException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

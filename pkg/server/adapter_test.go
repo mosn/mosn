@@ -3,15 +3,18 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
@@ -220,52 +223,6 @@ func TestLDS(t *testing.T) {
 	}
 }
 
-func TestUpdateTLS(t *testing.T) {
-	setup()
-	defer tearDown()
-
-	addrStr := "127.0.0.1:8081"
-	name := "listener2"
-	listenerConfig := baseListenerConfig(addrStr, name)
-
-	if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, listenerConfig); err != nil {
-		t.Fatalf("add a new listener failed %v", err)
-	}
-	time.Sleep(time.Second) // wait listener start
-	tlsCfg := v2.TLSConfig{
-		Status: false,
-	}
-	// tls handleshake success
-	dialer := &net.Dialer{
-		Timeout: time.Second,
-	}
-	if conn, err := tls.DialWithDialer(dialer, "tcp", addrStr, &tls.Config{
-		InsecureSkipVerify: true,
-	}); err != nil {
-		t.Fatal("dial tls failed", err)
-	} else {
-		conn.Close()
-	}
-	if err := GetListenerAdapterInstance().UpdateListenerTLS(testServerName, name, false, []v2.TLSConfig{tlsCfg}); err != nil {
-		t.Fatalf("update tls listener failed %v", err)
-	}
-	handler := listenerAdapterInstance.defaultConnHandler.(*connHandler)
-	newLn := handler.FindListenerByName(name)
-	cfg := newLn.Config()
-	// verify tls changed
-	if !(reflect.DeepEqual(cfg.FilterChains[0].TLSContexts[0], tlsCfg) &&
-		cfg.Inspector == false) {
-		t.Fatal("update tls config not expected")
-	}
-	// tls handshake should be failed, because tls is changed to false
-	if conn, err := tls.DialWithDialer(dialer, "tcp", addrStr, &tls.Config{
-		InsecureSkipVerify: true,
-	}); err == nil {
-		conn.Close()
-		t.Fatal("listener should not be support tls any more")
-	}
-}
-
 func TestIdleTimeoutAndUpdate(t *testing.T) {
 	setup()
 	defer tearDown()
@@ -407,5 +364,43 @@ func TestFindListenerByName(t *testing.T) {
 
 	if ln := GetListenerAdapterInstance().FindListenerByName(testServerName, name); ln == nil {
 		t.Fatal("expected find listener, but not")
+	}
+}
+
+func TestListenerMetrics(t *testing.T) {
+	setup()
+	defer tearDown()
+
+	metrics.FlushMosnMetrics = true
+
+	for i := 0; i < 5; i++ {
+		name := fmt.Sprintf("test_listener_metrics_%d", i)
+		cfg := baseListenerConfig("127.0.0.1:0", name)
+		if err := GetListenerAdapterInstance().AddOrUpdateListener(testServerName, cfg); err != nil {
+			t.Fatalf("add listener failed, %v", err)
+		}
+	}
+	// wait start
+	time.Sleep(time.Second)
+	// read metrics
+	var mosn types.Metrics
+	for _, m := range metrics.GetAll() {
+		if m.Type() == metrics.MosnMetaType {
+			mosn = m
+			break
+		}
+	}
+	if mosn == nil {
+		t.Fatal("no mosn metrics found")
+	}
+	lnCount := 0
+	mosn.Each(func(key string, value interface{}) {
+		if strings.Contains(key, metrics.ListenerAddr) {
+			lnCount++
+			t.Logf("listener metrics: %s", key)
+		}
+	})
+	if lnCount != 5 {
+		t.Fatalf("mosn listener metrics is not expected, got %d", lnCount)
 	}
 }

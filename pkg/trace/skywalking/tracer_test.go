@@ -19,6 +19,7 @@ package skywalking
 
 import (
 	"context"
+	"reflect"
 	"testing"
 	"time"
 
@@ -42,20 +43,62 @@ func TestNewGO2SkyTracer(t *testing.T) {
 	time.Sleep(time.Second)
 }
 
-func TestParseAndVerifySkyTracerConfig(t *testing.T) {
-	// ReporterCfgErr
-	cfg := make(map[string]interface{})
-	cfg["reporter"] = "mosn"
-	_, err := parseAndVerifySkyTracerConfig(cfg)
-	if err == nil || err != ReporterCfgErr {
-		t.Errorf("did not verify the reporter config correctly")
+func Test_parseAndVerifySkyTracerConfig(t *testing.T) {
+	type args struct {
+		cfg map[string]interface{}
 	}
-
-	// BackendServiceCfgErr
-	cfg = make(map[string]interface{})
-	cfg["reporter"] = v2.GRPCReporter
-	_, err = parseAndVerifySkyTracerConfig(cfg)
-	if err == nil || err != BackendServiceCfgErr {
-		t.Errorf("did not verify the  backend service config correctly")
+	tests := []struct {
+		name       string
+		args       args
+		wantConfig v2.SkyWalkingTraceConfig
+		wantErr    bool
+	}{
+		{
+			name: "unknown reporter",
+			args: args{
+				cfg: map[string]interface{}{
+					"reporter": "mosn",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "miss backend_service",
+			args: args{
+				cfg: map[string]interface{}{
+					"reporter": v2.GRPCReporter,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "normal",
+			args: args{
+				cfg: map[string]interface{}{
+					"reporter":        v2.GRPCReporter,
+					"backend_service": "oap:11800",
+					"service_name":    "normal",
+					"with_register":   false,
+				},
+			},
+			wantConfig: v2.SkyWalkingTraceConfig{
+				Reporter:       v2.GRPCReporter,
+				BackendService: "oap:11800",
+				ServiceName:    "normal",
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotConfig, err := parseAndVerifySkyTracerConfig(tt.args.cfg)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseAndVerifySkyTracerConfig() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && !reflect.DeepEqual(gotConfig, tt.wantConfig) {
+				t.Errorf("parseAndVerifySkyTracerConfig() gotConfig = %v, want %v", gotConfig, tt.wantConfig)
+			}
+		})
 	}
 }

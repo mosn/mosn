@@ -43,3 +43,8 @@ func (e UnknownFormatConversionException) Error() string {
 func (UnknownFormatConversionException) JavaClassName() string {
 	return "java.util.UnknownFormatConversionException"
 }
+
+// equals to getStackTrace in java
+func (e UnknownFormatConversionException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

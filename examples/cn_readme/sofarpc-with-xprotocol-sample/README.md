@@ -34,8 +34,10 @@ cd ${targetpath}
 main        // 编译完成的MOSN程序
 server.go   // 模拟的SofaRpc Server
 client.go   // 模拟的SofaRpc client
-config.json // 非TLS的配置
-tls.json    // TLS配置
+client_config.json // 非TLS的配置
+server_config.json // 非TLS的配置
+tls_server_config.json    // TLS配置
+tls_client_config.json    // TLS配置
 ```
 
 ## 运行说明
@@ -48,18 +50,29 @@ go run server.go
 
 ### 启动MOSN
 
-+ 使用config.json 运行非TLS加密的MOSN
++ 使用普通配置运行非TLS加密的MOSN
 
+启动 client 端:
 ```
-./main start -c config.json
-```
-
-+ 使用tls.json 开启MOSN之间的TLS加密
-
-```
-./main start -c tls.json
+./main start -c client_config.json
 ```
 
+启动 server 端:
+```
+./main start -c server_config.json
+```
+
++ 使用TLS配置开启MOSN之间的TLS加密
+
+启动 client 端:
+```
+./main start -c tls_client_config.json
+```
+
+启动 server 端:
+```
+./main start -c tls_server_config.json
+```
 
 ### 使用Client进行访问
 

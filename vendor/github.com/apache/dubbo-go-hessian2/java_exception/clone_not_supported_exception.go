@@ -44,3 +44,8 @@ func (e CloneNotSupportedException) Error() string {
 func (CloneNotSupportedException) JavaClassName() string {
 	return "java.lang.CloneNotSupportedException"
 }
+
+// equals to getStackTrace in java
+func (e CloneNotSupportedException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

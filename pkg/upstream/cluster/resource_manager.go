@@ -86,6 +86,16 @@ func (rm *resourcemanager) Retries() types.Resource {
 	return rm.retries
 }
 
+func updateResourceValue(oldRM, newRM types.ResourceManager) {
+	nrm := newRM.(*resourcemanager)
+	orm := oldRM.(*resourcemanager)
+
+	orm.connections.max = nrm.connections.max
+	orm.pendingRequests.max = nrm.pendingRequests.max
+	orm.requests.max = nrm.requests.max
+	orm.retries.max = nrm.retries.max
+}
+
 // Resource
 type resource struct {
 	current int64

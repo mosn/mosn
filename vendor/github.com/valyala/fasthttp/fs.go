@@ -84,11 +84,15 @@ func ServeFile(ctx *RequestCtx, path string) {
 	})
 	if len(path) == 0 || path[0] != '/' {
 		// extend relative path to absolute path
+		hasTrailingSlash := len(path) > 0 && path[len(path)-1] == '/'
 		var err error
 		if path, err = filepath.Abs(path); err != nil {
 			ctx.Logger().Printf("cannot resolve path %q to absolute file path: %s", path, err)
 			ctx.Error("Internal Server Error", StatusInternalServerError)
 			return
+		}
+		if hasTrailingSlash {
+			path += "/"
 		}
 	}
 	ctx.Request.SetRequestURI(path)
@@ -194,7 +198,7 @@ func NewPathPrefixStripper(prefixSize int) PathRewriteFunc {
 //
 // It is prohibited copying FS values. Create new values instead.
 type FS struct {
-	noCopy noCopy
+	noCopy noCopy //nolint:unused,structcheck
 
 	// Path to the root directory to serve files from.
 	Root string
@@ -684,6 +688,7 @@ func (h *fsHandler) handleRequest(ctx *RequestCtx) {
 	} else {
 		path = ctx.Path()
 	}
+	hasTrailingSlash := len(path) > 0 && path[len(path)-1] == '/'
 	path = stripTrailingSlashes(path)
 
 	if n := bytes.IndexByte(path, 0); n >= 0 {
@@ -729,6 +734,10 @@ func (h *fsHandler) handleRequest(ctx *RequestCtx) {
 			ff, err = h.openFSFile(filePath, mustCompress)
 		}
 		if err == errDirIndexRequired {
+			if !hasTrailingSlash {
+				ctx.RedirectBytes(append(path, '/'), StatusFound)
+				return
+			}
 			ff, err = h.openIndexFile(ctx, filePath, mustCompress)
 			if err != nil {
 				ctx.Logger().Printf("cannot open dir index %q: %s", filePath, err)
@@ -1193,7 +1202,9 @@ func readFileHeader(f *os.File, compressed bool) ([]byte, error) {
 		N: 512,
 	}
 	data, err := ioutil.ReadAll(lr)
-	f.Seek(0, 0)
+	if _, err := f.Seek(0, 0); err != nil {
+		return nil, err
+	}
 
 	if zr != nil {
 		releaseGzipReader(zr)

@@ -43,6 +43,7 @@ func init() {
 }
 
 type injectFilter struct {
+	status  api.StreamFilterStatus
 	handler api.StreamReceiverFilterHandler
 }
 
@@ -51,8 +52,13 @@ func (f *injectFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterH
 }
 
 func (f *injectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
-	f.inject()
-	return api.StreamFilterReMatchRoute
+	if f.status == api.StreamFilterReMatchRoute {
+		return api.StreamFilterContinue
+	} else {
+		f.inject()
+		f.status = api.StreamFilterReMatchRoute
+		return api.StreamFilterReMatchRoute
+	}
 }
 
 func (f *injectFilter) OnDestroy() {}
@@ -136,7 +142,7 @@ func TestReRoute(t *testing.T) {
 	// stop the server and make a request, expected get a error response from mosn
 	httpServer.Close()
 	client = http.Client{Timeout: 5 * time.Second}
-	errResp, err := http.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
+	errResp, err := client.Post("http://"+meshAddr, "application/x-www-form-urlencoded", bytes.NewBufferString("testdata"))
 	if err != nil {
 		t.Error("rerquest reroute mosn error: ", err)
 		return

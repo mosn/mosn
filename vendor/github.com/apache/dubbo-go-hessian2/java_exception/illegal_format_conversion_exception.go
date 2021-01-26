@@ -44,3 +44,8 @@ func (IllegalFormatConversionException) JavaClassName() string {
 func NewIllegalFormatConversionException(detailMessage string) *IllegalFormatConversionException {
 	return &IllegalFormatConversionException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e IllegalFormatConversionException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

@@ -1,6 +1,8 @@
 package network
 
 import (
+	"context"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -9,7 +11,7 @@ func init() {
 	ConnNewPoolFactories = make(map[types.ProtocolName]connNewPool)
 }
 
-type connNewPool func(host types.Host) types.ConnectionPool
+type connNewPool func(ctx context.Context, host types.Host) types.ConnectionPool
 
 var ConnNewPoolFactories map[types.ProtocolName]connNewPool
 

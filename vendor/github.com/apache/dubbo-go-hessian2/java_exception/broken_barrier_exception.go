@@ -40,3 +40,8 @@ func (e BrokenBarrierException) Error() string {
 func (BrokenBarrierException) JavaClassName() string {
 	return "java.util.concurrent.BrokenBarrierException"
 }
+
+// equals to getStackTrace in java
+func (e BrokenBarrierException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

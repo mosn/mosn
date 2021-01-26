@@ -43,3 +43,8 @@ func (e MissingFormatArgumentException) Error() string {
 func (MissingFormatArgumentException) JavaClassName() string {
 	return "java.util.MissingFormatArgumentException"
 }
+
+// equals to getStackTrace in java
+func (e MissingFormatArgumentException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

@@ -42,19 +42,22 @@ func init() {
 type connPool struct {
 	activeClient *activeClient
 	host         atomic.Value
+	tlsHash      *types.HashValue
 
 	mux sync.Mutex
 }
 
 // NewConnPool
-func NewConnPool(host types.Host) types.ConnectionPool {
-	pool := &connPool{}
+func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
+	pool := &connPool{
+		tlsHash: host.TLSHashValue(),
+	}
 	pool.host.Store(host)
 	return pool
 }
 
-func (p *connPool) SupportTLS() bool {
-	return p.Host().SupportTLS()
+func (p *connPool) TLSHashValue() *types.HashValue {
+	return p.tlsHash
 }
 
 func (p *connPool) Protocol() types.ProtocolName {
@@ -78,12 +81,13 @@ func (p *connPool) CheckAndInit(ctx context.Context) bool {
 	return true
 }
 
-func (p *connPool) NewStream(ctx context.Context,
-	responseDecoder types.StreamReceiveListener, listener types.PoolEventListener) {
-
+func (p *connPool) NewStream(ctx context.Context, responseDecoder types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
 	activeClient := func() *activeClient {
 		p.mux.Lock()
 		defer p.mux.Unlock()
+		if p.activeClient != nil && atomic.LoadUint32(&p.activeClient.goaway) == 1 {
+			p.activeClient = nil
+		}
 		if p.activeClient == nil {
 			p.activeClient = newActiveClient(ctx, p)
 		}
@@ -92,33 +96,31 @@ func (p *connPool) NewStream(ctx context.Context,
 
 	host := p.Host()
 	if activeClient == nil {
-		listener.OnFailure(types.ConnectionFailure, host)
-		return
+		return host, nil, types.ConnectionFailure
 	}
 
 	if !host.ClusterInfo().ResourceManager().Requests().CanCreate() {
-		listener.OnFailure(types.Overflow, host)
 		host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-	} else {
-		atomic.AddUint64(&activeClient.totalStream, 1)
-		host.HostStats().UpstreamRequestTotal.Inc(1)
-		host.HostStats().UpstreamRequestActive.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
-		host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
-		host.ClusterInfo().ResourceManager().Requests().Increase()
-		streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
-		streamEncoder.GetStream().AddEventListener(activeClient)
-
-		listener.OnReady(streamEncoder, host)
+		return host, nil, types.Overflow
 	}
 
-	return
+	atomic.AddUint64(&activeClient.totalStream, 1)
+	host.HostStats().UpstreamRequestTotal.Inc(1)
+	host.HostStats().UpstreamRequestActive.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
+	host.ClusterInfo().Stats().UpstreamRequestActive.Inc(1)
+	host.ClusterInfo().ResourceManager().Requests().Increase()
+	streamEncoder := activeClient.client.NewStream(ctx, responseDecoder)
+	streamEncoder.GetStream().AddEventListener(activeClient)
+
+	return host, streamEncoder, ""
 }
 
 func (p *connPool) Close() {
-	if p.activeClient != nil {
-		p.activeClient.client.Close()
+	activeClient := p.activeClient
+	if activeClient != nil {
+		activeClient.client.Close()
 	}
 }
 
@@ -128,7 +130,9 @@ func (p *connPool) Shutdown() {
 
 func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionEvent) {
 	// event.ConnectFailure() contains types.ConnectTimeout and types.ConnectTimeout
-	log.DefaultLogger.Debugf("http2 connPool onConnectionEvent: %v", event)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("http2 connPool onConnectionEvent: %v", event)
+	}
 	host := p.Host()
 	if event.IsClose() {
 		if client.closeWithActiveReq {
@@ -140,16 +144,18 @@ func (p *connPool) onConnectionEvent(client *activeClient, event api.ConnectionE
 				host.ClusterInfo().Stats().UpstreamConnectionRemoteCloseWithActiveRequest.Inc(1)
 			}
 		}
+		if atomic.LoadUint32(&client.goaway) == 1 {
+			return
+		}
+		p.mux.Lock()
 		p.activeClient = nil
+		p.mux.Unlock()
 	} else if event == api.ConnectTimeout {
 		host.HostStats().UpstreamRequestTimeout.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTimeout.Inc(1)
-		client.client.Close()
-		p.activeClient = nil
 	} else if event == api.ConnectFailed {
 		host.HostStats().UpstreamConnectionConFail.Inc(1)
 		host.ClusterInfo().Stats().UpstreamConnectionConFail.Inc(1)
-		p.activeClient = nil
 	}
 }
 
@@ -188,6 +194,7 @@ type activeClient struct {
 	host               types.CreateConnectionData
 	closeWithActiveReq bool
 	totalStream        uint64
+	goaway             uint32
 }
 
 func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
@@ -197,17 +204,20 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 
 	host := pool.Host()
 	data := host.CreateConnection(ctx)
-	ac.host = data
-	if err := ac.host.Connection.Connect(); err != nil {
+	data.Connection.AddConnectionEventListener(ac)
+	if err := data.Connection.Connect(); err != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("http2 underlying connection error: %v", err)
+		}
 		return nil
 	}
 
-	connCtx := mosnctx.WithValue(context.Background(), types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
-	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
 
 	ac.client = codecClient
+	ac.host = data
 
 	host.HostStats().UpstreamConnectionTotal.Inc(1)
 	host.HostStats().UpstreamConnectionActive.Inc(1)
@@ -234,5 +244,6 @@ func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 }
 
 // types.StreamConnectionEventListener
-// todo: support http2 goaway
-func (ac *activeClient) OnGoAway() {}
+func (ac *activeClient) OnGoAway() {
+	atomic.StoreUint32(&ac.goaway, 1)
+}

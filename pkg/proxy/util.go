@@ -30,8 +30,10 @@ import (
 var bitSize64 = 1 << 6
 
 func parseProxyTimeout(ctx context.Context, timeout *Timeout, route types.Route, headers types.HeaderMap) {
-	timeout.GlobalTimeout = route.RouteRule().GlobalTimeout()
-	timeout.TryTimeout = route.RouteRule().Policy().RetryPolicy().TryTimeout()
+	if route != nil {
+		timeout.GlobalTimeout = route.RouteRule().GlobalTimeout()
+		timeout.TryTimeout = route.RouteRule().Policy().RetryPolicy().TryTimeout()
+	}
 
 	// todo: check global timeout in request headers
 	// todo: check per try timeout in request headers

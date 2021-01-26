@@ -27,26 +27,28 @@ deps:
 
 .PHONY: test
 test:
-	go test -v -race -cover `go list ./... | grep -v github.com/SkyAPM/go2sky/reporter/grpc`
+	go test -v -race -cover -coverprofile=coverage.txt -covermode=atomic `go list ./... | grep -v github.com/SkyAPM/go2sky/reporter/grpc | grep -v github.com/SkyAPM/go2sky/test`
 
 .PHONY: proto-gen
 proto-gen:
 	cd $(GRPC_PATH) && \
-	  protoc common/*.proto --go_out=plugins=grpc:$(GOPATH)/src
+	  protoc common/*.proto --go_out=plugins=grpc:$(GOPATH)/src && \
+	  cp ${GOPATH}/src/github.com/SkyAPM/go2sky/reporter/grpc/common/*.go common/
 	cd $(GRPC_PATH) && \
-      protoc language-agent-v2/*.proto --go_out=plugins=grpc:$(GOPATH)/src
+      protoc language-agent/*.proto --go_out=plugins=grpc:$(GOPATH)/src && \
+      cp ${GOPATH}/src/github.com/SkyAPM/go2sky/reporter/grpc/language-agent/*.go language-agent/
 	cd $(GRPC_PATH) && \
-      protoc register/*.proto --go_out=plugins=grpc:$(GOPATH)/src
+      protoc management/*.proto --go_out=plugins=grpc:$(GOPATH)/src && \
+      cp ${GOPATH}/src/github.com/SkyAPM/go2sky/reporter/grpc/management/*.go management/
 
 .PHONY: mock-gen
 mock-gen:
-	cd $(GRPC_PATH)/register && \
-	  mkdir -p mock_register && \
-	  mockgen github.com/SkyAPM/go2sky/reporter/grpc/register RegisterClient > mock_register/Register.mock.go && \
-	  mockgen github.com/SkyAPM/go2sky/reporter/grpc/register ServiceInstancePingClient > mock_register/InstancePing.mock.go
-	cd $(GRPC_PATH)/language-agent-v2 && \
+	cd $(GRPC_PATH)/language-agent && \
     	  mkdir -p mock_trace && \
-    	  mockgen github.com/SkyAPM/go2sky/reporter/grpc/language-agent-v2 TraceSegmentReportServiceClient > mock_trace/trace.mock.go
+    	  mockgen github.com/SkyAPM/go2sky/reporter/grpc/language-agent TraceSegmentReportServiceClient > mock_trace/Tracing.mock.go
+	cd $(GRPC_PATH)/management && \
+    	  mkdir -p mock_management && \
+    	  mockgen github.com/SkyAPM/go2sky/reporter/grpc/management ManagementServiceClient > mock_management/Management.mock.go
 
 LINTER := bin/golangci-lint
 $(LINTER):
@@ -64,3 +66,7 @@ fix: $(LINTER)
 
 .PHONY: all
 all: test lint
+
+.PHONY: license
+license:
+	python3 tools/check-license-header.py

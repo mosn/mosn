@@ -60,10 +60,10 @@ func SetPid(pid string) {
 			pidFile = pid
 		}
 	}
-	writePidFile()
+	WritePidFile()
 }
 
-func writePidFile() (err error) {
+func WritePidFile() (err error) {
 	pid := []byte(strconv.Itoa(os.Getpid()) + "\n")
 
 	if err = ioutil.WriteFile(pidFile, pid, 0644); err != nil {
@@ -81,7 +81,7 @@ func catchSignalsCrossPlatform() {
 	utils.GoWithRecover(func() {
 		sigchan := make(chan os.Signal, 1)
 		signal.Notify(sigchan, syscall.SIGTERM, syscall.SIGHUP,
-			syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
+			syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2, syscall.SIGINT)
 
 		for sig := range sigchan {
 			log.DefaultLogger.Debugf("signal %s received!", sig)
@@ -99,28 +99,28 @@ func catchSignalsCrossPlatform() {
 					f() // only perform important cleanup actions
 				}
 				//Stop()
-
-				if cbs, ok := signalCallback[syscall.SIGTERM]; ok {
-					for _, cb := range cbs {
-						cb()
-					}
-				}
-
+				executeSignalCallback(syscall.SIGTERM)
 				os.Exit(exitCode)
 			case syscall.SIGUSR1:
 				// reopen
 				log.Reopen()
-			case syscall.SIGHUP:
-
-				if cbs, ok := signalCallback[syscall.SIGHUP]; ok {
-					for _, cb := range cbs {
-						cb()
-					}
-				}
 			case syscall.SIGUSR2:
+				// do nothing
+			case syscall.SIGHUP:
+				executeSignalCallback(syscall.SIGHUP)
+			case syscall.SIGINT:
+				executeSignalCallback(syscall.SIGINT)
 			}
 		}
 	}, nil)
+}
+
+func executeSignalCallback(sig syscall.Signal){
+	if cbs, ok := signalCallback[sig]; ok {
+		for _, cb := range cbs {
+			cb()
+		}
+	}
 }
 
 func catchSignalsPosix() {
@@ -165,7 +165,12 @@ func ExecuteShutdownCallbacks(signame string) (exitCode int) {
 		var errs []error
 
 		for _, cb := range shutdownCallbacks {
-			errs = append(errs, cb())
+			// If the callback is performing normally,
+			// err does not need to be saved to prevent
+			// the exit code from being non-zero
+			if err := cb(); err != nil {
+				errs = append(errs, err)
+			}
 		}
 
 		if len(errs) > 0 {
@@ -187,6 +192,17 @@ func OnProcessShutDown(cb func() error) {
 	shutdownCallbacks = append(shutdownCallbacks, cb)
 }
 
-func AddSignalCallback(signal syscall.Signal, cb func()) {
-	signalCallback[signal] = append(signalCallback[signal], cb)
+// OnProcessShutDownFirst insert the callback func into the header
+func OnProcessShutDownFirst(cb func() error) {
+	var firstCallbacks []func() error
+	firstCallbacks = append(firstCallbacks, cb)
+	firstCallbacks = append(firstCallbacks, shutdownCallbacks...)
+	// replace current firstCallbacks
+	shutdownCallbacks = firstCallbacks
+}
+
+func AddSignalCallback(cb func(), signals ...syscall.Signal, ) {
+	for _, sig := range signals {
+		signalCallback[sig] = append(signalCallback[sig], cb)
+	}
 }

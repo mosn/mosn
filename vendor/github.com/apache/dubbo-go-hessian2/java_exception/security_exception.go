@@ -40,3 +40,8 @@ func (e SecurityException) Error() string {
 func (SecurityException) JavaClassName() string {
 	return "java.lang.SecurityException"
 }
+
+// equals to getStackTrace in java
+func (e SecurityException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

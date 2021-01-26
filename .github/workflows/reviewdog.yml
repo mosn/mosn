@@ -1,0 +1,97 @@
+name: actions
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+jobs:
+  golangci-lint:
+    name: runner / golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v1
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@v1
+        with:
+          golangci_lint_flags: "--enable-all --timeout=10m --exclude-use-default=false --tests=false --disable=gochecknoinits,gochecknoglobals,exhaustive,nakedret,exhaustivestruct"
+          workdir: pkg
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14.13
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run Unit tests.
+        run: make coverage
+
+      - name: Coverage
+        run: bash <(curl -s https://codecov.io/bash)
+          
+  integrate:
+    name: integrate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14.13
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run Integrate tests.
+        run: make integrate
+
+  integrate-netpoll:
+    name: integrate-netpoll
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14.13
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run Integrate tests.
+        run: make integrate-netpoll
+
+  integrate-new:
+    name: integrate-new
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14.13
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run New Integrate
+        run: make integrate-new
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14.13
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run Build.
+        run: make build
+

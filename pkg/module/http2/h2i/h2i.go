@@ -37,7 +37,7 @@ import (
 
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/hpack"
+	"mosn.io/mosn/pkg/module/http2/hpack"
 )
 
 // Flags

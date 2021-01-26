@@ -127,6 +127,9 @@ type Listener interface {
 
 	// Close closes listener, not closing connections
 	Close(lctx context.Context) error
+
+	// IsBindToPort
+	IsBindToPort() bool
 }
 
 // ListenerEventListener is a Callback invoked by a listener.
@@ -139,6 +142,9 @@ type ListenerEventListener interface {
 
 	// OnClose is called on listener close
 	OnClose()
+
+	// PreStopHook is called on listener quit(but before closed)
+	PreStopHook(ctx context.Context) func() error
 }
 
 type ListenerFilter interface {
@@ -185,6 +191,8 @@ const (
 	DefaultConnWriteTimeout = 15 * time.Second
 	DefaultConnTryTimeout   = 60 * time.Second
 	DefaultIdleTimeout      = 90 * time.Second
+	DefaultUDPIdleTimeout   = 5 * time.Second
+	DefaultUDPReadTimeout   = 1 * time.Second
 )
 
 // ConnectionHandler contains the listeners for a mosn server
@@ -226,22 +234,8 @@ type FilterChainFactory interface {
 	CreateListenerFilterChain(listener ListenerFilterManager)
 }
 
-// Addresses defines a group of network address
-type Addresses []net.Addr
-
-// Contains reports whether the specified network address is in the group.
-func (as Addresses) Contains(addr net.Addr) bool {
-	for _, one := range as {
-		// TODO: support port wildcard
-		if one.String() == addr.String() {
-			return true
-		}
-	}
-
-	return false
-}
-
 var (
-	ErrConnectionHasClosed = errors.New("connection has closed")
-	ErrWriteTryLockTimeout = errors.New("write trylock has timeout")
+	ErrConnectionHasClosed    = errors.New("connection has closed")
+	ErrWriteTryLockTimeout    = errors.New("write trylock has timeout")
+	ErrWriteBufferChanTimeout = errors.New("writeBufferChan has timeout")
 )

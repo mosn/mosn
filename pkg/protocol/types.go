@@ -19,6 +19,8 @@ package protocol
 
 import (
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // ProtocolName type definition
@@ -36,21 +38,15 @@ const (
 	Response = "Response"
 )
 
-// Host key for routing in MOSN Header
-const (
-	MosnHeaderDirection       = "x-mosn-direction" // for protocol convert
-	MosnHeaderHostKey         = "x-mosn-host"
-	MosnHeaderPathKey         = "x-mosn-path"
-	MosnHeaderQueryStringKey  = "x-mosn-querystring"
-	MosnHeaderMethod          = "x-mosn-method"
-	MosnOriginalHeaderPathKey = "x-mosn-original-path"
-)
-
-// Hseader with special meaning in istio
-// todo maybe use ":authority"
-const (
-	IstioHeaderHostKey = "authority"
-)
+func init() {
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarDirection, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarScheme, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHost, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarPath, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarQueryString, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarMethod, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarIstioHeaderHost, nil, nil, variable.BasicSetter, 0))
+}
 
 // TODO: move CommonHeader to common, not only in protocol
 

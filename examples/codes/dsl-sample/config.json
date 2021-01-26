@@ -1,0 +1,141 @@
+{
+    "servers": [
+        {
+            "default_log_path": "stdout",
+            "default_log_level": "INFO",
+            "routers": [
+                {
+                    "router_config_name": "server_router",
+                    "virtual_hosts": [
+                        {
+                            "domains": [
+                                "*"
+                            ],
+                            "routers": [
+                                {
+                                    "match": {
+                                        "prefix": "/"
+                                    },
+                                    "route": {
+                                        "cluster_name": "serverCluster"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "router_config_name": "client_router",
+                    "virtual_hosts": [
+                        {
+                            "domains": [
+                                "*"
+                            ],
+                            "routers": [
+                                {
+                                    "match": {
+                                        "path": "/dsl"
+                                    },
+                                    "direct_response": {
+                                        "status": 200,
+                                        "body": "hello DSL!"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "listeners": [
+                {
+                    "name": "serverListener",
+                    "address": "0.0.0.0:2046",
+                    "bind_port": true,
+                    "log_path": "stdout",
+                    "filter_chains": [
+                        {
+                            "filters": [
+                                {
+                                    "type": "proxy",
+                                    "config": {
+                                        "downstream_protocol": "Auto",
+                                        "upstream_protocol": "Auto",
+                                        "router_config_name": "server_router"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "listener_filters": [],
+                    "stream_filters": [
+                        {
+                            "type": "dsl",
+                            "config": {
+                                "before_router_by_dsl": "ctx.rewrite_request_url(\"/dsl\") && ctx.add_request_header(\"dsl\", \"dsl\")",
+                                "after_router_by_dsl": "conditional((request.host == \"dslhost\") && (request.headers[\"dsl\"] | \"empty\" == \"dsl\"), ctx.rewrite_request_url(\"/dsl\"), ctx.rewrite_request_url(\"/dsl1\"))",
+                                "after_balancer_by_dsl": "conditional(string(destination.ip) == \"127.0.0.1\", ctx.add_request_header(\"upstream_addr\", \"localhost\"), ctx.add_request_header(\"upstream_addr\", \"nolocalhost\"))"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "clientListener",
+                    "address": "0.0.0.0:2402",
+                    "bind_port": true,
+                    "log_path": "stdout",
+                    "filter_chains": [
+                        {
+                            "tls_context": {},
+                            "filters": [
+                                {
+                                    "type": "proxy",
+                                    "config": {
+                                        "downstream_protocol": "Auto",
+                                        "upstream_protocol": "Auto",
+                                        "router_config_name": "client_router"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "stream_filters": [
+                        {
+                            "type": "dsl",
+                            "config": {
+                                "send_router_by_dsl": "conditional(response.headers[\"dsl0\"] == \"dsl0\", ctx.add_response_header(\"dsl1\", \"dsl1\"), ctx.add_response_header(\"dsl2\", \"dsl2\"))"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "cluster_manager": {
+        "clusters": [
+            {
+                "Name": "serverCluster",
+                "type": "SIMPLE",
+                "lb_type": "LB_RANDOM",
+                "max_request_per_conn": 1024,
+                "conn_buffer_limit_bytes": 32768,
+                "hosts": [
+                    {
+                        "address": "127.0.0.1:2402"
+                    }
+                ]
+            }
+        ]
+    },
+    "admin": {
+        "address": {
+            "socket_address": {
+                "address": "0.0.0.0",
+                "port_value": 34901
+            }
+        }
+    },
+    "pprof": {
+        "debug": true,
+        "port_value": 34902
+    }
+}

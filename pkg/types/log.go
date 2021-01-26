@@ -31,16 +31,17 @@ const (
 // error keys
 const (
 	ErrorKeyAdmin        string = ErrorModuleMosn + ErrorSubModuleAdmin + "admin_failed"
+	ErrorKeyConfigParse         = ErrorModuleMosn + ErrorSubModuleCommon + "config_parse_error"
 	ErrorKeyConfigDump          = ErrorModuleMosn + ErrorSubModuleCommon + "config_dump_failed"
 	ErrorKeyReconfigure         = ErrorModuleMosn + ErrorSubModuleCommon + "reconfigure_failed"
 	ErrorKeyTLSFallback         = ErrorModuleMosn + ErrorSubModuleCommon + "tls_fallback"
 	ErrorKeySdsFailed           = ErrorModuleMosn + ErrorSubModuleCommon + "sds_failed"
 	ErrorKeyTLSRead             = ErrorModuleMosn + ErrorSubModuleCommon + "tls_read_error"
-	ErrorKeyAppendHeader        = ErrorModuleMosn + ErrorSubModuleProxy + "append_header_failed"
 	ErrorKeyRouteMatch          = ErrorModuleMosn + ErrorSubModuleProxy + "route_match_failed"
 	ErrorKeyClusterGet          = ErrorModuleMosn + ErrorSubModuleProxy + "cluster_get_failed"
 	ErrorKeyUpstreamConn        = ErrorModuleMosn + ErrorSubModuleProxy + "upstream_conn_failed"
 	ErrorKeyCodec               = ErrorModuleMosn + ErrorSubModuleProxy + "codec_error"
 	ErrorKeyHeartBeat           = ErrorModuleMosn + ErrorSubModuleProxy + "heartbeat_unknown"
+	ErrorKeyProxyPanic          = ErrorModuleMosn + ErrorSubModuleProxy + "panic"
 	// TODO: more keys
 )

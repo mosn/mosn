@@ -41,3 +41,8 @@ func (TypeNotPresentException) JavaClassName() string {
 func NewTypeNotPresentException(typeName string, detailMessage string) *TypeNotPresentException {
 	return &TypeNotPresentException{TypeName: typeName, DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e TypeNotPresentException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

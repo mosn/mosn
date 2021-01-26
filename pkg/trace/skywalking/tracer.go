@@ -23,6 +23,7 @@ import (
 	"github.com/SkyAPM/go2sky"
 	"github.com/SkyAPM/go2sky/reporter"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc/credentials"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
@@ -45,7 +46,26 @@ func newGO2SkyTracer(config map[string]interface{}) (t *go2sky.Tracer, err error
 			return nil, err
 		}
 	} else if cfg.Reporter == v2.GRPCReporter {
-		r, err = reporter.NewGRPCReporter(cfg.BackendService)
+		// opts
+		var opts []reporter.GRPCReporterOption
+		// max send queue size
+		if cfg.MaxSendQueueSize > 0 {
+			opts = append(opts, reporter.WithMaxSendQueueSize(cfg.MaxSendQueueSize))
+		}
+		// auth
+		if cfg.Authentication != "" {
+			opts = append(opts, reporter.WithAuthentication(cfg.Authentication))
+		}
+		// tls
+		if cfg.TLS.CertFile != "" {
+			creds, err := credentials.NewClientTLSFromFile(cfg.TLS.CertFile, cfg.TLS.ServerNameOverride)
+			if err != nil {
+				return nil, err
+			}
+			opts = append(opts, reporter.WithTransportCredentials(creds))
+		}
+
+		r, err = reporter.NewGRPCReporter(cfg.BackendService, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -54,13 +74,6 @@ func newGO2SkyTracer(config map[string]interface{}) (t *go2sky.Tracer, err error
 	t, err = go2sky.NewTracer(cfg.ServiceName, go2sky.WithReporter(r))
 	if err != nil {
 		return nil, err
-	}
-
-	if cfg.WithRegister {
-		// Wait for service and service instance register
-		log.DefaultLogger.Infof("[SkyWalking] [tracer] wait go2sky.Tracer register ...")
-		t.WaitUntilRegister()
-		log.DefaultLogger.Infof("[SkyWalking] [tracer] go2sky.Tracer registered")
 	}
 	return
 }
@@ -75,7 +88,6 @@ func parseAndVerifySkyTracerConfig(cfg map[string]interface{}) (config v2.SkyWal
 	// set default value
 	config.Reporter = v2.LogReporter
 	config.ServiceName = v2.DefaultServiceName
-	config.WithRegister = true
 
 	err = json.Unmarshal(data, &config)
 	if err != nil {

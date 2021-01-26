@@ -22,25 +22,26 @@ import (
 
 	"github.com/c2h5oh/datasize"
 	xdsboot "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
-	"github.com/gogo/protobuf/jsonpb"
+	"github.com/golang/protobuf/jsonpb"
 )
 
 // MOSNConfig make up mosn to start the mosn project
 // Servers contains the listener, filter and so on
 // ClusterManager used to manage the upstream
 type MOSNConfig struct {
-	Servers         []ServerConfig       `json:"servers,omitempty"`          //server config
-	ClusterManager  ClusterManagerConfig `json:"cluster_manager,omitempty"`  //cluster config
-	ServiceRegistry ServiceRegistryInfo  `json:"service_registry,omitempty"` //service registry config, used by service discovery module
-	//tracing config
-	Tracing             TracingConfig   `json:"tracing,omitempty"`
-	Metrics             MetricsConfig   `json:"metrics,omitempty"`
-	RawDynamicResources json.RawMessage `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
-	RawStaticResources  json.RawMessage `json:"static_resources,omitempty"`  //static_resources raw message
-	RawAdmin            json.RawMessage `json:"admin,omitempty"`             // admin raw message
-	Debug               PProfConfig     `json:"pprof,omitempty"`
-	Pid                 string          `json:"pid,omitempty"`    // pid file
-	Plugin              PluginConfig    `json:"plugin,omitempty"` // plugin config
+	Servers              []ServerConfig       `json:"servers,omitempty"`                //server config
+	ClusterManager       ClusterManagerConfig `json:"cluster_manager,omitempty"`        //cluster config
+	CloseGraceful        bool                 `json:"close_graceful,omitempty"`         // graceful switch, default false
+	InheritOldMosnconfig bool                 `json:"inherit_old_mosnconfig,omitempty"` // inherit old mosn config switch, default false
+	Tracing              TracingConfig        `json:"tracing,omitempty"`
+	Metrics              MetricsConfig        `json:"metrics,omitempty"`
+	RawDynamicResources  json.RawMessage      `json:"dynamic_resources,omitempty"` //dynamic_resources raw message
+	RawStaticResources   json.RawMessage      `json:"static_resources,omitempty"`  //static_resources raw message
+	RawAdmin             json.RawMessage      `json:"admin,omitempty"`             // admin raw message
+	Debug                PProfConfig          `json:"pprof,omitempty"`
+	Pid                  string               `json:"pid,omitempty"`     // pid file
+	Plugin               PluginConfig         `json:"plugin,omitempty"`  // plugin config
+	Extends              []ExtendConfig       `json:"extends,omitempty"` // extend config
 }
 
 // PProfConfig is used to start a pprof server for debug
@@ -63,11 +64,19 @@ type MetricsConfig struct {
 	StatsMatcher StatsMatcher      `json:"stats_matcher"`
 	ShmZone      string            `json:"shm_zone"`
 	ShmSize      datasize.ByteSize `json:"shm_size"`
+	FlushMosn    bool              `json:"flush_mosn"`
+	LazyFlush    bool              `json:"lazy_flush"`
 }
 
 // PluginConfig for plugin config
 type PluginConfig struct {
 	LogBase string `json:"log_base"`
+}
+
+// ExtendConfig for any extends
+type ExtendConfig struct {
+	Type   string          `json:"type"`
+	Config json.RawMessage `json:"config"`
 }
 
 // StatsMatcher is a configuration for disabling stat instantiation.

@@ -40,3 +40,8 @@ func (e ArrayStoreException) Error() string {
 func (ArrayStoreException) JavaClassName() string {
 	return "java.lang.ArrayStoreException"
 }
+
+// equals to getStackTrace in java
+func (e ArrayStoreException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

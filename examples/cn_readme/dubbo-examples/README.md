@@ -33,7 +33,8 @@ cd ${targetpath}
 ```
 main        // 编译完成的MOSN程序
 dubbo-examples/   // 包含java编写的dubbo provider和dubbo consumer
-config.json // 非TLS的配置
+client_config.json // 非TLS的 client 端配置
+server_config.json // 非TLS的 server 端配置
 run.sh     // 打包和启动dubbo provider和dubbo consumer脚本
 ```
 
@@ -47,13 +48,19 @@ sh run.sh server
 
 ### 启动MOSN
 
-+ 使用config.json 运行非TLS加密的MOSN
++ 使用配置文件运行非TLS加密的MOSN
+
+启动 client 端 mosn:
 
 ```
-./main start -c config.json
-
+./main start -c client_config.json
 ```
 
+启动 server 端 mosn:
+
+```
+./main start -c server_config.json
+```
 
 ### 启动Dubbo RPC consumer进行访问
 

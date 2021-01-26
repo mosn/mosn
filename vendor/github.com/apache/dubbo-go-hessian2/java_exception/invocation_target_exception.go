@@ -41,3 +41,8 @@ func (e InvocationTargetException) Error() string {
 func (InvocationTargetException) JavaClassName() string {
 	return "java.lang.reflect.InvocationTargetException"
 }
+
+// equals to getStackTrace in java
+func (e InvocationTargetException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

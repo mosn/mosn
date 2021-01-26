@@ -40,3 +40,8 @@ func (e IllegalMonitorStateException) Error() string {
 func (IllegalMonitorStateException) JavaClassName() string {
 	return "java.lang.IllegalMonitorStateException"
 }
+
+// equals to getStackTrace in java
+func (e IllegalMonitorStateException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

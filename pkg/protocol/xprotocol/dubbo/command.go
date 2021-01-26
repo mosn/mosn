@@ -18,9 +18,11 @@
 package dubbo
 
 import (
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type Header struct {
@@ -30,10 +32,10 @@ type Header struct {
 	Id      uint64
 	DataLen uint32
 
-	Event           int // 1 mean ping
-	TwoWay          int // 1 mean req & resp pair
-	Direction       int // 1 mean req
-	SerializationId int // 2 mean hessian
+	IsEvent         bool // true: heartbeat or readonly event
+	IsTwoWay        bool // true: send request and expect response, false: just request without response
+	Direction       int  // 1 mean req
+	SerializationId int  // 2 mean hessian
 	protocol.CommonHeader
 }
 
@@ -56,7 +58,7 @@ func (r *Frame) SetRequestId(id uint64) {
 }
 
 func (r *Frame) IsHeartbeatFrame() bool {
-	return r.Header.Event != 0
+	return r.Header.IsEvent
 }
 
 func (r *Frame) GetStreamType() xprotocol.StreamType {
@@ -80,8 +82,23 @@ func (r *Frame) GetData() types.IoBuffer {
 
 func (r *Frame) SetData(data types.IoBuffer) {
 	r.content = data
+	r.payload = data.Bytes()
+	r.DataLen = uint32(data.Len())
 }
 
 func (r *Frame) GetStatusCode() uint32 {
 	return uint32(r.Header.Status)
+}
+
+func (r *Frame) Clone() api.HeaderMap {
+	clone := &Frame{
+		rawData: make([]byte, len(r.rawData)),
+		payload: make([]byte, len(r.payload)),
+	}
+	clone.Header = r.Header
+	copy(clone.rawData, r.rawData)
+	copy(clone.payload, r.payload)
+	clone.data = buffer.NewIoBufferBytes(clone.rawData)
+	clone.content = buffer.NewIoBufferBytes(clone.payload)
+	return clone
 }

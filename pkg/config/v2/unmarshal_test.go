@@ -168,12 +168,13 @@ func TestClusterUnmarshal(t *testing.T) {
 	}
 }
 
-func TestListenerConfigUnmarshal(t *testing.T) {
+func TestListenerUnmarshal(t *testing.T) {
 	lc := `{
 		"name": "test",
-		"address": "127.0.0.1",
+		"address": "127.0.0.1:8080",
+		"type": "ingress",
+		"connection_idle_timeout": "90s",
 		"bind_port": true,
-		"use_original_dst":true,
 		"access_logs": [
 			{
 				"log_path":"stdout"
@@ -206,15 +207,16 @@ func TestListenerConfigUnmarshal(t *testing.T) {
 		"inspector": true
 	}`
 	b := []byte(lc)
-	ln := &ListenerConfig{}
+	ln := &Listener{}
 	if err := json.Unmarshal(b, ln); err != nil {
 		t.Error(err)
 		return
 	}
 	if !(ln.Name == "test" &&
-		ln.AddrConfig == "127.0.0.1" &&
+		ln.AddrConfig == "127.0.0.1:8080" &&
 		ln.BindToPort == true &&
-		ln.UseOriginalDst &&
+		ln.Type == INGRESS &&
+		ln.ConnectionIdleTimeout.Duration == 90*time.Second &&
 		ln.Inspector == true) {
 		t.Error("listener basic failed")
 	}
@@ -238,6 +240,13 @@ func TestListenerConfigUnmarshal(t *testing.T) {
 		if sf.Type != "test" {
 			t.Error("listener stream filter failed")
 		}
+	}
+	// verify addr
+	if ln.Addr == nil || ln.Addr.String() != "127.0.0.1:8080" {
+		t.Error("listener addr is not expected")
+	}
+	if ln.PerConnBufferLimitBytes != 1<<15 {
+		t.Error("listener buffer limit is not default value")
 	}
 }
 
@@ -350,7 +359,7 @@ func TestTCPProxyUnmarshal(t *testing.T) {
 		]
 	}`
 	b := []byte(tcpproxy)
-	p := &TCPProxy{}
+	p := &StreamProxy{}
 	if err := json.Unmarshal(b, p); err != nil {
 		t.Error(err)
 		return
@@ -373,28 +382,52 @@ func TestTCPProxyUnmarshal(t *testing.T) {
 	}
 }
 
-func TestServiceRegistryInfoUnmarshal(t *testing.T) {
-	sri := `{
-		"application": {
-			"ant_share_cloud":true
-		},
-		"publish_info":[
+func TestUDPProxyUnmarshal(t *testing.T) {
+	udpproxy := `{
+		"stat_prefix":"udp_proxy",
+		"cluster":"cluster",
+		"max_connect_attempts":1000,
+		"routes":[
 			{
-				"service_name": "test",
-				"pub_data": "foo"
+				"cluster": "test",
+				"SourceAddrs": [
+					{
+						"address":"127.0.0.1",
+						"length":32
+					}
+				],
+				"DestinationAddrs":[
+					{
+						"address":"127.0.0.1",
+						"length":32
+					}
+				],
+				"SourcePort":"8080",
+				"DestinationPort":"8080"
 			}
 		]
 	}`
-	b := []byte(sri)
-	info := &ServiceRegistryInfo{}
-	if err := json.Unmarshal(b, info); err != nil {
+
+	b := []byte(udpproxy)
+	p := &StreamProxy{}
+	if err := json.Unmarshal(b, p); err != nil {
 		t.Error(err)
 		return
 	}
-	if !(info.ServiceAppInfo.AntShareCloud &&
-		len(info.ServicePubInfo) == 1 &&
-		info.ServicePubInfo[0].Pub.ServiceName == "test" &&
-		info.ServicePubInfo[0].Pub.PubData == "foo") {
-		t.Error("service registry info failed")
+	if len(p.Routes) != 1 {
+		t.Error("route failed")
+	} else {
+		r := p.Routes[0]
+		if !(r.Cluster == "test" &&
+			len(r.SourceAddrs) == 1 &&
+			r.SourceAddrs[0].Address == "127.0.0.1" &&
+			r.SourceAddrs[0].Length == 32 &&
+			len(r.DestinationAddrs) == 1 &&
+			r.DestinationAddrs[0].Address == "127.0.0.1" &&
+			r.DestinationAddrs[0].Length == 32 &&
+			r.SourcePort == "8080" &&
+			r.DestinationPort == "8080") {
+			t.Error("route failed")
+		}
 	}
 }

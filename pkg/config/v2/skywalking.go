@@ -24,8 +24,15 @@ const (
 )
 
 type SkyWalkingTraceConfig struct {
-	Reporter       string `json:"reporter"`
-	BackendService string `json:"backend_service"`
-	ServiceName    string `json:"service_name"`
-	WithRegister   bool   `json:"with_register"`
+	Reporter         string                   `json:"reporter"`
+	BackendService   string                   `json:"backend_service"`
+	ServiceName      string                   `json:"service_name"`
+	MaxSendQueueSize int                      `json:"max_send_queue_size"`
+	Authentication   string                   `json:"authentication"`
+	TLS              SkyWalkingTraceTLSConfig `json:"tls"`
+}
+
+type SkyWalkingTraceTLSConfig struct {
+	CertFile           string `json:"cert_file"`
+	ServerNameOverride string `json:"server_name_override"`
 }

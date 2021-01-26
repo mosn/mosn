@@ -36,6 +36,8 @@ var (
 	ErrLogFormatUndefined = errors.New("access log format undefined")
 	ErrEmptyVarDef        = errors.New("access log format error: empty variable definition")
 	ErrUnclosedVarDef     = errors.New("access log format error: unclosed variable definition")
+
+	UnknowDefaultValue = "-"
 )
 
 const AccessLogLen = 1 << 8
@@ -51,6 +53,13 @@ func DisableAllAccessLog() {
 	}
 }
 
+func EnableAllAccessLog() {
+	DefaultDisableAccessLog = false
+	for _, lg := range accessLogs {
+		lg.logger.Toggle(false)
+	}
+}
+
 // types.AccessLog
 type accesslog struct {
 	output  string
@@ -59,15 +68,15 @@ type accesslog struct {
 }
 
 type logEntry struct {
-	text     string
-	variable variable.Variable
+	text string
+	name string
 }
 
 func (le *logEntry) log(ctx context.Context, buf buffer.IoBuffer) {
 	if le.text != "" {
 		buf.WriteString(le.text)
 	} else {
-		value, err := variable.GetVariableValue(ctx, le.variable.Name())
+		value, err := variable.GetVariableValue(ctx, le.name)
 		if err != nil {
 			buf.WriteString(variable.ValueNotFound)
 		} else {
@@ -145,11 +154,14 @@ func parseFormat(format string) ([]*logEntry, error) {
 					}
 
 					// var def ends, add variable
-					varEntry, err := variable.AddVariable(format[lastMark+1 : pos])
+					varName := format[lastMark+1 : pos]
+					_, err := variable.AddVariable(varName)
 					if err != nil {
-						return nil, err
+						// adapte istio unknow fields
+						entries = append(entries, &logEntry{text: UnknowDefaultValue})
+					} else {
+						entries = append(entries, &logEntry{name: varName})
 					}
-					entries = append(entries, &logEntry{variable: varEntry})
 				} else {
 					// ignore empty text
 					if pos > lastMark+1 {

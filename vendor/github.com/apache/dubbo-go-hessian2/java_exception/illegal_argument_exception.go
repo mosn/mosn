@@ -40,3 +40,8 @@ func (e IllegalArgumentException) Error() string {
 func (IllegalArgumentException) JavaClassName() string {
 	return "java.lang.IllegalArgumentException"
 }
+
+// equals to getStackTrace in java
+func (e IllegalArgumentException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

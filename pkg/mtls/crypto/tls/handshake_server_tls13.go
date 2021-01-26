@@ -80,6 +80,23 @@ func (hs *serverHandshakeStateTLS13) handshake() error {
 	return nil
 }
 
+func (hs *serverHandshakeStateTLS13) chooseCiphersuitesFromConfig() []uint16 {
+	defaultCiphersuites := defaultCipherSuitesTLS13()
+	// if we don't set any ciphersuites for tls1.3, then we use default ciphersuites
+	if len(hs.c.config.CipherSuites) == 0 {
+		return defaultCiphersuites
+	}
+	var result []uint16
+	for _, id := range hs.c.config.CipherSuites {
+		for _, defaultSupportID := range defaultCiphersuites {
+			if id == defaultSupportID {
+				result = append(result, id)
+			}
+		}
+	}
+	return result
+}
+
 func (hs *serverHandshakeStateTLS13) processClientHello() error {
 	c := hs.c
 
@@ -149,11 +166,25 @@ func (hs *serverHandshakeStateTLS13) processClientHello() error {
 
 	var preferenceList, supportedList []uint16
 	if c.config.PreferServerCipherSuites {
-		preferenceList = defaultCipherSuitesTLS13()
+		preferenceList = hs.chooseCiphersuitesFromConfig()
+		if len(preferenceList) == 0 {
+			// if we can't choose any ciphersuite from config, then
+			// we use default ciphersuites, it's not a perfect way
+			// but for most situation, we just want to sudccess do
+			// handshake
+			preferenceList = defaultCipherSuitesTLS13()
+		}
 		supportedList = hs.clientHello.cipherSuites
 	} else {
 		preferenceList = hs.clientHello.cipherSuites
-		supportedList = defaultCipherSuitesTLS13()
+		supportedList = hs.chooseCiphersuitesFromConfig()
+		if len(supportedList) == 0 {
+			// if we can't choose any ciphersuite from config, then
+			// we use default ciphersuites, it's not a perfect way
+			// but for most situation, we just want to sudccess do
+			// handshake
+			supportedList = defaultCipherSuitesTLS13()
+		}
 	}
 	for _, suiteID := range preferenceList {
 		hs.suite = mutualCipherSuiteTLS13(supportedList, suiteID)

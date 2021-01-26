@@ -1,0 +1,20 @@
+servers:
+  - default_log_path: /home/admin/logs/mosn/default.log
+    default_log_level: DEBUG
+    processor: 4
+    listeners:
+      - address: '0.0.0.0:12220'
+        bind_port: true
+        filter_chains:
+          - filters:
+              - type: proxy
+                config:
+                  downstream_protocol: Http1
+                  upstream_protocol: Http1
+                  router_config_name: test_router
+cluster_manager:
+  clusters:
+    - name: example
+      lb_type: LB_ROUNDROBIN
+      hosts:
+        - address: '127.0.0.1:12200'

@@ -43,3 +43,8 @@ func (e InterruptedException) Error() string {
 func (InterruptedException) JavaClassName() string {
 	return "java.lang.InterruptedException"
 }
+
+// equals to getStackTrace in java
+func (e InterruptedException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

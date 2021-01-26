@@ -36,9 +36,9 @@ type headerLB struct {
 func (lb *headerLB) ChooseHost(ctx types.LoadBalancerContext) types.Host {
 	if headers := ctx.DownstreamHeaders(); headers != nil {
 		if value, ok := headers.Get(lb.key); ok {
-			hosts := lb.hostSet.HealthyHosts()
+			hosts := lb.hostSet.Hosts()
 			for _, h := range hosts {
-				if h.Hostname() == value {
+				if h.Health() && h.Hostname() == value {
 					return h
 				}
 			}
@@ -60,11 +60,11 @@ type headerLBCfg struct {
 	key string
 }
 
-func (cfg *headerLBCfg) newLB(hs types.HostSet) types.LoadBalancer {
+func (cfg *headerLBCfg) newLB(info types.ClusterInfo, hs types.HostSet) types.LoadBalancer {
 	return &headerLB{
 		hostSet: hs,
 		key:     cfg.key,
-		randLB:  newRandomLoadBalancer(hs),
+		randLB:  newRandomLoadBalancer(nil, hs),
 	}
 }
 
@@ -80,7 +80,7 @@ func TestRegisterNewLB(t *testing.T) {
 	// init hosts
 	// reuse subset test config
 	hs := createHostset(exampleHostConfigs())
-	lb := NewLoadBalancer(headerKey, hs)
+	lb := NewLoadBalancer(&clusterInfo{lbType: headerKey}, hs)
 	// expected headerLB
 	if _, ok := lb.(*headerLB); !ok {
 		t.Fatal("load balancer created not expected")
@@ -135,6 +135,21 @@ func TestRegisterNewLB(t *testing.T) {
 	}
 }
 
+// test return maglevLoadBalancer type
+func TestMaglevLoadBalancer(t *testing.T) {
+	set := &mockHostSet{
+		hosts: []types.Host{
+			&mockHost{name: "host"},
+		},
+	}
+	lb := NewLoadBalancer(&clusterInfo{lbType: types.Maglev}, set)
+	if _, ok := lb.(*maglevLoadBalancer); !ok {
+		t.Errorf("lb type should be 'maglevLoadBalancer")
+		t.FailNow()
+
+	}
+}
+
 // Test Used in cluster
 func TestNewLBCluster(t *testing.T) {
 	cfg := v2.Cluster{
@@ -142,7 +157,7 @@ func TestNewLBCluster(t *testing.T) {
 		ClusterType: v2.SIMPLE_CLUSTER,
 		LbType:      v2.LbType(headerKey), // same as lb type
 	}
-	c := newSimpleCluster(cfg)
+	c := newSimpleCluster(cfg).(*simpleCluster)
 	if c == nil || c.info == nil {
 		t.Fatal("create cluster failed")
 	}

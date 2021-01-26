@@ -40,3 +40,8 @@ func (e ZipException) Error() string {
 func (ZipException) JavaClassName() string {
 	return "java.util.zip.ZipException"
 }
+
+// equals to getStackTrace in java
+func (e ZipException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

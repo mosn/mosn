@@ -1,5 +1,279 @@
 # 更新日志
 
+## v0.20.0
+
+### 优化
+
+- 优化 TCP 地址解析失败默认解析 UDS 地址的问题，地址解析前添加前缀判断 [@wangfakang](https://github.com/wangfakang)
+- 优化连接池获取的尝试间隔 [@nejisama](https://github.com/nejisama)
+- 支持通过全局配置关闭循环写模式 [@nejisama](https://github.com/nejisama)
+- 优化协议自动识别的配置示例和测试用例 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 用更高效的变量机制替换请求头 [@CodingSinger](https://github.com/CodingSinger)
+- 将 WriteBufferChan 的定时器池化以降低负载 [@cch123](https://github.com/cch123)
+- TraceLog 中新增 MOSN 处理失败的信息 [@nejisama](https://github.com/nejisama)
+- HTTP协议处理中，新增读完成channel [@alpha-baby](https://github.com/alpha-baby)
+- 日志轮转功能加强 [@nejisama](https://github.com/nejisama)
+
+### 重构
+
+- 使用的 Go 版本升级到 1.14.13 [@nejisama](https://github.com/nejisama)
+- 将路由链扩展方式修改为路由Handler扩展方式，支持配置不同的路由Handler [@nejisama](https://github.com/nejisama)
+- MOSN 扩展配置修改，支持按照配置顺序进行解析 [@nejisama](https://github.com/nejisama)
+
+### Bug 修复
+
+- 修复 doubbo 版本升级至 2.7.3 之后 Provider 不可用的问题 [@cadeeper](https://github.com/cadeeper)
+- 修复 netpoll 模式下，错误将UDS连接处理成TCP连接的问题 [@wangfakang](https://github.com/wangfakang)
+- 修复 HTTP Header 被设置为空字符串时无法正确 Get 的问题 [@ianwoolf](https://github.com/ianwoolf)
+
+### 新功能
+
+- 支持新旧 MOSN 之间通过 UDS 转移配置，解决 MOSN 使用 XDS 获取配置无法平滑升级的问题 [@alpha-baby](https://github.com/alpha-baby)
+- 协议自动识别支持 XProtocol [@cadeeper](https://github.com/cadeeper)
+- 支持配置 XProtocol 的 keepalive 参数 [@cch123](https://github.com/cch123)
+- 支持更详细的用时追踪 [@nejisama](https://github.com/nejisama)
+- 支持度量指标懒加载的方式，以解决服务数目过多 metrics 空间占用过大的问题 [@champly](https://github.com/champly)
+- 添加设置 XProtocol 连接池大小默认值的函数 [@cch123](https://github.com/cch123)
+- 支持 netpoll 模式 [@cch123](https://github.com/cch123)
+- 支持广播功能 [@dengqian](https://github.com/dengqian)
+- 支持从 LDS 响应中获取 tls 配置 [@wZH-CN](https://github.com/wZH-CN)
+- SDS 新增 ACK response [@wZH-CN](https://github.com/wZH-CN)
+
+## v0.19.0
+
+### 优化
+
+- 使用最新的 TLS 内存优化方案 [@cch123](https://github.com/cch123)
+- proxy log 优化，减少内存逃逸 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 增加最大连接数限制 [@champly](https://github.com/champly)
+- AccessLog 获取变量失败时，使用”-”代替 [@champly](https://github.com/champly)
+- MaxProcs 支持配置基于 CPU 使用限制自动识别 [@champly](https://github.com/champly)
+- 支持指定 Istio cluster 的网络 [@champly](https://github.com/champly)
+
+### 重构
+
+- 重构了 StreamFilter 框架，减少 streamfilter 框架与 proxy 的耦合，支持其他 network filter 可复用 stream filter 框架 [@antJack](https://github.com/antJack)
+
+### Bug 修复
+
+- 修复 HTTP Trace 获取 URL 错误 [@wzshiming](https://github.com/wzshiming)
+- 修复 xds 配置解析时没有解析连接超时的错误 [@dengqian](https://github.com/dengqian)
+- 修复变量获取 Hostname 的错误 [@dengqian](https://github.com/dengqian)
+- 修复 tcp proxy 没有正确关闭连接的错误 [@dengqian](https://github.com/dengqian)
+- 修复 mixer filter 缺少默认配置，导致空指针问题 [@glyasai](https://github.com/glyasai)
+- 修复 HTTP2 直接响应没有正确地设置 `Content-length` 的问题 [@wangfakang](https://github.com/wangfakang)
+- 修复 getAPISourceEndpoint 方法空指针问题 [@dylandee](https://github.com/dylandee)
+- 修复 Write 堆积时，过多的 Timer 申请导致内存上涨的问题 [@champly](https://github.com/champly)
+- 修复 Dubbo Filter 收到非法响应时，stats 统计缺失的问题 [@champly](https://github.com/champly)
+
+## v0.18.0
+
+### 新功能
+
+- 新增 MOSN 配置文件扩展机制 [@nejisama](https://github.com/nejisama)
+- 新增 MOSN 配置工具，提升用户配置体验 [mosn/configure](https://github.com/mosn/configure) [@cch123](https://github.com/cch123)
+
+### 优化
+
+- HTTP 协议 stream 处理过程中，避免多次拷贝 HTTP body [@wangfakang](https://github.com/wangfakang)
+- 升级了 `github.com/TarsCloud/TarsGo` 包到 v1.1.4 版本 [@champly](https://github.com/champly)
+- 补充了连接池的单元测试 [@cch123](https://github.com/cch123)
+- 使用内存池减少了 TLS 连接的内存占用 [@cch123](https://github.com/cch123)
+- 减少 xprotocol stream 处理过程的临界区大小，提升性能 [@cch123](https://github.com/cch123)
+- 删除 `network.NewClientConnection` 方法冗余参数，删除 `streamConn` 结构体 `Dispatch` 方法 `ALPN` 检查 [@nejisama](https://github.com/nejisama)
+- `StreamReceiverFilterHandler` 增加 `TerminateStream` API，可在处理流的时候传入 HTTP code 异步关闭流 [@nejisama](https://github.com/nejisama)
+- client 端 TLS handshake 失败时增加降级逻辑 [@nejisama](https://github.com/nejisama)
+- 修改 TLS hashvalue 计算方式 [@nejisama](https://github.com/nejisama)
+- 修正 disable_log admin api typo [@nejisama](https://github.com/nejisama)
+
+### Bug 修复
+
+- 修复执行 `go mod tidy` 失败 [@champly](https://github.com/champly)
+- 修复 MOSN 接收 XDS 消息大于 4M 时的 `ResourceExhausted: grpc: received message larger than max` 错误 [@champly](https://github.com/champly) 
+- 修复容错单元测试用例 [@wangfakang](https://github.com/wangfakang)
+- 修复 `MOSNConfig.servers[].listeners[].bind_port` 设置为 `false` 时热重启出错 [@alpha-baby](https://github.com/alpha-baby)
+- 本地写 buffer 增加超时时间，避免本地写失败导致 goroutine 过多 OOM [@cch123](https://github.com/cch123)
+- 修复 TLS 超时导致死循环 [@nejisama](https://github.com/nejisama)
+- 修复 `dubbo.Frame` struct 使用 `SetData` 方法之后数据没有被修改的问题 [@lxd5866](https://github.com/lxd5866)
+
+## v0.17.0
+
+### 新功能
+
+- 新增最大 Header 大小限制的配置选项 [@wangfakang](https://github.com/wangfakang)
+- 支持协议实现时选择是否需要 workerpool 模式，在 workerpool 模式下，支持可配置的连接并发度
+  [@cch123](https://github.com/cch123)
+- Listener 配置新增对 UDS 的支持 [@CodingSinger](https://github.com/CodingSinger)
+- 添加在 Dubbo 协议下通过 xDS HTTP 配置进行转换的过滤器 [@champly](https://github.com/champly)
+
+### 优化
+
+- 优化 http 场景下的 buffer 申请 [@wangfakang](https://github.com/wangfakang)
+- 优化 SDS Client 使用读写锁获取 [@chainhelen](https://github.com/chainhelen)
+- 更新 hessian2 v1.7.0 库 [@cch123](https://github.com/cch123)
+- 修改 NewStream 接口，从回调模式调整为同步调用的模式 [@cch123](https://github.com/cch123)
+- 重构 XProtocol 连接池，支持 pingpong 模式、多路复用模式与连接绑定模式 [@cch123](https://github.com/cch123)
+- 优化 XProtocol 多路复用模式，支持单机 Host 连接数可配置，默认是 1 [@cch123](https://github.com/cch123)
+- 优化正则路由配置项，避免 dump 过多无用配置 [@wangfakang](https://github.com/wangfakang)
+
+### Bug 修复
+
+- 修复 README 蚂蚁 logo 地址失效的问题 [@wangfakang](https://github.com/wangfakang)
+- 修复当请求 header 太长覆盖请求内容的问题 [@cch123](https://github.com/cch123)
+- 修复 Dubbo 协议解析 attachment 异常的问题 [@champly](https://github.com/champly)
+
+## v0.16.0
+
+### 优化
+
+- Logger Roller 支持自定义 Roller 的实现 [@wenxuwan](https://github.com/wenxuwan)
+- StreamFilter 新增接口 SendHijackReplyWithBody [@wenxuwan](https://github.com/wenxuwan)
+- 配置项新增关闭热升级选项，关闭热升级以后一个机器上可以同时存在多个不同的 MOSN 进程 [@cch123](https://github.com/cch123)
+- 优化 MOSN 集成测试框架，补充单元测试 [@nejisama](https://github.com/nejisama) [@wangfakang](https://github.com/wangfakang) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- xDS 配置解析支持 DirectResponse 的路由配置 [@wangfakang](https://github.com/wangfakang)
+- ClusterManager 配置新增 TLSContext [@nejisama](https://github.com/nejisama)
+
+### Bug 修复
+
+- 修复在热升级时 UDP 连接超时会导致死循环的 BUG [@dengqian](https://github.com/dengqian)
+- 修复在 SendFilter 中执行 DirectResponse 会触发死循环的 BUG [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复 HTTP2 的 Stream 计数并发统计冲突的 BUG [@wenxuwan](https://github.com/wenxuwan)
+- 修复 UDP 连接因读超时导致的数据丢失问题 [@dengqian](https://github.com/dengqian)
+- 修复触发重试时因为协议标识丢失导致无法正确记录响应 StatusCode 的 BUG [@dengqian](https://github.com/dengqian)
+- 修复 BoltV2 协议解析错误的 BUG [@nejisama](https://github.com/nejisama)
+- 修复 Listener Panic 后无法自动 Restart 的 BUG [@alpha-baby](https://github.com/alpha-baby)
+- 修复变量机制中 NoCache 标签无效的 BUG [@wangfakang](https://github.com/wangfakang)
+- 修复 SDS 重连时可能存在并发冲突的 BUG [@nejisama](https://github.com/nejisama)
+
+## v0.15.0
+
+### 新功能
+
+- 路由 Path Rewrite 支持按照正则表达式的方式配置 Rewrite 的内容 [@liangyuanpeng](https://github.com/liangyuanpeng)
+- 配置新增字段： 扩展配置字段，可通过扩展配置字段自定义启动配置；Dubbo 服务发现配置通过扩展的配置字段实现 [@cch123](https://github.com/cch123)
+- 支持 DSL 新特性，可以方便的对请求的处理行为进行控制 [@wangfakang](https://github.com/wangfakang)
+- StreamFilter 新增流量镜像功能的扩展实现 [@champly](https://github.com/champly)
+- Listener 配置新增对 UDP 的支持 [@dengqian](https://github.com/dengqian)
+- 配置格式支持 Yaml 格式解析 [@GLYASAI](https://github.com/GLYASAI)
+- 路由支持 HTTP 重定向配置 [@knight42](https://github.com/knight42)
+
+### 优化
+
+- 支持 istio 的 stats filter，可以根据匹配条件进行 metrics 的个性化记录 [@wzshiming](https://github.com/wzshiming)
+- Metrics 配置支持配置 Histogram 的输出百分比 [@champly](https://github.com/champly)
+- StreamFilter 新增状态用于直接中止请求，并且不响应客户端 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- XProtocol Hijack 响应支持携带 Body [@champly](https://github.com/champly)
+- Skywalking 升级到 0.5.0 版本 [arugal](https://github.com/arugal)
+- Upstream 连接 TLS 状态判断修改，支持通过 TLS 配置的 Hash 判断是否需要重新建立连接 [@nejisama](https://github.com/nejisama)
+- 优化 DNS cache 逻辑，防止在 DNS 失效时可能引起的 DNS flood 问题 [@wangfakang](https://github.com/wangfakang)
+
+### Bug 修复
+
+- 修复开启 TLS 加密场景下，XProtocol 协议在有多个协议的场景下判断协议错误的 BUG [@nejisama](https://github.com/nejisama)
+- 修复 AccessLog 中前缀匹配类型的变量不生效的 BUG [@dengqian](https://github.com/dengqian)
+- 修复 Listener 配置解析处理不正确的 BUG [@nejisama](https://github.com/nejisama)
+- 修复 Router/Cluster 在文件持久化配置类型中，Name 字段包含路径分隔符时会保存失败的 BUG [@nejisama](https://github.com/nejisama)
+
+## v0.14.0
+
+### 新功能
+
+- 支持 Istio 1.5.X [@wangfakang](https://github.com/wangfakang) [@trainyao](https://github.com/trainyao) [@champly](https://github.com/champly)
+  - go-control-plane 升级到 0.9.4 版本
+  - xDS 支持 ACK，新增 xDS 的 Metrics
+  - 支持 Istio sourceLabels 过滤功能
+  - 支持 pilot-agent 的探测接口
+  - 支持更多的启动参数，适配 Istio agent 启动场景
+  - gzip、strict-dns、original-dst 支持 xDS 更新
+  - 移除 Xproxy 逻辑
+- Maglev 负载均衡算法支持 [@trainyao](https://github.com/trainyao)
+- 新增连接池实现，用于支持消息类请求 [@cch123](https://github.com/cch123)
+- 新增 TLS 连接切换的 Metrics [@nejisama](https://github.com/nejisama)
+- 新增 HTTP StatusCode 的 Metrics [@dengqian](https://github.com/dengqian)
+- 新增 Metrics Admin API 输出 [@dengqian](https://github.com/dengqian)
+- proxy 新增查询当前请求数的接口 [@zonghaishang](https://github.com/zonghaishang)
+- 支持 HostRewrite Header [@liangyuanpeng](https://github.com/liangyuanpeng)
+
+### 优化
+
+- 升级 tars 依赖，修复在高版本 Golang 下的编译问题 [@wangfakang](https://github.com/wangfakang)
+- xDS 配置解析升级适配 Istio 1.5.x [@wangfakang](https://github.com/wangfakang)
+- 优化 proxy 的日志输出 [@wenxuwan](https://github.com/wenxuwan)
+- DNS Cache 默认时间修改为 15s [@wangfakang](https://github.com/wangfakang)
+- HTTP 参数路由匹配优化 [@wangfakang](https://github.com/wangfakang)
+- 升级 fasthttp 库 [@wangfakang](https://github.com/wangfakang)
+- 优化 Dubbo 请求转发编码 [@zonghaishang](https://github.com/zonghaishang)
+- 支持 HTTP 的请求最大 body 可配置 [@wangfakang](https://github.com/wangfakang)
+
+### Bug 修复
+
+- 修复 Dubbo Decode 无法解析 attachment 的 bug [@champly](https://github.com/champly)
+- 修复 HTTP2 连接建立之前就可能创建 stream 的 bug [@dunjut](https://github.com/dunjut)
+- 修复处理 HTTP2 处理 Trailer 空指针异常 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复 HTTP 请求头默认不标准化处理的 bug [@nejisama](https://github.com/nejisama)
+- 修复 HTTP 请求处理时连接断开导致的 panic 异常 [@wangfakang](https://github.com/wangfakang)
+- 修复 dubbo registry 的读写锁拷贝问题 [@champly](https://github.com/champly)
+
+## v0.13.0
+
+### 新功能
+
+- 支持 Strict DNS Cluster [@dengqian](https://github.com/dengqian)
+- 支持 GZip 处理的 Stream Filter [@wangfakang](https://github.com/wangfakang)
+- Dubbo 服务发现完成 Beta 版本 [@cch123](https://github.com/cch123)
+- 支持单机故障隔离的 Stream Filter [@NeGnail](https://github.com/NeGnail)
+- 集成 Sentinel 限流能力 [@ansiz](https://github.com/ansiz)
+
+### 优化
+
+- 优化 EDF LB 的实现，使用 EDF 重新实现 WRR LB [@CodingSinger](https://github.com/CodingSinger)
+- 配置获取 ADMIN API 优化，新增 Features 和环境变量相关 ADMIN API [@nejisama](https://github.com/nejisama)
+- 更新 Host 时触发健康检查的更新从异步模式修改为同步模式 [@nejisama](https://github.com/nejisama)
+- 更新了 Dubbo 库，优化了 Dubbo Decode 的性能 [@zonghaishang](https://github.com/zonghaishang)
+- 优化 Metrics 在 Prometheus 中的输出，使用正则过滤非法的 Key [@nejisama](https://github.com/nejisama)
+- 优化 MOSN 的返回状态码 [@wangfakang](https://github.com/wangfakang)
+
+### Bug 修复
+
+- 修复健康检查注册回调函数时的并发冲突问题 [@nejisama](https://github.com/nejisama)
+- 修复配置持久化函数没有正确处理空配置的错误 [@nejisama](https://github.com/nejisama)
+- 修复 ClusterName/RouterName 过长时，以文件形式 DUMP 会失败的问题 [@nejisama](https://github.com/nejisama)
+- 修复获取 XProtocol 协议时，无法正确获取协议的问题 [@wangfakang](https://github.com/wangfakang)
+- 修复创建 StreamFilter 时，获取的 context 错误的问题 [@wangfakang](https://github.com/wangfakang)
+
+## v0.12.0
+
+### 新功能
+
+- 支持 Skywalking [@arugal](https://github.com/arugal)
+- Stream Filter 新增了一个 Receive Filter 执行的阶段，可在 MOSN 路由选择完 Host 以后，再次执行 Receive Filter [@wangfakang](https://github.com/wangfakang)
+- HTTP2 支持流式 [@peacocktrain](https://github.com/peacocktrain) [@taoyuanyuan](https://github.com/taoyuanyuan)
+- FeatureGate 新增接口 KnownFeatures，可输出当前 FeatureGate 状态 [@nejisama](https://github.com/nejisama)
+- 提供一种协议透明的方式获取请求资源（PATH、URI、ARG），对于资源的定义由各个协议自身定义 [@wangfakang](https://github.com/wangfakang)
+- 新增负载均衡算法
+  - 支持 ActiveRequest LB [@CodingSinger](https://github.com/CodingSinger)
+  - 支持 WRR LB [@nejisama](https://github.com/nejisama)
+
+### 优化
+
+- XProtocol 协议引擎优化 [@neverhook](https://github.com/neverhook)
+  - 修改 XProtocol 心跳响应接口，支持协议的心跳响应可返回更多的信息
+  - 优化 connpool 的心跳触发，只有实现了心跳的协议才会发心跳
+- Dubbo 库依赖版本从 v1.5.0-rc1 更新到 v1.5.0 [@cch123](https://github.com/cch123)
+- API 调整，HostInfo 新增健康检查相关的接口 [@wangfakang](https://github.com/wangfakang)
+- 熔断功能实现优化 [@wangfakang](https://github.com/wangfakang)
+- 负责均衡选择逻辑简化，同样地址的 Host 复用相同的健康检查标记 [@nejisama](https://github.com/nejisama) [@cch123](https://github.com/cch123)
+- 优化 HTTP 建连逻辑，提升 HTTP 建立性能 [@wangfakang](https://github.com/wangfakang)
+- 日志轮转逻辑从写日志触发，调整为定时触发 [@nejisama](https://github.com/nejisama)
+- typo 调整 [@xujianhai666](https://github.com/xujianhai666) [@candyleer](https://github.com/candyleer)
+
+### Bug 修复
+
+- 修复 xDS 解析故障注入配置的错误 [@champly](https://github.com/champly)
+- 修复 MOSN HTTP HEAD 方法导致的请求 Hold 问题 [@wangfakang](https://github.com/wangfakang)
+- 修复 XProtocol 引擎对于 StatusCode 映射缺失的问题 [@neverhook](https://github.com/neverhook)
+- 修复 DirectReponse 触发重试的 BUG [@taoyuanyuan](https://github.com/taoyuanyuan)
+
 ## v0.11.0
 
 ### 新功能
@@ -8,7 +282,7 @@
 - 变量机制新增 Set 方法 [@neverhook](https://github.com/neverhook)
 - 新增 SDS Client 失败时自动重试和异常处理 [@pxzero](https://github.com/pxzero)
 - 完善 TraceLog，支持注入 context[@taoyuanyuan](https://github.com/taoyuanyuan)
-- 新增 FeatureGate `auto_config`，当开启该Feature以后动态更新的配置会保存到启动配置中 [@nejisama](https://github.com/nejisama)
+- 新增 FeatureGate `auto_config`，当开启该 Feature 以后动态更新的配置会保存到启动配置中 [@nejisama](https://github.com/nejisama)
 
 ### 重构
 

@@ -41,3 +41,8 @@ func (e ClassNotFoundException) Error() string {
 func (ClassNotFoundException) JavaClassName() string {
 	return "java.lang.ClassNotFoundException"
 }
+
+// equals to getStackTrace in java
+func (e ClassNotFoundException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

@@ -46,3 +46,8 @@ func (DuplicateFormatFlagsException) JavaClassName() string {
 func NewDuplicateFormatFlagsException(detailMessage string) *DuplicateFormatFlagsException {
 	return &DuplicateFormatFlagsException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e DuplicateFormatFlagsException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

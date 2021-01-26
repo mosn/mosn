@@ -43,3 +43,8 @@ func (e LambdaConversionException) Error() string {
 func (LambdaConversionException) JavaClassName() string {
 	return "java.lang.invoke.LambdaConversionException"
 }
+
+// equals to getStackTrace in java
+func (e LambdaConversionException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

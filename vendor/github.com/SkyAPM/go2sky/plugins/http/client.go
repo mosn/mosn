@@ -24,10 +24,10 @@ import (
 
 	"github.com/SkyAPM/go2sky"
 	"github.com/SkyAPM/go2sky/propagation"
-	"github.com/SkyAPM/go2sky/reporter/grpc/common"
+	v3 "github.com/SkyAPM/go2sky/reporter/grpc/language-agent"
 )
 
-const httpClientComponentID int32 = 2
+const componentIDGOHttpClient = 5005
 
 type ClientConfig struct {
 	name      string
@@ -100,20 +100,20 @@ func (t *transport) RoundTrip(req *http.Request) (res *http.Response, err error)
 		return t.delegated.RoundTrip(req)
 	}
 	defer span.End()
-	span.SetComponent(httpClientComponentID)
+	span.SetComponent(componentIDGOHttpClient)
 	for k, v := range t.extraTags {
 		span.Tag(go2sky.Tag(k), v)
 	}
 	span.Tag(go2sky.TagHTTPMethod, req.Method)
 	span.Tag(go2sky.TagURL, req.URL.String())
-	span.SetSpanLayer(common.SpanLayer_Http)
+	span.SetSpanLayer(v3.SpanLayer_Http)
 	res, err = t.delegated.RoundTrip(req)
 	if err != nil {
 		span.Error(time.Now(), err.Error())
 		return
 	}
 	span.Tag(go2sky.TagStatusCode, strconv.Itoa(res.StatusCode))
-	if res.StatusCode >= 400 {
+	if res.StatusCode >= http.StatusBadRequest {
 		span.Error(time.Now(), "Errors on handling client")
 	}
 	return res, nil

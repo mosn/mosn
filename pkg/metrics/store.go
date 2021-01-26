@@ -29,12 +29,12 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-const maxLabelCount = 10
+const MaxLabelCount = 20
 
 var (
 	defaultStore          *store
 	defaultMatcher        *metricsMatcher
-	errLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", maxLabelCount)
+	ErrLabelCountExceeded = fmt.Errorf("label count exceeded, max is %d", MaxLabelCount)
 )
 
 // stats memory store
@@ -83,8 +83,8 @@ func SetStatsMatcher(all bool, exclusionLabels, exclusionKeys []string) {
 // NewMetrics returns a metrics
 // Same (type + labels) pair will leading to the same Metrics instance
 func NewMetrics(typ string, labels map[string]string) (types.Metrics, error) {
-	if len(labels) > maxLabelCount {
-		return nil, errLabelCountExceeded
+	if len(labels) > MaxLabelCount {
+		return nil, ErrLabelCountExceeded
 	}
 
 	defaultStore.mutex.Lock()
@@ -153,7 +153,14 @@ func (s *metrics) Counter(key string) gometrics.Counter {
 		return gometrics.NilCounter{}
 	}
 
-	return s.registry.GetOrRegister(key, shm.NewShmCounterFunc(s.fullName(key))).(gometrics.Counter)
+	construct := func() gometrics.Counter {
+		return s.registry.GetOrRegister(key, shm.NewShmCounterFunc(s.fullName(key))).(gometrics.Counter)
+	}
+	if LazyFlushMetrics {
+		counter, _ := NewLazyCounter(construct)
+		return counter
+	}
+	return construct()
 }
 
 func (s *metrics) Gauge(key string) gometrics.Gauge {
@@ -162,7 +169,14 @@ func (s *metrics) Gauge(key string) gometrics.Gauge {
 		return gometrics.NilGauge{}
 	}
 
-	return s.registry.GetOrRegister(key, shm.NewShmGaugeFunc(s.fullName(key))).(gometrics.Gauge)
+	construct := func() gometrics.Gauge {
+		return s.registry.GetOrRegister(key, shm.NewShmGaugeFunc(s.fullName(key))).(gometrics.Gauge)
+	}
+	if LazyFlushMetrics {
+		gauge, _ := NewLazyGauge(construct)
+		return gauge
+	}
+	return construct()
 }
 
 func (s *metrics) Histogram(key string) gometrics.Histogram {
@@ -171,8 +185,15 @@ func (s *metrics) Histogram(key string) gometrics.Histogram {
 		return gometrics.NilHistogram{}
 	}
 
-	// TODO: notice the histogram only keeps 100 values as we set
-	return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
+	construct := func() gometrics.Histogram {
+		// TODO: notice the histogram only keeps 100 values as we set
+		return s.registry.GetOrRegister(key, func() gometrics.Histogram { return gometrics.NewHistogram(gometrics.NewUniformSample(100)) }).(gometrics.Histogram)
+	}
+	if LazyFlushMetrics {
+		histogram, _ := NewLazyHistogram(construct)
+		return histogram
+	}
+	return construct()
 }
 
 func (s *metrics) Each(f func(string, interface{})) {
@@ -196,6 +217,26 @@ func GetAll() (metrics []types.Metrics) {
 		metrics = append(metrics, m)
 	}
 	return
+}
+
+// filter is type.labels
+// see example in `GetProxyTotal`
+func GetMetricsFilter(filter string) (metrics types.Metrics) {
+	defaultStore.mutex.RLock()
+	defer defaultStore.mutex.RUnlock()
+	for _, m := range defaultStore.metrics {
+		name, _, _ := fullName(m.Type(), m.Labels())
+		if name == filter {
+			return m
+		}
+	}
+	return nil
+
+}
+
+// GetProxyTotal returns proxy global metrics data
+func GetProxyTotal() (metrics types.Metrics) {
+	return GetMetricsFilter("downstream.proxy.global")
 }
 
 // ResetAll is only for test and internal usage. DO NOT use this if not sure.

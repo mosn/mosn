@@ -37,7 +37,7 @@ func (f *DemoFactory) CreateFilterChain(ctx context.Context, callbacks api.Strea
 	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
 	// SenderFilter, run the filter when receive a response from upstream
 	// In the demo, we are not implement this filter type
-	// callbacks.AddStreamSenderFilter(filter)
+	// callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
 // What DemoFilter do:

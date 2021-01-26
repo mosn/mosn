@@ -44,3 +44,8 @@ func (e InterruptedIOException) Error() string {
 func (InterruptedIOException) JavaClassName() string {
 	return "java.io.InterruptedIOException"
 }
+
+// equals to getStackTrace in java
+func (e InterruptedIOException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

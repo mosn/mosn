@@ -40,3 +40,8 @@ func (e InvalidObjectException) Error() string {
 func (InvalidObjectException) JavaClassName() string {
 	return "java.io.InvalidObjectException"
 }
+
+// equals to getStackTrace in java
+func (e InvalidObjectException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

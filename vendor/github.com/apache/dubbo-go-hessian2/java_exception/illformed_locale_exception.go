@@ -41,3 +41,8 @@ func (IllformedLocaleException) JavaClassName() string {
 func NewIllformedLocaleException(detailMessage string) *IllformedLocaleException {
 	return &IllformedLocaleException{DetailMessage: detailMessage}
 }
+
+// equals to getStackTrace in java
+func (e IllformedLocaleException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

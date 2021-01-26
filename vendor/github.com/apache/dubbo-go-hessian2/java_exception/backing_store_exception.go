@@ -40,3 +40,8 @@ func (e BackingStoreException) Error() string {
 func (BackingStoreException) JavaClassName() string {
 	return "java.util.prefs.BackingStoreException"
 }
+
+// equals to getStackTrace in java
+func (e BackingStoreException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

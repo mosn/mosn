@@ -40,3 +40,8 @@ func (e JarException) Error() string {
 func (JarException) JavaClassName() string {
 	return "java.util.jar.JarException"
 }
+
+// equals to getStackTrace in java
+func (e JarException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

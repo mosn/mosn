@@ -22,6 +22,7 @@ import (
 	"errors"
 	"strings"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -50,6 +51,11 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 			}
 			return getter(ctx, nil, name)
 		}
+	}
+
+	// 3. find protocol resource variables
+	if v, e := GetProtocolResource(ctx, api.ProtocolResourceName(name)); e == nil {
+		return v, nil
 	}
 
 	return "", errors.New(errUndefinedVariable + name)
@@ -112,7 +118,7 @@ func getIndexedVariableValue(ctx context.Context, value *IndexedValue, index uin
 	}
 
 	value.data = vdata
-	if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == 1 {
+	if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == MOSN_VAR_FLAG_NOCACHEABLE {
 		value.noCacheable = true
 	}
 	return value.data, nil
@@ -123,6 +129,10 @@ func setFlushedVariableValue(ctx context.Context, index uint32, value string) er
 		if values, ok := variables.([]IndexedValue); ok {
 			variable := indexedVariables[index]
 			variableValue := &values[index]
+			// should check variable.Flags
+			if (variable.Flags() & MOSN_VAR_FLAG_NOCACHEABLE) == MOSN_VAR_FLAG_NOCACHEABLE {
+				variableValue.noCacheable = true
+			}
 
 			setter := variable.Setter()
 			if setter == nil {

@@ -21,13 +21,40 @@ import (
 	"context"
 	"encoding/json"
 	"math/rand"
+	"os"
 	"testing"
 	"time"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
+	mlog "mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/pkg/log"
 )
+
+type mockLogger struct {
+	log.ContextLogger
+}
+
+func (l *mockLogger) GetLogLevel() log.Level {
+	return log.DEBUG
+}
+
+func (l *mockLogger) Debugf(ctx context.Context, format string, args ...interface{}) {
+	// ingore
+}
+
+func TestMain(m *testing.M) {
+	// mock debug log
+	old := mlog.Proxy
+	mlog.Proxy = &mockLogger{
+		ContextLogger: old,
+	}
+	defer func() {
+		mlog.Proxy = old
+	}()
+	os.Exit(m.Run())
+}
 
 func TestMatchUpstream(t *testing.T) {
 	faultUpstream := "fault_upstream"

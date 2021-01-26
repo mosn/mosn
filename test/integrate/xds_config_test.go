@@ -24,17 +24,18 @@ import (
 	"path/filepath"
 	"testing"
 
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	_struct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/ptypes/wrappers"
+
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdslistener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	http_conn "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	"github.com/envoyproxy/go-control-plane/pkg/util"
-	"github.com/gogo/protobuf/proto"
-	"github.com/gogo/protobuf/types"
+	xdsutil "github.com/envoyproxy/go-control-plane/pkg/conversion"
+	"github.com/golang/protobuf/proto"
 	jsoniter "github.com/json-iterator/go"
-	admin "mosn.io/mosn/pkg/admin/store"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
@@ -49,14 +50,14 @@ type effectiveConfig struct {
 	MOSNConfig interface{}                       `json:"mosn_config,omitempty"`
 	Listener   map[string]v2.Listener            `json:"listener,omitempty"`
 	Cluster    map[string]v2.Cluster             `json:"cluster,omitempty"`
-	Routers    map[string]v2.RouterConfiguration `josn:"routers,omitempty"`
+	Routers    map[string]v2.RouterConfiguration `json:"routers,omitempty"`
 }
 
 func handleListenersResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.Listener {
 	listeners := make([]*xdsapi.Listener, 0)
 	for _, res := range msg.Resources {
 		listener := xdsapi.Listener{}
-		listener.Unmarshal(res.GetValue())
+		listener.XXX_Unmarshal(res.GetValue())
 		listeners = append(listeners, &listener)
 	}
 	return listeners
@@ -66,7 +67,7 @@ func handleEndpointsResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.ClusterLoadAss
 	lbAssignments := make([]*xdsapi.ClusterLoadAssignment, 0)
 	for _, res := range msg.Resources {
 		lbAssignment := xdsapi.ClusterLoadAssignment{}
-		lbAssignment.Unmarshal(res.GetValue())
+		lbAssignment.XXX_Unmarshal(res.GetValue())
 		lbAssignments = append(lbAssignments, &lbAssignment)
 	}
 	return lbAssignments
@@ -76,7 +77,7 @@ func handleClustersResp(msg *xdsapi.DiscoveryResponse) []*xdsapi.Cluster {
 	clusters := make([]*xdsapi.Cluster, 0)
 	for _, res := range msg.Resources {
 		cluster := xdsapi.Cluster{}
-		cluster.Unmarshal(res.GetValue())
+		cluster.XXX_Unmarshal(res.GetValue())
 		clusters = append(clusters, &cluster)
 	}
 	return clusters
@@ -115,17 +116,20 @@ func handleXdsData(mosnConfig *v2.MOSNConfig, xdsFiles []string) error {
 
 func TestConfigAddAndUpdate(t *testing.T) {
 	mosnConfig := configmanager.Load(filepath.Join("testdata", "envoy.json"))
-	admin.Reset()
-	admin.SetMosnConfig(mosnConfig)
+	configmanager.Reset()
+	configmanager.SetMosnConfig(mosnConfig)
 	Mosn := mosn.NewMosn(mosnConfig)
 	Mosn.Start()
 
-	buf, err := admin.Dump()
+	buf, err := configmanager.DumpJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
 	var m effectiveConfig
-	json.Unmarshal(buf, &m)
+	err = json.Unmarshal(buf, &m)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
@@ -139,11 +143,14 @@ func TestConfigAddAndUpdate(t *testing.T) {
 
 	loadXdsData()
 
-	buf, err = admin.Dump()
+	buf, err = configmanager.DumpJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
-	json.Unmarshal(buf, &m)
+	err = json.Unmarshal(buf, &m)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if m.MOSNConfig == nil {
 		t.Fatalf("mosn_config missing")
@@ -200,7 +207,7 @@ func TestConfigAddAndUpdate(t *testing.T) {
 
 	loadXdsData2()
 
-	buf, err = admin.Dump()
+	buf, err = configmanager.DumpJSON()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,14 +272,14 @@ func TestConfigAddAndUpdate(t *testing.T) {
 	}
 
 	Mosn.Close()
-	admin.Reset()
+	configmanager.Reset()
 }
 
 func loadXdsData2() {
 	// Listeners
 	listener := &xdsapi.Listener{
 		Name: "0.0.0.0_9080",
-		Address: core.Address{
+		Address: &core.Address{
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Address: "0.0.0.0",
@@ -282,30 +289,30 @@ func loadXdsData2() {
 				},
 			},
 		},
-		UseOriginalDst: &types.BoolValue{Value: false},
+		UseOriginalDst: &wrappers.BoolValue{Value: false},
 		DeprecatedV1: &xdsapi.Listener_DeprecatedV1{
-			BindToPort: &types.BoolValue{Value: false},
+			BindToPort: &wrappers.BoolValue{Value: false},
 		},
-		FilterChains: []xdslistener.FilterChain{
-			xdslistener.FilterChain{
+		FilterChains: []*xdslistener.FilterChain{
+			{
 				FilterChainMatch: nil,
 				TlsContext:       &auth.DownstreamTlsContext{},
-				Filters: []xdslistener.Filter{
-					xdslistener.Filter{
+				Filters: []*xdslistener.Filter{
+					{
 						Name: "envoy.http_connection_manager",
 						ConfigType: &xdslistener.Filter_Config{
 							Config: MessageToStruct(&http_conn.HttpConnectionManager{
 								RouteSpecifier: &http_conn.HttpConnectionManager_RouteConfig{
 									RouteConfig: &xdsapi.RouteConfiguration{
 										Name: "test_router_name",
-										VirtualHosts: []route.VirtualHost{
-											route.VirtualHost{},
-											route.VirtualHost{},
-											route.VirtualHost{},
-											route.VirtualHost{
-												Routes: []route.Route{
-													route.Route{
-														Match: route.RouteMatch{
+										VirtualHosts: []*route.VirtualHost{
+											&route.VirtualHost{},
+											&route.VirtualHost{},
+											&route.VirtualHost{},
+											&route.VirtualHost{
+												Routes: []*route.Route{
+													&route.Route{
+														Match: &route.RouteMatch{
 															PathSpecifier: &route.RouteMatch_Prefix{
 																Prefix: "/",
 															},
@@ -317,11 +324,11 @@ func loadXdsData2() {
 																		Clusters: []*route.WeightedCluster_ClusterWeight{
 																			&route.WeightedCluster_ClusterWeight{
 																				Name:   "outbound|9080|v1|reviews.default.svc.cluster.local",
-																				Weight: &types.UInt32Value{Value: 50},
+																				Weight: &wrappers.UInt32Value{Value: 50},
 																			},
 																			&route.WeightedCluster_ClusterWeight{
 																				Name:   "outbound|9080|v3|reviews.default.svc.cluster.local",
-																				Weight: &types.UInt32Value{Value: 50},
+																				Weight: &wrappers.UInt32Value{Value: 50},
 																			},
 																		},
 																	},
@@ -368,7 +375,7 @@ func loadXdsData() {
 	// Listeners
 	listener := &xdsapi.Listener{
 		Name: "0.0.0.0_9080",
-		Address: core.Address{
+		Address: &core.Address{
 			Address: &core.Address_SocketAddress{
 				SocketAddress: &core.SocketAddress{
 					Address: "0.0.0.0",
@@ -378,30 +385,30 @@ func loadXdsData() {
 				},
 			},
 		},
-		UseOriginalDst: &types.BoolValue{Value: false},
+		UseOriginalDst: &wrappers.BoolValue{Value: false},
 		DeprecatedV1: &xdsapi.Listener_DeprecatedV1{
-			BindToPort: &types.BoolValue{Value: false},
+			BindToPort: &wrappers.BoolValue{Value: false},
 		},
-		FilterChains: []xdslistener.FilterChain{
-			xdslistener.FilterChain{
+		FilterChains: []*xdslistener.FilterChain{
+			&xdslistener.FilterChain{
 				FilterChainMatch: nil,
 				TlsContext:       &auth.DownstreamTlsContext{},
-				Filters: []xdslistener.Filter{
-					xdslistener.Filter{
+				Filters: []*xdslistener.Filter{
+					&xdslistener.Filter{
 						Name: "envoy.http_connection_manager",
 						ConfigType: &xdslistener.Filter_Config{
 							Config: MessageToStruct(&http_conn.HttpConnectionManager{
 								RouteSpecifier: &http_conn.HttpConnectionManager_RouteConfig{
 									RouteConfig: &xdsapi.RouteConfiguration{
 										Name: "test_router_name",
-										VirtualHosts: []route.VirtualHost{
-											route.VirtualHost{},
-											route.VirtualHost{},
-											route.VirtualHost{},
-											route.VirtualHost{
-												Routes: []route.Route{
-													route.Route{
-														Match: route.RouteMatch{
+										VirtualHosts: []*route.VirtualHost{
+											&route.VirtualHost{},
+											&route.VirtualHost{},
+											&route.VirtualHost{},
+											&route.VirtualHost{
+												Routes: []*route.Route{
+													&route.Route{
+														Match: &route.RouteMatch{
 															PathSpecifier: &route.RouteMatch_Prefix{
 																Prefix: "/",
 															},
@@ -450,10 +457,10 @@ func loadXdsData() {
 }
 
 // MessageToStruct converts from proto message to proto Struct
-func MessageToStruct(msg proto.Message) *types.Struct {
-	s, err := util.MessageToStruct(msg)
+func MessageToStruct(msg proto.Message) *_struct.Struct {
+	s, err := xdsutil.MessageToStruct(msg)
 	if err != nil {
-		return &types.Struct{}
+		return &_struct.Struct{}
 	}
 	return s
 }

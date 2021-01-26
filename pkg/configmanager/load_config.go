@@ -20,17 +20,22 @@ package configmanager
 import (
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"sync"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"github.com/ghodss/yaml"
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 )
 
 var (
-	configPath     string
-	configLock     sync.Mutex
-	config         v2.MOSNConfig
+	// configPath stores the config file path
+	configPath string
+	// configLock controls the stored config
+	configLock sync.RWMutex
+	// conf keeps the mosn config
+	conf effectiveConfig
+	// configLoadFunc can be replaced by load config extension
 	configLoadFunc ConfigLoadFunc = DefaultConfigLoad
 )
 
@@ -48,16 +53,23 @@ func RegisterConfigLoadFunc(f ConfigLoadFunc) {
 }
 
 func DefaultConfigLoad(path string) *v2.MOSNConfig {
-	log.Println("load config from : ", path)
+	log.StartLogger.Infof("load config from :  %s", path)
 	content, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Fatalln("[config] [default load] load config failed, ", err)
+		log.StartLogger.Fatalf("[config] [default load] load config failed, error: %v", err)
 	}
 	cfg := &v2.MOSNConfig{}
+	if yamlFormat(path) {
+		bytes, err := yaml.YAMLToJSON(content)
+		if err != nil {
+			log.StartLogger.Fatalf("[config] [default load] translate yaml to json error: %v", err)
+		}
+		content = bytes
+	}
 	// translate to lower case
 	err = json.Unmarshal(content, cfg)
 	if err != nil {
-		log.Fatalln("[config] [default load] json unmarshal config failed, ", err)
+		log.StartLogger.Fatalf("[config] [default load] json unmarshal config failed, error: %v", err)
 	}
 	return cfg
 
@@ -66,8 +78,14 @@ func DefaultConfigLoad(path string) *v2.MOSNConfig {
 // Load config file and parse
 func Load(path string) *v2.MOSNConfig {
 	configPath, _ = filepath.Abs(path)
-	if cfg := configLoadFunc(path); cfg != nil {
-		config = *cfg
+	cfg := configLoadFunc(path)
+	return cfg
+}
+
+func yamlFormat(path string) bool {
+	ext := filepath.Ext(path)
+	if ext == ".yaml" || ext == ".yml" {
+		return true
 	}
-	return &config
+	return false
 }

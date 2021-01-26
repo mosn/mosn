@@ -18,35 +18,42 @@
 package v2
 
 import (
-	"reflect"
+	"runtime/debug"
+	"sync"
 	"testing"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 )
 
-func Test_handleRoutesResp(t *testing.T) {
-	type args struct {
-		resp *envoy_api_v2.DiscoveryResponse
+func Test_RdsHandler(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("TestRdsHandler error: %v \n %s", r, string(debug.Stack()))
+		}
+	}()
+
+	xdsConfig := XDSConfig{}
+	adsClient := &ADSClient{
+		AdsConfig:         xdsConfig.ADSConfig,
+		StreamClientMutex: sync.RWMutex{},
+		StreamClient:      nil,
+		SendControlChan:   make(chan int),
+		RecvControlChan:   make(chan int),
+		StopChan:          make(chan int),
 	}
-	tests := []struct {
-		name string
-		args args
-		want []*envoy_api_v2.RouteConfiguration
-	}{
-		{
-			name: "case1",
-			args: args{
-				resp: &envoy_api_v2.DiscoveryResponse{},
-			},
-			want: []*envoy_api_v2.RouteConfiguration{},
-		},
+	route := &envoy_api_v2.RouteConfiguration{
+		Name: "testroute",
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var client ADSClient
-			if got := client.handleRoutesResp(tt.args.resp); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("handleRoutesResp() = %v, want %v", got, tt.want)
-			}
-		})
+
+	routeAny, _ := ptypes.MarshalAny(route)
+	resp := &envoy_api_v2.DiscoveryResponse{
+		TypeUrl:   EnvoyRouteConfiguration,
+		Resources: []*any.Any{routeAny},
+	}
+
+	if rds := adsClient.handleRoutesResp(resp); rds == nil || len(rds) != 1 {
+		t.Error("handleRoutesResp failed.")
 	}
 }

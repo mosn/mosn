@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
-
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mosn"
 	mosntls "mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/mtls/certtool"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/types"
 	testutil "mosn.io/mosn/test/util"
 )
 
@@ -20,8 +21,9 @@ import (
 // use tls/util to create certificate
 // just verify ca only, ignore the san(dns\ip) verify
 type tlsConfigHooks struct {
-	root *x509.CertPool
-	cert tls.Certificate
+	root        *x509.CertPool
+	cert        tls.Certificate
+	defaultHook mosntls.ConfigHooks
 }
 
 func (hook *tlsConfigHooks) verifyPeerCertificate(roots *x509.CertPool, certs []*x509.Certificate, t time.Time) error {
@@ -38,6 +40,14 @@ func (hook *tlsConfigHooks) verifyPeerCertificate(roots *x509.CertPool, certs []
 	_, err := leaf.Verify(opts)
 	return err
 
+}
+
+func (hook *tlsConfigHooks) GetClientAuth(cfg *v2.TLSConfig) tls.ClientAuthType {
+	return hook.defaultHook.GetClientAuth(cfg)
+}
+
+func (hook *tlsConfigHooks) GenerateHashValue(cfg *tls.Config) *types.HashValue {
+	return hook.defaultHook.GenerateHashValue(cfg)
 }
 
 func (hook *tlsConfigHooks) GetCertificate(certIndex, keyIndex string) (tls.Certificate, error) {
@@ -97,6 +107,7 @@ func (f *tlsConfigHooksFactory) CreateConfigHooks(config map[string]interface{})
 	return &tlsConfigHooks{
 		f.root,
 		f.cert,
+		mosntls.DefaultConfigHooks(),
 	}
 }
 

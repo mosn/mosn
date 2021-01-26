@@ -17,15 +17,21 @@
 
 package api
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // Route is a route instance
 type Route interface {
 	// RouteRule returns the route rule
 	RouteRule() RouteRule
 
-	// DirectResponseRule returns direct response rile
+	// DirectResponseRule returns direct response rule
 	DirectResponseRule() DirectResponseRule
+
+	// RedirectRule returns redirect rule
+	RedirectRule() RedirectRule
 }
 
 // RouteRule defines parameters for a route
@@ -51,10 +57,10 @@ type RouteRule interface {
 	PerFilterConfig() map[string]interface{}
 
 	// FinalizeRequestHeaders do potentially destructive header transforms on request headers prior to forwarding
-	FinalizeRequestHeaders(headers HeaderMap, requestInfo RequestInfo)
+	FinalizeRequestHeaders(ctx context.Context, headers HeaderMap, requestInfo RequestInfo)
 
 	// FinalizeResponseHeaders do potentially destructive header transforms on response headers prior to forwarding
-	FinalizeResponseHeaders(headers HeaderMap, requestInfo RequestInfo)
+	FinalizeResponseHeaders(ctx context.Context, headers HeaderMap, requestInfo RequestInfo)
 
 	// PathMatchCriterion returns the route's PathMatchCriterion
 	PathMatchCriterion() PathMatchCriterion
@@ -65,6 +71,10 @@ type Policy interface {
 	RetryPolicy() RetryPolicy
 
 	ShadowPolicy() ShadowPolicy
+
+	HashPolicy() HashPolicy
+
+	MirrorPolicy() MirrorPolicy
 }
 
 // RetryCheckStatus type
@@ -110,6 +120,18 @@ type DirectResponseRule interface {
 	Body() string
 }
 
+// RedirectRule contains redirect info
+type RedirectRule interface {
+	// RedirectCode returns the redirect repsonse status code
+	RedirectCode() int
+	// RedirectPath returns the path that will overwrite the current path
+	RedirectPath() string
+	// RedirectHost returns the host that will overwrite the current host
+	RedirectHost() string
+	// RedirectScheme returns the scheme that will overwrite the current scheme
+	RedirectScheme() string
+}
+
 type MetadataMatchCriterion interface {
 	// the name of the metadata key
 	MetadataKeyName() string
@@ -135,10 +157,20 @@ const (
 	Prefix
 	Exact
 	Regex
-	SofaHeader
+	RPCHeader
+	Variable
 )
 
 type PathMatchCriterion interface {
 	MatchType() PathMatchType
 	Matcher() string
+}
+
+type HashPolicy interface {
+	GenerateHash(context context.Context) uint64
+}
+
+type MirrorPolicy interface {
+	ClusterName() string
+	IsMirror() bool
 }

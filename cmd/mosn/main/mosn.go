@@ -24,14 +24,23 @@ import (
 	"time"
 
 	"github.com/urfave/cli"
+	_ "mosn.io/mosn/pkg/admin/debug"
 	_ "mosn.io/mosn/pkg/buffer"
 	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
-	_ "mosn.io/mosn/pkg/filter/network/tcpproxy"
+	_ "mosn.io/mosn/pkg/filter/network/streamproxy"
+	_ "mosn.io/mosn/pkg/filter/stream/dsl"
+	_ "mosn.io/mosn/pkg/filter/stream/dubbo"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
+	_ "mosn.io/mosn/pkg/filter/stream/faulttolerance"
+	_ "mosn.io/mosn/pkg/filter/stream/flowcontrol"
+	_ "mosn.io/mosn/pkg/filter/stream/gzip"
+	_ "mosn.io/mosn/pkg/filter/stream/jwtauthn"
+	_ "mosn.io/mosn/pkg/filter/stream/mirror"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
+	_ "mosn.io/mosn/pkg/filter/stream/stats"
 	_ "mosn.io/mosn/pkg/filter/stream/transcoder/http2bolt"
 	_ "mosn.io/mosn/pkg/metrics/sink"
 	_ "mosn.io/mosn/pkg/metrics/sink/prometheus"
@@ -54,6 +63,7 @@ import (
 	_ "mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	_ "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/upstream/healthcheck"
+	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	_ "mosn.io/mosn/pkg/xds"
 )
 
@@ -61,12 +71,20 @@ import (
 var Version = "0.4.0"
 
 func main() {
+	app := newMosnApp(&cmdStart)
+
+	// ignore error so we don't exit non-zero and break gfmrun README example tests
+	_ = app.Run(os.Args)
+}
+
+func newMosnApp(startCmd *cli.Command) *cli.App {
 	app := cli.NewApp()
 	app.Name = "mosn"
 	app.Version = Version
 	app.Compiled = time.Now()
-	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Financial"
+	app.Copyright = "(c) " + strconv.Itoa(time.Now().Year()) + " Ant Group"
 	app.Usage = "MOSN is modular observable smart netstub."
+	app.Flags = cmdStart.Flags
 
 	//commands
 	app.Commands = []cli.Command{
@@ -77,12 +95,12 @@ func main() {
 
 	//action
 	app.Action = func(c *cli.Context) error {
-		cli.ShowAppHelp(c)
+		if c.NumFlags() == 0 {
+			return cli.ShowAppHelp(c)
+		}
 
-		c.App.Setup()
-		return nil
+		return startCmd.Action.(func(c *cli.Context) error)(c)
 	}
 
-	// ignore error so we don't exit non-zero and break gfmrun README example tests
-	_ = app.Run(os.Args)
+	return app
 }

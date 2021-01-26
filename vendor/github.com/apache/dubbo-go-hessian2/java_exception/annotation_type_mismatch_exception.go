@@ -42,3 +42,8 @@ func (e AnnotationTypeMismatchException) Error() string {
 func (AnnotationTypeMismatchException) JavaClassName() string {
 	return "java.lang.annotation.AnnotationTypeMismatchException"
 }
+
+// equals to getStackTrace in java
+func (e AnnotationTypeMismatchException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

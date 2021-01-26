@@ -19,11 +19,8 @@ package go2sky
 
 import (
 	"context"
-	"sync"
-	"sync/atomic"
-	"time"
 
-	"github.com/google/uuid"
+	"github.com/SkyAPM/go2sky/internal/idgen"
 	"github.com/pkg/errors"
 
 	"github.com/SkyAPM/go2sky/internal/tool"
@@ -34,8 +31,6 @@ const (
 	errParameter = tool.Error("parameter are nil")
 	EmptyTraceID = "N/A"
 	NoopTraceID  = "[Ignored Trace]"
-	// -1 represent the object doesn't exist.
-	Inexistence = -1
 )
 
 // Tracer is go2sky tracer implementation.
@@ -44,10 +39,7 @@ type Tracer struct {
 	instance string
 	reporter Reporter
 	// 0 not init 1 init
-	initFlag   int32
-	serviceID  int32
-	instanceID int32
-	wg         *sync.WaitGroup
+	initFlag int32
 }
 
 // TracerOption allows for functional options to adjust behaviour
@@ -60,47 +52,25 @@ func NewTracer(service string, opts ...TracerOption) (tracer *Tracer, err error)
 		return nil, errParameter
 	}
 	t := &Tracer{
-		service:    service,
-		initFlag:   0,
-		serviceID:  0,
-		instanceID: 0,
+		service:  service,
+		initFlag: 0,
 	}
 	for _, opt := range opts {
 		opt(t)
 	}
+
 	if t.reporter != nil {
 		if t.instance == "" {
-			id, err := uuid.NewUUID()
+			id, err := idgen.UUID()
 			if err != nil {
 				return nil, err
 			}
-			t.instance = id.String()
+			t.instance = id + "@" + tool.IPV4()
 		}
-		t.wg = &sync.WaitGroup{}
-		t.wg.Add(1)
-		go func() {
-			defer t.wg.Done()
-			for {
-				serviceID, instanceID, err := t.reporter.Register(t.service, t.instance)
-				if err != nil {
-					time.Sleep(5 * time.Second)
-					continue
-				}
-				if atomic.SwapInt32(&t.serviceID, serviceID) == 0 && atomic.SwapInt32(&t.instanceID, instanceID) == 0 {
-					atomic.SwapInt32(&t.initFlag, 1)
-					break
-				}
-			}
-		}()
+		t.reporter.Boot(t.service, t.instance)
+		t.initFlag = 1
 	}
 	return t, nil
-}
-
-//WaitUntilRegister is a tool helps user to wait until register process has finished
-func (t *Tracer) WaitUntilRegister() {
-	if t.wg != nil {
-		t.wg.Wait()
-	}
 }
 
 // CreateEntrySpan creates and starts an entry span for incoming request
@@ -118,7 +88,7 @@ func (t *Tracer) CreateEntrySpan(ctx context.Context, operationName string, extr
 	var refSc *propagation.SpanContext
 	if header != "" {
 		refSc = &propagation.SpanContext{}
-		err = refSc.DecodeSW6(header)
+		err = refSc.DecodeSW8(header)
 		if err != nil {
 			return
 		}
@@ -128,25 +98,6 @@ func (t *Tracer) CreateEntrySpan(ctx context.Context, operationName string, extr
 		return
 	}
 	s.SetOperationName(operationName)
-	ref, ok := nCtx.Value(refKeyInstance).(*propagation.SpanContext)
-	if ok && ref != nil {
-		return
-	}
-	sc := &propagation.SpanContext{
-		Sample:                 1,
-		ParentEndpoint:         operationName,
-		EntryEndpoint:          operationName,
-		EntryServiceInstanceID: t.instanceID,
-	}
-	if refSc != nil {
-		sc.Sample = refSc.Sample
-		if refSc.EntryEndpoint != "" {
-			sc.EntryEndpoint = refSc.EntryEndpoint
-		}
-		sc.EntryEndpointID = refSc.EntryEndpointID
-		sc.EntryServiceInstanceID = refSc.EntryServiceInstanceID
-	}
-	nCtx = context.WithValue(nCtx, refKeyInstance, sc)
 	return
 }
 
@@ -166,7 +117,10 @@ func (t *Tracer) CreateLocalSpan(ctx context.Context, opts ...SpanOption) (s Spa
 	if !ok {
 		parentSpan = nil
 	}
-	s = newSegmentSpan(ds, parentSpan)
+	s, err = newSegmentSpan(ds, parentSpan)
+	if err != nil {
+		return nil, nil, err
+	}
 	return s, context.WithValue(ctx, ctxKeyInstance, s), nil
 }
 
@@ -189,44 +143,18 @@ func (t *Tracer) CreateExitSpan(ctx context.Context, operationName string, peer 
 	if !ok {
 		return nil, errors.New("span type is wrong")
 	}
+
+	firstSpan := span.Context().FirstSpan
 	spanContext.Sample = 1
 	spanContext.TraceID = span.Context().TraceID
-	spanContext.ParentSpanID = span.Context().SpanID
 	spanContext.ParentSegmentID = span.Context().SegmentID
-	spanContext.NetworkAddress = peer
-	spanContext.ParentServiceInstanceID = t.instanceID
+	spanContext.ParentSpanID = span.Context().SpanID
+	spanContext.ParentService = t.service
+	spanContext.ParentServiceInstance = t.instance
+	spanContext.ParentEndpoint = firstSpan.GetOperationName()
+	spanContext.AddressUsedAtClient = peer
 
-	// Since 6.6.0, if first span is not entry span, then this is an internal segment(no RPC), rather than an endpoint.
-	// EntryEndpoint
-	firstSpan := span.Context().FirstSpan
-	firstSpanOperationName := firstSpan.GetOperationName()
-	ref, ok := ctx.Value(refKeyInstance).(*propagation.SpanContext)
-	var entryEndpoint = ""
-	var entryServiceInstanceID int32
-	if ok && ref != nil {
-		spanContext.Sample = ref.Sample
-		entryEndpoint = ref.EntryEndpoint
-		entryServiceInstanceID = ref.EntryServiceInstanceID
-	} else {
-		if firstSpan.IsEntry() {
-			entryEndpoint = firstSpanOperationName
-		} else {
-			spanContext.EntryEndpointID = Inexistence
-		}
-		entryServiceInstanceID = t.instanceID
-	}
-	spanContext.EntryServiceInstanceID = entryServiceInstanceID
-	if entryEndpoint != "" {
-		spanContext.EntryEndpoint = entryEndpoint
-	}
-	// ParentEndpoint
-	if firstSpan.IsEntry() && firstSpanOperationName != "" {
-		spanContext.ParentEndpoint = firstSpanOperationName
-	} else {
-		spanContext.ParentEndpointID = Inexistence
-	}
-
-	err = injector(spanContext.EncodeSW6())
+	err = injector(spanContext.EncodeSW8())
 	if err != nil {
 		return nil, err
 	}
@@ -249,15 +177,11 @@ func (t *Tracer) createNoop(ctx context.Context) (s Span, nCtx context.Context) 
 
 type ctxKey struct{}
 
-type refKey struct{}
-
 var ctxKeyInstance = ctxKey{}
-
-var refKeyInstance = refKey{}
 
 //Reporter is a data transit specification
 type Reporter interface {
-	Register(service string, instance string) (int32, int32, error)
+	Boot(service string, serviceInstance string)
 	Send(spans []ReportedSpan)
 	Close()
 }
@@ -269,7 +193,7 @@ func TraceID(ctx context.Context) string {
 	}
 	span, ok := activeSpan.(segmentSpan)
 	if ok {
-		return span.context().GetReadableGlobalTraceID()
+		return span.context().TraceID
 	}
 	return NoopTraceID
 }

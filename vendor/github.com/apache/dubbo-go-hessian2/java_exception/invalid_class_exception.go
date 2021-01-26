@@ -48,3 +48,8 @@ func (e InvalidClassException) Error() string {
 func (InvalidClassException) JavaClassName() string {
 	return "java.io.InvalidClassException"
 }
+
+// equals to getStackTrace in java
+func (e InvalidClassException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

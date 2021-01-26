@@ -19,6 +19,7 @@ package dubbo
 
 import (
 	"context"
+	"encoding/binary"
 
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -32,6 +33,17 @@ func encodeResponse(ctx context.Context, response *Frame) (types.IoBuffer, error
 }
 
 func encodeFrame(ctx context.Context, frame *Frame) (types.IoBuffer, error) {
+
+	// 1. fast-path, use existed raw data
+	if frame.rawData != nil {
+		// 1.1 replace requestId
+		binary.BigEndian.PutUint64(frame.rawData[IdIdx:], frame.Id)
+
+		// hack: increase the buffer count to avoid premature recycle
+		frame.data.Count(1)
+		return frame.data, nil
+	}
+
 	// alloc encode buffer
 	frameLen := int(HeaderLen + frame.DataLen)
 	buf := buffer.GetIoBuffer(frameLen)

@@ -19,7 +19,9 @@ package v2
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
+	"strings"
 
 	"mosn.io/api"
 )
@@ -35,9 +37,14 @@ type ServerConfig struct {
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
 	GracefulTimeout api.DurationConfig `json:"graceful_timeout,omitempty"`
+	// OptimizeLocalWrite set to true means if a connection remote address is
+	// localhost, we will use a goroutine for write, which can get better performance
+	// but lower write time costs accuracy.
+	OptimizeLocalWrite bool `json:"optimize_local_write,omitempty"`
 
-	//go processor number
-	Processor int `json:"processor,omitempty"`
+	// int go processor number
+	// string set auto means use real cpu core or limit cpu core
+	Processor interface{} `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
 
@@ -55,6 +62,7 @@ type ListenerConfig struct {
 	Type                  ListenerType        `json:"type,omitempty"`
 	AddrConfig            string              `json:"address,omitempty"`
 	BindToPort            bool                `json:"bind_port,omitempty"`
+	Network               string              `json:"network,omitempty"`
 	UseOriginalDst        bool                `json:"use_original_dst,omitempty"`
 	AccessLogs            []AccessLog         `json:"access_logs,omitempty"`
 	ListenerFilters       []Filter            `json:"listener_filters,omitempty"`
@@ -67,12 +75,13 @@ type ListenerConfig struct {
 // Listener contains the listener's information
 type Listener struct {
 	ListenerConfig
-	Addr                    net.Addr         `json:"-"`
-	ListenerTag             uint64           `json:"-"`
-	ListenerScope           string           `json:"-"`
-	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
-	InheritListener         *net.TCPListener `json:"-"`
-	Remain                  bool             `json:"-"`
+	Addr                    net.Addr        `json:"-"`
+	ListenerTag             uint64          `json:"-"`
+	ListenerScope           string          `json:"-"`
+	PerConnBufferLimitBytes uint32          `json:"-"` // do not support config
+	InheritListener         net.Listener    `json:"-"`
+	InheritPacketConn       *net.PacketConn `json:"-"`
+	Remain                  bool            `json:"-"`
 }
 
 func (l Listener) MarshalJSON() (b []byte, err error) {
@@ -80,6 +89,44 @@ func (l Listener) MarshalJSON() (b []byte, err error) {
 		l.AddrConfig = l.Addr.String()
 	}
 	return json.Marshal(l.ListenerConfig)
+}
+
+var (
+	ErrNoAddrListener   = errors.New("address is required in listener config")
+	ErrUnsupportNetwork = errors.New("listener network only support tcp/udp/unix")
+)
+
+const defaultBufferLimit = 1 << 15
+
+func (l *Listener) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &l.ListenerConfig); err != nil {
+		return err
+	}
+	if l.AddrConfig == "" {
+		return ErrNoAddrListener
+	}
+	if l.Network == "" {
+		l.Network = "tcp" // default is tcp
+	}
+	l.Network = strings.ToLower(l.Network)
+	var err error
+	var addr net.Addr
+	switch l.Network {
+	case "udp":
+		addr, err = net.ResolveUDPAddr("udp", l.AddrConfig)
+	case "unix":
+		addr, err = net.ResolveUnixAddr("unix", l.AddrConfig)
+	case "tcp":
+		addr, err = net.ResolveTCPAddr("tcp", l.AddrConfig)
+	default: // only support tcp,udp,unix
+		err = ErrUnsupportNetwork
+	}
+	if err != nil {
+		return err
+	}
+	l.Addr = addr
+	l.PerConnBufferLimitBytes = defaultBufferLimit
+	return nil
 }
 
 // AccessLog for making up access log

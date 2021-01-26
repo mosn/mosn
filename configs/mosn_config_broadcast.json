@@ -1,0 +1,117 @@
+{
+	"servers": [
+		{
+			"default_log_path": "stdout",
+			"default_log_level": "DEBUG",
+			"listeners": [
+				{
+					"name": "http1",
+					"address": "0.0.0.0:8081",
+					"bind_port": true,
+					"filter_chains": [
+						{
+							"tls_context": {},
+							"filters": [
+								{
+									"type": "proxy",
+									"config": {
+										"downstream_protocol": "Http1",
+										"upstream_protocol": "Http1",
+										"router_config_name": "8080"
+									}
+								}
+							]
+						}
+					],
+					"stream_filters": [
+						{
+							"type": "mirror",
+							"config": {
+								"amplification": 10,
+								"broadcast": true
+							}
+						}
+					]
+				}
+			],
+
+			"routers": [
+				{
+					"router_config_name": "8080",
+					"virtual_hosts": [
+						{
+							"name": "http1",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"match": {
+										"prefix": "/"
+									},
+									"route": {
+										"cluster_name": "http1"
+									},
+									"request_mirror_policies": {
+										"cluster": "http1_mirror",
+										"percent": 100
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"cluster_manager": {
+		"clusters": [
+			{
+				"Name": "http1",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+				"max_request_per_conn": 1024,
+				"conn_buffer_limit_bytes": 32768,
+				"hosts": [
+					{
+						"address": "127.0.0.1:8080"
+					}
+				]
+			},
+			{
+				"Name": "http1_mirror",
+				"type": "SIMPLE",
+				"lb_type": "LB_REQUEST_ROUNDROBIN",
+				"max_request_per_conn": 1024,
+				"conn_buffer_limit_bytes": 32768,
+				"hosts": [
+					{
+						"address": "127.0.0.1:9090"
+					},
+					{
+						"address": "127.0.0.1:9091"
+					}
+				]
+			}
+		]
+	},
+	"admin": {
+		"address": {
+			"socket_address": {
+				"address": "0.0.0.0",
+				"port_value": 34902
+			}
+		}
+	},
+	"metrics": {
+		"shm_zone": "metrics",
+		"sinks": [
+			{
+				"type": "prometheus",
+				"config": {
+					"port": 15090
+				}
+			}
+		]
+	}
+}

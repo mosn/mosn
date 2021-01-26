@@ -133,6 +133,17 @@ func (fg *FeatureGate) Enabled(key Feature) bool {
 	return false
 }
 
+// KnownFeatures returns a slice of strings describing the FeatureGate's known features and status.
+func (fg *FeatureGate) KnownFeatures() map[string]bool {
+	fg.lock.Lock()
+	defer fg.lock.Unlock()
+	known := make(map[string]bool, len(fg.known))
+	for k, spec := range fg.known {
+		known[string(k)] = spec.State()
+	}
+	return known
+}
+
 // Subscribe waits the feature is ready, and returns the feature is enabled or not.
 // The timeout is the max wait time duration for subscribe. If timeout is zero, means no timeout.
 func (fg *FeatureGate) Subscribe(key Feature, timeout time.Duration) (bool, error) {

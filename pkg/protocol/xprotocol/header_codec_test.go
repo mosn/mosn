@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"encoding/hex"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"mosn.io/pkg/buffer"
@@ -49,6 +50,74 @@ func BenchmarkDecodeHeader(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		DecodeHeader(buf.Bytes(), decoded)
 	}
+}
+
+func TestCLone(t *testing.T) {
+	var kv = map[string]string{
+		"k1": "v1",
+		"k2": "v2",
+		"k3": "v3",
+	}
+
+	var h = &Header{}
+	for k, v := range kv {
+		h.Set(k, v)
+	}
+
+	var hClone = h.Clone()
+	for k, v := range kv {
+		value, ok := hClone.Get(k)
+		assert.True(t, ok)
+		assert.Equal(t, value, v)
+	}
+}
+
+func TestHeaderRange(t *testing.T) {
+	var kv = map[string]string{
+		"k1": "v1",
+		"k2": "v2",
+		"k3": "v3",
+	}
+
+	var h = &Header{}
+	for k, v := range kv {
+		h.Set(k, v)
+	}
+
+	h.Range(func(key, value string) bool {
+		v, ok := kv[key]
+		assert.True(t, ok)
+		assert.Equal(t, v, value)
+		return true
+	})
+}
+
+// we should get the value we set in header
+func TestHeaderSetGetDel(t *testing.T) {
+	var h = &Header{}
+	h.Set("kkk", "vvv")
+	assert.True(t, h.Changed)
+
+	v, ok := h.Get("kkk")
+	assert.True(t, ok)
+	assert.Equal(t, v, "vvv")
+
+	// override the original value
+	h.Set("kkk", "vvvv")
+	v, _ = h.Get("kkk")
+	assert.Equal(t, v, "vvvv")
+
+	buf := buffer.NewIoBuffer(100)
+	assert.Equal(t, 0, buf.Len())
+
+	EncodeHeader(buf, h)
+	assert.Less(t, 0, buf.Len())
+
+	assert.Equal(t, GetHeaderEncodeLength(h), buf.Len())
+
+	h.Del("kkk")
+	_, ok = h.Get("kkk")
+	assert.False(t, ok)
 }
 
 func TestDecodeHeader(t *testing.T) {

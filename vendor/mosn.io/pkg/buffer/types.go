@@ -50,6 +50,11 @@ type IoBuffer interface {
 	// buffer becomes too large, ReadFrom will panic with ErrTooLarge.
 	ReadFrom(r io.Reader) (n int64, err error)
 
+	// Grow updates the length of the buffer by n, growing the buffer as
+	// needed. The return value n is the length of p; err is always nil. If the
+	// buffer becomes too large, Write will panic with ErrTooLarge.
+	Grow(n int) error
+
 	// Write appends the contents of p to the buffer, growing the buffer as
 	// needed. The return value n is the length of p; err is always nil. If the
 	// buffer becomes too large, Write will panic with ErrTooLarge.

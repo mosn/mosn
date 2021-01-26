@@ -42,3 +42,8 @@ func (e EnumConstantNotPresentException) Error() string {
 func (EnumConstantNotPresentException) JavaClassName() string {
 	return "java.lang.EnumConstantNotPresentException"
 }
+
+// equals to getStackTrace in java
+func (e EnumConstantNotPresentException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

@@ -40,3 +40,8 @@ func (e NotSerializableException) Error() string {
 func (NotSerializableException) JavaClassName() string {
 	return "java.io.NotSerializableException"
 }
+
+// equals to getStackTrace in java
+func (e NotSerializableException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

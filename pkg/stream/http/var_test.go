@@ -21,11 +21,15 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"strconv"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -54,6 +58,20 @@ func prepareRequest(t *testing.T, requestBytes []byte) context.Context {
 	return ctx
 }
 
+func Test_get_scheme(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	actual, err := variable.GetVariableValue(ctx, fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestScheme))
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+
+	want := "http"
+	if actual != want {
+		t.Errorf("request scheme assert failed, expected: %s, actual is: %s", want, actual)
+	}
+}
+
 func Test_get_request_length_and_method(t *testing.T) {
 	ctx := prepareRequest(t, postRequestBytes)
 
@@ -79,7 +97,8 @@ func Test_get_request_length_and_method(t *testing.T) {
 func Test_get_header(t *testing.T) {
 	ctx := prepareRequest(t, postRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx, "http_header_scene")
+	actual, err := variable.GetVariableValue(ctx,
+		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolRequestHeader, "scene"))
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
@@ -92,7 +111,8 @@ func Test_get_header(t *testing.T) {
 func Test_get_arg(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx, "http_arg_type")
+	actual, err := variable.GetVariableValue(ctx,
+		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolRequestArgPrefix, "type"))
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
@@ -105,13 +125,117 @@ func Test_get_arg(t *testing.T) {
 func Test_get_cookie(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx, "http_cookie_zone")
+	actual, err := variable.GetVariableValue(ctx,
+		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolCookie, "zone"))
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
 
 	if actual != "shanghai" {
 		t.Error("request cookie assert failed, expected: shanghai, actual is: ", actual)
+	}
+}
+
+func Test_get_path(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	actual, err := variable.GetVariableValue(ctx,
+		fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestPath))
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+
+	want := "/info.htm"
+	if actual != want {
+		t.Errorf("request path assert failed, expected: %s, actual is: %s", want, actual)
+	}
+}
+
+func Test_get_uri(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	actual, err := variable.GetVariableValue(ctx,
+		fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestUri))
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+
+	want := "/info.htm?type=foo&name=bar"
+	if actual != want {
+		t.Errorf("request uri assert failed, expected: %s, actual is: %s", want, actual)
+	}
+}
+
+func Test_get_allarg(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	actual, err := variable.GetVariableValue(ctx,
+		fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestArg))
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+	want := "type=foo&name=bar"
+	if actual != want {
+		t.Errorf("request arg assert failed, expected: %s, actual is: %s", want, actual)
+	}
+}
+
+func Test_get_protocolResource(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+	actual, err := variable.GetProtocolResource(ctx, api.PATH)
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+	want := "/info.htm"
+	if actual != want {
+		t.Errorf("request arg assert failed, expected: %s, actual is: %s", want, actual)
+	}
+
+	actual, err = variable.GetProtocolResource(ctx, api.URI)
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+	want = "/info.htm?type=foo&name=bar"
+	if actual != want {
+		t.Errorf("request arg assert failed, expected: %s, actual is: %s", want, actual)
+	}
+
+	actual, err = variable.GetProtocolResource(ctx, api.ARG)
+	if err != nil {
+		t.Error("get variable failed:", err)
+	}
+	want = "type=foo&name=bar"
+	if actual != want {
+		t.Errorf("request arg assert failed, expected: %s, actual is: %s", want, actual)
+	}
+}
+
+func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
+	ctx := prepareRequest(t, getRequestBytes)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+
+	cookieName := "zone"
+	expect := "shanghai"
+	actual, err := variable.GetProtocolResource(ctx, api.COOKIE, cookieName)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, expect, actual, "cookie value expect to be %s, but get %s") {
+		t.FailNow()
+	}
+
+	headerName := "Content-Type"
+	expect = "text/plain"
+	actual, err = variable.GetProtocolResource(ctx, api.HEADER, headerName)
+	if err != nil {
+		t.Error(err)
+		t.FailNow()
+	}
+	if !assert.Equalf(t, expect, actual, "header value expect to be %s, but get %s") {
+		t.FailNow()
 	}
 }
 

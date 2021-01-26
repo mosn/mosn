@@ -40,3 +40,8 @@ func (e ArithmeticException) Error() string {
 func (ArithmeticException) JavaClassName() string {
 	return "java.lang.ArithmeticException"
 }
+
+// equals to getStackTrace in java
+func (e ArithmeticException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}

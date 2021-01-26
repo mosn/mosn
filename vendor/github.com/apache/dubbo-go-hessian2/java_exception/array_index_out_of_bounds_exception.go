@@ -40,3 +40,8 @@ func (e ArrayIndexOutOfBoundsException) Error() string {
 func (ArrayIndexOutOfBoundsException) JavaClassName() string {
 	return "java.lang.ArrayIndexOutOfBoundsException"
 }
+
+// equals to getStackTrace in java
+func (e ArrayIndexOutOfBoundsException) GetStackTrace() []StackTraceElement {
+	return e.StackTrace
+}
