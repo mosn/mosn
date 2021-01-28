@@ -18,10 +18,14 @@
 package mosn
 
 import (
+	"io/ioutil"
 	"net"
+	goplugin "plugin"
 	"sync"
 	"syscall"
 	"time"
+
+	"mosn.io/pkg/utils"
 
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
@@ -41,7 +45,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/pkg/xds"
-	"mosn.io/pkg/utils"
 )
 
 // Mosn class which wrapper server
@@ -66,6 +69,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
+	initializeThirdPartCodec(c.ThirdPartCodec)
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// set the mosn config finally
@@ -400,6 +404,62 @@ func initializePlugin(log string) {
 		log = types.MosnLogBasePath
 	}
 	plugin.InitPlugin(log)
+}
+
+func initializeThirdPartCodec(codec v2.ThirdPartCodecConfig) {
+	if !codec.Enable {
+		log.StartLogger.Infof("[mosn] [init codec] third part codec disabled, skip...")
+		return
+	}
+
+	switch codec.Type {
+	case v2.GoPlugin:
+		if err := initGoPluginCodec(codec.Dir); err != nil {
+			log.StartLogger.Errorf("[mosn] [init codec] init go-plugin codec failed: %+v", err)
+		}
+	case v2.Wasm:
+		// todo
+	default:
+		log.StartLogger.Errorf("[mosn] [init codec] unknown third part codec type: %+v", codec.Type)
+	}
+
+	log.StartLogger.Infof("[mosn] [init codec] codec all loaded")
+}
+
+const (
+	LoaderFunctionName string = "LoadCodec"
+)
+
+func initGoPluginCodec(dir string) error {
+	fileInfo, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	for _, info := range fileInfo {
+		fileName := info.Name()
+		if err := readProtocolPlugin(dir + "/" + fileName); err != nil {
+			log.DefaultLogger.Warnf("[mosn] [init codec] load go plugin codec failed: %+v, err: %+v", dir+"/"+fileName, err)
+		}
+		log.DefaultLogger.Infof("[mosn] [init codec] load go plugin codec succeed: %+v", dir+"/"+fileName)
+	}
+
+	return nil
+}
+
+func readProtocolPlugin(path string) error {
+	p, err := goplugin.Open(path)
+	if err != nil {
+		return err
+	}
+
+	sym, err := p.Lookup(LoaderFunctionName)
+	if err != nil {
+		return err
+	}
+
+	loadFunc := sym.(func() error)
+	return loadFunc()
 }
 
 type clusterManagerFilter struct {

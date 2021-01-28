@@ -17,11 +17,14 @@
 
 package types
 
+import "mosn.io/api/types"
+
 // PoolMode is whether PingPong or multiplex
-type PoolMode int
+// Deprecated: use mosn.io/api/types/pool.go:PoolMode instead
+type PoolMode = types.PoolMode
 
 const (
-	PingPong PoolMode = iota
-	Multiplex
-	TCP
+	PingPong  = types.PingPong
+	Multiplex = types.Multiplex
+	TCP       = types.TCP
 )

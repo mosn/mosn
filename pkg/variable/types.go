@@ -17,14 +17,16 @@
 
 package variable
 
-import "context"
+import (
+	"mosn.io/pkg/variable"
+)
 
 const (
-	MOSN_VAR_FLAG_CHANGEABLE  = 1
-	MOSN_VAR_FLAG_NOCACHEABLE = 2
-	MOSN_VAR_FLAG_NOHASH      = 4
+	MOSN_VAR_FLAG_CHANGEABLE  = variable.MOSN_VAR_FLAG_CHANGEABLE
+	MOSN_VAR_FLAG_NOCACHEABLE = variable.MOSN_VAR_FLAG_NOCACHEABLE
+	MOSN_VAR_FLAG_NOHASH      = variable.MOSN_VAR_FLAG_NOHASH
 
-	ValueNotFound = "-"
+	ValueNotFound = variable.ValueNotFound
 )
 
 // GetterFunc used to get the value of variable, the implementation should handle the field
@@ -34,40 +36,21 @@ const (
 //
 // Function should return ValueNotFound("-") if target value not exists.
 // E.g. reference to the header which is not existed in current request.
-type GetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
+// Deprecated: use mosn.io/pkg/variable/types.go:GetterFunc instead
+type GetterFunc = variable.GetterFunc
 
 // SetterFunc used to set the value of variable
-type SetterFunc func(ctx context.Context, variableValue *IndexedValue, value string) error
+// Deprecated: use mosn.io/pkg/variable/types.go:SetterFunc instead
+type SetterFunc = variable.SetterFunc
 
 // Variable provides a flexible and convenient way to pass information
-type Variable interface {
-	// variable name
-	Name() string
-	// variable data, which is useful for getter/setter
-	Data() interface{}
-	// variable flags
-	Flags() uint32
-	// value getter
-	Getter() GetterFunc
-	// value setter
-	Setter() SetterFunc
-}
+// Deprecated: use mosn.io/pkg/variable/types.go:Variable instead
+type Variable = variable.Variable
 
 // IndexedValue used to store result value
-type IndexedValue struct {
-	Valid       bool
-	NotFound    bool
-	noCacheable bool
-	//escape      bool
-
-	data string
-}
+// Deprecated: use mosn.io/pkg/variable/types.go:IndexedValue instead
+type IndexedValue = variable.IndexedValue
 
 // Indexer indicates that variable needs to be cached by using pre-allocated IndexedValue
-type Indexer interface {
-	// variable index
-	GetIndex() uint32
-
-	// set index to variable
-	SetIndex(index uint32)
-}
+// Deprecated: use mosn.io/pkg/variable/types.go:Indexer instead
+type Indexer = variable.Indexer

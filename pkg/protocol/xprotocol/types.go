@@ -18,117 +18,71 @@
 package xprotocol
 
 import (
-	"errors"
-
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api/protocol/xprotocol"
 )
 
 // StreamType distinguish the stream flow type.
 // Request: stream is a normal request and needs response
 // RequestOneWay: stream is a oneway request and doesn't need response
 // Response: stream is a response to specific request
-type StreamType int
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:StreamType instead
+type StreamType = xprotocol.StreamType
 
 const (
-	Request StreamType = iota
-	RequestOneWay
-	Response
+	Request       = xprotocol.Request
+	RequestOneWay = xprotocol.RequestOneWay
+	Response      = xprotocol.Response
 )
 
 // Error def
+// Deprecated
 var (
-	AlreadyRegistered = "protocol code already registered"
-	UnknownType       = "unknown model type"
-	UnrecognizedCode  = "unrecognized protocol code"
-	NoProtocolCode    = "no protocol code found"
+	AlreadyRegistered = xprotocol.AlreadyRegistered
+	UnknownType       = xprotocol.UnknownType
+	UnrecognizedCode  = xprotocol.UnrecognizedCode
+	NoProtocolCode    = xprotocol.NoProtocolCode
 
-	ErrDupRegistered    = errors.New(AlreadyRegistered)
-	ErrUnknownType      = errors.New(UnknownType)
-	ErrUnrecognizedCode = errors.New(UnrecognizedCode)
-	ErrNoProtocolCode   = errors.New(NoProtocolCode)
+	ErrDupRegistered    = xprotocol.ErrDupRegistered
+	ErrUnknownType      = xprotocol.ErrUnknownType
+	ErrUnrecognizedCode = xprotocol.ErrUnrecognizedCode
+	ErrNoProtocolCode   = xprotocol.ErrNoProtocolCode
 )
 
 // XFrame represents the minimal programmable object of the protocol.
-type XFrame interface {
-	// TODO: make multiplexing optional, and maybe we can support PING-PONG protocol in this framework.
-	Multiplexing
-
-	HeartbeatPredicate
-
-	GetStreamType() StreamType
-
-	GetHeader() types.HeaderMap
-
-	GetData() types.IoBuffer
-
-	SetData(data types.IoBuffer)
-}
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:XFrame instead
+type XFrame = xprotocol.XFrame
 
 // XRespFrame expose response status code based on the XFrame
-type XRespFrame interface {
-	XFrame
-
-	GetStatusCode() uint32
-}
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:XRespFrame instead
+type XRespFrame = xprotocol.XRespFrame
 
 // Multiplexing provides the ability to distinguish multi-requests in single-connection by recognize 'request-id' semantics
-type Multiplexing interface {
-	GetRequestId() uint64
-
-	SetRequestId(id uint64)
-}
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:Multiplexing instead
+type Multiplexing = xprotocol.Multiplexing
 
 // HeartbeatPredicate provides the ability to judge if current frame is a heartbeat, which is usually used to make connection keepalive
-type HeartbeatPredicate interface {
-	IsHeartbeatFrame() bool
-}
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:HeartbeatPredicate instead
+type HeartbeatPredicate = xprotocol.HeartbeatPredicate
 
 // ServiceAware provides the ability to get the most common info for rpc invocation: service name and method name
-type ServiceAware interface {
-	GetServiceName() string
-
-	GetMethodName() string
-}
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:ServiceAware instead
+type ServiceAware = xprotocol.ServiceAware
 
 // HeartbeatPredicate provides the ability to judge if current is a goaway frmae, which indicates that current connection
 // should be no longer used and turn into the draining state.
-type GoAwayPredicate interface {
-	IsGoAwayFrame() bool
-}
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:GoAwayPredicate instead
+type GoAwayPredicate = xprotocol.GoAwayPredicate
 
 // XProtocol provides extra ability(Heartbeater, Hijacker) to interacts with the proxy framework based on the Protocol interface.
 // e.g. A request which cannot find route should be responded with a error response like '404 Not Found', that is what Hijacker
 // interface exactly provides.
-type XProtocol interface {
-	types.Protocol
-
-	Heartbeater
-
-	Hijacker
-
-	PoolMode() types.PoolMode // configure this to use which connpool
-
-	EnableWorkerPool() bool // same meaning as EnableWorkerPool in types.StreamConnection
-
-	// generate a request id for stream to combine stream request && response
-	// use connection param as base
-	GenerateRequestID(*uint64) uint64
-}
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:XProtocol instead
+type XProtocol = xprotocol.XProtocol
 
 // HeartbeatBuilder provides the ability to construct proper heartbeat command for xprotocol sub-protocols
-type Heartbeater interface {
-	// Trigger builds an active heartbeat command
-	Trigger(requestId uint64) XFrame
-
-	// Reply builds heartbeat command corresponding to the given requestID
-	Reply(request XFrame) XRespFrame
-}
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:Heartbeater instead
+type Heartbeater = xprotocol.Heartbeater
 
 // Hijacker provides the ability to construct proper response command for xprotocol sub-protocols
-type Hijacker interface {
-	// BuildResponse build response with given status code
-	Hijack(request XFrame, statusCode uint32) XRespFrame
-
-	// Mapping the http status code, which used by proxy framework into protocol-specific status
-	Mapping(httpStatusCode uint32) uint32
-}
+// Deprecated: use mosn.io/api/protocol/xprotocol/types.go:Hijacker instead
+type Hijacker = xprotocol.Hijacker

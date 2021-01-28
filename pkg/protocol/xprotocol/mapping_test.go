@@ -2,10 +2,12 @@ package xprotocol
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/types"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"mosn.io/api/types"
+
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 // type xprotocolMapping struct{}

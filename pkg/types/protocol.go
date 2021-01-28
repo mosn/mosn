@@ -18,9 +18,7 @@
 package types
 
 import (
-	"context"
-
-	"mosn.io/pkg/buffer"
+	"mosn.io/api/types"
 )
 
 // 	 The bunch of interfaces are structure skeleton to build a extensible protocol engine.
@@ -41,54 +39,35 @@ import (
 
 type (
 	// MatchResult
-	MatchResult int
+	// Deprecated: use mosn.io/api/types/protocol.go:MatchResult instead
+	MatchResult = types.MatchResult
+
 	// ProtocolMatch recognize if the given data matches the protocol specification or not
-	ProtocolMatch func(data []byte) MatchResult
+	// Deprecated: use mosn.io/api/types/protocol.go:ProtocolMatch instead
+	ProtocolMatch = types.ProtocolMatch
 )
 
 const (
-	MatchFailed MatchResult = iota
-	MatchSuccess
-	MatchAgain
+	MatchFailed  = types.MatchFailed
+	MatchSuccess = types.MatchSuccess
+	MatchAgain   = types.MatchAgain
 )
 
 // TODO: Protocol and api.Protocol have the same name, maybe makes some ambiguity.
 
 // Protocol need to provides ability to convert mode-to-binary and vice-versa
-type Protocol interface {
-	// Encoder is the encoder implementation of the protocol
-	Encoder
-	// Decoder is the decoder implementation of the protocol
-	Decoder
-	// Name is the  name of the protocol
-	Name() ProtocolName
-}
+// Deprecated: use mosn.io/api/types/protocol.go:Protocol instead
+type Protocol = types.Protocol
 
 // ProtocolEngine is a protocols' facade used by Stream, it provides
 // auto protocol detection by the ProtocolMatch func
-type ProtocolEngine interface {
-	// Match use registered matchFunc to recognize corresponding protocol
-	Match(ctx context.Context, data IoBuffer) (ProtocolName, MatchResult)
-	// Register register encoder and decoder, which recognized by the matchFunc
-	Register(matchFunc ProtocolMatch, protocol ProtocolName) error
-}
+// Deprecated: use mosn.io/api/types/protocol.go:ProtocolEngine instead
+type ProtocolEngine = types.ProtocolEngine
 
 // Encoder is a encoder interface to extend various of protocols
-type Encoder interface {
-	// Encode encodes a model to binary data
-	// return 1. encoded bytes 2. encode error
-	Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error)
-
-	// EncodeTo encodes a model to binary data, and append into the given buffer
-	// This method should be used in term of performance
-	// return 1. encoded bytes number 2. encode error
-	//EncodeTo(ctx context.Context, model interface{}, buf IoBuffer) (int, error)
-}
+// Deprecated: use mosn.io/api/types/protocol.go:Encoder instead
+type Encoder = types.Encoder
 
 // Decoder is a decoder interface to extend various of protocols
-type Decoder interface {
-	// Decode decodes binary data to a model
-	// pass sub protocol type to identify protocol format
-	// return 1. decoded model(nil if no enough data) 2. decode error
-	Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error)
-}
+// Deprecated: use mosn.io/api/types/protocol.go:Decoder instead
+type Decoder = types.Decoder

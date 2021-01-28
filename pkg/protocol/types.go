@@ -18,24 +18,24 @@
 package protocol
 
 import (
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/api/types"
+	"mosn.io/pkg/protocol"
+	"mosn.io/pkg/variable"
 )
 
 // ProtocolName type definition
 const (
-	Auto      api.Protocol = "Auto"
-	SofaRPC   api.Protocol = "SofaRpc"
-	HTTP1     api.Protocol = "Http1"
-	HTTP2     api.Protocol = "Http2"
-	Xprotocol api.Protocol = "X"
+	Auto      = protocol.Auto
+	SofaRPC   = protocol.SofaRPC
+	HTTP1     = protocol.HTTP1
+	HTTP2     = protocol.HTTP2
+	Xprotocol = protocol.Xprotocol
 )
 
 // header direction definition
 const (
-	Request  = "Request"
-	Response = "Response"
+	Request  = protocol.Request
+	Response = protocol.Response
 )
 
 func init() {
@@ -51,58 +51,5 @@ func init() {
 // TODO: move CommonHeader to common, not only in protocol
 
 // CommonHeader wrapper for map[string]string
-type CommonHeader map[string]string
-
-// Get value of key
-func (h CommonHeader) Get(key string) (value string, ok bool) {
-	value, ok = h[key]
-	return
-}
-
-// Set key-value pair in header map, the previous pair will be replaced if exists
-func (h CommonHeader) Set(key string, value string) {
-	h[key] = value
-}
-
-// Add value for given key.
-// Multiple headers with the same key may be added with this function.
-// Use Set for setting a single header for the given key.
-func (h CommonHeader) Add(key string, value string) {
-	panic("not supported")
-}
-
-// Del delete pair of specified key
-func (h CommonHeader) Del(key string) {
-	delete(h, key)
-}
-
-// Range calls f sequentially for each key and value present in the map.
-// If f returns false, range stops the iteration.
-func (h CommonHeader) Range(f func(key, value string) bool) {
-	for k, v := range h {
-		// stop if f return false
-		if !f(k, v) {
-			break
-		}
-	}
-}
-
-// Clone used to deep copy header's map
-func (h CommonHeader) Clone() api.HeaderMap {
-	copy := make(map[string]string)
-
-	for k, v := range h {
-		copy[k] = v
-	}
-
-	return CommonHeader(copy)
-}
-
-func (h CommonHeader) ByteSize() uint64 {
-	var size uint64
-
-	for k, v := range h {
-		size += uint64(len(k) + len(v))
-	}
-	return size
-}
+// Deprecated: use mosn.io/pkg/protocol/types.go:CommonHeader instead
+type CommonHeader = protocol.CommonHeader

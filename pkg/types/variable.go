@@ -17,92 +17,94 @@
 
 package types
 
+import "mosn.io/api/types"
+
 // [Proxy]: the identification of a request info's content
 const (
-	VarStartTime                      string = "start_time"
-	VarRequestReceivedDuration        string = "request_received_duration"
-	VarResponseReceivedDuration       string = "response_received_duration"
-	VarRequestFinishedDuration        string = "request_finished_duration"
-	VarBytesSent                      string = "bytes_sent"
-	VarBytesReceived                  string = "bytes_received"
-	VarProtocol                       string = "protocol"
-	VarResponseCode                   string = "response_code"
-	VarDuration                       string = "duration"
-	VarResponseFlag                   string = "response_flag"
-	VarResponseFlags                  string = "response_flags"
-	VarUpstreamLocalAddress           string = "upstream_local_address"
-	VarDownstreamLocalAddress         string = "downstream_local_address"
-	VarDownstreamRemoteAddress        string = "downstream_remote_address"
-	VarUpstreamHost                   string = "upstream_host"
-	VarUpstreamTransportFailureReason string = "upstream_transport_failure_reason"
-	VarUpstreamCluster                string = "upstream_cluster"
-	VarRequestedServerName            string = "requested_server_name"
-	VarRouteName                      string = "route_name"
+	VarStartTime                      = types.VarStartTime
+	VarRequestReceivedDuration        = types.VarRequestReceivedDuration
+	VarResponseReceivedDuration       = types.VarResponseReceivedDuration
+	VarRequestFinishedDuration        = types.VarRequestFinishedDuration
+	VarBytesSent                      = types.VarBytesSent
+	VarBytesReceived                  = types.VarBytesReceived
+	VarProtocol                       = types.VarProtocol
+	VarResponseCode                   = types.VarResponseCode
+	VarDuration                       = types.VarDuration
+	VarResponseFlag                   = types.VarResponseFlag
+	VarResponseFlags                  = types.VarResponseFlags
+	VarUpstreamLocalAddress           = types.VarUpstreamLocalAddress
+	VarDownstreamLocalAddress         = types.VarDownstreamLocalAddress
+	VarDownstreamRemoteAddress        = types.VarDownstreamRemoteAddress
+	VarUpstreamHost                   = types.VarUpstreamHost
+	VarUpstreamTransportFailureReason = types.VarUpstreamTransportFailureReason
+	VarUpstreamCluster                = types.VarUpstreamCluster
+	VarRequestedServerName            = types.VarRequestedServerName
+	VarRouteName                      = types.VarRouteName
 
 	// ReqHeaderPrefix is the prefix of request header's formatter
-	VarPrefixReqHeader string = "request_header_"
+	VarPrefixReqHeader = types.VarPrefixReqHeader
 	// RespHeaderPrefix is the prefix of response header's formatter
-	VarPrefixRespHeader string = "response_header_"
+	VarPrefixRespHeader = types.VarPrefixRespHeader
 )
 
 // [Proxy]: internal communication
 const (
-	VarProxyTryTimeout       string = "proxy_try_timeout"
-	VarProxyGlobalTimeout    string = "proxy_global_timeout"
-	VarProxyHijackStatus     string = "proxy_hijack_status"
-	VarProxyGzipSwitch       string = "proxy_gzip_switch"
-	VarProxyIsDirectResponse string = "proxy_direct_response"
-	VarDirection             string = "x-mosn-direction"
-	VarScheme                string = "x-mosn-scheme"
-	VarHost                  string = "x-mosn-host"
-	VarPath                  string = "x-mosn-path"
-	VarQueryString           string = "x-mosn-querystring"
-	VarMethod                string = "x-mosn-method"
-	VarIstioHeaderHost       string = "authority"
-	VarHeaderStatus          string = "x-mosn-status"
-	VarHeaderRPCService      string = "x-mosn-rpc-service"
-	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
+	VarProxyTryTimeout       = types.VarProxyTryTimeout
+	VarProxyGlobalTimeout    = types.VarProxyGlobalTimeout
+	VarProxyHijackStatus     = types.VarProxyHijackStatus
+	VarProxyGzipSwitch       = types.VarProxyGzipSwitch
+	VarProxyIsDirectResponse = types.VarProxyIsDirectResponse
+	VarDirection             = types.VarDirection
+	VarScheme                = types.VarScheme
+	VarHost                  = types.VarHost
+	VarPath                  = types.VarPath
+	VarQueryString           = types.VarQueryString
+	VarMethod                = types.VarMethod
+	VarIstioHeaderHost       = types.VarIstioHeaderHost
+	VarHeaderStatus          = types.VarHeaderStatus
+	VarHeaderRPCService      = types.VarHeaderRPCService
+	VarHeaderRPCMethod       = types.VarHeaderRPCMethod
 )
 
 // [Protocol]: common
 const (
-	VarProtocolRequestScheme    = "request_scheme"
-	VarProtocolRequestMethod    = "request_method"
-	VarProtocolRequestLength    = "request_length"
-	VarProtocolRequestHeader    = "request_header_"
-	VarProtocolCookie           = "cookie_"
-	VarProtocolRequestPath      = "request_path"
-	VarProtocolRequestArgPrefix = "request_arg_"
-	VarProtocolRequestArg       = "request_arg"
-	VarProtocolRequestUri       = "request_uri"
+	VarProtocolRequestScheme    = types.VarProtocolRequestScheme
+	VarProtocolRequestMethod    = types.VarProtocolRequestMethod
+	VarProtocolRequestLength    = types.VarProtocolRequestLength
+	VarProtocolRequestHeader    = types.VarProtocolRequestHeader
+	VarProtocolCookie           = types.VarProtocolCookie
+	VarProtocolRequestPath      = types.VarProtocolRequestPath
+	VarProtocolRequestArgPrefix = types.VarProtocolRequestArgPrefix
+	VarProtocolRequestArg       = types.VarProtocolRequestArg
+	VarProtocolRequestUri       = types.VarProtocolRequestUri
 )
 
 // [Protocol]: http1
 const (
 	// the httpProtocolName value is protocol.HTTP1
-	httpProtocolName     = "Http1"
-	VarHttpRequestScheme = httpProtocolName + "_" + VarProtocolRequestScheme
-	VarHttpRequestMethod = httpProtocolName + "_" + VarProtocolRequestMethod
-	VarHttpRequestLength = httpProtocolName + "_" + VarProtocolRequestLength
-	VarHttpRequestUri    = httpProtocolName + "_" + VarProtocolRequestUri
-	VarHttpRequestPath   = httpProtocolName + "_" + VarProtocolRequestPath
-	VarHttpRequestArg    = httpProtocolName + "_" + VarProtocolRequestArg
-	VarPrefixHttpHeader  = httpProtocolName + "_" + VarProtocolRequestHeader
-	VarPrefixHttpArg     = httpProtocolName + "_" + VarProtocolRequestArgPrefix
-	VarPrefixHttpCookie  = httpProtocolName + "_" + VarProtocolCookie
+	//httpProtocolName     = "Http1"
+	VarHttpRequestScheme = types.VarHttpRequestScheme
+	VarHttpRequestMethod = types.VarHttpRequestMethod
+	VarHttpRequestLength = types.VarHttpRequestLength
+	VarHttpRequestUri    = types.VarHttpRequestUri
+	VarHttpRequestPath   = types.VarHttpRequestPath
+	VarHttpRequestArg    = types.VarHttpRequestArg
+	VarPrefixHttpHeader  = types.VarPrefixHttpHeader
+	VarPrefixHttpArg     = types.VarPrefixHttpArg
+	VarPrefixHttpCookie  = types.VarPrefixHttpCookie
 )
 
 // [Protocol]: http2
 const (
 	// the http2ProtocolName value is protocol.HTTP2
-	http2ProtocolName     = "Http2"
-	VarHttp2RequestScheme = http2ProtocolName + "_" + VarProtocolRequestScheme
-	VarHttp2RequestMethod = http2ProtocolName + "_" + VarProtocolRequestMethod
-	VarHttp2RequestLength = http2ProtocolName + "_" + VarProtocolRequestLength
-	VarHttp2RequestUri    = http2ProtocolName + "_" + VarProtocolRequestUri
-	VarHttp2RequestPath   = http2ProtocolName + "_" + VarProtocolRequestPath
-	VarHttp2RequestArg    = http2ProtocolName + "_" + VarProtocolRequestArg
-	VarPrefixHttp2Header  = http2ProtocolName + "_" + VarProtocolRequestHeader
-	VarPrefixHttp2Arg     = http2ProtocolName + "_" + VarProtocolRequestArgPrefix
-	VarPrefixHttp2Cookie  = http2ProtocolName + "_" + VarProtocolCookie
+	//http2ProtocolName     = "Http2"
+	VarHttp2RequestScheme = types.VarHttp2RequestScheme
+	VarHttp2RequestMethod = types.VarHttp2RequestMethod
+	VarHttp2RequestLength = types.VarHttp2RequestLength
+	VarHttp2RequestUri    = types.VarHttp2RequestUri
+	VarHttp2RequestPath   = types.VarHttp2RequestPath
+	VarHttp2RequestArg    = types.VarHttp2RequestArg
+	VarPrefixHttp2Header  = types.VarPrefixHttp2Header
+	VarPrefixHttp2Arg     = types.VarPrefixHttp2Arg
+	VarPrefixHttp2Cookie  = types.VarPrefixHttp2Cookie
 )

@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"mosn.io/api"
+
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 )
@@ -63,7 +64,7 @@ func TestGetProtocolResource(t *testing.T) {
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, Dubbo)
 	vv, err = GetProtocolResource(ctx, api.PATH)
-	if err.Error() != errUnregisterProtocolResource+string(Dubbo) {
+	if err.Error() != "unregister Protocol resource, Protocol: "+string(Dubbo) {
 		t.Fatal("unexpected get error")
 	}
 }

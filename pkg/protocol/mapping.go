@@ -22,37 +22,17 @@ import (
 	"errors"
 	"strconv"
 
-	"mosn.io/mosn/pkg/variable"
-
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
-)
+	"mosn.io/pkg/protocol"
+	"mosn.io/pkg/variable"
 
-var (
-	httpMappingFactory = make(map[api.Protocol]HTTPMapping)
-	ErrNoMapping       = errors.New("no mapping function found")
+	"mosn.io/mosn/pkg/types"
 )
 
 // HTTP and HTTP2 does not need mapping
 func init() {
-	RegisterMapping(HTTP1, &httpMapping{})
-	RegisterMapping(HTTP2, &httpMapping{})
-}
-
-// HTTPMapping maps the contents of protocols to HTTP standard
-type HTTPMapping interface {
-	MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error)
-}
-
-func RegisterMapping(p api.Protocol, m HTTPMapping) {
-	httpMappingFactory[p] = m
-}
-
-func MappingHeaderStatusCode(ctx context.Context, p api.Protocol, headers api.HeaderMap) (int, error) {
-	if f, ok := httpMappingFactory[p]; ok {
-		return f.MappingHeaderStatusCode(ctx, headers)
-	}
-	return 0, ErrNoMapping
+	protocol.RegisterMapping(HTTP1, &httpMapping{})
+	protocol.RegisterMapping(HTTP2, &httpMapping{})
 }
 
 // HTTP get status directly

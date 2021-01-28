@@ -18,75 +18,52 @@
 package types
 
 import (
-	"errors"
-
-	"mosn.io/api"
+	"mosn.io/api/types"
 )
 
-// MOSN Header keys
+// Header key types
 const (
-	HeaderGlobalTimeout = "x-mosn-global-timeout"
-	HeaderTryTimeout    = "x-mosn-try-timeout"
-	HeaderOriginalPath  = "x-mosn-original-path"
+	HeaderGlobalTimeout = types.HeaderGlobalTimeout
+	HeaderTryTimeout    = types.HeaderTryTimeout
+	HeaderOriginalPath  = types.HeaderOriginalPath
 )
 
 // Error messages
 const (
-	ChannelFullException = "Channel is full"
-	CodecException       = "codec exception occurs"
-	SerializeException   = "serialize exception occurs"
-	DeserializeException = "deserialize exception occurs"
+	ChannelFullException = types.ChannelFullException
+	CodecException       = types.CodecException
+	SerializeException   = types.SerializeException
+	DeserializeException = types.DeserializeException
 
-	NoStatusCodeForHijackException = "no status code found for hijack reply"
+	NoStatusCodeForHijackException = types.NoStatusCodeForHijackException
 )
 
 // Errors
 var (
-	ErrChanFull             = errors.New(ChannelFullException)
-	ErrCodecException       = errors.New(CodecException)
-	ErrSerializeException   = errors.New(SerializeException)
-	ErrDeserializeException = errors.New(DeserializeException)
+	ErrChanFull             = types.ErrChanFull
+	ErrCodecException       = types.ErrCodecException
+	ErrSerializeException   = types.ErrSerializeException
+	ErrDeserializeException = types.ErrDeserializeException
 
-	ErrNoStatusCodeForHijack = errors.New(NoStatusCodeForHijackException)
+	ErrNoStatusCodeForHijack = types.ErrNoStatusCodeForHijack
 )
 
 // Error codes, used by top level logic code(like proxy logic).
 const (
-	CodecExceptionCode    = 0
-	UnknownCode           = 2
-	DeserialExceptionCode = 3
-	SuccessCode           = 200
-	PermissionDeniedCode  = 403
-	RouterUnavailableCode = 404
-	InternalErrorCode     = 500
-	NoHealthUpstreamCode  = 502
-	UpstreamOverFlowCode  = 503
-	TimeoutExceptionCode  = 504
-	LimitExceededCode     = 509
+	CodecExceptionCode    = types.CodecExceptionCode
+	UnknownCode           = types.UnknownCode
+	DeserialExceptionCode = types.DeserialExceptionCode
+	SuccessCode           = types.SuccessCode
+	PermissionDeniedCode  = types.PermissionDeniedCode
+	RouterUnavailableCode = types.RouterUnavailableCode
+	InternalErrorCode     = types.InternalErrorCode
+	NoHealthUpstreamCode  = types.NoHealthUpstreamCode
+	UpstreamOverFlowCode  = types.UpstreamOverFlowCode
+	TimeoutExceptionCode  = types.TimeoutExceptionCode
+	LimitExceededCode     = types.LimitExceededCode
 )
-
-var reason2code = map[StreamResetReason]int{
-	StreamConnectionSuccessed: SuccessCode,
-	UpstreamGlobalTimeout:     TimeoutExceptionCode,
-	UpstreamPerTryTimeout:     TimeoutExceptionCode,
-	StreamOverflow:            UpstreamOverFlowCode,
-	StreamRemoteReset:         NoHealthUpstreamCode,
-	UpstreamReset:             NoHealthUpstreamCode,
-	StreamLocalReset:          NoHealthUpstreamCode,
-	StreamConnectionFailed:    NoHealthUpstreamCode,
-}
-
-// ConvertReasonToCode is convert the reason to a spec code.
-func ConvertReasonToCode(reason StreamResetReason) int {
-	if code, ok := reason2code[reason]; ok {
-		return code
-	}
-
-	return InternalErrorCode
-}
 
 // ResponseFlags sets
 const (
-	MosnProcessFailedFlags = api.NoHealthyUpstream | api.NoRouteFound | api.UpstreamLocalReset |
-		api.FaultInjected | api.RateLimited | api.DownStreamTerminate | api.ReqEntityTooLarge
+	MosnProcessFailedFlags = types.MosnProcessFailedFlags
 )

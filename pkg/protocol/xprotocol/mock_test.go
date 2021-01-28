@@ -21,23 +21,25 @@ import (
 	"context"
 	"sync/atomic"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	"mosn.io/api/types"
+	"mosn.io/pkg/buffer"
 )
 
-var mockProtocolName = types.ProtocolName("mock-protocol")
+var mockProtocolName = api.Protocol("mock-protocol")
 
 type mockProtocol struct {
 }
 
-func (mp *mockProtocol) Name() types.ProtocolName {
+func (mp *mockProtocol) Name() api.Protocol {
 	return mockProtocolName
 }
 
-func (mp *mockProtocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (mp *mockProtocol) Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error) {
 	return nil, nil
 }
 
-func (mp *mockProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (mp *mockProtocol) Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error) {
 	return nil, nil
 }
 
@@ -78,6 +80,6 @@ func mockMatcher(data []byte) types.MatchResult {
 type mockMapping struct {
 }
 
-func (mm *mockMapping) MappingHeaderStatusCode(ctx context.Context, headers types.HeaderMap) (int, error) {
+func (mm *mockMapping) MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error) {
 	return 200, nil
 }

@@ -15,23 +15,32 @@
  * limitations under the License.
  */
 
-package context
+package protocol
 
 import (
 	"context"
+	"errors"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
-type valueCtx struct {
-	context.Context
+var (
+	httpMappingFactory = make(map[api.Protocol]HTTPMapping)
+	ErrNoMapping       = errors.New("no mapping function found")
+)
 
-	builtin [types.ContextKeyEnd]interface{}
+// HTTPMapping maps the contents of protocols to HTTP standard
+type HTTPMapping interface {
+	MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error)
 }
 
-func (c *valueCtx) Value(key interface{}) interface{} {
-	if contextKey, ok := key.(types.ContextKey); ok {
-		return c.builtin[contextKey]
+func RegisterMapping(p api.Protocol, m HTTPMapping) {
+	httpMappingFactory[p] = m
+}
+
+func MappingHeaderStatusCode(ctx context.Context, p api.Protocol, headers api.HeaderMap) (int, error) {
+	if f, ok := httpMappingFactory[p]; ok {
+		return f.MappingHeaderStatusCode(ctx, headers)
 	}
-	return c.Context.Value(key)
+	return 0, ErrNoMapping
 }

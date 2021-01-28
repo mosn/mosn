@@ -21,7 +21,10 @@ import (
 	"context"
 	"errors"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+	"mosn.io/api/types"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/protocol/xprotocol"
 )
 
 type matchPair struct {
@@ -35,7 +38,7 @@ type XEngine struct {
 }
 
 // Match use registered matchFunc to recognize corresponding protocol
-func (engine *XEngine) Match(ctx context.Context, data types.IoBuffer) (types.Protocol, types.MatchResult) {
+func (engine *XEngine) Match(ctx context.Context, data buffer.IoBuffer) (types.Protocol, types.MatchResult) {
 	again := false
 
 	for idx := range engine.protocols {
@@ -80,13 +83,13 @@ func NewXEngine(protocols []string) (*XEngine, error) {
 		name := protocols[idx]
 
 		// get protocol
-		protocol := GetProtocol(types.ProtocolName(name))
+		protocol := xprotocol.GetProtocol(api.Protocol(name))
 		if protocol == nil {
 			return nil, errors.New("no such protocol:" + name)
 		}
 
 		// get matcher
-		matchFunc := GetMatcher(types.ProtocolName(name))
+		matchFunc := xprotocol.GetMatcher(api.Protocol(name))
 		if matchFunc == nil {
 			return nil, errors.New("protocol matcher is needed while using multiple protocols:" + name)
 		}

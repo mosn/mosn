@@ -18,45 +18,18 @@
 package types
 
 import (
-	"context"
-	"time"
-
-	"mosn.io/api"
+	"mosn.io/api/types"
 )
 
 // factory
-type TracerBuilder func(config map[string]interface{}) (Tracer, error)
+// Deprecated: use mosn.io/api/types/trace.go:TracerBuilder instead
+type TracerBuilder = types.TracerBuilder
 
-type Driver interface {
-	Init(config map[string]interface{}) error
+// Deprecated: use mosn.io/api/types/trace.go:Driver instead
+type Driver = types.Driver
 
-	Register(proto api.Protocol, builder TracerBuilder)
+// Deprecated: use mosn.io/api/types/trace.go:Tracer instead
+type Tracer = types.Tracer
 
-	Get(proto api.Protocol) Tracer
-}
-
-type Tracer interface {
-	Start(ctx context.Context, request interface{}, startTime time.Time) Span
-}
-
-type Span interface {
-	TraceId() string
-
-	SpanId() string
-
-	ParentSpanId() string
-
-	SetOperation(operation string)
-
-	SetTag(key uint64, value string)
-
-	SetRequestInfo(requestInfo api.RequestInfo)
-
-	Tag(key uint64) string
-
-	FinishSpan()
-
-	InjectContext(requestHeaders api.HeaderMap, requestInfo api.RequestInfo)
-
-	SpawnChild(operationName string, startTime time.Time) Span
-}
+// Deprecated: use mosn.io/api/types/trace.go:Span instead
+type Span = types.Span

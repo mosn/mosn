@@ -23,27 +23,11 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-var ins = ByteBufferCtx{}
-
-func init() {
-	RegisterBuffer(&ins)
-}
-
-type ByteBufferCtx struct {
-	TempBufferCtx
-}
-
-func (ctx ByteBufferCtx) New() interface{} {
-	return buffer.NewByteBufferPoolContainer()
-}
-
-func (ctx ByteBufferCtx) Reset(i interface{}) {
-	p := i.(*buffer.ByteBufferPoolContainer)
-	p.Reset()
-}
+// Deprecated: use mosn.io/pkg/buffer/bytebuffer_ctx.go:ByteBufferCtx instead
+type ByteBufferCtx = buffer.ByteBufferCtx
 
 // GetBytesByContext returns []byte from byteBufferPool by context
+// Deprecated: use mosn.io/pkg/buffer/bytebuffer_ctx.go:GetBytesByContext instead
 func GetBytesByContext(context context.Context, size int) *[]byte {
-	p := PoolContext(context).Find(&ins, nil).(*buffer.ByteBufferPoolContainer)
-	return p.Take(size)
+	return buffer.GetBytesByContext(context, size)
 }

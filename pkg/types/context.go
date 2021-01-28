@@ -17,42 +17,44 @@
 
 package types
 
+import "mosn.io/api/types"
+
 // ContextKey type
-type ContextKey int
+type ContextKey = types.ContextKey
 
 // Context key types(built-in)
 const (
-	ContextKeyStreamID ContextKey = iota
-	ContextKeyConnection
-	ContextKeyConnectionID
-	ContextKeyConnectionPoolIndex
-	ContextKeyListenerPort
-	ContextKeyListenerName
-	ContextKeyListenerType
-	ContextKeyListenerStatsNameSpace
-	ContextKeyNetworkFilterChainFactories
-	ContextKeyBufferPoolCtx
-	ContextKeyAccessLogs
-	ContextOriRemoteAddr
-	ContextKeyAcceptChan
-	ContextKeyAcceptBuffer
-	ContextKeyConnectionFd
-	ContextSubProtocol
-	ContextKeyTraceSpanKey
-	ContextKeyActiveSpan
-	ContextKeyTraceId
-	ContextKeyVariables
-	ContextKeyProxyGeneralConfig
-	ContextKeyDownStreamProtocol
-	ContextKeyConfigDownStreamProtocol
-	ContextKeyConfigUpStreamProtocol
-	ContextKeyDownStreamHeaders
-	ContextKeyDownStreamRespHeaders
-	ContextKeyEnd
+	ContextKeyStreamID                    = types.ContextKeyStreamID
+	ContextKeyConnection                  = types.ContextKeyConnection
+	ContextKeyConnectionID                = types.ContextKeyConnectionID
+	ContextKeyConnectionPoolIndex         = types.ContextKeyConnectionPoolIndex
+	ContextKeyListenerPort                = types.ContextKeyListenerPort
+	ContextKeyListenerName                = types.ContextKeyListenerName
+	ContextKeyListenerType                = types.ContextKeyListenerType
+	ContextKeyListenerStatsNameSpace      = types.ContextKeyListenerStatsNameSpace
+	ContextKeyNetworkFilterChainFactories = types.ContextKeyNetworkFilterChainFactories
+	ContextKeyBufferPoolCtx               = types.ContextKeyBufferPoolCtx
+	ContextKeyAccessLogs                  = types.ContextKeyAccessLogs
+	ContextOriRemoteAddr                  = types.ContextOriRemoteAddr
+	ContextKeyAcceptChan                  = types.ContextKeyAcceptChan
+	ContextKeyAcceptBuffer                = types.ContextKeyAcceptBuffer
+	ContextKeyConnectionFd                = types.ContextKeyConnectionFd
+	ContextSubProtocol                    = types.ContextSubProtocol
+	ContextKeyTraceSpanKey                = types.ContextKeyTraceSpanKey
+	ContextKeyActiveSpan                  = types.ContextKeyActiveSpan
+	ContextKeyTraceId                     = types.ContextKeyTraceId
+	ContextKeyVariables                   = types.ContextKeyVariables
+	ContextKeyProxyGeneralConfig          = types.ContextKeyProxyGeneralConfig
+	ContextKeyDownStreamProtocol          = types.ContextKeyDownStreamProtocol
+	ContextKeyConfigDownStreamProtocol    = types.ContextKeyConfigDownStreamProtocol
+	ContextKeyConfigUpStreamProtocol      = types.ContextKeyConfigUpStreamProtocol
+	ContextKeyDownStreamHeaders           = types.ContextKeyDownStreamHeaders
+	ContextKeyDownStreamRespHeaders       = types.ContextKeyDownStreamRespHeaders
+	ContextKeyEnd                         = types.ContextKeyEnd
 )
 
 // GlobalProxyName represents proxy name for metrics
 const (
-	GlobalProxyName       = "global"
-	GlobalShutdownTimeout = "GlobalShutdownTimeout"
+	GlobalProxyName       = types.GlobalProxyName
+	GlobalShutdownTimeout = types.GlobalShutdownTimeout
 )

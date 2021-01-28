@@ -21,6 +21,8 @@ import (
 	"context"
 	"errors"
 
+	"mosn.io/pkg/protocol/xprotocol"
+
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
@@ -32,7 +34,7 @@ var (
 )
 
 func init() {
-	protocol.RegisterMapping(protocol.Xprotocol, &xprotocolMapping{})
+	xprotocol.RegisterMapping(protocol.Xprotocol, &xprotocolMapping{})
 }
 
 type xprotocolMapping struct{}

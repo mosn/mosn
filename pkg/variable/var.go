@@ -17,81 +17,35 @@
 
 package variable
 
-import "context"
+import (
+	"context"
+
+	"mosn.io/pkg/variable"
+)
 
 // variable.Variable
-type BasicVariable struct {
-	getter GetterFunc
-	setter SetterFunc
-
-	name  string
-	data  interface{}
-	flags uint32
-}
-
-func (bv *BasicVariable) Name() string {
-	return bv.name
-}
-
-func (bv *BasicVariable) Data() interface{} {
-	return bv.data
-}
-
-func (bv *BasicVariable) Flags() uint32 {
-	return bv.flags
-}
-
-func (bv *BasicVariable) Setter() SetterFunc {
-	return bv.setter
-}
-
-func (bv *BasicVariable) Getter() GetterFunc {
-	return bv.getter
-}
+// Deprecated: use mosn.io/pkg/variable/var.go:BasicVariable instead
+type BasicVariable = variable.BasicVariable
 
 // variable.Variable
 // variable.VariableIndexer
-type IndexedVariable struct {
-	BasicVariable
-
-	index uint32
-}
-
-func (iv *IndexedVariable) SetIndex(index uint32) {
-	iv.index = index
-}
-
-func (iv *IndexedVariable) GetIndex() uint32 {
-	return iv.index
-}
+// Deprecated: use mosn.io/pkg/variable/var.go:IndexedVariable instead
+type IndexedVariable = variable.IndexedVariable
 
 // NewBasicVariable
+// Deprecated: use mosn.io/pkg/variable/var.go:NewBasicVariable instead
 func NewBasicVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
-	return &BasicVariable{
-		getter: getter,
-		setter: setter,
-		name:   name,
-		data:   data,
-		flags:  flags,
-	}
+	return variable.NewBasicVariable(name, data, getter, setter, flags)
 }
 
 // NewIndexedVariable
+// Deprecated: use mosn.io/pkg/variable/var.go:NewIndexedVariable instead
 func NewIndexedVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
-	return &IndexedVariable{
-		BasicVariable: BasicVariable{
-			getter: getter,
-			setter: setter,
-			name:   name,
-			data:   data,
-			flags:  flags,
-		},
-	}
+	return variable.NewIndexedVariable(name, data, getter, setter, flags)
 }
 
 // BasicSetter used for variable value setting only, and would not affect any real data structure, like headers.
+// Deprecated: use mosn.io/pkg/variable/var.go:BasicSetter instead
 func BasicSetter(ctx context.Context, variableValue *IndexedValue, value string) error {
-	variableValue.data = value
-	variableValue.Valid = true
-	return nil
+	return variable.BasicSetter(ctx, variableValue, value)
 }

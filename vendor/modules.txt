@@ -369,7 +369,7 @@ google.golang.org/grpc/status
 google.golang.org/grpc/tap
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
-# gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 gopkg.in/yaml.v3
@@ -381,9 +381,15 @@ istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# mosn.io/api v0.0.0-20210113033009-f24f4e59b2bc
+# mosn.io/api v0.0.0-20210127064345-9656ae81df67
 mosn.io/api
-# mosn.io/pkg v0.0.0-20201228090327-daaf86502a50
+mosn.io/api/protocol/xprotocol
+mosn.io/api/types
+# mosn.io/pkg v0.0.0-20210127100329-f6cc6ef7c07f
 mosn.io/pkg/buffer
+mosn.io/pkg/context
 mosn.io/pkg/log
+mosn.io/pkg/protocol
+mosn.io/pkg/protocol/xprotocol
 mosn.io/pkg/utils
+mosn.io/pkg/variable

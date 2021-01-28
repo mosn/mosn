@@ -23,8 +23,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	pkgprotocol "mosn.io/pkg/protocol"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
+
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 )
@@ -108,7 +111,7 @@ func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap
 
 	r.endStream()
 
-	if code, err := protocol.MappingHeaderStatusCode(r.downStream.context, r.protocol, headers); err == nil {
+	if code, err := pkgprotocol.MappingHeaderStatusCode(r.downStream.context, r.protocol, headers); err == nil {
 		r.downStream.requestInfo.SetResponseCode(code)
 	}
 
