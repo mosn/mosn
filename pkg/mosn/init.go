@@ -51,6 +51,7 @@ func InitDebugServe(c *v2.MOSNConfig) {
 	}
 }
 
+// Init Stages Function
 func InitializeTracing(c *v2.MOSNConfig) {
 	initializeTracing(c.Tracing)
 }
