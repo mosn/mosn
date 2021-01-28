@@ -31,6 +31,13 @@ import (
 	"time"
 
 	"mosn.io/api"
+	apitypes "mosn.io/api/types"
+	"mosn.io/pkg/buffer"
+	mbuffer "mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
+	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -38,11 +45,6 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
-	mbuffer "mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
-	"mosn.io/pkg/utils"
-	"mosn.io/pkg/variable"
 )
 
 // types.StreamEventListener
@@ -787,9 +789,9 @@ func (s *downStream) chooseHost(endStream bool) {
 			}
 			return val
 		}
-		currentHost := getValueFunc(types.VarHost, "")
-		currentPath := getValueFunc(types.VarPath, "")
-		currentQuery := getValueFunc(types.VarQueryString, "")
+		currentHost := getValueFunc(apitypes.VarHost, "")
+		currentPath := getValueFunc(apitypes.VarPath, "")
+		currentQuery := getValueFunc(apitypes.VarQueryString, "")
 
 		u := url.URL{
 			Scheme:   getStringOr(rule.RedirectScheme(), currentScheme),
@@ -1413,7 +1415,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	}
 	s.requestInfo.SetResponseCode(code)
 	status := strconv.Itoa(code)
-	variable.SetVariableValue(s.context, types.VarHeaderStatus, status)
+	variable.SetVariableValue(s.context, apitypes.VarHeaderStatus, status)
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = nil
@@ -1432,7 +1434,7 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	s.requestInfo.SetResponseCode(code)
 
 	status := strconv.Itoa(code)
-	variable.SetVariableValue(s.context, types.VarHeaderStatus, status)
+	variable.SetVariableValue(s.context, apitypes.VarHeaderStatus, status)
 
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
@@ -1588,7 +1590,7 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	if s.directResponse {
-		variable.SetVariableValue(s.context, types.VarProxyIsDirectResponse, types.IsDirectResponse)
+		variable.SetVariableValue(s.context, apitypes.VarProxyIsDirectResponse, types.IsDirectResponse)
 		s.directResponse = false
 
 		// don't retry

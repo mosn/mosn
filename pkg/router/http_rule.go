@@ -23,17 +23,19 @@ import (
 	"strings"
 
 	"mosn.io/api"
+	"mosn.io/api/types"
+	"mosn.io/pkg/variable"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	httpmosn "mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
+	mosntypes "mosn.io/mosn/pkg/types"
 )
 
 type BaseHTTPRouteRule struct {
 	*RouteRuleImplBase
-	configHeaders         types.HeaderMatcher
-	configQueryParameters types.QueryParameterMatcher //TODO: not implement yet
+	configHeaders         mosntypes.HeaderMatcher
+	configQueryParameters mosntypes.QueryParameterMatcher //TODO: not implement yet
 }
 
 func NewBaseHTTPRouteRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher) *BaseHTTPRouteRule {
@@ -53,7 +55,7 @@ func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.Header
 	}
 	// 2. match query parameters
 	if rri.configQueryParameters != nil {
-		var queryParams types.QueryParams
+		var queryParams mosntypes.QueryParams
 		QueryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
 		if err == nil && QueryString != "" {
 			queryParams = httpmosn.ParseQueryString(QueryString)

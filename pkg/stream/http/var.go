@@ -22,9 +22,10 @@ import (
 	"strconv"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api/types"
 	"mosn.io/pkg/variable"
+
+	"mosn.io/mosn/pkg/protocol"
 )
 
 const (

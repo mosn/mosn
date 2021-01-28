@@ -2,11 +2,13 @@ package jwtauthn
 
 import (
 	"context"
+
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/variable"
+
+	"mosn.io/mosn/pkg/log"
 )
 
 type filter struct {

@@ -23,10 +23,9 @@ import (
 	"strconv"
 
 	"mosn.io/api"
+	"mosn.io/api/types"
 	"mosn.io/pkg/protocol"
 	"mosn.io/pkg/variable"
-
-	"mosn.io/mosn/pkg/types"
 )
 
 // HTTP and HTTP2 does not need mapping

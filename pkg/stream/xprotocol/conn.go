@@ -26,6 +26,10 @@ import (
 	"mosn.io/pkg/variable"
 
 	"mosn.io/api"
+	apitypes "mosn.io/api/types"
+	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -33,8 +37,6 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
 )
 
 // types.DecodeFilter
@@ -319,8 +321,8 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame,
 		serviceName := aware.GetServiceName()
 		methodName := aware.GetMethodName()
 
-		variable.SetVariableValue(ctx, types.VarHeaderRPCService, serviceName)
-		variable.SetVariableValue(ctx, types.VarHeaderRPCMethod, methodName)
+		variable.SetVariableValue(ctx, apitypes.VarHeaderRPCService, serviceName)
+		variable.SetVariableValue(ctx, apitypes.VarHeaderRPCMethod, methodName)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] frame service aware, requestId = %v, serviceName = %v , methodName = %v", serverStream.id, serviceName, methodName)

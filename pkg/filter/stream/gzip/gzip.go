@@ -23,11 +23,12 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/variable"
+
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
 )
 
 /*
@@ -95,7 +96,7 @@ func (f *streamGzipFilter) SetReceiveFilterHandler(handler api.StreamReceiverFil
 	f.receiveHandler = handler
 }
 
-func (f *streamGzipFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+func (f *streamGzipFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	// check request need gzip
 	if !f.checkGzip(ctx, headers) {
 		f.needGzip = false
@@ -157,7 +158,7 @@ func (f *streamGzipFilter) OnDestroy() {
 }
 
 // check request need gzip
-func (f *streamGzipFilter) checkGzip(ctx context.Context, headers types.HeaderMap) bool {
+func (f *streamGzipFilter) checkGzip(ctx context.Context, headers api.HeaderMap) bool {
 	// check gzip switch
 	if gzipSwitch, _ := variable.GetVariableValue(ctx, types.VarProxyGzipSwitch); gzipSwitch == "off" {
 		return false

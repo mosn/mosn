@@ -29,10 +29,15 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/pkg/variable"
-
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
+	apitypes "mosn.io/api/types"
+	"mosn.io/pkg/buffer"
+	mbuffer "mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
+	"mosn.io/pkg/utils"
+	"mosn.io/pkg/variable"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -40,10 +45,6 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
-	mbuffer "mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
-	"mosn.io/pkg/utils"
 )
 
 func init() {
@@ -666,7 +667,7 @@ func (s *clientStream) handleResponse() {
 		statusCode := header.StatusCode()
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
-		variable.SetVariableValue(s.ctx, types.VarHeaderStatus, status)
+		variable.SetVariableValue(s.ctx, apitypes.VarHeaderStatus, status)
 
 		hasData := true
 		if len(s.response.Body()) == 0 {
@@ -709,7 +710,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 	switch headers := headersIn.(type) {
 	case mosnhttp.RequestHeader:
 		// hijack scene
-		status, err := variable.GetVariableValue(context, types.VarHeaderStatus)
+		status, err := variable.GetVariableValue(context, apitypes.VarHeaderStatus)
 		if err == nil && status != "" {
 			statusCode, err := strconv.Atoi(status)
 			if err != nil {
@@ -728,7 +729,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 
 	case mosnhttp.ResponseHeader:
 
-		status, err := variable.GetVariableValue(context, types.VarHeaderStatus)
+		status, err := variable.GetVariableValue(context, apitypes.VarHeaderStatus)
 		if err == nil && status != "" {
 			statusCode, _ := strconv.Atoi(status)
 			headers.SetStatusCode(statusCode)
@@ -847,20 +848,20 @@ func (s *serverStream) GetStream() types.Stream {
 // consider host, method, path are necessary, but check querystring
 func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 1. host
-	variable.SetVariableValue(ctx, types.VarHost, string(uri.Host()))
+	variable.SetVariableValue(ctx, apitypes.VarHost, string(uri.Host()))
 	// 2. :authority
-	variable.SetVariableValue(ctx, types.VarHost, string(uri.Host()))
+	variable.SetVariableValue(ctx, apitypes.VarHost, string(uri.Host()))
 
 	// 3. method
-	variable.SetVariableValue(ctx, types.VarMethod, string(header.Method()))
+	variable.SetVariableValue(ctx, apitypes.VarMethod, string(header.Method()))
 
 	// 4. path
-	variable.SetVariableValue(ctx, types.VarPath, string(uri.Path()))
+	variable.SetVariableValue(ctx, apitypes.VarPath, string(uri.Path()))
 
 	// 5. querystring
 	qs := uri.QueryString()
 	if len(qs) > 0 {
-		variable.SetVariableValue(ctx, types.VarQueryString, string(qs))
+		variable.SetVariableValue(ctx, apitypes.VarQueryString, string(qs))
 	}
 }
 
@@ -869,7 +870,7 @@ func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestH
 	uri := ""
 
 	// path
-	path, err := variable.GetVariableValue(ctx, types.VarPath)
+	path, err := variable.GetVariableValue(ctx, apitypes.VarPath)
 	if err != nil || path == "" {
 		uri += "/"
 	} else {
@@ -877,26 +878,26 @@ func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestH
 	}
 
 	// querystring
-	queryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
+	queryString, err := variable.GetVariableValue(ctx, apitypes.VarQueryString)
 	if err == nil && queryString != "" {
 		uri += "?" + queryString
 	}
 
 	headers.SetRequestURI(uri)
 
-	method, err := variable.GetVariableValue(ctx, types.VarMethod)
+	method, err := variable.GetVariableValue(ctx, apitypes.VarMethod)
 	if err == nil && method != "" {
 		headers.SetMethod(method)
 	}
 
-	host, err := variable.GetVariableValue(ctx, types.VarHost)
+	host, err := variable.GetVariableValue(ctx, apitypes.VarHost)
 	if err == nil && host != "" {
 		headers.SetHost(host)
 	} else {
 		headers.SetHost(remoteAddr.String())
 	}
 
-	host, err = variable.GetVariableValue(ctx, types.VarIstioHeaderHost)
+	host, err = variable.GetVariableValue(ctx, apitypes.VarIstioHeaderHost)
 	if err == nil && host != "" {
 		headers.SetHost(host)
 	}

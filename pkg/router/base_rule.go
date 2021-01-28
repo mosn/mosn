@@ -28,11 +28,12 @@ import (
 	"time"
 
 	"mosn.io/api"
+	"mosn.io/api/types"
+	"mosn.io/pkg/variable"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/pkg/variable"
 )
 
 var (

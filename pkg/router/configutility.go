@@ -23,10 +23,12 @@ import (
 	"sort"
 
 	"mosn.io/api"
+	apitypes "mosn.io/api/types"
+	"mosn.io/pkg/variable"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 )
 
 // StringMatch describes hwo to match a given string.
@@ -139,7 +141,7 @@ func CreateHTTPHeaderMatcher(headers []v2.HeaderMatcher) types.HeaderMatcher {
 	for _, header := range headers {
 		switch header.Name {
 		case "method":
-			matcher.variables[types.VarMethod] = header.Value
+			matcher.variables[apitypes.VarMethod] = header.Value
 		default:
 			if kv, err := NewKeyValueData(header); err == nil {
 				matcher.headers = append(matcher.headers, kv)

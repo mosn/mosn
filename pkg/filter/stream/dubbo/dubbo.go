@@ -4,13 +4,15 @@ import (
 	"context"
 
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api/types"
 	"mosn.io/pkg/buffer"
 	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/variable"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	mosntypes "mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -64,7 +66,7 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 		variable.SetVariableValue(ctx, VarDubboRequestMethod, method)
 	}
 
-	for k, v := range types.GetPodLabels() {
+	for k, v := range mosntypes.GetPodLabels() {
 		headers.Set(k, v)
 	}
 

@@ -21,7 +21,7 @@ import (
 	"context"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api/types"
 	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/variable"
 )

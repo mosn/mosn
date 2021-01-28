@@ -23,10 +23,12 @@ import (
 	"strings"
 
 	"github.com/valyala/fasthttp"
+	"mosn.io/api"
+	"mosn.io/api/types"
+	"mosn.io/pkg/variable"
+
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -36,7 +38,7 @@ func init() {
 // common -> http converter
 type common2http struct{}
 
-func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *common2http) ConvHeader(ctx context.Context, headerMap api.HeaderMap) (api.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
 		direction, err := variable.GetVariableValue(ctx, types.VarDirection)
 		if err != nil {
@@ -63,18 +65,18 @@ func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *common2http) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *common2http) ConvData(ctx context.Context, buffer api.IoBuffer) (api.IoBuffer, error) {
 	return buffer, nil
 }
 
-func (c *common2http) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *common2http) ConvTrailer(ctx context.Context, headerMap api.HeaderMap) (api.HeaderMap, error) {
 	return headerMap, nil
 }
 
 // http -> common converter
 type http2common struct{}
 
-func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *http2common) ConvHeader(ctx context.Context, headerMap api.HeaderMap) (api.HeaderMap, error) {
 	switch header := headerMap.(type) {
 	case http.RequestHeader:
 		cheader := make(map[string]string, header.Len())
@@ -102,10 +104,10 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *http2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *http2common) ConvData(ctx context.Context, buffer api.IoBuffer) (api.IoBuffer, error) {
 	return buffer, nil
 }
 
-func (c *http2common) ConvTrailer(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
+func (c *http2common) ConvTrailer(ctx context.Context, headerMap api.HeaderMap) (api.HeaderMap, error) {
 	return headerMap, nil
 }
