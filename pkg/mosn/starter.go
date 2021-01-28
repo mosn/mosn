@@ -18,7 +18,6 @@
 package mosn
 
 import (
-	"io/ioutil"
 	"net"
 	goplugin "plugin"
 	"sync"
@@ -406,54 +405,45 @@ func initializePlugin(log string) {
 	plugin.InitPlugin(log)
 }
 
-func initializeThirdPartCodec(codec v2.ThirdPartCodecConfig) {
-	if !codec.Enable {
-		log.StartLogger.Infof("[mosn] [init codec] third part codec disabled, skip...")
-		return
-	}
-
-	switch codec.Type {
-	case v2.GoPlugin:
-		if err := initGoPluginCodec(codec.Dir); err != nil {
-			log.StartLogger.Errorf("[mosn] [init codec] init go-plugin codec failed: %+v", err)
+func initializeThirdPartCodec(config v2.ThirdPartCodecConfig) {
+	for _, codec := range config.Codecs {
+		if !codec.Enable {
+			log.StartLogger.Infof("[mosn] [init codec] third part codec disabled for %+v, skip...", codec.Path)
+			continue
 		}
-	case v2.Wasm:
-		// todo
-	default:
-		log.StartLogger.Errorf("[mosn] [init codec] unknown third part codec type: %+v", codec.Type)
-	}
 
-	log.StartLogger.Infof("[mosn] [init codec] codec all loaded")
+		switch codec.Type {
+		case v2.GoPlugin:
+			if err := readProtocolPlugin(codec.Path, codec.LoaderFuncName); err != nil {
+				log.StartLogger.Errorf("[mosn] [init codec] init go-plugin codec failed: %+v", err)
+				continue
+			}
+			log.DefaultLogger.Infof("[mosn] [init codec] load go plugin codec succeed: %+v", codec.Path)
+
+		case v2.Wasm:
+		// todo
+
+		default:
+			log.StartLogger.Errorf("[mosn] [init codec] unknown third part codec type: %+v", codec.Type)
+		}
+	}
 }
 
 const (
-	LoaderFunctionName string = "LoadCodec"
+	DefaultLoaderFunctionName string = "LoadCodec"
 )
 
-func initGoPluginCodec(dir string) error {
-	fileInfo, err := ioutil.ReadDir(dir)
-	if err != nil {
-		return err
-	}
-
-	for _, info := range fileInfo {
-		fileName := info.Name()
-		if err := readProtocolPlugin(dir + "/" + fileName); err != nil {
-			log.DefaultLogger.Warnf("[mosn] [init codec] load go plugin codec failed: %+v, err: %+v", dir+"/"+fileName, err)
-		}
-		log.DefaultLogger.Infof("[mosn] [init codec] load go plugin codec succeed: %+v", dir+"/"+fileName)
-	}
-
-	return nil
-}
-
-func readProtocolPlugin(path string) error {
+func readProtocolPlugin(path, loadFuncName string) error {
 	p, err := goplugin.Open(path)
 	if err != nil {
 		return err
 	}
 
-	sym, err := p.Lookup(LoaderFunctionName)
+	if loadFuncName == "" {
+		loadFuncName = DefaultLoaderFunctionName
+	}
+
+	sym, err := p.Lookup(loadFuncName)
 	if err != nil {
 		return err
 	}

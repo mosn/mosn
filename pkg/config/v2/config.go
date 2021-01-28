@@ -83,11 +83,17 @@ const (
 	Wasm     ThirdPartCodecType = "wasm"
 )
 
+// ThirdPartCodec represents configuration for a third part codec
+type ThirdPartCodec struct {
+	Enable         bool               `json:"enable"`
+	Type           ThirdPartCodecType `json:"type"`
+	Path           string             `json:"path"`
+	LoaderFuncName string             `json:"loader_func_name"`
+}
+
 // ThirdPartCodecConfig represents configurations for third part codec
 type ThirdPartCodecConfig struct {
-	Enable bool               `json:"enable"`
-	Type   ThirdPartCodecType `json:"type"`
-	Dir    string             `json:"dir"`
+	Codecs []ThirdPartCodec `json:"codecs"`
 }
 
 // ExtendConfig for any extends
