@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/mosn"
 	mosntls "mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/mtls/certtool"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
@@ -15,6 +14,7 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 	testutil "mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 // Test tls config hooks extension
