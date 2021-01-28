@@ -22,12 +22,12 @@ import (
 
 	"context"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {

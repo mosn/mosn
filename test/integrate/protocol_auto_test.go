@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+	mosnctx "mosn.io/pkg/context"
 
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mosn"

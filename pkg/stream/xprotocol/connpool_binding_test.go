@@ -10,12 +10,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	mosnctx "mosn.io/pkg/context"
 )
 
 type serverType struct {

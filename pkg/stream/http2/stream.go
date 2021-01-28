@@ -29,9 +29,7 @@ import (
 	"sync"
 
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls"
@@ -40,6 +38,8 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	mbuffer "mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/variable"
 )
 

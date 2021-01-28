@@ -24,7 +24,7 @@ import (
 
 	"errors"
 
-	mosnctx "mosn.io/mosn/pkg/context"
+	mosnctx "mosn.io/pkg/context"
 )
 
 var ErrNoSuchDriver = errors.New("no such driver")

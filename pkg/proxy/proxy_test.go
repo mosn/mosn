@@ -9,7 +9,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
@@ -17,6 +16,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func TestNewProxy(t *testing.T) {

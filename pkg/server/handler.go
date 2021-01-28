@@ -38,7 +38,6 @@ import (
 	admin "mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -47,6 +46,7 @@ import (
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/utils"
 )
 

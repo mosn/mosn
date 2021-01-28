@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -20,6 +19,7 @@ import (
 	"mosn.io/mosn/test/lib"
 	"mosn.io/mosn/test/lib/types"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {

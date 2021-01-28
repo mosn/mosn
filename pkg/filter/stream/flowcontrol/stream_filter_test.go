@@ -8,7 +8,7 @@ import (
 
 	"mosn.io/api"
 
-	mosnctx "mosn.io/mosn/pkg/context"
+	mosnctx "mosn.io/pkg/context"
 
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"github.com/stretchr/testify/assert"

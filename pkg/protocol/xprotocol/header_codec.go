@@ -19,21 +19,13 @@ package xprotocol
 
 import (
 	"mosn.io/pkg/protocol/xprotocol"
-
-	"mosn.io/mosn/pkg/types"
 )
 
 // Deprecated: use mosn.io/pkg/protocol/xprotocol/header_codec.go:GetHeaderEncodeLength instead
-func GetHeaderEncodeLength(h *Header) (size int) {
-	return xprotocol.GetHeaderEncodeLength(h)
-}
+var GetHeaderEncodeLength = xprotocol.GetHeaderEncodeLength
 
 // Deprecated: use mosn.io/pkg/protocol/xprotocol/header_codec.go:EncodeHeader instead
-func EncodeHeader(buf types.IoBuffer, h *Header) {
-	xprotocol.EncodeHeader(buf, h)
-}
+var EncodeHeader = xprotocol.EncodeHeader
 
 // Deprecated: use mosn.io/pkg/protocol/xprotocol/header_codec.go:DecodeHeader instead
-func DecodeHeader(bytes []byte, h *Header) (err error) {
-	return xprotocol.DecodeHeader(bytes, h)
-}
+var DecodeHeader = xprotocol.DecodeHeader

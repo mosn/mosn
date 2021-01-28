@@ -21,8 +21,8 @@ import (
 	"context"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func addResponseheader(ctx context.Context, key, val string) bool {

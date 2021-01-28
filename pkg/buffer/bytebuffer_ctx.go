@@ -18,8 +18,6 @@
 package buffer
 
 import (
-	"context"
-
 	"mosn.io/pkg/buffer"
 )
 
@@ -28,6 +26,4 @@ type ByteBufferCtx = buffer.ByteBufferCtx
 
 // GetBytesByContext returns []byte from byteBufferPool by context
 // Deprecated: use mosn.io/pkg/buffer/bytebuffer_ctx.go:GetBytesByContext instead
-func GetBytesByContext(context context.Context, size int) *[]byte {
-	return buffer.GetBytesByContext(context, size)
-}
+var GetBytesByContext = buffer.GetBytesByContext

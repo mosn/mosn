@@ -23,9 +23,9 @@ import (
 	"strings"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/variable"
 )
 

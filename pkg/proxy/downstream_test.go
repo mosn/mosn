@@ -35,7 +35,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 
-	mosnctx "mosn.io/mosn/pkg/context"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {

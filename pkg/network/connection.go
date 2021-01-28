@@ -33,11 +33,11 @@ import (
 
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/utils"
 )
 

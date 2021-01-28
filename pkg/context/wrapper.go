@@ -18,17 +18,11 @@
 package context
 
 import (
-	"context"
-
 	pkgcontext "mosn.io/pkg/context"
-
-	"mosn.io/mosn/pkg/types"
 )
 
 // Deprecated: use mosn.io/pkg/context/wrapper.go:Get instead
-func Get(ctx context.Context, key types.ContextKey) interface{} {
-	return pkgcontext.Get(ctx, key)
-}
+var Get = pkgcontext.Get
 
 // WithValue add the given key-value pair into the existed value context, or create a new value context which contains the pair.
 // This Function should not be used along with the official context.WithValue !!
@@ -38,12 +32,8 @@ func Get(ctx context.Context, key types.ContextKey) interface{} {
 //
 // topology: context.Background -> mosn.valueCtx{'foo':'bar'} -> context.valueCtx -> mosn.valueCtx{'hmm':'haa'}
 // Deprecated: use mosn.io/pkg/context/wrapper.go:WithValue instead
-func WithValue(parent context.Context, key types.ContextKey, value interface{}) context.Context {
-	return pkgcontext.WithValue(parent, key, value)
-}
+var WithValue = pkgcontext.WithValue
 
 // Clone copy the origin mosn value context(if it is), and return new one
 // Deprecated: use mosn.io/pkg/context/wrapper.go:Clone instead
-func Clone(parent context.Context) context.Context {
-	return pkgcontext.Clone(parent)
-}
+var Clone = pkgcontext.Clone

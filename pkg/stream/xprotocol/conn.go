@@ -26,8 +26,6 @@ import (
 	"mosn.io/pkg/variable"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/buffer"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -35,6 +33,8 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // types.DecodeFilter

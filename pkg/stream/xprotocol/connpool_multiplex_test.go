@@ -8,12 +8,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	mosnctx "mosn.io/pkg/context"
 )
 
 const testClientNum = 10

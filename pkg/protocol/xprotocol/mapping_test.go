@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api/types"
 
-	mosnctx "mosn.io/mosn/pkg/context"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // type xprotocolMapping struct{}

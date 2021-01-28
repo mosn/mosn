@@ -24,10 +24,10 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/variable"
 )
 

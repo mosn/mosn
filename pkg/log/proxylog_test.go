@@ -30,7 +30,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
 
-	mosnctx "mosn.io/mosn/pkg/context"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func TestProxyLog(t *testing.T) {

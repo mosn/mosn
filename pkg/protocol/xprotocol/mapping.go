@@ -23,9 +23,9 @@ import (
 
 	"mosn.io/pkg/protocol/xprotocol"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 var (

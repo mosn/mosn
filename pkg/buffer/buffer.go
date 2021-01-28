@@ -18,11 +18,7 @@
 package buffer
 
 import (
-	"context"
-
 	"mosn.io/pkg/buffer"
-
-	"mosn.io/mosn/pkg/types"
 )
 
 // TempBufferCtx is template for types.BufferPoolCtx
@@ -30,9 +26,7 @@ import (
 type TempBufferCtx = buffer.TempBufferCtx
 
 // Deprecated: use mosn.io/pkg/buffer/buffer.go:RegisterBuffer instead
-func RegisterBuffer(poolCtx types.BufferPoolCtx) {
-	buffer.RegisterBuffer(poolCtx)
-}
+var RegisterBuffer = buffer.RegisterBuffer
 
 // bufferValue is buffer pool's Value
 // Deprecated: use mosn.io/pkg/buffer/buffer.go:BufferValue instead
@@ -40,18 +34,12 @@ type bufferValue = buffer.BufferValue
 
 // NewBufferPoolContext returns a context with bufferValue
 // Deprecated: use mosn.io/pkg/buffer/buffer.go:NewBufferPoolContext instead
-func NewBufferPoolContext(ctx context.Context) context.Context {
-	return buffer.NewBufferPoolContext(ctx)
-}
+var NewBufferPoolContext = buffer.NewBufferPoolContext
 
 // TransmitBufferPoolContext copy a context
 // Deprecated: use mosn.io/pkg/buffer/buffer.go:TransmitBufferPoolContext instead
-func TransmitBufferPoolContext(dst context.Context, src context.Context) {
-	buffer.TransmitBufferPoolContext(dst, src)
-}
+var TransmitBufferPoolContext = buffer.TransmitBufferPoolContext
 
 // PoolContext returns bufferValue by context
 // Deprecated: use mosn.io/pkg/buffer/buffer.go:PoolContext instead
-func PoolContext(ctx context.Context) *bufferValue {
-	return buffer.PoolContext(ctx)
-}
+var PoolContext = buffer.PoolContext

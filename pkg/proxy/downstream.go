@@ -31,9 +31,7 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
@@ -41,6 +39,8 @@ import (
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	mbuffer "mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/utils"
 	"mosn.io/pkg/variable"
 )

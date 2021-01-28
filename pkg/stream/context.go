@@ -20,11 +20,11 @@ package stream
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/buffer"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 
-	mosnctx "mosn.io/mosn/pkg/context"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/variable"
 )
 

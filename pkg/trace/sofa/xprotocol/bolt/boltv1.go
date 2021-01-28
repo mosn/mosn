@@ -21,7 +21,6 @@ import (
 	"context"
 
 	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	xproto "mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
@@ -29,6 +28,7 @@ import (
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {

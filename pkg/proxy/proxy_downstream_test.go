@@ -28,7 +28,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/protocol"
@@ -39,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // New Test Case

@@ -18,44 +18,29 @@
 package xprotocol
 
 import (
-	"mosn.io/api"
-	"mosn.io/api/types"
-	"mosn.io/pkg/protocol"
 	"mosn.io/pkg/protocol/xprotocol"
 )
 
 // RegisterProtocol register the protocol to factory
 // Deprecated: use mosn.io/pkg/protocol/xprotocol/factory.go:RegisterProtocol instead
-func RegisterProtocol(name api.Protocol, protocol XProtocol) error {
-	return xprotocol.RegisterProtocol(name, protocol)
-}
+var RegisterProtocol = xprotocol.RegisterProtocol
 
 // GetProtocol return the corresponding protocol for given name(if was registered)
 // Deprecated: use mosn.io/pkg/protocol/xprotocol/factory.go:GetProtocol instead
-func GetProtocol(name api.Protocol) XProtocol {
-	return xprotocol.GetProtocol(name)
-}
+var GetProtocol = xprotocol.GetProtocol
 
 // RegisterMatcher register the matcher of the protocol into factory
 // Deprecated: use mosn.io/pkg/protocol/xprotocol/factory.go:RegisterMatcher instead
-func RegisterMatcher(name api.Protocol, matcher types.ProtocolMatch) error {
-	return xprotocol.RegisterMatcher(name, matcher)
-}
+var RegisterMatcher = xprotocol.RegisterMatcher
 
 // GetMatcher return the corresponding matcher for given name(if was registered)
 // Deprecated: use mosn.io/pkg/protocol/xprotocol/factory.go:GetMatcher instead
-func GetMatcher(name api.Protocol) types.ProtocolMatch {
-	return xprotocol.GetMatcher(name)
-}
+var GetMatcher = xprotocol.GetMatcher
 
 // RegisterMapping register the HTTP status code mapping function of the protocol into factory
 // Deprecated: use mosn.io/pkg/protocol/xprotocol/factory.go:RegisterMapping instead
-func RegisterMapping(name api.Protocol, mapping protocol.HTTPMapping) error {
-	return xprotocol.RegisterMapping(name, mapping)
-}
+var RegisterMapping = xprotocol.RegisterMapping
 
 // GetMapping return the corresponding HTTP status code mapping function for given name(if was registered)
 // Deprecated: use mosn.io/pkg/protocol/xprotocol/factory.go:GetMapping instead
-func GetMapping(name api.Protocol) protocol.HTTPMapping {
-	return xprotocol.GetMapping(name)
-}
+var GetMapping = xprotocol.GetMapping
