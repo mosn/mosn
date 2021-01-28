@@ -18,28 +18,18 @@
 package variable
 
 import (
-	"context"
-
 	"mosn.io/pkg/variable"
 )
 
 // AddVariable is used to check variable name exists. Typical usage is variables used in access logs.
 // Deprecated: use mosn.io/pkg/variable/factory.go:GetVariableValue instead
-func AddVariable(name string) (Variable, error) {
-	return variable.AddVariable(name)
-}
+var AddVariable = variable.AddVariable
 
 // Deprecated: use mosn.io/pkg/variable/factory.go:RegisterVariable instead
-func RegisterVariable(val Variable) error {
-	return variable.RegisterVariable(val)
-}
+var RegisterVariable = variable.RegisterVariable
 
 // Deprecated: use mosn.io/pkg/variable/factory.go:RegisterPrefixVariable instead
-func RegisterPrefixVariable(prefix string, val Variable) error {
-	return variable.RegisterPrefixVariable(prefix, val)
-}
+var RegisterPrefixVariable = variable.RegisterPrefixVariable
 
 // Deprecated: use mosn.io/pkg/variable/factory.go:NewVariableContext instead
-func NewVariableContext(ctx context.Context) context.Context {
-	return variable.NewVariableContext(ctx)
-}
+var NewVariableContext = variable.NewVariableContext

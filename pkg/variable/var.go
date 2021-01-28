@@ -18,8 +18,6 @@
 package variable
 
 import (
-	"context"
-
 	"mosn.io/pkg/variable"
 )
 
@@ -34,18 +32,12 @@ type IndexedVariable = variable.IndexedVariable
 
 // NewBasicVariable
 // Deprecated: use mosn.io/pkg/variable/var.go:NewBasicVariable instead
-func NewBasicVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
-	return variable.NewBasicVariable(name, data, getter, setter, flags)
-}
+var NewBasicVariable = variable.NewBasicVariable
 
 // NewIndexedVariable
 // Deprecated: use mosn.io/pkg/variable/var.go:NewIndexedVariable instead
-func NewIndexedVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
-	return variable.NewIndexedVariable(name, data, getter, setter, flags)
-}
+var NewIndexedVariable = variable.NewIndexedVariable
 
 // BasicSetter used for variable value setting only, and would not affect any real data structure, like headers.
 // Deprecated: use mosn.io/pkg/variable/var.go:BasicSetter instead
-func BasicSetter(ctx context.Context, variableValue *IndexedValue, value string) error {
-	return variable.BasicSetter(ctx, variableValue, value)
-}
+var BasicSetter = variable.BasicSetter

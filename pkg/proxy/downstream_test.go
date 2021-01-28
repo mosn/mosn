@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/router"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	"github.com/stretchr/testify/assert"
 

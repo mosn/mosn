@@ -8,8 +8,8 @@ import (
 	"github.com/alibaba/sentinel-golang/core/base"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 // Callbacks defines the flow control callbacks

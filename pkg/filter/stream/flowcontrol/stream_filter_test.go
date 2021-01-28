@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	"mosn.io/api"
 

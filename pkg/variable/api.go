@@ -18,18 +18,11 @@
 package variable
 
 import (
-	"context"
-
 	"mosn.io/pkg/variable"
 )
 
 // Deprecated: use mosn.io/pkg/variable/api.go:GetVariableValue instead
-func GetVariableValue(ctx context.Context, name string) (string, error) {
-	// 1. find built-in variables
-	return variable.GetVariableValue(ctx, name)
-}
+var GetVariableValue = variable.GetVariableValue
 
 // Deprecated: use mosn.io/pkg/variable/api.go:SetVariableValue instead
-func SetVariableValue(ctx context.Context, name, value string) error {
-	return variable.SetVariableValue(ctx, name, value)
-}
+var SetVariableValue = variable.SetVariableValue

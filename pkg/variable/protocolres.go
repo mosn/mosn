@@ -18,23 +18,14 @@
 package variable
 
 import (
-	"context"
-
-	"mosn.io/api"
 	"mosn.io/pkg/variable"
-
-	"mosn.io/mosn/pkg/types"
 )
 
 // RegisterProtocolResource registers the resource as ProtocolResourceName
 // forexample protocolVar[Http1+api.URI] = http_request_uri var
 // Deprecated: use mosn.io/pkg/variable/protocolres.go:RegisterProtocolResource instead
-func RegisterProtocolResource(protocol types.ProtocolName, resource api.ProtocolResourceName, varname string) error {
-	return variable.RegisterProtocolResource(protocol, resource, varname)
-}
+var RegisterProtocolResource = variable.RegisterProtocolResource
 
 // GetProtocolResource get URI,PATH,ARG var depends on ProtocolResourceName
 // Deprecated: use mosn.io/pkg/variable/protocolres.go:GetProtocolResource instead
-func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, data ...interface{}) (string, error) {
-	return variable.GetProtocolResource(ctx, name, data...)
-}
+var GetProtocolResource = variable.GetProtocolResource

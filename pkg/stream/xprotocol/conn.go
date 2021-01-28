@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"
