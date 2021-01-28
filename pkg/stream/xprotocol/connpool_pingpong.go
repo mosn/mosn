@@ -30,13 +30,17 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	mosnctx "mosn.io/pkg/context"
+	atomicex "go.uber.org/atomic"
 )
 
+// poolPingPong is used for ping pong protocol such as http
+// which must keep reading connection, and wait for the upstream to response before sending the next request
 type poolPingPong struct {
 	*connpool
 
-	clientMux   sync.Mutex
-	idleClients map[api.Protocol][]*activeClientPingPong
+	totalClientCount atomicex.Uint64 // total clients
+	clientMux        sync.Mutex
+	idleClients      map[api.Protocol][]*activeClientPingPong
 }
 
 // NewPoolPingPong generates a connection pool which uses p pingpong protocol
@@ -102,13 +106,13 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.Pr
 	)
 
 	if n == 0 { // nolint: nestif
-		if maxConns == 0 || p.totalClientCount < maxConns {
+		if maxConns == 0 || p.totalClientCount.Load() < maxConns {
 			// connection not multiplex,
 			// so we can concurrently build connections here
 			p.clientMux.Unlock()
 			c, reason = p.newActiveClient(ctx, subProtocol)
 			if c != nil && reason == "" {
-				p.totalClientCount++
+				p.totalClientCount.Inc()
 			}
 
 			goto RET
@@ -126,7 +130,7 @@ func (p *poolPingPong) GetActiveClient(ctx context.Context, subProtocol types.Pr
 
 		var lastIdx = n - 1
 		// Only refuse extra connection, keepalive-connection is closed by timeout
-		usedConns := p.totalClientCount - uint64(n) + 1
+		usedConns := p.totalClientCount.Load() - uint64(n) + 1
 		if maxConns != 0 && usedConns > host.ClusterInfo().ResourceManager().Connections().Max() {
 			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
 			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
@@ -279,7 +283,7 @@ func (ac *activeClientPingPong) removeFromPool() {
 	p.clientMux.Lock()
 
 	defer p.clientMux.Unlock()
-	p.totalClientCount--
+	p.totalClientCount.Dec()
 	for idx, c := range p.idleClients[subProtocol] {
 		if c == ac {
 			// remove this element

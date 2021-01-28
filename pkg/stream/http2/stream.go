@@ -21,11 +21,11 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 
 	"mosn.io/api"
@@ -294,15 +294,8 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		if _, ok := conn.conn.RawConn().(*mtls.TLSConn); ok {
 			scheme = "https"
 		}
-		var URI string
-		if h2s.Request.URL.RawQuery == "" {
-			URI = fmt.Sprintf(scheme+"://%s%s", h2s.Request.Host, h2s.Request.URL.Path)
-		} else {
-			URI = fmt.Sprintf(scheme+"://%s%s?%s", h2s.Request.Host, h2s.Request.URL.Path, h2s.Request.URL.RawQuery)
 
-		}
-		URL, _ := url.Parse(URI)
-		h2s.Request.URL = URL
+		h2s.Request.URL.Scheme = strings.ToLower(scheme)
 
 		variable.SetVariableValue(ctx, types.VarScheme, scheme)
 		variable.SetVariableValue(ctx, types.VarMethod, h2s.Request.Method)
@@ -860,22 +853,16 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	}
 
 	var query string
-	query, err = variable.GetVariableValue(ctx, types.VarQueryString)
+	query, _ = variable.GetVariableValue(ctx, types.VarQueryString)
 
-	var URL *url.URL
 	var path string
-	path, err = variable.GetVariableValue(ctx, types.VarPath)
-	if err == nil && path != "" {
-		if query != "" {
-			URI := fmt.Sprintf(scheme+"://%s%s?%s", req.Host, path, query)
-			URL, _ = url.Parse(URI)
-		} else {
-			URI := fmt.Sprintf(scheme+"://%s%s", req.Host, path)
-			URL, _ = url.Parse(URI)
-		}
-	} else {
-		URI := fmt.Sprintf(scheme+"://%s/", req.Host)
-		URL, _ = url.Parse(URI)
+	path, _ = variable.GetVariableValue(ctx, types.VarPath)
+
+	URL := &url.URL{
+		Scheme:   scheme,
+		Host:     req.Host,
+		Path:     path,
+		RawQuery: query,
 	}
 
 	if !isReqHeader {

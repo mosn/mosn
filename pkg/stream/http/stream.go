@@ -24,6 +24,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -865,24 +866,18 @@ func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.Reques
 }
 
 func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
-	// assemble uri
-	uri := ""
+	var path string
+	path, _ = variable.GetVariableValue(ctx, types.VarPath)
 
-	// path
-	path, err := variable.GetVariableValue(ctx, types.VarPath)
-	if err != nil || path == "" {
-		uri += "/"
-	} else {
-		uri += path
+	var queryString string
+	queryString, _ = variable.GetVariableValue(ctx, types.VarQueryString)
+
+	u := url.URL{
+		Path:     path,
+		RawQuery: queryString,
 	}
 
-	// querystring
-	queryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
-	if err == nil && queryString != "" {
-		uri += "?" + queryString
-	}
-
-	headers.SetRequestURI(uri)
+	headers.SetRequestURI(u.RequestURI())
 
 	method, err := variable.GetVariableValue(ctx, types.VarMethod)
 	if err == nil && method != "" {

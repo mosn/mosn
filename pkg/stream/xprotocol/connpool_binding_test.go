@@ -70,7 +70,6 @@ func TestBinding(t *testing.T) {
 }
 
 func TestDownClose(t *testing.T) {
-
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
 	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
 
@@ -104,11 +103,14 @@ func TestDownClose(t *testing.T) {
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
 
-	assert.Equal(t, len(pInst.idleClients[sConnI.ID()]), 1)
+	assert.NotNil(t, pInst.idleClients[sConnI.ID()])
 	// server stream conn close
 	sConnI.Close(api.NoFlush, api.LocalClose)
 	// should close the client stream conn
-	assert.Equal(t, 0, len(pInst.idleClients[sConnI.ID()]))
+	assert.Nil(t, pInst.idleClients[sConnI.ID()])
+
+	// close of pool should not panic
+	pInst.Close()
 }
 
 func TestUpperClose(t *testing.T) {
@@ -146,10 +148,14 @@ func TestUpperClose(t *testing.T) {
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
 
-	assert.Equal(t, len(pInst.idleClients[sConnI.ID()]), 1)
+	assert.NotNil(t, pInst.idleClients[sConnI.ID()])
 
 	// upstream close should close the downstream conn
-	pInst.idleClients[sConnI.ID()][0].Close(errors.New("closeclose"))
-	assert.Equal(t, len(pInst.idleClients[sConnI.ID()]), 0)
+	pInst.idleClients[sConnI.ID()].Close(errors.New("closeclose"))
+	assert.Nil(t, pInst.idleClients[sConnI.ID()])
 	assert.Equal(t, sConnI.State(), api.ConnClosed)
+
+	// client has already closed
+	// close the connpool should not panic
+	pInst.Close()
 }
