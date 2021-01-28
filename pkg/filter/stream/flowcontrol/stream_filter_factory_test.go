@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -109,4 +110,38 @@ func TestIsValidCfg(t *testing.T) {
 	isValid, err = isValidConfig(cfg)
 	assert.False(t, isValid)
 	assert.NotNil(t, err)
+}
+
+func Test_parseTrafficType(t *testing.T) {
+	type args struct {
+		conf map[string]interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want base.TrafficType
+	}{
+		{
+			name: "default-inbound",
+			args: struct{ conf map[string]interface{} }{},
+			want: base.Inbound,
+		}, {
+			name: "outbound",
+			args: struct{ conf map[string]interface{} }{
+				map[string]interface{}{"test": "test"}},
+			want: base.Outbound,
+		}, {
+			name: "inbound",
+			args: struct{ conf map[string]interface{} }{
+				map[string]interface{}{"test": "test"}},
+			want: base.Inbound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := parseTrafficType(tt.args.conf); got != tt.want {
+				t.Errorf("parseTrafficType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
