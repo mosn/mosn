@@ -62,15 +62,7 @@ type weightedClusterEntry struct {
 	clusterMetadataMatchCriteria *MetadataMatchCriteriaImpl
 }
 
-type Matchable interface {
-	Match(ctx context.Context, headers api.HeaderMap) api.Route
-}
-
-type RouteBase interface {
-	api.Route
-	api.PathMatchCriterion
-	Matchable
-}
+type RouteBase = api.RouteBase
 
 // Policy
 type policy struct {

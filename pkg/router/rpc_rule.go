@@ -33,6 +33,13 @@ type RPCRouteRuleImpl struct {
 	fastmatch     string // compatible field
 }
 
+func (srri *RPCRouteRuleImpl) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	if srri.configHeaders != nil {
+		return srri.configHeaders.HeaderMatchCriteria()
+	}
+	return nil
+}
+
 func (srri *RPCRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
 	return srri
 }
@@ -80,8 +87,7 @@ func CreateRPCRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher) RouteBas
 	// compatible for simple sofa rule
 	if len(headers) == 1 && headers[0].Name == types.RPCRouteMatchKey {
 		r.fastmatch = headers[0].Value
-	} else {
-		r.configHeaders = CreateCommonHeaderMatcher(headers)
 	}
+	r.configHeaders = CreateCommonHeaderMatcher(headers)
 	return r
 }

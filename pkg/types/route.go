@@ -91,21 +91,6 @@ type RouterWrapper interface {
 	GetRoutersConfig() v2.RouterConfiguration
 }
 
-type VirtualHost interface {
-	Name() string
-
-	// GetRouteFromEntries returns a Route matched the condition
-	GetRouteFromEntries(ctx context.Context, headers api.HeaderMap) api.Route
-	// GetAllRoutesFromEntries returns all Route matched the condition
-	GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap) []api.Route
-	// GetRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
-	GetRouteFromHeaderKV(key, value string) api.Route
-	// AddRoute adds a new route into virtual host
-	AddRoute(route *v2.Router) error
-	// RemoveAllRoutes clear all the routes in the virtual host
-	RemoveAllRoutes()
-}
-
 type HeaderFormat interface {
 	Format(info api.RequestInfo) string
 	Append() bool
@@ -123,6 +108,9 @@ type QueryParameterMatcher interface {
 
 // HeaderMatcher match request's headers
 type HeaderMatcher interface {
+	// HeaderMatchCriteria returns the route's HeaderMatchCriteria
+	HeaderMatchCriteria() api.KeyValueMatchCriteria
+
 	// Matches  check whether the headers specified in the config are present in a request.
 	// If all the headers (and values) in the header matcher  are found in the request_headers, return true.
 	Matches(ctx context.Context, requestHeaders api.HeaderMap) bool

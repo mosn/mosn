@@ -41,7 +41,7 @@ func TestRPCRouteRuleSimple(t *testing.T) {
 		},
 	}
 	rpcroute := CreateRPCRule(base, headers)
-	if rpcroute.Matcher() != ".*" {
+	if rpcroute.RouteRule().PathMatchCriterion().Matcher() != ".*" {
 		t.Fatalf("sofa route rule should be fast match mode")
 	}
 	ctrl := gomock.NewController(t)
@@ -76,7 +76,7 @@ func TestSofaRouteRuleHeaderMatch(t *testing.T) {
 		t.Fatalf("create base route failed: %v", err)
 	}
 	rpcroute := CreateRPCRule(base, route.Match.Headers)
-	if rpcroute.Matcher() != "" {
+	if rpcroute.RouteRule().PathMatchCriterion().Matcher() != "" {
 		t.Fatalf("sofa route rule should not be fast match mode")
 	}
 	ctrl := gomock.NewController(t)

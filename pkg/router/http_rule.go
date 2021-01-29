@@ -43,6 +43,13 @@ func NewBaseHTTPRouteRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher) *
 	}
 }
 
+func (rri *BaseHTTPRouteRule) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	if rri.configHeaders != nil {
+		return rri.configHeaders.HeaderMatchCriteria()
+	}
+	return nil
+}
+
 func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.HeaderMap) bool {
 	// 1. match headers' KV
 	if !rri.configHeaders.Matches(ctx, headers) {

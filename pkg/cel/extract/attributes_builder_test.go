@@ -403,12 +403,18 @@ func Test_attributesToStringInterfaceMap(t *testing.T) {
 }
 
 type MockRouteRule struct {
-	clusterName        string
-	upstreamProtocol   string
-	globalTimeout      time.Duration
-	policy             api.Policy
-	perFilterConfig    map[string]interface{}
-	pathMatchCriterion api.PathMatchCriterion
+	vHost               api.VirtualHost
+	clusterName         string
+	upstreamProtocol    string
+	globalTimeout       time.Duration
+	policy              api.Policy
+	perFilterConfig     map[string]interface{}
+	pathMatchCriterion  api.PathMatchCriterion
+	headerMatchCriteria api.KeyValueMatchCriteria
+}
+
+func (r *MockRouteRule) VirtualHost() api.VirtualHost {
+	return r.vHost
 }
 
 func (r *MockRouteRule) ClusterName() string {
@@ -445,6 +451,10 @@ func (r *MockRouteRule) FinalizeResponseHeaders(ctx context.Context, headers api
 
 func (r *MockRouteRule) PathMatchCriterion() api.PathMatchCriterion {
 	return r.pathMatchCriterion
+}
+
+func (r *MockRouteRule) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	return r.headerMatchCriteria
 }
 
 // MockRequestInfo

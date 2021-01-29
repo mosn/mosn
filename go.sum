@@ -423,8 +423,8 @@ k8s.io/klog v0.0.0-20181102134211-b9b56d5dfc92/go.mod h1:Gq+BEi5rUBO/HRz0bTSXDUc
 k8s.io/klog v1.0.0 h1:Pt+yjF5aB1xDSVbau4VsWe+dQNzA0qv1LlXdC2dF6Q8=
 k8s.io/klog v1.0.0/go.mod h1:4Bi6QPql/J/LkTDqv7R/cd3hPo4k2DG6Ptcz060Ez5I=
 k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a/go.mod h1:1TqjTSzOxsLGIKfj0lK8EeCP7K1iUG65v09OM0/WG5E=
-mosn.io/api v0.0.0-20210113033009-f24f4e59b2bc h1:SAZ3X12i+a7xKuOBGCPzBpXUDrLk7bvMiqrc6oW41bk=
-mosn.io/api v0.0.0-20210113033009-f24f4e59b2bc/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
+mosn.io/api v0.0.0-20210129030635-d7dc8206d7b7 h1:x8QoWIdFLQVlwuKEMiNx+cF3hlelswMOUoxc14+UzCk=
+mosn.io/api v0.0.0-20210129030635-d7dc8206d7b7/go.mod h1:aAbHvga8yPUz1fidG1Xdsc98eLSZ/jDQTKhrRXd/QPI=
 mosn.io/pkg v0.0.0-20200204084819-c73aa89d006d/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
 mosn.io/pkg v0.0.0-20201228090327-daaf86502a50 h1:N5LqhUuRL2eMZw/Q6x2e+jsfLDp34j5rEDnPCz6uWW0=
 mosn.io/pkg v0.0.0-20201228090327-daaf86502a50/go.mod h1:7TCKflk2a5Ak/RSqH9AwOJRI1qFAGsyUahayFLWDgTc=
