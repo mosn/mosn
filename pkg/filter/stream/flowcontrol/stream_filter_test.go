@@ -32,12 +32,11 @@ func TestStreamFilter(t *testing.T) {
 		GlobalSwitch: false,
 		Monitor:      false,
 		KeyType:      "PATH",
-		Rules: []*flow.FlowRule{
-			&flow.FlowRule{
-				ID:              0,
+		Rules: []*flow.Rule{
+			{
+				ID:              "0",
 				Resource:        "/http",
-				MetricType:      1,
-				Count:           1,
+				Threshold:       1,
 				ControlBehavior: 0,
 			},
 		},
