@@ -33,11 +33,11 @@ func MockInboundFilter(mockConfig *Config) *StreamFilter {
 }
 func TestStreamFilter(t *testing.T) {
 
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		t.Errorf("TestStreamFilter error: %v", r)
-	// 	}
-	// }()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("TestStreamFilter error: %v", r)
+		}
+	}()
 
 	mockConfig := &Config{
 		GlobalSwitch: false,
