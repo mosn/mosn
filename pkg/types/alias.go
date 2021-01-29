@@ -34,3 +34,5 @@ type HostInfo = api.HostInfo
 type RequestInfo = api.RequestInfo
 
 type Route = api.Route
+
+type VirtualHost = api.VirtualHost

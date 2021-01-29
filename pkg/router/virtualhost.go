@@ -35,68 +35,29 @@ type VirtualHostImpl struct {
 	globalRouteConfig     *configImpl
 	requestHeadersParser  *headerParser
 	responseHeadersParser *headerParser
+	perFilterConfig       map[string]interface{}
 }
 
 func (vh *VirtualHostImpl) Name() string {
 	return vh.virtualHostName
 }
 
-func (vh *VirtualHostImpl) addRouteBase(route *v2.Router) error {
-	base, err := NewRouteRuleImplBase(vh, route)
-	if err != nil {
-		log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", err)
-		return err
-	}
-	var router RouteBase
-	if route.Match.Prefix != "" {
-		router = &PrefixRouteRuleImpl{
-			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
-			prefix:            route.Match.Prefix,
-		}
-	} else if route.Match.Path != "" {
-		router = &PathRouteRuleImpl{
-			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
-			path:              route.Match.Path,
-		}
-	} else if route.Match.Regex != "" {
-		regPattern, err := regexp.Compile(route.Match.Regex)
-		if err != nil {
-			log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "addRouteBase", err)
-			return err
-		}
-		router = &RegexRouteRuleImpl{
-			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
-			regexStr:          route.Match.Regex,
-			regexPattern:      regPattern,
-		}
-	} else if len(route.Match.Variables) > 0 {
-		variableRouter := &VariableRouteRuleImpl{
-			RouteRuleImplBase: base,
-			Variables:         make([]*VariableMatchItem, len(route.Match.Variables)),
-		}
-		for i := range route.Match.Variables {
-			variableRouter.Variables[i] = ParseToVariableMatchItem(route.Match.Variables[i])
-		}
-		router = variableRouter
-	} else {
-
-		router = CreateRPCRule(base, route.Match.Headers)
-
-	}
-	if router != nil {
+func (vh *VirtualHostImpl) addRouteBase(route api.RouteBase) error {
+	if route != nil {
 		vh.mutex.Lock()
-		vh.routes = append(vh.routes, router)
+		vh.routes = append(vh.routes, route)
 		// make fast index, used in certain scenarios
 		// TODO: rule can be extended
-		if len(route.Match.Headers) == 1 && !route.Match.Headers[0].Regex {
-			key := route.Match.Headers[0].Name
-			value := route.Match.Headers[0].Value
+		hmc := route.RouteRule().HeaderMatchCriteria()
+		if hmc != nil && hmc.Len() == 1 && hmc.Get(0).MatchType() == api.ValueExact {
+			key := hmc.Get(0).Key()
+			value := hmc.Get(0).Matcher()
 			valueMap, ok := vh.fastIndex[key]
 			if !ok {
 				valueMap = make(map[string]api.Route)
 				vh.fastIndex[key] = valueMap
 			}
-			valueMap[value] = router
+			valueMap[value] = route
 		}
 		vh.mutex.Unlock()
 		if log.DefaultLogger.GetLogLevel() >= log.INFO {
@@ -143,7 +104,7 @@ func (vh *VirtualHostImpl) GetRouteFromHeaderKV(key, value string) api.Route {
 	return nil
 }
 
-func (vh *VirtualHostImpl) AddRoute(route *v2.Router) error {
+func (vh *VirtualHostImpl) AddRoute(route api.RouteBase) error {
 	return vh.addRouteBase(route)
 }
 
@@ -157,6 +118,20 @@ func (vh *VirtualHostImpl) RemoveAllRoutes() {
 	return
 }
 
+func (vh *VirtualHostImpl) PerFilterConfig() map[string]interface{} {
+	return vh.perFilterConfig
+}
+
+func (vh *VirtualHostImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	vh.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	vh.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+}
+
+func (vh *VirtualHostImpl) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	vh.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+	vh.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+}
+
 // NewVirtualHostImpl convert mosn VirtualHost config to actual virtual host object
 func NewVirtualHostImpl(virtualHost *v2.VirtualHost) (*VirtualHostImpl, error) {
 	vhImpl := &VirtualHostImpl{
@@ -164,11 +139,59 @@ func NewVirtualHostImpl(virtualHost *v2.VirtualHost) (*VirtualHostImpl, error) {
 		fastIndex:             make(map[string]map[string]api.Route),
 		requestHeadersParser:  getHeaderParser(virtualHost.RequestHeadersToAdd, nil),
 		responseHeadersParser: getHeaderParser(virtualHost.ResponseHeadersToAdd, virtualHost.ResponseHeadersToRemove),
+		perFilterConfig:       virtualHost.PerFilterConfig,
 	}
 	for _, route := range virtualHost.Routers {
-		if err := vhImpl.addRouteBase(&route); err != nil {
+		rb, err := NewRouteBase(vhImpl, &route)
+		if err != nil {
+			return nil, err
+		}
+		if err := vhImpl.addRouteBase(rb); err != nil {
 			return nil, err
 		}
 	}
 	return vhImpl, nil
+}
+
+func NewRouteBase(vh api.VirtualHost, route *v2.Router) (api.RouteBase, error) {
+	base, err := NewRouteRuleImplBase(vh, route)
+	if err != nil {
+		log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "NewRouteBase", err)
+		return nil, err
+	}
+	var router RouteBase
+	if route.Match.Prefix != "" {
+		router = &PrefixRouteRuleImpl{
+			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
+			prefix:            route.Match.Prefix,
+		}
+	} else if route.Match.Path != "" {
+		router = &PathRouteRuleImpl{
+			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
+			path:              route.Match.Path,
+		}
+	} else if route.Match.Regex != "" {
+		regPattern, err := regexp.Compile(route.Match.Regex)
+		if err != nil {
+			log.DefaultLogger.Errorf(RouterLogFormat, "virtualhost", "NewRouteBase", err)
+			return nil, err
+		}
+		router = &RegexRouteRuleImpl{
+			BaseHTTPRouteRule: NewBaseHTTPRouteRule(base, route.Match.Headers),
+			regexStr:          route.Match.Regex,
+			regexPattern:      regPattern,
+		}
+	} else if len(route.Match.Variables) > 0 {
+		variableRouter := &VariableRouteRuleImpl{
+			RouteRuleImplBase: base,
+			Variables:         make([]*VariableMatchItem, len(route.Match.Variables)),
+		}
+		for i := range route.Match.Variables {
+			variableRouter.Variables[i] = ParseToVariableMatchItem(route.Match.Variables[i])
+		}
+		router = variableRouter
+	} else {
+		router = CreateRPCRule(base, route.Match.Headers)
+	}
+	return router, nil
 }

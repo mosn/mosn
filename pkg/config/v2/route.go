@@ -284,13 +284,14 @@ func (rc *RouterConfiguration) UnmarshalJSON(b []byte) error {
 
 // VirtualHost is used to make up the route table
 type VirtualHost struct {
-	Name                    string               `json:"name,omitempty"`
-	Domains                 []string             `json:"domains,omitempty"`
-	Routers                 []Router             `json:"routers,omitempty"`
-	RequireTLS              string               `json:"require_tls,omitempty"` // not used yet
-	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
-	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
-	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
+	Name                    string                 `json:"name,omitempty"`
+	Domains                 []string               `json:"domains,omitempty"`
+	Routers                 []Router               `json:"routers,omitempty"`
+	RequireTLS              string                 `json:"require_tls,omitempty"` // not used yet
+	RequestHeadersToAdd     []*HeaderValueOption   `json:"request_headers_to_add,omitempty"`
+	ResponseHeadersToAdd    []*HeaderValueOption   `json:"response_headers_to_add,omitempty"`
+	ResponseHeadersToRemove []string               `json:"response_headers_to_remove,omitempty"`
+	PerFilterConfig         map[string]interface{} `json:"per_filter_config,omitempty"`
 }
 
 // RouterMatch represents the route matching parameters
