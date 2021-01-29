@@ -44,7 +44,7 @@ var (
 	}
 )
 
-// defines the resource context keys.
+// defines the Resource context keys.
 const (
 	KeyInvokeSuccess = "success"
 	KeySourceIp      = "X-CALLER-IP"
@@ -55,8 +55,8 @@ type StreamFilter struct {
 	Entry           *base.SentinelEntry
 	BlockError      *base.BlockError
 	Callbacks       Callbacks
-	receiverHandler api.StreamReceiverFilterHandler
-	senderHandler   api.StreamSenderFilterHandler
+	ReceiverHandler api.StreamReceiverFilterHandler
+	SenderHandler   api.StreamSenderFilterHandler
 	trafficType     base.TrafficType
 	ranComplete     bool
 }
@@ -68,31 +68,31 @@ func NewStreamFilter(callbacks Callbacks, trafficType base.TrafficType) *StreamF
 }
 
 func (f *StreamFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
-	f.receiverHandler = handler
+	f.ReceiverHandler = handler
 }
 
 func (f *StreamFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
-	f.senderHandler = handler
+	f.SenderHandler = handler
 }
 
-// OnReceive creates resource and judges whether current request should be blocked.
+// OnReceive creates Resource and judges whether current request should be blocked.
 func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap,
 	buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if !f.Callbacks.Enabled() || f.Callbacks.ShouldIgnore(f, ctx, headers, buf, trailers) {
 		return api.StreamFilterContinue
 	}
-	remoteAddr := f.receiverHandler.Connection().RemoteAddr()
+	remoteAddr := f.ReceiverHandler.Connection().RemoteAddr()
 	addr, _ := net.ResolveTCPAddr(remoteAddr.Network(), remoteAddr.String())
 	if nil != addr {
 		ctx = context.WithValue(ctx, KeySourceIp, addr.IP.String())
 	}
 	pr := f.Callbacks.ParseResource(ctx, headers, buf, trailers, f.trafficType)
 	if pr == nil {
-		log.DefaultLogger.Warnf("can't get resource: %+v", headers)
+		log.DefaultLogger.Warnf("can't get Resource: %+v", headers)
 		return api.StreamFilterContinue
 	}
 
-	entry, err := sentinel.Entry(pr.resource.Name(), pr.opts...)
+	entry, err := sentinel.Entry(pr.Resource.Name(), pr.Opts...)
 	f.Entry = entry
 	f.BlockError = err
 	if err != nil {
@@ -137,14 +137,14 @@ func (f *StreamFilter) OnDestroy() {
 // response code and header status.
 func (f *StreamFilter) isFail(ctx context.Context, headers types.HeaderMap,
 	buf types.IoBuffer, trailers types.HeaderMap) bool {
-	requestInfo := f.senderHandler.RequestInfo()
+	requestInfo := f.SenderHandler.RequestInfo()
 	for _, responseFlag := range errorResponseFlag {
 		if requestInfo.GetResponseFlag(responseFlag) {
 			return true
 		}
 	}
 
-	responseCode := f.senderHandler.RequestInfo().ResponseCode()
+	responseCode := f.SenderHandler.RequestInfo().ResponseCode()
 	for _, errCode := range errorResponseCode {
 		if responseCode == errCode {
 			return true

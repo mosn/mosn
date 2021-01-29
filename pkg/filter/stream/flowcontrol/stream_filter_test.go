@@ -115,7 +115,7 @@ func BenchmarkStreamFilter_OnReceive_SwitchOn(b *testing.B) {
 func TestIsFail(t *testing.T) {
 	cb := &DefaultCallbacks{}
 	filter := NewStreamFilter(cb, base.Inbound)
-	filter.senderHandler = &MockSendHandler{}
+	filter.SenderHandler = &MockSendHandler{}
 	header := mockRPCHeader("testingService", "sum")
 	ctx := context.Background()
 	assert.False(t, filter.isFail(ctx, header, nil, nil))

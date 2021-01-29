@@ -24,10 +24,10 @@ type Callbacks interface {
 	IsInvocationFail(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool
 }
 
-// ParsedResource contains the parsed resource wrapper and entry options.
+// ParsedResource contains the parsed Resource wrapper and entry options.
 type ParsedResource struct {
-	resource *base.ResourceWrapper
-	opts     []sentinel.EntryOption
+	Resource *base.ResourceWrapper
+	Opts     []sentinel.EntryOption
 }
 
 // DefaultCallbacks represents the default flow control filter implementation.
@@ -38,24 +38,24 @@ type DefaultCallbacks struct {
 // Init is a no-op.
 func (dc *DefaultCallbacks) Init() {}
 
-// ParseResource parses resource from context.
+// ParseResource parses Resource from context.
 func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) *ParsedResource {
 	resource, err := variable.GetProtocolResource(ctx, dc.config.KeyType)
 	if err != nil || resource == "" {
-		log.DefaultLogger.Errorf("parse resource failed: %v", err)
+		log.DefaultLogger.Errorf("parse Resource failed: %v", err)
 		return nil
 	}
 	res := base.NewResourceWrapper(resource, base.ResTypeWeb, base.Inbound)
 	options := []sentinel.EntryOption{
 		sentinel.WithTrafficType(base.Inbound),
 	}
-	return &ParsedResource{resource: res, opts: options}
+	return &ParsedResource{Resource: res, Opts: options}
 }
 
 // AfterBlock sends response directly.
 func (dc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 	variable.SetVariableValue(ctx, types.VarHeaderStatus, strconv.Itoa(dc.config.Action.Status))
-	filter.receiverHandler.SendDirectResponse(headers, buffer.NewIoBufferString(dc.config.Action.Body), trailers)
+	filter.ReceiverHandler.SendDirectResponse(headers, buffer.NewIoBufferString(dc.config.Action.Body), trailers)
 }
 
 // AfterPass is a no-op by default.
