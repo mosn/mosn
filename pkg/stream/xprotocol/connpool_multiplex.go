@@ -34,6 +34,8 @@ import (
 	"mosn.io/pkg/utils"
 )
 
+// poolMultiplex is used for multiplex protocols like sofa, dubbo, etc.
+// a single pool is connections which can be reused in a single host
 type poolMultiplex struct {
 	*connpool
 
