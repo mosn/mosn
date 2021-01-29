@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	sentinel "github.com/alibaba/sentinel-golang/api"
+
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"github.com/stretchr/testify/assert"
@@ -353,4 +355,29 @@ func (h *mockHeaderMap) Set(key, value string) {
 
 func (h *mockHeaderMap) Del(key string) {
 	delete(h.headers, key)
+}
+
+func TestStreamFilter_Append(t *testing.T) {
+	cb := &DefaultCallbacks{}
+	filter := NewStreamFilter(cb, base.Inbound)
+
+	filter.SetReceiveFilterHandler(&mockStreamReceiverFilterHandler{})
+	filter.SetSenderFilterHandler(&mockStreamSenderFilterHandler{})
+
+	header := mockRPCHeader("testingService", "sum")
+	ctx := context.Background()
+
+	filter.BlockError = base.NewBlockError(base.BlockTypeFlow)
+	assert.Equal(t, api.StreamFilterStop, filter.Append(ctx, header, nil, nil))
+
+	// clear block error, nil block error and Entry
+	filter.BlockError = nil
+	assert.Equal(t, api.StreamFilterContinue, filter.Append(ctx, header, nil, nil))
+
+	// set entry
+	entry, err := sentinel.Entry("test")
+	assert.Nil(t, err)
+	filter.Entry = entry
+	assert.Equal(t, api.StreamFilterContinue, filter.Append(ctx, header, nil, nil))
+
 }

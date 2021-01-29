@@ -2,6 +2,7 @@ package flowcontrol
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/alibaba/sentinel-golang/core/base"
@@ -128,12 +129,12 @@ func Test_parseTrafficType(t *testing.T) {
 		}, {
 			name: "outbound",
 			args: struct{ conf map[string]interface{} }{
-				map[string]interface{}{"test": "test"}},
+				map[string]interface{}{"direction": "outbound"}},
 			want: base.Outbound,
 		}, {
 			name: "inbound",
 			args: struct{ conf map[string]interface{} }{
-				map[string]interface{}{"test": "test"}},
+				map[string]interface{}{"direction": "inbound"}},
 			want: base.Inbound,
 		},
 	}
@@ -141,6 +142,48 @@ func Test_parseTrafficType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := parseTrafficType(tt.args.conf); got != tt.want {
 				t.Errorf("parseTrafficType() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_loadConfig(t *testing.T) {
+	type args struct {
+		conf map[string]interface{}
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Config
+		wantErr bool
+	}{
+		{
+			name:    "nil config return default config",
+			args:    struct{ conf map[string]interface{} }{conf: nil},
+			want:    defaultConfig(),
+			wantErr: false,
+		}, {
+			name: "nil config return default config",
+			args: struct{ conf map[string]interface{} }{conf: map[string]interface{}{
+				"app_name": "test",
+			}},
+			want: func() *Config {
+				conf := defaultConfig()
+				conf.AppName = "test"
+				return conf
+			}(),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := loadConfig(tt.args.conf)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("loadConfig() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("loadConfig() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

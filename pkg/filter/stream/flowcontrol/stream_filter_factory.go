@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
@@ -128,19 +129,13 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 
 func parseTrafficType(conf map[string]interface{}) base.TrafficType {
 	directionConf, ok := conf["direction"].(string)
-	var trafficType base.TrafficType
 	if !ok {
-		trafficType = base.Inbound
+		return base.Inbound
 	}
-	switch directionConf {
-	case "inbound":
-		trafficType = base.Inbound
-	case "outbound":
-		trafficType = base.Outbound
-	default:
-		trafficType = base.Inbound
+	if strings.EqualFold(directionConf, base.Outbound.String()) {
+		return base.Outbound
 	}
-	return trafficType
+	return base.Inbound
 }
 
 func isValidConfig(cfg *Config) (bool, error) {
