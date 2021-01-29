@@ -25,7 +25,6 @@ type Callbacks interface {
 	Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap)
 	Exit(filter *StreamFilter)
 	Enabled() bool
-	IsInvocationFail(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool
 }
 
 // ParsedResource contains the parsed Resource wrapper and entry options.
@@ -99,10 +98,5 @@ func (dc *DefaultCallbacks) Enabled() bool { return dc.config.GlobalSwitch }
 
 // ShouldIgnore is a no-op by default.
 func (dc *DefaultCallbacks) ShouldIgnore(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
-	return false
-}
-
-// IsInvocationFail always return false by default.
-func (dc *DefaultCallbacks) IsInvocationFail(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
 	return false
 }
