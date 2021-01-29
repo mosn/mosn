@@ -34,6 +34,7 @@ var (
 // Config represents the flow control configurations.
 type Config struct {
 	AppName      string                   `json:"app_name"`
+	CallbackName string                   `json:"callback_name"`
 	LogPath      string                   `json:"log_path"`
 	GlobalSwitch bool                     `json:"global_switch"`
 	Monitor      bool                     `json:"monitor"`
@@ -61,7 +62,7 @@ type StreamFilterFactory struct {
 // CreateFilterChain add the flow control stream filter to filter chain.
 func (f *StreamFilterFactory) CreateFilterChain(context context.Context,
 	callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := NewStreamFilter(&DefaultCallbacks{config: f.config}, f.trafficType)
+	filter := NewStreamFilter(GetCallbacksByConfig(f.config), f.trafficType)
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 

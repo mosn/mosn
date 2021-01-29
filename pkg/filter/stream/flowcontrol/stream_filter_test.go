@@ -3,7 +3,6 @@ package flowcontrol
 import (
 	"context"
 	"net"
-	"strconv"
 	"testing"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
@@ -32,12 +31,6 @@ func MockInboundFilter(mockConfig *Config) *StreamFilter {
 	return sf
 }
 func TestStreamFilter(t *testing.T) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			t.Errorf("TestStreamFilter error: %v", r)
-		}
-	}()
 
 	mockConfig := &Config{
 		GlobalSwitch: false,
@@ -110,27 +103,6 @@ func BenchmarkStreamFilter_OnReceive_SwitchOn(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		filter.OnReceive(ctx, header, nil, nil)
 	}
-}
-
-func TestIsFail(t *testing.T) {
-	cb := &DefaultCallbacks{}
-	filter := NewStreamFilter(cb, base.Inbound)
-	filter.SenderHandler = &MockSendHandler{}
-	header := mockRPCHeader("testingService", "sum")
-	ctx := context.Background()
-	assert.False(t, filter.isFail(ctx, header, nil, nil))
-
-	tempRI := mockNormalRI
-	mockNormalRI = mockErrorRI
-	assert.True(t, filter.isFail(ctx, header, nil, nil))
-	mockNormalRI = tempRI
-
-	header.Set(types.VarHeaderStatus, strconv.Itoa(types.TimeoutExceptionCode))
-	assert.True(t, filter.isFail(ctx, header, nil, nil))
-
-	header = mockRPCHeader("testingService", "sum")
-	mockNormalRI.code = types.TimeoutExceptionCode
-	assert.True(t, filter.isFail(ctx, header, nil, nil))
 }
 
 type mockStreamReceiverFilterHandler struct {

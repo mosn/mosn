@@ -17,3 +17,12 @@ func TestDefaultCallbacks(t *testing.T) {
 	mockConfig.GlobalSwitch = true
 	assert.True(t, cb.Enabled())
 }
+
+func TestCallbacksRegistry(t *testing.T) {
+	cfg := defaultConfig()
+	cb := &DefaultCallbacks{config: defaultConfig()}
+	RegisterCallbacks("default", cb)
+	assert.NotNil(t, GetCallbacksByConfig(cfg))
+	cfg.CallbackName = "default"
+	assert.NotNil(t, GetCallbacksByConfig(cfg))
+}

@@ -2,8 +2,6 @@ package flowcontrol
 
 import (
 	"context"
-	"net"
-	"strconv"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
@@ -44,12 +42,6 @@ var (
 	}
 )
 
-// defines the resource context keys.
-const (
-	KeyInvokeSuccess = "success"
-	KeySourceIp      = "X-CALLER-IP"
-)
-
 // StreamFilter represents the flow control stream filter.
 type StreamFilter struct {
 	Entry           *base.SentinelEntry
@@ -81,11 +73,7 @@ func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap,
 	if !f.Callbacks.Enabled() || f.Callbacks.ShouldIgnore(f, ctx, headers, buf, trailers) {
 		return api.StreamFilterContinue
 	}
-	remoteAddr := f.ReceiverHandler.Connection().RemoteAddr()
-	addr, _ := net.ResolveTCPAddr(remoteAddr.Network(), remoteAddr.String())
-	if nil != addr {
-		ctx = context.WithValue(ctx, KeySourceIp, addr.IP.String())
-	}
+	f.Callbacks.Prepare(ctx, headers, buf, trailers, f.trafficType)
 	pr := f.Callbacks.ParseResource(ctx, headers, buf, trailers, f.trafficType)
 	if pr == nil {
 		log.DefaultLogger.Warnf("can't get resource: %+v", headers)
@@ -104,7 +92,7 @@ func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap,
 	return api.StreamFilterContinue
 }
 
-// Append marks whether the request is successful, do nothing if request was
+// Append will be called after request response, do nothing if request was
 // blocked in OnReceive phase.
 func (f *StreamFilter) Append(ctx context.Context, headers types.HeaderMap,
 	buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
@@ -115,12 +103,7 @@ func (f *StreamFilter) Append(ctx context.Context, headers types.HeaderMap,
 	if f.Entry == nil {
 		return api.StreamFilterContinue
 	}
-
-	fail := f.isFail(ctx, headers, buf, trailers)
-	if f.Entry.Context().Data == nil {
-		f.Entry.Context().Data = make(map[interface{}]interface{})
-	}
-	f.Entry.Context().Data[KeyInvokeSuccess] = !fail
+	f.Callbacks.Append(ctx, headers, buf, trailers)
 	return api.StreamFilterContinue
 }
 
@@ -131,39 +114,4 @@ func (f *StreamFilter) OnDestroy() {
 		f.Callbacks.Exit(f)
 		f.Entry.Exit()
 	}
-}
-
-// isFail judges whether the request is failed according to response flags,
-// response code and header status.
-func (f *StreamFilter) isFail(ctx context.Context, headers types.HeaderMap,
-	buf types.IoBuffer, trailers types.HeaderMap) bool {
-	requestInfo := f.SenderHandler.RequestInfo()
-	for _, responseFlag := range errorResponseFlag {
-		if requestInfo.GetResponseFlag(responseFlag) {
-			return true
-		}
-	}
-
-	responseCode := f.SenderHandler.RequestInfo().ResponseCode()
-	for _, errCode := range errorResponseCode {
-		if responseCode == errCode {
-			return true
-		}
-	}
-
-	if code, ok := headers.Get(types.VarHeaderStatus); ok {
-		if codeInt, err := strconv.Atoi(code); err == nil {
-			for _, errCode := range errorResponseCode {
-				if codeInt == errCode {
-					return true
-				}
-			}
-		}
-	}
-
-	if f.Callbacks != nil {
-		return f.Callbacks.IsInvocationFail(ctx, headers, buf, trailers)
-	}
-
-	return false
 }
