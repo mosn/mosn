@@ -44,7 +44,7 @@ func RegisterCallbacks(name string, cb Callbacks) {
 	callbacksRegistry[name] = cb
 }
 
-// GetCallbacksByName returns specified Callbacks.
+// GetCallbacksByName returns specified or default Callbacks.
 func GetCallbacksByConfig(conf *Config) Callbacks {
 	cb, ok := callbacksRegistry[conf.CallbackName]
 	if !ok {
