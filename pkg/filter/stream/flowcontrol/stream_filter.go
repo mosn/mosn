@@ -44,7 +44,7 @@ var (
 	}
 )
 
-// defines the Resource context keys.
+// defines the resource context keys.
 const (
 	KeyInvokeSuccess = "success"
 	KeySourceIp      = "X-CALLER-IP"
@@ -75,7 +75,7 @@ func (f *StreamFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHand
 	f.SenderHandler = handler
 }
 
-// OnReceive creates Resource and judges whether current request should be blocked.
+// OnReceive creates resource and judges whether current request should be blocked.
 func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap,
 	buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if !f.Callbacks.Enabled() || f.Callbacks.ShouldIgnore(f, ctx, headers, buf, trailers) {
@@ -88,7 +88,7 @@ func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap,
 	}
 	pr := f.Callbacks.ParseResource(ctx, headers, buf, trailers, f.trafficType)
 	if pr == nil {
-		log.DefaultLogger.Warnf("can't get Resource: %+v", headers)
+		log.DefaultLogger.Warnf("can't get resource: %+v", headers)
 		return api.StreamFilterContinue
 	}
 

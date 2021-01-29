@@ -42,7 +42,7 @@ func (dc *DefaultCallbacks) Init() {}
 func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) *ParsedResource {
 	resource, err := variable.GetProtocolResource(ctx, dc.config.KeyType)
 	if err != nil || resource == "" {
-		log.DefaultLogger.Errorf("parse Resource failed: %v", err)
+		log.DefaultLogger.Errorf("parse resource failed: %v", err)
 		return nil
 	}
 	res := base.NewResourceWrapper(resource, base.ResTypeWeb, base.Inbound)
