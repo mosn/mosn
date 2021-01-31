@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.21.0
+
+### 优化
+
+- 升级sentinel版本到v1.0.2 [@ansiz](https://github.com/ansiz)
+- hijack的情况下，`onUpstreamReset`方法不统计host的metri [@cch123](https://github.com/cch123)
+- 优化在tls下读超时场景下的内存消耗 [@cch123](https://github.com/cch123)
+4. 增加注释，简化xprotocol connectpool代码 [@cch123](https://github.com/cch123)
+
+### 重构
+
+- 优化路由Header匹配逻辑,删除SofaRule 规则扩展 [@nejisama](https://github.com/nejisama)
+- 重命名MOSNHeaderXXX的相关变量 [@nejisama](https://github.com/nejisama)
+
+### Bug修复
+
+- 修复http场景转发之后编码丢失的bug [@antJack](https://github.com/antJack)
+
+### 新功能
+
+- 支持virtual_host和route的per_filter_config属性 [@machine3](https://github.com/machine3)
+
 ## v0.20.0
 
 ### Optimization
