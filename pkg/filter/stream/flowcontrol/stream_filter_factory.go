@@ -37,7 +37,7 @@ type Config struct {
 	Monitor      bool                     `json:"monitor"`
 	KeyType      api.ProtocolResourceName `json:"limit_key_type"`
 	Action       Action                   `json:"action"`
-	Rules        []*flow.FlowRule         `json:"rules"`
+	Rules        []*flow.Rule             `json:"rules"`
 }
 
 // Action represents the direct response of request after limited.

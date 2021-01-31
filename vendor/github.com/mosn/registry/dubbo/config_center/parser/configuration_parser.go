@@ -20,18 +20,14 @@ package parser
 import (
 	"strconv"
 	"strings"
-)
 
-import (
 	"github.com/magiconair/properties"
-	perrors "github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
-)
 
-import (
 	"github.com/mosn/registry/dubbo/common"
 	"github.com/mosn/registry/dubbo/common/constant"
 	"github.com/mosn/registry/dubbo/common/logger"
+	perrors "github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
 const (

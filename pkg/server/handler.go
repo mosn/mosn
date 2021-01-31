@@ -167,7 +167,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 
 		// set update label to true, do not start the listener again
 		al.updatedLabel = true
-		log.DefaultLogger.Infof("[server] [conn handler] [update listener] update listener: %s", lc.AddrConfig)
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[server] [conn handler] [update listener] update listener: %s", lc.AddrConfig)
+		}
 
 	} else {
 		// listener doesn't exist, add the listener
@@ -200,7 +202,9 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		}
 		l.SetListenerCallbacks(al)
 		ch.listeners = append(ch.listeners, al)
-		log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[server] [conn handler] [add listener] add listener: %s", lc.Addr.String())
+		}
 
 	}
 
@@ -414,6 +418,10 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 			switch rawc.LocalAddr().Network() {
 			case "udp":
 				if tc, ok := rawc.(*net.UDPConn); ok {
+					rawf, _ = tc.File()
+				}
+			case "unix":
+				if tc, ok := rawc.(*net.UnixConn); ok {
 					rawf, _ = tc.File()
 				}
 			default:
@@ -740,7 +748,9 @@ func newActiveConnection(listener *activeListener, conn api.Connection) *activeC
 	})
 	ac.conn.AddBytesSentListener(func(bytesSent uint64) {
 
-		log.DefaultLogger.Debugf("update listener write bytes: %d", bytesSent)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("update listener write bytes: %d", bytesSent)
+		}
 		if bytesSent > 0 {
 			listener.stats.DownstreamBytesWriteTotal.Inc(int64(bytesSent))
 		}

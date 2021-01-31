@@ -1,3 +1,17 @@
+// Copyright 1999-2020 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package metric
 
 import (
@@ -19,7 +33,6 @@ const (
 )
 
 var (
-	logger = logging.GetDefaultLogger()
 	// The timestamp of the last fetching. The time unit is ms (= second * 1000).
 	lastFetchTime int64 = -1
 	writeChan           = make(chan metricTimeMap, logFlushQueueSize)
@@ -31,19 +44,20 @@ var (
 
 func InitTask() (err error) {
 	initOnce.Do(func() {
-		metricWriter, err = NewDefaultMetricLogWriter(config.MetricLogSingleFileMaxSize(), config.MetricLogMaxFileAmount())
-		if err != nil {
-			logger.Errorf("Failed to initialize the MetricLogWriter: %+v", err)
-			return
-		}
-
-		// Schedule the log flushing task
-		go util.RunWithRecover(writeTaskLoop, logger)
-		// Schedule the log aggregating task
 		flushInterval := config.MetricLogFlushIntervalSec()
 		if flushInterval == 0 {
 			return
 		}
+
+		metricWriter, err = NewDefaultMetricLogWriter(config.MetricLogSingleFileMaxSize(), config.MetricLogMaxFileAmount())
+		if err != nil {
+			logging.Error(err, "Failed to initialize the MetricLogWriter in aggregator.InitTask()")
+			return
+		}
+
+		// Schedule the log flushing task
+		go util.RunWithRecover(writeTaskLoop)
+		// Schedule the log aggregating task
 		ticker := time.NewTicker(time.Duration(flushInterval) * time.Second)
 		go util.RunWithRecover(func() {
 			for {
@@ -55,7 +69,7 @@ func InitTask() (err error) {
 					return
 				}
 			}
-		}, logger)
+		})
 	})
 	return err
 }
@@ -81,7 +95,7 @@ func writeTaskLoop() {
 			for _, t := range keys {
 				err := metricWriter.Write(t, m[t])
 				if err != nil {
-					logger.Errorf("[MetricAggregatorTask] Write metric error: %+v", err)
+					logging.Error(err, "[MetricAggregatorTask] fail tp write metric in aggregator.writeTaskLoop()")
 				}
 			}
 		}
@@ -136,10 +150,10 @@ func isItemTimestampInTime(ts uint64, currentSecStart uint64) bool {
 }
 
 func currentMetricItems(retriever base.MetricItemRetriever, currentTime uint64) map[uint64]*base.MetricItem {
-	m := make(map[uint64]*base.MetricItem, 2)
 	items := retriever.MetricsOnCondition(func(ts uint64) bool {
 		return isItemTimestampInTime(ts, currentTime)
 	})
+	m := make(map[uint64]*base.MetricItem, len(items))
 	for _, item := range items {
 		if !isActiveMetricItem(item) {
 			continue

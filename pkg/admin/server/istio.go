@@ -24,7 +24,7 @@ const (
 func statsForIstio(w http.ResponseWriter, r *http.Request) {
 	state, err := getIstioState()
 	if err != nil {
-		log.DefaultLogger.Warnf("%v", err)
+		log.DefaultLogger.Warnf("get istio state error : %v", err)
 	}
 	var workersStarted int
 	if state == envoyControlPlaneAPI.ServerInfo_LIVE {
@@ -41,7 +41,7 @@ func statsForIstio(w http.ResponseWriter, r *http.Request) {
 	_, err = sb.WriteTo(w)
 
 	if err != nil {
-		log.DefaultLogger.Warnf("%v", err)
+		log.DefaultLogger.Warnf("write stats for istio response error: %v", err)
 	}
 }
 
@@ -50,13 +50,13 @@ func serverInfoForIstio(w http.ResponseWriter, r *http.Request) {
 	var err error
 	i.State, err = getIstioState()
 	if err != nil {
-		log.DefaultLogger.Warnf("%v", err)
+		log.DefaultLogger.Warnf("get server info for istio state error : %v", err)
 		return
 	}
 
 	m := jsonpb.Marshaler{}
 	if err := m.Marshal(w, &i); err != nil {
-		log.DefaultLogger.Warnf("marshal to string failed")
+		log.DefaultLogger.Warnf("get server info for istio marshal to string failed: %v", err)
 	}
 }
 

@@ -85,6 +85,9 @@ func TestDirectResponse(t *testing.T) {
 
 	sc := newServerStreamConnection(ctx, connection, nil).(*serverStreamConnection)
 	h2s, _, _, _, err := sc.sc.HandleFrame(ctx, mh)
+	h2s.Response = &http.Response{
+		Header: map[string][]string{},
+	}
 	if err != nil {
 		t.Fatalf("handleFrame failed: %v", err)
 	}

@@ -53,8 +53,8 @@ func TestFeatureDump(t *testing.T) {
 				SetRouter(*r)
 			}
 		}
-		for typ, ext := range cfg.Extends {
-			SetExtend(typ, ext)
+		for _, ext := range cfg.Extends {
+			SetExtend(ext.Type, ext.Config)
 		}
 	}
 	f.InitFunc() // start init func

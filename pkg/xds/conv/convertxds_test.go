@@ -25,6 +25,7 @@ import (
 	"time"
 
 	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdscore "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	xdsendpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -446,12 +447,49 @@ func Test_convertListenerConfig(t *testing.T) {
 				FilterChains: []*xdslistener.FilterChain{
 					{
 						FilterChainMatch: nil,
-						TlsContext:       nil,
+						TlsContext: &envoy_api_v2_auth.DownstreamTlsContext{
+							RequireClientCertificate: NewBoolValue(false),
+							CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
+								TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{
+									{
+										Name: "mosn-first-cert",
+									},
+								},
+								ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_CombinedValidationContext{
+									CombinedValidationContext: &envoy_api_v2_auth.CommonTlsContext_CombinedCertificateValidationContext{
+										ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+											Name: "mosn-first-ca",
+										},
+									},
+								},
+							},
+						},
 						Filters: []*xdslistener.Filter{
 							{
 								Name: tt.args.filterName,
 								ConfigType: &xdslistener.Filter_TypedConfig{
 									conf,
+								},
+							},
+						},
+					},
+					{
+						FilterChainMatch: nil,
+						Filters:          nil,
+						TlsContext: &envoy_api_v2_auth.DownstreamTlsContext{
+							RequireClientCertificate: NewBoolValue(true),
+							CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
+								TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{
+									{
+										Name: "mosn-second-cert",
+									},
+								},
+								ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_CombinedValidationContext{
+									CombinedValidationContext: &envoy_api_v2_auth.CommonTlsContext_CombinedCertificateValidationContext{
+										ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+											Name: "mosn-second-ca",
+										},
+									},
 								},
 							},
 						},
@@ -469,7 +507,7 @@ func Test_convertListenerConfig(t *testing.T) {
 				},
 			}
 
-			tt.want = `{"name":"0.0.0.0_80","address":"0.0.0.0:80", "access_logs":[{"log_path":"/dev/stdout"}],"listener_filters":[{"type":"original_dst"}],"filter_chains":[{"match":"\u003cnil\u003e","tls_context_set":[{}],"filters":[{"type":"proxy","config":{"downstream_protocol":"Http1","router_config_name":"80","upstream_protocol":"Http1"}},{"type":"connection_manager","config":{"router_config_name":"80","virtual_hosts":[{"domains":["istio-egressgateway.istio-system.svc.cluster.local","istio-egressgateway.istio-system.svc.cluster.local:80","istio-egressgateway.istio-system","istio-egressgateway.istio-system:80","istio-egressgateway.istio-system.svc.cluster","istio-egressgateway.istio-system.svc.cluster:80","istio-egressgateway.istio-system.svc","istio-egressgateway.istio-system.svc:80","172.19.3.204","172.19.3.204:80"],"name":"istio-egressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-egressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["istio-ingressgateway.istio-system.svc.cluster.local","istio-ingressgateway.istio-system.svc.cluster.local:80","istio-ingressgateway.istio-system","istio-ingressgateway.istio-system:80","istio-ingressgateway.istio-system.svc.cluster","istio-ingressgateway.istio-system.svc.cluster:80","istio-ingressgateway.istio-system.svc","istio-ingressgateway.istio-system.svc:80","172.19.8.101","172.19.8.101:80"],"name":"istio-ingressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-ingressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["nginx-ingress-lb.kube-system.svc.cluster.local","nginx-ingress-lb.kube-system.svc.cluster.local:80","nginx-ingress-lb.kube-system","nginx-ingress-lb.kube-system:80","nginx-ingress-lb.kube-system.svc.cluster","nginx-ingress-lb.kube-system.svc.cluster:80","nginx-ingress-lb.kube-system.svc","nginx-ingress-lb.kube-system.svc:80","172.19.6.192:80","172.19.8.101:80"],"name":"nginx-ingress-lb.kube-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]}]}}]}],"inspector":true}`
+			tt.want = `{"name":"0.0.0.0_80","address":"0.0.0.0:80", "access_logs":[{"log_path":"/dev/stdout"}],"listener_filters":[{"type":"original_dst"}],"filter_chains":[{"match":"\u003cnil\u003e","tls_context_set":[{"status": true,"verify_client":false,"sds_source":{"CertificateConfig":{"name":"mosn-first-cert"},"ValidationConfig":{"name":"mosn-first-ca"}}},{"status": true,"verify_client":true,"sds_source":{"CertificateConfig":{"name":"mosn-second-cert"},"ValidationConfig":{"name":"mosn-second-ca"}}}],"filters":[{"type":"proxy","config":{"downstream_protocol":"Http1","router_config_name":"80","upstream_protocol":"Http1"}},{"type":"connection_manager","config":{"router_config_name":"80","virtual_hosts":[{"domains":["istio-egressgateway.istio-system.svc.cluster.local","istio-egressgateway.istio-system.svc.cluster.local:80","istio-egressgateway.istio-system","istio-egressgateway.istio-system:80","istio-egressgateway.istio-system.svc.cluster","istio-egressgateway.istio-system.svc.cluster:80","istio-egressgateway.istio-system.svc","istio-egressgateway.istio-system.svc:80","172.19.3.204","172.19.3.204:80"],"name":"istio-egressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-egressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["istio-ingressgateway.istio-system.svc.cluster.local","istio-ingressgateway.istio-system.svc.cluster.local:80","istio-ingressgateway.istio-system","istio-ingressgateway.istio-system:80","istio-ingressgateway.istio-system.svc.cluster","istio-ingressgateway.istio-system.svc.cluster:80","istio-ingressgateway.istio-system.svc","istio-ingressgateway.istio-system.svc:80","172.19.8.101","172.19.8.101:80"],"name":"istio-ingressgateway.istio-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||istio-ingressgateway.istio-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]},{"domains":["nginx-ingress-lb.kube-system.svc.cluster.local","nginx-ingress-lb.kube-system.svc.cluster.local:80","nginx-ingress-lb.kube-system","nginx-ingress-lb.kube-system:80","nginx-ingress-lb.kube-system.svc.cluster","nginx-ingress-lb.kube-system.svc.cluster:80","nginx-ingress-lb.kube-system.svc","nginx-ingress-lb.kube-system.svc:80","172.19.6.192:80","172.19.8.101:80"],"name":"nginx-ingress-lb.kube-system.svc.cluster.local:80","routers":[{"match":{"prefix":"/"},"route":{"cluster_name":"outbound|80||nginx-ingress-lb.kube-system.svc.cluster.local","retry_policy":{"retry_timeout":"0s"},"timeout":"0s"}}]}]}}]}],"inspector":true}`
 			got := ConvertListenerConfig(listenerConfig)
 			want := &v2.Listener{}
 			err := json.Unmarshal([]byte(tt.want), want)

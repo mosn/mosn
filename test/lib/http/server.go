@@ -1,7 +1,6 @@
 package http
 
 import (
-	"encoding/json"
 	"net"
 	"net/http"
 	"sync"
@@ -41,11 +40,11 @@ func NewHTTPServer(config interface{}) types.MockServer {
 					Header: map[string][]string{
 						"mosn-test-default": []string{"http1"},
 					},
-					Body: json.RawMessage("default-http1"),
+					Body: string("default-http1"),
 				},
 				ErrorBuilder: &ResponseBuilder{
 					StatusCode: http.StatusInternalServerError, // 500
-					Body:       json.RawMessage("condition is not matched"),
+					Body:       string("condition is not matched"),
 				},
 			},
 		}

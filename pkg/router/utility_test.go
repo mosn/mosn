@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 func Test_getWeightedClusterEntryAndVerify(t *testing.T) {
@@ -113,14 +113,14 @@ func Test_getHeaderParser(t *testing.T) {
 			want: &headerParser{
 				headersToAdd: []*headerPair{
 					{
-						headerName: &lowerCaseString{"level"},
+						headerName: "level",
 						headerFormatter: &plainHeaderFormatter{
 							isAppend:    false,
 							staticValue: "1",
 						},
 					},
 				},
-				headersToRemove: []*lowerCaseString{{"status"}},
+				headersToRemove: []string{"status"},
 			},
 		},
 		{
@@ -170,7 +170,7 @@ func Test_getHeaderPair(t *testing.T) {
 			},
 			want: []*headerPair{
 				{
-					headerName: &lowerCaseString{"level"},
+					headerName: "level",
 					headerFormatter: &plainHeaderFormatter{
 						isAppend:    false,
 						staticValue: "1",
@@ -205,14 +205,14 @@ func Test_getHeadersToRemove(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want []*lowerCaseString
+		want []string
 	}{
 		{
 			name: "case1",
 			args: args{
 				headersToRemove: []string{"STATUS"},
 			},
-			want: []*lowerCaseString{{"status"}},
+			want: []string{"status"},
 		},
 		{
 			name: "case2",
@@ -230,31 +230,4 @@ func Test_getHeadersToRemove(t *testing.T) {
 			}
 		})
 	}
-}
-
-func Test_GetRouterHeaders_regex(t *testing.T) {
-	headersConfig := []v2.HeaderMatcher{
-		{
-			Name:  "regexkey",
-			Value: ".*",
-			Regex: true,
-		},
-		{
-			Name:  "invalid_regex",
-			Value: "a)",
-			Regex: true,
-		},
-	}
-	headerDatas := GetRouterHeaders(headersConfig)
-	if len(headerDatas) != 1 {
-		t.Errorf("getRouterHeaders unexpected, got %d header data, but want 1", len(headerDatas))
-	}
-	// test regex match
-	value := "any value"
-	for _, hd := range headerDatas {
-		if !hd.RegexPattern.MatchString(value) {
-			t.Error("header regex match failed")
-		}
-	}
-
 }

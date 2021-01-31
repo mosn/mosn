@@ -100,7 +100,7 @@ func (s *MockBoltServer) mux(req *bolt.Request) *ResponseConfig {
 	if resp, ok := s.muxConfigs[".*"]; ok {
 		return resp
 	}
-	v, ok := req.Get(mtypes.SofaRouteMatchKey)
+	v, ok := req.Get(mtypes.RPCRouteMatchKey)
 	if !ok {
 		return nil
 	}
