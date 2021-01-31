@@ -15,33 +15,6 @@ const (
 	FlowControlFilterName = "flowControlFilter"
 )
 
-// defines the failed flags and code.
-var (
-	errorResponseFlag = []api.ResponseFlag{
-		api.NoHealthyUpstream,
-		api.UpstreamRequestTimeout,
-		api.UpstreamLocalReset,
-		api.UpstreamRemoteReset,
-		api.UpstreamConnectionFailure,
-		api.UpstreamConnectionTermination,
-		api.NoRouteFound,
-		api.DelayInjected,
-		api.RateLimited,
-		api.ReqEntityTooLarge,
-	}
-
-	errorResponseCode = []int{
-		types.CodecExceptionCode,
-		types.DeserialExceptionCode,
-		types.PermissionDeniedCode,
-		types.RouterUnavailableCode,
-		types.NoHealthUpstreamCode,
-		types.UpstreamOverFlowCode,
-		types.TimeoutExceptionCode,
-		types.LimitExceededCode,
-	}
-)
-
 // StreamFilter represents the flow control stream filter.
 type StreamFilter struct {
 	Entry           *base.SentinelEntry
