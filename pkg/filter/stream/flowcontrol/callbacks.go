@@ -3,6 +3,7 @@ package flowcontrol
 import (
 	"context"
 	"strconv"
+	"sync"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
@@ -12,7 +13,7 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-var callbacksRegistry = make(map[string]Callbacks)
+var callbacksRegistry = new(sync.Map)
 
 // Callbacks defines the flow control callbacks
 type Callbacks interface {
@@ -40,16 +41,16 @@ type DefaultCallbacks struct {
 
 // RegisterCallbacks stores customized callbacks.
 func RegisterCallbacks(name string, cb Callbacks) {
-	callbacksRegistry[name] = cb
+	callbacksRegistry.Store(name, cb)
 }
 
 // GetCallbacksByName returns specified or default Callbacks.
 func GetCallbacksByConfig(conf *Config) Callbacks {
-	cb, ok := callbacksRegistry[conf.CallbackName]
+	cb, ok := callbacksRegistry.Load(conf.CallbackName)
 	if !ok {
 		return &DefaultCallbacks{config: conf}
 	}
-	return cb
+	return cb.(Callbacks)
 }
 
 // Init is a no-op.
