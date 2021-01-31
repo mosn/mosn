@@ -20,6 +20,10 @@ type DslExpressionRouteRuleImpl struct {
 	originalExpression []v2.DslExpressionMatcher
 }
 
+func (drri *DslExpressionRouteRuleImpl) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	return nil
+}
+
 func (drri *DslExpressionRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
 	return drri
 }
