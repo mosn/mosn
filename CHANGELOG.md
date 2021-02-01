@@ -6,8 +6,8 @@
 
 - Upgrade sentinel version to v1.0.2 [@ansiz](https://github.com/ansiz)
 - `onUpstreamReset` method doesn't count the host's metric in the case of hijack [@cch123](https://github.com/cch123)
-- Optimize the memory consumption in the read timeout scenario with tls [@cch123](https://github.com/cch123)
-- Add comments and simplify the code of xprotocol connectpool [@cch123](https://github.com/cch123)
+- Shrink the read buffer of tls when read timeout, reduce tls memory consumption [@cch123](https://github.com/cch123)
+- Add comments and simplify the code of xprotocol connpool [@cch123](https://github.com/cch123)
 - Update the mosn registry version [@cadeeper](https://github.com/cadeeper) [@cch123](https://github.com/cch123)
 
 ### Refactoring
@@ -18,8 +18,8 @@
 
 ### Bug fixes
 
-- Fix the bug that the BASE64 encoding lost after HTTP forwarding [@antJack](https://github.com/antJack)
-- Fix the bug than injecting duplicate keys in `injectCtxVarFromProtocolHeaders`  [@nejisama](https://github.com/nejisama)
+- Fix the bug that the URL is not escaping before forwarding HTTP request [@antJack](https://github.com/antJack)
+- Fix the bug that injecting duplicate keys in `injectCtxVarFromProtocolHeaders`  [@nejisama](https://github.com/nejisama)
 
 ### New Features
 

@@ -5,9 +5,9 @@
 ### 优化
 
 - 升级sentinel版本到v1.0.2 [@ansiz](https://github.com/ansiz)
-- hijack的情况下，`onUpstreamReset`方法不统计host的metri [@cch123](https://github.com/cch123)
-- 优化在tls下读超时场景下的内存消耗 [@cch123](https://github.com/cch123)
-- 增加注释，简化xprotocol connectpool代码 [@cch123](https://github.com/cch123)
+- hijack的情况下，`onUpstreamReset`方法不统计host的metric [@cch123](https://github.com/cch123)
+- 读超时收缩tls的read buffer，降低tls内存消耗 [@cch123](https://github.com/cch123)
+- 增加注释，简化xprotocol connpool代码 [@cch123](https://github.com/cch123)
 - 更新mosn registry版本 [@cadeeper](https://github.com/cadeeper) [@cch123](https://github.com/cch123)
 
 ### 重构
@@ -18,7 +18,7 @@
 
 ### Bug修复
 
-- 修复http场景转发之后编码丢失的bug [@antJack](https://github.com/antJack)
+- 修复 http 场景转发前没有对url进行转义的问题 [@antJack](https://github.com/antJack)
 - 修改injectCtxVarFromProtocolHeaders注入重复key的问题 [@nejisama](https://github.com/nejisama)
 
 ### 新功能
