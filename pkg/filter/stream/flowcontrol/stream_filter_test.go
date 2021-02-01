@@ -66,7 +66,8 @@ func TestStreamFilter(t *testing.T) {
 		// register test variable
 		variable.RegisterVariable(variable.NewBasicVariable(k, nil,
 			func(ctx context.Context, variableValue *variable.IndexedValue, data interface{}) (s string, err error) {
-				return m[k], nil
+				val := m[k]
+				return val, nil
 			}, nil, 0))
 	}
 	variable.RegisterProtocolResource(HTTP1, api.PATH, "request_path")
