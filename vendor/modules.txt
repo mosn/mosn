@@ -44,6 +44,8 @@ github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java8_time
 github.com/apache/dubbo-go-hessian2/java_exception
 github.com/apache/dubbo-go-hessian2/java_sql_time
+# github.com/apache/thrift v0.13.0
+github.com/apache/thrift/lib/go/thrift
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae

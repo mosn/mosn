@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
+
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
@@ -161,6 +163,7 @@ func TestXAuto(t *testing.T) {
 	testCases := []*XTestCase{
 		NewXTestCase(t, dubbo.ProtocolName, util.NewRPCServer(t, appaddr, dubbo.ProtocolName)),
 		NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName)),
+		NewXTestCase(t, dubbothrift.ProtocolName, util.NewRPCServer(t, appaddr, dubbothrift.ProtocolName)),
 		NewXTestCase(t, tars.ProtocolName, util.NewRPCServer(t, appaddr, tars.ProtocolName)),
 	}
 	for i, tc := range testCases {
@@ -204,7 +207,7 @@ func TestXProtocol(t *testing.T) {
 		t.Errorf("[ERROR MESSAGE] error sub protocol")
 	}
 
-	magic = []byte{0x00, 0x00, 0x00, 0x05, 0x00}
+	magic = []byte{0x00, 0x00, 0x00, 0x06, 0x10, 0x01}
 	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic)
 	if prot != protocol.Xprotocol {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)

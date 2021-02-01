@@ -15,30 +15,28 @@
  * limitations under the License.
  */
 
-package tars
+package dubbothrift
 
-const (
-	ProtocolName = "tars"
-)
+import (
+	"bytes"
 
-const (
-	MessageSizeLen    int = 4
-	IVersionLen       int = 2
-	IVersionHeaderIdx int = 4
-	iVersionDataIdx   int = 5
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
-const (
-	CmdTypeResponse byte   = 0 // cmd type
-	CmdTypeRequest  byte   = 1
-	CmdTypeUndefine byte   = 2
-	UnKnownCmdType  string = "unknown cmd type"
-)
+func init() {
+	//thrift must match before tars
+	xprotocol.RegisterMatcher(ProtocolName, thriftMatcher)
+}
 
-const (
-	ServiceNameHeader string = "service"
-	MethodNameHeader  string = "method"
-)
-const (
-	ResponseStatusSuccess uint16 = 0x00 // 0x00 response status
-)
+// predicate thrift header len and compare magic number
+func thriftMatcher(data []byte) types.MatchResult {
+	//4 byte message length + 2 byte magic
+	if len(data) < MessageLenSize+MagicLen {
+		return types.MatchAgain
+	}
+	if bytes.Compare(data[MessageLenSize:MessageLenSize+MagicLen], MagicTag) != 0 {
+		return types.MatchFailed
+	}
+	return types.MatchSuccess
+}
