@@ -27,6 +27,7 @@ import (
 	"net/url"
 	"strconv"
 	"sync"
+	"time"
 
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
@@ -40,6 +41,8 @@ import (
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/trace"
+
 )
 
 func init() {
@@ -413,8 +416,17 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	conn.streams[stream.id] = stream
 	conn.mutex.Unlock()
 
-	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
+	var span types.Span
+	if trace.IsEnabled() {
+		// try build trace span
+		tracer := trace.Tracer(protocol.HTTP2)
 
+		if tracer != nil {
+			span = tracer.Start(ctx, h2s.Request, time.Now())
+		}
+	}
+
+	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, span)
 	return stream, nil
 }
 
