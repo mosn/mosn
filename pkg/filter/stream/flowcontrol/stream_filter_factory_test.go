@@ -23,7 +23,7 @@ func TestStreamFilterFactory(t *testing.T) {
             "resource": "/http",
             "limitApp": "",
             "grade": 1,
-            "count": 1,
+            "threshold": 1,
             "strategy": 0
         }
     ]
@@ -49,7 +49,7 @@ func TestStreamFilterFactory(t *testing.T) {
             "resource": "/http",
             "limitApp": "",
             "grade": 1,
-            "count": 1,
+            "threshold": 1,
             "strategy": 0
         }
     ]
@@ -75,7 +75,7 @@ func TestIsValidCfg(t *testing.T) {
             "resource": "/http",
             "limitApp": "",
             "grade": 1,
-            "count": 1,
+            "threshold": 1,
             "strategy": 0
         }
     ]
@@ -101,7 +101,7 @@ func TestIsValidCfg(t *testing.T) {
             "resource": "/http",
             "limitApp": "",
             "grade": 1,
-            "count": 1,
+            "threshold": 1,
             "strategy": 0
         }
     ]
