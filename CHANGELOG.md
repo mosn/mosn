@@ -2,25 +2,31 @@
 
 ## v0.21.0
 
-### 优化
+### Optimization
 
-- 升级sentinel版本到v1.0.2 [@ansiz](https://github.com/ansiz)
-- hijack的情况下，`onUpstreamReset`方法不统计host的metri [@cch123](https://github.com/cch123)
-- 优化在tls下读超时场景下的内存消耗 [@cch123](https://github.com/cch123)
-4. 增加注释，简化xprotocol connectpool代码 [@cch123](https://github.com/cch123)
+- Upgrade sentinel version to v1.0.2 [@ansiz](https://github.com/ansiz)
+- `onUpstreamReset` method doesn't count the host's metric in the case of hijack [@cch123](https://github.com/cch123)
+- Optimize the memory consumption in the read timeout scenario with tls [@cch123](https://github.com/cch123)
+- Add comments and simplify the code of xprotocol connectpool [@cch123](https://github.com/cch123)
+- Update the mosn registry version [@cadeeper](https://github.com/cadeeper) [@cch123](https://github.com/cch123)
 
-### 重构
+### Refactoring
 
-- 优化路由Header匹配逻辑,删除SofaRule 规则扩展 [@nejisama](https://github.com/nejisama)
-- 重命名MOSNHeaderXXX的相关变量 [@nejisama](https://github.com/nejisama)
+- Optimize header matching logic when routing, delete sofa rule extension [@nejisama](https://github.com/nejisama)
+- Rename related variables of MOSNHeaderXXX [@nejisama](https://github.com/nejisama)
+- Refactor flow control streamfilter [@ansiz](https://github.com/ansiz)
 
-### Bug修复
+### Bug fixes
 
-- 修复http场景转发之后编码丢失的bug [@antJack](https://github.com/antJack)
+- Fix the bug that the BASE64 encoding lost after HTTP forwarding [@antJack](https://github.com/antJack)
+- Fix the bug than injecting duplicate keys in `injectCtxVarFromProtocolHeaders`  [@nejisama](https://github.com/nejisama)
 
-### 新功能
+### New Features
 
-- 支持virtual_host和route的per_filter_config属性 [@machine3](https://github.com/machine3)
+- Support DSL route implementation [@CodingSinger](https://github.com/CodingSinger)
+- Support stream filter in golang plugin mode [@CodingSinger](https://github.com/CodingSinger)
+- Support `per_filter_config` attributes of VirtualHost and Route [@machine3](https://github.com/machine3)
+- Xprotocol supports dubbo thrift protocol [@cadeeper](https://github.com/cadeeper)
 
 ## v0.20.0
 
