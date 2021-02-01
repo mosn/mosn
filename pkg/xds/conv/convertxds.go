@@ -95,7 +95,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr: convertAddress(xdsListener.Address),
+		Addr:                    convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -825,6 +825,8 @@ func ConvertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 			RequestHeadersToAdd:     convertHeadersToAdd(xdsVirtualHost.GetRequestHeadersToAdd()),
 			ResponseHeadersToAdd:    convertHeadersToAdd(xdsVirtualHost.GetResponseHeadersToAdd()),
 			ResponseHeadersToRemove: xdsVirtualHost.GetResponseHeadersToRemove(),
+			// TODO: rename the method `convertPerRouteConfig` to `convertPerFilterConfig`
+			PerFilterConfig: convertPerRouteConfig(xdsVirtualHost.GetTypedPerFilterConfig()),
 		}
 		virtualHosts = append(virtualHosts, virtualHost)
 	}

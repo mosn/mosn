@@ -114,7 +114,13 @@ func (ri *routersImpl) AddRoute(domain string, route *v2.Router) int {
 		return index
 	}
 	vh := ri.virtualHosts[index]
-	if err := vh.AddRoute(route); err != nil {
+	rb, err := NewRouteBase(vh, route)
+	if err != nil {
+		msg := fmt.Sprintf("new RouteBase failed, domain: %s, error: %v", domain, err)
+		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "AddRoute", msg)
+		return -1
+	}
+	if err := vh.AddRoute(rb); err != nil {
 		msg := fmt.Sprintf("add route into virtualhost failed, domain: %s, error: %v", domain, err)
 		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "AddRoute", msg)
 		return -1

@@ -40,6 +40,10 @@ type VariableRouteRuleImpl struct {
 	Variables []*VariableMatchItem
 }
 
+func (vrri *VariableRouteRuleImpl) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	return nil
+}
+
 func (vrri *VariableRouteRuleImpl) PathMatchCriterion() api.PathMatchCriterion {
 	return vrri
 }
