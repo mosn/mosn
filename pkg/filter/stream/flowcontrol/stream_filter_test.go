@@ -120,6 +120,10 @@ func (m *mockStreamReceiverFilterHandler) RequestInfo() api.RequestInfo {
 	return ri
 }
 
+func (m *mockStreamReceiverFilterHandler) SendDirectResponse(headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) {
+
+}
+
 func (m *mockStreamReceiverFilterHandler) Connection() api.Connection {
 	mc := &mockConnection{}
 	return mc
