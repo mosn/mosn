@@ -366,9 +366,11 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 }
 
 func convertStreamFilter(name string, s *any.Any) v2.Filter {
-	filter := v2.Filter{}
 	var err error
-
+	if strings.HasSuffix(name, v2.GoPluginStreamFilterSuffix) {
+		return convertToPluginStreamFilter(name, s)
+	}
+	filter := v2.Filter{}
 	switch name {
 	case v2.MIXER:
 		filter.Type = name
@@ -434,6 +436,28 @@ func convertStreamFilter(name string, s *any.Any) v2.Filter {
 	default:
 	}
 
+	return filter
+}
+
+func convertToPluginStreamFilter(name string, config *any.Any) v2.Filter {
+	marshal := jsonp.Marshaler{}
+	filter := v2.Filter{}
+	buf := &bytes.Buffer{}
+	err := marshal.Marshal(buf, config)
+	if err != nil || buf.Len() == 0 {
+		log.DefaultLogger.Errorf("failed to marshal pb.Any to json, err: %v", err)
+		return filter
+	}
+
+	type PluginStreamFilterConfig struct {
+		GoPluginConfig *v2.StreamFilterGoPluginConfig `json:"go_plugin_config"`
+		Config         map[string]interface{}         `json:"config"`
+	}
+	filterConfig := &PluginStreamFilterConfig{}
+	_ = json.Unmarshal(buf.Bytes(), &filterConfig)
+	filter.GoPluginConfig = filterConfig.GoPluginConfig
+	filter.Config = filterConfig.Config
+	filter.Type = name
 	return filter
 }
 
@@ -688,6 +712,7 @@ func convertFilters(xdsFilters *xdslistener.Filter) []v2.Filter {
 	for typeKey, configValue := range filterMaps {
 		filters = append(filters, v2.Filter{
 			typeKey,
+			nil,
 			configValue,
 		})
 	}

@@ -110,18 +110,23 @@ func RegisterStreamFilters(configs []StreamFilters) {
 }
 
 func createStreamFilterFactoryFromConfig(configs []v2.Filter) (factories []api.StreamFilterChainFactory) {
+	var sfcc api.StreamFilterChainFactory
+	var err error
 	for _, c := range configs {
-		sfcc, err := api.CreateStreamFilterChainFactory(c.Type, c.Config)
+		if c.GoPluginConfig != nil {
+			// create factory by so file
+			sfcc, err = CreateFactoryByPlugin(c.GoPluginConfig, c.Config)
+		} else {
+			sfcc, err = api.CreateStreamFilterChainFactory(c.Type, c.Config)
+		}
 		if err != nil {
 			log.DefaultLogger.Errorf("[streamfilter] get stream filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
-
 		if sfcc == nil {
 			log.DefaultLogger.Errorf("[streamfilter] createStreamFilterFactoryFromConfig api call return nil factory")
 			continue
 		}
-
 		factories = append(factories, sfcc)
 	}
 
