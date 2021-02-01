@@ -190,6 +190,13 @@ func NewRouteBase(vh api.VirtualHost, route *v2.Router) (api.RouteBase, error) {
 			variableRouter.Variables[i] = ParseToVariableMatchItem(route.Match.Variables[i])
 		}
 		router = variableRouter
+	} else if len(route.Match.DslExpressions) > 0 {
+		dslRouter := &DslExpressionRouteRuleImpl{
+			RouteRuleImplBase:  base,
+			originalExpression: route.Match.DslExpressions,
+			DslExpressions:     parseConfigToDslExpression(route.Match.DslExpressions),
+		}
+		router = dslRouter
 	} else {
 		router = CreateRPCRule(base, route.Match.Headers)
 	}
