@@ -182,7 +182,7 @@ func (p *proxy) onInitFailure(reason UpstreamFailureReason) {
 	p.readCallbacks.Connection().Close(api.NoFlush, api.LocalClose)
 }
 
-func (p *proxy) onUpstreamData(buffer api.IoBuffer) {
+func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
 	log.DefaultLogger.Tracef("%s Proxy :: read upstream data , len = %v", p.network, buffer.Len())
 	bytesSent := p.requestInfo.BytesSent() + uint64(buffer.Len())
 	p.requestInfo.SetBytesSent(bytesSent)

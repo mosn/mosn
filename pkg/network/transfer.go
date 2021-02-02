@@ -267,7 +267,7 @@ func transferGetFile(c *connection) (file *os.File, tlsConn *mtls.TLSConn, err e
 	return
 }
 
-func transferBuildIoBuffer(c *connection) api.IoBuffer {
+func transferBuildIoBuffer(c *connection) types.IoBuffer {
 	buf := buffer.GetIoBuffer(c.writeBufLen())
 	for _, b := range c.writeBuffers {
 		buf.Write(b)
@@ -419,7 +419,7 @@ func transferReadSendData(uc *net.UnixConn, c *mtls.TLSConn, buf buffer.IoBuffer
 	return transferSendIoBuffer(uc, buf)
 }
 
-func transferWriteSendData(uc *net.UnixConn, id int, buf api.IoBuffer) error {
+func transferWriteSendData(uc *net.UnixConn, id int, buf types.IoBuffer) error {
 	// send header
 	err := transferSendHead(uc, uint32(buf.Len()), uint32(id))
 	if err != nil {
@@ -469,7 +469,7 @@ func transferRecvHead(uc *net.UnixConn) (int, int, error) {
 	return size, id, nil
 }
 
-func transferSendIoBuffer(uc *net.UnixConn, buf api.IoBuffer) error {
+func transferSendIoBuffer(uc *net.UnixConn, buf types.IoBuffer) error {
 	if buf.Len() == 0 {
 		return nil
 	}

@@ -7,11 +7,11 @@ import (
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/variable"
+
+	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 var callbacksRegistry = new(sync.Map)
@@ -19,12 +19,12 @@ var callbacksRegistry = new(sync.Map)
 // Callbacks defines the flow control callbacks
 type Callbacks interface {
 	Init()
-	ShouldIgnore(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) bool
-	Prepare(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType)
-	ParseResource(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) *ParsedResource
-	AfterBlock(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap)
-	AfterPass(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap)
-	Append(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap)
+	ShouldIgnore(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool
+	Prepare(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType)
+	ParseResource(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) *ParsedResource
+	AfterBlock(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap)
+	AfterPass(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap)
+	Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap)
 	Exit(filter *StreamFilter)
 	Enabled() bool
 }
@@ -59,7 +59,7 @@ func (dc *DefaultCallbacks) Init() {}
 
 // ParseResource parses Resource from context.
 func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.HeaderMap,
-	buf api.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) *ParsedResource {
+	buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) *ParsedResource {
 	resource, err := variable.GetProtocolResource(ctx, dc.config.KeyType)
 	if err != nil || resource == "" {
 		log.DefaultLogger.Errorf("parse resource failed: %v", err)
@@ -74,22 +74,22 @@ func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.Hea
 
 // Prepare is a no-op by default.
 func (dc *DefaultCallbacks) Prepare(ctx context.Context, headers types.HeaderMap,
-	buf api.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) {
+	buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) {
 }
 
 // AfterBlock sends response directly.
-func (dc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) {
+func (dc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 	variable.SetVariableValue(ctx, variable.VarHeaderStatus, strconv.Itoa(dc.config.Action.Status))
 	filter.ReceiverHandler.SendDirectResponse(headers, buffer.NewIoBufferString(dc.config.Action.Body), trailers)
 }
 
 // AfterPass is a no-op by default.
-func (dc *DefaultCallbacks) AfterPass(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) {
+func (dc *DefaultCallbacks) AfterPass(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 }
 
 // Append is a no-op by default.
 func (dc *DefaultCallbacks) Append(ctx context.Context, headers types.HeaderMap,
-	buf api.IoBuffer, trailers types.HeaderMap) {
+	buf types.IoBuffer, trailers types.HeaderMap) {
 }
 
 // Exit is a no-op by default.
@@ -99,6 +99,6 @@ func (dc *DefaultCallbacks) Exit(filter *StreamFilter) {}
 func (dc *DefaultCallbacks) Enabled() bool { return dc.config.GlobalSwitch }
 
 // ShouldIgnore is a no-op by default.
-func (dc *DefaultCallbacks) ShouldIgnore(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) bool {
+func (dc *DefaultCallbacks) ShouldIgnore(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
 	return false
 }

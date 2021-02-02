@@ -467,7 +467,7 @@ type mockStreamReceiverFilter struct {
 
 func (f *mockStreamReceiverFilter) OnDestroy() {}
 
-func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+func (f *mockStreamReceiverFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	f.on++
 	f.currentPhase = f.handler.GetFilterCurrentPhase()
 	if f.status == api.StreamFilterStop || f.status == api.StreamFiltertermination {
@@ -496,7 +496,7 @@ type mockStreamSenderFilter struct {
 
 func (f *mockStreamSenderFilter) OnDestroy() {}
 
-func (f *mockStreamSenderFilter) Append(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+func (f *mockStreamSenderFilter) Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	f.on++
 	f.handler.SetResponseHeaders(protocol.CommonHeader{})
 	f.handler.SetResponseData(buffer.NewIoBuffer(1))

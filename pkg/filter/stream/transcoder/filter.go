@@ -77,7 +77,7 @@ func (f *transcodeFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilt
 	f.receiveHandler = handler
 }
 
-func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+func (f *transcodeFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	// check accept
 	if !f.transcoder.Accept(ctx, headers, buf, trailers) {
 		return api.StreamFilterContinue
@@ -117,7 +117,7 @@ func (f *transcodeFilter) SetSenderFilterHandler(handler api.StreamSenderFilterH
 }
 
 // Append encodes request/response
-func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+func (f *transcodeFilter) Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if !f.needTranscode {
 		return api.StreamFilterContinue
 	}

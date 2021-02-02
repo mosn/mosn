@@ -17,14 +17,10 @@
 
 package bolt
 
-import (
-	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/types"
-)
+import "mosn.io/mosn/pkg/types"
 
 // NewRpcRequest is a utility function which build rpc Request object of bolt protocol.
-func NewRpcRequest(requestId uint32, headers types.HeaderMap, data api.IoBuffer) *Request {
+func NewRpcRequest(requestId uint32, headers types.HeaderMap, data types.IoBuffer) *Request {
 	request := &Request{
 		RequestHeader: RequestHeader{
 			Protocol:  ProtocolCode,
@@ -53,7 +49,7 @@ func NewRpcRequest(requestId uint32, headers types.HeaderMap, data api.IoBuffer)
 }
 
 // NewRpcResponse is a utility function which build rpc Response object of bolt protocol.
-func NewRpcResponse(requestId uint32, statusCode uint16, headers types.HeaderMap, data api.IoBuffer) *Response {
+func NewRpcResponse(requestId uint32, statusCode uint16, headers types.HeaderMap, data types.IoBuffer) *Response {
 	response := &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,

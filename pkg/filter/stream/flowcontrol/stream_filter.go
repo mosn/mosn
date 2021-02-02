@@ -42,7 +42,7 @@ func (f *StreamFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHand
 
 // OnReceive creates resource and judges whether current request should be blocked.
 func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap,
-	buf api.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+	buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if !f.Callbacks.Enabled() || f.Callbacks.ShouldIgnore(f, ctx, headers, buf, trailers) {
 		return api.StreamFilterContinue
 	}
@@ -68,7 +68,7 @@ func (f *StreamFilter) OnReceive(ctx context.Context, headers types.HeaderMap,
 // Append will be called after request response, do nothing if request was
 // blocked in OnReceive phase.
 func (f *StreamFilter) Append(ctx context.Context, headers types.HeaderMap,
-	buf api.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+	buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if f.BlockError != nil {
 		return api.StreamFilterStop
 	}

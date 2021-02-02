@@ -21,12 +21,12 @@ import (
 	"context"
 
 	"github.com/valyala/fasthttp"
-	"mosn.io/api"
+	mosnctx "mosn.io/pkg/context"
+
 	"mosn.io/mosn/pkg/filter/stream/transcoder"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
-	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {
@@ -35,12 +35,12 @@ func init() {
 
 type http2bolt struct{}
 
-func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) bool {
+func (t *http2bolt) Accept(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
 	_, ok := headers.(http.RequestHeader)
 	return ok
 }
 
-func (t *http2bolt) TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, api.IoBuffer, types.HeaderMap, error) {
+func (t *http2bolt) TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error) {
 	// 1. set sub protocol
 	mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, string(bolt.ProtocolName))
 	// 2. assemble target request
@@ -48,7 +48,7 @@ func (t *http2bolt) TranscodingRequest(ctx context.Context, headers types.Header
 	return targetRequest, buf, trailers, nil
 }
 
-func (t *http2bolt) TranscodingResponse(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, api.IoBuffer, types.HeaderMap, error) {
+func (t *http2bolt) TranscodingResponse(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error) {
 	sourceResponse := headers.(*bolt.Response)
 	targetResponse := fasthttp.Response{}
 

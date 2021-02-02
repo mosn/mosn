@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
@@ -14,7 +15,7 @@ type testFilter struct {
 	readCallbacks api.ReadFilterCallbacks
 }
 
-func (tf *testFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
+func (tf *testFilter) OnData(buffer types.IoBuffer) api.FilterStatus {
 	tf.read = true
 	return api.Continue
 }

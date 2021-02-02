@@ -29,9 +29,9 @@ const RequestTranscodeFail api.ResponseFlag = 0x2000
 // Transcoder provide ability to transcoding request/response
 type Transcoder interface {
 	// Accept
-	Accept(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) bool
+	Accept(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool
 	// TranscodingRequest
-	TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, api.IoBuffer, types.HeaderMap, error)
+	TranscodingRequest(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error)
 	// TranscodingResponse
-	TranscodingResponse(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, api.IoBuffer, types.HeaderMap, error)
+	TranscodingResponse(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) (types.HeaderMap, types.IoBuffer, types.HeaderMap, error)
 }

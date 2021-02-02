@@ -65,7 +65,7 @@ func (proto *dubboProtocol) Name() types.ProtocolName {
 	return ProtocolName
 }
 
-func (proto *dubboProtocol) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
+func (proto *dubboProtocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
 	if frame, ok := model.(*Frame); ok {
 		if frame.Direction == EventRequest {
 			return encodeRequest(ctx, frame)
@@ -77,7 +77,7 @@ func (proto *dubboProtocol) Encode(ctx context.Context, model interface{}) (api.
 	return nil, api.ErrUnknownType
 }
 
-func (proto *dubboProtocol) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
+func (proto *dubboProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	if data.Len() >= HeaderLen {
 		// check frame size
 		payLoadLen := binary.BigEndian.Uint32(data.Bytes()[DataLenIdx:(DataLenIdx + DataLenSize)])

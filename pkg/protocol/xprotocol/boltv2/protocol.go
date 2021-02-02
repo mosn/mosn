@@ -81,7 +81,7 @@ func (proto *boltv2Protocol) Name() types.ProtocolName {
 	return ProtocolName
 }
 
-func (proto *boltv2Protocol) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
+func (proto *boltv2Protocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
 	switch frame := model.(type) {
 	case *bolt.Request, *bolt.Response:
 		// FIXME: makes sofarpc protocol common
@@ -98,7 +98,7 @@ func (proto *boltv2Protocol) Encode(ctx context.Context, model interface{}) (api
 	}
 }
 
-func (proto *boltv2Protocol) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
+func (proto *boltv2Protocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	if data.Len() > 0 {
 		code := data.Bytes()[0]
 		if code == bolt.ProtocolCode { // protocol bolt

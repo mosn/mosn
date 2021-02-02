@@ -25,7 +25,6 @@ import (
 	"strings"
 	"time"
 
-	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls/crypto/tls"
 	"mosn.io/mosn/pkg/types"
@@ -110,7 +109,7 @@ func (c *TLSConn) GetRawConn() net.Conn {
 }
 
 // GetTLSInfo returns TLSInfo
-func (c *TLSConn) GetTLSInfo(buf api.IoBuffer) int {
+func (c *TLSConn) GetTLSInfo(buf types.IoBuffer) int {
 	if c == nil {
 		return 0
 	}

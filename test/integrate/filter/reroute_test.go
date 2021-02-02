@@ -51,7 +51,7 @@ func (f *injectFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterH
 	f.handler = handler
 }
 
-func (f *injectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+func (f *injectFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	if f.status == api.StreamFilterReMatchRoute {
 		return api.StreamFilterContinue
 	} else {

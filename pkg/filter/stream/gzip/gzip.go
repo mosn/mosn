@@ -95,7 +95,7 @@ func (f *streamGzipFilter) SetReceiveFilterHandler(handler api.StreamReceiverFil
 	f.receiveHandler = handler
 }
 
-func (f *streamGzipFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
+func (f *streamGzipFilter) OnReceive(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) api.StreamFilterStatus {
 	// check request need gzip
 	if !f.checkGzip(ctx, headers) {
 		f.needGzip = false

@@ -22,16 +22,16 @@ import (
 	"encoding/binary"
 	"strconv"
 
-	"mosn.io/api"
 	"mosn.io/pkg/variable"
 
 	"mosn.io/pkg/buffer"
 
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
+	"mosn.io/mosn/pkg/types"
 )
 
-func decodeRequest(ctx context.Context, data api.IoBuffer, oneway bool) (cmd interface{}, err error) {
+func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd interface{}, err error) {
 	bytesLen := data.Len()
 	bytes := data.Bytes()
 
@@ -105,7 +105,7 @@ func decodeRequest(ctx context.Context, data api.IoBuffer, oneway bool) (cmd int
 	return request, err
 }
 
-func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
+func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
 	bytesLen := data.Len()
 	bytes := data.Bytes()
 

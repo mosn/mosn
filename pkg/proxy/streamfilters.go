@@ -108,7 +108,7 @@ func (f *streamReceiverFilterHandler) AppendHeaders(headers types.HeaderMap, end
 	f.activeStream.appendHeaders(endStream)
 }
 
-func (f *streamReceiverFilterHandler) AppendData(buf api.IoBuffer, endStream bool) {
+func (f *streamReceiverFilterHandler) AppendData(buf types.IoBuffer, endStream bool) {
 	f.activeStream.downstreamRespDataBuf = buf
 	f.activeStream.noConvert = true
 	f.activeStream.appendData(endStream)
@@ -128,7 +128,7 @@ func (f *streamReceiverFilterHandler) SendHijackReplyWithBody(code int, headers 
 	f.activeStream.sendHijackReplyWithBody(code, headers, body)
 }
 
-func (f *streamReceiverFilterHandler) SendDirectResponse(headers types.HeaderMap, buf api.IoBuffer, trailers types.HeaderMap) {
+func (f *streamReceiverFilterHandler) SendDirectResponse(headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 	atomic.StoreUint32(&f.activeStream.reuseBuffer, 0)
 	f.activeStream.noConvert = true
 	f.activeStream.downstreamRespHeaders = headers
@@ -195,11 +195,11 @@ func (f *streamReceiverFilterHandler) GetRequestHeaders() types.HeaderMap {
 func (f *streamReceiverFilterHandler) SetRequestHeaders(headers types.HeaderMap) {
 	f.activeStream.downstreamReqHeaders = headers
 }
-func (f *streamReceiverFilterHandler) GetRequestData() api.IoBuffer {
+func (f *streamReceiverFilterHandler) GetRequestData() types.IoBuffer {
 	return f.activeStream.downstreamReqDataBuf
 }
 
-func (f *streamReceiverFilterHandler) SetRequestData(data api.IoBuffer) {
+func (f *streamReceiverFilterHandler) SetRequestData(data types.IoBuffer) {
 	// data is the original data. do nothing
 	if f.activeStream.downstreamReqDataBuf == data {
 		return
@@ -242,11 +242,11 @@ func (f *streamSenderFilterHandler) SetResponseHeaders(headers types.HeaderMap) 
 	f.activeStream.downstreamRespHeaders = headers
 }
 
-func (f *streamSenderFilterHandler) GetResponseData() api.IoBuffer {
+func (f *streamSenderFilterHandler) GetResponseData() types.IoBuffer {
 	return f.activeStream.downstreamRespDataBuf
 }
 
-func (f *streamSenderFilterHandler) SetResponseData(data api.IoBuffer) {
+func (f *streamSenderFilterHandler) SetResponseData(data types.IoBuffer) {
 	// data is the original data. do nothing
 	if f.activeStream.downstreamRespDataBuf == data {
 		return

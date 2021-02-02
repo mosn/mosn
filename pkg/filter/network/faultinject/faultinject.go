@@ -23,9 +23,9 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/pkg/utils"
-
 	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/utils"
 )
 
 type faultInjector struct {
@@ -44,7 +44,7 @@ func NewFaultInjector(config *v2.FaultInject) api.ReadFilter {
 	}
 }
 
-func (fi *faultInjector) OnData(buffer api.IoBuffer) api.FilterStatus {
+func (fi *faultInjector) OnData(buffer types.IoBuffer) api.FilterStatus {
 	fi.tryInjectDelay()
 
 	if atomic.LoadUint32(&fi.delaying) > 0 {

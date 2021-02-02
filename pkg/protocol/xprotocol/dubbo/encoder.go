@@ -21,18 +21,18 @@ import (
 	"context"
 	"encoding/binary"
 
-	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
-func encodeRequest(ctx context.Context, request *Frame) (api.IoBuffer, error) {
+func encodeRequest(ctx context.Context, request *Frame) (types.IoBuffer, error) {
 	return encodeFrame(ctx, request)
 }
-func encodeResponse(ctx context.Context, response *Frame) (api.IoBuffer, error) {
+func encodeResponse(ctx context.Context, response *Frame) (types.IoBuffer, error) {
 	return encodeFrame(ctx, response)
 }
 
-func encodeFrame(ctx context.Context, frame *Frame) (api.IoBuffer, error) {
+func encodeFrame(ctx context.Context, frame *Frame) (types.IoBuffer, error) {
 
 	// 1. fast-path, use existed raw data
 	if frame.rawData != nil {

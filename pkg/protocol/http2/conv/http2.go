@@ -21,11 +21,11 @@ import (
 	"context"
 	"errors"
 
-	"mosn.io/api"
+	"mosn.io/pkg/variable"
+
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 )
 
 func init() {
@@ -49,7 +49,7 @@ func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *common2http) ConvData(ctx context.Context, buffer api.IoBuffer) (api.IoBuffer, error) {
+func (c *common2http) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
 	return buffer, nil
 }
 
@@ -76,7 +76,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return headers, nil
 }
 
-func (c *http2common) ConvData(ctx context.Context, buffer api.IoBuffer) (api.IoBuffer, error) {
+func (c *http2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
 	return buffer, nil
 }
 

@@ -23,8 +23,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/api"
-
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace"
@@ -100,7 +98,7 @@ func (r *upstreamRequest) endStream() {
 
 // types.StreamReceiveListener
 // Method to decode upstream's response message
-func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap) {
+func (r *upstreamRequest) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	if r.downStream.processDone() || r.setupRetry {
 		return
 	}
@@ -219,7 +217,7 @@ func (r *upstreamRequest) appendData(endStream bool) {
 	r.requestSender.AppendData(r.downStream.context, r.convertData(data), endStream)
 }
 
-func (r *upstreamRequest) convertData(data api.IoBuffer) api.IoBuffer {
+func (r *upstreamRequest) convertData(data types.IoBuffer) types.IoBuffer {
 	if r.downStream.noConvert {
 		return data
 	}

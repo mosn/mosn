@@ -7,10 +7,12 @@ import (
 	"net"
 	"time"
 
+	"mosn.io/api"
+	mosnctx "mosn.io/pkg/context"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
@@ -41,7 +43,7 @@ func NewClient(addr string, proto types.ProtocolName) *Client {
 	return c
 }
 
-func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap) {
+func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	fmt.Printf("[Xprotocol RPC Client] Receive Data:")
 	if cmd, ok := headers.(api.XFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())

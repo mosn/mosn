@@ -22,6 +22,8 @@ import (
 	"errors"
 
 	"mosn.io/api"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 type matchPair struct {
@@ -35,7 +37,7 @@ type XEngine struct {
 }
 
 // Match use registered matchFunc to recognize corresponding protocol
-func (engine *XEngine) Match(ctx context.Context, data api.IoBuffer) (api.XProtocol, api.MatchResult) {
+func (engine *XEngine) Match(ctx context.Context, data types.IoBuffer) (api.XProtocol, api.MatchResult) {
 	again := false
 
 	for idx := range engine.protocols {

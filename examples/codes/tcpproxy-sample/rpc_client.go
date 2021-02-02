@@ -43,7 +43,7 @@ func NewClient(addr string, proto types.ProtocolName) *Client {
 	return c
 }
 
-func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap) {
+func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	fmt.Printf("[Xprotocol RPC Client] Receive Data:")
 	if cmd, ok := headers.(api.XFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())

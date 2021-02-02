@@ -43,7 +43,7 @@ func (proto *tarsProtocol) Name() types.ProtocolName {
 	return ProtocolName
 }
 
-func (proto *tarsProtocol) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
+func (proto *tarsProtocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
 	switch cmd := model.(type) {
 	case *Request:
 		return encodeRequest(ctx, cmd)
@@ -55,7 +55,7 @@ func (proto *tarsProtocol) Encode(ctx context.Context, model interface{}) (api.I
 	return nil, api.ErrUnknownType
 }
 
-func (proto *tarsProtocol) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
+func (proto *tarsProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
 	_, status := tarsprotocol.TarsRequest(data.Bytes())
 	if status == tarsprotocol.PACKAGE_FULL {
 		streamType, err := getStreamType(data.Bytes())

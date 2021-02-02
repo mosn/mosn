@@ -21,10 +21,10 @@ import (
 	"context"
 	"encoding/binary"
 
-	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 )
 
-func decodeRequest(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
+func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
 	bytesLen := data.Len()
 	bytes := data.Bytes()
 
@@ -55,7 +55,7 @@ func decodeRequest(ctx context.Context, data api.IoBuffer) (cmd interface{}, err
 	return request, err
 }
 
-func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
+func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
 	bytesLen := data.Len()
 	bytes := data.Bytes()
 

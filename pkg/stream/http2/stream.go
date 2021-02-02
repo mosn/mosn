@@ -123,7 +123,7 @@ type stream struct {
 
 	id      uint32
 	header  types.HeaderMap
-	recData api.IoBuffer
+	recData types.IoBuffer
 	trailer *mhttp2.HeaderMap
 	conn    api.Connection
 }
@@ -206,7 +206,7 @@ func (conn *serverStreamConnection) OnEvent(event api.ConnectionEvent) {
 }
 
 // types.StreamConnectionM
-func (conn *serverStreamConnection) Dispatch(buf api.IoBuffer) {
+func (conn *serverStreamConnection) Dispatch(buf types.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
 		ctx := conn.cm.Get()
@@ -603,7 +603,7 @@ func (conn *clientStreamConnection) OnEvent(event api.ConnectionEvent) {
 }
 
 // types.StreamConnection
-func (conn *clientStreamConnection) Dispatch(buf api.IoBuffer) {
+func (conn *clientStreamConnection) Dispatch(buf types.IoBuffer) {
 	for {
 		// 1. pre alloc stream-level ctx with bufferCtx
 		ctx := conn.cm.Get()

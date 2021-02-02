@@ -62,8 +62,8 @@ type Request struct {
 	rawHeader  []byte // sub slice of raw data, header bytes
 	rawContent []byte // sub slice of raw data, content bytes
 
-	Data    api.IoBuffer // wrapper of raw data
-	Content api.IoBuffer // wrapper of raw content
+	Data    types.IoBuffer // wrapper of raw data
+	Content types.IoBuffer // wrapper of raw content
 
 	ContentChanged bool // indicate that content changed
 }
@@ -96,11 +96,11 @@ func (r *Request) GetHeader() types.HeaderMap {
 	return r
 }
 
-func (r *Request) GetData() api.IoBuffer {
+func (r *Request) GetData() types.IoBuffer {
 	return r.Content
 }
 
-func (r *Request) SetData(data api.IoBuffer) {
+func (r *Request) SetData(data types.IoBuffer) {
 	// judge if the address unchanged, assume that proxy logic will not operate the original Content buffer.
 	if r.Content != data {
 		r.ContentChanged = true
@@ -146,8 +146,8 @@ type Response struct {
 	rawHeader  []byte // sub slice of raw data, header bytes
 	rawContent []byte // sub slice of raw data, content bytes
 
-	Data    api.IoBuffer // wrapper of raw data
-	Content api.IoBuffer // wrapper of raw content
+	Data    types.IoBuffer // wrapper of raw data
+	Content types.IoBuffer // wrapper of raw content
 
 	ContentChanged bool // indicate that content changed
 }
@@ -173,11 +173,11 @@ func (r *Response) GetHeader() types.HeaderMap {
 	return r
 }
 
-func (r *Response) GetData() api.IoBuffer {
+func (r *Response) GetData() types.IoBuffer {
 	return r.Content
 }
 
-func (r *Response) SetData(data api.IoBuffer) {
+func (r *Response) SetData(data types.IoBuffer) {
 	// judge if the address unchanged, assume that proxy logic will not operate the original Content buffer.
 	if r.Content != data {
 		r.ContentChanged = true

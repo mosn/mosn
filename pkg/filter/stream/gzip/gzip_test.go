@@ -32,14 +32,15 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/proxy"
+	"mosn.io/mosn/pkg/types"
 )
 
 type mockSendHandler struct {
 	api.StreamSenderFilterHandler
-	downstreamRespDataBuf api.IoBuffer
+	downstreamRespDataBuf types.IoBuffer
 }
 
-func (f *mockSendHandler) SetResponseData(data api.IoBuffer) {
+func (f *mockSendHandler) SetResponseData(data types.IoBuffer) {
 	// data is the original data. do nothing
 	if f.downstreamRespDataBuf == data {
 		return
@@ -51,7 +52,7 @@ func (f *mockSendHandler) SetResponseData(data api.IoBuffer) {
 	f.downstreamRespDataBuf.ReadFrom(data)
 }
 
-func (f *mockSendHandler) setData(data api.IoBuffer) {
+func (f *mockSendHandler) setData(data types.IoBuffer) {
 	f.downstreamRespDataBuf = data
 }
 

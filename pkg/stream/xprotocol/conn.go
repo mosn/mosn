@@ -123,7 +123,7 @@ func (sc *streamConn) CheckReasonError(connected bool, event api.ConnectionEvent
 }
 
 // types.StreamConnection
-func (sc *streamConn) Dispatch(buf api.IoBuffer) {
+func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	// match if multi protocol used
 	if sc.protocol == nil {
 		proto, result := sc.engine.Match(sc.ctx, buf)

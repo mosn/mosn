@@ -98,7 +98,7 @@ func (s *xStream) buildHijackResp(request api.XFrame, header types.HeaderMap) (a
 	return nil, types.ErrNoStatusCodeForHijack
 }
 
-func (s *xStream) AppendData(context context.Context, data api.IoBuffer, endStream bool) error {
+func (s *xStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.ctx, "[stream] [xprotocol] appendData, direction = %d, requestId = %d", s.direction, s.id)
 	}

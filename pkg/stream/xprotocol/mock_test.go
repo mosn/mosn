@@ -107,7 +107,7 @@ func (s *mockServer) HandleConn(conn net.Conn) {
 	}
 }
 
-func (s *mockServer) Reply(iobuf api.IoBuffer) []byte {
+func (s *mockServer) Reply(iobuf types.IoBuffer) []byte {
 	if s.delay != 0 {
 		time.Sleep(s.delay)
 	}

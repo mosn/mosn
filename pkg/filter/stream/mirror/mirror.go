@@ -238,7 +238,7 @@ func (m *mirror) coverHeader() types.HeaderMap {
 	return m.headers
 }
 
-func (m *mirror) converData() api.IoBuffer {
+func (m *mirror) converData() types.IoBuffer {
 	convData, err := protocol.ConvertData(m.ctx, m.dp, m.up, m.data)
 	if err == nil {
 		return convData

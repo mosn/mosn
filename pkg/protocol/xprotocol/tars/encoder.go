@@ -23,11 +23,11 @@ import (
 	"encoding/binary"
 
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
-	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
-func encodeRequest(ctx context.Context, request *Request) (api.IoBuffer, error) {
+func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error) {
 	sbuf := bytes.NewBuffer(nil)
 	sbuf.Write(make([]byte, 4))
 	os := codec.NewBuffer()
@@ -42,7 +42,7 @@ func encodeRequest(ctx context.Context, request *Request) (api.IoBuffer, error) 
 	data := sbuf.Bytes()
 	return buffer.NewIoBufferBytes(data), nil
 }
-func encodeResponse(ctx context.Context, response *Response) (api.IoBuffer, error) {
+func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, error) {
 	os := codec.NewBuffer()
 	response.cmd.WriteTo(os)
 	bs := os.ToBytes()

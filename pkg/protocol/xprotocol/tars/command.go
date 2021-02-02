@@ -27,8 +27,8 @@ import (
 
 type Request struct {
 	cmd     *requestf.RequestPacket
-	rawData []byte       // raw data
-	data    api.IoBuffer // wrapper of data
+	rawData []byte         // raw data
+	data    types.IoBuffer // wrapper of data
 	protocol.CommonHeader
 }
 
@@ -54,18 +54,18 @@ func (r *Request) GetHeader() types.HeaderMap {
 	return r
 }
 
-func (r *Request) GetData() api.IoBuffer {
+func (r *Request) GetData() types.IoBuffer {
 	return r.data
 }
 
-func (r *Request) SetData(data api.IoBuffer) {
+func (r *Request) SetData(data types.IoBuffer) {
 	r.data = data
 }
 
 type Response struct {
 	cmd     *requestf.ResponsePacket
-	rawData []byte       // raw data
-	data    api.IoBuffer // wrapper of data
+	rawData []byte         // raw data
+	data    types.IoBuffer // wrapper of data
 	protocol.CommonHeader
 }
 
@@ -91,11 +91,11 @@ func (r *Response) GetHeader() types.HeaderMap {
 	return r
 }
 
-func (r *Response) GetData() api.IoBuffer {
+func (r *Response) GetData() types.IoBuffer {
 	return r.data
 }
 
-func (r *Response) SetData(data api.IoBuffer) {
+func (r *Response) SetData(data types.IoBuffer) {
 	r.data = data
 }
 

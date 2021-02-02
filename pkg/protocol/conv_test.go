@@ -35,7 +35,7 @@ func (c *common2mock) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, nil
 }
 
-func (c *common2mock) ConvData(ctx context.Context, buffer api.IoBuffer) (api.IoBuffer, error) {
+func (c *common2mock) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
 	return buffer, nil
 }
 
@@ -47,7 +47,7 @@ func (c *mock2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, nil
 }
 
-func (c *mock2common) ConvData(ctx context.Context, buffer api.IoBuffer) (api.IoBuffer, error) {
+func (c *mock2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
 	return buffer, nil
 }
 

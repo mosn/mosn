@@ -23,7 +23,6 @@ import (
 	"testing"
 
 	"github.com/valyala/fasthttp"
-	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
@@ -35,7 +34,7 @@ func Test_http2bolt_Accept(t1 *testing.T) {
 	type args struct {
 		ctx      context.Context
 		headers  types.HeaderMap
-		buf      api.IoBuffer
+		buf      types.IoBuffer
 		trailers types.HeaderMap
 	}
 	tests := []struct {
@@ -80,7 +79,7 @@ func Test_http2bolt_TranscodingRequest(t1 *testing.T) {
 	type args struct {
 		ctx      context.Context
 		headers  types.HeaderMap
-		buf      api.IoBuffer
+		buf      types.IoBuffer
 		trailers types.HeaderMap
 	}
 	tests := []struct {
@@ -132,7 +131,7 @@ func Test_http2bolt_TranscodingResponse(t1 *testing.T) {
 	type args struct {
 		ctx      context.Context
 		headers  types.HeaderMap
-		buf      api.IoBuffer
+		buf      types.IoBuffer
 		trailers types.HeaderMap
 	}
 	tests := []struct {

@@ -71,12 +71,12 @@ type downStream struct {
 
 	// ~~~ downstream request buf
 	downstreamReqHeaders  types.HeaderMap
-	downstreamReqDataBuf  api.IoBuffer
+	downstreamReqDataBuf  types.IoBuffer
 	downstreamReqTrailers types.HeaderMap
 
 	// ~~~ downstream response buf
 	downstreamRespHeaders  types.HeaderMap
-	downstreamRespDataBuf  api.IoBuffer
+	downstreamRespDataBuf  types.IoBuffer
 	downstreamRespTrailers types.HeaderMap
 
 	// ~~~ state
@@ -375,7 +375,7 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 func (s *downStream) OnDestroyStream() {}
 
 // types.StreamReceiveListener
-func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap) {
+func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
 	s.context = mosnctx.WithValue(s.context, mosnctx.ContextKeyDownStreamHeaders, headers)
 	s.downstreamReqDataBuf = data
@@ -1132,7 +1132,7 @@ func (s *downStream) appendData(endStream bool) {
 	}
 }
 
-func (s *downStream) convertData(data api.IoBuffer) api.IoBuffer {
+func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 	if s.noConvert {
 		return data
 	}

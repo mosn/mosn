@@ -25,11 +25,11 @@ import (
 	"sync"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
-	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 	mosnctx "mosn.io/pkg/context"
 
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 // Decoder is heavy and caches to improve performance.
@@ -47,7 +47,7 @@ var (
 	}
 )
 
-func decodeFrame(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
+func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
 	// convert data to dubbo frame
 	dataBytes := data.Bytes()
 	frame := &Frame{

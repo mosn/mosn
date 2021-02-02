@@ -25,13 +25,12 @@ import (
 	"strconv"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	"mosn.io/api"
-	"mosn.io/pkg/buffer"
-
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
-func decodeFrame(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
+func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
 
 	//panic handler
 	defer func() {

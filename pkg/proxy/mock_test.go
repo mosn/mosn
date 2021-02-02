@@ -155,7 +155,7 @@ func (mcs *mockClusterSnapshot) ClusterInfo() types.ClusterInfo {
 type mockResponseSender struct {
 	// receive data
 	headers  api.HeaderMap
-	data     api.IoBuffer
+	data     types.IoBuffer
 	trailers api.HeaderMap
 }
 
@@ -164,7 +164,7 @@ func (s *mockResponseSender) AppendHeaders(ctx context.Context, headers api.Head
 	return nil
 }
 
-func (s *mockResponseSender) AppendData(ctx context.Context, data api.IoBuffer, endStream bool) error {
+func (s *mockResponseSender) AppendData(ctx context.Context, data types.IoBuffer, endStream bool) error {
 	s.data = data
 	return nil
 }
