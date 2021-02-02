@@ -19,9 +19,13 @@ package mosn
 
 import (
 	"net"
+	goplugin "plugin"
 	"sync"
 	"syscall"
 	"time"
+
+	"mosn.io/api"
+	"mosn.io/pkg/utils"
 
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/admin/store"
@@ -34,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/metrics/sink"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/plugin"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/server/keeper"
@@ -41,7 +46,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/pkg/xds"
-	"mosn.io/pkg/utils"
 )
 
 // Mosn class which wrapper server
@@ -66,6 +70,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
+	initializeThirdPartCodec(c.ThirdPartCodec)
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// set the mosn config finally
@@ -400,6 +405,69 @@ func initializePlugin(log string) {
 		log = types.MosnLogBasePath
 	}
 	plugin.InitPlugin(log)
+}
+
+func initializeThirdPartCodec(config v2.ThirdPartCodecConfig) {
+	for _, codec := range config.Codecs {
+		if !codec.Enable {
+			log.StartLogger.Infof("[mosn] [init codec] third part codec disabled for %+v, skip...", codec.Path)
+			continue
+		}
+
+		switch codec.Type {
+		case v2.GoPlugin:
+			if err := readProtocolPlugin(codec.Path, codec.LoaderFuncName); err != nil {
+				log.StartLogger.Errorf("[mosn] [init codec] init go-plugin codec failed: %+v", err)
+				continue
+			}
+			log.StartLogger.Infof("[mosn] [init codec] load go plugin codec succeed: %+v", codec.Path)
+
+		case v2.Wasm:
+			// todo
+			log.StartLogger.Errorf("[mosn] [init codec] wasm codec not supported now.")
+
+		default:
+			log.StartLogger.Errorf("[mosn] [init codec] unknown third part codec type: %+v", codec.Type)
+		}
+	}
+}
+
+const (
+	DefaultLoaderFunctionName string = "LoadCodec"
+)
+
+func readProtocolPlugin(path, loadFuncName string) error {
+	p, err := goplugin.Open(path)
+	if err != nil {
+		return err
+	}
+
+	if loadFuncName == "" {
+		loadFuncName = DefaultLoaderFunctionName
+	}
+
+	sym, err := p.Lookup(loadFuncName)
+	if err != nil {
+		return err
+	}
+
+	loadFunc := sym.(func() api.XProtocolCodec)
+	codec := loadFunc()
+
+	protocolName := codec.ProtocolName()
+	log.StartLogger.Infof("[mosn] [init codec] loading protocol [%v] from third part codec", protocolName)
+
+	if err := xprotocol.RegisterProtocol(protocolName, codec.XProtocol()); err != nil {
+		return err
+	}
+	if err := xprotocol.RegisterMapping(protocolName, codec.HTTPMapping()); err != nil {
+		return err
+	}
+	if err := xprotocol.RegisterMatcher(protocolName, codec.ProtocolMatch()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type clusterManagerFilter struct {

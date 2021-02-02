@@ -25,7 +25,7 @@ import (
 // use alias to keep compatiable
 type IoBuffer = buffer.IoBuffer
 
-type ProtocolName = api.Protocol
+type ProtocolName = api.ProtocolName
 
 type HeaderMap = api.HeaderMap
 

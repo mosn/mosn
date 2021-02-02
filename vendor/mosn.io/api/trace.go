@@ -15,13 +15,46 @@
  * limitations under the License.
  */
 
-package types
+package api
 
-// PoolMode is whether PingPong or multiplex
-type PoolMode int
-
-const (
-	PingPong PoolMode = iota
-	Multiplex
-	TCP
+import (
+	"context"
+	"time"
 )
+
+// factory
+type TracerBuilder func(config map[string]interface{}) (Tracer, error)
+
+type Driver interface {
+	Init(config map[string]interface{}) error
+
+	Register(proto ProtocolName, builder TracerBuilder)
+
+	Get(proto ProtocolName) Tracer
+}
+
+type Tracer interface {
+	Start(ctx context.Context, request interface{}, startTime time.Time) Span
+}
+
+type Span interface {
+	TraceId() string
+
+	SpanId() string
+
+	ParentSpanId() string
+
+	SetOperation(operation string)
+
+	SetTag(key uint64, value string)
+
+	SetRequestInfo(requestInfo RequestInfo)
+
+	Tag(key uint64) string
+
+	FinishSpan()
+
+	InjectContext(requestHeaders HeaderMap, requestInfo RequestInfo)
+
+	SpawnChild(operationName string, startTime time.Time) Span
+}

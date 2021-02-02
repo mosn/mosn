@@ -52,7 +52,7 @@ func (mr *MockDriverMockRecorder) Init(config interface{}) *gomock.Call {
 }
 
 // Register mocks base method
-func (m *MockDriver) Register(proto api.Protocol, builder types.TracerBuilder) {
+func (m *MockDriver) Register(proto api.ProtocolName, builder types.TracerBuilder) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Register", proto, builder)
 }
@@ -64,7 +64,7 @@ func (mr *MockDriverMockRecorder) Register(proto, builder interface{}) *gomock.C
 }
 
 // Get mocks base method
-func (m *MockDriver) Get(proto api.Protocol) types.Tracer {
+func (m *MockDriver) Get(proto api.ProtocolName) types.Tracer {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", proto)
 	ret0, _ := ret[0].(types.Tracer)

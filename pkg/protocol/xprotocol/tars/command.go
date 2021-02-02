@@ -19,8 +19,9 @@ package tars
 
 import (
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -45,8 +46,8 @@ func (r *Request) IsHeartbeatFrame() bool {
 	return false
 }
 
-func (r *Request) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Request
+func (r *Request) GetStreamType() api.StreamType {
+	return api.Request
 }
 
 func (r *Request) GetHeader() types.HeaderMap {
@@ -82,8 +83,8 @@ func (r *Response) IsHeartbeatFrame() bool {
 	return false
 }
 
-func (r *Response) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Response
+func (r *Response) GetStreamType() api.StreamType {
+	return api.Response
 }
 
 func (r *Response) GetHeader() types.HeaderMap {

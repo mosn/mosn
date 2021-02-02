@@ -18,7 +18,8 @@
 package boltv2
 
 import (
-	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
 )
@@ -58,14 +59,14 @@ func (r *Request) IsHeartbeatFrame() bool {
 	return r.RequestHeader.CmdCode == bolt.CmdCodeHeartbeat
 }
 
-func (r *Request) GetStreamType() xprotocol.StreamType {
+func (r *Request) GetStreamType() api.StreamType {
 	switch r.RequestHeader.CmdType {
 	case bolt.CmdTypeRequest:
-		return xprotocol.Request
+		return api.Request
 	case bolt.CmdTypeRequestOneway:
-		return xprotocol.RequestOneWay
+		return api.RequestOneWay
 	default:
-		return xprotocol.Request
+		return api.Request
 	}
 }
 
@@ -120,8 +121,8 @@ func (r *Response) IsHeartbeatFrame() bool {
 	return r.ResponseHeader.CmdCode == bolt.CmdCodeHeartbeat
 }
 
-func (r *Response) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Response
+func (r *Response) GetStreamType() api.StreamType {
+	return api.Response
 }
 
 func (r *Response) GetHeader() types.HeaderMap {

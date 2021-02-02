@@ -116,7 +116,7 @@ func (c *RPCClient) SendRequestWithData(in string) {
 	ID := atomic.AddUint64(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
-	var frame xprotocol.XFrame
+	var frame api.XFrame
 	data := buffer.NewIoBufferString(in)
 	// TODO: support boltv2
 	switch c.Protocol {
@@ -140,7 +140,7 @@ func (c *RPCClient) SendRequestWithData(in string) {
 }
 
 func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if cmd, ok := headers.(xprotocol.XRespFrame); ok {
+	if cmd, ok := headers.(api.XRespFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
 		if _, ok := c.Waits.Load(streamID); ok {

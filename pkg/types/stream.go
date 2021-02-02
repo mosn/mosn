@@ -178,7 +178,7 @@ type StreamConnection interface {
 	Dispatch(buffer buffer.IoBuffer)
 
 	// Protocol on the connection
-	Protocol() api.Protocol
+	Protocol() api.ProtocolName
 
 	// EnableWorkerPool means enable worker pool on downstream OnReceive
 	EnableWorkerPool() bool
@@ -236,7 +236,7 @@ const (
 
 //  ConnectionPool is a connection pool interface to extend various of protocols
 type ConnectionPool interface {
-	Protocol() api.Protocol
+	Protocol() api.ProtocolName
 
 	NewStream(ctx context.Context, receiver StreamReceiveListener) (Host, StreamSender, PoolFailureReason)
 

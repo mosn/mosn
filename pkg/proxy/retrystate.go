@@ -36,7 +36,7 @@ type retryState struct {
 }
 
 func newRetryState(retryPolicy api.RetryPolicy,
-	requestHeaders api.HeaderMap, cluster types.ClusterInfo, proto api.Protocol) *retryState {
+	requestHeaders api.HeaderMap, cluster types.ClusterInfo, proto api.ProtocolName) *retryState {
 	rs := &retryState{
 		retryPolicy:      retryPolicy,
 		requestHeaders:   requestHeaders,

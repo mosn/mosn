@@ -267,7 +267,7 @@ type mockServerConn struct {
 	types.ServerStreamConnection
 }
 
-func (s *mockServerConn) Protocol() api.Protocol {
+func (s *mockServerConn) Protocol() api.ProtocolName {
 	return "mockProtocol"
 }
 

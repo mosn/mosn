@@ -18,14 +18,15 @@
 package http2
 
 import (
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/module/http2"
-	"mosn.io/mosn/pkg/types"
 )
 
-func ServerProto(sc *http2.MServerConn) types.Protocol {
+func ServerProto(sc *http2.MServerConn) api.Protocol {
 	return &serverCodec{sc: sc}
 }
 
-func ClientProto(cc *http2.MClientConn) types.Protocol {
+func ClientProto(cc *http2.MClientConn) api.Protocol {
 	return &clientCodec{cc: cc}
 }

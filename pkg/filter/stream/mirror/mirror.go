@@ -18,8 +18,8 @@ type mirror struct {
 	amplification  int
 	broadcast      bool
 	receiveHandler api.StreamReceiverFilterHandler
-	dp             api.Protocol
-	up             api.Protocol
+	dp             api.ProtocolName
+	up             api.ProtocolName
 	ctx            context.Context
 	headers        api.HeaderMap
 	data           buffer.IoBuffer

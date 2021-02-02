@@ -2,10 +2,11 @@ package dubbo
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/pkg/buffer"
 	"reflect"
 	"testing"
+
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
 )
 
 func TestFrame(t *testing.T) {
@@ -36,7 +37,7 @@ func TestFrame(t *testing.T) {
 	if frame.IsHeartbeatFrame() != false {
 		t.Errorf("dubbo method IsHeartbeatFrame error")
 	}
-	if frame.GetStreamType() != xprotocol.Request {
+	if frame.GetStreamType() != api.Request {
 		t.Errorf("dubbo method GetStreamType error")
 	}
 	if frame.GetStatusCode() != 0x14 {

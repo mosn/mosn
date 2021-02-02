@@ -30,9 +30,9 @@ type TracerBuilder func(config map[string]interface{}) (Tracer, error)
 type Driver interface {
 	Init(config map[string]interface{}) error
 
-	Register(proto api.Protocol, builder TracerBuilder)
+	Register(proto api.ProtocolName, builder TracerBuilder)
 
-	Get(proto api.Protocol) Tracer
+	Get(proto api.ProtocolName) Tracer
 }
 
 type Tracer interface {

@@ -208,7 +208,7 @@ func createConfigFilterProxyMesh(addr string, hosts []string, proto types.Protoc
 	listener := util.NewListener("proxyListener", addr, chains)
 	listener.StreamFilters = []v2.Filter{
 		{
-			Type:   "filterConfig",
+			Type: "filterConfig",
 			Config: map[string]interface{}{
 				"User": "globalUser",
 			},
@@ -241,11 +241,10 @@ func TestConfigFilter(t *testing.T) {
 	// test User:vhostUser
 	testCase(t, "http://"+meshAddr, "domain1.example", "vhostUser")
 	// test User:routerUser
-	testCase(t, "http://"+meshAddr + "/router", "domain1.example", "routerUser")
+	testCase(t, "http://"+meshAddr+"/router", "domain1.example", "routerUser")
 
 	httpServer.Close()
 }
-
 
 func testCase(t *testing.T, url, host, user string) {
 	client := http.Client{Timeout: 5 * time.Second}

@@ -21,6 +21,8 @@ import (
 	"context"
 	"sync/atomic"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -42,16 +44,16 @@ func (mp *mockProtocol) Decode(ctx context.Context, data types.IoBuffer) (interf
 }
 
 // Heartbeater
-func (mp *mockProtocol) Trigger(requestId uint64) XFrame {
+func (mp *mockProtocol) Trigger(requestId uint64) api.XFrame {
 	return nil
 }
 
-func (mp *mockProtocol) Reply(request XFrame) XRespFrame {
+func (mp *mockProtocol) Reply(request api.XFrame) api.XRespFrame {
 	return nil
 }
 
 // Hijacker
-func (mp *mockProtocol) Hijack(request XFrame, statusCode uint32) XRespFrame {
+func (mp *mockProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
 	return nil
 }
 
@@ -59,8 +61,8 @@ func (mp *mockProtocol) Mapping(httpStatusCode uint32) uint32 {
 	return 0
 }
 
-func (mp *mockProtocol) PoolMode() types.PoolMode {
-	return types.Multiplex
+func (mp *mockProtocol) PoolMode() api.PoolMode {
+	return api.Multiplex
 }
 
 func (mp *mockProtocol) EnableWorkerPool() bool {
@@ -71,8 +73,8 @@ func (mp *mockProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }
 
-func mockMatcher(data []byte) types.MatchResult {
-	return types.MatchSuccess
+func mockMatcher(data []byte) api.MatchResult {
+	return api.MatchSuccess
 }
 
 type mockMapping struct {
