@@ -45,6 +45,7 @@ func TestStreamFilter(t *testing.T) {
 			},
 		},
 	}
+	flow.LoadRules(mockConfig.Rules)
 	// global switch disabled
 	sf := MockInboundFilter(mockConfig)
 
@@ -61,17 +62,24 @@ func TestStreamFilter(t *testing.T) {
 
 	m := make(map[string]string)
 	m["Http1_request_path"] = "/http"
-	m["dubbo_request_path"] = "/dubbo"
 	for k := range m {
 		// register test variable
 		variable.RegisterVariable(variable.NewBasicVariable(k, nil,
 			func(ctx context.Context, variableValue *variable.IndexedValue, data interface{}) (s string, err error) {
-				return m[k], nil
+				val := m[k]
+				return val, nil
 			}, nil, 0))
 	}
 	variable.RegisterProtocolResource(HTTP1, api.PATH, "request_path")
+
+	// test pass
 	status = sf.OnReceive(ctx, nil, nil, nil)
-	assert.NotEmpty(t, status)
+	assert.Equal(t, api.StreamFilterContinue, status)
+	// test block
+	for i := 0; i < 5; i++ {
+		status = sf.OnReceive(ctx, nil, nil, nil)
+	}
+	assert.Equal(t, api.StreamFilterStop, status)
 	sf.OnDestroy()
 }
 
@@ -118,6 +126,10 @@ func (m *mockStreamReceiverFilterHandler) RequestInfo() api.RequestInfo {
 		RequestInfo: mockReqInfo,
 	}
 	return ri
+}
+
+func (m *mockStreamReceiverFilterHandler) SendDirectResponse(headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) {
+
 }
 
 func (m *mockStreamReceiverFilterHandler) Connection() api.Connection {
