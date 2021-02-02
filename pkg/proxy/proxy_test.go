@@ -9,7 +9,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
@@ -17,14 +16,15 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func TestNewProxy(t *testing.T) {
 	// generate a basic context for new proxy
 	genctx := func() context.Context {
 		ctx := context.Background()
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAccessLogs, []api.AccessLog{})
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyListenerName, "test_listener")
 		return ctx
 	}
 	t.Run("config simple", func(t *testing.T) {
@@ -68,7 +68,7 @@ func TestNewProxy(t *testing.T) {
 		})
 		// verify
 		p := pv.(*proxy)
-		sub, ok := mosnctx.Get(p.context, types.ContextSubProtocol).(string)
+		sub, ok := mosnctx.Get(p.context, mosnctx.ContextSubProtocol).(string)
 		if !ok {
 			t.Fatal("no sub protocol got")
 		}
@@ -89,7 +89,7 @@ func TestNewProxy(t *testing.T) {
 		})
 		// verify
 		p := pv.(*proxy)
-		cfg, ok := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig).(v2.ProxyGeneralExtendConfig)
+		cfg, ok := mosnctx.Get(p.context, mosnctx.ContextKeyProxyGeneralConfig).(v2.ProxyGeneralExtendConfig)
 		if !ok {
 			t.Fatal("no proxy extend config")
 		}
@@ -110,8 +110,8 @@ func TestNewProxyRequest(t *testing.T) {
 	// generate a basic context for new proxy
 	genctx := func() context.Context {
 		ctx := context.Background()
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAccessLogs, []api.AccessLog{})
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyListenerName, "test_listener")
 		return ctx
 	}
 	callCreateFilterChain := false
@@ -131,7 +131,7 @@ func TestNewProxyRequest(t *testing.T) {
 		RouterConfigName:   "test_router",
 	})
 	//
-	mockSpan := func() types.Span {
+	mockSpan := func() api.Span {
 		sp := mock.NewMockSpan(ctrl)
 		sp.EXPECT().TraceId().Return("1").AnyTimes()
 		sp.EXPECT().SpanId().Return("1").AnyTimes()

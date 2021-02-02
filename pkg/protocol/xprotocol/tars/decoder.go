@@ -24,12 +24,13 @@ import (
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
 	"github.com/juju/errors"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 	"mosn.io/pkg/buffer"
+
+	"mosn.io/mosn/pkg/protocol"
 )
 
-func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
+func decodeRequest(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
 	frameLen, status := tarsprotocol.TarsRequest(data.Bytes())
 	if status != tarsprotocol.PACKAGE_FULL {
 		return nil, errors.New("tars request status fail")
@@ -57,7 +58,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer) (cmd interface{}, e
 	return req, nil
 }
 
-func decodeResponse(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
+func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
 	frameLen, status := tarsprotocol.TarsRequest(data.Bytes())
 	if status != tarsprotocol.PACKAGE_FULL {
 		return nil, errors.New("tars request status fail")

@@ -23,11 +23,11 @@ import (
 
 	"mosn.io/api"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {
@@ -38,7 +38,7 @@ var PrintLog = true
 
 type Tracer struct{}
 
-func NewTracer(config map[string]interface{}) (types.Tracer, error) {
+func NewTracer(config map[string]interface{}) (api.Tracer, error) {
 	// TODO: support log & report
 	if PrintLog {
 		if value, ok := config["log_path"]; ok {
@@ -58,7 +58,7 @@ func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 	return &Tracer{}, nil
 }
 
-func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime time.Time) types.Span {
+func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime time.Time) api.Span {
 	span := NewSpan(ctx, startTime)
 
 	xframe, ok := frame.(api.XFrame)
@@ -72,7 +72,7 @@ func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime ti
 	}
 
 	// use delegate instrument if exists
-	subProtocol := types.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
+	subProtocol := types.ProtocolName(mosnctx.Get(ctx, mosnctx.ContextSubProtocol).(string))
 
 	if delegate := delegateMap[subProtocol]; delegate != nil {
 		delegate(ctx, xframe, span)

@@ -35,6 +35,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	dto "github.com/prometheus/client_model/go"
 	gometrics "github.com/rcrowley/go-metrics"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/metrics/sink"
@@ -125,7 +126,7 @@ func (psink *promSink) Flush(writer io.Writer, ms []types.Metrics) {
 	}
 }
 
-func (psink *promSink) flushHistogram(tracker map[string]bool, buf types.IoBuffer, name string, labels string, snapshot gometrics.Histogram) {
+func (psink *promSink) flushHistogram(tracker map[string]bool, buf api.IoBuffer, name string, labels string, snapshot gometrics.Histogram) {
 	// min
 	psink.flushGauge(tracker, buf, name+"_min", labels, float64(snapshot.Min()))
 	// max
@@ -142,7 +143,7 @@ func (psink *promSink) flushHistogram(tracker map[string]bool, buf types.IoBuffe
 	}
 }
 
-func (psink *promSink) flushGauge(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {
+func (psink *promSink) flushGauge(tracker map[string]bool, buf api.IoBuffer, name string, labels string, val float64) {
 	// type
 	if !tracker[name] {
 		buf.WriteString("# TYPE ")
@@ -159,7 +160,7 @@ func (psink *promSink) flushGauge(tracker map[string]bool, buf types.IoBuffer, n
 	buf.WriteString("\n")
 }
 
-func (psink *promSink) flushCounter(tracker map[string]bool, buf types.IoBuffer, name string, labels string, val float64) {
+func (psink *promSink) flushCounter(tracker map[string]bool, buf api.IoBuffer, name string, labels string, val float64) {
 	// type
 	if !tracker[name] {
 		buf.WriteString("# TYPE ")
@@ -281,7 +282,7 @@ func makeLabelPair(keys, values []string) (pairs []*dto.LabelPair) {
 	return
 }
 
-func writeFloat(w types.IoBuffer, f float64) (int, error) {
+func writeFloat(w api.IoBuffer, f float64) (int, error) {
 	switch {
 	case f == 1:
 		return w.WriteString("1.0")

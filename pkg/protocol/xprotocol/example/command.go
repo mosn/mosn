@@ -19,8 +19,6 @@ package example
 
 import (
 	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/types"
 )
 
 type Request struct {
@@ -28,7 +26,7 @@ type Request struct {
 	RequestId  uint32
 	PayloadLen uint32
 	Payload    []byte
-	Content    types.IoBuffer
+	Content    api.IoBuffer
 }
 
 func (r *Request) GetStreamType() api.StreamType {

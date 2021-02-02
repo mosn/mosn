@@ -20,11 +20,11 @@ package example
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 )
 
-func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error) {
+func encodeRequest(ctx context.Context, request *Request) (api.IoBuffer, error) {
 	// 1. TODO: fast-path, use existed raw data
 
 	// 2.1 calculate frame length
@@ -50,7 +50,7 @@ func encodeRequest(ctx context.Context, request *Request) (types.IoBuffer, error
 	return buf, nil
 }
 
-func encodeResponse(ctx context.Context, response *Response) (types.IoBuffer, error) {
+func encodeResponse(ctx context.Context, response *Response) (api.IoBuffer, error) {
 	// 1. TODO: fast-path, use existed raw data
 
 	// 2.1 calculate frame length

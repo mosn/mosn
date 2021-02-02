@@ -61,7 +61,7 @@ func (proto *thriftProtocol) Name() types.ProtocolName {
 	return ProtocolName
 }
 
-func (proto *thriftProtocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (proto *thriftProtocol) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
 	if frame, ok := model.(*Frame); ok {
 		if frame.Direction == EventRequest {
 			return encodeRequest(ctx, frame)
@@ -73,7 +73,7 @@ func (proto *thriftProtocol) Encode(ctx context.Context, model interface{}) (typ
 	return nil, api.ErrUnknownType
 }
 
-func (proto *thriftProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (proto *thriftProtocol) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
 	if data.Len() >= MessageLenSize+MagicLen {
 		// check frame size
 		frameLen := binary.BigEndian.Uint32(data.Bytes()[0:MessageLenSize])

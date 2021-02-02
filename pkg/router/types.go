@@ -29,10 +29,10 @@ import (
 
 	"github.com/dchest/siphash"
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/variable"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 // [sub module] & [function] & msg
@@ -213,7 +213,7 @@ func (hp *cookieHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
 type sourceIPHashPolicyImpl struct{}
 
 func (hp *sourceIPHashPolicyImpl) GenerateHash(ctx context.Context) uint64 {
-	if addr, ok := mosnctx.Get(ctx, types.ContextOriRemoteAddr).(net.Addr); ok {
+	if addr, ok := mosnctx.Get(ctx, mosnctx.ContextOriRemoteAddr).(net.Addr); ok {
 		return getHashByAddr(addr)
 	}
 	return 0

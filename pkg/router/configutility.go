@@ -182,7 +182,7 @@ func CreateHTTPHeaderMatcher(headers []v2.HeaderMatcher) types.HeaderMatcher {
 	for _, header := range headers {
 		switch header.Name {
 		case "method":
-			matcher.variables[types.VarMethod] = header.Value
+			matcher.variables[variable.VarMethod] = header.Value
 		default:
 			if kv, err := NewKeyValueData(header); err == nil {
 				matcher.headers = append(matcher.headers, kv)

@@ -1,7 +1,6 @@
 function make_mosn {
 	mkdir ./build_mosn
 	cp ../../../../../cmd/mosn/main/* ./build_mosn
-	cp ./load_so.go ./build_mosn
 	cd ./build_mosn
 	go build -o mosn
 	mv mosn ../

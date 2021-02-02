@@ -27,12 +27,12 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // ReadFilter
@@ -57,7 +57,7 @@ func NewProxy(ctx context.Context, config *v2.StreamProxy, net string) Proxy {
 		config:         NewProxyConfig(config),
 		clusterManager: cluster.GetClusterMngAdapterInstance().ClusterManager,
 		requestInfo:    network.NewRequestInfo(),
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, mosnctx.ContextKeyAccessLogs).([]api.AccessLog),
 		ctx:            ctx,
 		network:        net,
 	}
@@ -182,7 +182,7 @@ func (p *proxy) onInitFailure(reason UpstreamFailureReason) {
 	p.readCallbacks.Connection().Close(api.NoFlush, api.LocalClose)
 }
 
-func (p *proxy) onUpstreamData(buffer types.IoBuffer) {
+func (p *proxy) onUpstreamData(buffer api.IoBuffer) {
 	log.DefaultLogger.Tracef("%s Proxy :: read upstream data , len = %v", p.network, buffer.Len())
 	bytesSent := p.requestInfo.BytesSent() + uint64(buffer.Len())
 	p.requestInfo.SetBytesSent(bytesSent)

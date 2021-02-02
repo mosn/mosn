@@ -5,13 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"sync"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
+	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"mosn.io/api"
+	"mosn.io/pkg/types"
+
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 )
 
 const defaultResponse = "current request is limited"
@@ -32,6 +35,7 @@ var (
 // Config represents the flow control configurations.
 type Config struct {
 	AppName      string                   `json:"app_name"`
+	CallbackName string                   `json:"callback_name"`
 	LogPath      string                   `json:"log_path"`
 	GlobalSwitch bool                     `json:"global_switch"`
 	Monitor      bool                     `json:"monitor"`
@@ -52,13 +56,14 @@ func init() {
 
 // StreamFilterFactory represents the stream filter factory.
 type StreamFilterFactory struct {
-	config *Config
+	config      *Config
+	trafficType base.TrafficType
 }
 
 // CreateFilterChain add the flow control stream filter to filter chain.
 func (f *StreamFilterFactory) CreateFilterChain(context context.Context,
 	callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := NewStreamFilter(&DefaultCallbacks{config: f.config})
+	filter := NewStreamFilter(GetCallbacksByConfig(f.config), f.trafficType)
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 }
 
@@ -71,8 +76,8 @@ func initSentinel(appName, logPath string) {
 	}
 }
 
-func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
-	flowControlCfg := &Config{
+func defaultConfig() *Config {
+	return &Config{
 		AppName: defaultSentinelAppName,
 		LogPath: defaultSentinelLogDir,
 		Action: Action{
@@ -81,6 +86,10 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 		},
 		KeyType: api.PATH,
 	}
+}
+
+func loadConfig(conf map[string]interface{}) (*Config, error) {
+	flowControlCfg := defaultConfig()
 	cfg, err := json.Marshal(conf)
 	if err != nil {
 		log.DefaultLogger.Errorf("marshal flow control filter config failed")
@@ -96,6 +105,14 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 		log.DefaultLogger.Errorf("invalid configuration: %v", err)
 		return nil, err
 	}
+	return flowControlCfg, nil
+}
+
+func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	flowControlCfg, err := loadConfig(conf)
+	if err != nil {
+		return nil, err
+	}
 	_, err = flow.LoadRules(flowControlCfg.Rules)
 	if err != nil {
 		log.DefaultLogger.Errorf("update rules failed")
@@ -105,8 +122,22 @@ func createRpcFlowControlFilterFactory(conf map[string]interface{}) (api.StreamF
 		// TODO: can't support dynamically update at present, should be optimized
 		initSentinel(flowControlCfg.AppName, flowControlCfg.LogPath)
 	})
-	factory := &StreamFilterFactory{config: flowControlCfg}
+	factory := &StreamFilterFactory{
+		config:      flowControlCfg,
+		trafficType: parseTrafficType(conf),
+	}
 	return factory, nil
+}
+
+func parseTrafficType(conf map[string]interface{}) base.TrafficType {
+	directionConf, ok := conf["direction"].(string)
+	if !ok {
+		return base.Inbound
+	}
+	if strings.EqualFold(directionConf, base.Outbound.String()) {
+		return base.Outbound
+	}
+	return base.Inbound
 }
 
 func isValidConfig(cfg *Config) (bool, error) {

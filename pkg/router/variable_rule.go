@@ -96,12 +96,12 @@ func (vrri *VariableRouteRuleImpl) Match(ctx context.Context, headers api.Header
 
 	if result {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "variable rotue rule", "match success", walkVarName)
+			log.DefaultLogger.Debugf(RouterLogFormat, "variable route rule", "match success", walkVarName)
 		}
 		return vrri
 	}
 
-	log.DefaultLogger.Errorf(RouterLogFormat, "variable rotue rule", "failed match", vrri.Variables, walkVarName)
+	log.DefaultLogger.Errorf(RouterLogFormat, "variable route rule", "failed match", vrri.Variables, walkVarName)
 	return nil
 }
 

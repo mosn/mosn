@@ -21,8 +21,6 @@ import (
 	"context"
 
 	"mosn.io/api"
-
-	"mosn.io/mosn/pkg/types"
 )
 
 const (
@@ -63,4 +61,4 @@ const (
 	MOSN_PROCESS_FAIL
 )
 
-type SubProtocolDelegate func(ctx context.Context, frame api.XFrame, span types.Span)
+type SubProtocolDelegate func(ctx context.Context, frame api.XFrame, span api.Span)

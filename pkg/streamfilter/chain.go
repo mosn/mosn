@@ -39,12 +39,12 @@ type StreamFilterChain interface {
 
 	// invoke the receiver filter chain.
 	RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
-		headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
+		headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap,
 		statusHandler StreamReceiverFilterStatusHandler) api.StreamFilterStatus
 
 	// invoke the sender filter chain.
 	RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
-		headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
+		headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap,
 		statusHandler StreamSenderFilterStatusHandler) api.StreamFilterStatus
 
 	// invoke all access log.
@@ -115,7 +115,7 @@ func (d *DefaultStreamFilterChainImpl) AddStreamAccessLog(accessLog api.AccessLo
 
 // RunReceiverFilter invokes the receiver filter chain.
 func (d *DefaultStreamFilterChainImpl) RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
-	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
+	headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap,
 	statusHandler StreamReceiverFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
 	filterStatus = api.StreamFilterContinue
 
@@ -155,7 +155,7 @@ func (d *DefaultStreamFilterChainImpl) RunReceiverFilter(ctx context.Context, ph
 
 // RunSenderFilter invokes the sender filter chain.
 func (d *DefaultStreamFilterChainImpl) RunSenderFilter(ctx context.Context, phase api.SenderFilterPhase,
-	headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
+	headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap,
 	statusHandler StreamSenderFilterStatusHandler) (filterStatus api.StreamFilterStatus) {
 	filterStatus = api.StreamFilterContinue
 

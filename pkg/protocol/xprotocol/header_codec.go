@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"math"
 
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 var (
@@ -37,7 +37,7 @@ func GetHeaderEncodeLength(h *Header) (size int) {
 	return
 }
 
-func EncodeHeader(buf types.IoBuffer, h *Header) {
+func EncodeHeader(buf api.IoBuffer, h *Header) {
 	for _, kv := range h.Kvs {
 		encodeStr(buf, kv.Key)
 		encodeStr(buf, kv.Value)
@@ -75,7 +75,7 @@ func DecodeHeader(bytes []byte, h *Header) (err error) {
 	return nil
 }
 
-func encodeStr(buf types.IoBuffer, str []byte) {
+func encodeStr(buf api.IoBuffer, str []byte) {
 	length := len(str)
 
 	// 1. encode str length

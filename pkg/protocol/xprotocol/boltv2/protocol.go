@@ -24,6 +24,7 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
+	pkgtypes "mosn.io/pkg/types"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -80,7 +81,7 @@ func (proto *boltv2Protocol) Name() types.ProtocolName {
 	return ProtocolName
 }
 
-func (proto *boltv2Protocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (proto *boltv2Protocol) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
 	switch frame := model.(type) {
 	case *bolt.Request, *bolt.Response:
 		// FIXME: makes sofarpc protocol common
@@ -97,7 +98,7 @@ func (proto *boltv2Protocol) Encode(ctx context.Context, model interface{}) (typ
 	}
 }
 
-func (proto *boltv2Protocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (proto *boltv2Protocol) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
 	if data.Len() > 0 {
 		code := data.Bytes()[0]
 		if code == bolt.ProtocolCode { // protocol bolt
@@ -158,19 +159,19 @@ func (proto *boltv2Protocol) Mapping(httpStatusCode uint32) uint32 {
 	switch httpStatusCode {
 	case http.StatusOK:
 		return uint32(bolt.ResponseStatusSuccess)
-	case types.RouterUnavailableCode:
+	case pkgtypes.RouterUnavailableCode:
 		return uint32(bolt.ResponseStatusNoProcessor)
-	case types.NoHealthUpstreamCode:
+	case pkgtypes.NoHealthUpstreamCode:
 		return uint32(bolt.ResponseStatusConnectionClosed)
-	case types.UpstreamOverFlowCode:
+	case pkgtypes.UpstreamOverFlowCode:
 		return uint32(bolt.ResponseStatusServerThreadpoolBusy)
-	case types.CodecExceptionCode:
+	case pkgtypes.CodecExceptionCode:
 		//Decode or Encode Error
 		return uint32(bolt.ResponseStatusCodecException)
-	case types.DeserialExceptionCode:
+	case pkgtypes.DeserialExceptionCode:
 		//Hessian Exception
 		return uint32(bolt.ResponseStatusServerDeserialException)
-	case types.TimeoutExceptionCode:
+	case pkgtypes.TimeoutExceptionCode:
 		//Response Timeout
 		return uint32(bolt.ResponseStatusTimeout)
 	default:

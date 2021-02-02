@@ -18,11 +18,13 @@
 package dubbothrift
 
 import (
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/types"
 )
 
 // NewRpcRequest is a utility function which build rpc Request object of bolt protocol.
-func NewRpcRequest(headers types.HeaderMap, data types.IoBuffer) *Frame {
+func NewRpcRequest(headers types.HeaderMap, data api.IoBuffer) *Frame {
 	frame, err := decodeFrame(nil, data)
 	if err != nil {
 		return nil
@@ -43,7 +45,7 @@ func NewRpcRequest(headers types.HeaderMap, data types.IoBuffer) *Frame {
 }
 
 // NewRpcResponse is a utility function which build rpc Response object of bolt protocol.
-func NewRpcResponse(headers types.HeaderMap, data types.IoBuffer) *Frame {
+func NewRpcResponse(headers types.HeaderMap, data api.IoBuffer) *Frame {
 	frame, err := decodeFrame(nil, data)
 	if err != nil {
 		return nil

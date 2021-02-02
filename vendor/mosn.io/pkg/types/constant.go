@@ -15,23 +15,19 @@
  * limitations under the License.
  */
 
-package context
+package types
 
-import (
-	"context"
-
-	"mosn.io/mosn/pkg/types"
+// Error codes, used by top level logic code(like proxy logic).
+const (
+	CodecExceptionCode    = 0
+	UnknownCode           = 2
+	DeserialExceptionCode = 3
+	SuccessCode           = 200
+	PermissionDeniedCode  = 403
+	RouterUnavailableCode = 404
+	InternalErrorCode     = 500
+	NoHealthUpstreamCode  = 502
+	UpstreamOverFlowCode  = 503
+	TimeoutExceptionCode  = 504
+	LimitExceededCode     = 509
 )
-
-type valueCtx struct {
-	context.Context
-
-	builtin [types.ContextKeyEnd]interface{}
-}
-
-func (c *valueCtx) Value(key interface{}) interface{} {
-	if contextKey, ok := key.(types.ContextKey); ok {
-		return c.builtin[contextKey]
-	}
-	return c.Context.Value(key)
-}

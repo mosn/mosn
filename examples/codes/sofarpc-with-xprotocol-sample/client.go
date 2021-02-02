@@ -34,14 +34,14 @@ func NewClient(addr string, proto types.ProtocolName) *Client {
 		return nil
 	}
 	// pass sub protocol to stream client
-	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(proto))
+	ctx := context.WithValue(context.Background(), mosnctx.ContextSubProtocol, string(proto))
 	c.Client = stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	c.conn = conn
 	c.proto = proto
 	return c
 }
 
-func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap) {
 	fmt.Printf("[Xprotocol RPC Client] Receive Data:")
 	if cmd, ok := headers.(api.XFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())

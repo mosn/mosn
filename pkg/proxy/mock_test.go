@@ -31,7 +31,7 @@ var mockProtocol = types.ProtocolName("mockProtocol")
 
 func init() {
 	trace.RegisterDriver("SOFATracer", trace.NewDefaultDriverImpl())
-	trace.RegisterTracerBuilder("SOFATracer", mockProtocol, func(config map[string]interface{}) (types.Tracer, error) {
+	trace.RegisterTracerBuilder("SOFATracer", mockProtocol, func(config map[string]interface{}) (api.Tracer, error) {
 		return &mockTracer{}, nil
 	})
 }
@@ -155,7 +155,7 @@ func (mcs *mockClusterSnapshot) ClusterInfo() types.ClusterInfo {
 type mockResponseSender struct {
 	// receive data
 	headers  api.HeaderMap
-	data     types.IoBuffer
+	data     api.IoBuffer
 	trailers api.HeaderMap
 }
 
@@ -164,7 +164,7 @@ func (s *mockResponseSender) AppendHeaders(ctx context.Context, headers api.Head
 	return nil
 }
 
-func (s *mockResponseSender) AppendData(ctx context.Context, data types.IoBuffer, endStream bool) error {
+func (s *mockResponseSender) AppendData(ctx context.Context, data api.IoBuffer, endStream bool) error {
 	s.data = data
 	return nil
 }
@@ -215,7 +215,7 @@ func (c *mockConnection) RemoteAddr() net.Addr {
 type mockTracer struct {
 }
 
-func (tracer *mockTracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {
+func (tracer *mockTracer) Start(ctx context.Context, request interface{}, startTime time.Time) api.Span {
 	return &mockSpan{}
 }
 
@@ -259,7 +259,7 @@ func (s *mockSpan) InjectContext(requestHeaders types.HeaderMap, requestInfo typ
 	s.inject = true
 }
 
-func (s *mockSpan) SpawnChild(operationName string, startTime time.Time) types.Span {
+func (s *mockSpan) SpawnChild(operationName string, startTime time.Time) api.Span {
 	return nil
 }
 

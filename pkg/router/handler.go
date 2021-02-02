@@ -22,9 +22,9 @@ import (
 	"fmt"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 type simpleHandler struct {
@@ -61,7 +61,7 @@ type MakeHandlerFunc func(ctx context.Context, headers api.HeaderMap, routers ty
 func (factory MakeHandlerFunc) DoRouteHandler(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) (types.ClusterSnapshot, api.Route) {
 	handler := factory(ctx, headers, routers)
 	if handler == nil {
-		lname := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+		lname := mosnctx.Get(ctx, mosnctx.ContextKeyListenerName).(string)
 		log.Proxy.Errorf(ctx, RouterLogFormat, "DoRouteHandler", "create handler failed", lname)
 		return nil, nil
 	}

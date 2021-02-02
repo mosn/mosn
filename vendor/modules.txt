@@ -400,5 +400,6 @@ mosn.io/api
 mosn.io/pkg/buffer
 mosn.io/pkg/context
 mosn.io/pkg/log
+mosn.io/pkg/types
 mosn.io/pkg/utils
 mosn.io/pkg/variable

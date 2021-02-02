@@ -35,11 +35,11 @@ func (mp *mockProtocol) Name() types.ProtocolName {
 	return mockProtocolName
 }
 
-func (mp *mockProtocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (mp *mockProtocol) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
 	return nil, nil
 }
 
-func (mp *mockProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (mp *mockProtocol) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
 	return nil, nil
 }
 

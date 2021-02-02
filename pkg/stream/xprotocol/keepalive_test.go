@@ -20,6 +20,8 @@ package xprotocol
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
+	mosnctx "mosn.io/pkg/context"
+
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -74,7 +76,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase 
 	}
 	host := cluster.NewSimpleHost(cfg, info)
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, types.ContextSubProtocol, string(bolt.ProtocolName))
+	ctx = context.WithValue(ctx, mosnctx.ContextSubProtocol, string(bolt.ProtocolName))
 
 	conn := host.CreateConnection(ctx)
 	if err := conn.Connection.Connect(); err != nil {
@@ -112,7 +114,7 @@ func TestKeepAlive(t *testing.T) {
 
 // when tick count more than 1, should send heart beat every tickCount intervals
 func TestKeepAliveTickMore(t *testing.T) {
-	tc := newTestCase(t, 0*time.Millisecond, 50* time.Millisecond)
+	tc := newTestCase(t, 0*time.Millisecond, 50*time.Millisecond)
 	defer tc.Server.Close()
 	defer RefreshKeepaliveConfig(DefaultKeepaliveConfig)
 

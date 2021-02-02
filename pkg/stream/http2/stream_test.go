@@ -32,8 +32,8 @@ import (
 	phttp2 "mosn.io/mosn/pkg/protocol/http2"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
 )
 
 func TestDirectResponse(t *testing.T) {
@@ -56,7 +56,7 @@ func TestDirectResponse(t *testing.T) {
 
 	// set direct response
 	ctx := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx, types.VarProxyIsDirectResponse, types.IsDirectResponse)
+	variable.SetVariableValue(ctx, variable.VarProxyIsDirectResponse, types.IsDirectResponse)
 
 	reqbodybuf := buffer.NewIoBufferString("1234567890")
 	respbodybuf := buffer.NewIoBufferString("12345")

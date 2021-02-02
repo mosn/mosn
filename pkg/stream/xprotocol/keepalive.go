@@ -235,7 +235,7 @@ func (kp *xprotocolKeepAlive) Stop() {
 
 // StreamReceiver Implementation
 // we just needs to make sure we can receive a response, do not care the data we received
-func (kp *xprotocolKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (kp *xprotocolKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap) {
 	if ack, ok := headers.(api.XFrame); ok {
 		kp.HandleSuccess(ack.GetRequestId())
 	}

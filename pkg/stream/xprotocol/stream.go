@@ -85,7 +85,7 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 }
 
 func (s *xStream) buildHijackResp(request api.XFrame, header types.HeaderMap) (api.XFrame, error) {
-	status, err := variable.GetVariableValue(s.ctx, types.VarHeaderStatus)
+	status, err := variable.GetVariableValue(s.ctx, variable.VarHeaderStatus)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (s *xStream) buildHijackResp(request api.XFrame, header types.HeaderMap) (a
 	return nil, types.ErrNoStatusCodeForHijack
 }
 
-func (s *xStream) AppendData(context context.Context, data types.IoBuffer, endStream bool) error {
+func (s *xStream) AppendData(context context.Context, data api.IoBuffer, endStream bool) error {
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.ctx, "[stream] [xprotocol] appendData, direction = %d, requestId = %d", s.direction, s.id)
 	}

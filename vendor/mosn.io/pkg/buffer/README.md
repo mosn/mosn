@@ -7,7 +7,7 @@ package example
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/buffer"
+	"mosn.io/pkg/buffer"
 	"net/http"
 )
 
@@ -61,12 +61,12 @@ func run(ctx context.Context) {
 ## IoBuffer复用
 ```
 // GetIoBuffer returns IoBuffer from pool
-func GetIoBuffer(size int) types.IoBuffer {
+func GetIoBuffer(size int) api.IoBuffer {
 	return ibPool.take(size)
 }
 
 // PutIoBuffer returns IoBuffer to pool
-func PutIoBuffer(buf types.IoBuffer) {
+func PutIoBuffer(buf api.IoBuffer) {
 	if buf.Count(-1) != 0 {
 		return
 	}

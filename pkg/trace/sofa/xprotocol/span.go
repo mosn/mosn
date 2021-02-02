@@ -24,12 +24,15 @@ import (
 	"strings"
 	"time"
 
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/types"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/track"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
+	mosntypes "mosn.io/mosn/pkg/types"
 )
 
 type SofaRPCSpan struct {
@@ -71,7 +74,7 @@ func (s *SofaRPCSpan) SetTag(key uint64, value string) {
 	s.tags[key] = value
 }
 
-func (s *SofaRPCSpan) SetRequestInfo(reqinfo types.RequestInfo) {
+func (s *SofaRPCSpan) SetRequestInfo(reqinfo api.RequestInfo) {
 	s.tags[REQUEST_SIZE] = strconv.FormatInt(int64(reqinfo.BytesReceived()), 10)
 	s.tags[RESPONSE_SIZE] = strconv.FormatInt(int64(reqinfo.BytesSent()), 10)
 	if reqinfo.UpstreamHost() != nil {
@@ -82,7 +85,7 @@ func (s *SofaRPCSpan) SetRequestInfo(reqinfo types.RequestInfo) {
 	}
 	s.tags[RESULT_STATUS] = strconv.Itoa(reqinfo.ResponseCode())
 	s.tags[MOSN_PROCESS_TIME] = reqinfo.ProcessTimeDuration().String()
-	s.tags[MOSN_PROCESS_FAIL] = strconv.FormatBool(reqinfo.GetResponseFlag(types.MosnProcessFailedFlags))
+	s.tags[MOSN_PROCESS_FAIL] = strconv.FormatBool(reqinfo.GetResponseFlag(mosntypes.MosnProcessFailedFlags))
 }
 
 func (s *SofaRPCSpan) Tag(key uint64) string {
@@ -92,17 +95,17 @@ func (s *SofaRPCSpan) Tag(key uint64) string {
 func (s *SofaRPCSpan) FinishSpan() {
 	s.endTime = time.Now()
 	err := s.log()
-	if err == types.ErrChanFull {
+	if err == mosntypes.ErrChanFull {
 		if log.DefaultLogger.GetLogLevel() >= log.WARN {
 			log.DefaultLogger.Warnf("Channel is full, discard span, trace id is " + s.traceId + ", span id is " + s.spanId)
 		}
 	}
 }
 
-func (s *SofaRPCSpan) InjectContext(requestHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (s *SofaRPCSpan) InjectContext(requestHeaders api.HeaderMap, requestInfo api.RequestInfo) {
 }
 
-func (s *SofaRPCSpan) SpawnChild(operationName string, startTime time.Time) types.Span {
+func (s *SofaRPCSpan) SpawnChild(operationName string, startTime time.Time) api.Span {
 	return nil
 }
 

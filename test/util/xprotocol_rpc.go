@@ -76,7 +76,7 @@ func (c *RPCClient) connect(addr string, tlsMng types.TLSClientContextManager) e
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(c.Protocol))
+	ctx := context.WithValue(context.Background(), mosnctx.ContextSubProtocol, string(c.Protocol))
 	c.Codec = stream.NewStreamClient(ctx, protocol.Xprotocol, cc, nil)
 	if c.Codec == nil {
 		return fmt.Errorf("NewStreamClient error %v, %v", protocol.Xprotocol, cc)
@@ -139,7 +139,7 @@ func (c *RPCClient) SendRequestWithData(in string) {
 	atomic.AddUint32(&c.requestCount, 1)
 }
 
-func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap) {
 	if cmd, ok := headers.(api.XRespFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
@@ -276,7 +276,7 @@ func NewRPCServer(t *testing.T, addr string, proto types.ProtocolName) UpstreamS
 }
 
 func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
-	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+	response := func(iobuf api.IoBuffer) ([]byte, bool) {
 		protocol := xprotocol.GetProtocol(bolt.ProtocolName)
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
@@ -302,7 +302,7 @@ func (s *RPCServer) ServeBoltV1(t *testing.T, conn net.Conn) {
 }
 
 func (s *RPCServer) ServeDubbo(t *testing.T, conn net.Conn) {
-	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+	response := func(iobuf api.IoBuffer) ([]byte, bool) {
 		protocol := xprotocol.GetProtocol(dubbo.ProtocolName)
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
@@ -328,7 +328,7 @@ func (s *RPCServer) ServeDubbo(t *testing.T, conn net.Conn) {
 }
 
 func (s *RPCServer) ServeDubboThrift(t *testing.T, conn net.Conn) {
-	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+	response := func(iobuf api.IoBuffer) ([]byte, bool) {
 		protocol := xprotocol.GetProtocol(dubbothrift.ProtocolName)
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
@@ -354,7 +354,7 @@ func (s *RPCServer) ServeDubboThrift(t *testing.T, conn net.Conn) {
 }
 
 func (s *RPCServer) ServeTars(t *testing.T, conn net.Conn) {
-	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+	response := func(iobuf api.IoBuffer) ([]byte, bool) {
 		protocol := xprotocol.GetProtocol(tars.ProtocolName)
 		cmd, _ := protocol.Decode(context.Background(), iobuf)
 		if cmd == nil {
@@ -460,7 +460,7 @@ func buildTarsResponse(requestId uint64) []byte {
 	return sbuf.Bytes()
 }
 
-func ServeRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf types.IoBuffer) ([]byte, bool)) {
+func ServeRPC(t *testing.T, conn net.Conn, responseHandler func(iobuf api.IoBuffer) ([]byte, bool)) {
 	iobuf := buffer.NewIoBuffer(102400)
 	for {
 		now := time.Now()

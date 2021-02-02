@@ -20,16 +20,16 @@ func TestParseProxyTimeout(t *testing.T) {
 		t.Errorf("parseProxyTimeout error")
 	}
 
-	variable.SetVariableValue(ctx, types.VarProxyTryTimeout, "10000")
-	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, "100000")
+	variable.SetVariableValue(ctx, variable.VarProxyTryTimeout, "10000")
+	variable.SetVariableValue(ctx, variable.VarProxyGlobalTimeout, "100000")
 
 	parseProxyTimeout(ctx, &to, nil, headers)
 	if to.TryTimeout != 10000*time.Millisecond || to.GlobalTimeout != 100000*time.Millisecond {
 		t.Errorf("parseProxyTimeout error")
 	}
 
-	variable.SetVariableValue(ctx, types.VarProxyTryTimeout, "1000000")
-	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, "100000")
+	variable.SetVariableValue(ctx, variable.VarProxyTryTimeout, "1000000")
+	variable.SetVariableValue(ctx, variable.VarProxyGlobalTimeout, "100000")
 
 	parseProxyTimeout(ctx, &to, nil, headers)
 	if to.TryTimeout != 0 || to.GlobalTimeout != 100000*time.Millisecond {

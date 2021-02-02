@@ -22,21 +22,21 @@ import (
 
 	"mosn.io/api"
 
+	mosnctx "mosn.io/pkg/context"
+
 	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
 	xprotocol.RegisterSubProtocol(bolt.ProtocolName, boltv1Delegate)
 }
 
-func boltv1Delegate(ctx context.Context, frame api.XFrame, span types.Span) {
+func boltv1Delegate(ctx context.Context, frame api.XFrame, span api.Span) {
 	request, ok := frame.(*bolt.Request)
 	if !ok {
 		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, type miss match:%+v", frame)
@@ -51,7 +51,7 @@ func boltv1Delegate(ctx context.Context, frame api.XFrame, span types.Span) {
 	}
 
 	span.SetTag(xprotocol.TRACE_ID, traceId)
-	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
+	lType := mosnctx.Get(ctx, mosnctx.ContextKeyListenerType)
 	if lType == nil {
 		return
 	}

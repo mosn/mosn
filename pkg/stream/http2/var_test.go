@@ -24,11 +24,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
+	mosnctx "mosn.io/pkg/context"
+	"mosn.io/pkg/variable"
+
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http2"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
 )
 
 func Test_get_prefixProtocolVar(t *testing.T) {
@@ -37,9 +37,9 @@ func Test_get_prefixProtocolVar(t *testing.T) {
 	headers := http2.NewHeaderMap(http.Header(map[string][]string{}))
 	headers.Set(headerName, expect)
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, headers)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamHeaders, headers)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP2)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyDownStreamProtocol, protocol.HTTP2)
 
 	actual, err := variable.GetProtocolResource(ctx, api.HEADER, headerName)
 	assert.NoErrorf(t, err, "get protocol header failed")
@@ -56,10 +56,10 @@ func Test_get_prefixProtocolVar(t *testing.T) {
 
 func Test_get_scheme(t *testing.T) {
 	expect := "https"
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, protocol.HTTP2)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamProtocol, protocol.HTTP2)
 	ctx = variable.NewVariableContext(ctx)
 
-	variable.SetVariableValue(ctx, types.VarScheme, expect)
+	variable.SetVariableValue(ctx, variable.VarScheme, expect)
 	actual, err := variable.GetProtocolResource(ctx, api.SCHEME)
 	assert.NoErrorf(t, err, "get protocol scheme failed")
 	assert.Equalf(t, expect, actual, "header value expect to be %s, but get %s")

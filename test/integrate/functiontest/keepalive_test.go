@@ -23,13 +23,13 @@ type heartBeatServer struct {
 }
 
 func (s *heartBeatServer) ServeBoltOrHeartbeat(t *testing.T, conn net.Conn) {
-	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+	response := func(iobuf api.IoBuffer) ([]byte, bool) {
 		cmd, _ := s.boltProto.Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false
 		}
 		if req, ok := cmd.(*bolt.Request); ok {
-			var iobufresp types.IoBuffer
+			var iobufresp api.IoBuffer
 			var err error
 			switch req.CmdCode {
 			case bolt.CmdCodeHeartbeat:

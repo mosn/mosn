@@ -51,13 +51,13 @@ func parseProxyTimeout(ctx context.Context, timeout *Timeout, route types.Route,
 	}
 
 	// check variable, GetVariableValue will return error if value was not set
-	if tto, err := variable.GetVariableValue(ctx, types.VarProxyTryTimeout); err == nil {
+	if tto, err := variable.GetVariableValue(ctx, variable.VarProxyTryTimeout); err == nil {
 		if trytimeout, err := strconv.ParseInt(tto, 10, bitSize64); err == nil {
 			timeout.TryTimeout = time.Duration(trytimeout) * time.Millisecond
 		}
 	}
 
-	if gto, err := variable.GetVariableValue(ctx, types.VarProxyGlobalTimeout); err == nil {
+	if gto, err := variable.GetVariableValue(ctx, variable.VarProxyGlobalTimeout); err == nil {
 		if globaltimeout, err := strconv.ParseInt(gto, 10, bitSize64); err == nil {
 			timeout.GlobalTimeout = time.Duration(globaltimeout) * time.Millisecond
 		}

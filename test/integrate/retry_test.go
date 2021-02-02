@@ -265,7 +265,7 @@ func (c *XRetryCase) Start(tls bool) {
 func ServeBadBoltV1(t *testing.T, conn net.Conn) {
 
 	proto := xprotocol.GetProtocol(bolt.ProtocolName)
-	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+	response := func(iobuf api.IoBuffer) ([]byte, bool) {
 		cmd, _ := proto.Decode(nil, iobuf)
 		if cmd == nil {
 			return nil, false

@@ -705,7 +705,7 @@ func (mr *MockServerStreamConnectionEventListenerMockRecorder) OnGoAway() *gomoc
 }
 
 // NewStreamDetect mocks base method.
-func (m *MockServerStreamConnectionEventListener) NewStreamDetect(context context.Context, sender types.StreamSender, span types.Span) types.StreamReceiveListener {
+func (m *MockServerStreamConnectionEventListener) NewStreamDetect(context context.Context, sender types.StreamSender, span api.Span) types.StreamReceiveListener {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewStreamDetect", context, sender, span)
 	ret0, _ := ret[0].(types.StreamReceiveListener)

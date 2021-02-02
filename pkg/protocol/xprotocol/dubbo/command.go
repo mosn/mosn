@@ -44,8 +44,8 @@ type Frame struct {
 	rawData []byte // raw data
 	payload []byte // raw payload
 
-	data    types.IoBuffer // wrapper of data
-	content types.IoBuffer // wrapper of payload
+	data    api.IoBuffer // wrapper of data
+	content api.IoBuffer // wrapper of payload
 }
 
 // ~ XFrame
@@ -76,11 +76,11 @@ func (r *Frame) GetHeader() types.HeaderMap {
 	return r
 }
 
-func (r *Frame) GetData() types.IoBuffer {
+func (r *Frame) GetData() api.IoBuffer {
 	return r.content
 }
 
-func (r *Frame) SetData(data types.IoBuffer) {
+func (r *Frame) SetData(data api.IoBuffer) {
 	r.content = data
 	r.payload = data.Bytes()
 	r.DataLen = uint32(data.Len())

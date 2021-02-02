@@ -26,20 +26,20 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
+
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/proxy"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/variable"
-	"mosn.io/pkg/buffer"
 )
 
 type mockSendHandler struct {
 	api.StreamSenderFilterHandler
-	downstreamRespDataBuf types.IoBuffer
+	downstreamRespDataBuf api.IoBuffer
 }
 
-func (f *mockSendHandler) SetResponseData(data types.IoBuffer) {
+func (f *mockSendHandler) SetResponseData(data api.IoBuffer) {
 	// data is the original data. do nothing
 	if f.downstreamRespDataBuf == data {
 		return
@@ -51,7 +51,7 @@ func (f *mockSendHandler) SetResponseData(data types.IoBuffer) {
 	f.downstreamRespDataBuf.ReadFrom(data)
 }
 
-func (f *mockSendHandler) setData(data types.IoBuffer) {
+func (f *mockSendHandler) setData(data api.IoBuffer) {
 	f.downstreamRespDataBuf = data
 }
 
@@ -101,14 +101,14 @@ func TestGzipNewStreamFilter(t *testing.T) {
 
 	// check switch
 	ctx := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx, types.VarProxyGzipSwitch, "off")
+	variable.SetVariableValue(ctx, variable.VarProxyGzipSwitch, "off")
 	f.OnReceive(ctx, reqHeaders, nil, nil)
 
 	if f.needGzip {
 		t.Error("gzip switch off.")
 	}
 
-	variable.SetVariableValue(ctx, types.VarProxyGzipSwitch, "on")
+	variable.SetVariableValue(ctx, variable.VarProxyGzipSwitch, "on")
 	f.OnReceive(ctx, reqHeaders, nil, nil)
 	if !f.needGzip {
 		t.Error("gzip switch on.")

@@ -21,9 +21,9 @@ import (
 	"context"
 	"errors"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 var (
@@ -39,7 +39,7 @@ type xprotocolMapping struct{}
 
 func (m *xprotocolMapping) MappingHeaderStatusCode(ctx context.Context, headers types.HeaderMap) (int, error) {
 	// 1. get sub-protocol from context
-	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol)
+	subProtocol := mosnctx.Get(ctx, mosnctx.ContextSubProtocol)
 	if subProtocol == nil {
 		return 0, ErrNoSubProtocolFound
 	}

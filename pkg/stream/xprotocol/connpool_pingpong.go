@@ -25,12 +25,12 @@ import (
 
 	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // poolPingPong is used for ping pong protocol such as http
@@ -200,7 +200,7 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 	connCtx := ctx
 
 	if len(subProtocol) > 0 {
-		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
+		connCtx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, string(subProtocol))
 	}
 
 	ac.host.Connection.AddConnectionEventListener(ac)

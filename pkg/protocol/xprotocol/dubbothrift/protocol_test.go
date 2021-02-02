@@ -6,10 +6,9 @@ import (
 
 	"github.com/apache/thrift/lib/go/thrift"
 	"mosn.io/api"
+	pkgtypes "mosn.io/pkg/types"
 
 	"mosn.io/mosn/pkg/protocol"
-
-	"mosn.io/mosn/pkg/types"
 )
 
 func Test_dubboProtocol_Hijack(t *testing.T) {
@@ -35,7 +34,7 @@ func Test_dubboProtocol_Hijack(t *testing.T) {
 						CommonHeader: protocol.CommonHeader{ServiceNameHeader: "com.pkg.test.TestService", SeqIdNameHeader: "1", MethodNameHeader: "testMethod"},
 					},
 				},
-				statusCode: uint32(types.NoHealthUpstreamCode),
+				statusCode: uint32(pkgtypes.NoHealthUpstreamCode),
 			},
 		},
 		{

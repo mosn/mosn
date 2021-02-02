@@ -173,7 +173,7 @@ type clientStreamReceiverWrapper struct {
 	streamReceiver types.StreamReceiveListener
 }
 
-func (w *clientStreamReceiverWrapper) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
+func (w *clientStreamReceiverWrapper) OnReceive(ctx context.Context, headers types.HeaderMap, data api.IoBuffer, trailers types.HeaderMap) {
 	w.stream.DestroyStream()
 	w.streamReceiver.OnReceive(ctx, headers, data, trailers)
 }

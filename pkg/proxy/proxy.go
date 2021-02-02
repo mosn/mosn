@@ -25,9 +25,12 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
+	pkgcontext "mosn.io/pkg/context"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/protocol"
@@ -37,7 +40,6 @@ import (
 	mosnsync "mosn.io/mosn/pkg/sync"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/pkg/buffer"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -71,7 +73,7 @@ func initWorkerPool(data interface{}, endParsing bool) error {
 }
 
 func initGlobalStats() {
-	globalStats = newProxyStats(types.GlobalProxyName)
+	globalStats = newProxyStats(pkgcontext.GlobalProxyName)
 }
 
 // types.ReadFilter
@@ -107,7 +109,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		activeStreams:  list.New(),
 		stats:          globalStats,
 		context:        ctx,
-		accessLogs:     mosnctx.Get(ctx, types.ContextKeyAccessLogs).([]api.AccessLog),
+		accessLogs:     mosnctx.Get(ctx, mosnctx.ContextKeyAccessLogs).([]api.AccessLog),
 	}
 
 	// proxy level worker pool config
@@ -124,12 +126,12 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		var xProxyExtendConfig v2.XProxyExtendConfig
 		var proxyGeneralExtendConfig v2.ProxyGeneralExtendConfig
 		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
-			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
+			proxy.context = mosnctx.WithValue(proxy.context, mosnctx.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
 				log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
 			}
 		} else if err := json.Unmarshal([]byte(extJSON), &proxyGeneralExtendConfig); err == nil {
-			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+			proxy.context = mosnctx.WithValue(proxy.context, mosnctx.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
 				log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxyGeneralExtendConfig)
 			}
@@ -142,7 +144,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
 	}
 
-	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
+	listenerName := mosnctx.Get(ctx, mosnctx.ContextKeyListenerName).(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
 	if routersWrapper := router.GetRoutersMangerInstance().GetRouterWrapperByName(proxy.config.RouterConfigName); routersWrapper != nil {
@@ -246,7 +248,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
+func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span api.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
 
 	if p.streamFilterFactory != nil {

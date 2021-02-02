@@ -25,9 +25,11 @@ import (
 	"sync"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
+
+	"mosn.io/mosn/pkg/protocol"
 )
 
 // Decoder is heavy and caches to improve performance.
@@ -45,7 +47,7 @@ var (
 	}
 )
 
-func decodeFrame(ctx context.Context, data types.IoBuffer) (cmd interface{}, err error) {
+func decodeFrame(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
 	// convert data to dubbo frame
 	dataBytes := data.Bytes()
 	frame := &Frame{
@@ -120,7 +122,7 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	)
 
 	if ctx != nil {
-		listener = ctx.Value(types.ContextKeyListenerName)
+		listener = ctx.Value(mosnctx.ContextKeyListenerName)
 	}
 	if listener == IngressDubbo || listener == EgressDubbo {
 		decoder = decodePool.Get().(*hessian.Decoder)

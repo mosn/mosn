@@ -25,10 +25,10 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // poolBinding is a special purpose connection pool,
@@ -165,10 +165,10 @@ func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Proto
 
 	host := p.Host()
 
-	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, ac.host.Connection.ID())
+	connCtx := mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionID, ac.host.Connection.ID())
 
 	if len(subProtocol) > 0 {
-		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
+		connCtx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, string(subProtocol))
 	}
 
 	ac.host.Connection.AddConnectionEventListener(ac)
@@ -355,7 +355,7 @@ func (ac *activeClientBinding) SetHeartBeater(hb types.KeepAlive) {
 
 func getConnID(ctx context.Context) uint64 {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyConnectionID); val != nil {
+		if val := mosnctx.Get(ctx, mosnctx.ContextKeyConnectionID); val != nil {
 			if code, ok := val.(uint64); ok {
 				return code
 			}

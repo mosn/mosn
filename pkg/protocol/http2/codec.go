@@ -20,6 +20,8 @@ package http2
 import (
 	"context"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
@@ -37,13 +39,13 @@ func (c *serverCodec) Name() types.ProtocolName {
 	return protocol.HTTP2
 }
 
-func (c *serverCodec) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (c *serverCodec) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
 	ms := model.(*http2.MStream)
 	err := ms.SendResponse()
 	return nil, err
 }
 
-func (c *serverCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *serverCodec) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
 	if !c.init {
 		c.init = true
 		c.sc.Init()
@@ -67,13 +69,13 @@ func (c *clientCodec) Name() types.ProtocolName {
 	return protocol.HTTP2
 }
 
-func (c *clientCodec) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (c *clientCodec) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
 	ms := model.(*http2.MClientStream)
 	err := ms.RoundTrip(ctx)
 	return nil, err
 }
 
-func (c *clientCodec) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (c *clientCodec) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
 	frame, _, err := c.cc.Framer.ReadFrame(ctx, data, 0)
 	return frame, err
 }

@@ -24,10 +24,10 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/variable"
 )
 
@@ -86,23 +86,23 @@ func TestDSLStreamFilter(t *testing.T) {
 		"dsl0": "dsl0",
 	})
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamHeaders, reqHeaders)
 	ctx = variable.NewVariableContext(ctx)
 	phase := []types.Phase{types.DownFilter, types.DownFilterAfterRoute, types.DownFilterAfterChooseHost}
-	variable.SetVariableValue(ctx, types.VarPath, "/dsl")
-	variable.SetVariableValue(ctx, types.VarHost, "dsl")
+	variable.SetVariableValue(ctx, variable.VarPath, "/dsl")
+	variable.SetVariableValue(ctx, variable.VarHost, "dsl")
 	for k, p := range phase {
 		receiveHandler.phase = p
 		f.OnReceive(ctx, reqHeaders, nil, nil)
 		// should fetch rewrite path from ctx
-		if v, err := variable.GetVariableValue(ctx, types.VarPath); err != nil || v != strconv.Itoa(k) {
+		if v, err := variable.GetVariableValue(ctx, variable.VarPath); err != nil || v != strconv.Itoa(k) {
 			t.Errorf("DSL execute failed, index: %d, want: %s but: %s", k, strconv.Itoa(k), v)
 		}
 
 	}
 
 	// add dsl1 respheader
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamRespHeaders, respHeaders)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyDownStreamRespHeaders, respHeaders)
 	f.Append(ctx, respHeaders, nil, nil)
 	if _, ok := respHeaders.Get("dsl1"); !ok {
 		t.Error("DSL execute failed, at the Append phase")
@@ -175,15 +175,15 @@ func BenchmarkDSL(b *testing.B) {
 		"dsl": "dsl",
 	})
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamHeaders, reqHeaders)
 	ctx = variable.NewVariableContext(ctx)
-	variable.SetVariableValue(ctx, types.VarPath, "/dsl")
-	variable.SetVariableValue(ctx, types.VarHost, "dsl")
+	variable.SetVariableValue(ctx, variable.VarPath, "/dsl")
+	variable.SetVariableValue(ctx, variable.VarHost, "dsl")
 	receiveHandler.phase = types.DownFilter
 	want := "0"
 	for i := 0; i < b.N; i++ {
 		f.OnReceive(ctx, reqHeaders, nil, nil)
-		if v, err := variable.GetVariableValue(ctx, types.VarPath); err != nil || v != want {
+		if v, err := variable.GetVariableValue(ctx, variable.VarPath); err != nil || v != want {
 			b.Errorf("DSL execute failed, want: %s but: %s", want, v)
 		}
 	}

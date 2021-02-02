@@ -10,12 +10,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	mosnctx "mosn.io/pkg/context"
 )
 
 type serverType struct {
@@ -70,8 +70,8 @@ func TestBinding(t *testing.T) {
 }
 
 func TestDownClose(t *testing.T) {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, "dubbo")
 
 	var addr = "127.0.0.1:10086"
 	go server.start(t, addr)
@@ -97,8 +97,8 @@ func TestDownClose(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyConnection, sConnI)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))
@@ -115,8 +115,8 @@ func TestDownClose(t *testing.T) {
 
 func TestUpperClose(t *testing.T) {
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, "dubbo")
 
 	var addr = "127.0.0.1:10086"
 	go server.start(t, addr)
@@ -142,8 +142,8 @@ func TestUpperClose(t *testing.T) {
 	var sstopChan = make(chan struct{})
 	sConnI := network.NewServerConnection(context.Background(), sConn, sstopChan)
 
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnection, sConnI)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionID, sConnI.ID())
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyConnection, sConnI)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionID, sConnI.ID())
 
 	host, _, failReason := pInst.NewStream(ctx, nil)
 	assert.Equal(t, failReason, types.PoolFailureReason(""))

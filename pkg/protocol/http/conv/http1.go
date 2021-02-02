@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/valyala/fasthttp"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
@@ -38,7 +39,7 @@ type common2http struct{}
 
 func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
-		direction, err := variable.GetVariableValue(ctx, types.VarDirection)
+		direction, err := variable.GetVariableValue(ctx, variable.VarDirection)
 		if err != nil {
 			return nil, protocol.ErrHeaderDirection
 		}
@@ -63,7 +64,7 @@ func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 	return nil, errors.New("header type not supported")
 }
 
-func (c *common2http) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *common2http) ConvData(ctx context.Context, buffer api.IoBuffer) (api.IoBuffer, error) {
 	return buffer, nil
 }
 
@@ -84,7 +85,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 			cheader[strings.ToLower(string(key))] = string(value)
 		})
 
-		variable.SetVariableValue(ctx, types.VarDirection, protocol.Request)
+		variable.SetVariableValue(ctx, variable.VarDirection, protocol.Request)
 
 		return protocol.CommonHeader(cheader), nil
 	case http.ResponseHeader:
@@ -95,14 +96,14 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 			cheader[strings.ToLower(string(key))] = string(value)
 		})
 
-		variable.SetVariableValue(ctx, types.VarDirection, protocol.Response)
+		variable.SetVariableValue(ctx, variable.VarDirection, protocol.Response)
 
 		return protocol.CommonHeader(cheader), nil
 	}
 	return nil, errors.New("header type not supported")
 }
 
-func (c *http2common) ConvData(ctx context.Context, buffer types.IoBuffer) (types.IoBuffer, error) {
+func (c *http2common) ConvData(ctx context.Context, buffer api.IoBuffer) (api.IoBuffer, error) {
 	return buffer, nil
 }
 

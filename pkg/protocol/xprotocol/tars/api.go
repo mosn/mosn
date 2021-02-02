@@ -17,10 +17,14 @@
 
 package tars
 
-import "mosn.io/mosn/pkg/types"
+import (
+	"mosn.io/api"
+
+	"mosn.io/mosn/pkg/types"
+)
 
 // NewRpcRequest is a utility function which build rpc Request object of bolt protocol.
-func NewRpcRequest(headers types.HeaderMap, data types.IoBuffer) *Request {
+func NewRpcRequest(headers types.HeaderMap, data api.IoBuffer) *Request {
 	frame, err := decodeRequest(nil, data)
 	if err != nil {
 		return nil
@@ -41,7 +45,7 @@ func NewRpcRequest(headers types.HeaderMap, data types.IoBuffer) *Request {
 }
 
 // NewRpcResponse is a utility function which build rpc Response object of bolt protocol.
-func NewRpcResponse(headers types.HeaderMap, data types.IoBuffer) *Response {
+func NewRpcResponse(headers types.HeaderMap, data api.IoBuffer) *Response {
 	frame, err := decodeResponse(nil, data)
 	if err != nil {
 		return nil

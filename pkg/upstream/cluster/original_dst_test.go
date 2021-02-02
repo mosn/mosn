@@ -24,8 +24,8 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // LbCtx is a types.LoadBalancerContext implementation
@@ -97,7 +97,7 @@ func TestChooseHost(t *testing.T) {
 	orilb := newOriginalDstLoadBalancer(nil, hostSet)
 	orihost := "127.0.0.1:8888"
 	oriRemoteAddr, _ := net.ResolveTCPAddr("", orihost)
-	ctx := mosnctx.WithValue(context.Background(), types.ContextOriRemoteAddr, oriRemoteAddr)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextOriRemoteAddr, oriRemoteAddr)
 	oriDstCfg := &v2.LBOriDstConfig{
 		UseHeader: false,
 	}

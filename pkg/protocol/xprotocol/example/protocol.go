@@ -55,7 +55,7 @@ func (proto *proto) Name() types.ProtocolName {
 	return ProtocolName
 }
 
-func (proto *proto) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
+func (proto *proto) Encode(ctx context.Context, model interface{}) (api.IoBuffer, error) {
 	switch frame := model.(type) {
 	case *Request:
 		return encodeRequest(ctx, frame)
@@ -67,7 +67,7 @@ func (proto *proto) Encode(ctx context.Context, model interface{}) (types.IoBuff
 	}
 }
 
-func (proto *proto) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
+func (proto *proto) Decode(ctx context.Context, data api.IoBuffer) (interface{}, error) {
 	if data.Len() >= MinimalDecodeLen {
 		magic := data.Bytes()[0]
 		dir := data.Bytes()[2]

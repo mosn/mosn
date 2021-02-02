@@ -57,7 +57,7 @@ type Request struct {
 	RequestId  uint32
 	PayloadLen uint32
 	Payload    []byte
-	Content    types.IoBuffer
+	Content    api.IoBuffer
 }
 
 type Response struct {
@@ -84,7 +84,7 @@ type XFrame interface {
 
 	GetHeader() types.HeaderMap
 
-	GetData() types.IoBuffer
+	GetData() api.IoBuffer
 }
 
 // XRespFrame expose response status code based on the XFrame
@@ -173,9 +173,9 @@ In conclusion, your codec codes is running at the `read goroutine`, and you cann
 
 > Alloc new buffer for your data
 
-I/O buffer is managed by the `read goroutine`, be careful about its **lifecycle**.For example, while new data is available, `read goroutine` will notify the ReadFilter listeners, including the codec impls. And decoder will receive a parameter with type `types.IoBuffer`, which contains the readable data.
+I/O buffer is managed by the `read goroutine`, be careful about its **lifecycle**.For example, while new data is available, `read goroutine` will notify the ReadFilter listeners, including the codec impls. And decoder will receive a parameter with type `api.IoBuffer`, which contains the readable data.
 
-After decode finished you will get a protocol-specific model, like bolt.Request. Make sure no pointers/references in the model points to the `types.IoBuffer` parameter, because it might be recycled by the `read goroutine`. 
+After decode finished you will get a protocol-specific model, like bolt.Request. Make sure no pointers/references in the model points to the `api.IoBuffer` parameter, because it might be recycled by the `read goroutine`. 
 
 ## Hack of Append headers/data/trailers 
 

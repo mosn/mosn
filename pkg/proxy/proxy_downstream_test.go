@@ -28,7 +28,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/protocol"
@@ -39,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // New Test Case
@@ -63,8 +63,8 @@ func TestProxyWithFilters(t *testing.T) {
 
 	// mock context from connection
 	ctx := variable.NewVariableContext(context.Background())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAccessLogs, []api.AccessLog{})
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyListenerName, "test_listener")
 
 	// mock cluster manager
 	monkey.Patch(cluster.GetClusterMngAdapterInstance, func() *cluster.MngAdapter {
@@ -216,7 +216,7 @@ func TestProxyWithFilters(t *testing.T) {
 	monkey.Patch(trace.IsEnabled, func() bool {
 		return true
 	})
-	mockSpan := func() types.Span {
+	mockSpan := func() api.Span {
 		sp := mock.NewMockSpan(ctrl)
 		sp.EXPECT().TraceId().Return("1").AnyTimes()
 		sp.EXPECT().SpanId().Return("1").AnyTimes()
@@ -281,7 +281,7 @@ func TestProxyWithFilters(t *testing.T) {
 	// upstreamRequest.OnReceive ( see stream/xprotocol/conn.go: handleResponse)
 
 	upstreamRequest.downStream.context = variable.NewVariableContext(upstreamRequest.downStream.context)
-	variable.SetVariableValue(upstreamRequest.downStream.context, types.VarHeaderStatus, "200")
+	variable.SetVariableValue(upstreamRequest.downStream.context, variable.VarHeaderStatus, "200")
 
 	upstreamRequest.OnReceive(ctx, protocol.CommonHeader{}, buffer.NewIoBufferString("123"), trailer)
 	// wait givestream

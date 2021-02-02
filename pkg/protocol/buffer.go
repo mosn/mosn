@@ -20,8 +20,8 @@ package protocol
 import (
 	"context"
 
-	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/pkg/buffer"
+	mbuffer "mosn.io/pkg/buffer"
 )
 
 func init() {

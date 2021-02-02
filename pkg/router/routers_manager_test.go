@@ -27,9 +27,9 @@ import (
 	"context"
 	"testing"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/variable"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 var routerConfig = `{
@@ -333,11 +333,11 @@ func Test_routersManager_AddRouter(t *testing.T) {
 	ctx := variable.NewVariableContext(context.Background())
 	routers := rw.GetRouters()
 	// the wrapper can get the new router
-	variable.SetVariableValue(ctx, types.VarHost, "www.test.com")
+	variable.SetVariableValue(ctx, variable.VarHost, "www.test.com")
 	if r := routers.MatchRouteFromHeaderKV(ctx, nil, "service", "test"); r == nil {
 		t.Fatal("added route, but can not find it")
 	}
-	variable.SetVariableValue(ctx, types.VarHost, "www.test.net")
+	variable.SetVariableValue(ctx, variable.VarHost, "www.test.net")
 	if r := routers.MatchRouteFromHeaderKV(ctx, nil, "service", "test"); r != nil {
 		t.Fatal("not added route, but still find it")
 	}
@@ -422,12 +422,12 @@ func Test_routersManager_RemoveAllRouter(t *testing.T) {
 		t.Fatal("remove all router failed", err)
 	}
 	routers := rw.GetRouters()
-	variable.SetVariableValue(ctx, types.VarHost, "www.test.com")
+	variable.SetVariableValue(ctx, variable.VarHost, "www.test.com")
 	if r := routers.MatchRouteFromHeaderKV(ctx, nil, "service", "test"); r != nil {
 		t.Fatal("remove route, but still can matched")
 	}
 	ctx2 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx2, types.VarHost, "www.test.net")
+	variable.SetVariableValue(ctx2, variable.VarHost, "www.test.net")
 	if r := routers.MatchRouteFromHeaderKV(ctx2, nil, "service", "test"); r == nil {
 		t.Fatal("route removed unexpected")
 	}

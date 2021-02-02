@@ -8,12 +8,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	mosnctx "mosn.io/pkg/context"
 )
 
 const testClientNum = 10
@@ -34,8 +34,8 @@ func TestNewMultiplex(t *testing.T) {
 }
 
 func TestConnpoolMultiplexCheckAndInit(t *testing.T) {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, "dubbo")
 	ctxNew := mosnctx.Clone(ctx)
 
 	cl := basicCluster("localhost:8888", []string{"localhost:8888"})
@@ -82,8 +82,8 @@ func TestMultiplexParallelShutdown(t *testing.T) {
 	// wait for server to start
 	time.Sleep(time.Second * 2)
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, "dubbo")
 
 	cl := basicCluster(addr, []string{addr})
 	connNum := uint32(1)

@@ -19,9 +19,12 @@ package streamfilter
 
 import (
 	"context"
+	"errors"
+	"plugin"
 	"sync/atomic"
 
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -66,4 +69,26 @@ func (s *StreamFilterFactoryImpl) CreateFilterChain(context context.Context, cal
 func (s *StreamFilterFactoryImpl) UpdateFactory(config StreamFiltersConfig) {
 	sff := createStreamFilterFactoryFromConfig(config)
 	s.factories.Store(sff)
+}
+
+func CreateFactoryByPlugin(pluginConfig *v2.StreamFilterGoPluginConfig, factoryConfig map[string]interface{}) (api.StreamFilterChainFactory, error) {
+	if pluginConfig.SoPath == "" {
+		return nil, errors.New("so file path could not be found")
+	}
+	p, err := plugin.Open(pluginConfig.SoPath)
+	if err != nil {
+		return nil, err
+	}
+	if pluginConfig.FactoryMethod == "" {
+		pluginConfig.FactoryMethod = "CreateFilterFactory"
+	}
+	f, err := p.Lookup(pluginConfig.FactoryMethod)
+	if err != nil {
+		return nil, err
+	}
+	function, ok := f.(func(map[string]interface{}) (api.StreamFilterChainFactory, error))
+	if !ok {
+		return nil, errors.New("failed to get correct factory method")
+	}
+	return function(factoryConfig)
 }
