@@ -28,7 +28,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 type mockReceiveHandler struct {

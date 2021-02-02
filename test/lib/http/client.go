@@ -17,7 +17,7 @@ import (
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/http" // register http1
 	mtypes "mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 	"mosn.io/mosn/test/lib"
 	"mosn.io/mosn/test/lib/types"
 	"mosn.io/mosn/test/lib/utils"

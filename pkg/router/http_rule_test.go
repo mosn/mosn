@@ -31,7 +31,7 @@ import (
 	mhttp "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 func TestHTTPRuleMatchMethod(t *testing.T) {

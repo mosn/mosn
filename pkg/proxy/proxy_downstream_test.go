@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	"bou.ke/monkey"
 	"github.com/golang/mock/gomock"

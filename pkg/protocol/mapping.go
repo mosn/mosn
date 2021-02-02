@@ -22,7 +22,7 @@ import (
 	"errors"
 	"strconv"
 
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"

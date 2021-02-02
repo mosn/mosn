@@ -23,7 +23,8 @@ import (
 	"strings"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
+
+	mosnctx "mosn.io/pkg/context"
 )
 
 func GetVariableValue(ctx context.Context, name string) (string, error) {
@@ -79,7 +80,7 @@ func SetVariableValue(ctx context.Context, name, value string) error {
 
 // TODO: provide direct access to this function, so the cost of variable name finding could be optimized
 func getFlushedVariableValue(ctx context.Context, index uint32) (string, error) {
-	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
+	if variables := ctx.Value(mosnctx.ContextKeyVariables); variables != nil {
 		if values, ok := variables.([]IndexedValue); ok {
 			value := &values[index]
 			if value.Valid || value.NotFound {
@@ -125,7 +126,7 @@ func getIndexedVariableValue(ctx context.Context, value *IndexedValue, index uin
 }
 
 func setFlushedVariableValue(ctx context.Context, index uint32, value string) error {
-	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
+	if variables := ctx.Value(mosnctx.ContextKeyVariables); variables != nil {
 		if values, ok := variables.([]IndexedValue); ok {
 			variable := indexedVariables[index]
 			variableValue := &values[index]

@@ -30,7 +30,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"

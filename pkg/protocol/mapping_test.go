@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 func TestMapping(t *testing.T) {

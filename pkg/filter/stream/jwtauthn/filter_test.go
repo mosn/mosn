@@ -10,7 +10,7 @@ import (
 	"mosn.io/api"
 	_ "mosn.io/mosn/pkg/stream/http"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 func TestOnReceive(t *testing.T) {

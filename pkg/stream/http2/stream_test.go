@@ -32,7 +32,7 @@ import (
 	phttp2 "mosn.io/mosn/pkg/protocol/http2"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 

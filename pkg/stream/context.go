@@ -25,7 +25,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 // contextManager
