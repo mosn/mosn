@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
+	mosnctx "mosn.io/pkg/context"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"

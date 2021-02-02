@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"

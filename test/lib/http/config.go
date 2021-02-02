@@ -11,12 +11,12 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
-	mosnhttp "mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/test/lib/utils"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/variable"
+
+	"mosn.io/mosn/pkg/log"
+	mosnhttp "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/test/lib/utils"
 )
 
 type HttpServerConfig struct {

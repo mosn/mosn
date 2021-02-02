@@ -169,7 +169,7 @@ func NewConn(addr string, cb func()) (*BoltConn, error) {
 	conn.AddConnectionEventListener(hconn)
 	hconn.conn = conn
 	ctx := context.Background()
-	ctx = mosnctx.WithValue(ctx, mtypes.ContextSubProtocol, string(bolt.ProtocolName))
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, string(bolt.ProtocolName))
 	s := stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	if s == nil {
 		return nil, errors.New("protocol not registered")
