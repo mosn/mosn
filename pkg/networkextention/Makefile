@@ -24,3 +24,6 @@ build-moe-image:
 	docker build --no-cache --rm -t ${IMAGE_NAME}:${MAJOR_VERSION} IMAGEBUILD
 	@rm -rf IMAGEBUILD
 
+clean:
+	@rm -rf ${TARGET}
+	@rm -rf IMAGEBUILD
