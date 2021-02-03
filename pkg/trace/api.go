@@ -26,7 +26,7 @@ import (
 
 	"errors"
 
-	mosnctx "mosn.io/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 var ErrNoSuchDriver = errors.New("no such driver")
@@ -41,7 +41,7 @@ var global = globalHolder{
 }
 
 func SpanFromContext(ctx context.Context) api.Span {
-	if val := mosnctx.Get(ctx, mosnctx.ContextKeyActiveSpan); val != nil {
+	if val := mosnctx.Get(ctx, types.ContextKeyActiveSpan); val != nil {
 		if sp, ok := val.(api.Span); ok {
 			return sp
 		}

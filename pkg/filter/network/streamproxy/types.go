@@ -18,8 +18,9 @@
 package streamproxy
 
 import (
-	"mosn.io/api"
 	"time"
+
+	"mosn.io/api"
 )
 
 // Proxy

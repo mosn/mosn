@@ -12,11 +12,11 @@ import (
 	"github.com/gogo/protobuf/types"
 	v1 "istio.io/api/mixer/v1"
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/variable"
-
 	"mosn.io/mosn/pkg/istio/utils"
 	"mosn.io/mosn/pkg/protocol"
+	mtypes "mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
 func Test_paresClusterName(t *testing.T) {
@@ -62,15 +62,15 @@ func TestExtractAttributes(t *testing.T) {
 	}
 
 	ctx1 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx1, variable.VarPath, "/path")
-	variable.SetVariableValue(ctx1, variable.VarHost, "host")
-	variable.SetVariableValue(ctx1, variable.VarMethod, "GET")
+	variable.SetVariableValue(ctx1, mtypes.VarPath, "/path")
+	variable.SetVariableValue(ctx1, mtypes.VarHost, "host")
+	variable.SetVariableValue(ctx1, mtypes.VarMethod, "GET")
 
 	ctx2 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx2, variable.VarPath, "/path")
-	variable.SetVariableValue(ctx2, variable.VarHost, "host")
-	variable.SetVariableValue(ctx2, variable.VarMethod, "GET")
-	variable.SetVariableValue(ctx2, variable.VarQueryString, "k1=v1&k2=v2")
+	variable.SetVariableValue(ctx2, mtypes.VarPath, "/path")
+	variable.SetVariableValue(ctx2, mtypes.VarHost, "host")
+	variable.SetVariableValue(ctx2, mtypes.VarMethod, "GET")
+	variable.SetVariableValue(ctx2, mtypes.VarQueryString, "k1=v1&k2=v2")
 
 	tests := []struct {
 		name string

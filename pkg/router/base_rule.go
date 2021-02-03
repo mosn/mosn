@@ -32,7 +32,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 )
 
 var (
@@ -265,7 +265,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 		return
 	}
 
-	path, err := variable.GetVariableValue(ctx, variable.VarPath)
+	path, err := variable.GetVariableValue(ctx, types.VarPath)
 	if err == nil && path != "" {
 
 		//If both prefix_rewrite and regex_rewrite are configured
@@ -274,7 +274,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 			if strings.HasPrefix(path, matchedPath) {
 				// origin path need to save in the header
 				headers.Set(types.HeaderOriginalPath, path)
-				variable.SetVariableValue(ctx, variable.VarPath, rri.prefixRewrite+path[len(matchedPath):])
+				variable.SetVariableValue(ctx, types.VarPath, rri.prefixRewrite+path[len(matchedPath):])
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
 				}
@@ -287,7 +287,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
 				headers.Set(types.HeaderOriginalPath, path)
-				variable.SetVariableValue(ctx, variable.VarPath, rewritedPath)
+				variable.SetVariableValue(ctx, types.VarPath, rewritedPath)
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
 				}
@@ -305,15 +305,15 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, header
 	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
 	rri.vHost.FinalizeRequestHeaders(ctx, headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
-		variable.SetVariableValue(ctx, variable.VarIstioHeaderHost, rri.hostRewrite)
+		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, rri.hostRewrite)
 	} else if len(rri.autoHostRewriteHeader) > 0 {
 		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
-			variable.SetVariableValue(ctx, variable.VarIstioHeaderHost, headerValue)
+			variable.SetVariableValue(ctx, types.VarIstioHeaderHost, headerValue)
 		}
 	} else if rri.autoHostRewrite {
 		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.routerAction.ClusterName)
 		if clusterSnapshot != nil && (clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER) {
-			variable.SetVariableValue(ctx, variable.VarIstioHeaderHost, requestInfo.UpstreamHost().Hostname())
+			variable.SetVariableValue(ctx, types.VarIstioHeaderHost, requestInfo.UpstreamHost().Hostname())
 		}
 	}
 }

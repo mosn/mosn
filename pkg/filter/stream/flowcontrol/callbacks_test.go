@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,12 +37,12 @@ func TestAfterBlock(t *testing.T) {
 	cb := GetCallbacksByConfig(cfg)
 	ctx := context.Background()
 	ctx = variable.NewVariableContext(ctx)
-	variable.RegisterVariable(variable.NewIndexedVariable(variable.VarHeaderStatus, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHeaderStatus, nil, nil, variable.BasicSetter, 0))
 	ctx = variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx, variable.VarHeaderStatus, "200")
+	variable.SetVariableValue(ctx, types.VarHeaderStatus, "200")
 
 	cb.AfterBlock(filter, ctx, nil, nil, nil)
-	status, err := variable.GetVariableValue(ctx, variable.VarHeaderStatus)
+	status, err := variable.GetVariableValue(ctx, types.VarHeaderStatus)
 	assert.Nil(t, err)
 	assert.Equal(t, "509", status)
 }

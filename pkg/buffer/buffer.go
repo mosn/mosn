@@ -23,7 +23,9 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	mosnctx "mosn.io/pkg/context"
+	"mosn.io/api"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
 )
 
 const maxBufferPool = 16
@@ -60,13 +62,13 @@ type ifaceWords struct {
 }
 
 // setIdex sets index, poolCtx must embedded TempBufferCtx
-func setIndex(poolCtx BufferPoolCtx, i int) {
+func setIndex(poolCtx api.BufferPoolCtx, i int) {
 	p := (*ifaceWords)(unsafe.Pointer(&poolCtx))
 	temp := (*TempBufferCtx)(p.data)
 	temp.index = i
 }
 
-func RegisterBuffer(poolCtx BufferPoolCtx) {
+func RegisterBuffer(poolCtx api.BufferPoolCtx) {
 	// frist index is 1
 	i := atomic.AddInt32(&index, 1)
 	if i >= maxBufferPool {
@@ -78,7 +80,7 @@ func RegisterBuffer(poolCtx BufferPoolCtx) {
 
 // bufferPool is buffer pool
 type bufferPool struct {
-	ctx BufferPoolCtx
+	ctx api.BufferPoolCtx
 	sync.Pool
 }
 
@@ -101,15 +103,15 @@ func (p *bufferPool) give(value interface{}) {
 	p.Put(value)
 }
 
-// BufferValue is buffer pool's Value
-type BufferValue struct {
+// bufferValue is buffer pool's Value
+type bufferValue struct {
 	value    [maxBufferPool]interface{}
 	transmit [maxBufferPool]interface{}
 }
 
-// NewBufferPoolContext returns a context with BufferValue
+// NewBufferPoolContext returns a context with bufferValue
 func NewBufferPoolContext(ctx context.Context) context.Context {
-	return mosnctx.WithValue(ctx, mosnctx.ContextKeyBufferPoolCtx, newBufferValue())
+	return mosnctx.WithValue(ctx, types.ContextKeyBufferPoolCtx, newBufferValue())
 }
 
 // TransmitBufferPoolContext copy a context
@@ -123,19 +125,19 @@ func TransmitBufferPoolContext(dst context.Context, src context.Context) {
 	sValue.value = nullBufferValue
 }
 
-// newBufferValue returns BufferValue
-func newBufferValue() (value *BufferValue) {
+// newBufferValue returns bufferValue
+func newBufferValue() (value *bufferValue) {
 	v := vPool.Get()
 	if v == nil {
-		value = new(BufferValue)
+		value = new(bufferValue)
 	} else {
-		value = v.(*BufferValue)
+		value = v.(*bufferValue)
 	}
 	return
 }
 
-// Find returns buffer from BufferValue
-func (bv *BufferValue) Find(poolCtx BufferPoolCtx, x interface{}) interface{} {
+// Find returns buffer from bufferValue
+func (bv *bufferValue) Find(poolCtx api.BufferPoolCtx, x interface{}) interface{} {
 	i := poolCtx.Index()
 	if i <= 0 || i > int(index) {
 		panic("buffer should call buffer.RegisterBuffer()")
@@ -147,7 +149,7 @@ func (bv *BufferValue) Find(poolCtx BufferPoolCtx, x interface{}) interface{} {
 }
 
 // Take returns buffer from buffer pools
-func (bv *BufferValue) Take(poolCtx BufferPoolCtx) (value interface{}) {
+func (bv *bufferValue) Take(poolCtx api.BufferPoolCtx) (value interface{}) {
 	i := poolCtx.Index()
 	value = bPool[i].take()
 	bv.value[i] = value
@@ -155,7 +157,7 @@ func (bv *BufferValue) Take(poolCtx BufferPoolCtx) (value interface{}) {
 }
 
 // Give returns buffer to buffer pools
-func (bv *BufferValue) Give() {
+func (bv *bufferValue) Give() {
 	if index <= 0 {
 		return
 	}
@@ -173,15 +175,15 @@ func (bv *BufferValue) Give() {
 	bv.value = nullBufferValue
 	bv.transmit = nullBufferValue
 
-	// Give BufferValue to Pool
+	// Give bufferValue to Pool
 	vPool.Put(bv)
 }
 
-// PoolContext returns BufferValue by context
-func PoolContext(ctx context.Context) *BufferValue {
+// PoolContext returns bufferValue by context
+func PoolContext(ctx context.Context) *bufferValue {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, mosnctx.ContextKeyBufferPoolCtx); val != nil {
-			return val.(*BufferValue)
+		if val := mosnctx.Get(ctx, types.ContextKeyBufferPoolCtx); val != nil {
+			return val.(*bufferValue)
 		}
 	}
 	return newBufferValue()

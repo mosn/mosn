@@ -21,11 +21,11 @@ import (
 	"context"
 
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
-	"mosn.io/pkg/variable"
-
+	"mosn.io/mosn/pkg/buffer"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // contextManager
@@ -47,10 +47,10 @@ func (cm *ContextManager) Next() {
 
 func (cm *ContextManager) InjectTrace(ctx context.Context, span api.Span) context.Context {
 	if span != nil {
-		return mosnctx.WithValue(ctx, mosnctx.ContextKeyTraceId, span.TraceId())
+		return mosnctx.WithValue(ctx, types.ContextKeyTraceId, span.TraceId())
 	}
 	// generate traceId
-	return mosnctx.WithValue(ctx, mosnctx.ContextKeyTraceId, trace.IdGen().GenerateTraceId())
+	return mosnctx.WithValue(ctx, types.ContextKeyTraceId, trace.IdGen().GenerateTraceId())
 }
 
 func NewContextManager(base context.Context) *ContextManager {

@@ -22,7 +22,7 @@ import (
 
 	"mosn.io/api"
 
-	mosnctx "mosn.io/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -30,6 +30,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -51,7 +52,7 @@ func boltv1Delegate(ctx context.Context, frame api.XFrame, span api.Span) {
 	}
 
 	span.SetTag(xprotocol.TRACE_ID, traceId)
-	lType := mosnctx.Get(ctx, mosnctx.ContextKeyListenerType)
+	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
 	if lType == nil {
 		return
 	}

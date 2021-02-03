@@ -7,6 +7,7 @@ import (
 	"net"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"

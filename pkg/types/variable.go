@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package variable
+package types
 
 // [Proxy]: the identification of a request info's content
 const (

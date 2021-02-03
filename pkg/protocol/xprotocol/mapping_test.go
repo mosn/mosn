@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	mosnctx "mosn.io/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
 )
 
 // type xprotocolMapping struct{}
@@ -18,7 +19,7 @@ func TestMapping(t *testing.T) {
 	assert.NotNil(t, err)
 
 	// 2. cannot get mapping
-	mCtx := mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, "xxx-proto")
+	mCtx := mosnctx.WithValue(ctx, types.ContextSubProtocol, "xxx-proto")
 	_, err = xm.MappingHeaderStatusCode(mCtx, nil)
 	assert.NotNil(t, err)
 

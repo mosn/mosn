@@ -21,7 +21,7 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 func TestControlTrack(t *testing.T) {

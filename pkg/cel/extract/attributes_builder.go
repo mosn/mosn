@@ -30,11 +30,12 @@ import (
 	v1 "istio.io/api/mixer/v1"
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/mosn/pkg/cel/attribute"
 	"mosn.io/mosn/pkg/istio/utils"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func ExtractAttributes(ctx context.Context, reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo, buf buffer.IoBuffer, trailers api.HeaderMap, now time.Time) attribute.Bag {
@@ -142,13 +143,13 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 	case utils.KResponseCode:
 		return int64(e.requestInfo.ResponseCode()), true
 	case utils.KRequestPath:
-		path, err := variable.GetVariableValue(e.ctx, variable.VarPath)
+		path, err := variable.GetVariableValue(e.ctx, types.VarPath)
 		if err != nil || path == "" {
 			return nil, false
 		}
 		return path, true
 	case utils.KRequestQueryParms:
-		query, err := variable.GetVariableValue(e.ctx, variable.VarQueryString)
+		query, err := variable.GetVariableValue(e.ctx, types.VarQueryString)
 		if err == nil && query != "" {
 			v, err := parseQuery(query)
 			if err == nil {
@@ -159,9 +160,9 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		}
 		e.extracted[utils.KRequestQueryParms] = nil
 	case utils.KRequestUrlPath:
-		path, err := variable.GetVariableValue(e.ctx, variable.VarPath)
+		path, err := variable.GetVariableValue(e.ctx, types.VarPath)
 		if err == nil && path != "" {
-			query, err := variable.GetVariableValue(e.ctx, variable.VarQueryString)
+			query, err := variable.GetVariableValue(e.ctx, types.VarQueryString)
 			if err == nil && query != "" {
 				url := path + "?" + query
 				e.extracted[utils.KRequestUrlPath] = url
@@ -172,13 +173,13 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		}
 		e.extracted[utils.KRequestUrlPath] = nil
 	case utils.KRequestMethod:
-		method, err := variable.GetVariableValue(e.ctx, variable.VarMethod)
+		method, err := variable.GetVariableValue(e.ctx, types.VarMethod)
 		if err != nil || method == "" {
 			return nil, false
 		}
 		return method, true
 	case utils.KRequestHost:
-		host, err := variable.GetVariableValue(e.ctx, variable.VarHost)
+		host, err := variable.GetVariableValue(e.ctx, types.VarHost)
 		if err != nil || host == "" {
 			return nil, false
 		}

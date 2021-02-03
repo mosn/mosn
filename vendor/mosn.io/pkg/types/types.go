@@ -21,23 +21,6 @@ import (
 	"mosn.io/api"
 )
 
-// ProtocolName type definition
-const (
-	Auto      api.ProtocolName = "Auto"
-	SofaRPC   api.ProtocolName = "SofaRpc"
-	HTTP1     api.ProtocolName = "Http1"
-	HTTP2     api.ProtocolName = "Http2"
-	Xprotocol api.ProtocolName = "X"
-)
-
-// header direction definition
-const (
-	Request  = "Request"
-	Response = "Response"
-)
-
-// TODO: move CommonHeader to common, not only in protocol
-
 // CommonHeader wrapper for map[string]string
 type CommonHeader map[string]string
 

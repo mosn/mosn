@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/valyala/fasthttp"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
@@ -39,7 +39,7 @@ type common2http struct{}
 
 func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
-		direction, err := variable.GetVariableValue(ctx, variable.VarDirection)
+		direction, err := variable.GetVariableValue(ctx, types.VarDirection)
 		if err != nil {
 			return nil, protocol.ErrHeaderDirection
 		}
@@ -85,7 +85,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 			cheader[strings.ToLower(string(key))] = string(value)
 		})
 
-		variable.SetVariableValue(ctx, variable.VarDirection, protocol.Request)
+		variable.SetVariableValue(ctx, types.VarDirection, protocol.Request)
 
 		return protocol.CommonHeader(cheader), nil
 	case http.ResponseHeader:
@@ -96,7 +96,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 			cheader[strings.ToLower(string(key))] = string(value)
 		})
 
-		variable.SetVariableValue(ctx, variable.VarDirection, protocol.Response)
+		variable.SetVariableValue(ctx, types.VarDirection, protocol.Response)
 
 		return protocol.CommonHeader(cheader), nil
 	}

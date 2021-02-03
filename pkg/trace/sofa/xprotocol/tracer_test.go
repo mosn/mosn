@@ -23,10 +23,9 @@ import (
 	"testing"
 	"time"
 
-	mosnctx "mosn.io/pkg/context"
-
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestSofaTracerStartFinish(t *testing.T) {
@@ -36,7 +35,7 @@ func TestSofaTracerStartFinish(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, mosnctx.ContextKeyListenerType, v2.EGRESS)
+	ctx = context.WithValue(ctx, types.ContextKeyListenerType, v2.EGRESS)
 
 	span := tracer.Start(ctx, nil, time.Now())
 	span.SetTag(TRACE_ID, trace.IdGen().GenerateTraceId())

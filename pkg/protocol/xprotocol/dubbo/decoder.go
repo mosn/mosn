@@ -26,7 +26,6 @@ import (
 
 	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
 
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
@@ -122,7 +121,7 @@ func getServiceAwareMeta(ctx context.Context, frame *Frame) (meta map[string]str
 	)
 
 	if ctx != nil {
-		listener = ctx.Value(mosnctx.ContextKeyListenerName)
+		listener = ctx.Value(types.ContextKeyListenerName)
 	}
 	if listener == IngressDubbo || listener == EgressDubbo {
 		decoder = decodePool.Get().(*hessian.Decoder)

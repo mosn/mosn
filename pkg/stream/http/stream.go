@@ -30,22 +30,21 @@ import (
 	"sync/atomic"
 	"time"
 
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
-	mbuffer "mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
-	"mosn.io/pkg/utils"
-
+	mbuffer "mosn.io/mosn/pkg/buffer"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/utils"
 )
 
 func init() {
@@ -239,7 +238,7 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	// Per-connection buffer size for responses' reading.
 	// This also limits the maximum header size, default 4096.
 	maxResponseHeaderSize := 0
-	if gcf := mosnctx.Get(ctx, mosnctx.ContextKeyProxyGeneralConfig); gcf != nil {
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
 		maxResponseHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
 	}
 	if maxResponseHeaderSize <= 0 {
@@ -318,7 +317,7 @@ func (conn *clientStreamConnection) NewStream(ctx context.Context, receiver type
 	s := &buffers.clientStream
 	s.stream = stream{
 		id:       id,
-		ctx:      mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamID, id),
+		ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
 		request:  &buffers.clientRequest,
 		receiver: receiver,
 	}
@@ -388,7 +387,7 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 	// Per-connection buffer size for requests' reading.
 	// This also limits the maximum header size, default 4096.
 	maxRequestHeaderSize := 0
-	if gcf := mosnctx.Get(ctx, mosnctx.ContextKeyProxyGeneralConfig); gcf != nil {
+	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
 		maxRequestHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
 	}
 	if maxRequestHeaderSize <= 0 {
@@ -438,7 +437,7 @@ func (conn *serverStreamConnection) serve() {
 
 		// 0 is means no limit request body size
 		maxRequestBodySize := 0
-		if gcf := mosnctx.Get(ctx, mosnctx.ContextKeyProxyGeneralConfig); gcf != nil {
+		if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
 			maxRequestBodySize = gcf.(v2.ProxyGeneralExtendConfig).MaxRequestBodySize
 		}
 
@@ -481,7 +480,7 @@ func (conn *serverStreamConnection) serve() {
 		// 4. request processing
 		s.stream = stream{
 			id:       id,
-			ctx:      mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamID, id),
+			ctx:      mosnctx.WithValue(ctx, types.ContextKeyStreamID, id),
 			request:  request,
 			response: &buffers.serverResponse,
 		}
@@ -668,7 +667,7 @@ func (s *clientStream) handleResponse() {
 		statusCode := header.StatusCode()
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
-		variable.SetVariableValue(s.ctx, variable.VarHeaderStatus, status)
+		variable.SetVariableValue(s.ctx, types.VarHeaderStatus, status)
 
 		hasData := true
 		if len(s.response.Body()) == 0 {
@@ -711,7 +710,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 	switch headers := headersIn.(type) {
 	case mosnhttp.RequestHeader:
 		// hijack scene
-		status, err := variable.GetVariableValue(context, variable.VarHeaderStatus)
+		status, err := variable.GetVariableValue(context, types.VarHeaderStatus)
 		if err == nil && status != "" {
 			statusCode, err := strconv.Atoi(status)
 			if err != nil {
@@ -730,7 +729,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 
 	case mosnhttp.ResponseHeader:
 
-		status, err := variable.GetVariableValue(context, variable.VarHeaderStatus)
+		status, err := variable.GetVariableValue(context, types.VarHeaderStatus)
 		if err == nil && status != "" {
 			statusCode, _ := strconv.Atoi(status)
 			headers.SetStatusCode(statusCode)
@@ -849,29 +848,29 @@ func (s *serverStream) GetStream() types.Stream {
 // consider host, method, path are necessary, but check querystring
 func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 1. host
-	variable.SetVariableValue(ctx, variable.VarHost, string(uri.Host()))
+	variable.SetVariableValue(ctx, types.VarHost, string(uri.Host()))
 	// 2. authority
-	variable.SetVariableValue(ctx, variable.VarIstioHeaderHost, string(uri.Host()))
+	variable.SetVariableValue(ctx, types.VarIstioHeaderHost, string(uri.Host()))
 
 	// 3. method
-	variable.SetVariableValue(ctx, variable.VarMethod, string(header.Method()))
+	variable.SetVariableValue(ctx, types.VarMethod, string(header.Method()))
 
 	// 4. path
-	variable.SetVariableValue(ctx, variable.VarPath, string(uri.Path()))
+	variable.SetVariableValue(ctx, types.VarPath, string(uri.Path()))
 
 	// 5. querystring
 	qs := uri.QueryString()
 	if len(qs) > 0 {
-		variable.SetVariableValue(ctx, variable.VarQueryString, string(qs))
+		variable.SetVariableValue(ctx, types.VarQueryString, string(qs))
 	}
 }
 
 func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
 	var path string
-	path, _ = variable.GetVariableValue(ctx, variable.VarPath)
+	path, _ = variable.GetVariableValue(ctx, types.VarPath)
 
 	var queryString string
-	queryString, _ = variable.GetVariableValue(ctx, variable.VarQueryString)
+	queryString, _ = variable.GetVariableValue(ctx, types.VarQueryString)
 
 	u := url.URL{
 		Path:     path,
@@ -880,19 +879,19 @@ func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestH
 
 	headers.SetRequestURI(u.RequestURI())
 
-	method, err := variable.GetVariableValue(ctx, variable.VarMethod)
+	method, err := variable.GetVariableValue(ctx, types.VarMethod)
 	if err == nil && method != "" {
 		headers.SetMethod(method)
 	}
 
-	host, err := variable.GetVariableValue(ctx, variable.VarHost)
+	host, err := variable.GetVariableValue(ctx, types.VarHost)
 	if err == nil && host != "" {
 		headers.SetHost(host)
 	} else {
 		headers.SetHost(remoteAddr.String())
 	}
 
-	host, err = variable.GetVariableValue(ctx, variable.VarIstioHeaderHost)
+	host, err = variable.GetVariableValue(ctx, types.VarIstioHeaderHost)
 	if err == nil && host != "" {
 		headers.SetHost(host)
 	}

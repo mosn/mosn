@@ -23,11 +23,11 @@ import (
 
 	"mosn.io/api"
 
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
-	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {
@@ -100,7 +100,7 @@ func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
 
 func getSubProtocol(ctx context.Context) types.ProtocolName {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, mosnctx.ContextSubProtocol); val != nil {
+		if val := mosnctx.Get(ctx, types.ContextSubProtocol); val != nil {
 			if code, ok := val.(string); ok {
 				return types.ProtocolName(code)
 			}
@@ -111,7 +111,7 @@ func getSubProtocol(ctx context.Context) types.ProtocolName {
 
 func getDownstreamConn(ctx context.Context) api.Connection {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, mosnctx.ContextKeyConnection); val != nil {
+		if val := mosnctx.Get(ctx, types.ContextKeyConnection); val != nil {
 			if conn, ok := val.(api.Connection); ok {
 				return conn
 			}

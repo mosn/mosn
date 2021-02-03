@@ -31,19 +31,19 @@ import (
 	"time"
 
 	"mosn.io/api"
+	mbuffer "mosn.io/mosn/pkg/buffer"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
-	mbuffer "mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
 	pkgtypes "mosn.io/pkg/types"
 	"mosn.io/pkg/utils"
-	"mosn.io/pkg/variable"
 )
 
 // types.StreamEventListener
@@ -126,8 +126,8 @@ type downStream struct {
 
 func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.StreamSender, span api.Span) *downStream {
 	if span != nil && trace.IsEnabled() {
-		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyActiveSpan, span)
-		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyActiveSpan, span)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyTraceSpanKey, &trace.SpanKey{TraceId: span.TraceId(), SpanId: span.SpanId()})
 	}
 
 	proxyBuffers := proxyBuffersByContext(ctx)
@@ -136,12 +136,12 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	// it should priority return real protocol name
 	proto := proxy.serverStreamConn.Protocol()
 	if proto == protocol.Xprotocol {
-		proto = types.ProtocolName(mosnctx.Get(ctx, mosnctx.ContextSubProtocol).(string))
+		proto = types.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
 	}
 
-	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyDownStreamProtocol, proto)
-	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyConfigDownStreamProtocol, proxy.config.DownstreamProtocol)
-	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyConfigUpStreamProtocol, proxy.config.UpstreamProtocol)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, proto)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigDownStreamProtocol, proxy.config.DownstreamProtocol)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigUpStreamProtocol, proxy.config.UpstreamProtocol)
 
 	stream := &proxyBuffers.stream
 	stream.ID = atomic.AddUint32(&currProxyID, 1)
@@ -172,7 +172,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 
 	// info message for new downstream
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		requestID := mosnctx.Get(stream.context, mosnctx.ContextKeyStreamID)
+		requestID := mosnctx.Get(stream.context, types.ContextKeyStreamID)
 		log.Proxy.Debugf(stream.context, "[proxy] [downstream] new stream, proxyId = %d , requestId =%v, oneway=%t", stream.ID, requestID, stream.oneway)
 	}
 	return stream
@@ -377,7 +377,7 @@ func (s *downStream) OnDestroyStream() {}
 // types.StreamReceiveListener
 func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	s.downstreamReqHeaders = headers
-	s.context = mosnctx.WithValue(s.context, mosnctx.ContextKeyDownStreamHeaders, headers)
+	s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamHeaders, headers)
 	s.downstreamReqDataBuf = data
 	s.downstreamReqTrailers = trailers
 	s.tracks = track.TrackBufferByContext(ctx).Tracks
@@ -635,7 +635,7 @@ func (s *downStream) receive(ctx context.Context, id uint32, phase types.Phase) 
 			if s.downstreamRespHeaders != nil {
 				s.printPhaseInfo(phase, id)
 
-				s.context = mosnctx.WithValue(s.context, mosnctx.ContextKeyDownStreamRespHeaders, s.downstreamRespHeaders)
+				s.context = mosnctx.WithValue(s.context, types.ContextKeyDownStreamRespHeaders, s.downstreamRespHeaders)
 				s.upstreamRequest.receiveHeaders(s.downstreamRespDataBuf == nil && s.downstreamRespTrailers == nil)
 
 				if p, err := s.processError(id); err != nil {
@@ -788,9 +788,9 @@ func (s *downStream) chooseHost(endStream bool) {
 			}
 			return val
 		}
-		currentHost := getValueFunc(variable.VarHost, "")
-		currentPath := getValueFunc(variable.VarPath, "")
-		currentQuery := getValueFunc(variable.VarQueryString, "")
+		currentHost := getValueFunc(types.VarHost, "")
+		currentPath := getValueFunc(types.VarPath, "")
+		currentQuery := getValueFunc(types.VarQueryString, "")
 
 		u := url.URL{
 			Scheme:   getStringOr(rule.RedirectScheme(), currentScheme),
@@ -1299,8 +1299,8 @@ func (s *downStream) finishTracing() {
 			span.SetRequestInfo(s.requestInfo)
 			span.FinishSpan()
 
-			if mosnctx.Get(s.context, mosnctx.ContextKeyListenerType) == v2.INGRESS {
-				trace.DeleteSpanIdGenerator(mosnctx.Get(s.context, mosnctx.ContextKeyTraceSpanKey).(*trace.SpanKey))
+			if mosnctx.Get(s.context, types.ContextKeyListenerType) == v2.INGRESS {
+				trace.DeleteSpanIdGenerator(mosnctx.Get(s.context, types.ContextKeyTraceSpanKey).(*trace.SpanKey))
 			}
 		} else {
 			if log.Proxy.GetLogLevel() >= log.WARN {
@@ -1409,7 +1409,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	}
 	s.requestInfo.SetResponseCode(code)
 	status := strconv.Itoa(code)
-	variable.SetVariableValue(s.context, variable.VarHeaderStatus, status)
+	variable.SetVariableValue(s.context, types.VarHeaderStatus, status)
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = nil
@@ -1428,7 +1428,7 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	s.requestInfo.SetResponseCode(code)
 
 	status := strconv.Itoa(code)
-	variable.SetVariableValue(s.context, variable.VarHeaderStatus, status)
+	variable.SetVariableValue(s.context, types.VarHeaderStatus, status)
 
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
@@ -1584,7 +1584,7 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	if s.directResponse {
-		variable.SetVariableValue(s.context, variable.VarProxyIsDirectResponse, types.IsDirectResponse)
+		variable.SetVariableValue(s.context, types.VarProxyIsDirectResponse, types.IsDirectResponse)
 		s.directResponse = false
 
 		// don't retry

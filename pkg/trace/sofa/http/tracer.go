@@ -23,7 +23,7 @@ import (
 
 	"mosn.io/api"
 
-	mosnctx "mosn.io/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
@@ -31,6 +31,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -59,7 +60,7 @@ func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime 
 		traceId = trace.IdGen().GenerateTraceId()
 	}
 	span.SetTag(xprotocol.TRACE_ID, traceId)
-	lType := mosnctx.Get(ctx, mosnctx.ContextKeyListenerType)
+	lType := mosnctx.Get(ctx, types.ContextKeyListenerType)
 
 	spanId, ok := header.Get(sofa.HTTP_RPC_ID_KEY)
 	if !ok {

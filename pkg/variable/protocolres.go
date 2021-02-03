@@ -23,8 +23,9 @@ import (
 	"fmt"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/types"
 
-	mosnctx "mosn.io/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 var (
@@ -51,7 +52,7 @@ func RegisterProtocolResource(protocol api.ProtocolName, resource api.ProtocolRe
 
 // GetProtocolResource get URI,PATH,ARG var depends on ProtocolResourceName
 func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, data ...interface{}) (string, error) {
-	p, ok := mosnctx.Get(ctx, mosnctx.ContextKeyDownStreamProtocol).(api.ProtocolName)
+	p, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
 	if !ok {
 		return "", errors.New("get ContextKeyDownStreamProtocol failed.")
 	}

@@ -27,9 +27,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
-	mosnctx "mosn.io/pkg/context"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // load should be balanced when node fails
@@ -315,7 +315,7 @@ func Test_maglevLoadBalancer(t *testing.T) {
 			policy: policy,
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,

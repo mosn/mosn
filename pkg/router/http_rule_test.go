@@ -26,12 +26,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	mhttp "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/protocol/http2"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestHTTPRuleMatchMethod(t *testing.T) {
@@ -62,7 +63,7 @@ func TestHTTPRuleMatchMethod(t *testing.T) {
 		RequestHeader: &fasthttp.RequestHeader{},
 	}
 	ctx := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx, variable.VarMethod, "POST")
+	variable.SetVariableValue(ctx, types.VarMethod, "POST")
 	match := httpRule.matchRoute(ctx, headers)
 	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
 		t.FailNow()
@@ -116,7 +117,7 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			route.Match.Prefix,
 		}
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx, variable.VarPath, tc.headerpath)
+		variable.SetVariableValue(ctx, types.VarPath, tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
@@ -155,7 +156,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PathRouteRuleImpl{NewBaseHTTPRouteRule(base, nil), route.Match.Path}
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx, variable.VarPath, tc.headerpath)
+		variable.SetVariableValue(ctx, types.VarPath, tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
@@ -202,7 +203,7 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 		}
 		ctx := variable.NewVariableContext(context.Background())
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx, variable.VarPath, tc.headerpath)
+		variable.SetVariableValue(ctx, types.VarPath, tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)

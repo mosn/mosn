@@ -19,8 +19,9 @@ package xprotocol
 
 import (
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"mosn.io/pkg/buffer"
 )

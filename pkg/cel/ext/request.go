@@ -21,18 +21,19 @@ import (
 	"context"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/pkg/context"
-	"mosn.io/pkg/variable"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // rewrite request url
 func rewriteRequestUrl(ctx context.Context, dstUrl string) bool {
-	variable.SetVariableValue(ctx, variable.VarPath, dstUrl)
+	variable.SetVariableValue(ctx, types.VarPath, dstUrl)
 	return true
 }
 
 func addRequestheader(ctx context.Context, key, val string) bool {
-	headers, ok := mosnctx.Get(ctx, mosnctx.ContextKeyDownStreamHeaders).(api.HeaderMap)
+	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
 	if !ok {
 		return false
 	}
@@ -43,7 +44,7 @@ func addRequestheader(ctx context.Context, key, val string) bool {
 }
 
 func delRequestheader(ctx context.Context, key string) bool {
-	headers, ok := mosnctx.Get(ctx, mosnctx.ContextKeyDownStreamHeaders).(api.HeaderMap)
+	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
 	if !ok {
 		return false
 	}
