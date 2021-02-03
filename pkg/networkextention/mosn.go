@@ -60,6 +60,7 @@ import (
 
 	_ "mosn.io/mosn/pkg/networkextention/discovery/fsdis"
 	_ "mosn.io/mosn/pkg/networkextention/l7/stream/filter/metadata"
+	_ "mosn.io/mosn/pkg/networkextention/l7/stream/filter/metadata/unit"
 )
 
 func main() {}
