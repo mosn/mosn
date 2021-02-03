@@ -1,0 +1,21 @@
+syntax = "proto3";
+package proto;
+
+message Request {
+	map<string, string> header=1;
+	map<string, string> trailer=2;
+	bytes body = 3;
+	string type = 4;
+}
+
+message Response {
+	map<string, string> header=1;
+	map<string, string> trailer=2;
+	bytes body = 3;
+	int32 status = 4;
+}
+
+service Plugin {
+	rpc Call(Request) returns (Response);
+}
+
