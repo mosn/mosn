@@ -1,9 +1,11 @@
 # 介绍
 
-MOSN 在 Service Mesh 领域作为东西向 RPC 服务治理网络转发组件已经在社区很多公司都得到了一定实践，为了进一步节省研发运维等相关成本，目前业界也有很多公司在考虑统一东西、南北向数据转发面为一个。MOSN 在作为东西 Sidecar 场景当前性能足以，但在作为南北向网关会有一定性能上限（比如单机百万级长连接场景、高并发等）。
+MOSN 在 Service Mesh 领域作为东西向 RPC 服务治理网络转发组件已经在社区很多公司都得到了一定实践，为了进一步节省研发运维等相关成本，目前业界也有很多公司在考虑统一东西、南北向数据转发面为一个。MOSN 在作为东西 Sidecar 场景当前性能足以，但在作为南北向网关会有一定性能上限（比如单机百万级长连接场景、高并发等）。为了解决上述问题，我们在 MOSN 的 Network 层做一个高性能的网络扩展层，使其可以和高性能网络库结合使用（如Nginx、Envoy、OpenResty 等），使其底层网络具备高性能处理的同时，又能复用 MOSN Stream Filter 等能力。MOSN 通过扩展一个标准的 GOHPNF(Golang On High Performance Network Framework) 适配层和底层的高性能网络组件（如 Nginx、Envoy、Openresty 等）生态打通。使得其底层网络具备 C 同等的处理能力的同时，又能使上层业务可高效复用 MOSN 的处理能力及 GoLang 的高开发效率。
 
-为了解决上述问题，我们在 MOSN 的 Network 层做一个高性能的网络扩展层，使其可以和高性能网络库结合使用（如Nginx、Envoy、OpenResty 等），使其底层网络具备高性能处理的同时，又能复用 MOSN Stream Filter 等能力。MOSN 通过扩展一个标准的 GOHPNF(Golang On High Performance Network Framework) 适配层和底层的高性能网络组件（如 Nginx、Envoy、Openresty 等）生态打通。使得其底层网络具备 C 同等的处理能力的同时，又能使上层业务可高效复用 MOSN 的处理能力及 GoLang 的高开发效率。
 
+![MOSN 高性能网络扩展层架构](./docs/mosn-high-performance-network-framework.png)
+
+如上图所示，MOSN 通过扩展一个标准的 GOHPNF(Golang On High Performance Network Framework) 适配层和底层的高性能网络组件（如 Nginx、Envoy、Openresty 等）生态打通。使得其底层网络具备 C 同等的处理能力的同时，又能使上层业务可高效复用 MOSN 的处理能力及 GoLang 的高开发效率。
 
 # 编译
 
@@ -25,6 +27,8 @@ make build-moe-image
 
 
 # 使用事例
+
+如下事例是通过把 MOSN 的底层网络配置为 Envoy 扩展后，通过在 MOSN 侧使用 GoLang 语言开发一个 stream filter 就可以实现 Envoy 的动态路由能力：
 
 根据用户请求 header 的 uid 字段做路由，比如将 uid 范围在 [1,100] 的请求路由到应用的 s1 站点，将 uid 范围在 [101, 200] 的请求路由到 s2 站点，将其它范围 uid 请求路由到 s3 站点, 如果没有 uid 则将轮训转发到 s1、s2、s3。
 
@@ -215,6 +219,7 @@ make build-moe-image
 
 docker run --net=host   mosn:${MOSN-VERSION}
 
+然后在另一个终端通过 `curl` 发起对应的请求后，就可以达到上述规则的路由。
 
 ```
 $curl localhost:2990 -H "uid:2"
