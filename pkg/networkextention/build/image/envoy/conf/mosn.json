@@ -1,0 +1,67 @@
+{
+  "servers": [
+    {
+      "default_log_path": "/home/admin/mosn/logs/mosn-err.log",
+      "default_log_level": "WARN",
+      "listeners": [
+        {
+          "name": "serverListener",
+          "address": "0.0.0.0:2990",
+          "bind_port": false,
+          "log_path": "/home/admin/mosn/logs/mosn-err.log",
+          "listener_filters": [],
+          "stream_filters": [
+            {
+              "type": "metadata",
+              "config": {
+                "metadataers": [
+                  {
+                    "meta_data_key": "UNIT",
+                    "config":{
+                        "unit_key":"uid"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "admin": {
+    "address": {
+      "socket_address": {
+        "address": "0.0.0.0",
+        "port_value": 34901
+      }
+    }
+  },
+  "pprof": {
+    "debug": true,
+    "port_value": 34902
+  },
+  "metrics": {
+    "shm_zone": "",
+    "shm_size": "0",
+    "stats_matcher": {
+      "exclusion_labels": [
+        "host"
+      ],
+      "exclusion_keys": [
+        "request_duration_time",
+        "request_time",
+        "process_time"
+      ]
+    },
+    "sinks": [
+      {
+        "type": "prometheus",
+        "config": {
+          "port": 34903
+        }
+      }
+    ]
+  }
+}
+
