@@ -15,33 +15,23 @@
  * limitations under the License.
  */
 
-package buffer
+package context
 
 import (
 	"context"
+
+	"mosn.io/mosn/pkg/types"
 )
 
-var ins = ByteBufferCtx{}
+type valueCtx struct {
+	context.Context
 
-func init() {
-	RegisterBuffer(&ins)
+	builtin [types.ContextKeyEnd]interface{}
 }
 
-type ByteBufferCtx struct {
-	TempBufferCtx
-}
-
-func (ctx ByteBufferCtx) New() interface{} {
-	return NewByteBufferPoolContainer()
-}
-
-func (ctx ByteBufferCtx) Reset(i interface{}) {
-	p := i.(*ByteBufferPoolContainer)
-	p.Reset()
-}
-
-// GetBytesByContext returns []byte from byteBufferPool by context
-func GetBytesByContext(context context.Context, size int) *[]byte {
-	p := PoolContext(context).Find(&ins, nil).(*ByteBufferPoolContainer)
-	return p.Take(size)
+func (c *valueCtx) Value(key interface{}) interface{} {
+	if contextKey, ok := key.(types.ContextKey); ok {
+		return c.builtin[contextKey]
+	}
+	return c.Context.Value(key)
 }

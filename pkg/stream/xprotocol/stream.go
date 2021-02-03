@@ -24,7 +24,7 @@ import (
 
 	"mosn.io/api"
 
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/stream"
@@ -85,7 +85,7 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 }
 
 func (s *xStream) buildHijackResp(request api.XFrame, header types.HeaderMap) (api.XFrame, error) {
-	status, err := variable.GetVariableValue(s.ctx, variable.VarHeaderStatus)
+	status, err := variable.GetVariableValue(s.ctx, types.VarHeaderStatus)
 	if err != nil {
 		return nil, err
 	}

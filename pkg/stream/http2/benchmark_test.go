@@ -23,11 +23,12 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/pkg/context"
-	"mosn.io/pkg/variable"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http2"
+	"mosn.io/mosn/pkg/types"
 )
 
 func BenchmarkGetPrefixProtocolVarCookie(b *testing.B) {
@@ -35,8 +36,8 @@ func BenchmarkGetPrefixProtocolVarCookie(b *testing.B) {
 	headers := http2.NewHeaderMap(http.Header(map[string][]string{}))
 	headers.Set("Cookie", "cookie_key=cookie_value; fake_cookie_key=fake_cookie_value;")
 
-	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamHeaders, headers)
-	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyDownStreamProtocol, protocol.HTTP2)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, headers)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP2)
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -52,8 +53,8 @@ func BenchmarkGetPrefixProtocolVarHeader(b *testing.B) {
 	headers := http2.NewHeaderMap(http.Header(map[string][]string{}))
 	headers.Set(headerName, expect)
 
-	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamHeaders, headers)
-	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyDownStreamProtocol, protocol.HTTP2)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, headers)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP2)
 
 	b.ResetTimer()
 	b.ReportAllocs()

@@ -22,9 +22,9 @@ import (
 	"strconv"
 
 	"mosn.io/api"
-	"mosn.io/pkg/variable"
-
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 const (
@@ -33,23 +33,23 @@ const (
 )
 
 var (
-	headerIndex = len(variable.VarPrefixHttpHeader)
-	cookieIndex = len(variable.VarPrefixHttpCookie)
-	argIndex    = len(variable.VarPrefixHttpArg)
+	headerIndex = len(types.VarPrefixHttpHeader)
+	cookieIndex = len(types.VarPrefixHttpCookie)
+	argIndex    = len(types.VarPrefixHttpArg)
 
 	builtinVariables = []variable.Variable{
-		variable.NewBasicVariable(variable.VarHttpRequestScheme, nil, requestSchemeGetter, nil, 0),
-		variable.NewBasicVariable(variable.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
-		variable.NewBasicVariable(variable.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
-		variable.NewBasicVariable(variable.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
-		variable.NewBasicVariable(variable.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
-		variable.NewBasicVariable(variable.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestScheme, nil, requestSchemeGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestMethod, nil, requestMethodGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
 	}
 
 	prefixVariables = []variable.Variable{
-		variable.NewBasicVariable(variable.VarPrefixHttpHeader, nil, httpHeaderGetter, nil, 0),
-		variable.NewBasicVariable(variable.VarPrefixHttpArg, nil, httpArgGetter, nil, 0),
-		variable.NewBasicVariable(variable.VarPrefixHttpCookie, nil, httpCookieGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpHeader, nil, httpHeaderGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpArg, nil, httpArgGetter, nil, 0),
+		variable.NewBasicVariable(types.VarPrefixHttpCookie, nil, httpCookieGetter, nil, 0),
 	}
 )
 
@@ -65,12 +65,12 @@ func init() {
 	}
 
 	// register protocol resource
-	variable.RegisterProtocolResource(protocol.HTTP1, api.SCHEME, variable.VarProtocolRequestScheme)
-	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, variable.VarProtocolRequestPath)
-	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, variable.VarProtocolRequestUri)
-	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, variable.VarProtocolRequestArg)
-	variable.RegisterProtocolResource(protocol.HTTP1, api.COOKIE, variable.VarProtocolCookie)
-	variable.RegisterProtocolResource(protocol.HTTP1, api.HEADER, variable.VarProtocolRequestHeader)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.SCHEME, types.VarProtocolRequestScheme)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.PATH, types.VarProtocolRequestPath)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.URI, types.VarProtocolRequestUri)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.ARG, types.VarProtocolRequestArg)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.COOKIE, types.VarProtocolCookie)
+	variable.RegisterProtocolResource(protocol.HTTP1, api.HEADER, types.VarProtocolRequestHeader)
 }
 
 func requestSchemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {

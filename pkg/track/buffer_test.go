@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 func TestTrackFromContext(t *testing.T) {

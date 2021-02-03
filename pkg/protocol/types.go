@@ -19,7 +19,8 @@ package protocol
 
 import (
 	"mosn.io/api"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // ProtocolName type definition
@@ -38,13 +39,13 @@ const (
 )
 
 func init() {
-	variable.RegisterVariable(variable.NewIndexedVariable(variable.VarDirection, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(variable.VarScheme, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(variable.VarHost, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(variable.VarPath, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(variable.VarQueryString, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(variable.VarMethod, nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable(variable.VarIstioHeaderHost, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarDirection, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarScheme, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHost, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarPath, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarQueryString, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarMethod, nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarIstioHeaderHost, nil, nil, variable.BasicSetter, 0))
 }
 
 // TODO: move CommonHeader to common, not only in protocol

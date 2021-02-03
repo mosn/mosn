@@ -8,9 +8,10 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
 	_ "mosn.io/mosn/pkg/stream/http"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestOnReceive(t *testing.T) {
@@ -83,7 +84,7 @@ func TestOnReceive(t *testing.T) {
 		},
 	}
 
-	v := variable.NewBasicVariable(variable.VarHttpRequestPath, nil, func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	v := variable.NewBasicVariable(types.VarHttpRequestPath, nil, func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "/", nil
 	}, nil, 0)
 	variable.RegisterVariable(v)

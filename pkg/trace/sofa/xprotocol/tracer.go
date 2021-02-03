@@ -23,11 +23,11 @@ import (
 
 	"mosn.io/api"
 
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
-	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {
@@ -72,7 +72,7 @@ func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime ti
 	}
 
 	// use delegate instrument if exists
-	subProtocol := types.ProtocolName(mosnctx.Get(ctx, mosnctx.ContextSubProtocol).(string))
+	subProtocol := types.ProtocolName(mosnctx.Get(ctx, types.ContextSubProtocol).(string))
 
 	if delegate := delegateMap[subProtocol]; delegate != nil {
 		delegate(ctx, xframe, span)

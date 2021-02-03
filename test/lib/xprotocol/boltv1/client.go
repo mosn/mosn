@@ -10,6 +10,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -19,7 +20,6 @@ import (
 	mtypes "mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/lib"
 	"mosn.io/mosn/test/lib/types"
-	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {
@@ -169,7 +169,7 @@ func NewConn(addr string, cb func()) (*BoltConn, error) {
 	conn.AddConnectionEventListener(hconn)
 	hconn.conn = conn
 	ctx := context.Background()
-	ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, string(bolt.ProtocolName))
+	ctx = mosnctx.WithValue(ctx, mtypes.ContextSubProtocol, string(bolt.ProtocolName))
 	s := stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	if s == nil {
 		return nil, errors.New("protocol not registered")

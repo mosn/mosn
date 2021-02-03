@@ -33,11 +33,11 @@ import (
 
 	"github.com/rcrowley/go-metrics"
 	"mosn.io/api"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/utils"
 )
 
@@ -144,12 +144,12 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	// store fd
-	if val := mosnctx.Get(ctx, mosnctx.ContextKeyConnectionFd); val != nil {
+	if val := mosnctx.Get(ctx, types.ContextKeyConnectionFd); val != nil {
 		conn.file = val.(*os.File)
 	}
 
 	if conn.network == "udp" {
-		if val := mosnctx.Get(ctx, mosnctx.ContextKeyAcceptBuffer); val != nil {
+		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(UdpPacketMaxSize)
 			conn.readBuffer.Write(buf)
@@ -158,8 +158,8 @@ func NewServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struc
 	}
 
 	// transfer old mosn connection
-	if val := mosnctx.Get(ctx, mosnctx.ContextKeyAcceptChan); val != nil {
-		if val := mosnctx.Get(ctx, mosnctx.ContextKeyAcceptBuffer); val != nil {
+	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
+		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
 			buf := val.([]byte)
 			conn.readBuffer = buffer.GetIoBuffer(len(buf))
 			conn.readBuffer.Write(buf)

@@ -4,8 +4,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 
-	"mosn.io/mosn/pkg/types"
 	"testing"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestAPI(t *testing.T) {

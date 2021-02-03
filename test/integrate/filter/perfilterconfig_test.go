@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"mosn.io/pkg/buffer"
 	"net/http"
 	"os"
 	"testing"
 	"time"
+
+	"mosn.io/pkg/buffer"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"

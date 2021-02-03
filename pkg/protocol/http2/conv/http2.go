@@ -21,7 +21,7 @@ import (
 	"context"
 	"errors"
 
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http2"
@@ -72,7 +72,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 		return nil, errors.New("header type not supported")
 	}
 
-	variable.SetVariableValue(ctx, variable.VarDirection, direction)
+	variable.SetVariableValue(ctx, types.VarDirection, direction)
 	return headers, nil
 }
 

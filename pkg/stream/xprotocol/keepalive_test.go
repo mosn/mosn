@@ -19,8 +19,8 @@ package xprotocol
 
 import (
 	"context"
+
 	"github.com/stretchr/testify/assert"
-	mosnctx "mosn.io/pkg/context"
 
 	"sync"
 	"sync/atomic"
@@ -76,7 +76,7 @@ func newTestCase(t *testing.T, srvTimeout, keepTimeout time.Duration) *testCase 
 	}
 	host := cluster.NewSimpleHost(cfg, info)
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, mosnctx.ContextSubProtocol, string(bolt.ProtocolName))
+	ctx = context.WithValue(ctx, types.ContextSubProtocol, string(bolt.ProtocolName))
 
 	conn := host.CreateConnection(ctx)
 	if err := conn.Connection.Connect(); err != nil {

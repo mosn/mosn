@@ -65,7 +65,7 @@ func TestMapping(t *testing.T) {
 			pkgtypes.CodecExceptionCode:    uint32(ResponseStatusCodecException),
 			pkgtypes.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
 			pkgtypes.TimeoutExceptionCode:  uint32(ResponseStatusTimeout),
-			999999:                         uint32(ResponseStatusUnknown),
+			999999: uint32(ResponseStatusUnknown),
 		}
 	)
 

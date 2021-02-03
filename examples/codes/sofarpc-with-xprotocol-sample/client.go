@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/pkg/context"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
@@ -36,7 +35,7 @@ func NewClient(addr string, proto types.ProtocolName) *Client {
 		return nil
 	}
 	// pass sub protocol to stream client
-	ctx := context.WithValue(context.Background(), mosnctx.ContextSubProtocol, string(proto))
+	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(proto))
 	c.Client = stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	c.conn = conn
 	c.proto = proto

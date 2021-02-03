@@ -12,9 +12,9 @@ import (
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 	pkgtypes "mosn.io/pkg/types"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
-	mosnctx "mosn.io/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/network"
@@ -60,7 +60,7 @@ func TestStreamFilter(t *testing.T) {
 	assert.Equal(t, api.StreamFilterContinue, status)
 
 	ctx := context.Background()
-	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyDownStreamProtocol, HTTP1)
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, HTTP1)
 
 	m := make(map[string]string)
 	m["Http1_request_path"] = "/http"

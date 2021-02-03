@@ -20,7 +20,7 @@ package http2
 import (
 	"context"
 
-	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 var ins Http2BufferCtx

@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/valyala/fasthttp"
-	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/buffer"
 )
 
 func init() {

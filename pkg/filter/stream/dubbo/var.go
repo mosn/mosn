@@ -1,7 +1,7 @@
 package dubbo
 
 import (
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // [Protocol]: dubbo

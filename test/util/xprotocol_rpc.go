@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
-	mosnctx "mosn.io/pkg/context"
 
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 
@@ -78,7 +77,7 @@ func (c *RPCClient) connect(addr string, tlsMng types.TLSClientContextManager) e
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	ctx := context.WithValue(context.Background(), mosnctx.ContextSubProtocol, string(c.Protocol))
+	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(c.Protocol))
 	c.Codec = stream.NewStreamClient(ctx, protocol.Xprotocol, cc, nil)
 	if c.Codec == nil {
 		return fmt.Errorf("NewStreamClient error %v, %v", protocol.Xprotocol, cc)

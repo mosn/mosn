@@ -27,7 +27,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 )
 
 /*
@@ -159,7 +159,7 @@ func (f *streamGzipFilter) OnDestroy() {
 // check request need gzip
 func (f *streamGzipFilter) checkGzip(ctx context.Context, headers types.HeaderMap) bool {
 	// check gzip switch
-	if gzipSwitch, _ := variable.GetVariableValue(ctx, variable.VarProxyGzipSwitch); gzipSwitch == "off" {
+	if gzipSwitch, _ := variable.GetVariableValue(ctx, types.VarProxyGzipSwitch); gzipSwitch == "off" {
 		return false
 	}
 

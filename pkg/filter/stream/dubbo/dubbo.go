@@ -5,12 +5,12 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func init() {
@@ -42,7 +42,7 @@ func (d *dubboFilter) OnDestroy() {}
 
 func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 
-	listener := mosnctx.Get(ctx, mosnctx.ContextKeyListenerName).(string)
+	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
 	if !ok {
@@ -51,9 +51,9 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	}
 
 	// adapte dubbo service to http host
-	variable.SetVariableValue(ctx, variable.VarHost, service)
+	variable.SetVariableValue(ctx, types.VarHost, service)
 	// because use http rule, so should add default path
-	variable.SetVariableValue(ctx, variable.VarPath, "/")
+	variable.SetVariableValue(ctx, types.VarPath, "/")
 
 	method, _ := headers.Get(dubbo.MethodNameHeader)
 	stats := getStats(listener, service, method)
@@ -76,7 +76,7 @@ func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 }
 
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	listener := mosnctx.Get(ctx, mosnctx.ContextKeyListenerName).(string)
+	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 	service, err := variable.GetVariableValue(ctx, VarDubboRequestService)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request service info failed: %+v", err)

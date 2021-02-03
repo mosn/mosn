@@ -23,7 +23,8 @@ import (
 	"strings"
 	"sync"
 
-	mosnctx "mosn.io/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
 )
 
 var (
@@ -115,5 +116,5 @@ func NewVariableContext(ctx context.Context) context.Context {
 	// TODO: sync.Pool reuse
 	values := make([]IndexedValue, len(indexedVariables)) // TODO: pre-alloc buffer for runtime variable
 
-	return mosnctx.WithValue(ctx, mosnctx.ContextKeyVariables, values)
+	return mosnctx.WithValue(ctx, types.ContextKeyVariables, values)
 }

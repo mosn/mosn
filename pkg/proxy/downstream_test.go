@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"mosn.io/mosn/pkg/router"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
 	"github.com/stretchr/testify/assert"
 
@@ -35,7 +35,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 
-	mosnctx "mosn.io/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {
@@ -65,7 +65,7 @@ func TestDownstream_FinishTracing_Enable_SpanIsNotNil(t *testing.T) {
 	}
 
 	span := trace.Tracer(mockProtocol).Start(context.Background(), nil, time.Now())
-	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyActiveSpan, span)
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyActiveSpan, span)
 	requestInfo := &network.RequestInfo{}
 	ds := downStream{context: ctx, requestInfo: requestInfo}
 	header := protocol.CommonHeader{}
@@ -106,7 +106,7 @@ func TestDirectResponse(t *testing.T) {
 				if client.headers == nil {
 					t.Fatal("want to receive a header response")
 				}
-				if code, err := variable.GetVariableValue(ctx, variable.VarHeaderStatus); err != nil || code != "500" {
+				if code, err := variable.GetVariableValue(ctx, types.VarHeaderStatus); err != nil || code != "500" {
 					t.Error("response status code not expected")
 				}
 			},
@@ -124,7 +124,7 @@ func TestDirectResponse(t *testing.T) {
 				if client.headers == nil {
 					t.Fatal("want to receive a header response")
 				}
-				if code, err := variable.GetVariableValue(ctx, variable.VarHeaderStatus); err != nil || code != "400" {
+				if code, err := variable.GetVariableValue(ctx, types.VarHeaderStatus); err != nil || code != "400" {
 					t.Error("response status code not expected")
 				}
 				if client.data == nil {

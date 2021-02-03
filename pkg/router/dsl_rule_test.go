@@ -6,10 +6,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestDslExpressionRouteRuleImpl_Match(t *testing.T) {
@@ -20,11 +21,11 @@ func TestDslExpressionRouteRuleImpl_Match(t *testing.T) {
 		headers  api.HeaderMap
 		expected bool
 	}{
-		{[]string{variable.VarMethod, variable.VarHost}, []string{"method1", "test1"}, protocol.CommonHeader{"a1": "b1"}, true},
-		{[]string{variable.VarMethod, variable.VarHost}, []string{"method1", "test2"}, protocol.CommonHeader{"a1": "b1"}, false},
-		{[]string{variable.VarMethod, variable.VarHost}, []string{"method1", "test2"}, protocol.CommonHeader{"a1": "b2"}, false},
-		{[]string{variable.VarMethod, variable.VarHost}, []string{"method1", "test1"}, nil, false},
-		{[]string{variable.VarMethod, variable.VarHost}, []string{"method1", "test1"}, protocol.CommonHeader{"a2": "b2"}, false},
+		{[]string{types.VarMethod, types.VarHost}, []string{"method1", "test1"}, protocol.CommonHeader{"a1": "b1"}, true},
+		{[]string{types.VarMethod, types.VarHost}, []string{"method1", "test2"}, protocol.CommonHeader{"a1": "b1"}, false},
+		{[]string{types.VarMethod, types.VarHost}, []string{"method1", "test2"}, protocol.CommonHeader{"a1": "b2"}, false},
+		{[]string{types.VarMethod, types.VarHost}, []string{"method1", "test1"}, nil, false},
+		{[]string{types.VarMethod, types.VarHost}, []string{"method1", "test1"}, protocol.CommonHeader{"a2": "b2"}, false},
 	}
 	// header == test || (method == test && regex.MatchString(uri)) || uri == /1234
 	route := &v2.Router{

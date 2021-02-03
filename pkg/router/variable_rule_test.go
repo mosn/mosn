@@ -27,7 +27,7 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/pkg/variable"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func TestVariableRouteRuleImpl1(t *testing.T) {

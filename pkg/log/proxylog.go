@@ -21,7 +21,8 @@ import (
 	"context"
 	"strconv"
 
-	mosnctx "mosn.io/pkg/context"
+	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/log"
 )
 
@@ -112,11 +113,11 @@ func traceInfo(ctx context.Context) string {
 	cid := "-"
 	tid := "-"
 
-	connId := mosnctx.Get(ctx, mosnctx.ContextKeyConnectionID) // uint64
+	connId := mosnctx.Get(ctx, types.ContextKeyConnectionID) // uint64
 	if connId != nil {
 		cid = strconv.FormatUint(connId.(uint64), 10)
 	}
-	traceId := mosnctx.Get(ctx, mosnctx.ContextKeyTraceId) // string
+	traceId := mosnctx.Get(ctx, types.ContextKeyTraceId) // string
 	if traceId != nil {
 		tid = traceId.(string)
 	}

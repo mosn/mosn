@@ -19,12 +19,13 @@ package mosn
 
 import (
 	"encoding/json"
+	"testing"
+	"time"
+
 	"mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/router"
-	"testing"
-	"time"
 )
 
 // test compatible

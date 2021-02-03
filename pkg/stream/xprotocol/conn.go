@@ -23,9 +23,9 @@ import (
 	"sync"
 	"time"
 
-	"mosn.io/pkg/variable"
-
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/buffer"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -33,8 +33,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
-	mosnctx "mosn.io/pkg/context"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // types.DecodeFilter
@@ -73,7 +72,7 @@ func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbac
 	sc.ctxManager.Next()
 
 	// 2. prepare protocols
-	subProtocol := mosnctx.Get(ctx, mosnctx.ContextSubProtocol).(string)
+	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol).(string)
 	subProtocols := strings.Split(subProtocol, ",")
 	// 2.1 exact protocol, get directly
 	// 2.2 multi protocol, setup engine for further match
@@ -319,8 +318,8 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 		serviceName := aware.GetServiceName()
 		methodName := aware.GetMethodName()
 
-		variable.SetVariableValue(ctx, variable.VarHeaderRPCService, serviceName)
-		variable.SetVariableValue(ctx, variable.VarHeaderRPCMethod, methodName)
+		variable.SetVariableValue(ctx, types.VarHeaderRPCService, serviceName)
+		variable.SetVariableValue(ctx, types.VarHeaderRPCMethod, methodName)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] frame service aware, requestId = %v, serviceName = %v , methodName = %v", serverStream.id, serviceName, methodName)
@@ -375,8 +374,8 @@ func (sc *streamConn) newServerStream(ctx context.Context, frame api.XFrame) *xS
 
 	serverStream.id = frame.GetRequestId()
 	serverStream.direction = stream.ServerStream
-	serverStream.ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamID, serverStream.id)
-	serverStream.ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, string(sc.protocol.Name()))
+	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, serverStream.id)
+	serverStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
 	serverStream.sc = sc
 
 	return serverStream
@@ -390,8 +389,8 @@ func (sc *streamConn) newClientStream(ctx context.Context) *xStream {
 
 	clientStream.id = sc.protocol.GenerateRequestID(&sc.clientStreamIDBase)
 	clientStream.direction = stream.ClientStream
-	clientStream.ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamID, clientStream.id)
-	clientStream.ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, string(sc.protocol.Name()))
+	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, clientStream.id)
+	clientStream.ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(sc.protocol.Name()))
 	clientStream.sc = sc
 
 	return clientStream

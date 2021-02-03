@@ -3,11 +3,12 @@ package server
 import (
 	"encoding/json"
 	"io/ioutil"
-	"mosn.io/mosn/pkg/types"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
+
+	"mosn.io/mosn/pkg/types"
 
 	"mosn.io/mosn/pkg/configmanager"
 )

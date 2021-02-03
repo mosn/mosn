@@ -22,8 +22,8 @@ import (
 
 	"mosn.io/pkg/log"
 
+	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/pkg/buffer"
-	mbuffer "mosn.io/pkg/buffer"
 )
 
 var ins boltBufferCtx
