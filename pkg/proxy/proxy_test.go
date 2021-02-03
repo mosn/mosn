@@ -7,12 +7,15 @@ import (
 
 	"bou.ke/monkey"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/mock"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
+	_ "mosn.io/mosn/pkg/stream/http"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
@@ -171,4 +174,82 @@ func TestNewProxyRequest(t *testing.T) {
 		t.Fatalf("no stream filter chain is created")
 	}
 
+}
+
+func TestProxyFallbackNormal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
+	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
+		c := mock.NewMockConnection(ctrl)
+		c.EXPECT().RawConn().AnyTimes().Return(nil)
+		return c
+	})
+
+	var prot api.Protocol
+	dispatch := 0
+	monkey.Patch(stream.CreateServerStreamConnection, func(ctx context.Context, p api.Protocol, conn api.Connection,
+		l types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+		prot = p
+		ret := mock.NewMockServerStreamConnection(ctrl)
+		ret.EXPECT().Dispatch(gomock.Any()).AnyTimes().DoAndReturn(func(buffer buffer.IoBuffer) {
+			dispatch++
+		})
+		return ret
+	})
+
+	proxy := &proxy{
+		config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+		readCallbacks:    readCallback,
+		fallback:         false,
+		serverStreamConn: nil,
+		context:          context.TODO(),
+	}
+
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Stop)
+	assert.False(t, proxy.fallback)
+	assert.Equal(t, prot, protocol.HTTP1)
+	assert.Equal(t, dispatch, 1)
+
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Stop)
+	assert.Equal(t, dispatch, 2)
+}
+
+func TestProxyFallbackDoFallback(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
+
+	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
+	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
+		c := mock.NewMockConnection(ctrl)
+		c.EXPECT().RawConn().AnyTimes().Return(nil)
+		return c
+	})
+
+	testInput := [][]byte{
+		[]byte("helloWorldHelloWorld"), // normal case
+		[]byte("h"),                    // small package
+	}
+
+	for _, in := range testInput {
+		proxy := &proxy{
+			config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+			readCallbacks:    readCallback,
+			fallback:         false,
+			serverStreamConn: nil,
+		}
+
+		assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes(in)), api.Continue)
+		assert.True(t, proxy.fallback)
+
+		// ensure panic if not return directly
+		proxy.readCallbacks = nil
+		proxy.serverStreamConn = nil
+		assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes(in)), api.Continue)
+
+		// once fallback, should never match protocol
+		assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Continue)
+	}
 }

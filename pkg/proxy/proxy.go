@@ -82,6 +82,7 @@ type proxy struct {
 	readCallbacks       api.ReadFilterCallbacks
 	downstreamListener  api.ConnectionEventListener
 	routersWrapper      types.RouterWrapper // wrapper used to point to the routers instance
+	fallback            bool
 	serverStreamConn    types.ServerStreamConnection
 	context             context.Context
 	activeStreams       *list.List // downstream requests
@@ -162,6 +163,10 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 }
 
 func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
+	if p.fallback {
+		return api.Continue
+	}
+
 	if p.serverStreamConn == nil {
 		var prot string
 		if conn, ok := p.readCallbacks.Connection().RawConn().(*mtls.TLSConn); ok {
@@ -169,8 +174,21 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 		}
 		protocol, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes())
 		if err == stream.EAGAIN {
+			// when configured with fallback, we do not wait for more data in case of EAGAIN
+			// since we cannot distinguish whether we need more data or it's just a small tcp package
+			// return api.Stop would cause the later case to block unexpectedly
+			if p.config.FallbackForUnknownProtocol {
+				p.fallback = true
+				return api.Continue
+			}
+
 			return api.Stop
 		} else if err == stream.FAILED {
+			if p.config.FallbackForUnknownProtocol {
+				p.fallback = true
+				return api.Continue
+			}
+
 			var size int
 			if buf.Len() > 10 {
 				size = 10
