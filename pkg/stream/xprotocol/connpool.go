@@ -22,11 +22,12 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
+
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {
@@ -46,7 +47,7 @@ const (
 type connpool struct {
 	host     atomic.Value
 	tlsHash  *types.HashValue
-	protocol api.Protocol
+	protocol api.ProtocolName
 }
 
 // NewConnPool init a connection pool
@@ -58,9 +59,9 @@ func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 	p.host.Store(host)
 
 	switch xprotocol.GetProtocol(getSubProtocol(ctx)).PoolMode() {
-	case types.Multiplex:
+	case api.Multiplex:
 		return NewPoolMultiplex(p)
-	case types.PingPong:
+	case api.PingPong:
 		return NewPoolPingPong(p)
 	default:
 		return NewPoolBinding(p) // upstream && downstream connection binding proxy mode
@@ -99,7 +100,7 @@ func (l *keepAliveListener) OnEvent(event api.ConnectionEvent) {
 
 func getSubProtocol(ctx context.Context) types.ProtocolName {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextSubProtocol); val != nil {
+		if val := mosnctx.Get(ctx, mosnctx.ContextSubProtocol); val != nil {
 			if code, ok := val.(string); ok {
 				return types.ProtocolName(code)
 			}
@@ -110,7 +111,7 @@ func getSubProtocol(ctx context.Context) types.ProtocolName {
 
 func getDownstreamConn(ctx context.Context) api.Connection {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyConnection); val != nil {
+		if val := mosnctx.Get(ctx, mosnctx.ContextKeyConnection); val != nil {
 			if conn, ok := val.(api.Connection); ok {
 				return conn
 			}

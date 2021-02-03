@@ -22,11 +22,12 @@ import (
 	"encoding/binary"
 	"strconv"
 
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
+
+	"mosn.io/pkg/buffer"
 
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 )
 
 func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd interface{}, err error) {
@@ -73,7 +74,7 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	request.Data = buffer.GetIoBuffer(frameLen)
 
 	// 4. set timeout to notify proxy
-	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(request.Timeout)))
+	variable.SetVariableValue(ctx, variable.VarProxyGlobalTimeout, strconv.Itoa(int(request.Timeout)))
 
 	//5. copy data for io multiplexing
 	request.Data.Write(bytes[:frameLen])

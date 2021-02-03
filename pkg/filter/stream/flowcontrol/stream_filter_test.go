@@ -6,17 +6,19 @@ import (
 	"testing"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
-
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+	pkgtypes "mosn.io/pkg/types"
+	"mosn.io/pkg/variable"
+
+	mosnctx "mosn.io/pkg/context"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
-	"mosn.io/pkg/buffer"
 )
 
 const (
@@ -58,7 +60,7 @@ func TestStreamFilter(t *testing.T) {
 	assert.Equal(t, api.StreamFilterContinue, status)
 
 	ctx := context.Background()
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, HTTP1)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyDownStreamProtocol, HTTP1)
 
 	m := make(map[string]string)
 	m["Http1_request_path"] = "/http"
@@ -264,7 +266,7 @@ var (
 	}
 	mockNormalRI = &mockRequestInfo{
 		flags: map[api.ResponseFlag]bool{},
-		code:  types.SuccessCode,
+		code:  pkgtypes.SuccessCode,
 	}
 )
 

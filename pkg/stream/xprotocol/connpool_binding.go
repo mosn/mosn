@@ -25,10 +25,10 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // poolBinding is a special purpose connection pool,
@@ -154,7 +154,7 @@ func (p *poolBinding) Shutdown() {
 	}
 }
 
-func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClientBinding, types.PoolFailureReason) {
+func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientBinding, types.PoolFailureReason) {
 	connID := getConnID(ctx)
 	ac := &activeClientBinding{
 		subProtocol: subProtocol,
@@ -165,10 +165,10 @@ func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Proto
 
 	host := p.Host()
 
-	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, ac.host.Connection.ID())
+	connCtx := mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionID, ac.host.Connection.ID())
 
 	if len(subProtocol) > 0 {
-		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
+		connCtx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, string(subProtocol))
 	}
 
 	ac.host.Connection.AddConnectionEventListener(ac)
@@ -190,7 +190,7 @@ func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Proto
 		// protocol is from onNewDetectStream
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
 			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
@@ -355,7 +355,7 @@ func (ac *activeClientBinding) SetHeartBeater(hb types.KeepAlive) {
 
 func getConnID(ctx context.Context) uint64 {
 	if ctx != nil {
-		if val := mosnctx.Get(ctx, types.ContextKeyConnectionID); val != nil {
+		if val := mosnctx.Get(ctx, mosnctx.ContextKeyConnectionID); val != nil {
 			if code, ok := val.(uint64); ok {
 				return code
 			}

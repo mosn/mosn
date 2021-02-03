@@ -15,12 +15,10 @@
  * limitations under the License.
  */
 
-package types
+package api
 
 import (
 	"context"
-
-	"mosn.io/pkg/buffer"
 )
 
 // 	 The bunch of interfaces are structure skeleton to build a extensible protocol engine.
@@ -68,16 +66,16 @@ type Protocol interface {
 // auto protocol detection by the ProtocolMatch func
 type ProtocolEngine interface {
 	// Match use registered matchFunc to recognize corresponding protocol
-	Match(ctx context.Context, data IoBuffer) (ProtocolName, MatchResult)
+	Match(ctx context.Context, data IoBuffer) (Protocol, MatchResult)
 	// Register register encoder and decoder, which recognized by the matchFunc
-	Register(matchFunc ProtocolMatch, protocol ProtocolName) error
+	Register(matchFunc ProtocolMatch, protocol Protocol) error
 }
 
 // Encoder is a encoder interface to extend various of protocols
 type Encoder interface {
 	// Encode encodes a model to binary data
 	// return 1. encoded bytes 2. encode error
-	Encode(ctx context.Context, model interface{}) (buffer.IoBuffer, error)
+	Encode(ctx context.Context, model interface{}) (IoBuffer, error)
 
 	// EncodeTo encodes a model to binary data, and append into the given buffer
 	// This method should be used in term of performance
@@ -90,5 +88,10 @@ type Decoder interface {
 	// Decode decodes binary data to a model
 	// pass sub protocol type to identify protocol format
 	// return 1. decoded model(nil if no enough data) 2. decode error
-	Decode(ctx context.Context, data buffer.IoBuffer) (interface{}, error)
+	Decode(ctx context.Context, data IoBuffer) (interface{}, error)
+}
+
+// HTTPMapping maps the contents of protocols to HTTP standard
+type HTTPMapping interface {
+	MappingHeaderStatusCode(ctx context.Context, headers HeaderMap) (int, error)
 }

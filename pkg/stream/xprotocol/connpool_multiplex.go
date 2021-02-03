@@ -25,12 +25,12 @@ import (
 	"time"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 	"mosn.io/pkg/utils"
 )
 
@@ -97,7 +97,7 @@ func (p *poolMultiplex) CheckAndInit(ctx context.Context) bool {
 		if clientIdx = getClientIDFromDownStreamCtx(ctx); clientIdx == invalidClientID {
 			clientIdx = atomic.AddInt64(&p.currentCheckAndInitIdx, 1) % int64(len(p.activeClients))
 			// set current client index to downstream context
-			mosnctx.WithValue(ctx, types.ContextKeyConnectionPoolIndex, clientIdx)
+			mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionPoolIndex, clientIdx)
 		}
 	}
 
@@ -133,7 +133,7 @@ func (p *poolMultiplex) NewStream(ctx context.Context, receiver types.StreamRece
 	)
 
 	if len(p.activeClients) > 1 {
-		clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
+		clientIdxInter := mosnctx.Get(ctx, mosnctx.ContextKeyConnectionPoolIndex)
 		if clientIdx, ok = clientIdxInter.(int64); !ok {
 			// this client is not inited
 			return p.Host(), nil, types.ConnectionFailure
@@ -210,7 +210,7 @@ func (p *poolMultiplex) createStreamClient(context context.Context, connData typ
 	return stream.NewStreamClient(context, protocol.Xprotocol, connData.Connection, connData.Host)
 }
 
-func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClientMultiplex, types.PoolFailureReason) {
+func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientMultiplex, types.PoolFailureReason) {
 	ac := &activeClientMultiplex{
 		subProtocol: subProtocol,
 		pool:        p,
@@ -218,8 +218,8 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 
 	host := p.Host()
 	data := host.CreateConnection(ctx)
-	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
-	connCtx = mosnctx.WithValue(connCtx, types.ContextSubProtocol, string(subProtocol))
+	connCtx := mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionID, data.Connection.ID())
+	connCtx = mosnctx.WithValue(connCtx, mosnctx.ContextSubProtocol, string(subProtocol))
 	codecClient := p.createStreamClient(connCtx, data)
 	codecClient.AddConnectionEventListener(ac)
 	codecClient.SetStreamConnectionEventListener(ac)
@@ -232,7 +232,7 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	if subProtocol != "" {
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
 			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
@@ -370,7 +370,7 @@ func (ac *activeClientMultiplex) OnGoAway() {}
 const invalidClientID = -1
 
 func getClientIDFromDownStreamCtx(ctx context.Context) int64 {
-	clientIdxInter := mosnctx.Get(ctx, types.ContextKeyConnectionPoolIndex)
+	clientIdxInter := mosnctx.Get(ctx, mosnctx.ContextKeyConnectionPoolIndex)
 	clientIdx, ok := clientIdxInter.(int64)
 	if !ok {
 		return invalidClientID

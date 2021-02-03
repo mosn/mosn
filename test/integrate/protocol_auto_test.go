@@ -7,10 +7,10 @@ import (
 
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
+	mosnctx "mosn.io/pkg/context"
 
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mosn"
@@ -187,14 +187,14 @@ func TestXProtocol(t *testing.T) {
 	var magic []byte
 	var err error
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyStreamID, 1)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyStreamID, 1)
 
 	magic = []byte{0xda, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 	prot, err = stream.SelectStreamFactoryProtocol(ctx, "", magic)
 	if prot != protocol.Xprotocol {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
-	if string(dubbo.ProtocolName) != mosnctx.Get(ctx, types.ContextSubProtocol).(string) {
+	if string(dubbo.ProtocolName) != mosnctx.Get(ctx, mosnctx.ContextSubProtocol).(string) {
 		t.Errorf("[ERROR MESSAGE] error sub protocol")
 	}
 
@@ -203,7 +203,7 @@ func TestXProtocol(t *testing.T) {
 	if prot != protocol.Xprotocol {
 		t.Errorf("[ERROR MESSAGE] type error magic : %v\n", magic)
 	}
-	if string(bolt.ProtocolName) != mosnctx.Get(ctx, types.ContextSubProtocol).(string) {
+	if string(bolt.ProtocolName) != mosnctx.Get(ctx, mosnctx.ContextSubProtocol).(string) {
 		t.Errorf("[ERROR MESSAGE] error sub protocol")
 	}
 
@@ -212,7 +212,7 @@ func TestXProtocol(t *testing.T) {
 	if prot != protocol.Xprotocol {
 		t.Errorf("[ERROR MESSAGE] type error protocol :%v", err)
 	}
-	if string(tars.ProtocolName) != mosnctx.Get(ctx, types.ContextSubProtocol).(string) {
+	if string(tars.ProtocolName) != mosnctx.Get(ctx, mosnctx.ContextSubProtocol).(string) {
 		t.Errorf("[ERROR MESSAGE] error sub protocol")
 	}
 

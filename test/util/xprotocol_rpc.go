@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/apache/thrift/lib/go/thrift"
+	mosnctx "mosn.io/pkg/context"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
@@ -76,7 +78,7 @@ func (c *RPCClient) connect(addr string, tlsMng types.TLSClientContextManager) e
 		c.t.Logf("client[%s] connect to server error: %v\n", c.ClientID, err)
 		return err
 	}
-	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(c.Protocol))
+	ctx := context.WithValue(context.Background(), mosnctx.ContextSubProtocol, string(c.Protocol))
 	c.Codec = stream.NewStreamClient(ctx, protocol.Xprotocol, cc, nil)
 	if c.Codec == nil {
 		return fmt.Errorf("NewStreamClient error %v, %v", protocol.Xprotocol, cc)
@@ -116,7 +118,7 @@ func (c *RPCClient) SendRequestWithData(in string) {
 	ID := atomic.AddUint64(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
-	var frame xprotocol.XFrame
+	var frame api.XFrame
 	data := buffer.NewIoBufferString(in)
 	// TODO: support boltv2
 	switch c.Protocol {
@@ -140,7 +142,7 @@ func (c *RPCClient) SendRequestWithData(in string) {
 }
 
 func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if cmd, ok := headers.(xprotocol.XRespFrame); ok {
+	if cmd, ok := headers.(api.XRespFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
 		if _, ok := c.Waits.Load(streamID); ok {

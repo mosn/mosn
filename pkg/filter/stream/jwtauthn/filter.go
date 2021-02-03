@@ -2,11 +2,12 @@ package jwtauthn
 
 import (
 	"context"
+
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
+
+	"mosn.io/mosn/pkg/log"
 )
 
 type filter struct {
@@ -27,13 +28,13 @@ func (f *filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 	// TODO(huangrh): bypass
 
-	requestArg, err := variable.GetVariableValue(ctx, types.VarHttpRequestArg)
+	requestArg, err := variable.GetVariableValue(ctx, variable.VarHttpRequestArg)
 	if err != nil {
 		log.DefaultLogger.Errorf("[jwt_authn filter] get query parameter: %v", err)
 		return api.StreamFilterContinue
 	}
 
-	requestPath, err := variable.GetVariableValue(ctx, types.VarHttpRequestPath)
+	requestPath, err := variable.GetVariableValue(ctx, variable.VarHttpRequestPath)
 	if err != nil {
 		log.DefaultLogger.Errorf("[jwt_authn filter] get path: %v", err)
 		return api.StreamFilterStop

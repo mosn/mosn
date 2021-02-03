@@ -5,12 +5,13 @@ import (
 	"net"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
+	pkgtypes "mosn.io/pkg/types"
 	"mosn.io/pkg/utils"
 )
 
@@ -18,8 +19,8 @@ type mirror struct {
 	amplification  int
 	broadcast      bool
 	receiveHandler api.StreamReceiverFilterHandler
-	dp             api.Protocol
-	up             api.Protocol
+	dp             api.ProtocolName
+	up             api.ProtocolName
 	ctx            context.Context
 	headers        api.HeaderMap
 	data           buffer.IoBuffer
@@ -53,13 +54,13 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	utils.GoWithRecover(func() {
 		clusterAdapter := cluster.GetClusterMngAdapterInstance()
 
-		m.ctx = mosnctx.WithValue(mosnctx.Clone(ctx), types.ContextKeyBufferPoolCtx, nil)
+		m.ctx = mosnctx.WithValue(mosnctx.Clone(ctx), mosnctx.ContextKeyBufferPoolCtx, nil)
 		if headers != nil {
 			// ! xprotocol should reimplement Clone function, not use default, trans protocol.CommonHeader
 			h := headers.Clone()
 			// nolint
 			if _, ok := h.(protocol.CommonHeader); ok {
-				log.DefaultLogger.Errorf("not support mirror, protocal {%v} must implement Clone function", mosnctx.Get(m.ctx, types.ContextKeyDownStreamProtocol))
+				log.DefaultLogger.Errorf("not support mirror, protocal {%v} must implement Clone function", mosnctx.Get(m.ctx, mosnctx.ContextKeyDownStreamProtocol))
 				return
 			}
 			m.headers = h
@@ -124,7 +125,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		}
 	}, nil)
 	if m.broadcast {
-		m.receiveHandler.SendHijackReply(types.SuccessCode, m.headers)
+		m.receiveHandler.SendHijackReply(pkgtypes.SuccessCode, m.headers)
 		return api.StreamFilterStop
 	}
 	return api.StreamFilterContinue
@@ -139,14 +140,14 @@ func (m *mirror) getProtocol() (dp, up types.ProtocolName) {
 }
 
 func (m *mirror) getDownStreamProtocol() (prot types.ProtocolName) {
-	if dp, ok := mosnctx.Get(m.ctx, types.ContextKeyConfigDownStreamProtocol).(string); ok {
+	if dp, ok := mosnctx.Get(m.ctx, mosnctx.ContextKeyConfigDownStreamProtocol).(string); ok {
 		return types.ProtocolName(dp)
 	}
 	return m.receiveHandler.RequestInfo().Protocol()
 }
 
 func (m *mirror) getUpstreamProtocol() (currentProtocol types.ProtocolName) {
-	configProtocol, ok := mosnctx.Get(m.ctx, types.ContextKeyConfigUpStreamProtocol).(string)
+	configProtocol, ok := mosnctx.Get(m.ctx, mosnctx.ContextKeyConfigUpStreamProtocol).(string)
 	if !ok {
 		configProtocol = string(protocol.Xprotocol)
 	}

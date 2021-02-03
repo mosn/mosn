@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 	"testing"
 	"time"
 )
@@ -23,8 +23,8 @@ func TestPingPong(t *testing.T) {
 	// wait for server to start
 	time.Sleep(time.Second * 2)
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
-	ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, "dubbo")
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyConfigUpStreamProtocol, string(protocol.Xprotocol))
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, "dubbo")
 
 	cl := basicCluster(addr, []string{addr})
 	host := cluster.NewSimpleHost(cl.Hosts[0], cluster.NewCluster(cl).Snapshot().ClusterInfo())
@@ -55,7 +55,7 @@ func TestPingPong(t *testing.T) {
 		}}, true)
 	}
 
-	assert.Equal(t, len(xsList), len(pInst.idleClients[api.Protocol("dubbo")]))
+	assert.Equal(t, len(xsList), len(pInst.idleClients[api.ProtocolName("dubbo")]))
 }
 
 type receiver struct{}

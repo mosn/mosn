@@ -35,10 +35,14 @@ import (
 
 	"golang.org/x/sys/unix"
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
+	pkgcontext "mosn.io/pkg/context"
+	"mosn.io/pkg/utils"
+
 	admin "mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
@@ -46,8 +50,6 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/utils"
 )
 
 // ConnectionHandler
@@ -457,23 +459,23 @@ func (al *activeListener) OnAccept(rawc net.Conn, useOriginalDst bool, oriRemote
 		arc.acceptedFilters = append(arc.acceptedFilters, originaldst.NewOriginalDst())
 	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, al.listenPort)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerType, al.listener.Config().Type)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, al.listener.Name())
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, al.accessLogs)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyListenerPort, al.listenPort)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyListenerType, al.listener.Config().Type)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyListenerName, al.listener.Name())
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyNetworkFilterChainFactories, al.networkFiltersFactories)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAccessLogs, al.accessLogs)
 	if rawf != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyConnectionFd, rawf)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionFd, rawf)
 	}
 	if ch != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptChan, ch)
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAcceptChan, ch)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAcceptBuffer, buf)
 	}
 	if rawc.LocalAddr().Network() == "udp" {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyAcceptBuffer, buf)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyAcceptBuffer, buf)
 	}
 	if oriRemoteAddr != nil {
-		ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, oriRemoteAddr)
+		ctx = mosnctx.WithValue(ctx, mosnctx.ContextOriRemoteAddr, oriRemoteAddr)
 	}
 
 	arc.ctx = ctx
@@ -534,7 +536,7 @@ func (al *activeListener) PreStopHook(ctx context.Context) func() error {
 		var remainStream int
 		var waitedMilliseconds int64
 		if ctx != nil {
-			shutdownTimeout := ctx.Value(types.GlobalShutdownTimeout)
+			shutdownTimeout := ctx.Value(pkgcontext.GlobalShutdownTimeout)
 			if shutdownTimeout != nil {
 				if timeout, err := strconv.ParseInt(shutdownTimeout.(string), 10, 64); err == nil {
 					current := time.Now()
@@ -598,12 +600,12 @@ func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 			conn.SetIdleTimeout(buffer.ConnReadTimeout, defaultIdleTimeout)
 		}
 	}
-	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
+	oriRemoteAddr := mosnctx.Get(ctx, mosnctx.ContextOriRemoteAddr)
 	if oriRemoteAddr != nil {
 		conn.SetRemoteAddr(oriRemoteAddr.(net.Addr))
 	}
-	newCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, conn.ID())
-	newCtx = mosnctx.WithValue(newCtx, types.ContextKeyConnection, conn)
+	newCtx := mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionID, conn.ID())
+	newCtx = mosnctx.WithValue(newCtx, mosnctx.ContextKeyConnection, conn)
 
 	conn.SetBufferLimit(al.listener.PerConnBufferLimitBytes())
 
@@ -658,9 +660,9 @@ func (arc *activeRawConn) UseOriginalDst(ctx context.Context) {
 
 	var ch chan api.Connection
 	var buf []byte
-	if val := mosnctx.Get(ctx, types.ContextKeyAcceptChan); val != nil {
+	if val := mosnctx.Get(ctx, mosnctx.ContextKeyAcceptChan); val != nil {
 		ch = val.(chan api.Connection)
-		if val := mosnctx.Get(ctx, types.ContextKeyAcceptBuffer); val != nil {
+		if val := mosnctx.Get(ctx, mosnctx.ContextKeyAcceptBuffer); val != nil {
 			buf = val.([]byte)
 		}
 	}

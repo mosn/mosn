@@ -26,9 +26,9 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func TestMain(m *testing.M) {
@@ -381,7 +381,7 @@ func BenchmarkMaglevLB(b *testing.B) {
 			},
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
@@ -406,7 +406,7 @@ func BenchmarkMaglevLBParallel(b *testing.B) {
 			},
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,
@@ -442,7 +442,7 @@ func BenchmarkMaglevLBFallback(b *testing.B) {
 			},
 		},
 	}
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamProtocol, testProtocol)
 	lbctx := &mockLbContext{
 		context: ctx,
 		route:   mockRoute,

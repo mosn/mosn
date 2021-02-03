@@ -7,10 +7,11 @@ import (
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
+	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/variable"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
-	"mosn.io/pkg/buffer"
 )
 
 var callbacksRegistry = new(sync.Map)
@@ -78,7 +79,7 @@ func (dc *DefaultCallbacks) Prepare(ctx context.Context, headers types.HeaderMap
 
 // AfterBlock sends response directly.
 func (dc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
-	variable.SetVariableValue(ctx, types.VarHeaderStatus, strconv.Itoa(dc.config.Action.Status))
+	variable.SetVariableValue(ctx, variable.VarHeaderStatus, strconv.Itoa(dc.config.Action.Status))
 	filter.ReceiverHandler.SendDirectResponse(headers, buffer.NewIoBufferString(dc.config.Action.Body), trailers)
 }
 

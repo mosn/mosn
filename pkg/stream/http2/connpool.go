@@ -23,12 +23,12 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func init() {
@@ -212,7 +212,7 @@ func newActiveClient(ctx context.Context, pool *connPool) *activeClient {
 		return nil
 	}
 
-	connCtx := mosnctx.WithValue(ctx, types.ContextKeyConnectionID, data.Connection.ID())
+	connCtx := mosnctx.WithValue(ctx, mosnctx.ContextKeyConnectionID, data.Connection.ID())
 	codecClient := pool.createStreamClient(connCtx, data)
 	codecClient.SetStreamConnectionEventListener(ac)
 

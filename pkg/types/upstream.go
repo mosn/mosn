@@ -61,7 +61,7 @@ type ClusterManager interface {
 	UDPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
 	// ConnPoolForCluster used to get protocol related conn pool
-	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol api.Protocol) ConnectionPool
+	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol api.ProtocolName) ConnectionPool
 
 	// RemovePrimaryCluster used to remove cluster from set
 	RemovePrimaryCluster(clusters ...string) error
@@ -389,12 +389,12 @@ func (ss *SortedStringSetType) Swap(i, j int) {
 }
 
 func init() {
-	ConnPoolFactories = make(map[api.Protocol]bool)
+	ConnPoolFactories = make(map[api.ProtocolName]bool)
 }
 
-var ConnPoolFactories map[api.Protocol]bool
+var ConnPoolFactories map[api.ProtocolName]bool
 
-func RegisterConnPoolFactory(protocol api.Protocol, registered bool) {
+func RegisterConnPoolFactory(protocol api.ProtocolName, registered bool) {
 	//other
 	ConnPoolFactories[protocol] = registered
 }

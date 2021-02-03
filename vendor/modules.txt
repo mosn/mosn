@@ -382,7 +382,7 @@ gopkg.in/errgo.v2/errors
 gopkg.in/errgo.v2/fmt/errors
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
-# gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 gopkg.in/yaml.v3
@@ -394,9 +394,12 @@ istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# mosn.io/api v0.0.0-20210129030635-d7dc8206d7b7
+# mosn.io/api v0.0.0-20210202034708-141aee936d3d
 mosn.io/api
-# mosn.io/pkg v0.0.0-20201228090327-daaf86502a50
+# mosn.io/pkg v0.0.0-20210202061945-2260c3314779
 mosn.io/pkg/buffer
+mosn.io/pkg/context
 mosn.io/pkg/log
+mosn.io/pkg/types
 mosn.io/pkg/utils
+mosn.io/pkg/variable

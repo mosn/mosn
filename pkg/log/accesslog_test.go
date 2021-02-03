@@ -32,7 +32,7 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 	"mosn.io/pkg/log"
 )
 
@@ -390,7 +390,7 @@ func (h *mock_HeaderMap) ByteSize() uint64 {
 }
 
 type mock_requestInfo struct {
-	protocol                 api.Protocol
+	protocol                 api.ProtocolName
 	startTime                time.Time
 	responseFlag             api.ResponseFlag
 	upstreamHost             api.HostInfo
@@ -471,11 +471,11 @@ func (r *mock_requestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *mock_requestInfo) Protocol() api.Protocol {
+func (r *mock_requestInfo) Protocol() api.ProtocolName {
 	return r.protocol
 }
 
-func (r *mock_requestInfo) SetProtocol(p api.Protocol) {
+func (r *mock_requestInfo) SetProtocol(p api.ProtocolName) {
 	r.protocol = p
 }
 

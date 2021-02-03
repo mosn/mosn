@@ -14,22 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package buffer
 
-import (
-	"context"
-	"testing"
+package types
+
+// Error codes, used by top level logic code(like proxy logic).
+const (
+	CodecExceptionCode    = 0
+	UnknownCode           = 2
+	DeserialExceptionCode = 3
+	SuccessCode           = 200
+	PermissionDeniedCode  = 403
+	RouterUnavailableCode = 404
+	InternalErrorCode     = 500
+	NoHealthUpstreamCode  = 502
+	UpstreamOverFlowCode  = 503
+	TimeoutExceptionCode  = 504
+	LimitExceededCode     = 509
 )
-
-func Test_ByteBuffer(t *testing.T) {
-	ctx := NewBufferPoolContext(context.Background())
-	b := GetBytesByContext(ctx, 1000)
-	if len(*b) != 1000 {
-		t.Errorf("bytes len should %d", 1000)
-	}
-	if cap(*b) != 1024 {
-		t.Errorf("bytes cap should %d", 1024)
-	}
-	bv := PoolContext(ctx)
-	bv.Give()
-}

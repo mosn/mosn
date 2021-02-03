@@ -7,10 +7,12 @@ import (
 	"net"
 	"time"
 
+	"mosn.io/api"
+	mosnctx "mosn.io/pkg/context"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
@@ -34,7 +36,7 @@ func NewClient(addr string, proto types.ProtocolName) *Client {
 		return nil
 	}
 	// pass sub protocol to stream client
-	ctx := context.WithValue(context.Background(), types.ContextSubProtocol, string(proto))
+	ctx := context.WithValue(context.Background(), mosnctx.ContextSubProtocol, string(proto))
 	c.Client = stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	c.conn = conn
 	c.proto = proto
@@ -43,10 +45,10 @@ func NewClient(addr string, proto types.ProtocolName) *Client {
 
 func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	fmt.Printf("[Xprotocol RPC Client] Receive Data:")
-	if cmd, ok := headers.(xprotocol.XFrame); ok {
+	if cmd, ok := headers.(api.XFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
-		if resp, ok := cmd.(xprotocol.XRespFrame); ok {
+		if resp, ok := cmd.(api.XRespFrame); ok {
 			fmt.Println("stream:", streamID, " status:", resp.GetStatusCode())
 		}
 	}
@@ -58,7 +60,7 @@ func (c *Client) Request() {
 	c.Id++
 	requestEncoder := c.Client.NewStream(context.Background(), c)
 
-	var request xprotocol.XFrame
+	var request api.XFrame
 	switch c.proto {
 	case bolt.ProtocolName:
 		request = bolt.NewRpcRequest(uint32(c.Id), protocol.CommonHeader(map[string]string{"service": "testSofa"}), nil)

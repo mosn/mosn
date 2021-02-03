@@ -18,7 +18,8 @@
 package example
 
 import (
-	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -30,8 +31,8 @@ type Request struct {
 	Content    types.IoBuffer
 }
 
-func (r *Request) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Request
+func (r *Request) GetStreamType() api.StreamType {
+	return api.Request
 }
 
 func (r *Request) GetRequestId() uint64 {
@@ -47,8 +48,8 @@ type Response struct {
 	Status uint16
 }
 
-func (r *Response) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Response
+func (r *Response) GetStreamType() api.StreamType {
+	return api.Response
 }
 
 func (r *Response) GetRequestId() uint64 {

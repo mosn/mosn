@@ -15,23 +15,46 @@
  * limitations under the License.
  */
 
-package context
+package api
 
 import (
 	"context"
-
-	"mosn.io/mosn/pkg/types"
+	"time"
 )
 
-type valueCtx struct {
-	context.Context
+// factory
+type TracerBuilder func(config map[string]interface{}) (Tracer, error)
 
-	builtin [types.ContextKeyEnd]interface{}
+type Driver interface {
+	Init(config map[string]interface{}) error
+
+	Register(proto ProtocolName, builder TracerBuilder)
+
+	Get(proto ProtocolName) Tracer
 }
 
-func (c *valueCtx) Value(key interface{}) interface{} {
-	if contextKey, ok := key.(types.ContextKey); ok {
-		return c.builtin[contextKey]
-	}
-	return c.Context.Value(key)
+type Tracer interface {
+	Start(ctx context.Context, request interface{}, startTime time.Time) Span
+}
+
+type Span interface {
+	TraceId() string
+
+	SpanId() string
+
+	ParentSpanId() string
+
+	SetOperation(operation string)
+
+	SetTag(key uint64, value string)
+
+	SetRequestInfo(requestInfo RequestInfo)
+
+	Tag(key uint64) string
+
+	FinishSpan()
+
+	InjectContext(requestHeaders HeaderMap, requestInfo RequestInfo)
+
+	SpawnChild(operationName string, startTime time.Time) Span
 }

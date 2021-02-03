@@ -21,10 +21,10 @@ import (
 	"strconv"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 type Header struct {
@@ -61,14 +61,14 @@ func (r *Frame) IsHeartbeatFrame() bool {
 	return false
 }
 
-func (r *Frame) GetStreamType() xprotocol.StreamType {
+func (r *Frame) GetStreamType() api.StreamType {
 	switch r.Direction {
 	case EventRequest:
-		return xprotocol.Request
+		return api.Request
 	case EventResponse:
-		return xprotocol.Response
+		return api.Response
 	default:
-		return xprotocol.Request
+		return api.Request
 	}
 }
 

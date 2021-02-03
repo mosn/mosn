@@ -19,8 +19,6 @@ package api
 
 import (
 	"context"
-
-	"mosn.io/pkg/buffer"
 )
 
 type StreamFilterStatus string
@@ -47,7 +45,7 @@ type StreamSenderFilter interface {
 	StreamFilterBase
 
 	// Append encodes request/response
-	Append(ctx context.Context, headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap) StreamFilterStatus
+	Append(ctx context.Context, headers HeaderMap, buf IoBuffer, trailers HeaderMap) StreamFilterStatus
 
 	// SetSenderFilterHandler sets the StreamSenderFilterHandler
 	SetSenderFilterHandler(handler StreamSenderFilterHandler)
@@ -58,7 +56,7 @@ type StreamReceiverFilter interface {
 	StreamFilterBase
 
 	// OnReceive is called with decoded request/response
-	OnReceive(ctx context.Context, headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap) StreamFilterStatus
+	OnReceive(ctx context.Context, headers HeaderMap, buf IoBuffer, trailers HeaderMap) StreamFilterStatus
 
 	// SetReceiveFilterHandler sets decoder filter callbacks
 	SetReceiveFilterHandler(handler StreamReceiverFilterHandler)
@@ -86,8 +84,8 @@ type StreamSenderFilterHandler interface {
 	GetResponseHeaders() HeaderMap
 	SetResponseHeaders(headers HeaderMap)
 
-	GetResponseData() buffer.IoBuffer
-	SetResponseData(buf buffer.IoBuffer)
+	GetResponseData() IoBuffer
+	SetResponseData(buf IoBuffer)
 
 	GetResponseTrailers() HeaderMap
 	SetResponseTrailers(trailers HeaderMap)
@@ -108,7 +106,7 @@ type StreamReceiverFilterHandler interface {
 	// AppendData is called with data to be encoded, optionally indicating end of stream.
 	// Filter uses this function to send out request/response data of the stream
 	// endStream supplies whether this is the last data
-	AppendData(buf buffer.IoBuffer, endStream bool)
+	AppendData(buf IoBuffer, endStream bool)
 
 	// AppendTrailers is called with trailers to be encoded, implicitly ends the stream.
 	// Filter uses this function to send out request/response trailers of the stream
@@ -121,7 +119,7 @@ type StreamReceiverFilterHandler interface {
 	SendHijackReplyWithBody(code int, headers HeaderMap, body string)
 
 	// SendDirectRespoonse is call when the filter will response directly
-	SendDirectResponse(headers HeaderMap, buf buffer.IoBuffer, trailers HeaderMap)
+	SendDirectResponse(headers HeaderMap, buf IoBuffer, trailers HeaderMap)
 
 	// TerminateStream can force terminate a request asynchronously.
 	// The response status code should be HTTP status code.
@@ -134,8 +132,8 @@ type StreamReceiverFilterHandler interface {
 	GetRequestHeaders() HeaderMap
 	SetRequestHeaders(headers HeaderMap)
 
-	GetRequestData() buffer.IoBuffer
-	SetRequestData(buf buffer.IoBuffer)
+	GetRequestData() IoBuffer
+	SetRequestData(buf IoBuffer)
 
 	GetRequestTrailers() HeaderMap
 	SetRequestTrailers(trailers HeaderMap)

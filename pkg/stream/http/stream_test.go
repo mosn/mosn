@@ -27,17 +27,17 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
@@ -310,7 +310,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -368,7 +368,7 @@ func TestHeaderSize(t *testing.T) {
 		MaxHeaderSize: len(requestSmall),
 	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 	ssc := newServerStreamConnection(ctx, connection, nil)
 	if ssc == nil {
 		t.Errorf("newServerStreamConnection failed!")

@@ -12,8 +12,9 @@ import (
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"mosn.io/api"
+	"mosn.io/pkg/types"
+
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 )
 
 const defaultResponse = "current request is limited"

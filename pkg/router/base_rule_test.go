@@ -32,10 +32,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	mosnctx "mosn.io/pkg/context"
+	"mosn.io/pkg/variable"
 )
 
 func TestNilMetadataMatchCriteria(t *testing.T) {
@@ -218,7 +218,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 			},
 			want: &finalizeResult{
 				variables: map[string]string{
-					types.VarPath: "/abc/",
+					variable.VarPath: "/abc/",
 				},
 				headers: protocol.CommonHeader{
 					types.HeaderOriginalPath: "/",
@@ -233,7 +233,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 			},
 			want: &finalizeResult{
 				variables: map[string]string{
-					types.VarPath: "/abc/page/",
+					variable.VarPath: "/abc/page/",
 				},
 				headers: protocol.CommonHeader{
 					types.HeaderOriginalPath: "/index/page/",
@@ -245,7 +245,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := variable.NewVariableContext(context.Background())
-			variable.SetVariableValue(ctx, types.VarPath, tt.args.originalPath)
+			variable.SetVariableValue(ctx, variable.VarPath, tt.args.originalPath)
 			headers := protocol.CommonHeader{}
 			rri.FinalizePathHeader(ctx, headers, tt.args.matchedPath)
 			if !tt.want.Check(ctx, headers) {
@@ -300,7 +300,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 			},
 			want: &finalizeResult{
 				variables: map[string]string{
-					types.VarPath: "/v1/api/instance/foo",
+					variable.VarPath: "/v1/api/instance/foo",
 				},
 
 				headers: protocol.CommonHeader{
@@ -316,7 +316,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 			},
 			want: &finalizeResult{
 				variables: map[string]string{
-					types.VarPath: "/xxx/two/yyy/two/zzz",
+					variable.VarPath: "/xxx/two/yyy/two/zzz",
 				},
 
 				headers: protocol.CommonHeader{
@@ -332,7 +332,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 			},
 			want: &finalizeResult{
 				variables: map[string]string{
-					types.VarPath: "/xxx/two/yyy/one/zzz",
+					variable.VarPath: "/xxx/two/yyy/one/zzz",
 				},
 				headers: protocol.CommonHeader{
 					types.HeaderOriginalPath: "/xxx/one/yyy/one/zzz",
@@ -347,7 +347,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 			},
 			want: &finalizeResult{
 				variables: map[string]string{
-					types.VarPath: "/aaa/yyy/bbb",
+					variable.VarPath: "/aaa/yyy/bbb",
 				},
 				headers: protocol.CommonHeader{
 					types.HeaderOriginalPath: "/aaa/XxX/bbb",
@@ -372,7 +372,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		if ok {
 			t.Run(tt.name, func(t *testing.T) {
 				ctx := variable.NewVariableContext(context.Background())
-				variable.SetVariableValue(ctx, types.VarPath, tt.args.originalPath)
+				variable.SetVariableValue(ctx, variable.VarPath, tt.args.originalPath)
 				headers := protocol.CommonHeader{}
 				rris[ops].FinalizePathHeader(ctx, headers, tt.args.matchedPath)
 				if !tt.want.Check(ctx, headers) {
@@ -465,7 +465,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 			},
 			want: &finalizeResult{
 				variables: map[string]string{
-					types.VarIstioHeaderHost: "mosn.io",
+					variable.VarIstioHeaderHost: "mosn.io",
 				},
 				headers: protocol.CommonHeader{
 					"host":  "xxx.default.svc.cluster.local",
@@ -585,7 +585,7 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 			},
 			want: &finalizeResult{
 				variables: map[string]string{
-					types.VarIstioHeaderHost: "mosn.io.rewrited.host",
+					variable.VarIstioHeaderHost: "mosn.io.rewrited.host",
 				},
 				headers: protocol.CommonHeader{
 					"realyHost": "mosn.io.rewrited.host",
@@ -822,7 +822,7 @@ func TestParseHashPolicy(t *testing.T) {
 
 func TestHashPolicy(t *testing.T) {
 	testProtocol := types.ProtocolName("SomeProtocol")
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamProtocol, testProtocol)
 
 	// test header
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
@@ -830,7 +830,7 @@ func TestHashPolicy(t *testing.T) {
 	}
 	headerValue := variable.NewBasicVariable("SomeProtocol_request_header_", nil, headerGetter, nil, 0)
 	variable.RegisterPrefixVariable(headerValue.Name(), headerValue)
-	variable.RegisterProtocolResource(testProtocol, api.HEADER, types.VarProtocolRequestHeader)
+	variable.RegisterProtocolResource(testProtocol, api.HEADER, variable.VarProtocolRequestHeader)
 	headerHp := headerHashPolicyImpl{
 		key: "header_key",
 	}
@@ -843,7 +843,7 @@ func TestHashPolicy(t *testing.T) {
 	}
 	cookieValue := variable.NewBasicVariable("SomeProtocol_cookie_", nil, cookieGetter, nil, 0)
 	variable.RegisterPrefixVariable(cookieValue.Name(), cookieValue)
-	variable.RegisterProtocolResource(testProtocol, api.COOKIE, types.VarProtocolCookie)
+	variable.RegisterProtocolResource(testProtocol, api.COOKIE, variable.VarProtocolCookie)
 	cookieHp := cookieHashPolicyImpl{
 		name: "cookie_name",
 		path: "cookie_path",
@@ -853,7 +853,7 @@ func TestHashPolicy(t *testing.T) {
 	assert.Equalf(t, uint64(14068947270705736519), hash, "cookie value hash not match")
 
 	// test source IP
-	ctx = mosnctx.WithValue(ctx, types.ContextOriRemoteAddr, &net.TCPAddr{
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextOriRemoteAddr, &net.TCPAddr{
 		IP:   net.IPv4(127, 0, 0, 1),
 		Port: 80,
 	})

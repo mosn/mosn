@@ -23,8 +23,8 @@ import (
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+	mosnctx "mosn.io/pkg/context"
 	"net"
 )
 
@@ -67,7 +67,7 @@ func (lb *OriginalDstLoadBalancer) ChooseHost(lbCtx types.LoadBalancerContext) t
 	}
 
 	if dstAdd == "" {
-		oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)
+		oriRemoteAddr := mosnctx.Get(ctx, mosnctx.ContextOriRemoteAddr)
 		if oriRemoteAddr == nil {
 			return nil
 		}

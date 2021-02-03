@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"sync/atomic"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
@@ -90,25 +92,25 @@ func (proto *proto) Decode(ctx context.Context, data types.IoBuffer) (interface{
 	return nil, nil
 }
 
-func NewCodec() types.Protocol {
+func NewCodec() api.Protocol {
 	return &proto{}
 }
 
 // TODOs
 
 // Heartbeater
-func (proto *proto) Trigger(requestId uint64) xprotocol.XFrame {
+func (proto *proto) Trigger(requestId uint64) api.XFrame {
 	// not supported for poc demo
 	return nil
 }
 
-func (proto *proto) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
+func (proto *proto) Reply(request api.XFrame) api.XRespFrame {
 	// not supported for poc demo
 	return nil
 }
 
 // Hijacker
-func (proto *proto) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
+func (proto *proto) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
 	// not supported for poc demo
 	return nil
 }
@@ -119,8 +121,8 @@ func (proto *proto) Mapping(httpStatusCode uint32) uint32 {
 }
 
 // PoolMode returns whether pingpong or multiplex
-func (proto *proto) PoolMode() types.PoolMode {
-	return types.Multiplex
+func (proto *proto) PoolMode() api.PoolMode {
+	return api.Multiplex
 }
 
 func (proto *proto) EnableWorkerPool() bool {

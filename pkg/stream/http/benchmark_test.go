@@ -21,15 +21,15 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
+	mosnctx "mosn.io/pkg/context"
+	"mosn.io/pkg/variable"
+
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 )
 
 func BenchmarkGetPrefixProtocolVarCookie(b *testing.B) {
 	ctx := prepareRequest(nil, getRequestBytes)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyDownStreamProtocol, protocol.HTTP1)
 
 	cookieName := "zone"
 
@@ -43,7 +43,7 @@ func BenchmarkGetPrefixProtocolVarCookie(b *testing.B) {
 
 func BenchmarkGetPrefixProtocolVarHeader(b *testing.B) {
 	ctx := prepareRequest(nil, getRequestBytes)
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, protocol.HTTP1)
+	ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyDownStreamProtocol, protocol.HTTP1)
 
 	headerName := "Content-Type"
 

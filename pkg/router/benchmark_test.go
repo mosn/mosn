@@ -23,21 +23,21 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	mosnctx "mosn.io/pkg/context"
+	"mosn.io/pkg/variable"
 )
 
 func BenchmarkStringGenerateHash(b *testing.B) {
 	testProtocol := types.ProtocolName("SomeProtocol")
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, testProtocol)
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextKeyDownStreamProtocol, testProtocol)
 
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "test_header_value", nil
 	}
 	headerValue := variable.NewBasicVariable("SomeProtocol_request_header_", nil, headerGetter, nil, 0)
 	variable.RegisterPrefixVariable(headerValue.Name(), headerValue)
-	variable.RegisterProtocolResource(testProtocol, api.HEADER, types.VarProtocolRequestHeader)
+	variable.RegisterProtocolResource(testProtocol, api.HEADER, variable.VarProtocolRequestHeader)
 	headerHp := headerHashPolicyImpl{
 		key: "header_key",
 	}
@@ -50,7 +50,7 @@ func BenchmarkStringGenerateHash(b *testing.B) {
 }
 
 func BenchmarkIPGenerateHash(b *testing.B) {
-	ctx := mosnctx.WithValue(context.Background(), types.ContextOriRemoteAddr, &net.TCPAddr{
+	ctx := mosnctx.WithValue(context.Background(), mosnctx.ContextOriRemoteAddr, &net.TCPAddr{
 		IP:   net.IPv4(127, 0, 0, 1),
 		Port: 80,
 	})

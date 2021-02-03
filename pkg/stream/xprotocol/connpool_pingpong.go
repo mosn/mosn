@@ -23,14 +23,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
-	atomicex "go.uber.org/atomic"
+	mosnctx "mosn.io/pkg/context"
 )
 
 // poolPingPong is used for ping pong protocol such as http
@@ -40,14 +40,14 @@ type poolPingPong struct {
 
 	totalClientCount atomicex.Uint64 // total clients
 	clientMux        sync.Mutex
-	idleClients      map[api.Protocol][]*activeClientPingPong
+	idleClients      map[api.ProtocolName][]*activeClientPingPong
 }
 
 // NewPoolPingPong generates a connection pool which uses p pingpong protocol
 func NewPoolPingPong(p *connpool) types.ConnectionPool {
 	return &poolPingPong{
 		connpool:    p,
-		idleClients: make(map[api.Protocol][]*activeClientPingPong),
+		idleClients: make(map[api.ProtocolName][]*activeClientPingPong),
 	}
 }
 
@@ -189,7 +189,7 @@ func (p *poolPingPong) putClientToPoolLocked(client *activeClientPingPong) {
 	}
 }
 
-func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClientPingPong, types.PoolFailureReason) {
+func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientPingPong, types.PoolFailureReason) {
 	ac := &activeClientPingPong{
 		pool:        p,
 		subProtocol: subProtocol,
@@ -200,7 +200,7 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 	connCtx := ctx
 
 	if len(subProtocol) > 0 {
-		connCtx = mosnctx.WithValue(ctx, types.ContextSubProtocol, string(subProtocol))
+		connCtx = mosnctx.WithValue(ctx, mosnctx.ContextSubProtocol, string(subProtocol))
 	}
 
 	ac.host.Connection.AddConnectionEventListener(ac)
@@ -222,7 +222,7 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 		// protocol is from onNewDetectStream
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
 			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()

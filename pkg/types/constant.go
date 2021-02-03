@@ -21,6 +21,7 @@ import (
 	"errors"
 
 	"mosn.io/api"
+	"mosn.io/pkg/types"
 )
 
 // MOSN Header keys
@@ -50,30 +51,15 @@ var (
 	ErrNoStatusCodeForHijack = errors.New(NoStatusCodeForHijackException)
 )
 
-// Error codes, used by top level logic code(like proxy logic).
-const (
-	CodecExceptionCode    = 0
-	UnknownCode           = 2
-	DeserialExceptionCode = 3
-	SuccessCode           = 200
-	PermissionDeniedCode  = 403
-	RouterUnavailableCode = 404
-	InternalErrorCode     = 500
-	NoHealthUpstreamCode  = 502
-	UpstreamOverFlowCode  = 503
-	TimeoutExceptionCode  = 504
-	LimitExceededCode     = 509
-)
-
 var reason2code = map[StreamResetReason]int{
-	StreamConnectionSuccessed: SuccessCode,
-	UpstreamGlobalTimeout:     TimeoutExceptionCode,
-	UpstreamPerTryTimeout:     TimeoutExceptionCode,
-	StreamOverflow:            UpstreamOverFlowCode,
-	StreamRemoteReset:         NoHealthUpstreamCode,
-	UpstreamReset:             NoHealthUpstreamCode,
-	StreamLocalReset:          NoHealthUpstreamCode,
-	StreamConnectionFailed:    NoHealthUpstreamCode,
+	StreamConnectionSuccessed: types.SuccessCode,
+	UpstreamGlobalTimeout:     types.TimeoutExceptionCode,
+	UpstreamPerTryTimeout:     types.TimeoutExceptionCode,
+	StreamOverflow:            types.UpstreamOverFlowCode,
+	StreamRemoteReset:         types.NoHealthUpstreamCode,
+	UpstreamReset:             types.NoHealthUpstreamCode,
+	StreamLocalReset:          types.NoHealthUpstreamCode,
+	StreamConnectionFailed:    types.NoHealthUpstreamCode,
 }
 
 // ConvertReasonToCode is convert the reason to a spec code.
@@ -82,7 +68,7 @@ func ConvertReasonToCode(reason StreamResetReason) int {
 		return code
 	}
 
-	return InternalErrorCode
+	return types.InternalErrorCode
 }
 
 // ResponseFlags sets

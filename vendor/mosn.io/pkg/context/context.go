@@ -15,7 +15,11 @@
  * limitations under the License.
  */
 
-package types
+package context
+
+import (
+	"context"
+)
 
 // ContextKey type
 type ContextKey int
@@ -56,3 +60,16 @@ const (
 	GlobalProxyName       = "global"
 	GlobalShutdownTimeout = "GlobalShutdownTimeout"
 )
+
+type valueCtx struct {
+	context.Context
+
+	builtin [ContextKeyEnd]interface{}
+}
+
+func (c *valueCtx) Value(key interface{}) interface{} {
+	if contextKey, ok := key.(ContextKey); ok {
+		return c.builtin[contextKey]
+	}
+	return c.Context.Value(key)
+}

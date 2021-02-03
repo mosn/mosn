@@ -15,16 +15,33 @@
  * limitations under the License.
  */
 
-package types
+package buffer
 
-// BufferPoolCtx is the bufferpool's context
-type BufferPoolCtx interface {
-	// Index returns the bufferpool's Index
-	Index() int
+import (
+	"context"
+)
 
-	// New returns the buffer
-	New() interface{}
+var ins = ByteBufferCtx{}
 
-	// Reset resets the buffer
-	Reset(interface{})
+func init() {
+	RegisterBuffer(&ins)
+}
+
+type ByteBufferCtx struct {
+	TempBufferCtx
+}
+
+func (ctx ByteBufferCtx) New() interface{} {
+	return NewByteBufferPoolContainer()
+}
+
+func (ctx ByteBufferCtx) Reset(i interface{}) {
+	p := i.(*ByteBufferPoolContainer)
+	p.Reset()
+}
+
+// GetBytesByContext returns []byte from byteBufferPool by context
+func GetBytesByContext(context context.Context, size int) *[]byte {
+	p := PoolContext(context).Find(&ins, nil).(*ByteBufferPoolContainer)
+	return p.Take(size)
 }

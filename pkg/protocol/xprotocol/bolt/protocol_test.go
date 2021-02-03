@@ -2,12 +2,14 @@ package bolt
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"mosn.io/pkg/buffer"
+	pkgtypes "mosn.io/pkg/types"
+
+	"mosn.io/mosn/pkg/protocol"
 )
 
 func TestProto(t *testing.T) {
@@ -56,14 +58,14 @@ func TestMapping(t *testing.T) {
 	var (
 		bp      = boltProtocol{}
 		mapping = map[uint32]uint32{
-			http.StatusOK:               uint32(ResponseStatusSuccess),
-			types.RouterUnavailableCode: uint32(ResponseStatusNoProcessor),
-			types.NoHealthUpstreamCode:  uint32(ResponseStatusConnectionClosed),
-			types.UpstreamOverFlowCode:  uint32(ResponseStatusServerThreadpoolBusy),
-			types.CodecExceptionCode:    uint32(ResponseStatusCodecException),
-			types.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
-			types.TimeoutExceptionCode:  uint32(ResponseStatusTimeout),
-			999999:                      uint32(ResponseStatusUnknown),
+			http.StatusOK:                  uint32(ResponseStatusSuccess),
+			pkgtypes.RouterUnavailableCode: uint32(ResponseStatusNoProcessor),
+			pkgtypes.NoHealthUpstreamCode:  uint32(ResponseStatusConnectionClosed),
+			pkgtypes.UpstreamOverFlowCode:  uint32(ResponseStatusServerThreadpoolBusy),
+			pkgtypes.CodecExceptionCode:    uint32(ResponseStatusCodecException),
+			pkgtypes.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
+			pkgtypes.TimeoutExceptionCode:  uint32(ResponseStatusTimeout),
+			999999:                         uint32(ResponseStatusUnknown),
 		}
 	)
 

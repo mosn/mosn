@@ -19,7 +19,7 @@ package dubbo
 
 import (
 	hessian "github.com/apache/dubbo-go-hessian2"
-	"mosn.io/mosn/pkg/types"
+	pkgtypes "mosn.io/pkg/types"
 )
 
 const (
@@ -102,16 +102,16 @@ type dubboStatusInfo struct {
 
 var (
 	dubboMosnStatusMap = map[int]dubboStatusInfo{
-		types.CodecExceptionCode:    {Status: hessian.Response_SERVICE_ERROR, Msg: "0|codec exception"},
-		types.UnknownCode:           {Status: hessian.Response_SERVICE_ERROR, Msg: "2|unknown"},
-		types.DeserialExceptionCode: {Status: hessian.Response_SERVICE_ERROR, Msg: "3|deserial exception"},
-		types.SuccessCode:           {Status: hessian.Response_OK, Msg: "200|success"},
-		types.PermissionDeniedCode:  {Status: hessian.Response_SERVER_ERROR, Msg: "403|permission denied"},
-		types.RouterUnavailableCode: {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "404|router unavailable"},
-		types.InternalErrorCode:     {Status: hessian.Response_SERVICE_ERROR, Msg: "500|internal error"},
-		types.NoHealthUpstreamCode:  {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "502|no health upstream"},
-		types.UpstreamOverFlowCode:  {Status: hessian.Response_BAD_REQUEST, Msg: "503|upstream overflow"},
-		types.TimeoutExceptionCode:  {Status: hessian.Response_CLIENT_TIMEOUT, Msg: "504|timeout"},
-		types.LimitExceededCode:     {Status: hessian.Response_BAD_REQUEST, Msg: "509|limit exceeded"},
+		pkgtypes.CodecExceptionCode:    {Status: hessian.Response_SERVICE_ERROR, Msg: "0|codec exception"},
+		pkgtypes.UnknownCode:           {Status: hessian.Response_SERVICE_ERROR, Msg: "2|unknown"},
+		pkgtypes.DeserialExceptionCode: {Status: hessian.Response_SERVICE_ERROR, Msg: "3|deserial exception"},
+		pkgtypes.SuccessCode:           {Status: hessian.Response_OK, Msg: "200|success"},
+		pkgtypes.PermissionDeniedCode:  {Status: hessian.Response_SERVER_ERROR, Msg: "403|permission denied"},
+		pkgtypes.RouterUnavailableCode: {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "404|router unavailable"},
+		pkgtypes.InternalErrorCode:     {Status: hessian.Response_SERVICE_ERROR, Msg: "500|internal error"},
+		pkgtypes.NoHealthUpstreamCode:  {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "502|no health upstream"},
+		pkgtypes.UpstreamOverFlowCode:  {Status: hessian.Response_BAD_REQUEST, Msg: "503|upstream overflow"},
+		pkgtypes.TimeoutExceptionCode:  {Status: hessian.Response_CLIENT_TIMEOUT, Msg: "504|timeout"},
+		pkgtypes.LimitExceededCode:     {Status: hessian.Response_BAD_REQUEST, Msg: "509|limit exceeded"},
 	}
 )

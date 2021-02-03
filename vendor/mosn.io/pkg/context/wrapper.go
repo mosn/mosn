@@ -19,11 +19,9 @@ package context
 
 import (
 	"context"
-
-	"mosn.io/mosn/pkg/types"
 )
 
-func Get(ctx context.Context, key types.ContextKey) interface{} {
+func Get(ctx context.Context, key ContextKey) interface{} {
 	if mosnCtx, ok := ctx.(*valueCtx); ok {
 		return mosnCtx.builtin[key]
 	}
@@ -37,7 +35,7 @@ func Get(ctx context.Context, key types.ContextKey) interface{} {
 // key-type=ContextKey is not supported by mosn.valueCtx.
 //
 // topology: context.Background -> mosn.valueCtx{'foo':'bar'} -> context.valueCtx -> mosn.valueCtx{'hmm':'haa'}
-func WithValue(parent context.Context, key types.ContextKey, value interface{}) context.Context {
+func WithValue(parent context.Context, key ContextKey, value interface{}) context.Context {
 	if mosnCtx, ok := parent.(*valueCtx); ok {
 		mosnCtx.builtin[key] = value
 		return mosnCtx

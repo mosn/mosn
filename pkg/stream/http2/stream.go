@@ -29,9 +29,12 @@ import (
 	"sync"
 
 	"mosn.io/api"
-	mbuffer "mosn.io/mosn/pkg/buffer"
+	"mosn.io/pkg/buffer"
+	mbuffer "mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
+	"mosn.io/pkg/variable"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls"
@@ -39,8 +42,6 @@ import (
 	mhttp2 "mosn.io/mosn/pkg/protocol/http2"
 	str "mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
-	"mosn.io/pkg/buffer"
 )
 
 func init() {
@@ -97,7 +98,7 @@ type streamConnection struct {
 
 	useStream bool
 
-	protocol types.Protocol
+	protocol api.Protocol
 }
 
 func (conn *streamConnection) Protocol() types.ProtocolName {
@@ -170,7 +171,7 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection, s
 		serverCallbacks: serverCallbacks,
 	}
 
-	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+	if gcf := mosnctx.Get(ctx, mosnctx.ContextKeyProxyGeneralConfig); gcf != nil {
 		sc.useStream = gcf.(v2.ProxyGeneralExtendConfig).Http2UseStream
 	}
 
@@ -297,13 +298,13 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 
 		h2s.Request.URL.Scheme = strings.ToLower(scheme)
 
-		variable.SetVariableValue(ctx, types.VarScheme, scheme)
-		variable.SetVariableValue(ctx, types.VarMethod, h2s.Request.Method)
-		variable.SetVariableValue(ctx, types.VarHost, h2s.Request.Host)
-		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, h2s.Request.Host) // be consistent with http1
-		variable.SetVariableValue(ctx, types.VarPath, h2s.Request.URL.Path)
+		variable.SetVariableValue(ctx, variable.VarScheme, scheme)
+		variable.SetVariableValue(ctx, variable.VarMethod, h2s.Request.Method)
+		variable.SetVariableValue(ctx, variable.VarHost, h2s.Request.Host)
+		variable.SetVariableValue(ctx, variable.VarIstioHeaderHost, h2s.Request.Host) // be consistent with http1
+		variable.SetVariableValue(ctx, variable.VarPath, h2s.Request.URL.Path)
 		if h2s.Request.URL.RawQuery != "" {
-			variable.SetVariableValue(ctx, types.VarQueryString, h2s.Request.URL.RawQuery)
+			variable.SetVariableValue(ctx, variable.VarQueryString, h2s.Request.URL.RawQuery)
 		}
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -398,7 +399,7 @@ func (conn *serverStreamConnection) handleError(ctx context.Context, f http2.Fra
 func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *http2.MStream, endStream bool) (*serverStream, error) {
 	stream := &serverStream{}
 	stream.id = h2s.ID()
-	stream.ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamID, stream.id)
+	stream.ctx = mosnctx.WithValue(ctx, mosnctx.ContextKeyStreamID, stream.id)
 	stream.sc = conn
 	stream.h2s = h2s
 	stream.h2s.UseStream = conn.useStream
@@ -437,7 +438,7 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap,
 
 	var status int
 
-	value, err := variable.GetVariableValue(ctx, types.VarHeaderStatus)
+	value, err := variable.GetVariableValue(ctx, variable.VarHeaderStatus)
 	if err != nil || value == "" {
 		status = 200
 	} else {
@@ -522,7 +523,7 @@ func (s *serverStream) GetStream() types.Stream {
 func (s *serverStream) endStream() {
 	if s.h2s.SendData != nil {
 		// Need to reset the 'Content-Length' response header when it's a direct response.
-		isDirectResponse, _ := variable.GetVariableValue(s.ctx, types.VarProxyIsDirectResponse)
+		isDirectResponse, _ := variable.GetVariableValue(s.ctx, variable.VarProxyIsDirectResponse)
 		if isDirectResponse == types.IsDirectResponse {
 			s.h2s.Response.Header.Set("Content-Length", strconv.Itoa(s.h2s.SendData.Len()))
 		}
@@ -574,7 +575,7 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 		streamConnectionEventListener: clientCallbacks,
 	}
 
-	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
+	if gcf := mosnctx.Get(ctx, mosnctx.ContextKeyProxyGeneralConfig); gcf != nil {
 		sc.useStream = gcf.(v2.ProxyGeneralExtendConfig).Http2UseStream
 	}
 
@@ -713,7 +714,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		header := mhttp2.NewRspHeader(rsp)
 
 		// set header-status into stream ctx
-		variable.SetVariableValue(stream.ctx, types.VarHeaderStatus, strconv.Itoa(rsp.StatusCode))
+		variable.SetVariableValue(stream.ctx, variable.VarHeaderStatus, strconv.Itoa(rsp.StatusCode))
 
 		mbuffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
@@ -834,7 +835,7 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	}
 
 	var method string
-	method, err := variable.GetVariableValue(ctx, types.VarMethod)
+	method, err := variable.GetVariableValue(ctx, variable.VarMethod)
 	if err != nil || method == "" {
 		if endStream {
 			method = http.MethodGet
@@ -844,7 +845,7 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	}
 
 	var host string
-	h, err := variable.GetVariableValue(ctx, types.VarHost)
+	h, err := variable.GetVariableValue(ctx, variable.VarHost)
 	if err == nil && h != "" {
 		host = h
 	} else if h, ok := headersIn.Get("Host"); ok {
@@ -853,15 +854,15 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 		host = s.conn.RemoteAddr().String()
 	}
 
-	if h, err := variable.GetVariableValue(ctx, types.VarIstioHeaderHost); err != nil && h != "" { // be consistent with http1
+	if h, err := variable.GetVariableValue(ctx, variable.VarIstioHeaderHost); err != nil && h != "" { // be consistent with http1
 		host = h
 	}
 
 	var query string
-	query, _ = variable.GetVariableValue(ctx, types.VarQueryString)
+	query, _ = variable.GetVariableValue(ctx, variable.VarQueryString)
 
 	var path string
-	path, _ = variable.GetVariableValue(ctx, types.VarPath)
+	path, _ = variable.GetVariableValue(ctx, variable.VarPath)
 
 	URL := &url.URL{
 		Scheme:   scheme,

@@ -4,14 +4,14 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+	mosnctx "mosn.io/pkg/context"
 )
 
 func TestDecodeFramePanic(t *testing.T) {
 	data := buffer.NewIoBufferBytes(complexData)
 	// decode attachement
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, IngressDubbo)
+	ctx := context.WithValue(context.TODO(), mosnctx.ContextKeyListenerName, IngressDubbo)
 
 	_, err := decodeFrame(ctx, data)
 	if err != nil {
@@ -23,7 +23,7 @@ func TestDecodeFramePanic(t *testing.T) {
 func TestDecodeSkipCheap(t *testing.T) {
 	data := buffer.NewIoBufferBytes(benchmarkData)
 	// decode attachement
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, "Cheap")
+	ctx := context.WithValue(context.TODO(), mosnctx.ContextKeyListenerName, "Cheap")
 
 	_, err := decodeFrame(ctx, data)
 	if err != nil {
@@ -35,7 +35,7 @@ func TestDecodeSkipCheap(t *testing.T) {
 func TestDecodeSkip(t *testing.T) {
 	data := buffer.NewIoBufferBytes(benchmarkData)
 	// decode attachement
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, IngressDubbo)
+	ctx := context.WithValue(context.TODO(), mosnctx.ContextKeyListenerName, IngressDubbo)
 
 	_, err := decodeFrame(ctx, data)
 	if err != nil {
@@ -45,7 +45,7 @@ func TestDecodeSkip(t *testing.T) {
 }
 
 func BenchmarkDecodeSkipCheap(t *testing.B) {
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, "Cheap")
+	ctx := context.WithValue(context.TODO(), mosnctx.ContextKeyListenerName, "Cheap")
 	for i := 0; i < t.N; i++ {
 		data := buffer.NewIoBufferBytes(benchmarkData)
 		_, err := decodeFrame(ctx, data)
@@ -56,7 +56,7 @@ func BenchmarkDecodeSkipCheap(t *testing.B) {
 }
 
 func BenchmarkDecodeSkip(t *testing.B) {
-	ctx := context.WithValue(context.TODO(), types.ContextKeyListenerName, IngressDubbo)
+	ctx := context.WithValue(context.TODO(), mosnctx.ContextKeyListenerName, IngressDubbo)
 	for i := 0; i < t.N; i++ {
 		data := buffer.NewIoBufferBytes(benchmarkData)
 		_, err := decodeFrame(ctx, data)

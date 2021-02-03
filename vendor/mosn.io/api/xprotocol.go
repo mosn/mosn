@@ -15,12 +15,10 @@
  * limitations under the License.
  */
 
-package xprotocol
+package api
 
 import (
 	"errors"
-
-	"mosn.io/mosn/pkg/types"
 )
 
 // StreamType distinguish the stream flow type.
@@ -48,6 +46,15 @@ var (
 	ErrNoProtocolCode   = errors.New(NoProtocolCode)
 )
 
+// PoolMode is whether PingPong or multiplex
+type PoolMode int
+
+const (
+	PingPong PoolMode = iota
+	Multiplex
+	TCP
+)
+
 // XFrame represents the minimal programmable object of the protocol.
 type XFrame interface {
 	// TODO: make multiplexing optional, and maybe we can support PING-PONG protocol in this framework.
@@ -57,11 +64,11 @@ type XFrame interface {
 
 	GetStreamType() StreamType
 
-	GetHeader() types.HeaderMap
+	GetHeader() HeaderMap
 
-	GetData() types.IoBuffer
+	GetData() IoBuffer
 
-	SetData(data types.IoBuffer)
+	SetData(data IoBuffer)
 }
 
 // XRespFrame expose response status code based on the XFrame
@@ -100,13 +107,13 @@ type GoAwayPredicate interface {
 // e.g. A request which cannot find route should be responded with a error response like '404 Not Found', that is what Hijacker
 // interface exactly provides.
 type XProtocol interface {
-	types.Protocol
+	Protocol
 
 	Heartbeater
 
 	Hijacker
 
-	PoolMode() types.PoolMode // configure this to use which connpool
+	PoolMode() PoolMode // configure this to use which connpool
 
 	EnableWorkerPool() bool // same meaning as EnableWorkerPool in types.StreamConnection
 
@@ -131,4 +138,14 @@ type Hijacker interface {
 
 	// Mapping the http status code, which used by proxy framework into protocol-specific status
 	Mapping(httpStatusCode uint32) uint32
+}
+
+type XProtocolCodec interface {
+	ProtocolName() ProtocolName
+
+	XProtocol() XProtocol
+
+	ProtocolMatch() ProtocolMatch
+
+	HTTPMapping() HTTPMapping
 }

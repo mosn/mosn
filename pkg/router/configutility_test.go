@@ -27,7 +27,7 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/variable"
 )
 
 func TestNewMetadataMatchCriteriaImpl(t *testing.T) {
@@ -289,7 +289,7 @@ func TestHTTPHeaderMatch(t *testing.T) {
 			},
 		}
 		ctx := variable.NewVariableContext(context.Background())
-		variable.SetVariableValue(ctx, types.VarMethod, "POST")
+		variable.SetVariableValue(ctx, variable.VarMethod, "POST")
 		matcher := CreateHTTPHeaderMatcher(headersConfig)
 		for idx, c := range []struct {
 			requestHeader map[string]string

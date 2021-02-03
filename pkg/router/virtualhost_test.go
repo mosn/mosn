@@ -21,9 +21,9 @@ import (
 	"context"
 	"testing"
 
+	"mosn.io/pkg/variable"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/mosn/pkg/protocol"
 )
@@ -117,7 +117,7 @@ func TestRouterOrder(t *testing.T) {
 	})
 	for i, tc := range testCases {
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx, types.VarPath, tc.path)
+		variable.SetVariableValue(ctx, variable.VarPath, tc.path)
 		rt := virtualHost.GetRouteFromEntries(ctx, headers)
 		if rt == nil || rt.RouteRule().ClusterName() != tc.clustername {
 			t.Errorf("#%d route unexpected result\n", i)
@@ -131,7 +131,7 @@ func TestRouterOrder(t *testing.T) {
 	})
 	for i, tc := range testCases {
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx, types.VarPath, tc.path)
+		variable.SetVariableValue(ctx, variable.VarPath, tc.path)
 		rt := prefixVirtualHost.GetRouteFromEntries(ctx, headers)
 		if rt == nil || rt.RouteRule().ClusterName() != "prefix" {
 			t.Errorf("#%d route unexpected result\n", i)
@@ -190,7 +190,7 @@ func TestAllRouter(t *testing.T) {
 	ctx := variable.NewVariableContext(context.Background())
 	for i, tc := range testCases {
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx, types.VarPath, tc.path)
+		variable.SetVariableValue(ctx, variable.VarPath, tc.path)
 		rts := virtualHost.GetAllRoutesFromEntries(ctx, headers)
 		if len(rts) != tc.matched {
 			t.Errorf("#%d route unexpected result\n", i)

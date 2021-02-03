@@ -20,8 +20,7 @@ package xprotocol
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 const (
@@ -62,4 +61,4 @@ const (
 	MOSN_PROCESS_FAIL
 )
 
-type SubProtocolDelegate func(ctx context.Context, frame xprotocol.XFrame, span types.Span)
+type SubProtocolDelegate func(ctx context.Context, frame api.XFrame, span api.Span)

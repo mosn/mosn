@@ -39,9 +39,10 @@ type MOSNConfig struct {
 	RawStaticResources   json.RawMessage      `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin             json.RawMessage      `json:"admin,omitempty"`             // admin raw message
 	Debug                PProfConfig          `json:"pprof,omitempty"`
-	Pid                  string               `json:"pid,omitempty"`     // pid file
-	Plugin               PluginConfig         `json:"plugin,omitempty"`  // plugin config
-	Extends              []ExtendConfig       `json:"extends,omitempty"` // extend config
+	Pid                  string               `json:"pid,omitempty"`              // pid file
+	Plugin               PluginConfig         `json:"plugin,omitempty"`           // plugin config
+	ThirdPartCodec       ThirdPartCodecConfig `json:"third_part_codec,omitempty"` // third part codec config
+	Extends              []ExtendConfig       `json:"extends,omitempty"`          // extend config
 }
 
 // PProfConfig is used to start a pprof server for debug
@@ -71,6 +72,28 @@ type MetricsConfig struct {
 // PluginConfig for plugin config
 type PluginConfig struct {
 	LogBase string `json:"log_base"`
+}
+
+// ThirdPartCodecType represents type of a third part codec
+type ThirdPartCodecType string
+
+// Third part codec consts
+const (
+	GoPlugin ThirdPartCodecType = "go-plugin"
+	Wasm     ThirdPartCodecType = "wasm"
+)
+
+// ThirdPartCodec represents configuration for a third part codec
+type ThirdPartCodec struct {
+	Enable         bool               `json:"enable"`
+	Type           ThirdPartCodecType `json:"type"`
+	Path           string             `json:"path"`
+	LoaderFuncName string             `json:"loader_func_name"`
+}
+
+// ThirdPartCodecConfig represents configurations for third part codec
+type ThirdPartCodecConfig struct {
+	Codecs []ThirdPartCodec `json:"codecs"`
 }
 
 // ExtendConfig for any extends
