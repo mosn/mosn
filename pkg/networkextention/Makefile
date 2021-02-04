@@ -12,14 +12,14 @@ PROJECT_NAME = mosn.io/mosn/pkg/networkextention
 build-l7:
 	@rm -rf ${TARGET}
 	mkdir -p ${TARGET}
-	GODEBUG=cgocheck=1 go build -mod=vendor  -buildmode=c-shared \
+	GODEBUG=cgocheck=1 go build -tags mosn_debug -buildmode=c-shared \
 		-v -o ${TARGET}/golang_extention.so ./mosn.go  init.go l7_golang_extention.go
 
 # build mosn on envoy image
 build-moe-image:
 	@rm -rf ${TARGET}
 	mkdir -p ${TARGET}
-	GODEBUG=cgocheck=1 go build -mod=vendor  -buildmode=c-shared \
+	GODEBUG=cgocheck=1 go build  -tags mosn_debug -buildmode=c-shared \
 		-v -o ${TARGET}/golang_extention.so ./mosn.go  init.go l7_golang_extention.go
 
 	@rm -rf IMAGEBUILD
