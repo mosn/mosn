@@ -32,6 +32,8 @@ make build-moe-image
 
 根据用户请求 header 的 uid 字段做路由，比如将 uid 范围在 [1,100] 的请求路由到应用的 s1 站点，将 uid 范围在 [101, 200] 的请求路由到 s2 站点，将其它范围 uid 请求路由到 s3 站点, 如果没有 uid 则将轮训转发到 s1、s2、s3。
 
+注：在该事例中我们选择的是 Envoy 作为 MOSN 的 network 扩展，当然也是可以选择其它高性能网关作为 MOSN 的网络层扩展插件（如：Nginx）。
+
 #### 步骤 1 (mosn filter 开发)
 
 关于动态路由，已经在 MOSN 里开发了 `metadata` 模块，所以只需要在其 `metadata` 模块下扩展自己的路由实现即可。本事例我们扩展只需在该模块下扩展一个 `unit` 模块即可： 
@@ -409,6 +411,44 @@ admin:
 
 ```
 
+修改 `mosn/pkg/networkextention/build/image/envoy/conf/service.json` 文件，其中测试应用 `test` 有三个站点的机器（注：MOSN 中的 fileDiscovery 事例会监控该文件的应用机器，并将其应用信息动态的注入到 Envoy 的 cluster）：
+
+`s1` 站点：`127.0.0.1:3450`、`127.0.0.1:3451`    
+`s2` 站点：`127.0.0.1:3452`     
+`s3` 站点：`127.0.0.1:3453`    
+
+```
+{
+    "apps":[
+        {
+            "app_name":"test",
+            "server_list":[
+                {
+                    "ip":"127.0.0.1",
+                    "port":3450,
+                    "site":"s1"
+                },
+                {
+                    "ip":"127.0.0.1",
+                    "port":3451,
+                    "site":"s1"
+                },
+                {
+                    "ip":"127.0.0.1",
+                    "port":3452,
+                    "site":"s2"
+                },
+                {
+                    "ip":"127.0.0.1",
+                    "port":3453,
+                    "site":"s3"
+                }
+            ]
+        }
+    ]
+}
+```
+
 构建将 Envoy 作为 MOSN 的 L7 网络扩展镜像：
 
 ``
@@ -457,7 +497,7 @@ docker pull mosnio/mosn-network-on-envoy:v0.20.0
 ```
 
 
-启动 MOSN 服务，就可以使用上述 `curl` 命令发起对应的请求后，就可以达到上述事例规则的路由效果：
+启动 MOSN 服务后，就可以使用上述 `curl` 命令发起对应的请求，然后就可以看到上述事例路由规则工作后的效果：
 
 ```
 docker run -it  --rm --net=host mosnio/mosn-network-on-envoy:v0.20.0
