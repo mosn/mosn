@@ -1,6 +1,4 @@
-//module mosn.io/mosn
-//module xxx
-module gitlab.alipay-inc.com/golangextention
+module mosn.io/mosn
 
 go 1.12
 
