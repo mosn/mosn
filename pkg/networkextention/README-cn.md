@@ -457,7 +457,7 @@ docker pull mosnio/mosn-network-on-envoy
 ```
 
 
-启动 MOSN 服务后，就可以使用上述 `curl` 命令发起对应的请求后，就可以达到上述事例规则的路由效果：
+启动 MOSN 服务，就可以使用上述 `curl` 命令发起对应的请求后，就可以达到上述事例规则的路由效果：
 
 ```
 docker run -it  --rm --net=host mosnio/mosn-network-on-envoy:v0.20.0
