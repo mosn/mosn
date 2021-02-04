@@ -48,6 +48,8 @@ type Frame struct {
 	content types.IoBuffer // wrapper of payload
 }
 
+var _ api.XFrame = &Frame{}
+
 // ~ XFrame
 func (r *Frame) GetRequestId() uint64 {
 	return r.Header.Id
@@ -59,6 +61,12 @@ func (r *Frame) SetRequestId(id uint64) {
 
 func (r *Frame) IsHeartbeatFrame() bool {
 	return r.Header.IsEvent
+}
+
+// dubbo frame returns default timeout
+// TODO: use dubbo timeout?
+func (r *Frame) GetTimeout() int32 {
+	return 0
 }
 
 func (r *Frame) GetStreamType() api.StreamType {

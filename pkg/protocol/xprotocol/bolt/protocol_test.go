@@ -6,10 +6,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"mosn.io/pkg/buffer"
-	pkgtypes "mosn.io/pkg/types"
-
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/pkg/buffer"
 )
 
 func TestProto(t *testing.T) {
@@ -58,13 +57,13 @@ func TestMapping(t *testing.T) {
 	var (
 		bp      = boltProtocol{}
 		mapping = map[uint32]uint32{
-			http.StatusOK:                  uint32(ResponseStatusSuccess),
-			pkgtypes.RouterUnavailableCode: uint32(ResponseStatusNoProcessor),
-			pkgtypes.NoHealthUpstreamCode:  uint32(ResponseStatusConnectionClosed),
-			pkgtypes.UpstreamOverFlowCode:  uint32(ResponseStatusServerThreadpoolBusy),
-			pkgtypes.CodecExceptionCode:    uint32(ResponseStatusCodecException),
-			pkgtypes.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
-			pkgtypes.TimeoutExceptionCode:  uint32(ResponseStatusTimeout),
+			http.StatusOK:             uint32(ResponseStatusSuccess),
+			api.RouterUnavailableCode: uint32(ResponseStatusNoProcessor),
+			api.NoHealthUpstreamCode:  uint32(ResponseStatusConnectionClosed),
+			api.UpstreamOverFlowCode:  uint32(ResponseStatusServerThreadpoolBusy),
+			api.CodecExceptionCode:    uint32(ResponseStatusCodecException),
+			api.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
+			api.TimeoutExceptionCode:  uint32(ResponseStatusTimeout),
 			999999: uint32(ResponseStatusUnknown),
 		}
 	)

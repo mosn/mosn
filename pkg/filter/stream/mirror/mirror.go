@@ -11,7 +11,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
-	pkgtypes "mosn.io/pkg/types"
 	"mosn.io/pkg/utils"
 )
 
@@ -125,7 +124,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		}
 	}, nil)
 	if m.broadcast {
-		m.receiveHandler.SendHijackReply(pkgtypes.SuccessCode, m.headers)
+		m.receiveHandler.SendHijackReply(api.SuccessCode, m.headers)
 		return api.StreamFilterStop
 	}
 	return api.StreamFilterContinue

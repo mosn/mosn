@@ -42,7 +42,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
-	pkgtypes "mosn.io/pkg/types"
 	"mosn.io/pkg/utils"
 )
 
@@ -368,7 +367,7 @@ func (s *downStream) ResetStream(reason types.StreamResetReason) {
 	s.proxy.stats.DownstreamRequestReset.Inc(1)
 	s.proxy.listenerStats.DownstreamRequestReset.Inc(1)
 	// we assume downstream client close the connection when timeout, we do not care about the network makes connection closed.
-	s.requestInfo.SetResponseCode(pkgtypes.TimeoutExceptionCode)
+	s.requestInfo.SetResponseCode(api.TimeoutExceptionCode)
 	s.cleanStream()
 }
 
@@ -688,7 +687,7 @@ func (s *downStream) matchRoute() {
 	if s.proxy.routersWrapper == nil || s.proxy.routersWrapper.GetRouters() == nil {
 		log.Proxy.Alertf(s.context, types.ErrorKeyRouteMatch, "routersWrapper or routers in routersWrapper is nil while trying to get router")
 		s.requestInfo.SetResponseFlag(api.NoRouteFound)
-		s.sendHijackReply(pkgtypes.RouterUnavailableCode, headers)
+		s.sendHijackReply(api.RouterUnavailableCode, headers)
 		return
 	}
 
@@ -754,7 +753,7 @@ func (s *downStream) chooseHost(endStream bool) {
 			log.Proxy.Warnf(s.context, "[proxy] [downstream] no route to init upstream")
 		}
 		s.requestInfo.SetResponseFlag(api.NoRouteFound)
-		s.sendHijackReply(pkgtypes.RouterUnavailableCode, s.downstreamReqHeaders)
+		s.sendHijackReply(api.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
 	// check if route have direct response
@@ -821,14 +820,14 @@ func (s *downStream) chooseHost(endStream bool) {
 			log.Proxy.Warnf(s.context, "[proxy] [downstream] no route rule to init upstream")
 		}
 		s.requestInfo.SetResponseFlag(api.NoRouteFound)
-		s.sendHijackReply(pkgtypes.RouterUnavailableCode, s.downstreamReqHeaders)
+		s.sendHijackReply(api.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
 	if s.snapshot == nil || reflect.ValueOf(s.snapshot).IsNil() {
 		// no available cluster
 		log.Proxy.Alertf(s.context, types.ErrorKeyClusterGet, " cluster snapshot is nil, cluster name is: %s", s.route.RouteRule().ClusterName())
 		s.requestInfo.SetResponseFlag(api.NoRouteFound)
-		s.sendHijackReply(pkgtypes.RouterUnavailableCode, s.downstreamReqHeaders)
+		s.sendHijackReply(api.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
 	// as ClusterName has random factor when choosing weighted cluster,
@@ -845,7 +844,7 @@ func (s *downStream) chooseHost(endStream bool) {
 	if err != nil {
 		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "initialize Upstream Connection Pool error, request can't be proxyed, error = %v", err)
 		s.requestInfo.SetResponseFlag(api.NoHealthyUpstream)
-		s.sendHijackReply(pkgtypes.NoHealthUpstreamCode, s.downstreamReqHeaders)
+		s.sendHijackReply(api.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
 	}
 	s.requestInfo.OnUpstreamHostSelected(pool.Host())
@@ -935,11 +934,11 @@ func (s *downStream) OnDecodeError(context context.Context, err error, headers t
 	// Check headers' info to do hijack
 	switch err.Error() {
 	case types.CodecException:
-		s.sendHijackReply(pkgtypes.CodecExceptionCode, headers)
+		s.sendHijackReply(api.CodecExceptionCode, headers)
 	case types.DeserializeException:
-		s.sendHijackReply(pkgtypes.DeserialExceptionCode, headers)
+		s.sendHijackReply(api.DeserialExceptionCode, headers)
 	default:
-		s.sendHijackReply(pkgtypes.UnknownCode, headers)
+		s.sendHijackReply(api.UnknownCode, headers)
 	}
 }
 
@@ -1357,7 +1356,7 @@ func (s *downStream) doRetry() {
 
 	if err != nil {
 		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "retry choose conn pool failed, error = %v", err)
-		s.sendHijackReply(pkgtypes.NoHealthUpstreamCode, s.downstreamReqHeaders)
+		s.sendHijackReply(api.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		s.cleanUp()
 		return
 	}

@@ -25,14 +25,12 @@ import (
 	"time"
 
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/types"
-
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/track"
-	mosntypes "mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 type SofaRPCSpan struct {
@@ -85,7 +83,7 @@ func (s *SofaRPCSpan) SetRequestInfo(reqinfo api.RequestInfo) {
 	}
 	s.tags[RESULT_STATUS] = strconv.Itoa(reqinfo.ResponseCode())
 	s.tags[MOSN_PROCESS_TIME] = reqinfo.ProcessTimeDuration().String()
-	s.tags[MOSN_PROCESS_FAIL] = strconv.FormatBool(reqinfo.GetResponseFlag(mosntypes.MosnProcessFailedFlags))
+	s.tags[MOSN_PROCESS_FAIL] = strconv.FormatBool(reqinfo.GetResponseFlag(types.MosnProcessFailedFlags))
 }
 
 func (s *SofaRPCSpan) Tag(key uint64) string {
@@ -95,7 +93,7 @@ func (s *SofaRPCSpan) Tag(key uint64) string {
 func (s *SofaRPCSpan) FinishSpan() {
 	s.endTime = time.Now()
 	err := s.log()
-	if err == mosntypes.ErrChanFull {
+	if err == types.ErrChanFull {
 		if log.DefaultLogger.GetLogLevel() >= log.WARN {
 			log.DefaultLogger.Warnf("Channel is full, discard span, trace id is " + s.traceId + ", span id is " + s.spanId)
 		}
@@ -180,11 +178,11 @@ func (s *SofaRPCSpan) log() error {
 
 	statusCode, _ := strconv.Atoi(s.tags[RESULT_STATUS])
 	var code = "02"
-	if statusCode == types.SuccessCode {
+	if statusCode == api.SuccessCode {
 		code = "00"
-	} else if statusCode == types.TimeoutExceptionCode {
+	} else if statusCode == api.TimeoutExceptionCode {
 		code = "03"
-	} else if statusCode == types.RouterUnavailableCode || statusCode == types.NoHealthUpstreamCode {
+	} else if statusCode == api.RouterUnavailableCode || statusCode == api.NoHealthUpstreamCode {
 		code = "04"
 	} else {
 		code = "02"

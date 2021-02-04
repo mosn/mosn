@@ -23,7 +23,6 @@ import (
 	"sync/atomic"
 	"unsafe"
 
-	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 )
@@ -62,13 +61,13 @@ type ifaceWords struct {
 }
 
 // setIdex sets index, poolCtx must embedded TempBufferCtx
-func setIndex(poolCtx api.BufferPoolCtx, i int) {
+func setIndex(poolCtx types.BufferPoolCtx, i int) {
 	p := (*ifaceWords)(unsafe.Pointer(&poolCtx))
 	temp := (*TempBufferCtx)(p.data)
 	temp.index = i
 }
 
-func RegisterBuffer(poolCtx api.BufferPoolCtx) {
+func RegisterBuffer(poolCtx types.BufferPoolCtx) {
 	// frist index is 1
 	i := atomic.AddInt32(&index, 1)
 	if i >= maxBufferPool {
@@ -80,7 +79,7 @@ func RegisterBuffer(poolCtx api.BufferPoolCtx) {
 
 // bufferPool is buffer pool
 type bufferPool struct {
-	ctx api.BufferPoolCtx
+	ctx types.BufferPoolCtx
 	sync.Pool
 }
 
@@ -137,7 +136,7 @@ func newBufferValue() (value *bufferValue) {
 }
 
 // Find returns buffer from bufferValue
-func (bv *bufferValue) Find(poolCtx api.BufferPoolCtx, x interface{}) interface{} {
+func (bv *bufferValue) Find(poolCtx types.BufferPoolCtx, x interface{}) interface{} {
 	i := poolCtx.Index()
 	if i <= 0 || i > int(index) {
 		panic("buffer should call buffer.RegisterBuffer()")
@@ -149,7 +148,7 @@ func (bv *bufferValue) Find(poolCtx api.BufferPoolCtx, x interface{}) interface{
 }
 
 // Take returns buffer from buffer pools
-func (bv *bufferValue) Take(poolCtx api.BufferPoolCtx) (value interface{}) {
+func (bv *bufferValue) Take(poolCtx types.BufferPoolCtx) (value interface{}) {
 	i := poolCtx.Index()
 	value = bPool[i].take()
 	bv.value[i] = value

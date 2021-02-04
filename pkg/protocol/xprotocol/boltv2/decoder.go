@@ -20,9 +20,6 @@ package boltv2
 import (
 	"context"
 	"encoding/binary"
-	"strconv"
-
-	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/pkg/buffer"
 
@@ -78,14 +75,11 @@ func decodeRequest(ctx context.Context, data types.IoBuffer, oneway bool) (cmd i
 	}
 	request.Data = buffer.GetIoBuffer(frameLen)
 
-	// 4. set timeout to notify proxy
-	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(request.Timeout)))
-
-	//5. copy data for io multiplexing
+	//4. copy data for io multiplexing
 	request.Data.Write(bytes[:frameLen])
 	request.rawData = request.Data.Bytes()
 
-	//6. process wrappers: Class, Header, Content, Data
+	//5. process wrappers: Class, Header, Content, Data
 	headerIndex := RequestHeaderLen + int(classLen)
 	contentIndex := headerIndex + int(headerLen)
 
