@@ -24,7 +24,7 @@ func (filter *mockListenerFilterChainFactory) OnAccept(cb api.ListenerFilterChai
 		return api.Continue
 	}
 	ips := fmt.Sprintf("%d.%d.%d.%d", 127, 0, 0, 1)
-	cb.SetOriginalAddr(ips, 9090)
+	cb.SetOriginalAddr(ips, 9092)
 	cb.UseOriginalDst(cb.GetOriContext())
 	return api.Stop
 }
@@ -32,7 +32,7 @@ func (filter *mockListenerFilterChainFactory) OnAccept(cb api.ListenerFilterChai
 func TestProxyFallback(t *testing.T) {
 	Scenario(t, "proxy fallback to tcp-proxy", func() {
 		var m *mosn.MosnOperator
-		h1Server := http.Server{Addr: ":8080"}
+		h1Server := http.Server{Addr: ":9091"}
 		var tcpListener net.Listener
 		h1ReqCount, tcpReqCount := 0, 0
 		tcpReadBytes := 0
@@ -50,7 +50,7 @@ func TestProxyFallback(t *testing.T) {
 			}()
 
 			go func() {
-				tcpListener, _ = net.Listen("tcp", "127.0.0.1:9090")
+				tcpListener, _ = net.Listen("tcp", "127.0.0.1:9092")
 				Verify(tcpListener, NotNil)
 				for {
 					conn, err := tcpListener.Accept()
@@ -175,7 +175,7 @@ const ConfigSimpleHTTP1 = `{
         "lb_type": "LB_RANDOM",
         "hosts": [
           {
-            "address": "127.0.0.1:8080"
+            "address": "127.0.0.1:9091"
           }
         ]
       },
@@ -185,7 +185,7 @@ const ConfigSimpleHTTP1 = `{
         "lb_type": "LB_RANDOM",
         "hosts": [
           {
-            "address": "127.0.0.1:9090"
+            "address": "127.0.0.1:9092"
           }
         ]
       }

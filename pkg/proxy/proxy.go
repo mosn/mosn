@@ -173,22 +173,18 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 			prot = conn.ConnectionState().NegotiatedProtocol
 		}
 		protocol, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes())
-		if err == stream.EAGAIN {
+
+		if err != nil && p.config.FallbackForUnknownProtocol {
 			// when configured with fallback, we do not wait for more data in case of EAGAIN
 			// since we cannot distinguish whether we need more data or it's just a small tcp package
 			// return api.Stop would cause the later case to block unexpectedly
-			if p.config.FallbackForUnknownProtocol {
-				p.fallback = true
-				return api.Continue
-			}
+			p.fallback = true
+			return api.Continue
+		}
 
+		if err == stream.EAGAIN {
 			return api.Stop
 		} else if err == stream.FAILED {
-			if p.config.FallbackForUnknownProtocol {
-				p.fallback = true
-				return api.Continue
-			}
-
 			var size int
 			if buf.Len() > 10 {
 				size = 10
