@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/filter/stream/metadata"
+	"mosn.io/mosn/pkg/networkextention/l7/stream/filter/metadata"
 	"mosn.io/pkg/buffer"
 )
 
