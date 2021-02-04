@@ -453,7 +453,7 @@ site s3 from 3453
 拉取 MOSN 使用 Envoy 作为 network 扩展的镜像：
 
 ```
-docker pull mosnio/mosn-network-on-envoy
+docker pull mosnio/mosn-network-on-envoy:v0.20.0
 ```
 
 
