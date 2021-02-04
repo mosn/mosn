@@ -42,13 +42,13 @@ TcpServer.go  // 模拟的 Tcp Server
 ### 启动一个 HTTP Server
 
 ```
-go run H1server.go
+go run httpserver.go
 ```
 
 ### 启动一个 TCP Server
 
 ```
-go run TcpServer.go
+go run tcpServer.go
 ```
 
 ### 启动 MOSN

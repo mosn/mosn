@@ -42,13 +42,13 @@ TcpServer.go  // Tcp Server
 ### Start an HTTP Server
 
 ```
-go run H1server.go
+go run httpserver.go
 ```
 
 ### Start an TCP Server
 
 ```
-go run TcpServer.go
+go run tcpServer.go
 ```
 
 ### Start the MOSN
