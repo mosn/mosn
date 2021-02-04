@@ -179,6 +179,7 @@ func TestNewProxyRequest(t *testing.T) {
 func TestProxyFallbackNormal(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
 
 	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
 	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
