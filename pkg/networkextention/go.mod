@@ -1,4 +1,4 @@
-module mosn.io/mosn
+module mosn.io/mosn/pkg/networkextention
 
 go 1.12
 
@@ -13,7 +13,7 @@ require (
 	github.com/s12v/go-jwks v0.2.0 // indirect
 	github.com/shirou/gopsutil v2.19.12+incompatible // indirect
 	mosn.io/api v0.0.0-20210129030635-d7dc8206d7b7
-	mosn.io/mosn v0.0.0-20210129123201-c2fcb7340e69
+	mosn.io/mosn v0.21.0
 	mosn.io/pkg v0.0.0-20201228090327-daaf86502a50
 )
 
