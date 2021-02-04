@@ -32,7 +32,8 @@ make build-moe-image
 
 根据用户请求 header 的 uid 字段做路由，比如将 uid 范围在 [1,100] 的请求路由到应用的 s1 站点，将 uid 范围在 [101, 200] 的请求路由到 s2 站点，将其它范围 uid 请求路由到 s3 站点, 如果没有 uid 则将轮训转发到 s1、s2、s3。
 
-* 步骤 1 (mosn filter 开发)
+步骤 1 (mosn filter 开发)
+==========
 
 关于动态路由，已经在 MOSN 里开发了 `metadata` 模块，所以只需要在其 `metadata` 模块下扩展自己的路由实现即可。本事例我们扩展只需在该模块下扩展一个 `unit` 模块即可： 
 
@@ -129,13 +130,13 @@ func (d *UnitDriver) calculateMockRouter(uid int) string {
                 return "s3"
         }
 }
-
 ```
 
 之后在 `mosn/pkg/networkextention/mosn.go` 文件末尾增加 `import  _ "mosn.io/mosn/pkg/networkextention/l7/stream/filter/metadata/unit"` 后，就可以使用 `make build-l7` or `make build-moe-image` 编译相关扩展组件了。
 
 
-* 步骤 2 (修改 MOSN 及 Envoy 配置，并构建 image 其组件导入 Envoy 中 )
+步骤 2 (修改 MOSN 及 Envoy 配置，并构建 image 其组件导入 Envoy 中 )
+==========
 
 修改 `mosn/pkg/networkextention/build/image/envoy/conf/mosn.json` 文件，引入 UNIT 路由模块（如下 stream_filters 配置相关）：
 
@@ -206,7 +207,6 @@ func (d *UnitDriver) calculateMockRouter(uid int) string {
     ]
   }
 }
-
 ```
 
 修改 `mosn/pkg/networkextention/build/image/envoy/conf/envoy.yaml` 文件，在 Envoy 中启用 MOSN 的网络扩展 SDK(如下 envoy.filters.http.golang 相关配置)：
@@ -417,7 +417,8 @@ admin:
 make build-moe-image
 ``
 
-* 步骤 3 (运行步骤 2 构建的 image)
+步骤 3 (运行步骤 2 构建的 image)
+==========
 
 通过如下命令，就可以启动 MOSN 将 Envoy 作为网络扩展的服务：
 
@@ -455,8 +456,7 @@ site s3 from 3453
 拉取 MOSN 使用 Envoy 作为 network 扩展的镜像：
 
 ```
-docker push mosnio/mosn-network-on-envoy
-
+docker pull mosnio/mosn-network-on-envoy
 ```
 
 
