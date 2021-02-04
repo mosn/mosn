@@ -229,28 +229,125 @@ func TestProxyFallbackDoFallback(t *testing.T) {
 		return c
 	})
 
-	testInput := [][]byte{
-		[]byte("helloWorldHelloWorld"), // normal case
-		[]byte("h"),                    // small package
+	proxy := &proxy{
+		config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+		readCallbacks:    readCallback,
+		fallback:         false,
+		serverStreamConn: nil,
 	}
 
-	for _, in := range testInput {
-		proxy := &proxy{
-			config:           &v2.Proxy{FallbackForUnknownProtocol: true},
-			readCallbacks:    readCallback,
-			fallback:         false,
-			serverStreamConn: nil,
-		}
+	data := []byte("helloWorldHelloWorld")
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes(data)), api.Continue)
+	assert.True(t, proxy.fallback)
 
-		assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes(in)), api.Continue)
-		assert.True(t, proxy.fallback)
+	// ensure panic if not return directly
+	proxy.readCallbacks = nil
+	proxy.serverStreamConn = nil
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes(data)), api.Continue)
 
-		// ensure panic if not return directly
-		proxy.readCallbacks = nil
-		proxy.serverStreamConn = nil
-		assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes(in)), api.Continue)
+	// once fallback, should never match protocol
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Continue)
+}
 
-		// once fallback, should never match protocol
-		assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Continue)
+func TestProxyFallbackSmallPackage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
+
+	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
+	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
+		c := mock.NewMockConnection(ctrl)
+		c.EXPECT().RawConn().AnyTimes().Return(nil)
+		return c
+	})
+	continueReading := false
+	readCallback.EXPECT().ContinueReading().AnyTimes().DoAndReturn(func() {
+		continueReading = true
+	})
+
+	proxy := &proxy{
+		config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+		readCallbacks:    readCallback,
+		fallback:         false,
+		serverStreamConn: nil,
 	}
+	proxy.downstreamListener = &downstreamCallbacks{
+		proxy: proxy,
+	}
+
+	// wait for more data or timeout
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("b"))), api.Stop)
+	assert.False(t, proxy.fallback)
+	assert.True(t, proxy.waitFallbackTimeout)
+
+	// still wait for more data or timeout
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("b"))), api.Stop)
+	assert.False(t, proxy.fallback)
+	assert.True(t, proxy.waitFallbackTimeout)
+
+	// timeout
+	proxy.downstreamListener.OnEvent(api.OnReadTimeout)
+	assert.True(t, continueReading)
+	assert.True(t, proxy.fallback)
+	assert.False(t, proxy.waitFallbackTimeout)
+
+	// ensure panic if not return directly
+	proxy.readCallbacks = nil
+	proxy.serverStreamConn = nil
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("b"))), api.Continue)
+
+	// once fallback, should never match protocol
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Continue)
+}
+
+func TestProxyFallbackSmallHTTPPackage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
+
+	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
+	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
+		c := mock.NewMockConnection(ctrl)
+		c.EXPECT().RawConn().AnyTimes().Return(nil)
+		return c
+	})
+
+	var prot types.ProtocolName
+	monkey.Patch(stream.CreateServerStreamConnection, func(ctx context.Context, p types.ProtocolName, conn api.Connection,
+		l types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+		prot = p
+		ret := mock.NewMockServerStreamConnection(ctrl)
+		ret.EXPECT().Dispatch(gomock.Any()).AnyTimes().Return()
+		return ret
+	})
+
+	proxy := &proxy{
+		config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+		readCallbacks:    readCallback,
+		fallback:         false,
+		serverStreamConn: nil,
+	}
+	proxy.downstreamListener = &downstreamCallbacks{
+		proxy: proxy,
+	}
+
+	// wait for more data or timeout
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("G"))), api.Stop)
+	assert.False(t, proxy.fallback)
+	assert.True(t, proxy.waitFallbackTimeout)
+
+	// still wait for more data or timeout
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GE"))), api.Stop)
+	assert.False(t, proxy.fallback)
+	assert.True(t, proxy.waitFallbackTimeout)
+
+	// should auto match http1
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Stop)
+	assert.False(t, proxy.fallback)
+	assert.False(t, proxy.waitFallbackTimeout)
+	assert.Equal(t, prot, protocol.HTTP1)
+
+	// timeout
+	proxy.downstreamListener.OnEvent(api.OnReadTimeout)
+	assert.False(t, proxy.fallback)
 }

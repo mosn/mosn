@@ -83,6 +83,7 @@ type proxy struct {
 	downstreamListener  api.ConnectionEventListener
 	routersWrapper      types.RouterWrapper // wrapper used to point to the routers instance
 	fallback            bool
+	waitFallbackTimeout bool
 	serverStreamConn    types.ServerStreamConnection
 	context             context.Context
 	activeStreams       *list.List // downstream requests
@@ -172,19 +173,23 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 		if conn, ok := p.readCallbacks.Connection().RawConn().(*mtls.TLSConn); ok {
 			prot = conn.ConnectionState().NegotiatedProtocol
 		}
+
 		protocol, err := stream.SelectStreamFactoryProtocol(p.context, prot, buf.Bytes())
 
-		if err != nil && p.config.FallbackForUnknownProtocol {
-			// when configured with fallback, we do not wait for more data in case of EAGAIN
-			// since we cannot distinguish whether we need more data or it's just a small tcp package
-			// return api.Stop would cause the later case to block unexpectedly
-			p.fallback = true
-			return api.Continue
-		}
-
 		if err == stream.EAGAIN {
+			if p.config.FallbackForUnknownProtocol {
+				// if configured with fallback, start waiting for read timeout
+				p.waitFallbackTimeout = true
+			}
 			return api.Stop
 		} else if err == stream.FAILED {
+			if p.config.FallbackForUnknownProtocol {
+				// fail to match protocol, do fallback, should cancel waiting for read timeout
+				p.waitFallbackTimeout = false
+				p.fallback = true
+				return api.Continue
+			}
+
 			var size int
 			if buf.Len() > 10 {
 				size = 10
@@ -195,9 +200,14 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 			p.readCallbacks.Connection().Close(api.NoFlush, api.OnReadErrClose)
 			return api.Stop
 		}
+
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("[proxy] Protoctol Auto: %v", protocol)
 		}
+
+		// manage to auto match protocol, ensure we do not process fallback timeout anymore
+		p.waitFallbackTimeout = false
+
 		p.serverStreamConn = stream.CreateServerStreamConnection(p.context, protocol, p.readCallbacks.Connection(), p)
 	}
 	p.serverStreamConn.Dispatch(buf)
@@ -222,6 +232,16 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 
 			ds := urEle.Value.(*downStream)
 			ds.OnResetStream(types.StreamConnectionTermination)
+		}
+	} else if event == api.OnReadTimeout {
+		if p.config.FallbackForUnknownProtocol && p.waitFallbackTimeout {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[proxy] wait for fallback timeout, do fallback")
+			}
+
+			p.waitFallbackTimeout = false
+			p.fallback = true
+			p.readCallbacks.ContinueReading()
 		}
 	}
 }
