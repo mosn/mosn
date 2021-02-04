@@ -188,9 +188,9 @@ func TestProxyFallbackNormal(t *testing.T) {
 		return c
 	})
 
-	var prot api.Protocol
+	var prot types.ProtocolName
 	dispatch := 0
-	monkey.Patch(stream.CreateServerStreamConnection, func(ctx context.Context, p api.Protocol, conn api.Connection,
+	monkey.Patch(stream.CreateServerStreamConnection, func(ctx context.Context, p types.ProtocolName, conn api.Connection,
 		l types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
 		prot = p
 		ret := mock.NewMockServerStreamConnection(ctrl)
