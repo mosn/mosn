@@ -21,5 +21,6 @@ import (
 	"mosn.io/api"
 )
 
-// Deprecated: use mosn.io/api/buffer.go:IoBuffer instead
+// keep this alias for compatbile.
+// if you write new code, use api.IoBuffer instead.
 type IoBuffer = api.IoBuffer
