@@ -209,6 +209,208 @@ func (d *UnitDriver) calculateMockRouter(uid int) string {
 
 ```
 
+修改 `mosn/pkg/networkextention/build/image/envoy/conf/envoy.yaml` 文件，在 Envoy 中启用 MOSN 的网络扩展 SDK(如下 envoy.filters.http.golang 相关配置)：
+
+```
+static_resources:
+  listeners:
+  - name: moe
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 2990 }
+    reuse_port: false # disable reuseport at the prod
+    continue_on_listener_filters_timeout: true
+    per_connection_buffer_limit_bytes: 10485760 # 10 MB
+    connection_balance_config:
+      exact_balance: {}
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          generate_request_id: false
+          use_remote_address: false
+          normalize_path: false # Should paths be normalized according to RFC 3986 before any processing of requests
+          merge_slashes: false # Determines if adjacent slashes in the path are merged into one before any processing of requests by HTTP filters or routing
+          stream_idle_timeout: 300s # 5 mins, must be disabled for long-lived and streaming requests
+          request_timeout: 300s # 5 mins, must be disabled for long-lived and streaming requests
+          delayed_close_timeout: 5s # delay closed, samed as lingering_close
+          drain_timeout: 5s # The time that Envoy will wait between sending an HTTP/2 "shutdown notification" (GOAWAY frame with max stream ID) and a final GOAWAY frame.
+          max_request_headers_kb: 96
+          codec_type: "AUTO"
+          stat_prefix: ingress_http
+          access_log:
+          - name: envoy.file_access_log
+            config:
+              path: "/home/admin/mosn/logs/mosn-on-envoy-access.log"
+              format: "%START_TIME%||%REQ(SOFA-TRACEID?TRI-TRACE-TRACEID)%||%REQ(SOFA-RPCID?TRI-TRACE-RPCID)%||%REQ(:METHOD)%||%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%||%PROTOCOL%||%DOWNSTREAM_REMOTE_ADDRESS%||%DOWNSTREAM_LOCAL_ADDRESS%||%REQ(HOST)%||%DOWNSTREAM_TLS_VERSION%||%DOWNSTREAM_TLS_CIPHER%||%RESPONSE_CODE%||%RESPONSE_FLAGS%||%RESP(GRPC-STATUS)%||%UPSTREAM_TRANSPORT_FAILURE_REASON%||%BYTES_RECEIVED%||%BYTES_SENT%||%DURATION%||%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%||%REQ(X-FORWARDED-FOR)%||%REQ(USER-AGENT)%||%REQ(X-REQUEST-ID)%||%REQ(:AUTHORITY)%||%UPSTREAM_HOST%||%ROUTE_NAME%||%UPSTREAM_CLUSTER%||%UPSTREAM_LOCAL_ADDRESS%||%DYNAMIC_METADATA(envoy.lb:idc)%||%CONNECTION_ID%||%REQUEST_DURATION%||%RESPONSE_DURATION%||%RESPONSE_TX_DURATION%||%RESPONSE_CODE_DETAILS%||%CONNECTION_TERMINATION_DETAILS%||%REQ(req-start-time)%||%DYNAMIC_METADATA(golang.extention:cost_total)%||%DYNAMIC_METADATA(golang.extention:cost_decode)%||%DYNAMIC_METADATA(golang.extention:cost_encode)%||\n"
+          route_config:
+            validate_clusters: false # An optional boolean that specifies whether the clusters that the route table refers to will be validated by the cluster manager.
+            name: local_route
+            virtual_hosts:
+            - name: default
+              domains:
+                - "*"
+              routes:
+              - name: "status"
+                match:
+                  path: "/status.taobao"
+                direct_response:
+                  status: 200
+              - name: "moe"
+                match:
+                  prefix: "/"
+                route:
+                  cluster: test
+                  max_grpc_timeout: 0s # configured as 0, the maximum allowed timeout for gRPC requests is infinity,such as max(header:grpc-timeout, MaxInt)
+                  retry_policy:
+                    retry_on: connect-failure,refused-stream,unavailable,cancelled,resource-exhausted,retriable-status-codes
+                    num_retries: 2 # retry nums max(num_retries, header:x-envoy-max-retries)
+                    retry_host_predicate:
+                      - name: envoy.retry_host_predicates.previous_hosts # skip the retryed host.
+                    host_selection_retry_max_attempts: '5'
+                    retriable_status_codes:
+                      - 503
+                typed_per_filter_config:
+                  envoy.filters.http.header_to_metadata:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.header_to_metadata.v3.Config
+                    request_rules:
+                      - header: x-mosn-on-envoy-unit
+                        on_header_present:
+                          metadata_namespace: envoy.lb
+                          key: idc
+                          type: STRING
+                        remove: true
+
+          http_filters:
+          - name: envoy.filters.http.golang  # golang filter must need before header_to_metadata filter
+          - name: envoy.filters.http.header_to_metadata
+          - name: envoy.router
+            config:
+             dynamic_stats: false
+  - name: site-s1-listener-3450
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 3450 }
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          generate_request_id: false
+          codec_type: auto
+          stat_prefix: ingress_http
+          access_log:
+          - name: envoy.file_access_log
+            config:
+              path: "/dev/null"
+          route_config:
+            name:  site-s1-listener-3450
+            virtual_hosts:
+            - name:  site-s1-listener-3450
+              domains:
+                - "*"
+              routes:
+              - direct_response:
+                  body:
+                    inline_string: "site s1 from 3450"
+                  status: 200
+                match:
+                  prefix: "/"
+          http_filters:
+          - name: envoy.router
+  - name:  site-s1-listener-3451
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 3451 }
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          generate_request_id: false
+          codec_type: auto
+          stat_prefix: ingress_http
+          access_log:
+          - name: envoy.file_access_log
+            config:
+              path: "/dev/null"
+          route_config:
+            name: site-s1-listener-3451
+            virtual_hosts:
+            - name: site-s1-listener-3451
+              domains:
+                - "*"
+              routes:
+              - direct_response:
+                  body:
+                    inline_string: "site s1 from 3451"
+                  status: 200
+                match:
+                  prefix: "/"
+          http_filters:
+          - name: envoy.router
+  - name:  site-s2-listener-3452
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 3452 }
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          generate_request_id: false
+          codec_type: auto
+          stat_prefix: ingress_http
+          access_log:
+          - name: envoy.file_access_log
+            config:
+              path: "/dev/null"
+          route_config:
+            name: site-s2-listener-3452
+            virtual_hosts:
+            - name: site-s2-listener-3452
+              domains:
+                - "*"
+              routes:
+              - direct_response:
+                  body:
+                    inline_string: "site s2 from 3452"
+                  status: 200
+                match:
+                  prefix: "/"
+          http_filters:
+          - name: envoy.router
+  - name:  site-s3-listener-3453
+    address:
+      socket_address: { address: 0.0.0.0, port_value: 3453 }
+    filter_chains:
+    - filters:
+      - name: envoy.http_connection_manager
+        config:
+          generate_request_id: false
+          codec_type: auto
+          stat_prefix: ingress_http
+          access_log:
+          - name: envoy.file_access_log
+            config:
+              path: "/dev/null"
+          route_config:
+            name: site-s3-listener-3453
+            virtual_hosts:
+            - name: site-s3-listener-3453
+              domains:
+                - "*"
+              routes:
+              - direct_response:
+                  body:
+                    inline_string: "site s3 from 3453"
+                  status: 200
+                match:
+                  prefix: "/"
+          http_filters:
+          - name: envoy.router
+admin:
+  access_log_path: "/dev/null"
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 3491
+
+```
+
 构建将 Envoy 作为 MOSN 的 L7 网络扩展镜像：
 
 ``
@@ -217,9 +419,15 @@ make build-moe-image
 
 * 步骤 3 (运行步骤 2 构建的 image)
 
-docker run --net=host   mosn:${MOSN-VERSION}
+通过如下命令，就可以启动 MOSN 将 Envoy 作为网络扩展的服务：
 
-然后在另一个终端通过 `curl` 发起对应的请求后，就可以达到上述规则的路由。
+```
+docker run -it --rm --net=host mosn:${MOSN-VERSION}
+```
+
+注：`${MOSN-VERSION}` 的值可 `cat mosn/VERSION` 查看
+
+然后在另一个终端通过 `curl` 发起对应的请求后，就可以达到上述规则的路由：
 
 ```
 $curl localhost:2990 -H "uid:2"
@@ -239,3 +447,21 @@ site s3 from 3453
 
 ```
 
+
+# 快速实践
+
+如果想快速体验上述事例，则可以通过如下方式操作即可：
+
+拉取 MOSN 使用 Envoy 作为 network 扩展的镜像：
+
+```
+docker push mosnio/mosn-network-on-envoy
+
+```
+
+
+启动 MOSN 服务后，就可以使用上述 `curl` 命令发起对应的请求后，就可以达到上述事例规则的路由效果：
+
+```
+docker run -it  --rm --net=host mosnio/mosn-network-on-envoy:v0.20.0
+```
