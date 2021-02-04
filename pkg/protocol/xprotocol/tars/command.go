@@ -32,6 +32,8 @@ type Request struct {
 	protocol.CommonHeader
 }
 
+var _ api.XFrame = &Request{}
+
 // ~ XFrame
 func (r *Request) GetRequestId() uint64 {
 	return uint64(r.cmd.IRequestId)
@@ -44,6 +46,11 @@ func (r *Request) SetRequestId(id uint64) {
 func (r *Request) IsHeartbeatFrame() bool {
 	// un support
 	return false
+}
+
+// TODO: add timeout
+func (r *Request) GetTimeout() int32 {
+	return 0
 }
 
 func (r *Request) GetStreamType() api.StreamType {
@@ -69,6 +76,8 @@ type Response struct {
 	protocol.CommonHeader
 }
 
+var _ api.XRespFrame = &Response{}
+
 // ~ XFrame
 func (r *Response) GetRequestId() uint64 {
 	return uint64(r.cmd.IRequestId)
@@ -81,6 +90,11 @@ func (r *Response) SetRequestId(id uint64) {
 func (r *Response) IsHeartbeatFrame() bool {
 	// un support
 	return false
+}
+
+// response contains no timeout
+func (r *Response) GetTimeout() int32 {
+	return -1
 }
 
 func (r *Response) GetStreamType() api.StreamType {

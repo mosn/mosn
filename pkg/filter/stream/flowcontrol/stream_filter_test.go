@@ -10,15 +10,12 @@ import (
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
-	pkgtypes "mosn.io/pkg/types"
-	"mosn.io/mosn/pkg/variable"
-
-	mosnctx "mosn.io/mosn/pkg/context"
-
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
 const (
@@ -266,7 +263,7 @@ var (
 	}
 	mockNormalRI = &mockRequestInfo{
 		flags: map[api.ResponseFlag]bool{},
-		code:  pkgtypes.SuccessCode,
+		code:  api.SuccessCode,
 	}
 )
 

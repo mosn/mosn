@@ -12,8 +12,6 @@ import (
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"mosn.io/api"
-	"mosn.io/pkg/types"
-
 	"mosn.io/mosn/pkg/log"
 )
 
@@ -81,7 +79,7 @@ func defaultConfig() *Config {
 		AppName: defaultSentinelAppName,
 		LogPath: defaultSentinelLogDir,
 		Action: Action{
-			Status: types.LimitExceededCode,
+			Status: api.LimitExceededCode,
 			Body:   defaultResponse,
 		},
 		KeyType: api.PATH,

@@ -1,13 +1,13 @@
 package types
 
 import (
-	"github.com/stretchr/testify/assert"
-	pkgtypes "mosn.io/pkg/types"
-
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
 )
 
 func TestConvertReasonToCode(t *testing.T) {
 	reason := StreamConnectionSuccessed
-	assert.Equal(t, ConvertReasonToCode(reason), pkgtypes.SuccessCode)
+	assert.Equal(t, ConvertReasonToCode(reason), api.SuccessCode)
 }

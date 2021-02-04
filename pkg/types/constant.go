@@ -21,7 +21,6 @@ import (
 	"errors"
 
 	"mosn.io/api"
-	"mosn.io/pkg/types"
 )
 
 // MOSN Header keys
@@ -52,14 +51,14 @@ var (
 )
 
 var reason2code = map[StreamResetReason]int{
-	StreamConnectionSuccessed: types.SuccessCode,
-	UpstreamGlobalTimeout:     types.TimeoutExceptionCode,
-	UpstreamPerTryTimeout:     types.TimeoutExceptionCode,
-	StreamOverflow:            types.UpstreamOverFlowCode,
-	StreamRemoteReset:         types.NoHealthUpstreamCode,
-	UpstreamReset:             types.NoHealthUpstreamCode,
-	StreamLocalReset:          types.NoHealthUpstreamCode,
-	StreamConnectionFailed:    types.NoHealthUpstreamCode,
+	StreamConnectionSuccessed: api.SuccessCode,
+	UpstreamGlobalTimeout:     api.TimeoutExceptionCode,
+	UpstreamPerTryTimeout:     api.TimeoutExceptionCode,
+	StreamOverflow:            api.UpstreamOverFlowCode,
+	StreamRemoteReset:         api.NoHealthUpstreamCode,
+	UpstreamReset:             api.NoHealthUpstreamCode,
+	StreamLocalReset:          api.NoHealthUpstreamCode,
+	StreamConnectionFailed:    api.NoHealthUpstreamCode,
 }
 
 // ConvertReasonToCode is convert the reason to a spec code.
@@ -68,7 +67,7 @@ func ConvertReasonToCode(reason StreamResetReason) int {
 		return code
 	}
 
-	return types.InternalErrorCode
+	return api.InternalErrorCode
 }
 
 // ResponseFlags sets

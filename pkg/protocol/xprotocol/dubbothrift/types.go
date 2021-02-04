@@ -19,7 +19,7 @@ package dubbothrift
 
 import (
 	"github.com/apache/thrift/lib/go/thrift"
-	pkgtypes "mosn.io/pkg/types"
+	"mosn.io/api"
 )
 
 const (
@@ -66,16 +66,16 @@ type dThriftStatusInfo struct {
 
 var (
 	dubboMosnStatusMap = map[int]dThriftStatusInfo{
-		pkgtypes.CodecExceptionCode:    {Status: thrift.PROTOCOL_ERROR, Msg: "0|codec exception"},
-		pkgtypes.UnknownCode:           {Status: thrift.UNKNOWN_APPLICATION_EXCEPTION, Msg: "2|unknown"},
-		pkgtypes.DeserialExceptionCode: {Status: thrift.PROTOCOL_ERROR, Msg: "3|deserial exception"},
-		pkgtypes.SuccessCode:           {Status: 0, Msg: "200|success"},
-		pkgtypes.PermissionDeniedCode:  {Status: thrift.INTERNAL_ERROR, Msg: "403|permission denied"},
-		pkgtypes.RouterUnavailableCode: {Status: thrift.UNKNOWN_METHOD, Msg: "404|router unavailable"},
-		pkgtypes.InternalErrorCode:     {Status: thrift.INTERNAL_ERROR, Msg: "500|internal error"},
-		pkgtypes.NoHealthUpstreamCode:  {Status: thrift.UNKNOWN_APPLICATION_EXCEPTION, Msg: "502|no health upstream"},
-		pkgtypes.UpstreamOverFlowCode:  {Status: thrift.UNKNOWN_APPLICATION_EXCEPTION, Msg: "503|upstream overflow"},
-		pkgtypes.TimeoutExceptionCode:  {Status: thrift.INTERNAL_ERROR, Msg: "504|timeout"},
-		pkgtypes.LimitExceededCode:     {Status: thrift.UNKNOWN_APPLICATION_EXCEPTION, Msg: "509|limit exceeded"},
+		api.CodecExceptionCode:    {Status: thrift.PROTOCOL_ERROR, Msg: "0|codec exception"},
+		api.UnknownCode:           {Status: thrift.UNKNOWN_APPLICATION_EXCEPTION, Msg: "2|unknown"},
+		api.DeserialExceptionCode: {Status: thrift.PROTOCOL_ERROR, Msg: "3|deserial exception"},
+		api.SuccessCode:           {Status: 0, Msg: "200|success"},
+		api.PermissionDeniedCode:  {Status: thrift.INTERNAL_ERROR, Msg: "403|permission denied"},
+		api.RouterUnavailableCode: {Status: thrift.UNKNOWN_METHOD, Msg: "404|router unavailable"},
+		api.InternalErrorCode:     {Status: thrift.INTERNAL_ERROR, Msg: "500|internal error"},
+		api.NoHealthUpstreamCode:  {Status: thrift.UNKNOWN_APPLICATION_EXCEPTION, Msg: "502|no health upstream"},
+		api.UpstreamOverFlowCode:  {Status: thrift.UNKNOWN_APPLICATION_EXCEPTION, Msg: "503|upstream overflow"},
+		api.TimeoutExceptionCode:  {Status: thrift.INTERNAL_ERROR, Msg: "504|timeout"},
+		api.LimitExceededCode:     {Status: thrift.UNKNOWN_APPLICATION_EXCEPTION, Msg: "509|limit exceeded"},
 	}
 )

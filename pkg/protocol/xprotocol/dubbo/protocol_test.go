@@ -8,7 +8,6 @@ import (
 
 	hessian "github.com/apache/dubbo-go-hessian2"
 	"mosn.io/api"
-	pkgtypes "mosn.io/pkg/types"
 )
 
 func Test_dubboProtocol_Hijack(t *testing.T) {
@@ -33,7 +32,7 @@ func Test_dubboProtocol_Hijack(t *testing.T) {
 						Id: 1,
 					},
 				},
-				statusCode: uint32(pkgtypes.NoHealthUpstreamCode),
+				statusCode: uint32(api.NoHealthUpstreamCode),
 			},
 		},
 		{

@@ -15,10 +15,16 @@
  * limitations under the License.
  */
 
-package types
+package header
 
 import (
+	"encoding/binary"
+	"errors"
+	"fmt"
+	"math"
 	"unsafe"
+
+	"mosn.io/pkg/buffer"
 )
 
 // BytesKV key-value pair in byte slice
@@ -27,15 +33,15 @@ type BytesKV struct {
 	Value []byte
 }
 
-// Header consists of multi key-value pair in byte slice formation. This could reduce the cost of []byte to string for protocol codec.
-type Header struct {
+// BytesHeader consists of multi key-value pair in byte slice formation. This could reduce the cost of []byte to string for protocol codec.
+type BytesHeader struct {
 	Kvs []BytesKV
 
 	Changed bool
 }
 
-// ~ HeaderMap
-func (h *Header) Get(Key string) (Value string, ok bool) {
+// ~ BytesHeaderMap
+func (h *BytesHeader) Get(Key string) (Value string, ok bool) {
 	for i, n := 0, len(h.Kvs); i < n; i++ {
 		kv := &h.Kvs[i]
 		if Key == string(kv.Key) {
@@ -45,7 +51,7 @@ func (h *Header) Get(Key string) (Value string, ok bool) {
 	return "", false
 }
 
-func (h *Header) Set(Key string, Value string) {
+func (h *BytesHeader) Set(Key string, Value string) {
 	h.Changed = true
 
 	for i, n := 0, len(h.Kvs); i < n; i++ {
@@ -62,11 +68,11 @@ func (h *Header) Set(Key string, Value string) {
 	kv.Value = append(kv.Value[:0], Value...)
 }
 
-func (h *Header) Add(Key string, Value string) {
+func (h *BytesHeader) Add(Key string, Value string) {
 	panic("not supported")
 }
 
-func (h *Header) Del(Key string) {
+func (h *BytesHeader) Del(Key string) {
 	for i, n := 0, len(h.Kvs); i < n; i++ {
 		kv := &h.Kvs[i]
 		if Key == string(kv.Key) {
@@ -82,7 +88,7 @@ func (h *Header) Del(Key string) {
 	}
 }
 
-func (h *Header) Range(f func(Key, Value string) bool) {
+func (h *BytesHeader) Range(f func(Key, Value string) bool) {
 	for i, n := 0, len(h.Kvs); i < n; i++ {
 		kv := &h.Kvs[i]
 		// false means stop iteration
@@ -92,10 +98,10 @@ func (h *Header) Range(f func(Key, Value string) bool) {
 	}
 }
 
-func (h *Header) Clone() *Header {
+func (h *BytesHeader) Clone() *BytesHeader {
 	n := len(h.Kvs)
 
-	clone := &Header{
+	clone := &BytesHeader{
 		Kvs: make([]BytesKV, n),
 	}
 
@@ -110,7 +116,7 @@ func (h *Header) Clone() *Header {
 	return clone
 }
 
-func (h *Header) ByteSize() (size uint64) {
+func (h *BytesHeader) ByteSize() (size uint64) {
 	for _, kv := range h.Kvs {
 		size += uint64(len(kv.Key) + len(kv.Value))
 	}
@@ -136,18 +142,82 @@ func b2s(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
-// s2b converts string to a byte slice without memory allocation.
-//
-// Note it may break if string and/or slice header will change
-// in the future go versions.
-/*
-func s2b(s string) []byte {
-	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	bh := reflect.SliceHeader{
-		Data: sh.Data,
-		Len:  sh.Len,
-		Cap:  sh.Len,
+// BytesHeader Codec
+var (
+	errInvalidLength = errors.New("invalid length -1, ignore current key value pair")
+)
+
+func GetHeaderEncodeLength(h *BytesHeader) (size int) {
+	for i, n := 0, len(h.Kvs); i < n; i++ {
+		size += 8 + len(h.Kvs[i].Key) + len(h.Kvs[i].Value)
 	}
-	return *(*[]byte)(unsafe.Pointer(&bh))
+	return
 }
-*/
+
+func EncodeHeader(buf buffer.IoBuffer, h *BytesHeader) {
+	for _, kv := range h.Kvs {
+		encodeStr(buf, kv.Key)
+		encodeStr(buf, kv.Value)
+	}
+}
+
+func DecodeHeader(bytes []byte, h *BytesHeader) (err error) {
+	totalLen := len(bytes)
+	index := 0
+
+	for index < totalLen {
+		kv := BytesKV{}
+
+		// 1. read key
+		kv.Key, index, err = decodeStr(bytes, totalLen, index)
+		if err != nil {
+			if err == errInvalidLength {
+				continue
+			}
+			return
+		}
+
+		// 2. read value
+		kv.Value, index, err = decodeStr(bytes, totalLen, index)
+		if err != nil {
+			if err == errInvalidLength {
+				continue
+			}
+			return
+		}
+
+		// 3. kv append
+		h.Kvs = append(h.Kvs, kv)
+	}
+	return nil
+}
+
+func encodeStr(buf buffer.IoBuffer, str []byte) {
+	length := len(str)
+
+	// 1. encode str length
+	buf.WriteUint32(uint32(length))
+
+	// 2. encode str value
+	buf.Write(str)
+}
+
+func decodeStr(bytes []byte, totalLen, index int) (str []byte, newIndex int, err error) {
+	// 1. read str length
+	length := binary.BigEndian.Uint32(bytes[index:])
+
+	// avoid length = -1
+	if length == math.MaxUint32 {
+		return nil, index + 4, errInvalidLength
+	}
+
+	end := index + 4 + int(length)
+	if end > totalLen {
+		return nil, end, fmt.Errorf("decode bolt header failed, index %d, length %d, totalLen %d, bytes %v\n", index, length, totalLen, bytes)
+	}
+
+	// 2. read str value
+	// should explicitly set capacity here,
+	// or the append on this return value will cause override on the next bytes
+	return bytes[index+4 : end : end], end, nil
+}

@@ -21,9 +21,5 @@ import (
 	"mosn.io/api"
 )
 
-// BufferPoolCtx is the bufferpool's context
-// Deprecated: use mosn.io/api/buffer.go:BufferPoolCtx instead
-type BufferPoolCtx = api.BufferPoolCtx
-
 // Deprecated: use mosn.io/api/buffer.go:IoBuffer instead
 type IoBuffer = api.IoBuffer

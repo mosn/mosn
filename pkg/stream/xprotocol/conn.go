@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -294,6 +295,9 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 		sc.clientCallbacks.OnGoAway()
 		return
 	}
+
+	// inject timeout
+	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(frame.GetTimeout())))
 
 	// 3. create server stream
 	serverStream := sc.newServerStream(ctx, frame)

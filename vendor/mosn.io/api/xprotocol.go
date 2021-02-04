@@ -21,6 +21,21 @@ import (
 	"errors"
 )
 
+// status codes.
+const (
+	CodecExceptionCode    = 0
+	UnknownCode           = 2
+	DeserialExceptionCode = 3
+	SuccessCode           = 200
+	PermissionDeniedCode  = 403
+	RouterUnavailableCode = 404
+	InternalErrorCode     = 500
+	NoHealthUpstreamCode  = 502
+	UpstreamOverFlowCode  = 503
+	TimeoutExceptionCode  = 504
+	LimitExceededCode     = 509
+)
+
 // StreamType distinguish the stream flow type.
 // Request: stream is a normal request and needs response
 // RequestOneWay: stream is a oneway request and doesn't need response
@@ -61,6 +76,11 @@ type XFrame interface {
 	Multiplexing
 
 	HeartbeatPredicate
+
+	// GetTimeout returns a number means Milliseconds for protocol timeout
+	// If no timeout defines, returns zero means default timeout
+	// If returns a negative number, means never timeout
+	GetTimeout() int32
 
 	GetStreamType() StreamType
 

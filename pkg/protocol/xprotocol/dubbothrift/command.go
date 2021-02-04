@@ -47,6 +47,8 @@ type Frame struct {
 	content types.IoBuffer // wrapper of payload
 }
 
+var _ api.XFrame = &Frame{}
+
 // ~ XFrame
 func (r *Frame) GetRequestId() uint64 {
 	return r.Header.Id
@@ -59,6 +61,12 @@ func (r *Frame) SetRequestId(id uint64) {
 func (r *Frame) IsHeartbeatFrame() bool {
 	// un support
 	return false
+}
+
+// dubbothrift use defualt timeout
+// TODO: use dubbothrift timeout
+func (r *Frame) GetTimeout() int32 {
+	return 0
 }
 
 func (r *Frame) GetStreamType() api.StreamType {

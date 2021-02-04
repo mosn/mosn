@@ -19,18 +19,6 @@ package api
 
 import "io"
 
-// BufferPoolCtx is the bufferpool's context
-type BufferPoolCtx interface {
-	// Index returns the bufferpool's Index
-	Index() int
-
-	// New returns the buffer
-	New() interface{}
-
-	// Reset resets the buffer
-	Reset(interface{})
-}
-
 type IoBuffer interface {
 	// Read reads the next len(p) bytes from the buffer or until the buffer
 	// is drained. The return value n is the number of bytes read. If the

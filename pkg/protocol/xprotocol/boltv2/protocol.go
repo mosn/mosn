@@ -24,7 +24,6 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
-	pkgtypes "mosn.io/pkg/types"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -159,19 +158,19 @@ func (proto *boltv2Protocol) Mapping(httpStatusCode uint32) uint32 {
 	switch httpStatusCode {
 	case http.StatusOK:
 		return uint32(bolt.ResponseStatusSuccess)
-	case pkgtypes.RouterUnavailableCode:
+	case api.RouterUnavailableCode:
 		return uint32(bolt.ResponseStatusNoProcessor)
-	case pkgtypes.NoHealthUpstreamCode:
+	case api.NoHealthUpstreamCode:
 		return uint32(bolt.ResponseStatusConnectionClosed)
-	case pkgtypes.UpstreamOverFlowCode:
+	case api.UpstreamOverFlowCode:
 		return uint32(bolt.ResponseStatusServerThreadpoolBusy)
-	case pkgtypes.CodecExceptionCode:
+	case api.CodecExceptionCode:
 		//Decode or Encode Error
 		return uint32(bolt.ResponseStatusCodecException)
-	case pkgtypes.DeserialExceptionCode:
+	case api.DeserialExceptionCode:
 		//Hessian Exception
 		return uint32(bolt.ResponseStatusServerDeserialException)
-	case pkgtypes.TimeoutExceptionCode:
+	case api.TimeoutExceptionCode:
 		//Response Timeout
 		return uint32(bolt.ResponseStatusTimeout)
 	default:
