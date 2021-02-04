@@ -23,6 +23,7 @@ build-moe-image:
 	cp -r build/image/envoy IMAGEBUILD && cp ${TARGET}/golang_extention.so IMAGEBUILD/  
 	docker build --no-cache --rm -t ${IMAGE_NAME}:${MAJOR_VERSION} IMAGEBUILD
 	@rm -rf IMAGEBUILD
+	@rm -rf ${TARGET}
 
 clean:
 	@rm -rf ${TARGET}
