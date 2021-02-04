@@ -58,11 +58,11 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 	again := false
 	for subProtocolName, matcher := range subProtocolMatchers {
 		result := matcher(magic)
-		if result == types.MatchSuccess {
+		if result == api.MatchSuccess {
 			mosnctx.WithValue(context, types.ContextSubProtocol, string(subProtocolName))
 			return nil
 		}
-		if result == types.MatchAgain {
+		if result == api.MatchAgain {
 			again = true
 		}
 	}

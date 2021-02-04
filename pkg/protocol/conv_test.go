@@ -58,8 +58,8 @@ func (c *mock2common) ConvTrailer(ctx context.Context, headerMap types.HeaderMap
 func TestConvertHeader(t *testing.T) {
 	RegisterCommonConv(mockProtocol, &common2mock{}, &mock2common{})
 	testcases := []struct {
-		src    api.Protocol
-		dst    api.Protocol
+		src    api.ProtocolName
+		dst    api.ProtocolName
 		header api.HeaderMap
 		data   buffer.IoBuffer
 	}{
@@ -95,8 +95,8 @@ func TestConvertHeader(t *testing.T) {
 
 	// test invalid
 	testcases = []struct {
-		src    api.Protocol
-		dst    api.Protocol
+		src    api.ProtocolName
+		dst    api.ProtocolName
 		header api.HeaderMap
 		data   buffer.IoBuffer
 	}{

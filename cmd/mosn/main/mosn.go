@@ -25,7 +25,6 @@ import (
 
 	"github.com/urfave/cli"
 	_ "mosn.io/mosn/pkg/admin/debug"
-	_ "mosn.io/mosn/pkg/buffer"
 	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
@@ -65,6 +64,7 @@ import (
 	_ "mosn.io/mosn/pkg/upstream/healthcheck"
 	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	_ "mosn.io/mosn/pkg/xds"
+	_ "mosn.io/pkg/buffer"
 )
 
 // Version mosn version

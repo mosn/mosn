@@ -23,6 +23,8 @@ import (
 	"time"
 
 	"github.com/SkyAPM/go2sky"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -30,7 +32,7 @@ type mockTracer struct {
 	*go2sky.Tracer
 }
 
-func (m mockTracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {
+func (m mockTracer) Start(ctx context.Context, request interface{}, startTime time.Time) api.Span {
 	return nil
 }
 
@@ -42,7 +44,7 @@ func TestTraceBuilderRegisterAndGet(t *testing.T) {
 	driver := NewSkyDriverImpl()
 	proto := types.ProtocolName("test")
 
-	driver.Register(proto, func(config map[string]interface{}) (tracer types.Tracer, err error) {
+	driver.Register(proto, func(config map[string]interface{}) (tracer api.Tracer, err error) {
 		return &mockTracer{}, nil
 	})
 

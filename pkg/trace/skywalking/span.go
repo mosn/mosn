@@ -58,7 +58,7 @@ func (SkySpan) Tag(key uint64) string {
 	return ""
 }
 
-func (SkySpan) SpawnChild(operationName string, _ time.Time) types.Span {
+func (SkySpan) SpawnChild(operationName string, _ time.Time) api.Span {
 	log.DefaultLogger.Debugf("[SkyWalking] [tracer] [span] Unsupported SpawnChild [%s]", operationName)
 	return nil
 }

@@ -31,6 +31,7 @@ const (
 	ContextKeyListenerType
 	ContextKeyListenerStatsNameSpace
 	ContextKeyNetworkFilterChainFactories
+	ContextKeyStreamFilterChainFactories
 	ContextKeyBufferPoolCtx
 	ContextKeyAccessLogs
 	ContextOriRemoteAddr

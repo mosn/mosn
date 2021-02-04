@@ -25,11 +25,11 @@ import (
 
 // ProtocolName type definition
 const (
-	Auto      api.Protocol = "Auto"
-	SofaRPC   api.Protocol = "SofaRpc"
-	HTTP1     api.Protocol = "Http1"
-	HTTP2     api.Protocol = "Http2"
-	Xprotocol api.Protocol = "X"
+	Auto      api.ProtocolName = "Auto"
+	SofaRPC   api.ProtocolName = "SofaRpc"
+	HTTP1     api.ProtocolName = "Http1"
+	HTTP2     api.ProtocolName = "Http2"
+	Xprotocol api.ProtocolName = "X"
 )
 
 // header direction definition

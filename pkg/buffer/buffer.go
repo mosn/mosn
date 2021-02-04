@@ -38,7 +38,7 @@ var (
 	nullBufferValue [maxBufferPool]interface{}
 )
 
-// TempBufferCtx is template for types.BufferPoolCtx
+// TempBufferCtx is template for BufferPoolCtx
 type TempBufferCtx struct {
 	index int
 }

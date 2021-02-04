@@ -246,7 +246,7 @@ func (p *proxy) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 
 func (p *proxy) OnGoAway() {}
 
-func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span types.Span) types.StreamReceiveListener {
+func (p *proxy) NewStreamDetect(ctx context.Context, responseSender types.StreamSender, span api.Span) types.StreamReceiveListener {
 	stream := newActiveStream(ctx, p, responseSender, span)
 
 	if p.streamFilterFactory != nil {

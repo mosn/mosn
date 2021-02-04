@@ -1,5 +1,3 @@
-## 自定义结构体复用
-
 ## IoBuffer复用
 ```
 // GetIoBuffer returns IoBuffer from pool

@@ -24,7 +24,6 @@ type mockStreamReceiverFilterCallbacks struct {
 	hijackCode int
 }
 
-
 func (cb *mockStreamReceiverFilterCallbacks) SendHijackReply(code int, headers api.HeaderMap) {
 	cb.hijackCode = code
 }

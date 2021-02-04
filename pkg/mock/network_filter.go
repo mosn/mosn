@@ -6,10 +6,11 @@ package mock
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	api "mosn.io/api"
 	buffer "mosn.io/pkg/buffer"
-	reflect "reflect"
 )
 
 // MockFilterManager is a mock of FilterManager interface

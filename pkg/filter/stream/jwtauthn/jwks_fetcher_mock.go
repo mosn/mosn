@@ -5,10 +5,11 @@
 package jwtauthn
 
 import (
+	reflect "reflect"
+
 	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	gomock "github.com/golang/mock/gomock"
 	jwk "github.com/lestrrat/go-jwx/jwk"
-	reflect "reflect"
 )
 
 // MockJwksFetcher is a mock of JwksFetcher interface

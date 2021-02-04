@@ -18,19 +18,20 @@
 package rpc
 
 import (
+	"context"
 	"time"
 
-	"context"
+	"mosn.io/api"
+
+	mosnctx "mosn.io/mosn/pkg/context"
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/trace"
-	"mosn.io/mosn/pkg/types"
-
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -41,12 +42,12 @@ var PrintLog = true
 
 type Tracer struct{}
 
-func NewTracer(config map[string]interface{}) (types.Tracer, error) {
+func NewTracer(config map[string]interface{}) (api.Tracer, error) {
 	// inherit rpc's logger & output format
 	return &Tracer{}, nil
 }
 
-func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {
+func (tracer *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) api.Span {
 	span := xprotocol.NewSpan(ctx, startTime)
 
 	header, ok := request.(http.RequestHeader)

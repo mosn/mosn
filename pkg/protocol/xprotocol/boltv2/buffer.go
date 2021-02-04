@@ -20,10 +20,9 @@ package boltv2
 import (
 	"context"
 
-	"mosn.io/pkg/log"
-
 	mbuffer "mosn.io/mosn/pkg/buffer"
 	"mosn.io/pkg/buffer"
+	"mosn.io/pkg/log"
 )
 
 var ins boltv2BufferCtx

@@ -97,7 +97,7 @@ type streamConnection struct {
 
 	useStream bool
 
-	protocol types.Protocol
+	protocol api.Protocol
 }
 
 func (conn *streamConnection) Protocol() types.ProtocolName {
@@ -300,6 +300,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		variable.SetVariableValue(ctx, types.VarScheme, scheme)
 		variable.SetVariableValue(ctx, types.VarMethod, h2s.Request.Method)
 		variable.SetVariableValue(ctx, types.VarHost, h2s.Request.Host)
+		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, h2s.Request.Host) // be consistent with http1
 		variable.SetVariableValue(ctx, types.VarPath, h2s.Request.URL.Path)
 		if h2s.Request.URL.RawQuery != "" {
 			variable.SetVariableValue(ctx, types.VarQueryString, h2s.Request.URL.RawQuery)
@@ -850,6 +851,10 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 		host = h
 	} else {
 		host = s.conn.RemoteAddr().String()
+	}
+
+	if h, err := variable.GetVariableValue(ctx, types.VarIstioHeaderHost); err != nil && h != "" { // be consistent with http1
+		host = h
 	}
 
 	var query string

@@ -20,11 +20,11 @@ package stream
 import (
 	"context"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/buffer"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
-
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/variable"
 )
 
@@ -45,7 +45,7 @@ func (cm *ContextManager) Next() {
 	cm.curr = variable.NewVariableContext(cm.curr)
 }
 
-func (cm *ContextManager) InjectTrace(ctx context.Context, span types.Span) context.Context {
+func (cm *ContextManager) InjectTrace(ctx context.Context, span api.Span) context.Context {
 	if span != nil {
 		return mosnctx.WithValue(ctx, types.ContextKeyTraceId, span.TraceId())
 	}

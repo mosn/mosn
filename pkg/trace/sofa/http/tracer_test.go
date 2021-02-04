@@ -24,13 +24,14 @@ import (
 	"time"
 
 	"github.com/valyala/fasthttp"
+
 	"mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
 
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/trace/sofa/xprotocol"
-	"mosn.io/mosn/pkg/types"
 )
 
 func TestSofaHttpTracerStartFinish(t *testing.T) {

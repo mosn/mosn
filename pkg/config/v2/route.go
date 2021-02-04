@@ -296,11 +296,12 @@ type VirtualHost struct {
 
 // RouterMatch represents the route matching parameters
 type RouterMatch struct {
-	Prefix    string            `json:"prefix,omitempty"`    // Match request's Path with Prefix Comparing
-	Path      string            `json:"path,omitempty"`      // Match request's Path with Exact Comparing
-	Regex     string            `json:"regex,omitempty"`     // Match request's Path with Regex Comparing
-	Headers   []HeaderMatcher   `json:"headers,omitempty"`   // Match request's Headers
-	Variables []VariableMatcher `json:"variables,omitempty"` // Match request's variable
+	Prefix         string                 `json:"prefix,omitempty"`    // Match request's Path with Prefix Comparing
+	Path           string                 `json:"path,omitempty"`      // Match request's Path with Exact Comparing
+	Regex          string                 `json:"regex,omitempty"`     // Match request's Path with Regex Comparing
+	Headers        []HeaderMatcher        `json:"headers,omitempty"`   // Match request's Headers
+	Variables      []VariableMatcher      `json:"variables,omitempty"` // Match request's variable
+	DslExpressions []DslExpressionMatcher `json:"dsl_expressions,omitempty"`
 }
 
 // RedirectAction represents the redirect response parameters
@@ -338,6 +339,10 @@ type VariableMatcher struct {
 	Value string `json:"value,omitempty"`
 	Regex string `json:"regex,omitempty"`
 	Model string `json:"model,omitempty"` // support && and || operator
+}
+
+type DslExpressionMatcher struct {
+	Expression string `json:"expression"`
 }
 
 // Stream Proxy Route

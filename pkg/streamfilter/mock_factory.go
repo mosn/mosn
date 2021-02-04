@@ -6,9 +6,10 @@ package streamfilter
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	api "mosn.io/api"
-	reflect "reflect"
 )
 
 // MockStreamFilterFactory is a mock of StreamFilterFactory interface.

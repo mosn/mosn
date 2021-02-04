@@ -42,8 +42,8 @@ var (
 
 type RouteRuleImplBase struct {
 	// match
-	vHost               api.VirtualHost
-	routerMatch         v2.RouterMatch
+	vHost       api.VirtualHost
+	routerMatch v2.RouterMatch
 	// rewrite
 	prefixRewrite         string
 	regexRewrite          v2.RegexRewrite

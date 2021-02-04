@@ -2,10 +2,11 @@ package xprotocol
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
 )
 
 func TestEngine(t *testing.T) {
@@ -25,5 +26,5 @@ func TestEngine(t *testing.T) {
 	assert.NotNil(t, xEngine)
 
 	_, res := xEngine.Match(context.TODO(), buffer.NewIoBuffer(10))
-	assert.Equal(t, res, types.MatchSuccess)
+	assert.Equal(t, res, api.MatchSuccess)
 }
