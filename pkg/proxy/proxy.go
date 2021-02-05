@@ -177,7 +177,8 @@ func (p *proxy) OnData(buf buffer.IoBuffer) api.FilterStatus {
 
 		if err == stream.EAGAIN {
 			return api.Stop
-		} else if err == stream.FAILED {
+		}
+		if err == stream.FAILED {
 			if p.config.FallbackForUnknownProtocol {
 				p.fallback = true
 				return api.Continue
