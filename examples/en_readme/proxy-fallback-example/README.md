@@ -48,7 +48,7 @@ go run httpserver.go
 ### Start an TCP Server
 
 ```
-go run tcpServer.go
+go run tcpserver.go
 ```
 
 ### Start the MOSN

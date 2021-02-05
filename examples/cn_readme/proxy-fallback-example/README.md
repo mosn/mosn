@@ -48,7 +48,7 @@ go run httpserver.go
 ### 启动一个 TCP Server
 
 ```
-go run tcpServer.go
+go run tcpserver.go
 ```
 
 ### 启动 MOSN
