@@ -99,6 +99,11 @@ func TestProxyFallback(t *testing.T) {
 			Verify(receiveHttpReq, Equal, true)
 			Verify(receiveTcpReq, Equal, true)
 			Verify(string(data), Equal, "hello world hello world\n")
+
+			// no data, wait until time out
+			_, err = net.Dial("tcp", "127.0.0.1:22163")
+			Verify(err, Equal, nil)
+			time.Sleep(18*time.Second)
 		})
 
 		TearDown(func() {
