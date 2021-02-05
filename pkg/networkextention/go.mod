@@ -3,15 +3,10 @@ module mosn.io/mosn/pkg/networkextention
 go 1.12
 
 require (
-	github.com/apache/dubbo-go v0.1.2-0.20200224151332-dd1a3c24d656 // indirect
-	github.com/benbjohnson/clock v1.0.0 // indirect
-	github.com/detailyang/easyreader-go v0.0.0-20200313073241-596c7a48c3d3 // indirect
-	github.com/detailyang/keymutex-go v0.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.10-0.20200417215612-7f4cf4dd2b52
-	github.com/gin-gonic/gin v1.5.0 // indirect
-	github.com/labstack/echo/v4 v4.1.15 // indirect
-	github.com/s12v/go-jwks v0.2.0 // indirect
-	github.com/shirou/gopsutil v2.19.12+incompatible // indirect
+	github.com/hashicorp/go-hclog v0.9.1 // indirect
+	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
+	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
 	mosn.io/api v0.0.0-20210129030635-d7dc8206d7b7
 	mosn.io/mosn v0.21.0
 	mosn.io/pkg v0.0.0-20201228090327-daaf86502a50
