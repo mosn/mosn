@@ -7,9 +7,10 @@ import (
 	"testing"
 
 	"github.com/apache/thrift/lib/go/thrift"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/pkg/buffer"
 )
 
@@ -39,7 +40,7 @@ func TestFrame(t *testing.T) {
 	if frame.IsHeartbeatFrame() != false {
 		t.Errorf("thrift method IsHeartbeatFrame error")
 	}
-	if frame.GetStreamType() != xprotocol.Request {
+	if frame.GetStreamType() != api.Request {
 		t.Errorf("thrift method GetStreamType error")
 	}
 	if frame.GetStatusCode() != 1 {

@@ -19,10 +19,10 @@ package context
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -46,8 +46,8 @@ func TestClone(t *testing.T) {
 
 	// get
 	value := ctx.Value(types.ContextKeyListenerType)
-	listenerType, ok := value.(string);
-	assert.True(t,ok)
+	listenerType, ok := value.(string)
+	assert.True(t, ok)
 	assert.Equal(t, listenerType, expected)
 
 	ctxNew := Clone(ctx)

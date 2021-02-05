@@ -19,8 +19,9 @@ package tars
 
 import (
 	tarsprotocol "github.com/TarsCloud/TarsGo/tars/protocol"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -28,10 +29,10 @@ func init() {
 }
 
 // predicate dubbo header len and compare magic number
-func tarsMatcher(data []byte) types.MatchResult {
+func tarsMatcher(data []byte) api.MatchResult {
 
 	if len(data) < MessageSizeLen+IVersionLen {
-		return types.MatchAgain
+		return api.MatchAgain
 	}
 	//check iVersion first.Both requestPackage and responsePackage has iVersion field
 	//protocol defines: https://tarscloud.github.io/TarsDocs/base/tars-protocol.html#main-chapter-2
@@ -42,14 +43,14 @@ func tarsMatcher(data []byte) types.MatchResult {
 	if data[IVersionHeaderIdx] == 16 && (data[iVersionDataIdx] == 1 || data[iVersionDataIdx] == 3) {
 		pkgLen, status := tarsprotocol.TarsRequest(data)
 		if pkgLen == 0 && status == tarsprotocol.PACKAGE_LESS {
-			return types.MatchAgain
+			return api.MatchAgain
 		}
 		if pkgLen == 0 && status == tarsprotocol.PACKAGE_ERROR {
-			return types.MatchFailed
+			return api.MatchFailed
 		}
 		if status == tarsprotocol.PACKAGE_FULL {
-			return types.MatchSuccess
+			return api.MatchSuccess
 		}
 	}
-	return types.MatchFailed
+	return api.MatchFailed
 }

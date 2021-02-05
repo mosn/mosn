@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
-	"mosn.io/pkg/buffer"
 )
 
 type BoltServerConfig struct {
@@ -37,7 +37,7 @@ type ResponseConfig struct {
 	ErrorBuilder  *ResponseBuilder `json:"error_buidler"`
 }
 
-func (c *ResponseConfig) HandleRequest(req *bolt.Request, engine xprotocol.XProtocol) (resp xprotocol.XRespFrame, status int16) {
+func (c *ResponseConfig) HandleRequest(req *bolt.Request, engine api.XProtocol) (resp api.XRespFrame, status int16) {
 	switch req.CmdCode {
 	case bolt.CmdCodeHeartbeat:
 		// heartbeat

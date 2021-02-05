@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
-
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/core/flow"
 	"github.com/stretchr/testify/assert"
@@ -264,7 +263,7 @@ var (
 	}
 	mockNormalRI = &mockRequestInfo{
 		flags: map[api.ResponseFlag]bool{},
-		code:  types.SuccessCode,
+		code:  api.SuccessCode,
 	}
 )
 

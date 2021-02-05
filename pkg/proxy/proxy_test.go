@@ -134,7 +134,7 @@ func TestNewProxyRequest(t *testing.T) {
 		RouterConfigName:   "test_router",
 	})
 	//
-	mockSpan := func() types.Span {
+	mockSpan := func() api.Span {
 		sp := mock.NewMockSpan(ctrl)
 		sp.EXPECT().TraceId().Return("1").AnyTimes()
 		sp.EXPECT().SpanId().Return("1").AnyTimes()

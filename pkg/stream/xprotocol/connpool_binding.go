@@ -154,7 +154,7 @@ func (p *poolBinding) Shutdown() {
 	}
 }
 
-func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClientBinding, types.PoolFailureReason) {
+func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientBinding, types.PoolFailureReason) {
 	connID := getConnID(ctx)
 	ac := &activeClientBinding{
 		subProtocol: subProtocol,
@@ -190,7 +190,7 @@ func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Proto
 		// protocol is from onNewDetectStream
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
 			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()

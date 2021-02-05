@@ -488,7 +488,7 @@ func (conn *serverStreamConnection) serve() {
 		s.responseDoneChan = make(chan bool, 1)
 		s.header = mosnhttp.RequestHeader{&s.request.Header}
 
-		var span types.Span
+		var span api.Span
 		if trace.IsEnabled() {
 			tracer := trace.Tracer(protocol.HTTP1)
 			if tracer != nil {

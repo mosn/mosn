@@ -22,13 +22,14 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 const (
-	HTTP1 types.ProtocolName = "Http1"
-	Dubbo types.ProtocolName = "Dubbo"
+	HTTP1 api.ProtocolName = "Http1"
+	Dubbo api.ProtocolName = "Dubbo"
 )
 
 func TestGetProtocolResource(t *testing.T) {

@@ -2,11 +2,13 @@ package bolt
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/pkg/buffer"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+
+	"mosn.io/mosn/pkg/protocol"
 )
 
 // decoded result should equal to request
@@ -48,7 +50,7 @@ func TestEncodeDecode(t *testing.T) {
 	assert.Equal(t, decodedReq.GetRequestId(), uint64(requestID))
 	assert.Equal(t, decodedReq.CmdType, CmdTypeRequest)
 	assert.False(t, decodedReq.IsHeartbeatFrame())
-	assert.Equal(t, decodedReq.GetStreamType(), xprotocol.Request)
+	assert.Equal(t, decodedReq.GetStreamType(), api.Request)
 
 	decodedReq.SetRequestId(222)
 	assert.Equal(t, decodedReq.GetRequestId(), uint64(222))
@@ -71,7 +73,7 @@ func TestEncodeDecode(t *testing.T) {
 	assert.Equal(t, decodedResp.GetRequestId(), uint64(requestID))
 	assert.Equal(t, decodedResp.CmdType, CmdTypeResponse)
 	assert.False(t, decodedResp.IsHeartbeatFrame())
-	assert.Equal(t, decodedResp.GetStreamType(), xprotocol.Response)
+	assert.Equal(t, decodedResp.GetStreamType(), api.Response)
 
 	newRespData := "new resp data"
 	decodedResp.SetData(buffer.NewIoBufferString(newRespData))

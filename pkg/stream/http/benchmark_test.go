@@ -22,9 +22,10 @@ import (
 
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 )
 
 func BenchmarkGetPrefixProtocolVarCookie(b *testing.B) {

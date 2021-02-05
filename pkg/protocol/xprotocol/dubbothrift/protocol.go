@@ -24,6 +24,8 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol"
 
 	"github.com/apache/thrift/lib/go/thrift"
@@ -68,7 +70,7 @@ func (proto *thriftProtocol) Encode(ctx context.Context, model interface{}) (typ
 		}
 	}
 	log.Proxy.Errorf(ctx, "[protocol][thrift] encode with unknown command : %+v", model)
-	return nil, xprotocol.ErrUnknownType
+	return nil, api.ErrUnknownType
 }
 
 func (proto *thriftProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
@@ -88,12 +90,12 @@ func (proto *thriftProtocol) Decode(ctx context.Context, data types.IoBuffer) (i
 }
 
 // heartbeater
-func (proto *thriftProtocol) Trigger(requestId uint64) xprotocol.XFrame {
+func (proto *thriftProtocol) Trigger(requestId uint64) api.XFrame {
 	// not support
 	return nil
 }
 
-func (proto *thriftProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
+func (proto *thriftProtocol) Reply(request api.XFrame) api.XRespFrame {
 	// wherever, heartbeat is not support
 	return &Frame{
 		Header: Header{
@@ -108,7 +110,7 @@ func (proto *thriftProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFram
 
 // https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
 // hijacker
-func (proto *thriftProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
+func (proto *thriftProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
 
 	frame := request.(*Frame)
 
@@ -157,8 +159,8 @@ func (proto *thriftProtocol) Mapping(httpStatusCode uint32) uint32 {
 }
 
 // PoolMode returns whether pingpong or multiplex
-func (proto *thriftProtocol) PoolMode() types.PoolMode {
-	return types.Multiplex
+func (proto *thriftProtocol) PoolMode() api.PoolMode {
+	return api.Multiplex
 }
 
 func (proto *thriftProtocol) EnableWorkerPool() bool {

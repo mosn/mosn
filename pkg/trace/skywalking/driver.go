@@ -20,6 +20,8 @@ package skywalking
 import (
 	"fmt"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 )
@@ -36,8 +38,8 @@ func init() {
 }
 
 type holder struct {
-	types.Tracer
-	types.TracerBuilder
+	api.Tracer
+	api.TracerBuilder
 }
 
 type skyDriver struct {
@@ -64,20 +66,20 @@ func (d *skyDriver) Init(config map[string]interface{}) error {
 	return nil
 }
 
-func (d *skyDriver) Register(proto types.ProtocolName, builder types.TracerBuilder) {
+func (d *skyDriver) Register(proto types.ProtocolName, builder api.TracerBuilder) {
 	d.tracers[proto] = &holder{
 		TracerBuilder: builder,
 	}
 }
 
-func (d *skyDriver) Get(proto types.ProtocolName) types.Tracer {
+func (d *skyDriver) Get(proto types.ProtocolName) api.Tracer {
 	if holder, ok := d.tracers[proto]; ok {
 		return holder.Tracer
 	}
 	return nil
 }
 
-func NewSkyDriverImpl() types.Driver {
+func NewSkyDriverImpl() api.Driver {
 	return &skyDriver{
 		tracers: make(map[types.ProtocolName]*holder),
 	}

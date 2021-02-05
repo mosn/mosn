@@ -54,4 +54,3 @@ func (m mockConn) SetReadDeadline(t time.Time) error {
 func (m mockConn) SetWriteDeadline(t time.Time) error {
 	return nil
 }
-

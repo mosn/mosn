@@ -19,11 +19,12 @@ package network
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"net"
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
@@ -64,7 +65,7 @@ func testBase(t *testing.T, addr net.Addr) {
 			BindToPort: true,
 		},
 		PerConnBufferLimitBytes: 1024,
-		Addr:                    addr,
+		Addr: addr,
 	}
 	ln := NewListener(cfg)
 

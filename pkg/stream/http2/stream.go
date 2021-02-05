@@ -97,7 +97,7 @@ type streamConnection struct {
 
 	useStream bool
 
-	protocol types.Protocol
+	protocol api.Protocol
 }
 
 func (conn *streamConnection) Protocol() types.ProtocolName {

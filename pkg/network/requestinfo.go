@@ -28,7 +28,7 @@ import (
 
 // RequestInfo
 type RequestInfo struct {
-	protocol                 api.Protocol
+	protocol                 api.ProtocolName
 	startTime                time.Time
 	responseFlag             api.ResponseFlag
 	upstreamHost             api.HostInfo
@@ -46,7 +46,7 @@ type RequestInfo struct {
 	routerRule               api.RouteRule
 }
 
-func newRequestInfoWithPort(protocol api.Protocol) api.RequestInfo {
+func newRequestInfoWithPort(protocol api.ProtocolName) api.RequestInfo {
 	return &RequestInfo{
 		protocol:  protocol,
 		startTime: time.Now(),
@@ -117,11 +117,11 @@ func (r *RequestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *RequestInfo) Protocol() api.Protocol {
+func (r *RequestInfo) Protocol() api.ProtocolName {
 	return r.protocol
 }
 
-func (r *RequestInfo) SetProtocol(p api.Protocol) {
+func (r *RequestInfo) SetProtocol(p api.ProtocolName) {
 	r.protocol = p
 }
 

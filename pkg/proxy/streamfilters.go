@@ -28,7 +28,7 @@ import (
 
 // proxy-specified implementation of interface StreamFilterChain.
 type streamFilterChain struct {
-	downStream                *downStream
+	downStream *downStream
 
 	*streamfilter.DefaultStreamFilterChainImpl
 }
@@ -88,7 +88,7 @@ func (f *streamFilterHandlerBase) RequestInfo() types.RequestInfo {
 type streamReceiverFilterHandler struct {
 	streamFilterHandlerBase
 
-	id     uint32
+	id uint32
 }
 
 func newStreamReceiverFilterHandler(activeStream *downStream) *streamReceiverFilterHandler {
@@ -96,7 +96,7 @@ func newStreamReceiverFilterHandler(activeStream *downStream) *streamReceiverFil
 		streamFilterHandlerBase: streamFilterHandlerBase{
 			activeStream: activeStream,
 		},
-		id:     activeStream.ID,
+		id: activeStream.ID,
 	}
 
 	return f

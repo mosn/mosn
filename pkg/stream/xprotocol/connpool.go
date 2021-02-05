@@ -22,6 +22,7 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
+
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -46,7 +47,7 @@ const (
 type connpool struct {
 	host     atomic.Value
 	tlsHash  *types.HashValue
-	protocol api.Protocol
+	protocol api.ProtocolName
 }
 
 // NewConnPool init a connection pool
@@ -58,9 +59,9 @@ func NewConnPool(ctx context.Context, host types.Host) types.ConnectionPool {
 	p.host.Store(host)
 
 	switch xprotocol.GetProtocol(getSubProtocol(ctx)).PoolMode() {
-	case types.Multiplex:
+	case api.Multiplex:
 		return NewPoolMultiplex(p)
-	case types.PingPong:
+	case api.PingPong:
 		return NewPoolPingPong(p)
 	default:
 		return NewPoolBinding(p) // upstream && downstream connection binding proxy mode

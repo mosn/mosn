@@ -6,10 +6,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/variable"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 )
 
 func TestDslExpressionRouteRuleImpl_Match(t *testing.T) {

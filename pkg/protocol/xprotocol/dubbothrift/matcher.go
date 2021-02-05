@@ -20,8 +20,9 @@ package dubbothrift
 import (
 	"bytes"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -30,13 +31,13 @@ func init() {
 }
 
 // predicate thrift header len and compare magic number
-func thriftMatcher(data []byte) types.MatchResult {
+func thriftMatcher(data []byte) api.MatchResult {
 	//4 byte message length + 2 byte magic
 	if len(data) < MessageLenSize+MagicLen {
-		return types.MatchAgain
+		return api.MatchAgain
 	}
 	if bytes.Compare(data[MessageLenSize:MessageLenSize+MagicLen], MagicTag) != 0 {
-		return types.MatchFailed
+		return api.MatchFailed
 	}
-	return types.MatchSuccess
+	return api.MatchSuccess
 }

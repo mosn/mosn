@@ -1,0 +1,7 @@
+FROM golang:1.13.7
+
+RUN useradd -ms /bin/bash admin
+
+ENV CHROOT_MOSN_PREFIX         /home/admin/mosn
+
+COPY ./envoy $CHROOT_MOSN_PREFIX/bin/envoy

@@ -7,17 +7,19 @@ import (
 	"net"
 	"time"
 
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 )
 
 type Server struct {
 	Listener     net.Listener
 	protocolName types.ProtocolName
-	protocol     xprotocol.XProtocol
+	protocol     api.XProtocol
 }
 
 func NewServer(addr string, proto types.ProtocolName) *Server {
@@ -94,7 +96,7 @@ func (s *Server) Serve(conn net.Conn) {
 	}
 }
 
-func (s *Server) HandleRequest(conn net.Conn, cmd interface{}) (xprotocol.XRespFrame, error) {
+func (s *Server) HandleRequest(conn net.Conn, cmd interface{}) (api.XRespFrame, error) {
 	switch s.protocolName {
 	case bolt.ProtocolName:
 		if req, ok := cmd.(*bolt.Request); ok {

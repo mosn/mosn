@@ -63,8 +63,8 @@ func NewMirrorCase(t *testing.T, serverProto, meshProto types.ProtocolName) *Mir
 
 	tc := NewTestCase(t, serverProto, meshProto, util.NewRPCServer(t, "", bolt.ProtocolName)) // empty server
 	return &MirrorCase{
-		TestCase:      tc,
-		Servers:       server,
+		TestCase: tc,
+		Servers:  server,
 	}
 }
 

@@ -210,7 +210,7 @@ func (p *poolMultiplex) createStreamClient(context context.Context, connData typ
 	return stream.NewStreamClient(context, protocol.Xprotocol, connData.Connection, connData.Host)
 }
 
-func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClientMultiplex, types.PoolFailureReason) {
+func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientMultiplex, types.PoolFailureReason) {
 	ac := &activeClientMultiplex{
 		subProtocol: subProtocol,
 		pool:        p,
@@ -232,7 +232,7 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	if subProtocol != "" {
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
 			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
