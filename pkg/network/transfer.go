@@ -575,9 +575,11 @@ func transferFindListen(addr net.Addr, handler types.ConnectionHandler) types.Li
 	var listener types.Listener
 	if listener = handler.FindListenerByAddress(address); listener != nil {
 		return listener
-	} else if listener = handler.FindListenerByAddress(ipv4); listener != nil {
+	}
+	if listener = handler.FindListenerByAddress(ipv4); listener != nil {
 		return listener
-	} else if listener = handler.FindListenerByAddress(ipv6); listener != nil {
+	}
+	if listener = handler.FindListenerByAddress(ipv6); listener != nil {
 		return listener
 	}
 

@@ -1061,10 +1061,12 @@ func (s *downStream) onPerReqTimeout() {
 		s.upstreamRequest.resetStream()
 		s.requestInfo.SetResponseFlag(api.UpstreamRequestTimeout)
 		s.upstreamRequest.OnResetStream(types.UpstreamPerTryTimeout)
-	} else {
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(s.context, "[proxy] [downstream] skip request timeout on getting upstream response")
-		}
+
+		return
+	}
+
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(s.context, "[proxy] [downstream] skip request timeout on getting upstream response")
 	}
 }
 
@@ -1199,7 +1201,8 @@ func (s *downStream) onUpstreamReset(reason types.StreamResetReason) {
 			}
 			atomic.CompareAndSwapUint32(&s.upstreamReset, 1, 0)
 			return
-		} else if retryCheck == api.RetryOverflow {
+		}
+		if retryCheck == api.RetryOverflow {
 			s.requestInfo.SetResponseFlag(api.UpstreamOverflow)
 		}
 	}
@@ -1242,7 +1245,8 @@ func (s *downStream) onUpstreamHeaders(endStream bool) {
 			}
 
 			return
-		} else if retryCheck == api.RetryOverflow {
+		}
+		if retryCheck == api.RetryOverflow {
 			s.requestInfo.SetResponseFlag(api.UpstreamOverflow)
 		}
 
