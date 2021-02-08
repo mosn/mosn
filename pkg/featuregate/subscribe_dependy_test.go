@@ -80,7 +80,7 @@ func TestSubDependcyReady(t *testing.T) {
 	AddFeatureSpec(_TestFeatureA, fa)
 	AddFeatureSpec(_TestFeatureB, fb)
 	Set("feature A=true, feature B=true")
-	StartInit()
+	FinallyInitFunc()
 	// feature B not ready, feature A sub will timeout
 	if _, err := Subscribe(_TestFeatureA, time.Second); !_IsSubTimeout(err) {
 		t.Errorf("expected sub feature A timeout, but got: %v", err)
@@ -109,7 +109,7 @@ func TestSubDependcyNotReady(t *testing.T) {
 	AddFeatureSpec(_TestFeatureA, fa)
 	AddFeatureSpec(_TestFeatureB, fb)
 	Set("feature A=true, feature B=false")
-	StartInit()
+	FinallyInitFunc()
 	// feature B is not ready, so the feature A is run as 2 mode
 	ready, err := Subscribe(_TestFeatureA, time.Second)
 	if err != nil || !ready {
@@ -133,7 +133,7 @@ func TestSubDependcyNotReady2(t *testing.T) {
 	AddFeatureSpec(_TestFeatureA, fa)
 	AddFeatureSpec(_TestFeatureB, fb)
 	Set("feature A=false, feature B=true")
-	StartInit()
+	FinallyInitFunc()
 	fb.SendNotify() // feature B ready
 	ready, err := Subscribe(_TestFeatureA, time.Second)
 	if err != nil || ready {
