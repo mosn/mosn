@@ -24,9 +24,10 @@ import (
 	"mosn.io/mosn/pkg/log"
 )
 
-// ErrUnexpected indicate unexpected object type in sync.Map.
 var (
+	// ErrUnexpected indicate unexpected object type in sync.Map.
 	ErrUnexpected = errors.New("unexpected object in map")
+	// ErrInvalidKey indicate invalid stream filter config name
 	ErrInvalidKey = errors.New("invalid key")
 )
 
