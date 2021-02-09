@@ -1,4 +1,4 @@
-FROM centos:centos7
+FROM golang:1.13.7
 
 RUN useradd -ms /bin/bash admin
 
