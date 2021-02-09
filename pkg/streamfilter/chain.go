@@ -37,6 +37,12 @@ type StreamFilterChain interface {
 	// register StreamSenderFilter, StreamReceiverFilter and AccessLog.
 	api.StreamFilterChainFactoryCallbacks
 
+	// SetReceiveFilterHandler set filter handler for each filter in this chain
+	SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler)
+
+	// SetSenderFilterHandler set filter handler for each filter in this chain
+	SetSenderFilterHandler(handler api.StreamSenderFilterHandler)
+
 	// invoke the receiver filter chain.
 	RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
 		headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap,
@@ -102,10 +108,32 @@ func (d *DefaultStreamFilterChainImpl) AddStreamSenderFilter(filter api.StreamSe
 	d.senderFiltersPhase = append(d.senderFiltersPhase, p)
 }
 
+// SetSenderFilterHandler set filter handler for each filter in this chain
+func (d *DefaultStreamFilterChainImpl) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
+	if handler == nil {
+		return
+	}
+
+	for _, filter := range d.senderFilters {
+		filter.SetSenderFilterHandler(handler)
+	}
+}
+
 // AddStreamReceiverFilter registers receiver filters.
 func (d *DefaultStreamFilterChainImpl) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.ReceiverFilterPhase) {
 	d.receiverFilters = append(d.receiverFilters, filter)
 	d.receiverFiltersPhase = append(d.receiverFiltersPhase, p)
+}
+
+// SetReceiveFilterHandler set filter handler for each filter in this chain
+func (d *DefaultStreamFilterChainImpl) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
+	if handler == nil {
+		return
+	}
+
+	for _, filter := range d.receiverFilters {
+		filter.SetReceiveFilterHandler(handler)
+	}
 }
 
 // AddStreamAccessLog registers access logger.

@@ -25,7 +25,10 @@ import (
 )
 
 // ErrUnexpected indicate unexpected object type in sync.Map.
-var ErrUnexpected = errors.New("unexpected object in map")
+var (
+	ErrUnexpected = errors.New("unexpected object in map")
+	ErrInvalidKey = errors.New("invalid key")
+)
 
 var streamFilterManagerInstance StreamFilterManager = &StreamFilterManagerImpl{}
 
@@ -52,6 +55,11 @@ type StreamFilterManagerImpl struct {
 
 // AddOrUpdateStreamFilterConfig map the key to streamFilter chain config.
 func (s *StreamFilterManagerImpl) AddOrUpdateStreamFilterConfig(key string, config StreamFiltersConfig) error {
+	if key == "" {
+		log.DefaultLogger.Errorf("[streamfilter] AddOrUpdateStreamFilterConfig invalid key: %v", key)
+		return ErrInvalidKey
+	}
+
 	if v, ok := s.streamFilterChainMap.Load(key); ok {
 		factory, ok := v.(StreamFilterFactory)
 		if !ok {

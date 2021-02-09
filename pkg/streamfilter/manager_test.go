@@ -21,6 +21,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/pkg/buffer"
@@ -50,6 +51,7 @@ func (m *mockStreamFilterFactory) CreateFilterChain(context context.Context, cal
 
 func TestStreamFilterManager(t *testing.T) {
 	manager := GetStreamFilterManager()
+	assert.Equal(t, manager.AddOrUpdateStreamFilterConfig("", nil), ErrInvalidKey)
 	configWith2Filter := StreamFiltersConfig{
 		{Type: "testStreamFilter", Config: nil},
 		{Type: "testStreamFilter", Config: nil},
