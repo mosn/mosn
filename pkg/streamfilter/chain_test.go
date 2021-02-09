@@ -34,3 +34,36 @@ func TestStreamFilterChainPool(t *testing.T) {
 	assert.Equal(t, len(chain2.receiverFiltersPhase), 0)
 	assert.Equal(t, chain2.receiverFiltersIndex, 0)
 }
+
+func TestStreamFilterChainSetFilterHandler(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	chain := GetDefaultStreamFilterChain()
+
+	setHandlerCount := 0
+
+	for i := 0; i < 5; i++ {
+		receiverFilter := mock.NewMockStreamReceiverFilter(ctrl)
+		receiverFilter.EXPECT().SetReceiveFilterHandler(gomock.Any()).AnyTimes().Do(func(api.StreamReceiverFilterHandler) {
+			setHandlerCount++
+		})
+		chain.AddStreamReceiverFilter(receiverFilter, api.BeforeRoute)
+
+		senderFilter := mock.NewMockStreamSenderFilter(ctrl)
+		senderFilter.EXPECT().SetSenderFilterHandler(gomock.Any()).AnyTimes().Do(func(api.StreamSenderFilterHandler) {
+			setHandlerCount++
+		})
+		chain.AddStreamSenderFilter(senderFilter, api.BeforeSend)
+	}
+
+	chain.SetReceiveFilterHandler(nil)
+	rFilterHandler := mock.NewMockStreamReceiverFilterHandler(ctrl)
+	chain.SetReceiveFilterHandler(rFilterHandler)
+
+	chain.SetSenderFilterHandler(nil)
+	sFilterHandler := mock.NewMockStreamSenderFilterHandler(ctrl)
+	chain.SetSenderFilterHandler(sFilterHandler)
+
+	assert.Equal(t, setHandlerCount, 10)
+}
