@@ -59,6 +59,7 @@ import (
 	_ "mosn.io/mosn/pkg/upstream/healthcheck"
 	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	_ "mosn.io/mosn/pkg/xds"
+	_ "mosn.io/mosn/pkg/trace/jaeger"
 )
 
 // Version mosn version
