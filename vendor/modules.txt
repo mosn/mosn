@@ -260,9 +260,13 @@ github.com/satori/go.uuid
 github.com/shirou/gopsutil/v3/cpu
 github.com/shirou/gopsutil/v3/internal/common
 github.com/shirou/gopsutil/v3/load
-# github.com/stretchr/testify v1.6.1
+# github.com/stretchr/testify v1.7.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
+# github.com/tetratelabs/proxy-wasm-go-sdk v0.0.13
+github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm
+github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/rawhostcall
+github.com/tetratelabs/proxy-wasm-go-sdk/proxywasm/types
 # github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
 github.com/trainyao/go-maglev
 # github.com/ugorji/go/codec v1.1.7
@@ -277,6 +281,8 @@ github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/stackless
 # github.com/valyala/fasttemplate v1.1.0
 github.com/valyala/fasttemplate
+# github.com/wasmerio/wasmer-go v1.0.1
+github.com/wasmerio/wasmer-go/wasmer
 # go.uber.org/atomic v1.7.0
 go.uber.org/atomic
 # go.uber.org/automaxprocs v1.3.0

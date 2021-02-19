@@ -161,6 +161,14 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	// initialize the routerManager
 	m.routerManager = router.NewRouterManager()
 
+	// initialize wasm, shoud before the creation of server listener since the initialization of streamFilter might rely on wasm config
+	if c.Wasms != nil {
+		m.wasmManager = wasm.GetWasmManager()
+		for _, config := range c.Wasms {
+			_ = m.wasmManager.AddOrUpdateWasm(config)
+		}
+	}
+
 	// TODO: Remove Servers, support only one server
 	for _, serverConfig := range c.Servers {
 		//1. server config prepare

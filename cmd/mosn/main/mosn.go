@@ -41,6 +41,7 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/payloadlimit"
 	_ "mosn.io/mosn/pkg/filter/stream/stats"
 	_ "mosn.io/mosn/pkg/filter/stream/transcoder/http2bolt"
+	_ "mosn.io/mosn/pkg/filter/stream/x-proxy-wasm"
 	_ "mosn.io/mosn/pkg/metrics/sink"
 	_ "mosn.io/mosn/pkg/metrics/sink/prometheus"
 	_ "mosn.io/mosn/pkg/network"
@@ -63,6 +64,8 @@ import (
 	_ "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/upstream/healthcheck"
 	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
+	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
+	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
 	_ "mosn.io/mosn/pkg/xds"
 	_ "mosn.io/pkg/buffer"
 )
