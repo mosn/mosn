@@ -45,6 +45,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/wasm"
 	"mosn.io/mosn/pkg/xds"
 )
 
@@ -53,6 +54,7 @@ type Mosn struct {
 	servers        []server.Server
 	clustermanager types.ClusterManager
 	routerManager  types.RouterManager
+	wasmManager    types.WasmManager
 	config         *v2.MOSNConfig
 	adminServer    admin.Server
 	xdsClient      *xds.Client
