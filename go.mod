@@ -27,6 +27,7 @@ require (
 	github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f
 	github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
 	github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/openzipkin-contrib/zipkin-go-opentracing v0.3.5 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
@@ -35,13 +36,14 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/tjfoc/gmsm v0.0.0-20190220013605-bfb01827afcb // indirect
 	github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
+	github.com/uber/jaeger-client-go v2.25.0+incompatible
+	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
-	google.golang.org/genproto v0.0.0-20190801165951-fa694d86fc64 // indirect
 	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
