@@ -51,6 +51,7 @@ import (
 	_ "mosn.io/mosn/pkg/stream/http"
 	_ "mosn.io/mosn/pkg/stream/http2"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
+	_ "mosn.io/mosn/pkg/trace/jaeger"
 	_ "mosn.io/mosn/pkg/trace/skywalking"
 	_ "mosn.io/mosn/pkg/trace/skywalking/http"
 	_ "mosn.io/mosn/pkg/trace/sofa/http"
@@ -59,7 +60,7 @@ import (
 	_ "mosn.io/mosn/pkg/upstream/healthcheck"
 	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
 	_ "mosn.io/mosn/pkg/xds"
-	_ "mosn.io/mosn/pkg/trace/jaeger"
+	_ "mosn.io/pkg/buffer"
 )
 
 // Version mosn version
