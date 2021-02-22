@@ -66,7 +66,7 @@ func mockHeaderMap(ctrl *gomock.Controller) api.HeaderMap {
 	return h
 }
 
-func TestProxyWasmStreamFilter(t *testing.T) {
+func testProxyWasmStreamFilterCommon(t *testing.T, wasmPath string) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -74,7 +74,7 @@ func TestProxyWasmStreamFilter(t *testing.T) {
 		"instance_num": 2,
 		"vm_config": map[string]interface{}{
 			"engine": "wasmer",
-			"path":   "./data/test.wasm",
+			"path":   wasmPath,
 		},
 		"root_context_id": 1,
 		"user_config1":    "user_value1",
@@ -135,6 +135,14 @@ func TestProxyWasmStreamFilter(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestProxyWasmStreamFilterGo(t *testing.T) {
+	testProxyWasmStreamFilterCommon(t, "./data/test-go.wasm")
+}
+
+func TestProxyWasmStreamFilterC(t *testing.T) {
+	testProxyWasmStreamFilterCommon(t, "./data/test-c.wasm")
 }
 
 func TestProxyWasmStreamFilterHttpCallout(t *testing.T) {

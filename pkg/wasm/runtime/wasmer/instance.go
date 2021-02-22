@@ -64,17 +64,22 @@ type Instance struct {
 
 func NewWasmerInstance(vm *VM, module *Module) *Instance {
 	ins := &Instance{
-		vm:           vm,
-		module:       module,
-		importObject: wasmerGo.NewImportObject(),
+		vm:     vm,
+		module: module,
 	}
 
-	moduleImport := module.moduleImports
-	for _, im := range moduleImport {
-		ins.importObject.Register(im.namespace, map[string]wasmerGo.IntoExtern{
-			im.funcName: im.f,
-		})
+	wasiEnv, err := wasmerGo.NewWasiStateBuilder("mosn").Finalize()
+	if err != nil {
+		log.DefaultLogger.Errorf("[wasmer][instance] NewWasmerInstance fail to create wasi env, err: %v", err)
+		return nil
 	}
+
+	imo, err := wasiEnv.GenerateImportObject(ins.vm.store, ins.module.module)
+	if err != nil {
+		log.DefaultLogger.Errorf("[wasmer][instance] NewWasmerInstance fail to create import object, err: %v", err)
+		return nil
+	}
+	ins.importObject = imo
 
 	return ins
 }

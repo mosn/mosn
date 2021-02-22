@@ -21,14 +21,15 @@ import (
 	"strings"
 
 	wasmerGo "github.com/wasmerio/wasmer-go/wasmer"
+	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
 type Module struct {
-	vm            *VM
-	module        *wasmerGo.Module
-	abiNameList   []string
-	moduleImports []moduleImport
+	vm          *VM
+	module      *wasmerGo.Module
+	abiNameList []string
+	wasiVersion wasmerGo.WasiVersion
 }
 
 type moduleImport struct {
@@ -39,9 +40,8 @@ type moduleImport struct {
 
 func NewWasmerModule(vm *VM, module *wasmerGo.Module) *Module {
 	m := &Module{
-		vm:            vm,
-		module:        module,
-		moduleImports: make([]moduleImport, 0),
+		vm:     vm,
+		module: module,
 	}
 
 	m.Init()
@@ -50,7 +50,9 @@ func NewWasmerModule(vm *VM, module *wasmerGo.Module) *Module {
 }
 
 func (w *Module) Init() {
-	w.ensureWASIImports()
+	w.wasiVersion = wasmerGo.GetWasiVersion(w.module)
+	log.DefaultLogger.Infof("[wasmer][module] Init module name: %v, wasi version: %v", w.module.Name(), w.wasiVersion.String())
+
 	w.abiNameList = w.GetABINameList()
 	return
 }
@@ -73,27 +75,4 @@ func (w *Module) GetABINameList() []string {
 	}
 
 	return abiNameList
-}
-
-func (w *Module) ensureWASIImports() {
-	importList := w.module.Imports()
-
-	for _, im := range importList {
-		if im.Type().Kind() == wasmerGo.FUNCTION && im.Module() == "wasi_unstable" {
-
-			fType := im.Type().IntoFunctionType()
-
-			f := wasmerGo.NewFunction(w.vm.store, wasmerGo.NewFunctionType(fType.Params(), fType.Results()),
-				func(values []wasmerGo.Value) ([]wasmerGo.Value, error) {
-					return nil, nil
-				},
-			)
-
-			w.moduleImports = append(w.moduleImports, moduleImport{
-				namespace: "wasi_unstable",
-				funcName:  im.Name(),
-				f:         f,
-			})
-		}
-	}
 }
