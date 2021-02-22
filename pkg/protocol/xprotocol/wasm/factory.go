@@ -27,6 +27,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
 	"mosn.io/mosn/pkg/wasm/abi"
+	"mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 	"reflect"
@@ -72,6 +73,7 @@ type ProxyProtocolFactory interface {
 }
 
 type protocolFactory struct {
+	proxywasm_0_1_0.DefaultInstanceCallback
 	pluginName    string
 	config        *ProtocolConfig        // plugin config
 	conf          map[string]interface{} // raw config map
@@ -165,8 +167,8 @@ func (f *protocolFactory) OnPluginStart(plugin types.WasmPlugin) {
 		exports := abiVersion.(Exports)
 
 		_ = exports.ProxyOnContextCreate(f.config.RootContextID, 0)
+		//_, _ = exports.ProxyOnVmStart(f.config.RootContextID, int32(f.GetVmConfig().Len()))
 		_, _ = exports.ProxyOnConfigure(f.config.RootContextID, int32(f.GetPluginConfig().Len()))
-		_, _ = exports.ProxyOnVmStart(f.config.RootContextID, int32(f.GetVmConfig().Len()))
 
 		return true
 	})
@@ -178,32 +180,33 @@ func (f *protocolFactory) OnPluginDestroy(_ types.WasmPlugin) {
 
 func (f *protocolFactory) GetVmConfig() buffer.IoBuffer {
 	if f.config.VmConfig != nil {
-		configs := xprotocol.Header{}
+		configs := make(map[string]string, 8)
 		typeOf := reflect.TypeOf(*f.config.VmConfig)
 		values := reflect.ValueOf(*f.config.VmConfig)
 		for i := 0; i < typeOf.NumField(); i++ {
 			field := values.Field(i)
 			switch field.Kind() {
 			case reflect.String:
-				configs.Set(typeOf.Field(i).Name, field.String())
+				configs[typeOf.Field(i).Name] = field.String()
 			}
 		}
-		vmBuffer := buffer.NewIoBuffer(xprotocol.GetHeaderEncodeLength(&configs))
-		xprotocol.EncodeHeader(vmBuffer, &configs)
+
+		vmBuffer := buffer.NewIoBufferBytes(EncodeMap(configs))
 		return vmBuffer
 	}
 	return buffer.NewIoBufferEOF()
 }
 
 func (f *protocolFactory) GetPluginConfig() buffer.IoBuffer {
-	configs := xprotocol.Header{}
+	configs := make(map[string]string, 8)
 	for key, v := range f.conf {
 		if value, ok := v.(string); ok {
-			configs.Set(key, value)
+			configs[key] = value
 		}
 	}
-	pluginBuffer := buffer.NewIoBuffer(xprotocol.GetHeaderEncodeLength(&configs))
-	xprotocol.EncodeHeader(pluginBuffer, &configs)
+	pluginBuffer := buffer.NewIoBufferBytes(EncodeMap(configs))
+	maps := DecodeMap(pluginBuffer.Bytes())
+	_ = maps
 	return pluginBuffer
 }
 
