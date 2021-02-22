@@ -21,13 +21,14 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/golang/protobuf/jsonpb"
-	_struct "github.com/golang/protobuf/ptypes/struct"
-	"github.com/rcrowley/go-metrics"
-
 	"reflect"
 	"strconv"
 	"strings"
+
+	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	"github.com/golang/protobuf/jsonpb"
+	_struct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/rcrowley/go-metrics"
 )
 
 const serviceMetaSeparator = ":"
@@ -61,9 +62,10 @@ var (
 		InterceptionMode: InterceptionRedirect,
 	}
 
+	// XdsVersionV3 xDS v3
+	XdsVersionV3 = envoy_config_core_v3.ApiVersion_V3
 	// XdsVersion xds version
-	XdsVersionV3 = "V3"
-	XdsVersion   = XdsVersionV3
+	XdsVersion = XdsVersionV3
 )
 
 var globalXdsInfo = &XdsInfo{}
