@@ -28,8 +28,8 @@ func RegisterTypeURLHandleFunc(url string, f TypeURLHandleFunc) {
 	typeURLHandleFuncs[url] = f
 }
 
-func HandleTypeURL(url string, client *ADSClient, resp *envoy_service_discovery_v3.DiscoveryResponse) {
-	if f, ok := typeURLHandleFuncs[url]; ok {
+func HandleTypeURL(client *ADSClient, resp *envoy_service_discovery_v3.DiscoveryResponse) {
+	if f, ok := typeURLHandleFuncs[resp.TypeUrl]; ok {
 		f(client, resp)
 	}
 }

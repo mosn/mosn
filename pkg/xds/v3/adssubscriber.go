@@ -22,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/utils"
 )
@@ -94,14 +95,33 @@ func (adsClient *ADSClient) receiveThread() {
 				time.Sleep(time.Second)
 				continue
 			}
-			typeURL := resp.TypeUrl
 
 			/*
 			 * If xDS resource too big, Istio may be have write timeout error when use sync, such as:
-			 *		2020-12-01T09:17:29.354132Z	info	ads	Timeout writing sidecar~10.49.18.38~no-project-aabb-gz01a-blue-67cb764fcb-8dq4t.dmall-inner~dmall-inner.svc.cluster.local-39
+			 *		2020-12-01T09:17:29.354132Z	info	ads	Timeout writing sidecar~10.49.18.38~no-project-aabb-gz01a-blue-67cb764fcb-8dq4t.default~default.svc.cluster.local-39
 			 * So, will use async
 			 */
-			go HandleTypeURL(typeURL, adsClient, resp)
+			select {
+			case adsClient.AsyncHandleChan <- resp:
+			default:
+				// if block use goroutine
+				go func() {
+					adsClient.AsyncHandleChan <- resp
+				}()
+			}
+		}
+	}
+}
+
+func (adsClient *ADSClient) asyncHandler(resp *envoy_service_discovery_v3.DiscoveryResponse) {
+	for {
+		select {
+		case <-adsClient.AsyncHandleControlChan:
+			log.DefaultLogger.Debugf("[xds] [ads client] asyncHandler thread receive graceful shut down signal")
+			adsClient.StopChan <- 3
+			return
+		case resp := <-adsClient.AsyncHandleChan:
+			HandleTypeURL(adsClient, resp)
 		}
 	}
 }
@@ -158,7 +178,8 @@ func (adsClient *ADSClient) reconnect() {
 func (adsClient *ADSClient) Stop() {
 	adsClient.SendControlChan <- 1
 	adsClient.RecvControlChan <- 1
-	for i := 0; i < 2; i++ {
+	adsClient.AsyncHandleControlChan <- 1
+	for i := 0; i < 3; i++ {
 		select {
 		case <-adsClient.StopChan:
 			log.DefaultLogger.Debugf("[xds] [ads client] stop signal")
@@ -166,5 +187,7 @@ func (adsClient *ADSClient) Stop() {
 	}
 	close(adsClient.SendControlChan)
 	close(adsClient.RecvControlChan)
+	close(adsClient.AsyncHandleControlChan)
+	close(adsClient.AsyncHandleChan)
 	close(adsClient.StopChan)
 }

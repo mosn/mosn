@@ -64,7 +64,7 @@ func ClearSecretManager() {
 func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
-	validationName := cfg.SdsConfig.ValidationConfig.Config.Name
+	validationName := cfg.SdsConfig.ValidationConfig.ConfigV3.Name
 	v, ok := mng.validations[validationName]
 	if !ok {
 		// add a validation
@@ -73,7 +73,7 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		}
 		mng.validations[validationName] = v
 	}
-	certName := cfg.SdsConfig.CertificateConfig.Config.Name
+	certName := cfg.SdsConfig.CertificateConfig.ConfigV3.Name
 	p, ok := v.certificates[certName]
 	if !ok {
 		// new a provider
@@ -84,12 +84,21 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		}
 		p.config.Store(cfg)
 		v.certificates[certName] = p
-		// set a certificate callback
-		client := GetSdsClientV3(cfg.SdsConfig.CertificateConfig.Config)
-		client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig.Config, p.setCertificate)
-		// set a validation callback
-		client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig.Config, mng.setValidation)
-		log.DefaultLogger.Infof("[mtls] [sds provider] add a new sds provider %s", certName)
+		if types.XdsVersion == types.XdsVersionV3 {
+			// set a certificate callback
+			client := GetSdsClientV3(cfg.SdsConfig.CertificateConfig.ConfigV3)
+			client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig.ConfigV3, p.setCertificate)
+			// set a validation callback
+			client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig.ConfigV3, mng.setValidation)
+			log.DefaultLogger.Infof("[mtls] [sds provider] add a new sds provider %s", certName)
+		} else {
+			// set a certificate callback
+			client := GetSdsClientV2(cfg.SdsConfig.CertificateConfig.ConfigV2)
+			client.AddUpdateCallback(cfg.SdsConfig.CertificateConfig.ConfigV2, p.setCertificate)
+			// set a validation callback
+			client.AddUpdateCallback(cfg.SdsConfig.ValidationConfig.ConfigV2, mng.setValidation)
+			log.DefaultLogger.Infof("[mtls] [sds provider] add a new sds provider %s", certName)
+		}
 	} else {
 		// try to update if config is changed
 		v := p.config.Load()
@@ -104,7 +113,11 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		// update tls config
 		p.config.Store(cfg)
 		// update sds config
-		GetSdsClientV3(cfg.SdsConfig.CertificateConfig.Config)
+		if types.XdsVersion == types.XdsVersionV3 {
+			GetSdsClientV3(cfg.SdsConfig.CertificateConfig.ConfigV3)
+		} else {
+			GetSdsClientV2(cfg.SdsConfig.CertificateConfig.ConfigV2)
+		}
 		// update secret
 		if p.info.full() {
 			p.update()

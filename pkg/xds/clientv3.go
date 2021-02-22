@@ -28,6 +28,7 @@ import (
 	envoy_config_bootstrap_v3 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v3"
 	envoy_config_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	_ "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
+	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/golang/protobuf/ptypes/duration"
 	jsoniter "github.com/json-iterator/go"
@@ -42,7 +43,7 @@ type clientv3 struct {
 	adsClient *v3.ADSClient
 }
 
-// unmarshalResourcesV3 used in order to convert bootstrap_v2 json to pb struct (go-control-plane), some fields must be exchanged format
+// unmarshalResourcesV3 used in order to convert bootstrap_v3 json to pb struct (go-control-plane), some fields must be exchanged format
 func unmarshalResourcesV3(config *mv2.MOSNConfig) (dynamicResources *envoy_config_bootstrap_v3.Bootstrap_DynamicResources, staticResources *envoy_config_bootstrap_v3.Bootstrap_StaticResources, err error) {
 
 	if len(config.RawDynamicResources) > 0 {
@@ -192,13 +193,15 @@ func (c *clientv3) Start(config *mv2.MOSNConfig) error {
 	sendControlChan := make(chan int)
 	recvControlChan := make(chan int)
 	adsClient := &v3.ADSClient{
-		AdsConfig:         xdsConfig.ADSConfig,
-		StreamClientMutex: sync.RWMutex{},
-		StreamClient:      nil,
-		MosnConfig:        config,
-		SendControlChan:   sendControlChan,
-		RecvControlChan:   recvControlChan,
-		StopChan:          stopChan,
+		AdsConfig:              xdsConfig.ADSConfig,
+		StreamClientMutex:      sync.RWMutex{},
+		StreamClient:           nil,
+		MosnConfig:             config,
+		SendControlChan:        sendControlChan,
+		RecvControlChan:        recvControlChan,
+		AsyncHandleControlChan: make(chan int),
+		AsyncHandleChan:        make(chan *envoy_service_discovery_v3.DiscoveryResponse, 20),
+		StopChan:               stopChan,
 	}
 	adsClient.Start()
 	c.adsClient = adsClient

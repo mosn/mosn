@@ -19,7 +19,9 @@ package v2
 
 import envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
-var typeURLHandleFuncs map[string]TypeURLHandleFunc
+var (
+	typeURLHandleFuncs map[string]TypeURLHandleFunc
+)
 
 func RegisterTypeURLHandleFunc(url string, f TypeURLHandleFunc) {
 	if typeURLHandleFuncs == nil {
@@ -28,8 +30,8 @@ func RegisterTypeURLHandleFunc(url string, f TypeURLHandleFunc) {
 	typeURLHandleFuncs[url] = f
 }
 
-func HandleTypeURL(url string, client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
-	if f, ok := typeURLHandleFuncs[url]; ok {
+func HandleTypeURL(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
+	if f, ok := typeURLHandleFuncs[resp.TypeUrl]; ok {
 		f(client, resp)
 	}
 }

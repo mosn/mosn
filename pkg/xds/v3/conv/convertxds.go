@@ -499,20 +499,14 @@ func convertStreamGzipConfig(s *any.Any) (map[string]interface{}, error) {
 		level = fasthttp.CompressDefaultCompression
 	}
 
-	// TODO upgrade go-control-plane
-	// go-control-plane-0.9.5 should use bellow
-	//compressor := gzipConfig.GetCompressor()
-	//if compressor != nil {
-	//	if compressor.GetContentLength() != nil {
-	//		minContentLength = compressor.GetContentLength().GetValue()
-	//	}
-	//	contentType = compressor.GetContentType()
-	//}
-
-	if gzipConfig.GetCompressor() != nil {
-		minContentLength = gzipConfig.GetCompressor().GetContentLength().Value
-		contentType = gzipConfig.GetCompressor().GetContentType()
+	compressor := gzipConfig.GetCompressor()
+	if compressor != nil {
+		if compressor.GetContentLength() != nil {
+			minContentLength = compressor.GetContentLength().GetValue()
+		}
+		contentType = compressor.GetContentType()
 	}
+
 	streamGzip := &v2.StreamGzip{
 		GzipLevel:     level,
 		ContentLength: minContentLength,
@@ -1378,8 +1372,8 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
 		isSdsMode = true
 		if validationContext, ok := common.GetValidationContextType().(*envoy_extensions_transport_sockets_tls_v3.CommonTlsContext_CombinedValidationContext); ok {
-			config.SdsConfig.CertificateConfig = &v2.SecretConfigWrapper{Config: tlsCertSdsConfig[0]}
-			config.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{Config: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()}
+			config.SdsConfig.CertificateConfig = &v2.SecretConfigWrapper{ConfigV3: tlsCertSdsConfig[0]}
+			config.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{ConfigV3: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()}
 		}
 	}
 

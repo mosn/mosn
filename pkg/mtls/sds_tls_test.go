@@ -41,12 +41,12 @@ func createSdsTLSConfigV3() *v2.TLSConfig {
 		VerifyClient: true,
 		SdsConfig: &v2.SdsConfig{
 			CertificateConfig: &v2.SecretConfigWrapper{
-				Config: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
+				ConfigV3: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
 					Name: "default",
 				},
 			},
 			ValidationConfig: &v2.SecretConfigWrapper{
-				Config: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
+				ConfigV3: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
 					Name: "rootCA",
 				},
 			},
@@ -63,12 +63,12 @@ func createSdsTLSConfigV2() *v2.TLSConfig {
 		VerifyClient: true,
 		SdsConfig: &v2.SdsConfig{
 			CertificateConfig: &v2.SecretConfigWrapper{
-				ConfigDeprecated: &envoy_api_v2_auth.SdsSecretConfig{
+				ConfigV2: &envoy_api_v2_auth.SdsSecretConfig{
 					Name: "default",
 				},
 			},
 			ValidationConfig: &v2.SecretConfigWrapper{
-				ConfigDeprecated: &envoy_api_v2_auth.SdsSecretConfig{
+				ConfigV2: &envoy_api_v2_auth.SdsSecretConfig{
 					Name: "rootCA",
 				},
 			},

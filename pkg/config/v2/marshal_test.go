@@ -57,8 +57,8 @@ func TestDelayInjectMarshal(t *testing.T) {
 
 func TestSecretConfigWrapperMarshalXDSV2(t *testing.T) {
 	sw := &SecretConfigWrapper{
-		Config: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{},
-		ConfigDeprecated: &envoy_api_v2_auth.SdsSecretConfig{
+		ConfigV3: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{},
+		ConfigV2: &envoy_api_v2_auth.SdsSecretConfig{
 			Name:      "sds",
 			SdsConfig: &envoy_api_v2_core.ConfigSource{},
 		},
@@ -74,7 +74,7 @@ func TestSecretConfigWrapperMarshalXDSV2(t *testing.T) {
 
 func TestSecretConfigWrapperMarshalXDSV3(t *testing.T) {
 	sw := &SecretConfigWrapper{
-		Config: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
+		ConfigV3: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
 			Name:      "sds",
 			SdsConfig: &envoy_config_core_v3.ConfigSource{},
 		},

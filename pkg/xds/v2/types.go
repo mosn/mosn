@@ -54,13 +54,15 @@ type ADSConfig struct {
 
 // ADSClient communicated with pilot
 type ADSClient struct {
-	AdsConfig         *ADSConfig
-	StreamClientMutex sync.RWMutex
-	StreamClient      ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient
-	MosnConfig        *v2.MOSNConfig
-	SendControlChan   chan int
-	RecvControlChan   chan int
-	StopChan          chan int
+	AdsConfig              *ADSConfig
+	StreamClientMutex      sync.RWMutex
+	StreamClient           ads.AggregatedDiscoveryService_StreamAggregatedResourcesClient
+	MosnConfig             *v2.MOSNConfig
+	SendControlChan        chan int
+	RecvControlChan        chan int
+	AsyncHandleControlChan chan int
+	AsyncHandleChan        chan *envoy_api_v2.DiscoveryResponse
+	StopChan               chan int
 }
 
 // ServiceConfig for grpc service

@@ -25,6 +25,7 @@ import (
 	"errors"
 	"sync"
 
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	envoy_config_bootstrap_v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/golang/protobuf/jsonpb"
@@ -191,13 +192,15 @@ func (c *clientv2) Start(config *mv2.MOSNConfig) error {
 	sendControlChan := make(chan int)
 	recvControlChan := make(chan int)
 	adsClient := &v2.ADSClient{
-		AdsConfig:         xdsConfig.ADSConfig,
-		StreamClientMutex: sync.RWMutex{},
-		StreamClient:      nil,
-		MosnConfig:        config,
-		SendControlChan:   sendControlChan,
-		RecvControlChan:   recvControlChan,
-		StopChan:          stopChan,
+		AdsConfig:              xdsConfig.ADSConfig,
+		StreamClientMutex:      sync.RWMutex{},
+		StreamClient:           nil,
+		MosnConfig:             config,
+		SendControlChan:        sendControlChan,
+		RecvControlChan:        recvControlChan,
+		AsyncHandleControlChan: make(chan int),
+		AsyncHandleChan:        make(chan *envoy_api_v2.DiscoveryResponse, 20),
+		StopChan:               stopChan,
 	}
 	adsClient.Start()
 	c.adsClient = adsClient

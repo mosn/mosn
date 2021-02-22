@@ -142,7 +142,7 @@ func configApiSource(cluster string) *envoy_config_core_v3.ApiConfigSource {
 func localityLbEndpoints(address string, port int) *envoy_config_endpoint_v3.LocalityLbEndpoints {
 	return &envoy_config_endpoint_v3.LocalityLbEndpoints{
 		LbEndpoints: []*envoy_config_endpoint_v3.LbEndpoint{
-			&envoy_config_endpoint_v3.LbEndpoint{
+			{
 				HostIdentifier: &envoy_config_endpoint_v3.LbEndpoint_Endpoint{
 					Endpoint: &envoy_config_endpoint_v3.Endpoint{
 						Address: socketAddress(address, port),

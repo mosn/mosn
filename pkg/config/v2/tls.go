@@ -54,14 +54,14 @@ type SdsConfig struct {
 }
 
 type SecretConfigWrapper struct {
-	Config           *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig
-	ConfigDeprecated *envoy_api_v2_auth.SdsSecretConfig
+	ConfigV3 *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig
+	ConfigV2 *envoy_api_v2_auth.SdsSecretConfig
 }
 
 func (sc SecretConfigWrapper) MarshalJSON() (b []byte, err error) {
 	newData := &bytes.Buffer{}
 	marshaler := &jsonpb.Marshaler{}
-	err = marshaler.Marshal(newData, sc.Config)
+	err = marshaler.Marshal(newData, sc.ConfigV3)
 	return newData.Bytes(), err
 }
 
@@ -69,7 +69,7 @@ func (sc *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
 	secretConfigV3 := &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{}
 	err1 := jsonpb.Unmarshal(bytes.NewReader(b), secretConfigV3)
 	if err1 == nil {
-		sc.Config = secretConfigV3
+		sc.ConfigV3 = secretConfigV3
 		// first Unmarshal with v3, if no err will return fast.
 		return nil
 	}
@@ -77,7 +77,7 @@ func (sc *SecretConfigWrapper) UnmarshalJSON(b []byte) error {
 	secretConfigV2 := &envoy_api_v2_auth.SdsSecretConfig{}
 	err2 := jsonpb.Unmarshal(bytes.NewBuffer(b), secretConfigV2)
 	if err2 == nil {
-		sc.ConfigDeprecated = secretConfigV2
+		sc.ConfigV2 = secretConfigV2
 		// try UnmarshalJSON with v2, if no err will return fast.
 		return nil
 	}
