@@ -44,6 +44,8 @@ import (
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
 	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/xds"
 	"mosn.io/mosn/pkg/xds/v3/conv"
 )
 
@@ -118,6 +120,12 @@ func handleXdsData(mosnConfig *v2.MOSNConfig, xdsFiles []string) error {
 }
 
 func TestConfigAddAndUpdate(t *testing.T) {
+	types.XdsVersion = types.XdsVersionV3
+	defer func() {
+		types.XdsVersion = types.XdsVersionV2
+	}()
+	xds.InitStats()
+
 	mosnConfig := configmanager.Load(filepath.Join("testdata", "envoy.json"))
 	configmanager.Reset()
 	configmanager.SetMosnConfig(mosnConfig)
