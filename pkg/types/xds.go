@@ -25,7 +25,6 @@ import (
 	"strconv"
 	"strings"
 
-	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	"github.com/golang/protobuf/jsonpb"
 	_struct "github.com/golang/protobuf/ptypes/struct"
 	"github.com/rcrowley/go-metrics"
@@ -63,9 +62,11 @@ var (
 	}
 
 	// XdsVersionV3 xDS v3
-	XdsVersionV3 = envoy_config_core_v3.ApiVersion_V3
+	XdsVersionV3 = "V3"
+	// XdsVersionV2 xDS v2
+	XdsVersionV2 = "V2"
 	// XdsVersion xds version
-	XdsVersion = XdsVersionV3
+	XdsVersion = XdsVersionV2
 )
 
 var globalXdsInfo = &XdsInfo{}

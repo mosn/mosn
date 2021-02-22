@@ -29,7 +29,6 @@ import (
 	envoy_api_v2_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	envoy_config_bootstrap_v2 "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/ptypes/duration"
 	jsoniter "github.com/json-iterator/go"
 	mv2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -39,153 +38,24 @@ import (
 
 // clientv2 provide an ADS client with xDS v2
 type clientv2 struct {
-	adsClient *v2.ADSClient
-}
-
-// unmarshalResourcesV2 used in order to convert bootstrap_v2 json to pb struct (go-control-plane), some fields must be exchanged format
-func unmarshalResourcesV2(config *mv2.MOSNConfig) (dynamicResources *envoy_config_bootstrap_v2.Bootstrap_DynamicResources, staticResources *envoy_config_bootstrap_v2.Bootstrap_StaticResources, err error) {
-
-	if len(config.RawDynamicResources) > 0 {
-		dynamicResources = &envoy_config_bootstrap_v2.Bootstrap_DynamicResources{}
-		resources := map[string]jsoniter.RawMessage{}
-		err = json.Unmarshal(config.RawDynamicResources, &resources)
-		if err != nil {
-			log.DefaultLogger.Errorf("fail to unmarshal dynamic_resources: %v", err)
-			return nil, nil, err
-		}
-		if adsConfigRaw, ok := resources["ads_config"]; ok {
-			var b []byte
-			adsConfig := map[string]jsoniter.RawMessage{}
-			err = json.Unmarshal([]byte(adsConfigRaw), &adsConfig)
-			if err != nil {
-				log.DefaultLogger.Errorf("fail to unmarshal ads_config: %v", err)
-				return nil, nil, err
-			}
-			if refreshDelayRaw, ok := adsConfig["refresh_delay"]; ok {
-				refreshDelay := duration.Duration{}
-				err = json.Unmarshal([]byte(refreshDelayRaw), &refreshDelay)
-				if err != nil {
-					log.DefaultLogger.Errorf("fail to unmarshal refresh_delay: %v", err)
-					return nil, nil, err
-				}
-
-				d := duration2String(&refreshDelay)
-				b, err = json.Marshal(&d)
-				adsConfig["refresh_delay"] = jsoniter.RawMessage(b)
-			}
-			b, err = json.Marshal(&adsConfig)
-			if err != nil {
-				log.DefaultLogger.Errorf("fail to marshal refresh_delay: %v", err)
-				return nil, nil, err
-			}
-			resources["ads_config"] = jsoniter.RawMessage(b)
-			b, err = json.Marshal(&resources)
-			if err != nil {
-				log.DefaultLogger.Errorf("fail to marshal ads_config: %v", err)
-				return nil, nil, err
-			}
-
-			err = jsonpb.UnmarshalString(string(b), dynamicResources)
-			if err != nil {
-				log.DefaultLogger.Errorf("fail to unmarshal dynamic_resources: %v", err)
-				return nil, nil, err
-			}
-			err = dynamicResources.Validate()
-			if err != nil {
-				log.DefaultLogger.Errorf("invalid dynamic_resources: %v", err)
-				return nil, nil, err
-			}
-		} else {
-			log.DefaultLogger.Errorf("ads_config not found")
-			err = errors.New("lack of ads_config")
-			return nil, nil, err
-		}
-	}
-
-	if len(config.RawStaticResources) > 0 {
-		staticResources = &envoy_config_bootstrap_v2.Bootstrap_StaticResources{}
-		var b []byte
-		resources := map[string]jsoniter.RawMessage{}
-		err = json.Unmarshal([]byte(config.RawStaticResources), &resources)
-		if err != nil {
-			log.DefaultLogger.Errorf("fail to unmarshal static_resources: %v", err)
-			return nil, nil, err
-		}
-		if clustersRaw, ok := resources["clusters"]; ok {
-			clusters := []jsoniter.RawMessage{}
-			err = json.Unmarshal([]byte(clustersRaw), &clusters)
-			if err != nil {
-				log.DefaultLogger.Errorf("fail to unmarshal clusters: %v", err)
-				return nil, nil, err
-			}
-			for i, clusterRaw := range clusters {
-				cluster := map[string]jsoniter.RawMessage{}
-				err = json.Unmarshal([]byte(clusterRaw), &cluster)
-				if err != nil {
-					log.DefaultLogger.Errorf("fail to unmarshal cluster: %v", err)
-					return nil, nil, err
-				}
-				cb := envoy_api_v2_cluster.CircuitBreakers{}
-				b, err = json.Marshal(&cb)
-				if err != nil {
-					log.DefaultLogger.Errorf("fail to marshal circuit_breakers: %v", err)
-					return nil, nil, err
-				}
-				cluster["circuit_breakers"] = jsoniter.RawMessage(b)
-
-				b, err = json.Marshal(&cluster)
-				if err != nil {
-					log.DefaultLogger.Errorf("fail to marshal cluster: %v", err)
-					return nil, nil, err
-				}
-				clusters[i] = jsoniter.RawMessage(b)
-			}
-			b, err = json.Marshal(&clusters)
-			if err != nil {
-				log.DefaultLogger.Errorf("fail to marshal clusters: %v", err)
-				return nil, nil, err
-			}
-		}
-		resources["clusters"] = jsoniter.RawMessage(b)
-		b, err = json.Marshal(&resources)
-		if err != nil {
-			log.DefaultLogger.Errorf("fail to marshal resources: %v", err)
-			return nil, nil, err
-		}
-
-		err = jsonpb.UnmarshalString(string(b), staticResources)
-		if err != nil {
-			log.DefaultLogger.Errorf("fail to unmarshal static_resources: %v", err)
-			return nil, nil, err
-		}
-
-		err = staticResources.Validate()
-		if err != nil {
-			log.DefaultLogger.Errorf("Invalid static_resources: %v", err)
-			return nil, nil, err
-		}
-	}
-	return dynamicResources, staticResources, nil
+	config           *mv2.MOSNConfig
+	dynamicResources *envoy_config_bootstrap_v2.Bootstrap_DynamicResources
+	staticResources  *envoy_config_bootstrap_v2.Bootstrap_StaticResources
+	adsClient        *v2.ADSClient
 }
 
 // Start used to fetch listeners/clusters/clusterloadassignment config from pilot in cycle,
 // usually called when mosn start
-func (c *clientv2) Start(config *mv2.MOSNConfig) error {
-	log.DefaultLogger.Infof("xds client start")
+func (c *clientv2) Start() error {
+	log.DefaultLogger.Infof("xds v2 client start")
 
 	conv.InitStats()
 
-	dynamicResources, staticResources, err := unmarshalResourcesV2(config)
-	if err != nil {
-		log.DefaultLogger.Warnf("fail to unmarshal xds resources, skip xds: %v", err)
-		return errors.New("fail to unmarshal xds resources")
-	}
-
 	xdsConfig := v2.XDSConfig{}
-	err = xdsConfig.Init(dynamicResources, staticResources)
+	err := xdsConfig.Init(c.dynamicResources, c.staticResources)
 	if err != nil {
-		log.DefaultLogger.Warnf("fail to init xds config, skip xds: %v", err)
-		return errors.New("fail to init xds config")
+		log.DefaultLogger.Warnf("fail to init xds v2 config, skip xds: %v", err)
+		return errors.New("fail to init xds v2 config")
 	}
 
 	stopChan := make(chan int)
@@ -195,7 +65,7 @@ func (c *clientv2) Start(config *mv2.MOSNConfig) error {
 		AdsConfig:              xdsConfig.ADSConfig,
 		StreamClientMutex:      sync.RWMutex{},
 		StreamClient:           nil,
-		MosnConfig:             config,
+		MosnConfig:             c.config,
 		SendControlChan:        sendControlChan,
 		RecvControlChan:        recvControlChan,
 		AsyncHandleControlChan: make(chan int),
@@ -215,4 +85,74 @@ func (c *clientv2) Stop() {
 		c.adsClient.Stop()
 		log.DefaultLogger.Infof("xds client stop")
 	}
+}
+
+func unmarshalStaticResourcesV2(config *mv2.MOSNConfig) (staticResources *envoy_config_bootstrap_v2.Bootstrap_StaticResources, err error) {
+	if len(config.RawStaticResources) < 1 {
+		return nil, nil
+	}
+
+	staticResources = &envoy_config_bootstrap_v2.Bootstrap_StaticResources{}
+	var b []byte
+	resources := map[string]jsoniter.RawMessage{}
+	err = json.Unmarshal([]byte(config.RawStaticResources), &resources)
+	if err != nil {
+		log.DefaultLogger.Errorf("fail to unmarshal static_resources: %v", err)
+		return nil, err
+	}
+	if clustersRaw, ok := resources["clusters"]; ok {
+		clusters := []jsoniter.RawMessage{}
+		err = json.Unmarshal([]byte(clustersRaw), &clusters)
+		if err != nil {
+			log.DefaultLogger.Errorf("fail to unmarshal clusters: %v", err)
+			return nil, err
+		}
+		for i, clusterRaw := range clusters {
+			cluster := map[string]jsoniter.RawMessage{}
+			err = json.Unmarshal([]byte(clusterRaw), &cluster)
+			if err != nil {
+				log.DefaultLogger.Errorf("fail to unmarshal cluster: %v", err)
+				return nil, err
+			}
+			cb := envoy_api_v2_cluster.CircuitBreakers{}
+			b, err = json.Marshal(&cb)
+			if err != nil {
+				log.DefaultLogger.Errorf("fail to marshal circuit_breakers: %v", err)
+				return nil, err
+			}
+			cluster["circuit_breakers"] = jsoniter.RawMessage(b)
+
+			b, err = json.Marshal(&cluster)
+			if err != nil {
+				log.DefaultLogger.Errorf("fail to marshal cluster: %v", err)
+				return nil, err
+			}
+			clusters[i] = jsoniter.RawMessage(b)
+		}
+		b, err = json.Marshal(&clusters)
+		if err != nil {
+			log.DefaultLogger.Errorf("fail to marshal clusters: %v", err)
+			return nil, err
+		}
+	}
+	resources["clusters"] = jsoniter.RawMessage(b)
+	b, err = json.Marshal(&resources)
+	if err != nil {
+		log.DefaultLogger.Errorf("fail to marshal resources: %v", err)
+		return nil, err
+	}
+
+	err = jsonpb.UnmarshalString(string(b), staticResources)
+	if err != nil {
+		log.DefaultLogger.Errorf("fail to unmarshal static_resources: %v", err)
+		return nil, err
+	}
+
+	err = staticResources.Validate()
+	if err != nil {
+		log.DefaultLogger.Errorf("Invalid static_resources: %v", err)
+		return nil, err
+	}
+
+	return staticResources, nil
 }

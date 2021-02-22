@@ -255,10 +255,15 @@ func (m *Mosn) Start() {
 	m.wg.Add(1)
 	// Start XDS if configured
 	log.StartLogger.Infof("mosn start xds client")
-	m.xdsClient = xds.NewClient()
-	utils.GoWithRecover(func() {
-		m.xdsClient.Start(m.config)
-	}, nil)
+	var err error
+	m.xdsClient, err = xds.NewClient(m.config)
+	if err != nil {
+		log.StartLogger.Errorf("build xdsClient failed: %v", err)
+	} else {
+		utils.GoWithRecover(func() {
+			m.xdsClient.Start()
+		}, nil)
+	}
 	// start mosn feature
 	featuregate.StartInit()
 	log.StartLogger.Infof("mosn parse extend config")
@@ -302,7 +307,9 @@ func (m *Mosn) Close() {
 	for _, srv := range m.servers {
 		srv.Close()
 	}
-	m.xdsClient.Stop()
+	if m.xdsClient != nil {
+		m.xdsClient.Stop()
+	}
 	m.clustermanager.Destroy()
 	m.wg.Done()
 }
