@@ -38,11 +38,11 @@
 					"stream_filters": [
 						{
 							"type":"loadso",
+							"go_plugin_config": {
+								"so_path":"./simple_so.so"
+							},
 							"config": {
-								"so_path":"./simple_so.so",
-								"config": {
-									"User":"admin"
-								}
+								"User":"admin"
 							}
 						}
 					]

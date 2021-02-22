@@ -14,7 +14,7 @@ jobs:
       - name: golangci-lint
         uses: reviewdog/action-golangci-lint@v1
         with:
-          golangci_lint_flags: "--enable-all --timeout=10m --exclude-use-default=false --tests=false --disable=gochecknoinits,gochecknoglobals,exhaustive,nakedret"
+          golangci_lint_flags: "--enable-all --timeout=10m --exclude-use-default=false --tests=false --disable=gochecknoinits,gochecknoglobals,exhaustive,nakedret,exhaustivestruct"
           workdir: pkg
 
   test:
@@ -24,7 +24,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.12.7
+          go-version: 1.14.13
 
       - name: Check out code
         uses: actions/checkout@v1
@@ -42,13 +42,28 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.12.7
+          go-version: 1.14.13
 
       - name: Check out code
         uses: actions/checkout@v1
 
       - name: Run Integrate tests.
         run: make integrate
+
+  integrate-netpoll:
+    name: integrate-netpoll
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14.13
+
+      - name: Check out code
+        uses: actions/checkout@v1
+
+      - name: Run Integrate tests.
+        run: make integrate-netpoll
 
   integrate-new:
     name: integrate-new
@@ -57,7 +72,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.12.7
+          go-version: 1.14.13
 
       - name: Check out code
         uses: actions/checkout@v1
@@ -72,7 +87,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.12.7
+          go-version: 1.14.13
 
       - name: Check out code
         uses: actions/checkout@v1

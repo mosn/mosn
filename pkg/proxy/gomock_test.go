@@ -115,8 +115,8 @@ func gomockRouteMatchCluster(ctrl *gomock.Controller, cluster_name string) api.R
 			}).AnyTimes()
 			return p
 		}).AnyTimes()
-		rule.EXPECT().FinalizeRequestHeaders(gomock.Any(), gomock.Any()).AnyTimes()
-		rule.EXPECT().FinalizeResponseHeaders(gomock.Any(), gomock.Any()).AnyTimes()
+		rule.EXPECT().FinalizeRequestHeaders(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		rule.EXPECT().FinalizeResponseHeaders(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		return rule
 	}).AnyTimes()
 	r.EXPECT().DirectResponseRule().Return(nil)

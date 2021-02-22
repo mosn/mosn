@@ -3,6 +3,9 @@ package xprotocol
 import (
 	"context"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
@@ -12,8 +15,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/pkg/buffer"
-	"testing"
-	"time"
 )
 
 func TestPingPong(t *testing.T) {
@@ -55,7 +56,7 @@ func TestPingPong(t *testing.T) {
 		}}, true)
 	}
 
-	assert.Equal(t, len(xsList), len(pInst.idleClients[api.Protocol("dubbo")]))
+	assert.Equal(t, len(xsList), len(pInst.idleClients[api.ProtocolName("dubbo")]))
 }
 
 type receiver struct{}

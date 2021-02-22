@@ -1,18 +1,59 @@
+// Copyright 1999-2020 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package api
 
 import (
+	"sync"
+
 	"github.com/alibaba/sentinel-golang/core/base"
+	"github.com/alibaba/sentinel-golang/core/misc"
 )
+
+var entryOptsPool = sync.Pool{
+	New: func() interface{} {
+		return &EntryOptions{
+			resourceType: base.ResTypeCommon,
+			entryType:    base.Outbound,
+			batchCount:   1,
+			flag:         0,
+			slotChain:    nil,
+			args:         nil,
+			attachments:  nil,
+		}
+	},
+}
 
 // EntryOptions represents the options of a Sentinel resource entry.
 type EntryOptions struct {
 	resourceType base.ResourceType
 	entryType    base.TrafficType
-	acquireCount uint32
+	batchCount   uint32
 	flag         int32
 	slotChain    *base.SlotChain
 	args         []interface{}
 	attachments  map[interface{}]interface{}
+}
+
+func (o *EntryOptions) Reset() {
+	o.resourceType = base.ResTypeCommon
+	o.entryType = base.Outbound
+	o.batchCount = 1
+	o.flag = 0
+	o.slotChain = nil
+	o.args = nil
+	o.attachments = nil
 }
 
 type EntryOption func(*EntryOptions)
@@ -31,10 +72,18 @@ func WithTrafficType(entryType base.TrafficType) EntryOption {
 	}
 }
 
+// DEPRECATED: use WithBatchCount instead.
 // WithAcquireCount sets the resource entry with the given batch count (by default 1).
 func WithAcquireCount(acquireCount uint32) EntryOption {
 	return func(opts *EntryOptions) {
-		opts.acquireCount = acquireCount
+		opts.batchCount = acquireCount
+	}
+}
+
+// WithBatchCount sets the resource entry with the given batch count (by default 1).
+func WithBatchCount(batchCount uint32) EntryOption {
+	return func(opts *EntryOptions) {
+		opts.batchCount = batchCount
 	}
 }
 
@@ -52,9 +101,19 @@ func WithArgs(args ...interface{}) EntryOption {
 	}
 }
 
+// WithSlotChain sets the slot chain.
+func WithSlotChain(chain *base.SlotChain) EntryOption {
+	return func(opts *EntryOptions) {
+		opts.slotChain = chain
+	}
+}
+
 // WithAttachment set the resource entry with the given k-v pair
 func WithAttachment(key interface{}, value interface{}) EntryOption {
 	return func(opts *EntryOptions) {
+		if opts.attachments == nil {
+			opts.attachments = make(map[interface{}]interface{}, 8)
+		}
 		opts.attachments[key] = value
 	}
 }
@@ -62,6 +121,9 @@ func WithAttachment(key interface{}, value interface{}) EntryOption {
 // WithAttachment set the resource entry with the given k-v pairs
 func WithAttachments(data map[interface{}]interface{}) EntryOption {
 	return func(opts *EntryOptions) {
+		if opts.attachments == nil {
+			opts.attachments = make(map[interface{}]interface{}, len(data))
+		}
 		for key, value := range data {
 			opts.attachments[key] = value
 		}
@@ -70,20 +132,22 @@ func WithAttachments(data map[interface{}]interface{}) EntryOption {
 
 // Entry is the basic API of Sentinel.
 func Entry(resource string, opts ...EntryOption) (*base.SentinelEntry, *base.BlockError) {
-	var options = EntryOptions{
-		resourceType: base.ResTypeCommon,
-		entryType:    base.Outbound,
-		acquireCount: 1,
-		flag:         0,
-		slotChain:    globalSlotChain,
-		args:         []interface{}{},
-		attachments:  make(map[interface{}]interface{}),
-	}
-	for _, opt := range opts {
-		opt(&options)
-	}
+	options := entryOptsPool.Get().(*EntryOptions)
+	defer func() {
+		options.Reset()
+		entryOptsPool.Put(options)
+	}()
 
-	return entry(resource, &options)
+	for _, opt := range opts {
+		opt(options)
+	}
+	if options.slotChain == nil {
+		options.slotChain = misc.GetResourceSlotChain(resource)
+		if options.slotChain == nil {
+			options.slotChain = GlobalSlotChain()
+		}
+	}
+	return entry(resource, options)
 }
 
 func entry(resource string, options *EntryOptions) (*base.SentinelEntry, *base.BlockError) {
@@ -96,23 +160,27 @@ func entry(resource string, options *EntryOptions) (*base.SentinelEntry, *base.B
 	// Get context from pool.
 	ctx := sc.GetPooledContext()
 	ctx.Resource = rw
-	ctx.Input = &base.SentinelInput{
-		AcquireCount: options.acquireCount,
-		Flag:         options.flag,
-		Args:         options.args,
-		Attachments:  options.attachments,
+	ctx.Input.BatchCount = options.batchCount
+	ctx.Input.Flag = options.flag
+	if len(options.args) != 0 {
+		ctx.Input.Args = options.args
 	}
-
+	if len(options.attachments) != 0 {
+		ctx.Input.Attachments = options.attachments
+	}
 	e := base.NewSentinelEntry(ctx, rw, sc)
-
+	ctx.SetEntry(e)
 	r := sc.Entry(ctx)
 	if r == nil {
 		// This indicates internal error in some slots, so just pass
 		return e, nil
 	}
 	if r.Status() == base.ResultStatusBlocked {
+		// r will be put to Pool in calling Exit()
+		// must finish the lifecycle of r.
+		blockErr := base.NewBlockErrorFromDeepCopy(r.BlockError())
 		e.Exit()
-		return nil, r.BlockError()
+		return nil, blockErr
 	}
 
 	return e, nil

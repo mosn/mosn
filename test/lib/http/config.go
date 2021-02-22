@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"reflect"
@@ -10,10 +11,13 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/log"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/lib/utils"
-	"mosn.io/pkg/buffer"
 )
 
 type HttpServerConfig struct {
@@ -99,7 +103,7 @@ type ResponseBuilder struct {
 	// The response header
 	Header map[string][]string `json:"header"`
 	// The repsonse body content
-	Body json.RawMessage `json:"body"`
+	Body string `json:"body"`
 }
 
 func (b *ResponseBuilder) Build(w http.ResponseWriter) (int, error) {
@@ -114,7 +118,7 @@ func (b *ResponseBuilder) Build(w http.ResponseWriter) (int, error) {
 	}
 	// WriteHeader should be called after Header.Set/Add
 	w.WriteHeader(b.StatusCode)
-	return w.Write(b.Body)
+	return w.Write([]byte(b.Body))
 }
 
 type HttpClientConfig struct {
@@ -145,20 +149,22 @@ type RequestConfig struct {
 	Timeout time.Duration       `json:"timeout"` // request timeout
 }
 
-func (c *RequestConfig) BuildRequest() (api.HeaderMap, buffer.IoBuffer) {
+func (c *RequestConfig) BuildRequest(ctx context.Context) (api.HeaderMap, buffer.IoBuffer) {
 	if c == nil {
-		return buildRequest("GET", nil, nil)
+		return buildRequest(nil, "GET", nil, nil)
+	}
+	if c.Method == "" {
+		c.Method = "GET"
 	}
 	method := c.Method
-	if c.Method == "" {
-		method = "GET"
-	}
-	return buildRequest(method, c.Header, c.Body)
+	return buildRequest(ctx, method, c.Header, c.Body)
 }
 
-func buildRequest(method string, header map[string][]string, body []byte) (api.HeaderMap, buffer.IoBuffer) {
+func buildRequest(ctx context.Context, method string, header map[string][]string, body []byte) (api.HeaderMap, buffer.IoBuffer) {
 	fh := &fasthttp.RequestHeader{}
 	fh.SetMethod(method)
+	// to simulate pkg/stream/http/stream.go injectInternalHeaders
+	variable.SetVariableValue(ctx, types.VarMethod, method)
 	h := mosnhttp.RequestHeader{
 		RequestHeader: fh,
 	}

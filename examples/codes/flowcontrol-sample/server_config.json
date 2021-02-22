@@ -61,7 +61,7 @@
                     "resource": "/test",
                     "limitApp": "",
                     "grade": 1,
-                    "count": 1,
+                    "threshold": 1,
                     "strategy": 0
                   }
                 ]

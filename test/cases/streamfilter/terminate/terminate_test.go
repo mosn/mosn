@@ -1,6 +1,6 @@
 // +build MOSNTest
 
-package simple
+package terminate
 
 import (
 	"io/ioutil"

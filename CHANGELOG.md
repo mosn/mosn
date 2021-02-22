@@ -1,5 +1,99 @@
 # Changelog
 
+## v0.21.0
+
+### Optimization
+
+- Upgrade sentinel version to v1.0.2 [@ansiz](https://github.com/ansiz)
+- Shrink the read buffer of tls when read timeout, reduce tls memory consumption [@cch123](https://github.com/cch123)
+- Add comments and simplify the implementation of the xprotocol protocol connpool [@cch123](https://github.com/cch123)
+- Update the mosn registry version [@cadeeper](https://github.com/cadeeper) [@cch123](https://github.com/cch123)
+
+### Refactoring
+
+- Optimize header matching logic when routing, support general RPC routing matching implementation [@nejisama](https://github.com/nejisama)
+- Delete some of the original constants and add constants used to describe the mechanism of variables [@nejisama](https://github.com/nejisama)
+- Refactor flow control module, support custom callback extension, realize the ability to customize filter conditions and modify context information, etc [@ansiz](https://github.com/ansiz)
+
+### Bug fixes
+
+- Fix metrics statistics error when request is abnormal [@cch123](https://github.com/cch123)
+- Fix the bug that the URL is not escaping before forwarding HTTP request [@antJack](https://github.com/antJack)
+- Fix the variable injection errors in HTTP protocol, Fix the bug that routing rewrite is not supported in the HTTP2 protocol [@nejisama](https://github.com/nejisama)
+
+### New Features
+
+- Support Domain-Specific Language route implementation [@CodingSinger](https://github.com/CodingSinger)
+- StreamFilter supports the dynamic link libraries written in Go [@CodingSinger](https://github.com/CodingSinger)
+- VirtualHost supports per_filter_config configuration in routing configuration [@machine3](https://github.com/machine3)
+- Xprotocol supports dubbo thrift protocol [@cadeeper](https://github.com/cadeeper)
+
+## v0.20.0
+
+### Optimization
+
+- Add UDS address prefix check before UDS resolution when TCP address resolution fails [@wangfakang](https://github.com/wangfakang)
+- Optimized the retrial interval for connection pool acquisition [@nejisama](https://github.com/nejisama)
+- Add global switch for write loop mode [@nejisama](https://github.com/nejisama)
+- Optimize auto protocol matching and add test cases [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Replace the headers with more efficient variables [@CodingSinger](https://github.com/CodingSinger)
+- Pool the writeBufferChan timer to reduce overhead [@cch123](https://github.com/cch123)
+- Add MOSN failure detail info into TraceLog [@nejisama](https://github.com/nejisama)
+- New read done channel in HTTP protocol processing [@alpha-baby](https://github.com/alpha-baby)
+- Enhance logger rotator [@nejisama](https://github.com/nejisama)
+
+### Refactoring
+
+- Upgrade to golang 1.14.13 [@nejisama](https://github.com/nejisama)
+- Refactor router chain extension mode to the route handler extension mode, support different router handler configuration [@nejisama](https://github.com/nejisama)
+- Refactor MOSN extended configuration, support load config according to configuration order [@nejisama](https://github.com/nejisama)
+
+### Bug fixes
+
+- Fix the bug no provider available occurred after dubbo2.7.3 [@cadeeper](https://github.com/cadeeper)
+- Fix the bug that UDS connections were treated as TCP connections in netpoll mode [@wangfakang](https://github.com/wangfakang)
+- Fix the problem that the HTTP Header cannot be obtained correctly when it is set to an empty value [@ianwoolf](https://github.com/ianwoolf)
+
+### New Features
+
+- Support old Mosn transfer configuration to new Mosn through UDS to solve the issue that Mosn in XDS mode cannot be smoothly upgraded [@alpha-baby](https://github.com/alpha-baby)
+- Automatic protocol identification supports the identification of XProtocol [@cadeeper](https://github.com/cadeeper)
+- Support configuration of the keepalive parameters for XProtocol [@cch123](https://github.com/cch123)
+- Support more detailed time tracking [@nejisama](https://github.com/nejisama)
+- Support metrics lazy registration to optimize metrics memory when number of service in cluster is too large [@champly](https://github.com/champly)
+- Add setter function for default XProtocol multiplex connection pool size [@cch123](https://github.com/cch123)
+- Support netpoll [@cch123](https://github.com/cch123)
+- Support broadcast [@dengqian](https://github.com/dengqian)
+- Support get tls configurations from LDS response [@wZH-CN](https://github.com/wZH-CN)
+- Add ACK response for SDS [@wZH-CN](https://github.com/wZH-CN)
+
+## v0.19.0
+
+### Optimization
+
+- Use the latest TLS memory optimization scheme [@cch123](https://github.com/cch123)
+- Proxy log optimization to reduce memory escape [@taoyuanyuan](https://github.com/taoyuanyuan)
+- Increase the maximum number of connections limit [@champly](https://github.com/champly)
+- When AccessLog fails to obtain variables, use "-" instead [@champly](https://github.com/champly)
+- MaxProcs supports configuring automatic recognition based on CPU usage limits [@champly](https://github.com/champly)
+- Allow specifying network for cluster [@champly](https://github.com/champly)
+
+### Refactoring
+
+- Refactored the StreamFilter framework. The network filter can reuse the stream filter framework [@antJack](https://github.com/antJack)
+
+### Bug fixes
+
+- Fix HTTP Trace get URL error [@wzshiming](https://github.com/wzshiming)
+- Fix the ConnectTimeout parameter of xDS cluster is not converted [@dengqian](https://github.com/dengqian)
+- Fix the upstreamHostGetter method gets the wrong hostname [@dengqian](https://github.com/dengqian)
+- Fix tcp proxy close the connection abnormally [@dengqian](https://github.com/dengqian)
+- Fix the lack of default configuration of mixer filter, resulting in a nil pointer reference [@glyasai](https://github.com/glyasai)
+- Fix HTTP2 direct response not setting `Content-length` correctly [@wangfakang](https://github.com/wangfakang)
+- Fix the nil pointer reference in getAPISourceEndpoint [@dylandee](https://github.com/dylandee)
+- Fix memory increase caused by too many Timer applications when Write is piled up [@champly](https://github.com/champly)
+- Fix the problem of missing stats when Dubbo Filter receives an illegal response [@champly](https://github.com/champly)
+
 ## v0.18.0
 
 ### New Features

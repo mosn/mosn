@@ -6,50 +6,37 @@ package mock
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
-	api "mosn.io/api"
 	reflect "reflect"
 	time "time"
+
+	gomock "github.com/golang/mock/gomock"
+	api "mosn.io/api"
 )
 
-// MockRoute is a mock of Route interface
+// MockRoute is a mock of Route interface.
 type MockRoute struct {
 	ctrl     *gomock.Controller
 	recorder *MockRouteMockRecorder
 }
 
-// MockRouteMockRecorder is the mock recorder for MockRoute
+// MockRouteMockRecorder is the mock recorder for MockRoute.
 type MockRouteMockRecorder struct {
 	mock *MockRoute
 }
 
-// NewMockRoute creates a new mock instance
+// NewMockRoute creates a new mock instance.
 func NewMockRoute(ctrl *gomock.Controller) *MockRoute {
 	mock := &MockRoute{ctrl: ctrl}
 	mock.recorder = &MockRouteMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockRoute) EXPECT() *MockRouteMockRecorder {
 	return m.recorder
 }
 
-// RouteRule mocks base method
-func (m *MockRoute) RouteRule() api.RouteRule {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RouteRule")
-	ret0, _ := ret[0].(api.RouteRule)
-	return ret0
-}
-
-// RouteRule indicates an expected call of RouteRule
-func (mr *MockRouteMockRecorder) RouteRule() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RouteRule", reflect.TypeOf((*MockRoute)(nil).RouteRule))
-}
-
-// DirectResponseRule mocks base method
+// DirectResponseRule mocks base method.
 func (m *MockRoute) DirectResponseRule() api.DirectResponseRule {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DirectResponseRule")
@@ -57,13 +44,13 @@ func (m *MockRoute) DirectResponseRule() api.DirectResponseRule {
 	return ret0
 }
 
-// DirectResponseRule indicates an expected call of DirectResponseRule
+// DirectResponseRule indicates an expected call of DirectResponseRule.
 func (mr *MockRouteMockRecorder) DirectResponseRule() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DirectResponseRule", reflect.TypeOf((*MockRoute)(nil).DirectResponseRule))
 }
 
-// RedirectRule mocks base method
+// RedirectRule mocks base method.
 func (m *MockRoute) RedirectRule() api.RedirectRule {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RedirectRule")
@@ -71,36 +58,50 @@ func (m *MockRoute) RedirectRule() api.RedirectRule {
 	return ret0
 }
 
-// RedirectRule indicates an expected call of RedirectRule
+// RedirectRule indicates an expected call of RedirectRule.
 func (mr *MockRouteMockRecorder) RedirectRule() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RedirectRule", reflect.TypeOf((*MockRoute)(nil).RedirectRule))
 }
 
-// MockRouteRule is a mock of RouteRule interface
+// RouteRule mocks base method.
+func (m *MockRoute) RouteRule() api.RouteRule {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RouteRule")
+	ret0, _ := ret[0].(api.RouteRule)
+	return ret0
+}
+
+// RouteRule indicates an expected call of RouteRule.
+func (mr *MockRouteMockRecorder) RouteRule() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RouteRule", reflect.TypeOf((*MockRoute)(nil).RouteRule))
+}
+
+// MockRouteRule is a mock of RouteRule interface.
 type MockRouteRule struct {
 	ctrl     *gomock.Controller
 	recorder *MockRouteRuleMockRecorder
 }
 
-// MockRouteRuleMockRecorder is the mock recorder for MockRouteRule
+// MockRouteRuleMockRecorder is the mock recorder for MockRouteRule.
 type MockRouteRuleMockRecorder struct {
 	mock *MockRouteRule
 }
 
-// NewMockRouteRule creates a new mock instance
+// NewMockRouteRule creates a new mock instance.
 func NewMockRouteRule(ctrl *gomock.Controller) *MockRouteRule {
 	mock := &MockRouteRule{ctrl: ctrl}
 	mock.recorder = &MockRouteRuleMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockRouteRule) EXPECT() *MockRouteRuleMockRecorder {
 	return m.recorder
 }
 
-// ClusterName mocks base method
+// ClusterName mocks base method.
 func (m *MockRouteRule) ClusterName() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterName")
@@ -108,27 +109,37 @@ func (m *MockRouteRule) ClusterName() string {
 	return ret0
 }
 
-// ClusterName indicates an expected call of ClusterName
+// ClusterName indicates an expected call of ClusterName.
 func (mr *MockRouteRuleMockRecorder) ClusterName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterName", reflect.TypeOf((*MockRouteRule)(nil).ClusterName))
 }
 
-// UpstreamProtocol mocks base method
-func (m *MockRouteRule) UpstreamProtocol() string {
+// FinalizeRequestHeaders mocks base method.
+func (m *MockRouteRule) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpstreamProtocol")
-	ret0, _ := ret[0].(string)
-	return ret0
+	m.ctrl.Call(m, "FinalizeRequestHeaders", ctx, headers, requestInfo)
 }
 
-// UpstreamProtocol indicates an expected call of UpstreamProtocol
-func (mr *MockRouteRuleMockRecorder) UpstreamProtocol() *gomock.Call {
+// FinalizeRequestHeaders indicates an expected call of FinalizeRequestHeaders.
+func (mr *MockRouteRuleMockRecorder) FinalizeRequestHeaders(ctx, headers, requestInfo interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpstreamProtocol", reflect.TypeOf((*MockRouteRule)(nil).UpstreamProtocol))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeRequestHeaders", reflect.TypeOf((*MockRouteRule)(nil).FinalizeRequestHeaders), ctx, headers, requestInfo)
 }
 
-// GlobalTimeout mocks base method
+// FinalizeResponseHeaders mocks base method.
+func (m *MockRouteRule) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "FinalizeResponseHeaders", ctx, headers, requestInfo)
+}
+
+// FinalizeResponseHeaders indicates an expected call of FinalizeResponseHeaders.
+func (mr *MockRouteRuleMockRecorder) FinalizeResponseHeaders(ctx, headers, requestInfo interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeResponseHeaders", reflect.TypeOf((*MockRouteRule)(nil).FinalizeResponseHeaders), ctx, headers, requestInfo)
+}
+
+// GlobalTimeout mocks base method.
 func (m *MockRouteRule) GlobalTimeout() time.Duration {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GlobalTimeout")
@@ -136,27 +147,27 @@ func (m *MockRouteRule) GlobalTimeout() time.Duration {
 	return ret0
 }
 
-// GlobalTimeout indicates an expected call of GlobalTimeout
+// GlobalTimeout indicates an expected call of GlobalTimeout.
 func (mr *MockRouteRuleMockRecorder) GlobalTimeout() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GlobalTimeout", reflect.TypeOf((*MockRouteRule)(nil).GlobalTimeout))
 }
 
-// Policy mocks base method
-func (m *MockRouteRule) Policy() api.Policy {
+// HeaderMatchCriteria mocks base method.
+func (m *MockRouteRule) HeaderMatchCriteria() api.KeyValueMatchCriteria {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Policy")
-	ret0, _ := ret[0].(api.Policy)
+	ret := m.ctrl.Call(m, "HeaderMatchCriteria")
+	ret0, _ := ret[0].(api.KeyValueMatchCriteria)
 	return ret0
 }
 
-// Policy indicates an expected call of Policy
-func (mr *MockRouteRuleMockRecorder) Policy() *gomock.Call {
+// HeaderMatchCriteria indicates an expected call of HeaderMatchCriteria.
+func (mr *MockRouteRuleMockRecorder) HeaderMatchCriteria() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Policy", reflect.TypeOf((*MockRouteRule)(nil).Policy))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HeaderMatchCriteria", reflect.TypeOf((*MockRouteRule)(nil).HeaderMatchCriteria))
 }
 
-// MetadataMatchCriteria mocks base method
+// MetadataMatchCriteria mocks base method.
 func (m *MockRouteRule) MetadataMatchCriteria(clusterName string) api.MetadataMatchCriteria {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MetadataMatchCriteria", clusterName)
@@ -164,51 +175,13 @@ func (m *MockRouteRule) MetadataMatchCriteria(clusterName string) api.MetadataMa
 	return ret0
 }
 
-// MetadataMatchCriteria indicates an expected call of MetadataMatchCriteria
+// MetadataMatchCriteria indicates an expected call of MetadataMatchCriteria.
 func (mr *MockRouteRuleMockRecorder) MetadataMatchCriteria(clusterName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MetadataMatchCriteria", reflect.TypeOf((*MockRouteRule)(nil).MetadataMatchCriteria), clusterName)
 }
 
-// PerFilterConfig mocks base method
-func (m *MockRouteRule) PerFilterConfig() map[string]interface{} {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PerFilterConfig")
-	ret0, _ := ret[0].(map[string]interface{})
-	return ret0
-}
-
-// PerFilterConfig indicates an expected call of PerFilterConfig
-func (mr *MockRouteRuleMockRecorder) PerFilterConfig() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PerFilterConfig", reflect.TypeOf((*MockRouteRule)(nil).PerFilterConfig))
-}
-
-// FinalizeRequestHeaders mocks base method
-func (m *MockRouteRule) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FinalizeRequestHeaders", headers, requestInfo)
-}
-
-// FinalizeRequestHeaders indicates an expected call of FinalizeRequestHeaders
-func (mr *MockRouteRuleMockRecorder) FinalizeRequestHeaders(headers, requestInfo interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeRequestHeaders", reflect.TypeOf((*MockRouteRule)(nil).FinalizeRequestHeaders), headers, requestInfo)
-}
-
-// FinalizeResponseHeaders mocks base method
-func (m *MockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "FinalizeResponseHeaders", headers, requestInfo)
-}
-
-// FinalizeResponseHeaders indicates an expected call of FinalizeResponseHeaders
-func (mr *MockRouteRuleMockRecorder) FinalizeResponseHeaders(headers, requestInfo interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeResponseHeaders", reflect.TypeOf((*MockRouteRule)(nil).FinalizeResponseHeaders), headers, requestInfo)
-}
-
-// PathMatchCriterion mocks base method
+// PathMatchCriterion mocks base method.
 func (m *MockRouteRule) PathMatchCriterion() api.PathMatchCriterion {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PathMatchCriterion")
@@ -216,64 +189,235 @@ func (m *MockRouteRule) PathMatchCriterion() api.PathMatchCriterion {
 	return ret0
 }
 
-// PathMatchCriterion indicates an expected call of PathMatchCriterion
+// PathMatchCriterion indicates an expected call of PathMatchCriterion.
 func (mr *MockRouteRuleMockRecorder) PathMatchCriterion() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PathMatchCriterion", reflect.TypeOf((*MockRouteRule)(nil).PathMatchCriterion))
 }
 
-// MockPolicy is a mock of Policy interface
+// PerFilterConfig mocks base method.
+func (m *MockRouteRule) PerFilterConfig() map[string]interface{} {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PerFilterConfig")
+	ret0, _ := ret[0].(map[string]interface{})
+	return ret0
+}
+
+// PerFilterConfig indicates an expected call of PerFilterConfig.
+func (mr *MockRouteRuleMockRecorder) PerFilterConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PerFilterConfig", reflect.TypeOf((*MockRouteRule)(nil).PerFilterConfig))
+}
+
+// Policy mocks base method.
+func (m *MockRouteRule) Policy() api.Policy {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Policy")
+	ret0, _ := ret[0].(api.Policy)
+	return ret0
+}
+
+// Policy indicates an expected call of Policy.
+func (mr *MockRouteRuleMockRecorder) Policy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Policy", reflect.TypeOf((*MockRouteRule)(nil).Policy))
+}
+
+// UpstreamProtocol mocks base method.
+func (m *MockRouteRule) UpstreamProtocol() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpstreamProtocol")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// UpstreamProtocol indicates an expected call of UpstreamProtocol.
+func (mr *MockRouteRuleMockRecorder) UpstreamProtocol() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpstreamProtocol", reflect.TypeOf((*MockRouteRule)(nil).UpstreamProtocol))
+}
+
+// VirtualHost mocks base method.
+func (m *MockRouteRule) VirtualHost() api.VirtualHost {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "VirtualHost")
+	ret0, _ := ret[0].(api.VirtualHost)
+	return ret0
+}
+
+// VirtualHost indicates an expected call of VirtualHost.
+func (mr *MockRouteRuleMockRecorder) VirtualHost() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "VirtualHost", reflect.TypeOf((*MockRouteRule)(nil).VirtualHost))
+}
+
+// MockVirtualHost is a mock of VirtualHost interface.
+type MockVirtualHost struct {
+	ctrl     *gomock.Controller
+	recorder *MockVirtualHostMockRecorder
+}
+
+// MockVirtualHostMockRecorder is the mock recorder for MockVirtualHost.
+type MockVirtualHostMockRecorder struct {
+	mock *MockVirtualHost
+}
+
+// NewMockVirtualHost creates a new mock instance.
+func NewMockVirtualHost(ctrl *gomock.Controller) *MockVirtualHost {
+	mock := &MockVirtualHost{ctrl: ctrl}
+	mock.recorder = &MockVirtualHostMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockVirtualHost) EXPECT() *MockVirtualHostMockRecorder {
+	return m.recorder
+}
+
+// AddRoute mocks base method.
+func (m *MockVirtualHost) AddRoute(route api.RouteBase) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddRoute", route)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddRoute indicates an expected call of AddRoute.
+func (mr *MockVirtualHostMockRecorder) AddRoute(route interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddRoute", reflect.TypeOf((*MockVirtualHost)(nil).AddRoute), route)
+}
+
+// FinalizeRequestHeaders mocks base method.
+func (m *MockVirtualHost) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "FinalizeRequestHeaders", ctx, headers, requestInfo)
+}
+
+// FinalizeRequestHeaders indicates an expected call of FinalizeRequestHeaders.
+func (mr *MockVirtualHostMockRecorder) FinalizeRequestHeaders(ctx, headers, requestInfo interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeRequestHeaders", reflect.TypeOf((*MockVirtualHost)(nil).FinalizeRequestHeaders), ctx, headers, requestInfo)
+}
+
+// FinalizeResponseHeaders mocks base method.
+func (m *MockVirtualHost) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "FinalizeResponseHeaders", ctx, headers, requestInfo)
+}
+
+// FinalizeResponseHeaders indicates an expected call of FinalizeResponseHeaders.
+func (mr *MockVirtualHostMockRecorder) FinalizeResponseHeaders(ctx, headers, requestInfo interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FinalizeResponseHeaders", reflect.TypeOf((*MockVirtualHost)(nil).FinalizeResponseHeaders), ctx, headers, requestInfo)
+}
+
+// GetAllRoutesFromEntries mocks base method.
+func (m *MockVirtualHost) GetAllRoutesFromEntries(ctx context.Context, headers api.HeaderMap) []api.Route {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAllRoutesFromEntries", ctx, headers)
+	ret0, _ := ret[0].([]api.Route)
+	return ret0
+}
+
+// GetAllRoutesFromEntries indicates an expected call of GetAllRoutesFromEntries.
+func (mr *MockVirtualHostMockRecorder) GetAllRoutesFromEntries(ctx, headers interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAllRoutesFromEntries", reflect.TypeOf((*MockVirtualHost)(nil).GetAllRoutesFromEntries), ctx, headers)
+}
+
+// GetRouteFromEntries mocks base method.
+func (m *MockVirtualHost) GetRouteFromEntries(ctx context.Context, headers api.HeaderMap) api.Route {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRouteFromEntries", ctx, headers)
+	ret0, _ := ret[0].(api.Route)
+	return ret0
+}
+
+// GetRouteFromEntries indicates an expected call of GetRouteFromEntries.
+func (mr *MockVirtualHostMockRecorder) GetRouteFromEntries(ctx, headers interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouteFromEntries", reflect.TypeOf((*MockVirtualHost)(nil).GetRouteFromEntries), ctx, headers)
+}
+
+// GetRouteFromHeaderKV mocks base method.
+func (m *MockVirtualHost) GetRouteFromHeaderKV(key, value string) api.Route {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRouteFromHeaderKV", key, value)
+	ret0, _ := ret[0].(api.Route)
+	return ret0
+}
+
+// GetRouteFromHeaderKV indicates an expected call of GetRouteFromHeaderKV.
+func (mr *MockVirtualHostMockRecorder) GetRouteFromHeaderKV(key, value interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouteFromHeaderKV", reflect.TypeOf((*MockVirtualHost)(nil).GetRouteFromHeaderKV), key, value)
+}
+
+// Name mocks base method.
+func (m *MockVirtualHost) Name() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Name")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Name indicates an expected call of Name.
+func (mr *MockVirtualHostMockRecorder) Name() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Name", reflect.TypeOf((*MockVirtualHost)(nil).Name))
+}
+
+// PerFilterConfig mocks base method.
+func (m *MockVirtualHost) PerFilterConfig() map[string]interface{} {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PerFilterConfig")
+	ret0, _ := ret[0].(map[string]interface{})
+	return ret0
+}
+
+// PerFilterConfig indicates an expected call of PerFilterConfig.
+func (mr *MockVirtualHostMockRecorder) PerFilterConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PerFilterConfig", reflect.TypeOf((*MockVirtualHost)(nil).PerFilterConfig))
+}
+
+// RemoveAllRoutes mocks base method.
+func (m *MockVirtualHost) RemoveAllRoutes() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "RemoveAllRoutes")
+}
+
+// RemoveAllRoutes indicates an expected call of RemoveAllRoutes.
+func (mr *MockVirtualHostMockRecorder) RemoveAllRoutes() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveAllRoutes", reflect.TypeOf((*MockVirtualHost)(nil).RemoveAllRoutes))
+}
+
+// MockPolicy is a mock of Policy interface.
 type MockPolicy struct {
 	ctrl     *gomock.Controller
 	recorder *MockPolicyMockRecorder
 }
 
-// MockPolicyMockRecorder is the mock recorder for MockPolicy
+// MockPolicyMockRecorder is the mock recorder for MockPolicy.
 type MockPolicyMockRecorder struct {
 	mock *MockPolicy
 }
 
-// NewMockPolicy creates a new mock instance
+// NewMockPolicy creates a new mock instance.
 func NewMockPolicy(ctrl *gomock.Controller) *MockPolicy {
 	mock := &MockPolicy{ctrl: ctrl}
 	mock.recorder = &MockPolicyMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockPolicy) EXPECT() *MockPolicyMockRecorder {
 	return m.recorder
 }
 
-// RetryPolicy mocks base method
-func (m *MockPolicy) RetryPolicy() api.RetryPolicy {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RetryPolicy")
-	ret0, _ := ret[0].(api.RetryPolicy)
-	return ret0
-}
-
-// RetryPolicy indicates an expected call of RetryPolicy
-func (mr *MockPolicyMockRecorder) RetryPolicy() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryPolicy", reflect.TypeOf((*MockPolicy)(nil).RetryPolicy))
-}
-
-// ShadowPolicy mocks base method
-func (m *MockPolicy) ShadowPolicy() api.ShadowPolicy {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ShadowPolicy")
-	ret0, _ := ret[0].(api.ShadowPolicy)
-	return ret0
-}
-
-// ShadowPolicy indicates an expected call of ShadowPolicy
-func (mr *MockPolicyMockRecorder) ShadowPolicy() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShadowPolicy", reflect.TypeOf((*MockPolicy)(nil).ShadowPolicy))
-}
-
-// HashPolicy mocks base method
+// HashPolicy mocks base method.
 func (m *MockPolicy) HashPolicy() api.HashPolicy {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "HashPolicy")
@@ -281,13 +425,13 @@ func (m *MockPolicy) HashPolicy() api.HashPolicy {
 	return ret0
 }
 
-// HashPolicy indicates an expected call of HashPolicy
+// HashPolicy indicates an expected call of HashPolicy.
 func (mr *MockPolicyMockRecorder) HashPolicy() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HashPolicy", reflect.TypeOf((*MockPolicy)(nil).HashPolicy))
 }
 
-// MirrorPolicy mocks base method
+// MirrorPolicy mocks base method.
 func (m *MockPolicy) MirrorPolicy() api.MirrorPolicy {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MirrorPolicy")
@@ -295,64 +439,64 @@ func (m *MockPolicy) MirrorPolicy() api.MirrorPolicy {
 	return ret0
 }
 
-// MirrorPolicy indicates an expected call of MirrorPolicy
+// MirrorPolicy indicates an expected call of MirrorPolicy.
 func (mr *MockPolicyMockRecorder) MirrorPolicy() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MirrorPolicy", reflect.TypeOf((*MockPolicy)(nil).MirrorPolicy))
 }
 
-// MockRetryPolicy is a mock of RetryPolicy interface
+// RetryPolicy mocks base method.
+func (m *MockPolicy) RetryPolicy() api.RetryPolicy {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RetryPolicy")
+	ret0, _ := ret[0].(api.RetryPolicy)
+	return ret0
+}
+
+// RetryPolicy indicates an expected call of RetryPolicy.
+func (mr *MockPolicyMockRecorder) RetryPolicy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryPolicy", reflect.TypeOf((*MockPolicy)(nil).RetryPolicy))
+}
+
+// ShadowPolicy mocks base method.
+func (m *MockPolicy) ShadowPolicy() api.ShadowPolicy {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ShadowPolicy")
+	ret0, _ := ret[0].(api.ShadowPolicy)
+	return ret0
+}
+
+// ShadowPolicy indicates an expected call of ShadowPolicy.
+func (mr *MockPolicyMockRecorder) ShadowPolicy() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShadowPolicy", reflect.TypeOf((*MockPolicy)(nil).ShadowPolicy))
+}
+
+// MockRetryPolicy is a mock of RetryPolicy interface.
 type MockRetryPolicy struct {
 	ctrl     *gomock.Controller
 	recorder *MockRetryPolicyMockRecorder
 }
 
-// MockRetryPolicyMockRecorder is the mock recorder for MockRetryPolicy
+// MockRetryPolicyMockRecorder is the mock recorder for MockRetryPolicy.
 type MockRetryPolicyMockRecorder struct {
 	mock *MockRetryPolicy
 }
 
-// NewMockRetryPolicy creates a new mock instance
+// NewMockRetryPolicy creates a new mock instance.
 func NewMockRetryPolicy(ctrl *gomock.Controller) *MockRetryPolicy {
 	mock := &MockRetryPolicy{ctrl: ctrl}
 	mock.recorder = &MockRetryPolicyMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockRetryPolicy) EXPECT() *MockRetryPolicyMockRecorder {
 	return m.recorder
 }
 
-// RetryOn mocks base method
-func (m *MockRetryPolicy) RetryOn() bool {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RetryOn")
-	ret0, _ := ret[0].(bool)
-	return ret0
-}
-
-// RetryOn indicates an expected call of RetryOn
-func (mr *MockRetryPolicyMockRecorder) RetryOn() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryOn", reflect.TypeOf((*MockRetryPolicy)(nil).RetryOn))
-}
-
-// TryTimeout mocks base method
-func (m *MockRetryPolicy) TryTimeout() time.Duration {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TryTimeout")
-	ret0, _ := ret[0].(time.Duration)
-	return ret0
-}
-
-// TryTimeout indicates an expected call of TryTimeout
-func (mr *MockRetryPolicyMockRecorder) TryTimeout() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TryTimeout", reflect.TypeOf((*MockRetryPolicy)(nil).TryTimeout))
-}
-
-// NumRetries mocks base method
+// NumRetries mocks base method.
 func (m *MockRetryPolicy) NumRetries() uint32 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NumRetries")
@@ -360,36 +504,64 @@ func (m *MockRetryPolicy) NumRetries() uint32 {
 	return ret0
 }
 
-// NumRetries indicates an expected call of NumRetries
+// NumRetries indicates an expected call of NumRetries.
 func (mr *MockRetryPolicyMockRecorder) NumRetries() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NumRetries", reflect.TypeOf((*MockRetryPolicy)(nil).NumRetries))
 }
 
-// MockRetryState is a mock of RetryState interface
+// RetryOn mocks base method.
+func (m *MockRetryPolicy) RetryOn() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RetryOn")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// RetryOn indicates an expected call of RetryOn.
+func (mr *MockRetryPolicyMockRecorder) RetryOn() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryOn", reflect.TypeOf((*MockRetryPolicy)(nil).RetryOn))
+}
+
+// TryTimeout mocks base method.
+func (m *MockRetryPolicy) TryTimeout() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TryTimeout")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// TryTimeout indicates an expected call of TryTimeout.
+func (mr *MockRetryPolicyMockRecorder) TryTimeout() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TryTimeout", reflect.TypeOf((*MockRetryPolicy)(nil).TryTimeout))
+}
+
+// MockRetryState is a mock of RetryState interface.
 type MockRetryState struct {
 	ctrl     *gomock.Controller
 	recorder *MockRetryStateMockRecorder
 }
 
-// MockRetryStateMockRecorder is the mock recorder for MockRetryState
+// MockRetryStateMockRecorder is the mock recorder for MockRetryState.
 type MockRetryStateMockRecorder struct {
 	mock *MockRetryState
 }
 
-// NewMockRetryState creates a new mock instance
+// NewMockRetryState creates a new mock instance.
 func NewMockRetryState(ctrl *gomock.Controller) *MockRetryState {
 	mock := &MockRetryState{ctrl: ctrl}
 	mock.recorder = &MockRetryStateMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockRetryState) EXPECT() *MockRetryStateMockRecorder {
 	return m.recorder
 }
 
-// Enabled mocks base method
+// Enabled mocks base method.
 func (m *MockRetryState) Enabled() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Enabled")
@@ -397,13 +569,13 @@ func (m *MockRetryState) Enabled() bool {
 	return ret0
 }
 
-// Enabled indicates an expected call of Enabled
+// Enabled indicates an expected call of Enabled.
 func (mr *MockRetryStateMockRecorder) Enabled() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Enabled", reflect.TypeOf((*MockRetryState)(nil).Enabled))
 }
 
-// ShouldRetry mocks base method
+// ShouldRetry mocks base method.
 func (m *MockRetryState) ShouldRetry(respHeaders map[string]string, resetReson string, doRetryCb api.DoRetryCallback) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ShouldRetry", respHeaders, resetReson, doRetryCb)
@@ -411,36 +583,36 @@ func (m *MockRetryState) ShouldRetry(respHeaders map[string]string, resetReson s
 	return ret0
 }
 
-// ShouldRetry indicates an expected call of ShouldRetry
+// ShouldRetry indicates an expected call of ShouldRetry.
 func (mr *MockRetryStateMockRecorder) ShouldRetry(respHeaders, resetReson, doRetryCb interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldRetry", reflect.TypeOf((*MockRetryState)(nil).ShouldRetry), respHeaders, resetReson, doRetryCb)
 }
 
-// MockShadowPolicy is a mock of ShadowPolicy interface
+// MockShadowPolicy is a mock of ShadowPolicy interface.
 type MockShadowPolicy struct {
 	ctrl     *gomock.Controller
 	recorder *MockShadowPolicyMockRecorder
 }
 
-// MockShadowPolicyMockRecorder is the mock recorder for MockShadowPolicy
+// MockShadowPolicyMockRecorder is the mock recorder for MockShadowPolicy.
 type MockShadowPolicyMockRecorder struct {
 	mock *MockShadowPolicy
 }
 
-// NewMockShadowPolicy creates a new mock instance
+// NewMockShadowPolicy creates a new mock instance.
 func NewMockShadowPolicy(ctrl *gomock.Controller) *MockShadowPolicy {
 	mock := &MockShadowPolicy{ctrl: ctrl}
 	mock.recorder = &MockShadowPolicyMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockShadowPolicy) EXPECT() *MockShadowPolicyMockRecorder {
 	return m.recorder
 }
 
-// ClusterName mocks base method
+// ClusterName mocks base method.
 func (m *MockShadowPolicy) ClusterName() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterName")
@@ -448,13 +620,13 @@ func (m *MockShadowPolicy) ClusterName() string {
 	return ret0
 }
 
-// ClusterName indicates an expected call of ClusterName
+// ClusterName indicates an expected call of ClusterName.
 func (mr *MockShadowPolicyMockRecorder) ClusterName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterName", reflect.TypeOf((*MockShadowPolicy)(nil).ClusterName))
 }
 
-// RuntimeKey mocks base method
+// RuntimeKey mocks base method.
 func (m *MockShadowPolicy) RuntimeKey() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RuntimeKey")
@@ -462,50 +634,36 @@ func (m *MockShadowPolicy) RuntimeKey() string {
 	return ret0
 }
 
-// RuntimeKey indicates an expected call of RuntimeKey
+// RuntimeKey indicates an expected call of RuntimeKey.
 func (mr *MockShadowPolicyMockRecorder) RuntimeKey() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RuntimeKey", reflect.TypeOf((*MockShadowPolicy)(nil).RuntimeKey))
 }
 
-// MockDirectResponseRule is a mock of DirectResponseRule interface
+// MockDirectResponseRule is a mock of DirectResponseRule interface.
 type MockDirectResponseRule struct {
 	ctrl     *gomock.Controller
 	recorder *MockDirectResponseRuleMockRecorder
 }
 
-// MockDirectResponseRuleMockRecorder is the mock recorder for MockDirectResponseRule
+// MockDirectResponseRuleMockRecorder is the mock recorder for MockDirectResponseRule.
 type MockDirectResponseRuleMockRecorder struct {
 	mock *MockDirectResponseRule
 }
 
-// NewMockDirectResponseRule creates a new mock instance
+// NewMockDirectResponseRule creates a new mock instance.
 func NewMockDirectResponseRule(ctrl *gomock.Controller) *MockDirectResponseRule {
 	mock := &MockDirectResponseRule{ctrl: ctrl}
 	mock.recorder = &MockDirectResponseRuleMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockDirectResponseRule) EXPECT() *MockDirectResponseRuleMockRecorder {
 	return m.recorder
 }
 
-// StatusCode mocks base method
-func (m *MockDirectResponseRule) StatusCode() int {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "StatusCode")
-	ret0, _ := ret[0].(int)
-	return ret0
-}
-
-// StatusCode indicates an expected call of StatusCode
-func (mr *MockDirectResponseRuleMockRecorder) StatusCode() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StatusCode", reflect.TypeOf((*MockDirectResponseRule)(nil).StatusCode))
-}
-
-// Body mocks base method
+// Body mocks base method.
 func (m *MockDirectResponseRule) Body() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Body")
@@ -513,36 +671,50 @@ func (m *MockDirectResponseRule) Body() string {
 	return ret0
 }
 
-// Body indicates an expected call of Body
+// Body indicates an expected call of Body.
 func (mr *MockDirectResponseRuleMockRecorder) Body() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Body", reflect.TypeOf((*MockDirectResponseRule)(nil).Body))
 }
 
-// MockRedirectRule is a mock of RedirectRule interface
+// StatusCode mocks base method.
+func (m *MockDirectResponseRule) StatusCode() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StatusCode")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// StatusCode indicates an expected call of StatusCode.
+func (mr *MockDirectResponseRuleMockRecorder) StatusCode() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StatusCode", reflect.TypeOf((*MockDirectResponseRule)(nil).StatusCode))
+}
+
+// MockRedirectRule is a mock of RedirectRule interface.
 type MockRedirectRule struct {
 	ctrl     *gomock.Controller
 	recorder *MockRedirectRuleMockRecorder
 }
 
-// MockRedirectRuleMockRecorder is the mock recorder for MockRedirectRule
+// MockRedirectRuleMockRecorder is the mock recorder for MockRedirectRule.
 type MockRedirectRuleMockRecorder struct {
 	mock *MockRedirectRule
 }
 
-// NewMockRedirectRule creates a new mock instance
+// NewMockRedirectRule creates a new mock instance.
 func NewMockRedirectRule(ctrl *gomock.Controller) *MockRedirectRule {
 	mock := &MockRedirectRule{ctrl: ctrl}
 	mock.recorder = &MockRedirectRuleMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockRedirectRule) EXPECT() *MockRedirectRuleMockRecorder {
 	return m.recorder
 }
 
-// RedirectCode mocks base method
+// RedirectCode mocks base method.
 func (m *MockRedirectRule) RedirectCode() int {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RedirectCode")
@@ -550,27 +722,13 @@ func (m *MockRedirectRule) RedirectCode() int {
 	return ret0
 }
 
-// RedirectCode indicates an expected call of RedirectCode
+// RedirectCode indicates an expected call of RedirectCode.
 func (mr *MockRedirectRuleMockRecorder) RedirectCode() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RedirectCode", reflect.TypeOf((*MockRedirectRule)(nil).RedirectCode))
 }
 
-// RedirectPath mocks base method
-func (m *MockRedirectRule) RedirectPath() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RedirectPath")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// RedirectPath indicates an expected call of RedirectPath
-func (mr *MockRedirectRuleMockRecorder) RedirectPath() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RedirectPath", reflect.TypeOf((*MockRedirectRule)(nil).RedirectPath))
-}
-
-// RedirectHost mocks base method
+// RedirectHost mocks base method.
 func (m *MockRedirectRule) RedirectHost() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RedirectHost")
@@ -578,13 +736,27 @@ func (m *MockRedirectRule) RedirectHost() string {
 	return ret0
 }
 
-// RedirectHost indicates an expected call of RedirectHost
+// RedirectHost indicates an expected call of RedirectHost.
 func (mr *MockRedirectRuleMockRecorder) RedirectHost() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RedirectHost", reflect.TypeOf((*MockRedirectRule)(nil).RedirectHost))
 }
 
-// RedirectScheme mocks base method
+// RedirectPath mocks base method.
+func (m *MockRedirectRule) RedirectPath() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RedirectPath")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// RedirectPath indicates an expected call of RedirectPath.
+func (mr *MockRedirectRuleMockRecorder) RedirectPath() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RedirectPath", reflect.TypeOf((*MockRedirectRule)(nil).RedirectPath))
+}
+
+// RedirectScheme mocks base method.
 func (m *MockRedirectRule) RedirectScheme() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RedirectScheme")
@@ -592,36 +764,36 @@ func (m *MockRedirectRule) RedirectScheme() string {
 	return ret0
 }
 
-// RedirectScheme indicates an expected call of RedirectScheme
+// RedirectScheme indicates an expected call of RedirectScheme.
 func (mr *MockRedirectRuleMockRecorder) RedirectScheme() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RedirectScheme", reflect.TypeOf((*MockRedirectRule)(nil).RedirectScheme))
 }
 
-// MockMetadataMatchCriterion is a mock of MetadataMatchCriterion interface
+// MockMetadataMatchCriterion is a mock of MetadataMatchCriterion interface.
 type MockMetadataMatchCriterion struct {
 	ctrl     *gomock.Controller
 	recorder *MockMetadataMatchCriterionMockRecorder
 }
 
-// MockMetadataMatchCriterionMockRecorder is the mock recorder for MockMetadataMatchCriterion
+// MockMetadataMatchCriterionMockRecorder is the mock recorder for MockMetadataMatchCriterion.
 type MockMetadataMatchCriterionMockRecorder struct {
 	mock *MockMetadataMatchCriterion
 }
 
-// NewMockMetadataMatchCriterion creates a new mock instance
+// NewMockMetadataMatchCriterion creates a new mock instance.
 func NewMockMetadataMatchCriterion(ctrl *gomock.Controller) *MockMetadataMatchCriterion {
 	mock := &MockMetadataMatchCriterion{ctrl: ctrl}
 	mock.recorder = &MockMetadataMatchCriterionMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMetadataMatchCriterion) EXPECT() *MockMetadataMatchCriterionMockRecorder {
 	return m.recorder
 }
 
-// MetadataKeyName mocks base method
+// MetadataKeyName mocks base method.
 func (m *MockMetadataMatchCriterion) MetadataKeyName() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MetadataKeyName")
@@ -629,13 +801,13 @@ func (m *MockMetadataMatchCriterion) MetadataKeyName() string {
 	return ret0
 }
 
-// MetadataKeyName indicates an expected call of MetadataKeyName
+// MetadataKeyName indicates an expected call of MetadataKeyName.
 func (mr *MockMetadataMatchCriterionMockRecorder) MetadataKeyName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MetadataKeyName", reflect.TypeOf((*MockMetadataMatchCriterion)(nil).MetadataKeyName))
 }
 
-// MetadataValue mocks base method
+// MetadataValue mocks base method.
 func (m *MockMetadataMatchCriterion) MetadataValue() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MetadataValue")
@@ -643,50 +815,36 @@ func (m *MockMetadataMatchCriterion) MetadataValue() string {
 	return ret0
 }
 
-// MetadataValue indicates an expected call of MetadataValue
+// MetadataValue indicates an expected call of MetadataValue.
 func (mr *MockMetadataMatchCriterionMockRecorder) MetadataValue() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MetadataValue", reflect.TypeOf((*MockMetadataMatchCriterion)(nil).MetadataValue))
 }
 
-// MockMetadataMatchCriteria is a mock of MetadataMatchCriteria interface
+// MockMetadataMatchCriteria is a mock of MetadataMatchCriteria interface.
 type MockMetadataMatchCriteria struct {
 	ctrl     *gomock.Controller
 	recorder *MockMetadataMatchCriteriaMockRecorder
 }
 
-// MockMetadataMatchCriteriaMockRecorder is the mock recorder for MockMetadataMatchCriteria
+// MockMetadataMatchCriteriaMockRecorder is the mock recorder for MockMetadataMatchCriteria.
 type MockMetadataMatchCriteriaMockRecorder struct {
 	mock *MockMetadataMatchCriteria
 }
 
-// NewMockMetadataMatchCriteria creates a new mock instance
+// NewMockMetadataMatchCriteria creates a new mock instance.
 func NewMockMetadataMatchCriteria(ctrl *gomock.Controller) *MockMetadataMatchCriteria {
 	mock := &MockMetadataMatchCriteria{ctrl: ctrl}
 	mock.recorder = &MockMetadataMatchCriteriaMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMetadataMatchCriteria) EXPECT() *MockMetadataMatchCriteriaMockRecorder {
 	return m.recorder
 }
 
-// MetadataMatchCriteria mocks base method
-func (m *MockMetadataMatchCriteria) MetadataMatchCriteria() []api.MetadataMatchCriterion {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MetadataMatchCriteria")
-	ret0, _ := ret[0].([]api.MetadataMatchCriterion)
-	return ret0
-}
-
-// MetadataMatchCriteria indicates an expected call of MetadataMatchCriteria
-func (mr *MockMetadataMatchCriteriaMockRecorder) MetadataMatchCriteria() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MetadataMatchCriteria", reflect.TypeOf((*MockMetadataMatchCriteria)(nil).MetadataMatchCriteria))
-}
-
-// MergeMatchCriteria mocks base method
+// MergeMatchCriteria mocks base method.
 func (m *MockMetadataMatchCriteria) MergeMatchCriteria(metadataMatches map[string]interface{}) api.MetadataMatchCriteria {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MergeMatchCriteria", metadataMatches)
@@ -694,36 +852,50 @@ func (m *MockMetadataMatchCriteria) MergeMatchCriteria(metadataMatches map[strin
 	return ret0
 }
 
-// MergeMatchCriteria indicates an expected call of MergeMatchCriteria
+// MergeMatchCriteria indicates an expected call of MergeMatchCriteria.
 func (mr *MockMetadataMatchCriteriaMockRecorder) MergeMatchCriteria(metadataMatches interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MergeMatchCriteria", reflect.TypeOf((*MockMetadataMatchCriteria)(nil).MergeMatchCriteria), metadataMatches)
 }
 
-// MockPathMatchCriterion is a mock of PathMatchCriterion interface
+// MetadataMatchCriteria mocks base method.
+func (m *MockMetadataMatchCriteria) MetadataMatchCriteria() []api.MetadataMatchCriterion {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MetadataMatchCriteria")
+	ret0, _ := ret[0].([]api.MetadataMatchCriterion)
+	return ret0
+}
+
+// MetadataMatchCriteria indicates an expected call of MetadataMatchCriteria.
+func (mr *MockMetadataMatchCriteriaMockRecorder) MetadataMatchCriteria() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MetadataMatchCriteria", reflect.TypeOf((*MockMetadataMatchCriteria)(nil).MetadataMatchCriteria))
+}
+
+// MockPathMatchCriterion is a mock of PathMatchCriterion interface.
 type MockPathMatchCriterion struct {
 	ctrl     *gomock.Controller
 	recorder *MockPathMatchCriterionMockRecorder
 }
 
-// MockPathMatchCriterionMockRecorder is the mock recorder for MockPathMatchCriterion
+// MockPathMatchCriterionMockRecorder is the mock recorder for MockPathMatchCriterion.
 type MockPathMatchCriterionMockRecorder struct {
 	mock *MockPathMatchCriterion
 }
 
-// NewMockPathMatchCriterion creates a new mock instance
+// NewMockPathMatchCriterion creates a new mock instance.
 func NewMockPathMatchCriterion(ctrl *gomock.Controller) *MockPathMatchCriterion {
 	mock := &MockPathMatchCriterion{ctrl: ctrl}
 	mock.recorder = &MockPathMatchCriterionMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockPathMatchCriterion) EXPECT() *MockPathMatchCriterionMockRecorder {
 	return m.recorder
 }
 
-// MatchType mocks base method
+// MatchType mocks base method.
 func (m *MockPathMatchCriterion) MatchType() api.PathMatchType {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MatchType")
@@ -731,13 +903,13 @@ func (m *MockPathMatchCriterion) MatchType() api.PathMatchType {
 	return ret0
 }
 
-// MatchType indicates an expected call of MatchType
+// MatchType indicates an expected call of MatchType.
 func (mr *MockPathMatchCriterionMockRecorder) MatchType() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MatchType", reflect.TypeOf((*MockPathMatchCriterion)(nil).MatchType))
 }
 
-// Matcher mocks base method
+// Matcher mocks base method.
 func (m *MockPathMatchCriterion) Matcher() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Matcher")
@@ -745,36 +917,164 @@ func (m *MockPathMatchCriterion) Matcher() string {
 	return ret0
 }
 
-// Matcher indicates an expected call of Matcher
+// Matcher indicates an expected call of Matcher.
 func (mr *MockPathMatchCriterionMockRecorder) Matcher() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Matcher", reflect.TypeOf((*MockPathMatchCriterion)(nil).Matcher))
 }
 
-// MockHashPolicy is a mock of HashPolicy interface
+// MockKeyValueMatchCriterion is a mock of KeyValueMatchCriterion interface.
+type MockKeyValueMatchCriterion struct {
+	ctrl     *gomock.Controller
+	recorder *MockKeyValueMatchCriterionMockRecorder
+}
+
+// MockKeyValueMatchCriterionMockRecorder is the mock recorder for MockKeyValueMatchCriterion.
+type MockKeyValueMatchCriterionMockRecorder struct {
+	mock *MockKeyValueMatchCriterion
+}
+
+// NewMockKeyValueMatchCriterion creates a new mock instance.
+func NewMockKeyValueMatchCriterion(ctrl *gomock.Controller) *MockKeyValueMatchCriterion {
+	mock := &MockKeyValueMatchCriterion{ctrl: ctrl}
+	mock.recorder = &MockKeyValueMatchCriterionMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockKeyValueMatchCriterion) EXPECT() *MockKeyValueMatchCriterionMockRecorder {
+	return m.recorder
+}
+
+// Key mocks base method.
+func (m *MockKeyValueMatchCriterion) Key() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Key")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Key indicates an expected call of Key.
+func (mr *MockKeyValueMatchCriterionMockRecorder) Key() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Key", reflect.TypeOf((*MockKeyValueMatchCriterion)(nil).Key))
+}
+
+// MatchType mocks base method.
+func (m *MockKeyValueMatchCriterion) MatchType() api.KeyValueMatchType {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MatchType")
+	ret0, _ := ret[0].(api.KeyValueMatchType)
+	return ret0
+}
+
+// MatchType indicates an expected call of MatchType.
+func (mr *MockKeyValueMatchCriterionMockRecorder) MatchType() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MatchType", reflect.TypeOf((*MockKeyValueMatchCriterion)(nil).MatchType))
+}
+
+// Matcher mocks base method.
+func (m *MockKeyValueMatchCriterion) Matcher() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Matcher")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// Matcher indicates an expected call of Matcher.
+func (mr *MockKeyValueMatchCriterionMockRecorder) Matcher() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Matcher", reflect.TypeOf((*MockKeyValueMatchCriterion)(nil).Matcher))
+}
+
+// MockKeyValueMatchCriteria is a mock of KeyValueMatchCriteria interface.
+type MockKeyValueMatchCriteria struct {
+	ctrl     *gomock.Controller
+	recorder *MockKeyValueMatchCriteriaMockRecorder
+}
+
+// MockKeyValueMatchCriteriaMockRecorder is the mock recorder for MockKeyValueMatchCriteria.
+type MockKeyValueMatchCriteriaMockRecorder struct {
+	mock *MockKeyValueMatchCriteria
+}
+
+// NewMockKeyValueMatchCriteria creates a new mock instance.
+func NewMockKeyValueMatchCriteria(ctrl *gomock.Controller) *MockKeyValueMatchCriteria {
+	mock := &MockKeyValueMatchCriteria{ctrl: ctrl}
+	mock.recorder = &MockKeyValueMatchCriteriaMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockKeyValueMatchCriteria) EXPECT() *MockKeyValueMatchCriteriaMockRecorder {
+	return m.recorder
+}
+
+// Get mocks base method.
+func (m *MockKeyValueMatchCriteria) Get(i int) api.KeyValueMatchCriterion {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", i)
+	ret0, _ := ret[0].(api.KeyValueMatchCriterion)
+	return ret0
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockKeyValueMatchCriteriaMockRecorder) Get(i interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockKeyValueMatchCriteria)(nil).Get), i)
+}
+
+// Len mocks base method.
+func (m *MockKeyValueMatchCriteria) Len() int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Len")
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// Len indicates an expected call of Len.
+func (mr *MockKeyValueMatchCriteriaMockRecorder) Len() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Len", reflect.TypeOf((*MockKeyValueMatchCriteria)(nil).Len))
+}
+
+// Range mocks base method.
+func (m *MockKeyValueMatchCriteria) Range(f func(api.KeyValueMatchCriterion) bool) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Range", f)
+}
+
+// Range indicates an expected call of Range.
+func (mr *MockKeyValueMatchCriteriaMockRecorder) Range(f interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Range", reflect.TypeOf((*MockKeyValueMatchCriteria)(nil).Range), f)
+}
+
+// MockHashPolicy is a mock of HashPolicy interface.
 type MockHashPolicy struct {
 	ctrl     *gomock.Controller
 	recorder *MockHashPolicyMockRecorder
 }
 
-// MockHashPolicyMockRecorder is the mock recorder for MockHashPolicy
+// MockHashPolicyMockRecorder is the mock recorder for MockHashPolicy.
 type MockHashPolicyMockRecorder struct {
 	mock *MockHashPolicy
 }
 
-// NewMockHashPolicy creates a new mock instance
+// NewMockHashPolicy creates a new mock instance.
 func NewMockHashPolicy(ctrl *gomock.Controller) *MockHashPolicy {
 	mock := &MockHashPolicy{ctrl: ctrl}
 	mock.recorder = &MockHashPolicyMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockHashPolicy) EXPECT() *MockHashPolicyMockRecorder {
 	return m.recorder
 }
 
-// GenerateHash mocks base method
+// GenerateHash mocks base method.
 func (m *MockHashPolicy) GenerateHash(context context.Context) uint64 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateHash", context)
@@ -782,36 +1082,36 @@ func (m *MockHashPolicy) GenerateHash(context context.Context) uint64 {
 	return ret0
 }
 
-// GenerateHash indicates an expected call of GenerateHash
+// GenerateHash indicates an expected call of GenerateHash.
 func (mr *MockHashPolicyMockRecorder) GenerateHash(context interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateHash", reflect.TypeOf((*MockHashPolicy)(nil).GenerateHash), context)
 }
 
-// MockMirrorPolicy is a mock of MirrorPolicy interface
+// MockMirrorPolicy is a mock of MirrorPolicy interface.
 type MockMirrorPolicy struct {
 	ctrl     *gomock.Controller
 	recorder *MockMirrorPolicyMockRecorder
 }
 
-// MockMirrorPolicyMockRecorder is the mock recorder for MockMirrorPolicy
+// MockMirrorPolicyMockRecorder is the mock recorder for MockMirrorPolicy.
 type MockMirrorPolicyMockRecorder struct {
 	mock *MockMirrorPolicy
 }
 
-// NewMockMirrorPolicy creates a new mock instance
+// NewMockMirrorPolicy creates a new mock instance.
 func NewMockMirrorPolicy(ctrl *gomock.Controller) *MockMirrorPolicy {
 	mock := &MockMirrorPolicy{ctrl: ctrl}
 	mock.recorder = &MockMirrorPolicyMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockMirrorPolicy) EXPECT() *MockMirrorPolicyMockRecorder {
 	return m.recorder
 }
 
-// ClusterName mocks base method
+// ClusterName mocks base method.
 func (m *MockMirrorPolicy) ClusterName() string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterName")
@@ -819,13 +1119,13 @@ func (m *MockMirrorPolicy) ClusterName() string {
 	return ret0
 }
 
-// ClusterName indicates an expected call of ClusterName
+// ClusterName indicates an expected call of ClusterName.
 func (mr *MockMirrorPolicyMockRecorder) ClusterName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterName", reflect.TypeOf((*MockMirrorPolicy)(nil).ClusterName))
 }
 
-// IsMirror mocks base method
+// IsMirror mocks base method.
 func (m *MockMirrorPolicy) IsMirror() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsMirror")
@@ -833,8 +1133,124 @@ func (m *MockMirrorPolicy) IsMirror() bool {
 	return ret0
 }
 
-// IsMirror indicates an expected call of IsMirror
+// IsMirror indicates an expected call of IsMirror.
 func (mr *MockMirrorPolicyMockRecorder) IsMirror() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsMirror", reflect.TypeOf((*MockMirrorPolicy)(nil).IsMirror))
+}
+
+// MockMatchable is a mock of Matchable interface.
+type MockMatchable struct {
+	ctrl     *gomock.Controller
+	recorder *MockMatchableMockRecorder
+}
+
+// MockMatchableMockRecorder is the mock recorder for MockMatchable.
+type MockMatchableMockRecorder struct {
+	mock *MockMatchable
+}
+
+// NewMockMatchable creates a new mock instance.
+func NewMockMatchable(ctrl *gomock.Controller) *MockMatchable {
+	mock := &MockMatchable{ctrl: ctrl}
+	mock.recorder = &MockMatchableMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockMatchable) EXPECT() *MockMatchableMockRecorder {
+	return m.recorder
+}
+
+// Match mocks base method.
+func (m *MockMatchable) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Match", ctx, headers)
+	ret0, _ := ret[0].(api.Route)
+	return ret0
+}
+
+// Match indicates an expected call of Match.
+func (mr *MockMatchableMockRecorder) Match(ctx, headers interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Match", reflect.TypeOf((*MockMatchable)(nil).Match), ctx, headers)
+}
+
+// MockRouteBase is a mock of RouteBase interface.
+type MockRouteBase struct {
+	ctrl     *gomock.Controller
+	recorder *MockRouteBaseMockRecorder
+}
+
+// MockRouteBaseMockRecorder is the mock recorder for MockRouteBase.
+type MockRouteBaseMockRecorder struct {
+	mock *MockRouteBase
+}
+
+// NewMockRouteBase creates a new mock instance.
+func NewMockRouteBase(ctrl *gomock.Controller) *MockRouteBase {
+	mock := &MockRouteBase{ctrl: ctrl}
+	mock.recorder = &MockRouteBaseMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockRouteBase) EXPECT() *MockRouteBaseMockRecorder {
+	return m.recorder
+}
+
+// DirectResponseRule mocks base method.
+func (m *MockRouteBase) DirectResponseRule() api.DirectResponseRule {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DirectResponseRule")
+	ret0, _ := ret[0].(api.DirectResponseRule)
+	return ret0
+}
+
+// DirectResponseRule indicates an expected call of DirectResponseRule.
+func (mr *MockRouteBaseMockRecorder) DirectResponseRule() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DirectResponseRule", reflect.TypeOf((*MockRouteBase)(nil).DirectResponseRule))
+}
+
+// Match mocks base method.
+func (m *MockRouteBase) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Match", ctx, headers)
+	ret0, _ := ret[0].(api.Route)
+	return ret0
+}
+
+// Match indicates an expected call of Match.
+func (mr *MockRouteBaseMockRecorder) Match(ctx, headers interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Match", reflect.TypeOf((*MockRouteBase)(nil).Match), ctx, headers)
+}
+
+// RedirectRule mocks base method.
+func (m *MockRouteBase) RedirectRule() api.RedirectRule {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RedirectRule")
+	ret0, _ := ret[0].(api.RedirectRule)
+	return ret0
+}
+
+// RedirectRule indicates an expected call of RedirectRule.
+func (mr *MockRouteBaseMockRecorder) RedirectRule() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RedirectRule", reflect.TypeOf((*MockRouteBase)(nil).RedirectRule))
+}
+
+// RouteRule mocks base method.
+func (m *MockRouteBase) RouteRule() api.RouteRule {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RouteRule")
+	ret0, _ := ret[0].(api.RouteRule)
+	return ret0
+}
+
+// RouteRule indicates an expected call of RouteRule.
+func (mr *MockRouteBaseMockRecorder) RouteRule() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RouteRule", reflect.TypeOf((*MockRouteBase)(nil).RouteRule))
 }

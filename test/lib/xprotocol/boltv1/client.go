@@ -8,18 +8,18 @@ import (
 	"time"
 
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt" // register bolt
 	"mosn.io/mosn/pkg/stream"
 	_ "mosn.io/mosn/pkg/stream/xprotocol" // register xprotocol
 	mtypes "mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/lib"
 	"mosn.io/mosn/test/lib/types"
-	"mosn.io/pkg/buffer"
 )
 
 func init() {
@@ -261,7 +261,7 @@ func newReceiver(id uint32, ch chan<- *Response) *receiver {
 
 func (r *receiver) OnReceive(ctx context.Context, headers api.HeaderMap, data buffer.IoBuffer, _ api.HeaderMap) {
 	r.data.Cost = time.Now().Sub(r.start)
-	cmd := headers.(xprotocol.XRespFrame)
+	cmd := headers.(api.XRespFrame)
 	resp := cmd.(*bolt.Response)
 	r.data.Header = resp.ResponseHeader
 	r.data.Header.RequestId = r.requestId

@@ -1,76 +1,122 @@
+// Copyright 1999-2020 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package system
 
 import (
 	"github.com/alibaba/sentinel-golang/core/base"
 	"github.com/alibaba/sentinel-golang/core/stat"
+	"github.com/alibaba/sentinel-golang/core/system_metric"
 )
 
-const SlotName = "SystemAdaptiveSlot"
+const (
+	RuleCheckSlotName  = "sentinel-core-system-adaptive-rule-check-slot"
+	RuleCheckSlotOrder = 1000
+)
 
-type SystemAdaptiveSlot struct {
+var (
+	DefaultAdaptiveSlot = &AdaptiveSlot{}
+)
+
+type AdaptiveSlot struct {
 }
 
-func (s *SystemAdaptiveSlot) Check(ctx *base.EntryContext) *base.TokenResult {
+func (s *AdaptiveSlot) Name() string {
+	return RuleCheckSlotName
+}
+
+func (s *AdaptiveSlot) Order() uint32 {
+	return RuleCheckSlotOrder
+}
+
+func (s *AdaptiveSlot) Check(ctx *base.EntryContext) *base.TokenResult {
 	if ctx == nil || ctx.Resource == nil || ctx.Resource.FlowType() != base.Inbound {
-		return base.NewTokenResultPass()
+		return nil
 	}
-	rules := GetRules()
+	rules := getRules()
+	result := ctx.RuleCheckResult
 	for _, rule := range rules {
-		passed, m := s.doCheckRule(rule)
+		passed, msg, snapshotValue := s.doCheckRule(rule)
 		if passed {
 			continue
 		}
-		return base.NewTokenResultBlockedWithCause(base.BlockTypeSystemFlow, base.BlockTypeSystemFlow.String(), rule, m)
+		if result == nil {
+			result = base.NewTokenResultBlockedWithCause(base.BlockTypeSystemFlow, msg, rule, snapshotValue)
+		} else {
+			result.ResetToBlockedWithCause(base.BlockTypeSystemFlow, msg, rule, snapshotValue)
+		}
+		return result
 	}
-	return base.NewTokenResultPass()
+	return result
 }
 
-func (s *SystemAdaptiveSlot) doCheckRule(rule *SystemRule) (bool, float64) {
+func (s *AdaptiveSlot) doCheckRule(rule *Rule) (bool, string, float64) {
+	var msg string
+
 	threshold := rule.TriggerCount
 	switch rule.MetricType {
 	case InboundQPS:
 		qps := stat.InboundNode().GetQPS(base.MetricEventPass)
 		res := qps < threshold
-		return res, qps
+		if !res {
+			msg = "system qps check blocked"
+		}
+		return res, msg, qps
 	case Concurrency:
-		n := float64(stat.InboundNode().CurrentGoroutineNum())
+		n := float64(stat.InboundNode().CurrentConcurrency())
 		res := n < threshold
-		return res, n
+		if !res {
+			msg = "system concurrency check blocked"
+		}
+		return res, msg, n
 	case AvgRT:
 		rt := stat.InboundNode().AvgRT()
 		res := rt < threshold
-		return res, rt
+		if !res {
+			msg = "system avg rt check blocked"
+		}
+		return res, msg, rt
 	case Load:
-		l := CurrentLoad()
+		l := system_metric.CurrentLoad()
 		if l > threshold {
 			if rule.Strategy != BBR || !checkBbrSimple() {
-				return false, l
+				msg = "system load check blocked"
+				return false, msg, l
 			}
 		}
-		return true, l
+		return true, "", l
 	case CpuUsage:
-		c := CurrentCpuUsage()
+		c := system_metric.CurrentCpuUsage()
 		if c > threshold {
 			if rule.Strategy != BBR || !checkBbrSimple() {
-				return false, c
+				msg = "system cpu usage check blocked"
+				return false, msg, c
 			}
 		}
-		return true, c
+		return true, "", c
 	default:
-		return true, 0
+		msg = "system undefined metric type, pass by default"
+		return true, msg, 0.0
 	}
 }
 
 func checkBbrSimple() bool {
-	concurrency := stat.InboundNode().CurrentGoroutineNum()
+	concurrency := stat.InboundNode().CurrentConcurrency()
 	minRt := stat.InboundNode().MinRT()
 	maxComplete := stat.InboundNode().GetMaxAvg(base.MetricEventComplete)
-	if concurrency > 1 && float64(concurrency) > maxComplete*minRt/1000 {
+	if concurrency > 1 && float64(concurrency) > maxComplete*minRt/1000.0 {
 		return false
 	}
 	return true
-}
-
-func (s *SystemAdaptiveSlot) String() string {
-	return SlotName
 }

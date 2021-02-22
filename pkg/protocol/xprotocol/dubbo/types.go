@@ -19,7 +19,7 @@ package dubbo
 
 import (
 	hessian "github.com/apache/dubbo-go-hessian2"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 const (
@@ -102,16 +102,16 @@ type dubboStatusInfo struct {
 
 var (
 	dubboMosnStatusMap = map[int]dubboStatusInfo{
-		types.CodecExceptionCode:    {Status: hessian.Response_SERVICE_ERROR, Msg: "0|codec exception"},
-		types.UnknownCode:           {Status: hessian.Response_SERVICE_ERROR, Msg: "2|unknown"},
-		types.DeserialExceptionCode: {Status: hessian.Response_SERVICE_ERROR, Msg: "3|deserial exception"},
-		types.SuccessCode:           {Status: hessian.Response_OK, Msg: "200|success"},
-		types.PermissionDeniedCode:  {Status: hessian.Response_SERVER_ERROR, Msg: "403|permission denied"},
-		types.RouterUnavailableCode: {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "404|router unavailable"},
-		types.InternalErrorCode:     {Status: hessian.Response_SERVICE_ERROR, Msg: "500|internal error"},
-		types.NoHealthUpstreamCode:  {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "502|no health upstream"},
-		types.UpstreamOverFlowCode:  {Status: hessian.Response_BAD_REQUEST, Msg: "503|upstream overflow"},
-		types.TimeoutExceptionCode:  {Status: hessian.Response_CLIENT_TIMEOUT, Msg: "504|timeout"},
-		types.LimitExceededCode:     {Status: hessian.Response_BAD_REQUEST, Msg: "509|limit exceeded"},
+		api.CodecExceptionCode:    {Status: hessian.Response_SERVICE_ERROR, Msg: "0|codec exception"},
+		api.UnknownCode:           {Status: hessian.Response_SERVICE_ERROR, Msg: "2|unknown"},
+		api.DeserialExceptionCode: {Status: hessian.Response_SERVICE_ERROR, Msg: "3|deserial exception"},
+		api.SuccessCode:           {Status: hessian.Response_OK, Msg: "200|success"},
+		api.PermissionDeniedCode:  {Status: hessian.Response_SERVER_ERROR, Msg: "403|permission denied"},
+		api.RouterUnavailableCode: {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "404|router unavailable"},
+		api.InternalErrorCode:     {Status: hessian.Response_SERVICE_ERROR, Msg: "500|internal error"},
+		api.NoHealthUpstreamCode:  {Status: hessian.Response_SERVICE_NOT_FOUND, Msg: "502|no health upstream"},
+		api.UpstreamOverFlowCode:  {Status: hessian.Response_BAD_REQUEST, Msg: "503|upstream overflow"},
+		api.TimeoutExceptionCode:  {Status: hessian.Response_CLIENT_TIMEOUT, Msg: "504|timeout"},
+		api.LimitExceededCode:     {Status: hessian.Response_BAD_REQUEST, Msg: "509|limit exceeded"},
 	}
 )

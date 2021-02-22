@@ -21,6 +21,8 @@ import (
 	"testing"
 )
 
+const testHeaderHostKey = "Mosn-Header-Host"
+
 func TestCommonHeader(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -28,33 +30,33 @@ func TestCommonHeader(t *testing.T) {
 		}
 	}()
 
-	header := CommonHeader{MosnHeaderHostKey: "test"}
-	if v, ok := header.Get(MosnHeaderHostKey); !ok || v != "test" {
+	header := CommonHeader{testHeaderHostKey: "test"}
+	if v, ok := header.Get(testHeaderHostKey); !ok || v != "test" {
 		t.Error("Get header failed.")
 	}
 
-	header.Set(MosnHeaderHostKey, "test1")
-	if v, ok := header.Get(MosnHeaderHostKey); !ok || v != "test1" {
+	header.Set(testHeaderHostKey, "test1")
+	if v, ok := header.Get(testHeaderHostKey); !ok || v != "test1" {
 		t.Error("Set header failed.")
 	}
 
-	header.Del(MosnHeaderHostKey)
-	if _, ok := header.Get(MosnHeaderHostKey); ok {
+	header.Del(testHeaderHostKey)
+	if _, ok := header.Get(testHeaderHostKey); ok {
 		t.Error("Del header failed.")
 	}
 
 	// test clone header
-	header.Set(MosnHeaderHostKey, "test")
+	header.Set(testHeaderHostKey, "test")
 	h2 := header.Clone()
 	if h2 == nil {
 		t.Error("Clone header failed.")
 	}
-	if v, ok := header.Get(MosnHeaderHostKey); !ok || v != "test" {
+	if v, ok := header.Get(testHeaderHostKey); !ok || v != "test" {
 		t.Error("Clone header failed.")
 	}
 
-	if l := h2.ByteSize(); l != uint64(len(MosnHeaderHostKey)+len("test")) {
-		t.Errorf("get ByteSize failed got: %d want:%d", l, len(MosnHeaderHostKey)+len("test"))
+	if l := h2.ByteSize(); l != uint64(len(testHeaderHostKey)+len("test")) {
+		t.Errorf("get ByteSize failed got: %d want:%d", l, len(testHeaderHostKey)+len("test"))
 	}
 
 }

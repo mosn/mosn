@@ -27,7 +27,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/buffer"
+	mbuffer "mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
@@ -43,7 +43,7 @@ var (
 
 func prepareRequest(t *testing.T, requestBytes []byte) context.Context {
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, 80)
-	ctx = buffer.NewBufferPoolContext(ctx)
+	ctx = mbuffer.NewBufferPoolContext(ctx)
 	ctx = variable.NewVariableContext(ctx)
 
 	buffers := httpBuffersByContext(ctx)
@@ -241,7 +241,7 @@ func Test_getPrefixProtocolVarHeaderAndCookie(t *testing.T) {
 
 func prepareBenchmarkRequest(b *testing.B, requestBytes []byte) context.Context {
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyListenerPort, 80)
-	ctx = buffer.NewBufferPoolContext(ctx)
+	ctx = mbuffer.NewBufferPoolContext(ctx)
 	ctx = variable.NewVariableContext(ctx)
 
 	buffers := httpBuffersByContext(ctx)

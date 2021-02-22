@@ -22,13 +22,14 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"reflect"
 	"runtime"
 	"strconv"
 	"strings"
 
 	"go.uber.org/automaxprocs/maxprocs"
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 )
@@ -374,8 +375,10 @@ func setMaxProcsWithProcessor(procs interface{}) {
 		strfunc(processor)
 	case int:
 		intfunc(processor)
+	case float64:
+		intfunc(int(processor))
 	default:
-		log.StartLogger.Fatalf("unsupport serverconfig processor type, must be int or string.")
+		log.StartLogger.Fatalf("unsupport serverconfig processor type %v, must be int or string.", reflect.TypeOf(procs))
 	}
 }
 
@@ -387,24 +390,6 @@ func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
 		sfcc, err := api.CreateListenerFilterChainFactory(c.Type, c.Config)
 		if err != nil {
 			log.DefaultLogger.Errorf("[config] get listener filter failed, type: %s, error: %v", c.Type, err)
-			continue
-		}
-		if sfcc != nil {
-			factories = append(factories, sfcc)
-		}
-	}
-
-	return factories
-}
-
-// GetStreamFilters returns a stream filter factory by filter.Type
-func GetStreamFilters(configs []v2.Filter) []api.StreamFilterChainFactory {
-	var factories []api.StreamFilterChainFactory
-
-	for _, c := range configs {
-		sfcc, err := api.CreateStreamFilterChainFactory(c.Type, c.Config)
-		if err != nil {
-			log.DefaultLogger.Errorf("[config] get stream filter failed, type: %s, error: %v", c.Type, err)
 			continue
 		}
 		if sfcc != nil {

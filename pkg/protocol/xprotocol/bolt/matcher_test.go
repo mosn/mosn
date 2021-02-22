@@ -2,26 +2,27 @@ package bolt
 
 import (
 	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+
 	"testing"
 )
 
 func TestMatcher(t *testing.T) {
 	var testCases = []struct {
 		match []byte
-		types.MatchResult
+		api.MatchResult
 	}{
 		{
 			[]byte{1},
-			types.MatchSuccess,
+			api.MatchSuccess,
 		},
 		{
 			[]byte{},
-			types.MatchAgain,
+			api.MatchAgain,
 		},
 		{
 			[]byte{2},
-			types.MatchFailed,
+			api.MatchFailed,
 		},
 	}
 

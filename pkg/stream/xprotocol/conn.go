@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -31,7 +32,9 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/stream"
 	"mosn.io/mosn/pkg/trace"
+	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 // types.DecodeFilter
@@ -44,7 +47,7 @@ type streamConn struct {
 	ctxManager *stream.ContextManager
 
 	engine   *xprotocol.XEngine // xprotocol fields
-	protocol xprotocol.XProtocol
+	protocol api.XProtocol
 
 	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
 
@@ -125,9 +128,9 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	if sc.protocol == nil {
 		proto, result := sc.engine.Match(sc.ctx, buf)
 		switch result {
-		case types.MatchSuccess:
-			sc.protocol = proto.(xprotocol.XProtocol)
-		case types.MatchFailed:
+		case api.MatchSuccess:
+			sc.protocol = proto.(api.XProtocol)
+		case api.MatchFailed:
 			// print error info
 			size := buf.Len()
 			if size > 10 {
@@ -137,17 +140,23 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 			// close conn
 			sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
 			return
-		case types.MatchAgain:
+		case api.MatchAgain:
 			// do nothing and return, wait for more data
 			return
 		}
 	}
-
 	// decode frames
 	for {
+		if buf.Len() == 0 {
+			return
+		}
 		// 1. get stream-level ctx with bufferCtx
 		streamCtx := sc.ctxManager.Get()
 
+		tracks := track.TrackBufferByContext(streamCtx).Tracks
+
+		tracks.Begin()
+		tracks.StartTrack(track.ProtocolDecode)
 		// 2. decode process
 		frame, err := sc.protocol.Decode(streamCtx, buf)
 
@@ -171,11 +180,14 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 
 		// 2.3 handle frame
 		if frame != nil {
-			xframe, ok := frame.(xprotocol.XFrame)
+			xframe, ok := frame.(api.XFrame)
+			// FIXME: Decode returns XFrame instead of interface{}
 			if !ok {
 				log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] conn %d, %v frame type not match : %T", sc.netConn.ID(), sc.netConn.RemoteAddr(), frame)
+				sc.netConn.Close(api.NoFlush, api.OnReadErrClose)
 				return
 			}
+			tracks.EndTrack(track.ProtocolDecode)
 			sc.handleFrame(streamCtx, xframe)
 		}
 
@@ -235,7 +247,7 @@ func (sc *streamConn) NewStream(ctx context.Context, receiver types.StreamReceiv
 func (sc *streamConn) handleError(ctx context.Context, frame interface{}, err error) {
 	// valid request frame with positive requestID, send exception response in this case
 	if frame != nil {
-		if xframe, ok := frame.(xprotocol.XFrame); ok && (xframe.GetStreamType() == xprotocol.Request) {
+		if xframe, ok := frame.(api.XFrame); ok && (xframe.GetStreamType() == api.Request) {
 			// TODO: to see some error handling if is necessary to passed to proxy level, or just handle it at stream level
 			stream := sc.newServerStream(ctx, xframe)
 			stream.receiver = sc.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
@@ -250,18 +262,18 @@ func (sc *streamConn) handleError(ctx context.Context, frame interface{}, err er
 	sc.netConn.Close(api.NoFlush, api.LocalClose)
 }
 
-func (sc *streamConn) handleFrame(ctx context.Context, frame xprotocol.XFrame) {
+func (sc *streamConn) handleFrame(ctx context.Context, frame api.XFrame) {
 	switch frame.GetStreamType() {
-	case xprotocol.Request:
+	case api.Request:
 		sc.handleRequest(ctx, frame, false)
-	case xprotocol.RequestOneWay:
+	case api.RequestOneWay:
 		sc.handleRequest(ctx, frame, true)
-	case xprotocol.Response:
+	case api.Response:
 		sc.handleResponse(ctx, frame)
 	}
 }
 
-func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame, oneway bool) {
+func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, oneway bool) {
 	// 1. heartbeat process
 	if frame.IsHeartbeatFrame() {
 		hbAck := sc.protocol.Reply(frame)
@@ -276,13 +288,16 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame,
 	}
 
 	// 2. goaway process
-	if predicate, ok := frame.(xprotocol.GoAwayPredicate); ok && predicate.IsGoAwayFrame() && sc.clientCallbacks != nil {
+	if predicate, ok := frame.(api.GoAwayPredicate); ok && predicate.IsGoAwayFrame() && sc.clientCallbacks != nil {
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] goaway received, requestId = %v", frame.GetRequestId())
 		}
 		sc.clientCallbacks.OnGoAway()
 		return
 	}
+
+	// inject timeout
+	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(frame.GetTimeout())))
 
 	// 3. create server stream
 	serverStream := sc.newServerStream(ctx, frame)
@@ -292,7 +307,7 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame,
 	}
 
 	// 4. tracer support
-	var span types.Span
+	var span api.Span
 	if trace.IsEnabled() {
 		// try build trace span
 		tracer := trace.Tracer(protocol.Xprotocol)
@@ -303,12 +318,12 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame,
 	}
 
 	// 5. inject service info
-	if aware, ok := frame.(xprotocol.ServiceAware); ok {
+	if aware, ok := frame.(api.ServiceAware); ok {
 		serviceName := aware.GetServiceName()
 		methodName := aware.GetMethodName()
 
-		frame.GetHeader().Set(types.HeaderRPCService, serviceName)
-		frame.GetHeader().Set(types.HeaderRPCMethod, methodName)
+		variable.SetVariableValue(ctx, types.VarHeaderRPCService, serviceName)
+		variable.SetVariableValue(ctx, types.VarHeaderRPCMethod, methodName)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] frame service aware, requestId = %v, serviceName = %v , methodName = %v", serverStream.id, serviceName, methodName)
@@ -325,7 +340,7 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame xprotocol.XFrame,
 
 }
 
-func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame) {
+func (sc *streamConn) handleResponse(ctx context.Context, frame api.XFrame) {
 	requestId := frame.GetRequestId()
 
 	// for client stream, remove stream on response read
@@ -341,6 +356,10 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 	delete(sc.clientStreams, requestId)
 	sc.clientMutex.Unlock()
 
+	// response dispatch time
+	// store to client stream ctx
+	track.BindRequestAndResponse(clientStream.ctx, ctx)
+
 	// transmit buffer ctx
 	buffer.TransmitBufferPoolContext(clientStream.ctx, ctx)
 
@@ -351,7 +370,7 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame xprotocol.XFrame
 	clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
 }
 
-func (sc *streamConn) newServerStream(ctx context.Context, frame xprotocol.XFrame) *xStream {
+func (sc *streamConn) newServerStream(ctx context.Context, frame api.XFrame) *xStream {
 	//serverStream := &xStream{}
 
 	buffers := streamBuffersByContext(ctx)

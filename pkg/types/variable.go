@@ -47,10 +47,21 @@ const (
 
 // [Proxy]: internal communication
 const (
-	VarProxyTryTimeout    string = "proxy_try_timeout"
-	VarProxyGlobalTimeout string = "proxy_global_timeout"
-	VarProxyHijackStatus  string = "proxy_hijack_status"
-	VarProxyGzipSwitch    string = "proxy_gzip_switch"
+	VarProxyTryTimeout       string = "proxy_try_timeout"
+	VarProxyGlobalTimeout    string = "proxy_global_timeout"
+	VarProxyHijackStatus     string = "proxy_hijack_status"
+	VarProxyGzipSwitch       string = "proxy_gzip_switch"
+	VarProxyIsDirectResponse string = "proxy_direct_response"
+	VarDirection             string = "x-mosn-direction"
+	VarScheme                string = "x-mosn-scheme"
+	VarHost                  string = "x-mosn-host"
+	VarPath                  string = "x-mosn-path"
+	VarQueryString           string = "x-mosn-querystring"
+	VarMethod                string = "x-mosn-method"
+	VarIstioHeaderHost       string = "authority"
+	VarHeaderStatus          string = "x-mosn-status"
+	VarHeaderRPCService      string = "x-mosn-rpc-service"
+	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
 )
 
 // [Protocol]: common

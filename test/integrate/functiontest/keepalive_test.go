@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
@@ -17,7 +19,7 @@ import (
 type heartBeatServer struct {
 	util.UpstreamServer
 	HeartBeatCount uint32
-	boltProto      xprotocol.XProtocol
+	boltProto      api.XProtocol
 }
 
 func (s *heartBeatServer) ServeBoltOrHeartbeat(t *testing.T, conn net.Conn) {

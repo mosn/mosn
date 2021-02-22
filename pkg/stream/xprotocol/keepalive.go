@@ -20,9 +20,9 @@ package xprotocol
 import (
 	"context"
 	"sync"
-	"sync/atomic"
 	"time"
 
+	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -34,20 +34,26 @@ import (
 // StreamReceiver to receive keep alive response
 type xprotocolKeepAlive struct {
 	Codec     str.Client
-	Protocol  xprotocol.XProtocol
+	Protocol  api.XProtocol
 	Timeout   time.Duration
-	Threshold uint32
 	Callbacks []types.KeepAliveCallback
-	// runtime
-	timeoutCount uint32
-	idleFree     *idleFree
-	// stop channel will stop all keep alive action
+
+	heartbeatFailCount atomicex.Uint32 // the number of consecutive heartbeat failures, will be reset after hb succ
+	previousIsSucc     atomicex.Bool   // the previous heartbeat result
+	tickCount          atomicex.Uint32 // tick intervals after the last heartbeat request sent
+
+	idleFree *idleFree
+
+	// once protects stop channel
 	once sync.Once
+	// stop channel will stop all keep alive action
 	stop chan struct{}
+
+	// mutex protects the request map
+	mutex sync.Mutex
 	// requests records all running request
 	// a request is handled once: response or timeout
 	requests map[uint64]*keepAliveTimeout
-	mutex    sync.Mutex
 }
 
 func (kp *xprotocolKeepAlive) store(key uint64, val *keepAliveTimeout) {
@@ -69,18 +75,20 @@ func (kp *xprotocolKeepAlive) loadAndDelete(key uint64) (val *keepAliveTimeout, 
 	return v, ok
 }
 
-func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Duration, thres uint32) types.KeepAlive {
+// NewKeepAlive creates a keepalive object
+func NewKeepAlive(codec str.Client, proto types.ProtocolName, timeout time.Duration) types.KeepAlive {
 	kp := &xprotocolKeepAlive{
-		Codec:        codec,
-		Protocol:     xprotocol.GetProtocol(proto),
-		Timeout:      timeout,
-		Threshold:    thres,
-		Callbacks:    []types.KeepAliveCallback{},
-		timeoutCount: 0,
-		stop:         make(chan struct{}),
-		requests:     make(map[uint64]*keepAliveTimeout),
-		mutex:        sync.Mutex{},
+		Codec:     codec,
+		Protocol:  xprotocol.GetProtocol(proto),
+		Timeout:   timeout,
+		Callbacks: make([]types.KeepAliveCallback, 0),
+		stop:      make(chan struct{}),
+		requests:  make(map[uint64]*keepAliveTimeout),
 	}
+
+	// initially set previous heartbeat request success
+	kp.previousIsSucc.Store(true)
+
 	// register keepalive to connection event listener
 	// if connection is closed, keepalive should stop
 	kp.Codec.AddConnectionEventListener(kp)
@@ -94,6 +102,8 @@ func (kp *xprotocolKeepAlive) OnEvent(event api.ConnectionEvent) {
 	}
 }
 
+// AddCallback add a callback to keepalive
+// currently there no use for this function
 func (kp *xprotocolKeepAlive) AddCallback(cb types.KeepAliveCallback) {
 	kp.Callbacks = append(kp.Callbacks, cb)
 }
@@ -111,7 +121,23 @@ func (kp *xprotocolKeepAlive) SendKeepAlive() {
 	case <-kp.stop:
 		return
 	default:
-		kp.sendKeepAlive()
+	}
+
+	var (
+		c         = xprotoKeepaliveConfig.Load().(KeepaliveConfig)
+		tickCount = kp.tickCount.Inc()
+	)
+
+	if kp.previousIsSucc.Load() {
+		// previous hb is success
+		if tickCount >= c.TickCountIfSucc {
+			kp.sendKeepAlive()
+		}
+	} else {
+		// previous hb is failure
+		if tickCount >= c.TickCountIfFail {
+			kp.sendKeepAlive()
+		}
 	}
 }
 
@@ -121,22 +147,28 @@ func (kp *xprotocolKeepAlive) StartIdleTimeout() {
 
 // The function will be called when connection in the codec is idle
 func (kp *xprotocolKeepAlive) sendKeepAlive() {
+
 	ctx := context.Background()
 	sender := kp.Codec.NewStream(ctx, kp)
 	id := sender.GetStream().ID()
+
 	// check idle free
 	if kp.idleFree.CheckFree(id) {
 		kp.Codec.Close()
 		return
 	}
+
+	// reset the tick count
+	kp.tickCount.Store(0)
+
 	// we send sofa rpc cmd as "header", but it maybe contains "body"
 	hb := kp.Protocol.Trigger(id)
+	kp.store(id, startTimeout(id, kp)) // store request before send, in case receive response too quick but not data in store
 	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
 	}
-	kp.store(id, startTimeout(id, kp))
 }
 
 func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
@@ -144,25 +176,29 @@ func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
 }
 
 func (kp *xprotocolKeepAlive) HandleTimeout(id uint64) {
+	c := xprotoKeepaliveConfig.Load().(KeepaliveConfig)
 	select {
 	case <-kp.stop:
 		return
 	default:
-		if _, ok := kp.loadAndDelete(id); !ok {
-			return
-		}
-
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request timeout %d", kp.Codec.ConnID(), id)
-		}
-
-		atomic.AddUint32(&kp.timeoutCount, 1)
-		// close the connection, stop keep alive
-		if kp.timeoutCount >= kp.Threshold {
-			kp.Codec.Close()
-		}
-		kp.runCallback(types.KeepAliveTimeout)
 	}
+
+	if _, ok := kp.loadAndDelete(id); !ok {
+		return
+	}
+
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request timeout %d", kp.Codec.ConnID(), id)
+	}
+
+	kp.heartbeatFailCount.Inc()
+	kp.previousIsSucc.Store(false)
+
+	// close the connection, stop keep alive
+	if kp.heartbeatFailCount.Load() >= c.FailCountToClose {
+		kp.Codec.Close()
+	}
+	kp.runCallback(types.KeepAliveTimeout)
 }
 
 func (kp *xprotocolKeepAlive) HandleSuccess(id uint64) {
@@ -170,20 +206,24 @@ func (kp *xprotocolKeepAlive) HandleSuccess(id uint64) {
 	case <-kp.stop:
 		return
 	default:
-		timeout, ok := kp.loadAndDelete(id)
-		if !ok {
-			return
-		}
-
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request success %d", kp.Codec.ConnID(), id)
-		}
-
-		timeout.timer.Stop()
-		// reset the tiemout count
-		atomic.StoreUint32(&kp.timeoutCount, 0)
-		kp.runCallback(types.KeepAliveSuccess)
 	}
+
+	timeout, ok := kp.loadAndDelete(id)
+	if !ok {
+		return
+	}
+
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d receive a request success %d", kp.Codec.ConnID(), id)
+	}
+
+	timeout.timer.Stop()
+
+	// reset the tiemout count
+	kp.heartbeatFailCount.Store(0)
+	kp.previousIsSucc.Store(true)
+
+	kp.runCallback(types.KeepAliveSuccess)
 }
 
 func (kp *xprotocolKeepAlive) Stop() {
@@ -196,15 +236,16 @@ func (kp *xprotocolKeepAlive) Stop() {
 // StreamReceiver Implementation
 // we just needs to make sure we can receive a response, do not care the data we received
 func (kp *xprotocolKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if ack, ok := headers.(xprotocol.XFrame); ok {
+	if ack, ok := headers.(api.XFrame); ok {
 		kp.HandleSuccess(ack.GetRequestId())
 	}
 }
 
+// OnDecodeError does not process decode failure
+// the timer will fail this heart beat
 func (kp *xprotocolKeepAlive) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
 }
 
-//
 type keepAliveTimeout struct {
 	ID        uint64
 	timer     *utils.Timer

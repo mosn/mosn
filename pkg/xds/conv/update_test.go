@@ -206,14 +206,14 @@ func Test_updateListener(t *testing.T) {
 		//		Config: accessLogFilterConfig,
 		//	},
 		//}},
-		UseRemoteAddress:            NewBoolValue(false),
-		XffNumTrustedHops:           0,
-		SkipXffAppend:               false,
-		Via:                         "",
-		GenerateRequestId:           NewBoolValue(true),
-		ForwardClientCertDetails:    xdshttp.HttpConnectionManager_SANITIZE,
-		SetCurrentClientCertDetails: nil,
-		Proxy_100Continue:           false,
+		UseRemoteAddress:                           NewBoolValue(false),
+		XffNumTrustedHops:                          0,
+		SkipXffAppend:                              false,
+		Via:                                        "",
+		GenerateRequestId:                          NewBoolValue(true),
+		ForwardClientCertDetails:                   xdshttp.HttpConnectionManager_SANITIZE,
+		SetCurrentClientCertDetails:                nil,
+		Proxy_100Continue:                          false,
 		RepresentIpv4RemoteAddressAsIpv4MappedIpv6: false,
 	}
 	filterName := "envoy.http_connection_manager"
@@ -345,8 +345,9 @@ func Test_updateCluster(t *testing.T) {
 		EdsClusterConfig: &envoy_api_v2.Cluster_EdsClusterConfig{
 			EdsConfig: &core.ConfigSource{},
 		},
-		LbPolicy: envoy_api_v2.Cluster_ROUND_ROBIN,
-		Hosts:    []*core.Address{addrsConfig},
+		LbPolicy:       envoy_api_v2.Cluster_ROUND_ROBIN,
+		Hosts:          []*core.Address{addrsConfig},
+		ConnectTimeout: &duration.Duration{Seconds: 1},
 	}
 
 	if mc := ConvertClustersConfig([]*envoy_api_v2.Cluster{ClusterConfig}); mc == nil {

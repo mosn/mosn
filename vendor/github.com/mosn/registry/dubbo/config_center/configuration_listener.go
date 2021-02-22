@@ -19,9 +19,7 @@ package config_center
 
 import (
 	"fmt"
-)
 
-import (
 	"github.com/mosn/registry/dubbo/remoting"
 )
 

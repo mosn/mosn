@@ -28,6 +28,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func doNothing() {}
@@ -83,23 +84,22 @@ func TestRetryState(t *testing.T) {
 		mgr: &fakeResourceManager{},
 	}
 	rs := newRetryState(policy, nil, clusterInfo, protocol.HTTP1)
-	headerException := protocol.CommonHeader{
-		types.HeaderStatus: "500",
-	}
-	headerOK := protocol.CommonHeader{
-		types.HeaderStatus: "200",
-	}
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHeaderStatus, nil, nil, variable.BasicSetter, 0))
+	ctx1 := variable.NewVariableContext(context.Background())
+	variable.SetVariableValue(ctx1, types.VarHeaderStatus, "200")
+	ctx2 := variable.NewVariableContext(context.Background())
+	variable.SetVariableValue(ctx2, types.VarHeaderStatus, "500")
 	testcases := []struct {
-		Header   types.HeaderMap
+		ctx      context.Context
 		Reason   types.StreamResetReason
 		Expected api.RetryCheckStatus
 	}{
 		{nil, types.StreamConnectionFailed, api.ShouldRetry},
-		{headerException, "", api.ShouldRetry},
-		{headerOK, "", api.NoRetry},
+		{ctx2, "", api.ShouldRetry},
+		{ctx1, "", api.NoRetry},
 	}
 	for i, tc := range testcases {
-		if rs.retry(context.Background(), tc.Header, tc.Reason) != tc.Expected {
+		if rs.retry(tc.ctx, nil, tc.Reason) != tc.Expected {
 			t.Errorf("#%d retry state failed", i)
 		}
 	}

@@ -43,7 +43,7 @@ func init() {
 	trace.RegisterTracerBuilder(skywalking.SkyDriverName, protocol.HTTP1, NewHttpSkyTracer)
 }
 
-func NewHttpSkyTracer(_ map[string]interface{}) (types.Tracer, error) {
+func NewHttpSkyTracer(_ map[string]interface{}) (api.Tracer, error) {
 	return &httpSkyTracer{}, nil
 }
 
@@ -55,7 +55,7 @@ func (tracer *httpSkyTracer) SetGO2SkyTracer(t *go2sky.Tracer) {
 	tracer.Tracer = t
 }
 
-func (tracer *httpSkyTracer) Start(ctx context.Context, request interface{}, _ time.Time) types.Span {
+func (tracer *httpSkyTracer) Start(ctx context.Context, request interface{}, _ time.Time) api.Span {
 	header, ok := request.(http.RequestHeader)
 	if !ok || header.RequestHeader == nil {
 		log.DefaultLogger.Debugf("[SkyWalking] [tracer] [http1] unable to get request header, downstream trace ignored")
@@ -80,7 +80,7 @@ func (tracer *httpSkyTracer) Start(ctx context.Context, request interface{}, _ t
 		return skywalking.NoopSpan
 	}
 	entry.Tag(go2sky.TagHTTPMethod, string(header.Method()))
-	entry.Tag(go2sky.TagURL, string(header.Header())+requestURI)
+	entry.Tag(go2sky.TagURL, string(header.Host())+requestURI)
 	entry.SetComponent(skywalking.MOSNComponentID)
 	entry.SetSpanLayer(language_agent.SpanLayer_Http)
 

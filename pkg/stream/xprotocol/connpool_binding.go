@@ -31,11 +31,16 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+// poolBinding is a special purpose connection pool,
+// used to bind the downstream conn with the upstream conn, which satisfies following condition
+// 1. if upstream connection is closed, the corresponding downstream connection should also be closed, and vice versa
+// 2. the downstream data on a specific connection should always send to the same upstream connection
+// should not use it until you clearly understand what you are doing
 type poolBinding struct {
 	*connpool
 
 	clientMux   sync.Mutex
-	idleClients map[uint64][]*activeClientBinding
+	idleClients map[uint64]*activeClientBinding // connection id --> client
 }
 
 // NewPoolBinding generates a binding connection pool
@@ -43,7 +48,7 @@ type poolBinding struct {
 func NewPoolBinding(p *connpool) types.ConnectionPool {
 	return &poolBinding{
 		connpool:    p,
-		idleClients: make(map[uint64][]*activeClientBinding),
+		idleClients: make(map[uint64]*activeClientBinding),
 	}
 }
 
@@ -107,70 +112,20 @@ func (p *poolBinding) GetActiveClient(ctx context.Context, subProtocol types.Pro
 	}
 
 	p.clientMux.Lock()
+	defer p.clientMux.Unlock()
+
 	connID := getConnID(ctx)
-
-	if len(p.idleClients[connID]) > 0 {
-		defer p.clientMux.Unlock()
-
-		// the client was inited in the CheckAndInit function
-		lastIdx := len(p.idleClients[connID]) - 1
-		return p.idleClients[connID][lastIdx], ""
+	if c, ok := p.idleClients[connID]; ok {
+		// the client was already initialized
+		return c, ""
 	}
 
-	n := len(p.idleClients[connID])
-
-	// max conns is 0 means no limit
-	maxConns := host.ClusterInfo().ResourceManager().Connections().Max()
 	// no available client
-	var (
-		c      *activeClientBinding
-		reason types.PoolFailureReason
-	)
-
-	if n == 0 { // nolint: nestif
-		if maxConns == 0 || p.totalClientCount < maxConns {
-			defer p.clientMux.Unlock()
-			c, reason = p.newActiveClient(ctx, subProtocol)
-			if c != nil && reason == "" {
-				p.totalClientCount++
-
-				// should put this conn to pool
-				p.idleClients[connID] = append(p.idleClients[connID], c)
-			}
-
-			goto RET
-		} else {
-			p.clientMux.Unlock()
-
-			host.HostStats().UpstreamRequestPendingOverflow.Inc(1)
-			host.ClusterInfo().Stats().UpstreamRequestPendingOverflow.Inc(1)
-			c, reason = nil, types.Overflow
-
-			goto RET
-		}
-	} else {
-		defer p.clientMux.Unlock()
-
-		var lastIdx = n - 1
-		var reason types.PoolFailureReason
-		c = p.idleClients[connID][lastIdx]
-		if c == nil || atomic.LoadUint32(&c.goaway) == 1 {
-			c, reason = p.newActiveClient(ctx, subProtocol)
-			if reason == "" && c != nil {
-				p.idleClients[connID][lastIdx] = c
-			}
-		}
-
-		goto RET
-	}
-
-RET:
-	if c != nil && atomic.LoadUint32(&c.state) != Connected {
-		return nil, types.ConnectionFailure
-	}
-
+	c, reason := p.newActiveClient(ctx, subProtocol)
 	if c != nil && reason == "" {
-		atomic.AddUint64(&c.totalStream, 1)
+		p.idleClients[connID] = c
+
+		// stats
 		host.HostStats().UpstreamRequestTotal.Inc(1)
 		host.ClusterInfo().Stats().UpstreamRequestTotal.Inc(1)
 	}
@@ -182,10 +137,8 @@ func (p *poolBinding) Close() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
-	for _, clients := range p.idleClients {
-		for _, c := range clients {
-			c.host.Connection.Close(api.NoFlush, api.LocalClose)
-		}
+	for _, c := range p.idleClients {
+		c.host.Connection.Close(api.NoFlush, api.LocalClose)
 	}
 }
 
@@ -193,17 +146,15 @@ func (p *poolBinding) Shutdown() {
 	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
 
-	for _, clients := range p.idleClients {
-		for _, c := range clients {
-			c.OnGoAway()
-			if c.keepAlive != nil {
-				c.keepAlive.keepAlive.Stop()
-			}
+	for _, c := range p.idleClients {
+		c.OnGoAway()
+		if c.keepAlive != nil {
+			c.keepAlive.keepAlive.Stop()
 		}
 	}
 }
 
-func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClientBinding, types.PoolFailureReason) {
+func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientBinding, types.PoolFailureReason) {
 	connID := getConnID(ctx)
 	ac := &activeClientBinding{
 		subProtocol: subProtocol,
@@ -239,17 +190,15 @@ func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Proto
 		// protocol is from onNewDetectStream
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
-			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second, 6)
+			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
 
 			ac.SetHeartBeater(rpcKeepAlive)
 		}
 	}
 	////////// codec client
-
-	atomic.StoreUint32(&ac.state, Connected)
 
 	// stats
 	host.HostStats().UpstreamConnectionTotal.Inc(1)
@@ -266,19 +215,19 @@ func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Proto
 // nolint: maligned
 type activeClientBinding struct {
 	closeWithActiveReq bool
-	totalStream        uint64
 	connID             uint64
 	goaway             uint32
 	subProtocol        types.ProtocolName
 	keepAlive          *keepAliveListener
-	state              uint32 // for async connection
 	pool               *poolBinding
 	codecClient        stream.Client
 	host               types.CreateConnectionData
 	downstreamConn     api.Connection
 }
 
-// Close return this client back to pool
+// Close close the client
+//  if err == nil, do nothing, the client is never taken away when GetActiveClient
+//  if err != nil, error occurred on this client, remove it from pool and close the connection
 func (ac *activeClientBinding) Close(err error) {
 	if err != nil {
 		ac.removeFromPool()
@@ -290,24 +239,11 @@ func (ac *activeClientBinding) Close(err error) {
 // removeFromPool removes this client from connection pool
 func (ac *activeClientBinding) removeFromPool() {
 	p := ac.pool
-	p.clientMux.Lock()
 
+	p.clientMux.Lock()
 	defer p.clientMux.Unlock()
-	p.totalClientCount--
-	connID := ac.connID
-	for idx, c := range p.idleClients[connID] {
-		if c == ac {
-			// remove this element
-			lastIdx := len(p.idleClients[connID]) - 1
-			// 	1. swap this with the last
-			p.idleClients[connID][idx], p.idleClients[connID][lastIdx] =
-				p.idleClients[connID][lastIdx], p.idleClients[connID][idx]
-			// 	2. set last to nil
-			p.idleClients[connID][lastIdx] = nil
-			// 	3. remove the last
-			p.idleClients[connID] = p.idleClients[connID][:lastIdx]
-		}
-	}
+
+	delete(p.idleClients, ac.connID)
 }
 
 // types.ConnectionEventListener

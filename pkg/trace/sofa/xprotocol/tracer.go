@@ -18,13 +18,13 @@
 package xprotocol
 
 import (
+	"context"
 	"time"
 
-	"context"
+	"mosn.io/api"
 
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
 	"mosn.io/mosn/pkg/types"
@@ -38,7 +38,7 @@ var PrintLog = true
 
 type Tracer struct{}
 
-func NewTracer(config map[string]interface{}) (types.Tracer, error) {
+func NewTracer(config map[string]interface{}) (api.Tracer, error) {
 	// TODO: support log & report
 	if PrintLog {
 		if value, ok := config["log_path"]; ok {
@@ -58,10 +58,10 @@ func NewTracer(config map[string]interface{}) (types.Tracer, error) {
 	return &Tracer{}, nil
 }
 
-func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime time.Time) types.Span {
-	span := NewSpan(startTime)
+func (tracer *Tracer) Start(ctx context.Context, frame interface{}, startTime time.Time) api.Span {
+	span := NewSpan(ctx, startTime)
 
-	xframe, ok := frame.(xprotocol.XFrame)
+	xframe, ok := frame.(api.XFrame)
 	if !ok || xframe == nil {
 		return span
 	}

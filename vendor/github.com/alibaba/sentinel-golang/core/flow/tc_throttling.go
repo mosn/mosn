@@ -1,66 +1,106 @@
+// Copyright 1999-2020 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package flow
 
 import (
-	"github.com/alibaba/sentinel-golang/core/base"
-	"github.com/alibaba/sentinel-golang/util"
 	"math"
 	"sync/atomic"
 	"time"
+
+	"github.com/alibaba/sentinel-golang/core/base"
+	"github.com/alibaba/sentinel-golang/util"
 )
 
-const nanoUnitOffset = time.Second / time.Nanosecond
+const (
+	BlockMsgQueueing = "flow throttling check blocked, estimated queueing time exceeds max queueing time"
+
+	MillisToNanosOffset = int64(time.Millisecond / time.Nanosecond)
+)
 
 // ThrottlingChecker limits the time interval between two requests.
 type ThrottlingChecker struct {
-	maxQueueingTimeNs uint64
-
-	lastPassedTime uint64
-
-	// TODO: support strict mode
-	strict bool
+	owner             *TrafficShapingController
+	maxQueueingTimeNs int64
+	statIntervalNs    int64
+	lastPassedTime    int64
 }
 
-func NewThrottlingChecker(timeoutMs uint32) *ThrottlingChecker {
+func NewThrottlingChecker(owner *TrafficShapingController, timeoutMs uint32, statIntervalMs uint32) *ThrottlingChecker {
+	var statIntervalNs int64
+	if statIntervalMs == 0 {
+		statIntervalNs = 1000 * MillisToNanosOffset
+	} else {
+		statIntervalNs = int64(statIntervalMs) * MillisToNanosOffset
+	}
 	return &ThrottlingChecker{
-		maxQueueingTimeNs: uint64(timeoutMs) * util.UnixTimeUnitOffset,
+		owner:             owner,
+		maxQueueingTimeNs: int64(timeoutMs) * MillisToNanosOffset,
+		statIntervalNs:    statIntervalNs,
 		lastPassedTime:    0,
 	}
 }
+func (c *ThrottlingChecker) BoundOwner() *TrafficShapingController {
+	return c.owner
+}
 
-func (c *ThrottlingChecker) DoCheck(_ base.StatNode, acquireCount uint32, threshold float64) *base.TokenResult {
-	// Pass when acquire count is less or equal than 0.
-	if acquireCount <= 0 {
-		return base.NewTokenResultPass()
+func (c *ThrottlingChecker) DoCheck(_ base.StatNode, batchCount uint32, threshold float64) *base.TokenResult {
+	// Pass when batch count is less or equal than 0.
+	if batchCount <= 0 {
+		return nil
 	}
-	if threshold <= 0 {
-		return base.NewTokenResultBlocked(base.BlockTypeFlow, "Flow")
+
+	var rule *Rule
+	if c.BoundOwner() != nil {
+		rule = c.BoundOwner().BoundRule()
+	}
+
+	if threshold <= 0.0 {
+		msg := "flow throttling check blocked, threshold is <= 0.0"
+		return base.NewTokenResultBlockedWithCause(base.BlockTypeFlow, msg, rule, nil)
+	}
+	if float64(batchCount) > threshold {
+		return base.NewTokenResultBlocked(base.BlockTypeFlow)
 	}
 	// Here we use nanosecond so that we could control the queueing time more accurately.
-	curNano := util.CurrentTimeNano()
+	curNano := int64(util.CurrentTimeNano())
+
 	// The interval between two requests (in nanoseconds).
-	interval := uint64(math.Ceil(float64(acquireCount) / threshold * float64(nanoUnitOffset)))
+	intervalNs := int64(math.Ceil(float64(batchCount) / threshold * float64(c.statIntervalNs)))
 
 	// Expected pass time of this request.
-	expectedTime := atomic.LoadUint64(&c.lastPassedTime) + interval
+	expectedTime := atomic.LoadInt64(&c.lastPassedTime) + intervalNs
 	if expectedTime <= curNano {
 		// Contention may exist here, but it's okay.
-		atomic.StoreUint64(&c.lastPassedTime, curNano)
-		return base.NewTokenResultPass()
-	}
-	estimatedQueueingDuration := atomic.LoadUint64(&c.lastPassedTime) + interval - util.CurrentTimeNano()
-	if estimatedQueueingDuration > c.maxQueueingTimeNs {
-		return base.NewTokenResultBlocked(base.BlockTypeFlow, "Flow")
+		atomic.StoreInt64(&c.lastPassedTime, curNano)
+		return nil
 	}
 
-	oldTime := atomic.AddUint64(&c.lastPassedTime, interval)
-	estimatedQueueingDuration = oldTime - util.CurrentTimeNano()
+	estimatedQueueingDuration := atomic.LoadInt64(&c.lastPassedTime) + intervalNs - int64(util.CurrentTimeNano())
+	if estimatedQueueingDuration > c.maxQueueingTimeNs {
+		return base.NewTokenResultBlockedWithCause(base.BlockTypeFlow, BlockMsgQueueing, rule, nil)
+	}
+
+	oldTime := atomic.AddInt64(&c.lastPassedTime, intervalNs)
+	estimatedQueueingDuration = oldTime - int64(util.CurrentTimeNano())
 	if estimatedQueueingDuration > c.maxQueueingTimeNs {
 		// Subtract the interval.
-		atomic.AddUint64(&c.lastPassedTime, ^(interval - 1))
-		return base.NewTokenResultBlocked(base.BlockTypeFlow, "Flow")
+		atomic.AddInt64(&c.lastPassedTime, -intervalNs)
+		return base.NewTokenResultBlockedWithCause(base.BlockTypeFlow, BlockMsgQueueing, rule, nil)
 	}
 	if estimatedQueueingDuration > 0 {
-		return base.NewTokenResultShouldWait(estimatedQueueingDuration / util.UnixTimeUnitOffset)
+		return base.NewTokenResultShouldWait(time.Duration(estimatedQueueingDuration))
 	} else {
 		return base.NewTokenResultShouldWait(0)
 	}

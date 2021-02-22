@@ -25,9 +25,10 @@ import (
 	"sync"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
+	"mosn.io/pkg/buffer"
+
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 )
 
 // Decoder is heavy and caches to improve performance.

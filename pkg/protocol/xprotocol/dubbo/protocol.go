@@ -24,6 +24,8 @@ import (
 	"sync/atomic"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
@@ -72,7 +74,7 @@ func (proto *dubboProtocol) Encode(ctx context.Context, model interface{}) (type
 		}
 	}
 	log.Proxy.Errorf(ctx, "[protocol][dubbo] encode with unknown command : %+v", model)
-	return nil, xprotocol.ErrUnknownType
+	return nil, api.ErrUnknownType
 }
 
 func (proto *dubboProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
@@ -92,12 +94,12 @@ func (proto *dubboProtocol) Decode(ctx context.Context, data types.IoBuffer) (in
 }
 
 // heartbeater
-func (proto *dubboProtocol) Trigger(requestId uint64) xprotocol.XFrame {
+func (proto *dubboProtocol) Trigger(requestId uint64) api.XFrame {
 	// not support
 	return nil
 }
 
-func (proto *dubboProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
+func (proto *dubboProtocol) Reply(request api.XFrame) api.XRespFrame {
 	// TODO make readable
 	return &Frame{
 		Header: Header{
@@ -113,7 +115,7 @@ func (proto *dubboProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame
 
 // https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
 // hijacker
-func (proto *dubboProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
+func (proto *dubboProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
 	dubboStatus, ok := dubboMosnStatusMap[int(statusCode)]
 	if !ok {
 		dubboStatus = dubboStatusInfo{
@@ -142,11 +144,11 @@ func (proto *dubboProtocol) Mapping(httpStatusCode uint32) uint32 {
 }
 
 // PoolMode returns whether pingpong or multiplex
-func (proto *dubboProtocol) PoolMode() types.PoolMode {
-	return types.Multiplex
+func (proto *dubboProtocol) PoolMode() api.PoolMode {
+	return api.Multiplex
 }
 
-func (proto *dubboProtocol) EnableWorkerPool() bool{
+func (proto *dubboProtocol) EnableWorkerPool() bool {
 	return true
 }
 

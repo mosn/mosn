@@ -150,7 +150,7 @@ func (mr *MockClusterManagerMockRecorder) UDPConnForCluster(balancerContext, sna
 }
 
 // ConnPoolForCluster mocks base method.
-func (m *MockClusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol api.Protocol) types.ConnectionPool {
+func (m *MockClusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol api.ProtocolName) types.ConnectionPool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ConnPoolForCluster", balancerContext, snapshot, protocol)
 	ret0, _ := ret[0].(types.ConnectionPool)

@@ -23,8 +23,9 @@ import (
 	"fmt"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
+
+	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 var (
@@ -38,7 +39,7 @@ func init() {
 
 // RegisterProtocolResource registers the resource as ProtocolResourceName
 // forexample protocolVar[Http1+api.URI] = http_request_uri var
-func RegisterProtocolResource(protocol types.ProtocolName, resource api.ProtocolResourceName, varname string) error {
+func RegisterProtocolResource(protocol api.ProtocolName, resource api.ProtocolResourceName, varname string) error {
 	pr := convert(protocol, resource)
 	if _, ok := protocolVar[pr]; ok {
 		return errors.New("protocol resource already exists, name: " + pr)
@@ -51,7 +52,7 @@ func RegisterProtocolResource(protocol types.ProtocolName, resource api.Protocol
 
 // GetProtocolResource get URI,PATH,ARG var depends on ProtocolResourceName
 func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, data ...interface{}) (string, error) {
-	p, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(types.ProtocolName)
+	p, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamProtocol).(api.ProtocolName)
 	if !ok {
 		return "", errors.New("get ContextKeyDownStreamProtocol failed.")
 	}
@@ -68,6 +69,6 @@ func GetProtocolResource(ctx context.Context, name api.ProtocolResourceName, dat
 	}
 }
 
-func convert(p types.ProtocolName, name api.ProtocolResourceName) string {
+func convert(p api.ProtocolName, name api.ProtocolResourceName) string {
 	return string(p) + string(name)
 }

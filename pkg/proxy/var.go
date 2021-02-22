@@ -23,7 +23,6 @@ import (
 	"strconv"
 
 	"mosn.io/mosn/pkg/types"
-
 	"mosn.io/mosn/pkg/variable"
 )
 
@@ -56,6 +55,10 @@ var (
 		variable.NewIndexedVariable(types.VarProxyGlobalTimeout, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.VarProxyHijackStatus, nil, nil, variable.BasicSetter, 0),
 		variable.NewIndexedVariable(types.VarProxyGzipSwitch, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(types.VarProxyIsDirectResponse, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(types.VarHeaderStatus, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(types.VarHeaderRPCMethod, nil, nil, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(types.VarHeaderRPCService, nil, nil, variable.BasicSetter, 0),
 	}
 
 	prefixVariables = []variable.Variable{
@@ -205,7 +208,7 @@ func upstreamHostGetter(ctx context.Context, value *variable.IndexedValue, data 
 	proxyBuffers := proxyBuffersByContext(ctx)
 	info := proxyBuffers.info
 
-	if info.UpstreamHost() != nil {
+	if info.UpstreamHost() != nil && info.UpstreamHost().Hostname() != "" {
 		return info.UpstreamHost().Hostname(), nil
 	}
 

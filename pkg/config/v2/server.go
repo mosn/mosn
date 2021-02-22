@@ -20,7 +20,6 @@ package v2
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 
@@ -38,6 +37,10 @@ type ServerConfig struct {
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
 	GracefulTimeout api.DurationConfig `json:"graceful_timeout,omitempty"`
+	// OptimizeLocalWrite set to true means if a connection remote address is
+	// localhost, we will use a goroutine for write, which can get better performance
+	// but lower write time costs accuracy.
+	OptimizeLocalWrite bool `json:"optimize_local_write,omitempty"`
 
 	// int go processor number
 	// string set auto means use real cpu core or limit cpu core
@@ -88,7 +91,10 @@ func (l Listener) MarshalJSON() (b []byte, err error) {
 	return json.Marshal(l.ListenerConfig)
 }
 
-var ErrNoAddrListener = errors.New("address is required in listener config")
+var (
+	ErrNoAddrListener   = errors.New("address is required in listener config")
+	ErrUnsupportNetwork = errors.New("listener network only support tcp/udp/unix")
+)
 
 const defaultBufferLimit = 1 << 15
 
@@ -113,7 +119,7 @@ func (l *Listener) UnmarshalJSON(b []byte) error {
 	case "tcp":
 		addr, err = net.ResolveTCPAddr("tcp", l.AddrConfig)
 	default: // only support tcp,udp,unix
-		err = fmt.Errorf("unknown listen type: %s , only support tcp,udp,unix", l.Network)
+		err = ErrUnsupportNetwork
 	}
 	if err != nil {
 		return err
@@ -164,10 +170,16 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type StreamFilterGoPluginConfig struct {
+	SoPath        string `json:"so_path"`
+	FactoryMethod string `json:"factory_method"`
+}
+
 // Filter is a config to make up a filter
 type Filter struct {
-	Type   string                 `json:"type,omitempty"`
-	Config map[string]interface{} `json:"config,omitempty"`
+	Type           string                      `json:"type,omitempty"`
+	GoPluginConfig *StreamFilterGoPluginConfig `json:"go_plugin_config"`
+	Config         map[string]interface{}      `json:"config,omitempty"`
 }
 
 type FilterChainConfig struct {

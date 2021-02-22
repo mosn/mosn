@@ -22,9 +22,9 @@ import (
 	"testing"
 )
 
-const MosnHeaderHostKey = "Mosn-Header-Host"
-const MosnHeaderContentTypeKey = "Content-Type"
-const MosnHeaderEmptyKey = "Mosn-Empty"
+const testHeaderHostKey = "Mosn-Header-Host"
+const testHeaderContentTypeKey = "Content-Type"
+const testHeaderEmptyKey = "Mosn-Empty"
 
 func TestRequestHeader(t *testing.T) {
 	defer func() {
@@ -36,34 +36,34 @@ func TestRequestHeader(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
 	header := NewReqHeader(req)
 
-	header.Set(MosnHeaderHostKey, "test")
-	if v, ok := header.Get(MosnHeaderHostKey); !ok || v != "test" {
+	header.Set(testHeaderHostKey, "test")
+	if v, ok := header.Get(testHeaderHostKey); !ok || v != "test" {
 		t.Error("Get header failed.")
 	}
 
-	header.Del(MosnHeaderHostKey)
-	if _, ok := header.Get(MosnHeaderHostKey); ok {
+	header.Del(testHeaderHostKey)
+	if _, ok := header.Get(testHeaderHostKey); ok {
 		t.Error("Del header failed.")
 	}
 
 	// test clone header
-	header.Set(MosnHeaderHostKey, "test")
+	header.Set(testHeaderHostKey, "test")
 	h2 := header.Clone()
 	if h2 == nil {
 		t.Error("Clone header failed.")
 	}
-	if v, ok := header.Get(MosnHeaderHostKey); !ok || v != "test" {
+	if v, ok := header.Get(testHeaderHostKey); !ok || v != "test" {
 		t.Error("Clone header failed.")
 	}
 
 	// test ByteSize
-	if l := h2.ByteSize(); l != uint64(len(MosnHeaderHostKey)+len("test")) {
-		t.Errorf("get ByteSize failed got: %d want:%d", l, len(MosnHeaderHostKey)+len("test"))
+	if l := h2.ByteSize(); l != uint64(len(testHeaderHostKey)+len("test")) {
+		t.Errorf("get ByteSize failed got: %d want:%d", l, len(testHeaderHostKey)+len("test"))
 	}
 
 	// test range header
 	h2.Range(func(key, value string) bool {
-		if key != MosnHeaderHostKey || value != "test" {
+		if key != testHeaderHostKey || value != "test" {
 			t.Errorf("Range header failed: %v, %v", key, value)
 			return false
 		}
@@ -71,8 +71,8 @@ func TestRequestHeader(t *testing.T) {
 	})
 
 	// test set empty header
-	h2.Set(MosnHeaderEmptyKey, "")
-	if v, ok := header.Get(MosnHeaderEmptyKey); ok || v != "" {
+	h2.Set(testHeaderEmptyKey, "")
+	if v, ok := header.Get(testHeaderEmptyKey); ok || v != "" {
 		t.Errorf("Set empty header failed: %v %v", v, ok)
 	}
 
@@ -87,29 +87,29 @@ func TestResponseHeader(t *testing.T) {
 
 	header := NewRspHeader(&http.Response{Header: make(http.Header)})
 
-	header.Set(MosnHeaderContentTypeKey, "test")
-	if v, ok := header.Get(MosnHeaderContentTypeKey); !ok || v != "test" {
+	header.Set(testHeaderContentTypeKey, "test")
+	if v, ok := header.Get(testHeaderContentTypeKey); !ok || v != "test" {
 		t.Error("Get header failed.")
 	}
 
 	// test clone header
-	header.Set(MosnHeaderContentTypeKey, "test")
+	header.Set(testHeaderContentTypeKey, "test")
 	h2 := header.Clone()
 	if h2 == nil {
 		t.Error("Clone header failed.")
 	}
-	if v, ok := header.Get(MosnHeaderContentTypeKey); !ok || v != "test" {
+	if v, ok := header.Get(testHeaderContentTypeKey); !ok || v != "test" {
 		t.Error("Clone header failed.")
 	}
 
 	// test ByteSize
-	if l := h2.ByteSize(); l != uint64(len(MosnHeaderContentTypeKey)+len("test")) {
-		t.Errorf("get ByteSize failed got: %d want:%d", l, len(MosnHeaderContentTypeKey)+len("test"))
+	if l := h2.ByteSize(); l != uint64(len(testHeaderContentTypeKey)+len("test")) {
+		t.Errorf("get ByteSize failed got: %d want:%d", l, len(testHeaderContentTypeKey)+len("test"))
 	}
 
 	// test range header
 	h2.Range(func(key, value string) bool {
-		if key != MosnHeaderContentTypeKey || value != "test" {
+		if key != testHeaderContentTypeKey || value != "test" {
 			t.Error("Range header failed.")
 			return false
 		}
@@ -117,8 +117,8 @@ func TestResponseHeader(t *testing.T) {
 	})
 
 	// test set empty header
-	h2.Set(MosnHeaderHostKey, "")
-	if _, ok := header.Get(MosnHeaderHostKey); ok {
+	h2.Set(testHeaderHostKey, "")
+	if _, ok := header.Get(testHeaderHostKey); ok {
 		t.Error("Set empty header failed.")
 	}
 }

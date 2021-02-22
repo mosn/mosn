@@ -21,12 +21,14 @@ import (
 	"context"
 	"errors"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/types"
 )
 
 type matchPair struct {
-	matchFunc types.ProtocolMatch
-	protocol  XProtocol
+	matchFunc api.ProtocolMatch
+	protocol  api.XProtocol
 }
 
 // XEngine is an implementation of the ProtocolEngine interface
@@ -35,36 +37,36 @@ type XEngine struct {
 }
 
 // Match use registered matchFunc to recognize corresponding protocol
-func (engine *XEngine) Match(ctx context.Context, data types.IoBuffer) (types.Protocol, types.MatchResult) {
+func (engine *XEngine) Match(ctx context.Context, data types.IoBuffer) (api.XProtocol, api.MatchResult) {
 	again := false
 
 	for idx := range engine.protocols {
 		result := engine.protocols[idx].matchFunc(data.Bytes())
 
-		if result == types.MatchSuccess {
+		if result == api.MatchSuccess {
 			return engine.protocols[idx].protocol, result
-		} else if result == types.MatchAgain {
+		} else if result == api.MatchAgain {
 			again = true
 		}
 	}
 
 	// match not success, return failed if all failed; otherwise return again
 	if again {
-		return nil, types.MatchAgain
+		return nil, api.MatchAgain
 	} else {
-		return nil, types.MatchFailed
+		return nil, api.MatchFailed
 	}
 }
 
 // Register register protocol, which recognized by the matchFunc
-func (engine *XEngine) Register(matchFunc types.ProtocolMatch, protocol types.Protocol) error {
+func (engine *XEngine) Register(matchFunc api.ProtocolMatch, protocol api.Protocol) error {
 	// check name conflict
 	for idx := range engine.protocols {
 		if engine.protocols[idx].protocol.Name() == protocol.Name() {
 			return errors.New("duplicate protocol register:" + string(protocol.Name()))
 		}
 	}
-	xprotocol, ok := protocol.(XProtocol)
+	xprotocol, ok := protocol.(api.XProtocol)
 	if !ok {
 		return errors.New("protocol is not a instance of XProtocol:" + string(protocol.Name()))
 	}
@@ -80,13 +82,13 @@ func NewXEngine(protocols []string) (*XEngine, error) {
 		name := protocols[idx]
 
 		// get protocol
-		protocol := GetProtocol(types.ProtocolName(name))
+		protocol := GetProtocol(api.ProtocolName(name))
 		if protocol == nil {
 			return nil, errors.New("no such protocol:" + name)
 		}
 
 		// get matcher
-		matchFunc := GetMatcher(types.ProtocolName(name))
+		matchFunc := GetMatcher(api.ProtocolName(name))
 		if matchFunc == nil {
 			return nil, errors.New("protocol matcher is needed while using multiple protocols:" + name)
 		}
