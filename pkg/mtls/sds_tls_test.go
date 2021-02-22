@@ -84,6 +84,7 @@ func resetTest() {
 	mockSdsClientInstance = &mockSdsClientV3{
 		callback: make(map[string]types.SdsUpdateCallbackFunc),
 	}
+	types.XdsVersion = types.XdsVersionV2
 }
 
 func mockSetSecret() *secretInfo {
@@ -113,8 +114,9 @@ func mockSetSecret() *secretInfo {
 // server listen a sds tls config
 // before the certificate is setted, cannot support tls request
 // after the certificate is setted, support tls request
-func TestSimpleSdsTLS(t *testing.T) {
+func TestSimpleSdsTLSV3(t *testing.T) {
 	resetTest()
+	types.XdsVersion = types.XdsVersionV3
 	cfg := createSdsTLSConfigV3()
 	filterChains := []v2.FilterChain{
 		{
@@ -204,6 +206,7 @@ func TestSimpleSdsTLS(t *testing.T) {
 // If the client request tls with certificate, the server will verify the client's certificate
 func TestSdsWithExtension(t *testing.T) {
 	resetTest()
+	types.XdsVersion = types.XdsVersionV3
 	cfg := createSdsTLSConfigV3()
 	// Add extension
 	cfg.Type = testType
@@ -311,6 +314,7 @@ func TestSdsWithExtension(t *testing.T) {
 
 func TestSdsProviderUpdate(t *testing.T) {
 	resetTest()
+	types.XdsVersion = types.XdsVersionV3
 	cfg := createSdsTLSConfigV3()
 	prd := getOrCreateProvider(cfg)
 	if prd.Ready() {
