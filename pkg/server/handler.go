@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	wasm2 "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
 	"net"
 	"os"
 	"strconv"
@@ -210,8 +211,18 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 
 	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
 
+	ch.AddOrUpdateWasmProxyProtocolConfig(lc)
+
 	configmanager.SetListenerConfig(*al.listener.Config())
 	return al, nil
+}
+
+func (ch *connHandler) AddOrUpdateWasmProxyProtocolConfig(lc *v2.Listener) {
+	for _, f := range lc.FilterChains[0].Filters {
+		if f.Type == v2.DEFAULT_NETWORK_FILTER {
+			wasm2.GetProxyProtocolManager().AddOrUpdateProtocolConfig(f.Config)
+		}
+	}
 }
 
 func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {

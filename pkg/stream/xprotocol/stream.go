@@ -92,7 +92,7 @@ func (s *xStream) buildHijackResp(request api.XFrame, header types.HeaderMap) (a
 	if status != "" {
 		statusCode, _ := strconv.Atoi(status)
 		proto := s.sc.protocol
-		return proto.Hijack(request, proto.Mapping(uint32(statusCode))), nil
+		return proto.Hijack(ctx, request, proto.Mapping(uint32(statusCode))), nil
 	}
 
 	return nil, types.ErrNoStatusCodeForHijack

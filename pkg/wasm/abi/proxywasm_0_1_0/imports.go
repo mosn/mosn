@@ -138,12 +138,16 @@ func proxyLog(instance types.WasmInstance, level int32, logDataPtr int32, logDat
 	return WasmResultOk.Int32()
 }
 
-func proxyGetBufferBytes(instance types.WasmInstance, bufferType int32, start int32, length int32, returnBufferData int32, returnBufferSize int32) int32 {
+func ProxyGetBufferBytes(instance types.WasmInstance, bufferType int32, start int32, length int32, returnBufferData int32, returnBufferSize int32) int32 {
 	if BufferType(bufferType) > BufferTypeMax {
 		return WasmResultBadArgument.Int32()
 	}
 
 	buf := GetBuffer(instance, BufferType(bufferType))
+	return CopyBytesFromBuffer(instance, buf, start, length, returnBufferData, returnBufferSize)
+}
+
+func CopyBytesFromBuffer(instance types.WasmInstance, buf buffer.IoBuffer, start int32, length int32, returnBufferData int32, returnBufferSize int32) int32 {
 	if buf == nil {
 		return WasmResultNotFound.Int32()
 	}
@@ -179,12 +183,16 @@ func proxyGetBufferBytes(instance types.WasmInstance, bufferType int32, start in
 	return WasmResultOk.Int32()
 }
 
-func proxySetBufferBytes(instance types.WasmInstance, bufferType int32, start int32, length int32, dataPtr int32, dataSize int32) int32 {
+func ProxySetBufferBytes(instance types.WasmInstance, bufferType int32, start int32, length int32, dataPtr int32, dataSize int32) int32 {
 	if BufferType(bufferType) > BufferTypeMax {
 		return WasmResultBadArgument.Int32()
 	}
 
 	buf := GetBuffer(instance, BufferType(bufferType))
+	return CopyBytesToBuffer(instance, buf, dataPtr, dataSize, start, length)
+}
+
+func CopyBytesToBuffer(instance types.WasmInstance, buf buffer.IoBuffer, dataPtr int32, dataSize int32, start int32, length int32) int32 {
 	if buf == nil {
 		return WasmResultNotFound.Int32()
 	}

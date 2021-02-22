@@ -46,8 +46,9 @@ type streamConn struct {
 	netConn    api.Connection
 	ctxManager *stream.ContextManager
 
-	engine   *xprotocol.XEngine // xprotocol fields
-	protocol api.XProtocol
+	engine         *xprotocol.XEngine // xprotocol fields
+	protocol       api.XProtocol
+	isWasmProtocol bool // proxy wasm protocol
 
 	serverCallbacks types.ServerStreamConnectionEventListener // server side fields
 
@@ -84,6 +85,10 @@ func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbac
 			return nil
 		}
 		sc.protocol = proto
+		if p, ok := sc.protocol.(xprotocol.WasmProtocol); ok {
+			// indicates whether the protocol is implemented as a WASM extension
+			sc.isWasmProtocol = p.IsProxyWasm()
+		}
 	} else {
 		engine, err := xprotocol.NewXEngine(subProtocols)
 		if err != nil {
@@ -157,6 +162,11 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 
 		tracks.Begin()
 		tracks.StartTrack(track.ProtocolDecode)
+
+		if sc.isWasmProtocol {
+			streamCtx = sc.handleWasmContextCreate(streamCtx)
+		}
+
 		// 2. decode process
 		frame, err := sc.protocol.Decode(streamCtx, buf)
 
@@ -194,6 +204,11 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 		// 2.4 prepare next
 		sc.ctxManager.Next()
 	}
+}
+
+func (sc *streamConn) handleWasmContextCreate(streamCtx context.Context) context.Context {
+	proto := sc.protocol.(xprotocol.WasmProtocol)
+	return proto.OnProxyCreate(streamCtx)
 }
 
 func (sc *streamConn) Protocol() types.ProtocolName {
@@ -276,7 +291,7 @@ func (sc *streamConn) handleFrame(ctx context.Context, frame api.XFrame) {
 func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, oneway bool) {
 	// 1. heartbeat process
 	if frame.IsHeartbeatFrame() {
-		hbAck := sc.protocol.Reply(frame)
+		hbAck := sc.protocol.Reply(ctx, frame)
 		hbAckData, err := sc.protocol.Encode(ctx, hbAck)
 		if err != nil {
 			sc.handleError(ctx, frame, err)

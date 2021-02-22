@@ -162,7 +162,8 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	kp.tickCount.Store(0)
 
 	// we send sofa rpc cmd as "header", but it maybe contains "body"
-	hb := kp.Protocol.Trigger(id)
+	// todo need support wasm
+	hb := kp.Protocol.Trigger(ctx, id)
 	kp.store(id, startTimeout(id, kp)) // store request before send, in case receive response too quick but not data in store
 	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
