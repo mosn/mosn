@@ -13,9 +13,6 @@
               ],
               "routers": [
                 {
-                  "match": {
-                    "prefix": "/"
-                  },
                   "direct_response": {
                     "status": 200
                   }
@@ -35,8 +32,8 @@
                 {
                   "type": "proxy",
                   "config": {
-                    "downstream_protocol": "Http1",
-                    "upstream_protocol": "Http1",
+                    "downstream_protocol": "Auto",
+                    "upstream_protocol": "Auto",
                     "router_config_name": "server_router"
                   }
                 }

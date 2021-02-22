@@ -2,9 +2,9 @@
 
 ## Introduction
 
-+ This example project demonstrates how to configure MOSN with Wasm extension.
-+ Protocol between MOSN is HTTP1.
-+ For the convenience of demonstration, MOSN listens to one port. Once receiving an HTTP1 request, MOSN will response with status code 200 directly.
++ This example project demonstrates how to configure MOSN with Wasm extension to deal with SofaRPC request.
++ Protocol between MOSN is Bolt.
++ For the convenience of demonstration, MOSN listens to one port. Once receiving a Bolt request, MOSN will response directly.
 
 ## Preparation
 
@@ -17,7 +17,7 @@ go build
 + code path
 
 ```
-${targetpath} = ${projectpath}/examples/codes/wasm/
+${targetpath} = ${projectpath}/examples/codes/wasm/sofarpc
 ```
 
 + Move the target to the example code path
@@ -34,6 +34,7 @@ main        // MOSN
 config.json // MOSN config file
 filter.go   // Wasm source file
 makefile    // makefile to compile wasm source file into wasm extension
+client.go   // Mocked SofaRPC client
 ```
 
 ## Instructions
@@ -55,9 +56,7 @@ This operation will generate filter.wasm
 ### Verification
 
 ```
-curl -v http://127.0.0.1:2045/ -d "haha"
+go run client.go
 ```
-
-After running this command, the HTTP response should contain a header: Go-Wasm-Header: hello wasm
 
 And we should observe wasm-related log printed in MOSN side.

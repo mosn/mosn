@@ -68,18 +68,20 @@ func NewWasmerInstance(vm *VM, module *Module) *Instance {
 		module: module,
 	}
 
-	wasiEnv, err := wasmerGo.NewWasiStateBuilder("mosn").Finalize()
-	if err != nil {
-		log.DefaultLogger.Errorf("[wasmer][instance] NewWasmerInstance fail to create wasi env, err: %v", err)
-		return nil
+	wasiEnv, err := wasmerGo.NewWasiStateBuilder("").Finalize()
+	if err != nil || wasiEnv == nil {
+		log.DefaultLogger.Warnf("[wasmer][instance] NewWasmerInstance fail to create wasi env, err: %v", err)
+		ins.importObject = wasmerGo.NewImportObject()
+		return ins
 	}
 
 	imo, err := wasiEnv.GenerateImportObject(ins.vm.store, ins.module.module)
 	if err != nil {
-		log.DefaultLogger.Errorf("[wasmer][instance] NewWasmerInstance fail to create import object, err: %v", err)
-		return nil
+		log.DefaultLogger.Warnf("[wasmer][instance] NewWasmerInstance fail to create import object, err: %v", err)
+		ins.importObject = wasmerGo.NewImportObject()
+	} else {
+		ins.importObject = imo
 	}
-	ins.importObject = imo
 
 	return ins
 }
