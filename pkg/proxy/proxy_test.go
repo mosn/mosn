@@ -3,17 +3,20 @@ package proxy
 import (
 	"context"
 	"strings"
-	"sync/atomic"
 	"testing"
 
 	"bou.ke/monkey"
 	"github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/mock"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
+	_ "mosn.io/mosn/pkg/stream/http"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
@@ -114,6 +117,16 @@ func TestNewProxyRequest(t *testing.T) {
 		ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
 		return ctx
 	}
+	callCreateFilterChain := false
+	monkey.Patch(streamfilter.GetStreamFilterManager, func() streamfilter.StreamFilterManager {
+		factory := streamfilter.NewMockStreamFilterFactory(ctrl)
+		factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).Do(func(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
+			callCreateFilterChain = true
+		}).AnyTimes()
+		filterManager := streamfilter.NewMockStreamFilterManager(ctrl)
+		filterManager.EXPECT().GetStreamFilterFactory(gomock.Any()).Return(factory).AnyTimes()
+		return filterManager
+	})
 	pv := NewProxy(genctx(), &v2.Proxy{
 		Name:               "test",
 		DownstreamProtocol: "Http1",
@@ -121,7 +134,7 @@ func TestNewProxyRequest(t *testing.T) {
 		RouterConfigName:   "test_router",
 	})
 	//
-	mockSpan := func() types.Span {
+	mockSpan := func() api.Span {
 		sp := mock.NewMockSpan(ctrl)
 		sp.EXPECT().TraceId().Return("1").AnyTimes()
 		sp.EXPECT().SpanId().Return("1").AnyTimes()
@@ -130,18 +143,7 @@ func TestNewProxyRequest(t *testing.T) {
 	monkey.Patch(trace.IsEnabled, func() bool {
 		return true
 	})
-	callCreateFilterChain := false
-	factory := mock.NewMockStreamFilterChainFactory(ctrl)
-	factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ api.StreamFilterChainFactoryCallbacks) {
-		callCreateFilterChain = true
-	}).AnyTimes()
-	value := new(atomic.Value)
-	value.Store([]api.StreamFilterChainFactory{
-		factory,
-	})
-	//
 	monkey.Patch(stream.CreateServerStreamConnection, func(ctx context.Context, _ types.ProtocolName, _ api.Connection, proxy types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, value)
 		sconn := mock.NewMockServerStreamConnection(ctrl)
 		sconn.EXPECT().Dispatch(gomock.Any()).DoAndReturn(func(_ buffer.IoBuffer) {
 			// sender is nil == oneway request
@@ -172,4 +174,212 @@ func TestNewProxyRequest(t *testing.T) {
 		t.Fatalf("no stream filter chain is created")
 	}
 
+}
+
+func TestProxyFallbackNormal(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
+
+	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
+	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
+		c := mock.NewMockConnection(ctrl)
+		c.EXPECT().RawConn().AnyTimes().Return(nil)
+		return c
+	})
+
+	var prot types.ProtocolName
+	dispatch := 0
+	monkey.Patch(stream.CreateServerStreamConnection, func(ctx context.Context, p types.ProtocolName, conn api.Connection,
+		l types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+		prot = p
+		ret := mock.NewMockServerStreamConnection(ctrl)
+		ret.EXPECT().Dispatch(gomock.Any()).AnyTimes().DoAndReturn(func(buffer buffer.IoBuffer) {
+			dispatch++
+		})
+		return ret
+	})
+
+	proxy := &proxy{
+		config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+		readCallbacks:    readCallback,
+		fallback:         false,
+		serverStreamConn: nil,
+		context:          context.TODO(),
+	}
+
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Stop)
+	assert.False(t, proxy.fallback)
+	assert.Equal(t, prot, protocol.HTTP1)
+	assert.Equal(t, dispatch, 1)
+
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Stop)
+	assert.Equal(t, dispatch, 2)
+}
+
+func TestProxyFallbackDoFallback(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
+
+	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
+	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
+		c := mock.NewMockConnection(ctrl)
+		c.EXPECT().RawConn().AnyTimes().Return(nil)
+		return c
+	})
+
+	proxy := &proxy{
+		config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+		readCallbacks:    readCallback,
+		fallback:         false,
+		serverStreamConn: nil,
+	}
+
+	data := []byte("helloWorldHelloWorld")
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes(data)), api.Continue)
+	assert.True(t, proxy.fallback)
+
+	// ensure panic if not return directly
+	proxy.readCallbacks = nil
+	proxy.serverStreamConn = nil
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes(data)), api.Continue)
+
+	// once fallback, should never match protocol
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Continue)
+}
+
+func TestProxyFallbackSmallPackage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
+
+	buff := buffer.NewIoBuffer(0)
+	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
+	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
+		c := mock.NewMockConnection(ctrl)
+		c.EXPECT().RawConn().AnyTimes().Return(nil)
+		c.EXPECT().GetReadBuffer().AnyTimes().Return(buff)
+		return c
+	})
+	continueReading := false
+	readCallback.EXPECT().ContinueReading().AnyTimes().DoAndReturn(func() {
+		continueReading = true
+	})
+
+	proxy := &proxy{
+		config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+		readCallbacks:    readCallback,
+		fallback:         false,
+		serverStreamConn: nil,
+	}
+	proxy.downstreamListener = &downstreamCallbacks{
+		proxy: proxy,
+	}
+
+	// wait for more data or timeout
+	_, _ = buff.Write([]byte("b"))
+	assert.Equal(t, proxy.OnData(buff), api.Stop)
+	assert.False(t, proxy.fallback)
+
+	// still wait for more data or timeout
+	_, _ = buff.Write([]byte("b"))
+	assert.Equal(t, proxy.OnData(buff), api.Stop)
+	assert.False(t, proxy.fallback)
+
+	// timeout
+	proxy.downstreamListener.OnEvent(api.OnReadTimeout)
+	assert.True(t, continueReading)
+	assert.True(t, proxy.fallback)
+
+	// ensure panic if not return directly
+	proxy.readCallbacks = nil
+	proxy.serverStreamConn = nil
+	assert.Equal(t, proxy.OnData(buff), api.Continue)
+
+	// once fallback, should never match protocol
+	assert.Equal(t, proxy.OnData(buff), api.Continue)
+}
+
+func TestProxyFallbackSmallHTTPPackage(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
+
+	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
+	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
+		c := mock.NewMockConnection(ctrl)
+		c.EXPECT().RawConn().AnyTimes().Return(nil)
+		return c
+	})
+
+	var prot types.ProtocolName
+	monkey.Patch(stream.CreateServerStreamConnection, func(ctx context.Context, p types.ProtocolName, conn api.Connection,
+		l types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
+		prot = p
+		ret := mock.NewMockServerStreamConnection(ctrl)
+		ret.EXPECT().Dispatch(gomock.Any()).AnyTimes().Return()
+		return ret
+	})
+
+	proxy := &proxy{
+		config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+		readCallbacks:    readCallback,
+		fallback:         false,
+		serverStreamConn: nil,
+	}
+	proxy.downstreamListener = &downstreamCallbacks{
+		proxy: proxy,
+	}
+
+	// wait for more data or timeout
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("G"))), api.Stop)
+	assert.False(t, proxy.fallback)
+
+	// still wait for more data or timeout
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GE"))), api.Stop)
+	assert.False(t, proxy.fallback)
+
+	// should auto match http1
+	assert.Equal(t, proxy.OnData(buffer.NewIoBufferBytes([]byte("GET /"))), api.Stop)
+	assert.False(t, proxy.fallback)
+	assert.Equal(t, prot, protocol.HTTP1)
+
+	// timeout
+	proxy.downstreamListener.OnEvent(api.OnReadTimeout)
+	assert.False(t, proxy.fallback)
+}
+
+func TestProxyFallbackTimeoutWithoutData(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	defer monkey.UnpatchAll()
+
+	buff := buffer.NewIoBuffer(0)
+	readCallback := mock.NewMockReadFilterCallbacks(ctrl)
+	readCallback.EXPECT().Connection().AnyTimes().DoAndReturn(func() api.Connection {
+		c := mock.NewMockConnection(ctrl)
+		c.EXPECT().RawConn().AnyTimes().Return(nil)
+		c.EXPECT().GetReadBuffer().AnyTimes().Return(buff)
+		return c
+	})
+	continueReading := false
+	readCallback.EXPECT().ContinueReading().AnyTimes().DoAndReturn(func() {
+		continueReading = true
+	})
+
+	proxy := &proxy{
+		config:           &v2.Proxy{FallbackForUnknownProtocol: true},
+		readCallbacks:    readCallback,
+		fallback:         false,
+		serverStreamConn: nil,
+	}
+	proxy.downstreamListener = &downstreamCallbacks{
+		proxy: proxy,
+	}
+
+	// do not have any data and then timeout, should not fallback
+	proxy.downstreamListener.OnEvent(api.OnReadTimeout)
+	assert.False(t, proxy.fallback)
+	assert.False(t, continueReading)
 }

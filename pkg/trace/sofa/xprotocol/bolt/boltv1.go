@@ -20,10 +20,12 @@ package bolt
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/api"
+
 	mosnctx "mosn.io/mosn/pkg/context"
+
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	xproto "mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/trace/sofa"
@@ -35,7 +37,7 @@ func init() {
 	xprotocol.RegisterSubProtocol(bolt.ProtocolName, boltv1Delegate)
 }
 
-func boltv1Delegate(ctx context.Context, frame xproto.XFrame, span types.Span) {
+func boltv1Delegate(ctx context.Context, frame api.XFrame, span api.Span) {
 	request, ok := frame.(*bolt.Request)
 	if !ok {
 		log.Proxy.Errorf(ctx, "[protocol][sofarpc] boltv1 span build failed, type miss match:%+v", frame)

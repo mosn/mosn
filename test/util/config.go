@@ -45,14 +45,30 @@ func CreateProxyMesh(addr string, hosts []string, proto types.ProtocolName) *v2.
 // meshproto is mesh's protocol
 // hosts is server's addresses
 func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types.ProtocolName, meshproto types.ProtocolName, hosts []string, tls bool) *v2.MOSNConfig {
+	return CreateMeshToMeshConfigWithSub(clientaddr, serveraddr, appproto, meshproto, "", hosts, tls)
+}
+
+// Mesh to Mesh
+// clientaddr and serveraddr is mesh's addr
+// appproto is client and server (not mesh) protocol
+// meshproto is mesh's protocol
+// hosts is server's addresses
+func CreateMeshToMeshConfigWithSub(clientaddr string, serveraddr string, appproto types.ProtocolName, meshproto types.ProtocolName, subproto types.ProtocolName, hosts []string, tls bool) *v2.MOSNConfig {
 	downstreamCluster := "downstream"
 	upstreamCluster := "upstream"
 	downstreamRouters := []v2.Router{
 		NewPrefixRouter(downstreamCluster, "/"),
 		NewHeaderRouter(downstreamCluster, ".*"),
 	}
-	clientChains := []v2.FilterChain{
-		NewFilterChain("downstreamFilter", appproto, meshproto, downstreamRouters),
+	var clientChains []v2.FilterChain
+	if subproto != "" {
+		clientChains = []v2.FilterChain{
+			NewFilterChainWithSub("downstreamFilter", appproto, meshproto, subproto, downstreamRouters),
+		}
+	} else {
+		clientChains = []v2.FilterChain{
+			NewFilterChain("downstreamFilter", appproto, meshproto, downstreamRouters),
+		}
 	}
 	clientListener := NewListener("downstreamListener", clientaddr, clientChains)
 	upstreamRouters := []v2.Router{
@@ -62,7 +78,12 @@ func CreateMeshToMeshConfig(clientaddr string, serveraddr string, appproto types
 	// client mesh -> cluster need tls
 	meshClusterConfig := NewBasicCluster(downstreamCluster, []string{serveraddr})
 	//  server mesh listener need tls
-	meshServerChain := NewFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters)
+	var meshServerChain v2.FilterChain
+	if subproto != "" {
+		meshServerChain = NewFilterChainWithSub("upstreamFilter", meshproto, appproto, subproto, upstreamRouters)
+	} else {
+		meshServerChain = NewFilterChain("upstreamFilter", meshproto, appproto, upstreamRouters)
+	}
 	if tls {
 		tlsConf := v2.TLSConfig{
 			Status:       true,

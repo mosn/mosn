@@ -35,6 +35,7 @@ const (
 	ORIGINAL_DST       LoadBalancerType = "LB_ORIGINAL_DST"
 	LeastActiveRequest LoadBalancerType = "LB_LEAST_REQUEST"
 	Maglev             LoadBalancerType = "LB_MAGLEV"
+	RequestRoundRobin  LoadBalancerType = "LB_REQUEST_ROUNDROBIN"
 )
 
 // LoadBalancer is a upstream load balancer.

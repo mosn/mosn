@@ -19,8 +19,9 @@ package tars
 
 import (
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/requestf"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -30,6 +31,8 @@ type Request struct {
 	data    types.IoBuffer // wrapper of data
 	protocol.CommonHeader
 }
+
+var _ api.XFrame = &Request{}
 
 // ~ XFrame
 func (r *Request) GetRequestId() uint64 {
@@ -45,8 +48,13 @@ func (r *Request) IsHeartbeatFrame() bool {
 	return false
 }
 
-func (r *Request) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Request
+// TODO: add timeout
+func (r *Request) GetTimeout() int32 {
+	return 0
+}
+
+func (r *Request) GetStreamType() api.StreamType {
+	return api.Request
 }
 
 func (r *Request) GetHeader() types.HeaderMap {
@@ -68,6 +76,8 @@ type Response struct {
 	protocol.CommonHeader
 }
 
+var _ api.XRespFrame = &Response{}
+
 // ~ XFrame
 func (r *Response) GetRequestId() uint64 {
 	return uint64(r.cmd.IRequestId)
@@ -82,8 +92,13 @@ func (r *Response) IsHeartbeatFrame() bool {
 	return false
 }
 
-func (r *Response) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Response
+// response contains no timeout
+func (r *Response) GetTimeout() int32 {
+	return -1
+}
+
+func (r *Response) GetStreamType() api.StreamType {
+	return api.Response
 }
 
 func (r *Response) GetHeader() types.HeaderMap {

@@ -18,11 +18,16 @@
 package http
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
+	"math/rand"
 	"net"
 	"testing"
+	"time"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
@@ -46,7 +51,7 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+					conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -56,23 +61,84 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 
 	path := "/pic"
 
-	headers := []protocol.CommonHeader{
-		{
-			protocol.MosnHeaderQueryStringKey: queryString,
-			protocol.MosnHeaderPathKey:        path,
-		},
-	}
+	headers := http.RequestHeader{&fasthttp.RequestHeader{}}
 
 	wantedURI := []string{
 		"/pic?name=biz&passwd=bar",
 	}
 
+	ctx := variable.NewVariableContext(context.Background())
+	url := &fasthttp.URI{}
+	url.SetPath(path)
+	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		ClientStreamsMocked[i].AppendHeaders(nil, convertHeader(headers[i]), false)
-		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
+		injectCtxVarFromProtocolHeaders(ctx, headers, url)
+		ClientStreamsMocked[i].AppendHeaders(ctx, headers, false)
+		if string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error, uri:%s", string(ClientStreamsMocked[i].request.Header.RequestURI()))
 		}
 	}
+}
+
+func TestStreamConnectionDispatch(t *testing.T) {
+	streamConnectionMocked := &streamConnection{
+		bufChan:    make(chan buffer.IoBuffer),
+		endRead:    make(chan struct{}),
+		connClosed: make(chan bool, 1),
+	}
+	streamConnectionMocked.br = bufio.NewReaderSize(streamConnectionMocked, defaultMaxHeaderSize)
+	httpTestResponseHeader := "HTTP/1.1 200 OK\r\nDate: Fri, 13 Nov 2020 09:27:39 GMT\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 12\r\n\r\n"
+	httpTestResponseBody := `hello`
+	httpTestResponseBody2 := ` world!`
+	go streamConnectionMocked.Dispatch(buffer.NewIoBufferString(httpTestResponseHeader))
+	// wait Dispatch ready
+	time.Sleep(time.Second)
+	go streamConnectionMocked.Dispatch(buffer.NewIoBufferString(httpTestResponseBody))
+
+	time.Sleep(time.Second)
+	go streamConnectionMocked.Dispatch(buffer.NewIoBufferString(httpTestResponseBody2))
+
+	response := fasthttp.AcquireResponse()
+	// wait Dispatch ready
+	time.Sleep(time.Second)
+	err := response.Read(streamConnectionMocked.br)
+	if err != nil {
+		t.Fatalf("http reponse read error: %v", err)
+	}
+
+	//t.Logf("Header: %v body: %v", response.Header.String(), string(response.Body()))
+	if response.Header.ContentLength() != 12 {
+		t.Errorf("want length: %v get: %v", 12, response.Header.ContentLength())
+	}
+
+	if string(response.Body()) != httpTestResponseBody+httpTestResponseBody2 {
+		t.Errorf("want body: %v. get: %v", httpTestResponseBody+httpTestResponseBody2, string(response.Body()))
+	}
+}
+
+func BenchmarkStreamConnection_Dispatch(b *testing.B) {
+	streamConnectionMocked := &streamConnection{
+		bufChan:    make(chan buffer.IoBuffer),
+		endRead:    make(chan struct{}),
+		connClosed: make(chan bool, 1),
+	}
+	streamConnectionMocked.br = bufio.NewReaderSize(streamConnectionMocked, defaultMaxHeaderSize)
+	httpTestResponse := "HTTP/1.1 200 OK\r\nDate: Fri, 13 Nov 2020 09:27:39 GMT\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Length: 12\r\n\r\nhello world!"
+
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		go streamConnectionMocked.Dispatch(buffer.NewIoBufferString(httpTestResponse))
+
+		response := fasthttp.AcquireResponse()
+		// wait Dispatch ready
+		time.Sleep(time.Second)
+		err := response.Read(streamConnectionMocked.br)
+		if err != nil {
+			b.Fatalf("http reponse read error: %v", err)
+		}
+	}
+	b.StopTimer()
+
 }
 
 func Test_header_capitalization(t *testing.T) {
@@ -86,7 +152,7 @@ func Test_header_capitalization(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+					conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -98,18 +164,20 @@ func Test_header_capitalization(t *testing.T) {
 
 	headers := []protocol.CommonHeader{
 		{
-			protocol.MosnHeaderQueryStringKey: queryString,
-			protocol.MosnHeaderPathKey:        path,
-			"Args":                            "Hello, world!",
+			"Args": "Hello, world!",
 		},
 	}
 
 	wantedURI := []string{
 		"/pic?name=biz&passwd=bar",
 	}
-
+	ctx := variable.NewVariableContext(context.Background())
+	url := &fasthttp.URI{}
+	url.SetPath(path)
+	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		ClientStreamsMocked[i].AppendHeaders(nil, convertHeader(headers[i]), false)
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
+		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
 		}
@@ -132,7 +200,7 @@ func Test_header_conflict(t *testing.T) {
 			stream: streamMocked,
 			connection: &clientStreamConnection{
 				streamConnection: streamConnection{
-					conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+					conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 				},
 			},
 		},
@@ -144,9 +212,7 @@ func Test_header_conflict(t *testing.T) {
 
 	headers := []protocol.CommonHeader{
 		{
-			protocol.MosnHeaderQueryStringKey: queryString,
-			protocol.MosnHeaderPathKey:        path,
-			"Method":                          "com.alipay.test.rpc.sample",
+			"Method": "com.alipay.test.rpc.sample",
 		},
 	}
 
@@ -154,8 +220,13 @@ func Test_header_conflict(t *testing.T) {
 		"/pic?name=biz&passwd=bar",
 	}
 
+	ctx := variable.NewVariableContext(context.Background())
+	url := &fasthttp.URI{}
+	url.SetPath(path)
+	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		ClientStreamsMocked[i].AppendHeaders(nil, convertHeader(headers[i]), false)
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
+		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
 		}
@@ -168,7 +239,7 @@ func Test_header_conflict(t *testing.T) {
 
 func Test_internal_header(t *testing.T) {
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", "127.0.0.1:12200")
-	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
+	header := http.RequestHeader{&fasthttp.RequestHeader{}}
 	uri := fasthttp.AcquireURI()
 
 	// headers.Get return
@@ -181,10 +252,11 @@ func Test_internal_header(t *testing.T) {
 	uri.SetHost("first.test.com")
 	uri.SetPath("/first")
 
-	injectInternalHeaders(header, uri)
+	ctx := variable.NewVariableContext(context.Background())
+	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 
 	// mock request send
-	removeInternalHeaders(header, remoteAddr)
+	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("first request header sent:", header)
 
@@ -193,14 +265,16 @@ func Test_internal_header(t *testing.T) {
 	uri.Reset()
 
 	// mock second request arrive, with query string
+	ctx = variable.NewVariableContext(context.Background())
+
 	header.SetMethod("GET")
 	uri.SetHost("second.test.com")
 	uri.SetPath("/second")
 	uri.SetQueryString("meaning=less")
 
-	injectInternalHeaders(header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 	// mock request send
-	removeInternalHeaders(header, remoteAddr)
+	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("second request header sent:", header)
 
@@ -208,14 +282,15 @@ func Test_internal_header(t *testing.T) {
 	header.Reset()
 	uri.Reset()
 
+	ctx = variable.NewVariableContext(context.Background())
 	// mock third request arrive, with no query string
 	header.SetMethod("GET")
 	uri.SetHost("third.test.com")
 	uri.SetPath("/third")
 
-	injectInternalHeaders(header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri)
 	// mock request send
-	removeInternalHeaders(header, remoteAddr)
+	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
 	fmt.Println("third request header sent:", header)
 
@@ -235,7 +310,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -244,7 +319,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 				connection:       tt.fields.connection,
 				responseDoneChan: tt.fields.responseDoneChan,
 			}
-			s.handleRequest()
+			s.handleRequest(nil)
 		})
 	}
 }
@@ -254,7 +329,7 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 
 	csc := &clientStreamConnection{
 		streamConnection: streamConnection{
-			conn: network.NewClientConnection(nil, 0, nil, remoteAddr, nil),
+			conn: network.NewClientConnection(0, nil, remoteAddr, nil),
 		},
 	}
 
@@ -328,12 +403,44 @@ func TestHeaderSize(t *testing.T) {
 	}
 }
 
+func TestAppendData(t *testing.T) {
+	rand := rand.New(rand.NewSource(time.Now().UnixNano()))
+	responseBytes := randomBytes(t, rand.Intn(1024)+1024*1024*4, rand)
+	if responseBytes == nil || len(responseBytes) == 0 {
+		t.Fatal("randomBytes failed!")
+	}
+
+	buf := buffer.NewIoBufferBytes(responseBytes)
+
+	var s serverStream
+	var hb httpBuffers
+	s.stream = stream{
+		request:  &hb.serverRequest,
+		response: &hb.serverResponse,
+	}
+
+	s.AppendData(context.Background(), buf, false)
+
+	if bytes.Compare(s.response.Body(), responseBytes) != 0 {
+		t.Errorf("server AppendData failed")
+	}
+}
+
 func convertHeader(payload protocol.CommonHeader) http.RequestHeader {
-	header := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
+	header := http.RequestHeader{&fasthttp.RequestHeader{}}
 
 	for k, v := range payload {
 		header.Set(k, v)
 	}
 
 	return header
+}
+
+func randomBytes(t *testing.T, n int, rand *rand.Rand) []byte {
+	r := make([]byte, n)
+	if _, err := rand.Read(r); err != nil {
+		t.Fatal("randomBytes rand.Read failed: " + err.Error())
+		return nil
+	}
+	return r
 }

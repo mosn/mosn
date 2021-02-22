@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	admin "mosn.io/mosn/pkg/admin/server"
 	"mosn.io/mosn/pkg/config/v2"
@@ -28,6 +29,7 @@ type UpdateConfigRequest struct {
 func init() {
 	log.StartLogger.Infof("mosn is builded in debug mosn")
 	admin.RegisterAdminHandleFunc("/debug/update_config", DebugUpdateMosnConfig)
+	admin.RegisterAdminHandleFunc("/debug/disable_tls", DebugUpdateTLSDisable)
 }
 
 // The config types support to be updated
@@ -102,18 +104,41 @@ func DebugUpdateMosnConfig(w http.ResponseWriter, r *http.Request) {
 		log.DefaultLogger.Infof("update cluster config success")
 		w.Write(success)
 	case typeExtend:
-		ext := map[string]json.RawMessage{}
+		ext := []v2.ExtendConfig{}
 		if err := json.Unmarshal(req.Config, &ext); err != nil {
 			invalid(string(req.Config))
 			return
 		}
 		// just update config
-		for typ, c := range ext {
-			configmanager.SetExtend(typ, c)
+		for _, c := range ext {
+			configmanager.SetExtend(c.Type, c.Config)
 		}
 		log.DefaultLogger.Infof("update extend config success")
 		w.Write(success)
 	default:
 		fmt.Fprint(w, "invalid type, do nothing")
 	}
+}
+
+func DebugUpdateTLSDisable(w http.ResponseWriter, r *http.Request) {
+	invalid := func(s string) {
+		log.DefaultLogger.Errorf("api [update mosn config] is not a valid request: %s", s)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "invalid request")
+	}
+	r.ParseForm()
+	v := r.FormValue("disable")
+	t, err := strconv.ParseBool(v)
+	if err != nil {
+		invalid(err.Error())
+		return
+	}
+	if t {
+		log.DefaultLogger.Infof("disable global tls")
+		cluster.DisableClientSideTLS()
+	} else {
+		log.DefaultLogger.Infof("enable global tls")
+		cluster.EnableClientSideTLS()
+	}
+	w.Write(success)
 }

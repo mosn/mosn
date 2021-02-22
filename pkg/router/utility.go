@@ -18,11 +18,9 @@
 package router
 
 import (
-	"regexp"
+	"strings"
 
-	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]weightedClusterEntry, uint32) {
@@ -37,39 +35,6 @@ func getWeightedClusterEntry(weightedClusters []v2.WeightedCluster) (map[string]
 		totalWeight = totalWeight + weightedCluster.Cluster.Weight
 	}
 	return weightedClusterEntries, totalWeight
-}
-
-// GetRouterHeaders exports getRouterHeaders
-func GetRouterHeaders(headers []v2.HeaderMatcher) []*types.HeaderData {
-	return getRouterHeaders(headers)
-}
-
-func getRouterHeaders(headers []v2.HeaderMatcher) []*types.HeaderData {
-	var headerDatas []*types.HeaderData
-
-	for _, header := range headers {
-		headerData := &types.HeaderData{
-			Name: &lowerCaseString{
-				header.Name,
-			},
-			Value:   header.Value,
-			IsRegex: header.Regex,
-		}
-
-		if header.Regex {
-			pattern, err := regexp.Compile(header.Value)
-			if err != nil {
-				log.DefaultLogger.Errorf("getRouterHeaders compile error")
-				continue
-			}
-			headerData.RegexPattern = pattern
-		}
-
-		headerDatas = append(headerDatas, headerData)
-
-	}
-
-	return headerDatas
 }
 
 func getHeaderParser(headersToAdd []*v2.HeaderValueOption, headersToRemove []string) *headerParser {
@@ -89,10 +54,7 @@ func getHeaderPair(headersToAdd []*v2.HeaderValueOption) []*headerPair {
 	}
 	headerPairs := make([]*headerPair, 0, len(headersToAdd))
 	for _, option := range headersToAdd {
-		key := &lowerCaseString{
-			option.Header.Key,
-		}
-		key.Lower()
+		key := strings.ToLower(option.Header.Key)
 
 		// set true to Append as default
 		isAppend := true
@@ -111,16 +73,13 @@ func getHeaderPair(headersToAdd []*v2.HeaderValueOption) []*headerPair {
 	return headerPairs
 }
 
-func getHeadersToRemove(headersToRemove []string) []*lowerCaseString {
+func getHeadersToRemove(headersToRemove []string) []string {
 	if headersToRemove == nil {
 		return nil
 	}
-	lowerCaseHeaders := make([]*lowerCaseString, 0, len(headersToRemove))
+	lowerCaseHeaders := make([]string, 0, len(headersToRemove))
 	for _, header := range headersToRemove {
-		lowerCaseHeader := &lowerCaseString{
-			str: header,
-		}
-		lowerCaseHeader.Lower()
+		lowerCaseHeader := strings.ToLower(header)
 		lowerCaseHeaders = append(lowerCaseHeaders, lowerCaseHeader)
 	}
 	return lowerCaseHeaders

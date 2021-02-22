@@ -86,6 +86,19 @@ func (op *MosnOperator) GetMosnConfig(port int, params string) ([]byte, error) {
 	return ioutil.ReadAll(resp.Body)
 }
 
+func (op *MosnOperator) GetMosnMetrics(port int, key string) ([]byte, error) {
+	if len(key) > 0 {
+		key = "?key=" + key
+	}
+	req := fmt.Sprintf("http://127.0.0.1:%d/api/v1/stats%s", port, key)
+	resp, err := http.Get(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	return ioutil.ReadAll(resp.Body)
+}
+
 func (op *MosnOperator) LoadMosnConfig() *v2.MOSNConfig {
 	return configmanager.Load(op.configPath)
 }

@@ -19,6 +19,7 @@ package xprotocol
 
 import (
 	"context"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,6 +34,8 @@ import (
 	"mosn.io/pkg/utils"
 )
 
+// poolMultiplex is used for multiplex protocols like sofa, dubbo, etc.
+// a single pool is connections which can be reused in a single host
 type poolMultiplex struct {
 	*connpool
 
@@ -46,7 +49,11 @@ type poolMultiplex struct {
 // NewPoolMultiplex generates a multiplex conn pool
 func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 	maxConns := p.Host().ClusterInfo().ResourceManager().Connections().Max()
-	if maxConns == 0 {
+
+	// xDS cluster if not limit max connection will recv:
+	// max_connections:{value:4294967295}  max_pending_requests:{value:4294967295}  max_requests:{value:4294967295}  max_retries:{value:4294967295}
+	// if not judge max, will oom
+	if maxConns == 0 || maxConns >= math.MaxUint32 {
 		// default conn num should be 1
 		maxConns = 1
 	}
@@ -203,7 +210,7 @@ func (p *poolMultiplex) createStreamClient(context context.Context, connData typ
 	return stream.NewStreamClient(context, protocol.Xprotocol, connData.Connection, connData.Host)
 }
 
-func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Protocol) (*activeClientMultiplex, types.PoolFailureReason) {
+func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.ProtocolName) (*activeClientMultiplex, types.PoolFailureReason) {
 	ac := &activeClientMultiplex{
 		subProtocol: subProtocol,
 		pool:        p,
@@ -225,9 +232,9 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	if subProtocol != "" {
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(xprotocol.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(0) != nil {
 			// create keepalive
-			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second, 6)
+			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()
 			ac.keepAlive = &keepAliveListener{
 				keepAlive: rpcKeepAlive,

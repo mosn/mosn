@@ -25,7 +25,7 @@ import (
 )
 
 func TestRequestHeader_Add(t *testing.T) {
-	header := RequestHeader{&fasthttp.RequestHeader{}, nil}
+	header := RequestHeader{&fasthttp.RequestHeader{}}
 	header.Add("test-multiple", "value-one")
 	header.Add("test-multiple", "value-two")
 
@@ -43,7 +43,7 @@ func TestRequestHeader_Add(t *testing.T) {
 }
 
 func TestResponseHeader_Add(t *testing.T) {
-	header := ResponseHeader{&fasthttp.ResponseHeader{}, nil}
+	header := ResponseHeader{&fasthttp.ResponseHeader{}}
 	header.Add("test-multiple", "value-one")
 	header.Add("test-multiple", "value-two")
 

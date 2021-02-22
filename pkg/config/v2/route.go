@@ -284,21 +284,24 @@ func (rc *RouterConfiguration) UnmarshalJSON(b []byte) error {
 
 // VirtualHost is used to make up the route table
 type VirtualHost struct {
-	Name                    string               `json:"name,omitempty"`
-	Domains                 []string             `json:"domains,omitempty"`
-	Routers                 []Router             `json:"routers,omitempty"`
-	RequireTLS              string               `json:"require_tls,omitempty"` // not used yet
-	RequestHeadersToAdd     []*HeaderValueOption `json:"request_headers_to_add,omitempty"`
-	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
-	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
+	Name                    string                 `json:"name,omitempty"`
+	Domains                 []string               `json:"domains,omitempty"`
+	Routers                 []Router               `json:"routers,omitempty"`
+	RequireTLS              string                 `json:"require_tls,omitempty"` // not used yet
+	RequestHeadersToAdd     []*HeaderValueOption   `json:"request_headers_to_add,omitempty"`
+	ResponseHeadersToAdd    []*HeaderValueOption   `json:"response_headers_to_add,omitempty"`
+	ResponseHeadersToRemove []string               `json:"response_headers_to_remove,omitempty"`
+	PerFilterConfig         map[string]interface{} `json:"per_filter_config,omitempty"`
 }
 
 // RouterMatch represents the route matching parameters
 type RouterMatch struct {
-	Prefix  string          `json:"prefix,omitempty"`  // Match request's Path with Prefix Comparing
-	Path    string          `json:"path,omitempty"`    // Match request's Path with Exact Comparing
-	Regex   string          `json:"regex,omitempty"`   // Match request's Path with Regex Comparing
-	Headers []HeaderMatcher `json:"headers,omitempty"` // Match request's Headers
+	Prefix         string                 `json:"prefix,omitempty"`    // Match request's Path with Prefix Comparing
+	Path           string                 `json:"path,omitempty"`      // Match request's Path with Exact Comparing
+	Regex          string                 `json:"regex,omitempty"`     // Match request's Path with Regex Comparing
+	Headers        []HeaderMatcher        `json:"headers,omitempty"`   // Match request's Headers
+	Variables      []VariableMatcher      `json:"variables,omitempty"` // Match request's variable
+	DslExpressions []DslExpressionMatcher `json:"dsl_expressions,omitempty"`
 }
 
 // RedirectAction represents the redirect response parameters
@@ -328,6 +331,18 @@ type HeaderMatcher struct {
 	Name  string `json:"name,omitempty"`
 	Value string `json:"value,omitempty"`
 	Regex bool   `json:"regex,omitempty"`
+}
+
+// VariableMatcher specifies a set of variables that the route should match on.
+type VariableMatcher struct {
+	Name  string `json:"name,omitempty"`
+	Value string `json:"value,omitempty"`
+	Regex string `json:"regex,omitempty"`
+	Model string `json:"model,omitempty"` // support && and || operator
+}
+
+type DslExpressionMatcher struct {
+	Expression string `json:"expression"`
 }
 
 // Stream Proxy Route

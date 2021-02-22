@@ -22,6 +22,9 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/variable"
+
 	"github.com/stretchr/testify/assert"
 
 	"mosn.io/api"
@@ -89,7 +92,7 @@ func TestDirectResponse(t *testing.T) {
 	testCases := []struct {
 		client *mockResponseSender
 		route  *mockRoute
-		check  func(t *testing.T, sender *mockResponseSender)
+		check  func(t *testing.T, ctx context.Context, sender *mockResponseSender)
 	}{
 		// without body
 		{
@@ -99,11 +102,11 @@ func TestDirectResponse(t *testing.T) {
 					status: 500,
 				},
 			},
-			check: func(t *testing.T, client *mockResponseSender) {
+			check: func(t *testing.T, ctx context.Context, client *mockResponseSender) {
 				if client.headers == nil {
 					t.Fatal("want to receive a header response")
 				}
-				if code, ok := client.headers.Get(types.HeaderStatus); !ok || code != "500" {
+				if code, err := variable.GetVariableValue(ctx, types.VarHeaderStatus); err != nil || code != "500" {
 					t.Error("response status code not expected")
 				}
 			},
@@ -117,11 +120,11 @@ func TestDirectResponse(t *testing.T) {
 					body:   "mock 400 response",
 				},
 			},
-			check: func(t *testing.T, client *mockResponseSender) {
+			check: func(t *testing.T, ctx context.Context, client *mockResponseSender) {
 				if client.headers == nil {
 					t.Fatal("want to receive a header response")
 				}
-				if code, ok := client.headers.Get(types.HeaderStatus); !ok || code != "400" {
+				if code, err := variable.GetVariableValue(ctx, types.VarHeaderStatus); err != nil || code != "400" {
 					t.Error("response status code not expected")
 				}
 				if client.data == nil {
@@ -134,6 +137,7 @@ func TestDirectResponse(t *testing.T) {
 		},
 	}
 	for _, tc := range testCases {
+		ctx := variable.NewVariableContext(context.Background())
 		s := &downStream{
 			proxy: &proxy{
 				config: &v2.Proxy{},
@@ -142,21 +146,24 @@ func TestDirectResponse(t *testing.T) {
 						route: tc.route,
 					},
 				},
-				clusterManager:   &mockClusterManager{},
-				readCallbacks:    &mockReadFilterCallbacks{},
-				stats:            globalStats,
-				listenerStats:    newListenerStats("test"),
-				serverStreamConn: &mockServerConn{},
+				clusterManager:      &mockClusterManager{},
+				readCallbacks:       &mockReadFilterCallbacks{},
+				stats:               globalStats,
+				listenerStats:       newListenerStats("test"),
+				serverStreamConn:    &mockServerConn{},
+				routeHandlerFactory: router.DefaultMakeHandler,
 			},
 			responseSender: tc.client,
 			requestInfo:    &network.RequestInfo{},
+			context:        ctx,
 		}
+		s.initStreamFilterChain()
 		// event call Receive Headers
 		// trigger direct response
-		s.OnReceive(context.Background(), protocol.CommonHeader{}, buffer.NewIoBuffer(1), nil)
+		s.OnReceive(ctx, protocol.CommonHeader{}, buffer.NewIoBuffer(1), nil)
 		// check
 		time.Sleep(100 * time.Millisecond)
-		tc.check(t, tc.client)
+		tc.check(t, ctx, tc.client)
 	}
 }
 
@@ -170,16 +177,18 @@ func TestSetDownstreamRouter(t *testing.T) {
 					route: &mockRoute{},
 				},
 			},
-			clusterManager:   &mockClusterManager{},
-			readCallbacks:    &mockReadFilterCallbacks{},
-			stats:            globalStats,
-			listenerStats:    newListenerStats("test"),
-			serverStreamConn: &mockServerConn{},
+			clusterManager:      &mockClusterManager{},
+			readCallbacks:       &mockReadFilterCallbacks{},
+			stats:               globalStats,
+			listenerStats:       newListenerStats("test"),
+			serverStreamConn:    &mockServerConn{},
+			routeHandlerFactory: router.DefaultMakeHandler,
 		},
 		responseSender: &mockResponseSender{},
 		requestInfo:    &network.RequestInfo{},
 		snapshot:       &mockClusterSnapshot{},
 	}
+	s.initStreamFilterChain()
 	s.matchRoute()
 	assert.NotNilf(t, s.DownstreamRoute(),
 		"downstream router in context should not be nil")
@@ -188,13 +197,14 @@ func TestSetDownstreamRouter(t *testing.T) {
 func TestOnewayHijack(t *testing.T) {
 	initGlobalStats()
 	proxy := &proxy{
-		config:           &v2.Proxy{},
-		routersWrapper:   nil,
-		clusterManager:   &mockClusterManager{},
-		readCallbacks:    &mockReadFilterCallbacks{},
-		stats:            globalStats,
-		listenerStats:    newListenerStats("test"),
-		serverStreamConn: &mockServerConn{},
+		config:              &v2.Proxy{},
+		routersWrapper:      nil,
+		clusterManager:      &mockClusterManager{},
+		readCallbacks:       &mockReadFilterCallbacks{},
+		stats:               globalStats,
+		listenerStats:       newListenerStats("test"),
+		serverStreamConn:    &mockServerConn{},
+		routeHandlerFactory: router.DefaultMakeHandler,
 	}
 	s := newActiveStream(context.Background(), proxy, nil, nil)
 

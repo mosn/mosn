@@ -16,9 +16,10 @@ import (
 
 type mirror struct {
 	amplification  int
+	broadcast      bool
 	receiveHandler api.StreamReceiverFilterHandler
-	dp             api.Protocol
-	up             api.Protocol
+	dp             api.ProtocolName
+	up             api.ProtocolName
 	ctx            context.Context
 	headers        api.HeaderMap
 	data           buffer.IoBuffer
@@ -83,8 +84,24 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		// cover once
 		m.cover()
 
-		for i := 0; i < m.amplification; i++ {
+		amplification := m.amplification
+		if m.broadcast {
+			amplification = 0
+			for _, host := range snap.HostSet().Hosts() {
+				if host.Health() {
+					amplification++
+				}
+			}
+		}
+
+		for i := 0; i < amplification; i++ {
 			connPool := clusterAdapter.ConnPoolForCluster(m, snap, m.up)
+			if connPool == nil {
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof("mirror get connPool failed, cluster:%s", m.clusterName)
+				}
+				break
+			}
 			var (
 				host         types.Host
 				streamSender types.StreamSender
@@ -95,7 +112,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 				// ! http1 use fake receiver reduce connect
 				host, streamSender, failReason = connPool.NewStream(m.ctx, &receiver{})
 			} else {
-				host, streamSender, failReason = connPool.NewStream(m.ctx, nil )
+				host, streamSender, failReason = connPool.NewStream(m.ctx, nil)
 			}
 
 			if failReason != "" {
@@ -106,6 +123,10 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 			m.OnReady(streamSender, host)
 		}
 	}, nil)
+	if m.broadcast {
+		m.receiveHandler.SendHijackReply(api.SuccessCode, m.headers)
+		return api.StreamFilterStop
+	}
 	return api.StreamFilterContinue
 }
 

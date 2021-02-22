@@ -53,7 +53,7 @@ func (f *DSLFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf bu
 		}
 	}()
 
-	parentBag := extract.ExtractAttributes(headers, nil, f.receiverFilterHandler.RequestInfo(), buf, trailers, time.Now())
+	parentBag := extract.ExtractAttributes(ctx, headers, nil, f.receiverFilterHandler.RequestInfo(), buf, trailers, time.Now())
 	bag := attribute.NewMutableBag(parentBag)
 	bag.Set(extract.KContext, ctx)
 	switch f.receiverFilterHandler.GetFilterCurrentPhase() {
@@ -85,7 +85,7 @@ func (f *DSLFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffe
 		return api.StreamFilterContinue
 	}
 
-	parentBag := extract.ExtractAttributes(nil, headers, f.receiverFilterHandler.RequestInfo(), buf, trailers, time.Now())
+	parentBag := extract.ExtractAttributes(ctx, nil, headers, f.receiverFilterHandler.RequestInfo(), buf, trailers, time.Now())
 	bag := attribute.NewMutableBag(parentBag)
 	bag.Set(extract.KContext, ctx)
 	f.dsl.SendFilterDSL.Evaluate(bag)
@@ -114,7 +114,7 @@ func (f *DSLFilter) Log(ctx context.Context, reqHeaders api.HeaderMap, respHeade
 		return
 	}
 
-	parentBag := extract.ExtractAttributes(reqHeaders, respHeaders, f.receiverFilterHandler.RequestInfo(), nil, nil, time.Now())
+	parentBag := extract.ExtractAttributes(ctx, reqHeaders, respHeaders, f.receiverFilterHandler.RequestInfo(), nil, nil, time.Now())
 	bag := attribute.NewMutableBag(parentBag)
 	bag.Set(extract.KContext, ctx)
 	f.dsl.LogDSL.Evaluate(bag)

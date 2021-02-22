@@ -18,6 +18,8 @@
 package bolt
 
 import (
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
@@ -66,6 +68,8 @@ type Request struct {
 	ContentChanged bool // indicate that content changed
 }
 
+var _ api.XFrame = &Request{}
+
 // ~ XFrame
 func (r *Request) GetRequestId() uint64 {
 	return uint64(r.RequestHeader.RequestId)
@@ -79,14 +83,18 @@ func (r *Request) IsHeartbeatFrame() bool {
 	return r.RequestHeader.CmdCode == CmdCodeHeartbeat
 }
 
-func (r *Request) GetStreamType() xprotocol.StreamType {
+func (r *Request) GetTimeout() int32 {
+	return r.RequestHeader.Timeout
+}
+
+func (r *Request) GetStreamType() api.StreamType {
 	switch r.RequestHeader.CmdType {
 	case CmdTypeRequest:
-		return xprotocol.Request
+		return api.Request
 	case CmdTypeRequestOneway:
-		return xprotocol.RequestOneWay
+		return api.RequestOneWay
 	default:
-		return xprotocol.Request
+		return api.Request
 	}
 }
 
@@ -150,6 +158,8 @@ type Response struct {
 	ContentChanged bool // indicate that content changed
 }
 
+var _ api.XRespFrame = &Response{}
+
 // ~ XRespFrame
 func (r *Response) GetRequestId() uint64 {
 	return uint64(r.ResponseHeader.RequestId)
@@ -163,8 +173,13 @@ func (r *Response) IsHeartbeatFrame() bool {
 	return r.ResponseHeader.CmdCode == CmdCodeHeartbeat
 }
 
-func (r *Response) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Response
+// response contains no timeout
+func (r *Response) GetTimeout() int32 {
+	return -1
+}
+
+func (r *Response) GetStreamType() api.StreamType {
+	return api.Response
 }
 
 func (r *Response) GetHeader() types.HeaderMap {

@@ -30,10 +30,9 @@ import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
-	httpmosn "mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/variable"
 )
 
 var (
@@ -43,10 +42,8 @@ var (
 
 type RouteRuleImplBase struct {
 	// match
-	vHost                 *VirtualHostImpl
-	routerMatch           v2.RouterMatch
-	configHeaders         []*types.HeaderData
-	configQueryParameters []types.QueryParameterMatcher //TODO: not implement yet
+	vHost       api.VirtualHost
+	routerMatch v2.RouterMatch
 	// rewrite
 	prefixRewrite         string
 	regexRewrite          v2.RegexRewrite
@@ -74,11 +71,10 @@ type RouteRuleImplBase struct {
 	randInstance       *rand.Rand
 }
 
-func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleImplBase, error) {
+func NewRouteRuleImplBase(vHost api.VirtualHost, route *v2.Router) (*RouteRuleImplBase, error) {
 	base := &RouteRuleImplBase{
 		vHost:                 vHost,
 		routerMatch:           route.Match,
-		configHeaders:         getRouterHeaders(route.Match.Headers),
 		prefixRewrite:         route.Route.PrefixRewrite,
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
@@ -191,6 +187,10 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 	return base, nil
 }
 
+func (rri *RouteRuleImplBase) VirtualHost() api.VirtualHost {
+	return rri.vHost
+}
+
 func (rri *RouteRuleImplBase) DirectResponseRule() api.DirectResponseRule {
 	return rri.directResponseRule
 }
@@ -255,48 +255,29 @@ func (rri *RouteRuleImplBase) PerFilterConfig() map[string]interface{} {
 	return rri.perFilterConfig
 }
 
-// matchRoute is a common matched for http
-func (rri *RouteRuleImplBase) matchRoute(headers api.HeaderMap, randomValue uint64) bool {
-	// 1. match headers' KV
-	if !ConfigUtilityInst.MatchHeaders(headers, rri.configHeaders) {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
-		return false
-	}
-	// 2. match query parameters
-	if len(rri.configQueryParameters) != 0 {
-		var queryParams types.QueryParams
-		if QueryString, ok := headers.Get(protocol.MosnHeaderQueryStringKey); ok {
-			queryParams = httpmosn.ParseQueryString(QueryString)
-		}
-		if len(queryParams) != 0 {
-			if !ConfigUtilityInst.MatchQueryParams(queryParams, rri.configQueryParameters) {
-				log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
-				return false
-			}
-		}
-	}
-	return true
+func (rri *RouteRuleImplBase) FinalizePathHeader(ctx context.Context, headers api.HeaderMap, matchedPath string) {
+	rri.finalizePathHeader(ctx, headers, matchedPath)
 }
 
-func (rri *RouteRuleImplBase) FinalizePathHeader(headers api.HeaderMap, matchedPath string) {
-	rri.finalizePathHeader(headers, matchedPath)
-}
-
-func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedPath string) {
+func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers api.HeaderMap, matchedPath string) {
 
 	if len(rri.prefixRewrite) < 1 && len(rri.regexRewrite.Pattern.Regex) < 1 {
 		return
 	}
 
-	if path, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+	path, err := variable.GetVariableValue(ctx, types.VarPath)
+	if err == nil && path != "" {
 
 		//If both prefix_rewrite and regex_rewrite are configured
 		//prefix rewrite by default
 		if len(rri.prefixRewrite) > 1 {
 			if strings.HasPrefix(path, matchedPath) {
-				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-				headers.Set(protocol.MosnHeaderPathKey, rri.prefixRewrite+path[len(matchedPath):])
-				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+				// origin path need to save in the header
+				headers.Set(types.HeaderOriginalPath, path)
+				variable.SetVariableValue(ctx, types.VarPath, rri.prefixRewrite+path[len(matchedPath):])
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
+				}
 			}
 			return
 		}
@@ -305,41 +286,39 @@ func (rri *RouteRuleImplBase) finalizePathHeader(headers api.HeaderMap, matchedP
 		if len(rri.regexRewrite.Pattern.Regex) > 1 && rri.regexPattern != nil {
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
-				headers.Set(protocol.MosnOriginalHeaderPathKey, path)
-				headers.Set(protocol.MosnHeaderPathKey, rewritedPath)
-				log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
+				headers.Set(types.HeaderOriginalPath, path)
+				variable.SetVariableValue(ctx, types.VarPath, rewritedPath)
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)
+				}
 			}
 		}
 
 	}
 }
 
-func (rri *RouteRuleImplBase) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rri.finalizeRequestHeaders(headers, requestInfo)
+func (rri *RouteRuleImplBase) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	rri.finalizeRequestHeaders(ctx, headers, requestInfo)
 }
 
-func (rri *RouteRuleImplBase) finalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
-	rri.vHost.requestHeadersParser.evaluateHeaders(headers, requestInfo)
-	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.vHost.FinalizeRequestHeaders(ctx, headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
-		headers.Set(protocol.IstioHeaderHostKey, rri.hostRewrite)
+		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, rri.hostRewrite)
 	} else if len(rri.autoHostRewriteHeader) > 0 {
 		if headerValue, ok := headers.Get(rri.autoHostRewriteHeader); ok {
-			headers.Set(protocol.IstioHeaderHostKey, headerValue)
+			variable.SetVariableValue(ctx, types.VarIstioHeaderHost, headerValue)
 		}
 	} else if rri.autoHostRewrite {
-
 		clusterSnapshot := cluster.GetClusterMngAdapterInstance().GetClusterSnapshot(context.TODO(), rri.routerAction.ClusterName)
 		if clusterSnapshot != nil && (clusterSnapshot.ClusterInfo().ClusterType() == v2.STRICT_DNS_CLUSTER) {
-			headers.Set(protocol.IstioHeaderHostKey, requestInfo.UpstreamHost().Hostname())
+			variable.SetVariableValue(ctx, types.VarIstioHeaderHost, requestInfo.UpstreamHost().Hostname())
 		}
-
 	}
 }
 
-func (rri *RouteRuleImplBase) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (rri *RouteRuleImplBase) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.responseHeadersParser.evaluateHeaders(headers, requestInfo)
-	rri.vHost.responseHeadersParser.evaluateHeaders(headers, requestInfo)
-	rri.vHost.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.vHost.FinalizeResponseHeaders(ctx, headers, requestInfo)
 }

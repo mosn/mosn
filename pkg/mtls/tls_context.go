@@ -246,7 +246,8 @@ func tlsConfigTemplate(c *v2.TLSConfig) (*tls.Config, error) {
 		for _, p := range protocols {
 			_, ok := alpn[strings.ToLower(p)]
 			if !ok {
-				return nil, fmt.Errorf("ALPN %s is not supported", p)
+				log.DefaultLogger.Errorf("[mtls] ALPN %s is not supported", p)
+				continue
 			}
 			tlsConfig.NextProtos = append(tlsConfig.NextProtos, p)
 		}

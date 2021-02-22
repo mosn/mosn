@@ -1,3 +1,17 @@
+// Copyright 1999-2020 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package stat
 
 import (
@@ -5,60 +19,72 @@ import (
 	"github.com/alibaba/sentinel-golang/util"
 )
 
-const SlotName = "StatisticSlot"
+const (
+	StatSlotName  = "sentinel-core-stat-slot"
+	StatSlotOrder = 1000
+)
 
-type StatisticSlot struct {
+var (
+	DefaultSlot = &Slot{}
+)
+
+type Slot struct {
 }
 
-func (s *StatisticSlot) String() string {
-	return SlotName
+func (s *Slot) Name() string {
+	return StatSlotName
 }
 
-func (s *StatisticSlot) OnEntryPassed(ctx *base.EntryContext) {
-	s.recordPassFor(ctx.StatNode, ctx.Input.AcquireCount)
+func (s *Slot) Order() uint32 {
+	return StatSlotOrder
+}
+
+func (s *Slot) OnEntryPassed(ctx *base.EntryContext) {
+	s.recordPassFor(ctx.StatNode, ctx.Input.BatchCount)
 	if ctx.Resource.FlowType() == base.Inbound {
-		s.recordPassFor(InboundNode(), ctx.Input.AcquireCount)
+		s.recordPassFor(InboundNode(), ctx.Input.BatchCount)
 	}
 }
 
-func (s *StatisticSlot) OnEntryBlocked(ctx *base.EntryContext, blockError *base.BlockError) {
-	s.recordBlockFor(ctx.StatNode, ctx.Input.AcquireCount)
+func (s *Slot) OnEntryBlocked(ctx *base.EntryContext, blockError *base.BlockError) {
+	s.recordBlockFor(ctx.StatNode, ctx.Input.BatchCount)
 	if ctx.Resource.FlowType() == base.Inbound {
-		s.recordBlockFor(InboundNode(), ctx.Input.AcquireCount)
+		s.recordBlockFor(InboundNode(), ctx.Input.BatchCount)
 	}
 }
 
-func (s *StatisticSlot) OnCompleted(ctx *base.EntryContext) {
-	if ctx.Output.LastResult == nil || ctx.Output.LastResult.IsBlocked() {
-		return
-	}
+func (s *Slot) OnCompleted(ctx *base.EntryContext) {
 	rt := util.CurrentTimeMillis() - ctx.StartTime()
-	s.recordCompleteFor(ctx.StatNode, ctx.Input.AcquireCount, rt)
+	ctx.PutRt(rt)
+	s.recordCompleteFor(ctx.StatNode, ctx.Input.BatchCount, rt, ctx.Err())
 	if ctx.Resource.FlowType() == base.Inbound {
-		s.recordCompleteFor(InboundNode(), ctx.Input.AcquireCount, rt)
+		s.recordCompleteFor(InboundNode(), ctx.Input.BatchCount, rt, ctx.Err())
 	}
 }
 
-func (s *StatisticSlot) recordPassFor(sn base.StatNode, count uint32) {
+func (s *Slot) recordPassFor(sn base.StatNode, count uint32) {
 	if sn == nil {
 		return
 	}
-	sn.IncreaseGoroutineNum()
-	sn.AddMetric(base.MetricEventPass, uint64(count))
+	sn.IncreaseConcurrency()
+	sn.AddCount(base.MetricEventPass, int64(count))
 }
 
-func (s *StatisticSlot) recordBlockFor(sn base.StatNode, count uint32) {
+func (s *Slot) recordBlockFor(sn base.StatNode, count uint32) {
 	if sn == nil {
 		return
 	}
-	sn.AddMetric(base.MetricEventBlock, uint64(count))
+	sn.AddCount(base.MetricEventBlock, int64(count))
 }
 
-func (s *StatisticSlot) recordCompleteFor(sn base.StatNode, count uint32, rt uint64) {
+func (s *Slot) recordCompleteFor(sn base.StatNode, count uint32, rt uint64, err error) {
 	if sn == nil {
 		return
 	}
-	sn.AddMetric(base.MetricEventRt, rt)
-	sn.AddMetric(base.MetricEventComplete, uint64(count))
-	sn.DecreaseGoroutineNum()
+	if err != nil {
+		sn.AddCount(base.MetricEventError, int64(count))
+	}
+	sn.AddCount(base.MetricEventRt, int64(rt))
+	sn.AddCount(base.MetricEventComplete, int64(count))
+	sn.DecreaseConcurrency()
 }

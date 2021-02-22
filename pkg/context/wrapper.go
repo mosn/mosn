@@ -34,7 +34,7 @@ func Get(ctx context.Context, key types.ContextKey) interface{} {
 // This Function should not be used along with the official context.WithValue !!
 
 // The following context topology will leads to existed pair {'foo':'bar'} NOT FOUND, because recursive lookup for
-// key-type=ContextKey is not supported by mosn.valueCtx.
+// key-type=types.ContextKey is not supported by mosn.valueCtx.
 //
 // topology: context.Background -> mosn.valueCtx{'foo':'bar'} -> context.valueCtx -> mosn.valueCtx{'hmm':'haa'}
 func WithValue(parent context.Context, key types.ContextKey, value interface{}) context.Context {

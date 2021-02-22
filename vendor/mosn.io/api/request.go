@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-type Protocol string
+type ProtocolName string
 
 // ResponseFlag type
 type ResponseFlag int
@@ -53,6 +53,8 @@ const (
 	RateLimited ResponseFlag = 0x800
 	// payload limit
 	ReqEntityTooLarge ResponseFlag = 0x1000
+	// downstream terminated
+	DownStreamTerminate ResponseFlag = 0x2000
 )
 
 // RequestInfo has information for a request, include the basic information,
@@ -101,9 +103,9 @@ type RequestInfo interface {
 	SetBytesReceived(bytesReceived uint64)
 
 	// Protocol returns the request's protocol type
-	Protocol() Protocol
+	Protocol() ProtocolName
 	// SetProtocol sets the request's protocol type
-	SetProtocol(p Protocol)
+	SetProtocol(p ProtocolName)
 
 	// ResponseCode reports the request's response code
 	// The code is http standard status code.

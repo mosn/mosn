@@ -106,7 +106,9 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 		lb:      NewLoadBalancer(info, hostSet),
 	})
 	if clusterConfig.HealthCheck.ServiceName != "" {
-		log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
+		}
 		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck)
 	}
 	return cluster
@@ -173,7 +175,7 @@ type clusterInfo struct {
 	lbSubsetInfo         types.LBSubsetInfo
 	lbOriDstInfo         types.LBOriDstInfo
 	clusterManagerTLS    bool
-	tlsMng               types.TLSContextManager
+	tlsMng               types.TLSClientContextManager
 	connectTimeout       time.Duration
 	lbConfig             v2.IsCluster_LbConfig
 }
@@ -212,7 +214,7 @@ func (ci *clusterInfo) ResourceManager() types.ResourceManager {
 	return ci.resourceManager
 }
 
-func (ci *clusterInfo) TLSMng() types.TLSContextManager {
+func (ci *clusterInfo) TLSMng() types.TLSClientContextManager {
 	if ci.clusterManagerTLS {
 		return clusterManagerInstance.GetTLSManager()
 	}

@@ -19,20 +19,25 @@ package types
 
 // [Proxy]: the identification of a request info's content
 const (
-	VarStartTime                string = "start_time"
-	VarRequestReceivedDuration  string = "request_received_duration"
-	VarResponseReceivedDuration string = "response_received_duration"
-	VarRequestFinishedDuration  string = "request_finished_duration"
-	VarBytesSent                string = "bytes_sent"
-	VarBytesReceived            string = "bytes_received"
-	VarProtocol                 string = "protocol"
-	VarResponseCode             string = "response_code"
-	VarDuration                 string = "duration"
-	VarResponseFlag             string = "response_flag"
-	VarUpstreamLocalAddress     string = "upstream_local_address"
-	VarDownstreamLocalAddress   string = "downstream_local_address"
-	VarDownstreamRemoteAddress  string = "downstream_remote_address"
-	VarUpstreamHost             string = "upstream_host"
+	VarStartTime                      string = "start_time"
+	VarRequestReceivedDuration        string = "request_received_duration"
+	VarResponseReceivedDuration       string = "response_received_duration"
+	VarRequestFinishedDuration        string = "request_finished_duration"
+	VarBytesSent                      string = "bytes_sent"
+	VarBytesReceived                  string = "bytes_received"
+	VarProtocol                       string = "protocol"
+	VarResponseCode                   string = "response_code"
+	VarDuration                       string = "duration"
+	VarResponseFlag                   string = "response_flag"
+	VarResponseFlags                  string = "response_flags"
+	VarUpstreamLocalAddress           string = "upstream_local_address"
+	VarDownstreamLocalAddress         string = "downstream_local_address"
+	VarDownstreamRemoteAddress        string = "downstream_remote_address"
+	VarUpstreamHost                   string = "upstream_host"
+	VarUpstreamTransportFailureReason string = "upstream_transport_failure_reason"
+	VarUpstreamCluster                string = "upstream_cluster"
+	VarRequestedServerName            string = "requested_server_name"
+	VarRouteName                      string = "route_name"
 
 	// ReqHeaderPrefix is the prefix of request header's formatter
 	VarPrefixReqHeader string = "request_header_"
@@ -42,10 +47,21 @@ const (
 
 // [Proxy]: internal communication
 const (
-	VarProxyTryTimeout    string = "proxy_try_timeout"
-	VarProxyGlobalTimeout string = "proxy_global_timeout"
-	VarProxyHijackStatus  string = "proxy_hijack_status"
-	VarProxyGzipSwitch    string = "proxy_gzip_switch"
+	VarProxyTryTimeout       string = "proxy_try_timeout"
+	VarProxyGlobalTimeout    string = "proxy_global_timeout"
+	VarProxyHijackStatus     string = "proxy_hijack_status"
+	VarProxyGzipSwitch       string = "proxy_gzip_switch"
+	VarProxyIsDirectResponse string = "proxy_direct_response"
+	VarDirection             string = "x-mosn-direction"
+	VarScheme                string = "x-mosn-scheme"
+	VarHost                  string = "x-mosn-host"
+	VarPath                  string = "x-mosn-path"
+	VarQueryString           string = "x-mosn-querystring"
+	VarMethod                string = "x-mosn-method"
+	VarIstioHeaderHost       string = "authority"
+	VarHeaderStatus          string = "x-mosn-status"
+	VarHeaderRPCService      string = "x-mosn-rpc-service"
+	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
 )
 
 // [Protocol]: common

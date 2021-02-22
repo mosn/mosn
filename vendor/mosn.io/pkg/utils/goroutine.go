@@ -19,28 +19,35 @@ package utils
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"runtime/debug"
 )
 
-var debugIgnoreStdout = false
+var recoverLogger func(w io.Writer, r interface{}) = defaultRecoverLogger
+
+// RegisterRecoverLogger replace the log handler when go with recover catch a panic
+// notice the replaced handler should be simple.
+// if the handler panic, the recover handler will be failed.
+func RegisterRecoverLogger(f func(w io.Writer, r interface{})) {
+	recoverLogger = f
+}
+
+func defaultRecoverLogger(w io.Writer, r interface{}) {
+	fmt.Fprintf(w, "%s goroutine panic: %v\n%s\n", CacheTime(), r, string(debug.Stack()))
+}
 
 // GoWithRecover wraps a `go func()` with recover()
 func GoWithRecover(handler func(), recoverHandler func(r interface{})) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				// TODO: log
-				if !debugIgnoreStdout {
-					fmt.Fprintf(os.Stderr, "%s goroutine panic: %v\n%s\n", CacheTime(), r, string(debug.Stack()))
-				}
+				recoverLogger(os.Stderr, r)
 				if recoverHandler != nil {
 					go func() {
 						defer func() {
 							if p := recover(); p != nil {
-								if !debugIgnoreStdout {
-									fmt.Fprintf(os.Stderr, "recover goroutine panic:%v\n%s\n", p, string(debug.Stack()))
-								}
+								recoverLogger(os.Stderr, p)
 							}
 						}()
 						recoverHandler(r)

@@ -20,12 +20,14 @@ package trace
 import (
 	"fmt"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/types"
 )
 
 type holder struct {
-	types.Tracer
-	types.TracerBuilder
+	api.Tracer
+	api.TracerBuilder
 }
 
 type defaultDriver struct {
@@ -43,20 +45,20 @@ func (d *defaultDriver) Init(config map[string]interface{}) error {
 	return nil
 }
 
-func (d *defaultDriver) Register(proto types.ProtocolName, builder types.TracerBuilder) {
+func (d *defaultDriver) Register(proto types.ProtocolName, builder api.TracerBuilder) {
 	d.tracers[proto] = &holder{
 		TracerBuilder: builder,
 	}
 }
 
-func (d *defaultDriver) Get(proto types.ProtocolName) types.Tracer {
+func (d *defaultDriver) Get(proto types.ProtocolName) api.Tracer {
 	if holder, ok := d.tracers[proto]; ok {
 		return holder.Tracer
 	}
 	return nil
 }
 
-func NewDefaultDriverImpl() types.Driver {
+func NewDefaultDriverImpl() api.Driver {
 	return &defaultDriver{
 		tracers: make(map[types.ProtocolName]*holder),
 	}

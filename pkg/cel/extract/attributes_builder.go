@@ -18,6 +18,7 @@
 package extract
 
 import (
+	"context"
 	"encoding/base64"
 	"net"
 	"net/url"
@@ -28,14 +29,18 @@ import (
 	"github.com/gogo/protobuf/proto"
 	v1 "istio.io/api/mixer/v1"
 	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/cel/attribute"
 	"mosn.io/mosn/pkg/istio/utils"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/types"
 )
 
-func ExtractAttributes(reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo, buf buffer.IoBuffer, trailers api.HeaderMap, now time.Time) attribute.Bag {
+func ExtractAttributes(ctx context.Context, reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requestInfo api.RequestInfo, buf buffer.IoBuffer, trailers api.HeaderMap, now time.Time) attribute.Bag {
 	return &extractAttributes{
+		ctx:         ctx,
 		reqHeaders:  reqHeaders,
 		respHeaders: respHeaders,
 		requestInfo: requestInfo,
@@ -47,6 +52,7 @@ func ExtractAttributes(reqHeaders api.HeaderMap, respHeaders api.HeaderMap, requ
 }
 
 type extractAttributes struct {
+	ctx         context.Context
 	reqHeaders  api.HeaderMap
 	respHeaders api.HeaderMap
 	requestInfo api.RequestInfo
@@ -137,10 +143,14 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 	case utils.KResponseCode:
 		return int64(e.requestInfo.ResponseCode()), true
 	case utils.KRequestPath:
-		return e.reqHeaders.Get(protocol.MosnHeaderPathKey)
+		path, err := variable.GetVariableValue(e.ctx, types.VarPath)
+		if err != nil || path == "" {
+			return nil, false
+		}
+		return path, true
 	case utils.KRequestQueryParms:
-		query, ok := e.reqHeaders.Get(protocol.MosnHeaderQueryStringKey)
-		if ok && query != "" {
+		query, err := variable.GetVariableValue(e.ctx, types.VarQueryString)
+		if err == nil && query != "" {
 			v, err := parseQuery(query)
 			if err == nil {
 				v := protocol.CommonHeader(v)
@@ -150,10 +160,10 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		}
 		e.extracted[utils.KRequestQueryParms] = nil
 	case utils.KRequestUrlPath:
-		path, ok := e.reqHeaders.Get(protocol.MosnHeaderPathKey)
-		if ok {
-			query, ok := e.reqHeaders.Get(protocol.MosnHeaderQueryStringKey)
-			if ok {
+		path, err := variable.GetVariableValue(e.ctx, types.VarPath)
+		if err == nil && path != "" {
+			query, err := variable.GetVariableValue(e.ctx, types.VarQueryString)
+			if err == nil && query != "" {
 				url := path + "?" + query
 				e.extracted[utils.KRequestUrlPath] = url
 				return e.extracted[name], true
@@ -163,9 +173,17 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		}
 		e.extracted[utils.KRequestUrlPath] = nil
 	case utils.KRequestMethod:
-		return e.reqHeaders.Get(protocol.MosnHeaderMethod)
+		method, err := variable.GetVariableValue(e.ctx, types.VarMethod)
+		if err != nil || method == "" {
+			return nil, false
+		}
+		return method, true
 	case utils.KRequestHost:
-		return e.reqHeaders.Get(protocol.MosnHeaderHostKey)
+		host, err := variable.GetVariableValue(e.ctx, types.VarHost)
+		if err != nil || host == "" {
+			return nil, false
+		}
+		return host, true
 	case utils.KDestinationServiceHost, utils.KDestinationServiceName, utils.KDestinationServiceNamespace, utils.KContextReporterKind:
 		routeEntry := e.requestInfo.RouteEntry()
 		if routeEntry != nil {

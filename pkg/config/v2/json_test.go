@@ -578,6 +578,12 @@ func TestRouterConfigUmarshal(t *testing.T) {
 									"name":"service",
 									"value":"test"
 								}
+							],
+							"variables":[
+								{
+									"name":"header",
+									"value":"test"
+								}
 							]
 						},
 						"route":{
@@ -653,7 +659,9 @@ func TestRouterConfigUmarshal(t *testing.T) {
 			if !(router.Match.Prefix == "/" &&
 				len(router.Match.Headers) == 1 &&
 				router.Match.Headers[0].Name == "service" &&
-				router.Match.Headers[0].Value == "test") {
+				router.Match.Headers[0].Value == "test" &&
+				router.Match.Variables[0].Name == "header" &&
+				router.Match.Variables[0].Value == "test") {
 				t.Error("virtual host failed")
 			}
 			meta := api.Metadata{

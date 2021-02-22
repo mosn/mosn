@@ -28,6 +28,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 type mockReceiveHandler struct {
@@ -39,7 +40,7 @@ func (f *mockReceiveHandler) RequestInfo() api.RequestInfo {
 	return nil
 }
 
-func (f *mockReceiveHandler) GetFilterCurrentPhase() api.FilterPhase {
+func (f *mockReceiveHandler) GetFilterCurrentPhase() api.ReceiverFilterPhase {
 	// default AfterRoute
 	p := api.AfterRoute
 
@@ -78,9 +79,7 @@ func TestDSLStreamFilter(t *testing.T) {
 
 	f.SetReceiveFilterHandler(receiveHandler)
 	reqHeaders := protocol.CommonHeader(map[string]string{
-		protocol.MosnHeaderPathKey: "/dsl",
-		protocol.MosnHeaderHostKey: "dsl",
-		"dsl":                      "dsl",
+		"dsl": "dsl",
 	})
 
 	respHeaders := protocol.CommonHeader(map[string]string{
@@ -88,12 +87,15 @@ func TestDSLStreamFilter(t *testing.T) {
 	})
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
+	ctx = variable.NewVariableContext(ctx)
 	phase := []types.Phase{types.DownFilter, types.DownFilterAfterRoute, types.DownFilterAfterChooseHost}
+	variable.SetVariableValue(ctx, types.VarPath, "/dsl")
+	variable.SetVariableValue(ctx, types.VarHost, "dsl")
 	for k, p := range phase {
-
 		receiveHandler.phase = p
 		f.OnReceive(ctx, reqHeaders, nil, nil)
-		if v, ok := reqHeaders.Get(protocol.MosnHeaderPathKey); !ok || v != strconv.Itoa(k) {
+		// should fetch rewrite path from ctx
+		if v, err := variable.GetVariableValue(ctx, types.VarPath); err != nil || v != strconv.Itoa(k) {
 			t.Errorf("DSL execute failed, index: %d, want: %s but: %s", k, strconv.Itoa(k), v)
 		}
 
@@ -170,18 +172,18 @@ func BenchmarkDSL(b *testing.B) {
 
 	f.SetReceiveFilterHandler(receiveHandler)
 	reqHeaders := protocol.CommonHeader(map[string]string{
-		protocol.MosnHeaderPathKey: "/dsl",
-		protocol.MosnHeaderHostKey: "dsl",
-		"dsl":                      "dsl",
+		"dsl": "dsl",
 	})
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
-
+	ctx = variable.NewVariableContext(ctx)
+	variable.SetVariableValue(ctx, types.VarPath, "/dsl")
+	variable.SetVariableValue(ctx, types.VarHost, "dsl")
 	receiveHandler.phase = types.DownFilter
 	want := "0"
 	for i := 0; i < b.N; i++ {
 		f.OnReceive(ctx, reqHeaders, nil, nil)
-		if v, ok := reqHeaders.Get(protocol.MosnHeaderPathKey); !ok || v != want {
+		if v, err := variable.GetVariableValue(ctx, types.VarPath); err != nil || v != want {
 			b.Errorf("DSL execute failed, want: %s but: %s", want, v)
 		}
 	}

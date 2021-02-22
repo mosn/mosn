@@ -70,7 +70,7 @@ type MockListener struct {
 	Mng types.TLSContextManager
 }
 
-func MockClient(t *testing.T, addr string, cltMng types.TLSContextManager) (*http.Response, error) {
+func MockClient(t *testing.T, addr string, cltMng types.TLSClientContextManager) (*http.Response, error) {
 	c, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("request server error %v", err)
@@ -80,9 +80,11 @@ func MockClient(t *testing.T, addr string, cltMng types.TLSContextManager) (*htt
 	conn = c
 	if cltMng != nil {
 		req, _ = http.NewRequest("GET", "https://"+addr, nil)
-		conn, _ = cltMng.Conn(c)
-		tlsConn, _ := conn.(*TLSConn)
-		if err := tlsConn.Handshake(); err != nil {
+		conn, err = cltMng.Conn(c)
+		if err != nil && cltMng.Fallback() {
+			conn, err = net.Dial("tcp", addr)
+		}
+		if err != nil {
 			return nil, fmt.Errorf("request tls handshake error %v", err)
 		}
 	} else {

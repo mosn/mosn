@@ -18,13 +18,68 @@
 package router
 
 import (
+	"context"
+	"net/http"
 	"regexp"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/variable"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/protocol"
+	mhttp "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/protocol/http2"
+	"mosn.io/mosn/pkg/types"
 )
+
+func TestHTTPRuleMatchMethod(t *testing.T) {
+	route := &v2.Router{
+		RouterConfig: v2.RouterConfig{
+			Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{
+				{
+					Name:  "method",
+					Value: "POST",
+				},
+			}},
+			Route: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterName: "test",
+				},
+			},
+		},
+	}
+
+	routeRuleBase, err := NewRouteRuleImplBase(nil, route)
+	if !assert.NoErrorf(t, err, "new route rule impl failed, err should be nil, get %+v", err) {
+		t.FailNow()
+	}
+
+	httpRule := NewBaseHTTPRouteRule(routeRuleBase, route.Match.Headers)
+
+	headers := mhttp.RequestHeader{
+		RequestHeader: &fasthttp.RequestHeader{},
+	}
+	ctx := variable.NewVariableContext(context.Background())
+	variable.SetVariableValue(ctx, types.VarMethod, "POST")
+	match := httpRule.matchRoute(ctx, headers)
+	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
+		t.FailNow()
+	}
+
+	http2Request := &http.Request{
+		Method: "POST",
+		Header: http.Header{},
+	}
+	headerHttp2 := http2.NewReqHeader(http2Request)
+	match = httpRule.matchRoute(ctx, headerHttp2)
+	if !assert.Truef(t, match, "match http2 method failed, result should be true, get %+v", match) {
+		t.FailNow()
+	}
+
+}
 
 func TestPrefixRouteRuleImpl(t *testing.T) {
 	virtualHostImpl := &VirtualHostImpl{virtualHostName: "test"}
@@ -44,6 +99,7 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 		{"/foo", "/", false},
 		{"/foo", "/test", false},
 	}
+	ctx := variable.NewVariableContext(context.Background())
 	for i, tc := range testCases {
 		route := &v2.Router{
 			RouterConfig: v2.RouterConfig{
@@ -55,13 +111,14 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 				},
 			},
 		}
-		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
+		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PrefixRouteRuleImpl{
-			routuRule,
+			NewBaseHTTPRouteRule(base, nil),
 			route.Match.Prefix,
 		}
-		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := rr.Match(headers, 1)
+		headers := protocol.CommonHeader(map[string]string{})
+		variable.SetVariableValue(ctx, types.VarPath, tc.headerpath)
+		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
@@ -84,6 +141,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 		{"/test", "/Test", true},
 		{"/test", "/test/test", false},
 	}
+	ctx := variable.NewVariableContext(context.Background())
 	for i, tc := range testCases {
 		route := &v2.Router{
 			RouterConfig: v2.RouterConfig{
@@ -96,9 +154,10 @@ func TestPathRouteRuleImpl(t *testing.T) {
 			},
 		}
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
-		rr := &PathRouteRuleImpl{base, route.Match.Path}
-		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := rr.Match(headers, 1)
+		rr := &PathRouteRuleImpl{NewBaseHTTPRouteRule(base, nil), route.Match.Path}
+		headers := protocol.CommonHeader(map[string]string{})
+		variable.SetVariableValue(ctx, types.VarPath, tc.headerpath)
+		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
@@ -135,15 +194,17 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 			},
 		}
 		re := regexp.MustCompile(tc.regexp)
-		routuRule, _ := NewRouteRuleImplBase(virtualHostImpl, route)
+		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 
 		rr := &RegexRouteRuleImpl{
-			routuRule,
+			NewBaseHTTPRouteRule(base, nil),
 			route.Match.Regex,
 			re,
 		}
-		headers := protocol.CommonHeader(map[string]string{protocol.MosnHeaderPathKey: tc.headerpath})
-		result := rr.Match(headers, 1)
+		ctx := variable.NewVariableContext(context.Background())
+		headers := protocol.CommonHeader(map[string]string{})
+		variable.SetVariableValue(ctx, types.VarPath, tc.headerpath)
+		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
 		}
