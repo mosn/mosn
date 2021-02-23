@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/pkg/utils"
 )
@@ -32,6 +31,9 @@ import (
 // receive goroutine handle response for both client request and server push
 func (adsClient *ADSClient) Start() {
 	adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
+	utils.GoWithRecover(func() {
+		adsClient.asyncHandler()
+	}, nil)
 	utils.GoWithRecover(func() {
 		adsClient.sendThread()
 	}, nil)
@@ -113,7 +115,7 @@ func (adsClient *ADSClient) receiveThread() {
 	}
 }
 
-func (adsClient *ADSClient) asyncHandler(resp *envoy_service_discovery_v3.DiscoveryResponse) {
+func (adsClient *ADSClient) asyncHandler() {
 	for {
 		select {
 		case <-adsClient.AsyncHandleControlChan:
