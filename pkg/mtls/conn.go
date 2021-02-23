@@ -42,6 +42,11 @@ type TLSConn struct {
 func (c *TLSConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
 	if err != nil {
+		// timeout shrink buffer
+		if e, ok := err.(net.Error); ok && e.Timeout() {
+			c.Conn.ShrinkReadBuffer()
+		}
+
 		if strings.Contains(err.Error(), "tls") {
 			log.DefaultLogger.Alertf(types.ErrorKeyTLSRead, "[mtls] tls connection read error: %v, local address: %v, remote address: %v", err, c.Conn.LocalAddr(), c.Conn.RemoteAddr())
 		}
