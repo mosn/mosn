@@ -308,10 +308,10 @@ func (mr *MockStreamConnectionMockRecorder) Dispatch(buffer interface{}) *gomock
 }
 
 // Protocol mocks base method.
-func (m *MockStreamConnection) Protocol() api.Protocol {
+func (m *MockStreamConnection) Protocol() api.ProtocolName {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Protocol")
-	ret0, _ := ret[0].(api.Protocol)
+	ret0, _ := ret[0].(api.ProtocolName)
 	return ret0
 }
 
@@ -424,10 +424,10 @@ func (mr *MockServerStreamConnectionMockRecorder) Dispatch(buffer interface{}) *
 }
 
 // Protocol mocks base method.
-func (m *MockServerStreamConnection) Protocol() api.Protocol {
+func (m *MockServerStreamConnection) Protocol() api.ProtocolName {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Protocol")
-	ret0, _ := ret[0].(api.Protocol)
+	ret0, _ := ret[0].(api.ProtocolName)
 	return ret0
 }
 
@@ -540,10 +540,10 @@ func (mr *MockClientStreamConnectionMockRecorder) Dispatch(buffer interface{}) *
 }
 
 // Protocol mocks base method.
-func (m *MockClientStreamConnection) Protocol() api.Protocol {
+func (m *MockClientStreamConnection) Protocol() api.ProtocolName {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Protocol")
-	ret0, _ := ret[0].(api.Protocol)
+	ret0, _ := ret[0].(api.ProtocolName)
 	return ret0
 }
 
@@ -705,7 +705,7 @@ func (mr *MockServerStreamConnectionEventListenerMockRecorder) OnGoAway() *gomoc
 }
 
 // NewStreamDetect mocks base method.
-func (m *MockServerStreamConnectionEventListener) NewStreamDetect(context context.Context, sender types.StreamSender, span types.Span) types.StreamReceiveListener {
+func (m *MockServerStreamConnectionEventListener) NewStreamDetect(context context.Context, sender types.StreamSender, span api.Span) types.StreamReceiveListener {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewStreamDetect", context, sender, span)
 	ret0, _ := ret[0].(types.StreamReceiveListener)
@@ -742,10 +742,10 @@ func (m *MockConnectionPool) EXPECT() *MockConnectionPoolMockRecorder {
 }
 
 // Protocol mocks base method.
-func (m *MockConnectionPool) Protocol() api.Protocol {
+func (m *MockConnectionPool) Protocol() api.ProtocolName {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Protocol")
-	ret0, _ := ret[0].(api.Protocol)
+	ret0, _ := ret[0].(api.ProtocolName)
 	return ret0
 }
 

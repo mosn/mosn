@@ -19,10 +19,10 @@ package dubbo
 
 import (
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
+
+	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 type Header struct {
@@ -48,6 +48,8 @@ type Frame struct {
 	content types.IoBuffer // wrapper of payload
 }
 
+var _ api.XFrame = &Frame{}
+
 // ~ XFrame
 func (r *Frame) GetRequestId() uint64 {
 	return r.Header.Id
@@ -61,14 +63,20 @@ func (r *Frame) IsHeartbeatFrame() bool {
 	return r.Header.IsEvent
 }
 
-func (r *Frame) GetStreamType() xprotocol.StreamType {
+// dubbo frame returns default timeout
+// TODO: use dubbo timeout?
+func (r *Frame) GetTimeout() int32 {
+	return 0
+}
+
+func (r *Frame) GetStreamType() api.StreamType {
 	switch r.Direction {
 	case EventRequest:
-		return xprotocol.Request
+		return api.Request
 	case EventResponse:
-		return xprotocol.Response
+		return api.Response
 	default:
-		return xprotocol.Request
+		return api.Request
 	}
 }
 

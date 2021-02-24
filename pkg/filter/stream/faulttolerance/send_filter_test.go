@@ -19,9 +19,10 @@ package faulttolerance
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"

@@ -34,7 +34,7 @@ import (
 // StreamReceiver to receive keep alive response
 type xprotocolKeepAlive struct {
 	Codec     str.Client
-	Protocol  xprotocol.XProtocol
+	Protocol  api.XProtocol
 	Timeout   time.Duration
 	Callbacks []types.KeepAliveCallback
 
@@ -50,7 +50,7 @@ type xprotocolKeepAlive struct {
 	stop chan struct{}
 
 	// mutex protects the request map
-	mutex    sync.Mutex
+	mutex sync.Mutex
 	// requests records all running request
 	// a request is handled once: response or timeout
 	requests map[uint64]*keepAliveTimeout
@@ -163,12 +163,12 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 
 	// we send sofa rpc cmd as "header", but it maybe contains "body"
 	hb := kp.Protocol.Trigger(id)
+	kp.store(id, startTimeout(id, kp)) // store request before send, in case receive response too quick but not data in store
 	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
 	}
-	kp.store(id, startTimeout(id, kp))
 }
 
 func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
@@ -236,7 +236,7 @@ func (kp *xprotocolKeepAlive) Stop() {
 // StreamReceiver Implementation
 // we just needs to make sure we can receive a response, do not care the data we received
 func (kp *xprotocolKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if ack, ok := headers.(xprotocol.XFrame); ok {
+	if ack, ok := headers.(api.XFrame); ok {
 		kp.HandleSuccess(ack.GetRequestId())
 	}
 }

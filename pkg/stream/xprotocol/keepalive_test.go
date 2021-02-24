@@ -19,7 +19,9 @@ package xprotocol
 
 import (
 	"context"
+
 	"github.com/stretchr/testify/assert"
+
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -112,7 +114,7 @@ func TestKeepAlive(t *testing.T) {
 
 // when tick count more than 1, should send heart beat every tickCount intervals
 func TestKeepAliveTickMore(t *testing.T) {
-	tc := newTestCase(t, 0*time.Millisecond, 50* time.Millisecond)
+	tc := newTestCase(t, 0*time.Millisecond, 50*time.Millisecond)
 	defer tc.Server.Close()
 	defer RefreshKeepaliveConfig(DefaultKeepaliveConfig)
 

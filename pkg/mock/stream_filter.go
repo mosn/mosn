@@ -6,83 +6,84 @@ package mock
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	api "mosn.io/api"
 	buffer "mosn.io/pkg/buffer"
-	reflect "reflect"
 )
 
-// MockStreamFilterBase is a mock of StreamFilterBase interface
+// MockStreamFilterBase is a mock of StreamFilterBase interface.
 type MockStreamFilterBase struct {
 	ctrl     *gomock.Controller
 	recorder *MockStreamFilterBaseMockRecorder
 }
 
-// MockStreamFilterBaseMockRecorder is the mock recorder for MockStreamFilterBase
+// MockStreamFilterBaseMockRecorder is the mock recorder for MockStreamFilterBase.
 type MockStreamFilterBaseMockRecorder struct {
 	mock *MockStreamFilterBase
 }
 
-// NewMockStreamFilterBase creates a new mock instance
+// NewMockStreamFilterBase creates a new mock instance.
 func NewMockStreamFilterBase(ctrl *gomock.Controller) *MockStreamFilterBase {
 	mock := &MockStreamFilterBase{ctrl: ctrl}
 	mock.recorder = &MockStreamFilterBaseMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStreamFilterBase) EXPECT() *MockStreamFilterBaseMockRecorder {
 	return m.recorder
 }
 
-// OnDestroy mocks base method
+// OnDestroy mocks base method.
 func (m *MockStreamFilterBase) OnDestroy() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "OnDestroy")
 }
 
-// OnDestroy indicates an expected call of OnDestroy
+// OnDestroy indicates an expected call of OnDestroy.
 func (mr *MockStreamFilterBaseMockRecorder) OnDestroy() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnDestroy", reflect.TypeOf((*MockStreamFilterBase)(nil).OnDestroy))
 }
 
-// MockStreamSenderFilter is a mock of StreamSenderFilter interface
+// MockStreamSenderFilter is a mock of StreamSenderFilter interface.
 type MockStreamSenderFilter struct {
 	ctrl     *gomock.Controller
 	recorder *MockStreamSenderFilterMockRecorder
 }
 
-// MockStreamSenderFilterMockRecorder is the mock recorder for MockStreamSenderFilter
+// MockStreamSenderFilterMockRecorder is the mock recorder for MockStreamSenderFilter.
 type MockStreamSenderFilterMockRecorder struct {
 	mock *MockStreamSenderFilter
 }
 
-// NewMockStreamSenderFilter creates a new mock instance
+// NewMockStreamSenderFilter creates a new mock instance.
 func NewMockStreamSenderFilter(ctrl *gomock.Controller) *MockStreamSenderFilter {
 	mock := &MockStreamSenderFilter{ctrl: ctrl}
 	mock.recorder = &MockStreamSenderFilterMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStreamSenderFilter) EXPECT() *MockStreamSenderFilterMockRecorder {
 	return m.recorder
 }
 
-// OnDestroy mocks base method
+// OnDestroy mocks base method.
 func (m *MockStreamSenderFilter) OnDestroy() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "OnDestroy")
 }
 
-// OnDestroy indicates an expected call of OnDestroy
+// OnDestroy indicates an expected call of OnDestroy.
 func (mr *MockStreamSenderFilterMockRecorder) OnDestroy() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnDestroy", reflect.TypeOf((*MockStreamSenderFilter)(nil).OnDestroy))
 }
 
-// Append mocks base method
+// Append mocks base method.
 func (m *MockStreamSenderFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Append", ctx, headers, buf, trailers)
@@ -90,60 +91,60 @@ func (m *MockStreamSenderFilter) Append(ctx context.Context, headers api.HeaderM
 	return ret0
 }
 
-// Append indicates an expected call of Append
+// Append indicates an expected call of Append.
 func (mr *MockStreamSenderFilterMockRecorder) Append(ctx, headers, buf, trailers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Append", reflect.TypeOf((*MockStreamSenderFilter)(nil).Append), ctx, headers, buf, trailers)
 }
 
-// SetSenderFilterHandler mocks base method
+// SetSenderFilterHandler mocks base method.
 func (m *MockStreamSenderFilter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetSenderFilterHandler", handler)
 }
 
-// SetSenderFilterHandler indicates an expected call of SetSenderFilterHandler
+// SetSenderFilterHandler indicates an expected call of SetSenderFilterHandler.
 func (mr *MockStreamSenderFilterMockRecorder) SetSenderFilterHandler(handler interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSenderFilterHandler", reflect.TypeOf((*MockStreamSenderFilter)(nil).SetSenderFilterHandler), handler)
 }
 
-// MockStreamReceiverFilter is a mock of StreamReceiverFilter interface
+// MockStreamReceiverFilter is a mock of StreamReceiverFilter interface.
 type MockStreamReceiverFilter struct {
 	ctrl     *gomock.Controller
 	recorder *MockStreamReceiverFilterMockRecorder
 }
 
-// MockStreamReceiverFilterMockRecorder is the mock recorder for MockStreamReceiverFilter
+// MockStreamReceiverFilterMockRecorder is the mock recorder for MockStreamReceiverFilter.
 type MockStreamReceiverFilterMockRecorder struct {
 	mock *MockStreamReceiverFilter
 }
 
-// NewMockStreamReceiverFilter creates a new mock instance
+// NewMockStreamReceiverFilter creates a new mock instance.
 func NewMockStreamReceiverFilter(ctrl *gomock.Controller) *MockStreamReceiverFilter {
 	mock := &MockStreamReceiverFilter{ctrl: ctrl}
 	mock.recorder = &MockStreamReceiverFilterMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStreamReceiverFilter) EXPECT() *MockStreamReceiverFilterMockRecorder {
 	return m.recorder
 }
 
-// OnDestroy mocks base method
+// OnDestroy mocks base method.
 func (m *MockStreamReceiverFilter) OnDestroy() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "OnDestroy")
 }
 
-// OnDestroy indicates an expected call of OnDestroy
+// OnDestroy indicates an expected call of OnDestroy.
 func (mr *MockStreamReceiverFilterMockRecorder) OnDestroy() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnDestroy", reflect.TypeOf((*MockStreamReceiverFilter)(nil).OnDestroy))
 }
 
-// OnReceive mocks base method
+// OnReceive mocks base method.
 func (m *MockStreamReceiverFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "OnReceive", ctx, headers, buf, trailers)
@@ -151,48 +152,48 @@ func (m *MockStreamReceiverFilter) OnReceive(ctx context.Context, headers api.He
 	return ret0
 }
 
-// OnReceive indicates an expected call of OnReceive
+// OnReceive indicates an expected call of OnReceive.
 func (mr *MockStreamReceiverFilterMockRecorder) OnReceive(ctx, headers, buf, trailers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnReceive", reflect.TypeOf((*MockStreamReceiverFilter)(nil).OnReceive), ctx, headers, buf, trailers)
 }
 
-// SetReceiveFilterHandler mocks base method
+// SetReceiveFilterHandler mocks base method.
 func (m *MockStreamReceiverFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHandler) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetReceiveFilterHandler", handler)
 }
 
-// SetReceiveFilterHandler indicates an expected call of SetReceiveFilterHandler
+// SetReceiveFilterHandler indicates an expected call of SetReceiveFilterHandler.
 func (mr *MockStreamReceiverFilterMockRecorder) SetReceiveFilterHandler(handler interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReceiveFilterHandler", reflect.TypeOf((*MockStreamReceiverFilter)(nil).SetReceiveFilterHandler), handler)
 }
 
-// MockStreamFilterHandler is a mock of StreamFilterHandler interface
+// MockStreamFilterHandler is a mock of StreamFilterHandler interface.
 type MockStreamFilterHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockStreamFilterHandlerMockRecorder
 }
 
-// MockStreamFilterHandlerMockRecorder is the mock recorder for MockStreamFilterHandler
+// MockStreamFilterHandlerMockRecorder is the mock recorder for MockStreamFilterHandler.
 type MockStreamFilterHandlerMockRecorder struct {
 	mock *MockStreamFilterHandler
 }
 
-// NewMockStreamFilterHandler creates a new mock instance
+// NewMockStreamFilterHandler creates a new mock instance.
 func NewMockStreamFilterHandler(ctrl *gomock.Controller) *MockStreamFilterHandler {
 	mock := &MockStreamFilterHandler{ctrl: ctrl}
 	mock.recorder = &MockStreamFilterHandlerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStreamFilterHandler) EXPECT() *MockStreamFilterHandlerMockRecorder {
 	return m.recorder
 }
 
-// Route mocks base method
+// Route mocks base method.
 func (m *MockStreamFilterHandler) Route() api.Route {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Route")
@@ -200,13 +201,13 @@ func (m *MockStreamFilterHandler) Route() api.Route {
 	return ret0
 }
 
-// Route indicates an expected call of Route
+// Route indicates an expected call of Route.
 func (mr *MockStreamFilterHandlerMockRecorder) Route() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Route", reflect.TypeOf((*MockStreamFilterHandler)(nil).Route))
 }
 
-// RequestInfo mocks base method
+// RequestInfo mocks base method.
 func (m *MockStreamFilterHandler) RequestInfo() api.RequestInfo {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RequestInfo")
@@ -214,13 +215,13 @@ func (m *MockStreamFilterHandler) RequestInfo() api.RequestInfo {
 	return ret0
 }
 
-// RequestInfo indicates an expected call of RequestInfo
+// RequestInfo indicates an expected call of RequestInfo.
 func (mr *MockStreamFilterHandlerMockRecorder) RequestInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequestInfo", reflect.TypeOf((*MockStreamFilterHandler)(nil).RequestInfo))
 }
 
-// Connection mocks base method
+// Connection mocks base method.
 func (m *MockStreamFilterHandler) Connection() api.Connection {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Connection")
@@ -228,36 +229,36 @@ func (m *MockStreamFilterHandler) Connection() api.Connection {
 	return ret0
 }
 
-// Connection indicates an expected call of Connection
+// Connection indicates an expected call of Connection.
 func (mr *MockStreamFilterHandlerMockRecorder) Connection() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Connection", reflect.TypeOf((*MockStreamFilterHandler)(nil).Connection))
 }
 
-// MockStreamSenderFilterHandler is a mock of StreamSenderFilterHandler interface
+// MockStreamSenderFilterHandler is a mock of StreamSenderFilterHandler interface.
 type MockStreamSenderFilterHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockStreamSenderFilterHandlerMockRecorder
 }
 
-// MockStreamSenderFilterHandlerMockRecorder is the mock recorder for MockStreamSenderFilterHandler
+// MockStreamSenderFilterHandlerMockRecorder is the mock recorder for MockStreamSenderFilterHandler.
 type MockStreamSenderFilterHandlerMockRecorder struct {
 	mock *MockStreamSenderFilterHandler
 }
 
-// NewMockStreamSenderFilterHandler creates a new mock instance
+// NewMockStreamSenderFilterHandler creates a new mock instance.
 func NewMockStreamSenderFilterHandler(ctrl *gomock.Controller) *MockStreamSenderFilterHandler {
 	mock := &MockStreamSenderFilterHandler{ctrl: ctrl}
 	mock.recorder = &MockStreamSenderFilterHandlerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStreamSenderFilterHandler) EXPECT() *MockStreamSenderFilterHandlerMockRecorder {
 	return m.recorder
 }
 
-// Route mocks base method
+// Route mocks base method.
 func (m *MockStreamSenderFilterHandler) Route() api.Route {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Route")
@@ -265,13 +266,13 @@ func (m *MockStreamSenderFilterHandler) Route() api.Route {
 	return ret0
 }
 
-// Route indicates an expected call of Route
+// Route indicates an expected call of Route.
 func (mr *MockStreamSenderFilterHandlerMockRecorder) Route() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Route", reflect.TypeOf((*MockStreamSenderFilterHandler)(nil).Route))
 }
 
-// RequestInfo mocks base method
+// RequestInfo mocks base method.
 func (m *MockStreamSenderFilterHandler) RequestInfo() api.RequestInfo {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RequestInfo")
@@ -279,13 +280,13 @@ func (m *MockStreamSenderFilterHandler) RequestInfo() api.RequestInfo {
 	return ret0
 }
 
-// RequestInfo indicates an expected call of RequestInfo
+// RequestInfo indicates an expected call of RequestInfo.
 func (mr *MockStreamSenderFilterHandlerMockRecorder) RequestInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequestInfo", reflect.TypeOf((*MockStreamSenderFilterHandler)(nil).RequestInfo))
 }
 
-// Connection mocks base method
+// Connection mocks base method.
 func (m *MockStreamSenderFilterHandler) Connection() api.Connection {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Connection")
@@ -293,13 +294,13 @@ func (m *MockStreamSenderFilterHandler) Connection() api.Connection {
 	return ret0
 }
 
-// Connection indicates an expected call of Connection
+// Connection indicates an expected call of Connection.
 func (mr *MockStreamSenderFilterHandlerMockRecorder) Connection() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Connection", reflect.TypeOf((*MockStreamSenderFilterHandler)(nil).Connection))
 }
 
-// GetResponseHeaders mocks base method
+// GetResponseHeaders mocks base method.
 func (m *MockStreamSenderFilterHandler) GetResponseHeaders() api.HeaderMap {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetResponseHeaders")
@@ -307,25 +308,25 @@ func (m *MockStreamSenderFilterHandler) GetResponseHeaders() api.HeaderMap {
 	return ret0
 }
 
-// GetResponseHeaders indicates an expected call of GetResponseHeaders
+// GetResponseHeaders indicates an expected call of GetResponseHeaders.
 func (mr *MockStreamSenderFilterHandlerMockRecorder) GetResponseHeaders() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResponseHeaders", reflect.TypeOf((*MockStreamSenderFilterHandler)(nil).GetResponseHeaders))
 }
 
-// SetResponseHeaders mocks base method
+// SetResponseHeaders mocks base method.
 func (m *MockStreamSenderFilterHandler) SetResponseHeaders(headers api.HeaderMap) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetResponseHeaders", headers)
 }
 
-// SetResponseHeaders indicates an expected call of SetResponseHeaders
+// SetResponseHeaders indicates an expected call of SetResponseHeaders.
 func (mr *MockStreamSenderFilterHandlerMockRecorder) SetResponseHeaders(headers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetResponseHeaders", reflect.TypeOf((*MockStreamSenderFilterHandler)(nil).SetResponseHeaders), headers)
 }
 
-// GetResponseData mocks base method
+// GetResponseData mocks base method.
 func (m *MockStreamSenderFilterHandler) GetResponseData() buffer.IoBuffer {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetResponseData")
@@ -333,25 +334,25 @@ func (m *MockStreamSenderFilterHandler) GetResponseData() buffer.IoBuffer {
 	return ret0
 }
 
-// GetResponseData indicates an expected call of GetResponseData
+// GetResponseData indicates an expected call of GetResponseData.
 func (mr *MockStreamSenderFilterHandlerMockRecorder) GetResponseData() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResponseData", reflect.TypeOf((*MockStreamSenderFilterHandler)(nil).GetResponseData))
 }
 
-// SetResponseData mocks base method
+// SetResponseData mocks base method.
 func (m *MockStreamSenderFilterHandler) SetResponseData(buf buffer.IoBuffer) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetResponseData", buf)
 }
 
-// SetResponseData indicates an expected call of SetResponseData
+// SetResponseData indicates an expected call of SetResponseData.
 func (mr *MockStreamSenderFilterHandlerMockRecorder) SetResponseData(buf interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetResponseData", reflect.TypeOf((*MockStreamSenderFilterHandler)(nil).SetResponseData), buf)
 }
 
-// GetResponseTrailers mocks base method
+// GetResponseTrailers mocks base method.
 func (m *MockStreamSenderFilterHandler) GetResponseTrailers() api.HeaderMap {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetResponseTrailers")
@@ -359,48 +360,48 @@ func (m *MockStreamSenderFilterHandler) GetResponseTrailers() api.HeaderMap {
 	return ret0
 }
 
-// GetResponseTrailers indicates an expected call of GetResponseTrailers
+// GetResponseTrailers indicates an expected call of GetResponseTrailers.
 func (mr *MockStreamSenderFilterHandlerMockRecorder) GetResponseTrailers() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResponseTrailers", reflect.TypeOf((*MockStreamSenderFilterHandler)(nil).GetResponseTrailers))
 }
 
-// SetResponseTrailers mocks base method
+// SetResponseTrailers mocks base method.
 func (m *MockStreamSenderFilterHandler) SetResponseTrailers(trailers api.HeaderMap) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetResponseTrailers", trailers)
 }
 
-// SetResponseTrailers indicates an expected call of SetResponseTrailers
+// SetResponseTrailers indicates an expected call of SetResponseTrailers.
 func (mr *MockStreamSenderFilterHandlerMockRecorder) SetResponseTrailers(trailers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetResponseTrailers", reflect.TypeOf((*MockStreamSenderFilterHandler)(nil).SetResponseTrailers), trailers)
 }
 
-// MockStreamReceiverFilterHandler is a mock of StreamReceiverFilterHandler interface
+// MockStreamReceiverFilterHandler is a mock of StreamReceiverFilterHandler interface.
 type MockStreamReceiverFilterHandler struct {
 	ctrl     *gomock.Controller
 	recorder *MockStreamReceiverFilterHandlerMockRecorder
 }
 
-// MockStreamReceiverFilterHandlerMockRecorder is the mock recorder for MockStreamReceiverFilterHandler
+// MockStreamReceiverFilterHandlerMockRecorder is the mock recorder for MockStreamReceiverFilterHandler.
 type MockStreamReceiverFilterHandlerMockRecorder struct {
 	mock *MockStreamReceiverFilterHandler
 }
 
-// NewMockStreamReceiverFilterHandler creates a new mock instance
+// NewMockStreamReceiverFilterHandler creates a new mock instance.
 func NewMockStreamReceiverFilterHandler(ctrl *gomock.Controller) *MockStreamReceiverFilterHandler {
 	mock := &MockStreamReceiverFilterHandler{ctrl: ctrl}
 	mock.recorder = &MockStreamReceiverFilterHandlerMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStreamReceiverFilterHandler) EXPECT() *MockStreamReceiverFilterHandlerMockRecorder {
 	return m.recorder
 }
 
-// Route mocks base method
+// Route mocks base method.
 func (m *MockStreamReceiverFilterHandler) Route() api.Route {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Route")
@@ -408,13 +409,13 @@ func (m *MockStreamReceiverFilterHandler) Route() api.Route {
 	return ret0
 }
 
-// Route indicates an expected call of Route
+// Route indicates an expected call of Route.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) Route() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Route", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).Route))
 }
 
-// RequestInfo mocks base method
+// RequestInfo mocks base method.
 func (m *MockStreamReceiverFilterHandler) RequestInfo() api.RequestInfo {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RequestInfo")
@@ -422,13 +423,13 @@ func (m *MockStreamReceiverFilterHandler) RequestInfo() api.RequestInfo {
 	return ret0
 }
 
-// RequestInfo indicates an expected call of RequestInfo
+// RequestInfo indicates an expected call of RequestInfo.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) RequestInfo() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RequestInfo", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).RequestInfo))
 }
 
-// Connection mocks base method
+// Connection mocks base method.
 func (m *MockStreamReceiverFilterHandler) Connection() api.Connection {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Connection")
@@ -436,73 +437,99 @@ func (m *MockStreamReceiverFilterHandler) Connection() api.Connection {
 	return ret0
 }
 
-// Connection indicates an expected call of Connection
+// Connection indicates an expected call of Connection.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) Connection() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Connection", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).Connection))
 }
 
-// AppendHeaders mocks base method
+// AppendHeaders mocks base method.
 func (m *MockStreamReceiverFilterHandler) AppendHeaders(headers api.HeaderMap, endStream bool) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AppendHeaders", headers, endStream)
 }
 
-// AppendHeaders indicates an expected call of AppendHeaders
+// AppendHeaders indicates an expected call of AppendHeaders.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) AppendHeaders(headers, endStream interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendHeaders", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).AppendHeaders), headers, endStream)
 }
 
-// AppendData mocks base method
+// AppendData mocks base method.
 func (m *MockStreamReceiverFilterHandler) AppendData(buf buffer.IoBuffer, endStream bool) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AppendData", buf, endStream)
 }
 
-// AppendData indicates an expected call of AppendData
+// AppendData indicates an expected call of AppendData.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) AppendData(buf, endStream interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendData", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).AppendData), buf, endStream)
 }
 
-// AppendTrailers mocks base method
+// AppendTrailers mocks base method.
 func (m *MockStreamReceiverFilterHandler) AppendTrailers(trailers api.HeaderMap) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AppendTrailers", trailers)
 }
 
-// AppendTrailers indicates an expected call of AppendTrailers
+// AppendTrailers indicates an expected call of AppendTrailers.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) AppendTrailers(trailers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendTrailers", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).AppendTrailers), trailers)
 }
 
-// SendHijackReply mocks base method
+// SendHijackReply mocks base method.
 func (m *MockStreamReceiverFilterHandler) SendHijackReply(code int, headers api.HeaderMap) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SendHijackReply", code, headers)
 }
 
-// SendHijackReply indicates an expected call of SendHijackReply
+// SendHijackReply indicates an expected call of SendHijackReply.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) SendHijackReply(code, headers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHijackReply", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).SendHijackReply), code, headers)
 }
 
-// SendDirectResponse mocks base method
+// SendHijackReplyWithBody mocks base method.
+func (m *MockStreamReceiverFilterHandler) SendHijackReplyWithBody(code int, headers api.HeaderMap, body string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SendHijackReplyWithBody", code, headers, body)
+}
+
+// SendHijackReplyWithBody indicates an expected call of SendHijackReplyWithBody.
+func (mr *MockStreamReceiverFilterHandlerMockRecorder) SendHijackReplyWithBody(code, headers, body interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendHijackReplyWithBody", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).SendHijackReplyWithBody), code, headers, body)
+}
+
+// SendDirectResponse mocks base method.
 func (m *MockStreamReceiverFilterHandler) SendDirectResponse(headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SendDirectResponse", headers, buf, trailers)
 }
 
-// SendDirectResponse indicates an expected call of SendDirectResponse
+// SendDirectResponse indicates an expected call of SendDirectResponse.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) SendDirectResponse(headers, buf, trailers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendDirectResponse", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).SendDirectResponse), headers, buf, trailers)
 }
 
-// GetRequestHeaders mocks base method
+// TerminateStream mocks base method.
+func (m *MockStreamReceiverFilterHandler) TerminateStream(code int) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TerminateStream", code)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// TerminateStream indicates an expected call of TerminateStream.
+func (mr *MockStreamReceiverFilterHandlerMockRecorder) TerminateStream(code interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TerminateStream", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).TerminateStream), code)
+}
+
+// GetRequestHeaders mocks base method.
 func (m *MockStreamReceiverFilterHandler) GetRequestHeaders() api.HeaderMap {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRequestHeaders")
@@ -510,25 +537,25 @@ func (m *MockStreamReceiverFilterHandler) GetRequestHeaders() api.HeaderMap {
 	return ret0
 }
 
-// GetRequestHeaders indicates an expected call of GetRequestHeaders
+// GetRequestHeaders indicates an expected call of GetRequestHeaders.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) GetRequestHeaders() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestHeaders", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).GetRequestHeaders))
 }
 
-// SetRequestHeaders mocks base method
+// SetRequestHeaders mocks base method.
 func (m *MockStreamReceiverFilterHandler) SetRequestHeaders(headers api.HeaderMap) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetRequestHeaders", headers)
 }
 
-// SetRequestHeaders indicates an expected call of SetRequestHeaders
+// SetRequestHeaders indicates an expected call of SetRequestHeaders.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) SetRequestHeaders(headers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRequestHeaders", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).SetRequestHeaders), headers)
 }
 
-// GetRequestData mocks base method
+// GetRequestData mocks base method.
 func (m *MockStreamReceiverFilterHandler) GetRequestData() buffer.IoBuffer {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRequestData")
@@ -536,25 +563,25 @@ func (m *MockStreamReceiverFilterHandler) GetRequestData() buffer.IoBuffer {
 	return ret0
 }
 
-// GetRequestData indicates an expected call of GetRequestData
+// GetRequestData indicates an expected call of GetRequestData.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) GetRequestData() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestData", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).GetRequestData))
 }
 
-// SetRequestData mocks base method
+// SetRequestData mocks base method.
 func (m *MockStreamReceiverFilterHandler) SetRequestData(buf buffer.IoBuffer) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetRequestData", buf)
 }
 
-// SetRequestData indicates an expected call of SetRequestData
+// SetRequestData indicates an expected call of SetRequestData.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) SetRequestData(buf interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRequestData", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).SetRequestData), buf)
 }
 
-// GetRequestTrailers mocks base method
+// GetRequestTrailers mocks base method.
 func (m *MockStreamReceiverFilterHandler) GetRequestTrailers() api.HeaderMap {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRequestTrailers")
@@ -562,139 +589,139 @@ func (m *MockStreamReceiverFilterHandler) GetRequestTrailers() api.HeaderMap {
 	return ret0
 }
 
-// GetRequestTrailers indicates an expected call of GetRequestTrailers
+// GetRequestTrailers indicates an expected call of GetRequestTrailers.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) GetRequestTrailers() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequestTrailers", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).GetRequestTrailers))
 }
 
-// SetRequestTrailers mocks base method
+// SetRequestTrailers mocks base method.
 func (m *MockStreamReceiverFilterHandler) SetRequestTrailers(trailers api.HeaderMap) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetRequestTrailers", trailers)
 }
 
-// SetRequestTrailers indicates an expected call of SetRequestTrailers
+// SetRequestTrailers indicates an expected call of SetRequestTrailers.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) SetRequestTrailers(trailers interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRequestTrailers", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).SetRequestTrailers), trailers)
 }
 
-// SetConvert mocks base method
+// SetConvert mocks base method.
 func (m *MockStreamReceiverFilterHandler) SetConvert(on bool) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetConvert", on)
 }
 
-// SetConvert indicates an expected call of SetConvert
+// SetConvert indicates an expected call of SetConvert.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) SetConvert(on interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConvert", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).SetConvert), on)
 }
 
-// GetFilterCurrentPhase mocks base method
-func (m *MockStreamReceiverFilterHandler) GetFilterCurrentPhase() api.FilterPhase {
+// GetFilterCurrentPhase mocks base method.
+func (m *MockStreamReceiverFilterHandler) GetFilterCurrentPhase() api.ReceiverFilterPhase {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetFilterCurrentPhase")
-	ret0, _ := ret[0].(api.FilterPhase)
+	ret0, _ := ret[0].(api.ReceiverFilterPhase)
 	return ret0
 }
 
-// GetFilterCurrentPhase indicates an expected call of GetFilterCurrentPhase
+// GetFilterCurrentPhase indicates an expected call of GetFilterCurrentPhase.
 func (mr *MockStreamReceiverFilterHandlerMockRecorder) GetFilterCurrentPhase() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFilterCurrentPhase", reflect.TypeOf((*MockStreamReceiverFilterHandler)(nil).GetFilterCurrentPhase))
 }
 
-// MockStreamFilterChainFactory is a mock of StreamFilterChainFactory interface
+// MockStreamFilterChainFactory is a mock of StreamFilterChainFactory interface.
 type MockStreamFilterChainFactory struct {
 	ctrl     *gomock.Controller
 	recorder *MockStreamFilterChainFactoryMockRecorder
 }
 
-// MockStreamFilterChainFactoryMockRecorder is the mock recorder for MockStreamFilterChainFactory
+// MockStreamFilterChainFactoryMockRecorder is the mock recorder for MockStreamFilterChainFactory.
 type MockStreamFilterChainFactoryMockRecorder struct {
 	mock *MockStreamFilterChainFactory
 }
 
-// NewMockStreamFilterChainFactory creates a new mock instance
+// NewMockStreamFilterChainFactory creates a new mock instance.
 func NewMockStreamFilterChainFactory(ctrl *gomock.Controller) *MockStreamFilterChainFactory {
 	mock := &MockStreamFilterChainFactory{ctrl: ctrl}
 	mock.recorder = &MockStreamFilterChainFactoryMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStreamFilterChainFactory) EXPECT() *MockStreamFilterChainFactoryMockRecorder {
 	return m.recorder
 }
 
-// CreateFilterChain mocks base method
+// CreateFilterChain mocks base method.
 func (m *MockStreamFilterChainFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "CreateFilterChain", context, callbacks)
 }
 
-// CreateFilterChain indicates an expected call of CreateFilterChain
+// CreateFilterChain indicates an expected call of CreateFilterChain.
 func (mr *MockStreamFilterChainFactoryMockRecorder) CreateFilterChain(context, callbacks interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateFilterChain", reflect.TypeOf((*MockStreamFilterChainFactory)(nil).CreateFilterChain), context, callbacks)
 }
 
-// MockStreamFilterChainFactoryCallbacks is a mock of StreamFilterChainFactoryCallbacks interface
+// MockStreamFilterChainFactoryCallbacks is a mock of StreamFilterChainFactoryCallbacks interface.
 type MockStreamFilterChainFactoryCallbacks struct {
 	ctrl     *gomock.Controller
 	recorder *MockStreamFilterChainFactoryCallbacksMockRecorder
 }
 
-// MockStreamFilterChainFactoryCallbacksMockRecorder is the mock recorder for MockStreamFilterChainFactoryCallbacks
+// MockStreamFilterChainFactoryCallbacksMockRecorder is the mock recorder for MockStreamFilterChainFactoryCallbacks.
 type MockStreamFilterChainFactoryCallbacksMockRecorder struct {
 	mock *MockStreamFilterChainFactoryCallbacks
 }
 
-// NewMockStreamFilterChainFactoryCallbacks creates a new mock instance
+// NewMockStreamFilterChainFactoryCallbacks creates a new mock instance.
 func NewMockStreamFilterChainFactoryCallbacks(ctrl *gomock.Controller) *MockStreamFilterChainFactoryCallbacks {
 	mock := &MockStreamFilterChainFactoryCallbacks{ctrl: ctrl}
 	mock.recorder = &MockStreamFilterChainFactoryCallbacksMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockStreamFilterChainFactoryCallbacks) EXPECT() *MockStreamFilterChainFactoryCallbacksMockRecorder {
 	return m.recorder
 }
 
-// AddStreamSenderFilter mocks base method
-func (m *MockStreamFilterChainFactoryCallbacks) AddStreamSenderFilter(filter api.StreamSenderFilter) {
+// AddStreamSenderFilter mocks base method.
+func (m *MockStreamFilterChainFactoryCallbacks) AddStreamSenderFilter(filter api.StreamSenderFilter, p api.SenderFilterPhase) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "AddStreamSenderFilter", filter)
+	m.ctrl.Call(m, "AddStreamSenderFilter", filter, p)
 }
 
-// AddStreamSenderFilter indicates an expected call of AddStreamSenderFilter
-func (mr *MockStreamFilterChainFactoryCallbacksMockRecorder) AddStreamSenderFilter(filter interface{}) *gomock.Call {
+// AddStreamSenderFilter indicates an expected call of AddStreamSenderFilter.
+func (mr *MockStreamFilterChainFactoryCallbacksMockRecorder) AddStreamSenderFilter(filter, p interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddStreamSenderFilter", reflect.TypeOf((*MockStreamFilterChainFactoryCallbacks)(nil).AddStreamSenderFilter), filter)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddStreamSenderFilter", reflect.TypeOf((*MockStreamFilterChainFactoryCallbacks)(nil).AddStreamSenderFilter), filter, p)
 }
 
-// AddStreamReceiverFilter mocks base method
-func (m *MockStreamFilterChainFactoryCallbacks) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.FilterPhase) {
+// AddStreamReceiverFilter mocks base method.
+func (m *MockStreamFilterChainFactoryCallbacks) AddStreamReceiverFilter(filter api.StreamReceiverFilter, p api.ReceiverFilterPhase) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AddStreamReceiverFilter", filter, p)
 }
 
-// AddStreamReceiverFilter indicates an expected call of AddStreamReceiverFilter
+// AddStreamReceiverFilter indicates an expected call of AddStreamReceiverFilter.
 func (mr *MockStreamFilterChainFactoryCallbacksMockRecorder) AddStreamReceiverFilter(filter, p interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddStreamReceiverFilter", reflect.TypeOf((*MockStreamFilterChainFactoryCallbacks)(nil).AddStreamReceiverFilter), filter, p)
 }
 
-// AddStreamAccessLog mocks base method
+// AddStreamAccessLog mocks base method.
 func (m *MockStreamFilterChainFactoryCallbacks) AddStreamAccessLog(accessLog api.AccessLog) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "AddStreamAccessLog", accessLog)
 }
 
-// AddStreamAccessLog indicates an expected call of AddStreamAccessLog
+// AddStreamAccessLog indicates an expected call of AddStreamAccessLog.
 func (mr *MockStreamFilterChainFactoryCallbacksMockRecorder) AddStreamAccessLog(accessLog interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddStreamAccessLog", reflect.TypeOf((*MockStreamFilterChainFactoryCallbacks)(nil).AddStreamAccessLog), accessLog)

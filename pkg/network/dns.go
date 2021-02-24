@@ -71,9 +71,7 @@ func NewDnsResolverFromFile(configFile string, resolverPort string) *DnsResolver
 
 	config, err = dns.ClientConfigFromFile(configFile)
 	if err != nil {
-		if log.DefaultLogger.GetLogLevel() >= log.ERROR {
-			log.DefaultLogger.Errorf("[network] [dns] read config from resolve file failed: %s", err)
-		}
+		log.DefaultLogger.Errorf("[network] [dns] read config from resolve file failed: %s", err)
 		return nil
 	}
 	config.Port = resolverPort
@@ -121,7 +119,7 @@ func (dr *DnsResolver) DnsResolve(dnsAddr string, dnsLookupFamily v2.DnsLookupFa
 			r, _, err := dr.client.Exchange(msg, server+":"+dr.clientConfig.Port)
 
 			if err != nil {
-				if log.DefaultLogger.GetLogLevel() >= log.INFO{
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("[network] [dns] resolve addr: %s failed, server: %s, err: %s", addr, server, err)
 				}
 				if strings.Contains(err.Error(), "i/o timeout") {
@@ -158,9 +156,7 @@ func (dr *DnsResolver) DnsResolve(dnsAddr string, dnsLookupFamily v2.DnsLookupFa
 		}
 	}
 
-	if log.DefaultLogger.GetLogLevel() >= log.ERROR {
-		log.DefaultLogger.Errorf("[network] [dns] resolve addr: %s failed.", dnsAddr)
-	}
+	log.DefaultLogger.Errorf("[network] [dns] resolve addr: %s failed.", dnsAddr)
 
 	return nil
 }

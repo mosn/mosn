@@ -18,86 +18,27 @@
 package router
 
 import (
-	"context"
-	"fmt"
-
-	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
-	RegisterRouterRule(DefaultSofaRouterRuleFactory, 1)
-	RegisterMakeHandlerChain(DefaultMakeHandlerChain, 1)
+	RegisterMakeHandler(types.DefaultRouteHandler, DefaultMakeHandler, true)
 }
 
-var defaultRouterRuleFactoryOrder routerRuleFactoryOrder
-
-func RegisterRouterRule(f RouterRuleFactory, order uint32) {
-	if defaultRouterRuleFactoryOrder.order < order {
-		log.DefaultLogger.Infof(RouterLogFormat, "Extend", "RegisterRouterRule", fmt.Sprintf("order is %d", order))
-		defaultRouterRuleFactoryOrder.factory = f
-		defaultRouterRuleFactoryOrder.order = order
-	} else {
-		msg := fmt.Sprintf("current register order is %d, order %d register failed", defaultRouterRuleFactoryOrder.order, order)
-		log.DefaultLogger.Errorf(RouterLogFormat, "Extend", "RegisterRouterRule", msg)
-	}
+var makeHandler = &handlerFactories{
+	factories: map[string]MakeHandlerFunc{},
 }
 
-func DefaultSofaRouterRuleFactory(base *RouteRuleImplBase, headers []v2.HeaderMatcher) RouteBase {
-	for _, header := range headers {
-		if header.Name == types.SofaRouteMatchKey {
-			return &SofaRouteRuleImpl{
-				RouteRuleImplBase: base,
-				matchValue:        header.Value,
-			}
-		}
-	}
-	return nil
+func RegisterMakeHandler(name string, f MakeHandlerFunc, isDefault bool) {
+	log.DefaultLogger.Infof("register a new handler maker, name is %s, is default: %t", name, isDefault)
+	makeHandler.add(name, f, isDefault)
 }
 
-var makeHandlerChainOrder handlerChainOrder
-
-func RegisterMakeHandlerChain(f MakeHandlerChain, order uint32) {
-	if makeHandlerChainOrder.order < order {
-		log.DefaultLogger.Infof(RouterLogFormat, "Extend", "RegisterHandlerChain", fmt.Sprintf("order is %d", order))
-		makeHandlerChainOrder.makeHandlerChain = f
-		makeHandlerChainOrder.order = order
-	} else {
-		msg := fmt.Sprintf("current register order is %d, order %d register failed", makeHandlerChainOrder.order, order)
-		log.DefaultLogger.Errorf(RouterLogFormat, "Extend", "RegisterHandlerChain", msg)
-	}
+func GetMakeHandlerFunc(name string) MakeHandlerFunc {
+	return makeHandler.get(name)
 }
 
-type simpleHandler struct {
-	route api.Route
-}
-
-func (h *simpleHandler) IsAvailable(ctx context.Context, manager types.ClusterManager) (types.ClusterSnapshot, types.HandlerStatus) {
-	if h.route == nil {
-		return nil, types.HandlerNotAvailable
-	}
-	clusterName := h.Route().RouteRule().ClusterName()
-	snapshot := manager.GetClusterSnapshot(context.Background(), clusterName)
-	return snapshot, types.HandlerAvailable
-}
-
-func (h *simpleHandler) Route() api.Route {
-	return h.route
-}
-
-func DefaultMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
-	var handlers []types.RouteHandler
-	if r := routers.MatchRoute(headers, 1); r != nil {
-		if log.Proxy.GetLogLevel() >= log.DEBUG {
-			log.Proxy.Debugf(ctx, RouterLogFormat, "DefaultHandklerChain", "MatchRoute", fmt.Sprintf("matched a route: %v", r))
-		}
-		handlers = append(handlers, &simpleHandler{route: r})
-	}
-	return NewRouteHandlerChain(ctx, clusterManager, handlers)
-}
-
-func CallMakeHandlerChain(ctx context.Context, headers api.HeaderMap, routers types.Routers, clusterManager types.ClusterManager) *RouteHandlerChain {
-	return makeHandlerChainOrder.makeHandlerChain(ctx, headers, routers, clusterManager)
+func MakeHandlerFuncExists(name string) bool {
+	return makeHandler.exists(name)
 }

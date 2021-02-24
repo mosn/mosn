@@ -1,18 +1,35 @@
+// Copyright 1999-2020 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package metric
 
 import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
-	"github.com/alibaba/sentinel-golang/core/base"
-	"github.com/alibaba/sentinel-golang/core/config"
-	"github.com/alibaba/sentinel-golang/util"
-	"github.com/pkg/errors"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/alibaba/sentinel-golang/core/base"
+	"github.com/alibaba/sentinel-golang/core/config"
+	"github.com/alibaba/sentinel-golang/logging"
+	"github.com/alibaba/sentinel-golang/util"
+	"github.com/pkg/errors"
 )
 
 type DefaultMetricLogWriter struct {
@@ -103,7 +120,7 @@ func (d *DefaultMetricLogWriter) writeItemsAndFlush(items []*base.MetricItem) er
 	for _, item := range items {
 		s, err := item.ToFatString()
 		if err != nil {
-			logger.Warnf("Failed to convert MetricItem(resource=%s) to string: %+v", item.Resource, err)
+			logging.Warn("[writeItemsAndFlush] Failed to convert MetricItem to string", "resourceName", item.Resource, "err", err.Error())
 			continue
 		}
 
@@ -168,16 +185,16 @@ func (d *DefaultMetricLogWriter) removeDeprecatedFiles() error {
 		idxFilename := formMetricIdxFileName(filename)
 		err = os.Remove(filename)
 		if err != nil {
-			logger.Errorf("[MetricWriter] Failed to remove metric log file <%s>: %+v", filename, err)
+			logging.Error(err, "Failed to remove metric log file in DefaultMetricLogWriter.removeDeprecatedFiles()", "filename", filename)
 		} else {
-			logger.Infof("[MetricWriter] Metric log file removed: %s", filename)
+			logging.Info("[MetricWriter] Metric log file removed in DefaultMetricLogWriter.removeDeprecatedFiles()", "filename", filename)
 		}
 
 		err = os.Remove(idxFilename)
 		if err != nil {
-			logger.Errorf("[MetricWriter] Failed to remove metric log file <%s>: %+v", idxFilename, err)
+			logging.Error(err, "Failed to remove metric log file in DefaultMetricLogWriter.removeDeprecatedFiles()", "idxFilename", idxFilename)
 		} else {
-			logger.Infof("[MetricWriter] Metric index file removed: %s", idxFilename)
+			logging.Info("[MetricWriter] Metric index file removed", "idxFilename", idxFilename)
 		}
 	}
 	return err
@@ -193,7 +210,7 @@ func (d *DefaultMetricLogWriter) nextFileNameOfTime(time uint64) (string, error)
 		return "", err
 	}
 	if len(list) == 0 {
-		return d.baseDir + filePattern, nil
+		return filepath.Join(d.baseDir, filePattern), nil
 	}
 	last := list[len(list)-1]
 	var n uint32 = 0
@@ -204,7 +221,7 @@ func (d *DefaultMetricLogWriter) nextFileNameOfTime(time uint64) (string, error)
 			n = uint32(v)
 		}
 	}
-	return fmt.Sprintf("%s%s.%d", d.baseDir, filePattern, n+1), nil
+	return filepath.Join(d.baseDir, fmt.Sprintf("%s.%d", filePattern, n+1)), nil
 }
 
 func (d *DefaultMetricLogWriter) closeCurAndNewFile(filename string) error {
@@ -215,12 +232,12 @@ func (d *DefaultMetricLogWriter) closeCurAndNewFile(filename string) error {
 
 	if d.curMetricFile != nil {
 		if err = d.curMetricFile.Close(); err != nil {
-			logger.Errorf("[MetricWriter] Failed to close metric log file <%s>: %+v", d.curMetricFile.Name(), err)
+			logging.Error(err, "Failed to close metric log file in DefaultMetricLogWriter.closeCurAndNewFile()", "curMetricFile", d.curMetricFile.Name())
 		}
 	}
 	if d.curMetricIdxFile != nil {
 		if err = d.curMetricIdxFile.Close(); err != nil {
-			logger.Errorf("[MetricWriter] Failed to close metric index file <%s>: %+v", d.curMetricIdxFile.Name(), err)
+			logging.Error(err, "Failed to close metric index file in DefaultMetricLogWriter.closeCurAndNewFile()", "curMetricIdxFile", d.curMetricIdxFile.Name())
 		}
 	}
 	// Create new metric log file, whether it exists or not.
@@ -228,14 +245,14 @@ func (d *DefaultMetricLogWriter) closeCurAndNewFile(filename string) error {
 	if err != nil {
 		return err
 	}
-	logger.Infof("[MetricWriter] New metric log file created: " + filename)
+	logging.Info("[MetricWriter] New metric log file created", "filename", filename)
 
 	idxFile := formMetricIdxFileName(filename)
 	mif, err := os.Create(idxFile)
 	if err != nil {
 		return err
 	}
-	logger.Infof("[MetricWriter] New metric log index file created: " + idxFile)
+	logging.Info("[MetricWriter] New metric log index file created", "idxFile", idxFile)
 
 	d.curMetricFile = mf
 	d.metricOut = bufio.NewWriter(mf)
@@ -280,7 +297,11 @@ func NewDefaultMetricLogWriterOfApp(maxSize uint64, maxFileAmount uint32, appNam
 	}
 	_, offset := time.Now().Zone()
 
-	baseDir := util.AddPathSeparatorIfAbsent(config.LogBaseDir())
+	logDir := config.LogBaseDir()
+	if len(logDir) == 0 {
+		logDir = config.GetDefaultLogDir()
+	}
+	baseDir := logDir
 	baseFilename := FormMetricFileName(appName, config.LogUsePid())
 
 	writer := &DefaultMetricLogWriter{

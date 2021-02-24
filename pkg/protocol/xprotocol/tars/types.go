@@ -22,6 +22,13 @@ const (
 )
 
 const (
+	MessageSizeLen    int = 4
+	IVersionLen       int = 2
+	IVersionHeaderIdx int = 4
+	iVersionDataIdx   int = 5
+)
+
+const (
 	CmdTypeResponse byte   = 0 // cmd type
 	CmdTypeRequest  byte   = 1
 	CmdTypeUndefine byte   = 2

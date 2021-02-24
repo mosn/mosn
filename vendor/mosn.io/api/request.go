@@ -22,7 +22,7 @@ import (
 	"time"
 )
 
-type Protocol string
+type ProtocolName string
 
 // ResponseFlag type
 type ResponseFlag int
@@ -103,9 +103,9 @@ type RequestInfo interface {
 	SetBytesReceived(bytesReceived uint64)
 
 	// Protocol returns the request's protocol type
-	Protocol() Protocol
+	Protocol() ProtocolName
 	// SetProtocol sets the request's protocol type
-	SetProtocol(p Protocol)
+	SetProtocol(p ProtocolName)
 
 	// ResponseCode reports the request's response code
 	// The code is http standard status code.

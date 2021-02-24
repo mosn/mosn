@@ -106,7 +106,9 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 		lb:      NewLoadBalancer(info, hostSet),
 	})
 	if clusterConfig.HealthCheck.ServiceName != "" {
-		log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [cluster] [new cluster] cluster %s have health check", clusterConfig.Name)
+		}
 		cluster.healthChecker = healthcheck.CreateHealthCheck(clusterConfig.HealthCheck)
 	}
 	return cluster

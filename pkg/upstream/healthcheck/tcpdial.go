@@ -41,7 +41,9 @@ func (s *TCPDialSession) CheckHealth() bool {
 	// default dial timeout, maybe already timeout by checker
 	conn, err := net.DialTimeout("tcp", s.addr, 30*time.Second)
 	if err != nil {
-		log.DefaultLogger.Infof("[upstream] [health check] [tcpdial session] dial tcp for host %s error: %v", s.addr, err)
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof("[upstream] [health check] [tcpdial session] dial tcp for host %s error: %v", s.addr, err)
+		}
 		return false
 	}
 	conn.Close()

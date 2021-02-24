@@ -24,9 +24,10 @@ import (
 
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 )
 
 var (
@@ -61,12 +62,8 @@ func init() {
 }
 
 func schemeGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
-	if !ok {
-		return variable.ValueNotFound, nil
-	}
-	scheme, ok := headers.Get(protocol.MosnHeaderScheme)
-	if !ok {
+	scheme, err := variable.GetVariableValue(ctx, types.VarScheme)
+	if err != nil || scheme == "" {
 		return variable.ValueNotFound, nil
 	}
 	return scheme, nil

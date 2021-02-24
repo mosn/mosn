@@ -49,16 +49,21 @@ type meta struct {
 	// InterceptionMode is the name of the metadata variable that carries info about
 	// traffic interception mode at the proxy
 	InterceptionMode TrafficInterceptionMode `json:"INTERCEPTION_MODE,omitempty"`
+
+	// ClusterID defines the cluster the node belongs to.
+	ClusterID string `json:"CLUSTER_ID,omitempty"`
 }
 
 var (
 	// IstioVersion adapt istio version
 	IstioVersion = "unknow"
+	ClusterID    = "Kubernetes"
 
 	defaultMeta = &meta{
 		IstioVersion:     IstioVersion,
 		Labels:           map[string]string{"istio": "ingressgateway"},
 		InterceptionMode: InterceptionRedirect,
+		ClusterID:        ClusterID,
 	}
 )
 

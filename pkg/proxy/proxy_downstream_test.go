@@ -19,9 +19,10 @@ package proxy
 
 import (
 	"context"
-	"sync/atomic"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/variable"
 
 	"bou.ke/monkey"
 	"github.com/golang/mock/gomock"
@@ -33,6 +34,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
@@ -60,7 +62,7 @@ func TestProxyWithFilters(t *testing.T) {
 	defer monkey.UnpatchAll()
 
 	// mock context from connection
-	ctx := context.Background()
+	ctx := variable.NewVariableContext(context.Background())
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyAccessLogs, []api.AccessLog{})
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyListenerName, "test_listener")
 
@@ -81,7 +83,7 @@ func TestProxyWithFilters(t *testing.T) {
 		}).AnyTimes() // gomcok and monkey patch is conflict, ignore the call times
 		// mock ConnPoolForCluster returns connPool
 		cm.EXPECT().ConnPoolForCluster(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ types.LoadBalancerContext, _ types.ClusterSnapshot, _ api.Protocol) types.ConnectionPool {
+			func(_ types.LoadBalancerContext, _ types.ClusterSnapshot, _ api.ProtocolName) types.ConnectionPool {
 				pool := mock.NewMockConnectionPool(ctrl)
 				// mock connPool.NewStream to call upstreamRequest.OnReady (see stream/xprotocol/connpool.go:NewStream)
 				pool.EXPECT().Host().DoAndReturn(func() types.Host {
@@ -121,7 +123,7 @@ func TestProxyWithFilters(t *testing.T) {
 			rw.EXPECT().GetRouters().DoAndReturn(func() types.Routers {
 				r := mock.NewMockRouters(ctrl)
 				// mock routers can be matched route if a header contains key service and values equals config name.
-				r.EXPECT().MatchRoute(gomock.Any(), gomock.Any()).DoAndReturn(func(headers api.HeaderMap, _ uint64) api.Route {
+				r.EXPECT().MatchRoute(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, headers api.HeaderMap) api.Route {
 					if sn, ok := headers.Get("service"); ok && sn == tn {
 						return gomockRouteMatchCluster(ctrl, "mock_cluster")
 					}
@@ -137,74 +139,74 @@ func TestProxyWithFilters(t *testing.T) {
 	// filter call record
 	filterRecords := map[string]string{}
 	// mock stream filters
-	var factories []api.StreamFilterChainFactory
-	for _, fact := range []struct {
-		Phase            api.FilterPhase
-		ReceiveFilterGen func() api.StreamReceiverFilter
-		SenderFilterGen  func() api.StreamSenderFilter
-	}{
-		{
-			Phase: api.BeforeRoute,
-			ReceiveFilterGen: func() api.StreamReceiverFilter {
-				return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, header api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
-					header.Set("service", "test_router")
-					h.SetRequestHeaders(header)
-				})
-			},
-		},
-		{
-			Phase: api.AfterRoute,
-			ReceiveFilterGen: func() api.StreamReceiverFilter {
-				return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, header api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
-					if h.GetFilterCurrentPhase() == api.AfterRoute {
-						filterRecords["after_route"] = "yes"
-					}
-				})
-			},
-		},
-		{
-			Phase: api.AfterChooseHost,
-			ReceiveFilterGen: func() api.StreamReceiverFilter {
-				return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, _ api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
-					if h.RequestInfo().RouteEntry() != nil {
-						filterRecords["route_cluster"] = h.RequestInfo().RouteEntry().ClusterName()
-					}
-					filterRecords["host"] = h.RequestInfo().UpstreamLocalAddress()
-				})
-			},
-		},
-		{
-			SenderFilterGen: func() api.StreamSenderFilter {
-				filter := mock.NewMockStreamSenderFilter(ctrl)
-				filter.EXPECT().OnDestroy().AnyTimes()
-				filter.EXPECT().SetSenderFilterHandler(gomock.Any()).AnyTimes()
-				filter.EXPECT().Append(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-					DoAndReturn(func(_ context.Context, _ api.HeaderMap, data buffer.IoBuffer, _ api.HeaderMap) api.StreamFilterStatus {
-						filterRecords["response"] = data.String()
-						return api.StreamFilterContinue
-					})
-				return filter
-			},
-		},
-	} {
-		factory := mock.NewMockStreamFilterChainFactory(ctrl)
-		ff := fact // do a copy
-		factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, cb api.StreamFilterChainFactoryCallbacks) {
-			if ff.ReceiveFilterGen != nil {
-				cb.AddStreamReceiverFilter(ff.ReceiveFilterGen(), ff.Phase)
-			}
-			if ff.SenderFilterGen != nil {
-				cb.AddStreamSenderFilter(ff.SenderFilterGen())
+	monkey.Patch(streamfilter.GetStreamFilterManager, func() streamfilter.StreamFilterManager {
+		factory := streamfilter.NewMockStreamFilterFactory(ctrl)
+		factory.EXPECT().CreateFilterChain(gomock.Any(), gomock.Any()).Do(func(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
+			for _, fact := range []struct {
+				Phase            api.ReceiverFilterPhase
+				ReceiveFilterGen func() api.StreamReceiverFilter
+				SenderFilterGen  func() api.StreamSenderFilter
+			}{
+				{
+					Phase: api.BeforeRoute,
+					ReceiveFilterGen: func() api.StreamReceiverFilter {
+						return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, header api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
+							header.Set("service", "test_router")
+							h.SetRequestHeaders(header)
+						})
+					},
+				},
+				{
+					Phase: api.AfterRoute,
+					ReceiveFilterGen: func() api.StreamReceiverFilter {
+						return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, header api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
+							if h.GetFilterCurrentPhase() == api.AfterRoute {
+								filterRecords["after_route"] = "yes"
+							}
+						})
+					},
+				},
+				{
+					Phase: api.AfterChooseHost,
+					ReceiveFilterGen: func() api.StreamReceiverFilter {
+						return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, _ api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
+							if h.RequestInfo().RouteEntry() != nil {
+								filterRecords["route_cluster"] = h.RequestInfo().RouteEntry().ClusterName()
+							}
+							filterRecords["host"] = h.RequestInfo().UpstreamLocalAddress()
+						})
+					},
+				},
+				{
+					SenderFilterGen: func() api.StreamSenderFilter {
+						filter := mock.NewMockStreamSenderFilter(ctrl)
+						filter.EXPECT().OnDestroy().AnyTimes()
+						filter.EXPECT().SetSenderFilterHandler(gomock.Any()).AnyTimes()
+						filter.EXPECT().Append(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+							DoAndReturn(func(_ context.Context, _ api.HeaderMap, data buffer.IoBuffer, _ api.HeaderMap) api.StreamFilterStatus {
+								filterRecords["response"] = data.String()
+								return api.StreamFilterContinue
+							})
+						return filter
+					},
+				},
+			} {
+				ff := fact // do a copy
+				if ff.ReceiveFilterGen != nil {
+					callbacks.AddStreamReceiverFilter(ff.ReceiveFilterGen(), ff.Phase)
+				}
+				if ff.SenderFilterGen != nil {
+					callbacks.AddStreamSenderFilter(ff.SenderFilterGen(), api.BeforeSend)
+				}
 			}
 		})
-		factories = append(factories, factory)
-	}
-	value := new(atomic.Value)
-	value.Store(factories)
+		filterManager := streamfilter.NewMockStreamFilterManager(ctrl)
+		filterManager.EXPECT().GetStreamFilterFactory(gomock.Any()).Return(factory).AnyTimes()
+		return filterManager
+	})
 	// mock stream connection
 	monkey.Patch(stream.CreateServerStreamConnection,
 		func(ctx context.Context, _ types.ProtocolName, _ api.Connection, proxy types.ServerStreamConnectionEventListener) types.ServerStreamConnection {
-			ctx = mosnctx.WithValue(ctx, types.ContextKeyStreamFilterChainFactories, value)
 			sconn := mock.NewMockServerStreamConnection(ctrl)
 			sconn.EXPECT().Protocol().Return(types.ProtocolName("Http1")).AnyTimes()
 			sconn.EXPECT().EnableWorkerPool().Return(true).AnyTimes()
@@ -214,7 +216,7 @@ func TestProxyWithFilters(t *testing.T) {
 	monkey.Patch(trace.IsEnabled, func() bool {
 		return true
 	})
-	mockSpan := func() types.Span {
+	mockSpan := func() api.Span {
 		sp := mock.NewMockSpan(ctrl)
 		sp.EXPECT().TraceId().Return("1").AnyTimes()
 		sp.EXPECT().SpanId().Return("1").AnyTimes()
@@ -262,7 +264,7 @@ func TestProxyWithFilters(t *testing.T) {
 	// 2. after route: test records
 	if !(downstream.requestInfo.RouteEntry() != nil &&
 		downstream.requestInfo.BytesReceived() == uint64(5) &&
-		downstream.requestInfo.Protocol() == api.Protocol("Http1")) {
+		downstream.requestInfo.Protocol() == api.ProtocolName("Http1")) {
 		t.Fatalf("after send request, the request info is not expected: %v, %v, %v",
 			downstream.requestInfo.RouteEntry() != nil,
 			downstream.requestInfo.BytesReceived(),
@@ -277,9 +279,11 @@ func TestProxyWithFilters(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 	upstreamRequest := downstream.upstreamRequest
 	// upstreamRequest.OnReceive ( see stream/xprotocol/conn.go: handleResponse)
-	upstreamRequest.OnReceive(context.Background(), protocol.CommonHeader{
-		types.HeaderStatus: "200",
-	}, buffer.NewIoBufferString("123"), trailer)
+
+	upstreamRequest.downStream.context = variable.NewVariableContext(upstreamRequest.downStream.context)
+	variable.SetVariableValue(upstreamRequest.downStream.context, types.VarHeaderStatus, "200")
+
+	upstreamRequest.OnReceive(ctx, protocol.CommonHeader{}, buffer.NewIoBufferString("123"), trailer)
 	// wait givestream
 	time.Sleep(time.Second)
 	// Veirfy OnReceive response states

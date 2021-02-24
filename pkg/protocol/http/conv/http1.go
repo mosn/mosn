@@ -23,6 +23,8 @@ import (
 	"strings"
 
 	"github.com/valyala/fasthttp"
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
@@ -37,23 +39,21 @@ type common2http struct{}
 
 func (c *common2http) ConvHeader(ctx context.Context, headerMap types.HeaderMap) (types.HeaderMap, error) {
 	if header, ok := headerMap.(protocol.CommonHeader); ok {
-		direction, ok := header[protocol.MosnHeaderDirection]
-		if !ok {
+		direction, err := variable.GetVariableValue(ctx, types.VarDirection)
+		if err != nil {
 			return nil, protocol.ErrHeaderDirection
 		}
 
-		delete(header, protocol.MosnHeaderDirection)
-
 		switch direction {
 		case protocol.Request:
-			headerImpl := http.RequestHeader{&fasthttp.RequestHeader{}, nil}
+			headerImpl := http.RequestHeader{&fasthttp.RequestHeader{}}
 			// copy headers
 			for k, v := range header {
 				headerImpl.Set(k, v)
 			}
 			return headerImpl, nil
 		case protocol.Response:
-			headerImpl := http.ResponseHeader{&fasthttp.ResponseHeader{}, nil}
+			headerImpl := http.ResponseHeader{&fasthttp.ResponseHeader{}}
 			// copy headers
 			for k, v := range header {
 				headerImpl.Set(k, v)
@@ -85,7 +85,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 			cheader[strings.ToLower(string(key))] = string(value)
 		})
 
-		cheader[protocol.MosnHeaderDirection] = protocol.Request
+		variable.SetVariableValue(ctx, types.VarDirection, protocol.Request)
 
 		return protocol.CommonHeader(cheader), nil
 	case http.ResponseHeader:
@@ -96,7 +96,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 			cheader[strings.ToLower(string(key))] = string(value)
 		})
 
-		cheader[protocol.MosnHeaderDirection] = protocol.Response
+		variable.SetVariableValue(ctx, types.VarDirection, protocol.Response)
 
 		return protocol.CommonHeader(cheader), nil
 	}

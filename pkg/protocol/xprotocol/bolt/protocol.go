@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"sync/atomic"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
@@ -71,7 +72,7 @@ func init() {
 type boltProtocol struct{}
 
 // types.Protocol
-func (proto *boltProtocol) Name() types.ProtocolName {
+func (proto *boltProtocol) Name() api.ProtocolName {
 	return ProtocolName
 }
 
@@ -83,7 +84,7 @@ func (proto *boltProtocol) Encode(ctx context.Context, model interface{}) (types
 		return encodeResponse(ctx, frame)
 	default:
 		// log.Proxy.Errorf(ctx, "[protocol][bolt] encode with unknown command : %+v", model)
-		// return nil, xprotocol.ErrUnknownType
+		// return nil, api.ErrUnknownType
 		// FIXME: makes sofarpc protocol common
 		// bolt and boltv2 can be handled success on a same connection
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -122,7 +123,7 @@ func (proto *boltProtocol) Decode(ctx context.Context, data types.IoBuffer) (int
 }
 
 // Heartbeater
-func (proto *boltProtocol) Trigger(requestId uint64) xprotocol.XFrame {
+func (proto *boltProtocol) Trigger(requestId uint64) api.XFrame {
 	return &Request{
 		RequestHeader: RequestHeader{
 			Protocol:  ProtocolCode,
@@ -136,7 +137,7 @@ func (proto *boltProtocol) Trigger(requestId uint64) xprotocol.XFrame {
 	}
 }
 
-func (proto *boltProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
+func (proto *boltProtocol) Reply(request api.XFrame) api.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,
@@ -151,7 +152,7 @@ func (proto *boltProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame 
 }
 
 // Hijacker
-func (proto *boltProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
+func (proto *boltProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
 	return &Response{
 		ResponseHeader: ResponseHeader{
 			Protocol:       ProtocolCode,
@@ -169,19 +170,19 @@ func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 	switch httpStatusCode {
 	case http.StatusOK:
 		return uint32(ResponseStatusSuccess)
-	case types.RouterUnavailableCode:
+	case api.RouterUnavailableCode:
 		return uint32(ResponseStatusNoProcessor)
-	case types.NoHealthUpstreamCode:
+	case api.NoHealthUpstreamCode:
 		return uint32(ResponseStatusConnectionClosed)
-	case types.UpstreamOverFlowCode:
+	case api.UpstreamOverFlowCode:
 		return uint32(ResponseStatusServerThreadpoolBusy)
-	case types.CodecExceptionCode:
+	case api.CodecExceptionCode:
 		//Decode or Encode Error
 		return uint32(ResponseStatusCodecException)
-	case types.DeserialExceptionCode:
+	case api.DeserialExceptionCode:
 		//Hessian Exception
 		return uint32(ResponseStatusServerDeserialException)
-	case types.TimeoutExceptionCode:
+	case api.TimeoutExceptionCode:
 		//Response Timeout
 		return uint32(ResponseStatusTimeout)
 	default:
@@ -190,11 +191,11 @@ func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 }
 
 // PoolMode returns whether pingpong or multiplex
-func (proto *boltProtocol) PoolMode() types.PoolMode {
-	return types.Multiplex
+func (proto *boltProtocol) PoolMode() api.PoolMode {
+	return api.Multiplex
 }
 
-func (proto *boltProtocol) EnableWorkerPool() bool{
+func (proto *boltProtocol) EnableWorkerPool() bool {
 	return true
 }
 

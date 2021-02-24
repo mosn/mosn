@@ -3,7 +3,8 @@
 + 文件使用package main，但是不要实现func main()
 ```
 package main
- func init() {
+
+func init() {
 	// call registry
 }
 ```

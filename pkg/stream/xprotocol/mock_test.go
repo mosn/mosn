@@ -22,18 +22,20 @@ import (
 	"net"
 	"time"
 
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 )
 
 // a mock server for handle heart beat request
 type mockServer struct {
 	ln       net.Listener
 	stop     chan struct{}
-	protocol xprotocol.XProtocol
+	protocol api.XProtocol
 	delay    time.Duration
 }
 
@@ -113,7 +115,7 @@ func (s *mockServer) Reply(iobuf types.IoBuffer) []byte {
 	if cmd == nil {
 		return nil
 	}
-	xframe := cmd.(xprotocol.XFrame)
+	xframe := cmd.(api.XFrame)
 	if xframe.IsHeartbeatFrame() {
 		ack := s.protocol.Reply(xframe)
 		resp, err := s.protocol.Encode(context.Background(), ack)

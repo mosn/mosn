@@ -172,6 +172,7 @@ func ConvertClustersConfig(xdsClusters []*xdsapi.Cluster) []*v2.Cluster {
 			ConnBufferLimitBytes: xdsCluster.GetPerConnectionBufferLimitBytes().GetValue(),
 			HealthCheck:          convertHealthChecks(xdsCluster.GetHealthChecks()),
 			CirBreThresholds:     convertCircuitBreakers(xdsCluster.GetCircuitBreakers()),
+			ConnectTimeout:       &api.DurationConfig{convertTimeDurPoint2TimeDur(xdsCluster.GetConnectTimeout())},
 			//OutlierDetection:     convertOutlierDetection(xdsCluster.GetOutlierDetection()),
 			Hosts:    convertClusterHosts(xdsCluster.GetHosts()),
 			Spec:     convertSpec(xdsCluster),
@@ -365,9 +366,11 @@ func convertStreamFilters(networkFilter *xdslistener.Filter) []v2.Filter {
 }
 
 func convertStreamFilter(name string, s *any.Any) v2.Filter {
-	filter := v2.Filter{}
 	var err error
-
+	if strings.HasSuffix(name, v2.GoPluginStreamFilterSuffix) {
+		return convertToPluginStreamFilter(name, s)
+	}
+	filter := v2.Filter{}
 	switch name {
 	case v2.MIXER:
 		filter.Type = name
@@ -433,6 +436,28 @@ func convertStreamFilter(name string, s *any.Any) v2.Filter {
 	default:
 	}
 
+	return filter
+}
+
+func convertToPluginStreamFilter(name string, config *any.Any) v2.Filter {
+	marshal := jsonp.Marshaler{}
+	filter := v2.Filter{}
+	buf := &bytes.Buffer{}
+	err := marshal.Marshal(buf, config)
+	if err != nil || buf.Len() == 0 {
+		log.DefaultLogger.Errorf("failed to marshal pb.Any to json, err: %v", err)
+		return filter
+	}
+
+	type PluginStreamFilterConfig struct {
+		GoPluginConfig *v2.StreamFilterGoPluginConfig `json:"go_plugin_config"`
+		Config         map[string]interface{}         `json:"config"`
+	}
+	filterConfig := &PluginStreamFilterConfig{}
+	_ = json.Unmarshal(buf.Bytes(), &filterConfig)
+	filter.GoPluginConfig = filterConfig.GoPluginConfig
+	filter.Config = filterConfig.Config
+	filter.Type = name
 	return filter
 }
 
@@ -618,6 +643,7 @@ func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.Filt
 
 	var xdsFilters []*xdslistener.Filter
 	var chainMatch string
+	var tlsConfigs []v2.TLSConfig
 
 	// todo Only one chain is supported now
 	// if listener.type == TCP, HTTPS, TLS, Mongo, Redis, MySQL
@@ -634,6 +660,18 @@ func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.Filt
 		if xdsFilterChain.GetFilterChainMatch() != nil {
 			chainMatch = xdsFilterChain.GetFilterChainMatch().String()
 		}
+
+		// collect tls configs
+		if (xdsFilterChain.GetTransportSocket() == nil) || (xdsFilterChain.GetTransportSocket().GetTypedConfig() == nil) {
+			continue
+		}
+		downstreamTLSContext := &xdsauth.DownstreamTlsContext{}
+		err := ptypes.UnmarshalAny(xdsFilterChain.GetTransportSocket().GetTypedConfig(), downstreamTLSContext)
+		if err != nil {
+			log.DefaultLogger.Errorf("failed to unmarshal downstream tls context: %v", err)
+			continue
+		}
+		tlsConfigs = append(tlsConfigs, convertTLS(downstreamTLSContext))
 	}
 
 	// A port supports only one protocol
@@ -657,7 +695,7 @@ func convertFilterChainsAndGetRawFilter(xdsListener *xdsapi.Listener) ([]v2.Filt
 			FilterChainMatch: chainMatch,
 			Filters:          convertFilters(oneFilter),
 		},
-		TLSContexts: nil,
+		TLSContexts: tlsConfigs,
 	},
 	}, oneFilter
 
@@ -674,6 +712,7 @@ func convertFilters(xdsFilters *xdslistener.Filter) []v2.Filter {
 	for typeKey, configValue := range filterMaps {
 		filters = append(filters, v2.Filter{
 			typeKey,
+			nil,
 			configValue,
 		})
 	}
@@ -811,6 +850,8 @@ func ConvertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 			RequestHeadersToAdd:     convertHeadersToAdd(xdsVirtualHost.GetRequestHeadersToAdd()),
 			ResponseHeadersToAdd:    convertHeadersToAdd(xdsVirtualHost.GetResponseHeadersToAdd()),
 			ResponseHeadersToRemove: xdsVirtualHost.GetResponseHeadersToRemove(),
+			// TODO: rename the method `convertPerRouteConfig` to `convertPerFilterConfig`
+			PerFilterConfig: convertPerRouteConfig(xdsVirtualHost.GetTypedPerFilterConfig()),
 		}
 		virtualHosts = append(virtualHosts, virtualHost)
 	}
@@ -1365,8 +1406,10 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	} else if tlsCertSdsConfig := common.GetTlsCertificateSdsSecretConfigs(); tlsCertSdsConfig != nil && len(tlsCertSdsConfig) > 0 {
 		isSdsMode = true
 		if validationContext, ok := common.GetValidationContextType().(*xdsauth.CommonTlsContext_CombinedValidationContext); ok {
-			config.SdsConfig.CertificateConfig = &v2.SecretConfigWrapper{Config: tlsCertSdsConfig[0]}
-			config.SdsConfig.ValidationConfig = &v2.SecretConfigWrapper{Config: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()}
+			config.SdsConfig = &v2.SdsConfig{
+				CertificateConfig: &v2.SecretConfigWrapper{Config: tlsCertSdsConfig[0]},
+				ValidationConfig:  &v2.SecretConfigWrapper{Config: validationContext.CombinedValidationContext.GetValidationContextSdsSecretConfig()},
+			}
 		}
 	}
 

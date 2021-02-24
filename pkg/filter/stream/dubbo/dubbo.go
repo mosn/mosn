@@ -7,11 +7,10 @@ import (
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func init() {
@@ -26,16 +25,16 @@ func buildStream(conf map[string]interface{}) (api.StreamFilterChainFactory, err
 }
 
 func (f *factory) CreateFilterChain(ctx context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
-	filter := NewDubboFilter(ctx)
+	filter := buildDubboFilter(ctx)
 	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
-	callbacks.AddStreamSenderFilter(filter)
+	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 }
 
 type dubboFilter struct {
 	handler api.StreamReceiverFilterHandler
 }
 
-func NewDubboFilter(ctx context.Context) *dubboFilter {
+func buildDubboFilter(ctx context.Context) *dubboFilter {
 	return &dubboFilter{}
 }
 
@@ -47,14 +46,14 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
 	if !ok {
-		log.DefaultLogger.Errorf("This filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
+		log.DefaultLogger.Errorf("%s is empty, may be the protocol is not dubbo", dubbo.ServiceNameHeader)
 		return api.StreamFiltertermination
 	}
 
 	// adapte dubbo service to http host
-	headers.Set(protocol.MosnHeaderHostKey, service)
+	variable.SetVariableValue(ctx, types.VarHost, service)
 	// because use http rule, so should add default path
-	headers.Set(protocol.MosnHeaderPathKey, "/")
+	variable.SetVariableValue(ctx, types.VarPath, "/")
 
 	method, _ := headers.Get(dubbo.MethodNameHeader)
 	stats := getStats(listener, service, method)
@@ -77,12 +76,6 @@ func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 }
 
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	frame, ok := headers.(*dubbo.Frame)
-	if !ok {
-		log.DefaultLogger.Errorf("This filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
-		return api.StreamFiltertermination
-	}
-
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 	service, err := variable.GetVariableValue(ctx, VarDubboRequestService)
 	if err != nil {
@@ -100,7 +93,16 @@ func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buf
 		return api.StreamFilterContinue
 	}
 
-	if frame.GetStatusCode() == dubbo.RespStatusOK {
+	var isSuccess bool
+	switch frame := headers.(type) {
+	case *dubbo.Frame:
+		isSuccess = frame.GetStatusCode() == dubbo.RespStatusOK
+	default:
+		log.DefaultLogger.Errorf("this filter {%s} just for dubbo protocol, please check your config.", v2.DubboStream)
+		return api.StreamFiltertermination
+	}
+
+	if isSuccess {
 		stats.ResponseSucc.Inc(1)
 	} else {
 		stats.ResponseFail.Inc(1)

@@ -22,8 +22,9 @@ import (
 )
 
 var (
-	ErrExit   = errors.New("downstream process completed")
-	PhaseName = []string{
+	ErrExit          = errors.New("downstream process completed")
+	IsDirectResponse = "true"
+	PhaseName        = []string{
 		InitPhase:                 "InitPhase",
 		DownFilter:                "DownFilter",
 		MatchRoute:                "MatchRoute",

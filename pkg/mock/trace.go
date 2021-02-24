@@ -5,13 +5,12 @@
 package mock
 
 import (
-	context "context"
-	reflect "reflect"
-	time "time"
+	"context"
+	"reflect"
+	"time"
 
-	gomock "github.com/golang/mock/gomock"
-	api "mosn.io/api"
-	types "mosn.io/mosn/pkg/types"
+	"github.com/golang/mock/gomock"
+	"mosn.io/api"
 )
 
 // MockDriver is a mock of Driver interface
@@ -52,7 +51,7 @@ func (mr *MockDriverMockRecorder) Init(config interface{}) *gomock.Call {
 }
 
 // Register mocks base method
-func (m *MockDriver) Register(proto api.Protocol, builder types.TracerBuilder) {
+func (m *MockDriver) Register(proto api.ProtocolName, builder api.TracerBuilder) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "Register", proto, builder)
 }
@@ -64,10 +63,10 @@ func (mr *MockDriverMockRecorder) Register(proto, builder interface{}) *gomock.C
 }
 
 // Get mocks base method
-func (m *MockDriver) Get(proto api.Protocol) types.Tracer {
+func (m *MockDriver) Get(proto api.ProtocolName) api.Tracer {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", proto)
-	ret0, _ := ret[0].(types.Tracer)
+	ret0, _ := ret[0].(api.Tracer)
 	return ret0
 }
 
@@ -101,10 +100,10 @@ func (m *MockTracer) EXPECT() *MockTracerMockRecorder {
 }
 
 // Start mocks base method
-func (m *MockTracer) Start(ctx context.Context, request interface{}, startTime time.Time) types.Span {
+func (m *MockTracer) Start(ctx context.Context, request interface{}, startTime time.Time) api.Span {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Start", ctx, request, startTime)
-	ret0, _ := ret[0].(types.Span)
+	ret0, _ := ret[0].(api.Span)
 	return ret0
 }
 
@@ -254,10 +253,10 @@ func (mr *MockSpanMockRecorder) InjectContext(requestHeaders, requestInfo interf
 }
 
 // SpawnChild mocks base method
-func (m *MockSpan) SpawnChild(operationName string, startTime time.Time) types.Span {
+func (m *MockSpan) SpawnChild(operationName string, startTime time.Time) api.Span {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SpawnChild", operationName, startTime)
-	ret0, _ := ret[0].(types.Span)
+	ret0, _ := ret[0].(api.Span)
 	return ret0
 }
 

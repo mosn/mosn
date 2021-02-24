@@ -65,7 +65,7 @@ func Test_httpSkyTraceStartAndFinish(t *testing.T) {
 			args: args{
 				requestFunc: func() interface{} {
 					re := http.RequestHeader{
-						&fasthttp.RequestHeader{}, nil,
+						&fasthttp.RequestHeader{},
 					}
 					re.SetRequestURI("/test")
 					re.SetHost("127.0.0.1:80")
@@ -89,7 +89,7 @@ func Test_httpSkyTraceStartAndFinish(t *testing.T) {
 			args: args{
 				requestFunc: func() interface{} {
 					re := http.RequestHeader{
-						&fasthttp.RequestHeader{}, nil,
+						&fasthttp.RequestHeader{},
 					}
 					re.SetRequestURI("/test")
 					re.SetHost("127.0.0.1:80")
@@ -127,7 +127,7 @@ func Test_httpSkyTraceStartAndFinish(t *testing.T) {
 			args: args{
 				requestFunc: func() interface{} {
 					re := http.RequestHeader{
-						&fasthttp.RequestHeader{}, nil,
+						&fasthttp.RequestHeader{},
 					}
 					re.SetRequestURI("/test")
 					re.SetHost("127.0.0.1:80")
@@ -154,7 +154,7 @@ func Test_httpSkyTraceStartAndFinish(t *testing.T) {
 			s := tracer.Start(tt.args.context, downStreamRequest, time.Now())
 
 			upStreamRequest := http.RequestHeader{
-				&fasthttp.RequestHeader{}, nil,
+				&fasthttp.RequestHeader{},
 			}
 			requestInfo := tt.args.requestInfoFunc()
 			s.InjectContext(upStreamRequest, requestInfo)

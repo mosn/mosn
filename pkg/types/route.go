@@ -19,7 +19,6 @@ package types
 
 import (
 	"context"
-	"regexp"
 	"time"
 
 	"mosn.io/api"
@@ -31,23 +30,22 @@ import (
 type RouterType string
 
 const (
-	GlobalTimeout                  = 60 * time.Second
-	DefaultRouteTimeout            = 15 * time.Second
-	SofaRouteMatchKey              = "service"
-	RouterMetadataKey              = "filter_metadata"
-	RouterMetadataKeyLb            = "mosn.lb"
-	SofaRouterType      RouterType = "sofa"
+	GlobalTimeout       = 60 * time.Second
+	DefaultRouteTimeout = 15 * time.Second
+	RPCRouteMatchKey    = "service"
+	RouterMetadataKey   = "filter_metadata"
+	RouterMetadataKeyLb = "mosn.lb"
 )
 
 // Routers defines and manages all router
 type Routers interface {
 	// MatchRoute return first route with headers
-	MatchRoute(headers api.HeaderMap, randomValue uint64) api.Route
+	MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route
 	// MatchAllRoutes returns all routes with headers
-	MatchAllRoutes(headers api.HeaderMap, randomValue uint64) []api.Route
+	MatchAllRoutes(ctx context.Context, headers api.HeaderMap) []api.Route
 	// MatchRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
 	// header is used to find virtual host
-	MatchRouteFromHeaderKV(headers api.HeaderMap, key, value string) api.Route
+	MatchRouteFromHeaderKV(ctx context.Context, headers api.HeaderMap, key, value string) api.Route
 	// AddRoute adds a route into virtual host, find virtual host by domain
 	// returns the virtualhost index, -1 means no virtual host found
 	AddRoute(domain string, route *v2.Router) int
@@ -57,13 +55,13 @@ type Routers interface {
 
 // RouterManager is a manager for all routers' config
 type RouterManager interface {
-	// AddRoutersSet adds router config when generated
+	// AddOrUpdateRouters used to add or update router
 	AddOrUpdateRouters(routerConfig *v2.RouterConfiguration) error
-
+	// GetRouterWrapperByName returns a router wrapper from manager
 	GetRouterWrapperByName(routerConfigName string) RouterWrapper
-
+	// AddRoute adds a single router rule into specified virtualhost(by domain)
 	AddRoute(routerConfigName, domain string, route *v2.Router) error
-
+	// RemoveAllRoutes clear all of the specified virtualhost's routes
 	RemoveAllRoutes(routerConfigName, domain string) error
 }
 
@@ -76,6 +74,8 @@ const (
 	HandlerNotAvailable
 	HandlerStop
 )
+
+const DefaultRouteHandler = "default"
 
 // RouteHandler is an external check handler for a route
 type RouteHandler interface {
@@ -91,21 +91,6 @@ type RouterWrapper interface {
 	GetRoutersConfig() v2.RouterConfiguration
 }
 
-type VirtualHost interface {
-	Name() string
-
-	// GetRouteFromEntries returns a Route matched the condition
-	GetRouteFromEntries(headers api.HeaderMap, randomValue uint64) api.Route
-	// GetAllRoutesFromEntries returns all Route matched the condition
-	GetAllRoutesFromEntries(headers api.HeaderMap, randomValue uint64) []api.Route
-	// GetRouteFromHeaderKV is used to quickly locate and obtain routes in certain scenarios
-	GetRouteFromHeaderKV(key, value string) api.Route
-	// AddRoute adds a new route into virtual host
-	AddRoute(route *v2.Router) error
-	// RemoveAllRoutes clear all the routes in the virtual host
-	RemoveAllRoutes()
-}
-
 type HeaderFormat interface {
 	Format(info api.RequestInfo) string
 	Append() bool
@@ -116,35 +101,17 @@ type QueryParams map[string]string
 
 // QueryParameterMatcher match request's query parameter
 type QueryParameterMatcher interface {
-	// Matches returns true if a match for this QueryParameterMatcher exists in request_query_params.
-	Matches(requestQueryParams QueryParams) bool
+	// Matches check whether the query parameters specified in the config are present in a request.
+	// If all the query params (and values) in the query parameter matcher are found in the query_params, return true.
+	Matches(ctx context.Context, requestQueryParams QueryParams) bool
 }
 
-// HeaderData defines headers data.
-// An empty header value allows for matching to be only based on header presence.
-// Regex is an opt-in. Unless explicitly mentioned, the header values will be used for
-// exact string matching.
-type HeaderData struct {
-	Name         LowerCaseString
-	Value        string
-	IsRegex      bool
-	RegexPattern *regexp.Regexp
-}
+// HeaderMatcher match request's headers
+type HeaderMatcher interface {
+	// HeaderMatchCriteria returns the route's HeaderMatchCriteria
+	HeaderMatchCriteria() api.KeyValueMatchCriteria
 
-// ConfigUtility is utility routines for loading route configuration and matching runtime request headers.
-type ConfigUtility interface {
-	// MatchHeaders check whether the headers specified in the config are present in a request.
-	// If all the headers (and values) in the config_headers are found in the request_headers, return true.
-	MatchHeaders(requestHeaders map[string]string, configHeaders []*HeaderData) bool
-
-	// MatchQueryParams check whether the query parameters specified in the config are present in a request.
-	// If all the query params (and values) in the config_params are found in the query_params, return true.
-	MatchQueryParams(queryParams QueryParams, configQueryParams []QueryParameterMatcher) bool
-}
-
-// LowerCaseString is a string wrapper
-type LowerCaseString interface {
-	Lower()
-	Equal(rhs LowerCaseString) bool
-	Get() string
+	// Matches  check whether the headers specified in the config are present in a request.
+	// If all the headers (and values) in the header matcher  are found in the request_headers, return true.
+	Matches(ctx context.Context, requestHeaders api.HeaderMap) bool
 }

@@ -18,18 +18,20 @@
 package trace
 
 import (
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/types"
 )
 
 var (
-	drivers = make(map[string]types.Driver)
+	drivers = make(map[string]api.Driver)
 )
 
-func RegisterDriver(typ string, driver types.Driver) {
+func RegisterDriver(typ string, driver api.Driver) {
 	drivers[typ] = driver
 }
 
-func RegisterTracerBuilder(typ string, protocol types.ProtocolName, builder types.TracerBuilder) {
+func RegisterTracerBuilder(typ string, protocol types.ProtocolName, builder api.TracerBuilder) {
 	if driver, ok := drivers[typ]; ok {
 		driver.Register(protocol, builder)
 	}

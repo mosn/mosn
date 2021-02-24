@@ -586,9 +586,14 @@ func TestSetExtend(t *testing.T) {
 	data, _ := json.Marshal(ext)
 	SetExtend("ext", data)
 	HandleMOSNConfig(CfgTypeExtend, func(v interface{}) {
-		es := v.(map[string]json.RawMessage)
-		raw, ok := es["ext"]
-		if !ok {
+		es := v.([]v2.ExtendConfig)
+		var raw json.RawMessage
+		for _, ext := range es {
+			if ext.Type == "ext" {
+				raw = ext.Config
+			}
+		}
+		if len(raw) == 0 {
 			t.Fatal("no extend config stored")
 		}
 		got := &extConfig{}

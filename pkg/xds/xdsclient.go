@@ -24,12 +24,13 @@ package xds
 import (
 	"errors"
 	"fmt"
-	"github.com/golang/protobuf/jsonpb"
-	"github.com/golang/protobuf/ptypes/duration"
-	"mosn.io/mosn/pkg/xds/conv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/golang/protobuf/ptypes/duration"
+	"mosn.io/mosn/pkg/xds/conv"
 
 	apicluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	bootstrap "github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2"

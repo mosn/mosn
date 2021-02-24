@@ -32,8 +32,8 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/log"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func prepareLocalIpv6Ctx() context.Context {
@@ -47,7 +47,7 @@ func prepareLocalIpv6Ctx() context.Context {
 	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaderMap)
 
 	respHeaders := map[string]string{
-		"Server": "MOSN",
+		"server": "MOSN",
 	}
 	respHeaderMap := newHeaderMap(respHeaders)
 	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaderMap)
@@ -149,7 +149,7 @@ func TestAccessLogWithCustomText(t *testing.T) {
 func TestAccessLogWithPrefixVariables(t *testing.T) {
 	registerTestVarDefs()
 
-	format := "request header:%request_header_service% response header:%response_header_Server%"
+	format := "request header:%request_header_service% response header:%response_header_server%"
 	logName := "/tmp/mosn_bench/test_access_log.log"
 	os.Remove(logName)
 	accessLog, err := NewAccessLog(logName, format)
@@ -292,7 +292,7 @@ func prepareLocalIpv4Ctx() context.Context {
 	ctx = context.WithValue(ctx, requestHeaderMapKey, reqHeaderMap)
 
 	respHeaders := map[string]string{
-		"Server": "MOSN",
+		"server": "MOSN",
 	}
 	ctx = context.WithValue(ctx, responseHeaderMapKey, respHeaders)
 	respHeaderMap := newHeaderMap(respHeaders)
@@ -390,7 +390,7 @@ func (h *mock_HeaderMap) ByteSize() uint64 {
 }
 
 type mock_requestInfo struct {
-	protocol                 api.Protocol
+	protocol                 api.ProtocolName
 	startTime                time.Time
 	responseFlag             api.ResponseFlag
 	upstreamHost             api.HostInfo
@@ -471,11 +471,11 @@ func (r *mock_requestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *mock_requestInfo) Protocol() api.Protocol {
+func (r *mock_requestInfo) Protocol() api.ProtocolName {
 	return r.protocol
 }
 
-func (r *mock_requestInfo) SetProtocol(p api.Protocol) {
+func (r *mock_requestInfo) SetProtocol(p api.ProtocolName) {
 	r.protocol = p
 }
 

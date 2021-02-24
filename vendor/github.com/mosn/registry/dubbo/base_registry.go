@@ -19,6 +19,7 @@ package dubbo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -28,7 +29,6 @@ import (
 	"time"
 
 	gxnet "github.com/dubbogo/gost/net"
-
 	"github.com/mosn/registry/dubbo/common"
 	"github.com/mosn/registry/dubbo/common/constant"
 	"github.com/mosn/registry/dubbo/common/logger"
@@ -43,8 +43,9 @@ const (
 )
 
 var (
-	processID = ""
-	localIP   = ""
+	processID       = ""
+	localIP         = ""
+	RegisteredError = errors.New("already registered")
 )
 
 func init() {
@@ -140,7 +141,8 @@ func (r *BaseRegistry) Register(conf *common.URL) error {
 	_, ok = r.services[conf.Key()]
 	r.cltLock.Unlock()
 	if ok {
-		return perrors.Errorf("Path{%s} has been registered", conf.Key())
+		logger.Errorf("Path{%s} has been registered", conf.Key())
+		return RegisteredError
 	}
 
 	err = r.register(conf)
@@ -310,7 +312,7 @@ func (r *BaseRegistry) providerRegistry(c *common.URL, params url.Values, f crea
 	// Dubbo java consumer to start looking for the provider url,because the category does not match,
 	// the provider will not find, causing the consumer can not start, so we use consumers.
 
-	if len(c.Methods) == 0 {
+	if len(c.Methods) != 0 {
 		params.Add(constant.METHODS_KEY, strings.Join(c.Methods, ","))
 	}
 	logger.Debugf("provider url params:%#v", params)

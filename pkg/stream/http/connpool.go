@@ -261,7 +261,9 @@ func (p *connPool) report() {
 	utils.GoWithRecover(func() {
 		for {
 			p.clientMux.Lock()
-			log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.Host().AddressString(), len(p.availableClients), atomic.LoadUint64(&p.totalClientCount))
+			if log.DefaultLogger.GetLogLevel() >= log.INFO {
+				log.DefaultLogger.Infof("[stream] [http] [connpool] pool = %s, available clients=%d, total clients=%d\n", p.Host().AddressString(), len(p.availableClients), atomic.LoadUint64(&p.totalClientCount))
+			}
 			p.clientMux.Unlock()
 			time.Sleep(time.Second)
 		}
@@ -326,8 +328,10 @@ func (ac *activeClient) OnDestroyStream() {
 func (ac *activeClient) OnResetStream(reason types.StreamResetReason) {
 	ac.pool.onStreamReset(ac, reason)
 	if reason == types.StreamLocalReset && !ac.closed {
-		log.DefaultLogger.Debugf("[stream] [http] stream local reset, blow client away also, Connection = %d",
-			ac.client.ConnID())
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[stream] [http] stream local reset, blow client away also, Connection = %d",
+				ac.client.ConnID())
+		}
 		ac.closeConn = true
 	}
 }

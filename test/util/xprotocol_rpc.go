@@ -5,11 +5,16 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math"
 	"net"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/apache/thrift/lib/go/thrift"
+
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
 	"github.com/TarsCloud/TarsGo/tars/protocol/res/basef"
@@ -56,6 +61,8 @@ func NewRPCClient(t *testing.T, id string, proto types.ProtocolName) *RPCClient 
 		rpcClient.ExpectedStatus = int16(dubbo.ResponseStatusSuccess)
 	case tars.ProtocolName:
 		rpcClient.ExpectedStatus = int16(tars.ResponseStatusSuccess)
+	case dubbothrift.ProtocolName:
+		rpcClient.ExpectedStatus = int16(dubbothrift.ResponseStatusSuccess)
 	}
 	return rpcClient
 
@@ -110,7 +117,7 @@ func (c *RPCClient) SendRequestWithData(in string) {
 	ID := atomic.AddUint64(&c.streamID, 1)
 	streamID := protocol.StreamIDConv(ID)
 	requestEncoder := c.Codec.NewStream(context.Background(), c)
-	var frame xprotocol.XFrame
+	var frame api.XFrame
 	data := buffer.NewIoBufferString(in)
 	// TODO: support boltv2
 	switch c.Protocol {
@@ -121,18 +128,20 @@ func (c *RPCClient) SendRequestWithData(in string) {
 		frame = dubbo.NewRpcRequest(protocol.CommonHeader(map[string]string{"service": "testDubbo"}), buffer.NewIoBufferBytes(buildDubboRequest(ID)))
 	case tars.ProtocolName:
 		frame = tars.NewRpcRequest(protocol.CommonHeader(map[string]string{"service": "testTars"}), buffer.NewIoBufferBytes(buildTarsRequest(ID)))
+	case dubbothrift.ProtocolName:
+		frame = dubbothrift.NewRpcRequest(protocol.CommonHeader(map[string]string{"service": "testThrift"}), buffer.NewIoBufferBytes(buildDubboThriftRequest(ID)))
 	default:
 		c.t.Errorf("unsupport protocol")
 		return
 	}
+	c.Waits.Store(streamID, streamID)
 	requestEncoder.AppendHeaders(context.Background(), frame.GetHeader(), false)
 	requestEncoder.AppendData(context.Background(), data, true)
 	atomic.AddUint32(&c.requestCount, 1)
-	c.Waits.Store(streamID, streamID)
 }
 
 func (c *RPCClient) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
-	if cmd, ok := headers.(xprotocol.XRespFrame); ok {
+	if cmd, ok := headers.(api.XRespFrame); ok {
 		streamID := protocol.StreamIDConv(cmd.GetRequestId())
 
 		if _, ok := c.Waits.Load(streamID); ok {
@@ -173,6 +182,44 @@ func buildDubboRequest(requestId uint64) []byte {
 		return nil
 	}
 	return reqData
+}
+
+func buildDubboThriftRequest(requestId uint64) []byte {
+	bufferBytes := buffer.NewIoBuffer(1024)
+	transport := thrift.NewStreamTransportW(bufferBytes)
+	defer transport.Close()
+	protocol := thrift.NewTBinaryProtocolTransport(transport)
+
+	serviceName := "com.company.test"
+	methodName := "test"
+
+	//header
+	transport.Write(dubbothrift.MagicTag)
+	protocol.WriteI32(math.MaxInt32)
+	protocol.WriteI16(math.MaxInt16)
+	protocol.WriteByte(1)
+	protocol.WriteString(serviceName)
+	protocol.WriteI64(int64(requestId))
+	protocol.Flush(nil)
+
+	headerLen := bufferBytes.Len()
+
+	//message body
+	protocol.WriteMessageBegin(methodName, thrift.CALL, 1)
+	protocol.WriteMessageEnd()
+	protocol.Flush(nil)
+
+	message := bufferBytes.Bytes()
+	messageLen := len(message)
+
+	binary.BigEndian.PutUint16(message[dubbothrift.MessageHeaderLenIdx:dubbothrift.MessageHeaderLenIdx+dubbothrift.MessageLenSize], uint16(headerLen))
+	binary.BigEndian.PutUint32(message[dubbothrift.MessageLenIdx:dubbothrift.MessageLenIdx+dubbothrift.MessageLenSize], uint32(messageLen))
+
+	data := make([]byte, messageLen+dubbothrift.MessageLenSize)
+	binary.BigEndian.PutUint32(data, uint32(messageLen))
+	copy(data[dubbothrift.MessageLenSize:], message)
+
+	return data
 }
 
 func buildTarsRequest(requestId uint64) []byte {
@@ -220,6 +267,8 @@ func NewRPCServer(t *testing.T, addr string, proto types.ProtocolName) UpstreamS
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeDubbo)
 	case tars.ProtocolName:
 		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeTars)
+	case dubbothrift.ProtocolName:
+		s.UpstreamServer = NewUpstreamServer(t, addr, s.ServeDubboThrift)
 	default:
 		t.Errorf("unsupport protocol")
 		return nil
@@ -264,6 +313,32 @@ func (s *RPCServer) ServeDubbo(t *testing.T, conn net.Conn) {
 			t.Logf("RPC Server receive streamId: %d \n", req.Id)
 			atomic.AddUint32(&s.Count, 1)
 			resp := dubbo.NewRpcResponse(nil, buffer.NewIoBufferBytes(buildDubboResponse(req.Id)))
+			ioBufResp, err := protocol.Encode(context.Background(), resp)
+			if err != nil {
+				t.Errorf("Build response error: %v\n", err)
+				return nil, true
+			}
+			return ioBufResp.Bytes(), true
+		} else {
+			t.Logf("Unrecognized request:%+v \n", cmd)
+		}
+		return nil, true
+	}
+	ServeRPC(t, conn, response)
+
+}
+
+func (s *RPCServer) ServeDubboThrift(t *testing.T, conn net.Conn) {
+	response := func(iobuf types.IoBuffer) ([]byte, bool) {
+		protocol := xprotocol.GetProtocol(dubbothrift.ProtocolName)
+		cmd, _ := protocol.Decode(context.Background(), iobuf)
+		if cmd == nil {
+			return nil, false
+		}
+		if req, ok := cmd.(*dubbothrift.Frame); ok {
+			t.Logf("RPC Server receive streamId: %d \n", req.Id)
+			atomic.AddUint32(&s.Count, 1)
+			resp := dubbothrift.NewRpcResponse(nil, buffer.NewIoBufferBytes(buildDubboThriftResponse(req.Id)))
 			ioBufResp, err := protocol.Encode(context.Background(), resp)
 			if err != nil {
 				t.Errorf("Build response error: %v\n", err)
@@ -326,6 +401,44 @@ func buildDubboResponse(requestId uint64) []byte {
 		return nil
 	}
 	return reqData
+}
+
+func buildDubboThriftResponse(requestId uint64) []byte {
+	bufferBytes := buffer.NewIoBuffer(1024)
+	transport := thrift.NewStreamTransportW(bufferBytes)
+	defer transport.Close()
+	protocol := thrift.NewTBinaryProtocolTransport(transport)
+
+	serviceName := "com.company.test"
+	methodName := "test"
+
+	//header
+	transport.Write(dubbothrift.MagicTag)
+	protocol.WriteI32(math.MaxInt32)
+	protocol.WriteI16(math.MaxInt16)
+	protocol.WriteByte(1)
+	protocol.WriteString(serviceName)
+	protocol.WriteI64(int64(requestId))
+	protocol.Flush(nil)
+
+	headerLen := bufferBytes.Len()
+
+	//message body
+	protocol.WriteMessageBegin(methodName, thrift.REPLY, 1)
+	protocol.WriteMessageEnd()
+	protocol.Flush(nil)
+
+	message := bufferBytes.Bytes()
+	messageLen := len(message)
+
+	binary.BigEndian.PutUint16(message[dubbothrift.MessageHeaderLenIdx:dubbothrift.MessageHeaderLenIdx+dubbothrift.MessageLenSize], uint16(headerLen))
+	binary.BigEndian.PutUint32(message[dubbothrift.MessageLenIdx:dubbothrift.MessageLenIdx+dubbothrift.MessageLenSize], uint32(messageLen))
+
+	data := make([]byte, messageLen+dubbothrift.MessageLenSize)
+	binary.BigEndian.PutUint32(data, uint32(messageLen))
+	copy(data[dubbothrift.MessageLenSize:], message)
+
+	return data
 }
 
 func buildTarsResponse(requestId uint64) []byte {

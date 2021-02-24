@@ -18,8 +18,9 @@
 package boltv2
 
 import (
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -27,15 +28,15 @@ func init() {
 }
 
 // predicate first byte '0x2'
-func boltv2Matcher(data []byte) types.MatchResult {
+func boltv2Matcher(data []byte) api.MatchResult {
 	length := len(data)
 	if length == 0 {
-		return types.MatchAgain
+		return api.MatchAgain
 	}
 
 	if data[0] == ProtocolCode {
-		return types.MatchSuccess
+		return api.MatchSuccess
 	}
 
-	return types.MatchFailed
+	return api.MatchFailed
 }

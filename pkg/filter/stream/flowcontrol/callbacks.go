@@ -3,29 +3,36 @@ package flowcontrol
 import (
 	"context"
 	"strconv"
+	"sync"
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
+	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/variable"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
-	"mosn.io/pkg/buffer"
 )
+
+var callbacksRegistry = new(sync.Map)
 
 // Callbacks defines the flow control callbacks
 type Callbacks interface {
 	Init()
-	ParseResource(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) *ParsedResource
+	ShouldIgnore(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool
+	Prepare(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType)
+	ParseResource(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) *ParsedResource
 	AfterBlock(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap)
 	AfterPass(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap)
+	Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap)
 	Exit(filter *StreamFilter)
 	Enabled() bool
 }
 
-// ParsedResource contains the parsed resource wrapper and entry options.
+// ParsedResource contains the parsed Resource wrapper and entry options.
 type ParsedResource struct {
-	resource *base.ResourceWrapper
-	opts     []sentinel.EntryOption
+	Resource *base.ResourceWrapper
+	Opts     []sentinel.EntryOption
 }
 
 // DefaultCallbacks represents the default flow control filter implementation.
@@ -33,11 +40,26 @@ type DefaultCallbacks struct {
 	config *Config
 }
 
+// RegisterCallbacks stores customized callbacks.
+func RegisterCallbacks(name string, cb Callbacks) {
+	callbacksRegistry.Store(name, cb)
+}
+
+// GetCallbacksByName returns specified or default Callbacks.
+func GetCallbacksByConfig(conf *Config) Callbacks {
+	cb, ok := callbacksRegistry.Load(conf.CallbackName)
+	if !ok {
+		return &DefaultCallbacks{config: conf}
+	}
+	return cb.(Callbacks)
+}
+
 // Init is a no-op.
 func (dc *DefaultCallbacks) Init() {}
 
-// ParseResource parses resource from context.
-func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) *ParsedResource {
+// ParseResource parses Resource from context.
+func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.HeaderMap,
+	buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) *ParsedResource {
 	resource, err := variable.GetProtocolResource(ctx, dc.config.KeyType)
 	if err != nil || resource == "" {
 		log.DefaultLogger.Errorf("parse resource failed: %v", err)
@@ -47,21 +69,36 @@ func (dc *DefaultCallbacks) ParseResource(ctx context.Context, headers types.Hea
 	options := []sentinel.EntryOption{
 		sentinel.WithTrafficType(base.Inbound),
 	}
-	return &ParsedResource{resource: res, opts: options}
+	return &ParsedResource{Resource: res, Opts: options}
+}
+
+// Prepare is a no-op by default.
+func (dc *DefaultCallbacks) Prepare(ctx context.Context, headers types.HeaderMap,
+	buf types.IoBuffer, trailers types.HeaderMap, trafficType base.TrafficType) {
 }
 
 // AfterBlock sends response directly.
 func (dc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
-	headers.Set(types.HeaderStatus, strconv.Itoa(dc.config.Action.Status))
-	filter.handler.SendDirectResponse(headers, buffer.NewIoBufferString(dc.config.Action.Body), trailers)
+	variable.SetVariableValue(ctx, types.VarHeaderStatus, strconv.Itoa(dc.config.Action.Status))
+	filter.ReceiverHandler.SendDirectResponse(headers, buffer.NewIoBufferString(dc.config.Action.Body), trailers)
 }
 
-// AfterPass is a no-op.
+// AfterPass is a no-op by default.
 func (dc *DefaultCallbacks) AfterPass(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
 }
 
-// Exit is a no-op.
+// Append is a no-op by default.
+func (dc *DefaultCallbacks) Append(ctx context.Context, headers types.HeaderMap,
+	buf types.IoBuffer, trailers types.HeaderMap) {
+}
+
+// Exit is a no-op by default.
 func (dc *DefaultCallbacks) Exit(filter *StreamFilter) {}
 
 // Enabled reports whether the callbacks enabled.
 func (dc *DefaultCallbacks) Enabled() bool { return dc.config.GlobalSwitch }
+
+// ShouldIgnore is a no-op by default.
+func (dc *DefaultCallbacks) ShouldIgnore(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
+	return false
+}

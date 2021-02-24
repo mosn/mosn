@@ -1,10 +1,22 @@
+// Copyright 1999-2020 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package stat
 
 import (
-	"fmt"
 	"github.com/alibaba/sentinel-golang/core/base"
-	sbase "github.com/alibaba/sentinel-golang/core/stat/base"
-	"sync"
+	"github.com/alibaba/sentinel-golang/core/config"
 )
 
 type ResourceNode struct {
@@ -12,19 +24,14 @@ type ResourceNode struct {
 
 	resourceName string
 	resourceType base.ResourceType
-	// key is "sampleCount/intervalInMs"
-	readOnlyStats map[string]*sbase.SlidingWindowMetric
-	updateLock    sync.RWMutex
 }
 
 // NewResourceNode creates a new resource node with given name and classification.
 func NewResourceNode(resourceName string, resourceType base.ResourceType) *ResourceNode {
 	return &ResourceNode{
-		// TODO: make this configurable
-		BaseStatNode:  *NewBaseStatNode(base.DefaultSampleCount, base.DefaultIntervalMs),
-		resourceName:  resourceName,
-		resourceType:  resourceType,
-		readOnlyStats: make(map[string]*sbase.SlidingWindowMetric),
+		BaseStatNode: *NewBaseStatNode(config.MetricStatisticSampleCount(), config.MetricStatisticIntervalMs()),
+		resourceName: resourceName,
+		resourceType: resourceType,
 	}
 }
 
@@ -34,31 +41,4 @@ func (n *ResourceNode) ResourceType() base.ResourceType {
 
 func (n *ResourceNode) ResourceName() string {
 	return n.resourceName
-}
-
-func (n *ResourceNode) GetSlidingWindowMetric(key string) *sbase.SlidingWindowMetric {
-	n.updateLock.RLock()
-	defer n.updateLock.RUnlock()
-	return n.readOnlyStats[key]
-}
-
-func (n *ResourceNode) GetOrCreateSlidingWindowMetric(sampleCount, intervalInMs uint32) *sbase.SlidingWindowMetric {
-	key := fmt.Sprintf("%d/%d", sampleCount, intervalInMs)
-	fastVal := n.GetSlidingWindowMetric(key)
-	if fastVal != nil {
-		return fastVal
-	}
-
-	n.updateLock.Lock()
-	defer n.updateLock.Unlock()
-
-	v, exist := n.readOnlyStats[key]
-	if exist {
-		return v
-	}
-
-	newSlidingWindow := sbase.NewSlidingWindowMetric(sampleCount, intervalInMs, n.arr)
-	n.readOnlyStats[key] = newSlidingWindow
-	// TODO clean unused entity in readOnlyStats.
-	return newSlidingWindow
 }

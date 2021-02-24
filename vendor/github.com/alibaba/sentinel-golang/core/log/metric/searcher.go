@@ -1,13 +1,29 @@
+// Copyright 1999-2020 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package metric
 
 import (
 	"encoding/binary"
-	"github.com/alibaba/sentinel-golang/core/base"
-	"github.com/alibaba/sentinel-golang/util"
-	"github.com/pkg/errors"
 	"io"
 	"os"
 	"sync"
+
+	"github.com/alibaba/sentinel-golang/core/base"
+	"github.com/alibaba/sentinel-golang/logging"
+	"github.com/alibaba/sentinel-golang/util"
+	"github.com/pkg/errors"
 )
 
 const offsetNotFound = -1
@@ -54,7 +70,7 @@ func (s *DefaultMetricSearcher) searchOffsetAndRead(beginTimeMs uint64, doRead f
 	// If cache is not up-to-date, we'll read from the initial position (offset 0 of the first file).
 	offsetStart, fileNo, err := s.getOffsetStartAndFileIdx(filenames, beginTimeMs)
 	if err != nil {
-		logger.Warnf("Failed to getOffsetStartAndFileIdx, beginTimeMs=%d, error: %+v", beginTimeMs, err)
+		logging.Warn("[searchOffsetAndRead] Failed to getOffsetStartAndFileIdx", "beginTimeMs", beginTimeMs, "err", err.Error())
 	}
 	fileAmount := uint32(len(filenames))
 	for i := fileNo; i < fileAmount; i++ {
@@ -63,8 +79,8 @@ func (s *DefaultMetricSearcher) searchOffsetAndRead(beginTimeMs uint64, doRead f
 		// If offset = -1, it indicates that current file (i) does not satisfy the condition.
 		offset, err := s.findOffsetToStart(filename, beginTimeMs, offsetStart)
 		if err != nil {
-			logger.Warnf("Failed to findOffsetToStart, will try next file. Current beginTimeMs=%d, filename: %s, offsetStart: %d, err: %+v",
-				beginTimeMs, filename, offsetStart, err)
+			logging.Warn("[searchOffsetAndRead] Failed to findOffsetToStart, will try next file", "beginTimeMs", beginTimeMs,
+				"filename", filename, "offsetStart", offsetStart, "err", err)
 			continue
 		}
 		if offset >= 0 {

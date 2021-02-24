@@ -1,11 +1,27 @@
+// Copyright 1999-2020 Alibaba Group Holding Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package metric
 
 import (
 	"bufio"
-	"github.com/alibaba/sentinel-golang/core/base"
-	"github.com/pkg/errors"
 	"io"
 	"os"
+
+	"github.com/alibaba/sentinel-golang/core/base"
+	"github.com/alibaba/sentinel-golang/logging"
+	"github.com/pkg/errors"
 )
 
 const maxItemAmount = 100000
@@ -92,7 +108,7 @@ func (r *defaultMetricLogReader) readMetricsInOneFile(filename string, offset ui
 	defer file.Close()
 
 	bufReader := bufio.NewReaderSize(file, 8192)
-	items := make([]*base.MetricItem, 0)
+	items := make([]*base.MetricItem, 0, 1024)
 	for {
 		line, err := readLine(bufReader)
 		if err != nil {
@@ -104,7 +120,7 @@ func (r *defaultMetricLogReader) readMetricsInOneFile(filename string, offset ui
 		}
 		item, err := base.MetricItemFromFatString(line)
 		if err != nil {
-			logger.Errorf("Failed to convert MetricItem to string: %+v", err)
+			logging.Error(err, "Failed to convert MetricItem to string in defaultMetricLogReader.readMetricsInOneFile()")
 			continue
 		}
 		tsSec := item.Timestamp / 1000
@@ -127,7 +143,7 @@ func (r *defaultMetricLogReader) readMetricsInOneFileByEndTime(filename string, 
 	defer file.Close()
 
 	bufReader := bufio.NewReaderSize(file, 8192)
-	items := make([]*base.MetricItem, 0)
+	items := make([]*base.MetricItem, 0, 1024)
 	for {
 		line, err := readLine(bufReader)
 		if err != nil {
@@ -138,7 +154,7 @@ func (r *defaultMetricLogReader) readMetricsInOneFileByEndTime(filename string, 
 		}
 		item, err := base.MetricItemFromFatString(line)
 		if err != nil {
-			logger.Errorf("Invalid line of metric file: %s, error: %+v", line, err)
+			logging.Error(err, "Invalid line of metric file in defaultMetricLogReader.readMetricsInOneFileByEndTime()", "fileLine", line)
 			continue
 		}
 		tsSec := item.Timestamp / 1000
@@ -159,7 +175,7 @@ func (r *defaultMetricLogReader) readMetricsInOneFileByEndTime(filename string, 
 }
 
 func readLine(bufReader *bufio.Reader) (string, error) {
-	buf := make([]byte, 0)
+	buf := make([]byte, 0, 64)
 	for {
 		line, ne, err := bufReader.ReadLine()
 		if err != nil {
@@ -174,7 +190,7 @@ func readLine(bufReader *bufio.Reader) (string, error) {
 }
 
 func getLatestSecond(items []*base.MetricItem) uint64 {
-	if items == nil {
+	if items == nil || len(items) == 0 {
 		return 0
 	}
 	return items[len(items)-1].Timestamp / 1000

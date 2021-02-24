@@ -17,16 +17,22 @@ github.com/TarsCloud/TarsGo/tars/protocol
 github.com/TarsCloud/TarsGo/tars/protocol/codec
 github.com/TarsCloud/TarsGo/tars/protocol/res/basef
 github.com/TarsCloud/TarsGo/tars/protocol/res/requestf
-# github.com/alibaba/sentinel-golang v0.2.1-0.20200509115140-6d505e23ef30
+# github.com/alibaba/sentinel-golang v1.0.2-0.20210112133552-db6063eb263e
 github.com/alibaba/sentinel-golang/api
 github.com/alibaba/sentinel-golang/core/base
+github.com/alibaba/sentinel-golang/core/circuitbreaker
 github.com/alibaba/sentinel-golang/core/config
 github.com/alibaba/sentinel-golang/core/flow
+github.com/alibaba/sentinel-golang/core/hotspot
+github.com/alibaba/sentinel-golang/core/hotspot/cache
+github.com/alibaba/sentinel-golang/core/isolation
 github.com/alibaba/sentinel-golang/core/log
 github.com/alibaba/sentinel-golang/core/log/metric
+github.com/alibaba/sentinel-golang/core/misc
 github.com/alibaba/sentinel-golang/core/stat
 github.com/alibaba/sentinel-golang/core/stat/base
 github.com/alibaba/sentinel-golang/core/system
+github.com/alibaba/sentinel-golang/core/system_metric
 github.com/alibaba/sentinel-golang/logging
 github.com/alibaba/sentinel-golang/util
 # github.com/andybalholm/brotli v1.0.0
@@ -38,6 +44,8 @@ github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java8_time
 github.com/apache/dubbo-go-hessian2/java_exception
 github.com/apache/dubbo-go-hessian2/java_sql_time
+# github.com/apache/thrift v0.13.0
+github.com/apache/thrift/lib/go/thrift
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
@@ -52,6 +60,8 @@ github.com/cncf/udpa/go/udpa/type/v1
 github.com/davecgh/go-spew/spew
 # github.com/dchest/siphash v1.2.1
 github.com/dchest/siphash
+# github.com/dgrijalva/jwt-go v3.2.0+incompatible
+github.com/dgrijalva/jwt-go
 # github.com/dubbogo/getty v1.3.4
 github.com/dubbogo/getty
 # github.com/dubbogo/go-zookeeper v1.0.0
@@ -79,6 +89,7 @@ github.com/envoyproxy/go-control-plane/envoy/api/v2/listener
 github.com/envoyproxy/go-control-plane/envoy/api/v2/route
 github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2
 github.com/envoyproxy/go-control-plane/envoy/config/bootstrap/v2
+github.com/envoyproxy/go-control-plane/envoy/config/core/v3
 github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/fault/v2
 github.com/envoyproxy/go-control-plane/envoy/config/filter/http/fault/v2
@@ -88,14 +99,20 @@ github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2
 github.com/envoyproxy/go-control-plane/envoy/config/listener/v2
 github.com/envoyproxy/go-control-plane/envoy/config/metrics/v2
 github.com/envoyproxy/go-control-plane/envoy/config/overload/v2alpha
+github.com/envoyproxy/go-control-plane/envoy/config/route/v3
 github.com/envoyproxy/go-control-plane/envoy/config/trace/v2
 github.com/envoyproxy/go-control-plane/envoy/data/tap/v2alpha
+github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3
 github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2
 github.com/envoyproxy/go-control-plane/envoy/service/tap/v2alpha
 github.com/envoyproxy/go-control-plane/envoy/type
 github.com/envoyproxy/go-control-plane/envoy/type/matcher
+github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3
 github.com/envoyproxy/go-control-plane/envoy/type/metadata/v2
+github.com/envoyproxy/go-control-plane/envoy/type/metadata/v3
 github.com/envoyproxy/go-control-plane/envoy/type/tracing/v2
+github.com/envoyproxy/go-control-plane/envoy/type/tracing/v3
+github.com/envoyproxy/go-control-plane/envoy/type/v3
 github.com/envoyproxy/go-control-plane/pkg/conversion
 github.com/envoyproxy/go-control-plane/pkg/wellknown
 # github.com/envoyproxy/protoc-gen-validate v0.1.0
@@ -159,14 +176,14 @@ github.com/google/cel-go/parser/gen
 github.com/google/uuid
 # github.com/gorilla/websocket v1.4.0
 github.com/gorilla/websocket
-# github.com/hashicorp/go-hclog v0.9.1
+# github.com/hashicorp/go-hclog v0.0.0-20180709165350-ff2cf002a8dd
 github.com/hashicorp/go-hclog
 # github.com/hashicorp/go-plugin v1.0.1
 github.com/hashicorp/go-plugin
 github.com/hashicorp/go-plugin/internal/plugin
 # github.com/hashicorp/go-syslog v1.0.0
 github.com/hashicorp/go-syslog
-# github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
+# github.com/hashicorp/yamux v0.0.0-20180604194846-3520598351bb
 github.com/hashicorp/yamux
 # github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
 github.com/jinzhu/copier
@@ -180,6 +197,12 @@ github.com/klauspost/compress/gzip
 github.com/klauspost/compress/zlib
 # github.com/leodido/go-urn v1.2.0
 github.com/leodido/go-urn
+# github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
+github.com/lestrrat/go-jwx/internal/base64
+github.com/lestrrat/go-jwx/jwa
+github.com/lestrrat/go-jwx/jwk
+# github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8
+github.com/lestrrat/go-pdebug
 # github.com/lyft/protoc-gen-validate v0.0.14
 github.com/lyft/protoc-gen-validate/validate
 # github.com/magiconair/properties v1.8.1
@@ -188,7 +211,7 @@ github.com/magiconair/properties
 github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/miekg/dns v1.0.14
 github.com/miekg/dns
-# github.com/mitchellh/go-testing-interface v1.0.0
+# github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77
 github.com/mitchellh/go-testing-interface
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 github.com/modern-go/concurrent
@@ -198,7 +221,9 @@ github.com/modern-go/reflect2
 github.com/mosn/binding
 github.com/mosn/binding/internal/bytesconv
 github.com/mosn/binding/internal/json
-# github.com/mosn/registry v0.0.0-20200612075445-e18906b5ec91
+# github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827
+github.com/mosn/easygo/netpoll
+# github.com/mosn/registry v0.0.0-20210108061200-d7b63bc1904b
 github.com/mosn/registry/dubbo
 github.com/mosn/registry/dubbo/common
 github.com/mosn/registry/dubbo/common/constant
@@ -208,8 +233,6 @@ github.com/mosn/registry/dubbo/config_center/parser
 github.com/mosn/registry/dubbo/remoting
 github.com/mosn/registry/dubbo/remoting/zookeeper
 github.com/mosn/registry/dubbo/zookeeper
-# github.com/neverhook/easygo v0.0.0-20180828090412-787757e64990
-github.com/neverhook/easygo/netpoll
 # github.com/oklog/run v1.0.0
 github.com/oklog/run
 # github.com/pkg/errors v0.9.1
@@ -233,11 +256,11 @@ github.com/prometheus/procfs/internal/fs
 github.com/rcrowley/go-metrics
 # github.com/satori/go.uuid v1.2.0
 github.com/satori/go.uuid
-# github.com/shirou/gopsutil v2.19.12+incompatible
-github.com/shirou/gopsutil/cpu
-github.com/shirou/gopsutil/internal/common
-github.com/shirou/gopsutil/load
-# github.com/stretchr/testify v1.6.0
+# github.com/shirou/gopsutil/v3 v3.20.11
+github.com/shirou/gopsutil/v3/cpu
+github.com/shirou/gopsutil/v3/internal/common
+github.com/shirou/gopsutil/v3/load
+# github.com/stretchr/testify v1.6.1
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
@@ -254,8 +277,12 @@ github.com/valyala/fasthttp/fasthttputil
 github.com/valyala/fasthttp/stackless
 # github.com/valyala/fasttemplate v1.1.0
 github.com/valyala/fasttemplate
-# go.uber.org/atomic v1.6.0
+# go.uber.org/atomic v1.7.0
 go.uber.org/atomic
+# go.uber.org/automaxprocs v1.3.0
+go.uber.org/automaxprocs/internal/cgroups
+go.uber.org/automaxprocs/internal/runtime
+go.uber.org/automaxprocs/maxprocs
 # go.uber.org/multierr v1.5.0
 go.uber.org/multierr
 # go.uber.org/zap v1.14.1
@@ -290,7 +317,9 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/ipv4
 golang.org/x/net/ipv6
 golang.org/x/net/trace
-# golang.org/x/sys v0.0.0-20200602100848-8d3cce7afc34
+# golang.org/x/sync v0.0.0-20190423024810-112230192c58
+golang.org/x/sync/errgroup
+# golang.org/x/sys v0.0.0-20201024232916-9f70ab9862d5
 golang.org/x/sys/cpu
 golang.org/x/sys/internal/unsafeheader
 golang.org/x/sys/unix
@@ -301,7 +330,7 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/width
-# golang.org/x/tools v0.0.0-20191029190741-b9c20aec41a5
+# golang.org/x/tools v0.0.0-20191125144606-a911d9008d1f
 golang.org/x/tools/go/ast/astutil
 # google.golang.org/genproto v0.0.0-20200305110556-506484158171
 google.golang.org/genproto/googleapis/api/annotations
@@ -348,9 +377,12 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
+# gopkg.in/errgo.v2 v2.1.0
+gopkg.in/errgo.v2/errors
+gopkg.in/errgo.v2/fmt/errors
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
-# gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 gopkg.in/yaml.v3
@@ -362,9 +394,10 @@ istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# mosn.io/api v0.0.0-20201104063430-1abb4764d12a
+# mosn.io/api v0.0.0-20210204052134-5b9a826795fd
 mosn.io/api
-# mosn.io/pkg v0.0.0-20200729115159-2bd74f20be0f
+# mosn.io/pkg v0.0.0-20210204111127-5f869b58611d
 mosn.io/pkg/buffer
+mosn.io/pkg/header
 mosn.io/pkg/log
 mosn.io/pkg/utils
