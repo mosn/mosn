@@ -137,10 +137,12 @@ func (f *Filter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
 
 func headerSize(headers api.HeaderMap) int {
 	size := 0
-	headers.Range(func(key, value string) bool {
-		size++
-		return true
-	})
+	if headers != nil {
+		headers.Range(func(key, value string) bool {
+			size++
+			return true
+		})
+	}
 	return size
 }
 

@@ -171,13 +171,23 @@ func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 			return true
 		}
 
-		_, err = exports.ProxyOnVmStart(f.config.RootContextID, int32(f.GetVmConfig().Len()))
+		vmConfigSize := 0
+		if vmConfigBytes := f.GetVmConfig(); vmConfigBytes != nil {
+			vmConfigSize = vmConfigBytes.Len()
+		}
+
+		_, err = exports.ProxyOnVmStart(f.config.RootContextID, int32(vmConfigSize))
 		if err != nil {
 			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
 			return true
 		}
 
-		_, err = exports.ProxyOnConfigure(f.config.RootContextID, int32(f.GetPluginConfig().Len()))
+		pluginConfigSize := 0
+		if pluginConfigBytes := f.GetPluginConfig(); pluginConfigBytes != nil {
+			pluginConfigSize = pluginConfigBytes.Len()
+		}
+
+		_, err = exports.ProxyOnConfigure(f.config.RootContextID, int32(pluginConfigSize))
 		if err != nil {
 			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
 			return true
