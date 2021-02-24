@@ -24,9 +24,17 @@ import (
 	"mosn.io/mosn/pkg/types"
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
 	"mosn.io/pkg/buffer"
+	"runtime/debug"
 )
 
 func proxySetBufferBytes(instance types.WasmInstance, bufferType int32, start int32, length int32, dataPtr int32, dataSize int32) int32 {
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.DefaultLogger.Errorf("[wasm protocol] %s panic %v\n%s", r, string(debug.Stack()))
+		}
+	}()
+
 	bt := v1.BufferType(bufferType)
 	switch bt {
 	case BufferTypeDecodeData:
@@ -86,12 +94,14 @@ func proxySetEncodeCommand(instance types.WasmInstance, bufferType int32, start 
 	var (
 		timeoutIndex = 13 + headerBytes
 		drainIndex   = timeoutIndex + 4
+		byteIndex    = drainIndex + 4
 	)
 
 	// encoded buffer length
 	drainLen := binary.BigEndian.Uint32(content[drainIndex:])
 	// command encode buffer
-	buf := buffer.NewIoBufferBytes(content[:drainLen])
+	buf := buffer.NewIoBufferBytes(content[byteIndex : byteIndex+drainLen])
+	//fmt.Fprintf(os.Stdout, "==>encode buf(%d): %v", buf.Len(), buf.Bytes())
 	ctx := getInstanceCallback(instance)
 	ctx.SetEncodeBuffer(buf)
 
@@ -101,6 +111,7 @@ func proxySetEncodeCommand(instance types.WasmInstance, bufferType int32, start 
 func decodeWasmRequest(instance types.WasmInstance, bufferType int32,
 	content []byte, headerBytes uint32, id uint64,
 	headers *xprotocol.Header, flag byte) {
+
 	// buffer format:
 	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes length | raw bytes
 
@@ -108,6 +119,7 @@ func decodeWasmRequest(instance types.WasmInstance, bufferType int32,
 		timeoutIndex = 13 + headerBytes
 		drainIndex   = timeoutIndex + 4
 		rawIndex     = drainIndex + 4
+		byteIndex    = rawIndex + 4
 	)
 
 	// decode wasm request timeout
@@ -116,20 +128,27 @@ func decodeWasmRequest(instance types.WasmInstance, bufferType int32,
 	drainLen := binary.BigEndian.Uint32(content[drainIndex:])
 	// content byte length
 	rawBytesLen := binary.BigEndian.Uint32(content[rawIndex:])
+
+	// create proxy wasm request
 	req := NewWasmRequestWithId(uint32(id), headers,
-		buffer.NewIoBufferBytes(content[rawIndex+rawBytesLen:]))
+		buffer.NewIoBufferBytes(content[byteIndex:byteIndex+rawBytesLen]))
 	req.Timeout = timeout
+
 	// check heartbeat command
 	if flag&HeartBeatFlag != 0 {
 		req.Flag = req.Flag | HeartBeatFlag
 	}
 	// check oneway request
-	if flag&RpcOneWayRequestFlag != 0 {
+	if flag&RpcOneWayRequestFlag == RpcOneWayRequestFlag {
 		req.Flag = req.Flag | RpcOneWayRequestFlag
 	}
 	buf := GetBuffer(instance, v1.BufferType(bufferType))
 	// if data without change, direct encode forward
-	req.Data = buffer.NewIoBufferBytes(buf.Bytes()[:drainLen])
+	req.Data = buffer.GetIoBuffer(int(drainLen))
+	req.Data.Write(buf.Bytes()[:drainLen])
+
+	//fmt.Fprintf(os.Stdout, "==>decode buf(%d): %v", req.Data.Len(), req.Data.Bytes())
+
 	ctx := getInstanceCallback(instance)
 	// we need to drain decode buffer
 	if drainLen > 0 {
@@ -148,6 +167,7 @@ func decodeWasmResponse(instance types.WasmInstance, bufferType int32,
 		timeoutIndex = 13 + headerBytes
 		drainIndex   = timeoutIndex + 4
 		rawIndex     = drainIndex + 4
+		byteIndex    = rawIndex + 4
 	)
 
 	// decode wasm response status
@@ -157,19 +177,18 @@ func decodeWasmResponse(instance types.WasmInstance, bufferType int32,
 	// content byte length
 	rawBytesLen := binary.BigEndian.Uint32(content[rawIndex:])
 	resp := NewWasmResponseWithId(uint32(id), headers,
-		buffer.NewIoBufferBytes(content[rawIndex+rawBytesLen:]))
+		buffer.NewIoBufferBytes(content[byteIndex:byteIndex+rawBytesLen]))
 	resp.Status = status
+
 	// check heartbeat command
 	if flag&HeartBeatFlag != 0 {
 		resp.Flag = resp.Flag | HeartBeatFlag
 	}
-	// check oneway request
-	if flag&RpcOneWayRequestFlag != 0 {
-		resp.Flag = resp.Flag | RpcOneWayRequestFlag
-	}
 	buf := GetBuffer(instance, v1.BufferType(bufferType))
 	// if data without change, direct encode forward
-	resp.Data = buffer.NewIoBufferBytes(buf.Bytes()[:drainLen])
+	resp.Data = buffer.GetIoBuffer(int(drainLen))
+	resp.Data.Write(buf.Bytes()[:drainLen])
+
 	ctx := getInstanceCallback(instance)
 	// we need to drain decode buffer
 	if drainLen > 0 {

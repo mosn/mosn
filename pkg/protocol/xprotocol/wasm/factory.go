@@ -167,7 +167,7 @@ func (f *protocolFactory) OnPluginStart(plugin types.WasmPlugin) {
 		exports := abiVersion.(Exports)
 
 		_ = exports.ProxyOnContextCreate(f.config.RootContextID, 0)
-		//_, _ = exports.ProxyOnVmStart(f.config.RootContextID, int32(f.GetVmConfig().Len()))
+		_, _ = exports.ProxyOnVmStart(f.config.RootContextID, int32(f.GetVmConfig().Len()))
 		_, _ = exports.ProxyOnConfigure(f.config.RootContextID, int32(f.GetPluginConfig().Len()))
 
 		return true

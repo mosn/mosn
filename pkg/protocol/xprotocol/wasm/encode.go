@@ -34,7 +34,7 @@ func (proto *wasmRpcProtocol) encodeRequest(context context.Context, request *Re
 
 	wasmCtx := ctx.(*Context)
 	proto.instance.Acquire(wasmCtx)
-	// invoke plugin decode impl
+	// invoke plugin encode impl
 	err := wasmCtx.exports.ProxyEncodeRequestBufferBytes(wasmCtx.contextId, request)
 	proto.instance.Release()
 
@@ -50,7 +50,7 @@ func (proto *wasmRpcProtocol) encodeResponse(context context.Context, response *
 
 	wasmCtx := ctx.(*Context)
 	proto.instance.Acquire(wasmCtx)
-	// invoke plugin decode impl
+	// invoke plugin encode impl
 	err := wasmCtx.exports.ProxyEncodeResponseBufferBytes(wasmCtx.contextId, response)
 	proto.instance.Release()
 

@@ -47,7 +47,7 @@ type ProtocolConfig struct {
 	FromWasmPlugin string                 `json:"from_wasm_plugin,omitempty"`
 	VmConfig       *v2.WasmVmConfig       `json:"vm_config,omitempty"`
 	InstanceNum    int                    `json:"instance_num,omitempty"`
-	RootContextID  int32                  `json:"root_context_id,omitempty"`
+	RootContextID  int32                  `json:"root_id,omitempty"`
 	ExtendConfig   *v2.XProxyExtendConfig `json:"extend_config,omitempty"`
 	// protocol feature field
 	PoolMode          string `json:"pool_mode,omitempty"`

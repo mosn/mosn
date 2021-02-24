@@ -23,11 +23,12 @@ import (
 )
 
 type RpcHeader struct {
-	Flag       byte   // rpc request or response flag
-	Id         uint32 // request or response id
-	ReplacedId uint32 // request or response id (replaced by stream)
-	HeaderLen  uint32 // header length
-	PayloadLen uint32 // payload length
+	Flag         byte   // rpc request or response flag
+	Id           uint32 // request or response id
+	RpcId        uint32 // request or response id (replaced by stream)
+	IsReplacedId bool   // check if the id has been replaced
+	HeaderLen    uint32 // header length
+	PayloadLen   uint32 // payload length
 
 	xprotocol.Header
 }
@@ -67,9 +68,10 @@ func (r *Request) GetId() uint32 {
 
 func (r *Request) SetRequestId(id uint64) {
 	// save replace stream id
-	r.ReplacedId = r.Id
+	r.RpcId = r.Id
 	// new request id
 	r.Id = uint32(id)
+	r.IsReplacedId = true
 }
 
 func (r *Request) IsHeartbeatFrame() bool {
@@ -133,8 +135,9 @@ func (r *Response) GetRequestId() uint64 {
 
 func (r *Response) SetRequestId(id uint64) {
 	// save replace stream id
-	r.ReplacedId = r.Id
+	r.RpcId = r.Id
 	r.Id = uint32(id)
+	r.IsReplacedId = true
 }
 
 func (r *Response) IsHeartbeatFrame() bool {
@@ -164,6 +167,6 @@ func (r *Response) GetStatusCode() uint32 {
 	return r.Status
 }
 
-func (r *Response) getId() uint32 {
+func (r *Response) GetId() uint32 {
 	return uint32(r.Id)
 }

@@ -382,6 +382,16 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame api.XFrame) {
 		log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] connection %d receive response, requestId = %v", sc.netConn.ID(), requestId)
 	}
 
+	if wasmCtx := mosnctx.Get(ctx, types.ContextKeyWasmContext); wasmCtx != nil {
+		switchCtx := mosnctx.Get(clientStream.ctx, types.ContextKeyWasmContext)
+		// The wasm context of the response is passed to the client,
+		// and the sandbox can find the cached response based on the context of the wasm
+		clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyWasmContext, wasmCtx)
+		// record the downstream context and switch as soon as the response encode is completed
+		clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyWasmSwitchContext, switchCtx)
+
+	}
+
 	clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
 }
 

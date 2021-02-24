@@ -52,9 +52,11 @@ flag (bit) :
 
 func NewWasmRpcProtocol(config *ProtocolConfig, instance types.WasmInstanceWrapper) *wasmRpcProtocol {
 	return &wasmRpcProtocol{
-		config:   config,
-		instance: instance,
-		name:     types.ProtocolName(config.ExtendConfig.SubProtocol),
+		config:      config,
+		instance:    instance,
+		name:        types.ProtocolName(config.ExtendConfig.SubProtocol),
+		contexts:    make(map[int32]*Context),
+		idToContext: make(map[uint64]int32),
 	}
 }
 
@@ -138,7 +140,10 @@ func (proto *wasmRpcProtocol) OnProxyCreate(context context.Context) context.Con
 		proto.instance.Acquire(wasmCtx)
 		proto.contexts[wasmCtx.contextId] = wasmCtx
 		// invoke plugin proxy on create
-		wasmCtx.exports.ProxyOnContextCreate(wasmCtx.contextId, 0)
+		err := wasmCtx.exports.ProxyOnContextCreate(wasmCtx.contextId, proto.config.RootContextID)
+		if err != nil {
+			log.DefaultLogger.Warnf("failed to create protocol '%s' context, contextId %d not found", proto.name, wasmCtx.contextId)
+		}
 		proto.instance.Release()
 		return mosnctx.WithValue(context, types.ContextKeyWasmContext, wasmCtx)
 	}
@@ -178,6 +183,7 @@ func (proto *wasmRpcProtocol) OnProxyDelete(context context.Context) {
 
 func (proto *wasmRpcProtocol) NewContext() *Context {
 	abiVersion := abi.GetABI("proxy_abi_version_0_2_0")
+	abiVersion.SetInstance(proto.instance)
 	return &Context{
 		proto:     proto,
 		contextId: atomic.AddInt32(&contextId, 1),

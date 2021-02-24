@@ -47,10 +47,11 @@
 									"extend_config": {
 										"sub_protocol": "x-bolt"
 									},
-                                    "from_wasm_plugin": "bolt",
+                                    "from_wasm_plugin": "x-bolt",
                                     "pool_mode": "multiplex",
                                     "disable_worker_pool": false,
-                                    "plugin_generate_id": false
+                                    "plugin_generate_id": false,
+									"root_id": 1
                                 }
 							}
 						]
@@ -78,7 +79,11 @@
                                     "extend_config": {
                                       "sub_protocol": "x-bolt"
                                     },
-                                    "from_wasm_plugin": "bolt"
+                                    "from_wasm_plugin": "x-bolt",
+									"pool_mode": "multiplex",
+									"disable_worker_pool": false,
+									"plugin_generate_id": false,
+									"root_id": 1
 								}
 							}
 						]
@@ -121,7 +126,7 @@
 	},
 	"wasm_global_plugins": [
 		{
-			"plugin_name": "bolt",
+			"plugin_name": "x-bolt",
 			"vm_config": {
 				"engine": "wasmer",
 				"path": "/Users/yiji/go/src/github.com/zonghaishang/proxy-wasm-sdk-go/examples/bolt/build/bolt-go.wasm",

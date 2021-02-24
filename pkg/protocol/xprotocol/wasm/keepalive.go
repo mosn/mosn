@@ -22,7 +22,7 @@ func (proto *wasmRpcProtocol) keepaliveRequest(context context.Context, requestI
 	// invoke plugin keepalive impl
 	err := wasmCtx.exports.ProxyKeepAliveBufferBytes(wasmCtx.contextId, requestId)
 	if err != nil {
-		log.DefaultLogger.Errorf("[protocol] wasm %s keepaliveRequest request failed, err %v.", proto.name, err)
+		log.DefaultLogger.Errorf("[protocol] wasm %s keepalive request failed, err %v.", proto.name, err)
 		return nil
 	}
 
@@ -48,14 +48,19 @@ func (proto *wasmRpcProtocol) keepaliveResponse(context context.Context, request
 	// invoke plugin keepalive impl
 	err := wasmCtx.exports.ProxyReplyKeepAliveBufferBytes(wasmCtx.contextId, request.(*Request))
 	if err != nil {
-		log.DefaultLogger.Errorf("[protocol] wasm %s keepaliveRequest response failed, err %v.", proto.name, err)
+		log.DefaultLogger.Errorf("[protocol] wasm %s keepalive response failed, err %v.", proto.name, err)
 		return nil
 	}
 
 	// todo the mock heartbeat packets
 	// When encode is called, the proxy gets the correct buffer
-	wasmCtx.keepaliveResp = NewWasmResponseWithId(uint32(request.GetRequestId()), nil, nil)
-	wasmCtx.keepaliveResp.Flag = wasmCtx.keepaliveResp.Flag | HeartBeatFlag
+	resp := NewWasmResponseWithId(uint32(request.GetRequestId()), nil, nil)
+	resp.Flag = resp.Flag | HeartBeatFlag
+	wasmCtx.keepaliveResp = resp
+
+	if !resp.IsReplacedId {
+		resp.RpcId = resp.GetId()
+	}
 
 	return wasmCtx.keepaliveResp
 }

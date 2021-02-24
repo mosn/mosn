@@ -25,6 +25,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
 	"mosn.io/pkg/buffer"
+	"os"
 )
 
 func (a *AbiV2Impl) ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) error {
@@ -50,9 +51,9 @@ func (a *AbiV2Impl) ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) 
 	}
 
 	// invoke decode for plugin
-	resp, err := ff.Call(contextId, addr, buf.Len())
+	resp, err := ff.Call(contextId, int32(addr), buf.Len())
 	if err != nil {
-		return errors.New(fmt.Sprintf("fail to invoke export func: proxy_decode_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err))
+		return errors.New(fmt.Sprintf("fail to invoke export func: proxy_decode_buffer_bytes for plugin %s, contextId: %d, err: %v", ctx.proto.name, contextId, err))
 	}
 
 	status := resp.(int32)
@@ -119,15 +120,14 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 	// write replaced id
 	buf.WriteUint64(cmd.GetRequestId())
 	// write command id
-	buf.WriteUint64(uint64(cmd.ReplacedId))
+	buf.WriteUint64(uint64(cmd.RpcId))
 
 	// write timeout
 	buf.WriteUint32(cmd.Timeout)
 
-	dataBytes := cmd.GetData().Len()
 	// write drain length
-	buf.WriteUint32(uint32(dataBytes))
-	if dataBytes > 0 {
+	buf.WriteUint32(uint32(drainLen))
+	if drainLen > 0 {
 		// write raw dataBytes
 		buf.Write(cmd.GetData().Bytes())
 	}
@@ -144,7 +144,7 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 		return errors.New(fmt.Sprintf("failed to copy encode request buffer to plugin %s, len: %d", ctx.proto.name, buf.Len()))
 	}
 
-	resp, err := ff.Call(contextId, addr, buf.Len())
+	resp, err := ff.Call(contextId, int32(addr), buf.Len())
 	if err != nil {
 		return errors.New(fmt.Sprintf("fail to invoke export func: proxy_encode_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err))
 	}
@@ -156,11 +156,13 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 		return errors.New(fmt.Sprintf("plugin %s encode request buffer failed, contextId: %d, len: %d", ctx.proto.name, ctx.ContextId(), buf.Len()))
 	}
 
+	fmt.Fprintf(os.Stdout, "encode request, context id: %d \n", contextId)
+
 	return nil
 }
 
 func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Response) error {
-	log.DefaultLogger.Infof("[export] ProxyEncodeRequestBufferBytes contextID: %v", contextId)
+	log.DefaultLogger.Infof("[export] ProxyEncodeResponseBufferBytes contextID: %v", contextId)
 
 	instance := a.GetInstance()
 	ctx := instance.GetData().(*Context)
@@ -203,15 +205,14 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 	// write replaced id
 	buf.WriteUint64(cmd.GetRequestId())
 	// write command id
-	buf.WriteUint64(uint64(cmd.ReplacedId))
+	buf.WriteUint64(uint64(cmd.RpcId))
 
 	// write timeout
 	buf.WriteUint32(cmd.GetStatusCode())
 
-	dataBytes := cmd.GetData().Len()
 	// write drain length
-	buf.WriteUint32(uint32(dataBytes))
-	if dataBytes > 0 {
+	buf.WriteUint32(uint32(drainLen))
+	if drainLen > 0 {
 		// write raw dataBytes
 		buf.Write(cmd.GetData().Bytes())
 	}
@@ -228,7 +229,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 		return errors.New(fmt.Sprintf("failed to copy encode response buffer to plugin %s, len: %d", ctx.proto.name, buf.Len()))
 	}
 
-	resp, err := ff.Call(contextId, addr, buf.Len())
+	resp, err := ff.Call(contextId, int32(addr), buf.Len())
 	if err != nil {
 		return errors.New(fmt.Sprintf("fail to invoke export func: proxy_encode_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err))
 	}
@@ -239,6 +240,8 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 	if status != v1.WasmResultOk.Int32() {
 		return errors.New(fmt.Sprintf("plugin %s encode response buffer failed, contextId: %d, len: %d", ctx.proto.name, ctx.ContextId(), buf.Len()))
 	}
+
+	fmt.Fprintf(os.Stdout, "encode response, context id: %d \n", contextId)
 
 	return nil
 }
@@ -307,7 +310,7 @@ func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd *Request, status
 
 	// todo pass decode buffer to plugin
 
-	status, err := ff.Call(contextId, statusCode, 0, 0)
+	status, err := ff.Call(contextId, int32(statusCode), 0, 0)
 	if err != nil {
 		return err
 	}

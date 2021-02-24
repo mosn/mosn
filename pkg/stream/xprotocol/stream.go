@@ -20,6 +20,7 @@ package xprotocol
 import (
 	"context"
 	"fmt"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"strconv"
 
 	"mosn.io/api"
@@ -137,6 +138,13 @@ func (s *xStream) endStream() {
 		s.frame.SetRequestId(s.id)
 
 		buf, err := s.sc.protocol.Encode(s.ctx, s.frame)
+
+		// recover wasm context when response return
+		if wasmCtx := mosnctx.Get(s.ctx, types.ContextKeyWasmSwitchContext); wasmCtx != nil {
+			// once the stream ends, ensure that the sandbox instance call is triggered correctly
+			s.ctx = mosnctx.WithValue(s.ctx, types.ContextKeyWasmContext, wasmCtx)
+		}
+
 		if err != nil {
 			log.Proxy.Errorf(s.ctx, "[stream] [xprotocol] encode error:%s, requestId = %v", err.Error(), s.id)
 			s.ResetStream(types.StreamLocalReset)
