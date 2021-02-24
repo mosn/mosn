@@ -148,7 +148,7 @@ func NewWasmPlugin(wasmConfig v2.WasmPluginConfig) (types.WasmPlugin, error) {
 		wasmBytes = loadWasmBytesFromUrl(wasmConfig.VmConfig.Url)
 	}
 
-	if wasmBytes == nil || len(wasmBytes) == 0 {
+	if len(wasmBytes) == 0 {
 		log.DefaultLogger.Errorf("[wasm][plugin] NewWasmPlugin fail to load wasm bytes, config: %v", wasmConfig)
 		return nil, ErrWasmBytesLoad
 	}

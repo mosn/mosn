@@ -45,12 +45,15 @@ type FilterConfigFactory struct {
 
 	pluginName string
 	config     *filterConfig
+
+	vmConfigBytes     buffer.IoBuffer
+	pluginConfigBytes buffer.IoBuffer
 }
 
 func createProxyWasmFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	config, err := parseFilterConfig(conf)
 	if err != nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] createProxyWasmFilterFactory fail to parse config, err: %v", err)
+		log.DefaultLogger.Errorf("[x-proxy-wasm][factory] createProxyWasmFilterFactory fail to parse config, err: %v", err)
 		return nil, err
 	}
 
@@ -67,7 +70,7 @@ func createProxyWasmFilterFactory(conf map[string]interface{}) (api.StreamFilter
 
 		err = wasm.GetWasmManager().AddOrUpdateWasm(v2Config)
 		if err != nil {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] createProxyWasmFilterFactory fail to add plugin, err: %v", err)
+			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] createProxyWasmFilterFactory fail to add plugin, err: %v", err)
 			return nil, err
 		}
 	} else {
@@ -106,6 +109,10 @@ func (f *FilterConfigFactory) GetRootContextID() int32 {
 }
 
 func (f *FilterConfigFactory) GetVmConfig() buffer.IoBuffer {
+	if f.vmConfigBytes != nil {
+		return f.vmConfigBytes
+	}
+
 	vmConfig := *f.config.VmConfig
 	typeOf := reflect.TypeOf(vmConfig)
 	valueOf := reflect.ValueOf(&vmConfig).Elem()
@@ -124,15 +131,24 @@ func (f *FilterConfigFactory) GetVmConfig() buffer.IoBuffer {
 		return nil
 	}
 
-	return buffer.NewIoBufferBytes(b)
+	f.vmConfigBytes = buffer.NewIoBufferBytes(b)
+
+	return f.vmConfigBytes
 }
 
 func (f *FilterConfigFactory) GetPluginConfig() buffer.IoBuffer {
+	if f.pluginConfigBytes != nil {
+		return f.pluginConfigBytes
+	}
+
 	b := proxywasm_0_1_0.EncodeMap(f.config.UserData)
 	if b == nil {
 		return nil
 	}
-	return buffer.NewIoBufferBytes(b)
+
+	f.pluginConfigBytes = buffer.NewIoBufferBytes(b)
+
+	return f.pluginConfigBytes
 }
 
 func (f *FilterConfigFactory) OnConfigUpdate(config v2.WasmPluginConfig) {
@@ -155,13 +171,13 @@ func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 			return true
 		}
 
-		_, err = exports.ProxyOnVmStart(f.config.RootContextID, 0)
+		_, err = exports.ProxyOnVmStart(f.config.RootContextID, int32(f.GetVmConfig().Len()))
 		if err != nil {
 			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
 			return true
 		}
 
-		_, err = exports.ProxyOnConfigure(f.config.RootContextID, 0)
+		_, err = exports.ProxyOnConfigure(f.config.RootContextID, int32(f.GetPluginConfig().Len()))
 		if err != nil {
 			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
 			return true

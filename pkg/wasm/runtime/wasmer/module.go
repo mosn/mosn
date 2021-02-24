@@ -32,12 +32,6 @@ type Module struct {
 	wasiVersion wasmerGo.WasiVersion
 }
 
-type moduleImport struct {
-	namespace string
-	funcName  string
-	f         *wasmerGo.Function
-}
-
 func NewWasmerModule(vm *VM, module *wasmerGo.Module) *Module {
 	m := &Module{
 		vm:     vm,

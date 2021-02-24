@@ -117,7 +117,10 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 func (f *Filter) OnDestroy() {
 	f.destroyOnce.Do(func() {
 		f.instance.Acquire(f.abi)
-		_, _ = f.exports.ProxyOnDone(f.contextID)
+		_, err := f.exports.ProxyOnDone(f.contextID)
+		if err != nil {
+			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnDestroy fail to call ProxyOnDone, err: %v", err)
+		}
 		f.instance.Release()
 
 		f.plugin.ReleaseInstance(f.instance)
@@ -132,27 +135,36 @@ func (f *Filter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
 	f.senderFilterHandler = handler
 }
 
+func headerSize(headers api.HeaderMap) int {
+	size := 0
+	headers.Range(func(key, value string) bool {
+		size++
+		return true
+	})
+	return size
+}
+
 func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	f.instance.Acquire(f.abi)
 	defer f.instance.Release()
 
 	// do filter
 	if buf != nil && buf.Len() > 0 {
-		action, err := f.exports.ProxyOnRequestHeaders(f.contextID, 0, 0)
+		action, err := f.exports.ProxyOnRequestHeaders(f.contextID, int32(headerSize(headers)), 0)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive ProxyOnRequestHeaders err: %v", err)
+			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive call ProxyOnRequestHeaders err: %v", err)
 			return api.StreamFilterStop
 		}
 
 		action, err = f.exports.ProxyOnRequestBody(f.contextID, int32(buf.Len()), 1)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive ProxyOnRequestBody err: %v", err)
+			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive call ProxyOnRequestBody err: %v", err)
 			return api.StreamFilterStop
 		}
 	} else {
-		action, err := f.exports.ProxyOnRequestHeaders(f.contextID, 0, 1)
+		action, err := f.exports.ProxyOnRequestHeaders(f.contextID, int32(headerSize(headers)), 1)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive ProxyOnRequestHeaders err: %v", err)
+			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive call ProxyOnRequestHeaders err: %v", err)
 			return api.StreamFilterStop
 		}
 	}
@@ -166,21 +178,21 @@ func (f *Filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 
 	// do filter
 	if buf != nil && buf.Len() > 0 {
-		action, err := f.exports.ProxyOnResponseHeaders(f.contextID, 0, 0)
+		action, err := f.exports.ProxyOnResponseHeaders(f.contextID, int32(headerSize(headers)), 0)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive ProxyOnRequestHeaders err: %v", err)
+			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] Append call ProxyOnResponseHeaders err: %v", err)
 			return api.StreamFilterStop
 		}
 
 		action, err = f.exports.ProxyOnResponseBody(f.contextID, int32(buf.Len()), 1)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive ProxyOnRequestBody err: %v", err)
+			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] Append call ProxyOnResponseBody err: %v", err)
 			return api.StreamFilterStop
 		}
 	} else {
-		action, err := f.exports.ProxyOnResponseHeaders(f.contextID, 0, 1)
+		action, err := f.exports.ProxyOnResponseHeaders(f.contextID, int32(headerSize(headers)), 1)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive ProxyOnRequestHeaders err: %v", err)
+			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] Append call ProxyOnResponseHeaders err: %v", err)
 			return api.StreamFilterStop
 		}
 	}
