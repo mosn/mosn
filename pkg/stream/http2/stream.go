@@ -411,7 +411,7 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	conn.streams[stream.id] = stream
 	conn.mutex.Unlock()
 
-	var span types.Span
+	var span api.Span
 	if trace.IsEnabled() {
 		// try build trace span
 		tracer := trace.Tracer(protocol.HTTP2)
