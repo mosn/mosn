@@ -56,6 +56,15 @@ type Filter struct {
 
 var contextIDGenerator int32
 
+func newContextID(rootContextID int32) int32 {
+	for {
+		id := atomic.AddInt32(&contextIDGenerator, 1)
+		if id != rootContextID {
+			return id
+		}
+	}
+}
+
 func NewFilter(ctx context.Context, pluginName string, rootContextID int32, factory *FilterConfigFactory) *Filter {
 	pluginWrapper := wasm.GetWasmManager().GetWasmPluginWrapperByName(pluginName)
 	if pluginWrapper == nil {
@@ -73,7 +82,7 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 		plugin:        plugin,
 		instance:      instance,
 		rootContextID: rootContextID,
-		contextID:     atomic.AddInt32(&contextIDGenerator, 1),
+		contextID:     newContextID(rootContextID),
 	}
 
 	filter.abi = abi.GetABI(instance, proxywasm_0_1_0.ProxyWasmABI_0_1_0)
@@ -93,8 +102,14 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 	}
 
 	filter.instance.Acquire(filter.abi)
-	_ = filter.exports.ProxyOnContextCreate(filter.contextID, filter.rootContextID)
-	filter.instance.Release()
+	defer filter.instance.Release()
+
+	err := filter.exports.ProxyOnContextCreate(filter.contextID, filter.rootContextID)
+	if err != nil {
+		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] NewFilter fail to create context id: %v, rootContextID: %v, err: %v",
+			filter.contextID, filter.rootContextID, err)
+		return nil
+	}
 
 	return filter
 }

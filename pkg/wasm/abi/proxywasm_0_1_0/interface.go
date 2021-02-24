@@ -91,9 +91,9 @@ func (d *DefaultImportsHandler) Log(level log.Level, msg string) {
 	logFunc := log.DefaultLogger.Infof
 	switch level {
 	case log.TRACE:
-		logFunc = log.DefaultLogger.Tracef
+		logFunc = log.DefaultLogger.Infof
 	case log.DEBUG:
-		logFunc = log.DefaultLogger.Debugf
+		logFunc = log.DefaultLogger.Infof
 	case log.INFO:
 		logFunc = log.DefaultLogger.Infof
 	case log.WARN:

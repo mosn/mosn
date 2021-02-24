@@ -93,9 +93,16 @@ func createProxyWasmFilterFactory(conf map[string]interface{}) (api.StreamFilter
 
 func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
 	filter := NewFilter(context, f.pluginName, f.config.RootContextID, f)
+	if filter == nil {
+		return
+	}
 
 	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
 	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
+}
+
+func (f *FilterConfigFactory) GetRootContextID() int32 {
+	return f.config.RootContextID
 }
 
 func (f *FilterConfigFactory) GetVmConfig() buffer.IoBuffer {
@@ -142,9 +149,23 @@ func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 		instance.Acquire(a)
 		defer instance.Release()
 
-		_ = exports.ProxyOnContextCreate(f.config.RootContextID, 0)
-		_, _ = exports.ProxyOnConfigure(f.config.RootContextID, 0)
-		_, _ = exports.ProxyOnVmStart(f.config.RootContextID, 0)
+		err := exports.ProxyOnContextCreate(f.config.RootContextID, 0)
+		if err != nil {
+			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
+			return true
+		}
+
+		_, err = exports.ProxyOnVmStart(f.config.RootContextID, 0)
+		if err != nil {
+			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
+			return true
+		}
+
+		_, err = exports.ProxyOnConfigure(f.config.RootContextID, 0)
+		if err != nil {
+			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
+			return true
+		}
 
 		return true
 	})

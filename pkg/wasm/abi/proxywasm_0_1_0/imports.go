@@ -593,7 +593,7 @@ func proxyHttpCall(instance types.WasmInstance, uriPtr int32, uriSize int32,
 		return WasmResultBadArgument.Int32()
 	}
 
-	var header api.HeaderMap
+	var header api.HeaderMap = mosnhttp.RequestHeader{RequestHeader: &fasthttp.RequestHeader{}}
 	var body buffer.IoBuffer
 	var trailer api.HeaderMap
 
@@ -604,7 +604,6 @@ func proxyHttpCall(instance types.WasmInstance, uriPtr int32, uriSize int32,
 			return WasmResultInvalidMemoryAccess.Int32()
 		}
 		headerMap := DecodeMap(headerStr)
-		header = mosnhttp.RequestHeader{RequestHeader: &fasthttp.RequestHeader{}}
 		for k, v := range headerMap {
 			header.Add(k, v)
 		}
