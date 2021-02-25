@@ -23,7 +23,6 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"os"
 )
 
 func (proto *wasmRpcProtocol) decodeCommand(context context.Context, buf types.IoBuffer) (interface{}, error) {
@@ -45,7 +44,7 @@ func (proto *wasmRpcProtocol) decodeCommand(context context.Context, buf types.I
 	_, isReq := cmd.(*Request)
 	_, isResp := cmd.(*Response)
 	if cmd != nil {
-		fmt.Fprintf(os.Stdout, "decode command, context id: %d, req(%v)|resp(%v)|hb(%v)  \n", contextId, isReq, isResp, cmd.IsHeartbeatFrame())
+		log.DefaultLogger.Infof("decode command, context id: %d, req(%v)|resp(%v)|hb(%v), rpc id: %d \n", contextId, isReq, isResp, cmd.IsHeartbeatFrame(), cmd.GetRequestId())
 	}
 	return cmd, err
 }

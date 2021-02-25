@@ -84,6 +84,10 @@ func (c *Context) GetEncodeCmd() xprotocol.XFrame {
 	return c.encodeCmd
 }
 
+func (c *Context) SetEncodeCmd(cmd xprotocol.XFrame) {
+	c.encodeCmd = cmd
+}
+
 func (c *Context) SetEncodeBuffer(buf buffer.IoBuffer) {
 	c.encodeBuffer = buf
 }

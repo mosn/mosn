@@ -19,11 +19,13 @@ package wasm
 
 import (
 	"encoding/binary"
+	"fmt"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
 	"mosn.io/pkg/buffer"
+	"os"
 	"runtime/debug"
 )
 
@@ -102,7 +104,17 @@ func proxySetEncodeCommand(instance types.WasmInstance, bufferType int32, start 
 	// command encode buffer
 	buf := buffer.NewIoBufferBytes(content[byteIndex : byteIndex+drainLen])
 	//fmt.Fprintf(os.Stdout, "==>encode buf(%d): %v", buf.Len(), buf.Bytes())
+
 	ctx := getInstanceCallback(instance)
+
+	cmd := ctx.GetEncodeCmd()
+	if cmd.GetData() != nil {
+		i := buf.Len() - cmd.GetData().Len()
+		if buf.Bytes()[i] != cmd.GetData().Bytes()[0] {
+			fmt.Fprintf(os.Stdout, "==>encode bug buf(%d): %v", buf.Len(), buf.Bytes())
+		}
+	}
+
 	ctx.SetEncodeBuffer(buf)
 
 	return v1.WasmResultOk.Int32()
@@ -130,8 +142,11 @@ func decodeWasmRequest(instance types.WasmInstance, bufferType int32,
 	rawBytesLen := binary.BigEndian.Uint32(content[rawIndex:])
 
 	// create proxy wasm request
-	req := NewWasmRequestWithId(uint32(id), headers,
-		buffer.NewIoBufferBytes(content[byteIndex:byteIndex+rawBytesLen]))
+	payload := buffer.NewIoBuffer(int(rawBytesLen))
+	// wasm shared linear memory cannot be used here,
+	// otherwise it will be  modified by other data.
+	payload.Write(content[byteIndex : byteIndex+rawBytesLen])
+	req := NewWasmRequestWithId(uint32(id), headers, payload)
 	req.Timeout = timeout
 
 	// check heartbeat command
@@ -146,6 +161,11 @@ func decodeWasmRequest(instance types.WasmInstance, bufferType int32,
 	// if data without change, direct encode forward
 	req.Data = buffer.GetIoBuffer(int(drainLen))
 	req.Data.Write(buf.Bytes()[:drainLen])
+
+	i := drainLen - rawBytesLen
+	if req.Data.Bytes()[i] != req.PayLoad.Bytes()[0] || req.Data.Bytes()[req.Data.Len()-1] != req.PayLoad.Bytes()[req.PayLoad.Len()-1] {
+		fmt.Fprintf(os.Stdout, "==>decode bug buf(%d): %v", req.Data.Len(), req.Data.Bytes())
+	}
 
 	//fmt.Fprintf(os.Stdout, "==>decode buf(%d): %v", req.Data.Len(), req.Data.Bytes())
 
@@ -176,8 +196,11 @@ func decodeWasmResponse(instance types.WasmInstance, bufferType int32,
 	drainLen := binary.BigEndian.Uint32(content[drainIndex:])
 	// content byte length
 	rawBytesLen := binary.BigEndian.Uint32(content[rawIndex:])
-	resp := NewWasmResponseWithId(uint32(id), headers,
-		buffer.NewIoBufferBytes(content[byteIndex:byteIndex+rawBytesLen]))
+	payload := buffer.NewIoBuffer(int(rawBytesLen))
+	// wasm shared linear memory cannot be used here,
+	// otherwise it will be  modified by other data.
+	payload.Write(content[byteIndex : byteIndex+rawBytesLen])
+	resp := NewWasmResponseWithId(uint32(id), headers, payload)
 	resp.Status = status
 
 	// check heartbeat command
@@ -188,6 +211,11 @@ func decodeWasmResponse(instance types.WasmInstance, bufferType int32,
 	// if data without change, direct encode forward
 	resp.Data = buffer.GetIoBuffer(int(drainLen))
 	resp.Data.Write(buf.Bytes()[:drainLen])
+
+	i := drainLen - rawBytesLen
+	if resp.Data.Bytes()[i] != resp.PayLoad.Bytes()[0] {
+		fmt.Fprintf(os.Stdout, "==>decode resp bug buf(%d): %v", resp.Data.Len(), resp.Data.Bytes())
+	}
 
 	ctx := getInstanceCallback(instance)
 	// we need to drain decode buffer
