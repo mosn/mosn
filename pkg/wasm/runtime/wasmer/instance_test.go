@@ -9,6 +9,8 @@ import (
 
 func TestRegisterFunc(t *testing.T) {
 	vm := NewWasmerVM()
+	assert.Equal(t, vm.Name(), "wasmer")
+
 	module := vm.NewModule([]byte(`(module (func (export "_start")))`))
 	ins := module.NewInstance()
 
@@ -61,6 +63,26 @@ func TestRegisterFuncRecoverPanic(t *testing.T) {
 	assert.Equal(t, err.Error(), "panic [some panic] when calling func [somePanic]")
 }
 
+func TestInstanceMalloc(t *testing.T) {
+	vm := NewWasmerVM()
+	module := vm.NewModule([]byte(`
+			(module
+				(func (export "_start"))
+				(func (export "malloc") (param i32) (result i32) i32.const 10))
+	`))
+	ins := module.NewInstance()
+
+	assert.Nil(t, ins.RegisterFunc("TestRegisterFuncRecover", "somePanic", func(instance types.WasmInstance) int32 {
+		panic("some panic")
+	}))
+
+	assert.Nil(t, ins.Start())
+
+	addr, err := ins.Malloc(100)
+	assert.Nil(t, err)
+	assert.Equal(t, addr, uint64(10))
+}
+
 func TestInstanceMem(t *testing.T) {
 	vm := NewWasmerVM()
 	module := vm.NewModule([]byte(`(module (memory (export "memory") 1) (func (export "_start")))`))
@@ -81,4 +103,29 @@ func TestInstanceMem(t *testing.T) {
 	u, err := ins.GetUint32(uint64(200))
 	assert.Nil(t, err)
 	assert.Equal(t, u, uint32(99))
+
+	assert.Nil(t, ins.PutMemory(uint64(300), 10, []byte("1111111111")))
+	bs, err := ins.GetMemory(uint64(300), 10)
+	assert.Nil(t, err)
+	assert.Equal(t, string(bs), "1111111111")
+}
+
+func TestInstanceData(t *testing.T) {
+	vm := NewWasmerVM()
+	module := vm.NewModule([]byte(`
+			(module
+				(func (export "_start")))
+	`))
+	ins := module.NewInstance()
+	assert.Nil(t, ins.Start())
+
+	var data int = 1
+	ins.SetData(data)
+	assert.Equal(t, ins.GetData().(int), 1)
+
+	for i := 0; i < 10; i++ {
+		ins.Acquire(i)
+		assert.Equal(t, ins.GetData().(int), i)
+		ins.Release()
+	}
 }

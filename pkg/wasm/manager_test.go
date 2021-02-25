@@ -20,6 +20,7 @@ package wasm
 import (
 	"io/ioutil"
 	"mosn.io/mosn/pkg/types"
+	"sync"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -59,6 +60,8 @@ func TestWasmManagerBasic(t *testing.T) {
 	pw := GetWasmManager().GetWasmPluginWrapperByName("testPluginBasic")
 	assert.NotNil(t, pw)
 	assert.Equal(t, pw.GetPlugin().InstanceNum(), config.InstanceNum)
+	assert.NotNil(t, pw.GetPlugin().GetPluginConfig())
+	assert.NotNil(t, pw.GetPlugin().GetVmConfig())
 
 	assert.Nil(t, GetWasmManager().GetWasmPluginWrapperByName("pluginNotExists"))
 
@@ -181,4 +184,69 @@ func TestWasmEngine(t *testing.T) {
 
 	RegisterWasmEngine("testWasmEngineNormal", engine)
 	assert.Equal(t, GetWasmEngine("testWasmEngineNormal"), engine)
+}
+
+func TestWasmPluginInstance(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	instance := mock.NewMockWasmInstance(ctrl)
+	instance.EXPECT().Start().AnyTimes().Return(nil)
+	module := mock.NewMockWasmModule(ctrl)
+	module.EXPECT().NewInstance().AnyTimes().Return(instance)
+	engine := mock.NewMockWasmVM(ctrl)
+	engine.EXPECT().NewModule(gomock.Any()).AnyTimes().Return(module)
+
+	RegisterWasmEngine("testWasmEngine", engine)
+
+	_ = ioutil.WriteFile("/tmp/foo.wasm", []byte("some bytes"), 0644)
+
+	config := v2.WasmPluginConfig{
+		PluginName: "testPluginInstance",
+		VmConfig: &v2.WasmVmConfig{
+			Engine: "testWasmEngine",
+			Path:   "/tmp/foo.wasm",
+		},
+		InstanceNum: 4,
+	}
+	assert.Nil(t, GetWasmManager().AddOrUpdateWasm(config))
+
+	pw := GetWasmManager().GetWasmPluginWrapperByName("testPluginInstance")
+	assert.NotNil(t, pw)
+
+	releaseChan := make(chan struct{})
+
+	getWG := sync.WaitGroup{}
+	getWG.Add(100)
+	releaseWG := sync.WaitGroup{}
+	releaseWG.Add(100)
+
+	plugin := pw.GetPlugin()
+
+	execCount := 0
+	plugin.Exec(func(instance types.WasmInstance) bool {
+		execCount++
+		return true
+	})
+	assert.Equal(t, execCount, 4)
+
+	for i := 0; i < 100; i++ {
+		go func() {
+			ins := plugin.GetInstance()
+			getWG.Done()
+
+			<-releaseChan
+
+			plugin.ReleaseInstance(ins)
+			releaseWG.Done()
+		}()
+	}
+
+	getWG.Wait()
+	pi := plugin.(*wasmPluginImpl)
+	assert.Equal(t, pi.occupy, int32(100))
+
+	close(releaseChan)
+	releaseWG.Wait()
+	assert.Equal(t, pi.occupy, int32(0))
 }

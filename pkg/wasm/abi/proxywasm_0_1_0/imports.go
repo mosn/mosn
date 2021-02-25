@@ -19,6 +19,7 @@ package proxywasm_0_1_0
 
 import (
 	"context"
+	"errors"
 	"net"
 	"net/http"
 	"net/url"
@@ -165,8 +166,15 @@ func proxyGetBufferBytes(instance types.WasmInstance, bufferType int32, start in
 		return WasmResultInternalFailure.Int32()
 	}
 
-	_ = instance.PutUint32(uint64(returnBufferData), uint32(addr))
-	_ = instance.PutUint32(uint64(returnBufferSize), uint32(length))
+	err = instance.PutUint32(uint64(returnBufferData), uint32(addr))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess.Int32()
+	}
+
+	err = instance.PutUint32(uint64(returnBufferSize), uint32(length))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess.Int32()
+	}
 
 	return WasmResultOk.Int32()
 }
@@ -221,6 +229,9 @@ func proxyGetHeaderMapPairs(instance types.WasmInstance, mapType int32, returnDa
 	}
 
 	err = instance.PutUint32(addr, uint32(len(cloneMap)))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess.Int32()
+	}
 
 	lenPtr := addr + 4
 	dataPtr := lenPtr + uint64(8*len(cloneMap))
@@ -242,7 +253,14 @@ func proxyGetHeaderMapPairs(instance types.WasmInstance, mapType int32, returnDa
 	}
 
 	err = instance.PutUint32(uint64(returnDataPtr), uint32(addr))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess.Int32()
+	}
+
 	err = instance.PutUint32(uint64(returnDataSize), uint32(totalBytesLen))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess.Int32()
+	}
 
 	return WasmResultOk.Int32()
 }
@@ -300,9 +318,19 @@ func proxyGetHeaderMapValue(instance types.WasmInstance, mapType int32, keyDataP
 	}
 
 	err = instance.PutMemory(addr, uint64(len(value)), []byte(value))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess.Int32()
+	}
 
 	err = instance.PutUint32(uint64(valueDataPtr), uint32(addr))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess.Int32()
+	}
+
 	err = instance.PutUint32(uint64(valueSize), uint32(len(value)))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess.Int32()
+	}
 
 	return WasmResultOk.Int32()
 }
@@ -364,7 +392,7 @@ func proxyAddHeaderMapValue(instance types.WasmInstance, mapType int32, keyDataP
 		return WasmResultBadArgument.Int32()
 	}
 
-	headerMap.Add(string(key), string(value))
+	headerMap.Set(string(key), string(value))
 
 	return WasmResultOk.Int32()
 }
@@ -485,8 +513,8 @@ func (hs *httpStruct) AsyncHttpCall(timeoutMilliseconds int, u *url.URL,
 
 	hs.streamClient = stream.NewStreamClient(hs.ctx, protocol.HTTP1, conn, nil)
 	if hs.streamClient == nil {
-		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] AsyncHttpCall fail to create http stream, err: %v", err)
-		return err
+		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] AsyncHttpCall fail to create http stream")
+		return errors.New("fail to create stream client")
 	}
 
 	hs.receiverListener = &proxyStreamReceiveListener{httpStruct: hs}
