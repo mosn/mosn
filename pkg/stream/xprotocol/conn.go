@@ -382,17 +382,25 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame api.XFrame) {
 		log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] connection %d receive response, requestId = %v", sc.netConn.ID(), requestId)
 	}
 
-	if wasmCtx := mosnctx.Get(ctx, types.ContextKeyWasmContext); wasmCtx != nil {
-		switchCtx := mosnctx.Get(clientStream.ctx, types.ContextKeyWasmContext)
-		// The wasm context of the response is passed to the client,
-		// and the sandbox can find the cached response based on the context of the wasm
-		clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyWasmContext, wasmCtx)
-		// record the downstream context and switch as soon as the response encode is completed
-		clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyWasmSwitchContext, switchCtx)
-
-	}
+	sc.switchWasmContext(ctx, clientStream)
 
 	clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
+}
+
+func (sc *streamConn) switchWasmContext(ctx context.Context, clientStream *xStream) {
+	if wasmCtx := mosnctx.Get(ctx, types.ContextKeyWasmContext); wasmCtx != nil {
+		switchWasmCtx := mosnctx.Get(clientStream.ctx, types.ContextKeyWasmContext)
+		// using the response wasm context, the sandbox
+		// directly uses the decoded response object.
+		// when encoding the response object,
+		// the response wasm instance(wasm context) is correctly used.
+		clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyWasmContext, wasmCtx)
+
+		// when the response object is destroyed, the associated
+		// request object wasm instance(wasm context) is destroyed.
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyWasmContext, switchWasmCtx)
+		clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyWasmSwitchContext, ctx)
+	}
 }
 
 func (sc *streamConn) newServerStream(ctx context.Context, frame api.XFrame) *xStream {

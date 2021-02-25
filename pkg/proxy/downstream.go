@@ -282,10 +282,19 @@ func (s *downStream) finishWasmContext() {
 	if name == protocol.Xprotocol {
 		name = types.ProtocolName(mosnctx.Get(s.context, types.ContextSubProtocol).(string))
 		if proto, ok := xprotocol.GetProtocol(name).(xprotocol.WasmProtocol); ok {
-			proto.OnProxyDone(s.context)
-			proto.OnProxyDelete(s.context)
+			// complete upstream wasm resource
+			s.completeWasmContext(proto, s.context)
+			if switchCtx := mosnctx.Get(s.context, types.ContextKeyWasmSwitchContext); switchCtx != nil {
+				// complete downstream wasm resource
+				s.completeWasmContext(proto, switchCtx.(context.Context))
+			}
 		}
 	}
+}
+
+func (s *downStream) completeWasmContext(proto xprotocol.WasmProtocol, context context.Context) {
+	proto.OnProxyDone(context)
+	proto.OnProxyDelete(context)
 }
 
 // requestMetrics records the request metrics when cleanStream
