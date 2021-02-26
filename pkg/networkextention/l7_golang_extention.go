@@ -19,6 +19,7 @@ package main
 
 /*
 #include <stdlib.h>
+#include <string.h>
 typedef struct {
     const char **headers;
     char *req_body;
@@ -43,6 +44,8 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/networkextention/l7/stream"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 // sizeof pointer offset
@@ -70,12 +73,18 @@ func rangeCstring(headers **C.char, f func(k, v string) bool) {
 	}
 }
 
-func rangeMapToChar(header map[string]string, dstHeaders ***C.char) {
-	*dstHeaders = (**C.char)(C.calloc(C.size_t(4*len(header)+1), C.size_t(pointerSize)))
+func rangeMapToChar(header types.HeaderMap, dstHeaders ***C.char) {
+	var hLen int
+	header.Range(func(k, v string) bool {
+		hLen++
+		return true
+	})
+
+	*dstHeaders = (**C.char)(C.calloc(C.size_t(4*hLen+1), C.size_t(pointerSize)))
 
 	tempHeader := *dstHeaders
-	for k, v := range header {
-		// headers -> |key-data|key-len|val-data|val-len|null|
+	header.Range(func(k, v string) bool {
+		// tempHeaders -> |key-data|key-len|val-data|val-len|null|
 		*tempHeader = C.CString(k)
 		tempHeader = (**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(tempHeader)) + pointerSize))
 
@@ -87,7 +96,8 @@ func rangeMapToChar(header map[string]string, dstHeaders ***C.char) {
 
 		*tempHeader = (*C.char)(unsafe.Pointer(uintptr(len(v))))
 		tempHeader = (**C.char)(unsafe.Pointer(uintptr(unsafe.Pointer(tempHeader)) + pointerSize))
-	}
+		return true
+	})
 }
 
 func freeCharPointerArray(p **C.char) {
@@ -152,7 +162,7 @@ func freeReqAndResp(req *C.Request, resp *C.Response) {
 }
 
 //export runReceiveStreamFilter
-func runReceiveStreamFilter(h C.Request) C.Response {
+func runReceiveStreamFilter(req C.Request) C.Response {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[golang_extention] runReceiveStreamFilter() panic %v\n%s", r, string(debug.Stack()))
@@ -161,8 +171,8 @@ func runReceiveStreamFilter(h C.Request) C.Response {
 
 	header := make(map[string]string)
 	update := make(map[string]string)
-	if h.headers != nil {
-		rangeCstring(h.headers, func(k, v string) bool {
+	if req.headers != nil {
+		rangeCstring(req.headers, func(k, v string) bool {
 			header[k] = v
 			return true
 		})
@@ -174,14 +184,27 @@ func runReceiveStreamFilter(h C.Request) C.Response {
 		Update:       update,
 	}
 
+	sm := stream.CreateActiveStream(context.TODO())
+	var data string
+	if req.req_body != nil {
+		data = dataToString(req.req_body, (*C.char)(unsafe.Pointer(uintptr(C.strlen(req.req_body)))))
+	}
+
+	// TODO suppport trailer
+	sm.InitResuestStream(&requestHeader, buffer.NewIoBufferString(data), nil)
+
+	fm.SetReceiveFilterHandler(&sm)
+
 	fm.RunReceiverFilter(context.TODO(), api.BeforeRoute, &requestHeader, nil, nil, nil)
+	sm.SetCurrentReveivePhase(api.BeforeRoute)
+
 	stream.DestoryStreamFilter(fm)
 
-	return convertCRequest(update)
+	return convertCRequest(sm)
 }
 
 //export runSendStreamFilter
-func runSendStreamFilter(h C.Request) C.Response {
+func runSendStreamFilter(resp C.Request) C.Response {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[golang_extention] runSendStreamFilter() panic %v\n%s", r, string(debug.Stack()))
@@ -190,8 +213,8 @@ func runSendStreamFilter(h C.Request) C.Response {
 
 	header := make(map[string]string)
 	update := make(map[string]string)
-	if h.headers != nil {
-		rangeCstring(h.headers, func(k, v string) bool {
+	if resp.headers != nil {
+		rangeCstring(resp.headers, func(k, v string) bool {
 			header[k] = v
 			return true
 		})
@@ -203,17 +226,56 @@ func runSendStreamFilter(h C.Request) C.Response {
 		Update:       update,
 	}
 
+	// TODO support GetorCreateActive by stream id
+	sm := stream.CreateActiveStream(context.TODO())
+	var data string
+	if resp.req_body != nil {
+		data = dataToString(resp.req_body, (*C.char)(unsafe.Pointer(uintptr(C.strlen(resp.req_body)))))
+	}
+
+	// TODO suppport trailer
+	sm.InitResponseStream(&requestHeader, buffer.NewIoBufferString(data), nil)
+
 	fm := stream.CreateStreamFilter(context.TODO(), stream.DefaultFilterChainName)
+	fm.SetSenderFilterHandler(&sm)
 	fm.RunSenderFilter(context.TODO(), api.BeforeSend, &requestHeader, nil, nil, nil)
 	stream.DestoryStreamFilter(fm)
 
-	return convertCRequest(update)
+	return convertCResponse(sm)
 }
 
-func convertCRequest(header map[string]string) C.Response {
+func convertCRequest(sm stream.ActiveStream) C.Response {
 	var resp C.Response
 
-	rangeMapToChar(header, &resp.headers)
+	if sm.IsDirectResponse() {
+		resp.status = C.int(sm.GetResponseCode())
+		resp.direct_response = 1
+		if data := sm.GetResponseData(); data != nil {
+			resp.resp_body = C.CString(data.String())
+		}
+		rangeMapToChar(sm.GetResponseHeaders(), &resp.headers)
+		return resp
+	}
+
+	rangeMapToChar(sm.GetRequestUpdatedHeaders(), &resp.headers)
+
+	return resp
+}
+
+func convertCResponse(sm stream.ActiveStream) C.Response {
+	var resp C.Response
+
+	if sm.IsDirectResponse() {
+		resp.status = C.int(sm.GetResponseCode())
+		resp.direct_response = 1
+		if data := sm.GetResponseData(); data != nil {
+			resp.resp_body = C.CString(data.String())
+		}
+		rangeMapToChar(sm.GetResponseHeaders(), &resp.headers)
+		return resp
+	}
+
+	rangeMapToChar(sm.GetResponseUpdatedHeaders(), &resp.headers)
 
 	return resp
 }
