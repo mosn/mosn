@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"mosn.io/mosn/pkg/log"
 )
 
 func TestEncodeDecodeMap(t *testing.T) {
@@ -41,4 +42,24 @@ func TestEncodeDecodeMap(t *testing.T) {
 
 	var emptyMap map[string]string
 	assert.Nil(t, EncodeMap(emptyMap))
+}
+
+func TestLogLevelConvert(t *testing.T) {
+	testCases := []struct {
+		wasmLevel LogLevel
+		mosnLevel log.Level
+	}{
+		{LogLevelTrace, log.TRACE},
+		{LogLevelDebug, log.DEBUG},
+		{LogLevelInfo, log.INFO},
+		{LogLevelWarn, log.WARN},
+		{LogLevelError, log.ERROR},
+		{LogLevelCritical, log.ERROR},
+	}
+
+	for _, tc := range testCases {
+		assert.Equal(t, toMosnLogLevel(tc.wasmLevel), tc.mosnLevel)
+	}
+
+	assert.Equal(t, toMosnLogLevel(LogLevel(100)), log.INFO)
 }

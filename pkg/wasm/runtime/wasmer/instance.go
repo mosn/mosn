@@ -381,7 +381,7 @@ func (w *Instance) HandleError(err error) {
 		return
 	}
 
-	log.DefaultLogger.Errorf("[wasmer][instance] HandleError trace:")
+	log.DefaultLogger.Errorf("[wasmer][instance] HandleError err: %v, trace:", err)
 
 	if w.debug == nil {
 		// do not have dwarf debug info

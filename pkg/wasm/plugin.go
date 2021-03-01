@@ -240,18 +240,13 @@ func (w *wasmPluginImpl) PluginName() string {
 func (w *wasmPluginImpl) Clear() {
 	// do nothing
 	log.DefaultLogger.Infof("[wasm][plugin] Clear wasm plugin, config: %v, instanceNum: %v", w.config, w.instanceNum)
-	return
 }
 
 // SetCpuLimit set cpu limit of the plugin, no-op
-func (w *wasmPluginImpl) SetCpuLimit(cpu int) {
-	return
-}
+func (w *wasmPluginImpl) SetCpuLimit(cpu int) {}
 
 // SetCpuLimit set cpu limit of the plugin, no-op
-func (w *wasmPluginImpl) SetMemLimit(mem int) {
-	return
-}
+func (w *wasmPluginImpl) SetMemLimit(mem int) {}
 
 // Exec execute the f for each instance
 func (w *wasmPluginImpl) Exec(f func(instance types.WasmInstance) bool) {
