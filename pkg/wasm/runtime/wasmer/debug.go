@@ -137,7 +137,7 @@ func loadCustomSections(data []byte) (map[string]CustomSection, int, error) {
 	codeSectionOffset := 0
 
 	// Skip preamble
-	if bytes.Compare(data[0:i], []byte{0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00}) != 0 {
+	if !bytes.Equal(data[0:i], []byte{0x00, 0x61, 0x73, 0x6D, 0x01, 0x00, 0x00, 0x00}) {
 		return nil, 0, errors.New("invalid preamble. Only Wasm v1 files are supported")
 	}
 

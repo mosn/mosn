@@ -476,16 +476,17 @@ func proxyGrpcSend(instance types.WasmInstance, token int32, messagePtr int32, m
 }
 
 type httpStruct struct {
-	calloutID         int32
-	instance          types.WasmInstance
-	abi               *AbiContext
-	conn              types.ClientConnection
-	connEventListener api.ConnectionEventListener
-	ctx               context.Context
-	streamClient      stream.Client
-	receiverListener  types.StreamReceiveListener
-	streamSender      types.StreamSender
-	asyncRetChan      chan struct{}
+	calloutID           int32
+	instance            types.WasmInstance
+	abi                 *abiContext
+	conn                types.ClientConnection
+	connEventListener   api.ConnectionEventListener
+	ctx                 context.Context
+	streamClient        stream.Client
+	receiverListener    types.StreamReceiveListener
+	streamSender        types.StreamSender
+	asyncRetChan        chan struct{}
+	timeoutMilliseconds int
 
 	responseHeader  api.HeaderMap
 	responseBody    buffer.IoBuffer
@@ -500,14 +501,13 @@ func (hs *httpStruct) AsyncHttpCall(timeoutMilliseconds int, u *url.URL,
 		return err
 	}
 
-	// TODO: deal with timeout: http call timeout and dial timeout
-
 	conn := network.NewClientConnection(time.Duration(timeoutMilliseconds)*time.Millisecond,
 		nil, remoteAddr, make(chan struct{}))
 	if err := conn.Connect(); err != nil {
 		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] AsyncHttpCall fail to create conn, err: %v", err)
 		return err
 	}
+
 	hs.conn = conn
 	hs.connEventListener = &proxyHttpConnEventListener{conn: conn, httpStruct: hs}
 	conn.AddConnectionEventListener(hs.connEventListener)
@@ -609,7 +609,7 @@ func (p *proxyStreamReceiveListener) OnDecodeError(ctx context.Context, err erro
 	}
 }
 
-var httpCalloutID int32 = 0
+var httpCalloutID int32
 
 func proxyHttpCall(instance types.WasmInstance, uriPtr int32, uriSize int32,
 	headerPairsPtr int32, headerPairsSize int32,
@@ -672,9 +672,10 @@ func proxyHttpCall(instance types.WasmInstance, uriPtr int32, uriSize int32,
 	calloutID := atomic.AddInt32(&httpCalloutID, 1)
 
 	hs := &httpStruct{
-		calloutID: calloutID,
-		instance:  instance,
-		abi:       instance.GetData().(*AbiContext),
+		calloutID:           calloutID,
+		instance:            instance,
+		abi:                 instance.GetData().(*abiContext),
+		timeoutMilliseconds: int(timeoutMilliseconds),
 	}
 	hs.abi.httpCallout = hs
 

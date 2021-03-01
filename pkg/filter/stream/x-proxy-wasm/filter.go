@@ -117,12 +117,18 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 func (f *Filter) OnDestroy() {
 	f.destroyOnce.Do(func() {
 		f.instance.Acquire(f.abi)
+
 		_, err := f.exports.ProxyOnDone(f.contextID)
 		if err != nil {
 			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnDestroy fail to call ProxyOnDone, err: %v", err)
 		}
-		f.instance.Release()
 
+		err = f.exports.ProxyOnDelete(f.contextID)
+		if err != nil {
+			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnDestroy fail to call ProxyOnDelete, err: %v", err)
+		}
+
+		f.instance.Release()
 		f.plugin.ReleaseInstance(f.instance)
 	})
 }
