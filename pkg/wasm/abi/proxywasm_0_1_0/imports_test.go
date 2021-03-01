@@ -199,7 +199,7 @@ func TestProxyGetBufferBytes(t *testing.T) {
 		}),
 	)
 
-	assert.Equal(t, proxyGetBufferBytes(instance, int32(BufferTypeHttpRequestBody),
+	assert.Equal(t, ProxyGetBufferBytes(instance, int32(BufferTypeHttpRequestBody),
 		0, 999, 0, 0), WasmResultOk.Int32())
 	assert.Equal(t, string(returnContent), string("test body"))
 	assert.Equal(t, returnPtr, uint32(1))
@@ -220,7 +220,7 @@ func TestProxySetBufferBytes(t *testing.T) {
 	})
 	instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte("aaaa"), nil)
 
-	assert.Equal(t, proxySetBufferBytes(instance, int32(BufferTypeHttpRequestBody), 0, 4, 0, 0), WasmResultOk.Int32())
+	assert.Equal(t, ProxySetBufferBytes(instance, int32(BufferTypeHttpRequestBody), 0, 4, 0, 0), WasmResultOk.Int32())
 	assert.Equal(t, data.String(), "aaaa data")
 }
 

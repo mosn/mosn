@@ -35,7 +35,7 @@ func TestProto(t *testing.T) {
 	/////// request end
 
 	/////// heartbeat
-	frame := bp.Trigger(111)
+	frame := bp.Trigger(context.TODO(), 111)
 	assert.NotNil(t, frame)
 	assert.Equal(t, frame.(*Request).RequestHeader.CmdType, CmdTypeRequest)
 	assert.Equal(t, frame.(*Request).RequestHeader.CmdCode, CmdCodeHeartbeat)
@@ -64,7 +64,7 @@ func TestMapping(t *testing.T) {
 			api.CodecExceptionCode:    uint32(ResponseStatusCodecException),
 			api.DeserialExceptionCode: uint32(ResponseStatusServerDeserialException),
 			api.TimeoutExceptionCode:  uint32(ResponseStatusTimeout),
-			999999: uint32(ResponseStatusUnknown),
+			999999:                    uint32(ResponseStatusUnknown),
 		}
 	)
 
@@ -76,14 +76,14 @@ func TestMapping(t *testing.T) {
 func TestReply(t *testing.T) {
 	bp := boltProtocol{}
 	// reply heartbeat
-	resp := bp.Reply(NewRpcResponse(1, 0, nil, buffer.NewIoBufferString("hello")))
+	resp := bp.Reply(context.TODO(), NewRpcResponse(1, 0, nil, buffer.NewIoBufferString("hello")))
 	assert.True(t, resp.IsHeartbeatFrame())
 }
 
 func TestHijack(t *testing.T) {
 	bp := boltProtocol{}
 	rsp := NewRpcResponse(1, 0, nil, buffer.NewIoBufferString("hello"))
-	frame := bp.Hijack(rsp, 999)
+	frame := bp.Hijack(context.TODO(), rsp, 999)
 	assert.Equal(t, frame.GetStatusCode(), uint32(999))
 }
 
