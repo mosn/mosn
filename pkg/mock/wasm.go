@@ -750,6 +750,18 @@ func (mr *MockWasmInstanceMockRecorder) GetModule() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetModule", reflect.TypeOf((*MockWasmInstance)(nil).GetModule))
 }
 
+// HandleError mocks base method.
+func (m *MockWasmInstance) HandleError(err error) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "HandleError", err)
+}
+
+// HandleError indicates an expected call of HandleError.
+func (mr *MockWasmInstanceMockRecorder) HandleError(err interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleError", reflect.TypeOf((*MockWasmInstance)(nil).HandleError), err)
+}
+
 // MockWasmFunction is a mock of WasmFunction interface.
 type MockWasmFunction struct {
 	ctrl     *gomock.Controller

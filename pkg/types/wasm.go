@@ -180,6 +180,9 @@ type WasmInstance interface {
 
 	// GetModule returns the wasm module of current instance
 	GetModule() WasmModule
+
+	// HandlerError processes the encountered err
+	HandleError(err error)
 }
 
 // WasmFunction is the func exported by wasm module

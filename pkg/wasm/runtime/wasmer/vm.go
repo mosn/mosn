@@ -59,5 +59,5 @@ func (w *VM) NewModule(wasmBytes []byte) types.WasmModule {
 		return nil
 	}
 
-	return NewWasmerModule(w, m)
+	return NewWasmerModule(w, m, wasmBytes)
 }

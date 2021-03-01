@@ -1,9 +1,11 @@
 package wasmer
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	wasmerGo "github.com/wasmerio/wasmer-go/wasmer"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -127,5 +129,24 @@ func TestInstanceData(t *testing.T) {
 		ins.Acquire(i)
 		assert.Equal(t, ins.GetData().(int), i)
 		ins.Release()
+	}
+}
+
+func TestWasmerTypes(t *testing.T) {
+	testDatas := []struct {
+		refType     reflect.Type
+		refValue    reflect.Value
+		refValKind  reflect.Kind
+		wasmValKind wasmerGo.ValueKind
+	}{
+		{reflect.TypeOf(int32(0)), reflect.ValueOf(int32(0)), reflect.Int32, wasmerGo.I32},
+		{reflect.TypeOf(int64(0)), reflect.ValueOf(int64(0)), reflect.Int64, wasmerGo.I64},
+		{reflect.TypeOf(float32(0)), reflect.ValueOf(float32(0)), reflect.Float32, wasmerGo.F32},
+		{reflect.TypeOf(float64(0)), reflect.ValueOf(float64(0)), reflect.Float64, wasmerGo.F64},
+	}
+
+	for _, tc := range testDatas {
+		assert.Equal(t, convertFromGoType(tc.refType).Kind(), tc.wasmValKind)
+		assert.Equal(t, convertToGoTypes(convertFromGoValue(tc.refValue)).Kind(), tc.refValKind)
 	}
 }

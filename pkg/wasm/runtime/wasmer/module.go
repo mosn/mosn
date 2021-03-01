@@ -30,12 +30,15 @@ type Module struct {
 	module      *wasmerGo.Module
 	abiNameList []string
 	wasiVersion wasmerGo.WasiVersion
+	debug       *dwarfInfo
+	rawBytes    []byte
 }
 
-func NewWasmerModule(vm *VM, module *wasmerGo.Module) *Module {
+func NewWasmerModule(vm *VM, module *wasmerGo.Module, wasmBytes []byte) *Module {
 	m := &Module{
-		vm:     vm,
-		module: module,
+		vm:       vm,
+		module:   module,
+		rawBytes: wasmBytes,
 	}
 
 	m.Init()
@@ -48,11 +51,24 @@ func (w *Module) Init() {
 	log.DefaultLogger.Infof("[wasmer][module] Init module name: %v, wasi version: %v", w.module.Name(), w.wasiVersion.String())
 
 	w.abiNameList = w.GetABINameList()
+
+	// parse dwarf info from wasm data bytes
+	if debug := parseDwarf(w.rawBytes); debug != nil {
+		w.debug = debug
+	}
+
+	// release raw bytes, the parsing of dwarf info is the only place that uses module raw bytes
+	w.rawBytes = nil
+
 	return
 }
 
 func (w *Module) NewInstance() types.WasmInstance {
-	return NewWasmerInstance(w.vm, w)
+	if w.debug != nil {
+		return NewWasmerInstance(w.vm, w, InstanceWithDebug(w.debug))
+	} else {
+		return NewWasmerInstance(w.vm, w)
+	}
 }
 
 func (w *Module) GetABINameList() []string {

@@ -47,8 +47,8 @@ type Instance struct {
 	module       *Module
 	importObject *wasmerGo.ImportObject
 	instance     *wasmerGo.Instance
-
-	abiList []types.ABI
+	debug        *dwarfInfo
+	abiList      []types.ABI
 
 	started uint32
 
@@ -62,10 +62,24 @@ type Instance struct {
 	lock sync.Mutex
 }
 
-func NewWasmerInstance(vm *VM, module *Module) *Instance {
+type InstanceOptions func(instance *Instance)
+
+func InstanceWithDebug(debug *dwarfInfo) InstanceOptions {
+	return func(instance *Instance) {
+		if debug != nil {
+			instance.debug = debug
+		}
+	}
+}
+
+func NewWasmerInstance(vm *VM, module *Module, options ...InstanceOptions) *Instance {
 	ins := &Instance{
 		vm:     vm,
 		module: module,
+	}
+
+	for _, option := range options {
+		option(ins)
 	}
 
 	wasiEnv, err := wasmerGo.NewWasiStateBuilder("").Finalize()
@@ -131,6 +145,7 @@ func (w *Instance) Start() error {
 	_, err = f()
 	if err != nil {
 		log.DefaultLogger.Errorf("[wasmer][instance] Start fail to call _start func, err: %v", err)
+		w.HandleError(err)
 		return err
 	}
 
@@ -353,4 +368,38 @@ func (w *Instance) PutUint32(addr uint64, value uint32) error {
 	}
 	binary.LittleEndian.PutUint32(mem[addr:], value)
 	return nil
+}
+
+func (w *Instance) HandleError(err error) {
+	te, ok := err.(*wasmerGo.TrapError)
+	if !ok {
+		return
+	}
+
+	trace := te.Trace()
+	if trace == nil {
+		return
+	}
+
+	log.DefaultLogger.Errorf("[wasmer][instance] HandleError trace:")
+
+	if w.debug == nil {
+		// do not have dwarf debug info
+		for _, t := range trace {
+			log.DefaultLogger.Errorf("[wasmer][instance]\t funcIndex: %v, funcOffset: 0x%08x, moduleOffset: 0x%08x",
+				t.FunctionIndex(), t.FunctionOffset(), t.ModuleOffset())
+		}
+	} else {
+		for _, t := range trace {
+			pc := uint64(t.ModuleOffset())
+			line := w.debug.SeekPC(pc)
+			if line != nil {
+				log.DefaultLogger.Errorf("[wasmer][instance]\t funcIndex: %v, funcOffset: 0x%08x, pc: 0x%08x %v:%v",
+					t.FunctionIndex(), t.FunctionOffset(), pc, line.File.Name, line.Line)
+			} else {
+				log.DefaultLogger.Errorf("[wasmer][instance]\t funcIndex: %v, funcOffset: 0x%08x, pc: 0x%08x fail to seek pc",
+					t.FunctionIndex(), t.FunctionOffset(), t.ModuleOffset())
+			}
+		}
+	}
 }
