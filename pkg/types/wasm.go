@@ -209,6 +209,8 @@ type ABI interface {
 	// SetImports sets the import part of the abi
 	SetImports(imports interface{})
 
+	GetImports() interface{}
+
 	ABIHandler
 }
 

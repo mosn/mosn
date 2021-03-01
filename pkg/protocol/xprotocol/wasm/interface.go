@@ -18,7 +18,7 @@
 package wasm
 
 import (
-	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
 	"mosn.io/pkg/buffer"
@@ -37,14 +37,14 @@ type Exports interface {
 
 type ContextCallback interface {
 	// extension for abi 0_1_0
-	v1.InstanceCallback
+	v1.ImportsHandler
 
 	//DrainLength() uint32
-	GetDecodeCmd() xprotocol.XFrame
-	SetDecodeCmd(cmd xprotocol.XFrame)
+	GetDecodeCmd() api.XFrame
+	SetDecodeCmd(cmd api.XFrame)
 	GetDecodeBuffer() buffer.IoBuffer
 
-	GetEncodeCmd() xprotocol.XFrame
+	GetEncodeCmd() api.XFrame
 	SetEncodeBuffer(buf buffer.IoBuffer)
 	GetEncodeBuffer() buffer.IoBuffer
 }
@@ -52,23 +52,25 @@ type ContextCallback interface {
 var contextId int32
 
 type Context struct {
-	v1.DefaultInstanceCallback
-	decodeCmd     xprotocol.XFrame
+	v1.DefaultImportsHandler
+	decodeCmd     api.XFrame
 	decodeBuffer  buffer.IoBuffer
-	encodeCmd     xprotocol.XFrame
+	encodeCmd     api.XFrame
 	encodeBuffer  buffer.IoBuffer
 	proto         *wasmRpcProtocol
 	keepaliveReq  *Request
 	keepaliveResp *Response
 	contextId     int32
 	exports       Exports
+	abi           types.ABI
+	instance      types.WasmInstance
 }
 
-func (c *Context) GetDecodeCmd() xprotocol.XFrame {
+func (c *Context) GetDecodeCmd() api.XFrame {
 	return c.decodeCmd
 }
 
-func (c *Context) SetDecodeCmd(cmd xprotocol.XFrame) {
+func (c *Context) SetDecodeCmd(cmd api.XFrame) {
 	c.decodeCmd = cmd
 }
 
@@ -80,11 +82,11 @@ func (c *Context) SetDecodeBuffer(buf buffer.IoBuffer) {
 	c.decodeBuffer = buf
 }
 
-func (c *Context) GetEncodeCmd() xprotocol.XFrame {
+func (c *Context) GetEncodeCmd() api.XFrame {
 	return c.encodeCmd
 }
 
-func (c *Context) SetEncodeCmd(cmd xprotocol.XFrame) {
+func (c *Context) SetEncodeCmd(cmd api.XFrame) {
 	c.encodeCmd = cmd
 }
 

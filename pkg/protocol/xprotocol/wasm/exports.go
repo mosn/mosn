@@ -20,6 +20,7 @@ package wasm
 import (
 	"errors"
 	"fmt"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
@@ -28,11 +29,13 @@ import (
 )
 
 func (a *AbiV2Impl) ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) error {
-	log.DefaultLogger.Infof("[export] ProxyDecodeBufferBytes contextID: %v", contextId)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[export] ProxyDecodeBufferBytes contextID: %v", contextId)
+	}
 
 	instance := a.GetInstance()
 	ff, err := instance.GetExportsFunc("proxy_decode_buffer_bytes")
-	ctx := instance.GetData().(*Context)
+	ctx := getInstanceCallback(instance).(*Context)
 	if err != nil {
 		return errors.New(fmt.Sprintf("fail to get export func: proxy_decode_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err))
 	}
@@ -73,10 +76,12 @@ func (a *AbiV2Impl) ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) 
 }
 
 func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request) error {
-	log.DefaultLogger.Infof("[export] ProxyEncodeRequestBufferBytes contextID: %v", contextId)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[export] ProxyEncodeRequestBufferBytes contextID: %v", contextId)
+	}
 
 	instance := a.GetInstance()
-	ctx := instance.GetData().(*Context)
+	ctx := getInstanceCallback(instance).(*Context)
 	ff, err := instance.GetExportsFunc("proxy_encode_buffer_bytes")
 	if err != nil {
 		log.DefaultLogger.Errorf("[export] fail to get export func: proxy_encode_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err)
@@ -110,7 +115,7 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 	if cmd.IsHeartbeatFrame() {
 		flag = flag | HeartBeatFlag
 	}
-	if cmd.GetStreamType() == xprotocol.RequestOneWay {
+	if cmd.GetStreamType() == api.RequestOneWay {
 		flag = flag | RpcOneWayRequestFlag
 	}
 	// write request flag
@@ -155,16 +160,20 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 		return errors.New(fmt.Sprintf("plugin %s encode request buffer failed, contextId: %d, len: %d", ctx.proto.name, ctx.ContextId(), buf.Len()))
 	}
 
-	log.DefaultLogger.Infof("encode request, context id: %d , rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("encode request, context id: %d , rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
+	}
 
 	return nil
 }
 
 func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Response) error {
-	log.DefaultLogger.Infof("[export] ProxyEncodeResponseBufferBytes contextID: %v", contextId)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[export] ProxyEncodeResponseBufferBytes contextID: %v", contextId)
+	}
 
 	instance := a.GetInstance()
-	ctx := instance.GetData().(*Context)
+	ctx := getInstanceCallback(instance).(*Context)
 	ff, err := instance.GetExportsFunc("proxy_encode_buffer_bytes")
 	if err != nil {
 		log.DefaultLogger.Errorf("[export] fail to get export func: proxy_encode_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err)
@@ -240,16 +249,20 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 		return errors.New(fmt.Sprintf("plugin %s encode response buffer failed, contextId: %d, len: %d", ctx.proto.name, ctx.ContextId(), buf.Len()))
 	}
 
-	log.DefaultLogger.Infof("encode response, context id: %d, rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("encode response, context id: %d, rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
+	}
 
 	return nil
 }
 
 func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error {
-	log.DefaultLogger.Infof("[export] ProxyKeepAliveBufferBytes contextID: %v", contextId)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[export] ProxyKeepAliveBufferBytes contextID: %v", contextId)
+	}
 
 	instance := a.GetInstance()
-	ctx := instance.GetData().(*Context)
+	ctx := getInstanceCallback(instance).(*Context)
 	ff, err := instance.GetExportsFunc("proxy_keepalive_buffer_bytes")
 	if err != nil {
 		log.DefaultLogger.Errorf("[export] fail to get export func: proxy_keepalive_buffer_bytes, err: %v", err)
@@ -271,10 +284,12 @@ func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error 
 }
 
 func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd *Request) error {
-	log.DefaultLogger.Infof("[export] ProxyReplyKeepAliveBufferBytes contextID: %v", contextId)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[export] ProxyReplyKeepAliveBufferBytes contextID: %v", contextId)
+	}
 
 	instance := a.GetInstance()
-	ctx := instance.GetData().(*Context)
+	ctx := getInstanceCallback(instance).(*Context)
 	ff, err := instance.GetExportsFunc("proxy_reply_keepalive_buffer_bytes")
 	if err != nil {
 		log.DefaultLogger.Errorf("[export] fail to get export func: proxy_reply_keepalive_buffer_bytes, err: %v", err)
@@ -297,10 +312,12 @@ func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd *Request
 }
 
 func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd *Request, statusCode uint32) error {
-	log.DefaultLogger.Infof("[export] ProxyHijackBufferBytes contextID: %v", contextId)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[export] ProxyHijackBufferBytes contextID: %v", contextId)
+	}
 
 	instance := a.GetInstance()
-	ctx := instance.GetData().(*Context)
+	ctx := getInstanceCallback(instance).(*Context)
 	ff, err := instance.GetExportsFunc("proxy_hijack_buffer_bytes")
 	if err != nil {
 		log.DefaultLogger.Errorf("[export] fail to get export func: proxy_hijack_buffer_bytes, err: %v", err)

@@ -12,7 +12,7 @@ func TestOnInstanceCreate(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	ctx := &abiContext{}
+	ctx := &AbiContext{}
 	assert.Equal(t, ctx.Name(), ProxyWasmABI_0_1_0)
 
 	imports := newMockImportsHandler()

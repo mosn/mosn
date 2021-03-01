@@ -69,7 +69,7 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 
 	// hijack process
 	if s.direction == stream.ServerStream && frame.GetStreamType() == api.Request {
-		s.frame, err = s.buildHijackResp(frame, headers)
+		s.frame, err = s.buildHijackResp(ctx, frame, headers)
 		if err != nil {
 			return
 		}
@@ -84,7 +84,7 @@ func (s *xStream) AppendHeaders(ctx context.Context, headers types.HeaderMap, en
 	return
 }
 
-func (s *xStream) buildHijackResp(request api.XFrame, header types.HeaderMap) (api.XFrame, error) {
+func (s *xStream) buildHijackResp(ctx context.Context, request api.XFrame, header types.HeaderMap) (api.XFrame, error) {
 	status, err := variable.GetVariableValue(s.ctx, types.VarHeaderStatus)
 	if err != nil {
 		return nil, err

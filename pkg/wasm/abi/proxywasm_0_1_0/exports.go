@@ -21,13 +21,13 @@ import (
 	"mosn.io/mosn/pkg/log"
 )
 
-func (a *abiContext) waitAsyncHttpCallout() {
+func (a *AbiContext) waitAsyncHttpCallout() {
 	if a.httpCallout != nil && a.httpCallout.asyncRetChan != nil {
 		<-a.httpCallout.asyncRetChan
 	}
 }
 
-func (a *abiContext) ProxyOnContextCreate(contextId int32, parentContextId int32) error {
+func (a *AbiContext) ProxyOnContextCreate(contextId int32, parentContextId int32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnContextCreate contextID: %v, parentContextId: %v", contextId, parentContextId)
 	}
@@ -50,7 +50,7 @@ func (a *abiContext) ProxyOnContextCreate(contextId int32, parentContextId int32
 	return nil
 }
 
-func (a *abiContext) ProxyOnDone(contextId int32) (int32, error) {
+func (a *AbiContext) ProxyOnDone(contextId int32) (int32, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Infof("[proxywasm_0_1_0][export] ProxyOnDone contextID: %v", contextId)
 	}
@@ -73,7 +73,7 @@ func (a *abiContext) ProxyOnDone(contextId int32) (int32, error) {
 	return res.(int32), nil
 }
 
-func (a *abiContext) ProxyOnLog(contextId int32) error {
+func (a *AbiContext) ProxyOnLog(contextId int32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[wasmer][instance] ProxyOnLog")
 	}
@@ -94,7 +94,7 @@ func (a *abiContext) ProxyOnLog(contextId int32) error {
 	return nil
 }
 
-func (a *abiContext) ProxyOnVmStart(rootContextId int32, vmConfigurationSize int32) (int32, error) {
+func (a *AbiContext) ProxyOnVmStart(rootContextId int32, vmConfigurationSize int32) (int32, error) {
 	log.DefaultLogger.Infof("[proxywasm_0_1_0][export] ProxyOnVmStart rootContextId: %v, vmConfigurationSize: %v", rootContextId, vmConfigurationSize)
 
 	ff, err := a.instance.GetExportsFunc("proxy_on_vm_start")
@@ -115,7 +115,7 @@ func (a *abiContext) ProxyOnVmStart(rootContextId int32, vmConfigurationSize int
 	return res.(int32), nil
 }
 
-func (a *abiContext) ProxyOnDelete(contextId int32) error {
+func (a *AbiContext) ProxyOnDelete(contextId int32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnDelete")
 	}
@@ -138,7 +138,7 @@ func (a *abiContext) ProxyOnDelete(contextId int32) error {
 	return nil
 }
 
-func (a *abiContext) ProxyOnConfigure(rootContextId int32, configurationSize int32) (int32, error) {
+func (a *AbiContext) ProxyOnConfigure(rootContextId int32, configurationSize int32) (int32, error) {
 	log.DefaultLogger.Infof("[proxywasm_0_1_0][export] ProxyOnConfigure rootContextId: %v, configurationSize: %v", rootContextId, configurationSize)
 
 	ff, err := a.instance.GetExportsFunc("proxy_on_configure")
@@ -159,7 +159,7 @@ func (a *abiContext) ProxyOnConfigure(rootContextId int32, configurationSize int
 	return res.(int32), nil
 }
 
-func (a *abiContext) ProxyOnTick(rootContextId int32) error {
+func (a *AbiContext) ProxyOnTick(rootContextId int32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnTick")
 	}
@@ -182,7 +182,7 @@ func (a *abiContext) ProxyOnTick(rootContextId int32) error {
 	return nil
 }
 
-func (a *abiContext) ProxyOnNewConnection(contextId int32) (Action, error) {
+func (a *AbiContext) ProxyOnNewConnection(contextId int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnNewConnection")
 	}
@@ -205,7 +205,7 @@ func (a *abiContext) ProxyOnNewConnection(contextId int32) (Action, error) {
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnDownstreamData(contextId int32, dataLength int32, endOfStream int32) (Action, error) {
+func (a *AbiContext) ProxyOnDownstreamData(contextId int32, dataLength int32, endOfStream int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnDownstreamData")
 	}
@@ -228,7 +228,7 @@ func (a *abiContext) ProxyOnDownstreamData(contextId int32, dataLength int32, en
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnDownstreamConnectionClose(contextId int32, closeType int32) error {
+func (a *AbiContext) ProxyOnDownstreamConnectionClose(contextId int32, closeType int32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnDownstreamConnectionClose")
 	}
@@ -251,7 +251,7 @@ func (a *abiContext) ProxyOnDownstreamConnectionClose(contextId int32, closeType
 	return nil
 }
 
-func (a *abiContext) ProxyOnUpstreamData(contextId int32, dataLength int32, endOfStream int32) (Action, error) {
+func (a *AbiContext) ProxyOnUpstreamData(contextId int32, dataLength int32, endOfStream int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnUpstreamData")
 	}
@@ -274,7 +274,7 @@ func (a *abiContext) ProxyOnUpstreamData(contextId int32, dataLength int32, endO
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnUpstreamConnectionClose(contextId int32, closeType int32) error {
+func (a *AbiContext) ProxyOnUpstreamConnectionClose(contextId int32, closeType int32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnUpstreamConnectionClose")
 	}
@@ -297,7 +297,7 @@ func (a *abiContext) ProxyOnUpstreamConnectionClose(contextId int32, closeType i
 	return nil
 }
 
-func (a *abiContext) ProxyOnRequestHeaders(contextID int32, numHeaders int32, endOfStream int32) (Action, error) {
+func (a *AbiContext) ProxyOnRequestHeaders(contextID int32, numHeaders int32, endOfStream int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnRequestHeaders")
 	}
@@ -320,7 +320,7 @@ func (a *abiContext) ProxyOnRequestHeaders(contextID int32, numHeaders int32, en
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnRequestBody(contextId int32, bodyBufferLength int32, endOfStream int32) (Action, error) {
+func (a *AbiContext) ProxyOnRequestBody(contextId int32, bodyBufferLength int32, endOfStream int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnRequestBody")
 	}
@@ -343,7 +343,7 @@ func (a *abiContext) ProxyOnRequestBody(contextId int32, bodyBufferLength int32,
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnRequestTrailers(contextId int32, trailers int32) (Action, error) {
+func (a *AbiContext) ProxyOnRequestTrailers(contextId int32, trailers int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnRequestTrailers")
 	}
@@ -366,7 +366,7 @@ func (a *abiContext) ProxyOnRequestTrailers(contextId int32, trailers int32) (Ac
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnRequestMetadata(contextId int32, nElements int32) (Action, error) {
+func (a *AbiContext) ProxyOnRequestMetadata(contextId int32, nElements int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnRequestMetadata")
 	}
@@ -389,7 +389,7 @@ func (a *abiContext) ProxyOnRequestMetadata(contextId int32, nElements int32) (A
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnResponseHeaders(contextId int32, headers int32, endOfStream int32) (Action, error) {
+func (a *AbiContext) ProxyOnResponseHeaders(contextId int32, headers int32, endOfStream int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnResponseHeaders")
 	}
@@ -412,7 +412,7 @@ func (a *abiContext) ProxyOnResponseHeaders(contextId int32, headers int32, endO
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnResponseBody(contextId int32, bodyBufferLength int32, endOfStream int32) (Action, error) {
+func (a *AbiContext) ProxyOnResponseBody(contextId int32, bodyBufferLength int32, endOfStream int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnResponseBody")
 	}
@@ -435,7 +435,7 @@ func (a *abiContext) ProxyOnResponseBody(contextId int32, bodyBufferLength int32
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnResponseTrailers(contextId int32, trailers int32) (Action, error) {
+func (a *AbiContext) ProxyOnResponseTrailers(contextId int32, trailers int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnResponseTrailers")
 	}
@@ -458,7 +458,7 @@ func (a *abiContext) ProxyOnResponseTrailers(contextId int32, trailers int32) (A
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnResponseMetadata(contextId int32, nElements int32) (Action, error) {
+func (a *AbiContext) ProxyOnResponseMetadata(contextId int32, nElements int32) (Action, error) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnResponseMetadata")
 	}
@@ -481,7 +481,7 @@ func (a *abiContext) ProxyOnResponseMetadata(contextId int32, nElements int32) (
 	return Action(res.(int32)), nil
 }
 
-func (a *abiContext) ProxyOnHttpCallResponse(contextId int32, token int32, headers int32, bodySize int32, trailers int32) error {
+func (a *AbiContext) ProxyOnHttpCallResponse(contextId int32, token int32, headers int32, bodySize int32, trailers int32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnHttpCallResponse")
 	}
@@ -502,7 +502,7 @@ func (a *abiContext) ProxyOnHttpCallResponse(contextId int32, token int32, heade
 	return nil
 }
 
-func (a *abiContext) ProxyOnQueueReady(rootContextId int32, token int32) error {
+func (a *AbiContext) ProxyOnQueueReady(rootContextId int32, token int32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnQueueReady")
 	}

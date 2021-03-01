@@ -281,7 +281,7 @@ func (s *downStream) finishWasmContext() {
 	name := s.proxy.serverStreamConn.Protocol()
 	if name == protocol.Xprotocol {
 		name = types.ProtocolName(mosnctx.Get(s.context, types.ContextSubProtocol).(string))
-		if proto, ok := xprotocol.GetProtocol(name).(xprotocol.WasmProtocol); ok {
+		if proto, ok := xprotocol.GetProtocol(name).(api.WasmProtocol); ok {
 			// complete upstream wasm resource
 			s.completeWasmContext(proto, s.context)
 			if switchCtx := mosnctx.Get(s.context, types.ContextKeyWasmSwitchContext); switchCtx != nil {
@@ -292,7 +292,7 @@ func (s *downStream) finishWasmContext() {
 	}
 }
 
-func (s *downStream) completeWasmContext(proto xprotocol.WasmProtocol, context context.Context) {
+func (s *downStream) completeWasmContext(proto api.WasmProtocol, context context.Context) {
 	proto.OnProxyDone(context)
 	proto.OnProxyDelete(context)
 }

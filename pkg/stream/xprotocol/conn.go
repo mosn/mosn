@@ -85,7 +85,7 @@ func newStreamConnection(ctx context.Context, conn api.Connection, clientCallbac
 			return nil
 		}
 		sc.protocol = proto
-		if p, ok := sc.protocol.(xprotocol.WasmProtocol); ok {
+		if p, ok := sc.protocol.(api.WasmProtocol); ok {
 			// indicates whether the protocol is implemented as a WASM extension
 			sc.isWasmProtocol = p.IsProxyWasm()
 		}
@@ -207,7 +207,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 }
 
 func (sc *streamConn) handleWasmContextCreate(streamCtx context.Context) context.Context {
-	proto := sc.protocol.(xprotocol.WasmProtocol)
+	proto := sc.protocol.(api.WasmProtocol)
 	return proto.OnProxyCreate(streamCtx)
 }
 

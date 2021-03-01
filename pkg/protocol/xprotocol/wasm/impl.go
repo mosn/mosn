@@ -23,23 +23,34 @@ import (
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
 )
 
+const (
+	AbiV2 = "proxy_abi_version_0_2_0"
+)
+
 func init() {
 	abi.RegisterABI("proxy_abi_version_0_2_0", abiImplFactory)
 }
 
-func abiImplFactory() abi.ABI {
-	return &AbiV2Impl{}
+func abiImplFactory(instance types.WasmInstance) types.ABI {
+	abi := &AbiV2Impl{}
+	abi.SetImports(&v1.DefaultImportsHandler{})
+	abi.SetInstance(instance)
+	return abi
 }
 
 // easy for extension
 type AbiV2Impl struct {
-	v1.AbiImpl
+	v1.AbiContext
+}
+
+func (a *AbiV2Impl) Name() string {
+	return AbiV2
 }
 
 func (a *AbiV2Impl) OnInstanceCreate(instance types.WasmInstance) {
 
 	// pre register abi 0_1_0 version
-	a.AbiImpl.OnInstanceCreate(instance)
+	a.AbiContext.OnInstanceCreate(instance)
 
 	instance.RegisterFunc("env", "proxy_set_buffer_bytes", proxySetBufferBytes)
 

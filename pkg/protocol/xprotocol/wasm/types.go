@@ -18,8 +18,8 @@
 package wasm
 
 import (
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/types"
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
 )
 
@@ -53,7 +53,7 @@ type ProtocolConfig struct {
 	PoolMode          string `json:"pool_mode,omitempty"`
 	DisableWorkerPool bool   `json:"disable_worker_pool,omitempty"`
 	PluginGenerateID  bool   `json:"plugin_generate_id,omitempty"`
-	poolMode          types.PoolMode
+	poolMode          api.PoolMode
 }
 
 // extension for protocol

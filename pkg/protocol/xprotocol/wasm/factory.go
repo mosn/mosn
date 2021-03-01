@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
@@ -39,23 +40,23 @@ func GetProxyProtocolManager() ProxyProtocolManager {
 
 type ProxyProtocolManager interface {
 
-	// AddOrUpdateProtocolConfig map the key to streamFilter chain config.
+	// AddOrUpdateProtocolConfig map the key to streamFilter chain wrapper.
 	AddOrUpdateProtocolConfig(config map[string]interface{}) error
 
 	// GetWasmProtocolFactory return StreamFilterFactory indexed by key.
-	GetWasmProtocolFactory(key string) ProxyProtocolFactory
+	GetWasmProtocolFactory(key string) ProxyProtocolWrapper
 }
 
-var proxyProtocolMng = &wasmProtocolManager{factory: make(map[string]ProxyProtocolFactory)}
+var proxyProtocolMng = &wasmProtocolManager{factory: make(map[string]ProxyProtocolWrapper)}
 
 type wasmProtocolManager struct {
-	factory map[string]ProxyProtocolFactory
+	factory map[string]ProxyProtocolWrapper
 }
 
 func (m *wasmProtocolManager) AddOrUpdateProtocolConfig(config map[string]interface{}) error {
 	factory, err := createProxyWasmProtocolFactory(config)
 	if err != nil {
-		log.DefaultLogger.Errorf("failed to create wasm proxy protocol factory, err %v", err)
+		log.DefaultLogger.Errorf("failed to create wasm proxy protocol wrapper, err %v", err)
 		return err
 	}
 	if factory != nil {
@@ -64,30 +65,30 @@ func (m *wasmProtocolManager) AddOrUpdateProtocolConfig(config map[string]interf
 	return nil
 }
 
-func (m *wasmProtocolManager) GetWasmProtocolFactory(key string) ProxyProtocolFactory {
+func (m *wasmProtocolManager) GetWasmProtocolFactory(key string) ProxyProtocolWrapper {
 	return m.factory[key]
 }
 
-type ProxyProtocolFactory interface {
+type ProxyProtocolWrapper interface {
 	Name() string
 }
 
-type protocolFactory struct {
-	proxywasm_0_1_0.DefaultInstanceCallback
+type protocolWrapper struct {
+	proxywasm_0_1_0.DefaultImportsHandler
 	pluginName    string
 	config        *ProtocolConfig        // plugin config
 	conf          map[string]interface{} // raw config map
 	pluginWrapper types.WasmPluginWrapper
 }
 
-func (f *protocolFactory) Name() string {
+func (f *protocolWrapper) Name() string {
 	return f.config.ExtendConfig.SubProtocol
 }
 
-func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolFactory, error) {
+func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolWrapper, error) {
 	config, err := ParseProtocolConfig(conf)
 	if err != nil {
-		log.DefaultLogger.Errorf("[wasm][protocol] CreateProxyWasmProtocolFactory fail to parse config, err: %v", err)
+		log.DefaultLogger.Errorf("[wasm][protocol] CreateProxyWasmProtocolFactory fail to parse wrapper, err: %v", err)
 		return nil, err
 	}
 
@@ -124,7 +125,7 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolF
 		config.VmConfig = pw.GetConfig().VmConfig
 	}
 
-	factory := &protocolFactory{
+	wrapper := &protocolWrapper{
 		pluginName:    pluginName,
 		config:        config,
 		conf:          conf,
@@ -137,34 +138,35 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolF
 		// first time plugin init, register proxy protocol.
 		// because the listener contains the types egress and ingress,
 		// the plug-in should be fired only once.
-		p = NewWasmRpcProtocol(config, pw.GetPlugin().GetInstance())
+		p = NewWasmRpcProtocol(pw, wrapper)
 		_ = xprotocol.RegisterProtocol(name, p)
 		// invoke plugin lifecycle pipeline
-		pw.RegisterPluginHandler(factory)
+		pw.RegisterPluginHandler(wrapper)
 		// todo detect plugin feature (ping-pong, worker pool?)
 	}
 
-	return factory, nil
+	return wrapper, nil
 }
 
-func (f *protocolFactory) OnConfigUpdate(config v2.WasmPluginConfig) {
+func (f *protocolWrapper) OnConfigUpdate(config v2.WasmPluginConfig) {
 	f.config.InstanceNum = config.InstanceNum
 	f.config.VmConfig = config.VmConfig
 }
 
-func (f *protocolFactory) OnPluginStart(plugin types.WasmPlugin) {
-	abiVersion := abi.GetABI("proxy_abi_version_0_2_0")
-	if abiVersion == nil {
-		log.DefaultLogger.Errorf("[wasm][protocol] NewProtocol abi version not found")
-		return
-	}
+func (f *protocolWrapper) OnPluginStart(plugin types.WasmPlugin) {
+	plugin.Exec(func(instance types.WasmInstance) bool {
 
-	plugin.Exec(func(instanceWrapper types.WasmInstanceWrapper) bool {
-		instanceWrapper.Acquire(f)
-		defer instanceWrapper.Release()
-
-		abiVersion.SetInstance(instanceWrapper)
+		abiVersion := abi.GetABI(instance, "proxy_abi_version_0_2_0")
+		abiVersion.SetImports(f)
 		exports := abiVersion.(Exports)
+
+		if abiVersion == nil {
+			log.DefaultLogger.Errorf("[wasm][protocol] NewProtocol abi version not found")
+			return true
+		}
+
+		instance.Acquire(abiVersion)
+		defer instance.Release()
 
 		_ = exports.ProxyOnContextCreate(f.config.RootContextID, 0)
 		_, _ = exports.ProxyOnVmStart(f.config.RootContextID, int32(f.GetVmConfig().Len()))
@@ -174,11 +176,11 @@ func (f *protocolFactory) OnPluginStart(plugin types.WasmPlugin) {
 	})
 }
 
-func (f *protocolFactory) OnPluginDestroy(_ types.WasmPlugin) {
+func (f *protocolWrapper) OnPluginDestroy(_ types.WasmPlugin) {
 	return
 }
 
-func (f *protocolFactory) GetVmConfig() buffer.IoBuffer {
+func (f *protocolWrapper) GetVmConfig() buffer.IoBuffer {
 	if f.config.VmConfig != nil {
 		configs := make(map[string]string, 8)
 		typeOf := reflect.TypeOf(*f.config.VmConfig)
@@ -197,7 +199,7 @@ func (f *protocolFactory) GetVmConfig() buffer.IoBuffer {
 	return buffer.NewIoBufferEOF()
 }
 
-func (f *protocolFactory) GetPluginConfig() buffer.IoBuffer {
+func (f *protocolWrapper) GetPluginConfig() buffer.IoBuffer {
 	configs := make(map[string]string, 8)
 	for key, v := range f.conf {
 		if value, ok := v.(string); ok {
@@ -228,11 +230,11 @@ func ParseProtocolConfig(cfg map[string]interface{}) (*ProtocolConfig, error) {
 
 	switch config.PoolMode {
 	case "ping-pong":
-		config.poolMode = types.PingPong
+		config.poolMode = api.PingPong
 	case "tcp":
-		config.poolMode = types.TCP
+		config.poolMode = api.TCP
 	default:
-		config.poolMode = types.Multiplex
+		config.poolMode = api.Multiplex
 	}
 
 	return &config, nil

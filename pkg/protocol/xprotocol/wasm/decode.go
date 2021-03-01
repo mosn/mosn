@@ -33,18 +33,21 @@ func (proto *wasmRpcProtocol) decodeCommand(context context.Context, buf types.I
 	}
 
 	wasmCtx := ctx.(*Context)
-	proto.instance.Acquire(wasmCtx)
+	wasmCtx.instance.Acquire(wasmCtx.abi)
+	wasmCtx.abi.SetImports(wasmCtx)
 	// The decoded data needs to be discarded
 	wasmCtx.SetDecodeBuffer(buf)
 	// invoke plugin decode impl
 	err := wasmCtx.exports.ProxyDecodeBufferBytes(wasmCtx.contextId, buf)
-	proto.instance.Release()
+	wasmCtx.instance.Release()
 
 	cmd := wasmCtx.GetDecodeCmd()
-	_, isReq := cmd.(*Request)
-	_, isResp := cmd.(*Response)
-	if cmd != nil {
-		log.DefaultLogger.Infof("decode command, context id: %d, req(%v)|resp(%v)|hb(%v), rpc id: %d \n", contextId, isReq, isResp, cmd.IsHeartbeatFrame(), cmd.GetRequestId())
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		_, isReq := cmd.(*Request)
+		_, isResp := cmd.(*Response)
+		if cmd != nil {
+			log.DefaultLogger.Infof("decode command, context id: %d, req(%v)|resp(%v)|hb(%v), rpc id: %d \n", contextId, isReq, isResp, cmd.IsHeartbeatFrame(), cmd.GetRequestId())
+		}
 	}
 	return cmd, err
 }

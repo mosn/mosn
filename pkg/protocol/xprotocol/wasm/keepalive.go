@@ -2,13 +2,13 @@ package wasm
 
 import (
 	"context"
+	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
-func (proto *wasmRpcProtocol) keepaliveRequest(context context.Context, requestId uint64) xprotocol.XFrame {
+func (proto *wasmRpcProtocol) keepaliveRequest(context context.Context, requestId uint64) api.XFrame {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		log.DefaultLogger.Errorf("[protocol] wasm %s keepalive request failed, wasm context not found.", proto.name)
@@ -16,8 +16,9 @@ func (proto *wasmRpcProtocol) keepaliveRequest(context context.Context, requestI
 	}
 
 	wasmCtx := ctx.(*Context)
-	proto.instance.Acquire(wasmCtx)
-	defer proto.instance.Release()
+	wasmCtx.instance.Acquire(wasmCtx.abi)
+	wasmCtx.abi.SetImports(wasmCtx)
+	defer wasmCtx.instance.Release()
 
 	// invoke plugin keepalive impl
 	err := wasmCtx.exports.ProxyKeepAliveBufferBytes(wasmCtx.contextId, requestId)
@@ -34,7 +35,7 @@ func (proto *wasmRpcProtocol) keepaliveRequest(context context.Context, requestI
 	return wasmCtx.keepaliveReq
 }
 
-func (proto *wasmRpcProtocol) keepaliveResponse(context context.Context, request xprotocol.XFrame) xprotocol.XRespFrame {
+func (proto *wasmRpcProtocol) keepaliveResponse(context context.Context, request api.XFrame) api.XRespFrame {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		log.DefaultLogger.Errorf("[protocol] wasm %s keepalive response failed, wasm context not found.", proto.name)
@@ -42,8 +43,9 @@ func (proto *wasmRpcProtocol) keepaliveResponse(context context.Context, request
 	}
 
 	wasmCtx := ctx.(*Context)
-	proto.instance.Acquire(wasmCtx)
-	defer proto.instance.Release()
+	wasmCtx.instance.Acquire(wasmCtx.abi)
+	wasmCtx.abi.SetImports(wasmCtx)
+	defer wasmCtx.instance.Release()
 
 	// invoke plugin keepalive impl
 	err := wasmCtx.exports.ProxyReplyKeepAliveBufferBytes(wasmCtx.contextId, request.(*Request))

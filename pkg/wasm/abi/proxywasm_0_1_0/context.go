@@ -30,27 +30,27 @@ func init() {
 }
 
 func abiContextFactory(instance types.WasmInstance) types.ABI {
-	return &abiContext{
+	return &AbiContext{
 		instance: instance,
 		imports:  &DefaultImportsHandler{},
 	}
 }
 
-type abiContext struct {
+type AbiContext struct {
 	imports     ImportsHandler
 	instance    types.WasmInstance
 	httpCallout *httpStruct
 }
 
-func (a *abiContext) Name() string {
+func (a *AbiContext) Name() string {
 	return ProxyWasmABI_0_1_0
 }
 
-func (a *abiContext) GetExports() interface{} {
+func (a *AbiContext) GetExports() interface{} {
 	return a
 }
 
-func (a *abiContext) SetImports(imports interface{}) {
+func (a *AbiContext) SetImports(imports interface{}) {
 	cb, ok := imports.(ImportsHandler)
 	if !ok {
 		log.DefaultLogger.Errorf("[proxywasm_0_1_0][context] SetImports type is not ImportsHandler")
@@ -59,11 +59,19 @@ func (a *abiContext) SetImports(imports interface{}) {
 	a.imports = cb
 }
 
-func (a *abiContext) SetInstance(instance types.WasmInstance) {
+func (a *AbiContext) GetImports() interface{} {
+	return a.imports
+}
+
+func (a *AbiContext) SetInstance(instance types.WasmInstance) {
 	a.instance = instance
 }
 
-func (a *abiContext) OnInstanceCreate(instance types.WasmInstance) {
+func (a *AbiContext) GetInstance() types.WasmInstance {
+	return a.instance
+}
+
+func (a *AbiContext) OnInstanceCreate(instance types.WasmInstance) {
 	instance.RegisterFunc("env", "proxy_log", proxyLog)
 
 	instance.RegisterFunc("env", "proxy_set_effective_context", proxySetEffectiveContext)
@@ -71,8 +79,8 @@ func (a *abiContext) OnInstanceCreate(instance types.WasmInstance) {
 	instance.RegisterFunc("env", "proxy_get_property", proxyGetProperty)
 	instance.RegisterFunc("env", "proxy_set_property", proxySetProperty)
 
-	instance.RegisterFunc("env", "proxy_get_buffer_bytes", proxyGetBufferBytes)
-	instance.RegisterFunc("env", "proxy_set_buffer_bytes", proxySetBufferBytes)
+	instance.RegisterFunc("env", "proxy_get_buffer_bytes", ProxyGetBufferBytes)
+	instance.RegisterFunc("env", "proxy_set_buffer_bytes", ProxySetBufferBytes)
 
 	instance.RegisterFunc("env", "proxy_get_header_map_pairs", proxyGetHeaderMapPairs)
 	instance.RegisterFunc("env", "proxy_set_header_map_pairs", proxySetHeaderMapPairs)
@@ -109,10 +117,10 @@ func (a *abiContext) OnInstanceCreate(instance types.WasmInstance) {
 	return
 }
 
-func (a *abiContext) OnInstanceStart(instance types.WasmInstance) {
+func (a *AbiContext) OnInstanceStart(instance types.WasmInstance) {
 	return
 }
 
-func (a *abiContext) OnInstanceDestroy(instance types.WasmInstance) {
+func (a *AbiContext) OnInstanceDestroy(instance types.WasmInstance) {
 	return
 }

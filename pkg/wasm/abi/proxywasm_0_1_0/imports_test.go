@@ -118,7 +118,7 @@ func TestGetBuffer(t *testing.T) {
 	imports.getHttpResponseBodyPtr = func() buffer.IoBuffer { return buffer.NewIoBufferString("resp body") }
 
 	instance := mock.NewMockWasmInstance(ctrl)
-	instance.EXPECT().GetData().AnyTimes().Return(&abiContext{imports: imports})
+	instance.EXPECT().GetData().AnyTimes().Return(&AbiContext{imports: imports})
 
 	assert.Equal(t, GetBuffer(instance, BufferTypeHttpRequestBody).String(), "req body")
 	assert.Equal(t, GetBuffer(instance, BufferTypeHttpResponseBody).String(), "resp body")
@@ -142,7 +142,7 @@ func TestGetMap(t *testing.T) {
 	imports.getHttpResponseTrailerPtr = func() api.HeaderMap { return respTrailer }
 
 	instance := mock.NewMockWasmInstance(ctrl)
-	instance.EXPECT().GetData().AnyTimes().Return(&abiContext{imports: imports})
+	instance.EXPECT().GetData().AnyTimes().Return(&AbiContext{imports: imports})
 
 	assert.Equal(t, GetMap(instance, MapTypeHttpRequestHeaders), reqHeader)
 	assert.Equal(t, GetMap(instance, MapTypeHttpRequestTrailers), reqTrailer)
@@ -160,7 +160,7 @@ func TestProxyLog(t *testing.T) {
 		imports.logPtr = func(level log.Level, msg string) {
 			assert.Equal(t, msg, "test log")
 		}
-		return &abiContext{imports: imports}
+		return &AbiContext{imports: imports}
 	})
 	instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).AnyTimes().Return([]byte("test log"), nil)
 
@@ -177,7 +177,7 @@ func TestProxyGetBufferBytes(t *testing.T) {
 		imports.getHttpRequestBodyPtr = func() buffer.IoBuffer {
 			return buffer.NewIoBufferString("test body")
 		}
-		return &abiContext{imports: imports}
+		return &AbiContext{imports: imports}
 	})
 	instance.EXPECT().Malloc(gomock.Any()).AnyTimes().Return(uint64(1), nil)
 
@@ -216,7 +216,7 @@ func TestProxySetBufferBytes(t *testing.T) {
 	instance.EXPECT().GetData().AnyTimes().DoAndReturn(func() interface{} {
 		imports := newMockImportsHandler()
 		imports.getHttpRequestBodyPtr = func() buffer.IoBuffer { return data }
-		return &abiContext{imports: imports}
+		return &AbiContext{imports: imports}
 	})
 	instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte("aaaa"), nil)
 
@@ -236,7 +236,7 @@ func TestProxyGetHeaderMapPairs(t *testing.T) {
 		imports.getHttpRequestHeaderPtr = func() api.HeaderMap {
 			return header.CommonHeader(m)
 		}
-		return &abiContext{imports: imports}
+		return &AbiContext{imports: imports}
 	})
 	instance.EXPECT().Malloc(gomock.Any()).AnyTimes().Return(uint64(1), nil)
 	instance.EXPECT().PutByte(gomock.Any(), gomock.Any()).AnyTimes().Return(nil)
@@ -267,7 +267,7 @@ func TestProxySetHeaderMapPairs(t *testing.T) {
 		imports.getHttpRequestHeaderPtr = func() api.HeaderMap {
 			return header.CommonHeader(m)
 		}
-		return &abiContext{imports: imports}
+		return &AbiContext{imports: imports}
 	})
 	instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return(delta, nil)
 
@@ -288,7 +288,7 @@ func TestProxyGetHeaderMapValue(t *testing.T) {
 		imports.getHttpRequestHeaderPtr = func() api.HeaderMap {
 			return header.CommonHeader(m)
 		}
-		return &abiContext{imports: imports}
+		return &AbiContext{imports: imports}
 	})
 	instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte("a"), nil)
 	instance.EXPECT().Malloc(gomock.Any()).AnyTimes().Return(uint64(1), nil)
@@ -329,7 +329,7 @@ func TestProxySetHeaderMapValue(t *testing.T) {
 		imports.getHttpRequestHeaderPtr = func() api.HeaderMap {
 			return header.CommonHeader(m)
 		}
-		return &abiContext{imports: imports}
+		return &AbiContext{imports: imports}
 	})
 	gomock.InOrder(
 		instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte("b"), nil),
@@ -352,7 +352,7 @@ func TestProxyAddHeaderMapValue(t *testing.T) {
 		imports.getHttpRequestHeaderPtr = func() api.HeaderMap {
 			return header.CommonHeader(m)
 		}
-		return &abiContext{imports: imports}
+		return &AbiContext{imports: imports}
 	})
 	gomock.InOrder(
 		instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte("c"), nil),
@@ -375,7 +375,7 @@ func TestProxyDelHeaderMapValue(t *testing.T) {
 		imports.getHttpRequestHeaderPtr = func() api.HeaderMap {
 			return header.CommonHeader(m)
 		}
-		return &abiContext{imports: imports}
+		return &AbiContext{imports: imports}
 	})
 
 	instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte("b"), nil)
@@ -426,7 +426,7 @@ func TestProxyHttpCall(t *testing.T) {
 	time.Sleep(time.Second)
 
 	instance := mock.NewMockWasmInstance(ctrl)
-	instance.EXPECT().GetData().AnyTimes().Return(&abiContext{instance: instance, imports: newMockImportsHandler()})
+	instance.EXPECT().GetData().AnyTimes().Return(&AbiContext{instance: instance, imports: newMockImportsHandler()})
 	gomock.InOrder(
 		instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte("http://127.0.0.1:22164/"), nil),
 		instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return(EncodeMap(map[string]string{"h1": "11", "h2": "22", "h3": "33"}), nil),

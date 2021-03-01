@@ -19,9 +19,9 @@ package wasm
 
 import (
 	"context"
+	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm/abi"
 	"sync/atomic"
@@ -50,24 +50,20 @@ flag (bit) :
 
 */
 
-func NewWasmRpcProtocol(config *ProtocolConfig, instance types.WasmInstanceWrapper) *wasmRpcProtocol {
+func NewWasmRpcProtocol(pw types.WasmPluginWrapper, wrapper *protocolWrapper) *wasmRpcProtocol {
 	return &wasmRpcProtocol{
-		config:      config,
-		instance:    instance,
-		name:        types.ProtocolName(config.ExtendConfig.SubProtocol),
-		contexts:    make(map[int32]*Context),
-		idToContext: make(map[uint64]int32),
+		pw:      pw,
+		name:    types.ProtocolName(wrapper.config.ExtendConfig.SubProtocol),
+		wrapper: wrapper,
 	}
 }
 
 // =========== wasm rpc v1.0 ========
 // Support for classic wasm-rpc microservice calls
 type wasmRpcProtocol struct {
-	config      *ProtocolConfig
-	instance    types.WasmInstanceWrapper
-	name        types.ProtocolName
-	contexts    map[int32]*Context // wasm context id -> context
-	idToContext map[uint64]int32   // cmd id -> wasm context id
+	wrapper *protocolWrapper
+	pw      types.WasmPluginWrapper
+	name    types.ProtocolName
 }
 
 // types.Protocol
@@ -83,7 +79,7 @@ func (proto *wasmRpcProtocol) Encode(ctx context.Context, message interface{}) (
 		return proto.encodeResponse(ctx, frame)
 	default:
 		log.Proxy.Errorf(ctx, "[protocol][wasm-%s] encode with unknown command : %+v", proto.name, message)
-		return nil, xprotocol.ErrUnknownType
+		return nil, api.ErrUnknownType
 	}
 }
 
@@ -91,16 +87,16 @@ func (proto *wasmRpcProtocol) Decode(ctx context.Context, buf types.IoBuffer) (i
 	return proto.decodeCommand(ctx, buf)
 }
 
-func (proto *wasmRpcProtocol) Trigger(ctx context.Context, requestId uint64) xprotocol.XFrame {
+func (proto *wasmRpcProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	return proto.keepaliveRequest(ctx, requestId)
 }
 
-func (proto *wasmRpcProtocol) Reply(ctx context.Context, request xprotocol.XFrame) xprotocol.XRespFrame {
+func (proto *wasmRpcProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
 	return proto.keepaliveResponse(ctx, request)
 }
 
 // Hijacker
-func (proto *wasmRpcProtocol) Hijack(ctx context.Context, request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
+func (proto *wasmRpcProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	return proto.hijack(ctx, request, statusCode)
 }
 
@@ -109,18 +105,18 @@ func (proto *wasmRpcProtocol) Mapping(httpStatusCode uint32) uint32 {
 }
 
 // need plugin report
-func (proto *wasmRpcProtocol) PoolMode() types.PoolMode {
-	return proto.config.poolMode
+func (proto *wasmRpcProtocol) PoolMode() api.PoolMode {
+	return proto.wrapper.config.poolMode
 }
 
 func (proto *wasmRpcProtocol) EnableWorkerPool() bool {
-	return !proto.config.DisableWorkerPool
+	return !proto.wrapper.config.DisableWorkerPool
 }
 
 // generate a request id for stream to combine stream request && response
 // use connection param as base
 func (proto *wasmRpcProtocol) GenerateRequestID(streamID *uint64) uint64 {
-	if !proto.config.PluginGenerateID {
+	if !proto.wrapper.config.PluginGenerateID {
 		return atomic.AddUint64(streamID, 1)
 	}
 
@@ -137,14 +133,14 @@ func (proto *wasmRpcProtocol) OnProxyCreate(context context.Context) context.Con
 	if ctx == nil {
 		wasmCtx := proto.NewContext()
 		// save current wasm context wasmCtx
-		proto.instance.Acquire(wasmCtx)
-		proto.contexts[wasmCtx.contextId] = wasmCtx
+		wasmCtx.instance.Acquire(wasmCtx.abi)
+		wasmCtx.abi.SetImports(wasmCtx)
 		// invoke plugin proxy on create
-		err := wasmCtx.exports.ProxyOnContextCreate(wasmCtx.contextId, proto.config.RootContextID)
+		err := wasmCtx.exports.ProxyOnContextCreate(wasmCtx.contextId, proto.wrapper.config.RootContextID)
 		if err != nil {
 			log.DefaultLogger.Warnf("failed to create protocol '%s' context, contextId %d not found", proto.name, wasmCtx.contextId)
 		}
-		proto.instance.Release()
+		wasmCtx.instance.Release()
 		return mosnctx.WithValue(context, types.ContextKeyWasmContext, wasmCtx)
 	}
 	return context
@@ -157,12 +153,13 @@ func (proto *wasmRpcProtocol) OnProxyDone(context context.Context) {
 	}
 
 	wasmCtx := ctx.(*Context)
-	proto.instance.Acquire(wasmCtx)
+	wasmCtx.instance.Acquire(wasmCtx.abi)
+	wasmCtx.abi.SetImports(wasmCtx)
 	// invoke plugin proxy on done
 	wasmCtx.exports.ProxyOnDone(wasmCtx.contextId)
 	// invoke plugin proxy log
 	wasmCtx.exports.ProxyOnLog(wasmCtx.contextId)
-	proto.instance.Release()
+	wasmCtx.instance.Release()
 
 }
 
@@ -173,20 +170,22 @@ func (proto *wasmRpcProtocol) OnProxyDelete(context context.Context) {
 	}
 
 	wasmCtx := ctx.(*Context)
-	proto.instance.Acquire(wasmCtx)
+	wasmCtx.instance.Acquire(wasmCtx.abi)
+	wasmCtx.abi.SetImports(wasmCtx)
 	// invoke plugin proxy on done
 	wasmCtx.exports.ProxyOnDelete(wasmCtx.contextId)
-	// remove wasm context
-	delete(proto.contexts, wasmCtx.contextId)
-	proto.instance.Release()
+	wasmCtx.instance.Release()
 }
 
 func (proto *wasmRpcProtocol) NewContext() *Context {
-	abiVersion := abi.GetABI("proxy_abi_version_0_2_0")
-	abiVersion.SetInstance(proto.instance)
-	return &Context{
+	instance := proto.pw.GetPlugin().GetInstance()
+	abiVersion := abi.GetABI(instance, AbiV2)
+	ctx := &Context{
+		abi:       abiVersion,
 		proto:     proto,
 		contextId: atomic.AddInt32(&contextId, 1),
 		exports:   abiVersion.(Exports),
+		instance:  instance,
 	}
+	return ctx
 }

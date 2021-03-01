@@ -2,14 +2,14 @@ package wasm
 
 import (
 	"context"
+	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
 
 // Hijacker
-func (proto *wasmRpcProtocol) hijack(context context.Context, request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
+func (proto *wasmRpcProtocol) hijack(context context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		log.DefaultLogger.Errorf("[protocol] wasm %s hijack failed, wasm context not found.", proto.name)
@@ -17,7 +17,8 @@ func (proto *wasmRpcProtocol) hijack(context context.Context, request xprotocol.
 	}
 
 	wasmCtx := ctx.(*Context)
-	proto.instance.Acquire(wasmCtx)
+	wasmCtx.instance.Acquire(wasmCtx.abi)
+	wasmCtx.abi.SetImports(wasmCtx)
 	// invoke plugin hijack impl
 	err := wasmCtx.exports.ProxyHijackBufferBytes(wasmCtx.contextId, request.(*Request), statusCode)
 	if err != nil {
@@ -28,7 +29,7 @@ func (proto *wasmRpcProtocol) hijack(context context.Context, request xprotocol.
 	// When encode is called, the proxy gets the correct buffer
 	wasmCtx.keepaliveResp = NewWasmResponseWithId(uint32(request.GetRequestId()), nil, nil)
 
-	proto.instance.Release()
+	wasmCtx.instance.Release()
 
 	return wasmCtx.keepaliveResp
 }

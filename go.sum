@@ -271,10 +271,8 @@ github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/tetratelabs/proxy-wasm-go-sdk v0.0.13 h1:DOKidvWd0WTBvdzTvU6L7wtig+RktRj3S77ObF2YwNQ=
+github.com/tetratelabs/proxy-wasm-go-sdk v0.0.13 h1:5CmqnF5lX+18DkVQf98H0mcmumg8Q0tlXVdO9YDOSxE=
 github.com/tetratelabs/proxy-wasm-go-sdk v0.0.13/go.mod h1:y1ZQT4bQEBnR8Do4nSOzb3roczzPvcAp8UrF6NEYWNY=
-github.com/tetratelabs/proxy-wasm-go-sdk v0.12.0 h1:n2foXJoViPNPz5Jr3bHMc8a4WXBuXwQ3bKJYpfXZUPE=
-github.com/tetratelabs/proxy-wasm-go-sdk v0.12.0/go.mod h1:y1ZQT4bQEBnR8Do4nSOzb3roczzPvcAp8UrF6NEYWNY=
 github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8 h1:o6jtI8/BV93ZCw681cNVMjyvLfnBboUP/lBOfmkb4Pg=
 github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8/go.mod h1:VBsRn0SDTltC3/SzN6SgXlQtmBk6U5sf0KW+eT+WMbc=
 github.com/ugorji/go v1.1.7 h1:/68gy2h+1mWMrwZFeD1kQialdSzAb432dtpeJ42ovdo=
@@ -295,6 +293,10 @@ github.com/valyala/tcplisten v0.0.0-20161114210144-ceec8f93295a/go.mod h1:v3UYOV
 github.com/valyala/tcplisten v0.0.0-20161114210144-ceec8f93295a/go.mod h1:v3UYOV9WzVtRmSR+PDvWpU/qWl4Wa5LApYYX4ZtKbio=
 github.com/wasmerio/wasmer-go v1.0.1 h1:wxaLw783lYHlUIGPfaD4h6NFuSPYboObeT4i+5+xUfo=
 github.com/wasmerio/wasmer-go v1.0.1/go.mod h1:0gzVdSfg6pysA6QVp6iVRPTagC6Wq9pOE8J86WKb2Fk=
+github.com/zonghaishang/api v0.0.0-20210301074742-0012515033b1 h1:LOs/jlaOIpL5HiZzQdMO4++shPHBvByKTy/VnASVN1Q=
+github.com/zonghaishang/api v0.0.0-20210301074742-0012515033b1/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
+github.com/zonghaishang/api v0.0.0-20210301083849-edd614bd8bcc h1:Q+tt9t/uw/AS9QpOb4f5GX6BSyCfaihggGn6g4rauUU=
+github.com/zonghaishang/api v0.0.0-20210301083849-edd614bd8bcc/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.6.0/go.mod h1:sABNBOSYdrvTF6hTgEIbc7YasKWGhgEQZyfxyTvoXHQ=
 go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=

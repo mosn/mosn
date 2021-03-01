@@ -45,18 +45,18 @@ func getInstanceCallback(instance types.WasmInstance) ImportsHandler {
 		return &DefaultImportsHandler{}
 	}
 
-	cb, ok := v.(*abiContext)
+	cb, ok := v.(types.ABI)
 	if !ok {
-		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] getInstanceCallback return type is not *abiContext")
+		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] getInstanceCallback return type is not *AbiContext")
 		return &DefaultImportsHandler{}
 	}
 
-	if cb.imports == nil {
+	if cb.GetImports() == nil {
 		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] getInstanceCallback imports not set")
 		return &DefaultImportsHandler{}
 	}
 
-	return cb.imports
+	return cb.GetImports().(ImportsHandler)
 }
 
 func getHttpStruct(instance types.WasmInstance) *httpStruct {
@@ -66,7 +66,7 @@ func getHttpStruct(instance types.WasmInstance) *httpStruct {
 		return &httpStruct{}
 	}
 
-	cb, ok := v.(*abiContext)
+	cb, ok := v.(*AbiContext)
 	if !ok {
 		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] getHttpStruct return type is not *abiImple")
 		return &httpStruct{}
@@ -478,7 +478,7 @@ func proxyGrpcSend(instance types.WasmInstance, token int32, messagePtr int32, m
 type httpStruct struct {
 	calloutID         int32
 	instance          types.WasmInstance
-	abi               *abiContext
+	abi               *AbiContext
 	conn              types.ClientConnection
 	connEventListener api.ConnectionEventListener
 	ctx               context.Context
@@ -674,7 +674,7 @@ func proxyHttpCall(instance types.WasmInstance, uriPtr int32, uriSize int32,
 	hs := &httpStruct{
 		calloutID: calloutID,
 		instance:  instance,
-		abi:       instance.GetData().(*abiContext),
+		abi:       instance.GetData().(*AbiContext),
 	}
 	hs.abi.httpCallout = hs
 

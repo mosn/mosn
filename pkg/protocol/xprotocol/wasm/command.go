@@ -18,6 +18,7 @@
 package wasm
 
 import (
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
@@ -57,7 +58,10 @@ type Request struct {
 	PayloadChanged bool           // check if payload if modified
 }
 
-// ~ XFrame
+func (r *Request) GetTimeout() int32 {
+	return int32(r.Timeout)
+}
+
 func (r *Request) GetRequestId() uint64 {
 	return uint64(r.Id)
 }
@@ -78,15 +82,15 @@ func (r *Request) IsHeartbeatFrame() bool {
 	return r.Flag&HeartBeatFlag != 0
 }
 
-func (r *Request) GetStreamType() xprotocol.StreamType {
+func (r *Request) GetStreamType() api.StreamType {
 	reqType := r.Flag >> 6 // high 2 bit
 	switch reqType {
 	case RequestType:
-		return xprotocol.Request
+		return api.Request
 	case RequestOneWayType:
-		return xprotocol.RequestOneWay
+		return api.RequestOneWay
 	default:
-		return xprotocol.Request
+		return api.Request
 	}
 }
 
@@ -144,8 +148,8 @@ func (r *Response) IsHeartbeatFrame() bool {
 	return r.Flag&HeartBeatFlag != 0
 }
 
-func (r *Response) GetStreamType() xprotocol.StreamType {
-	return xprotocol.Response
+func (r *Response) GetStreamType() api.StreamType {
+	return api.Response
 }
 
 func (r *Response) GetHeader() types.HeaderMap {
@@ -169,4 +173,8 @@ func (r *Response) GetStatusCode() uint32 {
 
 func (r *Response) GetId() uint32 {
 	return uint32(r.Id)
+}
+
+func (r *Response) GetTimeout() int32 {
+	return 0
 }
