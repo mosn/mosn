@@ -13,7 +13,6 @@ import (
 // See also
 //
 // Specification: https://webassembly.github.io/spec/core/syntax/modules.html#memories
-//
 type Memory struct {
 	_inner   *C.wasm_memory_t
 	_ownedBy interface{}
@@ -35,10 +34,10 @@ func newMemory(pointer *C.wasm_memory_t, ownedBy interface{}) *Memory {
 //
 // It takes two arguments, the Store and the MemoryType for the Memory.
 //
-//   memory := wasmer.NewFunction(
-//		store,
-//		wasmer.NewMemoryType(wasmer.NewLimits(1, 4)),
-//	 )
+//   memory := wasmer.NewMemory(
+//       store,
+//       wasmer.NewMemoryType(wasmer.NewLimits(1, 4)),
+//   )
 //
 func NewMemory(store *Store, ty *MemoryType) *Memory {
 	pointer := C.wasm_memory_new(store.inner(), ty.inner())

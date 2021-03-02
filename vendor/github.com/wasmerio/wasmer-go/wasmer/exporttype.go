@@ -43,6 +43,7 @@ func (self *exportTypes) inner() *C.wasm_exporttype_vec_t {
 	return &self._inner
 }
 
+// ExportType is a descriptor for an exported WebAssembly value.
 type ExportType struct {
 	_inner   *C.wasm_exporttype_t
 	_ownedBy interface{}
@@ -62,12 +63,11 @@ func newExportType(pointer *C.wasm_exporttype_t, ownedBy interface{}) *ExportTyp
 
 // NewExportType instantiates a new ExportType with a name and an extern type.
 //
-// ℹ️ An extern type is anything implementing IntoExternType: FunctionType, GlobalType, MemoryType, TableType.
+// Note: An extern type is anything implementing IntoExternType: FunctionType, GlobalType, MemoryType, TableType.
 //
 //   valueType := NewValueType(I32)
 //   globalType := NewGlobalType(valueType, CONST)
 //   exportType := NewExportType("a_global", globalType)
-//
 func NewExportType(name string, ty IntoExternType) *ExportType {
 	nameName := newName(name)
 	externType := ty.IntoExternType().inner()
@@ -96,7 +96,6 @@ func (self *ExportType) ownedBy() interface{} {
 //
 //   exportType := NewExportType("a_global", globalType)
 //   exportType.Name() // "global"
-//
 func (self *ExportType) Name() string {
 	byteVec := C.wasm_exporttype_name(self.inner())
 	name := C.GoStringN(byteVec.data, C.int(byteVec.size))
@@ -110,7 +109,6 @@ func (self *ExportType) Name() string {
 //
 //   exportType := NewExportType("a_global", globalType)
 //   exportType.Type() // ExternType
-//
 func (self *ExportType) Type() *ExternType {
 	ty := C.wasm_exporttype_type(self.inner())
 

@@ -43,6 +43,8 @@ func (self *importTypes) inner() *C.wasm_importtype_vec_t {
 	return &self._inner
 }
 
+// ImportType is a descriptor for an imported value into a WebAssembly
+// module.
 type ImportType struct {
 	_inner   *C.wasm_importtype_t
 	_ownedBy interface{}
@@ -60,9 +62,11 @@ func newImportType(pointer *C.wasm_importtype_t, ownedBy interface{}) *ImportTyp
 	return importType
 }
 
-// NewImportType instantiates a new ImportType with a module name (or namespace), a name and an extern type.
+// NewImportType instantiates a new ImportType with a module name (or
+// namespace), a name and an extern type.
 //
-// ℹ️ An extern type is anything implementing IntoExternType: FunctionType, GlobalType, MemoryType, TableType.
+// Note:️ An extern type is anything implementing IntoExternType:
+// FunctionType, GlobalType, MemoryType, TableType.
 //
 //   valueType := NewValueType(I32)
 //   globalType := NewGlobalType(valueType, CONST)

@@ -4,13 +4,13 @@ package wasmer
 import "C"
 import "runtime"
 
-// FunctionType classifies the signature of functions, mapping a vector of parameters to a vector of results. They are
-// also used to classify the inputs and outputs of instructions.
+// FunctionType classifies the signature of functions, mapping a
+// vector of parameters to a vector of results. They are also used to
+// classify the inputs and outputs of instructions.
 //
 // See also
 //
 // Specification: https://webassembly.github.io/spec/core/syntax/types.html#function-types
-//
 type FunctionType struct {
 	_inner   *C.wasm_functype_t
 	_ownedBy interface{}
@@ -28,7 +28,8 @@ func newFunctionType(pointer *C.wasm_functype_t, ownedBy interface{}) *FunctionT
 	return functionType
 }
 
-// NewFunctionType instantiates a new FunctionType from two ValueType arrays: the parameters and the results.
+// NewFunctionType instantiates a new FunctionType from two ValueType
+// arrays: the parameters and the results.
 //
 //   params := wasmer.NewValueTypes()
 //   results := wasmer.NewValueTypes(wasmer.I32)
@@ -55,7 +56,8 @@ func (self *FunctionType) ownedBy() interface{} {
 	return self._ownedBy
 }
 
-// Params returns the parameters definitions from the FunctionType as a ValueType array
+// Params returns the parameters definitions from the FunctionType as
+// a ValueType array
 //
 //   params := wasmer.NewValueTypes()
 //   results := wasmer.NewValueTypes(wasmer.I32)
@@ -66,7 +68,8 @@ func (self *FunctionType) Params() []*ValueType {
 	return toValueTypeList(C.wasm_functype_params(self.inner()), self.ownedBy())
 }
 
-// Results returns the results definitions from the FunctionType as a ValueType array
+// Results returns the results definitions from the FunctionType as a
+// ValueType array
 //
 //   params := wasmer.NewValueTypes()
 //   results := wasmer.NewValueTypes(wasmer.I32)

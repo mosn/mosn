@@ -27,6 +27,17 @@ import (
 	"unsafe"
 )
 
+// Value; WebAssembly computations manipulate values of basic value types:
+//
+// • Integer (32 or 64 bit width),
+//
+// • Floating-point (32 or 64 bit width),
+//
+// • Vectors (128 bits, with 32 or 64 bit lanes).
+//
+// See Also
+//
+// Specification: https://webassembly.github.io/spec/core/exec/runtime.html#values
 type Value struct {
 	_inner *C.wasm_val_t
 }
@@ -35,12 +46,12 @@ func newValue(pointer *C.wasm_val_t) Value {
 	return Value{_inner: pointer}
 }
 
-// NewValue instantiates a new Value with the given value and ValueKind.
+// NewValue instantiates a new Value with the given value and
+// ValueKind.
 //
-// ⚠️ If a Wasm value cannot be created from the given value, NewValue will panic.
+// Note: If a Wasm value cannot be created from the given value,
 //
 //   value := NewValue(42, I32)
-//
 func NewValue(value interface{}, kind ValueKind) Value {
 	output, err := fromGoValue(value, kind)
 
@@ -53,40 +64,40 @@ func NewValue(value interface{}, kind ValueKind) Value {
 
 // NewI32 instantiates a new I32 Value with the given value.
 //
-// ⚠️ If a Wasm value cannot be created from the given value, NewI32 will panic.
+// Note: If a Wasm value cannot be created from the given value,
+// NewI32 will panic.
 //
 //   value := NewI32(42)
-//
 func NewI32(value interface{}) Value {
 	return NewValue(value, I32)
 }
 
 // NewI64 instantiates a new I64 Value with the given value.
 //
-// ⚠️ If a Wasm value cannot be created from the given value, NewI64 will panic.
+// Note: If a Wasm value cannot be created from the given value,
+// NewI64 will panic.
 //
 //   value := NewI64(42)
-//
 func NewI64(value interface{}) Value {
 	return NewValue(value, I64)
 }
 
 // NewF32 instantiates a new F32 Value with the given value.
 //
-// ⚠️ If a Wasm value cannot be created from the given value, NewF32 will panic.
+// Note: If a Wasm value cannot be created from the given value,
+// NewF32 will panic.
 //
 //   value := NewF32(4.2)
-//
 func NewF32(value interface{}) Value {
 	return NewValue(value, F32)
 }
 
 // NewF64 instantiates a new F64 Value with the given value.
 //
-// ⚠️ If a Wasm value cannot be created from the given value, NewF64 will panic.
+// Note: If a Wasm value cannot be created from the given value,
+// NewF64 will panic.
 //
 //   value := NewF64(4.2)
-//
 func NewF64(value interface{}) Value {
 	return NewValue(value, F64)
 }
@@ -99,7 +110,6 @@ func (self *Value) inner() *C.wasm_val_t {
 //
 //   value := NewF64(4.2)
 //   _ = value.Kind()
-//
 func (self *Value) Kind() ValueKind {
 	return ValueKind(self.inner().kind)
 }
@@ -108,16 +118,16 @@ func (self *Value) Kind() ValueKind {
 //
 //   value := NewF64(4.2)
 //   _ = value.Unwrap()
-//
 func (self *Value) Unwrap() interface{} {
 	return toGoValue(self.inner())
 }
 
 // I32 returns the Value's value as a native Go int32.
 //
+// Note: It panics if the value is not of type I32.
+//
 //   value := NewI32(42)
 //   _ = value.I32()
-//
 func (self *Value) I32() int32 {
 	pointer := self.inner()
 
@@ -129,6 +139,8 @@ func (self *Value) I32() int32 {
 }
 
 // I64 returns the Value's value as a native Go int64.
+//
+// Note: It panics if the value is not of type I64.
 //
 //   value := NewI64(42)
 //   _ = value.I64()
@@ -145,6 +157,8 @@ func (self *Value) I64() int64 {
 
 // F32 returns the Value's value as a native Go float32.
 //
+// Note: It panics if the value is not of type F32.
+//
 //   value := NewF32(4.2)
 //   _ = value.F32()
 //
@@ -159,6 +173,8 @@ func (self *Value) F32() float32 {
 }
 
 // F64 returns the Value's value as a native Go float64.
+//
+// Note: It panics if the value is not of type F64.
 //
 //   value := NewF64(4.2)
 //   _ = value.F64()

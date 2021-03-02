@@ -40,14 +40,16 @@ import (
 // Module contains stateless WebAssembly code that has already been
 // compiled and can be instantiated multiple times.
 //
-// WebAssembly programs are organized into modules, which are the unit of deployment, loading, and compilation. A
-// module collects definitions for types, functions, tables, memories, and globals. In addition, it can declare imports
-// and exports and provide initialization logic in the form of data and element segments or a start function.
+// WebAssembly programs are organized into modules, which are the unit
+// of deployment, loading, and compilation. A module collects
+// definitions for types, functions, tables, memories, and globals. In
+// addition, it can declare imports and exports and provide
+// initialization logic in the form of data and element segments or a
+// start function.
 //
 // See also
 //
 // Specification: https://webassembly.github.io/spec/core/syntax/modules.html#modules
-//
 type Module struct {
 	_inner *C.wasm_module_t
 	store  *Store
@@ -55,13 +57,13 @@ type Module struct {
 
 // NewModule instantiates a new Module with the given Store.
 //
-// It takes two arguments, the Store and the Wasm module as a byte array of WAT code.
+// It takes two arguments, the Store and the Wasm module as a byte
+// array of WAT code.
 //
 //   wasmBytes := []byte(`...`)
 //   engine := wasmer.NewEngine()
-//	 store := wasmer.NewStore(engine)
-//	 module, err := wasmer.NewModule(store, wasmBytes)
-//
+//   store := wasmer.NewStore(engine)
+//   module, err := wasmer.NewModule(store, wasmBytes)
 func NewModule(store *Store, bytes []byte) (*Module, error) {
 	wasmBytes, err := Wat2Wasm(string(bytes))
 
@@ -102,13 +104,16 @@ func NewModule(store *Store, bytes []byte) (*Module, error) {
 
 // ValidateModule validates a new Module against the given Store.
 //
-// It takes two arguments, the Store and the Wasm module as an byte array of WAT code..
+// It takes two arguments, the Store and the WebAssembly module as a
+// byte array. The function returns an error describing why the bytes
+// are invalid, otherwise it returns nil.
 //
 //   wasmBytes := []byte(`...`)
 //   engine := wasmer.NewEngine()
-//	 store := wasmer.NewStore(engine)
-//	 err := wasmer.ValidateModule(store, wasmBytes)
+//   store := wasmer.NewStore(engine)
+//   err := wasmer.ValidateModule(store, wasmBytes)
 //
+//   isValid := err != nil
 func ValidateModule(store *Store, bytes []byte) error {
 	wasmBytes, err := Wat2Wasm(string(bytes))
 
@@ -143,18 +148,17 @@ func (self *Module) inner() *C.wasm_module_t {
 
 // Name returns the Module's name.
 //
-// ⚠️ This is not part of the standard Wasm C API. It is Wasmer specific.
+// Note:️ This is not part of the standard Wasm C API. It is Wasmer specific.
 //
-//   wasmBytes := []byte(`...`)
+//   wasmBytes := []byte(`(module $moduleName)`)
 //   engine := wasmer.NewEngine()
-//	 store := wasmer.NewStore(engine)
-//	 module, _ := wasmer.NewModule(store, wasmBytes)
+//   store := wasmer.NewStore(engine)
+//   module, _ := wasmer.NewModule(store, wasmBytes)
 //   name := module.Name()
-//
 func (self *Module) Name() string {
 	var name C.wasm_name_t
 
-	C.wasm_module_name(self.inner(), &name)
+	C.wasmer_module_name(self.inner(), &name)
 
 	goName := nameToString(&name)
 
@@ -167,10 +171,9 @@ func (self *Module) Name() string {
 //
 //   wasmBytes := []byte(`...`)
 //   engine := wasmer.NewEngine()
-//	 store := wasmer.NewStore(engine)
-//	 module, _ := wasmer.NewModule(store, wasmBytes)
+//   store := wasmer.NewStore(engine)
+//   module, _ := wasmer.NewModule(store, wasmBytes)
 //   imports := module.Imports()
-//
 func (self *Module) Imports() []*ImportType {
 	return newImportTypes(self).importTypes
 }
@@ -179,10 +182,9 @@ func (self *Module) Imports() []*ImportType {
 //
 //   wasmBytes := []byte(`...`)
 //   engine := wasmer.NewEngine()
-//	 store := wasmer.NewStore(engine)
-//	 module, _ := wasmer.NewModule(store, wasmBytes)
+//   store := wasmer.NewStore(engine)
+//   module, _ := wasmer.NewModule(store, wasmBytes)
 //   exports := module.Exports()
-//
 func (self *Module) Exports() []*ExportType {
 	return newExportTypes(self).exportTypes
 }
@@ -191,10 +193,9 @@ func (self *Module) Exports() []*ExportType {
 //
 //   wasmBytes := []byte(`...`)
 //   engine := wasmer.NewEngine()
-//	 store := wasmer.NewStore(engine)
-//	 module, _ := wasmer.NewModule(store, wasmBytes)
+//   store := wasmer.NewStore(engine)
+//   module, _ := wasmer.NewModule(store, wasmBytes)
 //   bytes := module.Serialize()
-//
 func (self *Module) Serialize() ([]byte, error) {
 	var bytes C.wasm_byte_vec_t
 
@@ -218,12 +219,11 @@ func (self *Module) Serialize() ([]byte, error) {
 //
 //   wasmBytes := []byte(`...`)
 //   engine := wasmer.NewEngine()
-//	 store := wasmer.NewStore(engine)
-//	 module, _ := wasmer.NewModule(store, wasmBytes)
+//   store := wasmer.NewStore(engine)
+//   module, _ := wasmer.NewModule(store, wasmBytes)
 //   bytes := module.Serialize()
 //   //...
 //   deserializedModule := wasmer.DeserializeModule(store, bytes)
-//
 func DeserializeModule(store *Store, bytes []byte) (*Module, error) {
 	var bytesPtr *C.uint8_t
 	bytesLength := len(bytes)

@@ -18,6 +18,7 @@ import (
 	"unsafe"
 )
 
+// Trap stores trace message with backtrace when an error happened.
 type Trap struct {
 	_inner   *C.wasm_trap_t
 	_ownedBy interface{}
@@ -42,6 +43,11 @@ func newTrap(pointer *C.wasm_trap_t, ownedBy interface{}) *Trap {
 	return trap
 }
 
+// Creates a new trap with a message.
+//
+//   engine := wasmer.NewEngine()
+//   store := wasmer.NewStore(engine)
+//   trap := NewTrap(store, "oops")
 func NewTrap(store *Store, message string) *Trap {
 	messageBytes := []byte(message)
 	var bytesPointer *C.uint8_t
@@ -71,18 +77,23 @@ func (self *Trap) ownedBy() interface{} {
 	return self._ownedBy
 }
 
+// Message returns the message attached to the current Trap.
 func (self *Trap) Message() string {
 	var bytes C.wasm_byte_vec_t
 	C.wasm_trap_message(self.inner(), &bytes)
 
 	runtime.KeepAlive(self)
 
-	goBytes := C.GoBytes(unsafe.Pointer(bytes.data), C.int(bytes.size) - 1)
+	goBytes := C.GoBytes(unsafe.Pointer(bytes.data), C.int(bytes.size)-1)
 	C.wasm_byte_vec_delete(&bytes)
 
 	return string(goBytes)
 }
 
+// Origin returns the top frame of WebAssembly stack responsible for
+// this trap.
+//
+//     frame := trap.Origin()
 func (self *Trap) Origin() *Frame {
 	frame := C.wasm_trap_origin(self.inner())
 
@@ -95,10 +106,12 @@ func (self *Trap) Origin() *Frame {
 	return newFrame(frame, self.ownedBy())
 }
 
-func (self *Trap) Trace() *trace {
+// Trace returns the trace of WebAssembly frames for this trap.
+func (self *Trap) Trace() *Trace {
 	return newTrace(self)
 }
 
+// Frame represents a frame of a WebAssembly stack trace.
 type Frame struct {
 	_inner   *C.wasm_frame_t
 	_ownedBy interface{}
@@ -131,6 +144,8 @@ func (self *Frame) ownedBy() interface{} {
 	return self._ownedBy
 }
 
+// FunctionIndex returns the function index in the original
+// WebAssembly module that this frame corresponds to.
 func (self *Frame) FunctionIndex() uint32 {
 	index := C.wasm_frame_func_index(self.inner())
 
@@ -139,6 +154,9 @@ func (self *Frame) FunctionIndex() uint32 {
 	return uint32(index)
 }
 
+// FunctionOffset returns the byte offset from the beginning of the
+// function in the original WebAssembly file to the instruction this
+// frame points to.
 func (self *Frame) FunctionOffset() uint {
 	index := C.wasm_frame_func_offset(self.inner())
 
@@ -152,6 +170,8 @@ func (self *Frame) Instance() {
 	panic("to do!")
 }
 
+// ModuleOffset returns the byte offset from the beginning of the
+// original WebAssembly file to the instruction this frame points to.
 func (self *Frame) ModuleOffset() uint {
 	index := C.wasm_frame_module_offset(self.inner())
 
@@ -160,17 +180,18 @@ func (self *Frame) ModuleOffset() uint {
 	return uint(index)
 }
 
-type trace struct {
+// Trace represents a WebAssembly trap.
+type Trace struct {
 	_inner C.wasm_frame_vec_t
 	frames []*Frame
 }
 
-func newTrace(trap *Trap) *trace {
-	var self = &trace{}
+func newTrace(trap *Trap) *Trace {
+	var self = &Trace{}
 	C.wasm_trap_trace(trap.inner(), self.inner())
 
 	runtime.KeepAlive(trap)
-	runtime.SetFinalizer(self, func(self *trace) {
+	runtime.SetFinalizer(self, func(self *Trace) {
 		C.wasm_frame_vec_delete(self.inner())
 	})
 
@@ -182,7 +203,7 @@ func newTrace(trap *Trap) *trace {
 	var currentFramePointer **C.wasm_frame_t
 
 	for nth := 0; nth < numberOfFrames; nth++ {
-		currentFramePointer = (**C.wasm_frame_t)(unsafe.Pointer(uintptr(firstFrame) + uintptr(nth) * sizeOfFramePointer))
+		currentFramePointer = (**C.wasm_frame_t)(unsafe.Pointer(uintptr(firstFrame) + uintptr(nth)*sizeOfFramePointer))
 		frames[nth] = newFrame(*currentFramePointer, self)
 	}
 
@@ -191,6 +212,6 @@ func newTrace(trap *Trap) *trace {
 	return self
 }
 
-func (self *trace) inner() *C.wasm_frame_vec_t {
+func (self *Trace) inner() *C.wasm_frame_vec_t {
 	return &self._inner
 }
