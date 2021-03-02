@@ -4,13 +4,21 @@ package wasmer
 import "C"
 import "runtime"
 
+// Represents the kind of an Extern.
 type ExternKind C.wasm_externkind_t
 
 const (
+	// Represents an extern of kind function.
 	FUNCTION = ExternKind(C.WASM_EXTERN_FUNC)
-	GLOBAL   = ExternKind(C.WASM_EXTERN_GLOBAL)
-	TABLE    = ExternKind(C.WASM_EXTERN_TABLE)
-	MEMORY   = ExternKind(C.WASM_EXTERN_MEMORY)
+
+	// Represents an extern of kind global.
+	GLOBAL = ExternKind(C.WASM_EXTERN_GLOBAL)
+
+	// Represents an extern of kind table.
+	TABLE = ExternKind(C.WASM_EXTERN_TABLE)
+
+	// Represents an extern of kind memory.
+	MEMORY = ExternKind(C.WASM_EXTERN_MEMORY)
 )
 
 // String returns the ExternKind as a string.
@@ -19,7 +27,6 @@ const (
 //   GLOBAL.String()   // "global"
 //   TABLE.String()    // "table"
 //   MEMORY.String()   // "memory"
-//
 func (self ExternKind) String() string {
 	switch self {
 	case FUNCTION:
@@ -39,7 +46,6 @@ func (self ExternKind) String() string {
 // See also
 //
 // Specification: https://webassembly.github.io/spec/core/syntax/types.html#external-types
-//
 type ExternType struct {
 	_inner   *C.wasm_externtype_t
 	_ownedBy interface{}
@@ -78,7 +84,6 @@ func (self *ExternType) ownedBy() interface{} {
 //   global, _ := instance.Exports.GetGlobal("exported_global")
 //   extern = global.IntoExtern()
 //   _ = extern.Kind()
-//
 func (self *ExternType) Kind() ExternKind {
 	kind := ExternKind(C.wasm_externtype_kind(self.inner()))
 
@@ -89,12 +94,12 @@ func (self *ExternType) Kind() ExternKind {
 
 // IntoFunctionType converts the ExternType into a FunctionType.
 //
-// ⚠️ If the ExternType is not a FunctionType, IntoFunctionType will return nil as its result.
+// Note:️ If the ExternType is not a FunctionType, IntoFunctionType
+// will return nil as its result.
 //
 //   function, _ := instance.Exports.GetFunction("exported_function")
 //   externType = function.IntoExtern().Type()
 //   _ := externType.IntoFunctionType()
-//
 func (self *ExternType) IntoFunctionType() *FunctionType {
 	pointer := C.wasm_externtype_as_functype_const(self.inner())
 
@@ -107,7 +112,8 @@ func (self *ExternType) IntoFunctionType() *FunctionType {
 
 // IntoGlobalType converts the ExternType into a GlobalType.
 //
-// ⚠️ If the ExternType is not a GlobalType, IntoGlobalType will return nil as its result.
+// Note:️ If the ExternType is not a GlobalType, IntoGlobalType will
+// return nil as its result.
 //
 //   global, _ := instance.Exports.GetGlobal("exported_global")
 //   externType = global.IntoExtern().Type()
@@ -125,12 +131,12 @@ func (self *ExternType) IntoGlobalType() *GlobalType {
 
 // IntoTableType converts the ExternType into a TableType.
 //
-// ⚠️ If the ExternType is not a TableType, IntoTableType will return nil as its result.
+// Note:️ If the ExternType is not a TableType, IntoTableType will
+// return nil as its result.
 //
 //   table, _ := instance.Exports.GetTable("exported_table")
 //   externType = table.IntoExtern().Type()
 //   _ := externType.IntoTableType()
-//
 func (self *ExternType) IntoTableType() *TableType {
 	pointer := C.wasm_externtype_as_tabletype_const(self.inner())
 
@@ -143,7 +149,8 @@ func (self *ExternType) IntoTableType() *TableType {
 
 // IntoMemoryType converts the ExternType into a MemoryType.
 //
-// ⚠️ If the ExternType is not a MemoryType, IntoMemoryType will return nil as its result.
+// Note:️ If the ExternType is not a MemoryType, IntoMemoryType will
+// return nil as its result.
 //
 //   memory, _ := instance.Exports.GetMemory("exported_memory")
 //   externType = memory.IntoExtern().Type()

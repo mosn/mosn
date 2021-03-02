@@ -7,8 +7,11 @@ import "runtime"
 type GlobalMutability C.wasm_mutability_t
 
 const (
+	// Represents a global that is immutable.
 	IMMUTABLE = GlobalMutability(C.WASM_CONST)
-	MUTABLE   = GlobalMutability(C.WASM_VAR)
+
+	// Represents a global that is mutable.
+	MUTABLE = GlobalMutability(C.WASM_VAR)
 )
 
 // String returns the GlobalMutability as a string.

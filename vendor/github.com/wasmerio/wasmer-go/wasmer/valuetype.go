@@ -7,14 +7,29 @@ import (
 	"unsafe"
 )
 
+// ValueKind represents the kind of a value.
 type ValueKind C.wasm_valkind_t
 
 const (
-	I32     = ValueKind(C.WASM_I32)
-	I64     = ValueKind(C.WASM_I64)
-	F32     = ValueKind(C.WASM_F32)
-	F64     = ValueKind(C.WASM_F64)
-	AnyRef  = ValueKind(C.WASM_ANYREF)
+	// A 32-bit integer. In WebAssembly, integers are
+	// sign-agnostic, i.E. this can either be signed or unsigned.
+	I32 = ValueKind(C.WASM_I32)
+
+	// A 64-bit integer. In WebAssembly, integers are
+	// sign-agnostic, i.E. this can either be signed or unsigned.
+	I64 = ValueKind(C.WASM_I64)
+
+	// A 32-bit float.
+	F32 = ValueKind(C.WASM_F32)
+
+	// A 64-bit float.
+	F64 = ValueKind(C.WASM_F64)
+
+	// An externref value which can hold opaque data to the
+	// WebAssembly instance itself.
+	AnyRef = ValueKind(C.WASM_ANYREF)
+
+	// A first-class reference to a WebAssembly function.
 	FuncRef = ValueKind(C.WASM_FUNCREF)
 )
 
@@ -26,7 +41,6 @@ const (
 //   F64.String()     // "f64"
 //   AnyRef.String()  // "anyref"
 //   FuncRef.String() // "funcref"
-//
 func (self ValueKind) String() string {
 	switch self {
 	case I32:
@@ -53,7 +67,6 @@ func (self ValueKind) String() string {
 //   F64.IsNumber()     // true
 //   AnyRef.IsNumber()  // false
 //   FuncRef.IsNumber() // false
-//
 func (self ValueKind) IsNumber() bool {
 	return bool(C.wasm_valkind_is_num(C.wasm_valkind_t(self)))
 }
@@ -66,7 +79,6 @@ func (self ValueKind) IsNumber() bool {
 //   F64.IsReference()     // false
 //   AnyRef.IsReference()  // true
 //   FuncRef.IsReference() // true
-//
 func (self ValueKind) IsReference() bool {
 	return bool(C.wasm_valkind_is_ref(C.wasm_valkind_t(self)))
 }
@@ -75,9 +87,8 @@ func (self ValueKind) inner() C.wasm_valkind_t {
 	return C.wasm_valkind_t(self)
 }
 
-// ValueType classifies the individual values that WebAssembly code can compute with and the values that a variable
-// accepts.
-//
+// ValueType classifies the individual values that WebAssembly code
+// can compute with and the values that a variable accepts.
 type ValueType struct {
 	_inner   *C.wasm_valtype_t
 	_ownedBy interface{}
@@ -86,7 +97,6 @@ type ValueType struct {
 // NewValueType instantiates a new ValueType given a ValueKind.
 //
 //   valueType := NewValueType(I32)
-//
 func NewValueType(kind ValueKind) *ValueType {
 	pointer := C.wasm_valtype_new(C.wasm_valkind_t(kind))
 
@@ -113,7 +123,6 @@ func (self *ValueType) inner() *C.wasm_valtype_t {
 //
 //   valueType := NewValueType(I32)
 //   _ = valueType.Kind()
-//
 func (self *ValueType) Kind() ValueKind {
 	kind := ValueKind(C.wasm_valtype_kind(self.inner()))
 
@@ -122,15 +131,18 @@ func (self *ValueType) Kind() ValueKind {
 	return kind
 }
 
-// NewValueTypes instantiates a new ValueType array from a list of ValueKind. Not that the list
-// may be empty.
+// NewValueTypes instantiates a new ValueType array from a list of
+// ValueKind. Not that the list may be empty.
 //
 //   valueTypes := NewValueTypes(I32, I64, F32)
 //
-// ℹ️ NewValueTypes is specifically designed to help you declare function types:
+// Note:️ NewValueTypes is specifically designed to help you declare
+// function types, e.g. with NewFunctionType:
 //
-//   functionType := NewFunctionType(NewValueTypes(), NewValueTypes(I32))
-//
+//   functionType := NewFunctionType(
+//   	NewValueTypes(), // arguments
+//   	NewValueTypes(I32), // results
+//   )
 func NewValueTypes(kinds ...ValueKind) []*ValueType {
 	valueTypes := make([]*ValueType, len(kinds))
 

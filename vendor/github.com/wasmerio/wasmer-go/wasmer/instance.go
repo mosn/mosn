@@ -13,12 +13,13 @@ type Instance struct {
 //
 // It takes two arguments, the Module and an ImportObject.
 //
-// ⚠️ Instantiating a module may return TrapError if the module's start function traps.
+// Note:️ Instantiating a module may return TrapError if the module's
+// start function traps.
 //
 //   wasmBytes := []byte(`...`)
 //   engine := wasmer.NewEngine()
-//	 store := wasmer.NewStore(engine)
-//	 module, err := wasmer.NewModule(store, wasmBytes)
+//   store := wasmer.NewStore(engine)
+//   module, err := wasmer.NewModule(store, wasmBytes)
 //   importObject := wasmer.NewImportObject()
 //   instance, err := wasmer.NewInstance(module, importObject)
 //

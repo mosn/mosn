@@ -2,22 +2,24 @@ package wasmer
 
 // #include <wasmer_wasm.h>
 //
-// uint32_t limit_max_unbound() {
+// uint32_t to_limit_max_unbound() {
 //     return wasm_limits_max_default;
 // }
 import "C"
 import "runtime"
 
+// LimitMaxUnbound returns the value used to represent an unbound
+// limit, i.e. when a limit only has a min but not a max. See Limit.
 func LimitMaxUnbound() uint32 {
-	return uint32(C.limit_max_unbound())
+	return uint32(C.to_limit_max_unbound())
 }
 
-// Limits classify the size range of resizeable storage associated with memory types and table types.
+// Limits classify the size range of resizeable storage associated
+// with memory types and table types.
 //
 // See also
 //
 // Specification: https://webassembly.github.io/spec/core/syntax/types.html#limits
-//
 type Limits struct {
 	_inner C.wasm_limits_t
 }
@@ -39,10 +41,9 @@ func newLimits(pointer *C.wasm_limits_t, ownedBy interface{}) *Limits {
 // NewLimits instantiates a new Limits which describes the Memory used.
 // The minimum and maximum parameters are "number of memory pages".
 //
-// ℹ️ Each page is 64 KiB in size.
+// ️Note: Each page is 64 KiB in size.
 //
-// ⚠️ You cannot Memory.Grow the Memory beyond the maximum defined here.
-//
+// Note: You cannot Memory.Grow the Memory beyond the maximum defined here.
 func NewLimits(minimum uint32, maximum uint32) (*Limits, error) {
 	if minimum > maximum {
 		return nil, newErrorWith("The minimum limit is greater than the maximum one")
@@ -62,8 +63,7 @@ func (self *Limits) inner() *C.wasm_limits_t {
 
 // Minimum returns the minimum size of the Memory allocated in "number of pages".
 //
-// ℹ️ Each page is 64 KiB in size.
-//
+// Note:️ Each page is 64 KiB in size.
 func (self *Limits) Minimum() uint32 {
 	return uint32(self.inner().min)
 }
@@ -72,8 +72,7 @@ func (self *Limits) Minimum() uint32 {
 //
 // Each page is 64 KiB in size.
 //
-// ⚠️ You cannot Memory.Grow beyond this defined maximum size.
-//
+// Note: You cannot Memory.Grow beyond this defined maximum size.
 func (self *Limits) Maximum() uint32 {
 	return uint32(self.inner().max)
 }

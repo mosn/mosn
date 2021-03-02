@@ -25,16 +25,19 @@ import (
 	"unsafe"
 )
 
+// NativeFunction is a type alias representing a host function that
+// can be called as any Go function.
 type NativeFunction = func(...interface{}) (interface{}, error)
 
+// Function is a WebAssembly function instance.
 type Function struct {
 	_inner      *C.wasm_func_t
 	_ownedBy    interface{}
-	environment *FunctionEnvironment
+	environment *functionEnvironment
 	lazyNative  NativeFunction
 }
 
-func newFunction(pointer *C.wasm_func_t, environment *FunctionEnvironment, ownedBy interface{}) *Function {
+func newFunction(pointer *C.wasm_func_t, environment *functionEnvironment, ownedBy interface{}) *Function {
 	function := &Function{
 		_inner:      pointer,
 		_ownedBy:    ownedBy,
@@ -55,31 +58,36 @@ func newFunction(pointer *C.wasm_func_t, environment *FunctionEnvironment, owned
 	return function
 }
 
-// NewGlobal instantiates a new Global in the given Store.
+// NewFunction instantiates a new Function in the given Store.
 //
-// It takes three arguments, the Store, the FunctionType and the definition for the Function.
+// It takes three arguments, the Store, the FunctionType and the
+// definition for the Function.
 //
-// The function definition must be a native Go function with a Value array as its single argument.
-// The function must return a Value array or an error.
+// The function definition must be a native Go function with a Value
+// array as its single argument.  The function must return a Value
+// array or an error.
 //
-// ⚠️ Even if the function does not take any argument (or use any argument) it must receive a Value array
-//    as its single argument. At runtime, this array will be empty.
-//    The same applies to the result.
+// Note:️ Even if the function does not take any argument (or use any
+// argument) it must receive a Value array as its single argument. At
+// runtime, this array will be empty.  The same applies to the result.
 //
 //   hostFunction := wasmer.NewFunction(
-//		store,
-//		wasmer.NewFunctionType(wasmer.NewValueTypes(), wasmer.NewValueTypes(wasmer.I32)),
-//		func(args []wasmer.Value) ([]wasmer.Value, error) {
-//			return []wasmer.Value{wasmer.NewI32(42)}, nil
-//		},
-//	 )
+//   	store,
+//   	wasmer.NewFunctionType(
+//   		wasmer.NewValueTypes(), // zero argument
+//   		wasmer.NewValueTypes(wasmer.I32), // one i32 result
+//   	),
+//   	func(args []wasmer.Value) ([]wasmer.Value, error) {
+//   		return []wasmer.Value{wasmer.NewI32(42)}, nil
+//   	},
+//   )
 //
 func NewFunction(store *Store, ty *FunctionType, function func([]Value) ([]Value, error)) *Function {
 	hostFunction := &hostFunction{
 		store:    store,
 		function: function,
 	}
-	environment := &FunctionEnvironment{
+	environment := &functionEnvironment{
 		hostFunctionStoreIndex: hostFunctionStore.store(hostFunction),
 	}
 	pointer := C.wasm_func_new_with_env(
@@ -97,7 +105,7 @@ func NewFunction(store *Store, ty *FunctionType, function func([]Value) ([]Value
 
 //export function_trampoline
 func function_trampoline(env unsafe.Pointer, args *C.wasm_val_vec_t, res *C.wasm_val_vec_t) *C.wasm_trap_t {
-	environment := (*FunctionEnvironment)(env)
+	environment := (*functionEnvironment)(env)
 	hostFunction, err := hostFunctionStore.load(environment.hostFunctionStoreIndex)
 
 	if err != nil {
@@ -121,13 +129,39 @@ func function_trampoline(env unsafe.Pointer, args *C.wasm_val_vec_t, res *C.wasm
 	return nil
 }
 
+// NewFunctionWithEnvironment is similar to NewFunction except that
+// the user-defined host function (in Go) accepts an additional first
+// parameter which is an environment. This environment can be
+// anything. It is typed as interface{}.
+//
+//   type MyEnvironment struct {
+//   	foo int32
+//   }
+//
+//   environment := &MyEnvironment {
+//   	foo: 42,
+//   }
+//
+//   hostFunction := wasmer.NewFunction(
+//   	store,
+//   	wasmer.NewFunctionType(
+//   		wasmer.NewValueTypes(), // zero argument
+//   		wasmer.NewValueTypes(wasmer.I32), // one i32 result
+//   	),
+//   	environment,
+//   	func(environment interface{}, args []wasmer.Value) ([]wasmer.Value, error) {
+//   		_ := environment.(*MyEnvironment)
+//
+//   		return []wasmer.Value{wasmer.NewI32(42)}, nil
+//   	},
+//   )
 func NewFunctionWithEnvironment(store *Store, ty *FunctionType, userEnvironment interface{}, functionWithEnv func(interface{}, []Value) ([]Value, error)) *Function {
 	hostFunction := &hostFunction{
 		store:           store,
 		function:        functionWithEnv,
 		userEnvironment: userEnvironment,
 	}
-	environment := &FunctionEnvironment{
+	environment := &functionEnvironment{
 		hostFunctionStoreIndex: hostFunctionStore.store(hostFunction),
 	}
 	pointer := C.wasm_func_new_with_env(
@@ -145,7 +179,7 @@ func NewFunctionWithEnvironment(store *Store, ty *FunctionType, userEnvironment 
 
 //export function_with_environment_trampoline
 func function_with_environment_trampoline(env unsafe.Pointer, args *C.wasm_val_vec_t, res *C.wasm_val_vec_t) *C.wasm_trap_t {
-	environment := (*FunctionEnvironment)(env)
+	environment := (*functionEnvironment)(env)
 	hostFunction, err := hostFunctionStore.load(environment.hostFunctionStoreIndex)
 
 	if err != nil {
@@ -243,9 +277,10 @@ func (self *Function) Native() NativeFunction {
 		return self.lazyNative
 	}
 
+	ty := self.Type()
+	expectedParameters := ty.Params()
+
 	self.lazyNative = func(receivedParameters ...interface{}) (interface{}, error) {
-		ty := self.Type()
-		expectedParameters := ty.Params()
 		numberOfReceivedParameters := len(receivedParameters)
 		numberOfExpectedParameters := len(expectedParameters)
 		diff := numberOfExpectedParameters - numberOfReceivedParameters
@@ -314,7 +349,7 @@ func (self *Function) Native() NativeFunction {
 	return self.lazyNative
 }
 
-type FunctionEnvironment struct {
+type functionEnvironment struct {
 	store                  *Store
 	hostFunctionStoreIndex uint
 }

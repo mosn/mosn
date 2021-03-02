@@ -7,6 +7,8 @@ import (
 	"unsafe"
 )
 
+// ImportObject contains all of the import data used when
+// instantiating a WebAssembly module.
 type ImportObject struct {
 	externs map[string]map[string]IntoExtern
 }
@@ -63,27 +65,27 @@ func (self *ImportObject) ContainsNamespace(name string) bool {
 //
 // It takes two arguments: the namespace name and a map with imports names as key and externs as values.
 //
-// ℹ️ An extern is anything implementing IntoExtern: Function, Global, Memory, Table.
+// Note:️ An extern is anything implementing IntoExtern: Function, Global, Memory, Table.
 //
 //   imports := NewImportObject()
 //   importObject.Register(
-//		"env",
-//		map[string]wasmer.IntoExtern{
-//			"host_function": hostFunction,
-//			"host_global": hostGlobal,
-//		},
-//	)
+//   	"env",
+//   	map[string]wasmer.IntoExtern{
+//   		"host_function": hostFunction,
+//   		"host_global": hostGlobal,
+//   	},
+//  )
 //
-// ℹ️ The namespace (or module name) may be empty:
+// Note:️ The namespace (or module name) may be empty:
 //
 //   imports := NewImportObject()
 //   importObject.Register(
-//		"",
-//		map[string]wasmer.IntoExtern{
-//			"host_function": hostFunction,
-//			"host_global": hostGlobal,
-//		},
-//	)
+//   	"",
+//   	map[string]wasmer.IntoExtern{
+//    		"host_function": hostFunction,
+//   		"host_global": hostGlobal,
+//   	},
+//   )
 //
 func (self *ImportObject) Register(namespaceName string, namespace map[string]IntoExtern) {
 	_, exists := self.externs[namespaceName]

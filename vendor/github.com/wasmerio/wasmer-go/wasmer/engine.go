@@ -4,6 +4,8 @@ package wasmer
 import "C"
 import "runtime"
 
+// Engine is used by the Store to drive the compilation and the
+// execution of a WebAssembly module.
 type Engine struct {
 	_inner *C.wasm_engine_t
 }
