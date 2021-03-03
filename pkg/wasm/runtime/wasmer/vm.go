@@ -36,6 +36,7 @@ type VM struct {
 func NewWasmerVM() types.WasmVM {
 	vm := &VM{}
 	vm.Init()
+
 	return vm
 }
 
@@ -49,7 +50,7 @@ func (w *VM) Init() {
 }
 
 func (w *VM) NewModule(wasmBytes []byte) types.WasmModule {
-	if wasmBytes == nil || len(wasmBytes) == 0 {
+	if len(wasmBytes) == 0 {
 		return nil
 	}
 

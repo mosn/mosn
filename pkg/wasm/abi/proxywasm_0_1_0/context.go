@@ -56,6 +56,7 @@ func (a *AbiContext) SetImports(imports interface{}) {
 		log.DefaultLogger.Errorf("[proxywasm_0_1_0][context] SetImports type is not ImportsHandler")
 		return
 	}
+
 	a.imports = cb
 }
 
@@ -72,55 +73,49 @@ func (a *AbiContext) GetInstance() types.WasmInstance {
 }
 
 func (a *AbiContext) OnInstanceCreate(instance types.WasmInstance) {
-	instance.RegisterFunc("env", "proxy_log", proxyLog)
+	_ = instance.RegisterFunc("env", "proxy_log", proxyLog)
 
-	instance.RegisterFunc("env", "proxy_set_effective_context", proxySetEffectiveContext)
+	_ = instance.RegisterFunc("env", "proxy_set_effective_context", proxySetEffectiveContext)
 
-	instance.RegisterFunc("env", "proxy_get_property", proxyGetProperty)
-	instance.RegisterFunc("env", "proxy_set_property", proxySetProperty)
+	_ = instance.RegisterFunc("env", "proxy_get_property", proxyGetProperty)
+	_ = instance.RegisterFunc("env", "proxy_set_property", proxySetProperty)
 
-	instance.RegisterFunc("env", "proxy_get_buffer_bytes", ProxyGetBufferBytes)
-	instance.RegisterFunc("env", "proxy_set_buffer_bytes", ProxySetBufferBytes)
+	_ = instance.RegisterFunc("env", "proxy_get_buffer_bytes", ProxyGetBufferBytes)
+	_ = instance.RegisterFunc("env", "proxy_set_buffer_bytes", ProxySetBufferBytes)
 
-	instance.RegisterFunc("env", "proxy_get_header_map_pairs", proxyGetHeaderMapPairs)
-	instance.RegisterFunc("env", "proxy_set_header_map_pairs", proxySetHeaderMapPairs)
+	_ = instance.RegisterFunc("env", "proxy_get_header_map_pairs", proxyGetHeaderMapPairs)
+	_ = instance.RegisterFunc("env", "proxy_set_header_map_pairs", proxySetHeaderMapPairs)
 
-	instance.RegisterFunc("env", "proxy_get_header_map_value", proxyGetHeaderMapValue)
-	instance.RegisterFunc("env", "proxy_replace_header_map_value", proxyReplaceHeaderMapValue)
-	instance.RegisterFunc("env", "proxy_add_header_map_value", proxyAddHeaderMapValue)
-	instance.RegisterFunc("env", "proxy_remove_header_map_value", proxyRemoveHeaderMapValue)
+	_ = instance.RegisterFunc("env", "proxy_get_header_map_value", proxyGetHeaderMapValue)
+	_ = instance.RegisterFunc("env", "proxy_replace_header_map_value", proxyReplaceHeaderMapValue)
+	_ = instance.RegisterFunc("env", "proxy_add_header_map_value", proxyAddHeaderMapValue)
+	_ = instance.RegisterFunc("env", "proxy_remove_header_map_value", proxyRemoveHeaderMapValue)
 
-	instance.RegisterFunc("env", "proxy_set_tick_period_milliseconds", proxySetTickPeriodMilliseconds)
-	instance.RegisterFunc("env", "proxy_get_current_time_nanoseconds", proxyGetCurrentTimeNanoseconds)
+	_ = instance.RegisterFunc("env", "proxy_set_tick_period_milliseconds", proxySetTickPeriodMilliseconds)
+	_ = instance.RegisterFunc("env", "proxy_get_current_time_nanoseconds", proxyGetCurrentTimeNanoseconds)
 
-	instance.RegisterFunc("env", "proxy_grpc_call", proxyGrpcCall)
-	instance.RegisterFunc("env", "proxy_grpc_stream", proxyGrpcStream)
-	instance.RegisterFunc("env", "proxy_grpc_cancel", proxyGrpcCancel)
-	instance.RegisterFunc("env", "proxy_grpc_close", proxyGrpcClose)
-	instance.RegisterFunc("env", "proxy_grpc_send", proxyGrpcSend)
+	_ = instance.RegisterFunc("env", "proxy_grpc_call", proxyGrpcCall)
+	_ = instance.RegisterFunc("env", "proxy_grpc_stream", proxyGrpcStream)
+	_ = instance.RegisterFunc("env", "proxy_grpc_cancel", proxyGrpcCancel)
+	_ = instance.RegisterFunc("env", "proxy_grpc_close", proxyGrpcClose)
+	_ = instance.RegisterFunc("env", "proxy_grpc_send", proxyGrpcSend)
 
-	instance.RegisterFunc("env", "proxy_http_call", proxyHttpCall)
+	_ = instance.RegisterFunc("env", "proxy_http_call", proxyHttpCall)
 
-	instance.RegisterFunc("env", "proxy_define_metric", proxyDefineMetric)
-	instance.RegisterFunc("env", "proxy_increment_metric", proxyIncrementMetric)
-	instance.RegisterFunc("env", "proxy_record_metric", proxyRecordMetric)
-	instance.RegisterFunc("env", "proxy_get_metric", proxyGetMetric)
+	_ = instance.RegisterFunc("env", "proxy_define_metric", proxyDefineMetric)
+	_ = instance.RegisterFunc("env", "proxy_increment_metric", proxyIncrementMetric)
+	_ = instance.RegisterFunc("env", "proxy_record_metric", proxyRecordMetric)
+	_ = instance.RegisterFunc("env", "proxy_get_metric", proxyGetMetric)
 
-	instance.RegisterFunc("env", "proxy_register_shared_queue", proxyRegisterSharedQueue)
-	instance.RegisterFunc("env", "proxy_resolve_shared_queue", proxyResolveSharedQueue)
-	instance.RegisterFunc("env", "proxy_dequeue_shared_queue", proxyDequeueSharedQueue)
-	instance.RegisterFunc("env", "proxy_enqueue_shared_queue", proxyEnqueueSharedQueue)
+	_ = instance.RegisterFunc("env", "proxy_register_shared_queue", proxyRegisterSharedQueue)
+	_ = instance.RegisterFunc("env", "proxy_resolve_shared_queue", proxyResolveSharedQueue)
+	_ = instance.RegisterFunc("env", "proxy_dequeue_shared_queue", proxyDequeueSharedQueue)
+	_ = instance.RegisterFunc("env", "proxy_enqueue_shared_queue", proxyEnqueueSharedQueue)
 
-	instance.RegisterFunc("env", "proxy_get_shared_data", proxyGetSharedData)
-	instance.RegisterFunc("env", "proxy_set_shared_data", proxySetSharedData)
-
-	return
+	_ = instance.RegisterFunc("env", "proxy_get_shared_data", proxyGetSharedData)
+	_ = instance.RegisterFunc("env", "proxy_set_shared_data", proxySetSharedData)
 }
 
-func (a *AbiContext) OnInstanceStart(instance types.WasmInstance) {
-	return
-}
+func (a *AbiContext) OnInstanceStart(instance types.WasmInstance) {}
 
-func (a *AbiContext) OnInstanceDestroy(instance types.WasmInstance) {
-	return
-}
+func (a *AbiContext) OnInstanceDestroy(instance types.WasmInstance) {}

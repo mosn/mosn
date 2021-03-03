@@ -162,8 +162,8 @@ func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 		a.SetImports(f)
 		exports := a.GetExports().(proxywasm_0_1_0.Exports)
 
-		instance.Acquire(a)
-		defer instance.Release()
+		instance.Lock(a)
+		defer instance.Unlock()
 
 		err := exports.ProxyOnContextCreate(f.config.RootContextID, 0)
 		if err != nil {
@@ -197,6 +197,4 @@ func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 	})
 }
 
-func (f *FilterConfigFactory) OnPluginDestroy(plugin types.WasmPlugin) {
-	return
-}
+func (f *FilterConfigFactory) OnPluginDestroy(plugin types.WasmPlugin) {}

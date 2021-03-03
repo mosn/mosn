@@ -85,6 +85,7 @@ func NewWasmerInstance(vm *VM, module *Module, options ...InstanceOptions) *Inst
 	wasiEnv, err := wasmerGo.NewWasiStateBuilder("").Finalize()
 	if err != nil || wasiEnv == nil {
 		log.DefaultLogger.Warnf("[wasmer][instance] NewWasmerInstance fail to create wasi env, err: %v", err)
+
 		ins.importObject = wasmerGo.NewImportObject()
 		return ins
 	}
@@ -92,6 +93,7 @@ func NewWasmerInstance(vm *VM, module *Module, options ...InstanceOptions) *Inst
 	imo, err := wasiEnv.GenerateImportObject(ins.vm.store, ins.module.module)
 	if err != nil {
 		log.DefaultLogger.Warnf("[wasmer][instance] NewWasmerInstance fail to create import object, err: %v", err)
+
 		ins.importObject = wasmerGo.NewImportObject()
 	} else {
 		ins.importObject = imo
@@ -108,12 +110,12 @@ func (w *Instance) SetData(data interface{}) {
 	w.data = data
 }
 
-func (w *Instance) Acquire(data interface{}) {
+func (w *Instance) Lock(data interface{}) {
 	w.lock.Lock()
 	w.data = data
 }
 
-func (w *Instance) Release() {
+func (w *Instance) Unlock() {
 	w.data = nil
 	w.lock.Unlock()
 }
@@ -134,6 +136,7 @@ func (w *Instance) Start() error {
 		log.DefaultLogger.Errorf("[wasmer][instance] Start fail to new wasmer-go instance, err: %v", err)
 		return err
 	}
+
 	w.instance = ins
 
 	f, err := w.instance.Exports.GetFunction("_start")
@@ -158,7 +161,7 @@ func (w *Instance) Start() error {
 	return nil
 }
 
-// return true is Instance is started, false if not started
+// return true is Instance is started, false if not started.
 func (w *Instance) checkStart() bool {
 	return atomic.LoadUint32(&w.started) == 1
 }
@@ -174,10 +177,12 @@ func (w *Instance) RegisterFunc(namespace string, funcName string, f interface{}
 		log.DefaultLogger.Errorf("[wasmer][instance] RegisterFunc invalid param, namespace: %v, funcName: %v", namespace, funcName)
 		return ErrInvalidParam
 	}
+
 	if f == nil || reflect.ValueOf(f).IsNil() {
 		log.DefaultLogger.Errorf("[wasmer][instance] RegisterFunc f is nil")
 		return ErrInvalidParam
 	}
+
 	if reflect.TypeOf(f).Kind() != reflect.Func {
 		log.DefaultLogger.Errorf("[wasmer][instance] RegisterFunc f is not func, actual type: %v", reflect.TypeOf(f))
 		return ErrRegisterNotFunc
@@ -254,10 +259,13 @@ func (w *Instance) Malloc(size int32) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	addr, err := malloc.Call(size)
 	if err != nil {
+		w.HandleError(err)
 		return 0, err
 	}
+
 	return uint64(addr.(int32)), nil
 }
 
@@ -292,8 +300,10 @@ func (w *Instance) GetExportsMem(memName string) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		w.memory = m
 	}
+
 	return w.memory.Data(), nil
 }
 
@@ -302,9 +312,11 @@ func (w *Instance) GetMemory(addr uint64, size uint64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if int(addr) > len(mem) || int(addr+size) > len(mem) {
 		return nil, ErrAddrOverflow
 	}
+
 	return mem[addr : addr+size], nil
 }
 
@@ -313,14 +325,18 @@ func (w *Instance) PutMemory(addr uint64, size uint64, content []byte) error {
 	if err != nil {
 		return err
 	}
+
 	if int(addr) > len(mem) || int(addr+size) > len(mem) {
 		return ErrAddrOverflow
 	}
+
 	copySize := uint64(len(content))
 	if size < copySize {
 		copySize = size
 	}
+
 	copy(mem[addr:], content[:copySize])
+
 	return nil
 }
 
@@ -329,9 +345,11 @@ func (w *Instance) GetByte(addr uint64) (byte, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	if int(addr) > len(mem) {
 		return 0, ErrAddrOverflow
 	}
+
 	return mem[addr], nil
 }
 
@@ -340,10 +358,13 @@ func (w *Instance) PutByte(addr uint64, b byte) error {
 	if err != nil {
 		return err
 	}
+
 	if int(addr) > len(mem) {
 		return ErrAddrOverflow
 	}
+
 	mem[addr] = b
+
 	return nil
 }
 
@@ -352,9 +373,11 @@ func (w *Instance) GetUint32(addr uint64) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	if int(addr) > len(mem) || int(addr+4) > len(mem) {
 		return 0, ErrAddrOverflow
 	}
+
 	return binary.LittleEndian.Uint32(mem[addr:]), nil
 }
 
@@ -363,20 +386,23 @@ func (w *Instance) PutUint32(addr uint64, value uint32) error {
 	if err != nil {
 		return err
 	}
+
 	if int(addr) > len(mem) || int(addr+4) > len(mem) {
 		return ErrAddrOverflow
 	}
+
 	binary.LittleEndian.PutUint32(mem[addr:], value)
+
 	return nil
 }
 
 func (w *Instance) HandleError(err error) {
-	te, ok := err.(*wasmerGo.TrapError)
-	if !ok {
+	var trapError *wasmerGo.TrapError
+	if !errors.As(err, &trapError) {
 		return
 	}
 
-	trace := te.Trace()
+	trace := trapError.Trace()
 	if trace == nil {
 		return
 	}

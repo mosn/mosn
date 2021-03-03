@@ -170,13 +170,13 @@ type WasmInstance interface {
 	// SetData sets user-defined data into the wasm instance
 	SetData(data interface{})
 
-	// Acquire gets the exclusive ownership of the wasm instance
+	// Lock gets the exclusive ownership of the wasm instance
 	// and sets the user-defined data
-	Acquire(data interface{})
+	Lock(data interface{})
 
-	// Release releases the exclusive ownership of the wasm instance
+	// Unlock releases the exclusive ownership of the wasm instance
 	// and sets the users-defined data to nil
-	Release()
+	Unlock()
 
 	// GetModule returns the wasm module of current instance
 	GetModule() WasmModule

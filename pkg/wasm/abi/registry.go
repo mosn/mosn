@@ -24,13 +24,13 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-// Factory is the ABI factory func
+// Factory is the ABI factory func.
 type Factory func(instance types.WasmInstance) types.ABI
 
-// string -> Factory
+// string -> Factory.
 var abiMap = sync.Map{}
 
-// RegisterABI registers an abi factory
+// RegisterABI registers an abi factory.
 func RegisterABI(name string, factory Factory) {
 	abiMap.Store(name, factory)
 }

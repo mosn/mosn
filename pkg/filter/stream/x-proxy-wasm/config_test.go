@@ -1,15 +1,15 @@
 package x_proxy_wasm
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestXProxyWasmConfigFromGlobalPlugin(t *testing.T) {
 	configMap := map[string]interface{}{
 		"from_wasm_plugin": "global_plugin",
 		"instance_num":     2,
-		"root_context_id":  1,
 		"user_config1":     "user_value1",
 		"user_config2":     "user_value2",
 	}
@@ -25,7 +25,6 @@ func TestXProxyWasmConfigWithoutUserData(t *testing.T) {
 	configMap := map[string]interface{}{
 		"from_wasm_plugin": "global_plugin",
 		"instance_num":     2,
-		"root_context_id":  1,
 	}
 
 	config, err := parseFilterConfig(configMap)
@@ -42,12 +41,11 @@ func TestXProxyWasmConfigWithVM(t *testing.T) {
 			"path":   "path",
 			"cpu":    100,
 		},
-		"instance_num":    2,
-		"root_context_id": 1,
-		"user_config1":    "user_value1",
-		"user_config2":    "user_value2",
-		"user_config3":    "user_value3",
-		"user_config4":    "user_value4",
+		"instance_num": 2,
+		"user_config1": "user_value1",
+		"user_config2": "user_value2",
+		"user_config3": "user_value3",
+		"user_config4": "user_value4",
 	}
 
 	config, err := parseFilterConfig(configMap)

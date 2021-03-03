@@ -712,28 +712,28 @@ func (mr *MockWasmInstanceMockRecorder) SetData(data interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetData", reflect.TypeOf((*MockWasmInstance)(nil).SetData), data)
 }
 
-// Acquire mocks base method.
-func (m *MockWasmInstance) Acquire(data interface{}) {
+// Lock mocks base method.
+func (m *MockWasmInstance) Lock(data interface{}) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Acquire", data)
+	m.ctrl.Call(m, "Lock", data)
 }
 
-// Acquire indicates an expected call of Acquire.
-func (mr *MockWasmInstanceMockRecorder) Acquire(data interface{}) *gomock.Call {
+// Lock indicates an expected call of Lock.
+func (mr *MockWasmInstanceMockRecorder) Lock(data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Acquire", reflect.TypeOf((*MockWasmInstance)(nil).Acquire), data)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lock", reflect.TypeOf((*MockWasmInstance)(nil).Lock), data)
 }
 
-// Release mocks base method.
-func (m *MockWasmInstance) Release() {
+// Unlock mocks base method.
+func (m *MockWasmInstance) Unlock() {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Release")
+	m.ctrl.Call(m, "Unlock")
 }
 
-// Release indicates an expected call of Release.
-func (mr *MockWasmInstanceMockRecorder) Release() *gomock.Call {
+// Unlock indicates an expected call of Unlock.
+func (mr *MockWasmInstanceMockRecorder) Unlock() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Release", reflect.TypeOf((*MockWasmInstance)(nil).Release))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unlock", reflect.TypeOf((*MockWasmInstance)(nil).Unlock))
 }
 
 // GetModule mocks base method.

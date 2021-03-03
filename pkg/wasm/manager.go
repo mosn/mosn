@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+// Package wasm implement the wasm framework for MOSN
 package wasm
 
 import (
@@ -35,14 +36,14 @@ var (
 	ErrUpdateInstanceNum = errors.New("update instance num return 0")
 )
 
-// GetWasmManager returns the global singleton of types.WasmManager
+// GetWasmManager returns the global singleton of types.WasmManager.
 func GetWasmManager() types.WasmManager {
 	return wasmManagerInstance
 }
 
 var wasmManagerInstance types.WasmManager = &wasmManagerImpl{}
 
-// implementation of types.WasmManager
+// implementation of types.WasmManager.
 type wasmManagerImpl struct {
 	pluginMap sync.Map
 }
@@ -58,8 +59,6 @@ func (w *wasmManagerImpl) shouldCreateNewPlugin(newConfig v2.WasmPluginConfig, o
 		return true
 	}
 
-	// TODO: check whether wasm file update without changing its name
-
 	return false
 }
 
@@ -74,8 +73,7 @@ func (w *wasmManagerImpl) updateWasm(pluginWrapper types.WasmPluginWrapper, newC
 
 	if w.shouldCreateNewPlugin(newConfig, pluginWrapper.GetConfig()) {
 		var err error
-		plugin, err = NewWasmPlugin(newConfig)
-		if err != nil {
+		if plugin, err = NewWasmPlugin(newConfig); err != nil {
 			log.DefaultLogger.Errorf("[wasm][manager] updateWasm fail to create wasm plugin: %v, err: %v", newConfig.PluginName, err)
 			return err
 		}
@@ -97,6 +95,7 @@ func (w *wasmManagerImpl) updateWasm(pluginWrapper types.WasmPluginWrapper, newC
 	pluginWrapper.Update(newConfig, plugin)
 
 	log.DefaultLogger.Infof("[wasm][manager] AddOrUpdateWasm update wasm plugin: %v, config: %v", newConfig.PluginName, newConfig)
+
 	return nil
 }
 
@@ -106,6 +105,7 @@ func (w *wasmManagerImpl) AddOrUpdateWasm(config v2.WasmPluginConfig) error {
 		return ErrEmptyPluginName
 	}
 
+	// plugin already exists
 	if v, ok := w.pluginMap.Load(config.PluginName); ok {
 		pluginWrapper, ok := v.(*pluginWrapper)
 		if !ok {
@@ -114,23 +114,23 @@ func (w *wasmManagerImpl) AddOrUpdateWasm(config v2.WasmPluginConfig) error {
 		}
 
 		return w.updateWasm(pluginWrapper, config)
-	} else {
-		// add new wasm plugin
-		plugin, err := NewWasmPlugin(config)
-		if err != nil {
-			log.DefaultLogger.Errorf("[wasm][manager] AddOrUpdateWasm fail to create wasm plugin: %v, err: %v", config.PluginName, err)
-			return err
-		}
-
-		pw := &pluginWrapper{
-			plugin: plugin,
-			config: config,
-		}
-
-		w.pluginMap.LoadOrStore(config.PluginName, pw)
-
-		log.DefaultLogger.Infof("[wasm][manager] AddOrUpdateWasm add new wasm plugin: %v", config.PluginName)
 	}
+
+	// add new wasm plugin
+	plugin, err := NewWasmPlugin(config)
+	if err != nil {
+		log.DefaultLogger.Errorf("[wasm][manager] AddOrUpdateWasm fail to create wasm plugin: %v, err: %v", config.PluginName, err)
+		return err
+	}
+
+	pw := &pluginWrapper{
+		plugin: plugin,
+		config: config,
+	}
+
+	w.pluginMap.LoadOrStore(config.PluginName, pw)
+
+	log.DefaultLogger.Infof("[wasm][manager] AddOrUpdateWasm add new wasm plugin: %v", config.PluginName)
 
 	return nil
 }
@@ -146,10 +146,11 @@ func (w *wasmManagerImpl) GetWasmPluginWrapperByName(pluginName string) types.Wa
 			log.DefaultLogger.Errorf("[wasm][manager] GetWasmPluginWrapperByName unexpected object type in map")
 			return nil
 		}
+
 		return pw
-	} else {
-		log.DefaultLogger.Errorf("[wasm][manager] GetWasmPluginWrapperByName not found in map, plugin name: %v", pluginName)
 	}
+
+	log.DefaultLogger.Errorf("[wasm][manager] GetWasmPluginWrapperByName not found in map, plugin name: %v", pluginName)
 
 	return nil
 }
