@@ -19,7 +19,7 @@ package proxywasm_0_1_0
 
 import "encoding/binary"
 
-// EncodeMap encode map into bytes
+// EncodeMap encode map into bytes.
 func EncodeMap(m map[string]string) []byte {
 	if len(m) == 0 {
 		return nil
@@ -36,6 +36,7 @@ func EncodeMap(m map[string]string) []byte {
 
 	lenPtr := 4
 	dataPtr := lenPtr + 8*len(m)
+
 	for k, v := range m {
 		binary.LittleEndian.PutUint32(b[lenPtr:], uint32(len(k)))
 		lenPtr += 4
@@ -56,7 +57,7 @@ func EncodeMap(m map[string]string) []byte {
 	return b
 }
 
-// DecodeMap decode map from rawData
+// DecodeMap decode map from rawData.
 func DecodeMap(rawData []byte) map[string]string {
 	if len(rawData) < 4 {
 		return nil
@@ -79,6 +80,7 @@ func DecodeMap(rawData []byte) map[string]string {
 		if dataPtr >= len(rawData) || dataPtr+keySize > len(rawData) {
 			break
 		}
+
 		key := string(rawData[dataPtr : dataPtr+keySize])
 		dataPtr += keySize
 		dataPtr++ // 0
@@ -86,11 +88,13 @@ func DecodeMap(rawData []byte) map[string]string {
 		if dataPtr >= len(rawData) || dataPtr+keySize > len(rawData) {
 			break
 		}
+
 		value := string(rawData[dataPtr : dataPtr+valueSize])
 		dataPtr += valueSize
 		dataPtr++ // 0
 
 		res[key] = value
 	}
+
 	return res
 }

@@ -41,9 +41,8 @@ type Filter struct {
 	pluginName string
 	plugin     types.WasmPlugin
 	instance   types.WasmInstance
-
-	abi     types.ABI
-	exports proxywasm_0_1_0.Exports
+	abi        types.ABI
+	exports    proxywasm_0_1_0.Exports
 
 	rootContextID int32
 	contextID     int32
@@ -89,6 +88,7 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 	if filter.abi == nil {
 		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] NewFilter abi not found in instance")
 		plugin.ReleaseInstance(instance)
+
 		return nil
 	}
 
@@ -98,11 +98,12 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 	if filter.exports == nil {
 		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] NewFilter fail to get exports part from abi")
 		plugin.ReleaseInstance(instance)
+
 		return nil
 	}
 
-	filter.instance.Acquire(filter.abi)
-	defer filter.instance.Release()
+	filter.instance.Lock(filter.abi)
+	defer filter.instance.Unlock()
 
 	err := filter.exports.ProxyOnContextCreate(filter.contextID, filter.rootContextID)
 	if err != nil {
@@ -116,7 +117,7 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 
 func (f *Filter) OnDestroy() {
 	f.destroyOnce.Do(func() {
-		f.instance.Acquire(f.abi)
+		f.instance.Lock(f.abi)
 
 		_, err := f.exports.ProxyOnDone(f.contextID)
 		if err != nil {
@@ -128,7 +129,7 @@ func (f *Filter) OnDestroy() {
 			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnDestroy fail to call ProxyOnDelete, err: %v", err)
 		}
 
-		f.instance.Release()
+		f.instance.Unlock()
 		f.plugin.ReleaseInstance(f.instance)
 	})
 }
@@ -143,36 +144,36 @@ func (f *Filter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
 
 func headerSize(headers api.HeaderMap) int {
 	size := 0
+
 	if headers != nil {
 		headers.Range(func(key, value string) bool {
 			size++
 			return true
 		})
 	}
+
 	return size
 }
 
 func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	f.instance.Acquire(f.abi)
-	defer f.instance.Release()
+	f.instance.Lock(f.abi)
+	defer f.instance.Unlock()
 
-	// do filter
+	haveBody := 0
 	if buf != nil && buf.Len() > 0 {
-		action, err := f.exports.ProxyOnRequestHeaders(f.contextID, int32(headerSize(headers)), 0)
-		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive call ProxyOnRequestHeaders err: %v", err)
-			return api.StreamFilterStop
-		}
+		haveBody = 1
+	}
 
+	action, err := f.exports.ProxyOnRequestHeaders(f.contextID, int32(headerSize(headers)), int32(haveBody))
+	if err != nil || action != proxywasm_0_1_0.ActionContinue {
+		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive call ProxyOnRequestHeaders err: %v", err)
+		return api.StreamFilterStop
+	}
+
+	if haveBody == 1 {
 		action, err = f.exports.ProxyOnRequestBody(f.contextID, int32(buf.Len()), 1)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
 			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive call ProxyOnRequestBody err: %v", err)
-			return api.StreamFilterStop
-		}
-	} else {
-		action, err := f.exports.ProxyOnRequestHeaders(f.contextID, int32(headerSize(headers)), 1)
-		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive call ProxyOnRequestHeaders err: %v", err)
 			return api.StreamFilterStop
 		}
 	}
@@ -181,26 +182,24 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 }
 
 func (f *Filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	f.instance.Acquire(f.abi)
-	defer f.instance.Release()
+	f.instance.Lock(f.abi)
+	defer f.instance.Unlock()
 
-	// do filter
+	haveBody := 0
 	if buf != nil && buf.Len() > 0 {
-		action, err := f.exports.ProxyOnResponseHeaders(f.contextID, int32(headerSize(headers)), 0)
-		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] Append call ProxyOnResponseHeaders err: %v", err)
-			return api.StreamFilterStop
-		}
+		haveBody = 1
+	}
 
+	action, err := f.exports.ProxyOnResponseHeaders(f.contextID, int32(headerSize(headers)), 0)
+	if err != nil || action != proxywasm_0_1_0.ActionContinue {
+		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] Append call ProxyOnResponseHeaders err: %v", err)
+		return api.StreamFilterStop
+	}
+
+	if haveBody == 1 {
 		action, err = f.exports.ProxyOnResponseBody(f.contextID, int32(buf.Len()), 1)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
 			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] Append call ProxyOnResponseBody err: %v", err)
-			return api.StreamFilterStop
-		}
-	} else {
-		action, err := f.exports.ProxyOnResponseHeaders(f.contextID, int32(headerSize(headers)), 1)
-		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] Append call ProxyOnResponseHeaders err: %v", err)
 			return api.StreamFilterStop
 		}
 	}
@@ -224,6 +223,7 @@ func (f *Filter) GetHttpRequestHeader() api.HeaderMap {
 	if f.receiverFilterHandler == nil {
 		return nil
 	}
+
 	return f.receiverFilterHandler.GetRequestHeaders()
 }
 
@@ -231,6 +231,7 @@ func (f *Filter) GetHttpRequestBody() buffer.IoBuffer {
 	if f.receiverFilterHandler == nil {
 		return nil
 	}
+
 	return f.receiverFilterHandler.GetRequestData()
 }
 
@@ -238,6 +239,7 @@ func (f *Filter) GetHttpRequestTrailer() api.HeaderMap {
 	if f.receiverFilterHandler == nil {
 		return nil
 	}
+
 	return f.receiverFilterHandler.GetRequestTrailers()
 }
 
@@ -245,6 +247,7 @@ func (f *Filter) GetHttpResponseHeader() api.HeaderMap {
 	if f.senderFilterHandler == nil {
 		return nil
 	}
+
 	return f.senderFilterHandler.GetResponseHeaders()
 }
 
@@ -252,6 +255,7 @@ func (f *Filter) GetHttpResponseBody() buffer.IoBuffer {
 	if f.senderFilterHandler == nil {
 		return nil
 	}
+
 	return f.senderFilterHandler.GetResponseData()
 }
 
@@ -259,5 +263,6 @@ func (f *Filter) GetHttpResponseTrailer() api.HeaderMap {
 	if f.senderFilterHandler == nil {
 		return nil
 	}
+
 	return f.senderFilterHandler.GetResponseTrailers()
 }

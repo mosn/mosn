@@ -78,6 +78,7 @@ func (d *dwarfInfo) getLineReader() *dwarf.LineReader {
 	if err != nil {
 		log.DefaultLogger.Errorf("[wasmer][debug] getLineReader fail to do d.LineReader(), err: %v", err)
 	}
+
 	d.lineReader = lineReader
 
 	return d.lineReader
@@ -146,14 +147,15 @@ func loadCustomSections(data []byte) (map[string]CustomSection, int, error) {
 	for i < len(data) {
 		sectionType := data[i]
 		if _, ok := secTypeNames[sectionType]; !ok {
-			return nil, 0, errors.New(fmt.Sprintf("Section type 0x%02X not supported", sectionType))
+			return nil, 0, fmt.Errorf("section type 0x%02X not supported", sectionType)
 		}
-		i += 1
+		i++
 
 		sectionDataSize, n := readULEB128(data[i:])
 		i += n
 
 		sectionName := ""
+
 		if sectionType == SecCustom {
 			customSection := NewCustomSection(data[i : i+sectionDataSize])
 			sectionName = customSection.name
@@ -180,34 +182,39 @@ func loadCustomSections(data []byte) (map[string]CustomSection, int, error) {
 	return customSections, codeSectionOffset, nil
 }
 
-// Properly read name and data from a custom section
+// NewCustomSection properly read name and data from a custom section.
 func NewCustomSection(data []byte) CustomSection {
 	nameLength, n := readULEB128(data)
+
 	return CustomSection{
 		name: string(data[n : n+nameLength]),
 		data: data[nameLength+n:],
 	}
 }
 
-// Read a uLEB128 at the starting position. Returns (number read, number of bytes read)
+// Read a uLEB128 at the starting position. Returns (number read, number of bytes read).
 func readULEB128(data []byte) (int, int) {
 	length := 1
 	for data[length-1]&0x80 > 0 {
-		length += 1
+		length++
 	}
+
 	n := int(DecodeULeb128(data[:length+1]))
+
 	return n, length
 }
 
-// DecodeULeb128 decodes an unsigned LEB128 value to an unsigned int32 value. Returns the result as a uint32
+// DecodeULeb128 decodes an unsigned LEB128 value to an unsigned int32 value. Returns the result as a uint32.
 func DecodeULeb128(value []byte) uint32 {
 	var result uint32
 	var ctr uint
 	var cur byte = 0x80
+
 	for (cur&0x80 == 0x80) && ctr < 5 {
 		cur = value[ctr] & 0xff
 		result += uint32(cur&0x7f) << (ctr * 7)
 		ctr++
 	}
+
 	return result
 }

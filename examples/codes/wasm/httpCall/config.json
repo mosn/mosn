@@ -48,8 +48,7 @@
                 "vm_config": {
                   "engine": "wasmer",
                   "path": "./filter-go.wasm"
-                },
-                "root_context_id": 1
+                }
               }
             }
           ]

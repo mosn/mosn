@@ -126,9 +126,9 @@ func TestInstanceData(t *testing.T) {
 	assert.Equal(t, ins.GetData().(int), 1)
 
 	for i := 0; i < 10; i++ {
-		ins.Acquire(i)
+		ins.Lock(i)
 		assert.Equal(t, ins.GetData().(int), i)
-		ins.Release()
+		ins.Unlock()
 	}
 }
 

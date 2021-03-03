@@ -37,6 +37,7 @@ func convertFromGoType(t reflect.Type) *wasmerGo.ValueType {
 	default:
 		log.DefaultLogger.Errorf("[wasmer][type] convertFromGoType unsupported type: %v", t.Kind().String())
 	}
+
 	return nil
 }
 
@@ -51,6 +52,7 @@ func convertToGoTypes(in wasmerGo.Value) reflect.Value {
 	case wasmerGo.F64:
 		return reflect.ValueOf(in.F64())
 	}
+
 	return reflect.Value{}
 }
 
@@ -67,5 +69,6 @@ func convertFromGoValue(val reflect.Value) wasmerGo.Value {
 	default:
 		log.DefaultLogger.Errorf("[wasmer][type] convertFromGoValue unsupported val type: %v", val.Kind().String())
 	}
+
 	return wasmerGo.Value{}
 }

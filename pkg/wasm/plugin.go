@@ -106,6 +106,7 @@ func (w *pluginWrapper) Update(config v2.WasmPluginConfig, plugin types.WasmPlug
 	for _, handler := range w.pluginHandlers {
 		handler.OnPluginDestroy(oldPlugin)
 	}
+
 	oldPlugin.Clear()
 }
 
@@ -131,6 +132,7 @@ func NewWasmPlugin(wasmConfig v2.WasmPluginConfig) (types.WasmPlugin, error) {
 	if instanceNum <= 0 {
 		instanceNum = runtime.NumCPU()
 	}
+
 	wasmConfig.InstanceNum = instanceNum
 
 	// get wasm engine
@@ -181,7 +183,7 @@ func NewWasmPlugin(wasmConfig v2.WasmPluginConfig) (types.WasmPlugin, error) {
 }
 
 // EnsureInstanceNum try to expand/shrink the num of instance to 'num'
-// and return the actual instance num
+// and return the actual instance num.
 func (w *wasmPluginImpl) EnsureInstanceNum(num int) int {
 	if num <= 0 || num == w.instanceNum {
 		return w.instanceNum
@@ -242,10 +244,10 @@ func (w *wasmPluginImpl) Clear() {
 	log.DefaultLogger.Infof("[wasm][plugin] Clear wasm plugin, config: %v, instanceNum: %v", w.config, w.instanceNum)
 }
 
-// SetCpuLimit set cpu limit of the plugin, no-op
+// SetCpuLimit set cpu limit of the plugin, no-op.
 func (w *wasmPluginImpl) SetCpuLimit(cpu int) {}
 
-// SetCpuLimit set cpu limit of the plugin, no-op
+// SetCpuLimit set cpu limit of the plugin, no-op.
 func (w *wasmPluginImpl) SetMemLimit(mem int) {}
 
 // Exec execute the f for each instance
@@ -286,17 +288,11 @@ func (w *wasmPluginImpl) ReleaseInstance(instance types.WasmInstance) {
 	atomic.AddInt32(&w.occupy, -1)
 }
 
-// DefaultWasmPluginHandler is the default implementation of types.WasmPluginHandler
+// DefaultWasmPluginHandler is the default implementation of types.WasmPluginHandler.
 type DefaultWasmPluginHandler struct{}
 
-func (d *DefaultWasmPluginHandler) OnConfigUpdate(config v2.WasmPluginConfig) {
-	return
-}
+func (d *DefaultWasmPluginHandler) OnConfigUpdate(config v2.WasmPluginConfig) {}
 
-func (d *DefaultWasmPluginHandler) OnPluginStart(plugin types.WasmPlugin) {
-	return
-}
+func (d *DefaultWasmPluginHandler) OnPluginStart(plugin types.WasmPlugin) {}
 
-func (d *DefaultWasmPluginHandler) OnPluginDestroy(plugin types.WasmPlugin) {
-	return
-}
+func (d *DefaultWasmPluginHandler) OnPluginDestroy(plugin types.WasmPlugin) {}

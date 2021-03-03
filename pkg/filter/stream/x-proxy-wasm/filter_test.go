@@ -76,9 +76,8 @@ func testProxyWasmStreamFilterCommon(t *testing.T, wasmPath string) {
 			"engine": "wasmer",
 			"path":   wasmPath,
 		},
-		"root_context_id": 1,
-		"user_config1":    "user_value1",
-		"user_config2":    "user_value2",
+		"user_config1": "user_value1",
+		"user_config2": "user_value2",
 	}
 
 	factory, err := createProxyWasmFilterFactory(configMap)
@@ -166,7 +165,6 @@ func TestProxyWasmStreamFilterHttpCallout(t *testing.T) {
 			"engine": "wasmer",
 			"path":   "./data/httpCall.wasm",
 		},
-		"root_context_id": 1,
 	}
 
 	factory, err := createProxyWasmFilterFactory(configMap)

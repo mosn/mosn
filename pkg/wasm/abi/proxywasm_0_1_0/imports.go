@@ -98,6 +98,7 @@ func GetBuffer(instance types.WasmInstance, bufferType BufferType) buffer.IoBuff
 		httpStruct := getHttpStruct(instance)
 		return httpStruct.responseBody
 	}
+
 	return nil
 }
 
@@ -122,6 +123,7 @@ func GetMap(instance types.WasmInstance, mapType MapType) api.HeaderMap {
 		httpStruct := getHttpStruct(instance)
 		return httpStruct.responseTrailer
 	}
+
 	return nil
 }
 
@@ -235,20 +237,21 @@ func proxyGetHeaderMapPairs(instance types.WasmInstance, mapType int32, returnDa
 
 	lenPtr := addr + 4
 	dataPtr := lenPtr + uint64(8*len(cloneMap))
+
 	for k, v := range cloneMap {
-		err = instance.PutUint32(lenPtr, uint32(len(k)))
+		_ = instance.PutUint32(lenPtr, uint32(len(k)))
 		lenPtr += 4
-		err = instance.PutUint32(lenPtr, uint32(len(v)))
+		_ = instance.PutUint32(lenPtr, uint32(len(v)))
 		lenPtr += 4
 
-		err = instance.PutMemory(dataPtr, uint64(len(k)), []byte(k))
+		_ = instance.PutMemory(dataPtr, uint64(len(k)), []byte(k))
 		dataPtr += uint64(len(k))
-		err = instance.PutByte(dataPtr, 0)
+		_ = instance.PutByte(dataPtr, 0)
 		dataPtr++
 
-		err = instance.PutMemory(dataPtr, uint64(len(v)), []byte(v))
+		_ = instance.PutMemory(dataPtr, uint64(len(v)), []byte(v))
 		dataPtr += uint64(len(v))
-		err = instance.PutByte(dataPtr, 0)
+		_ = instance.PutByte(dataPtr, 0)
 		dataPtr++
 	}
 
@@ -601,6 +604,54 @@ func (p *proxyStreamReceiveListener) OnDecodeError(ctx context.Context, err erro
 	}
 }
 
+func parseHttpCalloutReq(instance types.WasmInstance, headerPairsPtr int32, headerPairsSize int32,
+	bodyPtr int32, bodySize int32, trailerPairsPtr int32, trailerPairsSize int32) (api.HeaderMap, buffer.IoBuffer, api.HeaderMap, error) {
+	var header api.HeaderMap = mosnhttp.RequestHeader{RequestHeader: &fasthttp.RequestHeader{}}
+	if headerPairsSize > 0 {
+		headerStr, err := instance.GetMemory(uint64(headerPairsPtr), uint64(headerPairsSize))
+		if err != nil {
+			log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] proxyHttpCall fail to get header str from instance mem, err: %v", err)
+			return nil, nil, nil, err
+		}
+
+		headerMap := DecodeMap(headerStr)
+		for k, v := range headerMap {
+			header.Add(k, v)
+		}
+	}
+
+	var body buffer.IoBuffer
+	if bodySize > 0 {
+		bodyStr, err := instance.GetMemory(uint64(bodyPtr), uint64(bodySize))
+		if err != nil {
+			log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] proxyHttpCall fail to get body str from instance mem, err: %v", err)
+			return nil, nil, nil, err
+		}
+
+		body = buffer.NewIoBufferBytes(bodyStr)
+	}
+
+	var trailer api.HeaderMap
+	if trailerPairsSize > 0 {
+		trailerStr, err := instance.GetMemory(uint64(trailerPairsPtr), uint64(trailerPairsSize))
+		if err != nil {
+			log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] proxyHttpCall fail to get trailer str from instance mem, err: %v", err)
+			return nil, nil, nil, err
+		}
+
+		trailerMap := DecodeMap(trailerStr)
+		if trailerMap != nil {
+			trailer = mosnhttp.RequestHeader{RequestHeader: &fasthttp.RequestHeader{}}
+
+			for k, v := range trailerMap {
+				trailer.Add(k, v)
+			}
+		}
+	}
+
+	return header, body, trailer, nil
+}
+
 var httpCalloutID int32
 
 func proxyHttpCall(instance types.WasmInstance, uriPtr int32, uriSize int32,
@@ -608,7 +659,6 @@ func proxyHttpCall(instance types.WasmInstance, uriPtr int32, uriSize int32,
 	bodyPtr int32, bodySize int32,
 	trailerPairsPtr int32, trailerPairsSize int32,
 	timeoutMilliseconds int32, calloutIDPtr int32) int32 {
-
 	urlStr, err := instance.GetMemory(uint64(uriPtr), uint64(uriSize))
 	if err != nil {
 		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] proxyHttpCall fail to get url str from instance mem, err: %v", err)
@@ -621,44 +671,10 @@ func proxyHttpCall(instance types.WasmInstance, uriPtr int32, uriSize int32,
 		return WasmResultBadArgument.Int32()
 	}
 
-	var header api.HeaderMap = mosnhttp.RequestHeader{RequestHeader: &fasthttp.RequestHeader{}}
-	var body buffer.IoBuffer
-	var trailer api.HeaderMap
-
-	if headerPairsSize > 0 {
-		headerStr, err := instance.GetMemory(uint64(headerPairsPtr), uint64(headerPairsSize))
-		if err != nil {
-			log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] proxyHttpCall fail to get header str from instance mem, err: %v", err)
-			return WasmResultInvalidMemoryAccess.Int32()
-		}
-		headerMap := DecodeMap(headerStr)
-		for k, v := range headerMap {
-			header.Add(k, v)
-		}
-	}
-
-	if bodySize > 0 {
-		bodyStr, err := instance.GetMemory(uint64(bodyPtr), uint64(bodySize))
-		if err != nil {
-			log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] proxyHttpCall fail to get body str from instance mem, err: %v", err)
-			return WasmResultInvalidMemoryAccess.Int32()
-		}
-		body = buffer.NewIoBufferBytes(bodyStr)
-	}
-
-	if trailerPairsSize > 0 {
-		trailerStr, err := instance.GetMemory(uint64(trailerPairsPtr), uint64(trailerPairsSize))
-		if err != nil {
-			log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] proxyHttpCall fail to get trailer str from instance mem, err: %v", err)
-			return WasmResultInvalidMemoryAccess.Int32()
-		}
-		trailerMap := DecodeMap(trailerStr)
-		if trailerMap != nil {
-			trailer = mosnhttp.RequestHeader{RequestHeader: &fasthttp.RequestHeader{}}
-			for k, v := range trailerMap {
-				trailer.Add(k, v)
-			}
-		}
+	header, body, trailer, err := parseHttpCalloutReq(instance, headerPairsPtr, headerPairsSize, bodyPtr, bodySize, trailerPairsPtr, trailerPairsSize)
+	if err != nil {
+		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] proxyHttpCall fail to parse http callout req, err: %v", err)
+		return WasmResultInvalidMemoryAccess.Int32()
 	}
 
 	calloutID := atomic.AddInt32(&httpCalloutID, 1)

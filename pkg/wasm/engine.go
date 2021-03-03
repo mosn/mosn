@@ -24,25 +24,23 @@ import (
 
 var vmMap = make(map[string]types.WasmVM)
 
-// RegisterWasmEngine registers a wasm vm(engine)
+// RegisterWasmEngine registers a wasm vm(engine).
 func RegisterWasmEngine(name string, engine types.WasmVM) {
 	if name == "" || engine == nil {
 		log.DefaultLogger.Errorf("[wasm][vm] RegisterWasmEngine invalid param, engine: %v", name)
 		return
-	} else {
-		log.DefaultLogger.Infof("[wasm][vm] RegisterWasmEngine engine: %v", name)
 	}
 
+	log.DefaultLogger.Infof("[wasm][vm] RegisterWasmEngine engine: %v", name)
 	vmMap[name] = engine
 }
 
-// GetWasmEngine returns the wasm vm(engine) by name
+// GetWasmEngine returns the wasm vm(engine) by name.
 func GetWasmEngine(name string) types.WasmVM {
 	if engine, ok := vmMap[name]; ok {
 		return engine
-	} else {
-		log.DefaultLogger.Errorf("[wasm][vm] GetWasmEngine not found, engine: %v", name)
 	}
 
+	log.DefaultLogger.Errorf("[wasm][vm] GetWasmEngine not found, engine: %v", name)
 	return nil
 }

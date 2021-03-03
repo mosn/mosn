@@ -19,7 +19,6 @@ package wasm
 
 import (
 	"io/ioutil"
-	"mosn.io/mosn/pkg/types"
 	"sync"
 	"testing"
 
@@ -27,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/mock"
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestWasmManagerBasic(t *testing.T) {

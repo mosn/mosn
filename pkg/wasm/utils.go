@@ -19,6 +19,7 @@ package wasm
 
 import (
 	"io/ioutil"
+	"path/filepath"
 
 	"mosn.io/mosn/pkg/log"
 )
@@ -28,7 +29,7 @@ func loadWasmBytesFromPath(path string) []byte {
 		return nil
 	}
 
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		log.DefaultLogger.Errorf("[wasm][utils] loadWasmBytesFromPath read file err: %v", err)
 		return nil

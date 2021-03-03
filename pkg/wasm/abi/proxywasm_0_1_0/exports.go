@@ -33,6 +33,7 @@ func (a *abiContext) waitAsyncHttpCallout() error {
 			return errors.New("http call timeout")
 		}
 	}
+
 	return nil
 }
 

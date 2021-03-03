@@ -23,7 +23,7 @@ import (
 	"mosn.io/pkg/buffer"
 )
 
-// Exports contains ABI that exported by wasm module
+// Exports contains ABI that exported by wasm module.
 type Exports interface {
 	ProxyOnContextCreate(contextId int32, parentContextId int32) error
 	ProxyOnDone(contextId int32) (int32, error)
@@ -89,6 +89,7 @@ func (d *DefaultImportsHandler) GetPluginConfig() buffer.IoBuffer {
 
 func (d *DefaultImportsHandler) Log(level log.Level, msg string) {
 	logFunc := log.DefaultLogger.Infof
+
 	switch level {
 	case log.TRACE:
 		logFunc = log.DefaultLogger.Tracef
@@ -103,6 +104,7 @@ func (d *DefaultImportsHandler) Log(level log.Level, msg string) {
 	case log.FATAL:
 		logFunc = log.DefaultLogger.Errorf
 	}
+
 	logFunc(msg)
 }
 

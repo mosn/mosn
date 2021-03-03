@@ -32,7 +32,10 @@ type WasmVmConfig struct {
 }
 
 func (w WasmPluginConfig) Clone() WasmPluginConfig {
-	vmConfig := *w.VmConfig
+	var vmConfig WasmVmConfig
+	if w.VmConfig != nil {
+		vmConfig = *w.VmConfig
+	}
 
 	return WasmPluginConfig{
 		PluginName:  w.PluginName,

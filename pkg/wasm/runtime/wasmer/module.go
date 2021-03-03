@@ -59,16 +59,14 @@ func (w *Module) Init() {
 
 	// release raw bytes, the parsing of dwarf info is the only place that uses module raw bytes
 	w.rawBytes = nil
-
-	return
 }
 
 func (w *Module) NewInstance() types.WasmInstance {
 	if w.debug != nil {
 		return NewWasmerInstance(w.vm, w, InstanceWithDebug(w.debug))
-	} else {
-		return NewWasmerInstance(w.vm, w)
 	}
+
+	return NewWasmerInstance(w.vm, w)
 }
 
 func (w *Module) GetABINameList() []string {
