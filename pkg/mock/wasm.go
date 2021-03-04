@@ -526,20 +526,6 @@ func (m *MockWasmInstance) EXPECT() *MockWasmInstanceMockRecorder {
 	return m.recorder
 }
 
-// RegisterFunc mocks base method.
-func (m *MockWasmInstance) RegisterFunc(namespace, funcName string, f interface{}) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RegisterFunc", namespace, funcName, f)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RegisterFunc indicates an expected call of RegisterFunc.
-func (mr *MockWasmInstanceMockRecorder) RegisterFunc(namespace, funcName, f interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterFunc", reflect.TypeOf((*MockWasmInstance)(nil).RegisterFunc), namespace, funcName, f)
-}
-
 // Start mocks base method.
 func (m *MockWasmInstance) Start() error {
 	m.ctrl.T.Helper()
@@ -552,6 +538,32 @@ func (m *MockWasmInstance) Start() error {
 func (mr *MockWasmInstanceMockRecorder) Start() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Start", reflect.TypeOf((*MockWasmInstance)(nil).Start))
+}
+
+// Stop mocks base method.
+func (m *MockWasmInstance) Stop() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Stop")
+}
+
+// Stop indicates an expected call of Stop.
+func (mr *MockWasmInstanceMockRecorder) Stop() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stop", reflect.TypeOf((*MockWasmInstance)(nil).Stop))
+}
+
+// RegisterFunc mocks base method.
+func (m *MockWasmInstance) RegisterFunc(namespace, funcName string, f interface{}) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RegisterFunc", namespace, funcName, f)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RegisterFunc indicates an expected call of RegisterFunc.
+func (mr *MockWasmInstanceMockRecorder) RegisterFunc(namespace, funcName, f interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterFunc", reflect.TypeOf((*MockWasmInstance)(nil).RegisterFunc), namespace, funcName, f)
 }
 
 // GetExportsFunc mocks base method.
@@ -710,6 +722,32 @@ func (m *MockWasmInstance) SetData(data interface{}) {
 func (mr *MockWasmInstanceMockRecorder) SetData(data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetData", reflect.TypeOf((*MockWasmInstance)(nil).SetData), data)
+}
+
+// Acquire mocks base method.
+func (m *MockWasmInstance) Acquire() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Acquire")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// Acquire indicates an expected call of Acquire.
+func (mr *MockWasmInstanceMockRecorder) Acquire() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Acquire", reflect.TypeOf((*MockWasmInstance)(nil).Acquire))
+}
+
+// Release mocks base method.
+func (m *MockWasmInstance) Release() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Release")
+}
+
+// Release indicates an expected call of Release.
+func (mr *MockWasmInstanceMockRecorder) Release() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Release", reflect.TypeOf((*MockWasmInstance)(nil).Release))
 }
 
 // Lock mocks base method.

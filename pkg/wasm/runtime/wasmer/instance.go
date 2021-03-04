@@ -30,6 +30,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm/abi"
+	"mosn.io/pkg/utils"
 )
 
 var (
@@ -50,7 +51,10 @@ type Instance struct {
 	debug        *dwarfInfo
 	abiList      []types.ABI
 
-	started uint32
+	lock     sync.Mutex
+	started  uint32
+	refCount int
+	stopCond *sync.Cond
 
 	// for cache
 	memory    *wasmerGo.Memory
@@ -58,8 +62,6 @@ type Instance struct {
 
 	// user-defined data
 	data interface{}
-
-	lock sync.Mutex
 }
 
 type InstanceOptions func(instance *Instance)
@@ -76,7 +78,9 @@ func NewWasmerInstance(vm *VM, module *Module, options ...InstanceOptions) *Inst
 	ins := &Instance{
 		vm:     vm,
 		module: module,
+		lock:   sync.Mutex{},
 	}
+	ins.stopCond = sync.NewCond(&ins.lock)
 
 	for _, option := range options {
 		option(ins)
@@ -108,6 +112,29 @@ func (w *Instance) GetData() interface{} {
 
 func (w *Instance) SetData(data interface{}) {
 	w.data = data
+}
+
+func (w *Instance) Acquire() bool {
+	w.lock.Lock()
+	defer w.lock.Unlock()
+
+	if !w.checkStart() {
+		return false
+	}
+
+	w.refCount++
+
+	return true
+}
+
+func (w *Instance) Release() {
+	w.lock.Lock()
+	w.refCount--
+
+	if w.refCount <= 0 {
+		w.stopCond.Broadcast()
+	}
+	w.lock.Unlock()
 }
 
 func (w *Instance) Lock(data interface{}) {
@@ -159,6 +186,22 @@ func (w *Instance) Start() error {
 	atomic.StoreUint32(&w.started, 1)
 
 	return nil
+}
+
+func (w *Instance) Stop() {
+	utils.GoWithRecover(func() {
+		w.lock.Lock()
+		for w.refCount > 0 {
+			w.stopCond.Wait()
+		}
+		w.lock.Unlock()
+
+		if atomic.CompareAndSwapUint32(&w.started, 1, 0) {
+			for _, abi := range w.abiList {
+				abi.OnInstanceDestroy(w)
+			}
+		}
+	}, nil)
 }
 
 // return true is Instance is started, false if not started.

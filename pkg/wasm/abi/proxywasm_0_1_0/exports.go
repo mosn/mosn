@@ -18,20 +18,12 @@
 package proxywasm_0_1_0
 
 import (
-	"errors"
-	"time"
-
 	"mosn.io/mosn/pkg/log"
 )
 
 func (a *abiContext) waitAsyncHttpCallout() error {
-	if a.httpCallout != nil && a.httpCallout.asyncRetChan != nil {
-		select {
-		case <-a.httpCallout.asyncRetChan:
-			return nil
-		case <-time.After(time.Duration(a.httpCallout.timeoutMilliseconds) * time.Millisecond):
-			return errors.New("http call timeout")
-		}
+	if a.httpCallout != nil {
+		return a.httpCallout.Wait()
 	}
 
 	return nil

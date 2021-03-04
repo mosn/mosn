@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package x_proxy_wasm
+package proxywasm
 
 import (
 	"context"
@@ -110,23 +110,28 @@ func testProxyWasmStreamFilterCommon(t *testing.T, wasmPath string) {
 
 			reqHeaderMap := mockHeaderMap(ctrl)
 			reqBody := buffer.NewIoBufferString("request body")
+			reqTrailer := mockHeaderMap(ctrl)
 
 			receiverHandler := mock.NewMockStreamReceiverFilterHandler(ctrl)
 			receiverHandler.EXPECT().GetRequestHeaders().AnyTimes().Return(reqHeaderMap)
 			receiverHandler.EXPECT().GetRequestData().AnyTimes().Return(reqBody)
-			receiverHandler.EXPECT().GetRequestTrailers().AnyTimes().Return(nil)
+			receiverHandler.EXPECT().GetRequestTrailers().AnyTimes().Return(reqTrailer)
 
+			respHeader := mockHeaderMap(ctrl)
 			respBody := buffer.NewIoBufferString("response body")
+			respTrailer := mockHeaderMap(ctrl)
 
 			senderHandler := mock.NewMockStreamSenderFilterHandler(ctrl)
+			senderHandler.EXPECT().GetResponseHeaders().AnyTimes().Return(respHeader)
 			senderHandler.EXPECT().GetResponseData().AnyTimes().Return(respBody)
+			senderHandler.EXPECT().GetResponseTrailers().AnyTimes().Return(respTrailer)
 
 			// for coverage
 			rFilter.SetReceiveFilterHandler(receiverHandler)
 			sFilter.SetSenderFilterHandler(senderHandler)
 
-			rFilter.OnReceive(context.TODO(), reqHeaderMap, reqBody, nil)
-			sFilter.Append(context.TODO(), nil, respBody, nil)
+			rFilter.OnReceive(context.TODO(), reqHeaderMap, reqBody, reqTrailer)
+			sFilter.Append(context.TODO(), respHeader, respBody, respTrailer)
 
 			rFilter.OnDestroy()
 			sFilter.OnDestroy()
@@ -194,4 +199,45 @@ func TestProxyWasmStreamFilterHttpCallout(t *testing.T) {
 	rFilter.SetReceiveFilterHandler(receiverHandler)
 	rFilter.OnReceive(context.TODO(), reqHeaderMap, reqBody, nil)
 	rFilter.OnDestroy()
+}
+
+func TestFilterHandler(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	f := &Filter{}
+	assert.Nil(t, f.GetHttpRequestHeader())
+	assert.Nil(t, f.GetHttpRequestBody())
+	assert.Nil(t, f.GetHttpRequestTrailer())
+	assert.Nil(t, f.GetHttpResponseHeader())
+	assert.Nil(t, f.GetHttpResponseBody())
+	assert.Nil(t, f.GetHttpResponseTrailer())
+
+	reqHeader := mockHeaderMap(ctrl)
+	reqBody := buffer.NewIoBufferString("request body")
+	reqTrailer := mockHeaderMap(ctrl)
+
+	receiverHandler := mock.NewMockStreamReceiverFilterHandler(ctrl)
+	receiverHandler.EXPECT().GetRequestHeaders().AnyTimes().Return(reqHeader)
+	receiverHandler.EXPECT().GetRequestData().AnyTimes().Return(reqBody)
+	receiverHandler.EXPECT().GetRequestTrailers().AnyTimes().Return(reqTrailer)
+
+	respHeader := mockHeaderMap(ctrl)
+	respBody := buffer.NewIoBufferString("response body")
+	respTrailer := mockHeaderMap(ctrl)
+
+	senderHandler := mock.NewMockStreamSenderFilterHandler(ctrl)
+	senderHandler.EXPECT().GetResponseHeaders().AnyTimes().Return(respHeader)
+	senderHandler.EXPECT().GetResponseData().AnyTimes().Return(respBody)
+	senderHandler.EXPECT().GetResponseTrailers().AnyTimes().Return(respTrailer)
+
+	f.SetReceiveFilterHandler(receiverHandler)
+	f.SetSenderFilterHandler(senderHandler)
+
+	assert.Equal(t, f.GetHttpRequestHeader(), reqHeader)
+	assert.Equal(t, f.GetHttpRequestBody(), reqBody)
+	assert.Equal(t, f.GetHttpRequestTrailer(), reqTrailer)
+	assert.Equal(t, f.GetHttpResponseHeader(), respHeader)
+	assert.Equal(t, f.GetHttpResponseBody(), respBody)
+	assert.Equal(t, f.GetHttpResponseTrailer(), respTrailer)
 }

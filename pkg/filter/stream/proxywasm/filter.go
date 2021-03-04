@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package x_proxy_wasm
+package proxywasm
 
 import (
 	"context"
@@ -67,7 +67,7 @@ func newContextID(rootContextID int32) int32 {
 func NewFilter(ctx context.Context, pluginName string, rootContextID int32, factory *FilterConfigFactory) *Filter {
 	pluginWrapper := wasm.GetWasmManager().GetWasmPluginWrapperByName(pluginName)
 	if pluginWrapper == nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] NewFilter wasm plugin not exists, plugin name: %v", pluginName)
+		log.DefaultLogger.Errorf("[proxywasm][filter] NewFilter wasm plugin not exists, plugin name: %v", pluginName)
 		return nil
 	}
 
@@ -86,7 +86,7 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 
 	filter.abi = abi.GetABI(instance, proxywasm_0_1_0.ProxyWasmABI_0_1_0)
 	if filter.abi == nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] NewFilter abi not found in instance")
+		log.DefaultLogger.Errorf("[proxywasm][filter] NewFilter abi not found in instance")
 		plugin.ReleaseInstance(instance)
 
 		return nil
@@ -96,7 +96,7 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 
 	filter.exports = filter.abi.GetExports().(proxywasm_0_1_0.Exports)
 	if filter.exports == nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] NewFilter fail to get exports part from abi")
+		log.DefaultLogger.Errorf("[proxywasm][filter] NewFilter fail to get exports part from abi")
 		plugin.ReleaseInstance(instance)
 
 		return nil
@@ -107,7 +107,7 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 
 	err := filter.exports.ProxyOnContextCreate(filter.contextID, filter.rootContextID)
 	if err != nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] NewFilter fail to create context id: %v, rootContextID: %v, err: %v",
+		log.DefaultLogger.Errorf("[proxywasm][filter] NewFilter fail to create context id: %v, rootContextID: %v, err: %v",
 			filter.contextID, filter.rootContextID, err)
 		return nil
 	}
@@ -121,12 +121,12 @@ func (f *Filter) OnDestroy() {
 
 		_, err := f.exports.ProxyOnDone(f.contextID)
 		if err != nil {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnDestroy fail to call ProxyOnDone, err: %v", err)
+			log.DefaultLogger.Errorf("[proxywasm][filter] OnDestroy fail to call ProxyOnDone, err: %v", err)
 		}
 
 		err = f.exports.ProxyOnDelete(f.contextID)
 		if err != nil {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnDestroy fail to call ProxyOnDelete, err: %v", err)
+			log.DefaultLogger.Errorf("[proxywasm][filter] OnDestroy fail to call ProxyOnDelete, err: %v", err)
 		}
 
 		f.instance.Unlock()
@@ -166,14 +166,22 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 	action, err := f.exports.ProxyOnRequestHeaders(f.contextID, int32(headerSize(headers)), int32(haveBody))
 	if err != nil || action != proxywasm_0_1_0.ActionContinue {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive call ProxyOnRequestHeaders err: %v", err)
+		log.DefaultLogger.Errorf("[proxywasm][filter] OnReceive call ProxyOnRequestHeaders err: %v", err)
 		return api.StreamFilterStop
 	}
 
 	if haveBody == 1 {
 		action, err = f.exports.ProxyOnRequestBody(f.contextID, int32(buf.Len()), 1)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] OnReceive call ProxyOnRequestBody err: %v", err)
+			log.DefaultLogger.Errorf("[proxywasm][filter] OnReceive call ProxyOnRequestBody err: %v", err)
+			return api.StreamFilterStop
+		}
+	}
+
+	if trailers != nil {
+		action, err = f.exports.ProxyOnRequestTrailers(f.contextID, int32(headerSize(trailers)))
+		if err != nil || action != proxywasm_0_1_0.ActionContinue {
+			log.DefaultLogger.Errorf("[proxywasm][filter] OnReceive call ProxyOnRequestTrailers err: %v", err)
 			return api.StreamFilterStop
 		}
 	}
@@ -192,14 +200,22 @@ func (f *Filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 
 	action, err := f.exports.ProxyOnResponseHeaders(f.contextID, int32(headerSize(headers)), 0)
 	if err != nil || action != proxywasm_0_1_0.ActionContinue {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][filter] Append call ProxyOnResponseHeaders err: %v", err)
+		log.DefaultLogger.Errorf("[proxywasm][filter] Append call ProxyOnResponseHeaders err: %v", err)
 		return api.StreamFilterStop
 	}
 
 	if haveBody == 1 {
 		action, err = f.exports.ProxyOnResponseBody(f.contextID, int32(buf.Len()), 1)
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][filter] Append call ProxyOnResponseBody err: %v", err)
+			log.DefaultLogger.Errorf("[proxywasm][filter] Append call ProxyOnResponseBody err: %v", err)
+			return api.StreamFilterStop
+		}
+	}
+
+	if trailers != nil {
+		action, err = f.exports.ProxyOnResponseTrailers(f.contextID, int32(headerSize(trailers)))
+		if err != nil || action != proxywasm_0_1_0.ActionContinue {
+			log.DefaultLogger.Errorf("[proxywasm][filter] Append call ProxyOnResponseTrailers err: %v", err)
 			return api.StreamFilterStop
 		}
 	}

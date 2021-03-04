@@ -3,9 +3,12 @@ package wasmer
 import (
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	wasmerGo "github.com/wasmerio/wasmer-go/wasmer"
+	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -149,4 +152,44 @@ func TestWasmerTypes(t *testing.T) {
 		assert.Equal(t, convertFromGoType(tc.refType).Kind(), tc.wasmValKind)
 		assert.Equal(t, convertToGoTypes(convertFromGoValue(tc.refValue)).Kind(), tc.refValKind)
 	}
+}
+
+func TestRefCount(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	destroyCount := 0
+	abi := mock.NewMockABI(ctrl)
+	abi.EXPECT().OnInstanceDestroy(gomock.Any()).DoAndReturn(func(types.WasmInstance) {
+		destroyCount++
+	})
+
+	vm := NewWasmerVM()
+	module := vm.NewModule([]byte(`(module (func (export "_start")))`))
+	ins := NewWasmerInstance(vm.(*VM), module.(*Module))
+
+	ins.abiList = []types.ABI{abi}
+
+	assert.False(t, ins.Acquire())
+
+	ins.started = 1
+	for i := 0; i < 100; i++ {
+		assert.True(t, ins.Acquire())
+	}
+	assert.Equal(t, ins.refCount, 100)
+
+	ins.Stop()
+	ins.Stop() // double stop
+	time.Sleep(time.Second)
+	assert.Equal(t, ins.started, uint32(1))
+
+	for i := 0; i < 100; i++ {
+		ins.Release()
+	}
+
+	time.Sleep(time.Second)
+	assert.False(t, ins.Acquire())
+	assert.Equal(t, ins.started, uint32(0))
+	assert.Equal(t, ins.refCount, 0)
+	assert.Equal(t, destroyCount, 1)
 }

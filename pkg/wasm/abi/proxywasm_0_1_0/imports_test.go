@@ -210,18 +210,37 @@ func TestProxySetBufferBytes(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	data := buffer.NewIoBufferString("test data")
+	testCases := []struct {
+		start      int32
+		length     int32
+		originData string
+		newData    string
+		finalData  string
+		wantResult WasmResult
+	}{
+		{0, 0, "11", "aaa", "aaa", WasmResultOk},
+		{0, 0, "22", "a", "a", WasmResultOk},
+		{0, 2, "33", "aa", "aa", WasmResultOk},
+		{0, 1, "44", "aa", "44", WasmResultBadArgument},
+		{2, 0, "55", "aa", "55aa", WasmResultOk},
+		{3, 0, "66", "aa", "66aa", WasmResultOk},
+		{1, 0, "77", "aa", "77", WasmResultBadArgument},
+	}
 
-	instance := mock.NewMockWasmInstance(ctrl)
-	instance.EXPECT().GetData().AnyTimes().DoAndReturn(func() interface{} {
-		imports := newMockImportsHandler()
-		imports.getHttpRequestBodyPtr = func() buffer.IoBuffer { return data }
-		return &AbiContext{imports: imports}
-	})
-	instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte("aaaa"), nil)
+	for _, tc := range testCases {
+		data := buffer.NewIoBufferString(tc.originData)
+		instance := mock.NewMockWasmInstance(ctrl)
+		instance.EXPECT().GetData().AnyTimes().DoAndReturn(func() interface{} {
+			imports := newMockImportsHandler()
+			imports.getHttpRequestBodyPtr = func() buffer.IoBuffer { return data }
+			return &AbiContext{imports: imports}
+		})
+		instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte(tc.newData), nil)
 
-	assert.Equal(t, ProxySetBufferBytes(instance, int32(BufferTypeHttpRequestBody), 0, 4, 0, 0), WasmResultOk.Int32())
-	assert.Equal(t, data.String(), "aaaa data")
+		assert.Equal(t, ProxySetBufferBytes(instance, int32(BufferTypeHttpRequestBody),
+			tc.start, tc.length, 0, 0), tc.wantResult.Int32())
+		assert.Equal(t, data.String(), tc.finalData)
+	}
 }
 
 func TestProxyGetHeaderMapPairs(t *testing.T) {
@@ -427,6 +446,8 @@ func TestProxyHttpCall(t *testing.T) {
 
 	instance := mock.NewMockWasmInstance(ctrl)
 	instance.EXPECT().GetData().AnyTimes().Return(&AbiContext{instance: instance, imports: newMockImportsHandler()})
+	instance.EXPECT().Lock(gomock.Any()).AnyTimes().Return()
+	instance.EXPECT().Unlock().AnyTimes().Return()
 	gomock.InOrder(
 		instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return([]byte("http://127.0.0.1:22164/"), nil),
 		instance.EXPECT().GetMemory(gomock.Any(), gomock.Any()).Return(EncodeMap(map[string]string{"h1": "11", "h2": "22", "h3": "33"}), nil),

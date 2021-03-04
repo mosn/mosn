@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package x_proxy_wasm
+package proxywasm
 
 import (
 	"context"
@@ -34,7 +34,7 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-const ProxyWasm = "x-proxy-wasm"
+const ProxyWasm = "proxywasm"
 
 func init() {
 	api.RegisterStream(ProxyWasm, createProxyWasmFilterFactory)
@@ -53,7 +53,7 @@ type FilterConfigFactory struct {
 func createProxyWasmFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFactory, error) {
 	config, err := parseFilterConfig(conf)
 	if err != nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][factory] createProxyWasmFilterFactory fail to parse config, err: %v", err)
+		log.DefaultLogger.Errorf("[proxywasm][factory] createProxyWasmFilterFactory fail to parse config, err: %v", err)
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func createProxyWasmFilterFactory(conf map[string]interface{}) (api.StreamFilter
 
 		err = wasm.GetWasmManager().AddOrUpdateWasm(v2Config)
 		if err != nil {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] createProxyWasmFilterFactory fail to add plugin, err: %v", err)
+			log.DefaultLogger.Errorf("[proxywasm][factory] createProxyWasmFilterFactory fail to add plugin, err: %v", err)
 			return nil, err
 		}
 	} else {
@@ -167,7 +167,7 @@ func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 
 		err := exports.ProxyOnContextCreate(f.config.RootContextID, 0)
 		if err != nil {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
+			log.DefaultLogger.Errorf("[proxywasm][factory] OnPluginStart fail to create root context id, err: %v", err)
 			return true
 		}
 
@@ -178,7 +178,7 @@ func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 
 		_, err = exports.ProxyOnVmStart(f.config.RootContextID, int32(vmConfigSize))
 		if err != nil {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
+			log.DefaultLogger.Errorf("[proxywasm][factory] OnPluginStart fail to create root context id, err: %v", err)
 			return true
 		}
 
@@ -189,7 +189,7 @@ func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 
 		_, err = exports.ProxyOnConfigure(f.config.RootContextID, int32(pluginConfigSize))
 		if err != nil {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][factory] OnPluginStart fail to create root context id, err: %v", err)
+			log.DefaultLogger.Errorf("[proxywasm][factory] OnPluginStart fail to create root context id, err: %v", err)
 			return true
 		}
 
