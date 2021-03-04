@@ -196,11 +196,22 @@ func proxySetBufferBytes(instance types.WasmInstance, bufferType int32, start in
 		return WasmResultInvalidMemoryAccess.Int32()
 	}
 
-	if start+length > int32(buf.Len()) {
-		length = int32(buf.Len()) - start
+	if start == 0 {
+		if length == 0 || int(length) >= buf.Len() {
+			buf.Drain(buf.Len())
+			_, err = buf.Write(content)
+		} else {
+			return WasmResultBadArgument.Int32()
+		}
+	} else if int(start) >= buf.Len() {
+		_, err = buf.Write(content)
+	} else {
+		return WasmResultBadArgument.Int32()
 	}
 
-	copy(buf.Bytes()[start:start+length], content)
+	if err != nil {
+		return WasmResultInternalFailure.Int32()
+	}
 
 	return WasmResultOk.Int32()
 }
@@ -482,10 +493,26 @@ type httpStruct struct {
 	streamSender        types.StreamSender
 	asyncRetChan        chan struct{}
 	timeoutMilliseconds int
+	closed              uint32
 
 	responseHeader  api.HeaderMap
 	responseBody    buffer.IoBuffer
 	responseTrailer api.HeaderMap
+}
+
+func (hs *httpStruct) Wait() error {
+	hs.instance.Unlock()
+	defer hs.instance.Lock(hs.abi)
+
+	select {
+	case _, ok := <-hs.asyncRetChan:
+		if !ok {
+			return errors.New("conn closed")
+		}
+		return nil
+	case <-time.After(time.Duration(hs.timeoutMilliseconds) * time.Millisecond):
+		return errors.New("http call timeout")
+	}
 }
 
 func (hs *httpStruct) AsyncHttpCall(timeoutMilliseconds int, u *url.URL,
@@ -503,6 +530,7 @@ func (hs *httpStruct) AsyncHttpCall(timeoutMilliseconds int, u *url.URL,
 		return err
 	}
 
+	conn.SetIdleTimeout(time.Duration(timeoutMilliseconds)*time.Millisecond, time.Duration(timeoutMilliseconds)*time.Millisecond)
 	hs.conn = conn
 	hs.connEventListener = &proxyHttpConnEventListener{conn: conn, httpStruct: hs}
 	conn.AddConnectionEventListener(hs.connEventListener)
@@ -526,8 +554,6 @@ func (hs *httpStruct) AsyncHttpCall(timeoutMilliseconds int, u *url.URL,
 
 	notHaveData := body == nil || body.Len() == 0
 	notHaveTrailer := trailer == nil
-
-	hs.asyncRetChan = make(chan struct{}, 1)
 
 	err = hs.streamSender.AppendHeaders(hs.ctx, header, notHaveData && notHaveTrailer)
 	if err != nil {
@@ -554,6 +580,13 @@ func (hs *httpStruct) AsyncHttpCall(timeoutMilliseconds int, u *url.URL,
 	return nil
 }
 
+func (hs *httpStruct) close() {
+	if atomic.CompareAndSwapUint32(&hs.closed, 0, 1) {
+		_ = hs.conn.Close(api.NoFlush, api.LocalClose)
+		close(hs.asyncRetChan)
+	}
+}
+
 type proxyHttpConnEventListener struct {
 	conn       types.ClientConnection
 	httpStruct *httpStruct
@@ -561,10 +594,7 @@ type proxyHttpConnEventListener struct {
 
 func (p *proxyHttpConnEventListener) OnEvent(event api.ConnectionEvent) {
 	log.DefaultLogger.Infof("[proxywasm_0_1_0][imports] httpCall OnEvent: %v", event)
-	if p.httpStruct.asyncRetChan != nil {
-		close(p.httpStruct.asyncRetChan)
-		p.httpStruct.asyncRetChan = nil
-	}
+	p.httpStruct.close()
 }
 
 type proxyStreamReceiveListener struct {
@@ -577,31 +607,26 @@ func (p *proxyStreamReceiveListener) OnReceive(ctx context.Context, headers api.
 		return
 	}
 
-	defer func() {
-		if p.httpStruct.asyncRetChan != nil {
-			close(p.httpStruct.asyncRetChan)
-			p.httpStruct.asyncRetChan = nil
-		}
-	}()
-
 	rootContextID := abi.imports.GetRootContextID()
 
 	p.httpStruct.responseHeader = headers
 	p.httpStruct.responseBody = data
 	p.httpStruct.responseTrailer = trailers
 
+	p.httpStruct.instance.Lock(p.httpStruct.abi)
+
 	err := abi.ProxyOnHttpCallResponse(rootContextID, p.httpStruct.calloutID, 0, int32(data.Len()), 0)
 	if err != nil {
 		log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] OnReceive fail to call ProxyOnHttpCallResponse, err: %v", err)
 	}
+
+	p.httpStruct.instance.Unlock()
+	p.httpStruct.close()
 }
 
 func (p *proxyStreamReceiveListener) OnDecodeError(ctx context.Context, err error, headers api.HeaderMap) {
 	log.DefaultLogger.Errorf("[proxywasm_0_1_0][imports] httpCall OnDecodeError, err: %v", err)
-	if p.httpStruct.asyncRetChan != nil {
-		close(p.httpStruct.asyncRetChan)
-		p.httpStruct.asyncRetChan = nil
-	}
+	p.httpStruct.close()
 }
 
 func parseHttpCalloutReq(instance types.WasmInstance, headerPairsPtr int32, headerPairsSize int32,
@@ -684,6 +709,7 @@ func proxyHttpCall(instance types.WasmInstance, uriPtr int32, uriSize int32,
 		instance:            instance,
 		abi:                 instance.GetData().(*abiContext),
 		timeoutMilliseconds: int(timeoutMilliseconds),
+		asyncRetChan:        make(chan struct{}, 1),
 	}
 	hs.abi.httpCallout = hs
 

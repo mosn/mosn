@@ -1,4 +1,4 @@
-package x_proxy_wasm
+package proxywasm
 
 import (
 	"testing"

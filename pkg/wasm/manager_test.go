@@ -131,6 +131,7 @@ func TestWasmManagerInstanceNum(t *testing.T) {
 		newInstanceCount++
 		instance := mock.NewMockWasmInstance(ctrl)
 		instance.EXPECT().Start().AnyTimes().Return(nil)
+		instance.EXPECT().Stop().AnyTimes().Return()
 		return instance
 	})
 	engine := mock.NewMockWasmVM(ctrl)
@@ -192,6 +193,8 @@ func TestWasmPluginInstance(t *testing.T) {
 
 	instance := mock.NewMockWasmInstance(ctrl)
 	instance.EXPECT().Start().AnyTimes().Return(nil)
+	instance.EXPECT().Acquire().AnyTimes().Return(true)
+	instance.EXPECT().Release().AnyTimes().Return()
 	module := mock.NewMockWasmModule(ctrl)
 	module.EXPECT().NewInstance().AnyTimes().Return(instance)
 	engine := mock.NewMockWasmVM(ctrl)

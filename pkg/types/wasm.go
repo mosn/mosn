@@ -131,11 +131,14 @@ type WasmModule interface {
 
 // WasmInstance represents the wasm instance
 type WasmInstance interface {
-	// RegisterFunc registers a func to the wasm instance, should be called before Start()
-	RegisterFunc(namespace string, funcName string, f interface{}) error
-
 	// Start starts the wasm instance
 	Start() error
+
+	// Stop stops the wasm instance
+	Stop()
+
+	// RegisterFunc registers a func to the wasm instance, should be called before Start()
+	RegisterFunc(namespace string, funcName string, f interface{}) error
 
 	// GetExportsFunc returns the exported func of the wasm instance
 	GetExportsFunc(funcName string) (WasmFunction, error)
@@ -169,6 +172,12 @@ type WasmInstance interface {
 
 	// SetData sets user-defined data into the wasm instance
 	SetData(data interface{})
+
+	// Acquire increases the ref count of the wasm instance
+	Acquire() bool
+
+	// Release decreases the ref count of the wasm instance
+	Release()
 
 	// Lock gets the exclusive ownership of the wasm instance
 	// and sets the user-defined data

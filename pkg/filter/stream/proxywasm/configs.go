@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package x_proxy_wasm
+package proxywasm
 
 import (
 	"encoding/json"
@@ -42,22 +42,22 @@ func parseFilterConfig(cfg map[string]interface{}) (*filterConfig, error) {
 
 	data, err := json.Marshal(cfg)
 	if err != nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][config] fail to marshal filter config, err: %v", err)
+		log.DefaultLogger.Errorf("[proxywasm][config] fail to marshal filter config, err: %v", err)
 		return nil, err
 	}
 
 	if err = json.Unmarshal(data, &config); err != nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][config] fail to unmarshal filter config, err: %v", err)
+		log.DefaultLogger.Errorf("[proxywasm][config] fail to unmarshal filter config, err: %v", err)
 		return nil, err
 	}
 
 	if err = checkVmConfig(&config); err != nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][config] fail to check vm config, err: %v", err)
+		log.DefaultLogger.Errorf("[proxywasm][config] fail to check vm config, err: %v", err)
 		return nil, err
 	}
 
 	if err = parseUserData(data, &config); err != nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][config] fail to parse user data, err: %v", err)
+		log.DefaultLogger.Errorf("[proxywasm][config] fail to parse user data, err: %v", err)
 		return nil, err
 	}
 
@@ -70,7 +70,7 @@ func checkVmConfig(config *filterConfig) error {
 		config.InstanceNum = 0
 	} else {
 		if config.VmConfig == nil {
-			log.DefaultLogger.Errorf("[x-proxy-wasm][config] checkVmConfig fail, nil vm config")
+			log.DefaultLogger.Errorf("[proxywasm][config] checkVmConfig fail, nil vm config")
 			return errors.New("nil vm config")
 		}
 
@@ -84,7 +84,7 @@ func checkVmConfig(config *filterConfig) error {
 
 func parseUserData(rawConfigBytes []byte, config *filterConfig) error {
 	if len(rawConfigBytes) == 0 || config == nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][config] fail to parse user data, invalid param, raw: %v, config: %v",
+		log.DefaultLogger.Errorf("[proxywasm][config] fail to parse user data, invalid param, raw: %v, config: %v",
 			string(rawConfigBytes), config)
 		return errors.New("invalid param")
 	}
@@ -92,7 +92,7 @@ func parseUserData(rawConfigBytes []byte, config *filterConfig) error {
 	m := make(map[string]interface{})
 
 	if err := json.Unmarshal(rawConfigBytes, &m); err != nil {
-		log.DefaultLogger.Errorf("[x-proxy-wasm][config] fail to unmarshal user data, err: %v", err)
+		log.DefaultLogger.Errorf("[proxywasm][config] fail to unmarshal user data, err: %v", err)
 		return err
 	}
 

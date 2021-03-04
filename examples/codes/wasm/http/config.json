@@ -42,7 +42,7 @@
           ],
           "stream_filters": [
             {
-              "type": "x-proxy-wasm",
+              "type": "proxywasm",
               "config": {
                 "instance_num": 1,
                 "vm_config": {

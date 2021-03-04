@@ -115,9 +115,9 @@ type wasmPluginImpl struct {
 
 	lock sync.RWMutex
 
-	instanceNum         int
-	instances           []types.WasmInstance
-	instanceWrappersIdx int32
+	instanceNum    int32
+	instances      []types.WasmInstance
+	instancesIndex int32
 
 	occupy int32
 
@@ -185,54 +185,63 @@ func NewWasmPlugin(wasmConfig v2.WasmPluginConfig) (types.WasmPlugin, error) {
 // EnsureInstanceNum try to expand/shrink the num of instance to 'num'
 // and return the actual instance num.
 func (w *wasmPluginImpl) EnsureInstanceNum(num int) int {
-	if num <= 0 || num == w.instanceNum {
-		return w.instanceNum
+	if num <= 0 || num == w.InstanceNum() {
+		return w.InstanceNum()
 	}
 
-	if num < w.instanceNum {
-		w.lock.Lock()
-
-		for i := num; i < len(w.instances); i++ {
-			w.instances[i] = nil
-		}
-
-		w.instances = w.instances[:num]
-		w.instanceNum = num
-
-		w.lock.Unlock()
+	if num < w.InstanceNum() {
+		w.shrinkInstanceNum(num)
 	} else {
-		newInstance := make([]types.WasmInstance, 0)
-		numToCreate := num - w.instanceNum
-
-		for i := 0; i < numToCreate; i++ {
-			instance := w.module.NewInstance()
-			if instance == nil {
-				log.DefaultLogger.Errorf("[wasm][plugin] EnsureInstanceNum fail to create instance, i: %v", i)
-				continue
-			}
-
-			err := instance.Start()
-			if err != nil {
-				log.DefaultLogger.Errorf("[wasm][plugin] EnsureInstanceNum fail to start instance, i: %v, err: %v", i, err)
-				continue
-			}
-
-			newInstance = append(newInstance, instance)
-		}
-
-		w.lock.Lock()
-
-		w.instances = append(w.instances, newInstance...)
-		w.instanceNum += len(newInstance)
-
-		w.lock.Unlock()
+		w.expandInstanceNum(num)
 	}
 
-	return w.instanceNum
+	return w.InstanceNum()
+}
+
+func (w *wasmPluginImpl) shrinkInstanceNum(num int) {
+	w.lock.Lock()
+
+	for i := num; i < len(w.instances); i++ {
+		w.instances[i].Stop()
+		w.instances[i] = nil
+	}
+
+	w.instances = w.instances[:num]
+	atomic.StoreInt32(&w.instanceNum, int32(num))
+
+	w.lock.Unlock()
+}
+
+func (w *wasmPluginImpl) expandInstanceNum(num int) {
+	newInstance := make([]types.WasmInstance, 0)
+	numToCreate := num - w.InstanceNum()
+
+	for i := 0; i < numToCreate; i++ {
+		instance := w.module.NewInstance()
+		if instance == nil {
+			log.DefaultLogger.Errorf("[wasm][plugin] EnsureInstanceNum fail to create instance, i: %v", i)
+			continue
+		}
+
+		err := instance.Start()
+		if err != nil {
+			log.DefaultLogger.Errorf("[wasm][plugin] EnsureInstanceNum fail to start instance, i: %v, err: %v", i, err)
+			continue
+		}
+
+		newInstance = append(newInstance, instance)
+	}
+
+	w.lock.Lock()
+
+	w.instances = append(w.instances, newInstance...)
+	atomic.AddInt32(&w.instanceNum, int32(len(newInstance)))
+
+	w.lock.Unlock()
 }
 
 func (w *wasmPluginImpl) InstanceNum() int {
-	return w.instanceNum
+	return int(atomic.LoadInt32(&w.instanceNum))
 }
 
 func (w *wasmPluginImpl) PluginName() string {
@@ -250,7 +259,7 @@ func (w *wasmPluginImpl) SetCpuLimit(cpu int) {}
 // SetCpuLimit set cpu limit of the plugin, no-op.
 func (w *wasmPluginImpl) SetMemLimit(mem int) {}
 
-// Exec execute the f for each instance
+// Exec execute the f for each instance.
 func (w *wasmPluginImpl) Exec(f func(instance types.WasmInstance) bool) {
 	w.lock.RLock()
 	defer w.lock.RUnlock()
@@ -274,17 +283,25 @@ func (w *wasmPluginImpl) GetInstance() types.WasmInstance {
 	w.lock.RLock()
 	defer w.lock.RUnlock()
 
-	idx := int(w.instanceWrappersIdx) % len(w.instances)
+	for i := 0; i < len(w.instances); i++ {
+		idx := int(atomic.LoadInt32(&w.instancesIndex)) % len(w.instances)
+		atomic.AddInt32(&w.instancesIndex, 1)
 
-	iw := w.instances[idx]
+		instance := w.instances[idx]
+		if !instance.Acquire() {
+			continue
+		}
 
-	w.instanceWrappersIdx++
-	atomic.AddInt32(&w.occupy, 1)
+		atomic.AddInt32(&w.occupy, 1)
+		return instance
+	}
+	log.DefaultLogger.Errorf("[wasm][plugin] GetInstance fail to get available instance, instance num: %v", len(w.instances))
 
-	return iw
+	return nil
 }
 
 func (w *wasmPluginImpl) ReleaseInstance(instance types.WasmInstance) {
+	instance.Release()
 	atomic.AddInt32(&w.occupy, -1)
 }
 
