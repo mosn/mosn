@@ -190,54 +190,46 @@ func (w *wasmPluginImpl) EnsureInstanceNum(num int) int {
 	}
 
 	if num < w.InstanceNum() {
-		w.shrinkInstanceNum(num)
+		w.lock.Lock()
+
+		for i := num; i < len(w.instances); i++ {
+			w.instances[i].Stop()
+			w.instances[i] = nil
+		}
+
+		w.instances = w.instances[:num]
+		atomic.StoreInt32(&w.instanceNum, int32(num))
+
+		w.lock.Unlock()
 	} else {
-		w.expandInstanceNum(num)
+		newInstance := make([]types.WasmInstance, 0)
+		numToCreate := num - w.InstanceNum()
+
+		for i := 0; i < numToCreate; i++ {
+			instance := w.module.NewInstance()
+			if instance == nil {
+				log.DefaultLogger.Errorf("[wasm][plugin] EnsureInstanceNum fail to create instance, i: %v", i)
+				continue
+			}
+
+			err := instance.Start()
+			if err != nil {
+				log.DefaultLogger.Errorf("[wasm][plugin] EnsureInstanceNum fail to start instance, i: %v, err: %v", i, err)
+				continue
+			}
+
+			newInstance = append(newInstance, instance)
+		}
+
+		w.lock.Lock()
+
+		w.instances = append(w.instances, newInstance...)
+		atomic.AddInt32(&w.instanceNum, int32(len(newInstance)))
+
+		w.lock.Unlock()
 	}
 
 	return w.InstanceNum()
-}
-
-func (w *wasmPluginImpl) shrinkInstanceNum(num int) {
-	w.lock.Lock()
-
-	for i := num; i < len(w.instances); i++ {
-		w.instances[i].Stop()
-		w.instances[i] = nil
-	}
-
-	w.instances = w.instances[:num]
-	atomic.StoreInt32(&w.instanceNum, int32(num))
-
-	w.lock.Unlock()
-}
-
-func (w *wasmPluginImpl) expandInstanceNum(num int) {
-	newInstance := make([]types.WasmInstance, 0)
-	numToCreate := num - w.InstanceNum()
-
-	for i := 0; i < numToCreate; i++ {
-		instance := w.module.NewInstance()
-		if instance == nil {
-			log.DefaultLogger.Errorf("[wasm][plugin] EnsureInstanceNum fail to create instance, i: %v", i)
-			continue
-		}
-
-		err := instance.Start()
-		if err != nil {
-			log.DefaultLogger.Errorf("[wasm][plugin] EnsureInstanceNum fail to start instance, i: %v, err: %v", i, err)
-			continue
-		}
-
-		newInstance = append(newInstance, instance)
-	}
-
-	w.lock.Lock()
-
-	w.instances = append(w.instances, newInstance...)
-	atomic.AddInt32(&w.instanceNum, int32(len(newInstance)))
-
-	w.lock.Unlock()
 }
 
 func (w *wasmPluginImpl) InstanceNum() int {

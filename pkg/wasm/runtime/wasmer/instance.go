@@ -194,9 +194,10 @@ func (w *Instance) Stop() {
 		for w.refCount > 0 {
 			w.stopCond.Wait()
 		}
+		swapped := atomic.CompareAndSwapUint32(&w.started, 1, 0)
 		w.lock.Unlock()
 
-		if atomic.CompareAndSwapUint32(&w.started, 1, 0) {
+		if swapped {
 			for _, abi := range w.abiList {
 				abi.OnInstanceDestroy(w)
 			}

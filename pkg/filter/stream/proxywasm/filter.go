@@ -142,7 +142,7 @@ func (f *Filter) SetSenderFilterHandler(handler api.StreamSenderFilterHandler) {
 	f.senderFilterHandler = handler
 }
 
-func headerSize(headers api.HeaderMap) int {
+func headerMapSize(headers api.HeaderMap) int {
 	size := 0
 
 	if headers != nil {
@@ -159,19 +159,24 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	f.instance.Lock(f.abi)
 	defer f.instance.Unlock()
 
-	haveBody := 0
-	if buf != nil && buf.Len() > 0 {
-		haveBody = 1
+	endOfStream := 1
+	if (buf != nil && buf.Len() > 0) || trailers != nil {
+		endOfStream = 0
 	}
 
-	action, err := f.exports.ProxyOnRequestHeaders(f.contextID, int32(headerSize(headers)), int32(haveBody))
+	action, err := f.exports.ProxyOnRequestHeaders(f.contextID, int32(headerMapSize(headers)), int32(endOfStream))
 	if err != nil || action != proxywasm_0_1_0.ActionContinue {
 		log.DefaultLogger.Errorf("[proxywasm][filter] OnReceive call ProxyOnRequestHeaders err: %v", err)
 		return api.StreamFilterStop
 	}
 
-	if haveBody == 1 {
-		action, err = f.exports.ProxyOnRequestBody(f.contextID, int32(buf.Len()), 1)
+	endOfStream = 1
+	if trailers != nil {
+		endOfStream = 0
+	}
+
+	if buf != nil && buf.Len() > 0 {
+		action, err = f.exports.ProxyOnRequestBody(f.contextID, int32(buf.Len()), int32(endOfStream))
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
 			log.DefaultLogger.Errorf("[proxywasm][filter] OnReceive call ProxyOnRequestBody err: %v", err)
 			return api.StreamFilterStop
@@ -179,7 +184,7 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	}
 
 	if trailers != nil {
-		action, err = f.exports.ProxyOnRequestTrailers(f.contextID, int32(headerSize(trailers)))
+		action, err = f.exports.ProxyOnRequestTrailers(f.contextID, int32(headerMapSize(trailers)))
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
 			log.DefaultLogger.Errorf("[proxywasm][filter] OnReceive call ProxyOnRequestTrailers err: %v", err)
 			return api.StreamFilterStop
@@ -193,19 +198,24 @@ func (f *Filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 	f.instance.Lock(f.abi)
 	defer f.instance.Unlock()
 
-	haveBody := 0
-	if buf != nil && buf.Len() > 0 {
-		haveBody = 1
+	endOfStream := 1
+	if (buf != nil && buf.Len() > 0) || trailers != nil {
+		endOfStream = 0
 	}
 
-	action, err := f.exports.ProxyOnResponseHeaders(f.contextID, int32(headerSize(headers)), 0)
+	action, err := f.exports.ProxyOnResponseHeaders(f.contextID, int32(headerMapSize(headers)), int32(endOfStream))
 	if err != nil || action != proxywasm_0_1_0.ActionContinue {
 		log.DefaultLogger.Errorf("[proxywasm][filter] Append call ProxyOnResponseHeaders err: %v", err)
 		return api.StreamFilterStop
 	}
 
-	if haveBody == 1 {
-		action, err = f.exports.ProxyOnResponseBody(f.contextID, int32(buf.Len()), 1)
+	endOfStream = 1
+	if trailers != nil {
+		endOfStream = 0
+	}
+
+	if buf != nil && buf.Len() > 0 {
+		action, err = f.exports.ProxyOnResponseBody(f.contextID, int32(buf.Len()), int32(endOfStream))
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
 			log.DefaultLogger.Errorf("[proxywasm][filter] Append call ProxyOnResponseBody err: %v", err)
 			return api.StreamFilterStop
@@ -213,7 +223,7 @@ func (f *Filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 	}
 
 	if trailers != nil {
-		action, err = f.exports.ProxyOnResponseTrailers(f.contextID, int32(headerSize(trailers)))
+		action, err = f.exports.ProxyOnResponseTrailers(f.contextID, int32(headerMapSize(trailers)))
 		if err != nil || action != proxywasm_0_1_0.ActionContinue {
 			log.DefaultLogger.Errorf("[proxywasm][filter] Append call ProxyOnResponseTrailers err: %v", err)
 			return api.StreamFilterStop
