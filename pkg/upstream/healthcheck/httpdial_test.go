@@ -24,17 +24,11 @@ import (
 	"time"
 )
 
-type handler struct{}
-
-func (h handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	writer.WriteHeader(http.StatusOK)
-}
-
-type sleeperHandler struct {
+type handler struct {
 	duration time.Duration
 }
 
-func (h sleeperHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func (h handler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	time.Sleep(h.duration)
 	writer.WriteHeader(http.StatusOK)
 }
@@ -56,7 +50,7 @@ func TestHTTPDial(t *testing.T) {
 }
 
 func TestHTTPDialTimeout(t *testing.T) {
-	s := httptest.NewServer(&sleeperHandler{time.Second * 3})
+	s := httptest.NewServer(&handler{time.Second * 3})
 	host := &mockHost{
 		addr: s.URL,
 	}

@@ -26,11 +26,14 @@ import (
 )
 
 const TimeoutCfgKey = "timeout"
+const defaultTimeout = uint32(30)
 
 type HTTPDialSessionFactory struct{}
 
 func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host types.Host) types.HealthCheckSession {
 	var ret HTTPDialSession
+
+	ret.timeout = defaultTimeout
 
 	if v, ok := cfg[TimeoutCfgKey]; ok {
 		if vv, ok := v.(uint32); ok {
