@@ -22,11 +22,13 @@ package main
 #include <string.h>
 typedef struct {
     const char **headers;
+    const char **trailers;
     char *req_body;
 }Request;
 
 typedef struct {
     const char **headers;
+    const char **trailers;
     char *resp_body;
     int   status;
     int   direct_response;
@@ -124,7 +126,7 @@ func freeCharPointer(p **C.char) {
 }
 
 //export initReqAndResp
-func initReqAndResp(req *C.Request, resp *C.Response, len C.size_t) {
+func initReqAndResp(req *C.Request, resp *C.Response, headerLen C.size_t, trailerLen C.size_t) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.DefaultLogger.Errorf("[golang_extention] initReqAndResp() panic %v\n%s", r, string(debug.Stack()))
@@ -132,10 +134,12 @@ func initReqAndResp(req *C.Request, resp *C.Response, len C.size_t) {
 	}()
 
 	// headers -> |key-data|key-len|val-data|val-len|null|
-	req.headers = (**C.char)(C.calloc(C.size_t(4*len+1), C.size_t(pointerSize)))
+	req.headers = (**C.char)(C.calloc(C.size_t(4*headerLen+1), C.size_t(pointerSize)))
+	req.trailers = (**C.char)(C.calloc(C.size_t(4*trailerLen+1), C.size_t(pointerSize)))
 	req.req_body = nil
 	resp.resp_body = nil
 	resp.headers = nil
+	resp.trailers = nil
 	resp.direct_response = 0
 }
 
@@ -155,9 +159,29 @@ func freeReqAndResp(req *C.Request, resp *C.Response) {
 	freeCharPointer(req.headers)
 	freeCharPointerArray(resp.headers)
 
+	// free trailer
+	freeCharPointer(req.trailers)
+	freeCharPointerArray(resp.trailers)
+
 	// free body when direct response
 	if resp.resp_body != nil {
 		C.free(unsafe.Pointer(resp.resp_body))
+	}
+}
+
+func createStreamHeaderorTrailer(headers **C.char) stream.Headers {
+	header := make(map[string]string)
+	update := make(map[string]string)
+	if headers != nil {
+		rangeCstring(headers, func(k, v string) bool {
+			header[k] = v
+			return true
+		})
+	}
+
+	return stream.Headers{
+		CommonHeader: protocol.CommonHeader(header),
+		Update:       update,
 	}
 }
 
@@ -169,33 +193,27 @@ func runReceiveStreamFilter(req C.Request) C.Response {
 		}
 	}()
 
-	header := make(map[string]string)
-	update := make(map[string]string)
-	if req.headers != nil {
-		rangeCstring(req.headers, func(k, v string) bool {
-			header[k] = v
-			return true
-		})
-	}
+	// headers
+	requestHeader := createStreamHeaderorTrailer(req.headers)
 
-	fm := stream.CreateStreamFilter(context.TODO(), stream.DefaultFilterChainName)
-	requestHeader := stream.Headers{
-		CommonHeader: protocol.CommonHeader(header),
-		Update:       update,
-	}
-
-	sm := stream.CreateActiveStream(context.TODO())
+	// body
 	var data string
 	if req.req_body != nil {
 		data = dataToString(req.req_body, (*C.char)(unsafe.Pointer(uintptr(C.strlen(req.req_body)))))
 	}
 
-	// TODO suppport trailer
-	sm.InitResuestStream(&requestHeader, buffer.NewIoBufferString(data), nil)
+	// trailers
+	requestTrailer := createStreamHeaderorTrailer(req.trailers)
 
+	// TODO init filter manager after support stream id
+	// create stream
+	sm := stream.CreateActiveStream(context.TODO())
+	sm.InitResuestStream(&requestHeader, buffer.NewIoBufferString(data), &requestTrailer)
+
+	fm := stream.CreateStreamFilter(context.TODO(), stream.DefaultFilterChainName)
 	fm.SetReceiveFilterHandler(&sm)
 
-	fm.RunReceiverFilter(context.TODO(), api.BeforeRoute, &requestHeader, nil, nil, nil)
+	fm.RunReceiverFilter(context.TODO(), api.BeforeRoute, sm.GetRequestHeaders(), sm.GetRequestData(), sm.GetRequestTrailers(), nil)
 	sm.SetCurrentReveivePhase(api.BeforeRoute)
 
 	stream.DestoryStreamFilter(fm)
@@ -211,20 +229,8 @@ func runSendStreamFilter(resp C.Request) C.Response {
 		}
 	}()
 
-	header := make(map[string]string)
-	update := make(map[string]string)
-	if resp.headers != nil {
-		rangeCstring(resp.headers, func(k, v string) bool {
-			header[k] = v
-			return true
-		})
-	}
-
-	// TODO reuse
-	requestHeader := stream.Headers{
-		CommonHeader: protocol.CommonHeader(header),
-		Update:       update,
-	}
+	// headers
+	requestHeader := createStreamHeaderorTrailer(resp.headers)
 
 	// TODO support GetorCreateActive by stream id
 	sm := stream.CreateActiveStream(context.TODO())
@@ -233,12 +239,14 @@ func runSendStreamFilter(resp C.Request) C.Response {
 		data = dataToString(resp.req_body, (*C.char)(unsafe.Pointer(uintptr(C.strlen(resp.req_body)))))
 	}
 
-	// TODO suppport trailer
-	sm.InitResponseStream(&requestHeader, buffer.NewIoBufferString(data), nil)
+	// trailers
+	requestTrailer := createStreamHeaderorTrailer(resp.trailers)
+
+	sm.InitResponseStream(&requestHeader, buffer.NewIoBufferString(data), &requestTrailer)
 
 	fm := stream.CreateStreamFilter(context.TODO(), stream.DefaultFilterChainName)
 	fm.SetSenderFilterHandler(&sm)
-	fm.RunSenderFilter(context.TODO(), api.BeforeSend, &requestHeader, nil, nil, nil)
+	fm.RunSenderFilter(context.TODO(), api.BeforeSend, sm.GetResponseHeaders(), sm.GetResponseData(), sm.GetResponseTrailers(), nil)
 	stream.DestoryStreamFilter(fm)
 
 	return convertCResponse(sm)
@@ -254,6 +262,7 @@ func convertCRequest(sm stream.ActiveStream) C.Response {
 			resp.resp_body = C.CString(data.String())
 		}
 		rangeMapToChar(sm.GetResponseHeaders(), &resp.headers)
+		rangeMapToChar(sm.GetResponseTrailers(), &resp.trailers)
 		return resp
 	}
 
@@ -272,6 +281,7 @@ func convertCResponse(sm stream.ActiveStream) C.Response {
 			resp.resp_body = C.CString(data.String())
 		}
 		rangeMapToChar(sm.GetResponseHeaders(), &resp.headers)
+		rangeMapToChar(sm.GetResponseTrailers(), &resp.trailers)
 		return resp
 	}
 
