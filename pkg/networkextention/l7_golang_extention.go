@@ -20,16 +20,19 @@ package main
 /*
 #include <stdlib.h>
 #include <string.h>
+#include<stdint.h>
 typedef struct {
     const char **headers;
     const char **trailers;
-    char *req_body;
+    const char *req_body[2];
+    uint64_t cid;
+    uint64_t sid;
 }Request;
 
 typedef struct {
     const char **headers;
     const char **trailers;
-    char *resp_body;
+    char *resp_body[2];
     int   status;
     int   direct_response;
 }Response;
@@ -76,7 +79,8 @@ func rangeCstring(headers **C.char, f func(k, v string) bool) {
 }
 
 func rangeMapToChar(header types.HeaderMap, dstHeaders ***C.char) {
-	var hLen int
+
+	hLen := 0
 	header.Range(func(k, v string) bool {
 		hLen++
 		return true
@@ -136,8 +140,12 @@ func initReqAndResp(req *C.Request, resp *C.Response, headerLen C.size_t, traile
 	// headers -> |key-data|key-len|val-data|val-len|null|
 	req.headers = (**C.char)(C.calloc(C.size_t(4*headerLen+1), C.size_t(pointerSize)))
 	req.trailers = (**C.char)(C.calloc(C.size_t(4*trailerLen+1), C.size_t(pointerSize)))
-	req.req_body = nil
-	resp.resp_body = nil
+	// req_body[0] save request body pointer, req_body[1] save request body length
+	req.req_body[0] = nil
+	req.req_body[1] = nil
+	// resp_body[0] save response body pointer, resp_body[1] save response body length
+	resp.resp_body[0] = nil
+	resp.resp_body[1] = nil
 	resp.headers = nil
 	resp.trailers = nil
 	resp.direct_response = 0
@@ -164,8 +172,8 @@ func freeReqAndResp(req *C.Request, resp *C.Response) {
 	freeCharPointerArray(resp.trailers)
 
 	// free body when direct response
-	if resp.resp_body != nil {
-		C.free(unsafe.Pointer(resp.resp_body))
+	if resp.resp_body[0] != nil {
+		C.free(unsafe.Pointer(resp.resp_body[0]))
 	}
 }
 
@@ -198,8 +206,8 @@ func runReceiveStreamFilter(req C.Request) C.Response {
 
 	// body
 	var data string
-	if req.req_body != nil {
-		data = dataToString(req.req_body, (*C.char)(unsafe.Pointer(uintptr(C.strlen(req.req_body)))))
+	if req.req_body[0] != nil && req.req_body[1] != nil {
+		data = dataToString(req.req_body[0], req.req_body[1])
 	}
 
 	// trailers
@@ -209,6 +217,8 @@ func runReceiveStreamFilter(req C.Request) C.Response {
 	// create stream
 	sm := stream.CreateActiveStream(context.TODO())
 	sm.InitResuestStream(&requestHeader, buffer.NewIoBufferString(data), &requestTrailer)
+	sm.SetConnectionID(uint64(req.cid))
+	sm.SetStreamID(uint64(req.sid))
 
 	fm := stream.CreateStreamFilter(context.TODO(), stream.DefaultFilterChainName)
 	fm.SetReceiveFilterHandler(&sm)
@@ -235,8 +245,8 @@ func runSendStreamFilter(resp C.Request) C.Response {
 	// TODO support GetorCreateActive by stream id
 	sm := stream.CreateActiveStream(context.TODO())
 	var data string
-	if resp.req_body != nil {
-		data = dataToString(resp.req_body, (*C.char)(unsafe.Pointer(uintptr(C.strlen(resp.req_body)))))
+	if resp.req_body[0] != nil && resp.req_body[1] != nil {
+		data = dataToString(resp.req_body[0], resp.req_body[1])
 	}
 
 	// trailers
@@ -258,8 +268,9 @@ func convertCRequest(sm stream.ActiveStream) C.Response {
 	if sm.IsDirectResponse() {
 		resp.status = C.int(sm.GetResponseCode())
 		resp.direct_response = 1
-		if data := sm.GetResponseData(); data != nil {
-			resp.resp_body = C.CString(data.String())
+		if data := sm.GetResponseData(); data != nil && len(data.String()) != 0 {
+			resp.resp_body[0] = C.CString(data.String())
+			resp.resp_body[1] = (*C.char)(unsafe.Pointer(uintptr(len(data.String()))))
 		}
 		rangeMapToChar(sm.GetResponseHeaders(), &resp.headers)
 		rangeMapToChar(sm.GetResponseTrailers(), &resp.trailers)
@@ -277,8 +288,9 @@ func convertCResponse(sm stream.ActiveStream) C.Response {
 	if sm.IsDirectResponse() {
 		resp.status = C.int(sm.GetResponseCode())
 		resp.direct_response = 1
-		if data := sm.GetResponseData(); data != nil {
-			resp.resp_body = C.CString(data.String())
+		if data := sm.GetResponseData(); data != nil && len(data.String()) != 0 {
+			resp.resp_body[0] = C.CString(data.String())
+			resp.resp_body[1] = (*C.char)(unsafe.Pointer(uintptr(len(data.String()))))
 		}
 		rangeMapToChar(sm.GetResponseHeaders(), &resp.headers)
 		rangeMapToChar(sm.GetResponseTrailers(), &resp.trailers)

@@ -35,6 +35,9 @@ type ActiveStream struct {
 	code int
 	ctx  context.Context
 
+	cid uint64
+	sid uint64
+
 	// request
 	reqHeaders  *Headers
 	reqTrailers *Headers
@@ -58,6 +61,10 @@ func CreateActiveStream(ctx context.Context) ActiveStream {
 	return ActiveStream{
 		ctx:            ctx,
 		directResponse: false,
+		reqHeaders:     &Headers{},
+		reqTrailers:    &Headers{},
+		respHeaders:    &Headers{},
+		respTrailers:   &Headers{},
 	}
 }
 
@@ -90,12 +97,31 @@ func (s *ActiveStream) GetResponseCode() int {
 	return s.code
 }
 
+// SetConnectionID is set connection id.
+func (s *ActiveStream) SetConnectionID(cid uint64) {
+	s.cid = cid
+}
+
+// SetStreamID is set stream id.
+func (s *ActiveStream) SetStreamID(sid uint64) {
+	s.sid = sid
+}
+
 // TODO: implement api.StreamFilterHandler after add context and stream id for stream
 // implement api.StreamFilterHandler
+
+// fakeConnection is used to implement Connection interface.
+type fakeConnection struct {
+	api.Connection // TODO implement more api
+	id             uint64
+}
+
+func (c *fakeConnection) ID() uint64 {
+	return c.id
+}
+
 func (f *ActiveStream) Connection() api.Connection {
-	var connection api.Connection
-	panic("not implemented")
-	return connection
+	return &fakeConnection{id: f.cid}
 }
 
 func (f *ActiveStream) Route() types.Route {
