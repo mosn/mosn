@@ -19,6 +19,7 @@ package types
 
 import (
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/proxy-wasm-go-host/common"
 )
 
 //
@@ -105,100 +106,13 @@ type WasmPlugin interface {
 // VM
 //
 
-// WasmVM represents the wasm vm(engine)
-type WasmVM interface {
-	// Name returns the name of wasm vm(engine)
-	Name() string
+type WasmVM = common.WasmVM
 
-	// Init got called when creating a new wasm vm(engine)
-	Init()
+type WasmModule = common.WasmModule
 
-	// NewModule compiles the 'wasmBytes' into a wasm module
-	NewModule(wasmBytes []byte) WasmModule
-}
+type WasmInstance = common.WasmInstance
 
-// WasmModule represents the wasm module
-type WasmModule interface {
-	// Init got called when creating a new wasm module
-	Init()
-
-	// NewInstance instantiates and returns a new wasm instance
-	NewInstance() WasmInstance
-
-	// GetABINameList returns the abi name list exported by wasm module
-	GetABINameList() []string
-}
-
-// WasmInstance represents the wasm instance
-type WasmInstance interface {
-	// Start starts the wasm instance
-	Start() error
-
-	// Stop stops the wasm instance
-	Stop()
-
-	// RegisterFunc registers a func to the wasm instance, should be called before Start()
-	RegisterFunc(namespace string, funcName string, f interface{}) error
-
-	// GetExportsFunc returns the exported func of the wasm instance
-	GetExportsFunc(funcName string) (WasmFunction, error)
-
-	// GetExportsMem returns the exported mem of the wasm instance
-	GetExportsMem(memName string) ([]byte, error)
-
-	// GetMemory returns wasm mem bytes from specified addr and size
-	GetMemory(addr uint64, size uint64) ([]byte, error)
-
-	// PutMemory sets wasm mem bytes to specified addr and size
-	PutMemory(addr uint64, size uint64, content []byte) error
-
-	// GetByte returns one wasm byte from specified addr
-	GetByte(addr uint64) (byte, error)
-
-	// PutByte sets one wasms bytes to specified addr
-	PutByte(addr uint64, b byte) error
-
-	// GetUint32 returns uint32 from specified addr
-	GetUint32(addr uint64) (uint32, error)
-
-	// PutUint32 set uint32 to specified addr
-	PutUint32(addr uint64, value uint32) error
-
-	// Malloc allocates size of mem from wasm default memory
-	Malloc(size int32) (uint64, error)
-
-	// GetData returns user-defined data
-	GetData() interface{}
-
-	// SetData sets user-defined data into the wasm instance
-	SetData(data interface{})
-
-	// Acquire increases the ref count of the wasm instance
-	Acquire() bool
-
-	// Release decreases the ref count of the wasm instance
-	Release()
-
-	// Lock gets the exclusive ownership of the wasm instance
-	// and sets the user-defined data
-	Lock(data interface{})
-
-	// Unlock releases the exclusive ownership of the wasm instance
-	// and sets the users-defined data to nil
-	Unlock()
-
-	// GetModule returns the wasm module of current instance
-	GetModule() WasmModule
-
-	// HandlerError processes the encountered err
-	HandleError(err error)
-}
-
-// WasmFunction is the func exported by wasm module
-type WasmFunction interface {
-	// Call invokes the wasm func
-	Call(args ...interface{}) (interface{}, error)
-}
+type WasmFunction = common.WasmFunction
 
 //
 //	ABI
@@ -212,11 +126,14 @@ type ABI interface {
 	// Name returns the name of ABI
 	Name() string
 
-	// GetExports returns the export part of the abi
-	GetExports() interface{}
+	// GetABIImports gets the imports part of the abi
+	GetABIImports() interface{}
 
 	// SetImports sets the import part of the abi
-	SetImports(imports interface{})
+	SetABIImports(imports interface{})
+
+	// GetExports returns the export part of the abi
+	GetABIExports() interface{}
 
 	GetImports() interface{}
 

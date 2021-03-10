@@ -15,9 +15,7 @@
  * limitations under the License.
  */
 
-package proxywasm_0_1_0
-
-import "mosn.io/mosn/pkg/log"
+package proxywasm
 
 type Action int32
 
@@ -96,22 +94,3 @@ const (
 	LogLevelError
 	LogLevelCritical
 )
-
-func toMosnLogLevel(level LogLevel) log.Level {
-	switch level {
-	case LogLevelTrace:
-		return log.TRACE
-	case LogLevelDebug:
-		return log.DEBUG
-	case LogLevelInfo:
-		return log.INFO
-	case LogLevelWarn:
-		return log.WARN
-	case LogLevelError:
-		return log.ERROR
-	case LogLevelCritical:
-		return log.ERROR
-	}
-
-	return log.INFO
-}

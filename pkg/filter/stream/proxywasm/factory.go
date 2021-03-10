@@ -29,9 +29,11 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
 	"mosn.io/mosn/pkg/wasm/abi"
-	"mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
+	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
+	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm"
 )
 
 const ProxyWasm = "proxywasm"
@@ -41,7 +43,7 @@ func init() {
 }
 
 type FilterConfigFactory struct {
-	proxywasm_0_1_0.DefaultImportsHandler
+	proxywasm010.DefaultImportsHandler
 
 	pluginName string
 	config     *filterConfig
@@ -108,7 +110,7 @@ func (f *FilterConfigFactory) GetRootContextID() int32 {
 	return f.config.RootContextID
 }
 
-func (f *FilterConfigFactory) GetVmConfig() buffer.IoBuffer {
+func (f *FilterConfigFactory) GetVmConfig() common.IoBuffer {
 	if f.vmConfigBytes != nil {
 		return f.vmConfigBytes
 	}
@@ -126,7 +128,7 @@ func (f *FilterConfigFactory) GetVmConfig() buffer.IoBuffer {
 		m[typeOf.Field(i).Name] = fmt.Sprintf("%v", valueOf.Field(i).Interface())
 	}
 
-	b := proxywasm_0_1_0.EncodeMap(m)
+	b := proxywasm.EncodeMap(m)
 	if b == nil {
 		return nil
 	}
@@ -136,12 +138,12 @@ func (f *FilterConfigFactory) GetVmConfig() buffer.IoBuffer {
 	return f.vmConfigBytes
 }
 
-func (f *FilterConfigFactory) GetPluginConfig() buffer.IoBuffer {
+func (f *FilterConfigFactory) GetPluginConfig() common.IoBuffer {
 	if f.pluginConfigBytes != nil {
 		return f.pluginConfigBytes
 	}
 
-	b := proxywasm_0_1_0.EncodeMap(f.config.UserData)
+	b := proxywasm.EncodeMap(f.config.UserData)
 	if b == nil {
 		return nil
 	}
@@ -158,9 +160,9 @@ func (f *FilterConfigFactory) OnConfigUpdate(config v2.WasmPluginConfig) {
 
 func (f *FilterConfigFactory) OnPluginStart(plugin types.WasmPlugin) {
 	plugin.Exec(func(instance types.WasmInstance) bool {
-		a := abi.GetABI(instance, proxywasm_0_1_0.ProxyWasmABI_0_1_0)
-		a.SetImports(f)
-		exports := a.GetExports().(proxywasm_0_1_0.Exports)
+		a := abi.GetABI(instance, proxywasm.ProxyWasmABI_0_1_0)
+		a.SetABIImports(f)
+		exports := a.GetABIExports().(proxywasm.Exports)
 
 		instance.Lock(a)
 		defer instance.Unlock()

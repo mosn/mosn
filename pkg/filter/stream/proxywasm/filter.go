@@ -27,12 +27,14 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
 	"mosn.io/mosn/pkg/wasm/abi"
-	"mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
+	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	"mosn.io/pkg/buffer"
+	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm"
 )
 
 type Filter struct {
-	proxywasm_0_1_0.DefaultImportsHandler
+	proxywasm010.DefaultImportsHandler
 
 	ctx context.Context
 
@@ -42,7 +44,7 @@ type Filter struct {
 	plugin     types.WasmPlugin
 	instance   types.WasmInstance
 	abi        types.ABI
-	exports    proxywasm_0_1_0.Exports
+	exports    proxywasm.Exports
 
 	rootContextID int32
 	contextID     int32
@@ -84,7 +86,9 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 		contextID:     newContextID(rootContextID),
 	}
 
-	filter.abi = abi.GetABI(instance, proxywasm_0_1_0.ProxyWasmABI_0_1_0)
+	filter.DefaultImportsHandler.Instance = instance
+
+	filter.abi = abi.GetABI(instance, proxywasm.ProxyWasmABI_0_1_0)
 	if filter.abi == nil {
 		log.DefaultLogger.Errorf("[proxywasm][filter] NewFilter abi not found in instance")
 		plugin.ReleaseInstance(instance)
@@ -92,9 +96,9 @@ func NewFilter(ctx context.Context, pluginName string, rootContextID int32, fact
 		return nil
 	}
 
-	filter.abi.SetImports(filter)
+	filter.abi.SetABIImports(filter)
 
-	filter.exports = filter.abi.GetExports().(proxywasm_0_1_0.Exports)
+	filter.exports = filter.abi.GetABIExports().(proxywasm.Exports)
 	if filter.exports == nil {
 		log.DefaultLogger.Errorf("[proxywasm][filter] NewFilter fail to get exports part from abi")
 		plugin.ReleaseInstance(instance)
@@ -165,7 +169,7 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 	}
 
 	action, err := f.exports.ProxyOnRequestHeaders(f.contextID, int32(headerMapSize(headers)), int32(endOfStream))
-	if err != nil || action != proxywasm_0_1_0.ActionContinue {
+	if err != nil || action != proxywasm.ActionContinue {
 		log.DefaultLogger.Errorf("[proxywasm][filter] OnReceive call ProxyOnRequestHeaders err: %v", err)
 		return api.StreamFilterStop
 	}
@@ -177,7 +181,7 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 	if buf != nil && buf.Len() > 0 {
 		action, err = f.exports.ProxyOnRequestBody(f.contextID, int32(buf.Len()), int32(endOfStream))
-		if err != nil || action != proxywasm_0_1_0.ActionContinue {
+		if err != nil || action != proxywasm.ActionContinue {
 			log.DefaultLogger.Errorf("[proxywasm][filter] OnReceive call ProxyOnRequestBody err: %v", err)
 			return api.StreamFilterStop
 		}
@@ -185,7 +189,7 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 	if trailers != nil {
 		action, err = f.exports.ProxyOnRequestTrailers(f.contextID, int32(headerMapSize(trailers)))
-		if err != nil || action != proxywasm_0_1_0.ActionContinue {
+		if err != nil || action != proxywasm.ActionContinue {
 			log.DefaultLogger.Errorf("[proxywasm][filter] OnReceive call ProxyOnRequestTrailers err: %v", err)
 			return api.StreamFilterStop
 		}
@@ -204,7 +208,7 @@ func (f *Filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 	}
 
 	action, err := f.exports.ProxyOnResponseHeaders(f.contextID, int32(headerMapSize(headers)), int32(endOfStream))
-	if err != nil || action != proxywasm_0_1_0.ActionContinue {
+	if err != nil || action != proxywasm.ActionContinue {
 		log.DefaultLogger.Errorf("[proxywasm][filter] Append call ProxyOnResponseHeaders err: %v", err)
 		return api.StreamFilterStop
 	}
@@ -216,7 +220,7 @@ func (f *Filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 
 	if buf != nil && buf.Len() > 0 {
 		action, err = f.exports.ProxyOnResponseBody(f.contextID, int32(buf.Len()), int32(endOfStream))
-		if err != nil || action != proxywasm_0_1_0.ActionContinue {
+		if err != nil || action != proxywasm.ActionContinue {
 			log.DefaultLogger.Errorf("[proxywasm][filter] Append call ProxyOnResponseBody err: %v", err)
 			return api.StreamFilterStop
 		}
@@ -224,7 +228,7 @@ func (f *Filter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.I
 
 	if trailers != nil {
 		action, err = f.exports.ProxyOnResponseTrailers(f.contextID, int32(headerMapSize(trailers)))
-		if err != nil || action != proxywasm_0_1_0.ActionContinue {
+		if err != nil || action != proxywasm.ActionContinue {
 			log.DefaultLogger.Errorf("[proxywasm][filter] Append call ProxyOnResponseTrailers err: %v", err)
 			return api.StreamFilterStop
 		}
@@ -237,58 +241,58 @@ func (f *Filter) GetRootContextID() int32 {
 	return f.rootContextID
 }
 
-func (f *Filter) GetVmConfig() buffer.IoBuffer {
+func (f *Filter) GetVmConfig() common.IoBuffer {
 	return f.factory.GetVmConfig()
 }
 
-func (f *Filter) GetPluginConfig() buffer.IoBuffer {
+func (f *Filter) GetPluginConfig() common.IoBuffer {
 	return f.factory.GetPluginConfig()
 }
 
-func (f *Filter) GetHttpRequestHeader() api.HeaderMap {
+func (f *Filter) GetHttpRequestHeader() common.HeaderMap {
 	if f.receiverFilterHandler == nil {
 		return nil
 	}
 
-	return f.receiverFilterHandler.GetRequestHeaders()
+	return &proxywasm010.HeaderMapWrapper{HeaderMap: f.receiverFilterHandler.GetRequestHeaders()}
 }
 
-func (f *Filter) GetHttpRequestBody() buffer.IoBuffer {
+func (f *Filter) GetHttpRequestBody() common.IoBuffer {
 	if f.receiverFilterHandler == nil {
 		return nil
 	}
 
-	return f.receiverFilterHandler.GetRequestData()
+	return &proxywasm010.IoBufferWrapper{IoBuffer: f.receiverFilterHandler.GetRequestData()}
 }
 
-func (f *Filter) GetHttpRequestTrailer() api.HeaderMap {
+func (f *Filter) GetHttpRequestTrailer() common.HeaderMap {
 	if f.receiverFilterHandler == nil {
 		return nil
 	}
 
-	return f.receiverFilterHandler.GetRequestTrailers()
+	return &proxywasm010.HeaderMapWrapper{HeaderMap: f.receiverFilterHandler.GetRequestTrailers()}
 }
 
-func (f *Filter) GetHttpResponseHeader() api.HeaderMap {
+func (f *Filter) GetHttpResponseHeader() common.HeaderMap {
 	if f.senderFilterHandler == nil {
 		return nil
 	}
 
-	return f.senderFilterHandler.GetResponseHeaders()
+	return &proxywasm010.HeaderMapWrapper{HeaderMap: f.senderFilterHandler.GetResponseHeaders()}
 }
 
-func (f *Filter) GetHttpResponseBody() buffer.IoBuffer {
+func (f *Filter) GetHttpResponseBody() common.IoBuffer {
 	if f.senderFilterHandler == nil {
 		return nil
 	}
 
-	return f.senderFilterHandler.GetResponseData()
+	return &proxywasm010.IoBufferWrapper{IoBuffer: f.senderFilterHandler.GetResponseData()}
 }
 
-func (f *Filter) GetHttpResponseTrailer() api.HeaderMap {
+func (f *Filter) GetHttpResponseTrailer() common.HeaderMap {
 	if f.senderFilterHandler == nil {
 		return nil
 	}
 
-	return f.senderFilterHandler.GetResponseTrailers()
+	return &proxywasm010.HeaderMapWrapper{HeaderMap: f.senderFilterHandler.GetResponseTrailers()}
 }

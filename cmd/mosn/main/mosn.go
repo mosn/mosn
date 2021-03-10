@@ -64,7 +64,7 @@ import (
 	_ "mosn.io/mosn/pkg/trace/sofa/xprotocol/bolt"
 	_ "mosn.io/mosn/pkg/upstream/healthcheck"
 	_ "mosn.io/mosn/pkg/upstream/servicediscovery/dubbod"
-	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
+	_ "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
 	_ "mosn.io/mosn/pkg/xds"
 	_ "mosn.io/pkg/buffer"

@@ -28,6 +28,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/mock"
 	_ "mosn.io/mosn/pkg/stream/http"
+	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	_ "mosn.io/mosn/pkg/wasm/runtime/wasmer"
 	"mosn.io/pkg/buffer"
 )
@@ -234,10 +235,10 @@ func TestFilterHandler(t *testing.T) {
 	f.SetReceiveFilterHandler(receiverHandler)
 	f.SetSenderFilterHandler(senderHandler)
 
-	assert.Equal(t, f.GetHttpRequestHeader(), reqHeader)
-	assert.Equal(t, f.GetHttpRequestBody(), reqBody)
-	assert.Equal(t, f.GetHttpRequestTrailer(), reqTrailer)
-	assert.Equal(t, f.GetHttpResponseHeader(), respHeader)
-	assert.Equal(t, f.GetHttpResponseBody(), respBody)
-	assert.Equal(t, f.GetHttpResponseTrailer(), respTrailer)
+	assert.Equal(t, f.GetHttpRequestHeader().(*proxywasm010.HeaderMapWrapper).HeaderMap, reqHeader)
+	assert.Equal(t, f.GetHttpRequestBody().(*proxywasm010.IoBufferWrapper).IoBuffer, reqBody)
+	assert.Equal(t, f.GetHttpRequestTrailer().(*proxywasm010.HeaderMapWrapper).HeaderMap, reqTrailer)
+	assert.Equal(t, f.GetHttpResponseHeader().(*proxywasm010.HeaderMapWrapper).HeaderMap, respHeader)
+	assert.Equal(t, f.GetHttpResponseBody().(*proxywasm010.IoBufferWrapper).IoBuffer, respBody)
+	assert.Equal(t, f.GetHttpResponseTrailer().(*proxywasm010.HeaderMapWrapper).HeaderMap, respTrailer)
 }

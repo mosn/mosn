@@ -240,13 +240,6 @@ func (w *Instance) RegisterFunc(namespace string, funcName string, f interface{}
 		return ErrRegisterArgNum
 	}
 
-	// the first arg should be types.WasmInstance
-	if funcType.In(0).Kind() != reflect.Interface ||
-		!funcType.In(0).Implements(reflect.TypeOf((*types.WasmInstance)(nil)).Elem()) {
-		log.DefaultLogger.Errorf("[wasmer][instance] RegisterFunc the first arg of f is not types.WasmInstance, actual type: %v", funcType.In(0))
-		return ErrRegisterArgType
-	}
-
 	argsKind := make([]*wasmerGo.ValueType, argsNum-1)
 	for i := 1; i < argsNum; i++ {
 		argsKind[i-1] = convertFromGoType(funcType.In(i))
@@ -271,14 +264,14 @@ func (w *Instance) RegisterFunc(namespace string, funcName string, f interface{}
 				}
 			}()
 
-			aa := make([]reflect.Value, 1+len(args))
-			aa[0] = reflect.ValueOf(w)
+			callArgs := make([]reflect.Value, 1+len(args))
+			callArgs[0] = reflect.ValueOf(w)
 
 			for i, arg := range args {
-				aa[i+1] = convertToGoTypes(arg)
+				callArgs[i+1] = convertToGoTypes(arg)
 			}
 
-			callResult := reflect.ValueOf(f).Call(aa)
+			callResult := reflect.ValueOf(f).Call(callArgs)
 
 			ret := convertFromGoValue(callResult[0])
 

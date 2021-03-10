@@ -18,6 +18,8 @@ github.com/alibaba/sentinel-golang v1.0.2-0.20210112133552-db6063eb263e h1:20g3M
 github.com/alibaba/sentinel-golang v1.0.2-0.20210112133552-db6063eb263e/go.mod h1:uHDiUhfQjc9ACs9AdwP9CxmSze/B7tJ74QCdAbWl7x0=
 github.com/andybalholm/brotli v1.0.0 h1:7UCwP93aiSfvWpapti8g88vVVGp2qqtGyePsSuDafo4=
 github.com/andybalholm/brotli v1.0.0/go.mod h1:loMXtMfwqflxFJPmdbJO0a3KNoPuLBgiu3qAvBg8x/Y=
+github.com/antJack/proxy-wasm-go-host v0.0.0-20210310022102-a2d257703f56 h1:9fPZveoBSqdaRVO0rp2PEFCnBAFFdyOMikYIWA+s+Uk=
+github.com/antJack/proxy-wasm-go-host v0.0.0-20210310022102-a2d257703f56/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
 github.com/antlr/antlr4 v0.0.0-20200503195918-621b933c7a7f h1:0cEys61Sr2hUBEXfNV8eyQP01oZuBgoMeHunebPirK8=
 github.com/antlr/antlr4 v0.0.0-20200503195918-621b933c7a7f/go.mod h1:T7PbCXFs94rrTttyxjbyT5+/1V8T2TYDejxUfHJjw1Y=
 github.com/apache/dubbo-go-hessian2 v1.7.0 h1:u2XxIuepu/zb6JcGZc7EbvKboXdKoJbf7rbmeq6SF1w=
@@ -441,5 +443,15 @@ mosn.io/api v0.0.0-20210204052134-5b9a826795fd h1:Uc4WO8nG+ksjoUiASmpw4DUWQkb7sp
 mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 mosn.io/pkg v0.0.0-20210204111127-5f869b58611d h1:OqSMWFadbdAEvc0W5U90RyD2WEJd3JUe6i7IUfXA0VI=
 mosn.io/pkg v0.0.0-20210204111127-5f869b58611d/go.mod h1:YEv5sGe7kqo/Yzj7OJI7Udl3iUcagNeo5unGPiUaUfw=
+mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4 h1:6mh2DtmcqzRrv/w3aXVWY7Na64ohm8XMRK8iZBQOTbs=
+mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4/go.mod h1:YEv5sGe7kqo/Yzj7OJI7Udl3iUcagNeo5unGPiUaUfw=
+mosn.io/proxy-wasm-go-host v0.0.0-20210307023550-6a1b7906ab6e h1:YznMU/KKpB6+uwacj9b/Ic0a6y6vISWTSNNW0LYLX2c=
+mosn.io/proxy-wasm-go-host v0.0.0-20210307023550-6a1b7906ab6e/go.mod h1:EN7uaKtCK+iyj+GzvSEMbXzYtrC9CS/+5IDhAin7ShA=
+mosn.io/proxy-wasm-go-host v0.0.0-20210308014945-417c5c98990f h1:fV/o5agRoAur2lc1Ehv1xxMwCBdtZGV/cKn93uu6Jk4=
+mosn.io/proxy-wasm-go-host v0.0.0-20210308014945-417c5c98990f/go.mod h1:EN7uaKtCK+iyj+GzvSEMbXzYtrC9CS/+5IDhAin7ShA=
+mosn.io/proxy-wasm-go-host v0.0.0-20210308134353-acf569f2f9e5 h1:WoRbs7OOpFZ8w2h7JJwpJxM4ifxdYWmR9t3fa0+mN5w=
+mosn.io/proxy-wasm-go-host v0.0.0-20210308134353-acf569f2f9e5/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
+mosn.io/proxy-wasm-go-host v0.0.0-20210310031752-6be0cc6caf8e h1:wphXyjG5WzgVG/6ZTmTe2fqI3/r6bmziWHnnTQL6aew=
+mosn.io/proxy-wasm-go-host v0.0.0-20210310031752-6be0cc6caf8e/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
