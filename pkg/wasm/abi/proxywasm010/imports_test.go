@@ -19,15 +19,15 @@ package proxywasm010
 
 import (
 	"errors"
-	"net/http"
-	"testing"
-
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/pkg/buffer"
 	"mosn.io/proxy-wasm-go-host/common"
 	"mosn.io/proxy-wasm-go-host/proxywasm"
+	"net/http"
+	"testing"
+	"time"
 )
 
 func TestImportsHandler(t *testing.T) {
@@ -54,6 +54,7 @@ func TestImportsHandlerHttpCall(t *testing.T) {
 		})
 		server.ListenAndServe()
 	}()
+	time.Sleep(time.Second)
 
 	instance := mock.NewMockWasmInstance(ctrl)
 	abiContext := ABIContextFactory(instance)
