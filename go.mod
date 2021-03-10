@@ -8,6 +8,7 @@ require (
 	github.com/TarsCloud/TarsGo v1.1.4
 	github.com/alibaba/sentinel-golang v1.0.2-0.20210112133552-db6063eb263e
 	github.com/apache/dubbo-go-hessian2 v1.7.0
+	github.com/apache/thrift v0.13.0
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 	github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f
 	github.com/dchest/siphash v1.2.1
@@ -51,8 +52,8 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
-	mosn.io/api v0.0.0-20210113033009-f24f4e59b2bc
-	mosn.io/pkg v0.0.0-20201228090327-daaf86502a50
+	mosn.io/api v0.0.0-20210204052134-5b9a826795fd
+	mosn.io/pkg v0.0.0-20210204111127-5f869b58611d
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4

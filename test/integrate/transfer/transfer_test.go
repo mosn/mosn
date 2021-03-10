@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"math/rand"
-	"mosn.io/mosn/pkg/network"
 	"os"
 	"syscall"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/network"
 
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"

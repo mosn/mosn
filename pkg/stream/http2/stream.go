@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
@@ -41,6 +42,8 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
+	"mosn.io/mosn/pkg/trace"
+
 )
 
 func init() {
@@ -97,7 +100,7 @@ type streamConnection struct {
 
 	useStream bool
 
-	protocol types.Protocol
+	protocol api.Protocol
 }
 
 func (conn *streamConnection) Protocol() types.ProtocolName {
@@ -300,6 +303,7 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		variable.SetVariableValue(ctx, types.VarScheme, scheme)
 		variable.SetVariableValue(ctx, types.VarMethod, h2s.Request.Method)
 		variable.SetVariableValue(ctx, types.VarHost, h2s.Request.Host)
+		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, h2s.Request.Host) // be consistent with http1
 		variable.SetVariableValue(ctx, types.VarPath, h2s.Request.URL.Path)
 		if h2s.Request.URL.RawQuery != "" {
 			variable.SetVariableValue(ctx, types.VarQueryString, h2s.Request.URL.RawQuery)
@@ -407,8 +411,17 @@ func (conn *serverStreamConnection) onNewStreamDetect(ctx context.Context, h2s *
 	conn.streams[stream.id] = stream
 	conn.mutex.Unlock()
 
-	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, nil)
+	var span api.Span
+	if trace.IsEnabled() {
+		// try build trace span
+		tracer := trace.Tracer(protocol.HTTP2)
 
+		if tracer != nil {
+			span = tracer.Start(ctx, h2s.Request, time.Now())
+		}
+	}
+
+	stream.receiver = conn.serverCallbacks.NewStreamDetect(stream.ctx, stream, span)
 	return stream, nil
 }
 
@@ -850,6 +863,10 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 		host = h
 	} else {
 		host = s.conn.RemoteAddr().String()
+	}
+
+	if h, err := variable.GetVariableValue(ctx, types.VarIstioHeaderHost); err != nil && h != "" { // be consistent with http1
+		host = h
 	}
 
 	var query string

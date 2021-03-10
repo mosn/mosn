@@ -42,7 +42,7 @@ var (
 
 type RouteRuleImplBase struct {
 	// match
-	vHost       *VirtualHostImpl
+	vHost       api.VirtualHost
 	routerMatch v2.RouterMatch
 	// rewrite
 	prefixRewrite         string
@@ -71,7 +71,7 @@ type RouteRuleImplBase struct {
 	randInstance       *rand.Rand
 }
 
-func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleImplBase, error) {
+func NewRouteRuleImplBase(vHost api.VirtualHost, route *v2.Router) (*RouteRuleImplBase, error) {
 	base := &RouteRuleImplBase{
 		vHost:                 vHost,
 		routerMatch:           route.Match,
@@ -187,6 +187,10 @@ func NewRouteRuleImplBase(vHost *VirtualHostImpl, route *v2.Router) (*RouteRuleI
 	return base, nil
 }
 
+func (rri *RouteRuleImplBase) VirtualHost() api.VirtualHost {
+	return rri.vHost
+}
+
 func (rri *RouteRuleImplBase) DirectResponseRule() api.DirectResponseRule {
 	return rri.directResponseRule
 }
@@ -299,8 +303,7 @@ func (rri *RouteRuleImplBase) FinalizeRequestHeaders(ctx context.Context, header
 
 func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.requestHeadersParser.evaluateHeaders(headers, requestInfo)
-	rri.vHost.requestHeadersParser.evaluateHeaders(headers, requestInfo)
-	rri.vHost.globalRouteConfig.requestHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.vHost.FinalizeRequestHeaders(ctx, headers, requestInfo)
 	if len(rri.hostRewrite) > 0 {
 		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, rri.hostRewrite)
 	} else if len(rri.autoHostRewriteHeader) > 0 {
@@ -317,6 +320,5 @@ func (rri *RouteRuleImplBase) finalizeRequestHeaders(ctx context.Context, header
 
 func (rri *RouteRuleImplBase) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 	rri.responseHeadersParser.evaluateHeaders(headers, requestInfo)
-	rri.vHost.responseHeadersParser.evaluateHeaders(headers, requestInfo)
-	rri.vHost.globalRouteConfig.responseHeadersParser.evaluateHeaders(headers, requestInfo)
+	rri.vHost.FinalizeResponseHeaders(ctx, headers, requestInfo)
 }

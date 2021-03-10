@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/sys/unix"
 	"net"
 	"sync"
 	"syscall"
+
+	"golang.org/x/sys/unix"
 )
 
 // PacketInfo packet info

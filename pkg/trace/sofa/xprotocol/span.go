@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
@@ -71,7 +72,7 @@ func (s *SofaRPCSpan) SetTag(key uint64, value string) {
 	s.tags[key] = value
 }
 
-func (s *SofaRPCSpan) SetRequestInfo(reqinfo types.RequestInfo) {
+func (s *SofaRPCSpan) SetRequestInfo(reqinfo api.RequestInfo) {
 	s.tags[REQUEST_SIZE] = strconv.FormatInt(int64(reqinfo.BytesReceived()), 10)
 	s.tags[RESPONSE_SIZE] = strconv.FormatInt(int64(reqinfo.BytesSent()), 10)
 	if reqinfo.UpstreamHost() != nil {
@@ -99,10 +100,10 @@ func (s *SofaRPCSpan) FinishSpan() {
 	}
 }
 
-func (s *SofaRPCSpan) InjectContext(requestHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (s *SofaRPCSpan) InjectContext(requestHeaders api.HeaderMap, requestInfo api.RequestInfo) {
 }
 
-func (s *SofaRPCSpan) SpawnChild(operationName string, startTime time.Time) types.Span {
+func (s *SofaRPCSpan) SpawnChild(operationName string, startTime time.Time) api.Span {
 	return nil
 }
 
@@ -177,11 +178,11 @@ func (s *SofaRPCSpan) log() error {
 
 	statusCode, _ := strconv.Atoi(s.tags[RESULT_STATUS])
 	var code = "02"
-	if statusCode == types.SuccessCode {
+	if statusCode == api.SuccessCode {
 		code = "00"
-	} else if statusCode == types.TimeoutExceptionCode {
+	} else if statusCode == api.TimeoutExceptionCode {
 		code = "03"
-	} else if statusCode == types.RouterUnavailableCode || statusCode == types.NoHealthUpstreamCode {
+	} else if statusCode == api.RouterUnavailableCode || statusCode == api.NoHealthUpstreamCode {
 		code = "04"
 	} else {
 		code = "02"

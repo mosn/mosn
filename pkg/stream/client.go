@@ -41,7 +41,7 @@ type client struct {
 
 // NewStreamClient
 // Create a codecclient used as a client to send/receive stream in a connection
-func NewStreamClient(ctx context.Context, prot api.Protocol, connection types.ClientConnection, host types.Host) Client {
+func NewStreamClient(ctx context.Context, prot api.ProtocolName, connection types.ClientConnection, host types.Host) Client {
 	client := &client{
 		Protocol:   prot,
 		Connection: connection,
@@ -63,7 +63,7 @@ func NewStreamClient(ctx context.Context, prot api.Protocol, connection types.Cl
 
 // NewBiDirectStreamClient
 // Create a bidirectional client used to realize bidirectional communication
-func NewBiDirectStreamClient(ctx context.Context, prot api.Protocol, connection types.ClientConnection, host types.Host,
+func NewBiDirectStreamClient(ctx context.Context, prot api.ProtocolName, connection types.ClientConnection, host types.Host,
 	serverCallbacks types.ServerStreamConnectionEventListener) Client {
 	client := &client{
 		Protocol:   prot,

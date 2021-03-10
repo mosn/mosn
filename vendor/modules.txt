@@ -44,6 +44,8 @@ github.com/apache/dubbo-go-hessian2
 github.com/apache/dubbo-go-hessian2/java8_time
 github.com/apache/dubbo-go-hessian2/java_exception
 github.com/apache/dubbo-go-hessian2/java_sql_time
+# github.com/apache/thrift v0.13.0
+github.com/apache/thrift/lib/go/thrift
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
@@ -380,7 +382,7 @@ gopkg.in/errgo.v2/errors
 gopkg.in/errgo.v2/fmt/errors
 # gopkg.in/natefinch/lumberjack.v2 v2.0.0
 gopkg.in/natefinch/lumberjack.v2
-# gopkg.in/yaml.v2 v2.2.8
+# gopkg.in/yaml.v2 v2.4.0
 gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 gopkg.in/yaml.v3
@@ -392,9 +394,10 @@ istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# mosn.io/api v0.0.0-20210113033009-f24f4e59b2bc
+# mosn.io/api v0.0.0-20210204052134-5b9a826795fd
 mosn.io/api
-# mosn.io/pkg v0.0.0-20201228090327-daaf86502a50
+# mosn.io/pkg v0.0.0-20210204111127-5f869b58611d
 mosn.io/pkg/buffer
+mosn.io/pkg/header
 mosn.io/pkg/log
 mosn.io/pkg/utils

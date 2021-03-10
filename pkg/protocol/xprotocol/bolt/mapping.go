@@ -22,6 +22,8 @@ import (
 	"errors"
 	"net/http"
 
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
@@ -33,7 +35,7 @@ func init() {
 type boltStatusMapping struct{}
 
 func (m *boltStatusMapping) MappingHeaderStatusCode(ctx context.Context, headers types.HeaderMap) (int, error) {
-	cmd, ok := headers.(xprotocol.XRespFrame)
+	cmd, ok := headers.(api.XRespFrame)
 	if !ok {
 		return 0, errors.New("no response status in headers")
 	}

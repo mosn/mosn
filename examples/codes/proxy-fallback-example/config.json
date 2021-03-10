@@ -1,0 +1,81 @@
+{
+  "servers": [
+    {
+      "default_log_path": "stdout",
+      "routers": [
+        {
+          "router_config_name": "router_to_http_server",
+          "virtual_hosts": [
+            {
+              "name": "server_hosts",
+              "domains": [
+                "*"
+              ],
+              "routers": [
+                {
+                  "match": {
+                    "prefix": "/"
+                  },
+                  "route": {
+                    "cluster_name": "server_http_cluster"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "listeners": [
+        {
+          "address": "127.0.0.1:2046",
+          "bind_port": true,
+          "filter_chains": [
+            {
+              "filters": [
+                {
+                  "type": "proxy",
+                  "config": {
+                    "fallback_for_unknown_protocol": true,
+                    "downstream_protocol": "Auto",
+                    "upstream_protocol": "Http1",
+                    "router_config_name": "router_to_http_server"
+                  }
+                },
+                {
+                  "type": "tcp_proxy",
+                  "config": {
+                    "cluster": "server_tcp_cluster"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "cluster_manager": {
+    "clusters": [
+      {
+        "name": "server_http_cluster",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "hosts": [
+          {
+            "address": "127.0.0.1:8080"
+          }
+        ]
+      },
+      {
+        "name": "server_tcp_cluster",
+        "type": "SIMPLE",
+        "lb_type": "LB_RANDOM",
+        "hosts": [
+          {
+            "address": "127.0.0.1:9090"
+          }
+        ]
+      }
+    ]
+  }
+}

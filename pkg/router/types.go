@@ -29,10 +29,11 @@ import (
 
 	"github.com/dchest/siphash"
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
 )
 
 // [sub module] & [function] & msg
@@ -62,15 +63,7 @@ type weightedClusterEntry struct {
 	clusterMetadataMatchCriteria *MetadataMatchCriteriaImpl
 }
 
-type Matchable interface {
-	Match(ctx context.Context, headers api.HeaderMap) api.Route
-}
-
-type RouteBase interface {
-	api.Route
-	api.PathMatchCriterion
-	Matchable
-}
+type RouteBase = api.RouteBase
 
 // Policy
 type policy struct {

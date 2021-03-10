@@ -18,8 +18,8 @@ type mirror struct {
 	amplification  int
 	broadcast      bool
 	receiveHandler api.StreamReceiverFilterHandler
-	dp             api.Protocol
-	up             api.Protocol
+	dp             api.ProtocolName
+	up             api.ProtocolName
 	ctx            context.Context
 	headers        api.HeaderMap
 	data           buffer.IoBuffer
@@ -124,7 +124,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		}
 	}, nil)
 	if m.broadcast {
-		m.receiveHandler.SendHijackReply(types.SuccessCode, m.headers)
+		m.receiveHandler.SendHijackReply(api.SuccessCode, m.headers)
 		return api.StreamFilterStop
 	}
 	return api.StreamFilterContinue

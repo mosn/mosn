@@ -15,13 +15,40 @@
  * limitations under the License.
  */
 
-package types
+package metadata
 
-// PoolMode is whether PingPong or multiplex
-type PoolMode int
+import (
+	"context"
+	"errors"
+
+	"mosn.io/api"
+	"mosn.io/pkg/buffer"
+)
 
 const (
-	PingPong PoolMode = iota
-	Multiplex
-	TCP
+	metadataPrefix = "x-mosn-on-envoy-"
 )
+
+var (
+	drivers = make(map[string]Driver)
+)
+
+type Driver interface {
+	Init(config map[string]interface{}) error
+	BuildMetadata(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) (string, error)
+}
+
+func RegisterDriver(typ string, driver Driver) {
+	drivers[typ] = driver
+}
+
+func InitMetadataDriver(typ string, config map[string]interface{}) (Driver, error) {
+	if driver, ok := drivers[typ]; ok {
+		if err := driver.Init(config); err != nil {
+			return nil, err
+		} else {
+			return driver, nil
+		}
+	}
+	return nil, errors.New("not found dirver: " + typ)
+}

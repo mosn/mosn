@@ -488,7 +488,7 @@ func (conn *serverStreamConnection) serve() {
 		s.responseDoneChan = make(chan bool, 1)
 		s.header = mosnhttp.RequestHeader{&s.request.Header}
 
-		var span types.Span
+		var span api.Span
 		if trace.IsEnabled() {
 			tracer := trace.Tracer(protocol.HTTP1)
 			if tracer != nil {
@@ -849,8 +849,8 @@ func (s *serverStream) GetStream() types.Stream {
 func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 1. host
 	variable.SetVariableValue(ctx, types.VarHost, string(uri.Host()))
-	// 2. :authority
-	variable.SetVariableValue(ctx, types.VarHost, string(uri.Host()))
+	// 2. authority
+	variable.SetVariableValue(ctx, types.VarIstioHeaderHost, string(uri.Host()))
 
 	// 3. method
 	variable.SetVariableValue(ctx, types.VarMethod, string(header.Method()))

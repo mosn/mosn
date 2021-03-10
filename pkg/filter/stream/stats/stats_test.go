@@ -188,7 +188,7 @@ func BenchmarkStatsFilterLog(b *testing.B) {
 
 // MockRequestInfo
 type MockRequestInfo struct {
-	protocol                 api.Protocol
+	protocol                 api.ProtocolName
 	startTime                time.Time
 	endTime                  time.Time
 	responseFlag             api.ResponseFlag
@@ -264,11 +264,11 @@ func (r *MockRequestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *MockRequestInfo) Protocol() api.Protocol {
+func (r *MockRequestInfo) Protocol() api.ProtocolName {
 	return r.protocol
 }
 
-func (r *MockRequestInfo) SetProtocol(p api.Protocol) {
+func (r *MockRequestInfo) SetProtocol(p api.ProtocolName) {
 	r.protocol = p
 }
 

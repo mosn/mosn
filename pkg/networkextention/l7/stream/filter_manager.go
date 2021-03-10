@@ -15,48 +15,32 @@
  * limitations under the License.
  */
 
-package types
+package stream
 
 import (
 	"context"
-	"time"
 
-	"mosn.io/api"
+	"mosn.io/mosn/pkg/streamfilter"
 )
 
-// factory
-type TracerBuilder func(config map[string]interface{}) (Tracer, error)
+const (
+	// TODO using mapping port stuct to dynamic get
+	DefaultFilterChainName string = "2990"
+)
 
-type Driver interface {
-	Init(config map[string]interface{}) error
-
-	Register(proto api.Protocol, builder TracerBuilder)
-
-	Get(proto api.Protocol) Tracer
+func AddOrUpdateFilter(filterChainName string, streamFiltersConfig streamfilter.StreamFiltersConfig) {
+	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(filterChainName, streamFiltersConfig)
 }
 
-type Tracer interface {
-	Start(ctx context.Context, request interface{}, startTime time.Time) Span
+func CreateStreamFilter(ctx context.Context, filterChainName string) *streamfilter.DefaultStreamFilterChainImpl {
+	fm := streamfilter.GetDefaultStreamFilterChain()
+	streamFilterFactory := streamfilter.GetStreamFilterManager().GetStreamFilterFactory(filterChainName)
+	streamFilterFactory.CreateFilterChain(ctx, fm)
+	return fm
 }
 
-type Span interface {
-	TraceId() string
-
-	SpanId() string
-
-	ParentSpanId() string
-
-	SetOperation(operation string)
-
-	SetTag(key uint64, value string)
-
-	SetRequestInfo(requestInfo api.RequestInfo)
-
-	Tag(key uint64) string
-
-	FinishSpan()
-
-	InjectContext(requestHeaders api.HeaderMap, requestInfo api.RequestInfo)
-
-	SpawnChild(operationName string, startTime time.Time) Span
+func DestoryStreamFilter(fm *streamfilter.DefaultStreamFilterChainImpl) {
+	if fm != nil {
+		streamfilter.PutStreamFilterChain(fm)
+	}
 }

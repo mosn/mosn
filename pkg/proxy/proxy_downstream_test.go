@@ -83,7 +83,7 @@ func TestProxyWithFilters(t *testing.T) {
 		}).AnyTimes() // gomcok and monkey patch is conflict, ignore the call times
 		// mock ConnPoolForCluster returns connPool
 		cm.EXPECT().ConnPoolForCluster(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ types.LoadBalancerContext, _ types.ClusterSnapshot, _ api.Protocol) types.ConnectionPool {
+			func(_ types.LoadBalancerContext, _ types.ClusterSnapshot, _ api.ProtocolName) types.ConnectionPool {
 				pool := mock.NewMockConnectionPool(ctrl)
 				// mock connPool.NewStream to call upstreamRequest.OnReady (see stream/xprotocol/connpool.go:NewStream)
 				pool.EXPECT().Host().DoAndReturn(func() types.Host {
@@ -216,7 +216,7 @@ func TestProxyWithFilters(t *testing.T) {
 	monkey.Patch(trace.IsEnabled, func() bool {
 		return true
 	})
-	mockSpan := func() types.Span {
+	mockSpan := func() api.Span {
 		sp := mock.NewMockSpan(ctrl)
 		sp.EXPECT().TraceId().Return("1").AnyTimes()
 		sp.EXPECT().SpanId().Return("1").AnyTimes()
@@ -264,7 +264,7 @@ func TestProxyWithFilters(t *testing.T) {
 	// 2. after route: test records
 	if !(downstream.requestInfo.RouteEntry() != nil &&
 		downstream.requestInfo.BytesReceived() == uint64(5) &&
-		downstream.requestInfo.Protocol() == api.Protocol("Http1")) {
+		downstream.requestInfo.Protocol() == api.ProtocolName("Http1")) {
 		t.Fatalf("after send request, the request info is not expected: %v, %v, %v",
 			downstream.requestInfo.RouteEntry() != nil,
 			downstream.requestInfo.BytesReceived(),

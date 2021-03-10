@@ -1,8 +1,9 @@
 package jwtauthn
 
 import (
-	"github.com/golang/protobuf/jsonpb"
 	"testing"
+
+	"github.com/golang/protobuf/jsonpb"
 
 	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	"github.com/stretchr/testify/assert"

@@ -55,6 +55,21 @@ type KeyValueData struct {
 	Value StringMatch
 }
 
+func (k *KeyValueData) Key() string {
+	return k.Name
+}
+
+func (k *KeyValueData) MatchType() api.KeyValueMatchType {
+	if k.Value.IsRegex {
+		return api.ValueRegex
+	}
+	return api.ValueExact
+}
+
+func (k *KeyValueData) Matcher() string {
+	return k.Value.Value
+}
+
 func NewKeyValueData(header v2.HeaderMatcher) (*KeyValueData, error) {
 	kvData := &KeyValueData{
 		Name: header.Name,
@@ -76,6 +91,27 @@ func NewKeyValueData(header v2.HeaderMatcher) (*KeyValueData, error) {
 
 // commonHeaderMatcherImpl implements a simple types.HeaderMacther
 type commonHeaderMatcherImpl []*KeyValueData
+
+func (m commonHeaderMatcherImpl) Get(i int) api.KeyValueMatchCriterion {
+	return m[i]
+}
+
+func (m commonHeaderMatcherImpl) Len() int {
+	return len(m)
+}
+
+func (m commonHeaderMatcherImpl) Range(f func(api.KeyValueMatchCriterion) bool) {
+	for _, kv := range m {
+		// stop if f return false
+		if !f(kv) {
+			break
+		}
+	}
+}
+
+func (m commonHeaderMatcherImpl) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	return m
+}
 
 func (m commonHeaderMatcherImpl) Matches(_ context.Context, headers api.HeaderMap) bool {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
@@ -111,6 +147,13 @@ func CreateCommonHeaderMatcher(headers []v2.HeaderMatcher) types.HeaderMatcher {
 type httpHeaderMatcherImpl struct {
 	variables map[string]string
 	headers   commonHeaderMatcherImpl
+}
+
+func (m *httpHeaderMatcherImpl) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	if m.headers != nil {
+		return m.headers.HeaderMatchCriteria()
+	}
+	return nil
 }
 
 func (m *httpHeaderMatcherImpl) Matches(ctx context.Context, headers api.HeaderMap) bool {

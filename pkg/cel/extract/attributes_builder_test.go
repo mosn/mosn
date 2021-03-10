@@ -403,12 +403,18 @@ func Test_attributesToStringInterfaceMap(t *testing.T) {
 }
 
 type MockRouteRule struct {
-	clusterName        string
-	upstreamProtocol   string
-	globalTimeout      time.Duration
-	policy             api.Policy
-	perFilterConfig    map[string]interface{}
-	pathMatchCriterion api.PathMatchCriterion
+	vHost               api.VirtualHost
+	clusterName         string
+	upstreamProtocol    string
+	globalTimeout       time.Duration
+	policy              api.Policy
+	perFilterConfig     map[string]interface{}
+	pathMatchCriterion  api.PathMatchCriterion
+	headerMatchCriteria api.KeyValueMatchCriteria
+}
+
+func (r *MockRouteRule) VirtualHost() api.VirtualHost {
+	return r.vHost
 }
 
 func (r *MockRouteRule) ClusterName() string {
@@ -447,9 +453,13 @@ func (r *MockRouteRule) PathMatchCriterion() api.PathMatchCriterion {
 	return r.pathMatchCriterion
 }
 
+func (r *MockRouteRule) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	return r.headerMatchCriteria
+}
+
 // MockRequestInfo
 type MockRequestInfo struct {
-	protocol                 api.Protocol
+	protocol                 api.ProtocolName
 	startTime                time.Time
 	endTime                  time.Time
 	responseFlag             api.ResponseFlag
@@ -525,11 +535,11 @@ func (r *MockRequestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *MockRequestInfo) Protocol() api.Protocol {
+func (r *MockRequestInfo) Protocol() api.ProtocolName {
 	return r.protocol
 }
 
-func (r *MockRequestInfo) SetProtocol(p api.Protocol) {
+func (r *MockRequestInfo) SetProtocol(p api.ProtocolName) {
 	r.protocol = p
 }
 

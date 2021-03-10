@@ -7,13 +7,12 @@ import (
 	"testing"
 
 	hessian "github.com/apache/dubbo-go-hessian2"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
 )
 
 func Test_dubboProtocol_Hijack(t *testing.T) {
 	type args struct {
-		request    xprotocol.XFrame
+		request    api.XFrame
 		statusCode uint32
 	}
 	tests := []struct {
@@ -25,7 +24,7 @@ func Test_dubboProtocol_Hijack(t *testing.T) {
 			name:  "normal",
 			proto: &dubboProtocol{},
 			args: struct {
-				request    xprotocol.XFrame
+				request    api.XFrame
 				statusCode uint32
 			}{
 				request: &Frame{
@@ -33,14 +32,14 @@ func Test_dubboProtocol_Hijack(t *testing.T) {
 						Id: 1,
 					},
 				},
-				statusCode: uint32(types.NoHealthUpstreamCode),
+				statusCode: uint32(api.NoHealthUpstreamCode),
 			},
 		},
 		{
 			name:  "status not registry",
 			proto: &dubboProtocol{},
 			args: struct {
-				request    xprotocol.XFrame
+				request    api.XFrame
 				statusCode uint32
 			}{
 				request: &Frame{

@@ -23,7 +23,6 @@ import (
 	"strconv"
 
 	"mosn.io/mosn/pkg/types"
-
 	"mosn.io/mosn/pkg/variable"
 )
 

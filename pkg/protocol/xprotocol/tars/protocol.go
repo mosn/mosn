@@ -24,6 +24,8 @@ import (
 
 	tarsprotocol "github.com/TarsCloud/TarsGo/tars/protocol"
 	"github.com/TarsCloud/TarsGo/tars/protocol/codec"
+	"mosn.io/api"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
@@ -50,7 +52,7 @@ func (proto *tarsProtocol) Encode(ctx context.Context, model interface{}) (types
 	default:
 		log.Proxy.Errorf(ctx, "[protocol][tars] encode with unknown command : %+v", model)
 	}
-	return nil, xprotocol.ErrUnknownType
+	return nil, api.ErrUnknownType
 }
 
 func (proto *tarsProtocol) Decode(ctx context.Context, data types.IoBuffer) (interface{}, error) {
@@ -71,18 +73,18 @@ func (proto *tarsProtocol) Decode(ctx context.Context, data types.IoBuffer) (int
 }
 
 // heartbeater
-func (proto *tarsProtocol) Trigger(requestId uint64) xprotocol.XFrame {
+func (proto *tarsProtocol) Trigger(requestId uint64) api.XFrame {
 	// not support
 	return nil
 }
 
-func (proto *tarsProtocol) Reply(request xprotocol.XFrame) xprotocol.XRespFrame {
+func (proto *tarsProtocol) Reply(request api.XFrame) api.XRespFrame {
 	// not support
 	return nil
 }
 
 // hijacker
-func (proto *tarsProtocol) Hijack(request xprotocol.XFrame, statusCode uint32) xprotocol.XRespFrame {
+func (proto *tarsProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
 	// not support
 	return nil
 }
@@ -118,8 +120,8 @@ func getStreamType(pkg []byte) (byte, error) {
 }
 
 // PoolMode returns whether pingpong or multiplex
-func (proto *tarsProtocol) PoolMode() types.PoolMode {
-	return types.Multiplex
+func (proto *tarsProtocol) PoolMode() api.PoolMode {
+	return api.Multiplex
 }
 
 func (proto *tarsProtocol) EnableWorkerPool() bool {

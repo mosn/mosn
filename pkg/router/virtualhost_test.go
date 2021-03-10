@@ -21,9 +21,10 @@ import (
 	"context"
 	"testing"
 
+	"mosn.io/mosn/pkg/variable"
+
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 
 	"mosn.io/mosn/pkg/protocol"
 )
