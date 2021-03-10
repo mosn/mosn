@@ -18,11 +18,14 @@
 package wasm
 
 import (
+	"sync"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
-var vmMap = make(map[string]types.WasmVM)
+//var vmMap = make(map[string]types.WasmVM)
+var vmRegistry = sync.Map{}
 
 // RegisterWasmEngine registers a wasm vm(engine).
 func RegisterWasmEngine(name string, engine types.WasmVM) {
@@ -32,13 +35,15 @@ func RegisterWasmEngine(name string, engine types.WasmVM) {
 	}
 
 	log.DefaultLogger.Infof("[wasm][vm] RegisterWasmEngine engine: %v", name)
-	vmMap[name] = engine
+	vmRegistry.Store(name, engine)
 }
 
 // GetWasmEngine returns the wasm vm(engine) by name.
 func GetWasmEngine(name string) types.WasmVM {
-	if engine, ok := vmMap[name]; ok {
-		return engine
+	if v, ok := vmRegistry.Load(name); ok {
+		if engine, ok := v.(types.WasmVM); ok {
+			return engine
+		}
 	}
 
 	log.DefaultLogger.Errorf("[wasm][vm] GetWasmEngine not found, engine: %v", name)
