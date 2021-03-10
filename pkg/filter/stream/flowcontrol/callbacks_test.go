@@ -46,3 +46,16 @@ func TestAfterBlock(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "509", status)
 }
+
+func TestDefaultCallbacks_SetConfig(t *testing.T) {
+	cfg := defaultConfig()
+	cb := GetCallbacksByConfig(cfg)
+	assert.Empty(t, cb.GetConfig().CallbackName)
+	cfg.CallbackName = "testing"
+	cb = GetCallbacksByConfig(cfg)
+	assert.Equal(t, "testing", cb.GetConfig().CallbackName)
+
+	readonlyCfg := cb.GetConfig()
+	readonlyCfg.CallbackName = "modified"
+	assert.Equal(t, "testing", cb.GetConfig().CallbackName)
+}
