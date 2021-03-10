@@ -15,9 +15,57 @@
  * limitations under the License.
  */
 
-package proxywasm_0_1_0
+package proxywasm
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+
+	"mosn.io/proxy-wasm-go-host/common"
+)
+
+func copyIntoInstance(instance common.WasmInstance, value string, retPtr int32, retSize int32) WasmResult {
+	addr, err := instance.Malloc(int32(len(value)))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess
+	}
+
+	err = instance.PutMemory(addr, uint64(len(value)), []byte(value))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess
+	}
+
+	err = instance.PutUint32(uint64(retPtr), uint32(addr))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess
+	}
+
+	err = instance.PutUint32(uint64(retSize), uint32(len(value)))
+	if err != nil {
+		return WasmResultInvalidMemoryAccess
+	}
+
+	return WasmResultOk
+}
+
+func getContextHandler(instance common.WasmInstance) ContextHandler {
+	if v := instance.GetData(); v != nil {
+		if im, ok := v.(ContextHandler); ok {
+			return im
+		}
+	}
+
+	return nil
+}
+
+func getImportHandler(instance common.WasmInstance) ImportsHandler {
+	if ctx := getContextHandler(instance); ctx != nil {
+		if im := ctx.GetImports(); im != nil {
+			return im
+		}
+	}
+
+	return &DefaultImportsHandler{}
+}
 
 // EncodeMap encode map into bytes.
 func EncodeMap(m map[string]string) []byte {

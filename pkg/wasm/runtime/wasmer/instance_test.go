@@ -33,9 +33,6 @@ func TestRegisterFunc(t *testing.T) {
 	// f is func with 0 args
 	assert.Equal(t, ins.RegisterFunc("TestRegisterFuncNamespace", "funcName", func() {}), ErrRegisterArgNum)
 
-	// f is func, but the first arg is not types.WasmInstance
-	assert.Equal(t, ins.RegisterFunc("TestRegisterFuncNamespace", "funcName", func(first int32) {}), ErrRegisterArgType)
-
 	assert.Nil(t, ins.RegisterFunc("TestRegisterFuncNamespace", "funcName", func(f types.WasmInstance) {}))
 
 	assert.Nil(t, ins.Start())
