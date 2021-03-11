@@ -19,12 +19,13 @@ package wasm
 
 import (
 	"encoding/binary"
+	"runtime/debug"
+
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/proxy-wasm-go-host/proxywasm"
-	"runtime/debug"
 )
 
 func proxySetBufferBytes(instance types.WasmInstance, bufferType int32, start int32, length int32, dataPtr int32, dataSize int32) int32 {

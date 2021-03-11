@@ -20,6 +20,7 @@ package wasm
 import (
 	"errors"
 	"fmt"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"

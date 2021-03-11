@@ -2,6 +2,7 @@ package wasm
 
 import (
 	"context"
+
 	"mosn.io/api"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"

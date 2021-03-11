@@ -20,6 +20,7 @@ package wasm
 import (
 	"context"
 	"fmt"
+
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
