@@ -8,7 +8,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func (proto *wasmRpcProtocol) keepaliveRequest(context context.Context, requestId uint64) api.XFrame {
+func (proto *wasmProtocol) keepaliveRequest(context context.Context, requestId uint64) api.XFrame {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		log.DefaultLogger.Errorf("[protocol] wasm %s keepalive request failed, wasm context not found.", proto.name)
@@ -35,7 +35,7 @@ func (proto *wasmRpcProtocol) keepaliveRequest(context context.Context, requestI
 	return wasmCtx.keepaliveReq
 }
 
-func (proto *wasmRpcProtocol) keepaliveResponse(context context.Context, request api.XFrame) api.XRespFrame {
+func (proto *wasmProtocol) keepaliveResponse(context context.Context, request api.XFrame) api.XRespFrame {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		log.DefaultLogger.Errorf("[protocol] wasm %s keepalive response failed, wasm context not found.", proto.name)

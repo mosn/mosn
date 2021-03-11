@@ -270,7 +270,7 @@ func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error 
 	}
 
 	// todo pass decode buffer to plugin
-	status, err := ff.Call(contextId, id)
+	status, err := ff.Call(contextId, int64(id))
 	if err != nil {
 		return err
 	}

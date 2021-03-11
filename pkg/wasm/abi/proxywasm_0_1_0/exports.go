@@ -117,7 +117,7 @@ func (a *AbiContext) ProxyOnVmStart(rootContextId int32, vmConfigurationSize int
 
 func (a *AbiContext) ProxyOnDelete(contextId int32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnDelete")
+		log.DefaultLogger.Debugf("[proxywasm_0_1_0][export] ProxyOnDelete, contextID: %d", contextId)
 	}
 
 	ff, err := a.instance.GetExportsFunc("proxy_on_delete")
@@ -128,7 +128,7 @@ func (a *AbiContext) ProxyOnDelete(contextId int32) error {
 
 	_, err = ff.Call(contextId)
 	if err != nil {
-		log.DefaultLogger.Errorf("[proxywasm_0_1_0][export] fail to call proxy_on_delete, err: %v", err)
+		log.DefaultLogger.Errorf("[proxywasm_0_1_0][export] fail to call proxy_on_delete, err: %v , contextID: %d", err, contextId)
 		a.instance.HandleError(err)
 		return err
 	}

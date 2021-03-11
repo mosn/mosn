@@ -77,8 +77,8 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 		if p.shutdown {
 			return
 		}
-
-		client, _ := p.newActiveClient(context.Background(), sub)
+		ctx := mosnctx.WithValue(context.Background(), types.ContextKeyWasmExtension, string(sub))
+		client, _ := p.newActiveClient(ctx, sub)
 		if client != nil {
 			client.state = Connected
 			client.indexInPool = index
@@ -240,6 +240,11 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 				keepAlive: rpcKeepAlive,
 			}
 			ac.codecClient.AddConnectionEventListener(ac.keepAlive)
+			// after detecting the heartbeat capability,
+			// the resource needs to be released
+			if proto, ok := proto.(api.WasmProtocol); ok {
+				proto.OnProxyDelete(ctx)
+			}
 		}
 	}
 

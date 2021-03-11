@@ -57,7 +57,7 @@ type Context struct {
 	decodeBuffer  buffer.IoBuffer
 	encodeCmd     api.XFrame
 	encodeBuffer  buffer.IoBuffer
-	proto         *wasmRpcProtocol
+	proto         *wasmProtocol
 	keepaliveReq  *Request
 	keepaliveResp *Response
 	contextId     int32

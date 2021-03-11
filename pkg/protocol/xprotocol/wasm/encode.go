@@ -25,7 +25,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func (proto *wasmRpcProtocol) encodeRequest(context context.Context, request *Request) (types.IoBuffer, error) {
+func (proto *wasmProtocol) encodeRequest(context context.Context, request *Request) (types.IoBuffer, error) {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		log.DefaultLogger.Errorf("[protocol] wasm %s encode request failed, wasm context not found.", proto.name)
@@ -44,7 +44,7 @@ func (proto *wasmRpcProtocol) encodeRequest(context context.Context, request *Re
 	return wasmCtx.GetEncodeBuffer(), err
 }
 
-func (proto *wasmRpcProtocol) encodeResponse(context context.Context, response *Response) (types.IoBuffer, error) {
+func (proto *wasmProtocol) encodeResponse(context context.Context, response *Response) (types.IoBuffer, error) {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		log.DefaultLogger.Errorf("[protocol] wasm %s encode response failed, wasm context not found.", proto.name)

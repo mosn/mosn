@@ -50,8 +50,8 @@ flag (bit) :
 
 */
 
-func NewWasmRpcProtocol(pw types.WasmPluginWrapper, wrapper *protocolWrapper) *wasmRpcProtocol {
-	return &wasmRpcProtocol{
+func NewWasmRpcProtocol(pw types.WasmPluginWrapper, wrapper *protocolWrapper) *wasmProtocol {
+	return &wasmProtocol{
 		pw:      pw,
 		name:    types.ProtocolName(wrapper.config.ExtendConfig.SubProtocol),
 		wrapper: wrapper,
@@ -60,18 +60,19 @@ func NewWasmRpcProtocol(pw types.WasmPluginWrapper, wrapper *protocolWrapper) *w
 
 // =========== wasm rpc v1.0 ========
 // Support for classic wasm-rpc microservice calls
-type wasmRpcProtocol struct {
+type wasmProtocol struct {
 	wrapper *protocolWrapper
 	pw      types.WasmPluginWrapper
 	name    types.ProtocolName
 }
 
 // types.Protocol
-func (proto *wasmRpcProtocol) Name() types.ProtocolName {
+func (proto *wasmProtocol) Name() types.ProtocolName {
 	return proto.name
 }
 
-func (proto *wasmRpcProtocol) Encode(ctx context.Context, message interface{}) (types.IoBuffer, error) {
+func (proto *wasmProtocol) Encode(ctx context.Context, message interface{}) (types.IoBuffer, error) {
+	proto.OnProxyCreate(ctx)
 	switch frame := message.(type) {
 	case *Request:
 		return proto.encodeRequest(ctx, frame)
@@ -83,39 +84,43 @@ func (proto *wasmRpcProtocol) Encode(ctx context.Context, message interface{}) (
 	}
 }
 
-func (proto *wasmRpcProtocol) Decode(ctx context.Context, buf types.IoBuffer) (interface{}, error) {
+func (proto *wasmProtocol) Decode(ctx context.Context, buf types.IoBuffer) (interface{}, error) {
+	proto.OnProxyCreate(ctx)
 	return proto.decodeCommand(ctx, buf)
 }
 
-func (proto *wasmRpcProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
+func (proto *wasmProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
+	proto.OnProxyCreate(ctx)
 	return proto.keepaliveRequest(ctx, requestId)
 }
 
-func (proto *wasmRpcProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
+func (proto *wasmProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
+	proto.OnProxyCreate(ctx)
 	return proto.keepaliveResponse(ctx, request)
 }
 
 // Hijacker
-func (proto *wasmRpcProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto *wasmProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
+	proto.OnProxyCreate(ctx)
 	return proto.hijack(ctx, request, statusCode)
 }
 
-func (proto *wasmRpcProtocol) Mapping(httpStatusCode uint32) uint32 {
+func (proto *wasmProtocol) Mapping(httpStatusCode uint32) uint32 {
 	return httpStatusCode
 }
 
 // need plugin report
-func (proto *wasmRpcProtocol) PoolMode() api.PoolMode {
+func (proto *wasmProtocol) PoolMode() api.PoolMode {
 	return proto.wrapper.config.poolMode
 }
 
-func (proto *wasmRpcProtocol) EnableWorkerPool() bool {
+func (proto *wasmProtocol) EnableWorkerPool() bool {
 	return !proto.wrapper.config.ExtendConfig.DisableWorkerPool
 }
 
 // generate a request id for stream to combine stream request && response
 // use connection param as base
-func (proto *wasmRpcProtocol) GenerateRequestID(streamID *uint64) uint64 {
+func (proto *wasmProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	if !proto.wrapper.config.ExtendConfig.PluginGenerateID {
 		return atomic.AddUint64(streamID, 1)
 	}
@@ -124,11 +129,11 @@ func (proto *wasmRpcProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }
 
-func (proto *wasmRpcProtocol) IsProxyWasm() bool {
+func (proto *wasmProtocol) IsProxyWasm() bool {
 	return true
 }
 
-func (proto *wasmRpcProtocol) OnProxyCreate(context context.Context) context.Context {
+func (proto *wasmProtocol) OnProxyCreate(context context.Context) context.Context {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		wasmCtx := proto.NewContext()
@@ -146,7 +151,7 @@ func (proto *wasmRpcProtocol) OnProxyCreate(context context.Context) context.Con
 	return context
 }
 
-func (proto *wasmRpcProtocol) OnProxyDone(context context.Context) {
+func (proto *wasmProtocol) OnProxyDone(context context.Context) {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		return
@@ -163,7 +168,7 @@ func (proto *wasmRpcProtocol) OnProxyDone(context context.Context) {
 
 }
 
-func (proto *wasmRpcProtocol) OnProxyDelete(context context.Context) {
+func (proto *wasmProtocol) OnProxyDelete(context context.Context) {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		return
@@ -174,10 +179,12 @@ func (proto *wasmRpcProtocol) OnProxyDelete(context context.Context) {
 	wasmCtx.abi.SetImports(wasmCtx)
 	// invoke plugin proxy on done
 	wasmCtx.exports.ProxyOnDelete(wasmCtx.contextId)
+	// remove wasm context
+	mosnctx.WithValue(context, types.ContextKeyWasmContext, nil)
 	wasmCtx.instance.Release()
 }
 
-func (proto *wasmRpcProtocol) NewContext() *Context {
+func (proto *wasmProtocol) NewContext() *Context {
 	instance := proto.pw.GetPlugin().GetInstance()
 	abiVersion := abi.GetABI(instance, AbiV2)
 	ctx := &Context{

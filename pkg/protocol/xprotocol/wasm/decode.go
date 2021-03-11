@@ -25,7 +25,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func (proto *wasmRpcProtocol) decodeCommand(context context.Context, buf types.IoBuffer) (interface{}, error) {
+func (proto *wasmProtocol) decodeCommand(context context.Context, buf types.IoBuffer) (interface{}, error) {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		log.DefaultLogger.Errorf("[protocol] wasm %s decode failed, wasm context not found.", proto.name)
@@ -46,7 +46,7 @@ func (proto *wasmRpcProtocol) decodeCommand(context context.Context, buf types.I
 		_, isReq := cmd.(*Request)
 		_, isResp := cmd.(*Response)
 		if cmd != nil {
-			log.DefaultLogger.Infof("decode command, context id: %d, req(%v)|resp(%v)|hb(%v), rpc id: %d \n", contextId, isReq, isResp, cmd.IsHeartbeatFrame(), cmd.GetRequestId())
+			log.DefaultLogger.Debugf("decode command, context id: %d, req(%v)|resp(%v)|hb(%v), rpc id: %d \n", contextId, isReq, isResp, cmd.IsHeartbeatFrame(), cmd.GetRequestId())
 		}
 	}
 	return cmd, err

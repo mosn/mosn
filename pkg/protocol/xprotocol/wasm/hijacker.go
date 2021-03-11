@@ -9,7 +9,7 @@ import (
 )
 
 // Hijacker
-func (proto *wasmRpcProtocol) hijack(context context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto *wasmProtocol) hijack(context context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
 		log.DefaultLogger.Errorf("[protocol] wasm %s hijack failed, wasm context not found.", proto.name)
