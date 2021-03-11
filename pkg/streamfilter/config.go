@@ -45,7 +45,7 @@ func LoadAndRegisterStreamFilters(path string) {
 		return
 	}
 
-	content, err := ioutil.ReadFile(filepath.Clean(absPath))
+	content, err := ioutil.ReadFile(absPath)
 	if err != nil {
 		log.DefaultLogger.Errorf("[streamfilter] LoadAndRegisterStreamFilters load config failed, error: %v", err)
 		return

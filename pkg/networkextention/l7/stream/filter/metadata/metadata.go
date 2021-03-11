@@ -31,7 +31,7 @@ type MetadataFilter struct {
 	metadataers *FilterConfigFactory
 }
 
-// NewMetadataFilter used to create new trace filter
+// NewMetadataFilter used to create new metadata filter
 func NewMetadataFilter(f *FilterConfigFactory) *MetadataFilter {
 	filter := &MetadataFilter{
 		metadataers: f,
