@@ -24,7 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	wasm2 "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
+	wasmer "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
 	"net"
 	"os"
 	"strconv"
@@ -220,7 +220,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 func (ch *connHandler) AddOrUpdateWasmProxyProtocolConfig(lc *v2.Listener) {
 	for _, f := range lc.FilterChains[0].Filters {
 		if f.Type == v2.DEFAULT_NETWORK_FILTER {
-			wasm2.GetProxyProtocolManager().AddOrUpdateProtocolConfig(f.Config)
+			wasmer.GetProxyProtocolManager().AddOrUpdateProtocolConfig(f.Config)
 		}
 	}
 }

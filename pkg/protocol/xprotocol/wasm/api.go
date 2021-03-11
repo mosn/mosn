@@ -18,12 +18,9 @@
 package wasm
 
 import (
-	"go.uber.org/atomic"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 )
-
-var _id atomic.Uint32
 
 func NewWasmRequestWithId(id uint32, headers *xprotocol.Header, payload types.IoBuffer) *Request {
 	request := &Request{
