@@ -22,8 +22,8 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
-	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
 	"mosn.io/pkg/buffer"
+	"mosn.io/proxy-wasm-go-host/proxywasm"
 	"runtime/debug"
 )
 
@@ -35,14 +35,14 @@ func proxySetBufferBytes(instance types.WasmInstance, bufferType int32, start in
 		}
 	}()
 
-	bt := v1.BufferType(bufferType)
+	bt := proxywasm.BufferType(bufferType)
 	switch bt {
 	case BufferTypeDecodeData:
 		return proxySetDecodeCommand(instance, bufferType, start, length, dataPtr, dataSize)
 	case BufferTypeEncodeData:
 		return proxySetEncodeCommand(instance, bufferType, start, length, dataPtr, dataSize)
 	default:
-		return v1.ProxySetBufferBytes(instance, bufferType, start, length, dataPtr, dataSize)
+		return proxywasm.ProxySetBufferBytes(instance, bufferType, start, length, dataPtr, dataSize)
 	}
 }
 
@@ -51,7 +51,7 @@ func proxySetDecodeCommand(instance types.WasmInstance, bufferType int32, start 
 	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes length | raw bytes
 	content, err := instance.GetMemory(uint64(ptr), uint64(size))
 	if err != nil {
-		return v1.WasmResultInvalidMemoryAccess.Int32()
+		return proxywasm.WasmResultInvalidMemoryAccess.Int32()
 	}
 
 	headerBytes := binary.BigEndian.Uint32(content[0:4])
@@ -71,10 +71,10 @@ func proxySetDecodeCommand(instance types.WasmInstance, bufferType int32, start 
 		decodeWasmResponse(instance, bufferType, content, headerBytes, id, &headers, flag)
 	default:
 		log.DefaultLogger.Errorf("[wasm] failed to decode buffer, type = %s, value = %d", UnKnownRpcFlagType, flag)
-		return v1.WasmResultBadArgument.Int32()
+		return proxywasm.WasmResultBadArgument.Int32()
 	}
 
-	return v1.WasmResultOk.Int32()
+	return proxywasm.WasmResultOk.Int32()
 }
 
 func proxySetEncodeCommand(instance types.WasmInstance, bufferType int32, start int32, length int32, ptr int32, size int32) int32 {
@@ -82,7 +82,7 @@ func proxySetEncodeCommand(instance types.WasmInstance, bufferType int32, start 
 	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes
 	content, err := instance.GetMemory(uint64(ptr), uint64(size))
 	if err != nil {
-		return v1.WasmResultInvalidMemoryAccess.Int32()
+		return proxywasm.WasmResultInvalidMemoryAccess.Int32()
 	}
 
 	headerBytes := binary.BigEndian.Uint32(content[0:4])
@@ -110,7 +110,7 @@ func proxySetEncodeCommand(instance types.WasmInstance, bufferType int32, start 
 	ctx := getInstanceCallback(instance)
 	ctx.SetEncodeBuffer(buf)
 
-	return v1.WasmResultOk.Int32()
+	return proxywasm.WasmResultOk.Int32()
 }
 
 func decodeWasmRequest(instance types.WasmInstance, bufferType int32,
@@ -150,7 +150,7 @@ func decodeWasmRequest(instance types.WasmInstance, bufferType int32,
 	if flag&RpcOneWayRequestFlag == RpcOneWayRequestFlag {
 		req.Flag = req.Flag | RpcOneWayRequestFlag
 	}
-	buf := GetBuffer(instance, v1.BufferType(bufferType))
+	buf := GetBuffer(instance, proxywasm.BufferType(bufferType))
 	// if data without change, direct encode forward
 	req.Data = buffer.GetIoBuffer(int(drainLen))
 	req.Data.Write(buf.Bytes()[:drainLen])
@@ -195,7 +195,7 @@ func decodeWasmResponse(instance types.WasmInstance, bufferType int32,
 	if flag&HeartBeatFlag != 0 {
 		resp.Flag = resp.Flag | HeartBeatFlag
 	}
-	buf := GetBuffer(instance, v1.BufferType(bufferType))
+	buf := GetBuffer(instance, proxywasm.BufferType(bufferType))
 	// if data without change, direct encode forward
 	resp.Data = buffer.GetIoBuffer(int(drainLen))
 	resp.Data.Write(buf.Bytes()[:drainLen])
@@ -208,7 +208,7 @@ func decodeWasmResponse(instance types.WasmInstance, bufferType int32,
 	ctx.SetDecodeCmd(resp)
 }
 
-func GetBuffer(instance types.WasmInstance, bufferType v1.BufferType) buffer.IoBuffer {
+func GetBuffer(instance types.WasmInstance, bufferType proxywasm.BufferType) buffer.IoBuffer {
 	callback := getInstanceCallback(instance)
 	switch bufferType {
 	case BufferTypeDecodeData:
@@ -229,7 +229,7 @@ func getInstanceCallback(instance types.WasmInstance) ContextCallback {
 		return &Context{}
 	}
 
-	imports := cb.GetImports()
+	imports := cb.GetABIImports()
 	if imports == nil {
 		log.DefaultLogger.Errorf("[proxywasm_0_2_0][imports] getInstanceCallback imports not set")
 		return &Context{}

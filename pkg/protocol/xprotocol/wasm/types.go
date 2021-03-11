@@ -20,7 +20,7 @@ package wasm
 import (
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
-	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
+	"mosn.io/proxy-wasm-go-host/proxywasm"
 )
 
 const (
@@ -53,8 +53,8 @@ type ProtocolConfig struct {
 
 // extension for protocol
 const (
-	BufferTypeDecodeData v1.BufferType = 13
-	BufferTypeEncodeData v1.BufferType = 14
+	BufferTypeDecodeData proxywasm.BufferType = 13
+	BufferTypeEncodeData proxywasm.BufferType = 14
 	//
-	StatusNeedMoreData v1.WasmResult = 99
+	StatusNeedMoreData proxywasm.WasmResult = 99
 )

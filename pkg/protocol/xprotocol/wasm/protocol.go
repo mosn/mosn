@@ -138,14 +138,14 @@ func (proto *wasmProtocol) OnProxyCreate(context context.Context) context.Contex
 	if ctx == nil {
 		wasmCtx := proto.NewContext()
 		// save current wasm context wasmCtx
-		wasmCtx.instance.Acquire(wasmCtx.abi)
-		wasmCtx.abi.SetImports(wasmCtx)
+		wasmCtx.instance.Lock(wasmCtx.abi)
+		wasmCtx.abi.SetABIImports(wasmCtx)
 		// invoke plugin proxy on create
 		err := wasmCtx.exports.ProxyOnContextCreate(wasmCtx.contextId, proto.wrapper.config.ExtendConfig.RootContextID)
 		if err != nil {
 			log.DefaultLogger.Warnf("failed to create protocol '%s' context, contextId %d not found", proto.name, wasmCtx.contextId)
 		}
-		wasmCtx.instance.Release()
+		wasmCtx.instance.Unlock()
 		return mosnctx.WithValue(context, types.ContextKeyWasmContext, wasmCtx)
 	}
 	return context
@@ -158,13 +158,13 @@ func (proto *wasmProtocol) OnProxyDone(context context.Context) {
 	}
 
 	wasmCtx := ctx.(*Context)
-	wasmCtx.instance.Acquire(wasmCtx.abi)
-	wasmCtx.abi.SetImports(wasmCtx)
+	wasmCtx.instance.Lock(wasmCtx.abi)
+	wasmCtx.abi.SetABIImports(wasmCtx)
 	// invoke plugin proxy on done
 	wasmCtx.exports.ProxyOnDone(wasmCtx.contextId)
 	// invoke plugin proxy log
 	wasmCtx.exports.ProxyOnLog(wasmCtx.contextId)
-	wasmCtx.instance.Release()
+	wasmCtx.instance.Unlock()
 
 }
 
@@ -175,13 +175,13 @@ func (proto *wasmProtocol) OnProxyDelete(context context.Context) {
 	}
 
 	wasmCtx := ctx.(*Context)
-	wasmCtx.instance.Acquire(wasmCtx.abi)
-	wasmCtx.abi.SetImports(wasmCtx)
+	wasmCtx.instance.Lock(wasmCtx.abi)
+	wasmCtx.abi.SetABIImports(wasmCtx)
 	// invoke plugin proxy on done
 	wasmCtx.exports.ProxyOnDelete(wasmCtx.contextId)
 	// remove wasm context
 	mosnctx.WithValue(context, types.ContextKeyWasmContext, nil)
-	wasmCtx.instance.Release()
+	wasmCtx.instance.Unlock()
 }
 
 func (proto *wasmProtocol) NewContext() *Context {

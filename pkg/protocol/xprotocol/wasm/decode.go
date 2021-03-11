@@ -33,13 +33,13 @@ func (proto *wasmProtocol) decodeCommand(context context.Context, buf types.IoBu
 	}
 
 	wasmCtx := ctx.(*Context)
-	wasmCtx.instance.Acquire(wasmCtx.abi)
-	wasmCtx.abi.SetImports(wasmCtx)
+	wasmCtx.instance.Lock(wasmCtx.abi)
+	wasmCtx.abi.SetABIImports(wasmCtx)
 	// The decoded data needs to be discarded
 	wasmCtx.SetDecodeBuffer(buf)
 	// invoke plugin decode impl
 	err := wasmCtx.exports.ProxyDecodeBufferBytes(wasmCtx.contextId, buf)
-	wasmCtx.instance.Release()
+	wasmCtx.instance.Unlock()
 
 	cmd := wasmCtx.GetDecodeCmd()
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {

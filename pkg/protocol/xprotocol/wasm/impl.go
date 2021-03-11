@@ -20,7 +20,7 @@ package wasm
 import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm/abi"
-	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
+	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 )
 
 const (
@@ -40,7 +40,7 @@ func abiImplFactory(instance types.WasmInstance) types.ABI {
 
 // easy for extension
 type AbiV2Impl struct {
-	v1.AbiContext
+	v1.ABIContext
 }
 
 func (a *AbiV2Impl) Name() string {
@@ -50,7 +50,7 @@ func (a *AbiV2Impl) Name() string {
 func (a *AbiV2Impl) OnInstanceCreate(instance types.WasmInstance) {
 
 	// pre register abi 0_1_0 version
-	a.AbiContext.OnInstanceCreate(instance)
+	a.ABIContext.OnInstanceCreate(instance)
 
 	instance.RegisterFunc("env", "proxy_set_buffer_bytes", proxySetBufferBytes)
 

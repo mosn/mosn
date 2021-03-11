@@ -20,12 +20,13 @@ package wasm
 import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
-	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
+	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	"mosn.io/pkg/buffer"
+	"mosn.io/proxy-wasm-go-host/proxywasm"
 )
 
 type Exports interface {
-	v1.Exports
+	proxywasm.Exports
 	ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) error
 	ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request) error
 	ProxyEncodeResponseBufferBytes(contextId int32, cmd *Response) error
@@ -37,7 +38,7 @@ type Exports interface {
 
 type ContextCallback interface {
 	// extension for abi 0_1_0
-	v1.ImportsHandler
+	proxywasm.ImportsHandler
 
 	//DrainLength() uint32
 	GetDecodeCmd() api.XFrame

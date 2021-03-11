@@ -24,8 +24,8 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
-	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
 	"mosn.io/pkg/buffer"
+	"mosn.io/proxy-wasm-go-host/proxywasm"
 )
 
 func (a *AbiV2Impl) ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) error {
@@ -66,7 +66,7 @@ func (a *AbiV2Impl) ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) 
 	}
 
 	// check invoke success
-	if status != v1.WasmResultOk.Int32() {
+	if status != proxywasm.WasmResultOk.Int32() {
 		return errors.New(fmt.Sprintf("plugin %s decode buffer failed, contextId: %d, len: %d", ctx.proto.name, ctx.ContextId(), buf.Len()))
 	}
 
@@ -156,7 +156,7 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 	status := resp.(int32)
 
 	// check invoke success
-	if status != v1.WasmResultOk.Int32() {
+	if status != proxywasm.WasmResultOk.Int32() {
 		return errors.New(fmt.Sprintf("plugin %s encode request buffer failed, contextId: %d, len: %d", ctx.proto.name, ctx.ContextId(), buf.Len()))
 	}
 
@@ -245,7 +245,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 	status := resp.(int32)
 
 	// check invoke success
-	if status != v1.WasmResultOk.Int32() {
+	if status != proxywasm.WasmResultOk.Int32() {
 		return errors.New(fmt.Sprintf("plugin %s encode response buffer failed, contextId: %d, len: %d", ctx.proto.name, ctx.ContextId(), buf.Len()))
 	}
 
@@ -276,7 +276,7 @@ func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error 
 	}
 
 	// check invoke success
-	if status != v1.WasmResultOk.Int32() {
+	if status != proxywasm.WasmResultOk.Int32() {
 		return errors.New(fmt.Sprintf("plugin %s trigger keepalive request failed, contextId: %d", ctx.proto.name, ctx.ContextId()))
 	}
 
@@ -304,7 +304,7 @@ func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd *Request
 	}
 
 	// check invoke success
-	if status != v1.WasmResultOk.Int32() {
+	if status != proxywasm.WasmResultOk.Int32() {
 		return errors.New(fmt.Sprintf("plugin %s trigger keepalive response failed, contextId: %d", ctx.proto.name, ctx.ContextId()))
 	}
 
@@ -332,7 +332,7 @@ func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd *Request, status
 	}
 
 	// check invoke success
-	if status != v1.WasmResultOk.Int32() {
+	if status != proxywasm.WasmResultOk.Int32() {
 		return errors.New(fmt.Sprintf("plugin %s hijack response failed, contextId: %d", ctx.proto.name, ctx.ContextId()))
 	}
 

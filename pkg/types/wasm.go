@@ -135,8 +135,6 @@ type ABI interface {
 	// GetExports returns the export part of the abi
 	GetABIExports() interface{}
 
-	GetImports() interface{}
-
 	ABIHandler
 }
 

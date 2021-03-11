@@ -28,7 +28,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
 	"mosn.io/mosn/pkg/wasm/abi"
-	"mosn.io/mosn/pkg/wasm/abi/proxywasm_0_1_0"
+	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 	"reflect"
@@ -74,7 +74,7 @@ type ProxyProtocolWrapper interface {
 }
 
 type protocolWrapper struct {
-	proxywasm_0_1_0.DefaultImportsHandler
+	proxywasm010.DefaultImportsHandler
 	pluginName    string
 	config        *ProtocolConfig        // plugin config
 	conf          map[string]interface{} // raw config map
@@ -157,7 +157,7 @@ func (f *protocolWrapper) OnPluginStart(plugin types.WasmPlugin) {
 	plugin.Exec(func(instance types.WasmInstance) bool {
 
 		abiVersion := abi.GetABI(instance, AbiV2)
-		abiVersion.SetImports(f)
+		abiVersion.SetABIImports(f)
 		exports := abiVersion.(Exports)
 
 		if abiVersion == nil {
@@ -165,8 +165,8 @@ func (f *protocolWrapper) OnPluginStart(plugin types.WasmPlugin) {
 			return true
 		}
 
-		instance.Acquire(abiVersion)
-		defer instance.Release()
+		instance.Lock(abiVersion)
+		defer instance.Unlock()
 
 		_ = exports.ProxyOnContextCreate(f.config.ExtendConfig.RootContextID, 0)
 		_, _ = exports.ProxyOnVmStart(f.config.ExtendConfig.RootContextID, int32(f.GetVmConfig().Len()))

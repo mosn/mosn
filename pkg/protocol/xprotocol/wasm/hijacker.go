@@ -17,8 +17,8 @@ func (proto *wasmProtocol) hijack(context context.Context, request api.XFrame, s
 	}
 
 	wasmCtx := ctx.(*Context)
-	wasmCtx.instance.Acquire(wasmCtx.abi)
-	wasmCtx.abi.SetImports(wasmCtx)
+	wasmCtx.instance.Lock(wasmCtx.abi)
+	wasmCtx.abi.SetABIImports(wasmCtx)
 	// invoke plugin hijack impl
 	err := wasmCtx.exports.ProxyHijackBufferBytes(wasmCtx.contextId, request.(*Request), statusCode)
 	if err != nil {
@@ -29,7 +29,7 @@ func (proto *wasmProtocol) hijack(context context.Context, request api.XFrame, s
 	// When encode is called, the proxy gets the correct buffer
 	wasmCtx.keepaliveResp = NewWasmResponseWithId(uint32(request.GetRequestId()), nil, nil)
 
-	wasmCtx.instance.Release()
+	wasmCtx.instance.Unlock()
 
 	return wasmCtx.keepaliveResp
 }

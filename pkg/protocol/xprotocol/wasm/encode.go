@@ -33,13 +33,13 @@ func (proto *wasmProtocol) encodeRequest(context context.Context, request *Reque
 	}
 
 	wasmCtx := ctx.(*Context)
-	wasmCtx.instance.Acquire(wasmCtx.abi)
-	wasmCtx.abi.SetImports(wasmCtx)
+	wasmCtx.instance.Lock(wasmCtx.abi)
+	wasmCtx.abi.SetABIImports(wasmCtx)
 	// only for debug
 	wasmCtx.SetEncodeCmd(request)
 	// invoke plugin encode impl
 	err := wasmCtx.exports.ProxyEncodeRequestBufferBytes(wasmCtx.contextId, request)
-	wasmCtx.instance.Release()
+	wasmCtx.instance.Unlock()
 
 	return wasmCtx.GetEncodeBuffer(), err
 }
@@ -52,13 +52,13 @@ func (proto *wasmProtocol) encodeResponse(context context.Context, response *Res
 	}
 
 	wasmCtx := ctx.(*Context)
-	wasmCtx.instance.Acquire(wasmCtx.abi)
-	wasmCtx.abi.SetImports(wasmCtx)
+	wasmCtx.instance.Lock(wasmCtx.abi)
+	wasmCtx.abi.SetABIImports(wasmCtx)
 	// only for debug
 	wasmCtx.SetEncodeCmd(response)
 	// invoke plugin encode impl
 	err := wasmCtx.exports.ProxyEncodeResponseBufferBytes(wasmCtx.contextId, response)
-	wasmCtx.instance.Release()
+	wasmCtx.instance.Unlock()
 
 	return wasmCtx.GetEncodeBuffer(), err
 }

@@ -16,9 +16,9 @@ func (proto *wasmProtocol) keepaliveRequest(context context.Context, requestId u
 	}
 
 	wasmCtx := ctx.(*Context)
-	wasmCtx.instance.Acquire(wasmCtx.abi)
-	wasmCtx.abi.SetImports(wasmCtx)
-	defer wasmCtx.instance.Release()
+	wasmCtx.instance.Lock(wasmCtx.abi)
+	wasmCtx.abi.SetABIImports(wasmCtx)
+	defer wasmCtx.instance.Unlock()
 
 	// invoke plugin keepalive impl
 	err := wasmCtx.exports.ProxyKeepAliveBufferBytes(wasmCtx.contextId, requestId)
@@ -43,9 +43,9 @@ func (proto *wasmProtocol) keepaliveResponse(context context.Context, request ap
 	}
 
 	wasmCtx := ctx.(*Context)
-	wasmCtx.instance.Acquire(wasmCtx.abi)
-	wasmCtx.abi.SetImports(wasmCtx)
-	defer wasmCtx.instance.Release()
+	wasmCtx.instance.Lock(wasmCtx.abi)
+	wasmCtx.abi.SetABIImports(wasmCtx)
+	defer wasmCtx.instance.Unlock()
 
 	// invoke plugin keepalive impl
 	err := wasmCtx.exports.ProxyReplyKeepAliveBufferBytes(wasmCtx.contextId, request.(*Request))

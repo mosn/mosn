@@ -56,7 +56,7 @@ require (
 	k8s.io/klog v1.0.0
 	mosn.io/api v0.0.0-20210204052134-5b9a826795fd
 	mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4
-	mosn.io/proxy-wasm-go-host v0.0.0-20210310031752-6be0cc6caf8e
+	mosn.io/proxy-wasm-go-host v0.0.0-20210311055656-5478cf179181
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4

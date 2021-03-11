@@ -439,5 +439,7 @@ mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4 h1:6mh2DtmcqzRrv/w3aXVWY7Na64ohm8
 mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4/go.mod h1:YEv5sGe7kqo/Yzj7OJI7Udl3iUcagNeo5unGPiUaUfw=
 mosn.io/proxy-wasm-go-host v0.0.0-20210310031752-6be0cc6caf8e h1:wphXyjG5WzgVG/6ZTmTe2fqI3/r6bmziWHnnTQL6aew=
 mosn.io/proxy-wasm-go-host v0.0.0-20210310031752-6be0cc6caf8e/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
+mosn.io/proxy-wasm-go-host v0.0.0-20210311055656-5478cf179181 h1:nTDmWmn5SHdqPn8AQ/ayuf/7QcGCg9HZEscUMPJmKAQ=
+mosn.io/proxy-wasm-go-host v0.0.0-20210311055656-5478cf179181/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=
