@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -31,7 +33,6 @@ import (
 	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
-	"reflect"
 )
 
 func GetProxyProtocolManager() ProxyProtocolManager {
@@ -90,6 +91,10 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolW
 	if err != nil {
 		log.DefaultLogger.Errorf("[wasm][protocol] CreateProxyWasmProtocolFactory fail to parse wrapper, err: %v", err)
 		return nil, err
+	}
+
+	if config == nil {
+		return nil, nil
 	}
 
 	// not wasm extension
@@ -222,6 +227,11 @@ func ParseProtocolConfig(cfg map[string]interface{}) (*ProtocolConfig, error) {
 
 	if err := json.Unmarshal(data, &config); err != nil {
 		return nil, err
+	}
+
+	if config.ExtendConfig == nil {
+		// not support wasm
+		return nil, nil
 	}
 
 	if config.ExtendConfig.FromWasmPlugin != "" {
