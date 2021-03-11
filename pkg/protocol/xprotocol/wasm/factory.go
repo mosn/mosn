@@ -156,7 +156,7 @@ func (f *protocolWrapper) OnConfigUpdate(config v2.WasmPluginConfig) {
 func (f *protocolWrapper) OnPluginStart(plugin types.WasmPlugin) {
 	plugin.Exec(func(instance types.WasmInstance) bool {
 
-		abiVersion := abi.GetABI(instance, "proxy_abi_version_0_2_0")
+		abiVersion := abi.GetABI(instance, AbiV2)
 		abiVersion.SetImports(f)
 		exports := abiVersion.(Exports)
 

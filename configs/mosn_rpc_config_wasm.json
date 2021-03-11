@@ -129,7 +129,7 @@
 			"plugin_name": "x-bolt",
 			"vm_config": {
 				"engine": "wasmer",
-				"path": "/Users/yiji/go/src/github.com/zonghaishang/proxy-wasm-sdk-go/examples/bolt/build/bolt-go.wasm",
+				"path": "etc/wasm/bolt-go.wasm",
 				"cpu": 100,
 				"mem": 100
 			}

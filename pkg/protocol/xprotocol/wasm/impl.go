@@ -24,11 +24,11 @@ import (
 )
 
 const (
-	AbiV2 = "proxy_abi_version_0_2_0"
+	AbiV2 = "proxy_abi_spec_0_2_0"
 )
 
 func init() {
-	abi.RegisterABI("proxy_abi_version_0_2_0", abiImplFactory)
+	abi.RegisterABI(AbiV2, abiImplFactory)
 }
 
 func abiImplFactory(instance types.WasmInstance) types.ABI {
