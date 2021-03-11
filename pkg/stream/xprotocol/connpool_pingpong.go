@@ -230,12 +230,6 @@ func (p *poolPingPong) newActiveClient(ctx context.Context, subProtocol api.Prot
 			rpcKeepAlive.StartIdleTimeout()
 
 			ac.SetHeartBeater(rpcKeepAlive)
-
-			// after detecting the heartbeat capability,
-			// the resource needs to be released
-			if proto, ok := proto.(api.WasmProtocol); ok {
-				proto.OnProxyDelete(ctx)
-			}
 		}
 	}
 	////////// codec client
