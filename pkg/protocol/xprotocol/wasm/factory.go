@@ -93,13 +93,13 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolW
 	}
 
 	// not wasm extension
-	if config.FromWasmPlugin == "" && config.VmConfig == nil {
+	if config.ExtendConfig.FromWasmPlugin == "" && config.VmConfig == nil {
 		return nil, nil
 	}
 
 	var pluginName string
-	if config.FromWasmPlugin != "" {
-		pluginName = config.FromWasmPlugin
+	if config.ExtendConfig.FromWasmPlugin != "" {
+		pluginName = config.ExtendConfig.FromWasmPlugin
 	} else {
 		pluginName = utils.GenerateUUID()
 
@@ -121,7 +121,7 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolW
 		return nil, errors.New(fmt.Sprintf("plugin '%s' not found", pluginName))
 	}
 
-	if config.FromWasmPlugin == "" {
+	if config.ExtendConfig.FromWasmPlugin == "" {
 		config.VmConfig = pw.GetConfig().VmConfig
 	}
 
@@ -168,9 +168,9 @@ func (f *protocolWrapper) OnPluginStart(plugin types.WasmPlugin) {
 		instance.Acquire(abiVersion)
 		defer instance.Release()
 
-		_ = exports.ProxyOnContextCreate(f.config.RootContextID, 0)
-		_, _ = exports.ProxyOnVmStart(f.config.RootContextID, int32(f.GetVmConfig().Len()))
-		_, _ = exports.ProxyOnConfigure(f.config.RootContextID, int32(f.GetPluginConfig().Len()))
+		_ = exports.ProxyOnContextCreate(f.config.ExtendConfig.RootContextID, 0)
+		_, _ = exports.ProxyOnVmStart(f.config.ExtendConfig.RootContextID, int32(f.GetVmConfig().Len()))
+		_, _ = exports.ProxyOnConfigure(f.config.ExtendConfig.RootContextID, int32(f.GetPluginConfig().Len()))
 
 		return true
 	})
@@ -224,11 +224,11 @@ func ParseProtocolConfig(cfg map[string]interface{}) (*ProtocolConfig, error) {
 		return nil, err
 	}
 
-	if config.FromWasmPlugin != "" {
+	if config.ExtendConfig.FromWasmPlugin != "" {
 		config.VmConfig = nil
 	}
 
-	switch config.PoolMode {
+	switch config.ExtendConfig.PoolMode {
 	case "ping-pong":
 		config.poolMode = api.PingPong
 	case "tcp":

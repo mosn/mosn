@@ -54,7 +54,12 @@ type Proxy struct {
 
 // XProxyExtendConfig
 type XProxyExtendConfig struct {
-	SubProtocol string `json:"sub_protocol,omitempty"`
+	SubProtocol       string `json:"sub_protocol,omitempty"`
+	FromWasmPlugin    string `json:"from_wasm_plugin,omitempty"`
+	RootContextID     int32  `json:"root_id,omitempty"`
+	PoolMode          string `json:"pool_mode,omitempty"`
+	DisableWorkerPool bool   `json:"disable_worker_pool,omitempty"`
+	PluginGenerateID  bool   `json:"plugin_generate_id,omitempty"`
 }
 
 // ProxyGeneralExtendConfig is a general config for proxy

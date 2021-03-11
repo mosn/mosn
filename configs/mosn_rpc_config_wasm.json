@@ -45,13 +45,10 @@
 									"upstream_protocol": "Auto",
 									"router_config_name":"server_router",
 									"extend_config": {
-										"sub_protocol": "x-bolt"
-									},
-                                    "from_wasm_plugin": "x-bolt",
-                                    "pool_mode": "multiplex",
-                                    "disable_worker_pool": false,
-                                    "plugin_generate_id": false,
-									"root_id": 1
+										"sub_protocol": "x-bolt",
+										"from_wasm_plugin": "x-bolt",
+										"root_id": 1
+									}
                                 }
 							}
 						]
@@ -77,13 +74,10 @@
 									"upstream_protocol": "Auto",
 									"router_config_name":"client_router",
                                     "extend_config": {
-                                      "sub_protocol": "x-bolt"
-                                    },
-                                    "from_wasm_plugin": "x-bolt",
-									"pool_mode": "multiplex",
-									"disable_worker_pool": false,
-									"plugin_generate_id": false,
-									"root_id": 1
+										"sub_protocol": "x-bolt",
+										"from_wasm_plugin": "x-bolt",
+										"root_id": 1
+                                    }
 								}
 							}
 						]

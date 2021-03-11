@@ -44,16 +44,11 @@ const (
 )
 
 type ProtocolConfig struct {
-	FromWasmPlugin string                 `json:"from_wasm_plugin,omitempty"`
-	VmConfig       *v2.WasmVmConfig       `json:"vm_config,omitempty"`
-	InstanceNum    int                    `json:"instance_num,omitempty"`
-	RootContextID  int32                  `json:"root_id,omitempty"`
-	ExtendConfig   *v2.XProxyExtendConfig `json:"extend_config,omitempty"`
+	VmConfig     *v2.WasmVmConfig       `json:"vm_config,omitempty"`
+	InstanceNum  int                    `json:"instance_num,omitempty"`
+	ExtendConfig *v2.XProxyExtendConfig `json:"extend_config,omitempty"`
 	// protocol feature field
-	PoolMode          string `json:"pool_mode,omitempty"`
-	DisableWorkerPool bool   `json:"disable_worker_pool,omitempty"`
-	PluginGenerateID  bool   `json:"plugin_generate_id,omitempty"`
-	poolMode          api.PoolMode
+	poolMode api.PoolMode
 }
 
 // extension for protocol
