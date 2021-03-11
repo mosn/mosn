@@ -50,8 +50,8 @@ const (
 	ContextKeyDownStreamHeaders
 	ContextKeyDownStreamRespHeaders
 	ContextKeyWasmContext
-	ContextKeyWasmSwitchContext
 	ContextKeyWasmExtension
+	ContextKeyDetectHeartbeatFeature
 	ContextKeyEnd
 )
 

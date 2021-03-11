@@ -42,6 +42,9 @@ func (proto *wasmProtocol) encodeRequest(context context.Context, request *Reque
 	err := wasmCtx.exports.ProxyEncodeRequestBufferBytes(wasmCtx.contextId, request)
 	wasmCtx.instance.Unlock()
 
+	// clean plugin context
+	proto.finishWasmContext(context)
+
 	return wasmCtx.GetEncodeBuffer(), err
 }
 
@@ -60,6 +63,9 @@ func (proto *wasmProtocol) encodeResponse(context context.Context, response *Res
 	// invoke plugin encode impl
 	err := wasmCtx.exports.ProxyEncodeResponseBufferBytes(wasmCtx.contextId, response)
 	wasmCtx.instance.Unlock()
+
+	// clean plugin context
+	proto.finishWasmContext(context)
 
 	return wasmCtx.GetEncodeBuffer(), err
 }

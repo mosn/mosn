@@ -21,7 +21,6 @@ import (
 	"container/list"
 	"context"
 	"fmt"
-	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"net"
 	nethttp "net/http"
 	"net/url"
@@ -257,9 +256,6 @@ func (s *downStream) cleanStream() {
 	// record metrics
 	s.requestMetrics()
 
-	// clean wasm context
-	s.finishWasmContext()
-
 	// finish tracing
 	s.finishTracing()
 
@@ -275,26 +271,6 @@ func (s *downStream) cleanStream() {
 
 	// recycle if no reset events
 	s.giveStream()
-}
-
-func (s *downStream) finishWasmContext() {
-	name := s.proxy.serverStreamConn.Protocol()
-	if name == protocol.Xprotocol {
-		name = types.ProtocolName(mosnctx.Get(s.context, types.ContextSubProtocol).(string))
-		if proto, ok := xprotocol.GetProtocol(name).(api.WasmProtocol); ok {
-			// complete upstream wasm resource
-			s.completeWasmContext(proto, s.context)
-			if switchCtx := mosnctx.Get(s.context, types.ContextKeyWasmSwitchContext); switchCtx != nil {
-				// complete downstream wasm resource
-				s.completeWasmContext(proto, switchCtx.(context.Context))
-			}
-		}
-	}
-}
-
-func (s *downStream) completeWasmContext(proto api.WasmProtocol, context context.Context) {
-	proto.OnProxyDone(context)
-	proto.OnProxyDelete(context)
 }
 
 // requestMetrics records the request metrics when cleanStream

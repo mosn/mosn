@@ -153,20 +153,6 @@ func (proto *wasmProtocol) OnProxyCreate(context context.Context) context.Contex
 }
 
 func (proto *wasmProtocol) OnProxyDone(context context.Context) {
-	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
-	if ctx == nil {
-		return
-	}
-
-	wasmCtx := ctx.(*Context)
-	wasmCtx.instance.Lock(wasmCtx.abi)
-	wasmCtx.abi.SetABIImports(wasmCtx)
-	// invoke plugin proxy on done
-	wasmCtx.exports.ProxyOnDone(wasmCtx.contextId)
-	// invoke plugin proxy log
-	wasmCtx.exports.ProxyOnLog(wasmCtx.contextId)
-	wasmCtx.instance.Unlock()
-
 }
 
 func (proto *wasmProtocol) OnProxyDelete(context context.Context) {
@@ -196,4 +182,8 @@ func (proto *wasmProtocol) NewContext() *Context {
 		instance:  instance,
 	}
 	return ctx
+}
+
+func (proto *wasmProtocol) finishWasmContext(context context.Context) {
+	proto.OnProxyDelete(context)
 }

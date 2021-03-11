@@ -19,9 +19,10 @@ package xprotocol
 
 import (
 	"context"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"sync"
 	"time"
+
+	mosnctx "mosn.io/mosn/pkg/context"
 
 	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
@@ -173,8 +174,6 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[stream] [xprotocol] [keepalive] connection %d send a keepalive request, id = %d", kp.Codec.ConnID(), id)
 	}
-	// clean request resource
-	kp.finishWasmContext(ctx)
 }
 
 func (kp *xprotocolKeepAlive) GetTimeout() time.Duration {
@@ -244,14 +243,14 @@ func (kp *xprotocolKeepAlive) Stop() {
 func (kp *xprotocolKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	if ack, ok := headers.(api.XFrame); ok {
 		kp.HandleSuccess(ack.GetRequestId())
-		kp.finishWasmContext(ctx)
+		kp.completeContext(ctx)
 	}
 }
 
 // OnDecodeError does not process decode failure
 // the timer will fail this heart beat
 func (kp *xprotocolKeepAlive) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
-	kp.finishWasmContext(ctx)
+	kp.completeContext(ctx)
 }
 
 type keepAliveTimeout struct {
@@ -273,7 +272,7 @@ func (t *keepAliveTimeout) onTimeout() {
 	t.KeepAlive.HandleTimeout(t.ID)
 }
 
-func (kp *xprotocolKeepAlive) finishWasmContext(context context.Context) {
+func (kp *xprotocolKeepAlive) completeContext(context context.Context) {
 	if proto, ok := kp.Protocol.(api.WasmProtocol); ok {
 		proto.OnProxyDone(context)
 		proto.OnProxyDelete(context)

@@ -380,17 +380,11 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame api.XFrame) {
 
 func (sc *streamConn) switchWasmContext(ctx context.Context, clientStream *xStream) {
 	if wasmCtx := mosnctx.Get(ctx, types.ContextKeyWasmContext); wasmCtx != nil {
-		switchWasmCtx := mosnctx.Get(clientStream.ctx, types.ContextKeyWasmContext)
 		// using the response wasm context, the sandbox
 		// directly uses the decoded response object.
 		// when encoding the response object,
 		// the response wasm instance(wasm context) is correctly used.
 		clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyWasmContext, wasmCtx)
-
-		// when the response object is destroyed, the associated
-		// request object wasm instance(wasm context) is destroyed.
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyWasmContext, switchWasmCtx)
-		clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyWasmSwitchContext, ctx)
 	}
 }
 
