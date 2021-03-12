@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	wasmer "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
 	"net"
 	"os"
 	"strconv"
@@ -37,7 +36,7 @@ import (
 	"golang.org/x/sys/unix"
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
@@ -211,18 +210,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 
 	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
 
-	ch.AddOrUpdateWasmProxyProtocolConfig(lc)
-
 	configmanager.SetListenerConfig(*al.listener.Config())
 	return al, nil
-}
-
-func (ch *connHandler) AddOrUpdateWasmProxyProtocolConfig(lc *v2.Listener) {
-	for _, f := range lc.FilterChains[0].Filters {
-		if f.Type == v2.DEFAULT_NETWORK_FILTER {
-			wasmer.GetProxyProtocolManager().AddOrUpdateProtocolConfig(f.Config)
-		}
-	}
 }
 
 func (ch *connHandler) StartListener(lctx context.Context, listenerTag uint64) {

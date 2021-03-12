@@ -150,10 +150,7 @@ func (kp *xprotocolKeepAlive) StartIdleTimeout() {
 // The function will be called when connection in the codec is idle
 func (kp *xprotocolKeepAlive) sendKeepAlive() {
 
-	ctx := context.Background()
-	if _, ok := kp.Protocol.(api.WasmProtocol); ok {
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyWasmExtension, kp.Protocol.Name())
-	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, kp.Protocol.Name())
 	sender := kp.Codec.NewStream(ctx, kp)
 	id := sender.GetStream().ID()
 
@@ -243,14 +240,13 @@ func (kp *xprotocolKeepAlive) Stop() {
 func (kp *xprotocolKeepAlive) OnReceive(ctx context.Context, headers types.HeaderMap, data types.IoBuffer, trailers types.HeaderMap) {
 	if ack, ok := headers.(api.XFrame); ok {
 		kp.HandleSuccess(ack.GetRequestId())
-		kp.completeContext(ctx)
 	}
 }
 
 // OnDecodeError does not process decode failure
 // the timer will fail this heart beat
 func (kp *xprotocolKeepAlive) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
-	kp.completeContext(ctx)
+
 }
 
 type keepAliveTimeout struct {
@@ -270,11 +266,4 @@ func startTimeout(id uint64, keep types.KeepAlive) *keepAliveTimeout {
 
 func (t *keepAliveTimeout) onTimeout() {
 	t.KeepAlive.HandleTimeout(t.ID)
-}
-
-func (kp *xprotocolKeepAlive) completeContext(context context.Context) {
-	if proto, ok := kp.Protocol.(api.WasmProtocol); ok {
-		proto.OnProxyDone(context)
-		proto.OnProxyDelete(context)
-	}
 }

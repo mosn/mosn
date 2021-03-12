@@ -24,6 +24,8 @@ import (
 	"syscall"
 	"time"
 
+	wasmer "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
+
 	"mosn.io/api"
 	"mosn.io/pkg/utils"
 
@@ -72,7 +74,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
-	initializeThirdPartCodec(c.ThirdPartCodec)
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// set the mosn config finally
@@ -129,6 +130,10 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		inheritPacketConn: inheritPacketConn,
 		listenSockConn:    listenSockConn,
 	}
+
+	initializeWasm(c.Wasms, m)
+	initializeThirdPartCodec(c.ThirdPartCodec)
+
 	mode := c.Mode()
 
 	if mode == v2.Xds {
@@ -162,14 +167,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 	// initialize the routerManager
 	m.routerManager = router.NewRouterManager()
-
-	// initialize wasm, shoud before the creation of server listener since the initialization of streamFilter might rely on wasm config
-	if c.Wasms != nil {
-		m.wasmManager = wasm.GetWasmManager()
-		for _, config := range c.Wasms {
-			_ = m.wasmManager.AddOrUpdateWasm(config)
-		}
-	}
 
 	// TODO: Remove Servers, support only one server
 	for _, serverConfig := range c.Servers {
@@ -417,6 +414,16 @@ func initializePlugin(log string) {
 	plugin.InitPlugin(log)
 }
 
+func initializeWasm(wasms []v2.WasmPluginConfig, m *Mosn) {
+	// initialize wasm, shoud before the creation of server listener since the initialization of streamFilter might rely on wasm config
+	if wasms != nil {
+		m.wasmManager = wasm.GetWasmManager()
+		for _, config := range wasms {
+			_ = m.wasmManager.AddOrUpdateWasm(config)
+		}
+	}
+}
+
 func initializeThirdPartCodec(config v2.ThirdPartCodecConfig) {
 	for _, codec := range config.Codecs {
 		if !codec.Enable {
@@ -433,8 +440,11 @@ func initializeThirdPartCodec(config v2.ThirdPartCodecConfig) {
 			log.StartLogger.Infof("[mosn] [init codec] load go plugin codec succeed: %+v", codec.Path)
 
 		case v2.Wasm:
-			// todo
-			log.StartLogger.Errorf("[mosn] [init codec] wasm codec not supported now.")
+			if err := wasmer.GetProxyProtocolManager().AddOrUpdateProtocolConfig(codec.Config); err != nil {
+				log.StartLogger.Errorf("[mosn] [init codec] init wasm codec failed: %+v", err)
+				continue
+			}
+			log.StartLogger.Errorf("[mosn] [init codec] load wasm codec succeed: %+v", codec.Path)
 
 		default:
 			log.StartLogger.Errorf("[mosn] [init codec] unknown third part codec type: %+v", codec.Type)

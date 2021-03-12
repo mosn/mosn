@@ -41,6 +41,7 @@ func (proto *wasmProtocol) decodeCommand(context context.Context, buf types.IoBu
 	}
 
 	wasmCtx := ctx.(*Context)
+	wasmCtx.current = context
 	wasmCtx.instance.Lock(wasmCtx.abi)
 	wasmCtx.abi.SetABIImports(wasmCtx)
 	// The decoded data needs to be discarded
@@ -128,6 +129,9 @@ func decodeWasmRequest(ctx *Context, content []byte, headerBytes uint32, id uint
 	// wasm shared linear memory cannot be used here,
 	// otherwise it will be  modified by other data.
 	copy(payload, content[byteIndex:byteIndex+rawBytesLen])
+
+	//poolCmd := bufferByContext(ctx.current)
+	//req := poolCmd.request
 	req := NewWasmRequestWithId(uint32(id), headers, buffer.NewIoBufferBytes(payload))
 	req.Timeout = timeout
 

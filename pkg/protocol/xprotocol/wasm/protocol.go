@@ -54,7 +54,7 @@ flag (bit) :
 func NewWasmRpcProtocol(pw types.WasmPluginWrapper, wrapper *protocolWrapper) *wasmProtocol {
 	return &wasmProtocol{
 		pw:      pw,
-		name:    types.ProtocolName(wrapper.config.ExtendConfig.SubProtocol),
+		name:    types.ProtocolName(wrapper.config.SubProtocol),
 		wrapper: wrapper,
 	}
 }
@@ -116,13 +116,13 @@ func (proto *wasmProtocol) PoolMode() api.PoolMode {
 }
 
 func (proto *wasmProtocol) EnableWorkerPool() bool {
-	return !proto.wrapper.config.ExtendConfig.DisableWorkerPool
+	return !proto.wrapper.config.DisableWorkerPool
 }
 
 // generate a request id for stream to combine stream request && response
 // use connection param as base
 func (proto *wasmProtocol) GenerateRequestID(streamID *uint64) uint64 {
-	if !proto.wrapper.config.ExtendConfig.PluginGenerateID {
+	if !proto.wrapper.config.PluginGenerateID {
 		return atomic.AddUint64(streamID, 1)
 	}
 
@@ -142,7 +142,7 @@ func (proto *wasmProtocol) OnProxyCreate(context context.Context) context.Contex
 		wasmCtx.instance.Lock(wasmCtx.abi)
 		wasmCtx.abi.SetABIImports(wasmCtx)
 		// invoke plugin proxy on create
-		err := wasmCtx.exports.ProxyOnContextCreate(wasmCtx.contextId, proto.wrapper.config.ExtendConfig.RootContextID)
+		err := wasmCtx.exports.ProxyOnContextCreate(wasmCtx.contextId, proto.wrapper.config.RootContextID)
 		if err != nil {
 			log.DefaultLogger.Warnf("failed to create protocol '%s' context, contextId %d not found", proto.name, wasmCtx.contextId)
 		}

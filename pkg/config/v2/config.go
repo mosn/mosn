@@ -86,10 +86,11 @@ const (
 
 // ThirdPartCodec represents configuration for a third part codec
 type ThirdPartCodec struct {
-	Enable         bool               `json:"enable"`
-	Type           ThirdPartCodecType `json:"type"`
-	Path           string             `json:"path"`
-	LoaderFuncName string             `json:"loader_func_name"`
+	Enable         bool                   `json:"enable,omitempty"`
+	Type           ThirdPartCodecType     `json:"type,omitempty"`
+	Path           string                 `json:"path,omitempty"`
+	LoaderFuncName string                 `json:"loader_func_name,omitempty"`
+	Config         map[string]interface{} `json:"config,omitempty"`
 }
 
 // ThirdPartCodecConfig represents configurations for third part codec

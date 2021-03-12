@@ -85,7 +85,7 @@ type protocolWrapper struct {
 }
 
 func (f *protocolWrapper) Name() string {
-	return f.config.ExtendConfig.SubProtocol
+	return f.config.SubProtocol
 }
 
 func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolWrapper, error) {
@@ -100,13 +100,13 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolW
 	}
 
 	// not wasm extension
-	if config.ExtendConfig.FromWasmPlugin == "" && config.VmConfig == nil {
+	if config.FromWasmPlugin == "" && config.VmConfig == nil {
 		return nil, nil
 	}
 
 	var pluginName string
-	if config.ExtendConfig.FromWasmPlugin != "" {
-		pluginName = config.ExtendConfig.FromWasmPlugin
+	if config.FromWasmPlugin != "" {
+		pluginName = config.FromWasmPlugin
 	} else {
 		pluginName = utils.GenerateUUID()
 
@@ -128,7 +128,7 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolW
 		return nil, errors.New(fmt.Sprintf("plugin '%s' not found", pluginName))
 	}
 
-	if config.ExtendConfig.FromWasmPlugin == "" {
+	if config.FromWasmPlugin == "" {
 		config.VmConfig = pw.GetConfig().VmConfig
 	}
 
@@ -139,7 +139,7 @@ func createProxyWasmProtocolFactory(conf map[string]interface{}) (ProxyProtocolW
 		pluginWrapper: pw,
 	}
 
-	name := types.ProtocolName(config.ExtendConfig.SubProtocol)
+	name := types.ProtocolName(config.SubProtocol)
 	p := xprotocol.GetProtocol(name)
 	if p == nil {
 		// first time plugin init, register proxy protocol.
@@ -175,17 +175,17 @@ func (f *protocolWrapper) OnPluginStart(plugin types.WasmPlugin) {
 		instance.Lock(abiVersion)
 		defer instance.Unlock()
 
-		err := exports.ProxyOnContextCreate(f.config.ExtendConfig.RootContextID, 0)
+		err := exports.ProxyOnContextCreate(f.config.RootContextID, 0)
 		if err != nil {
-			log.DefaultLogger.Errorf("[wasm] failed to create plugin % root context %d , err: %v", plugin.PluginName(), f.config.ExtendConfig.RootContextID, err)
+			log.DefaultLogger.Errorf("[wasm] failed to create plugin % root context %d , err: %v", plugin.PluginName(), f.config.RootContextID, err)
 		}
-		_, err = exports.ProxyOnVmStart(f.config.ExtendConfig.RootContextID, int32(f.GetVmConfig().Len()))
+		_, err = exports.ProxyOnVmStart(f.config.RootContextID, int32(f.GetVmConfig().Len()))
 		if err != nil {
-			log.DefaultLogger.Errorf("[wasm] failed to start plugin %, root contextId %d , err: %v", plugin.PluginName(), f.config.ExtendConfig.RootContextID, err)
+			log.DefaultLogger.Errorf("[wasm] failed to start plugin %, root contextId %d , err: %v", plugin.PluginName(), f.config.RootContextID, err)
 		}
-		_, err = exports.ProxyOnConfigure(f.config.ExtendConfig.RootContextID, int32(f.GetPluginConfig().Len()))
+		_, err = exports.ProxyOnConfigure(f.config.RootContextID, int32(f.GetPluginConfig().Len()))
 		if err != nil {
-			log.DefaultLogger.Errorf("[wasm] failed to configure plugin %, root contextId %d , err: %v", plugin.PluginName(), f.config.ExtendConfig.RootContextID, err)
+			log.DefaultLogger.Errorf("[wasm] failed to configure plugin %, root contextId %d , err: %v", plugin.PluginName(), f.config.RootContextID, err)
 		}
 
 		return true
@@ -240,16 +240,11 @@ func ParseProtocolConfig(cfg map[string]interface{}) (*ProtocolConfig, error) {
 		return nil, err
 	}
 
-	if config.ExtendConfig == nil {
-		// not support wasm
-		return nil, nil
-	}
-
-	if config.ExtendConfig.FromWasmPlugin != "" {
+	if config.FromWasmPlugin != "" {
 		config.VmConfig = nil
 	}
 
-	switch config.ExtendConfig.PoolMode {
+	switch config.PoolMode {
 	case "ping-pong":
 		config.poolMode = api.PingPong
 	case "tcp":

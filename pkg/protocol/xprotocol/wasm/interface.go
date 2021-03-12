@@ -18,6 +18,8 @@
 package wasm
 
 import (
+	"context"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
@@ -68,6 +70,7 @@ type Context struct {
 	exports          Exports
 	abi              types.ABI
 	instance         types.WasmInstance
+	current          context.Context
 }
 
 func (c *Context) GetDecodeCmd() api.XFrame {

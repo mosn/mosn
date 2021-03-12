@@ -18,6 +18,8 @@
 package wasm
 
 import (
+	"context"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
@@ -51,11 +53,12 @@ func (h *RequestHeader) Clone() types.HeaderMap {
 
 type Request struct {
 	RequestHeader
-	data           []byte         // raw request bytes
-	Data           types.IoBuffer // wrapper of data
-	payload        []byte         // sub slice of data, rpc payload bytes
-	PayLoad        types.IoBuffer // wrapper of payload
-	PayloadChanged bool           // check if payload if modified
+	data           []byte          // raw request bytes
+	Data           types.IoBuffer  // wrapper of data
+	payload        []byte          // sub slice of data, rpc payload bytes
+	PayLoad        types.IoBuffer  // wrapper of payload
+	PayloadChanged bool            // check if payload if modified
+	ctx            context.Context // current context
 }
 
 func (r *Request) GetTimeout() int32 {
@@ -126,11 +129,12 @@ func (h *ResponseHeader) Clone() types.HeaderMap {
 
 type Response struct {
 	ResponseHeader
-	data           []byte         // raw response bytes
-	Data           types.IoBuffer // wrapper of data
-	payload        []byte         // sub slice of data, rpc payload bytes
-	PayLoad        types.IoBuffer // wrapper of payload
-	PayloadChanged bool           // check if payload if modified
+	data           []byte          // raw response bytes
+	Data           types.IoBuffer  // wrapper of data
+	payload        []byte          // sub slice of data, rpc payload bytes
+	PayLoad        types.IoBuffer  // wrapper of payload
+	PayloadChanged bool            // check if payload if modified
+	ctx            context.Context // current context
 }
 
 func (r *Response) GetRequestId() uint64 {
