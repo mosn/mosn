@@ -295,6 +295,8 @@ github.com/wasmerio/wasmer-go v1.0.3 h1:9pWIlIqUKxALvFlWK8+Zy90qyqxd+8wlyVG91txh
 github.com/wasmerio/wasmer-go v1.0.3/go.mod h1:0gzVdSfg6pysA6QVp6iVRPTagC6Wq9pOE8J86WKb2Fk=
 github.com/zonghaishang/api v0.0.0-20210301083849-edd614bd8bcc h1:Q+tt9t/uw/AS9QpOb4f5GX6BSyCfaihggGn6g4rauUU=
 github.com/zonghaishang/api v0.0.0-20210301083849-edd614bd8bcc/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
+github.com/zonghaishang/api v0.0.0-20210312092424-53b8f0bf4fc7 h1:InofeZ7jGv+Y0NwkxB/zvT7fZdP0FATdQ323Xw98Zdc=
+github.com/zonghaishang/api v0.0.0-20210312092424-53b8f0bf4fc7/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.6.0/go.mod h1:sABNBOSYdrvTF6hTgEIbc7YasKWGhgEQZyfxyTvoXHQ=
 go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=

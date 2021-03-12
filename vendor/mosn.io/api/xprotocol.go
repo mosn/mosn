@@ -143,15 +143,6 @@ type XProtocol interface {
 	GenerateRequestID(*uint64) uint64
 }
 
-// WasmProtocol indicates whether the protocol is implemented as a WASM extension
-type WasmProtocol interface {
-	IsProxyWasm() bool
-	// OnProxyCreate notify the plug-in to create a new context
-	OnProxyCreate(context context.Context) context.Context
-	OnProxyDone(context context.Context)
-	OnProxyDelete(context context.Context)
-}
-
 // HeartbeatBuilder provides the ability to construct proper heartbeat command for xprotocol sub-protocols
 type Heartbeater interface {
 	// Trigger builds an active heartbeat command

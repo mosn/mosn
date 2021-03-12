@@ -197,11 +197,6 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 	}
 }
 
-func (sc *streamConn) handleWasmContextCreate(streamCtx context.Context) context.Context {
-	proto := sc.protocol.(api.WasmProtocol)
-	return proto.OnProxyCreate(streamCtx)
-}
-
 func (sc *streamConn) Protocol() types.ProtocolName {
 	return protocol.Xprotocol
 }

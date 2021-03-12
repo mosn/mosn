@@ -405,7 +405,7 @@ istio.io/gogo-genproto/googleapis/google/api
 istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# mosn.io/api v0.0.0-20210204052134-5b9a826795fd => github.com/zonghaishang/api v0.0.0-20210301083849-edd614bd8bcc
+# mosn.io/api v0.0.0-20210204052134-5b9a826795fd => github.com/zonghaishang/api v0.0.0-20210312092424-53b8f0bf4fc7
 mosn.io/api
 # mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4
 mosn.io/pkg/buffer
