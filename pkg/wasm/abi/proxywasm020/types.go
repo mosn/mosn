@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 
-package proxywasm_0_2_0
+package proxywasm020

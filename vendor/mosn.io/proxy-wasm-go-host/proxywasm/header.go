@@ -41,9 +41,9 @@ func GetMap(instance common.WasmInstance, mapType MapType) common.HeaderMap {
 		return ctx.GetHttpCallResponseHeaders()
 	case MapTypeHttpCallResponseTrailers:
 		return ctx.GetHttpCallResponseTrailer()
+	default:
+		return ctx.GetCustomHeader(mapType)
 	}
-
-	return nil
 }
 
 func ProxyGetHeaderMapPairs(instance common.WasmInstance, mapType int32, returnDataPtr int32, returnDataSize int32) int32 {

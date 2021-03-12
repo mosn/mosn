@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"mosn.io/proxy-wasm-go-host/common"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -173,9 +175,18 @@ func (f *protocolWrapper) OnPluginStart(plugin types.WasmPlugin) {
 		instance.Lock(abiVersion)
 		defer instance.Unlock()
 
-		_ = exports.ProxyOnContextCreate(f.config.ExtendConfig.RootContextID, 0)
-		_, _ = exports.ProxyOnVmStart(f.config.ExtendConfig.RootContextID, int32(f.GetVmConfig().Len()))
-		_, _ = exports.ProxyOnConfigure(f.config.ExtendConfig.RootContextID, int32(f.GetPluginConfig().Len()))
+		err := exports.ProxyOnContextCreate(f.config.ExtendConfig.RootContextID, 0)
+		if err != nil {
+			log.DefaultLogger.Errorf("[wasm] failed to create plugin % root context %d , err: %v", plugin.PluginName(), f.config.ExtendConfig.RootContextID, err)
+		}
+		_, err = exports.ProxyOnVmStart(f.config.ExtendConfig.RootContextID, int32(f.GetVmConfig().Len()))
+		if err != nil {
+			log.DefaultLogger.Errorf("[wasm] failed to start plugin %, root contextId %d , err: %v", plugin.PluginName(), f.config.ExtendConfig.RootContextID, err)
+		}
+		_, err = exports.ProxyOnConfigure(f.config.ExtendConfig.RootContextID, int32(f.GetPluginConfig().Len()))
+		if err != nil {
+			log.DefaultLogger.Errorf("[wasm] failed to configure plugin %, root contextId %d , err: %v", plugin.PluginName(), f.config.ExtendConfig.RootContextID, err)
+		}
 
 		return true
 	})
@@ -185,7 +196,7 @@ func (f *protocolWrapper) OnPluginDestroy(_ types.WasmPlugin) {
 	return
 }
 
-func (f *protocolWrapper) GetVmConfig() buffer.IoBuffer {
+func (f *protocolWrapper) GetVmConfig() common.IoBuffer {
 	if f.config.VmConfig != nil {
 		configs := make(map[string]string, 8)
 		typeOf := reflect.TypeOf(*f.config.VmConfig)
@@ -204,7 +215,7 @@ func (f *protocolWrapper) GetVmConfig() buffer.IoBuffer {
 	return buffer.NewIoBufferEOF()
 }
 
-func (f *protocolWrapper) GetPluginConfig() buffer.IoBuffer {
+func (f *protocolWrapper) GetPluginConfig() common.IoBuffer {
 	configs := make(map[string]string, 8)
 	for key, v := range f.conf {
 		if value, ok := v.(string); ok {

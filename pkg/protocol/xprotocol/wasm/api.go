@@ -29,7 +29,7 @@ func NewWasmRequestWithId(id uint32, headers *xprotocol.Header, payload types.Io
 				Flag: RpcRequestFlag,
 				Id:   id,
 			},
-			Timeout: 30 * 1000, // 3 seconds
+			Timeout: 3 * 1000, // 3 seconds
 		},
 	}
 

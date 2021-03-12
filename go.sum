@@ -271,7 +271,7 @@ github.com/stretchr/testify v1.6.1 h1:hDPOHmpOpP40lSULcqw7IrRb/u7w6RpDC9399XyoNd
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/tetratelabs/proxy-wasm-go-sdk v0.0.13 h1:DOKidvWd0WTBvdzTvU6L7wtig+RktRj3S77ObF2YwNQ=
+github.com/tetratelabs/proxy-wasm-go-sdk v0.0.13 h1:5CmqnF5lX+18DkVQf98H0mcmumg8Q0tlXVdO9YDOSxE=
 github.com/tetratelabs/proxy-wasm-go-sdk v0.0.13/go.mod h1:y1ZQT4bQEBnR8Do4nSOzb3roczzPvcAp8UrF6NEYWNY=
 github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8 h1:o6jtI8/BV93ZCw681cNVMjyvLfnBboUP/lBOfmkb4Pg=
 github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8/go.mod h1:VBsRn0SDTltC3/SzN6SgXlQtmBk6U5sf0KW+eT+WMbc=

@@ -43,9 +43,9 @@ func GetBuffer(instance common.WasmInstance, bufferType BufferType) common.IoBuf
 		return im.GetVmConfig()
 	case BufferTypeCallData:
 		return im.GetFuncCallData()
+	default:
+		return im.GetCustomBuffer(bufferType)
 	}
-
-	return nil
 }
 
 func ProxyGetBufferBytes(instance common.WasmInstance, bufferType int32, start int32, length int32, returnBufferData int32, returnBufferSize int32) int32 {

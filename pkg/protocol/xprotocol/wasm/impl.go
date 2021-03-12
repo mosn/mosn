@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	AbiV2 = "proxy_abi_spec_0_2_0"
+	AbiV2 = "proxy_abi_revision_0_2_0"
 )
 
 func init() {
@@ -33,7 +33,7 @@ func init() {
 
 func abiImplFactory(instance types.WasmInstance) types.ABI {
 	abi := &AbiV2Impl{}
-	abi.SetImports(&v1.DefaultImportsHandler{})
+	abi.SetImports(&protocolWrapper{})
 	abi.SetInstance(instance)
 	return abi
 }

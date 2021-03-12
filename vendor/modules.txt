@@ -412,6 +412,6 @@ mosn.io/pkg/buffer
 mosn.io/pkg/header
 mosn.io/pkg/log
 mosn.io/pkg/utils
-# mosn.io/proxy-wasm-go-host v0.0.0-20210310031752-6be0cc6caf8e
+# mosn.io/proxy-wasm-go-host v0.0.0-20210311055656-5478cf179181
 mosn.io/proxy-wasm-go-host/common
 mosn.io/proxy-wasm-go-host/proxywasm

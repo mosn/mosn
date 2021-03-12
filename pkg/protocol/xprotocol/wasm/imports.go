@@ -226,13 +226,13 @@ func getInstanceCallback(instance types.WasmInstance) ContextCallback {
 
 	cb, ok := v.(types.ABI)
 	if !ok {
-		log.DefaultLogger.Errorf("[proxywasm_0_2_0][imports] getInstanceCallback return type is not *AbiContext")
+		log.DefaultLogger.Errorf("[proxywasm020][imports] getInstanceCallback return type is not *AbiContext")
 		return &Context{}
 	}
 
 	imports := cb.GetABIImports()
 	if imports == nil {
-		log.DefaultLogger.Errorf("[proxywasm_0_2_0][imports] getInstanceCallback imports not set")
+		log.DefaultLogger.Errorf("[proxywasm020][imports] getInstanceCallback imports not set")
 		return &Context{}
 	}
 
