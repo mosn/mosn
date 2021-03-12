@@ -26,7 +26,6 @@ func (proto *wasmProtocol) hijack(context context.Context, request api.XFrame, s
 		log.DefaultLogger.Errorf("[protocol] wasm %s hijack failed, err %v.", proto.name, err)
 	}
 
-	// todo the mock heartbeat packets
 	// When encode is called, the proxy gets the correct buffer
 	wasmCtx.keepaliveResp = NewWasmResponseWithId(uint32(request.GetRequestId()), nil, nil)
 

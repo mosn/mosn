@@ -22,6 +22,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	"mosn.io/pkg/buffer"
+	"mosn.io/proxy-wasm-go-host/common"
 	"mosn.io/proxy-wasm-go-host/proxywasm"
 )
 
@@ -54,17 +55,19 @@ var contextId int32
 
 type Context struct {
 	v1.DefaultImportsHandler
-	decodeCmd     api.XFrame
-	decodeBuffer  buffer.IoBuffer
-	encodeCmd     api.XFrame
-	encodeBuffer  buffer.IoBuffer
-	proto         *wasmProtocol
-	keepaliveReq  *Request
-	keepaliveResp *Response
-	contextId     int32
-	exports       Exports
-	abi           types.ABI
-	instance      types.WasmInstance
+	decodeCmd        api.XFrame
+	decodeBuffer     buffer.IoBuffer
+	decodeWasmBuffer common.IoBuffer
+	encodeCmd        api.XFrame
+	encodeBuffer     buffer.IoBuffer
+	encodeWasmBuffer common.IoBuffer
+	proto            *wasmProtocol
+	keepaliveReq     *Request
+	keepaliveResp    *Response
+	contextId        int32
+	exports          Exports
+	abi              types.ABI
+	instance         types.WasmInstance
 }
 
 func (c *Context) GetDecodeCmd() api.XFrame {
@@ -101,4 +104,17 @@ func (c *Context) GetEncodeBuffer() buffer.IoBuffer {
 
 func (c *Context) ContextId() int32 {
 	return c.contextId
+}
+
+func (c *Context) GetCustomBuffer(bufferType proxywasm.BufferType) common.IoBuffer {
+	switch bufferType {
+	case BufferTypeDecodeData:
+		c.decodeWasmBuffer = common.NewIoBufferBytes([]byte{})
+		return c.decodeWasmBuffer
+	case BufferTypeEncodeData:
+		c.encodeWasmBuffer = common.NewIoBufferBytes([]byte{})
+		return c.encodeWasmBuffer
+	default:
+		return nil
+	}
 }

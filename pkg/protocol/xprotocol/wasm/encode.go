@@ -19,7 +19,11 @@ package wasm
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
+
+	"mosn.io/mosn/pkg/protocol/xprotocol"
+	"mosn.io/pkg/buffer"
 
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
@@ -41,6 +45,10 @@ func (proto *wasmProtocol) encodeRequest(context context.Context, request *Reque
 	// invoke plugin encode impl
 	err := wasmCtx.exports.ProxyEncodeRequestBufferBytes(wasmCtx.contextId, request)
 	wasmCtx.instance.Unlock()
+
+	// encode request
+	content := wasmCtx.encodeWasmBuffer.Bytes()
+	encode(wasmCtx, content)
 
 	// clean plugin context
 	proto.finishWasmContext(context)
@@ -64,8 +72,41 @@ func (proto *wasmProtocol) encodeResponse(context context.Context, response *Res
 	err := wasmCtx.exports.ProxyEncodeResponseBufferBytes(wasmCtx.contextId, response)
 	wasmCtx.instance.Unlock()
 
+	// encode request
+	content := wasmCtx.encodeWasmBuffer.Bytes()
+	encode(wasmCtx, content)
+
 	// clean plugin context
 	proto.finishWasmContext(context)
 
 	return wasmCtx.GetEncodeBuffer(), err
+}
+
+func encode(ctx *Context, content []byte) {
+	// buffer format:
+	// encoded header map | Flag | Id | (Timeout|GetStatus) | drain length | raw bytes
+
+	headerBytes := binary.BigEndian.Uint32(content[0:4])
+	headers := xprotocol.Header{}
+	if headerBytes > 0 {
+		xprotocol.DecodeHeader(content[4:], &headers)
+	}
+
+	var (
+		timeoutIndex = 13 + headerBytes
+		drainIndex   = timeoutIndex + 4
+		byteIndex    = drainIndex + 4
+	)
+
+	// encoded buffer length
+	drainLen := binary.BigEndian.Uint32(content[drainIndex:])
+	// command encode buffer
+	payload := make([]byte, drainLen)
+	// wasm shared linear memory cannot be used here,
+	// otherwise it will be  modified by other data.
+	copy(payload, content[byteIndex:byteIndex+drainLen])
+	buf := buffer.NewIoBufferBytes(payload)
+	//fmt.Fprintf(os.Stdout, "==>encode buf(%d): %v", buf.Len(), buf.Bytes())
+
+	ctx.SetEncodeBuffer(buf)
 }

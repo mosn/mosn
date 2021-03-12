@@ -52,7 +52,5 @@ func (a *AbiV2Impl) OnInstanceCreate(instance types.WasmInstance) {
 	// pre register abi 0_1_0 version
 	a.ABIContext.OnInstanceCreate(instance)
 
-	instance.RegisterFunc("env", "proxy_set_buffer_bytes", proxySetBufferBytes)
-
 	return
 }

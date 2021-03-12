@@ -49,10 +49,6 @@ func GetBuffer(instance common.WasmInstance, bufferType BufferType) common.IoBuf
 }
 
 func ProxyGetBufferBytes(instance common.WasmInstance, bufferType int32, start int32, length int32, returnBufferData int32, returnBufferSize int32) int32 {
-	if BufferType(bufferType) > BufferTypeMax {
-		return WasmResultBadArgument.Int32()
-	}
-
 	buf := GetBuffer(instance, BufferType(bufferType))
 	if buf == nil {
 		return WasmResultNotFound.Int32()
@@ -90,10 +86,6 @@ func ProxyGetBufferBytes(instance common.WasmInstance, bufferType int32, start i
 }
 
 func ProxySetBufferBytes(instance common.WasmInstance, bufferType int32, start int32, length int32, dataPtr int32, dataSize int32) int32 {
-	if BufferType(bufferType) > BufferTypeMax {
-		return WasmResultBadArgument.Int32()
-	}
-
 	buf := GetBuffer(instance, BufferType(bufferType))
 	if buf == nil {
 		return WasmResultNotFound.Int32()
