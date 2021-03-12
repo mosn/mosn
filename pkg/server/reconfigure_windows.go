@@ -17,20 +17,14 @@
 
 package server
 
-import (
-	"syscall"
-	"time"
-
-	"mosn.io/mosn/pkg/server/keeper"
-)
-
-func init() {
-	keeper.AddSignalCallback(func() {
-		// reload, fork new mosn
-		reconfigure(true)
-	}, syscall.SIGHUP)
+func EnableInheritOldMosnconfig(_ bool) {
 }
 
-var (
-	GracefulTimeout = time.Second * 30 //default 30s
-)
+func reconfigure(_ bool) {
+}
+
+func ReconfigureHandler() {
+}
+
+func StopReconfigureHandler() {
+}

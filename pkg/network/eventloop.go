@@ -18,7 +18,6 @@
 package network
 
 import (
-	"os"
 	"runtime"
 	"sync/atomic"
 
@@ -39,26 +38,6 @@ var (
 	poolSize      uint32 = 1 //uint32(runtime.NumCPU())
 	eventLoopPool        = make([]*eventLoop, poolSize)
 )
-
-func init() {
-	for i := range eventLoopPool {
-		poller, err := netpoll.New(nil)
-		if err != nil {
-			log.DefaultLogger.Fatalf("create poller failed, caused by %v", err)
-		}
-
-		eventLoopPool[i] = &eventLoop{
-			poller: poller,
-		}
-	}
-}
-
-func init() {
-	if os.Getenv("NETPOLL") == "on" {
-		log.DefaultLogger.Infof("[network] set netpoll to true by env")
-		SetNetpollMode(true)
-	}
-}
 
 // SetNetpollMode set the netpoll mode
 func SetNetpollMode(enable bool) {

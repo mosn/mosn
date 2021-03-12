@@ -18,19 +18,23 @@
 package server
 
 import (
-	"syscall"
-	"time"
-
-	"mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/windows"
+	"net"
 )
 
-func init() {
-	keeper.AddSignalCallback(func() {
-		// reload, fork new mosn
-		reconfigure(true)
-	}, syscall.SIGHUP)
+func sendInheritListeners() (net.Conn, error) {
+	return nil, windows.ErrUnimplemented
 }
 
-var (
-	GracefulTimeout = time.Second * 30 //default 30s
-)
+func SendInheritConfig() error {
+	return windows.ErrUnimplemented
+}
+
+func GetInheritListeners() ([]net.Listener, []net.PacketConn, net.Conn, error) {
+	return nil, nil, nil, windows.ErrUnimplemented
+}
+
+func GetInheritConfig() (*v2.MOSNConfig, error) {
+	return nil, windows.ErrUnimplemented
+}

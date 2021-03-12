@@ -15,22 +15,30 @@
  * limitations under the License.
  */
 
-package server
+package network
 
 import (
-	"syscall"
-	"time"
-
-	"mosn.io/mosn/pkg/server/keeper"
+	"github.com/mosn/easygo/netpoll"
+	"mosn.io/mosn/pkg/log"
+	"os"
 )
 
 func init() {
-	keeper.AddSignalCallback(func() {
-		// reload, fork new mosn
-		reconfigure(true)
-	}, syscall.SIGHUP)
+	for i := range eventLoopPool {
+		poller, err := netpoll.New(nil)
+		if err != nil {
+			log.DefaultLogger.Fatalf("create poller failed, caused by %v", err)
+		}
+
+		eventLoopPool[i] = &eventLoop{
+			poller: poller,
+		}
+	}
 }
 
-var (
-	GracefulTimeout = time.Second * 30 //default 30s
-)
+func init() {
+	if os.Getenv("NETPOLL") == "on" {
+		log.DefaultLogger.Infof("[network] set netpoll to true by env")
+		SetNetpollMode(true)
+	}
+}

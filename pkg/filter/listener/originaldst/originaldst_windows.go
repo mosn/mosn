@@ -15,22 +15,13 @@
  * limitations under the License.
  */
 
-package server
+package originaldst
 
 import (
-	"syscall"
-	"time"
-
-	"mosn.io/mosn/pkg/server/keeper"
+	"mosn.io/mosn/pkg/windows"
+	"net"
 )
 
-func init() {
-	keeper.AddSignalCallback(func() {
-		// reload, fork new mosn
-		reconfigure(true)
-	}, syscall.SIGHUP)
+func getOriginalAddr(_ net.Conn) ([]byte, int, error) {
+	return nil, 0, windows.ErrUnimplemented
 }
-
-var (
-	GracefulTimeout = time.Second * 30 //default 30s
-)

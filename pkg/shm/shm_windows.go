@@ -15,22 +15,18 @@
  * limitations under the License.
  */
 
-package server
+package shm
 
-import (
-	"syscall"
-	"time"
+import "mosn.io/mosn/pkg/windows"
 
-	"mosn.io/mosn/pkg/server/keeper"
-)
-
-func init() {
-	keeper.AddSignalCallback(func() {
-		// reload, fork new mosn
-		reconfigure(true)
-	}, syscall.SIGHUP)
+func Alloc(_ string, _ int) (*ShmSpan, error) {
+	return nil, windows.ErrUnimplemented
 }
 
-var (
-	GracefulTimeout = time.Second * 30 //default 30s
-)
+func Free(_ *ShmSpan) error {
+	return windows.ErrUnimplemented
+}
+
+func Clear(_ string) error {
+	return windows.ErrUnimplemented
+}
