@@ -67,6 +67,11 @@ func (proto *wasmProtocol) decodeCommand(context context.Context, buf types.IoBu
 		return nil, err
 	}
 
+	// keep Alive responses require special handling
+	if cmd.IsHeartbeatFrame() && cmd.GetStreamType() == api.Response {
+		proto.finishWasmContext(context)
+	}
+
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		_, isReq := cmd.(*Request)
 		_, isResp := cmd.(*Response)
@@ -130,19 +135,32 @@ func decodeWasmRequest(ctx *Context, content []byte, headerBytes uint32, id uint
 	// otherwise it will be  modified by other data.
 	copy(payload, content[byteIndex:byteIndex+rawBytesLen])
 
-	//poolCmd := bufferByContext(ctx.current)
-	//req := poolCmd.request
-	req := NewWasmRequestWithId(uint32(id), headers, buffer.NewIoBufferBytes(payload))
-	req.Timeout = timeout
-
+	var cmdFlag = RpcRequestFlag
 	// check heartbeat command
 	if flag&HeartBeatFlag != 0 {
-		req.Flag = req.Flag | HeartBeatFlag
+		cmdFlag = HeartBeatFlag
 	}
 	// check oneway request
 	if flag&RpcOneWayRequestFlag == RpcOneWayRequestFlag {
-		req.Flag = req.Flag | RpcOneWayRequestFlag
+		cmdFlag = cmdFlag | RpcOneWayRequestFlag
 	}
+
+	poolCmd := bufferByContext(ctx.current)
+	req := poolCmd.request
+	req.ctx = ctx
+
+	req.RequestHeader = RequestHeader{
+		RpcHeader: RpcHeader{
+			Flag:   cmdFlag,
+			Id:     uint32(id),
+			Header: *headers,
+		},
+		Timeout: timeout,
+	}
+
+	req.payload = payload
+	req.PayLoad = buffer.NewIoBufferBytes(payload)
+
 	buf := ctx.GetDecodeBuffer()
 	// if data without change, direct encode forward
 	req.Data = buffer.GetIoBuffer(int(drainLen))
@@ -154,7 +172,7 @@ func decodeWasmRequest(ctx *Context, content []byte, headerBytes uint32, id uint
 	if drainLen > 0 {
 		buf.Drain(int(drainLen))
 	}
-	ctx.SetDecodeCmd(req)
+	ctx.SetDecodeCmd(&req)
 }
 
 func decodeWasmResponse(ctx *Context, content []byte, headerBytes uint32, id uint64, headers *xprotocol.Header, flag byte) {
@@ -178,13 +196,29 @@ func decodeWasmResponse(ctx *Context, content []byte, headerBytes uint32, id uin
 	// wasm shared linear memory cannot be used here,
 	// otherwise it will be  modified by other data.
 	copy(payload, content[byteIndex:byteIndex+rawBytesLen])
-	resp := NewWasmResponseWithId(uint32(id), headers, buffer.NewIoBufferBytes(payload))
-	resp.Status = status
 
+	var cmdFlag = RpcResponseFlag
 	// check heartbeat command
 	if flag&HeartBeatFlag != 0 {
-		resp.Flag = resp.Flag | HeartBeatFlag
+		cmdFlag = cmdFlag | HeartBeatFlag
 	}
+
+	poolCmd := bufferByContext(ctx.current)
+	resp := poolCmd.response
+	resp.ctx = ctx
+
+	resp.ResponseHeader = ResponseHeader{
+		RpcHeader: RpcHeader{
+			Flag:   cmdFlag,
+			Id:     uint32(id),
+			Header: *headers,
+		},
+		Status: status,
+	}
+
+	resp.payload = payload
+	resp.PayLoad = buffer.NewIoBufferBytes(payload)
+
 	buf := ctx.GetDecodeBuffer()
 	// if data without change, direct encode forward
 	resp.Data = buffer.GetIoBuffer(int(drainLen))
@@ -194,5 +228,5 @@ func decodeWasmResponse(ctx *Context, content []byte, headerBytes uint32, id uin
 	if drainLen > 0 {
 		buf.Drain(int(drainLen))
 	}
-	ctx.SetDecodeCmd(resp)
+	ctx.SetDecodeCmd(&resp)
 }

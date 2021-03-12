@@ -18,8 +18,6 @@
 package wasm
 
 import (
-	"context"
-
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
@@ -31,7 +29,6 @@ type RpcHeader struct {
 	RpcId        uint32 // request or response id (replaced by stream)
 	IsReplacedId bool   // check if the id has been replaced
 	HeaderLen    uint32 // header length
-	PayloadLen   uint32 // payload length
 
 	xprotocol.Header
 }
@@ -53,12 +50,12 @@ func (h *RequestHeader) Clone() types.HeaderMap {
 
 type Request struct {
 	RequestHeader
-	data           []byte          // raw request bytes
-	Data           types.IoBuffer  // wrapper of data
-	payload        []byte          // sub slice of data, rpc payload bytes
-	PayLoad        types.IoBuffer  // wrapper of payload
-	PayloadChanged bool            // check if payload if modified
-	ctx            context.Context // current context
+	data           []byte         // raw request bytes
+	Data           types.IoBuffer // wrapper of data
+	payload        []byte         // sub slice of data, rpc payload bytes
+	PayLoad        types.IoBuffer // wrapper of payload
+	PayloadChanged bool           // check if payload if modified
+	ctx            *Context       // current context
 }
 
 func (r *Request) GetTimeout() int32 {
@@ -112,6 +109,17 @@ func (r *Request) SetData(data types.IoBuffer) {
 	}
 }
 
+func (r *Request) clean() {
+	ctx := r.ctx
+	if ctx != nil {
+		ctx.instance.Lock(ctx.abi)
+		ctx.abi.SetABIImports(ctx)
+		ctx.exports.ProxyOnDelete(ctx.contextId)
+		ctx.instance.Unlock()
+		r.ctx = nil
+	}
+}
+
 type ResponseHeader struct {
 	RpcHeader        // common rpc header
 	Status    uint32 // response status
@@ -129,12 +137,12 @@ func (h *ResponseHeader) Clone() types.HeaderMap {
 
 type Response struct {
 	ResponseHeader
-	data           []byte          // raw response bytes
-	Data           types.IoBuffer  // wrapper of data
-	payload        []byte          // sub slice of data, rpc payload bytes
-	PayLoad        types.IoBuffer  // wrapper of payload
-	PayloadChanged bool            // check if payload if modified
-	ctx            context.Context // current context
+	data           []byte         // raw response bytes
+	Data           types.IoBuffer // wrapper of data
+	payload        []byte         // sub slice of data, rpc payload bytes
+	PayLoad        types.IoBuffer // wrapper of payload
+	PayloadChanged bool           // check if payload if modified
+	ctx            *Context       // current context
 }
 
 func (r *Response) GetRequestId() uint64 {
@@ -181,4 +189,15 @@ func (r *Response) GetId() uint32 {
 
 func (r *Response) GetTimeout() int32 {
 	return 0
+}
+
+func (r *Response) clean() {
+	ctx := r.ctx
+	if ctx != nil {
+		ctx.instance.Lock(ctx.abi)
+		ctx.abi.SetABIImports(ctx)
+		ctx.exports.ProxyOnDelete(ctx.contextId)
+		ctx.instance.Unlock()
+		r.ctx = nil
+	}
 }

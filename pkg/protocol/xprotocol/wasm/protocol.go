@@ -130,10 +130,6 @@ func (proto *wasmProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }
 
-func (proto *wasmProtocol) IsProxyWasm() bool {
-	return true
-}
-
 func (proto *wasmProtocol) OnProxyCreate(context context.Context) context.Context {
 	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
 	if ctx == nil {
@@ -150,9 +146,6 @@ func (proto *wasmProtocol) OnProxyCreate(context context.Context) context.Contex
 		return mosnctx.WithValue(context, types.ContextKeyWasmContext, wasmCtx)
 	}
 	return context
-}
-
-func (proto *wasmProtocol) OnProxyDone(context context.Context) {
 }
 
 func (proto *wasmProtocol) OnProxyDelete(context context.Context) {

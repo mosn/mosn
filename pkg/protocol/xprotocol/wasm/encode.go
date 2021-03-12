@@ -46,12 +46,20 @@ func (proto *wasmProtocol) encodeRequest(context context.Context, request *Reque
 	err := wasmCtx.exports.ProxyEncodeRequestBufferBytes(wasmCtx.contextId, request)
 	wasmCtx.instance.Unlock()
 
+	// check wasm plugin encode status
+	if err != nil {
+		log.DefaultLogger.Errorf("wasm %s encode request failed, err: %v", proto.name, err)
+		return nil, err
+	}
+
 	// encode request
 	content := wasmCtx.encodeWasmBuffer.Bytes()
 	encode(wasmCtx, content)
 
 	// clean plugin context
 	proto.finishWasmContext(context)
+
+	request.ctx = nil // help gc
 
 	return wasmCtx.GetEncodeBuffer(), err
 }
@@ -72,12 +80,20 @@ func (proto *wasmProtocol) encodeResponse(context context.Context, response *Res
 	err := wasmCtx.exports.ProxyEncodeResponseBufferBytes(wasmCtx.contextId, response)
 	wasmCtx.instance.Unlock()
 
+	// check wasm plugin encode status
+	if err != nil {
+		log.DefaultLogger.Errorf("wasm %s encode response failed, err: %v", proto.name, err)
+		return nil, err
+	}
+
 	// encode request
 	content := wasmCtx.encodeWasmBuffer.Bytes()
 	encode(wasmCtx, content)
 
 	// clean plugin context
 	proto.finishWasmContext(context)
+
+	response.ctx = nil // help gc
 
 	return wasmCtx.GetEncodeBuffer(), err
 }

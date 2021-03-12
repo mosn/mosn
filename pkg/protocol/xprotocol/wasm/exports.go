@@ -162,7 +162,7 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 	}
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("encode request, context id: %d , rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
+		log.DefaultLogger.Debugf("encode request, contextId: %d , rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
 	}
 
 	return nil

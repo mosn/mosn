@@ -55,6 +55,10 @@ func (ctx wasmRpcBufferCtx) Reset(i interface{}) {
 		}
 	}
 
+	// clean wasm plugin
+	buf.request.clean()
+	buf.response.clean()
+
 	*buf = wasmRpcBuffer{}
 }
 

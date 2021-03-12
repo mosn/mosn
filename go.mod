@@ -1,6 +1,6 @@
 module mosn.io/mosn
 
-go 1.12
+go 1.14
 
 require (
 	bou.ke/monkey v1.0.2
