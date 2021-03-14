@@ -28,7 +28,7 @@ type Callbacks interface {
 	Exit(filter *StreamFilter)
 	Enabled() bool
 	SetConfig(conf *Config)
-	GetConfig() Config
+	GetConfig() *Config
 }
 
 // ParsedResource contains the parsed Resource wrapper and entry options.
@@ -50,7 +50,7 @@ func RegisterCallbacks(name string, cb Callbacks) {
 // GetCallbacksByName returns specified or default Callbacks.
 func GetCallbacksByConfig(conf *Config) Callbacks {
 	cb, ok := callbacksRegistry.Load(conf.CallbackName)
-	if !ok {
+	if !ok || cb == nil {
 		return &DefaultCallbacks{config: conf}
 	}
 	customizedCallbacks := cb.(Callbacks)
@@ -112,7 +112,7 @@ func (dc *DefaultCallbacks) SetConfig(conf *Config) {
 	dc.config = conf
 }
 
-// GetConfig gets the readonly config of callbacks.
-func (dc *DefaultCallbacks) GetConfig() Config {
-	return *dc.config
+// GetConfig gets the config of callbacks.
+func (dc *DefaultCallbacks) GetConfig() *Config {
+	return dc.config
 }
