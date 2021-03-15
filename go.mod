@@ -54,7 +54,7 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
-	mosn.io/api v0.0.0-20210204052134-5b9a826795fd
+	mosn.io/api v0.0.0-20210315130952-69d829aa866e
 	mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4
 	mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec
 )
