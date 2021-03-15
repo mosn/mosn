@@ -25,7 +25,6 @@ import (
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/pkg/buffer"
 
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
@@ -33,13 +32,11 @@ import (
 func (proto *wasmProtocol) encodeRequest(context context.Context, request *Request) (types.IoBuffer, error) {
 	wasmCtx := request.ctx
 	if wasmCtx == nil {
-		proto.OnProxyCreate(context)
-		ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
-		if ctx == nil {
+		wasmCtx = proto.OnProxyCreate(context)
+		if wasmCtx == nil {
 			log.DefaultLogger.Errorf("[protocol] wasm %s encode request failed, wasm context not found.", proto.name)
 			return nil, fmt.Errorf("wasm %s encode request failed, wasm context not found", proto.name)
 		}
-		wasmCtx = ctx.(*Context)
 	}
 
 	wasmCtx.instance.Lock(wasmCtx.abi)
@@ -71,14 +68,11 @@ func (proto *wasmProtocol) encodeRequest(context context.Context, request *Reque
 func (proto *wasmProtocol) encodeResponse(context context.Context, response *Response) (types.IoBuffer, error) {
 	wasmCtx := response.ctx
 	if wasmCtx == nil {
-		proto.OnProxyCreate(context)
-		ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
-		if ctx == nil {
+		wasmCtx = proto.OnProxyCreate(context)
+		if wasmCtx == nil {
 			log.DefaultLogger.Errorf("[protocol] wasm %s encode response failed, wasm context not found.", proto.name)
 			return nil, fmt.Errorf("wasm %s encode response failed, wasm context not found", proto.name)
 		}
-
-		wasmCtx = ctx.(*Context)
 	}
 
 	wasmCtx.instance.Lock(wasmCtx.abi)

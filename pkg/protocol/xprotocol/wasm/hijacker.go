@@ -4,21 +4,22 @@ import (
 	"context"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/types"
 )
 
 // Hijacker
 func (proto *wasmProtocol) hijack(context context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
-	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
-	if ctx == nil {
-		log.DefaultLogger.Errorf("[protocol] wasm %s hijack failed, wasm context not found.", proto.name)
-		return nil
+	buf := bufferByContext(context)
+	if buf.wasmCtx == nil {
+		buf.wasmCtx = proto.OnProxyCreate(context)
+		if buf.wasmCtx == nil {
+			log.DefaultLogger.Errorf("[protocol] wasm %s hijack failed, wasm context not found.", proto.name)
+			return nil
+		}
 	}
 
 	req := request.(*Request)
-	wasmCtx := ctx.(*Context)
+	wasmCtx := buf.wasmCtx
 
 	wasmCtx.instance.Lock(wasmCtx.abi)
 	wasmCtx.abi.SetABIImports(wasmCtx)

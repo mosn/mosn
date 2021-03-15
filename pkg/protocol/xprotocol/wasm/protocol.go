@@ -22,7 +22,6 @@ import (
 	"sync/atomic"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm/abi"
@@ -85,23 +84,19 @@ func (proto *wasmProtocol) Encode(ctx context.Context, message interface{}) (typ
 }
 
 func (proto *wasmProtocol) Decode(ctx context.Context, buf types.IoBuffer) (interface{}, error) {
-	proto.OnProxyCreate(ctx)
 	return proto.decodeCommand(ctx, buf)
 }
 
 func (proto *wasmProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
-	proto.OnProxyCreate(ctx)
 	return proto.keepaliveRequest(ctx, requestId)
 }
 
 func (proto *wasmProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
-	proto.OnProxyCreate(ctx)
 	return proto.keepaliveResponse(ctx, request)
 }
 
 // Hijacker
 func (proto *wasmProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
-	proto.OnProxyCreate(ctx)
 	return proto.hijack(ctx, request, statusCode)
 }
 
@@ -129,9 +124,9 @@ func (proto *wasmProtocol) GenerateRequestID(streamID *uint64) uint64 {
 	return atomic.AddUint64(streamID, 1)
 }
 
-func (proto *wasmProtocol) OnProxyCreate(context context.Context) context.Context {
-	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
-	if ctx == nil {
+func (proto *wasmProtocol) OnProxyCreate(context context.Context) *Context {
+	buf := bufferByContext(context)
+	if buf.wasmCtx == nil {
 		wasmCtx := proto.NewContext()
 		// save current wasm context wasmCtx
 		wasmCtx.instance.Lock(wasmCtx.abi)
@@ -141,25 +136,25 @@ func (proto *wasmProtocol) OnProxyCreate(context context.Context) context.Contex
 		if err != nil {
 			log.DefaultLogger.Warnf("failed to create protocol '%s' context, contextId %d not found", proto.name, wasmCtx.contextId)
 		}
+		buf.wasmCtx = wasmCtx
 		wasmCtx.instance.Unlock()
-		return mosnctx.WithValue(context, types.ContextKeyWasmContext, wasmCtx)
 	}
-	return context
+	return buf.wasmCtx
 }
 
 func (proto *wasmProtocol) OnProxyDelete(context context.Context) {
-	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
-	if ctx == nil {
+	buf := bufferByContext(context)
+	if buf.wasmCtx == nil {
 		return
 	}
 
-	wasmCtx := ctx.(*Context)
+	wasmCtx := buf.wasmCtx
 	wasmCtx.instance.Lock(wasmCtx.abi)
 	wasmCtx.abi.SetABIImports(wasmCtx)
 	// invoke plugin proxy on done
 	wasmCtx.exports.ProxyOnDelete(wasmCtx.contextId)
 	// remove wasm context
-	mosnctx.WithValue(context, types.ContextKeyWasmContext, nil)
+	buf.wasmCtx = nil
 	wasmCtx.instance.Unlock()
 }
 

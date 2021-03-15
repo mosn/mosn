@@ -59,12 +59,15 @@ func (ctx wasmRpcBufferCtx) Reset(i interface{}) {
 	buf.request.clean()
 	buf.response.clean()
 
+	buf.wasmCtx = nil
+
 	*buf = wasmRpcBuffer{}
 }
 
 type wasmRpcBuffer struct {
 	request  Request
 	response Response
+	wasmCtx  *Context
 }
 
 func bufferByContext(ctx context.Context) *wasmRpcBuffer {

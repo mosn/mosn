@@ -26,28 +26,30 @@ import (
 	"mosn.io/pkg/buffer"
 
 	"mosn.io/api"
-	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/proxy-wasm-go-host/common"
 )
 
-func (proto *wasmProtocol) decodeCommand(context context.Context, buf types.IoBuffer) (interface{}, error) {
-	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
-	if ctx == nil {
-		log.DefaultLogger.Errorf("[protocol] wasm %s decode failed, wasm context not found.", proto.name)
-		return nil, fmt.Errorf("wasm %s decode failed, wasm context not found", proto.name)
+func (proto *wasmProtocol) decodeCommand(context context.Context, data types.IoBuffer) (interface{}, error) {
+	buf := bufferByContext(context)
+	if buf.wasmCtx == nil {
+		buf.wasmCtx = proto.OnProxyCreate(context)
+		if buf.wasmCtx == nil {
+			log.DefaultLogger.Errorf("[protocol] wasm %s decode failed, wasm context not found.", proto.name)
+			return nil, fmt.Errorf("wasm %s decode failed, wasm context not found", proto.name)
+		}
 	}
 
-	wasmCtx := ctx.(*Context)
+	wasmCtx := buf.wasmCtx
 	wasmCtx.current = context
 	wasmCtx.instance.Lock(wasmCtx.abi)
 	wasmCtx.abi.SetABIImports(wasmCtx)
 	// The decoded data needs to be discarded
-	wasmCtx.SetDecodeBuffer(buf)
+	wasmCtx.SetDecodeBuffer(data)
 	// invoke plugin decode impl
-	err := wasmCtx.exports.ProxyDecodeBufferBytes(wasmCtx.contextId, buf)
+	err := wasmCtx.exports.ProxyDecodeBufferBytes(wasmCtx.contextId, data)
 	wasmCtx.instance.Unlock()
 
 	// check wasm plugin decode status
