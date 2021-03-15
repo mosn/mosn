@@ -126,8 +126,6 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		var proxyGeneralExtendConfig v2.ProxyGeneralExtendConfig
 		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
 			newCtx := mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
-			// indicates whether the wasm protocol proxy is used
-			newCtx = mosnctx.WithValue(proxy.context, types.ContextKeyWasmExtension, xProxyExtendConfig.SubProtocol)
 			proxy.context = newCtx
 			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
 				log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)

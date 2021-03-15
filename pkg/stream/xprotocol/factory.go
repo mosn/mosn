@@ -57,13 +57,6 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 	}
 	again := false
 
-	if context != nil {
-		// if wasm protocol match, just return
-		if p := mosnctx.Get(context, types.ContextKeyWasmExtension); p != nil {
-			return nil
-		}
-	}
-
 	for subProtocolName, matcher := range subProtocolMatchers {
 		result := matcher(magic)
 		if result == api.MatchSuccess {

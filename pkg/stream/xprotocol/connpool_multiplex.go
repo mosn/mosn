@@ -95,7 +95,7 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 		if p.shutdown {
 			return
 		}
-		ctx := mosnctx.WithValue(context.Background(), types.ContextKeyWasmExtension, string(sub))
+		ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, string(sub))
 		client, _ := p.newActiveClient(ctx, sub)
 		if client != nil {
 			client.state = Connected
