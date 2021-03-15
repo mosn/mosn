@@ -174,7 +174,7 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 
 func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Response) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyEncodeResponseBufferBytes contextID: %v", contextId)
+		log.DefaultLogger.Debugf("[export] ProxyEncodeResponseBufferBytes contextId: %v", contextId)
 	}
 
 	// use cmd wasm instance context first.
@@ -259,7 +259,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 	}
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("encode response, context id: %d, rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
+		log.DefaultLogger.Debugf("encode response, contextId: %d, rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
 	}
 
 	return nil
@@ -267,7 +267,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 
 func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyKeepAliveBufferBytes contextID: %v", contextId)
+		log.DefaultLogger.Debugf("[export] ProxyKeepAliveBufferBytes contextId: %v", contextId)
 	}
 
 	instance := a.GetInstance()
@@ -286,7 +286,7 @@ func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error 
 
 	// check invoke success
 	if status != proxywasm.WasmResultOk.Int32() {
-		return errors.New(fmt.Sprintf("plugin %s trigger keepalive request failed, contextId: %d", ctx.proto.name, ctx.ContextId()))
+		return errors.New(fmt.Sprintf("plugin %s trigger keepalive request failed, contextId: %d, rpc id: %d", ctx.proto.name, ctx.ContextId(), id))
 	}
 
 	return nil
@@ -294,7 +294,7 @@ func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error 
 
 func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd *Request) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyReplyKeepAliveBufferBytes contextID: %v", contextId)
+		log.DefaultLogger.Debugf("[export] ProxyReplyKeepAliveBufferBytes contextId: %v", contextId)
 	}
 
 	// use cmd wasm instance context first.
@@ -326,7 +326,7 @@ func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd *Request
 
 func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd *Request, statusCode uint32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[export] ProxyHijackBufferBytes contextID: %v", contextId)
+		log.DefaultLogger.Debugf("[export] ProxyHijackBufferBytes contextId: %v", contextId)
 	}
 
 	// use cmd wasm instance context first.

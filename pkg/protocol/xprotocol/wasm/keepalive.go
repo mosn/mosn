@@ -25,20 +25,23 @@ func (proto *wasmProtocol) keepaliveRequest(context context.Context, requestId u
 	if err != nil {
 		wasmCtx.instance.Unlock()
 		log.DefaultLogger.Errorf("[protocol] wasm %s keepalive request failed, err %v.", proto.name, err)
+
+		// keepalive not supported.
+		proto.finishWasmContext(context)
 		return nil
 	}
 
 	wasmCtx.instance.Unlock()
 
+	// keepalive detect
+	if requestId == 0 {
+		proto.finishWasmContext(context)
+	}
+
 	// When encode is called, the proxy gets the correct buffer
 	wasmCtx.keepaliveReq = NewWasmRequestWithId(uint32(requestId), nil, nil)
 	wasmCtx.keepaliveReq.Flag = HeartBeatFlag
 	wasmCtx.keepaliveReq.ctx = wasmCtx
-
-	if detect := mosnctx.Get(context, types.ContextKeyDetectHeartbeatFeature); detect != nil {
-		proto.finishWasmContext(context)
-		proto.removeDetect(context)
-	}
 
 	return wasmCtx.keepaliveReq
 }
@@ -75,9 +78,4 @@ func (proto *wasmProtocol) keepaliveResponse(context context.Context, request ap
 	}
 
 	return wasmCtx.keepaliveResp
-}
-
-func (proto *wasmProtocol) removeDetect(context context.Context) {
-	// clear keepalive flag
-	mosnctx.WithValue(context, types.ContextKeyDetectHeartbeatFeature, nil)
 }

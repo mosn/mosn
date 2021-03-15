@@ -191,8 +191,6 @@ func (p *poolBinding) newActiveClient(ctx context.Context, subProtocol api.Proto
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		// In the future, methods should be added to determine the protocol capability
 		proto := xprotocol.GetProtocol(subProtocol)
-		// notifications only detect heartbeat ability.
-		ctx = mosnctx.WithValue(ctx, types.ContextKeyDetectHeartbeatFeature, true)
 		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 			// create keepalive
 			rpcKeepAlive := NewKeepAlive(ac.codecClient, subProtocol, time.Second)
