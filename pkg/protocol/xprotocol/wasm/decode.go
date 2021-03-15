@@ -68,15 +68,15 @@ func (proto *wasmProtocol) decodeCommand(context context.Context, buf types.IoBu
 	}
 
 	// keep Alive responses require special handling
-	if cmd.IsHeartbeatFrame() && cmd.GetStreamType() == api.Response {
-		proto.finishWasmContext(context)
+	if resp, ok := cmd.(*Response); ok && resp.IsHeartbeatFrame() {
+		resp.clean()
 	}
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		_, isReq := cmd.(*Request)
 		_, isResp := cmd.(*Response)
 		if cmd != nil {
-			log.DefaultLogger.Debugf("decode command, context id: %d, req(%v)|resp(%v)|hb(%v), rpc id: %d \n", contextId, isReq, isResp, cmd.IsHeartbeatFrame(), cmd.GetRequestId())
+			log.DefaultLogger.Debugf("decode command, contextId: %d, req(%v)|resp(%v)|hb(%v), rpc id: %d \n", contextId, isReq, isResp, cmd.IsHeartbeatFrame(), cmd.GetRequestId())
 		}
 	}
 
@@ -142,7 +142,7 @@ func decodeWasmRequest(ctx *Context, content []byte, headerBytes uint32, id uint
 	}
 	// check oneway request
 	if flag&RpcOneWayRequestFlag == RpcOneWayRequestFlag {
-		cmdFlag = cmdFlag | RpcOneWayRequestFlag
+		cmdFlag |= RpcOneWayRequestFlag
 	}
 
 	poolCmd := bufferByContext(ctx.current)
@@ -200,7 +200,7 @@ func decodeWasmResponse(ctx *Context, content []byte, headerBytes uint32, id uin
 	var cmdFlag = RpcResponseFlag
 	// check heartbeat command
 	if flag&HeartBeatFlag != 0 {
-		cmdFlag = cmdFlag | HeartBeatFlag
+		cmdFlag |= HeartBeatFlag
 	}
 
 	poolCmd := bufferByContext(ctx.current)

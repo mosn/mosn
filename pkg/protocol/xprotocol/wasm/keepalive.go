@@ -33,6 +33,7 @@ func (proto *wasmProtocol) keepaliveRequest(context context.Context, requestId u
 	// When encode is called, the proxy gets the correct buffer
 	wasmCtx.keepaliveReq = NewWasmRequestWithId(uint32(requestId), nil, nil)
 	wasmCtx.keepaliveReq.Flag = HeartBeatFlag
+	wasmCtx.keepaliveReq.ctx = wasmCtx
 
 	if detect := mosnctx.Get(context, types.ContextKeyDetectHeartbeatFeature); detect != nil {
 		proto.finishWasmContext(context)
@@ -65,8 +66,9 @@ func (proto *wasmProtocol) keepaliveResponse(context context.Context, request ap
 
 	// When encode is called, the proxy gets the correct buffer
 	resp := NewWasmResponseWithId(uint32(request.GetRequestId()), nil, nil)
-	resp.Flag = resp.Flag | HeartBeatFlag
+	resp.Flag |= HeartBeatFlag
 	wasmCtx.keepaliveResp = resp
+	wasmCtx.keepaliveResp.ctx = wasmCtx
 
 	if !resp.IsReplacedId {
 		resp.RpcId = resp.GetId()

@@ -368,19 +368,7 @@ func (sc *streamConn) handleResponse(ctx context.Context, frame api.XFrame) {
 		log.Proxy.Debugf(clientStream.ctx, "[stream] [xprotocol] connection %d receive response, requestId = %v", sc.netConn.ID(), requestId)
 	}
 
-	sc.switchWasmContext(ctx, clientStream)
-
 	clientStream.receiver.OnReceive(clientStream.ctx, frame.GetHeader(), frame.GetData(), nil)
-}
-
-func (sc *streamConn) switchWasmContext(ctx context.Context, clientStream *xStream) {
-	if wasmCtx := mosnctx.Get(ctx, types.ContextKeyWasmContext); wasmCtx != nil {
-		// using the response wasm context, the sandbox
-		// directly uses the decoded response object.
-		// when encoding the response object,
-		// the response wasm instance(wasm context) is correctly used.
-		clientStream.ctx = mosnctx.WithValue(clientStream.ctx, types.ContextKeyWasmContext, wasmCtx)
-	}
 }
 
 func (sc *streamConn) newServerStream(ctx context.Context, frame api.XFrame) *xStream {

@@ -81,9 +81,13 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 		log.DefaultLogger.Debugf("[export] ProxyEncodeRequestBufferBytes contextID: %v", contextId)
 	}
 
-	instance := a.GetInstance()
-	ctx := getInstanceCallback(instance).(*Context)
-	ff, err := instance.GetExportsFunc("proxy_encode_buffer_bytes")
+	// use cmd wasm instance context first.
+	ctx := cmd.ctx
+	if ctx == nil {
+		ctx = getInstanceCallback(a.GetInstance()).(*Context)
+	}
+
+	ff, err := ctx.instance.GetExportsFunc("proxy_encode_buffer_bytes")
 	if err != nil {
 		log.DefaultLogger.Errorf("[export] fail to get export func: proxy_encode_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err)
 		return err
@@ -138,13 +142,13 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 	}
 
 	// allocate memory for plugin
-	addr, err := instance.Malloc(int32(buf.Len()))
+	addr, err := ctx.instance.Malloc(int32(buf.Len()))
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to allocate memory for plugin %s, len: %d", ctx.proto.name, buf.Len()))
 	}
 
 	// copy decode buffer data to plugin
-	err = instance.PutMemory(addr, uint64(buf.Len()), buf.Bytes())
+	err = ctx.instance.PutMemory(addr, uint64(buf.Len()), buf.Bytes())
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to copy encode request buffer to plugin %s, len: %d", ctx.proto.name, buf.Len()))
 	}
@@ -173,9 +177,13 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 		log.DefaultLogger.Debugf("[export] ProxyEncodeResponseBufferBytes contextID: %v", contextId)
 	}
 
-	instance := a.GetInstance()
-	ctx := getInstanceCallback(instance).(*Context)
-	ff, err := instance.GetExportsFunc("proxy_encode_buffer_bytes")
+	// use cmd wasm instance context first.
+	ctx := cmd.ctx
+	if ctx == nil {
+		ctx = getInstanceCallback(a.GetInstance()).(*Context)
+	}
+
+	ff, err := ctx.instance.GetExportsFunc("proxy_encode_buffer_bytes")
 	if err != nil {
 		log.DefaultLogger.Errorf("[export] fail to get export func: proxy_encode_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err)
 		return err
@@ -227,13 +235,13 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 	}
 
 	// allocate memory for plugin
-	addr, err := instance.Malloc(int32(buf.Len()))
+	addr, err := ctx.instance.Malloc(int32(buf.Len()))
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to allocate memory for plugin %s, len: %d", ctx.proto.name, buf.Len()))
 	}
 
 	// copy decode buffer data to plugin
-	err = instance.PutMemory(addr, uint64(buf.Len()), buf.Bytes())
+	err = ctx.instance.PutMemory(addr, uint64(buf.Len()), buf.Bytes())
 	if err != nil {
 		return errors.New(fmt.Sprintf("failed to copy encode response buffer to plugin %s, len: %d", ctx.proto.name, buf.Len()))
 	}
@@ -289,9 +297,13 @@ func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd *Request
 		log.DefaultLogger.Debugf("[export] ProxyReplyKeepAliveBufferBytes contextID: %v", contextId)
 	}
 
-	instance := a.GetInstance()
-	ctx := getInstanceCallback(instance).(*Context)
-	ff, err := instance.GetExportsFunc("proxy_reply_keepalive_buffer_bytes")
+	// use cmd wasm instance context first.
+	ctx := cmd.ctx
+	if ctx == nil {
+		ctx = getInstanceCallback(a.GetInstance()).(*Context)
+	}
+
+	ff, err := ctx.instance.GetExportsFunc("proxy_reply_keepalive_buffer_bytes")
 	if err != nil {
 		log.DefaultLogger.Errorf("[export] fail to get export func: proxy_reply_keepalive_buffer_bytes, err: %v", err)
 		return err
@@ -317,9 +329,13 @@ func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd *Request, status
 		log.DefaultLogger.Debugf("[export] ProxyHijackBufferBytes contextID: %v", contextId)
 	}
 
-	instance := a.GetInstance()
-	ctx := getInstanceCallback(instance).(*Context)
-	ff, err := instance.GetExportsFunc("proxy_hijack_buffer_bytes")
+	// use cmd wasm instance context first.
+	ctx := cmd.ctx
+	if ctx == nil {
+		ctx = getInstanceCallback(a.GetInstance()).(*Context)
+	}
+
+	ff, err := ctx.instance.GetExportsFunc("proxy_hijack_buffer_bytes")
 	if err != nil {
 		log.DefaultLogger.Errorf("[export] fail to get export func: proxy_hijack_buffer_bytes, err: %v", err)
 		return err

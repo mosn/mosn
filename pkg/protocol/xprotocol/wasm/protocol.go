@@ -73,7 +73,6 @@ func (proto *wasmProtocol) Name() types.ProtocolName {
 }
 
 func (proto *wasmProtocol) Encode(ctx context.Context, message interface{}) (types.IoBuffer, error) {
-	proto.OnProxyCreate(ctx)
 	switch frame := message.(type) {
 	case *Request:
 		return proto.encodeRequest(ctx, frame)

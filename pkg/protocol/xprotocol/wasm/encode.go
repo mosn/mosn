@@ -31,13 +31,17 @@ import (
 )
 
 func (proto *wasmProtocol) encodeRequest(context context.Context, request *Request) (types.IoBuffer, error) {
-	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
-	if ctx == nil {
-		log.DefaultLogger.Errorf("[protocol] wasm %s encode request failed, wasm context not found.", proto.name)
-		return nil, fmt.Errorf("wasm %s encode request failed, wasm context not found", proto.name)
+	wasmCtx := request.ctx
+	if wasmCtx == nil {
+		proto.OnProxyCreate(context)
+		ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
+		if ctx == nil {
+			log.DefaultLogger.Errorf("[protocol] wasm %s encode request failed, wasm context not found.", proto.name)
+			return nil, fmt.Errorf("wasm %s encode request failed, wasm context not found", proto.name)
+		}
+		wasmCtx = ctx.(*Context)
 	}
 
-	wasmCtx := ctx.(*Context)
 	wasmCtx.instance.Lock(wasmCtx.abi)
 	wasmCtx.abi.SetABIImports(wasmCtx)
 	// only for debug
@@ -57,7 +61,7 @@ func (proto *wasmProtocol) encodeRequest(context context.Context, request *Reque
 	encode(wasmCtx, content)
 
 	// clean plugin context
-	proto.finishWasmContext(context)
+	request.clean()
 
 	request.ctx = nil // help gc
 
@@ -65,13 +69,18 @@ func (proto *wasmProtocol) encodeRequest(context context.Context, request *Reque
 }
 
 func (proto *wasmProtocol) encodeResponse(context context.Context, response *Response) (types.IoBuffer, error) {
-	ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
-	if ctx == nil {
-		log.DefaultLogger.Errorf("[protocol] wasm %s encode response failed, wasm context not found.", proto.name)
-		return nil, fmt.Errorf("wasm %s encode response failed, wasm context not found", proto.name)
+	wasmCtx := response.ctx
+	if wasmCtx == nil {
+		proto.OnProxyCreate(context)
+		ctx := mosnctx.Get(context, types.ContextKeyWasmContext)
+		if ctx == nil {
+			log.DefaultLogger.Errorf("[protocol] wasm %s encode response failed, wasm context not found.", proto.name)
+			return nil, fmt.Errorf("wasm %s encode response failed, wasm context not found", proto.name)
+		}
+
+		wasmCtx = ctx.(*Context)
 	}
 
-	wasmCtx := ctx.(*Context)
 	wasmCtx.instance.Lock(wasmCtx.abi)
 	wasmCtx.abi.SetABIImports(wasmCtx)
 	// only for debug
@@ -91,7 +100,7 @@ func (proto *wasmProtocol) encodeResponse(context context.Context, response *Res
 	encode(wasmCtx, content)
 
 	// clean plugin context
-	proto.finishWasmContext(context)
+	response.clean()
 
 	response.ctx = nil // help gc
 
