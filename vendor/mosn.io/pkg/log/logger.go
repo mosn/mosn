@@ -238,7 +238,7 @@ func (l *Logger) handler() {
 			for {
 				select {
 				case buf = <-l.writeBufferChan:
-					buf.WriteTo(l)
+					l.Write(buf.Bytes())
 					buffer.PutIoBuffer(buf)
 				default:
 					l.stop()
@@ -256,7 +256,7 @@ func (l *Logger) handler() {
 					break
 				}
 			}
-			buf.WriteTo(l)
+			l.Write(buf.Bytes())
 			buffer.PutIoBuffer(buf)
 		}
 		runtime.Gosched()

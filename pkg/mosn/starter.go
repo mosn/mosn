@@ -45,6 +45,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/wasm"
 	"mosn.io/mosn/pkg/xds"
 )
 
@@ -53,6 +54,7 @@ type Mosn struct {
 	servers        []server.Server
 	clustermanager types.ClusterManager
 	routerManager  types.RouterManager
+	wasmManager    types.WasmManager
 	config         *v2.MOSNConfig
 	adminServer    admin.Server
 	xdsClient      *xds.Client
@@ -160,6 +162,14 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 
 	// initialize the routerManager
 	m.routerManager = router.NewRouterManager()
+
+	// initialize wasm, shoud before the creation of server listener since the initialization of streamFilter might rely on wasm config
+	if c.Wasms != nil {
+		m.wasmManager = wasm.GetWasmManager()
+		for _, config := range c.Wasms {
+			_ = m.wasmManager.AddOrUpdateWasm(config)
+		}
+	}
 
 	// TODO: Remove Servers, support only one server
 	for _, serverConfig := range c.Servers {
