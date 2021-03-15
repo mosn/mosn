@@ -42,7 +42,7 @@ func Test_CdsHandler(t *testing.T) {
 		StreamClient:      nil,
 		SendControlChan:   make(chan int),
 		RecvControlChan:   make(chan int),
-		StopChan:          make(chan int),
+		StopChan:          make(chan struct{}),
 	}
 
 	cluster := &envoy_config_cluster_v3.Cluster{

@@ -44,7 +44,7 @@ func Test_LdsHandler(t *testing.T) {
 		StreamClient:      nil,
 		SendControlChan:   make(chan int),
 		RecvControlChan:   make(chan int),
-		StopChan:          make(chan int),
+		StopChan:          make(chan struct{}),
 	}
 
 	httpManager := &envoy_extensions_filters_network_http_connection_manager_v3.HttpConnectionManager{

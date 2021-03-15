@@ -62,7 +62,8 @@ type ADSClient struct {
 	RecvControlChan        chan int
 	AsyncHandleControlChan chan int
 	AsyncHandleChan        chan *envoy_api_v2.DiscoveryResponse
-	StopChan               chan int
+	StopChan               chan struct{}
+	waitStopChan           int
 }
 
 // ServiceConfig for grpc service

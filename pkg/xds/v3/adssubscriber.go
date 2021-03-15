@@ -40,6 +40,9 @@ func (adsClient *ADSClient) Start() {
 	utils.GoWithRecover(func() {
 		adsClient.receiveThread()
 	}, nil)
+
+	// waitStopChan is wait all goroutine stoped
+	adsClient.waitStopChan = 3
 }
 
 func (adsClient *ADSClient) sendThread() {
@@ -57,7 +60,7 @@ func (adsClient *ADSClient) sendThread() {
 		case <-adsClient.SendControlChan:
 			log.DefaultLogger.Debugf("[xds] [ads client] send thread receive graceful shut down signal")
 			adsClient.AdsConfig.closeADSStreamClient()
-			adsClient.StopChan <- 1
+			adsClient.StopChan <- struct{}{}
 			return
 		case <-t1.C:
 			err := adsClient.reqClusters(adsClient.StreamClient)
@@ -75,7 +78,7 @@ func (adsClient *ADSClient) receiveThread() {
 		select {
 		case <-adsClient.RecvControlChan:
 			log.DefaultLogger.Debugf("[xds] [ads client] receive thread receive graceful shut down signal")
-			adsClient.StopChan <- 2
+			adsClient.StopChan <- struct{}{}
 			return
 		default:
 			adsClient.StreamClientMutex.RLock()
@@ -120,7 +123,7 @@ func (adsClient *ADSClient) asyncHandler() {
 		select {
 		case <-adsClient.AsyncHandleControlChan:
 			log.DefaultLogger.Debugf("[xds] [ads client] asyncHandler thread receive graceful shut down signal")
-			adsClient.StopChan <- 3
+			adsClient.StopChan <- struct{}{}
 			return
 		case resp := <-adsClient.AsyncHandleChan:
 			HandleTypeURL(adsClient, resp)

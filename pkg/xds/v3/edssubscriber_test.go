@@ -42,7 +42,7 @@ func Test_EdsHandler(t *testing.T) {
 		StreamClient:      nil,
 		SendControlChan:   make(chan int),
 		RecvControlChan:   make(chan int),
-		StopChan:          make(chan int),
+		StopChan:          make(chan struct{}),
 	}
 
 	addr := "127.0.0.1"

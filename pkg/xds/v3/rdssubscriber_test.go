@@ -42,7 +42,7 @@ func Test_RdsHandler(t *testing.T) {
 		StreamClient:      nil,
 		SendControlChan:   make(chan int),
 		RecvControlChan:   make(chan int),
-		StopChan:          make(chan int),
+		StopChan:          make(chan struct{}),
 	}
 	route := &envoy_config_route_v3.RouteConfiguration{
 		Name: "testroute",

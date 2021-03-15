@@ -64,7 +64,18 @@ func ClearSecretManager() {
 func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 	mng.mutex.Lock()
 	defer mng.mutex.Unlock()
-	validationName := cfg.SdsConfig.ValidationConfig.ConfigV3.Name
+
+	var (
+		validationName string
+		certName       string
+	)
+	if types.XdsVersion == types.XdsVersionV3 {
+		validationName = cfg.SdsConfig.ValidationConfig.ConfigV3.Name
+		certName = cfg.SdsConfig.CertificateConfig.ConfigV3.Name
+	} else {
+		validationName = cfg.SdsConfig.ValidationConfig.ConfigV2.Name
+		certName = cfg.SdsConfig.CertificateConfig.ConfigV2.Name
+	}
 	v, ok := mng.validations[validationName]
 	if !ok {
 		// add a validation
@@ -73,7 +84,6 @@ func (mng *secretManager) getOrCreateProvider(cfg *v2.TLSConfig) *sdsProvider {
 		}
 		mng.validations[validationName] = v
 	}
-	certName := cfg.SdsConfig.CertificateConfig.ConfigV3.Name
 	p, ok := v.certificates[certName]
 	if !ok {
 		// new a provider

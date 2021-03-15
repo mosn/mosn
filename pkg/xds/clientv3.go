@@ -59,7 +59,6 @@ func (c *clientv3) Start() error {
 		return errors.New("fail to init xds v3 config")
 	}
 
-	stopChan := make(chan int)
 	sendControlChan := make(chan int)
 	recvControlChan := make(chan int)
 	adsClient := &v3.ADSClient{
@@ -71,7 +70,7 @@ func (c *clientv3) Start() error {
 		RecvControlChan:        recvControlChan,
 		AsyncHandleControlChan: make(chan int),
 		AsyncHandleChan:        make(chan *envoy_service_discovery_v3.DiscoveryResponse, 20),
-		StopChan:               stopChan,
+		StopChan:               make(chan struct{}),
 	}
 	adsClient.Start()
 	c.adsClient = adsClient

@@ -99,7 +99,7 @@ func Test_Client(t *testing.T) {
 		StreamClient:      nil,
 		SendControlChan:   make(chan int),
 		RecvControlChan:   make(chan int),
-		StopChan:          make(chan int),
+		StopChan:          make(chan struct{}),
 	}
 	adsClient.Start()
 	go adsClient.Stop()

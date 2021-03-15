@@ -45,7 +45,7 @@ func Test_LdsHandler(t *testing.T) {
 		StreamClient:      nil,
 		SendControlChan:   make(chan int),
 		RecvControlChan:   make(chan int),
-		StopChan:          make(chan int),
+		StopChan:          make(chan struct{}),
 	}
 
 	httpManager := &xdshttp.HttpConnectionManager{
