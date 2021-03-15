@@ -56,7 +56,7 @@ func (f *FilterConfigFactory) CreateFilterChain(context context.Context, callbac
 	callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
 	callbacks.AddStreamReceiverFilter(filter, api.AfterRoute)
 	callbacks.AddStreamReceiverFilter(filter, api.AfterChooseHost)
-	callbacks.AddStreamSenderFilter(filter)
+	callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 	callbacks.AddStreamAccessLog(filter)
 }
 

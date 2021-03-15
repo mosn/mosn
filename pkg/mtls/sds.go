@@ -18,13 +18,21 @@
 package mtls
 
 import (
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"mosn.io/mosn/pkg/mtls/sds"
 	"mosn.io/mosn/pkg/types"
 )
 
-var getSdsClientFunc func(cfg *auth.SdsSecretConfig) types.SdsClient = sds.NewSdsClientSingleton
+var (
+	getSdsClientFuncV3 func(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClientV3 = sds.NewSdsClientSingletonV3
+	getSdsClientFuncV2 func(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientV2                         = sds.NewSdsClientSingletonV2
+)
 
-func GetSdsClient(cfg *auth.SdsSecretConfig) types.SdsClient {
-	return getSdsClientFunc(cfg)
+func GetSdsClientV3(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClientV3 {
+	return getSdsClientFuncV3(cfg)
+}
+
+func GetSdsClientV2(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientV2 {
+	return getSdsClientFuncV2(cfg)
 }

@@ -11,6 +11,7 @@ import (
 
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
+	"mosn.io/mosn/pkg/protocol/xprotocol/dubbothrift"
 	"mosn.io/mosn/pkg/protocol/xprotocol/tars"
 
 	"golang.org/x/net/http2"
@@ -224,7 +225,7 @@ func (c *XTestCase) RunCase(n int, interval int) {
 	// Client Call
 	var call func() error
 	switch c.SubProtocol {
-	case bolt.ProtocolName, dubbo.ProtocolName, tars.ProtocolName:
+	case bolt.ProtocolName, dubbo.ProtocolName, tars.ProtocolName, dubbothrift.ProtocolName:
 		server, ok := c.AppServer.(*util.RPCServer)
 		if !ok {
 			c.C <- fmt.Errorf("need a xprotocol rpc server")

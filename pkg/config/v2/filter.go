@@ -89,15 +89,17 @@ const (
 
 // Stream Filter's Type
 const (
-	MIXER          = "mixer"
-	FaultStream    = "fault"
-	PayloadLimit   = "payload_limit"
-	Gzip           = "gzip"
-	FaultTolerance = "fault_tolerance"
-	IstioStats     = "istio.stats"
-	DSL            = "dsl"
-	Mirror         = "mirror"
-	DubboStream    = "dubbo_stream"
+	MIXER                      = "mixer"
+	FaultStream                = "fault"
+	PayloadLimit               = "payload_limit"
+	Gzip                       = "gzip"
+	FaultTolerance             = "fault_tolerance"
+	IstioStats                 = "istio.stats"
+	DSL                        = "dsl"
+	Mirror                     = "mirror"
+	DubboStream                = "dubbo_stream"
+	JwtAuthn                   = "jwt_authn"
+	GoPluginStreamFilterSuffix = "so_plugin"
 )
 
 // HealthCheckFilter

@@ -122,6 +122,12 @@ var (
 			}, cli.IntFlag{
 				Name:  "concurrency",
 				Usage: "concurrency, align to Istio startup params, currently useless",
+			}, cli.IntFlag{
+				Name:  "log-format-prefix-with-location",
+				Usage: "log-format-prefix-with-location, align to Istio startup params, currently useless",
+			}, cli.IntFlag{
+				Name:  "bootstrap-version",
+				Usage: "bootstrap-version, currently useless",
 			},
 		},
 		Action: func(c *cli.Context) error {

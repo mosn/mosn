@@ -21,13 +21,13 @@ import (
 	"bytes"
 	"encoding/json"
 
-	"github.com/golang/protobuf/jsonpb"
-	_struct "github.com/golang/protobuf/ptypes/struct"
-	"github.com/rcrowley/go-metrics"
-
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/golang/protobuf/jsonpb"
+	_struct "github.com/golang/protobuf/ptypes/struct"
+	"github.com/rcrowley/go-metrics"
 )
 
 const serviceMetaSeparator = ":"
@@ -49,17 +49,29 @@ type meta struct {
 	// InterceptionMode is the name of the metadata variable that carries info about
 	// traffic interception mode at the proxy
 	InterceptionMode TrafficInterceptionMode `json:"INTERCEPTION_MODE,omitempty"`
+
+	// ClusterID defines the cluster the node belongs to.
+	ClusterID string `json:"CLUSTER_ID,omitempty"`
 }
 
 var (
 	// IstioVersion adapt istio version
 	IstioVersion = "unknow"
+	ClusterID    = "Kubernetes"
 
 	defaultMeta = &meta{
 		IstioVersion:     IstioVersion,
 		Labels:           map[string]string{"istio": "ingressgateway"},
 		InterceptionMode: InterceptionRedirect,
+		ClusterID:        ClusterID,
 	}
+
+	// XdsVersionV3 xDS v3
+	XdsVersionV3 = "V3"
+	// XdsVersionV2 xDS v2
+	XdsVersionV2 = "V2"
+	// XdsVersion xds version
+	XdsVersion = XdsVersionV2
 )
 
 var globalXdsInfo = &XdsInfo{}

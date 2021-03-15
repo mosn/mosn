@@ -335,6 +335,9 @@ func (m *SubjectAlternateName) Validate() error {
 	case *SubjectAlternateName_Uri:
 		// no validation rules for Uri
 
+	case *SubjectAlternateName_IpAddress:
+		// no validation rules for IpAddress
+
 	}
 
 	return nil

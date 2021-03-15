@@ -21,24 +21,25 @@ import (
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core1 "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	ads "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	resource "github.com/envoyproxy/go-control-plane/pkg/resource/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/xds/conv"
+	"mosn.io/mosn/pkg/xds/v2/conv"
 )
 
 // default type url mosn will handle
 const (
-	EnvoyListener              = "type.googleapis.com/envoy.api.v2.Listener"
-	EnvoyCluster               = "type.googleapis.com/envoy.api.v2.Cluster"
-	EnvoyClusterLoadAssignment = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
-	EnvoyRouteConfiguration    = "type.googleapis.com/envoy.api.v2.RouteConfiguration"
+	EnvoyListener = resource.ListenerType
+	EnvoyCluster  = resource.ClusterType
+	EnvoyEndpoint = resource.EndpointType
+	EnvoyRoute    = resource.RouteType
 )
 
 func init() {
 	RegisterTypeURLHandleFunc(EnvoyListener, HandleEnvoyListener)
 	RegisterTypeURLHandleFunc(EnvoyCluster, HandleEnvoyCluster)
-	RegisterTypeURLHandleFunc(EnvoyClusterLoadAssignment, HandleEnvoyClusterLoadAssignment)
-	RegisterTypeURLHandleFunc(EnvoyRouteConfiguration, HandleEnvoyRouteConfiguration)
+	RegisterTypeURLHandleFunc(EnvoyEndpoint, HandleEnvoyEndpoint)
+	RegisterTypeURLHandleFunc(EnvoyRoute, HandleEnvoyRoute)
 }
 
 // HandleEnvoyListener parse envoy data to mosn listener config
@@ -83,8 +84,8 @@ func HandleEnvoyCluster(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse)
 	}
 }
 
-// HandleEnvoyClusterLoadAssignment parse envoy data to mosn endpoint config
-func HandleEnvoyClusterLoadAssignment(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
+// HandleEnvoyEndpoint parse envoy data to mosn endpoint config
+func HandleEnvoyEndpoint(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
 	log.DefaultLogger.Tracef("get eds resp,handle it ")
 	endpoints := client.handleEndpointsResp(resp)
 	log.DefaultLogger.Infof("get %d endpoints from EDS", len(endpoints))
@@ -97,8 +98,8 @@ func HandleEnvoyClusterLoadAssignment(client *ADSClient, resp *envoy_api_v2.Disc
 	}
 }
 
-// HandleEnvoyRouteConfiguration parse envoy data to mosn route config
-func HandleEnvoyRouteConfiguration(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
+// HandleEnvoyRoute parse envoy data to mosn route config
+func HandleEnvoyRoute(client *ADSClient, resp *envoy_api_v2.DiscoveryResponse) {
 	log.DefaultLogger.Tracef("get rds resp,handle it")
 	routes := client.handleRoutesResp(resp)
 	log.DefaultLogger.Infof("get %d routes from RDS", len(routes))

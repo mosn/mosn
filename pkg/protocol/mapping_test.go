@@ -21,36 +21,42 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func TestMapping(t *testing.T) {
 	if _, err := MappingHeaderStatusCode(context.Background(), Xprotocol, nil); err != ErrNoMapping {
 		t.Error("no register type")
 	}
+
+	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHeaderStatus, nil, nil, variable.BasicSetter, 0))
+	ctx1 := variable.NewVariableContext(context.Background())
+
+	variable.SetVariableValue(ctx1, types.VarHeaderStatus, "200")
+	ctx2 := variable.NewVariableContext(context.Background())
 	testcases := []struct {
-		Header   api.HeaderMap
+		ctx      context.Context
 		Expetced int
 	}{
 		{
-			CommonHeader{types.HeaderStatus: "200"},
+			ctx1,
 			200,
 		},
 		{
-			CommonHeader{},
+			ctx2,
 			0,
 		},
 	}
 	for i, tc := range testcases {
-		code, _ := MappingHeaderStatusCode(context.Background(), HTTP1, tc.Header)
+		code, _ := MappingHeaderStatusCode(tc.ctx, HTTP1, nil)
 		if code != tc.Expetced {
 			t.Errorf("#%d unexpected status code", i)
 		}
 	}
 
 	for i, tc := range testcases {
-		code, _ := MappingHeaderStatusCode(context.Background(), HTTP2, tc.Header)
+		code, _ := MappingHeaderStatusCode(tc.ctx, HTTP2, nil)
 		if code != tc.Expetced {
 			t.Errorf("#%d unexpected status code", i)
 		}

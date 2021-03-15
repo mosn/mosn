@@ -18,16 +18,67 @@
 package router
 
 import (
+	"context"
 	"regexp"
 	"strings"
 
 	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/protocol"
+	httpmosn "mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
-type PathRouteRuleImpl struct {
+type BaseHTTPRouteRule struct {
 	*RouteRuleImplBase
+	configHeaders         types.HeaderMatcher
+	configQueryParameters types.QueryParameterMatcher //TODO: not implement yet
+}
+
+func NewBaseHTTPRouteRule(base *RouteRuleImplBase, headers []v2.HeaderMatcher) *BaseHTTPRouteRule {
+	return &BaseHTTPRouteRule{
+		RouteRuleImplBase: base,
+		configHeaders:     CreateHTTPHeaderMatcher(headers),
+	}
+}
+
+func (rri *BaseHTTPRouteRule) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	if rri.configHeaders != nil {
+		return rri.configHeaders.HeaderMatchCriteria()
+	}
+	return nil
+}
+
+func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.HeaderMap) bool {
+	// 1. match headers' KV
+	if !rri.configHeaders.Matches(ctx, headers) {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match header", headers)
+		}
+		return false
+	}
+	// 2. match query parameters
+	if rri.configQueryParameters != nil {
+		var queryParams types.QueryParams
+		QueryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
+		if err == nil && QueryString != "" {
+			queryParams = httpmosn.ParseQueryString(QueryString)
+		}
+		if len(queryParams) != 0 {
+			if !rri.configQueryParameters.Matches(ctx, queryParams) {
+				if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+					log.DefaultLogger.Debugf(RouterLogFormat, "routerule", "match query params", queryParams)
+				}
+				return false
+			}
+		}
+	}
+	return true
+}
+
+type PathRouteRuleImpl struct {
+	*BaseHTTPRouteRule
 	path string
 }
 
@@ -50,14 +101,15 @@ func (prri *PathRouteRuleImpl) MatchType() api.PathMatchType {
 
 // types.RouteRule
 // override Base
-func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	prri.finalizeRequestHeaders(headers, requestInfo)
-	prri.finalizePathHeader(headers, prri.path)
+func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	prri.finalizeRequestHeaders(ctx, headers, requestInfo)
+	prri.finalizePathHeader(ctx, headers, prri.path)
 }
 
-func (prri *PathRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if prri.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	if prri.matchRoute(ctx, headers) {
+		headerPathValue, err := variable.GetVariableValue(ctx, types.VarPath)
+		if err == nil && headerPathValue != "" {
 			// TODO: config to support case sensitive
 			// case insensitive
 			if strings.EqualFold(headerPathValue, prri.path) {
@@ -65,13 +117,15 @@ func (prri *PathRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) 
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "path route rule", "failed match", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "path route rule", "failed match", headers)
+	}
 	return nil
 }
 
 // PrefixRouteRuleImpl used to "match path" with "prefix match"
 type PrefixRouteRuleImpl struct {
-	*RouteRuleImplBase
+	*BaseHTTPRouteRule
 	prefix string
 }
 
@@ -94,26 +148,29 @@ func (prei *PrefixRouteRuleImpl) MatchType() api.PathMatchType {
 
 // types.RouteRule
 // override Base
-func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	prei.finalizeRequestHeaders(headers, requestInfo)
-	prei.finalizePathHeader(headers, prei.prefix)
+func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	prei.finalizeRequestHeaders(ctx, headers, requestInfo)
+	prei.finalizePathHeader(ctx, headers, prei.prefix)
 }
 
-func (prei *PrefixRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if prei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	if prei.matchRoute(ctx, headers) {
+		headerPathValue, err := variable.GetVariableValue(ctx, types.VarPath)
+		if err == nil && headerPathValue != "" {
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
 				return prei
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "prefxi route rule", "failed match", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "prefxi route rule", "failed match", headers)
+	}
 	return nil
 }
 
 // RegexRouteRuleImpl used to "match path" with "regex match"
 type RegexRouteRuleImpl struct {
-	*RouteRuleImplBase
+	*BaseHTTPRouteRule
 	regexStr     string
 	regexPattern *regexp.Regexp
 }
@@ -134,19 +191,22 @@ func (rrei *RegexRouteRuleImpl) MatchType() api.PathMatchType {
 	return api.Regex
 }
 
-func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
-	rrei.finalizeRequestHeaders(headers, requestInfo)
-	rrei.finalizePathHeader(headers, rrei.regexStr)
+func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
+	rrei.finalizeRequestHeaders(ctx, headers, requestInfo)
+	rrei.finalizePathHeader(ctx, headers, rrei.regexStr)
 }
 
-func (rrei *RegexRouteRuleImpl) Match(headers api.HeaderMap, randomValue uint64) api.Route {
-	if rrei.matchRoute(headers, randomValue) {
-		if headerPathValue, ok := headers.Get(protocol.MosnHeaderPathKey); ok {
+func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
+	if rrei.matchRoute(ctx, headers) {
+		headerPathValue, err := variable.GetVariableValue(ctx, types.VarPath)
+		if err == nil && headerPathValue != "" {
 			if rrei.regexPattern.MatchString(headerPathValue) {
 				return rrei
 			}
 		}
 	}
-	log.DefaultLogger.Debugf(RouterLogFormat, "regex route rule", "failed match", headers)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "regex route rule", "failed match", headers)
+	}
 	return nil
 }

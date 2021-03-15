@@ -18,12 +18,13 @@
 package network
 
 import (
-	"errors"
+	"os"
 	"runtime"
-	"sync"
 	"sync/atomic"
 
-	"github.com/neverhook/easygo/netpoll"
+	"github.com/mosn/easygo/netpoll"
+	atomicex "go.uber.org/atomic"
+	"mosn.io/mosn/pkg/log"
 	mosnsync "mosn.io/mosn/pkg/sync"
 )
 
@@ -32,27 +33,36 @@ var (
 	UseNetpollMode = false
 
 	// read/write goroutine pool
-	readPool  = mosnsync.NewWorkerPool(runtime.NumCPU())
-	writePool = mosnsync.NewWorkerPool(runtime.NumCPU())
+	readPool = mosnsync.NewWorkerPool(4 * runtime.NumCPU())
 
-	rrCounter                 uint32
-	poolSize                  uint32 = 1 //uint32(runtime.NumCPU())
-	eventLoopPool                    = make([]*eventLoop, poolSize)
-	errEventAlreadyRegistered        = errors.New("event already registered")
+	rrCounter     uint32
+	poolSize      uint32 = 1 //uint32(runtime.NumCPU())
+	eventLoopPool        = make([]*eventLoop, poolSize)
 )
 
 func init() {
-	//for i := range eventLoopPool {
-	//	poller, err := netpoll.New(nil)
-	//	if err != nil {
-	//		log.Fatalln("create poller failed, caused by ", err)
-	//	}
-	//
-	//	eventLoopPool[i] = &eventLoop{
-	//		poller: poller,
-	//		conn:   make(map[uint64]*connEvent), //TODO init size
-	//	}
-	//}
+	for i := range eventLoopPool {
+		poller, err := netpoll.New(nil)
+		if err != nil {
+			log.DefaultLogger.Fatalf("create poller failed, caused by %v", err)
+		}
+
+		eventLoopPool[i] = &eventLoop{
+			poller: poller,
+		}
+	}
+}
+
+func init() {
+	if os.Getenv("NETPOLL") == "on" {
+		log.DefaultLogger.Infof("[network] set netpoll to true by env")
+		SetNetpollMode(true)
+	}
+}
+
+// SetNetpollMode set the netpoll mode
+func SetNetpollMode(enable bool) {
+	UseNetpollMode = enable
 }
 
 func attach() *eventLoop {
@@ -60,163 +70,70 @@ func attach() *eventLoop {
 }
 
 type connEvent struct {
-	read  *netpoll.Desc
-	write *netpoll.Desc
+	readDesc *netpoll.Desc
+	stopped  atomicex.Bool // default is 0/false
 }
 
 type connEventHandler struct {
-	onHup   func() bool
-	onRead  func() bool
-	onWrite func() bool
+	onHup  func() bool
+	onRead func() bool
 }
 
 type eventLoop struct {
-	mu sync.Mutex
-
 	poller netpoll.Poller
-
-	conn map[uint64]*connEvent
-}
-
-func (el *eventLoop) register(conn *connection, handler *connEventHandler) error {
-	// handle read
-	read, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
-	if err != nil {
-		return err
-	}
-
-	// handle write
-	write, err := netpoll.HandleFile(conn.file, netpoll.EventWrite|netpoll.EventOneShot)
-	if err != nil {
-		return err
-	}
-
-	// register with wrapper
-	el.poller.Start(read, el.readWrapper(read, handler))
-	el.poller.Start(write, el.writeWrapper(write, handler))
-
-	el.mu.Lock()
-	//store
-	el.conn[conn.id] = &connEvent{
-		read:  read,
-		write: write,
-	}
-	el.mu.Unlock()
-	return nil
 }
 
 func (el *eventLoop) registerRead(conn *connection, handler *connEventHandler) error {
 	// handle read
-	read, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
+	desc, err := netpoll.HandleFile(conn.file, netpoll.EventRead|netpoll.EventOneShot)
 	if err != nil {
 		return err
 	}
 
-	// register
-	el.poller.Start(read, el.readWrapper(read, handler))
-
-	el.mu.Lock()
-	//store
-	el.conn[conn.id] = &connEvent{
-		read: read,
-	}
-	el.mu.Unlock()
-	return nil
-}
-
-func (el *eventLoop) registerWrite(conn *connection, handler *connEventHandler) error {
-	// handle write
-	write, err := netpoll.HandleFile(conn.file, netpoll.EventWrite|netpoll.EventOneShot)
-	if err != nil {
-		return err
+	// store should happen before register
+	// if conn Close happen immediately after poller.Start
+	// the conn.ev is nil, so this connection fd will not be removed from epfd
+	conn.poll.ev = &connEvent{
+		readDesc: desc,
 	}
 
-	// register
-	el.poller.Start(write, el.writeWrapper(write, handler))
-
-	el.mu.Lock()
-	//store
-	el.conn[conn.id] = &connEvent{
-		write: write,
-	}
-	el.mu.Unlock()
-	return nil
-}
-
-func (el *eventLoop) unregister(id uint64) {
-
-	if event, ok := el.conn[id]; ok {
-		if event.read != nil {
-			el.poller.Stop(event.read)
-		}
-
-		if event.write != nil {
-			el.poller.Stop(event.write)
-		}
-
-		el.mu.Lock()
-		delete(el.conn, id)
-		el.mu.Unlock()
-	}
-
-}
-
-func (el *eventLoop) unregisterRead(id uint64) {
-	if event, ok := el.conn[id]; ok {
-		if event.read != nil {
-			el.poller.Stop(event.read)
-		}
-
-		el.mu.Lock()
-		delete(el.conn, id)
-		el.mu.Unlock()
-	}
-}
-
-func (el *eventLoop) unregisterWrite(id uint64) {
-	if event, ok := el.conn[id]; ok {
-		if event.write != nil {
-			el.poller.Stop(event.write)
-		}
-
-		el.mu.Lock()
-		delete(el.conn, id)
-		el.mu.Unlock()
-	}
-}
-
-func (el *eventLoop) readWrapper(desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
-	return func(e netpoll.Event) {
+	readCallback := func(e netpoll.Event) {
 		// No more calls will be made for conn until we call epoll.Resume().
-		if e&netpoll.EventReadHup != 0 {
-			el.poller.Stop(desc)
-			if !handler.onHup() {
-				return
-			}
-		}
-		readPool.Schedule(func() {
+		readPool.ScheduleAuto(func() {
 			if !handler.onRead() {
 				return
 			}
-			el.poller.Resume(desc)
+
+			// if conn is closed by local already
+			if conn.poll.ev.stopped.Load() {
+				return
+			}
+
+			err := el.poller.Resume(conn.poll.ev.readDesc)
+			if err != nil {
+				log.DefaultLogger.Errorf("RESUME failed, err : %v, desc : %v, raddr : %v, laddr : %v", err,
+					desc, conn.RemoteAddr(), conn.LocalAddr())
+			}
 		})
 	}
+
+	// register
+	err = el.poller.Start(desc, readCallback)
+
+	if err != nil {
+		log.DefaultLogger.Errorf("[network] registerRead failed err : %v, addr: %v", err, conn.RemoteAddr())
+		return err
+	}
+
+	return nil
 }
 
-func (el *eventLoop) writeWrapper(desc *netpoll.Desc, handler *connEventHandler) func(netpoll.Event) {
-	return func(e netpoll.Event) {
-		// No more calls will be made for conn until we call epoll.Resume().
-		if e&netpoll.EventWriteHup != 0 {
-			el.poller.Stop(desc)
-			if !handler.onHup() {
-				return
-			}
+func (el *eventLoop) unregisterRead(conn *connection) {
+	if conn.poll.ev != nil {
+		conn.poll.ev.stopped.Store(true)
+		err := el.poller.Stop(conn.poll.ev.readDesc)
+		if err != nil {
+			log.DefaultLogger.Errorf("[unregisterRead] failed, %v", err)
 		}
-		writePool.ScheduleAlways(func() {
-			if !handler.onWrite() {
-				return
-			}
-			el.poller.Resume(desc)
-		})
 	}
 }

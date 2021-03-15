@@ -30,13 +30,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/protocol/http2"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -160,47 +157,28 @@ func TestWeightedClusterSelect(t *testing.T) {
 	}
 }
 
-func Test_RouteRuleImplBase_matchRoute_matchMethod(t *testing.T) {
-	route := &v2.Router{
-		RouterConfig: v2.RouterConfig{
-			Match: v2.RouterMatch{Headers: []v2.HeaderMatcher{
-				{
-					Name:  "method",
-					Value: "POST",
-				},
-			}},
-			Route: v2.RouteAction{
-				RouterActionConfig: v2.RouterActionConfig{
-					ClusterName: "test",
-				},
-			},
-		},
-	}
+type finalizeResult struct {
+	variables map[string]string // the variables should be setted
+	headers   api.HeaderMap
+}
 
-	routeRuleBase, err := NewRouteRuleImplBase(nil, route)
-	if !assert.NoErrorf(t, err, "new route rule impl failed, err should be nil, get %+v", err) {
-		t.FailNow()
+func (res *finalizeResult) Check(ctx context.Context, headers api.HeaderMap) bool {
+	for key, value := range res.variables {
+		p, _ := variable.GetVariableValue(ctx, key)
+		if p != value {
+			return false
+		}
 	}
-
-	headers := http.RequestHeader{
-		RequestHeader: &fasthttp.RequestHeader{},
-	}
-	headers.Set(protocol.MosnHeaderMethod, "POST")
-	match := routeRuleBase.matchRoute(headers, 1)
-	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
-		t.FailNow()
-	}
-
-	http2Request := &goHttp.Request{
-		Method: "POST",
-		Header: goHttp.Header{},
-	}
-	headerHttp2 := http2.NewReqHeader(http2Request)
-	headerHttp2.Set(protocol.MosnHeaderMethod, http2Request.Method)
-	match = routeRuleBase.matchRoute(headerHttp2, 1)
-	if !assert.Truef(t, match, "match http2 method failed, result should be true, get %+v", match) {
-		t.FailNow()
-	}
+	pass := true
+	res.headers.Range(func(key, value string) bool {
+		v, _ := headers.Get(key)
+		if v != value {
+			pass = false
+			return false
+		}
+		return true
+	})
+	return pass
 }
 
 func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
@@ -221,40 +199,57 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 	rri.regexPattern = regexPattern
 
 	type args struct {
-		headers     types.HeaderMap
-		matchedPath string
+		originalPath string // request path which will be setted into var for match
+		matchedPath  string // macthed path is mocked for router match
 	}
 
 	type testCase struct {
 		name string
 		args args
-		want types.HeaderMap
+		want *finalizeResult
 	}
 
 	tests := []testCase{
 		{
 			name: "case1",
 			args: args{
-				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/"},
-				matchedPath: "/",
+				originalPath: "/",
+				matchedPath:  "/",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/", protocol.MosnOriginalHeaderPathKey: "/"},
+			want: &finalizeResult{
+				variables: map[string]string{
+					types.VarPath: "/abc/",
+				},
+				headers: protocol.CommonHeader{
+					types.HeaderOriginalPath: "/",
+				},
+			},
 		},
 		{
 			name: "case2",
 			args: args{
-				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/index/page/"},
-				matchedPath: "/index/",
+				originalPath: "/index/page/",
+				matchedPath:  "/index/",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/abc/page/", protocol.MosnOriginalHeaderPathKey: "/index/page/"},
+			want: &finalizeResult{
+				variables: map[string]string{
+					types.VarPath: "/abc/page/",
+				},
+				headers: protocol.CommonHeader{
+					types.HeaderOriginalPath: "/index/page/",
+				},
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rri.FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
-			if !reflect.DeepEqual(tt.args.headers, tt.want) {
-				t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
+			ctx := variable.NewVariableContext(context.Background())
+			variable.SetVariableValue(ctx, types.VarPath, tt.args.originalPath)
+			headers := protocol.CommonHeader{}
+			rri.FinalizePathHeader(ctx, headers, tt.args.matchedPath)
+			if !tt.want.Check(ctx, headers) {
+				t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.originalPath, tt.want)
 			}
 		})
 
@@ -300,34 +295,64 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		{
 			name: "case1",
 			args: args{
-				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/service/foo/v1/api"},
-				matchedPath: "/service/foo/v1/api",
+				originalPath: "/service/foo/v1/api",
+				matchedPath:  "/service/foo/v1/api",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/v1/api/instance/foo", protocol.MosnOriginalHeaderPathKey: "/service/foo/v1/api"},
+			want: &finalizeResult{
+				variables: map[string]string{
+					types.VarPath: "/v1/api/instance/foo",
+				},
+
+				headers: protocol.CommonHeader{
+					types.HeaderOriginalPath: "/service/foo/v1/api",
+				},
+			},
 		},
 		{
 			name: "case2",
 			args: args{
-				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/one/yyy/one/zzz"},
-				matchedPath: "/xxx/one/yyy/one/zzz",
+				originalPath: "/xxx/one/yyy/one/zzz",
+				matchedPath:  "/xxx/one/yyy/one/zzz",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/two/zzz", protocol.MosnOriginalHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+			want: &finalizeResult{
+				variables: map[string]string{
+					types.VarPath: "/xxx/two/yyy/two/zzz",
+				},
+
+				headers: protocol.CommonHeader{
+					types.HeaderOriginalPath: "/xxx/one/yyy/one/zzz",
+				},
+			},
 		},
 		{
 			name: "case3",
 			args: args{
-				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/one/yyy/one/zzz"},
-				matchedPath: "/xxx/one/yyy/one/zzz",
+				originalPath: "/xxx/one/yyy/one/zzz",
+				matchedPath:  "/xxx/one/yyy/one/zzz",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/xxx/two/yyy/one/zzz", protocol.MosnOriginalHeaderPathKey: "/xxx/one/yyy/one/zzz"},
+			want: &finalizeResult{
+				variables: map[string]string{
+					types.VarPath: "/xxx/two/yyy/one/zzz",
+				},
+				headers: protocol.CommonHeader{
+					types.HeaderOriginalPath: "/xxx/one/yyy/one/zzz",
+				},
+			},
 		},
 		{
 			name: "case4",
 			args: args{
-				headers:     protocol.CommonHeader{protocol.MosnHeaderPathKey: "/aaa/XxX/bbb"},
-				matchedPath: "/aaa/XxX/bbb",
+				originalPath: "/aaa/XxX/bbb",
+				matchedPath:  "/aaa/XxX/bbb",
 			},
-			want: protocol.CommonHeader{protocol.MosnHeaderPathKey: "/aaa/yyy/bbb", protocol.MosnOriginalHeaderPathKey: "/aaa/XxX/bbb"},
+			want: &finalizeResult{
+				variables: map[string]string{
+					types.VarPath: "/aaa/yyy/bbb",
+				},
+				headers: protocol.CommonHeader{
+					types.HeaderOriginalPath: "/aaa/XxX/bbb",
+				},
+			},
 		},
 	}
 
@@ -346,9 +371,12 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		tt, ok := testMap["case"+strconv.Itoa(k+1)]
 		if ok {
 			t.Run(tt.name, func(t *testing.T) {
-				rris[ops].FinalizePathHeader(tt.args.headers, tt.args.matchedPath)
-				if !reflect.DeepEqual(tt.args.headers, tt.want) {
-					t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.headers, tt.want)
+				ctx := variable.NewVariableContext(context.Background())
+				variable.SetVariableValue(ctx, types.VarPath, tt.args.originalPath)
+				headers := protocol.CommonHeader{}
+				rris[ops].FinalizePathHeader(ctx, headers, tt.args.matchedPath)
+				if !tt.want.Check(ctx, headers) {
+					t.Errorf("(rri *RouteRuleImplBase) finalizePathHeader(headers map[string]string, matchedPath string) = %v, want %v", tt.args.originalPath, tt.want)
 				}
 			})
 		}
@@ -366,24 +394,24 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want types.HeaderMap
+		want *finalizeResult
 	}{
 		{
 			name: "case1",
 			args: args{
 				rri: &RouteRuleImplBase{
-					hostRewrite: "www.xxx.com",
+					hostRewrite: "mosn.io",
 					requestHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
@@ -395,14 +423,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 						requestHeadersParser: &headerParser{
 							headersToAdd: []*headerPair{
 								{
-									headerName: &lowerCaseString{"level"},
+									headerName: "level",
 									headerFormatter: &plainHeaderFormatter{
 										isAppend:    true,
 										staticValue: "2",
 									},
 								},
 								{
-									headerName: &lowerCaseString{"vhost"},
+									headerName: "vhost",
 									headerFormatter: &plainHeaderFormatter{
 										isAppend:    true,
 										staticValue: "true",
@@ -414,14 +442,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 							requestHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
@@ -435,7 +463,16 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
 				requestInfo: nil,
 			},
-			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "authority": "www.xxx.com", "level": "1,2,3", "route": "true", "vhost": "true", "global": "true"},
+			want: &finalizeResult{
+				variables: map[string]string{
+					types.VarIstioHeaderHost: "mosn.io",
+				},
+				headers: protocol.CommonHeader{
+					"host":  "xxx.default.svc.cluster.local",
+					"level": "1,2,3",
+					"route": "true", "vhost": "true", "global": "true",
+				},
+			},
 		},
 
 		{
@@ -445,14 +482,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 					requestHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
@@ -465,14 +502,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 							requestHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
@@ -486,7 +523,12 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 				headers:     protocol.CommonHeader{"host": "xxx.default.svc.cluster.local"},
 				requestInfo: nil,
 			},
-			want: protocol.CommonHeader{"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "true"},
+			want: &finalizeResult{
+				variables: map[string]string{},
+				headers: protocol.CommonHeader{
+					"host": "xxx.default.svc.cluster.local", "level": "1,3", "route": "true", "global": "true",
+				},
+			},
 		},
 
 		{
@@ -500,14 +542,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 					requestHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
@@ -520,14 +562,14 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 							requestHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
@@ -541,13 +583,23 @@ func Test_RouteRuleImplBase_FinalizeRequestHeaders(t *testing.T) {
 				headers:     protocol.CommonHeader{"realyHost": "mosn.io.rewrited.host"},
 				requestInfo: nil,
 			},
-			want: protocol.CommonHeader{"realyHost": "mosn.io.rewrited.host", "authority": "mosn.io.rewrited.host", "level": "1,3", "route": "true", "global": "true"},
+			want: &finalizeResult{
+				variables: map[string]string{
+					types.VarIstioHeaderHost: "mosn.io.rewrited.host",
+				},
+				headers: protocol.CommonHeader{
+					"realyHost": "mosn.io.rewrited.host",
+					"level":     "1,3", "route": "true", "global": "true",
+				},
+			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.rri.FinalizeRequestHeaders(tt.args.headers, tt.args.requestInfo)
-			if !reflect.DeepEqual(tt.args.headers, tt.want) {
+			ctx := variable.NewVariableContext(context.Background())
+			tt.args.rri.FinalizeRequestHeaders(ctx, tt.args.headers, tt.args.requestInfo)
+			if !tt.want.Check(ctx, tt.args.headers) {
 				t.Errorf("(rri *RouteRuleImplBase) FinalizeRequestHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
 			}
 		})
@@ -574,61 +626,61 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 					responseHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
 								},
 							},
 						},
-						headersToRemove: []*lowerCaseString{{"status"}, {"username"}},
+						headersToRemove: []string{"status", "username"},
 					},
 					vHost: &VirtualHostImpl{
 						responseHeadersParser: &headerParser{
 							headersToAdd: []*headerPair{
 								{
-									headerName: &lowerCaseString{"level"},
+									headerName: "level",
 									headerFormatter: &plainHeaderFormatter{
 										isAppend:    true,
 										staticValue: "2",
 									},
 								},
 								{
-									headerName: &lowerCaseString{"vhost"},
+									headerName: "vhost",
 									headerFormatter: &plainHeaderFormatter{
 										isAppend:    true,
 										staticValue: "true",
 									},
 								},
 							},
-							headersToRemove: []*lowerCaseString{{"ver"}},
+							headersToRemove: []string{"ver"},
 						},
 						globalRouteConfig: &configImpl{
 							responseHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
 										},
 									},
 								},
-								headersToRemove: []*lowerCaseString{{"x-mosn"}},
+								headersToRemove: []string{"x-mosn"},
 							},
 						},
 					},
@@ -645,42 +697,42 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 					responseHeadersParser: &headerParser{
 						headersToAdd: []*headerPair{
 							{
-								headerName: &lowerCaseString{"level"},
+								headerName: "level",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "1",
 								},
 							},
 							{
-								headerName: &lowerCaseString{"route"},
+								headerName: "route",
 								headerFormatter: &plainHeaderFormatter{
 									isAppend:    true,
 									staticValue: "true",
 								},
 							},
 						},
-						headersToRemove: []*lowerCaseString{{"status"}, {"username"}},
+						headersToRemove: []string{"status", "username"},
 					},
 					vHost: &VirtualHostImpl{
 						globalRouteConfig: &configImpl{
 							responseHeadersParser: &headerParser{
 								headersToAdd: []*headerPair{
 									{
-										headerName: &lowerCaseString{"level"},
+										headerName: "level",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "3",
 										},
 									},
 									{
-										headerName: &lowerCaseString{"global"},
+										headerName: "global",
 										headerFormatter: &plainHeaderFormatter{
 											isAppend:    true,
 											staticValue: "true",
 										},
 									},
 								},
-								headersToRemove: []*lowerCaseString{{"x-mosn"}},
+								headersToRemove: []string{"x-mosn"},
 							},
 						},
 					},
@@ -694,7 +746,8 @@ func Test_RouteRuleImplBase_FinalizeResponseHeaders(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.rri.FinalizeResponseHeaders(tt.args.headers, tt.args.requestInfo)
+			ctx := variable.NewVariableContext(context.Background())
+			tt.args.rri.FinalizeResponseHeaders(ctx, tt.args.headers, tt.args.requestInfo)
 			if !reflect.DeepEqual(tt.args.headers, tt.want) {
 				t.Errorf("(rri *RouteRuleImplBase) FinalizeResponseHeaders(headers map[string]string, requestInfo types.RequestInfo) = %v, want %v", tt.args.headers, tt.want)
 			}

@@ -9,7 +9,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"mosn.io/mosn/pkg/admin/store"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/xds/conv"
+	"mosn.io/mosn/pkg/xds"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 func statsForIstio(w http.ResponseWriter, r *http.Request) {
 	state, err := getIstioState()
 	if err != nil {
-		log.DefaultLogger.Warnf("%v", err)
+		log.DefaultLogger.Warnf("get istio state error : %v", err)
 	}
 	var workersStarted int
 	if state == envoyControlPlaneAPI.ServerInfo_LIVE {
@@ -32,16 +32,16 @@ func statsForIstio(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sb := bytes.NewBufferString("")
-	sb.WriteString(fmt.Sprintf("%s: %d\n", CDS_UPDATE_SUCCESS, conv.Stats.CdsUpdateSuccess.Count()))
-	sb.WriteString(fmt.Sprintf("%s: %d\n", CDS_UPDATE_REJECT, conv.Stats.CdsUpdateReject.Count()))
-	sb.WriteString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_SUCCESS, conv.Stats.LdsUpdateSuccess.Count()))
-	sb.WriteString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_REJECT, conv.Stats.LdsUpdateReject.Count()))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", CDS_UPDATE_SUCCESS, xds.GetStats().CdsUpdateSuccess.Count()))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", CDS_UPDATE_REJECT, xds.GetStats().CdsUpdateReject.Count()))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_SUCCESS, xds.GetStats().LdsUpdateSuccess.Count()))
+	sb.WriteString(fmt.Sprintf("%s: %d\n", LDS_UPDATE_REJECT, xds.GetStats().LdsUpdateReject.Count()))
 	sb.WriteString(fmt.Sprintf("%s: %d\n", SERVER_STATE, state))
 	sb.WriteString(fmt.Sprintf("%s: %d\n", STAT_WORKERS_STARTED, workersStarted))
 	_, err = sb.WriteTo(w)
 
 	if err != nil {
-		log.DefaultLogger.Warnf("%v", err)
+		log.DefaultLogger.Warnf("write stats for istio response error: %v", err)
 	}
 }
 
@@ -50,13 +50,13 @@ func serverInfoForIstio(w http.ResponseWriter, r *http.Request) {
 	var err error
 	i.State, err = getIstioState()
 	if err != nil {
-		log.DefaultLogger.Warnf("%v", err)
+		log.DefaultLogger.Warnf("get server info for istio state error : %v", err)
 		return
 	}
 
 	m := jsonpb.Marshaler{}
 	if err := m.Marshal(w, &i); err != nil {
-		log.DefaultLogger.Warnf("marshal to string failed")
+		log.DefaultLogger.Warnf("get server info for istio marshal to string failed: %v", err)
 	}
 }
 

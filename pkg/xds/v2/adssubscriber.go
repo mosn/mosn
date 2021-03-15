@@ -31,11 +31,17 @@ import (
 func (adsClient *ADSClient) Start() {
 	adsClient.StreamClient = adsClient.AdsConfig.GetStreamClient()
 	utils.GoWithRecover(func() {
+		adsClient.asyncHandler()
+	}, nil)
+	utils.GoWithRecover(func() {
 		adsClient.sendThread()
 	}, nil)
 	utils.GoWithRecover(func() {
 		adsClient.receiveThread()
 	}, nil)
+
+	// waitStopChan is wait all goroutine stoped
+	adsClient.waitStopChan = 3
 }
 
 func (adsClient *ADSClient) sendThread() {
@@ -53,7 +59,7 @@ func (adsClient *ADSClient) sendThread() {
 		case <-adsClient.SendControlChan:
 			log.DefaultLogger.Debugf("[xds] [ads client] send thread receive graceful shut down signal")
 			adsClient.AdsConfig.closeADSStreamClient()
-			adsClient.StopChan <- 1
+			adsClient.StopChan <- struct{}{}
 			return
 		case <-t1.C:
 			err := adsClient.reqClusters(adsClient.StreamClient)
@@ -71,7 +77,7 @@ func (adsClient *ADSClient) receiveThread() {
 		select {
 		case <-adsClient.RecvControlChan:
 			log.DefaultLogger.Debugf("[xds] [ads client] receive thread receive graceful shut down signal")
-			adsClient.StopChan <- 2
+			adsClient.StopChan <- struct{}{}
 			return
 		default:
 			adsClient.StreamClientMutex.RLock()
@@ -84,12 +90,37 @@ func (adsClient *ADSClient) receiveThread() {
 			}
 			resp, err := sc.Recv()
 			if err != nil {
-				log.DefaultLogger.Infof("[xds] [ads client] get resp timeout: %v, retry after 1s", err)
+				// rpc error: code = Unavailable desc = transport is closing
+				log.DefaultLogger.Infof("[xds] [ads client] get resp error: %v, retry after 1s", err)
 				time.Sleep(time.Second)
 				continue
 			}
-			typeURL := resp.TypeUrl
-			HandleTypeURL(typeURL, adsClient, resp)
+			/*
+			 * If xDS resource too big, Istio may be have write timeout error when use sync, such as:
+			 *		2020-12-01T09:17:29.354132Z	info	ads	Timeout writing sidecar~10.49.18.38~no-project-aabb-gz01a-blue-67cb764fcb-8dq4t.default~default.svc.cluster.local-39
+			 * So, will use async
+			 */
+			select {
+			case adsClient.AsyncHandleChan <- resp:
+			default:
+				// if block use goroutine
+				go func() {
+					adsClient.AsyncHandleChan <- resp
+				}()
+			}
+		}
+	}
+}
+
+func (adsClient *ADSClient) asyncHandler() {
+	for {
+		select {
+		case <-adsClient.AsyncHandleControlChan:
+			log.DefaultLogger.Debugf("[xds] [ads client] asyncHandler thread receive graceful shut down signal")
+			adsClient.StopChan <- struct{}{}
+			return
+		case resp := <-adsClient.AsyncHandleChan:
+			HandleTypeURL(adsClient, resp)
 		}
 	}
 }
@@ -146,7 +177,8 @@ func (adsClient *ADSClient) reconnect() {
 func (adsClient *ADSClient) Stop() {
 	adsClient.SendControlChan <- 1
 	adsClient.RecvControlChan <- 1
-	for i := 0; i < 2; i++ {
+	adsClient.AsyncHandleControlChan <- 1
+	for i := 0; i < adsClient.waitStopChan; i++ {
 		select {
 		case <-adsClient.StopChan:
 			log.DefaultLogger.Debugf("[xds] [ads client] stop signal")
@@ -154,5 +186,6 @@ func (adsClient *ADSClient) Stop() {
 	}
 	close(adsClient.SendControlChan)
 	close(adsClient.RecvControlChan)
+	close(adsClient.AsyncHandleControlChan)
 	close(adsClient.StopChan)
 }

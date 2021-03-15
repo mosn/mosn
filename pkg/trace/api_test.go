@@ -2,15 +2,18 @@ package trace
 
 import (
 	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/types"
+	"mosn.io/api"
+
 	"testing"
+
+	"mosn.io/mosn/pkg/types"
 )
 
 func TestAPI(t *testing.T) {
 	driver := NewDefaultDriverImpl()
 	proto := types.ProtocolName("test")
 
-	driver.Register(proto, func(config map[string]interface{}) (types.Tracer, error) {
+	driver.Register(proto, func(config map[string]interface{}) (api.Tracer, error) {
 		return &mockTracer{}, nil
 	})
 
@@ -28,4 +31,3 @@ func TestEnable(t *testing.T) {
 	Disable()
 	assert.False(t, IsEnabled())
 }
-

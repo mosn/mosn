@@ -1,6 +1,7 @@
 package extract
 
 import (
+	"context"
 	"encoding/base64"
 	"net"
 	"reflect"
@@ -13,6 +14,8 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/istio/utils"
 	"mosn.io/mosn/pkg/protocol"
+	mtypes "mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 
@@ -50,12 +53,25 @@ func TestExtractAttributes(t *testing.T) {
 	buf.Append([]byte{1})
 	defer buffer.PutIoBuffer(buf)
 	type args struct {
+		varCtx      context.Context
 		reqHeaders  api.HeaderMap
 		respHeaders api.HeaderMap
 		requestInfo api.RequestInfo
 		buf         buffer.IoBuffer
 		trailers    api.HeaderMap
 	}
+
+	ctx1 := variable.NewVariableContext(context.Background())
+	variable.SetVariableValue(ctx1, mtypes.VarPath, "/path")
+	variable.SetVariableValue(ctx1, mtypes.VarHost, "host")
+	variable.SetVariableValue(ctx1, mtypes.VarMethod, "GET")
+
+	ctx2 := variable.NewVariableContext(context.Background())
+	variable.SetVariableValue(ctx2, mtypes.VarPath, "/path")
+	variable.SetVariableValue(ctx2, mtypes.VarHost, "host")
+	variable.SetVariableValue(ctx2, mtypes.VarMethod, "GET")
+	variable.SetVariableValue(ctx2, mtypes.VarQueryString, "k1=v1&k2=v2")
+
 	tests := []struct {
 		name string
 		args args
@@ -63,6 +79,7 @@ func TestExtractAttributes(t *testing.T) {
 	}{
 		{
 			args: args{
+				varCtx:      variable.NewVariableContext(context.Background()),
 				reqHeaders:  protocol.CommonHeader{},
 				respHeaders: protocol.CommonHeader{},
 				requestInfo: &MockRequestInfo{
@@ -75,6 +92,7 @@ func TestExtractAttributes(t *testing.T) {
 		},
 		{
 			args: args{
+				varCtx:      variable.NewVariableContext(context.Background()),
 				reqHeaders:  protocol.CommonHeader{},
 				respHeaders: protocol.CommonHeader{},
 				requestInfo: &MockRequestInfo{
@@ -91,6 +109,7 @@ func TestExtractAttributes(t *testing.T) {
 		},
 		{
 			args: args{
+				varCtx:      variable.NewVariableContext(context.Background()),
 				reqHeaders:  protocol.CommonHeader{},
 				respHeaders: protocol.CommonHeader{},
 				requestInfo: &MockRequestInfo{
@@ -104,6 +123,7 @@ func TestExtractAttributes(t *testing.T) {
 		},
 		{
 			args: args{
+				varCtx:      variable.NewVariableContext(context.Background()),
 				reqHeaders:  protocol.CommonHeader{},
 				respHeaders: protocol.CommonHeader{},
 				requestInfo: &MockRequestInfo{
@@ -117,6 +137,7 @@ func TestExtractAttributes(t *testing.T) {
 		},
 		{
 			args: args{
+				varCtx:      variable.NewVariableContext(context.Background()),
 				reqHeaders:  protocol.CommonHeader{},
 				respHeaders: protocol.CommonHeader{},
 				requestInfo: &MockRequestInfo{
@@ -130,11 +151,8 @@ func TestExtractAttributes(t *testing.T) {
 		},
 		{
 			args: args{
-				reqHeaders: protocol.CommonHeader{
-					"x-mosn-path":   "/path",
-					"x-mosn-host":   "host",
-					"x-mosn-method": "GET",
-				},
+				varCtx:      ctx1,
+				reqHeaders:  protocol.CommonHeader{},
 				respHeaders: protocol.CommonHeader{},
 				requestInfo: &MockRequestInfo{
 					startTime: now,
@@ -143,16 +161,12 @@ func TestExtractAttributes(t *testing.T) {
 				},
 				buf: buf,
 			},
-			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(48), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path", "request.method": "GET"},
+			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path", "request.method": "GET"},
 		},
 		{
 			args: args{
-				reqHeaders: protocol.CommonHeader{
-					"x-mosn-path":        "/path",
-					"x-mosn-querystring": "k1=v1&k2=v2",
-					"x-mosn-host":        "host",
-					"x-mosn-method":      "GET",
-				},
+				varCtx:      ctx2,
+				reqHeaders:  protocol.CommonHeader{},
 				respHeaders: protocol.CommonHeader{},
 				requestInfo: &MockRequestInfo{
 					startTime: now,
@@ -161,10 +175,11 @@ func TestExtractAttributes(t *testing.T) {
 				},
 				buf: buf,
 			},
-			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(77), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path?k1=v1&k2=v2", "request.method": "GET", "request.query_params": protocol.CommonHeader{"k1": "v1", "k2": "v2"}},
+			want: map[string]interface{}{"context.protocol": string(protocol.Auto), "request.size": int64(0), "request.time": now, "request.total_size": int64(1), "response.code": int64(0), "response.duration": time.Duration(0), "response.headers": protocol.CommonHeader{}, "response.size": int64(0), "response.total_size": int64(0), "response.time": now, "request.host": "host", "request.path": "/path", "request.url_path": "/path?k1=v1&k2=v2", "request.method": "GET", "request.query_params": protocol.CommonHeader{"k1": "v1", "k2": "v2"}},
 		},
 		{
 			args: args{
+				varCtx: variable.NewVariableContext(context.Background()),
 				reqHeaders: protocol.CommonHeader{
 					utils.KIstioAttributeHeader: func() string {
 						b, _ := proto.Marshal(&v1.Attributes{
@@ -190,6 +205,7 @@ func TestExtractAttributes(t *testing.T) {
 		},
 		{
 			args: args{
+				varCtx: variable.NewVariableContext(context.Background()),
 				reqHeaders: protocol.CommonHeader{
 					utils.KIstioAttributeHeader: `Cj8KGGRlc3RpbmF0aW9uLnNlcnZpY2UuaG9zdBIjEiFodHRwYmluLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwKPQoXZGVzdGluYXRpb24uc2VydmljZS51aWQSIhIgaXN0aW86Ly9kZWZhdWx0L3NlcnZpY2VzL2h0dHBiaW4KKgodZGVzdGluYXRpb24uc2VydmljZS5uYW1lc3BhY2USCRIHZGVmYXVsdAolChhkZXN0aW5hdGlvbi5zZXJ2aWNlLm5hbWUSCRIHaHR0cGJpbgo6Cgpzb3VyY2UudWlkEiwSKmt1YmVybmV0ZXM6Ly9zbGVlcC03YjlmOGJmY2QtMmRqeDUuZGVmYXVsdAo6ChNkZXN0aW5hdGlvbi5zZXJ2aWNlEiMSIWh0dHBiaW4uZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbA==`,
 				},
@@ -204,6 +220,7 @@ func TestExtractAttributes(t *testing.T) {
 		},
 		{
 			args: args{
+				varCtx: variable.NewVariableContext(context.Background()),
 				reqHeaders: protocol.CommonHeader{
 					utils.KIstioAttributeHeader: `Cj8KGGRlc3RpbmF0aW9uLnNlcnZpY2UuaG9zdBIjEiFodHRwYmluLmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwKPQoXZGVzdGluYXRpb24uc2VydmljZS51aWQSIhIgaXN0aW86Ly9kZWZhdWx0L3NlcnZpY2VzL2h0dHBiaW4KKgodZGVzdGluYXRpb24uc2VydmljZS5uYW1lc3BhY2USCRIHZGVmYXVsdAolChhkZXN0aW5hdGlvbi5zZXJ2aWNlLm5hbWUSCRIHaHR0cGJpbgo6Cgpzb3VyY2UudWlkEiwSKmt1YmVybmV0ZXM6Ly9zbGVlcC03YjlmOGJmY2QtMmRqeDUuZGVmYXVsdAo6ChNkZXN0aW5hdGlvbi5zZXJ2aWNlEiMSIWh0dHBiaW4uZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbA==`,
 				},
@@ -222,7 +239,7 @@ func TestExtractAttributes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := ExtractAttributes(tt.args.reqHeaders, tt.args.respHeaders, tt.args.requestInfo, tt.args.buf, tt.args.trailers, now)
+			got := ExtractAttributes(tt.args.varCtx, tt.args.reqHeaders, tt.args.respHeaders, tt.args.requestInfo, tt.args.buf, tt.args.trailers, now)
 			for k, v := range tt.want {
 				if g, ok := got.Get(k); !ok || !reflect.DeepEqual(g, v) {
 					t.Errorf("ExtractAttributes() key %q = %v, want %v", k, g, v)
@@ -386,12 +403,18 @@ func Test_attributesToStringInterfaceMap(t *testing.T) {
 }
 
 type MockRouteRule struct {
-	clusterName        string
-	upstreamProtocol   string
-	globalTimeout      time.Duration
-	policy             api.Policy
-	perFilterConfig    map[string]interface{}
-	pathMatchCriterion api.PathMatchCriterion
+	vHost               api.VirtualHost
+	clusterName         string
+	upstreamProtocol    string
+	globalTimeout       time.Duration
+	policy              api.Policy
+	perFilterConfig     map[string]interface{}
+	pathMatchCriterion  api.PathMatchCriterion
+	headerMatchCriteria api.KeyValueMatchCriteria
+}
+
+func (r *MockRouteRule) VirtualHost() api.VirtualHost {
+	return r.vHost
 }
 
 func (r *MockRouteRule) ClusterName() string {
@@ -418,11 +441,11 @@ func (r *MockRouteRule) PerFilterConfig() map[string]interface{} {
 	return r.perFilterConfig
 }
 
-func (r *MockRouteRule) FinalizeRequestHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (r *MockRouteRule) FinalizeRequestHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 
 }
 
-func (r *MockRouteRule) FinalizeResponseHeaders(headers api.HeaderMap, requestInfo api.RequestInfo) {
+func (r *MockRouteRule) FinalizeResponseHeaders(ctx context.Context, headers api.HeaderMap, requestInfo api.RequestInfo) {
 
 }
 
@@ -430,9 +453,13 @@ func (r *MockRouteRule) PathMatchCriterion() api.PathMatchCriterion {
 	return r.pathMatchCriterion
 }
 
+func (r *MockRouteRule) HeaderMatchCriteria() api.KeyValueMatchCriteria {
+	return r.headerMatchCriteria
+}
+
 // MockRequestInfo
 type MockRequestInfo struct {
-	protocol                 api.Protocol
+	protocol                 api.ProtocolName
 	startTime                time.Time
 	endTime                  time.Time
 	responseFlag             api.ResponseFlag
@@ -508,11 +535,11 @@ func (r *MockRequestInfo) SetBytesReceived(bytesReceived uint64) {
 	r.bytesReceived = bytesReceived
 }
 
-func (r *MockRequestInfo) Protocol() api.Protocol {
+func (r *MockRequestInfo) Protocol() api.ProtocolName {
 	return r.protocol
 }
 
-func (r *MockRequestInfo) SetProtocol(p api.Protocol) {
+func (r *MockRequestInfo) SetProtocol(p api.ProtocolName) {
 	r.protocol = p
 }
 

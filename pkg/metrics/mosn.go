@@ -32,8 +32,13 @@ const (
 	StateCode    = "mosn_state_code"
 )
 
-// FlushMosnMetrics marks output mosn information metrics or not, default is false
-var FlushMosnMetrics bool
+var (
+	// FlushMosnMetrics marks output mosn information metrics or not, default is false
+	FlushMosnMetrics bool
+
+	// LazyFlushMetrics marks flush data with lazy mode
+	LazyFlushMetrics bool
+)
 
 // NewMosnMetrics returns the basic metrics for mosn
 // export the function for extension
@@ -65,4 +70,10 @@ func SetStateCode(code int64) {
 // AddListenerAddr adds a listener addr info
 func AddListenerAddr(addr string) {
 	NewMosnMetrics().Gauge(ListenerAddr + addr).Update(1)
+}
+
+// SetMetricsFeature enabled metrics feature
+func SetMetricsFeature(flushMosn, lazyFlush bool) {
+	FlushMosnMetrics = flushMosn
+	LazyFlushMetrics = lazyFlush
 }

@@ -51,7 +51,7 @@ func refreshHostsConfig(c types.Cluster) {
 		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %d", name, len(hosts))
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Infof("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hosts)
+		log.DefaultLogger.Debugf("[cluster] [primaryCluster] [UpdateHosts] cluster %s update hosts: %v", name, hosts)
 	}
 }
 
@@ -62,7 +62,7 @@ type clusterManager struct {
 	clustersMap      sync.Map
 	protocolConnPool sync.Map
 	tlsMetrics       *mtls.TLSStats
-	tlsMng           atomic.Value // store types.TLSContextManager
+	tlsMng           atomic.Value // store types.TLSClientContextManager
 	mux              sync.Mutex
 }
 
@@ -149,7 +149,9 @@ func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
 		refreshHostsConfig(c)
 	}
 	cm.clustersMap.Store(clusterName, newCluster)
-	log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
+	if log.DefaultLogger.GetLogLevel() >= log.INFO {
+		log.DefaultLogger.Infof("[cluster] [cluster manager] [AddOrUpdatePrimaryCluster] cluster %s updated", clusterName)
+	}
 	return nil
 }
 
@@ -309,9 +311,9 @@ func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerC
 	return pool
 }
 
-func (cm *clusterManager) GetTLSManager() types.TLSContextManager {
+func (cm *clusterManager) GetTLSManager() types.TLSClientContextManager {
 	v := cm.tlsMng.Load()
-	tlsmng, _ := v.(types.TLSContextManager)
+	tlsmng, _ := v.(types.TLSClientContextManager)
 	return tlsmng
 }
 
@@ -325,12 +327,31 @@ func (cm *clusterManager) UpdateTLSManager(tls *v2.TLSConfig) {
 		return
 	}
 	cm.tlsMng.Store(mng)
+	configmanager.SetClusterManagerTLS(*tls)
 }
 
 const (
 	maxHostsCounts  = 3
-	maxTryConnTimes = 7
+	intervalStep    = 5
+	maxTryConnTimes = 15
 )
+
+var tryConnTimes = [maxTryConnTimes]time.Duration{}
+
+func init() {
+	index := 0
+	// total duration is 535ms
+	for _, interval := range []time.Duration{
+		2 * time.Millisecond,
+		5 * time.Millisecond,
+		100 * time.Millisecond,
+	} {
+		for i := 0; i < intervalStep; i++ {
+			tryConnTimes[index] = interval
+			index++
+		}
+	}
+}
 
 var (
 	errNilHostChoose   = errors.New("cluster snapshot choose host is nil")
@@ -393,7 +414,6 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("[upstream] [cluster manager] %s tls state changed", addr)
 				}
-				cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
 				func() {
 					// lock the load and delete
 					cm.mux.Lock()
@@ -408,6 +428,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 						pool.Shutdown()
 						pool = factory(balancerContext.DownstreamContext(), host)
 						connectionPool.Store(addr, pool)
+						cm.tlsMetrics.TLSConnpoolChanged.Inc(1)
 					}
 				}()
 
@@ -419,10 +440,8 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		pools[i] = pool
 	}
 
-	// perhaps the first request, wait for tcp handshaking. total wait time is 1ms + 10ms + (100ms * 5)
-	waitTime := time.Millisecond
+	// perhaps the first request, wait for tcp handshaking.
 	for t := 0; t < maxTryConnTimes; t++ {
-		time.Sleep(waitTime)
 		for i := 0; i < try; i++ {
 			if pools[i] == nil {
 				continue
@@ -431,10 +450,8 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				return pools[i], nil
 			}
 		}
-		// max wait time is 100 * time.Millisecond
-		if waitTime < 100*time.Millisecond {
-			waitTime *= 10
-		}
+		waitTime := tryConnTimes[t]
+		time.Sleep(waitTime)
 	}
 	return nil, errNoHealthyHost
 }

@@ -19,9 +19,10 @@ package faulttolerance
 
 import (
 	"context"
-	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
 	"testing"
 	"time"
+
+	"mosn.io/mosn/pkg/filter/stream/faulttolerance/regulator"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
@@ -127,7 +128,8 @@ func TestAppendFilter(t *testing.T) {
 	f.Append(context.Background(), nil, nil, nil)
 
 	// host1 should set unhealth
-	time.Sleep(time.Duration(cfg.TimeWindow/1000+1) * time.Second)
+	// The maximum delay time is 2s (500ms(task check interval) + 1s(TimeWindow) + 500ms(task check interval))
+	time.Sleep(time.Duration(cfg.TimeWindow/1000+2) * time.Second)
 	if host1.Health() {
 		t.Errorf("health status should false, but got health status: %v", host1.Health())
 	}

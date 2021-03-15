@@ -23,41 +23,41 @@ import (
 	"net/http"
 	"testing"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"mosn.io/mosn/pkg/config/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/module/http2"
 	"mosn.io/mosn/pkg/mtls/certtool"
 	"mosn.io/mosn/pkg/types"
 )
 
-type mockSdsClient struct {
+type mockSdsClientV3 struct {
 	callback map[string]types.SdsUpdateCallbackFunc
 }
 
-var mockSdsClientInstance *mockSdsClient
+var mockSdsClientInstance *mockSdsClientV3
 
-func (c *mockSdsClient) AddUpdateCallback(sdsConfig *auth.SdsSecretConfig, f types.SdsUpdateCallbackFunc) error {
+func (c *mockSdsClientV3) AddUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig, f types.SdsUpdateCallbackFunc) error {
 	c.callback[sdsConfig.Name] = f
 	return nil
 }
-
-func (c *mockSdsClient) SetSecret(name string, secret *auth.Secret) {
+func (c *mockSdsClientV3) SetSecret(name string, secret *envoy_extensions_transport_sockets_tls_v3.Secret) {
 	// nothing
 }
 
-func (c *mockSdsClient) setSecret(name string, secret *types.SdsSecret) {
+func (c *mockSdsClientV3) setSecret(name string, secret *types.SdsSecret) {
 	if f, ok := c.callback[name]; ok {
 		f(name, secret)
 	}
 }
 
-func (c *mockSdsClient) DeleteUpdateCallback(sdsConfig *auth.SdsSecretConfig) error {
+func (c *mockSdsClientV3) DeleteUpdateCallback(sdsConfig *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) error {
 	return nil
 }
 
-func getMockSdsClient(cfg *auth.SdsSecretConfig) types.SdsClient {
+func getMockSdsClientV3(cfg *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig) types.SdsClientV3 {
 	if mockSdsClientInstance == nil {
-		mockSdsClientInstance = &mockSdsClient{
+		mockSdsClientInstance = &mockSdsClientV3{
 			callback: make(map[string]types.SdsUpdateCallbackFunc),
 		}
 	}
@@ -70,7 +70,7 @@ type MockListener struct {
 	Mng types.TLSContextManager
 }
 
-func MockClient(t *testing.T, addr string, cltMng types.TLSContextManager) (*http.Response, error) {
+func MockClient(t *testing.T, addr string, cltMng types.TLSClientContextManager) (*http.Response, error) {
 	c, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, fmt.Errorf("request server error %v", err)
@@ -80,9 +80,11 @@ func MockClient(t *testing.T, addr string, cltMng types.TLSContextManager) (*htt
 	conn = c
 	if cltMng != nil {
 		req, _ = http.NewRequest("GET", "https://"+addr, nil)
-		conn, _ = cltMng.Conn(c)
-		tlsConn, _ := conn.(*TLSConn)
-		if err := tlsConn.Handshake(); err != nil {
+		conn, err = cltMng.Conn(c)
+		if err != nil && cltMng.Fallback() {
+			conn, err = net.Dial("tcp", addr)
+		}
+		if err != nil {
 			return nil, fmt.Errorf("request tls handshake error %v", err)
 		}
 	} else {
@@ -201,4 +203,36 @@ func (c *certInfo) CreateCertConfig() (*v2.TLSConfig, error) {
 		CertChain:  secret.Certificate,
 		PrivateKey: secret.PrivateKey,
 	}, nil
+}
+
+//////
+///// Deprecated with xDS v2
+/////
+
+type mockSdsClientV2 struct {
+	callback map[string]types.SdsUpdateCallbackFunc
+}
+
+var mockSdsClientInstanceV2 *mockSdsClientV2
+
+func (c *mockSdsClientV2) AddUpdateCallback(sdsConfig *envoy_api_v2_auth.SdsSecretConfig, f types.SdsUpdateCallbackFunc) error {
+	c.callback[sdsConfig.Name] = f
+	return nil
+}
+
+func (c *mockSdsClientV2) SetSecret(name string, secret *envoy_api_v2_auth.Secret) {
+	// nothing
+}
+
+func (c *mockSdsClientV2) DeleteUpdateCallback(sdsConfig *envoy_api_v2_auth.SdsSecretConfig) error {
+	return nil
+}
+
+func getMockSdsClientV2(cfg *envoy_api_v2_auth.SdsSecretConfig) types.SdsClientV2 {
+	if mockSdsClientInstanceV2 == nil {
+		mockSdsClientInstanceV2 = &mockSdsClientV2{
+			callback: make(map[string]types.SdsUpdateCallbackFunc),
+		}
+	}
+	return mockSdsClientInstanceV2
 }

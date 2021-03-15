@@ -24,28 +24,51 @@ import (
 	"testing"
 	"time"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"mosn.io/mosn/pkg/config/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
 var testInit sync.Once
 
-func createSdsTLSConfig() *v2.TLSConfig {
+func createSdsTLSConfigV3() *v2.TLSConfig {
 	testInit.Do(func() {
-		getSdsClientFunc = getMockSdsClient
+		getSdsClientFuncV3 = getMockSdsClientV3
 	})
 	return &v2.TLSConfig{
 		Status:       true,
 		VerifyClient: true,
 		SdsConfig: &v2.SdsConfig{
 			CertificateConfig: &v2.SecretConfigWrapper{
-				Config: &auth.SdsSecretConfig{
+				ConfigV3: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
 					Name: "default",
 				},
 			},
 			ValidationConfig: &v2.SecretConfigWrapper{
-				Config: &auth.SdsSecretConfig{
+				ConfigV3: &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
+					Name: "rootCA",
+				},
+			},
+		},
+	}
+}
+
+func createSdsTLSConfigV2() *v2.TLSConfig {
+	testInit.Do(func() {
+		getSdsClientFuncV2 = getMockSdsClientV2
+	})
+	return &v2.TLSConfig{
+		Status:       true,
+		VerifyClient: true,
+		SdsConfig: &v2.SdsConfig{
+			CertificateConfig: &v2.SecretConfigWrapper{
+				ConfigV2: &envoy_api_v2_auth.SdsSecretConfig{
+					Name: "default",
+				},
+			},
+			ValidationConfig: &v2.SecretConfigWrapper{
+				ConfigV2: &envoy_api_v2_auth.SdsSecretConfig{
 					Name: "rootCA",
 				},
 			},
@@ -58,9 +81,10 @@ func resetTest() {
 		validations: make(map[string]*validation),
 	}
 	sdsCallbacks = []func(*v2.TLSConfig){}
-	mockSdsClientInstance = &mockSdsClient{
+	mockSdsClientInstance = &mockSdsClientV3{
 		callback: make(map[string]types.SdsUpdateCallbackFunc),
 	}
+	types.XdsVersion = types.XdsVersionV2
 }
 
 func mockSetSecret() *secretInfo {
@@ -90,9 +114,10 @@ func mockSetSecret() *secretInfo {
 // server listen a sds tls config
 // before the certificate is setted, cannot support tls request
 // after the certificate is setted, support tls request
-func TestSimpleSdsTLS(t *testing.T) {
+func TestSimpleSdsTLSV3(t *testing.T) {
 	resetTest()
-	cfg := createSdsTLSConfig()
+	types.XdsVersion = types.XdsVersionV3
+	cfg := createSdsTLSConfigV3()
 	filterChains := []v2.FilterChain{
 		{
 			TLSContexts: []v2.TLSConfig{
@@ -181,7 +206,8 @@ func TestSimpleSdsTLS(t *testing.T) {
 // If the client request tls with certificate, the server will verify the client's certificate
 func TestSdsWithExtension(t *testing.T) {
 	resetTest()
-	cfg := createSdsTLSConfig()
+	types.XdsVersion = types.XdsVersionV3
+	cfg := createSdsTLSConfigV3()
 	// Add extension
 	cfg.Type = testType
 	extendVerify := map[string]interface{}{
@@ -288,7 +314,8 @@ func TestSdsWithExtension(t *testing.T) {
 
 func TestSdsProviderUpdate(t *testing.T) {
 	resetTest()
-	cfg := createSdsTLSConfig()
+	types.XdsVersion = types.XdsVersionV3
+	cfg := createSdsTLSConfigV3()
 	prd := getOrCreateProvider(cfg)
 	if prd.Ready() {
 		t.Fatal("provider ready without certificate")
@@ -306,7 +333,7 @@ func TestSdsProviderUpdate(t *testing.T) {
 		t.Fatal("sds provider reuse failed")
 	}
 	// update tls config
-	cfg2 := createSdsTLSConfig()
+	cfg2 := createSdsTLSConfigV3()
 	cfg2.CipherSuites = "RSA-AES256-CBC-SHA:RSA-3DES-EDE-CBC-SHA"
 	prd3 := getOrCreateProvider(cfg2)
 	prd3Addr := fmt.Sprintf("%p", prd3)

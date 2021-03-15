@@ -25,21 +25,23 @@ import (
 	"testing"
 	"time"
 
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	sds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_extensions_transport_sockets_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	envoy_service_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	envoy_service_secret_v3 "github.com/envoyproxy/go-control-plane/envoy/service/secret/v3"
+	resourcev2 "github.com/envoyproxy/go-control-plane/pkg/resource/v2"
+	resourcev3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	ptypes "github.com/golang/protobuf/ptypes"
 	"google.golang.org/grpc"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 )
 
-const (
-	SecretType = "type.googleapis.com/envoy.api.v2.auth.Secret"
-)
-
-func Test_AddUpdateCallback(t *testing.T) {
+func Test_AddUpdateCallbackV3(t *testing.T) {
 	// init prepare
 	sdsUdsPath := "/tmp/sds2"
 	SubscriberRetryPeriod = 500 * time.Millisecond
@@ -51,10 +53,239 @@ func Test_AddUpdateCallback(t *testing.T) {
 		callback = 1
 	})
 	// mock sds server
-	srv := InitMockSdsServer(sdsUdsPath, t)
+	srv := InitMockSdsServerV3(sdsUdsPath, t)
 	defer srv.Stop()
-	config := InitSdsSecertConfig(sdsUdsPath)
-	sdsClient := NewSdsClientSingleton(config)
+	config := InitSdsSecertConfigV3(sdsUdsPath)
+	sdsClient := NewSdsClientSingletonV3(config)
+	if sdsClient == nil {
+		t.Errorf("get sds client fail")
+	}
+
+	// Do not call CloseSdsClient(), because the 'SdsClient' is a global single object.
+	//defer CloseSdsClient()
+
+	// wait server start and stop makes reconnect
+	time.Sleep(time.Second)
+	srv.Stop()
+	// wait server connection stop
+	time.Sleep(time.Second)
+	// send request
+	updatedChan := make(chan int, 1) // do not block the update channel
+	log.DefaultLogger.Infof(" add update callback")
+	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SdsSecret) {
+		if name != "default" {
+			t.Errorf("name should same with config.name")
+		}
+		log.DefaultLogger.Infof("update callback is called")
+		updatedChan <- 1
+	})
+	// sdsClient.SetSecret(config.Name, &envoy_extensions_transport_sockets_tls_v3.Secret{})
+	time.Sleep(time.Second)
+	go func() {
+		err := srv.Start()
+		if !srv.started {
+			t.Fatalf("%s start error: %v", sdsUdsPath, err)
+		}
+	}()
+	select {
+	case <-updatedChan:
+		if callback != 1 {
+			t.Fatalf("sds post callback unexpected")
+		}
+	case <-time.After(time.Second * 10):
+		t.Errorf("callback reponse timeout")
+	}
+}
+func Test_DeleteUpdateCallbackV3(t *testing.T) {
+	sdsUdsPath := "/tmp/sds3"
+	// mock sds server
+	srv := InitMockSdsServerV3(sdsUdsPath, t)
+	defer srv.Stop()
+	config := InitSdsSecertConfigV3(sdsUdsPath)
+	config.Name = "delete"
+	sdsClient := NewSdsClientSingletonV3(config)
+	if sdsClient == nil {
+		t.Errorf("get sds client fail")
+	}
+
+	// Do not call CloseSdsClient(), because the 'SdsClient' is a global single object.
+	//defer CloseSdsClient()
+
+	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SdsSecret) {})
+	err := sdsClient.DeleteUpdateCallback(config)
+	if err != nil {
+		t.Errorf("delete update callback fail")
+	}
+}
+
+func InitSdsSecertConfigV3(sdsUdsPath string) *envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig {
+	gRPCConfig := &envoy_config_core_v3.GrpcService_GoogleGrpc{
+		TargetUri:  sdsUdsPath,
+		StatPrefix: "sds-prefix",
+		ChannelCredentials: &envoy_config_core_v3.GrpcService_GoogleGrpc_ChannelCredentials{
+			CredentialSpecifier: &envoy_config_core_v3.GrpcService_GoogleGrpc_ChannelCredentials_LocalCredentials{
+				LocalCredentials: &envoy_config_core_v3.GrpcService_GoogleGrpc_GoogleLocalCredentials{},
+			},
+		},
+	}
+	config := &envoy_extensions_transport_sockets_tls_v3.SdsSecretConfig{
+		Name: "default",
+		SdsConfig: &envoy_config_core_v3.ConfigSource{
+			ConfigSourceSpecifier: &envoy_config_core_v3.ConfigSource_ApiConfigSource{
+				ApiConfigSource: &envoy_config_core_v3.ApiConfigSource{
+					ApiType: envoy_config_core_v3.ApiConfigSource_GRPC,
+					GrpcServices: []*envoy_config_core_v3.GrpcService{
+						{
+							TargetSpecifier: &envoy_config_core_v3.GrpcService_GoogleGrpc_{
+								GoogleGrpc: gRPCConfig,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return config
+}
+
+func InitMockSdsServerV3(sdsUdsPath string, t *testing.T) *fakeSdsServerV3 {
+	s := NewFakeSdsServerV3(sdsUdsPath)
+	go func() {
+		err := s.Start()
+		if !s.started {
+			t.Fatalf("server %s failed: %v", sdsUdsPath, err)
+		}
+	}()
+	return s
+}
+
+func NewFakeSdsServerV3(sdsUdsPath string) *fakeSdsServerV3 {
+	return &fakeSdsServerV3{
+		sdsUdsPath: sdsUdsPath,
+	}
+
+}
+
+// SecretDiscoveryServiceServer is the server API for SecretDiscoveryService service.
+//type SecretDiscoveryServiceServer interface {
+//        DeltaSecrets(SecretDiscoveryService_DeltaSecretsServer) error
+//        StreamSecrets(SecretDiscoveryService_StreamSecretsServer) error
+//        FetchSecrets(context.Context, *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error)
+//}
+type fakeSdsServerV3 struct {
+	envoy_service_secret_v3.SecretDiscoveryServiceServer
+	server     *grpc.Server
+	sdsUdsPath string
+	started    bool
+}
+
+func (s *fakeSdsServerV3) Start() error {
+	grpcOptions := []grpc.ServerOption{
+		grpc.MaxConcurrentStreams(10240),
+	}
+	grpcWorkloadServer := grpc.NewServer(grpcOptions...)
+	s.register(grpcWorkloadServer)
+	s.server = grpcWorkloadServer
+	ln, err := setUpUdsV3(s.sdsUdsPath)
+	if err != nil {
+		return err
+	}
+	s.started = true
+	err = s.server.Serve(ln)
+	return err
+}
+
+func (s *fakeSdsServerV3) Stop() {
+	if s.started {
+		s.server.Stop()
+	}
+}
+
+func (s *fakeSdsServerV3) StreamSecrets(stream envoy_service_secret_v3.SecretDiscoveryService_StreamSecretsServer) error {
+	log.DefaultLogger.Infof("get stream secrets")
+	// wait for request
+	// for test just ignore
+	_, err := stream.Recv()
+	if err != nil {
+		log.DefaultLogger.Errorf("streamn receive error: %v", err)
+		return err
+	}
+	resp := &envoy_service_discovery_v3.DiscoveryResponse{
+		TypeUrl:     resourcev3.SecretType,
+		VersionInfo: "0",
+		Nonce:       "0",
+	}
+	secret := &envoy_extensions_transport_sockets_tls_v3.Secret{
+		Name: "default",
+	}
+	ms, err := ptypes.MarshalAny(secret)
+	if err != nil {
+		log.DefaultLogger.Errorf("marshal secret error: %v", err)
+		return err
+	}
+	resp.Resources = append(resp.Resources, ms)
+	if err := stream.Send(resp); err != nil {
+		log.DefaultLogger.Errorf("send response error: %v", err)
+		return err
+	}
+	// keep alive for 3 second for client connection
+	time.Sleep(3 * time.Second)
+	return nil
+}
+
+func (s *fakeSdsServerV3) FetchSecrets(ctx context.Context, discReq *envoy_service_discovery_v3.DiscoveryRequest) (*envoy_service_discovery_v3.DiscoveryResponse, error) {
+	// not implement
+	return nil, nil
+}
+
+func (s *fakeSdsServerV3) register(rpcs *grpc.Server) {
+	envoy_service_secret_v3.RegisterSecretDiscoveryServiceServer(rpcs, s)
+}
+
+func setUpUdsV3(udsPath string) (net.Listener, error) {
+	// Remove unix socket before use.
+	if err := os.Remove(udsPath); err != nil && !os.IsNotExist(err) {
+		// Anything other than "file not found" is an error.
+		return nil, fmt.Errorf("failed to remove unix://%s", udsPath)
+	}
+
+	var err error
+	udsListener, err := net.Listen("unix", udsPath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update Sds UDS file permission so that istio-proxy has permission to access it.
+	if _, err := os.Stat(udsPath); err != nil {
+		return nil, fmt.Errorf("sds uds file %q doesn't exist", udsPath)
+	}
+	if err := os.Chmod(udsPath, 0666); err != nil {
+		return nil, fmt.Errorf("failed to update %q permission", udsPath)
+	}
+
+	return udsListener, nil
+}
+
+//////
+///// Deprecated with xDS v2
+/////
+
+func Test_AddUpdateCallbackV2(t *testing.T) {
+	// init prepare
+	sdsUdsPath := "/tmp/sds4"
+	SubscriberRetryPeriod = 500 * time.Millisecond
+	defer func() {
+		SubscriberRetryPeriod = 3 * time.Second
+	}()
+	callback := 0
+	SetSdsPostCallback(func() {
+		callback = 1
+	})
+	// mock sds server
+	srv := InitMockSdsServerV2(sdsUdsPath, t)
+	defer srv.Stop()
+	config := InitSdsSecertConfigV2(sdsUdsPath)
+	sdsClient := NewSdsClientSingletonV2(config)
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
 	}
@@ -84,6 +315,7 @@ func Test_AddUpdateCallback(t *testing.T) {
 			t.Fatalf("%s start error: %v", sdsUdsPath, err)
 		}
 	}()
+	// sdsClient.SetSecret(config.Name, &envoy_api_v2_auth.Secret{})
 	select {
 	case <-updatedChan:
 		if callback != 1 {
@@ -94,14 +326,14 @@ func Test_AddUpdateCallback(t *testing.T) {
 	}
 }
 
-func Test_DeleteUpdateCallback(t *testing.T) {
-	sdsUdsPath := "/tmp/sds3"
+func Test_DeleteUpdateCallbackV2(t *testing.T) {
+	sdsUdsPath := "/tmp/sds5"
 	// mock sds server
-	srv := InitMockSdsServer(sdsUdsPath, t)
+	srv := InitMockSdsServerV2(sdsUdsPath, t)
 	defer srv.Stop()
-	config := InitSdsSecertConfig(sdsUdsPath)
+	config := InitSdsSecertConfigV2(sdsUdsPath)
 	config.Name = "delete"
-	sdsClient := NewSdsClientSingleton(config)
+	sdsClient := NewSdsClientSingletonV2(config)
 	if sdsClient == nil {
 		t.Errorf("get sds client fail")
 	}
@@ -116,25 +348,25 @@ func Test_DeleteUpdateCallback(t *testing.T) {
 	}
 }
 
-func InitSdsSecertConfig(sdsUdsPath string) *auth.SdsSecretConfig {
-	gRPCConfig := &core.GrpcService_GoogleGrpc{
+func InitSdsSecertConfigV2(sdsUdsPath string) *envoy_api_v2_auth.SdsSecretConfig {
+	gRPCConfig := &envoy_api_v2_core.GrpcService_GoogleGrpc{
 		TargetUri:  sdsUdsPath,
 		StatPrefix: "sds-prefix",
-		ChannelCredentials: &core.GrpcService_GoogleGrpc_ChannelCredentials{
-			CredentialSpecifier: &core.GrpcService_GoogleGrpc_ChannelCredentials_LocalCredentials{
-				LocalCredentials: &core.GrpcService_GoogleGrpc_GoogleLocalCredentials{},
+		ChannelCredentials: &envoy_api_v2_core.GrpcService_GoogleGrpc_ChannelCredentials{
+			CredentialSpecifier: &envoy_api_v2_core.GrpcService_GoogleGrpc_ChannelCredentials_LocalCredentials{
+				LocalCredentials: &envoy_api_v2_core.GrpcService_GoogleGrpc_GoogleLocalCredentials{},
 			},
 		},
 	}
-	config := &auth.SdsSecretConfig{
+	config := &envoy_api_v2_auth.SdsSecretConfig{
 		Name: "default",
-		SdsConfig: &core.ConfigSource{
-			ConfigSourceSpecifier: &core.ConfigSource_ApiConfigSource{
-				ApiConfigSource: &core.ApiConfigSource{
-					ApiType: core.ApiConfigSource_GRPC,
-					GrpcServices: []*core.GrpcService{
+		SdsConfig: &envoy_api_v2_core.ConfigSource{
+			ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_ApiConfigSource{
+				ApiConfigSource: &envoy_api_v2_core.ApiConfigSource{
+					ApiType: envoy_api_v2_core.ApiConfigSource_GRPC,
+					GrpcServices: []*envoy_api_v2_core.GrpcService{
 						{
-							TargetSpecifier: &core.GrpcService_GoogleGrpc_{
+							TargetSpecifier: &envoy_api_v2_core.GrpcService_GoogleGrpc_{
 								GoogleGrpc: gRPCConfig,
 							},
 						},
@@ -146,8 +378,8 @@ func InitSdsSecertConfig(sdsUdsPath string) *auth.SdsSecretConfig {
 	return config
 }
 
-func InitMockSdsServer(sdsUdsPath string, t *testing.T) *fakeSdsServer {
-	s := NewFakeSdsServer(sdsUdsPath)
+func InitMockSdsServerV2(sdsUdsPath string, t *testing.T) *fakeSdsServerV2 {
+	s := NewFakeSdsServerV2(sdsUdsPath)
 	go func() {
 		err := s.Start()
 		if !s.started {
@@ -157,8 +389,8 @@ func InitMockSdsServer(sdsUdsPath string, t *testing.T) *fakeSdsServer {
 	return s
 }
 
-func NewFakeSdsServer(sdsUdsPath string) *fakeSdsServer {
-	return &fakeSdsServer{
+func NewFakeSdsServerV2(sdsUdsPath string) *fakeSdsServerV2 {
+	return &fakeSdsServerV2{
 		sdsUdsPath: sdsUdsPath,
 	}
 
@@ -170,21 +402,21 @@ func NewFakeSdsServer(sdsUdsPath string) *fakeSdsServer {
 //        StreamSecrets(SecretDiscoveryService_StreamSecretsServer) error
 //        FetchSecrets(context.Context, *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error)
 //}
-type fakeSdsServer struct {
-	sds.SecretDiscoveryServiceServer
+type fakeSdsServerV2 struct {
+	envoy_service_discovery_v2.SecretDiscoveryServiceServer
 	server     *grpc.Server
 	sdsUdsPath string
 	started    bool
 }
 
-func (s *fakeSdsServer) Start() error {
+func (s *fakeSdsServerV2) Start() error {
 	grpcOptions := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(10240),
 	}
 	grpcWorkloadServer := grpc.NewServer(grpcOptions...)
 	s.register(grpcWorkloadServer)
 	s.server = grpcWorkloadServer
-	ln, err := setUpUds(s.sdsUdsPath)
+	ln, err := setUpUdsV2(s.sdsUdsPath)
 	if err != nil {
 		return err
 	}
@@ -193,13 +425,13 @@ func (s *fakeSdsServer) Start() error {
 	return err
 }
 
-func (s *fakeSdsServer) Stop() {
+func (s *fakeSdsServerV2) Stop() {
 	if s.started {
 		s.server.Stop()
 	}
 }
 
-func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSecretsServer) error {
+func (s *fakeSdsServerV2) StreamSecrets(stream envoy_service_discovery_v2.SecretDiscoveryService_StreamSecretsServer) error {
 	log.DefaultLogger.Infof("get stream secrets")
 	// wait for request
 	// for test just ignore
@@ -208,12 +440,12 @@ func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSe
 		log.DefaultLogger.Errorf("streamn receive error: %v", err)
 		return err
 	}
-	resp := &xdsapi.DiscoveryResponse{
-		TypeUrl:     SecretType,
+	resp := &envoy_api_v2.DiscoveryResponse{
+		TypeUrl:     resourcev2.SecretType,
 		VersionInfo: "0",
 		Nonce:       "0",
 	}
-	secret := &auth.Secret{
+	secret := &envoy_api_v2_auth.Secret{
 		Name: "default",
 	}
 	ms, err := ptypes.MarshalAny(secret)
@@ -231,16 +463,16 @@ func (s *fakeSdsServer) StreamSecrets(stream sds.SecretDiscoveryService_StreamSe
 	return nil
 }
 
-func (s *fakeSdsServer) FetchSecrets(ctx context.Context, discReq *xdsapi.DiscoveryRequest) (*xdsapi.DiscoveryResponse, error) {
+func (s *fakeSdsServerV2) FetchSecrets(ctx context.Context, discReq *envoy_api_v2.DiscoveryRequest) (*envoy_api_v2.DiscoveryResponse, error) {
 	// not implement
 	return nil, nil
 }
 
-func (s *fakeSdsServer) register(rpcs *grpc.Server) {
-	sds.RegisterSecretDiscoveryServiceServer(rpcs, s)
+func (s *fakeSdsServerV2) register(rpcs *grpc.Server) {
+	envoy_service_discovery_v2.RegisterSecretDiscoveryServiceServer(rpcs, s)
 }
 
-func setUpUds(udsPath string) (net.Listener, error) {
+func setUpUdsV2(udsPath string) (net.Listener, error) {
 	// Remove unix socket before use.
 	if err := os.Remove(udsPath); err != nil && !os.IsNotExist(err) {
 		// Anything other than "file not found" is an error.

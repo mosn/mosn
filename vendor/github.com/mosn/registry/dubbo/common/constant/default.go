@@ -37,12 +37,14 @@ const (
 	DEFAULT_RETRIES_INT        = 2
 	DEFAULT_PROTOCOL           = "dubbo"
 	DEFAULT_REG_TIMEOUT        = "10s"
+	DEFAULT_REG_TTL            = "15m"
 	DEFAULT_CLUSTER            = "failover"
 	DEFAULT_FAILBACK_TIMES     = "3"
 	DEFAULT_FAILBACK_TIMES_INT = 3
 	DEFAULT_FAILBACK_TASKS     = 100
 	DEFAULT_REST_CLIENT        = "resty"
 	DEFAULT_REST_SERVER        = "go-restful"
+	DEFAULT_PORT               = 20000
 )
 
 const (
@@ -58,6 +60,7 @@ const (
 const (
 	ANY_VALUE           = "*"
 	ANYHOST_VALUE       = "0.0.0.0"
+	LOCAL_HOST_VALUE    = "192.168.1.1"
 	REMOVE_VALUE_PREFIX = "-"
 )
 
@@ -77,4 +80,9 @@ const (
 
 const (
 	SIMPLE_METADATA_SERVICE_NAME = "MetadataService"
+	DEFAULT_REVIESION            = "N/A"
+)
+
+const (
+	SERVICE_DISCOVERY_DEFAULT_GROUP = "DEFAULT_GROUP"
 )

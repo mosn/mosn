@@ -18,19 +18,23 @@
 package xprotocol
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/trace/sofa"
+	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
 type SofaRPCSpan struct {
+	ctx           context.Context
 	startTime     time.Time
 	endTime       time.Time
 	tags          [TRACE_END]string
@@ -68,7 +72,7 @@ func (s *SofaRPCSpan) SetTag(key uint64, value string) {
 	s.tags[key] = value
 }
 
-func (s *SofaRPCSpan) SetRequestInfo(reqinfo types.RequestInfo) {
+func (s *SofaRPCSpan) SetRequestInfo(reqinfo api.RequestInfo) {
 	s.tags[REQUEST_SIZE] = strconv.FormatInt(int64(reqinfo.BytesReceived()), 10)
 	s.tags[RESPONSE_SIZE] = strconv.FormatInt(int64(reqinfo.BytesSent()), 10)
 	if reqinfo.UpstreamHost() != nil {
@@ -79,6 +83,7 @@ func (s *SofaRPCSpan) SetRequestInfo(reqinfo types.RequestInfo) {
 	}
 	s.tags[RESULT_STATUS] = strconv.Itoa(reqinfo.ResponseCode())
 	s.tags[MOSN_PROCESS_TIME] = reqinfo.ProcessTimeDuration().String()
+	s.tags[MOSN_PROCESS_FAIL] = strconv.FormatBool(reqinfo.GetResponseFlag(types.MosnProcessFailedFlags))
 }
 
 func (s *SofaRPCSpan) Tag(key uint64) string {
@@ -89,14 +94,16 @@ func (s *SofaRPCSpan) FinishSpan() {
 	s.endTime = time.Now()
 	err := s.log()
 	if err == types.ErrChanFull {
-		log.DefaultLogger.Warnf("Channel is full, discard span, trace id is " + s.traceId + ", span id is " + s.spanId)
+		if log.DefaultLogger.GetLogLevel() >= log.WARN {
+			log.DefaultLogger.Warnf("Channel is full, discard span, trace id is " + s.traceId + ", span id is " + s.spanId)
+		}
 	}
 }
 
-func (s *SofaRPCSpan) InjectContext(requestHeaders types.HeaderMap, requestInfo types.RequestInfo) {
+func (s *SofaRPCSpan) InjectContext(requestHeaders api.HeaderMap, requestInfo api.RequestInfo) {
 }
 
-func (s *SofaRPCSpan) SpawnChild(operationName string, startTime time.Time) types.Span {
+func (s *SofaRPCSpan) SpawnChild(operationName string, startTime time.Time) api.Span {
 	return nil
 }
 
@@ -159,15 +166,23 @@ func (s *SofaRPCSpan) log() error {
 	printData.WriteString("\"mosn.duration\":")
 	printData.WriteString("\"" + s.tags[MOSN_PROCESS_TIME] + "\",")
 
+	tracks := track.TrackBufferByContext(s.ctx).Tracks
+
+	printData.WriteString("\"mosn.duration.detail\":")
+	printData.WriteString("\"" + tracks.GetTrackCosts() + "\",")
+
+	printData.WriteString("\"mosn.data.timestamp\":")
+	printData.WriteString("\"" + tracks.GetTrackTimestamp() + "\",")
+
 	// Set status code. TODO can not get the result code if server throw an exception.
 
 	statusCode, _ := strconv.Atoi(s.tags[RESULT_STATUS])
 	var code = "02"
-	if statusCode == types.SuccessCode {
+	if statusCode == api.SuccessCode {
 		code = "00"
-	} else if statusCode == types.TimeoutExceptionCode {
+	} else if statusCode == api.TimeoutExceptionCode {
 		code = "03"
-	} else if statusCode == types.RouterUnavailableCode || statusCode == types.NoHealthUpstreamCode {
+	} else if statusCode == api.RouterUnavailableCode || statusCode == api.NoHealthUpstreamCode {
 		code = "04"
 	} else {
 		code = "02"
@@ -241,8 +256,9 @@ func (s *SofaRPCSpan) log() error {
 	return nil
 }
 
-func NewSpan(startTime time.Time) *SofaRPCSpan {
+func NewSpan(ctx context.Context, startTime time.Time) *SofaRPCSpan {
 	return &SofaRPCSpan{
+		ctx:       ctx,
 		startTime: startTime,
 	}
 }

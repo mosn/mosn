@@ -132,32 +132,3 @@ func (adapter *ListenerAdapter) DeleteListener(serverName string, listenerName s
 	connHandler.RemoveListeners(listenerName)
 	return nil
 }
-
-func (adapter *ListenerAdapter) UpdateListenerTLS(serverName string, listenerName string, inspector bool, tlsConfigs []v2.TLSConfig) error {
-	connHandler := adapter.findHandler(serverName)
-	if connHandler == nil {
-		return fmt.Errorf("UpdateListenerTLS error, servername = %s not found", serverName)
-	}
-
-	if ln := connHandler.FindListenerByName(listenerName); ln != nil {
-		cfg := *ln.Config() // should clone a config
-		cfg.Inspector = inspector
-		cfg.FilterChains = []v2.FilterChain{
-			{
-				FilterChainConfig: v2.FilterChainConfig{
-					FilterChainMatch: cfg.FilterChains[0].FilterChainMatch,
-					Filters:          cfg.FilterChains[0].Filters,
-					TLSConfigs:       tlsConfigs,
-				},
-				TLSContexts: tlsConfigs,
-			},
-		}
-
-		if _, err := connHandler.AddOrUpdateListener(&cfg); err != nil {
-			return fmt.Errorf("connHandler.UpdateListenerTLS called error, server:%s, error: %s", serverName, err.Error())
-		}
-		return nil
-	}
-	return fmt.Errorf("listener %s is not found", listenerName)
-
-}

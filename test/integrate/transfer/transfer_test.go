@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/network"
+
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
@@ -78,6 +80,11 @@ func startTransferServer(tc *integrate.XTestCase) {
 }
 
 func TestTransfer(t *testing.T) {
+	// todo: fix this?
+	// netpoll mode does not support transfer
+	if network.UseNetpollMode {
+		return
+	}
 
 	appaddr := "127.0.0.1:8080"
 

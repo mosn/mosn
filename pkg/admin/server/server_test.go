@@ -43,7 +43,7 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
-	"mosn.io/mosn/pkg/xds/conv"
+	"mosn.io/mosn/pkg/xds"
 )
 
 func getEffectiveConfig(port uint32) (string, error) {
@@ -137,7 +137,7 @@ func postUpdateLoggerLevel(port uint32, s string) (string, error) {
 func postToggleLogger(port uint32, logger string, disable bool) (string, error) {
 	api := "enable_log" // enable
 	if disable {        //disable
-		api = "disbale_log"
+		api = "disable_log"
 	}
 	url := fmt.Sprintf("http://localhost:%d/api/v1/%s", port, api)
 	data := strings.NewReader(logger)
@@ -305,7 +305,7 @@ func TestDumpStats(t *testing.T) {
 		t.Error(err)
 	} else {
 		if data != string(expected) {
-			t.Errorf("unexpected stats: %s\n", data)
+			t.Errorf("unexpected stats: %s, expected: %s\n", data, string(expected))
 		}
 	}
 
@@ -341,11 +341,11 @@ func TestDumpStatsForIstio(t *testing.T) {
 
 	time.Sleep(time.Second) //wait server start
 
-	conv.InitStats()
-	conv.Stats.CdsUpdateSuccess.Inc(1)
-	conv.Stats.CdsUpdateReject.Inc(2)
-	conv.Stats.LdsUpdateSuccess.Inc(3)
-	conv.Stats.LdsUpdateReject.Inc(4)
+	xds.InitStats()
+	xds.GetStats().CdsUpdateSuccess.Inc(1)
+	xds.GetStats().CdsUpdateReject.Inc(2)
+	xds.GetStats().LdsUpdateSuccess.Inc(3)
+	xds.GetStats().LdsUpdateReject.Inc(4)
 
 	statsForIstio, err := getStatsForIstio(config.Port)
 	if err != nil {
@@ -644,13 +644,13 @@ func TestRegisterNewAPI(t *testing.T) {
 func TestHelpAPI(t *testing.T) {
 	// reset
 	apiHandleFuncStore = map[string]func(http.ResponseWriter, *http.Request){
-		"/": help,
+		"/":                       help,
 		"/api/v1/config_dump":     configDump,
 		"/api/v1/stats":           statsDump,
 		"/api/v1/update_loglevel": updateLogLevel,
 		"/api/v1/get_loglevel":    getLoggerInfo,
 		"/api/v1/enable_log":      enableLogger,
-		"/api/v1/disbale_log":     disableLogger,
+		"/api/v1/disable_log":     disableLogger,
 		"/api/v1/states":          getState,
 		"/stats":                  statsForIstio,
 		"/server_info":            serverInfoForIstio,

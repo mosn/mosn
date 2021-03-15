@@ -19,18 +19,13 @@ package config_center
 
 import (
 	"sync"
-)
 
-import (
 	gxset "github.com/dubbogo/gost/container/set"
-	"gopkg.in/yaml.v2"
-)
-
-import (
 	"github.com/mosn/registry/dubbo/common"
 	"github.com/mosn/registry/dubbo/common/constant"
 	"github.com/mosn/registry/dubbo/config_center/parser"
 	"github.com/mosn/registry/dubbo/remoting"
+	"gopkg.in/yaml.v2"
 )
 
 // MockDynamicConfigurationFactory ...

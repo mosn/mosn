@@ -41,7 +41,7 @@ func Test_RdsHandler(t *testing.T) {
 		StreamClient:      nil,
 		SendControlChan:   make(chan int),
 		RecvControlChan:   make(chan int),
-		StopChan:          make(chan int),
+		StopChan:          make(chan struct{}),
 	}
 	route := &envoy_api_v2.RouteConfiguration{
 		Name: "testroute",
@@ -49,7 +49,7 @@ func Test_RdsHandler(t *testing.T) {
 
 	routeAny, _ := ptypes.MarshalAny(route)
 	resp := &envoy_api_v2.DiscoveryResponse{
-		TypeUrl:   EnvoyRouteConfiguration,
+		TypeUrl:   EnvoyRoute,
 		Resources: []*any.Any{routeAny},
 	}
 

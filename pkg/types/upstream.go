@@ -61,7 +61,7 @@ type ClusterManager interface {
 	UDPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
 	// ConnPoolForCluster used to get protocol related conn pool
-	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol api.Protocol) ConnectionPool
+	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol api.ProtocolName) ConnectionPool
 
 	// RemovePrimaryCluster used to remove cluster from set
 	RemovePrimaryCluster(clusters ...string) error
@@ -73,7 +73,7 @@ type ClusterManager interface {
 	RemoveClusterHosts(clusterName string, hosts []string) error
 
 	// TLSManager is used to cluster tls config
-	GetTLSManager() TLSContextManager
+	GetTLSManager() TLSClientContextManager
 	// UpdateTLSManager updates the tls manager which is used to cluster tls config
 	UpdateTLSManager(*v2.TLSConfig)
 
@@ -173,7 +173,7 @@ type ClusterInfo interface {
 	ResourceManager() ResourceManager
 
 	// TLSMng returns the tls manager
-	TLSMng() TLSContextManager
+	TLSMng() TLSClientContextManager
 
 	// LbSubsetInfo returns the load balancer subset's config
 	LbSubsetInfo() LBSubsetInfo
@@ -389,12 +389,12 @@ func (ss *SortedStringSetType) Swap(i, j int) {
 }
 
 func init() {
-	ConnPoolFactories = make(map[api.Protocol]bool)
+	ConnPoolFactories = make(map[api.ProtocolName]bool)
 }
 
-var ConnPoolFactories map[api.Protocol]bool
+var ConnPoolFactories map[api.ProtocolName]bool
 
-func RegisterConnPoolFactory(protocol api.Protocol, registered bool) {
+func RegisterConnPoolFactory(protocol api.ProtocolName, registered bool) {
 	//other
 	ConnPoolFactories[protocol] = registered
 }

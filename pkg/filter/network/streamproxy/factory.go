@@ -37,6 +37,7 @@ type tcpProxyFilterConfigFactory struct {
 type udpProxyFilterConfigFactory struct {
 	Proxy *v2.StreamProxy
 }
+
 func (f *tcpProxyFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 	rf := NewProxy(context, f.Proxy, "tcp")
 	callbacks.AddReadFilter(rf)
@@ -77,4 +78,3 @@ func ParseStreamProxy(cfg map[string]interface{}) (*v2.StreamProxy, error) {
 	}
 	return proxy, nil
 }
-

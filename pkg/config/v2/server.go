@@ -20,7 +20,6 @@ package v2
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net"
 	"strings"
 
@@ -38,9 +37,14 @@ type ServerConfig struct {
 	UseNetpollMode bool `json:"use_netpoll_mode,omitempty"`
 	//graceful shutdown config
 	GracefulTimeout api.DurationConfig `json:"graceful_timeout,omitempty"`
+	// OptimizeLocalWrite set to true means if a connection remote address is
+	// localhost, we will use a goroutine for write, which can get better performance
+	// but lower write time costs accuracy.
+	OptimizeLocalWrite bool `json:"optimize_local_write,omitempty"`
 
-	//go processor number
-	Processor int `json:"processor,omitempty"`
+	// int go processor number
+	// string set auto means use real cpu core or limit cpu core
+	Processor interface{} `json:"processor,omitempty"`
 
 	Listeners []Listener `json:"listeners,omitempty"`
 
@@ -71,13 +75,13 @@ type ListenerConfig struct {
 // Listener contains the listener's information
 type Listener struct {
 	ListenerConfig
-	Addr                    net.Addr         `json:"-"`
-	ListenerTag             uint64           `json:"-"`
-	ListenerScope           string           `json:"-"`
-	PerConnBufferLimitBytes uint32           `json:"-"` // do not support config
-	InheritListener         net.Listener `json:"-"`
-	InheritPacketConn       *net.PacketConn  `json:"-"`
-	Remain                  bool             `json:"-"`
+	Addr                    net.Addr        `json:"-"`
+	ListenerTag             uint64          `json:"-"`
+	ListenerScope           string          `json:"-"`
+	PerConnBufferLimitBytes uint32          `json:"-"` // do not support config
+	InheritListener         net.Listener    `json:"-"`
+	InheritPacketConn       *net.PacketConn `json:"-"`
+	Remain                  bool            `json:"-"`
 }
 
 func (l Listener) MarshalJSON() (b []byte, err error) {
@@ -87,7 +91,10 @@ func (l Listener) MarshalJSON() (b []byte, err error) {
 	return json.Marshal(l.ListenerConfig)
 }
 
-var ErrNoAddrListener = errors.New("address is required in listener config")
+var (
+	ErrNoAddrListener   = errors.New("address is required in listener config")
+	ErrUnsupportNetwork = errors.New("listener network only support tcp/udp/unix")
+)
 
 const defaultBufferLimit = 1 << 15
 
@@ -112,7 +119,7 @@ func (l *Listener) UnmarshalJSON(b []byte) error {
 	case "tcp":
 		addr, err = net.ResolveTCPAddr("tcp", l.AddrConfig)
 	default: // only support tcp,udp,unix
-		err = fmt.Errorf("unknown listen type: %s , only support tcp,udp,unix",  l.Network)
+		err = ErrUnsupportNetwork
 	}
 	if err != nil {
 		return err
@@ -153,7 +160,7 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	if len(fc.TLSConfigs) > 0 {
 		fc.TLSContexts = make([]TLSConfig, len(fc.TLSConfigs))
 		copy(fc.TLSContexts, fc.TLSConfigs)
-	} else {                     // no tls_context_set, use tls_context
+	} else { // no tls_context_set, use tls_context
 		if fc.TLSConfig == nil { // no tls_context, generate a default one
 			fc.TLSContexts = append(fc.TLSContexts, TLSConfig{})
 		} else { // use tls_context
@@ -163,10 +170,16 @@ func (fc *FilterChain) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type StreamFilterGoPluginConfig struct {
+	SoPath        string `json:"so_path"`
+	FactoryMethod string `json:"factory_method"`
+}
+
 // Filter is a config to make up a filter
 type Filter struct {
-	Type   string                 `json:"type,omitempty"`
-	Config map[string]interface{} `json:"config,omitempty"`
+	Type           string                      `json:"type,omitempty"`
+	GoPluginConfig *StreamFilterGoPluginConfig `json:"go_plugin_config"`
+	Config         map[string]interface{}      `json:"config,omitempty"`
 }
 
 type FilterChainConfig struct {

@@ -37,12 +37,14 @@ type WebSocketProxy struct {
 
 // Proxy
 type Proxy struct {
-	Name               string                 `json:"name,omitempty"`
-	DownstreamProtocol string                 `json:"downstream_protocol,omitempty"`
-	UpstreamProtocol   string                 `json:"upstream_protocol,omitempty"`
-	RouterConfigName   string                 `json:"router_config_name,omitempty"`
-	ValidateClusters   bool                   `json:"validate_clusters,omitempty"`
-	ExtendConfig       map[string]interface{} `json:"extend_config,omitempty"`
+	Name                       string                 `json:"name,omitempty"`
+	DownstreamProtocol         string                 `json:"downstream_protocol,omitempty"`
+	UpstreamProtocol           string                 `json:"upstream_protocol,omitempty"`
+	FallbackForUnknownProtocol bool                   `json:"fallback_for_unknown_protocol,omitempty"`
+	RouterConfigName           string                 `json:"router_config_name,omitempty"`
+	RouterHandlerName          string                 `json:"router_handler_name,omitempty"`
+	ValidateClusters           bool                   `json:"validate_clusters,omitempty"`
+	ExtendConfig               map[string]interface{} `json:"extend_config,omitempty"`
 
 	// proxy level concurrency config,
 	// concurrency num = worker num in worker pool per connection

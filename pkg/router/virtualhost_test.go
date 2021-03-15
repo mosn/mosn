@@ -18,10 +18,14 @@
 package router
 
 import (
-	"strings"
+	"context"
 	"testing"
 
-	"mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/variable"
+
+	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/types"
+
 	"mosn.io/mosn/pkg/protocol"
 )
 
@@ -95,6 +99,7 @@ func TestRouterOrder(t *testing.T) {
 			ClusterName: "regexp",
 		},
 	}
+	ctx := variable.NewVariableContext(context.Background())
 	// path "/foo1" match all of the router, the path router should be matched
 	// path "/foo11" match prefix and regexp router, the regexp router should be matched
 	// path "/foo" match prefix router only
@@ -112,10 +117,9 @@ func TestRouterOrder(t *testing.T) {
 		Routers: []v2.Router{pathrouter, regrouter, prefixrouter},
 	})
 	for i, tc := range testCases {
-		headers := protocol.CommonHeader(map[string]string{
-			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
-		})
-		rt := virtualHost.GetRouteFromEntries(headers, 1)
+		headers := protocol.CommonHeader(map[string]string{})
+		variable.SetVariableValue(ctx, types.VarPath, tc.path)
+		rt := virtualHost.GetRouteFromEntries(ctx, headers)
 		if rt == nil || rt.RouteRule().ClusterName() != tc.clustername {
 			t.Errorf("#%d route unexpected result\n", i)
 		}
@@ -127,10 +131,9 @@ func TestRouterOrder(t *testing.T) {
 		Routers: []v2.Router{prefixrouter, regrouter, pathrouter},
 	})
 	for i, tc := range testCases {
-		headers := protocol.CommonHeader(map[string]string{
-			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
-		})
-		rt := prefixVirtualHost.GetRouteFromEntries(headers, 1)
+		headers := protocol.CommonHeader(map[string]string{})
+		variable.SetVariableValue(ctx, types.VarPath, tc.path)
+		rt := prefixVirtualHost.GetRouteFromEntries(ctx, headers)
 		if rt == nil || rt.RouteRule().ClusterName() != "prefix" {
 			t.Errorf("#%d route unexpected result\n", i)
 		}
@@ -185,11 +188,11 @@ func TestAllRouter(t *testing.T) {
 		Domains: []string{"*"},
 		Routers: routers,
 	})
+	ctx := variable.NewVariableContext(context.Background())
 	for i, tc := range testCases {
-		headers := protocol.CommonHeader(map[string]string{
-			strings.ToLower(protocol.MosnHeaderPathKey): tc.path,
-		})
-		rts := virtualHost.GetAllRoutesFromEntries(headers, 1)
+		headers := protocol.CommonHeader(map[string]string{})
+		variable.SetVariableValue(ctx, types.VarPath, tc.path)
+		rts := virtualHost.GetAllRoutesFromEntries(ctx, headers)
 		if len(rts) != tc.matched {
 			t.Errorf("#%d route unexpected result\n", i)
 		}

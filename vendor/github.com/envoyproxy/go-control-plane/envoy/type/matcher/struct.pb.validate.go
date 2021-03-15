@@ -152,10 +152,10 @@ func (m *StructMatcher_PathSegment) Validate() error {
 
 	case *StructMatcher_PathSegment_Key:
 
-		if len(m.GetKey()) < 1 {
+		if utf8.RuneCountInString(m.GetKey()) < 1 {
 			return StructMatcher_PathSegmentValidationError{
 				field:  "Key",
-				reason: "value length must be at least 1 bytes",
+				reason: "value length must be at least 1 runes",
 			}
 		}
 
