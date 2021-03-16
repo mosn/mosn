@@ -3,8 +3,8 @@ package wasm
 import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm/abi"
+	"mosn.io/mosn/pkg/wasm/abi/ext/xproxywasm020"
 	v1 "mosn.io/mosn/pkg/wasm/abi/proxywasm010"
-	"mosn.io/mosn/pkg/wasm/abi/xproxywasm020"
 )
 
 func init() {

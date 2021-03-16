@@ -3,7 +3,7 @@ package wasm
 import (
 	"context"
 
-	"mosn.io/mosn/pkg/wasm/abi/xproxywasm020"
+	"mosn.io/mosn/pkg/wasm/abi/ext/xproxywasm020"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"

@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"mosn.io/mosn/pkg/wasm/abi/xproxywasm020"
+	"mosn.io/mosn/pkg/wasm/abi/ext/xproxywasm020"
 
 	"mosn.io/proxy-wasm-go-host/common"
 
