@@ -35,7 +35,6 @@ const (
 	MapTypeGrpcReceiveTrailingMetadata MapType = 5
 	MapTypeHttpCallResponseHeaders     MapType = 6
 	MapTypeHttpCallResponseTrailers    MapType = 7
-	MapTypeMax                         MapType = 7
 )
 
 type BufferType int32
@@ -50,7 +49,6 @@ const (
 	BufferTypeVmConfiguration      BufferType = 6
 	BufferTypePluginConfiguration  BufferType = 7
 	BufferTypeCallData             BufferType = 8
-	BufferTypeMax                  BufferType = 8
 )
 
 type MetricType int32

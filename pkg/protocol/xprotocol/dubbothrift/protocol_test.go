@@ -55,7 +55,7 @@ func Test_dubboProtocol_Hijack(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			proto := &thriftProtocol{}
-			respFrame := proto.Hijack(tt.args.request, tt.args.statusCode)
+			respFrame := proto.Hijack(context.TODO(), tt.args.request, tt.args.statusCode)
 
 			enBuffer, err := encodeFrame(context.TODO(), respFrame.(*Frame))
 			if err != nil {

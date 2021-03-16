@@ -22,6 +22,8 @@ import (
 	"sync"
 	"time"
 
+	mosnctx "mosn.io/mosn/pkg/context"
+
 	atomicex "go.uber.org/atomic"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
@@ -148,7 +150,7 @@ func (kp *xprotocolKeepAlive) StartIdleTimeout() {
 // The function will be called when connection in the codec is idle
 func (kp *xprotocolKeepAlive) sendKeepAlive() {
 
-	ctx := context.Background()
+	ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, kp.Protocol.Name())
 	sender := kp.Codec.NewStream(ctx, kp)
 	id := sender.GetStream().ID()
 
@@ -162,7 +164,7 @@ func (kp *xprotocolKeepAlive) sendKeepAlive() {
 	kp.tickCount.Store(0)
 
 	// we send sofa rpc cmd as "header", but it maybe contains "body"
-	hb := kp.Protocol.Trigger(id)
+	hb := kp.Protocol.Trigger(ctx, id)
 	kp.store(id, startTimeout(id, kp)) // store request before send, in case receive response too quick but not data in store
 	sender.AppendHeaders(ctx, hb.GetHeader(), true)
 	// start a timer for request
@@ -244,6 +246,7 @@ func (kp *xprotocolKeepAlive) OnReceive(ctx context.Context, headers types.Heade
 // OnDecodeError does not process decode failure
 // the timer will fail this heart beat
 func (kp *xprotocolKeepAlive) OnDecodeError(ctx context.Context, err error, headers types.HeaderMap) {
+
 }
 
 type keepAliveTimeout struct {

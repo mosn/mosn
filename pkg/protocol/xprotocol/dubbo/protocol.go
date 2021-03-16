@@ -94,12 +94,12 @@ func (proto *dubboProtocol) Decode(ctx context.Context, data types.IoBuffer) (in
 }
 
 // heartbeater
-func (proto *dubboProtocol) Trigger(requestId uint64) api.XFrame {
+func (proto *dubboProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	// not support
 	return nil
 }
 
-func (proto *dubboProtocol) Reply(request api.XFrame) api.XRespFrame {
+func (proto *dubboProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
 	// TODO make readable
 	return &Frame{
 		Header: Header{
@@ -115,7 +115,7 @@ func (proto *dubboProtocol) Reply(request api.XFrame) api.XRespFrame {
 
 // https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
 // hijacker
-func (proto *dubboProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto *dubboProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	dubboStatus, ok := dubboMosnStatusMap[int(statusCode)]
 	if !ok {
 		dubboStatus = dubboStatusInfo{

@@ -41,16 +41,12 @@ func GetMap(instance common.WasmInstance, mapType MapType) common.HeaderMap {
 		return ctx.GetHttpCallResponseHeaders()
 	case MapTypeHttpCallResponseTrailers:
 		return ctx.GetHttpCallResponseTrailer()
+	default:
+		return ctx.GetCustomHeader(mapType)
 	}
-
-	return nil
 }
 
 func ProxyGetHeaderMapPairs(instance common.WasmInstance, mapType int32, returnDataPtr int32, returnDataSize int32) int32 {
-	if MapType(mapType) > MapTypeMax {
-		return WasmResultBadArgument.Int32()
-	}
-
 	header := GetMap(instance, MapType(mapType))
 	if header == nil {
 		return WasmResultNotFound.Int32()
@@ -109,10 +105,6 @@ func ProxyGetHeaderMapPairs(instance common.WasmInstance, mapType int32, returnD
 }
 
 func ProxySetHeaderMapPairs(instance common.WasmInstance, mapType int32, ptr int32, size int32) int32 {
-	if MapType(mapType) > MapTypeMax {
-		return WasmResultBadArgument.Int32()
-	}
-
 	headerMap := GetMap(instance, MapType(mapType))
 	if headerMap == nil {
 		return WasmResultNotFound.Int32()
@@ -133,10 +125,6 @@ func ProxySetHeaderMapPairs(instance common.WasmInstance, mapType int32, ptr int
 }
 
 func ProxyGetHeaderMapValue(instance common.WasmInstance, mapType int32, keyDataPtr int32, keySize int32, valueDataPtr int32, valueSize int32) int32 {
-	if MapType(mapType) > MapTypeMax {
-		return WasmResultBadArgument.Int32()
-	}
-
 	headerMap := GetMap(instance, MapType(mapType))
 	if headerMap == nil {
 		return WasmResultNotFound.Int32()
@@ -159,10 +147,6 @@ func ProxyGetHeaderMapValue(instance common.WasmInstance, mapType int32, keyData
 }
 
 func ProxyReplaceHeaderMapValue(instance common.WasmInstance, mapType int32, keyDataPtr int32, keySize int32, valueDataPtr int32, valueSize int32) int32 {
-	if MapType(mapType) > MapTypeMax {
-		return WasmResultBadArgument.Int32()
-	}
-
 	headerMap := GetMap(instance, MapType(mapType))
 	if headerMap == nil {
 		return WasmResultNotFound.Int32()
@@ -190,10 +174,6 @@ func ProxyReplaceHeaderMapValue(instance common.WasmInstance, mapType int32, key
 }
 
 func ProxyAddHeaderMapValue(instance common.WasmInstance, mapType int32, keyDataPtr int32, keySize int32, valueDataPtr int32, valueSize int32) int32 {
-	if MapType(mapType) > MapTypeMax {
-		return WasmResultBadArgument.Int32()
-	}
-
 	headerMap := GetMap(instance, MapType(mapType))
 	if headerMap == nil {
 		return WasmResultNotFound.Int32()
@@ -218,10 +198,6 @@ func ProxyAddHeaderMapValue(instance common.WasmInstance, mapType int32, keyData
 }
 
 func ProxyRemoveHeaderMapValue(instance common.WasmInstance, mapType int32, keyDataPtr int32, keySize int32) int32 {
-	if MapType(mapType) > MapTypeMax {
-		return WasmResultBadArgument.Int32()
-	}
-
 	headerMap := GetMap(instance, MapType(mapType))
 	if headerMap == nil {
 		return WasmResultNotFound.Int32()

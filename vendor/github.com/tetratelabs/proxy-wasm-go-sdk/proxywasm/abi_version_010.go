@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !abi_010
+// +build abi_010
 
 package proxywasm
 
 //nolint
-//export proxy_abi_version_0_2_0
+//export proxy_abi_version_0_1_0
 func proxyABIVersion() {}
