@@ -164,5 +164,5 @@ func (stm *StageManager) WaitFinish() {
 	if !stm.started {
 		return
 	}
-	stm.data.mosn.wg.Wait()
+	stm.data.mosn.Wait()
 }

@@ -62,7 +62,7 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		Upgrade: UpgradeData{},
 		Config:  c,
 	}
-
+	// generate mosn structure members
 	m.upgradeCheck()
 	m.initClusterManager()
 	m.initServer()
@@ -314,6 +314,10 @@ func (m *Mosn) Start() {
 		}, nil)
 	}
 
+}
+
+func (m *Mosn) Wait() {
+	m.wg.Wait()
 }
 
 func (m *Mosn) Close() {
