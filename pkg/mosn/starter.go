@@ -56,7 +56,6 @@ type Mosn struct {
 	servers        []server.Server
 	clustermanager types.ClusterManager
 	routerManager  types.RouterManager
-	wasmManager    types.WasmManager
 	config         *v2.MOSNConfig
 	adminServer    admin.Server
 	xdsClient      *xds.Client
@@ -74,6 +73,8 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 	initializePidFile(c.Pid)
 	initializeTracing(c.Tracing)
 	initializePlugin(c.Plugin.LogBase)
+	initializeWasm(c.Wasms)
+	initializeThirdPartCodec(c.ThirdPartCodec)
 	server.EnableInheritOldMosnconfig(c.InheritOldMosnconfig)
 
 	// set the mosn config finally
@@ -130,9 +131,6 @@ func NewMosn(c *v2.MOSNConfig) *Mosn {
 		inheritPacketConn: inheritPacketConn,
 		listenSockConn:    listenSockConn,
 	}
-
-	initializeWasm(c.Wasms, m)
-	initializeThirdPartCodec(c.ThirdPartCodec)
 
 	mode := c.Mode()
 
@@ -414,12 +412,11 @@ func initializePlugin(log string) {
 	plugin.InitPlugin(log)
 }
 
-func initializeWasm(wasms []v2.WasmPluginConfig, m *Mosn) {
+func initializeWasm(wasms []v2.WasmPluginConfig) {
 	// initialize wasm, shoud before the creation of server listener since the initialization of streamFilter might rely on wasm config
 	if wasms != nil {
-		m.wasmManager = wasm.GetWasmManager()
 		for _, config := range wasms {
-			_ = m.wasmManager.AddOrUpdateWasm(config)
+			_ = wasm.GetWasmManager().AddOrUpdateWasm(config)
 		}
 	}
 }
