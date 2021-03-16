@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	AbiV2 = "proxy_abi_revision_0_2_0"
+	AbiV2 = "proxy_abi_mosn_version_0_2_0"
 )
 
 func init() {
