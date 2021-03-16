@@ -76,13 +76,15 @@ func (a *AbiV2Impl) ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) 
 	return nil
 }
 
-func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request) error {
+func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd api.XFrame) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[export] ProxyEncodeRequestBufferBytes contextID: %v", contextId)
 	}
 
-	// use cmd wasm instance context first.
-	ctx := cmd.ctx
+	req := cmd.(*Request)
+
+	// use req wasm instance context first.
+	ctx := req.ctx
 	if ctx == nil {
 		ctx = getInstanceCallback(a.GetInstance()).(*Context)
 	}
@@ -94,13 +96,13 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 	}
 
 	headerBytes := 0
-	if cmd.GetHeader() != nil {
-		headerBytes = xprotocol.GetHeaderEncodeLength(&cmd.Header)
+	if req.GetHeader() != nil {
+		headerBytes = xprotocol.GetHeaderEncodeLength(&req.Header)
 	}
 
 	drainLen := 0
-	if cmd.GetData() != nil {
-		drainLen = cmd.GetData().Len()
+	if req.GetData() != nil {
+		drainLen = req.GetData().Len()
 	}
 
 	// encode data format:
@@ -112,33 +114,33 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 	buf.WriteUint32(uint32(headerBytes))
 	// encoded header map
 	if headerBytes > 0 {
-		xprotocol.EncodeHeader(buf, &cmd.Header)
+		xprotocol.EncodeHeader(buf, &req.Header)
 	}
 
 	// should copy raw bytes
 	flag := RpcRequestFlag
-	if cmd.IsHeartbeatFrame() {
+	if req.IsHeartbeatFrame() {
 		flag = flag | HeartBeatFlag
 	}
-	if cmd.GetStreamType() == api.RequestOneWay {
+	if req.GetStreamType() == api.RequestOneWay {
 		flag = flag | RpcOneWayRequestFlag
 	}
 	// write request flag
 	buf.WriteByte(flag)
 
 	// write replaced id
-	buf.WriteUint64(cmd.GetRequestId())
+	buf.WriteUint64(req.GetRequestId())
 	// write command id
-	buf.WriteUint64(uint64(cmd.RpcId))
+	buf.WriteUint64(uint64(req.RpcId))
 
 	// write timeout
-	buf.WriteUint32(cmd.Timeout)
+	buf.WriteUint32(req.Timeout)
 
 	// write drain length
 	buf.WriteUint32(uint32(drainLen))
 	if drainLen > 0 {
 		// write raw dataBytes
-		buf.Write(cmd.GetData().Bytes())
+		buf.Write(req.GetData().Bytes())
 	}
 
 	// allocate memory for plugin
@@ -166,19 +168,21 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd *Request)
 	}
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("encode request, contextId: %d , rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
+		log.DefaultLogger.Debugf("encode request, contextId: %d , rpc id: %d(%d) \n", contextId, req.RpcId, req.GetRequestId())
 	}
 
 	return nil
 }
 
-func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Response) error {
+func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd api.XRespFrame) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[export] ProxyEncodeResponseBufferBytes contextId: %v", contextId)
 	}
 
+	resp := cmd.(*Response)
+
 	// use cmd wasm instance context first.
-	ctx := cmd.ctx
+	ctx := resp.ctx
 	if ctx == nil {
 		ctx = getInstanceCallback(a.GetInstance()).(*Context)
 	}
@@ -191,7 +195,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 
 	headerBytes := 0
 	if cmd.GetHeader() != nil {
-		headerBytes = xprotocol.GetHeaderEncodeLength(&cmd.Header)
+		headerBytes = xprotocol.GetHeaderEncodeLength(&resp.Header)
 	}
 
 	drainLen := 0
@@ -208,7 +212,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 	buf.WriteUint32(uint32(headerBytes))
 	// encoded header map
 	if headerBytes > 0 {
-		xprotocol.EncodeHeader(buf, &cmd.Header)
+		xprotocol.EncodeHeader(buf, &resp.Header)
 	}
 
 	// should copy raw bytes
@@ -222,7 +226,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 	// write replaced id
 	buf.WriteUint64(cmd.GetRequestId())
 	// write command id
-	buf.WriteUint64(uint64(cmd.RpcId))
+	buf.WriteUint64(uint64(resp.RpcId))
 
 	// write timeout
 	buf.WriteUint32(cmd.GetStatusCode())
@@ -246,12 +250,12 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 		return errors.New(fmt.Sprintf("failed to copy encode response buffer to plugin %s, len: %d", ctx.proto.name, buf.Len()))
 	}
 
-	resp, err := ff.Call(contextId, int32(addr), buf.Len())
+	r, err := ff.Call(contextId, int32(addr), buf.Len())
 	if err != nil {
 		return errors.New(fmt.Sprintf("fail to invoke export func: proxy_encode_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err))
 	}
 
-	status := resp.(int32)
+	status := r.(int32)
 
 	// check invoke success
 	if status != proxywasm.WasmResultOk.Int32() {
@@ -259,7 +263,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd *Respons
 	}
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("encode response, contextId: %d, rpc id: %d(%d) \n", contextId, cmd.RpcId, cmd.GetRequestId())
+		log.DefaultLogger.Debugf("encode response, contextId: %d, rpc id: %d(%d) \n", contextId, resp.RpcId, cmd.GetRequestId())
 	}
 
 	return nil
@@ -292,13 +296,15 @@ func (a *AbiV2Impl) ProxyKeepAliveBufferBytes(contextId int32, id uint64) error 
 	return nil
 }
 
-func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd *Request) error {
+func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd api.XFrame) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[export] ProxyReplyKeepAliveBufferBytes contextId: %v", contextId)
 	}
 
+	req := cmd.(*Request)
+
 	// use cmd wasm instance context first.
-	ctx := cmd.ctx
+	ctx := req.ctx
 	if ctx == nil {
 		ctx = getInstanceCallback(a.GetInstance()).(*Context)
 	}
@@ -324,13 +330,15 @@ func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd *Request
 	return nil
 }
 
-func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd *Request, statusCode uint32) error {
+func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd api.XFrame, statusCode uint32) error {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[export] ProxyHijackBufferBytes contextId: %v", contextId)
 	}
 
+	req := cmd.(*Request)
+
 	// use cmd wasm instance context first.
-	ctx := cmd.ctx
+	ctx := req.ctx
 	if ctx == nil {
 		ctx = getInstanceCallback(a.GetInstance()).(*Context)
 	}
@@ -354,4 +362,29 @@ func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd *Request, status
 	}
 
 	return nil
+}
+
+func getInstanceCallback(instance types.WasmInstance) ContextCallback {
+	v := instance.GetData()
+	if v == nil {
+		return &Context{}
+	}
+
+	cb, ok := v.(types.ABI)
+	if !ok {
+		log.DefaultLogger.Errorf("[wasm][imports] getInstanceCallback return type is not *AbiContext")
+		return &Context{}
+	}
+
+	imports := cb.GetABIImports()
+	if imports == nil {
+		log.DefaultLogger.Errorf("[wasm][imports] getInstanceCallback imports not set")
+		return &Context{}
+	}
+
+	if ctx, ok := imports.(ContextCallback); ok {
+		return ctx
+	}
+
+	return &Context{}
 }

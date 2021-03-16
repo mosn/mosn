@@ -15,34 +15,24 @@
  * limitations under the License.
  */
 
-package wasm
+package xproxywasm020
 
 import (
-	"mosn.io/mosn/pkg/log"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/proxy-wasm-go-host/proxywasm"
 )
 
-func getInstanceCallback(instance types.WasmInstance) ContextCallback {
-	v := instance.GetData()
-	if v == nil {
-		return &Context{}
-	}
+type Exports interface {
+	proxywasm.Exports
 
-	cb, ok := v.(types.ABI)
-	if !ok {
-		log.DefaultLogger.Errorf("[wasm][imports] getInstanceCallback return type is not *AbiContext")
-		return &Context{}
-	}
+	// x-protocol
+	ProxyDecodeBufferBytes(contextId int32, buf types.IoBuffer) error
+	ProxyEncodeRequestBufferBytes(contextId int32, cmd api.XFrame) error
+	ProxyEncodeResponseBufferBytes(contextId int32, cmd api.XRespFrame) error
 
-	imports := cb.GetABIImports()
-	if imports == nil {
-		log.DefaultLogger.Errorf("[wasm][imports] getInstanceCallback imports not set")
-		return &Context{}
-	}
-
-	if ctx, ok := imports.(ContextCallback); ok {
-		return ctx
-	}
-
-	return &Context{}
+	// x-protocol keepalive
+	ProxyKeepAliveBufferBytes(contextId int32, id uint64) error
+	ProxyReplyKeepAliveBufferBytes(contextId int32, cmd api.XFrame) error
+	ProxyHijackBufferBytes(contextId int32, cmd api.XFrame, statusCode uint32) error
 }

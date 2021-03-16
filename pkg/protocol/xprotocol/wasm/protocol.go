@@ -21,6 +21,8 @@ import (
 	"context"
 	"sync/atomic"
 
+	"mosn.io/mosn/pkg/wasm/abi/xproxywasm020"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -160,12 +162,12 @@ func (proto *wasmProtocol) OnProxyDelete(context context.Context) {
 
 func (proto *wasmProtocol) NewContext() *Context {
 	instance := proto.pw.GetPlugin().GetInstance()
-	abiVersion := abi.GetABI(instance, AbiV2)
+	abiVersion := abi.GetABI(instance, xproxywasm020.AbiV2)
 	ctx := &Context{
 		abi:       abiVersion,
 		proto:     proto,
 		contextId: atomic.AddInt32(&contextId, 1),
-		exports:   abiVersion.(Exports),
+		exports:   abiVersion.(xproxywasm020.Exports),
 		instance:  instance,
 	}
 	return ctx

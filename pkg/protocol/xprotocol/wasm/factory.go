@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"mosn.io/mosn/pkg/wasm/abi/xproxywasm020"
+
 	"mosn.io/proxy-wasm-go-host/common"
 
 	"mosn.io/api"
@@ -163,9 +165,9 @@ func (f *protocolWrapper) OnConfigUpdate(config v2.WasmPluginConfig) {
 func (f *protocolWrapper) OnPluginStart(plugin types.WasmPlugin) {
 	plugin.Exec(func(instance types.WasmInstance) bool {
 
-		abiVersion := abi.GetABI(instance, AbiV2)
+		abiVersion := abi.GetABI(instance, xproxywasm020.AbiV2)
 		abiVersion.SetABIImports(f)
-		exports := abiVersion.(Exports)
+		exports := abiVersion.(xproxywasm020.Exports)
 
 		if abiVersion == nil {
 			log.DefaultLogger.Errorf("[wasm][protocol] NewProtocol abi version not found")
