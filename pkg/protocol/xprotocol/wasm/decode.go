@@ -23,12 +23,11 @@ import (
 	"errors"
 	"fmt"
 
-	"mosn.io/pkg/buffer"
-
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 	"mosn.io/proxy-wasm-go-host/common"
 )
 

@@ -21,12 +21,11 @@ import (
 	"context"
 	"sync/atomic"
 
-	"mosn.io/mosn/pkg/wasm/abi/ext/xproxywasm020"
-
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm/abi"
+	"mosn.io/mosn/pkg/wasm/abi/ext/xproxywasm020"
 )
 
 /**

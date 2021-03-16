@@ -23,10 +23,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"mosn.io/mosn/pkg/wasm/abi/ext/xproxywasm020"
-
-	"mosn.io/proxy-wasm-go-host/common"
-
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -34,9 +30,11 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/wasm"
 	"mosn.io/mosn/pkg/wasm/abi"
+	"mosn.io/mosn/pkg/wasm/abi/ext/xproxywasm020"
 	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
+	"mosn.io/proxy-wasm-go-host/common"
 )
 
 func GetProxyProtocolManager() ProxyProtocolManager {

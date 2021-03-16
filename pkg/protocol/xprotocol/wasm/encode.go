@@ -22,11 +22,10 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"mosn.io/mosn/pkg/protocol/xprotocol"
-	"mosn.io/pkg/buffer"
-
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol/xprotocol"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/pkg/buffer"
 )
 
 func (proto *wasmProtocol) encodeRequest(context context.Context, request *Request) (types.IoBuffer, error) {
