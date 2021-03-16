@@ -120,10 +120,10 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd api.XFram
 	// should copy raw bytes
 	flag := RpcRequestFlag
 	if req.IsHeartbeatFrame() {
-		flag = flag | HeartBeatFlag
+		flag |= HeartBeatFlag
 	}
 	if req.GetStreamType() == api.RequestOneWay {
-		flag = flag | RpcOneWayRequestFlag
+		flag |= RpcOneWayRequestFlag
 	}
 	// write request flag
 	buf.WriteByte(flag)
@@ -218,7 +218,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd api.XRes
 	// should copy raw bytes
 	flag := RpcResponseFlag
 	if cmd.IsHeartbeatFrame() {
-		flag = flag | HeartBeatFlag
+		flag |= HeartBeatFlag
 	}
 	// write request flag
 	buf.WriteByte(flag)
