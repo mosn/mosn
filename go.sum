@@ -293,10 +293,6 @@ github.com/valyala/tcplisten v0.0.0-20161114210144-ceec8f93295a/go.mod h1:v3UYOV
 github.com/valyala/tcplisten v0.0.0-20161114210144-ceec8f93295a/go.mod h1:v3UYOV9WzVtRmSR+PDvWpU/qWl4Wa5LApYYX4ZtKbio=
 github.com/wasmerio/wasmer-go v1.0.3 h1:9pWIlIqUKxALvFlWK8+Zy90qyqxd+8wlyVG91txh1TU=
 github.com/wasmerio/wasmer-go v1.0.3/go.mod h1:0gzVdSfg6pysA6QVp6iVRPTagC6Wq9pOE8J86WKb2Fk=
-github.com/zonghaishang/api v0.0.0-20210301083849-edd614bd8bcc h1:Q+tt9t/uw/AS9QpOb4f5GX6BSyCfaihggGn6g4rauUU=
-github.com/zonghaishang/api v0.0.0-20210301083849-edd614bd8bcc/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
-github.com/zonghaishang/api v0.0.0-20210312092424-53b8f0bf4fc7 h1:InofeZ7jGv+Y0NwkxB/zvT7fZdP0FATdQ323Xw98Zdc=
-github.com/zonghaishang/api v0.0.0-20210312092424-53b8f0bf4fc7/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 go.uber.org/atomic v1.4.0/go.mod h1:gD2HeocX3+yG+ygLZcrzQJaqmWj9AIm7n08wl/qW/PE=
 go.uber.org/atomic v1.6.0/go.mod h1:sABNBOSYdrvTF6hTgEIbc7YasKWGhgEQZyfxyTvoXHQ=
 go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=
@@ -441,10 +437,6 @@ mosn.io/api v0.0.0-20210315130952-69d829aa866e h1:YRQSv+0bSDTAeO/hg6nIsUvhc0EK3X
 mosn.io/api v0.0.0-20210315130952-69d829aa866e/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4 h1:6mh2DtmcqzRrv/w3aXVWY7Na64ohm8XMRK8iZBQOTbs=
 mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4/go.mod h1:YEv5sGe7kqo/Yzj7OJI7Udl3iUcagNeo5unGPiUaUfw=
-mosn.io/proxy-wasm-go-host v0.0.0-20210310031752-6be0cc6caf8e h1:wphXyjG5WzgVG/6ZTmTe2fqI3/r6bmziWHnnTQL6aew=
-mosn.io/proxy-wasm-go-host v0.0.0-20210310031752-6be0cc6caf8e/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
-mosn.io/proxy-wasm-go-host v0.0.0-20210311055656-5478cf179181 h1:nTDmWmn5SHdqPn8AQ/ayuf/7QcGCg9HZEscUMPJmKAQ=
-mosn.io/proxy-wasm-go-host v0.0.0-20210311055656-5478cf179181/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
 mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec h1:Q5OprvuVc7VNnI8Q+mUb3VsG9uxP/PcRn2KdeWmx8Mc=
 mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
