@@ -153,12 +153,13 @@ const mosnConfigNew = `{
 
 func TestNewMosn(t *testing.T) {
 	// comatible for old version config, routers in connection_manager
-	{
+	t.Run("comatible for old version config, routers in connection_manager", func(t *testing.T) {
 		cfg := &v2.MOSNConfig{}
 		content := []byte(mosnConfigOld)
 		if err := json.Unmarshal(content, cfg); err != nil {
 			t.Fatal(err)
 		}
+		DefaultInitStage(cfg)
 		NewMosn(cfg)
 		// verify routers
 		routerMng := router.GetRoutersMangerInstance()
@@ -170,14 +171,14 @@ func TestNewMosn(t *testing.T) {
 		if len(rcfg.VirtualHosts) != 1 {
 			t.Fatal("router config is not expected")
 		}
-	}
-	// new version config, use routers instead of connection_manager
-	{
+	})
+	t.Run("new version config, use routers instead of connection_manager", func(t *testing.T) {
 		cfg := &v2.MOSNConfig{}
 		content := []byte(mosnConfigNew)
 		if err := json.Unmarshal(content, cfg); err != nil {
 			t.Fatal(err)
 		}
+		DefaultInitStage(cfg)
 		m := NewMosn(cfg)
 		routerMng := router.GetRoutersMangerInstance()
 		rw0 := routerMng.GetRouterWrapperByName("server_router")
@@ -200,5 +201,5 @@ func TestNewMosn(t *testing.T) {
 		time.Sleep(time.Second * 3)
 		// stop mosn
 		m.Close()
-	}
+	})
 }

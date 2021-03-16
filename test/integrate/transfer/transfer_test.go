@@ -13,13 +13,13 @@ import (
 
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/integrate"
 	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 // client - mesh - mesh - server

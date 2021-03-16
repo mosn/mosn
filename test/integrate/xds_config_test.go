@@ -40,8 +40,8 @@ import (
 	"mosn.io/mosn/pkg/configmanager"
 	_ "mosn.io/mosn/pkg/filter/stream/faultinject"
 	_ "mosn.io/mosn/pkg/filter/stream/mixer"
-	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/xds/conv"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
