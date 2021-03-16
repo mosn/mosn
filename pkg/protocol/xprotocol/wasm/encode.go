@@ -125,7 +125,6 @@ func encode(ctx *Context, content []byte) {
 	// otherwise it will be  modified by other data.
 	copy(payload, content[byteIndex:byteIndex+drainLen])
 	buf := buffer.NewIoBufferBytes(payload)
-	//fmt.Fprintf(os.Stdout, "==>encode buf(%d): %v", buf.Len(), buf.Bytes())
 
 	ctx.SetEncodeBuffer(buf)
 }

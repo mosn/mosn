@@ -61,6 +61,5 @@ type ProtocolConfig struct {
 const (
 	BufferTypeDecodeData proxywasm.BufferType = 13
 	BufferTypeEncodeData proxywasm.BufferType = 14
-	//
-	StatusNeedMoreData proxywasm.WasmResult = 99
+	StatusNeedMoreData   proxywasm.WasmResult = 99
 )

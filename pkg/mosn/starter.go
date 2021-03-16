@@ -24,7 +24,7 @@ import (
 	"syscall"
 	"time"
 
-	wasmer "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
+	xwasm "mosn.io/mosn/pkg/protocol/xprotocol/wasm"
 
 	"mosn.io/api"
 	"mosn.io/pkg/utils"
@@ -440,7 +440,7 @@ func initializeThirdPartCodec(config v2.ThirdPartCodecConfig) {
 			log.StartLogger.Infof("[mosn] [init codec] load go plugin codec succeed: %+v", codec.Path)
 
 		case v2.Wasm:
-			if err := wasmer.GetProxyProtocolManager().AddOrUpdateProtocolConfig(codec.Config); err != nil {
+			if err := xwasm.GetProxyProtocolManager().AddOrUpdateProtocolConfig(codec.Config); err != nil {
 				log.StartLogger.Errorf("[mosn] [init codec] init wasm codec failed: %+v", err)
 				continue
 			}

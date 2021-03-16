@@ -125,8 +125,7 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		var xProxyExtendConfig v2.XProxyExtendConfig
 		var proxyGeneralExtendConfig v2.ProxyGeneralExtendConfig
 		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
-			newCtx := mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
-			proxy.context = newCtx
+			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
 			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
 				log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
 			}

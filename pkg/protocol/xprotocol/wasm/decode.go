@@ -168,8 +168,6 @@ func decodeWasmRequest(ctx *Context, content []byte, headerBytes uint32, id uint
 	req.Data = buffer.GetIoBuffer(int(drainLen))
 	req.Data.Write(buf.Bytes()[:drainLen])
 
-	//fmt.Fprintf(os.Stdout, "==>decode buf(%d): %v", req.Data.Len(), req.Data.Bytes())
-
 	// we need to drain decode buffer
 	if drainLen > 0 {
 		buf.Drain(int(drainLen))
