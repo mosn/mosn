@@ -59,8 +59,7 @@ func Test_AddUpdateCallback(t *testing.T) {
 		t.Errorf("get sds client fail")
 	}
 
-	// Do not call CloseSdsClient(), because the 'SdsClient' is a global single object.
-	//defer CloseSdsClient()
+	defer CloseSdsClient()
 
 	// wait server start and stop makes reconnect
 	time.Sleep(time.Second)
@@ -106,8 +105,7 @@ func Test_DeleteUpdateCallback(t *testing.T) {
 		t.Errorf("get sds client fail")
 	}
 
-	// Do not call CloseSdsClient(), because the 'SdsClient' is a global single object.
-	//defer CloseSdsClient()
+	defer CloseSdsClient()
 
 	sdsClient.AddUpdateCallback(config, func(name string, secret *types.SdsSecret) {})
 	err := sdsClient.DeleteUpdateCallback(config)
