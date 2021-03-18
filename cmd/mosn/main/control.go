@@ -124,6 +124,8 @@ var (
 		},
 		Action: func(c *cli.Context) error {
 			stm := mosn.NewStageManager(c, c.String("config"))
+			// if needs featuregate init in parameter stage or init stage
+			// append a new stage and called featuregate.ExecuteInitFunc(keys...)
 			// parameter parsed registered
 			stm.AppendParamsParsedStage(DefaultParamsParsed)
 			// initial registerd
@@ -134,7 +136,7 @@ var (
 				metrics.SetGoVersion(runtime.Version())
 			})
 			// pre-startup
-			stm.AppendPreStartStage(mosn.DefaultPreStartStage)
+			stm.AppendPreStartStage(mosn.DefaultPreStartStage) // called finally stage by default
 			// startup
 			stm.AppendStartStage(mosn.DefaultStartStage)
 			// execute all runs

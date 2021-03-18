@@ -52,7 +52,7 @@ func DefaultPreStartStage(m *Mosn) {
 	}, syscall.SIGINT, syscall.SIGTERM)
 	// start xds client
 	m.StartXdsClient()
-	featuregate.StartInit()
+	featuregate.FinallyInitFunc()
 	m.HandleExtendConfig()
 }
 
