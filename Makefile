@@ -15,6 +15,8 @@ GIT_NOTES       = $(shell git log -1 --oneline)
 
 BUILD_IMAGE     = godep-builder
 
+WASM_IMAGE      = mosn-wasm
+
 IMAGE_NAME      = mosn
 REPOSITORY      = mosnio/${IMAGE_NAME}
 
@@ -76,6 +78,9 @@ build:
 build-host:
 	docker build --rm -t ${BUILD_IMAGE} build/contrib/builder/binary
 	docker run --net=host --rm -v $(shell pwd):/go/src/${PROJECT_NAME} -w /go/src/${PROJECT_NAME} ${BUILD_IMAGE} make build-local
+
+build-wasm-image:
+	docker build --rm -t ${WASM_IMAGE}:${MAJOR_VERSION} -f build/contrib/builder/wasm/Dockerfile .
 
 binary: build
 
