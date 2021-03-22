@@ -5,8 +5,6 @@ ENV GO111MODULE=off
 
 ENV MOSN_ROOT /go/src/mosn.io/mosn
 
-ENV tags wasmer
-
 COPY ./build    $MOSN_ROOT/build
 COPY ./cmd      $MOSN_ROOT/cmd
 COPY ./configs  $MOSN_ROOT/configs/
@@ -22,7 +20,7 @@ COPY ./etc/wasm/filter.wasm             /etc/wasm/filter.wasm
 
 WORKDIR $MOSN_ROOT
 
-RUN make build-local \
+RUN make build-local tags=wasmer \
     && chmod 777 $MOSN_ROOT/build/contrib/builder/wasm/bootstrap.sh \
     && rm -rf $MOSN_ROOT/cmd \
     && rm -rf $MOSN_ROOT/pkg
