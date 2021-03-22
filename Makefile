@@ -24,6 +24,15 @@ RPM_TAR_NAME    = afe-${TARGET}
 RPM_SRC_DIR     = ${RPM_TAR_NAME}-${RPM_VERSION}
 RPM_TAR_FILE    = ${RPM_SRC_DIR}.tar.gz
 
+TAGS			= ${tags}
+TAGS_OPT 		=
+
+# support build custom tags
+ifneq ($(TAGS),)
+TAGS_OPT 		= -tags ${TAGS}
+endif
+
+
 ut-local:
 	GO111MODULE=off go test -gcflags=-l -v `go list ./pkg/... | grep -v pkg/mtls/crypto/tls | grep -v pkg/networkextention`
 
@@ -74,7 +83,7 @@ binary-host: build-host
 
 build-local:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
-	GO111MODULE=off CGO_ENABLED=1 go build\
+	GO111MODULE=off CGO_ENABLED=1 go build ${TAGS_OPT} \
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/types.IstioVersion=${ISTIO_VERSION}" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
@@ -86,7 +95,7 @@ build-local:
 
 build-linux32:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
-	GO111MODULE=off CGO_ENABLED=1 env GOOS=linux GOARCH=386 go build\
+	GO111MODULE=off CGO_ENABLED=1 env GOOS=linux GOARCH=386 go build ${TAGS_OPT} \
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/types.IstioVersion=${ISTIO_VERSION}" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
@@ -98,7 +107,7 @@ build-linux32:
 
 build-linux64:
 	@rm -rf build/bundles/${MAJOR_VERSION}/binary
-	GO111MODULE=off CGO_ENABLED=1 env GOOS=linux GOARCH=amd64 go build\
+	GO111MODULE=off CGO_ENABLED=1 env GOOS=linux GOARCH=amd64 go build ${TAGS_OPT} \
 		-ldflags "-B 0x$(shell head -c20 /dev/urandom|od -An -tx1|tr -d ' \n') -X main.Version=${MAJOR_VERSION}(${GIT_VERSION}) -X ${PROJECT_NAME}/pkg/types.IstioVersion=${ISTIO_VERSION}" \
 		-v -o ${TARGET} \
 		${PROJECT_NAME}/cmd/mosn/main
