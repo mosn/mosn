@@ -11,7 +11,7 @@
 需要一个编译好的MOSN程序
 ```
 cd ${projectpath}/cmd/mosn/main
-go build
+go build -tags=wasmer
 ```
 
 + 示例代码目录

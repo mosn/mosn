@@ -12,7 +12,7 @@
 A compiled MOSN is needed
 ```
 cd ${projectpath}/cmd/mosn/main
-go build
+go build -tags=wasmer
 ```
 
 + code path
