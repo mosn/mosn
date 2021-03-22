@@ -7,31 +7,9 @@
 + Protocol between MOSN is HTTP1.
 + For the convenience of demonstration, MOSN listens to one port. Once receiving an HTTP1 request, MOSN will response with status code 200 directly.
 
-## Preparation
-
-A compiled MOSN is needed
-```
-cd ${projectpath}/cmd/mosn/main
-go build
-```
-
-+ code path
-
-```
-${targetpath} = ${projectpath}/examples/codes/wasm/httpCall/
-```
-
-+ Move the target to the example code path
-
-```
-mv main ${targetpath}/
-cd ${targetpath}
-```
-
 ## Catelog
 
 ```
-main            // MOSN
 config.json     // MOSN config file
 filter-go.go    // Wasm source file written in go
 filter-c.cc     // Wasm source file written in c
@@ -49,10 +27,17 @@ make
 
 This operation will generate filter.wasm
 
-### Start MOSN
+### Pull MOSN image
 
 ```
-./main start -c config.json
+docker pull mosnio/mosn-wasm:v0.21.0
+```
+
+### Start MOSN
+
+
+```
+docker run -it --rm -p 2045:2045 -v $(pwd):/etc/wasm/ mosnio/mosn-wasm:v0.21.0
 ```
 
 ### Start external HTTP server
