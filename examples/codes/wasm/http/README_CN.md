@@ -6,31 +6,9 @@
 + MOSN 代理的协议是 HTTP1 协议
 + 为了演示方便，MOSN 监听一个端口，收到 HTTP1 请求后直接返回 200 (status OK)
 
-## 准备
-
-需要一个编译好的MOSN程序
-```
-cd ${projectpath}/cmd/mosn/main
-go build -tags=wasmer
-```
-
-+ 示例代码目录
-
-```
-${targetpath} = ${projectpath}/examples/codes/wasm/http/
-```
-
-+ 将编译好的程序移动到示例代码目录
-
-```
-mv main ${targetpath}/
-cd ${targetpath}
-```
-
 ## 目录结构
 
 ```
-main        // 编译完成的MOSN程序
 config.json // 非TLS的 mosn 配置
 filter.go   // Wasm 扩展程序的源码文件
 makefile    // 用于编译 wasm 文件
@@ -46,10 +24,16 @@ make name=filter
 
 该操作将产生 filter.wasm 文件
 
+### 获取 MOSN 镜像
+
+```
+docker pull mosnio/mosn-wasm:v0.21.0
+```
+
 ### 启动MOSN
 
 ```
-./main start -c config.json
+docker run -it --rm -p 2045:2045 -v $(pwd):/etc/wasm/ mosnio/mosn-wasm:v0.21.0
 ```
 
 ### 使用CURL进行验证

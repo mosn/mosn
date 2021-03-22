@@ -12,11 +12,13 @@ COPY ./cmd      $MOSN_ROOT/cmd
 COPY ./configs  $MOSN_ROOT/configs/
 COPY ./pkg      $MOSN_ROOT/pkg
 COPY ./vendor   $MOSN_ROOT/vendor
-COPY ./etc      $MOSN_ROOT/etc
 COPY ./VERSION  $MOSN_ROOT/VERSION
 COPY ./Makefile $MOSN_ROOT/Makefile
 COPY ./go.mod   $MOSN_ROOT/go.mod
 COPY ./go.sum   $MOSN_ROOT/go.sum
+
+COPY ./configs/mosn_config_wasm.json    /etc/wasm/config.json
+COPY ./etc/wasm/filter.wasm             /etc/wasm/filter.wasm
 
 WORKDIR $MOSN_ROOT
 

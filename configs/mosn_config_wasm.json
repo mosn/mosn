@@ -47,7 +47,7 @@
                 "instance_num": 1,
                 "vm_config": {
                   "engine": "wasmer",
-                  "path": "etc/wasm/filter.wasm"
+                  "path": "/etc/wasm/filter.wasm"
                 }
               }
             }
