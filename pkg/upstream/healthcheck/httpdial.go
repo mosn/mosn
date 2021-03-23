@@ -28,6 +28,12 @@ import (
 const TimeoutCfgKey = "timeout"
 const defaultTimeout = uint32(30)
 
+func init() {
+	httpDialSessionFactory := &HTTPDialSessionFactory{}
+	RegisterSessionFactory("http", httpDialSessionFactory)
+	RegisterSessionFactory("Http1", httpDialSessionFactory)
+}
+
 type HTTPDialSessionFactory struct{}
 
 func (f *HTTPDialSessionFactory) NewSession(cfg map[string]interface{}, host types.Host) types.HealthCheckSession {
