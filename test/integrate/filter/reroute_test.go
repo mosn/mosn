@@ -14,11 +14,11 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/stream/http"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 // Test and demo for use stream filter to re route

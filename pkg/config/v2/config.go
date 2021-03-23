@@ -39,10 +39,11 @@ type MOSNConfig struct {
 	RawStaticResources   json.RawMessage      `json:"static_resources,omitempty"`  //static_resources raw message
 	RawAdmin             json.RawMessage      `json:"admin,omitempty"`             // admin raw message
 	Debug                PProfConfig          `json:"pprof,omitempty"`
-	Pid                  string               `json:"pid,omitempty"`              // pid file
-	Plugin               PluginConfig         `json:"plugin,omitempty"`           // plugin config
-	ThirdPartCodec       ThirdPartCodecConfig `json:"third_part_codec,omitempty"` // third part codec config
-	Extends              []ExtendConfig       `json:"extends,omitempty"`          // extend config
+	Pid                  string               `json:"pid,omitempty"`                 // pid file
+	Plugin               PluginConfig         `json:"plugin,omitempty"`              // plugin config
+	ThirdPartCodec       ThirdPartCodecConfig `json:"third_part_codec,omitempty"`    // third part codec config
+	Extends              []ExtendConfig       `json:"extends,omitempty"`             // extend config
+	Wasms                []WasmPluginConfig   `json:"wasm_global_plugins,omitempty"` // wasm config
 }
 
 // PProfConfig is used to start a pprof server for debug
@@ -85,10 +86,11 @@ const (
 
 // ThirdPartCodec represents configuration for a third part codec
 type ThirdPartCodec struct {
-	Enable         bool               `json:"enable"`
-	Type           ThirdPartCodecType `json:"type"`
-	Path           string             `json:"path"`
-	LoaderFuncName string             `json:"loader_func_name"`
+	Enable         bool                   `json:"enable,omitempty"`
+	Type           ThirdPartCodecType     `json:"type,omitempty"`
+	Path           string                 `json:"path,omitempty"`
+	LoaderFuncName string                 `json:"loader_func_name,omitempty"`
+	Config         map[string]interface{} `json:"config,omitempty"`
 }
 
 // ThirdPartCodecConfig represents configurations for third part codec

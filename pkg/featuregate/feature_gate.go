@@ -33,19 +33,36 @@ type knownFeatureSpec struct {
 	channel chan struct{}
 }
 
+// stage represents the featuregate execution stage state.
+// InitFunc of feature spec is called asynchronously in the finally stage,
+// otherwise it is called synchronously.
+// The Subscribe can be called only in finally stage.
+type stage uint8
+
+const (
+	initialize stage = iota
+	finally
+)
+
 type FeatureGate struct {
-	// lock guards writes to known, enabled, and reads/writes of closed
-	lock  sync.Mutex
-	known map[Feature]*knownFeatureSpec
-	// inited is set to true when StartInit is called.
+	// inited indicates whether the featuregate is initialized or not.
+	// feature specs cannot be added into featuregate after initialized.
+	// feature specs state cannot be changed after initialized.
 	inited bool
-	wg     sync.WaitGroup
-	once   sync.Once
+	stage  stage
+	// known stores the feature specs added into the featuregate
+	known map[Feature]*knownFeatureSpec
+	// finshed stores the feature specs that are already inited
+	finshed map[Feature]struct{}
+	wg      sync.WaitGroup
+	once    sync.Once
 }
 
 func NewFeatureGate() *FeatureGate {
 	fg := &FeatureGate{
-		known: map[Feature]*knownFeatureSpec{},
+		known:   map[Feature]*knownFeatureSpec{},
+		finshed: map[Feature]struct{}{},
+		stage:   initialize,
 	}
 	return fg
 }
@@ -53,9 +70,8 @@ func NewFeatureGate() *FeatureGate {
 // AddFeatureSpec adds feature to the featureGate.
 // features should be added by AddFeatureSpec
 func (fg *FeatureGate) AddFeatureSpec(key Feature, spec FeatureSpec) error {
-	fg.lock.Lock()
-	defer fg.lock.Unlock()
 	if fg.inited {
+		log.StartLogger.Errorf("[feature gate] feature gate is already inited")
 		return ErrInited
 	}
 	// Copy existing state
@@ -73,6 +89,10 @@ func (fg *FeatureGate) AddFeatureSpec(key Feature, spec FeatureSpec) error {
 // Set parses and stores flag gates for known features
 // from a string like feature1=true,feature2=false,...
 func (fg *FeatureGate) Set(value string) error {
+	if fg.inited {
+		log.StartLogger.Errorf("[feature gate] feature gate is already inited")
+		return ErrInited
+	}
 	m := make(map[string]bool)
 	for _, s := range strings.Split(value, ",") {
 		if len(s) == 0 {
@@ -95,8 +115,6 @@ func (fg *FeatureGate) Set(value string) error {
 
 // SetFromMap stores flag gates for known features from a map[string]bool or returns an error
 func (fg *FeatureGate) SetFromMap(m map[string]bool) error {
-	fg.lock.Lock()
-	defer fg.lock.Unlock()
 	if fg.inited {
 		log.StartLogger.Errorf("[feature gate] feature gate is already inited")
 		return ErrInited
@@ -114,8 +132,6 @@ func (fg *FeatureGate) SetFromMap(m map[string]bool) error {
 
 // SetFeatureState sets feature enablement state for the feature
 func (fg *FeatureGate) SetFeatureState(key Feature, enable bool) error {
-	fg.lock.Lock()
-	defer fg.lock.Unlock()
 	if fg.inited {
 		log.StartLogger.Errorf("[feature gate] feature gate is already inited")
 		return ErrInited
@@ -125,8 +141,6 @@ func (fg *FeatureGate) SetFeatureState(key Feature, enable bool) error {
 
 // Enabled returns true if the key is enabled.
 func (fg *FeatureGate) Enabled(key Feature) bool {
-	fg.lock.Lock()
-	defer fg.lock.Unlock()
 	if v, ok := fg.known[key]; ok {
 		return v.State()
 	}
@@ -135,8 +149,6 @@ func (fg *FeatureGate) Enabled(key Feature) bool {
 
 // KnownFeatures returns a slice of strings describing the FeatureGate's known features and status.
 func (fg *FeatureGate) KnownFeatures() map[string]bool {
-	fg.lock.Lock()
-	defer fg.lock.Unlock()
 	known := make(map[string]bool, len(fg.known))
 	for k, spec := range fg.known {
 		known[string(k)] = spec.State()
@@ -147,6 +159,9 @@ func (fg *FeatureGate) KnownFeatures() map[string]bool {
 // Subscribe waits the feature is ready, and returns the feature is enabled or not.
 // The timeout is the max wait time duration for subscribe. If timeout is zero, means no timeout.
 func (fg *FeatureGate) Subscribe(key Feature, timeout time.Duration) (bool, error) {
+	if fg.stage != finally {
+		return false, ErrSubStage
+	}
 	b, err := fg.subscribe(key)
 	if err != nil {
 		return false, err
@@ -169,8 +184,6 @@ func (fg *FeatureGate) Subscribe(key Feature, timeout time.Duration) (bool, erro
 }
 
 func (fg *FeatureGate) subscribe(key Feature) (*knownFeatureSpec, error) {
-	fg.lock.Lock()
-	defer fg.lock.Unlock()
 	if !fg.inited {
 		return nil, ErrNotInited
 	}
@@ -181,12 +194,41 @@ func (fg *FeatureGate) subscribe(key Feature) (*knownFeatureSpec, error) {
 	return b, nil
 }
 
-// StartInit triggers init functions of feature
-func (fg *FeatureGate) StartInit() {
-	fg.lock.Lock()
-	defer fg.lock.Unlock()
+// ExecuteInitFunc calls the known feature specs in order.
+// When the function is called for the first time,
+// set the inited flag to prevent the known feature specs changed.
+func (fg *FeatureGate) ExecuteInitFunc(keys ...Feature) {
+	fg.inited = true
+	for _, key := range keys {
+		if _, ok := fg.finshed[key]; ok {
+			continue
+		}
+		spec, ok := fg.known[key]
+		if !ok {
+			continue
+		}
+		fg.finshed[key] = struct{}{}
+		if !spec.State() {
+			log.StartLogger.Warnf("[feature gate] feature %s is not enabled", key)
+			continue
+		}
+		log.StartLogger.Infof("[feature gate] feature %s start init", key)
+		spec.InitFunc()
+		fg.updateToReady(key)
+		log.StartLogger.Infof("[feature gate] feature %s init done", key)
+	}
+}
+
+// FinallyInitFunc calls all known feature specs asynchronously.
+// If a feature spec has already finished init in ExecuteInitFunc, ignore it.
+func (fg *FeatureGate) FinallyInitFunc() {
 	fg.once.Do(func() {
+		fg.inited = true // set inited to true, maybe no ExecuteInitFunc called.
+		fg.stage = finally
 		for key, spec := range fg.known {
+			if _, ok := fg.finshed[key]; ok {
+				continue
+			}
 			if !spec.State() {
 				log.StartLogger.Warnf("[feature gate] feature %s is not enabled", key)
 				continue
@@ -202,13 +244,9 @@ func (fg *FeatureGate) StartInit() {
 			}(key, spec)
 		}
 	})
-	fg.inited = true
-	return
 }
 
 func (fg *FeatureGate) WaitInitFinsh() error {
-	fg.lock.Lock()
-	defer fg.lock.Unlock()
 	if !fg.inited {
 		return ErrNotInited
 	}
@@ -218,6 +256,9 @@ func (fg *FeatureGate) WaitInitFinsh() error {
 
 // internal function call, the lock is called in export function
 func (fg *FeatureGate) setFeatureState(key Feature, enable bool) error {
+	if fg.inited {
+		return ErrInited
+	}
 	spec, ok := fg.known[key]
 	if !ok {
 		return fmt.Errorf("feature %s is not registered", key)

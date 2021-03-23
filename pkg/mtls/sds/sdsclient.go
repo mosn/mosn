@@ -60,12 +60,11 @@ func NewSdsClientSingleton(config *auth.SdsSecretConfig) types.SdsClient {
 		return sdsClient
 	}
 }
-
-// CloseSdsClientImpl used only mosn exit
 func CloseSdsClient() {
 	sdsClientLock.Lock()
 	defer sdsClientLock.Unlock()
 	if sdsClient != nil && sdsClient.sdsSubscriber != nil {
+		log.DefaultLogger.Warnf("[mtls] sds client stopped")
 		sdsClient.sdsSubscriber.Stop()
 		sdsClient.sdsSubscriber = nil
 		sdsClient = nil

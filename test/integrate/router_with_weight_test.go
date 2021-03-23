@@ -24,8 +24,8 @@ import (
 
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 
-	"mosn.io/mosn/pkg/mosn"
 	testutil "mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 type weightCase struct {

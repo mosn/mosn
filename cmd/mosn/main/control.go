@@ -18,14 +18,12 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"runtime"
 
 	"github.com/urfave/cli"
-	"mosn.io/mosn/pkg/admin/store"
+	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/featuregate"
 	"mosn.io/mosn/pkg/log"
@@ -125,65 +123,31 @@ var (
 			},
 		},
 		Action: func(c *cli.Context) error {
-			configPath := c.String("config")
-			serviceCluster := c.String("service-cluster")
-			serviceNode := c.String("service-node")
-			serviceType := c.String("service-type")
-			serviceMeta := c.StringSlice("service-meta")
-			metaLabels := c.StringSlice("service-lables")
-			clusterDomain := c.String("cluster-domain")
-			podName := c.String("pod-name")
-			podNamespace := c.String("pod-namespace")
-			podIp := c.String("pod-ip")
+			stm := mosn.NewStageManager(c, c.String("config"))
+			// if needs featuregate init in parameter stage or init stage
+			// append a new stage and called featuregate.ExecuteInitFunc(keys...)
+			// parameter parsed registered
+			stm.AppendParamsParsedStage(DefaultParamsParsed)
+			// initial registerd
+			stm.AppendInitStage(mosn.DefaultInitStage)
+			stm.AppendInitStage(func(_ *v2.MOSNConfig) {
+				// set version and go version
+				metrics.SetVersion(Version)
+				metrics.SetGoVersion(runtime.Version())
+			})
+			// pre-startup
+			stm.AppendPreStartStage(mosn.DefaultPreStartStage) // called finally stage by default
+			// startup
+			stm.AppendStartStage(mosn.DefaultStartStage)
+			// execute all runs
+			stm.Run()
 
-			flagLogLevel := c.String("log-level")
+			// if functions needs to be called after mosn start, add here.
 
-			conf := configmanager.Load(configPath)
-			if mosnLogLevel, ok := flagToMosnLogLevel[flagLogLevel]; ok {
-				if mosnLogLevel == "OFF" {
-					log.GetErrorLoggerManagerInstance().Disable()
-				} else {
-					log.GetErrorLoggerManagerInstance().SetLogLevelControl(configmanager.ParseLogLevel(mosnLogLevel))
-				}
-			}
-
-			// set feature gates
-			err := featuregate.Set(c.String("feature-gates"))
-			if err != nil {
-				log.StartLogger.Infof("[mosn] [start] parse feature-gates flag fail : %+v", err)
-				os.Exit(1)
-			}
-			// start pprof
-			if conf.Debug.StartDebug {
-				port := 9090 //default use 9090
-				if conf.Debug.Port != 0 {
-					port = conf.Debug.Port
-				}
-				addr := fmt.Sprintf("0.0.0.0:%d", port)
-				s := &http.Server{Addr: addr, Handler: nil}
-				store.AddService(s, "pprof", nil, nil)
-			}
-
-			// set mosn metrics flush
-			metrics.FlushMosnMetrics = true
-			// set version and go version
-			metrics.SetVersion(Version)
-			metrics.SetGoVersion(runtime.Version())
-
-			if serviceNode != "" {
-				types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
-			} else {
-				if types.IsApplicationNodeType(serviceType) {
-					sn := podName + "." + podNamespace
-					serviceNode := serviceType + "~" + podIp + "~" + sn + "~" + clusterDomain
-					types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
-				} else {
-					log.StartLogger.Infof("[mosn] [start] xds service type must be sidecar or router")
-				}
-			}
-
-			mosn.Start(conf)
+			// wait mosn finished
+			stm.WaitFinish()
 			return nil
+
 		},
 	}
 
@@ -203,3 +167,42 @@ var (
 		},
 	}
 )
+
+func DefaultParamsParsed(c *cli.Context) {
+	// log level control
+	flagLogLevel := c.String("log-level")
+	if mosnLogLevel, ok := flagToMosnLogLevel[flagLogLevel]; ok {
+		if mosnLogLevel == "OFF" {
+			log.GetErrorLoggerManagerInstance().Disable()
+		} else {
+			log.GetErrorLoggerManagerInstance().SetLogLevelControl(configmanager.ParseLogLevel(mosnLogLevel))
+		}
+	}
+	// set feature gates
+	err := featuregate.Set(c.String("feature-gates"))
+	if err != nil {
+		log.StartLogger.Infof("[mosn] [start] parse feature-gates flag fail : %+v", err)
+		os.Exit(1)
+	}
+	// istio parameters
+	serviceCluster := c.String("service-cluster")
+	serviceNode := c.String("service-node")
+	serviceType := c.String("service-type")
+	serviceMeta := c.StringSlice("service-meta")
+	metaLabels := c.StringSlice("service-lables")
+	clusterDomain := c.String("cluster-domain")
+	podName := c.String("pod-name")
+	podNamespace := c.String("pod-namespace")
+	podIp := c.String("pod-ip")
+	if serviceNode != "" {
+		types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
+	} else {
+		if types.IsApplicationNodeType(serviceType) {
+			sn := podName + "." + podNamespace
+			serviceNode := serviceType + "~" + podIp + "~" + sn + "~" + clusterDomain
+			types.InitXdsFlags(serviceCluster, serviceNode, serviceMeta, metaLabels)
+		} else {
+			log.StartLogger.Infof("[mosn] [start] xds service type must be sidecar or router")
+		}
+	}
+}

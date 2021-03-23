@@ -1139,8 +1139,10 @@ func (cc *clientConnection) tryConnect() (event api.ConnectionEvent, err error) 
 		event = api.ConnectFailed
 		return
 	}
-	log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
-		cc.localAddr, cc.remoteAddr, err)
+	if strings.Contains(err.Error(), "tls") {
+		log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
+			cc.localAddr, cc.remoteAddr, err)
+	}
 	return cc.connect()
 }
 
