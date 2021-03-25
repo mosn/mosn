@@ -357,6 +357,9 @@ func Test_routersManager_AddRouter(t *testing.T) {
 	if len(cfgChanged.VirtualHosts[0].Routers) != 1 || len(cfgChanged.VirtualHosts[1].Routers) != 1 {
 		t.Fatal("default route config is not changed")
 	}
+	if len(cfgChanged.VirtualHosts[0].Routers[0].Match.Headers) != 1 {
+		t.Fatal("virtual host config routers is not expected")
+	}
 	routersChanged := rw.GetRouters()
 	// the wrapper can get the new router
 	if r := routersChanged.MatchRouteFromHeaderKV(ctx, nil, "service", "test"); r == nil {
