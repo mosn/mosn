@@ -132,7 +132,8 @@ func (c *MOSNConfig) Mode() Mode {
 		}
 
 		return Mix
-	} else if len(c.RawStaticResources) > 0 && len(c.RawDynamicResources) > 0 {
+	}
+	if len(c.RawStaticResources) > 0 && len(c.RawDynamicResources) > 0 {
 		return Xds
 	}
 

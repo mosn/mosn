@@ -224,7 +224,9 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 			ds := urEle.Value.(*downStream)
 			ds.OnResetStream(types.StreamConnectionTermination)
 		}
-	} else if event == api.OnReadTimeout {
+		return
+	}
+	if event == api.OnReadTimeout {
 		if p.shouldFallback() {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 				log.DefaultLogger.Debugf("[proxy] wait for fallback timeout, do fallback")
@@ -233,6 +235,7 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 			p.fallback = true
 			p.readCallbacks.ContinueReading()
 		}
+		return
 	}
 }
 

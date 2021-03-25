@@ -67,9 +67,11 @@ func ParseProxyFilter(cfg map[string]interface{}) (*v2.Proxy, error) {
 
 	if proxyConfig.DownstreamProtocol == "" || proxyConfig.UpstreamProtocol == "" {
 		return nil, fmt.Errorf("protocol in string needed in proxy network filter")
-	} else if _, ok := configmanager.ProtocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
+	}
+	if _, ok := configmanager.ProtocolsSupported[proxyConfig.DownstreamProtocol]; !ok {
 		return nil, fmt.Errorf("invalid downstream protocol %s", proxyConfig.DownstreamProtocol)
-	} else if _, ok := configmanager.ProtocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
+	}
+	if _, ok := configmanager.ProtocolsSupported[proxyConfig.UpstreamProtocol]; !ok {
 		return nil, fmt.Errorf("invalid upstream protocol %s", proxyConfig.UpstreamProtocol)
 	}
 
