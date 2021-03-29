@@ -20,6 +20,7 @@ package http2
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -31,7 +32,6 @@ import (
 
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/module/http2"
@@ -39,11 +39,10 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	mhttp2 "mosn.io/mosn/pkg/protocol/http2"
 	str "mosn.io/mosn/pkg/stream"
+	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
-	"mosn.io/mosn/pkg/trace"
-
 )
 
 func init() {
@@ -147,11 +146,56 @@ func (s *stream) GetStream() types.Stream {
 	return s
 }
 
+type StreamConfig struct {
+	UseOriginalPath bool `json:"use_original_path,omitempty"`
+	Http2UseStream  bool `json:"http2_use_stream,omitempty"`
+}
+
+func parseStreamConfig(ctx context.Context) StreamConfig {
+	var streamConfig = StreamConfig{
+		UseOriginalPath: true,
+		Http2UseStream:  false,
+	}
+
+	// get extend config from ctx
+	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
+	if pgc == nil {
+		return streamConfig
+	}
+	extendConfig, ok := pgc.(map[string]interface{})
+	if !ok {
+		return streamConfig
+	}
+
+	// extract http2 config
+	if config, ok := extendConfig[string(protocol.HTTP2)]; ok {
+		configBytes, err := json.Marshal(config)
+		if err != nil {
+			return streamConfig
+		}
+
+		err = json.Unmarshal(configBytes, &streamConfig)
+		if err != nil {
+			return streamConfig
+		}
+	} else {
+		if v, ok := extendConfig["use_original_path"]; ok {
+			streamConfig.UseOriginalPath = v.(bool)
+		}
+		if v, ok := extendConfig["http2_use_stream"]; ok {
+			streamConfig.Http2UseStream = v.(bool)
+		}
+	}
+
+	return streamConfig
+}
+
 type serverStreamConnection struct {
 	streamConnection
 	mutex   sync.RWMutex
 	streams map[uint32]*serverStream
 	sc      *http2.MServerConn
+	config  StreamConfig
 
 	serverCallbacks types.ServerStreamConnectionEventListener
 }
@@ -168,13 +212,10 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection, s
 
 			cm: str.NewContextManager(ctx),
 		},
-		sc: h2sc,
+		sc:     h2sc,
+		config: parseStreamConfig(ctx),
 
 		serverCallbacks: serverCallbacks,
-	}
-
-	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
-		sc.useStream = gcf.(v2.ProxyGeneralExtendConfig).Http2UseStream
 	}
 
 	// init first context
@@ -304,7 +345,15 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		variable.SetVariableValue(ctx, types.VarMethod, h2s.Request.Method)
 		variable.SetVariableValue(ctx, types.VarHost, h2s.Request.Host)
 		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, h2s.Request.Host) // be consistent with http1
-		variable.SetVariableValue(ctx, types.VarPath, h2s.Request.URL.Path)
+
+		var path string
+		if conn.config.UseOriginalPath {
+			path = h2s.Request.URL.EscapedPath()
+		} else {
+			path = h2s.Request.URL.Path
+		}
+		variable.SetVariableValue(ctx, types.VarPath, path)
+
 		if h2s.Request.URL.RawQuery != "" {
 			variable.SetVariableValue(ctx, types.VarQueryString, h2s.Request.URL.RawQuery)
 		}
@@ -586,8 +635,12 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 		streamConnectionEventListener: clientCallbacks,
 	}
 
-	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
-		sc.useStream = gcf.(v2.ProxyGeneralExtendConfig).Http2UseStream
+	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if extendConfig, ok := pgc.(map[string]interface{}); ok {
+			if v, ok := extendConfig["http2_use_stream"]; ok {
+				sc.useStream = v.(bool)
+			}
+		}
 	}
 
 	// init first context
@@ -874,11 +927,13 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 
 	var path string
 	path, _ = variable.GetVariableValue(ctx, types.VarPath)
+	unescapedPath, _ := url.PathUnescape(path)
 
 	URL := &url.URL{
 		Scheme:   scheme,
 		Host:     req.Host,
-		Path:     path,
+		Path:     unescapedPath,
+		RawPath:  path,
 		RawQuery: query,
 	}
 

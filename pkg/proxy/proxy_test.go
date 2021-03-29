@@ -92,14 +92,12 @@ func TestNewProxy(t *testing.T) {
 		})
 		// verify
 		p := pv.(*proxy)
-		cfg, ok := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig).(v2.ProxyGeneralExtendConfig)
+		cfg, ok := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig).(map[string]interface{})
 		if !ok {
 			t.Fatal("no proxy extend config")
 		}
-		if !(cfg.Http2UseStream &&
-			cfg.MaxRequestBodySize == 100) {
-			t.Fatalf("extend config is not expected, %+v", cfg)
-		}
+		assert.True(t, cfg["http2_use_stream"].(bool))
+		assert.Equal(t, cfg["max_request_body_size"].(int), 100)
 	})
 }
 

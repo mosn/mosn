@@ -31,7 +31,6 @@ import (
 
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -72,7 +71,7 @@ func Test_clientStream_AppendHeaders(t *testing.T) {
 	url.SetPath(path)
 	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		injectCtxVarFromProtocolHeaders(ctx, headers, url)
+		injectCtxVarFromProtocolHeaders(ctx, headers, url, false)
 		ClientStreamsMocked[i].AppendHeaders(ctx, headers, false)
 		if string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error, uri:%s", string(ClientStreamsMocked[i].request.Header.RequestURI()))
@@ -176,7 +175,7 @@ func Test_header_capitalization(t *testing.T) {
 	url.SetPath(path)
 	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url, false)
 		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
@@ -225,7 +224,7 @@ func Test_header_conflict(t *testing.T) {
 	url.SetPath(path)
 	url.SetQueryString(queryString)
 	for i := 0; i < len(ClientStreamsMocked); i++ {
-		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url)
+		injectCtxVarFromProtocolHeaders(ctx, convertHeader(headers[i]), url, false)
 		ClientStreamsMocked[i].AppendHeaders(ctx, convertHeader(headers[i]), false)
 		if len(headers[i]) != 0 && string(ClientStreamsMocked[i].request.Header.RequestURI()) != wantedURI[i] {
 			t.Errorf("clientStream AppendHeaders() error")
@@ -253,7 +252,7 @@ func Test_internal_header(t *testing.T) {
 	uri.SetPath("/first")
 
 	ctx := variable.NewVariableContext(context.Background())
-	injectCtxVarFromProtocolHeaders(ctx, header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri, false)
 
 	// mock request send
 	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
@@ -272,7 +271,7 @@ func Test_internal_header(t *testing.T) {
 	uri.SetPath("/second")
 	uri.SetQueryString("meaning=less")
 
-	injectCtxVarFromProtocolHeaders(ctx, header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri, false)
 	// mock request send
 	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
@@ -288,7 +287,7 @@ func Test_internal_header(t *testing.T) {
 	uri.SetHost("third.test.com")
 	uri.SetPath("/third")
 
-	injectCtxVarFromProtocolHeaders(ctx, header, uri)
+	injectCtxVarFromProtocolHeaders(ctx, header, uri, false)
 	// mock request send
 	FillRequestHeadersFromCtxVar(ctx, header, remoteAddr)
 
@@ -364,8 +363,8 @@ func TestHeaderSize(t *testing.T) {
 	}
 
 	connection := network.NewServerConnection(context.Background(), rawc, nil)
-	proxyGeneralExtendConfig := v2.ProxyGeneralExtendConfig{
-		MaxHeaderSize: len(requestSmall),
+	proxyGeneralExtendConfig := map[string]interface{}{
+		"max_header_size": len(requestSmall),
 	}
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
