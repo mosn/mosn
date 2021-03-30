@@ -124,10 +124,11 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 		}
 
 		if v, ok := proxy.config.ExtendConfig["sub_protocol"]; ok {
-			subProtocol := v.(string)
-			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, subProtocol)
-			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-				log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", subProtocol)
+			if subProtocol, ok := v.(string); ok {
+				proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, subProtocol)
+				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+					log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", subProtocol)
+				}
 			}
 		}
 	}

@@ -241,7 +241,11 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
 		if extendConfig, ok := pgc.(map[string]interface{}); ok {
 			if v, ok := extendConfig["max_header_size"]; ok {
-				maxResponseHeaderSize = v.(int)
+				// json.Unmarshal stores float64 for JSON numbers in the interface{}
+				// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
+				if fv, ok := v.(float64); ok {
+					maxResponseHeaderSize = int(fv)
+				}
 			}
 		}
 	}
@@ -399,10 +403,16 @@ func parseStreamConfig(ctx context.Context) StreamConfig {
 		}
 	} else {
 		if v, ok := extendConfig["max_header_size"]; ok {
-			streamConfig.MaxHeaderSize = v.(int)
+			// json.Unmarshal stores float64 for JSON numbers in the interface{}
+			// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
+			if fv, ok := v.(float64); ok {
+				streamConfig.MaxHeaderSize = int(fv)
+			}
 		}
 		if v, ok := extendConfig["max_request_body_size"]; ok {
-			streamConfig.MaxRequestBodySize = v.(int)
+			if fv, ok := v.(float64); ok {
+				streamConfig.MaxRequestBodySize = int(fv)
+			}
 		}
 	}
 
@@ -913,13 +923,31 @@ func buildUrlFromCtxVar(ctx context.Context) string {
 	pathOriginal, _ := variable.GetVariableValue(ctx, types.VarPathOriginal)
 	queryString, _ := variable.GetVariableValue(ctx, types.VarQueryString)
 
-	u := url.URL{
-		Path:     path,
-		RawPath:  pathOriginal,
-		RawQuery: queryString,
+	// different from url.RequestURI() since we should by-pass the original path to upstream
+	// even if the original path contains literal space
+	var res string
+
+	unescapedPath, err := url.PathUnescape(pathOriginal)
+	if err == nil && path == unescapedPath {
+		res = pathOriginal
+	} else {
+		if path == "*" {
+			res = "*"
+		} else {
+			u := url.URL{Path: path}
+			res = u.RequestURI()
+		}
 	}
 
-	return u.RequestURI()
+	if res == "" {
+		res = "/"
+	}
+
+	if queryString != "" {
+		res += "?" + queryString
+	}
+
+	return res
 }
 
 func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {

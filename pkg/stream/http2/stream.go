@@ -178,7 +178,9 @@ func parseStreamConfig(ctx context.Context) StreamConfig {
 		}
 	} else {
 		if v, ok := extendConfig["http2_use_stream"]; ok {
-			streamConfig.Http2UseStream = v.(bool)
+			if bv, ok := v.(bool); ok {
+				streamConfig.Http2UseStream = bv
+			}
 		}
 	}
 
@@ -627,7 +629,9 @@ func newClientStreamConnection(ctx context.Context, connection api.Connection,
 	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
 		if extendConfig, ok := pgc.(map[string]interface{}); ok {
 			if v, ok := extendConfig["http2_use_stream"]; ok {
-				sc.useStream = v.(bool)
+				if bv, ok := v.(bool); ok {
+					sc.useStream = bv
+				}
 			}
 		}
 	}

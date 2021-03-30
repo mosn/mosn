@@ -21,9 +21,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
+	"strconv"
 	"testing"
 	"time"
 
@@ -59,6 +61,16 @@ func TestBuildUrlFromCtxVar(t *testing.T) {
 			"/home/sample ",
 			"/home/sample%20",
 			"/home/sample%20",
+		},
+		{
+			"/home/sample ",
+			"/home/sample ",
+			"/home/sample ",
+		},
+		{
+			"home/sam ple",
+			"home/sam ple",
+			"home/sam ple",
 		},
 	}
 	for _, tc := range testcases {
@@ -393,9 +405,9 @@ func TestHeaderSize(t *testing.T) {
 	}
 
 	connection := network.NewServerConnection(context.Background(), rawc, nil)
-	proxyGeneralExtendConfig := map[string]interface{}{
-		"max_header_size": len(requestSmall),
-	}
+
+	var proxyGeneralExtendConfig map[string]interface{}
+	json.Unmarshal([]byte(`{"max_header_size":`+strconv.Itoa(len(requestSmall))+`}`), &proxyGeneralExtendConfig)
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 	ssc := newServerStreamConnection(ctx, connection, nil)
