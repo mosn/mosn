@@ -266,6 +266,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 	}
 
 	path, err := variable.GetVariableValue(ctx, types.VarPath)
+	pathOriginal, _ := variable.GetVariableValue(ctx, types.VarPathOriginal)
 	if err == nil && path != "" {
 
 		//If both prefix_rewrite and regex_rewrite are configured
@@ -273,7 +274,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 		if len(rri.prefixRewrite) > 1 {
 			if strings.HasPrefix(path, matchedPath) {
 				// origin path need to save in the header
-				headers.Set(types.HeaderOriginalPath, path)
+				headers.Set(types.HeaderOriginalPath, pathOriginal)
 				variable.SetVariableValue(ctx, types.VarPath, rri.prefixRewrite+path[len(matchedPath):])
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "add prefix to path, prefix is "+rri.prefixRewrite)
@@ -286,7 +287,7 @@ func (rri *RouteRuleImplBase) finalizePathHeader(ctx context.Context, headers ap
 		if len(rri.regexRewrite.Pattern.Regex) > 1 && rri.regexPattern != nil {
 			rewritedPath := rri.regexPattern.ReplaceAllString(path, rri.regexRewrite.Substitution)
 			if rewritedPath != path {
-				headers.Set(types.HeaderOriginalPath, path)
+				headers.Set(types.HeaderOriginalPath, pathOriginal)
 				variable.SetVariableValue(ctx, types.VarPath, rewritedPath)
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof(RouterLogFormat, "routerule", "finalizePathHeader", "regex rewrite path, rewrited path is "+rewritedPath)

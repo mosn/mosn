@@ -153,7 +153,7 @@ type StreamConfig struct {
 
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	var streamConfig = StreamConfig{
-		UseOriginalPath: true,
+		UseOriginalPath: false,
 		Http2UseStream:  false,
 	}
 
@@ -345,14 +345,8 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 		variable.SetVariableValue(ctx, types.VarMethod, h2s.Request.Method)
 		variable.SetVariableValue(ctx, types.VarHost, h2s.Request.Host)
 		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, h2s.Request.Host) // be consistent with http1
-
-		var path string
-		if conn.config.UseOriginalPath {
-			path = h2s.Request.URL.EscapedPath()
-		} else {
-			path = h2s.Request.URL.Path
-		}
-		variable.SetVariableValue(ctx, types.VarPath, path)
+		variable.SetVariableValue(ctx, types.VarPath, h2s.Request.URL.Path)
+		variable.SetVariableValue(ctx, types.VarPathOriginal, h2s.Request.URL.EscapedPath())
 
 		if h2s.Request.URL.RawQuery != "" {
 			variable.SetVariableValue(ctx, types.VarQueryString, h2s.Request.URL.RawQuery)
@@ -922,18 +916,20 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 		host = h
 	}
 
-	var query string
-	query, _ = variable.GetVariableValue(ctx, types.VarQueryString)
-
 	var path string
 	path, _ = variable.GetVariableValue(ctx, types.VarPath)
-	unescapedPath, _ := url.PathUnescape(path)
+
+	var pathOriginal string
+	pathOriginal, _ = variable.GetVariableValue(ctx, types.VarPathOriginal)
+
+	var query string
+	query, _ = variable.GetVariableValue(ctx, types.VarQueryString)
 
 	URL := &url.URL{
 		Scheme:   scheme,
 		Host:     req.Host,
-		Path:     unescapedPath,
-		RawPath:  path,
+		Path:     path,
+		RawPath:  pathOriginal,
 		RawQuery: query,
 	}
 

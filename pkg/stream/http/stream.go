@@ -370,7 +370,7 @@ type StreamConfig struct {
 
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	var streamConfig = StreamConfig{
-		UseOriginalPath: true,
+		UseOriginalPath: false,
 		// Per-connection buffer size for requests' reading.
 		// This also limits the maximum header size, default 4096.
 		MaxHeaderSize: defaultMaxHeaderSize,
@@ -901,15 +901,12 @@ func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.Reques
 	variable.SetVariableValue(ctx, types.VarMethod, string(header.Method()))
 
 	// 4. path
-	var path []byte
-	if useOriginalPath {
-		path = uri.PathOriginal()
-	} else {
-		path = uri.Path()
-	}
-	variable.SetVariableValue(ctx, types.VarPath, string(path))
+	variable.SetVariableValue(ctx, types.VarPath, string(uri.Path()))
 
-	// 5. querystring
+	// 5. path original
+	variable.SetVariableValue(ctx, types.VarPathOriginal, string(uri.PathOriginal()))
+
+	// 6. querystring
 	qs := uri.QueryString()
 	if len(qs) > 0 {
 		variable.SetVariableValue(ctx, types.VarQueryString, string(qs))
@@ -917,16 +914,13 @@ func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.Reques
 }
 
 func buildUrlFromCtxVar(ctx context.Context) string {
-	var path string
-	path, _ = variable.GetVariableValue(ctx, types.VarPath)
+	path, _ := variable.GetVariableValue(ctx, types.VarPath)
+	pathOriginal, _ := variable.GetVariableValue(ctx, types.VarPathOriginal)
+	queryString, _ := variable.GetVariableValue(ctx, types.VarQueryString)
 
-	var queryString string
-	queryString, _ = variable.GetVariableValue(ctx, types.VarQueryString)
-
-	unescapedPath, _ := url.PathUnescape(path)
 	u := url.URL{
-		Path:     unescapedPath,
-		RawPath:  path,
+		Path:     path,
+		RawPath:  pathOriginal,
 		RawQuery: queryString,
 	}
 
