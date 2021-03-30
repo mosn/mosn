@@ -78,6 +78,48 @@ func TestUpdateRouter(t *testing.T) {
 			Verify(route, NotNil)
 			Verify(len(route.VirtualHosts[0].Routers), Equal, 2)
 		})
+		Case("add route rule", func() {
+			config := `{
+				"router_config_name": "test_router",
+				"domain": "",
+				"route": {
+					"match":{"path":"/new"},
+					"route":{"cluster_name":"testnew"}
+				}
+			}`
+			err := m.UpdateRoute(34901, "add", config)
+			Verify(err, Equal, nil)
+			// wait auto config dump
+			time.Sleep(4 * time.Second)
+			mcfg := m.LoadMosnConfig() // read config from files
+			var route *v2.RouterConfiguration
+			for _, r := range mcfg.Servers[0].Routers {
+				if r.RouterConfigName == "test_router" {
+					route = r
+				}
+			}
+			Verify(route, NotNil)
+			Verify(len(route.VirtualHosts[0].Routers), Equal, 3)
+		})
+		Case("remove route rule", func() {
+			config := `{
+				"router_config_name": "test_router",
+				"domain": ""
+			}`
+			err := m.UpdateRoute(34901, "remove", config)
+			Verify(err, Equal, nil)
+			// wait auto config dump
+			time.Sleep(4 * time.Second)
+			mcfg := m.LoadMosnConfig() // read config from files
+			var route *v2.RouterConfiguration
+			for _, r := range mcfg.Servers[0].Routers {
+				if r.RouterConfigName == "test_router" {
+					route = r
+				}
+			}
+			Verify(route, NotNil)
+			Verify(len(route.VirtualHosts[0].Routers), Equal, 0)
+		})
 		TearDown(func() {
 			m.Stop()
 		})

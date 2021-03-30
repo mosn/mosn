@@ -37,7 +37,7 @@ type RouterConfigurationConfig struct {
 	ResponseHeadersToAdd    []*HeaderValueOption `json:"response_headers_to_add,omitempty"`
 	ResponseHeadersToRemove []string             `json:"response_headers_to_remove,omitempty"`
 	RouterConfigPath        string               `json:"router_configs,omitempty"`
-	StaticVirtualHosts      []*VirtualHost       `json:"virtual_hosts,omitempty"`
+	StaticVirtualHosts      []VirtualHost        `json:"virtual_hosts,omitempty"`
 }
 
 type RouterConfig struct {
@@ -197,7 +197,7 @@ type HeaderValue struct {
 
 // RouterConfiguration is a config for routers
 type RouterConfiguration struct {
-	VirtualHosts []*VirtualHost `json:"-"`
+	VirtualHosts []VirtualHost `json:"-"`
 	RouterConfigurationConfig
 }
 
@@ -267,8 +267,8 @@ func (rc *RouterConfiguration) UnmarshalJSON(b []byte) error {
 		}
 		for _, f := range files {
 			fileName := path.Join(cfg.RouterConfigPath, f.Name())
-			vh := &VirtualHost{}
-			e := utils.ReadJsonFile(fileName, vh)
+			vh := VirtualHost{}
+			e := utils.ReadJsonFile(fileName, &vh)
 			switch e {
 			case nil:
 				rc.VirtualHosts = append(rc.VirtualHosts, vh)

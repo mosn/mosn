@@ -27,10 +27,9 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/mosn/pkg/variable"
-
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 var routerConfig = `{
@@ -296,7 +295,7 @@ func Test_routersManager_AddRouter(t *testing.T) {
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: "test_addrouter",
 		},
-		VirtualHosts: []*v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
 			{
 				Name:    "test_addrouter_vh",
 				Domains: []string{"www.test.com"},
@@ -374,7 +373,7 @@ func Test_routersManager_RemoveAllRouter(t *testing.T) {
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: "test_remove_all_router",
 		},
-		VirtualHosts: []*v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
 			{
 				Name:    "test_addrouter_vh",
 				Domains: []string{"www.test.com"},

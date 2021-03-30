@@ -32,8 +32,8 @@ func makeFilterChain(proxy *v2.Proxy, routers []v2.Router, cfgName string) v2.Fi
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: cfgName,
 		},
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
+			v2.VirtualHost{
 				Name:    "test",
 				Domains: []string{"*"},
 				Routers: routers,
