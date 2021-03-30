@@ -312,10 +312,7 @@ const ConfigSimpleHTTP1 = `{
                                                                         "downstream_protocol": "Http1",
                                                                         "upstream_protocol": "Http1",
                                                                         "router_config_name":"router_to_mosn"
-                                                                },
-																"extend_config": {
-																		"use_original_path": true
-																}
+                                                                }
                                                         }
                                                 ]
                                         }]
@@ -331,10 +328,7 @@ const ConfigSimpleHTTP1 = `{
                                                                         "downstream_protocol": "Http1",
                                                                         "upstream_protocol": "Http1",
                                                                         "router_config_name":"router_to_server"
-                                                                },
-																"extend_config": {
-																		"use_original_path": false
-																}
+                                                                }
                                                         }
                                                 ]
                                         }]
@@ -396,10 +390,7 @@ const ConfigSimpleHTTP2 = `{
                                                                         "downstream_protocol": "Http2",
                                                                         "upstream_protocol": "Http2",
                                                                         "router_config_name":"router_to_server"
-                                                                },
-																"extend_config": {
-																		"use_original_path": false
-																}
+                                                                }
                                                         }
                                                 ]
                                         }]

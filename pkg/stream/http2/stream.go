@@ -147,13 +147,11 @@ func (s *stream) GetStream() types.Stream {
 }
 
 type StreamConfig struct {
-	UseOriginalPath bool `json:"use_original_path,omitempty"`
 	Http2UseStream  bool `json:"http2_use_stream,omitempty"`
 }
 
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	var streamConfig = StreamConfig{
-		UseOriginalPath: false,
 		Http2UseStream:  false,
 	}
 
@@ -179,9 +177,6 @@ func parseStreamConfig(ctx context.Context) StreamConfig {
 			return streamConfig
 		}
 	} else {
-		if v, ok := extendConfig["use_original_path"]; ok {
-			streamConfig.UseOriginalPath = v.(bool)
-		}
 		if v, ok := extendConfig["http2_use_stream"]; ok {
 			streamConfig.Http2UseStream = v.(bool)
 		}

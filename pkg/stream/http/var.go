@@ -115,7 +115,6 @@ func requestPathOriginalGetter(ctx context.Context, value *variable.IndexedValue
 func requestUriGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
-
 	return string(request.Header.RequestURI()), nil
 }
 

@@ -363,14 +363,12 @@ func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.C
 }
 
 type StreamConfig struct {
-	UseOriginalPath    bool `json:"use_original_path,omitempty"`
 	MaxHeaderSize      int  `json:"max_header_size,omitempty"`
 	MaxRequestBodySize int  `json:"max_request_body_size,omitempty"`
 }
 
 func parseStreamConfig(ctx context.Context) StreamConfig {
 	var streamConfig = StreamConfig{
-		UseOriginalPath: false,
 		// Per-connection buffer size for requests' reading.
 		// This also limits the maximum header size, default 4096.
 		MaxHeaderSize: defaultMaxHeaderSize,
@@ -400,9 +398,6 @@ func parseStreamConfig(ctx context.Context) StreamConfig {
 			return streamConfig
 		}
 	} else {
-		if v, ok := extendConfig["use_original_path"]; ok {
-			streamConfig.UseOriginalPath = v.(bool)
-		}
 		if v, ok := extendConfig["max_header_size"]; ok {
 			streamConfig.MaxHeaderSize = v.(int)
 		}
@@ -872,7 +867,7 @@ func (s *serverStream) doSend() {
 func (s *serverStream) handleRequest(ctx context.Context) {
 	if s.request != nil {
 		// set non-header info in request-line, like method, uri
-		injectCtxVarFromProtocolHeaders(ctx, s.header, s.request.URI(), s.connection.config.UseOriginalPath)
+		injectCtxVarFromProtocolHeaders(ctx, s.header, s.request.URI())
 		hasData := true
 		if len(s.request.Body()) == 0 {
 			hasData = false
@@ -891,7 +886,7 @@ func (s *serverStream) GetStream() types.Stream {
 }
 
 // consider host, method, path are necessary, but check querystring
-func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.RequestHeader, uri *fasthttp.URI, useOriginalPath bool) {
+func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 1. host
 	variable.SetVariableValue(ctx, types.VarHost, string(uri.Host()))
 	// 2. authority
