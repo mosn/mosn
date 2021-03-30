@@ -49,7 +49,7 @@ func (proto *wasmProtocol) hijack(context context.Context, request api.XFrame, s
 	wasmCtx.instance.Unlock()
 
 	// When encode is called, the proxy gets the correct buffer
-	wasmCtx.keepaliveResp = NewWasmResponseWithId(uint32(request.GetRequestId()), nil, nil)
+	wasmCtx.keepaliveResp = NewWasmResponseWithId(request.GetRequestId(), nil, nil)
 	if req.ctx != nil {
 		wasmCtx.keepaliveResp.ctx = req.ctx
 	}

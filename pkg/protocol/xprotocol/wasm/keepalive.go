@@ -43,7 +43,7 @@ func (proto *wasmProtocol) keepaliveRequest(context context.Context, requestId u
 	wasmCtx.instance.Unlock()
 
 	// When encode is called, the proxy gets the correct buffer
-	req := NewWasmRequestWithId(uint32(requestId), nil, nil)
+	req := NewWasmRequestWithId(requestId, nil, nil)
 	req.Flag = HeartBeatFlag
 	req.ctx = wasmCtx
 
@@ -86,7 +86,7 @@ func (proto *wasmProtocol) keepaliveResponse(context context.Context, request ap
 	}
 
 	// When encode is called, the proxy gets the correct buffer
-	resp := NewWasmResponseWithId(uint32(request.GetRequestId()), nil, nil)
+	resp := NewWasmResponseWithId(request.GetRequestId(), nil, nil)
 	resp.Flag |= HeartBeatFlag
 	resp.ctx = wasmCtx
 
