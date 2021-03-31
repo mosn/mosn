@@ -80,7 +80,7 @@ func (r *upstreamRequest) OnResetStream(reason types.StreamResetReason) {
 		return
 	}
 
-	r.downStream.resetReason = reason
+	r.downStream.resetReason.Store(reason)
 	r.downStream.sendNotify()
 }
 

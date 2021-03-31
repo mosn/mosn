@@ -30,6 +30,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	uatomic "go.uber.org/atomic"
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -91,7 +92,7 @@ type downStream struct {
 	// upstream req sent
 	upstreamRequestSent bool
 	// 1. at the end of upstream response 2. by a upstream reset due to exceptions, such as no healthy upstream, connection close, etc.
-	upstreamProcessDone bool
+	upstreamProcessDone uatomic.Bool
 	// don't convert headers, data and trailers.  e.g. streamReceiverFilterHandler.Appendxx
 	noConvert bool
 	// direct response.  e.g. sendHijack
@@ -106,7 +107,7 @@ type downStream struct {
 	upstreamReset     uint32
 	reuseBuffer       uint32
 
-	resetReason types.StreamResetReason
+	resetReason uatomic.String //types.StreamResetReason
 
 	// stream filter chain
 	streamFilterChain         streamFilterChain
@@ -143,7 +144,7 @@ func newActiveStream(ctx context.Context, proxy *proxy, responseSender types.Str
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyConfigUpStreamProtocol, proxy.config.UpstreamProtocol)
 
 	stream := &proxyBuffers.stream
-	stream.ID = atomic.AddUint32(&currProxyID, 1)
+	atomic.StoreUint32(&stream.ID, atomic.AddUint32(&currProxyID, 1))
 	stream.proxy = proxy
 	stream.requestInfo = &proxyBuffers.info
 	stream.requestInfo.SetStartTime()
@@ -244,9 +245,9 @@ func (s *downStream) cleanStream() {
 	s.requestInfo.SetRequestFinishedDuration(time.Now())
 
 	// reset corresponding upstream stream
-	if s.upstreamRequest != nil && !s.upstreamProcessDone && !s.oneway {
+	if s.upstreamRequest != nil && !s.upstreamProcessDone.Load() && !s.oneway {
 		log.Proxy.Errorf(s.context, "[proxy] [downstream] upstreamRequest.resetStream, proxyId: %d", s.ID)
-		s.upstreamProcessDone = true
+		s.upstreamProcessDone.Store(true)
 		s.upstreamRequest.resetStream()
 	}
 
@@ -358,7 +359,7 @@ func (s *downStream) OnResetStream(reason types.StreamResetReason) {
 	if log.DefaultLogger.GetLogLevel() >= log.WARN {
 		log.DefaultLogger.Warnf("[downStream] reset stream reason %v", reason)
 	}
-	s.resetReason = reason
+	s.resetReason.Store(reason)
 
 	s.sendNotify()
 }
@@ -385,14 +386,14 @@ func (s *downStream) OnReceive(ctx context.Context, headers types.HeaderMap, dat
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] OnReceive headers:%+v, data:%+v, trailers:%+v", headers, data, trailers)
 	}
 
-	id := s.ID
+	id := atomic.LoadUint32(&s.ID)
 	var task = func() {
 		defer func() {
 			if r := recover(); r != nil {
 				log.Proxy.Alertf(s.context, types.ErrorKeyProxyPanic, "[proxy] [downstream] OnReceive panic: %v, downstream: %+v, oldId: %d, newId: %d\n%s",
 					r, s, id, s.ID, string(debug.Stack()))
 
-				if id == s.ID {
+				if id == atomic.LoadUint32(&s.ID) {
 					s.cleanStream()
 				}
 			}
@@ -902,7 +903,7 @@ func (s *downStream) receiveData(endStream bool) {
 	s.upstreamRequest.appendData(endStream)
 
 	// if upstream process done in the middle of receiving data, just end stream
-	if s.upstreamProcessDone {
+	if s.upstreamProcessDone.Load() {
 		s.cleanStream()
 	}
 }
@@ -919,14 +920,14 @@ func (s *downStream) receiveTrailers() {
 	s.upstreamRequest.appendTrailers()
 
 	// if upstream process done in the middle of receiving trailers, just end stream
-	if s.upstreamProcessDone {
+	if s.upstreamProcessDone.Load() {
 		s.cleanStream()
 	}
 }
 
 func (s *downStream) OnDecodeError(context context.Context, err error, headers types.HeaderMap) {
 	// if active stream finished the lifecycle, just ignore further data
-	if s.upstreamProcessDone {
+	if s.upstreamProcessDone.Load() {
 		return
 	}
 
@@ -959,21 +960,29 @@ func (s *downStream) onUpstreamRequestSent() {
 				s.responseTimer.Stop()
 			}
 
-			ID := s.ID
+			ID := atomic.LoadUint32(&s.ID)
 			s.responseTimer = utils.NewTimer(s.timeout.GlobalTimeout,
 				func() {
+					// When a stream trigger timeout, this function will be called,
+					// but maybe concurrent with upstream response received.
+					// So we set the reuse buffer first to make sure this stream will not be
+					// reused for another new stream.
+					// And then, we check if the stream is cleaned.
+					// If the stream is not cleaned, there are two cases:
+					// 1. the stream is really not cleaned.
+					// 2. the stream has been resetted
+					// If case 2 occurs, the ID is not matched, so we check the ID.
+					// The stream cleaned check must be called before ID check, otherwise the stream may
+					// be cleand after ID check pass.
 					atomic.StoreUint32(&s.reuseBuffer, 0)
-
-					if s.downstreamRespHeaders != nil {
-						return
-					}
-
 					if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 						return
 					}
-					if ID != s.ID {
+					if ID != atomic.LoadUint32(&s.ID) {
 						return
 					}
+					// After ID checks passed, and we setted the reuse buffer flag,
+					// the stream will never be reused. so we can do this CAS checks.
 					if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
 						return
 					}
@@ -1015,19 +1024,15 @@ func (s *downStream) setupPerReqTimeout() {
 			s.perRetryTimer.Stop()
 		}
 
-		ID := s.ID
+		ID := atomic.LoadUint32(&s.ID)
 		s.perRetryTimer = utils.NewTimer(timeout.TryTimeout,
 			func() {
 				atomic.StoreUint32(&s.reuseBuffer, 0)
 
-				if s.downstreamRespHeaders != nil {
-					return
-				}
-
 				if atomic.LoadUint32(&s.downstreamCleaned) == 1 {
 					return
 				}
-				if ID != s.ID {
+				if ID != atomic.LoadUint32(&s.ID) {
 					return
 				}
 				if !atomic.CompareAndSwapUint32(&s.upstreamResponseReceived, 0, 1) {
@@ -1089,7 +1094,7 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 // ~~~ active stream sender wrapper
 
 func (s *downStream) appendHeaders(endStream bool) {
-	s.upstreamProcessDone = endStream
+	s.upstreamProcessDone.Store(endStream)
 	headers := s.convertHeader(s.downstreamRespHeaders)
 	// Currently, just log the error
 	if err := s.responseSender.AppendHeaders(s.context, headers, endStream); err != nil {
@@ -1122,7 +1127,7 @@ func (s *downStream) convertHeader(headers types.HeaderMap) types.HeaderMap {
 }
 
 func (s *downStream) appendData(endStream bool) {
-	s.upstreamProcessDone = endStream
+	s.upstreamProcessDone.Store(endStream)
 
 	data := s.convertData(s.downstreamRespDataBuf)
 	s.requestInfo.SetBytesSent(s.requestInfo.BytesSent() + uint64(data.Len()))
@@ -1154,7 +1159,7 @@ func (s *downStream) convertData(data types.IoBuffer) types.IoBuffer {
 }
 
 func (s *downStream) appendTrailers() {
-	s.upstreamProcessDone = true
+	s.upstreamProcessDone.Store(true)
 	trailers := s.convertTrailer(s.downstreamRespTrailers)
 	s.responseSender.AppendTrailers(s.context, trailers)
 	s.endStream()
@@ -1394,10 +1399,10 @@ func (s *downStream) doRetry() {
 // 1. downstream filter reset downstream
 // 2. corresponding upstream got reset
 func (s *downStream) resetStream() {
-	if s.responseSender != nil && !s.upstreamProcessDone {
+	if s.responseSender != nil && !s.upstreamProcessDone.Load() {
 		// if downstream req received not done, or local proxy process not done by handle upstream response,
 		// just mark it as done and reset stream as a failed case
-		s.upstreamProcessDone = true
+		s.upstreamProcessDone.Store(true)
 
 		// reset downstream will trigger a clean up, see OnResetStream
 		s.responseSender.GetStream().ResetStream(types.StreamLocalReset)
@@ -1523,7 +1528,7 @@ func (s *downStream) giveStream() {
 
 // check if proxy process done
 func (s *downStream) processDone() bool {
-	return s.upstreamProcessDone || atomic.LoadUint32(&s.downstreamReset) == 1 || atomic.LoadUint32(&s.upstreamReset) == 1
+	return s.upstreamProcessDone.Load() || atomic.LoadUint32(&s.downstreamReset) == 1 || atomic.LoadUint32(&s.upstreamReset) == 1
 }
 
 func (s *downStream) sendNotify() {
@@ -1541,7 +1546,7 @@ func (s *downStream) cleanNotify() {
 }
 
 func (s *downStream) waitNotify(id uint32) (phase types.Phase, err error) {
-	if s.ID != id {
+	if atomic.LoadUint32(&s.ID) != id {
 		return types.End, types.ErrExit
 	}
 
@@ -1555,7 +1560,8 @@ func (s *downStream) waitNotify(id uint32) (phase types.Phase, err error) {
 }
 
 func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
-	if s.ID != id {
+	sid := atomic.LoadUint32(&s.ID)
+	if sid != id {
 		return types.End, types.ErrExit
 	}
 
@@ -1568,20 +1574,20 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 
 	if atomic.LoadUint32(&s.upstreamReset) == 1 {
 		if log.Proxy.GetLogLevel() >= log.INFO {
-			log.Proxy.Infof(s.context, "[proxy] [downstream] processError=upstreamReset, proxyId: %d, reason: %+v", s.ID, s.resetReason)
+			log.Proxy.Infof(s.context, "[proxy] [downstream] processError=upstreamReset, proxyId: %d, reason: %+v", sid, s.resetReason.Load())
 		}
 		if s.oneway {
 			phase = types.Oneway
 			err = types.ErrExit
 			return
 		}
-		s.onUpstreamReset(s.resetReason)
+		s.onUpstreamReset(s.resetReason.Load())
 		err = types.ErrExit
 	}
 
 	if atomic.LoadUint32(&s.downstreamReset) == 1 {
-		log.Proxy.Errorf(s.context, "[proxy] [downstream] processError=downstreamReset proxyId: %d, reason: %+v", s.ID, s.resetReason)
-		s.ResetStream(s.resetReason)
+		log.Proxy.Errorf(s.context, "[proxy] [downstream] processError=downstreamReset proxyId: %d, reason: %+v", sid, s.resetReason.Load())
+		s.ResetStream(s.resetReason.Load())
 		err = types.ErrExit
 		return
 	}
@@ -1606,7 +1612,7 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 		return
 	}
 
-	if s.upstreamProcessDone {
+	if s.upstreamProcessDone.Load() {
 		err = types.ErrExit
 	}
 
