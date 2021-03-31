@@ -21,24 +21,65 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
+	"strconv"
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
+
+func TestBuildUrlFromCtxVar(t *testing.T) {
+	testcases := []struct {
+		path    string
+		pathOri string
+		want    string
+	}{
+		{
+			"/home/sa%6dple",
+			"/home/sa%25%36%64ple",
+			"/home/sa%25%36%64ple",
+		},
+		{
+			"/home/sa%6dple",
+			"/home/sample%20",
+			"/home/sa%256dple",
+		},
+		{
+			"/home/sample ",
+			"/home/sample%20",
+			"/home/sample%20",
+		},
+		{
+			"/home/sample ",
+			"/home/sample ",
+			"/home/sample ",
+		},
+		{
+			"home/sam ple",
+			"home/sam ple",
+			"home/sam ple",
+		},
+	}
+	for _, tc := range testcases {
+		ctx := variable.NewVariableContext(context.Background())
+		variable.SetVariableValue(ctx, types.VarPath, tc.path)
+		variable.SetVariableValue(ctx, types.VarPathOriginal, tc.pathOri)
+		assert.Equal(t, buildUrlFromCtxVar(ctx), tc.want)
+	}
+}
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
 	streamMocked := stream{
@@ -310,7 +351,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -364,9 +405,9 @@ func TestHeaderSize(t *testing.T) {
 	}
 
 	connection := network.NewServerConnection(context.Background(), rawc, nil)
-	proxyGeneralExtendConfig := v2.ProxyGeneralExtendConfig{
-		MaxHeaderSize: len(requestSmall),
-	}
+
+	var proxyGeneralExtendConfig map[string]interface{}
+	json.Unmarshal([]byte(`{"max_header_size":`+strconv.Itoa(len(requestSmall))+`}`), &proxyGeneralExtendConfig)
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 	ssc := newServerStreamConnection(ctx, connection, nil)

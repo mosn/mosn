@@ -56,6 +56,7 @@ const (
 	VarScheme                string = "x-mosn-scheme"
 	VarHost                  string = "x-mosn-host"
 	VarPath                  string = "x-mosn-path"
+	VarPathOriginal          string = "x-mosn-path-original"
 	VarQueryString           string = "x-mosn-querystring"
 	VarMethod                string = "x-mosn-method"
 	VarIstioHeaderHost       string = "authority"
@@ -66,43 +67,46 @@ const (
 
 // [Protocol]: common
 const (
-	VarProtocolRequestScheme    = "request_scheme"
-	VarProtocolRequestMethod    = "request_method"
-	VarProtocolRequestLength    = "request_length"
-	VarProtocolRequestHeader    = "request_header_"
-	VarProtocolCookie           = "cookie_"
-	VarProtocolRequestPath      = "request_path"
-	VarProtocolRequestArgPrefix = "request_arg_"
-	VarProtocolRequestArg       = "request_arg"
-	VarProtocolRequestUri       = "request_uri"
+	VarProtocolRequestScheme       = "request_scheme"
+	VarProtocolRequestMethod       = "request_method"
+	VarProtocolRequestLength       = "request_length"
+	VarProtocolRequestHeader       = "request_header_"
+	VarProtocolCookie              = "cookie_"
+	VarProtocolRequestPath         = "request_path"
+	VarProtocolRequestPathOriginal = "request_path_original"
+	VarProtocolRequestArgPrefix    = "request_arg_"
+	VarProtocolRequestArg          = "request_arg"
+	VarProtocolRequestUri          = "request_uri"
 )
 
 // [Protocol]: http1
 const (
 	// the httpProtocolName value is protocol.HTTP1
-	httpProtocolName     = "Http1"
-	VarHttpRequestScheme = httpProtocolName + "_" + VarProtocolRequestScheme
-	VarHttpRequestMethod = httpProtocolName + "_" + VarProtocolRequestMethod
-	VarHttpRequestLength = httpProtocolName + "_" + VarProtocolRequestLength
-	VarHttpRequestUri    = httpProtocolName + "_" + VarProtocolRequestUri
-	VarHttpRequestPath   = httpProtocolName + "_" + VarProtocolRequestPath
-	VarHttpRequestArg    = httpProtocolName + "_" + VarProtocolRequestArg
-	VarPrefixHttpHeader  = httpProtocolName + "_" + VarProtocolRequestHeader
-	VarPrefixHttpArg     = httpProtocolName + "_" + VarProtocolRequestArgPrefix
-	VarPrefixHttpCookie  = httpProtocolName + "_" + VarProtocolCookie
+	httpProtocolName           = "Http1"
+	VarHttpRequestScheme       = httpProtocolName + "_" + VarProtocolRequestScheme
+	VarHttpRequestMethod       = httpProtocolName + "_" + VarProtocolRequestMethod
+	VarHttpRequestLength       = httpProtocolName + "_" + VarProtocolRequestLength
+	VarHttpRequestUri          = httpProtocolName + "_" + VarProtocolRequestUri
+	VarHttpRequestPath         = httpProtocolName + "_" + VarProtocolRequestPath
+	VarHttpRequestPathOriginal = httpProtocolName + "_" + VarProtocolRequestPathOriginal
+	VarHttpRequestArg          = httpProtocolName + "_" + VarProtocolRequestArg
+	VarPrefixHttpHeader        = httpProtocolName + "_" + VarProtocolRequestHeader
+	VarPrefixHttpArg           = httpProtocolName + "_" + VarProtocolRequestArgPrefix
+	VarPrefixHttpCookie        = httpProtocolName + "_" + VarProtocolCookie
 )
 
 // [Protocol]: http2
 const (
 	// the http2ProtocolName value is protocol.HTTP2
-	http2ProtocolName     = "Http2"
-	VarHttp2RequestScheme = http2ProtocolName + "_" + VarProtocolRequestScheme
-	VarHttp2RequestMethod = http2ProtocolName + "_" + VarProtocolRequestMethod
-	VarHttp2RequestLength = http2ProtocolName + "_" + VarProtocolRequestLength
-	VarHttp2RequestUri    = http2ProtocolName + "_" + VarProtocolRequestUri
-	VarHttp2RequestPath   = http2ProtocolName + "_" + VarProtocolRequestPath
-	VarHttp2RequestArg    = http2ProtocolName + "_" + VarProtocolRequestArg
-	VarPrefixHttp2Header  = http2ProtocolName + "_" + VarProtocolRequestHeader
-	VarPrefixHttp2Arg     = http2ProtocolName + "_" + VarProtocolRequestArgPrefix
-	VarPrefixHttp2Cookie  = http2ProtocolName + "_" + VarProtocolCookie
+	http2ProtocolName           = "Http2"
+	VarHttp2RequestScheme       = http2ProtocolName + "_" + VarProtocolRequestScheme
+	VarHttp2RequestMethod       = http2ProtocolName + "_" + VarProtocolRequestMethod
+	VarHttp2RequestLength       = http2ProtocolName + "_" + VarProtocolRequestLength
+	VarHttp2RequestUri          = http2ProtocolName + "_" + VarProtocolRequestUri
+	VarHttp2RequestPath         = http2ProtocolName + "_" + VarProtocolRequestPath
+	VarHttp2RequestPathOriginal = http2ProtocolName + "_" + VarProtocolRequestPathOriginal
+	VarHttp2RequestArg          = http2ProtocolName + "_" + VarProtocolRequestArg
+	VarPrefixHttp2Header        = http2ProtocolName + "_" + VarProtocolRequestHeader
+	VarPrefixHttp2Arg           = http2ProtocolName + "_" + VarProtocolRequestArgPrefix
+	VarPrefixHttp2Cookie        = http2ProtocolName + "_" + VarProtocolCookie
 )

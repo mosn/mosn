@@ -117,30 +117,20 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 	// proxy level worker pool config end
 
-	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
-	if err == nil {
+	if len(proxy.config.ExtendConfig) != 0 {
+		proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxy.config.ExtendConfig)
 		if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-			log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
+			log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxy.config.ExtendConfig)
 		}
-		var xProxyExtendConfig v2.XProxyExtendConfig
-		var proxyGeneralExtendConfig v2.ProxyGeneralExtendConfig
-		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
-			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
-			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-				log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
-			}
-		} else if err := json.Unmarshal([]byte(extJSON), &proxyGeneralExtendConfig); err == nil {
-			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
-			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-				log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxyGeneralExtendConfig)
-			}
-		} else {
-			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-				log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
+
+		if v, ok := proxy.config.ExtendConfig["sub_protocol"]; ok {
+			if subProtocol, ok := v.(string); ok {
+				proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, subProtocol)
+				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
+					log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", subProtocol)
+				}
 			}
 		}
-	} else {
-		log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
 	}
 
 	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)

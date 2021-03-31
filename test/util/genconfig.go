@@ -63,25 +63,17 @@ func NewFilterChain(routerConfigName string, downstream, upstream types.Protocol
 
 func NewFilterChainWithSub(routerConfigName string, downstream, upstream types.ProtocolName, subProtocol types.ProtocolName, routers []v2.Router) v2.FilterChain {
 	proxy := NewProxyFilter(routerConfigName, downstream, upstream)
-	extendConfig := &v2.XProxyExtendConfig{
-		SubProtocol: string(subProtocol),
+	proxy.ExtendConfig = map[string]interface{} {
+		"sub_protocol": string(subProtocol),
 	}
-	extendMap := make(map[string]interface{})
-	data, _ := json.Marshal(extendConfig)
-	json.Unmarshal(data, &extendMap)
-	proxy.ExtendConfig = extendMap
 	return makeFilterChain(proxy, routers, routerConfigName)
 }
 
 func NewXProtocolFilterChain(name string, subProtocol types.ProtocolName, routers []v2.Router) v2.FilterChain {
 	proxy := NewProxyFilter(name, protocol.Xprotocol, protocol.Xprotocol)
-	extendConfig := &v2.XProxyExtendConfig{
-		SubProtocol: string(subProtocol),
+	proxy.ExtendConfig = map[string]interface{} {
+		"sub_protocol": string(subProtocol),
 	}
-	extendMap := make(map[string]interface{})
-	data, _ := json.Marshal(extendConfig)
-	json.Unmarshal(data, &extendMap)
-	proxy.ExtendConfig = extendMap
 	return makeFilterChain(proxy, routers, name)
 }
 

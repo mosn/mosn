@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestClusterMarshal(t *testing.T) {
@@ -271,6 +273,28 @@ func TestProxyUnmarshal(t *testing.T) {
 		t.Error("baisc failed")
 	}
 }
+
+func TestProxyExtendConfigJson(t *testing.T) {
+	configBytes := []byte(`
+{
+	"name": "testProxy",
+	"extend_config": {
+		"someInt": 1,
+		"someFloat": 2.01,
+		"someBool": true,
+		"someString": "value"
+	}
+}
+`)
+	var config Proxy
+	err := json.Unmarshal(configBytes, &config)
+	assert.Nil(t, err)
+	assert.Equal(t, int(config.ExtendConfig["someInt"].(float64)), 1)
+	assert.Equal(t, float32(config.ExtendConfig["someFloat"].(float64)), float32(2.01))
+	assert.Equal(t, config.ExtendConfig["someBool"].(bool), true)
+	assert.Equal(t, config.ExtendConfig["someString"].(string), "value")
+}
+
 func TestFaultInjectUnmarshal(t *testing.T) {
 	fault := `{
 		"delay_percent": 100,

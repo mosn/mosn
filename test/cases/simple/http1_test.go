@@ -79,6 +79,11 @@ var urlTestCases = []struct {
 		"",
 	},
 	{
+		"/home/;some/sample",
+		"/home/;some/sample",
+		"",
+	},
+	{
 		"/aa?bb=cc",
 		"/aa",
 		"bb=cc",

@@ -20,6 +20,7 @@ package http
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -35,7 +36,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -238,8 +238,16 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	// Per-connection buffer size for responses' reading.
 	// This also limits the maximum header size, default 4096.
 	maxResponseHeaderSize := 0
-	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
-		maxResponseHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
+	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if extendConfig, ok := pgc.(map[string]interface{}); ok {
+			if v, ok := extendConfig["max_header_size"]; ok {
+				// json.Unmarshal stores float64 for JSON numbers in the interface{}
+				// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
+				if fv, ok := v.(float64); ok {
+					maxResponseHeaderSize = int(fv)
+				}
+			}
+		}
 	}
 	if maxResponseHeaderSize <= 0 {
 		maxResponseHeaderSize = defaultMaxHeaderSize
@@ -358,10 +366,64 @@ func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.C
 	return reason, true
 }
 
+type StreamConfig struct {
+	MaxHeaderSize      int  `json:"max_header_size,omitempty"`
+	MaxRequestBodySize int  `json:"max_request_body_size,omitempty"`
+}
+
+func parseStreamConfig(ctx context.Context) StreamConfig {
+	var streamConfig = StreamConfig{
+		// Per-connection buffer size for requests' reading.
+		// This also limits the maximum header size, default 4096.
+		MaxHeaderSize: defaultMaxHeaderSize,
+		// 0 is means no limit request body size
+		MaxRequestBodySize: 0,
+	}
+
+	// get extend config from ctx
+	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
+	if pgc == nil {
+		return streamConfig
+	}
+	extendConfig, ok := pgc.(map[string]interface{})
+	if !ok {
+		return streamConfig
+	}
+
+	// extract http1 config
+	if config, ok := extendConfig[string(protocol.HTTP1)]; ok {
+		configBytes, err := json.Marshal(config)
+		if err != nil {
+			return streamConfig
+		}
+
+		err = json.Unmarshal(configBytes, &streamConfig)
+		if err != nil {
+			return streamConfig
+		}
+	} else {
+		if v, ok := extendConfig["max_header_size"]; ok {
+			// json.Unmarshal stores float64 for JSON numbers in the interface{}
+			// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
+			if fv, ok := v.(float64); ok {
+				streamConfig.MaxHeaderSize = int(fv)
+			}
+		}
+		if v, ok := extendConfig["max_request_body_size"]; ok {
+			if fv, ok := v.(float64); ok {
+				streamConfig.MaxRequestBodySize = int(fv)
+			}
+		}
+	}
+
+	return streamConfig
+}
+
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
 	contextManager *str.ContextManager
+	config         StreamConfig
 
 	close bool
 
@@ -380,24 +442,15 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 			endRead:    make(chan struct{}),
 			connClosed: make(chan bool, 1),
 		},
+		config:                   parseStreamConfig(ctx),
 		contextManager:           str.NewContextManager(ctx),
 		serverStreamConnListener: callbacks,
-	}
-
-	// Per-connection buffer size for requests' reading.
-	// This also limits the maximum header size, default 4096.
-	maxRequestHeaderSize := 0
-	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
-		maxRequestHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
-	}
-	if maxRequestHeaderSize <= 0 {
-		maxRequestHeaderSize = defaultMaxHeaderSize
 	}
 
 	// init first context
 	ssc.contextManager.Next()
 
-	ssc.br = bufio.NewReaderSize(ssc, maxRequestHeaderSize)
+	ssc.br = bufio.NewReaderSize(ssc, ssc.config.MaxHeaderSize)
 
 	// Reset would not be called in server-side scene, so add listener for connection event
 	connection.AddConnectionEventListener(ssc)
@@ -436,10 +489,7 @@ func (conn *serverStreamConnection) serve() {
 		request := &buffers.serverRequest
 
 		// 0 is means no limit request body size
-		maxRequestBodySize := 0
-		if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
-			maxRequestBodySize = gcf.(v2.ProxyGeneralExtendConfig).MaxRequestBodySize
-		}
+		maxRequestBodySize := conn.config.MaxRequestBodySize
 
 		// 2. blocking read using fasthttp.Request.Read
 		err := request.ReadLimitBody(conn.br, maxRequestBodySize)
@@ -858,26 +908,50 @@ func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.Reques
 	// 4. path
 	variable.SetVariableValue(ctx, types.VarPath, string(uri.Path()))
 
-	// 5. querystring
+	// 5. path original
+	variable.SetVariableValue(ctx, types.VarPathOriginal, string(uri.PathOriginal()))
+
+	// 6. querystring
 	qs := uri.QueryString()
 	if len(qs) > 0 {
 		variable.SetVariableValue(ctx, types.VarQueryString, string(qs))
 	}
 }
 
-func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
-	var path string
-	path, _ = variable.GetVariableValue(ctx, types.VarPath)
+func buildUrlFromCtxVar(ctx context.Context) string {
+	path, _ := variable.GetVariableValue(ctx, types.VarPath)
+	pathOriginal, _ := variable.GetVariableValue(ctx, types.VarPathOriginal)
+	queryString, _ := variable.GetVariableValue(ctx, types.VarQueryString)
 
-	var queryString string
-	queryString, _ = variable.GetVariableValue(ctx, types.VarQueryString)
+	// different from url.RequestURI() since we should by-pass the original path to upstream
+	// even if the original path contains literal space
+	var res string
 
-	u := url.URL{
-		Path:     path,
-		RawQuery: queryString,
+	unescapedPath, err := url.PathUnescape(pathOriginal)
+	if err == nil && path == unescapedPath {
+		res = pathOriginal
+	} else {
+		if path == "*" {
+			res = "*"
+		} else {
+			u := url.URL{Path: path}
+			res = u.RequestURI()
+		}
 	}
 
-	headers.SetRequestURI(u.RequestURI())
+	if res == "" {
+		res = "/"
+	}
+
+	if queryString != "" {
+		res += "?" + queryString
+	}
+
+	return res
+}
+
+func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
+	headers.SetRequestURI(buildUrlFromCtxVar(ctx))
 
 	method, err := variable.GetVariableValue(ctx, types.VarMethod)
 	if err == nil && method != "" {
