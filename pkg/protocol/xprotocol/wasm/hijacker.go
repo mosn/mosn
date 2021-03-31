@@ -26,24 +26,29 @@ import (
 
 // Hijacker
 func (proto *wasmProtocol) hijack(context context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
-	buf := bufferByContext(context)
-	if buf.wasmCtx == nil {
-		buf.wasmCtx = proto.OnProxyCreate(context)
-		if buf.wasmCtx == nil {
+
+	req := request.(*Request)
+	wasmCtx := req.ctx
+	if wasmCtx == nil {
+		// the reason why the existing context is not reused is
+		// because the wasm instance requested is still obtained,
+		// but we need a new contextId to process the response
+		wasmCtx = proto.newWasmContext(context)
+		if wasmCtx == nil {
 			log.DefaultLogger.Errorf("[protocol] wasm %s hijack failed, wasm context not found.", proto.name)
 			return nil
 		}
 	}
 
-	req := request.(*Request)
-	wasmCtx := buf.wasmCtx
+	req.ctx = wasmCtx
 
 	wasmCtx.instance.Lock(wasmCtx.abi)
 	wasmCtx.abi.SetABIImports(wasmCtx)
 	// invoke plugin hijack impl
 	err := wasmCtx.exports.ProxyHijackBufferBytes(wasmCtx.contextId, req, statusCode)
 	if err != nil {
-		log.DefaultLogger.Errorf("[protocol] wasm %s hijack failed, err %v.", proto.name, err)
+		log.DefaultLogger.Errorf("[protocol] wasm %s hijack failed, contextId: %d, err %v.", wasmCtx.contextId, proto.name, err)
+		return nil
 	}
 
 	wasmCtx.instance.Unlock()

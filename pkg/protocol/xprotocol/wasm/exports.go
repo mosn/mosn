@@ -168,7 +168,7 @@ func (a *AbiV2Impl) ProxyEncodeRequestBufferBytes(contextId int32, cmd api.XFram
 	}
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("encode request, contextId: %d , rpc id: %d(%d) \n", contextId, req.RpcId, req.GetRequestId())
+		log.DefaultLogger.Debugf("encode request, contextId: %d , rawId: %d, cmdId: %d \n", contextId, req.RpcId, req.GetRequestId())
 	}
 
 	return nil
@@ -263,7 +263,7 @@ func (a *AbiV2Impl) ProxyEncodeResponseBufferBytes(contextId int32, cmd api.XRes
 	}
 
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("encode response, contextId: %d, rpc id: %d(%d) \n", contextId, resp.RpcId, cmd.GetRequestId())
+		log.DefaultLogger.Debugf("encode response, contextId: %d, rawId: %d, cmdId: %d \n", contextId, resp.RpcId, cmd.GetRequestId())
 	}
 
 	return nil
@@ -315,8 +315,6 @@ func (a *AbiV2Impl) ProxyReplyKeepAliveBufferBytes(contextId int32, cmd api.XFra
 		return err
 	}
 
-	// todo pass decode buffer to plugin
-
 	status, err := ff.Call(contextId, 0, 0)
 	if err != nil {
 		return err
@@ -349,12 +347,67 @@ func (a *AbiV2Impl) ProxyHijackBufferBytes(contextId int32, cmd api.XFrame, stat
 		return err
 	}
 
-	// todo pass decode buffer to plugin
-
-	status, err := ff.Call(contextId, int32(statusCode), 0, 0)
-	if err != nil {
-		return err
+	headerBytes := 0
+	drainLen := 0
+	// write full data structure
+	if req.Data != nil {
+		drainLen = req.Data.Len()
 	}
+
+	// encode data format:
+	// encoded header map | Flag | replaceId, id | Timeout | drain length | raw dataBytes
+	total := 4 + headerBytes + 1 + 8*2 + 4*2 + drainLen
+	buf := buffer.NewIoBuffer(total)
+
+	// encode header map
+	buf.WriteUint32(uint32(headerBytes))
+
+	// should copy raw bytes
+	flag := RpcRequestFlag
+	if req.IsHeartbeatFrame() {
+		flag |= HeartBeatFlag
+	}
+	if req.GetStreamType() == api.RequestOneWay {
+		flag |= RpcOneWayRequestFlag
+	}
+	// write request flag
+	buf.WriteByte(flag)
+
+	// write replaced id
+	buf.WriteUint64(req.GetRequestId())
+	// write command id
+	// whether request is replaced with an ID or not,
+	// what is returned here is the real ID(should be command response id)
+	buf.WriteUint64(req.GetRequestId())
+
+	// write timeout
+	buf.WriteUint32(req.Timeout)
+
+	// write drain length
+	buf.WriteUint32(uint32(drainLen))
+	if drainLen > 0 {
+		// write raw dataBytes
+		buf.Write(req.Data.Bytes())
+	}
+
+	// allocate memory for plugin
+	addr, err := ctx.instance.Malloc(int32(buf.Len()))
+	if err != nil {
+		return errors.New(fmt.Sprintf("failed to allocate memory for plugin %s, len: %d", ctx.proto.name, buf.Len()))
+	}
+
+	// copy decode buffer data to plugin
+	err = ctx.instance.PutMemory(addr, uint64(buf.Len()), buf.Bytes())
+	if err != nil {
+		return errors.New(fmt.Sprintf("failed to copy encode hijacker buffer to plugin %s, len: %d", ctx.proto.name, buf.Len()))
+	}
+
+	resp, err := ff.Call(contextId, int32(statusCode), int32(addr), buf.Len())
+	if err != nil {
+		return errors.New(fmt.Sprintf("fail to invoke export func: proxy_hijack_buffer_bytes for plugin %s, err: %v", ctx.proto.name, err))
+	}
+
+	status := resp.(int32)
 
 	// check invoke success
 	if status != proxywasm.WasmResultOk.Int32() {
