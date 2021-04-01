@@ -462,7 +462,7 @@ k8s.io/klog
 # mosn.io/api v0.0.0-20210315130952-69d829aa866e
 ## explicit
 mosn.io/api
-# mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4
+# mosn.io/pkg v0.0.0-20210401090620-f0e0d1a3efce
 ## explicit
 mosn.io/pkg/buffer
 mosn.io/pkg/header
