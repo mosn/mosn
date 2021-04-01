@@ -399,10 +399,6 @@ k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a/go.mod h1:1TqjTSzOxsLGIKf
 mosn.io/api v0.0.0-20210204052134-5b9a826795fd/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 mosn.io/api v0.0.0-20210315130952-69d829aa866e h1:YRQSv+0bSDTAeO/hg6nIsUvhc0EK3XTryPrx3h3xVUs=
 mosn.io/api v0.0.0-20210315130952-69d829aa866e/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
-mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4 h1:6mh2DtmcqzRrv/w3aXVWY7Na64ohm8XMRK8iZBQOTbs=
-mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4/go.mod h1:YEv5sGe7kqo/Yzj7OJI7Udl3iUcagNeo5unGPiUaUfw=
-mosn.io/pkg v0.0.0-20210331070031-06751bfbb953 h1:/12pWsIPjy0CGzURIh9cBURVMdz1XSbe0z1N7JkiTZI=
-mosn.io/pkg v0.0.0-20210331070031-06751bfbb953/go.mod h1:YEv5sGe7kqo/Yzj7OJI7Udl3iUcagNeo5unGPiUaUfw=
 mosn.io/pkg v0.0.0-20210401090620-f0e0d1a3efce h1:IIFQeU7soHO5wO9tYKkT5bbse5Vwkzgx/4NgoZrIgL4=
 mosn.io/pkg v0.0.0-20210401090620-f0e0d1a3efce/go.mod h1:YEv5sGe7kqo/Yzj7OJI7Udl3iUcagNeo5unGPiUaUfw=
 mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec h1:Q5OprvuVc7VNnI8Q+mUb3VsG9uxP/PcRn2KdeWmx8Mc=
