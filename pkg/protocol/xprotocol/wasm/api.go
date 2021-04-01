@@ -22,7 +22,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func NewWasmRequestWithId(id uint32, headers *xprotocol.Header, payload types.IoBuffer) *Request {
+func NewWasmRequestWithId(id uint64, headers *xprotocol.Header, payload types.IoBuffer) *Request {
 	request := &Request{
 		RequestHeader: RequestHeader{
 			RpcHeader: RpcHeader{
@@ -49,7 +49,7 @@ func NewWasmRequestWithId(id uint32, headers *xprotocol.Header, payload types.Io
 	return request
 }
 
-func NewWasmResponseWithId(requestId uint32, headers *xprotocol.Header, payload types.IoBuffer) *Response {
+func NewWasmResponseWithId(requestId uint64, headers *xprotocol.Header, payload types.IoBuffer) *Response {
 	response := &Response{
 		ResponseHeader: ResponseHeader{
 			RpcHeader: RpcHeader{

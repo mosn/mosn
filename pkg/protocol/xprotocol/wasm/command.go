@@ -25,8 +25,8 @@ import (
 
 type RpcHeader struct {
 	Flag         byte   // rpc request or response flag
-	Id           uint32 // request or response id
-	RpcId        uint32 // request or response id (replaced by stream)
+	Id           uint64 // request or response id
+	RpcId        uint64 // request or response id (replaced by stream)
 	IsReplacedId bool   // check if the id has been replaced
 	HeaderLen    uint32 // header length
 
@@ -66,7 +66,7 @@ func (r *Request) GetRequestId() uint64 {
 	return uint64(r.Id)
 }
 
-func (r *Request) GetId() uint32 {
+func (r *Request) GetId() uint64 {
 	return r.Id
 }
 
@@ -74,7 +74,7 @@ func (r *Request) SetRequestId(id uint64) {
 	// save replace stream id
 	r.RpcId = r.Id
 	// new request id
-	r.Id = uint32(id)
+	r.Id = id
 	r.IsReplacedId = true
 }
 
@@ -152,7 +152,7 @@ func (r *Response) GetRequestId() uint64 {
 func (r *Response) SetRequestId(id uint64) {
 	// save replace stream id
 	r.RpcId = r.Id
-	r.Id = uint32(id)
+	r.Id = id
 	r.IsReplacedId = true
 }
 
@@ -183,8 +183,8 @@ func (r *Response) GetStatusCode() uint32 {
 	return r.Status
 }
 
-func (r *Response) GetId() uint32 {
-	return uint32(r.Id)
+func (r *Response) GetId() uint64 {
+	return r.Id
 }
 
 func (r *Response) GetTimeout() int32 {

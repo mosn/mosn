@@ -153,7 +153,7 @@ func decodeWasmRequest(ctx *Context, content []byte, headerBytes uint32, id uint
 	req.RequestHeader = RequestHeader{
 		RpcHeader: RpcHeader{
 			Flag:   cmdFlag,
-			Id:     uint32(id),
+			Id:     id,
 			Header: *headers,
 		},
 		Timeout: timeout,
@@ -209,7 +209,7 @@ func decodeWasmResponse(ctx *Context, content []byte, headerBytes uint32, id uin
 	resp.ResponseHeader = ResponseHeader{
 		RpcHeader: RpcHeader{
 			Flag:   cmdFlag,
-			Id:     uint32(id),
+			Id:     id,
 			Header: *headers,
 		},
 		Status: status,
