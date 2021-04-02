@@ -9,6 +9,7 @@
 - 支持自动协议识别失败时根据 SO_ORIGINAL_DST 进行自动转发报文的能力 [@antJack](https://github.com/antJack)
 - XProtocol 支持 Go Plugin 模式扩展 [@fdingiit](https://github.com/fdingiit)
 - 新增网络扩展层 [@wangfakang](https://github.com/wangfakang)
+- 支持 Istio xDS v3 API [@champly](https://github.com/champly) 所属分支: [istio-1.7.7](https://github.com/mosn/mosn/tree/istio-1.7.7)
 
 ### 优化
 

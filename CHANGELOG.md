@@ -8,6 +8,7 @@
 - Support fallback through SO_ORIGINAL_DST when protocol auto-matching got failed [@antJack](https://github.com/antJack)
 - Support Go Plugin mode for XProtocol [@fdingiit](https://github.com/fdingiit)
 - Support for network extension [@wangfakang](https://github.com/wangfakang)
+- Update to Istio xDS v3 API [@champly](https://github.com/champly)  Branch: [istio-1.7.7](https://github.com/mosn/mosn/tree/istio-1.7.7)
 
 ### Optimization
 
