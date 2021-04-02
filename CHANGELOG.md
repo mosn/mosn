@@ -6,6 +6,8 @@
 - Add Wasm extension framework [@antJack](https://github.com/antJack)
 - Add x-bolt sub-protocol to allow wasm-based codec for XProtocol [@zonghaishang](https://github.com/zonghaishang)
 - Support fallback through SO_ORIGINAL_DST when protocol auto-matching got failed [@antJack](https://github.com/antJack)
+- Support Go Plugin mode for XProtocol [@fdingiit](https://github.com/fdingiit)
+- Support for network extension [@wangfakang](https://github.com/wangfakang)
 
 ### Optimization
 

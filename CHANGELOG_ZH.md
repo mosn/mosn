@@ -4,16 +4,17 @@
 
 ### 新功能
 
-- 新增 Wasm 扩展框架 [@nejisama](https://github.com/nejisama)
+- 新增 Wasm 扩展框架 [@antJack](https://github.com/antJack)
 - XProtocol 协议新增 x-bolt 子协议，支持基于 Wasm 的协议编解码能力 [@zonghaishang](https://github.com/zonghaishang)
 - 支持自动协议识别失败时根据 SO_ORIGINAL_DST 进行自动转发报文的能力 [@antJack](https://github.com/antJack)
-
+- XProtocol 支持 Go Plugin 模式扩展 [@fdingiit](https://github.com/fdingiit)
+- 新增网络扩展层 [@wangfakang](https://github.com/wangfakang)
 
 ### 优化
 
 - 去除 StreamFilter 配置解析中多余的路径清洗 [@eliasyaoyc](https://github.com/eliasyaoyc)
 - 支持为 StreamFilterChain 设置统一的回调接口 [@antJack](https://github.com/antJack)
-- FeatureGate支持不同启动阶段执行, 去除FeatureGate状态判断的全局锁 [@nejisama](https://github.com/nejisama)
+- FeatureGate 支持不同启动阶段执行, 去除 FeatureGate 状态判断的全局锁 [@nejisama](https://github.com/nejisama)
 - Http2 模块新增对 trace 能力的支持 [@OrezzerO](https://github.com/OrezzerO)
 
 
