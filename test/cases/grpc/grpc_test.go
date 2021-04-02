@@ -1,0 +1,3 @@
+// +build MOSNTest
+
+package grpc

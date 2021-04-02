@@ -85,6 +85,7 @@ const (
 	RPC_PROXY                   = "rpc_proxy"
 	X_PROXY                     = "x_proxy"
 	Transcoder                  = "transcoder"
+	GRPC                        = "grpc"
 )
 
 // Stream Filter's Type
