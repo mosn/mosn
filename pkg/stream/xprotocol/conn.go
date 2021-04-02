@@ -157,6 +157,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 
 		tracks.Begin()
 		tracks.StartTrack(track.ProtocolDecode)
+
 		// 2. decode process
 		frame, err := sc.protocol.Decode(streamCtx, buf)
 
@@ -276,7 +277,7 @@ func (sc *streamConn) handleFrame(ctx context.Context, frame api.XFrame) {
 func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, oneway bool) {
 	// 1. heartbeat process
 	if frame.IsHeartbeatFrame() {
-		hbAck := sc.protocol.Reply(frame)
+		hbAck := sc.protocol.Reply(ctx, frame)
 		hbAckData, err := sc.protocol.Encode(ctx, hbAck)
 		if err != nil {
 			sc.handleError(ctx, frame, err)

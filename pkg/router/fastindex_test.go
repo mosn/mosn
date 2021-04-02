@@ -80,7 +80,7 @@ func TestFastIndexRouteFromHeaderKV(t *testing.T) {
 func TestMatchRouteFromHeaderKV(t *testing.T) {
 	routersCnt := 10
 	routersCfg := createRoutersCfg(routersCnt)
-	vhCfg := &v2.VirtualHost{
+	vhCfg := v2.VirtualHost{
 		Domains: []string{"*"},
 		Routers: routersCfg,
 	}
@@ -88,7 +88,7 @@ func TestMatchRouteFromHeaderKV(t *testing.T) {
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: "test",
 		},
-		VirtualHosts: []*v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
 			vhCfg,
 		},
 	}

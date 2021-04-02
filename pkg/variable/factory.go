@@ -45,6 +45,17 @@ var (
 	errSetterNotFound       = "setter function undefined, variable name: "
 )
 
+// ResetVariableForTest is a test function for reset the variables.
+// DONOT call it in any non-test functions
+func ResetVariableForTest() {
+	mux.Lock()
+	defer mux.Unlock()
+
+	variables = make(map[string]Variable, 32)
+	prefixVariables = make(map[string]Variable, 32)
+	indexedVariables = make([]Variable, 0, 32)
+}
+
 // AddVariable is used to check variable name exists. Typical usage is variables used in access logs.
 func AddVariable(name string) (Variable, error) {
 	mux.Lock()

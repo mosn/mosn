@@ -29,7 +29,7 @@ import (
 type DefaultImportsHandler struct{}
 
 // for golang host environment, no-op
-func (d *DefaultImportsHandler) Wait() { }
+func (d *DefaultImportsHandler) Wait() {}
 
 // utils
 func (d *DefaultImportsHandler) GetRootContextID() int32 { return 0 }
@@ -356,3 +356,9 @@ func (d *DefaultImportsHandler) DequeueSharedQueue(queueID uint32) (string, Wasm
 
 	return queue.deque()
 }
+
+// custom extension
+
+func (d *DefaultImportsHandler) GetCustomBuffer(bufferType BufferType) common.IoBuffer { return nil }
+
+func (d *DefaultImportsHandler) GetCustomHeader(mapType MapType) common.HeaderMap { return nil }

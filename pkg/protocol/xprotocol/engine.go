@@ -45,7 +45,8 @@ func (engine *XEngine) Match(ctx context.Context, data types.IoBuffer) (api.XPro
 
 		if result == api.MatchSuccess {
 			return engine.protocols[idx].protocol, result
-		} else if result == api.MatchAgain {
+		}
+		if result == api.MatchAgain {
 			again = true
 		}
 	}
@@ -53,9 +54,8 @@ func (engine *XEngine) Match(ctx context.Context, data types.IoBuffer) (api.XPro
 	// match not success, return failed if all failed; otherwise return again
 	if again {
 		return nil, api.MatchAgain
-	} else {
-		return nil, api.MatchFailed
 	}
+	return nil, api.MatchFailed
 }
 
 // Register register protocol, which recognized by the matchFunc

@@ -72,11 +72,13 @@ func BindRequestAndResponse(req context.Context, resp context.Context) {
 	if reqTb == nil || respTb == nil {
 		return
 	}
-	for p, tk := range respTb.datas {
-		reqTb.datas[p].P = tk.P
-		if len(tk.Costs) > 0 {
-			reqTb.datas[p].Costs = append(reqTb.datas[p].Costs, tk.Costs...)
-		}
+	// response have protocol decodes only
+	// just bind it
+	p := ProtocolDecode
+	tk := respTb.datas[p]
+	reqTb.datas[p].P = tk.P
+	if len(tk.Costs) > 0 {
+		reqTb.datas[p].Costs = append(reqTb.datas[p].Costs, tk.Costs...)
 	}
 	reqTb.times[RequestStartTimestamp] = reqTb.times[TrackStartTimestamp]
 	reqTb.times[ResponseStartTimestamp] = respTb.times[TrackStartTimestamp]

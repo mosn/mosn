@@ -41,7 +41,7 @@ type FeatureSpec interface {
 	SetState(enable bool)
 	// State indicates the feature enablement
 	State() bool
-	// InitFunc used to init process when StartInit is invoked
+	// InitFunc used to init process when ExecuteInitFunc or FinallyInitFunc is invoked
 	InitFunc()
 	// PreRelease indicates the maturity level of the feature
 	PreRelease() prerelease
@@ -50,4 +50,5 @@ type FeatureSpec interface {
 var (
 	ErrInited    = errors.New("feature gate is already inited")
 	ErrNotInited = errors.New("feature gate is not inited")
+	ErrSubStage  = errors.New("feature cannot call subscribe because it is not inited in finally stage")
 )

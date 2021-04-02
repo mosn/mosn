@@ -133,8 +133,10 @@ func (rm *routersManagerImpl) AddRoute(routerConfigName, domain string, route *v
 			return errors.New(errMsg)
 		}
 		// modify config
-		routersCfg := cfg.VirtualHosts[index].Routers
-		routersCfg = append(routersCfg, *route)
+		// make a new one to avoid the slice is referenced outside the lock
+		routersCfg := make([]v2.Router, len(cfg.VirtualHosts[index].Routers)+1)
+		copy(routersCfg, cfg.VirtualHosts[index].Routers)
+		routersCfg[len(cfg.VirtualHosts[index].Routers)] = *route
 		cfg.VirtualHosts[index].Routers = routersCfg
 		rw.routersConfig = cfg
 		configmanager.SetRouter(*cfg)
@@ -166,8 +168,8 @@ func (rm *routersManagerImpl) RemoveAllRoutes(routerConfigName, domain string) e
 			return errors.New(errMsg)
 		}
 		// modify config
-		routersCfg := cfg.VirtualHosts[index].Routers
-		cfg.VirtualHosts[index].Routers = routersCfg[:0]
+		// make a new one to avoid the slice is referenced outside the lock
+		cfg.VirtualHosts[index].Routers = []v2.Router{}
 		rw.routersConfig = cfg
 		configmanager.SetRouter(*cfg)
 	}

@@ -838,10 +838,10 @@ func ConvertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 		return nil, false
 	}
 
-	virtualHosts := make([]*v2.VirtualHost, 0)
+	virtualHosts := make([]v2.VirtualHost, 0)
 
 	for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
-		virtualHost := &v2.VirtualHost{
+		virtualHost := v2.VirtualHost{
 			Name:    xdsVirtualHost.GetName(),
 			Domains: xdsVirtualHost.GetDomains(),
 			Routers: convertRoutes(xdsVirtualHost.GetRoutes()),

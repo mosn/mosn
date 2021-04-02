@@ -66,7 +66,6 @@ var httpCalloutID int32
 
 type httpCallout struct {
 	id int32
-
 	d *DefaultImportsHandler
 	instance common.WasmInstance
 	abiContext *ABIContext

@@ -56,6 +56,7 @@ func (f *streamConnFactory) ProtocolMatch(context context.Context, prot string, 
 		return stream.FAILED
 	}
 	again := false
+
 	for subProtocolName, matcher := range subProtocolMatchers {
 		result := matcher(magic)
 		if result == api.MatchSuccess {

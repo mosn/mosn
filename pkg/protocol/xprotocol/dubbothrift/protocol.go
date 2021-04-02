@@ -90,12 +90,12 @@ func (proto *thriftProtocol) Decode(ctx context.Context, data types.IoBuffer) (i
 }
 
 // heartbeater
-func (proto *thriftProtocol) Trigger(requestId uint64) api.XFrame {
+func (proto *thriftProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	// not support
 	return nil
 }
 
-func (proto *thriftProtocol) Reply(request api.XFrame) api.XRespFrame {
+func (proto *thriftProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
 	// wherever, heartbeat is not support
 	return &Frame{
 		Header: Header{
@@ -110,7 +110,7 @@ func (proto *thriftProtocol) Reply(request api.XFrame) api.XRespFrame {
 
 // https://dubbo.apache.org/zh-cn/blog/dubbo-protocol.html
 // hijacker
-func (proto *thriftProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto *thriftProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 
 	frame := request.(*Frame)
 
