@@ -2,6 +2,11 @@
 
 ## v0.22.0
 
+### New Features
+- Add Wasm extension framework [@antJack](https://github.com/antJack)
+- Add x-bolt sub-protocol to allow wasm-based codec for XProtocol [@zonghaishang](https://github.com/zonghaishang)
+- Support fallback through SO_ORIGINAL_DST when protocol auto-matching got failed [@antJack](https://github.com/antJack)
+
 ### Optimization
 
 - Remove redundant file path clean when resolving StreamFilter configs [@eliasyaoyc](https://github.com/eliasyaoyc)
@@ -19,10 +24,6 @@
 - Fix the safety bug when forwarding the request URI [@antJack](https://github.com/antJack)
 - Fix concurrent slice read and write for Router configurations when doing persistence [@nejisama](https://github.com/nejisama)
 
-### New Features
-- Add Wasm extension framework [@antJack](https://github.com/antJack)
-- Add x-bolt sub-protocol to allow wasm-based codec for XProtocol [@zonghaishang](https://github.com/zonghaishang)
-- Support fallback through SO_ORIGINAL_DST when protocol auto-matching got failed [@antJack](https://github.com/antJack)
 
 ## v0.21.0
 

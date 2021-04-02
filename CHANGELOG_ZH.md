@@ -2,6 +2,13 @@
 
 ## v0.22.0
 
+### 新功能
+
+- 新增 Wasm 扩展框架 [@nejisama](https://github.com/nejisama)
+- XProtocol 协议新增 x-bolt 子协议，支持基于 Wasm 的协议编解码能力 [@zonghaishang](https://github.com/zonghaishang)
+- 支持自动协议识别失败时根据 SO_ORIGINAL_DST 进行自动转发报文的能力 [@antJack](https://github.com/antJack)
+
+
 ### 优化
 
 - 去除 StreamFilter 配置解析中多余的路径清洗 [@eliasyaoyc](https://github.com/eliasyaoyc)
@@ -23,12 +30,6 @@
 - 修复 URL 处理时的安全漏洞 [@antJack](https://github.com/antJack)
 - 修复配置持久化时 Router 配置的并发冲突问题 [@nejisama](https://github.com/nejisama)
 
-
-### 新功能
-
-- 新增 Wasm 扩展框架 [@nejisama](https://github.com/nejisama)
-- XProtocol 协议新增 x-bolt 子协议，支持基于 Wasm 的协议编解码能力 [@zonghaishang](https://github.com/zonghaishang)
-- 支持自动协议识别失败时根据 SO_ORIGINAL_DST 进行自动转发报文的能力 [@antJack](https://github.com/antJack)
 
 ## v0.21.0
 
