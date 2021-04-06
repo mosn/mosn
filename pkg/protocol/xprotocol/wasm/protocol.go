@@ -128,19 +128,23 @@ func (proto *wasmProtocol) GenerateRequestID(streamID *uint64) uint64 {
 func (proto *wasmProtocol) OnProxyCreate(context context.Context) *Context {
 	buf := bufferByContext(context)
 	if buf.wasmCtx == nil {
-		wasmCtx := proto.NewContext()
-		// save current wasm context wasmCtx
-		wasmCtx.instance.Lock(wasmCtx.abi)
-		wasmCtx.abi.SetABIImports(wasmCtx)
-		// invoke plugin proxy on create
-		err := wasmCtx.exports.ProxyOnContextCreate(wasmCtx.contextId, proto.wrapper.config.RootContextID)
-		if err != nil {
-			log.DefaultLogger.Warnf("failed to create protocol '%s' context, contextId %d not found", proto.name, wasmCtx.contextId)
-		}
-		buf.wasmCtx = wasmCtx
-		wasmCtx.instance.Unlock()
+		buf.wasmCtx = proto.newWasmContext(context)
 	}
 	return buf.wasmCtx
+}
+
+func (proto *wasmProtocol) newWasmContext(_ context.Context) *Context {
+	wasmCtx := proto.NewContext()
+	// save current wasm context wasmCtx
+	wasmCtx.instance.Lock(wasmCtx.abi)
+	wasmCtx.abi.SetABIImports(wasmCtx)
+	// invoke plugin proxy on create
+	err := wasmCtx.exports.ProxyOnContextCreate(wasmCtx.contextId, proto.wrapper.config.RootContextID)
+	if err != nil {
+		log.DefaultLogger.Warnf("failed to create protocol '%s' context, contextId %d not found", proto.name, wasmCtx.contextId)
+	}
+	wasmCtx.instance.Unlock()
+	return wasmCtx
 }
 
 func (proto *wasmProtocol) OnProxyDelete(context context.Context) {
