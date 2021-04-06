@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 
 	"google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
@@ -22,7 +23,7 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
-func NewHelloExampleGrpcServer() *grpc.Server {
+func NewHelloExampleGrpcServer(_ json.RawMessage) *grpc.Server {
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &server{})
 	return s
