@@ -78,7 +78,7 @@
 			{
 				"enable": true,
 				"type": "go-plugin",
-				"path": "/Users/yili/go/src/mosn.io/mosn/examples/codes/xprotocol_example/x_example/regist/register.so",
+				"path": "register.so",
 				"loader_func_name": "LoadCodec"
 			}
 		]

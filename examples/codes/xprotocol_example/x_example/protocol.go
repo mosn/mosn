@@ -21,9 +21,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync/atomic"
-
 	"mosn.io/api"
+	"sync/atomic"
 )
 
 /**
@@ -92,18 +91,18 @@ func NewCodec() api.Protocol {
 // TODOs
 
 // Heartbeater
-func (proto *Proto) Trigger(requestId uint64) api.XFrame {
+func (proto *Proto) Trigger(context context.Context, requestId uint64) api.XFrame {
 	// not supported for poc demo
 	return nil
 }
 
-func (proto *Proto) Reply(request api.XFrame) api.XRespFrame {
+func (proto *Proto) Reply(context context.Context, request api.XFrame) api.XRespFrame {
 	// not supported for poc demo
 	return nil
 }
 
 // Hijacker
-func (proto *Proto) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto *Proto) Hijack(context context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	// not supported for poc demo
 	return nil
 }

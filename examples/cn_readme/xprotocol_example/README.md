@@ -169,6 +169,7 @@ type XProtocolCodec interface {
 + 如下为register.go内的LoadCodec(),返回的ExampleRegister结构体实例实现了上方接口
 ```
   func LoadCodec() api.XProtocolCodec {
-  return ExampleRegister
+    return ExampleRegister
   }
+ 
 ```

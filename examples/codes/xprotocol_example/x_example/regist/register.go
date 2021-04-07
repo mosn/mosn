@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"mosn.io/api"
-	"x_example"
+	"mosn.io/mosn/examples/codes/xprotocol_example/x_example"
 )
 
 type Register struct {
