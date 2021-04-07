@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 
-package x_example
+package main
 
 import (
 	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
+
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/header"
@@ -29,6 +30,8 @@ import (
 
 //根据传入的io流信息（已经符合协议） 封装好request对象并且返回
 func decodeRequest(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
+	fmt.Printf("[in decodeRequest]\n")
+
 	bytesLen := data.Len()
 	bytes := data.Bytes()
 
@@ -55,13 +58,16 @@ func decodeRequest(ctx context.Context, data api.IoBuffer) (cmd interface{}, err
 
 	//4. copy data for io multiplexing
 	request.Payload = buffer.NewIoBufferBytes(bytes[RequestHeaderLen:])
-	fmt.Printf("[mosn decodeRequest] request 请求内容：%s,请求ID：%d\n", request.Payload, request.RequestId)
-	//fmt.Printf("request RequestId 请求ID：%d\n", request.RequestId)
+
+	fmt.Printf("[out decodeRequest] payload: %s\n", request.Payload)
+
 	return request, nil
 }
 
 //根据传入的io流信息（已经符合协议） 封装好response对象并且返回
 func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, err error) {
+	fmt.Printf("[in decodeResponse]\n")
+
 	bytesLen := data.Len()
 	bytes := data.Bytes()
 
@@ -91,7 +97,8 @@ func decodeResponse(ctx context.Context, data api.IoBuffer) (cmd interface{}, er
 
 	//4. copy data for io multiplexing
 	response.Payload = buffer.NewIoBufferBytes(bytes[ResponseHeaderLen:])
-	fmt.Printf("[mosn decodeResponse] Response 响应内容：%s,响应ID：%d\n", response.Payload, response.RequestId)
-	//fmt.Printf("Response 响应ID：%d\n", response.RequestId)
+
+	fmt.Printf("[out decodeRequest] payload: %s\n", response.Payload)
+
 	return response, nil
 }

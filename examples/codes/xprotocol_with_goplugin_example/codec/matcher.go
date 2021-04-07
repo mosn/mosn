@@ -15,28 +15,21 @@
  * limitations under the License.
  */
 
-package x_example
+package main
 
 import (
-	"context"
-	"errors"
 	"mosn.io/api"
-	"net/http"
 )
 
-type StatusMapping struct{}
+type Matcher struct{}
 
-func (m *StatusMapping) MappingHeaderStatusCode(ctx context.Context, headers api.HeaderMap) (int, error) {
-	cmd, ok := headers.(api.XRespFrame)
-	if !ok {
-		return 0, errors.New("no response status in headers")
+// predicate codec header len and compare magic number
+func (exampleMatcher *Matcher) ExampleMatcher(data []byte) api.MatchResult {
+	if len(data) < RequestHeaderLen {
+		return api.MatchAgain
 	}
-	code := uint16(cmd.GetStatusCode())
-	// TODO: more accurate mapping
-	switch code {
-	case ResponseStatusSuccess:
-		return http.StatusOK, nil
-	default:
-		return http.StatusInternalServerError, nil
+	if data[MagicIdx] != Magic {
+		return api.MatchFailed
 	}
+	return api.MatchSuccess
 }

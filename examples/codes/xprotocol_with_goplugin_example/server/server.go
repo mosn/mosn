@@ -8,7 +8,8 @@ import (
 	"net"
 )
 
-const respMessage = "world hello"
+const respMessage = "Hello, I am server"
+
 const (
 	ProtocolName string = "example" // protocol
 
@@ -79,9 +80,9 @@ func serve(c net.Conn) {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-		fmt.Println(string((request.(*Request).Payload)[:]), "----req")
+		fmt.Println(string((request.(*Request).Payload)[:]))
 
-		fmt.Println(c.RemoteAddr(), "-----RemoteAddr")
+		fmt.Println(c.RemoteAddr())
 		bytes := []byte(respMessage)
 		buf := make([]byte, 0)
 		buf = append(buf, Magic)

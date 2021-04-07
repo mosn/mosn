@@ -15,16 +15,20 @@
  * limitations under the License.
  */
 
-package x_example
+package main
 
 import (
 	"context"
+	"fmt"
+
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
 )
 
 //传入request对象，根据他的payload内容，获取PayloadLen并且为拼接符合协议的io流返回
 func encodeRequest(ctx context.Context, request *Request) (api.IoBuffer, error) {
+	fmt.Printf("[in encodeRequest] request: %+v\n", request.Payload)
+
 	// 1. TODO: fast-path, use existed raw data
 
 	// 2.1 calculate frame length
@@ -46,12 +50,16 @@ func encodeRequest(ctx context.Context, request *Request) (api.IoBuffer, error) 
 	if request.PayloadLen > 0 {
 		buf.Write(request.Payload.Bytes())
 	}
+
+	fmt.Printf("[out encodeRequest]\n")
+
 	return buf, nil
 }
 
 //response，根据他的payload内容，获取PayloadLen并且为拼接符合协议的io流返回
 func encodeResponse(ctx context.Context, response *Response) (api.IoBuffer, error) {
 	// 1. TODO: fast-path, use existed raw data
+	fmt.Printf("[in encodeResponse] response: %+v\n", response.Payload)
 
 	// 2.1 calculate frame length
 	if response.Payload != nil {
@@ -73,5 +81,8 @@ func encodeResponse(ctx context.Context, response *Response) (api.IoBuffer, erro
 	if response.PayloadLen > 0 {
 		buf.Write(response.Payload.Bytes())
 	}
+
+	fmt.Printf("[out encodeResponse]\n")
+
 	return buf, nil
 }

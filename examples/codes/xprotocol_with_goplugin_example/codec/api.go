@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package x_example
+package main
 
 import (
 	"mosn.io/api"
 	"mosn.io/pkg/header"
 )
 
-// NewRpcRequest is a utility function which build rpc Request object of x_example protocol.
+// NewRpcRequest is a utility function which build rpc Request object of codec protocol.
 func NewRpcRequest(headers header.CommonHeader, data api.IoBuffer) *Request {
 	frame, err := decodeRequest(nil, data)
 	if err != nil {
@@ -43,7 +43,7 @@ func NewRpcRequest(headers header.CommonHeader, data api.IoBuffer) *Request {
 	return request
 }
 
-// NewRpcResponse is a utility function which build rpc Response object of x_example protocol.
+// NewRpcResponse is a utility function which build rpc Response object of codec protocol.
 func NewRpcResponse(headers header.CommonHeader, data api.IoBuffer) *Response {
 	frame, err := decodeResponse(nil, data)
 	if err != nil {
@@ -62,4 +62,33 @@ func NewRpcResponse(headers header.CommonHeader, data api.IoBuffer) *Response {
 		})
 	}
 	return response
+}
+
+type Codec struct {
+	exampleStatusMapping StatusMapping
+
+	exampleMatcher Matcher
+
+	proto Proto
+}
+
+func (r Codec) ProtocolName() api.ProtocolName {
+	return r.proto.Name()
+}
+
+func (r Codec) XProtocol() api.XProtocol {
+	return &r.proto
+}
+
+func (r Codec) ProtocolMatch() api.ProtocolMatch {
+	return r.exampleMatcher.ExampleMatcher
+}
+
+func (r Codec) HTTPMapping() api.HTTPMapping {
+	return &r.exampleStatusMapping
+}
+
+//loader_func_name that go-Plugin use,LoadCodec is default name
+func LoadCodec() api.XProtocolCodec {
+	return &Codec{}
 }

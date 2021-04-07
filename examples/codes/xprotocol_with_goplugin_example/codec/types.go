@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package x_example
+package main
 
 import (
 	"mosn.io/api"
@@ -23,7 +23,7 @@ import (
 
 // protocol constants
 const (
-	ProtocolName api.ProtocolName = "x_example" // protocol
+	ProtocolName api.ProtocolName = "codec" // protocol
 
 	Magic       byte = 'x' //magic
 	MagicIdx         = 0   //magicIndex

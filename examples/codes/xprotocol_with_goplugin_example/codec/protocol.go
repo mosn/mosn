@@ -15,14 +15,15 @@
  * limitations under the License.
  */
 
-package x_example
+package main
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"mosn.io/api"
 	"sync/atomic"
+
+	"mosn.io/api"
 )
 
 /**
@@ -83,12 +84,6 @@ func (proto *Proto) Decode(ctx context.Context, data api.IoBuffer) (interface{},
 
 	return nil, nil
 }
-
-func NewCodec() api.Protocol {
-	return &Proto{}
-}
-
-// TODOs
 
 // Heartbeater
 func (proto *Proto) Trigger(context context.Context, requestId uint64) api.XFrame {

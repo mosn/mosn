@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package x_example
+package main
 
 import (
 	"mosn.io/api"

@@ -107,8 +107,7 @@ func main() {
 	//3.read response
 	read, err := conn.Read(respBuff)
 	if err != nil {
-		fmt.Println(err.Error())
-		panic("read failed")
+		panic(err)
 	}
 	resp := respBuff[:read]
 
@@ -117,6 +116,6 @@ func main() {
 	if err != nil {
 		fmt.Println(err.Error())
 	}
-	fmt.Println(string(response.(*Response).Payload[:]), "------resp")
+	fmt.Println(string(response.(*Response).Payload[:]))
 
 }
