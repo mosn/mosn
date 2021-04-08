@@ -125,7 +125,7 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
-func NewHelloExampleGrpcServer(_ json.RawMessage) *grpc.Server {
+func NewHelloExampleGrpcServer(_ json.RawMessage) RegisteredServer {
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &server{})
 	return s

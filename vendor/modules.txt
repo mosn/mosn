@@ -411,6 +411,7 @@ google.golang.org/grpc/credentials
 google.golang.org/grpc/credentials/internal
 google.golang.org/grpc/encoding
 google.golang.org/grpc/encoding/proto
+google.golang.org/grpc/examples/features/proto/echo
 google.golang.org/grpc/examples/helloworld/helloworld
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/health

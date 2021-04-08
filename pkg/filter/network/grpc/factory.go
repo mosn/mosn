@@ -24,7 +24,6 @@ import (
 	"net"
 	"sync"
 
-	"google.golang.org/grpc"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
@@ -38,7 +37,7 @@ func init() {
 // The registered grpc server needs to be implemented independently by the user, and registered to factory.
 // A MOSN can contains multiple registered grpc servers, each grpc server has only one instance.
 type grpcServerFilterFactory struct {
-	server *grpc.Server
+	server RegisteredServer
 	ln     *Listener
 }
 
@@ -87,10 +86,16 @@ func CreateGRPCServerFilterFactory(conf map[string]interface{}) (api.NetworkFilt
 	}, nil
 }
 
+// RegisteredServer is a wrapper of *(google.golang.org/grpc).Server
+type RegisteredServer interface {
+	Serve(net.Listener) error
+	Stop()
+}
+
 // NewRegisteredServer returns a grpc server that has completed protobuf registration.
 // The grpc server Serve function should be called in MOSN.
 // NOTICE: some grpc options is not supported, for example, secure options, which are managed by MOSN too.
-type NewRegisteredServer func(json.RawMessage) *grpc.Server
+type NewRegisteredServer func(json.RawMessage) RegisteredServer
 
 // Handler is a wrapper to call NewRegisteredServer
 type Handler struct {
@@ -99,7 +104,7 @@ type Handler struct {
 }
 
 // Start call the grpc server Serves. If the server is already started, ok flags returns false
-func (s *Handler) Start(ln net.Listener, conf json.RawMessage) (srv *grpc.Server, ok bool) {
+func (s *Handler) Start(ln net.Listener, conf json.RawMessage) (srv RegisteredServer, ok bool) {
 	s.once.Do(func() {
 		srv = s.f(conf)
 		go func() {

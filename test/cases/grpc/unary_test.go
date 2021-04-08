@@ -14,7 +14,7 @@ import (
 
 func TestSimpleGrpc(t *testing.T) {
 	Scenario(t, "simple grpc server in mosn networkfilter", func() {
-		_, _ = lib.InitMosn(ConfigGrpcFilter) // no servers need
+		_, _ = lib.InitMosn(ConfigHelloGrpcFilter) // no servers need
 		Case("call grpc", func() {
 			conn, err := grpc.Dial("127.0.0.1:2045", grpc.WithInsecure(), grpc.WithBlock())
 			Verify(err, Equal, nil)
@@ -27,7 +27,7 @@ func TestSimpleGrpc(t *testing.T) {
 	})
 }
 
-const ConfigGrpcFilter = `{
+const ConfigHelloGrpcFilter = `{
 	"servers":[
 		{
 			"default_log_path":"stdout",
