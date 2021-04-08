@@ -27,6 +27,7 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/network"
 )
 
 func init() {
@@ -64,6 +65,11 @@ func CreateGRPCServerFilterFactory(conf map[string]interface{}) (api.NetworkFilt
 		log.DefaultLogger.Errorf("invalid grpc server config: %v, error: %v", conf, err)
 		return nil, err
 	}
+	// if OptimizeLocalWrite is true, the connection maybe start a goroutine for connection write,
+	// which maybe casues some errors when grpc write. so we do not allow this
+	if network.OptimizeLocalWrite {
+		return nil, errors.New("grpc does not support local optimize write")
+	}
 	name := cfg.ServerName
 	handler := getRegisterServerHandler(name)
 	if handler == nil {
@@ -74,10 +80,9 @@ func CreateGRPCServerFilterFactory(conf map[string]interface{}) (api.NetworkFilt
 	// NewListener's conf is expected to removed.
 	ln := NewListener(conf)
 	// TODO: support dynamic upgrade
-	srv, ok := handler.Start(ln, cfg.GrpcConfig)
-	if !ok {
-		log.DefaultLogger.Errorf("mosn does not support repeated start grpc server")
-		return nil, ErrDuplicateStarted
+	srv, err := handler.Start(ln, cfg.GrpcConfig)
+	if err != nil {
+		return nil, err
 	}
 	log.DefaultLogger.Debugf("grpc server filter: create a grpc server name: %s", name)
 	return &grpcServerFilterFactory{
@@ -95,7 +100,7 @@ type RegisteredServer interface {
 // NewRegisteredServer returns a grpc server that has completed protobuf registration.
 // The grpc server Serve function should be called in MOSN.
 // NOTICE: some grpc options is not supported, for example, secure options, which are managed by MOSN too.
-type NewRegisteredServer func(json.RawMessage) RegisteredServer
+type NewRegisteredServer func(json.RawMessage) (RegisteredServer, error)
 
 // Handler is a wrapper to call NewRegisteredServer
 type Handler struct {
@@ -103,19 +108,24 @@ type Handler struct {
 	f    NewRegisteredServer
 }
 
-// Start call the grpc server Serves. If the server is already started, ok flags returns false
-func (s *Handler) Start(ln net.Listener, conf json.RawMessage) (srv RegisteredServer, ok bool) {
+// Start call the grpc server Serves. If the server is already started returns an error
+func (s *Handler) Start(ln net.Listener, conf json.RawMessage) (srv RegisteredServer, err error) {
+	err = ErrDuplicateStarted
 	s.once.Do(func() {
-		srv = s.f(conf)
+		srv, err = s.f(conf)
+		if err != nil {
+			log.DefaultLogger.Errorf("start a registered server failed: %v", err)
+			return
+		}
 		go func() {
 			// TODO: support restart
-			if err := srv.Serve(ln); err != nil {
-				log.DefaultLogger.Errorf("grpc server serves error: %v", err)
+			if r := srv.Serve(ln); r != nil {
+				log.DefaultLogger.Errorf("grpc server serves error: %v", r)
 			}
 		}()
-		ok = true
+		err = nil
 	})
-	return srv, ok
+	return srv, err
 }
 
 var stores sync.Map

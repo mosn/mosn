@@ -87,8 +87,7 @@ func (c *Connection) Write(b []byte) (n int, err error) {
 		return 0, syscall.ENOTCONN
 	}
 	n = len(b)
-	buf := buffer.GetIoBuffer(n)
-	buf.Write(b)
+	buf := buffer.NewIoBufferBytes(b)
 	err = c.raw.Write(buf) // write directly to raw connection
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("grpc connection write data: %d, %v", n, err)

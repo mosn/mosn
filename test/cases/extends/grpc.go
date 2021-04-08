@@ -32,10 +32,10 @@ func (s *helloServer) SayHello(ctx context.Context, in *hellopb.HelloRequest) (*
 	return &hellopb.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
-func NewHelloExampleGrpcServer(_ json.RawMessage) mgrpc.RegisteredServer {
+func NewHelloExampleGrpcServer(_ json.RawMessage) (mgrpc.RegisteredServer, error) {
 	s := grpc.NewServer()
 	hellopb.RegisterGreeterServer(s, &helloServer{})
-	return s
+	return s, nil
 }
 
 const (
@@ -195,9 +195,9 @@ func (s *echoServer) BidirectionalStreamingEcho(stream echopb.Echo_Bidirectional
 	}
 }
 
-func NewEchoStreamGrpcServer(_ json.RawMessage) mgrpc.RegisteredServer {
+func NewEchoStreamGrpcServer(_ json.RawMessage) (mgrpc.RegisteredServer, error) {
 	rand.Seed(time.Now().UnixNano())
 	s := grpc.NewServer()
 	echopb.RegisterEchoServer(s, &echoServer{})
-	return s
+	return s, nil
 }

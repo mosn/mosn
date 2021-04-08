@@ -125,10 +125,10 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
-func NewHelloExampleGrpcServer(_ json.RawMessage) RegisteredServer {
+func NewHelloExampleGrpcServer(_ json.RawMessage) (RegisteredServer, error) {
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &server{})
-	return s
+	return s, nil
 }
 
 // Mock a filter chain callbacks and read filter callbacks
