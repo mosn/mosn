@@ -66,13 +66,11 @@ func (f *grpcFilter) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 }
 
 func (f *grpcFilter) dispatch(buf buffer.IoBuffer) {
-	for buf.Len() > 0 {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("grpc get datas: %d", buf.Len())
-		}
-		// send data to awake connection Reead
-		f.conn.Send(buf)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("grpc get datas: %d", buf.Len())
 	}
+	// send data to awake connection Read
+	f.conn.Send(buf)
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("read dispatch finished")
 	}

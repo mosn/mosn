@@ -179,3 +179,7 @@ func (c *MockConnection) RawConn() net.Conn {
 
 func (c *MockConnection) AddConnectionEventListener(api.ConnectionEventListener) {
 }
+
+func (c *MockConnection) Close(_ api.ConnectionCloseType, _ api.ConnectionEvent) error {
+	return c.raw.Close()
+}

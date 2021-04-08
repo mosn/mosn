@@ -83,6 +83,9 @@ func (c *Connection) Read(b []byte) (n int, err error) {
 }
 
 func (c *Connection) Write(b []byte) (n int, err error) {
+	if c.closed.Load() {
+		return 0, syscall.ENOTCONN
+	}
 	n = len(b)
 	buf := buffer.GetIoBuffer(n)
 	buf.Write(b)
@@ -93,6 +96,10 @@ func (c *Connection) Write(b []byte) (n int, err error) {
 	return
 }
 
+// Close maybe called two ways:
+// 1. mosn connection closed, the grpc connections should be closed too.
+// 2. grpc connection closed, the mosn connections should be close too.
+// The closed flag is used to avoid calling the Close cyclically.
 func (c *Connection) Close() error {
 	if !c.closed.CAS(false, true) {
 		return syscall.EINVAL
@@ -102,6 +109,7 @@ func (c *Connection) Close() error {
 	}
 	close(c.r)
 	close(c.endRead)
+	c.raw.Close(api.NoFlush, api.LocalClose)
 	return nil
 }
 
@@ -149,6 +157,11 @@ func (c *Connection) OnEvent(event api.ConnectionEvent) {
 
 // Send awakes connection Read, and will wait Read finished.
 func (c *Connection) Send(buf buffer.IoBuffer) {
+	defer func() {
+		if err := recover(); err != nil {
+			log.DefaultLogger.Errorf("[grpc] connection has closed. local %v, remote %v, error: %v", c.raw.LocalAddr(), c.raw.RemoteAddr(), err)
+		}
+	}()
 	for buf.Len() > 0 {
 		c.r <- buf
 		<-c.endRead

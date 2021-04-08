@@ -24,6 +24,6 @@ type GRPC struct {
 	// A server_name should be used only once.
 	ServerName string `json:"server_name"`
 	// GrpcConfig represents the configuration needed to create
-	// a regsitered grpc server, which can be any types, usually json.
+	// a registered grpc server, which can be any types, usually json.
 	GrpcConfig json.RawMessage `json:"grpc_config"`
 }
