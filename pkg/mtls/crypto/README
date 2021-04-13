@@ -14,3 +14,8 @@ run tls test
     a. go to pkg/mtls
     b. go test -v ./...
 
+
+## new fixes
+1. add a certificates pool to reduce memory usage.
+2. handshake_client.go & handshake_server.go optimize
+maybe we can optimize it in package x509

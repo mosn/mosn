@@ -21,8 +21,10 @@ import (
 	"bytes"
 	"io"
 	"net"
+	"sync"
 
 	gotls "crypto/tls"
+	"crypto/x509"
 )
 
 // TransferTLSInfo for transfer TLSConn
@@ -225,4 +227,42 @@ func (c *Conn) ShrinkReadBuffer() {
 	if !c.HasMoreData() {
 		c.rawInput = *bytes.NewBuffer(make([]byte, 0, bytes.MinRead))
 	}
+}
+
+var globalStore = &certificateStore{
+	rwmutex: sync.RWMutex{},
+	store:   map[string]*x509.Certificate{},
+}
+
+func LoadOrStoreCertificate(b []byte) (*x509.Certificate, error) {
+	return globalStore.LoadOrStoreCertificate(b)
+}
+
+type certificateStore struct {
+	rwmutex sync.RWMutex
+	store   map[string]*x509.Certificate
+}
+
+func (s *certificateStore) LoadOrStoreCertificate(b []byte) (*x509.Certificate, error) {
+	key := string(b)
+	s.rwmutex.RLock()
+	if cert, ok := s.store[key]; ok {
+		s.rwmutex.RUnlock()
+		return cert, nil
+	}
+	s.rwmutex.RUnlock()
+	// try to create a new certificate
+	s.rwmutex.Lock()
+	defer s.rwmutex.Unlock()
+	// double check the certificate exists
+	x509Cert, ok := s.store[key]
+	if !ok {
+		var err error
+		x509Cert, err = x509.ParseCertificate(b)
+		if err != nil {
+			return nil, err
+		}
+		s.store[key] = x509Cert
+	}
+	return x509Cert, nil
 }
