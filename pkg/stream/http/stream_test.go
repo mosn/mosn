@@ -21,11 +21,9 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
-	"strconv"
 	"testing"
 	"time"
 
@@ -351,7 +349,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -406,10 +404,11 @@ func TestHeaderSize(t *testing.T) {
 
 	connection := network.NewServerConnection(context.Background(), rawc, nil)
 
-	var proxyGeneralExtendConfig map[string]interface{}
-	json.Unmarshal([]byte(`{"max_header_size":`+strconv.Itoa(len(requestSmall))+`}`), &proxyGeneralExtendConfig)
+	proxyGeneralExtendConfig := map[string]interface{}{
+		"max_header_size": len(requestSmall),
+	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, streamConfigHandler(proxyGeneralExtendConfig))
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 	ssc := newServerStreamConnection(ctx, connection, nil)
 	if ssc == nil {
 		t.Errorf("newServerStreamConnection failed!")

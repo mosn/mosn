@@ -117,22 +117,6 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 	// proxy level worker pool config end
 
-	if len(proxy.config.ExtendConfig) != 0 {
-		proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxy.config.ExtendConfig)
-		if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-			log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxy.config.ExtendConfig)
-		}
-
-		if v, ok := proxy.config.ExtendConfig["sub_protocol"]; ok {
-			if subProtocol, ok := v.(string); ok {
-				proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, subProtocol)
-				if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-					log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", subProtocol)
-				}
-			}
-		}
-	}
-
 	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 

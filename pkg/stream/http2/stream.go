@@ -47,6 +47,7 @@ import (
 
 func init() {
 	str.Register(protocol.HTTP2, &streamConnFactory{})
+	protocol.RegisterProtocolConfigHandler(protocol.HTTP2, streamConfigHandler)
 }
 
 type streamConnFactory struct{}
@@ -147,43 +148,43 @@ func (s *stream) GetStream() types.Stream {
 }
 
 type StreamConfig struct {
-	Http2UseStream  bool `json:"http2_use_stream,omitempty"`
+	Http2UseStream bool `json:"http2_use_stream,omitempty"`
+}
+
+var defaultStreamConfig = StreamConfig{
+	Http2UseStream: false,
+}
+
+func streamConfigHandler(v interface{}) interface{} {
+	extendConfig, ok := v.(map[string]interface{})
+	if !ok {
+		return defaultStreamConfig
+	}
+
+	config, ok := extendConfig[string(protocol.HTTP2)]
+	if !ok {
+		config = extendConfig
+	}
+	configBytes, err := json.Marshal(config)
+	if err != nil {
+		return defaultStreamConfig
+	}
+	var streamConfig StreamConfig
+	if err := json.Unmarshal(configBytes, &streamConfig); err != nil {
+		return defaultStreamConfig
+	}
+
+	return streamConfig
+
 }
 
 func parseStreamConfig(ctx context.Context) StreamConfig {
-	var streamConfig = StreamConfig{
-		Http2UseStream:  false,
-	}
-
+	streamConfig := defaultStreamConfig
 	// get extend config from ctx
 	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
-	if pgc == nil {
-		return streamConfig
+	if cfg, ok := pgc.(StreamConfig); ok {
+		streamConfig = cfg
 	}
-	extendConfig, ok := pgc.(map[string]interface{})
-	if !ok {
-		return streamConfig
-	}
-
-	// extract http2 config
-	if config, ok := extendConfig[string(protocol.HTTP2)]; ok {
-		configBytes, err := json.Marshal(config)
-		if err != nil {
-			return streamConfig
-		}
-
-		err = json.Unmarshal(configBytes, &streamConfig)
-		if err != nil {
-			return streamConfig
-		}
-	} else {
-		if v, ok := extendConfig["http2_use_stream"]; ok {
-			if bv, ok := v.(bool); ok {
-				streamConfig.Http2UseStream = bv
-			}
-		}
-	}
-
 	return streamConfig
 }
 
@@ -227,7 +228,7 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection, s
 
 	connection.AddConnectionEventListener(sc)
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
-		log.Proxy.Debugf(ctx, "new http2 server stream connection")
+		log.Proxy.Debugf(ctx, "new http2 server stream connection, stream config: %v", sc.config)
 	}
 
 	return sc

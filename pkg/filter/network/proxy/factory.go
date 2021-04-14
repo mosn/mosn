@@ -25,7 +25,9 @@ import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/proxy"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
@@ -37,10 +39,17 @@ func init() {
 
 type genericProxyFilterConfigFactory struct {
 	Proxy *v2.Proxy
+	//
+	extendConfig interface{}
+	subProtocols string
 }
 
-func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
-	p := proxy.NewProxy(context, gfcf.Proxy)
+func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(ctx context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, gfcf.extendConfig)
+	if gfcf.subProtocols != "" {
+		ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, gfcf.subProtocols)
+	}
+	p := proxy.NewProxy(ctx, gfcf.Proxy)
 	callbacks.AddReadFilter(p)
 }
 
@@ -49,9 +58,19 @@ func CreateProxyFactory(conf map[string]interface{}) (api.NetworkFilterChainFact
 	if err != nil {
 		return nil, err
 	}
-	return &genericProxyFilterConfigFactory{
+	gfcf := &genericProxyFilterConfigFactory{
 		Proxy: p,
-	}, nil
+	}
+	if len(p.ExtendConfig) != 0 {
+		gfcf.extendConfig = protocol.HandleConfig(api.ProtocolName(p.DownstreamProtocol), p.ExtendConfig)
+		// TODO: move it into xprotocol registered and support protocol transfer
+		if v, ok := p.ExtendConfig["sub_protocol"]; ok {
+			if subProtocol, ok := v.(string); ok {
+				gfcf.subProtocols = subProtocol
+			}
+		}
+	}
+	return gfcf, nil
 }
 
 // ParseProxyFilter

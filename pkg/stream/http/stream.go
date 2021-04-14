@@ -49,6 +49,7 @@ import (
 
 func init() {
 	str.Register(protocol.HTTP1, &streamConnFactory{})
+	protocol.RegisterProtocolConfigHandler(protocol.HTTP1, streamConfigHandler)
 }
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024
@@ -367,55 +368,48 @@ func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.C
 }
 
 type StreamConfig struct {
-	MaxHeaderSize      int  `json:"max_header_size,omitempty"`
-	MaxRequestBodySize int  `json:"max_request_body_size,omitempty"`
+	MaxHeaderSize      int `json:"max_header_size,omitempty"`
+	MaxRequestBodySize int `json:"max_request_body_size,omitempty"`
 }
 
-func parseStreamConfig(ctx context.Context) StreamConfig {
-	var streamConfig = StreamConfig{
-		// Per-connection buffer size for requests' reading.
-		// This also limits the maximum header size, default 4096.
-		MaxHeaderSize: defaultMaxHeaderSize,
-		// 0 is means no limit request body size
-		MaxRequestBodySize: 0,
-	}
+var defaultStreamConfig = StreamConfig{
+	// Per-connection buffer size for requests' reading.
+	// This also limits the maximum header size, default 4096.
+	MaxHeaderSize: defaultMaxHeaderSize,
+	// 0 is means no limit request body size
+	MaxRequestBodySize: 0,
+}
 
-	// get extend config from ctx
-	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
-	if pgc == nil {
-		return streamConfig
-	}
-	extendConfig, ok := pgc.(map[string]interface{})
+func streamConfigHandler(v interface{}) interface{} {
+	extendConfig, ok := v.(map[string]interface{})
 	if !ok {
-		return streamConfig
+		return defaultStreamConfig
 	}
 
 	// extract http1 config
-	if config, ok := extendConfig[string(protocol.HTTP1)]; ok {
-		configBytes, err := json.Marshal(config)
-		if err != nil {
-			return streamConfig
-		}
-
-		err = json.Unmarshal(configBytes, &streamConfig)
-		if err != nil {
-			return streamConfig
-		}
-	} else {
-		if v, ok := extendConfig["max_header_size"]; ok {
-			// json.Unmarshal stores float64 for JSON numbers in the interface{}
-			// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
-			if fv, ok := v.(float64); ok {
-				streamConfig.MaxHeaderSize = int(fv)
-			}
-		}
-		if v, ok := extendConfig["max_request_body_size"]; ok {
-			if fv, ok := v.(float64); ok {
-				streamConfig.MaxRequestBodySize = int(fv)
-			}
-		}
+	config, ok := extendConfig[string(protocol.HTTP1)]
+	if !ok {
+		config = extendConfig
 	}
+	configBytes, err := json.Marshal(config)
+	if err != nil {
+		return defaultStreamConfig
+	}
+	var streamConfig StreamConfig
+	if err := json.Unmarshal(configBytes, &streamConfig); err != nil {
+		return defaultStreamConfig
+	}
+	return streamConfig
 
+}
+
+func parseStreamConfig(ctx context.Context) StreamConfig {
+	streamConfig := defaultStreamConfig
+	// get extend config from ctx
+	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
+	if cfg, ok := pgc.(StreamConfig); ok {
+		streamConfig = cfg
+	}
 	return streamConfig
 }
 
@@ -454,6 +448,9 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 
 	// Reset would not be called in server-side scene, so add listener for connection event
 	connection.AddConnectionEventListener(ssc)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(ctx, "new http server stream connection, stream config: %v", ssc.config)
+	}
 
 	// set not support transfer connection
 	ssc.conn.SetTransferEventListener(func() bool {
