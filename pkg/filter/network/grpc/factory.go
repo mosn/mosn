@@ -28,6 +28,8 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/streamfilter"
+	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -38,11 +40,14 @@ func init() {
 // The registered grpc server needs to be implemented independently by the user, and registered to factory.
 // A MOSN can contains multiple registered grpc servers, each grpc server has only one instance.
 type grpcServerFilterFactory struct {
-	server RegisteredServer
-	ln     *Listener
+	server  RegisteredServer
+	config  *v2.GRPC
+	handler *Handler
+	ln      *Listener
 }
 
-var _ api.NetworkFilterChainFactory = &grpcServerFilterFactory{}
+var _ api.NetworkFilterChainFactory = (*grpcServerFilterFactory)(nil)
+var _ api.FactoryInitializer = (*grpcServerFilterFactory)(nil)
 
 func (f *grpcServerFilterFactory) CreateFilterChain(ctx context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
@@ -52,9 +57,39 @@ func (f *grpcServerFilterFactory) CreateFilterChain(ctx context.Context, callbac
 	callbacks.AddReadFilter(rf)
 }
 
+const GrpcStreamFilters = "streamfilters"
+
+func (f *grpcServerFilterFactory) Init(ctx context.Context) error {
+	cfg, ok := ctx.Value(types.CommonContextKeyListenerConfig).(*v2.Listener)
+	if !ok {
+		return ErrInvalidConfig
+	}
+	addr := cfg.AddrConfig
+	if addr == "" {
+		addr = cfg.Addr.String()
+	}
+	ln, err := NewListener(addr)
+	if err != nil {
+		return err
+	}
+	// GetStreamFilters from listener name
+	streamFilterFactories := streamfilter.GetStreamFilterManager().GetStreamFilterFactory(cfg.Name)
+	ctx = context.WithValue(ctx, GrpcStreamFilters, streamFilterFactories)
+	//
+	srv, err := f.handler.Start(ctx, ln, f.config.GrpcConfig)
+	if err != nil {
+		return err
+	}
+	log.DefaultLogger.Debugf("grpc server filter initialized success")
+	f.server = srv
+	f.ln = ln
+	return nil
+}
+
 var (
 	ErrUnknownServer    = errors.New("cannot found the grpc server")
 	ErrDuplicateStarted = errors.New("grpc server has already started")
+	ErrInvalidConfig    = errors.New("invalid config for grpc listener")
 )
 
 // CreateGRPCServerFilterFactory returns a grpc network filter factory.
@@ -66,7 +101,7 @@ func CreateGRPCServerFilterFactory(conf map[string]interface{}) (api.NetworkFilt
 		return nil, err
 	}
 	// if OptimizeLocalWrite is true, the connection maybe start a goroutine for connection write,
-	// which maybe casues some errors when grpc write. so we do not allow this
+	// which maybe cause some errors when grpc write. so we do not allow this
 	if network.OptimizeLocalWrite {
 		return nil, errors.New("grpc does not support local optimize write")
 	}
@@ -76,18 +111,10 @@ func CreateGRPCServerFilterFactory(conf map[string]interface{}) (api.NetworkFilt
 		log.DefaultLogger.Errorf("invalid grpc server found: %s", name)
 		return nil, ErrUnknownServer
 	}
-	// TODO: Close should be called when filter's listener is closed
-	// NewListener's conf is expected to removed.
-	ln := NewListener(conf)
-	// TODO: support dynamic upgrade
-	srv, err := handler.Start(ln, cfg.GrpcConfig)
-	if err != nil {
-		return nil, err
-	}
 	log.DefaultLogger.Debugf("grpc server filter: create a grpc server name: %s", name)
 	return &grpcServerFilterFactory{
-		server: srv,
-		ln:     ln,
+		config:  cfg,
+		handler: handler,
 	}, nil
 }
 
@@ -100,7 +127,7 @@ type RegisteredServer interface {
 // NewRegisteredServer returns a grpc server that has completed protobuf registration.
 // The grpc server Serve function should be called in MOSN.
 // NOTICE: some grpc options is not supported, for example, secure options, which are managed by MOSN too.
-type NewRegisteredServer func(json.RawMessage) (RegisteredServer, error)
+type NewRegisteredServer func(context.Context, json.RawMessage) (RegisteredServer, error)
 
 // Handler is a wrapper to call NewRegisteredServer
 type Handler struct {
@@ -109,16 +136,16 @@ type Handler struct {
 }
 
 // Start call the grpc server Serves. If the server is already started returns an error
-func (s *Handler) Start(ln net.Listener, conf json.RawMessage) (srv RegisteredServer, err error) {
+func (s *Handler) Start(ctx context.Context, ln net.Listener, conf json.RawMessage) (srv RegisteredServer, err error) {
 	err = ErrDuplicateStarted
 	s.once.Do(func() {
-		srv, err = s.f(conf)
+		srv, err = s.f(ctx, conf)
 		if err != nil {
 			log.DefaultLogger.Errorf("start a registered server failed: %v", err)
 			return
 		}
 		go func() {
-			// TODO: support restart
+			// TODO: support restart and dynamic update, which is not support at time.
 			if r := srv.Serve(ln); r != nil {
 				log.DefaultLogger.Errorf("grpc server serves error: %v", r)
 			}

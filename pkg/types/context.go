@@ -20,7 +20,7 @@ package types
 // ContextKey type
 type ContextKey int
 
-// Context key types(built-in)
+// Context key types(built-in), only used in mosn context package
 const (
 	ContextKeyStreamID ContextKey = iota
 	ContextKeyConnection
@@ -56,4 +56,9 @@ const (
 const (
 	GlobalProxyName       = "global"
 	GlobalShutdownTimeout = "GlobalShutdownTimeout"
+)
+
+// common context key, can be used in any context
+const (
+	CommonContextKeyListenerConfig = "listener_config"
 )

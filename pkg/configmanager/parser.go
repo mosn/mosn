@@ -18,6 +18,7 @@
 package configmanager
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -32,6 +33,7 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
 )
 
 type ContentKey string
@@ -401,13 +403,21 @@ func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
 }
 
 // GetNetworkFilters returns a network filter factory by filter.Type
-func GetNetworkFilters(c *v2.FilterChain) []api.NetworkFilterChainFactory {
+func GetNetworkFilters(ln *v2.Listener) []api.NetworkFilterChainFactory {
 	var factories []api.NetworkFilterChainFactory
+	c := ln.FilterChains[0]
 	for _, f := range c.Filters {
 		factory, err := api.CreateNetworkFilterChainFactory(f.Type, f.Config)
 		if err != nil {
 			log.StartLogger.Errorf("[config] network filter create failed, type:%s, error: %v", f.Type, err)
 			continue
+		}
+		if initialzer, ok := factory.(api.FactoryInitializer); ok {
+			ctx := context.WithValue(context.Background(), types.CommonContextKeyListenerConfig, ln)
+			if err := initialzer.Init(ctx); err != nil {
+				log.StartLogger.Errorf("[config] network filter init failed, type:%s, error:%v", f.Type, err)
+				continue
+			}
 		}
 		if factory != nil {
 			factories = append(factories, factory)

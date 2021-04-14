@@ -30,7 +30,7 @@ type grpcFilter struct {
 	conn *Connection
 }
 
-var _ api.ReadFilter = &grpcFilter{}
+var _ api.ReadFilter = (*grpcFilter)(nil)
 
 // TODO: maybe we needs the context in the future
 func NewGrpcFilter(_ context.Context, ln *Listener) *grpcFilter {
