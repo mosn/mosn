@@ -41,8 +41,7 @@ const ConfigHelloGrpcFilter = `{
 							{
 								"type":"grpc",
 								"config": {
-									"server_name":"hello",
-									"address":"127.0.0.1:2045"
+									"server_name":"hello"
 								}
 							}
 						]

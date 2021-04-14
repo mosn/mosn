@@ -57,8 +57,3 @@ const (
 	GlobalProxyName       = "global"
 	GlobalShutdownTimeout = "GlobalShutdownTimeout"
 )
-
-// common context key, can be used in any context
-const (
-	CommonContextKeyListenerConfig = "listener_config"
-)

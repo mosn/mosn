@@ -18,7 +18,6 @@
 package configmanager
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -33,7 +32,6 @@ import (
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/types"
 )
 
 type ContentKey string
@@ -413,8 +411,7 @@ func GetNetworkFilters(ln *v2.Listener) []api.NetworkFilterChainFactory {
 			continue
 		}
 		if initialzer, ok := factory.(api.FactoryInitializer); ok {
-			ctx := context.WithValue(context.Background(), types.CommonContextKeyListenerConfig, ln)
-			if err := initialzer.Init(ctx); err != nil {
+			if err := initialzer.Init(ln); err != nil {
 				log.StartLogger.Errorf("[config] network filter init failed, type:%s, error:%v", f.Type, err)
 				continue
 			}

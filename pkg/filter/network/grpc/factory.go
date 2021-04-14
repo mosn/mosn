@@ -24,12 +24,12 @@ import (
 	"net"
 	"sync"
 
+	"google.golang.org/grpc"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
-	"mosn.io/mosn/pkg/types"
 )
 
 func init() {
@@ -40,10 +40,11 @@ func init() {
 // The registered grpc server needs to be implemented independently by the user, and registered to factory.
 // A MOSN can contains multiple registered grpc servers, each grpc server has only one instance.
 type grpcServerFilterFactory struct {
-	server  RegisteredServer
-	config  *v2.GRPC
-	handler *Handler
-	ln      *Listener
+	server              RegisteredServer
+	config              *v2.GRPC
+	handler             *Handler
+	streamfilterFactory streamfilter.StreamFilterFactory
+	ln                  *Listener
 }
 
 var _ api.NetworkFilterChainFactory = (*grpcServerFilterFactory)(nil)
@@ -59,8 +60,8 @@ func (f *grpcServerFilterFactory) CreateFilterChain(ctx context.Context, callbac
 
 const GrpcStreamFilters = "streamfilters"
 
-func (f *grpcServerFilterFactory) Init(ctx context.Context) error {
-	cfg, ok := ctx.Value(types.CommonContextKeyListenerConfig).(*v2.Listener)
+func (f *grpcServerFilterFactory) Init(param interface{}) error {
+	cfg, ok := param.(*v2.Listener)
 	if !ok {
 		return ErrInvalidConfig
 	}
@@ -73,17 +74,34 @@ func (f *grpcServerFilterFactory) Init(ctx context.Context) error {
 		return err
 	}
 	// GetStreamFilters from listener name
-	streamFilterFactories := streamfilter.GetStreamFilterManager().GetStreamFilterFactory(cfg.Name)
-	ctx = context.WithValue(ctx, GrpcStreamFilters, streamFilterFactories)
+	f.streamfilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(cfg.Name)
 	//
-	srv, err := f.handler.Start(ctx, ln, f.config.GrpcConfig)
+	opts := []grpc.ServerOption{
+		grpc.UnaryInterceptor(f.UnaryInterceptorFilter),
+		grpc.StreamInterceptor(f.StreamInterceptorFilter),
+	}
+	srv, err := f.handler.Start(ln, f.config.GrpcConfig, opts...)
 	if err != nil {
 		return err
 	}
 	log.DefaultLogger.Debugf("grpc server filter initialized success")
+	// we keep the server but it is not be used currently.
+	// maybe it will be used when server stop/restart are supported
 	f.server = srv
 	f.ln = ln
 	return nil
+}
+
+// UnaryInterceptorFilter is an implementation of grpc.UnaryServerInterceptor, which used to be call stream filter in MOSN
+func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	// TODO: implement me
+	return handler(ctx, req)
+}
+
+// StreamInterceptorFilter is an implementation of grpc.StreamServerInterceptor, which used to be call stream filter in MOSN
+func (f *grpcServerFilterFactory) StreamInterceptorFilter(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	// TODO: implement me
+	return handler(srv, ss)
 }
 
 var (
@@ -127,7 +145,7 @@ type RegisteredServer interface {
 // NewRegisteredServer returns a grpc server that has completed protobuf registration.
 // The grpc server Serve function should be called in MOSN.
 // NOTICE: some grpc options is not supported, for example, secure options, which are managed by MOSN too.
-type NewRegisteredServer func(context.Context, json.RawMessage) (RegisteredServer, error)
+type NewRegisteredServer func(config json.RawMessage, options ...grpc.ServerOption) (RegisteredServer, error)
 
 // Handler is a wrapper to call NewRegisteredServer
 type Handler struct {
@@ -136,16 +154,16 @@ type Handler struct {
 }
 
 // Start call the grpc server Serves. If the server is already started returns an error
-func (s *Handler) Start(ctx context.Context, ln net.Listener, conf json.RawMessage) (srv RegisteredServer, err error) {
+func (s *Handler) Start(ln net.Listener, conf json.RawMessage, options ...grpc.ServerOption) (srv RegisteredServer, err error) {
 	err = ErrDuplicateStarted
 	s.once.Do(func() {
-		srv, err = s.f(ctx, conf)
+		srv, err = s.f(conf, options...)
 		if err != nil {
 			log.DefaultLogger.Errorf("start a registered server failed: %v", err)
 			return
 		}
 		go func() {
-			// TODO: support restart and dynamic update, which is not support at time.
+			// TODO: support restart and dynamic update, which are not supported at time.
 			if r := srv.Serve(ln); r != nil {
 				log.DefaultLogger.Errorf("grpc server serves error: %v", r)
 			}

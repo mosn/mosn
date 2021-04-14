@@ -29,18 +29,17 @@ import (
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
-	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 )
 
 func TestGrpcFilter(t *testing.T) {
 	RegisterServerHandler("test", NewHelloExampleGrpcServer)
 	addr := "127.0.0.1:8080"
-	ctx := context.WithValue(context.Background(), types.CommonContextKeyListenerConfig, &v2.Listener{
+	param := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
 			AddrConfig: addr,
 		},
-	})
+	}
 	factory, err := CreateGRPCServerFilterFactory(map[string]interface{}{
 		"server_name": "test",
 	})
@@ -48,7 +47,7 @@ func TestGrpcFilter(t *testing.T) {
 		t.Fatalf("create filter failed: %v", err)
 	}
 	if initialzer, ok := factory.(api.FactoryInitializer); ok {
-		if err := initialzer.Init(ctx); err != nil {
+		if err := initialzer.Init(param); err != nil {
 			t.Fatalf("initialize factory failed: %v", err)
 		}
 	}
@@ -136,8 +135,8 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
 }
 
-func NewHelloExampleGrpcServer(_ context.Context, _ json.RawMessage) (RegisteredServer, error) {
-	s := grpc.NewServer()
+func NewHelloExampleGrpcServer(_ json.RawMessage, options ...grpc.ServerOption) (RegisteredServer, error) {
+	s := grpc.NewServer(options...)
 	pb.RegisterGreeterServer(s, &server{})
 	return s, nil
 }

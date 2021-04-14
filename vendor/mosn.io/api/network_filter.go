@@ -100,5 +100,5 @@ type NetworkFilterChainFactory interface {
 
 // FactoryInitializer represents a filter Factory needs to be inited before called.
 type FactoryInitializer interface {
-	Init(context.Context) error
+	Init(interface{}) error
 }
