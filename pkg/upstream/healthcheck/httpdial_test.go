@@ -66,3 +66,19 @@ func TestHTTPDialTimeout(t *testing.T) {
 		t.Error("http dial a closed server, but returns ok")
 	}
 }
+
+func TestHTTPDialNonStanderURL(t *testing.T) {
+	s := httptest.NewServer(&handler{})
+	host := &mockHost{
+		addr: s.URL[len("http://"):],
+	}
+	dialfactory := &HTTPDialSessionFactory{}
+	session := dialfactory.NewSession(nil, host)
+	if !session.CheckHealth() {
+		t.Error("http dial check health failed")
+	}
+	s.Close()
+	if session.CheckHealth() {
+		t.Error("http dial a closed server, but returns ok")
+	}
+}
