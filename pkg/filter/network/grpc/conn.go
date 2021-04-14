@@ -53,7 +53,7 @@ func NewConn(c api.Connection) *Connection {
 	return conn
 }
 
-var _ net.Conn = &Connection{}
+var _ net.Conn = (*Connection)(nil)
 
 func (c *Connection) Read(b []byte) (n int, err error) {
 	data, ok := <-c.r

@@ -248,8 +248,7 @@ const ConfigStreamGrpcFilter = `{
 							{
 								"type":"grpc",
 								"config": {
-									"server_name":"echo",
-									"address":"127.0.0.1:2045"
+									"server_name":"echo"
 								}
 							}
 						]

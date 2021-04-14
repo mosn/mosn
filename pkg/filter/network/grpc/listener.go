@@ -32,30 +32,24 @@ type Listener struct {
 	addr    net.Addr
 }
 
-func NewListener(conf map[string]interface{}) *Listener {
+func NewListener(address string) (*Listener, error) {
 	var (
 		addr net.Addr
 		err  error
 	)
-	// TODO: load network/address config from listener config
-	v := conf["address"]
-	if addrstr, ok := v.(string); ok {
-		addr, err = net.ResolveTCPAddr("tcp", addrstr)
-		if err != nil {
-			log.DefaultLogger.Errorf("invalid server address info: %s, error: %v", addrstr, err)
-		}
-	}
-	if addr == nil {
-		log.DefaultLogger.Warnf("grpc listener: no address config found, use an empty instead")
-		addr = &net.TCPAddr{} // set an empty addr
+	// TODO: support unix
+	addr, err = net.ResolveTCPAddr("tcp", address)
+	if err != nil {
+		log.DefaultLogger.Errorf("invalid server address info: %s, error: %v", address, err)
+		return nil, err
 	}
 	return &Listener{
 		accepts: make(chan net.Conn),
 		addr:    addr,
-	}
+	}, nil
 }
 
-var _ net.Listener = &Listener{}
+var _ net.Listener = (*Listener)(nil)
 
 func (l *Listener) Accept() (net.Conn, error) {
 	c, ok := <-l.accepts
