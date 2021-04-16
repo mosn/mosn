@@ -234,6 +234,9 @@ var globalStore = &certificateStore{
 	store:   map[string]*x509.Certificate{},
 }
 
+// LoadOrStoreCertificate is a wrapper for globalStore.LoadOrStoreCertificate
+// If the input bytes can be parsed as a x509 certificate, get the certificate
+// from a cache, or create it and store in cache.
 func LoadOrStoreCertificate(b []byte) (*x509.Certificate, error) {
 	return globalStore.LoadOrStoreCertificate(b)
 }
