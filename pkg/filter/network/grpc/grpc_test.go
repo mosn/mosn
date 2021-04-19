@@ -20,6 +20,8 @@ package grpc
 import (
 	"context"
 	"encoding/json"
+	"github.com/stretchr/testify/assert"
+	"mosn.io/mosn/pkg/streamfilter"
 	"net"
 	"sync"
 	"testing"
@@ -29,17 +31,46 @@ import (
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
+	_ "mosn.io/mosn/pkg/filter/stream/flowcontrol"
 	"mosn.io/pkg/buffer"
 )
 
 func TestGrpcFilter(t *testing.T) {
 	RegisterServerHandler("test", NewHelloExampleGrpcServer)
 	addr := "127.0.0.1:8080"
+	streamFilterConfig := []byte(`[
+										{
+											"type": "flowControlFilter",
+											"config": {
+												"global_switch": true,
+												"monitor": false,
+												"limit_key_type": "PATH",
+												"rules": [
+													{
+														"resource": "/helloworld.Greeter/SayHello",
+														"limitApp": "",
+														"grade": 1,
+														"threshold": 5,
+														"strategy": 0
+													}
+												]
+											}
+										}
+									]`)
+
+	filter := new([]v2.Filter)
+	err := json.Unmarshal(streamFilterConfig, filter)
+	if err != nil {
+		t.Fatal(err)
+	}
 	param := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
+			Name: "test",
 			AddrConfig: addr,
+			StreamFilters: *filter,
 		},
 	}
+	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(param.Name, param.StreamFilters)
 	factory, err := CreateGRPCServerFilterFactory(map[string]interface{}{
 		"server_name": "test",
 	})
@@ -87,7 +118,7 @@ func TestGrpcFilter(t *testing.T) {
 		filter.OnNewConnection()
 		for {
 			b := make([]byte, 512)
-			conn.SetDeadline(time.Now().Add(2 * time.Second))
+			conn.SetDeadline(time.Now().Add(5 * time.Second))
 			n, err := conn.Read(b)
 			if err != nil {
 				return
@@ -97,31 +128,47 @@ func TestGrpcFilter(t *testing.T) {
 			filter.OnData(buf)
 		}
 	}()
-	// mock grpc client
-	msg, err := grpcCall(addr)
+	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		t.Fatalf("grpc client returns an error: %v", err)
+		t.Fatalf("grpc Dial returns an error: %v", err)
 	}
-	if msg != "Hello test" {
-		t.Fatalf("unexpected result: %s", msg)
-	}
+	defer conn.Close()
+
+	c := pb.NewGreeterClient(conn)
+
+	// mock grpc client
+	testHello(c, t)
+
+	//wait flow control
+	time.Sleep(2 * time.Second)
+	testFlowControl(c, t)
+
 	wg.Wait()
 }
 
-func grpcCall(addr string) (string, error) {
-	conn, err := grpc.Dial(addr, grpc.WithInsecure(), grpc.WithBlock())
-	if err != nil {
-		return "", err
-	}
-	defer conn.Close()
-	c := pb.NewGreeterClient(conn)
+func testHello(c pb.GreeterClient, t *testing.T){
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: "test"})
 	if err != nil {
-		return "", err
+		t.Fatalf("grpc client returns an error: %v", err)
 	}
-	return r.GetMessage(), nil
+	if r.Message != "Hello test" {
+		t.Fatalf("unexpected result: %s", r.Message)
+	}
+}
+
+func testFlowControl(c pb.GreeterClient, t *testing.T) {
+	for i := 0; i < 10; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		r, err := c.SayHello(ctx, &pb.HelloRequest{Name: "test"})
+		if i <= 4 {
+			assert.Equal(t, r.Message, "Hello test")
+		}else{
+			assert.NotNil(t, err.Error(), "current request is limited")
+		}
+		cancel()
+	}
 }
 
 // Mock a gRPC Server for test
