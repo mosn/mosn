@@ -247,9 +247,11 @@ type certificateStore struct {
 }
 
 func (s *certificateStore) LoadOrStoreCertificate(b []byte) (*x509.Certificate, error) {
-	key := string(b)
 	s.rwmutex.RLock()
-	if cert, ok := s.store[key]; ok {
+	// Use string([]byte) in map key instead of key := string(b) out of map
+	// to reduce copy and gc.
+	// see details in: https://github.com/golang/go/issues/3512
+	if cert, ok := s.store[string(b)]; ok {
 		s.rwmutex.RUnlock()
 		return cert, nil
 	}
@@ -258,14 +260,14 @@ func (s *certificateStore) LoadOrStoreCertificate(b []byte) (*x509.Certificate, 
 	s.rwmutex.Lock()
 	defer s.rwmutex.Unlock()
 	// double check the certificate exists
-	x509Cert, ok := s.store[key]
+	x509Cert, ok := s.store[string(b)]
 	if !ok {
 		var err error
 		x509Cert, err = x509.ParseCertificate(b)
 		if err != nil {
 			return nil, err
 		}
-		s.store[key] = x509Cert
+		s.store[string(b)] = x509Cert
 	}
 	return x509Cert, nil
 }
