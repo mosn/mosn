@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mosn.io/mosn/pkg/streamfilter"
 	"net"
 	"os"
 	"strconv"
@@ -44,7 +45,6 @@ import (
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
-	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
@@ -118,6 +118,7 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 	var listenerFiltersFactories []api.ListenerFilterChainFactory
 	var networkFiltersFactories []api.NetworkFilterChainFactory
 	listenerFiltersFactories = configmanager.GetListenerFilters(lc.ListenerFilters)
+	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
 	networkFiltersFactories = configmanager.GetNetworkFilters(lc)
 
 	var al *activeListener
@@ -207,8 +208,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		}
 
 	}
-
-	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
 
 	configmanager.SetListenerConfig(*al.listener.Config())
 	return al, nil

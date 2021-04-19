@@ -21,18 +21,48 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net"
-	"sync"
-
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/header"
+	"net"
+	"sync"
 )
 
+const (
+	grpcName string = "Grpc"
+	serviceName string = "service_name"
+)
+
+func serviceNameGetter (ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
+	if !ok {
+		return variable.ValueNotFound, nil
+	}
+	headerKey, ok := data.(string)
+	if !ok {
+		return variable.ValueNotFound, nil
+	}
+	serviceName, ok := headers.Get(headerKey)
+	if ok {
+		return serviceName, nil
+	}
+	return variable.ValueNotFound, nil
+}
+
 func init() {
+	v := variable.NewBasicVariable(grpcName + "_" + serviceName, serviceName, serviceNameGetter, nil, 0)
+	variable.RegisterVariable(v)
+
+	variable.RegisterProtocolResource(api.ProtocolName(grpcName), api.PATH, serviceName)
+
 	api.RegisterNetwork(v2.GRPC_NETWORK_FILTER, CreateGRPCServerFilterFactory)
 }
 
@@ -43,7 +73,7 @@ type grpcServerFilterFactory struct {
 	server              RegisteredServer
 	config              *v2.GRPC
 	handler             *Handler
-	streamfilterFactory streamfilter.StreamFilterFactory
+	streamFilterFactory streamfilter.StreamFilterFactory
 	ln                  *Listener
 }
 
@@ -57,8 +87,6 @@ func (f *grpcServerFilterFactory) CreateFilterChain(ctx context.Context, callbac
 	rf := NewGrpcFilter(ctx, f.ln)
 	callbacks.AddReadFilter(rf)
 }
-
-const GrpcStreamFilters = "streamfilters"
 
 func (f *grpcServerFilterFactory) Init(param interface{}) error {
 	cfg, ok := param.(*v2.Listener)
@@ -74,7 +102,8 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 		return err
 	}
 	// GetStreamFilters from listener name
-	f.streamfilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(cfg.Name)
+	f.streamFilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(cfg.Name)
+
 	//
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(f.UnaryInterceptorFilter),
@@ -92,15 +121,101 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 	return nil
 }
 
+type wrapper struct {
+	grpc.ServerTransportStream
+	header, trailer metadata.MD
+}
+
+func (w *wrapper) Method() string {
+	return w.ServerTransportStream.Method()
+}
+func (w *wrapper) SetHeader(md metadata.MD) error{
+	if err := w.ServerTransportStream.SetHeader(md); err != nil {
+		return err
+	}
+	w.header = md
+	return nil
+}
+func (w *wrapper) SendHeader(md metadata.MD) error{
+	if err := w.ServerTransportStream.SendHeader(md); err != nil {
+		return err
+	}
+	w.header = md
+	return nil
+}
+func (w *wrapper) SetTrailer(md metadata.MD) error{
+	if err := w.ServerTransportStream.SetTrailer(md); err != nil {
+		return err
+	}
+	w.trailer = md
+	return nil
+}
+
 // UnaryInterceptorFilter is an implementation of grpc.UnaryServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-	// TODO: implement me
-	return handler(ctx, req)
+	sfc := streamfilter.GetDefaultStreamFilterChain()
+	ss := &grpcStreamFilterChain{
+		sfc,
+		nil,
+	}
+
+	f.streamFilterFactory.CreateFilterChain(ctx, ss)
+
+	requestHeader := header.CommonHeader{}
+	requestHeader.Set(serviceName, info.FullMethod)
+
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		for k, v := range md {
+			requestHeader.Set(k, v[0])
+		}
+	}
+
+	//used by rate limit
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
+
+	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
+	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
+		return nil, ss.err
+	}
+
+	wrapperHeader := metadata.Pairs()
+	wrapperTrailer := metadata.Pairs()
+	stream := grpc.ServerTransportStreamFromContext(ctx)
+	wrapper := &wrapper{stream, wrapperHeader, wrapperTrailer}
+	newCtx := grpc.NewContextWithServerTransportStream(ctx, wrapper)
+
+	//do biz logic
+	resp, err = handler(newCtx, req)
+
+	responseHeader := header.CommonHeader{}
+	for k, v := range wrapper.header {
+		responseHeader.Set(k, v[0])
+	}
+
+	responseTrailer := header.CommonHeader{}
+	for k, v := range wrapper.trailer {
+		responseTrailer.Set(k, v[0])
+	}
+
+	sfc.RunSenderFilter(ctx, api.BeforeSend, responseHeader, nil, responseTrailer, ss.senderFilterStatusHandler)
+	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
+		return nil, ss.err
+	}
+	ss.destroy()
+
+	return
 }
 
 // StreamInterceptorFilter is an implementation of grpc.StreamServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) StreamInterceptorFilter(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	// TODO: implement me
+
+	//TODO
+	//to use mosn stream filter here, we must
+	//1. only support intercept when the first request come and before the last response send (this maybe the standard implementation?)
+	//2. support intercept every stream recv/send
+
 	return handler(srv, ss)
 }
 
