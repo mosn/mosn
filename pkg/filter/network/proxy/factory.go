@@ -45,7 +45,9 @@ type genericProxyFilterConfigFactory struct {
 }
 
 func (gfcf *genericProxyFilterConfigFactory) CreateFilterChain(ctx context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
-	ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, gfcf.extendConfig)
+	if gfcf.extendConfig != nil {
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, gfcf.extendConfig)
+	}
 	if gfcf.subProtocols != "" {
 		ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, gfcf.subProtocols)
 	}

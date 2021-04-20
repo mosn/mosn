@@ -169,7 +169,7 @@ func streamConfigHandler(v interface{}) interface{} {
 	if err != nil {
 		return defaultStreamConfig
 	}
-	var streamConfig StreamConfig
+	streamConfig := defaultStreamConfig
 	if err := json.Unmarshal(configBytes, &streamConfig); err != nil {
 		return defaultStreamConfig
 	}
