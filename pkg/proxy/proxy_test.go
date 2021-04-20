@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"bou.ke/monkey"
+	monkey "github.com/cch123/supermonkey"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
