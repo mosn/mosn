@@ -3,13 +3,13 @@ module mosn.io/mosn
 go 1.14
 
 require (
-	bou.ke/monkey v1.0.2
 	github.com/SkyAPM/go2sky v0.5.0
 	github.com/TarsCloud/TarsGo v1.1.4
 	github.com/alibaba/sentinel-golang v1.0.2-0.20210112133552-db6063eb263e
 	github.com/apache/dubbo-go-hessian2 v1.7.0
 	github.com/apache/thrift v0.13.0
 	github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
+	github.com/cch123/supermonkey v1.0.1-0.20210420090843-d792ef7fb1d7
 	github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f
 	github.com/dchest/siphash v1.2.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
