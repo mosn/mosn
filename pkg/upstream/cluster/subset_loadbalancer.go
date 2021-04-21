@@ -35,11 +35,11 @@ type subsetLoadBalancer struct {
 	hostSet        *hostSet
 }
 
-func NewSubsetLoadBalancer(info *clusterInfo, hostSet *hostSet) types.LoadBalancer {
-	subsetInfo := info.lbSubsetInfo
+func NewSubsetLoadBalancer(info types.ClusterInfo, hostSet *hostSet) types.LoadBalancer {
+	subsetInfo := info.LbSubsetInfo()
 	subsetLB := &subsetLoadBalancer{
-		lbType:  info.lbType,
-		stats:   info.stats,
+		lbType:  info.LbType(),
+		stats:   info.Stats(),
 		subSets: make(map[string]types.ValueSubsetMap),
 		hostSet: hostSet,
 	}
@@ -112,7 +112,7 @@ func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerC
 }
 
 // createSubsets creates the sslb.subSets
-func (sslb *subsetLoadBalancer) createSubsets(info *clusterInfo, subSetKeys []types.SortedStringSetType) {
+func (sslb *subsetLoadBalancer) createSubsets(info types.ClusterInfo, subSetKeys []types.SortedStringSetType) {
 	hosts := sslb.hostSet.Hosts()
 	var subsSetCount int64 = 0
 	for _, host := range hosts {
@@ -135,7 +135,7 @@ func (sslb *subsetLoadBalancer) createSubsets(info *clusterInfo, subSetKeys []ty
 }
 
 // createFallbackSubset creates a LBSubsetEntryImpl as fallbackSubset
-func (sslb *subsetLoadBalancer) createFallbackSubset(info *clusterInfo, policy types.FallBackPolicy, meta types.SubsetMetadata) {
+func (sslb *subsetLoadBalancer) createFallbackSubset(info types.ClusterInfo, policy types.FallBackPolicy, meta types.SubsetMetadata) {
 	hostSet := sslb.hostSet
 	switch policy {
 	case types.NoFallBack:
