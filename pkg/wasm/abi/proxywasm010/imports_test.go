@@ -19,15 +19,16 @@ package proxywasm010
 
 import (
 	"errors"
+	"net/http"
+	"testing"
+	"time"
+
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/pkg/buffer"
-	"mosn.io/proxy-wasm-go-host/common"
-	"mosn.io/proxy-wasm-go-host/proxywasm"
-	"net/http"
-	"testing"
-	"time"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
+	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 )
 
 func TestImportsHandler(t *testing.T) {
@@ -65,7 +66,7 @@ func TestImportsHandlerHttpCall(t *testing.T) {
 
 	d := abiContext.GetABIImports().(*DefaultImportsHandler)
 
-	reqHeader :=  common.CommonHeader(map[string]string{
+	reqHeader := common.CommonHeader(map[string]string{
 		"reqHeader1": "reqValue1",
 		"reqHeader2": "reqValue2",
 	})

@@ -8,7 +8,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	types "mosn.io/mosn/pkg/types"
-	common "mosn.io/proxy-wasm-go-host/common"
+	common "mosn.io/proxy-wasm-go-host/proxywasm/common"
 	reflect "reflect"
 )
 

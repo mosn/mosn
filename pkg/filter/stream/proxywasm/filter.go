@@ -19,18 +19,20 @@ package proxywasm
 
 import (
 	"context"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/mosn/pkg/wasm"
 	"mosn.io/mosn/pkg/wasm/abi"
 	"mosn.io/mosn/pkg/wasm/abi/proxywasm010"
 	"mosn.io/pkg/buffer"
-	"mosn.io/proxy-wasm-go-host/common"
-	"mosn.io/proxy-wasm-go-host/proxywasm"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
+	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 )
 
 type Filter struct {
@@ -49,6 +51,7 @@ type Filter struct {
 	rootContextID int32
 	contextID     int32
 
+	downStreamRequestHeader api.HeaderMap
 	receiverFilterHandler api.StreamReceiverFilterHandler
 	senderFilterHandler   api.StreamSenderFilterHandler
 
@@ -160,6 +163,8 @@ func headerMapSize(headers api.HeaderMap) int {
 }
 
 func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
+	f.downStreamRequestHeader = headers
+
 	f.instance.Lock(f.abi)
 	defer f.instance.Unlock()
 
@@ -295,4 +300,19 @@ func (f *Filter) GetHttpResponseTrailer() common.HeaderMap {
 	}
 
 	return &proxywasm010.HeaderMapWrapper{HeaderMap: f.senderFilterHandler.GetResponseTrailers()}
+}
+
+func (f *Filter) SendHttpResp(respCode int32, respCodeDetail common.IoBuffer, respBody common.IoBuffer,
+	additionalHeaderMap common.HeaderMap, grpcCode int32) proxywasm.WasmResult {
+	if f.receiverFilterHandler != nil {
+		variable.SetVariableValue(f.ctx, types.VarHeaderStatus, strconv.Itoa(int(respCode)))
+
+		additionalHeaderMap.Range(func(key, value string) bool {
+			f.downStreamRequestHeader.Set(key, value)
+			return true
+		})
+		f.receiverFilterHandler.SendDirectResponse(f.downStreamRequestHeader, nil, nil)
+		f.DefaultImportsHandler.DirectResponse = true
+	}
+	return proxywasm.WasmResultOk
 }

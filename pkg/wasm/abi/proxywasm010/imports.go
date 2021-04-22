@@ -28,14 +28,16 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/pkg/buffer"
-	"mosn.io/proxy-wasm-go-host/common"
-	"mosn.io/proxy-wasm-go-host/proxywasm"
+	"mosn.io/pkg/utils"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
+	proxywasm "mosn.io/proxy-wasm-go-host/proxywasm/v1"
 )
 
 type DefaultImportsHandler struct {
 	proxywasm.DefaultImportsHandler
-	Instance common.WasmInstance
-	hc *httpCallout
+	Instance       common.WasmInstance
+	hc             *httpCallout
+	DirectResponse bool
 }
 
 // override
@@ -65,17 +67,21 @@ func (d *DefaultImportsHandler) Log(level proxywasm.LogLevel, msg string) proxyw
 var httpCalloutID int32
 
 type httpCallout struct {
-	id int32
-	d *DefaultImportsHandler
-	instance common.WasmInstance
+	id         int32
+	d          *DefaultImportsHandler
+	instance   common.WasmInstance
 	abiContext *ABIContext
 
 	urlString string
-	client *http.Client
-	req *http.Request
-	resp *http.Response
-	respHeader api.HeaderMap
-	respBody buffer.IoBuffer
+	client    *http.Client
+	req       *http.Request
+
+	respChan    chan *http.Response
+	calloutErr  error
+	respHeader  api.HeaderMap
+	respBody    buffer.IoBuffer
+	respTrailer api.HeaderMap
+
 	reqOnFly bool
 }
 
@@ -91,50 +97,80 @@ func (d *DefaultImportsHandler) HttpCall(reqURL string, header common.HeaderMap,
 	calloutID := atomic.AddInt32(&httpCalloutID, 1)
 
 	d.hc = &httpCallout{
-		id: calloutID,
+		id:         calloutID,
 		d:          d,
 		instance:   d.Instance,
 		abiContext: d.Instance.GetData().(*ABIContext),
-		urlString: reqURL,
+		urlString:  reqURL,
+		respChan:   make(chan *http.Response),
 	}
 
-	d.hc.client = &http.Client{	Timeout: time.Millisecond * time.Duration(timeoutMilliseconds)}
+	d.hc.client = &http.Client{Timeout: time.Millisecond * time.Duration(timeoutMilliseconds)}
 
+	// prepare http req
 	d.hc.req, err = http.NewRequest(http.MethodGet, u.String(), buffer.NewIoBufferBytes(body.Bytes()))
 	if err != nil {
 		log.DefaultLogger.Errorf("[proxywasm010][imports] HttpCall fail to create http req, err: %v, reqURL: %v", err, reqURL)
 		return 0, proxywasm.WasmResultInternalFailure
 	}
-
-	header.Range(func(key, value string) bool {
-		d.hc.req.Header.Add(key, value)
-		return true
-	})
+	if header != nil {
+		header.Range(func(key, value string) bool {
+			d.hc.req.Header.Add(key, value)
+			return true
+		})
+	}
+	if trailer != nil {
+		trailer.Range(func(key, value string) bool {
+			d.hc.req.Trailer.Add(key, value)
+			return true
+		})
+	}
 
 	d.hc.reqOnFly = true
+
+	// launch http call asynchronously
+	// should start a new goroutine here because the calloutID must be returned to wasm module immediately.
+	utils.GoWithRecover(func() {
+		resp, err := d.hc.client.Do(d.hc.req)
+		if err != nil {
+			d.hc.calloutErr = err
+		}
+		d.hc.respChan <- resp
+	}, nil)
 
 	return calloutID, proxywasm.WasmResultOk
 }
 
 // override
-func (d *DefaultImportsHandler) Wait() {
+func (d *DefaultImportsHandler) Wait() proxywasm.Action {
 	if d.hc == nil || !d.hc.reqOnFly {
-		return
+		if d.DirectResponse {
+			d.DirectResponse = false
+			return proxywasm.ActionPause
+		}
+		return proxywasm.ActionContinue
 	}
 
-	// release the instance lock and do sync http req
+	// release the instance lock and wait for http resp
 	d.Instance.Unlock()
-	resp, err := d.hc.client.Do(d.hc.req)
+	resp := <-d.hc.respChan
 	d.Instance.Lock(d.hc.abiContext)
 
 	d.hc.reqOnFly = false
 
-	if err != nil {
+	rootContextID := d.hc.abiContext.Imports.GetRootContextID()
+	exports := d.hc.abiContext.GetExports()
+
+	if d.hc.calloutErr != nil || resp == nil {
 		log.DefaultLogger.Errorf("[proxywasm010][imports] HttpCall id: %v fail to do http req, err: %v, reqURL: %v",
-			d.hc.id, err, d.hc.urlString)
-		return
+			d.hc.id, d.hc.calloutErr, d.hc.urlString)
+
+		// should call proxy_on_http_call_response to prevent memory leak
+		_ = exports.ProxyOnHttpCallResponse(rootContextID, d.hc.id, 0, 0, 0)
+
+		// If 'DispatchHttpCall' got called again in 'ProxyOnHttpCallResponse', we should keep waiting again.
+		return d.Wait()
 	}
-	d.hc.resp = resp
 
 	// process http resp header
 	var respHeader api.HeaderMap = protocol.CommonHeader{}
@@ -165,14 +201,20 @@ func (d *DefaultImportsHandler) Wait() {
 	}
 	d.hc.respBody = respBody
 
-	// call proxy_on_http_call_response
-	rootContextID := d.hc.abiContext.Imports.GetRootContextID()
-	exports := d.hc.abiContext.GetExports()
+	// process http resp trailer
+	var respTrailer api.HeaderMap = protocol.CommonHeader{}
+	for key, _ := range resp.Trailer {
+		respTrailer.Set(key, resp.Trailer.Get(key))
+	}
+	d.hc.respTrailer = respTrailer
 
 	err = exports.ProxyOnHttpCallResponse(rootContextID, d.hc.id, int32(len(resp.Header)), int32(respBodyLen), 0)
 	if err != nil {
 		log.DefaultLogger.Errorf("[proxywasm010][imports] httpCall id: %v fail to call ProxyOnHttpCallResponse, err: %v", d.hc.id, err)
 	}
+
+	// If the DispatchHttpCall got invoked again in 'ProxyOnHttpCallResponse', we should keep waiting again.
+	return d.Wait()
 }
 
 // override
@@ -188,6 +230,15 @@ func (d *DefaultImportsHandler) GetHttpCallResponseHeaders() common.HeaderMap {
 func (d *DefaultImportsHandler) GetHttpCallResponseBody() common.IoBuffer {
 	if d.hc != nil && d.hc.respBody != nil {
 		return IoBufferWrapper{IoBuffer: d.hc.respBody}
+	}
+
+	return nil
+}
+
+// override
+func (d *DefaultImportsHandler) GetHttpCallResponseTrailer() common.HeaderMap {
+	if d.hc != nil && d.hc.respTrailer != nil {
+		return HeaderMapWrapper{HeaderMap: d.hc.respTrailer}
 	}
 
 	return nil
