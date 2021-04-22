@@ -56,7 +56,7 @@ func RegisterImports(instance common.WasmInstance) {
 
 	_ = instance.RegisterFunc("env", "proxy_resume_http_request", ProxyResumeHttpRequest)
 	_ = instance.RegisterFunc("env", "proxy_resume_http_response", ProxyResumeHttpResponse)
-	_ = instance.RegisterFunc("env", "proxy_send_local_response", ProxySendHttpResponse)
+	_ = instance.RegisterFunc("env", "proxy_send_http_response", ProxySendHttpResponse)
 
 	_ = instance.RegisterFunc("env", "proxy_http_call", ProxyHttpCall)
 	_ = instance.RegisterFunc("env", "proxy_dispatch_http_call", ProxyHttpCall)

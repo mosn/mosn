@@ -52,8 +52,8 @@ type Filter struct {
 	contextID     int32
 
 	downStreamRequestHeader api.HeaderMap
-	receiverFilterHandler api.StreamReceiverFilterHandler
-	senderFilterHandler   api.StreamSenderFilterHandler
+	receiverFilterHandler   api.StreamReceiverFilterHandler
+	senderFilterHandler     api.StreamSenderFilterHandler
 
 	destroyOnce sync.Once
 }
