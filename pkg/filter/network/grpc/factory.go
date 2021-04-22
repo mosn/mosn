@@ -37,11 +37,11 @@ import (
 )
 
 const (
-	grpcName string = "Grpc"
+	grpcName    string = "Grpc"
 	serviceName string = "service_name"
 )
 
-func serviceNameGetter (ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+func serviceNameGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
 	if !ok {
 		return variable.ValueNotFound, nil
@@ -50,6 +50,7 @@ func serviceNameGetter (ctx context.Context, value *variable.IndexedValue, data 
 	if !ok {
 		return variable.ValueNotFound, nil
 	}
+
 	serviceName, ok := headers.Get(headerKey)
 	if ok {
 		return serviceName, nil
@@ -58,7 +59,7 @@ func serviceNameGetter (ctx context.Context, value *variable.IndexedValue, data 
 }
 
 func init() {
-	v := variable.NewBasicVariable(grpcName + "_" + serviceName, serviceName, serviceNameGetter, nil, 0)
+	v := variable.NewBasicVariable(grpcName+"_"+serviceName, serviceName, serviceNameGetter, nil, 0)
 	variable.RegisterVariable(v)
 
 	variable.RegisterProtocolResource(api.ProtocolName(grpcName), api.PATH, serviceName)
@@ -121,43 +122,15 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 	return nil
 }
 
-type wrapper struct {
-	grpc.ServerTransportStream
-	header, trailer metadata.MD
-}
-
-func (w *wrapper) Method() string {
-	return w.ServerTransportStream.Method()
-}
-func (w *wrapper) SetHeader(md metadata.MD) error{
-	if err := w.ServerTransportStream.SetHeader(md); err != nil {
-		return err
-	}
-	w.header = md
-	return nil
-}
-func (w *wrapper) SendHeader(md metadata.MD) error{
-	if err := w.ServerTransportStream.SendHeader(md); err != nil {
-		return err
-	}
-	w.header = md
-	return nil
-}
-func (w *wrapper) SetTrailer(md metadata.MD) error{
-	if err := w.ServerTransportStream.SetTrailer(md); err != nil {
-		return err
-	}
-	w.trailer = md
-	return nil
-}
-
 // UnaryInterceptorFilter is an implementation of grpc.UnaryServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
 	sfc := streamfilter.GetDefaultStreamFilterChain()
 	ss := &grpcStreamFilterChain{
 		sfc,
+		types.DownFilterAfterRoute,
 		nil,
 	}
+	defer ss.destroy()
 
 	f.streamFilterFactory.CreateFilterChain(ctx, ss)
 
@@ -171,7 +144,6 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		}
 	}
 
-	//used by rate limit
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
 
@@ -180,10 +152,8 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		return nil, ss.err
 	}
 
-	wrapperHeader := metadata.Pairs()
-	wrapperTrailer := metadata.Pairs()
 	stream := grpc.ServerTransportStreamFromContext(ctx)
-	wrapper := &wrapper{stream, wrapperHeader, wrapperTrailer}
+	wrapper := &wrapper{stream, nil, nil}
 	newCtx := grpc.NewContextWithServerTransportStream(ctx, wrapper)
 
 	//do biz logic
@@ -199,11 +169,10 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 		responseTrailer.Set(k, v[0])
 	}
 
-	sfc.RunSenderFilter(ctx, api.BeforeSend, responseHeader, nil, responseTrailer, ss.senderFilterStatusHandler)
+	status = sfc.RunSenderFilter(ctx, api.BeforeSend, responseHeader, nil, responseTrailer, ss.senderFilterStatusHandler)
 	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
 		return nil, ss.err
 	}
-	ss.destroy()
 
 	return
 }

@@ -3,10 +3,12 @@ package grpc
 import (
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/streamfilter"
+	"mosn.io/mosn/pkg/types"
 )
 
 type grpcStreamFilterChain struct {
 	*streamfilter.DefaultStreamFilterChainImpl
+	phase types.Phase
 	err error
 }
 
@@ -37,17 +39,11 @@ func (sfc *grpcStreamFilterChain) destroy() {
 }
 
 func (sfc *grpcStreamFilterChain) receiverFilterStatusHandler(phase api.ReceiverFilterPhase, status api.StreamFilterStatus) {
-	switch status {
-	case api.StreamFiltertermination, api.StreamFilterStop:
-		sfc.destroy()
-	}
+
 }
 
 func (sfc *grpcStreamFilterChain) senderFilterStatusHandler(phase api.SenderFilterPhase, status api.StreamFilterStatus) {
-	switch status {
-	case api.StreamFiltertermination, api.StreamFilterStop:
-		sfc.destroy()
-	}
+
 }
 
 

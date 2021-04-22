@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mosn.io/mosn/pkg/streamfilter"
 	"net"
 	"os"
 	"strconv"
@@ -33,6 +32,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"mosn.io/mosn/pkg/streamfilter"
 
 	"golang.org/x/sys/unix"
 	"mosn.io/api"

@@ -20,7 +20,6 @@ package grpc
 import (
 	"context"
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"mosn.io/mosn/pkg/streamfilter"
 	"net"
 	"sync"
@@ -38,36 +37,10 @@ import (
 func TestGrpcFilter(t *testing.T) {
 	RegisterServerHandler("test", NewHelloExampleGrpcServer)
 	addr := "127.0.0.1:8080"
-	streamFilterConfig := []byte(`[
-										{
-											"type": "flowControlFilter",
-											"config": {
-												"global_switch": true,
-												"monitor": false,
-												"limit_key_type": "PATH",
-												"rules": [
-													{
-														"resource": "/helloworld.Greeter/SayHello",
-														"limitApp": "",
-														"grade": 1,
-														"threshold": 5,
-														"strategy": 0
-													}
-												]
-											}
-										}
-									]`)
-
-	filter := new([]v2.Filter)
-	err := json.Unmarshal(streamFilterConfig, filter)
-	if err != nil {
-		t.Fatal(err)
-	}
 	param := &v2.Listener{
 		ListenerConfig: v2.ListenerConfig{
-			Name: "test",
+			Name:       "test",
 			AddrConfig: addr,
-			StreamFilters: *filter,
 		},
 	}
 	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(param.Name, param.StreamFilters)
@@ -139,14 +112,10 @@ func TestGrpcFilter(t *testing.T) {
 	// mock grpc client
 	testHello(c, t)
 
-	//wait flow control
-	time.Sleep(2 * time.Second)
-	testFlowControl(c, t)
-
 	wg.Wait()
 }
 
-func testHello(c pb.GreeterClient, t *testing.T){
+func testHello(c pb.GreeterClient, t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	r, err := c.SayHello(ctx, &pb.HelloRequest{Name: "test"})
@@ -155,19 +124,6 @@ func testHello(c pb.GreeterClient, t *testing.T){
 	}
 	if r.Message != "Hello test" {
 		t.Fatalf("unexpected result: %s", r.Message)
-	}
-}
-
-func testFlowControl(c pb.GreeterClient, t *testing.T) {
-	for i := 0; i < 10; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		r, err := c.SayHello(ctx, &pb.HelloRequest{Name: "test"})
-		if i <= 4 {
-			assert.Equal(t, r.Message, "Hello test")
-		}else{
-			assert.NotNil(t, err.Error(), "current request is limited")
-		}
-		cancel()
 	}
 }
 

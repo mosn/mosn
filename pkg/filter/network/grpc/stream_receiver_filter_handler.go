@@ -4,6 +4,7 @@ import (
 	"errors"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/log"
+	"mosn.io/mosn/pkg/types"
 )
 
 type grpcStreamReceiverFilterHandler struct {
@@ -91,8 +92,14 @@ func (h grpcStreamReceiverFilterHandler) SetConvert(on bool) {
 }
 
 func (h grpcStreamReceiverFilterHandler) GetFilterCurrentPhase() api.ReceiverFilterPhase {
-	log.DefaultLogger.Warnf("GetFilterCurrentPhase() not implemented yet")
-	return -1
+	// default AfterRoute
+	p := api.AfterRoute
+
+	switch h.sfc.phase {
+	case types.DownFilterAfterRoute:
+		p = api.AfterRoute
+	}
+	return p
 }
 
 
