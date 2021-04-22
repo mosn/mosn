@@ -14,7 +14,7 @@ import (
 
 func TestGrpcFlowControl(t *testing.T) {
 	Scenario(t, "flow control grpc server in mosn", func() {
-		_, _ = lib.InitMosn(ConfigHelloGrpcFilter) // no servers need
+		_, _ = lib.InitMosn(ConfigFlowControlGrpcFilter) // no servers need
 		Case("call grpc", func() {
 			conn, err := grpc.Dial("127.0.0.1:2045", grpc.WithInsecure(), grpc.WithBlock())
 			Verify(err, Equal, nil)
@@ -34,7 +34,7 @@ func TestGrpcFlowControl(t *testing.T) {
 	})
 }
 
-const ConfigHelloGrpcFilter = `{
+const ConfigFlowControlGrpcFilter = `{
 	"servers":[
 		{
 			"default_log_path":"stdout",
