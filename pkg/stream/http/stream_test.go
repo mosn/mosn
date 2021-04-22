@@ -21,11 +21,9 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
-	"strconv"
 	"testing"
 	"time"
 
@@ -351,7 +349,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-		// TODO: Add test cases.
+	// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -386,6 +384,37 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 
 }
 
+func TestStreamConfigHandler(t *testing.T) {
+	t.Run("test config", func(t *testing.T) {
+		v := map[string]interface{}{
+			"max_header_size":       1024,
+			"max_request_body_size": 1024,
+		}
+		rv := streamConfigHandler(v)
+		cfg, ok := rv.(StreamConfig)
+		if !ok {
+			t.Fatalf("config handler should returns an StreamConfig")
+		}
+		if !(cfg.MaxHeaderSize == 1024 &&
+			cfg.MaxRequestBodySize == 1024) {
+			t.Fatalf("unexpected config: %v", cfg)
+		}
+	})
+	t.Run("test body size", func(t *testing.T) {
+		v := map[string]interface{}{
+			"max_request_body_size": 8192,
+		}
+		rv := streamConfigHandler(v)
+		cfg, ok := rv.(StreamConfig)
+		if !ok {
+			t.Fatalf("config handler should returns an StreamConfig")
+		}
+		if cfg.MaxHeaderSize != defaultMaxHeaderSize {
+			t.Fatalf("no header size configured, should use default header size but not: %d", cfg.MaxHeaderSize)
+		}
+	})
+}
+
 func TestHeaderSize(t *testing.T) {
 	// Only request line, do not add the end of request '\r\n\r\n' identification.
 	requestSmall := []byte("HEAD / HTTP/1.1\r\nHost: test.com\r\nCookie: key=1234")
@@ -406,10 +435,11 @@ func TestHeaderSize(t *testing.T) {
 
 	connection := network.NewServerConnection(context.Background(), rawc, nil)
 
-	var proxyGeneralExtendConfig map[string]interface{}
-	json.Unmarshal([]byte(`{"max_header_size":`+strconv.Itoa(len(requestSmall))+`}`), &proxyGeneralExtendConfig)
+	proxyGeneralExtendConfig := map[string]interface{}{
+		"max_header_size": len(requestSmall),
+	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, streamConfigHandler(proxyGeneralExtendConfig))
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
 	ssc := newServerStreamConnection(ctx, connection, nil)
 	if ssc == nil {
 		t.Errorf("newServerStreamConnection failed!")

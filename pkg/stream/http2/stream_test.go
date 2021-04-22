@@ -117,3 +117,29 @@ func TestDirectResponse(t *testing.T) {
 		t.Errorf("invalid content length got %s , want %s", got, want)
 	}
 }
+
+func TestStreamConfigHandler(t *testing.T) {
+	t.Run("test stream config", func(t *testing.T) {
+		v := map[string]interface{}{
+			"http2_use_stream": true,
+		}
+		rv := streamConfigHandler(v)
+		cfg, ok := rv.(StreamConfig)
+		if !ok {
+			t.Fatalf("should returns StreamConfig but not")
+		}
+		if !cfg.Http2UseStream {
+			t.Fatalf("invalid config: %v", cfg)
+		}
+	})
+	t.Run("test invalid default", func(t *testing.T) {
+		rv := streamConfigHandler(nil)
+		cfg, ok := rv.(StreamConfig)
+		if !ok {
+			t.Fatalf("should returns StreamConfig but not")
+		}
+		if cfg.Http2UseStream {
+			t.Fatalf("invalid config: %v", cfg)
+		}
+	})
+}
