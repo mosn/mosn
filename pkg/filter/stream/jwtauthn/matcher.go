@@ -34,6 +34,7 @@ type baseMatcher struct {
 }
 
 func newBaseMatcher(rule *jwtauthnv3.RequirementRule) *baseMatcher {
+	// default case sensitive
 	caseSensitive := true
 	if rule.Match.CaseSensitive != nil {
 		caseSensitive = rule.Match.CaseSensitive.Value

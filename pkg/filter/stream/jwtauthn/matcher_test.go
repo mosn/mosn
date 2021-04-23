@@ -15,31 +15,30 @@ func TestMatchPrefix(t *testing.T) {
 			PathSpecifier: &routev3.RouteMatch_Prefix{
 				Prefix: "/match",
 			},
-			CaseSensitive: &wrappers.BoolValue{Value: false},
 		},
 	}
 
 	matcher := NewMatcher(rule)
 	assert.True(t, matcher.Matches(nil, "/match/this"))
-	assert.True(t, matcher.Matches(nil, "/MATCH"))
+	assert.False(t, matcher.Matches(nil, "/MATCH"))
 	assert.True(t, matcher.Matches(nil, "/matching"))
 	assert.False(t, matcher.Matches(nil, "/matc"))
 	assert.False(t, matcher.Matches(nil, "/no"))
 }
 
-func TestMatchPrefixCaseSensitive(t *testing.T) {
+func TestMatchPrefixCaseInsensitive(t *testing.T) {
 	rule := &jwtauthnv3.RequirementRule{
 		Match: &routev3.RouteMatch{
 			PathSpecifier: &routev3.RouteMatch_Prefix{
 				Prefix: "/match",
 			},
-			CaseSensitive: &wrappers.BoolValue{Value: true},
+			CaseSensitive: &wrappers.BoolValue{Value: false},
 		},
 	}
 
 	matcher := NewMatcher(rule)
 	assert.True(t, matcher.Matches(nil, "/matching"))
-	assert.False(t, matcher.Matches(nil, "/MATCH"))
+	assert.True(t, matcher.Matches(nil, "/MATCH"))
 }
 
 func TestMatchPath(t *testing.T) {
