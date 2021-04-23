@@ -69,7 +69,11 @@ func newPrefixMatcher(rule *jwtauthnv3.RequirementRule) Matcher {
 }
 
 func (p *prefixMatcher) Matches(headers api.HeaderMap, requestPath string) bool {
-	if p.baseMatcher.matchRoutes(headers, requestPath) && strings.HasPrefix(requestPath, p.prefix) {
+	prefixMatch := strings.HasPrefix(requestPath, p.prefix)
+	if !p.baseMatcher.caseSensitive {
+		prefixMatch = strings.HasPrefix(strings.ToLower(requestPath), strings.ToLower(p.prefix))
+	}
+	if p.baseMatcher.matchRoutes(headers, requestPath) && prefixMatch {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 			log.DefaultLogger.Debugf("Prefix requirement '%s' matched.", p.prefix)
 		}
@@ -99,7 +103,7 @@ func (p *pathMatcher) Matches(headers api.HeaderMap, requestPath string) bool {
 
 	pathMatch := p.path == requestPath
 	if !p.caseSensitive {
-		pathMatch = strings.ToLower(p.path) == strings.ToLower(requestPath)
+		pathMatch = strings.EqualFold(strings.ToLower(p.path), strings.ToLower(requestPath))
 	}
 	if p.baseMatcher.matchRoutes(headers, requestPath) && pathMatch {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {

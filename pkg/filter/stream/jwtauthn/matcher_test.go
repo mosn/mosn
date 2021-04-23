@@ -6,7 +6,6 @@ import (
 	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	jwtauthnv3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	//matcherv3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,15 +15,31 @@ func TestMatchPrefix(t *testing.T) {
 			PathSpecifier: &routev3.RouteMatch_Prefix{
 				Prefix: "/match",
 			},
+			CaseSensitive: &wrappers.BoolValue{Value: false},
 		},
 	}
 
 	matcher := NewMatcher(rule)
 	assert.True(t, matcher.Matches(nil, "/match/this"))
-	assert.False(t, matcher.Matches(nil, "/MATCH"))
+	assert.True(t, matcher.Matches(nil, "/MATCH"))
 	assert.True(t, matcher.Matches(nil, "/matching"))
 	assert.False(t, matcher.Matches(nil, "/matc"))
 	assert.False(t, matcher.Matches(nil, "/no"))
+}
+
+func TestMatchPrefixCaseSensitive(t *testing.T) {
+	rule := &jwtauthnv3.RequirementRule{
+		Match: &routev3.RouteMatch{
+			PathSpecifier: &routev3.RouteMatch_Prefix{
+				Prefix: "/match",
+			},
+			CaseSensitive: &wrappers.BoolValue{Value: true},
+		},
+	}
+
+	matcher := NewMatcher(rule)
+	assert.True(t, matcher.Matches(nil, "/matching"))
+	assert.False(t, matcher.Matches(nil, "/MATCH"))
 }
 
 func TestMatchPath(t *testing.T) {
