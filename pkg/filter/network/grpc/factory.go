@@ -21,49 +21,24 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
+	"sync"
+
+	"mosn.io/mosn/pkg/variable"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/header"
-	"net"
-	"sync"
 )
-
-const (
-	grpcName    string = "Grpc"
-	serviceName string = "service_name"
-)
-
-func serviceNameGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	headers, ok := mosnctx.Get(ctx, types.ContextKeyDownStreamHeaders).(api.HeaderMap)
-	if !ok {
-		return variable.ValueNotFound, nil
-	}
-	headerKey, ok := data.(string)
-	if !ok {
-		return variable.ValueNotFound, nil
-	}
-
-	serviceName, ok := headers.Get(headerKey)
-	if ok {
-		return serviceName, nil
-	}
-	return variable.ValueNotFound, nil
-}
 
 func init() {
-	v := variable.NewBasicVariable(grpcName+"_"+serviceName, serviceName, serviceNameGetter, nil, 0)
-	variable.RegisterVariable(v)
-
-	variable.RegisterProtocolResource(api.ProtocolName(grpcName), api.PATH, serviceName)
-
 	api.RegisterNetwork(v2.GRPC_NETWORK_FILTER, CreateGRPCServerFilterFactory)
 }
 
@@ -146,6 +121,7 @@ func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, re
 
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
 	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
+	ctx = variable.NewVariableContext(ctx)
 
 	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
 	if status == api.StreamFiltertermination || status == api.StreamFilterStop {

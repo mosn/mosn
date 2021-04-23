@@ -20,17 +20,17 @@ package grpc
 import (
 	"context"
 	"encoding/json"
-	"mosn.io/mosn/pkg/streamfilter"
 	"net"
 	"sync"
 	"testing"
 	"time"
 
+	"mosn.io/mosn/pkg/streamfilter"
+
 	"google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
-	_ "mosn.io/mosn/pkg/filter/stream/flowcontrol"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/pkg/buffer"
 )
 
