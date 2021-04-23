@@ -33,8 +33,6 @@ import (
 	"syscall"
 	"time"
 
-	"mosn.io/mosn/pkg/streamfilter"
-
 	"golang.org/x/sys/unix"
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
@@ -46,6 +44,7 @@ import (
 	"mosn.io/mosn/pkg/metrics"
 	"mosn.io/mosn/pkg/mtls"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"

@@ -25,12 +25,11 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/streamfilter"
-
 	"google.golang.org/grpc"
 	pb "google.golang.org/grpc/examples/helloworld/helloworld"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/pkg/buffer"
 )
 
