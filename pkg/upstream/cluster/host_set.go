@@ -26,9 +26,10 @@ import (
 
 // hostSet is an implementation of types.HostSet
 type hostSet struct {
-	once     sync.Once
-	mux      sync.RWMutex
-	allHosts []types.Host
+	once      sync.Once
+	mux       sync.RWMutex
+	allHosts  []types.Host
+	predicate types.HostPredicate
 }
 
 // Hosts do not needs lock, becasue it "immutable"
@@ -36,7 +37,7 @@ func (hs *hostSet) Hosts() []types.Host {
 	return hs.allHosts
 }
 
-func (hs *hostSet) createSubset(predicate types.HostPredicate) types.HostSet {
+func (hs *hostSet) CreateSubset(predicate types.HostPredicate) types.HostSet {
 	allHosts := hs.Hosts()
 	var subHosts []types.Host
 	for _, h := range allHosts {
@@ -44,10 +45,10 @@ func (hs *hostSet) createSubset(predicate types.HostPredicate) types.HostSet {
 			subHosts = append(subHosts, h)
 		}
 	}
-	sub := &subHostSet{
+	sub := &hostSet{
 		predicate: predicate,
-		allHosts:  subHosts,
 	}
+	sub.setFinalHost(subHosts)
 	return sub
 }
 
@@ -71,18 +72,4 @@ func (hs *hostSet) setFinalHost(hosts []types.Host) {
 			log.DefaultLogger.Infof("[upstream] [host set] update host, final host total: %d", len(hs.allHosts))
 		}
 	})
-}
-
-// subHostSet is a types.Host makes by hostSet
-// the member and healthy states is sync from hostSet that created it
-// no callbacks can be added in subset hostset
-type subHostSet struct {
-	mux       sync.RWMutex
-	allHosts  []types.Host
-	predicate types.HostPredicate
-}
-
-// Hosts do not need lock, because it is "immutable"
-func (sub *subHostSet) Hosts() []types.Host {
-	return sub.allHosts
 }

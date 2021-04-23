@@ -121,6 +121,7 @@ type HostPredicate func(Host) bool
 type HostSet interface {
 	// Hosts returns all hosts that make up the set at the current time.
 	Hosts() []Host
+	CreateSubset(predicate HostPredicate) HostSet
 }
 
 // Host is an upstream host

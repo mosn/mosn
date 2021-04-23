@@ -32,10 +32,10 @@ type subsetLoadBalancer struct {
 	stats          types.ClusterStats
 	subSets        types.LbSubsetMap  // final trie-like structure used to stored easily searched subset
 	fallbackSubset *LBSubsetEntryImpl // subset entry generated according to fallback policy
-	hostSet        *hostSet
+	hostSet        types.HostSet
 }
 
-func NewSubsetLoadBalancer(info types.ClusterInfo, hostSet *hostSet) types.LoadBalancer {
+func NewSubsetLoadBalancer(info types.ClusterInfo, hostSet types.HostSet) types.LoadBalancer {
 	subsetInfo := info.LbSubsetInfo()
 	subsetLB := &subsetLoadBalancer{
 		lbType:  info.LbType(),
@@ -122,7 +122,7 @@ func (sslb *subsetLoadBalancer) createSubsets(info types.ClusterInfo, subSetKeys
 			if len(kvs) > 0 {
 				entry := sslb.findOrCreateSubset(sslb.subSets, kvs, 0)
 				if !entry.Initialized() {
-					subHostset := sslb.hostSet.createSubset(func(host types.Host) bool {
+					subHostset := sslb.hostSet.CreateSubset(func(host types.Host) bool {
 						return HostMatches(kvs, host)
 					})
 					subsSetCount += 1
@@ -152,7 +152,7 @@ func (sslb *subsetLoadBalancer) createFallbackSubset(info types.ClusterInfo, pol
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
 		}
-		subHostset := hostSet.createSubset(func(host types.Host) bool {
+		subHostset := hostSet.CreateSubset(func(host types.Host) bool {
 			return HostMatches(meta, host)
 		})
 		sslb.fallbackSubset.CreateLoadBalancer(info, subHostset)
