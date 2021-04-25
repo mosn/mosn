@@ -18,7 +18,6 @@
 package grpc
 
 import (
-	"context"
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -30,17 +29,9 @@ const (
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewIndexedVariable(grpcName+"_"+serviceName, nil, serviceNameGetter, variable.BasicSetter, 0),
+		variable.NewIndexedVariable(grpcName+"_"+serviceName, nil, nil, variable.BasicSetter, 0),
 	}
 )
-
-func serviceNameGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
-	serviceName, err := variable.GetVariableValue(ctx, grpcName+"_"+serviceName)
-	if err != nil || serviceName == "" {
-		return variable.ValueNotFound, nil
-	}
-	return serviceName, nil
-}
 
 func init() {
 	for idx := range builtinVariables {

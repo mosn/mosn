@@ -19,10 +19,11 @@ package grpc
 
 import (
 	"context"
+	"testing"
+
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
-	"testing"
 )
 
 type mockFilter struct{}
