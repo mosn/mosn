@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -87,34 +86,6 @@ type httpCallout struct {
 	reqOnFly bool
 }
 
-func (hc *httpCallout) reset() {
-	if hc == nil {
-		return
-	}
-
-	hc.id = 0
-	hc.reqOnFly = false
-	hc.d, hc.instance, hc.abiContext = nil, nil, nil
-	hc.urlString, hc.client, hc.req = "", nil, nil
-	hc.respHeader, hc.respBody, hc.respTrailer = nil, nil, nil
-	hc.calloutErr = nil
-}
-
-var httpCalloutPool = sync.Pool{
-	New: func() interface{} {
-		return &httpCallout{}
-	},
-}
-
-func GetHttpCallout() *httpCallout {
-	return httpCalloutPool.Get().(*httpCallout)
-}
-
-func PutHttpCallout(hc *httpCallout) {
-	hc.reset()
-	httpCalloutPool.Put(hc)
-}
-
 // override
 func (d *DefaultImportsHandler) HttpCall(reqURL string, header common.HeaderMap, body common.IoBuffer,
 	trailer common.HeaderMap, timeoutMilliseconds int32) (int32, proxywasm.WasmResult) {
@@ -126,17 +97,14 @@ func (d *DefaultImportsHandler) HttpCall(reqURL string, header common.HeaderMap,
 
 	calloutID := atomic.AddInt32(&httpCalloutID, 1)
 
-	if d.hc == nil {
-		d.hc = GetHttpCallout()
-	} else {
-		d.hc.reset()
+	d.hc = &httpCallout{
+		id:         calloutID,
+		d:          d,
+		instance:   d.Instance,
+		abiContext: d.Instance.GetData().(*ABIContext),
+		urlString:  reqURL,
+		respChan:   make(chan *http.Response, 1),
 	}
-	d.hc.id = calloutID
-	d.hc.d = d
-	d.hc.instance = d.Instance
-	d.hc.abiContext = d.Instance.GetData().(*ABIContext)
-	d.hc.urlString = reqURL
-	d.hc.respChan = make(chan *http.Response, 1)
 
 	d.hc.client = &http.Client{Timeout: time.Millisecond * time.Duration(timeoutMilliseconds)}
 
@@ -178,12 +146,6 @@ func (d *DefaultImportsHandler) Wait() proxywasm.Action {
 	d.Instance.Lock(d.hc.abiContext)
 
 	d.hc.reqOnFly = false
-	defer func() {
-		if d.hc != nil {
-			PutHttpCallout(d.hc)
-			d.hc = nil
-		}
-	}()
 
 	rootContextID := d.hc.abiContext.Imports.GetRootContextID()
 	exports := d.hc.abiContext.GetExports()
