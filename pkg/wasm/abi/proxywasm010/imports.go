@@ -102,9 +102,7 @@ func (hc *httpCallout) reset() {
 
 var httpCalloutPool = sync.Pool{
 	New: func() interface{} {
-		return &httpCallout{
-			respChan: make(chan *http.Response),
-		}
+		return &httpCallout{}
 	},
 }
 
@@ -138,6 +136,7 @@ func (d *DefaultImportsHandler) HttpCall(reqURL string, header common.HeaderMap,
 	d.hc.instance = d.Instance
 	d.hc.abiContext = d.Instance.GetData().(*ABIContext)
 	d.hc.urlString = reqURL
+	d.hc.respChan = make(chan *http.Response, 1)
 
 	d.hc.client = &http.Client{Timeout: time.Millisecond * time.Duration(timeoutMilliseconds)}
 
