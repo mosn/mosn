@@ -311,7 +311,8 @@ func (f *Filter) SendHttpResp(respCode int32, respCodeDetail common.IoBuffer, re
 			f.downStreamRequestHeader.Set(key, value)
 			return true
 		})
-		f.receiverFilterHandler.SendDirectResponse(f.downStreamRequestHeader, nil, nil)
+
+		f.receiverFilterHandler.SendDirectResponse(f.downStreamRequestHeader, buffer.NewIoBufferBytes(respBody.Bytes()), nil)
 		f.DefaultImportsHandler.DirectResponse = true
 	}
 	return proxywasm.WasmResultOk
