@@ -48,10 +48,12 @@ func TestImportsHandlerHttpCall(t *testing.T) {
 	server := http.Server{Addr: ":22164"}
 	defer server.Close()
 
+	doHttpCall := false
 	go func() {
 		http.HandleFunc("/haha", func(writer http.ResponseWriter, request *http.Request) {
 			writer.WriteHeader(http.StatusOK)
 			writer.Write([]byte("response from external server"))
+			doHttpCall = true
 		})
 		server.ListenAndServe()
 	}()
@@ -77,7 +79,6 @@ func TestImportsHandlerHttpCall(t *testing.T) {
 	assert.True(t, d.hc.reqOnFly)
 
 	d.Wait()
-
-	assert.NotNil(t, d.GetHttpCallResponseHeaders())
-	assert.NotNil(t, d.GetHttpCallResponseBody())
+	
+	assert.True(t, doHttpCall)
 }
