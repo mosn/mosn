@@ -25,11 +25,16 @@ import (
 	"sync"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/streamfilter"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/header"
 )
 
 func init() {
@@ -43,7 +48,7 @@ type grpcServerFilterFactory struct {
 	server              RegisteredServer
 	config              *v2.GRPC
 	handler             *Handler
-	streamfilterFactory streamfilter.StreamFilterFactory
+	streamFilterFactory streamfilter.StreamFilterFactory
 	ln                  *Listener
 }
 
@@ -57,8 +62,6 @@ func (f *grpcServerFilterFactory) CreateFilterChain(ctx context.Context, callbac
 	rf := NewGrpcFilter(ctx, f.ln)
 	callbacks.AddReadFilter(rf)
 }
-
-const GrpcStreamFilters = "streamfilters"
 
 func (f *grpcServerFilterFactory) Init(param interface{}) error {
 	cfg, ok := param.(*v2.Listener)
@@ -74,7 +77,8 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 		return err
 	}
 	// GetStreamFilters from listener name
-	f.streamfilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(cfg.Name)
+	f.streamFilterFactory = streamfilter.GetStreamFilterManager().GetStreamFilterFactory(cfg.Name)
+
 	//
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(f.UnaryInterceptorFilter),
@@ -94,13 +98,70 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 
 // UnaryInterceptorFilter is an implementation of grpc.UnaryServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
-	// TODO: implement me
-	return handler(ctx, req)
+	sfc := streamfilter.GetDefaultStreamFilterChain()
+	ss := &grpcStreamFilterChain{
+		sfc,
+		types.DownFilterAfterRoute,
+		nil,
+	}
+	defer ss.destroy()
+
+	f.streamFilterFactory.CreateFilterChain(ctx, ss)
+
+	requestHeader := header.CommonHeader{}
+	requestHeader.Set(serviceName, info.FullMethod)
+
+	md, ok := metadata.FromIncomingContext(ctx)
+	if ok {
+		for k, v := range md {
+			requestHeader.Set(k, v[0])
+		}
+	}
+
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamProtocol, api.ProtocolName(grpcName))
+	ctx = mosnctx.WithValue(ctx, types.ContextKeyDownStreamHeaders, requestHeader)
+	ctx = variable.NewVariableContext(ctx)
+
+	variable.SetVariableValue(ctx, grpcName+"_"+serviceName, info.FullMethod)
+
+	status := ss.RunReceiverFilter(ctx, api.AfterRoute, requestHeader, nil, nil, ss.receiverFilterStatusHandler)
+	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
+		return nil, ss.err
+	}
+
+	stream := grpc.ServerTransportStreamFromContext(ctx)
+	wrapper := &wrapper{stream, nil, nil}
+	newCtx := grpc.NewContextWithServerTransportStream(ctx, wrapper)
+
+	//do biz logic
+	resp, err = handler(newCtx, req)
+
+	responseHeader := header.CommonHeader{}
+	for k, v := range wrapper.header {
+		responseHeader.Set(k, v[0])
+	}
+
+	responseTrailer := header.CommonHeader{}
+	for k, v := range wrapper.trailer {
+		responseTrailer.Set(k, v[0])
+	}
+
+	status = ss.RunSenderFilter(ctx, api.BeforeSend, responseHeader, nil, responseTrailer, ss.senderFilterStatusHandler)
+	if status == api.StreamFiltertermination || status == api.StreamFilterStop {
+		return nil, ss.err
+	}
+
+	return
 }
 
 // StreamInterceptorFilter is an implementation of grpc.StreamServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) StreamInterceptorFilter(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-	// TODO: implement me
+
+	//TODO
+	//to use mosn stream filter here, we must
+	//1. only support intercept when the first request come and before the last response send (this maybe the standard implementation?)
+	//2. support intercept every stream recv/send
+
 	return handler(srv, ss)
 }
 
