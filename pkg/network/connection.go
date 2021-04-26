@@ -1139,12 +1139,8 @@ func (cc *clientConnection) tryConnect() (event api.ConnectionEvent, err error) 
 		event = api.ConnectFailed
 		return
 	}
-	// If server does not support tls, but client connect with tls.
-	// server will trigger codec error (in xprotocol), and close the connection, which returns an io.EOF error.
-	if strings.Contains(err.Error(), "tls") || errors.Is(err, io.EOF) {
-		log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
-			cc.localAddr, cc.remoteAddr, err)
-	}
+	log.DefaultLogger.Alertf(types.ErrorKeyTLSFallback, "tls handshake fallback, local addr %v, remote addr %v, error: %v",
+		cc.localAddr, cc.remoteAddr, err)
 	return cc.connect()
 }
 
