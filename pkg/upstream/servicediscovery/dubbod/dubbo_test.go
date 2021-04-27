@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"bou.ke/monkey"
+	monkey "github.com/cch123/supermonkey"
 	"github.com/go-chi/chi"
 	registry "github.com/mosn/registry/dubbo"
 	dubbocommon "github.com/mosn/registry/dubbo/common"

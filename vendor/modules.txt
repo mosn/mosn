@@ -1,6 +1,3 @@
-# bou.ke/monkey v1.0.2
-## explicit
-bou.ke/monkey
 # github.com/SkyAPM/go2sky v0.5.0
 ## explicit
 github.com/SkyAPM/go2sky
@@ -57,6 +54,17 @@ github.com/beorn7/perks/quantile
 # github.com/c2h5oh/datasize v0.0.0-20171227191756-4eba002a5eae
 ## explicit
 github.com/c2h5oh/datasize
+# github.com/cch123/supermonkey v1.0.1-0.20210420090843-d792ef7fb1d7
+## explicit
+github.com/cch123/supermonkey
+github.com/cch123/supermonkey/internal/bouk
+github.com/cch123/supermonkey/internal/goobj
+github.com/cch123/supermonkey/internal/nm
+github.com/cch123/supermonkey/internal/objabi
+github.com/cch123/supermonkey/internal/objfile
+github.com/cch123/supermonkey/internal/src
+github.com/cch123/supermonkey/internal/sys
+github.com/cch123/supermonkey/internal/xcoff
 # github.com/census-instrumentation/opencensus-proto v0.2.1
 github.com/census-instrumentation/opencensus-proto/gen-go/resource/v1
 github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
@@ -347,6 +355,11 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
+# golang.org/x/arch v0.0.0-20200826200359-b19915210f00
+golang.org/x/arch/arm/armasm
+golang.org/x/arch/arm64/arm64asm
+golang.org/x/arch/ppc64/ppc64asm
+golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 ## explicit
 golang.org/x/crypto/chacha20
@@ -411,6 +424,8 @@ google.golang.org/grpc/credentials
 google.golang.org/grpc/credentials/internal
 google.golang.org/grpc/encoding
 google.golang.org/grpc/encoding/proto
+google.golang.org/grpc/examples/features/proto/echo
+google.golang.org/grpc/examples/helloworld/helloworld
 google.golang.org/grpc/grpclog
 google.golang.org/grpc/health
 google.golang.org/grpc/health/grpc_health_v1
@@ -459,7 +474,7 @@ istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 ## explicit
 k8s.io/klog
-# mosn.io/api v0.0.0-20210315130952-69d829aa866e
+# mosn.io/api v0.0.0-20210414070543-8a0686b03540
 ## explicit
 mosn.io/api
 # mosn.io/pkg v0.0.0-20210401090620-f0e0d1a3efce

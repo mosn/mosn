@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"bou.ke/monkey"
+	monkey "github.com/cch123/supermonkey"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
@@ -15,7 +15,7 @@ import (
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/stream"
-	_ "mosn.io/mosn/pkg/stream/http"
+	"mosn.io/mosn/pkg/stream/http"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
@@ -60,14 +60,13 @@ func TestNewProxy(t *testing.T) {
 
 	t.Run("config with subprotocol", func(t *testing.T) {
 		subs := "bolt,boltv2"
-		pv := NewProxy(genctx(), &v2.Proxy{
+		ctx := genctx()
+		ctx = mosnctx.WithValue(ctx, types.ContextSubProtocol, subs)
+		pv := NewProxy(ctx, &v2.Proxy{
 			Name:               "test",
 			DownstreamProtocol: "X",
 			UpstreamProtocol:   "X",
 			RouterConfigName:   "test_router",
-			ExtendConfig: map[string]interface{}{
-				"sub_protocol": subs,
-			},
 		})
 		// verify
 		p := pv.(*proxy)
@@ -79,8 +78,9 @@ func TestNewProxy(t *testing.T) {
 			t.Fatalf("got subprotocol %s, but expected %s", sub, subs)
 		}
 	})
-	t.Run("config with proxy general", func(t *testing.T) {
-		pv := NewProxy(genctx(), &v2.Proxy{
+	t.Run("config with proxy general HTTP1", func(t *testing.T) {
+		ctx := genctx()
+		cfg := &v2.Proxy{
 			Name:               "test",
 			DownstreamProtocol: "Http1",
 			UpstreamProtocol:   "Http1",
@@ -89,15 +89,24 @@ func TestNewProxy(t *testing.T) {
 				"http2_use_stream":      true,
 				"max_request_body_size": 100,
 			},
-		})
+		}
+		// mock create proxy factory
+		extConfig := protocol.HandleConfig(api.ProtocolName(cfg.DownstreamProtocol), cfg.ExtendConfig)
+		ctx = mosnctx.WithValue(ctx, types.ContextKeyProxyGeneralConfig, extConfig)
+		pv := NewProxy(ctx, cfg)
 		// verify
 		p := pv.(*proxy)
-		cfg, ok := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig).(map[string]interface{})
-		if !ok {
+		v := mosnctx.Get(p.context, types.ContextKeyProxyGeneralConfig)
+		if v == nil {
 			t.Fatal("no proxy extend config")
 		}
-		assert.True(t, cfg["http2_use_stream"].(bool))
-		assert.Equal(t, cfg["max_request_body_size"].(int), 100)
+		//
+		check := func(t *testing.T, v interface{}) {
+			cfg, ok := v.(http.StreamConfig)
+			assert.True(t, ok)
+			assert.Equal(t, cfg.MaxRequestBodySize, 100)
+		}
+		check(t, v)
 	})
 }
 

@@ -401,13 +401,20 @@ func GetListenerFilters(configs []v2.Filter) []api.ListenerFilterChainFactory {
 }
 
 // GetNetworkFilters returns a network filter factory by filter.Type
-func GetNetworkFilters(c *v2.FilterChain) []api.NetworkFilterChainFactory {
+func GetNetworkFilters(ln *v2.Listener) []api.NetworkFilterChainFactory {
 	var factories []api.NetworkFilterChainFactory
+	c := ln.FilterChains[0]
 	for _, f := range c.Filters {
 		factory, err := api.CreateNetworkFilterChainFactory(f.Type, f.Config)
 		if err != nil {
 			log.StartLogger.Errorf("[config] network filter create failed, type:%s, error: %v", f.Type, err)
 			continue
+		}
+		if initialzer, ok := factory.(api.FactoryInitializer); ok {
+			if err := initialzer.Init(ln); err != nil {
+				log.StartLogger.Errorf("[config] network filter init failed, type:%s, error:%v", f.Type, err)
+				continue
+			}
 		}
 		if factory != nil {
 			factories = append(factories, factory)

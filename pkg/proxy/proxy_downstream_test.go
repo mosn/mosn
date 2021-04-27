@@ -22,9 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
-
-	"bou.ke/monkey"
+	monkey "github.com/cch123/supermonkey"
 	"github.com/golang/mock/gomock"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -38,6 +36,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 

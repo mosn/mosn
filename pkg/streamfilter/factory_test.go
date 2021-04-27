@@ -21,7 +21,7 @@ import (
 	"context"
 	"testing"
 
-	"bou.ke/monkey"
+	monkey "github.com/cch123/supermonkey"
 	"github.com/golang/mock/gomock"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
