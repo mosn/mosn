@@ -407,3 +407,8 @@ func (m *Mosn) InheritConnections() error {
 	m.CleanUpgrade()
 	return err
 }
+
+
+func (m *Mosn) GetServer() []server.Server {
+	return m.servers
+}

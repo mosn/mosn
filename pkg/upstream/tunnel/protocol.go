@@ -21,7 +21,7 @@ var (
 	PayLoadIndex = 4
 
 	typesToFlag = map[string]byte{
-		reflect.TypeOf(ConnectionInitInfo{}).Elem().Name(): byte(0x01),
+		reflect.TypeOf(ConnectionInitInfo{}).Name(): byte(0x01),
 	}
 
 	FlagToTypes = map[byte]func() interface{}{
@@ -36,10 +36,10 @@ type ConnectionInitInfo struct {
 	Weight      int64  `json:"weight"`
 }
 
-func Write(i interface{}) error {
+func WriteBuffer(i interface{}) (buffer.IoBuffer, error) {
 	data, err := json.Marshal(i)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	// alloc encode buffer
 	totalLen := HeaderLen + len(data)
@@ -52,9 +52,9 @@ func Write(i interface{}) error {
 		buf.WriteByte(flag)
 		// encode payload
 		buf.Write(data)
-		return nil
+		return buf, nil
 	}
-	return errors.New("")
+	return nil, errors.New("")
 }
 
 func Read(buffer api.IoBuffer) interface{} {

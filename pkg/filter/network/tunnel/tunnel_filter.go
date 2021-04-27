@@ -18,17 +18,16 @@ type tunnelFilter struct {
 
 func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[tunnel server] [ondata] read data , len = %v", p.network, buffer.Len())
+		log.DefaultLogger.Debugf("[tunnel server] [ondata] read data , len = %v", buffer.Len())
 	}
 	data := tunnel.Read(buffer)
 	if data != nil {
-		info, ok := data.(tunnel.ConnectionInitInfo)
+		info, ok := data.(*tunnel.ConnectionInitInfo)
 		if ok {
 			conn := t.readCallbacks.Connection()
-			t.clusterManager.AppendClusterHosts(info.ClusterName,[]v2.Host{{
-				HostConfig:       v2.HostConfig{},
-				ClientConnection: &network.TunnelAgentConnection{Connection: conn},
-			}})
+			t.clusterManager.AppendHostWithConnection(info.ClusterName, v2.Host{
+				HostConfig: v2.HostConfig{},
+			}, network.CreateTunnelAgentConnection(conn))
 		}
 
 	}
