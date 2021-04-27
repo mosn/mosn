@@ -13,7 +13,6 @@ func init() {
 }
 
 type tunnelNetworkFilterFactory struct {
-	FaultInject *v2.FaultInject
 }
 
 func (f *tunnelNetworkFilterFactory) CreateFilterChain(context context.Context, callbacks api.NetWorkFilterChainFactoryCallbacks) {
