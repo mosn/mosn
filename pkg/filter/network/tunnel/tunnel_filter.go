@@ -12,26 +12,36 @@ import (
 var _ api.ReadFilter = (*tunnelFilter)(nil)
 
 type tunnelFilter struct {
-	clusterManager types.ClusterManager
-	readCallbacks  api.ReadFilterCallbacks
+	clusterManager  types.ClusterManager
+	readCallbacks   api.ReadFilterCallbacks
+	connInitialized bool
 }
 
 func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
+	if t.connInitialized {
+		return api.Continue
+	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 		log.DefaultLogger.Debugf("[tunnel server] [ondata] read data , len = %v", buffer.Len())
 	}
 	data := tunnel.Read(buffer)
 	if data != nil {
+		// now it can only be ConnectionInitInfo
 		info, ok := data.(*tunnel.ConnectionInitInfo)
 		if ok {
+			//
 			conn := t.readCallbacks.Connection()
-			t.clusterManager.AppendHostWithConnection(info.ClusterName, v2.Host{
-				HostConfig: v2.HostConfig{},
-			}, network.CreateTunnelAgentConnection(conn))
+			conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
+			if t.clusterManager.ClusterExist(info.ClusterName) {
+				// set the flag that has been initialized, subsequent data processing skips this filter
+				t.connInitialized = true
+				t.clusterManager.AppendHostWithConnection(info.ClusterName, v2.Host{
+					HostConfig: v2.HostConfig{},
+				}, network.CreateTunnelAgentConnection(conn))
+			}
 		}
-
 	}
-	return api.Stop
+	return api.Continue
 }
 
 func (t *tunnelFilter) OnNewConnection() api.FilterStatus {

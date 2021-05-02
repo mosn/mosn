@@ -131,7 +131,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 			if size > 10 {
 				size = 10
 			}
-			log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] conn %d, %v decode error: %v, buf data: %v", sc.netConn.ID(), sc.netConn.RemoteAddr(), err, buf.Bytes()[:size])
+			log.Proxy.Errorf(sc.ctx, "[stream] [xprotocol] conn %d, %v decode error: %v, buf data: %v", sc.netConn.ID(), sc.netConn.RemoteAddr(), err, string(buf.Bytes()[:size]))
 
 			sc.handleError(streamCtx, frame, err)
 			return

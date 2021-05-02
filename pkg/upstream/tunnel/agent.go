@@ -2,12 +2,12 @@ package tunnel
 
 import (
 	"encoding/json"
-	"net"
-	"time"
 
+	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
+	pool "mosn.io/mosn/pkg/stream/connpool/msgconnpool"
 	"mosn.io/pkg/utils"
 )
 
@@ -50,14 +50,21 @@ func connectServer(conf *agentBootstrapConfig, address string) {
 	if listener == nil {
 		return
 	}
-	for i := 0; i < conf.ConnectionNum; i++ {
-		rawc, err := net.DialTimeout("tcp", address, time.Second*10)
-		if err != nil {
+	config := &ConnectionConfig{
+		Address:     address,
+		ClusterName: conf.Cluster,
+		Weight:      10,
+	}
+	connectionInitFunc := func(c pool.Connection) {
+		connData, state := c.GetConnAndState()
+		// second check
+		if state != pool.Available {
 			return
 		}
+		rawc := connData.Connection.RawConn()
 		initInfo := &ConnectionInitInfo{
-			ClusterName: conf.Cluster,
-			Weight:      10,
+			ClusterName: config.ClusterName,
+			Weight:      config.Weight,
 		}
 		buffer, err := WriteBuffer(initInfo)
 		if err != nil {
@@ -70,5 +77,30 @@ func connectServer(conf *agentBootstrapConfig, address string) {
 		utils.GoWithRecover(func() {
 			listener.GetListenerCallbacks().OnAccept(rawc, listener.UseOriginalDst(), nil, nil, nil)
 		}, nil)
+	}
+	for i := 0; i < conf.ConnectionNum; i++ {
+		conn := pool.NewConn(address, -1, nil, true)
+		conn.Init(nil, func() []api.ConnectionEventListener {
+			return []api.ConnectionEventListener{&AgentConnectionInitListener{
+				initFunc: connectionInitFunc,
+				c:        conn,
+			}}
+		})
+	}
+}
+
+type ConnectionConfig struct {
+	Address     string
+	ClusterName string
+	Weight      int64
+}
+type AgentConnectionInitListener struct {
+	initFunc func(c pool.Connection)
+	c        pool.Connection
+}
+
+func (a *AgentConnectionInitListener) OnEvent(event api.ConnectionEvent) {
+	if event == api.Connected {
+		a.initFunc(a.c)
 	}
 }

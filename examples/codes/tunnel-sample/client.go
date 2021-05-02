@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"mosn.io/api"
@@ -19,13 +20,15 @@ import (
 )
 
 type Client struct {
-	proto  types.ProtocolName
-	Client stream.Client
-	conn   types.ClientConnection
-	Id     uint64
+	proto      types.ProtocolName
+	Client     stream.Client
+	conn       types.ClientConnection
+	Id         uint64
+	respWaiter sync.WaitGroup
+	t          bool
 }
 
-func NewClient(addr string, proto types.ProtocolName) *Client {
+func NewClient(addr string, proto types.ProtocolName, t bool) *Client {
 	c := &Client{}
 	stopChan := make(chan struct{})
 	remoteAddr, _ := net.ResolveTCPAddr("tcp", addr)
@@ -39,6 +42,7 @@ func NewClient(addr string, proto types.ProtocolName) *Client {
 	c.Client = stream.NewStreamClient(ctx, protocol.Xprotocol, conn, nil)
 	c.conn = conn
 	c.proto = proto
+	c.t = t
 	return c
 }
 
@@ -49,6 +53,9 @@ func (c *Client) OnReceive(ctx context.Context, headers types.HeaderMap, data ty
 
 		if resp, ok := cmd.(api.XRespFrame); ok {
 			fmt.Println("stream:", streamID, " status:", resp.GetStatusCode())
+			if !c.t {
+				c.respWaiter.Done()
+			}
 		}
 	}
 }
@@ -75,12 +82,13 @@ func main() {
 	t := flag.Bool("t", false, "-t")
 	flag.Parse()
 	// use bolt as example
-	if client := NewClient("127.0.0.1:2045", bolt.ProtocolName); client != nil {
+	if client := NewClient("127.0.0.1:2045", bolt.ProtocolName, *t); client != nil {
 		for {
 			client.Request()
 			time.Sleep(200 * time.Millisecond)
 			if !*t {
-				time.Sleep(3 * time.Second)
+				client.respWaiter.Add(1)
+				client.respWaiter.Wait()
 				return
 			}
 		}

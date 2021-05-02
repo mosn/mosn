@@ -15,7 +15,7 @@ type TunnelAgentConnection struct {
 
 func (cc *TunnelAgentConnection) Connect() (err error) {
 	if cc.State() == api.ConnClosed {
-		return errors.New("")
+		return errors.New("tunnel channel has been closed")
 	}
 	return nil
 }

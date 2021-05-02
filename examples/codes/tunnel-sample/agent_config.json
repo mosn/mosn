@@ -37,14 +37,7 @@
                 }
               }
             ]
-          }],
-          "stream_filters":[
-            {
-              "type": "healthcheck",
-              "config": {
-              }
-            }
-          ]
+          }]
         }
       ]
     }
