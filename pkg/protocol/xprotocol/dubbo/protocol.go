@@ -68,7 +68,7 @@ func (proto dubboProtocol) Name() types.ProtocolName {
 
 func (proto dubboProtocol) Encode(ctx context.Context, model interface{}) (types.IoBuffer, error) {
 	if frame, ok := model.(*Frame); ok {
-		if frame.Direction == EventRequest {
+		if frame.Direction == EventRequest 	{
 			return encodeRequest(ctx, frame)
 		} else if frame.Direction == EventResponse {
 			return encodeResponse(ctx, frame)

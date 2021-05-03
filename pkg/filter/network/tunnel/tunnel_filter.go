@@ -36,7 +36,12 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 				// set the flag that has been initialized, subsequent data processing skips this filter
 				t.connInitialized = true
 				t.clusterManager.AppendHostWithConnection(info.ClusterName, v2.Host{
-					HostConfig: v2.HostConfig{},
+					HostConfig: v2.HostConfig{
+						Address:        conn.RemoteAddr().String(),
+						Hostname:       info.HostName,
+						Weight:         uint32(info.Weight),
+						TLSDisable:     false,
+					},
 				}, network.CreateTunnelAgentConnection(conn))
 			}
 		}

@@ -65,7 +65,7 @@ type ConnectionConfig struct {
 	Address               string        `json:"address"`
 	ClusterName           string        `json:"cluster_name"`
 	Weight                int64         `json:"weight"`
-	ConnectRetryTimes     int64         `json:"connect_retry_times"`
+	ConnectRetryTimes     int         `json:"connect_retry_times"`
 	Network               string        `json:"network"`
 	ReconnectBaseDuration time.Duration `json:"reconnect_base_duration"`
 }
