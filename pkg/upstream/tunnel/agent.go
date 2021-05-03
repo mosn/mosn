@@ -2,13 +2,13 @@ package tunnel
 
 import (
 	"encoding/json"
+	"time"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
 	pool "mosn.io/mosn/pkg/stream/connpool/msgconnpool"
-	"mosn.io/pkg/utils"
 )
 
 type agentBootstrapConfig struct {
@@ -55,44 +55,19 @@ func connectServer(conf *agentBootstrapConfig, address string) {
 		ClusterName: conf.Cluster,
 		Weight:      10,
 	}
-	connectionInitFunc := func(c pool.Connection) {
-		connData, state := c.GetConnAndState()
-		// second check
-		if state != pool.Available {
-			return
-		}
-		rawc := connData.Connection.RawConn()
-		initInfo := &ConnectionInitInfo{
-			ClusterName: config.ClusterName,
-			Weight:      config.Weight,
-		}
-		buffer, err := WriteBuffer(initInfo)
-		if err != nil {
-			return
-		}
-		// write connection init request
-		rawc.Write(buffer.Bytes())
-
-		// new connection
-		utils.GoWithRecover(func() {
-			listener.GetListenerCallbacks().OnAccept(rawc, listener.UseOriginalDst(), nil, nil, nil)
-		}, nil)
-	}
 	for i := 0; i < conf.ConnectionNum; i++ {
-		conn := pool.NewConn(address, -1, nil, true)
-		conn.Init(nil, func() []api.ConnectionEventListener {
-			return []api.ConnectionEventListener{&AgentConnectionInitListener{
-				initFunc: connectionInitFunc,
-				c:        conn,
-			}}
-		})
+		conn := NewConnection(*config, listener)
+		conn.connectAndInit()
 	}
 }
 
 type ConnectionConfig struct {
-	Address     string
-	ClusterName string
-	Weight      int64
+	Address               string        `json:"address"`
+	ClusterName           string        `json:"cluster_name"`
+	Weight                int64         `json:"weight"`
+	ConnectRetryTimes     int64         `json:"connect_retry_times"`
+	Network               string        `json:"network"`
+	ReconnectBaseDuration time.Duration `json:"reconnect_base_duration"`
 }
 type AgentConnectionInitListener struct {
 	initFunc func(c pool.Connection)
