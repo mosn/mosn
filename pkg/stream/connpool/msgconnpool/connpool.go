@@ -47,9 +47,8 @@ type Connection interface {
 	Write(buf ...buffer.IoBuffer) error // write to current connection
 	State() State                       // get the conn detailed state
 	Destroy()                           // destroy the current conn
-	Init(getReadFilterAndKeepalive func() ([]api.ReadFilter, KeepAlive), connectionEventListenerCreator func() []api.ConnectionEventListener)
-	GetConnAndState() (*types.CreateConnectionData, State)
 }
+
 type connpool struct {
 	client        *activeClient
 	host          types.Host
@@ -61,8 +60,7 @@ type connpool struct {
 	destroyed              uint64
 
 	// when connection change, readFilter need to change, use creator to create new filter chain
-	getReadFilterAndKeepalive      func() ([]api.ReadFilter, KeepAlive)
-	connectionEventListenerCreator func() []api.ConnectionEventListener
+	getReadFilterAndKeepalive func() ([]api.ReadFilter, KeepAlive)
 }
 
 // NewConn returns a simplified connpool
@@ -78,18 +76,15 @@ func NewConn(hostAddr string, connectTryTimes int,
 	}
 
 	p := &connpool{
-		host:                      host,
+		host: host,
 		autoReconnectWhenClose:    autoReconnectWhenClose,
 		connTryTimes:              connectTryTimes,
 		getReadFilterAndKeepalive: getReadFilterAndKeepalive,
 	}
-	return p
-}
 
-func (p *connpool) Init(getReadFilterAndKeepalive func() ([]api.ReadFilter, KeepAlive), connectionEventListenerCreator func() []api.ConnectionEventListener) {
-	p.getReadFilterAndKeepalive = getReadFilterAndKeepalive
-	p.connectionEventListenerCreator = connectionEventListenerCreator
 	p.initActiveClient()
+
+	return p
 }
 
 func (p *connpool) Host() types.Host {
@@ -100,7 +95,7 @@ func (p *connpool) Host() types.Host {
 
 // Write to client
 func (p *connpool) Write(buf ...buffer.IoBuffer) error {
-	if h, state := p.GetConnAndState(); state == Available {
+	if h, state := p.getConnAndState(); state == Available {
 		return h.Connection.Write(buf...)
 	}
 	return errors.New("[connpool] connection not ready, host" + p.Host().AddressString())
@@ -108,7 +103,7 @@ func (p *connpool) Write(buf ...buffer.IoBuffer) error {
 
 // State current available to send request
 func (p *connpool) State() State {
-	_, state := p.GetConnAndState()
+	_, state := p.getConnAndState()
 	return state
 }
 
@@ -136,10 +131,10 @@ func (p *connpool) initActiveClient() {
 	p.connectingMux.Lock()
 	defer p.connectingMux.Unlock()
 
-	p.client.initConnectionLocked(initReasonFirstConnect)
+	p.client.initConnectionLocked("FirstConnect")
 }
 
-func (p *connpool) GetConnAndState() (*types.CreateConnectionData, State) {
+func (p *connpool) getConnAndState() (*types.CreateConnectionData, State) {
 	// if pool was destroyed
 	if atomic.LoadUint64(&p.destroyed) == 1 {
 		return nil, Destroyed

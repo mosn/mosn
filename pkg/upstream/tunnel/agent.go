@@ -20,11 +20,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
-	pool "mosn.io/mosn/pkg/stream/connpool/msgconnpool"
 )
 
 type agentBootstrapConfig struct {
@@ -81,17 +79,7 @@ type ConnectionConfig struct {
 	Address               string        `json:"address"`
 	ClusterName           string        `json:"cluster_name"`
 	Weight                int64         `json:"weight"`
-	ConnectRetryTimes     int         `json:"connect_retry_times"`
+	ConnectRetryTimes     int           `json:"connect_retry_times"`
 	Network               string        `json:"network"`
 	ReconnectBaseDuration time.Duration `json:"reconnect_base_duration"`
-}
-type AgentConnectionInitListener struct {
-	initFunc func(c pool.Connection)
-	c        pool.Connection
-}
-
-func (a *AgentConnectionInitListener) OnEvent(event api.ConnectionEvent) {
-	if event == api.Connected {
-		a.initFunc(a.c)
-	}
 }
