@@ -66,7 +66,7 @@ func (a *AgentRawConnection) connectAndInit() error {
 			}
 			buffer, err := WriteBuffer(initInfo)
 			if err != nil {
-				return nil
+				return err
 			}
 			// write connection init request
 			_, err = rawc.Write(buffer.Bytes())

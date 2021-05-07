@@ -115,7 +115,7 @@ func Read(buffer api.IoBuffer) interface{} {
 	}
 
 	magicBytes := dataBytes[MagicIndex:VersionIndex]
-	if bytes.Compare(Magic, magicBytes) != 0 {
+	if !bytes.Equal(Magic, magicBytes) {
 		return nil
 	}
 	_ = dataBytes[VersionIndex:FlagIndex]
