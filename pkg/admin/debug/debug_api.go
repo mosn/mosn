@@ -30,6 +30,7 @@ func init() {
 	log.StartLogger.Infof("mosn is builded in debug mosn")
 	admin.RegisterAdminHandleFunc("/debug/update_config", DebugUpdateMosnConfig)
 	admin.RegisterAdminHandleFunc("/debug/disable_tls", DebugUpdateTLSDisable)
+	admin.RegisterAdminHandleFunc("/debug/update_route", DebugUdpateRoute)
 }
 
 // The config types support to be updated
@@ -116,6 +117,7 @@ func DebugUpdateMosnConfig(w http.ResponseWriter, r *http.Request) {
 		log.DefaultLogger.Infof("update extend config success")
 		w.Write(success)
 	default:
+		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprint(w, "invalid type, do nothing")
 	}
 }
@@ -141,4 +143,67 @@ func DebugUpdateTLSDisable(w http.ResponseWriter, r *http.Request) {
 		cluster.EnableClientSideTLS()
 	}
 	w.Write(success)
+}
+
+const (
+	AddRoute    = "add"
+	RemoveRoute = "remove"
+)
+
+type RouteConfig struct {
+	RouteName string     `json:"router_config_name"`
+	Domain    string     `json:"domain"`
+	Route     *v2.Router `json:"route"`
+}
+
+func DebugUdpateRoute(w http.ResponseWriter, r *http.Request) {
+	content, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.DefaultLogger.Errorf("api [update mosn config] read body error: %v", err)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "invalid request")
+		return
+	}
+	invalid := func(s string) {
+		log.DefaultLogger.Errorf("api [update mosn config] is not a valid request: %s", s)
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "invalid request")
+	}
+	req := &UpdateConfigRequest{}
+	if err := json.Unmarshal(content, req); err != nil {
+		invalid(string(content))
+		return
+	}
+	switch req.Type {
+	case AddRoute:
+		rcfg := &RouteConfig{}
+		if err := json.Unmarshal(req.Config, rcfg); err != nil {
+			invalid(string(req.Config))
+			return
+		}
+		mng := router.GetRoutersMangerInstance()
+		if err := mng.AddRoute(rcfg.RouteName, rcfg.Domain, rcfg.Route); err != nil {
+			invalid(err.Error())
+			return
+		}
+		log.DefaultLogger.Infof("update route config success")
+		w.Write(success)
+	case RemoveRoute:
+		rcfg := &RouteConfig{}
+		if err := json.Unmarshal(req.Config, rcfg); err != nil {
+			invalid(string(req.Config))
+			return
+		}
+		mng := router.GetRoutersMangerInstance()
+		if err := mng.RemoveAllRoutes(rcfg.RouteName, rcfg.Domain); err != nil {
+			invalid(err.Error())
+			return
+		}
+		log.DefaultLogger.Infof("remove all route success")
+		w.Write(success)
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "invalid type, do nothing")
+	}
+
 }

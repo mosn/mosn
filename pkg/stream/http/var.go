@@ -43,6 +43,7 @@ var (
 		variable.NewBasicVariable(types.VarHttpRequestLength, nil, requestLengthGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestUri, nil, requestUriGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestPath, nil, requestPathGetter, nil, 0),
+		variable.NewBasicVariable(types.VarHttpRequestPathOriginal, nil, requestPathOriginalGetter, nil, 0),
 		variable.NewBasicVariable(types.VarHttpRequestArg, nil, requestArgGetter, nil, 0),
 	}
 
@@ -104,10 +105,16 @@ func requestPathGetter(ctx context.Context, value *variable.IndexedValue, data i
 	return string(request.URI().Path()), nil
 }
 
-func requestUriGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+func requestPathOriginalGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 	buffers := httpBuffersByContext(ctx)
 	request := &buffers.serverRequest
 
+	return string(request.URI().PathOriginal()), nil
+}
+
+func requestUriGetter(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	buffers := httpBuffersByContext(ctx)
+	request := &buffers.serverRequest
 	return string(request.Header.RequestURI()), nil
 }
 

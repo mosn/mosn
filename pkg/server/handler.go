@@ -36,7 +36,7 @@ import (
 	"golang.org/x/sys/unix"
 	"mosn.io/api"
 	admin "mosn.io/mosn/pkg/admin/store"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/configmanager"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/filter/listener/originaldst"
@@ -118,7 +118,8 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 	var listenerFiltersFactories []api.ListenerFilterChainFactory
 	var networkFiltersFactories []api.NetworkFilterChainFactory
 	listenerFiltersFactories = configmanager.GetListenerFilters(lc.ListenerFilters)
-	networkFiltersFactories = configmanager.GetNetworkFilters(&lc.FilterChains[0])
+	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
+	networkFiltersFactories = configmanager.GetNetworkFilters(lc)
 
 	var al *activeListener
 	if al = ch.findActiveListenerByName(listenerName); al != nil {
@@ -207,8 +208,6 @@ func (ch *connHandler) AddOrUpdateListener(lc *v2.Listener) (types.ListenerEvent
 		}
 
 	}
-
-	streamfilter.GetStreamFilterManager().AddOrUpdateStreamFilterConfig(listenerName, lc.StreamFilters)
 
 	configmanager.SetListenerConfig(*al.listener.Config())
 	return al, nil

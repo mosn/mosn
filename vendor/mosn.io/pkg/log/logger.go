@@ -23,7 +23,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -238,7 +237,7 @@ func (l *Logger) handler() {
 			for {
 				select {
 				case buf = <-l.writeBufferChan:
-					buf.WriteTo(l)
+					l.Write(buf.Bytes())
 					buffer.PutIoBuffer(buf)
 				default:
 					l.stop()
@@ -247,19 +246,9 @@ func (l *Logger) handler() {
 				}
 			}
 		case buf = <-l.writeBufferChan:
-			for i := 0; i < 20; i++ {
-				select {
-				case b := <-l.writeBufferChan:
-					buf.Write(b.Bytes())
-					buffer.PutIoBuffer(b)
-				default:
-					break
-				}
-			}
-			buf.WriteTo(l)
+			l.Write(buf.Bytes())
 			buffer.PutIoBuffer(buf)
 		}
-		runtime.Gosched()
 	}
 }
 

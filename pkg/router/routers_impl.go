@@ -217,7 +217,7 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 	}
 	configImpl := NewConfigImpl(routerConfig)
 	for index, vhConfig := range routerConfig.VirtualHosts {
-		vh, err := NewVirtualHostImpl(vhConfig)
+		vh, err := NewVirtualHostImpl(&vhConfig)
 		if err != nil {
 			return nil, err
 		}

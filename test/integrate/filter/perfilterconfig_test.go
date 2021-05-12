@@ -125,8 +125,8 @@ func createConfigFilterProxyMesh(addr string, hosts []string, proto types.Protoc
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: routerCfgName,
 		},
-		VirtualHosts: []*v2.VirtualHost{
-			&v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
+			v2.VirtualHost{
 				Name:    "test1",
 				Domains: []string{"domain1.example"},
 				Routers: []v2.Router{
@@ -166,7 +166,7 @@ func createConfigFilterProxyMesh(addr string, hosts []string, proto types.Protoc
 					},
 				},
 			},
-			&v2.VirtualHost{
+			v2.VirtualHost{
 				Name:    "test2",
 				Domains: []string{"*"},
 				Routers: []v2.Router{

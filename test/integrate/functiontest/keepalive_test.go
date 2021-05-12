@@ -33,7 +33,7 @@ func (s *heartBeatServer) ServeBoltOrHeartbeat(t *testing.T, conn net.Conn) {
 			var err error
 			switch req.CmdCode {
 			case bolt.CmdCodeHeartbeat:
-				hbAck := s.boltProto.Reply(req)
+				hbAck := s.boltProto.Reply(context.TODO(), req)
 				iobufresp, err = s.boltProto.Encode(context.Background(), hbAck)
 				atomic.AddUint32(&s.HeartBeatCount, 1)
 			case bolt.CmdCodeRpcRequest:

@@ -1,0 +1,59 @@
+{
+  "servers": [
+    {
+      "default_log_path": "stdout",
+      "routers": [
+        {
+          "router_config_name": "server_router",
+          "virtual_hosts": [
+            {
+              "name": "serverHost",
+              "domains": [
+                "*"
+              ],
+              "routers": [
+                {
+                  "direct_response": {
+                    "status": 200
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "listeners": [
+        {
+          "address": "0.0.0.0:2045",
+          "bind_port": true,
+          "filter_chains": [
+            {
+              "filters": [
+                {
+                  "type": "proxy",
+                  "config": {
+                    "downstream_protocol": "Http1",
+                    "upstream_protocol": "Http1",
+                    "router_config_name": "server_router"
+                  }
+                }
+              ]
+            }
+          ],
+          "stream_filters": [
+            {
+              "type": "proxywasm",
+              "config": {
+                "instance_num": 1,
+                "vm_config": {
+                  "engine": "wasmer",
+                  "path": "/etc/wasm/filter.wasm"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -27,18 +27,57 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
+
+func TestBuildUrlFromCtxVar(t *testing.T) {
+	testcases := []struct {
+		path    string
+		pathOri string
+		want    string
+	}{
+		{
+			"/home/sa%6dple",
+			"/home/sa%25%36%64ple",
+			"/home/sa%25%36%64ple",
+		},
+		{
+			"/home/sa%6dple",
+			"/home/sample%20",
+			"/home/sa%256dple",
+		},
+		{
+			"/home/sample ",
+			"/home/sample%20",
+			"/home/sample%20",
+		},
+		{
+			"/home/sample ",
+			"/home/sample ",
+			"/home/sample ",
+		},
+		{
+			"home/sam ple",
+			"home/sam ple",
+			"home/sam ple",
+		},
+	}
+	for _, tc := range testcases {
+		ctx := variable.NewVariableContext(context.Background())
+		variable.SetVariableValue(ctx, types.VarPath, tc.path)
+		variable.SetVariableValue(ctx, types.VarPathOriginal, tc.pathOri)
+		assert.Equal(t, buildUrlFromCtxVar(ctx), tc.want)
+	}
+}
 
 func Test_clientStream_AppendHeaders(t *testing.T) {
 	streamMocked := stream{
@@ -345,6 +384,37 @@ func Test_clientStream_CheckReasonError(t *testing.T) {
 
 }
 
+func TestStreamConfigHandler(t *testing.T) {
+	t.Run("test config", func(t *testing.T) {
+		v := map[string]interface{}{
+			"max_header_size":       1024,
+			"max_request_body_size": 1024,
+		}
+		rv := streamConfigHandler(v)
+		cfg, ok := rv.(StreamConfig)
+		if !ok {
+			t.Fatalf("config handler should returns an StreamConfig")
+		}
+		if !(cfg.MaxHeaderSize == 1024 &&
+			cfg.MaxRequestBodySize == 1024) {
+			t.Fatalf("unexpected config: %v", cfg)
+		}
+	})
+	t.Run("test body size", func(t *testing.T) {
+		v := map[string]interface{}{
+			"max_request_body_size": 8192,
+		}
+		rv := streamConfigHandler(v)
+		cfg, ok := rv.(StreamConfig)
+		if !ok {
+			t.Fatalf("config handler should returns an StreamConfig")
+		}
+		if cfg.MaxHeaderSize != defaultMaxHeaderSize {
+			t.Fatalf("no header size configured, should use default header size but not: %d", cfg.MaxHeaderSize)
+		}
+	})
+}
+
 func TestHeaderSize(t *testing.T) {
 	// Only request line, do not add the end of request '\r\n\r\n' identification.
 	requestSmall := []byte("HEAD / HTTP/1.1\r\nHost: test.com\r\nCookie: key=1234")
@@ -364,11 +434,12 @@ func TestHeaderSize(t *testing.T) {
 	}
 
 	connection := network.NewServerConnection(context.Background(), rawc, nil)
-	proxyGeneralExtendConfig := v2.ProxyGeneralExtendConfig{
-		MaxHeaderSize: len(requestSmall),
-	}
 
-	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
+	proxyGeneralExtendConfig := map[string]interface{}{
+		"max_header_size": len(requestSmall),
+	}
+	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyProxyGeneralConfig, streamConfigHandler(proxyGeneralExtendConfig))
+
 	ssc := newServerStreamConnection(ctx, connection, nil)
 	if ssc == nil {
 		t.Errorf("newServerStreamConnection failed!")

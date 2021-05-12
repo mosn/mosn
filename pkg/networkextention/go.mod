@@ -7,9 +7,9 @@ require (
 	github.com/hashicorp/go-hclog v0.9.1 // indirect
 	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d // indirect
 	github.com/mitchellh/go-testing-interface v1.0.0 // indirect
-	mosn.io/api v0.0.0-20210129030635-d7dc8206d7b7
-	mosn.io/mosn v0.21.0
-	mosn.io/pkg v0.0.0-20201228090327-daaf86502a50
+	mosn.io/api v0.0.0-20210204052134-5b9a826795fd
+	mosn.io/mosn v0.0.0-20210210041606-f44566f58cb5
+	mosn.io/pkg v0.0.0-20210204111127-5f869b58611d
 )
 
 replace (

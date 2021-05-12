@@ -1,0 +1,117 @@
+{
+	"servers":[
+		{
+			"default_log_path":"stdout",
+			"routers":[
+				{
+					"router_config_name":"server_router",
+					"virtual_hosts":[{
+						"name":"serverHost",
+						"domains": ["*"],
+						"routers": [
+							{
+								"match":{"headers":[{"name":"service","value":".*"}]},
+								"route":{"cluster_name":"serverCluster"}
+							}
+						]
+					}]
+				},
+				{
+					"router_config_name":"client_router",
+					"virtual_hosts":[{
+						"name":"clientHost",
+						"domains": ["*"],
+						"routers": [
+							{
+								"match":{"headers":[{"name":"service","value":".*"}]},
+								"route":{"cluster_name":"clientCluster"}
+							}
+						]
+					}]
+
+				}
+			],
+			"listeners":[
+				{
+					"name":"serverListener",
+					"address": "127.0.0.1:2046",
+					"bind_port": true,
+					"filter_chains": [{
+						"filters": [
+							{
+								"type": "proxy",
+								"config": {
+									"downstream_protocol": "Auto",
+									"upstream_protocol": "Auto",
+									"router_config_name":"server_router",
+									"extend_config": {
+										"sub_protocol": "bolt"
+									}
+                                }
+							}
+						]
+					}],
+					"stream_filters":[
+						{
+							"type": "healthcheck",
+							"config": {
+							}
+						}
+					]
+				},
+				{
+					"name":"clientListener",
+					"address": "127.0.0.1:2045",
+					"bind_port": true,
+					"filter_chains": [{
+						"filters": [
+							{
+								"type": "proxy",
+								"config": {
+									"downstream_protocol": "Auto",
+									"upstream_protocol": "Auto",
+									"router_config_name":"client_router",
+                                    "extend_config": {
+                                      "sub_protocol": "bolt"
+                                    }
+								}
+							}
+						]
+					}]
+				}
+			]
+		}
+	],
+	"cluster_manager":{
+		"clusters":[
+			{
+				"name":"serverCluster",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+				"max_request_per_conn": 1024,
+				"conn_buffer_limit_bytes":32768,
+				"hosts":[
+					{"address":"127.0.0.1:12199"}
+				]
+			},
+			{
+				"name": "clientCluster",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+				"max_request_per_conn": 1024,
+				"conn_buffer_limit_bytes":32768,
+				"hosts":[
+					{"address":"127.0.0.1:2046"}
+				]
+			}
+		]
+	},
+	"admin": {
+		"address": {
+			"socket_address": {
+				"address": "0.0.0.0",
+				"port_value": 34901
+			}
+		}
+	}
+}

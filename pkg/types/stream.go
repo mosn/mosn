@@ -96,7 +96,7 @@ import (
 //
 
 // StreamResetReason defines the reason why stream reset
-type StreamResetReason string
+type StreamResetReason = string
 
 // Group of stream reset reasons
 const (

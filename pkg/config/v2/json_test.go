@@ -530,7 +530,7 @@ func TestFilterChainUnmarshal(t *testing.T) {
 
 func TestRouterConfigMarshal(t *testing.T) {
 	router := &RouterConfiguration{
-		VirtualHosts: []*VirtualHost{
+		VirtualHosts: []VirtualHost{
 			{
 				Name:    "test",
 				Domains: []string{"*"},
@@ -717,8 +717,8 @@ func TestRouterMarshalWithSep(t *testing.T) {
 	vhWithSep := "test/vh/with/sep"
 	os.RemoveAll(routerPath)
 	rcfg := &RouterConfiguration{
-		VirtualHosts: []*VirtualHost{
-			&VirtualHost{
+		VirtualHosts: []VirtualHost{
+			VirtualHost{
 				Name:    vhWithSep,
 				Domains: []string{"*"},
 			},
@@ -794,7 +794,7 @@ func TestRouterConfigDynamicModeParse(t *testing.T) {
 		t.Fatalf("virtual host parsed not enough, got: %v", testConfig.VirtualHosts)
 	}
 	// add a new virtualhost
-	testConfig.VirtualHosts = append(testConfig.VirtualHosts, &VirtualHost{
+	testConfig.VirtualHosts = append(testConfig.VirtualHosts, VirtualHost{
 		Domains: []string{"*"},
 	})
 	// dump json
