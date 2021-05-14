@@ -1,6 +1,6 @@
 ## 如何使用go-plugin机制拓展协议
 
-### 第一步：实现xprotocol接口
+### 第一步：实现XProtocolCodec接口
 
 ```
 type XProtocolCodec interface {
@@ -14,7 +14,7 @@ type XProtocolCodec interface {
 }
 
 ```
-+ xprotocol接口定义如上，包含四方面内容
++ XProtocolCodec接口定义如上，包含四方面内容
   
   一、实现ProtocolName方法，要求返回一个字符串类型的ProtocolName。
   
@@ -54,8 +54,8 @@ type XProtocolCodec interface {
 1.首先要理解报文，基本都离不开报文头和报文体，所有的编解码都围绕报文操作
     如下是示例协议的报文头规则，magic固定为x，作为协议的辨识标志，type指报文的类型，心跳，还是message消息等。
     dir指报文是属于请求还是响应，
-    requestId很好理解，唯一标识。
-    payloadLength，想要发送的消息体的长度，非常重要的内容。
+    requestId很好理解，请求与相应的唯一标识。
+    payloadLength，发送的消息体的长度，非常重要的内容。
     payload bytes，存放具体消息的部分。
 ```
 
@@ -78,6 +78,7 @@ type XProtocolCodec interface {
       一、byte数组长度不能小于最小报文的长度
       二、byte数组的第一个字节要求符合Magic
       三、dir的类型为req或者resp
+
 decodeRequest方法判断它符合报文之后，交给具体的decodeRequest decodeResponse处理，然后根据报文规则把byte数组内容放入Request Response结构体对象，以便mosn后续使用。
 byte流量发出，mosn需要将Request Response结构体对象再还原成byte数组，然后发出，细节请看protocol.go的Encode方法。判断它是req还是说resp，然后encoder.go的具体方法内，依据报文规则，转为byte数组然后由downstream发出。
 
@@ -105,7 +106,7 @@ cd ${projectpath}/examples/codes/xprotocol_with_goplugin_example/
   ]
 }
 ```
-+ 其中配置的方法LoadCodec，定义在api.go，它返回了一个实现上述xprotocol接口的结构体实例。
++ 其中配置的方法LoadCodec，定义在api.go，它返回了一个实现上述XProtocolCodec接口的结构体实例。
 
 
 ### 第四步：使用mosn加载运行go-plugin
@@ -139,7 +140,7 @@ cd ${targetpath}
 ##### 启动server
 
 ```
-${projectpath}/examples/codes/xprotocol_with_goplugin_example/server/
+${projectpath}/examples/codes/xprotocol_with_goplugin_example/
 go run server.go
 ```
 
@@ -162,7 +163,7 @@ go run server.go
 ##### 使用Client进行访问
 
 ```
-${projectpath}/examples/codes/xprotocol_with_goplugin_example/client/
+${projectpath}/examples/codes/xprotocol_with_goplugin_example/
 go run client.go
 ```
 

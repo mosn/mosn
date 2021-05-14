@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package main
+package codec
 
 import (
 	"mosn.io/api"
@@ -46,4 +46,5 @@ const (
 	ResponsePayloadIndex = 9
 	TypeIndex            = 1
 	DirIndex             = 2
+	RequestIdEnd         = 6
 )

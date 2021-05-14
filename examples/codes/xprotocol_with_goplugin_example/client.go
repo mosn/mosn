@@ -5,37 +5,12 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"mosn.io/mosn/examples/codes/xprotocol_with_goplugin_example/codec"
 	"net"
 )
 
 const reqMessage = "Hello World"
 const requestId = 1
-
-const (
-	ProtocolName string = "example" // protocol
-
-	Magic       byte = 'x' //magic
-	MagicIdx         = 0   //magicIndex
-	DirRequest  byte = 0   // dir
-	DirResponse byte = 1   // dir
-
-	TypeHeartbeat byte = 0 // cmd code
-	TypeMessage   byte = 1
-	TypeGoAway    byte = 2
-
-	ResponseStatusSuccess uint16 = 0 // 0x00 response status
-	ResponseStatusError   uint16 = 1 // 0x01
-
-	RequestHeaderLen  int = 11 // protocol header fields length
-	ResponseHeaderLen int = 13
-	MinimalDecodeLen  int = RequestHeaderLen // minimal length for decoding
-
-	RequestIdIndex       = 3
-	DirIndex             = 1
-	RequestPayloadIndex  = 7
-	RequestIdEnd         = 6
-	ResponsePayloadIndex = 9
-)
 
 type Response struct {
 	Type       byte
@@ -49,14 +24,14 @@ func decodeResponse(ctx context.Context, bytes []byte) (cmd interface{}, err err
 	bytesLen := len(bytes)
 
 	// 1. least bytes to decode header is ResponseHeaderLen
-	if bytesLen < ResponseHeaderLen {
+	if bytesLen < codec.ResponseHeaderLen {
 		return nil, errors.New("bytesLen<ResponseHeaderLen")
 	}
 
-	payloadLen := binary.BigEndian.Uint32(bytes[ResponsePayloadIndex:ResponseHeaderLen])
+	payloadLen := binary.BigEndian.Uint32(bytes[codec.ResponsePayloadIndex:codec.ResponseHeaderLen])
 
 	//2.total protocol length
-	frameLen := ResponseHeaderLen + int(payloadLen)
+	frameLen := codec.ResponseHeaderLen + int(payloadLen)
 	if bytesLen < frameLen {
 		return nil, errors.New("short bytesLen")
 	}
@@ -64,14 +39,14 @@ func decodeResponse(ctx context.Context, bytes []byte) (cmd interface{}, err err
 	// 3.  response
 	response := &Response{
 
-		Type:       bytes[DirIndex],
-		RequestId:  binary.BigEndian.Uint32(bytes[RequestIdIndex : RequestIdEnd+1]),
+		Type:       bytes[codec.DirIndex],
+		RequestId:  binary.BigEndian.Uint32(bytes[codec.RequestIdIndex : codec.RequestIdEnd+1]),
 		PayloadLen: payloadLen,
-		Status:     ResponseStatusSuccess,
+		Status:     codec.ResponseStatusSuccess,
 	}
 
 	//4. copy data for io multiplexing
-	response.Payload = bytes[ResponseHeaderLen:]
+	response.Payload = bytes[codec.ResponseHeaderLen:]
 	return response, nil
 }
 
@@ -85,9 +60,9 @@ func main() {
 	bytes := []byte(reqMessage)
 	buf := make([]byte, 0)
 
-	buf = append(buf, Magic)
-	buf = append(buf, TypeMessage)
-	buf = append(buf, DirRequest)
+	buf = append(buf, codec.Magic)
+	buf = append(buf, codec.TypeMessage)
+	buf = append(buf, codec.DirRequest)
 	tempBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(tempBytes, requestId)
 	tempBytesSec := make([]byte, 4)
