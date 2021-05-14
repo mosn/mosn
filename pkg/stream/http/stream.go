@@ -925,7 +925,12 @@ func buildUrlFromCtxVar(ctx context.Context) string {
 	var res string
 
 	unescapedPath, err := url.PathUnescape(pathOriginal)
-	if err == nil && path == unescapedPath {
+	// path and pathOriginal came from fasthttp.URI that will unescape path and remove duplicate slashes
+	// so that /foo/%2Fbar will be /foo/bar(path), but unescapedPath will be /foo//bar
+	// We need try fasthttp.URI.SetPath and compare them again.
+	// TODO: This condition can be removed if fasthttp fix unescape bug later.
+	// See https://github.com/valyala/fasthttp/issues/1030
+	if (err == nil && path == unescapedPath) || path == string(fasthttpPath(pathOriginal)) {
 		res = pathOriginal
 	} else {
 		if path == "*" {
@@ -978,4 +983,10 @@ type contextManager struct {
 func (cm *contextManager) next() {
 	// new stream-level context based on connection-level's
 	cm.curr = mbuffer.NewBufferPoolContext(mosnctx.Clone(cm.base))
+}
+
+func fasthttpPath(pathOriginal string) []byte {
+	u := &fasthttp.URI{}
+	u.SetPath(pathOriginal)
+	return u.Path()
 }
