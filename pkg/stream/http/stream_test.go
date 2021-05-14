@@ -66,9 +66,14 @@ func TestBuildUrlFromCtxVar(t *testing.T) {
 			"/home/sample ",
 		},
 		{
-			"home/sam ple",
-			"home/sam ple",
-			"home/sam ple",
+			"/home/sam ple",
+			"/home/sam ple",
+			"/home/sam ple",
+		},
+		{
+			"/home/sample",
+			"/home/%2Fsample",
+			"/home/%2Fsample",
 		},
 	}
 	for _, tc := range testcases {
@@ -349,7 +354,7 @@ func Test_serverStream_handleRequest(t *testing.T) {
 		name   string
 		fields fields
 	}{
-	// TODO: Add test cases.
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
