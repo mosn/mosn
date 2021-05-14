@@ -26,30 +26,14 @@ import (
 
 // hostSet is an implementation of types.HostSet
 type hostSet struct {
-	once      sync.Once
-	mux       sync.RWMutex
-	allHosts  []types.Host
-	predicate types.HostPredicate
+	once     sync.Once
+	mux      sync.RWMutex
+	allHosts []types.Host
 }
 
 // Hosts do not needs lock, becasue it "immutable"
 func (hs *hostSet) Hosts() []types.Host {
 	return hs.allHosts
-}
-
-func (hs *hostSet) CreateSubset(predicate types.HostPredicate) types.HostSet {
-	allHosts := hs.Hosts()
-	var subHosts []types.Host
-	for _, h := range allHosts {
-		if predicate(h) {
-			subHosts = append(subHosts, h)
-		}
-	}
-	sub := &hostSet{
-		predicate: predicate,
-	}
-	sub.setFinalHost(subHosts)
-	return sub
 }
 
 // setFinalHosts makes a slice copy, distinct host by address string

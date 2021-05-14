@@ -122,7 +122,7 @@ func (sslb *subsetLoadBalancer) createSubsets(info types.ClusterInfo, subSetKeys
 			if len(kvs) > 0 {
 				entry := sslb.findOrCreateSubset(sslb.subSets, kvs, 0)
 				if !entry.Initialized() {
-					subHostset := sslb.hostSet.CreateSubset(func(host types.Host) bool {
+					subHostset := CreateSubset(sslb.hostSet.Hosts(), func(host types.Host) bool {
 						return HostMatches(kvs, host)
 					})
 					subsSetCount += 1
@@ -152,7 +152,7 @@ func (sslb *subsetLoadBalancer) createFallbackSubset(info types.ClusterInfo, pol
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
 		}
-		subHostset := hostSet.CreateSubset(func(host types.Host) bool {
+		subHostset := CreateSubset(sslb.hostSet.Hosts(), func(host types.Host) bool {
 			return HostMatches(meta, host)
 		})
 		sslb.fallbackSubset.CreateLoadBalancer(info, subHostset)
@@ -222,6 +222,18 @@ func ExtractSubsetMetadata(subsetKeys []string, metadata api.Metadata) types.Sub
 		})
 	}
 	return kvs
+}
+
+func CreateSubset(hosts []types.Host, predicate types.HostPredicate) types.HostSet {
+	var subHosts []types.Host
+	for _, h := range hosts {
+		if predicate(h) {
+			subHosts = append(subHosts, h)
+		}
+	}
+	sub := &hostSet{}
+	sub.setFinalHost(subHosts)
+	return sub
 }
 
 func HostMatches(kvs types.SubsetMetadata, host types.Host) bool {
