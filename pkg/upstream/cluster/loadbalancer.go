@@ -319,8 +319,8 @@ func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 
 func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
 	lb := &EdfLoadBalancer{
-		hosts: hosts,
-		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		hosts:                  hosts,
+		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 		unweightChooseHostFunc: unWeightChoose,
 		hostWeightFunc:         hostWeightFunc,
 	}
