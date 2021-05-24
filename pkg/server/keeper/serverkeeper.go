@@ -116,6 +116,9 @@ func catchSignalsCrossPlatform() {
 }
 
 func executeSignalCallback(sig syscall.Signal) {
+	AddSignalCallback(func() {
+		log.CloseAll()
+	}, syscall.SIGTERM)
 	if cbs, ok := signalCallback[sig]; ok {
 		for _, cb := range cbs {
 			cb()
