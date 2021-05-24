@@ -27,6 +27,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/types"
+	logger "mosn.io/pkg/log"
 )
 
 // Default Init Stage wrappers. if more initialize needs to extend.
@@ -46,6 +47,9 @@ func DefaultInitStage(c *v2.MOSNConfig) {
 func DefaultPreStartStage(m *Mosn) {
 	// the signals SIGKILL and SIGSTOP may not be caught by a program,
 	// so we need other ways to ensure that resources are safely cleaned up
+	keeper.AddSignalCallback(func() {
+		logger.CloseAll()
+	}, syscall.SIGTERM)
 	keeper.AddSignalCallback(func() {
 		log.DefaultLogger.Infof("[mosn] [close] mosn closed by sys signal")
 		m.Close()
