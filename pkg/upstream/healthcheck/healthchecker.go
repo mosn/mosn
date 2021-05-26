@@ -124,9 +124,40 @@ func (hc *healthChecker) AddHostCheckCompleteCb(cb types.HealthCheckCb) {
 // only called in cluster, lock in cluster
 // SetHealthCheckerHostSet reset the healthchecker's hosts
 func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
-	hc.stop()
+	deleteHosts, newHosts := findNewAndDeleteHost(hc.hosts, hostSet.Hosts())
+	for _, newHost := range newHosts {
+		hc.startCheck(newHost)
+	}
+	for _, deleteHost := range deleteHosts {
+		hc.stopCheck(deleteHost)
+	}
 	hc.hosts = hostSet.Hosts()
-	hc.start()
+}
+
+// findNewAndDeleteHost Find deleted and new host in the updated hostSet
+func findNewAndDeleteHost(old, new []types.Host) ([]types.Host, []types.Host) {
+	newHostsMap := make(map[string]types.Host, len(new))
+	for _, newHost := range new {
+		newHostsMap[newHost.AddressString()] = newHost
+	}
+	// find delete host
+	deleteHosts := make([]types.Host, 0)
+	for _, oldHost := range old {
+		_, ok := newHostsMap[oldHost.AddressString()]
+		if ok {
+			delete(newHostsMap, oldHost.AddressString())
+		} else {
+			deleteHosts = append(deleteHosts, oldHost)
+		}
+	}
+
+	// find new host
+	newHosts := make([]types.Host, 0)
+	for _, newHost := range newHostsMap {
+		newHosts = append(newHosts, newHost)
+	}
+
+	return deleteHosts, newHosts
 }
 
 func (hc *healthChecker) startCheck(host types.Host) {

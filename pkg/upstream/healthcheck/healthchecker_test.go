@@ -19,6 +19,7 @@ package healthcheck
 
 import (
 	"fmt"
+	"reflect"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -213,5 +214,68 @@ func TestHealthCheck(t *testing.T) {
 		if err := tc.verify(raw); err != nil {
 			t.Errorf("#%d, %v", i, err)
 		}
+	}
+}
+
+func Test_findNewAndDeleteHost(t *testing.T) {
+	type args struct {
+		old []types.Host
+		new []types.Host
+	}
+	tests := []struct {
+		name  string
+		args  args
+		want  []types.Host
+		want1 []types.Host
+	}{
+		// TODO: Add test cases.
+		{
+			name: "find_delete_and_new",
+			args: args{
+				old: []types.Host{
+					&mockHost{
+						addr: "addr1",
+					},
+					&mockHost{
+						addr: "addr2",
+					},
+					&mockHost{
+						addr: "addr3",
+					},
+				},
+				new: []types.Host{
+					&mockHost{
+						addr: "addr2",
+					},
+					&mockHost{
+						addr: "addr3",
+					},
+					&mockHost{
+						addr: "addr4",
+					},
+				},
+			},
+			want: []types.Host{
+				&mockHost{
+					addr: "addr1",
+				},
+			},
+			want1: []types.Host{
+				&mockHost{
+					addr: "addr4",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, got1 := findNewAndDeleteHost(tt.args.old, tt.args.new)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("findNewAndDeleteHost() got = %v, want %v", got, tt.want)
+			}
+			if !reflect.DeepEqual(got1, tt.want1) {
+				t.Errorf("findNewAndDeleteHost() got1 = %v, want %v", got1, tt.want1)
+			}
+		})
 	}
 }
