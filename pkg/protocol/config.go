@@ -39,7 +39,7 @@ func RegisterProtocolConfigHandler(prot api.ProtocolName, h ProtocolConfigHandle
 func HandleConfig(prot api.ProtocolName, v interface{}) interface{} {
 	hv, ok := protocolConfigHandlers.Load(prot)
 	if !ok {
-		log.DefaultLogger.Errorf("translate protocol %s config failed, no config handler registered", prot)
+		// log.DefaultLogger.Errorf("translate protocol %s config failed, no config handler registered", prot)
 		return nil
 	}
 	handler, _ := hv.(ProtocolConfigHandler)
