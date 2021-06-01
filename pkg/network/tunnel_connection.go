@@ -18,6 +18,7 @@ package network
 
 import (
 	"errors"
+	"sync"
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
@@ -28,6 +29,7 @@ var _ types.ClientConnection = (*TunnelAgentConnection)(nil)
 // TunnelAgentConnection is a implementation for ClientConnection, provides a mechanism to bind an existing api.Connection
 type TunnelAgentConnection struct {
 	api.Connection
+	once sync.Once
 }
 
 // Connect is a fake operation, it only checks the status of the bound connection
@@ -36,6 +38,11 @@ func (cc *TunnelAgentConnection) Connect() (err error) {
 	if cc.State() == api.ConnClosed {
 		return errors.New("tunnel channel has been closed")
 	}
+	cc.once.Do(func() {
+		for _,listener := range cc.GetConnectionEventListener() {
+			listener.OnEvent(api.Connected)
+		}
+	})
 	return nil
 }
 

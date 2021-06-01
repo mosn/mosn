@@ -18,11 +18,13 @@ package tunnel
 
 import (
 	"encoding/json"
+	"net"
 	"time"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/upstream/tunnel/ext"
 )
 
 type agentBootstrapConfig struct {
@@ -34,7 +36,16 @@ type agentBootstrapConfig struct {
 	// 处理listener name
 	HostingListener string `json:"hosting_listener"`
 	// Server侧的直连列表
-	ServerList []string `json:"server_list"`
+	StaticServerList []string `json:"server_list"`
+
+	DynamicServerLister string `json:"dynamic_server_lister"`
+
+	// ConnectRetryTimes
+	ConnectRetryTimes int `json:"connect_retry_times"`
+	// ReconnectBaseDuration
+	ReconnectBaseDurationMs int `json:"reconnect_base_duration_ms"`
+
+	CredentialPolicy string `json:"credential_policy"`
 }
 
 func init() {
@@ -53,8 +64,27 @@ func init() {
 }
 
 func bootstrap(conf *agentBootstrapConfig) {
-	for _, serverAddress := range conf.ServerList {
-		connectServer(conf, serverAddress)
+	if conf.DynamicServerLister != "" {
+		lister := ext.GetServerLister(conf.DynamicServerLister)
+		ch := lister.List()
+		select {
+		case servers := <-ch:
+		}
+	}
+
+	for _, serverAddress := range conf.StaticServerList {
+		host, port, err := net.SplitHostPort(serverAddress)
+		if err != nil {
+			return
+		}
+		addrs, err := net.LookupHost(host)
+		if err != nil {
+			log.DefaultLogger.Errorf("failed to lookup host by domain: %v", host)
+			return
+		}
+		for _, addr := range addrs {
+			go connectServer(conf, net.JoinHostPort(addr, port))
+		}
 	}
 }
 
@@ -64,13 +94,17 @@ func connectServer(conf *agentBootstrapConfig, address string) {
 	if listener == nil {
 		return
 	}
+	credential := ext.GetConnectionCredential(conf.CredentialPolicy)
 	config := &ConnectionConfig{
-		Address:     address,
-		ClusterName: conf.Cluster,
-		Weight:      10,
+		Address:               address,
+		ClusterName:           conf.Cluster,
+		Weight:                10,
+		ReconnectBaseDuration: time.Duration(conf.ReconnectBaseDurationMs) * time.Millisecond,
+		ConnectRetryTimes:     conf.ConnectRetryTimes,
 	}
 	for i := 0; i < conf.ConnectionNum; i++ {
 		conn := NewConnection(*config, listener)
+		conn.Stop()
 		conn.connectAndInit()
 	}
 }

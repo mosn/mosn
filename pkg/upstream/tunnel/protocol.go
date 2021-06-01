@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 
 	"mosn.io/api"
@@ -39,6 +40,9 @@ import (
 * magic: 0xdabb
 *
  */
+
+type ConnectStatus int64
+
 var (
 	Magic     = []byte{0x20, 0x88}
 	HeaderLen = 8
@@ -51,6 +55,11 @@ var (
 	DataLengthIndex = 6
 	PayLoadIndex    = 8
 
+	ConnectUnknownFailed   ConnectStatus = 0
+	ConnectSuccess         ConnectStatus = 1
+	ConnectAuthFailed      ConnectStatus = 2
+	ConnectClusterNotExist ConnectStatus = 3
+
 	RequestType  = []byte{0x01, 0x00}
 	ResponseType = []byte{0x02, 0x00}
 
@@ -58,22 +67,28 @@ var (
 		reflect.TypeOf(ConnectionInitInfo{}).Name(): {0x01, 0x01, 0x00},
 	}
 
-	FlagToTypes = map[byte]func() interface{}{
-		byte(0x01): func() interface{} {
-			return &ConnectionInitInfo{}
-		},
+	FlagToTypes = map[byte]reflect.Type{
+		byte(0x01): reflect.TypeOf(ConnectionInitInfo{}),
+		byte(0x02): reflect.TypeOf(ConnectionInitInfo{}),
 	}
 )
 
 // ConnectionInitInfo is the basic information of agent host,
 // it is sent immediately after the physical connection is established
 type ConnectionInitInfo struct {
-	ClusterName string `json:"cluster_name"`
-	Weight      int64  `json:"weight"`
-	HostName    string `json:"host_name"`
+	ClusterName      string                 `json:"cluster_name"`
+	Weight           int64                  `json:"weight"`
+	HostName         string                 `json:"host_name"`
+	CredentialPolicy string                 `json:"credential_policy"`
+	Credential       string                 `json:"credential"`
+	Extra            map[string]interface{} `json:"extra"`
 }
 
-func WriteBuffer(i interface{}) (buffer.IoBuffer, error) {
+type ConnectionInitResponse struct {
+	Status ConnectStatus `json:"status"`
+}
+
+func Encode(i interface{}) (buffer.IoBuffer, error) {
 	data, err := json.Marshal(i)
 	if err != nil {
 		return nil, err
@@ -100,36 +115,36 @@ func WriteBuffer(i interface{}) (buffer.IoBuffer, error) {
 	return nil, errors.New("can't write this struct")
 }
 
-func Read(buffer api.IoBuffer) interface{} {
+func DecodeFromBuffer(buffer api.IoBuffer) (interface{}, error) {
 	dataBytes := buffer.Bytes()
 	if len(dataBytes) == 0 {
-		return nil
+		return nil, nil
 	}
 	if len(dataBytes) <= HeaderLen {
-		return nil
+		return nil, nil
 	}
 	dataLength := binary.BigEndian.Uint16(dataBytes[DataLengthIndex:PayLoadIndex])
 	// not enough data
 	if len(dataBytes) < HeaderLen+int(dataLength) {
-		return nil
+		return nil, nil
 	}
 
 	magicBytes := dataBytes[MagicIndex:VersionIndex]
 	if !bytes.Equal(Magic, magicBytes) {
-		return nil
+		return nil, fmt.Errorf("magic value is not same")
 	}
 	_ = dataBytes[VersionIndex:FlagIndex]
 	flag := dataBytes[FlagIndex:TypeIndex]
-	if f, ok := FlagToTypes[flag[0]]; ok {
-		st := f()
+	if t, ok := FlagToTypes[flag[0]]; ok {
+		st := reflect.New(t).Interface()
 		_ = dataBytes[TypeIndex:DataLengthIndex]
 		payload := dataBytes[PayLoadIndex : PayLoadIndex+int(dataLength)]
 		err := json.Unmarshal(payload, st)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 		buffer.Drain(buffer.Len())
-		return st
+		return st, nil
 	}
-	return nil
+	return nil, nil
 }

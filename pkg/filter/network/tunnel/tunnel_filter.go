@@ -23,6 +23,7 @@ import (
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/tunnel"
+	"mosn.io/mosn/pkg/upstream/tunnel/ext"
 )
 
 var _ api.ReadFilter = (*tunnelFilter)(nil)
@@ -30,8 +31,8 @@ var _ api.ReadFilter = (*tunnelFilter)(nil)
 // tunnelFilter handles the reverse connection sent by the edge node，
 // mainly used in scenarios where cloud nodes and edge nodes may be located in separate and isolated network region.
 type tunnelFilter struct {
-	clusterManager  types.ClusterManager
-	readCallbacks   api.ReadFilterCallbacks
+	clusterManager types.ClusterManager
+	readCallbacks  api.ReadFilterCallbacks
 	// connInitialized is used as a flag to be processed only once
 	connInitialized bool
 }
@@ -42,31 +43,40 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 		return api.Continue
 	}
 	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf("[tunnel server] [ondata] read data , len = %v", buffer.Len())
+		log.DefaultLogger.Debugf("[tunnel server] [ondata] read data , len: %v", buffer.Len())
 	}
-	data := tunnel.Read(buffer)
-	if data != nil {
-		// now it can only be ConnectionInitInfo
-		info, ok := data.(*tunnel.ConnectionInitInfo)
-		if ok {
-			//
-			conn := t.readCallbacks.Connection()
-			conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
-			if t.clusterManager.ClusterExist(info.ClusterName) {
-				// set the flag that has been initialized, subsequent data processing skips this filter
-				t.connInitialized = true
-				t.clusterManager.AppendHostWithConnection(info.ClusterName, v2.Host{
-					HostConfig: v2.HostConfig{
-						Address:        conn.RemoteAddr().String(),
-						Hostname:       info.HostName,
-						Weight:         uint32(info.Weight),
-						TLSDisable:     false,
-					},
-				}, network.CreateTunnelAgentConnection(conn))
-			}
-		}
+	data, err := tunnel.DecodeFromBuffer(buffer)
+	conn := t.readCallbacks.Connection()
+	if err != nil || data == nil {
+		log.DefaultLogger.Errorf("[tunnel server] [ondata] failed to read from buffer, close connection err: %+v", err)
+		return writeConnectResponse(tunnel.ConnectUnknownFailed, conn)
 	}
-	return api.Continue
+	// now it can only be ConnectionInitInfo
+	info, ok := data.(*tunnel.ConnectionInitInfo)
+	if !ok {
+		log.DefaultLogger.Errorf("[tunnel server] [ondata] decode failed, data error")
+		return writeConnectResponse(tunnel.ConnectUnknownFailed, conn)
+	}
+	// Auth the connection
+	connCredential := ext.GetConnectionCredential(info.CredentialPolicy)
+	if res := connCredential.ValidateCredential(info.Credential, info.HostName, info.ClusterName); !res {
+		return writeConnectResponse(tunnel.ConnectAuthFailed, conn)
+	}
+	conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
+	if !t.clusterManager.ClusterExist(info.ClusterName) {
+		return writeConnectResponse(tunnel.ConnectClusterNotExist, conn)
+	}
+	// set the flag that has been initialized, subsequent data processing skips this filter
+	t.connInitialized = true
+	_ = t.clusterManager.AppendHostWithConnection(info.ClusterName, v2.Host{
+		HostConfig: v2.HostConfig{
+			Address:    conn.RemoteAddr().String(),
+			Hostname:   info.HostName,
+			Weight:     uint32(info.Weight),
+			TLSDisable: false,
+		},
+	}, network.CreateTunnelAgentConnection(conn))
+	return writeConnectResponse(tunnel.ConnectSuccess, conn)
 }
 
 func (t *tunnelFilter) OnNewConnection() api.FilterStatus {
@@ -75,4 +85,16 @@ func (t *tunnelFilter) OnNewConnection() api.FilterStatus {
 
 func (t *tunnelFilter) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {
 	t.readCallbacks = cb
+}
+
+func writeConnectResponse(status tunnel.ConnectStatus, conn api.Connection) api.FilterStatus {
+	buffer, err := tunnel.Encode(&tunnel.ConnectionInitResponse{Status: status})
+	if err != nil {
+		conn.Close(api.NoFlush, api.LocalClose)
+	}
+	err = conn.Write(buffer)
+	if err != nil {
+		conn.Close(api.NoFlush, api.OnWriteErrClose)
+	}
+	return api.Stop
 }

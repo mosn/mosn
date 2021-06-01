@@ -38,6 +38,8 @@ func (f *tunnelNetworkFilterFactory) CreateFilterChain(context context.Context, 
 	callbacks.AddReadFilter(rf)
 }
 
+var factory = &tunnelNetworkFilterFactory{}
+
 func CreateTunnelNetworkFilterFactory(config map[string]interface{}) (api.NetworkFilterChainFactory, error) {
-	return &tunnelNetworkFilterFactory{}, nil
+	return factory, nil
 }

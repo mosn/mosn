@@ -36,6 +36,7 @@ func NewHostRemover(address string, cluster string) *HostRemover {
 func (h *HostRemover) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		log.DefaultLogger.Infof("try to remove host: %v in cluster: %v", h.address, h.cluster)
-		cluster.GetClusterMngAdapterInstance().ClusterManager.RemoveClusterHosts(h.cluster, []string{h.address})
+		cluster.GetClusterMngAdapterInstance().RemoveClusterHosts(h.cluster, []string{h.address})
+		cluster.GetClusterMngAdapterInstance().DestroyConnectionPool("", []string{h.address})
 	}
 }
