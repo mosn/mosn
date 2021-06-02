@@ -27,6 +27,7 @@ import (
 	_ "mosn.io/mosn/pkg/admin/debug"
 	_ "mosn.io/mosn/pkg/filter/listener/originaldst"
 	_ "mosn.io/mosn/pkg/filter/network/connectionmanager"
+	_ "mosn.io/mosn/pkg/filter/network/grpc"
 	_ "mosn.io/mosn/pkg/filter/network/proxy"
 	_ "mosn.io/mosn/pkg/filter/network/streamproxy"
 	_ "mosn.io/mosn/pkg/filter/stream/dsl"

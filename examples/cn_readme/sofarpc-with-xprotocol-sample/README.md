@@ -17,7 +17,7 @@ go build
 + 示例代码目录
 
 ```
-${targetpath} = ${projectpath}/examples/codes/sofarpc-sample/
+${targetpath} = ${projectpath}/examples/codes/sofarpc-with-xprotocol-sample/
 ```
 
 + 将编译好的程序移动到示例代码目录

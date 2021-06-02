@@ -32,6 +32,12 @@ type StreamReceiverFilterStatusHandler func(phase api.ReceiverFilterPhase, statu
 // StreamSenderFilterStatusHandler allow users to deal with the sender filter status.
 type StreamSenderFilterStatusHandler func(phase api.SenderFilterPhase, status api.StreamFilterStatus)
 
+// StreamReceiverFilterIteratorHandler is used to implement iterator handler for receive filter.
+type StreamReceiverFilterIteratorHandler func(context.Context, types.HeaderMap, types.IoBuffer, types.HeaderMap, api.StreamReceiverFilter)
+
+// StreamSenderFilterIteratorHandler is used to implement iterator handler for send filter.
+type StreamSenderFilterIteratorHandler func(context.Context, types.HeaderMap, types.IoBuffer, types.HeaderMap, api.StreamSenderFilter)
+
 // StreamFilterChain manages the lifecycle of streamFilters.
 type StreamFilterChain interface {
 	// register StreamSenderFilter, StreamReceiverFilter and AccessLog.
@@ -42,6 +48,13 @@ type StreamFilterChain interface {
 
 	// SetSenderFilterHandler set filter handler for each filter in this chain
 	SetSenderFilterHandler(handler api.StreamSenderFilterHandler)
+
+	// RangeReceiverFilter range all receive filter.
+	RangeReceiverFilter(context.Context, types.HeaderMap, types.IoBuffer,
+		types.HeaderMap, StreamReceiverFilterIteratorHandler)
+	// RangeSenderFilter range all send filter.
+	RangeSenderFilter(context.Context, types.HeaderMap, types.IoBuffer,
+		types.HeaderMap, StreamSenderFilterIteratorHandler)
 
 	// invoke the receiver filter chain.
 	RunReceiverFilter(ctx context.Context, phase api.ReceiverFilterPhase,
@@ -133,6 +146,22 @@ func (d *DefaultStreamFilterChainImpl) SetReceiveFilterHandler(handler api.Strea
 
 	for _, filter := range d.receiverFilters {
 		filter.SetReceiveFilterHandler(handler)
+	}
+}
+
+// RangeReceiverFilter range receive filter.
+func (d *DefaultStreamFilterChainImpl) RangeReceiverFilter(ctx context.Context, headers types.HeaderMap,
+	data types.IoBuffer, trailers types.HeaderMap, handler StreamReceiverFilterIteratorHandler) {
+	for _, filter := range d.receiverFilters {
+		handler(ctx, headers, data, trailers, filter)
+	}
+}
+
+// RangeSenderFilter range send filter.
+func (d *DefaultStreamFilterChainImpl) RangeSenderFilter(ctx context.Context, headers types.HeaderMap,
+	data types.IoBuffer, trailers types.HeaderMap, handler StreamSenderFilterIteratorHandler) {
+	for _, filter := range d.senderFilters {
+		handler(ctx, headers, data, trailers, filter)
 	}
 }
 

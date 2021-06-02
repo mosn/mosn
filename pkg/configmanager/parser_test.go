@@ -310,13 +310,19 @@ func TestGetNetworkFilters(t *testing.T) {
 	api.RegisterNetwork("test_error", func(cfg map[string]interface{}) (api.NetworkFilterChainFactory, error) {
 		return nil, errors.New("invalid factory create")
 	})
-	facs := GetNetworkFilters(&v2.FilterChain{
-		FilterChainConfig: v2.FilterChainConfig{
-			Filters: []v2.Filter{
-				{Type: "test1"},
-				{Type: "test_error"},
-				{Type: "not registered"},
-				{Type: "test_nil"},
+	facs := GetNetworkFilters(&v2.Listener{
+		ListenerConfig: v2.ListenerConfig{
+			FilterChains: []v2.FilterChain{
+				v2.FilterChain{
+					FilterChainConfig: v2.FilterChainConfig{
+						Filters: []v2.Filter{
+							{Type: "test1"},
+							{Type: "test_error"},
+							{Type: "not registered"},
+							{Type: "test_nil"},
+						},
+					},
+				},
 			},
 		},
 	})

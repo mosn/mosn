@@ -185,6 +185,10 @@ func (proto *boltProtocol) Mapping(httpStatusCode uint32) uint32 {
 	case api.TimeoutExceptionCode:
 		//Response Timeout
 		return uint32(ResponseStatusTimeout)
+	case api.PermissionDeniedCode:
+		//Response Permission Denied
+		// bolt protocol do not have a permission deny code, use server exception
+		return uint32(ResponseStatusServerException)
 	default:
 		return uint32(ResponseStatusUnknown)
 	}

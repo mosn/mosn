@@ -18,40 +18,43 @@ int sm4_gcm_encrypt(unsigned char *plaintext, int plaintext_len,
                 	unsigned char *ciphertext,
                	 	unsigned char *tag)
 {
-    EVP_CIPHER_CTX *ctx;
+    EVP_CIPHER_CTX  *ctx = NULL;
+    int              len;
+    int              ciphertext_len = -1;
 
-    int len;
+    ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL)
+        goto failed;
 
-    int ciphertext_len;
+    if (EVP_EncryptInit_ex(ctx, EVP_sm4_gcm(), NULL, NULL, NULL) <= 0)
+        goto failed;
 
-    if(!(ctx = EVP_CIPHER_CTX_new()))
-        return -1;
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL) <= 0)
+        goto failed;
 
-    if(1 != EVP_EncryptInit_ex(ctx, EVP_sm4_gcm(), NULL, NULL, NULL))
-        return -1;
+    if (EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv) <= 0)
+        goto failed;
 
-    if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL))
-        return -1;
+    if (EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_len) <= 0)
+        goto failed;
 
-    if(1 != EVP_EncryptInit_ex(ctx, NULL, NULL, key, iv))
-        return -1;
-
-    if(1 != EVP_EncryptUpdate(ctx, NULL, &len, aad, aad_len))
-        return -1;
-
-    if(1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len))
-        return -1;
+    if (EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, plaintext_len) <= 0)
+        goto failed;
     ciphertext_len = len;
 
-    if(1 != EVP_EncryptFinal_ex(ctx, ciphertext + len, &len))
-        return -1;
+    if (EVP_EncryptFinal_ex(ctx, ciphertext + len, &len) <= 0) {
+        ciphertext_len = -1;
+        goto failed;
+    }
     ciphertext_len += len;
 
-    if(1 != EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag))
-		return -1;
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_GET_TAG, 16, tag) <= 0) {
+        ciphertext_len = -1;
+        goto failed;
+    }
 
+failed:
     EVP_CIPHER_CTX_free(ctx);
-
     return ciphertext_len;
 }
 
@@ -62,43 +65,44 @@ int sm4_gcm_decrypt(unsigned char *ciphertext, int ciphertext_len,
                 	unsigned char *iv, int iv_len,
                 	unsigned char *plaintext)
 {
-    EVP_CIPHER_CTX *ctx;
-    int len;
-    int plaintext_len;
-    int ret;
+    EVP_CIPHER_CTX  *ctx = NULL;
+    int              len;
+    int              plaintext_len = -1;
 
-    if(!(ctx = EVP_CIPHER_CTX_new()))
-        return -1;
+    ctx = EVP_CIPHER_CTX_new();
+    if (ctx == NULL)
+        goto failed;
 
-    if(!EVP_DecryptInit_ex(ctx, EVP_sm4_gcm(), NULL, NULL, NULL))
-        return -1;
+    if (EVP_DecryptInit_ex(ctx, EVP_sm4_gcm(), NULL, NULL, NULL) <= 0)
+        goto failed;
 
-    if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL))
-        return -1;
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_IVLEN, iv_len, NULL) <= 0)
+        goto failed;
 
-    if(!EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv))
-        return -1;
+    if (EVP_DecryptInit_ex(ctx, NULL, NULL, key, iv) <= 0)
+        goto failed;
 
-    if(!EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_len))
-        return -1;
+    if (EVP_DecryptUpdate(ctx, NULL, &len, aad, aad_len) <= 0)
+        goto failed;
 
-    if(!EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len))
-        return -1;
+    if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len) <= 0)
+        goto failed;
     plaintext_len = len;
 
-    if(!EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, tag))
-        return -1;
-
-    ret = EVP_DecryptFinal_ex(ctx, plaintext + len, &len);
-
-    EVP_CIPHER_CTX_free(ctx);
-
-    if(ret > 0) {
-        plaintext_len += len;
-        return plaintext_len;
-    } else {
-        return -1;
+    if (EVP_CIPHER_CTX_ctrl(ctx, EVP_CTRL_GCM_SET_TAG, 16, tag) <= 0) {
+        plaintext_len = -1;
+        goto failed;
     }
+
+    if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) <= 0) {
+        plaintext_len = -1;
+        goto failed;
+    }
+    plaintext_len += len;
+
+failed:
+    EVP_CIPHER_CTX_free(ctx);
+    return plaintext_len;
 }
 
 */
