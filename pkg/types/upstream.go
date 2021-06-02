@@ -186,6 +186,9 @@ type ClusterInfo interface {
 
 	// Optional configuration for the load balancing algorithm selected by
 	LbConfig() v2.IsCluster_LbConfig
+
+	//  Optional configuration for some cluster description
+	SubType() string
 }
 
 // ResourceManager manages different types of Resource

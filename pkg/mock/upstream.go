@@ -910,6 +910,20 @@ func (mr *MockClusterInfoMockRecorder) LbConfig() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LbConfig", reflect.TypeOf((*MockClusterInfo)(nil).LbConfig))
 }
 
+// SubType mocks base method.
+func (m *MockClusterInfo) SubType() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SubType")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// SubType indicates an expected call of SubType.
+func (mr *MockClusterInfoMockRecorder) SubType() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SubType", reflect.TypeOf((*MockClusterInfo)(nil).SubType))
+}
+
 // MockResourceManager is a mock of ResourceManager interface.
 type MockResourceManager struct {
 	ctrl     *gomock.Controller
