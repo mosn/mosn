@@ -323,11 +323,6 @@ func (m *Mosn) Wait() {
 
 func (m *Mosn) Close() {
 	//make sure logger close at last
-	defer func() {
-		logger.CloseAll()
-		// TODO: It does not guarantee that the log is completely written to disk
-		time.Sleep(2 * time.Second)
-	}()
 	log.StartLogger.Infof("[mosn start] mosn stop server")
 	// close service
 	store.CloseService()
@@ -345,6 +340,9 @@ func (m *Mosn) Close() {
 	if m.Clustermanager != nil {
 		m.Clustermanager.Destroy()
 	}
+	logger.CloseAll()
+	// TODO: It does not guarantee that the log is completely written to disk in 2 seconds
+	time.Sleep(2 * time.Second)
 	m.wg.Done()
 
 }
