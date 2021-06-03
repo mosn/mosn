@@ -165,6 +165,4 @@ func (stm *StageManager) WaitFinish() {
 		return
 	}
 	stm.data.mosn.Wait()
-	// Ensure that some sync resource release ends
-	time.Sleep(2 * time.Second)
 }

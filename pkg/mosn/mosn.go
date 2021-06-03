@@ -324,8 +324,9 @@ func (m *Mosn) Wait() {
 func (m *Mosn) Close() {
 	//make sure logger close at last
 	defer func() {
-		// TODO: It does not guarantee that the log is completely written to disk
 		logger.CloseAll()
+		// TODO: It does not guarantee that the log is completely written to disk
+		time.Sleep(2 * time.Second)
 	}()
 	log.StartLogger.Infof("[mosn start] mosn stop server")
 	// close service
