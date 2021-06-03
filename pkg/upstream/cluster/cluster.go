@@ -70,6 +70,7 @@ func newSimpleCluster(clusterConfig v2.Cluster) types.Cluster {
 	info := &clusterInfo{
 		name:                 clusterConfig.Name,
 		clusterType:          clusterConfig.ClusterType,
+		subType:              clusterConfig.SubType,
 		maxRequestsPerConn:   clusterConfig.MaxRequestPerConn,
 		connBufferLimitBytes: clusterConfig.ConnBufferLimitBytes,
 		stats:                newClusterStats(clusterConfig.Name),
@@ -167,6 +168,7 @@ func (sc *simpleCluster) StopHealthChecking() {
 type clusterInfo struct {
 	name                 string
 	clusterType          v2.ClusterType
+	subType              string
 	lbType               types.LoadBalancerType // if use subset lb , lbType is used as inner LB algorithm for choosing subset's host
 	connBufferLimitBytes uint32
 	maxRequestsPerConn   uint32
@@ -235,6 +237,10 @@ func (ci *clusterInfo) LbOriDstInfo() types.LBOriDstInfo {
 
 func (ci *clusterInfo) LbConfig() v2.IsCluster_LbConfig {
 	return ci.lbConfig
+}
+
+func (ci *clusterInfo) SubType() string {
+	return ci.subType
 }
 
 type clusterSnapshot struct {
