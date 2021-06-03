@@ -187,6 +187,10 @@ func (m *Mosn) initServer() {
 			for idx, _ := range serverConfig.Listeners {
 				// parse ListenerConfig
 				lc := configmanager.ParseListenerConfig(&serverConfig.Listeners[idx], m.Upgrade.InheritListeners, m.Upgrade.InheritPacketConn)
+				// Note lc.FilterChains may be a nil value, and there is a check in srv.AddListener
+				if _, err := srv.AddListener(lc); err != nil {
+					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
+				}
 				// deprecated: keep compatible for route config in listener's connection_manager
 				deprecatedRouter, err := configmanager.ParseRouterConfiguration(&lc.FilterChains[0])
 				if err != nil {
@@ -194,9 +198,6 @@ func (m *Mosn) initServer() {
 				}
 				if deprecatedRouter.RouterConfigName != "" {
 					m.RouterManager.AddOrUpdateRouters(deprecatedRouter)
-				}
-				if _, err := srv.AddListener(lc); err != nil {
-					log.StartLogger.Fatalf("[mosn] [NewMosn] AddListener error:%s", err.Error())
 				}
 			}
 			// Add Router Config
