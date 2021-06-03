@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
+	"runtime/debug"
 	"sync"
 
 	"google.golang.org/grpc"
@@ -98,6 +99,12 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 
 // UnaryInterceptorFilter is an implementation of grpc.UnaryServerInterceptor, which used to be call stream filter in MOSN
 func (f *grpcServerFilterFactory) UnaryInterceptorFilter(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	defer func() {
+		// add recover, or process will be crashed if handler cause a panic
+		if r := recover(); r != nil {
+			log.DefaultLogger.Alertf(types.ErrorKeyProxyPanic, "[grpc] [unary] grpc unary handle panic: %v, method: %s, stack:%s", r, info.FullMethod, string(debug.Stack()))
+		}
+	}()
 	sfc := streamfilter.GetDefaultStreamFilterChain()
 	ss := &grpcStreamFilterChain{
 		sfc,
