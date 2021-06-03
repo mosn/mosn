@@ -15,6 +15,18 @@
  * limitations under the License.
  */
 
-package proxywasm
+package v1
 
-// spec: https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT
+import "mosn.io/proxy-wasm-go-host/proxywasm/common"
+
+func ProxyResumeDownstream(instance common.WasmInstance) int32 {
+	ctx := getImportHandler(instance)
+
+	return ctx.ResumeDownstream().Int32()
+}
+
+func ProxyResumeUpstream(instance common.WasmInstance) int32 {
+	ctx := getImportHandler(instance)
+
+	return ctx.ResumeUpstream().Int32()
+}

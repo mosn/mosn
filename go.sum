@@ -412,8 +412,8 @@ mosn.io/api v0.0.0-20210414070543-8a0686b03540 h1:hdfOaKU2c5jpLCdJC22IQ8kR7qVCUt
 mosn.io/api v0.0.0-20210414070543-8a0686b03540/go.mod h1:TBv4bz2f2RbpgdohbVAFRFVOoN8YyEUiLH3jAh752Qc=
 mosn.io/pkg v0.0.0-20210401090620-f0e0d1a3efce h1:IIFQeU7soHO5wO9tYKkT5bbse5Vwkzgx/4NgoZrIgL4=
 mosn.io/pkg v0.0.0-20210401090620-f0e0d1a3efce/go.mod h1:YEv5sGe7kqo/Yzj7OJI7Udl3iUcagNeo5unGPiUaUfw=
-mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec h1:Q5OprvuVc7VNnI8Q+mUb3VsG9uxP/PcRn2KdeWmx8Mc=
-mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
 rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
+mosn.io/proxy-wasm-go-host v0.1.1-0.20210422095020-570025be8a23 h1:FeL70M6Xreb2VMwwzOGhLA8GF+oOIlL6odFUtPcve+A=
+mosn.io/proxy-wasm-go-host v0.1.1-0.20210422095020-570025be8a23/go.mod h1:wBRY9Xjf77GZhvAuEc6nQXZ6dQK39kNU2ok/+Z8mSU8=
 sigs.k8s.io/structured-merge-diff v0.0.0-20190525122527-15d366b2352e/go.mod h1:wWxsB5ozmmv/SG7nM11ayaAW51xMvak/t1r0CSlcokI=
 sigs.k8s.io/yaml v1.1.0/go.mod h1:UJmg0vDUVViEyp3mgSv9WPwZCDxu4rQW1olrI1uml+o=

@@ -20,7 +20,7 @@ package proxywasm010
 import (
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
-	"mosn.io/proxy-wasm-go-host/common"
+	"mosn.io/proxy-wasm-go-host/proxywasm/common"
 )
 
 // HeaderMapWrapper wraps api.HeaderMap into proxy-wasm-go-host/common.HeaderMap

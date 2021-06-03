@@ -15,44 +15,44 @@
  * limitations under the License.
  */
 
-package proxywasm
+package v1
 
-import "mosn.io/proxy-wasm-go-host/common"
+import "mosn.io/proxy-wasm-go-host/proxywasm/common"
 
 // Exports contains ABI that exported by wasm module.
 type Exports interface {
-	ProxyOnContextCreate(contextId int32, parentContextId int32) error
-	ProxyOnDone(contextId int32) (int32, error)
-	ProxyOnLog(contextId int32) error
-	ProxyOnDelete(contextId int32) error
+	ProxyOnContextCreate(contextID int32, parentContextID int32) error
+	ProxyOnDone(contextID int32) (int32, error)
+	ProxyOnLog(contextID int32) error
+	ProxyOnDelete(contextID int32) error
 	ProxyOnMemoryAllocate(size int32) (int32, error)
 
-	ProxyOnVmStart(rootContextId int32, vmConfigurationSize int32) (int32, error)
-	ProxyOnConfigure(rootContextId int32, pluginConfigurationSize int32) (int32, error)
+	ProxyOnVmStart(rootContextID int32, vmConfigurationSize int32) (int32, error)
+	ProxyOnConfigure(rootContextID int32, pluginConfigurationSize int32) (int32, error)
 
-	ProxyOnTick(rootContextId int32) error
+	ProxyOnTick(rootContextID int32) error
 
-	ProxyOnNewConnection(contextId int32) (Action, error)
+	ProxyOnNewConnection(contextID int32) (Action, error)
 
-	ProxyOnDownstreamData(contextId int32, dataLength int32, endOfStream int32) (Action, error)
-	ProxyOnDownstreamConnectionClose(contextId int32, closeType int32) error
+	ProxyOnDownstreamData(contextID int32, dataLength int32, endOfStream int32) (Action, error)
+	ProxyOnDownstreamConnectionClose(contextID int32, closeType int32) error
 
-	ProxyOnUpstreamData(contextId int32, dataLength int32, endOfStream int32) (Action, error)
-	ProxyOnUpstreamConnectionClose(contextId int32, closeType int32) error
+	ProxyOnUpstreamData(contextID int32, dataLength int32, endOfStream int32) (Action, error)
+	ProxyOnUpstreamConnectionClose(contextID int32, closeType int32) error
 
-	ProxyOnRequestHeaders(contextId int32, headers int32, endOfStream int32) (Action, error)
-	ProxyOnRequestBody(contextId int32, bodyBufferLength int32, endOfStream int32) (Action, error)
-	ProxyOnRequestTrailers(contextId int32, trailers int32) (Action, error)
-	ProxyOnRequestMetadata(contextId int32, nElements int32) (Action, error)
+	ProxyOnRequestHeaders(contextID int32, headers int32, endOfStream int32) (Action, error)
+	ProxyOnRequestBody(contextID int32, bodyBufferLength int32, endOfStream int32) (Action, error)
+	ProxyOnRequestTrailers(contextID int32, trailers int32) (Action, error)
+	ProxyOnRequestMetadata(contextID int32, nElements int32) (Action, error)
 
-	ProxyOnResponseHeaders(contextId int32, headers int32, endOfStream int32) (Action, error)
-	ProxyOnResponseBody(contextId int32, bodyBufferLength int32, endOfStream int32) (Action, error)
-	ProxyOnResponseTrailers(contextId int32, trailers int32) (Action, error)
-	ProxyOnResponseMetadata(contextId int32, nElements int32) (Action, error)
+	ProxyOnResponseHeaders(contextID int32, headers int32, endOfStream int32) (Action, error)
+	ProxyOnResponseBody(contextID int32, bodyBufferLength int32, endOfStream int32) (Action, error)
+	ProxyOnResponseTrailers(contextID int32, trailers int32) (Action, error)
+	ProxyOnResponseMetadata(contextID int32, nElements int32) (Action, error)
 
-	ProxyOnHttpCallResponse(contextId int32, token int32, headers int32, bodySize int32, trailers int32) error
+	ProxyOnHttpCallResponse(contextID int32, token int32, headers int32, bodySize int32, trailers int32) error
 
-	ProxyOnQueueReady(rootContextId int32, token int32) error
+	ProxyOnQueueReady(rootContextID int32, token int32) error
 
 	ProxyOnGrpcCallResponseHeaderMetadata(contextID int32, calloutID int32, nElements int32) error
 	ProxyOnGrpcCallResponseMessage(contextID int32, calloutID int32, msgSize int32) error
@@ -135,7 +135,7 @@ type ImportsHandler interface {
 
 	// for golang host environment
 	// Wait until async call return, eg. sync http call in golang
-	Wait()
+	Wait() Action
 
 	// custom extension
 	GetCustomBuffer(bufferType BufferType) common.IoBuffer

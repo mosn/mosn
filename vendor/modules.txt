@@ -483,8 +483,8 @@ mosn.io/pkg/buffer
 mosn.io/pkg/header
 mosn.io/pkg/log
 mosn.io/pkg/utils
-# mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec
+# mosn.io/proxy-wasm-go-host v0.1.1-0.20210422095020-570025be8a23
 ## explicit
-mosn.io/proxy-wasm-go-host/common
-mosn.io/proxy-wasm-go-host/proxywasm
+mosn.io/proxy-wasm-go-host/proxywasm/common
+mosn.io/proxy-wasm-go-host/proxywasm/v1
 # github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
