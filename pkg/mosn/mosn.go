@@ -18,6 +18,7 @@
 package mosn
 
 import (
+	logger "mosn.io/pkg/log"
 	"net"
 	"sync"
 	"time"
@@ -32,7 +33,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/pkg/xds"
-	logger "mosn.io/pkg/log"
 	"mosn.io/pkg/utils"
 )
 
@@ -323,7 +323,11 @@ func (m *Mosn) Wait() {
 
 func (m *Mosn) Close() {
 	//make sure logger close at last
-	defer logger.CloseAll()
+	defer func() {
+		logger.CloseAll()
+		// TODO: It does not guarantee that the log is completely written to disk
+		time.Sleep(2 * time.Second)
+	}()
 	log.StartLogger.Infof("[mosn start] mosn stop server")
 	// close service
 	store.CloseService()
