@@ -63,32 +63,3 @@ func NewRpcResponse(headers header.CommonHeader, data api.IoBuffer) *Response {
 	}
 	return response
 }
-
-type Codec struct {
-	exampleStatusMapping StatusMapping
-
-	exampleMatcher Matcher
-
-	proto Proto
-}
-
-func (r Codec) ProtocolName() api.ProtocolName {
-	return r.proto.Name()
-}
-
-func (r Codec) XProtocol() api.XProtocol {
-	return &r.proto
-}
-
-func (r Codec) ProtocolMatch() api.ProtocolMatch {
-	return r.exampleMatcher.ExampleMatcher
-}
-
-func (r Codec) HTTPMapping() api.HTTPMapping {
-	return &r.exampleStatusMapping
-}
-
-//loader_func_name that go-Plugin use,LoadCodec is default name
-func LoadCodec() api.XProtocolCodec {
-	return &Codec{}
-}
