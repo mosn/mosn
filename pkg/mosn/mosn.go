@@ -322,7 +322,6 @@ func (m *Mosn) Wait() {
 }
 
 func (m *Mosn) Close() {
-	//make sure logger close at last
 	log.StartLogger.Infof("[mosn start] mosn stop server")
 	// close service
 	store.CloseService()
