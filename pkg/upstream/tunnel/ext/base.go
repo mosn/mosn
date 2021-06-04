@@ -1,7 +1,7 @@
 package ext
 
 type ServerLister interface {
-	List() chan []string
+	List(string) (chan []string)
 }
 
 var serverListers = map[string]ServerLister{}

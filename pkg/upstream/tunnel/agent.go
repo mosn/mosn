@@ -38,7 +38,9 @@ type agentBootstrapConfig struct {
 	// Server侧的直连列表
 	StaticServerList []string `json:"server_list"`
 
-	DynamicServerLister string `json:"dynamic_server_lister"`
+	DynamicServerListConfig struct {
+		DynamicServerLister string `json:"dynamic_server_lister"`
+	}
 
 	// ConnectRetryTimes
 	ConnectRetryTimes int `json:"connect_retry_times"`
@@ -64,12 +66,45 @@ func init() {
 }
 
 func bootstrap(conf *agentBootstrapConfig) {
-	if conf.DynamicServerLister != "" {
-		lister := ext.GetServerLister(conf.DynamicServerLister)
-		ch := lister.List()
-		select {
-		case servers := <-ch:
-		}
+	if conf.DynamicServerListConfig.DynamicServerLister != "" {
+		go func() {
+			lister := ext.GetServerLister(conf.DynamicServerListConfig.DynamicServerLister)
+			ch := lister.List(conf.Cluster)
+			select {
+			case servers := <-ch:
+				// Compute the diff between new and old server list
+				intersection := make(map[string]bool)
+				for i := range servers {
+					intersection[servers[i]] = true
+				}
+				for addr := range connectionMap {
+					intersection[addr] = true
+				}
+
+				increased := make([]string, 0)
+				for _, addr := range servers {
+					if _, ok := intersection[addr]; !ok {
+						increased = append(increased, addr)
+						connectServer(conf, addr)
+					}
+				}
+
+				decreased := make([]string, 0)
+				for addr, conns := range connectionMap {
+					_, ok := intersection[addr]
+					if !ok {
+						for _, conn := range conns {
+							err := conn.Stop()
+							if err != nil {
+								log.DefaultLogger.Errorf("failed to")
+							}
+						}
+						decreased = append(decreased, addr)
+					}
+				}
+			}
+		}()
+
 	}
 
 	for _, serverAddress := range conf.StaticServerList {
@@ -88,24 +123,28 @@ func bootstrap(conf *agentBootstrapConfig) {
 	}
 }
 
+var connectionMap = map[string][]*AgentRawConnection{}
+
 func connectServer(conf *agentBootstrapConfig, address string) {
 	servers := mosn.MOSND.GetServer()
 	listener := servers[0].Handler().FindListenerByName(conf.HostingListener)
 	if listener == nil {
 		return
 	}
-	credential := ext.GetConnectionCredential(conf.CredentialPolicy)
 	config := &ConnectionConfig{
 		Address:               address,
 		ClusterName:           conf.Cluster,
 		Weight:                10,
 		ReconnectBaseDuration: time.Duration(conf.ReconnectBaseDurationMs) * time.Millisecond,
 		ConnectRetryTimes:     conf.ConnectRetryTimes,
+		CredentialPolicy:      conf.CredentialPolicy,
 	}
 	for i := 0; i < conf.ConnectionNum; i++ {
 		conn := NewConnection(*config, listener)
-		conn.Stop()
-		conn.connectAndInit()
+		err := conn.connectAndInit()
+		if err == nil {
+			connectionMap[address] = append(connectionMap[address], conn)
+		}
 	}
 }
 
@@ -116,4 +155,5 @@ type ConnectionConfig struct {
 	ConnectRetryTimes     int           `json:"connect_retry_times"`
 	Network               string        `json:"network"`
 	ReconnectBaseDuration time.Duration `json:"reconnect_base_duration"`
+	CredentialPolicy      string        `json:"credential_policy"`
 }

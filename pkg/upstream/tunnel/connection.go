@@ -40,6 +40,7 @@ type AgentRawConnection struct {
 	rawc     net.Conn
 	listener types.Listener
 	close    *atomic.Bool
+	initInfo *ConnectionInitInfo
 }
 
 func NewConnection(config ConnectionConfig, listener types.Listener) *AgentRawConnection {
@@ -52,9 +53,21 @@ func NewConnection(config ConnectionConfig, listener types.Listener) *AgentRawCo
 	if config.ConnectRetryTimes == 0 {
 		config.ConnectRetryTimes = defaultConnectMaxRetryTimes
 	}
+
+	initInfo := &ConnectionInitInfo{
+		ClusterName: config.ClusterName,
+		Weight:      config.Weight,
+	}
+	cc := ext.GetConnectionCredential(config.CredentialPolicy)
+	if cc != nil {
+		initInfo.Credential = cc.CreateCredential(config.ClusterName)
+		initInfo.Credential = config.CredentialPolicy
+	}
+
 	return &AgentRawConnection{
 		ConnectionConfig: config,
 		listener:         listener,
+		initInfo:         initInfo,
 		close:            atomic.NewBool(false),
 	}
 }
@@ -70,7 +83,6 @@ func (a *AgentRawConnection) connectAndInit() error {
 	var rawc net.Conn
 	var err error
 	backoffConnectDuration := a.ReconnectBaseDuration
-	ext.GetConnectionCredential(a.ClusterName)
 
 	for i := 0; i < a.ConnectRetryTimes || a.ConnectRetryTimes == -1; i++ {
 		if a.close.Load() {
@@ -79,11 +91,7 @@ func (a *AgentRawConnection) connectAndInit() error {
 		rawc, err = net.Dial(a.Network, a.Address)
 		rawc.SetReadDeadline(time.Now().Add(time.Second * 10))
 		if err == nil {
-			initInfo := &ConnectionInitInfo{
-				ClusterName: a.ClusterName,
-				Weight:      a.Weight,
-			}
-			b, err := Encode(initInfo)
+			b, err := Encode(a.initInfo)
 			if err != nil {
 				continue
 			}

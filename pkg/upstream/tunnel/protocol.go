@@ -65,11 +65,12 @@ var (
 
 	typesToFlagAndType = map[string][]byte{
 		reflect.TypeOf(ConnectionInitInfo{}).Name(): {0x01, 0x01, 0x00},
+		reflect.TypeOf(ConnectionInitResponse{}).Name(): {0x02, 0x02, 0x00},
 	}
 
 	FlagToTypes = map[byte]reflect.Type{
 		byte(0x01): reflect.TypeOf(ConnectionInitInfo{}),
-		byte(0x02): reflect.TypeOf(ConnectionInitInfo{}),
+		byte(0x02): reflect.TypeOf(ConnectionInitResponse{}),
 	}
 )
 
@@ -136,15 +137,15 @@ func DecodeFromBuffer(buffer api.IoBuffer) (interface{}, error) {
 	_ = dataBytes[VersionIndex:FlagIndex]
 	flag := dataBytes[FlagIndex:TypeIndex]
 	if t, ok := FlagToTypes[flag[0]]; ok {
-		st := reflect.New(t).Interface()
+		st := reflect.New(t)
 		_ = dataBytes[TypeIndex:DataLengthIndex]
 		payload := dataBytes[PayLoadIndex : PayLoadIndex+int(dataLength)]
-		err := json.Unmarshal(payload, st)
+		err := json.Unmarshal(payload, st.Interface())
 		if err != nil {
 			return nil, err
 		}
 		buffer.Drain(buffer.Len())
-		return st, nil
+		return st.Elem().Interface(), nil
 	}
 	return nil, nil
 }

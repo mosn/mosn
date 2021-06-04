@@ -349,27 +349,6 @@ func (cm *clusterManager) UpdateTLSManager(tls *v2.TLSConfig) {
 	configmanager.SetClusterManagerTLS(*tls)
 }
 
-func (cm *clusterManager) DestroyConnectionPool(protocol string, hosts []string) error {
-	if protocol == "" {
-		cm.protocolConnPool.Range(func(key, value interface{}) bool {
-			connectionPool := value.(*sync.Map)
-			for _, host := range hosts {
-				connectionPool.Delete(host)
-			}
-			return true
-		})
-	}
-	value, ok := cm.protocolConnPool.Load(protocol)
-	if !ok {
-		return errUnknownProtocol
-	}
-	connectionPool := value.(*sync.Map)
-	for _, host := range hosts {
-		connectionPool.Delete(host)
-	}
-	return nil
-}
-
 const (
 	maxHostsCounts  = 3
 	intervalStep    = 5

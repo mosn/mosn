@@ -152,6 +152,11 @@ type connection struct {
 	}
 }
 
+func (conn *connection) GetConnectionEventListener() []api.ConnectionEventListener {
+	return conn.connCallbacks
+}
+
+// NewServerConnection new server-side connection, rawc is the raw connection from go/net
 func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}) api.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
 

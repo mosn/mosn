@@ -52,15 +52,21 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 		return writeConnectResponse(tunnel.ConnectUnknownFailed, conn)
 	}
 	// now it can only be ConnectionInitInfo
-	info, ok := data.(*tunnel.ConnectionInitInfo)
+	info, ok := data.(tunnel.ConnectionInitInfo)
 	if !ok {
 		log.DefaultLogger.Errorf("[tunnel server] [ondata] decode failed, data error")
 		return writeConnectResponse(tunnel.ConnectUnknownFailed, conn)
 	}
 	// Auth the connection
-	connCredential := ext.GetConnectionCredential(info.CredentialPolicy)
-	if res := connCredential.ValidateCredential(info.Credential, info.HostName, info.ClusterName); !res {
-		return writeConnectResponse(tunnel.ConnectAuthFailed, conn)
+	if info.CredentialPolicy != "" {
+		connCredential := ext.GetConnectionCredential(info.CredentialPolicy)
+		if connCredential == nil {
+			return writeConnectResponse(tunnel.ConnectAuthFailed, conn)
+		}
+		res := connCredential.ValidateCredential(info.Credential, info.HostName, info.ClusterName)
+		if !res {
+			return writeConnectResponse(tunnel.ConnectAuthFailed, conn)
+		}
 	}
 	conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
 	if !t.clusterManager.ClusterExist(info.ClusterName) {
