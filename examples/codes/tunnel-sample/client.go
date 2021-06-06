@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"mosn.io/api"
-
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
@@ -84,10 +83,12 @@ func main() {
 	// use bolt as example
 	if client := NewClient("127.0.0.1:2045", bolt.ProtocolName, *t); client != nil {
 		for {
+			if !*t {
+				client.respWaiter.Add(1)
+			}
 			client.Request()
 			time.Sleep(200 * time.Millisecond)
 			if !*t {
-				client.respWaiter.Add(1)
 				client.respWaiter.Wait()
 				return
 			}

@@ -55,13 +55,17 @@ func NewConnection(config ConnectionConfig, listener types.Listener) *AgentRawCo
 	}
 
 	initInfo := &ConnectionInitInfo{
-		ClusterName: config.ClusterName,
-		Weight:      config.Weight,
+		ClusterName:      config.ClusterName,
+		Weight:           config.Weight,
+		CredentialPolicy: config.CredentialPolicy,
 	}
-	cc := ext.GetConnectionCredential(config.CredentialPolicy)
-	if cc != nil {
-		initInfo.Credential = cc.CreateCredential(config.ClusterName)
-		initInfo.Credential = config.CredentialPolicy
+
+	if config.CredentialPolicy != "" {
+		credentialGetter := ext.GetConnectionCredentialGetter(config.CredentialPolicy)
+		if credentialGetter == nil {
+			panic("credential getter not found")
+		}
+		initInfo.Credential = credentialGetter(config.ClusterName)
 	}
 
 	return &AgentRawConnection{

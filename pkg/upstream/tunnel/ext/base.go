@@ -14,17 +14,33 @@ func GetServerLister(name string) ServerLister {
 	return serverListers[name]
 }
 
-type ConnectionCredential interface {
-	CreateCredential(cluster string) string
-	ValidateCredential(credential string, host string, cluster string) bool
+
+// ConnectionValidator
+type ConnectionValidator interface {
+	Validate(credential string, host string, cluster string) bool
 }
 
-func RegisterConnectionCredential(name string, lister ServerLister) {
-	serverListers[name] = lister
+
+func RegisterConnectionValidator(name string, validator ConnectionValidator) {
+	connectionValidators[name] = validator
 }
 
-func GetConnectionCredential(name string) ConnectionCredential {
-	return connectionCredentials[name]
+func GetConnectionValidator(name string) ConnectionValidator {
+	return connectionValidators[name]
 }
 
-var connectionCredentials = map[string]ConnectionCredential{}
+var connectionValidators = map[string]ConnectionValidator{}
+
+
+// ConnectionCredentialGetter
+type ConnectionCredentialGetter func(cluster string) string
+
+func RegisterConnectionCredentialGetter(name string, getter ConnectionCredentialGetter) {
+	connectionCredentialGetters[name] = getter
+}
+
+func GetConnectionCredentialGetter(name string) ConnectionCredentialGetter {
+	return connectionCredentialGetters[name]
+}
+
+var connectionCredentialGetters = map[string]ConnectionCredentialGetter{}

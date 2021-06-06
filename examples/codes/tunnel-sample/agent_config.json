@@ -50,7 +50,8 @@
         "server_list": ["127.0.0.1:9999"],
         "cluster": "clientCluster",
         "enable": true,
-        "connection_num": 1
+        "connection_num": 1,
+        "credential_policy": "test"
       }
     }
   ],

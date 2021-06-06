@@ -59,11 +59,11 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 	}
 	// Auth the connection
 	if info.CredentialPolicy != "" {
-		connCredential := ext.GetConnectionCredential(info.CredentialPolicy)
-		if connCredential == nil {
+		validator := ext.GetConnectionValidator(info.CredentialPolicy)
+		if validator == nil {
 			return writeConnectResponse(tunnel.ConnectAuthFailed, conn)
 		}
-		res := connCredential.ValidateCredential(info.Credential, info.HostName, info.ClusterName)
+		res := validator.Validate(info.Credential, info.HostName, info.ClusterName)
 		if !res {
 			return writeConnectResponse(tunnel.ConnectAuthFailed, conn)
 		}
