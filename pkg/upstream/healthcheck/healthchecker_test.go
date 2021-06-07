@@ -20,6 +20,7 @@ package healthcheck
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -223,12 +224,11 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 		new []types.Host
 	}
 	tests := []struct {
-		name  string
-		args  args
-		want  []types.Host
-		want1 []types.Host
+		name            string
+		args            args
+		wantDeleteHosts []types.Host
+		wantNewHosts    []types.Host
 	}{
-		// TODO: Add test cases.
 		{
 			name: "find_delete_and_new",
 			args: args{
@@ -255,27 +255,151 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 					},
 				},
 			},
-			want: []types.Host{
+			wantDeleteHosts: []types.Host{
 				&mockHost{
 					addr: "addr1",
 				},
 			},
-			want1: []types.Host{
+			wantNewHosts: []types.Host{
 				&mockHost{
 					addr: "addr4",
+				},
+			},
+		},
+		{
+			name: "find_delete",
+			args: args{
+				old: []types.Host{
+					&mockHost{
+						addr: "addr1",
+					},
+					&mockHost{
+						addr: "addr2",
+					},
+					&mockHost{
+						addr: "addr3",
+					},
+				},
+				new: []types.Host{},
+			},
+			wantDeleteHosts: []types.Host{
+				&mockHost{
+					addr: "addr1",
+				},
+				&mockHost{
+					addr: "addr2",
+				},
+				&mockHost{
+					addr: "addr3",
+				},
+			},
+			wantNewHosts: []types.Host{},
+		},
+		{
+			name: "find_new",
+			args: args{
+				old: []types.Host{},
+				new: []types.Host{
+					&mockHost{
+						addr: "addr1",
+					},
+					&mockHost{
+						addr: "addr2",
+					},
+					&mockHost{
+						addr: "addr3",
+					},
+				},
+			},
+			wantDeleteHosts: []types.Host{},
+			wantNewHosts: []types.Host{
+				&mockHost{
+					addr: "addr1",
+				},
+				&mockHost{
+					addr: "addr2",
+				},
+				&mockHost{
+					addr: "addr3",
 				},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := findNewAndDeleteHost(tt.args.old, tt.args.new)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("findNewAndDeleteHost() got = %v, want %v", got, tt.want)
+			deleteHosts, newHosts := findNewAndDeleteHost(tt.args.old, tt.args.new)
+			if !reflect.DeepEqual(deleteHosts, tt.wantDeleteHosts) {
+				t.Errorf("findNewAndDeleteHost() deleteHosts = %v, wantDeleteHosts %v", deleteHosts, tt.wantDeleteHosts)
 			}
-			if !reflect.DeepEqual(got1, tt.want1) {
-				t.Errorf("findNewAndDeleteHost() got1 = %v, want %v", got1, tt.want1)
+			if !reflect.DeepEqual(newHosts, tt.wantNewHosts) {
+				t.Errorf("findNewAndDeleteHost() newHosts = %v, want1NewHosts %v", newHosts, tt.wantNewHosts)
 			}
+		})
+	}
+}
+
+func newMockHosts(from, to int) []types.Host {
+	mockHosts := make([]types.Host, 0, to-from)
+	for i := from; i < to; i++ {
+		mockHosts = append(mockHosts, &mockHost{
+			addr: "address-" + strconv.Itoa(i),
+		})
+	}
+	return mockHosts
+}
+
+func Benchmark_findNewAndDeleteHost1(b *testing.B) {
+	type args struct {
+		oldHostset []types.Host
+		newHostset []types.Host
+	}
+	benchmarkCases := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "find-1newHost-1deleteHost-from10hosts",
+			args: args{
+				oldHostset: newMockHosts(0, 10),
+				newHostset: newMockHosts(1, 11),
+			},
+		},
+		{
+			name: "find-10newHost-10deleteHost-from100hosts",
+			args: args{
+				oldHostset: newMockHosts(0, 100),
+				newHostset: newMockHosts(10, 110),
+			},
+		},
+		{
+			name: "find-10newHost-10deleteHost-from1000hosts",
+			args: args{
+				oldHostset: newMockHosts(0, 1000),
+				newHostset: newMockHosts(10, 1010),
+			},
+		},
+		{
+			name: "find-100newHost-100deleteHost-from1000hosts",
+			args: args{
+				oldHostset: newMockHosts(0, 1000),
+				newHostset: newMockHosts(100, 1100),
+			},
+		},
+		{
+			name: "find-500newHost-500deleteHost-from1000hosts",
+			args: args{
+				oldHostset: newMockHosts(0, 1000),
+				newHostset: newMockHosts(500, 1500),
+			},
+		},
+	}
+	for _, bc := range benchmarkCases {
+		b.Run(bc.name, func(b *testing.B) {
+			b.StartTimer()
+			for i := 0; i < b.N; i++ {
+				findNewAndDeleteHost(bc.args.oldHostset, bc.args.newHostset)
+			}
+			b.StopTimer()
 		})
 	}
 }
