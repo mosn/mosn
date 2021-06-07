@@ -306,9 +306,6 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 					&mockHost{
 						addr: "addr2",
 					},
-					&mockHost{
-						addr: "addr3",
-					},
 				},
 			},
 			wantDeleteHosts: []types.Host{},
@@ -318,9 +315,6 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 				},
 				&mockHost{
 					addr: "addr2",
-				},
-				&mockHost{
-					addr: "addr3",
 				},
 			},
 		},
