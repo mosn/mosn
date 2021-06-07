@@ -19,7 +19,6 @@ package healthcheck
 
 import (
 	"fmt"
-	"reflect"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -218,6 +217,22 @@ func TestHealthCheck(t *testing.T) {
 	}
 }
 
+func equal(originHosts, targetHosts []types.Host) bool {
+	tmp := make(map[string]types.Host, len(originHosts))
+	for _, origin := range originHosts {
+		tmp[origin.AddressString()] = origin
+	}
+
+	for _, targetHost := range targetHosts {
+		delete(tmp, targetHost.AddressString())
+	}
+
+	if len(tmp) == 0 {
+		return true
+	}
+	return false
+}
+
 func Test_findNewAndDeleteHost(t *testing.T) {
 	type args struct {
 		old []types.Host
@@ -245,87 +260,59 @@ func Test_findNewAndDeleteHost(t *testing.T) {
 				},
 				new: []types.Host{
 					&mockHost{
-						addr: "addr2",
-					},
-					&mockHost{
 						addr: "addr3",
 					},
 					&mockHost{
 						addr: "addr4",
+					},
+					&mockHost{
+						addr: "addr5",
 					},
 				},
 			},
 			wantDeleteHosts: []types.Host{
 				&mockHost{
 					addr: "addr1",
+				},
+				&mockHost{
+					addr: "addr2",
 				},
 			},
 			wantNewHosts: []types.Host{
 				&mockHost{
 					addr: "addr4",
 				},
+				&mockHost{
+					addr: "addr5",
+				},
 			},
 		},
 		{
 			name: "find_delete",
 			args: args{
-				old: []types.Host{
-					&mockHost{
-						addr: "addr1",
-					},
-					&mockHost{
-						addr: "addr2",
-					},
-					&mockHost{
-						addr: "addr3",
-					},
-				},
+				old: newMockHosts(0, 100),
 				new: []types.Host{},
 			},
-			wantDeleteHosts: []types.Host{
-				&mockHost{
-					addr: "addr1",
-				},
-				&mockHost{
-					addr: "addr2",
-				},
-				&mockHost{
-					addr: "addr3",
-				},
-			},
-			wantNewHosts: []types.Host{},
+			wantDeleteHosts: newMockHosts(0, 100),
+			wantNewHosts:    []types.Host{},
 		},
 		{
 			name: "find_new",
 			args: args{
 				old: []types.Host{},
-				new: []types.Host{
-					&mockHost{
-						addr: "addr1",
-					},
-					&mockHost{
-						addr: "addr2",
-					},
-				},
+				new: newMockHosts(0, 100),
 			},
 			wantDeleteHosts: []types.Host{},
-			wantNewHosts: []types.Host{
-				&mockHost{
-					addr: "addr1",
-				},
-				&mockHost{
-					addr: "addr2",
-				},
-			},
+			wantNewHosts:    newMockHosts(0, 100),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			deleteHosts, newHosts := findNewAndDeleteHost(tt.args.old, tt.args.new)
-			if !reflect.DeepEqual(deleteHosts, tt.wantDeleteHosts) {
+			if !equal(deleteHosts, tt.wantDeleteHosts) {
 				t.Errorf("findNewAndDeleteHost() deleteHosts = %v, wantDeleteHosts %v", deleteHosts, tt.wantDeleteHosts)
 			}
-			if !reflect.DeepEqual(newHosts, tt.wantNewHosts) {
+			if !equal(newHosts, tt.wantNewHosts) {
 				t.Errorf("findNewAndDeleteHost() newHosts = %v, want1NewHosts %v", newHosts, tt.wantNewHosts)
 			}
 		})
