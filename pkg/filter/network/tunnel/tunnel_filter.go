@@ -47,7 +47,11 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 	}
 	data, err := tunnel.DecodeFromBuffer(buffer)
 	conn := t.readCallbacks.Connection()
-	if err != nil || data == nil {
+	if data == nil && err == nil {
+		// Not enough data was read
+		return api.Stop
+	}
+	if err != nil {
 		log.DefaultLogger.Errorf("[tunnel server] [ondata] failed to read from buffer, close connection err: %+v", err)
 		return writeConnectResponse(tunnel.ConnectUnknownFailed, conn)
 	}
@@ -68,12 +72,12 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 			return writeConnectResponse(tunnel.ConnectAuthFailed, conn)
 		}
 	}
-	conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
 	if !t.clusterManager.ClusterExist(info.ClusterName) {
 		return writeConnectResponse(tunnel.ConnectClusterNotExist, conn)
 	}
 	// set the flag that has been initialized, subsequent data processing skips this filter
 	t.connInitialized = true
+	conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
 	_ = t.clusterManager.AppendHostWithConnection(info.ClusterName, v2.Host{
 		HostConfig: v2.HostConfig{
 			Address:    conn.RemoteAddr().String(),

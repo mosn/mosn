@@ -63,7 +63,7 @@ func NewConnection(config ConnectionConfig, listener types.Listener) *AgentRawCo
 	if config.CredentialPolicy != "" {
 		credentialGetter := ext.GetConnectionCredentialGetter(config.CredentialPolicy)
 		if credentialGetter == nil {
-			panic("credential getter not found")
+			log.DefaultLogger.Fatalf("[agent] credential %v getter not found", config.CredentialPolicy)
 		}
 		initInfo.Credential = credentialGetter(config.ClusterName)
 	}
