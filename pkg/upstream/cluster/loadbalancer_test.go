@@ -396,3 +396,146 @@ func TestReqRRChooseHost(t *testing.T) {
 	assert.Equal(t, host, host1)
 
 }
+
+func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
+	type fields struct {
+		hosts types.HostSet
+		info  types.ClusterInfo
+	}
+	type args struct {
+		context  types.LoadBalancerContext
+		runCount int
+	}
+	type testCase struct {
+		name       string
+		fields     fields
+		args       args
+		want       map[string]int // map[host address]count
+		resultChan chan types.Host
+	}
+	// testcase1
+	mockHosts_testcase1 := []types.Host{
+		&mockHost{
+			name:       "host1",
+			addr:       "address1",
+			healthFlag: GetHealthFlagPointer("address1"),
+		},
+		&mockHost{
+			name:       "host2",
+			addr:       "address2",
+			healthFlag: GetHealthFlagPointer("address2"),
+		},
+		&mockHost{
+			name:       "host3",
+			addr:       "address3",
+			healthFlag: GetHealthFlagPointer("address3"),
+		},
+		&mockHost{
+			name:       "host4",
+			addr:       "address4",
+			healthFlag: GetHealthFlagPointer("address4"),
+		},
+	}
+	mockHosts_testcase1[2].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase1[0].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet1_testCase1 := &hostSet{}
+	hostSet1_testCase1.setFinalHost(mockHosts_testcase1)
+	tests := []testCase{
+		{
+			name: "LB-From4Hosts-2-healthy-2-unhealthy",
+			fields: fields{
+				info:  nil,
+				hosts: hostSet1_testCase1,
+			},
+			args: args{
+				context:  nil,
+				runCount: 1000000,
+			},
+			want: map[string]int{
+				"address1": 0,
+				"address2": 500000,
+				"address3": 0,
+				"address4": 500000,
+			},
+			resultChan: make(chan types.Host, 1000000),
+		},
+	}
+	// testcase2
+	mockHosts_testcase2 := []types.Host{
+		&mockHost{
+			name:       "host-1",
+			addr:       "address-1",
+			healthFlag: GetHealthFlagPointer("address-1"),
+		},
+		&mockHost{
+			name:       "host-2",
+			addr:       "address-2",
+			healthFlag: GetHealthFlagPointer("address-2"),
+		},
+		&mockHost{
+			name:       "host-3",
+			addr:       "address-3",
+			healthFlag: GetHealthFlagPointer("address-3"),
+		},
+		&mockHost{
+			name:       "host-4",
+			addr:       "address-4",
+			healthFlag: GetHealthFlagPointer("address-4"),
+		},
+	}
+	mockHosts_testcase2[2].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase2[1].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase2[0].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet1_testCase2 := &hostSet{}
+	hostSet1_testCase2.setFinalHost(mockHosts_testcase2)
+	tests = append(tests, testCase{
+		name: "LB-From4Hosts-1-healthy-3-unhealthy",
+		fields: fields{
+			info:  nil,
+			hosts: hostSet1_testCase2,
+		},
+		args: args{
+			context:  nil,
+			runCount: 1000000,
+		},
+		want: map[string]int{
+			"address-1": 0,
+			"address-2": 0,
+			"address-3": 0,
+			"address-4": 1000000,
+		},
+		resultChan: make(chan types.Host, 1000000),
+	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			factory := lbFactories[types.RoundRobin]
+			lb := factory(tt.fields.info, tt.fields.hosts)
+			defer func() {
+				close(tt.resultChan)
+				for _, host := range tt.fields.hosts.Hosts() {
+					host.ClearHealthFlag(api.FAILED_ACTIVE_HC)
+				}
+			}()
+			for l := 0; l < tt.args.runCount; l++ {
+				go func() {
+					gotHost := lb.ChooseHost(tt.args.context)
+					tt.resultChan <- gotHost
+				}()
+			}
+
+			for l := 0; l < tt.args.runCount; l++ {
+				gotHost := <-tt.resultChan
+				if gotHost == nil {
+					t.Errorf("return nil host")
+				}
+				if chooseCount, ok := tt.want[gotHost.AddressString()]; ok {
+					tt.want[gotHost.AddressString()] = chooseCount - 1
+				}
+			}
+
+			for address, count := range tt.want {
+				t.Logf("roundRobinLoadBalancer choose host count err, address: %v, count: %v", address, count)
+			}
+		})
+	}
+}

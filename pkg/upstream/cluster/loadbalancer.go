@@ -164,6 +164,19 @@ func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) 
 			return host
 		}
 	}
+
+	next := int(atomic.AddUint32(&lb.rrIndex, 1) % uint32(total))
+	l := total + next
+	for i := next; i < l; i++ {
+		idx := i % total
+		host := targets[idx]
+		if host.Health() {
+			if i != next {
+				atomic.StoreUint32(&lb.rrIndex, uint32(idx))
+			}
+			return host
+		}
+	}
 	return nil
 }
 
