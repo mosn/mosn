@@ -506,6 +506,160 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 		},
 		resultChan: make(chan types.Host, 1000000),
 	})
+	// testcase3
+	mockHosts_testcase3 := []types.Host{
+		&mockHost{
+			name:       "host--1",
+			addr:       "address--1",
+			healthFlag: GetHealthFlagPointer("address--1"),
+		},
+		&mockHost{
+			name:       "host--2",
+			addr:       "address--2",
+			healthFlag: GetHealthFlagPointer("address--2"),
+		},
+		&mockHost{
+			name:       "host--3",
+			addr:       "address--3",
+			healthFlag: GetHealthFlagPointer("address--3"),
+		},
+		&mockHost{
+			name:       "host--4",
+			addr:       "address--4",
+			healthFlag: GetHealthFlagPointer("address--4"),
+		},
+		&mockHost{
+			name:       "host--5",
+			addr:       "address--5",
+			healthFlag: GetHealthFlagPointer("address--5"),
+		},
+		&mockHost{
+			name:       "host--6",
+			addr:       "address--6",
+			healthFlag: GetHealthFlagPointer("address--6"),
+		},
+		&mockHost{
+			name:       "host--7",
+			addr:       "address--7",
+			healthFlag: GetHealthFlagPointer("address--7"),
+		},
+		&mockHost{
+			name:       "host--8",
+			addr:       "address--8",
+			healthFlag: GetHealthFlagPointer("address--8"),
+		},
+		&mockHost{
+			name:       "host--9",
+			addr:       "address--9",
+			healthFlag: GetHealthFlagPointer("address--9"),
+		},
+	}
+	mockHosts_testcase3[8].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[7].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[5].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[4].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[2].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	mockHosts_testcase3[1].SetHealthFlag(api.FAILED_ACTIVE_HC)
+	hostSet1_testCase3 := &hostSet{}
+	hostSet1_testCase3.setFinalHost(mockHosts_testcase3)
+	tests = append(tests, testCase{
+		name: "LB-From9Hosts-3-healthy-6-unhealthy",
+		fields: fields{
+			info:  nil,
+			hosts: hostSet1_testCase3,
+		},
+		args: args{
+			context:  nil,
+			runCount: 1500000,
+		},
+		want: map[string]int{
+			"address--1": 500000,
+			"address--2": 0,
+			"address--3": 0,
+			"address--4": 500000,
+			"address--5": 0,
+			"address--6": 0,
+			"address--7": 500000,
+			"address--8": 0,
+			"address--9": 0,
+		},
+		resultChan: make(chan types.Host, 1500000),
+	})
+	// testcase4
+	mockHosts_testcase4 := []types.Host{
+		&mockHost{
+			name:       "host--1",
+			addr:       "address--1",
+			healthFlag: GetHealthFlagPointer("address--1"),
+		},
+		&mockHost{
+			name:       "host--2",
+			addr:       "address--2",
+			healthFlag: GetHealthFlagPointer("address--2"),
+		},
+		&mockHost{
+			name:       "host--3",
+			addr:       "address--3",
+			healthFlag: GetHealthFlagPointer("address--3"),
+		},
+		&mockHost{
+			name:       "host--4",
+			addr:       "address--4",
+			healthFlag: GetHealthFlagPointer("address--4"),
+		},
+		&mockHost{
+			name:       "host--5",
+			addr:       "address--5",
+			healthFlag: GetHealthFlagPointer("address--5"),
+		},
+		&mockHost{
+			name:       "host--6",
+			addr:       "address--6",
+			healthFlag: GetHealthFlagPointer("address--6"),
+		},
+		&mockHost{
+			name:       "host--7",
+			addr:       "address--7",
+			healthFlag: GetHealthFlagPointer("address--7"),
+		},
+		&mockHost{
+			name:       "host--8",
+			addr:       "address--8",
+			healthFlag: GetHealthFlagPointer("address--8"),
+		},
+		&mockHost{
+			name:       "host--9",
+			addr:       "address--9",
+			healthFlag: GetHealthFlagPointer("address--9"),
+		},
+	}
+
+	hostSet1_testCase4 := &hostSet{}
+	hostSet1_testCase4.setFinalHost(mockHosts_testcase4)
+	tests = append(tests, testCase{
+		name: "LB-From9Hosts-9-healthy-0-unhealthy",
+		fields: fields{
+			info:  nil,
+			hosts: hostSet1_testCase4,
+		},
+		args: args{
+			context:  nil,
+			runCount: 900000,
+		},
+		want: map[string]int{
+			"address--1": 100000,
+			"address--2": 100000,
+			"address--3": 100000,
+			"address--4": 100000,
+			"address--5": 100000,
+			"address--6": 100000,
+			"address--7": 100000,
+			"address--8": 100000,
+			"address--9": 100000,
+		},
+		resultChan: make(chan types.Host, 900000),
+	})
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			factory := lbFactories[types.RoundRobin]
