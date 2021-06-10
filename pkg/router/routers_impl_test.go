@@ -337,6 +337,43 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 	}
 }
 
+
+func TestWildcardHostSuffixMatch(t *testing.T) {
+	virtualHosts := []*v2.VirtualHost{
+		{Domains: []string{"www.test.com:*"}, Routers: []v2.Router{newTestSimpleRouter("1")}},
+		{Domains: []string{"www.test.com"}, Routers: []v2.Router{newTestSimpleRouter("2")}},
+	}
+	cfg := &v2.RouterConfiguration{
+		VirtualHosts: virtualHosts,
+	}
+	routers, err := NewRouters(cfg)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	testCases := []struct {
+		Domain        string
+		ExpectedRoute string
+	}{
+		{Domain: "www.test.com", ExpectedRoute: "2"},
+		{Domain: "www.test.com:8080", ExpectedRoute: "1"},
+	}
+	ctx := variable.NewVariableContext(context.Background())
+	for _, tc := range testCases {
+		variable.SetVariableValue(ctx, types.VarHost, tc.Domain)
+		route := routers.MatchRoute(ctx, protocol.CommonHeader(map[string]string{
+			"service": "test",
+		}))
+		if route == nil {
+			t.Errorf("%s match failed\n", tc.Domain)
+			continue
+		}
+		if route.RouteRule().ClusterName() != tc.ExpectedRoute {
+			t.Errorf("%s expected match %s, but got %s\n", tc.Domain, tc.ExpectedRoute, route.RouteRule().ClusterName())
+		}
+	}
+}
+
 func TestAddRouter(t *testing.T) {
 	// 1. no routes
 	cfg := &v2.RouterConfiguration{
