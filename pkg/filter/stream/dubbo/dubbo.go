@@ -42,12 +42,17 @@ func (d *dubboFilter) OnDestroy() {}
 
 func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 
+	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol)
+	if subProtocol == nil || "dubbo" != subProtocol.(string) {
+		return api.StreamFilterContinue
+	}
+
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
 	if !ok {
-		log.DefaultLogger.Warnf("%s is empty, may be the protocol is not dubbo", dubbo.ServiceNameHeader)
-		return api.StreamFilterContinue
+		log.DefaultLogger.Errorf("%s is empty, may be the protocol is not dubbo", dubbo.ServiceNameHeader)
+		return api.StreamFiltertermination
 	}
 
 	// adapte dubbo service to http host
