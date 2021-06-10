@@ -339,10 +339,11 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 
 
 func TestWildcardHostSuffixMatch(t *testing.T) {
-	virtualHosts := []*v2.VirtualHost{
+	virtualHosts := []v2.VirtualHost{
 		{Domains: []string{"www.test.com:*"}, Routers: []v2.Router{newTestSimpleRouter("1")}},
 		{Domains: []string{"www.test.com"}, Routers: []v2.Router{newTestSimpleRouter("2")}},
 	}
+
 	cfg := &v2.RouterConfiguration{
 		VirtualHosts: virtualHosts,
 	}
