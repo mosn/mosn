@@ -40,6 +40,7 @@ type routersImpl struct {
 	//  array member is the lens of the wildcard in descending order
 	//  used for longest match
 	greaterSortedWildcardVirtualHostSuffixes []int
+	wildcardPortSuffixesIndex                map[string]int
 	// stored all vritual host, same as the config order
 	virtualHosts []types.VirtualHost
 }
@@ -154,6 +155,13 @@ func (ri *routersImpl) findVirtualHostIndex(host string) int {
 			return index
 		}
 	}
+	if len(ri.wildcardPortSuffixesIndex) > 0 {
+		for tmpHost, index := range ri.wildcardPortSuffixesIndex {
+			if strings.HasPrefix(host, tmpHost) {
+				return index
+			}
+		}
+	}
 	return ri.defaultVirtualHostIndex
 }
 
@@ -213,6 +221,7 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 		defaultVirtualHostIndex:                  -1, // not exists
 		wildcardVirtualHostSuffixesIndex:         make(map[int]map[string]int),
 		greaterSortedWildcardVirtualHostSuffixes: []int{},
+		wildcardPortSuffixesIndex:                make(map[string]int),
 		virtualHosts:                             []types.VirtualHost{},
 	}
 	configImpl := NewConfigImpl(routerConfig)
@@ -251,6 +260,15 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 				m[wildcard] = index
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router domain: "+domain)
+				}
+			} else if len(domain) > 2 && ":*" == domain[len(domain)-2:] {
+				if _, ok := routers.wildcardPortSuffixesIndex[domain]; ok {
+					log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "only unique wildcard port value for domains are permitted, domain:"+domain)
+					return nil, ErrDuplicateVirtualHost
+				}
+				routers.wildcardPortSuffixesIndex[domain[0:len(domain)-1]] = index
+				if log.DefaultLogger.GetLogLevel() >= log.INFO {
+					log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router wildcard port domain: "+domain)
 				}
 			} else {
 				if _, ok := routers.virtualHostsIndex[domain]; ok {
