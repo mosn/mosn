@@ -9,8 +9,8 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
 func init() {
@@ -41,6 +41,11 @@ func buildDubboFilter(ctx context.Context) *dubboFilter {
 func (d *dubboFilter) OnDestroy() {}
 
 func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
+
+	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol)
+	if subProtocol == nil || "dubbo" != subProtocol.(string) {
+		return api.StreamFilterContinue
+	}
 
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 
