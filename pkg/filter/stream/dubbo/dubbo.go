@@ -9,8 +9,8 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol/xprotocol/dubbo"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/pkg/buffer"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 )
 
 func init() {
@@ -46,8 +46,8 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 
 	service, ok := headers.Get(dubbo.ServiceNameHeader)
 	if !ok {
-		log.DefaultLogger.Errorf("%s is empty, may be the protocol is not dubbo", dubbo.ServiceNameHeader)
-		return api.StreamFiltertermination
+		log.DefaultLogger.Warnf("%s is empty, may be the protocol is not dubbo", dubbo.ServiceNameHeader)
+		return api.StreamFilterContinue
 	}
 
 	// adapte dubbo service to http host
