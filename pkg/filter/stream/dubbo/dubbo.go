@@ -44,6 +44,7 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 
 	subProtocol := mosnctx.Get(ctx, types.ContextSubProtocol)
 	if subProtocol == nil || dubbo.ProtocolName != subProtocol.(string) {
+
 		return api.StreamFilterContinue
 	}
 
