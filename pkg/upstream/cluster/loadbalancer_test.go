@@ -458,7 +458,7 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 				"address3": 0,
 				"address4": 500000,
 			},
-			wantUniformity: 0.00005,
+			wantUniformity: 0.0001,
 			resultChan:     make(chan types.Host, 1000000),
 		},
 	}
@@ -586,7 +586,7 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 			"address--8": 0,
 			"address--9": 0,
 		},
-		wantUniformity: 0.00005,
+		wantUniformity: 0.0001,
 		resultChan:     make(chan types.Host, 1500000),
 	})
 	// testcase4
