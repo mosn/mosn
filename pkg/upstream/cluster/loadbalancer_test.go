@@ -458,7 +458,7 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 				"address3": 0,
 				"address4": 500000,
 			},
-			wantUniformity: 0.0001,
+			wantUniformity: 0.00005,
 			resultChan:     make(chan types.Host, 1000000),
 		},
 	}
@@ -506,7 +506,7 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 			"address-3": 0,
 			"address-4": 1000000,
 		},
-		wantUniformity: 0.0001,
+		wantUniformity: 0.0,
 		resultChan:     make(chan types.Host, 1000000),
 	})
 	// testcase3
@@ -586,7 +586,7 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 			"address--8": 0,
 			"address--9": 0,
 		},
-		wantUniformity: 0.0001,
+		wantUniformity: 0.00005,
 		resultChan:     make(chan types.Host, 1500000),
 	})
 	// testcase4
@@ -661,7 +661,7 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 			"address--8": 100000,
 			"address--9": 100000,
 		},
-		wantUniformity: 0.0001,
+		wantUniformity: 0.0,
 		resultChan:     make(chan types.Host, 900000),
 	})
 
