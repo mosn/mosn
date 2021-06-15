@@ -407,11 +407,12 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 		runCount int
 	}
 	type testCase struct {
-		name       string
-		fields     fields
-		args       args
-		want       map[string]int // map[host address]count
-		resultChan chan types.Host
+		name           string
+		fields         fields
+		args           args
+		want           map[string]int // map[host address]count
+		wantUniformity float64
+		resultChan     chan types.Host
 	}
 	// testcase1
 	mockHosts_testcase1 := []types.Host{
@@ -457,7 +458,8 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 				"address3": 0,
 				"address4": 500000,
 			},
-			resultChan: make(chan types.Host, 1000000),
+			wantUniformity: 0.0001,
+			resultChan:     make(chan types.Host, 1000000),
 		},
 	}
 	// testcase2
@@ -504,7 +506,8 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 			"address-3": 0,
 			"address-4": 1000000,
 		},
-		resultChan: make(chan types.Host, 1000000),
+		wantUniformity: 0.0001,
+		resultChan:     make(chan types.Host, 1000000),
 	})
 	// testcase3
 	mockHosts_testcase3 := []types.Host{
@@ -583,7 +586,8 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 			"address--8": 0,
 			"address--9": 0,
 		},
-		resultChan: make(chan types.Host, 1500000),
+		wantUniformity: 0.0001,
+		resultChan:     make(chan types.Host, 1500000),
 	})
 	// testcase4
 	mockHosts_testcase4 := []types.Host{
@@ -657,7 +661,8 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 			"address--8": 100000,
 			"address--9": 100000,
 		},
-		resultChan: make(chan types.Host, 900000),
+		wantUniformity: 0.0001,
+		resultChan:     make(chan types.Host, 900000),
 	})
 
 	for _, tt := range tests {
@@ -687,8 +692,16 @@ func Test_roundRobinLoadBalancer_ChooseHost(t *testing.T) {
 				}
 			}
 
+			deviationCount := 0
 			for address, count := range tt.want {
-				t.Logf("roundRobinLoadBalancer choose host count err, address: %v, count: %v", address, count)
+				t.Logf("roundRobinLoadBalancer choose host count, address: %v, count: %v", address, count)
+				if count > 0 {
+					deviationCount += count
+				}
+			}
+
+			if gotUniformity := float64(deviationCount) / float64(tt.args.runCount); gotUniformity > tt.wantUniformity {
+				t.Errorf("roundRobinLoadBalancer choose host count err, gotUniformity: %v, wantUniformity: %v", gotUniformity, tt.wantUniformity)
 			}
 		})
 	}
