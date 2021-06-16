@@ -39,9 +39,7 @@ func (cc *TunnelAgentConnection) Connect() (err error) {
 		return errors.New("tunnel channel has been closed")
 	}
 	cc.once.Do(func() {
-		for _,listener := range cc.GetConnectionEventListener() {
-			listener.OnEvent(api.Connected)
-		}
+		cc.OnConnectionEvent(api.Connected)
 	})
 	return nil
 }
