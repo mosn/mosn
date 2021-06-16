@@ -125,7 +125,7 @@ func (a *AgentRawConnection) connectAndInit() error {
 
 	for i := 0; i < a.ConnectRetryTimes || a.ConnectRetryTimes == -1; i++ {
 		if a.close.Load() {
-			return fmt.Errorf("connection closed, don't attempt to connect, address: %+v\", a.ConnectionConfig.Address")
+			return fmt.Errorf("connection closed, don't attempt to connect, address: %v", a.ConnectionConfig.Address)
 		}
 		rawc, err := connectFunc()
 		if err == nil {

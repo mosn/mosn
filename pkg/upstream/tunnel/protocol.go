@@ -64,7 +64,7 @@ var (
 	ResponseType = []byte{0x02, 0x00}
 
 	typesToFlagAndType = map[string][]byte{
-		reflect.TypeOf(ConnectionInitInfo{}).Name(): {0x01, 0x01, 0x00},
+		reflect.TypeOf(ConnectionInitInfo{}).Name():     {0x01, 0x01, 0x00},
 		reflect.TypeOf(ConnectionInitResponse{}).Name(): {0x02, 0x02, 0x00},
 	}
 
@@ -100,7 +100,12 @@ func Encode(i interface{}) (buffer.IoBuffer, error) {
 	// encode header
 	buf.Write(Magic)
 	buf.WriteByte(Version)
-	typeName := reflect.TypeOf(i).Elem().Name()
+	var typeName string
+	typ := reflect.TypeOf(i)
+	typeName = typ.Name()
+	if typ.Kind() == reflect.Ptr{
+		typeName = typ.Elem().Name()
+	}
 	if bytes, ok := typesToFlagAndType[typeName]; ok {
 		// write flag
 		buf.WriteByte(bytes[0])

@@ -36,7 +36,7 @@ func TestWriteBuffer(t *testing.T) {
 	}
 }
 func TestWriteAndRead(t *testing.T) {
-	c := &ConnectionInitInfo{
+	c := ConnectionInitInfo{
 		ClusterName: "test_c1",
 		Weight:      10,
 		HostName:    "test100",
@@ -47,6 +47,10 @@ func TestWriteAndRead(t *testing.T) {
 		return
 	}
 
-	res := DecodeFromBuffer(buffer)
+	res, err := DecodeFromBuffer(buffer)
+	if err != nil {
+		assert.Error(t, err, "decode connection info failed")
+		return
+	}
 	assert.EqualValues(t, res, c, "different between writes and reads")
 }
