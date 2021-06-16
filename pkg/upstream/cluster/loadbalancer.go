@@ -164,6 +164,17 @@ func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) 
 			return host
 		}
 	}
+
+	// Reference https://github.com/mosn/mosn/issues/1663
+	secondStartIndex := int(atomic.AddUint32(&lb.rrIndex, 1) % uint32(total))
+	for i := 0; i < total; i++ {
+		index := (i + secondStartIndex) % total
+		host := targets[index]
+		if host.Health() {
+			return host
+		}
+	}
+
 	return nil
 }
 
