@@ -152,7 +152,7 @@ func findNewAndDeleteHost(old, new []types.Host) ([]types.Host, []types.Host) {
 	}
 
 	// find new host
-	newHosts := make([]types.Host, 0)
+	newHosts := make([]types.Host, 0, len(newHostsMap))
 	for _, newHost := range newHostsMap {
 		newHosts = append(newHosts, newHost)
 	}
