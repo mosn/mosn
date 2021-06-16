@@ -88,39 +88,47 @@ func (a *AgentRawConnection) connectAndInit() error {
 	var err error
 	backoffConnectDuration := a.ReconnectBaseDuration
 
+	connectFunc := func() (net.Conn, error) {
+		rawc, err = net.DialTimeout(a.Network, a.Address, time.Second*10)
+		if err != nil {
+			return nil, err
+		}
+		rawc.SetReadDeadline(time.Now().Add(time.Second * 10))
+		b, err := Encode(a.initInfo)
+		if err != nil {
+			return nil, err
+		}
+		// write connection init request
+		_, err = rawc.Write(b.Bytes())
+		readBuffer := buffer.GetIoBuffer(1024)
+		_, err = readBuffer.ReadOnce(rawc)
+		if err != nil {
+			log.DefaultLogger.Errorf("[agent] read response failed, err: %+v", a.Address, err)
+			rawc.Close()
+			return nil, err
+		}
+		ret, err := DecodeFromBuffer(readBuffer)
+		if err != nil || ret == nil {
+			log.DefaultLogger.Warnf("[agent] decode from buffer failed, err: %+v", err)
+			return nil, err
+		}
+		resp := ret.(ConnectionInitResponse)
+		if resp.Status != ConnectSuccess {
+			// reconnect and write again
+			log.DefaultLogger.Errorf("[agent] failed to write connection info to remote server, address: %v, status: %v", a.Address, resp.Status)
+			// close connection and reconnect again
+			rawc.Close()
+			return nil, err
+		}
+		return rawc, err
+	}
+
 	for i := 0; i < a.ConnectRetryTimes || a.ConnectRetryTimes == -1; i++ {
 		if a.close.Load() {
 			return fmt.Errorf("connection closed, don't attempt to connect, address: %+v\", a.ConnectionConfig.Address")
 		}
-		rawc, err = net.Dial(a.Network, a.Address)
-		rawc.SetReadDeadline(time.Now().Add(time.Second * 10))
+		rawc, err := connectFunc()
 		if err == nil {
-			b, err := Encode(a.initInfo)
-			if err != nil {
-				continue
-			}
-			// write connection init request
-			_, err = rawc.Write(b.Bytes())
-			readBuffer := buffer.GetIoBuffer(1024)
-			_, err = readBuffer.ReadOnce(rawc)
-			if err != nil {
-				log.DefaultLogger.Errorf("[agent] read response failed, err: %+v", a.Address, err)
-				rawc.Close()
-				continue
-			}
-			ret, err := DecodeFromBuffer(readBuffer)
-			if err != nil || ret == nil {
-				log.DefaultLogger.Warnf("[agent] decode from buffer failed, err: %+v", err)
-				continue
-			}
-			resp := ret.(ConnectionInitResponse)
-			if resp.Status != ConnectSuccess {
-				// reconnect and write again
-				log.DefaultLogger.Errorf("[agent] failed to write connection info to remote server, address: %v, status: %v", a.Address, resp.Status)
-				// close connection and reconnect again
-				rawc.Close()
-				continue
-			}
 			a.rawc = rawc
 			break
 		}
@@ -157,5 +165,5 @@ RECONNECT:
 		log.DefaultLogger.Errorf("[agent] failed to reconnect remote server: %v", a.Address)
 		return
 	}
-	log.DefaultLogger.Debugf("[agent] reconnect remote server: %v success", a.Address)
+	log.DefaultLogger.Infof("[agent] reconnect remote server: %v success", a.Address)
 }
