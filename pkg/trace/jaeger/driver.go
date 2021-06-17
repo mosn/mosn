@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	DriverName = "jaeger"
+	DriverName          = "jaeger"
 	HeaderRouteMatchKey = "service"
 )
 

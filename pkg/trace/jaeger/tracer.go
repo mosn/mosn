@@ -21,11 +21,12 @@ import (
 )
 
 const (
-	serviceName        = "service_name"
-	agentHost          = "agent_host"
-	defaultServiceName = "default_sidecar"
-	jaegerAgentHostKey = "TRACE"
-	appIDKey           = "APP_ID"
+	serviceName            = "service_name"
+	agentHost              = "agent_host"
+	defaultServiceName     = "default_sidecar"
+	defaultJaegerAgentHost = "0.0.0.0:6831"
+	jaegerAgentHostKey     = "TRACE"
+	appIDKey               = "APP_ID"
 )
 
 func init() {
@@ -51,7 +52,8 @@ func NewTracer(traceCfg map[string]interface{}) (api.Tracer, error) {
 		},
 	}
 
-	tracer, _, err := cfg.New(getServiceName(traceCfg))
+	cfg.ServiceName = getServiceName(traceCfg)
+	tracer, _, err := cfg.NewTracer()
 
 	log.DefaultLogger.Infof("[jaeger] [tracer] jaeger agent host:%s, report service name:%s",
 		getAgentHost(traceCfg), getServiceName(traceCfg))
@@ -71,12 +73,12 @@ func getAgentHost(traceCfg map[string]interface{}) string {
 		return agentHost.(string)
 	}
 
-	//如果配置文件没有设置，则取环境变量TRACE
+	//if TRACE is not set, get it from the env variable
 	if host := os.Getenv(jaegerAgentHostKey); host != "" {
 		return host
 	}
 
-	return "0.0.0.0:6831"
+	return defaultJaegerAgentHost
 }
 
 func getServiceName(traceCfg map[string]interface{}) string {
@@ -84,7 +86,7 @@ func getServiceName(traceCfg map[string]interface{}) string {
 		return service.(string)
 	}
 
-	//如果配置文件没有设置，则取环境变量APP_ID
+	//if service_name is not set, get it from the env variable
 	if appID := os.Getenv(appIDKey); appID != "" {
 		return fmt.Sprintf("%s_sidecar", appID)
 	}
@@ -92,7 +94,7 @@ func getServiceName(traceCfg map[string]interface{}) string {
 	return defaultServiceName
 }
 
-//Start 初始化tracer中的span
+//Start init span
 func (t *Tracer) Start(ctx context.Context, request interface{}, startTime time.Time) api.Span {
 	header, ok := request.(http.RequestHeader)
 
@@ -117,9 +119,7 @@ func (t *Tracer) getSpan(ctx context.Context, header http.RequestHeader, startTi
 
 	spanCtx, _ := httpHeaderPropagator.Extract(HTTPHeadersCarrier(header))
 
-	sp, ctx := opentracing.StartSpanFromContextWithTracer(ctx, t.tracer, getOperationName(header.RequestURI()), opentracing.ChildOf(spanCtx), opentracing.StartTime(startTime))
-
-	ctx = opentracing.ContextWithSpan(ctx, sp)
+	sp, _ := opentracing.StartSpanFromContextWithTracer(ctx, t.tracer, getOperationName(header.RequestURI()), opentracing.ChildOf(spanCtx), opentracing.StartTime(startTime))
 
 	return sp, spanCtx
 }

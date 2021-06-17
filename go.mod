@@ -18,7 +18,7 @@ require (
 	github.com/go-chi/chi v4.1.0+incompatible
 	github.com/gogo/protobuf v1.3.1
 	github.com/golang/mock v1.4.4
-	github.com/golang/protobuf v1.4.1
+	github.com/golang/protobuf v1.3.5
 	github.com/google/cel-go v0.5.1
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.9
@@ -48,15 +48,15 @@ require (
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20200221231518-2aa609cf4a9d
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
-	golang.org/x/sys v0.0.0-20210219172841-57ea560cfca1
+	golang.org/x/sys v0.0.0-20201024232916-9f70ab9862d5
 	golang.org/x/tools v0.0.0-20191125144606-a911d9008d1f
-	google.golang.org/genproto v0.0.0-20210219173056-d891e3cb3b5b
+	google.golang.org/genproto v0.0.0-20200305110556-506484158171
 	google.golang.org/grpc v1.28.0
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
 	mosn.io/api v0.0.0-20210204052134-5b9a826795fd
-	mosn.io/pkg v0.0.0-20210209020457-6c79e1ef93f4
+	mosn.io/pkg v0.0.0-20210204111127-5f869b58611d
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4

@@ -1,7 +1,6 @@
 package jaeger
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	jaeger "github.com/uber/jaeger-client-go"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
 )
 
 type Span struct {
@@ -33,10 +33,15 @@ func (s *Span) SetOperation(operation string) {
 }
 
 func (s *Span) SetTag(key uint64, value string) {
-	s.jaegerSpan.SetTag(string(key), value)
+	log.DefaultLogger.Debugf("[Jaeger] [tracer] [span] Unsupported SetTag [%d]-[%s]", key, value)
 }
 
-//SetRequestInfo 把当前请求相关信息放入span中
+func (s *Span) Tag(key uint64) string {
+	log.DefaultLogger.Debugf("[Jaeger] [tracer] [span] Unsupported Tag [%d]-[%s]", key)
+	return ""
+}
+
+//SetRequestInfo record current request info to Span
 func (s *Span) SetRequestInfo(reqinfo api.RequestInfo) {
 	span := s.jaegerSpan
 	span.SetTag("request_size", reqinfo.BytesReceived())
@@ -65,20 +70,13 @@ func isErrorResponse(code int) bool {
 	return false
 }
 
-// Tag 返回当前span所指定的tag
-func (s *Span) Tag(key uint64) string {
-	return ""
-}
-
-//FinishSpan 完成span，提交信息到agent
+//FinishSpan submit span info to agent
 func (s *Span) FinishSpan() {
 	s.jaegerSpan.Finish()
 }
 
 func (s *Span) InjectContext(requestHeaders api.HeaderMap, requestInfo api.RequestInfo) {
-	span := s.jaegerSpan
-	//把当前创建的span的trace string设置到header头中，parent_span_id = current span id
-	traceString := fmt.Sprintf("%s", s.jaegerSpan)
+	traceString := s.spanCtx.String()
 	requestHeaders.Set(jaeger.TraceContextHeaderName, traceString)
 
 	service := ""
@@ -86,9 +84,10 @@ func (s *Span) InjectContext(requestHeaders api.HeaderMap, requestInfo api.Reque
 		service = value
 	}
 
-	span.SetTag(HeaderRouteMatchKey, service)
+	s.jaegerSpan.SetTag(HeaderRouteMatchKey, service)
 }
 
 func (s *Span) SpawnChild(operationName string, startTime time.Time) api.Span {
+	log.DefaultLogger.Debugf("[Jaeger] [tracer] [span] Unsupported SpawnChild [%s]", operationName)
 	return nil
 }

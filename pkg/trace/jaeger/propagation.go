@@ -2,7 +2,7 @@ package jaeger
 
 import "mosn.io/mosn/pkg/protocol/http"
 
-//HTTPHeadersCarrier 提取header头里的信息
+//HTTPHeadersCarrier
 type HTTPHeadersCarrier http.RequestHeader
 
 // Set conforms to the HTTPHeadersCarrier interface.
