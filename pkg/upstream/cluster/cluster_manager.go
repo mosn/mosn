@@ -455,3 +455,32 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 	}
 	return nil, errNoHealthyHost
 }
+
+func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr string) {
+	shutdown := func(value interface{}) {
+		connectionPool := value.(*sync.Map)
+		if connPool, ok := connectionPool.Load(addr); ok {
+			pool := connPool.(types.ConnectionPool)
+			connectionPool.Delete(addr)
+			pool.Shutdown()
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
+			}
+		}
+	}
+	if proto == "" {
+		cm.protocolConnPool.Range(func(_, value interface{}) bool {
+			shutdown(value)
+			return true
+		})
+	} else {
+		value, ok := cm.protocolConnPool.Load(proto)
+		if !ok {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
+			}
+			return
+		}
+		shutdown(value)
+	}
+}
