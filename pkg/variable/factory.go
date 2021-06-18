@@ -23,9 +23,14 @@ import (
 	"strings"
 	"sync"
 
+	"mosn.io/mosn/pkg/buffer"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/types"
 )
+
+func init() {
+	buffer.RegisterBuffer(&ins)
+}
 
 var (
 	// global scope
@@ -123,9 +128,35 @@ func RegisterPrefixVariable(prefix string, variable Variable) error {
 	return nil
 }
 
-func NewVariableContext(ctx context.Context) context.Context {
-	// TODO: sync.Pool reuse
-	values := make([]IndexedValue, len(indexedVariables)) // TODO: pre-alloc buffer for runtime variable
+var ins = variableBufferCtx{}
 
-	return mosnctx.WithValue(ctx, types.ContextKeyVariables, values)
+type variableBufferCtx struct {
+	buffer.TempBufferCtx
+}
+
+func (ctx variableBufferCtx) New() interface{} {
+	return &variableBuffer{
+		vars: make([]IndexedValue, len(indexedVariables)),
+	}
+}
+
+func (ctx variableBufferCtx) Reset(i interface{}) {
+	buf, _ := i.(*variableBuffer)
+	for idx := range buf.vars {
+		buf.vars[idx].data = ""
+		buf.vars[idx].noCacheable = false
+		buf.vars[idx].NotFound = false
+		buf.vars[idx].Valid = false
+	}
+}
+
+type variableBuffer struct {
+	vars []IndexedValue
+}
+
+func NewVariableContext(ctx context.Context) context.Context {
+	poolCtx := buffer.PoolContext(ctx)
+	variableBuf := poolCtx.Find(&ins, nil).(*variableBuffer)
+
+	return mosnctx.WithValue(ctx, types.ContextKeyVariables, variableBuf.vars)
 }
