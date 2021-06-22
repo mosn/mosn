@@ -76,8 +76,7 @@ func (s *Span) FinishSpan() {
 }
 
 func (s *Span) InjectContext(requestHeaders api.HeaderMap, requestInfo api.RequestInfo) {
-	traceString := s.spanCtx.String()
-	requestHeaders.Set(jaeger.TraceContextHeaderName, traceString)
+	requestHeaders.Set(jaeger.TraceContextHeaderName, s.spanCtx.String())
 
 	service := ""
 	if value, ok := requestHeaders.Get(HeaderRouteMatchKey); ok {

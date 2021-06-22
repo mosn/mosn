@@ -63,6 +63,8 @@ func NewTracer(traceCfg map[string]interface{}) (api.Tracer, error) {
 		return nil, err
 	}
 
+	//defer closer.Close()
+
 	return &Tracer{
 		tracer: tracer,
 	}, nil
@@ -121,7 +123,13 @@ func (t *Tracer) getSpan(ctx context.Context, header http.RequestHeader, startTi
 
 	sp, _ := opentracing.StartSpanFromContextWithTracer(ctx, t.tracer, getOperationName(header.RequestURI()), opentracing.ChildOf(spanCtx), opentracing.StartTime(startTime))
 
-	return sp, spanCtx
+	//renew span context
+	newSpanCtx, ok := sp.Context().(jaeger.SpanContext)
+	if !ok {
+		return sp, spanCtx
+	}
+
+	return sp, newSpanCtx
 }
 
 // split url, example:http://127.0.0.1:8080?query=11
