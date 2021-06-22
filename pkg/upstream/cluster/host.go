@@ -205,8 +205,8 @@ func GetOrCreateAddr(addrstr string) net.Addr {
 	if addr, err = net.ResolveTCPAddr("tcp", addrstr); err != nil {
 		// try to resolve addr by unix
 		// as a UNIX-domain socket path specified after the “unix:” prefix.
-		if strings.HasSuffix(addrstr, "unix:") {
-			addr, err = net.ResolveUnixAddr("unix", addrstr)
+		if strings.HasPrefix(addrstr, "unix:") && len(addrstr) > len("unix:") {
+			addr, err = net.ResolveUnixAddr("unix", addrstr[len("unix:"):])
 			if err != nil {
 				err = errors.New("failed to resolve address in tcp and unix model")
 			}
