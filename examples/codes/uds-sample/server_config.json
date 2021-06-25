@@ -42,7 +42,7 @@
         "conn_buffer_limit_bytes": 32768,
         "hosts": [
           {
-            "address": "/tmp/server-proxy.sock"
+            "address": "unix:/tmp/server-proxy.sock"
           }
         ]
       }
