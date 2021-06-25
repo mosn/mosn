@@ -28,10 +28,6 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func init() {
-	buffer.RegisterBuffer(&ins)
-}
-
 var (
 	// global scope
 	mux              sync.RWMutex
@@ -126,32 +122,6 @@ func RegisterPrefixVariable(prefix string, variable Variable) error {
 	// register
 	prefixVariables[prefix] = variable
 	return nil
-}
-
-var ins = variableBufferCtx{}
-
-type variableBufferCtx struct {
-	buffer.TempBufferCtx
-}
-
-func (ctx variableBufferCtx) New() interface{} {
-	return &variableBuffer{
-		vars: make([]IndexedValue, len(indexedVariables)),
-	}
-}
-
-func (ctx variableBufferCtx) Reset(i interface{}) {
-	buf, _ := i.(*variableBuffer)
-	for idx := range buf.vars {
-		buf.vars[idx].data = ""
-		buf.vars[idx].noCacheable = false
-		buf.vars[idx].NotFound = false
-		buf.vars[idx].Valid = false
-	}
-}
-
-type variableBuffer struct {
-	vars []IndexedValue
 }
 
 func NewVariableContext(ctx context.Context) context.Context {
