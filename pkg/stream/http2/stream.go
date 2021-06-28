@@ -1021,14 +1021,9 @@ reset:
 	log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)
 	if err == types.ErrConnectionHasClosed || err == errClosedClientConn {
 		s.ResetStream(types.StreamConnectionFailed)
-		return
+	} else {
+		s.ResetStream(types.StreamLocalReset)
 	}
-	// fix: https://github.com/mosn/mosn/issues/1672
-	if strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "connection reset by peer") {
-		s.ResetStream(types.StreamConnectionFailed)
-		return
-	}
-	s.ResetStream(types.StreamLocalReset)
 }
 
 func (s *clientStream) GetStream() types.Stream {

@@ -234,7 +234,7 @@ func transferGetFile(c *connection) (file *os.File, tlsConn *mtls.TLSConn, err e
 	case *net.UnixConn:
 		file, err = conn.File()
 		if err != nil {
-			return nil, nil, fmt.Errorf("TCP File failed %v", err)
+			return nil, nil, fmt.Errorf("Unix File failed %v", err)
 		}
 	case *mtls.Conn:
 		mtlsConn, ok := conn.Conn.(*net.TCPConn)
