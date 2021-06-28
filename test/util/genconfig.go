@@ -119,7 +119,7 @@ func NewWeightedCluster(name string, hosts []*WeightHost) v2.Cluster {
 
 func NewListener(name, addr string, chains []v2.FilterChain) v2.Listener {
 	nw := "tcp"
-	if _, err := net.ResolveTCPAddr("tcp", addr); err != nil {
+	if _, err := net.ResolveTCPAddr(nw, addr); err != nil {
 		nw = "unix"
 	}
 	return v2.Listener{
