@@ -535,6 +535,11 @@ func (conn *serverStreamConnection) serve() {
 		s.responseDoneChan = make(chan bool, 1)
 		s.header = mosnhttp.RequestHeader{&s.request.Header}
 
+		// save the connection state, because clientStream AppendHeaders will modify it.
+		if s.header.ConnectionClose() {
+			s.connection.close = true
+		}
+
 		var span api.Span
 		if trace.IsEnabled() {
 			tracer := trace.Tracer(protocol.HTTP1)

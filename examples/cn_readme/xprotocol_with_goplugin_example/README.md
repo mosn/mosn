@@ -114,24 +114,10 @@ cd ${projectpath}/examples/codes/xprotocol_with_goplugin_example/
 
 #### 准备
 
-+ 需要一个编译好的MOSN程序
 
++ 编译mosn和so
 ```
-cd ${projectpath}/cmd/mosn/main
-go build
-```
-
-+ 示例代码目录
-
-```
-${targetpath} = ${projectpath}/examples/codes/xprotocol_with_goplugin_example/
-```
-
-+ 将编译好的MOSN程序移动到示例代码目录
-
-```
-mv main ${targetpath}/
-cd ${targetpath}
+./make_codec.sh
 ```
 
 

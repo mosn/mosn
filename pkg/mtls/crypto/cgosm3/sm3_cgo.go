@@ -73,6 +73,7 @@ func (sm3 *SM3) Sum(in []byte) []byte {
 
 	var hashLen C.uint
 	ret := C.EVP_DigestFinal_ex(ctx, (*C.uchar)(unsafe.Pointer(&out[0])), &hashLen)
+	C.EVP_MD_CTX_free(ctx)
 	if int(ret) <= 0 {
 		panic("sm3 update digest error")
 	}
