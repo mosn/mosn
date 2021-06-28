@@ -132,6 +132,7 @@ func (hc *healthChecker) SetHealthCheckerHostSet(hostSet types.HostSet) {
 		hc.stopCheck(deleteHost)
 	}
 	hc.hosts = hostSet.Hosts()
+	hc.stats.healthy.Update(atomic.LoadInt64(&hc.localProcessHealthy))
 }
 
 // findNewAndDeleteHost Find deleted and new host in the updated hostSet
