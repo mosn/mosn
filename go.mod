@@ -32,6 +32,7 @@ require (
 	github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f
 	github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827
 	github.com/mosn/registry v0.0.0-20210108061200-d7b63bc1904b
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
@@ -39,6 +40,8 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tetratelabs/proxy-wasm-go-sdk v0.0.13
 	github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
+	github.com/uber/jaeger-client-go v2.25.0+incompatible
+	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
