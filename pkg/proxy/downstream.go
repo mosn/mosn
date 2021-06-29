@@ -841,15 +841,15 @@ func (s *downStream) chooseHost(endStream bool) {
 	s.cluster = s.snapshot.ClusterInfo()
 	s.requestInfo.SetRouteEntry(s.route.RouteRule())
 
-	pool, err := s.initializeUpstreamConnectionPool(s)
+	pool, host, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {
 		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "initialize Upstream Connection Pool error, request can't be proxyed, error = %v", err)
 		s.requestInfo.SetResponseFlag(api.NoHealthyUpstream)
 		s.sendHijackReply(api.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
 	}
-	s.requestInfo.OnUpstreamHostSelected(pool.Host())
-	s.requestInfo.SetUpstreamLocalAddress(pool.Host().AddressString())
+	s.requestInfo.OnUpstreamHostSelected(host)
+	s.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 
 	parseProxyTimeout(s.context, &s.timeout, s.route, s.downstreamReqHeaders)
 
@@ -1075,20 +1075,21 @@ func (s *downStream) onPerReqTimeout() {
 	}
 }
 
-func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerContext) (types.ConnectionPool, error) {
+func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerContext) (types.ConnectionPool, types.Host, error) {
 	var connPool types.ConnectionPool
+	var host types.Host
 
 	currentProtocol := s.getUpstreamProtocol()
 
-	connPool = s.proxy.clusterManager.ConnPoolForCluster(lbCtx, s.snapshot, currentProtocol)
+	connPool, host = s.proxy.clusterManager.ConnPoolForCluster(lbCtx, s.snapshot, currentProtocol)
 
 	if connPool == nil {
-		return nil, fmt.Errorf("[proxy] [downstream] no healthy upstream in cluster %s", s.cluster.Name())
+		return nil, nil, fmt.Errorf("[proxy] [downstream] no healthy upstream in cluster %s", s.cluster.Name())
 	}
 
 	// TODO: update upstream stats
 
-	return connPool, nil
+	return connPool, host, nil
 }
 
 // ~~~ active stream sender wrapper
@@ -1361,7 +1362,10 @@ func (s *downStream) doRetry() {
 	// no reuse buffer
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 
-	pool, err := s.initializeUpstreamConnectionPool(s)
+	pool, host, err := s.initializeUpstreamConnectionPool(s)
+
+	s.requestInfo.OnUpstreamHostSelected(host)
+	s.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 
 	if err != nil {
 		log.Proxy.Alertf(s.context, types.ErrorKeyUpstreamConn, "retry choose conn pool failed, error = %v", err)

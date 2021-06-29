@@ -56,7 +56,8 @@ func NewSimpleHost(config v2.Host, clusterInfo types.ClusterInfo) types.Host {
 		metaData:      config.MetaData,
 		tlsDisable:    config.TLSDisable,
 		weight:        config.Weight,
-		healthFlags:   GetHealthFlagPointer(config.Address),
+		//healthFlags:   GetHealthFlagPointer(config.Address),
+		healthFlags:   new(uint64),
 	}
 	h.clusterInfo.Store(clusterInfo)
 	return h

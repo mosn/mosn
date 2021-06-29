@@ -44,7 +44,7 @@ type defaultDimension struct {
 }
 
 func (d *defaultDimension) GetInvocationKey() string {
-	return d.invocationKey
+	return d.invocationKey+d.measureKey
 }
 
 func (d *defaultDimension) GetMeasureKey() string {

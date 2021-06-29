@@ -299,7 +299,7 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	// start a upstream send
 	r.startTime = time.Now()
 
-	r.downStream.requestInfo.OnUpstreamHostSelected(host)
+	//r.downStream.requestInfo.OnUpstreamHostSelected(host)
 	r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 
 	if trace.IsEnabled() {
