@@ -80,8 +80,6 @@ func NewTracer(traceCfg map[string]interface{}) (api.Tracer, error) {
 		return nil, err
 	}
 
-	//defer closer.Close()
-
 	return &Tracer{
 		tracer: tracer,
 	}, nil
