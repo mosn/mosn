@@ -300,7 +300,7 @@ func (r *upstreamRequest) OnReady(sender types.StreamSender, host types.Host) {
 	r.startTime = time.Now()
 
 	//r.downStream.requestInfo.OnUpstreamHostSelected(host)
-	r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
+	//r.downStream.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 
 	if trace.IsEnabled() {
 		span := trace.SpanFromContext(r.downStream.context)
