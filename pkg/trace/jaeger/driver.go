@@ -2,8 +2,8 @@ package jaeger
 
 import (
 	"fmt"
-	"mosn.io/api"
 
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 )
