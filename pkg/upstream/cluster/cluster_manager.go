@@ -111,6 +111,22 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	return clusterManagerInstance
 }
 
+func (cm *clusterManager) AppendHostWithConnection(clusterName string, h v2.Host, connection types.ClientConnection) error {
+	ci, ok := cm.clustersMap.Load(clusterName)
+	if !ok {
+		log.DefaultLogger.Errorf("[upstream] [cluster manager] AppendClusterHosts cluster %s not found", clusterName)
+		return fmt.Errorf("cluster %s is not exists", clusterName)
+	}
+	c := ci.(types.Cluster)
+	snap := c.Snapshot()
+	var host types.Host
+	host = NewTunnelHost(h, snap.ClusterInfo(), connection)
+	hosts := append(snap.HostSet().Hosts(), host)
+	c.UpdateHosts(hosts)
+	refreshHostsConfig(c)
+	return nil
+}
+
 // AddOrUpdatePrimaryCluster will always create a new cluster without the hosts config
 // if the same name cluster is already exists, we will keep the exists hosts.
 func (cm *clusterManager) AddOrUpdatePrimaryCluster(cluster v2.Cluster) error {
