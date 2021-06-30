@@ -396,10 +396,6 @@ func TestFallbackWithDefaultSubset(t *testing.T) {
 			expectedHost: "e7",
 		},
 		{
-			ctx:          newMockLbContext(nil),
-			expectedHost: "e7",
-		},
-		{
 			ctx:          newMockLbContext(map[string]string{}),
 			expectedHost: "e7",
 		},
