@@ -77,6 +77,10 @@ type ClusterManager interface {
 	// UpdateTLSManager updates the tls manager which is used to cluster tls config
 	UpdateTLSManager(*v2.TLSConfig)
 
+	// ShutdownConnectionPool shutdown the connection pool by address and ProtocolName
+	// If ProtocolName is not specified, remove the addr's connection pool of all protocols
+	ShutdownConnectionPool(proto ProtocolName, addr string)
+
 	// Destroy the cluster manager
 	Destroy()
 }
@@ -186,6 +190,9 @@ type ClusterInfo interface {
 
 	// Optional configuration for the load balancing algorithm selected by
 	LbConfig() v2.IsCluster_LbConfig
+
+	//  Optional configuration for some cluster description
+	SubType() string
 }
 
 // ResourceManager manages different types of Resource
