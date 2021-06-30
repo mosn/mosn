@@ -337,11 +337,15 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 	}
 }
 
-
-func TestWildcardHostSuffixMatch(t *testing.T) {
+func TestVirtulHostWithPortMatch(t *testing.T) {
 	virtualHosts := []v2.VirtualHost{
-		{Domains: []string{"www.test.com:*"}, Routers: []v2.Router{newTestSimpleRouter("1")}},
-		{Domains: []string{"www.test.com"}, Routers: []v2.Router{newTestSimpleRouter("2")}},
+		{Domains: []string{"www.test.com"}, Routers: []v2.Router{newTestSimpleRouter("0")}},
+		{Domains: []string{"www.test.com:8080"}, Routers: []v2.Router{newTestSimpleRouter("1")}},
+		{Domains: []string{"www.test.com:*"}, Routers: []v2.Router{newTestSimpleRouter("2")}},
+		{Domains: []string{"*.test.com:30888"}, Routers: []v2.Router{newTestSimpleRouter("3")}},
+		{Domains: []string{"*.com:30888"}, Routers: []v2.Router{newTestSimpleRouter("4")}},
+		{Domains: []string{"*.com:*"}, Routers: []v2.Router{newTestSimpleRouter("5")}},
+		{Domains: []string{"*:*"}, Routers: []v2.Router{newTestSimpleRouter("6")}},
 	}
 
 	cfg := &v2.RouterConfiguration{
@@ -356,8 +360,13 @@ func TestWildcardHostSuffixMatch(t *testing.T) {
 		Domain        string
 		ExpectedRoute string
 	}{
-		{Domain: "www.test.com", ExpectedRoute: "2"},
+		{Domain: "www.test.com", ExpectedRoute: "0"},
 		{Domain: "www.test.com:8080", ExpectedRoute: "1"},
+		{Domain: "www.test.com:30888", ExpectedRoute: "2"},
+		{Domain: "hello.test.com:30888", ExpectedRoute: "3"},
+		{Domain: "hello.com:30888", ExpectedRoute: "4"},
+		{Domain: "hello.com:30777", ExpectedRoute: "5"},
+		{Domain: "hello.cn:30777", ExpectedRoute: "6"},
 	}
 	ctx := variable.NewVariableContext(context.Background())
 	for _, tc := range testCases {
