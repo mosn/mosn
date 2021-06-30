@@ -40,9 +40,41 @@ type routersImpl struct {
 	//  array member is the lens of the wildcard in descending order
 	//  used for longest match
 	greaterSortedWildcardVirtualHostSuffixes []int
-	wildcardPortSuffixesIndex                map[string]int
+
+	virtualHostWithPort VirtualHostWithPort
+
 	// stored all vritual host, same as the config order
 	virtualHosts []types.VirtualHost
+}
+
+type VirtualHostWithPort struct {
+	//store host not contain * config
+	//just like: key =>www.test.com  value => {"*":index},{"8080",index}
+	virtualHostPortsMap map[string]map[string]int
+
+	//key =>8080  value => [{9,".test.com",index},{4,".com",index}]
+	//key =>*     value => [{9,".test.com",index},{4,".com",index}]
+	portWildcardVirtualHost map[string][]WildcardVirtualHostWithPort
+	// *:* as default
+	defaultVirtualHostWithPortIndex int
+}
+
+type WildcardVirtualHostWithPort struct {
+	hostLen int
+	host    string
+	index   int
+}
+
+type WildcardVirtualHostWithPortSlice []WildcardVirtualHostWithPort
+
+func (a WildcardVirtualHostWithPortSlice) Len() int {
+	return len(a)
+}
+func (a WildcardVirtualHostWithPortSlice) Swap(i, j int) {
+	a[i], a[j] = a[j], a[i]
+}
+func (a WildcardVirtualHostWithPortSlice) Less(i, j int) bool {
+	return a[j].hostLen < a[i].hostLen
 }
 
 func (ri *routersImpl) MatchRoute(ctx context.Context, headers api.HeaderMap) api.Route {
@@ -147,21 +179,101 @@ func (ri *routersImpl) RemoveAllRoutes(domain string) int {
 }
 
 func (ri *routersImpl) findVirtualHostIndex(host string) int {
-	if index, ok := ri.virtualHostsIndex[host]; ok {
-		return index
-	}
-	if len(ri.wildcardVirtualHostSuffixesIndex) > 0 {
-		if index := ri.findWildcardVirtualHost(host); index != -1 {
-			return index
-		}
-	}
-	if len(ri.wildcardPortSuffixesIndex) > 0 {
-		for tmpHost, index := range ri.wildcardPortSuffixesIndex {
-			if strings.HasPrefix(host, tmpHost) {
+	// if host contain port  ,use  findVirtualHostWithPortIndex
+	if strings.Contains(host, ":") {
+		return ri.findVirtualHostWithPortIndex(host)
+	} else {
+		if len(ri.virtualHostsIndex) > 0 {
+			if index, ok := ri.virtualHostsIndex[host]; ok {
 				return index
 			}
 		}
+		if len(ri.wildcardVirtualHostSuffixesIndex) > 0 {
+			if index := ri.findWildcardVirtualHost(host); index != -1 {
+				return index
+			}
+		}
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "found default virtual host only")
+		}
+		return ri.defaultVirtualHostIndex
 	}
+}
+
+func (ri *routersImpl) findVirtualHostWithPortIndex(host string) int {
+	//charIndex always >= 0
+	charIndex := strings.Index(host, ":")
+	pureHost := host[:charIndex]
+	purePort := host[charIndex+1:]
+
+	//match host and port
+	// www.test.com:8080  is before www.test.com:*   return
+	// www.test.com:*     is before *.test.com:8080  return
+	// *.test.com:8080    is before *.com:8080       return
+	// *.com:8080         is before *.com:*          return
+	// *.com:*            is before *:*              return
+	// *:*                is before *                return
+	if len(ri.virtualHostWithPort.virtualHostPortsMap) > 0 {
+		portMap, ok := ri.virtualHostWithPort.virtualHostPortsMap[pureHost]
+		if ok {
+			defaultIndex := -1
+			for port, index := range portMap {
+				if purePort == port {
+					return index
+				}
+				if port == "*" {
+					defaultIndex = index
+				}
+			}
+			if defaultIndex != -1 {
+				return defaultIndex
+			}
+		}
+	}
+
+	if len(ri.virtualHostWithPort.portWildcardVirtualHost) > 0 {
+		//try to match  *.test.com:8080
+		wildcardVirtualHostPortArray, ok := ri.virtualHostWithPort.portWildcardVirtualHost[purePort]
+		if ok {
+			for _, wildcardVirtualHostPort := range wildcardVirtualHostPortArray {
+				if wildcardVirtualHostPort.hostLen >= len(pureHost) {
+					continue
+				}
+				hostIndex := len(pureHost) - wildcardVirtualHostPort.hostLen
+				if wildcardVirtualHostPort.host == pureHost[hostIndex:] {
+					return wildcardVirtualHostPort.index
+				}
+			}
+		}
+
+		//try to match  *.com:*
+		wildcardVirtualHostPortArray, ok = ri.virtualHostWithPort.portWildcardVirtualHost["*"]
+		if ok {
+			for _, wildcardVirtualHostPort := range wildcardVirtualHostPortArray {
+				if wildcardVirtualHostPort.hostLen >= len(pureHost) {
+					continue
+				}
+				//找到* 的位置，然后做截取 判断 是否相等
+				hostIndex := len(pureHost) - wildcardVirtualHostPort.hostLen
+				if wildcardVirtualHostPort.host == pureHost[hostIndex:] {
+					return wildcardVirtualHostPort.index
+				}
+			}
+		}
+	}
+
+	// *:* return before *
+	if ri.virtualHostWithPort.defaultVirtualHostWithPortIndex >= 0 {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHostWithPortIndex", "found default virtual host port only")
+		}
+		return ri.virtualHostWithPort.defaultVirtualHostWithPortIndex
+	}
+
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHostWithPortIndex", "found default virtual host only")
+	}
+	//return default *
 	return ri.defaultVirtualHostIndex
 }
 
@@ -185,15 +297,6 @@ func (ri *routersImpl) findWildcardVirtualHost(host string) int {
 }
 
 func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
-	// optimize, if there is only a default, use it
-	if len(ri.virtualHostsIndex) == 0 &&
-		len(ri.wildcardVirtualHostSuffixesIndex) == 0 &&
-		ri.defaultVirtualHostIndex != -1 {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "found default virtual host only")
-		}
-		return ri.virtualHosts[ri.defaultVirtualHostIndex]
-	}
 	hostHeader, err := variable.GetVariableValue(ctx, types.VarHost)
 	index := -1
 	if err == nil && hostHeader != "" {
@@ -221,8 +324,11 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 		defaultVirtualHostIndex:                  -1, // not exists
 		wildcardVirtualHostSuffixesIndex:         make(map[int]map[string]int),
 		greaterSortedWildcardVirtualHostSuffixes: []int{},
-		wildcardPortSuffixesIndex:                make(map[string]int),
 		virtualHosts:                             []types.VirtualHost{},
+		virtualHostWithPort: VirtualHostWithPort{
+			virtualHostPortsMap:     make(map[string]map[string]int),
+			portWildcardVirtualHost: make(map[string][]WildcardVirtualHostWithPort),
+		},
 	}
 	configImpl := NewConfigImpl(routerConfig)
 	for index, vhConfig := range routerConfig.VirtualHosts {
@@ -235,49 +341,16 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 		vh.globalRouteConfig = configImpl
 		for _, domain := range vhConfig.Domains {
 			domain = strings.ToLower(domain) // we use domain in lowercase
-			if domain == "*" {
-				if routers.defaultVirtualHostIndex != -1 {
-					log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "duplicate default virtualhost")
-					return nil, ErrDuplicateVirtualHost
-				}
-				if log.DefaultLogger.GetLogLevel() >= log.INFO {
-					log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add route matcher default virtual host")
-				}
-				routers.defaultVirtualHostIndex = index
-			} else if len(domain) > 1 && "*" == domain[:1] {
-				m, ok := routers.wildcardVirtualHostSuffixesIndex[len(domain)-1]
-				if !ok {
-					m = map[string]int{}
-					routers.wildcardVirtualHostSuffixesIndex[len(domain)-1] = m
-				}
-				// add check, different from envoy
-				// exactly same wildcard domain is unique
-				wildcard := domain[1:]
-				if _, ok := m[wildcard]; ok {
-					log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "only unique wildcard domain permitted, domain:"+domain)
-					return nil, ErrDuplicateVirtualHost
-				}
-				m[wildcard] = index
-				if log.DefaultLogger.GetLogLevel() >= log.INFO {
-					log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router domain: "+domain)
-				}
-			} else if len(domain) > 2 && ":*" == domain[len(domain)-2:] {
-				if _, ok := routers.wildcardPortSuffixesIndex[domain]; ok {
-					log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "only unique wildcard port value for domains are permitted, domain:"+domain)
-					return nil, ErrDuplicateVirtualHost
-				}
-				routers.wildcardPortSuffixesIndex[domain[0:len(domain)-1]] = index
-				if log.DefaultLogger.GetLogLevel() >= log.INFO {
-					log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router wildcard port domain: "+domain)
+			//split contain port's config and not contain port‘s config
+			if strings.Index(domain, ":") < 0 {
+				err = generateHostConfig(domain, index, routers)
+				if err != nil {
+					return nil, err
 				}
 			} else {
-				if _, ok := routers.virtualHostsIndex[domain]; ok {
-					log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "only unique values for domains are permitted, domain:"+domain)
-					return nil, ErrDuplicateVirtualHost
-				}
-				routers.virtualHostsIndex[domain] = index
-				if log.DefaultLogger.GetLogLevel() >= log.INFO {
-					log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router domain: "+domain)
+				err = generateHostWithPortConfig(domain, index, routers)
+				if err != nil {
+					return nil, err
 				}
 			}
 		}
@@ -286,5 +359,116 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 		routers.greaterSortedWildcardVirtualHostSuffixes = append(routers.greaterSortedWildcardVirtualHostSuffixes, key)
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(routers.greaterSortedWildcardVirtualHostSuffixes)))
+
+	// port's config sort by host len
+	if len(routers.virtualHostWithPort.portWildcardVirtualHost) > 0 {
+		for _, value := range routers.virtualHostWithPort.portWildcardVirtualHost {
+			sort.Sort(WildcardVirtualHostWithPortSlice(value))
+		}
+	}
 	return routers, nil
+}
+
+func generateHostConfig(domain string, index int, routers *routersImpl) error {
+	if domain == "*" {
+		if routers.defaultVirtualHostIndex != -1 {
+			log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "duplicate default virtualhost")
+			return ErrDuplicateVirtualHost
+		}
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add route matcher default virtual host")
+		}
+		routers.defaultVirtualHostIndex = index
+	} else if len(domain) > 1 && "*" == domain[:1] {
+		m, ok := routers.wildcardVirtualHostSuffixesIndex[len(domain)-1]
+		if !ok {
+			m = map[string]int{}
+			routers.wildcardVirtualHostSuffixesIndex[len(domain)-1] = m
+		}
+		// add check, different from envoy
+		// exactly same wildcard domain is unique
+		wildcard := domain[1:]
+		if _, ok := m[wildcard]; ok {
+			log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "only unique wildcard domain permitted, domain:"+domain)
+			return ErrDuplicateVirtualHost
+		}
+		m[wildcard] = index
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router domain: "+domain)
+		}
+	} else {
+		if _, ok := routers.virtualHostsIndex[domain]; ok {
+			log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "only unique values for domains are permitted, domain:"+domain)
+			return ErrDuplicateVirtualHost
+		}
+		routers.virtualHostsIndex[domain] = index
+		if log.DefaultLogger.GetLogLevel() >= log.INFO {
+			log.DefaultLogger.Infof(RouterLogFormat, "routers", "NewRouters", "add router domain: "+domain)
+		}
+	}
+	return nil
+}
+
+func generateHostWithPortConfig(domain string, index int, routers *routersImpl) error {
+
+	charIndex := strings.Index(domain, ":")
+	if charIndex < 0 {
+		return nil
+	}
+
+	host := domain[:charIndex]
+	port := domain[charIndex+1:]
+
+	if host == "" || strings.Contains(host, ":") {
+		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "virtual host is invalid, domain:"+domain)
+		return ErrNoVirtualHost
+	}
+
+	if port == "" || strings.Contains(port, ":") {
+		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "virtual host port is invalid, domain:"+domain)
+		return ErrNoVirtualHostPort
+	}
+
+	if domain == "*:*" {
+		routers.virtualHostWithPort.defaultVirtualHostWithPortIndex = index
+	} else if !strings.Contains(host, "*") {
+		m, ok := routers.virtualHostWithPort.virtualHostPortsMap[host]
+		if !ok {
+			m = map[string]int{}
+			m[port] = index
+			routers.virtualHostWithPort.virtualHostPortsMap[host] = m
+		} else {
+			_, ok := m[port]
+			if ok {
+				log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "only unique values for host:port are permitted, domain:"+domain)
+				return ErrDuplicateHostPort
+			}
+			m[port] = index
+		}
+	} else if len(host) > 0 && "*" == host[:1] {
+
+		if strings.Contains(host[1:], "*") {
+			log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "only unique wildcard domain permitted, domain:"+domain)
+			return ErrDuplicateVirtualHost
+		}
+
+		newWildcardVirtualHostWithPort := WildcardVirtualHostWithPort{
+			hostLen: len(host) - 1,
+			host:    host[1:],
+			index:   index,
+		}
+		m, ok := routers.virtualHostWithPort.portWildcardVirtualHost[port]
+		if !ok {
+			tempArray := []WildcardVirtualHostWithPort{newWildcardVirtualHostWithPort}
+			routers.virtualHostWithPort.portWildcardVirtualHost[port] = tempArray
+		} else {
+			m = append(m, newWildcardVirtualHostWithPort)
+			routers.virtualHostWithPort.portWildcardVirtualHost[port] = m
+		}
+	} else {
+		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "duplicate virtual host port, domain:"+domain)
+		return ErrDuplicateHostPort
+	}
+
+	return nil
 }
