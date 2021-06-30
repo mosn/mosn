@@ -346,6 +346,7 @@ func TestVirtulHostWithPortMatch(t *testing.T) {
 		{Domains: []string{"*.com:30888"}, Routers: []v2.Router{newTestSimpleRouter("4")}},
 		{Domains: []string{"*.com:*"}, Routers: []v2.Router{newTestSimpleRouter("5")}},
 		{Domains: []string{"*:*"}, Routers: []v2.Router{newTestSimpleRouter("6")}},
+		{Domains: []string{"*"}, Routers: []v2.Router{newTestSimpleRouter("7")}},
 	}
 
 	cfg := &v2.RouterConfiguration{
@@ -367,6 +368,7 @@ func TestVirtulHostWithPortMatch(t *testing.T) {
 		{Domain: "hello.com:30888", ExpectedRoute: "4"},
 		{Domain: "hello.com:30777", ExpectedRoute: "5"},
 		{Domain: "hello.cn:30777", ExpectedRoute: "6"},
+		{Domain: "hello.cn", ExpectedRoute: "7"},
 	}
 	ctx := variable.NewVariableContext(context.Background())
 	for _, tc := range testCases {
