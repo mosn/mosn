@@ -296,7 +296,18 @@ func (ri *routersImpl) findWildcardVirtualHost(host string) int {
 }
 
 func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
-	hostHeader, err := variable.GetVariableValue(ctx, types.VarHost)
+	// optimize, if there is only a default, use it
+	if len(ri.virtualHostsIndex) == 0 &&
+		len(ri.wildcardVirtualHostSuffixesIndex) == 0 &&
+		len(ri.virtualHostWithPort.virtualHostPortsMap) == 0 && len(ri.virtualHostWithPort.portWildcardVirtualHost) == 0 &&
+		ri.virtualHostWithPort.defaultVirtualHostWithPortIndex == -1 &&
+		ri.defaultVirtualHostIndex != -1 {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "found default virtual host only")
+		}
+		return ri.virtualHosts[ri.defaultVirtualHostIndex]
+	}
+		hostHeader, err := variable.GetVariableValue(ctx, types.VarHost)
 	index := -1
 	if err == nil && hostHeader != "" {
 		//we use domain in lowercase
@@ -327,6 +338,7 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 		virtualHostWithPort: VirtualHostWithPort{
 			virtualHostPortsMap:     make(map[string]map[string]int),
 			portWildcardVirtualHost: make(map[string][]WildcardVirtualHostWithPort),
+			defaultVirtualHostWithPortIndex: -1,
 		},
 	}
 	configImpl := NewConfigImpl(routerConfig)
