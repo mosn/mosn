@@ -253,7 +253,6 @@ func (ri *routersImpl) findVirtualHostWithPortIndex(host string) int {
 				if wildcardVirtualHostPort.hostLen >= len(pureHost) {
 					continue
 				}
-				//找到* 的位置，然后做截取 判断 是否相等
 				hostIndex := len(pureHost) - wildcardVirtualHostPort.hostLen
 				if wildcardVirtualHostPort.host == pureHost[hostIndex:] {
 					return wildcardVirtualHostPort.index
