@@ -97,6 +97,7 @@ func TestMatchRouteFromHeaderKV(t *testing.T) {
 		t.Fatal("create route matcher failed")
 	}
 	ctx := variable.NewVariableContext(context.Background())
+	variable.SetVariableValue(ctx, types.VarHost,"test")
 	for i := 0; i < routersCnt; i++ {
 		value := fmt.Sprintf("service#%d", i)
 		expected := fmt.Sprintf("cluster#%d", i)
