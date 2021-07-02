@@ -55,10 +55,11 @@ var (
 	DataLengthIndex = 6
 	PayLoadIndex    = 8
 
-	ConnectUnknownFailed   ConnectStatus = 0
-	ConnectSuccess         ConnectStatus = 1
-	ConnectAuthFailed      ConnectStatus = 2
-	ConnectClusterNotExist ConnectStatus = 3
+	ConnectUnknownFailed     ConnectStatus = 0
+	ConnectSuccess           ConnectStatus = 1
+	ConnectAuthFailed        ConnectStatus = 2
+	ConnectValidatorNotFound ConnectStatus = 3
+	ConnectClusterNotExist   ConnectStatus = 4
 
 	RequestType  = []byte{0x01, 0x00}
 	ResponseType = []byte{0x02, 0x00}
@@ -103,7 +104,7 @@ func Encode(i interface{}) (buffer.IoBuffer, error) {
 	var typeName string
 	typ := reflect.TypeOf(i)
 	typeName = typ.Name()
-	if typ.Kind() == reflect.Ptr{
+	if typ.Kind() == reflect.Ptr {
 		typeName = typ.Elem().Name()
 	}
 	if bytes, ok := typesToFlagAndType[typeName]; ok {

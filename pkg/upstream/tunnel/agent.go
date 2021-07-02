@@ -19,12 +19,14 @@ package tunnel
 import (
 	"encoding/json"
 	"net"
+	"sync"
 	"time"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/upstream/tunnel/ext"
+	"mosn.io/pkg/utils"
 )
 
 type agentBootstrapConfig struct {
@@ -51,7 +53,7 @@ type agentBootstrapConfig struct {
 }
 
 func init() {
-	v2.RegisterParseExtendConfig("agent_bootstrap_config", func(config json.RawMessage) error {
+	v2.RegisterParseExtendConfig("tunnel_agent_bootstrap_config", func(config json.RawMessage) error {
 		var conf agentBootstrapConfig
 		err := json.Unmarshal(config, &conf)
 		if err != nil {
@@ -67,7 +69,7 @@ func init() {
 
 func bootstrap(conf *agentBootstrapConfig) {
 	if conf.DynamicServerListConfig.DynamicServerLister != "" {
-		go func() {
+		utils.GoWithRecover(func() {
 			lister := ext.GetServerLister(conf.DynamicServerListConfig.DynamicServerLister)
 			ch := lister.List(conf.Cluster)
 			select {
@@ -75,36 +77,40 @@ func bootstrap(conf *agentBootstrapConfig) {
 				// Compute the diff between new and old server list
 				intersection := make(map[string]bool)
 				for i := range servers {
-					intersection[servers[i]] = true
+					if _, ok := connectionMap.Load(servers[i]);ok{
+						intersection[servers[i]] = true
+					}
 				}
-				for addr := range connectionMap {
-					intersection[addr] = true
-				}
-
 				increased := make([]string, 0)
 				for _, addr := range servers {
 					if _, ok := intersection[addr]; !ok {
 						increased = append(increased, addr)
-						connectServer(conf, addr)
+						go connectServer(conf, addr)
 					}
 				}
 
 				decreased := make([]string, 0)
-				for addr, conns := range connectionMap {
+				connectionMap.Range(func(key, value interface{}) bool {
+					addr := key.(string)
 					_, ok := intersection[addr]
 					if !ok {
+						decreased = append(decreased, addr)
+					}
+				})
+				for addr, conns := range connectionMap {
+					if !ok {
+						connectionMap.Delete(addr)
 						for _, conn := range conns {
 							err := conn.Stop()
 							if err != nil {
-								log.DefaultLogger.Errorf("failed to")
+								log.DefaultLogger.Errorf("[tunnel agent] failed to stop connection, err: %+v", err)
 							}
 						}
-						decreased = append(decreased, addr)
 					}
 				}
+				log.DefaultLogger.Infof("[tunnel agent] tunnel server list changed, update success, increased: %+v, decreased: %+v", increased, decreased)
 			}
-		}()
-
+		}, nil)
 	}
 
 	for _, serverAddress := range conf.StaticServerList {
@@ -114,7 +120,7 @@ func bootstrap(conf *agentBootstrapConfig) {
 		}
 		addrs, err := net.LookupHost(host)
 		if err != nil {
-			log.DefaultLogger.Errorf("failed to lookup host by domain: %v", host)
+			log.DefaultLogger.Errorf("[tunnel agent] failed to lookup host by domain: %v", host)
 			return
 		}
 		for _, addr := range addrs {
@@ -123,7 +129,7 @@ func bootstrap(conf *agentBootstrapConfig) {
 	}
 }
 
-var connectionMap = map[string][]*AgentRawConnection{}
+var connectionMap = &sync.Map{}
 
 func connectServer(conf *agentBootstrapConfig, address string) {
 	servers := mosn.MOSND.GetServer()
@@ -139,13 +145,15 @@ func connectServer(conf *agentBootstrapConfig, address string) {
 		ConnectRetryTimes:     conf.ConnectRetryTimes,
 		CredentialPolicy:      conf.CredentialPolicy,
 	}
+	connList := make([]*AgentRawConnection, 0, conf.ConnectionNum)
 	for i := 0; i < conf.ConnectionNum; i++ {
 		conn := NewConnection(*config, listener)
 		err := conn.connectAndInit()
 		if err == nil {
-			connectionMap[address] = append(connectionMap[address], conn)
+			connList = append(connList, conn)
 		}
 	}
+	connectionMap.Store(address, connList)
 }
 
 type ConnectionConfig struct {

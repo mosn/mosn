@@ -408,7 +408,6 @@ func (m *Mosn) InheritConnections() error {
 	return err
 }
 
-
 func (m *Mosn) GetServer() []server.Server {
 	return m.servers
 }
