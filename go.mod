@@ -3,6 +3,7 @@ module mosn.io/mosn
 go 1.14
 
 require (
+	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
 	github.com/SkyAPM/go2sky v0.5.0
 	github.com/TarsCloud/TarsGo v1.1.4
 	github.com/alibaba/sentinel-golang v1.0.2-0.20210112133552-db6063eb263e
@@ -57,7 +58,7 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
-	mosn.io/api v0.0.0-20210610011245-122855ee816d
+	mosn.io/api v0.0.0-20210701111239-effaddc56128
 	mosn.io/pkg v0.0.0-20210604065522-6e8f5a087814
 	mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec
 )

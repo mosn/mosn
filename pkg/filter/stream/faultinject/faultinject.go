@@ -172,9 +172,9 @@ func (f *streamFaultInjectFilter) matchUpstream() bool {
 	if f.config.upstream != "" {
 		if route := f.handler.Route(); route != nil {
 			if log.Proxy.GetLogLevel() >= log.DEBUG {
-				log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] current cluster name %s, fault inject cluster name %s", route.RouteRule().ClusterName(), f.config.upstream)
+				log.Proxy.Debugf(f.ctx, "[stream filter] [fault inject] current cluster name %s, fault inject cluster name %s", route.RouteRule().ClusterName(f.ctx), f.config.upstream)
 			}
-			return route.RouteRule().ClusterName() == f.config.upstream
+			return route.RouteRule().ClusterName(f.ctx) == f.config.upstream
 		}
 	}
 	if log.Proxy.GetLogLevel() >= log.DEBUG {

@@ -18,6 +18,8 @@
 package regulator
 
 import (
+	"context"
+
 	"mosn.io/api"
 )
 
@@ -57,7 +59,7 @@ func defaultDimensionFunc(info api.RequestInfo) InvocationDimension {
 	} else {
 		return &defaultDimension{
 			invocationKey: info.UpstreamHost().AddressString(),
-			measureKey:    info.RouteEntry().ClusterName(), //todo the future may not be uniform
+			measureKey:    info.RouteEntry().ClusterName(context.TODO()), //todo the future may not be uniform
 		}
 	}
 }

@@ -137,7 +137,7 @@ func TestWeightedClusterSelect(t *testing.T) {
 		totalTimes := rand.Int31n(10000)
 		var i int32
 		for i = 0; i < totalTimes; i++ {
-			clusterName := routeRuleImplBase.ClusterName()
+			clusterName := routeRuleImplBase.ClusterName(context.TODO())
 			switch clusterName {
 			case "defaultCluster":
 				dcCount++
@@ -155,6 +155,30 @@ func TestWeightedClusterSelect(t *testing.T) {
 		}
 		t.Log("defalut = ", dcCount, "w1 = ", w1Count, "w2 =", w2Count)
 	}
+
+	// test weight cluster variable
+	ctx := context.TODO()
+	ctx = variable.NewVariableContext(ctx)
+	routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routerMock1)
+	var dcCount, w1Count, w2Count int32
+	totalTimes := rand.Int31n(10000)
+	var i int32
+	for i = 0; i < totalTimes; i++ {
+		clusterName := routeRuleImplBase.ClusterName(ctx)
+		switch clusterName {
+		case "defaultCluster":
+			dcCount++
+		case "w1":
+			w1Count++
+		case "w2":
+			w2Count++
+		}
+	}
+
+	if totalTimes != w1Count {
+		t.Errorf("same request should get same cluster: got %d, want: %d", w1Count, totalTimes)
+	}
+
 }
 
 type finalizeResult struct {
@@ -957,5 +981,71 @@ func TestRedirectRule(t *testing.T) {
 				t.Errorf("Unexpected redirect rule\nExpected: %#v\nGot: %#v\n", *tc.expected, *rb.redirectRule)
 			}
 		})
+	}
+}
+
+func TestRouterClusterVariable(t *testing.T) {
+	variable.RegisterVariable(variable.NewIndexedVariable("header", nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable("method", nil, nil, variable.BasicSetter, 0))
+	variable.RegisterVariable(variable.NewIndexedVariable("uri", nil, nil, variable.BasicSetter, 0))
+
+	testCases := []struct {
+		clustervariable string
+		value           string
+		expected        string
+	}{
+		{"header", "test00", "test0"},
+		{"header", "test1", "test1"},
+		{"method", "test3", "test3"},
+		{"uri", "test4", "test4"},
+	}
+
+	routeRules := []RouteRuleImplBase{
+		{
+			defaultCluster: &weightedClusterEntry{
+				clusterName: "test0",
+			},
+			routerAction: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterName:     "test0",
+					ClusterVariable: "header",
+				},
+			}},
+		{
+			defaultCluster: &weightedClusterEntry{
+				clusterName: "",
+			},
+			routerAction: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterVariable: "header",
+				},
+			}},
+		{
+			defaultCluster: &weightedClusterEntry{
+				clusterName: "",
+			},
+			routerAction: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterVariable: "method",
+				},
+			}},
+		{
+			defaultCluster: &weightedClusterEntry{
+				clusterName: "",
+			},
+			routerAction: v2.RouteAction{
+				RouterActionConfig: v2.RouterActionConfig{
+					ClusterVariable: "uri",
+				},
+			}},
+	}
+
+	for i, tc := range testCases {
+		ctx := variable.NewVariableContext(context.Background())
+		variable.SetVariableValue(ctx, tc.clustervariable, tc.value)
+		cluster := routeRules[i].ClusterName(ctx)
+		if cluster != tc.expected {
+			t.Errorf("test case: %d get cluster is not expected. got: %s, want: %s", i, cluster, tc.expected)
+		}
 	}
 }
