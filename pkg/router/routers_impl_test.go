@@ -50,6 +50,9 @@ var testVirutalHostConfigs = map[string]v2.VirtualHost{
 	"wildcard-domain": v2.VirtualHost{Name: "wildcard-domain", Domains: []string{"*.sofa-mosn.test"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
 	"domain":          v2.VirtualHost{Name: "domain", Domains: []string{"www.sofa-mosn.test"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
 }
+var testVirutalHostPortConfigs = map[string]v2.VirtualHost{
+	"all": v2.VirtualHost{Name: "all", Domains: []string{"*:*"}, Routers: []v2.Router{newTestSimpleRouter("test")}},
+}
 
 func TestNewRoutersSingle(t *testing.T) {
 	// Single VirtualHost
@@ -67,7 +70,7 @@ func TestNewRoutersSingle(t *testing.T) {
 		{
 			virtualHost: testVirutalHostConfigs["wildcard-domain"],
 			Expected: func(rm *routersImpl) bool {
-				return len(rm.wildcardVirtualHostSuffixesIndex) == 1
+				return len(rm.portWildcardVirtualHost) == 1
 			},
 		},
 		{
@@ -110,7 +113,7 @@ func TestNewRoutersGroup(t *testing.T) {
 		return
 	}
 	rm := routers.(*routersImpl)
-	expected := rm.defaultVirtualHostIndex != -1 && len(rm.virtualHostsIndex) == 1 && len(rm.wildcardVirtualHostSuffixesIndex) == 1
+	expected := rm.defaultVirtualHostIndex != -1 && len(rm.portWildcardVirtualHost) == 1 && len(rm.portWildcardVirtualHost) == 1
 	if !expected {
 		t.Error("create routematcher not match")
 	}
@@ -123,6 +126,13 @@ func TestNewRoutersDuplicate(t *testing.T) {
 	}); err == nil {
 		t.Error("expected an error occur, but not")
 	}
+	// * and *:*
+	if _, err := NewRouters(&v2.RouterConfiguration{
+		VirtualHosts: []v2.VirtualHost{testVirutalHostConfigs["all"], testVirutalHostPortConfigs["all"]},
+	}); err == nil {
+		t.Error("expected an error occur, but not")
+	}
+
 	//two virtualhosts, both domain is "www.sofa-mosn.test", expected failed
 	if _, err := NewRouters(&v2.RouterConfiguration{
 		VirtualHosts: []v2.VirtualHost{testVirutalHostConfigs["domain"], testVirutalHostConfigs["domain"]},
@@ -345,8 +355,8 @@ func TestVirtulHostWithPortMatch(t *testing.T) {
 		{Domains: []string{"*.test.com:30888"}, Routers: []v2.Router{newTestSimpleRouter("3")}},
 		{Domains: []string{"*.com:30888"}, Routers: []v2.Router{newTestSimpleRouter("4")}},
 		{Domains: []string{"*.com:*"}, Routers: []v2.Router{newTestSimpleRouter("5")}},
+		{Domains: []string{"*.com"}, Routers: []v2.Router{newTestSimpleRouter("5")}},
 		{Domains: []string{"*:*"}, Routers: []v2.Router{newTestSimpleRouter("6")}},
-		{Domains: []string{"*"}, Routers: []v2.Router{newTestSimpleRouter("7")}},
 	}
 
 	cfg := &v2.RouterConfiguration{
@@ -363,12 +373,13 @@ func TestVirtulHostWithPortMatch(t *testing.T) {
 	}{
 		{Domain: "www.test.com", ExpectedRoute: "0"},
 		{Domain: "www.test.com:8080", ExpectedRoute: "1"},
-		{Domain: "www.test.com:30888", ExpectedRoute: "2"},
+		{Domain: "www.test.com:80", ExpectedRoute: "2"},
+		{Domain: "www.test.com:30888", ExpectedRoute: "3"},
 		{Domain: "hello.test.com:30888", ExpectedRoute: "3"},
 		{Domain: "hello.com:30888", ExpectedRoute: "4"},
 		{Domain: "hello.com:30777", ExpectedRoute: "5"},
 		{Domain: "hello.cn:30777", ExpectedRoute: "6"},
-		{Domain: "hello.cn", ExpectedRoute: "7"},
+		{Domain: "hello.cn", ExpectedRoute: "6"},
 	}
 	ctx := variable.NewVariableContext(context.Background())
 	for _, tc := range testCases {
