@@ -202,7 +202,9 @@ func (c *connection) SetIdleTimeout(readTimeout time.Duration, idleTimeout time.
 }
 
 func (conn *connection) OnConnectionEvent(event api.ConnectionEvent) {
-	log.DefaultLogger.Debugf("[network] receive new connection event %s, try to handle", event)
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[network] receive new connection event %s, try to handle", event)
+	}
 	for _, listener := range conn.connCallbacks {
 		listener.OnEvent(event)
 	}
