@@ -34,7 +34,7 @@ type mockRouteRule struct {
 	api.RouteRule
 }
 
-func (r *mockRouteRule) ClusterName() string {
+func (r *mockRouteRule) ClusterName(context.Context) string {
 	return "mockCluster"
 }
 

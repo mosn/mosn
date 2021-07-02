@@ -102,7 +102,7 @@ func (m *MockRouteRule) EXPECT() *MockRouteRuleMockRecorder {
 }
 
 // ClusterName mocks base method.
-func (m *MockRouteRule) ClusterName() string {
+func (m *MockRouteRule) ClusterName(context.Context) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ClusterName")
 	ret0, _ := ret[0].(string)
@@ -110,7 +110,7 @@ func (m *MockRouteRule) ClusterName() string {
 }
 
 // ClusterName indicates an expected call of ClusterName.
-func (mr *MockRouteRuleMockRecorder) ClusterName() *gomock.Call {
+func (mr *MockRouteRuleMockRecorder) ClusterName(context.Context) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterName", reflect.TypeOf((*MockRouteRule)(nil).ClusterName))
 }

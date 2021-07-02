@@ -17,7 +17,11 @@
 
 package faultinject
 
-import "mosn.io/api"
+import (
+	"context"
+
+	"mosn.io/api"
+)
 
 // this file mocks the interface that used for test
 // only implement the function that used in test
@@ -58,7 +62,7 @@ type mockRouteRule struct {
 	config      map[string]interface{}
 }
 
-func (r *mockRouteRule) ClusterName() string {
+func (r *mockRouteRule) ClusterName(context.Context) string {
 	return r.clustername
 }
 func (r *mockRouteRule) PerFilterConfig() map[string]interface{} {
