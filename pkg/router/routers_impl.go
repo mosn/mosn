@@ -166,6 +166,35 @@ func (ri *routersImpl) RemoveAllRoutes(domain string) int {
 	return index
 }
 
+
+
+
+
+func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
+	// optimize, if there is only a default, use it
+	if len(ri.virtualHostPortsMap) == 0 && len(ri.portWildcardVirtualHost) == 0 &&
+		ri.defaultVirtualHostIndex != -1 {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "found default virtual host only")
+		}
+		return ri.virtualHosts[ri.defaultVirtualHostIndex]
+	}
+	hostHeader, err := variable.GetVariableValue(ctx, types.VarHost)
+	index := -1
+	if err == nil && hostHeader != "" {
+		//we use domain in lowercase
+		host := strings.ToLower(hostHeader)
+		index = ri.findVirtualHostIndex(host)
+	}
+	if index == -1 {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "no virtual host found")
+		}
+		return nil
+	}
+	return ri.virtualHosts[index]
+}
+
 func (ri *routersImpl) findVirtualHostIndex(hostPort string) int {
 	host, port, err := SplitHostPortGraceful(hostPort)
 	if err != nil {
@@ -174,38 +203,6 @@ func (ri *routersImpl) findVirtualHostIndex(hostPort string) int {
 	return ri.findVirtualHostIndexByPort(host, port)
 }
 
-func (ri *routersImpl) findVirtualHostIndexByWildcardPort(host string) int {
-	if len(ri.virtualHostPortsMap) > 0 {
-		portMap, ok := ri.virtualHostPortsMap[host]
-		if ok {
-			index, ok := portMap["*"]
-			if ok {
-				return index
-			}
-		}
-	}
-
-	if len(ri.portWildcardVirtualHost) > 0 {
-		//try to match  *.com:*
-		wildcardVirtualHostPortArray, ok := ri.portWildcardVirtualHost["*"]
-		if ok {
-			for _, wildcardVirtualHostPort := range wildcardVirtualHostPortArray {
-				if wildcardVirtualHostPort.hostLen >= len(host) {
-					continue
-				}
-				hostIndex := len(host) - wildcardVirtualHostPort.hostLen
-				if wildcardVirtualHostPort.host == host[hostIndex:] {
-					return wildcardVirtualHostPort.index
-				}
-			}
-		}
-	}
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHostWithPortIndex", "found default virtual host only")
-	}
-	//return default
-	return ri.defaultVirtualHostIndex
-}
 
 func (ri *routersImpl) findVirtualHostIndexByPort(host, port string) int {
 	if len(ri.virtualHostPortsMap) > 0 {
@@ -243,30 +240,40 @@ func (ri *routersImpl) findVirtualHostIndexByPort(host, port string) int {
 	return ri.findVirtualHostIndexByWildcardPort(host)
 }
 
-func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
-	// optimize, if there is only a default, use it
-	if len(ri.virtualHostPortsMap) == 0 && len(ri.portWildcardVirtualHost) == 0 &&
-		ri.defaultVirtualHostIndex != -1 {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "found default virtual host only")
+
+func (ri *routersImpl) findVirtualHostIndexByWildcardPort(host string) int {
+	if len(ri.virtualHostPortsMap) > 0 {
+		portMap, ok := ri.virtualHostPortsMap[host]
+		if ok {
+			index, ok := portMap["*"]
+			if ok {
+				return index
+			}
 		}
-		return ri.virtualHosts[ri.defaultVirtualHostIndex]
 	}
-	hostHeader, err := variable.GetVariableValue(ctx, types.VarHost)
-	index := -1
-	if err == nil && hostHeader != "" {
-		//we use domain in lowercase
-		host := strings.ToLower(hostHeader)
-		index = ri.findVirtualHostIndex(host)
-	}
-	if index == -1 {
-		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHost", "no virtual host found")
+
+	if len(ri.portWildcardVirtualHost) > 0 {
+		//try to match  *.com:*
+		wildcardVirtualHostPortArray, ok := ri.portWildcardVirtualHost["*"]
+		if ok {
+			for _, wildcardVirtualHostPort := range wildcardVirtualHostPortArray {
+				if wildcardVirtualHostPort.hostLen >= len(host) {
+					continue
+				}
+				hostIndex := len(host) - wildcardVirtualHostPort.hostLen
+				if wildcardVirtualHostPort.host == host[hostIndex:] {
+					return wildcardVirtualHostPort.index
+				}
+			}
 		}
-		return nil
 	}
-	return ri.virtualHosts[index]
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHostWithPortIndex", "found default virtual host only")
+	}
+	//return default
+	return ri.defaultVirtualHostIndex
 }
+
 
 // NewRouters creates a types.Routers by according to config
 func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
