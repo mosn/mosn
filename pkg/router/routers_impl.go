@@ -231,11 +231,7 @@ func (ri *routersImpl) findVirtualHostIndexByPort(host, port string) int {
 			}
 		}
 	}
-
-	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-		log.DefaultLogger.Debugf(RouterLogFormat, "routers", "findVirtualHostWithPortIndex", "found default virtual host only")
-	}
-
+	
 	//find wildcard
 	return ri.findVirtualHostIndexByWildcardPort(host)
 }
