@@ -217,7 +217,6 @@ func (ri *routersImpl) findVirtualHostIndexByPort(host, port string) int {
 	}
 
 	if len(ri.portWildcardVirtualHost) > 0 {
-		//try to match  *.test.com:8080
 		wildcardVirtualHostPortArray, ok := ri.portWildcardVirtualHost[port]
 		if ok {
 			for _, wildcardVirtualHostPort := range wildcardVirtualHostPortArray {
@@ -249,7 +248,6 @@ func (ri *routersImpl) findVirtualHostIndexByWildcardPort(host string) int {
 	}
 
 	if len(ri.portWildcardVirtualHost) > 0 {
-		//try to match  *.com:*
 		wildcardVirtualHostPortArray, ok := ri.portWildcardVirtualHost["*"]
 		if ok {
 			for _, wildcardVirtualHostPort := range wildcardVirtualHostPortArray {
@@ -307,7 +305,7 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 		}
 	}
 
-	// port's config sort by host len
+	//sort by host len
 	if len(routers.portWildcardVirtualHost) > 0 {
 		for _, value := range routers.portWildcardVirtualHost {
 			sort.Sort(WildcardVirtualHostWithPortSlice(value))
@@ -374,7 +372,7 @@ func generateHostWithPortConfig(host, port string, index int, routers *routersIm
 	return nil
 }
 
-// "missing port in address" is not error
+// "missing port in address" is not an error
 func SplitHostPortGraceful(hostPort string) (host, port string, err error) {
 	host, port, err = net.SplitHostPort(hostPort)
 	if err != nil {
