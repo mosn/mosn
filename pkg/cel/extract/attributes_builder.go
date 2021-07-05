@@ -29,8 +29,8 @@ import (
 	"github.com/gogo/protobuf/proto"
 	v1 "istio.io/api/mixer/v1"
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 
 	"mosn.io/mosn/pkg/cel/attribute"
 	"mosn.io/mosn/pkg/istio/utils"
@@ -187,7 +187,7 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 	case utils.KDestinationServiceHost, utils.KDestinationServiceName, utils.KDestinationServiceNamespace, utils.KContextReporterKind:
 		routeEntry := e.requestInfo.RouteEntry()
 		if routeEntry != nil {
-			clusterName := routeEntry.ClusterName()
+			clusterName := routeEntry.ClusterName(e.ctx)
 			if clusterName != "" {
 				info := paresClusterName(clusterName)
 				e.extracted[utils.KDestinationServiceHost] = info.Host

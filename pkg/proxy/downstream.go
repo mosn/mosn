@@ -826,14 +826,14 @@ func (s *downStream) chooseHost(endStream bool) {
 	}
 	if s.snapshot == nil || reflect.ValueOf(s.snapshot).IsNil() {
 		// no available cluster
-		log.Proxy.Alertf(s.context, types.ErrorKeyClusterGet, " cluster snapshot is nil, cluster name is: %s", s.route.RouteRule().ClusterName())
+		log.Proxy.Alertf(s.context, types.ErrorKeyClusterGet, " cluster snapshot is nil, cluster name is: %s", s.route.RouteRule().ClusterName(s.context))
 		s.requestInfo.SetResponseFlag(api.NoRouteFound)
 		s.sendHijackReply(api.RouterUnavailableCode, s.downstreamReqHeaders)
 		return
 	}
 	// as ClusterName has random factor when choosing weighted cluster,
 	// so need determination at the first time
-	clusterName := s.route.RouteRule().ClusterName()
+	clusterName := s.route.RouteRule().ClusterName(s.context)
 	if log.Proxy.GetLogLevel() >= log.DEBUG {
 		log.Proxy.Debugf(s.context, "[proxy] [downstream] route match result:%+v, clusterName=%v", s.route, clusterName)
 	}

@@ -206,10 +206,25 @@ func (rri *RouteRuleImplBase) RedirectRule() api.RedirectRule {
 // Select Cluster for Routing
 // if weighted cluster is nil, return clusterName directly, else
 // select cluster from weighted-clusters
-func (rri *RouteRuleImplBase) ClusterName() string {
+func (rri *RouteRuleImplBase) ClusterName(ctx context.Context) string {
 	if len(rri.weightedClusters) == 0 {
+		// If both 'cluster_name' and 'cluster_variable' are configured, 'cluster_name' is preferred.
+		if rri.defaultCluster.clusterName != "" {
+			return rri.defaultCluster.clusterName
+		}
+
+		if clusterName, err := variable.GetVariableValue(ctx, rri.routerAction.ClusterVariable); err == nil {
+			return clusterName
+		}
+
 		return rri.defaultCluster.clusterName
 	}
+
+	// When the same request gets cluster name a second time, the previous result is used directly.
+	if clusterName, err := variable.GetVariableValue(ctx, types.VarInternalRouterCluster); err == nil && clusterName != "" {
+		return clusterName
+	}
+
 	rri.lock.Lock()
 	if rri.randInstance == nil {
 		rri.randInstance = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -219,6 +234,7 @@ func (rri *RouteRuleImplBase) ClusterName() string {
 	for _, weightCluster := range rri.weightedClusters {
 		selectedValue = selectedValue - int(weightCluster.clusterWeight)
 		if selectedValue <= 0 {
+			variable.SetVariableValue(ctx, types.VarInternalRouterCluster, weightCluster.clusterName)
 			return weightCluster.clusterName
 		}
 	}

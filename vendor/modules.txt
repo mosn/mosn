@@ -1,3 +1,5 @@
+# github.com/HdrHistogram/hdrhistogram-go v1.0.1
+## explicit
 # github.com/SkyAPM/go2sky v0.5.0
 ## explicit
 github.com/SkyAPM/go2sky
@@ -502,7 +504,7 @@ istio.io/gogo-genproto/googleapis/google/rpc
 # k8s.io/klog v1.0.0
 ## explicit
 k8s.io/klog
-# mosn.io/api v0.0.0-20210610011245-122855ee816d
+# mosn.io/api v0.0.0-20210701111239-effaddc56128
 ## explicit
 mosn.io/api
 # mosn.io/pkg v0.0.0-20210604065522-6e8f5a087814
