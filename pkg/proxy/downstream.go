@@ -848,8 +848,6 @@ func (s *downStream) chooseHost(endStream bool) {
 		s.sendHijackReply(api.NoHealthUpstreamCode, s.downstreamReqHeaders)
 		return
 	}
-	s.requestInfo.OnUpstreamHostSelected(host)
-	s.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 
 	parseProxyTimeout(s.context, &s.timeout, s.route, s.downstreamReqHeaders)
 
@@ -1089,6 +1087,9 @@ func (s *downStream) initializeUpstreamConnectionPool(lbCtx types.LoadBalancerCo
 	if connPool == nil {
 		return nil, nil, fmt.Errorf("[proxy] [downstream] no healthy upstream in cluster %s", s.cluster.Name())
 	}
+
+	s.requestInfo.OnUpstreamHostSelected(host)
+	s.requestInfo.SetUpstreamLocalAddress(host.AddressString())
 
 	// TODO: update upstream stats
 

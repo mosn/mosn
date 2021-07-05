@@ -86,20 +86,20 @@ func TestProxyWithFilters(t *testing.T) {
 				pool := mock.NewMockConnectionPool(ctrl)
 				// mock connPool.NewStream to call upstreamRequest.OnReady (see stream/xprotocol/connpool.go:NewStream)
 				h := mock.NewMockHost(ctrl)
+				h.EXPECT().HostStats().DoAndReturn(func() types.HostStats {
+					s := metrics.NewHostStats("mockhost", "mockhost")
+					return types.HostStats{
+						UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
+						UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
+						UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
+						UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
+					}
+				}).AnyTimes()
+				h.EXPECT().AddressString().Return("mockhost").AnyTimes()
+				h.EXPECT().ClusterInfo().DoAndReturn(func() types.ClusterInfo {
+					return gomockClusterInfo(ctrl)
+				}).AnyTimes()
 				pool.EXPECT().Host().DoAndReturn(func() types.Host {
-					h.EXPECT().HostStats().DoAndReturn(func() types.HostStats {
-						s := metrics.NewHostStats("mockhost", "mockhost")
-						return types.HostStats{
-							UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
-							UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
-							UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
-							UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
-						}
-					}).AnyTimes()
-					h.EXPECT().AddressString().Return("mockhost").AnyTimes()
-					h.EXPECT().ClusterInfo().DoAndReturn(func() types.ClusterInfo {
-						return gomockClusterInfo(ctrl)
-					}).AnyTimes()
 					return h
 				}).AnyTimes()
 				pool.EXPECT().NewStream(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
