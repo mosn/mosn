@@ -161,7 +161,7 @@ func TestClusterManagerUpdateCluster(t *testing.T) {
 		"zone":    "a",
 		"version": "1.0.0"}))
 
-	pool := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
+	pool, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
 
 	if pool.Host().ClusterInfo().ResourceManager().Connections().Max() != uint64(maxc) {
 		t.Fatal("update cluster resource failed")
@@ -192,7 +192,7 @@ func TestClusterManagerUpdateCluster(t *testing.T) {
 		t.Fatal("update cluster failed: ", err)
 	}
 
-	pool = GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
+	pool, _ = GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
 	if pool.Host().ClusterInfo().ResourceManager().Connections().Max() != uint64(maxc1) {
 		t.Fatal("update cluster resource failed")
 	}
@@ -223,7 +223,7 @@ func TestClusterManagerUpdateCluster(t *testing.T) {
 	}
 
 	snapshot = GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
-	pool = GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
+	pool, _ = GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
 	if pool.Host().ClusterInfo().ResourceManager().Connections().Max() != uint64(maxc1) {
 		t.Fatal("update cluster resource failed")
 	}
@@ -241,7 +241,7 @@ func TestClusterManagerUpdateCluster(t *testing.T) {
 	})
 	// pool keeps snapshot
 	snapshot = GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
-	pool = GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
+	pool, _ = GetClusterMngAdapterInstance().ConnPoolForCluster(mockLbCtx, snapshot, mockProtocol)
 	if !pool.Host().SupportTLS() {
 		t.Fatal("pool should support tls")
 	}
@@ -366,7 +366,7 @@ func TestClusterRemoveHostWithSnapshot(t *testing.T) {
 func TestConnPoolForCluster(t *testing.T) {
 	_createClusterManager()
 	snap := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
-	connPool := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap, mockProtocol)
+	connPool, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap, mockProtocol)
 	if connPool == nil {
 		t.Fatal("get conn pool failed")
 	}
@@ -394,7 +394,7 @@ func TestConnPoolUpdateTLS(t *testing.T) {
 		"test1": []v2.Host{host},
 	}, nil)
 	snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
-	connPool1 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
+	connPool1, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
 	// TLSDisable always returns disable hash value
 	if !connPool1.TLSHashValue().Equal(disableTLSHashValue) {
 		t.Fatal("conn pool support tls")
@@ -409,14 +409,14 @@ func TestConnPoolUpdateTLS(t *testing.T) {
 		t.Fatalf("update cluster hosts failed, %v", err)
 	}
 	snap2 := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
-	connPool2 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
+	connPool2, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
 	cp2Hash := connPool2.TLSHashValue()
 	if cp2Hash.Equal(disableTLSHashValue) || cp2Hash.Equal(nil) || cp2Hash.Equal(clientSideDisableHashValue) {
 		t.Fatal("conn pool does not support tls")
 	}
 	// disable tls, connpool should will be changed
 	DisableClientSideTLS()
-	connPool3 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
+	connPool3, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
 	// connpool should be changed, but old connpool should not be effected
 	if connPool2.TLSHashValue().Equal(disableTLSHashValue) || connPool2.TLSHashValue().Equal(nil) || connPool2.TLSHashValue().Equal(clientSideDisableHashValue) {
 		t.Fatal("old conn pool does not support tls")
@@ -445,20 +445,20 @@ func TestClusterManagerTLSUpdateTLS(t *testing.T) {
 		"test1": []v2.Host{host},
 	}, nil)
 	snap1 := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
-	connPool1 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
+	connPool1, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
 	// should returns disableTLSHashValue because TLSDisable is true
 	if !connPool1.TLSHashValue().Equal(disableTLSHashValue) {
 		t.Fatal("conn pool hash value should be disableTLSHashValue")
 	}
 	// disable tls, keeps disableTLSHashValue not changed
 	DisableClientSideTLS()
-	connPool2 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
+	connPool2, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
 	if !connPool2.TLSHashValue().Equal(connPool1.TLSHashValue()) {
 		t.Fatalf("connpool should not be changed, hash value shoule be keeped as disableTLSHashValue")
 	}
 	//
 	EnableClientSideTLS()
-	connPool3 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
+	connPool3, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap1, mockProtocol)
 	if !connPool3.TLSHashValue().Equal(connPool2.TLSHashValue()) {
 		t.Fatalf("connpool should not be changed")
 	}
@@ -477,7 +477,7 @@ func TestClusterManagerTLSUpdateTLS(t *testing.T) {
 		t.Fatalf("update cluster hosts failed, %v", err)
 	}
 	snap2 := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
-	connPool4 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
+	connPool4, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
 	// connpool snapshot keeps disable
 	if !connPool1.TLSHashValue().Equal(disableTLSHashValue) {
 		t.Fatal("connpool snapshot keeps nothing to change")
@@ -490,13 +490,13 @@ func TestClusterManagerTLSUpdateTLS(t *testing.T) {
 		Status:       true,
 		InsecureSkip: true,
 	})
-	connPool5 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
+	connPool5, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
 	if !connPool5.TLSHashValue().Equal(connPool4.TLSHashValue()) {
 		t.Fatal("conn pool changed, but no config changed")
 	}
 	// disable tls, connpool should will be changed
 	DisableClientSideTLS()
-	connPool6 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
+	connPool6, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap2, mockProtocol)
 	if !connPool6.TLSHashValue().Equal(clientSideDisableHashValue) {
 		t.Fatalf("conn pool hash value should be nil")
 	}
@@ -512,13 +512,13 @@ func TestClusterManagerTLSUpdateTLS(t *testing.T) {
 		t.Fatalf("update cluster hosts failed, %v", err)
 	}
 	snap3 := GetClusterMngAdapterInstance().GetClusterSnapshot(nil, "test1")
-	connPool7 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap3, mockProtocol)
+	connPool7, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap3, mockProtocol)
 	// connpool should be changed.
 	if !connPool7.TLSHashValue().Equal(disableTLSHashValue) {
 		t.Fatalf("conn pool should be changed to disableTLSHashValue")
 	}
 	EnableClientSideTLS()
-	connPool8 := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap3, mockProtocol)
+	connPool8, _ := GetClusterMngAdapterInstance().ConnPoolForCluster(newMockLbContext(nil), snap3, mockProtocol)
 	if !connPool8.TLSHashValue().Equal(connPool7.TLSHashValue()) {
 		t.Fatal("conn pool should not be changed")
 	}
