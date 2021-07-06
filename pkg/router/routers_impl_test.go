@@ -341,8 +341,8 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 			t.Errorf("%s match failed\n", tc.Domain)
 			continue
 		}
-		if route.RouteRule().ClusterName() != tc.ExpectedRoute {
-			t.Errorf("%s expected match %s, but got %s\n", tc.Domain, tc.ExpectedRoute, route.RouteRule().ClusterName())
+		if route.RouteRule().ClusterName(context.TODO()) != tc.ExpectedRoute {
+			t.Errorf("%s expected match %s, but got %s\n", tc.Domain, tc.ExpectedRoute, route.RouteRule().ClusterName(context.TODO()))
 		}
 	}
 }
@@ -391,8 +391,8 @@ func TestVirtulHostWithPortMatch(t *testing.T) {
 			t.Errorf("%s match failed\n", tc.Domain)
 			continue
 		}
-		if route.RouteRule().ClusterName() != tc.ExpectedRoute {
-			t.Errorf("%s expected match %s, but got %s\n", tc.Domain, tc.ExpectedRoute, route.RouteRule().ClusterName())
+		if route.RouteRule().ClusterName(context.TODO()) != tc.ExpectedRoute {
+			t.Errorf("%s expected match %s, but got %s\n", tc.Domain, tc.ExpectedRoute, route.RouteRule().ClusterName(context.TODO()))
 		}
 	}
 }
