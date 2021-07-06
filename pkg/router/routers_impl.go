@@ -335,11 +335,6 @@ func (ri *routersImpl) generateHostWithPortConfig(host, port string, index int, 
 			m[port] = index
 		}
 	} else if len(host) > 0 && "*" == host[:1] {
-		if strings.Contains(host[1:], "*") {
-			log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "only unique wildcard domain permitted, host:port "+host+":"+port)
-			return ErrDuplicateVirtualHost
-		}
-
 		newWildcardVirtualHostWithPort := WildcardVirtualHostWithPort{
 			hostLen: len(host) - 1,
 			host:    host[1:],
