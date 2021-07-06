@@ -40,7 +40,7 @@ type RouteRule interface {
 	VirtualHost() VirtualHost
 
 	// ClusterName returns the route's cluster name
-	ClusterName() string
+	ClusterName(ctx context.Context) string
 
 	// UpstreamProtocol returns the protocol that route's cluster supported
 	// If it is configured, the protocol will replace the proxy config's upstream protocol

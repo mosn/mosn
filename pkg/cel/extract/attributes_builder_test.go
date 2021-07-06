@@ -417,7 +417,7 @@ func (r *MockRouteRule) VirtualHost() api.VirtualHost {
 	return r.vHost
 }
 
-func (r *MockRouteRule) ClusterName() string {
+func (r *MockRouteRule) ClusterName(ctx context.Context) string {
 	return r.clusterName
 }
 

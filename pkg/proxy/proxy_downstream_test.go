@@ -170,7 +170,7 @@ func TestProxyWithFilters(t *testing.T) {
 					ReceiveFilterGen: func() api.StreamReceiverFilter {
 						return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, _ api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
 							if h.RequestInfo().RouteEntry() != nil {
-								filterRecords["route_cluster"] = h.RequestInfo().RouteEntry().ClusterName()
+								filterRecords["route_cluster"] = h.RequestInfo().RouteEntry().ClusterName(context.TODO())
 							}
 							filterRecords["host"] = h.RequestInfo().UpstreamLocalAddress()
 						})

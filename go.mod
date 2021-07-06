@@ -3,6 +3,7 @@ module mosn.io/mosn
 go 1.14
 
 require (
+	github.com/HdrHistogram/hdrhistogram-go v1.0.1 // indirect
 	github.com/SkyAPM/go2sky v0.5.0
 	github.com/TarsCloud/TarsGo v1.1.4
 	github.com/alibaba/sentinel-golang v1.0.2-0.20210112133552-db6063eb263e
@@ -32,6 +33,7 @@ require (
 	github.com/mosn/binding v0.0.0-20200413092018-2b47bdb20a9f
 	github.com/mosn/easygo v0.0.0-20201210062404-62796fdb3827
 	github.com/mosn/registry v0.0.0-20210108061200-d7b63bc1904b
+	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4
@@ -39,6 +41,8 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tetratelabs/proxy-wasm-go-sdk v0.0.13
 	github.com/trainyao/go-maglev v0.0.0-20200611125015-4c1ae64d96a8
+	github.com/uber/jaeger-client-go v2.25.0+incompatible
+	github.com/uber/jaeger-lib v2.4.0+incompatible // indirect
 	github.com/urfave/cli v1.20.0
 	github.com/valyala/fasthttp v0.0.0-20200605121233-ac51d598dc54
 	github.com/valyala/fasttemplate v1.1.0
@@ -54,7 +58,7 @@ require (
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
-	mosn.io/api v0.0.0-20210414070543-8a0686b03540
+	mosn.io/api v0.0.0-20210701111239-effaddc56128
 	mosn.io/pkg v0.0.0-20210604065522-6e8f5a087814
 	mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec
 )

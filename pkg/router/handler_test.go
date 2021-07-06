@@ -34,7 +34,7 @@ func TestDoRouteHandler(t *testing.T) {
 		route := mock.NewMockRoute(ctrl)
 		route.EXPECT().RouteRule().DoAndReturn(func() api.RouteRule {
 			rule := mock.NewMockRouteRule(ctrl)
-			rule.EXPECT().ClusterName().Return("test").AnyTimes()
+			rule.EXPECT().ClusterName(context.TODO()).Return("test").AnyTimes()
 			return rule
 		}).AnyTimes()
 		return route

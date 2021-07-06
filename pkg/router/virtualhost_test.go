@@ -120,7 +120,7 @@ func TestRouterOrder(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{})
 		variable.SetVariableValue(ctx, types.VarPath, tc.path)
 		rt := virtualHost.GetRouteFromEntries(ctx, headers)
-		if rt == nil || rt.RouteRule().ClusterName() != tc.clustername {
+		if rt == nil || rt.RouteRule().ClusterName(context.TODO()) != tc.clustername {
 			t.Errorf("#%d route unexpected result\n", i)
 		}
 	}
@@ -134,7 +134,7 @@ func TestRouterOrder(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{})
 		variable.SetVariableValue(ctx, types.VarPath, tc.path)
 		rt := prefixVirtualHost.GetRouteFromEntries(ctx, headers)
-		if rt == nil || rt.RouteRule().ClusterName() != "prefix" {
+		if rt == nil || rt.RouteRule().ClusterName(context.TODO()) != "prefix" {
 			t.Errorf("#%d route unexpected result\n", i)
 		}
 	}
