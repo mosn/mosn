@@ -95,7 +95,7 @@ func (m *mirror) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 		}
 
 		for i := 0; i < amplification; i++ {
-			host, connPool := clusterAdapter.ConnPoolForCluster(m, snap, m.up)
+			connPool, host := clusterAdapter.ConnPoolForCluster(m, snap, m.up)
 			if connPool == nil {
 				if log.DefaultLogger.GetLogLevel() >= log.INFO {
 					log.DefaultLogger.Infof("mirror get connPool failed, cluster:%s", m.clusterName)

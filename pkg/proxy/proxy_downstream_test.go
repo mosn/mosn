@@ -82,7 +82,7 @@ func TestProxyWithFilters(t *testing.T) {
 		}).AnyTimes() // gomcok and monkey patch is conflict, ignore the call times
 		// mock ConnPoolForCluster returns connPool
 		cm.EXPECT().ConnPoolForCluster(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ types.LoadBalancerContext, _ types.ClusterSnapshot, _ api.ProtocolName) (types.Host, types.ConnectionPool) {
+			func(_ types.LoadBalancerContext, _ types.ClusterSnapshot, _ api.ProtocolName) (types.ConnectionPool, types.Host) {
 				pool := mock.NewMockConnectionPool(ctrl)
 				// mock connPool.NewStream to call upstreamRequest.OnReady (see stream/xprotocol/connpool.go:NewStream)
 				h := mock.NewMockHost(ctrl)
@@ -107,7 +107,7 @@ func TestProxyWithFilters(t *testing.T) {
 					encoder := gomockStreamSender(ctrl)
 					return pool.Host(), encoder, ""
 				}).AnyTimes()
-				return h, pool
+				return pool, h
 			}).AnyTimes()
 		return &cluster.MngAdapter{
 			ClusterManager: cm,

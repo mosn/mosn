@@ -299,16 +299,16 @@ func (cm *clusterManager) UDPConnForCluster(lbCtx types.LoadBalancerContext, sna
 	return host.CreateUDPConnection(context.Background())
 }
 
-func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.Host, types.ConnectionPool) {
+func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.ConnectionPool, types.Host) {
 	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager]  %s ConnPool For Cluster is nil", protocol)
 		return nil, nil
 	}
-	host, pool, err := cm.getActiveConnectionPool(balancerContext, snapshot, protocol)
+	pool, host, err := cm.getActiveConnectionPool(balancerContext, snapshot, protocol)
 	if err != nil {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager] ConnPoolForCluster Failed; %v", err)
 	}
-	return host, pool
+	return pool, host
 }
 
 func (cm *clusterManager) GetTLSManager() types.TLSClientContextManager {
@@ -359,7 +359,7 @@ var (
 	errNoHealthyHost   = errors.New("no health hosts")
 )
 
-func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.Host, types.ConnectionPool, error) {
+func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.ConnectionPool, types.Host, error) {
 	factory, ok := network.ConnNewPoolFactories[protocol]
 	if !ok {
 		return nil, nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
@@ -438,7 +438,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			}
 		}
 		if pool.CheckAndInit(balancerContext.DownstreamContext()) {
-			return host, pool, nil
+			return pool, host, nil
 		}
 		pools[i] = pool
 		hosts[i] = host
@@ -451,7 +451,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				continue
 			}
 			if pools[i].CheckAndInit(balancerContext.DownstreamContext()) {
-				return hosts[i], pools[i], nil
+				return pools[i], hosts[i], nil
 			}
 		}
 		waitTime := tryConnTimes[t]
