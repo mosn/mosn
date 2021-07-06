@@ -374,7 +374,7 @@ func TestVirtulHostWithPortMatch(t *testing.T) {
 		{Domain: "www.test.com", ExpectedRoute: "0"},
 		{Domain: "www.test.com:8080", ExpectedRoute: "1"},
 		{Domain: "www.test.com:80", ExpectedRoute: "2"},
-		{Domain: "www.test.com:30888", ExpectedRoute: "3"},
+		{Domain: "www.test.com:30888", ExpectedRoute: "2"},
 		{Domain: "hello.test.com:30888", ExpectedRoute: "3"},
 		{Domain: "hello.com:30888", ExpectedRoute: "4"},
 		{Domain: "hello.com:30777", ExpectedRoute: "5"},
