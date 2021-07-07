@@ -298,8 +298,12 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 		return nil
 	}
 	if total == 1 {
+		targetHost := targetHosts[0]
 		// Return directly if there is only one host
-		return targetHosts[0]
+		if targetHost.Health() {
+			return targetHost
+		}
+		return nil
 	}
 	for i := 0; i < total; i++ {
 		if lb.scheduler != nil {
