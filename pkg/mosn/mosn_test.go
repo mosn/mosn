@@ -202,6 +202,7 @@ func TestNewMosn(t *testing.T) {
 		time.Sleep(time.Second * 3)
 		//go test must ClearAll logger because they're going to disrupt other unit tests;  more #1654
 		logger.ClearAll()
+		time.Sleep(time.Second * 3)
 		// stop mosn
 		m.Close()
 	})
