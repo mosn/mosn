@@ -44,6 +44,8 @@ var (
 	ErrNoVirtualHost        = errors.New("virtual host is nil")
 	ErrNoRouters            = errors.New("routers is nil")
 	ErrDuplicateVirtualHost = errors.New("duplicate domain virtual host")
+	ErrDuplicateHostPort    = errors.New("duplicate virtual host port")
+	ErrNoVirtualHostPort    = errors.New("virtual host port is invalid")
 	ErrUnexpected           = errors.New("an unexpected error occurs")
 )
 
