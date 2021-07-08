@@ -242,7 +242,7 @@ func (ri *routersImpl) findHighestPriorityIndex(host, port string) int {
 			}
 		}
 
-		// priority 4: wildcard domain and wildcard port
+		// priority 4: wildcard host and wildcard port
 		wildcardVirtualHostPortArray, ok = ri.portWildcardVirtualHost["*"]
 		if ok {
 			for _, wildcardVirtualHostPort := range wildcardVirtualHostPortArray {
