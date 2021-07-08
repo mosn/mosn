@@ -36,7 +36,7 @@ import (
 type routersImpl struct {
 	defaultVirtualHostIndex int
 	//store definite host config
-	//key =>www.test.com  value => {"*":index},{"8080",index}
+	//key =>www.test.com  value => {"*",index},{"8080",index}
 	virtualHostPortsMap map[string]map[string]int
 
 	//key =>8080  value => [{9,".test.com",index},{4,".com",index}]
@@ -195,7 +195,7 @@ func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
 }
 
 func (ri *routersImpl) findVirtualHostIndex(hostPort string) int {
-	host, port, err := SplitHostPortGraceful(hostPort)
+	host, port, err := splitHostPortGraceful(hostPort)
 	if err != nil {
 		return -1
 	}
@@ -203,11 +203,11 @@ func (ri *routersImpl) findVirtualHostIndex(hostPort string) int {
 }
 
 //match priority rules:
-//------priority 1: definite host and definite port (No port belong to this )
-//------priority 2: definite host and wildcard port
-//------priority 3: wildcard host and definite port
-//------priority 4: wildcard domain and wildcard port
-//------priority 5: default
+// priority 1: definite host and definite port (No port belong to this )
+// priority 2: definite host and wildcard port
+// priority 3: wildcard host and definite port
+// priority 4: wildcard host and wildcard port
+// priority 5: default
 func (ri *routersImpl) findHighestPriorityIndex(host, port string) int {
 
 	if len(ri.virtualHostPortsMap) > 0 {
@@ -288,7 +288,7 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 		for _, domain := range vhConfig.Domains {
 			domain = strings.ToLower(domain) // we use domain in lowercase
 
-			host, port, err := SplitHostPortGraceful(domain)
+			host, port, err := splitHostPortGraceful(domain)
 			if err != nil {
 				return nil, ErrNoVirtualHostPort
 			}
@@ -310,17 +310,21 @@ func NewRouters(routerConfig *v2.RouterConfiguration) (types.Routers, error) {
 }
 func (ri *routersImpl) generateHostWithPortConfig(host, port string, index int, routers *routersImpl) error {
 	if host == "" && port == "" {
-		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "virtual host is invalid, host:port "+host+":"+port)
+		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "virtual host is invalid, host and port is null ")
 		return ErrNoVirtualHost
 	}
-
+	//set default
 	if host == "*" && (port == "*" || port == "") {
 		if routers.defaultVirtualHostIndex != -1 {
 			log.DefaultLogger.Errorf(RouterLogFormat, "routers", "NewRouters", "duplicate default virtualhost")
 			return ErrDuplicateVirtualHost
 		}
 		routers.defaultVirtualHostIndex = index
-	} else if !strings.Contains(host, "*") {
+		return nil
+	}
+
+	//for host definite match
+	if !strings.Contains(host, "*") {
 		m, ok := routers.virtualHostPortsMap[host]
 		if !ok {
 			m = map[string]int{}
@@ -334,7 +338,11 @@ func (ri *routersImpl) generateHostWithPortConfig(host, port string, index int, 
 			}
 			m[port] = index
 		}
-	} else if len(host) > 0 && "*" == host[:1] {
+		return nil
+	}
+
+	//for wildcard host match
+	if len(host) > 0 && "*" == host[:1] {
 		newWildcardVirtualHostWithPort := WildcardVirtualHostWithPort{
 			hostLen: len(host) - 1,
 			host:    host[1:],
@@ -354,23 +362,22 @@ func (ri *routersImpl) generateHostWithPortConfig(host, port string, index int, 
 			m = append(m, newWildcardVirtualHostWithPort)
 			routers.portWildcardVirtualHost[port] = m
 		}
-	} else {
-		log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "virtual host port is invalid, host:port "+host+":"+port)
-		return ErrNoVirtualHostPort
+		return nil
 	}
 
-	return nil
+	log.DefaultLogger.Errorf(RouterLogFormat, "routers", "generateHostWithPortConfig", "virtual host port is invalid, host:port "+host+":"+port)
+	return ErrNoVirtualHostPort
 }
 
 // "missing port in address" is not error
-func SplitHostPortGraceful(hostPort string) (host, port string, err error) {
+func splitHostPortGraceful(hostPort string) (host, port string, err error) {
 	host, port, err = net.SplitHostPort(hostPort)
 	if err != nil {
 		if addrErr, ok := err.(*net.AddrError); ok && addrErr.Err == "missing port in address" {
 			return hostPort, port, nil
 		} else {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				msg := fmt.Sprintf("host invalid : %s, error: %v", host, err)
+				msg := fmt.Sprintf("host invalid : %s, error: %v", hostPort, err)
 				log.DefaultLogger.Debugf(RouterLogFormat, "routers", "SplitHostPortGraceful", msg)
 			}
 			return "", "", err
