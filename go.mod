@@ -64,3 +64,5 @@ require (
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
+
+replace mosn.io/api => github.com/antJack/api v0.0.0-20210708060948-61dc4908dc9e

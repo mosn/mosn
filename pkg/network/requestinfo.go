@@ -45,6 +45,7 @@ type RequestInfo struct {
 	downstreamRemoteAddress  net.Addr
 	isHealthCheckRequest     bool
 	routerRule               api.RouteRule
+	metaData                 api.Metadata
 }
 
 func newRequestInfoWithPort(protocol api.ProtocolName) api.RequestInfo {
@@ -196,4 +197,15 @@ func (r *RequestInfo) RouteEntry() api.RouteRule {
 
 func (r *RequestInfo) SetRouteEntry(routerRule api.RouteRule) {
 	r.routerRule = routerRule
+}
+
+func (r *RequestInfo) MetaData() api.Metadata {
+	return r.metaData
+}
+
+func (r *RequestInfo) SetDynamicMetaData(key string, value string) {
+	if r.metaData == nil {
+		r.metaData = map[string]string{}
+	}
+	r.metaData[key] = value
 }
