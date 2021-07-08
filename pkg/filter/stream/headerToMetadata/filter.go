@@ -43,7 +43,11 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf api.I
 		value, exist := headers.Get(rule.Header)
 
 		if exist && rule.OnPresent != nil {
-			f.handler.RequestInfo().SetDynamicMetaData(rule.OnPresent.Key, value)
+			if rule.OnPresent.Value != "" {
+				f.handler.RequestInfo().SetDynamicMetaData(rule.OnPresent.Key, rule.OnPresent.Value)
+			} else {
+				f.handler.RequestInfo().SetDynamicMetaData(rule.OnPresent.Key, value)
+			}
 		} else if !exist && rule.OnMissing != nil {
 			f.handler.RequestInfo().SetDynamicMetaData(rule.OnMissing.Key, rule.OnMissing.Value)
 		}

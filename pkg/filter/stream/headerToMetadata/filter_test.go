@@ -99,7 +99,7 @@ func TestFilter(t *testing.T) {
 			Header: "h1",
 			OnPresent: &KVPair{
 				Key:   "meta1",
-				Value: "shouldNotBeThisValue",
+				Value: "shouldBeThis",
 			},
 			Remove: true,
 		},
@@ -111,11 +111,18 @@ func TestFilter(t *testing.T) {
 			},
 			Remove: false,
 		},
+		{
+			Header: "h3",
+			OnPresent: &KVPair{
+				Key:   "meta3",
+			},
+		},
 	}}
 
 	headers := protocol.CommonHeader{
 		"h1": "v1",
 		"h3": "v3",
+		"h4": "v4",
 	}
 
 	filter := NewFilter(factor)
@@ -123,10 +130,11 @@ func TestFilter(t *testing.T) {
 	filter.OnReceive(context.Background(), headers, nil, nil)
 
 	meta := ri.MetaData()
-	assert.Equal(t, len(meta), 2)
-	assert.Equal(t, meta["meta1"], "v1")
+	assert.Equal(t, len(meta), 3)
+	assert.Equal(t, meta["meta1"], "shouldBeThis")
 	assert.Equal(t, meta["meta2"], "v2")
-	assert.Equal(t, len(headers), 1)
+	assert.Equal(t, meta["meta3"], "v3")
+	assert.Equal(t, len(headers), 2)
 
 	_, ok := headers["h1"]
 	assert.False(t, ok)
