@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tunnel
 
 import (
@@ -36,7 +37,9 @@ func NewHostRemover(address string, cluster string) *HostRemover {
 func (h *HostRemover) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		log.DefaultLogger.Infof("try to remove host: %v in cluster: %v", h.address, h.cluster)
+		tunnelHostMutex.Lock()
 		cluster.GetClusterMngAdapterInstance().RemoveClusterHosts(h.cluster, []string{h.address})
+		tunnelHostMutex.Unlock()
 		cluster.GetClusterMngAdapterInstance().ShutdownConnectionPool("", h.address)
 	}
 }

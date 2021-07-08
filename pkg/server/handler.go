@@ -644,18 +644,25 @@ var (
 	defaultUDPReadTimeout = types.DefaultUDPReadTimeout
 )
 
+func (al *activeListener) IsTunnelListener() bool {
+	return al.listener.Config().TunnelListener
+}
+
 func (al *activeListener) newConnection(ctx context.Context, rawc net.Conn) {
 	conn := network.NewServerConnection(ctx, rawc, al.stopChan)
-	if al.idleTimeout != nil {
-		conn.SetIdleTimeout(buffer.ConnReadTimeout, al.idleTimeout.Duration)
-	} else {
-		// a nil idle timeout, we set a default one
-		// notice only server side connection set the default value
-		switch conn.LocalAddr().Network() {
-		case "udp":
-			conn.SetIdleTimeout(defaultUDPReadTimeout, defaultUDPIdleTimeout)
-		default:
-			conn.SetIdleTimeout(buffer.ConnReadTimeout, defaultIdleTimeout)
+	// Tunnel Listener does not need to set idleTimeout
+	if !al.IsTunnelListener() {
+		if al.idleTimeout != nil {
+			conn.SetIdleTimeout(buffer.ConnReadTimeout, al.idleTimeout.Duration)
+		} else {
+			// a nil idle timeout, we set a default one
+			// notice only server side connection set the default value
+			switch conn.LocalAddr().Network() {
+			case "udp":
+				conn.SetIdleTimeout(defaultUDPReadTimeout, defaultUDPIdleTimeout)
+			default:
+				conn.SetIdleTimeout(buffer.ConnReadTimeout, defaultIdleTimeout)
+			}
 		}
 	}
 	oriRemoteAddr := mosnctx.Get(ctx, types.ContextOriRemoteAddr)

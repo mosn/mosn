@@ -3,6 +3,7 @@
   "servers": [
     {
       "default_log_path": "stdout",
+      "default_log_level": "DEBUG",
       "routers":[
         {
           "router_config_name":"client_router",
@@ -43,6 +44,7 @@
           "name": "tunnel_server_listener",
           "address": "127.0.0.1:9999",
           "bind_port": true,
+          "tunnel_listener":true,
           "log_path": "stdout",
           "filter_chains": [
             {

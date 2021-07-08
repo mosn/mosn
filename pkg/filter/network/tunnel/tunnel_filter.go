@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tunnel
 
 import (
@@ -83,7 +84,13 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 		return api.Stop
 	}
 	// set the flag that has been initialized, subsequent data processing skips this filter
+	err = writeConnectResponse(tunnel.ConnectSuccess, conn)
+	if err != nil {
+		return api.Stop
+	}
 	conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
+	tunnelHostMutex.Lock()
+	defer tunnelHostMutex.Unlock()
 	_ = t.clusterManager.AppendHostWithConnection(info.ClusterName, v2.Host{
 		HostConfig: v2.HostConfig{
 			Address:    conn.RemoteAddr().String(),
@@ -92,10 +99,6 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 			TLSDisable: false,
 		},
 	}, network.CreateTunnelAgentConnection(conn))
-	err = writeConnectResponse(tunnel.ConnectSuccess, conn)
-	if err != nil {
-		return api.Stop
-	}
 	t.connInitialized = true
 	return api.Stop
 }

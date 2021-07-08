@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tunnel
 
 import (
@@ -24,7 +25,7 @@ import (
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/mosn"
+	"mosn.io/mosn/pkg/server"
 	"mosn.io/mosn/pkg/upstream/tunnel/ext"
 	"mosn.io/pkg/utils"
 )
@@ -49,7 +50,9 @@ type agentBootstrapConfig struct {
 	// ReconnectBaseDuration
 	ReconnectBaseDurationMs int `json:"reconnect_base_duration_ms"`
 
-	CredentialPolicy string `json:"credential_policy"`
+	// ConnectTimeoutDurationMs
+	ConnectTimeoutDurationMs int    `json:"connect_timeout_duration_ms"`
+	CredentialPolicy         string `json:"credential_policy"`
 }
 
 func init() {
@@ -77,7 +80,7 @@ func bootstrap(conf *agentBootstrapConfig) {
 				// Compute the diff between new and old server list
 				intersection := make(map[string]bool)
 				for i := range servers {
-					if _, ok := connectionMap.Load(servers[i]);ok{
+					if _, ok := connectionMap.Load(servers[i]); ok {
 						intersection[servers[i]] = true
 					}
 				}
@@ -85,10 +88,11 @@ func bootstrap(conf *agentBootstrapConfig) {
 				for _, addr := range servers {
 					if _, ok := intersection[addr]; !ok {
 						increased = append(increased, addr)
-						go connectServer(conf, addr)
+						utils.GoWithRecover(func() {
+							connectServer(conf, addr)
+						}, nil)
 					}
 				}
-
 				decreased := make([]string, 0)
 				connectionMap.Range(func(key, value interface{}) bool {
 					addr := key.(string)
@@ -96,15 +100,17 @@ func bootstrap(conf *agentBootstrapConfig) {
 					if !ok {
 						decreased = append(decreased, addr)
 					}
+					return true
 				})
-				for addr, conns := range connectionMap {
+				for _, addr := range decreased {
+					val, ok := connectionMap.LoadAndDelete(addr)
 					if !ok {
-						connectionMap.Delete(addr)
-						for _, conn := range conns {
-							err := conn.Stop()
-							if err != nil {
-								log.DefaultLogger.Errorf("[tunnel agent] failed to stop connection, err: %+v", err)
-							}
+						continue
+					}
+					for _, conn := range val.([]*AgentRawConnection) {
+						err := conn.Stop()
+						if err != nil {
+							log.DefaultLogger.Errorf("[tunnel agent] failed to stop connection, err: %+v", err)
 						}
 					}
 				}
@@ -124,7 +130,9 @@ func bootstrap(conf *agentBootstrapConfig) {
 			return
 		}
 		for _, addr := range addrs {
-			go connectServer(conf, net.JoinHostPort(addr, port))
+			utils.GoWithRecover(func() {
+				connectServer(conf, net.JoinHostPort(addr, port))
+			}, nil)
 		}
 	}
 }
@@ -132,18 +140,18 @@ func bootstrap(conf *agentBootstrapConfig) {
 var connectionMap = &sync.Map{}
 
 func connectServer(conf *agentBootstrapConfig, address string) {
-	servers := mosn.MOSND.GetServer()
-	listener := servers[0].Handler().FindListenerByName(conf.HostingListener)
+	listener := server.GetServer().Handler().FindListenerByName(conf.HostingListener)
 	if listener == nil {
 		return
 	}
 	config := &ConnectionConfig{
-		Address:               address,
-		ClusterName:           conf.Cluster,
-		Weight:                10,
-		ReconnectBaseDuration: time.Duration(conf.ReconnectBaseDurationMs) * time.Millisecond,
-		ConnectRetryTimes:     conf.ConnectRetryTimes,
-		CredentialPolicy:      conf.CredentialPolicy,
+		Address:                address,
+		ClusterName:            conf.Cluster,
+		Weight:                 10,
+		ReconnectBaseDuration:  time.Duration(conf.ReconnectBaseDurationMs) * time.Millisecond,
+		ConnectTimeoutDuration: time.Duration(conf.ConnectTimeoutDurationMs) * time.Millisecond,
+		ConnectRetryTimes:      conf.ConnectRetryTimes,
+		CredentialPolicy:       conf.CredentialPolicy,
 	}
 	connList := make([]*AgentRawConnection, 0, conf.ConnectionNum)
 	for i := 0; i < conf.ConnectionNum; i++ {
@@ -157,11 +165,13 @@ func connectServer(conf *agentBootstrapConfig, address string) {
 }
 
 type ConnectionConfig struct {
-	Address               string        `json:"address"`
-	ClusterName           string        `json:"cluster_name"`
-	Weight                int64         `json:"weight"`
-	ConnectRetryTimes     int           `json:"connect_retry_times"`
-	Network               string        `json:"network"`
-	ReconnectBaseDuration time.Duration `json:"reconnect_base_duration"`
-	CredentialPolicy      string        `json:"credential_policy"`
+	Address           string `json:"address"`
+	ClusterName       string `json:"cluster_name"`
+	Weight            int64  `json:"weight"`
+	ConnectRetryTimes int    `json:"connect_retry_times"`
+	// 连接超时时间
+	ConnectTimeoutDuration time.Duration `json:"connect_timeout_duration"`
+	Network                string        `json:"network"`
+	ReconnectBaseDuration  time.Duration `json:"reconnect_base_duration"`
+	CredentialPolicy       string        `json:"credential_policy"`
 }

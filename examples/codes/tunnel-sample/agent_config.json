@@ -3,6 +3,7 @@
   "servers": [
     {
       "default_log_path": "stdout",
+      "default_log_level": "DEBUG",
       "routers":[
         {
           "router_config_name":"server_router",
@@ -50,8 +51,7 @@
         "server_list": ["127.0.0.1:9999"],
         "cluster": "clientCluster",
         "enable": true,
-        "connection_num": 1,
-        "credential_policy": "test"
+        "connection_num": 1
       }
     }
   ],

@@ -70,6 +70,7 @@ type ListenerConfig struct {
 	StreamFilters         []Filter            `json:"stream_filters,omitempty"`
 	Inspector             bool                `json:"inspector,omitempty"`
 	ConnectionIdleTimeout *api.DurationConfig `json:"connection_idle_timeout,omitempty"`
+	TunnelListener      bool                  `json:"tunnel_listener,omitempty"`
 }
 
 // Listener contains the listener's information

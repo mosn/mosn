@@ -14,10 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tunnel
 
 import (
 	"context"
+	"sync"
 
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -27,6 +29,8 @@ import (
 func init() {
 	api.RegisterNetwork(v2.TUNNEL, CreateTunnelNetworkFilterFactory)
 }
+
+var tunnelHostMutex = sync.Mutex{}
 
 type tunnelNetworkFilterFactory struct {
 }

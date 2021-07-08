@@ -14,9 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package tunnel
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"time"
@@ -31,16 +33,19 @@ import (
 )
 
 var (
-	defaultReconnectBaseDuration = time.Second * 3
-	defaultConnectMaxRetryTimes  = -1
+	defaultReconnectBaseDuration  = time.Second * 3
+	defaultConnectTimeoutDuration = time.Second * 15
+	defaultConnectMaxRetryTimes   = -1
 )
 
 type AgentRawConnection struct {
 	ConnectionConfig
-	rawc     net.Conn
-	listener types.Listener
-	close    *atomic.Bool
-	initInfo *ConnectionInitInfo
+	readBuffer buffer.IoBuffer
+	rawc       net.Conn
+	listener   types.Listener
+	close      *atomic.Bool
+	closeChan  chan struct{}
+	initInfo   *ConnectionInitInfo
 }
 
 func NewConnection(config ConnectionConfig, listener types.Listener) *AgentRawConnection {
@@ -52,6 +57,9 @@ func NewConnection(config ConnectionConfig, listener types.Listener) *AgentRawCo
 	}
 	if config.ConnectRetryTimes == 0 {
 		config.ConnectRetryTimes = defaultConnectMaxRetryTimes
+	}
+	if config.ConnectTimeoutDuration == 0 {
+		config.ConnectTimeoutDuration = defaultConnectTimeoutDuration
 	}
 
 	initInfo := &ConnectionInitInfo{
@@ -72,62 +80,73 @@ func NewConnection(config ConnectionConfig, listener types.Listener) *AgentRawCo
 		ConnectionConfig: config,
 		listener:         listener,
 		initInfo:         initInfo,
+		readBuffer:       buffer.GetIoBuffer(1024),
 		close:            atomic.NewBool(false),
 	}
 }
 
 func (a *AgentRawConnection) Stop() error {
-	a.close.Store(true)
-	if a.rawc == nil {
-		return nil
+	if a.close.CAS(false, true) {
+		close(a.closeChan)
+		if a.rawc == nil {
+			return nil
+		}
+		return a.rawc.Close()
 	}
-	return a.rawc.Close()
+	return nil
+}
+
+func (a *AgentRawConnection) doConnect() (net.Conn, error) {
+	rawc, err := net.DialTimeout(a.Network, a.Address, a.ConnectTimeoutDuration)
+	if err != nil {
+		return nil, err
+	}
+	rawc.SetReadDeadline(time.Now().Add(a.ConnectTimeoutDuration))
+	b, err := Encode(a.initInfo)
+	if err != nil {
+		return nil, err
+	}
+	// Write connection init request
+	_, err = rawc.Write(b.Bytes())
+	for {
+		select {
+		case <-a.closeChan:
+			return nil, errors.New("agent connection closed")
+		default:
+			_, err = a.readBuffer.ReadOnce(rawc)
+			// Timout or EOF
+			if err != nil {
+				log.DefaultLogger.Errorf("[agent] read response failed, err: %+v", a.Address, err)
+				rawc.Close()
+				return nil, err
+			}
+			ret, err := DecodeFromBuffer(a.readBuffer)
+			if err != nil || ret == nil {
+				log.DefaultLogger.Warnf("[agent] decode from buffer failed, err: %+v", err)
+				return nil, err
+			}
+			resp := ret.(ConnectionInitResponse)
+			if resp.Status != ConnectSuccess {
+				// Reconnect and write again
+				log.DefaultLogger.Errorf("[agent] failed to write connection info to remote server, address: %v, status: %v", a.Address, resp.Status)
+				// Close connection and reconnect again
+				rawc.Close()
+				return nil, err
+			}
+			return rawc, err
+		}
+	}
 }
 func (a *AgentRawConnection) connectAndInit() error {
 	var rawc net.Conn
 	var err error
 	backoffConnectDuration := a.ReconnectBaseDuration
 
-	connectFunc := func() (net.Conn, error) {
-		rawc, err = net.DialTimeout(a.Network, a.Address, time.Second*10)
-		if err != nil {
-			return nil, err
-		}
-		rawc.SetReadDeadline(time.Now().Add(time.Second * 10))
-		b, err := Encode(a.initInfo)
-		if err != nil {
-			return nil, err
-		}
-		// write connection init request
-		_, err = rawc.Write(b.Bytes())
-		readBuffer := buffer.GetIoBuffer(1024)
-		_, err = readBuffer.ReadOnce(rawc)
-		if err != nil {
-			log.DefaultLogger.Errorf("[agent] read response failed, err: %+v", a.Address, err)
-			rawc.Close()
-			return nil, err
-		}
-		ret, err := DecodeFromBuffer(readBuffer)
-		if err != nil || ret == nil {
-			log.DefaultLogger.Warnf("[agent] decode from buffer failed, err: %+v", err)
-			return nil, err
-		}
-		resp := ret.(ConnectionInitResponse)
-		if resp.Status != ConnectSuccess {
-			// reconnect and write again
-			log.DefaultLogger.Errorf("[agent] failed to write connection info to remote server, address: %v, status: %v", a.Address, resp.Status)
-			// close connection and reconnect again
-			rawc.Close()
-			return nil, err
-		}
-		return rawc, err
-	}
-
 	for i := 0; i < a.ConnectRetryTimes || a.ConnectRetryTimes == -1; i++ {
 		if a.close.Load() {
 			return fmt.Errorf("connection closed, don't attempt to connect, address: %v", a.ConnectionConfig.Address)
 		}
-		rawc, err := connectFunc()
+		rawc, err = a.doConnect()
 		if err == nil {
 			a.rawc = rawc
 			break
@@ -139,8 +158,7 @@ func (a *AgentRawConnection) connectAndInit() error {
 	if err != nil {
 		return err
 	}
-
-	// hosting new connection
+	// Hosting new connection
 	utils.GoWithRecover(func() {
 		a.listener.GetListenerCallbacks().OnAccept(rawc, a.listener.UseOriginalDst(), nil, nil, nil, []api.ConnectionEventListener{a})
 	}, nil)
@@ -150,15 +168,13 @@ func (a *AgentRawConnection) connectAndInit() error {
 
 func (a *AgentRawConnection) OnEvent(event api.ConnectionEvent) {
 	switch {
-	case event.IsClose():
-		goto RECONNECT
-	case event.ConnectFailure():
-		goto RECONNECT
+	case event.IsClose(), event.ConnectFailure():
+		break
 	default:
+		log.DefaultLogger.Debugf("[agent] receive %s event, ignore it", event)
 		return
 	}
 
-RECONNECT:
 	log.DefaultLogger.Infof("[agent] receive reconnect event, and try to reconnect remote server %v", a.Address)
 	err := a.connectAndInit()
 	if err != nil {
