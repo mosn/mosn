@@ -318,8 +318,6 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 			return candicate
 		}
 	}
-	lb.mutex.Lock()
-	defer lb.mutex.Unlock()
 	// refer https://github.com/mosn/mosn/pull/1713
 	// return nil when all instances are unhealthy
 	return nil
