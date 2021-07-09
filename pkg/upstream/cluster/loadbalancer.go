@@ -320,8 +320,9 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 	}
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
-	// randomly choose one when all instances are unhealthy
-	return targetHosts[lb.rand.Intn(total)]
+	// refer https://github.com/mosn/mosn/pull/1713
+	// return nil when all instances are unhealthy
+	return nil
 }
 
 func (lb *EdfLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
