@@ -20,6 +20,8 @@ package variable
 import (
 	"context"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetVariableValue_normal(t *testing.T) {
@@ -121,4 +123,57 @@ func TestSetVariableValue_normal(t *testing.T) {
 		t.Errorf("get/set value not equal, expected: %s, acutal: %s", value, vv)
 	}
 
+	ii, err := GetVariableValueInterface(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, ii.(string), value)
+}
+
+func TestInterfaceVariableGetter(t *testing.T) {
+	name := "testInterfaceGetter"
+	value := struct{}{}
+
+	getter := func(ctx context.Context, v *IndexedValue, data interface{}) (interface{}, error) {
+		return value, nil
+	}
+	RegisterVariable(NewBasicVariable(name, nil, nil, nil, 0, WithInterfaceGetter(getter)))
+
+	ctx := context.Background()
+	ctx = NewVariableContext(ctx)
+
+	vv, err := GetVariableValueInterface(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, vv, value)
+}
+
+func TestInterfaceVariableSetter(t *testing.T) {
+	name := "testInterfaceSetter"
+	value := struct{}{}
+
+	getter := func(ctx context.Context, v *IndexedValue, data interface{}) (interface{}, error) {
+		return value, nil
+	}
+	RegisterVariable(NewIndexedVariable(name, nil, nil, nil, 0, WithInterfaceGetter(getter), WithInterfaceSetter(BasicSetterInterface)))
+
+	ctx := context.Background()
+	ctx = NewVariableContext(ctx)
+
+	vv, err := GetVariableValueInterface(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, vv, value)
+
+	// set int
+	err = SetVariableValueInterface(ctx, name, int(1))
+	assert.Nil(t, err)
+
+	i, err := GetVariableValueInterface(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, i.(int), 1)
+
+	// set string
+	err = SetVariableValueInterface(ctx, name, "someString")
+	assert.Nil(t, err)
+
+	s, err := GetVariableValueInterface(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, s.(string), "someString")
 }

@@ -36,8 +36,22 @@ const (
 // E.g. reference to the header which is not existed in current request.
 type GetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
 
+type GetterFuncInterface func(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
+
+type Getter interface {
+	Get(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
+	GetInterface(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
+}
+
 // SetterFunc used to set the value of variable
 type SetterFunc func(ctx context.Context, variableValue *IndexedValue, value string) error
+
+type SetterFuncInterface func(ctx context.Context, variableValue *IndexedValue, value interface{}) error
+
+type Setter interface {
+	Set(ctx context.Context, variableValue *IndexedValue, value string) error
+	SetInterface(ctx context.Context, variableValue *IndexedValue, value interface{}) error
+}
 
 // Variable provides a flexible and convenient way to pass information
 type Variable interface {
@@ -48,9 +62,9 @@ type Variable interface {
 	// variable flags
 	Flags() uint32
 	// value getter
-	Getter() GetterFunc
+	Getter() Getter
 	// value setter
-	Setter() SetterFunc
+	Setter() Setter
 }
 
 // IndexedValue used to store result value
@@ -60,7 +74,7 @@ type IndexedValue struct {
 	noCacheable bool
 	//escape      bool
 
-	data string
+	data interface{}
 }
 
 // Indexer indicates that variable needs to be cached by using pre-allocated IndexedValue
