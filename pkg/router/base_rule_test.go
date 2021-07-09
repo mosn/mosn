@@ -20,7 +20,6 @@ package router
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"net"
 	goHttp "net/http"
 	"reflect"
@@ -134,8 +133,8 @@ func TestWeightedClusterSelect(t *testing.T) {
 		routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routecase)
 		var dcCount, w1Count, w2Count uint
 
-		totalTimes := rand.Int31n(10000)
-		var i int32
+		totalTimes := 10000
+		var i int
 		for i = 0; i < totalTimes; i++ {
 			clusterName := routeRuleImplBase.ClusterName(context.TODO())
 			switch clusterName {
@@ -157,28 +156,41 @@ func TestWeightedClusterSelect(t *testing.T) {
 	}
 
 	// test weight cluster variable
-	ctx := context.TODO()
-	ctx = variable.NewVariableContext(ctx)
-	routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routerMock1)
-	var dcCount, w1Count, w2Count int32
-	totalTimes := rand.Int31n(10000)
-	var i int32
-	for i = 0; i < totalTimes; i++ {
-		clusterName := routeRuleImplBase.ClusterName(ctx)
-		switch clusterName {
+	for _, routecase := range testCases.routerCase {
+		ctx := context.TODO()
+		ctx = variable.NewVariableContext(ctx)
+		routeRuleImplBase, _ := NewRouteRuleImplBase(nil, routecase)
+		var dcCount, w1Count, w2Count int
+		totalTimes := 10000
+		firstGetClusterName := routeRuleImplBase.ClusterName(ctx)
+		var i int
+		for i = 0; i < totalTimes; i++ {
+			clusterName := routeRuleImplBase.ClusterName(ctx)
+			switch clusterName {
+			case "defaultCluster":
+				dcCount++
+			case "w1":
+				w1Count++
+			case "w2":
+				w2Count++
+			}
+		}
+
+		switch firstGetClusterName {
 		case "defaultCluster":
-			dcCount++
+			if totalTimes != dcCount {
+				t.Errorf("same request should get same cluster: got %d, want: %d", w1Count, totalTimes)
+			}
 		case "w1":
-			w1Count++
+			if totalTimes != w1Count {
+				t.Errorf("same request should get same cluster: got %d, want: %d", w1Count, totalTimes)
+			}
 		case "w2":
-			w2Count++
+			if totalTimes != w2Count {
+				t.Errorf("same request should get same cluster: got %d, want: %d", w1Count, totalTimes)
+			}
 		}
 	}
-
-	if totalTimes != w1Count {
-		t.Errorf("same request should get same cluster: got %d, want: %d", w1Count, totalTimes)
-	}
-
 }
 
 type finalizeResult struct {
