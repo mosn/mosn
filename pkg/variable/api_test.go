@@ -29,14 +29,14 @@ func TestGetVariableValue_normal(t *testing.T) {
 	value := "Getter Result"
 
 	// register test variable
-	RegisterVariable(NewBasicVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+	RegisterVariable(NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
 		return value, nil
 	}, nil, 0))
 
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
 
-	vv, err := GetVariableValue(ctx, name)
+	vv, err := GetString(ctx, name)
 	if err != nil {
 		t.Error(err)
 	}
@@ -53,11 +53,11 @@ func TestGetVariableValue_normal(t *testing.T) {
 	// test prefix variable
 	name = "prefix_var_"
 	value = "prefix value"
-	RegisterPrefixVariable(name, NewBasicVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+	RegisterPrefixVariable(name, NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
 		return value, nil
 	}, nil, 0))
 
-	vv, err = GetVariableValue(ctx, name)
+	vv, err = GetString(ctx, name)
 	if err != nil {
 		t.Error(err)
 	}
@@ -79,16 +79,16 @@ func TestGetVariableValue_normal(t *testing.T) {
 	//test variable noCacheable
 	name = "nocache"
 	value = "nocache Value"
-	RegisterVariable(NewIndexedVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+	RegisterVariable(NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
 		return value, nil
 	}, BasicSetter, MOSN_VAR_FLAG_NOCACHEABLE))
 	ctx = NewVariableContext(context.Background())
-	err = SetVariableValue(ctx, name, value)
+	err = SetString(ctx, name, value)
 	if err != nil {
 		t.Error(err)
 	}
 
-	vv, err = GetVariableValue(ctx, name)
+	vv, err = GetString(ctx, name)
 	if err != nil {
 		t.Error(err)
 	}
@@ -104,17 +104,17 @@ func TestSetVariableValue_normal(t *testing.T) {
 	value := "Setter Value"
 
 	// register test variable
-	RegisterVariable(NewIndexedVariable(name, nil, nil, BasicSetter, 0))
+	RegisterVariable(NewStringVariable(name, nil, nil, BasicSetter, 0))
 
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
 
-	err := SetVariableValue(ctx, name, value)
+	err := SetString(ctx, name, value)
 	if err != nil {
 		t.Error(err)
 	}
 
-	vv, err := GetVariableValue(ctx, name)
+	vv, err := GetString(ctx, name)
 	if err != nil {
 		t.Error(err)
 	}
@@ -123,7 +123,7 @@ func TestSetVariableValue_normal(t *testing.T) {
 		t.Errorf("get/set value not equal, expected: %s, acutal: %s", value, vv)
 	}
 
-	ii, err := GetVariableValueInterface(ctx, name)
+	ii, err := Get(ctx, name)
 	assert.Nil(t, err)
 	assert.Equal(t, ii.(string), value)
 }
@@ -135,12 +135,12 @@ func TestInterfaceVariableGetter(t *testing.T) {
 	getter := func(ctx context.Context, v *IndexedValue, data interface{}) (interface{}, error) {
 		return value, nil
 	}
-	RegisterVariable(NewBasicVariable(name, nil, nil, nil, 0, WithInterfaceGetter(getter)))
+	RegisterVariable(NewVariable(name, nil, getter, nil, 0))
 
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
 
-	vv, err := GetVariableValueInterface(ctx, name)
+	vv, err := Get(ctx, name)
 	assert.Nil(t, err)
 	assert.Equal(t, vv, value)
 }
@@ -152,28 +152,58 @@ func TestInterfaceVariableSetter(t *testing.T) {
 	getter := func(ctx context.Context, v *IndexedValue, data interface{}) (interface{}, error) {
 		return value, nil
 	}
-	RegisterVariable(NewIndexedVariable(name, nil, nil, nil, 0, WithInterfaceGetter(getter), WithInterfaceSetter(BasicSetterInterface)))
+	RegisterVariable(NewVariable(name, nil, getter, BasicInterfaceSetter, 0))
 
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
 
-	vv, err := GetVariableValueInterface(ctx, name)
+	vv, err := Get(ctx, name)
 	assert.Nil(t, err)
 	assert.Equal(t, vv, value)
 
 	// set int
-	err = SetVariableValueInterface(ctx, name, int(1))
+	err = Set(ctx, name, int(1))
 	assert.Nil(t, err)
 
-	i, err := GetVariableValueInterface(ctx, name)
+	i, err := Get(ctx, name)
 	assert.Nil(t, err)
 	assert.Equal(t, i.(int), 1)
 
 	// set string
-	err = SetVariableValueInterface(ctx, name, "someString")
+	err = Set(ctx, name, "someString")
 	assert.Nil(t, err)
 
-	s, err := GetVariableValueInterface(ctx, name)
+	s, err := Get(ctx, name)
 	assert.Nil(t, err)
 	assert.Equal(t, s.(string), "someString")
+}
+
+func BenchmarkGetVariableValue2(b *testing.B) {
+	name := "benchmarkGet"
+	value := "someValue"
+
+	_ = RegisterVariable(NewStringVariable(name, nil, nil, BasicSetter, 0))
+	ctx := context.Background()
+	ctx = NewVariableContext(ctx)
+
+	_ = SetString(ctx, name, value)
+
+	for i := 0; i < b.N; i++ {
+		_, _ = GetString(ctx, name)
+	}
+}
+
+func BenchmarkSetVariableValue2(b *testing.B) {
+	name := "benchmarkSet"
+	value := "someValue"
+
+	_ = RegisterVariable(NewStringVariable(name, nil, nil, BasicSetter, 0))
+	ctx := context.Background()
+	ctx = NewVariableContext(ctx)
+
+	_ = SetString(ctx, name, value)
+
+	for i := 0; i < b.N; i++ {
+		_ = SetString(ctx, name, value)
+	}
 }

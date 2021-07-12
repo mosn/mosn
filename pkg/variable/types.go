@@ -27,30 +27,30 @@ const (
 	ValueNotFound = "-"
 )
 
-// GetterFunc used to get the value of variable, the implementation should handle the field
+// StringGetter used to get the value of string-typed variable, the implementation should handle the field
 // (Valid, NotFound) of IndexedValue if it was not nil, Valid means the value is valid; NotFound
 // means the value can not be found. It indicates that value can be cached for next-time get handle
 // if any one of (Valid, NotFound) is set to true.
 //
 // Function should return ValueNotFound("-") if target value not exists.
 // E.g. reference to the header which is not existed in current request.
-type GetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
+type StringGetter func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
 
-type GetterFuncInterface func(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
+// InterfaceGetter used to get the value of interface-typed variable
+type InterfaceGetter func(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
 
 type Getter interface {
-	Get(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
-	GetInterface(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
+	Get(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
 }
 
-// SetterFunc used to set the value of variable
-type SetterFunc func(ctx context.Context, variableValue *IndexedValue, value string) error
+// StringSetter used to set the value of string-typed variable
+type StringSetter func(ctx context.Context, variableValue *IndexedValue, value string) error
 
-type SetterFuncInterface func(ctx context.Context, variableValue *IndexedValue, value interface{}) error
+// InterfaceSetter used to set the value of interface-typed variable
+type InterfaceSetter func(ctx context.Context, variableValue *IndexedValue, value interface{}) error
 
 type Setter interface {
-	Set(ctx context.Context, variableValue *IndexedValue, value string) error
-	SetInterface(ctx context.Context, variableValue *IndexedValue, value interface{}) error
+	Set(ctx context.Context, variableValue *IndexedValue, value interface{}) error
 }
 
 // Variable provides a flexible and convenient way to pass information
