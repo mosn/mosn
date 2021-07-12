@@ -192,18 +192,13 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 */
 type WRRLoadBalancer struct {
 	*EdfLoadBalancer
-	rrIndex uint32
+	rrLB types.LoadBalancer
 }
 
 func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	wrrLB := &WRRLoadBalancer{}
 	wrrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
-	hostsList := hosts.Hosts()
-	wrrLB.mutex.Lock()
-	defer wrrLB.mutex.Unlock()
-	if len(hostsList) != 0 {
-		wrrLB.rrIndex = wrrLB.rand.Uint32() % uint32(len(hostsList))
-	}
+	wrrLB.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
 	return wrrLB
 }
 
@@ -222,10 +217,7 @@ func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 
 // do unweighted (fast) selection
 func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
-	targets := lb.hosts.Hosts()
-	total := len(targets)
-	index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
-	return targets[index]
+	return lb.ChooseHost(context)
 }
 
 const default_choice = 2
