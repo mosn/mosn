@@ -17,12 +17,15 @@
 
 package variable
 
-import "context"
+import (
+	"context"
+	"errors"
+)
 
 // variable.Variable
 type BasicVariable struct {
-	getter GetterFunc
-	setter SetterFunc
+	getter *getterImpl
+	setter *setterImpl
 
 	name  string
 	data  interface{}
@@ -41,12 +44,12 @@ func (bv *BasicVariable) Flags() uint32 {
 	return bv.flags
 }
 
-func (bv *BasicVariable) Setter() SetterFunc {
-	return bv.setter
+func (bv *BasicVariable) Getter() Getter {
+	return bv.getter
 }
 
-func (bv *BasicVariable) Getter() GetterFunc {
-	return bv.getter
+func (bv *BasicVariable) Setter() Setter {
+	return bv.setter
 }
 
 // variable.Variable
@@ -65,23 +68,55 @@ func (iv *IndexedVariable) GetIndex() uint32 {
 	return iv.index
 }
 
-// NewBasicVariable
-func NewBasicVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
+func NewStringVariable(name string, data interface{}, getter StringGetter, setter StringSetter, flags uint32) Variable {
+	basic := BasicVariable{
+		getter: &getterImpl{stringGetter: getter},
+		setter: &setterImpl{stringSetter: setter},
+		name:   name,
+		data:   data,
+		flags:  flags,
+	}
+
+	if setter != nil {
+		return &IndexedVariable{BasicVariable: basic}
+	}
+
+	return &basic
+}
+
+func NewVariable(name string, data interface{}, getter InterfaceGetter, setter InterfaceSetter, flags uint32) Variable {
+	basic := BasicVariable{
+		getter: &getterImpl{interfaceGetter: getter},
+		setter: &setterImpl{interfaceSetter: setter},
+		name:   name,
+		data:   data,
+		flags:  flags,
+	}
+
+	if setter != nil {
+		return &IndexedVariable{BasicVariable: basic}
+	}
+
+	return &basic
+}
+
+// Deprecated: use NewStringVariable instead.
+func NewBasicVariable(name string, data interface{}, getter StringGetter, setter StringSetter, flags uint32) Variable {
 	return &BasicVariable{
-		getter: getter,
-		setter: setter,
+		getter: &getterImpl{stringGetter: getter},
+		setter: &setterImpl{stringSetter: setter},
 		name:   name,
 		data:   data,
 		flags:  flags,
 	}
 }
 
-// NewIndexedVariable
-func NewIndexedVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
+// Deprecated: use NewStringVariable instead.
+func NewIndexedVariable(name string, data interface{}, getter StringGetter, setter StringSetter, flags uint32) Variable {
 	return &IndexedVariable{
 		BasicVariable: BasicVariable{
-			getter: getter,
-			setter: setter,
+			getter: &getterImpl{stringGetter: getter},
+			setter: &setterImpl{stringSetter: setter},
 			name:   name,
 			data:   data,
 			flags:  flags,
@@ -94,4 +129,47 @@ func BasicSetter(ctx context.Context, variableValue *IndexedValue, value string)
 	variableValue.data = value
 	variableValue.Valid = true
 	return nil
+}
+
+func BasicInterfaceSetter(ctx context.Context, variableValue *IndexedValue, value interface{}) error {
+	variableValue.data = value
+	variableValue.Valid = true
+	return nil
+}
+
+type setterImpl struct {
+	stringSetter    StringSetter
+	interfaceSetter InterfaceSetter
+}
+
+func (s *setterImpl) Set(ctx context.Context, variableValue *IndexedValue, value interface{}) error {
+	if s.stringSetter != nil {
+		if v, ok := value.(string); ok {
+			return s.stringSetter(ctx, variableValue, v)
+		}
+		return errors.New(errValueNotString)
+	}
+
+	if s.interfaceSetter != nil {
+		return s.interfaceSetter(ctx, variableValue, value)
+	}
+
+	return errors.New(errSetterNotFound)
+}
+
+type getterImpl struct {
+	stringGetter    StringGetter
+	interfaceGetter InterfaceGetter
+}
+
+func (g *getterImpl) Get(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error) {
+	if g.stringGetter != nil {
+		return g.stringGetter(ctx, value, data)
+	}
+
+	if g.interfaceGetter != nil {
+		return g.interfaceGetter(ctx, value, data)
+	}
+
+	return nil, errors.New(errGetterNotFound)
 }
