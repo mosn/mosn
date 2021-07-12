@@ -25,6 +25,7 @@ import (
 var (
 	builtinVariables = []variable.Variable{
 		variable.NewIndexedVariable(types.VarInternalRouterCluster, nil, nil, variable.BasicSetter, 0),
+		variable.NewVariable(types.VarInternalRouterMeta, nil, nil, variable.BasicInterfaceSetter, 0),
 	}
 )
 

@@ -147,22 +147,14 @@ func TestInterfaceVariableGetter(t *testing.T) {
 
 func TestInterfaceVariableSetter(t *testing.T) {
 	name := "testInterfaceSetter"
-	value := struct{}{}
 
-	getter := func(ctx context.Context, v *IndexedValue, data interface{}) (interface{}, error) {
-		return value, nil
-	}
-	RegisterVariable(NewVariable(name, nil, getter, BasicInterfaceSetter, 0))
+	RegisterVariable(NewVariable(name, nil, nil, BasicInterfaceSetter, 0))
 
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
 
-	vv, err := Get(ctx, name)
-	assert.Nil(t, err)
-	assert.Equal(t, vv, value)
-
 	// set int
-	err = Set(ctx, name, int(1))
+	err := Set(ctx, name, int(1))
 	assert.Nil(t, err)
 
 	i, err := Get(ctx, name)

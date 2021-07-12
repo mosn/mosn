@@ -22,12 +22,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
-	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
@@ -350,29 +348,4 @@ func TestProcessError(t *testing.T) {
 	if p != types.ChooseHost || e != types.ErrExit {
 		t.Errorf("TestprocessError Error")
 	}
-}
-
-func TestMetadataSourcePrefer(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	clusterInfo := mock.NewMockClusterInfo(ctrl)
-	clusterInfo.EXPECT().Name().AnyTimes().Return("c")
-	downstream := &downStream{}
-	downstream.cluster = clusterInfo
-
-	requestInfo := &network.RequestInfo{}
-	requestInfo.SetDynamicMetaData("k1", "v1")
-	requestInfo.SetDynamicMetaData("k2", "v2")
-	downstream.requestInfo = requestInfo
-
-	routeRule := mock.NewMockRouteRule(ctrl)
-	routeRule.EXPECT().MetadataMatchCriteria(gomock.Any()).Return(nil)
-	downstream.requestInfo.SetRouteEntry(routeRule)
-	assert.Equal(t, len(downstream.MetadataMatchCriteria().MetadataMatchCriteria()), 2)
-
-	meta := router.NewMetadataMatchCriteriaImpl(map[string]string{"k3": "v3"})
-	routeRule.EXPECT().MetadataMatchCriteria(gomock.Any()).Return(meta)
-	downstream.requestInfo.SetRouteEntry(routeRule)
-	assert.Equal(t, len(downstream.MetadataMatchCriteria().MetadataMatchCriteria()), 1)
 }

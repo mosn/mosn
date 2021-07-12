@@ -23,9 +23,12 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"mosn.io/api"
 	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 func TestFilterConfig(t *testing.T) {
@@ -114,7 +117,7 @@ func TestFilter(t *testing.T) {
 		{
 			Header: "h3",
 			OnPresent: &KVPair{
-				Key:   "meta3",
+				Key: "meta3",
 			},
 		},
 	}}
@@ -125,17 +128,27 @@ func TestFilter(t *testing.T) {
 		"h4": "v4",
 	}
 
+	ctx := variable.NewVariableContext(context.Background())
+	variable.Set(ctx, types.VarInternalRouterMeta, nil)
+
 	filter := NewFilter(factor)
 	filter.SetReceiveFilterHandler(handler)
-	filter.OnReceive(context.Background(), headers, nil, nil)
+	filter.OnReceive(ctx, headers, nil, nil)
 
-	meta := ri.MetaData()
-	assert.Equal(t, len(meta), 3)
-	assert.Equal(t, meta["meta1"], "shouldBeThis")
-	assert.Equal(t, meta["meta2"], "v2")
-	assert.Equal(t, meta["meta3"], "v3")
-	assert.Equal(t, len(headers), 2)
+	v, err := variable.Get(ctx, types.VarInternalRouterMeta)
+	assert.Nil(t, err)
+	meta, ok := v.(api.MetadataMatchCriteria)
+	assert.True(t, ok)
 
-	_, ok := headers["h1"]
+	m := map[string]string{}
+	for _, kv := range meta.MetadataMatchCriteria() {
+		m[kv.MetadataKeyName()] = kv.MetadataValue()
+	}
+	assert.Equal(t, len(m), 3)
+	assert.Equal(t, m["meta1"], "shouldBeThis")
+	assert.Equal(t, m["meta2"], "v2")
+	assert.Equal(t, m["meta3"], "v3")
+
+	_, ok = headers["h1"]
 	assert.False(t, ok)
 }

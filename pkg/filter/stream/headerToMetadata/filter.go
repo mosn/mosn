@@ -19,8 +19,13 @@ package headerToMetadata
 
 import (
 	"context"
+	"mosn.io/mosn/pkg/router"
 
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/log"
+	_ "mosn.io/mosn/pkg/router"
+	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 type Filter struct {
@@ -39,21 +44,44 @@ func NewFilter(factory *FilterFactory) *Filter {
 func (f *Filter) OnDestroy() {}
 
 func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf api.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
+	m := map[string]string{}
+
 	for _, rule := range f.rules {
 		value, exist := headers.Get(rule.Header)
 
 		if exist && rule.OnPresent != nil {
 			if rule.OnPresent.Value != "" {
-				f.handler.RequestInfo().SetDynamicMetaData(rule.OnPresent.Key, rule.OnPresent.Value)
+				m[rule.OnPresent.Key] = rule.OnPresent.Value
 			} else {
-				f.handler.RequestInfo().SetDynamicMetaData(rule.OnPresent.Key, value)
+				m[rule.OnPresent.Key] = value
 			}
 		} else if !exist && rule.OnMissing != nil {
-			f.handler.RequestInfo().SetDynamicMetaData(rule.OnMissing.Key, rule.OnMissing.Value)
+			m[rule.OnMissing.Key] = rule.OnMissing.Value
 		}
 
 		if rule.Remove {
 			headers.Del(rule.Header)
+		}
+	}
+
+	if len(m) > 0 {
+		v, err := variable.Get(ctx, types.VarInternalRouterMeta)
+		if err != nil {
+			log.DefaultLogger.Errorf("[headerToMetadata] fail to get router meta from variable, err: %v", err)
+			return api.StreamFilterContinue
+		}
+
+		if v == nil {
+			// in case we do not have any metadata
+			variable.Set(ctx, types.VarInternalRouterMeta, router.NewMetadataMatchCriteriaImpl(m))
+		} else {
+			meta, ok := v.(api.MetadataMatchCriteria)
+			if !ok {
+				log.DefaultLogger.Errorf("[headerToMetadata] variable value is not api.MetadataMatchCriteria")
+				return api.StreamFilterContinue
+			}
+
+			meta.MergeMatchCriteria(m)
 		}
 	}
 

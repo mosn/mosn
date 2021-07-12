@@ -547,13 +547,6 @@ func (r *mock_requestInfo) SetRouteEntry(routerRule api.RouteRule) {
 	r.routerRule = routerRule
 }
 
-func (r *mock_requestInfo) MetaData() api.Metadata {
-	return nil
-}
-
-func (r *mock_requestInfo) SetDynamicMetaData(key string, value string) {
-}
-
 // The identification of a request info's content
 const (
 	requestInfoKey       = "requestInfo"

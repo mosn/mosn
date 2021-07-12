@@ -611,13 +611,6 @@ func (r *MockRequestInfo) SetRouteEntry(routerRule api.RouteRule) {
 	r.routerRule = routerRule
 }
 
-func (r *MockRequestInfo) MetaData() api.Metadata {
-	return nil
-}
-
-func (r *MockRequestInfo) SetDynamicMetaData(key string, value string) {
-}
-
 type MockHostInfo struct {
 	hostname      string
 	metadata      api.Metadata

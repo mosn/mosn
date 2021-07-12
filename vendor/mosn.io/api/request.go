@@ -160,10 +160,4 @@ type RequestInfo interface {
 
 	// SetRouteEntry sets the route rule
 	SetRouteEntry(routerRule RouteRule)
-
-	// MetadataMatchCriteria returns the meta data of the request.
-	MetaData() Metadata
-
-	// SetDynamicMetaData sets the meta data of the request.
-	SetDynamicMetaData(key string, value string)
 }

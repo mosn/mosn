@@ -38,7 +38,6 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
-	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
@@ -1483,15 +1482,9 @@ func (s *downStream) setBufferLimit(bufferLimit uint32) {
 func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	var meta api.MetadataMatchCriteria
 
-	// we prefer the configured RouteEntry meta data rather than dynamic metadata
-	if nil != s.requestInfo.RouteEntry() {
-		meta = s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
-	}
-
-	if meta == nil {
-		m := s.requestInfo.MetaData()
-		if len(m) != 0 {
-			return router.NewMetadataMatchCriteriaImpl(m)
+	if v, err := variable.Get(s.context, types.VarInternalRouterMeta); err != nil && v != nil {
+		if vv, ok := v.(api.MetadataMatchCriteria); ok {
+			meta = vv
 		}
 	}
 
