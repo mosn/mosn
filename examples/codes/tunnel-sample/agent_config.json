@@ -45,7 +45,7 @@
   ],
   "extends": [
     {
-      "type": "tunnel_agent_bootstrap_config",
+      "type": "tunnel_agent",
       "config": {
         "hosting_listener": "serverListener",
         "server_list": ["127.0.0.1:9999"],

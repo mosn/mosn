@@ -121,9 +121,11 @@ func (a *AgentRawConnection) doConnect() (net.Conn, error) {
 				return nil, err
 			}
 			ret, err := DecodeFromBuffer(a.readBuffer)
-			if err != nil || ret == nil {
+			if err != nil {
 				log.DefaultLogger.Warnf("[agent] decode from buffer failed, err: %+v", err)
-				return nil, err
+			}
+			if ret == nil {
+				continue
 			}
 			resp := ret.(ConnectionInitResponse)
 			if resp.Status != ConnectSuccess {
@@ -160,7 +162,8 @@ func (a *AgentRawConnection) connectAndInit() error {
 	}
 	// Hosting new connection
 	utils.GoWithRecover(func() {
-		a.listener.GetListenerCallbacks().OnAccept(rawc, a.listener.UseOriginalDst(), nil, nil, nil, []api.ConnectionEventListener{a})
+		ch := make(chan api.Connection, 1)
+		a.listener.GetListenerCallbacks().OnAccept(rawc, a.listener.UseOriginalDst(), nil, ch, a.readBuffer.Bytes(), []api.ConnectionEventListener{a})
 	}, nil)
 
 	return nil
@@ -171,15 +174,19 @@ func (a *AgentRawConnection) OnEvent(event api.ConnectionEvent) {
 	case event.IsClose(), event.ConnectFailure():
 		break
 	default:
-		log.DefaultLogger.Debugf("[agent] receive %s event, ignore it", event)
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[agent] receive %s event, ignore it", event)
+		}
 		return
 	}
 
-	log.DefaultLogger.Infof("[agent] receive reconnect event, and try to reconnect remote server %v", a.Address)
-	err := a.connectAndInit()
-	if err != nil {
-		log.DefaultLogger.Errorf("[agent] failed to reconnect remote server: %v", a.Address)
-		return
-	}
-	log.DefaultLogger.Infof("[agent] reconnect remote server: %v success", a.Address)
+	utils.GoWithRecover(func() {
+		log.DefaultLogger.Infof("[agent] receive reconnect event, and try to reconnect remote server %v", a.Address)
+		err := a.connectAndInit()
+		if err != nil {
+			log.DefaultLogger.Errorf("[agent] failed to reconnect remote server: %v", a.Address)
+			return
+		}
+		log.DefaultLogger.Infof("[agent] reconnect remote server: %v success", a.Address)
+	}, nil)
 }

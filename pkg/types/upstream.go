@@ -77,7 +77,7 @@ type ClusterManager interface {
 	// UpdateTLSManager updates the tls manager which is used to cluster tls config
 	UpdateTLSManager(*v2.TLSConfig)
 
-	AppendHostWithConnection(clusterName string, h v2.Host, connection ClientConnection) error
+	AppendClusterTypesHosts(clusterName string, typesHost Host) error
 
 	// ShutdownConnectionPool shutdown the connection pool by address and ProtocolName
 	// If ProtocolName is not specified, remove the addr's connection pool of all protocols

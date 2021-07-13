@@ -44,6 +44,7 @@
           "name": "tunnel_server_listener",
           "address": "127.0.0.1:9999",
           "bind_port": true,
+          "connection_idle_timeout":0,
           "tunnel_listener":true,
           "log_path": "stdout",
           "filter_chains": [

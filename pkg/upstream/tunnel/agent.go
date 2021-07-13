@@ -32,15 +32,16 @@ import (
 
 type agentBootstrapConfig struct {
 	Enable bool `json:"enable"`
-	// 建立连接数
+	// The number of connections established between the agent and each server
 	ConnectionNum int `json:"connection_num"`
-	// 对应cluster的name
+	// The cluster of remote server
 	Cluster string `json:"cluster"`
-	// 处理listener name
+	// After the connection is established, the data transmission is processed by this listener
 	HostingListener string `json:"hosting_listener"`
-	// Server侧的直连列表
+	// Static remote server list
 	StaticServerList []string `json:"server_list"`
 
+	// DynamicServerListConfig is used to specify dynamic server configuration
 	DynamicServerListConfig struct {
 		DynamicServerLister string `json:"dynamic_server_lister"`
 	}
@@ -50,13 +51,13 @@ type agentBootstrapConfig struct {
 	// ReconnectBaseDuration
 	ReconnectBaseDurationMs int `json:"reconnect_base_duration_ms"`
 
-	// ConnectTimeoutDurationMs
+	// ConnectTimeoutDurationMs specifies the timeout for establishing a connection and initializing the agent
 	ConnectTimeoutDurationMs int    `json:"connect_timeout_duration_ms"`
 	CredentialPolicy         string `json:"credential_policy"`
 }
 
 func init() {
-	v2.RegisterParseExtendConfig("tunnel_agent_bootstrap_config", func(config json.RawMessage) error {
+	v2.RegisterParseExtendConfig("tunnel_agent", func(config json.RawMessage) error {
 		var conf agentBootstrapConfig
 		err := json.Unmarshal(config, &conf)
 		if err != nil {
@@ -64,7 +65,10 @@ func init() {
 			return err
 		}
 		if conf.Enable {
-			bootstrap(&conf)
+			utils.GoWithRecover(func() {
+				bootstrap(&conf)
+			}, nil)
+
 		}
 		return nil
 	})
@@ -75,46 +79,49 @@ func bootstrap(conf *agentBootstrapConfig) {
 		utils.GoWithRecover(func() {
 			lister := ext.GetServerLister(conf.DynamicServerListConfig.DynamicServerLister)
 			ch := lister.List(conf.Cluster)
-			select {
-			case servers := <-ch:
-				// Compute the diff between new and old server list
-				intersection := make(map[string]bool)
-				for i := range servers {
-					if _, ok := connectionMap.Load(servers[i]); ok {
-						intersection[servers[i]] = true
-					}
-				}
-				increased := make([]string, 0)
-				for _, addr := range servers {
-					if _, ok := intersection[addr]; !ok {
-						increased = append(increased, addr)
-						utils.GoWithRecover(func() {
-							connectServer(conf, addr)
-						}, nil)
-					}
-				}
-				decreased := make([]string, 0)
-				connectionMap.Range(func(key, value interface{}) bool {
-					addr := key.(string)
-					_, ok := intersection[addr]
-					if !ok {
-						decreased = append(decreased, addr)
-					}
-					return true
-				})
-				for _, addr := range decreased {
-					val, ok := connectionMap.LoadAndDelete(addr)
-					if !ok {
-						continue
-					}
-					for _, conn := range val.([]*AgentRawConnection) {
-						err := conn.Stop()
-						if err != nil {
-							log.DefaultLogger.Errorf("[tunnel agent] failed to stop connection, err: %+v", err)
+			for {
+				select {
+				case servers := <-ch:
+					// Compute the diff between new and old server list
+					intersection := make(map[string]bool)
+					for i := range servers {
+						if _, ok := connectionMap.Load(servers[i]); ok {
+							intersection[servers[i]] = true
 						}
 					}
+					increased := make([]string, 0)
+					for _, addr := range servers {
+						if _, ok := intersection[addr]; !ok {
+							increased = append(increased, addr)
+							utils.GoWithRecover(func() {
+								connectServer(conf, addr)
+							}, nil)
+						}
+					}
+					decreased := make([]string, 0)
+					connectionMap.Range(func(key, value interface{}) bool {
+						addr := key.(string)
+						_, ok := intersection[addr]
+						if !ok {
+							decreased = append(decreased, addr)
+						}
+						return true
+					})
+					for _, addr := range decreased {
+						val, ok := connectionMap.LoadAndDelete(addr)
+						if !ok {
+							continue
+						}
+						for _, conn := range val.([]*AgentRawConnection) {
+							err := conn.Stop()
+							if err != nil {
+								log.DefaultLogger.Errorf("[tunnel agent] failed to stop connection, err: %+v", err)
+							}
+						}
+					}
+					log.DefaultLogger.Infof("[tunnel agent] tunnel server list changed, update success, increased: %+v, decreased: %+v", increased, decreased)
+
 				}
-				log.DefaultLogger.Infof("[tunnel agent] tunnel server list changed, update success, increased: %+v, decreased: %+v", increased, decreased)
 			}
 		}, nil)
 	}
@@ -122,12 +129,11 @@ func bootstrap(conf *agentBootstrapConfig) {
 	for _, serverAddress := range conf.StaticServerList {
 		host, port, err := net.SplitHostPort(serverAddress)
 		if err != nil {
-			return
+			log.DefaultLogger.Fatalf("server address invalid format, address: %v", serverAddress)
 		}
 		addrs, err := net.LookupHost(host)
 		if err != nil {
-			log.DefaultLogger.Errorf("[tunnel agent] failed to lookup host by domain: %v", host)
-			return
+			log.DefaultLogger.Fatalf("[tunnel agent] failed to lookup host by domain: %v", host)
 		}
 		for _, addr := range addrs {
 			utils.GoWithRecover(func() {
@@ -169,7 +175,7 @@ type ConnectionConfig struct {
 	ClusterName       string `json:"cluster_name"`
 	Weight            int64  `json:"weight"`
 	ConnectRetryTimes int    `json:"connect_retry_times"`
-	// 连接超时时间
+	// ConnectTimeoutDuration specifies the timeout for establishing a connection and initializing the agent
 	ConnectTimeoutDuration time.Duration `json:"connect_timeout_duration"`
 	Network                string        `json:"network"`
 	ReconnectBaseDuration  time.Duration `json:"reconnect_base_duration"`

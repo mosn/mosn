@@ -112,7 +112,7 @@ func NewClusterManagerSingleton(clusters []v2.Cluster, clusterMap map[string][]v
 	return clusterManagerInstance
 }
 
-func (cm *clusterManager) AppendHostWithConnection(clusterName string, h v2.Host, connection types.ClientConnection) error {
+func (cm *clusterManager) AppendClusterTypesHosts(clusterName string, typeHost types.Host) error {
 	ci, ok := cm.clustersMap.Load(clusterName)
 	if !ok {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager] AppendClusterHosts cluster %s not found", clusterName)
@@ -120,9 +120,7 @@ func (cm *clusterManager) AppendHostWithConnection(clusterName string, h v2.Host
 	}
 	c := ci.(types.Cluster)
 	snap := c.Snapshot()
-	var host types.Host
-	host = NewTunnelHost(h, snap.ClusterInfo(), connection)
-	hosts := append(snap.HostSet().Hosts(), host)
+	hosts := append(snap.HostSet().Hosts(), typeHost)
 	c.UpdateHosts(hosts)
 	refreshHostsConfig(c)
 	return nil

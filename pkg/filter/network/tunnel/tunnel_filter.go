@@ -18,11 +18,14 @@
 package tunnel
 
 import (
+	"context"
+
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/pkg/upstream/tunnel"
 	"mosn.io/mosn/pkg/upstream/tunnel/ext"
 )
@@ -49,9 +52,7 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 	data, err := tunnel.DecodeFromBuffer(buffer)
 	conn := t.readCallbacks.Connection()
 	if data == nil && err == nil {
-		// There are two scenarios:
-		// 1. Not enough data was read.
-		// 2. tunnel connection was not initialized, but there was a request to come in.
+		// Not enough data was read.
 		return api.Stop
 	}
 	if err != nil {
@@ -59,7 +60,7 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 		writeConnectResponse(tunnel.ConnectUnknownFailed, conn)
 		return api.Stop
 	}
-	// now it can only be ConnectionInitInfo
+	// Now it can only be ConnectionInitInfo
 	info, ok := data.(tunnel.ConnectionInitInfo)
 	if !ok {
 		log.DefaultLogger.Errorf("[tunnel server] [ondata] decode failed, data error")
@@ -83,7 +84,7 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 		writeConnectResponse(tunnel.ConnectClusterNotExist, conn)
 		return api.Stop
 	}
-	// set the flag that has been initialized, subsequent data processing skips this filter
+	// Set the flag that has been initialized, subsequent data processing skips this filter
 	err = writeConnectResponse(tunnel.ConnectSuccess, conn)
 	if err != nil {
 		return api.Stop
@@ -91,14 +92,14 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 	conn.AddConnectionEventListener(NewHostRemover(conn.RemoteAddr().String(), info.ClusterName))
 	tunnelHostMutex.Lock()
 	defer tunnelHostMutex.Unlock()
-	_ = t.clusterManager.AppendHostWithConnection(info.ClusterName, v2.Host{
+	snapshot := t.clusterManager.GetClusterSnapshot(context.Background(), info.ClusterName)
+	_ = t.clusterManager.AppendClusterTypesHosts(info.ClusterName, cluster.NewTunnelHost(v2.Host{
 		HostConfig: v2.HostConfig{
 			Address:    conn.RemoteAddr().String(),
 			Hostname:   info.HostName,
 			Weight:     uint32(info.Weight),
 			TLSDisable: false,
-		},
-	}, network.CreateTunnelAgentConnection(conn))
+		}}, snapshot.ClusterInfo(), network.CreateTunnelAgentConnection(conn)))
 	t.connInitialized = true
 	return api.Stop
 }
