@@ -22,9 +22,8 @@ import (
 	"testing"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/types"
-
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/types"
 )
 
 const (

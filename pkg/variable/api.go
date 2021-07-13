@@ -26,31 +26,36 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-func GetVariableValue(ctx context.Context, name string) (string, error) {
-	v, err := GetVariableValueInterface(ctx, name)
+// GetString return the value of string-typed variable
+func GetString(ctx context.Context, name string) (string, error) {
+	v, err := Get(ctx, name)
 	if err != nil {
 		return "", err
-	} else if s, ok := v.(string); ok {
-		return s, nil
-	} else {
-		return "", errors.New(errVariableNotString + name)
 	}
+
+	if s, ok := v.(string); ok {
+		return s, nil
+	}
+
+	return "", errors.New(errVariableNotString + name)
 }
 
-func SetVariableValue(ctx context.Context, name, value string) error {
+// SetString set the value of string-typed variable
+func SetString(ctx context.Context, name, value string) error {
 	if ctx == nil {
 		return errors.New(errInvalidContext)
 	}
 
-	return SetVariableValueInterface(ctx, name, value)
+	return Set(ctx, name, value)
 }
 
-func GetVariableValueInterface(ctx context.Context, name string) (interface{}, error) {
+// Get the value of variable
+func Get(ctx context.Context, name string) (interface{}, error) {
 	// 1. find built-in variables
 	if variable, ok := variables[name]; ok {
 		// 1.1 check indexed value
 		if indexer, ok := variable.(Indexer); ok {
-			return getFlushedVariableValueInterface(ctx, indexer.GetIndex(), name)
+			return getFlushedValue(ctx, indexer.GetIndex())
 		}
 
 		// 1.2 use variable.Getter() to get value
@@ -58,7 +63,7 @@ func GetVariableValueInterface(ctx context.Context, name string) (interface{}, e
 		if getter == nil {
 			return "", errors.New(errGetterNotFound + name)
 		}
-		return getter.GetInterface(ctx, nil, variable.Data())
+		return getter.Get(ctx, nil, variable.Data())
 	}
 
 	// 2. find prefix variables
@@ -68,7 +73,7 @@ func GetVariableValueInterface(ctx context.Context, name string) (interface{}, e
 			if getter == nil {
 				return "", errors.New(errGetterNotFound + name)
 			}
-			return getter.GetInterface(ctx, nil, name)
+			return getter.Get(ctx, nil, name)
 		}
 	}
 
@@ -80,7 +85,8 @@ func GetVariableValueInterface(ctx context.Context, name string) (interface{}, e
 	return "", errors.New(errUndefinedVariable + name)
 }
 
-func SetVariableValueInterface(ctx context.Context, name string, value interface{}) error {
+// Set the value of variable
+func Set(ctx context.Context, name string, value interface{}) error {
 	if ctx == nil {
 		return errors.New(errInvalidContext)
 	}
@@ -89,7 +95,7 @@ func SetVariableValueInterface(ctx context.Context, name string, value interface
 	if variable, ok := variables[name]; ok {
 		// 1.1 check indexed value
 		if indexer, ok := variable.(Indexer); ok {
-			return setFlushedVariableValueInterface(ctx, indexer.GetIndex(), value)
+			return setFlushedValue(ctx, indexer.GetIndex(), value)
 		}
 	}
 
@@ -97,7 +103,7 @@ func SetVariableValueInterface(ctx context.Context, name string, value interface
 }
 
 // TODO: provide direct access to this function, so the cost of variable name finding could be optimized
-func getFlushedVariableValueInterface(ctx context.Context, index uint32, name string) (interface{}, error) {
+func getFlushedValue(ctx context.Context, index uint32) (interface{}, error) {
 	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
 		if values, ok := variables.([]IndexedValue); ok {
 			value := &values[index]
@@ -111,14 +117,14 @@ func getFlushedVariableValueInterface(ctx context.Context, index uint32, name st
 				//value.NotFound = false
 			}
 
-			return getIndexedVariableValueInterface(ctx, value, index)
+			return getIndexedValue(ctx, value, index)
 		}
 	}
 
 	return "", errors.New(errNoVariablesInContext)
 }
 
-func getIndexedVariableValueInterface(ctx context.Context, value *IndexedValue, index uint32) (interface{}, error) {
+func getIndexedValue(ctx context.Context, value *IndexedValue, index uint32) (interface{}, error) {
 	variable := indexedVariables[index]
 
 	//if value.NotFound || value.Valid {
@@ -129,7 +135,7 @@ func getIndexedVariableValueInterface(ctx context.Context, value *IndexedValue, 
 	if getter == nil {
 		return "", errors.New(errGetterNotFound + variable.Name())
 	}
-	vdata, err := getter.GetInterface(ctx, value, variable.Data())
+	vdata, err := getter.Get(ctx, value, variable.Data())
 	if err != nil {
 		value.Valid = false
 		value.NotFound = true
@@ -143,7 +149,7 @@ func getIndexedVariableValueInterface(ctx context.Context, value *IndexedValue, 
 	return value.data, nil
 }
 
-func setFlushedVariableValueInterface(ctx context.Context, index uint32, value interface{}) error {
+func setFlushedValue(ctx context.Context, index uint32, value interface{}) error {
 	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
 		if values, ok := variables.([]IndexedValue); ok {
 			variable := indexedVariables[index]
@@ -157,7 +163,7 @@ func setFlushedVariableValueInterface(ctx context.Context, index uint32, value i
 			if setter == nil {
 				return errors.New(errSetterNotFound + variable.Name())
 			}
-			return setter.SetInterface(ctx, variableValue, value)
+			return setter.Set(ctx, variableValue, value)
 		}
 	}
 
