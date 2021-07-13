@@ -209,11 +209,6 @@ func (rri *RouteRuleImplBase) RedirectRule() api.RedirectRule {
 func (rri *RouteRuleImplBase) ClusterName(ctx context.Context) (clusterName string) {
 	var err error
 
-	// When the same request gets cluster name a second time, the previous result is used directly.
-	if clusterName, err = variable.GetVariableValue(ctx, types.VarInternalRouterCluster); err == nil && clusterName != "" {
-		return
-	}
-
 	defer func() {
 		variable.SetString(ctx, types.VarInternalRouterCluster, clusterName)
 		variable.Set(ctx, types.VarInternalRouterMeta, rri.MetadataMatchCriteria(clusterName))
@@ -234,6 +229,10 @@ func (rri *RouteRuleImplBase) ClusterName(ctx context.Context) (clusterName stri
 		return
 	}
 
+	// When the same request gets cluster name a second time, the previous result is used directly.
+	if clusterName, err = variable.GetVariableValue(ctx, types.VarInternalRouterCluster); err == nil && clusterName != "" {
+		return
+	}
 
 	rri.lock.Lock()
 	if rri.randInstance == nil {
