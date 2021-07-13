@@ -47,6 +47,17 @@ var (
 	errValueNotString       = "set string variable with non-string type"
 )
 
+// ResetVariableForTest is a test function for reset the variables.
+// DONOT call it in any non-test functions
+func ResetVariableForTest() {
+	mux.Lock()
+	defer mux.Unlock()
+
+	variables = make(map[string]Variable, 32)
+	prefixVariables = make(map[string]Variable, 32)
+	indexedVariables = make([]Variable, 0, 32)
+}
+
 // Check return the variable related to name, return error if not registered
 func Check(name string) (Variable, error) {
 	mux.Lock()
