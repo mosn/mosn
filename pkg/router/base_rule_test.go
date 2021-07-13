@@ -175,10 +175,8 @@ func TestWeightedClusterSelect(t *testing.T) {
 		}
 	}
 
-	if totalTimes != w1Count {
-		t.Errorf("same request should get same cluster: got %d, want: %d", w1Count, totalTimes)
-	}
-
+	assert.Equal(t, w1Count+w2Count, totalTimes)
+	assert.True(t, w2Count == totalTimes || w1Count == totalTimes)
 }
 
 type finalizeResult struct {
