@@ -1480,11 +1480,15 @@ func (s *downStream) setBufferLimit(bufferLimit uint32) {
 
 // types.LoadBalancerContext
 func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
-	if nil != s.requestInfo.RouteEntry() {
-		return s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
+	var meta api.MetadataMatchCriteria
+
+	if v, err := variable.Get(s.context, types.VarInternalRouterMeta); err != nil && v != nil {
+		if vv, ok := v.(api.MetadataMatchCriteria); ok {
+			meta = vv
+		}
 	}
 
-	return nil
+	return meta
 }
 
 func (s *downStream) DownstreamConnection() net.Conn {

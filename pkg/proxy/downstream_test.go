@@ -22,20 +22,17 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/router"
-	"mosn.io/mosn/pkg/variable"
-
 	"github.com/stretchr/testify/assert"
-
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
+	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
+	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
-
-	mosnctx "mosn.io/mosn/pkg/context"
 )
 
 func TestDownstream_FinishTracing_NotEnable(t *testing.T) {

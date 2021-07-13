@@ -26,7 +26,41 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
+// Deprecated: use Get or GetString instead
 func GetVariableValue(ctx context.Context, name string) (string, error) {
+	return GetString(ctx, name)
+}
+
+// Deprecated: use Set or SetString instead
+func SetVariableValue(ctx context.Context, name, value string) error {
+	return SetString(ctx, name, value)
+}
+
+// GetString return the value of string-typed variable
+func GetString(ctx context.Context, name string) (string, error) {
+	v, err := Get(ctx, name)
+	if err != nil {
+		return "", err
+	}
+
+	if s, ok := v.(string); ok {
+		return s, nil
+	}
+
+	return "", errors.New(errVariableNotString + name)
+}
+
+// SetString set the value of string-typed variable
+func SetString(ctx context.Context, name, value string) error {
+	if ctx == nil {
+		return errors.New(errInvalidContext)
+	}
+
+	return Set(ctx, name, value)
+}
+
+// Get the value of variable
+func Get(ctx context.Context, name string) (interface{}, error) {
 	// 1. find built-in variables
 	if variable, ok := variables[name]; ok {
 		// 1.1 check indexed value
@@ -39,7 +73,7 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 		if getter == nil {
 			return "", errors.New(errGetterNotFound + name)
 		}
-		return getter(ctx, nil, variable.Data())
+		return getter.Get(ctx, nil, variable.Data())
 	}
 
 	// 2. find prefix variables
@@ -49,7 +83,7 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 			if getter == nil {
 				return "", errors.New(errGetterNotFound + name)
 			}
-			return getter(ctx, nil, name)
+			return getter.Get(ctx, nil, name)
 		}
 	}
 
@@ -61,7 +95,8 @@ func GetVariableValue(ctx context.Context, name string) (string, error) {
 	return "", errors.New(errUndefinedVariable + name)
 }
 
-func SetVariableValue(ctx context.Context, name, value string) error {
+// Set the value of variable
+func Set(ctx context.Context, name string, value interface{}) error {
 	if ctx == nil {
 		return errors.New(errInvalidContext)
 	}
@@ -78,7 +113,7 @@ func SetVariableValue(ctx context.Context, name, value string) error {
 }
 
 // TODO: provide direct access to this function, so the cost of variable name finding could be optimized
-func getFlushedVariableValue(ctx context.Context, index uint32) (string, error) {
+func getFlushedVariableValue(ctx context.Context, index uint32) (interface{}, error) {
 	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
 		if values, ok := variables.([]IndexedValue); ok {
 			value := &values[index]
@@ -99,7 +134,7 @@ func getFlushedVariableValue(ctx context.Context, index uint32) (string, error) 
 	return "", errors.New(errNoVariablesInContext)
 }
 
-func getIndexedVariableValue(ctx context.Context, value *IndexedValue, index uint32) (string, error) {
+func getIndexedVariableValue(ctx context.Context, value *IndexedValue, index uint32) (interface{}, error) {
 	variable := indexedVariables[index]
 
 	//if value.NotFound || value.Valid {
@@ -110,7 +145,7 @@ func getIndexedVariableValue(ctx context.Context, value *IndexedValue, index uin
 	if getter == nil {
 		return "", errors.New(errGetterNotFound + variable.Name())
 	}
-	vdata, err := getter(ctx, value, variable.Data())
+	vdata, err := getter.Get(ctx, value, variable.Data())
 	if err != nil {
 		value.Valid = false
 		value.NotFound = true
@@ -124,7 +159,7 @@ func getIndexedVariableValue(ctx context.Context, value *IndexedValue, index uin
 	return value.data, nil
 }
 
-func setFlushedVariableValue(ctx context.Context, index uint32, value string) error {
+func setFlushedVariableValue(ctx context.Context, index uint32, value interface{}) error {
 	if variables := ctx.Value(types.ContextKeyVariables); variables != nil {
 		if values, ok := variables.([]IndexedValue); ok {
 			variable := indexedVariables[index]
@@ -138,7 +173,7 @@ func setFlushedVariableValue(ctx context.Context, index uint32, value string) er
 			if setter == nil {
 				return errors.New(errSetterNotFound + variable.Name())
 			}
-			return setter(ctx, variableValue, value)
+			return setter.Set(ctx, variableValue, value)
 		}
 	}
 

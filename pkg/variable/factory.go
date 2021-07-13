@@ -43,6 +43,8 @@ var (
 	errSupportIndexedOnly   = "this operation only support indexed variable"
 	errGetterNotFound       = "getter function undefined, variable name: "
 	errSetterNotFound       = "setter function undefined, variable name: "
+	errVariableNotString    = "variable type is not string, name: "
+	errValueNotString       = "set string variable with non-string type"
 )
 
 // ResetVariableForTest is a test function for reset the variables.
