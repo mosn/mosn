@@ -44,7 +44,7 @@ func NewFilter(factory *FilterFactory) *Filter {
 func (f *Filter) OnDestroy() {}
 
 func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf api.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
-	m := map[string]string{}
+	m := make(map[string]string, len(f.rules))
 
 	for _, rule := range f.rules {
 		value, exist := headers.Get(rule.Header)
