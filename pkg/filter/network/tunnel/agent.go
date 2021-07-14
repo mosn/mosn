@@ -24,9 +24,9 @@ import (
 	"time"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
+	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/server"
-	"mosn.io/mosn/pkg/upstream/tunnel/ext"
 	"mosn.io/pkg/utils"
 )
 

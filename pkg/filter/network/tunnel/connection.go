@@ -25,9 +25,9 @@ import (
 
 	"go.uber.org/atomic"
 	"mosn.io/api"
+	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
-	"mosn.io/mosn/pkg/upstream/tunnel/ext"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/utils"
 )

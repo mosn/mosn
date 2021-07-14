@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package cluster
+package tunnel
 
 import (
 	"context"
@@ -22,6 +22,7 @@ import (
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
 var _ types.Host = (*TunnelHost)(nil)
@@ -55,7 +56,7 @@ func (t TunnelHost) Address() net.Addr {
 
 func NewTunnelHost(config v2.Host, clusterInfo types.ClusterInfo, connection types.ClientConnection) *TunnelHost {
 	return &TunnelHost{
-		Host: NewSimpleHost(config, clusterInfo),
+		Host: cluster.NewSimpleHost(config, clusterInfo),
 		conn: connection,
 	}
 }
