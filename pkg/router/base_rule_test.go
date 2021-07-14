@@ -186,7 +186,7 @@ type finalizeResult struct {
 
 func (res *finalizeResult) Check(ctx context.Context, headers api.HeaderMap) bool {
 	for key, value := range res.variables {
-		p, _ := variable.GetVariableValue(ctx, key)
+		p, _ := variable.GetString(ctx, key)
 		if p != value {
 			return false
 		}
@@ -267,7 +267,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := variable.NewVariableContext(context.Background())
-			variable.SetVariableValue(ctx, types.VarPath, tt.args.originalPath)
+			variable.SetString(ctx, types.VarPath, tt.args.originalPath)
 			headers := protocol.CommonHeader{}
 			rri.FinalizePathHeader(ctx, headers, tt.args.matchedPath)
 			if !tt.want.Check(ctx, headers) {
@@ -394,7 +394,7 @@ func Test_RouteRuleImplBase_finalizePathHeader(t *testing.T) {
 		if ok {
 			t.Run(tt.name, func(t *testing.T) {
 				ctx := variable.NewVariableContext(context.Background())
-				variable.SetVariableValue(ctx, types.VarPath, tt.args.originalPath)
+				variable.SetString(ctx, types.VarPath, tt.args.originalPath)
 				headers := protocol.CommonHeader{}
 				rris[ops].FinalizePathHeader(ctx, headers, tt.args.matchedPath)
 				if !tt.want.Check(ctx, headers) {
@@ -850,8 +850,8 @@ func TestHashPolicy(t *testing.T) {
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "test_header_value", nil
 	}
-	headerValue := variable.NewBasicVariable("SomeProtocol_request_header_", nil, headerGetter, nil, 0)
-	variable.RegisterPrefixVariable(headerValue.Name(), headerValue)
+	headerValue := variable.NewStringVariable("SomeProtocol_request_header_", nil, headerGetter, nil, 0)
+	variable.RegisterPrefix(headerValue.Name(), headerValue)
 	variable.RegisterProtocolResource(testProtocol, api.HEADER, types.VarProtocolRequestHeader)
 	headerHp := headerHashPolicyImpl{
 		key: "header_key",
@@ -863,8 +863,8 @@ func TestHashPolicy(t *testing.T) {
 	cookieGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "test_cookie_value", nil
 	}
-	cookieValue := variable.NewBasicVariable("SomeProtocol_cookie_", nil, cookieGetter, nil, 0)
-	variable.RegisterPrefixVariable(cookieValue.Name(), cookieValue)
+	cookieValue := variable.NewStringVariable("SomeProtocol_cookie_", nil, cookieGetter, nil, 0)
+	variable.RegisterPrefix(cookieValue.Name(), cookieValue)
 	variable.RegisterProtocolResource(testProtocol, api.COOKIE, types.VarProtocolCookie)
 	cookieHp := cookieHashPolicyImpl{
 		name: "cookie_name",
@@ -983,9 +983,9 @@ func TestRedirectRule(t *testing.T) {
 }
 
 func TestRouterClusterVariable(t *testing.T) {
-	variable.RegisterVariable(variable.NewIndexedVariable("header", nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable("method", nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable("uri", nil, nil, variable.BasicSetter, 0))
+	variable.Register(variable.NewStringVariable("header", nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable("method", nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable("uri", nil, nil, variable.DefaultStringSetter, 0))
 
 	testCases := []struct {
 		clustervariable string
@@ -1040,7 +1040,7 @@ func TestRouterClusterVariable(t *testing.T) {
 
 	for i, tc := range testCases {
 		ctx := variable.NewVariableContext(context.Background())
-		variable.SetVariableValue(ctx, tc.clustervariable, tc.value)
+		variable.SetString(ctx, tc.clustervariable, tc.value)
 		cluster := routeRules[i].ClusterName(ctx)
 		if cluster != tc.expected {
 			t.Errorf("test case: %d get cluster is not expected. got: %s, want: %s", i, cluster, tc.expected)

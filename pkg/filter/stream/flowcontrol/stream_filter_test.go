@@ -63,7 +63,7 @@ func TestStreamFilter(t *testing.T) {
 	m["Http1_request_path"] = "/http"
 	for k := range m {
 		// register test variable
-		variable.RegisterVariable(variable.NewBasicVariable(k, nil,
+		variable.Register(variable.NewStringVariable(k, nil,
 			func(ctx context.Context, variableValue *variable.IndexedValue, data interface{}) (s string, err error) {
 				val := m[k]
 				return val, nil

@@ -178,7 +178,7 @@ func (ri *routersImpl) findVirtualHost(ctx context.Context) types.VirtualHost {
 		}
 		return ri.virtualHosts[ri.defaultVirtualHostIndex]
 	}
-	hostHeader, err := variable.GetVariableValue(ctx, types.VarHost)
+	hostHeader, err := variable.GetString(ctx, types.VarHost)
 	index := -1
 	if err == nil && hostHeader != "" {
 		//we use domain in lowercase

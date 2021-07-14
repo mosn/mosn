@@ -84,10 +84,10 @@ func TestOnReceive(t *testing.T) {
 		},
 	}
 
-	v := variable.NewBasicVariable(types.VarHttpRequestPath, nil, func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
+	v := variable.NewStringVariable(types.VarHttpRequestPath, nil, func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "/", nil
 	}, nil, 0)
-	variable.RegisterVariable(v)
+	variable.Register(v)
 
 	ctx := variable.NewVariableContext(context.Background())
 

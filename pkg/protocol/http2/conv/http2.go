@@ -72,7 +72,7 @@ func (c *http2common) ConvHeader(ctx context.Context, headerMap types.HeaderMap)
 		return nil, errors.New("header type not supported")
 	}
 
-	variable.SetVariableValue(ctx, types.VarDirection, direction)
+	variable.SetString(ctx, types.VarDirection, direction)
 	return headers, nil
 }
 

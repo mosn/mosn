@@ -78,8 +78,8 @@ func TestBuildUrlFromCtxVar(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		ctx := variable.NewVariableContext(context.Background())
-		variable.SetVariableValue(ctx, types.VarPath, tc.path)
-		variable.SetVariableValue(ctx, types.VarPathOriginal, tc.pathOri)
+		variable.SetString(ctx, types.VarPath, tc.path)
+		variable.SetString(ctx, types.VarPathOriginal, tc.pathOri)
 		assert.Equal(t, buildUrlFromCtxVar(ctx), tc.want)
 	}
 }
