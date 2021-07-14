@@ -238,9 +238,9 @@ func (rri *RouteRuleImplBase) ClusterName(ctx context.Context) (clusterName stri
 	if rri.randInstance == nil {
 		rri.randInstance = rand.New(rand.NewSource(time.Now().UnixNano()))
 	}
+	selectedValue := rri.randInstance.Intn(int(rri.totalClusterWeight))
 	rri.lock.Unlock()
 
-	selectedValue := rri.randInstance.Intn(int(rri.totalClusterWeight))
 	for _, weightCluster := range rri.weightedClusters {
 		selectedValue = selectedValue - int(weightCluster.clusterWeight)
 		if selectedValue <= 0 {
