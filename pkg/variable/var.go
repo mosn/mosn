@@ -17,12 +17,59 @@
 
 package variable
 
-import "context"
+import (
+	"context"
+	"errors"
+)
+
+func NewVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
+	basic := BasicVariable{
+		getter: &getterImpl{getter: getter},
+		setter: &setterImpl{setter: setter},
+		name:   name,
+		data:   data,
+		flags:  flags,
+	}
+
+	if setter != nil {
+		return &IndexedVariable{BasicVariable: basic}
+	}
+
+	return &basic
+}
+
+// DefaultSetter used for interface-typed variable value setting
+func DefaultSetter(ctx context.Context, variableValue *IndexedValue, value interface{}) error {
+	variableValue.data = value
+	variableValue.Valid = true
+	return nil
+}
+
+func NewStringVariable(name string, data interface{}, getter StringGetterFunc, setter StringSetterFunc, flags uint32) Variable {
+	basic := BasicVariable{
+		getter: &getterImpl{strGetter: getter},
+		setter: &setterImpl{strSetter: setter},
+		name:   name,
+		data:   data,
+		flags:  flags,
+	}
+
+	if setter != nil {
+		return &IndexedVariable{BasicVariable: basic}
+	}
+
+	return &basic
+}
+
+// DefaultStringSetter used for string-typed variable value setting only, and would not affect any real data structure, like headers.
+func DefaultStringSetter(ctx context.Context, variableValue *IndexedValue, value string) error {
+	return DefaultSetter(ctx, variableValue, value)
+}
 
 // variable.Variable
 type BasicVariable struct {
-	getter GetterFunc
-	setter SetterFunc
+	getter *getterImpl
+	setter *setterImpl
 
 	name  string
 	data  interface{}
@@ -41,12 +88,12 @@ func (bv *BasicVariable) Flags() uint32 {
 	return bv.flags
 }
 
-func (bv *BasicVariable) Setter() SetterFunc {
-	return bv.setter
+func (bv *BasicVariable) Getter() Getter {
+	return bv.getter
 }
 
-func (bv *BasicVariable) Getter() GetterFunc {
-	return bv.getter
+func (bv *BasicVariable) Setter() Setter {
+	return bv.setter
 }
 
 // variable.Variable
@@ -65,33 +112,39 @@ func (iv *IndexedVariable) GetIndex() uint32 {
 	return iv.index
 }
 
-// NewBasicVariable
-func NewBasicVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
-	return &BasicVariable{
-		getter: getter,
-		setter: setter,
-		name:   name,
-		data:   data,
-		flags:  flags,
-	}
+type setterImpl struct {
+	strSetter StringSetterFunc
+	setter    SetterFunc
 }
 
-// NewIndexedVariable
-func NewIndexedVariable(name string, data interface{}, getter GetterFunc, setter SetterFunc, flags uint32) Variable {
-	return &IndexedVariable{
-		BasicVariable: BasicVariable{
-			getter: getter,
-			setter: setter,
-			name:   name,
-			data:   data,
-			flags:  flags,
-		},
+func (s *setterImpl) Set(ctx context.Context, variableValue *IndexedValue, value interface{}) error {
+	if s.strSetter != nil {
+		if v, ok := value.(string); ok {
+			return s.strSetter(ctx, variableValue, v)
+		}
+		return errors.New(errValueNotString)
 	}
+
+	if s.setter != nil {
+		return s.setter(ctx, variableValue, value)
+	}
+
+	return errors.New(errSetterNotFound)
 }
 
-// BasicSetter used for variable value setting only, and would not affect any real data structure, like headers.
-func BasicSetter(ctx context.Context, variableValue *IndexedValue, value string) error {
-	variableValue.data = value
-	variableValue.Valid = true
-	return nil
+type getterImpl struct {
+	strGetter StringGetterFunc
+	getter    GetterFunc
+}
+
+func (g *getterImpl) Get(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error) {
+	if g.strGetter != nil {
+		return g.strGetter(ctx, value, data)
+	}
+
+	if g.getter != nil {
+		return g.getter(ctx, value, data)
+	}
+
+	return nil, errors.New(errGetterNotFound)
 }

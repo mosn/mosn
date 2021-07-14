@@ -43,6 +43,8 @@ var (
 	errSupportIndexedOnly   = "this operation only support indexed variable"
 	errGetterNotFound       = "getter function undefined, variable name: "
 	errSetterNotFound       = "setter function undefined, variable name: "
+	errVariableNotString    = "variable type is not string, name: "
+	errValueNotString       = "set string variable with non-string type"
 )
 
 // ResetVariableForTest is a test function for reset the variables.
@@ -56,8 +58,8 @@ func ResetVariableForTest() {
 	indexedVariables = make([]Variable, 0, 32)
 }
 
-// AddVariable is used to check variable name exists. Typical usage is variables used in access logs.
-func AddVariable(name string) (Variable, error) {
+// Check return the variable related to name, return error if not registered
+func Check(name string) (Variable, error) {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -85,7 +87,8 @@ func AddVariable(name string) (Variable, error) {
 	return nil, errors.New(errUndefinedVariable + name)
 }
 
-func RegisterVariable(variable Variable) error {
+// Register a new variable
+func Register(variable Variable) error {
 	mux.Lock()
 	defer mux.Unlock()
 
@@ -109,7 +112,8 @@ func RegisterVariable(variable Variable) error {
 	return nil
 }
 
-func RegisterPrefixVariable(prefix string, variable Variable) error {
+// Register a new variable with prefix
+func RegisterPrefix(prefix string, variable Variable) error {
 	mux.Lock()
 	defer mux.Unlock()
 

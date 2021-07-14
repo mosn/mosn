@@ -27,17 +27,31 @@ const (
 	ValueNotFound = "-"
 )
 
-// GetterFunc used to get the value of variable, the implementation should handle the field
+// StringGetterFunc used to get the value of string-typed variable, the implementation should handle the field
 // (Valid, NotFound) of IndexedValue if it was not nil, Valid means the value is valid; NotFound
 // means the value can not be found. It indicates that value can be cached for next-time get handle
 // if any one of (Valid, NotFound) is set to true.
 //
 // Function should return ValueNotFound("-") if target value not exists.
 // E.g. reference to the header which is not existed in current request.
-type GetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
+type StringGetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
 
-// SetterFunc used to set the value of variable
-type SetterFunc func(ctx context.Context, variableValue *IndexedValue, value string) error
+// GetterFunc used to get the value of interface-typed variable
+type GetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
+
+type Getter interface {
+	Get(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
+}
+
+// StringSetterFunc used to set the value of string-typed variable
+type StringSetterFunc func(ctx context.Context, variableValue *IndexedValue, value string) error
+
+// SetterFunc used to set the value of interface-typed variable
+type SetterFunc func(ctx context.Context, variableValue *IndexedValue, value interface{}) error
+
+type Setter interface {
+	Set(ctx context.Context, variableValue *IndexedValue, value interface{}) error
+}
 
 // Variable provides a flexible and convenient way to pass information
 type Variable interface {
@@ -48,9 +62,9 @@ type Variable interface {
 	// variable flags
 	Flags() uint32
 	// value getter
-	Getter() GetterFunc
+	Getter() Getter
 	// value setter
-	Setter() SetterFunc
+	Setter() Setter
 }
 
 // IndexedValue used to store result value
@@ -60,7 +74,7 @@ type IndexedValue struct {
 	noCacheable bool
 	//escape      bool
 
-	data string
+	data interface{}
 }
 
 // Indexer indicates that variable needs to be cached by using pre-allocated IndexedValue
