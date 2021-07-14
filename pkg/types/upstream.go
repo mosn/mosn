@@ -54,6 +54,9 @@ type ClusterManager interface {
 	// AppendClusterHosts used to add cluster's hosts
 	AppendClusterHosts(clusterName string, hostConfigs []v2.Host) error
 
+	// AppendClusterTypesHosts used to add cluster's by passing the `types.Host` type
+	AppendClusterTypesHosts(clusterName string, typesHost []Host) error
+
 	// Get or Create tcp conn pool for a cluster
 	TCPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
@@ -76,8 +79,6 @@ type ClusterManager interface {
 	GetTLSManager() TLSClientContextManager
 	// UpdateTLSManager updates the tls manager which is used to cluster tls config
 	UpdateTLSManager(*v2.TLSConfig)
-
-	AppendClusterTypesHosts(clusterName string, typesHost Host) error
 
 	// ShutdownConnectionPool shutdown the connection pool by address and ProtocolName
 	// If ProtocolName is not specified, remove the addr's connection pool of all protocols

@@ -117,13 +117,15 @@ func (a *AgentRawConnection) doConnect() (net.Conn, error) {
 			// Timout or EOF
 			if err != nil {
 				log.DefaultLogger.Errorf("[agent] read response failed, err: %+v", a.Address, err)
-				rawc.Close()
+				a.Stop()
 				return nil, err
 			}
 			ret, err := DecodeFromBuffer(a.readBuffer)
 			if err != nil {
 				log.DefaultLogger.Warnf("[agent] decode from buffer failed, err: %+v", err)
+				return nil, err
 			}
+			// Data is not enough, continue to read
 			if ret == nil {
 				continue
 			}
@@ -132,10 +134,9 @@ func (a *AgentRawConnection) doConnect() (net.Conn, error) {
 				// Reconnect and write again
 				log.DefaultLogger.Errorf("[agent] failed to write connection info to remote server, address: %v, status: %v", a.Address, resp.Status)
 				// Close connection and reconnect again
-				rawc.Close()
-				return nil, err
+				return nil, a.Stop()
 			}
-			return rawc, err
+			return rawc, nil
 		}
 	}
 }
