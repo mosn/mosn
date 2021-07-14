@@ -83,7 +83,7 @@ func (dc *DefaultCallbacks) Prepare(ctx context.Context, headers types.HeaderMap
 
 // AfterBlock sends response directly.
 func (dc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
-	variable.SetVariableValue(ctx, types.VarHeaderStatus, strconv.Itoa(dc.config.Action.Status))
+	variable.SetString(ctx, types.VarHeaderStatus, strconv.Itoa(dc.config.Action.Status))
 	filter.ReceiverHandler.SendDirectResponse(headers, buffer.NewIoBufferString(dc.config.Action.Body), trailers)
 }
 

@@ -13,15 +13,15 @@ const (
 
 var (
 	buildinVariables = []variable.Variable{
-		variable.NewIndexedVariable(VarDubboRequestService, nil, nil, variable.BasicSetter, 0),
-		variable.NewIndexedVariable(VarDubboRequestMethod, nil, nil, variable.BasicSetter, 0),
+		variable.NewStringVariable(VarDubboRequestService, nil, nil, variable.DefaultStringSetter, 0),
+		variable.NewStringVariable(VarDubboRequestMethod, nil, nil, variable.DefaultStringSetter, 0),
 	}
 )
 
 func Init(conf map[string]interface{}) {
 	// variable must registry
 	for idx := range buildinVariables {
-		variable.RegisterVariable(buildinVariables[idx])
+		variable.Register(buildinVariables[idx])
 	}
 
 	// init subset key

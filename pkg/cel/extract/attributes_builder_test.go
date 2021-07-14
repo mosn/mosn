@@ -62,15 +62,15 @@ func TestExtractAttributes(t *testing.T) {
 	}
 
 	ctx1 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx1, mtypes.VarPath, "/path")
-	variable.SetVariableValue(ctx1, mtypes.VarHost, "host")
-	variable.SetVariableValue(ctx1, mtypes.VarMethod, "GET")
+	variable.SetString(ctx1, mtypes.VarPath, "/path")
+	variable.SetString(ctx1, mtypes.VarHost, "host")
+	variable.SetString(ctx1, mtypes.VarMethod, "GET")
 
 	ctx2 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx2, mtypes.VarPath, "/path")
-	variable.SetVariableValue(ctx2, mtypes.VarHost, "host")
-	variable.SetVariableValue(ctx2, mtypes.VarMethod, "GET")
-	variable.SetVariableValue(ctx2, mtypes.VarQueryString, "k1=v1&k2=v2")
+	variable.SetString(ctx2, mtypes.VarPath, "/path")
+	variable.SetString(ctx2, mtypes.VarHost, "host")
+	variable.SetString(ctx2, mtypes.VarMethod, "GET")
+	variable.SetString(ctx2, mtypes.VarQueryString, "k1=v1&k2=v2")
 
 	tests := []struct {
 		name string

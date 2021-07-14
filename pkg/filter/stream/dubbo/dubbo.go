@@ -57,17 +57,17 @@ func (d *dubboFilter) OnReceive(ctx context.Context, headers api.HeaderMap, buf 
 	}
 
 	// adapte dubbo service to http host
-	variable.SetVariableValue(ctx, types.VarHost, service)
+	variable.SetString(ctx, types.VarHost, service)
 	// because use http rule, so should add default path
-	variable.SetVariableValue(ctx, types.VarPath, "/")
+	variable.SetString(ctx, types.VarPath, "/")
 
 	method, _ := headers.Get(dubbo.MethodNameHeader)
 	stats := getStats(listener, service, method)
 	if stats != nil {
 		stats.RequestServiceInfo.Inc(1)
 
-		variable.SetVariableValue(ctx, VarDubboRequestService, service)
-		variable.SetVariableValue(ctx, VarDubboRequestMethod, method)
+		variable.SetString(ctx, VarDubboRequestService, service)
+		variable.SetString(ctx, VarDubboRequestMethod, method)
 	}
 
 	for k, v := range types.GetPodLabels() {
@@ -83,12 +83,12 @@ func (d *dubboFilter) SetReceiveFilterHandler(handler api.StreamReceiverFilterHa
 
 func (d *dubboFilter) Append(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap) api.StreamFilterStatus {
 	listener := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
-	service, err := variable.GetVariableValue(ctx, VarDubboRequestService)
+	service, err := variable.GetString(ctx, VarDubboRequestService)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request service info failed: %+v", err)
 		return api.StreamFilterContinue
 	}
-	method, err := variable.GetVariableValue(ctx, VarDubboRequestMethod)
+	method, err := variable.GetString(ctx, VarDubboRequestMethod)
 	if err != nil {
 		log.DefaultLogger.Warnf("Get request method info failed: %+v", err)
 		return api.StreamFilterContinue

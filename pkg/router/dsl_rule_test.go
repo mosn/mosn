@@ -53,7 +53,7 @@ func TestDslExpressionRouteRuleImpl_Match(t *testing.T) {
 	for i, tc := range testCases {
 		ctx := variable.NewVariableContext(context.Background())
 		for i := 0; i < len(tc.names); i++ {
-			variable.SetVariableValue(ctx, tc.names[i], tc.values[i])
+			variable.SetString(ctx, tc.names[i], tc.values[i])
 		}
 		result := rr.Match(ctx, tc.headers)
 		assert.EqualValuesf(t, result != nil, tc.expected, "#%d want matched %v, but get matched %v\n", i, tc.expected, result != nil)

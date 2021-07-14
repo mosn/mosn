@@ -61,7 +61,7 @@ func (rri *BaseHTTPRouteRule) matchRoute(ctx context.Context, headers api.Header
 	// 2. match query parameters
 	if rri.configQueryParameters != nil {
 		var queryParams types.QueryParams
-		QueryString, err := variable.GetVariableValue(ctx, types.VarQueryString)
+		QueryString, err := variable.GetString(ctx, types.VarQueryString)
 		if err == nil && QueryString != "" {
 			queryParams = httpmosn.ParseQueryString(QueryString)
 		}
@@ -108,7 +108,7 @@ func (prri *PathRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, heade
 
 func (prri *PathRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if prri.matchRoute(ctx, headers) {
-		headerPathValue, err := variable.GetVariableValue(ctx, types.VarPath)
+		headerPathValue, err := variable.GetString(ctx, types.VarPath)
 		if err == nil && headerPathValue != "" {
 			// TODO: config to support case sensitive
 			// case insensitive
@@ -155,7 +155,7 @@ func (prei *PrefixRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, hea
 
 func (prei *PrefixRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if prei.matchRoute(ctx, headers) {
-		headerPathValue, err := variable.GetVariableValue(ctx, types.VarPath)
+		headerPathValue, err := variable.GetString(ctx, types.VarPath)
 		if err == nil && headerPathValue != "" {
 			if strings.HasPrefix(headerPathValue, prei.prefix) {
 				return prei
@@ -198,7 +198,7 @@ func (rrei *RegexRouteRuleImpl) FinalizeRequestHeaders(ctx context.Context, head
 
 func (rrei *RegexRouteRuleImpl) Match(ctx context.Context, headers api.HeaderMap) api.Route {
 	if rrei.matchRoute(ctx, headers) {
-		headerPathValue, err := variable.GetVariableValue(ctx, types.VarPath)
+		headerPathValue, err := variable.GetString(ctx, types.VarPath)
 		if err == nil && headerPathValue != "" {
 			if rrei.regexPattern.MatchString(headerPathValue) {
 				return rrei

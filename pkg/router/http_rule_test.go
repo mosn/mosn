@@ -63,7 +63,7 @@ func TestHTTPRuleMatchMethod(t *testing.T) {
 		RequestHeader: &fasthttp.RequestHeader{},
 	}
 	ctx := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx, types.VarMethod, "POST")
+	variable.SetString(ctx, types.VarMethod, "POST")
 	match := httpRule.matchRoute(ctx, headers)
 	if !assert.Truef(t, match, "match http method failed, result should be true, get %+v", match) {
 		t.FailNow()
@@ -117,7 +117,7 @@ func TestPrefixRouteRuleImpl(t *testing.T) {
 			route.Match.Prefix,
 		}
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx, types.VarPath, tc.headerpath)
+		variable.SetString(ctx, types.VarPath, tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
@@ -156,7 +156,7 @@ func TestPathRouteRuleImpl(t *testing.T) {
 		base, _ := NewRouteRuleImplBase(virtualHostImpl, route)
 		rr := &PathRouteRuleImpl{NewBaseHTTPRouteRule(base, nil), route.Match.Path}
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx, types.VarPath, tc.headerpath)
+		variable.SetString(ctx, types.VarPath, tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)
@@ -203,7 +203,7 @@ func TestRegexRouteRuleImpl(t *testing.T) {
 		}
 		ctx := variable.NewVariableContext(context.Background())
 		headers := protocol.CommonHeader(map[string]string{})
-		variable.SetVariableValue(ctx, types.VarPath, tc.headerpath)
+		variable.SetString(ctx, types.VarPath, tc.headerpath)
 		result := rr.Match(ctx, headers)
 		if (result != nil) != tc.expected {
 			t.Errorf("#%d want matched %v, but get matched %v\n", i, tc.expected, result)

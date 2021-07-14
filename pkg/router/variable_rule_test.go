@@ -31,9 +31,9 @@ import (
 )
 
 func TestVariableRouteRuleImpl1(t *testing.T) {
-	variable.RegisterVariable(variable.NewIndexedVariable("header", nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable("method", nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable("uri", nil, nil, variable.BasicSetter, 0))
+	variable.Register(variable.NewStringVariable("header", nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable("method", nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable("uri", nil, nil, variable.DefaultStringSetter, 0))
 
 	virtualHostImpl := &VirtualHostImpl{virtualHostName: "test"}
 	testCases := []struct {
@@ -89,7 +89,7 @@ func TestVariableRouteRuleImpl1(t *testing.T) {
 
 		ctx := variable.NewVariableContext(context.Background())
 		rr := &VariableRouteRuleImpl{base, variables}
-		variable.SetVariableValue(ctx, tc.name, tc.value)
+		variable.SetString(ctx, tc.name, tc.value)
 		result := rr.Match(ctx, protocol.CommonHeader(map[string]string{}))
 		assert.EqualValuesf(t, result != nil, tc.expected, "#%d want matched %v, but get matched %v\n", i, tc.expected, result != nil)
 		if result != nil {
@@ -99,9 +99,9 @@ func TestVariableRouteRuleImpl1(t *testing.T) {
 }
 
 func TestVariableRouteRuleImpl2(t *testing.T) {
-	variable.RegisterVariable(variable.NewIndexedVariable("header", nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable("method", nil, nil, variable.BasicSetter, 0))
-	variable.RegisterVariable(variable.NewIndexedVariable("uri", nil, nil, variable.BasicSetter, 0))
+	variable.Register(variable.NewStringVariable("header", nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable("method", nil, nil, variable.DefaultStringSetter, 0))
+	variable.Register(variable.NewStringVariable("uri", nil, nil, variable.DefaultStringSetter, 0))
 
 	virtualHostImpl := &VirtualHostImpl{virtualHostName: "test"}
 	testCases := []struct {
@@ -158,7 +158,7 @@ func TestVariableRouteRuleImpl2(t *testing.T) {
 		ctx := variable.NewVariableContext(context.Background())
 		rr := &VariableRouteRuleImpl{base, variables}
 		for i := 0; i < len(tc.names); i++ {
-			variable.SetVariableValue(ctx, tc.names[i], tc.values[i])
+			variable.SetString(ctx, tc.names[i], tc.values[i])
 		}
 		result := rr.Match(ctx, protocol.CommonHeader(map[string]string{}))
 		assert.EqualValuesf(t, result != nil, tc.expected, "#%d want matched %v, but get matched %v\n", i, tc.expected, result != nil)

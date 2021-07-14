@@ -75,9 +75,9 @@ func Check(name string) (Variable, error) {
 
 			// TODO: index fast-path solution
 			//// make it into indexed variables
-			//indexed := NewIndexedVariable(name, name, variable.Getter(), variable.Setter(), variable.Flags())
+			//indexed := NewStringVariable(name, name, variable.Getter(), variable.Setter(), variable.Flags())
 			//// register indexed one
-			//if err := RegisterVariable(indexed); err != nil {
+			//if err := Register(indexed); err != nil {
 			//	return nil, err
 			//}
 			//return indexed, nil

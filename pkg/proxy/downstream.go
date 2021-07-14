@@ -782,7 +782,7 @@ func (s *downStream) chooseHost(endStream bool) {
 			return
 		}
 		getValueFunc := func(key string, defaultVal string) string {
-			val, err := variable.GetVariableValue(s.context, key)
+			val, err := variable.GetString(s.context, key)
 			if err != nil || val == "" {
 				return defaultVal
 			}
@@ -1423,7 +1423,7 @@ func (s *downStream) sendHijackReply(code int, headers types.HeaderMap) {
 	}
 	s.requestInfo.SetResponseCode(code)
 	status := strconv.Itoa(code)
-	variable.SetVariableValue(s.context, types.VarHeaderStatus, status)
+	variable.SetString(s.context, types.VarHeaderStatus, status)
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
 	s.downstreamRespDataBuf = nil
@@ -1442,7 +1442,7 @@ func (s *downStream) sendHijackReplyWithBody(code int, headers types.HeaderMap, 
 	s.requestInfo.SetResponseCode(code)
 
 	status := strconv.Itoa(code)
-	variable.SetVariableValue(s.context, types.VarHeaderStatus, status)
+	variable.SetString(s.context, types.VarHeaderStatus, status)
 
 	atomic.StoreUint32(&s.reuseBuffer, 0)
 	s.downstreamRespHeaders = headers
@@ -1599,7 +1599,7 @@ func (s *downStream) processError(id uint32) (phase types.Phase, err error) {
 	}
 
 	if s.directResponse {
-		variable.SetVariableValue(s.context, types.VarProxyIsDirectResponse, types.IsDirectResponse)
+		variable.SetString(s.context, types.VarProxyIsDirectResponse, types.IsDirectResponse)
 		s.directResponse = false
 
 		// don't retry
