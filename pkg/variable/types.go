@@ -27,27 +27,27 @@ const (
 	ValueNotFound = "-"
 )
 
-// StringGetter used to get the value of string-typed variable, the implementation should handle the field
+// StringGetterFunc used to get the value of string-typed variable, the implementation should handle the field
 // (Valid, NotFound) of IndexedValue if it was not nil, Valid means the value is valid; NotFound
 // means the value can not be found. It indicates that value can be cached for next-time get handle
 // if any one of (Valid, NotFound) is set to true.
 //
 // Function should return ValueNotFound("-") if target value not exists.
 // E.g. reference to the header which is not existed in current request.
-type StringGetter func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
+type StringGetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (string, error)
 
-// InterfaceGetter used to get the value of interface-typed variable
-type InterfaceGetter func(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
+// GetterFunc used to get the value of interface-typed variable
+type GetterFunc func(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
 
 type Getter interface {
 	Get(ctx context.Context, value *IndexedValue, data interface{}) (interface{}, error)
 }
 
-// StringSetter used to set the value of string-typed variable
-type StringSetter func(ctx context.Context, variableValue *IndexedValue, value string) error
+// StringSetterFunc used to set the value of string-typed variable
+type StringSetterFunc func(ctx context.Context, variableValue *IndexedValue, value string) error
 
-// InterfaceSetter used to set the value of interface-typed variable
-type InterfaceSetter func(ctx context.Context, variableValue *IndexedValue, value interface{}) error
+// SetterFunc used to set the value of interface-typed variable
+type SetterFunc func(ctx context.Context, variableValue *IndexedValue, value interface{}) error
 
 type Setter interface {
 	Set(ctx context.Context, variableValue *IndexedValue, value interface{}) error

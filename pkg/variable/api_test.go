@@ -104,7 +104,7 @@ func TestSetVariableValue_normal(t *testing.T) {
 	value := "Setter Value"
 
 	// register test variable
-	RegisterVariable(NewStringVariable(name, nil, nil, BasicSetter, 0))
+	RegisterVariable(NewStringVariable(name, nil, nil, DefaultStringSetter, 0))
 
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
@@ -143,6 +143,69 @@ func TestInterfaceVariableGetter(t *testing.T) {
 	vv, err := Get(ctx, name)
 	assert.Nil(t, err)
 	assert.Equal(t, vv, value)
+}
+
+func TestInterfaceVariableSetter(t *testing.T) {
+	name := "testInterfaceSetter"
+	value := struct{}{}
+
+	getter := func(ctx context.Context, v *IndexedValue, data interface{}) (interface{}, error) {
+		return value, nil
+	}
+	RegisterVariable(NewVariable(name, nil, getter, DefaultSetter, 0))
+
+	ctx := context.Background()
+	ctx = NewVariableContext(ctx)
+
+	vv, err := Get(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, vv, value)
+
+	// set int
+	err = Set(ctx, name, int(1))
+	assert.Nil(t, err)
+
+	i, err := Get(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, i.(int), 1)
+
+	// set string
+	err = Set(ctx, name, "someString")
+	assert.Nil(t, err)
+
+	s, err := Get(ctx, name)
+	assert.Nil(t, err)
+	assert.Equal(t, s.(string), "someString")
+}
+
+func BenchmarkGetVariableValue2(b *testing.B) {
+	name := "benchmarkGet"
+	value := "someValue"
+
+	_ = RegisterVariable(NewStringVariable(name, nil, nil, DefaultStringSetter, 0))
+	ctx := context.Background()
+	ctx = NewVariableContext(ctx)
+
+	_ = SetString(ctx, name, value)
+
+	for i := 0; i < b.N; i++ {
+		_, _ = GetString(ctx, name)
+	}
+}
+
+func BenchmarkSetVariableValue2(b *testing.B) {
+	name := "benchmarkSet"
+	value := "someValue"
+
+	_ = RegisterVariable(NewStringVariable(name, nil, nil, DefaultStringSetter, 0))
+	ctx := context.Background()
+	ctx = NewVariableContext(ctx)
+
+	_ = SetString(ctx, name, value)
+
+	for i := 0; i < b.N; i++ {
+		_ = SetString(ctx, name, value)
+	}
 }
 
 func TestInterfaceVariableSetter(t *testing.T) {
