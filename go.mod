@@ -18,17 +18,26 @@ require (
 	github.com/go-chi/chi v4.1.0+incompatible
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang-jwt/jwt v3.2.1+incompatible
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d
+	github.com/ghodss/yaml v1.0.0
+	github.com/go-chi/chi v4.1.0+incompatible
+	github.com/go-resty/resty/v2 v2.6.0
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
 	github.com/google/cel-go v0.5.1
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.10
 	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
+	github.com/juju/loggo v0.0.0-20190526231331-6e530bcce5d8 // indirect
+	github.com/juju/testing v0.0.0-20191001232224-ce9dec17d28b // indirect
 	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
 	github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.14
 	github.com/miekg/dns v1.1.25
 	github.com/opentracing/opentracing-go v1.1.0
+	github.com/opentrx/seata-golang/v2 v2.0.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/client_model v0.2.0
@@ -50,11 +59,16 @@ require (
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
 	google.golang.org/grpc v1.36.0
 	google.golang.org/grpc/examples v0.0.0-20210818220435-8ab16ef276a3
+	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
 	k8s.io/klog v1.0.0
 	mosn.io/api v0.0.0-20210714065837-5b4c2d66e70c
 	mosn.io/pkg v0.0.0-20210823090748-f639c3a0eb36
 	mosn.io/proxy-wasm-go-host v0.0.0-20210312032409-2334f9cf62ec
+	vimagination.zapto.org/byteio v0.0.0-20200222190125-d27cba0f0b10
+	vimagination.zapto.org/memio v0.0.0-20200222190306-588ebc67b97d // indirect
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
+
+replace github.com/dubbogo/gost => github.com/dubbogo/gost v1.9.9
