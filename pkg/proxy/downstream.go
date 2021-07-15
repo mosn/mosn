@@ -696,6 +696,11 @@ func (s *downStream) matchRoute() {
 	routers := s.proxy.routersWrapper.GetRouters()
 	// call route handler to get route info
 	s.snapshot, s.route = s.proxy.routeHandlerFactory.DoRouteHandler(s.context, headers, routers, s.proxy.clusterManager)
+
+	// set RouteEntry so that it can be accessed in stream filters of api.AfterRoute phase.
+	if s.route != nil {
+		s.requestInfo.SetRouteEntry(s.route.RouteRule())
+	}
 }
 
 func (s *downStream) convertProtocol() (dp, up types.ProtocolName) {
@@ -839,7 +844,6 @@ func (s *downStream) chooseHost(endStream bool) {
 	}
 
 	s.cluster = s.snapshot.ClusterInfo()
-	s.requestInfo.SetRouteEntry(s.route.RouteRule())
 
 	host, pool, err := s.initializeUpstreamConnectionPool(s)
 	if err != nil {
@@ -1482,10 +1486,14 @@ func (s *downStream) setBufferLimit(bufferLimit uint32) {
 func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	var meta api.MetadataMatchCriteria
 
-	if v, err := variable.Get(s.context, types.VarInternalRouterMeta); err != nil && v != nil {
+	if v, err := variable.Get(s.context, types.VarInternalRouterMeta); err == nil && v != nil {
 		if vv, ok := v.(api.MetadataMatchCriteria); ok {
 			meta = vv
 		}
+	}
+
+	if meta == nil && s.requestInfo.RouteEntry() != nil {
+		meta = s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
 	}
 
 	return meta

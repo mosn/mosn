@@ -22,10 +22,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
+	"mosn.io/mosn/pkg/mock"
 	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/router"
@@ -348,4 +350,33 @@ func TestProcessError(t *testing.T) {
 	if p != types.ChooseHost || e != types.ErrExit {
 		t.Errorf("TestprocessError Error")
 	}
+}
+
+func TestMetadataMatchCriteria(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	ctx := variable.NewVariableContext(context.Background())
+
+	cluster := mock.NewMockClusterInfo(ctrl)
+	cluster.EXPECT().Name().AnyTimes()
+
+	routeEntry := mock.NewMockRouteRule(ctrl)
+	routeEntryMeta := router.NewMetadataMatchCriteriaImpl(nil)
+	routeEntry.EXPECT().MetadataMatchCriteria(gomock.Any()).AnyTimes().Return(routeEntryMeta)
+
+	requestInfo := &network.RequestInfo{}
+	requestInfo.SetRouteEntry(routeEntry)
+
+	s := &downStream{
+		context:     ctx,
+		requestInfo: requestInfo,
+		cluster:     cluster,
+	}
+
+	assert.Equal(t, s.MetadataMatchCriteria(), routeEntryMeta)
+
+	newMeta := router.NewMetadataMatchCriteriaImpl(nil)
+	variable.Set(ctx, types.VarInternalRouterMeta, newMeta)
+	assert.Equal(t, s.MetadataMatchCriteria(), newMeta)
 }
