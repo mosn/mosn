@@ -362,7 +362,10 @@ func TestMetadataMatchCriteria(t *testing.T) {
 	cluster.EXPECT().Name().AnyTimes()
 
 	routeEntry := mock.NewMockRouteRule(ctrl)
-	routeEntryMeta := router.NewMetadataMatchCriteriaImpl(nil)
+	routeEntryMeta := router.NewMetadataMatchCriteriaImpl(map[string]string{
+		"a": "b",
+		"b": "bb",
+	})
 	routeEntry.EXPECT().MetadataMatchCriteria(gomock.Any()).AnyTimes().Return(routeEntryMeta)
 
 	requestInfo := &network.RequestInfo{}
@@ -376,7 +379,7 @@ func TestMetadataMatchCriteria(t *testing.T) {
 
 	assert.Equal(t, s.MetadataMatchCriteria(), routeEntryMeta)
 
-	newMeta := router.NewMetadataMatchCriteriaImpl(nil)
-	variable.Set(ctx, types.VarRouterMeta, newMeta)
-	assert.Equal(t, s.MetadataMatchCriteria(), newMeta)
+	variable.Set(ctx, types.VarRouterMeta, map[string]string{"a": "aa"})
+	assert.Equal(t, len(s.MetadataMatchCriteria().MetadataMatchCriteria()), 2)
+	assert.Equal(t, s.MetadataMatchCriteria().MetadataMatchCriteria()[0].MetadataValue(), "aa")
 }

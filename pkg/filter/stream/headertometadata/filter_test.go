@@ -23,11 +23,8 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"mosn.io/api"
-	"mosn.io/mosn/pkg/mock"
-	"mosn.io/mosn/pkg/network"
 	"mosn.io/mosn/pkg/protocol"
-	"mosn.io/mosn/pkg/router"
+	_ "mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -94,19 +91,6 @@ func TestFilter(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	routeEntry := mock.NewMockRouteRule(ctrl)
-	routeEntryMeta := router.NewMetadataMatchCriteriaImpl(map[string]string{
-		"meta3": "v33",
-		"h5": "v5",
-	})
-	routeEntry.EXPECT().MetadataMatchCriteria(gomock.Any()).AnyTimes().Return(routeEntryMeta)
-	routeEntry.EXPECT().ClusterName(gomock.Any()).AnyTimes()
-
-	ri := &network.RequestInfo{}
-	ri.SetRouteEntry(routeEntry)
-	handler := mock.NewMockStreamReceiverFilterHandler(ctrl)
-	handler.EXPECT().RequestInfo().AnyTimes().Return(ri)
-
 	factor := &FilterFactory{Rules: []Rule{
 		{
 			Header: "h1",
@@ -142,23 +126,17 @@ func TestFilter(t *testing.T) {
 	variable.Set(ctx, types.VarRouterMeta, nil)
 
 	filter := NewFilter(factor)
-	filter.SetReceiveFilterHandler(handler)
 	filter.OnReceive(ctx, headers, nil, nil)
 
 	v, err := variable.Get(ctx, types.VarRouterMeta)
 	assert.Nil(t, err)
-	meta, ok := v.(api.MetadataMatchCriteria)
+	meta, ok := v.(map[string]string)
 	assert.True(t, ok)
 
-	m := map[string]string{}
-	for _, kv := range meta.MetadataMatchCriteria() {
-		m[kv.MetadataKeyName()] = kv.MetadataValue()
-	}
-	assert.Equal(t, len(m), 4)
-	assert.Equal(t, m["meta1"], "shouldBeThis")
-	assert.Equal(t, m["meta2"], "v2")
-	assert.Equal(t, m["meta3"], "v3")
-	assert.Equal(t, m["h5"], "v5")
+	assert.Equal(t, len(meta), 3)
+	assert.Equal(t, meta["meta1"], "shouldBeThis")
+	assert.Equal(t, meta["meta2"], "v2")
+	assert.Equal(t, meta["meta3"], "v3")
 
 	_, ok = headers["h1"]
 	assert.False(t, ok)

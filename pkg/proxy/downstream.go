@@ -38,6 +38,7 @@ import (
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/protocol/http"
+	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/track"
 	"mosn.io/mosn/pkg/types"
@@ -1484,19 +1485,31 @@ func (s *downStream) setBufferLimit(bufferLimit uint32) {
 
 // types.LoadBalancerContext
 func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
-	var meta api.MetadataMatchCriteria
-
+	var varMeta map[string]string
 	if v, err := variable.Get(s.context, types.VarRouterMeta); err == nil && v != nil {
-		if vv, ok := v.(api.MetadataMatchCriteria); ok {
-			meta = vv
+		if m, ok := v.(map[string]string); ok {
+			varMeta = m
 		}
 	}
 
-	if meta == nil && s.requestInfo.RouteEntry() != nil {
-		meta = s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
+	var routerMeta api.MetadataMatchCriteria
+	if s.requestInfo.RouteEntry() != nil {
+		routerMeta = s.requestInfo.RouteEntry().MetadataMatchCriteria(s.cluster.Name())
 	}
 
-	return meta
+	if varMeta == nil {
+		return routerMeta
+	}
+
+	if routerMeta != nil {
+		for _, kv := range routerMeta.MetadataMatchCriteria() {
+			if _, ok := varMeta[kv.MetadataKeyName()]; !ok {
+				varMeta[kv.MetadataKeyName()] = kv.MetadataValue()
+			}
+		}
+	}
+
+	return router.NewMetadataMatchCriteriaImpl(varMeta)
 }
 
 func (s *downStream) DownstreamConnection() net.Conn {

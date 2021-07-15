@@ -21,7 +21,6 @@ import (
 	"context"
 
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/router"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
 )
@@ -46,7 +45,17 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf api.I
 		return api.StreamFilterContinue
 	}
 
-	meta := make(map[string]string, len(f.rules))
+	var meta map[string]string
+	if v, err := variable.Get(ctx, types.VarRouterMeta); err == nil && v != nil {
+		if m, ok := v.(map[string]string); ok {
+			meta = m
+		}
+	}
+
+	if meta == nil {
+		meta = make(map[string]string, len(f.rules))
+	}
+
 	for _, rule := range f.rules {
 		value, exist := headers.Get(rule.Header)
 
@@ -69,20 +78,7 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf api.I
 		return api.StreamFilterContinue
 	}
 
-	routeEntry := f.handler.RequestInfo().RouteEntry()
-	if routeEntry != nil {
-		routeMeta := routeEntry.MetadataMatchCriteria(routeEntry.ClusterName(ctx))
-		if routeMeta != nil {
-			routeMetaArr := routeMeta.MetadataMatchCriteria()
-			for _, kv := range routeMetaArr {
-				if _, ok := meta[kv.MetadataKeyName()]; !ok {
-					meta[kv.MetadataKeyName()] = kv.MetadataValue()
-				}
-			}
-		}
-	}
-
-	variable.Set(ctx, types.VarRouterMeta, router.NewMetadataMatchCriteriaImpl(meta))
+	variable.Set(ctx, types.VarRouterMeta, meta)
 
 	return api.StreamFilterContinue
 }
