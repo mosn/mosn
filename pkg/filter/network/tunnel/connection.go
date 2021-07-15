@@ -129,7 +129,7 @@ func (a *AgentRawConnection) doConnect() (net.Conn, error) {
 			if ret == nil {
 				continue
 			}
-			resp := ret.(ConnectionInitResponse)
+			resp := ret.(*ConnectionInitResponse)
 			if resp.Status != ConnectSuccess {
 				// Reconnect and write again
 				log.DefaultLogger.Errorf("[agent] failed to write connection info to remote server, address: %v, status: %v", a.Address, resp.Status)

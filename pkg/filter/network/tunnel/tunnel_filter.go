@@ -58,7 +58,7 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 		return api.Stop
 	}
 	// Now it can only be ConnectionInitInfo
-	info, ok := data.(ConnectionInitInfo)
+	info, ok := data.(*ConnectionInitInfo)
 	if !ok {
 		log.DefaultLogger.Errorf("[tunnel server] [ondata] decode failed, data error")
 		writeConnectResponse(ConnectUnknownFailed, conn)

@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"reflect"
 
 	"mosn.io/api"
 	"mosn.io/pkg/buffer"
@@ -63,16 +62,6 @@ var (
 
 	RequestType  = []byte{0x01, 0x00}
 	ResponseType = []byte{0x02, 0x00}
-
-	typesToFlagAndType = map[string][]byte{
-		reflect.TypeOf(ConnectionInitInfo{}).Name():     {0x01, 0x01, 0x00},
-		reflect.TypeOf(ConnectionInitResponse{}).Name(): {0x02, 0x02, 0x00},
-	}
-
-	FlagToTypes = map[byte]reflect.Type{
-		byte(0x01): reflect.TypeOf(ConnectionInitInfo{}),
-		byte(0x02): reflect.TypeOf(ConnectionInitResponse{}),
-	}
 )
 
 // ConnectionInitInfo is the basic information of agent host,
@@ -91,6 +80,17 @@ type ConnectionInitResponse struct {
 }
 
 func Encode(i interface{}) (buffer.IoBuffer, error) {
+	var flag byte
+	var typ []byte
+	switch i.(type) {
+	case *ConnectionInitInfo:
+		flag, typ = 0x01, RequestType
+	case *ConnectionInitResponse:
+		flag, typ = 0x02, ResponseType
+	default:
+		return nil, ErrUnRecognizedData
+	}
+
 	data, err := json.Marshal(i)
 	if err != nil {
 		return nil, err
@@ -101,26 +101,20 @@ func Encode(i interface{}) (buffer.IoBuffer, error) {
 	// encode header
 	buf.Write(Magic)
 	buf.WriteByte(Version)
-	var typeName string
-	typ := reflect.TypeOf(i)
-	typeName = typ.Name()
-	if typ.Kind() == reflect.Ptr {
-		typeName = typ.Elem().Name()
-	}
-	if bytes, ok := typesToFlagAndType[typeName]; ok {
-		// write flag
-		buf.WriteByte(bytes[0])
-		// write type
-		buf.Write(bytes[1:])
-		dataLength := len(data)
-		// write data length
-		buf.WriteUint16(uint16(dataLength))
-		// encode payload
-		buf.Write(data)
-		return buf, nil
-	}
-	return nil, errors.New("can't write this struct")
+
+	// write flag
+	buf.WriteByte(flag)
+	// write type
+	buf.Write(typ)
+	dataLength := len(data)
+	// write data length
+	buf.WriteUint16(uint16(dataLength))
+	// encode payload
+	buf.Write(data)
+	return buf, nil
 }
+
+var ErrUnRecognizedData = errors.New("unrecognized payload data")
 
 func DecodeFromBuffer(buffer api.IoBuffer) (interface{}, error) {
 	dataBytes := buffer.Bytes()
@@ -142,16 +136,23 @@ func DecodeFromBuffer(buffer api.IoBuffer) (interface{}, error) {
 	}
 	_ = dataBytes[VersionIndex:FlagIndex]
 	flag := dataBytes[FlagIndex:TypeIndex]
-	if t, ok := FlagToTypes[flag[0]]; ok {
-		st := reflect.New(t)
-		_ = dataBytes[TypeIndex:DataLengthIndex]
-		payload := dataBytes[PayLoadIndex : PayLoadIndex+int(dataLength)]
-		err := json.Unmarshal(payload, st.Interface())
-		if err != nil {
-			return nil, err
-		}
-		buffer.Drain(buffer.Len())
-		return st.Elem().Interface(), nil
+
+	var payloadStruct interface{}
+	// Get the data type from flag
+	switch flag[0] {
+	case 0x01:
+		payloadStruct = &ConnectionInitInfo{}
+	case 0x02:
+		payloadStruct = &ConnectionInitResponse{}
+	default:
+		return nil, ErrUnRecognizedData
 	}
-	return nil, nil
+	_ = dataBytes[TypeIndex:DataLengthIndex]
+	payload := dataBytes[PayLoadIndex : PayLoadIndex+int(dataLength)]
+	err := json.Unmarshal(payload, payloadStruct)
+	if err != nil {
+		return nil, fmt.Errorf("can't decode payload, err: %+v", err)
+	}
+	buffer.Drain(buffer.Len())
+	return payloadStruct, nil
 }

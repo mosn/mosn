@@ -53,7 +53,7 @@ func TestWriteBuffer(t *testing.T) {
 	}
 }
 func TestWriteAndRead(t *testing.T) {
-	c := ConnectionInitInfo{
+	c := &ConnectionInitInfo{
 		ClusterName: "test_c1",
 		Weight:      10,
 		HostName:    "test100",

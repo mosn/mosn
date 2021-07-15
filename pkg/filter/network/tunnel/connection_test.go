@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"mosn.io/mosn/pkg/upstream/tunnel/ext"
+	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 )
 
 func TestNewConnection(t *testing.T) {

@@ -152,13 +152,6 @@ type connection struct {
 	}
 }
 
-func (conn *connection) OnConnectionEvent(event api.ConnectionEvent) {
-	log.DefaultLogger.Debugf("[network] receive new connection event %s, try to handle", event)
-	for _, listener := range conn.connCallbacks {
-		listener.OnEvent(event)
-	}
-}
-
 // NewServerConnection new server-side connection, rawc is the raw connection from go/net
 func newServerConnection(ctx context.Context, rawc net.Conn, stopChan chan struct{}) api.Connection {
 	id := atomic.AddUint64(&idCounter, 1)
