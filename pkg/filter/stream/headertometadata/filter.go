@@ -82,7 +82,7 @@ func (f *Filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf api.I
 		}
 	}
 
-	variable.Set(ctx, types.VarInternalRouterMeta, router.NewMetadataMatchCriteriaImpl(meta))
+	variable.Set(ctx, types.VarRouterMeta, router.NewMetadataMatchCriteriaImpl(meta))
 
 	return api.StreamFilterContinue
 }

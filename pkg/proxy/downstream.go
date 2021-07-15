@@ -1486,7 +1486,7 @@ func (s *downStream) setBufferLimit(bufferLimit uint32) {
 func (s *downStream) MetadataMatchCriteria() api.MetadataMatchCriteria {
 	var meta api.MetadataMatchCriteria
 
-	if v, err := variable.Get(s.context, types.VarInternalRouterMeta); err == nil && v != nil {
+	if v, err := variable.Get(s.context, types.VarRouterMeta); err == nil && v != nil {
 		if vv, ok := v.(api.MetadataMatchCriteria); ok {
 			meta = vv
 		}

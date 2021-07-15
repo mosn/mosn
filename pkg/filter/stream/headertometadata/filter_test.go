@@ -139,13 +139,13 @@ func TestFilter(t *testing.T) {
 	}
 
 	ctx := variable.NewVariableContext(context.Background())
-	variable.Set(ctx, types.VarInternalRouterMeta, nil)
+	variable.Set(ctx, types.VarRouterMeta, nil)
 
 	filter := NewFilter(factor)
 	filter.SetReceiveFilterHandler(handler)
 	filter.OnReceive(ctx, headers, nil, nil)
 
-	v, err := variable.Get(ctx, types.VarInternalRouterMeta)
+	v, err := variable.Get(ctx, types.VarRouterMeta)
 	assert.Nil(t, err)
 	meta, ok := v.(api.MetadataMatchCriteria)
 	assert.True(t, ok)

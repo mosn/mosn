@@ -377,6 +377,6 @@ func TestMetadataMatchCriteria(t *testing.T) {
 	assert.Equal(t, s.MetadataMatchCriteria(), routeEntryMeta)
 
 	newMeta := router.NewMetadataMatchCriteriaImpl(nil)
-	variable.Set(ctx, types.VarInternalRouterMeta, newMeta)
+	variable.Set(ctx, types.VarRouterMeta, newMeta)
 	assert.Equal(t, s.MetadataMatchCriteria(), newMeta)
 }

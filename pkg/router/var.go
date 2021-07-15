@@ -24,7 +24,7 @@ import (
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewVariable(types.VarInternalRouterMeta, nil, nil, variable.DefaultSetter, 0),
+		variable.NewVariable(types.VarRouterMeta, nil, nil, variable.DefaultSetter, 0),
 	}
 )
 
