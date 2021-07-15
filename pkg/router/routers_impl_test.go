@@ -183,7 +183,7 @@ func TestDefaultMatch(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{
 			"service": "test",
 		})
-		variable.SetVariableValue(ctx, types.VarHost, tc)
+		variable.SetString(ctx, types.VarHost, tc)
 		if routers.MatchRoute(ctx, headers) == nil {
 			t.Errorf("#%d not matched\n", i)
 		}
@@ -207,7 +207,7 @@ func TestDomainMatch(t *testing.T) {
 	headers := protocol.CommonHeader(map[string]string{
 		"service": "test",
 	})
-	variable.SetVariableValue(ctx, types.VarHost, "www.sofa-mosn.test")
+	variable.SetString(ctx, types.VarHost, "www.sofa-mosn.test")
 	if routers.MatchRoute(ctx, headers) == nil {
 		t.Error("domain match failed")
 	}
@@ -227,7 +227,7 @@ func TestDomainMatch(t *testing.T) {
 		headers := protocol.CommonHeader(map[string]string{
 			"service": "test",
 		})
-		variable.SetVariableValue(ctx, types.VarHost, tc)
+		variable.SetString(ctx, types.VarHost, tc)
 		if routers.MatchRoute(ctx, headers) != nil {
 			t.Errorf("#%d expected not matched, but match a router", i)
 		}
@@ -283,7 +283,7 @@ func TestWildcardMatch(t *testing.T) {
 			headers := protocol.CommonHeader(map[string]string{
 				"service": "test",
 			})
-			variable.SetVariableValue(ctx, types.VarHost, match)
+			variable.SetString(ctx, types.VarHost, match)
 			if routers.MatchRoute(ctx, headers) == nil {
 				t.Errorf("%s expected matched: #%d, but return nil\n", match, i)
 			}
@@ -295,7 +295,7 @@ func TestWildcardMatch(t *testing.T) {
 			headers := protocol.CommonHeader(map[string]string{
 				"service": "test",
 			})
-			variable.SetVariableValue(ctx, types.VarHost, unmatch)
+			variable.SetString(ctx, types.VarHost, unmatch)
 			if routers.MatchRoute(ctx, headers) != nil {
 				t.Errorf("%s expected unmatched: #%d, but matched\n", unmatch, i)
 			}
@@ -333,7 +333,7 @@ func TestWildcardLongestSuffixMatch(t *testing.T) {
 	}
 	ctx := variable.NewVariableContext(context.Background())
 	for _, tc := range testCases {
-		variable.SetVariableValue(ctx, types.VarHost, tc.Domain)
+		variable.SetString(ctx, types.VarHost, tc.Domain)
 		route := routers.MatchRoute(ctx, protocol.CommonHeader(map[string]string{
 			"service": "test",
 		}))
@@ -385,7 +385,7 @@ func TestVirtulHostWithPortMatch(t *testing.T) {
 	}
 	ctx := variable.NewVariableContext(context.Background())
 	for _, tc := range testCases {
-		variable.SetVariableValue(ctx, types.VarHost, tc.Domain)
+		variable.SetString(ctx, types.VarHost, tc.Domain)
 		route := routers.MatchRoute(ctx, protocol.CommonHeader(map[string]string{
 			"service": "test",
 		}))

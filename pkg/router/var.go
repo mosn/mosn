@@ -31,6 +31,6 @@ var (
 func init() {
 	// register built-in variables
 	for idx := range builtinVariables {
-		variable.RegisterVariable(builtinVariables[idx])
+		variable.Register(builtinVariables[idx])
 	}
 }

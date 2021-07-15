@@ -64,13 +64,13 @@ var (
 
 var (
 	buildinVariables = []variable.Variable{
-		variable.NewIndexedVariable(VarProxyUpstreamIndex, nil, nil, variable.BasicSetter, 0),
+		variable.NewStringVariable(VarProxyUpstreamIndex, nil, nil, variable.DefaultStringSetter, 0),
 	}
 )
 
 func registerVariables() {
 	for idx := range buildinVariables {
-		variable.RegisterVariable(buildinVariables[idx])
+		variable.Register(buildinVariables[idx])
 	}
 }
 
@@ -495,7 +495,7 @@ func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContex
 	}
 	ctx := context.DownstreamContext()
 	ind := 0
-	if index, err := variable.GetVariableValue(ctx, VarProxyUpstreamIndex); err == nil {
+	if index, err := variable.GetString(ctx, VarProxyUpstreamIndex); err == nil {
 		if i, err := strconv.Atoi(index); err == nil {
 			ind = i + 1
 		}
@@ -505,11 +505,11 @@ func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContex
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 				log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", targets[id].AddressString())
 			}
-			variable.SetVariableValue(ctx, VarProxyUpstreamIndex, strconv.Itoa(id))
+			variable.SetString(ctx, VarProxyUpstreamIndex, strconv.Itoa(id))
 			return targets[id]
 		}
 	}
-	variable.SetVariableValue(ctx, VarProxyUpstreamIndex, strconv.Itoa(total))
+	variable.SetString(ctx, VarProxyUpstreamIndex, strconv.Itoa(total))
 
 	return nil
 }

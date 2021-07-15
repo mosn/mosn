@@ -162,7 +162,7 @@ func (m *httpHeaderMatcherImpl) Matches(ctx context.Context, headers api.HeaderM
 	}
 	// check http variables
 	for vkey, vvalue := range m.variables {
-		value, err := variable.GetVariableValue(ctx, vkey)
+		value, err := variable.GetString(ctx, vkey)
 		if err != nil {
 			return false
 		}

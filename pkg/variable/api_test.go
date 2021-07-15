@@ -29,7 +29,7 @@ func TestGetVariableValue_normal(t *testing.T) {
 	value := "Getter Result"
 
 	// register test variable
-	RegisterVariable(NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+	Register(NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
 		return value, nil
 	}, nil, 0))
 
@@ -45,15 +45,15 @@ func TestGetVariableValue_normal(t *testing.T) {
 		t.Errorf("get value not equal, expected: %s, acutal: %s", value, vv)
 	}
 
-	// test AddVariable
-	if _, err := AddVariable(name); err != nil {
-		t.Errorf("AddVariable existed variable failed：%v", err)
+	// test Check
+	if _, err := Check(name); err != nil {
+		t.Errorf("Check existed variable failed：%v", err)
 	}
 
 	// test prefix variable
 	name = "prefix_var_"
 	value = "prefix value"
-	RegisterPrefixVariable(name, NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+	RegisterPrefix(name, NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
 		return value, nil
 	}, nil, 0))
 
@@ -66,22 +66,22 @@ func TestGetVariableValue_normal(t *testing.T) {
 		t.Errorf("get prefix variable value not equal, expected: %s, acutal: %s", value, vv)
 	}
 
-	// test AddVariable
-	if _, err := AddVariable(name); err != nil {
-		t.Errorf("AddVariable existed variable failed：%v", err)
+	// test Check
+	if _, err := Check(name); err != nil {
+		t.Errorf("Check existed variable failed：%v", err)
 	}
 
 	name = "unknown"
-	if _, err := AddVariable(name); err == nil {
-		t.Error("AddVariable unknown variable failed")
+	if _, err := Check(name); err == nil {
+		t.Error("Check unknown variable failed")
 	}
 
 	//test variable noCacheable
 	name = "nocache"
 	value = "nocache Value"
-	RegisterVariable(NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+	Register(NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
 		return value, nil
-	}, BasicSetter, MOSN_VAR_FLAG_NOCACHEABLE))
+	}, DefaultStringSetter, MOSN_VAR_FLAG_NOCACHEABLE))
 	ctx = NewVariableContext(context.Background())
 	err = SetString(ctx, name, value)
 	if err != nil {
@@ -104,7 +104,7 @@ func TestSetVariableValue_normal(t *testing.T) {
 	value := "Setter Value"
 
 	// register test variable
-	RegisterVariable(NewStringVariable(name, nil, nil, DefaultStringSetter, 0))
+	Register(NewStringVariable(name, nil, nil, DefaultStringSetter, 0))
 
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
@@ -135,7 +135,7 @@ func TestInterfaceVariableGetter(t *testing.T) {
 	getter := func(ctx context.Context, v *IndexedValue, data interface{}) (interface{}, error) {
 		return value, nil
 	}
-	RegisterVariable(NewVariable(name, nil, getter, nil, 0))
+	Register(NewVariable(name, nil, getter, nil, 0))
 
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
@@ -152,7 +152,7 @@ func TestInterfaceVariableSetter(t *testing.T) {
 	getter := func(ctx context.Context, v *IndexedValue, data interface{}) (interface{}, error) {
 		return value, nil
 	}
-	RegisterVariable(NewVariable(name, nil, getter, DefaultSetter, 0))
+	Register(NewVariable(name, nil, getter, DefaultSetter, 0))
 
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
@@ -182,7 +182,7 @@ func BenchmarkGetVariableValue2(b *testing.B) {
 	name := "benchmarkGet"
 	value := "someValue"
 
-	_ = RegisterVariable(NewStringVariable(name, nil, nil, DefaultStringSetter, 0))
+	_ = Register(NewStringVariable(name, nil, nil, DefaultStringSetter, 0))
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
 
@@ -197,7 +197,7 @@ func BenchmarkSetVariableValue2(b *testing.B) {
 	name := "benchmarkSet"
 	value := "someValue"
 
-	_ = RegisterVariable(NewStringVariable(name, nil, nil, DefaultStringSetter, 0))
+	_ = Register(NewStringVariable(name, nil, nil, DefaultStringSetter, 0))
 	ctx := context.Background()
 	ctx = NewVariableContext(ctx)
 

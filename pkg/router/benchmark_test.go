@@ -35,8 +35,8 @@ func BenchmarkStringGenerateHash(b *testing.B) {
 	headerGetter := func(ctx context.Context, value *variable.IndexedValue, data interface{}) (string, error) {
 		return "test_header_value", nil
 	}
-	headerValue := variable.NewBasicVariable("SomeProtocol_request_header_", nil, headerGetter, nil, 0)
-	variable.RegisterPrefixVariable(headerValue.Name(), headerValue)
+	headerValue := variable.NewStringVariable("SomeProtocol_request_header_", nil, headerGetter, nil, 0)
+	variable.RegisterPrefix(headerValue.Name(), headerValue)
 	variable.RegisterProtocolResource(testProtocol, api.HEADER, types.VarProtocolRequestHeader)
 	headerHp := headerHashPolicyImpl{
 		key: "header_key",
