@@ -13,25 +13,19 @@ require (
 	github.com/cch123/supermonkey v1.0.1-0.20210420090843-d792ef7fb1d7
 	github.com/cncf/udpa/go v0.0.0-20201120205902-5459f2c99403
 	github.com/dchest/siphash v1.2.1
-	github.com/envoyproxy/go-control-plane v0.9.9-0.20201210154907-fd9021fe5dad
-	github.com/ghodss/yaml v1.0.0
-	github.com/go-chi/chi v4.1.0+incompatible
-	github.com/gogo/protobuf v1.3.2
-	github.com/golang-jwt/jwt v3.2.1+incompatible
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/envoyproxy/go-control-plane v0.9.9-0.20210217033140-668b12f5399d
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-chi/chi v4.1.0+incompatible
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/gogo/protobuf v1.3.2
+	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3
 	github.com/google/cel-go v0.5.1
 	github.com/hashicorp/go-plugin v1.0.1
 	github.com/json-iterator/go v1.1.10
 	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
-	github.com/juju/loggo v0.0.0-20190526231331-6e530bcce5d8 // indirect
-	github.com/juju/testing v0.0.0-20191001232224-ce9dec17d28b // indirect
 	github.com/lestrrat/go-jwx v0.0.0-20180221005942-b7d4802280ae
 	github.com/lestrrat/go-pdebug v0.0.0-20180220043741-569c97477ae8 // indirect
 	github.com/lyft/protoc-gen-validate v0.0.14
@@ -53,11 +47,11 @@ require (
 	go.uber.org/atomic v1.7.0
 	go.uber.org/automaxprocs v1.3.0
 	golang.org/x/crypto v0.0.0-20201002170205-7f63de1d35b0
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
 	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e
-	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
+	golang.org/x/tools v0.1.4
 	google.golang.org/genproto v0.0.0-20200806141610-86f49bd18e98
-	google.golang.org/grpc v1.36.0
+	google.golang.org/grpc v1.38.0
 	google.golang.org/grpc/examples v0.0.0-20210818220435-8ab16ef276a3
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
 	istio.io/api v0.0.0-20200227213531-891bf31f3c32
@@ -70,5 +64,3 @@ require (
 )
 
 replace github.com/envoyproxy/go-control-plane => github.com/envoyproxy/go-control-plane v0.9.4
-
-replace github.com/dubbogo/gost => github.com/dubbogo/gost v1.9.9
