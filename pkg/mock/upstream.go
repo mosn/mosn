@@ -120,6 +120,20 @@ func (mr *MockClusterManagerMockRecorder) AppendClusterHosts(clusterName, hostCo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendClusterHosts", reflect.TypeOf((*MockClusterManager)(nil).AppendClusterHosts), clusterName, hostConfigs)
 }
 
+// AppendClusterTypesHosts mocks base method
+func (m *MockClusterManager) AppendClusterTypesHosts(clusterName string, typesHost []types.Host) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AppendClusterTypesHosts", clusterName, typesHost)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AppendClusterTypesHosts indicates an expected call of AppendClusterTypesHosts
+func (mr *MockClusterManagerMockRecorder) AppendClusterTypesHosts(clusterName, typesHost interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendClusterTypesHosts", reflect.TypeOf((*MockClusterManager)(nil).AppendClusterTypesHosts), clusterName, typesHost)
+}
+
 // TCPConnForCluster mocks base method
 func (m *MockClusterManager) TCPConnForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot) types.CreateConnectionData {
 	m.ctrl.T.Helper()
@@ -233,20 +247,6 @@ func (m *MockClusterManager) UpdateTLSManager(arg0 *v2.TLSConfig) {
 func (mr *MockClusterManagerMockRecorder) UpdateTLSManager(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTLSManager", reflect.TypeOf((*MockClusterManager)(nil).UpdateTLSManager), arg0)
-}
-
-// AppendHostWithConnection mocks base method
-func (m *MockClusterManager) AppendHostWithConnection(clusterName string, h v2.Host, connection types.ClientConnection) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AppendHostWithConnection", clusterName, h, connection)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AppendHostWithConnection indicates an expected call of AppendHostWithConnection
-func (mr *MockClusterManagerMockRecorder) AppendHostWithConnection(clusterName, h, connection interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendHostWithConnection", reflect.TypeOf((*MockClusterManager)(nil).AppendHostWithConnection), clusterName, h, connection)
 }
 
 // ShutdownConnectionPool mocks base method
