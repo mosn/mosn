@@ -47,24 +47,32 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 		log.DefaultLogger.Debugf("[tunnel server] [ondata] read data , len: %v", buffer.Len())
 	}
 	data, err := DecodeFromBuffer(buffer)
-	conn := t.readCallbacks.Connection()
 	if data == nil && err == nil {
 		// Not enough data was read.
 		return api.Stop
 	}
 	if err != nil {
 		log.DefaultLogger.Errorf("[tunnel server] [ondata] failed to read from buffer, close connection err: %+v", err)
-		writeConnectResponse(ConnectUnknownFailed, conn)
+		t.readCallbacks.Connection().Close(api.NoFlush, api.OnReadErrClose)
 		return api.Stop
 	}
-	// Now it can only be ConnectionInitInfo
-	info, ok := data.(*ConnectionInitInfo)
-	if !ok {
-		log.DefaultLogger.Errorf("[tunnel server] [ondata] decode failed, data error")
-		writeConnectResponse(ConnectUnknownFailed, conn)
-		return api.Stop
+
+	return t.handleRequest(data)
+}
+
+func (t *tunnelFilter) handleRequest(request interface{}) api.FilterStatus {
+	switch request.(type) {
+	case *ConnectionInitInfo:
+		return t.handleConnectionInit(request.(*ConnectionInitInfo))
+	case *GracefulCloseRequest:
+		return t.handleGracefulClose(request.(*GracefulCloseRequest))
 	}
+	return api.Continue
+}
+
+func (t *tunnelFilter) handleConnectionInit(info *ConnectionInitInfo) api.FilterStatus {
 	// Auth the connection
+	conn := t.readCallbacks.Connection()
 	if info.CredentialPolicy != "" {
 		validator := ext.GetConnectionValidator(info.CredentialPolicy)
 		if validator == nil {
@@ -82,7 +90,7 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 		return api.Stop
 	}
 	// Set the flag that has been initialized, subsequent data processing skips this filter
-	err = writeConnectResponse(ConnectSuccess, conn)
+	err := writeConnectResponse(ConnectSuccess, conn)
 	if err != nil {
 		return api.Stop
 	}
@@ -101,8 +109,16 @@ func (t *tunnelFilter) OnData(buffer api.IoBuffer) api.FilterStatus {
 	return api.Stop
 }
 
+func (t *tunnelFilter) handleGracefulClose(request *GracefulCloseRequest) api.FilterStatus {
+	addresses := request.Addresses
+	for _, address := range addresses {
+		removeHost(address, request.ClusterName)
+	}
+	return api.Stop
+}
+
 func (t *tunnelFilter) OnNewConnection() api.FilterStatus {
-	return api.Continue
+	return api.Stop
 }
 
 func (t *tunnelFilter) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks) {

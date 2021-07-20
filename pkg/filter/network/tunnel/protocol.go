@@ -79,6 +79,11 @@ type ConnectionInitResponse struct {
 	Status ConnectStatus `json:"status"`
 }
 
+type GracefulCloseRequest struct {
+	Addresses   []string `json:"addresses"`
+	ClusterName string   `json:"cluster_name"`
+}
+
 func Encode(i interface{}) (buffer.IoBuffer, error) {
 	var flag byte
 	var typ []byte
@@ -87,6 +92,8 @@ func Encode(i interface{}) (buffer.IoBuffer, error) {
 		flag, typ = 0x01, RequestType
 	case *ConnectionInitResponse:
 		flag, typ = 0x02, ResponseType
+	case *GracefulCloseRequest:
+		flag, typ = 0x03, RequestType
 	default:
 		return nil, ErrUnRecognizedData
 	}
@@ -144,6 +151,8 @@ func DecodeFromBuffer(buffer api.IoBuffer) (interface{}, error) {
 		payloadStruct = &ConnectionInitInfo{}
 	case 0x02:
 		payloadStruct = &ConnectionInitResponse{}
+	case 0x03:
+		payloadStruct = &GracefulCloseRequest{}
 	default:
 		return nil, ErrUnRecognizedData
 	}

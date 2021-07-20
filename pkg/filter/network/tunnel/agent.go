@@ -18,6 +18,7 @@
 package tunnel
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"sync"
@@ -27,6 +28,7 @@ import (
 	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/server"
+	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
 
@@ -112,13 +114,10 @@ func bootstrap(conf *agentBootstrapConfig) {
 						if !ok {
 							continue
 						}
+						utils.GoWithRecover(func() {
+							val.(*AgentPeer).Stop()
+						}, nil)
 						connectionMap.Delete(addr)
-						for _, conn := range val.([]*AgentRawConnection) {
-							err := conn.Stop()
-							if err != nil {
-								log.DefaultLogger.Errorf("[tunnel agent] failed to stop connection, err: %+v", err)
-							}
-						}
 					}
 					log.DefaultLogger.Infof("[tunnel agent] tunnel server list changed, update success, increased: %+v, decreased: %+v", increased, decreased)
 
@@ -146,29 +145,45 @@ func bootstrap(conf *agentBootstrapConfig) {
 
 var connectionMap = &sync.Map{}
 
+var (
+	defaultReconnectBaseDuration  = time.Second * 3
+	defaultConnectTimeoutDuration = time.Second * 15
+	defaultConnectMaxRetryTimes   = -1
+)
+
 func connectServer(conf *agentBootstrapConfig, address string) {
 	listener := server.GetServer().Handler().FindListenerByName(conf.HostingListener)
 	if listener == nil {
 		return
 	}
 	config := &ConnectionConfig{
-		Address:                address,
-		ClusterName:            conf.Cluster,
-		Weight:                 10,
-		ReconnectBaseDuration:  time.Duration(conf.ReconnectBaseDurationMs) * time.Millisecond,
-		ConnectTimeoutDuration: time.Duration(conf.ConnectTimeoutDurationMs) * time.Millisecond,
-		ConnectRetryTimes:      conf.ConnectRetryTimes,
-		CredentialPolicy:       conf.CredentialPolicy,
+		Address:                 address,
+		ClusterName:             conf.Cluster,
+		Weight:                  10,
+		ReconnectBaseDuration:   time.Duration(conf.ReconnectBaseDurationMs) * time.Millisecond,
+		ConnectTimeoutDuration:  time.Duration(conf.ConnectTimeoutDurationMs) * time.Millisecond,
+		ConnectRetryTimes:       conf.ConnectRetryTimes,
+		CredentialPolicy:        conf.CredentialPolicy,
+		ConnectionNumPerAddress: conf.ConnectionNum,
 	}
-	connList := make([]*AgentRawConnection, 0, conf.ConnectionNum)
-	for i := 0; i < conf.ConnectionNum; i++ {
-		conn := NewConnection(*config, listener)
-		err := conn.connectAndInit()
-		if err == nil {
-			connList = append(connList, conn)
-		}
+	if config.Network == "" {
+		config.Network = "tcp"
 	}
-	connectionMap.Store(address, connList)
+	if config.ReconnectBaseDuration == 0 {
+		config.ReconnectBaseDuration = defaultReconnectBaseDuration
+	}
+	if config.ConnectRetryTimes == 0 {
+		config.ConnectRetryTimes = defaultConnectMaxRetryTimes
+	}
+	if config.ConnectTimeoutDuration == 0 {
+		config.ConnectTimeoutDuration = defaultConnectTimeoutDuration
+	}
+	peer := &AgentPeer{
+		conf:     config,
+		listener: listener,
+	}
+	peer.Start()
+	connectionMap.Store(address, peer)
 }
 
 type ConnectionConfig struct {
@@ -177,8 +192,76 @@ type ConnectionConfig struct {
 	Weight            int64  `json:"weight"`
 	ConnectRetryTimes int    `json:"connect_retry_times"`
 	// ConnectTimeoutDuration specifies the timeout for establishing a connection and initializing the agent
-	ConnectTimeoutDuration time.Duration `json:"connect_timeout_duration"`
-	Network                string        `json:"network"`
-	ReconnectBaseDuration  time.Duration `json:"reconnect_base_duration"`
-	CredentialPolicy       string        `json:"credential_policy"`
+	ConnectTimeoutDuration  time.Duration `json:"connect_timeout_duration"`
+	Network                 string        `json:"network"`
+	ReconnectBaseDuration   time.Duration `json:"reconnect_base_duration"`
+	CredentialPolicy        string        `json:"credential_policy"`
+	ConnectionNumPerAddress int           `json:"connection_num_per_address"`
+}
+
+type AgentPeer struct {
+	conf        *ConnectionConfig
+	connections []*AgentCoreConnection
+	// asideConn only used to send some control data to server
+	asideConn *AgentAsideConnection
+	listener  types.Listener
+}
+
+func (a *AgentPeer) Start() {
+	connList := make([]*AgentCoreConnection, 0, a.conf.ConnectionNumPerAddress)
+	for i := 0; i < a.conf.ConnectionNumPerAddress; i++ {
+		conn := NewAgentCoreConnection(*a.conf, a.listener)
+		err := conn.initConnection()
+		if err == nil {
+			connList = append(connList, conn)
+		}
+	}
+}
+
+func (a *AgentPeer) initAside() {
+	asideConn := NewAgentAsideConnection(*a.conf, a.listener)
+	err := asideConn.initConnection()
+	if err != nil {
+		return
+	}
+	a.asideConn = asideConn
+}
+
+func (a *AgentPeer) Stop() {
+	closeWait := time.NewTimer(time.Second * 15)
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		if a.asideConn == nil {
+			a.initAside()
+		}
+		if a.asideConn == nil {
+			return
+		}
+		addresses := make([]string, 0, len(a.connections))
+		for i := range a.connections {
+			localAddr := a.connections[i].rawc.LocalAddr().String()
+			addresses = append(addresses, localAddr)
+		}
+		err := a.asideConn.Write(&GracefulCloseRequest{
+			Addresses:   addresses,
+			ClusterName: a.conf.ClusterName,
+		})
+		if err == nil {
+			a.asideConn.Close()
+			cancel()
+		}
+	}()
+	select {
+	case <-closeWait.C:
+		log.DefaultLogger.Warnf("[tunnel agent] waiting for graceful closing timeout, try to close directly")
+		for _, conn := range a.connections {
+			err := conn.Close()
+			if err != nil {
+				log.DefaultLogger.Errorf("[tunnel agent] failed to stop connection, err: %+v", err)
+			}
+		}
+		closeWait.Stop()
+	case <-ctx.Done():
+		log.DefaultLogger.Infof("[tunnel agent]")
+	}
 }

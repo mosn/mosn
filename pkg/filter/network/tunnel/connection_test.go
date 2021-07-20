@@ -37,7 +37,7 @@ func TestNewConnection(t *testing.T) {
 		Network:           "tcp",
 		CredentialPolicy:  "test_credential",
 	}
-	got := NewConnection(config, nil)
+	got := NewAgentCoreConnection(config, nil)
 	assert.Truef(t, got != nil, "create connection error")
 	assert.Truef(t, got.initInfo.Credential == "aa", "credentialPolicy is incorrect")
 }

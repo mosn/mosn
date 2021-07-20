@@ -36,10 +36,14 @@ func NewHostRemover(address string, cluster string) *HostRemover {
 
 func (h *HostRemover) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
-		log.DefaultLogger.Infof("try to remove host: %v in cluster: %v", h.address, h.cluster)
-		tunnelHostMutex.Lock()
-		cluster.GetClusterMngAdapterInstance().RemoveClusterHosts(h.cluster, []string{h.address})
-		tunnelHostMutex.Unlock()
-		cluster.GetClusterMngAdapterInstance().ShutdownConnectionPool("", h.address)
+		removeHost(h.address, h.cluster)
 	}
+}
+
+func removeHost(address string, clusterName string) {
+	log.DefaultLogger.Infof("try to remove host: %v in cluster: %v", address, clusterName)
+	tunnelHostMutex.Lock()
+	cluster.GetClusterMngAdapterInstance().RemoveClusterHosts(clusterName, []string{address})
+	tunnelHostMutex.Unlock()
+	cluster.GetClusterMngAdapterInstance().ShutdownConnectionPool("", address)
 }
