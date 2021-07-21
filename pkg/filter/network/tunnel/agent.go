@@ -256,10 +256,13 @@ func (a *AgentPeer) Stop() {
 			Addresses:   addresses,
 			ClusterName: a.conf.ClusterName,
 		})
-		if err == nil {
+		if err != nil {
 			_ = a.asideConn.Close()
-			cancel()
+			log.DefaultLogger.Errorf("[tunnel agent] write graceful close request error, err: %+v", err)
+			return
 		}
+		_ = a.asideConn.Close()
+		cancel()
 	}()
 	select {
 	case <-closeWait.C:

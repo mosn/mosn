@@ -17,35 +17,46 @@
 package tunnel
 
 import (
-	"errors"
-	"sync"
+	"context"
+	"net"
 
-	"mosn.io/api"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
-var _ types.ClientConnection = (*TunnelAgentConnection)(nil)
+var _ types.Host = (*host)(nil)
 
-// TunnelAgentConnection is a implementation for ClientConnection, provides a mechanism to bind an existing api.Connection
-type TunnelAgentConnection struct {
-	api.Connection
-	once sync.Once
+type host struct {
+	types.Host
+	conn types.ClientConnection
 }
 
-// Connect is a fake operation, it only checks the status of the bound connection
-// and overrides the Connect operation of the api.Connection
-func (cc *TunnelAgentConnection) Connect() (err error) {
-	if cc.State() == api.ConnClosed {
-		return errors.New("tunnel channel has been closed")
+func (t host) AddressString() string {
+	return t.conn.RemoteAddr().String()
+}
+
+func (t host) CreateConnection(context context.Context) types.CreateConnectionData {
+	return types.CreateConnectionData{
+		Connection: t.conn,
+		Host:       t.Host,
 	}
-	cc.once.Do(func() {
-		cc.OnConnectionEvent(api.Connected)
-	})
-	return nil
 }
 
-func CreateTunnelAgentConnection(conn api.Connection) *TunnelAgentConnection {
-	return &TunnelAgentConnection{
-		Connection: conn,
+func (t host) CreateUDPConnection(context context.Context) types.CreateConnectionData {
+	return types.CreateConnectionData{
+		Connection: t.conn,
+		Host:       t.Host,
+	}
+}
+
+func (t host) Address() net.Addr {
+	return t.conn.RemoteAddr()
+}
+
+func NewTunnelHost(config v2.Host, clusterInfo types.ClusterInfo, connection types.ClientConnection) *host {
+	return &host{
+		Host: cluster.NewSimpleHost(config, clusterInfo),
+		conn: connection,
 	}
 }

@@ -23,18 +23,18 @@ import (
 	"mosn.io/mosn/pkg/upstream/cluster"
 )
 
-// HostRemover is the implementation of ConnectionEventListener, which removes the disconnected
+// hostRemover is the implementation of ConnectionEventListener, which removes the disconnected
 // connection from ClusterManager by listening to the Connection-Closed event
-type HostRemover struct {
+type hostRemover struct {
 	address string
 	cluster string
 }
 
-func NewHostRemover(address string, cluster string) *HostRemover {
-	return &HostRemover{address: address, cluster: cluster}
+func NewHostRemover(address string, cluster string) *hostRemover {
+	return &hostRemover{address: address, cluster: cluster}
 }
 
-func (h *HostRemover) OnEvent(event api.ConnectionEvent) {
+func (h *hostRemover) OnEvent(event api.ConnectionEvent) {
 	if event.IsClose() {
 		removeHost(h.address, h.cluster)
 	}
