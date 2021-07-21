@@ -64,8 +64,8 @@ func (t *tunnelFilter) handleRequest(request interface{}) api.FilterStatus {
 	switch request.(type) {
 	case *ConnectionInitInfo:
 		return t.handleConnectionInit(request.(*ConnectionInitInfo))
-	case *GracefulCloseRequest:
-		return t.handleGracefulClose(request.(*GracefulCloseRequest))
+	case *GracefulCloseOnewayRequest:
+		return t.handleGracefulClose(request.(*GracefulCloseOnewayRequest))
 	}
 	return api.Continue
 }
@@ -109,7 +109,7 @@ func (t *tunnelFilter) handleConnectionInit(info *ConnectionInitInfo) api.Filter
 	return api.Stop
 }
 
-func (t *tunnelFilter) handleGracefulClose(request *GracefulCloseRequest) api.FilterStatus {
+func (t *tunnelFilter) handleGracefulClose(request *GracefulCloseOnewayRequest) api.FilterStatus {
 	addresses := request.Addresses
 	for _, address := range addresses {
 		removeHost(address, request.ClusterName)

@@ -56,6 +56,8 @@ type agentBootstrapConfig struct {
 	// ConnectTimeoutDurationMs specifies the timeout for establishing a connection and initializing the agent
 	ConnectTimeoutDurationMs int    `json:"connect_timeout_duration_ms"`
 	CredentialPolicy         string `json:"credential_policy"`
+	// GracefulCloseMaxWaitDurationMs specifies the maximum waiting time to close conn gracefully
+	GracefulCloseMaxWaitDurationMs int `json:"graceful_close_max_wait_duration_ms"`
 }
 
 func init() {
@@ -146,9 +148,10 @@ func bootstrap(conf *agentBootstrapConfig) {
 var connectionMap = &sync.Map{}
 
 var (
-	defaultReconnectBaseDuration  = time.Second * 3
-	defaultConnectTimeoutDuration = time.Second * 15
-	defaultConnectMaxRetryTimes   = -1
+	defaultReconnectBaseDuration     = time.Second * 3
+	defaultConnectTimeoutDuration    = time.Second * 15
+	defaultGracefulCloseWaitDuration = time.Second * 15
+	defaultConnectMaxRetryTimes      = -1
 )
 
 func connectServer(conf *agentBootstrapConfig, address string) {
@@ -157,14 +160,15 @@ func connectServer(conf *agentBootstrapConfig, address string) {
 		return
 	}
 	config := &ConnectionConfig{
-		Address:                 address,
-		ClusterName:             conf.Cluster,
-		Weight:                  10,
-		ReconnectBaseDuration:   time.Duration(conf.ReconnectBaseDurationMs) * time.Millisecond,
-		ConnectTimeoutDuration:  time.Duration(conf.ConnectTimeoutDurationMs) * time.Millisecond,
-		ConnectRetryTimes:       conf.ConnectRetryTimes,
-		CredentialPolicy:        conf.CredentialPolicy,
-		ConnectionNumPerAddress: conf.ConnectionNum,
+		Address:                      address,
+		ClusterName:                  conf.Cluster,
+		Weight:                       10,
+		ReconnectBaseDuration:        time.Duration(conf.ReconnectBaseDurationMs) * time.Millisecond,
+		ConnectTimeoutDuration:       time.Duration(conf.ConnectTimeoutDurationMs) * time.Millisecond,
+		ConnectRetryTimes:            conf.ConnectRetryTimes,
+		CredentialPolicy:             conf.CredentialPolicy,
+		ConnectionNumPerAddress:      conf.ConnectionNum,
+		GracefulCloseMaxWaitDuration: time.Duration(conf.GracefulCloseMaxWaitDurationMs) * time.Millisecond,
 	}
 	if config.Network == "" {
 		config.Network = "tcp"
@@ -177,6 +181,9 @@ func connectServer(conf *agentBootstrapConfig, address string) {
 	}
 	if config.ConnectTimeoutDuration == 0 {
 		config.ConnectTimeoutDuration = defaultConnectTimeoutDuration
+	}
+	if config.GracefulCloseMaxWaitDuration == 0 {
+		config.GracefulCloseMaxWaitDuration = defaultGracefulCloseWaitDuration
 	}
 	peer := &AgentPeer{
 		conf:     config,
@@ -192,11 +199,12 @@ type ConnectionConfig struct {
 	Weight            int64  `json:"weight"`
 	ConnectRetryTimes int    `json:"connect_retry_times"`
 	// ConnectTimeoutDuration specifies the timeout for establishing a connection and initializing the agent
-	ConnectTimeoutDuration  time.Duration `json:"connect_timeout_duration"`
-	Network                 string        `json:"network"`
-	ReconnectBaseDuration   time.Duration `json:"reconnect_base_duration"`
-	CredentialPolicy        string        `json:"credential_policy"`
-	ConnectionNumPerAddress int           `json:"connection_num_per_address"`
+	ConnectTimeoutDuration       time.Duration `json:"connect_timeout_duration"`
+	Network                      string        `json:"network"`
+	ReconnectBaseDuration        time.Duration `json:"reconnect_base_duration"`
+	CredentialPolicy             string        `json:"credential_policy"`
+	ConnectionNumPerAddress      int           `json:"connection_num_per_address"`
+	GracefulCloseMaxWaitDuration time.Duration `json:"graceful_close_max_wait_duration"`
 }
 
 type AgentPeer struct {
@@ -228,12 +236,13 @@ func (a *AgentPeer) initAside() {
 }
 
 func (a *AgentPeer) Stop() {
-	closeWait := time.NewTimer(time.Second * 15)
+	closeWait := time.NewTimer(a.conf.GracefulCloseMaxWaitDuration)
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		if a.asideConn == nil {
 			a.initAside()
 		}
+		// Init aside connection still fails
 		if a.asideConn == nil {
 			return
 		}
@@ -242,12 +251,13 @@ func (a *AgentPeer) Stop() {
 			localAddr := a.connections[i].rawc.LocalAddr().String()
 			addresses = append(addresses, localAddr)
 		}
-		err := a.asideConn.Write(&GracefulCloseRequest{
+		// Send oneway request to notify server server to offline conn gracefully
+		err := a.asideConn.Write(&GracefulCloseOnewayRequest{
 			Addresses:   addresses,
 			ClusterName: a.conf.ClusterName,
 		})
 		if err == nil {
-			a.asideConn.Close()
+			_ = a.asideConn.Close()
 			cancel()
 		}
 	}()
@@ -260,6 +270,7 @@ func (a *AgentPeer) Stop() {
 				log.DefaultLogger.Errorf("[tunnel agent] failed to stop connection, err: %+v", err)
 			}
 		}
+		_ = a.asideConn.Close()
 		closeWait.Stop()
 	case <-ctx.Done():
 		log.DefaultLogger.Infof("[tunnel agent]")

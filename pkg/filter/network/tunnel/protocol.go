@@ -79,7 +79,7 @@ type ConnectionInitResponse struct {
 	Status ConnectStatus `json:"status"`
 }
 
-type GracefulCloseRequest struct {
+type GracefulCloseOnewayRequest struct {
 	Addresses   []string `json:"addresses"`
 	ClusterName string   `json:"cluster_name"`
 }
@@ -92,7 +92,7 @@ func Encode(i interface{}) (buffer.IoBuffer, error) {
 		flag, typ = 0x01, RequestType
 	case *ConnectionInitResponse:
 		flag, typ = 0x02, ResponseType
-	case *GracefulCloseRequest:
+	case *GracefulCloseOnewayRequest:
 		flag, typ = 0x03, RequestType
 	default:
 		return nil, ErrUnRecognizedData
@@ -152,7 +152,7 @@ func DecodeFromBuffer(buffer api.IoBuffer) (interface{}, error) {
 	case 0x02:
 		payloadStruct = &ConnectionInitResponse{}
 	case 0x03:
-		payloadStruct = &GracefulCloseRequest{}
+		payloadStruct = &GracefulCloseOnewayRequest{}
 	default:
 		return nil, ErrUnRecognizedData
 	}
