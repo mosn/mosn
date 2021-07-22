@@ -18,7 +18,6 @@
 package tunnel
 
 import (
-	"context"
 	"encoding/json"
 	"net"
 	"sync"
@@ -237,7 +236,6 @@ func (a *AgentPeer) initAside() {
 
 func (a *AgentPeer) Stop() {
 	closeWait := time.NewTimer(a.conf.GracefulCloseMaxWaitDuration)
-	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
 		if a.asideConn == nil {
 			a.initAside()
@@ -247,8 +245,9 @@ func (a *AgentPeer) Stop() {
 			return
 		}
 		addresses := make([]string, 0, len(a.connections))
-		for i := range a.connections {
-			localAddr := a.connections[i].rawc.LocalAddr().String()
+		for _, conn := range a.connections {
+			localAddr := conn.rawc.LocalAddr().String()
+			conn.PrepareClose()
 			addresses = append(addresses, localAddr)
 		}
 		// Send oneway request to notify server server to offline conn gracefully
@@ -257,12 +256,9 @@ func (a *AgentPeer) Stop() {
 			ClusterName: a.conf.ClusterName,
 		})
 		if err != nil {
-			_ = a.asideConn.Close()
 			log.DefaultLogger.Errorf("[tunnel agent] write graceful close request error, err: %+v", err)
-			return
 		}
 		_ = a.asideConn.Close()
-		cancel()
 	}()
 	select {
 	case <-closeWait.C:
@@ -275,7 +271,5 @@ func (a *AgentPeer) Stop() {
 		}
 		_ = a.asideConn.Close()
 		closeWait.Stop()
-	case <-ctx.Done():
-		log.DefaultLogger.Infof("[tunnel agent]")
 	}
 }

@@ -40,6 +40,8 @@ type BaseRawConnection struct {
 	listener   types.Listener
 	init       func() error
 
+	prepareClose *atomic.Bool
+
 	connectRetryTimes      int
 	reconnectBaseDuration  time.Duration
 	address                string
@@ -84,6 +86,10 @@ func (a *BaseRawConnection) ReadOneMessage() (interface{}, error) {
 			return ret, nil
 		}
 	}
+}
+
+func (a *BaseRawConnection) PrepareClose() {
+	a.prepareClose.Store(true)
 }
 
 func (a *BaseRawConnection) Write(request interface{}) error {
@@ -154,6 +160,10 @@ func (a *BaseRawConnection) OnEvent(event api.ConnectionEvent) {
 		return
 	}
 
+	if a.close.Load() || a.prepareClose.Load() {
+		return
+	}
+
 	utils.GoWithRecover(func() {
 		log.DefaultLogger.Infof("[agent] receive reconnect event, and try to reconnect remote server %v", a.address)
 		err := a.initConnection()
@@ -204,6 +214,7 @@ func NewAgentCoreConnection(config ConnectionConfig, listener types.Listener) *A
 		readBuffer:             buffer.NewIoBuffer(1024),
 		close:                  atomic.NewBool(false),
 		closeChan:              make(chan struct{}),
+		prepareClose:           atomic.NewBool(false),
 		listener:               listener,
 		connectRetryTimes:      config.ConnectRetryTimes,
 		reconnectBaseDuration:  config.ReconnectBaseDuration,
@@ -248,6 +259,7 @@ func NewAgentAsideConnection(config ConnectionConfig, listener types.Listener) *
 	base := BaseRawConnection{
 		readBuffer:             buffer.NewIoBuffer(1024),
 		close:                  atomic.NewBool(false),
+		prepareClose:           atomic.NewBool(false),
 		closeChan:              make(chan struct{}),
 		listener:               listener,
 		connectRetryTimes:      config.ConnectRetryTimes,
