@@ -98,13 +98,13 @@ func (t *tunnelFilter) handleConnectionInit(info *ConnectionInitInfo) api.Filter
 	tunnelHostMutex.Lock()
 	defer tunnelHostMutex.Unlock()
 	snapshot := t.clusterManager.GetClusterSnapshot(context.Background(), info.ClusterName)
-	_ = t.clusterManager.AppendClusterTypesHosts(info.ClusterName, []types.Host{NewTunnelHost(v2.Host{
+	_ = t.clusterManager.AppendClusterTypesHosts(info.ClusterName, []types.Host{NewHost(v2.Host{
 		HostConfig: v2.HostConfig{
 			Address:    conn.RemoteAddr().String(),
 			Hostname:   info.HostName,
 			Weight:     uint32(info.Weight),
 			TLSDisable: false,
-		}}, snapshot.ClusterInfo(), CreateTunnelAgentConnection(conn))})
+		}}, snapshot.ClusterInfo(), CreateAgentBackendConnection(conn))})
 	t.connInitialized = true
 	return api.Stop
 }

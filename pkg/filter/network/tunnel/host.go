@@ -54,7 +54,7 @@ func (t host) Address() net.Addr {
 	return t.conn.RemoteAddr()
 }
 
-func NewTunnelHost(config v2.Host, clusterInfo types.ClusterInfo, connection types.ClientConnection) *host {
+func NewHost(config v2.Host, clusterInfo types.ClusterInfo, connection types.ClientConnection) *host {
 	return &host{
 		Host: cluster.NewSimpleHost(config, clusterInfo),
 		conn: connection,

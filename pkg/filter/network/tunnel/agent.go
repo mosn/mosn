@@ -208,14 +208,14 @@ type ConnectionConfig struct {
 
 type AgentPeer struct {
 	conf        *ConnectionConfig
-	connections []*AgentCoreConnection
+	connections []*AgentClientConnection
 	// asideConn only used to send some control data to server
 	asideConn *AgentAsideConnection
 	listener  types.Listener
 }
 
 func (a *AgentPeer) Start() {
-	connList := make([]*AgentCoreConnection, 0, a.conf.ConnectionNumPerAddress)
+	connList := make([]*AgentClientConnection, 0, a.conf.ConnectionNumPerAddress)
 	for i := 0; i < a.conf.ConnectionNumPerAddress; i++ {
 		conn := NewAgentCoreConnection(*a.conf, a.listener)
 		err := conn.initConnection()
@@ -236,7 +236,7 @@ func (a *AgentPeer) initAside() {
 
 func (a *AgentPeer) Stop() {
 	closeWait := time.NewTimer(a.conf.GracefulCloseMaxWaitDuration)
-	go func() {
+	utils.GoWithRecover(func() {
 		if a.asideConn == nil {
 			a.initAside()
 		}
@@ -259,7 +259,8 @@ func (a *AgentPeer) Stop() {
 			log.DefaultLogger.Errorf("[tunnel agent] write graceful close request error, err: %+v", err)
 		}
 		_ = a.asideConn.Close()
-	}()
+	}, nil)
+
 	select {
 	case <-closeWait.C:
 		log.DefaultLogger.Warnf("[tunnel agent] waiting for graceful closing timeout, try to close directly")

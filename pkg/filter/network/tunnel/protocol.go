@@ -162,6 +162,6 @@ func DecodeFromBuffer(buffer api.IoBuffer) (interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("can't decode payload, err: %+v", err)
 	}
-	buffer.Drain(buffer.Len())
+	buffer.Drain(HeaderLen + int(dataLength))
 	return payloadStruct, nil
 }

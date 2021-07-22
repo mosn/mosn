@@ -24,17 +24,18 @@ import (
 	"mosn.io/mosn/pkg/types"
 )
 
-var _ types.ClientConnection = (*agentConnection)(nil)
+var _ types.ClientConnection = (*agentBackendConnection)(nil)
 
-// agentConnection is a implementation for ClientConnection, provides a mechanism to bind an existing api.Connection
-type agentConnection struct {
+// agentBackendConnection is a implementation for ClientConnection, provides a mechanism to bind an existing api.Connection
+// agentBackendConnection indicates a tunnel agent connection on the server side
+type agentBackendConnection struct {
 	api.Connection
 	once sync.Once
 }
 
 // Connect is a fake operation, it only checks the status of the bound connection
 // and overrides the Connect operation of the api.Connection
-func (cc *agentConnection) Connect() (err error) {
+func (cc *agentBackendConnection) Connect() (err error) {
 	if cc.State() == api.ConnClosed {
 		return errors.New("tunnel channel has been closed")
 	}
@@ -44,8 +45,8 @@ func (cc *agentConnection) Connect() (err error) {
 	return nil
 }
 
-func CreateTunnelAgentConnection(conn api.Connection) *agentConnection {
-	return &agentConnection{
+func CreateAgentBackendConnection(conn api.Connection) *agentBackendConnection {
+	return &agentBackendConnection{
 		Connection: conn,
 	}
 }

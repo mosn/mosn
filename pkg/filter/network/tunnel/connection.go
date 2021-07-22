@@ -32,7 +32,7 @@ import (
 	"mosn.io/pkg/utils"
 )
 
-type BaseRawConnection struct {
+type connection struct {
 	readBuffer buffer.IoBuffer
 	rawc       net.Conn
 	close      *atomic.Bool
@@ -50,7 +50,7 @@ type BaseRawConnection struct {
 	readTimeoutDuration    time.Duration
 }
 
-func (a *BaseRawConnection) doConnect() error {
+func (a *connection) doConnect() error {
 	rawc, err := net.DialTimeout(a.network, a.address, a.connectTimeoutDuration)
 	if err != nil {
 		log.DefaultLogger.Errorf("[agent] failed to connect remote server, address: %v, err: %+v", a.address, err)
@@ -61,7 +61,7 @@ func (a *BaseRawConnection) doConnect() error {
 	return nil
 }
 
-func (a *BaseRawConnection) ReadOneMessage() (interface{}, error) {
+func (a *connection) ReadOneMessage() (interface{}, error) {
 	for {
 		select {
 		case <-a.closeChan:
@@ -88,11 +88,11 @@ func (a *BaseRawConnection) ReadOneMessage() (interface{}, error) {
 	}
 }
 
-func (a *BaseRawConnection) PrepareClose() {
+func (a *connection) PrepareClose() {
 	a.prepareClose.Store(true)
 }
 
-func (a *BaseRawConnection) Write(request interface{}) error {
+func (a *connection) Write(request interface{}) error {
 	b, err := Encode(request)
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (a *BaseRawConnection) Write(request interface{}) error {
 	return err
 }
 
-func (a *BaseRawConnection) Close() error {
+func (a *connection) Close() error {
 	if a.close.CAS(false, true) {
 		close(a.closeChan)
 		if a.rawc == nil {
@@ -121,7 +121,7 @@ func (a *BaseRawConnection) Close() error {
 	return nil
 }
 
-func (a *BaseRawConnection) initConnection() error {
+func (a *connection) initConnection() error {
 	var err error
 	backoffConnectDuration := a.reconnectBaseDuration
 
@@ -149,7 +149,7 @@ func (a *BaseRawConnection) initConnection() error {
 	return nil
 }
 
-func (a *BaseRawConnection) OnEvent(event api.ConnectionEvent) {
+func (a *connection) OnEvent(event api.ConnectionEvent) {
 	switch {
 	case event.IsClose(), event.ConnectFailure():
 		break
@@ -175,10 +175,10 @@ func (a *BaseRawConnection) OnEvent(event api.ConnectionEvent) {
 	}, nil)
 }
 
-// AgentCoreConnection
-type AgentCoreConnection struct {
+// AgentClientConnection indicates a tunnel agent connection on the client side
+type AgentClientConnection struct {
 	ConnectionConfig
-	BaseRawConnection
+	connection
 	readBuffer buffer.IoBuffer
 	rawc       net.Conn
 	listener   types.Listener
@@ -187,7 +187,7 @@ type AgentCoreConnection struct {
 	initInfo   *ConnectionInitInfo
 }
 
-func NewAgentCoreConnection(config ConnectionConfig, listener types.Listener) *AgentCoreConnection {
+func NewAgentCoreConnection(config ConnectionConfig, listener types.Listener) *AgentClientConnection {
 
 	initInfo := &ConnectionInitInfo{
 		ClusterName:      config.ClusterName,
@@ -203,14 +203,14 @@ func NewAgentCoreConnection(config ConnectionConfig, listener types.Listener) *A
 		initInfo.Credential = credentialGetter(config.ClusterName)
 	}
 
-	coreConn := &AgentCoreConnection{
+	coreConn := &AgentClientConnection{
 		ConnectionConfig: config,
 		listener:         listener,
 		initInfo:         initInfo,
 		readBuffer:       buffer.GetIoBuffer(1024),
 		close:            atomic.NewBool(false),
 	}
-	base := BaseRawConnection{
+	base := connection{
 		readBuffer:             buffer.NewIoBuffer(1024),
 		close:                  atomic.NewBool(false),
 		closeChan:              make(chan struct{}),
@@ -224,11 +224,11 @@ func NewAgentCoreConnection(config ConnectionConfig, listener types.Listener) *A
 		readTimeoutDuration:    config.ConnectTimeoutDuration,
 		init:                   coreConn.initAgentCoreConnection,
 	}
-	coreConn.BaseRawConnection = base
+	coreConn.connection = base
 	return coreConn
 }
 
-func (a *AgentCoreConnection) initAgentCoreConnection() error {
+func (a *AgentClientConnection) initAgentCoreConnection() error {
 	if err := a.doConnect(); err != nil {
 		return err
 	}
@@ -250,13 +250,15 @@ func (a *AgentCoreConnection) initAgentCoreConnection() error {
 	return nil
 }
 
+// AgentAsideConnection indicates a connection on the client side.
+// Unlike AgentClientConnection, AgentAsideConnection is only responsible for sending control commands to server, such as GracefulCloseOnewayRequest
 type AgentAsideConnection struct {
-	BaseRawConnection
+	connection
 }
 
 func NewAgentAsideConnection(config ConnectionConfig, listener types.Listener) *AgentAsideConnection {
 	asideConn := &AgentAsideConnection{}
-	base := BaseRawConnection{
+	base := connection{
 		readBuffer:             buffer.NewIoBuffer(1024),
 		close:                  atomic.NewBool(false),
 		prepareClose:           atomic.NewBool(false),
@@ -270,7 +272,7 @@ func NewAgentAsideConnection(config ConnectionConfig, listener types.Listener) *
 		readTimeoutDuration:    config.ConnectTimeoutDuration,
 		init:                   asideConn.initAsideConnection,
 	}
-	asideConn.BaseRawConnection = base
+	asideConn.connection = base
 	return asideConn
 }
 
