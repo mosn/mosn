@@ -2,21 +2,22 @@ package seata
 
 import (
 	"context"
-	"fmt"
-	"net"
+	"encoding/json"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/opentrx/seata-golang/v2/pkg/apis"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
+	v2 "mosn.io/mosn/pkg/config/v2"
+	mgrpc "mosn.io/mosn/pkg/filter/network/grpc"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/buffer"
-	"mosn.io/pkg/utils"
 )
 
 const (
@@ -24,20 +25,67 @@ const (
 	RollbackRequestPath = "tcc_rollback_request_path"
 )
 
-func Init(branchTransactionServicePort int, kaep keepalive.EnforcementPolicy, kasp keepalive.ServerParameters) {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%v", branchTransactionServicePort))
-	if err != nil {
-		log.DefaultLogger.Fatalf("failed to listen: %v", err)
-	}
-	s := grpc.NewServer(grpc.KeepaliveEnforcementPolicy(kaep),
-		grpc.KeepaliveParams(kasp))
-	apis.RegisterBranchTransactionServiceServer(s, &BranchTransactionService{})
+func init() {
+	mgrpc.RegisterServerHandler("seata", NewBranchTransactionServiceServer)
+}
 
-	utils.GoWithRecover(func() {
-		if err := s.Serve(lis); err != nil {
-			log.DefaultLogger.Fatalf("failed to serve: %v", err)
-		}
-	}, nil)
+func getEnforcementPolicy(option *v2.KeepaliveOption) keepalive.EnforcementPolicy {
+	ep := keepalive.EnforcementPolicy{
+		MinTime:             5 * time.Second,
+		PermitWithoutStream: true,
+	}
+	if option.EnforcementPolicy.MinTime > 0 {
+		ep.MinTime = option.EnforcementPolicy.MinTime
+	}
+	ep.PermitWithoutStream = option.EnforcementPolicy.PermitWithoutStream
+	return ep
+}
+
+func getServerParameters(option *v2.KeepaliveOption) keepalive.ServerParameters {
+	sp := keepalive.ServerParameters{
+		MaxConnectionIdle:     15 * time.Second,
+		MaxConnectionAge:      30 * time.Second,
+		MaxConnectionAgeGrace: 5 * time.Second,
+		Time:                  5 * time.Second,
+		Timeout:               time.Second,
+	}
+	if option.ServerParameters.MaxConnectionIdle > 0 {
+		sp.MaxConnectionIdle = option.ServerParameters.MaxConnectionIdle
+	}
+	if option.ServerParameters.MaxConnectionAge > 0 {
+		sp.MaxConnectionAge = option.ServerParameters.MaxConnectionAge
+	}
+	if option.ServerParameters.MaxConnectionAgeGrace > 0 {
+		sp.MaxConnectionAgeGrace = option.ServerParameters.MaxConnectionAgeGrace
+	}
+	if option.ServerParameters.Time > 0 {
+		sp.Time = option.ServerParameters.Time
+	}
+	if option.ServerParameters.Timeout > 0 {
+		sp.Timeout = option.ServerParameters.Timeout
+	}
+	return sp
+}
+
+func parseKeepaliveOption(conf json.RawMessage) (*v2.KeepaliveOption, error) {
+	data, _ := json.Marshal(conf)
+	v := &v2.KeepaliveOption{}
+	err := json.Unmarshal(data, v)
+	return v, err
+}
+
+func NewBranchTransactionServiceServer(conf json.RawMessage, options ...grpc.ServerOption) (mgrpc.RegisteredServer, error) {
+	keepaliveOption, err := parseKeepaliveOption(conf)
+	if err != nil {
+		return nil, err
+	}
+	kaep := getEnforcementPolicy(keepaliveOption)
+	kasp := getServerParameters(keepaliveOption)
+
+	ops := append(options, grpc.KeepaliveEnforcementPolicy(kaep), grpc.KeepaliveParams(kasp))
+	s := grpc.NewServer(ops...)
+	apis.RegisterBranchTransactionServiceServer(s, &BranchTransactionService{})
+	return s, nil
 }
 
 // BranchTransactionService when global transaction commit, transaction coordinator callback to commit branch transaction,

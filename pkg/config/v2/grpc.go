@@ -19,34 +19,10 @@ package v2
 
 import (
 	"encoding/json"
-	"mosn.io/api"
 	"time"
 )
 
-var GrpcDefaultGracefulStopTimeout = time.Second * 30
-
 type GRPC struct {
-	GRPCConfig
-	// GracefulStopTimeout grpc server graceful stop timeout
-	GracefulStopTimeout time.Duration `json:"-"`
-}
-
-func (g *GRPC) MarshalJSON() (b []byte, err error) {
-	g.GRPCConfig.GracefulStopTimeoutConfig.Duration = g.GracefulStopTimeout
-	return json.Marshal(g.GRPCConfig)
-}
-
-func (g *GRPC) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &g.GRPCConfig); err != nil {
-		return err
-	}
-	g.GracefulStopTimeout = g.GRPCConfig.GracefulStopTimeoutConfig.Duration
-	return nil
-}
-
-type GRPCConfig struct {
-	// GracefulStopTimeoutConfig grpc server graceful stop timeout
-	GracefulStopTimeoutConfig api.DurationConfig `json:"graceful_stop_timeout"`
 	// ServerName determines which registered grpc server is used.
 	// A server_name should be used only once.
 	ServerName string `json:"server_name"`
@@ -55,3 +31,17 @@ type GRPCConfig struct {
 	GrpcConfig json.RawMessage `json:"grpc_config"`
 }
 
+type KeepaliveOption struct {
+	EnforcementPolicy struct {
+		MinTime             time.Duration `json:"minTime"`
+		PermitWithoutStream bool          `json:"permitWithoutStream"`
+	} `json:"enforcementPolicy"`
+
+	ServerParameters struct {
+		MaxConnectionIdle     time.Duration `json:"maxConnectionIdle"`
+		MaxConnectionAge      time.Duration `json:"maxConnectionAge"`
+		MaxConnectionAgeGrace time.Duration `json:"maxConnectionAgeGrace"`
+		Time                  time.Duration `json:"time"`
+		Timeout               time.Duration `json:"timeout"`
+	} `json:"serverParameters"`
+}

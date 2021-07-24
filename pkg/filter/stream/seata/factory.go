@@ -24,7 +24,7 @@ func (f *factory) CreateFilterChain(context context.Context, callbacks api.Strea
 		callbacks.AddStreamReceiverFilter(filter, api.BeforeRoute)
 		callbacks.AddStreamSenderFilter(filter, api.BeforeSend)
 	} else {
-		log.DefaultLogger.Fatalf("failed to init seata filter, err: %v", err)
+		log.DefaultLogger.Errorf("failed to init seata filter, err: %v", err)
 	}
 }
 

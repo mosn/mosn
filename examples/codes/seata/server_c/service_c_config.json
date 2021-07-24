@@ -1,6 +1,5 @@
 {
 	"close_graceful" : true,
-	"branchTransactionServicePort": 3048,
 	"servers":[
 		{
 			"default_log_path":"stdout",
@@ -52,6 +51,23 @@
 									}
 								]
 							}
+						}
+					]
+				},
+				{
+					"name":"seataListener",
+					"address": "127.0.0.1:3048",
+					"bind_port": true,
+					"filter_chains": [
+						{
+							"filters": [
+								{
+									"type": "grpc",
+									"config": {
+										"server_name": "seata"
+									}
+								}
+							]
 						}
 					]
 				}
