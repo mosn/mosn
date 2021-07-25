@@ -143,6 +143,9 @@ type ListenerEventListener interface {
 	// OnClose is called on listener close
 	OnClose()
 
+	// OnPostClose is called on listener post close
+	OnPostClose()
+
 	// PreStopHook is called on listener quit(but before closed)
 	PreStopHook(ctx context.Context) func() error
 }

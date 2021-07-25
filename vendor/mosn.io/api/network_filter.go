@@ -101,4 +101,12 @@ type NetworkFilterChainFactory interface {
 // FactoryInitializer represents a filter Factory needs to be inited before called.
 type FactoryInitializer interface {
 	Init(interface{}) error
+	Close(NetworkFilterClosePhase) error
 }
+
+type NetworkFilterClosePhase int
+
+const (
+	BeforeListenerClose NetworkFilterClosePhase = iota
+	PostListenerClose
+)
