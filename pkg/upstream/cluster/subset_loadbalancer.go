@@ -85,6 +85,9 @@ func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int 
 		matchCriteria := metadata.MetadataMatchCriteria()
 		entry := sslb.findSubset(matchCriteria)
 		if entry == nil {
+			if sslb.fallbackSubset != nil {
+				return sslb.fallbackSubset.LoadBalancer().HostNum(metadata)
+			}
 			return 0
 		}
 		return entry.HostNum()

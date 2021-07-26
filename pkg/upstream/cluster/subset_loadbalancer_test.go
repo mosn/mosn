@@ -24,8 +24,9 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -716,4 +717,49 @@ func TestDynamicSubsetHost(t *testing.T) {
 		}
 	}
 
+}
+
+func TestFallbackAny(t *testing.T) {
+	// use cluster manager to register dynamic host changed
+	clusterName := "TestSubset"
+	hostA := &mockHost{
+		addr: "127.0.0.1:8080",
+		name: "A",
+		meta: api.Metadata{
+			"zone":  "zone0",
+			"group": "a",
+		},
+	}
+	hostB := &mockHost{
+		addr: "127.0.0.1:8081",
+		name: "B",
+		meta: api.Metadata{
+			"zone":  "zone0",
+			"group": "b",
+		},
+	}
+	clusterConfig := v2.Cluster{
+		Name:                 clusterName,
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_RANDOM,
+		MaxRequestPerConn:    1024,
+		ConnBufferLimitBytes: 1024,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: uint8(types.AnyEndPoint),
+			SubsetSelectors: [][]string{
+				[]string{"group"},
+				[]string{"zone"},
+			},
+		},
+	}
+	cluster := newSimpleCluster(clusterConfig).(*simpleCluster)
+	cluster.UpdateHosts([]types.Host{hostA, hostB})
+	lb := cluster.lbInstance.(*subsetLoadBalancer)
+	ctx := newMockLbContext(map[string]string{
+		"zone":  "zone0",
+		"group": "a",
+	})
+
+	// should run into fallback policy: AnyEndPoint, and return all 2 hosts
+	assert.Equal(t, 2, lb.HostNum(ctx.MetadataMatchCriteria()))
 }
