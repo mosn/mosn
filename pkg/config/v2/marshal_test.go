@@ -22,9 +22,6 @@ import (
 	"strings"
 	"testing"
 	"time"
-
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 )
 
 func TestFaultInjectMarshal(t *testing.T) {
@@ -50,21 +47,5 @@ func TestDelayInjectMarshal(t *testing.T) {
 	}
 	if !strings.Contains(string(b), `"fixed_delay":"1s"`) {
 		t.Fatalf("unexpected output: %s", string(b))
-	}
-}
-
-func TestSecretConfigWrapperMarshal(t *testing.T) {
-	sw := &SecretConfigWrapper{
-		Config: &auth.SdsSecretConfig{
-			Name:      "sds",
-			SdsConfig: &core.ConfigSource{},
-		},
-	}
-	b, err := json.Marshal(sw)
-	if err != nil {
-		t.Fatal(err)
-		if !strings.Contains(string(b), "sdsConfig") {
-			t.Fatalf("unexpected output: %s", string(b))
-		}
 	}
 }

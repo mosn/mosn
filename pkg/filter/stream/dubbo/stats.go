@@ -4,9 +4,9 @@ import (
 	"sync"
 
 	gometrics "github.com/rcrowley/go-metrics"
+	"mosn.io/mosn/pkg/istio"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/metrics"
-	"mosn.io/mosn/pkg/types"
 )
 
 var (
@@ -57,7 +57,7 @@ func getStats(listener, service, method string) *Stats {
 		methodKey:   method,
 	}
 	if podSubsetKey != "" {
-		pl := types.GetPodLabels()
+		pl := istio.GetPodLabels()
 		if pl[podSubsetKey] != "" {
 			lables[subsetKey] = pl[podSubsetKey]
 		}

@@ -12,3 +12,13 @@ for d in $(go list ./pkg/...  | grep -v pkg/networkextention); do
         rm profile.out
     fi
 done
+
+for d in $(go list ./istio/istio152/...); do
+    echo "--------Run test package: $d"
+    GO111MODULE=off go test -gcflags=-l -v -coverprofile=profile.out -covermode=atomic $d
+    echo "--------Finish test package: $d"
+    if [ -f profile.out ]; then
+	cat profile.out >> coverage.txt
+	rm profile.out
+    fi
+done
