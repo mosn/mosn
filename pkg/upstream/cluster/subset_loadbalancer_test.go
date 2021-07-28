@@ -762,4 +762,5 @@ func TestFallbackAny(t *testing.T) {
 
 	// should run into fallback policy: AnyEndPoint, and return all 2 hosts
 	assert.Equal(t, 2, lb.HostNum(ctx.MetadataMatchCriteria()))
+	assert.True(t, lb.IsExistsHosts(ctx.MetadataMatchCriteria()))
 }

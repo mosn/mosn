@@ -74,6 +74,9 @@ func (sslb *subsetLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria
 	if metadata != nil && !reflect.ValueOf(metadata).IsNil() {
 		matchCriteria := metadata.MetadataMatchCriteria()
 		entry := sslb.findSubset(matchCriteria)
+		if entry == nil && sslb.fallbackSubset != nil {
+			return sslb.fallbackSubset.LoadBalancer().IsExistsHosts(metadata)
+		}
 		empty := (entry == nil || !entry.Active())
 		return !empty
 	}
