@@ -96,7 +96,7 @@ func TestClusterManagerFromConfig(t *testing.T) {
 	mockLb5 := newMockLbContext(map[string]string{
 		"zone": "a",
 	})
-	if snap.IsExistsHosts(mockLb5.MetadataMatchCriteria()) {
+	if !snap.IsExistsHosts(mockLb5.MetadataMatchCriteria()) {
 		t.Fatal("host not exists is not expected")
 	}
 }
@@ -325,13 +325,13 @@ func TestClusterUpdateHostsWithSnapshot(t *testing.T) {
 		},
 	})
 	newSnap := GetClusterMngAdapterInstance().GetClusterSnapshot(context.Background(), "test1")
-	if !(!oldSnap.IsExistsHosts(mockLb1.MetadataMatchCriteria()) &&
+	if !(oldSnap.IsExistsHosts(mockLb1.MetadataMatchCriteria()) &&
 		oldSnap.IsExistsHosts(mockLb2.MetadataMatchCriteria()) &&
-		!oldSnap.IsExistsHosts(mockLb3.MetadataMatchCriteria())) {
+		oldSnap.IsExistsHosts(mockLb3.MetadataMatchCriteria())) {
 		t.Fatal("old snapshot is changed")
 	}
 	if !(newSnap.IsExistsHosts(mockLb1.MetadataMatchCriteria()) &&
-		!newSnap.IsExistsHosts(mockLb2.MetadataMatchCriteria()) &&
+		newSnap.IsExistsHosts(mockLb2.MetadataMatchCriteria()) &&
 		newSnap.IsExistsHosts(mockLb3.MetadataMatchCriteria())) {
 		t.Fatal("new snapshot is not expected")
 	}
