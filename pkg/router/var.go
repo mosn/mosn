@@ -24,13 +24,14 @@ import (
 
 var (
 	builtinVariables = []variable.Variable{
-		variable.NewIndexedVariable(types.VarInternalRouterCluster, nil, nil, variable.BasicSetter, 0),
+		// value type of VarRouterMeta should be map[string]string
+		variable.NewVariable(types.VarRouterMeta, nil, nil, variable.DefaultSetter, 0),
 	}
 )
 
 func init() {
 	// register built-in variables
 	for idx := range builtinVariables {
-		variable.RegisterVariable(builtinVariables[idx])
+		variable.Register(builtinVariables[idx])
 	}
 }

@@ -56,7 +56,7 @@ func TestDirectResponse(t *testing.T) {
 
 	// set direct response
 	ctx := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx, types.VarProxyIsDirectResponse, types.IsDirectResponse)
+	variable.SetString(ctx, types.VarProxyIsDirectResponse, types.IsDirectResponse)
 
 	reqbodybuf := buffer.NewIoBufferString("1234567890")
 	respbodybuf := buffer.NewIoBufferString("12345")

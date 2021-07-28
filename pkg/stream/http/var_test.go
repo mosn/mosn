@@ -61,7 +61,7 @@ func prepareRequest(t *testing.T, requestBytes []byte) context.Context {
 func Test_get_scheme(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx, fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestScheme))
+	actual, err := variable.GetString(ctx, fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestScheme))
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
@@ -75,7 +75,7 @@ func Test_get_scheme(t *testing.T) {
 func Test_get_request_length_and_method(t *testing.T) {
 	ctx := prepareRequest(t, postRequestBytes)
 
-	requestLen, err := variable.GetVariableValue(ctx, types.VarHttpRequestLength)
+	requestLen, err := variable.GetString(ctx, types.VarHttpRequestLength)
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
@@ -85,7 +85,7 @@ func Test_get_request_length_and_method(t *testing.T) {
 		t.Error("request length assert failed, expected:", expected, ", actual is: ", requestLen)
 	}
 
-	requestMethod, err := variable.GetVariableValue(ctx, types.VarHttpRequestMethod)
+	requestMethod, err := variable.GetString(ctx, types.VarHttpRequestMethod)
 	if err != nil {
 		t.Error("get variable failed:", err)
 	}
@@ -97,7 +97,7 @@ func Test_get_request_length_and_method(t *testing.T) {
 func Test_get_header(t *testing.T) {
 	ctx := prepareRequest(t, postRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx,
+	actual, err := variable.GetString(ctx,
 		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolRequestHeader, "scene"))
 	if err != nil {
 		t.Error("get variable failed:", err)
@@ -111,7 +111,7 @@ func Test_get_header(t *testing.T) {
 func Test_get_arg(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx,
+	actual, err := variable.GetString(ctx,
 		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolRequestArgPrefix, "type"))
 	if err != nil {
 		t.Error("get variable failed:", err)
@@ -125,7 +125,7 @@ func Test_get_arg(t *testing.T) {
 func Test_get_cookie(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx,
+	actual, err := variable.GetString(ctx,
 		fmt.Sprintf("%s_%s%s", protocol.HTTP1, types.VarProtocolCookie, "zone"))
 	if err != nil {
 		t.Error("get variable failed:", err)
@@ -139,7 +139,7 @@ func Test_get_cookie(t *testing.T) {
 func Test_get_path(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx,
+	actual, err := variable.GetString(ctx,
 		fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestPath))
 	if err != nil {
 		t.Error("get variable failed:", err)
@@ -154,7 +154,7 @@ func Test_get_path(t *testing.T) {
 func Test_get_uri(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx,
+	actual, err := variable.GetString(ctx,
 		fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestUri))
 	if err != nil {
 		t.Error("get variable failed:", err)
@@ -169,7 +169,7 @@ func Test_get_uri(t *testing.T) {
 func Test_get_allarg(t *testing.T) {
 	ctx := prepareRequest(t, getRequestBytes)
 
-	actual, err := variable.GetVariableValue(ctx,
+	actual, err := variable.GetString(ctx,
 		fmt.Sprintf("%s_%s", protocol.HTTP1, types.VarProtocolRequestArg))
 	if err != nil {
 		t.Error("get variable failed:", err)
@@ -260,7 +260,7 @@ func Benchmark_get_request_length(b *testing.B) {
 	ctx := prepareBenchmarkRequest(b, getRequestBytes)
 
 	for i := 0; i < b.N; i++ {
-		_, err := variable.GetVariableValue(ctx, "http_request_length")
+		_, err := variable.GetString(ctx, "http_request_length")
 		if err != nil {
 			b.Error("get variable failed:", err)
 		}
@@ -271,7 +271,7 @@ func Benchmark_get_http_header_without_add(b *testing.B) {
 	ctx := prepareBenchmarkRequest(b, getRequestBytes)
 
 	for i := 0; i < b.N; i++ {
-		_, err := variable.GetVariableValue(ctx, "http_header_scene")
+		_, err := variable.GetString(ctx, "http_header_scene")
 		if err != nil {
 			b.Error("get variable failed:", err)
 		}
@@ -279,11 +279,11 @@ func Benchmark_get_http_header_without_add(b *testing.B) {
 }
 
 func Benchmark_get_http_header_with_add(b *testing.B) {
-	variable.AddVariable("http_header_scene")
+	variable.Check("http_header_scene")
 	ctx := prepareBenchmarkRequest(b, getRequestBytes)
 
 	for i := 0; i < b.N; i++ {
-		_, err := variable.GetVariableValue(ctx, "http_header_scene")
+		_, err := variable.GetString(ctx, "http_header_scene")
 		if err != nil {
 			b.Error("get variable failed:", err)
 		}

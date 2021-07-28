@@ -76,7 +76,7 @@ func (le *logEntry) log(ctx context.Context, buf buffer.IoBuffer) {
 	if le.text != "" {
 		buf.WriteString(le.text)
 	} else {
-		value, err := variable.GetVariableValue(ctx, le.name)
+		value, err := variable.GetString(ctx, le.name)
 		if err != nil {
 			buf.WriteString(variable.ValueNotFound)
 		} else {
@@ -155,7 +155,7 @@ func parseFormat(format string) ([]*logEntry, error) {
 
 					// var def ends, add variable
 					varName := format[lastMark+1 : pos]
-					_, err := variable.AddVariable(varName)
+					_, err := variable.Check(varName)
 					if err != nil {
 						// adapte istio unknow fields
 						entries = append(entries, &logEntry{text: UnknowDefaultValue})
