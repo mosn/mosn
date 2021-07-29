@@ -21,17 +21,19 @@ import (
 	"encoding/json"
 	"net"
 	"sync"
+	"syscall"
 	"time"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/filter/network/tunnel/ext"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/server"
+	"mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/pkg/utils"
 )
 
-type agentBootstrapConfig struct {
+type AgentBootstrapConfig struct {
 	Enable bool `json:"enable"`
 	// The number of connections established between the agent and each server
 	ConnectionNum int `json:"connection_num"`
@@ -61,7 +63,7 @@ type agentBootstrapConfig struct {
 
 func init() {
 	v2.RegisterParseExtendConfig("tunnel_agent", func(config json.RawMessage) error {
-		var conf agentBootstrapConfig
+		var conf AgentBootstrapConfig
 		err := json.Unmarshal(config, &conf)
 		if err != nil {
 			log.DefaultLogger.Errorf("[tunnel agent] failed to parse agent bootstrap config: %v", err.Error())
@@ -72,23 +74,39 @@ func init() {
 				bootstrap(&conf)
 			}, nil)
 
+			keeper.AddSignalCallback(func() {
+				utils.GoWithRecover(func() {
+					close(stopChan)
+					peerMap.Range(func(key, value interface{}) bool {
+						value.(*AgentPeer).Stop()
+						return true
+					})
+				}, nil)
+			}, syscall.SIGINT, syscall.SIGTERM)
+
 		}
 		return nil
 	})
 }
 
-func bootstrap(conf *agentBootstrapConfig) {
+var stopChan = make(chan struct{})
+
+func bootstrap(conf *AgentBootstrapConfig) {
+
 	if conf.DynamicServerListConfig.DynamicServerLister != "" {
 		utils.GoWithRecover(func() {
 			lister := ext.GetServerLister(conf.DynamicServerListConfig.DynamicServerLister)
 			ch := lister.List(conf.Cluster)
 			for {
 				select {
+				case <-stopChan:
+					log.DefaultLogger.Infof("[tunnel agent] agent has been stopped, lister exit")
+					return
 				case servers := <-ch:
 					// Compute the diff between new and old server list
 					intersection := make(map[string]bool)
 					for i := range servers {
-						if _, ok := connectionMap.Load(servers[i]); ok {
+						if _, ok := peerMap.Load(servers[i]); ok {
 							intersection[servers[i]] = true
 						}
 					}
@@ -96,13 +114,15 @@ func bootstrap(conf *agentBootstrapConfig) {
 					for _, addr := range servers {
 						if _, ok := intersection[addr]; !ok {
 							increased = append(increased, addr)
-							utils.GoWithRecover(func() {
-								connectServer(conf, addr)
-							}, nil)
+							func(address string) {
+								utils.GoWithRecover(func() {
+									connectServer(conf, address)
+								}, nil)
+							}(addr)
 						}
 					}
 					decreased := make([]string, 0)
-					connectionMap.Range(func(key, value interface{}) bool {
+					peerMap.Range(func(key, value interface{}) bool {
 						addr := key.(string)
 						_, ok := intersection[addr]
 						if !ok {
@@ -111,14 +131,17 @@ func bootstrap(conf *agentBootstrapConfig) {
 						return true
 					})
 					for _, addr := range decreased {
-						val, ok := connectionMap.Load(addr)
+						val, ok := peerMap.Load(addr)
 						if !ok {
 							continue
 						}
-						utils.GoWithRecover(func() {
-							val.(*AgentPeer).Stop()
-						}, nil)
-						connectionMap.Delete(addr)
+						func(a *AgentPeer){
+							utils.GoWithRecover(func() {
+								a.Stop()
+							}, nil)
+						}(val.(*AgentPeer))
+
+						peerMap.Delete(addr)
 					}
 					log.DefaultLogger.Infof("[tunnel agent] tunnel server list changed, update success, increased: %+v, decreased: %+v", increased, decreased)
 
@@ -137,14 +160,16 @@ func bootstrap(conf *agentBootstrapConfig) {
 			log.DefaultLogger.Fatalf("[tunnel agent] failed to lookup host by domain: %v", host)
 		}
 		for _, addr := range addrs {
-			utils.GoWithRecover(func() {
-				connectServer(conf, net.JoinHostPort(addr, port))
-			}, nil)
+			func(address string) {
+				utils.GoWithRecover(func() {
+					connectServer(conf, net.JoinHostPort(address, port))
+				}, nil)
+			}(addr)
 		}
 	}
 }
 
-var connectionMap = &sync.Map{}
+var peerMap = &sync.Map{}
 
 var (
 	defaultReconnectBaseDuration     = time.Second * 3
@@ -153,7 +178,7 @@ var (
 	defaultConnectMaxRetryTimes      = -1
 )
 
-func connectServer(conf *agentBootstrapConfig, address string) {
+func connectServer(conf *AgentBootstrapConfig, address string) {
 	listener := server.GetServer().Handler().FindListenerByName(conf.HostingListener)
 	if listener == nil {
 		return
@@ -189,7 +214,7 @@ func connectServer(conf *agentBootstrapConfig, address string) {
 		listener: listener,
 	}
 	peer.Start()
-	connectionMap.Store(address, peer)
+	peerMap.Store(address, peer)
 }
 
 type ConnectionConfig struct {
@@ -223,6 +248,8 @@ func (a *AgentPeer) Start() {
 			connList = append(connList, conn)
 		}
 	}
+	a.connections = connList
+	a.initAside()
 }
 
 func (a *AgentPeer) initAside() {

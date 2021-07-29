@@ -180,7 +180,6 @@ type AgentClientConnection struct {
 	ConnectionConfig
 	connection
 	readBuffer buffer.IoBuffer
-	rawc       net.Conn
 	listener   types.Listener
 	close      *atomic.Bool
 	closeChan  chan struct{}

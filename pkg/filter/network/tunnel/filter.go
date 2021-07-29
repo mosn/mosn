@@ -126,7 +126,7 @@ func (t *tunnelFilter) InitializeReadFilterCallbacks(cb api.ReadFilterCallbacks)
 }
 
 func writeConnectResponse(status ConnectStatus, conn api.Connection) error {
-	log.DefaultLogger.Debugf("[tunnel server] try to write response, connect status: %v", status)
+	log.DefaultLogger.Infof("[tunnel server] try to write response, connect status: %v", status)
 	buffer, err := Encode(&ConnectionInitResponse{Status: status})
 	if err != nil {
 		log.DefaultLogger.Errorf("[tunnel server] failed to encode response, err: %+v", err)
