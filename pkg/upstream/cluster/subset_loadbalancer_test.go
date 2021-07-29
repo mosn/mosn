@@ -24,11 +24,8 @@ import (
 	"sync"
 	"testing"
 
-<<<<<<< HEAD
 	"github.com/stretchr/testify/assert"
-=======
 	"github.com/stretchr/testify/require"
->>>>>>> master
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
