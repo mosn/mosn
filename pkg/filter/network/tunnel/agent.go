@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"net"
 	"sync"
-	"syscall"
 	"time"
 
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -74,22 +73,24 @@ func init() {
 				bootstrap(&conf)
 			}, nil)
 
-			keeper.AddSignalCallback(func() {
-				utils.GoWithRecover(func() {
-					close(stopChan)
-					peerMap.Range(func(key, value interface{}) bool {
-						value.(*AgentPeer).Stop()
-						return true
-					})
-				}, nil)
-			}, syscall.SIGINT, syscall.SIGTERM)
-
+			keeper.OnProcessShutDown(func() error {
+				utils.GoWithRecover(stopAllPeers, nil)
+				return nil
+			})
 		}
 		return nil
 	})
 }
 
 var stopChan = make(chan struct{})
+
+func stopAllPeers() {
+	close(stopChan)
+	peerMap.Range(func(key, value interface{}) bool {
+		value.(*AgentPeer).Stop()
+		return true
+	})
+}
 
 func bootstrap(conf *AgentBootstrapConfig) {
 
@@ -135,7 +136,7 @@ func bootstrap(conf *AgentBootstrapConfig) {
 						if !ok {
 							continue
 						}
-						func(a *AgentPeer){
+						func(a *AgentPeer) {
 							utils.GoWithRecover(func() {
 								a.Stop()
 							}, nil)
