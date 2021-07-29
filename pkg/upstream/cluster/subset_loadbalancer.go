@@ -73,35 +73,39 @@ func (sslb *subsetLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.
 func (sslb *subsetLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
 	if metadata != nil && !reflect.ValueOf(metadata).IsNil() {
 		matchCriteria := metadata.MetadataMatchCriteria()
+
 		entry := sslb.findSubset(matchCriteria)
-		if entry == nil && sslb.fallbackSubset != nil {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [subset lb] IsExistsHosts entry is nil, do fallback")
-			}
-			return sslb.fallbackSubset.LoadBalancer().IsExistsHosts(metadata)
+		if entry != nil && entry.Active() {
+			return true
 		}
-		empty := (entry == nil || !entry.Active())
-		return !empty
 	}
-	return len(sslb.hostSet.Hosts()) > 0
+
+	if sslb.fallbackSubset == nil {
+		log.DefaultLogger.Errorf("[upstream] [subset lb] IsExistsHosts failure, fallback subset is nil")
+		return false
+	}
+
+	return sslb.fallbackSubset.LoadBalancer().IsExistsHosts(metadata)
 }
 
 func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 	if metadata != nil && !reflect.ValueOf(metadata).IsNil() {
 		matchCriteria := metadata.MetadataMatchCriteria()
+
 		entry := sslb.findSubset(matchCriteria)
-		if entry == nil && sslb.fallbackSubset != nil {
-			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-				log.DefaultLogger.Debugf("[upstream] [subset lb] HostNum entry is nil, do fallback")
-			}
-			return sslb.fallbackSubset.LoadBalancer().HostNum(metadata)
+		if entry != nil && entry.Active() {
+			return entry.HostNum()
 		}
-		if entry == nil || !entry.Active() {
-			return 0
-		}
-		return entry.HostNum()
 	}
-	return len(sslb.hostSet.Hosts())
+
+	if sslb.fallbackSubset == nil {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Errorf("[upstream] [subset lb] HostNum failure, fallback subset is nil")
+		}
+		return 0
+	}
+
+	return sslb.fallbackSubset.LoadBalancer().HostNum(metadata)
 }
 
 func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerContext) (types.Host, bool) {
