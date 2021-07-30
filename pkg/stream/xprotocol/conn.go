@@ -298,7 +298,10 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 	}
 
 	// inject timeout
-	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(frame.GetTimeout())))
+	// if Timeout is zero, do not set the variable, which makes route timeout config can be activated
+	if frame.GetTimeout() != 0 {
+		variable.SetString(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(frame.GetTimeout())))
+	}
 
 	// 3. create server stream
 	serverStream := sc.newServerStream(ctx, frame)
@@ -323,8 +326,8 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 		serviceName := aware.GetServiceName()
 		methodName := aware.GetMethodName()
 
-		variable.SetVariableValue(ctx, types.VarHeaderRPCService, serviceName)
-		variable.SetVariableValue(ctx, types.VarHeaderRPCMethod, methodName)
+		variable.SetString(ctx, types.VarHeaderRPCService, serviceName)
+		variable.SetString(ctx, types.VarHeaderRPCMethod, methodName)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] frame service aware, requestId = %v, serviceName = %v , methodName = %v", serverStream.id, serviceName, methodName)

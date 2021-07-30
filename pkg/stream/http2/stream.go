@@ -339,15 +339,15 @@ func (conn *serverStreamConnection) handleFrame(ctx context.Context, i interface
 
 		h2s.Request.URL.Scheme = strings.ToLower(scheme)
 
-		variable.SetVariableValue(ctx, types.VarScheme, scheme)
-		variable.SetVariableValue(ctx, types.VarMethod, h2s.Request.Method)
-		variable.SetVariableValue(ctx, types.VarHost, h2s.Request.Host)
-		variable.SetVariableValue(ctx, types.VarIstioHeaderHost, h2s.Request.Host) // be consistent with http1
-		variable.SetVariableValue(ctx, types.VarPath, h2s.Request.URL.Path)
-		variable.SetVariableValue(ctx, types.VarPathOriginal, h2s.Request.URL.EscapedPath())
+		variable.SetString(ctx, types.VarScheme, scheme)
+		variable.SetString(ctx, types.VarMethod, h2s.Request.Method)
+		variable.SetString(ctx, types.VarHost, h2s.Request.Host)
+		variable.SetString(ctx, types.VarIstioHeaderHost, h2s.Request.Host) // be consistent with http1
+		variable.SetString(ctx, types.VarPath, h2s.Request.URL.Path)
+		variable.SetString(ctx, types.VarPathOriginal, h2s.Request.URL.EscapedPath())
 
 		if h2s.Request.URL.RawQuery != "" {
-			variable.SetVariableValue(ctx, types.VarQueryString, h2s.Request.URL.RawQuery)
+			variable.SetString(ctx, types.VarQueryString, h2s.Request.URL.RawQuery)
 		}
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
@@ -490,7 +490,7 @@ func (s *serverStream) AppendHeaders(ctx context.Context, headers api.HeaderMap,
 
 	var status int
 
-	value, err := variable.GetVariableValue(ctx, types.VarHeaderStatus)
+	value, err := variable.GetString(ctx, types.VarHeaderStatus)
 	if err != nil || value == "" {
 		status = 200
 	} else {
@@ -575,7 +575,7 @@ func (s *serverStream) GetStream() types.Stream {
 func (s *serverStream) endStream() {
 	if s.h2s.SendData != nil {
 		// Need to reset the 'Content-Length' response header when it's a direct response.
-		isDirectResponse, _ := variable.GetVariableValue(s.ctx, types.VarProxyIsDirectResponse)
+		isDirectResponse, _ := variable.GetString(s.ctx, types.VarProxyIsDirectResponse)
 		if isDirectResponse == types.IsDirectResponse {
 			s.h2s.Response.Header.Set("Content-Length", strconv.Itoa(s.h2s.SendData.Len()))
 		}
@@ -772,7 +772,7 @@ func (conn *clientStreamConnection) handleFrame(ctx context.Context, i interface
 		header := mhttp2.NewRspHeader(rsp)
 
 		// set header-status into stream ctx
-		variable.SetVariableValue(stream.ctx, types.VarHeaderStatus, strconv.Itoa(rsp.StatusCode))
+		variable.SetString(stream.ctx, types.VarHeaderStatus, strconv.Itoa(rsp.StatusCode))
 
 		mbuffer.TransmitBufferPoolContext(stream.ctx, ctx)
 
@@ -893,7 +893,7 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	}
 
 	var method string
-	method, err := variable.GetVariableValue(ctx, types.VarMethod)
+	method, err := variable.GetString(ctx, types.VarMethod)
 	if err != nil || method == "" {
 		if endStream {
 			method = http.MethodGet
@@ -903,7 +903,7 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 	}
 
 	var host string
-	h, err := variable.GetVariableValue(ctx, types.VarHost)
+	h, err := variable.GetString(ctx, types.VarHost)
 	if err == nil && h != "" {
 		host = h
 	} else if h, ok := headersIn.Get("Host"); ok {
@@ -912,18 +912,18 @@ func (s *clientStream) AppendHeaders(ctx context.Context, headersIn api.HeaderMa
 		host = s.conn.RemoteAddr().String()
 	}
 
-	if h, err := variable.GetVariableValue(ctx, types.VarIstioHeaderHost); err != nil && h != "" { // be consistent with http1
+	if h, err := variable.GetString(ctx, types.VarIstioHeaderHost); err != nil && h != "" { // be consistent with http1
 		host = h
 	}
 
 	var path string
-	path, _ = variable.GetVariableValue(ctx, types.VarPath)
+	path, _ = variable.GetString(ctx, types.VarPath)
 
 	var pathOriginal string
-	pathOriginal, _ = variable.GetVariableValue(ctx, types.VarPathOriginal)
+	pathOriginal, _ = variable.GetString(ctx, types.VarPathOriginal)
 
 	var query string
-	query, _ = variable.GetVariableValue(ctx, types.VarQueryString)
+	query, _ = variable.GetString(ctx, types.VarQueryString)
 
 	URL := &url.URL{
 		Scheme:   scheme,
@@ -1021,9 +1021,14 @@ reset:
 	log.Proxy.Errorf(s.ctx, "http2 client endStream error = %v", err)
 	if err == types.ErrConnectionHasClosed || err == errClosedClientConn {
 		s.ResetStream(types.StreamConnectionFailed)
-	} else {
-		s.ResetStream(types.StreamLocalReset)
+		return
 	}
+	// fix: https://github.com/mosn/mosn/issues/1672
+	if strings.Contains(err.Error(), "broken pipe") || strings.Contains(err.Error(), "connection reset by peer") {
+		s.ResetStream(types.StreamConnectionFailed)
+		return
+	}
+	s.ResetStream(types.StreamLocalReset)
 }
 
 func (s *clientStream) GetStream() types.Stream {

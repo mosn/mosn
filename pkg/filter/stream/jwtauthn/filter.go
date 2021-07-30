@@ -29,13 +29,13 @@ func (f *filter) OnReceive(ctx context.Context, headers api.HeaderMap, buf buffe
 
 	// TODO(huangrh): bypass
 
-	requestArg, err := variable.GetVariableValue(ctx, types.VarHttpRequestArg)
+	requestArg, err := variable.GetString(ctx, types.VarHttpRequestArg)
 	if err != nil {
 		log.DefaultLogger.Errorf("[jwt_authn filter] get query parameter: %v", err)
 		return api.StreamFilterContinue
 	}
 
-	requestPath, err := variable.GetVariableValue(ctx, types.VarHttpRequestPath)
+	requestPath, err := variable.GetString(ctx, types.VarHttpRequestPath)
 	if err != nil {
 		log.DefaultLogger.Errorf("[jwt_authn filter] get path: %v", err)
 		return api.StreamFilterStop

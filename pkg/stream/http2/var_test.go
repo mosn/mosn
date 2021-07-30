@@ -60,7 +60,7 @@ func Test_get_scheme(t *testing.T) {
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamProtocol, protocol.HTTP2)
 	ctx = variable.NewVariableContext(ctx)
 
-	variable.SetVariableValue(ctx, types.VarScheme, expect)
+	variable.SetString(ctx, types.VarScheme, expect)
 	actual, err := variable.GetProtocolResource(ctx, api.SCHEME)
 	assert.NoErrorf(t, err, "get protocol scheme failed")
 	assert.Equalf(t, expect, actual, "header value expect to be %s, but get %s")

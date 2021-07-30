@@ -32,16 +32,18 @@ type subsetLoadBalancer struct {
 	stats          types.ClusterStats
 	subSets        types.LbSubsetMap  // final trie-like structure used to stored easily searched subset
 	fallbackSubset *LBSubsetEntryImpl // subset entry generated according to fallback policy
-	hostSet        *hostSet
+	hostSet        types.HostSet
+	fullLb         types.LoadBalancer // a loadbalancer for all hosts
 }
 
-func NewSubsetLoadBalancer(info *clusterInfo, hostSet *hostSet) types.LoadBalancer {
-	subsetInfo := info.lbSubsetInfo
+func NewSubsetLoadBalancer(info types.ClusterInfo, hostSet types.HostSet) types.LoadBalancer {
+	subsetInfo := info.LbSubsetInfo()
 	subsetLB := &subsetLoadBalancer{
-		lbType:  info.lbType,
-		stats:   info.stats,
+		lbType:  info.LbType(),
+		stats:   info.Stats(),
 		subSets: make(map[string]types.ValueSubsetMap),
 		hostSet: hostSet,
+		fullLb:  NewLoadBalancer(info, hostSet),
 	}
 	// create fallback
 	subsetLB.createFallbackSubset(info, subsetInfo.FallbackPolicy(), subsetInfo.DefaultSubset())
@@ -63,42 +65,53 @@ func (sslb *subsetLoadBalancer) ChooseHost(ctx types.LoadBalancerContext) types.
 		}
 	}
 	if sslb.fallbackSubset == nil {
-		log.DefaultLogger.Errorf("[upstream] [subset lb] subset load balancer: failure, fallback subset is nil")
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: failure, fallback subset is nil")
+		}
 		return nil
 	}
 	sslb.stats.LBSubSetsFallBack.Inc(1)
 	return sslb.fallbackSubset.LoadBalancer().ChooseHost(ctx)
 }
 
+// if metadata is nil, use all hosts as results
 func (sslb *subsetLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
-	if metadata != nil && !reflect.ValueOf(metadata).IsNil() {
-		matchCriteria := metadata.MetadataMatchCriteria()
-		entry := sslb.findSubset(matchCriteria)
-		empty := (entry == nil || !entry.Active())
-		return !empty
-	}
-	return len(sslb.hostSet.Hosts()) > 0
-}
-
-func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
-	if metadata != nil && !reflect.ValueOf(metadata).IsNil() {
-		matchCriteria := metadata.MetadataMatchCriteria()
-		entry := sslb.findSubset(matchCriteria)
-		if entry == nil {
-			return 0
+	if metadata == nil || reflect.ValueOf(metadata).IsNil() {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: metadata match criteria is nil")
 		}
-		return entry.HostNum()
+		return sslb.fullLb.IsExistsHosts(metadata)
 	}
-	return len(sslb.hostSet.Hosts())
+	matchCriteria := metadata.MetadataMatchCriteria()
+	entry := sslb.findSubset(matchCriteria)
+	empty := (entry == nil || !entry.Active())
+	return !empty
 }
 
+// if metadata is nil, use all hosts as results
+func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
+	if metadata == nil || reflect.ValueOf(metadata).IsNil() {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: metadata match criteria is nil")
+		}
+		return sslb.fullLb.HostNum(metadata)
+	}
+	matchCriteria := metadata.MetadataMatchCriteria()
+	entry := sslb.findSubset(matchCriteria)
+	if entry == nil {
+		return 0
+	}
+	return entry.HostNum()
+}
+
+// if metadata is nil, use all hosts as results
 func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerContext) (types.Host, bool) {
 	metadata := ctx.MetadataMatchCriteria()
 	if metadata == nil || reflect.ValueOf(metadata).IsNil() {
 		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
-			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: context is nil")
+			log.DefaultLogger.Debugf("[upstream] [subset lb] subset load balancer: metadata match criteria is nil")
 		}
-		return nil, false
+		return sslb.fullLb.ChooseHost(ctx), true
 	}
 	matchCriteria := metadata.MetadataMatchCriteria()
 	entry := sslb.findSubset(matchCriteria)
@@ -112,7 +125,7 @@ func (sslb *subsetLoadBalancer) tryChooseHostFromContext(ctx types.LoadBalancerC
 }
 
 // createSubsets creates the sslb.subSets
-func (sslb *subsetLoadBalancer) createSubsets(info *clusterInfo, subSetKeys []types.SortedStringSetType) {
+func (sslb *subsetLoadBalancer) createSubsets(info types.ClusterInfo, subSetKeys []types.SortedStringSetType) {
 	hosts := sslb.hostSet.Hosts()
 	var subsSetCount int64 = 0
 	for _, host := range hosts {
@@ -122,7 +135,7 @@ func (sslb *subsetLoadBalancer) createSubsets(info *clusterInfo, subSetKeys []ty
 			if len(kvs) > 0 {
 				entry := sslb.findOrCreateSubset(sslb.subSets, kvs, 0)
 				if !entry.Initialized() {
-					subHostset := sslb.hostSet.createSubset(func(host types.Host) bool {
+					subHostset := CreateSubset(sslb.hostSet.Hosts(), func(host types.Host) bool {
 						return HostMatches(kvs, host)
 					})
 					subsSetCount += 1
@@ -135,7 +148,7 @@ func (sslb *subsetLoadBalancer) createSubsets(info *clusterInfo, subSetKeys []ty
 }
 
 // createFallbackSubset creates a LBSubsetEntryImpl as fallbackSubset
-func (sslb *subsetLoadBalancer) createFallbackSubset(info *clusterInfo, policy types.FallBackPolicy, meta types.SubsetMetadata) {
+func (sslb *subsetLoadBalancer) createFallbackSubset(info types.ClusterInfo, policy types.FallBackPolicy, meta types.SubsetMetadata) {
 	hostSet := sslb.hostSet
 	switch policy {
 	case types.NoFallBack:
@@ -145,14 +158,15 @@ func (sslb *subsetLoadBalancer) createFallbackSubset(info *clusterInfo, policy t
 		return
 	case types.AnyEndPoint:
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
-			children: nil, // no child
+			children: nil,         // no child
+			lb:       sslb.fullLb, // reuse the full loadbalancer
+			hostSet:  hostSet,
 		}
-		sslb.fallbackSubset.CreateLoadBalancer(info, hostSet)
 	case types.DefaultSubset:
 		sslb.fallbackSubset = &LBSubsetEntryImpl{
 			children: nil, // no child
 		}
-		subHostset := hostSet.createSubset(func(host types.Host) bool {
+		subHostset := CreateSubset(sslb.hostSet.Hosts(), func(host types.Host) bool {
 			return HostMatches(meta, host)
 		})
 		sslb.fallbackSubset.CreateLoadBalancer(info, subHostset)
@@ -222,6 +236,18 @@ func ExtractSubsetMetadata(subsetKeys []string, metadata api.Metadata) types.Sub
 		})
 	}
 	return kvs
+}
+
+func CreateSubset(hosts []types.Host, predicate types.HostPredicate) types.HostSet {
+	var subHosts []types.Host
+	for _, h := range hosts {
+		if predicate(h) {
+			subHosts = append(subHosts, h)
+		}
+	}
+	sub := &hostSet{}
+	sub.setFinalHost(subHosts)
+	return sub
 }
 
 func HostMatches(kvs types.SubsetMetadata, host types.Host) bool {

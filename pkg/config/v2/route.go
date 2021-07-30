@@ -52,6 +52,7 @@ type RouterConfig struct {
 
 type RouterActionConfig struct {
 	ClusterName             string               `json:"cluster_name,omitempty"`
+	ClusterVariable         string               `json:"cluster_variable,omitempty"`
 	UpstreamProtocol        string               `json:"upstream_protocol,omitempty"`
 	ClusterHeader           string               `json:"cluster_header,omitempty"`
 	WeightedClusters        []WeightedCluster    `json:"weighted_clusters,omitempty"`

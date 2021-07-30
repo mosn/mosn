@@ -61,7 +61,7 @@ type ClusterManager interface {
 	UDPConnForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot) CreateConnectionData
 
 	// ConnPoolForCluster used to get protocol related conn pool
-	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol api.ProtocolName) ConnectionPool
+	ConnPoolForCluster(balancerContext LoadBalancerContext, snapshot ClusterSnapshot, protocol api.ProtocolName) (ConnectionPool, Host)
 
 	// RemovePrimaryCluster used to remove cluster from set
 	RemovePrimaryCluster(clusters ...string) error
@@ -76,6 +76,10 @@ type ClusterManager interface {
 	GetTLSManager() TLSClientContextManager
 	// UpdateTLSManager updates the tls manager which is used to cluster tls config
 	UpdateTLSManager(*v2.TLSConfig)
+
+	// ShutdownConnectionPool shutdown the connection pool by address and ProtocolName
+	// If ProtocolName is not specified, remove the addr's connection pool of all protocols
+	ShutdownConnectionPool(proto ProtocolName, addr string)
 
 	// Destroy the cluster manager
 	Destroy()
@@ -135,12 +139,12 @@ type Host interface {
 	// SetClusterInfo updates the host's cluster info
 	SetClusterInfo(info ClusterInfo)
 
-	// TLS HashValue effects the host support tls state
+	// TLSHashValue TLS HashValue effects the host support tls state
 	TLSHashValue() *HashValue
-	// Create a connection for this host.
+	// CreateConnection a connection for this host.
 	CreateConnection(context context.Context) CreateConnectionData
 
-	// Create a udp connection for this host.
+	// CreateUDPConnection a udp connection for this host.
 	CreateUDPConnection(context context.Context) CreateConnectionData
 
 	// Address returns the host's Addr structure
@@ -186,6 +190,9 @@ type ClusterInfo interface {
 
 	// Optional configuration for the load balancing algorithm selected by
 	LbConfig() v2.IsCluster_LbConfig
+
+	//  Optional configuration for some cluster description
+	SubType() string
 }
 
 // ResourceManager manages different types of Resource

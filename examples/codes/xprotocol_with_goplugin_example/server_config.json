@@ -1,0 +1,86 @@
+{
+	"close_graceful": true,
+	"servers": [
+		{
+			"default_log_path": "debug",
+			"routers": [
+				{
+					"router_config_name": "server_router",
+					"virtual_hosts": [
+						{
+							"name": "serverHost",
+							"domains": [
+								"*"
+							],
+							"routers": [
+								{
+									"route": {
+										"cluster_name": "serverCluster"
+									}
+								}
+							]
+						}
+					]
+				}
+			],
+			"listeners": [
+				{
+					"name": "serverListener",
+					"address": "127.0.0.1:2046",
+					"bind_port": true,
+					"filter_chains": [
+						{
+							"filters": [
+								{
+									"type": "proxy",
+									"config": {
+										"downstream_protocol": "X",
+										"upstream_protocol": "X",
+										"extend_config": {
+											"sub_protocol": "x_example"
+										},
+										"router_config_name": "server_router"
+									}
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"cluster_manager": {
+		"clusters": [
+			{
+				"name": "serverCluster",
+				"type": "SIMPLE",
+				"lb_type": "LB_RANDOM",
+				"max_request_per_conn": 1024,
+				"conn_buffer_limit_bytes": 32768,
+				"hosts": [
+					{
+						"address": "127.0.0.1:8086"
+					}
+				]
+			}
+		]
+	},
+	"admin": {
+		"address": {
+			"socket_address": {
+				"address": "0.0.0.0",
+				"port_value": 34802
+			}
+		}
+	},
+	"third_part_codec": {
+		"codecs": [
+			{
+				"enable": true,
+				"type": "go-plugin",
+				"path": "codec.so",
+				"loader_func_name": "LoadCodec"
+			}
+		]
+	}
+}

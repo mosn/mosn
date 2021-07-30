@@ -65,6 +65,11 @@ const (
 	VarHeaderRPCMethod       string = "x-mosn-rpc-method"
 )
 
+// [Route]: internal
+const (
+	VarRouterMeta string = "x-mosn-router-meta"
+)
+
 // [Protocol]: common
 const (
 	VarProtocolRequestScheme       = "request_scheme"

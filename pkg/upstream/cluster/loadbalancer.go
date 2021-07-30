@@ -64,13 +64,13 @@ var (
 
 var (
 	buildinVariables = []variable.Variable{
-		variable.NewIndexedVariable(VarProxyUpstreamIndex, nil, nil, variable.BasicSetter, 0),
+		variable.NewStringVariable(VarProxyUpstreamIndex, nil, nil, variable.DefaultStringSetter, 0),
 	}
 )
 
 func registerVariables() {
 	for idx := range buildinVariables {
-		variable.RegisterVariable(buildinVariables[idx])
+		variable.Register(buildinVariables[idx])
 	}
 }
 
@@ -164,6 +164,17 @@ func (lb *roundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContext) 
 			return host
 		}
 	}
+
+	// Reference https://github.com/mosn/mosn/issues/1663
+	secondStartIndex := int(atomic.AddUint32(&lb.rrIndex, 1) % uint32(total))
+	for i := 0; i < total; i++ {
+		index := (i + secondStartIndex) % total
+		host := targets[index]
+		if host.Health() {
+			return host
+		}
+	}
+
 	return nil
 }
 
@@ -181,18 +192,13 @@ func (lb *roundRobinLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) in
 */
 type WRRLoadBalancer struct {
 	*EdfLoadBalancer
-	rrIndex uint32
+	rrLB types.LoadBalancer
 }
 
 func newWRRLoadBalancer(info types.ClusterInfo, hosts types.HostSet) types.LoadBalancer {
 	wrrLB := &WRRLoadBalancer{}
 	wrrLB.EdfLoadBalancer = newEdfLoadBalancerLoadBalancer(hosts, wrrLB.unweightChooseHost, wrrLB.hostWeight)
-	hostsList := hosts.Hosts()
-	wrrLB.mutex.Lock()
-	defer wrrLB.mutex.Unlock()
-	if len(hostsList) != 0 {
-		wrrLB.rrIndex = wrrLB.rand.Uint32() % uint32(len(hostsList))
-	}
+	wrrLB.rrLB = rrFactory.newRoundRobinLoadBalancer(info, hosts)
 	return wrrLB
 }
 
@@ -211,10 +217,7 @@ func (lb *WRRLoadBalancer) hostWeight(item WeightItem) float64 {
 
 // do unweighted (fast) selection
 func (lb *WRRLoadBalancer) unweightChooseHost(context types.LoadBalancerContext) types.Host {
-	targets := lb.hosts.Hosts()
-	total := len(targets)
-	index := atomic.AddUint32(&lb.rrIndex, 1) % uint32(total)
-	return targets[index]
+	return lb.ChooseHost(context)
 }
 
 const default_choice = 2
@@ -287,8 +290,12 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 		return nil
 	}
 	if total == 1 {
+		targetHost := targetHosts[0]
 		// Return directly if there is only one host
-		return targetHosts[0]
+		if targetHost.Health() {
+			return targetHost
+		}
+		return nil
 	}
 	for i := 0; i < total; i++ {
 		if lb.scheduler != nil {
@@ -303,10 +310,9 @@ func (lb *EdfLoadBalancer) ChooseHost(context types.LoadBalancerContext) types.H
 			return candicate
 		}
 	}
-	lb.mutex.Lock()
-	defer lb.mutex.Unlock()
-	// randomly choose one when all instances are unhealthy
-	return targetHosts[lb.rand.Intn(total)]
+	// refer https://github.com/mosn/mosn/pull/1713
+	// return nil when all instances are unhealthy
+	return nil
 }
 
 func (lb *EdfLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria) bool {
@@ -319,8 +325,8 @@ func (lb *EdfLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int {
 
 func newEdfLoadBalancerLoadBalancer(hosts types.HostSet, unWeightChoose func(types.LoadBalancerContext) types.Host, hostWeightFunc func(host WeightItem) float64) *EdfLoadBalancer {
 	lb := &EdfLoadBalancer{
-		hosts: hosts,
-		rand:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		hosts:                  hosts,
+		rand:                   rand.New(rand.NewSource(time.Now().UnixNano())),
 		unweightChooseHostFunc: unWeightChoose,
 		hostWeightFunc:         hostWeightFunc,
 	}
@@ -492,7 +498,7 @@ func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContex
 	}
 	ctx := context.DownstreamContext()
 	ind := 0
-	if index, err := variable.GetVariableValue(ctx, VarProxyUpstreamIndex); err == nil {
+	if index, err := variable.GetString(ctx, VarProxyUpstreamIndex); err == nil {
 		if i, err := strconv.Atoi(index); err == nil {
 			ind = i + 1
 		}
@@ -502,11 +508,11 @@ func (lb *reqRoundRobinLoadBalancer) ChooseHost(context types.LoadBalancerContex
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 				log.DefaultLogger.Debugf("[lb] [RequestRoundRobin] choose host: %s", targets[id].AddressString())
 			}
-			variable.SetVariableValue(ctx, VarProxyUpstreamIndex, strconv.Itoa(id))
+			variable.SetString(ctx, VarProxyUpstreamIndex, strconv.Itoa(id))
 			return targets[id]
 		}
 	}
-	variable.SetVariableValue(ctx, VarProxyUpstreamIndex, strconv.Itoa(total))
+	variable.SetString(ctx, VarProxyUpstreamIndex, strconv.Itoa(total))
 
 	return nil
 }
