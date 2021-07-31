@@ -523,22 +523,6 @@ func (al *activeListener) activeStreamSize() int {
 }
 
 func (al *activeListener) OnClose() {
-	al.closeNetworkFilters(api.BeforeListenerClose)
-}
-
-func (al *activeListener) OnPostClose() {
-	al.closeNetworkFilters(api.PostListenerClose)
-}
-
-// closeNetworkFilters close network filters when listner close
-func (al *activeListener) closeNetworkFilters(phase api.NetworkFilterClosePhase) {
-	for _, nff := range al.networkFiltersFactories {
-		if initialzer, ok := nff.(api.FactoryInitializer); ok {
-			if err := initialzer.Close(phase); err != nil {
-				log.StartLogger.Errorf("[server] [listener] post listener close error:%v", err)
-			}
-		}
-	}
 }
 
 // PreStopHook used for graceful stop

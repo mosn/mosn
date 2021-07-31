@@ -33,6 +33,7 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
@@ -95,16 +96,11 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 	// maybe it will be used when server stop/restart are supported
 	f.server = srv
 	f.ln = ln
-	return nil
-}
-
-func (f *grpcServerFilterFactory) Close(phase api.NetworkFilterClosePhase) error {
-	switch phase {
-	case api.PostListenerClose:
+	// stop grpc server when mosn process shutdown
+	keeper.OnProcessShutDown(func() error {
 		return f.close()
-	default:
-		return nil
-	}
+	})
+	return nil
 }
 
 func (f *grpcServerFilterFactory) close() error {
@@ -112,7 +108,7 @@ func (f *grpcServerFilterFactory) close() error {
 	gracefulStopTimeout := v2.GrpcDefaultGracefulStopTimeout
 	if f.config.GracefulStopTimeout > 0 {
 		// use the user-set timeout
-		gracefulStopTimeout= f.config.GracefulStopTimeout
+		gracefulStopTimeout = f.config.GracefulStopTimeout
 	}
 	// sync stop grpc server
 	timer := time.AfterFunc(gracefulStopTimeout, func() {
