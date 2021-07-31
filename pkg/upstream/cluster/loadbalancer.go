@@ -346,7 +346,12 @@ func (lb *EdfLoadBalancer) refresh(hosts []types.Host) {
 	for _, host := range hosts {
 		lb.scheduler.Add(host, lb.hostWeightFunc(host))
 	}
-
+	// refer blog http://zablog.me/2019/08/02/2019-08-02/
+	// avoid instance flood pressure for the first entry start from a random one via pick random times
+	randomPick := lb.rand.Intn(len(hosts))
+	for i := 0; i < randomPick; i++ {
+		lb.scheduler.NextAndPush(lb.hostWeightFunc)
+	}
 }
 
 func hostWeightsAreEqual(hosts []types.Host) bool {
