@@ -83,9 +83,20 @@ func (sslb *subsetLoadBalancer) IsExistsHosts(metadata api.MetadataMatchCriteria
 		return sslb.fullLb.IsExistsHosts(metadata)
 	}
 	matchCriteria := metadata.MetadataMatchCriteria()
+
 	entry := sslb.findSubset(matchCriteria)
-	empty := (entry == nil || !entry.Active())
-	return !empty
+	if entry != nil && entry.Active() {
+		return true
+	}
+
+	if sslb.fallbackSubset != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [subset lb] IsExistsHosts failed, do fallback")
+		}
+		return sslb.fallbackSubset.LoadBalancer().IsExistsHosts(metadata)
+	}
+
+	return false
 }
 
 // if metadata is nil, use all hosts as results
@@ -97,11 +108,20 @@ func (sslb *subsetLoadBalancer) HostNum(metadata api.MetadataMatchCriteria) int 
 		return sslb.fullLb.HostNum(metadata)
 	}
 	matchCriteria := metadata.MetadataMatchCriteria()
+
 	entry := sslb.findSubset(matchCriteria)
-	if entry == nil {
-		return 0
+	if entry != nil && entry.Active() {
+		return entry.HostNum()
 	}
-	return entry.HostNum()
+
+	if sslb.fallbackSubset != nil {
+		if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+			log.DefaultLogger.Debugf("[upstream] [subset lb] HostNum failed, do fallback")
+		}
+		return sslb.fallbackSubset.LoadBalancer().HostNum(metadata)
+	}
+
+	return 0
 }
 
 // if metadata is nil, use all hosts as results
