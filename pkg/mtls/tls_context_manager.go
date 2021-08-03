@@ -144,8 +144,10 @@ type clientContextManager struct {
 	provider types.TLSProvider
 	// fallback
 	fallback bool
-	// servername for tls verify
+	// server sni for tls connection
 	serverName string
+	// server san for tls verify
+	serverSan string
 }
 
 // NewTLSClientContextManager returns a types.TLSContextManager used in TLS Client
@@ -158,6 +160,7 @@ func NewTLSClientContextManager(cfg *v2.TLSConfig) (types.TLSClientContextManage
 		provider:   provider,
 		fallback:   cfg.Fallback,
 		serverName: cfg.ServerName,
+		serverSan:  cfg.ServerSan,
 	}
 	return mng, nil
 }
@@ -174,7 +177,12 @@ func (mng *clientContextManager) Conn(c net.Conn) (net.Conn, error) {
 	// make tls connection and try handshake
 	tlsconn := tls.Client(c, mng.provider.GetTLSConfigContext(true).Config())
 	tlsconn.SetServerName(mng.serverName)
+	tlsconn.SetServerSan(mng.serverSan)
 	tlsconn.SetReadDeadline(time.Now().Add(handshakeTimeout))
+	if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+		log.DefaultLogger.Debugf("[mtls] handshake, serverName: %s", mng.serverName)
+		log.DefaultLogger.Debugf("[mtls] handshake, serverSan: %s", mng.serverSan)
+	}
 	if err := tlsconn.Handshake(); err != nil {
 		c.Close() // close the failed connection
 		return nil, err

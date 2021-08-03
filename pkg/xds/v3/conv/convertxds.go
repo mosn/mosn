@@ -174,10 +174,14 @@ func ConvertClustersConfig(xdsClusters []*envoy_config_cluster_v3.Cluster) []*v2
 	}
 	clusters := make([]*v2.Cluster, 0, len(xdsClusters))
 	for _, xdsCluster := range xdsClusters {
-		var xdsTLSContext interface{}
-		for _, m := range xdsCluster.TransportSocketMatches {
-			if m.GetTransportSocket().Name == wellknown.TransportSocketTls {
-				xdsTLSContext = m.GetTransportSocket()
+		// If tls is specified in DestinationRule, tls config will be in TransportSocket
+		xdsTLSContext := xdsCluster.GetTransportSocket()
+		// Otherwise tls config will be in TransportSocketMatches
+		if xdsTLSContext == nil {
+			for _, m := range xdsCluster.TransportSocketMatches {
+				if m.GetTransportSocket().Name == wellknown.TransportSocketTls {
+					xdsTLSContext = m.GetTransportSocket()
+				}
 			}
 		}
 		cluster := &v2.Cluster{
@@ -257,6 +261,12 @@ func ConvertEndpointsConfig(xdsEndpoint *envoy_config_endpoint_v3.LocalityLbEndp
 			weight = configmanager.MaxHostWeight
 		}
 		host.Weight = weight
+
+		// enable tls only when transport_socket_match matched
+		// TODO check match
+		if _, ok := host.MetaData["envoy.transport_socket_match"]; !ok {
+			host.TLSDisable = true
+		}
 
 		// enable tls only when transport_socket_match matched
 		// TODO check match
@@ -1453,6 +1463,19 @@ func convertTLS(xdsTLSContext interface{}) v2.TLSConfig {
 	if err := ptypes.UnmarshalAny(ts.GetTypedConfig(), upTLSConext); err == nil {
 		config.ServerName = upTLSConext.GetSni()
 		common = upTLSConext.GetCommonTlsContext()
+		// Get match SANs from CombinedValidationContext, for server URI verify
+		combinedValidationContext := upTLSConext.CommonTlsContext.GetCombinedValidationContext()
+		if combinedValidationContext != nil {
+			sans := combinedValidationContext.DefaultValidationContext.MatchSubjectAltNames
+			if len(sans) == 1 {
+				config.ServerSan = sans[0].GetExact()
+				if config.ServerSan == "" {
+					log.DefaultLogger.Warnf("convertTLS MatchSubjectAltNames GetExact empty, sans: %v", sans)
+				}
+			} else {
+				log.DefaultLogger.Warnf("convertTLS MatchSubjectAltNames lenth is not 1, sans %v", sans)
+			}
+		}
 		isUpstream = true
 	}
 	if !isUpstream {

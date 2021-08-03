@@ -31,6 +31,7 @@ type TLSConfig struct {
 	Status            bool                   `json:"status,omitempty"`
 	Type              string                 `json:"type,omitempty"`
 	ServerName        string                 `json:"server_name,omitempty"`
+	ServerSan         string                 `json:"server_san,omitempty"`
 	CACert            string                 `json:"ca_cert,omitempty"`
 	CertChain         string                 `json:"cert_chain,omitempty"`
 	PrivateKey        string                 `json:"private_key,omitempty"`
