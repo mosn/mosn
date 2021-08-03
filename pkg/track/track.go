@@ -34,7 +34,7 @@ type Tracks struct {
 }
 
 func (t *Tracks) Begin() {
-	if t.disabled {
+	if t == nil || t.disabled {
 		return
 	}
 	if t.times[TrackStartTimestamp].IsZero() {
@@ -43,14 +43,14 @@ func (t *Tracks) Begin() {
 }
 
 func (t *Tracks) StartTrack(phase TrackPhase) {
-	if t.disabled || phase >= MaxTrackPhase || phase <= NoTrack {
+	if t == nil || t.disabled || phase >= MaxTrackPhase || phase <= NoTrack {
 		return
 	}
 	t.datas[phase].P = time.Now()
 }
 
 func (t *Tracks) EndTrack(phase TrackPhase) {
-	if t.disabled || phase >= MaxTrackPhase || phase <= NoTrack {
+	if t == nil || t.disabled || phase >= MaxTrackPhase || phase <= NoTrack {
 		return
 	}
 	tk := t.datas[phase]
@@ -64,7 +64,7 @@ func (t *Tracks) EndTrack(phase TrackPhase) {
 // Range ranges the tracks data by f.
 // if f returns false, terminate the range
 func (t *Tracks) Range(f func(TrackPhase, TrackTime) bool) {
-	if t.disabled {
+	if t == nil || t.disabled {
 		return
 	}
 	for i := range t.datas {
@@ -77,7 +77,7 @@ func (t *Tracks) Range(f func(TrackPhase, TrackTime) bool) {
 }
 
 func (t *Tracks) VisitTimestamp(f func(TimestampPhase, time.Time) bool) {
-	if t.disabled {
+	if t == nil || t.disabled {
 		return
 	}
 	for i := range t.times {
@@ -93,6 +93,10 @@ func (t *Tracks) VisitTimestamp(f func(TimestampPhase, time.Time) bool) {
 // if a extends fields added, use Range
 // [][][]...[]
 func (t *Tracks) GetTrackCosts() string {
+	// fast fail
+	if t == nil {
+		return ""
+	}
 	var buf strings.Builder
 	t.Range(func(phase TrackPhase, track TrackTime) bool {
 		if phase > MaxServedField {
@@ -113,6 +117,10 @@ func (t *Tracks) GetTrackCosts() string {
 
 // GetTrackTimestamp is a wrapper for tracks.VisitTimestamp, get request and response timestamp
 func (t *Tracks) GetTrackTimestamp() string {
+	// fast fail
+	if t == nil {
+		return ""
+	}
 	var buf strings.Builder
 	buf.WriteString("[")
 	t.VisitTimestamp(func(p TimestampPhase, tm time.Time) bool {

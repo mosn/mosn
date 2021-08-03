@@ -99,18 +99,18 @@ func NewCodec() api.Protocol {
 // TODOs
 
 // Heartbeater
-func (proto *proto) Trigger(requestId uint64) api.XFrame {
+func (proto *proto) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	// not supported for poc demo
 	return nil
 }
 
-func (proto *proto) Reply(request api.XFrame) api.XRespFrame {
+func (proto *proto) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
 	// not supported for poc demo
 	return nil
 }
 
 // Hijacker
-func (proto *proto) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
+func (proto *proto) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	// not supported for poc demo
 	return nil
 }

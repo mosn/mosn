@@ -13,13 +13,13 @@ import (
 
 	"mosn.io/mosn/pkg/configmanager"
 	"mosn.io/mosn/pkg/log"
-	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol/xprotocol/bolt"
 	"mosn.io/mosn/pkg/server"
 	_ "mosn.io/mosn/pkg/stream/xprotocol"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/test/integrate"
 	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 // client - mesh - mesh - server
@@ -90,7 +90,8 @@ func TestTransfer(t *testing.T) {
 
 	tc := integrate.NewXTestCase(t, bolt.ProtocolName, util.NewRPCServer(t, appaddr, bolt.ProtocolName))
 
-	tc.ClientMeshAddr = "127.0.0.1:12101"
+	os.Remove("/tmp/client.sock")
+	tc.ClientMeshAddr = "/tmp/client.sock"
 	tc.ServerMeshAddr = "127.0.0.1:12102"
 
 	if os.Getenv("_MOSN_TEST_TRANSFER") == "true" {

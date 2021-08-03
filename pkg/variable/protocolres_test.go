@@ -42,7 +42,7 @@ func TestGetProtocolResource(t *testing.T) {
 	for k, _ := range m {
 		val := m[k]
 		// register test variable
-		RegisterVariable(NewBasicVariable(k, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+		Register(NewStringVariable(k, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
 			return val, nil
 		}, nil, 0))
 	}
@@ -83,7 +83,7 @@ func BenchmarkGetVariableValue(b *testing.B) {
 
 	ctx := prepareProtocolResource()
 	for i := 0; i < b.N; i++ {
-		_, err := GetVariableValue(ctx, string(api.PATH))
+		_, err := GetString(ctx, string(api.PATH))
 		if err != nil {
 			b.Error("get variable failed:", err)
 		}
@@ -94,7 +94,7 @@ func prepareProtocolResource() context.Context {
 	name := "http_request_path"
 	value := "/path"
 	// register test variable
-	RegisterVariable(NewBasicVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
+	Register(NewStringVariable(name, nil, func(ctx context.Context, variableValue *IndexedValue, data interface{}) (s string, err error) {
 		return value, nil
 	}, nil, 0))
 

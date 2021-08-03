@@ -8,7 +8,6 @@ import (
 
 	v2 "mosn.io/mosn/pkg/config/v2"
 	_ "mosn.io/mosn/pkg/filter/stream/mirror"
-	"mosn.io/mosn/pkg/mosn"
 	"mosn.io/mosn/pkg/protocol"
 	_ "mosn.io/mosn/pkg/protocol/http/conv"
 	_ "mosn.io/mosn/pkg/protocol/http2/conv"
@@ -18,6 +17,7 @@ import (
 	"mosn.io/mosn/pkg/types"
 	_ "mosn.io/mosn/pkg/upstream/cluster"
 	"mosn.io/mosn/test/util"
+	"mosn.io/mosn/test/util/mosn"
 )
 
 type MirrorCase struct {

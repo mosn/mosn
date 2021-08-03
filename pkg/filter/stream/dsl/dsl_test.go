@@ -89,13 +89,13 @@ func TestDSLStreamFilter(t *testing.T) {
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
 	ctx = variable.NewVariableContext(ctx)
 	phase := []types.Phase{types.DownFilter, types.DownFilterAfterRoute, types.DownFilterAfterChooseHost}
-	variable.SetVariableValue(ctx, types.VarPath, "/dsl")
-	variable.SetVariableValue(ctx, types.VarHost, "dsl")
+	variable.SetString(ctx, types.VarPath, "/dsl")
+	variable.SetString(ctx, types.VarHost, "dsl")
 	for k, p := range phase {
 		receiveHandler.phase = p
 		f.OnReceive(ctx, reqHeaders, nil, nil)
 		// should fetch rewrite path from ctx
-		if v, err := variable.GetVariableValue(ctx, types.VarPath); err != nil || v != strconv.Itoa(k) {
+		if v, err := variable.GetString(ctx, types.VarPath); err != nil || v != strconv.Itoa(k) {
 			t.Errorf("DSL execute failed, index: %d, want: %s but: %s", k, strconv.Itoa(k), v)
 		}
 
@@ -177,13 +177,13 @@ func BenchmarkDSL(b *testing.B) {
 
 	ctx := mosnctx.WithValue(context.Background(), types.ContextKeyDownStreamHeaders, reqHeaders)
 	ctx = variable.NewVariableContext(ctx)
-	variable.SetVariableValue(ctx, types.VarPath, "/dsl")
-	variable.SetVariableValue(ctx, types.VarHost, "dsl")
+	variable.SetString(ctx, types.VarPath, "/dsl")
+	variable.SetString(ctx, types.VarHost, "dsl")
 	receiveHandler.phase = types.DownFilter
 	want := "0"
 	for i := 0; i < b.N; i++ {
 		f.OnReceive(ctx, reqHeaders, nil, nil)
-		if v, err := variable.GetVariableValue(ctx, types.VarPath); err != nil || v != want {
+		if v, err := variable.GetString(ctx, types.VarPath); err != nil || v != want {
 			b.Errorf("DSL execute failed, want: %s but: %s", want, v)
 		}
 	}

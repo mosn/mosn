@@ -19,7 +19,6 @@ package xprotocol
 
 import (
 	"context"
-	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -46,16 +45,35 @@ type poolMultiplex struct {
 	shutdown bool // pool is already shutdown
 }
 
+var (
+	defaultMaxConn         = 1
+	connNumberLimit uint64 = 65535 // port limit
+)
+
+func isValidMaxNum(maxConns uint64) bool {
+	// xDS cluster if not limit max connection will recv:
+	// max_connections:{value:4294967295}  max_pending_requests:{value:4294967295}  max_requests:{value:4294967295}  max_retries:{value:4294967295}
+	// if not judge max, will oom
+	return maxConns > 0 && maxConns < connNumberLimit
+}
+
+// SetDefaultMaxConnNumPerHostPortForMuxPool set the max connections for each host:port
+// users could use this function or cluster threshold config to configure connection no.
+func SetDefaultMaxConnNumPerHostPortForMuxPool(maxConns int) {
+	if isValidMaxNum(uint64(maxConns)) {
+		defaultMaxConn = maxConns
+	}
+}
+
 // NewPoolMultiplex generates a multiplex conn pool
 func NewPoolMultiplex(p *connpool) types.ConnectionPool {
 	maxConns := p.Host().ClusterInfo().ResourceManager().Connections().Max()
 
-	// xDS cluster if not limit max connection will recv:
-	// max_connections:{value:4294967295}  max_pending_requests:{value:4294967295}  max_requests:{value:4294967295}  max_retries:{value:4294967295}
-	// if not judge max, will oom
-	if maxConns == 0 || maxConns >= math.MaxUint32 {
-		// default conn num should be 1
-		maxConns = 1
+	// the cluster threshold config has higher privilege than global config
+	// if a valid number is provided, should use it
+	if !isValidMaxNum(maxConns) {
+		// override maxConns by default max conns
+		maxConns = uint64(defaultMaxConn)
 	}
 
 	return &poolMultiplex{
@@ -77,8 +95,8 @@ func (p *poolMultiplex) init(client *activeClientMultiplex, sub types.ProtocolNa
 		if p.shutdown {
 			return
 		}
-
-		client, _ := p.newActiveClient(context.Background(), sub)
+		ctx := mosnctx.WithValue(context.Background(), types.ContextSubProtocol, string(sub))
+		client, _ := p.newActiveClient(ctx, sub)
 		if client != nil {
 			client.state = Connected
 			client.indexInPool = index
@@ -232,7 +250,7 @@ func (p *poolMultiplex) newActiveClient(ctx context.Context, subProtocol api.Pro
 	if subProtocol != "" {
 		// check heartbeat enable, hack: judge trigger result of Heartbeater
 		proto := xprotocol.GetProtocol(subProtocol)
-		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(0) != nil {
+		if heartbeater, ok := proto.(api.Heartbeater); ok && heartbeater.Trigger(ctx, 0) != nil {
 			// create keepalive
 			rpcKeepAlive := NewKeepAlive(codecClient, subProtocol, time.Second)
 			rpcKeepAlive.StartIdleTimeout()

@@ -125,7 +125,7 @@ func initRouterManager() {
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: dubboRouterConfigName,
 		},
-		VirtualHosts: []*v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
 			{
 				Name:    dubboRouterConfigName,
 				Domains: []string{"*"},

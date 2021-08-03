@@ -6,6 +6,11 @@ mtls/crypto/tls
 4. Call TransferSetTLSInfo() to set transfer info when TLS handshake is successful
 5. Reuse tls Conn's outBuf to reduce memory in large number of idle connection
 6. add HasMoreData to let user know whether the tls buffer has unread data
+7. tls_custom.go: add a certificates cache to reduce memory usage.
+8. use certificates cache to optimize handshake:
+   handshake_client.go: verifyServerCertificate use LoadOrStoreCertificate instead of x509.ParseCertificate
+   handshake_server.go: processCertsFromClient use LoadOrStoreCertificate instead of x509.ParseCertificate 
+Maybe we can optimize it in x509.ParseCertificate / add cache expire later.
 
 add supports for tls1.3-gm
 see draft:https://datatracker.ietf.org/doc/draft-yang-tls-tls13-sm-suites/
@@ -13,4 +18,6 @@ see draft:https://datatracker.ietf.org/doc/draft-yang-tls-tls13-sm-suites/
 run tls test
     a. go to pkg/mtls
     b. go test -v ./...
+
+
 

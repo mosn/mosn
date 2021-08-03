@@ -1,5 +1,61 @@
 # Changelog
 
+## v0.23.0
+
+### New Features
+
+- Add new networkfilter:grpc. A grpc server can be extended by networkfilter and implemented in the MOSN, reuse MOSN capabilities. [@nejisama](https://github.com/nejisama) [@zhenjunMa](https://github.com/zhenjunMa)
+- Add a new extended function for traversal calls in the StreamFilterChain. [@wangfakang](https://github.com/wangfakang)
+- Add HTTP 403 status code mapping in the bolt protocol. [@pxzero](https://github.com/pxzero)
+- Add the ability to shutdown the upstream connections.  [@nejisama](https://github.com/nejisama)
+
+### Optimization
+
+- Optimize the networkfilter configuration parsed.  [@nejisama](https://github.com/nejisama)
+- Support extend proxy config by protocol, optimize the proxy configuration parse timing. [@nejisama](https://github.com/nejisama)
+- Add tls conenction's certificate cache, reduce the memory usage. [@nejisama](https://github.com/nejisama)
+- Optimize Quick Start Sample. [@nobodyiam](https://github.com/nobodyiam)
+- Reuse context when router handler check available. [@alpha-baby](https://github.com/alpha-baby)
+- Modify the NewSubsetLoadBalancer's input parameter to interface instead of the determined structure. [@alpha-baby](https://github.com/alpha-baby)
+- Add an example of using so plugin to implement a protocol. [@yichouchou](https://github.com/yichouchou)
++ Optimize the method of get environment variable `GOPATH` in the `MAKEFILE`. [@bincherry](https://github.com/bincherry)
++ Support darwin & aarch64 architecture. [@nejisama](https://github.com/nejisama)
+- Optimize the logger file flag. [@taoyuanyuan](https://github.com/taoyuanyuan)
+
+### Bug fixes
+
+- Fix the bug of HTTP1 URL encoding. [@morefreeze](https://github.com/morefreeze)
+- Fix the bug of HTTP1 URL case-sensitive process. [@GLYASAI](https://github.com/GLYASAI)
+- Fix the bug of memory leak in error handling when the tls cipher suite is SM4. [@william-zk](https://github.com/william-zk)
+
+## v0.22.0
+
+### New Features
+- Add Wasm extension framework [@antJack](https://github.com/antJack)
+- Add x-bolt sub-protocol to allow wasm-based codec for XProtocol [@zonghaishang](https://github.com/zonghaishang)
+- Support fallback through SO_ORIGINAL_DST when protocol auto-matching got failed [@antJack](https://github.com/antJack)
+- Support Go Plugin mode for XProtocol [@fdingiit](https://github.com/fdingiit)
+- Support for network extension [@wangfakang](https://github.com/wangfakang)
+- Update to Istio xDS v3 API [@champly](https://github.com/champly)  Branch: [istio-1.7.7](https://github.com/mosn/mosn/tree/istio-1.7.7)
+
+### Optimization
+
+- Remove redundant file path clean when resolving StreamFilter configs [@eliasyaoyc](https://github.com/eliasyaoyc)
+- Allow setting a unified callback handler for the StreamFilterChain [@antJack](https://github.com/antJack)
+- Support multi-stage execution and remove state lock for the FeatureGate [@nejisama](https://github.com/nejisama)
+- Add trace support for HTTP2 [@OrezzerO](https://github.com/OrezzerO)
+
+### Refactoring
+- Add StageManger to divide the bootstrap procedure of MOSN into four configurable stages [@nejisama](https://github.com/nejisama)
+- Unify the type definitions of XProtocol and move into mosn.io/api package [@fdingiit](https://github.com/fdingiit)
+- Add GetTimeout method for XProtocol to replace the variable getter [@nejisama](https://github.com/nejisama)
+
+### Bug fixes
+- Fix concurrent read and write for RequestInfo in Proxy [@nejisama](https://github.com/nejisama)
+- Fix the safety bug when forwarding the request URI [@antJack](https://github.com/antJack)
+- Fix concurrent slice read and write for Router configurations when doing persistence [@nejisama](https://github.com/nejisama)
+
+
 ## v0.21.0
 
 ### Optimization

@@ -7,8 +7,8 @@ import (
 
 	sentinel "github.com/alibaba/sentinel-golang/api"
 	"github.com/alibaba/sentinel-golang/core/base"
-	"mosn.io/pkg/buffer"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/types"
@@ -27,6 +27,8 @@ type Callbacks interface {
 	Append(ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap)
 	Exit(filter *StreamFilter)
 	Enabled() bool
+	SetConfig(conf *Config)
+	GetConfig() *Config
 }
 
 // ParsedResource contains the parsed Resource wrapper and entry options.
@@ -48,10 +50,12 @@ func RegisterCallbacks(name string, cb Callbacks) {
 // GetCallbacksByName returns specified or default Callbacks.
 func GetCallbacksByConfig(conf *Config) Callbacks {
 	cb, ok := callbacksRegistry.Load(conf.CallbackName)
-	if !ok {
+	if !ok || cb == nil {
 		return &DefaultCallbacks{config: conf}
 	}
-	return cb.(Callbacks)
+	customizedCallbacks := cb.(Callbacks)
+	customizedCallbacks.SetConfig(conf)
+	return customizedCallbacks
 }
 
 // Init is a no-op.
@@ -79,7 +83,7 @@ func (dc *DefaultCallbacks) Prepare(ctx context.Context, headers types.HeaderMap
 
 // AfterBlock sends response directly.
 func (dc *DefaultCallbacks) AfterBlock(filter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) {
-	variable.SetVariableValue(ctx, types.VarHeaderStatus, strconv.Itoa(dc.config.Action.Status))
+	variable.SetString(ctx, types.VarHeaderStatus, strconv.Itoa(dc.config.Action.Status))
 	filter.ReceiverHandler.SendDirectResponse(headers, buffer.NewIoBufferString(dc.config.Action.Body), trailers)
 }
 
@@ -101,4 +105,14 @@ func (dc *DefaultCallbacks) Enabled() bool { return dc.config.GlobalSwitch }
 // ShouldIgnore is a no-op by default.
 func (dc *DefaultCallbacks) ShouldIgnore(flowControlFilter *StreamFilter, ctx context.Context, headers types.HeaderMap, buf types.IoBuffer, trailers types.HeaderMap) bool {
 	return false
+}
+
+// SetConfig sets the config of callbacks.
+func (dc *DefaultCallbacks) SetConfig(conf *Config) {
+	dc.config = conf
+}
+
+// GetConfig gets the config of callbacks.
+func (dc *DefaultCallbacks) GetConfig() *Config {
+	return dc.config
 }

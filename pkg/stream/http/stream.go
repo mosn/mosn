@@ -20,6 +20,7 @@ package http
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net"
@@ -35,7 +36,6 @@ import (
 	"github.com/valyala/fasthttp"
 	"mosn.io/api"
 	mbuffer "mosn.io/mosn/pkg/buffer"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -49,6 +49,7 @@ import (
 
 func init() {
 	str.Register(protocol.HTTP1, &streamConnFactory{})
+	protocol.RegisterProtocolConfigHandler(protocol.HTTP1, streamConfigHandler)
 }
 
 const defaultMaxRequestBodySize = 4 * 1024 * 1024
@@ -238,8 +239,16 @@ func newClientStreamConnection(ctx context.Context, connection types.ClientConne
 	// Per-connection buffer size for responses' reading.
 	// This also limits the maximum header size, default 4096.
 	maxResponseHeaderSize := 0
-	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
-		maxResponseHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
+	if pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); pgc != nil {
+		if extendConfig, ok := pgc.(map[string]interface{}); ok {
+			if v, ok := extendConfig["max_header_size"]; ok {
+				// json.Unmarshal stores float64 for JSON numbers in the interface{}
+				// see doc: https://golang.org/pkg/encoding/json/#Unmarshal
+				if fv, ok := v.(float64); ok {
+					maxResponseHeaderSize = int(fv)
+				}
+			}
+		}
 	}
 	if maxResponseHeaderSize <= 0 {
 		maxResponseHeaderSize = defaultMaxHeaderSize
@@ -358,10 +367,57 @@ func (conn *clientStreamConnection) CheckReasonError(connected bool, event api.C
 	return reason, true
 }
 
+type StreamConfig struct {
+	MaxHeaderSize      int `json:"max_header_size,omitempty"`
+	MaxRequestBodySize int `json:"max_request_body_size,omitempty"`
+}
+
+var defaultStreamConfig = StreamConfig{
+	// Per-connection buffer size for requests' reading.
+	// This also limits the maximum header size, default 4096.
+	MaxHeaderSize: defaultMaxHeaderSize,
+	// 0 is means no limit request body size
+	MaxRequestBodySize: 0,
+}
+
+func streamConfigHandler(v interface{}) interface{} {
+	extendConfig, ok := v.(map[string]interface{})
+	if !ok {
+		return defaultStreamConfig
+	}
+
+	// extract http1 config
+	config, ok := extendConfig[string(protocol.HTTP1)]
+	if !ok {
+		config = extendConfig
+	}
+	configBytes, err := json.Marshal(config)
+	if err != nil {
+		return defaultStreamConfig
+	}
+	streamConfig := defaultStreamConfig
+	if err := json.Unmarshal(configBytes, &streamConfig); err != nil {
+		return defaultStreamConfig
+	}
+	return streamConfig
+
+}
+
+func parseStreamConfig(ctx context.Context) StreamConfig {
+	streamConfig := defaultStreamConfig
+	// get extend config from ctx
+	pgc := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig)
+	if cfg, ok := pgc.(StreamConfig); ok {
+		streamConfig = cfg
+	}
+	return streamConfig
+}
+
 // types.ServerStreamConnection
 type serverStreamConnection struct {
 	streamConnection
 	contextManager *str.ContextManager
+	config         StreamConfig
 
 	close bool
 
@@ -380,27 +436,21 @@ func newServerStreamConnection(ctx context.Context, connection api.Connection,
 			endRead:    make(chan struct{}),
 			connClosed: make(chan bool, 1),
 		},
+		config:                   parseStreamConfig(ctx),
 		contextManager:           str.NewContextManager(ctx),
 		serverStreamConnListener: callbacks,
-	}
-
-	// Per-connection buffer size for requests' reading.
-	// This also limits the maximum header size, default 4096.
-	maxRequestHeaderSize := 0
-	if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
-		maxRequestHeaderSize = gcf.(v2.ProxyGeneralExtendConfig).MaxHeaderSize
-	}
-	if maxRequestHeaderSize <= 0 {
-		maxRequestHeaderSize = defaultMaxHeaderSize
 	}
 
 	// init first context
 	ssc.contextManager.Next()
 
-	ssc.br = bufio.NewReaderSize(ssc, maxRequestHeaderSize)
+	ssc.br = bufio.NewReaderSize(ssc, ssc.config.MaxHeaderSize)
 
 	// Reset would not be called in server-side scene, so add listener for connection event
 	connection.AddConnectionEventListener(ssc)
+	if log.Proxy.GetLogLevel() >= log.DEBUG {
+		log.Proxy.Debugf(ctx, "new http server stream connection, stream config: %v", ssc.config)
+	}
 
 	// set not support transfer connection
 	ssc.conn.SetTransferEventListener(func() bool {
@@ -436,10 +486,7 @@ func (conn *serverStreamConnection) serve() {
 		request := &buffers.serverRequest
 
 		// 0 is means no limit request body size
-		maxRequestBodySize := 0
-		if gcf := mosnctx.Get(ctx, types.ContextKeyProxyGeneralConfig); gcf != nil {
-			maxRequestBodySize = gcf.(v2.ProxyGeneralExtendConfig).MaxRequestBodySize
-		}
+		maxRequestBodySize := conn.config.MaxRequestBodySize
 
 		// 2. blocking read using fasthttp.Request.Read
 		err := request.ReadLimitBody(conn.br, maxRequestBodySize)
@@ -487,6 +534,11 @@ func (conn *serverStreamConnection) serve() {
 		s.connection = conn
 		s.responseDoneChan = make(chan bool, 1)
 		s.header = mosnhttp.RequestHeader{&s.request.Header}
+
+		// save the connection state, because clientStream AppendHeaders will modify it.
+		if s.header.ConnectionClose() {
+			s.connection.close = true
+		}
 
 		var span api.Span
 		if trace.IsEnabled() {
@@ -667,7 +719,7 @@ func (s *clientStream) handleResponse() {
 		statusCode := header.StatusCode()
 		status := strconv.Itoa(statusCode)
 		// inherit upstream's response status
-		variable.SetVariableValue(s.ctx, types.VarHeaderStatus, status)
+		variable.SetString(s.ctx, types.VarHeaderStatus, status)
 
 		hasData := true
 		if len(s.response.Body()) == 0 {
@@ -710,7 +762,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 	switch headers := headersIn.(type) {
 	case mosnhttp.RequestHeader:
 		// hijack scene
-		status, err := variable.GetVariableValue(context, types.VarHeaderStatus)
+		status, err := variable.GetString(context, types.VarHeaderStatus)
 		if err == nil && status != "" {
 			statusCode, err := strconv.Atoi(status)
 			if err != nil {
@@ -729,7 +781,7 @@ func (s *serverStream) AppendHeaders(context context.Context, headersIn types.He
 
 	case mosnhttp.ResponseHeader:
 
-		status, err := variable.GetVariableValue(context, types.VarHeaderStatus)
+		status, err := variable.GetString(context, types.VarHeaderStatus)
 		if err == nil && status != "" {
 			statusCode, _ := strconv.Atoi(status)
 			headers.SetStatusCode(statusCode)
@@ -848,50 +900,79 @@ func (s *serverStream) GetStream() types.Stream {
 // consider host, method, path are necessary, but check querystring
 func injectCtxVarFromProtocolHeaders(ctx context.Context, header mosnhttp.RequestHeader, uri *fasthttp.URI) {
 	// 1. host
-	variable.SetVariableValue(ctx, types.VarHost, string(uri.Host()))
+	variable.SetString(ctx, types.VarHost, string(uri.Host()))
 	// 2. authority
-	variable.SetVariableValue(ctx, types.VarIstioHeaderHost, string(uri.Host()))
+	variable.SetString(ctx, types.VarIstioHeaderHost, string(uri.Host()))
 
 	// 3. method
-	variable.SetVariableValue(ctx, types.VarMethod, string(header.Method()))
+	variable.SetString(ctx, types.VarMethod, string(header.Method()))
 
 	// 4. path
-	variable.SetVariableValue(ctx, types.VarPath, string(uri.Path()))
+	variable.SetString(ctx, types.VarPath, string(uri.Path()))
 
-	// 5. querystring
+	// 5. path original
+	variable.SetString(ctx, types.VarPathOriginal, string(uri.PathOriginal()))
+
+	// 6. querystring
 	qs := uri.QueryString()
 	if len(qs) > 0 {
-		variable.SetVariableValue(ctx, types.VarQueryString, string(qs))
+		variable.SetString(ctx, types.VarQueryString, string(qs))
 	}
 }
 
-func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
-	var path string
-	path, _ = variable.GetVariableValue(ctx, types.VarPath)
+func buildUrlFromCtxVar(ctx context.Context) string {
+	path, _ := variable.GetString(ctx, types.VarPath)
+	pathOriginal, _ := variable.GetString(ctx, types.VarPathOriginal)
+	queryString, _ := variable.GetString(ctx, types.VarQueryString)
 
-	var queryString string
-	queryString, _ = variable.GetVariableValue(ctx, types.VarQueryString)
+	// different from url.RequestURI() since we should by-pass the original path to upstream
+	// even if the original path contains literal space
+	var res string
 
-	u := url.URL{
-		Path:     path,
-		RawQuery: queryString,
+	unescapedPath, err := url.PathUnescape(pathOriginal)
+	// path and pathOriginal came from fasthttp.URI that will unescape path and remove duplicate slashes
+	// so that /foo/%2Fbar will be /foo/bar(path), but unescapedPath will be /foo//bar
+	// We need try fasthttp.URI.SetPath and compare them again.
+	// TODO: This condition can be removed if fasthttp fix unescape bug later.
+	// See https://github.com/valyala/fasthttp/issues/1030
+	if (err == nil && path == unescapedPath) || path == string(fasthttpPath(pathOriginal)) {
+		res = pathOriginal
+	} else {
+		if path == "*" {
+			res = "*"
+		} else {
+			u := url.URL{Path: path}
+			res = u.RequestURI()
+		}
 	}
 
-	headers.SetRequestURI(u.RequestURI())
+	if res == "" {
+		res = "/"
+	}
 
-	method, err := variable.GetVariableValue(ctx, types.VarMethod)
+	if queryString != "" {
+		res += "?" + queryString
+	}
+
+	return res
+}
+
+func FillRequestHeadersFromCtxVar(ctx context.Context, headers mosnhttp.RequestHeader, remoteAddr net.Addr) {
+	headers.SetRequestURI(buildUrlFromCtxVar(ctx))
+
+	method, err := variable.GetString(ctx, types.VarMethod)
 	if err == nil && method != "" {
 		headers.SetMethod(method)
 	}
 
-	host, err := variable.GetVariableValue(ctx, types.VarHost)
+	host, err := variable.GetString(ctx, types.VarHost)
 	if err == nil && host != "" {
 		headers.SetHost(host)
 	} else {
 		headers.SetHost(remoteAddr.String())
 	}
 
-	host, err = variable.GetVariableValue(ctx, types.VarIstioHeaderHost)
+	host, err = variable.GetString(ctx, types.VarIstioHeaderHost)
 	if err == nil && host != "" {
 		headers.SetHost(host)
 	}
@@ -907,4 +988,10 @@ type contextManager struct {
 func (cm *contextManager) next() {
 	// new stream-level context based on connection-level's
 	cm.curr = mbuffer.NewBufferPoolContext(mosnctx.Clone(cm.base))
+}
+
+func fasthttpPath(pathOriginal string) []byte {
+	u := &fasthttp.URI{}
+	u.SetPath(pathOriginal)
+	return u.Path()
 }

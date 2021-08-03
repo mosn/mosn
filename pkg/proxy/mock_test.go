@@ -85,7 +85,7 @@ type mockRouteRule struct {
 	api.RouteRule
 }
 
-func (r *mockRouteRule) ClusterName() string {
+func (r *mockRouteRule) ClusterName(ctx context.Context) string {
 	return "test"
 }
 

@@ -117,32 +117,6 @@ func NewProxy(ctx context.Context, config *v2.Proxy) Proxy {
 	}
 	// proxy level worker pool config end
 
-	extJSON, err := json.Marshal(proxy.config.ExtendConfig)
-	if err == nil {
-		if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-			log.DefaultLogger.Tracef("[proxy] extend config = %v", proxy.config.ExtendConfig)
-		}
-		var xProxyExtendConfig v2.XProxyExtendConfig
-		var proxyGeneralExtendConfig v2.ProxyGeneralExtendConfig
-		if json.Unmarshal([]byte(extJSON), &xProxyExtendConfig); xProxyExtendConfig.SubProtocol != "" {
-			proxy.context = mosnctx.WithValue(proxy.context, types.ContextSubProtocol, xProxyExtendConfig.SubProtocol)
-			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-				log.DefaultLogger.Tracef("[proxy] extend config subprotocol = %v", xProxyExtendConfig.SubProtocol)
-			}
-		} else if err := json.Unmarshal([]byte(extJSON), &proxyGeneralExtendConfig); err == nil {
-			proxy.context = mosnctx.WithValue(proxy.context, types.ContextKeyProxyGeneralConfig, proxyGeneralExtendConfig)
-			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-				log.DefaultLogger.Tracef("[proxy] extend config proxyGeneralExtendConfig = %v", proxyGeneralExtendConfig)
-			}
-		} else {
-			if log.DefaultLogger.GetLogLevel() >= log.TRACE {
-				log.DefaultLogger.Tracef("[proxy] extend config subprotocol is empty")
-			}
-		}
-	} else {
-		log.DefaultLogger.Errorf("[proxy] get proxy extend config fail = %v", err)
-	}
-
 	listenerName := mosnctx.Get(ctx, types.ContextKeyListenerName).(string)
 	proxy.listenerStats = newListenerStats(listenerName)
 
@@ -224,7 +198,9 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 			ds := urEle.Value.(*downStream)
 			ds.OnResetStream(types.StreamConnectionTermination)
 		}
-	} else if event == api.OnReadTimeout {
+		return
+	}
+	if event == api.OnReadTimeout {
 		if p.shouldFallback() {
 			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
 				log.DefaultLogger.Debugf("[proxy] wait for fallback timeout, do fallback")
@@ -233,6 +209,7 @@ func (p *proxy) onDownstreamEvent(event api.ConnectionEvent) {
 			p.fallback = true
 			p.readCallbacks.ContinueReading()
 		}
+		return
 	}
 }
 

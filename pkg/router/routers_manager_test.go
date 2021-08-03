@@ -27,10 +27,9 @@ import (
 	"context"
 	"testing"
 
-	"mosn.io/mosn/pkg/variable"
-
 	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 )
 
 var routerConfig = `{
@@ -296,7 +295,7 @@ func Test_routersManager_AddRouter(t *testing.T) {
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: "test_addrouter",
 		},
-		VirtualHosts: []*v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
 			{
 				Name:    "test_addrouter_vh",
 				Domains: []string{"www.test.com"},
@@ -334,11 +333,11 @@ func Test_routersManager_AddRouter(t *testing.T) {
 	ctx := variable.NewVariableContext(context.Background())
 	routers := rw.GetRouters()
 	// the wrapper can get the new router
-	variable.SetVariableValue(ctx, types.VarHost, "www.test.com")
+	variable.SetString(ctx, types.VarHost, "www.test.com")
 	if r := routers.MatchRouteFromHeaderKV(ctx, nil, "service", "test"); r == nil {
 		t.Fatal("added route, but can not find it")
 	}
-	variable.SetVariableValue(ctx, types.VarHost, "www.test.net")
+	variable.SetString(ctx, types.VarHost, "www.test.net")
 	if r := routers.MatchRouteFromHeaderKV(ctx, nil, "service", "test"); r != nil {
 		t.Fatal("not added route, but still find it")
 	}
@@ -357,6 +356,9 @@ func Test_routersManager_AddRouter(t *testing.T) {
 	if len(cfgChanged.VirtualHosts[0].Routers) != 1 || len(cfgChanged.VirtualHosts[1].Routers) != 1 {
 		t.Fatal("default route config is not changed")
 	}
+	if len(cfgChanged.VirtualHosts[0].Routers[0].Match.Headers) != 1 {
+		t.Fatal("virtual host config routers is not expected")
+	}
 	routersChanged := rw.GetRouters()
 	// the wrapper can get the new router
 	if r := routersChanged.MatchRouteFromHeaderKV(ctx, nil, "service", "test"); r == nil {
@@ -371,7 +373,7 @@ func Test_routersManager_RemoveAllRouter(t *testing.T) {
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName: "test_remove_all_router",
 		},
-		VirtualHosts: []*v2.VirtualHost{
+		VirtualHosts: []v2.VirtualHost{
 			{
 				Name:    "test_addrouter_vh",
 				Domains: []string{"www.test.com"},
@@ -423,12 +425,12 @@ func Test_routersManager_RemoveAllRouter(t *testing.T) {
 		t.Fatal("remove all router failed", err)
 	}
 	routers := rw.GetRouters()
-	variable.SetVariableValue(ctx, types.VarHost, "www.test.com")
+	variable.SetString(ctx, types.VarHost, "www.test.com")
 	if r := routers.MatchRouteFromHeaderKV(ctx, nil, "service", "test"); r != nil {
 		t.Fatal("remove route, but still can matched")
 	}
 	ctx2 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx2, types.VarHost, "www.test.net")
+	variable.SetString(ctx2, types.VarHost, "www.test.net")
 	if r := routers.MatchRouteFromHeaderKV(ctx2, nil, "service", "test"); r == nil {
 		t.Fatal("route removed unexpected")
 	}

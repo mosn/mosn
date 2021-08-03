@@ -157,6 +157,7 @@ func (sc *streamConn) Dispatch(buf types.IoBuffer) {
 
 		tracks.Begin()
 		tracks.StartTrack(track.ProtocolDecode)
+
 		// 2. decode process
 		frame, err := sc.protocol.Decode(streamCtx, buf)
 
@@ -276,7 +277,7 @@ func (sc *streamConn) handleFrame(ctx context.Context, frame api.XFrame) {
 func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, oneway bool) {
 	// 1. heartbeat process
 	if frame.IsHeartbeatFrame() {
-		hbAck := sc.protocol.Reply(frame)
+		hbAck := sc.protocol.Reply(ctx, frame)
 		hbAckData, err := sc.protocol.Encode(ctx, hbAck)
 		if err != nil {
 			sc.handleError(ctx, frame, err)
@@ -297,7 +298,7 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 	}
 
 	// inject timeout
-	variable.SetVariableValue(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(frame.GetTimeout())))
+	variable.SetString(ctx, types.VarProxyGlobalTimeout, strconv.Itoa(int(frame.GetTimeout())))
 
 	// 3. create server stream
 	serverStream := sc.newServerStream(ctx, frame)
@@ -322,8 +323,8 @@ func (sc *streamConn) handleRequest(ctx context.Context, frame api.XFrame, onewa
 		serviceName := aware.GetServiceName()
 		methodName := aware.GetMethodName()
 
-		variable.SetVariableValue(ctx, types.VarHeaderRPCService, serviceName)
-		variable.SetVariableValue(ctx, types.VarHeaderRPCMethod, methodName)
+		variable.SetString(ctx, types.VarHeaderRPCService, serviceName)
+		variable.SetString(ctx, types.VarHeaderRPCMethod, methodName)
 
 		if log.Proxy.GetLogLevel() >= log.DEBUG {
 			log.Proxy.Debugf(ctx, "[stream] [xprotocol] frame service aware, requestId = %v, serviceName = %v , methodName = %v", serverStream.id, serviceName, methodName)

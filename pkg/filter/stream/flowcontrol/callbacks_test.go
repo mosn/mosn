@@ -37,12 +37,24 @@ func TestAfterBlock(t *testing.T) {
 	cb := GetCallbacksByConfig(cfg)
 	ctx := context.Background()
 	ctx = variable.NewVariableContext(ctx)
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHeaderStatus, nil, nil, variable.BasicSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarHeaderStatus, nil, nil, variable.DefaultStringSetter, 0))
 	ctx = variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx, types.VarHeaderStatus, "200")
+	variable.SetString(ctx, types.VarHeaderStatus, "200")
 
 	cb.AfterBlock(filter, ctx, nil, nil, nil)
-	status, err := variable.GetVariableValue(ctx, types.VarHeaderStatus)
+	status, err := variable.GetString(ctx, types.VarHeaderStatus)
 	assert.Nil(t, err)
 	assert.Equal(t, "509", status)
+}
+
+func TestDefaultCallbacks_SetConfig(t *testing.T) {
+	cfg := defaultConfig()
+	cb := GetCallbacksByConfig(cfg)
+	assert.Empty(t, cb.GetConfig().CallbackName)
+	cfg.CallbackName = "testing"
+	cb = GetCallbacksByConfig(cfg)
+	assert.Equal(t, "testing", cb.GetConfig().CallbackName)
+
+	config := cb.GetConfig()
+	assert.NotNil(t, config)
 }

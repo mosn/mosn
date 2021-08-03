@@ -84,11 +84,11 @@ func TestRetryState(t *testing.T) {
 		mgr: &fakeResourceManager{},
 	}
 	rs := newRetryState(policy, nil, clusterInfo, protocol.HTTP1)
-	variable.RegisterVariable(variable.NewIndexedVariable(types.VarHeaderStatus, nil, nil, variable.BasicSetter, 0))
+	variable.Register(variable.NewStringVariable(types.VarHeaderStatus, nil, nil, variable.DefaultStringSetter, 0))
 	ctx1 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx1, types.VarHeaderStatus, "200")
+	variable.SetString(ctx1, types.VarHeaderStatus, "200")
 	ctx2 := variable.NewVariableContext(context.Background())
-	variable.SetVariableValue(ctx2, types.VarHeaderStatus, "500")
+	variable.SetString(ctx2, types.VarHeaderStatus, "500")
 	testcases := []struct {
 		ctx      context.Context
 		Reason   types.StreamResetReason

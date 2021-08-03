@@ -299,16 +299,16 @@ func (cm *clusterManager) UDPConnForCluster(lbCtx types.LoadBalancerContext, sna
 	return host.CreateUDPConnection(context.Background())
 }
 
-func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) types.ConnectionPool {
+func (cm *clusterManager) ConnPoolForCluster(balancerContext types.LoadBalancerContext, snapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.ConnectionPool, types.Host) {
 	if snapshot == nil || reflect.ValueOf(snapshot).IsNil() {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager]  %s ConnPool For Cluster is nil", protocol)
-		return nil
+		return nil, nil
 	}
-	pool, err := cm.getActiveConnectionPool(balancerContext, snapshot, protocol)
+	pool, host, err := cm.getActiveConnectionPool(balancerContext, snapshot, protocol)
 	if err != nil {
 		log.DefaultLogger.Errorf("[upstream] [cluster manager] ConnPoolForCluster Failed; %v", err)
 	}
-	return pool
+	return pool, host
 }
 
 func (cm *clusterManager) GetTLSManager() types.TLSClientContextManager {
@@ -359,18 +359,21 @@ var (
 	errNoHealthyHost   = errors.New("no health hosts")
 )
 
-func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.ConnectionPool, error) {
+func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBalancerContext, clusterSnapshot types.ClusterSnapshot, protocol types.ProtocolName) (types.ConnectionPool, types.Host, error) {
 	factory, ok := network.ConnNewPoolFactories[protocol]
 	if !ok {
-		return nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
+		return nil, nil, fmt.Errorf("protocol %v is not registered is pool factory", protocol)
 	}
 
 	// for pool to know, whether this is a multiplex or pingpong pool
-	var pools [maxHostsCounts]types.ConnectionPool
+	var (
+		pools [maxHostsCounts]types.ConnectionPool
+		hosts [maxHostsCounts]types.Host
+	)
 
 	try := clusterSnapshot.HostNum(balancerContext.MetadataMatchCriteria())
 	if try == 0 {
-		return nil, errNilHostChoose
+		return nil, nil, errNilHostChoose
 	}
 	if try > maxHostsCounts {
 		try = maxHostsCounts
@@ -378,7 +381,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 	for i := 0; i < try; i++ {
 		host := clusterSnapshot.LoadBalancer().ChooseHost(balancerContext)
 		if host == nil {
-			return nil, errNilHostChoose
+			return nil, nil, errNilHostChoose
 		}
 
 		addr := host.AddressString()
@@ -387,7 +390,7 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 		}
 		value, ok := cm.protocolConnPool.Load(protocol)
 		if !ok {
-			return nil, errUnknownProtocol
+			return nil, nil, errUnknownProtocol
 		}
 
 		connectionPool := value.(*sync.Map)
@@ -435,9 +438,10 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 			}
 		}
 		if pool.CheckAndInit(balancerContext.DownstreamContext()) {
-			return pool, nil
+			return pool, host, nil
 		}
 		pools[i] = pool
+		hosts[i] = host
 	}
 
 	// perhaps the first request, wait for tcp handshaking.
@@ -447,11 +451,40 @@ func (cm *clusterManager) getActiveConnectionPool(balancerContext types.LoadBala
 				continue
 			}
 			if pools[i].CheckAndInit(balancerContext.DownstreamContext()) {
-				return pools[i], nil
+				return pools[i], hosts[i], nil
 			}
 		}
 		waitTime := tryConnTimes[t]
 		time.Sleep(waitTime)
 	}
-	return nil, errNoHealthyHost
+	return nil, nil, errNoHealthyHost
+}
+
+func (cm *clusterManager) ShutdownConnectionPool(proto types.ProtocolName, addr string) {
+	shutdown := func(value interface{}) {
+		connectionPool := value.(*sync.Map)
+		if connPool, ok := connectionPool.Load(addr); ok {
+			pool := connPool.(types.ConnectionPool)
+			connectionPool.Delete(addr)
+			pool.Shutdown()
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] protocol %s address %s connections shutdown", proto, addr)
+			}
+		}
+	}
+	if proto == "" {
+		cm.protocolConnPool.Range(func(_, value interface{}) bool {
+			shutdown(value)
+			return true
+		})
+	} else {
+		value, ok := cm.protocolConnPool.Load(proto)
+		if !ok {
+			if log.DefaultLogger.GetLogLevel() >= log.DEBUG {
+				log.DefaultLogger.Debugf("[upstream] [cluster manager] unknown protocol when shutdown, protocol:%s, address: %s", proto, addr)
+			}
+			return
+		}
+		shutdown(value)
+	}
 }

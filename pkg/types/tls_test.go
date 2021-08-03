@@ -21,16 +21,17 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/stretchr/testify/assert"
+
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 )
 
 func TestSecretConvert(t *testing.T) {
-	var sec = envoy_api_v2_auth.Secret{
+	var sec = auth.Secret{
 		Name: "mosn",
 	}
 
-	sdsSec := SecretConvertV2(&sec)
+	sdsSec := SecretConvert(&sec)
 	assert.Equal(t, sdsSec.Name, "mosn")
 }
 

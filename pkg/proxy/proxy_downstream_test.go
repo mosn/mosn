@@ -22,9 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"mosn.io/mosn/pkg/variable"
-
-	"bou.ke/monkey"
+	monkey "github.com/cch123/supermonkey"
 	"github.com/golang/mock/gomock"
 	"mosn.io/api"
 	v2 "mosn.io/mosn/pkg/config/v2"
@@ -38,6 +36,7 @@ import (
 	"mosn.io/mosn/pkg/trace"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/upstream/cluster"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 )
 
@@ -83,24 +82,24 @@ func TestProxyWithFilters(t *testing.T) {
 		}).AnyTimes() // gomcok and monkey patch is conflict, ignore the call times
 		// mock ConnPoolForCluster returns connPool
 		cm.EXPECT().ConnPoolForCluster(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ types.LoadBalancerContext, _ types.ClusterSnapshot, _ api.ProtocolName) types.ConnectionPool {
+			func(_ types.LoadBalancerContext, _ types.ClusterSnapshot, _ api.ProtocolName) (types.ConnectionPool, types.Host) {
 				pool := mock.NewMockConnectionPool(ctrl)
 				// mock connPool.NewStream to call upstreamRequest.OnReady (see stream/xprotocol/connpool.go:NewStream)
+				h := mock.NewMockHost(ctrl)
+				h.EXPECT().HostStats().DoAndReturn(func() types.HostStats {
+					s := metrics.NewHostStats("mockhost", "mockhost")
+					return types.HostStats{
+						UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
+						UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
+						UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
+						UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
+					}
+				}).AnyTimes()
+				h.EXPECT().AddressString().Return("mockhost").AnyTimes()
+				h.EXPECT().ClusterInfo().DoAndReturn(func() types.ClusterInfo {
+					return gomockClusterInfo(ctrl)
+				}).AnyTimes()
 				pool.EXPECT().Host().DoAndReturn(func() types.Host {
-					h := mock.NewMockHost(ctrl)
-					h.EXPECT().HostStats().DoAndReturn(func() types.HostStats {
-						s := metrics.NewHostStats("mockhost", "mockhost")
-						return types.HostStats{
-							UpstreamRequestDuration:      s.Histogram(metrics.UpstreamRequestDuration),
-							UpstreamRequestDurationTotal: s.Counter(metrics.UpstreamRequestDurationTotal),
-							UpstreamResponseFailed:       s.Counter(metrics.UpstreamResponseFailed),
-							UpstreamResponseSuccess:      s.Counter(metrics.UpstreamResponseSuccess),
-						}
-					}).AnyTimes()
-					h.EXPECT().AddressString().Return("mockhost").AnyTimes()
-					h.EXPECT().ClusterInfo().DoAndReturn(func() types.ClusterInfo {
-						return gomockClusterInfo(ctrl)
-					}).AnyTimes()
 					return h
 				}).AnyTimes()
 				pool.EXPECT().NewStream(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, _ types.StreamReceiveListener) (types.Host, types.StreamSender, types.PoolFailureReason) {
@@ -108,7 +107,7 @@ func TestProxyWithFilters(t *testing.T) {
 					encoder := gomockStreamSender(ctrl)
 					return pool.Host(), encoder, ""
 				}).AnyTimes()
-				return pool
+				return pool, h
 			}).AnyTimes()
 		return &cluster.MngAdapter{
 			ClusterManager: cm,
@@ -171,7 +170,7 @@ func TestProxyWithFilters(t *testing.T) {
 					ReceiveFilterGen: func() api.StreamReceiverFilter {
 						return gomockReceiverFilter(ctrl, func(h api.StreamReceiverFilterHandler, _ context.Context, _ api.HeaderMap, _ buffer.IoBuffer, _ api.HeaderMap) {
 							if h.RequestInfo().RouteEntry() != nil {
-								filterRecords["route_cluster"] = h.RequestInfo().RouteEntry().ClusterName()
+								filterRecords["route_cluster"] = h.RequestInfo().RouteEntry().ClusterName(context.TODO())
 							}
 							filterRecords["host"] = h.RequestInfo().UpstreamLocalAddress()
 						})
@@ -281,7 +280,7 @@ func TestProxyWithFilters(t *testing.T) {
 	// upstreamRequest.OnReceive ( see stream/xprotocol/conn.go: handleResponse)
 
 	upstreamRequest.downStream.context = variable.NewVariableContext(upstreamRequest.downStream.context)
-	variable.SetVariableValue(upstreamRequest.downStream.context, types.VarHeaderStatus, "200")
+	variable.SetString(upstreamRequest.downStream.context, types.VarHeaderStatus, "200")
 
 	upstreamRequest.OnReceive(ctx, protocol.CommonHeader{}, buffer.NewIoBufferString("123"), trailer)
 	// wait givestream

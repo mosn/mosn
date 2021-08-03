@@ -95,7 +95,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr:                    convertAddress(xdsListener.Address),
+		Addr: convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -838,10 +838,10 @@ func ConvertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 		return nil, false
 	}
 
-	virtualHosts := make([]*v2.VirtualHost, 0)
+	virtualHosts := make([]v2.VirtualHost, 0)
 
 	for _, xdsVirtualHost := range xdsRouteConfig.GetVirtualHosts() {
-		virtualHost := &v2.VirtualHost{
+		virtualHost := v2.VirtualHost{
 			Name:    xdsVirtualHost.GetName(),
 			Domains: xdsVirtualHost.GetDomains(),
 			Routers: convertRoutes(xdsVirtualHost.GetRoutes()),

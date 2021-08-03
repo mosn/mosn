@@ -29,8 +29,8 @@ import (
 	"github.com/gogo/protobuf/proto"
 	v1 "istio.io/api/mixer/v1"
 	"mosn.io/api"
-	"mosn.io/pkg/buffer"
 	"mosn.io/mosn/pkg/variable"
+	"mosn.io/pkg/buffer"
 
 	"mosn.io/mosn/pkg/cel/attribute"
 	"mosn.io/mosn/pkg/istio/utils"
@@ -143,13 +143,13 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 	case utils.KResponseCode:
 		return int64(e.requestInfo.ResponseCode()), true
 	case utils.KRequestPath:
-		path, err := variable.GetVariableValue(e.ctx, types.VarPath)
+		path, err := variable.GetString(e.ctx, types.VarPath)
 		if err != nil || path == "" {
 			return nil, false
 		}
 		return path, true
 	case utils.KRequestQueryParms:
-		query, err := variable.GetVariableValue(e.ctx, types.VarQueryString)
+		query, err := variable.GetString(e.ctx, types.VarQueryString)
 		if err == nil && query != "" {
 			v, err := parseQuery(query)
 			if err == nil {
@@ -160,9 +160,9 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		}
 		e.extracted[utils.KRequestQueryParms] = nil
 	case utils.KRequestUrlPath:
-		path, err := variable.GetVariableValue(e.ctx, types.VarPath)
+		path, err := variable.GetString(e.ctx, types.VarPath)
 		if err == nil && path != "" {
-			query, err := variable.GetVariableValue(e.ctx, types.VarQueryString)
+			query, err := variable.GetString(e.ctx, types.VarQueryString)
 			if err == nil && query != "" {
 				url := path + "?" + query
 				e.extracted[utils.KRequestUrlPath] = url
@@ -173,13 +173,13 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 		}
 		e.extracted[utils.KRequestUrlPath] = nil
 	case utils.KRequestMethod:
-		method, err := variable.GetVariableValue(e.ctx, types.VarMethod)
+		method, err := variable.GetString(e.ctx, types.VarMethod)
 		if err != nil || method == "" {
 			return nil, false
 		}
 		return method, true
 	case utils.KRequestHost:
-		host, err := variable.GetVariableValue(e.ctx, types.VarHost)
+		host, err := variable.GetString(e.ctx, types.VarHost)
 		if err != nil || host == "" {
 			return nil, false
 		}
@@ -187,7 +187,7 @@ func (e *extractAttributes) Get(name string) (interface{}, bool) {
 	case utils.KDestinationServiceHost, utils.KDestinationServiceName, utils.KDestinationServiceNamespace, utils.KContextReporterKind:
 		routeEntry := e.requestInfo.RouteEntry()
 		if routeEntry != nil {
-			clusterName := routeEntry.ClusterName()
+			clusterName := routeEntry.ClusterName(e.ctx)
 			if clusterName != "" {
 				info := paresClusterName(clusterName)
 				e.extracted[utils.KDestinationServiceHost] = info.Host

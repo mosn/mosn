@@ -23,9 +23,9 @@ import (
 
 	"mosn.io/api"
 	"mosn.io/mosn/pkg/types"
+	"mosn.io/mosn/pkg/variable"
 	"mosn.io/pkg/buffer"
 	"mosn.io/pkg/log"
-	"mosn.io/mosn/pkg/variable"
 )
 
 // RequestInfoFuncMap is a map which key is the format-key, value is the func to get corresponding string value
@@ -76,7 +76,7 @@ func (le *logEntry) log(ctx context.Context, buf buffer.IoBuffer) {
 	if le.text != "" {
 		buf.WriteString(le.text)
 	} else {
-		value, err := variable.GetVariableValue(ctx, le.name)
+		value, err := variable.GetString(ctx, le.name)
 		if err != nil {
 			buf.WriteString(variable.ValueNotFound)
 		} else {
@@ -155,7 +155,7 @@ func parseFormat(format string) ([]*logEntry, error) {
 
 					// var def ends, add variable
 					varName := format[lastMark+1 : pos]
-					_, err := variable.AddVariable(varName)
+					_, err := variable.Check(varName)
 					if err != nil {
 						// adapte istio unknow fields
 						entries = append(entries, &logEntry{text: UnknowDefaultValue})

@@ -97,3 +97,8 @@ type NetWorkFilterChainFactoryCallbacks interface {
 type NetworkFilterChainFactory interface {
 	CreateFilterChain(context context.Context, callbacks NetWorkFilterChainFactoryCallbacks)
 }
+
+// FactoryInitializer represents a filter Factory needs to be inited before called.
+type FactoryInitializer interface {
+	Init(interface{}) error
+}

@@ -36,21 +36,6 @@ func (hs *hostSet) Hosts() []types.Host {
 	return hs.allHosts
 }
 
-func (hs *hostSet) createSubset(predicate types.HostPredicate) types.HostSet {
-	allHosts := hs.Hosts()
-	var subHosts []types.Host
-	for _, h := range allHosts {
-		if predicate(h) {
-			subHosts = append(subHosts, h)
-		}
-	}
-	sub := &subHostSet{
-		predicate: predicate,
-		allHosts:  subHosts,
-	}
-	return sub
-}
-
 // setFinalHosts makes a slice copy, distinct host by address string
 // can be set only once
 func (hs *hostSet) setFinalHost(hosts []types.Host) {
@@ -71,18 +56,4 @@ func (hs *hostSet) setFinalHost(hosts []types.Host) {
 			log.DefaultLogger.Infof("[upstream] [host set] update host, final host total: %d", len(hs.allHosts))
 		}
 	})
-}
-
-// subHostSet is a types.Host makes by hostSet
-// the member and healthy states is sync from hostSet that created it
-// no callbacks can be added in subset hostset
-type subHostSet struct {
-	mux       sync.RWMutex
-	allHosts  []types.Host
-	predicate types.HostPredicate
-}
-
-// Hosts do not need lock, because it is "immutable"
-func (sub *subHostSet) Hosts() []types.Host {
-	return sub.allHosts
 }

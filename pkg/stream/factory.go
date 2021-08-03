@@ -51,13 +51,13 @@ func SelectStreamFactoryProtocol(ctx context.Context, prot string, peek []byte) 
 		err = factory.ProtocolMatch(ctx, prot, peek)
 		if err == nil {
 			return p, nil
-		} else if err == EAGAIN {
+		}
+		if err == EAGAIN {
 			again = true
 		}
 	}
 	if again {
 		return "", EAGAIN
-	} else {
-		return "", FAILED
 	}
+	return "", FAILED
 }

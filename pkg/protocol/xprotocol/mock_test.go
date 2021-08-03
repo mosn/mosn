@@ -44,16 +44,16 @@ func (mp *mockProtocol) Decode(ctx context.Context, data types.IoBuffer) (interf
 }
 
 // Heartbeater
-func (mp *mockProtocol) Trigger(requestId uint64) api.XFrame {
+func (mp *mockProtocol) Trigger(ctx context.Context, requestId uint64) api.XFrame {
 	return nil
 }
 
-func (mp *mockProtocol) Reply(request api.XFrame) api.XRespFrame {
+func (mp *mockProtocol) Reply(ctx context.Context, request api.XFrame) api.XRespFrame {
 	return nil
 }
 
 // Hijacker
-func (mp *mockProtocol) Hijack(request api.XFrame, statusCode uint32) api.XRespFrame {
+func (mp *mockProtocol) Hijack(ctx context.Context, request api.XFrame, statusCode uint32) api.XRespFrame {
 	return nil
 }
 
