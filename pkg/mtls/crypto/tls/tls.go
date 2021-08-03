@@ -151,6 +151,7 @@ func DialWithDialer(dialer *net.Dialer, network, addr string, config *Config) (*
 	}
 
 	conn := Client(rawConn, config)
+	conn.SetServerName(config.ServerName)
 
 	if timeout == 0 {
 		err = conn.Handshake()
