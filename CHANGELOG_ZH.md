@@ -1,5 +1,39 @@
 # 更新日志
 
+## v0.24.0
+
+### 新功能
+
+- 支持使用jaeger收集OpenTracing信息 [@Roger](https://github.com/Magiczml)
+- 集群变量路由 [@wangfakang](https://github.com/wangfakang)
+- 在virtualhost支持端口使用"*"来匹配 [@jiebin](https://github.com/jiebinzhuang)
+- 实现 envoy 中的filter: [header_to_metadata](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/header_to_metadata_filter) [@antJack](https://github.com/antJack)
+
+### 优化
+
+- 在健康检查中增量更新host [@alpha-baby](https://github.com/alpha-baby)
+- 在mosn包装的connection中增加OnConnectionEvent函数 [@CodingSinger](https://github.com/CodingSinger)
+- 权重轮询负载均衡复用已有的轮询负载均衡来兜底 [@alpha-baby](https://github.com/alpha-baby)
+- 在mosn变量模块中增加interface值类型 [@antJack](https://github.com/antJack)
+- 删除在用例中引入的无用的依赖包：proxy-wasm-go-sdk [@antJack](https://github.com/antJack)
+- 升级依赖包：github.com/miekg/dns 从1.0.14 到 1.1.25
+- 支持grpc网络过滤器优雅关闭 [@alpha-baby](https://github.com/alpha-baby)
+
+### Bug 修复
+
+- 在X Protocol auto 模式下 拿到正确的subProtocol [@Thiswang](https://github.com/Thiswang)
+- 在并发情况下，健康的host较少时候，轮询负载均衡中会返回nil [@alpha-baby](https://github.com/alpha-baby)
+- 不能正确识别unix主机地址 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复http连接关闭无效的问题，保存连接状态，因为clientStream AppendHeaders会修改它 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 支持unix domain socket的热升级 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复潜在的SM3内存泄漏 [@ZengKe](https://github.com/william-zk)
+- 当连接被对端重置或管道断裂时http2支持重试 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 从连接池中获取到缓存的host元数据信息 [@Sharember](https://github.com/Sharember)
+- 修复在route模块中选择权重集群的数据竞争 [@alpha-baby](https://github.com/alpha-baby)
+- 在Edf负载均衡算法中，如果只有一个host并且它不健康时应该返回nil [@alpha-baby](https://github.com/alpha-baby)
+- 在没有元数据情况下正确的重subset负载均衡中选出host [@nejisama](https://github.com/nejisama)
+- 修复subset计算host个数，没有正确考虑到兜底策略 [@antJack](https://github.com/antJack)
+
 ## v0.23.0
 
 ### 新功能
