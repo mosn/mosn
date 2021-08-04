@@ -24,8 +24,10 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"mosn.io/api"
-	"mosn.io/mosn/pkg/config/v2"
+	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/types"
 )
 
@@ -395,10 +397,6 @@ func TestFallbackWithDefaultSubset(t *testing.T) {
 			expectedHost: "e7",
 		},
 		{
-			ctx:          newMockLbContext(nil),
-			expectedHost: "e7",
-		},
-		{
 			ctx:          newMockLbContext(map[string]string{}),
 			expectedHost: "e7",
 		},
@@ -713,6 +711,94 @@ func TestDynamicSubsetHost(t *testing.T) {
 		result.RangeSubsetMap("", lb.subSets)
 		if !resultMapEqual(result.result, expectedResult) {
 			t.Fatal("create subset is not expected", result.result)
+		}
+	}
+
+}
+
+func TestFallbackAny(t *testing.T) {
+	// use cluster manager to register dynamic host changed
+	clusterName := "TestSubset"
+	hostA := &mockHost{
+		addr: "127.0.0.1:8080",
+		name: "A",
+		meta: api.Metadata{
+			"zone":  "zone0",
+			"group": "a",
+		},
+	}
+	hostB := &mockHost{
+		addr: "127.0.0.1:8081",
+		name: "B",
+		meta: api.Metadata{
+			"zone":  "zone0",
+			"group": "b",
+		},
+	}
+	clusterConfig := v2.Cluster{
+		Name:                 clusterName,
+		ClusterType:          v2.SIMPLE_CLUSTER,
+		LbType:               v2.LB_RANDOM,
+		MaxRequestPerConn:    1024,
+		ConnBufferLimitBytes: 1024,
+		LBSubSetConfig: v2.LBSubsetConfig{
+			FallBackPolicy: uint8(types.AnyEndPoint),
+			SubsetSelectors: [][]string{
+				[]string{"group"},
+				[]string{"zone"},
+			},
+		},
+	}
+	cluster := newSimpleCluster(clusterConfig).(*simpleCluster)
+	cluster.UpdateHosts([]types.Host{hostA, hostB})
+	lb := cluster.lbInstance.(*subsetLoadBalancer)
+	ctx := newMockLbContext(map[string]string{
+		"zone":  "zone0",
+		"group": "a",
+	})
+
+	// should run into fallback policy: AnyEndPoint, and return all 2 hosts
+	assert.Equal(t, 2, lb.HostNum(ctx.MetadataMatchCriteria()))
+	assert.True(t, lb.IsExistsHosts(ctx.MetadataMatchCriteria()))
+}
+
+func TestNoFallbackWithEmpty(t *testing.T) {
+	// allback policy is no fallback
+	// but empty meta data can be used as any point fallback
+	ps := createHostset(exampleHostConfigs())
+	cfg := exampleSubsetConfig()
+	cfg.FallBackPolicy = uint8(types.NoFallBack) // NoFallBack
+	lb := newSubsetLoadBalancer(types.RoundRobin, ps, newClusterStats("TestNewSubsetChooseHost"), NewLBSubsetInfo(cfg))
+
+	cases := []struct {
+		ctx   types.LoadBalancerContext
+		hosts int
+	}{
+		{
+			ctx:   newMockLbContext(map[string]string{"stage": "prod", "version": "1.0"}),
+			hosts: 3,
+		},
+		{
+			ctx:   newMockLbContext(map[string]string{"stage": "prod"}),
+			hosts: 0,
+		},
+		{
+			ctx:   newMockLbContext(nil),
+			hosts: 7, // all hosts
+		},
+	}
+	for _, c := range cases {
+		hnum := lb.HostNum(c.ctx.MetadataMatchCriteria())
+		require.Equal(t, c.hosts, hnum)
+		for i := 0; i < 7; i++ {
+			h := lb.ChooseHost(c.ctx)
+			if c.hosts > 0 {
+				require.True(t, lb.IsExistsHosts(c.ctx.MetadataMatchCriteria()))
+				require.NotNil(t, h)
+			} else {
+				require.False(t, lb.IsExistsHosts(c.ctx.MetadataMatchCriteria()))
+				require.Nil(t, h)
+			}
 		}
 	}
 

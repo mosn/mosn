@@ -522,7 +522,8 @@ func (al *activeListener) activeStreamSize() int {
 	return int(s.Counter(metrics.DownstreamRequestActive).Count())
 }
 
-func (al *activeListener) OnClose() {}
+func (al *activeListener) OnClose() {
+}
 
 // PreStopHook used for graceful stop
 func (al *activeListener) PreStopHook(ctx context.Context) func() error {

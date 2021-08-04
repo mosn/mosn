@@ -24,6 +24,7 @@ import (
 	"net"
 	"runtime/debug"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -32,6 +33,7 @@ import (
 	mosnctx "mosn.io/mosn/pkg/context"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/network"
+	"mosn.io/mosn/pkg/server/keeper"
 	"mosn.io/mosn/pkg/streamfilter"
 	"mosn.io/mosn/pkg/types"
 	"mosn.io/mosn/pkg/variable"
@@ -94,6 +96,29 @@ func (f *grpcServerFilterFactory) Init(param interface{}) error {
 	// maybe it will be used when server stop/restart are supported
 	f.server = srv
 	f.ln = ln
+	// stop grpc server when mosn process shutdown
+	keeper.OnProcessShutDown(func() error {
+		return f.close()
+	})
+	return nil
+}
+
+func (f *grpcServerFilterFactory) close() error {
+	// use default timeout
+	gracefulStopTimeout := v2.GrpcDefaultGracefulStopTimeout
+	if f.config.GracefulStopTimeout > 0 {
+		// use the user-set timeout
+		gracefulStopTimeout = f.config.GracefulStopTimeout
+	}
+	// sync stop grpc server
+	timer := time.AfterFunc(gracefulStopTimeout, func() {
+		f.server.Stop()
+		log.DefaultLogger.Errorf("[grpc networkFilter] force stop grpc server: %v", f.config.ServerName)
+	})
+	defer timer.Stop()
+	log.DefaultLogger.Infof("[grpc networkFilter] graceful stopping grpc server: %v", f.config.ServerName)
+	f.server.GracefulStop()
+	log.DefaultLogger.Infof("[grpc networkFilter] graceful stoped grpc server success: %v", f.config.ServerName)
 	return nil
 }
 
@@ -207,6 +232,9 @@ func CreateGRPCServerFilterFactory(conf map[string]interface{}) (api.NetworkFilt
 // RegisteredServer is a wrapper of *(google.golang.org/grpc).Server
 type RegisteredServer interface {
 	Serve(net.Listener) error
+	// GracefulStop graceful stop grpc server
+	GracefulStop()
+	// Stop ungraceful stop grpc server
 	Stop()
 }
 

@@ -17,9 +17,36 @@
 
 package v2
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"mosn.io/api"
+	"time"
+)
+
+var GrpcDefaultGracefulStopTimeout = time.Second * 30
 
 type GRPC struct {
+	GRPCConfig
+	// GracefulStopTimeout grpc server graceful stop timeout
+	GracefulStopTimeout time.Duration `json:"-"`
+}
+
+func (g *GRPC) MarshalJSON() (b []byte, err error) {
+	g.GRPCConfig.GracefulStopTimeoutConfig.Duration = g.GracefulStopTimeout
+	return json.Marshal(g.GRPCConfig)
+}
+
+func (g *GRPC) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &g.GRPCConfig); err != nil {
+		return err
+	}
+	g.GracefulStopTimeout = g.GRPCConfig.GracefulStopTimeoutConfig.Duration
+	return nil
+}
+
+type GRPCConfig struct {
+	// GracefulStopTimeoutConfig grpc server graceful stop timeout
+	GracefulStopTimeoutConfig api.DurationConfig `json:"graceful_stop_timeout"`
 	// ServerName determines which registered grpc server is used.
 	// A server_name should be used only once.
 	ServerName string `json:"server_name"`
@@ -27,3 +54,4 @@ type GRPC struct {
 	// a registered grpc server, which can be any types, usually json.
 	GrpcConfig json.RawMessage `json:"grpc_config"`
 }
+
