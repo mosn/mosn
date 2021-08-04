@@ -157,6 +157,7 @@ func Test_NewConfigImpl(t *testing.T) {
 								Append: &FALSE,
 							},
 						},
+						RequestHeadersToRemove:  []string{"test"},
 						ResponseHeadersToRemove: []string{"status"},
 					},
 				},
@@ -172,6 +173,7 @@ func Test_NewConfigImpl(t *testing.T) {
 							},
 						},
 					},
+					headersToRemove: []string{"test"},
 				},
 				responseHeadersParser: &headerParser{
 					headersToAdd: []*headerPair{
