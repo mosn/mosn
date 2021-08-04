@@ -13,7 +13,6 @@ import (
 	"google.golang.org/grpc"
 
 	"mosn.io/api"
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
 	mosnhttp "mosn.io/mosn/pkg/protocol/http"
@@ -24,21 +23,22 @@ import (
 )
 
 const (
+	SEATA    = "seata"
 	XID      = "x_seata_xid"
 	BranchID = "x_seata_branch_id"
 )
 
 type filter struct {
-	conf              *v2.Seata
-	transactionInfos  map[string]*v2.TransactionInfo
-	tccResources      map[string]*v2.TCCResource
+	conf              *Seata
+	transactionInfos  map[string]*TransactionInfo
+	tccResources      map[string]*TCCResource
 	receiveHandler    api.StreamReceiverFilterHandler
 	sendHandler       api.StreamSenderFilterHandler
 	transactionClient apis.TransactionManagerServiceClient
 	resourceClient    apis.ResourceManagerServiceClient
 }
 
-func NewFilter(conf *v2.Seata) (*filter, error) {
+func NewFilter(conf *Seata) (*filter, error) {
 	conn, err := grpc.Dial(conf.ServerAddressing,
 		grpc.WithInsecure(),
 		grpc.WithKeepaliveParams(conf.GetClientParameters()))
@@ -51,8 +51,8 @@ func NewFilter(conf *v2.Seata) (*filter, error) {
 
 	f := &filter{
 		conf:              conf,
-		transactionInfos:  make(map[string]*v2.TransactionInfo),
-		tccResources:      make(map[string]*v2.TCCResource),
+		transactionInfos:  make(map[string]*TransactionInfo),
+		tccResources:      make(map[string]*TCCResource),
 		transactionClient: transactionManagerClient,
 		resourceClient:    resourceManagerClient,
 	}
@@ -167,7 +167,8 @@ func (f *filter) OnDestroy() {
 
 }
 
-func (f *filter) handleHttp1GlobalBegin(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer, trailers api.HeaderMap, transactionInfo *v2.TransactionInfo) api.StreamFilterStatus {
+func (f *filter) handleHttp1GlobalBegin(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer,
+	trailers api.HeaderMap, transactionInfo *TransactionInfo) api.StreamFilterStatus {
 
 	// todo support transaction isolation level
 	xid, err := f.globalBegin(ctx, transactionInfo.RequestPath, transactionInfo.Timeout)
@@ -181,7 +182,7 @@ func (f *filter) handleHttp1GlobalBegin(ctx context.Context, headers api.HeaderM
 }
 
 func (f *filter) handleHttp1BranchRegister(ctx context.Context, headers api.HeaderMap, buf buffer.IoBuffer,
-	trailers api.HeaderMap, tccResource *v2.TCCResource) api.StreamFilterStatus {
+	trailers api.HeaderMap, tccResource *TCCResource) api.StreamFilterStatus {
 	xid, ok := headers.Get(XID)
 	if !ok {
 		log.DefaultLogger.Errorf("failed to get xid from request header")

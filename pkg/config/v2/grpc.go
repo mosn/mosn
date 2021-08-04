@@ -19,7 +19,6 @@ package v2
 
 import (
 	"encoding/json"
-	"time"
 )
 
 type GRPC struct {
@@ -29,19 +28,4 @@ type GRPC struct {
 	// GrpcConfig represents the configuration needed to create
 	// a registered grpc server, which can be any types, usually json.
 	GrpcConfig json.RawMessage `json:"grpc_config"`
-}
-
-type KeepaliveOption struct {
-	EnforcementPolicy struct {
-		MinTime             time.Duration `json:"minTime"`
-		PermitWithoutStream bool          `json:"permitWithoutStream"`
-	} `json:"enforcementPolicy"`
-
-	ServerParameters struct {
-		MaxConnectionIdle     time.Duration `json:"maxConnectionIdle"`
-		MaxConnectionAge      time.Duration `json:"maxConnectionAge"`
-		MaxConnectionAgeGrace time.Duration `json:"maxConnectionAgeGrace"`
-		Time                  time.Duration `json:"time"`
-		Timeout               time.Duration `json:"timeout"`
-	} `json:"serverParameters"`
 }

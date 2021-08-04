@@ -5,17 +5,16 @@ import (
 	"encoding/json"
 	"mosn.io/api"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
 	"mosn.io/mosn/pkg/log"
 )
 
 func init() {
 	// static seata stream filter factory
-	api.RegisterStream(v2.SEATA, CreateFilterFactory)
+	api.RegisterStream(SEATA, CreateFilterFactory)
 }
 
 type factory struct {
-	Conf *v2.Seata
+	Conf *Seata
 }
 
 func (f *factory) CreateFilterChain(context context.Context, callbacks api.StreamFilterChainFactoryCallbacks) {
@@ -37,8 +36,8 @@ func CreateFilterFactory(conf map[string]interface{}) (api.StreamFilterChainFact
 }
 
 // parseConfig
-func parseConfig(cfg map[string]interface{}) (*v2.Seata, error) {
-	filterConfig := &v2.Seata{}
+func parseConfig(cfg map[string]interface{}) (*Seata, error) {
+	filterConfig := &Seata{}
 	data, err := json.Marshal(cfg)
 	if err != nil {
 		return nil, err

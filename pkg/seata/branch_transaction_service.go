@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 
-	v2 "mosn.io/mosn/pkg/config/v2"
 	mgrpc "mosn.io/mosn/pkg/filter/network/grpc"
 	"mosn.io/mosn/pkg/log"
 	"mosn.io/mosn/pkg/protocol"
@@ -29,7 +28,22 @@ func init() {
 	mgrpc.RegisterServerHandler("seata", NewBranchTransactionServiceServer)
 }
 
-func getEnforcementPolicy(option *v2.KeepaliveOption) keepalive.EnforcementPolicy {
+type KeepaliveOption struct {
+	EnforcementPolicy struct {
+		MinTime             time.Duration `json:"minTime"`
+		PermitWithoutStream bool          `json:"permitWithoutStream"`
+	} `json:"enforcementPolicy"`
+
+	ServerParameters struct {
+		MaxConnectionIdle     time.Duration `json:"maxConnectionIdle"`
+		MaxConnectionAge      time.Duration `json:"maxConnectionAge"`
+		MaxConnectionAgeGrace time.Duration `json:"maxConnectionAgeGrace"`
+		Time                  time.Duration `json:"time"`
+		Timeout               time.Duration `json:"timeout"`
+	} `json:"serverParameters"`
+}
+
+func getEnforcementPolicy(option *KeepaliveOption) keepalive.EnforcementPolicy {
 	ep := keepalive.EnforcementPolicy{
 		MinTime:             5 * time.Second,
 		PermitWithoutStream: true,
@@ -41,7 +55,7 @@ func getEnforcementPolicy(option *v2.KeepaliveOption) keepalive.EnforcementPolic
 	return ep
 }
 
-func getServerParameters(option *v2.KeepaliveOption) keepalive.ServerParameters {
+func getServerParameters(option *KeepaliveOption) keepalive.ServerParameters {
 	sp := keepalive.ServerParameters{
 		MaxConnectionIdle:     15 * time.Second,
 		MaxConnectionAge:      30 * time.Second,
@@ -67,9 +81,9 @@ func getServerParameters(option *v2.KeepaliveOption) keepalive.ServerParameters 
 	return sp
 }
 
-func parseKeepaliveOption(conf json.RawMessage) (*v2.KeepaliveOption, error) {
+func parseKeepaliveOption(conf json.RawMessage) (*KeepaliveOption, error) {
 	data, _ := json.Marshal(conf)
-	v := &v2.KeepaliveOption{}
+	v := &KeepaliveOption{}
 	err := json.Unmarshal(data, v)
 	return v, err
 }
