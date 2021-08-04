@@ -51,4 +51,3 @@ func (config *Seata) GetClientParameters() keepalive.ClientParameters {
 	cp.PermitWithoutStream = config.ClientParameters.PermitWithoutStream
 	return cp
 }
-
