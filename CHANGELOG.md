@@ -5,34 +5,34 @@
 ### New Features
 
 - support jaeger to collect OpenTracing message [@Roger](https://github.com/Magiczml)
-- Feature cluster variable for route [@wangfakang](https://github.com/wangfakang)
-- add route virtualhost support port match "*" [@jiebin](https://github.com/jiebinzhuang)
+- routing configuration new variable configuration mode, you can modify the routing results by modifying the variable [@wangfakang](https://github.com/wangfakang)
+- routing virtualhost matching supports port matching mode [@jiebin](https://github.com/jiebinzhuang)
 - impl envoy filter: [header_to_metadata](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/header_to_metadata_filter) [@antJack](https://github.com/antJack)
+- support graceful for uds [@taoyuanyuan](https://github.com/taoyuanyuan)
+- new subset load balancing logic to use the full list of machines for load balancing in scenarios where there is no metadata matching [@nejisama](https://github.com/nejisama)
 
 ### Optimization
 
-- incremental update host set in HealthChecker [@alpha-baby](https://github.com/alpha-baby)
-- add OnConnectionEvent impl in mosn wrappered connection [@CodingSinger](https://github.com/CodingSinger)
-- WeightedRoundRobinLoaderBalancer reuse RoundRobinLoaderBalancer to fallback [@alpha-baby](https://github.com/alpha-baby)
+- optimize health check update mode for Cluster configuration updates [@alpha-baby](https://github.com/alpha-baby)
+- add OnConnectionEvent interface in api.Connection [@CodingSinger](https://github.com/CodingSinger)
+- weighted roundrobin loadbalancer underwriting policy adjusted to normal roundrobin load balancer [@alpha-baby](https://github.com/alpha-baby)
 - enhance interface value in mosn variable model [@antJack](https://github.com/antJack)
 - remove proxy-wasm-go-sdk from go.mod introduced by examples [@antJack](https://github.com/antJack)
 - bump github.com/miekg/dns from 1.0.14 to 1.1.25
 - enhance grpc networkFilter graceful stop [@alpha-baby](https://github.com/alpha-baby)
+- subset also follows the same underwriting strategy when determining the number of machines and whether they exist [@antJack](https://github.com/antJack)
 
 ### Bug fixes
 
-- in X Protocol auto model, get right subProtocol [@Thiswang](https://github.com/Thiswang)
-- in the case of concurrency, roundrobin load balancer will return nil when there are few healthy hosts [@alpha-baby](https://github.com/alpha-baby)
-- fix uds parse error [@taoyuanyuan](https://github.com/taoyuanyuan)
-- fix http connection close invaild,save the connection state, because clientStream AppendHeaders will modify it.
-- Support graceful for uds [@taoyuanyuan](https://github.com/taoyuanyuan)
-- fix up potential sm3 mem leak [@ZengKe](https://github.com/william-zk)
+- dubbo stream filter supports automatic protocol recognition [@Thiswang](https://github.com/Thiswang)
+- fix roundrobin loadbalancer result exception in case of concurrency [@alpha-baby](https://github.com/alpha-baby)
+- fix unix address resolution exception [@taoyuanyuan](https://github.com/taoyuanyuan)
+- fix the exception that HTTP short connection cannot take effect [@taoyuanyuan](https://github.com/taoyuanyuan)
+- fix a memory leak in the TLS over SM3 suite after disconnection [@ZengKe](https://github.com/william-zk)
 - http2 support doretry when connection reset by peer or broken pipe [@taoyuanyuan](https://github.com/taoyuanyuan)
-- get host metadata be cached by ConnPool [@Sharember](https://github.com/Sharember)
+- fix the HOST information error from the connection pool [@Sharember](https://github.com/Sharember)
 - fix data race bug when choose weighted cluster [@alpha-baby](https://github.com/alpha-baby)
-- return nil if only one host and host is unhealthy in EdfLoadBalancer [@alpha-baby](https://github.com/alpha-baby)
-- Choose Host from SubsetLoadBalancer without Metadata [@nejisama](https://github.com/nejisama)
-- subsetLoadBalancer.HostNum do not consider fallback policy [@antJack](https://github.com/antJack)
+- return invalid host if host is unhealthy in EdfLoadBalancer [@alpha-baby](https://github.com/alpha-baby)
 
 ## v0.23.0
 

@@ -5,34 +5,34 @@
 ### 新功能
 
 - 支持使用jaeger收集OpenTracing信息 [@Roger](https://github.com/Magiczml)
-- 集群变量路由 [@wangfakang](https://github.com/wangfakang)
-- 在virtualhost支持端口使用"*"来匹配 [@jiebin](https://github.com/jiebinzhuang)
+- 路由配置新增变量配置模式，可通过修改变量的方式修改路由结果 [@wangfakang](https://github.com/wangfakang)
+- 路由virtualhost匹配支持端口匹配模式 [@jiebin](https://github.com/jiebinzhuang)
 - 实现 envoy 中的filter: [header_to_metadata](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/header_to_metadata_filter) [@antJack](https://github.com/antJack)
+- 支持UDS的热升级 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 新增subset负载均衡逻辑，在没有元数据匹配的场景下使用全量机器列表进行负载均衡 [@nejisama](https://github.com/nejisama)
 
 ### 优化
 
-- 在健康检查中增量更新host [@alpha-baby](https://github.com/alpha-baby)
-- 在mosn包装的connection中增加OnConnectionEvent函数 [@CodingSinger](https://github.com/CodingSinger)
-- 权重轮询负载均衡复用已有的轮询负载均衡来兜底 [@alpha-baby](https://github.com/alpha-baby)
+- 优化Cluster配置更新时的健康检查更新模式 [@alpha-baby](https://github.com/alpha-baby)
+- api.Connection新增OnConnectionEvent接口 [@CodingSinger](https://github.com/CodingSinger)
+- 权重轮询负载均衡兜底策略调整为普通轮询负载均衡 [@alpha-baby](https://github.com/alpha-baby)
 - 在mosn变量模块中增加interface值类型 [@antJack](https://github.com/antJack)
 - 删除在用例中引入的无用的依赖包：proxy-wasm-go-sdk [@antJack](https://github.com/antJack)
 - 升级依赖包：github.com/miekg/dns 从1.0.14 到 1.1.25
 - 支持grpc网络过滤器优雅关闭 [@alpha-baby](https://github.com/alpha-baby)
+- Subset判断机器个数与是否存在时，同样遵循兜底策略 [@antJack](https://github.com/antJack)
 
 ### Bug 修复
 
-- 在X Protocol auto 模式下 拿到正确的subProtocol [@Thiswang](https://github.com/Thiswang)
-- 在并发情况下，健康的host较少时候，轮询负载均衡中会返回nil [@alpha-baby](https://github.com/alpha-baby)
-- 不能正确识别unix主机地址 [@taoyuanyuan](https://github.com/taoyuanyuan)
-- 修复http连接关闭无效的问题，保存连接状态，因为clientStream AppendHeaders会修改它 [@taoyuanyuan](https://github.com/taoyuanyuan)
-- 支持unix domain socket的热升级 [@taoyuanyuan](https://github.com/taoyuanyuan)
-- 修复潜在的SM3内存泄漏 [@ZengKe](https://github.com/william-zk)
+- dubbo stream filter支持协议自动识别 [@Thiswang](https://github.com/Thiswang)
+- 修复轮询负载均衡在并发情况下结果异常 [@alpha-baby](https://github.com/alpha-baby)
+- 修复unix地址解析异常 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复HTTP短连接无法生效的异常 [@taoyuanyuan](https://github.com/taoyuanyuan)
+- 修复国密TLS SM3套件在连接断开后存在的内存泄漏 [@ZengKe](https://github.com/william-zk)
 - 当连接被对端重置或管道断裂时http2支持重试 [@taoyuanyuan](https://github.com/taoyuanyuan)
-- 从连接池中获取到缓存的host元数据信息 [@Sharember](https://github.com/Sharember)
+- 修复从连接池中获取到的HOST信息错误 [@Sharember](https://github.com/Sharember)
 - 修复在route模块中选择权重集群的数据竞争 [@alpha-baby](https://github.com/alpha-baby)
-- 在Edf负载均衡算法中，如果只有一个host并且它不健康时应该返回nil [@alpha-baby](https://github.com/alpha-baby)
-- 在没有元数据情况下正确的重subset负载均衡中选出host [@nejisama](https://github.com/nejisama)
-- 修复subset计算host个数，没有正确考虑到兜底策略 [@antJack](https://github.com/antJack)
+- 如果host不健康时，在Edf负载均衡算法中不能正确返回 [@alpha-baby](https://github.com/alpha-baby)
 
 ## v0.23.0
 
