@@ -10,6 +10,7 @@
 - 实现 envoy 中的filter: [header_to_metadata](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/header_to_metadata_filter) [@antJack](https://github.com/antJack)
 - 支持UDS的热升级 [@taoyuanyuan](https://github.com/taoyuanyuan)
 - 新增subset负载均衡逻辑，在没有元数据匹配的场景下使用全量机器列表进行负载均衡 [@nejisama](https://github.com/nejisama)
+- mosn的grpc框架支持优雅关闭 [@alpha-baby](https://github.com/alpha-baby)
 
 ### 优化
 
@@ -17,9 +18,7 @@
 - api.Connection新增OnConnectionEvent接口 [@CodingSinger](https://github.com/CodingSinger)
 - 权重轮询负载均衡兜底策略调整为普通轮询负载均衡 [@alpha-baby](https://github.com/alpha-baby)
 - 在mosn变量模块中增加interface值类型 [@antJack](https://github.com/antJack)
-- 删除在用例中引入的无用的依赖包：proxy-wasm-go-sdk [@antJack](https://github.com/antJack)
 - 升级依赖包：github.com/miekg/dns 从1.0.14 到 1.1.25
-- 支持grpc网络过滤器优雅关闭 [@alpha-baby](https://github.com/alpha-baby)
 - Subset判断机器个数与是否存在时，同样遵循兜底策略 [@antJack](https://github.com/antJack)
 
 ### Bug 修复
@@ -33,6 +32,7 @@
 - 修复从连接池中获取到的HOST信息错误 [@Sharember](https://github.com/Sharember)
 - 修复在route模块中选择权重集群的数据竞争 [@alpha-baby](https://github.com/alpha-baby)
 - 如果host不健康时，在Edf负载均衡算法中不能正确返回 [@alpha-baby](https://github.com/alpha-baby)
+- 修复XProtocol 路由配置超时无效的问题 [@nejisama](https://github.com/nejisama)
 
 ## v0.23.0
 

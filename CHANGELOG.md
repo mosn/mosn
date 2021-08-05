@@ -10,6 +10,7 @@
 - impl envoy filter: [header_to_metadata](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/header_to_metadata_filter) [@antJack](https://github.com/antJack)
 - support graceful for uds [@taoyuanyuan](https://github.com/taoyuanyuan)
 - new subset load balancing logic to use the full list of machines for load balancing in scenarios where there is no metadata matching [@nejisama](https://github.com/nejisama)
+- mosn's grpc framework supports graceful stop [@alpha-baby](https://github.com/alpha-baby)
 
 ### Optimization
 
@@ -17,9 +18,7 @@
 - add OnConnectionEvent interface in api.Connection [@CodingSinger](https://github.com/CodingSinger)
 - weighted roundrobin loadbalancer underwriting policy adjusted to normal roundrobin load balancer [@alpha-baby](https://github.com/alpha-baby)
 - enhance interface value in mosn variable model [@antJack](https://github.com/antJack)
-- remove proxy-wasm-go-sdk from go.mod introduced by examples [@antJack](https://github.com/antJack)
 - bump github.com/miekg/dns from 1.0.14 to 1.1.25
-- enhance grpc networkFilter graceful stop [@alpha-baby](https://github.com/alpha-baby)
 - subset also follows the same underwriting strategy when determining the number of machines and whether they exist [@antJack](https://github.com/antJack)
 
 ### Bug fixes
@@ -33,6 +32,7 @@
 - fix the HOST information error from the connection pool [@Sharember](https://github.com/Sharember)
 - fix data race bug when choose weighted cluster [@alpha-baby](https://github.com/alpha-baby)
 - return invalid host if host is unhealthy in EdfLoadBalancer [@alpha-baby](https://github.com/alpha-baby)
+- fix the problem that XProtocol routing configuration timeout is invalid [@nejisama](https://github.com/nejisama)
 
 ## v0.23.0
 
