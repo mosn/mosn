@@ -17,7 +17,7 @@
 - 优化 Cluster 配置更新时的健康检查更新模式 [@alpha-baby](https://github.com/alpha-baby)
 - api.Connection 新增 OnConnectionEvent 接口 [@CodingSinger](https://github.com/CodingSinger)
 - 权重轮询负载均衡兜底策略调整为普通轮询负载均衡 [@alpha-baby](https://github.com/alpha-baby)
-- 在mosn变量模块中增加 interface 值类型 [@antJack](https://github.com/antJack)
+- 在 MOSN 变量模块中增加 interface 值类型 [@antJack](https://github.com/antJack)
 - Subset 判断机器个数与是否存在时，同样遵循兜底策略 [@antJack](https://github.com/antJack)
 
 ### Bug 修复
@@ -28,7 +28,7 @@
 - 修复 HTTP1 短连接无法生效的异常 [@taoyuanyuan](https://github.com/taoyuanyuan)
 - 修复国密 TLS SM3 套件在连接断开后存在的内存泄漏 [@ZengKe](https://github.com/william-zk)
 - 当连接被对端重置或管道断裂时 HTTP2 支持重试 [@taoyuanyuan](https://github.com/taoyuanyuan)
-- 修复从连接池中获取到的 HOST 信息错误 [@Sharember](https://github.com/Sharember)
+- 修复从连接池中获取到的 host 信息错误 [@Sharember](https://github.com/Sharember)
 - 修复在 route 模块中选择权重集群的数据竞争 [@alpha-baby](https://github.com/alpha-baby)
 - 如果 host 不健康时，在Edf负载均衡算法中不能正确返回 [@alpha-baby](https://github.com/alpha-baby)
 - 修复 XProtocol 路由配置超时无效的问题 [@nejisama](https://github.com/nejisama)

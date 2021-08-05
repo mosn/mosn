@@ -28,7 +28,7 @@
 - Fix the exception that HTTP short connection cannot take effect [@taoyuanyuan](https://github.com/taoyuanyuan)
 - Fix a memory leak in the TLS over SM3 suite after disconnection [@ZengKe](https://github.com/william-zk)
 - HTTP2 support doretry when connection reset by peer or broken pipe [@taoyuanyuan](https://github.com/taoyuanyuan)
-- Fix the HOST information error from the connection pool [@Sharember](https://github.com/Sharember)
+- Fix the host information error from the connection pool [@Sharember](https://github.com/Sharember)
 - Fix data race bug when choose weighted cluster [@alpha-baby](https://github.com/alpha-baby)
 - Return invalid host if host is unhealthy in EdfLoadBalancer [@alpha-baby](https://github.com/alpha-baby)
 - Fix the problem that XProtocol routing configuration timeout is invalid [@nejisama](https://github.com/nejisama)
