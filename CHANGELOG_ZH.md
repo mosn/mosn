@@ -18,7 +18,6 @@
 - api.Connection 新增 OnConnectionEvent 接口 [@CodingSinger](https://github.com/CodingSinger)
 - 权重轮询负载均衡兜底策略调整为普通轮询负载均衡 [@alpha-baby](https://github.com/alpha-baby)
 - 在mosn变量模块中增加 interface 值类型 [@antJack](https://github.com/antJack)
-- 升级依赖包：github.com/miekg/dns 从1.0.14 到 1.1.25
 - Subset 判断机器个数与是否存在时，同样遵循兜底策略 [@antJack](https://github.com/antJack)
 
 ### Bug 修复

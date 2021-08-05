@@ -18,7 +18,6 @@
 - Add OnConnectionEvent interface in api.Connection [@CodingSinger](https://github.com/CodingSinger)
 - Weighted roundrobin loadbalancer underwriting policy adjusted to normal roundrobin load balancer [@alpha-baby](https://github.com/alpha-baby)
 - Enhance interface value in mosn variable model [@antJack](https://github.com/antJack)
-- Bump github.com/miekg/dns from 1.0.14 to 1.1.25
 - Subset also follows the same underwriting strategy when determining the number of machines and whether they exist [@antJack](https://github.com/antJack)
 
 ### Bug fixes
