@@ -95,7 +95,7 @@ func ConvertListenerConfig(xdsListener *xdsapi.Listener) *v2.Listener {
 			Inspector:      true,
 			AccessLogs:     convertAccessLogs(xdsListener),
 		},
-		Addr: convertAddress(xdsListener.Address),
+		Addr:                    convertAddress(xdsListener.Address),
 		PerConnBufferLimitBytes: xdsListener.GetPerConnectionBufferLimitBytes().GetValue(),
 	}
 
@@ -848,6 +848,7 @@ func ConvertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 			//RequireTLS:              xdsVirtualHost.GetRequireTls().String(),
 			//VirtualClusters:         convertVirtualClusters(xdsVirtualHost.GetVirtualClusters()),
 			RequestHeadersToAdd:     convertHeadersToAdd(xdsVirtualHost.GetRequestHeadersToAdd()),
+			RequestHeadersToRemove:  xdsVirtualHost.GetRequestHeadersToRemove(),
 			ResponseHeadersToAdd:    convertHeadersToAdd(xdsVirtualHost.GetResponseHeadersToAdd()),
 			ResponseHeadersToRemove: xdsVirtualHost.GetResponseHeadersToRemove(),
 			// TODO: rename the method `convertPerRouteConfig` to `convertPerFilterConfig`
@@ -860,6 +861,7 @@ func ConvertRouterConf(routeConfigName string, xdsRouteConfig *xdsapi.RouteConfi
 		RouterConfigurationConfig: v2.RouterConfigurationConfig{
 			RouterConfigName:        xdsRouteConfig.GetName(),
 			RequestHeadersToAdd:     convertHeadersToAdd(xdsRouteConfig.GetRequestHeadersToAdd()),
+			RequestHeadersToRemove:  xdsRouteConfig.GetRequestHeadersToRemove(),
 			ResponseHeadersToAdd:    convertHeadersToAdd(xdsRouteConfig.GetResponseHeadersToAdd()),
 			ResponseHeadersToRemove: xdsRouteConfig.GetResponseHeadersToRemove(),
 		},

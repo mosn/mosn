@@ -79,7 +79,7 @@ func NewRouteRuleImplBase(vHost api.VirtualHost, route *v2.Router) (*RouteRuleIm
 		hostRewrite:           route.Route.HostRewrite,
 		autoHostRewrite:       route.Route.AutoHostRewrite,
 		autoHostRewriteHeader: route.Route.AutoHostRewriteHeader,
-		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, nil),
+		requestHeadersParser:  getHeaderParser(route.Route.RequestHeadersToAdd, route.Route.RequestHeadersToRemove),
 		responseHeadersParser: getHeaderParser(route.Route.ResponseHeadersToAdd, route.Route.ResponseHeadersToRemove),
 		upstreamProtocol:      route.Route.UpstreamProtocol,
 		perFilterConfig:       route.PerFilterConfig,
