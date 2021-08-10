@@ -64,6 +64,10 @@ func Init(typ string, config map[string]interface{}) error {
 }
 
 func Enable() {
+	// We cannot set trace to enable if driver is nil, or the reuqest will be panic.
+	if global.driver == nil {
+		return
+	}
 	global.enable = true
 }
 
