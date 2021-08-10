@@ -13,11 +13,12 @@ require (
 	github.com/cch123/supermonkey v1.0.1-0.20210420090843-d792ef7fb1d7
 	github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f
 	github.com/dchest/siphash v1.2.1
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/envoyproxy/go-control-plane v0.9.4
 	github.com/ghodss/yaml v1.0.0
 	github.com/go-chi/chi v4.1.0+incompatible
 	github.com/gogo/protobuf v1.3.1
+	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.3.5
 	github.com/google/cel-go v0.5.1
