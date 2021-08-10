@@ -161,9 +161,11 @@ github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/types
+# github.com/golang-jwt/jwt v3.2.2+incompatible
+## explicit
+github.com/golang-jwt/jwt
 # github.com/golang-jwt/jwt/v4 v4.0.0
 ## explicit
-github.com/golang-jwt/jwt/v4
 # github.com/golang/mock v1.4.4
 ## explicit
 github.com/golang/mock/gomock

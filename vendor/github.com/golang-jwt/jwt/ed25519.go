@@ -10,7 +10,7 @@ var (
 	ErrEd25519Verification = errors.New("ed25519: verification error")
 )
 
-// SigningMethodEd25519 implements the EdDSA family.
+// Implements the EdDSA family
 // Expects ed25519.PrivateKey for signing and ed25519.PublicKey for verification
 type SigningMethodEd25519 struct{}
 
@@ -30,7 +30,7 @@ func (m *SigningMethodEd25519) Alg() string {
 	return "EdDSA"
 }
 
-// Verify implements token verification for the SigningMethod.
+// Implements the Verify method from SigningMethod
 // For this verify method, key must be an ed25519.PublicKey
 func (m *SigningMethodEd25519) Verify(signingString, signature string, key interface{}) error {
 	var err error
@@ -59,7 +59,7 @@ func (m *SigningMethodEd25519) Verify(signingString, signature string, key inter
 	return nil
 }
 
-// Sign implements token signing for the SigningMethod.
+// Implements the Sign method from SigningMethod
 // For this signing method, key must be an ed25519.PrivateKey
 func (m *SigningMethodEd25519) Sign(signingString string, key interface{}) (string, error) {
 	var ed25519Key ed25519.PrivateKey

@@ -1,6 +1,6 @@
 package jwt
 
-// SigningMethodNone implements the none signing method.  This is required by the spec
+// Implements the none signing method.  This is required by the spec
 // but you probably should never use it.
 var SigningMethodNone *signingMethodNone
 

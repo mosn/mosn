@@ -13,7 +13,7 @@ var (
 	ErrECDSAVerification = errors.New("crypto/ecdsa: verification error")
 )
 
-// SigningMethodECDSA implements the ECDSA family of signing methods.
+// Implements the ECDSA family of signing methods signing methods
 // Expects *ecdsa.PrivateKey for signing and *ecdsa.PublicKey for verification
 type SigningMethodECDSA struct {
 	Name      string
@@ -53,7 +53,7 @@ func (m *SigningMethodECDSA) Alg() string {
 	return m.Name
 }
 
-// Verify implements token verification for the SigningMethod.
+// Implements the Verify method from SigningMethod
 // For this verify method, key must be an ecdsa.PublicKey struct
 func (m *SigningMethodECDSA) Verify(signingString, signature string, key interface{}) error {
 	var err error
@@ -95,7 +95,7 @@ func (m *SigningMethodECDSA) Verify(signingString, signature string, key interfa
 	return ErrECDSAVerification
 }
 
-// Sign implements token signing for the SigningMethod.
+// Implements the Sign method from SigningMethod
 // For this signing method, key must be an ecdsa.PrivateKey struct
 func (m *SigningMethodECDSA) Sign(signingString string, key interface{}) (string, error) {
 	// Get the key
