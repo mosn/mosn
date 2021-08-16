@@ -121,7 +121,7 @@ func TestWasmManagerDiffVmConfig(t *testing.T) {
 	assert.Equal(t, newInstanceCount, 2*config.InstanceNum)
 }
 
-func TestWasmManagerReloadWasmByName(t *testing.T) {
+func TestWasmManagerReloadWasm(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -153,7 +153,20 @@ func TestWasmManagerReloadWasmByName(t *testing.T) {
 	}
 
 	assert.Nil(t, GetWasmManager().AddOrUpdateWasm(config))
-	assert.Nil(t, GetWasmManager().AddOrUpdateWasm(config))
+
+	config2 := v2.WasmPluginConfig{
+		PluginName: "testPluginDiffWasm",
+		VmConfig: &v2.WasmVmConfig{
+			Engine: "testWasmEngine",
+			Path:   "/tmp/foo.wasm",
+		},
+		InstanceNum: 4,
+	}
+
+	assert.Nil(t, GetWasmManager().AddOrUpdateWasm(config2))
+
+	assert.Equal(t, newModuleCount, 2)
+	assert.Equal(t, newInstanceCount, 2*config.InstanceNum)
 }
 
 func TestWasmManagerInstanceNum(t *testing.T) {
