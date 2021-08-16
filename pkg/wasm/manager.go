@@ -55,7 +55,9 @@ func (w *wasmManagerImpl) shouldCreateNewPlugin(newConfig v2.WasmPluginConfig, o
 
 	if newConfig.VmConfig.Engine != oldConfig.VmConfig.Engine ||
 		newConfig.VmConfig.Path != oldConfig.VmConfig.Path ||
-		newConfig.VmConfig.Url != oldConfig.VmConfig.Url {
+		newConfig.VmConfig.Url != oldConfig.VmConfig.Url ||
+		newConfig.VmConfig.Md5 == "" ||
+		newConfig.VmConfig.Md5 != oldConfig.VmConfig.Md5 {
 		return true
 	}
 
@@ -96,18 +98,6 @@ func (w *wasmManagerImpl) updateWasm(pluginWrapper types.WasmPluginWrapper, newC
 
 	log.DefaultLogger.Infof("[wasm][manager] AddOrUpdateWasm update wasm plugin: %v, config: %v", newConfig.PluginName, newConfig)
 
-	return nil
-}
-
-func (w *wasmManagerImpl) forceUpdateWasm(pluginWrapper types.WasmPluginWrapper, newConfig v2.WasmPluginConfig) error {
-	plugin, err := NewWasmPlugin(newConfig)
-	if err != nil {
-		log.DefaultLogger.Errorf("[wasm][manager] forceUpdateWasm fail to create wasm plugin: %v, err: %v", newConfig.PluginName, err)
-		return err
-	}
-
-	pluginWrapper.Update(newConfig, plugin)
-	log.DefaultLogger.Infof("[wasm][manager] forceUpdateWasm update wasm plugin: %v, config: %v", newConfig.PluginName, newConfig)
 	return nil
 }
 
@@ -181,27 +171,5 @@ func (w *wasmManagerImpl) UninstallWasmPluginByName(pluginName string) error {
 
 	log.DefaultLogger.Infof("[wasm][manager] UninstallWasmPluginByName uninstall wasm plugin: %v", pluginName)
 
-	return nil
-}
-
-func (w *wasmManagerImpl) ReloadWasmByName(pluginName string) error {
-	v, ok := w.pluginMap.Load(pluginName)
-	if !ok {
-		log.DefaultLogger.Errorf("[wasm][manager] ReloadWasmByName plugin not found, name: %v", pluginName)
-		return ErrPluginNotFound
-	}
-
-	pw, ok := v.(*pluginWrapper)
-	if !ok {
-		log.DefaultLogger.Errorf("[wasm][manager] ReloadWasmByName unexpected type in map")
-		return ErrUnexpectedType
-	}
-
-	if err := w.forceUpdateWasm(pw, pw.GetConfig()); err != nil {
-		log.DefaultLogger.Errorf("[wasm][manager] ReloadWasmByName force update wasm plugin error, err: %v", err)
-		return err
-	}
-
-	log.DefaultLogger.Infof("[wasm][manager] ReloadWasmByName reload wasm plugin success: %v", pluginName)
 	return nil
 }

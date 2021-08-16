@@ -36,9 +36,6 @@ type WasmManager interface {
 
 	// UninstallWasmPluginByName remove wasm plugin by name
 	UninstallWasmPluginByName(pluginName string) error
-
-	// ReloadWasmByName reload wasm plugin by name without modify config
-	ReloadWasmByName(pluginName string) error
 }
 
 // WasmPluginWrapper wraps wasm plugin with its config and plugin handler
