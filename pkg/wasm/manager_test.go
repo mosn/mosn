@@ -153,7 +153,7 @@ func TestWasmManagerReloadWasmByName(t *testing.T) {
 	}
 
 	assert.Nil(t, GetWasmManager().AddOrUpdateWasm(config))
-	assert.Nil(t, GetWasmManager().ReloadWasmByName("testPluginDiffWasm"))
+	assert.Nil(t, GetWasmManager().AddOrUpdateWasm(config))
 }
 
 func TestWasmManagerInstanceNum(t *testing.T) {
