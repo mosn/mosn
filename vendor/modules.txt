@@ -83,8 +83,6 @@ github.com/davecgh/go-spew/spew
 # github.com/dchest/siphash v1.2.1
 ## explicit
 github.com/dchest/siphash
-# github.com/dgrijalva/jwt-go v3.2.0+incompatible
-## explicit
 # github.com/dubbogo/getty v1.3.4
 github.com/dubbogo/getty
 # github.com/dubbogo/go-zookeeper v1.0.3
